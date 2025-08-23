@@ -1,5 +1,14 @@
 {
     "version": "0.2.0",
+    "compounds": [
+        {
+            "name": "Launch MW and UI",
+            "configurations": [
+                "c#-MiddlewareServer",
+                "c#-Blazor UI"
+            ]
+        }
+    ],
     "configurations": [
         {
             "name": ".NET Core SSH Attach ubu20",
@@ -8,7 +17,11 @@
             "processId": "${command:pickRemoteProcess}",
             "pipeTransport": {
                 "pipeProgram": "ssh",
-                "pipeArgs": [ "-T", "-p 22006", "tim@localhost" ],
+                "pipeArgs": [
+                    "-T",
+                    "-p 22006",
+                    "tim@localhost"
+                ],
                 "debuggerPath": "~/vsdbg-root/vsdbg",
                 "pipeCwd": "${workspaceRoot}",
                 "quoteArgs": true
@@ -17,7 +30,7 @@
                 "/home/tim/firewall-orchestrator/roles": "${workspaceRoot}"
             },
             "logging": {
-              "logging.diagnosticsLog.protocolMessages": true
+                "logging.diagnosticsLog.protocolMessages": true
             }
         },
         {
@@ -101,18 +114,41 @@
                 "PYTHONPATH": "${PYTHONPATH}:${workspaceRoot}"
             },
             "args": [
-                "-m6",
+                "-m1",
                 "-d1",
                 "-f",
                 "-s",
-                //"-l",
-                // "-c"
-                //"-l250"
-                //  41 - lab fortimanager
-                //"-ihttps://fwodemodata.cactus.de/demo04_cpr8x.json",
-                //"-ihttps://fwodemodata.cactus.de/demo01_fortiMgrLab.json"
-                //"-ihttps://fwodemodata.cactus.de/demo05_fortiMgr2.json"
-                //"-ihttps://fwodemodata.cactus.de/big/xxx.json",
+                // "-c",
+                // "-l66",
+                // "-l500",
+                // "-ihttps://fwodemodata.cactus.de/demo04_cpr8x.json",
+                // "-ihttps://fwodemodata.cactus.de/demo05_fortiMgr2.json"
+                // "-ihttps://fwodemodata.cactus.de/demo11-r82_v9.json",
+            ]
+        },
+        {
+            "name": "py-test-ruleorder",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/roles/importer/files/test/ruleorder.py",
+            "console": "integratedTerminal",
+            "env": {
+                "PYTHONPATH": "${PYTHONPATH}:${workspaceRoot}"
+            },
+            "args": []
+        },
+        {
+            "name": "py-kimport",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/roles/importer/files/importer/checkpointR8x/scripts/Python-nsPYm-v2/get_all_firewall_data.py",
+            "console": "integratedTerminal",
+            "env": {
+                "PYTHONPATH": "${PYTHONPATH}:${workspaceRoot}"
+            },
+            "args": [
+                "itsecorg",
+                "st8chel"
             ]
         },
         {
@@ -310,24 +346,24 @@
                 "-i/tmp/fworch-config.graphql"
             ]
         },
-        {
-            "name": "py-cpr8x-autodiscovery",
-            "type": "debugpy",
-            "request": "launch",
-            "program": "${workspaceFolder}/roles/importer/files/importer/checkpointR8x/auto-discover.py",
-            "console": "integratedTerminal",
-            "cwd": "${workspaceFolder}/roles/importer/files/importer/checkpointR8x",
-            "env": {
-                "PYTHONPATH": "${PYTHONPATH}:${workspaceRoot}"
-            },
-            "args": [
-                "-a192.168.100.110",
-                "-w/home/tim/secrets/cp_apiuser_pwd",
-                "-uitsecorg",
-                "-d4",
-                "-fjson"
-            ]
-        },
+        // {
+        //     "name": "py-cpr8x-autodiscovery",
+        //     "type": "debugpy",
+        //     "request": "launch",
+        //     "program": "${workspaceFolder}/roles/importer/files/importer/checkpointR8x/auto-discover.py",
+        //     "console": "integratedTerminal",
+        //     "cwd": "${workspaceFolder}/roles/importer/files/importer/checkpointR8x",
+        //     "env": {
+        //         "PYTHONPATH": "${PYTHONPATH}:${workspaceRoot}"
+        //     },
+        //     "args": [
+        //         "-a192.168.100.111",
+        //         "-w/home/tim/secrets/cp_apiuser_pwd",
+        //         "-uitsecorg",
+        //         "-d4",
+        //         "-fjson"
+        //     ]
+        // },
         {
             "name": "py-import-main-loop",
             "type": "debugpy",
@@ -361,6 +397,12 @@
             "type": "coreclr",
             "request": "attach",
             "processId": "${command:pickProcess}"
+        },
+        {
+            "name": "Create mock_config",
+            "type": "python",
+            "request": "launch",
+            "module": "roles.importer.files.test.mocking.mock_config"
         }
     ]
 }

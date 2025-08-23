@@ -135,44 +135,9 @@
                 editableConfig.EmailServerAddress = actEmailConnection.ServerAddress;
                 editableConfig.EmailPort = actEmailConnection.Port;
                 editableConfig.EmailTls = actEmailConnection.Encryption;
-                if (actEmailConnection.User != null)
-                {
-                    editableConfig.EmailUser = actEmailConnection.User;
-                }
-                else
-                {
-                    editableConfig.EmailUser = "";
-                }
-                if (actEmailConnection.Password != null)
-                {
-                    string mainKey = AesEnc.GetMainKey();
-                    string encryptedSecret = actEmailConnection.Password;
-
-                    // only encrypt secret if it was not already encrypted
-                    try
-                    {
-                        string decryptedSecret = AesEnc.Decrypt(actEmailConnection.Password, mainKey);
-                    }
-                    catch (Exception)
-                    {
-                        encryptedSecret = AesEnc.Encrypt(actEmailConnection.Password, mainKey);
-                        actEmailConnection.Password = encryptedSecret;
-                    }
-
-                    editableConfig.EmailPassword = actEmailConnection.Password;
-                }
-                else
-                {
-                    editableConfig.EmailPassword = "";
-                }
-                if (actEmailConnection.SenderEmailAddress != null)
-                {
-                    editableConfig.EmailSenderAddress = actEmailConnection.SenderEmailAddress;
-                }
-                else
-                {
-                    editableConfig.EmailSenderAddress = "";
-                }
+                editableConfig.EmailUser = actEmailConnection.User ?? "";
+                editableConfig.EmailPassword = actEmailConnection.Password != null ? AesEnc.TryEncrypt(actEmailConnection.Password) : "";
+                editableConfig.EmailSenderAddress = actEmailConnection.SenderEmailAddress ?? "";
                 await globalConfig.WriteToDatabase(editableConfig, apiConnection);
                 DisplayMessageInUi(null, userConfig.GetText("change_default"), userConfig.GetText("U5301"), false);
             }
@@ -207,16 +172,15 @@
     {
         try
         {
-            MailKitMailer mailer = new(actEmailConnection);
             if (userConfig.User.Email == null || userConfig.User.Email  == "")
             {
                 DisplayMessageInUi(null, userConfig.GetText("test_email_connection"), userConfig.GetText("E8101"), true);
             }
             else 
             {
-                MailData mailData = new MailData(new List<string> { userConfig.User.Email }, "Test mail from Firewall Orchestrator", "... this is the body - just testing ...");
+                MailData mailData = new MailData(new List<string> { userConfig.User.Email }, "Test mail from Firewall Orchestrator"){ Body = "... this is the body - just testing ..." };
 
-                if (await mailer.SendAsync(mailData, actEmailConnection, new CancellationToken()))
+                if (await MailKitMailer.SendAsync(mailData, actEmailConnection, false, new CancellationToken()))
                 {
                     DisplayMessageInUi(null, userConfig.GetText("test_email_connection"), userConfig.GetText("U5402"), false);
                 } 

@@ -1,4 +1,5 @@
-﻿using Newtonsoft.Json;
+﻿using FWO.Basics;
+using Newtonsoft.Json;
 using System.Text.Json.Serialization;
 
 namespace FWO.Data
@@ -19,6 +20,9 @@ namespace FWO.Data
 
         [JsonProperty("name"), JsonPropertyName("name")]
         public string Name { get; set; } = "";
+
+        [JsonProperty("uid"), JsonPropertyName("uid")]
+        public string? Uid { get; set; } = "";
 
         [JsonProperty("hostname"), JsonPropertyName("hostname")]
         public string Hostname { get; set; } = "";
@@ -41,8 +45,11 @@ namespace FWO.Data
         [JsonProperty("superManager"), JsonPropertyName("superManager")]
         public int? SuperManagerId { get; set; }
 
+        [JsonProperty("is_super_manager"), JsonPropertyName("is_super_manager")]
+        public bool IsSupermanager { get; set; } = false;
+
         [JsonProperty("importerHostname"), JsonPropertyName("importerHostname")]
-        public string ImporterHostname { get; set; } = "";
+        public string? ImporterHostname { get; set; } = "";
 
         [JsonProperty("port"), JsonPropertyName("port")]
         public int Port { get; set; }
@@ -65,6 +72,9 @@ namespace FWO.Data
         [JsonProperty("devices"), JsonPropertyName("devices")]
         public Device[] Devices { get; set; } = [];
 
+        [JsonProperty("rulebases"), JsonPropertyName("rulebases")]
+        public Rulebase[] Rulebases { get; set; } = [];
+
         [JsonProperty("deviceType"), JsonPropertyName("deviceType")]
         public DeviceType DeviceType { get; set; } = new();
 
@@ -73,6 +83,14 @@ namespace FWO.Data
 
         [JsonProperty("extMgtData"), JsonPropertyName("extMgtData")]
         public string? ExtMgtData { get; set; }
+
+        // only relevant for super managers, normal managers do not have rulebases
+        [JsonProperty("rulebase_name"), JsonPropertyName("rulebase_name")]
+        public string? RulebaseName { get; set; }
+
+        // only relevant for super managers, normal managers do not have rulebases
+        [JsonProperty("rulebase_uid"), JsonPropertyName("rulebase_uid")]
+        public string? RulebaseUid { get; set; }
 
         public long? RelevantImportId { get; set; }
         public bool Ignore { get; set; }
@@ -87,6 +105,7 @@ namespace FWO.Data
         {
             Id = management.Id;
             Name = management.Name;
+            Uid = management.Uid;
             Hostname = management.Hostname;
             if (management.ImportCredential != null)
                 ImportCredential = new ImportCredential(management.ImportCredential);
@@ -125,15 +144,30 @@ namespace FWO.Data
         {
             return Hostname + ":" + Port;
         }
-        
+
+        public bool Equals(Management management)
+        {
+            return Uid.GenerousCompare(management.Uid) &&
+                   Name.GenerousCompare(management.Name) &&
+                   Hostname.GenerousCompare(management.Hostname) &&
+                   ConfigPath.GenerousCompare(management.ConfigPath) &&
+                   DomainUid.GenerousCompare(management.DomainUid) &&
+                   CloudSubscriptionId.GenerousCompare(management.CloudSubscriptionId) &&
+                   CloudTenantId.GenerousCompare(management.CloudTenantId) &&
+                   SuperManagerId == management.SuperManagerId &&
+                   Port == management.Port;
+        }
+
         public virtual bool Sanitize()
         {
             bool shortened = false;
             Name = Sanitizer.SanitizeMand(Name, ref shortened);
+            Uid = Sanitizer.SanitizeOpt(Uid, ref shortened);
             Hostname = Sanitizer.SanitizeMand(Hostname, ref shortened);
+            Uid = Sanitizer.SanitizeOpt(Uid, ref shortened);
             ConfigPath = Sanitizer.SanitizeOpt(ConfigPath, ref shortened);
             DomainUid = Sanitizer.SanitizeOpt(DomainUid, ref shortened);
-            ImporterHostname = Sanitizer.SanitizeMand(ImporterHostname, ref shortened);
+            ImporterHostname = Sanitizer.SanitizeOpt(ImporterHostname, ref shortened);
             Comment = Sanitizer.SanitizeCommentOpt(Comment, ref shortened);
             CloudSubscriptionId = Sanitizer.SanitizeOpt(CloudSubscriptionId, ref shortened);
             CloudTenantId = Sanitizer.SanitizeOpt(CloudTenantId, ref shortened);

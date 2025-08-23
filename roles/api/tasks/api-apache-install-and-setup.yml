@@ -7,14 +7,9 @@
         - "{{ wsgi_package_name }}"
       environment: "{{ proxy_env }}"
 
-    - name: enable apache modules proxy proxy_http ssl
+    - name: enable apache2 required modules
       apache2_module: state=present name={{ item }}
-      loop:
-        - rewrite
-        - proxy
-        - proxy_http
-        - ssl
-        - proxy_wstunnel
+      loop: "{{ apache2_required_modules }}"
 
     - set_fact: api_server_name="{{ ansible_hostname }}"          #  this only works for importer = backend
 
@@ -43,12 +38,7 @@
   
     - name: enable apache modules proxy proxy_http ssl rewrite proxy_wstunnel
       apache2_module: state=present name={{ item }}
-      loop:
-        - rewrite
-        - proxy
-        - proxy_http
-        - ssl
-        - proxy_wstunnel
+      loop: "{{ apache2_required_modules }}"
 
     - name: copy api httpd config file to api target
       template:
@@ -57,14 +47,8 @@
         owner: root
         group: root
 
-
     - name: enable {{ product_name }} web site
       command: "a2ensite {{ product_name }}-api"
-
-    # - name: increase apache timeout to {{ apache_timeout }} seconds (while importing we hit the old 15 min limit)
-    #   lineinfile:
-    #     path: /etc/apache2/apache2.conf
-    #     line: "Timeout {{ apache_timeout }}"
 
     - name: add port to apache
       lineinfile:

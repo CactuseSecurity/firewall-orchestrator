@@ -90,12 +90,10 @@ class FwConfigImport():
                     self.import_state.MgmDetails.Id = id
                 config_importer = FwConfigImport()
                 config_importer.import_single_config(manager)
-                if import_state.Stats.ErrorCount > 0:
+                if import_state.Stats.ErrorCount>0:
                     raise FwoImporterError("Import failed due to errors.")
                 else:
-                    config_importer.storeLatestConfig()
-
-
+                    config_importer.write_latest_config()
 
 
     def clear_management(self) -> FwConfigManagerListController:
@@ -208,7 +206,7 @@ class FwConfigImport():
             raise FwoApiFailedDeleteOldImports(f"management id: {mgmId}") from None
 
 
-    def storeLatestConfig(self):
+    def write_latest_config(self):
         logger = getFwoLogger(debug_level=self.import_state.DebugLevel)
         changes = 0
         errorsFound = 0

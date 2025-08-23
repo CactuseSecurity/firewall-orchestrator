@@ -1,11 +1,13 @@
 @implements IDisposable
+@using FWO.Data.Modelling
+@using FWO.Middleware.Client
 @using FWO.Services.EventMediator.Events
 @using FWO.Services.EventMediator.Interfaces
 @using FWO.Ui.Data
-@using FWO.Data.Modelling
 
 @inject UserConfig UserConfig
 @inject GlobalConfig GlobalConfig
+@inject MiddlewareClient middlewareClient
 @inject ApiConnection ApiConnection
 @inject IEventMediator EventMediator
 
@@ -45,7 +47,6 @@
     [Parameter, EditorRequired]
     required public string SupportedFileFormats { get; set; } = "";
 
-    private InputFileChangeEventArgs? InputFileChangeEventArgs;
     private bool Loading { get; set; }
 
     private bool UploadSuccess { get; set; }
@@ -95,7 +96,7 @@
 
         Loading = true;
 
-        FileUploadService fileUploadService = new(ApiConnection, UserConfig, SupportedFileFormats, GlobalConfig, EventMediator);
+        FileUploadService fileUploadService = new(ApiConnection, UserConfig, middlewareClient, SupportedFileFormats, EventMediator);
 
         FileUploadEventArgs fileUploadEventArgs = await fileUploadService.ReadFileToBytes(e);
 

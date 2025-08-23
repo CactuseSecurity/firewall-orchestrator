@@ -5,7 +5,7 @@
     <Body>
         @if (RollbackMode)
         {
-            if(LastIncompleteImport != null && LastIncompleteImport.Length > 0)
+            if (LastIncompleteImport != null && LastIncompleteImport.Length > 0)
             {
                 <p>@(userConfig.GetText("U5104") + (LastIncompleteImport[0].StartTime != null ? Math.Round(((TimeSpan)(DateTime.Now - LastIncompleteImport[0].StartTime!)).TotalMinutes).ToString() : "?") + userConfig.GetText("U5105"))</p>
             }
@@ -19,7 +19,14 @@
         <div class="btn-group">
             <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.Importer}")" Context="xxx">
                 <Authorized>
-                    <button type="button" class="btn btn-sm btn-danger" @onclick="async () => {await Rollback(); RollbackMode = false; await Closing.InvokeAsync(RollbackMode);}">@(userConfig.GetText("rollback"))</button>
+                    @if (LastIncompleteImport != null && LastIncompleteImport.Length > 0)
+                    {
+                        <button type="button" class="btn btn-sm btn-danger" @onclick="async () => { await Rollback(); RollbackMode = false; await Closing.InvokeAsync(RollbackMode); }">@(userConfig.GetText("rollback"))</button>
+                    }
+                    else
+                    {
+                        <button type="button" class="btn btn-sm btn-danger" @onclick="async () => { await FullMgmRollback(); RollbackMode = false; await Closing.InvokeAsync(RollbackMode); }">@(userConfig.GetText("full_rollback"))</button>
+                    }
                 </Authorized>
                 <NotAuthorized>
                     <button type="button" class="btn btn-sm btn-danger" disabled>@(userConfig.GetText("rollback"))</button>
@@ -60,25 +67,23 @@
         Closing.InvokeAsync(RollbackMode);
     }
 
-    private async Task Rollback()
+
+    private async Task RollbackSingleImport(int mgm, long importId)
     {
         try
         {
             RollbackMode = false;
             workInProgress = false;
-            var Variables = new { mgmId = ManagementId };
-            int affectedRows = (await apiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.DeviceQueries.deleteImport, Variables)).AffectedRows;
-            if (affectedRows > 0)
-            {
-                Log.WriteDebug("Delete Import", $"deleted {affectedRows} rows from Management Id {ManagementId}");
-                workInProgress = false;
-                DisplayMessageInUi(null, userConfig.GetText("rollback_import"), userConfig.GetText("U5107"), false);
-            }
-            else
-            {
-                workInProgress = false;
-                DisplayMessageInUi(null, userConfig.GetText("rollback_import"), userConfig.GetText("U5106"), false);
-            }
+            var variablesRollback = new { importId = importId };
+            var ReturnId = await apiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.ImportQueries.rollbackLastImport, variablesRollback);
+
+            // var variablesDeleteLatestConfig = new { mgmId = ManagementId };
+            // ReturnId = await apiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.ImportQueries.deleteLatestConfig, variablesDeleteLatestConfig);
+
+            Log.WriteDebug("Delete Import", $"rolled back last import (id={importId}) of mangement with ID {ManagementId}");
+            workInProgress = false;
+
+            DisplayMessageInUi(null, userConfig.GetText("rollback_import"), userConfig.GetText("U5107"), false);
         }
         catch (System.Exception exception)
         {
@@ -86,4 +91,115 @@
             DisplayMessageInUi(exception, userConfig.GetText("rollback_import"), "", true);
         }
     }
+
+    private async Task Rollback()
+    {
+        try
+        {
+            RollbackMode = false;
+            workInProgress = false;
+            var variablesGetLastImportId = new { mgmId = ManagementId };
+
+            List<ImportControl> importList = await apiConnection.SendQueryAsync<List<ImportControl>>(FWO.Api.Client.Queries.ImportQueries.getLastImport, variablesGetLastImportId);
+            if (importList.Count != 1)
+            {
+                // TODO: add a check if the python import for this mgmt is still running
+                workInProgress = false;
+                DisplayMessageInUi(null, userConfig.GetText("not_imported_yet"), userConfig.GetText("U51XX"), false);
+            }
+            else
+            {
+                long? lastImportId = importList[0].ControlId;
+                if (lastImportId != null)
+                {
+                    await RollbackSingleImport(ManagementId, (long)lastImportId);
+                }
+            }
+        }
+        catch (System.Exception exception)
+        {
+            workInProgress = false;
+            DisplayMessageInUi(exception, userConfig.GetText("rollback_import"), "", true);
+        }
+        await DeleteLatestConfig(ManagementId);
+    }
+
+    private async Task FullMgmRollback()
+    {
+        try
+        {
+            RollbackMode = false;
+            workInProgress = false;
+            var variablesGetLastImportId = new { mgmId = ManagementId };
+
+            List<ImportControl> importList = await apiConnection.SendQueryAsync<List<ImportControl>>(FWO.Api.Client.Queries.ImportQueries.getLastImport, variablesGetLastImportId);
+            if (importList.Count != 1)
+            {
+                // TODO: add a check if the python import for this mgmt is still running
+                workInProgress = false;
+                DisplayMessageInUi(null, userConfig.GetText("not_imported_yet"), userConfig.GetText("U51XX"), false);
+            }
+            else
+            {
+                long? lastImportId = importList[0].ControlId;
+                if (lastImportId != null)
+                {
+                    try
+                    {
+                        RollbackMode = false;
+                        workInProgress = false;
+
+                        bool managementImportsStillExists = true;
+                        while (managementImportsStillExists)
+                        {
+                            var variablesGetManagement = new { mgmId = ManagementId };
+                            List<ImportControl>? getLastImportResponse = await apiConnection.SendQueryAsync<List<ImportControl>>(FWO.Api.Client.Queries.ImportQueries.getLastImport, variablesGetManagement);
+                            lastImportId = getLastImportResponse.FirstOrDefault()?.ControlId;
+                            if (lastImportId == null)
+                            {
+                                managementImportsStillExists = false;
+                            }
+                            else
+                            {
+                                await RollbackSingleImport(ManagementId, (long)lastImportId);
+                            }
+                        }
+
+                        Log.WriteDebug("Delete Import", $"rolled back last import (id={lastImportId}) of mangement with ID {ManagementId}");
+                        workInProgress = false;
+                        DisplayMessageInUi(null, userConfig.GetText("rollback_import"), userConfig.GetText("U5107"), false);
+                    }
+                    catch (System.Exception exception)
+                    {
+                        workInProgress = false;
+                        DisplayMessageInUi(exception, userConfig.GetText("rollback_import"), "", true);
+                    }
+
+                }
+            }
+        }
+        catch (System.Exception exception)
+        {
+            workInProgress = false;
+            DisplayMessageInUi(exception, userConfig.GetText("rollback_import"), "", true);
+        }
+        await DeleteLatestConfig(ManagementId);
+    }
+
+    private async Task DeleteLatestConfig(int mgmId)
+    {
+
+        // in any case, delete latest_config for this management
+        try
+        {
+            var variablesDeleteLatestConfig = new { mgmId = ManagementId };
+            ReturnId id = await apiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.ImportQueries.deleteLatestConfig, variablesDeleteLatestConfig);
+        }
+        catch (System.Exception exception)
+        {
+            Log.WriteDebug("Delete latest config", $"error while deleting latest config for mangement with ID {ManagementId}");
+        }
+
+    }
+
 }

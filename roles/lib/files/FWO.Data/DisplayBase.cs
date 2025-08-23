@@ -8,6 +8,13 @@ namespace FWO.Data
 {
     public static class DisplayBase
     {
+        public static StringBuilder DisplayGateway(Device gateway, bool isTechReport, string? gatewayName = null)
+        {
+            StringBuilder result = new ();
+            // result.Append($" <p class=\"no-break\">{gateway.Name}</p>");
+            result.Append($" {gateway.Name}");
+            return result;
+        }        
         public static StringBuilder DisplayService(NetworkService service, bool isTechReport, string? serviceName = null)
         {
             StringBuilder result = new ();
@@ -235,7 +242,7 @@ namespace FWO.Data
             return result;
         }
 
-        public static string DisplayPort(int? port, int? portEnd, bool inBrackets = false)
+        public static string DisplayPort(int? port, int? portEnd, bool inBrackets = false, string? proto = null)
         {
             string result = "";
             if (port != null)
@@ -249,6 +256,7 @@ namespace FWO.Data
                 {
                     result += $"{port}-{portEnd}";
                 }
+                result += proto != null ? $"/{proto}" : "";
                 result += inBrackets ? ")" : "";
             }
             return result;

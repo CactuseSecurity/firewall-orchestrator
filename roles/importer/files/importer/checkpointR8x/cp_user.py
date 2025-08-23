@@ -1,15 +1,11 @@
-
 from fwo_log import getFwoLogger
 import json
-# from checkpointR8x.cp_getter import ParseUidToName
 
 def collect_users_from_rule(rule, users): #, objDict):
     if 'rule-number' in rule:  # standard rule
         logger = getFwoLogger()
         if 'type' in rule and rule['type'] != 'place-holder':
             for src in rule["source"]:
-#                srcObj = ParseUidToName(src, objDict)
-
                 # need to get all details for the user first!
                 if 'type' in src:
                     if src['type'] == 'access-role' or src['type'] == 'LegacyUserAtLocation':
@@ -18,7 +14,7 @@ def collect_users_from_rule(rule, users): #, objDict):
                             user_uid = src['uid']
                             user_typ = 'group'
                             user_comment = src.get('comments', None)
-                            user_color = src['color']
+                            user_color = src.get('color', None)
                             if 'users' in src:
                                 user_typ = 'simple'
                         elif src['type'] == 'LegacyUserAtLocation':
@@ -33,6 +29,10 @@ def collect_users_from_rule(rule, users): #, objDict):
                             break
                         if user_comment == '':
                             user_comment = None
+
+                        if user_color is None:
+                            user_color = 'black'
+
                         users.update({user_name: {'user_uid': user_uid, 'user_typ': user_typ,
                                      'user_comment': user_comment, 'user_color': user_color}})
                 else:
@@ -46,8 +46,8 @@ def collect_users_from_rule(rule, users): #, objDict):
 
 # collect_users writes user info into global users dict
 def collect_users_from_rulebase(rulebase, users):
-    if 'layerchunks' in rulebase:
-        for chunk in rulebase['layerchunks']:
+    if 'rulebase_chunks' in rulebase:
+        for chunk in rulebase['rulebase_chunks']:
             if 'rulebase' in chunk:
                 for rule in chunk['rulebase']:
                     collect_users_from_rule(rule, users)
@@ -72,3 +72,5 @@ def getUserUidFromCpApi (userName):
     # dummy implementation returning the name as uid
     return userName
 
+def normalizeUsersLegacy():
+    raise NotImplementedError

@@ -25,21 +25,21 @@ namespace FWO.Api.Client.Queries
         {
             try
             {
-                extRequestDetailsFragment = File.ReadAllText(QueryPath + "extRequest/fragments/extRequestDetails.graphql");
+                extRequestDetailsFragment = GetQueryText("extRequest/fragments/extRequestDetails.graphql");
 
-                addTicketId = File.ReadAllText(QueryPath + "extRequest/addTicketId.graphql");
-                getLatestTicketId = File.ReadAllText(QueryPath + "extRequest/getLatestTicketId.graphql");
-                addExtRequest = File.ReadAllText(QueryPath + "extRequest/addExtRequest.graphql");
-                getOpenRequests = extRequestDetailsFragment + File.ReadAllText(QueryPath + "extRequest/getOpenRequests.graphql");
-                getAndLockOpenRequests = extRequestDetailsFragment + File.ReadAllText(QueryPath + "extRequest/getAndLockOpenRequests.graphql");
-                getLastRequest = extRequestDetailsFragment + File.ReadAllText(QueryPath + "extRequest/getLastRequest.graphql");
-                updateExtRequestCreation = File.ReadAllText(QueryPath + "extRequest/updateExtRequestCreation.graphql");
-                updateExtRequestProcess = File.ReadAllText(QueryPath + "extRequest/updateExtRequestProcess.graphql");
-                updateExtRequestFinal = File.ReadAllText(QueryPath + "extRequest/updateExtRequestFinal.graphql");
-                updateExternalRequestWaitCycles = File.ReadAllText(QueryPath + "extRequest/updateExternalRequestWaitCycles.graphql");
-                updateExternalRequestLock = File.ReadAllText(QueryPath + "extRequest/updateExternalRequestLock.graphql");
+                addTicketId = GetQueryText("extRequest/addTicketId.graphql");
+                getLatestTicketId = GetQueryText("extRequest/getLatestTicketId.graphql");
+                addExtRequest = GetQueryText("extRequest/addExtRequest.graphql");
+                getOpenRequests = extRequestDetailsFragment + GetQueryText("extRequest/getOpenRequests.graphql");
+                getAndLockOpenRequests = extRequestDetailsFragment + GetQueryText("extRequest/getAndLockOpenRequests.graphql");
+                getLastRequest = extRequestDetailsFragment + GetQueryText("extRequest/getLastRequest.graphql");
+                updateExtRequestCreation = GetQueryText("extRequest/updateExtRequestCreation.graphql");
+                updateExtRequestProcess = GetQueryText("extRequest/updateExtRequestProcess.graphql");
+                updateExtRequestFinal = GetQueryText("extRequest/updateExtRequestFinal.graphql");
+                updateExternalRequestWaitCycles = GetQueryText("extRequest/updateExternalRequestWaitCycles.graphql");
+                updateExternalRequestLock = GetQueryText("extRequest/updateExternalRequestLock.graphql");
 
-                subscribeExtRequestStateUpdate = File.ReadAllText(QueryPath + "extRequest/subscribeExtRequestStateUpdate.graphql");
+                subscribeExtRequestStateUpdate = GetQueryText("extRequest/subscribeExtRequestStateUpdate.graphql");
             }
             catch (Exception exception)
             {

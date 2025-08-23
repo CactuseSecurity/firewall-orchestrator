@@ -66,7 +66,7 @@
 # only download new version of api cli, when not restoring from backup:
 - name: download {{ api_hasura_version }} hasura cli binary
   get_url:
-    url: "https://github.com/hasura/graphql-engine/releases/download/{{ api_hasura_version }}/cli-hasura-linux-amd64"
+    url: "https://github.com/hasura/graphql-engine/releases/download/{{ api_hasura_version }}/cli-hasura-linux-{{ linux_architecture }}"
     dest: "{{ api_hasura_cli_bin }}"
     force: true
     mode: "0755"
@@ -90,6 +90,7 @@
     hasura_env:
       HASURA_GRAPHQL_DATABASE_URL:     "postgres://{{ api_user }}:{{ api_user_password }}@{{ fworch_db_host }}:{{ fworch_db_port }}/{{ fworch_db_name }}"
       HASURA_GRAPHQL_ENABLE_CONSOLE:   "true"
+      HASURA_GRAPHQL_REQUEST_SIZE_LIMIT: "262144000"
       HASURA_GRAPHQL_ENABLE_TELEMETRY: "false"
       HASURA_GRAPHQL_ADMIN_SECRET:     "{{ api_hasura_admin_secret }}"
       HASURA_GRAPHQL_SERVER_HOST:       "127.0.0.1"

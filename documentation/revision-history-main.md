@@ -552,3 +552,10 @@ hotfix release
   - fixing services-other ip proto import
 - improved quality control with stricter automated checks
 - various fixes in modelling module
+
+# 8.8.8 - 23.08.2025 MAIN
+- add read-only db user fwo_ro
+- hadening changes 
+  - apache config (information leakage)
+  - listeners (hasura, postgres)
+  - log santisation

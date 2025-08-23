@@ -82,7 +82,7 @@ class FwConfigImport():
             for config in manager.Configs:
                 global_state.normalized_config = config
                 if manager:
-                    # store lobal config as it is needed when importing sub managers which might reference it
+                    # store global config as it is needed when importing sub managers which might reference it
                     global_state.global_normalized_config = config
                 config_importer = FwConfigImport()
                 config_importer.import_single_config(manager)
@@ -270,6 +270,18 @@ class FwConfigImport():
         else:
             return 1
 
+    def get_latest_import_id(self) -> int:
+        logger = getFwoLogger(debug_level=self.import_state.DebugLevel)
+        query = FwoApi.get_graphql_code([fwo_const.graphql_query_path + "import/getLastSuccessImport.graphql"])
+        query_variables = { 'mgmId': self.import_state.MgmDetails.Id }
+        try:
+            query_result = self.import_state.api_connection.call(query, query_variables=query_variables)
+            if 'errors' in query_result:
+                raise FwoImporterError(f"failed to get latest import id for mgm id {str(self.import_state.MgmDetails.Id)}: {str(query_result['errors'])}")
+            return query_result['data']['import_control'][0]['control_id']
+        except Exception:
+            logger.exception(f"failed to get latest import id for mgm id {str(self.import_state.MgmDetails.Id)}: {str(traceback.format_exc())}")
+            raise FwoImporterError("error while trying to get the latest import id")
 
     # return previous config or empty config if there is none; only returns the config of a single management
     def getLatestConfig(self, mgm_id: int) -> FwConfigNormalized:
@@ -297,8 +309,11 @@ class FwConfigImport():
                 raise FwoImporterError(f"failed to get latest config for mgm id {str(self.import_state.MgmDetails.Id)}: {str(query_result['errors'])}")
             else:
                 if len(query_result['data']['latest_config'])>0: # do we have a prev config?
-                    prev_config = FwConfigNormalized.parse_raw(query_result['data']['latest_config'][0]['config'])
-                    
+                    latest_import_id = self.get_latest_import_id()
+                    if query_result['data']['latest_config'][0]['import_id'] == latest_import_id:
+                        prev_config = FwConfigNormalized.model_validate_json(query_result['data']['latest_config'][0]['config'])
+                    else:
+                        raise FwoImporterError(f"fwo_api:import_latest_config - latest config for mgm id {mgm_id} does not match last import id {latest_import_id}")
             return prev_config
         except Exception:
             logger.exception(f"failed to get latest normalized config for mgm id {str(self.import_state.MgmDetails.Id)}: {str(traceback.format_exc())}")

@@ -127,7 +127,7 @@ builder.Services.AddAuthentication(confOptions =>
     {
         RequireExpirationTime = true,
         RequireSignedTokens = true,
-        ValidateAudience = false,
+        ValidateAudience = true,
         ValidateIssuer = false,
         ValidateLifetime = true,
         RoleClaimType = "role",

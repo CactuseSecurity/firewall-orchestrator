@@ -1,5 +1,5 @@
 ### general settings
-product_version: "8.8.7"
+product_version: "8.8.8"
 ansible_user: "{{ lookup('env', 'USER') }}"
 ansible_become_method: sudo
 ansible_python_interpreter: /usr/bin/python3
@@ -68,6 +68,7 @@ fworch_db_port: 5432
 fworch_db_name: fworchdb
 fworch_dbadmin_name: dbadmin
 dbadmin_password_file: "{{ fworch_secrets_dir }}/dbadmin_pwd"
+fwo_db_ro_user_password_file: "{{ fworch_secrets_dir }}/fwo_db_ro_pwd"
 fworch_db_password_file: "{{ fworch_secrets_dir }}/fworch_db_pwd"
 
 ###############################################################
@@ -161,3 +162,20 @@ csharp_test_start_dir: "{{ fworch_home }}/test/csharp/FWO.Test"
 # make sure lib role is only run once per host to save time
 # set initially to false
 lib_role_has_run: false
+
+#### apache settings
+
+apache2_required_modules:
+    - headers
+    - rewrite
+    - proxy
+    - proxy_http
+    - ssl
+    - proxy_wstunnel
+
+apache_security_headers:
+    - 'Header always set Strict-Transport-Security "max-age=31536000; includeSubDomains"'
+    - 'Header always set X-Frame-Options "SAMEORIGIN"'
+    - 'Header always set X-Content-Type-Options "nosniff"'
+
+apache_global_settings_file: /etc/apache2/conf-available/security.conf

@@ -24,32 +24,34 @@ namespace FWO.Api.Client.Queries
         public static readonly string subscribeImportIpDataConfigChanges;
         public static readonly string subscribeImportNotifyConfigChanges;
         public static readonly string subscribeVarianceAnalysisConfigChanges;
+        public static readonly string subscribeComplianceCheckConfigChanges;
 
 
         static ConfigQueries()
         {
             try
             {
-                getLanguages = File.ReadAllText(QueryPath + "config/getLanguages.graphql");
-                getAllTexts = File.ReadAllText(QueryPath + "config/getTexts.graphql");
-                getTextsPerLanguage = File.ReadAllText(QueryPath + "config/getTextsPerLanguage.graphql");
-                getCustomTextsPerLanguage = File.ReadAllText(QueryPath + "config/getCustomTextsPerLanguage.graphql");
-                upsertCustomText = File.ReadAllText(QueryPath + "config/upsertCustomText.graphql");
-                deleteCustomText = File.ReadAllText(QueryPath + "config/deleteCustomText.graphql");
-                subscribeConfigChangesByUser = File.ReadAllText(QueryPath + "config/subscribeConfigChangesByUser.graphql");
-                addConfigItem = File.ReadAllText(QueryPath + "config/addConfigItem.graphql");
-                updateConfigItem = File.ReadAllText(QueryPath + "config/updateConfigItem.graphql");
-                getConfigItemsByUser = File.ReadAllText(QueryPath + "config/getConfigItemsByUser.graphql");
-                getConfigItemByKey = File.ReadAllText(QueryPath + "config/getConfigItemByKey.graphql");
-                upsertConfigItem = File.ReadAllText(QueryPath + "config/upsertConfigItem.graphql");
-                upsertConfigItems = File.ReadAllText(QueryPath + "config/upsertConfigItems.graphql");
-                subscribeAutodiscoveryConfigChanges = File.ReadAllText(QueryPath + "config/subscribeAutodiscoveryConfigChanges.graphql");
-                subscribeExternalRequestConfigChanges = File.ReadAllText(QueryPath + "config/subscribeExternalRequestConfigChanges.graphql");
-                subscribeDailyCheckConfigChanges = File.ReadAllText(QueryPath + "config/subscribeDailyCheckConfigChanges.graphql");
-                subscribeImportAppDataConfigChanges = File.ReadAllText(QueryPath + "config/subscribeImportAppDataConfigChanges.graphql");
-                subscribeImportIpDataConfigChanges = File.ReadAllText(QueryPath + "config/subscribeImportSubnetDataConfigChanges.graphql");
-                subscribeImportNotifyConfigChanges = File.ReadAllText(QueryPath + "config/subscribeImportNotifyConfigChanges.graphql");
-                subscribeVarianceAnalysisConfigChanges = File.ReadAllText(QueryPath + "config/subscribeVarianceAnalysisConfigChanges.graphql");
+                getLanguages = GetQueryText("config/getLanguages.graphql");
+                getAllTexts = GetQueryText("config/getTexts.graphql");
+                getTextsPerLanguage = GetQueryText("config/getTextsPerLanguage.graphql");
+                getCustomTextsPerLanguage = GetQueryText("config/getCustomTextsPerLanguage.graphql");
+                upsertCustomText = GetQueryText("config/upsertCustomText.graphql");
+                deleteCustomText = GetQueryText("config/deleteCustomText.graphql");
+                subscribeConfigChangesByUser = GetQueryText("config/subscribeConfigChangesByUser.graphql");
+                addConfigItem = GetQueryText("config/addConfigItem.graphql");
+                updateConfigItem = GetQueryText("config/updateConfigItem.graphql");
+                getConfigItemsByUser = GetQueryText("config/getConfigItemsByUser.graphql");
+                getConfigItemByKey = GetQueryText("config/getConfigItemByKey.graphql");
+                upsertConfigItem = GetQueryText("config/upsertConfigItem.graphql");
+                upsertConfigItems = GetQueryText("config/upsertConfigItems.graphql");
+                subscribeAutodiscoveryConfigChanges = GetQueryText("config/subscribeAutodiscoveryConfigChanges.graphql");
+                subscribeExternalRequestConfigChanges = GetQueryText("config/subscribeExternalRequestConfigChanges.graphql");
+                subscribeDailyCheckConfigChanges = GetQueryText("config/subscribeDailyCheckConfigChanges.graphql");
+                subscribeImportAppDataConfigChanges = GetQueryText("config/subscribeImportAppDataConfigChanges.graphql");
+                subscribeImportIpDataConfigChanges = GetQueryText("config/subscribeImportSubnetDataConfigChanges.graphql");
+                subscribeImportNotifyConfigChanges = GetQueryText("config/subscribeImportNotifyConfigChanges.graphql");
+                subscribeVarianceAnalysisConfigChanges = GetQueryText("config/subscribeVarianceAnalysisConfigChanges.graphql");
+                subscribeComplianceCheckConfigChanges = GetQueryText("config/subscribeComplianceCheckConfigChanges.graphql");
             }
             catch (Exception exception)
             {

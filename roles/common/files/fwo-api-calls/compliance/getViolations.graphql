@@ -1,0 +1,12 @@
+query getViolations {
+  compliance_violation {
+    id
+    criterion_id
+    details
+    found_date
+    policy_id
+    removed_date
+    risk_score
+    rule_id
+  }
+}

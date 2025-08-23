@@ -36,7 +36,9 @@
                             </div>
                             <div class="mt-2">
                                 <ObjectGroupCollection PageSize="PageSize" FetchObjects="FetchContent" Recert="Recert" Tab="RsbTab.report" InputDataType="ManagementReport"
-                                Data="managementsReportObjects"
+                                Data="CurrentReport.ReportData.ManagementData
+                                                                            .Where(m => m.Devices.Any(d => d.RulebaseLinks != null && d.RulebaseLinks.Any(rb => rb.NextRulebaseId != null)))"
+
                                 NameExtractor="man => man.Name"
                                 NetworkObjectExtractor="man => man.ReportObjects"
                                 NetworkServiceExtractor="man => man.ReportServices"
@@ -45,7 +47,7 @@
                         </Tab>
                         <Tab Title="@(userConfig.GetText("rule"))">
                             <div class="btn-group btn-group-sm d-md-flex justify-content-md-between sticky-marker-45">
-                                <div class="btn btn-dark btn-sm w-50" @onclick="@(async () => {SelectedRules.Clear(); await SelectedRulesChanged.InvokeAsync(SelectedRules);})">@(userConfig.GetText("clear_all"))</div>
+                                <div class="btn btn-dark btn-sm w-50" @onclick="@(async () => { SelectedRules.Clear(); await SelectedRulesChanged.InvokeAsync(SelectedRules); })">@(userConfig.GetText("clear_all"))</div>
                                 <div class="btn btn-secondary btn-sm w-50" @onclick="@(() => collapseInRSB.Collapse("rule"))">@(userConfig.GetText("collapse_all"))</div>
                             </div>
                             <div class="mt-2">
@@ -53,11 +55,11 @@
                                 Data="selectedRulesDetailed.Where(r => SelectedRules.Any(sr => sr.Id == r.Id)).ToList()"
                                 NameExtractor=@(rule => $"{rule.DeviceName} - Rule {rule.Id} {rule.Name}")
                                 NetworkObjectExtractor="rule => rule.Froms.Select(nl => nl.Object)
-                                        .Union(rule.Tos.Select(nl => nl.Object))
-                                        .Union(rule.NatData.TranslatedFroms.Select(nl => nl.Object))
-                                        .Union(rule.NatData.TranslatedTos.Select(nl => nl.Object)).OrderBy(o => o.Name).ToArray()"
+                                                                        .Union(rule.Tos.Select(nl => nl.Object))
+                                                                        .Union(rule.NatData.TranslatedFroms.Select(nl => nl.Object))
+                                                                        .Union(rule.NatData.TranslatedTos.Select(nl => nl.Object)).OrderBy(o => o.Name).ToArray()"
                                 NetworkServiceExtractor="rule => rule.Services.Select(sw => sw.Content)
-                                        .Union(rule.NatData.TranslatedServices.Select(sw => sw.Content)).OrderBy(s => s.Name).ToArray()"
+                                                                        .Union(rule.NatData.TranslatedServices.Select(sw => sw.Content)).OrderBy(s => s.Name).ToArray()"
                                 NetworkUserExtractor="rule => rule.Froms.Select(nl => nl.User).Distinct().Where(u => u != null).OrderBy(u => u.Name).ToArray()" />
                             </div>
                         </Tab>
@@ -98,7 +100,6 @@
 
     [Parameter]
     public EventCallback<int> WidthChanged { get; set; }
-
 
     [Parameter]
     public ReportBase? CurrentReport { get; set; }
@@ -182,7 +183,7 @@
         managementsReportObjects = new();
         foreach (ManagementReport mgt in CurrentReport?.ReportData.ManagementData ?? new List<ManagementReport>())
         {
-            if (mgt.Devices.Where(d => d.Rules != null && d.Rules.Count() > 0).Count() > 0)
+            if (mgt.Devices.Any(d => d.ContainsRules()))
             {
                 managementsReportObjects.Add(new() { Id = mgt.Id, Name = mgt.Name });
             }
@@ -266,134 +267,167 @@
 
         try
         {
-            string query = "";
-            Dictionary<String, object> queryVars = new()
-            {
-                { QueryVar.Limit, userConfig.ElementsPerFetch },
-                { QueryVar.Offset, 0 }
-            };
-            bool gotAllObjects = true;
-
             switch (rsbTab)
             {
                 case RsbTab.all:
-                    ManagementReport? mgt = managementsAllObjects.FirstOrDefault(m => m.Id == id);
-                    if (mgt == null) break;
-
-                    if (objType == ObjCategory.all)
-                        mgt.Detailed = [true, true, true];
-                    else
-                        mgt.Detailed[(int)objType - 1] = true;
-
-                    queryVars.Add(QueryVar.ManagementId, (int)id);
-                    queryVars.Add(QueryVar.ImportIdStart, import_id_start.GetValueOrDefault((int)id, 0));
-                    queryVars.Add(QueryVar.ImportIdEnd, import_id_end.GetValueOrDefault((int)id, 0));
-
-                    switch (objType)
-                    {
-                        case ObjCategory.all:
-                            query = ObjectQueries.getAllObjectDetails;
-                            break;
-                        case ObjCategory.nobj:
-                            query = ObjectQueries.getNetworkObjectDetails;
-                            break;
-                        case ObjCategory.nsrv:
-                            query = ObjectQueries.getNetworkServiceDetails;
-                            break;
-                        case ObjCategory.user:
-                            query = ObjectQueries.getUserDetails;
-                            break;
-                    }
-
-                    await FetchObjects(query, queryVars, managementsUpdate =>
-                    {
-                        ManagementReport? mgtUpdated = managementsUpdate.ManagementData.FirstOrDefault(m => m.Id == id);
-                        if (mgt != null && mgtUpdated != null)
-                        {
-                            if (objType == ObjCategory.all || objType == ObjCategory.nobj)
-                            {
-                                mgt.Objects = mgtUpdated.Objects;
-                                mgt.ReportObjects = mgtUpdated.ReportObjects;
-                            }
-                            if (objType == ObjCategory.all || objType == ObjCategory.nsrv)
-                            {
-                                mgt.Services = mgtUpdated.Services;
-                                mgt.ReportServices = mgtUpdated.ReportServices;
-                            }
-                            if (objType == ObjCategory.all || objType == ObjCategory.user)
-                            {
-                                mgt.Users = mgtUpdated.Users;
-                                mgt.ReportUsers = mgtUpdated.ReportUsers;
-                            }
-                        }
-                        return hasChangedCallback();
-                    });
-
+                    await FetchAllTabContent(objType, hasChangedCallback, id);
                     break;
+
                 case RsbTab.report:
-                    ManagementReport? mgtReport = managementsReportObjects.FirstOrDefault(m => m.Id == id);
-                    queryVars.Add(QueryVar.MgmIds, (int)id);
-                    if (mgtReport != null)
-                    {
-                        if (objType == ObjCategory.all)
-                            mgtReport.Detailed = [true, true, true];
-                        else
-                            mgtReport.Detailed[(int)objType - 1] = true;
-
-                        gotAllObjects = await CurrentReport!.GetObjectsForManagementInReport(queryVars, objType,
-                            userConfig.AutoFillRightSidebar ? int.MaxValue : userConfig.MaxInitialFetchesRightSidebar, apiConnection, managementsUpdate =>
-                        {
-                            ManagementReport? mgtUpdated = managementsUpdate.ManagementData.FirstOrDefault(m => m.Id == id);
-                            if (mgtReport != null && mgtUpdated != null)
-                            {
-                                if (objType == ObjCategory.all || objType == ObjCategory.nobj)
-                                {
-                                    mgtReport.ReportObjects = mgtUpdated.ReportObjects;
-                                }
-                                if (objType == ObjCategory.all || objType == ObjCategory.nsrv)
-                                {
-                                    mgtReport.ReportServices = mgtUpdated.ReportServices;
-                                }
-                                if (objType == ObjCategory.all || objType == ObjCategory.user)
-                                {
-                                    mgtReport.ReportUsers = mgtUpdated.ReportUsers;
-                                }
-                            }
-                            return hasChangedCallback();
-                        });
-                    }
-                    if (!gotAllObjects)
-                    {
-                        DisplayMessageInUi(null, userConfig.GetText("object_fetch_warning"), userConfig.GetText("E0021"), true);
-                    }
+                    await FetchReportTabContent(objType, hasChangedCallback, id);
                     break;
+
                 case RsbTab.rule:
-                    Rule? rule = selectedRulesDetailed.FirstOrDefault(r => r.Id == id);
-                    if (rule == null) break;
-
-                    rule.Detailed = true;
-
-                    queryVars.Add(QueryVar.ImportIdStart, import_id_start.GetValueOrDefault((int)rule.MgmtId, 0));
-                    queryVars.Add(QueryVar.ImportIdEnd, import_id_end.GetValueOrDefault((int)rule.MgmtId, 0));
-                    queryVars.Add(QueryVar.RuleId, id);
-                    query = nat ? RuleQueries.getNatRuleDetails : RuleQueries.getRuleDetails;
-
-                    await FetchObjects(query, queryVars, managementsUpdate =>
-                    {
-                        Rule? ruleUpdated = managementsUpdate.ManagementData.SelectMany(m => m.Devices).SelectMany(d => d.Rules ?? new Rule[0]).FirstOrDefault();
-                        if (ruleUpdated != null)
-                        {
-                            rule.Froms = ruleUpdated.Froms;
-                            rule.Tos = ruleUpdated.Tos;
-                            rule.NatData.TranslatedFroms = ruleUpdated.NatData.TranslatedFroms;
-                            rule.NatData.TranslatedTos = ruleUpdated.NatData.TranslatedTos;
-                            rule.Services = ruleUpdated.Services;
-                            rule.NatData.TranslatedServices = ruleUpdated.NatData.TranslatedServices;
-                        }
-                        return hasChangedCallback();
-                    });
+                    await FetchRuleTabContent(objType, hasChangedCallback, id, nat);
                     break;
             }
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("object_fetch"), "", true);
+        }
+    }
+
+    private async Task FetchAllTabContent(ObjCategory objType, Func<Task> hasChangedCallback, long id)
+    {
+        var mgt = managementsAllObjects.FirstOrDefault(m => m.Id == id);
+        if (mgt == null) return;
+
+        if (objType == ObjCategory.all)
+            mgt.Detailed = [true, true, true];
+        else
+            mgt.Detailed[(int)objType - 1] = true;
+
+        var queryVars = new Dictionary<string, object>
+        {
+            { QueryVar.Limit, userConfig.ElementsPerFetch },
+            { QueryVar.Offset, 0 },
+            { QueryVar.ManagementId, (int)id },
+            { QueryVar.ImportIdStart, import_id_start.GetValueOrDefault((int)id, 0) },
+            { QueryVar.ImportIdEnd, import_id_end.GetValueOrDefault((int)id, 0) }
+        };
+
+        string query = objType switch
+        {
+            ObjCategory.all => ObjectQueries.getAllObjectDetails,
+            ObjCategory.nobj => ObjectQueries.getNetworkObjectDetails,
+            ObjCategory.nsrv => ObjectQueries.getNetworkServiceDetails,
+            ObjCategory.user => ObjectQueries.getUserDetails,
+            _ => ""
+        };
+
+        await FetchObjects(query, queryVars, async managementsUpdate =>
+        {
+            var mgtUpdated = managementsUpdate.ManagementData.FirstOrDefault(m => m.Id == id);
+            if (mgtUpdated != null)
+            {
+                if (objType == ObjCategory.all || objType == ObjCategory.nobj)
+                {
+                    mgt.Objects = mgtUpdated.Objects;
+                    mgt.ReportObjects = mgtUpdated.ReportObjects;
+                }
+                if (objType == ObjCategory.all || objType == ObjCategory.nsrv)
+                {
+                    mgt.Services = mgtUpdated.Services;
+                    mgt.ReportServices = mgtUpdated.ReportServices;
+                }
+                if (objType == ObjCategory.all || objType == ObjCategory.user)
+                {
+                    mgt.Users = mgtUpdated.Users;
+                    mgt.ReportUsers = mgtUpdated.ReportUsers;
+                }
+            }
+            await hasChangedCallback();
+        });
+    }
+
+    private async Task FetchReportTabContent(ObjCategory objType, Func<Task> hasChangedCallback, long id)
+    {
+        var mgtReport = managementsReportObjects.FirstOrDefault(m => m.Id == id);
+        if (mgtReport == null) return;
+
+        if (objType == ObjCategory.all)
+            mgtReport.Detailed = [true, true, true];
+        else
+            mgtReport.Detailed[(int)objType - 1] = true;
+
+        var queryVars = new Dictionary<string, object>
+        {
+            { QueryVar.Limit, userConfig.ElementsPerFetch },
+            { QueryVar.Offset, 0 },
+            { QueryVar.MgmIds, (int)id }
+        };
+
+        bool gotAllObjects = await CurrentReport!.GetObjectsForManagementInReport(
+            queryVars, objType,
+            userConfig.AutoFillRightSidebar ? int.MaxValue : userConfig.MaxInitialFetchesRightSidebar,
+            apiConnection,
+            async managementsUpdate =>
+            {
+                var mgtUpdated = managementsUpdate.ManagementData.FirstOrDefault(m => m.Id == id);
+                if (mgtUpdated != null)
+                {
+                    if (objType == ObjCategory.all || objType == ObjCategory.nobj)
+                        mgtReport.ReportObjects = mgtUpdated.ReportObjects;
+
+                    if (objType == ObjCategory.all || objType == ObjCategory.nsrv)
+                        mgtReport.ReportServices = mgtUpdated.ReportServices;
+
+                    if (objType == ObjCategory.all || objType == ObjCategory.user)
+                        mgtReport.ReportUsers = mgtUpdated.ReportUsers;
+                }
+                await hasChangedCallback();
+            });
+
+        if (!gotAllObjects)
+        {
+            DisplayMessageInUi(null, userConfig.GetText("object_fetch_warning"), userConfig.GetText("E0021"), true);
+        }
+    }
+
+    private async Task FetchRuleTabContent(ObjCategory objType, Func<Task> hasChangedCallback, long id, bool nat)
+    {
+        var rule = selectedRulesDetailed.FirstOrDefault(r => r.Id == id);
+        if (rule == null)
+        {
+            return;
+        }
+        if (rule.Detailed)
+        {
+            return; // already fetched
+        }
+
+        var queryVars = new Dictionary<string, object>
+        {
+            { QueryVar.Limit, userConfig.ElementsPerFetch },
+            { QueryVar.Offset, 0 },
+            { QueryVar.ImportIdStart, import_id_start.GetValueOrDefault((int)rule.MgmtId, 0) },
+            { QueryVar.ImportIdEnd, import_id_end.GetValueOrDefault((int)rule.MgmtId, 0) },
+            { QueryVar.RuleId, id }
+        };
+
+        string query = nat ? RuleQueries.getNatRuleDetails : RuleQueries.getRuleDetails;
+
+        try
+        {
+            List<Rule> rules = await apiConnection.SendQueryAsync<List<Rule>>(query, queryVars);
+            Rule? ruleUpdated = rules.FirstOrDefault(r => r.Id == id);
+            if (ruleUpdated == null)
+            {
+                DisplayMessageInUi(null, userConfig.GetText("object_fetch"), "", true);
+                return;
+            }
+
+            rule.Froms = rule.Froms.Concat(ruleUpdated?.Froms ?? []).ToArray();
+            rule.Tos = rule.Tos.Concat(ruleUpdated?.Tos ?? []).ToArray();
+            rule.NatData.TranslatedFroms = rule.NatData.TranslatedFroms.Concat(ruleUpdated?.NatData.TranslatedFroms ?? []).ToArray();
+            rule.NatData.TranslatedTos = rule.NatData.TranslatedTos.Concat(ruleUpdated?.NatData.TranslatedTos ?? []).ToArray();
+            rule.Services = rule.Services.Concat(ruleUpdated?.Services ?? []).ToArray();
+            rule.NatData.TranslatedServices = rule.NatData.TranslatedServices.Concat(ruleUpdated?.NatData.TranslatedServices ?? []).ToArray();
+
+            rule.Detailed = true;
+
+            await hasChangedCallback();
         }
         catch (Exception exception)
         {

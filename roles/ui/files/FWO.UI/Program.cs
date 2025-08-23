@@ -4,13 +4,15 @@ using FWO.Config.Api;
 using FWO.Config.File;
 using FWO.Logging;
 using FWO.Middleware.Client;
+using FWO.Services;
+using FWO.Services.EventMediator;
+using FWO.Services.EventMediator.Interfaces;
+using FWO.Services.RuleTreeBuilder;
 using FWO.Ui.Auth;
 using FWO.Ui.Services;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Components.Server.Circuits;
 using RestSharp;
-using FWO.Services.EventMediator.Interfaces;
-using FWO.Services.EventMediator;
 
 
 // Implicitly call static constructor so background lock process is started
@@ -46,6 +48,8 @@ builder.Services.AddScoped<AuthenticationStateProvider, AuthStateProvider>();
 builder.Services.AddScoped<CircuitHandler, CircuitHandlerService>();
 builder.Services.AddScoped<KeyboardInputService, KeyboardInputService>();
 builder.Services.AddScoped<IEventMediator, EventMediator>();
+
+builder.Services.AddTransient<IRuleTreeBuilder, RuleTreeBuilder>();
 
 string ApiUri = ConfigFile.ApiServerUri;
 string MiddlewareUri = ConfigFile.MiddlewareServerUri;
@@ -91,6 +95,10 @@ builder.Services.AddBlazorTable();
 #endregion
 
 var app = builder.Build();
+
+// Make ServiceProvider accessible via static reference.
+
+FWO.Services.ServiceProvider.UiServices = app.Services;
 
 //// Configure the HTTP request pipeline.
 #region HTTP Request Pipeline

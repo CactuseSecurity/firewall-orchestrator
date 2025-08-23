@@ -8,7 +8,7 @@
       group: "{{ fworch_group }}"
     become: true
 
-  - name: csharp tests
+  - name: run csharp tests
     command: dotnet test
     args:
       chdir: "{{ csharp_test_start_dir }}"
@@ -24,5 +24,5 @@
     when: csharp_tests.rc != 0
 
   when: "'frontends' in group_names"
-  # run only on once (on frontends)
+  # run only once (on frontends)
   

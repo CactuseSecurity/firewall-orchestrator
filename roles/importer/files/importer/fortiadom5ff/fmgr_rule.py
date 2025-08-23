@@ -138,73 +138,18 @@ def parse_single_rule(normalized_config, native_rule, rulebase: Rulebase, layer_
     if 'status' in native_rule and (native_rule['status'] == 1 or native_rule['status'] == 'enable'):
         rule_disabled = False
     
-    # Extract action - Fortinet uses 0 for deny/drop, 1 for accept
-    if native_rule.get('action', 0) == 0:
-        rule_action = RuleAction.DROP
-    else:
-        rule_action = RuleAction.ACCEPT
+    rule_action = rule_parse_action(native_rule)
+
+    rule_track = rule_parse_tracking_info(native_rule)
     
-    # Extract tracking/logging information
-    # TODO: Implement more detailed logging level extraction (difference between 1/2/3?)
-    logtraffic = native_rule.get('logtraffic', 0)
-    if isinstance(logtraffic, int) and logtraffic > 0 or isinstance(logtraffic, str) and logtraffic != 'disable':
-        rule_track = RuleTrack.LOG
-    else:
-        rule_track = RuleTrack.NONE
-    
-    # Parse source addresses
-    rule_src_list = []
-    rule_src_refs_list = []
-    for addr in native_rule.get('srcaddr', []) + native_rule.get('srcaddr6', []) + native_rule.get('internet-service-src-name', []):
-        rule_src_list.append(addr)
-        uid = nwobj_name_to_uid_map.get(addr, None)
-        if uid is None:
-            raise FwoImporterErrorInconsistencies(f"Source object '{addr}' not found in network object map.")
-        rule_src_refs_list.append(uid)
-        # TODO: add users
+    rule_src_list, rule_src_refs_list = rule_parse_src_addr(native_rule)
+    rule_dst_list, rule_dst_refs_list = rule_parse_dst_addr(native_rule)
 
-    # Parse destination addresses
-    rule_dst_list = []
-    rule_dst_refs_list = []
-    for addr in native_rule.get('dstaddr', []) + native_rule.get('dstaddr6', []):
-        rule_dst_list.append(addr)
-        uid = nwobj_name_to_uid_map.get(addr, None)
-        if uid is None:
-            raise FwoImporterErrorInconsistencies(f"Destination object '{addr}' not found in network object map.")
-        rule_dst_refs_list.append(uid)
-        # TODO: add users
+    rule_svc_list, rule_svc_refs_list = rule_parse_service(native_rule)
 
-    # Parse services
-    rule_svc_list = []
-    rule_svc_refs_list = []
-    for svc in native_rule.get('service', []):
-        rule_svc_list.append(svc)
-        rule_svc_refs_list.append(svc)
-    
-    # Parse source and destination zones
-    # TODO: only using the first zone for now
-    rule_src_zone = None
-    if len(native_rule.get('srcintf', [])) > 0:
-        rule_src_zone = add_zone_if_missing(normalized_config, native_rule['srcintf'][0])
+    rule_src_zone, rule_dst_zone = rule_parse_zone(native_rule, normalized_config)
 
-    rule_dst_zone = None
-    if len(native_rule.get('dstintf', [])) > 0:
-        rule_dst_zone = add_zone_if_missing(normalized_config, native_rule['dstintf'][0])
-
-    # Parse negation flags
-    if 'srcaddr-negate' in native_rule:
-        rule_src_neg = native_rule['srcaddr-negate'] == 1 or native_rule['srcaddr-negate'] == 'disable'
-    elif 'internet-service-src-negate' in native_rule:
-        rule_src_neg = native_rule['internet-service-src-negate'] == 1 or native_rule['internet-service-src-negate'] == 'disable'
-    else:
-        rule_src_neg = False
-    rule_dst_neg = 'dstaddr-negate' in native_rule and (native_rule['dstaddr-negate'] == 1 or native_rule['dstaddr-negate'] == 'disable') #TODO: last part does not make sense?
-    rule_svc_neg = 'service-negate' in native_rule and (native_rule['service-negate'] == 1 or native_rule['service-negate'] == 'disable')
-
-    if 'scope_member' in native_rule:
-        rule_installon = list_delimiter.join([vdom['name'] + '_' + vdom['vdom'] for vdom in native_rule['scope_member']])
-    else:
-        rule_installon = rulebase.name
+    rule_src_neg, rule_dst_neg, rule_svc_neg, rule_installon = rule_parse_negation_flags(native_rule, rulebase.name)
 
     # Create the normalized rule
     rule_normalized = RuleNormalized(
@@ -244,6 +189,83 @@ def parse_single_rule(normalized_config, native_rule, rulebase: Rulebase, layer_
     # TODO: handle NAT
     
     return rule_num + 1
+
+def rule_parse_action(native_rule):
+    # Extract action - Fortinet uses 0 for deny/drop, 1 for accept
+    if native_rule.get('action', 0) == 0:
+        return RuleAction.DROP
+    else:
+        return RuleAction.ACCEPT
+
+def rule_parse_tracking_info(native_rule):
+    # TODO: Implement more detailed logging level extraction (difference between 1/2/3?)
+    logtraffic = native_rule.get('logtraffic', 0)
+    if isinstance(logtraffic, int) and logtraffic > 0 or isinstance(logtraffic, str) and logtraffic != 'disable':
+        return RuleTrack.LOG
+    else:
+        return RuleTrack.NONE
+
+def rule_parse_service(native_rule):
+    rule_svc_list = []
+    rule_svc_refs_list = []
+    for svc in native_rule.get('service', []):
+        rule_svc_list.append(svc)
+        rule_svc_refs_list.append(svc)
+
+    return rule_svc_list, rule_svc_refs_list
+
+def rule_parse_zone(native_rule, normalized_config):
+    # TODO: only using the first zone for now
+    rule_src_zone = None
+    if len(native_rule.get('srcintf', [])) > 0:
+        rule_src_zone = add_zone_if_missing(normalized_config, native_rule['srcintf'][0])
+
+    rule_dst_zone = None
+    if len(native_rule.get('dstintf', [])) > 0:
+        rule_dst_zone = add_zone_if_missing(normalized_config, native_rule['dstintf'][0])
+    return rule_src_zone, rule_dst_zone
+
+def rule_parse_src_addr(native_rule):
+    rule_src_list = []
+    rule_src_refs_list = []
+    for addr in native_rule.get('srcaddr', []) + native_rule.get('srcaddr6', []) + native_rule.get('internet-service-src-name', []):
+        rule_src_list.append(addr)
+        uid = nwobj_name_to_uid_map.get(addr, None)
+        if uid is None:
+            raise FwoImporterErrorInconsistencies(f"Source object '{addr}' not found in network object map.")
+        rule_src_refs_list.append(uid)
+        # TODO: add users
+    return rule_src_list, rule_src_refs_list
+
+def rule_parse_dst_addr(native_rule):
+    # Parse destination addresses
+    rule_dst_list = []
+    rule_dst_refs_list = []
+    for addr in native_rule.get('dstaddr', []) + native_rule.get('dstaddr6', []):
+        rule_dst_list.append(addr)
+        uid = nwobj_name_to_uid_map.get(addr, None)
+        if uid is None:
+            raise FwoImporterErrorInconsistencies(f"Destination object '{addr}' not found in network object map.")
+        rule_dst_refs_list.append(uid)
+        # TODO: add users
+    return rule_dst_list, rule_dst_refs_list
+
+def rule_parse_negation_flags(native_rule, rulebase_name):
+    if 'srcaddr-negate' in native_rule:
+        rule_src_neg = native_rule['srcaddr-negate'] == 1 or native_rule['srcaddr-negate'] == 'disable'
+    elif 'internet-service-src-negate' in native_rule:
+        rule_src_neg = native_rule['internet-service-src-negate'] == 1 or native_rule['internet-service-src-negate'] == 'disable'
+    else:
+        rule_src_neg = False
+    rule_dst_neg = 'dstaddr-negate' in native_rule and (native_rule['dstaddr-negate'] == 1 or native_rule['dstaddr-negate'] == 'disable') #TODO: last part does not make sense?
+    rule_svc_neg = 'service-negate' in native_rule and (native_rule['service-negate'] == 1 or native_rule['service-negate'] == 'disable')
+
+    if 'scope_member' in native_rule:
+        rule_installon = list_delimiter.join([vdom['name'] + '_' + vdom['vdom'] for vdom in native_rule['scope_member']])
+    else:
+        rule_installon = rulebase_name
+    return rule_src_neg, rule_dst_neg, rule_svc_neg, rule_installon
+
 
 def initialize_rulebases(native_config):
 #delete_v: hier auf native_config_domain umschreiben, die Dinger bei rulebases, bzw nat_rulebases einsortieren

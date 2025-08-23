@@ -46,7 +46,7 @@ namespace FWO.Report
                 {
                     foreach (var s in mgm.SubManagements)
                     {
-                        ManagementReport? subMgm = managementReports.Where(r => r.Id == s.Id).FirstOrDefault();
+                        ManagementReport? subMgm = managementReports.FirstOrDefault(r => r.Id == s.Id);
                         if (subMgm == null)
                             continue;
                         long subMgmImportId = subMgm.RelevantImportId ?? -1;
@@ -81,7 +81,7 @@ namespace FWO.Report
                 {
                     foreach (var s in mgm.SubManagements)
                     {
-                        ManagementReport? subMgm = managementReports.Where(r => r.Id == s.Id).FirstOrDefault();
+                        ManagementReport? subMgm = managementReports.FirstOrDefault(r => r.Id == s.Id);
                         if (subMgm == null)
                             continue;
                         subMgm.ImportControls = [.. subMgm.ImportControls, .. mgm.ImportControls];

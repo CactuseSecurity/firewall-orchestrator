@@ -50,11 +50,6 @@ namespace FWO.Report
                 List<long> importIdLastBeforeRange = [management.RelevantImportId ?? -1];
                 List<long> importIdsInRange = [.. managementsWithImportIds.Where(m => m.Id == management.Id).SelectMany(m => m.ImportControls).Select(ic => ic.ControlId)];
                 List<long> relevantImportIds = [.. importIdLastBeforeRange, .. importIdsInRange];
-                if (relevantImportIds.Count == 0)
-                {
-                    Log.WriteDebug("Generate Changes Report", $"No relevant import IDs found in time range for management ID {management.Id}");
-                    continue;
-                }
                 SetMgtQueryVars(management.Id, relevantImportIds[0], relevantImportIds[1]);
                 ManagementReport managementReport = (await apiConnection.SendQueryAsync<List<ManagementReport>>(Query.FullQuery, Query.QueryVariables)).First();
                 queriesNeeded += 1;

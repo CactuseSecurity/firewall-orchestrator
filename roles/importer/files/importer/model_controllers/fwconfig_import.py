@@ -84,10 +84,10 @@ class FwConfigImport():
                 if manager:
                     # store lobal config as it is needed when importing sub managers which might reference it
                     global_state.global_normalized_config = config
-                    id = self.import_state.lookupManagementId(manager.ManagerUid)
-                    if id is None:
+                    mgm_id = self.import_state.lookupManagementId(manager.ManagerUid)
+                    if mgm_id is None:
                         raise FwoImporterError(f"could not find manager id in DB for UID {manager.ManagerUid}")
-                    self.import_state.MgmDetails.Id = id
+                    self.import_state.MgmDetails.Id = mgm_id
                 config_importer = FwConfigImport()
                 config_importer.import_single_config(manager)
                 if import_state.Stats.ErrorCount>0:

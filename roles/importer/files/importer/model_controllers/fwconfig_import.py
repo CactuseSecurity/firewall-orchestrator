@@ -84,6 +84,10 @@ class FwConfigImport():
                 if manager:
                     # store global config as it is needed when importing sub managers which might reference it
                     global_state.global_normalized_config = config
+                mgm_id = self.import_state.lookupManagementId(manager.ManagerUid)
+                if mgm_id is None:
+                    raise FwoImporterError(f"could not find manager id in DB for UID {manager.ManagerUid}")
+                self.import_state.MgmDetails.Id = mgm_id
                 config_importer = FwConfigImport()
                 config_importer.import_single_config(manager)
                 if import_state.Stats.ErrorCount>0:
@@ -318,3 +322,12 @@ class FwConfigImport():
         except Exception:
             logger.exception(f"failed to get latest normalized config for mgm id {str(self.import_state.MgmDetails.Id)}: {str(traceback.format_exc())}")
             raise FwoImporterError("error while trying to get the previous config")
+
+    def getLatestConfigFromDB(self) -> FwConfigNormalized:
+        logger = getFwoLogger(debug_level=self.import_state.DebugLevel)
+
+        latest_import_id = self.get_latest_import_id()
+
+        #TODO: check if import exists
+
+        #TODO: get from middleware

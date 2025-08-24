@@ -293,14 +293,11 @@ ALTER TABLE "rule" ADD COLUMN IF NOT EXISTS "rulebase_id" INTEGER;
 
 -- permanent table for storing latest config to calc diffs
 CREATE TABLE IF NOT EXISTS "latest_config" (
-    "import_id" bigint NOT NULL,
     "mgm_id" integer NOT NULL,
+    "import_id" bigint NOT NULL,
     "config" jsonb NOT NULL,
-    PRIMARY KEY ("import_id")
+    PRIMARY KEY ("mgm_id")
 );
-
-ALTER TABLE "latest_config" DROP CONSTRAINT IF EXISTS "unique_latest_config_mgm_id" CASCADE;
-Alter table "latest_config" add CONSTRAINT unique_latest_config_mgm_id UNIQUE ("mgm_id");
 
 ALTER table "import_control" ADD COLUMN IF NOT EXISTS "is_full_import" BOOLEAN DEFAULT FALSE;
 

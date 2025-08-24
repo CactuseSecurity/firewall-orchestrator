@@ -18,6 +18,15 @@
 
   - set_fact:
       already_installed: "{{ already_installed.stat.exists }}"
+
+  - set_fact:
+      wsgi_package_name: "{{ wsgi_package_name }}-py3"
+    when: | 
+      (ansible_facts['distribution_release']|lower == debian_testing_release_name)
+      or 
+      (ansible_facts['distribution']|lower == 'debian' and ansible_facts['distribution_major_version']|int is version('10', '>'))
+      or 
+      (ansible_facts['distribution']|lower == 'ubuntu' and ansible_facts['distribution_major_version']|int is version('20', '>'))      
   
   - debug:
       msg: "installation_mode={{ installation_mode }}, already_installed={{ already_installed }}"
@@ -63,6 +72,16 @@
 
     when: already_installed and installation_mode == "upgrade"
 
+  - name: set architecture for arm64
+    set_fact:
+      linux_architecture: "arm64"
+    when: ansible_architecture == "aarch64" 
+
+  - name: waiting for user to confirm manual installation of dotnet for ARM
+    pause:
+      prompt: "NOTE: you need to install dotnet yourself for architectures other than x86_64 before running FWO installer, Press ENTER to continue"
+    when: ansible_architecture != "x86_64"
+
   - name: create group {{ fworch_group }}
     group:
       name: "{{ fworch_user }}"
@@ -82,6 +101,19 @@
       ssh_key_bits: 4096
       ssh_key_file: .ssh/id_rsa
     become: true
+
+  - name: global apache config
+    include_tasks: global-apache2-config.yml
+    # vars:
+    #   apache2_required_modules: "{{ apache2_required_modules | default([]) }}"
+    #   webserver_package_name: "{{ webserver_package_name | default('apache2') }}"
+    #   http_conf_dir: "{{ http_conf_dir | default('/etc/apache2/sites-available') }}"
+    #   product_name: "{{ product_name }}"
+    #   product_version: "{{ product_version }}"
+    #   api_web_port: "{{ api_web_port | default(8080) }}"
+    #   server_admin: "{{ server_admin | default('webmaster@localhost') }}"
+    #   apache_global_settings_file: "{{ apache_global_settings_file | default('/etc/apache2/conf-available/security.conf') }}"
+    when: "inventory_hostname in groups['frontends'] or inventory_hostname in groups['middlewareserver'] or inventory_hostname in groups['apiserver']"
 
   - name: replace fwo web sites with maintenance site
     include_tasks: maintenance-site.yml
@@ -249,15 +281,6 @@
     become: true
     when: not stat_result.stat.exists
 
-  - set_fact:
-      wsgi_package_name: "{{ wsgi_package_name }}-py3"
-    when: | 
-      (ansible_facts['distribution_release']|lower == debian_testing_release_name)
-      or 
-      (ansible_facts['distribution']|lower == 'debian' and ansible_facts['distribution_major_version']|int is version('10', '>'))
-      or 
-      (ansible_facts['distribution']|lower == 'ubuntu' and ansible_facts['distribution_major_version']|int is version('20', '>'))
-
   - name: copy iso.conf to target for legacy importer support only
     template:
       src: iso.conf.j2
@@ -267,6 +290,9 @@
 
   - name: include fworch.yaml config file creator
     import_tasks: conf_file_creator.yml
+
+  - name: include fwo api call installer
+    import_tasks: install-api-calls.yml
 
   - name: include upgrade script
     import_tasks: run-upgrades.yml

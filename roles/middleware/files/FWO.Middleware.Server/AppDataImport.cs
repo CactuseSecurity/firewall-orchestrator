@@ -109,7 +109,7 @@ namespace FWO.Middleware.Server
 			{
 				string errorText = $"File {importfileName} could not be processed.";
 				Log.WriteError(LogMessageTitle, errorText, exc);
-				await AddLogEntry(2, LevelFile, errorText);
+				await AddLogEntry(GlobalConst.kImportAppData, 2, LevelFile, errorText);
 				failedImports.Add(importfileName);
 			}
 		}
@@ -160,7 +160,7 @@ namespace FWO.Middleware.Server
 				}
 				string messageText = $"Imported from {importfileName}: {successCounter} apps, {failCounter} failed. Deactivated {deleteCounter} apps, {deleteFailCounter} failed.";
 				Log.WriteInfo(LogMessageTitle, messageText);
-				await AddLogEntry(0, LevelFile, messageText);
+				await AddLogEntry(GlobalConst.kImportAppData, 0, LevelFile, messageText);
 			}
 		}
 
@@ -186,7 +186,7 @@ namespace FWO.Middleware.Server
 			{
 				string errorText = $"App {incomingApp.Name} could not be processed.";
 				Log.WriteError(LogMessageTitle, errorText, exc);
-				await AddLogEntry(2, LevelApp, errorText);
+				await AddLogEntry(GlobalConst.kImportAppData, 2, LevelApp, errorText);
 				return false;
 			}
 			return true;
@@ -225,22 +225,30 @@ namespace FWO.Middleware.Server
 		private async Task<string> UpdateApp(ModellingImportAppData incomingApp, FwoOwner existingApp)
 		{
 			string userGroupDn = GetGroupDn(incomingApp.ExtAppId);
-			if (globalConfig.ManageOwnerLdapGroups)
-			{
-				if (string.IsNullOrEmpty(existingApp.GroupDn) && allGroups.FirstOrDefault(x => x.GroupDn == userGroupDn) == null)
+            if (globalConfig.ManageOwnerLdapGroups)
+            {
+                if (string.IsNullOrEmpty(existingApp.GroupDn) && allGroups.FirstOrDefault(x => x.GroupDn == userGroupDn) == null)
+                {
+                    string newDn = await CreateUserGroup(incomingApp);
+                    if (newDn != userGroupDn) // may this happen?
+                    {
+                        Log.WriteInfo(LogMessageTitle, $"New UserGroup DN {newDn} differs from settings value {userGroupDn}.");
+                        userGroupDn = newDn;
+                    }
+                }
+                else
+                {
+                    await UpdateUserGroup(incomingApp, userGroupDn);
+                }
+            }
+            else
+            {
+                // add necessary roles for user group
+				foreach (string role in new List<string> { modellerRoleDn, requesterRoleDn, implementerRoleDn, reviewerRoleDn })
 				{
-					string newDn = await CreateUserGroup(incomingApp);
-					if(newDn != userGroupDn) // may this happen?
-					{
-						Log.WriteInfo(LogMessageTitle, $"New UserGroup DN {newDn} differs from settings value {userGroupDn}.");
-						userGroupDn = newDn;
-					}
+					await internalLdap.AddUserToEntry(userGroupDn, role);
 				}
-				else
-				{
-					await UpdateUserGroup(incomingApp, userGroupDn);
-				}
-			}
+            }
 
 			var Variables = new
 			{
@@ -271,7 +279,7 @@ namespace FWO.Middleware.Server
 			{
 				string errorText = $"Outdated App {app.Name} could not be deactivated.";
 				Log.WriteError(LogMessageTitle, errorText, exc);
-				await AddLogEntry(1, LevelApp, errorText);
+				await AddLogEntry(GlobalConst.kImportAppData, 1, LevelApp, errorText);
 				return false;
 			}
 			return true;
@@ -568,7 +576,7 @@ namespace FWO.Middleware.Server
 			{
 				string errorText = $"App Server {incomingAppServer.Name} could not be processed.";
 				Log.WriteError(LogMessageTitle, errorText, exc);
-				await AddLogEntry(1, LevelAppServer, errorText);
+				await AddLogEntry(GlobalConst.kImportAppData, 1, LevelAppServer, errorText);
 				return false;
 			}
 		}
@@ -583,7 +591,7 @@ namespace FWO.Middleware.Server
 			{
 				string errorText = $"App Server name {appServer.Name} could not be set according to naming conventions.";
 				Log.WriteError(LogMessageTitle, errorText, exc);
-				await AddLogEntry(1, LevelAppServer, errorText);
+				await AddLogEntry(GlobalConst.kImportAppData, 1, LevelAppServer, errorText);
 			}
 			return appServer.Name;
 		}
@@ -614,7 +622,7 @@ namespace FWO.Middleware.Server
 			{
 				string errorText = $"App Server {incomingAppServer.Name} could not be processed.";
 				Log.WriteError(LogMessageTitle, errorText, exc);
-				await AddLogEntry(1, LevelAppServer, errorText);
+				await AddLogEntry(GlobalConst.kImportAppData, 1, LevelAppServer, errorText);
 				return false;
 			}
 			return true;
@@ -638,7 +646,7 @@ namespace FWO.Middleware.Server
 			{
 				string errorText = $"App Server {appServer.Name} could not be reactivated.";
 				Log.WriteError(LogMessageTitle, errorText, exc);
-				await AddLogEntry(1, LevelAppServer, errorText);
+				await AddLogEntry(GlobalConst.kImportAppData, 1, LevelAppServer, errorText);
 				return false;
 			}
 			return true;
@@ -661,7 +669,7 @@ namespace FWO.Middleware.Server
 			{
 				string errorText = $"Type of App Server {appServer.Name} could not be set.";
 				Log.WriteError(LogMessageTitle, errorText, exc);
-				await AddLogEntry(1, LevelAppServer, errorText);
+				await AddLogEntry(GlobalConst.kImportAppData, 1, LevelAppServer, errorText);
 				return false;
 			}
 			return true;
@@ -687,7 +695,7 @@ namespace FWO.Middleware.Server
 				{
 					string errorText = $"Name of App Server {appServer.Name} could not be set to {newName}.";
 					Log.WriteError(LogMessageTitle, errorText, exc);
-					await AddLogEntry(1, LevelAppServer, errorText);
+					await AddLogEntry(GlobalConst.kImportAppData, 1, LevelAppServer, errorText);
 					return false;
 				}
 			}
@@ -712,34 +720,10 @@ namespace FWO.Middleware.Server
 			{
 				string errorText = $"Outdated AppServer {appServer.Name} could not be marked as deleted.";
 				Log.WriteError(LogMessageTitle, errorText, exc);
-				await AddLogEntry(1, LevelAppServer, errorText);
+				await AddLogEntry(GlobalConst.kImportAppData, 1, LevelAppServer, errorText);
 				return false;
 			}
 			return true;
 		}
-		
-		private async Task AddLogEntry(int severity, string level, string description)
-	    {
-	        try
-	        {
-	            var Variables = new
-	            {
-					user = 0,
-					source = GlobalConst.kImportAppData,
-	                severity = severity,
-	                suspectedCause = level,
-	                description = description
-	            };
-	            ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<ReturnIdWrapper>(MonitorQueries.addDataImportLogEntry, Variables)).ReturnIds;
-	            if (returnIds == null)
-	            {
-	                Log.WriteError("Write Log", "Log could not be written to database");
-	            }
-	        }
-	        catch (Exception exc)
-	        {
-	            Log.WriteError("Write Log", $"Could not write log: ", exc);
-	        }
-	    }
 	}
 }

@@ -12,12 +12,15 @@ namespace FWO.Report
 {
     public static class ReportGenerator
     {
+
+        private static ReportBase? _currentReport;
+
         public static async Task<ReportBase?> Generate(ReportTemplate reportTemplate, ApiConnection apiConnection, UserConfig userConfig, Action<Exception?, string, string, bool> displayMessageInUi, CancellationToken? token = null)
         {
             try
             {
                 ReportBase report = ReportBase.ConstructReport(reportTemplate, userConfig);
-                CancellationToken canToken = token == null ? new () : (CancellationToken)token;
+                CancellationToken canToken = token == null ? new() : (CancellationToken)token;
                 await DoGeneration(report, reportTemplate, apiConnection, userConfig, displayMessageInUi, canToken);
                 return report;
             }
@@ -32,11 +35,11 @@ namespace FWO.Report
         {
             try
             {
-                if(report.ReportType.IsOwnerRelatedReport())
+                if (report.ReportType.IsOwnerRelatedReport())
                 {
                     await GenerateOwnerRelatedReport(report, reportTemplate, apiConnection, userConfig, displayMessageInUi, token);
                 }
-                else if(report.ReportType == ReportType.Statistics)
+                else if (report.ReportType == ReportType.Statistics)
                 {
                     await GenerateStatisticsReport(report, reportTemplate, apiConnection, token);
                 }
@@ -47,8 +50,9 @@ namespace FWO.Report
                         {
                             report.ReportData.ManagementData = rep.ManagementData;
                             SetRelevantManagements(ref report.ReportData.ManagementData, reportTemplate.ReportParams.DeviceFilter);
+                            TrySetComplianceReportFilter(report, reportTemplate);
                             return Task.CompletedTask;
-                    }, token);
+                        }, token);
                     if (report.ReportType == ReportType.Recertification)
                     {
                         PrepareMetadata(report.ReportData.ManagementData, userConfig);
@@ -63,15 +67,16 @@ namespace FWO.Report
 
         private static async Task GenerateOwnerRelatedReport(ReportBase report, ReportTemplate reportTemplate, ApiConnection apiConnection, UserConfig userConfig, Action<Exception?, string, string, bool> displayMessageInUi, CancellationToken token)
         {
+            _currentReport = report;
             ModellingAppRole dummyAppRole = new();
             List<ModellingAppRole> dummyAppRoles = await apiConnection.SendQueryAsync<List<ModellingAppRole>>(ModellingQueries.getDummyAppRole);
-            if(dummyAppRoles.Count > 0)
+            if (dummyAppRoles.Count > 0)
             {
                 dummyAppRole = dummyAppRoles[0];
             }
-            foreach(var selectedOwner in reportTemplate.ReportParams.ModellingFilter.SelectedOwners)
+            foreach (var selectedOwner in reportTemplate.ReportParams.ModellingFilter.SelectedOwners)
             {
-                OwnerReport actOwnerData = new(dummyAppRole.Id){ Name = selectedOwner.Display(""), Owner = selectedOwner };
+                OwnerReport actOwnerData = new(dummyAppRole.Id) { Name = selectedOwner.Display(""), Owner = selectedOwner };
                 report.ReportData.OwnerData.Add(actOwnerData);
                 await report.Generate(userConfig.ElementsPerFetch, apiConnection,
                     rep =>
@@ -81,12 +86,12 @@ namespace FWO.Report
                     }, token);
                 await PrepareConnReportData(selectedOwner, actOwnerData, report.ReportType, reportTemplate.ReportParams.ModellingFilter, apiConnection, userConfig, displayMessageInUi);
             }
-            if(report.ReportType == ReportType.Connections)
+            if (report.ReportType == ReportType.Connections)
             {
                 List<ModellingConnection> comSvcs = await apiConnection.SendQueryAsync<List<ModellingConnection>>(ModellingQueries.getCommonServices);
-                if(comSvcs.Count > 0)
+                if (comSvcs.Count > 0)
                 {
-                    report.ReportData.GlobalComSvc = [new(){GlobalComSvcs = comSvcs, Name = userConfig.GetText("global_common_services")}];
+                    report.ReportData.GlobalComSvc = [new() { GlobalComSvcs = comSvcs, Name = userConfig.GetText("global_common_services") }];
                 }
             }
         }
@@ -95,11 +100,11 @@ namespace FWO.Report
             ApiConnection apiConnection, UserConfig userConfig, Action<Exception?, string, string, bool> displayMessageInUi)
         {
             ModellingHandlerBase handlerBase = new(apiConnection, userConfig, new(), false, displayMessageInUi);
-            foreach(var conn in ownerReport.Connections)
+            foreach (var conn in ownerReport.Connections)
             {
                 await handlerBase.ExtractUsedInterface(conn);
             }
-            if(reportType == ReportType.VarianceAnalysis)
+            if (reportType == ReportType.VarianceAnalysis)
             {
                 await PrepareVarianceData(ownerReport, modellingFilter, apiConnection, userConfig, displayMessageInUi);
             }
@@ -122,16 +127,22 @@ namespace FWO.Report
             ownerReport.DifferingAppRoles = result.DifferingAppRoles;
             ownerReport.AppRoleStats = result.AppRoleStats;
             ownerReport.ImplementationState = await varianceAnalysis.GetSuccessfulRequestState();
-            if(modellingFilter.AnalyseRemainingRules)
+            if (modellingFilter.AnalyseRemainingRules)
             {
                 ownerReport.ManagementData = result.MgtDataToReport();
                 ownerReport.ManagementData = await ReportAppRules.PrepareAppRulesReport(ownerReport.ManagementData, modellingFilter, apiConnection, ownerReport.Owner.Id);
+            }
+
+            if (_currentReport is ReportVariances reportVariances)
+            {
+                reportVariances.SetDifferenceCounters();
+                reportVariances.ReportData.ElementsCount += reportVariances.MissARCounter + reportVariances.DiffARCounter + reportVariances.MissConnCounter + reportVariances.DiffConnCounter;
             }
         }
 
         private static async Task GenerateStatisticsReport(ReportBase report, ReportTemplate reportTemplate, ApiConnection apiConnection, CancellationToken token)
         {
-            report.ReportData.GlobalStats = new ();
+            report.ReportData.GlobalStats = new();
             await report.Generate(0, apiConnection,
                 rep =>
                 {
@@ -154,10 +165,14 @@ namespace FWO.Report
             {
                 foreach (var device in managementReport.Devices.Where(d => d.ContainsRules()))
                 {
-					foreach (var rule in device.Rules!)
-					{
-						rule.Metadata.UpdateRecertPeriods(userConfig.RecertificationPeriod, userConfig.RecertificationNoticePeriod);
-					}
+                    if (device.ContainsRules())
+                    {
+                        // rulesFound = true;
+                        foreach (var rulebaseLink in device.RulebaseLinks)
+                        {
+                            // rule.Metadata.UpdateRecertPeriods(userConfig.RecertificationPeriod, userConfig.RecertificationNoticePeriod);
+                        }
+                    }
                 }
             }
         }
@@ -172,6 +187,17 @@ namespace FWO.Report
                     mgm.Ignore = !relevantManagements.Contains(mgm.Id);
                 }
             }
+        }
+
+        private static void TrySetComplianceReportFilter(ReportBase report, ReportTemplate reportTemplate)
+        {
+            if (report.ReportType == ReportType.Compliance || report.ReportType == ReportType.ComplianceNew)
+            {
+                ReportCompliance complianceReport = (ReportCompliance)report;
+                complianceReport.IsDiffReport = reportTemplate.ReportParams.ComplianceFilter.IsDiffReport;
+                complianceReport.DiffReferenceInDays = reportTemplate.ReportParams.ComplianceFilter.DiffReferenceInDays;
+            }
+
         }
     }
 }

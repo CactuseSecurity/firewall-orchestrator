@@ -6,14 +6,15 @@ using RestSharp;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
+
 namespace FWO.DeviceAutoDiscovery
 {
     public class FortiManagerClient : RestApiClient
     {
         public FortiManagerClient(Management fortiManager) : base("https://" + fortiManager.Hostname + ":" + fortiManager.Port + "/jsonrpc")
-		{ }
+        { }
 
-        public async Task<RestResponse<SessionAuthInfo>> AuthenticateUser(string? user, string pwd)
+        public async Task<RestResponse<SessionAuthInfo>> AuthenticateUser(string? user, string pwd, string domainString = "")
         {
             List<object> dataList = [];
             dataList.Add(new { passwd = pwd, user = user });
@@ -48,7 +49,27 @@ namespace FWO.DeviceAutoDiscovery
             return await restClient.ExecuteAsync<SessionAuthInfo>(request);
         }
 
-        public async Task<RestResponse<FmApiTopLevelHelper>> GetAdoms(string session)
+        public async Task<string> GetFortiManagerDetails(string sessionId)
+        {
+            string[] fieldArray = ["name", "oid", "uuid"];
+            List<object> paramList = [new { fields = fieldArray, url = "/sys/status" }];
+
+            var body = new
+            {
+                @params = paramList,
+                method = "get",
+                id = 1,
+                session = sessionId
+            };
+            RestRequest request = new("", Method.Post);
+            request.AddJsonBody(body);
+            Log.WriteDebug("Autodiscovery", $"using FortiManager REST API call with body='{body.ToString()}' and paramList='{paramList.ToString()}'");
+            await restClient.ExecuteAsync<FmApiTopLevelHelper>(request);
+            
+            return "dummy-uid";
+        }
+
+        public async Task<RestResponse<FmApiTopLevelHelper>> GetAdoms(string sessionId)
         {
             string[] fieldArray = { "name", "oid", "uuid" };
             List<object> paramList = [];
@@ -59,7 +80,7 @@ namespace FWO.DeviceAutoDiscovery
                 @params = paramList,
                 method = "get",
                 id = 1,
-                session = session
+                session = sessionId
             };
             RestRequest request = new("", Method.Post);
             request.AddJsonBody(body);
@@ -67,7 +88,7 @@ namespace FWO.DeviceAutoDiscovery
             return await restClient.ExecuteAsync<FmApiTopLevelHelper>(request);
         }
 
-        public async Task<RestResponse<FmApiTopLevelHelperDev>> GetDevices(string session)
+        public async Task<RestResponse<FmApiTopLevelHelperDev>> GetDevices(string sessionId)
         {
             string[] fieldArray = { "name", "desc", "hostname", "vdom", "ip", "mgmt_id", "mgt_vdom", "os_type", "os_ver", "platform_str", "dev_status" };
             List<object> paramList = [];
@@ -78,7 +99,7 @@ namespace FWO.DeviceAutoDiscovery
                 @params = paramList,
                 method = "get",
                 id = 1,
-                session = session
+                session = sessionId
             };
             RestRequest request = new("", Method.Post);
             request.AddJsonBody(body);
@@ -125,25 +146,27 @@ namespace FWO.DeviceAutoDiscovery
     }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
+
     public class FmApiTopLevelHelper
     {
         [JsonProperty("id"), JsonPropertyName("id")]
         public int Id { get; set; }
 
         [JsonProperty("status"), JsonPropertyName("status")]
-        public FmApiStatus Status { get; set; } = new FmApiStatus();
+        public FmApiStatus Status { get; set; } = new();
 
         [JsonProperty("result"), JsonPropertyName("result")]
-        public List<FmApiDataHelper> Result { get; set; } = new List<FmApiDataHelper>();
+        public List<FmApiDataHelper> Result { get; set; } = [];
     }
 
     public class FmApiDataHelper
     {
         [JsonProperty("data"), JsonPropertyName("data")]
-        public List<Adom> AdomList { get; set; } = new List<Adom>();
+        public List<Adom> AdomList { get; set; } = [];
     }
 
     public class Adom
+
     {
         [JsonProperty("oid"), JsonPropertyName("oid")]
         public int Oid { get; set; }
@@ -166,16 +189,16 @@ namespace FWO.DeviceAutoDiscovery
         public int Id { get; set; }
 
         [JsonProperty("status"), JsonPropertyName("status")]
-        public FmApiStatus Status { get; set; } = new FmApiStatus();
+        public FmApiStatus Status { get; set; } = new();
 
         [JsonProperty("result"), JsonPropertyName("result")]
-        public List<FmApiDataHelperDev> Result { get; set; } = new List<FmApiDataHelperDev>();
+        public List<FmApiDataHelperDev> Result { get; set; } = [];
     }
 
     public class FmApiDataHelperDev
     {
         [JsonProperty("data"), JsonPropertyName("data")]
-        public List<FortiGate> DeviceList { get; set; } = new List<FortiGate>();
+        public List<FortiGate> DeviceList { get; set; } = [];
     }
     public class FortiGate
     {
@@ -201,7 +224,7 @@ namespace FWO.DeviceAutoDiscovery
         // public string DevStatus { get; set; } = "";
         
         [JsonProperty("vdom"), JsonPropertyName("vdom")]
-        public List<Vdom> VdomList { get; set; } = new List<Vdom>();
+        public List<Vdom> VdomList { get; set; } = [];
 
         // "name", "desc", "hostname", "vdom", "ip", "mgmt_id", "mgt_vdom", "os_type", "os_ver", "platform_str", "dev_status" 
     }
@@ -222,16 +245,16 @@ namespace FWO.DeviceAutoDiscovery
         public int Id { get; set; }
 
         [JsonProperty("status"), JsonPropertyName("status")]
-        public FmApiStatus Status { get; set; } = new FmApiStatus();
+        public FmApiStatus Status { get; set; } = new();
 
         [JsonProperty("result"), JsonPropertyName("result")]
-        public List<FmApiDataHelperAssign> Result { get; set; } = new List<FmApiDataHelperAssign>();
+        public List<FmApiDataHelperAssign> Result { get; set; } = [];
     }
 
     public class FmApiDataHelperAssign
     {
         [JsonProperty("data"), JsonPropertyName("data")]
-        public List<Assignment> AssignmentList { get; set; } = new List<Assignment>();
+        public List<Assignment> AssignmentList { get; set; } = [];
     }
     public class Assignment
     {
@@ -239,7 +262,7 @@ namespace FWO.DeviceAutoDiscovery
         public int Oid { get; set; }
 
         [JsonProperty("dev"), JsonPropertyName("dev")]
-        public string DeviceName { get; set; } = "";
+        public string RulebaseName { get; set; } = "";
 
         [JsonProperty("vdom"), JsonPropertyName("vdom")]
         public string VdomName { get; set; } = "";

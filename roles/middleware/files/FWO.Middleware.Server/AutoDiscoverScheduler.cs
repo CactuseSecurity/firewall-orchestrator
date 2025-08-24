@@ -16,7 +16,7 @@ namespace FWO.Middleware.Server
     public class AutoDiscoverScheduler : SchedulerBase
     {
         private long? lastMgmtAlertId;
-        private const string LogMessageTitle = "Autodiscovery";
+        private const string LogMessageTitle = GlobalConst.kAutodiscovery;
 
 		/// <summary>
         /// Async Constructor needing the connection

@@ -22,6 +22,7 @@ ImportIpDataScheduler importSubnetDataScheduler;
 ImportChangeNotifyScheduler importChangeNotifyScheduler;
 ExternalRequestScheduler externalRequestScheduler;
 VarianceAnalysisScheduler varianceAnalysisScheduler;
+ComplianceCheckScheduler complianceCheckScheduler;
 
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 builder.WebHost.UseUrls(ConfigFile.MiddlewareServerNativeUri ?? throw new ArgumentException("Missing middleware server url on startup."));
@@ -103,6 +104,11 @@ await Task.Factory.StartNew(async() =>
     varianceAnalysisScheduler = await VarianceAnalysisScheduler.CreateAsync(apiConnection);
 }, TaskCreationOptions.LongRunning);
 
+// Create and start compliance check scheduler
+await Task.Factory.StartNew(async() =>
+{
+    complianceCheckScheduler = await ComplianceCheckScheduler.CreateAsync(apiConnection);
+}, TaskCreationOptions.LongRunning);
 
 // Add services to the container.
 builder.Services.AddControllers()
@@ -127,7 +133,7 @@ builder.Services.AddAuthentication(confOptions =>
     {
         RequireExpirationTime = true,
         RequireSignedTokens = true,
-        ValidateAudience = false,
+        ValidateAudience = true,
         ValidateIssuer = false,
         ValidateLifetime = true,
         RoleClaimType = "role",

@@ -260,7 +260,7 @@ bugfix release:
 
 # 8.7.1 - 05.03.2025 DEVELOP
 - ldap writepath for groups
-
+ demo data (major versions only)
 # 8.7.2 - 20.03.2025 DEVELOP
 - new config values
 - external request: attempt counter
@@ -280,3 +280,32 @@ bugfix release:
 
 # 8.8.6 - 08.07.2025 DEVELOP
 - hotfix CP importer new stm_track: "extended log" and "detailed log"
+
+# 8.8.8 - 21.08.2025 DEVELOP
+- add read-only db user fwo_ro
+- also reducing db listener to localhost and other hardening changes
+
+# 9.0 - 30.06.2025 DEVELOP
+- rule to gateway mapping 1:n
+- add report output for rule to gw mapping
+- cleanup/rework of main import function
+
+Breaking changes
+    Due to introduction of venv for all imports, the following steps have to be taken to manually import a config:
+
+    sudo -u fworch -i
+    cd importer
+    source venv/bin/activate
+    ./import-mgm.py -m xy -f -s -d 8 
+    As we now need support for pip, in installations behind url filter, make sure that all sub-domains of
+    pythonhosted.org
+    are also allowed.
+
+To initialize your venv locally (e.g. within your vscode environment) run
+
+make sure to place your venv outside the repo, e.g. into /home/user/dev/venv
+
+    cd /home/user/dev
+    python3 -m venv installer-venv
+    source installer-venv/bin/activate
+    pip install -r path-to-repo/roles/importer/files/importer/requirements.txt

@@ -21,19 +21,20 @@ namespace FWO.Api.Client.Queries
             try
             {
                 ruleOverviewFragments =
-                    File.ReadAllText(QueryPath + "networkObject/fragments/networkObjectOverview.graphql") +
-                    File.ReadAllText(QueryPath + "networkService/fragments/networkServiceOverview.graphql") +
-                    File.ReadAllText(QueryPath + "user/fragments/userOverview.graphql") +
-                    File.ReadAllText(QueryPath + "rule/fragments/ruleOverview.graphql");
-                ruleOpenRecertFragments = ruleOverviewFragments + File.ReadAllText(QueryPath + "recertification/fragments/ruleOpenCertOverview.graphql");
+                    GetQueryText("networkObject/fragments/networkObjectOverview.graphql") +
+                    GetQueryText("networkService/fragments/networkServiceOverview.graphql") +
+                    GetQueryText("user/fragments/userOverview.graphql") +
+                    GetQueryText("rule/fragments/ruleOverview.graphql") +
+                    GetQueryText("rule/fragments/rulebaseOverview.graphql");
+                ruleOpenRecertFragments = ruleOverviewFragments + GetQueryText("recertification/fragments/ruleOpenCertOverview.graphql");
 
-                prepareNextRecertification = File.ReadAllText(QueryPath + "recertification/prepareNextRecertification.graphql");
-                recertify = File.ReadAllText(QueryPath + "recertification/recertify.graphql");
-                getOpenRecertsForRule = File.ReadAllText(QueryPath + "recertification/getOpenRecertsForRule.graphql");
-                getOpenRecerts = File.ReadAllText(QueryPath + "recertification/getOpenRecerts.graphql");
-                clearOpenRecerts = File.ReadAllText(QueryPath + "recertification/clearOpenRecerts.graphql");
-                addRecertEntries = File.ReadAllText(QueryPath + "recertification/addRecertEntries.graphql");
-                refreshViewRuleWithOwner = File.ReadAllText(QueryPath + "recertification/refreshViewRuleWithOwner.graphql");
+                prepareNextRecertification = GetQueryText("recertification/prepareNextRecertification.graphql");
+                recertify = GetQueryText("recertification/recertify.graphql");
+                getOpenRecertsForRule = GetQueryText("recertification/getOpenRecertsForRule.graphql");
+                getOpenRecerts = GetQueryText("recertification/getOpenRecerts.graphql");
+                clearOpenRecerts = GetQueryText("recertification/clearOpenRecerts.graphql");
+                addRecertEntries = GetQueryText("recertification/addRecertEntries.graphql");
+                refreshViewRuleWithOwner = GetQueryText("recertification/refreshViewRuleWithOwner.graphql");
             }
             catch (Exception exception)
             {

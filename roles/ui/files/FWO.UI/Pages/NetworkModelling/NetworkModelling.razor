@@ -146,9 +146,7 @@
 }
 else
 {
-    <div class="spinner-border" role="status">
-        <span class="visually-hidden">@(userConfig.GetText("loading"))</span>
-    </div>
+    <Loading/>
 }
 <ManualAppServer @bind-Display="manualAppServer" Application="@selectedApp" />
 <ShowHistory @bind-Display="showHistory" Applications="apps" SelectedApp="selectedApp" />
@@ -225,6 +223,7 @@ else
         lastConn = appHandler?.connHandler?.ActConn;
         restoreTab = true;
         sidebarLeftWidth = appHandler?.overviewConnHandler?.LastWidth ?? GlobalConst.kGlobLibraryWidth;
+        StateHasChanged();
         return true;
     }
 

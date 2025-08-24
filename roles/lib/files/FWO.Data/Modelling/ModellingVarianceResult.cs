@@ -67,16 +67,17 @@ namespace FWO.Data.Modelling
                 List<DeviceReport> deviceReports = [];
                 foreach (var rule in UnModelledRules[mgtId])
                 {
-                    DeviceReport? existingDev = deviceReports.FirstOrDefault(d => d.Id == rule.DeviceId);
-                    if (existingDev != null)
-                    {
-                        existingDev.Rules = existingDev.Rules?.Append(rule).ToArray();
-                    }
-                    else
-                    {
-                        string devName = mgt == null ? "" : mgt.Devices.FirstOrDefault(d => d.Id == rule.DeviceId)?.Name ?? "";
-                        deviceReports.Add(new() { Id = rule.DeviceId, Name = devName, Rules = [rule] });
-                    }
+                    // TODO: Migrate
+                    // DeviceReport? existingDev = deviceReports.FirstOrDefault(d => d.Id == rule.DeviceId);
+                    // if (existingDev != null)
+                    // {
+                    //     existingDev.Rules = existingDev.Rules?.Append(rule).ToArray();
+                    // }
+                    // else
+                    // {
+                    //     string devName = mgt == null ? "" : mgt.Devices.FirstOrDefault(d => d.Id == rule.DeviceId)?.Name ?? "";
+                    //     deviceReports.Add(new() { Id = rule.DeviceId, Name = devName, Rules = [rule] });
+                    // }
                 }
                 managementReport.Devices = [.. deviceReports];
                 managementReports.Add(managementReport);

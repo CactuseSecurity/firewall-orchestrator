@@ -30,9 +30,39 @@
 
 - debug: 
     msg:
-      - "installed_version: {{ installed_version }}"
-      - "current_version: {{ current_version }}"
-      - "all_upgrades_available: {{ all_upgrades_available }}"
+        - "installed_version: {{ installed_version }}"
+        - "current_version: {{ current_version }}"
+        - "all_upgrades_available: {{ all_upgrades_available }}"
+
+- block:
+    - name: create ro db user {{ fwo_db_ro_user }} pwd file
+      import_tasks: create-ro-pwd-file.yml
+
+    - name: Read fwo_db_ro user password from file
+      slurp:
+          src: "{{ fwo_db_ro_user_password_file }}"
+      register: fwo_db_ro_pwd_base64
+      become: true
+      become_user: "{{ fworch_user }}"
+
+    - name: decode fwo db ro pwd
+      set_fact:
+        fwo_db_ro_pwd: "{{ fwo_db_ro_pwd_base64['content'] | b64decode | trim }}"
+
+    - name: Create read-only role safely
+      shell: |
+        psql -d "{{ fworch_db_name }}" -c "
+        DO \$\$ 
+        BEGIN
+            IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = '{{ fwo_db_ro_user }}') THEN
+                CREATE ROLE {{ fwo_db_ro_user }} WITH LOGIN NOSUPERUSER INHERIT NOCREATEDB NOCREATEROLE PASSWORD '{{ fwo_db_ro_pwd }}';
+            END IF;
+        END
+        \$\$;"
+      become: true
+      become_user: postgres
+
+  when: installed_version is version('8.8.8', '<=') and current_version is version ('8.8.8', '>=')
 
 - name: Copy relevant upgrade files
   copy:
@@ -49,3 +79,5 @@
   become: true
   ignore_errors: false
   become_user: postgres
+  environment:
+    fwo_db_ro_user_pwd: "{{ fwo_db_ro_pwd }}"

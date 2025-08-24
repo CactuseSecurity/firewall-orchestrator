@@ -19,6 +19,20 @@ namespace FWO.Basics
             }
         }
 
+        public static async Task<string> DnsLookUp(string hostname)
+        {
+            try
+            {
+                return (await Dns.GetHostAddressesAsync(hostname))
+                    .FirstOrDefault(a => a.AddressFamily == AddressFamily.InterNetwork)?
+                    .ToString() ?? "";
+            }
+            catch (Exception)
+            {
+                return "";
+            }
+        }
+
         public static (string, string) SplitIpToRange(string ipString)
         {
             string ipStart;
@@ -116,7 +130,7 @@ namespace FWO.Basics
 
                 if(typeof(T) == typeof((string, string)))
                 {
-                    ipResult = (T)Convert.ChangeType((ipAdressStart.ToString(), ipAdressEnd.ToString()), typeof(T));
+                    ipResult = (T)Convert.ChangeType((ipAdressStart!.ToString(), ipAdressEnd!.ToString()), typeof(T));
                     return true;
                 }
                 else if(typeof(T) == typeof(IPAddressRange) && IPAddressRange.TryParse(ipString, out IPAddressRange ipRange))
@@ -125,7 +139,7 @@ namespace FWO.Basics
                     return true;
                 }else if(typeof(T) == typeof((IPAddress, IPAddress)))
                 {
-                    Tuple<IPAddress, IPAddress>? ipTuple = new(ipAdressStart, ipAdressEnd);
+                    Tuple<IPAddress, IPAddress>? ipTuple = new(ipAdressStart!, ipAdressEnd!);
                     ipResult = (T)Convert.ChangeType(ipTuple, typeof(T));
                     return true;
                 }

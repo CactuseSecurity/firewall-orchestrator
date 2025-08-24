@@ -83,9 +83,10 @@
 
   become: true
   environment: "{{ proxy_env }}"
+  
 # get google chrome for pdf generation
 - block:
-    - name: get last known good versions of chrome to download (primary endpoint)
+    - name: get last known good versions (primary)
       uri:
         url: https://googlechromelabs.github.io/chrome-for-testing/last-known-good-versions-with-downloads.json
         return_content: true
@@ -93,17 +94,45 @@
       become: false
 
   rescue:
-    - name: fallback - get last known good versions of chrome to download (raw.githubusercontent.com)
+    - name: fallback - get last known good versions (raw.githubusercontent.com)
       uri:
         url: https://raw.githubusercontent.com/GoogleChromeLabs/chrome-for-testing/main/data/last-known-good-versions-with-downloads.json
         return_content: true
+        headers:
+          Accept: application/json
       register: chrome_versions
       become: false
 
+# Parse once, regardless of Content-Type
+- name: normalize/parse JSON response
+  set_fact:
+    chrome_versions_parsed: >-
+      {{
+        chrome_versions.json
+        if (chrome_versions.json is defined)
+        else (chrome_versions.content | trim | from_json)
+      }}
+
+# Pick the Stable channel (some users accidentally use 'stable', so be flexible)
+- name: select Stable channel
+  set_fact:
+    cft_stable: "{{ chrome_versions_parsed.channels.Stable | default(chrome_versions_parsed.channels.stable) }}"
+
+# Extract downloads + version from Stable
 - name: parse latest stable versions for chrome #and headless shell
   set_fact:
-    stable_chrome_versions: "{{ chrome_versions['json']['channels']['Stable']['downloads'] }}"
-    chrome_dest: "/usr/local/fworch/bin/Chrome/Linux-{{ chrome_versions['json']['channels']['Stable']['version'] }}"
+    stable_chrome_versions: "{{ cft_stable.downloads }}"
+    chrome_dest: "/usr/local/fworch/bin/Chrome/Linux-{{ cft_stable.version }}"
+
+# (Optional) sanity checks to fail early with a clear message
+- name: validate parsed data
+  assert:
+    that:
+      - chrome_versions_parsed is mapping
+      - cft_stable is mapping
+      - cft_stable.version is defined
+      - cft_stable.downloads is defined
+    fail_msg: "Failed to parse Chrome for Testing JSON or locate the Stable channel."
 
 - block:
   - name: install unzip

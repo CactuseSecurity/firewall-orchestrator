@@ -22,6 +22,7 @@ class ImportStateController(ImportState):
 
     api_connection:FwoApi
     api_call: FwoApiCall
+    management_map: dict[str, int]  # maps management uid to management id
 
     def __init__(self, debugLevel, configChangedSinceLastImport, fwoConfig, mgmDetails, jwt, force, 
                  version=8, isFullImport=False, isInitialImport=False, isClearingImport=False, verifyCerts=False, LastSuccessfulImport=None):
@@ -325,10 +326,10 @@ class ImportStateController(ImportState):
         except Exception:
             logger = getFwoLogger()
             logger.error("Error while getting managements")
-            self.ManagementMap = {}
+            self.ManagementMap: dict[str, int] = {}
             raise
         
-        m = {}
+        m: dict[str, int] = {}
         mgm = result['data']['management'][0]
         m.update({mgm['mgm_uid']: mgm['mgm_id']})
         for sub_mgr in mgm['sub_managers']:

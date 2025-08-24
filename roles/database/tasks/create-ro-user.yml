@@ -1,15 +1,10 @@
 # add db ro user and assign privileges
 
-- name: create ro db user {{ fwo_db_ro_user }} pwd file
-  import_tasks: create-ro-pwd-file.yml
-  when: installation_mode == "new"
-
 - block:
     
   - name: create {{ fwo_db_ro_user }}
     postgresql_user:
       name: "{{ fwo_db_ro_user }}"
-      password: "{{ fwo_db_ro_pwd }}"
       role_attr_flags: LOGIN,NOSUPERUSER,INHERIT,NOCREATEDB,NOCREATEROLE
 
   - name: GRANT ro user

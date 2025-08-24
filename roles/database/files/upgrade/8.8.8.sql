@@ -1,3 +1,12 @@
+DO $$ 
+BEGIN
+    IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'fwo_ro') THEN
+        CREATE ROLE fwo_ro WITH LOGIN NOSUPERUSER INHERIT NOCREATEDB NOCREATEROLE;
+    END IF;
+END
+$$;
+
+
 GRANT CONNECT ON DATABASE fworchdb TO fwo_ro;
 
 GRANT USAGE ON SCHEMA compliance TO fwo_ro;

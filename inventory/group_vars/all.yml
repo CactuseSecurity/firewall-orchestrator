@@ -68,7 +68,6 @@ fworch_db_port: 5432
 fworch_db_name: fworchdb
 fworch_dbadmin_name: dbadmin
 dbadmin_password_file: "{{ fworch_secrets_dir }}/dbadmin_pwd"
-fwo_db_ro_user_password_file: "{{ fworch_secrets_dir }}/fwo_db_ro_pwd"
 fworch_db_password_file: "{{ fworch_secrets_dir }}/fworch_db_pwd"
 
 ###############################################################

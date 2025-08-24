@@ -35,7 +35,63 @@ namespace FWO.Report
                 [QueryVar.Time] = timestamp ?? (Query.ReportTimeString != "" ? Query.ReportTimeString : DateTime.Now.ToString(DynGraphqlQuery.fullTimeFormat)),
                 [QueryVar.MgmIds] = Query.RelevantManagementIds
             };
-            return await apiConnection.SendQueryAsync<List<ManagementReport>>(ReportQueries.getRelevantImportIdsAtTime, ImpIdQueryVariables);
+            List<ManagementReport> managementReports = await apiConnection.SendQueryAsync<List<ManagementReport>>(ReportQueries.getRelevantImportIdsAtTime, ImpIdQueryVariables);
+            // set max import id as relevant import id
+            managementReports.ForEach(mgm => mgm.RelevantImportId = mgm.Import.ImportAggregate.ImportAggregateMax.RelevantImportId ?? -1);
+
+            // handle management imported as sub-management as well as part of super management
+            foreach (var mgm in managementReports)
+            {
+                if (mgm.SubManagements.Count > 0)
+                {
+                    foreach (var s in mgm.SubManagements)
+                    {
+                        ManagementReport? subMgm = managementReports.FirstOrDefault(r => r.Id == s.Id);
+                        if (subMgm == null)
+                            continue;
+                        long subMgmImportId = subMgm.RelevantImportId ?? -1;
+                        long superMgmImportId = mgm.RelevantImportId ?? -1;
+                        if (subMgmImportId < superMgmImportId)
+                        {
+                            subMgm.RelevantImportId = superMgmImportId;
+                        }
+                    }
+                }
+            }
+            managementReports = [.. managementReports.Where(r => r.SubManagements.Count == 0)]; // filter out super managements
+
+            return managementReports;
+        }
+
+        public async Task<List<ManagementReport>> GetImportIdsInTimeRange(ApiConnection apiConnection, string startTime, string stopTime, bool? ruleChangeRequired = null)
+        {
+            var queryVariables = new
+            {
+                start_time = startTime,
+                end_time = stopTime,
+                mgmIds = Query.RelevantManagementIds,
+                ruleChangesFound = ruleChangeRequired
+            };
+            List<ManagementReport> managementReports = await apiConnection.SendQueryAsync<List<ManagementReport>>(ReportQueries.getRelevantImportIdsInTimeRange, queryVariables);
+
+            foreach (var mgm in managementReports)
+            {
+                mgm.RelevantImportId = mgm.Import.ImportAggregate.ImportAggregateMax.RelevantImportId ?? -1;
+                if (mgm.SubManagements.Count > 0)
+                {
+                    foreach (var s in mgm.SubManagements)
+                    {
+                        ManagementReport? subMgm = managementReports.FirstOrDefault(r => r.Id == s.Id);
+                        if (subMgm == null)
+                            continue;
+                        subMgm.ImportControls = [.. subMgm.ImportControls, .. mgm.ImportControls];
+                        subMgm.ImportControls.Sort((ic1, ic2) => ic1.ControlId.CompareTo(ic2.ControlId));
+                    }
+                }
+            }
+            managementReports = [.. managementReports.Where(r => r.SubManagements.Count == 0)]; // filter out super managements
+
+            return managementReports;
         }
 
         public static async Task<(List<string> unsupportedList, DeviceFilter reducedDeviceFilter)> GetUsageDataUnsupportedDevices(ApiConnection apiConnection, DeviceFilter deviceFilter)

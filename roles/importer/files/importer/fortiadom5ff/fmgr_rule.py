@@ -3,19 +3,21 @@ import jsonpickle
 import ipaddress
 import time
 from fwo_const import list_delimiter, nat_postfix, dummy_ip
-from fwo_base import extend_string_list
+from fwo_base import extend_string_list, sanitize
 from fmgr_service import create_svc_object
 from fmgr_network import create_network_object, get_first_ip_of_destination
 from fmgr_zone import add_zone_if_missing
-from fmgr_getter import fortinet_api_call
+from fmgr_getter import fortinet_api_call, update_config_with_fortinet_api_call
+import fmgr_getter
 from fmgr_gw_networking import get_device_from_package
 from fwo_log import getFwoLogger
 from model_controllers.route_controller import get_matching_route_obj, get_ip_of_interface_obj
-from fwo_exceptions import FwoDeviceWithoutLocalPackage
+from fwo_exceptions import FwoDeviceWithoutLocalPackage, FwoImporterErrorInconsistencies
 from fmgr_base import resolve_raw_objects, resolve_objects
-from models.rule import Rule
+from models.rule import Rule, RuleNormalized, RuleAction, RuleTrack, RuleType
 from models.rulebase import Rulebase
 import fwo_globals
+from models.import_state import ImportState
 
 
 NETWORK_OBJECT='network_object'
@@ -25,31 +27,37 @@ rule_access_scope = rule_access_scope_v6 + rule_access_scope_v4
 rule_nat_scope = ['rules_global_nat', 'rules_adom_nat']
 rule_scope = rule_access_scope + rule_nat_scope
 
-uid_to_name_map = {}
+nwobj_name_to_uid_map = {}
 
 
-def normalize_rulebases (import_state, nativeConfig, native_config_global, importState, normalized_config_dict, normalized_config_global, is_global_loop_iteration):
-    
+def normalize_rulebases(
+    import_state: ImportState,
+    nativeConfig: dict,
+    native_config_global: dict,
+    normalized_config_dict: dict,
+    normalized_config_global: dict,
+    is_global_loop_iteration: bool
+) -> None:
     normalized_config_dict['policies'] = []
 
-    # fill uid_to_name_map:
-    for nw_obj in normalized_config_dict['network_objects']:
-        uid_to_name_map[nw_obj['obj_uid']] = nw_obj['obj_name']
+    # fill nwobj_name_to_uid_map:
+    for nw_obj in normalized_config_dict['network_objects'] + normalized_config_global.get('network_objects', []):
+        nwobj_name_to_uid_map[nw_obj['obj_name']] = nw_obj['obj_uid']
 
-    fetched_rulebase_uids = []
+    fetched_rulebase_uids: list = []
     if normalized_config_global is not None:
         for normalized_rulebase_global in normalized_config_global.get('policies', []):
             fetched_rulebase_uids.append(normalized_rulebase_global.uid)
     for gateway in nativeConfig['gateways']:
         normalize_rulebases_for_each_link_destination(
             gateway, fetched_rulebase_uids, nativeConfig, native_config_global,
-            is_global_loop_iteration, importState, normalized_config_dict,
+            is_global_loop_iteration, import_state, normalized_config_dict,
             normalized_config_global)
 
     # todo: parse nat rulebase here
 
 
-def normalize_rulebases_for_each_link_destination(gateway, fetched_rulebase_uids, nativeConfig, native_config_global, is_global_loop_iteration, importState, normalized_config_dict, normalized_config_global):
+def normalize_rulebases_for_each_link_destination(gateway, fetched_rulebase_uids, nativeConfig, native_config_global, is_global_loop_iteration, import_state, normalized_config_dict, normalized_config_global):
     logger = getFwoLogger()
     for rulebase_link in gateway['rulebase_links']:
         if rulebase_link['to_rulebase_uid'] not in fetched_rulebase_uids and rulebase_link['to_rulebase_uid'] != '':
@@ -66,8 +74,8 @@ def normalize_rulebases_for_each_link_destination(gateway, fetched_rulebase_uids
                 logger.warning('found to_rulebase link without rulebase in nativeConfig: ' + str(rulebase_link))
                 continue
             rulebase_link['is_section'] = is_section
-            normalized_rulebase = initialize_normalized_rulebase(rulebase_to_parse, importState.MgmDetails.Uid)
-            parse_rulebase(rulebase_to_parse, is_section, is_placeholder, normalized_rulebase)
+            normalized_rulebase = initialize_normalized_rulebase(rulebase_to_parse, import_state.MgmDetails.Uid)
+            parse_rulebase(normalized_config_dict, rulebase_to_parse, is_section, is_placeholder, normalized_rulebase)
             fetched_rulebase_uids.append(rulebase_link['to_rulebase_uid'])
 
             if found_rulebase_in_global:
@@ -98,7 +106,7 @@ def initialize_normalized_rulebase(rulebase_to_parse, mgm_uid):
     normalized_rulebase = Rulebase(uid=rulebaseUid, name=rulebaseName, mgm_uid=mgm_uid, Rules={})
     return normalized_rulebase
 
-def parse_rulebase(rulebase_to_parse, is_section, is_placeholder, normalized_rulebase):
+def parse_rulebase(normalized_config,rulebase_to_parse, is_section, is_placeholder, normalized_rulebase):
     logger = getFwoLogger()
 
     rule_num = 1
@@ -107,27 +115,156 @@ def parse_rulebase(rulebase_to_parse, is_section, is_placeholder, normalized_rul
         for rule in rulebase_to_parse['rulebase']:
             # delete_v: kann es passieren, dass eine section über mehrere chunks geht?
             # delte_v sind import_id, parent_uid, config2import wirklich egal? Dann können wir diese argumente löschen - NAT ACHTUNG
-            rule_num = parse_single_rule(rule, normalized_rulebase, normalized_rulebase.uid, None, rule_num, None, None)
+            rule_num = parse_single_rule(normalized_config, rule, normalized_rulebase, normalized_rulebase.uid, None, rule_num)
 
         if fwo_globals.debug_level>3:
             logger.debug("parsed rulebase " + normalized_rulebase.uid)
         return rule_num
     elif is_placeholder:
-        rule_num = parse_single_rule(rulebase_to_parse, normalized_rulebase, normalized_rulebase.uid, None, rule_num, None, None)
+        rule_num = parse_single_rule(normalized_config, rulebase_to_parse, normalized_rulebase, normalized_rulebase.uid, rule_num)
     else:
-        rule_num = parse_rulebase_chunk(rulebase_to_parse, normalized_rulebase, rule_num)                    
+        rule_num = parse_rulebase_chunk(normalized_config, rulebase_to_parse, normalized_rulebase, rule_num)                    
 
-def parse_rulebase_chunk(rulebase_to_parse, normalized_rulebase, rule_num):
+def parse_rulebase_chunk(normalized_config, rulebase_to_parse, normalized_rulebase, rule_num):
     logger = getFwoLogger()
     for rule in rulebase_to_parse['data']:
-        rule_num = parse_single_rule(rule, normalized_rulebase, normalized_rulebase.uid, None, rule_num, None, None)
+        rule_num = parse_single_rule(normalized_config, rule, normalized_rulebase, normalized_rulebase.uid, rule_num)
     return rule_num
- 
 
-def parse_single_rule(nativeRule, rulebase, layer_name, import_id, rule_num, parent_uid, config2import, debug_level=0):
+def parse_single_rule(normalized_config, native_rule, rulebase: Rulebase, layer_name, rule_num, debug_level=0):
     logger = getFwoLogger()
-    # TODO: implement
-    return 0
+    # Extract basic rule information
+    rule_disabled = True  # Default to disabled
+    if 'status' in native_rule and (native_rule['status'] == 1 or native_rule['status'] == 'enable'):
+        rule_disabled = False
+    
+    rule_action = rule_parse_action(native_rule)
+
+    rule_track = rule_parse_tracking_info(native_rule)
+    
+    rule_src_list, rule_src_refs_list = rule_parse_src_addr(native_rule)
+    rule_dst_list, rule_dst_refs_list = rule_parse_dst_addr(native_rule)
+
+    rule_svc_list, rule_svc_refs_list = rule_parse_service(native_rule)
+
+    rule_src_zone, rule_dst_zone = rule_parse_zone(native_rule, normalized_config)
+
+    rule_src_neg, rule_dst_neg, rule_svc_neg, rule_installon = rule_parse_negation_flags(native_rule, rulebase.name)
+
+    # Create the normalized rule
+    rule_normalized = RuleNormalized(
+        rule_num=rule_num,
+        rule_num_numeric=float(rule_num),
+        rule_disabled=rule_disabled,
+        rule_src_neg=rule_src_neg,
+        rule_src=list_delimiter.join(rule_src_list),
+        rule_src_refs=list_delimiter.join(rule_src_refs_list),
+        rule_dst_neg=rule_dst_neg,
+        rule_dst=list_delimiter.join(rule_dst_list),
+        rule_dst_refs=list_delimiter.join(rule_dst_refs_list),
+        rule_svc_neg=rule_svc_neg,
+        rule_svc=list_delimiter.join(rule_svc_list),
+        rule_svc_refs=list_delimiter.join(rule_svc_refs_list),
+        rule_action=rule_action,
+        rule_track=rule_track,
+        rule_installon=rule_installon,
+        rule_time='',  # Time-based rules not commonly used in basic Fortinet configs
+        rule_name=native_rule.get('name'),
+        rule_uid=native_rule.get('uuid'),
+        rule_custom_fields="; ".join(f"{k}: {v}" for k, v in native_rule.get('meta fields', {}).items()),
+        rule_implied=False,
+        rule_type=RuleType.ACCESS,
+        rule_last_change_admin=native_rule.get('_last-modified-by'),
+        parent_rule_uid=None,
+        last_hit=None, # TODO: get last hit
+        rule_comment=native_rule.get('comments'),
+        rule_src_zone=rule_src_zone,
+        rule_dst_zone=rule_dst_zone,
+        rule_head_text=None
+    )
+    
+    # Add the rule to the rulebase
+    rulebase.Rules[rule_normalized.rule_uid] = rule_normalized
+
+    # TODO: handle NAT
+    
+    return rule_num + 1
+
+def rule_parse_action(native_rule):
+    # Extract action - Fortinet uses 0 for deny/drop, 1 for accept
+    if native_rule.get('action', 0) == 0:
+        return RuleAction.DROP
+    else:
+        return RuleAction.ACCEPT
+
+def rule_parse_tracking_info(native_rule):
+    # TODO: Implement more detailed logging level extraction (difference between 1/2/3?)
+    logtraffic = native_rule.get('logtraffic', 0)
+    if isinstance(logtraffic, int) and logtraffic > 0 or isinstance(logtraffic, str) and logtraffic != 'disable':
+        return RuleTrack.LOG
+    else:
+        return RuleTrack.NONE
+
+def rule_parse_service(native_rule):
+    rule_svc_list = []
+    rule_svc_refs_list = []
+    for svc in native_rule.get('service', []):
+        rule_svc_list.append(svc)
+        rule_svc_refs_list.append(svc)
+
+    return rule_svc_list, rule_svc_refs_list
+
+def rule_parse_zone(native_rule, normalized_config):
+    # TODO: only using the first zone for now
+    rule_src_zone = None
+    if len(native_rule.get('srcintf', [])) > 0:
+        rule_src_zone = add_zone_if_missing(normalized_config, native_rule['srcintf'][0])
+
+    rule_dst_zone = None
+    if len(native_rule.get('dstintf', [])) > 0:
+        rule_dst_zone = add_zone_if_missing(normalized_config, native_rule['dstintf'][0])
+    return rule_src_zone, rule_dst_zone
+
+def rule_parse_src_addr(native_rule):
+    rule_src_list = []
+    rule_src_refs_list = []
+    for addr in native_rule.get('srcaddr', []) + native_rule.get('srcaddr6', []) + native_rule.get('internet-service-src-name', []):
+        rule_src_list.append(addr)
+        uid = nwobj_name_to_uid_map.get(addr, None)
+        if uid is None:
+            raise FwoImporterErrorInconsistencies(f"Source object '{addr}' not found in network object map.")
+        rule_src_refs_list.append(uid)
+        # TODO: add users
+    return rule_src_list, rule_src_refs_list
+
+def rule_parse_dst_addr(native_rule):
+    # Parse destination addresses
+    rule_dst_list = []
+    rule_dst_refs_list = []
+    for addr in native_rule.get('dstaddr', []) + native_rule.get('dstaddr6', []):
+        rule_dst_list.append(addr)
+        uid = nwobj_name_to_uid_map.get(addr, None)
+        if uid is None:
+            raise FwoImporterErrorInconsistencies(f"Destination object '{addr}' not found in network object map.")
+        rule_dst_refs_list.append(uid)
+        # TODO: add users
+    return rule_dst_list, rule_dst_refs_list
+
+def rule_parse_negation_flags(native_rule, rulebase_name):
+    if 'srcaddr-negate' in native_rule:
+        rule_src_neg = native_rule['srcaddr-negate'] == 1 or native_rule['srcaddr-negate'] == 'disable'
+    elif 'internet-service-src-negate' in native_rule:
+        rule_src_neg = native_rule['internet-service-src-negate'] == 1 or native_rule['internet-service-src-negate'] == 'disable'
+    else:
+        rule_src_neg = False
+    rule_dst_neg = 'dstaddr-negate' in native_rule and (native_rule['dstaddr-negate'] == 1 or native_rule['dstaddr-negate'] == 'disable') #TODO: last part does not make sense?
+    rule_svc_neg = 'service-negate' in native_rule and (native_rule['service-negate'] == 1 or native_rule['service-negate'] == 'disable')
+
+    if 'scope_member' in native_rule:
+        rule_installon = list_delimiter.join([vdom['name'] + '_' + vdom['vdom'] for vdom in native_rule['scope_member']])
+    else:
+        rule_installon = rulebase_name
+    return rule_src_neg, rule_dst_neg, rule_svc_neg, rule_installon
 
 
 def initialize_rulebases(native_config):
@@ -256,7 +393,7 @@ def getNatPolicy(sid, fm_api_url, nativeConfig, adom_name, device, limit):
 
 
 # delete_v: versuch das von cp_rule zu kopieren
-#def normalizeRulebases (nativeConfig, importState, normalizedConfig):
+#def normalizeRulebases (nativeConfig, import_state, normalizedConfig):
 def normalize_access_rules(native_config, native_config_global, import_state, normalized_config_dict, normalized_config_global, is_global_loop_iteration):
     logger = getFwoLogger()
     rules = []

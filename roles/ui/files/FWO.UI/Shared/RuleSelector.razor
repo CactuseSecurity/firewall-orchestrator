@@ -102,10 +102,15 @@
         try
         {
             actDevice = newDevice;
+            int? mgmId = Devices.FirstOrDefault(d => d.Id == newDevice.Id)?.Management.Id;
+            if (mgmId == null)
+            {
+                return;
+            }
             var Variables = new
             {
                 time = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"),
-                mgmIds = Devices.FirstOrDefault(d => d.Id == newDevice.Id)?.Management.Id
+                mgmIds = mgmId
             };
             List<Management> managementsWithRelevantImportId =
                 await apiConnection.SendQueryAsync<List<Management>>(ReportQueries.getRelevantImportIdsAtTime, Variables);

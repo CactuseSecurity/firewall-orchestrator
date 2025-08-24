@@ -1,3 +1,5 @@
+from logging import Logger
+from typing import Dict, List
 from fwo_log import getFwoLogger
 from model_controllers.import_state_controller import ImportStateController
 from services.service_provider import ServiceProvider
@@ -11,7 +13,16 @@ class Uid2IdMapper:
     This class is used to maintain a mapping between UID and relevant ID in the database.
     """
 
-    import_state: ImportStateController|None = None
+    import_state: ImportStateController
+    logger: Logger
+    nwobj_uid2id: Dict[str, int]
+    svc_uid2id: Dict[str, int]
+    user_uid2id: Dict[str, int]
+    rule_uid2id: Dict[str, int]
+    outdated_nwobj_uid2id: Dict[str, int]
+    outdated_svc_uid2id: Dict[str, int]
+    outdated_user_uid2id: Dict[str, int]
+    outdated_rule_uid2id: Dict[str, int]
 
     @property
     def api_connection(self):
@@ -24,8 +35,8 @@ class Uid2IdMapper:
         """
         Initialize the Uid2IdMapper.
         """
-        self.global_state = ServiceProvider().get_service(Services.GLOBAL_STATE)
-        self.import_state = self.global_state.import_state
+        global_state = ServiceProvider().get_service(Services.GLOBAL_STATE)
+        self.import_state = global_state.import_state
         self.logger = getFwoLogger()
         self.nwobj_uid2id = {}
         self.svc_uid2id = {}

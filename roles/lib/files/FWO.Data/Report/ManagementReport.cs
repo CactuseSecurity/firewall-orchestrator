@@ -23,7 +23,13 @@ namespace FWO.Data.Report
         [JsonProperty("import"), JsonPropertyName("import")]
         public Import Import { get; set; } = new();
 
+        [JsonProperty("import_controls"), JsonPropertyName("import_controls")]
+        public List<ImportControl> ImportControls { get; set; } = [];
+
         public long? RelevantImportId { get; set; }
+
+        [JsonProperty("managementByMultiDeviceManagerId"), JsonPropertyName("managementByMultiDeviceManagerId")]
+        public List<Management> SubManagements { get; set; } = [];
 
         [JsonProperty("networkObjects"), JsonPropertyName("networkObjects")]
         public NetworkObject[] Objects { get; set; } = [];

@@ -1,0 +1,48 @@
+query getImportStatus {
+  management(where: {_or: [{multi_device_manager_id: {_is_null: true}}, {is_super_manager: {_eq: true}}]}, order_by: {mgm_name: asc}) {
+    mgm_id
+    mgm_name
+    importDisabled: do_not_import
+    last_import_attempt
+    last_import_attempt_successful
+    deviceType: stm_dev_typ {
+      id: dev_typ_id
+      name: dev_typ_name
+      version: dev_typ_version
+      manufacturer: dev_typ_manufacturer
+      isPureRoutingDevice: is_pure_routing_device
+    }
+    last_import: import_controls(order_by: {control_id: desc}, limit: 1) {
+      control_id
+      start_time
+      stop_time
+      successful_import
+      import_errors
+    }
+    last_successful_import: import_controls(where: {successful_import: {_eq: true}}, order_by: {control_id: desc}, limit: 1) {
+      control_id
+      start_time
+      stop_time
+      successful_import
+      import_errors
+    }
+    last_incomplete_import: import_controls(where: {successful_import: {_eq: false}, stop_time: {_is_null: true}}, order_by: {control_id: desc}, limit: 1) {
+      control_id
+      start_time
+      stop_time
+      successful_import
+      import_errors
+    }
+    first_import: import_controls(order_by: {control_id: asc}, limit: 1) {
+      control_id
+      start_time
+      stop_time
+      successful_import
+      import_errors
+    }
+    erroneous_imports: import_controls(where: {successful_import: {_eq: false}}, order_by: {control_id: desc}) {
+      control_id
+      import_errors
+    }
+  }
+}

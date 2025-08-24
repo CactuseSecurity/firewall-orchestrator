@@ -12,6 +12,7 @@ using PuppeteerSharp;
 using PuppeteerSharp.Media;
 using PuppeteerSharp.BrowserData;
 using HtmlAgilityPack;
+using System.Runtime.InteropServices;
 
 namespace FWO.Report
 {
@@ -159,6 +160,8 @@ namespace FWO.Report
                 ReportType.Connections => new ReportConnections(query, userConfig, repType),
                 ReportType.AppRules => new ReportAppRules(query, userConfig, repType, reportFilter.ReportParams.ModellingFilter),
                 ReportType.VarianceAnalysis => new ReportVariances(query, userConfig, repType),
+                ReportType.Compliance => new ReportCompliance(query, userConfig, repType),
+                ReportType.ComplianceNew => new ReportComplianceNew(query, userConfig, repType),
                 _ => throw new NotSupportedException("Report Type is not supported."),
             };
         }
@@ -512,6 +515,7 @@ namespace FWO.Report
                 ObjectType.Host => Icons.Host,
                 ObjectType.Network => Icons.Network,
                 ObjectType.IPRange => Icons.Range,
+                ObjectType.AccessRole => Icons.User,
                 _ => objCategory switch
                 {
                     ObjCategory.nobj => Icons.NwObject,

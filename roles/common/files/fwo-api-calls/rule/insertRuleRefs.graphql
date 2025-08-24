@@ -1,0 +1,27 @@
+mutation insertRuleRefs(
+    $ruleFroms: [rule_from_insert_input!]!
+    $ruleTos: [rule_to_insert_input!]!
+    $ruleServices: [rule_service_insert_input!]!
+    $ruleNwObjResolveds: [rule_nwobj_resolved_insert_input!]!
+    $ruleSvcResolveds: [rule_svc_resolved_insert_input!]!
+    $ruleUserResolveds: [rule_user_resolved_insert_input!]!
+) {
+    insert_rule_from(objects: $ruleFroms) {
+        affected_rows
+    }
+    insert_rule_to(objects: $ruleTos) {
+        affected_rows
+    }
+    insert_rule_service(objects: $ruleServices) {
+        affected_rows
+    }
+    insert_rule_nwobj_resolved(objects: $ruleNwObjResolveds) {
+        affected_rows
+    }
+    insert_rule_svc_resolved(objects: $ruleSvcResolveds) {
+        affected_rows
+    }
+    insert_rule_user_resolved(objects: $ruleUserResolveds) {
+        affected_rows
+    }
+}

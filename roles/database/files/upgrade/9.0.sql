@@ -926,7 +926,7 @@ CREATE TABLE IF NOT EXISTS compliance.violation
 (
     id BIGSERIAL PRIMARY KEY,
 	rule_id bigint NOT NULL,
-	found_date timestamp default now(),
+	found_date timestamp with time zone default now(),
 	removed_date timestamp with time zone,
 	details TEXT,
 	risk_score real,
@@ -959,6 +959,7 @@ ALTER TABLE compliance.network_zone_communication ALTER COLUMN "removed" DROP DE
 ALTER TABLE compliance.ip_range ALTER COLUMN "removed" DROP DEFAULT;
 ALTER TABLE compliance.policy_criterion ALTER COLUMN "removed" DROP DEFAULT;
 ALTER TABLE compliance.violation ALTER COLUMN "removed_date" DROP DEFAULT;
+ALTER TABLE compliance.violation ALTER COLUMN "found_date" TYPE TIMESTAMP WITH TIME ZONE; -- takes local timezone. can be set wxplicitly by "USING found_date AT TIME ZONE 'UTC'";
 
 -- alter ip_range's PK
 
@@ -1067,29 +1068,9 @@ END$$;
 -- add new report template for compliance: unresolved violations
 
 INSERT INTO "report_template" ("report_filter","report_template_name","report_template_comment","report_template_owner", "report_parameters") 
-VALUES ('',
-    'Compliance: Unresolved violations','T0108', 0, 
-    '{"report_type":31,"device_filter":{"management":[]},
-        "time_filter": {
-            "is_shortcut": true,
-            "shortcut": "now",
-            "report_time": "2022-01-01T00:00:00.0000000+01:00",
-            "timerange_type": "SHORTCUT",
-            "shortcut_range": "this year",
-            "offset": 0,
-            "interval": "DAYS",
-            "start_time": "2022-01-01T00:00:00.0000000+01:00",
-            "end_time": "2022-01-01T00:00:00.0000000+01:00",
-            "open_start": false,
-            "open_end": false}}')
-ON CONFLICT (report_template_name) DO NOTHING;
-
--- add new report template for compliance: unresolved violations prototype
-
-INSERT INTO "report_template" ("report_filter","report_template_name","report_template_comment","report_template_owner", "report_parameters") 
-    VALUES ('',
-        'Compliance: Unresolved violations (prototype)','T0108', 0, 
-        '{"report_type":32,"device_filter":{"management":[]},
+    VALUES ('action=accept',
+        'Compliance: Unresolved violations','T0108', 0, 
+        '{"report_type":31,"device_filter":{"management":[]},
             "time_filter": {
                 "is_shortcut": true,
                 "shortcut": "now",
@@ -1105,9 +1086,8 @@ INSERT INTO "report_template" ("report_filter","report_template_name","report_te
             "compliance_filter": {
                 "isDiffReport": false,
                 "diffReferenceInDays": 0,
-                "showCompliantRules": false,
-                "excludedRuleActions": ["inner layer", "drop"]}}')
-ON CONFLICT (report_template_name) DO NOTHING;
+                "showCompliantRules": true}}')
+ON CONFLICT (report_template_name) DO NOTHING; -- should be do nothing, so that customized reports are not overwritten, but we need to update the template for K001
 
 -- add compliance diff report parameters to config
 

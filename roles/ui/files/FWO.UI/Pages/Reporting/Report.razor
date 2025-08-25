@@ -55,7 +55,7 @@
             </div>
         }
 
-        @if (actReportFilters.ReportType == ReportType.ComplianceNew)
+        @if (actReportFilters.ReportType == ReportType.Compliance)
         {
             <div class="p-3">
                 <input class="form-check-input" type="checkbox" id="complianceShowAnyRule" checked="@_showAnyRulesInComplianceReport" @onchange="UpdateComplianceShowAnyRules"/>
@@ -123,12 +123,11 @@
                             case ReportType.UnusedRules:
                             case ReportType.NatRules:
                             case ReportType.AppRules:
-                            case ReportType.Compliance:
                                 <RulesReport Managements="currentReport.ReportData.ManagementData" SelectedReportType="actReportFilters.ReportType" RulesPerPage="rulesPerPage"
                                     @bind-SelectedRules="selectedItemsRuleReportTable" />
                                 break;
 
-                            case ReportType.ComplianceNew:
+                            case ReportType.Compliance:
                                     <ComplianceReport ReportData="currentReport.ReportData" RulesPerPage="rulesPerPage" @bind-SelectedRules="_selectedItemsComplianceReportTable" @ref="_complianceReport"/>
                                 break;
 

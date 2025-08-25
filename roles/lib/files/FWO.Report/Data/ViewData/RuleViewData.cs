@@ -72,7 +72,32 @@ namespace FWO.Report.Data.ViewData
 
         private string ResolveInstallOn(Rule rule, List<Device> devices)
         {
-            return rule.InstallOn;
+            string installOn = "";
+
+            if (!string.IsNullOrWhiteSpace(rule.InstallOn))
+            {
+                if (rule.InstallOn.Contains("|"))
+                {
+                    List<string> uids = rule.InstallOn.Split("|").Select(s => s.Trim()).ToList();
+
+                    foreach (string uid in uids)
+                    {
+                        if (installOn.Length > 0)
+                        {
+                            installOn += " | ";
+                        }
+
+                        string deviceName = devices.FirstOrDefault(device => device.Uid == uid)?.Name ?? uid;
+                        installOn += deviceName;
+                    }
+                }
+                else
+                {
+                    installOn = devices.FirstOrDefault(device => device.Uid == rule.InstallOn)?.Name ?? rule.InstallOn;
+                }
+            }
+
+            return installOn;
         }
     }
 }

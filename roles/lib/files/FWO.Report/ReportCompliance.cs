@@ -202,37 +202,10 @@ namespace FWO.Report
 
             return csvString;
         }
-
-        private string GetLineForRule(RuleViewData rule, List<PropertyInfo?> properties)
+        
+        public override string SetDescription()
         {
-            IEnumerable<string> values = properties.Select(p =>
-            {
-                if (p is PropertyInfo propertyInfo)
-                {
-                    object? value = propertyInfo.GetValue(rule);
-
-                    if (value is string str)
-                    {
-                        str = str
-                                .Replace("\r\n", " | ")
-                                .Replace("\n", " | ")
-                                .Replace("<br>", " | ");
-
-                        if (str.Contains('"'))
-                        {
-                            // Escape quotation marks
-
-                            str = str.Replace("\"", "\"\"");
-                        }
-
-                        return str;
-                    }   
-                }
-
-                return "";
-            });
-
-            return string.Join(_separator, values.Select(value => $"\"{value}\""));
+            return "Compliance Report";
         }
 
         #endregion
@@ -257,10 +230,6 @@ namespace FWO.Report
                 return Task.FromResult(true);
             }
         }
-
-        #endregion
-
-        #region Methods - Public
 
         public async Task<List<T>[]?> GetDataParallelized<T>(int rulesCount, int elementsPerFetch, ApiConnection apiConnection, CancellationToken ct, string query)
         {
@@ -421,11 +390,13 @@ namespace FWO.Report
 
                         rule.Compliance = ComplianceViolationType.MultipleViolations;
                     }
+
+                    return;
                 }
-                else
-                {
-                    rule.Compliance = ComplianceViolationType.NotEvaluable;
-                }
+
+                // If the rule is not evaluable, set compliance to NotEvaluable.
+
+                rule.Compliance = ComplianceViolationType.NotEvaluable;
             }
             catch (System.Exception e)
             {
@@ -439,16 +410,6 @@ namespace FWO.Report
             return violation.FoundDate > DateTime.Now.AddDays(-DiffReferenceInDays)
                 || (violation.RemovedDate != null
                 && violation.RemovedDate > DateTime.Now.AddDays(-DiffReferenceInDays));
-        }
-        
-        private bool ShowRule(Rule rule)
-        {
-            if (rule.Compliance == ComplianceViolationType.None)
-            {
-                return false;
-            }
-
-            return true;
         }
 
         public Task TransformViolationDetailsToDiff(ComplianceViolation violation)
@@ -471,14 +432,51 @@ namespace FWO.Report
             return Task.CompletedTask;
         }
 
+        private bool ShowRule(Rule rule)
+        {
+            if (rule.Compliance == ComplianceViolationType.None)
+            {
+                return false;
+            }
+
+            return true;
+        }
+
+        private string GetLineForRule(RuleViewData rule, List<PropertyInfo?> properties)
+        {
+            IEnumerable<string> values = properties.Select(p =>
+            {
+                if (p is PropertyInfo propertyInfo)
+                {
+                    object? value = propertyInfo.GetValue(rule);
+
+                    if (value is string str)
+                    {
+                        str = str
+                                .Replace("\r\n", " | ")
+                                .Replace("\n", " | ")
+                                .Replace("<br>", " | ");
+
+                        if (str.Contains('"'))
+                        {
+                            // Escape quotation marks
+
+                            str = str.Replace("\"", "\"\"");
+                        }
+
+                        return str;
+                    }
+                }
+
+                return "";
+            });
+
+            return string.Join(_separator, values.Select(value => $"\"{value}\""));
+        }
+
         public override string ExportToHtml()
         {
             throw new NotImplementedException();
-        }
-
-        public override string SetDescription()
-        {
-            return "Compliance Report";
         }
 
         #endregion

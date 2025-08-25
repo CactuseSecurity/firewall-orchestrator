@@ -199,7 +199,10 @@ namespace FWO.Report
 
                     if (value is string str)
                     {
-                        str = str.Replace("\r", " ").Replace("\n", " ");
+                        str = str
+                                .Replace("\r\n", " | ")
+                                .Replace("\n", " | ")
+                                .Replace("<br>", " | ");
 
                         if (str.Contains('"'))
                         {

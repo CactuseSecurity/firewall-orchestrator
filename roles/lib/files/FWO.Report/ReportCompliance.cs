@@ -96,7 +96,7 @@ namespace FWO.Report
 
         #region Methods - Overrides
 
-        public override async Task Generate(int rulesPerFetch, ApiConnection apiConnection, Func<ReportData, Task> callback, CancellationToken ct)
+        public override async Task Generate(int elementsPerFetch, ApiConnection apiConnection, Func<ReportData, Task> callback, CancellationToken ct)
         {
             // Get management and device info for resolving names.
 
@@ -128,7 +128,7 @@ namespace FWO.Report
 
             string query = IsDiffReport ? RuleQueries.getRulesWithViolationsInTimespanByChunk : RuleQueries.getRulesWithCurrentViolationsByChunk;
 
-            List<Rule>[]? chunks = await GetDataParallelized<Rule>(rulesCount, rulesPerFetch, apiConnection, ct, query);
+            List<Rule>[]? chunks = await GetDataParallelized<Rule>(rulesCount, elementsPerFetch, apiConnection, ct, query);
 
 
             if (chunks != null)
@@ -400,7 +400,7 @@ namespace FWO.Report
                     {
                         if (IsDiffReport)
                         {
-                            if (violation.FoundDate > DateTime.Now.AddDays(-DiffReferenceInDays) || (violation.RemovedDate != null && violation.RemovedDate > DateTime.Now.AddDays(-DiffReferenceInDays)))
+                            if (ViolationIsRelevantForDiff(violation))
                             {
                                 await TransformViolationDetailsToDiff(violation);
                             }
@@ -432,7 +432,13 @@ namespace FWO.Report
                 Log.TryWriteLog(LogType.Error, "Compliance Report", $"Error while setting compliance data for rule {rule.Id}: {e.Message}", _debugConfig.ExtendedLogReportGeneration);
                 return;
             }
+        }
 
+        private bool ViolationIsRelevantForDiff(ComplianceViolation violation)
+        {
+            return violation.FoundDate > DateTime.Now.AddDays(-DiffReferenceInDays)
+                || (violation.RemovedDate != null
+                && violation.RemovedDate > DateTime.Now.AddDays(-DiffReferenceInDays));
         }
         
         private bool ShowRule(Rule rule)

@@ -101,6 +101,10 @@ namespace FWO.Data
         [JsonProperty("violations"), JsonPropertyName("violations")]
         public List<ComplianceViolation> Violations { get; set; } = [];
 
+        [JsonProperty("rulebase"), JsonPropertyName("rulebase")]
+        public Rulebase Rulebase { get; set; } = new ();
+
+
         public string ChangeID { get; set; } = "";
         public string AdoITID { get; set; } = "";
 

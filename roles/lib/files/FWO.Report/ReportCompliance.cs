@@ -325,7 +325,7 @@ namespace FWO.Report
 
             if (query.Contains(QueryVar.ImportIdStart))
             {
-                queryVariables[QueryVar.ImportIdStart] = 0;
+                queryVariables[QueryVar.ImportIdStart] = int.MaxValue;
             }
 
             if (query.Contains(QueryVar.ImportIdEnd))

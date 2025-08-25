@@ -10,7 +10,6 @@ using System.Reflection;
 using System.Text.Json;
 using FWO.Data.Middleware;
 using FWO.Logging;
-using FWO.Basics.Comparer;
 using FWO.Report.Data.ViewData;
 using FWO.Ui.Display;
 
@@ -261,9 +260,9 @@ namespace FWO.Report
 
         #endregion
 
-        #region Methods - Private
+        #region Methods - Public
 
-        private async Task<List<T>[]?> GetDataParallelized<T>(int rulesCount, int elementsPerFetch, ApiConnection apiConnection, CancellationToken ct, string query)
+        public async Task<List<T>[]?> GetDataParallelized<T>(int rulesCount, int elementsPerFetch, ApiConnection apiConnection, CancellationToken ct, string query)
         {
             List<Task<List<T>>> tasks = new();
             List<Dictionary<string, object>> queryVariablesList = new();
@@ -301,7 +300,7 @@ namespace FWO.Report
             return await Task.WhenAll(tasks);
         }
 
-        private async Task<List<Rule>> ProcessChunksParallelized(List<Rule>[] chunks, CancellationToken ct)
+        public async Task<List<Rule>> ProcessChunksParallelized(List<Rule>[] chunks, CancellationToken ct)
         {
             List<Task<List<Rule>>> tasks = new();
 
@@ -347,6 +346,10 @@ namespace FWO.Report
             return processedRulesFlat;
         }
 
+        #endregion
+        
+        #region Methods - Private
+
         private Dictionary<string, object> CreateQueryVariables(int offset, int limit, string query)
         {
             Dictionary<string, object> queryVariables = new();
@@ -371,12 +374,12 @@ namespace FWO.Report
                 queryVariables[QueryVar.Limit] = limit;
             }
 
-            if(query.Contains("from_date"))
+            if (query.Contains("from_date"))
             {
                 queryVariables["from_date"] = DateTime.Now.AddDays(-DiffReferenceInDays);
             }
 
-            if(query.Contains("to_date"))
+            if (query.Contains("to_date"))
             {
                 queryVariables["to_date"] = DateTime.Now;
             }

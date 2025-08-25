@@ -69,9 +69,18 @@ namespace FWO.Report.Data.ViewData
 
         private string GetFromCustomField(Rule rule, string field)
         {
-            string customFieldsString = rule.CustomFields.Replace("'", "\"");
-            Dictionary<string, string>? customFields = JsonSerializer.Deserialize<Dictionary<string, string>>(customFieldsString);
-            return customFields != null && customFields.TryGetValue(field, out string? value) ? value : "";
+            try
+            {
+                string customFieldsString = rule.CustomFields.Replace("'", "\"");
+                Dictionary<string, string>? customFields = JsonSerializer.Deserialize<Dictionary<string, string>>(customFieldsString);
+                return customFields != null && customFields.TryGetValue(field, out string? value) ? value : "";                
+            }
+            catch (JsonException)
+            {
+                // If custom fields are not valid JSON, just return empty string.
+
+                return "";
+            }
         }
 
         private string ResolveInstallOn(Rule rule, List<Device> devices)

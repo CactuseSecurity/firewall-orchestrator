@@ -31,5 +31,10 @@ query getRulesWithViolationsInTimespanByChunk(
       policy_id
       criterion_id
     }
+
+    rulebase: rulebase {
+      id
+      name
+    }
   }
 }

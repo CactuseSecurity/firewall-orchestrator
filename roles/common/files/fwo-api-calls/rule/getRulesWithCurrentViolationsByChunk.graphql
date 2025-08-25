@@ -11,5 +11,9 @@ query getRulesWithCurrentViolationsByChunk($limit: Int, $offset: Int, $active: B
       policy_id
       criterion_id
     }
+    rulebase: rulebase {
+      id
+      name
+    }
   }
 }

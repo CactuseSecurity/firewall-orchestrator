@@ -9,6 +9,7 @@ namespace FWO.Report.Data.ViewData
     public class RuleViewData : IRuleViewData
     {
         public string MgmtId { get; set; } = "";
+        public string MgmtName { get; set; } = "";
         public string Uid { get; set; } = "";
         public string Name { get; set; } = "";
         public string Source { get; set; } = "";
@@ -22,15 +23,17 @@ namespace FWO.Report.Data.ViewData
         public string AdoITID { get; set; } = "";
         public string Comment { get; set; } = "";
         public string RulebaseId { get; set; } = "";
+        public string RulebaseName { get; set; } = "";
 
         public Rule? DataObject { get; set; }
         public bool Show { get; set; } = true;
 
-        public RuleViewData(Rule rule, NatRuleDisplayHtml natRuleDisplayHtml, OutputLocation outputLocation, bool show, List<Device>? devices = null)
+        public RuleViewData(Rule rule, NatRuleDisplayHtml natRuleDisplayHtml, OutputLocation outputLocation, bool show, List<Device>? devices = null, List<Management>? managements = null)
         {
             DataObject = rule;
 
             MgmtId = rule.MgmtId.ToString();
+            MgmtName = managements?.FirstOrDefault(m => m.Id == rule.MgmtId)?.Name ?? "";
             Uid = rule.Uid ?? "";
             Name = rule.Name ?? "";
             Source = natRuleDisplayHtml.DisplaySource(rule, outputLocation, ReportType.Compliance);
@@ -44,6 +47,7 @@ namespace FWO.Report.Data.ViewData
             AdoITID = GetFromCustomField(rule, "field-3");
             Comment = rule.Comment ?? "";
             RulebaseId = rule.RulebaseId.ToString();
+            RulebaseName = rule.Rulebase?.Name ?? "";
             Show = show;
         }
 

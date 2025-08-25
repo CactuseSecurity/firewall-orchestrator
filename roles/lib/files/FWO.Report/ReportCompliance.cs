@@ -35,6 +35,7 @@ namespace FWO.Report
         private readonly int _maxDegreeOfParallelism;
         private readonly SemaphoreSlim _semaphore;
         private readonly NatRuleDisplayHtml _natRuleDisplayHtml;
+        private List<Management>? _managements;
         private List<Device>? _devices;
         private readonly List<string> _columnsToExport;
         private readonly bool _includeHeaderInExport;
@@ -57,6 +58,7 @@ namespace FWO.Report
             _columnsToExport = new List<string>
             {
                 "MgmtId",
+                "MgmtName",
                 "Uid",
                 "Name",
                 "Source",
@@ -69,7 +71,8 @@ namespace FWO.Report
                 "ChangeID",
                 "AdoITID",
                 "Comment",
-                "RulebaseId"
+                "RulebaseId",
+                "RulebaseName"
             };
 
             if (userConfig.GlobalConfig is GlobalConfig globalConfig && !string.IsNullOrEmpty(globalConfig.DebugConfig))
@@ -96,13 +99,25 @@ namespace FWO.Report
 
         public override async Task Generate(int rulesPerFetch, ApiConnection apiConnection, Func<ReportData, Task> callback, CancellationToken ct)
         {
-            List<Device>? devices = await apiConnection.SendQueryAsync<List<Device>>(DeviceQueries.getDeviceDetails);
+            // Get management and device info for resolving names.
 
-            Log.TryWriteLog(LogType.Debug, "Compliance Report Prototype", $"Fetched {devices?.Count() ?? 0} devices.", _debugConfig.ExtendedLogReportGeneration);
+            List<Management>? managements = await apiConnection.SendQueryAsync<List<Management>>(DeviceQueries.getManagementNames);
 
-            if (devices != null)
+            Log.TryWriteLog(LogType.Debug, "Compliance Report Prototype", $"Fetched info for {managements?.Count() ?? 0} managements.", _debugConfig.ExtendedLogReportGeneration);
+
+            if (managements != null)
             {
-                _devices = devices;
+                _managements = managements;
+
+                _devices = new();
+
+                foreach (var management in _managements)
+                {
+                    if (management.Devices != null && management.Devices.Length > 0)
+                    {
+                        _devices.AddRange(management.Devices);
+                    }
+                }
             }
 
             // Get amount of rules to fetch.
@@ -303,7 +318,7 @@ namespace FWO.Report
                         foreach (Rule rule in chunk)
                         {
                             await SetComplianceDataForRule(rule);
-                            RuleViewData.Add(new RuleViewData(rule, _natRuleDisplayHtml, OutputLocation.report, ShowRule(rule), _devices ?? []));
+                            RuleViewData.Add(new RuleViewData(rule, _natRuleDisplayHtml, OutputLocation.report, ShowRule(rule), _devices ?? [], _managements ?? []));
                         }
 
                         return chunk;

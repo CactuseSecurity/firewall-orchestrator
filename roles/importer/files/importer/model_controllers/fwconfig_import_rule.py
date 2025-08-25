@@ -1192,8 +1192,8 @@ class FwConfigImportRule():
                 rule_implied=rule.rule_implied,
                 # parent_rule_id=rule.parent_rule_id,
                 rule_comment=rule.rule_comment,
-                rule_from_zone=rule.rule_src_zone,
-                rule_to_zone=rule.rule_dst_zone,
+                rule_from_zone=None, #TODO: import zones, lookup id, use here
+                rule_to_zone=None,
                 access_rule=True,
                 nat_rule=False,
                 is_global=False,

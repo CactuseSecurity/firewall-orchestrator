@@ -1,0 +1,284 @@
+﻿@using FWO.Services
+
+@page "/compliance/matrix"
+
+@layout ComplianceLayout
+
+@inject ApiConnection apiConnection
+@inject UserConfig userConfig
+@inject NetworkZoneService networkZoneService
+
+<div class="ms-2 mb-3">
+    <h3>@userConfig.GetText("zone_comm_matrix")</h3>
+    <hr />
+    <div class="form-group row">
+        <label class="col-form-label col-sm-1">@(userConfig.GetText("matrix")):</label>&nbsp;
+        @if(matrices.Count == 1)
+        {
+            <label class="col-form-label text-primary col-sm-3">@(selectedMatrix.Name)</label>
+        }
+        else
+        {
+            <div class="col-sm-3">
+                <Dropdown ElementType="ComplianceCriterion" ElementToString="@(a => a.Name)"
+                        SelectedElement="selectedMatrix" SelectedElementChanged="SelectMatrix" Elements="matrices" Nullable="true">
+                    <ElementTemplate Context="matrix">
+                        @(matrix.Name)
+                    </ElementTemplate>
+                </Dropdown>
+            </div>
+        }
+        <div class="col-sm-2">
+            <div class="btn-group">
+                <button type="button" class="btn btn-sm btn-success" @onclick="AddMatrix">@(userConfig.GetText("add"))</button>
+                <button type="button" class="btn btn-sm btn-danger" @onclick="RequestDeleteMatrix">@(userConfig.GetText("delete"))</button>
+            </div>
+        </div>
+    </div>
+</div>
+<hr />
+
+<Collapse Title="@userConfig.GetText("network_zone_config")" Style="@("primary")" StartToggled="true">
+    @if(matrixLoaded)
+    {
+        <ZonesConfiguration SelectedMatrix="selectedMatrix" ConfigChanged="LoadMatrix" ReadonlyMode="readonlyMode"/>
+    }
+    else
+    {
+        <Loading/>
+    }
+</Collapse>
+<hr />
+
+<Collapse Title="@userConfig.GetText("zone_comm_matrix")" Style="@("primary")" StartToggled="false">
+    @if (matrixLoaded)
+    {
+        @if (networkZoneService.NetworkZones.Count > 0)
+        {
+            <div class="form-group row">
+                <div class="col-sm-3">
+                @if (editMode)
+                {
+                    <div class="btn-group" role="group">
+                        <button type="button" class="btn btn-sm btn-secondary" @onclick="() => ToggleEditMode(false)">@userConfig.GetText("cancel")</button>
+                        <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.FwAdmin}")">
+                            <Authorized>
+                                <button type="button" class="btn btn-sm btn-primary" @onclick="CommitChanges">@userConfig.GetText("commit_changes")</button>
+                            </Authorized>
+                            <NotAuthorized>
+                                <button type="button" disabled class="btn btn-sm btn-primary">@userConfig.GetText("commit_changes")</button>
+                            </NotAuthorized>
+                        </AuthorizeView>
+                    </div>
+                }
+                else if(!readonlyMode)
+                {
+                    <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.FwAdmin}, {Roles.Auditor}")">
+                        <button type="button" class="btn btn-sm btn-warning" @onclick="() => ToggleEditMode(true)">@userConfig.GetText("edit")</button>
+                    </AuthorizeView>
+                }
+                </div>
+            </div>
+
+            <ZonesMatrix EditMode="editMode" @bind-AddCommunication="addCommunication" @bind-DeleteCommunication="deleteCommunication"/>
+        }
+        else
+        {
+            @(userConfig.GetText("no_network_zones"))
+        }
+    }
+    else
+    {
+        <Loading/>
+    }
+</Collapse>
+<AddMatrix @bind-Display="addMatrixMode" RefreshParent="AddNewMatrix"/>
+<ConfirmDelete @bind-Display="deleteMatrixMode" PerformAction="DeleteMatrix" Title="@userConfig.GetText("delete_matrix")" 
+    DeleteAllowed="deleteAllowed" DeleteMessage="@(deleteMessage)" />
+
+
+
+@code
+{
+    [CascadingParameter]
+    private Task<AuthenticationState>? authenticationStateTask { get; set; }
+
+    [CascadingParameter]
+    Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
+
+    private bool editMode = false;
+    private bool readonlyMode = false;
+    private ComplianceCriterion selectedMatrix = new();
+    private List<ComplianceCriterion> matrices = [];
+    private bool matrixLoaded = false;
+    private bool addMatrixMode = false;
+    private bool deleteMatrixMode = false;
+    private bool deleteAllowed = true;
+    private string deleteMessage = "";
+
+    private List<(ComplianceNetworkZone, ComplianceNetworkZone)> addCommunication = [];
+    private List<(ComplianceNetworkZone, ComplianceNetworkZone)> deleteCommunication = [];
+
+    protected async override Task OnInitializedAsync()
+    {
+        try
+        {
+            apiConnection.SetProperRole(authenticationStateTask!.Result.User,
+                [ Roles.Admin, Roles.FwAdmin, Roles.ReporterViewAll, Roles.Reporter,
+                Roles.Requester, Roles.Approver, Roles.Planner, Roles.Implementer, Roles.Reviewer, Roles.Auditor ]);
+            matrices = await apiConnection.SendQueryAsync<List<ComplianceCriterion>>(ComplianceQueries.getMatrices);
+            await InitMatrix();
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("object_fetch"), "", true);
+        }
+    }
+
+    private async Task InitMatrix()
+    {
+        if(matrices.Count > 0)
+        {
+            await SelectMatrix(matrices[0]);
+        }
+        else
+        {
+            selectedMatrix = new();
+            networkZoneService.NetworkZones = [];
+            matrixLoaded = true;
+            StateHasChanged();
+        }
+    }
+
+    private async Task SelectMatrix(ComplianceCriterion newMatrix)
+    {
+        if(selectedMatrix.Id != newMatrix.Id)
+        {
+            readonlyMode = !string.IsNullOrEmpty(newMatrix.ImportSource);
+            selectedMatrix = newMatrix;
+            await LoadMatrix();
+        }
+    }
+
+    private async Task LoadMatrix()
+    {
+        if(selectedMatrix.Id > 0)
+        {
+            matrixLoaded = false;
+            StateHasChanged();
+            networkZoneService.NetworkZones = await apiConnection.SendQueryAsync<List<ComplianceNetworkZone>>(ComplianceQueries.getNetworkZonesForMatrix, new { criterionId = selectedMatrix.Id });
+        }
+        matrixLoaded = true;
+        StateHasChanged();
+    }
+
+    private void AddMatrix()
+    {
+        addMatrixMode = true;
+    }
+
+    private async Task AddNewMatrix(ComplianceCriterion newMatrix)
+    {
+        matrices.Add(newMatrix);
+        if(matrices.Count == 1)
+        {
+            await SelectMatrix(newMatrix);
+        }
+    }
+
+    private async Task RequestDeleteMatrix()
+    {
+        if(readonlyMode)
+        {
+            deleteMessage = userConfig.GetText("U4505");
+            deleteAllowed = false;
+        }
+        else if(await CheckDeleteAllowed())
+        {
+            deleteMessage = $"{userConfig.GetText("U4503")}: {selectedMatrix.Name}?";
+            deleteAllowed = true;
+        }
+        else
+        {
+            deleteMessage = userConfig.GetText("U4504");
+            deleteAllowed = false;
+        }
+        deleteMatrixMode = true;
+    }
+
+    private async Task<bool> CheckDeleteAllowed()
+    {
+        try
+        {
+            return (await apiConnection.SendQueryAsync<List<LinkedPolicy>>(ComplianceQueries.getPolicyIdsForCrit, new{ critId = selectedMatrix.Id })).Count == 0;;
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("delete_matrix"), "", true);
+        }
+        return false;
+    }
+
+    private async Task DeleteMatrix()
+    {
+        try
+        {
+            if(selectedMatrix.Removed == null)
+            {
+                await apiConnection.SendQueryAsync<ReturnId>(ComplianceQueries.removeCriterion,
+                    new { id = selectedMatrix.Id, removed = DateTime.UtcNow });
+                matrices.Remove(selectedMatrix);
+                await InitMatrix();
+                deleteMatrixMode = false;
+            }
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("delete_matrix"), "", true);
+        }
+    }
+
+    private void ToggleEditMode(bool editMode)
+    {
+        this.editMode = editMode;
+        addCommunication.Clear();
+        deleteCommunication.Clear();
+    }
+
+    private async Task CommitChanges()
+    {
+        try
+        {
+            // Prepare the variables for the API call
+            var variables = new
+            {
+                addZoneCommunication = addCommunication.ConvertAll(zones =>
+                    new
+                    {
+                        criterion_id = selectedMatrix.Id,
+                        from_network_zone_id = zones.Item1.Id,
+                        to_network_zone_id = zones.Item2.Id
+                    }
+                ),
+                deleteZoneCommunicationExp = deleteCommunication.ConvertAll(zones =>
+                    new
+                    {
+                        criterion_id = new { _eq = selectedMatrix.Id },
+                        from_network_zone_id = new { _eq = zones.Item1.Id },
+                        to_network_zone_id = new { _eq = zones.Item2.Id }
+                    }
+                ),
+                removed = DateTime.UtcNow
+            };
+            await apiConnection.SendQueryAsync<dynamic>(ComplianceQueries.updateNetworkZoneCommunication, variables);
+            await LoadMatrix();
+ 
+            ToggleEditMode(false);
+            DisplayMessageInUi(null, userConfig.GetText("U0012"), userConfig.GetText("U0013"), false);
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("E0034"), userConfig.GetText("E0035"), true);
+        }
+    }
+}

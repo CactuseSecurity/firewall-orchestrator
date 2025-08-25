@@ -26,11 +26,7 @@ namespace FWO.Test
                             new DeviceReport
                             {
                                 Id = 1,
-                                Name = "Device 1",
-                                Rules =
-                                [
-                                    new() { Id = 1, Name = "Rule 1", MgmtId = 1 }
-                                ]
+                                Name = "Device 1"
                             }
                         ],
                         Objects = 

@@ -19,6 +19,20 @@ namespace FWO.Basics
             }
         }
 
+        public static async Task<string> DnsLookUp(string hostname)
+        {
+            try
+            {
+                return (await Dns.GetHostAddressesAsync(hostname))
+                    .FirstOrDefault(a => a.AddressFamily == AddressFamily.InterNetwork)?
+                    .ToString() ?? "";
+            }
+            catch (Exception)
+            {
+                return "";
+            }
+        }
+
         public static (string, string) SplitIpToRange(string ipString)
         {
             string ipStart;

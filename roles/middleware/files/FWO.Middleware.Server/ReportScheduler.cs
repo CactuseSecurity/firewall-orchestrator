@@ -12,6 +12,9 @@ using FWO.Services;
 using System.Timers;
 using FWO.Config.File;
 using System.Collections.Concurrent;
+using FWO.Encryption;
+using FWO.Mail;
+using System.Text.Json;
 
 namespace FWO.Middleware.Server
 {
@@ -26,15 +29,20 @@ namespace FWO.Middleware.Server
         private readonly string apiServerUri;
         private readonly ApiConnection apiConnectionScheduler;
         private ApiConnection? apiConnectionUserContext;
-        private UserConfig? userConfig;
+        private UserConfig? _userConfig;
         private readonly JwtWriter jwtWriter;
         private const string LogMessageTitle = "Report Scheduling";
 
         private List<Ldap> connectedLdaps;
 
-		/// <summary>
-		/// Async Constructor needing the connection, jwtWriter and subscription
-		/// </summary>
+        private ReportBase? _report = null;
+        private ReportFile? _reportFile = null;
+        private List<FileFormat>? _fileFormats = null;
+
+
+        /// <summary>
+        /// Async Constructor needing the connection, jwtWriter and subscription
+        /// </summary>
         public static async Task<ReportScheduler> CreateAsync(ApiConnection apiConnection, JwtWriter jwtWriter, GraphQlApiSubscription<List<Ldap>> connectedLdapsSubscription)
         {
             GlobalConfig globalConfig = await GlobalConfig.ConstructAsync(apiConnection, true);
@@ -44,7 +52,7 @@ namespace FWO.Middleware.Server
         private ReportScheduler(ApiConnection apiConnection, GlobalConfig globalConfig, JwtWriter jwtWriter, GraphQlApiSubscription<List<Ldap>> connectedLdapsSubscription)
             : base(apiConnection, globalConfig, ReportQueries.subscribeReportScheduleChanges, SchedulerInterval.Minutes, "Report")
         {
-            this.jwtWriter = jwtWriter;            
+            this.jwtWriter = jwtWriter;
             apiConnectionScheduler = apiConnection;
             apiServerUri = ConfigFile.ApiServerUri;
 
@@ -58,19 +66,19 @@ namespace FWO.Middleware.Server
 
         private void OnLdapUpdate(List<Ldap> connectedLdaps)
         {
-            this.connectedLdaps = connectedLdaps;            
+            this.connectedLdaps = connectedLdaps;
         }
 
         private void OnScheduleUpdate(ReportSchedule[] scheduledReports)
         {
-            this.scheduledReports = [.. scheduledReports];            
+            this.scheduledReports = [.. scheduledReports];
         }
 
-		/// <summary>
-		/// set scheduling timer from config values (not applicable here)
-		/// </summary>
+        /// <summary>
+        /// set scheduling timer from config values (not applicable here)
+        /// </summary>
         protected override void OnGlobalConfigChange(List<ConfigItem> config)
-        {}
+        { }
 
         /// <summary>
         /// define the processing to be done
@@ -79,15 +87,15 @@ namespace FWO.Middleware.Server
         {
             DateTime dateTimeNowRounded = RoundDown(DateTime.Now, CheckScheduleInterval);
 
-            await Parallel.ForEachAsync(scheduledReports, new ParallelOptions() { MaxDegreeOfParallelism = Environment.ProcessorCount }, 
-                async (reportSchedule,  ct) =>
+            await Parallel.ForEachAsync(scheduledReports, new ParallelOptions() { MaxDegreeOfParallelism = Environment.ProcessorCount },
+                async (reportSchedule, ct) =>
                 {
                     try
                     {
-                        if(reportSchedule.Active)
+                        if (reportSchedule.Active)
                         {
                             // Add schedule interval as long as schedule time is smaller then current time 
-                            while(RoundDown(reportSchedule.StartTime, CheckScheduleInterval) < dateTimeNowRounded)
+                            while (RoundDown(reportSchedule.StartTime, CheckScheduleInterval) < dateTimeNowRounded)
                             {
                                 reportSchedule.StartTime = reportSchedule.RepeatInterval switch
                                 {
@@ -100,13 +108,13 @@ namespace FWO.Middleware.Server
                                 };
                             }
 
-                            if(RoundDown(reportSchedule.StartTime, CheckScheduleInterval) == dateTimeNowRounded)
+                            if (RoundDown(reportSchedule.StartTime, CheckScheduleInterval) == dateTimeNowRounded)
                             {
                                 await GenerateReport(reportSchedule, dateTimeNowRounded, ct);
                             }
                         }
                     }
-                    catch(Exception exception)
+                    catch (Exception exception)
                     {
                         Log.WriteError(LogMessageTitle, "Checking scheduled reports lead to exception.", exception);
                     }
@@ -116,19 +124,21 @@ namespace FWO.Middleware.Server
 
         private async Task GenerateReport(ReportSchedule reportSchedule, DateTime dateTimeNowRounded, CancellationToken token)
         {
+            _fileFormats = reportSchedule.OutputFormat;
+
             await Task.Run(async () =>
             {
                 try
                 {
                     Log.WriteInfo(LogMessageTitle, $"Generating scheduled report \"{reportSchedule.Name}\" with id \"{reportSchedule.Id}\" for user \"{reportSchedule.ScheduleOwningUser.Name}\" with id \"{reportSchedule.ScheduleOwningUser.DbId}\" ...");
 
-                    if(!await InitUserEnvironment(reportSchedule) || apiConnectionUserContext == null || userConfig == null)
+                    if (!await InitUserEnvironment(reportSchedule) || apiConnectionUserContext == null || _userConfig == null)
                     {
                         return;
                     }
 
-                    ReportFile reportFile = new ()
-                    { 
+                    _reportFile = new()
+                    {
                         Name = $"{reportSchedule.Name}_{dateTimeNowRounded.ToShortDateString()}",
                         GenerationDateStart = DateTime.Now,
                         TemplateId = reportSchedule.Template.Id,
@@ -138,21 +148,26 @@ namespace FWO.Middleware.Server
 
                     await apiConnectionUserContext.SendQueryAsync<object>(ReportQueries.countReportSchedule, new { report_schedule_id = reportSchedule.Id });
                     await AdaptDeviceFilter(reportSchedule.Template.ReportParams, apiConnectionUserContext);
+                    await TryAdaptComplianceDiffReportConfig(reportSchedule);
 
-                    ReportBase? report = await ReportGenerator.Generate(reportSchedule.Template, apiConnectionUserContext, userConfig, DefaultInit.DoNothing, token);
-                    if(report != null)
+                    _report = await ReportGenerator.Generate(reportSchedule.Template, apiConnectionUserContext, _userConfig, DefaultInit.DoNothing, token);
+                    if (_report != null)
                     {
-                        await report.GetObjectsInReport(int.MaxValue, apiConnectionUserContext, _ => Task.CompletedTask);
-                        await WriteReportFile(report, reportSchedule.OutputFormat, reportFile);
-                        await SaveReport(reportFile, report.SetDescription(), apiConnectionUserContext);
+                        await _report.GetObjectsInReport(int.MaxValue, apiConnectionUserContext, _ => Task.CompletedTask);
+                        await WriteReportFile(_report, reportSchedule.OutputFormat, _reportFile);
+                        await SaveReport(_reportFile, _report.SetDescription(), apiConnectionUserContext);
                         Log.WriteInfo(LogMessageTitle, $"Scheduled report \"{reportSchedule.Name}\" with id \"{reportSchedule.Id}\" for user \"{reportSchedule.ScheduleOwningUser.Name}\" with id \"{reportSchedule.ScheduleOwningUser.DbId}\" successfully generated.");
+                        if (!string.IsNullOrWhiteSpace(_userConfig?.GlobalConfig?.ComplianceCheckMailRecipients))
+                        {
+                            await SendComplianceCheckEmail();
+                        }
                     }
                     else
                     {
                         Log.WriteInfo(LogMessageTitle, $"Scheduled report \"{reportSchedule.Name}\" with id \"{reportSchedule.Id}\" for user \"{reportSchedule.ScheduleOwningUser.Name}\" with id \"{reportSchedule.ScheduleOwningUser.DbId}\" was empty.");
                     }
                 }
-                catch(TaskCanceledException)
+                catch (TaskCanceledException)
                 {
                     Log.WriteWarning(LogMessageTitle, $"Generating scheduled report \"{reportSchedule.Name}\" was cancelled");
                 }
@@ -165,17 +180,17 @@ namespace FWO.Middleware.Server
 
         private async Task<bool> InitUserEnvironment(ReportSchedule reportSchedule)
         {
-            AuthManager authManager = new (jwtWriter, connectedLdaps, apiConnectionScheduler);
+            AuthManager authManager = new(jwtWriter, connectedLdaps, apiConnectionScheduler);
             string jwt = await authManager.AuthorizeUserAsync(reportSchedule.ScheduleOwningUser, validatePassword: false, lifetime: TimeSpan.FromDays(365));
             apiConnectionUserContext = new GraphQlApiConnection(apiServerUri, jwt);
             GlobalConfig globalConfig = await GlobalConfig.ConstructAsync(jwt);
-            userConfig = await UserConfig.ConstructAsync(globalConfig, apiConnectionUserContext, reportSchedule.ScheduleOwningUser.DbId);
+            _userConfig = await UserConfig.ConstructAsync(globalConfig, apiConnectionUserContext, reportSchedule.ScheduleOwningUser.DbId);
 
-            if(((ReportType)reportSchedule.Template.ReportParams.ReportType).IsModellingReport())
+            if (((ReportType)reportSchedule.Template.ReportParams.ReportType).IsModellingReport())
             {
-                userConfig.User.Groups = reportSchedule.ScheduleOwningUser.Groups;
-                await UiUserHandler.GetOwnershipsFromOwnerLdap(apiConnectionUserContext, userConfig.User);
-                if(!userConfig.User.Ownerships.Contains(reportSchedule.Template.ReportParams.ModellingFilter.SelectedOwner.Id))
+                _userConfig.User.Groups = reportSchedule.ScheduleOwningUser.Groups;
+                await UiUserHandler.GetOwnershipsFromOwnerLdap(apiConnectionUserContext, _userConfig.User);
+                if (!_userConfig.User.Ownerships.Contains(reportSchedule.Template.ReportParams.ModellingFilter.SelectedOwner.Id))
                 {
                     Log.WriteInfo(LogMessageTitle, "Report not generated as owner is not valid anymore.");
                     return false;
@@ -188,13 +203,13 @@ namespace FWO.Middleware.Server
         {
             try
             {
-                if(!reportParams.DeviceFilter.IsAnyDeviceFilterSet())
+                if (!reportParams.DeviceFilter.IsAnyDeviceFilterSet())
                 {
                     // for scheduling no device selection means "all"
                     reportParams.DeviceFilter.Managements = await apiConnectionUser.SendQueryAsync<List<ManagementSelect>>(DeviceQueries.getDevicesByManagement);
                     reportParams.DeviceFilter.ApplyFullDeviceSelection(true);
                 }
-                if(reportParams.ReportType == (int)ReportType.UnusedRules)
+                if (reportParams.ReportType == (int)ReportType.UnusedRules)
                 {
                     reportParams.DeviceFilter = (await ReportDevicesBase.GetUsageDataUnsupportedDevices(apiConnectionUser, reportParams.DeviceFilter)).reducedDeviceFilter;
                 }
@@ -216,7 +231,6 @@ namespace FWO.Middleware.Server
                     case GlobalConst.kCsv:
                         reportFile.Csv = report.ExportToCsv();
                         break;
-
                     case GlobalConst.kHtml:
                         reportFile.Html = report.ExportToHtml();
                         break;
@@ -267,6 +281,107 @@ namespace FWO.Middleware.Server
         {
             long delta = dateTime.Ticks % roundInterval.Ticks;
             return new DateTime(dateTime.Ticks - delta);
+        }
+
+        private async Task TryAdaptComplianceDiffReportConfig(ReportSchedule reportSchedule)
+        {
+            if (reportSchedule.Template.ReportParams.ReportType == (int) ReportType.ComplianceNew
+                    && _userConfig.GlobalConfig is GlobalConfig globalConfig
+                    && !string.IsNullOrEmpty(globalConfig.ComplianceCheckScheduledDiffReportsIntervals))
+            {
+                ScheduledComplianceDiffReportConfig complianceDiffReportConfig = new();
+                complianceDiffReportConfig.ScheduledDiffReportsIntervals = JsonSerializer.Deserialize<Dictionary<int,int>>(globalConfig.ComplianceCheckScheduledDiffReportsIntervals) ?? new();
+
+                if (complianceDiffReportConfig.ScheduledDiffReportsIntervals.Keys.Any(scheduledReportId => scheduledReportId == reportSchedule.Id))
+                {
+                    reportSchedule.Template.ReportParams.ComplianceFilter.IsDiffReport = true;
+                    reportSchedule.Template.ReportParams.ComplianceFilter.DiffReferenceInDays = complianceDiffReportConfig.ScheduledDiffReportsIntervals[reportSchedule.Id];
+                }  
+            }
+        }
+        
+        /// <summary>
+        /// Send Email with compliance report to all recipients defined in compliance settings
+        /// </summary>
+        /// <returns></returns>
+        public async Task SendComplianceCheckEmail()
+        {
+            if (_userConfig?.GlobalConfig is GlobalConfig globalConfig)
+            {
+                string decryptedSecret = AesEnc.TryDecrypt(globalConfig.EmailPassword, false, "Report Scheduler", "Could not decrypt mailserver password.");
+
+                EmailConnection emailConnection = new(
+                    globalConfig.EmailServerAddress,
+                    globalConfig.EmailPort,
+                    globalConfig.EmailTls,
+                    globalConfig.EmailUser,
+                    decryptedSecret,
+                    globalConfig.EmailSenderAddress
+                );
+
+                MailData? mail = PrepareEmail();
+
+                if (mail != null)
+                {
+                    bool emailSend = await MailKitMailer.SendAsync(mail, emailConnection, false, new CancellationToken());
+                    if (emailSend)
+                    {
+                        Log.WriteInfo(LogMessageTitle, "Report email sent successfully.");
+                    }
+                    else
+                    {
+                        Log.WriteError(LogMessageTitle, "Report email could not be sent.");
+                    }
+                }
+            }
+        }
+
+        private MailData? PrepareEmail()
+        {
+            if (_userConfig?.GlobalConfig is GlobalConfig globalConfig && _reportFile is ReportFile reportFile && _fileFormats is List<FileFormat> fileFormats)
+            {
+                string subject = globalConfig.ComplianceCheckMailSubject;
+                string body = globalConfig.ComplianceCheckMailBody;
+                MailData mailData = new(EmailHelper.CollectRecipientsFromConfig(_userConfig, globalConfig.ComplianceCheckMailRecipients), subject) { Body = body };
+                FormFile? attachment;
+                mailData.Attachments = new FormFileCollection();
+
+                foreach (FileFormat format in fileFormats)
+                {
+                    switch (format.Name)
+                    {
+                        case GlobalConst.kCsv:
+                            attachment = EmailHelper.CreateAttachment(reportFile.Csv, GlobalConst.kCsv, subject);
+                            break;
+
+                        case GlobalConst.kHtml:
+                            attachment = EmailHelper.CreateAttachment(reportFile.Html, GlobalConst.kHtml, subject);
+                            break;
+
+                        case GlobalConst.kPdf:
+                            attachment = EmailHelper.CreateAttachment(reportFile.Pdf, GlobalConst.kPdf, subject);
+                            break;
+
+                        case GlobalConst.kJson:
+                            attachment = EmailHelper.CreateAttachment(reportFile.Json, GlobalConst.kJson, subject);
+                            break;
+
+                        default:
+                            throw new NotSupportedException("Output format is not supported.");
+                    }
+
+                    if (attachment != null)
+                    {
+                        ((FormFileCollection) mailData.Attachments).Add(attachment);
+                    }
+                }
+
+                return mailData;
+            }
+            else
+            {
+                return null;
+            }
         }
     }
 }

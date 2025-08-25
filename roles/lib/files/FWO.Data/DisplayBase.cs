@@ -150,9 +150,9 @@ namespace FWO.Data
                         result = inBrackets ? " (" : "";
                         if (nwObjType == ObjectType.Network)
                         {
-                            if(IpStart.GetNetmask() == "")
+                            if (IpStart.GetNetmask() == "")
                             {
-                                IPAddressRange ipRange = new (IPAddress.Parse(IpStart), IPAddress.Parse(IpEnd));
+                                IPAddressRange ipRange = new(IPAddress.Parse(IpStart), IPAddress.Parse(IpEnd));
                                 if (ipRange != null)
                                 {
                                     result += ipRange.ToCidrString();
@@ -175,7 +175,10 @@ namespace FWO.Data
                     }
                     catch (Exception exc)
                     {
-                        Log.WriteError("Ip displaying", $"Wrong ip format {IpStart} - {IpEnd}\nMessage: {exc.Message}");
+                        Log.WriteWarning("Ip displaying", $"Wrong ip format {IpStart} - {IpEnd}\nMessage: {exc.Message}");
+                        // we display the incorrect ip data nevertheless without throwing errors
+                        result += $"{IpStart}-{IpEnd}";
+                        result += inBrackets ? ")" : "";
                     }
                 }
             }

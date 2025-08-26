@@ -411,7 +411,7 @@ namespace FWO.Report
                         rule.Compliance = ComplianceViolationType.MultipleViolations;
                     }
 
-                    if (rule.Compliance == ComplianceViolationType.MultipleViolations && processedViolations >= _maxPrintedViolations)
+                    if (rule.Compliance == ComplianceViolationType.MultipleViolations && _maxPrintedViolations > 0 && processedViolations >= _maxPrintedViolations)
                     {
                         rule.ViolationDetails += $"\nToo many violations to display ({processedViolations}), please check the system for details.";
                     }

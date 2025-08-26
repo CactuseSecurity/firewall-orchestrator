@@ -375,12 +375,14 @@ namespace FWO.Report
             {
                 rule.ViolationDetails = "";
                 rule.Compliance = ComplianceViolationType.None;
-                int processedViolations = 0;
+                int printedViolations = 0;
 
                 if (await CheckEvaluability(rule))
                 {
-                    foreach (var violation in rule.Violations)
+                    for (int violationCount = 1; violationCount <= rule.Violations.Count(); violationCount++)
                     {
+                        ComplianceViolation violation = rule.Violations.ElementAt(violationCount - 1);
+
                         if (IsDiffReport)
                         {
                             if (ViolationIsRelevantForDiff(violation))
@@ -392,28 +394,26 @@ namespace FWO.Report
                                 continue; // Skip violations that are not relevant for the diff report
                             }
                         }
-                        
-                        processedViolations++;
 
-                        if (_maxPrintedViolations == 0 || processedViolations < _maxPrintedViolations)
+                        if (_maxPrintedViolations == 0 || printedViolations < _maxPrintedViolations)
                         {
                             if (rule.ViolationDetails != "")
                             {
-                                rule.ViolationDetails += "\n";
+                                rule.ViolationDetails += "<br>";
                             }
 
                             rule.ViolationDetails += violation.Details;
+                            printedViolations++;
                         }
 
-
-                        // No need to differentiate between different types of violations here at the moment.
+                        // // No need to differentiate between different types of violations here at the moment.
 
                         rule.Compliance = ComplianceViolationType.MultipleViolations;
-                    }
 
-                    if (rule.Compliance == ComplianceViolationType.MultipleViolations && _maxPrintedViolations > 0 && processedViolations >= _maxPrintedViolations)
-                    {
-                        rule.ViolationDetails += $"\nToo many violations to display ({processedViolations}), please check the system for details.";
+                        if (_maxPrintedViolations > 0 && printedViolations == _maxPrintedViolations && violationCount < rule.Violations.Count())
+                        {
+                            rule.ViolationDetails += $"<br>Too many violations to display ({rule.Violations.Count()}), please check the system for details.";
+                        }
                     }
 
                     return;
@@ -477,10 +477,17 @@ namespace FWO.Report
 
                     if (value is string str)
                     {
-                        str = str
-                                .Replace("\r\n", " | ")
-                                .Replace("\n", " | ")
-                                .Replace("<br>", " | ");
+                        if (propertyInfo.Name != "ViolationDetails")
+                        {
+                            str = str
+                                    .Replace("\r\n", " | ")
+                                    .Replace("\n", " | ")
+                                    .Replace("<br>", " | ");                            
+                        }
+                        else
+                        {
+                            str = str.Replace("<br>", "\n");   
+                        }
 
                         if (str.Contains('"'))
                         {

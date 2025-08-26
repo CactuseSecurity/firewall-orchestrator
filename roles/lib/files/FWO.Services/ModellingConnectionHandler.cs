@@ -628,19 +628,27 @@ namespace FWO.Services
             ActConn.InterfaceIsRejected = interf.GetBoolProperty(ConState.Rejected.ToString());
             ActConn.InterfaceIsDecommissioned = interf.GetBoolProperty(ConState.Decommissioned.ToString());
             ActConn.TicketId = interf.TicketId;
-            if(SrcReadOnly)
+            if (SrcReadOnly)
             {
+                SrcAppServerToDelete.AddRange([.. ModellingAppServerWrapper.Resolve(ActConn.SourceAppServers)]);
                 ActConn.SourceAppServers = [.. interf.SourceAppServers];
+                SrcAppRolesToDelete.AddRange([.. ModellingAppRoleWrapper.Resolve(ActConn.SourceAppRoles)]);
                 ActConn.SourceAppRoles = [.. interf.SourceAppRoles];
+                SrcAreasToDelete.AddRange([.. ModellingNetworkAreaWrapper.Resolve(ActConn.SourceAreas)]);
                 ActConn.SourceAreas = [.. interf.SourceAreas];
+                SrcNwGroupsToDelete.AddRange([.. ModellingNwGroupWrapper.Resolve(ActConn.SourceOtherGroups)]);
                 ActConn.SourceOtherGroups = [.. interf.SourceOtherGroups];
                 ActConn.SrcFromInterface = true;
             }
             else
             {
+                DstAppServerToDelete.AddRange([.. ModellingAppServerWrapper.Resolve(ActConn.DestinationAppServers)]);
                 ActConn.DestinationAppServers = [.. interf.DestinationAppServers];
+                DstAppRolesToDelete.AddRange([.. ModellingAppRoleWrapper.Resolve(ActConn.DestinationAppRoles)]);
                 ActConn.DestinationAppRoles = [.. interf.DestinationAppRoles];
+                DstAreasToDelete.AddRange([.. ModellingNetworkAreaWrapper.Resolve(ActConn.DestinationAreas)]);
                 ActConn.DestinationAreas = [.. interf.DestinationAreas];
+                DstNwGroupsToDelete.AddRange([.. ModellingNwGroupWrapper.Resolve(ActConn.DestinationOtherGroups)]);
                 ActConn.DestinationOtherGroups = [.. interf.DestinationOtherGroups];
                 ActConn.DstFromInterface = true;
             }
@@ -1622,21 +1630,13 @@ namespace FWO.Services
                 await LogChange(ModellingTypes.ChangeType.Update, ModellingTypes.ModObjectType.Connection, ActConn.Id,
                     $"Updated {(ActConn.IsInterface ? kInterface : kConnection)}: {ActConn.Name}", Application.Id);
 
-                if(ActConn.UsedInterfaceId == null || ActConn.DstFromInterface)
-                {
-                    await RemoveNwObjects(SrcAppServerToDelete, SrcAppRolesToDelete, SrcAreasToDelete, SrcNwGroupsToDelete, ModellingTypes.ConnectionField.Source);
-                    await AddNwObjects(SrcAppServerToAdd, SrcAppRolesToAdd, SrcAreasToAdd, SrcNwGroupsToAdd, ModellingTypes.ConnectionField.Source);
-                }
-                if(ActConn.UsedInterfaceId == null || ActConn.SrcFromInterface)
-                {
-                    await RemoveNwObjects(DstAppServerToDelete, DstAppRolesToDelete, DstAreasToDelete, DstNwGroupsToDelete, ModellingTypes.ConnectionField.Destination);
-                    await AddNwObjects(DstAppServerToAdd, DstAppRolesToAdd, DstAreasToAdd, DstNwGroupsToAdd, ModellingTypes.ConnectionField.Destination);
-                }
-                if(ActConn.UsedInterfaceId == null)
-                {
-                    await RemoveSvcObjects();
-                    await AddSvcObjects(SvcToAdd, SvcGrpToAdd);
-                }
+                await RemoveNwObjects(SrcAppServerToDelete, SrcAppRolesToDelete, SrcAreasToDelete, SrcNwGroupsToDelete, ModellingTypes.ConnectionField.Source);
+                await AddNwObjects(SrcAppServerToAdd, SrcAppRolesToAdd, SrcAreasToAdd, SrcNwGroupsToAdd, ModellingTypes.ConnectionField.Source);
+                await RemoveNwObjects(DstAppServerToDelete, DstAppRolesToDelete, DstAreasToDelete, DstNwGroupsToDelete, ModellingTypes.ConnectionField.Destination);
+                await AddNwObjects(DstAppServerToAdd, DstAppRolesToAdd, DstAreasToAdd, DstNwGroupsToAdd, ModellingTypes.ConnectionField.Destination);
+                await RemoveSvcObjects();
+                await AddSvcObjects(SvcToAdd, SvcGrpToAdd);
+
                 Connections[Connections.FindIndex(x => x.Id == ActConn.Id)] = ActConn;
                 foreach(var conn in Connections.Where(x => x.UsedInterfaceId == ActConn.Id))
                 {

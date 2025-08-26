@@ -12,15 +12,15 @@
 @inject UserConfig userConfig
 
 
-<button type="button" class="col-sm-1 btn btn-sm btn-success" @onclick="AddNotification" @onclick:preventDefault>@(ModellingHandlerBase.DisplayButton(userConfig, "add", Icons.Add))</button>
+<button type="button" class="col-sm-1 btn btn-sm btn-success" @onclick="AddNotification" @onclick:preventDefault>@(DisplayService.DisplayButton(userConfig, "add", Icons.Add))</button>
 
 <div class="m-2 vheight75">
     <Table class="table table-bordered th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="FwoNotification" Items="Notifications" PageSize="0" ColumnReorder="true">
         <Column TableItem="FwoNotification" Title="@(userConfig.GetText("action"))" Field="(x => x.Id)" Sortable="false" Filterable="false">
             <Template>
                 <div class="btn-group">
-                    <button type="button" class="btn btn-sm btn-warning" @onclick="() => EditNotification(context)">@(ModellingHandlerBase.DisplayButton(userConfig, "edit", Icons.Edit))</button>
-                    <button type="button" class="btn btn-sm btn-danger" @onclick="() => RequestDeleteNotification(context)">@(ModellingHandlerBase.DisplayButton(userConfig, "delete", Icons.Delete))</button>
+                    <button type="button" class="btn btn-sm btn-warning" @onclick="() => EditNotification(context)">@(DisplayService.DisplayButton(userConfig, "edit", Icons.Edit))</button>
+                    <button type="button" class="btn btn-sm btn-danger" @onclick="() => RequestDeleteNotification(context)">@(DisplayService.DisplayButton(userConfig, "delete", Icons.Delete))</button>
                 </div>
             </Template>
         </Column>
@@ -139,7 +139,7 @@
                         </div>
                         <div class="row col-sm-12 mt-1">
                             <input type="text" class="col-sm-10" @bind="actToAddress" />
-                            <button type="button" class="col-sm-2 btn btn-sm btn-primary" @onclick="AddToAddress" @onclick:preventDefault>@(ModellingHandlerBase.DisplayButton(userConfig, "add", Icons.Add))</button>
+                            <button type="button" class="col-sm-2 btn btn-sm btn-primary" @onclick="AddToAddress" @onclick:preventDefault>@(DisplayService.DisplayButton(userConfig, "add", Icons.Add))</button>
                         </div>
                     }
                 </div>
@@ -165,7 +165,7 @@
                         </div>
                         <div class="row col-sm-12 mt-1">
                             <input type="text" class="col-sm-10" @bind="actCcAddress" />
-                            <button type="button" class="col-sm-2 btn btn-sm btn-primary" @onclick="AddCcAddress" @onclick:preventDefault>@(ModellingHandlerBase.DisplayButton(userConfig, "add", Icons.Add))</button>
+                            <button type="button" class="col-sm-2 btn btn-sm btn-primary" @onclick="AddCcAddress" @onclick:preventDefault>@(DisplayService.DisplayButton(userConfig, "add", Icons.Add))</button>
                         </div>
                     }
                 </div>
@@ -176,10 +176,10 @@
         <div class="btn-group">
             <AuthorizeView Roles="@Roles.Admin">
                 <Authorized>
-                    <button type="button" class="btn btn-sm btn-primary" @onclick:preventDefault="true" @onclick="Save">@(userConfig.GetText("save"))</button>
+                    <button type="button" class="btn btn-sm btn-primary" @onclick:preventDefault="true" @onclick="Save">@(DisplayService.DisplayButton(userConfig, "save", Icons.Save))</button>
                 </Authorized>
                 <NotAuthorized>
-                    <button type="button" class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("save"))</button>
+                    <button type="button" class="btn btn-sm btn-primary" disabled>@(DisplayService.DisplayButton(userConfig, "save", Icons.Save))</button>
                 </NotAuthorized> 
             </AuthorizeView>
             <button type="button" class="btn btn-sm btn-secondary" @onclick="Close">@(userConfig.GetText("cancel"))</button>

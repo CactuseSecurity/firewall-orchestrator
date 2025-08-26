@@ -350,7 +350,7 @@
                             @if(WfHandler.PlanReqTaskMode || WfHandler.ApproveReqTaskMode)
                             {
                                 <button type="button" class="btn btn-sm btn-success" @onclick:preventDefault @onclick="InitAddComment">
-                                    @(ModellingHandlerBase.DisplayButton(userConfig, "add_comment", Icons.Add))</button>
+                                    @(DisplayService.DisplayButton(userConfig, "add_comment", Icons.Add))</button>
                             }
                         </div>
                         <div class="col-sm-11">

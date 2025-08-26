@@ -42,47 +42,40 @@
                 <div class="col-sm-6">
                     <div class="btn-group">
                         <button type="button" class="ms-5 btn btn-sm btn-primary" @onclick="Report">
-                            @(userConfig.GetText("generate_report"))
+                            @(DisplayService.DisplayButton(userConfig, "generate_report", Icons.GenerateReport))
                         </button>
                         <button type="button" class="btn btn-sm btn-dark" @onclick="ShowHistory">
-                            @(userConfig.GetText("show_history"))
+                            @(DisplayService.DisplayButton(userConfig, "show_history", Icons.ShowHistory))
                         </button>
                         @if(userConfig.ModRolloutActive)
                         {
                             <AuthorizeView Roles="@($"{Roles.Modeller}, {Roles.Requester}, {Roles.Implementer}, {Roles.Admin}, {Roles.Auditor}")">
                                 <Authorized>
-                                    <div data-toggle="tooltip" title="@(UserConfig.PureLineStat(ChangeStatus))">
-                                        <button type="button" class="ms-5 btn btn-sm btn-primary" @onclick="RequestFwChange">
-                                            @(userConfig.GetText("request_fw_change"))
-                                        </button>
-                                    </div>
+                                    <button type="button" class="ms-5 btn btn-sm btn-primary" @onclick="RequestFwChange">
+                                        @(DisplayService.DisplayButtonWithTooltip(userConfig, "request_fw_change", Icons.RequestFwChange, UserConfig.PureLineStat(ChangeStatus)))
+                                    </button>
                                 </Authorized>
                                 <NotAuthorized>
                                     <div data-toggle="tooltip" title="@(userConfig.PureLine("C9012"))">
                                         <button type="button" class="ms-5 btn btn-sm btn-primary" disabled>
-                                            @(userConfig.GetText("request_fw_change"))
+                                            @(DisplayService.DisplayButton(userConfig, "request_fw_change", Icons.RequestFwChange))
                                         </button>
                                     </div>
                                 </NotAuthorized>
                             </AuthorizeView>
-                            @* <div class="ms-2">
-                                <label>@((MarkupString)ChangeStatus)</label>
-                            </div> *@
                         }
                         @if(userConfig.ModRecertActive && appSelected && selectedApp.ConnectionCount.Aggregate.Count > 0)
                         {
                             <AuthorizeView Roles="@($"{Roles.Modeller}, {Roles.Admin}, {Roles.Auditor}")">
                                 <Authorized>
-                                    <div data-toggle="tooltip" title="@(UserConfig.PureLineStat(RecertStatus))">
-                                        <button type="button" class="ms-5 btn btn-sm btn-primary" @onclick="Recertify">
-                                            @(userConfig.GetText("recertify"))
-                                        </button>
-                                    </div>
-                                 </Authorized>
+                                    <button type="button" class="ms-5 btn btn-sm btn-primary" @onclick="Recertify">
+                                        @(DisplayService.DisplayButtonWithTooltip(userConfig, "recertify", Icons.Recertify, UserConfig.PureLineStat(RecertStatus)))
+                                    </button>
+                                </Authorized>
                                 <NotAuthorized>
                                     <div data-toggle="tooltip" title="@(userConfig.PureLine("C9012"))">
                                         <button type="button" class="ms-5 btn btn-sm btn-primary" disabled>
-                                            @(userConfig.GetText("recertify"))
+                                            @(DisplayService.DisplayButton(userConfig, "recertify", Icons.Recertify))
                                         </button>
                                     </div>
                                 </NotAuthorized>
@@ -100,13 +93,13 @@
                     {
                         <div class="btn-group ms-5">
                             <button type="button" class="btn btn-sm btn-dark" @onclick="ShareLink">
-                                @(appHandler!.DisplayButton("share_link", Icons.Share))
+                                @(DisplayService.DisplayButton(userConfig, "share_link", Icons.Share))
                             </button>
                             <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.Auditor}")">
                                 <Authorized>
                                     &nbsp;
                                     <button type="button" class="btn btn-sm btn-dark" @onclick="ManualAppServer">
-                                        @(appHandler!.DisplayButton("edit_app_server", Icons.Edit, "app_server"))
+                                        @(DisplayService.DisplayButton(userConfig, "edit_app_server", Icons.Edit, "", Icons.Host))
                                     </button>
                                 </Authorized>
                             </AuthorizeView>
@@ -114,7 +107,7 @@
                             @if(userConfig.VarianceAnalysisRefresh)
                             {
                                 <button type="button" class="btn btn-sm btn-primary" @onclick="RefreshState">
-                                    @(appHandler!.DisplayButton("refresh_state", Icons.Refresh, "state"))
+                                    @(DisplayService.DisplayButton(userConfig, "refresh_state", Icons.Refresh))
                                 </button>
                             }
                         </div>
@@ -125,7 +118,7 @@
                     <TabSet WholeWidth="false" DarkMode="false" KeepPanelsAlive="false" @ref="appHandler!.Tabset">
                         <Tab Title="@(userConfig.GetText("connections"))" Position=0>
                             <button type="button" class="btn btn-sm btn-success mb-2" @onclick="appHandler!.AddConnection">
-                                @(appHandler!.DisplayButton("add_connection", Icons.Add))
+                                @(DisplayService.DisplayButton(userConfig, "add_connection", Icons.Add))
                             </button>                            
                             <ConnectionTable UseResponsiveTable="true" ShowPageSizeInput="true" Connections="@appHandler!.GetRegularConnections()" @bind-AppHandler="appHandler" AppActive="appActive" ShowModellingState="true" ShowProductionState="true" />
                         </Tab>
@@ -133,7 +126,7 @@
                             <div class="d-flex justify-content-between">
                                 <div>
                                     <button type="button" class="btn btn-sm btn-success mb-2" @onclick="appHandler!.AddInterface">
-                                        @(appHandler!.DisplayButton("add_interface", Icons.Add))
+                                        @(DisplayService.DisplayButton(userConfig, "add_interface", Icons.Add))
                                     </button>
                                 </div>
                                 <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.Auditor}")">
@@ -151,7 +144,7 @@
                         {
                             <Tab Title="@(userConfig.GetText("common_services"))" Position=2>
                                 <button type="button" class="btn btn-sm btn-success mb-2"
-                                    @onclick="appHandler!.AddCommonService">@(appHandler!.DisplayButton("add_common_service", Icons.Add))
+                                    @onclick="appHandler!.AddCommonService">@(DisplayService.DisplayButton(userConfig, "add_common_service", Icons.Add))
                                 </button>
                                 <ConnectionTable UseResponsiveTable="true" Connections="@appHandler!.GetCommonServices()" @bind-AppHandler="appHandler" AppActive="appActive" ShowModellingState="true" ShowProductionState="true" />
                             </Tab>

@@ -17,9 +17,9 @@
                                 @if (template.TemplateOwningUserId == userConfig.User.DbId || authenticationStateTask!.Result.User.IsInRole(Roles.Admin))
                                 {
                                     <button type="button" class="btn btn-sm btn-warning" @onclick="() => EditTemplate(template)">
-                                        @(ModellingHandlerBase.DisplayButton(userConfig, "edit", Icons.Edit))</button>
+                                        @(DisplayService.DisplayButton(userConfig, "edit", Icons.Edit))</button>
                                     <button type="button" class="btn btn-sm btn-danger" @onclick="() => { reportTemplateInEdit = template; ShowDeleteTemplateDialog = true; }">
-                                        @(ModellingHandlerBase.DisplayButton(userConfig, "delete", Icons.Delete))</button>
+                                        @(DisplayService.DisplayButton(userConfig, "delete", Icons.Delete))</button>
                                 }
                             </div>
                         }

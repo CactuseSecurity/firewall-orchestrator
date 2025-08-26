@@ -2,6 +2,17 @@ namespace FWO.Basics
 {
     public struct Icons
     {
+        // Bootstrap
+        public const string Save = "bi bi-save";
+        public const string Select = "bi bi-save";
+        public const string Cancel = "bi bi-x-square-fill";
+        public const string Confirm = "bi bi-hand-thumbs-up-fill";
+        public const string Reject = "bi bi-hand-thumbs-down-fill";
+        public const string Recertify = "bi bi-patch-check-fill";
+        public const string RequestFwChange = "bi bi-sign-intersection-t-fill";
+        public const string ShowHistory = "bi bi-clock-history";
+        public const string GenerateReport = "bi bi-newspaper";
+
         // General
         public const string Locked = "oi oi-lock-locked";
         public const string Type = "oi oi-list";

@@ -80,7 +80,7 @@
         <div class="btn-group m-1 sticky-marker-60" style="z-index: 16;">
             @if (processing == false)
             {
-                <button type="button" class="btn btn-sm btn-primary" @onclick="GenerateReport">@(userConfig.GetText("generate_report"))</button>
+                <button type="button" class="btn btn-sm btn-primary" @onclick="GenerateReport">@(DisplayService.DisplayButton(userConfig, "generate_report", Icons.GenerateReport))</button>
             }
             else
             {

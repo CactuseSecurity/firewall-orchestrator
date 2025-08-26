@@ -28,7 +28,7 @@
                         <button type="button" class="btn btn-sm btn-primary ml-13" @onclick="async () =>
                             {await ConnHandler.DisplaySelectedInterface(await ConnHandler.GetUsedInterface(ConnHandler.ActConn) ?? new());
                             await ConnHandlerChanged.InvokeAsync(ConnHandler);}">
-                            @(ConnHandler.DisplayButton("display_interface", Icons.Display))</button>
+                            @(DisplayService.DisplayButton(userConfig, "display_interface", Icons.Display))</button>
                     </div>
                 </div>
             }
@@ -96,11 +96,11 @@
                                         }
                                         <button type="button" class="btn btn-sm btn-danger col-sm-1" @onclick="() =>
                                             {ConnHandler.DeleteExtraConfig(extraConfig); ConnHandlerChanged.InvokeAsync(ConnHandler);}">
-                                            @(ConnHandler.DisplayButton("delete_extra_config", Icons.Delete))</button>
+                                            @(DisplayService.DisplayButton(userConfig, "delete_extra_config", Icons.Delete))</button>
                                     </div>
                                 }
                                 <button type="button" class="btn btn-sm btn-success" @onclick="() => {ConnHandler.AddExtraConfig(); ConnHandlerChanged.InvokeAsync(ConnHandler);}">
-                                    @(ConnHandler.DisplayButton("add_extra_config", Icons.Add))</button>
+                                    @(DisplayService.DisplayButton(userConfig, "add_extra_config", Icons.Add))</button>
                             }
                         </div>
                     </div>
@@ -155,7 +155,7 @@
                                             </div>
                                             <div class="col-sm-1">
                                                 <button type="button" class="btn btn-sm btn-primary" @onclick="() => {ConnHandler.DisplayAppRole(src); ConnHandlerChanged.InvokeAsync(ConnHandler);}">
-                                                    @(ConnHandler.DisplayButton("display_app_role", Icons.Display))</button>
+                                                    @(DisplayService.DisplayButton(userConfig, "display_app_role", Icons.Display))</button>
                                             </div>
                                         </div>
                                     </div>
@@ -169,7 +169,7 @@
                                             </div>
                                             <div class="col-sm-1">
                                                 <button type="button" class="btn btn-sm btn-primary" @onclick="() => {ConnHandler.DisplayAppServer(src); ConnHandlerChanged.InvokeAsync(ConnHandler);}">
-                                                    @(ConnHandler.DisplayButton("display_app_server", Icons.Display))</button>
+                                                    @(DisplayService.DisplayButton(userConfig, "display_app_server", Icons.Display))</button>
                                             </div>
                                         </div>
                                     </div>
@@ -241,7 +241,7 @@
                                             </div>
                                             <div class="col-sm-1">
                                                 <button type="button" class="btn btn-sm btn-primary" @onclick="() => {ConnHandler.DisplayServiceGroup(grp); ConnHandlerChanged.InvokeAsync(ConnHandler);}">
-                                                    @(ConnHandler.DisplayButton("display_service_group", Icons.Display))</button>
+                                                    @(DisplayService.DisplayButton(userConfig, "display_service_group", Icons.Display))</button>
                                             </div>
                                         </div>
                                     </div>
@@ -313,7 +313,7 @@
                                             </div>
                                             <div class="col-sm-1">
                                                 <button type="button" class="btn btn-sm btn-primary" @onclick="() => {ConnHandler.DisplayAppRole(dst); ConnHandlerChanged.InvokeAsync(ConnHandler);}">
-                                                    @(ConnHandler.DisplayButton("display_app_role", Icons.Display))</button>
+                                                    @(DisplayService.DisplayButton(userConfig, "display_app_role", Icons.Display))</button>
                                             </div>
                                         </div>
                                     </div>
@@ -327,7 +327,7 @@
                                             </div>
                                             <div class="col-sm-1">
                                                 <button type="button" class="btn btn-sm btn-primary" @onclick="() => {ConnHandler.DisplayAppServer(dst); ConnHandlerChanged.InvokeAsync(ConnHandler);}">
-                                                    @(ConnHandler.DisplayButton("display_app_server", Icons.Display))</button>
+                                                    @(DisplayService.DisplayButton(userConfig, "display_app_server", Icons.Display))</button>
                                             </div>
                                         </div>
                                     </div>
@@ -391,10 +391,10 @@
                 {
                     @if(ConnHandler.ActConn.IsRequested)
                     {
-                        <button type="button" class="btn btn-sm btn-dark" @onclick="DisplayTicket">@(ConnHandler.DisplayButton("display_ticket", Icons.Display, userConfig.GetText("ticket")))</button>
+                        <button type="button" class="btn btn-sm btn-dark" @onclick="DisplayTicket">@(DisplayService.DisplayButton(userConfig, "display_ticket", Icons.Display, "", Icons.Workflow))</button>
                         @if(!ConnHandler.ReadOnly && availableModules.Contains(Module.Workflow))
                         {
-                            <button type="button" class="btn btn-sm btn-dark" @onclick="GotoTicket">@(ConnHandler.DisplayButton("edit_ticket", Icons.Edit, userConfig.GetText("ticket")))</button>
+                            <button type="button" class="btn btn-sm btn-dark" @onclick="GotoTicket">@(DisplayService.DisplayButton(userConfig, "edit_ticket", Icons.Edit, "", Icons.Workflow))</button>
                         }
                     }
                     if(ConnHandler.ReadOnly)
@@ -405,20 +405,20 @@
                     {
                         @if((ConnHandler.IsOwner || ConnHandler.ActConn.IsRequested) && !(ConnHandler.ActConn.GetBoolProperty(ConState.Rejected.ToString()) || ConnHandler.ActConn.GetBoolProperty(ConState.Decommissioned.ToString())))
                         {
-                            <button type="button" class="btn btn-sm btn-primary" @onclick="Save">@(userConfig.GetText("save"))</button>
+                            <button type="button" class="btn btn-sm btn-primary" @onclick="Save">@(DisplayService.DisplayButton(userConfig, "save", Icons.Save))</button>
                         }
                         else
                         {
-                            <button type="button" class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("save"))</button>
+                            <button type="button" class="btn btn-sm btn-primary" disabled>@(DisplayService.DisplayButton(userConfig, "save", Icons.Save))</button>
                         }
-                        <button type="button" class="btn btn-sm btn-secondary" @onclick="Cancel">@(userConfig.GetText("cancel"))</button>
+                        <button type="button" class="btn btn-sm btn-secondary" @onclick="Cancel">@(DisplayService.DisplayButton(userConfig, "cancel", Icons.Cancel))</button>
                         @if(ConnHandler.ActConn.UsedInterfaceId != null)
                         {
-                            <button type="button" class="btn btn-sm btn-danger" @onclick="() => ConnHandler.RemoveInterf()">@(ConnHandler.DisplayButton("remove_interface", Icons.Unuse, "interface"))</button>
+                            <button type="button" class="btn btn-sm btn-danger" @onclick="() => ConnHandler.RemoveInterf()">@(DisplayService.DisplayButton(userConfig, "remove_interface", Icons.Unuse, "interface"))</button>
                         }
                         @if(ConnHandler.ActConn.IsRequested && !ConnHandler.ActConn.GetBoolProperty(ConState.Rejected.ToString()))
                         {
-                            <button type="button" class="btn btn-sm btn-danger" @onclick="Reject">@(userConfig.GetText("reject"))</button>
+                            <button type="button" class="btn btn-sm btn-danger" @onclick="Reject">@(DisplayService.DisplayButton(userConfig, "reject", Icons.Reject))</button>
                         }
                     }
                 }

@@ -1,11 +1,10 @@
+using FWO.Api.Client;
+using FWO.Api.Client.Queries;
+using FWO.Basics;
 using FWO.Config.Api;
 using FWO.Data;
 using FWO.Data.Modelling;
-using FWO.Api.Client;
-using FWO.Api.Client.Queries;
-using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Authorization;
-using FWO.Basics;
 
 
 namespace FWO.Services
@@ -50,20 +49,6 @@ namespace FWO.Services
             this.userConfig = userConfig;
             this.DisplayMessageInUi = displayMessageInUi;
             this.AddMode = addMode;
-        }
-
-        public MarkupString DisplayButton(string text, string icon, string iconText = "", string objIcon = "")
-        {
-            return DisplayButton(userConfig, text, icon, iconText, objIcon);
-        }
-
-        public static MarkupString DisplayButton(UserConfig userConfig, string text, string icon, string iconText = "", string objIcon = "")
-        {
-            string tooltip = userConfig.ModIconify ? $"data-toggle=\"tooltip\" title=\"{@userConfig.PureLine(text)}\"" : "";
-            string iconToDisplay = $"<span class=\"{icon}\" {@tooltip}/>";
-            string iconTextPart = iconText != "" ? " <span class=\"stdtext\">" + userConfig.GetText(iconText) + "</span>" : "";
-            string objIconToDisplay = objIcon != "" ? $" <span class=\"{objIcon}\"/>" : "";
-            return (MarkupString)(userConfig.ModIconify ? iconToDisplay + iconTextPart + objIconToDisplay : userConfig.GetText(text));
         }
 
         public string DisplayApp(FwoOwner app)

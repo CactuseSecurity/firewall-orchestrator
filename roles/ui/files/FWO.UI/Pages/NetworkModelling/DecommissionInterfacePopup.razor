@@ -60,7 +60,7 @@
                 <button type="button" class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("decommission"))</button>
             </NotAuthorized> 
         </AuthorizeView>
-        <button type="button" class="btn btn-sm btn-secondary" @onclick="Close">@(userConfig.GetText("cancel"))</button>
+        <button type="button" class="btn btn-sm btn-secondary" @onclick="Close">@(DisplayService.DisplayButton(userConfig, "cancel", Icons.Cancel))</button>
     </Footer>
 </PopUp>
 <InProgress Display="WorkInProgress"/>

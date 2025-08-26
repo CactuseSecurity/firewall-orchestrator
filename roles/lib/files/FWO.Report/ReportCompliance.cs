@@ -39,6 +39,7 @@ namespace FWO.Report
         private readonly List<string> _columnsToExport;
         private readonly bool _includeHeaderInExport;
         private readonly char _separator;
+        private readonly int _maxCellSize;
         private readonly DebugConfig _debugConfig;
 
 
@@ -54,6 +55,7 @@ namespace FWO.Report
 
             _includeHeaderInExport = true;
             _separator = ';';
+            _maxCellSize = 32000; // Max size of a cell in Excel is 32,767 characters.
             _columnsToExport = new List<string>
             {
                 "MgmtId",
@@ -462,6 +464,11 @@ namespace FWO.Report
                             // Escape quotation marks
 
                             str = str.Replace("\"", "\"\"");
+                        }
+
+                        if (str.Length > _maxCellSize)
+                        {
+                            str = str.Substring(0, _maxCellSize) + " ... (truncated, original length: " + str.Length + " characters)";
                         }
 
                         return str;

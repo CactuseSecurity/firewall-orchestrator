@@ -31,16 +31,18 @@ namespace FWO.Report
 
         #region Fields
 
+        private List<Management>? _managements;
+        private List<Device>? _devices;
+
         private readonly int _maxDegreeOfParallelism;
         private readonly SemaphoreSlim _semaphore;
         private readonly NatRuleDisplayHtml _natRuleDisplayHtml;
-        private List<Management>? _managements;
-        private List<Device>? _devices;
         private readonly List<string> _columnsToExport;
         private readonly bool _includeHeaderInExport;
         private readonly char _separator;
-        private readonly int _maxCellSize;
         private readonly DebugConfig _debugConfig;
+        private readonly int _maxCellSize;
+        private readonly int _maxPrintedViolations;
 
 
         #endregion
@@ -52,6 +54,8 @@ namespace FWO.Report
             _maxDegreeOfParallelism = Environment.ProcessorCount;
             _semaphore = new SemaphoreSlim(_maxDegreeOfParallelism);
             _natRuleDisplayHtml = new NatRuleDisplayHtml(userConfig);
+
+            // CSV export config.
 
             _includeHeaderInExport = true;
             _separator = ';';
@@ -76,9 +80,16 @@ namespace FWO.Report
                 "RulebaseName"
             };
 
-            if (userConfig.GlobalConfig is GlobalConfig globalConfig && !string.IsNullOrEmpty(globalConfig.DebugConfig))
+            if (userConfig.GlobalConfig != null)
             {
-                _debugConfig = JsonSerializer.Deserialize<DebugConfig>(globalConfig.DebugConfig) ?? new();
+                _maxPrintedViolations = userConfig.GlobalConfig.ComplianceCheckMaxPrintedViolations;
+            }
+
+            // Apply debug config.
+
+            if (userConfig.GlobalConfig != null && !string.IsNullOrEmpty(userConfig.GlobalConfig.DebugConfig))
+            {
+                _debugConfig = JsonSerializer.Deserialize<DebugConfig>(userConfig.GlobalConfig.DebugConfig) ?? new();
             }
             else
             {
@@ -364,6 +375,7 @@ namespace FWO.Report
             {
                 rule.ViolationDetails = "";
                 rule.Compliance = ComplianceViolationType.None;
+                int processedViolations = 0;
 
                 if (await CheckEvaluability(rule))
                 {
@@ -380,17 +392,28 @@ namespace FWO.Report
                                 continue; // Skip violations that are not relevant for the diff report
                             }
                         }
+                        
+                        processedViolations++;
 
-                        if (rule.ViolationDetails != "")
+                        if (_maxPrintedViolations == 0 || processedViolations < _maxPrintedViolations)
                         {
-                            rule.ViolationDetails += "\n";
+                            if (rule.ViolationDetails != "")
+                            {
+                                rule.ViolationDetails += "\n";
+                            }
+
+                            rule.ViolationDetails += violation.Details;
                         }
 
-                        rule.ViolationDetails += violation.Details;
 
                         // No need to differentiate between different types of violations here at the moment.
 
                         rule.Compliance = ComplianceViolationType.MultipleViolations;
+                    }
+
+                    if (rule.Compliance == ComplianceViolationType.MultipleViolations && processedViolations >= _maxPrintedViolations)
+                    {
+                        rule.ViolationDetails += $"\nToo many violations to display ({processedViolations}), please check the system for details.";
                     }
 
                     return;

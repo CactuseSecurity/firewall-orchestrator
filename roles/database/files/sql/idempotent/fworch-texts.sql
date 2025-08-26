@@ -2521,6 +2521,8 @@ INSERT INTO txt VALUES ('complianceMatrixAllowNetworkZones','German', 'Netzwerkz
 INSERT INTO txt VALUES ('complianceMatrixAllowNetworkZones','English','Nested Network Zones allowed');
 INSERT INTO txt VALUES ('complianceCheckInternetZoneObject','German', 'Internetzone');
 INSERT INTO txt VALUES ('complianceCheckInternetZoneObject','English','Internet zone');
+INSERT INTO txt VALUES ('complianceCheckMaxPrintedViolations','German', 'Maximale Anzahl gedruckter Verst&ouml;&szlig;e pro Regel');
+INSERT INTO txt VALUES ('complianceCheckMaxPrintedViolations','English','Maximum number of printed violations per rule');
 INSERT INTO txt VALUES ('availableModules',     'German', 	'Verf&uuml;gbare Module');
 INSERT INTO txt VALUES ('availableModules',     'English', 	'Available Modules');
 
@@ -5656,6 +5658,8 @@ INSERT INTO txt VALUES ('H5812', 'German',  'Importieren einer Matrix via JSON D
 INSERT INTO txt VALUES ('H5812', 'English', 'Import of a matrix via JSON file. ');
 INSERT INTO txt VALUES ('H5813', 'German',  'Definition vom Kriterien mit fixem Inhalt');
 INSERT INTO txt VALUES ('H5813', 'English', 'Definition of Criteria with fixed content. ');
+INSERT INTO txt VALUES ('H5814', 'German',  'Maximal Anzahl von Violations die im Compliance Report pro Rule angezeigt werden. Bei 0 keine Beschränkung.');
+INSERT INTO txt VALUES ('H5814', 'English', 'Maximum number of violations shown in the compliance report per rule. If set to 0, no limitation is applied.');
 
 INSERT INTO txt VALUES ('H6001', 'German',  'Firewall Orchestrator verf&uuml;gt &uuml;ber zwei APIs:
     <ul>

@@ -127,7 +127,7 @@
     </Body>
     <Footer>
         <button type="button" class="btn btn-sm btn-primary" @onclick="SetTimeSelection">@(userConfig.GetText("ok"))</button>
-        <button type="button" class="btn btn-sm btn-secondary" @onclick="() => Close()">@(userConfig.GetText("cancel"))</button>
+        <button type="button" class="btn btn-sm btn-secondary" @onclick="() => Close()">@(DisplayService.DisplayButton(userConfig, "cancel", Icons.Cancel))</button>
     </Footer>
 </PopUp>
 

@@ -60,7 +60,7 @@
             {
                 <ReportTenantSelection SelectedTenant="actReportFilters.SelectedTenant" SelectedTenantChanged="TenantViewChanged" TenantFilteringAllowed="tenantFilteringAllowed"/>
             }
-            <DeviceSelection @bind-DeviceFilter="actReportFilters.DeviceFilter" @bind-CollapseAll="actReportFilters.CollapseDevices" @bind-SelectAll="actReportFilters.SelectAll"></DeviceSelection>
+            <DeviceSelection @bind-DeviceFilter="actReportFilters.DeviceFilter" @bind-CollapseAll="actReportFilters.CollapseDevices" @bind-SelectAll="actReportFilters.SelectAll"/>
         }
     </Sidebar>
 
@@ -84,14 +84,14 @@
             }
             else
             {
-                <button type="button" class="btn btn-sm btn-danger" @onclick="() => CancelGeneration()">@(userConfig.GetText("stop_fetching"))</button>
+                <button type="button" class="btn btn-sm btn-danger" @onclick="() => CancelGeneration()">@(DisplayService.DisplayButton(userConfig, "stop_fetching", Icons.Cancel))</button>
             }
             <ReportExport ReportToExport="currentReport" />
-            <button type="button" class="btn btn-sm btn-secondary" @onclick="() => { reportTemplateControl.NewTemplate(ConstructReportTemplate()); }">@(userConfig.GetText("save_as_template"))</button>
+            <button type="button" class="btn btn-sm btn-secondary" @onclick="() => { reportTemplateControl.NewTemplate(ConstructReportTemplate()); }">@(DisplayService.DisplayButton(userConfig, "save_as_template", Icons.Template))</button>
             @if(currentReport != null && currentReport.ReportType == ReportType.UnusedRules && selectedItemsRuleReportTable.Count > 0 
                 && (authenticationStateTask!.Result.User.IsInRole(Roles.Admin) || authenticationStateTask!.Result.User.IsInRole(Roles.Requester) || authenticationStateTask!.Result.User.IsInRole(Roles.Auditor)))
             {
-                <button type="button" class="btn btn-sm btn-danger" @onclick="() => {ShowCreateTicketDialog = true;}">@(userConfig.GetText("create_delete_ticket"))</button>
+                <button type="button" class="btn btn-sm btn-danger" @onclick="() => {ShowCreateTicketDialog = true;}">@(DisplayService.DisplayButton(userConfig, "create_delete_ticket", Icons.Workflow))</button>
             }
         </div>
 

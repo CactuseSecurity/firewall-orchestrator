@@ -12,6 +12,9 @@ namespace FWO.Basics
         public const string RequestFwChange = "bi bi-sign-intersection-t-fill";
         public const string ShowHistory = "bi bi-clock-history";
         public const string GenerateReport = "bi bi-newspaper";
+        public const string Export = "bi bi-box-arrow-up-right";
+        public const string Download = "bi bi-download";
+        public const string Load = "bi bi-file-arrow-down-fill";
 
         // General
         public const string Locked = "oi oi-lock-locked";
@@ -90,7 +93,6 @@ namespace FWO.Basics
         public const string Template = "oi oi-document";
         public const string Schedule = "oi oi-timer";
         public const string Archive = "oi oi-hard-drive";
-        public const string Export = "oi oi-arrow-thick-right";
         public const string Output = "oi oi-share";
         public const string Filter = "oi oi-eye";
 

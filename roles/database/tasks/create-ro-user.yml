@@ -1,0 +1,27 @@
+# add db ro user and assign privileges
+
+- block:
+    
+  - name: create {{ fwo_db_ro_user }}
+    postgresql_user:
+      name: "{{ fwo_db_ro_user }}"
+      role_attr_flags: LOGIN,NOSUPERUSER,INHERIT,NOCREATEDB,NOCREATEROLE
+
+  - name: GRANT ro user
+    postgresql_query:
+      db: "{{ fworch_db_name }}"
+      query: GRANT CONNECT ON DATABASE {{ fworch_db_name }} TO {{ fwo_db_ro_user }}
+
+  - name: GRANT ro user all access to schemata
+    postgresql_query:
+      db: "{{ fworch_db_name }}"
+      query: |
+        GRANT USAGE ON SCHEMA {{ item }} TO {{ fwo_db_ro_user }};
+        GRANT SELECT ON ALL TABLES IN SCHEMA {{ item }} TO {{ fwo_db_ro_user }};
+        GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA {{ item }} TO {{ fwo_db_ro_user }};
+        ALTER DEFAULT PRIVILEGES IN SCHEMA {{ item }} GRANT SELECT ON TABLES TO {{ fwo_db_ro_user }};
+        ALTER DEFAULT PRIVILEGES IN SCHEMA {{ item }} GRANT USAGE, SELECT ON SEQUENCES TO {{ fwo_db_ro_user }};
+    loop: "{{ db_schemata }}"
+
+  become: true
+  become_user: postgres

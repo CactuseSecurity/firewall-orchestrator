@@ -389,15 +389,15 @@
                     <Authorized>
                         @if(WfHandler.AddTicketMode)
                         {
-                            <button type="button" class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="SaveReqTask">@(userConfig.GetText("add"))</button>
+                            <button type="button" class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="SaveReqTask">@(DisplayService.DisplayButton(userConfig, "add", Icons.Add))</button>
                         }
                         else
                         {
-                            <button type="button" class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="SaveReqTask">@(userConfig.GetText("save"))</button>
+                            <button type="button" class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="SaveReqTask">@(DisplayService.DisplayButton(userConfig, "save", Icons.Save))</button>
                         }
                     </Authorized>
                     <NotAuthorized>
-                        <button type="button" class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("save"))</button>
+                        <button type="button" class="btn btn-sm btn-primary" disabled>@(DisplayService.DisplayButton(userConfig, "save", Icons.Save))</button>
                     </NotAuthorized>
                 </AuthorizeView>
             }
@@ -405,10 +405,10 @@
             {
                 <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.Planner}, {Roles.FwAdmin}")">
                     <Authorized>
-                        <button type="button" class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="InitPromoteReqTask">@(userConfig.GetText("change_state"))</button>
+                        <button type="button" class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="InitPromoteReqTask">@(DisplayService.DisplayButton(userConfig, "change_state", Icons.ChangeState))</button>
                     </Authorized>
                     <NotAuthorized>
-                        <button type="button" class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("change_state"))</button>
+                        <button type="button" class="btn btn-sm btn-primary" disabled>@(DisplayService.DisplayButton(userConfig, "change_state", Icons.ChangeState))</button>
                     </NotAuthorized>
                 </AuthorizeView>
             }
@@ -416,16 +416,16 @@
             {
                 <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.Approver}, {Roles.FwAdmin}")">
                     <Authorized>
-                        <button type="button" class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="InitApproveTask">@(userConfig.GetText("approve"))</button>
+                        <button type="button" class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="InitApproveTask">@(DisplayService.DisplayButton(userConfig, "approve", Icons.Approve))</button>
                     </Authorized>
                     <NotAuthorized>
-                        <button type="button" class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("approve"))</button>
+                        <button type="button" class="btn btn-sm btn-primary" disabled>@(DisplayService.DisplayButton(userConfig, "approve", Icons.Approve))</button>
                     </NotAuthorized>
                 </AuthorizeView>
             }
             @if(WfHandler.EditReqTaskMode || WfHandler.PlanReqTaskMode || WfHandler.ApproveReqTaskMode)
             {
-                <button type="button" class="btn btn-sm btn-secondary" @onclick:preventDefault @onclick="Close">@(userConfig.GetText("cancel"))</button>
+                <button type="button" class="btn btn-sm btn-secondary" @onclick:preventDefault @onclick="Close">@(DisplayService.DisplayButton(userConfig, "cancel", Icons.Cancel))</button>
             }
             else
             {

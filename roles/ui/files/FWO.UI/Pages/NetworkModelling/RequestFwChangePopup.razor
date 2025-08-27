@@ -84,7 +84,7 @@
                 <button type="button" class="btn btn-sm btn-primary" disabled>@(DisplayService.DisplayButton(userConfig, "request_fw_change", Icons.RequestFwChange))</button>
             </NotAuthorized>
         </AuthorizeView>
-        <button type="button" class="btn btn-sm btn-secondary" @onclick="Close">@(userConfig.GetText("close"))</button>
+        <button type="button" class="btn btn-sm btn-secondary" @onclick="Close">@(DisplayService.DisplayButton(userConfig, "close", Icons.Close))</button>
     </Footer>
 </PopUp>
 <InProgress Display="WorkInProgress" />

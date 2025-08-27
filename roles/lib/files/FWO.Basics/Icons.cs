@@ -15,6 +15,11 @@ namespace FWO.Basics
         public const string Export = "bi bi-box-arrow-up-right";
         public const string Download = "bi bi-download";
         public const string Load = "bi bi-file-arrow-down-fill";
+        public const string ChangeState = "bi bi-graph-up-arrow";
+        public const string Approve = "bi bi-hand-thumbs-up-fill";
+        public const string Cleanup = "bi bi-slash-circle-fill";
+        public const string Create = "bi bi-patch-plus-fill";
+        public const string Enter = "bi bi-arrow-return-left";
 
         // General
         public const string Locked = "oi oi-lock-locked";

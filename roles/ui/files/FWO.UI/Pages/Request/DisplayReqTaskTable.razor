@@ -22,7 +22,7 @@
                             @if(WfHandler.StateMatrix(context.TaskType).PhaseActive[WorkflowPhases.approval])
                             {
                                 <button type="button" class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="() => ShowApprovals(context)">
-                                    @(userConfig.GetText("approvals"))</button>
+                                    @(DisplayService.DisplayButton(userConfig, "approvals", Icons.Approval))</button>
                             }
                             @if(IsEditable(context))
                             {

@@ -16,17 +16,18 @@
             @if(WfHandler.ActReqTask.TaskType == WfTaskType.access.ToString() && userConfig.ReqActivatePathAnalysis)
             {
                 <button type="button" class="btn btn-success m-2" @onclick:preventDefault @onclick="CheckImplTasks">
-                    @(userConfig.GetText("check_impltasks"))</button>
+                    @(DisplayService.DisplayButton(userConfig, "check_impltasks", Icons.Check))</button>
                 <button type="button" class="btn btn-warning m-2" @onclick:preventDefault @onclick="AutocreateImplTasks">
-                    @(userConfig.GetText("auto_create_impltasks"))</button>
+                    @(DisplayService.DisplayButton(userConfig, "auto_create_impltasks", Icons.Create))</button>
                 @if(WfHandler.ActReqTask.ImplementationTasks.Count > 0)
                 {
                     <button type="button" class="btn btn-danger m-2" @onclick:preventDefault @onclick="CleanupImplTasks">
-                        @(userConfig.GetText("cleanup_impltasks"))</button>
+                        @(DisplayService.DisplayButton(userConfig, "cleanup_impltasks", Icons.Cleanup))</button>
                 }
                 else
                 {
-                    <button type="button" class="btn btn-danger m-2" disabled>@(userConfig.GetText("cleanup_impltasks"))</button>
+                    <button type="button" class="btn btn-danger m-2" disabled>
+						@(DisplayService.DisplayButton(userConfig, "cleanup_impltasks", Icons.Cleanup))</button>
                 }
             }
         </div>
@@ -43,7 +44,7 @@
                             @if(!WfHandler.StateMatrix(implTask.TaskType).PhaseActive[WorkflowPhases.planning] && WfHandler.StateMatrix(implTask.TaskType).PhaseActive[WorkflowPhases.approval])
                             {
                                 <button type="button" class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="() => ShowApprovals(implTask)">
-                                    @(userConfig.GetText("approvals"))</button>
+                                    @(DisplayService.DisplayButton(userConfig, "approvals", Icons.Approval))</button>
                             }
                             @if (!WfHandler.ReadOnlyMode && IsEditable(implTask))
                             {

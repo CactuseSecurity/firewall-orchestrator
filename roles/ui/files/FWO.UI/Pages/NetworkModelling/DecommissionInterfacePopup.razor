@@ -49,15 +49,15 @@
             <Authorized>
                 @if(!WorkInProgress)
                 {
-                    <button type="button" class="btn btn-sm btn-primary" @onclick="Decommission">@(userConfig.GetText("decommission"))</button>
+                    <button type="button" class="btn btn-sm btn-primary" @onclick="Decommission">@(DisplayService.DisplayButton(userConfig, "decommission", Icons.Delete))</button>
                 }
                 else
                 {
-                    <button type="button" class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("decommission"))</button>
+                    <button type="button" class="btn btn-sm btn-primary" disabled>@(DisplayService.DisplayButton(userConfig, "decommission", Icons.Delete))</button>
                 }
             </Authorized>
             <NotAuthorized>
-                <button type="button" class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("decommission"))</button>
+                <button type="button" class="btn btn-sm btn-primary" disabled>@(DisplayService.DisplayButton(userConfig, "decommission", Icons.Delete))</button>
             </NotAuthorized> 
         </AuthorizeView>
         <button type="button" class="btn btn-sm btn-secondary" @onclick="Close">@(DisplayService.DisplayButton(userConfig, "cancel", Icons.Cancel))</button>

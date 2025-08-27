@@ -300,10 +300,10 @@
             {
                 <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.Planner}, {Roles.FwAdmin}")">
                     <Authorized>
-                        <button type="button" class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="SaveImplTask">@(userConfig.GetText("save"))</button>
+                        <button type="button" class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="SaveImplTask">@(DisplayService.DisplayButton(userConfig, "save", Icons.Save))</button>
                     </Authorized>
                     <NotAuthorized>
-                        <button type="button" class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("save"))</button>
+                        <button type="button" class="btn btn-sm btn-primary" disabled>@(DisplayService.DisplayButton(userConfig, "save", Icons.Save))</button>
                     </NotAuthorized> 
                 </AuthorizeView>
             }
@@ -311,16 +311,16 @@
             {
                 <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.Implementer}, {Roles.Reviewer}, {Roles.FwAdmin}")">
                     <Authorized>
-                        <button type="button" class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="InitPromoteImplTask">@(userConfig.GetText("change_state"))</button>
+                        <button type="button" class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="InitPromoteImplTask">@(DisplayService.DisplayButton(userConfig, "change_state", Icons.Save))</button>
                     </Authorized>
                     <NotAuthorized>
-                        <button type="button" class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("change_state"))</button>
+                        <button type="button" class="btn btn-sm btn-primary" disabled>@(DisplayService.DisplayButton(userConfig, "change_state", Icons.ChangeState))</button>
                     </NotAuthorized> 
                 </AuthorizeView>
             }
             @if((WfHandler.EditImplTaskMode || WfHandler.ImplementImplTaskMode || WfHandler.ReviewImplTaskMode) && !newOwnerAssigned)
             {
-                <button type="button" class="btn btn-sm btn-secondary" @onclick:preventDefault @onclick="Close">@(userConfig.GetText("cancel"))</button>
+                <button type="button" class="btn btn-sm btn-secondary" @onclick:preventDefault @onclick="Close">@(DisplayService.DisplayButton(userConfig, "cancel", Icons.Cancel))</button>
             }
             else
             {

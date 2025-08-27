@@ -176,11 +176,15 @@
     </div>
 
     @* ==== RIGHT SIDEBAR ==== *@
-    <RightSidebar @bind-Width="sidebarRightWidth" CurrentReport="currentReport"
-                  @bind-SelectedRules="selectedItemsRuleReportTable"
-                  AllTabVisible="(tenantFilteringAllowed && actReportFilters.SelectedTenant == null)"
-                  SelectedReportType="actReportFilters.ReportType"
-                  LSBTime="actReportFilters.TimeFilter" />
+    @if (_showRightSidebar)
+    {
+        <RightSidebar @bind-Width="sidebarRightWidth" CurrentReport="currentReport"
+                    @bind-SelectedRules="selectedItemsRuleReportTable"
+                    AllTabVisible="(tenantFilteringAllowed && actReportFilters.SelectedTenant == null)"
+                    SelectedReportType="actReportFilters.ReportType"
+                    LSBTime="actReportFilters.TimeFilter" />
+    }
+
 }
 
 @* ==== POPUPS ==== *@
@@ -250,6 +254,7 @@
         || authenticationStateTask!.Result.User.IsInRole(Roles.Auditor);
 
     private bool _showAnyRulesInComplianceReport = true;
+    private bool _showRightSidebar = true;
 
     private ComplianceReport? _complianceReport;
 
@@ -308,6 +313,20 @@
                 injectedAppId = null;
                 CleanUri();
             }
+
+            // Hide right sidebar for compliance report.
+
+            if(newReportType == ReportType.Compliance)
+            {
+                _showRightSidebar = false;
+                sidebarRightWidth = 0;                
+            }
+            else
+            {
+                _showRightSidebar = true;
+                sidebarRightWidth = GlobalConst.kSidebarRightWidth;
+            }
+
             actReportFilters.ReportType = newReportType;
             SetProperRoleForReport();
             actReportFilters.SetDisplayedTimeSelection();

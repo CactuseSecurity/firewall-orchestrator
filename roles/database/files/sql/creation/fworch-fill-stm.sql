@@ -150,6 +150,7 @@ insert into config (config_key, config_value, config_user) VALUES ('complianceCh
 insert into config (config_key, config_value, config_user) VALUES ('complianceCheckScheduledDiffReports', '[]', 0);
 insert into config (config_key, config_value, config_user) VALUES ('complianceCheckDiffReferenceInterval', '0', 0);
 insert into config (config_key, config_value, config_user) VALUES ('complianceCheckInternetZoneObject', '', 0);
+insert into config (config_key, config_value, config_user) VALUES ('complianceCheckMaxPrintedViolations', '0', 0);
 insert into config (config_key, config_value, config_user) VALUES ('availableModules', '[1,2,3,4,5,6]', 0);
 insert into config (config_key, config_value, config_user) VALUES ('debugConfig', '{"debugLevel":8, "extendedLogComplianceCheck":true, "extendedLogReportGeneration":true, "extendedLogScheduler":true}', 0);
 

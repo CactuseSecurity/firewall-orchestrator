@@ -11,6 +11,7 @@ query getRulesWithViolationsInTimespanByChunk(
     limit: $limit
     offset: $offset
     order_by: { rule_id: asc }
+    where: { removed: { _is_null: true } }
   ) {
     ...ruleDetails
 

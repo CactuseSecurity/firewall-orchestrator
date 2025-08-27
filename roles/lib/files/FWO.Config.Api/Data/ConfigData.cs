@@ -422,6 +422,9 @@ namespace FWO.Config.Api.Data
         [JsonProperty("complianceCheckInternetZoneObject"), JsonPropertyName("complianceCheckInternetZoneObject")]
         public string ComplianceCheckInternetZoneObject { get; set; } = "";
 
+        [JsonProperty("complianceCheckMaxPrintedViolations"), JsonPropertyName("complianceCheckMaxPrintedViolations")]
+        public int ComplianceCheckMaxPrintedViolations { get; set; } = 0;
+
         [JsonProperty("debugConfig"), JsonPropertyName("debugConfig")]
         public string DebugConfig { get; set; } = "";
 

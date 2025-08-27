@@ -280,3 +280,10 @@ bugfix release:
 
 # 8.8.6 - 08.07.2025 DEVELOP
 - hotfix CP importer new stm_track: "extended log" and "detailed log"
+
+# 8.8.9 - 27.08.2025 DEVELOP
+- prepare tables + settings for owner recert + first throw recert popup
+- notification service
+- decommissioning of interfaces
+- iconification of modelling and related modules
+- fix overwrite of objects with interface

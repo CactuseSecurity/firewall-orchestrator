@@ -60,7 +60,7 @@ namespace FWO.Middleware.Client
 			try
 			{
 				TokenValidationParameters validationParameters = new TokenValidationParameters
-					{
+				{
 					RequireExpirationTime = true,
 					RequireSignedTokens = true,
 					ValidateLifetime = true,
@@ -69,7 +69,6 @@ namespace FWO.Middleware.Client
 					ValidateIssuer = true,
 					ValidIssuer = FWO.Basics.JwtConstants.Issuer,
 					IssuerSigningKey = jwtPublicKey,
-
 				};
 
 				JsonWebTokenHandler handler = new ();

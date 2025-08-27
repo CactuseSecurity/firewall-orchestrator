@@ -452,11 +452,11 @@ namespace FWO.Report
 
             if (violation.FoundDate >= referenceDate)
             {
-                diffPrefix = $"+ ({violation.FoundDate:dd.MM.yyyy - hh:mm}) ";
+                diffPrefix = $"Found: ({violation.FoundDate:dd.MM.yyyy - hh:mm}) ";
             }
             if (violation.RemovedDate != null && violation.RemovedDate >= referenceDate)
             {
-                diffPrefix += $"- ({violation.RemovedDate:dd.MM.yyyy - hh:mm}) ";
+                diffPrefix += $"Removed: ({violation.RemovedDate:dd.MM.yyyy - hh:mm}) ";
             }
 
             violation.Details = $"{diffPrefix}: {violation.Details}";

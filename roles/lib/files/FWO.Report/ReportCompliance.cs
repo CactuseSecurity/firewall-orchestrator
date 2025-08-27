@@ -379,41 +379,11 @@ namespace FWO.Report
 
                 if (await CheckEvaluability(rule))
                 {
-                    for (int violationCount = 1; violationCount <= rule.Violations.Count(); violationCount++)
+                    for (int violationCount = 1; violationCount <= rule.Violations.Count; violationCount++)
                     {
                         ComplianceViolation violation = rule.Violations.ElementAt(violationCount - 1);
 
-                        if (IsDiffReport)
-                        {
-                            if (ViolationIsRelevantForDiff(violation))
-                            {
-                                await TransformViolationDetailsToDiff(violation);
-                            }
-                            else
-                            {
-                                continue; // Skip violations that are not relevant for the diff report
-                            }
-                        }
-
-                        if (_maxPrintedViolations == 0 || printedViolations < _maxPrintedViolations)
-                        {
-                            if (rule.ViolationDetails != "")
-                            {
-                                rule.ViolationDetails += "<br>";
-                            }
-
-                            rule.ViolationDetails += violation.Details;
-                            printedViolations++;
-                        }
-
-                        // // No need to differentiate between different types of violations here at the moment.
-
-                        rule.Compliance = ComplianceViolationType.MultipleViolations;
-
-                        if (_maxPrintedViolations > 0 && printedViolations == _maxPrintedViolations && violationCount < rule.Violations.Count())
-                        {
-                            rule.ViolationDetails += $"<br>Too many violations to display ({rule.Violations.Count()}), please check the system for details.";
-                        }
+                        await AddViolationDataToViolationDetails(rule, violation, ref printedViolations, violationCount);
                     }
 
                     return;
@@ -428,6 +398,43 @@ namespace FWO.Report
                 Log.TryWriteLog(LogType.Error, "Compliance Report", $"Error while setting compliance data for rule {rule.Id}: {e.Message}", _debugConfig.ExtendedLogReportGeneration);
                 return;
             }
+        }
+
+        private Task AddViolationDataToViolationDetails(Rule rule, ComplianceViolation violation, ref int printedViolations, int violationCount)
+        {
+            if (IsDiffReport)
+            {
+                if (ViolationIsRelevantForDiff(violation))
+                {
+                    TransformViolationDetailsToDiff(violation);
+                }
+                else
+                {
+                    return Task.CompletedTask; // Skip violations that are not relevant for the diff report
+                }
+            }
+
+            if (_maxPrintedViolations == 0 || printedViolations < _maxPrintedViolations)
+            {
+                if (rule.ViolationDetails != "")
+                {
+                    rule.ViolationDetails += "<br>";
+                }
+
+                rule.ViolationDetails += violation.Details;
+                printedViolations++;
+            }
+
+            // No need to differentiate between different types of violations here at the moment.
+
+            rule.Compliance = ComplianceViolationType.MultipleViolations;
+
+            if (_maxPrintedViolations > 0 && printedViolations == _maxPrintedViolations && violationCount < rule.Violations.Count)
+            {
+                rule.ViolationDetails += $"<br>Too many violations to display ({rule.Violations.Count}), please check the system for details.";
+            }
+
+            return Task.CompletedTask;
         }
 
         private bool ViolationIsRelevantForDiff(ComplianceViolation violation)
@@ -477,23 +484,16 @@ namespace FWO.Report
 
                     if (value is string str)
                     {
+                        str = str
+                                .Replace("<br>", "\n")
+                                .Replace("\"", "\"\"");
+
                         if (propertyInfo.Name != "ViolationDetails")
                         {
                             str = str
                                     .Replace("\r\n", " | ")
                                     .Replace("\n", " | ")
-                                    .Replace("<br>", " | ");                            
-                        }
-                        else
-                        {
-                            str = str.Replace("<br>", "\n");   
-                        }
-
-                        if (str.Contains('"'))
-                        {
-                            // Escape quotation marks
-
-                            str = str.Replace("\"", "\"\"");
+                                    .Replace("<br>", " | ");
                         }
 
                         if (str.Length > _maxCellSize)

@@ -93,8 +93,8 @@ namespace FWO.Test
             ruleChunks[0] = new List<Rule> { rule1 };
             ruleChunks[1] = new List<Rule> { rule2 };
 
-            string controlRule1 = $"- ({removed.RemovedDate:dd.MM.yyyy} - {removed.RemovedDate:hh:mm}) : Test violation 2";
-            string controlRule2 = $"+ ({added.FoundDate:dd.MM.yyyy} - {added.FoundDate:hh:mm}) : Test violation 4";
+            string controlRule1 = $"Removed: ({removed.RemovedDate:dd.MM.yyyy} - {removed.RemovedDate:hh:mm}) : Test violation 2";
+            string controlRule2 = $"Found: ({added.FoundDate:dd.MM.yyyy} - {added.FoundDate:hh:mm}) : Test violation 4";
 
             // ACT
 

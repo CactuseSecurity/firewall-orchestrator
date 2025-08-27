@@ -24,7 +24,7 @@ def normalize_svcobjects(full_config, config2import, import_id, scope):
                     name = str(obj_orig['name'])
 
                 color = None
-                if 'color' in obj_orig and str(obj_orig['color']) != 0:
+                if 'color' in obj_orig and str(obj_orig['color']) != "0":
                     color = str(obj_orig['color'])
 
                 session_timeout = None   # todo: find the right timer
@@ -117,19 +117,19 @@ def extractSinglePortRange(port_range):
     port_end = port
 
     # open ranges (not found so far in data)
-    pattern = re.compile('^\>(\d+)$')
+    pattern = re.compile(r'^\>(\d+)$')
     match = pattern.match(port)
     if match:
         port = str(int(match.group()[1:]) + 1)
         port_end = str(65535)
-    pattern = re.compile('^\<(\d+)$')
+    pattern = re.compile(r'^\<(\d+)$')
     match = pattern.match(port)
     if match:
         port = str(1)
         port_end = str(int(match.group()[1:]) - 1)
 
     # split ranges
-    pattern = re.compile('^(\d+)\-(\d+)$')
+    pattern = re.compile(r'^(\d+)\-(\d+)$')
     match = pattern.match(port)
     if match:
         port, port_end = match.group().split('-')

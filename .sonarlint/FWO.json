@@ -1,0 +1,6 @@
+{
+    "sonarCloudOrganization": "cactusesecurity",
+    "projectKey": "CactuseSecurity_firewall-orchestrator",
+    "region": "EU",
+    "sonar.scanner.scanAll": false
+}

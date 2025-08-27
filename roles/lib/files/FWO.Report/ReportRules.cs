@@ -4,22 +4,40 @@ using FWO.Basics;
 using FWO.Config.Api;
 using FWO.Data;
 using FWO.Data.Report;
+using FWO.FwLogic;
+using FWO.Services.RuleTreeBuilder;
 using FWO.Logging;
 using FWO.Report.Filter;
 using FWO.Ui.Display;
 using Newtonsoft.Json;
 using System.Text;
 using System.Text.Json;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace FWO.Report
 {
+    public static class DeviceReportExtensions 
+    {
+        public static bool ContainsRules(this DeviceReport device)
+        {
+            return device.RulebaseLinks != null && device.RulebaseLinks.Any();
+        }
+
+        public static bool ContainsRules(this ManagementReport management)
+        {
+            return management.Devices != null && management.Devices.Any(d => d.ContainsRules());
+        }
+    }
+    
     public class ReportRules : ReportDevicesBase
     {
         private const int ColumnCount = 12;
         protected bool UseAdditionalFilter = false;
         private bool VarianceMode = false;
 
-        public ReportRules(DynGraphqlQuery query, UserConfig userConfig, ReportType reportType) : base(query, userConfig, reportType) {}
+        private static Dictionary<(int deviceId, int managementId), List<Rule>> _rulesCache = new();
+
+        public ReportRules(DynGraphqlQuery query, UserConfig userConfig, ReportType reportType) : base(query, userConfig, reportType) { }
 
         public override async Task Generate(int elementsPerFetch, ApiConnection apiConnection, Func<ReportData, Task> callback, CancellationToken ct)
         {
@@ -30,10 +48,11 @@ namespace FWO.Report
             List<ManagementReport> managementsWithRelevantImportId = await GetRelevantImportIds(apiConnection);
 
             ReportData.ManagementData = [];
-            foreach(var management in managementsWithRelevantImportId)
+            foreach (var management in managementsWithRelevantImportId)
             {
-                SetMgtQueryVars(management);
-                ManagementReport managementReport = (await apiConnection.SendQueryAsync<List<ManagementReport>>(Query.FullQuery, Query.QueryVariables))[0];
+                SetMgtQueryVars(management);    // this includes mgm_id AND relevant import ID!
+                List<ManagementReport> result = await apiConnection.SendQueryAsync<List<ManagementReport>>(Query.FullQuery, Query.QueryVariables);
+                ManagementReport managementReport = result[0];
                 managementReport.Import = management.Import;
                 ReportData.ManagementData.Add(managementReport);
             }
@@ -47,11 +66,11 @@ namespace FWO.Report
                 }
                 keepFetching = false;
                 Query.QueryVariables[QueryVar.Offset] = (int)Query.QueryVariables[QueryVar.Offset] + elementsPerFetch;
-                foreach(var management in managementsWithRelevantImportId)
+                foreach (var management in managementsWithRelevantImportId)
                 {
                     SetMgtQueryVars(management);
                     ManagementReport? mgtToFill = ReportData.ManagementData.FirstOrDefault(m => m.Id == management.Id);
-                    if(mgtToFill != null)
+                    if (mgtToFill != null)
                     {
                         (bool newObjects, Dictionary<string, int> maxAddedCounts) = mgtToFill.Merge((await apiConnection.SendQueryAsync<List<ManagementReport>>(Query.FullQuery, Query.QueryVariables))[0]);
                         // new objects might have been added, but if none reached the limit of elementsPerFetch, we can stop fetching
@@ -60,14 +79,57 @@ namespace FWO.Report
                 }
                 await callback(ReportData);
             }
-            SetReportedRuleIds();
+
+            TryBuildRuleTree();
         }
 
-        private void SetMgtQueryVars(ManagementReport management)
+        private void TryBuildRuleTree()
+        {
+            int ruleCount = 0;
+
+            foreach (var managementReport in ReportData.ManagementData)
+            {
+                foreach (var deviceReport in managementReport.Devices)
+                {
+                    List<Rule> allRules = new();
+
+                    if (Services.ServiceProvider.UiServices?.GetService<IRuleTreeBuilder>() is IRuleTreeBuilder ruleTreeBuilder)
+                    {
+                        if (ruleTreeBuilder?.BuildRulebaseLinkQueue(deviceReport.RulebaseLinks, managementReport.Rulebases) != null)
+                        {
+                            allRules = ruleTreeBuilder.BuildRuleTree();
+                            ruleCount += allRules.Count;
+                        }
+                    }
+                    else
+                    {
+                        // if we are not building the rule tree, we just collect all rules from the rulebases
+
+                        foreach (var rulebase in managementReport.Rulebases)
+                        {
+                            allRules.AddRange(rulebase.Rules);
+                            ruleCount += rulebase.Rules.Count();
+                        }
+                    }
+
+                    _rulesCache[(deviceReport.Id, managementReport.Id)] = allRules;
+
+                    // Add all rule ids to ReportedRuleIds of management, that are not already in that list
+
+                    managementReport.ReportedRuleIds.AddRange(
+                        allRules.Select(r => r.Id).Except(managementReport.ReportedRuleIds)
+                    );
+                }
+            }
+
+            ReportData.ElementsCount = ruleCount;
+        }
+
+        protected virtual void SetMgtQueryVars(ManagementReport management)
         {
             Query.QueryVariables[QueryVar.MgmId] = management.Id;
-            Query.QueryVariables[QueryVar.ImportIdStart] = management.Import.ImportAggregate.ImportAggregateMax.RelevantImportId ?? -1; /* managment was not yet imported at that time */;
-            Query.QueryVariables[QueryVar.ImportIdEnd]   = management.Import.ImportAggregate.ImportAggregateMax.RelevantImportId ?? -1; /* managment was not yet imported at that time */;
+            Query.QueryVariables[QueryVar.ImportIdStart] = management.RelevantImportId ?? -1;
+            Query.QueryVariables[QueryVar.ImportIdEnd]   = management.RelevantImportId ?? -1;
         }
 
         public override async Task<bool> GetObjectsInReport(int objectsPerFetch, ApiConnection apiConnection, Func<ReportData, Task> callback) // to be called when exporting
@@ -128,7 +190,9 @@ namespace FWO.Report
                 }
 
                 FillReport(allFilteredObjects, managementReport, objects);
+
                 objQueryVariables[QueryVar.Offset] = (int)objQueryVariables[QueryVar.Offset] + elementsPerFetch;
+
                 await callback(ReportData);
             }
 
@@ -175,79 +239,156 @@ namespace FWO.Report
             mgt.ReportObjects = [.. mgt.ReportObjects.Where(o => relevantObjectIds.Contains(o.Id))];
         }
 
+        public static Rule[] GetRulesByRulebaseId(int rulebaseId, ManagementReport managementReport)
+        {
+            Rule[]? rules = managementReport.Rulebases.FirstOrDefault(rb => rb.Id == rulebaseId)?.Rules;
+            if (rules != null)
+            {
+                return rules;
+            }
+            return [];
+        }
+
+        public static Rule[] GetInitialRulesOfGateway(DeviceReportController deviceReport, ManagementReport managementReport)
+        {
+            int? initialRulebaseId = deviceReport.GetInitialRulebaseId(managementReport);
+            if (initialRulebaseId != null)
+            {
+                Rule[]? rules = GetRulesByRulebaseId((int)initialRulebaseId, managementReport);
+                if (rules != null)
+                {
+                    return rules;
+                }
+            }
+            return [];
+        }
+
+        public static Rule[] GetAllRulesOfGateway(DeviceReportController deviceReport, ManagementReport managementReport)
+        {
+            if (_rulesCache.TryGetValue((deviceReport.Id, managementReport.Id), out List<Rule>? allRules))
+            {
+                return allRules.ToArray();
+            }
+            else
+            {
+                return [];
+            }
+        }
+        
+        public static int GetRuleCount(ManagementReport mgmReport, RulebaseLink? currentRbLink, RulebaseLink[] rulebaseLinks)
+        {
+            if (currentRbLink != null)
+            {
+                int ruleCount = 0;
+                if (currentRbLink != null)
+                {
+                    int nextRulebaseId = currentRbLink.NextRulebaseId;
+                    RulebaseReport? nextRulebase = mgmReport.Rulebases.FirstOrDefault(_ => _.Id == nextRulebaseId);
+                    if (nextRulebase != null)
+                    {
+                        foreach (var rule in nextRulebase.Rules)
+                        {
+                            if (string.IsNullOrEmpty(rule.SectionHeader))
+                            {
+                                RulebaseLink? nextRbLink = rulebaseLinks.FirstOrDefault(_ => _.FromRuleId == rule.Id);
+                                if (nextRbLink != null)
+                                {
+                                    ruleCount += 1 + GetRuleCount(mgmReport, nextRbLink, rulebaseLinks);
+                                }
+                                else
+                                {
+                                    ruleCount++;
+                                }
+                            }
+                        }
+                        return ruleCount;
+                    }
+                }
+            }
+            return 0;
+        }
+
         public override string SetDescription()
         {
             int managementCounter = 0;
             int deviceCounter = 0;
             int ruleCounter = 0;
-            foreach (var managementReport in ReportData.ManagementData.Where(mgt => !mgt.Ignore && mgt.Devices != null &&
-                    Array.Exists(mgt.Devices, device => device.Rules != null && device.Rules.Length > 0)))
+            foreach (var mgt in ReportData.ManagementData.Where(mgt => !mgt.Ignore && mgt.Devices != null &&
+                    mgt.ContainsRules()))
             {
                 managementCounter++;
-                foreach (var device in managementReport.Devices.Where(dev => dev.Rules != null && dev.Rules.Length > 0))
+                var managementReport = new ManagementReportController(mgt);
+                foreach (var device in managementReport.Devices.Where(dev => dev.ContainsRules()))
                 {
                     deviceCounter++;
-                    ruleCounter += device.Rules!.Length;
+                    ruleCounter += GetRuleCount(managementReport, device.RulebaseLinks.FirstOrDefault(_ => _.IsInitialRulebase()), device.RulebaseLinks);
                 }
             }
             return $"{managementCounter} {userConfig.GetText("managements")}, {deviceCounter} {userConfig.GetText("gateways")}, {ruleCounter} {userConfig.GetText("rules")}";
         }
 
-        private void SetReportedRuleIds()
+        private string ExportSingleRulebaseToCsv(StringBuilder report, RuleDisplayCsv ruleDisplayCsv, ManagementReport managementReport, DeviceReport gateway, RulebaseLink? rbLink)
         {
-            foreach (var mgt in ReportData.ManagementData)
+            if (rbLink == null)
             {
-                foreach (var dev in mgt.Devices.Where(d => d.Rules != null && d.Rules.Length > 0))
-                {
-                    if (dev.Rules !=null)
-                    {
-                        foreach (Rule rule in dev.Rules)
-                        {
-                            rule.ManagementName = mgt.Name ?? "";
-                            rule.DeviceName = dev.Name ?? "";
-                            mgt.ReportedRuleIds.Add(rule.Id);
-                        }
-                    }
-                }
-                mgt.ReportedRuleIds = mgt.ReportedRuleIds.Distinct().ToList();
+                return report.ToString();
             }
+            foreach (var rule in GetRulesByRulebaseId(rbLink.NextRulebaseId, managementReport)) // just dealing with the first rb for starters
+            {
+                if (string.IsNullOrEmpty(rule.SectionHeader))
+                {
+                    report.Append(ruleDisplayCsv.OutputCsv(managementReport.Name));
+                    report.Append(ruleDisplayCsv.OutputCsv(gateway.Name));
+                    report.Append(ruleDisplayCsv.DisplayNumberCsv(rule));
+                    report.Append(ruleDisplayCsv.DisplayNameCsv(rule));
+                    report.Append(ruleDisplayCsv.DisplaySourceZoneCsv(rule));
+                    report.Append(ruleDisplayCsv.DisplaySourceCsv(rule, ReportType));
+                    report.Append(ruleDisplayCsv.DisplayDestinationZoneCsv(rule));
+                    report.Append(ruleDisplayCsv.DisplayDestinationCsv(rule, ReportType));
+                    report.Append(ruleDisplayCsv.DisplayServicesCsv(rule, ReportType));
+                    report.Append(ruleDisplayCsv.DisplayActionCsv(rule));
+                    report.Append(ruleDisplayCsv.DisplayTrackCsv(rule));
+                    report.Append(ruleDisplayCsv.DisplayEnabledCsv(rule));
+                    report.Append(ruleDisplayCsv.DisplayUidCsv(rule));
+                    report.Append(ruleDisplayCsv.DisplayCommentCsv(rule));
+                    report = RuleDisplayBase.RemoveLastChars(report, 1); // remove last chars (comma)
+                    report.AppendLine("");  // EO rule
+                }
+                else
+                {
+                    // report.AppendLine("\"section header\": \"" + rule.SectionHeader + "\"");
+                }
+                ExportSingleRulebaseToCsv(report, ruleDisplayCsv, managementReport, gateway, gateway.RulebaseLinks.FirstOrDefault(_ => _.FromRuleId == rule.Id));
+            } // rules 
+            return report.ToString();
         }
-
         public override string ExportToCsv()
         {
             if (ReportType.IsResolvedReport())
             {
-                StringBuilder report = new ();
-                RuleDisplayCsv ruleDisplayCsv = new (userConfig);
+                StringBuilder report = new();
+                RuleDisplayCsv ruleDisplayCsv = new(userConfig);
 
                 report.Append(DisplayReportHeaderCsv());
                 report.AppendLine($"\"management-name\",\"device-name\",\"rule-number\",\"rule-name\",\"source-zone\",\"source\",\"destination-zone\",\"destination\",\"service\",\"action\",\"track\",\"rule-enabled\",\"rule-uid\",\"rule-comment\"");
 
                 foreach (var managementReport in ReportData.ManagementData.Where(mgt => !mgt.Ignore && mgt.Devices != null &&
-                        Array.Exists(mgt.Devices, device => device.Rules != null && device.Rules.Length > 0)))
+                        Array.Exists(mgt.Devices, device => device.ContainsRules())))
                 {
-                    foreach (var gateway in managementReport.Devices.Where(g => g.Rules != null && g.Rules.Length > 0))
+                    foreach (var gateway in managementReport.Devices)
                     {
-                        foreach (var rule in gateway.Rules!.Where(r => string.IsNullOrEmpty(r.SectionHeader)))
+                        if (gateway.ContainsRules())
                         {
-                            report.Append(ruleDisplayCsv.OutputCsv(managementReport.Name));
-                            report.Append(ruleDisplayCsv.OutputCsv(gateway.Name));
-                            report.Append(ruleDisplayCsv.DisplayNumberCsv(rule));
-                            report.Append(ruleDisplayCsv.DisplayNameCsv(rule));
-                            report.Append(ruleDisplayCsv.DisplaySourceZoneCsv(rule));
-                            report.Append(ruleDisplayCsv.DisplaySourceCsv(rule, ReportType));
-                            report.Append(ruleDisplayCsv.DisplayDestinationZoneCsv(rule));
-                            report.Append(ruleDisplayCsv.DisplayDestinationCsv(rule, ReportType));
-                            report.Append(ruleDisplayCsv.DisplayServicesCsv(rule, ReportType));
-                            report.Append(ruleDisplayCsv.DisplayActionCsv(rule));
-                            report.Append(ruleDisplayCsv.DisplayTrackCsv(rule));
-                            report.Append(ruleDisplayCsv.DisplayEnabledCsv(rule));
-                            report.Append(ruleDisplayCsv.DisplayUidCsv(rule));
-                            report.Append(ruleDisplayCsv.DisplayCommentCsv(rule));
-                            report = RuleDisplayBase.RemoveLastChars(report, 1); // remove last chars (comma)
-                            report.AppendLine("");
-                        }
-                    }
+                            if (gateway.RulebaseLinks != null)
+                            {
+                                RulebaseLink? rbLink = gateway.RulebaseLinks.FirstOrDefault(rbl => rbl.IsInitialRulebase());
+                                if (rbLink != null)
+                                {
+                                    ExportSingleRulebaseToCsv(report, ruleDisplayCsv, managementReport, gateway, rbLink);
+                                }
+                            }
+                        } // gateways
+                    } // managements
                 }
                 string reportStr = report.ToString();
                 return reportStr;
@@ -278,50 +419,57 @@ namespace FWO.Report
 
         private string ExportResolvedRulesToJson()
         {
-            StringBuilder report = new ("{");
+            StringBuilder report = new("{");
             report.Append(DisplayReportHeaderJson());
             report.AppendLine("\"managements\": [");
-            RuleDisplayJson ruleDisplayJson = new (userConfig);
+            RuleDisplayJson ruleDisplayJson = new(userConfig);
             foreach (var managementReport in ReportData.ManagementData.Where(mgt => !mgt.Ignore && mgt.Devices != null &&
-                    Array.Exists(mgt.Devices, device => device.Rules != null && device.Rules.Length > 0)))
+                    Array.Exists(mgt.Devices, device => device.ContainsRules())))
             {
                 report.AppendLine($"{{\"{managementReport.Name}\": {{");
                 report.AppendLine($"\"gateways\": [");
-                foreach (var gateway in managementReport.Devices.Where(g => g.Rules != null && g.Rules.Length > 0))
+                foreach (var gateway in managementReport.Devices)
                 {
-                    report.Append($"{{\"{gateway.Name}\": {{\n\"rules\": [");
-                    foreach (var rule in gateway.Rules!)
+                    if (gateway.ContainsRules())
                     {
-                        report.Append('{');
-                        if (string.IsNullOrEmpty(rule.SectionHeader))
-                        {
-                            report.Append(ruleDisplayJson.DisplayNumber(rule));
-                            report.Append(ruleDisplayJson.DisplayName(rule.Name));
-                            report.Append(ruleDisplayJson.DisplaySourceZone(rule.SourceZone?.Name));
-                            report.Append(ruleDisplayJson.DisplaySourceNegated(rule.SourceNegated));
-                            report.Append(ruleDisplayJson.DisplaySource(rule, ReportType));
-                            report.Append(ruleDisplayJson.DisplayDestinationZone(rule.DestinationZone?.Name));
-                            report.Append(ruleDisplayJson.DisplayDestinationNegated(rule.DestinationNegated));
-                            report.Append(ruleDisplayJson.DisplayDestination(rule, ReportType));
-                            report.Append(ruleDisplayJson.DisplayServiceNegated(rule.ServiceNegated));
-                            report.Append(ruleDisplayJson.DisplayServices(rule, ReportType));
-                            report.Append(ruleDisplayJson.DisplayAction(rule.Action));
-                            report.Append(ruleDisplayJson.DisplayTrack(rule.Track));
-                            report.Append(ruleDisplayJson.DisplayEnabled(rule.Disabled));
-                            report.Append(ruleDisplayJson.DisplayUid(rule.Uid));
-                            report.Append(ruleDisplayJson.DisplayComment(rule.Comment));
-                            report = RuleDisplayBase.RemoveLastChars(report, 1); // remove last chars (comma)
-                        }
-                        else
-                        {
-                            report.AppendLine("\"section header\": \"" + rule.SectionHeader + "\"");
-                        }
-                        report.Append("},");  // EO rule
-                    } // rules
-                    report = RuleDisplayBase.RemoveLastChars(report, 1); // remove last char (comma)
-                    report.Append(']'); // EO rules
-                    report.Append('}'); // EO gateway internal
-                    report.Append("},"); // EO gateway external
+                        report.Append($"{{\"{gateway.Name}\": {{\n\"rules\": [");
+                        // TODO: migrate this
+                        // foreach (var rb in gateway.Rulebases)
+                        // {
+                        //     foreach (var rule in rb.Rulebase.RuleMetadata[0].Rules)
+                        //     {
+                        //         report.Append('{');
+                        //         if (string.IsNullOrEmpty(rule.SectionHeader))
+                        //         {
+                        //             report.Append(ruleDisplayJson.DisplayNumber(rule));
+                        //             report.Append(ruleDisplayJson.DisplayName(rule.Name));
+                        //             report.Append(ruleDisplayJson.DisplaySourceZone(rule.SourceZone?.Name));
+                        //             report.Append(ruleDisplayJson.DisplaySourceNegated(rule.SourceNegated));
+                        //             report.Append(ruleDisplayJson.DisplaySource(rule, ReportType));
+                        //             report.Append(ruleDisplayJson.DisplayDestinationZone(rule.DestinationZone?.Name));
+                        //             report.Append(ruleDisplayJson.DisplayDestinationNegated(rule.DestinationNegated));
+                        //             report.Append(ruleDisplayJson.DisplayDestination(rule, ReportType));
+                        //             report.Append(ruleDisplayJson.DisplayServiceNegated(rule.ServiceNegated));
+                        //             report.Append(ruleDisplayJson.DisplayServices(rule, ReportType));
+                        //             report.Append(ruleDisplayJson.DisplayAction(rule.Action));
+                        //             report.Append(ruleDisplayJson.DisplayTrack(rule.Track));
+                        //             report.Append(ruleDisplayJson.DisplayEnabled(rule.Disabled));
+                        //             report.Append(ruleDisplayJson.DisplayUid(rule.Uid));
+                        //             report.Append(ruleDisplayJson.DisplayComment(rule.Comment));
+                        //             report = RuleDisplayBase.RemoveLastChars(report, 1); // remove last chars (comma)
+                        //         }
+                        //         else
+                        //         {
+                        //             report.AppendLine("\"section header\": \"" + rule.SectionHeader + "\"");
+                        //         }
+                        //         report.Append("},");  // EO rule
+                        //     } // rules
+                        // }
+                        report = RuleDisplayBase.RemoveLastChars(report, 1); // remove last char (comma)
+                        report.Append(']'); // EO rules
+                        report.Append('}'); // EO gateway internal
+                        report.Append("},"); // EO gateway external
+                    }
                 } // gateways
                 report = RuleDisplayBase.RemoveLastChars(report, 1); // remove last char (comma)
                 report.Append(']'); // EO gateways
@@ -337,12 +485,12 @@ namespace FWO.Report
             {
                 Formatting = Formatting.Indented
             };
-            return JsonConvert.SerializeObject(json, settings);            
+            return JsonConvert.SerializeObject(json, settings);
         }
 
         public override string ExportToHtml()
         {
-            StringBuilder report = new ();
+            StringBuilder report = new();
             int chapterNumber = 0;
             ConstructHtmlReport(ref report, ReportData.ManagementData, chapterNumber);
             return GenerateHtmlFrame(userConfig.GetText(ReportType.ToString()), Query.RawFilter, DateTime.Now, report);
@@ -350,22 +498,21 @@ namespace FWO.Report
 
         public void ConstructHtmlReport(ref StringBuilder report, List<ManagementReport> managementData, int chapterNumber, bool varianceMode = false)
         {
-            RuleDisplayHtml ruleDisplayHtml = new (userConfig);
+            RuleDisplayHtml ruleDisplayHtml = new(userConfig);
             VarianceMode = varianceMode;
 
-            foreach (var managementReport in managementData.Where(mgt => !mgt.Ignore && mgt.Devices != null &&
-                    Array.Exists(mgt.Devices, device => device.Rules != null && device.Rules.Length > 0)))
+            foreach (ManagementReport managementReport in managementData.Where(mgt => !mgt.Ignore && mgt.ContainsRules()))
             {
                 chapterNumber++;
-                managementReport.AssignRuleNumbers();
+                new ManagementReportController(managementReport).AssignRuleNumbers();
                 report.AppendLine(Headline(managementReport.Name, 3));
                 report.AppendLine("<hr>");
 
                 foreach (var device in managementReport.Devices)
                 {
-                    if (device.Rules != null && device.Rules.Length > 0)
+                    if (device.RulebaseLinks != null)
                     {
-                        AppendRulesForDeviceHtml(ref report, device, chapterNumber, ruleDisplayHtml);
+                        AppendRulesForDeviceHtml(ref report, managementReport, DeviceReportController.FromDeviceReport(device), chapterNumber, ruleDisplayHtml);
                     }
                 }
 
@@ -378,14 +525,14 @@ namespace FWO.Report
         {
             report.AppendLine("<tr>");
             report.AppendLine($"<th>{userConfig.GetText("number")}</th>");
-            if(ReportType == ReportType.Recertification)
+            if (ReportType == ReportType.Recertification)
             {
                 report.AppendLine($"<th>{userConfig.GetText("next_recert")}</th>");
                 report.AppendLine($"<th>{userConfig.GetText("owner")}</th>");
                 report.AppendLine($"<th>{userConfig.GetText("ip_matches")}</th>");
                 report.AppendLine($"<th>{userConfig.GetText("last_hit")}</th>");
             }
-            if(ReportType == ReportType.UnusedRules || ReportType == ReportType.AppRules)
+            if (ReportType == ReportType.UnusedRules || ReportType == ReportType.AppRules)
             {
                 report.AppendLine($"<th>{userConfig.GetText("last_hit")}</th>");
             }
@@ -403,57 +550,76 @@ namespace FWO.Report
             report.AppendLine("</tr>");
         }
 
-        private void AppendRulesForDeviceHtml(ref StringBuilder report, DeviceReport device, int chapterNumber, RuleDisplayHtml ruleDisplayHtml)
+        private void AppendRulesForDeviceHtml(ref StringBuilder report, ManagementReport managementReport, DeviceReportController device, int chapterNumber, RuleDisplayHtml ruleDisplayHtml)
         {
             if (device.ContainsRules())
             {
                 report.AppendLine(Headline(device.Name, 4));
                 report.AppendLine("<table>");
                 AppendRuleHeadlineHtml(ref report);
-                foreach (var rule in device.Rules!)
+
+                RulebaseLink? nextRbLink = device.RulebaseLinks.FirstOrDefault(_ => _.IsInitialRulebase());
+
+                if (nextRbLink != null)
                 {
-                    AppendRuleForManagementHtml(ref report, chapterNumber, rule, ruleDisplayHtml);
+                    AppendRulesForRulebaseHtml(ref report, nextRbLink, managementReport, device, chapterNumber, ruleDisplayHtml);
                 }
                 report.AppendLine("</table>");
                 report.AppendLine("<hr>");
             }
         }
 
-        private void AppendRuleForManagementHtml(ref StringBuilder report, int chapterNumber, Rule rule, RuleDisplayHtml ruleDisplayHtml)
+
+        private void AppendRulesForRulebaseHtml(ref StringBuilder report, RulebaseLink rbLink, ManagementReport managementReport, DeviceReport device, int chapterNumber, RuleDisplayHtml ruleDisplayHtml)
         {
-            if (string.IsNullOrEmpty(rule.SectionHeader))
+            Rule[]? rb = GetRulesByRulebaseId(rbLink.NextRulebaseId, managementReport);
+
+            if (rb == null)
             {
-                report.AppendLine("<tr>");
-                report.AppendLine($"<td>{ruleDisplayHtml.DisplayNumber(rule)}</td>");
-                if(ReportType == ReportType.Recertification)
-                {
-                    report.AppendLine($"<td>{RuleDisplayHtml.DisplayNextRecert(rule)}</td>");
-                    report.AppendLine($"<td>{RuleDisplayHtml.DisplayOwner(rule)}</td>");
-                    report.AppendLine($"<td>{RuleDisplayHtml.DisplayRecertIpMatches(rule)}</td>");
-                    report.AppendLine($"<td>{RuleDisplayHtml.DisplayLastHit(rule)}</td>");
-                }
-                if(ReportType == ReportType.UnusedRules || ReportType == ReportType.AppRules)
-                {
-                    report.AppendLine($"<td>{RuleDisplayHtml.DisplayLastHit(rule)}</td>");
-                }
-                report.AppendLine($"<td>{ruleDisplayHtml.DisplayName(rule)}</td>");
-                report.AppendLine($"<td>{ruleDisplayHtml.DisplaySourceZone(rule)}</td>");
-                report.AppendLine($"<td>{ruleDisplayHtml.DisplaySource(rule, OutputLocation.export, ReportType, chapterNumber)}</td>");
-                report.AppendLine($"<td>{ruleDisplayHtml.DisplayDestinationZone(rule)}</td>");
-                report.AppendLine($"<td>{ruleDisplayHtml.DisplayDestination(rule, OutputLocation.export, ReportType, chapterNumber)}</td>");
-                report.AppendLine($"<td>{ruleDisplayHtml.DisplayServices(rule, OutputLocation.export, ReportType, chapterNumber)}</td>");
-                report.AppendLine($"<td>{RuleDisplayBase.DisplayAction(rule)}</td>");
-                report.AppendLine($"<td>{RuleDisplayBase.DisplayTrack(rule)}</td>");
-                report.AppendLine($"<td>{RuleDisplayHtml.DisplayEnabled(rule, OutputLocation.export)}</td>");
-                report.AppendLine($"<td>{RuleDisplayBase.DisplayUid(rule)}</td>");
-                report.AppendLine($"<td>{RuleDisplayBase.DisplayComment(rule)}</td>");
-                report.AppendLine("</tr>");
+                return;
             }
-            else
+
+            foreach (var rule in rb)
             {
-                report.AppendLine("<tr>");
-                report.AppendLine($"<td class=\"bg-gray\" colspan=\"{ColumnCount}\">{rule.SectionHeader}</td>");
-                report.AppendLine("</tr>");
+                if (string.IsNullOrEmpty(rule.SectionHeader))
+                {
+                    report.AppendLine("<tr>");
+                    report.AppendLine($"<td>{RuleDisplayBase.DisplayNumber(rule)}</td>");
+                    if (ReportType == ReportType.Recertification)
+                    {
+                        report.AppendLine($"<td>{RuleDisplayHtml.DisplayNextRecert(rule.Metadata)}</td>");
+                        report.AppendLine($"<td>{RuleDisplayHtml.DisplayOwner(rule.Metadata)}</td>");
+                        report.AppendLine($"<td>{RuleDisplayHtml.DisplayRecertIpMatches(rule.Metadata)}</td>");
+                        report.AppendLine($"<td>{RuleDisplayHtml.DisplayLastHit(rule.Metadata)}</td>");
+                    }
+                    if (ReportType == ReportType.UnusedRules) // || ReportType == ReportType.AppRules)
+                    {
+                        report.AppendLine($"<td>{RuleDisplayHtml.DisplayLastHit(rule.Metadata)}</td>");
+                    }
+                    report.AppendLine($"<td>{RuleDisplayBase.DisplayName(rule)}</td>");
+                    report.AppendLine($"<td>{RuleDisplayBase.DisplaySourceZone(rule)}</td>");
+                    report.AppendLine($"<td>{ruleDisplayHtml.DisplaySource(rule, OutputLocation.export, ReportType, chapterNumber)}</td>");
+                    report.AppendLine($"<td>{RuleDisplayBase.DisplayDestinationZone(rule)}</td>");
+                    report.AppendLine($"<td>{ruleDisplayHtml.DisplayDestination(rule, OutputLocation.export, ReportType, chapterNumber)}</td>");
+                    report.AppendLine($"<td>{ruleDisplayHtml.DisplayServices(rule, OutputLocation.export, ReportType, chapterNumber)}</td>");
+                    report.AppendLine($"<td>{RuleDisplayBase.DisplayAction(rule)}</td>");
+                    report.AppendLine($"<td>{RuleDisplayBase.DisplayTrack(rule)}</td>");
+                    report.AppendLine($"<td>{RuleDisplayBase.DisplayEnabled(rule, OutputLocation.export)}</td>");
+                    report.AppendLine($"<td>{RuleDisplayBase.DisplayUid(rule)}</td>");
+                    report.AppendLine($"<td>{RuleDisplayBase.DisplayComment(rule)}</td>");
+                    report.AppendLine("</tr>");
+                }
+                else
+                {
+                    report.AppendLine(RuleDisplayHtml.DisplaySectionHeader(rule, ColumnCount));
+                }
+
+                // if there is a rulebase link starting from the current rule id, follow it
+                RulebaseLink? nextRbLink = device.RulebaseLinks.FirstOrDefault(_ => _.FromRuleId == rule.Id);
+                if (nextRbLink != null)
+                {
+                    AppendRulesForRulebaseHtml(ref report, nextRbLink, managementReport, device, chapterNumber, ruleDisplayHtml);
+                }
             }
         }
 
@@ -516,7 +682,7 @@ namespace FWO.Report
                 int objNumber = 1;
                 foreach (var svcobj in managementReport.ReportServices)
                 {
-                    AppendServiceForManagementHtml(ref report, chapterNumber, objNumber++, svcobj);
+					AppendServiceForManagementHtml(ref report, chapterNumber, objNumber++, svcobj);
                 }
                 report.AppendLine("</table>");
                 report.AppendLine("<hr>");
@@ -575,10 +741,10 @@ namespace FWO.Report
             }
         }
 
-        private string Headline (string? title, int level)
+        private string Headline(string? title, int level)
         {
             int Level = VarianceMode ? level + 2 : level;
-            return  $"<h{Level} id=\"{Guid.NewGuid()}\">{title}</h{Level}>";
+            return $"<h{Level} id=\"{Guid.NewGuid()}\">{title}</h{Level}>";
         }
     }
 }

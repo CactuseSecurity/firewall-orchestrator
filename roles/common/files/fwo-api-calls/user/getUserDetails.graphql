@@ -1,0 +1,30 @@
+query getUserDetails(
+  $management_id: [Int!]
+  $active: Boolean
+  $import_id_start: bigint
+  $import_id_end: bigint
+  $user_name: [String!]
+  $limit: Int
+  $offset: Int
+) {
+  management(where: { mgm_id: { _in: $management_id }, stm_dev_typ:{dev_typ_is_multi_mgmt:{_eq:false}} }) {
+    id: mgm_id
+    name: mgm_name
+    userObjects: usrs(
+      limit: $limit
+      offset: $offset
+      where: {
+        _or: [
+          { removed: { _is_null: true } }
+          { removed: { _gte: $import_id_start } }
+        ]
+        active: { _eq: $active }
+        user_create: { _lte: $import_id_end }
+        user_name: { _in: $user_name }
+      }
+      order_by: [{ user_name: asc }, { user_id: asc }]
+    ) {
+      ...userDetails
+    }
+  }
+}

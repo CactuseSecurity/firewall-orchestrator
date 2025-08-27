@@ -11,10 +11,10 @@ namespace FWO.Data
         [JsonProperty("usr"), JsonPropertyName("usr")]
         public NetworkUser User { get; set; }
 
-        public NetworkLocation(NetworkUser user, NetworkObject network)
+        public NetworkLocation(NetworkUser user, NetworkObject? networkObject)
         {
+            Object = networkObject;
             User = user;
-            Object = network;
         }
 
         int IComparable.CompareTo(object? obj)
@@ -22,17 +22,18 @@ namespace FWO.Data
             if (obj is NetworkLocation)
             {
                 NetworkLocation secondNetworkLocation = (obj as NetworkLocation)!;
-                if (this.User != null && secondNetworkLocation.User != null)
+                if (this.User != null && secondNetworkLocation.User != null
+                && this.User?.Name.CompareTo(secondNetworkLocation.User?.Name) != 0)
                 {
-                    if (this.User?.Name.CompareTo(secondNetworkLocation.User?.Name) != 0)
-                        return this.User!.Name.CompareTo(secondNetworkLocation.User!.Name);
-                    else
-                        return this.Object.Name.CompareTo(secondNetworkLocation.Object.Name);
+                    return this.User!.Name.CompareTo(secondNetworkLocation.User!.Name);
                 }
-                else 
+                if (this.Object != null && secondNetworkLocation.Object != null)
                 {
                     return this.Object.Name.CompareTo(secondNetworkLocation.Object.Name);
                 }
+                else {
+                    return 0;
+                } 
             }
             else
             {

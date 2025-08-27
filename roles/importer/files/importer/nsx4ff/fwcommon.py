@@ -1,14 +1,15 @@
-import sys
+# import sys
+# from common import importer_base_dir
+# sys.path.append(importer_base_dir + "/nsx4ff")
 import base64
-from common import importer_base_dir
-sys.path.append(importer_base_dir + "/nsx4ff")
+
+from fwo_log import getFwoLogger
 from nsx_service import normalize_svcobjects
 # from nsx_application import normalize_application_objects
 from nsx_rule import normalize_access_rules
 from nsx_network import normalize_nwobjects
 # from nsx_zone import normalize_zones
 from nsx_getter import update_config_with_nsxdcfw_api_call
-from fwo_log import getFwoLogger
 from nsx_base import api_version_str
 
 def has_config_changed(full_config, mgm_details, force=False):

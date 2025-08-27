@@ -395,6 +395,39 @@ namespace FWO.Config.Api.Data
         [JsonProperty("resolveNetworkAreas"), JsonPropertyName("resolveNetworkAreas")]
         public bool ResolveNetworkAreas { get; set; } = false;
 
+        [JsonProperty("complianceCheckSleepTime"), JsonPropertyName("complianceCheckSleepTime")]
+        public int ComplianceCheckSleepTime { get; set; } = 0;
+
+        [JsonProperty("complianceCheckStartAt"), JsonPropertyName("complianceCheckStartAt")]
+        public DateTime ComplianceCheckStartAt { get; set; } = DateTime.Now;
+
+        [JsonProperty("complianceCheckPolicy"), JsonPropertyName("complianceCheckPolicy")]
+        public int ComplianceCheckPolicyId { get; set; } = 0;
+
+        [JsonProperty("complianceCheckMailRecipients"), JsonPropertyName("complianceCheckMailRecipients")]
+        public string ComplianceCheckMailRecipients { get; set; } = "";
+
+        [JsonProperty("complianceCheckMailSubject"), JsonPropertyName("complianceCheckMailSubject")]
+        public string ComplianceCheckMailSubject { get; set; } = "";
+
+        [JsonProperty("complianceCheckMailBody"), JsonPropertyName("complianceCheckMailBody")]
+        public string ComplianceCheckMailBody { get; set; } = "";
+
+        [JsonProperty("complianceMatrixAllowNetworkZones"), JsonPropertyName("complianceMatrixAllowNetworkZones")]
+        public bool ComplianceMatrixAllowNetworkZones { get; set; } = false;
+
+        [JsonProperty("complianceCheckScheduledDiffReportsIntervals"), JsonPropertyName("complianceCheckScheduledDiffReportsIntervals")]
+        public string ComplianceCheckScheduledDiffReportsIntervals { get; set; } = "";
+
+        [JsonProperty("complianceCheckInternetZoneObject"), JsonPropertyName("complianceCheckInternetZoneObject")]
+        public string ComplianceCheckInternetZoneObject { get; set; } = "";
+
+        [JsonProperty("complianceCheckMaxPrintedViolations"), JsonPropertyName("complianceCheckMaxPrintedViolations")]
+        public int ComplianceCheckMaxPrintedViolations { get; set; } = 0;
+
+        [JsonProperty("debugConfig"), JsonPropertyName("debugConfig")]
+        public string DebugConfig { get; set; } = "";
+
         public ConfigData(bool editable = false)
         {
             Editable = editable;

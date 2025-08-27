@@ -1,4 +1,4 @@
-﻿using System.Text.Json.Serialization;
+using System.Text.Json.Serialization;
 using Newtonsoft.Json;
 
 namespace FWO.Data
@@ -119,11 +119,15 @@ namespace FWO.Data
         [JsonProperty("violations"), JsonPropertyName("violations")]
         public List<ComplianceViolation> Violations { get; set; } = [];
 
+        [JsonProperty("rulebase"), JsonPropertyName("rulebase")]
+        public Rulebase Rulebase { get; set; } = new ();
+
         [JsonProperty("uiuser"), JsonPropertyName("uiuser")]
         public UiUser? LastChangeAdmin { get; set; }
 
         [JsonProperty("rule"), JsonPropertyName("rule")]
         public Rule? ParentRule { get; set; }
+
         public string ChangeID { get; set; } = "";
         public string AdoITID { get; set; } = "";
 

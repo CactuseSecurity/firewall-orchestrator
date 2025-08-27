@@ -63,10 +63,10 @@ namespace FWO.Middleware.Client
 				{
 					RequireExpirationTime = true,
 					RequireSignedTokens = true,
-					ValidateAudience = true,
-					ValidateIssuer = true,
 					ValidateLifetime = true,
-					ValidAudience = FWO.Basics.JwtConstants.Audience,
+					ValidateAudience = true,
+                    ValidAudiences = [FWO.Basics.JwtConstants.Audience],
+					ValidateIssuer = true,
 					ValidIssuer = FWO.Basics.JwtConstants.Issuer,
 					IssuerSigningKey = jwtPublicKey,
 					
@@ -85,27 +85,27 @@ namespace FWO.Middleware.Client
 
 			catch (SecurityTokenExpiredException)
 			{
-				Log.WriteDebug(JwtValidation, "Jwt lifetime expired.");
+				Log.WriteDebug(JwtValidation, "Jwt lifetime expired: {jwtString}.");
 				return false;
 			}
 			catch (SecurityTokenInvalidSignatureException InvalidSignatureException)
 			{
-				Log.WriteError(JwtValidation, $"Jwt signature could not be verified. Potential attack!", InvalidSignatureException);
+				Log.WriteError(JwtValidation, $"Jwt signature could not be verified. Potential attack: {jwtString}.", InvalidSignatureException);
 				return false;
 			}
 			catch (SecurityTokenInvalidAudienceException InvalidAudienceException)
 			{
-				Log.WriteError(JwtValidation, $"Jwt audience incorrect.", InvalidAudienceException);
+				Log.WriteError(JwtValidation, $"Jwt audience incorrect: {jwtString}.", InvalidAudienceException);
 				return false;
 			}
 			catch (SecurityTokenInvalidIssuerException InvalidIssuerException)
 			{
-				Log.WriteError(JwtValidation, $"Jwt issuer incorrect.", InvalidIssuerException);
+				Log.WriteError(JwtValidation, $"Jwt issuer incorrect: {jwtString}.", InvalidIssuerException);
 				return false;
 			}
 			catch (Exception UnexpectedError)
 			{
-				Log.WriteError(JwtValidation, $"Unexpected problem while trying to verify Jwt", UnexpectedError);
+				Log.WriteError(JwtValidation, $"Unexpected problem while trying to verify Jwt: {jwtString}.", UnexpectedError);
 				return false;
 			}
 		}

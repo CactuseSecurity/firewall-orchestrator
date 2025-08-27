@@ -150,12 +150,31 @@ namespace FWO.Data
                         result = inBrackets ? " (" : "";
                         if (nwObjType == ObjectType.Network)
                         {
-                            if(IpStart.GetNetmask() == "")
+                            if (IpStart.GetNetmask() == "")
                             {
-                                IPAddressRange ipRange = new (IPAddress.Parse(IpStart), IPAddress.Parse(IpEnd));
+                                if (IpStart.IsGreater(IpEnd))
+                                {
+                                    // swap
+                                    Log.WriteWarning("Ip displaying", $"Wrong ip format {IpStart} - {IpEnd} - swapping values");
+                                    string temp = IpStart;
+                                    IpStart = IpEnd;
+                                    IpEnd = temp;
+                                }
+                                IPAddressRange ipRange = new(IPAddress.Parse(IpStart), IPAddress.Parse(IpEnd));
                                 if (ipRange != null)
                                 {
-                                    result += ipRange.ToCidrString();
+                                    try
+                                    {
+                                        // tryint to convert range to network
+                                        string rangeString = ipRange.ToCidrString();
+                                        result += rangeString;
+                                    }
+                                    catch (Exception exc)
+                                    {
+                                        Log.WriteWarning("Ip displaying", $"Wrong ip format {IpStart} - {IpEnd} is not a network\nMessage: {exc.Message}");
+                                        // we display the incorrect ip data nevertheless without throwing errors
+                                        result += $"{IpStart}-{IpEnd}";
+                                    }
                                 }
                             }
                             else
@@ -175,7 +194,10 @@ namespace FWO.Data
                     }
                     catch (Exception exc)
                     {
-                        Log.WriteError("Ip displaying", $"Wrong ip format {IpStart} - {IpEnd}\nMessage: {exc.Message}");
+                        Log.WriteWarning("Ip displaying", $"Wrong ip format {IpStart} - {IpEnd}\nMessage: {exc.Message}");
+                        // we display the incorrect ip data nevertheless without throwing errors
+                        result += $"{IpStart}-{IpEnd}";
+                        result += inBrackets ? ")" : "";
                     }
                 }
             }

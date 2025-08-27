@@ -291,7 +291,7 @@
             reportTemplates = reportTemplates.Where(rt => (showRuleRelatedReports && ((ReportType)rt.ReportParams.ReportType).IsDeviceRelatedReport() || 
                                                            showModellingReports && ((ReportType)rt.ReportParams.ReportType).IsModellingReport() &&
                                                            modOwnerList.FirstOrDefault(o => o.Id == rt.ReportParams.ModellingFilter.SelectedOwner.Id) != null ||
-                                                           showComplianceReport && ((ReportType)rt.ReportParams.ReportType).IsComplianceReport())).ToList();
+                                                           showComplianceReport && ((ReportType)rt.ReportParams.ReportType) == ReportType.Compliance)).ToList();
             authenticationState = await authenticationStateTask!;
         }
         catch (Exception exception)
@@ -456,9 +456,9 @@
         await _globalConfig.WriteToDatabase(_configData, apiConnection);
     }
 
-    private async Task LoadComplianceReportParamsFromConfig()
+    private Task LoadComplianceReportParamsFromConfig()
     {
-        if (reportScheduleInEdit.Template.ReportParams.ReportType == (int) ReportType.ComplianceNew)
+        if (GetReportType() == ReportType.Compliance)
         {
             if (_userConfig.GlobalConfig is GlobalConfig globalConfig)
             {
@@ -476,6 +476,8 @@
                 }
             }
         }
+
+        return Task.CompletedTask;
     }
 
     public void Dispose()

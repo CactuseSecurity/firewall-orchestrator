@@ -285,7 +285,7 @@ namespace FWO.Middleware.Server
 
         private async Task TryAdaptComplianceDiffReportConfig(ReportSchedule reportSchedule)
         {
-            if (reportSchedule.Template.ReportParams.ReportType == (int) ReportType.ComplianceNew
+            if (reportSchedule.Template.ReportParams.ReportType == (int) ReportType.Compliance
                     && _userConfig.GlobalConfig is GlobalConfig globalConfig
                     && !string.IsNullOrEmpty(globalConfig.ComplianceCheckScheduledDiffReportsIntervals))
             {

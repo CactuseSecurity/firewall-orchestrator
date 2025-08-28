@@ -115,7 +115,7 @@ namespace FWO.Report
 
             List<Management>? managements = await apiConnection.SendQueryAsync<List<Management>>(DeviceQueries.getManagementNames);
 
-            Log.TryWriteLog(LogType.Debug, "Compliance Report Prototype", $"Fetched info for {managements?.Count() ?? 0} managements.", _debugConfig.ExtendedLogReportGeneration);
+            Log.TryWriteLog(LogType.Debug, "Compliance Report", $"Fetched info for {managements?.Count() ?? 0} managements.", _debugConfig.ExtendedLogReportGeneration);
 
             if (managements != null)
             {
@@ -148,11 +148,11 @@ namespace FWO.Report
             {
                 RuleViewData.Clear();
                 Rules = await ProcessChunksParallelized(chunks, ct);
-                Log.TryWriteLog(LogType.Debug, "Compliance Report Prototype", $"Fetched {Rules.Count} rules for compliance report.", _debugConfig.ExtendedLogReportGeneration);
+                Log.TryWriteLog(LogType.Debug, "Compliance Report", $"Fetched {Rules.Count} rules for compliance report.", _debugConfig.ExtendedLogReportGeneration);
             }
             else
             {
-                Log.TryWriteLog(LogType.Error, "Compliance Report Prototype", "Failed to fetch rules for compliance report.", _debugConfig.ExtendedLogReportGeneration);
+                Log.TryWriteLog(LogType.Error, "Compliance Report", "Failed to fetch rules for compliance report.", _debugConfig.ExtendedLogReportGeneration);
                 return;
             }
 
@@ -209,7 +209,7 @@ namespace FWO.Report
                 }
                 catch (System.Exception e)
                 {
-                    Log.TryWriteLog(LogType.Error, "Compliance Report Prototype", $"Error while exporting compliance report to CSV: {e.Message}", _debugConfig.ExtendedLogReportGeneration);
+                    Log.TryWriteLog(LogType.Error, "Compliance Report", $"Error while exporting compliance report to CSV: {e.Message}", _debugConfig.ExtendedLogReportGeneration);
                 }
             }
 
@@ -302,6 +302,11 @@ namespace FWO.Report
                             RuleViewData.Add(new RuleViewData(rule, _natRuleDisplayHtml, OutputLocation.report, ShowRule(rule), _devices ?? [], _managements ?? []));
                         }
 
+                        return chunk;
+                    }
+                    catch (Exception e)
+                    {
+                        Log.TryWriteLog(LogType.Error, "Compliance Report", $"Failed processiong chunk: {e.Message}.", _debugConfig.ExtendedLogReportGeneration);
                         return chunk;
                     }
                     finally

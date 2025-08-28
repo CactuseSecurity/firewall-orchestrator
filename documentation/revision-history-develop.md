@@ -280,3 +280,7 @@ bugfix release:
 
 # 8.8.6 - 08.07.2025 DEVELOP
 - hotfix CP importer new stm_track: "extended log" and "detailed log"
+
+# 8.8.8 - 21.08.2025 DEVELOP
+- add read-only db user fwo_ro
+- also reducing db listener to localhost

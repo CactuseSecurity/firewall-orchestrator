@@ -127,8 +127,10 @@ builder.Services.AddAuthentication(confOptions =>
     {
         RequireExpirationTime = true,
         RequireSignedTokens = true,
-        ValidateAudience = false,
-        ValidateIssuer = false,
+        ValidateAudience = true,
+        ValidAudiences = [FWO.Basics.JwtConstants.Audience],
+        ValidateIssuer = true,
+        ValidIssuers = [FWO.Basics.JwtConstants.Issuer],
         ValidateLifetime = true,
         RoleClaimType = "role",
         IssuerSigningKey = ConfigFile.JwtPublicKey

@@ -91,11 +91,8 @@ Note that the following domains must be reachable through the proxy:
     nuget.org
     googlechromelabs.github.io
     storage.googleapis.com
-  
-  Only for the initial setup of python venv
-  
     pypi.org
-    pythonhosted.org
+    pythonhosted.org (and sub-domains)
     snapcraft.io
     snapcraftcontent.com (and sub-domains)
 

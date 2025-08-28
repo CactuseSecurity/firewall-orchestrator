@@ -8,16 +8,28 @@ namespace FWO.Data.Report
         [JsonProperty("id"), JsonPropertyName("id")]
         public int Id { get; set; }
 
+        [JsonProperty("uid"), JsonPropertyName("uid")]
+        public string Uid { get; set; }
+
         [JsonProperty("name"), JsonPropertyName("name")]
         public string Name { get; set; } = "";
 
         [JsonProperty("devices"), JsonPropertyName("devices")]
         public DeviceReport[] Devices { get; set; } = [];
 
+        [JsonProperty("rulebases"), JsonPropertyName("rulebases")]
+        public RulebaseReport[] Rulebases { get; set; } = [];
+
         [JsonProperty("import"), JsonPropertyName("import")]
-        public Import Import { get; set; } = new ();
+        public Import Import { get; set; } = new();
+
+        [JsonProperty("import_controls"), JsonPropertyName("import_controls")]
+        public List<ImportControl> ImportControls { get; set; } = [];
 
         public long? RelevantImportId { get; set; }
+
+        [JsonProperty("managementByMultiDeviceManagerId"), JsonPropertyName("managementByMultiDeviceManagerId")]
+        public List<Management> SubManagements { get; set; } = [];
 
         [JsonProperty("networkObjects"), JsonPropertyName("networkObjects")]
         public NetworkObject[] Objects { get; set; } = [];
@@ -43,16 +55,16 @@ namespace FWO.Data.Report
         public List<long> ReportedNetworkServiceIds { get; set; } = [];
 
         [JsonProperty("objects_aggregate"), JsonPropertyName("objects_aggregate")]
-        public ObjectStatistics NetworkObjectStatistics { get; set; } = new ();
+        public ObjectStatistics NetworkObjectStatistics { get; set; } = new();
 
         [JsonProperty("services_aggregate"), JsonPropertyName("services_aggregate")]
-        public ObjectStatistics ServiceObjectStatistics { get; set; } = new ();
+        public ObjectStatistics ServiceObjectStatistics { get; set; } = new();
 
         [JsonProperty("usrs_aggregate"), JsonPropertyName("usrs_aggregate")]
-        public ObjectStatistics UserObjectStatistics { get; set; } = new ();
-        
+        public ObjectStatistics UserObjectStatistics { get; set; } = new();
+
         [JsonProperty("rules_aggregate"), JsonPropertyName("rules_aggregate")]
-        public ObjectStatistics RuleStatistics { get; set; } = new ();
+        public ObjectStatistics RuleStatistics { get; set; } = new();
 
         public bool Ignore { get; set; }
         public List<long> RelevantObjectIds = [];
@@ -61,51 +73,15 @@ namespace FWO.Data.Report
         public bool[] Detailed = [false, false, false]; // nobj, nsrv, user
 
         public ManagementReport()
-        {}
+        { }
 
-        public ManagementReport(ManagementReport managementReport)
-        {
-            Id = managementReport.Id;
-            Name = managementReport.Name;
-            Devices = managementReport.Devices;
-            Import = managementReport.Import;
-            if (managementReport.Import != null && managementReport.Import.ImportAggregate != null &&
-                managementReport.Import.ImportAggregate.ImportAggregateMax != null &&
-                managementReport.Import.ImportAggregate.ImportAggregateMax.RelevantImportId != null)
-            {
-                RelevantImportId = managementReport.Import.ImportAggregate.ImportAggregateMax.RelevantImportId;
-            }
-            Objects = managementReport.Objects;
-            Services = managementReport.Services;
-            Users = managementReport.Users;
-            ReportObjects = managementReport.ReportObjects;
-            ReportServices = managementReport.ReportServices;
-            ReportUsers = managementReport.ReportUsers;
-            ReportedRuleIds = managementReport.ReportedRuleIds;
-            ReportedNetworkServiceIds = managementReport.ReportedNetworkServiceIds;
-            NetworkObjectStatistics = managementReport.NetworkObjectStatistics;
-            ServiceObjectStatistics = managementReport.ServiceObjectStatistics;
-            UserObjectStatistics = managementReport.UserObjectStatistics;
-            RuleStatistics = managementReport.RuleStatistics;
-            Ignore = managementReport.Ignore;
-            RelevantObjectIds = managementReport.RelevantObjectIds;
-            HighlightedObjectIds = managementReport.HighlightedObjectIds;
-        }
-
-        public void AssignRuleNumbers()
-        {
-            foreach (var device in Devices)
-            {
-                device.AssignRuleNumbers();
-            }
-        }
 
         public string NameAndDeviceNames(string separator = ", ")
         {
             return $"{Name} [{string.Join(separator, Array.ConvertAll(Devices, device => device.Name))}]";
         }
-    }
 
+    }
     public static class ManagementUtility
     {
         public static (bool, Dictionary<string, int>) Merge(this List<ManagementReport> managementReports, List<ManagementReport> managementReportsToMerge)

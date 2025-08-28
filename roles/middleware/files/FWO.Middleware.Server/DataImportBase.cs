@@ -1,6 +1,8 @@
-﻿using FWO.Logging;
-using FWO.Api.Client;
+﻿using FWO.Api.Client;
+using FWO.Api.Client.Queries;
+using FWO.Data;
 using FWO.Config.Api;
+using FWO.Logging;
 using System.Diagnostics; 
 
 namespace FWO.Middleware.Server
@@ -58,9 +60,9 @@ namespace FWO.Middleware.Server
         {
             try
             {
-                if(File.Exists(importScriptFile))
+                if (File.Exists(importScriptFile))
                 {
-                    ProcessStartInfo start = new ()
+                    ProcessStartInfo start = new()
                     {
                         FileName = importScriptFile,
                         Arguments = "", // args,
@@ -70,7 +72,7 @@ namespace FWO.Middleware.Server
                     Process? process = Process.Start(start);
                     StreamReader? reader = process?.StandardOutput;
                     string? result = reader?.ReadToEnd();
-                    process?.WaitForExit(); 
+                    process?.WaitForExit();
                     process?.Close();
                     Log.WriteInfo("Run Import Script", $"Executed Import Script {importScriptFile}. Result: {result ?? ""}");
                     return true;
@@ -81,6 +83,38 @@ namespace FWO.Middleware.Server
                 Log.WriteError("Run Import Script", $"File {importScriptFile} could not be executed.", Exception);
             }
             return false;
+        }
+        
+        /// <summary>
+        /// Add a log entry
+        /// </summary>
+        /// <param name="source"></param>
+        /// <param name="severity"></param>
+        /// <param name="level"></param>
+        /// <param name="description"></param>
+        /// <returns></returns>
+        public async Task AddLogEntry(string source, int severity, string level, string description)
+        {
+            try
+            {
+                var Variables = new
+                {
+                    user = 0,
+                    source = source,
+                    severity = severity,
+                    suspectedCause = level,
+                    description = description
+                };
+                ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<ReturnIdWrapper>(MonitorQueries.addDataImportLogEntry, Variables)).ReturnIds;
+                if (returnIds == null)
+                {
+                    Log.WriteError("Write Log", "Log could not be written to database");
+                }
+            }
+            catch (Exception exc)
+            {
+                Log.WriteError("Write Log", $"Could not write log: ", exc);
+            }
         }
     }
 }

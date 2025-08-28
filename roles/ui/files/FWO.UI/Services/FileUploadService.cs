@@ -3,12 +3,16 @@ using FWO.Api.Client.Queries;
 using FWO.Basics;
 using FWO.Config.Api;
 using FWO.Data;
+using FWO.Data.Middleware;
 using FWO.Data.Modelling;
+using FWO.Middleware.Client;
 using FWO.Services;
-using Microsoft.AspNetCore.Components.Forms;
-using System.Text.Json;
-using FWO.Services.EventMediator.Interfaces;
 using FWO.Services.EventMediator.Events;
+using FWO.Services.EventMediator.Interfaces;
+using Microsoft.AspNetCore.Components.Forms;
+using RestSharp;
+using System.Net;
+using System.Text.Json;
 
 namespace FWO.Ui.Services
 {
@@ -21,6 +25,7 @@ namespace FWO.Ui.Services
 
         private UserConfig UserConfig { get; set; }
         private ApiConnection ApiConnection { get; set; }
+        private MiddlewareClient MiddlewareClient { get; set; }
 
         private readonly ModellingNamingConvention NamingConvention = new();
         private readonly List<AppServerType> AppServerTypes = [];
@@ -31,18 +36,21 @@ namespace FWO.Ui.Services
         private readonly FileUploadEvent CustomLogoUploadEvent;
         private readonly FileUploadEvent FileUploadEvent;
         private readonly AppServerImportEvent AppServerImportEvent;
+        private readonly FileUploadEvent ComplianceMatrixImportEvent;
 
-        public FileUploadService(ApiConnection apiConnection, UserConfig userConfig, string allowedFileFormats, GlobalConfig globalConfig, IEventMediator eventMediator)
+        public FileUploadService(ApiConnection apiConnection, UserConfig userConfig, MiddlewareClient middlewareClient, string allowedFileFormats, IEventMediator eventMediator)
         {
             UserConfig = userConfig;
             ApiConnection = apiConnection;
+            MiddlewareClient = middlewareClient;
             NamingConvention = JsonSerializer.Deserialize<ModellingNamingConvention>(userConfig.ModNamingConvention) ?? new();
             AppServerTypes = JsonSerializer.Deserialize<List<AppServerType>>(UserConfig.ModAppServerTypes) ?? [];
             AllowedFileFormats = allowedFileFormats;
             EventMediator = eventMediator;
-            CustomLogoUploadEvent = new FileUploadEvent();
-            FileUploadEvent = new FileUploadEvent();
-            AppServerImportEvent = new AppServerImportEvent();
+            CustomLogoUploadEvent = new();
+            FileUploadEvent = new();
+            AppServerImportEvent = new();
+            ComplianceMatrixImportEvent = new();
         }
 
         public async Task<FileUploadEventArgs> ReadFileToBytes(InputFileChangeEventArgs args)
@@ -192,17 +200,38 @@ namespace FWO.Ui.Services
             }
         }
 
+        public async Task ImportComplianceMatrix(string filename = "")
+        {
+            string data = System.Text.Encoding.UTF8.GetString(UploadedData);
+            ComplianceImportMatrixParameters importParams = new() { FileName = filename, Data = data, UserName = UserConfig.User.Name, UserDn = UserConfig.User.Dn };
+            RestResponse<string> middlewareServerResponse = await MiddlewareClient.ImportCompianceMatrix(importParams);
+            if (ComplianceMatrixImportEvent.EventArgs is not null)
+            {
+                if (middlewareServerResponse.StatusCode != HttpStatusCode.OK)
+                {
+                    ComplianceMatrixImportEvent.EventArgs.Success = false;
+                    ComplianceMatrixImportEvent.EventArgs.Data = middlewareServerResponse.ErrorMessage;
+                }
+                else
+                {
+                    ComplianceMatrixImportEvent.EventArgs.Success = middlewareServerResponse.Data?.StartsWith("Ok") ?? false;
+                    ComplianceMatrixImportEvent.EventArgs.Data = middlewareServerResponse.Data;
+                }
+                EventMediator.Publish(nameof(ImportComplianceMatrix), ComplianceMatrixImportEvent);
+            }
+        }
+
         private static bool TryGetEntries(string line, char separator, out string[] entries)
         {
-            if(line.StartsWith('\n'))
+            if (line.StartsWith('\n'))
                 line = line[1..];
 
             entries = line.Split(separator);
 
-            if(entries.Length < 4)
+            if (entries.Length < 4)
                 return false;
 
-            for(int i = 0; i < entries.Length; i++)
+            for (int i = 0; i < entries.Length; i++)
             {
                 entries[i] = entries[i].Trim('"');
             }

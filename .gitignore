@@ -1,7 +1,8 @@
 .vs/
+.vscode/launch.json
 .idea/
 .test_data/
 roles/importer/venv/
 ansible_venv/
-
-.vscode/launch.json
+.venv/
+*.todo

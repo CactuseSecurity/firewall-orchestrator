@@ -1,0 +1,7 @@
+mutation deleteOldImports($mgmId: Int!, $lastImportToKeep: bigint!) {
+    delete_import_control(where: {mgm_id: {_eq: $mgmId}, control_id: {_lt: $lastImportToKeep}}) {
+        returning {
+            control_id
+        }
+    }
+}

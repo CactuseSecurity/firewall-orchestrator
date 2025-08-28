@@ -50,26 +50,26 @@
 
 
 - block: # demo only
-    - name: insert demo check point R81 management {{ sample_checkpoint_name }}
+    - name: insert demo check point R8x management {{ sample_checkpoint_name }}
       postgresql_query:
         db: "{{ fworch_db_name }}"
         query: >
           DO $do$ BEGIN 
             IF NOT EXISTS (SELECT * FROM management WHERE mgm_name='{{ sample_checkpoint_name }}') THEN 
               insert into management 
-                (dev_typ_id,mgm_name,import_credential_id,ssh_hostname,do_not_import,importer_hostname) 
-                VALUES (9,'{{ sample_checkpoint_name }}',{{ credential_id }},'{{ demo_cpr8x_uri }}',{{ do_not_import }},'{{ importer_hostname }}'); 
+                (dev_typ_id,mgm_name,import_credential_id,ssh_hostname,do_not_import,importer_hostname, mgm_uid) 
+                VALUES (9,'{{ sample_checkpoint_name }}',{{ credential_id }},'{{ demo_cpr8x_uri }}',{{ do_not_import }},'{{ importer_hostname }}','{{ demo_cpr8x_mgm_uid }}'); 
             END IF;
           END $do$ 
 
-    - name: insert demo check point R81 gateway {{ sample_checkpoint_name }}
+    - name: insert demo check point R8x gateway {{ sample_checkpoint_name }}
       postgresql_query:
         db: "{{ fworch_db_name }}"
         query: >
           DO $do$ BEGIN 
           IF NOT EXISTS (SELECT * FROM device WHERE dev_name='{{ demo_cpr8x_name }}') THEN
-          insert into device (mgm_id,dev_name,local_rulebase_name,dev_typ_id,package_name)
-          VALUES ((select mgm_id from management where mgm_name='{{ sample_checkpoint_name }}'),'{{ demo_cpr8x_name }}','AnonAAAB_Security_neu',9,'AnonAAAA_New'); 
+          insert into device (mgm_id,dev_name,dev_uid,local_rulebase_name,dev_typ_id,package_name)
+          VALUES ((select mgm_id from management where mgm_name='{{ sample_checkpoint_name }}'),'{{ demo_cpr8x_name }}','{{ demo_cpr8x_dev_uid }}','AnonAAAB_Security_neu',9,'AnonAAAA_New'); 
           END IF; END $do$ 
 
   become: true
@@ -83,8 +83,8 @@
         query: >
           DO $do$ BEGIN 
           IF NOT EXISTS (SELECT * FROM management WHERE mgm_name='{{ sample_checkpoint_name }}') THEN 
-          insert into management (dev_typ_id,mgm_name,import_credential_id,ssh_hostname,do_not_import,importer_hostname) 
-          VALUES (9,'{{ sample_checkpoint_name }}',{{ credential_id }},'{{ sample_checkpoint_uri }}',{{ do_not_import }},'dummy importer hostname'); 
+          insert into management (dev_typ_id,mgm_name,import_credential_id,ssh_hostname,do_not_import,importer_hostname,mgm_uid) 
+          VALUES (9,'{{ sample_checkpoint_name }}',{{ credential_id }},'{{ sample_checkpoint_uri }}',{{ do_not_import }},'dummy importer hostname','{{ demo_cpr8x_mgm_uid }}'); 
           END IF; END $do$ 
 
     - name: insert test check point R8x gateway {{ sample_checkpoint_name }}
@@ -93,8 +93,8 @@
         query: >
           DO $do$ BEGIN 
           IF NOT EXISTS (SELECT * FROM device WHERE dev_name='{{ sample_checkpoint_name }}') THEN
-          insert into device (mgm_id,dev_name,local_rulebase_name,dev_typ_id,package_name)
-          VALUES ((select mgm_id from management where mgm_name='{{ sample_checkpoint_name }}'),'{{ sample_checkpoint_name }}','FirstLayer shared with inline layer',9,'TestPolicyWithLayers'); 
+          insert into device (mgm_id,dev_name,dev_uid,local_rulebase_name,dev_typ_id,package_name)
+          VALUES ((select mgm_id from management where mgm_name='{{ sample_checkpoint_name }}'),'{{ sample_checkpoint_name }}','{{ demo_cpr8x_dev_uid }}','FirstLayer shared with inline layer',9,'TestPolicyWithLayers'); 
           END IF; END $do$ 
 
   become: true

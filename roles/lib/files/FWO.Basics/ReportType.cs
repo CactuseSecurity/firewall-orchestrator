@@ -2,6 +2,8 @@ namespace FWO.Basics
 {
     public enum ReportType
     {
+        Undefined = 0,
+
         Rules = 1,
         Changes = 2,
         Statistics = 3,
@@ -15,7 +17,9 @@ namespace FWO.Basics
 
         Connections = 21,
         AppRules = 22,
-        VarianceAnalysis = 23
+        VarianceAnalysis = 23,
+
+        Compliance = 31
     }
 
     public static class ReportTypeGroups
@@ -53,7 +57,8 @@ namespace FWO.Basics
                 ReportType.ResolvedRules or
                 ReportType.ResolvedRulesTech or
                 ReportType.ResolvedChanges or
-                ReportType.ResolvedChangesTech => true,
+                ReportType.ResolvedChangesTech or
+                ReportType.Compliance => true,
                 _ => false,
             };
         }
@@ -87,6 +92,11 @@ namespace FWO.Basics
                 ReportType.VarianceAnalysis => true,
                 _ => false,
             };
+        }
+
+        public static bool IsComplianceReport(this ReportType reportType)
+        {
+            return reportType == ReportType.Compliance;
         }
     }
 }

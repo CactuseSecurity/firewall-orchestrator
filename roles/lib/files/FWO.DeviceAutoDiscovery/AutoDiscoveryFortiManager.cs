@@ -100,7 +100,7 @@ namespace FWO.DeviceAutoDiscovery
             foreach (Adom adom in customAdoms)
             {
                 RestResponse<FmApiTopLevelHelperDev> deviceResponse = await restClientFM.GetDevicesPerAdom(sessionId, adom.Name);
-                if (deviceResponse.StatusCode == HttpStatusCode.OK && deviceResponse.IsSuccessful)
+                if (deviceResponse != null && deviceResponse.StatusCode == HttpStatusCode.OK && deviceResponse.IsSuccessful)
                 {
                     adom.DeviceList = deviceResponse.Data?.Result[0].FortiGates;
 
@@ -109,7 +109,7 @@ namespace FWO.DeviceAutoDiscovery
                     {
                         foreach (FortiGate fg in adom.DeviceList)
                         {
-                            BuildAdomDeviceVdomStructurePerPhysicalDevice(customAdoms);
+                            BuildAdomDeviceVdomStructurePerPhysicalDevice(fg, additionalVdomDevices );
                         }
                     }
                 }
@@ -120,7 +120,7 @@ namespace FWO.DeviceAutoDiscovery
             }
         }
 
-        public async Task BuildAdomDeviceVdomStructurePerPhysicalDevice(List<Adom> customAdoms)
+        public void BuildAdomDeviceVdomStructurePerPhysicalDevice(FortiGate fg, List<FortiGate> additionalVdomDevices )
         {
             Log.WriteDebug(Autodiscovery, $"found device {fg.Name} belonging to management VDOM {fg.MgtVdom}");
             if (fg.VdomList != null)
@@ -135,6 +135,7 @@ namespace FWO.DeviceAutoDiscovery
                         Name = $"{fg.Name}{AdomSeparator}{vdom.Name}",
                         Hostname = fg.Hostname,
                         MgtVdom = vdom.Name,
+                        Uid = $"{fg.Name}{AdomSeparator}{vdom.Name}",
                         VdomList = []
                     });
                 }

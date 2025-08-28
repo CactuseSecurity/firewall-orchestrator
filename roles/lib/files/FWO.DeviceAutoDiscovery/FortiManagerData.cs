@@ -81,6 +81,10 @@ namespace FWO.DeviceAutoDiscovery
 
         [JsonProperty("vdom"), JsonPropertyName("vdom")]
         public List<Vdom> VdomList { get; set; } = [];
+
+        // uid is not really contained in fortigate, we will set it to the name instead
+        public string Uid { get; set; } = "";
+
     }
     public class Vdom
     {

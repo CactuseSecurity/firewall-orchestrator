@@ -33,9 +33,9 @@ fragment networkObjectFragment on object {
   obj_ip
   obj_ip_end
   type: stm_obj_typ {
-    obj_typ_name
+    name: obj_typ_name
   }
-  objColor: stm_color {
+  obj_color: stm_color {
     color_name
   }
   obj_member_refs
@@ -47,18 +47,16 @@ fragment serviceObjectFragment on service {
   svc_id
   svc_uid
   svc_name
-  svc_source_port
-  svc_source_port_end
+  svc_port
+  svc_port_end
   svc_timeout
   service_type: stm_svc_typ {
-    svc_typ_name
+    name: svc_typ_name
   }
   stm_color {
     color_name
   }
-  protocol_name: stm_ip_proto {
-    ip_proto_name
-  }
+  ip_proto_id
   svc_member_refs
   svc_member_names
   svc_comment
@@ -102,20 +100,17 @@ fragment ruleFragment on rule {
   rule_dst_neg
   rule_dst
   rule_dst_refs
+  rule_svc_neg
   rule_svc
   rule_svc_refs
-  rule_action: stm_action {
-    action_name
-  }
-  rule_track: stm_track {
-    track_name
-  }
+  rule_action
+  rule_track
   rule_installon
   rule_time
   rule_custom_fields
   rule_implied
   nat_rule
-  lastChangeAdmin: uiuser {
+  uiuser {
     uiuser_username
   }
   rule {
@@ -143,14 +138,19 @@ fragment deviceFragment on device {
   rulebase_links {
     ...ruleBaseLinkFragment
   }
+  #TODO: GlobalPolicyUid
+  #TODO: EnforcedPolicyUids
+  #TODO: EnforcedNatPolicyUids
+  #TODO: ImportDisabled
+  #TODO: ShowInUI
 }
 
 fragment ruleBaseLinkFragment on rulebase_link {
   gw_id
-  fromRulebase: rulebaseByFromRulebaseId {
+  rulebaseByFromRulebaseId {
     uid
   }
-  toRulebase: rulebase {
+  rulebase {
     uid
   }
   stm_link_type {

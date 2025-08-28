@@ -5,6 +5,7 @@ import traceback
 import time
 from pprint import pformat
 import string
+from typing import Optional, Any
 
 import fwo_globals
 from fwo_log import getFwoLogger
@@ -12,6 +13,8 @@ from fwo_const import fwo_api_http_import_timeout
 from fwo_exceptions import FwoApiServiceUnavailable, FwoApiTimeout
 from query_analyzer import QueryAnalyzer
 from fwo_exceptions import FwoImporterError, FwoApiLoginFailed
+from services.enums import Services
+from services.service_provider import ServiceProvider
 
 
 # this class is used for making calls to the FWO API (will supersede fwo_api.py)
@@ -113,6 +116,75 @@ class FwoApi():
                                 ", ssl_verification: " + str(fwo_globals.verify_certs)
                 raise FwoApiLoginFailed(error_txt)
 
+    def call_endpoint(self, method: str, endpoint: str, params: Any = None) -> Any:
+        """
+        Generic method to call any middleware endpoint.
+        
+        Args:
+            method: HTTP method (GET, POST, PUT, DELETE, PATCH)
+            endpoint: API endpoint path (e.g., "AuthenticationToken/Get", "User", "Role/User")
+            data: Request payload data
+            
+        Returns:
+            Response data - could be various types based on the endpoint
+            
+        Raises:
+            FwoApiLoginFailed: If authentication fails
+            FwoImporterError: If request fails or returns error
+        """
+        service_provider = ServiceProvider()
+        fwo_config = service_provider.get_service(Services.FWO_CONFIG)
+        url = fwo_config['user_management_api_base_url'] + endpoint.lstrip('/')
+
+        with requests.Session() as session:
+
+            logger = getFwoLogger()
+
+            if fwo_globals.verify_certs is None:
+                session.verify = False
+            else: 
+                session.verify = fwo_globals.verify_certs
+
+            session.headers = {
+                'Authorization': f"Bearer {self.FwoJwt}",
+                'Content-Type': 'application/json'
+            }
+
+            try:
+                if method.upper() == 'GET':
+                    response = session.get(url, json=params, timeout=int(fwo_api_http_import_timeout))
+                elif method.upper() == 'POST':
+                    response = session.post(url, json=params, timeout=int(fwo_api_http_import_timeout))
+                elif method.upper() == 'PUT':
+                    response = session.put(url, json=params, timeout=int(fwo_api_http_import_timeout))
+                elif method.upper() == 'DELETE':
+                    response = session.delete(url, json=params, timeout=int(fwo_api_http_import_timeout))
+                elif method.upper() == 'PATCH':
+                    response = session.patch(url, json=params, timeout=int(fwo_api_http_import_timeout))
+                else:
+                    raise FwoImporterError(f"Unsupported HTTP method: {method}")
+                    
+                # Check for HTTP errors
+                if response.status_code == 401:
+                    raise FwoApiLoginFailed(f"Authentication failed for endpoint: {endpoint}")
+                elif response.status_code == 503:
+                    raise FwoApiServiceUnavailable("FWO Middleware API HTTP error 503 (middleware died?)")
+                elif response.status_code == 502:
+                    raise FwoApiTimeout("FWO Middleware API HTTP error 502 (might have reached timeout)")
+                
+                response.raise_for_status()
+                
+                # Try to parse JSON response
+                try:
+                    result = response.json()
+                    return result
+                except ValueError:
+                    # If response is not JSON, return the text content
+                    return response.text
+                    
+            except requests.exceptions.RequestException as e:
+                logger.error(f"Middleware API request failed: {str(e)}")
+                raise FwoImporterError(f"Middleware API request failed: {str(e)}")
     
     def _handle_request_exception(self, exception, query_payload, headers):
         """
@@ -353,7 +425,7 @@ class FwoApi():
                 printable_chars = set(string.printable)
                 with open(file, "r", encoding="utf-8", errors="ignore") as f:
                     code += "".join(filter(printable_chars.__contains__, f.read())) + " "
-            except FileNotFoundError as e:
+            except FileNotFoundError:
                 logger = getFwoLogger()
                 logger.error("fwo_api: file not found: " + file)
                 raise
@@ -366,3 +438,180 @@ class FwoApi():
         printable_chars = set(string.printable)
         with open(filePath, "r", encoding="utf-8", errors="ignore") as f:
             return "".join(filter(printable_chars.__contains__, f.read()))
+
+
+# Middleware client for calling any endpoint in the FWO middleware API
+class MiddlewareClient:
+    """
+    Simplified Python client for FWO Middleware API.
+    Provides authentication and a generic method to call any endpoint.
+    """
+    
+    def __init__(self, middleware_server_uri: str, jwt_token: Optional[str] = None):
+        """
+        Initialize the middleware client.
+        
+        Args:
+            middleware_server_uri: Base URI of the middleware server (e.g., "https://localhost:5000/")
+            jwt_token: Optional JWT token for authentication
+        """
+        self.middleware_server_uri = middleware_server_uri.rstrip('/') + '/'
+        self.api_base_url = self.middleware_server_uri + 'api/'
+        self.jwt_token = jwt_token
+        self.session = None
+        
+    def set_authentication_token(self, jwt_token: str):
+        """Set the JWT token for authentication."""
+        self.jwt_token = jwt_token
+        
+    def _get_session(self) -> requests.Session:
+        """Get a requests session with proper authentication headers."""
+        if self.session is None:
+            self.session = requests.Session()
+            
+        # Configure SSL verification
+        if fwo_globals.verify_certs is None:
+            self.session.verify = False
+        else:
+            self.session.verify = fwo_globals.verify_certs
+            
+        # Set headers
+        headers = {
+            'Content-Type': 'application/json',
+        }
+        
+        if self.jwt_token:
+            headers['Authorization'] = f'Bearer {self.jwt_token}'
+            
+        self.session.headers.update(headers)
+        return self.session
+    
+    def authenticate_user(self, username: str, password: str) -> str:
+        """
+        Authenticate a user and return JWT token.
+        
+        Args:
+            username: Username for authentication
+            password: Password for authentication
+            
+        Returns:
+            JWT token as string
+        """
+        parameters = {
+            "Username": username,
+            "Password": password
+        }
+        response = self.call_endpoint("POST", "AuthenticationToken/Get", parameters)
+        
+        if isinstance(response, str):
+            return response
+        elif isinstance(response, dict) and "data" in response:
+            return response["data"]
+        else:
+            raise FwoImporterError("Unexpected response format from authentication endpoint")
+    
+    def create_initial_jwt(self) -> str:
+        """Create an initial JWT token for anonymous access."""
+        response = self.call_endpoint("POST", "AuthenticationToken/Get", {})
+        
+        if isinstance(response, str):
+            return response
+        elif isinstance(response, dict) and "data" in response:
+            return response["data"]
+        else:
+            raise FwoImporterError("Unexpected response format from initial JWT endpoint")
+    
+    def call_endpoint(self, method: str, endpoint: str, data: Any = None) -> Any:
+        """
+        Generic method to call any middleware endpoint.
+        
+        Args:
+            method: HTTP method (GET, POST, PUT, DELETE, PATCH)
+            endpoint: API endpoint path (e.g., "AuthenticationToken/Get", "User", "Role/User")
+            data: Request payload data
+            
+        Returns:
+            Response data - could be various types based on the endpoint
+            
+        Raises:
+            FwoApiLoginFailed: If authentication fails
+            FwoImporterError: If request fails or returns error
+        """
+        session = self._get_session()
+        url = self.api_base_url + endpoint.lstrip('/')
+        
+        logger = getFwoLogger()
+        
+        try:
+            if method.upper() == 'GET':
+                response = session.get(url, json=data, timeout=int(fwo_api_http_import_timeout))
+            elif method.upper() == 'POST':
+                response = session.post(url, json=data, timeout=int(fwo_api_http_import_timeout))
+            elif method.upper() == 'PUT':
+                response = session.put(url, json=data, timeout=int(fwo_api_http_import_timeout))
+            elif method.upper() == 'DELETE':
+                response = session.delete(url, json=data, timeout=int(fwo_api_http_import_timeout))
+            elif method.upper() == 'PATCH':
+                response = session.patch(url, json=data, timeout=int(fwo_api_http_import_timeout))
+            else:
+                raise FwoImporterError(f"Unsupported HTTP method: {method}")
+                
+            # Check for HTTP errors
+            if response.status_code == 401:
+                raise FwoApiLoginFailed(f"Authentication failed for endpoint: {endpoint}")
+            elif response.status_code == 503:
+                raise FwoApiServiceUnavailable("FWO Middleware API HTTP error 503 (middleware died?)")
+            elif response.status_code == 502:
+                raise FwoApiTimeout("FWO Middleware API HTTP error 502 (might have reached timeout)")
+            
+            response.raise_for_status()
+            
+            # Try to parse JSON response
+            try:
+                result = response.json()
+                return result
+            except ValueError:
+                # If response is not JSON, return the text content
+                return response.text
+                
+        except requests.exceptions.RequestException as e:
+            logger.error(f"Middleware API request failed: {str(e)}")
+            raise FwoImporterError(f"Middleware API request failed: {str(e)}")
+    
+    def close(self):
+        """Close the session."""
+        if self.session:
+            self.session.close()
+            self.session = None
+    
+    def __enter__(self):
+        return self
+        
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.close()
+
+
+# Example usage:
+# 
+# # Create middleware client
+# middleware_client = MiddlewareClient("https://localhost:5000/")
+#
+# # Authenticate user and get JWT
+# jwt_token = middleware_client.authenticate_user("username", "password") 
+# middleware_client.set_authentication_token(jwt_token)
+#
+# # Or authenticate directly in constructor
+# middleware_client = MiddlewareClient("https://localhost:5000/", jwt_token)
+#
+# # Call any endpoint
+# users = middleware_client.call_endpoint("GET", "User", {})
+# tenants = middleware_client.call_endpoint("GET", "Tenant", {})
+# roles = middleware_client.call_endpoint("GET", "Role", {})
+# 
+# # Call with parameters
+# response = middleware_client.call_endpoint("POST", "SomeEndpoint", {"param": "value"})
+#
+# # Use as context manager
+# with MiddlewareClient("https://localhost:5000/", jwt_token) as client:
+#     result = client.call_endpoint("GET", "User", {})
+#     # Session will be automatically closed

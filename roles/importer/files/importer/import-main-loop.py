@@ -13,11 +13,12 @@ from fwo_api_call import FwoApiCall
 from model_controllers.management_controller import ManagementController
 from common import import_management
 from fwo_log import getFwoLogger #, LogLock
-import fwo_globals, fwo_config
+import fwo_globals
+import fwo_config
 from fwo_const import base_dir, importer_base_dir
 from fwo_exceptions import FwoApiLoginFailed, FwoApiFailedLockImport, FwLoginFailed
 from model_controllers.import_state_controller import ImportStateController
-from fwo_base import register_services
+from fwo_base import init_service_provider
 from services.enums import Services
 
 
@@ -53,7 +54,8 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     ### initializing
-    fwo_config = fwo_config.readConfig()
+    service_provider = init_service_provider()
+    fwo_config = service_provider.get_service(Services.FWO_CONFIG)
     fwo_api_base_url = fwo_config['fwo_api_base_url']
     fwo_major_version = fwo_config['fwo_major_version']
     user_management_api_base_url = fwo_config['user_management_api_base_url']
@@ -95,7 +97,6 @@ if __name__ == '__main__':
         fwo_api = FwoApi(fwo_api_base_url, jwt)
         fwo_api_call = FwoApiCall(fwo_api)
 
-        service_provider = register_services()
         global_state = service_provider.get_service(Services.GLOBAL_STATE)
 
         urllib3.disable_warnings()  # suppress ssl warnings only
@@ -126,7 +127,7 @@ if __name__ == '__main__':
                         logger.info("import-main-loop - shutdown requested. Exiting...")
                         raise SystemExit("import-main-loop - shutdown requested")
 
-                    service_provider = register_services()
+                    service_provider = init_service_provider()
                     global_state = service_provider.get_service(Services.GLOBAL_STATE)
                     import_state = ImportStateController.initializeImport(mgm['id'], fwo_api_uri=fwo_api_base_url, jwt=jwt, debugLevel=debug_level, version=fwo_major_version)
                     global_state.import_state = import_state
@@ -134,7 +135,7 @@ if __name__ == '__main__':
                     if skipping:
                         continue
                     try:
-                        mgm_controller = ManagementController(hostname='', id=int(import_state.MgmDetails.Id), 
+                        mgm_controller = ManagementController(hostname='', mgm_id=int(import_state.MgmDetails.Id), 
                                                 uid='', devices={}, name='', deviceTypeName='', deviceTypeVersion='')
                         mgm_details = mgm_controller.get_mgm_details(fwo_api, import_state.MgmDetails.Id)                         
                     except Exception:

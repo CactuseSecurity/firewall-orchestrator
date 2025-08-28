@@ -104,7 +104,7 @@ class ImportStateController(ImportState):
 
         try: # get mgm_details (fw-type, port, ip, user credentials):
             mgm_controller = ManagementController(
-                hostname='', id=int(mgmId), uid='', devices={},
+                hostname='', mgm_id=int(mgmId), uid='', devices={},
                 name='', deviceTypeName='', deviceTypeVersion=''
             )
             mgmDetails = mgm_controller.get_mgm_details(api_conn, mgmId, debugLevel) 

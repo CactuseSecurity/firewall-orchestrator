@@ -26,7 +26,6 @@ namespace FWO.Middleware.Server.Controllers
         private readonly List<Ldap> ldaps = ldaps;
 
         private ApiConnection? apiConnectionUserContext = null;
-        private UserConfig? userConfig = null;
 
         /// <summary>
         /// Get NormalizedConfig
@@ -34,17 +33,17 @@ namespace FWO.Middleware.Server.Controllers
         /// <param name="parameters">NormalizedConfigGetParameters</param>
         /// <returns>NormalizedConfig as json string</returns>
         [HttpPost("Get")]
-        [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}, {Roles.Reporter}, {Roles.ReporterViewAll}, {Roles.Modeller}, {Roles.Recertifier}")]
+        [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}, {Roles.Reporter}, {Roles.ReporterViewAll}, {Roles.Modeller}, {Roles.Recertifier}, {Roles.Importer}")]
         public async Task<string> Get([FromBody] NormalizedConfigGetParameters parameters)
         {
             try
             {
-                if (!await InitUserEnvironment() || apiConnectionUserContext == null || userConfig == null)
+                if (!await InitUserEnvironment() || apiConnectionUserContext == null)
                 {
                     return "";  // todo: Error message?
                 }
 
-                NormalizedConfig normalizedConfig = await NormalizedConfigGenerator.Generate([.. parameters.ManagementIds], parameters.ConfigTime, apiConnectionUserContext, userConfig);
+                NormalizedConfig normalizedConfig = await NormalizedConfigGenerator.Generate([.. parameters.ManagementIds], parameters.ConfigTime, apiConnectionUserContext);
                 return JsonConvert.SerializeObject(normalizedConfig);
             }
             catch (Exception exception)
@@ -61,8 +60,6 @@ namespace FWO.Middleware.Server.Controllers
             string jwt = await authManager.AuthorizeUserAsync(targetUser, validatePassword: false);
             apiConnectionUserContext = new GraphQlApiConnection(ConfigFile.ApiServerUri, jwt);
             apiConnectionUserContext.SetProperRole(User, [Roles.Admin, Roles.Auditor, Roles.Reporter, Roles.ReporterViewAll, Roles.Modeller, Roles.Recertifier]);
-            GlobalConfig globalConfig = await GlobalConfig.ConstructAsync(jwt);
-            userConfig = await UserConfig.ConstructAsync(globalConfig, apiConnectionUserContext, targetUser.DbId);
             return true;
         }
     }

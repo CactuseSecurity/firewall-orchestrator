@@ -112,7 +112,7 @@ namespace FWO.Data
                 RuleSvcRefs = rule.ServiceRefs,
                 RuleAction = rule.Action,
                 RuleTrack = rule.Track,
-                RuleInstallOn = rule.InstallOn,
+                RuleInstallOn = rule.InstallOn ?? "", // should not become null but it does
                 RuleTime = rule.Time,
                 RuleName = rule.Name ?? "",
                 RuleUid = rule.Uid ?? "",

@@ -3,23 +3,29 @@ using FWO.Api.Client.Queries;
 using FWO.Basics;
 using FWO.Config.Api;
 using FWO.Data;
-using FWO.Data.Modelling;
 using FWO.Data.Report;
 using FWO.Logging;
 using FWO.Report.Filter;
-using FWO.Services;
 using Newtonsoft.Json;
 
 namespace FWO.Report
 {
     public static class NormalizedConfigGenerator
     {
-        public static async Task<NormalizedConfig> Generate(List<int> managementIds, string? configTime, ApiConnection apiConnection, UserConfig userConfig)
+        public static async Task<NormalizedConfig> Generate(List<int> managementIds, string? configTime, ApiConnection apiConnection)
         {
             if (string.IsNullOrEmpty(configTime))
             {
-                Management managementData = await apiConnection.SendQueryAsync<Management>(ReportQueries.getManagementForLatestNormalizedConfig, new { mgm_ids = managementIds });
-                return ParseFromManagementData(managementData);
+                Dictionary<string, object> queryVars = new()
+                {
+                    { "mgm_ids", managementIds }
+                };
+                List<Management> managementData = await apiConnection.SendQueryAsync<List<Management>>(ReportQueries.getManagementForLatestNormalizedConfig, queryVars);
+                if (managementData.Count == 0)
+                {
+                    throw new ArgumentException("No management data found for the given management IDs.");
+                }
+                return ParseFromManagementData(managementData[0]);
             }
             // TODO: Implement configTime handling
             throw new NotImplementedException("configTime handling not yet implemented.");

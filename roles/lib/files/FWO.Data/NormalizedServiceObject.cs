@@ -24,7 +24,7 @@ namespace FWO.Data
         public string SvcType { get; set; } = "";
 
         [JsonProperty("ip_proto"), JsonPropertyName("ip_proto")]
-        public string? IpProtocol { get; set; }
+        public int? IpProtocol { get; set; }
 
         [JsonProperty("svc_member_refs"), JsonPropertyName("svc_member_refs")]
         public string? SvcMemberRefs { get; set; }
@@ -51,7 +51,7 @@ namespace FWO.Data
                 SvcPortEnd = networkService.DestinationPortEnd,
                 SvcColor = networkService.Color.Name,
                 SvcType = networkService.Type.Name,
-                IpProtocol = networkService.Code,
+                IpProtocol = networkService.ProtoId,
                 SvcMemberRefs = networkService.MemberRefs,
                 SvcMemberNames = networkService.MemberNames,
                 SvcComment = networkService.Comment,

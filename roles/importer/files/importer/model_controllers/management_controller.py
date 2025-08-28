@@ -12,7 +12,7 @@ from fwo_exceptions import SecretDecryptionFailed, FwoApiFailure
 
 class ManagementController(Management):
 
-    def __init__(self, hostname: str, id: int, uid: str, devices: dict,
+    def __init__(self, hostname: str, mgm_id: int, uid: str, devices: dict,
                  name: str, deviceTypeName: str, deviceTypeVersion: str,
                  importDisabled: bool = False, importerHostname: str = '',  
                  port: int = 443, secret: str = '', importUser: str = '', isSuperManager: bool = False, 
@@ -20,7 +20,7 @@ class ManagementController(Management):
                  domainName: str = '', domainUid: str = ''):
         
         self.Hostname = hostname
-        self.Id = id
+        self.Id = mgm_id
         self.Uid = uid
         self.ImportDisabled = importDisabled
         self.Devices = devices
@@ -63,7 +63,7 @@ class ManagementController(Management):
         domainName = json_dict['configPath']
         domainUid = json_dict['domainUid']
 
-        return cls(hostname=Hostname, id=Id, uid=Uid, importDisabled=ImportDisabled, devices=Devices, 
+        return cls(hostname=Hostname, mgm_id=Id, uid=Uid, importDisabled=ImportDisabled, devices=Devices, 
                    importerHostname=ImporterHostname, name=Name, deviceTypeName=DeviceTypeName, 
                    deviceTypeVersion=DeviceTypeVersion, port=Port, importUser=ImportUser, secret=Secret, 
                    isSuperManager = IsSuperManager, subManagerIds = SubManagerIds, 

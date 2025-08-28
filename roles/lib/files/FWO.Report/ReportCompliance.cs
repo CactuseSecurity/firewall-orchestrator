@@ -31,15 +31,18 @@ namespace FWO.Report
 
         #region Fields
 
+        private List<Management>? _managements;
+        private List<Device>? _devices;
+
         private readonly int _maxDegreeOfParallelism;
         private readonly SemaphoreSlim _semaphore;
         private readonly NatRuleDisplayHtml _natRuleDisplayHtml;
-        private List<Management>? _managements;
-        private List<Device>? _devices;
         private readonly List<string> _columnsToExport;
         private readonly bool _includeHeaderInExport;
         private readonly char _separator;
         private readonly DebugConfig _debugConfig;
+        private readonly int _maxCellSize;
+        private readonly int _maxPrintedViolations;
 
 
         #endregion
@@ -52,8 +55,11 @@ namespace FWO.Report
             _semaphore = new SemaphoreSlim(_maxDegreeOfParallelism);
             _natRuleDisplayHtml = new NatRuleDisplayHtml(userConfig);
 
+            // CSV export config.
+
             _includeHeaderInExport = true;
             _separator = ';';
+            _maxCellSize = 32000; // Max size of a cell in Excel is 32,767 characters.
             _columnsToExport = new List<string>
             {
                 "MgmtId",
@@ -74,9 +80,16 @@ namespace FWO.Report
                 "RulebaseName"
             };
 
-            if (userConfig.GlobalConfig is GlobalConfig globalConfig && !string.IsNullOrEmpty(globalConfig.DebugConfig))
+            if (userConfig.GlobalConfig != null)
             {
-                _debugConfig = JsonSerializer.Deserialize<DebugConfig>(globalConfig.DebugConfig) ?? new();
+                _maxPrintedViolations = userConfig.GlobalConfig.ComplianceCheckMaxPrintedViolations;
+            }
+
+            // Apply debug config.
+
+            if (userConfig.GlobalConfig != null && !string.IsNullOrEmpty(userConfig.GlobalConfig.DebugConfig))
+            {
+                _debugConfig = JsonSerializer.Deserialize<DebugConfig>(userConfig.GlobalConfig.DebugConfig) ?? new();
             }
             else
             {
@@ -362,33 +375,15 @@ namespace FWO.Report
             {
                 rule.ViolationDetails = "";
                 rule.Compliance = ComplianceViolationType.None;
+                int printedViolations = 0;
 
                 if (await CheckEvaluability(rule))
                 {
-                    foreach (var violation in rule.Violations)
+                    for (int violationCount = 1; violationCount <= rule.Violations.Count; violationCount++)
                     {
-                        if (IsDiffReport)
-                        {
-                            if (ViolationIsRelevantForDiff(violation))
-                            {
-                                await TransformViolationDetailsToDiff(violation);
-                            }
-                            else
-                            {
-                                continue; // Skip violations that are not relevant for the diff report
-                            }
-                        }
+                        ComplianceViolation violation = rule.Violations.ElementAt(violationCount - 1);
 
-                        if (rule.ViolationDetails != "")
-                        {
-                            rule.ViolationDetails += "\n";
-                        }
-
-                        rule.ViolationDetails += violation.Details;
-
-                        // No need to differentiate between different types of violations here at the moment.
-
-                        rule.Compliance = ComplianceViolationType.MultipleViolations;
+                        await AddViolationDataToViolationDetails(rule, violation, ref printedViolations, violationCount);
                     }
 
                     return;
@@ -403,6 +398,43 @@ namespace FWO.Report
                 Log.TryWriteLog(LogType.Error, "Compliance Report", $"Error while setting compliance data for rule {rule.Id}: {e.Message}", _debugConfig.ExtendedLogReportGeneration);
                 return;
             }
+        }
+
+        private Task AddViolationDataToViolationDetails(Rule rule, ComplianceViolation violation, ref int printedViolations, int violationCount)
+        {
+            if (IsDiffReport)
+            {
+                if (ViolationIsRelevantForDiff(violation))
+                {
+                    TransformViolationDetailsToDiff(violation);
+                }
+                else
+                {
+                    return Task.CompletedTask; // Skip violations that are not relevant for the diff report
+                }
+            }
+
+            if (_maxPrintedViolations == 0 || printedViolations < _maxPrintedViolations)
+            {
+                if (rule.ViolationDetails != "")
+                {
+                    rule.ViolationDetails += "<br>";
+                }
+
+                rule.ViolationDetails += violation.Details;
+                printedViolations++;
+            }
+
+            // No need to differentiate between different types of violations here at the moment.
+
+            rule.Compliance = ComplianceViolationType.MultipleViolations;
+
+            if (_maxPrintedViolations > 0 && printedViolations == _maxPrintedViolations && violationCount < rule.Violations.Count)
+            {
+                rule.ViolationDetails += $"<br>Too many violations to display ({rule.Violations.Count}), please check the system for details.";
+            }
+
+            return Task.CompletedTask;
         }
 
         private bool ViolationIsRelevantForDiff(ComplianceViolation violation)
@@ -420,11 +452,11 @@ namespace FWO.Report
 
             if (violation.FoundDate >= referenceDate)
             {
-                diffPrefix = $"+ ({violation.FoundDate:dd.MM.yyyy - hh:mm}) ";
+                diffPrefix = $"Found: ({violation.FoundDate:dd.MM.yyyy - hh:mm}) ";
             }
             if (violation.RemovedDate != null && violation.RemovedDate >= referenceDate)
             {
-                diffPrefix += $"- ({violation.RemovedDate:dd.MM.yyyy - hh:mm}) ";
+                diffPrefix += $"Removed: ({violation.RemovedDate:dd.MM.yyyy - hh:mm}) ";
             }
 
             violation.Details = $"{diffPrefix}: {violation.Details}";
@@ -453,15 +485,20 @@ namespace FWO.Report
                     if (value is string str)
                     {
                         str = str
-                                .Replace("\r\n", " | ")
-                                .Replace("\n", " | ")
-                                .Replace("<br>", " | ");
+                                .Replace("<br>", "\n")
+                                .Replace("\"", "\"\"");
 
-                        if (str.Contains('"'))
+                        if (propertyInfo.Name != "ViolationDetails")
                         {
-                            // Escape quotation marks
+                            str = str
+                                    .Replace("\r\n", " | ")
+                                    .Replace("\n", " | ")
+                                    .Replace("<br>", " | ");
+                        }
 
-                            str = str.Replace("\"", "\"\"");
+                        if (str.Length > _maxCellSize)
+                        {
+                            str = str.Substring(0, _maxCellSize) + " ... (truncated, original length: " + str.Length + " characters)";
                         }
 
                         return str;

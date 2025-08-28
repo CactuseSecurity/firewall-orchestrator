@@ -69,7 +69,6 @@ namespace FWO.Middleware.Client
 					ValidateIssuer = true,
 					ValidIssuer = FWO.Basics.JwtConstants.Issuer,
 					IssuerSigningKey = jwtPublicKey,
-					
 				};
 
 				JsonWebTokenHandler handler = new ();

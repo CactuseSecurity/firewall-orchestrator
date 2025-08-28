@@ -1102,6 +1102,12 @@ INSERT INTO config (config_key, config_value, config_user)
 VALUES ('complianceCheckInternetZoneObject', '', 0)
 ON CONFLICT (config_key, config_user) DO NOTHING;
 
+-- add parameter to limit number of printed violations in compliance report to config
+
+INSERT INTO config (config_key, config_value, config_user)
+VALUES ('complianceCheckMaxPrintedViolations', '0', 0)
+ON CONFLICT (config_key, config_user) DO NOTHING;
+
 -- adding labels (simple version without mapping tables and without foreign keys)
 
 -- CREATE TABLE label (

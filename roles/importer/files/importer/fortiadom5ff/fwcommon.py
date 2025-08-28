@@ -31,7 +31,7 @@ def has_config_changed(full_config, mgm_details, force=False):
 def get_config(config_in: FwConfigManagerListController, importState: ImportStateController):
     logger = getFwoLogger()
     
-    if config_in.has_empty_config() and config_in.is_native():   # no native config was passed in, so getting it from FW-Manager
+    if config_in.has_empty_config() and not config_in.is_native():   # no native config was passed in, so getting it from FW-Manager
         config_in.native_config.update({'domains': []})
         parsing_config_only = False
     else:
@@ -88,7 +88,8 @@ def get_config(config_in: FwConfigManagerListController, importState: ImportStat
         except Exception:
             raise FwLogoutFailed("logout exception probably due to timeout - irrelevant, so ignoring it")
 
-        write_native_config_to_file(importState, config_in)
+        # delete_v: config_in ergibt fehler hier. Erwartet anderes format/nativeConfig Format
+        write_native_config_to_file(importState, config_in.native_config)
 
     # delete_v: brauchen wir hier wirklich sid, dann muss die auch für parsing_config_only TRUE erzeugt werden
     normalizedConfig = normalize_config(importState, config_in.native_config)

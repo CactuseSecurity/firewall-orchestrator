@@ -44,7 +44,7 @@
                 <input type="number" min="1" max="5000" step="1" class="form-control form-control-sm" @bind="actReportFilters.UnusedDays" />
             </div>
         }
-        else if(actReportFilters.ReportType != ReportType.AppRules)
+        else if(actReportFilters.ReportType != ReportType.AppRules && actReportFilters.ReportType != ReportType.Compliance)
         {
             <div class="p-3">
                 <h5 class="text-left">@(userConfig.GetText("report_time"))</h5>
@@ -55,7 +55,7 @@
             </div>
         }
 
-        @if (actReportFilters.ReportType == ReportType.ComplianceNew)
+        @if (actReportFilters.ReportType == ReportType.Compliance)
         {
             <div class="p-3">
                 <input class="form-check-input" type="checkbox" id="complianceShowAnyRule" checked="@_showAnyRulesInComplianceReport" @onchange="UpdateComplianceShowAnyRules"/>
@@ -123,12 +123,11 @@
                             case ReportType.UnusedRules:
                             case ReportType.NatRules:
                             case ReportType.AppRules:
-                            case ReportType.Compliance:
                                 <RulesReport Managements="currentReport.ReportData.ManagementData" SelectedReportType="actReportFilters.ReportType" RulesPerPage="rulesPerPage"
                                     @bind-SelectedRules="selectedItemsRuleReportTable" />
                                 break;
 
-                            case ReportType.ComplianceNew:
+                            case ReportType.Compliance:
                                     <ComplianceReport ReportData="currentReport.ReportData" RulesPerPage="rulesPerPage" @bind-SelectedRules="_selectedItemsComplianceReportTable" @ref="_complianceReport"/>
                                 break;
 
@@ -177,11 +176,15 @@
     </div>
 
     @* ==== RIGHT SIDEBAR ==== *@
-    <RightSidebar @bind-Width="sidebarRightWidth" CurrentReport="currentReport"
-                  @bind-SelectedRules="selectedItemsRuleReportTable"
-                  AllTabVisible="(tenantFilteringAllowed && actReportFilters.SelectedTenant == null)"
-                  SelectedReportType="actReportFilters.ReportType"
-                  LSBTime="actReportFilters.TimeFilter" />
+    @if (_showRightSidebar)
+    {
+        <RightSidebar @bind-Width="sidebarRightWidth" CurrentReport="currentReport"
+                    @bind-SelectedRules="selectedItemsRuleReportTable"
+                    AllTabVisible="(tenantFilteringAllowed && actReportFilters.SelectedTenant == null)"
+                    SelectedReportType="actReportFilters.ReportType"
+                    LSBTime="actReportFilters.TimeFilter" />
+    }
+
 }
 
 @* ==== POPUPS ==== *@
@@ -251,6 +254,7 @@
         || authenticationStateTask!.Result.User.IsInRole(Roles.Auditor);
 
     private bool _showAnyRulesInComplianceReport = true;
+    private bool _showRightSidebar = true;
 
     private ComplianceReport? _complianceReport;
 
@@ -309,6 +313,20 @@
                 injectedAppId = null;
                 CleanUri();
             }
+
+            // Hide right sidebar for compliance report.
+
+            if(newReportType == ReportType.Compliance)
+            {
+                _showRightSidebar = false;
+                sidebarRightWidth = 0;                
+            }
+            else
+            {
+                _showRightSidebar = true;
+                sidebarRightWidth = GlobalConst.kSidebarRightWidth;
+            }
+
             actReportFilters.ReportType = newReportType;
             SetProperRoleForReport();
             actReportFilters.SetDisplayedTimeSelection();

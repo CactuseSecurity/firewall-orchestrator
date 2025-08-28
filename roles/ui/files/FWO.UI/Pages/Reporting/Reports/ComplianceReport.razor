@@ -19,7 +19,7 @@
 
         @if (EmptyColumns[0] == false)
         {
-            <Column TableItem="RuleViewData" Context="rule" Title="MgmtId" Field="@(r => r.Compliance)" Sortable="true" Filterable="true" Hideable="true">
+            <Column TableItem="RuleViewData" Context="rule" Title="MgmtId" Field="@(r => r.MgmtId)" Sortable="true" Filterable="true" Hideable="true">
                 <Template>
                     @((MarkupString)rule.MgmtId)
                 </Template>
@@ -28,6 +28,15 @@
 
         @if (EmptyColumns[1] == false)
         {
+            <Column TableItem="RuleViewData" Context="rule" Title="MgmtName" Field="@(r => r.MgmtName)" Sortable="true" Filterable="true" Hideable="true">
+                <Template>
+                    @((MarkupString)rule.MgmtName)
+                </Template>
+            </Column>
+        }
+
+        @if (EmptyColumns[2] == false)
+        {
             <Column TableItem="RuleViewData" Context="rule" Title="Uid" Field="@(r => r.Uid)" Sortable="true" Filterable="true" Hideable="true">
                 <Template>
                     @((MarkupString)rule.Uid)
@@ -35,7 +44,7 @@
             </Column>
         }
 
-        @if (EmptyColumns[2] == false)
+        @if (EmptyColumns[3] == false)
         {
             <Column TableItem="RuleViewData" Context="rule" Title="Name" Field="@(r => r.Name)" Sortable="true" Filterable="true" Hideable="true">
                 <Template>
@@ -44,7 +53,7 @@
             </Column>
         }
 
-        @if (EmptyColumns[3] == false)
+        @if (EmptyColumns[4] == false)
         {
             <Column TableItem="RuleViewData" Context="rule" Title="Source" Field="@(r => r.Source)" Sortable="true" Filterable="true" Hideable="true">
                 <Template>
@@ -53,7 +62,7 @@
             </Column>
         }
 
-        @if (EmptyColumns[4] == false)
+        @if (EmptyColumns[5] == false)
         {
             <Column TableItem="RuleViewData" Context="rule" Title="Destination" Field="@(r => r.Destination)" Sortable="true" Filterable="true" Hideable="true">
                 <Template>
@@ -62,7 +71,7 @@
             </Column>
         }
 
-        @if (EmptyColumns[5] == false)
+        @if (EmptyColumns[6] == false)
         {
             <Column TableItem="RuleViewData" Context="rule" Title="Services" Field="@(r => r.Services)" Sortable="true" Filterable="true" Hideable="true">
                 <Template>
@@ -71,7 +80,7 @@
             </Column>
         }
 
-        @if (EmptyColumns[6] == false)
+        @if (EmptyColumns[7] == false)
         {
             <Column TableItem="RuleViewData" Context="rule" Title="Action" Field="@(r => r.Action)" Sortable="true" Filterable="true" Hideable="true">
                 <Template>
@@ -80,7 +89,7 @@
             </Column>
         }
 
-        @if (EmptyColumns[7] == false)
+        @if (EmptyColumns[8] == false)
         {
             <Column TableItem="RuleViewData" Context="rule" Title="InstallOn" Field="@(r => r.InstallOn)" Sortable="true" Filterable="true" Hideable="true">
                 <Template>
@@ -89,7 +98,7 @@
             </Column>
         }
 
-        @if (EmptyColumns[8] == false)
+        @if (EmptyColumns[9] == false)
         {
             <Column TableItem="RuleViewData" Context="rule" Title="Compliance" Field="@(r => r.Compliance)" Sortable="true" Filterable="true" Hideable="true">
                 <Template>
@@ -98,7 +107,7 @@
             </Column>
         }
 
-        @if (EmptyColumns[9] == false)
+        @if (EmptyColumns[10] == false)
         {
             <Column TableItem="RuleViewData" Context="rule" Title="ViolationDetails" Field="@(r => r.ViolationDetails)" Sortable="true" Filterable="true" Hideable="true">
                 <Template>
@@ -107,7 +116,7 @@
             </Column>
         }
 
-        @if (EmptyColumns[10] == false)
+        @if (EmptyColumns[11] == false)
         {
             <Column TableItem="RuleViewData" Context="rule" Title="ChangeID" Field="@(r => r.ChangeID)" Sortable="true" Filterable="true" Hideable="true">
                 <Template>
@@ -116,7 +125,7 @@
             </Column>
         }
 
-        @if (EmptyColumns[11] == false)
+        @if (EmptyColumns[12] == false)
         {
             <Column TableItem="RuleViewData" Context="rule" Title="AdoITID" Field="@(r => r.AdoITID)" Sortable="true" Filterable="true" Hideable="true" DefaultSortColumn="true">
                 <Template>
@@ -125,7 +134,7 @@
             </Column>
         }
 
-        @if (EmptyColumns[12] == false)
+        @if (EmptyColumns[13] == false)
         {
             <Column TableItem="RuleViewData" Context="rule" Title="Comment" Field="@(r => r.Comment)" Sortable="true" Filterable="true" Hideable="true">
                 <Template>
@@ -134,11 +143,20 @@
             </Column>
         }
 
-        @if (EmptyColumns[13] == false)
+        @if (EmptyColumns[14] == false)
         {
             <Column TableItem="RuleViewData" Context="rule" Title="RulebaseId" Field="@(r => r.RulebaseId)" Sortable="true" Filterable="true" Hideable="true">
                 <Template>
                     @((MarkupString)rule.RulebaseId)
+                </Template>
+            </Column>
+        }
+
+        @if (EmptyColumns[15] == false)
+        {
+            <Column TableItem="RuleViewData" Context="rule" Title="RulebaseName" Field="@(r => r.RulebaseName)" Sortable="true" Filterable="true" Hideable="true">
+                <Template>
+                    @((MarkupString)rule.RulebaseName)
                 </Template>
             </Column>
         }
@@ -202,7 +220,7 @@
     private RuleViewData[] _visibleRules = [];
     private RuleViewData[] _allRules = [];
 
-    private const int ColumnsCount = 14;
+    private const int ColumnsCount = 16;
     private bool[] EmptyColumns = new bool[ColumnsCount];
 
     private NatRuleDisplayHtml? ruleDisplay;

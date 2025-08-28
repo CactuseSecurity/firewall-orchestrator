@@ -17,15 +17,29 @@ namespace FWO.Test
         }
 
         [Test]
-        public async Task GetViolationDiffs_MinimalTestData_CreatesCorrectDiffs()
+        public async Task ProcessChunksParallelized_MinimalTestData_CreatesCorrectDiffs()
         {
             // ARRANGE
 
+            CancellationToken ct = default;
+            List<Rule>[] ruleChunks = new List<Rule>[2];
+
             _testReport.DiffReferenceInDays = 7;
+            _testReport.IsDiffReport = true;
 
-            Dictionary<ComplianceViolation, char> violationDiffs = new();
+            Rule rule1 = new()
+            {
+                Id = 1,
+                Name = "Test Rule 1",
+                Violations = new List<ComplianceViolation>()
+            };
 
-            List<ComplianceViolation> allViolations = new();
+            Rule rule2 = new()
+            {
+                Id = 2,
+                Name = "Test Rule 2",
+                Violations = new List<ComplianceViolation>()
+            };
 
             ComplianceViolation unchanged = new()
             {
@@ -53,7 +67,7 @@ namespace FWO.Test
             ComplianceViolation irrelevant = new()
             {
                 Id = 3,
-                RuleId = 1,
+                RuleId = 2,
                 FoundDate = DateTime.Now.AddDays(-(_testReport.DiffReferenceInDays + 2)),
                 RemovedDate = DateTime.Now.AddDays(-(_testReport.DiffReferenceInDays + 1)),
                 Details = "Test violation 3",
@@ -65,7 +79,7 @@ namespace FWO.Test
             ComplianceViolation added = new()
             {
                 Id = 4,
-                RuleId = 1,
+                RuleId = 2,
                 FoundDate = DateTime.Now.AddDays(-1),
                 Details = "Test violation 4",
                 RiskScore = 0,
@@ -73,24 +87,23 @@ namespace FWO.Test
                 CriterionId = 3
             };
 
-            allViolations.AddRange([unchanged, removed, irrelevant, added]);
+            rule1.Violations.AddRange([unchanged, removed]);
+            rule2.Violations.AddRange([irrelevant, added]);
 
-            _testReport.Violations.AddRange([unchanged, added]);
+            ruleChunks[0] = new List<Rule> { rule1 };
+            ruleChunks[1] = new List<Rule> { rule2 };
+
+            string controlRule1 = $"Removed: ({removed.RemovedDate:dd.MM.yyyy} - {removed.RemovedDate:hh:mm}) : Test violation 2";
+            string controlRule2 = $"Found: ({added.FoundDate:dd.MM.yyyy} - {added.FoundDate:hh:mm}) : Test violation 4";
 
             // ACT
 
-            violationDiffs = await _testReport.GetViolationDiffs(allViolations);
+            List<Rule> testResults = await _testReport.ProcessChunksParallelized(ruleChunks, ct);
 
             // ASSERT
 
-            Assert.That(!violationDiffs.Keys.Contains(unchanged));
-            Assert.That(violationDiffs[removed] == '-');
-            Assert.That(!violationDiffs.Keys.Contains(irrelevant));
-            Assert.That(violationDiffs[added] == '+');
-
+            Assert.That(testResults.First(r => r.Id == rule1.Id).ViolationDetails == controlRule1, message: $"{testResults.First(r => r.Id == rule1.Id).ViolationDetails} VS. {controlRule1}");
+            Assert.That(testResults.First(r => r.Id == rule2.Id).ViolationDetails == controlRule2 , message: $"{testResults.First(r => r.Id == rule2.Id).ViolationDetails} VS. {controlRule2}");
         }
-
-
     }
-
 }

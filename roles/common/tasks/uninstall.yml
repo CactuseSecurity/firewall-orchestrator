@@ -115,11 +115,7 @@
 
     - name: disable apache modules (due to a bug with php mod not properly getting purged)
       apache2_module: state=absent name={{ item }}
-      loop:
-        - php
-        - proxy_http
-        - rewrite
-        - proxy_wstunnel
+      loop: "{{ apache2_required_modules }}"
       ignore_errors: true
 
     - name: uninstall all packages for {{ product_name }}, keeping git and ansible

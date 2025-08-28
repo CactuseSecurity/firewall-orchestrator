@@ -172,6 +172,13 @@ namespace FWO.Ui.Display
                             collectedUserNetworkObjects.Add(new NetworkLocation(networkObject.User, nwObject.Object));
                         }
                     }
+
+                    // Fallback for empty groups.
+
+                    if (!networkObject.Object.ObjectGroupFlats.Any())
+                    {
+                        collectedUserNetworkObjects.Add(networkObject);
+                    }
                 }
                 else
                 {

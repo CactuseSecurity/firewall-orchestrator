@@ -135,7 +135,7 @@ insert into config (config_key, config_value, config_user) VALUES ('manageOwnerL
 insert into config (config_key, config_value, config_user) VALUES ('modModelledMarker', 'FWOC', 0);
 insert into config (config_key, config_value, config_user) VALUES ('modModelledMarkerLocation', 'rulename', 0);
 insert into config (config_key, config_value, config_user) VALUES ('ruleRecognitionOption', '{"nwRegardIp":true,"nwRegardName":false,"nwRegardGroupName":false,"nwResolveGroup":false,"svcRegardPortAndProt":true,"svcRegardName":false,"svcRegardGroupName":false,"svcResolveGroup":true,"svcSplitPortRanges":false}', 0);
-insert into config (config_key, config_value, config_user) VALUES ('availableReportTypes', '[1,2,3,4,5,6,7,8,9,10,21,22,31,32]', 0);
+insert into config (config_key, config_value, config_user) VALUES ('availableReportTypes', '[1,2,3,4,5,6,7,8,9,10,21,22,31]', 0);
 insert into config (config_key, config_value, config_user) VALUES ('varianceAnalysisSleepTime', '0', 0);
 insert into config (config_key, config_value, config_user) VALUES ('varianceAnalysisStartAt', '00:00:00', 0);
 insert into config (config_key, config_value, config_user) VALUES ('varianceAnalysisSync', 'false', 0);
@@ -150,6 +150,7 @@ insert into config (config_key, config_value, config_user) VALUES ('complianceCh
 insert into config (config_key, config_value, config_user) VALUES ('complianceCheckScheduledDiffReports', '[]', 0);
 insert into config (config_key, config_value, config_user) VALUES ('complianceCheckDiffReferenceInterval', '0', 0);
 insert into config (config_key, config_value, config_user) VALUES ('complianceCheckInternetZoneObject', '', 0);
+insert into config (config_key, config_value, config_user) VALUES ('complianceCheckMaxPrintedViolations', '0', 0);
 insert into config (config_key, config_value, config_user) VALUES ('availableModules', '[1,2,3,4,5,6]', 0);
 insert into config (config_key, config_value, config_user) VALUES ('debugConfig', '{"debugLevel":8, "extendedLogComplianceCheck":true, "extendedLogReportGeneration":true, "extendedLogScheduler":true}', 0);
 
@@ -274,7 +275,7 @@ INSERT INTO "report_template" ("report_filter","report_template_name","report_te
                 "recertShowAnyMatch": true,
                 "recertificationDisplayPeriod": 30}}');
 INSERT INTO "report_template" ("report_filter","report_template_name","report_template_comment","report_template_owner", "report_parameters") 
-    VALUES ('',
+    VALUES ('action=accept',
         'Compliance: Unresolved violations','T0108', 0, 
         '{"report_type":31,"device_filter":{"management":[]},
             "time_filter": {
@@ -292,29 +293,7 @@ INSERT INTO "report_template" ("report_filter","report_template_name","report_te
             "compliance_filter": {
                 "isDiffReport": false,
                 "diffReferenceInDays": 0,
-                "showCompliantRules": false,
-                "excludedRuleActions": ["inner layer", "drop"]}}');
-INSERT INTO "report_template" ("report_filter","report_template_name","report_template_comment","report_template_owner", "report_parameters") 
-    VALUES ('',
-        'Compliance: Unresolved violations (Prototype)','T0108', 0, 
-        '{"report_type":32,"device_filter":{"management":[]},
-            "time_filter": {
-                "is_shortcut": true,
-                "shortcut": "now",
-                "report_time": "2022-01-01T00:00:00.0000000+01:00",
-                "timerange_type": "SHORTCUT",
-                "shortcut_range": "this year",
-                "offset": 0,
-                "interval": "DAYS",
-                "start_time": "2022-01-01T00:00:00.0000000+01:00",
-                "end_time": "2022-01-01T00:00:00.0000000+01:00",
-                "open_start": false,
-                "open_end": false},
-            "compliance_filter": {
-                "isDiffReport": false,
-                "diffReferenceInDays": 0,
-                "showCompliantRules": false,
-                "excludedRuleActions": ["inner layer", "drop"]}}');
+                "showCompliantRules": true}}');
 
 insert into parent_rule_type (id, name) VALUES (1, 'section');          -- do not restart numbering
 insert into parent_rule_type (id, name) VALUES (2, 'guarded-layer');    -- restart numbering, rule restrictions are ANDed to all rules below it, layer is not entered if guard does not apply

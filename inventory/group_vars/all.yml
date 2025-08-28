@@ -163,3 +163,20 @@ csharp_test_start_dir: "{{ fworch_home }}/test/csharp/FWO.Test"
 # make sure lib role is only run once per host to save time
 # set initially to false
 lib_role_has_run: false
+
+#### apache settings
+
+apache2_required_modules:
+    - headers
+    - rewrite
+    - proxy
+    - proxy_http
+    - ssl
+    - proxy_wstunnel
+
+apache_security_headers:
+    - 'Header always set Strict-Transport-Security "max-age=31536000; includeSubDomains"'
+    - 'Header always set X-Frame-Options "SAMEORIGIN"'
+    - 'Header always set X-Content-Type-Options "nosniff"'
+
+apache_global_settings_file: /etc/apache2/conf-available/security.conf

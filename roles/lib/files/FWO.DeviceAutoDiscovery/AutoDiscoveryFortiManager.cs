@@ -94,7 +94,6 @@ namespace FWO.DeviceAutoDiscovery
             return ConvertAdmonsToManagements(customAdoms);
         }
 
-
         public async Task BuildAdomDeviceVdomStructure(string sessionId, List<Adom> customAdoms, FortiManagerClient restClientFM)
         {
             List<FortiGate> additionalVdomDevices = [];
@@ -103,37 +102,41 @@ namespace FWO.DeviceAutoDiscovery
                 RestResponse<FmApiTopLevelHelperDev> deviceResponse = await restClientFM.GetDevicesPerAdom(sessionId, adom.Name);
                 if (deviceResponse.StatusCode == HttpStatusCode.OK && deviceResponse.IsSuccessful)
                 {
-                    adom.DeviceList = deviceResponse?.Data?.Result[0].FortiGates;
+                    adom.DeviceList = deviceResponse.Data?.Result[0].FortiGates;
 
                     // now get vdoms per device
-
                     if (adom.DeviceList != null)
                     {
                         foreach (FortiGate fg in adom.DeviceList)
                         {
-                            Log.WriteDebug(Autodiscovery, $"found device {fg.Name} belonging to management VDOM {fg.MgtVdom}");
-                            if (fg.VdomList != null)
-                            {
-                                // add vdom as device
-                                foreach (Vdom vdom in fg.VdomList)
-                                {
-                                    Log.WriteDebug(Autodiscovery, $"found vdom {vdom.Name} belonging to device {fg.Name}");
-                                    // add vdom as device
-                                    additionalVdomDevices.Add(new FortiGate
-                                    {
-                                        Name = $"{fg.Name}{AdomSeparator}{vdom.Name}",
-                                        Hostname = fg.Hostname,
-                                        MgtVdom = vdom.Name,
-                                        VdomList = []
-                                    });
-                                }
-                            }
+                            BuildAdomDeviceVdomStructurePerPhysicalDevice(customAdoms);
                         }
                     }
                 }
                 if (additionalVdomDevices.Count > 0)
                 {
                     adom.DeviceList.AddRange(additionalVdomDevices);
+                }
+            }
+        }
+
+        public async Task BuildAdomDeviceVdomStructurePerPhysicalDevice(List<Adom> customAdoms)
+        {
+            Log.WriteDebug(Autodiscovery, $"found device {fg.Name} belonging to management VDOM {fg.MgtVdom}");
+            if (fg.VdomList != null)
+            {
+                // add vdom as device
+                foreach (Vdom vdom in fg.VdomList)
+                {
+                    Log.WriteDebug(Autodiscovery, $"found vdom {vdom.Name} belonging to device {fg.Name}");
+                    // add vdom as device
+                    additionalVdomDevices.Add(new FortiGate
+                    {
+                        Name = $"{fg.Name}{AdomSeparator}{vdom.Name}",
+                        Hostname = fg.Hostname,
+                        MgtVdom = vdom.Name,
+                        VdomList = []
+                    });
                 }
             }
         }

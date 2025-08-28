@@ -13,8 +13,6 @@ namespace FWO.DeviceAutoDiscovery
         public string Message { get; set; } = "";
     }
 
-    ///////////////////////////////////////////////////////////////////////////////////////////////////
-
     public class FmApiTopLevelHelper
     {
         [JsonProperty("id"), JsonPropertyName("id")]
@@ -47,12 +45,8 @@ namespace FWO.DeviceAutoDiscovery
 
         [JsonProperty("devices"), JsonPropertyName("devices")]
         public List<FortiGate> DeviceList { get; set; } = [];
-
-        // public List<Package> Packages = new List<Package>();
-        // public List<Assignment> Assignments { get; set; } = [];
     }
 
-    ///////////////////////////////////////////////////////////////////////////////////////////////////
 
     public class FmApiTopLevelHelperDev
     {

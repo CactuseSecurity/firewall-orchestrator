@@ -5,7 +5,7 @@ using FWO.Data;
 
 namespace FWO.Recert
 {
-    public class RecertHandler(ApiConnection apiConnection, UserConfig userConfig, Action<Exception?, string, string, bool> DisplayMessageInUi)
+    public class RecertHandler(ApiConnection apiConnection, UserConfig userConfig)
     {
         public async Task RecertifyOwnerWithRules(FwoOwner owner, List<Rule> rules, string? comment = "")
         {

@@ -269,7 +269,7 @@
         {
             try
             {
-                RecertHandler recertHandler = new(apiConnection, userConfig, DisplayMessageInUi);
+                RecertHandler recertHandler = new(apiConnection, userConfig);
                 await recertHandler.RecertifyOwnerWithRules(AppHandler.Application, VarianceResult.GetAllOkRules());
                 await ModellingHandlerBase.LogChange(ModellingTypes.ChangeType.Recertify, ModellingTypes.ModObjectType.CommunicationProfile, 0,
                     $"Recertified Application: {AppHandler.Application.Name} with {VarianceResult.GetAllOkRules().Count.ToString()} rules",

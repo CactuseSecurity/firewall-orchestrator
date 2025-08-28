@@ -12,6 +12,7 @@ using FWO.Logging;
 using FWO.Mail;
 using FWO.Report;
 using FWO.Services;
+using System.Text;
 
 namespace FWO.Middleware.Server
 {
@@ -26,7 +27,6 @@ namespace FWO.Middleware.Server
         private List<UiUser> uiUsers = [];
         private RecertCheckParams? globCheckParams;
         private List<FwoOwner> owners = [];
-        private List<UserGroup> OwnerGroups = [];
         private const string LogMessageTitle = "Recertification Check";
 
         /// <summary>
@@ -62,7 +62,7 @@ namespace FWO.Middleware.Server
                 }
                 else
                 {
-                    OwnerGroups = await MiddlewareServerServices.GetInternalGroups(apiConnectionMiddlewareServer);
+                    List<UserGroup> OwnerGroups = await MiddlewareServerServices.GetInternalGroups(apiConnectionMiddlewareServer);
                     NotificationService notificationService = await NotificationService.CreateAsync(NotificationClient.Recertification, globalConfig, apiConnectionMiddlewareServer, OwnerGroups);
                     foreach (var owner in owners.Where(o => IsCheckTime(o)))
                     {
@@ -163,7 +163,7 @@ namespace FWO.Middleware.Server
             List<Rule> overdueRecerts = [];
             foreach (var rule in openRecerts)
             {
-                if (rule.Metadata.NextRecert >= DateTime.Now)
+                if (rule.Metadata.RuleRecertification.Count > 0 && rule.Metadata.RuleRecertification[0].NextRecertDate >= DateTime.Now)
                 {
                     upcomingRecerts.Add(rule);
                 }
@@ -232,24 +232,25 @@ namespace FWO.Middleware.Server
 
         private string PrepareRulesBody(List<Rule> upcomingRecerts, List<Rule> overdueRecerts, string ownerName)
         {
-            string body = "";
+            StringBuilder body = new ();
             if(upcomingRecerts.Count > 0)
             {
-                body += globalConfig.RecCheckEmailUpcomingText.Replace(Placeholder.APPNAME, ownerName) + "\r\n\r\n";
+                body.AppendLine(globalConfig.RecCheckEmailUpcomingText.Replace(Placeholder.APPNAME, ownerName) + "\r\n\r\n");
                 foreach(var rule in upcomingRecerts)
                 {
-                    body += PrepareLine(rule);
+                    body.AppendLine(PrepareLine(rule));
                 }
             }
-            if(overdueRecerts.Count > 0)
+            body.AppendLine("\r\n\r\n");
+            if (overdueRecerts.Count > 0)
             {
-                body += globalConfig.RecCheckEmailOverdueText.Replace(Placeholder.APPNAME, ownerName) + "\r\n\r\n";
-                foreach(var rule in overdueRecerts)
+                body.AppendLine(globalConfig.RecCheckEmailOverdueText.Replace(Placeholder.APPNAME, ownerName) + "\r\n\r\n");
+                foreach (var rule in overdueRecerts)
                 {
-                    body += PrepareLine(rule);
+                    body.AppendLine(PrepareLine(rule));
                 }
             }
-            return body;
+            return body.ToString();
         }
 
         private static string PrepareLine(Rule rule)

@@ -1,4 +1,4 @@
-﻿using FWO.Logging;
+using FWO.Logging;
 using GraphQL;
 using GraphQL.Client.Http;
 using Newtonsoft.Json.Linq;
@@ -70,7 +70,7 @@ namespace FWO.Api.Client
                         if (response.Data == null)
                         {
                             // Terminate subscription
-                            subscription.Dispose();
+                            subscription?.Dispose();
                         }
                         else
                         {

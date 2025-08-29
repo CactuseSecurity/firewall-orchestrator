@@ -36,7 +36,7 @@ namespace FWO.Report
             DateTime time;
             try
             {
-                time = DateTime.ParseExact(configTime, DynGraphqlQuery.fullTimeFormat, null);
+                time = DateTime.ParseExact(configTime, DynGraphqlQuery.fullTimeFormat, System.Globalization.CultureInfo.InvariantCulture);
             }
             catch (FormatException)
             {

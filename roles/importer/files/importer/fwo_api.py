@@ -5,7 +5,7 @@ import traceback
 import time
 from pprint import pformat
 import string
-from typing import Optional, Any
+from typing import Any
 
 import fwo_globals
 from fwo_log import getFwoLogger
@@ -16,6 +16,7 @@ from fwo_exceptions import FwoImporterError, FwoApiLoginFailed
 from services.enums import Services
 from services.service_provider import ServiceProvider
 
+JSON_CONTENT_TYPE = 'application/json'
 
 # this class is used for making calls to the FWO API (will supersede fwo_api.py)
 class FwoApi():
@@ -40,7 +41,7 @@ class FwoApi():
 
         role = 'importer'
         request_headers = { 
-            'Content-Type': 'application/json', 
+            'Content-Type': JSON_CONTENT_TYPE, 
             'Authorization': f'Bearer {self.FwoJwt}', 
             'x-hasura-role': role 
         }
@@ -101,7 +102,7 @@ class FwoApi():
                 session.verify = False
             else: 
                 session.verify = fwo_globals.verify_certs
-            session.headers = {'Content-Type': 'application/json'}
+            session.headers = {'Content-Type': JSON_CONTENT_TYPE}
 
             try:
                 response = session.post(user_management_api_base_url + method, data=json.dumps(payload))
@@ -147,7 +148,7 @@ class FwoApi():
 
             session.headers = {
                 'Authorization': f"Bearer {self.FwoJwt}",
-                'Content-Type': 'application/json'
+                'Content-Type': JSON_CONTENT_TYPE
             }
 
             try:

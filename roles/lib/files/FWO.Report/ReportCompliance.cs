@@ -499,16 +499,9 @@ namespace FWO.Report
                     if (value is string str)
                     {
                         str = str
-                                .Replace("<br>", "\n")
-                                .Replace("\"", "\"\"");
-
-                        if (propertyInfo.Name != "ViolationDetails")
-                        {
-                            str = str
-                                    .Replace("\r\n", " | ")
-                                    .Replace("\n", " | ")
-                                    .Replace("<br>", " | ");
-                        }
+                                .Replace("\r\n", " | ")
+                                .Replace("\n", " | ")
+                                .Replace("<br>", " | ");
 
                         if (str.Length > _maxCellSize)
                         {

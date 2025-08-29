@@ -309,36 +309,33 @@ namespace FWO.Middleware.Server
         {
             ReportSchedulerConfig? schedulerConfig = _reportSchedulerConfig.FirstOrDefault(config => config.ReportScheduleID == reportScheduleID);
 
-            if (schedulerConfig is ReportSchedulerConfig reportSchedulerConfig && reportSchedulerConfig.ToEmail)
+            if (schedulerConfig is ReportSchedulerConfig reportSchedulerConfig && reportSchedulerConfig.ToEmail && _userConfig?.GlobalConfig is GlobalConfig globalConfig)
             {
-                if (_userConfig?.GlobalConfig is GlobalConfig globalConfig)
+                string decryptedSecret = AesEnc.TryDecrypt(globalConfig.EmailPassword, false, "Report Scheduler", "Could not decrypt mailserver password.");
+
+                EmailConnection emailConnection = new(
+                    globalConfig.EmailServerAddress,
+                    globalConfig.EmailPort,
+                    globalConfig.EmailTls,
+                    globalConfig.EmailUser,
+                    decryptedSecret,
+                    globalConfig.EmailSenderAddress
+                );
+
+                MailData? mail = PrepareEmail(reportSchedulerConfig);
+
+                if (mail != null)
                 {
-                    string decryptedSecret = AesEnc.TryDecrypt(globalConfig.EmailPassword, false, "Report Scheduler", "Could not decrypt mailserver password.");
-
-                    EmailConnection emailConnection = new(
-                        globalConfig.EmailServerAddress,
-                        globalConfig.EmailPort,
-                        globalConfig.EmailTls,
-                        globalConfig.EmailUser,
-                        decryptedSecret,
-                        globalConfig.EmailSenderAddress
-                    );
-
-                    MailData? mail = PrepareEmail(reportSchedulerConfig);
-
-                    if (mail != null)
+                    bool emailSend = await MailKitMailer.SendAsync(mail, emailConnection, false, new CancellationToken());
+                    if (emailSend)
                     {
-                        bool emailSend = await MailKitMailer.SendAsync(mail, emailConnection, false, new CancellationToken());
-                        if (emailSend)
-                        {
-                            Log.WriteInfo(LogMessageTitle, "Report email sent successfully.");
-                        }
-                        else
-                        {
-                            Log.WriteError(LogMessageTitle, "Report email could not be sent.");
-                        }
+                        Log.WriteInfo(LogMessageTitle, "Report email sent successfully.");
                     }
-                }                
+                    else
+                    {
+                        Log.WriteError(LogMessageTitle, "Report email could not be sent.");
+                    }
+                }           
             }
         }
 

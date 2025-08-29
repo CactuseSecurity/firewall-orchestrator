@@ -59,7 +59,7 @@ namespace FWO.Middleware.Server.Controllers
             UiUser targetUser = new() { Name = User.FindFirstValue("unique_name") ?? "", Dn = User.FindFirstValue("x-hasura-uuid") ?? "" };
             string jwt = await authManager.AuthorizeUserAsync(targetUser, validatePassword: false);
             apiConnectionUserContext = new GraphQlApiConnection(ConfigFile.ApiServerUri, jwt);
-            apiConnectionUserContext.SetProperRole(User, [Roles.Admin, Roles.Auditor, Roles.Reporter, Roles.ReporterViewAll, Roles.Modeller, Roles.Recertifier]);
+            apiConnectionUserContext.SetProperRole(User, [Roles.Admin, Roles.Auditor, Roles.Reporter, Roles.ReporterViewAll, Roles.Modeller, Roles.Recertifier, Roles.Importer]);
             return true;
         }
     }

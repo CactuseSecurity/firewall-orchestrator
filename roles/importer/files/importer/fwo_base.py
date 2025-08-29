@@ -419,33 +419,6 @@ def init_service_provider():
     service_provider.register(Services.UID2ID_MAPPER, lambda: Uid2IdMapper(), Lifetime.IMPORT)
     return service_provider
 
-def find_first_diff(a, b, path="root"):
-    if type(a) is not type(b):
-        if (a is None or a == '') and (b is None or b == ''):
-            return None
-        return f"Type mismatch at {path}: {type(a)} != {type(b)}"
-    if isinstance(a, dict):
-        for k in a:
-            if k not in b:
-                return f"Key '{k}' missing in second object at {path}"
-            res = find_first_diff(a[k], b[k], f"{path}.{k}")
-            if res:
-                return res
-        for k in b:
-            if k not in a:
-                return f"Key '{k}' missing in first object at {path}"
-    elif isinstance(a, list):
-        for i, (x, y) in enumerate(zip(a, b)):
-            res = find_first_diff(x, y, f"{path}[{i}]")
-            if res:
-                return res
-        if len(a) != len(b):
-            return f"list length mismatch at {path}: {len(a)} != {len(b)}"
-    else:
-        if a != b:
-            return f"Value mismatch at {path}: {a} != {b}"
-    return None
-
 def find_all_diffs(a, b, path="root"):
     diffs = []
     if isinstance(a, dict):

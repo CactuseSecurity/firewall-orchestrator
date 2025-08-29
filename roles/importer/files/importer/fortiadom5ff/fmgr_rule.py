@@ -52,13 +52,13 @@ def normalize_rulebases(
     for gateway in nativeConfig['gateways']:
         normalize_rulebases_for_each_link_destination(
             gateway, mgm_uid, fetched_rulebase_uids, nativeConfig, native_config_global,
-            is_global_loop_iteration, import_state, normalized_config_dict,
+            is_global_loop_iteration, normalized_config_dict,
             normalized_config_global)
 
     # todo: parse nat rulebase here
 
 
-def normalize_rulebases_for_each_link_destination(gateway, mgm_uid, fetched_rulebase_uids, nativeConfig, native_config_global, is_global_loop_iteration, import_state, normalized_config_dict, normalized_config_global):
+def normalize_rulebases_for_each_link_destination(gateway, mgm_uid, fetched_rulebase_uids, nativeConfig, native_config_global, is_global_loop_iteration, normalized_config_dict, normalized_config_global):
     logger = getFwoLogger()
     for rulebase_link in gateway['rulebase_links']:
         if rulebase_link['to_rulebase_uid'] not in fetched_rulebase_uids and rulebase_link['to_rulebase_uid'] != '':

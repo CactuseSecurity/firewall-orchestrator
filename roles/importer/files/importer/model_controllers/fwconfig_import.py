@@ -1,16 +1,14 @@
 import traceback
 
 import fwo_const
-from fwo_const import fwo_config_filename, importer_user_name, importer_base_dir
 from fwo_api_call import FwoApiCall
 from fwo_api import FwoApi
 import fwo_globals
 from fwo_exceptions import FwoImporterError, FwoApiFailedDeleteOldImports
-from fwo_config import readConfig
 from fwo_exceptions import ImportInterruption
 from fwo_log import getFwoLogger
 from model_controllers.import_state_controller import ImportStateController
-from fwo_base import ConfigAction, ConfFormat, find_all_diffs, find_first_diff
+from fwo_base import ConfigAction, ConfFormat, find_all_diffs
 from models.fwconfig_normalized import FwConfigNormalized
 from model_controllers.fwconfig_import_object import FwConfigImportObject
 from model_controllers.fwconfig_import_rule import FwConfigImportRule
@@ -19,15 +17,9 @@ from model_controllers.rule_enforced_on_gateway_controller import RuleEnforcedOn
 from services.service_provider import ServiceProvider
 from services.global_state import GlobalState
 from services.enums import Services
-from models.fwconfigmanagerlist import FwConfigManagerList, FwConfigManager
-from model_controllers.management_controller import ManagementController
+from models.fwconfigmanagerlist import FwConfigManager
+from model_controllers.management_controller import ManagementController, DeviceInfo, ConnectionInfo, CredentialInfo, ManagerInfo, DomainInfo
 from model_controllers.fwconfigmanagerlist_controller import FwConfigManagerListController
-from services.global_state import GlobalState
-from services.service_provider import ServiceProvider
-from services.enums import Services
-from model_controllers.management_controller import ManagementController
-from model_controllers.import_state_controller import ImportStateController
-from model_controllers.fworch_config_controller import FworchConfigController
 
 
 # this class is used for importing a config into the FWO API
@@ -79,29 +71,33 @@ class FwConfigImport():
             currently we always only have one config per manager
             """
             for config in manager.Configs:
-                global_state.normalized_config = config
-                if manager:
-                    # store global config as it is needed when importing sub managers which might reference it
-                    global_state.global_normalized_config = config
-                mgm_id = self.import_state.lookupManagementId(manager.ManagerUid)
-                if mgm_id is None:
-                    raise FwoImporterError(f"could not find manager id in DB for UID {manager.ManagerUid}")
-                #TODO: clean separation between values relevant for all managers and those only relevant for specific managers
-                self.import_state.MgmDetails.Id = mgm_id
-                self.import_state.MgmDetails.Uid = manager.ManagerUid
-                self.import_state.MgmDetails.Name = manager.ManagerName
-                self.import_state.MgmDetails.IsSuperManager = manager.IsSuperManager
-                if not manager.IsSuperManager:
-                    self.import_state.MgmDetails.SubManagerIds = []
-                    self.import_state.MgmDetails.SubManagers = []
-                config_importer = FwConfigImport()
-                config_importer.import_single_config(manager)
-                if import_state.Stats.ErrorCount>0:
-                    raise FwoImporterError("Import failed due to errors.")
-                else:
-                    if self.import_state.DebugLevel > 7: #TODO: always use this?
-                        config_importer.consistency_check_db()
-                    config_importer.write_latest_config()
+                self.import_config(service_provider, import_state, manager, config)
+
+    def import_config(self, service_provider: ServiceProvider, import_state: ImportStateController, manager: FwConfigManager, config: FwConfigNormalized):
+        global_state = service_provider.get_service(Services.GLOBAL_STATE)
+        global_state.normalized_config = config
+        if manager:
+            # store global config as it is needed when importing sub managers which might reference it
+            global_state.global_normalized_config = config
+        mgm_id = self.import_state.lookupManagementId(manager.ManagerUid)
+        if mgm_id is None:
+            raise FwoImporterError(f"could not find manager id in DB for UID {manager.ManagerUid}")
+        #TODO: clean separation between values relevant for all managers and those only relevant for specific managers
+        self.import_state.MgmDetails.Id = mgm_id
+        self.import_state.MgmDetails.Uid = manager.ManagerUid
+        self.import_state.MgmDetails.Name = manager.ManagerName
+        self.import_state.MgmDetails.IsSuperManager = manager.IsSuperManager
+        if not manager.IsSuperManager:
+            self.import_state.MgmDetails.SubManagerIds = []
+            self.import_state.MgmDetails.SubManagers = []
+        config_importer = FwConfigImport()
+        config_importer.import_single_config(manager)
+        if import_state.Stats.ErrorCount>0:
+            raise FwoImporterError("Import failed due to errors.")
+        else:
+            if self.import_state.DebugLevel > 7: #TODO: always use this?
+                config_importer.consistency_check_db()
+            config_importer.write_latest_config()
 
 
     def clear_management(self) -> FwConfigManagerListController:
@@ -133,8 +129,13 @@ class FwConfigImport():
             for subManagerId in self.import_state.MgmDetails.SubManagerIds:
                 # Fetch sub management details
                 mgm_controller = ManagementController(
-                    hostname='', mgm_id=int(subManagerId), uid='', devices={},
-                    name='', deviceTypeName='', deviceTypeVersion=''
+                    mgm_id=int(subManagerId), uid='', devices={},
+                    device_info=DeviceInfo(),
+                    connection_info=ConnectionInfo(),
+                    importer_hostname='',
+                    credential_info=CredentialInfo(),
+                    manager_info=ManagerInfo(),
+                    domain_info=DomainInfo()
                 )
                 mgm_details_raw = mgm_controller.get_mgm_details(fwo_api, subManagerId)
                 mgm_details = ManagementController.fromJson(mgm_details_raw)
@@ -343,7 +344,7 @@ class FwConfigImport():
         normalized_config = self.NormalizedConfig
         normalized_config_from_db = self.get_latest_config_from_db()
         if normalized_config != normalized_config_from_db:
-            logger.error(f"Normalized config for mgm id {self.import_state.MgmDetails.Id} is inconsistent to database state: {find_first_diff(normalized_config.model_dump(), normalized_config_from_db.model_dump())}")
             all_diffs = find_all_diffs(normalized_config.model_dump(), normalized_config_from_db.model_dump())
-            logger.debug(f"all diffs: {all_diffs}")
+            logger.error(f"normalized config for mgm id {self.import_state.MgmDetails.Id} is inconsistent to database state: {all_diffs[0]}")
+            logger.debug(f"all differences: {all_diffs}")
             raise FwoImporterError("the database state created by this import is not consistent to the normalized config")

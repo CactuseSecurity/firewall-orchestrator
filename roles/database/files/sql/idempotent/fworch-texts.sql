@@ -3507,6 +3507,8 @@ INSERT INTO txt VALUES ('T0107', 'German',  'Aktuell aktive Regeln, die zur Reze
 INSERT INTO txt VALUES ('T0107', 'English', 'Currently active rules with upcoming recertification');
 INSERT INTO txt VALUES ('T0108', 'German',  'Alle nicht gel&ouml;sten Compliance-Verletzungen');
 INSERT INTO txt VALUES ('T0108', 'English', 'All unresolved compliance violations');
+INSERT INTO txt VALUES ('T0109', 'German',  'Veränderungen der Compliance-Verletzungen in Zeitraum x');
+INSERT INTO txt VALUES ('T0109', 'English', 'Changes in compliance violations in period x');
 
 -- Contextual Info (Tooltips)
 INSERT INTO txt VALUES ('C9000', 'German',  'Dieses Objekt wurde deaktiviert und sollte von der App Rolle entfernt werden.');

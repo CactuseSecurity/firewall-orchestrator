@@ -572,14 +572,7 @@ namespace FWO.Report
 
         private void AppendRulesForRulebaseHtml(ref StringBuilder report, RulebaseLink rbLink, ManagementReport managementReport, DeviceReport device, int chapterNumber, RuleDisplayHtml ruleDisplayHtml)
         {
-            Rule[]? rb = GetRulesByRulebaseId(rbLink.NextRulebaseId, managementReport);
-
-            if (rb == null)
-            {
-                return;
-            }
-
-            foreach (var rule in rb)
+            foreach (var rule in _rulesCache[(device.Id, managementReport.Id)])
             {
                 if (string.IsNullOrEmpty(rule.SectionHeader))
                 {
@@ -612,13 +605,6 @@ namespace FWO.Report
                 else
                 {
                     report.AppendLine(RuleDisplayHtml.DisplaySectionHeader(rule, ColumnCount));
-                }
-
-                // if there is a rulebase link starting from the current rule id, follow it
-                RulebaseLink? nextRbLink = device.RulebaseLinks.FirstOrDefault(_ => _.FromRuleId == rule.Id);
-                if (nextRbLink != null)
-                {
-                    AppendRulesForRulebaseHtml(ref report, nextRbLink, managementReport, device, chapterNumber, ruleDisplayHtml);
                 }
             }
         }

@@ -424,6 +424,9 @@ namespace FWO.Config.Api.Data
 
         [JsonProperty("complianceCheckMaxPrintedViolations"), JsonPropertyName("complianceCheckMaxPrintedViolations")]
         public int ComplianceCheckMaxPrintedViolations { get; set; } = 0;
+        
+        [JsonProperty("reportSchedulerConfig"), JsonPropertyName("reportSchedulerConfig")]
+        public string ReportSchedulerConfig { get; set; } = "";
 
         [JsonProperty("debugConfig"), JsonPropertyName("debugConfig")]
         public string DebugConfig { get; set; } = "";

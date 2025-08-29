@@ -1081,31 +1081,45 @@ INSERT INTO "report_template" ("report_filter","report_template_name","report_te
                 "open_start": false,
                 "open_end": false},
             "compliance_filter": {
-                "isDiffReport": false,
-                "diffReferenceInDays": 0,
-                "showCompliantRules": true}}')
-ON CONFLICT (report_template_name) DO NOTHING; -- should be do nothing, so that customized reports are not overwritten, but we need to update the template for K001
+                "is_diff_report": false,
+                "diff_reference_in_days": 0,
+                "show_compliant_rules": true}}')
+ON CONFLICT (report_template_name) DO NOTHING;
 
--- add compliance diff report parameters to config
+-- add new report template for compliance: diffs
 
-INSERT INTO config (config_key, config_value, config_user) 
-VALUES ('complianceCheckScheduledDiffReportConfig', '[]', 0) 
-ON CONFLICT (config_key, config_user) DO NOTHING;
-
-INSERT INTO config (config_key, config_value, config_user) 
-VALUES ('complianceCheckDiffReferenceInterval', '0', 0) 
-ON CONFLICT (config_key, config_user) DO NOTHING;
-
--- add parameter to define network object that is treated as internet zone to config
-
-INSERT INTO config (config_key, config_value, config_user) 
-VALUES ('complianceCheckInternetZoneObject', '', 0)
-ON CONFLICT (config_key, config_user) DO NOTHING;
+INSERT INTO "report_template" ("report_filter","report_template_name","report_template_comment","report_template_owner", "report_parameters") 
+    VALUES ('action=accept',
+        'Compliance: Diffs','T0109', 0, 
+        '{"report_type":31,"device_filter":{"management":[]},
+            "time_filter": {
+                "is_shortcut": true,
+                "shortcut": "now",
+                "report_time": "2022-01-01T00:00:00.0000000+01:00",
+                "timerange_type": "SHORTCUT",
+                "shortcut_range": "this year",
+                "offset": 0,
+                "interval": "DAYS",
+                "start_time": "2022-01-01T00:00:00.0000000+01:00",
+                "end_time": "2022-01-01T00:00:00.0000000+01:00",
+                "open_start": false,
+                "open_end": false},
+            "compliance_filter": {
+                "is_diff_report": true,
+                "diff_reference_in_days": 7,
+                "show_compliant_rules": false}}')
+ON CONFLICT (report_template_name) DO NOTHING;
 
 -- add parameter to limit number of printed violations in compliance report to config
 
 INSERT INTO config (config_key, config_value, config_user)
 VALUES ('complianceCheckMaxPrintedViolations', '0', 0)
+ON CONFLICT (config_key, config_user) DO NOTHING;
+
+-- add parameter to persist report scheduler configs to config
+
+INSERT INTO config (config_key, config_value, config_user) 
+VALUES ('reportSchedulerConfig', '', 0)
 ON CONFLICT (config_key, config_user) DO NOTHING;
 
 -- adding labels (simple version without mapping tables and without foreign keys)

@@ -91,6 +91,21 @@
                     <input id="saveTemplateUnused" type="number" min="0" class="col-sm-2" @bind="reportTemplateInEdit.ReportParams.UnusedFilter.UnusedForDays">
                 </div>
             }
+            else if(reportTypeInEdit == ReportType.Compliance)
+            {
+                if (reportTemplateInEdit.ReportParams.ComplianceFilter.IsDiffReport)
+                {
+                    <div class="form-group row mt-2">
+                        <label for="saveTemplateComplianceDiffReference" class="col-sm-3 col-form-label col-form-label-sm">Diff-Interval:</label>
+                        <input id="saveTemplateComplianceDiffReference" type="number" min="0" class="col-sm-2" @bind="reportTemplateInEdit.ReportParams.ComplianceFilter.DiffReferenceInDays">
+                    </div>
+                }
+                <div class="form-group row mt-2">
+                    <label for="saveTemplateComplianceShowAnyRules" class="col-sm-3 col-form-label col-form-label-sm">Show compliant rules:</label>
+                    <input id="saveTemplateComplianceShowAnyRules" type="number" min="0" class="col-sm-2" @bind="reportTemplateInEdit.ReportParams.ComplianceFilter.ShowCompliantRules">
+                </div>
+
+            }
             else if(reportTypeInEdit.IsDeviceRelatedReport())
             {
                 <div class="form-group row mt-2">
@@ -187,6 +202,7 @@
         || authenticationStateTask!.Result.User.IsInRole(Roles.Admin)
         || authenticationStateTask!.Result.User.IsInRole(Roles.Auditor);
 
+    private bool _showComplianceReport => authenticationStateTask!.Result.User.IsInRole(Roles.Admin);
 
     protected override async Task OnInitializedAsync()
     {
@@ -205,7 +221,8 @@
             reportTemplates = (await apiConnection.SendQueryAsync<ReportTemplate[]>(ReportQueries.getReportTemplates, new { userId = userConfig.User.DbId })).ToList();
             reportTemplates = reportTemplates.Where(rt => (showRuleRelatedReports && ((ReportType)rt.ReportParams.ReportType).IsDeviceRelatedReport() || 
                                                            showModellingReports && ((ReportType)rt.ReportParams.ReportType).IsModellingReport() &&
-                                                           modOwnerList.FirstOrDefault(o => o.Id == rt.ReportParams.ModellingFilter.SelectedOwner.Id) != null)).ToList();
+                                                           modOwnerList.FirstOrDefault(o => o.Id == rt.ReportParams.ModellingFilter.SelectedOwner.Id) != null ||
+                                                           _showComplianceReport && ((ReportType)rt.ReportParams.ReportType) == ReportType.Compliance)).ToList();
             await InvokeAsync(StateHasChanged);
         }
         catch (Exception exception)

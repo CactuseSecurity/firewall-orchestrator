@@ -40,6 +40,7 @@ namespace FWO.Middleware.Server
         private ReportFile? _reportFile = null;
         private List<FileFormat>? _fileFormats = null;
         private List<ReportSchedulerConfig> _reportSchedulerConfig = new();
+        private bool _shouldAdaptDeviceFilter => !(_report is ReportCompliance);
 
 
         /// <summary>
@@ -153,14 +154,19 @@ namespace FWO.Middleware.Server
                     };
 
                     await apiConnectionUserContext.SendQueryAsync<object>(ReportQueries.countReportSchedule, new { report_schedule_id = reportSchedule.Id });
-                    await AdaptDeviceFilter(reportSchedule.Template.ReportParams, apiConnectionUserContext);
+
+                    if (_shouldAdaptDeviceFilter)
+                    {
+                        await AdaptDeviceFilter(reportSchedule.Template.ReportParams, apiConnectionUserContext);
+                    }
 
                     _report = await ReportGenerator.Generate(reportSchedule.Template, apiConnectionUserContext, _userConfig, DefaultInit.DoNothing, token);
+                    
                     if (_report != null)
                     {
                         await _report.GetObjectsInReport(int.MaxValue, apiConnectionUserContext, _ => Task.CompletedTask);
                         await WriteReportFile(_report, reportSchedule.OutputFormat, _reportFile);
-                        await SaveReport(_reportFile, _report.SetDescription(), apiConnectionUserContext);
+
                         Log.WriteInfo(LogMessageTitle, $"Scheduled report \"{reportSchedule.Name}\" with id \"{reportSchedule.Id}\" for user \"{reportSchedule.ScheduleOwningUser.Name}\" with id \"{reportSchedule.ScheduleOwningUser.DbId}\" successfully generated.");
 
                         if (_reportSchedulerConfig.FirstOrDefault(config => config.ReportScheduleID == reportSchedule.Id) is ReportSchedulerConfig config)
@@ -168,6 +174,11 @@ namespace FWO.Middleware.Server
                             if (config.ToEmail == true)
                             {
                                 await SendReportViaEmail(config);
+                            }
+
+                            if (config.ToArchive == true)
+                            {
+                                await SaveReport(_reportFile, _report.SetDescription(), apiConnectionUserContext);
                             }
                         }
                     }
@@ -278,6 +289,8 @@ namespace FWO.Middleware.Server
                     description = desc
                 };
                 await apiConnectionUser.SendQueryAsync<object>(ReportQueries.addGeneratedReport, queryVariables);
+
+                Log.WriteInfo(LogMessageTitle, "Report saved to archive successfully.");
             }
             catch (Exception)
             {

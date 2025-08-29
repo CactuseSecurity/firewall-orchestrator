@@ -13,6 +13,7 @@ def normalize_network_objects(import_state: ImportStateController, native_config
     
     if 'objects' not in native_config:
         return # no objects to normalize
+    # objects dicts have type as toplevel key due to rewrite_native_config_obj_type_as_key
     for current_obj_type in native_config['objects']:
         if not(current_obj_type in nw_obj_types and 'data' in native_config['objects'][current_obj_type]):
             continue

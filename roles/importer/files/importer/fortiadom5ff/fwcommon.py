@@ -85,7 +85,6 @@ def get_config(config_in: FwConfigManagerListController, importState: ImportStat
         except Exception:
             raise FwLogoutFailed("logout exception probably due to timeout - irrelevant, so ignoring it")
 
-        # delete_v: config_in ergibt fehler hier. Erwartet anderes format/nativeConfig Format
         write_native_config_to_file(importState, config_in.native_config)
 
     # delete_v: brauchen wir hier wirklich sid, dann muss die auch für parsing_config_only TRUE erzeugt werden
@@ -184,6 +183,7 @@ def normalize_single_manager_config(native_config: dict[str, Any], native_config
     current_svc_obj_types = deepcopy(svc_obj_types)
     if native_config['is-super-manager']:
         current_nw_obj_types = ["nw_obj_global_" + t for t in current_nw_obj_types]
+        current_nw_obj_types.append('nw_obj_global_firewall/internet-service-basic')
         current_svc_obj_types = ["svc_obj_global_" + t for t in current_svc_obj_types]
     else:
         current_nw_obj_types = [f"nw_obj_adom/{native_config.get('domain_name','')}_{t}" for t in current_nw_obj_types]

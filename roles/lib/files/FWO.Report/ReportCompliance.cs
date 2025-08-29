@@ -391,6 +391,12 @@ namespace FWO.Report
                         await AddViolationDataToViolationDetails(rule, violation, ref printedViolations, violationCount);
                     }
 
+                    if (IsDiffReport && rule.ViolationDetails == "")
+                    {
+                        DateTime from = DateTime.Now.AddDays(-DiffReferenceInDays);
+                        rule.ViolationDetails = $"No changes between {from:dd.MM.yyyy} - {from:HH:mm} and {DateTime.Now:dd.MM.yyyy} - {DateTime.Now:HH:mm}";
+                    }
+
                     return;
                 }
 
@@ -398,7 +404,7 @@ namespace FWO.Report
 
                 rule.Compliance = ComplianceViolationType.NotEvaluable;
             }
-            catch (System.Exception e)
+            catch (Exception e)
             {
                 Log.TryWriteLog(LogType.Error, "Compliance Report", $"Error while setting compliance data for rule {rule.Id}: {e.Message}", _debugConfig.ExtendedLogReportGeneration);
                 return;
@@ -413,13 +419,9 @@ namespace FWO.Report
                 {
                     TransformViolationDetailsToDiff(violation);
                 }
-                else
-                {
-                    return Task.CompletedTask; // Skip violations that are not relevant for the diff report
-                }
             }
 
-            if (_maxPrintedViolations == 0 || printedViolations < _maxPrintedViolations)
+            if ((_maxPrintedViolations == 0 || printedViolations < _maxPrintedViolations) && (!IsDiffReport || ViolationIsRelevantForDiff(violation)))
             {
                 if (rule.ViolationDetails != "")
                 {
@@ -434,7 +436,7 @@ namespace FWO.Report
 
             rule.Compliance = ComplianceViolationType.MultipleViolations;
 
-            if (_maxPrintedViolations > 0 && printedViolations == _maxPrintedViolations && violationCount < rule.Violations.Count)
+            if (_maxPrintedViolations > 0 && printedViolations == _maxPrintedViolations && violationCount < rule.Violations.Count) // TODO: Could this condition lead to multiple "Too many violations" suffixes?
             {
                 rule.ViolationDetails += $"<br>Too many violations to display ({rule.Violations.Count}), please check the system for details.";
             }
@@ -471,7 +473,12 @@ namespace FWO.Report
 
         private bool ShowRule(Rule rule)
         {
-            if (rule.Compliance == ComplianceViolationType.None)
+            if (rule.Compliance == ComplianceViolationType.None && !IsDiffReport)
+            {
+                return false;
+            }
+
+            if (IsDiffReport && rule.ViolationDetails.StartsWith("No changes"))
             {
                 return false;
             }

@@ -381,6 +381,7 @@ namespace FWO.Report
                 rule.ViolationDetails = "";
                 rule.Compliance = ComplianceViolationType.None;
                 int printedViolations = 0;
+                bool abbreviated = false;
 
                 if (await CheckEvaluability(rule))
                 {
@@ -388,7 +389,7 @@ namespace FWO.Report
                     {
                         ComplianceViolation violation = rule.Violations.ElementAt(violationCount - 1);
 
-                        await AddViolationDataToViolationDetails(rule, violation, ref printedViolations, violationCount);
+                        await AddViolationDataToViolationDetails(rule, violation, ref printedViolations, violationCount, ref abbreviated);
                     }
 
                     if (IsDiffReport && rule.ViolationDetails == "")
@@ -411,7 +412,7 @@ namespace FWO.Report
             }
         }
 
-        private Task AddViolationDataToViolationDetails(Rule rule, ComplianceViolation violation, ref int printedViolations, int violationCount)
+        private Task AddViolationDataToViolationDetails(Rule rule, ComplianceViolation violation, ref int printedViolations, int violationCount, ref bool abbreviated)
         {
             if (IsDiffReport)
             {
@@ -436,9 +437,10 @@ namespace FWO.Report
 
             rule.Compliance = ComplianceViolationType.MultipleViolations;
 
-            if (_maxPrintedViolations > 0 && printedViolations == _maxPrintedViolations && violationCount < rule.Violations.Count) // TODO: Could this condition lead to multiple "Too many violations" suffixes?
+            if (_maxPrintedViolations > 0 && printedViolations == _maxPrintedViolations && violationCount < rule.Violations.Count && !abbreviated)
             {
                 rule.ViolationDetails += $"<br>Too many violations to display ({rule.Violations.Count}), please check the system for details.";
+                abbreviated = true;
             }
 
             return Task.CompletedTask;

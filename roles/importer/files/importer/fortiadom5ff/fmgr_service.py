@@ -20,7 +20,7 @@ def normalize_service_objects(import_state: ImportStateController, native_config
     if native_config.get('is-super-manager', False):
         # finally add "Original" service object for natting (global domain only)
         original_obj_name = 'Original'
-        svc_objects.append(create_svc_object(name=original_obj_name, proto=0, color='1', port=None,\
+        svc_objects.append(create_svc_object(name=original_obj_name, proto=0, color='foreground', port=None,\
             comment='"original" service object created by FWO importer for NAT purposes'))
 
     normalized_config.update({'service_objects': svc_objects})
@@ -39,7 +39,7 @@ def normalize_service_object(obj_orig, svc_objects):
     if 'name' in obj_orig:
         name = str(obj_orig['name'])
 
-    color = str(obj_orig.get('color', 1))
+    color = 'foreground' #TODO: color mapping. what is color: 0? (nativeconfig entwickler_fortimanager_stand_2025-07-27, service object 'gALL')
     
     session_timeout = None   # todo: find the right timer
 

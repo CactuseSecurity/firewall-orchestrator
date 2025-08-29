@@ -13,7 +13,7 @@ from fwo_const import fwo_config_filename, graphql_query_path
 from fwo_exceptions import FwoImporterError
 from models.import_state import ImportState
 from model_controllers.fworch_config_controller import FworchConfigController
-from model_controllers.management_controller import ManagementController
+from model_controllers.management_controller import ManagementController, DeviceInfo, ConnectionInfo, CredentialInfo, ManagerInfo, DomainInfo
 from model_controllers.import_statistics_controller import ImportStatisticsController
 
 
@@ -104,8 +104,13 @@ class ImportStateController(ImportState):
 
         try: # get mgm_details (fw-type, port, ip, user credentials):
             mgm_controller = ManagementController(
-                hostname='', id=int(mgmId), uid='', devices={},
-                name='', deviceTypeName='', deviceTypeVersion=''
+                mgm_id=int(mgmId), uid='', devices={},
+                device_info=DeviceInfo(),
+                connection_info=ConnectionInfo(),
+                importer_hostname='',
+                credential_info=CredentialInfo(),
+                manager_info=ManagerInfo(),
+                domain_info=DomainInfo()
             )
             mgmDetails = mgm_controller.get_mgm_details(api_conn, mgmId, debugLevel) 
         except Exception as e:

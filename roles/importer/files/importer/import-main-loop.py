@@ -5,19 +5,20 @@ import traceback
 import argparse
 import sys
 import time
-import requests, warnings
+import warnings
 import urllib3
 
 from fwo_api import FwoApi
 from fwo_api_call import FwoApiCall
-from model_controllers.management_controller import ManagementController
+from model_controllers.management_controller import ManagementController, DeviceInfo, ConnectionInfo, CredentialInfo, ManagerInfo, DomainInfo
 from common import import_management
 from fwo_log import getFwoLogger #, LogLock
-import fwo_globals, fwo_config
+import fwo_globals
+import fwo_config
 from fwo_const import base_dir, importer_base_dir
 from fwo_exceptions import FwoApiLoginFailed, FwoApiFailedLockImport, FwLoginFailed
 from model_controllers.import_state_controller import ImportStateController
-from fwo_base import register_services
+from fwo_base import init_service_provider
 from services.enums import Services
 
 
@@ -53,7 +54,8 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     ### initializing
-    fwo_config = fwo_config.readConfig()
+    service_provider = init_service_provider()
+    fwo_config = service_provider.get_service(Services.FWO_CONFIG)
     fwo_api_base_url = fwo_config['fwo_api_base_url']
     fwo_major_version = fwo_config['fwo_major_version']
     user_management_api_base_url = fwo_config['user_management_api_base_url']
@@ -95,7 +97,6 @@ if __name__ == '__main__':
         fwo_api = FwoApi(fwo_api_base_url, jwt)
         fwo_api_call = FwoApiCall(fwo_api)
 
-        service_provider = register_services()
         global_state = service_provider.get_service(Services.GLOBAL_STATE)
 
         urllib3.disable_warnings()  # suppress ssl warnings only
@@ -126,7 +127,7 @@ if __name__ == '__main__':
                         logger.info("import-main-loop - shutdown requested. Exiting...")
                         raise SystemExit("import-main-loop - shutdown requested")
 
-                    service_provider = register_services()
+                    service_provider = init_service_provider()
                     global_state = service_provider.get_service(Services.GLOBAL_STATE)
                     import_state = ImportStateController.initializeImport(mgm['id'], fwo_api_uri=fwo_api_base_url, jwt=jwt, debugLevel=debug_level, version=fwo_major_version)
                     global_state.import_state = import_state
@@ -134,8 +135,15 @@ if __name__ == '__main__':
                     if skipping:
                         continue
                     try:
-                        mgm_controller = ManagementController(hostname='', id=int(import_state.MgmDetails.Id), 
-                                                uid='', devices={}, name='', deviceTypeName='', deviceTypeVersion='')
+                        mgm_controller = ManagementController(
+                            mgm_id=int(import_state.MgmDetails.Id), uid='', devices={},
+                            device_info=DeviceInfo(),
+                            connection_info=ConnectionInfo(),
+                            importer_hostname='',
+                            credential_info=CredentialInfo(),
+                            manager_info=ManagerInfo(),
+                            domain_info=DomainInfo()
+                        )
                         mgm_details = mgm_controller.get_mgm_details(fwo_api, import_state.MgmDetails.Id)                         
                     except Exception:
                         logger.error("import-main-loop - error while getting FW management details for mgm_id=" + str(import_state.MgmDetails.Id) + " - skipping: " + str(traceback.format_exc()))
@@ -144,7 +152,7 @@ if __name__ == '__main__':
                         logger.debug("import-main-loop: starting import of mgm_id=" + str(import_state.MgmDetails.Id))
                         try:
                             import_result = import_management(mgmId=import_state.MgmDetails.Id, debug_level_in=debug_level, version=import_state.ImportVersion,
-                                clearManagementData=args.clear, force=args.force, limit=int(api_fetch_limit), services_registered=True)
+                                clearManagementData=args.clear, force=args.force, limit=int(api_fetch_limit))
                         except (FwoApiFailedLockImport, FwLoginFailed) as e:
                             logger.info(f"import-main-loop - minor error while importing mgm_id={str(import_state.MgmDetails.Id)}, {str(traceback.format_exc())}") 
                             pass # minor errors for a single mgm, go to next one

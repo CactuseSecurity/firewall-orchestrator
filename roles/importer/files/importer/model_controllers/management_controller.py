@@ -1,4 +1,5 @@
 import hashlib
+from dataclasses import dataclass
 
 from models.management import Management
 from fwo_exceptions import FwLoginFailed
@@ -10,64 +11,112 @@ from services.service_provider import ServiceProvider, Services
 from fwo_encrypt import decrypt, read_main_key
 from fwo_exceptions import SecretDecryptionFailed, FwoApiFailure
 
-class ManagementController(Management):
+@dataclass
+class DeviceInfo:
+    name: str = ''
+    type_name: str = ''
+    type_version: str = ''
 
-    def __init__(self, hostname: str, id: int, uid: str, devices: dict,
-                 name: str, deviceTypeName: str, deviceTypeVersion: str,
-                 importDisabled: bool = False, importerHostname: str = '',  
-                 port: int = 443, secret: str = '', importUser: str = '', isSuperManager: bool = False, 
-                 subManagerIds: list[int]|None = None, subManagers: list['Management']|None = None,
-                 domainName: str = '', domainUid: str = ''):
+@dataclass
+class ConnectionInfo:
+    hostname: str = ''
+    port: int = 443
+
+@dataclass
+class CredentialInfo:
+    secret: str = ''
+    import_user: str = ''
+
+@dataclass
+class ManagerInfo:
+    is_super_manager: bool = False
+    sub_manager_ids: list[int]|None = None
+    sub_managers: list['Management']|None = None
+
+@dataclass
+class DomainInfo:
+    domain_name: str = ''
+    domain_uid: str = ''
+
+class ManagementController(Management):
+    def __init__(self, mgm_id: int, uid: str, devices: dict, device_info: DeviceInfo,
+                 connection_info: ConnectionInfo, importer_hostname: str, credential_info: CredentialInfo,
+                 manager_info: ManagerInfo, domain_info: DomainInfo, 
+                 import_disabled: bool = False):
         
-        self.Hostname = hostname
-        self.Id = id
+        self.Id = mgm_id
         self.Uid = uid
-        self.ImportDisabled = importDisabled
         self.Devices = devices
-        self.ImporterHostname = importerHostname
-        self.Name = name
-        self.DeviceTypeName = deviceTypeName
-        self.DeviceTypeVersion = deviceTypeVersion
-        self.Port = port
-        self.ImportUser = importUser
-        self.Secret = secret
-        self.IsSuperManager = isSuperManager
-        if subManagerIds is None:
-            self.SubManagerIds = []
-        else:
-            self.SubManagerIds = subManagerIds
-        if subManagers is None:
-            self.SubManagers = []
-        else:
-            self.SubManagers = subManagers
-        self.DomainName = domainName
-        self.DomainUid = domainUid
+        self.ImportDisabled = import_disabled
+        
+        # Device info
+        self.Name = device_info.name
+        self.DeviceTypeName = device_info.type_name
+        self.DeviceTypeVersion = device_info.type_version
+        
+        # Connection info
+        self.Hostname = connection_info.hostname
+        self.Port = connection_info.port
+
+        # Importer Host info
+        self.ImporterHostname = importer_hostname
+
+        # Credential info
+        self.ImportUser = credential_info.import_user
+        self.Secret = credential_info.secret
+        
+        # Manager info
+        self.IsSuperManager = manager_info.is_super_manager
+        self.SubManagerIds = manager_info.sub_manager_ids or []
+        self.SubManagers = manager_info.sub_managers or []
+        
+        # Domain info
+        self.DomainName = domain_info.domain_name
+        self.DomainUid = domain_info.domain_uid
 
     @classmethod
     def fromJson(cls, json_dict: dict):
-        Hostname = json_dict['hostname']
-        Id = json_dict['id']
-        Uid = json_dict['uid']
-        ImportDisabled = json_dict['importDisabled']
-        Devices = json_dict['devices']
-        ImporterHostname = json_dict['importerHostname']
-        Name = json_dict['name']
-        DeviceTypeName = json_dict['deviceType']['name']
-        DeviceTypeVersion = json_dict['deviceType']['version']
-        Port = json_dict['port']
-        ImportUser = json_dict['import_credential']['user']
-        Secret = json_dict['import_credential']['secret']
-        IsSuperManager = json_dict["isSuperManager"]
-        SubManagerIds = [subManager["id"] for subManager in json_dict["subManagers"]]
-        SubManagers = [cls.fromJson(subManager) for subManager in json_dict["subManagers"]]
-        domainName = json_dict['configPath']
-        domainUid = json_dict['domainUid']
+        device_info = DeviceInfo(
+            name=json_dict['name'],
+            type_name=json_dict['deviceType']['name'],
+            type_version=json_dict['deviceType']['version']
+        )
+        
+        connection_info = ConnectionInfo(
+            hostname=json_dict['hostname'],
+            port=json_dict['port'],
+        )
+        
+        credential_info = CredentialInfo(
+            import_user=json_dict['import_credential']['user'],
+            secret=json_dict['import_credential']['secret']
+        )
+        
+        manager_info = ManagerInfo(
+            is_super_manager=json_dict["isSuperManager"],
+            sub_manager_ids=[subManager["id"] for subManager in json_dict["subManagers"]],
+            sub_managers=[cls.fromJson(subManager) for subManager in json_dict["subManagers"]]
+        )
+        
+        domain_info = DomainInfo(
+            domain_name=json_dict['configPath'],
+            domain_uid=json_dict['domainUid']
+        )
 
-        return cls(hostname=Hostname, id=Id, uid=Uid, importDisabled=ImportDisabled, devices=Devices, 
-                   importerHostname=ImporterHostname, name=Name, deviceTypeName=DeviceTypeName, 
-                   deviceTypeVersion=DeviceTypeVersion, port=Port, importUser=ImportUser, secret=Secret, 
-                   isSuperManager = IsSuperManager, subManagerIds = SubManagerIds, 
-                   subManagers = SubManagers, domainName = domainName, domainUid = domainUid)
+        return cls(
+            mgm_id=json_dict['id'],
+            uid=json_dict['uid'],
+            devices=json_dict['devices'],
+            device_info=device_info,
+            connection_info=connection_info,
+            importer_hostname=json_dict['importerHostname'],
+            credential_info=credential_info,
+            manager_info=manager_info,
+            domain_info=domain_info,
+            import_disabled=json_dict['importDisabled']
+        )
+
+    # ...existing code...
 
     def __str__(self):
         return f"{self.Hostname}({self.Id})"

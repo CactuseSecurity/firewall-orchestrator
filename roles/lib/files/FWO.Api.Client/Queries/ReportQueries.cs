@@ -34,7 +34,10 @@ namespace FWO.Api.Client.Queries
         public static readonly string getImportsToNotify;
         public static readonly string setImportsNotified;
 
-        static ReportQueries() 
+        public static readonly string getManagementForNormalizedConfig;
+        public static readonly string getManagementForLatestNormalizedConfig;
+
+        static ReportQueries()
         {
             try
             {
@@ -65,6 +68,8 @@ namespace FWO.Api.Client.Queries
                 // getImportsToNotify = GetQueryText("report/getImportsToNotifyForAnyChanges.phql");
                 getImportsToNotify = GetQueryText("report/getImportsToNotifyForRuleChanges.graphql");
                 setImportsNotified = GetQueryText("report/setImportsNotified.graphql");
+                getManagementForNormalizedConfig = GetQueryText("report/getManagementForNormalizedConfig.graphql");
+                getManagementForLatestNormalizedConfig = GetQueryText("report/getManagementForLatestNormalizedConfig.graphql");
             }
             catch (Exception exception)
             {

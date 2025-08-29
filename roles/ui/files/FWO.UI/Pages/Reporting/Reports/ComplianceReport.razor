@@ -228,9 +228,7 @@
     protected override void OnInitialized()
     {
         ruleDisplay = new NatRuleDisplayHtml(userConfig);
-        _allRules = ReportData.RuleViewData.Cast<RuleViewData>().ToArray();
-        _visibleRules = _allRules.Where(r => r.Show).ToArray();
-        UpdateVisibleRules();
+        UpdateRuleViewData();
     }
 
     private async Task OnRowSelected(RuleViewData rule)
@@ -266,6 +264,18 @@
             $"{userConfig.GetText("as_owner")} {recert.FwoOwner?.Name} {userConfig.GetText("comment")}: {recert.Comment}";
     }
 
+    public void UpdateRuleViewData(ReportData? reportData = null)
+    {
+        if(reportData != null)
+        {
+            ReportData = reportData;
+        }
+        
+        _allRules = ReportData.RuleViewData.Cast<RuleViewData>().ToArray();
+        _visibleRules = _allRules.Where(r => r.Show).ToArray();
+
+        UpdateVisibleRules();
+    }
 
     public void UpdateVisibleRules()
     {

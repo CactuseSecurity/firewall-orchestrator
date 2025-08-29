@@ -15,6 +15,7 @@ using System.Collections.Concurrent;
 using FWO.Encryption;
 using FWO.Mail;
 using System.Text.Json;
+using FWO.Report.Data;
 
 namespace FWO.Middleware.Server
 {
@@ -38,6 +39,7 @@ namespace FWO.Middleware.Server
         private ReportBase? _report = null;
         private ReportFile? _reportFile = null;
         private List<FileFormat>? _fileFormats = null;
+        private List<ReportSchedulerConfig> _reportSchedulerConfig = new();
 
 
         /// <summary>
@@ -137,6 +139,10 @@ namespace FWO.Middleware.Server
                         return;
                     }
 
+                    // Get report scheduler config.
+
+                    _reportSchedulerConfig = JsonSerializer.Deserialize<List<ReportSchedulerConfig>>(_userConfig.GlobalConfig!.ReportSchedulerConfig) ?? new();
+
                     _reportFile = new()
                     {
                         Name = $"{reportSchedule.Name}_{dateTimeNowRounded.ToShortDateString()}",
@@ -148,7 +154,6 @@ namespace FWO.Middleware.Server
 
                     await apiConnectionUserContext.SendQueryAsync<object>(ReportQueries.countReportSchedule, new { report_schedule_id = reportSchedule.Id });
                     await AdaptDeviceFilter(reportSchedule.Template.ReportParams, apiConnectionUserContext);
-                    await TryAdaptComplianceDiffReportConfig(reportSchedule);
 
                     _report = await ReportGenerator.Generate(reportSchedule.Template, apiConnectionUserContext, _userConfig, DefaultInit.DoNothing, token);
                     if (_report != null)
@@ -157,9 +162,13 @@ namespace FWO.Middleware.Server
                         await WriteReportFile(_report, reportSchedule.OutputFormat, _reportFile);
                         await SaveReport(_reportFile, _report.SetDescription(), apiConnectionUserContext);
                         Log.WriteInfo(LogMessageTitle, $"Scheduled report \"{reportSchedule.Name}\" with id \"{reportSchedule.Id}\" for user \"{reportSchedule.ScheduleOwningUser.Name}\" with id \"{reportSchedule.ScheduleOwningUser.DbId}\" successfully generated.");
-                        if (!string.IsNullOrWhiteSpace(_userConfig?.GlobalConfig?.ComplianceCheckMailRecipients))
+
+                        if (_reportSchedulerConfig.FirstOrDefault(config => config.ReportScheduleID == reportSchedule.Id) is ReportSchedulerConfig config)
                         {
-                            await SendComplianceCheckEmail();
+                            if (config.ToEmail == true)
+                            {
+                                await SendReportViaEmail(config);
+                            }
                         }
                     }
                     else
@@ -282,29 +291,12 @@ namespace FWO.Middleware.Server
             long delta = dateTime.Ticks % roundInterval.Ticks;
             return new DateTime(dateTime.Ticks - delta);
         }
-
-        private async Task TryAdaptComplianceDiffReportConfig(ReportSchedule reportSchedule)
-        {
-            if (reportSchedule.Template.ReportParams.ReportType == (int) ReportType.Compliance
-                    && _userConfig.GlobalConfig is GlobalConfig globalConfig
-                    && !string.IsNullOrEmpty(globalConfig.ComplianceCheckScheduledDiffReportsIntervals))
-            {
-                ScheduledComplianceDiffReportConfig complianceDiffReportConfig = new();
-                complianceDiffReportConfig.ScheduledDiffReportsIntervals = JsonSerializer.Deserialize<Dictionary<int,int>>(globalConfig.ComplianceCheckScheduledDiffReportsIntervals) ?? new();
-
-                if (complianceDiffReportConfig.ScheduledDiffReportsIntervals.Keys.Any(scheduledReportId => scheduledReportId == reportSchedule.Id))
-                {
-                    reportSchedule.Template.ReportParams.ComplianceFilter.IsDiffReport = true;
-                    reportSchedule.Template.ReportParams.ComplianceFilter.DiffReferenceInDays = complianceDiffReportConfig.ScheduledDiffReportsIntervals[reportSchedule.Id];
-                }  
-            }
-        }
         
         /// <summary>
         /// Send Email with compliance report to all recipients defined in compliance settings
         /// </summary>
         /// <returns></returns>
-        public async Task SendComplianceCheckEmail()
+        public async Task SendReportViaEmail(ReportSchedulerConfig reportSchedulerConfig)
         {
             if (_userConfig?.GlobalConfig is GlobalConfig globalConfig)
             {
@@ -319,7 +311,7 @@ namespace FWO.Middleware.Server
                     globalConfig.EmailSenderAddress
                 );
 
-                MailData? mail = PrepareEmail();
+                MailData? mail = PrepareEmail(reportSchedulerConfig);
 
                 if (mail != null)
                 {
@@ -336,13 +328,13 @@ namespace FWO.Middleware.Server
             }
         }
 
-        private MailData? PrepareEmail()
+        private MailData? PrepareEmail(ReportSchedulerConfig reportSchedulerConfig)
         {
-            if (_userConfig?.GlobalConfig is GlobalConfig globalConfig && _reportFile is ReportFile reportFile && _fileFormats is List<FileFormat> fileFormats)
+            if (_userConfig != null && _reportFile is ReportFile reportFile && _fileFormats is List<FileFormat> fileFormats)
             {
-                string subject = globalConfig.ComplianceCheckMailSubject;
-                string body = globalConfig.ComplianceCheckMailBody;
-                MailData mailData = new(EmailHelper.CollectRecipientsFromConfig(_userConfig, globalConfig.ComplianceCheckMailRecipients), subject) { Body = body };
+                string subject = reportSchedulerConfig.Subject;
+                string body = reportSchedulerConfig.Body;
+                MailData mailData = new(EmailHelper.CollectRecipientsFromConfig(_userConfig, reportSchedulerConfig.Recipients), subject) { Body = body };
                 FormFile? attachment;
                 mailData.Attachments = new FormFileCollection();
 

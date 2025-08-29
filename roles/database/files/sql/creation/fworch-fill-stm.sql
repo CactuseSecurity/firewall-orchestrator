@@ -143,17 +143,11 @@ insert into config (config_key, config_value, config_user) VALUES ('varianceAnal
 insert into config (config_key, config_value, config_user) VALUES ('resolveNetworkAreas', 'False', 0);
 insert into config (config_key, config_value, config_user) VALUES ('complianceCheckSleepTime', '0', 0);
 insert into config (config_key, config_value, config_user) VALUES ('complianceCheckStartAt', '00:00:00', 0);
-insert into config (config_key, config_value, config_user) VALUES ('complianceCheckMailRecipients', '', 0);
-insert into config (config_key, config_value, config_user) VALUES ('complianceCheckMailSubject', '', 0);
-insert into config (config_key, config_value, config_user) VALUES ('complianceCheckMailBody', '', 0);
 insert into config (config_key, config_value, config_user) VALUES ('complianceCheckPolicy', '0', 0);
-insert into config (config_key, config_value, config_user) VALUES ('complianceCheckScheduledDiffReports', '[]', 0);
-insert into config (config_key, config_value, config_user) VALUES ('complianceCheckDiffReferenceInterval', '0', 0);
-insert into config (config_key, config_value, config_user) VALUES ('complianceCheckInternetZoneObject', '', 0);
 insert into config (config_key, config_value, config_user) VALUES ('complianceCheckMaxPrintedViolations', '0', 0);
 insert into config (config_key, config_value, config_user) VALUES ('availableModules', '[1,2,3,4,5,6]', 0);
 insert into config (config_key, config_value, config_user) VALUES ('debugConfig', '{"debugLevel":8, "extendedLogComplianceCheck":true, "extendedLogReportGeneration":true, "extendedLogScheduler":true}', 0);
-
+insert into config (config_key, config_value, config_user) VALUES ('reportSchedulerConfig', '', 0);
 
 INSERT INTO "report_format" ("report_format_name") VALUES ('json');
 INSERT INTO "report_format" ("report_format_name") VALUES ('pdf');
@@ -292,8 +286,28 @@ INSERT INTO "report_template" ("report_filter","report_template_name","report_te
                 "open_end": false},
             "compliance_filter": {
                 "isDiffReport": false,
-                "diffReferenceInDays": 0,
-                "showCompliantRules": true}}');
+                "diff_reference_in_days": 0,
+                "show_compliant_rules": true}}');
+INSERT INTO "report_template" ("report_filter","report_template_name","report_template_comment","report_template_owner", "report_parameters") 
+    VALUES ('action=accept',
+        'Compliance: Diffs','T0108', 0, 
+        '{"report_type":31,"device_filter":{"management":[]},
+            "time_filter": {
+                "is_shortcut": true,
+                "shortcut": "now",
+                "report_time": "2022-01-01T00:00:00.0000000+01:00",
+                "timerange_type": "SHORTCUT",
+                "shortcut_range": "this year",
+                "offset": 0,
+                "interval": "DAYS",
+                "start_time": "2022-01-01T00:00:00.0000000+01:00",
+                "end_time": "2022-01-01T00:00:00.0000000+01:00",
+                "open_start": false,
+                "open_end": false},
+            "compliance_filter": {
+                "is_diff_report": true,
+                "diff_reference_in_days": 7,
+                "show_compliant_rules": false}}');
 
 insert into parent_rule_type (id, name) VALUES (1, 'section');          -- do not restart numbering
 insert into parent_rule_type (id, name) VALUES (2, 'guarded-layer');    -- restart numbering, rule restrictions are ANDed to all rules below it, layer is not entered if guard does not apply

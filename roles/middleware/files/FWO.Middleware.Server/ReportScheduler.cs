@@ -161,7 +161,7 @@ namespace FWO.Middleware.Server
                     }
 
                     _report = await ReportGenerator.Generate(reportSchedule.Template, apiConnectionUserContext, _userConfig, DefaultInit.DoNothing, token);
-                    
+
                     if (_report != null)
                     {
                         await _report.GetObjectsInReport(int.MaxValue, apiConnectionUserContext, _ => Task.CompletedTask);
@@ -169,18 +169,8 @@ namespace FWO.Middleware.Server
 
                         Log.WriteInfo(LogMessageTitle, $"Scheduled report \"{reportSchedule.Name}\" with id \"{reportSchedule.Id}\" for user \"{reportSchedule.ScheduleOwningUser.Name}\" with id \"{reportSchedule.ScheduleOwningUser.DbId}\" successfully generated.");
 
-                        if (_reportSchedulerConfig.FirstOrDefault(config => config.ReportScheduleID == reportSchedule.Id) is ReportSchedulerConfig config)
-                        {
-                            if (config.ToEmail == true)
-                            {
-                                await SendReportViaEmail(config);
-                            }
-
-                            if (config.ToArchive == true)
-                            {
-                                await SaveReport(_reportFile, _report.SetDescription(), apiConnectionUserContext);
-                            }
-                        }
+                        await TrySaveReport(reportSchedule.Id, _reportFile, _report.SetDescription(), apiConnectionUserContext);
+                        await TrySendReportViaEmail(reportSchedule.Id);
                     }
                     else
                     {
@@ -270,32 +260,38 @@ namespace FWO.Middleware.Server
             reportFile.GenerationDateEnd = DateTime.Now;
         }
 
-        private static async Task SaveReport(ReportFile reportFile, string desc, ApiConnection apiConnectionUser)
+        private async Task TrySaveReport(int reportScheduleID, ReportFile reportFile, string desc, ApiConnection apiConnectionUser)
         {
-            try
-            {
-                var queryVariables = new
-                {
-                    report_name = reportFile.Name,
-                    report_start_time = reportFile.GenerationDateStart,
-                    report_end_time = reportFile.GenerationDateEnd,
-                    report_owner_id = reportFile.OwnerId,
-                    report_template_id = reportFile.TemplateId,
-                    report_pdf = reportFile.Pdf,
-                    report_csv = reportFile.Csv,
-                    report_html = reportFile.Html,
-                    report_json = reportFile.Json,
-                    report_type = reportFile.Type,
-                    description = desc
-                };
-                await apiConnectionUser.SendQueryAsync<object>(ReportQueries.addGeneratedReport, queryVariables);
+            ReportSchedulerConfig? schedulerConfig = _reportSchedulerConfig.FirstOrDefault(config => config.ReportScheduleID == reportScheduleID);
 
-                Log.WriteInfo(LogMessageTitle, "Report saved to archive successfully.");
-            }
-            catch (Exception)
+            if (schedulerConfig is ReportSchedulerConfig reportSchedulerConfig && reportSchedulerConfig.ToEmail)
             {
-                Log.WriteError(LogMessageTitle, $"Could not save report \"{reportFile.Name}\".");
-                throw;
+                try
+                {
+                    var queryVariables = new
+                    {
+                        report_name = reportFile.Name,
+                        report_start_time = reportFile.GenerationDateStart,
+                        report_end_time = reportFile.GenerationDateEnd,
+                        report_owner_id = reportFile.OwnerId,
+                        report_template_id = reportFile.TemplateId,
+                        report_pdf = reportFile.Pdf,
+                        report_csv = reportFile.Csv,
+                        report_html = reportFile.Html,
+                        report_json = reportFile.Json,
+                        report_type = reportFile.Type,
+                        description = desc
+                    };
+
+                    await apiConnectionUser.SendQueryAsync<object>(ReportQueries.addGeneratedReport, queryVariables);
+
+                    Log.WriteInfo(LogMessageTitle, "Report saved to archive successfully.");
+                }
+                catch (Exception)
+                {
+                    Log.WriteError(LogMessageTitle, $"Could not save report \"{reportFile.Name}\".");
+                    throw;
+                }
             }
         }
 
@@ -309,35 +305,40 @@ namespace FWO.Middleware.Server
         /// Send Email with compliance report to all recipients defined in compliance settings
         /// </summary>
         /// <returns></returns>
-        public async Task SendReportViaEmail(ReportSchedulerConfig reportSchedulerConfig)
+        public async Task TrySendReportViaEmail(int reportScheduleID)
         {
-            if (_userConfig?.GlobalConfig is GlobalConfig globalConfig)
+            ReportSchedulerConfig? schedulerConfig = _reportSchedulerConfig.FirstOrDefault(config => config.ReportScheduleID == reportScheduleID);
+
+            if (schedulerConfig is ReportSchedulerConfig reportSchedulerConfig && reportSchedulerConfig.ToEmail)
             {
-                string decryptedSecret = AesEnc.TryDecrypt(globalConfig.EmailPassword, false, "Report Scheduler", "Could not decrypt mailserver password.");
-
-                EmailConnection emailConnection = new(
-                    globalConfig.EmailServerAddress,
-                    globalConfig.EmailPort,
-                    globalConfig.EmailTls,
-                    globalConfig.EmailUser,
-                    decryptedSecret,
-                    globalConfig.EmailSenderAddress
-                );
-
-                MailData? mail = PrepareEmail(reportSchedulerConfig);
-
-                if (mail != null)
+                if (_userConfig?.GlobalConfig is GlobalConfig globalConfig)
                 {
-                    bool emailSend = await MailKitMailer.SendAsync(mail, emailConnection, false, new CancellationToken());
-                    if (emailSend)
+                    string decryptedSecret = AesEnc.TryDecrypt(globalConfig.EmailPassword, false, "Report Scheduler", "Could not decrypt mailserver password.");
+
+                    EmailConnection emailConnection = new(
+                        globalConfig.EmailServerAddress,
+                        globalConfig.EmailPort,
+                        globalConfig.EmailTls,
+                        globalConfig.EmailUser,
+                        decryptedSecret,
+                        globalConfig.EmailSenderAddress
+                    );
+
+                    MailData? mail = PrepareEmail(reportSchedulerConfig);
+
+                    if (mail != null)
                     {
-                        Log.WriteInfo(LogMessageTitle, "Report email sent successfully.");
+                        bool emailSend = await MailKitMailer.SendAsync(mail, emailConnection, false, new CancellationToken());
+                        if (emailSend)
+                        {
+                            Log.WriteInfo(LogMessageTitle, "Report email sent successfully.");
+                        }
+                        else
+                        {
+                            Log.WriteError(LogMessageTitle, "Report email could not be sent.");
+                        }
                     }
-                    else
-                    {
-                        Log.WriteError(LogMessageTitle, "Report email could not be sent.");
-                    }
-                }
+                }                
             }
         }
 

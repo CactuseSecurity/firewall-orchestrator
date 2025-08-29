@@ -91,7 +91,7 @@ namespace FWO.DeviceAutoDiscovery
         {
             List<Adom> customAdoms = await GetAdoms(sessionId, restClientFM);
             await BuildAdomDeviceVdomStructure(sessionId, customAdoms, restClientFM);
-            return ConvertAdmonsToManagements(customAdoms);
+            return ConvertAdomsToManagements(customAdoms);
         }
 
         public async Task BuildAdomDeviceVdomStructure(string sessionId, List<Adom> customAdoms, FortiManagerClient restClientFM)
@@ -219,7 +219,7 @@ namespace FWO.DeviceAutoDiscovery
             return mgmName; // fortiManager does not have a real UID
         }
 
-        private List<Management> ConvertAdmonsToManagements(List<Adom> customAdoms)
+        private List<Management> ConvertAdomsToManagements(List<Adom> customAdoms)
         {
             List<Management> discoveredDevices = [];
             foreach (Adom adom in customAdoms)

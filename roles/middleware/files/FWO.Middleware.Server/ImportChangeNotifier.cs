@@ -166,7 +166,7 @@ namespace FWO.Middleware.Server
                 switch (globalConfig.ImpChangeNotifyType)
                 {
                     case (int)NotificationLayout.HtmlInBody:
-                        body += changeReport?.ExportToHtml();
+                        body += changeReport.ExportToHtml();
                         break;
                     case (int)NotificationLayout.PdfAsAttachment:
                         string html = changeReport.ExportToHtml();
@@ -178,13 +178,13 @@ namespace FWO.Middleware.Server
                         attachment = CreateAttachment(pdfData, GlobalConst.kPdf);
                         break;
                     case (int)NotificationLayout.HtmlAsAttachment:
-                        attachment = CreateAttachment(changeReport?.ExportToHtml(), GlobalConst.kHtml);
+                        attachment = CreateAttachment(changeReport.ExportToHtml(), GlobalConst.kHtml);
                         break;
                     case (int)NotificationLayout.CsvAsAttachment:
-                        attachment = CreateAttachment(changeReport?.ExportToCsv(), GlobalConst.kCsv);
+                        attachment = CreateAttachment(changeReport.ExportToCsv(), GlobalConst.kCsv);
                         break;
                     case (int)NotificationLayout.JsonAsAttachment:
-                        attachment = CreateAttachment(changeReport?.ExportToJson(), GlobalConst.kJson);
+                        attachment = CreateAttachment(changeReport.ExportToJson(), GlobalConst.kJson);
                         break;
                     default:
                         break;

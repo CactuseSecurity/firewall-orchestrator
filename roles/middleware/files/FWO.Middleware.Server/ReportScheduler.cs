@@ -92,7 +92,7 @@ namespace FWO.Middleware.Server
                                 reportSchedule.StartTime = reportSchedule.RepeatInterval switch
                                 {
                                     SchedulerInterval.Days => reportSchedule.StartTime.AddDays(reportSchedule.RepeatOffset),
-                                    SchedulerInterval.Weeks => reportSchedule.StartTime.AddDays(reportSchedule.RepeatOffset * 7),
+                                    SchedulerInterval.Weeks => reportSchedule.StartTime.AddDays(reportSchedule.RepeatOffset * GlobalConst.kDaysPerWeek),
                                     SchedulerInterval.Months => reportSchedule.StartTime.AddMonths(reportSchedule.RepeatOffset),
                                     SchedulerInterval.Years => reportSchedule.StartTime.AddYears(reportSchedule.RepeatOffset),
                                     SchedulerInterval.Never => reportSchedule.StartTime.AddYears(42_42),

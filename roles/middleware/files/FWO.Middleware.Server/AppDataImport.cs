@@ -203,6 +203,7 @@ namespace FWO.Middleware.Server
 				groupDn = userGroupDn,
 				appIdExternal = incomingApp.ExtAppId,
 				criticality = incomingApp.Criticality,
+				recertInterval = incomingApp.RecertInterval,
 				importSource = incomingApp.ImportSource,
 				commSvcPossible = false
 			};
@@ -258,6 +259,7 @@ namespace FWO.Middleware.Server
 				groupDn = userGroupDn,
 			    appIdExternal = string.IsNullOrEmpty(incomingApp.ExtAppId) ? null : incomingApp.ExtAppId,
 				criticality = incomingApp.Criticality,
+				recertInterval = incomingApp.RecertInterval,
 				commSvcPossible = existingApp.CommSvcPossible
 			};
 			await apiConnection.SendQueryAsync<ReturnIdWrapper>(OwnerQueries.updateOwner, Variables);

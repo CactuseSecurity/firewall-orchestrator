@@ -17,10 +17,12 @@
                 <div class="btn-group">
                     @if (!Exporting)
                     {
-                        <button type="button" class="btn btn-sm btn-primary" @onclick="async () => { Exporting = true; await GetGeneratedReportContent(context.Id); ShowDownloadReportFileDialog = true; Exporting = false; }">@(userConfig.GetText("download"))</button>
+                        <button type="button" class="btn btn-sm btn-primary" @onclick="async () => { Exporting = true; await GetGeneratedReportContent(context.Id); ShowDownloadReportFileDialog = true; Exporting = false; }">
+                            @(DisplayService.DisplayButton(userConfig, "download", Icons.Download))</button>
                         @if (context.ReportOwningUser.DbId == userConfig.User.DbId || authenticationStateTask!.Result.User.IsInRole(Roles.Admin))
                         {
-                            <button type="button" class="btn btn-sm btn-danger" @onclick="() => { reportFileContext = context; ShowDeleteReportFileDialog = true; }">@(userConfig.GetText("delete"))</button>
+                            <button type="button" class="btn btn-sm btn-danger" @onclick="() => { reportFileContext = context; ShowDeleteReportFileDialog = true; }">
+                                @(DisplayService.DisplayButton(userConfig, "delete", Icons.Delete))</button>
                         }
                     }
                     else
@@ -52,8 +54,8 @@
         <p>@(userConfig.GetText("U3002")) "@reportFileContext.Name" ?</p>
     </Body>
     <Footer>
-        <button type="button" class="btn btn-sm btn-danger" @onclick="DeleteGeneratedReport">@(userConfig.GetText("delete"))</button>
-        <button type="button" class="btn btn-sm btn-secondary" @onclick="() => ShowDeleteReportFileDialog = false">@(userConfig.GetText("cancel"))</button>
+        <button type="button" class="btn btn-sm btn-danger" @onclick="DeleteGeneratedReport">@(DisplayService.DisplayButton(userConfig, "delete", Icons.Delete))</button>
+        <button type="button" class="btn btn-sm btn-secondary" @onclick="() => ShowDeleteReportFileDialog = false">@(DisplayService.DisplayButton(userConfig, "cancel", Icons.Cancel))</button>
     </Footer>
 </PopUp>
 

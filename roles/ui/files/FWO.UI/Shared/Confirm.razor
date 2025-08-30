@@ -21,13 +21,13 @@
         <div class="btn-group">
             <AuthorizeView Roles="@AllowedRoles">
                 <Authorized>
-                    <button type="button" class="btn btn-sm btn-danger" @onclick="Perform">@(userConfig.GetText("confirm"))</button>
+                    <button type="button" class="btn btn-sm btn-danger" @onclick="Perform">@(DisplayService.DisplayButton(userConfig, "confirm", Icons.Confirm))</button>
                 </Authorized>
                 <NotAuthorized>
-                    <button type="button" class="btn btn-sm btn-danger" disabled>@(userConfig.GetText("confirm"))</button>
+                    <button type="button" class="btn btn-sm btn-danger" disabled>@(DisplayService.DisplayButton(userConfig, "confirm", Icons.Confirm))</button>
                 </NotAuthorized> 
             </AuthorizeView>
-            <button type="button" class="btn btn-sm btn-secondary" @onclick="Cancel">@(userConfig.GetText("cancel"))</button>
+            <button type="button" class="btn btn-sm btn-secondary" @onclick="Cancel">@(DisplayService.DisplayButton(userConfig, "cancel", Icons.Cancel))</button>
         </div>
     </Footer>
 </PopUp>

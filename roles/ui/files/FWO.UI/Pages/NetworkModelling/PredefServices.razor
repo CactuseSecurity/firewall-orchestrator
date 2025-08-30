@@ -10,19 +10,19 @@
     <Body>
         @if (Display)
         {
-            <button type="button" class="btn btn-sm btn-success ms-5 mb-2" @onclick="CreateServiceGroup">@(ModellingHandlerBase.DisplayButton(userConfig, "add_service_group", Icons.Add))</button>
+            <button type="button" class="btn btn-sm btn-success ms-5 mb-2" @onclick="CreateServiceGroup">@(DisplayService.DisplayButton(userConfig, "add_service_group", Icons.Add))</button>
             <div class="vheight75">
                 <Table class="table table-bordered th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="ModellingServiceGroup" Items="PredefServiceGroups" PageSize="0" ColumnReorder="true">
                     <Column TableItem="ModellingServiceGroup" Title="@(userConfig.GetText("actions"))" Field="(x => x.Id)" Sortable="false" Filterable="false">
                         <Template>
                             <div class="btn-group">
-                                <button type="button" class="btn btn-sm btn-warning" @onclick="() => EditServiceGroup(context)">@(ModellingHandlerBase.DisplayButton(userConfig, "edit", Icons.Edit))</button>
+                                <button type="button" class="btn btn-sm btn-warning" @onclick="() => EditServiceGroup(context)">@(DisplayService.DisplayButton(userConfig, "edit", Icons.Edit))</button>
                                 <AuthorizeView Roles="@Roles.Admin" Context="ctx">
                                     <Authorized>
-                                        <button type="button" class="btn btn-sm btn-danger" @onclick="async () => await RequestDeleteServiceGrp(context)">@(ModellingHandlerBase.DisplayButton(userConfig, "delete", Icons.Delete))</button>
+                                        <button type="button" class="btn btn-sm btn-danger" @onclick="async () => await RequestDeleteServiceGrp(context)">@(DisplayService.DisplayButton(userConfig, "delete", Icons.Delete))</button>
                                     </Authorized>
                                     <NotAuthorized>
-                                        <button type="button" disabled class="btn btn-sm btn-danger">@(ModellingHandlerBase.DisplayButton(userConfig, "delete", Icons.Delete))</button>
+                                        <button type="button" disabled class="btn btn-sm btn-danger">@(DisplayService.DisplayButton(userConfig, "delete", Icons.Delete))</button>
                                     </NotAuthorized> 
                                 </AuthorizeView>
                             </div>
@@ -37,7 +37,7 @@
         }
     </Body>
     <Footer>
-        <button type="button" class="btn btn-sm btn-secondary" @onclick="Close">@(userConfig.GetText("cancel"))</button>
+        <button type="button" class="btn btn-sm btn-secondary" @onclick="Close">@(DisplayService.DisplayButton(userConfig, "cancel", Icons.Cancel))</button>
     </Footer>
 </PopUp>
 <EditServiceGroup @bind-Display="EditSvcGrpMode" @bind-SvcGroupHandler="SvcGrpHandler" AsAdmin="true"/>

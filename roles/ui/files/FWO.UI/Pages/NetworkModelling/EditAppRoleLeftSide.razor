@@ -19,7 +19,7 @@
                                 <button type="button" class="btn btn-sm btn-primary w-100" @onclick="() =>
                                     {AppRoleHandler.AppServerToAppRole(selectedAppServers); selectedAppServers = [];
                                     AppRoleHandlerChanged.InvokeAsync(AppRoleHandler);}">
-                                    @(AppRoleHandler.DisplayButton("to_app_role", Icons.Use))
+                                    @(DisplayService.DisplayButton(userConfig, "to_app_role", Icons.Use))
                                 </button>
                             </div>
                         }

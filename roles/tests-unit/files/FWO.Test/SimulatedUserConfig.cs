@@ -64,7 +64,7 @@ namespace FWO.Test
             {"network_services","Network Services"},
             {"protocol","Protocol"},
             {"port","Port"},
-            {"next_recert","Next Recertification Date"},
+            {"next_recert_date","Next Recertification Date"},
             {"owner","Owner"},
             {"ip_matches","IP address match"},
             {"last_hit","Last Hit"},

@@ -36,10 +36,10 @@ namespace FWO.Data
         public string Comment { get; set; } = "";
 
         [JsonProperty("recertification"), JsonPropertyName("recertification")]
-        public List<Recertification> RuleRecertification { get; set; } = new List<Recertification>();
+        public List<Recertification> RuleRecertification { get; set; } = [];
 
         [JsonProperty("recert_history"), JsonPropertyName("recert_history")]
-        public List<Recertification> RecertHistory { get; set; } = new List<Recertification>();
+        public List<Recertification> RecertHistory { get; set; } = [];
 
         [JsonProperty("dev_id"), JsonPropertyName("dev_id")]
         public int DeviceId { get; set; }
@@ -56,30 +56,31 @@ namespace FWO.Data
         public string Style { get; set; } = "";
 
 
-
-
-
-
         public void UpdateRecertPeriods(int recertificationPeriod, int recertificationNoticePeriod)
         {
-
-            if (LastCertifierDn != null && LastCertifierDn != "")
-                LastCertifierName = (new DistName(LastCertifierDn)).UserName;
-            else
-                LastCertifierName = "-";
+            LastCertifierName = string.IsNullOrEmpty(LastCertifierDn) ? "-" : new DistName(LastCertifierDn).UserName;
 
             if (LastCertified != null)
+            {
                 NextRecert = ((DateTime)LastCertified).AddDays(recertificationPeriod);
+            }
             else if (Created != null)
+            {
                 NextRecert = ((DateTime)Created).AddDays(recertificationPeriod);
+            }
             else
+            {
                 NextRecert = DateTime.Now;
+            }
 
             if (NextRecert <= DateTime.Now)
+            {
                 Style = "background-overdue";
+            }
             else if (NextRecert <= DateTime.Now.AddDays(recertificationNoticePeriod))
+            {
                 Style = "background-upcoming";
+            }
         }
     }
-
 }

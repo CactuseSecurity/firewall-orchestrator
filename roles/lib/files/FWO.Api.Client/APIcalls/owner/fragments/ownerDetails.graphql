@@ -13,4 +13,8 @@ fragment ownerDetails on owner {
   active
   import_source
   common_service_possible
+  last_recertified
+  last_recertifier
+  last_recertifier_dn
+  next_recert_date
 }

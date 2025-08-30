@@ -57,6 +57,16 @@ namespace FWO.Data.Modelling
             }
         }
 
+        public List<Rule> GetAllOkRules()
+        {
+            List<Rule> allOkRules = [];
+            foreach (var rulesPerConn in OkRules.Select(x => x.ImplementedRules))
+            {
+                allOkRules.AddRange(rulesPerConn);
+            }
+            return allOkRules;
+        }
+
         public List<ManagementReport> MgtDataToReport()
         {
             List<ManagementReport> managementReports = [];

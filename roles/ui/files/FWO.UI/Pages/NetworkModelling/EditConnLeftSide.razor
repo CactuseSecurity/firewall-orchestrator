@@ -29,13 +29,13 @@
                         {
                             <button type="button" class="btn btn-sm btn-primary w-100" @onclick="() =>
                                 {NetworkElemsToConn(true); ConnHandlerChanged.InvokeAsync(ConnHandler);}">
-                                @(ConnHandler.DisplayButton("to_source", Icons.Use, "source"))</button>
+                                @(DisplayService.DisplayButton(userConfig, "to_source", Icons.Use, "source"))</button>
                         }
                         @if(!ConnHandler.DstDropForbidden() && selectedNwElems.Count > 0)
                         {
                             <button type="button" class="btn btn-sm btn-primary w-100 mt-2" @onclick="() =>
                                 {NetworkElemsToConn(false); ConnHandlerChanged.InvokeAsync(ConnHandler);}">
-                                @(ConnHandler.DisplayButton("to_dest", Icons.Use, "destination"))</button>
+                                @(DisplayService.DisplayButton(userConfig, "to_dest", Icons.Use, "destination"))</button>
                         }
                     </div>
                 }
@@ -44,10 +44,10 @@
                 @if(ConnHandler.Application.CommSvcPossible)
                 {
                     <button type="button" class="btn btn-sm btn-success" @onclick="SearchNwObject">
-                        @(ConnHandler.DisplayButton("search_nw_object", Icons.Search))</button>
+                        @(DisplayService.DisplayButton(userConfig, "search_nw_object", Icons.Search))</button>
                 }
                 <button type="button" class="btn btn-sm btn-success" @onclick="() => {ConnHandler.CreateAppRole(); ConnHandlerChanged.InvokeAsync(ConnHandler);}">
-                    @(ConnHandler.DisplayButton("add_app_role", Icons.Add))</button>
+                    @(DisplayService.DisplayButton(userConfig, "add_app_role", Icons.Add))</button>
                 @if(selectedNwElems.Count == 1)
                 {
                     @if(selectedNwElems[0].Key == (int)ModellingTypes.ModObjectType.AppRole)
@@ -56,10 +56,10 @@
                         {
                             <button type="button" class="btn btn-sm btn-warning" @onclick="async () =>
                                 {ConnHandler.EditAppRole(ResolveAppRole(selectedNwElems[0].Value)); await ResetNw();}">
-                                @(ConnHandler.DisplayButton("edit", Icons.Edit))</button>
+                                @(DisplayService.DisplayButton(userConfig, "edit", Icons.Edit))</button>
                             <button type="button" class="btn btn-sm btn-danger" @onclick="async () =>
                                 {await ConnHandler.RequestDeleteAppRole(ResolveAppRole(selectedNwElems[0].Value)); await ResetNw();}">
-                                @(ConnHandler.DisplayButton("delete", Icons.Delete))</button>
+                                @(DisplayService.DisplayButton(userConfig, "delete", Icons.Delete))</button>
                         }
                     }
                     else if(selectedNwElems[0].Key == (int)ModellingTypes.ModObjectType.NetworkArea)
@@ -69,7 +69,7 @@
                         {
                             <button type="button" class="btn btn-sm btn-danger" @onclick="async () =>
                                 {ConnHandler.RequestRemoveNwGrpObject(area); await ResetNw();}">
-                                @(ConnHandler.DisplayButton("remove", Icons.Delete))</button>
+                                @(DisplayService.DisplayButton(userConfig, "remove", Icons.Delete))</button>
                         }
                     }
                     else if(selectedNwElems[0].Key != (int)ModellingTypes.ModObjectType.AppServer)
@@ -79,7 +79,7 @@
                         {
                             <button type="button" class="btn btn-sm btn-danger" @onclick="async () =>
                                 {ConnHandler.RequestRemoveNwGrpObject(nwGroup); await ResetNw();}">
-                                @(ConnHandler.DisplayButton("remove", Icons.Delete))</button>
+                                @(DisplayService.DisplayButton(userConfig, "remove", Icons.Delete))</button>
                         }
                     }
                 }
@@ -100,18 +100,18 @@
                             {
                                 <button type="button" class="btn btn-sm btn-primary w-100" @onclick="() =>
                                     {ServiceElemsToConn(); ConnHandlerChanged.InvokeAsync(ConnHandler);}">
-                                    @(ConnHandler.DisplayButton("to_service", Icons.Use))</button>
+                                    @(DisplayService.DisplayButton(userConfig, "to_service", Icons.Use))</button>
                             }
                         </div>
                     }
                 </div>
                 <div class="btn-group mt-1">
                     <button type="button" class="btn btn-sm btn-success" @onclick="() => {ConnHandler.CreateServiceGroup(); ConnHandlerChanged.InvokeAsync(ConnHandler);}">
-                        @(ConnHandler.DisplayButton("add_service_group", Icons.Add, "", Icons.ServiceGroup))</button>
+                        @(DisplayService.DisplayButton(userConfig, "add_service_group", Icons.Add, "", Icons.ServiceGroup))</button>
                     @if(userConfig.AllowServiceInConn)
                     {
                         <button type="button" class="btn btn-sm btn-success" @onclick="() => {ConnHandler.CreateService(); ConnHandlerChanged.InvokeAsync(ConnHandler);}">
-                            @(ConnHandler.DisplayButton("add_service", Icons.Add, "", Icons.Service))</button>
+                            @(DisplayService.DisplayButton(userConfig, "add_service", Icons.Add, "", Icons.Service))</button>
                     }
                     @if(selectedSvcElems.Count == 1)
                     {
@@ -121,16 +121,16 @@
                             {
                                 <button type="button" class="btn btn-sm btn-primary" @onclick="async () =>
                                     {ConnHandler.DisplayServiceGroup(ResolveSvcGrp(selectedSvcElems[0].Value)); await ResetSvc();}">
-                                    @(ConnHandler.DisplayButton("display_service_group", Icons.Display))</button>
+                                    @(DisplayService.DisplayButton(userConfig, "display_service_group", Icons.Display))</button>
                             }
                             else
                             {
                                 <button type="button" class="btn btn-sm btn-warning" @onclick="async () =>
                                     {ConnHandler.EditServiceGroup(ResolveSvcGrp(selectedSvcElems[0].Value)); await ResetSvc();}">
-                                    @(ConnHandler.DisplayButton("edit_service_group", Icons.Edit))</button>
+                                    @(DisplayService.DisplayButton(userConfig, "edit_service_group", Icons.Edit))</button>
                                 <button type="button" class="btn btn-sm btn-danger" @onclick="async () =>
                                     {await ConnHandler.RequestDeleteServiceGrp(ResolveSvcGrp(selectedSvcElems[0].Value)); await ResetSvc();}">
-                                    @(ConnHandler.DisplayButton("delete", Icons.Delete))</button>
+                                    @(DisplayService.DisplayButton(userConfig, "delete", Icons.Delete))</button>
                             }
                         }
                         else
@@ -139,10 +139,10 @@
                             {
                                 <button type="button" class="btn btn-sm btn-warning" @onclick="async () =>
                                     {ConnHandler.EditService(ResolveSvc(selectedSvcElems[0].Value)); await ResetSvc();}">
-                                    @(ConnHandler.DisplayButton("edit_service", Icons.Edit))</button>
+                                    @(DisplayService.DisplayButton(userConfig, "edit_service", Icons.Edit))</button>
                                 <button type="button" class="btn btn-sm btn-danger" @onclick="async () =>
                                     {await ConnHandler.RequestDeleteService(ResolveSvc(selectedSvcElems[0].Value)); await ResetSvc();}">
-                                    @(ConnHandler.DisplayButton("delete", Icons.Delete))</button>
+                                    @(DisplayService.DisplayButton(userConfig, "delete", Icons.Delete))</button>
                             }
                         }
                     }
@@ -163,26 +163,26 @@
                             @if(selectedInterfaces.Count > 0)
                             {
                                 <button type="button" class="btn btn-sm btn-primary w-100" @onclick="() => {InterfaceToConn(selectedInterfaces[0]);}">
-                                    @(ConnHandler.DisplayButton("use", Icons.Use))</button>
+                                    @(DisplayService.DisplayButton(userConfig, "use", Icons.Use))</button>
                             }
                         </div>
                     }
                 </div>
                 <div class="btn-group mt-1">
                     <button type="button" class="btn btn-sm btn-success" @onclick="SearchInterface">
-                        @(ConnHandler.DisplayButton("search", Icons.Search))</button>
+                        @(DisplayService.DisplayButton(userConfig, "search", Icons.Search))</button>
                     @if(selectedInterfaces.Count == 1)
                     {
                         <button type="button" class="btn btn-sm btn-danger" @onclick="async () =>
                             {ConnHandler.RequestRemovePreselectedInterface(selectedInterfaces[0]); await ResetInt();}">
-                            @(ConnHandler.DisplayButton("remove", Icons.Delete))</button>
+                            @(DisplayService.DisplayButton(userConfig, "remove", Icons.Delete))</button>
                         <button type="button" class="btn btn-sm btn-primary" @onclick="async () =>
                             {await ConnHandler.DisplaySelectedInterface(selectedInterfaces[0]); await ResetInt();}">
-                            @(ConnHandler.DisplayButton("display_interface", Icons.Display))</button>
+                            @(DisplayService.DisplayButton(userConfig, "display_interface", Icons.Display))</button>
                     }
                     <button type="button" class="btn btn-sm btn-dark" @onclick="async () =>
                         {RequestNewInterface(); await ResetInt();}">
-                        @(ConnHandler.DisplayButton("request_interface", Icons.Workflow))</button>
+                        @(DisplayService.DisplayButton(userConfig, "request_interface", Icons.Workflow))</button>
                 </div>
                 <br>
             }
@@ -196,19 +196,12 @@
                         HandleDragStart="HandleConnDragStart" Display="@DisplayInterfaceWithIcon" MaxHeight="15" Multiselect="false"/>
                     </div>
                     <div class="col-sm-2">
-                        @if(selectedInterfaces.Count  == 1)
+                        @if(selectedInterfaces.Count == 1)
                         {
                             <button type="button" class="btn btn-sm btn-primary w-100" @onclick="ReplaceInterface">
-                                @(ConnHandler.DisplayButton("replace", Icons.Use))</button>
+                                @(DisplayService.DisplayButton(userConfig, "replace", Icons.Use))</button>
                         }
                     </div>
-                </div>
-                <div class="col-sm-2">
-                    @if(selectedInterfaces.Count  == 1)
-                    {
-                        <button type="button" class="btn btn-sm btn-primary w-100" @onclick="ReplaceInterface">
-                            @(ConnHandler.DisplayButton("replace", Icons.Use))</button>
-                    }
                 </div>
                 <br>
             }

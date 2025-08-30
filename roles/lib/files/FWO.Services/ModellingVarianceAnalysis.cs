@@ -156,7 +156,7 @@ namespace FWO.Services
         {
             try
             {
-                List<TicketId> ticketIds = await apiConnection.SendQueryAsync<List<TicketId>>(ExtRequestQueries.getLatestTicketId, new{ownerId = owner.Id});
+                List<TicketId> ticketIds = await apiConnection.SendQueryAsync<List<TicketId>>(ExtRequestQueries.getLatestTicketIds, new{ownerId = owner.Id});
                 if(ticketIds.Count == 0)
                 {
                     return userConfig.GetText("never_requested");

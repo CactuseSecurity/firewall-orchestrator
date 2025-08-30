@@ -2,6 +2,21 @@
   config (where: { _or: [
     {config_key: {_eq: "dailyCheckStartAt"}},
     {config_key: {_eq: "recRefreshDaily"}},
+	{config_key: {_eq: "recertificationMode"}},
+	{config_key: {_eq: "recCheckActive"}},
+	{config_key: {_eq: "recCheckEmailSubject"}},
+	{config_key: {_eq: "recCheckEmailUpcomingText"}},
+	{config_key: {_eq: "recCheckEmailOverdueText"}},
+	{config_key: {_eq: "recCheckParams"}},
+	{config_key: {_eq: "recertificationPeriod"}},
+	{config_key: {_eq: "recertificationDisplayPeriod"}},
+	{config_key: {_eq: "useDummyEmailAddress"}},
+	{config_key: {_eq: "emailUser"}},
+	{config_key: {_eq: "emailTls"}},
+	{config_key: {_eq: "emailPort"}},
+	{config_key: {_eq: "emailServerAddress"}},
+	{config_key: {_eq: "emailSenderAddress"}},
+	{config_key: {_eq: "emailPassword"}},
     {config_key: {_eq: "maxImportDuration"}},
     {config_key: {_eq: "maxImportInterval"}}
   ]}){

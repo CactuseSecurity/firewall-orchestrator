@@ -38,7 +38,7 @@
                         </ElementTemplate>
                     </Dropdown>
                 </div>
-                <button type="button" class="col-sm-1 btn btn-sm btn-success" @onclick="AddService" @onclick:preventDefault>@(ModellingHandlerBase.DisplayButton(userConfig, "add", Icons.Add))</button>
+                <button type="button" class="col-sm-1 btn btn-sm btn-success" @onclick="AddService" @onclick:preventDefault>@(DisplayService.DisplayButton(userConfig, "add", Icons.Add))</button>
             </div>
         }
     </div>

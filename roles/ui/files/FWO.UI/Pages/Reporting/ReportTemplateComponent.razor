@@ -12,14 +12,14 @@
                         @if (OnTemplateLoad != null)
                         {
                             <div class="btn-group">
-                                <button type="button" class="btn btn-sm btn-success" @onclick="() => OnTemplateLoad(template)">@(userConfig.GetText("load"))</button>
+                                <button type="button" class="btn btn-sm btn-success" @onclick="() => OnTemplateLoad(template)">@(DisplayService.DisplayButton(userConfig, "load", Icons.Load))</button>
                                 @* only display buttons for manipulating a template, when it's the user's template or the user has admin role *@
                                 @if (template.TemplateOwningUserId == userConfig.User.DbId || authenticationStateTask!.Result.User.IsInRole(Roles.Admin))
                                 {
                                     <button type="button" class="btn btn-sm btn-warning" @onclick="() => EditTemplate(template)">
-                                        @(ModellingHandlerBase.DisplayButton(userConfig, "edit", Icons.Edit))</button>
+                                        @(DisplayService.DisplayButton(userConfig, "edit", Icons.Edit))</button>
                                     <button type="button" class="btn btn-sm btn-danger" @onclick="() => { reportTemplateInEdit = template; ShowDeleteTemplateDialog = true; }">
-                                        @(ModellingHandlerBase.DisplayButton(userConfig, "delete", Icons.Delete))</button>
+                                        @(DisplayService.DisplayButton(userConfig, "delete", Icons.Delete))</button>
                                 }
                             </div>
                         }
@@ -113,7 +113,8 @@
                     <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("devices")):</label>
                     <div class="form-group row col-sm-9">
                         <label class="col-sm-9">@(reportTemplateInEdit.ReportParams.DeviceFilter.ListAllSelectedDevices())</label>
-                        <button type="button" class="btn btn-sm btn-warning col-sm-2" @onclick="EditDeviceSelection">@(userConfig.GetText("edit"))</button>
+                        <button type="button" class="btn btn-sm btn-warning col-sm-2" @onclick="EditDeviceSelection">
+                            @(DisplayService.DisplayButton(userConfig, "edit", Icons.Edit))</button>
                     </div>
                 </div>
             }
@@ -138,8 +139,8 @@
         </form>
     </Body>
     <Footer>
-        <button type="button" class="btn btn-primary" @onclick="Save">@(userConfig.GetText("save"))</button>
-        <button type="button" class="btn btn-secondary" @onclick="CancelEdit">@(userConfig.GetText("cancel"))</button>
+        <button type="button" class="btn btn-primary" @onclick="Save">@(DisplayService.DisplayButton(userConfig, "save", Icons.Save))</button>
+        <button type="button" class="btn btn-secondary" @onclick="CancelEdit">@(DisplayService.DisplayButton(userConfig, "cancel", Icons.Cancel))</button>
     </Footer>
 </PopUp>
 

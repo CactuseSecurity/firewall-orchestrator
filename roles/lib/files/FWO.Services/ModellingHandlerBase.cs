@@ -1,11 +1,10 @@
+using FWO.Api.Client;
+using FWO.Api.Client.Queries;
+using FWO.Basics;
 using FWO.Config.Api;
 using FWO.Data;
 using FWO.Data.Modelling;
-using FWO.Api.Client;
-using FWO.Api.Client.Queries;
-using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Authorization;
-using FWO.Basics;
 
 
 namespace FWO.Services
@@ -16,21 +15,23 @@ namespace FWO.Services
         public bool AddMode { get; set; } = false;
         protected readonly ApiConnection apiConnection;
         protected readonly UserConfig userConfig;
-        protected Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
+        protected Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; }
 
         public List<ModellingAppServer> AvailableAppServers { get; set; } = [];
         public List<KeyValuePair<int, long>> AvailableNwElems { get; set; } = [];
         public List<ModellingService> AvailableServices { get; set; } = [];
         public List<KeyValuePair<int, int>> AvailableSvcElems { get; set; } = [];
+        public List<ModellingConnection> UsingConnections { get; set; } = [];
 
-        public bool ReadOnly = false;
+        public bool ReadOnly { get; set; } = false;
         public bool IsOwner { get; set; } = true;
         public string Message { get; set; } = "";
         public bool DeleteAllowed { get; set; } = true;
         public List<ModellingService> SvcToAdd { get; set; } = [];
         private ModellingService actService = new();
+        private const string DeactMsg = "C9001";
 
-        public ModellingHandlerBase(ApiConnection apiConnection, UserConfig userConfig, FwoOwner application, 
+        public ModellingHandlerBase(ApiConnection apiConnection, UserConfig userConfig, FwoOwner application,
             bool addMode, Action<Exception?, string, string, bool> displayMessageInUi, bool readOnly = false, bool isOwner = true)
         {
             this.apiConnection = apiConnection;
@@ -50,20 +51,6 @@ namespace FWO.Services
             this.AddMode = addMode;
         }
 
-        public MarkupString DisplayButton(string text, string icon, string iconText = "", string objIcon = "")
-        {
-            return DisplayButton(userConfig, text, icon, iconText, objIcon);
-        }
-
-        public static MarkupString DisplayButton(UserConfig userConfig, string text, string icon, string iconText = "", string objIcon = "")
-        {
-            string tooltip = userConfig.ModIconify ? $"data-toggle=\"tooltip\" title=\"{@userConfig.PureLine(text)}\"" : "";
-            string iconToDisplay = $"<span class=\"{icon}\" {@tooltip}/>";
-            string iconTextPart = iconText != "" ? " <span class=\"stdtext\">" + userConfig.GetText(iconText) + "</span>" : "";
-            string objIconToDisplay = objIcon != "" ? $" <span class=\"{objIcon}\"/>" : "";
-            return (MarkupString)(userConfig.ModIconify ? iconToDisplay + iconTextPart + objIconToDisplay : userConfig.GetText(text));
-        }
-
         public string DisplayApp(FwoOwner app)
         {
             return DisplayApp(userConfig, app);
@@ -71,16 +58,28 @@ namespace FWO.Services
 
         public static string DisplayApp(UserConfig userConfig, FwoOwner app)
         {
-            string tooltip = app.Active ? (app.ConnectionCount.Aggregate.Count > 0 ? "" : $"data-toggle=\"tooltip\" title=\"{userConfig.GetText("C9004")}\"")
-                : $"data-toggle=\"tooltip\" title=\"{userConfig.GetText("C9003")}\"";
-            string textToDisplay = (app.Active ? (app.ConnectionCount.Aggregate.Count > 0 ? "" : "*") : "!") + app.Display(userConfig.GetText("common_service"));
-            string textClass = app.Active ? (app.ConnectionCount.Aggregate.Count > 0 ? "" : "text-success") : "text-danger";
+            string tooltipEmptyApp = app.ConnectionCount.Aggregate.Count > 0 ? "" : $"data-toggle=\"tooltip\" title=\"{userConfig.GetText("C9004")}\"";
+            string tooltip = app.Active ? tooltipEmptyApp : $"data-toggle=\"tooltip\" title=\"{userConfig.GetText("C9003")}\"";
+            string textMarkerEmptyApp = app.ConnectionCount.Aggregate.Count > 0 ? "" : "*";
+            string textToDisplay = (app.Active ? textMarkerEmptyApp : "!") + app.Display(userConfig.GetText("common_service"));
+            string classEmptyApp = app.ConnectionCount.Aggregate.Count > 0 ? "" : "text-success";
+            string textClass = app.Active ? classEmptyApp : "text-danger";
             return $"<span class=\"{textClass}\" {tooltip}>{(app.Active ? "" : "<i>")}{textToDisplay}{(app.Active ? "" : "</i>")}</span>";
         }
 
         public static string DisplayReqInt(UserConfig userConfig, long? ticketId, bool otherOwner, bool rejected = false)
         {
-            string tooltipKey = rejected ? "C9011": otherOwner ? "C9007" : "C9008";
+            string tooltipKey = "C9008";
+            {
+                if (rejected)
+                {
+                    tooltipKey = "C9011";
+                }
+                else if (otherOwner)
+                {
+                    tooltipKey = "C9007";
+                }
+            }
             string tooltip = $"data-toggle=\"tooltip\" title=\"{userConfig.GetText(tooltipKey)}\"";
             string content = $"{userConfig.GetText(rejected ? "InterfaceRejected" : "interface_requested")}: ({userConfig.GetText("ticket")} {ticketId?.ToString()})";
             return $"<span class=\"{(rejected ? "text-danger" : "text-warning")}\" {tooltip}><i>{content}</i></span>";
@@ -210,6 +209,7 @@ namespace FWO.Services
                     {
                         conn.SrcFromInterface = interf[0].SourceFilled();
                         conn.DstFromInterface = interf[0].DestinationFilled();
+                        conn.InterfaceIsDecommissioned = interf[0].GetBoolProperty(ConState.Decommissioned.ToString());
                         if(interf[0].IsRequested)
                         {
                             conn.InterfaceIsRequested = true;
@@ -227,6 +227,10 @@ namespace FWO.Services
                         else if(interf[0].GetBoolProperty(ConState.Requested.ToString()))
                         {
                             conn.AddProperty(ConState.InterfaceRequested.ToString());
+                        }
+                        else if(interf[0].GetBoolProperty(ConState.Decommissioned.ToString()))
+                        {
+                            conn.AddProperty(ConState.InterfaceDecommissioned.ToString());
                         }
                     }
                 }
@@ -284,8 +288,8 @@ namespace FWO.Services
         {
             try
             {
-                List<ModellingConnection> foundConnections = await apiConnection.SendQueryAsync<List<ModellingConnection>>(ModellingQueries.getInterfaceUsers, new { id = conn.Id });
-                if (foundConnections.Count == 0)
+                UsingConnections = await apiConnection.SendQueryAsync<List<ModellingConnection>>(ModellingQueries.getInterfaceUsers, new { id = conn.Id });
+                if (UsingConnections.Count == 0)
                 {
                     return false;
                 }
@@ -331,35 +335,35 @@ namespace FWO.Services
             List<ModellingNetworkArea> areas = [.. ModellingNetworkAreaWrapper.Resolve(conn.SourceAreas)];
             foreach(var area in areas)
             {
-                area.TooltipText = userConfig.GetText("C9001");
+                area.TooltipText = userConfig.GetText(DeactMsg);
             }
-            List<string> names = areas.ConvertAll(s => s.DisplayWithIcon(conn.SrcFromInterface));
+            List<string> names = areas.ConvertAll(s => s.DisplayWithIcon(conn.SrcFromInterface, conn.InterfaceIsDecommissioned));
 
             List<ModellingNwGroup> nwGroups = [.. ModellingNwGroupWrapper.Resolve(conn.SourceOtherGroups)];
             foreach(var nwGroup in nwGroups)
             {
-                nwGroup.TooltipText = userConfig.GetText("C9001");
+                nwGroup.TooltipText = userConfig.GetText(DeactMsg);
             }
-            names.AddRange(nwGroups.ConvertAll(s => s.DisplayWithIcon(conn.SrcFromInterface)));
+            names.AddRange(nwGroups.ConvertAll(s => s.DisplayWithIcon(conn.SrcFromInterface, conn.InterfaceIsDecommissioned)));
 
             foreach(ModellingAppRole appRole in ModellingAppRoleWrapper.Resolve(conn.SourceAppRoles))
             {
                 if(appRole.AppServers.Count > 0 && !appRole.AppServers.Any(_ => _.Content.IsDeleted))
                 {
-                    names.Add(appRole.DisplayWithIcon(conn.SrcFromInterface));
+                    names.Add(appRole.DisplayWithIcon(conn.SrcFromInterface, conn.InterfaceIsDecommissioned));
                 }
                 else
                 {
-                    names.Add(appRole.DisplayProblematicWithIcon(conn.SrcFromInterface));
+                    names.Add(appRole.DisplayProblematicWithIcon(conn.SrcFromInterface, conn.InterfaceIsDecommissioned));
                 }
             }
 
             List<ModellingAppServer> appServers = [.. ModellingAppServerWrapper.Resolve(conn.SourceAppServers)];
             foreach(var appServer in appServers)
             {
-                appServer.TooltipText = userConfig.GetText("C9001");
+                appServer.TooltipText = userConfig.GetText(DeactMsg);
             }
-            names.AddRange(appServers.ConvertAll(s => s.DisplayWithIcon(conn.SrcFromInterface)));
+            names.AddRange(appServers.ConvertAll(s => s.DisplayWithIcon(conn.SrcFromInterface, conn.InterfaceIsDecommissioned)));
             return names;
         }
 
@@ -374,35 +378,35 @@ namespace FWO.Services
             List<ModellingNetworkArea> areas = [.. ModellingNetworkAreaWrapper.Resolve(conn.DestinationAreas)];
             foreach(var area in areas)
             {
-                area.TooltipText = userConfig.GetText("C9001");
+                area.TooltipText = userConfig.GetText(DeactMsg);
             }
-            List<string> names = areas.ConvertAll(s => s.DisplayWithIcon(conn.DstFromInterface));
+            List<string> names = areas.ConvertAll(s => s.DisplayWithIcon(conn.DstFromInterface, conn.InterfaceIsDecommissioned));
 
             List<ModellingNwGroup> nwGroups = [.. ModellingNwGroupWrapper.Resolve(conn.DestinationOtherGroups)];
             foreach(var nwGroup in nwGroups)
             {
-                nwGroup.TooltipText = userConfig.GetText("C9001");
+                nwGroup.TooltipText = userConfig.GetText(DeactMsg);
             }
-            names.AddRange(nwGroups.ConvertAll(s => s.DisplayWithIcon(conn.DstFromInterface)));
+            names.AddRange(nwGroups.ConvertAll(s => s.DisplayWithIcon(conn.DstFromInterface, conn.InterfaceIsDecommissioned)));
 
             foreach(ModellingAppRole appRole in ModellingAppRoleWrapper.Resolve(conn.DestinationAppRoles))
             {
                 if(appRole.AppServers.Count > 0 && !appRole.AppServers.Any(_ => _.Content.IsDeleted))
                 {
-                    names.Add(appRole.DisplayWithIcon(conn.DstFromInterface));
+                    names.Add(appRole.DisplayWithIcon(conn.DstFromInterface, conn.InterfaceIsDecommissioned));
                 }
                 else
                 {
-                    names.Add(appRole.DisplayProblematicWithIcon(conn.DstFromInterface));
+                    names.Add(appRole.DisplayProblematicWithIcon(conn.DstFromInterface, conn.InterfaceIsDecommissioned));
                 }
             }
 
             List<ModellingAppServer> appServers = [.. ModellingAppServerWrapper.Resolve(conn.DestinationAppServers)];
             foreach(var appServer in appServers)
             {
-                appServer.TooltipText = userConfig.GetText("C9001");
+                appServer.TooltipText = userConfig.GetText(DeactMsg);
             }
-            names.AddRange(appServers.ConvertAll(s => s.DisplayWithIcon(conn.DstFromInterface)));
+            names.AddRange(appServers.ConvertAll(s => s.DisplayWithIcon(conn.DstFromInterface, conn.InterfaceIsDecommissioned)));
             return names;
         }
 
@@ -420,15 +424,15 @@ namespace FWO.Services
             {
                 if(svcGrp.Services.Count > 0)
                 {
-                    names.Add(svcGrp.DisplayWithIcon(conn.UsedInterfaceId != null));
+                    names.Add(svcGrp.DisplayWithIcon(conn.UsedInterfaceId != null, conn.InterfaceIsDecommissioned));
                 }
                 else
                 {
-                    names.Add(svcGrp.DisplayProblematicWithIcon(conn.UsedInterfaceId != null));
+                    names.Add(svcGrp.DisplayProblematicWithIcon(conn.UsedInterfaceId != null, conn.InterfaceIsDecommissioned));
                 }
             }
 
-            names.AddRange(ModellingServiceWrapper.Resolve(conn.Services).ToList().ConvertAll(s => s.DisplayWithIcon(conn.UsedInterfaceId != null)));
+            names.AddRange(ModellingServiceWrapper.Resolve(conn.Services).ToList().ConvertAll(s => s.DisplayWithIcon(conn.UsedInterfaceId != null, conn.InterfaceIsDecommissioned)));
             
             return names;
         }

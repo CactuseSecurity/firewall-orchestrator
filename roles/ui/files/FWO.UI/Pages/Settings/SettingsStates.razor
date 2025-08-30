@@ -17,9 +17,9 @@
     <hr />
     <div class="btn-group">
         <button type="button" class="btn btn-sm btn-success" @onclick="AddState">
-            @(ModellingHandlerBase.DisplayButton(userConfig, "add_state", Icons.Add))</button>
+            @(DisplayService.DisplayButton(userConfig, "add_state", Icons.Add))</button>
         <button type="button" class="btn btn-sm btn-warning" data-toggle="tooltip" title="@(userConfig.PureLine("H5532"))" @onclick="EditExtStates">
-            @(ModellingHandlerBase.DisplayButton(userConfig, "ext_states", Icons.Edit, "ext_states"))</button>
+            @(DisplayService.DisplayButton(userConfig, "ext_states", Icons.Edit, "ext_states"))</button>
     </div>
     <br><br>
     <div class="m-2 vheight75">
@@ -28,11 +28,11 @@
                 <Template>
                     <div class="btn-group">
                         <button type="button" class="btn btn-sm btn-warning" @onclick="() => EditState(context)">
-                            @(ModellingHandlerBase.DisplayButton(userConfig, "edit", Icons.Edit))</button>
+                            @(DisplayService.DisplayButton(userConfig, "edit", Icons.Edit))</button>
                         @if(!usedStateIds.Exists(x => x == context.Id))
                         {
                             <button type="button" class="btn btn-sm btn-danger" @onclick="() => RequestDeleteState(context)">
-                                @(ModellingHandlerBase.DisplayButton(userConfig, "delete", Icons.Delete))</button>
+                                @(DisplayService.DisplayButton(userConfig, "delete", Icons.Delete))</button>
                         }
                     </div>
                 </Template>
@@ -68,7 +68,7 @@
                 </div>
                 <br><br>
                 <button type="button" class="btn btn-sm btn-success" @onclick="SelectAction">
-                    @(ModellingHandlerBase.DisplayButton(userConfig, "add_action", Icons.Add, "action"))</button>
+                    @(DisplayService.DisplayButton(userConfig, "add_action", Icons.Add, "action"))</button>
                 <br><br>
                 <div class="m-2 vheight75">
                     <Table class="table table-bordered th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="WfStateActionDataHelper" Items="actState.Actions" PageSize="0" ColumnReorder="true">
@@ -76,7 +76,7 @@
                             <Template>
                                 <div class="btn-group">
                                     <button type="button" class="btn btn-sm btn-danger" @onclick="() => RemoveActionFromState(context)">
-                                        @(ModellingHandlerBase.DisplayButton(userConfig, "remove", Icons.Delete))</button>
+                                        @(DisplayService.DisplayButton(userConfig, "remove", Icons.Delete))</button>
                                 </div>
                             </Template>
                         </Column>

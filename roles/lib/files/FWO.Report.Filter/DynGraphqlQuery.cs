@@ -464,7 +464,7 @@ namespace FWO.Report.Filter
                             stop = DateTime.Now.AddDays(1).ToString(dateFormat);
                             break;
                         case "last week":
-                            start = startOfCurrentWeek.AddDays(-7).ToString(dateFormat);
+                            start = startOfCurrentWeek.AddDays(-GlobalConst.kDaysPerWeek).ToString(dateFormat);
                             stop = startOfCurrentWeek.ToString(dateFormat);
                             break;
                         case "today":
@@ -484,7 +484,7 @@ namespace FWO.Report.Filter
                     start = timeFilter.Interval switch
                     {
                         SchedulerInterval.Days => DateTime.Now.AddDays(-timeFilter.Offset).ToString(fullTimeFormat),
-                        SchedulerInterval.Weeks => DateTime.Now.AddDays(-7 * timeFilter.Offset).ToString(fullTimeFormat),
+                        SchedulerInterval.Weeks => DateTime.Now.AddDays(-GlobalConst.kDaysPerWeek * timeFilter.Offset).ToString(fullTimeFormat),
                         SchedulerInterval.Months => DateTime.Now.AddMonths(-timeFilter.Offset).ToString(fullTimeFormat),
                         SchedulerInterval.Years => DateTime.Now.AddYears(-timeFilter.Offset).ToString(fullTimeFormat),
                         _ => throw new NotSupportedException($"Error: wrong time interval format:" + timeFilter.Interval.ToString()),

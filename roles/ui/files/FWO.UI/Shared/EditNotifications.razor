@@ -34,7 +34,7 @@
 </div>
 
 
-<PopUp Title="@(userConfig.GetText("edit_notification"))" Show="@EditNotifMode" Size=PopupSize.Large OnClose="Close">
+<PopUp Title="@(userConfig.GetText(EditNotifString))" Show="@EditNotifMode" Size=PopupSize.Large OnClose="Close">
     <Body>
         @if (EditNotifMode)
         {
@@ -212,6 +212,7 @@
     private bool AddNotifMode = false;
     private bool EditNotifMode = false;
     private bool DeleteNotifMode = false;
+    private const string EditNotifString = "edit_notification";
 
 
     protected override async Task OnInitializedAsync()
@@ -351,14 +352,10 @@
                 }
                 Close();
             }
-            else
-            {
-                DisplayMessageInUi(null, userConfig.GetText("edit_notification"), "Data not consistent", false);
-            }
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi(exception, userConfig.GetText("edit_notification"), "", true);
+            DisplayMessageInUi(exception, userConfig.GetText(EditNotifString), "", true);
         }
     }
 
@@ -368,20 +365,49 @@
         {
             ToAddresses.Remove(addr);
         }
+        ToAddressesToDelete = [];
         ToAddresses.AddRange(ToAddressesToAdd);
+        ToAddressesToAdd = [];
         actNotification.EmailAddressTo = String.Join(",", ToAddresses);
 
         foreach (var addr in CcAddressesToDelete)
         {
             CcAddresses.Remove(addr);
         }
+        CcAddressesToDelete = [];
         CcAddresses.AddRange(CcAddressesToAdd);
+        CcAddressesToAdd = [];
         actNotification.EmailAddressCc = String.Join(",", CcAddresses);
     }
 
     private bool CheckConsistency()
     {
-        // Todo...
+        if(actNotification.Channel == NotificationChannel.Email && actNotification.EmailSubject == "")
+        {
+            DisplayMessageInUi(null, userConfig.GetText(EditNotifString), userConfig.GetText("E4010"), false);
+            return false;
+        }
+        if(actNotification.RecipientTo == EmailRecipientOption.None ||
+            actNotification.RecipientTo == EmailRecipientOption.OtherAddresses && ToAddresses.Count == 0 ||
+            actNotification.RecipientCc == EmailRecipientOption.OtherAddresses && CcAddresses.Count == 0)
+        {
+            DisplayMessageInUi(null, userConfig.GetText(EditNotifString), userConfig.GetText("E4011"), false);
+            return false;
+        }
+        if(actNotification.Deadline != NotificationDeadline.None)
+        {
+            if(actNotification.OffsetBeforeDeadline == null && actNotification.RepeatOffsetAfterDeadline == null)
+            {
+                DisplayMessageInUi(null, userConfig.GetText(EditNotifString), userConfig.GetText("E4012"), false);
+                return false;
+            }
+            if(actNotification.RepeatOffsetAfterDeadline != null && actNotification.RepetitionsAfterDeadline == null ||
+                (actNotification.RepeatOffsetAfterDeadline == null && actNotification.RepetitionsAfterDeadline != null))
+            {
+                DisplayMessageInUi(null, userConfig.GetText(EditNotifString), userConfig.GetText("E4013"), false);
+                return false;
+            }
+        }
         return true;
     }
 

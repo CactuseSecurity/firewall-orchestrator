@@ -3152,6 +3152,14 @@ INSERT INTO txt VALUES ('E4003', 'German',  'Keine &Auml;nderungen f&uuml;r die 
 INSERT INTO txt VALUES ('E4003', 'English', 'No changes found for given criteria');
 INSERT INTO txt VALUES ('E4004', 'German',  'Nutzungsdaten nicht unterst&uuml;tzt f&uuml;r: ');
 INSERT INTO txt VALUES ('E4004', 'English', 'Usage data not supported for: ');
+INSERT INTO txt VALUES ('E4010', 'German',  'Betreff fehlt');
+INSERT INTO txt VALUES ('E4010', 'English', 'Subject missing');
+INSERT INTO txt VALUES ('E4011', 'German',  'Email-Adressen nicht konsistent');
+INSERT INTO txt VALUES ('E4011', 'English', 'Email addresses not consistent');
+INSERT INTO txt VALUES ('E4012', 'German',  'Mindestens ein Offset vor oder nach dem Termin muss gef&uuml;llt sein');
+INSERT INTO txt VALUES ('E4012', 'English', 'At least one offset before or after deadline has to be filled');
+INSERT INTO txt VALUES ('E4013', 'German',  'Daten f&uuml;r Benachrichtigung nach Termin nicht konsistent');
+INSERT INTO txt VALUES ('E4013', 'English', 'Data for Notifications after Deadline not consistent');
 
 INSERT INTO txt VALUES ('E5101', 'German',  'L&ouml;schen des Managements nicht erlaubt, da noch Gateways zugeordnet sind. Diese zuerst l&ouml;schen wenn m&ouml;glich');
 INSERT INTO txt VALUES ('E5101', 'English', 'Deletion of management not allowed as there are related Gateways. Delete them first if possible');

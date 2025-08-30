@@ -180,9 +180,9 @@ namespace FWO.Middleware.Server
                     case (int)NotificationLayout.HtmlAsAttachment:
                         attachment = CreateAttachment(changeReport?.ExportToHtml(), GlobalConst.kHtml);
                         break;
-                    // case (int)NotificationLayout.CsvAsAttachment: // Currently not implemented
-                    //     attachment = CreateAttachment(changeReport?.ExportToCsv(), GlobalConst.kCsv);
-                    //     break;
+                    case (int)NotificationLayout.CsvAsAttachment:
+                        attachment = CreateAttachment(changeReport?.ExportToCsv(), GlobalConst.kCsv);
+                        break;
                     case (int)NotificationLayout.JsonAsAttachment:
                         attachment = CreateAttachment(changeReport?.ExportToJson(), GlobalConst.kJson);
                         break;

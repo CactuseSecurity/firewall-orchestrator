@@ -58,6 +58,7 @@ namespace FWO.Middleware.Server
             int emailsSent = 0;
             foreach (var notification in Notifications.Where(n => (n.OwnerId == null || n.OwnerId == owner.Id) && IsTimeToSend(owner, n)))
             {
+                // Later: Handle other channels here when implemented
                 await SendEmail(notification, content, owner, report);
                 await UpdateNotificationLastSent(notification, ApiConnection);
                 emailsSent++;
@@ -160,6 +161,9 @@ namespace FWO.Middleware.Server
                         break;
                     case NotificationLayout.JsonAsAttachment:
                         attachment = CreateAttachment(report.ExportToJson(), GlobalConst.kJson, subject);
+                        break;
+                    case NotificationLayout.CsvAsAttachment:
+                        attachment = CreateAttachment(report.ExportToCsv(), GlobalConst.kCsv, subject);
                         break;
                     default:
                         break;

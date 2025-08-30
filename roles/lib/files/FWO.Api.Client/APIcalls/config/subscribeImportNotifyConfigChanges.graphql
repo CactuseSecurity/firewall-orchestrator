@@ -10,6 +10,7 @@
         {config_key: {_eq: "impChangeNotifyActive"}}, 
         {config_key: {_eq: "impChangeNotifyType"}},
         {config_key: {_eq: "impChangeNotifyBody"}}, 
+		{config_key: {_eq: "useDummyEmailAddress"}},
         {config_key: {_eq: "emailServerAddress"}}, 
         {config_key: {_eq: "emailPort"}}, 
         {config_key: {_eq: "emailTls"}}, 

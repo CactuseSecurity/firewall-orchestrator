@@ -50,7 +50,7 @@
             <label class="col-form-label col-sm-4">@(userConfig.GetText("impChangeNotifyType")):</label>
             <div class="col-sm-2">
                 <Dropdown ElementType="NotificationLayout" @bind-SelectedElement="selectedImpChgNotType" ElementToString="@(i => userConfig.GetText(i.ToString()))"
-                        Elements="Enum.GetValues(typeof(NotificationLayout)).Cast<NotificationLayout>()" >
+                        Elements="NotificationLayoutGroups.ListWithoutCsv()" >
                     <ElementTemplate Context="type">
                         @(userConfig.GetText(type.ToString()))
                     </ElementTemplate>

@@ -27,7 +27,7 @@ namespace FWO.Report
                 }
                 return ParseFromManagementData(managementData[0]);
             }
-            // TODO: Implement configTime handling
+            // TODO: Implement configTime handling - see #3645
             throw new NotImplementedException("configTime handling not yet implemented.");
         }
 

@@ -34,23 +34,23 @@ namespace FWO.Middleware.Server.Controllers
         /// <returns>NormalizedConfig as json string</returns>
         [HttpPost("Get")]
         [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}, {Roles.Reporter}, {Roles.ReporterViewAll}, {Roles.Modeller}, {Roles.Recertifier}, {Roles.Importer}")]
-        public async Task<string> Get([FromBody] NormalizedConfigGetParameters parameters)
+        public async Task<IActionResult> Get([FromBody] NormalizedConfigGetParameters parameters)
         {
             try
             {
                 if (!await InitUserEnvironment() || apiConnectionUserContext == null)
                 {
-                    return "";  // todo: Error message?
+                    return Unauthorized("Failed to initialize user environment or user context is null.");
                 }
 
                 NormalizedConfig normalizedConfig = await NormalizedConfigGenerator.Generate([.. parameters.ManagementIds], parameters.ConfigTime, apiConnectionUserContext);
-                return JsonConvert.SerializeObject(normalizedConfig);
+                return Ok(JsonConvert.SerializeObject(normalizedConfig));
             }
             catch (Exception exception)
             {
                 Log.WriteError("Get NormalizedConfig", "Error while getting normalized config.", exception);
             }
-            return "";
+            return StatusCode(500, "An error occurred while getting the normalized config.");
         }
 
         private async Task<bool> InitUserEnvironment()

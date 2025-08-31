@@ -31,7 +31,7 @@ namespace FWO.Data
             return new NormalizedRulebaseLink
             {
                 FromRulebaseUid = rulebaseLink.FromRulebase?.Uid ?? "",
-                FromRuleUid = "", // TODO: implement - need to get rule UID
+                FromRuleUid = "", // TODO: implement - need to get rule UID (see #3645)
                 ToRulebaseUid = rulebaseLink.ToRulebase?.Uid ?? "",
                 LinkType = rulebaseLink.LinkTypeObj?.Name ?? "",
                 IsInitial = rulebaseLink.IsInitial,

@@ -192,7 +192,7 @@ namespace FWO.DeviceAutoDiscovery
             }
             return customAdoms;
         }
-        
+
         override protected Management CreateManagement(Management superManagement, string domainName, string domainUid)
         {
             // create object from discovered adom
@@ -232,10 +232,6 @@ namespace FWO.DeviceAutoDiscovery
                     foreach (FortiGate fg in adom.DeviceList)
                     {
                         string devName = fg.Name;
-                        // if (fg.MgtVdom != null && fg.MgtVdom != "")
-                        // {
-                        //     devName += $"{VdomSeparator}{fg.MgtVdom}";
-                        // }
                         Device devFound = new()
                         {
                             Name = devName,

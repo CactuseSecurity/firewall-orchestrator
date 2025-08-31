@@ -35,9 +35,7 @@ namespace FWO.DeviceAutoDiscovery
                 SuperManagement.IsSupermanager = true; // just to be sure
                 Log.WriteDebug(Autodiscovery, $"discovering FortiManager adoms, vdoms, devices");
                 FortiManagerClient restClientFM = new(SuperManagement);
-
                 RestResponse<SessionAuthInfo> sessionResponse = await restClientFM.AuthenticateUser(SuperManagement.ImportCredential.ImportUser, SuperManagement.ImportCredential.Secret);
-
                 if (sessionResponse.StatusCode == HttpStatusCode.OK && sessionResponse.IsSuccessful && !string.IsNullOrEmpty(sessionResponse?.Data?.SessionId))
                 {
                     return await DiscoverySession(discoveredDevices);
@@ -96,31 +94,35 @@ namespace FWO.DeviceAutoDiscovery
 
         public async Task BuildAdomDeviceVdomStructure(string sessionId, List<Adom> customAdoms, FortiManagerClient restClientFM)
         {
-            List<FortiGate> additionalVdomDevices = [];
+
             foreach (Adom adom in customAdoms)
             {
+                List<FortiGate> additionalVdomDevices = [];
                 RestResponse<FmApiTopLevelHelperDev> deviceResponse = await restClientFM.GetDevicesPerAdom(sessionId, adom.Name);
                 if (deviceResponse != null && deviceResponse.StatusCode == HttpStatusCode.OK && deviceResponse.IsSuccessful)
                 {
                     adom.DeviceList = deviceResponse.Data?.Result[0].FortiGates;
-
-                    // now get vdoms per device
-                    if (adom.DeviceList != null)
+                }
+            }
+            // now get vdoms per device
+            foreach (Adom adom in customAdoms)
+            {
+                List<FortiGate> additionalVdomDevices = [];
+                if (adom.DeviceList != null)
+                {
+                    foreach (FortiGate fg in adom.DeviceList)
                     {
-                        foreach (FortiGate fg in adom.DeviceList)
-                        {
-                            BuildAdomDeviceVdomStructurePerPhysicalDevice(fg, additionalVdomDevices );
-                        }
+                        BuildAdomDeviceVdomStructurePerPhysicalDevice(fg, additionalVdomDevices);
                     }
                 }
                 if (additionalVdomDevices.Count > 0)
                 {
-                    adom.DeviceList.AddRange(additionalVdomDevices);
+                    // replace physical devices with vdoms
+                    adom.DeviceList = additionalVdomDevices;
                 }
             }
         }
-
-        public void BuildAdomDeviceVdomStructurePerPhysicalDevice(FortiGate fg, List<FortiGate> additionalVdomDevices )
+        public void BuildAdomDeviceVdomStructurePerPhysicalDevice(FortiGate fg, List<FortiGate> additionalVdomDevices)
         {
             Log.WriteDebug(Autodiscovery, $"found device {fg.Name} belonging to management VDOM {fg.MgtVdom}");
             if (fg.VdomList != null)
@@ -190,7 +192,7 @@ namespace FWO.DeviceAutoDiscovery
             }
             return customAdoms;
         }
-
+        
         override protected Management CreateManagement(Management superManagement, string domainName, string domainUid)
         {
             // create object from discovered adom
@@ -230,10 +232,10 @@ namespace FWO.DeviceAutoDiscovery
                     foreach (FortiGate fg in adom.DeviceList)
                     {
                         string devName = fg.Name;
-                        if (fg.MgtVdom != null && fg.MgtVdom != "")
-                        {
-                            devName += $"{VdomSeparator}{fg.MgtVdom}";
-                        }
+                        // if (fg.MgtVdom != null && fg.MgtVdom != "")
+                        // {
+                        //     devName += $"{VdomSeparator}{fg.MgtVdom}";
+                        // }
                         Device devFound = new()
                         {
                             Name = devName,
@@ -247,7 +249,7 @@ namespace FWO.DeviceAutoDiscovery
             }
             return discoveredDevices;
         }
-
+        
         // #if DEBUG
         //         List<Management> fillTestDevices()
         //         {

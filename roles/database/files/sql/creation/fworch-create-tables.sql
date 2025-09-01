@@ -651,10 +651,10 @@ CREATE TABLE "import_full_config" (
 );
 
 CREATE TABLE IF NOT EXISTS "latest_config" (
-    "import_id" bigint NOT NULL,
     "mgm_id" integer NOT NULL,
+    "import_id" bigint NOT NULL,
     "config" jsonb NOT NULL,
-    PRIMARY KEY ("import_id")
+    PRIMARY KEY ("mgm_id")
 );
 
 -- temporary import tables -------------------------------------

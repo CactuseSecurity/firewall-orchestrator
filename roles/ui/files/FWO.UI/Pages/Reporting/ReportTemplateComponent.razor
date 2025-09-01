@@ -101,8 +101,8 @@
                     </div>
                 }
                 <div class="form-group row mt-2">
-                    <label for="saveTemplateComplianceShowAnyRules" class="col-sm-3 col-form-label col-form-label-sm">Show compliant rules:</label>
-                    <input id="saveTemplateComplianceShowAnyRules" type="number" min="0" class="col-sm-2" @bind="reportTemplateInEdit.ReportParams.ComplianceFilter.ShowCompliantRules">
+                    <label for="saveTemplateComplianceShowAnyRules" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("show_any_match"))</label>
+                    <input id="saveTemplateComplianceShowAnyRules" type="checkbox" min="0" class="col-sm-2" @bind="reportTemplateInEdit.ReportParams.ComplianceFilter.ShowCompliantRules">
                 </div>
 
             }

@@ -212,7 +212,8 @@
     [Parameter]
     public int Width { get; set; }
 
-    public bool ShowAnyRule { get; set; } = false;
+    [Parameter]
+    public bool ShowAnyRule { get; set; }
 
     private ITable<RuleViewData>? _reportTable;
 

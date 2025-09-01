@@ -36,13 +36,6 @@ namespace FWO.Middleware.Server
 
         private List<Ldap> connectedLdaps;
 
-        private ReportBase? _report = null;
-        private ReportFile? _reportFile = null;
-        private List<FileFormat>? _fileFormats = null;
-        private List<ReportSchedulerConfig> _reportSchedulerConfig = new();
-        private bool _shouldAdaptDeviceFilter => !(_report is ReportCompliance);
-
-
         /// <summary>
         /// Async Constructor needing the connection, jwtWriter and subscription
         /// </summary>
@@ -90,6 +83,8 @@ namespace FWO.Middleware.Server
         {
             DateTime dateTimeNowRounded = RoundDown(DateTime.Now, CheckScheduleInterval);
 
+            
+
             await Parallel.ForEachAsync(scheduledReports, new ParallelOptions() { MaxDegreeOfParallelism = Environment.ProcessorCount },
                 async (reportSchedule, ct) =>
                 {
@@ -127,8 +122,6 @@ namespace FWO.Middleware.Server
 
         private async Task GenerateReport(ReportSchedule reportSchedule, DateTime dateTimeNowRounded, CancellationToken token)
         {
-            _fileFormats = reportSchedule.OutputFormat;
-
             await Task.Run(async () =>
             {
                 try
@@ -140,11 +133,7 @@ namespace FWO.Middleware.Server
                         return;
                     }
 
-                    // Get report scheduler config.
-
-                    _reportSchedulerConfig = JsonSerializer.Deserialize<List<ReportSchedulerConfig>>(_userConfig.GlobalConfig!.ReportSchedulerConfig) ?? new();
-
-                    _reportFile = new()
+                    ReportFile reportFile = new()
                     {
                         Name = $"{reportSchedule.Name}_{dateTimeNowRounded.ToShortDateString()}",
                         GenerationDateStart = DateTime.Now,
@@ -154,23 +143,20 @@ namespace FWO.Middleware.Server
                     };
 
                     await apiConnectionUserContext.SendQueryAsync<object>(ReportQueries.countReportSchedule, new { report_schedule_id = reportSchedule.Id });
+                    await TryAdaptDeviceFilter(reportSchedule.Template.ReportParams, apiConnectionUserContext);
 
-                    if (_shouldAdaptDeviceFilter)
+                    ReportBase report = await ReportGenerator.Generate(reportSchedule.Template, apiConnectionUserContext, _userConfig, DefaultInit.DoNothing, token);
+
+                    if (report != null)
                     {
-                        await AdaptDeviceFilter(reportSchedule.Template.ReportParams, apiConnectionUserContext);
-                    }
-
-                    _report = await ReportGenerator.Generate(reportSchedule.Template, apiConnectionUserContext, _userConfig, DefaultInit.DoNothing, token);
-
-                    if (_report != null)
-                    {
-                        await _report.GetObjectsInReport(int.MaxValue, apiConnectionUserContext, _ => Task.CompletedTask);
-                        await WriteReportFile(_report, reportSchedule.OutputFormat, _reportFile);
+                        await report.GetObjectsInReport(int.MaxValue, apiConnectionUserContext, _ => Task.CompletedTask);
+                        await WriteReportFile(report, reportSchedule.OutputFormat, reportFile);
 
                         Log.WriteInfo(LogMessageTitle, $"Scheduled report \"{reportSchedule.Name}\" with id \"{reportSchedule.Id}\" for user \"{reportSchedule.ScheduleOwningUser.Name}\" with id \"{reportSchedule.ScheduleOwningUser.DbId}\" successfully generated.");
 
-                        await TrySaveReport(reportSchedule.Id, _reportFile, _report.SetDescription(), apiConnectionUserContext);
-                        await TrySendReportViaEmail(reportSchedule.Id);
+                        ReportSchedulerConfig reportSchedulerConfig = GetReportSchedulerConfig(reportSchedule.Id);
+                        await TrySaveReport(reportFile, reportSchedulerConfig, report.SetDescription(), apiConnectionUserContext);
+                        await TrySendReportViaEmail(reportSchedule, reportFile, reportSchedulerConfig);
                     }
                     else
                     {
@@ -209,11 +195,11 @@ namespace FWO.Middleware.Server
             return true;
         }
 
-        private static async Task AdaptDeviceFilter(ReportParams reportParams, ApiConnection apiConnectionUser)
+        private static async Task TryAdaptDeviceFilter(ReportParams reportParams, ApiConnection apiConnectionUser)
         {
             try
             {
-                if (!reportParams.DeviceFilter.IsAnyDeviceFilterSet())
+                if (reportParams.ReportType != (int)ReportType.Compliance && !reportParams.DeviceFilter.IsAnyDeviceFilterSet())
                 {
                     // for scheduling no device selection means "all"
                     reportParams.DeviceFilter.Managements = await apiConnectionUser.SendQueryAsync<List<ManagementSelect>>(DeviceQueries.getDevicesByManagement);
@@ -260,11 +246,9 @@ namespace FWO.Middleware.Server
             reportFile.GenerationDateEnd = DateTime.Now;
         }
 
-        private async Task TrySaveReport(int reportScheduleID, ReportFile reportFile, string desc, ApiConnection apiConnectionUser)
+        private async Task TrySaveReport(ReportFile reportFile, ReportSchedulerConfig reportSchedulerConfig, string desc, ApiConnection apiConnectionUser)
         {
-            ReportSchedulerConfig? schedulerConfig = _reportSchedulerConfig.FirstOrDefault(config => config.ReportScheduleID == reportScheduleID);
-
-            if (schedulerConfig is ReportSchedulerConfig reportSchedulerConfig && reportSchedulerConfig.ToEmail)
+            if (reportSchedulerConfig.ToEmail)
             {
                 try
                 {
@@ -300,16 +284,15 @@ namespace FWO.Middleware.Server
             long delta = dateTime.Ticks % roundInterval.Ticks;
             return new DateTime(dateTime.Ticks - delta);
         }
-        
+
         /// <summary>
         /// Send Email with compliance report to all recipients defined in compliance settings
         /// </summary>
         /// <returns></returns>
-        public async Task TrySendReportViaEmail(int reportScheduleID)
+        public async Task TrySendReportViaEmail(ReportSchedule reportSchedule, ReportFile reportFile, ReportSchedulerConfig reportSchedulerConfig)
         {
-            ReportSchedulerConfig? schedulerConfig = _reportSchedulerConfig.FirstOrDefault(config => config.ReportScheduleID == reportScheduleID);
 
-            if (schedulerConfig is ReportSchedulerConfig reportSchedulerConfig && reportSchedulerConfig.ToEmail && _userConfig?.GlobalConfig is GlobalConfig globalConfig)
+            if (reportSchedulerConfig.ToEmail && _userConfig?.GlobalConfig is GlobalConfig globalConfig)
             {
                 string decryptedSecret = AesEnc.TryDecrypt(globalConfig.EmailPassword, false, "Report Scheduler", "Could not decrypt mailserver password.");
 
@@ -322,7 +305,7 @@ namespace FWO.Middleware.Server
                     globalConfig.EmailSenderAddress
                 );
 
-                MailData? mail = PrepareEmail(reportSchedulerConfig);
+                MailData? mail = PrepareEmail(reportSchedule, reportFile, reportSchedulerConfig);
 
                 if (mail != null)
                 {
@@ -335,13 +318,13 @@ namespace FWO.Middleware.Server
                     {
                         Log.WriteError(LogMessageTitle, "Report email could not be sent.");
                     }
-                }           
+                }
             }
         }
 
-        private MailData? PrepareEmail(ReportSchedulerConfig reportSchedulerConfig)
+        private MailData? PrepareEmail(ReportSchedule reportSchedule, ReportFile reportFile, ReportSchedulerConfig reportSchedulerConfig)
         {
-            if (_userConfig != null && _reportFile is ReportFile reportFile && _fileFormats is List<FileFormat> fileFormats)
+            if (_userConfig != null)
             {
                 string subject = reportSchedulerConfig.Subject;
                 string body = reportSchedulerConfig.Body;
@@ -349,7 +332,7 @@ namespace FWO.Middleware.Server
                 FormFile? attachment;
                 mailData.Attachments = new FormFileCollection();
 
-                foreach (FileFormat format in fileFormats)
+                foreach (FileFormat format in reportSchedule.OutputFormat)
                 {
                     switch (format.Name)
                     {
@@ -375,7 +358,7 @@ namespace FWO.Middleware.Server
 
                     if (attachment != null)
                     {
-                        ((FormFileCollection) mailData.Attachments).Add(attachment);
+                        ((FormFileCollection)mailData.Attachments).Add(attachment);
                     }
                 }
 
@@ -385,6 +368,20 @@ namespace FWO.Middleware.Server
             {
                 return null;
             }
+        }
+
+        private ReportSchedulerConfig GetReportSchedulerConfig(int reportScheduleID)
+        {
+            if (_userConfig != null)
+            {
+                List<ReportSchedulerConfig> reportSchedulerConfig = JsonSerializer.Deserialize<List<ReportSchedulerConfig>>(_userConfig.GlobalConfig!.ReportSchedulerConfig) ?? new();
+                return reportSchedulerConfig.FirstOrDefault(config => config.ReportScheduleID == reportScheduleID) ?? new();
+            }
+            else
+            {
+                return new();
+            }
+            
         }
     }
 }

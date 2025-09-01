@@ -242,6 +242,7 @@ namespace FWO.Middleware.Server
             }
             return null;
         }
+
         private List<string> CollectRecipients()
         {
             if (globalConfig.UseDummyEmailAddress)

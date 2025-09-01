@@ -27,7 +27,7 @@
             <EditConnLeftSide @bind-Width="sidebarLeftWidth" @bind-ConnHandler="appHandler.OverviewConnHandler" OverviewMode="true"/>
             <RequestFwChangePopup @bind-Display="showFwChange" SelectedApp="@selectedApp" Connections="appHandler.GetConnectionsToRequest()"
                 RefreshParent="SubscribeAndSetStatusFromTicket" ChangeStatus="@ChangeStatus" LastRequestDate="@LastRequestDate"/>
-            <RequestRecertPopup @bind-Display="showRecert" AppHandler="@appHandler"/>
+            <RequestRecertPopup @bind-Display="showRecert" AppHandler="@appHandler" RefreshParent="UpdateRecertStatus"/>
         }
         <div style="margin-left: @($"{sidebarLeftWidth + 10}px");">
             <div class="input-group">
@@ -526,6 +526,15 @@ else
             await SetStatusFromTicket(tickets.First());
             await InvokeAsync(StateHasChanged);
         }
+    }
+
+    private bool UpdateRecertStatus(FwoOwner owner)
+    {
+        selectedApp.LastRecertified = owner.LastRecertified;
+        selectedApp.LastRecertifierDn= owner.LastRecertifierDn;
+        selectedApp.NextRecertDate= owner.NextRecertDate;
+        SetRecertStatus();
+        return true;
     }
 
     private void SetRecertStatus()

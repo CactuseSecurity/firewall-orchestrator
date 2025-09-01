@@ -4959,8 +4959,8 @@ INSERT INTO txt VALUES ('H5415', 'German',  'Datenaufbewahrungszeit (in Tagen): 
 INSERT INTO txt VALUES ('H5415', 'English', 'Data retention time (in days): Defines how long the data is kept in the database (currently not supported).');
 INSERT INTO txt VALUES ('H5416', 'German',  '&Auml;nderungsbenachrichtigung via Email:');
 INSERT INTO txt VALUES ('H5416', 'English', 'Change notification via email:');
-INSERT INTO txt VALUES ('H5417', 'German',  'Rezertifizierungsintervall (in Tagen): Maximale Zeit, nach der eine Regel rezertifiziert werden soll.');
-INSERT INTO txt VALUES ('H5417', 'English', 'Recertification Period (in days): Maximum time, after when a rule should be recertified.');
+INSERT INTO txt VALUES ('H5417', 'German',  'Rezertifizierungsintervall (in Tagen): Maximale Zeit, nach der eine Regel rezertifiziert werden soll. Bei Rezertifizierungsmodus "Eigent&uuml;mer und Regeln": Default-Wert, wenn im Eigent&uuml;mer kein Wert gesetzt ist.');
+INSERT INTO txt VALUES ('H5417', 'English', 'Recertification Period (in days): Maximum time, after when a rule should be recertified. In case of Recertification Mode "Owners And Rules": Default period if no value set in owner.');
 INSERT INTO txt VALUES ('H5418', 'German',  'Rezertifizierungserinnerungsintervall (in Tagen): Zeit vor dem F&auml;lligkeitsdatum, ab der eine Regel als f&auml;llig hervorgehoben werden soll.');
 INSERT INTO txt VALUES ('H5418', 'English', 'Recertification Notice Period (in days): Time before the due date when the rule should be marked as upcoming recertification.');
 INSERT INTO txt VALUES ('H5419', 'German',  'Rezertifizierungsanzeigeintervall (in Tagen): Vorausschauintervall f&uuml;r f&auml;llige Rezertifizierungen.');

@@ -140,6 +140,8 @@
     [Parameter]
     public ModellingAppHandler? AppHandler { get; set; }
 
+    [Parameter]
+    public Func<FwoOwner, bool> RefreshParent { get; set; } = DefaultInit.DoNothingSync;
 
     private bool WorkInProgress = false;
     private bool FirstTry = true;
@@ -270,10 +272,11 @@
             try
             {
                 RecertHandler recertHandler = new(apiConnection, userConfig);
-                await recertHandler.RecertifyOwnerWithRules(AppHandler.Application, VarianceResult.GetAllOkRules());
+                FwoOwner recertifiedOwner = await recertHandler.RecertifyOwnerWithRules(AppHandler.Application, VarianceResult.GetAllOkRules());
                 await ModellingHandlerBase.LogChange(ModellingTypes.ChangeType.Recertify, ModellingTypes.ModObjectType.CommunicationProfile, 0,
                     $"Recertified Application: {AppHandler.Application.Name} with {VarianceResult.GetAllOkRules().Count.ToString()} rules",
                     apiConnection, userConfig, AppHandler.Application.Id, DisplayMessageInUi);
+                RefreshParent(recertifiedOwner);
 
                 string recertText = userConfig.GetText("U4002")
                     .Replace(Placeholder.APPNAME, AppHandler.Application.Name)

@@ -7,19 +7,22 @@ namespace FWO.Recert
 {
     public class RecertHandler(ApiConnection apiConnection, UserConfig userConfig)
     {
-        public async Task RecertifyOwnerWithRules(FwoOwner owner, List<Rule> rules, string? comment = "")
+        public async Task<FwoOwner> RecertifyOwnerWithRules(FwoOwner owner, List<Rule> rules, string? comment = "")
         {
-            await RecertifyOwner(owner, comment);
+            FwoOwner recertifiedOwner = await RecertifyOwner(owner, comment);
             foreach (var rule in rules)
             {
                 await RecertifySingleRule(rule, owner, comment);
             }
+            return recertifiedOwner;
         }
 
-        public async Task RecertifyOwner(FwoOwner owner, string? comment = "")
+        public async Task<FwoOwner> RecertifyOwner(FwoOwner owner, string? comment = "")
         {
+            FwoOwner recertifiedOwner = new(owner);
             DateTime recertDate = DateTime.Now;
-            DateTime? nextRecertDate = owner.RecertInterval != null ? recertDate.AddDays((double)owner.RecertInterval) : (DateTime?)null;
+            int recertInterval = owner.RecertInterval != null ? (int)owner.RecertInterval : userConfig.RecertificationPeriod;
+            DateTime? nextRecertDate = recertInterval > 0 ? recertDate.AddDays((double)recertInterval) : (DateTime?)null;
             var recertVariables = new
             {
                 ownerId = owner.Id,
@@ -29,7 +32,7 @@ namespace FWO.Recert
                 nextRecertDate = nextRecertDate,
                 comment = comment
             };
-            ReturnId []? returnIds = (await apiConnection.SendQueryAsync<ReturnIdWrapper>(RecertQueries.recertifyOwner, recertVariables)).ReturnIds;
+            ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<ReturnIdWrapper>(RecertQueries.recertifyOwner, recertVariables)).ReturnIds;
             if (returnIds != null && returnIds.Length > 0)
             {
                 var ownerVariables = new
@@ -42,6 +45,10 @@ namespace FWO.Recert
                 };
                 await apiConnection.SendQueryAsync<ReturnId>(OwnerQueries.setOwnerLastRecert, ownerVariables);
             }
+            recertifiedOwner.LastRecertified = recertDate;
+            recertifiedOwner.LastRecertifierDn = userConfig.User.Dn;
+            recertifiedOwner.NextRecertDate = nextRecertDate;
+            return recertifiedOwner;
         }
 
         public async Task<bool> RecertifySingleRule(Rule rule, FwoOwner? owner, string? comment = "")

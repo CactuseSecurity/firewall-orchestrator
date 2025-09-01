@@ -73,12 +73,13 @@ namespace FWO.Report.Filter.FilterTypes
             {
                 TimeFilter = SavedTimeFilter,
                 RecertFilter = new RecertFilter(RecertFilter),
-                UnusedFilter = new UnusedFilter() 
+                UnusedFilter = new UnusedFilter()
                 {
-                    UnusedForDays = UnusedDays, 
+                    UnusedForDays = UnusedDays,
                     CreationTolerance = userConfig?.CreationTolerance ?? 0
                 },
-                ModellingFilter = new ModellingFilter(ModellingFilter)
+                ModellingFilter = new ModellingFilter(ModellingFilter),
+                ComplianceFilter = new ComplianceFilter(ComplianceFilter)
             };
             if (ReportType != ReportType.Statistics)
             {

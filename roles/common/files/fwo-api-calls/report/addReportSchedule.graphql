@@ -21,7 +21,7 @@ mutation addReportSchedule(
     }
   ) {
     returning {
-      report_schedule_id
+      newId: report_schedule_id
     }
   }
 }

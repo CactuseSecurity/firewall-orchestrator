@@ -254,6 +254,7 @@
         || authenticationStateTask!.Result.User.IsInRole(Roles.Auditor);
 
     private bool _showAnyRulesInComplianceReport = true;
+
     private bool _showRightSidebar = true;
 
     private ComplianceReport? _complianceReport;
@@ -504,6 +505,11 @@
                 {
                     DisplayMessageInUi(null, userConfig.GetText("generate_report"), userConfig.GetText("E4003"), true);
                 }
+            }
+
+            if(currentReport is ReportCompliance && _complianceReport != null)
+            {
+                _complianceReport!.UpdateRuleViewData(currentReport.ReportData);
             }
         }
     }

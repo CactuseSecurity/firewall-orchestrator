@@ -149,7 +149,7 @@ namespace FWO.Report
             if (chunks != null)
             {
                 RuleViewData.Clear();
-                Rules = await ProcessChunksParallelized(chunks, ct);
+                Rules = await ProcessChunksParallelized(chunks, ct, apiConnection);
                 Log.TryWriteLog(LogType.Debug, "Compliance Report", $"Fetched {Rules.Count} rules for compliance report.", _debugConfig.ExtendedLogReportGeneration);
             }
             else
@@ -205,7 +205,7 @@ namespace FWO.Report
                     foreach (RuleViewData ruleViewData in RuleViewData)
                     {
                         // Skip marked (i.e. compliant rules) rules if configured.
-                        
+
                         if (!ShowAllRules && !ruleViewData.Show)
                         {
                             continue;
@@ -291,7 +291,7 @@ namespace FWO.Report
             return await Task.WhenAll(tasks);
         }
 
-        public async Task<List<Rule>> ProcessChunksParallelized(List<Rule>[] chunks, CancellationToken ct)
+        public async Task<List<Rule>> ProcessChunksParallelized(List<Rule>[] chunks, CancellationToken ct, ApiConnection apiConnection)
         {
             List<Task<List<Rule>>> tasks = new();
 
@@ -307,7 +307,7 @@ namespace FWO.Report
                     {
                         foreach (Rule rule in chunk)
                         {
-                            await SetComplianceDataForRule(rule);
+                            await SetComplianceDataForRule(rule, apiConnection);
                             RuleViewData.Add(new RuleViewData(rule, _natRuleDisplayHtml, OutputLocation.report, ShowRule(rule), _devices ?? [], _managements ?? []));
                         }
 
@@ -383,7 +383,7 @@ namespace FWO.Report
             return queryVariables;
         }
 
-        private async Task SetComplianceDataForRule(Rule rule)
+        private async Task SetComplianceDataForRule(Rule rule, ApiConnection apiConnection)
         {
             try
             {
@@ -401,10 +401,26 @@ namespace FWO.Report
                         await AddViolationDataToViolationDetails(rule, violation, ref printedViolations, violationCount, ref abbreviated);
                     }
 
-                    if (IsDiffReport && rule.ViolationDetails == "")
+                    if (IsDiffReport)
                     {
-                        DateTime from = DateTime.Now.AddDays(-DiffReferenceInDays);
-                        rule.ViolationDetails = $"No changes between {from:dd.MM.yyyy} - {from:HH:mm} and {DateTime.Now:dd.MM.yyyy} - {DateTime.Now:HH:mm}";
+                        if (rule.ViolationDetails == "")
+                        {
+                            DateTime from = DateTime.Now.AddDays(-DiffReferenceInDays);
+                            rule.ViolationDetails = $"No changes between {from:dd.MM.yyyy} - {from:HH:mm} and {DateTime.Now:dd.MM.yyyy} - {DateTime.Now:HH:mm}";                            
+                        }
+
+
+                        var variables = new { ruleId = rule.Id };
+                        List<ComplianceViolation>? violations = await apiConnection.SendQueryAsync<List<ComplianceViolation>>(ComplianceQueries.getViolationsByRuleID, variables: variables);
+
+                        if (violations != null)
+                        {
+                            rule.Compliance = violations.Where(violation => violation.RemovedDate == null).ToList().Count > 0 ? ComplianceViolationType.MultipleViolations : ComplianceViolationType.None;
+                        }
+                        
+
+
+                        
                     }
 
                     return;
@@ -484,7 +500,7 @@ namespace FWO.Report
 
         private bool ShowRule(Rule rule)
         {
-            if (rule.Compliance == ComplianceViolationType.None && !IsDiffReport)
+            if (rule.Compliance == ComplianceViolationType.None)
             {
                 return false;
             }

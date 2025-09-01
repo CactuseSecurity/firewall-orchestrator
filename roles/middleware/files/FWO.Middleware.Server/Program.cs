@@ -55,53 +55,53 @@ GraphQlApiSubscription<List<Ldap>>.SubscriptionUpdate connectedLdapsSubscription
 GraphQlApiSubscription<List<Ldap>> connectedLdapsSubscription = apiConnection.GetSubscription<List<Ldap>>(handleSubscriptionException, connectedLdapsSubscriptionUpdate, AuthQueries.getLdapConnectionsSubscription);
 Log.WriteInfo("Found ldap connection to server", string.Join("\n", connectedLdaps.ConvertAll(ldap => $"{ldap.Address}:{ldap.Port}")));
 
-// Create and start report scheduler
-await Task.Factory.StartNew(async () =>
-{
-    reportScheduler = await  ReportScheduler.CreateAsync(apiConnection, jwtWriter, connectedLdapsSubscription);
-}, TaskCreationOptions.LongRunning);
+//// Create and start report scheduler
+//await Task.Factory.StartNew(async () =>
+//{
+//    reportScheduler = await  ReportScheduler.CreateAsync(apiConnection, jwtWriter, connectedLdapsSubscription);
+//}, TaskCreationOptions.LongRunning);
 
-// Create and start auto disovery scheduler
-await Task.Factory.StartNew(async() =>
-{
-    autoDiscoverScheduler = await AutoDiscoverScheduler.CreateAsync(apiConnection);
-}, TaskCreationOptions.LongRunning);
+//// Create and start auto disovery scheduler
+//await Task.Factory.StartNew(async() =>
+//{
+//    autoDiscoverScheduler = await AutoDiscoverScheduler.CreateAsync(apiConnection);
+//}, TaskCreationOptions.LongRunning);
 
-// Create and start daily check scheduler
-await Task.Factory.StartNew(async() =>
-{
-    dailyCheckScheduler = await DailyCheckScheduler.CreateAsync(apiConnection);
-}, TaskCreationOptions.LongRunning);
+//// Create and start daily check scheduler
+//await Task.Factory.StartNew(async() =>
+//{
+//    dailyCheckScheduler = await DailyCheckScheduler.CreateAsync(apiConnection);
+//}, TaskCreationOptions.LongRunning);
 
-// Create and start import app data scheduler
-await Task.Factory.StartNew(async() =>
-{
-    importAppDataScheduler = await ImportAppDataScheduler.CreateAsync(apiConnection);
-}, TaskCreationOptions.LongRunning);
+//// Create and start import app data scheduler
+//await Task.Factory.StartNew(async() =>
+//{
+//    importAppDataScheduler = await ImportAppDataScheduler.CreateAsync(apiConnection);
+//}, TaskCreationOptions.LongRunning);
 
-// Create and start import subnet data scheduler
-await Task.Factory.StartNew(async() =>
-{
-    importSubnetDataScheduler = await ImportIpDataScheduler.CreateAsync(apiConnection);
-}, TaskCreationOptions.LongRunning);
+//// Create and start import subnet data scheduler
+//await Task.Factory.StartNew(async() =>
+//{
+//    importSubnetDataScheduler = await ImportIpDataScheduler.CreateAsync(apiConnection);
+//}, TaskCreationOptions.LongRunning);
 
-// Create and start import change notify scheduler
-await Task.Factory.StartNew(async() =>
-{
-    importChangeNotifyScheduler = await ImportChangeNotifyScheduler.CreateAsync(apiConnection);
-}, TaskCreationOptions.LongRunning);
+//// Create and start import change notify scheduler
+//await Task.Factory.StartNew(async() =>
+//{
+//    importChangeNotifyScheduler = await ImportChangeNotifyScheduler.CreateAsync(apiConnection);
+//}, TaskCreationOptions.LongRunning);
 
-// Create and start external request scheduler
-await Task.Factory.StartNew(async() =>
-{
-    externalRequestScheduler = await ExternalRequestScheduler.CreateAsync(apiConnection);
-}, TaskCreationOptions.LongRunning);
+//// Create and start external request scheduler
+//await Task.Factory.StartNew(async() =>
+//{
+//    externalRequestScheduler = await ExternalRequestScheduler.CreateAsync(apiConnection);
+//}, TaskCreationOptions.LongRunning);
 
-// Create and start variance analysis scheduler
-await Task.Factory.StartNew(async() =>
-{
-    varianceAnalysisScheduler = await VarianceAnalysisScheduler.CreateAsync(apiConnection);
-}, TaskCreationOptions.LongRunning);
+//// Create and start variance analysis scheduler
+//await Task.Factory.StartNew(async() =>
+//{
+//    varianceAnalysisScheduler = await VarianceAnalysisScheduler.CreateAsync(apiConnection);
+//}, TaskCreationOptions.LongRunning);
 
 
 // Add services to the container.

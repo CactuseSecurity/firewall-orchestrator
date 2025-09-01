@@ -31,24 +31,24 @@ namespace FWO.Report.Data.ViewData
         public RuleViewData(Rule rule, NatRuleDisplayHtml natRuleDisplayHtml, OutputLocation outputLocation, bool show, List<Device>? devices = null, List<Management>? managements = null)
         {
             DataObject = rule;
-
-            MgmtId = rule.MgmtId.ToString();
-            MgmtName = managements?.FirstOrDefault(m => m.Id == rule.MgmtId)?.Name ?? "";
-            Uid = rule.Uid ?? "";
-            Name = rule.Name ?? "";
-            Source = natRuleDisplayHtml.DisplaySource(rule, outputLocation, ReportType.Compliance);
-            Destination = natRuleDisplayHtml.DisplayDestination(rule, outputLocation, ReportType.Compliance);
-            Services = ResolveServices(rule);
-            Action = rule.Action;
-            InstallOn = ResolveInstallOn(rule, devices ?? []);
-            Compliance = ResolveCompliance(rule.Compliance);
-            ViolationDetails = rule.ViolationDetails;
-            ChangeID = GetFromCustomField(rule, "field-2");
-            AdoITID = GetFromCustomField(rule, "field-3");
-            Comment = rule.Comment ?? "";
-            RulebaseId = rule.RulebaseId.ToString();
-            RulebaseName = rule.Rulebase?.Name ?? "";
             Show = show;
+
+            MgmtId              = SafeCall(() => rule.MgmtId.ToString());
+            MgmtName            = SafeCall(() => managements?.FirstOrDefault(m => m.Id == rule.MgmtId)?.Name ?? "");
+            Uid                 = SafeCall(() => rule.Uid ?? "");
+            Name                = SafeCall(() => rule.Name ?? "");
+            Source              = SafeCall(() => natRuleDisplayHtml.DisplaySource(rule, outputLocation, ReportType.Compliance));
+            Destination         = SafeCall(() => natRuleDisplayHtml.DisplayDestination(rule, outputLocation, ReportType.Compliance));
+            Services            = SafeCall(() => ResolveServices(rule));
+            Action              = SafeCall(() => rule.Action);
+            InstallOn           = SafeCall(() => ResolveInstallOn(rule, devices ?? []));
+            Compliance          = SafeCall(() => ResolveCompliance(rule.Compliance));
+            ViolationDetails    = SafeCall(() => rule.ViolationDetails);
+            ChangeID            = SafeCall(() => GetFromCustomField(rule, "field-2"));
+            AdoITID             = SafeCall(() => GetFromCustomField(rule, "field-3"));
+            Comment             = SafeCall(() => rule.Comment ?? "");
+            RulebaseId          = SafeCall(() => rule.RulebaseId.ToString());
+            RulebaseName        = SafeCall(() => rule.Rulebase?.Name ?? "");
         }
 
         private string ResolveServices(Rule rule)
@@ -73,7 +73,7 @@ namespace FWO.Report.Data.ViewData
             {
                 string customFieldsString = rule.CustomFields.Replace("'", "\"");
                 Dictionary<string, string>? customFields = JsonSerializer.Deserialize<Dictionary<string, string>>(customFieldsString);
-                return customFields != null && customFields.TryGetValue(field, out string? value) ? value : "";                
+                return customFields != null && customFields.TryGetValue(field, out string? value) ? value : "";
             }
             catch (JsonException)
             {
@@ -112,5 +112,18 @@ namespace FWO.Report.Data.ViewData
 
             return installOn;
         }
+        
+        private string SafeCall(Func<string> func)
+        {
+            try
+            {
+                return func();
+            }
+            catch (Exception ex)
+            {
+                return $"{ex.GetType().Name}: {ex.Message}";
+            }
+        }
+
     }
 }

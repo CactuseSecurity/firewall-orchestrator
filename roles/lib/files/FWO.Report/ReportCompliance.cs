@@ -26,6 +26,7 @@ namespace FWO.Report
         public Dictionary<ComplianceViolation, char> ViolationDiffs = new();
         public List<ComplianceViolation> Violations { get; set; } = [];
         public int DiffReferenceInDays { get; set; } = 0;
+        public bool ShowAllRules { get; set; }
 
         #endregion
 
@@ -97,11 +98,12 @@ namespace FWO.Report
                 _debugConfig = new();
             }
         }
-        
+
         public ReportCompliance(DynGraphqlQuery query, UserConfig userConfig, ReportType reportType, ReportParams reportParams) : this(query, userConfig, reportType)
         {
             IsDiffReport = reportParams.ComplianceFilter.IsDiffReport;
             DiffReferenceInDays = reportParams.ComplianceFilter.DiffReferenceInDays;
+            ShowAllRules = reportParams.ComplianceFilter.ShowCompliantRules;
         }
 
 
@@ -202,6 +204,13 @@ namespace FWO.Report
 
                     foreach (RuleViewData ruleViewData in RuleViewData)
                     {
+                        // Skip marked (i.e. compliant rules) rules if configured.
+                        
+                        if (!ShowAllRules && !ruleViewData.Show)
+                        {
+                            continue;
+                        }
+
                         sb.AppendLine(GetLineForRule(ruleViewData, properties));
                     }
 

@@ -1,15 +1,15 @@
 {
   "bomFormat": "CycloneDX",
   "specVersion": "1.6",
-  "serialNumber": "urn:uuid:d4e333c7-810d-4c6c-a5c6-7b8ed528541b",
+  "serialNumber": "urn:uuid:7014bd83-8941-437b-ad31-a26437840371",
   "version": 1,
   "metadata": {
-    "timestamp": "2025-03-01T13:40:51Z",
+    "timestamp": "2025-08-29T15:21:41Z",
     "tools": [
       {
         "vendor": "CycloneDX",
         "name": "CycloneDX module for .NET",
-        "version": "5.0.1.0"
+        "version": "5.4.0.0"
       }
     ],
     "component": {
@@ -173,20 +173,20 @@
     },
     {
       "type": "library",
-      "bom-ref": "pkg:nuget/BouncyCastle.Cryptography@2.5.0",
+      "bom-ref": "pkg:nuget/BouncyCastle.Cryptography@2.5.1",
       "authors": [
         {
           "name": "Legion of the Bouncy Castle Inc."
         }
       ],
       "name": "BouncyCastle.Cryptography",
-      "version": "2.5.0",
+      "version": "2.5.1",
       "description": "BouncyCastle.NET is a popular cryptography library for .NET",
       "scope": "required",
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "92681224F70EE217955DDE4B15FCB510CC4C79288D11D630701928E25371DD12820B10BC486FD483FCC691E43D442A253A927FFD036B6015EDC9255EC71E6BE4"
+          "content": "CC12D715A7A3ACDA0E51B6804AE10E1C3E9543009C108485AE6C4EBE8773DEE57642F8BE291DC2CADCD14A086A0237D925298997DED8A01A4D5A781C7B67AB3D"
         }
       ],
       "licenses": [
@@ -197,7 +197,7 @@
         }
       ],
       "copyright": "Copyright \u00A9 Legion of the Bouncy Castle Inc. 2000-2024",
-      "purl": "pkg:nuget/BouncyCastle.Cryptography@2.5.0",
+      "purl": "pkg:nuget/BouncyCastle.Cryptography@2.5.1",
       "externalReferences": [
         {
           "url": "https://www.bouncycastle.org/stable/nuget/csharp/website",
@@ -211,20 +211,20 @@
     },
     {
       "type": "library",
-      "bom-ref": "pkg:nuget/bunit@1.38.5",
+      "bom-ref": "pkg:nuget/bunit@1.39.5",
       "authors": [
         {
           "name": "Egil Hansen"
         }
       ],
       "name": "bunit",
-      "version": "1.38.5",
+      "version": "1.39.5",
       "description": "bUnit is a testing library for Blazor components.\n\n\t\t\tYou can easily define components under test in C# or Razor syntax and verify outcome using semantic HTML diffing/comparison logic.\n\t\t\tYou can interact with and inspect the component under test, trigger event handlers, provide cascading values, and inject services.\n\n\t\t\tbUnit also includes a complete fake implementation of Blazor\u0027s authentication and authorization logic, navigation manager, and\n\t\t\tJSInterop.",
       "scope": "excluded",
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "7F37F95C1BDCCB5F81C07ABA885942F3A2CE4C6AB3EF74C7112ED84D6ED66A4135F226441A9C50E4E9C05180B97299FC93627A68C8C2962E78AE711BA9C5CE65"
+          "content": "2E8EBA1D78826D8514FAB89E00D09AFBA4EEFE20883AB26F2FB91EBD04E382D77549C5F0FF92FBDD6C8D405CF5A46251D91BBC53C7FB0CD95E08E4E4A20B0B1C"
         }
       ],
       "licenses": [
@@ -235,7 +235,7 @@
         }
       ],
       "copyright": "Egil Hansen",
-      "purl": "pkg:nuget/bunit@1.38.5",
+      "purl": "pkg:nuget/bunit@1.39.5",
       "externalReferences": [
         {
           "url": "https://bunit.egilhansen.com/",
@@ -249,20 +249,20 @@
     },
     {
       "type": "library",
-      "bom-ref": "pkg:nuget/bunit.core@1.38.5",
+      "bom-ref": "pkg:nuget/bunit.core@1.39.5",
       "authors": [
         {
           "name": "Egil Hansen"
         }
       ],
       "name": "bunit.core",
-      "version": "1.38.5",
+      "version": "1.39.5",
       "description": "bUnit.core is the base library that provides support for testing Blazor components. You need to install bUnit.web as well to test web-based Blazor components.",
       "scope": "excluded",
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "21E26BD5F1528E5D7B3C34AFF80A1C69A8670F1560DD025E3AAB81A4F9C9D9536E38B1733400C292631BC3950052D12B0B64253A5E824A55E93283FBB0D1AF9F"
+          "content": "0DB5F5B839A8A3F197BF241941854323A35FF6E8836EEF997D596EA790256369B868DC0903C404A37A5AFFDF0982350E5A96833991A9656670D3C4B7B02B23A2"
         }
       ],
       "licenses": [
@@ -273,7 +273,7 @@
         }
       ],
       "copyright": "Egil Hansen",
-      "purl": "pkg:nuget/bunit.core@1.38.5",
+      "purl": "pkg:nuget/bunit.core@1.39.5",
       "externalReferences": [
         {
           "url": "https://bunit.egilhansen.com/",
@@ -287,20 +287,20 @@
     },
     {
       "type": "library",
-      "bom-ref": "pkg:nuget/bunit.web@1.38.5",
+      "bom-ref": "pkg:nuget/bunit.web@1.39.5",
       "authors": [
         {
           "name": "Egil Hansen"
         }
       ],
       "name": "bunit.web",
-      "version": "1.38.5",
+      "version": "1.39.5",
       "description": "bUnit.web is the web specific parts of bUnit, that enables you to easily test and verify the output of Blazor (web) component.",
       "scope": "excluded",
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "AFA40B690792CDF0E70DA90B55C6511CBDB427071150836B5CDD656D5EA8B06AD6F21A5570CB9D936DC56D4D6D846A3EAF5359C50065BA11AE45CA745FF2EC8B"
+          "content": "C5E16586A6486EEC5C24F5E3D706C225B21BE6D4D0C7E27652692F373DB22967B0F98FE446448085102673BE88CFBCEBD2A3F3DED6674AB46274C0998C0CEAAF"
         }
       ],
       "licenses": [
@@ -311,7 +311,7 @@
         }
       ],
       "copyright": "Egil Hansen",
-      "purl": "pkg:nuget/bunit.web@1.38.5",
+      "purl": "pkg:nuget/bunit.web@1.39.5",
       "externalReferences": [
         {
           "url": "https://bunit.egilhansen.com/",
@@ -547,20 +547,20 @@
     },
     {
       "type": "library",
-      "bom-ref": "pkg:nuget/HtmlAgilityPack@1.11.73",
+      "bom-ref": "pkg:nuget/HtmlAgilityPack@1.12.1",
       "authors": [
         {
           "name": "ZZZ Projects,Simon Mourrier,Jeff Klawiter,Stephan Grell"
         }
       ],
       "name": "HtmlAgilityPack",
-      "version": "1.11.73",
+      "version": "1.12.1",
       "description": "This is an agile HTML parser that builds a read/write DOM and supports plain XPATH or XSLT (you actually don\u0027t HAVE to understand XPATH nor XSLT to use it, don\u0027t worry...). It is a .NET code library that allows you to parse \u0022out of the web\u0022 HTML files. The parser is very tolerant with \u0022real world\u0022 malformed HTML. The object model is very similar to what proposes System.Xml, but for HTML documents (or streams).",
       "scope": "required",
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "51B087BBF83966224D03633BED36D172A938883DC602E16694D8F2A4520011BF02FACCC1426B618F93E1D64BCAB6EECE22FE272374CD7AF7272BCA0C52395C10"
+          "content": "6289003B6C7C373CE6AF91E6095454CE41FE357AA4B6010F67E5D5DA42B379CDFB6A87ABA7B784E4A9C7BF14833BAE77D437730BBB2F85CC6BCB21893286B250"
         }
       ],
       "licenses": [
@@ -571,7 +571,7 @@
         }
       ],
       "copyright": "Copyright \u00A9 ZZZ Projects Inc.",
-      "purl": "pkg:nuget/HtmlAgilityPack@1.11.73",
+      "purl": "pkg:nuget/HtmlAgilityPack@1.12.1",
       "externalReferences": [
         {
           "url": "http://html-agility-pack.net/",
@@ -585,20 +585,20 @@
     },
     {
       "type": "library",
-      "bom-ref": "pkg:nuget/IPAddressRange@6.1.0",
+      "bom-ref": "pkg:nuget/IPAddressRange@6.2.0",
       "authors": [
         {
           "name": "J.Sakamoto"
         }
       ],
       "name": "IPAddressRange",
-      "version": "6.1.0",
+      "version": "6.2.0",
       "description": "This library allows you to parse range of IP address string, and can contains check.",
       "scope": "required",
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "E98169F3A9F0C4F47D130042F0E6829562B5D4D61114E823070F11EA316B9DDE1E5371BA60A7C61A131EDAD7A3970834E1D2A637C0CF2D70329EDD0F1759E836"
+          "content": "5130082DFA0BB95515839D5CD3BD543ED5491C5F9DC2B4C99DF079D9BED6035E84EF9DD78CC1FEB1424E555B265A5164629846A1FFDEE19F8211F6DB3385BE15"
         }
       ],
       "licenses": [
@@ -609,7 +609,7 @@
         }
       ],
       "copyright": "Copyright \u00A9 2012-2024 J.Sakamoto, Mozilla Public License 2.0",
-      "purl": "pkg:nuget/IPAddressRange@6.1.0",
+      "purl": "pkg:nuget/IPAddressRange@6.2.0",
       "externalReferences": [
         {
           "url": "https://github.com/jsakamoto/ipaddressrange/",
@@ -656,20 +656,20 @@
     },
     {
       "type": "library",
-      "bom-ref": "pkg:nuget/MailKit@4.10.0",
+      "bom-ref": "pkg:nuget/MailKit@4.11.0",
       "authors": [
         {
           "name": "Jeffrey Stedfast"
         }
       ],
       "name": "MailKit",
-      "version": "4.10.0",
+      "version": "4.11.0",
       "description": "An Open Source .NET mail-client library for Windows, Mac, Linux, and mobile platforms such as iOS and Android.",
       "scope": "required",
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "772A062D6078387B5950B27274AB7655907B36C17E42E6D523ACFBBC3511AEF2479008CC065DB90070EEF3C6753E0D74B87470117E1ED9B4A2C160973F145F27"
+          "content": "BF92B5FB5B2FA1F636F2D583EFC1FC8819424DC414774D28055B7164489085BAB0BA1272796405861685D673193250E62F384B36E6F263CF80250AB60B5851BC"
         }
       ],
       "licenses": [
@@ -680,7 +680,7 @@
         }
       ],
       "copyright": ".NET Foundation and Contributors",
-      "purl": "pkg:nuget/MailKit@4.10.0",
+      "purl": "pkg:nuget/MailKit@4.11.0",
       "externalReferences": [
         {
           "url": "http://www.mimekit.net/",
@@ -732,20 +732,20 @@
     },
     {
       "type": "library",
-      "bom-ref": "pkg:nuget/Microsoft.AspNetCore.Authentication.JwtBearer@8.0.13",
+      "bom-ref": "pkg:nuget/Microsoft.AspNetCore.Authentication.JwtBearer@8.0.15",
       "authors": [
         {
           "name": "Microsoft"
         }
       ],
       "name": "Microsoft.AspNetCore.Authentication.JwtBearer",
-      "version": "8.0.13",
-      "description": "ASP.NET Core middleware that enables an application to receive an OpenID Connect bearer token.\n\nThis package was built from the source code at https://github.com/dotnet/aspnetcore/tree/009e1ccafde4086ea52999e878f6e7aa5a7c4ccf",
+      "version": "8.0.15",
+      "description": "ASP.NET Core middleware that enables an application to receive an OpenID Connect bearer token.\n\nThis package was built from the source code at https://github.com/dotnet/aspnetcore/tree/8899cb30120d41413065f1b1465cdabefe0a1f9c",
       "scope": "required",
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "010CD17E8C42CD9DBFEE0FF7388620F88028521C3D25EB9A58493F3BC5FEAE61EE6AE0FF6FAD1AA6AE56788F5534FCD306E30DE903762F4AC88F205774C00180"
+          "content": "8CFF81D8B81E5237BEE5D2A185E5DD19D9D643EBD3875CC0F54A36FC5D7FD49889AF93FEA5561A58436AD2203B18DBD68E654991B490C7D4A0CAD6075D744A00"
         }
       ],
       "licenses": [
@@ -756,7 +756,7 @@
         }
       ],
       "copyright": "\u00A9 Microsoft Corporation. All rights reserved.",
-      "purl": "pkg:nuget/Microsoft.AspNetCore.Authentication.JwtBearer@8.0.13",
+      "purl": "pkg:nuget/Microsoft.AspNetCore.Authentication.JwtBearer@8.0.15",
       "externalReferences": [
         {
           "url": "https://asp.net/",
@@ -770,20 +770,20 @@
     },
     {
       "type": "library",
-      "bom-ref": "pkg:nuget/Microsoft.AspNetCore.Authorization@8.0.13",
+      "bom-ref": "pkg:nuget/Microsoft.AspNetCore.Authorization@8.0.15",
       "authors": [
         {
           "name": "Microsoft"
         }
       ],
       "name": "Microsoft.AspNetCore.Authorization",
-      "version": "8.0.13",
-      "description": "ASP.NET Core authorization classes.\nCommonly used types:\nMicrosoft.AspNetCore.Authorization.AllowAnonymousAttribute\nMicrosoft.AspNetCore.Authorization.AuthorizeAttribute\n\nThis package was built from the source code at https://github.com/dotnet/aspnetcore/tree/009e1ccafde4086ea52999e878f6e7aa5a7c4ccf",
+      "version": "8.0.15",
+      "description": "ASP.NET Core authorization classes.\nCommonly used types:\nMicrosoft.AspNetCore.Authorization.AllowAnonymousAttribute\nMicrosoft.AspNetCore.Authorization.AuthorizeAttribute\n\nThis package was built from the source code at https://github.com/dotnet/aspnetcore/tree/8899cb30120d41413065f1b1465cdabefe0a1f9c",
       "scope": "required",
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "ED8B873CB1807A6755675B9D5A3EA29508AC2484A655D330A755C32D6FCB4F0A79D60CBD8211D0AD7CE6B899CA719B305B2C935BC6A9068AFBB600DAE56E678E"
+          "content": "9805D27321607B57DBF315C78D0464282A76372C183DC96679170C58C8301C3841F763638723CAF1FD537091D2604BC2C10D651DEF5D19FBD73A9B9F9B1D618E"
         }
       ],
       "licenses": [
@@ -794,7 +794,7 @@
         }
       ],
       "copyright": "\u00A9 Microsoft Corporation. All rights reserved.",
-      "purl": "pkg:nuget/Microsoft.AspNetCore.Authorization@8.0.13",
+      "purl": "pkg:nuget/Microsoft.AspNetCore.Authorization@8.0.15",
       "externalReferences": [
         {
           "url": "https://asp.net/",
@@ -808,20 +808,20 @@
     },
     {
       "type": "library",
-      "bom-ref": "pkg:nuget/Microsoft.AspNetCore.Components@8.0.13",
+      "bom-ref": "pkg:nuget/Microsoft.AspNetCore.Components@8.0.15",
       "authors": [
         {
           "name": "Microsoft"
         }
       ],
       "name": "Microsoft.AspNetCore.Components",
-      "version": "8.0.13",
-      "description": "Components feature for ASP.NET Core.\n\nThis package was built from the source code at https://github.com/dotnet/aspnetcore/tree/009e1ccafde4086ea52999e878f6e7aa5a7c4ccf",
+      "version": "8.0.15",
+      "description": "Components feature for ASP.NET Core.\n\nThis package was built from the source code at https://github.com/dotnet/aspnetcore/tree/8899cb30120d41413065f1b1465cdabefe0a1f9c",
       "scope": "required",
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "A77A2978F31EC41196541C3F455D1F8643922C8398C840BEF551849F779EF7A80EC900D97AA2B32F3EB6A0D7DE5BE63C8B3EE1FB4827AC31AAD55B52AF69F3CD"
+          "content": "59AD3C43562D7DC0F8BF6D79AA677EB1CCCBD4C825C962C144DD77638D395CA3DF60EFE8C8486B90B01085B189849EC59A897694219D2F63C11A50C0CE62581D"
         }
       ],
       "licenses": [
@@ -832,7 +832,7 @@
         }
       ],
       "copyright": "\u00A9 Microsoft Corporation. All rights reserved.",
-      "purl": "pkg:nuget/Microsoft.AspNetCore.Components@8.0.13",
+      "purl": "pkg:nuget/Microsoft.AspNetCore.Components@8.0.15",
       "externalReferences": [
         {
           "url": "https://asp.net/",
@@ -846,20 +846,20 @@
     },
     {
       "type": "library",
-      "bom-ref": "pkg:nuget/Microsoft.AspNetCore.Components.Analyzers@8.0.13",
+      "bom-ref": "pkg:nuget/Microsoft.AspNetCore.Components.Analyzers@8.0.15",
       "authors": [
         {
           "name": "Microsoft"
         }
       ],
       "name": "Microsoft.AspNetCore.Components.Analyzers",
-      "version": "8.0.13",
-      "description": "Roslyn analyzers for ASP.NET Core Components.\n\nThis package was built from the source code at https://github.com/dotnet/aspnetcore/tree/009e1ccafde4086ea52999e878f6e7aa5a7c4ccf",
+      "version": "8.0.15",
+      "description": "Roslyn analyzers for ASP.NET Core Components.\n\nThis package was built from the source code at https://github.com/dotnet/aspnetcore/tree/8899cb30120d41413065f1b1465cdabefe0a1f9c",
       "scope": "required",
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "A31C719DCA6784DB8EECA3FE69DACD81B5D55AB31C139EAFFFED3E312F938F8A9329CF6ECB2DBBCDC2CEEA4A7D990A152BC6B433E478D73EE27E09423A4572A2"
+          "content": "DA5A11C3ED978761A401C89F1108F01408B15C3096A7860FF7339ABBAD5FED9C612081D9F82BEAF28B8E0375B0CC0F4406AFFD6058430B8674A25B2C2EB3E34D"
         }
       ],
       "licenses": [
@@ -870,7 +870,7 @@
         }
       ],
       "copyright": "\u00A9 Microsoft Corporation. All rights reserved.",
-      "purl": "pkg:nuget/Microsoft.AspNetCore.Components.Analyzers@8.0.13",
+      "purl": "pkg:nuget/Microsoft.AspNetCore.Components.Analyzers@8.0.15",
       "externalReferences": [
         {
           "url": "https://asp.net/",
@@ -884,20 +884,20 @@
     },
     {
       "type": "library",
-      "bom-ref": "pkg:nuget/Microsoft.AspNetCore.Components.Authorization@8.0.13",
+      "bom-ref": "pkg:nuget/Microsoft.AspNetCore.Components.Authorization@8.0.15",
       "authors": [
         {
           "name": "Microsoft"
         }
       ],
       "name": "Microsoft.AspNetCore.Components.Authorization",
-      "version": "8.0.13",
-      "description": "Authentication and authorization support for Blazor applications.\n\nThis package was built from the source code at https://github.com/dotnet/aspnetcore/tree/009e1ccafde4086ea52999e878f6e7aa5a7c4ccf",
+      "version": "8.0.15",
+      "description": "Authentication and authorization support for Blazor applications.\n\nThis package was built from the source code at https://github.com/dotnet/aspnetcore/tree/8899cb30120d41413065f1b1465cdabefe0a1f9c",
       "scope": "required",
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "FA191674F7624F991472999A628A0E681501BC6852FF9C2DB89ED2CCB2707BC6547B91B994B9C23D64DD853A54C29C3111E8016E054EEF4CAE6436B246407E7F"
+          "content": "A74A9A30E07428BEDCA511A32BCF4592CD9DE8161C11A0D180AFBCFFC02B00F40AA01E42892FD01264994D0E5A333A48E065F475BEE62005898C084DAEAA4599"
         }
       ],
       "licenses": [
@@ -908,7 +908,7 @@
         }
       ],
       "copyright": "\u00A9 Microsoft Corporation. All rights reserved.",
-      "purl": "pkg:nuget/Microsoft.AspNetCore.Components.Authorization@8.0.13",
+      "purl": "pkg:nuget/Microsoft.AspNetCore.Components.Authorization@8.0.15",
       "externalReferences": [
         {
           "url": "https://asp.net/",
@@ -1267,20 +1267,20 @@
     },
     {
       "type": "library",
-      "bom-ref": "pkg:nuget/Microsoft.AspNetCore.Metadata@8.0.13",
+      "bom-ref": "pkg:nuget/Microsoft.AspNetCore.Metadata@8.0.15",
       "authors": [
         {
           "name": "Microsoft"
         }
       ],
       "name": "Microsoft.AspNetCore.Metadata",
-      "version": "8.0.13",
-      "description": "ASP.NET Core metadata.\n\nThis package was built from the source code at https://github.com/dotnet/aspnetcore/tree/009e1ccafde4086ea52999e878f6e7aa5a7c4ccf",
+      "version": "8.0.15",
+      "description": "ASP.NET Core metadata.\n\nThis package was built from the source code at https://github.com/dotnet/aspnetcore/tree/8899cb30120d41413065f1b1465cdabefe0a1f9c",
       "scope": "required",
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "430F491A8F701DA9D19E0D6121BBC9073C7333AE008FBDC2BE32B6539B74BAE98180D1EC3BF1A635FB84766DD32F176687A76175D8E39847BD9F2A6E4F172370"
+          "content": "BA060F6817C28D33B08575E46C2030398742A95DE6E588E6A1FCE865D7677C8B99EA1BA6EE8FE5FD8FF7A3E3768940DF92B6CC4CB40EC509ED21A2A960BE9058"
         }
       ],
       "licenses": [
@@ -1291,7 +1291,7 @@
         }
       ],
       "copyright": "\u00A9 Microsoft Corporation. All rights reserved.",
-      "purl": "pkg:nuget/Microsoft.AspNetCore.Metadata@8.0.13",
+      "purl": "pkg:nuget/Microsoft.AspNetCore.Metadata@8.0.15",
       "externalReferences": [
         {
           "url": "https://asp.net/",
@@ -2370,20 +2370,20 @@
     },
     {
       "type": "library",
-      "bom-ref": "pkg:nuget/Microsoft.IdentityModel.Abstractions@8.6.0",
+      "bom-ref": "pkg:nuget/Microsoft.IdentityModel.Abstractions@8.8.0",
       "authors": [
         {
           "name": "Microsoft"
         }
       ],
       "name": "Microsoft.IdentityModel.Abstractions",
-      "version": "8.6.0",
+      "version": "8.8.0",
       "description": "A package containing thin abstractions for Microsoft.IdentityModel.",
       "scope": "required",
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "44753DA150FC2209EC0A8C84F7FC2D8AE1E148AD1B1535557466CF06B6E288B75DC39E8126FB6E80C689ACF65DC1D30B99917E9C2C732132DF472873E300AEAF"
+          "content": "4D50923F60D9B3AC453DC9680E629F3C740B2512F098A74F98A77973CA5E7F82489C700EB116654B21E3189037FB35B1E72DBDCECB97E07F10FC77D38C046ADF"
         }
       ],
       "licenses": [
@@ -2394,7 +2394,7 @@
         }
       ],
       "copyright": "\u00A9 Microsoft Corporation. All rights reserved.",
-      "purl": "pkg:nuget/Microsoft.IdentityModel.Abstractions@8.6.0",
+      "purl": "pkg:nuget/Microsoft.IdentityModel.Abstractions@8.8.0",
       "externalReferences": [
         {
           "url": "https://github.com/AzureAD/azure-activedirectory-identitymodel-extensions-for-dotnet",
@@ -2408,20 +2408,20 @@
     },
     {
       "type": "library",
-      "bom-ref": "pkg:nuget/Microsoft.IdentityModel.JsonWebTokens@8.6.0",
+      "bom-ref": "pkg:nuget/Microsoft.IdentityModel.JsonWebTokens@8.8.0",
       "authors": [
         {
           "name": "Microsoft"
         }
       ],
       "name": "Microsoft.IdentityModel.JsonWebTokens",
-      "version": "8.6.0",
+      "version": "8.8.0",
       "description": "Includes types that provide support for creating, serializing and validating JSON Web Tokens. This is a newer, faster version of System.IdentityModel.Tokens.Jwt that has additional functionality.",
       "scope": "required",
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "AE997C3B66241347AB56AD78D75B6DE378868148892207D78A49260DED8D133F15A4D5A6495BB8E1A12284F58D84CE36B347C116BA4C4C157D62D7C248C03AAA"
+          "content": "A99F61FF68DD897F360F026DB657BB3669B7971808D0DAE42200D20B4AA2A9348459D002707F5B0303F0042BCBD04D467370C5D42E3D1BB0768DE4AB6894A2EF"
         }
       ],
       "licenses": [
@@ -2432,7 +2432,7 @@
         }
       ],
       "copyright": "\u00A9 Microsoft Corporation. All rights reserved.",
-      "purl": "pkg:nuget/Microsoft.IdentityModel.JsonWebTokens@8.6.0",
+      "purl": "pkg:nuget/Microsoft.IdentityModel.JsonWebTokens@8.8.0",
       "externalReferences": [
         {
           "url": "https://github.com/AzureAD/azure-activedirectory-identitymodel-extensions-for-dotnet",
@@ -2446,20 +2446,20 @@
     },
     {
       "type": "library",
-      "bom-ref": "pkg:nuget/Microsoft.IdentityModel.Logging@8.6.0",
+      "bom-ref": "pkg:nuget/Microsoft.IdentityModel.Logging@8.8.0",
       "authors": [
         {
           "name": "Microsoft"
         }
       ],
       "name": "Microsoft.IdentityModel.Logging",
-      "version": "8.6.0",
+      "version": "8.8.0",
       "description": "Includes Event Source based logging support.",
       "scope": "required",
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "6410FF0A0B64E6759CF821F617CC8B9759942075837FB1725F756B3EC0098F83EBCC93D715690E12D160A099DD767290537111757B341E82FD724AB63E759D3E"
+          "content": "AC7D06DC2107EDA35D58D5EC41E733339EB467C65D31534CD99B16FEADF334E79ACFB7108FE1BB7BE2846C03EA51EF34AD6D36F3833F7FA1B92C66AC7449D031"
         }
       ],
       "licenses": [
@@ -2470,7 +2470,7 @@
         }
       ],
       "copyright": "\u00A9 Microsoft Corporation. All rights reserved.",
-      "purl": "pkg:nuget/Microsoft.IdentityModel.Logging@8.6.0",
+      "purl": "pkg:nuget/Microsoft.IdentityModel.Logging@8.8.0",
       "externalReferences": [
         {
           "url": "https://github.com/AzureAD/azure-activedirectory-identitymodel-extensions-for-dotnet",
@@ -2560,20 +2560,20 @@
     },
     {
       "type": "library",
-      "bom-ref": "pkg:nuget/Microsoft.IdentityModel.Tokens@8.6.0",
+      "bom-ref": "pkg:nuget/Microsoft.IdentityModel.Tokens@8.8.0",
       "authors": [
         {
           "name": "Microsoft"
         }
       ],
       "name": "Microsoft.IdentityModel.Tokens",
-      "version": "8.6.0",
+      "version": "8.8.0",
       "description": "Includes types that provide support for SecurityTokens, Cryptographic operations: Signing, Verifying Signatures, Encryption.",
       "scope": "required",
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "CF17085E4C04BA252233FF105A164E8306774A7777AFBDD5E1BCF7FDE3DEED66492266F599E394032EB842838019625EB60ED643472BA31E5B4ED29DFA6ECBA6"
+          "content": "F67D45496C952CEFDA21BC7CB08BC5CDD7BC6363B3D5DAB7527FA8741E51D4C1529EB453FDA8886DCEB0C7E81B89B8E70BFBA22329C36177DA766C006F9466E0"
         }
       ],
       "licenses": [
@@ -2584,7 +2584,7 @@
         }
       ],
       "copyright": "\u00A9 Microsoft Corporation. All rights reserved.",
-      "purl": "pkg:nuget/Microsoft.IdentityModel.Tokens@8.6.0",
+      "purl": "pkg:nuget/Microsoft.IdentityModel.Tokens@8.8.0",
       "externalReferences": [
         {
           "url": "https://github.com/AzureAD/azure-activedirectory-identitymodel-extensions-for-dotnet",
@@ -2789,20 +2789,20 @@
     },
     {
       "type": "library",
-      "bom-ref": "pkg:nuget/Microsoft.OpenApi@1.6.22",
+      "bom-ref": "pkg:nuget/Microsoft.OpenApi@1.6.23",
       "authors": [
         {
           "name": "Microsoft"
         }
       ],
       "name": "Microsoft.OpenApi",
-      "version": "1.6.22",
+      "version": "1.6.23",
       "description": ".NET models with JSON and YAML writers for OpenAPI specification",
       "scope": "required",
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "BBC901E4A3107418F06CB802A083E75463FFC05BB65B20C6BE0ECF9C256D7C8B7F63B248526196814E1E770C7E0953E25D1A7540B8D80E150622B85B0556A8F0"
+          "content": "02BACB5C0A7CFCEAD88CB70EDAD4E0130B6AB5659CF44F39326FF88B14D0C8137EFA454DC41DE1AD6F78E5E8B697FE85E17DE0F62087F0EA3B5BB259B496CE7A"
         }
       ],
       "licenses": [
@@ -2813,7 +2813,7 @@
         }
       ],
       "copyright": "\u00A9 Microsoft Corporation. All rights reserved.",
-      "purl": "pkg:nuget/Microsoft.OpenApi@1.6.22",
+      "purl": "pkg:nuget/Microsoft.OpenApi@1.6.23",
       "externalReferences": [
         {
           "url": "https://github.com/Microsoft/OpenAPI.NET",
@@ -3132,20 +3132,20 @@
     },
     {
       "type": "library",
-      "bom-ref": "pkg:nuget/MimeKit@4.10.0",
+      "bom-ref": "pkg:nuget/MimeKit@4.11.0",
       "authors": [
         {
           "name": "Jeffrey Stedfast"
         }
       ],
       "name": "MimeKit",
-      "version": "4.10.0",
+      "version": "4.11.0",
       "description": "An Open Source library for creating and parsing MIME, S/MIME and PGP messages on desktop and mobile platforms.",
       "scope": "required",
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "F1CF7598071223ACFF6BC07A851F93D3678B125C33BFF86A5978200AD0781F69E5D81EFE3B2507A9932B1EE63FC5DF6CA8A7D7A4887A528FBC98BC156A30C508"
+          "content": "6E6FF72FC3EA4ABE991E4160CD87F7EA404C374F6EF2E430BFBA700ACAFE4B4646BB60C69DF48C2F4193B1AE2A9A281D65FE02EC794F690DED81C95C29B08F25"
         }
       ],
       "licenses": [
@@ -3156,7 +3156,7 @@
         }
       ],
       "copyright": ".NET Foundation and Contributors",
-      "purl": "pkg:nuget/MimeKit@4.10.0",
+      "purl": "pkg:nuget/MimeKit@4.11.0",
       "externalReferences": [
         {
           "url": "https://www.mimekit.net/",
@@ -3208,20 +3208,20 @@
     },
     {
       "type": "library",
-      "bom-ref": "pkg:nuget/Novell.Directory.Ldap.NETStandard@3.6.0",
+      "bom-ref": "pkg:nuget/Novell.Directory.Ldap.NETStandard@4.0.0",
       "authors": [
         {
           "name": "Novell,dsbenghe"
         }
       ],
       "name": "Novell.Directory.Ldap.NETStandard",
-      "version": "3.6.0",
-      "description": "LDAP client library - .NET Standard 1.3/2.0/2.1 and .NET5 - compatible .NET platforms: .NET5, .NET Core \u003E= 1.0, .NET Framework \u003E= 4.6, Universal Windows Platform, Xamarin. Works with any LDAP server (including Microsoft Active Directory - AD)",
+      "version": "4.0.0",
+      "description": "LDAP client library - .NET Standard 2.0/2.1, - compatible .NET platforms: .NET \u003E= NET6, NET8, NET9, .NET Framework \u003E= 4.6, Universal Windows Platform, Xamarin. Works with any LDAP server (including Microsoft Active Directory - AD)",
       "scope": "required",
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "FCF3881E982CBB5FA757B59D7704EBCD23817061ABEAA6F04D2F625A4F3E87AB9DBCB8E0840C6B6305B39B38F3B1E71672E87016A0DA41ED6F08B71E00F52644"
+          "content": "CBA13A23E39B192DA58081C7052211A3695446D59C88D260D02DF01707ECBA214E934C5E36132722FDE03C62ED93952A37D48FA5A64A5FB182C29A29502F4DBF"
         }
       ],
       "licenses": [
@@ -3231,7 +3231,7 @@
           }
         }
       ],
-      "purl": "pkg:nuget/Novell.Directory.Ldap.NETStandard@3.6.0",
+      "purl": "pkg:nuget/Novell.Directory.Ldap.NETStandard@4.0.0",
       "externalReferences": [
         {
           "url": "https://github.com/dsbenghe/Novell.Directory.Ldap.NETStandard",
@@ -3428,20 +3428,20 @@
     },
     {
       "type": "library",
-      "bom-ref": "pkg:nuget/Swashbuckle.AspNetCore@7.3.0",
+      "bom-ref": "pkg:nuget/Swashbuckle.AspNetCore@8.1.1",
       "authors": [
         {
           "name": "domaindrivendev"
         }
       ],
       "name": "Swashbuckle.AspNetCore",
-      "version": "7.3.0",
+      "version": "8.1.1",
       "description": "Swagger tools for documenting APIs built on ASP.NET Core",
       "scope": "required",
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "03819C12B806F19F6C806E52B87EF822F50E1E3F7A58E10C7EF0B98E549C9552551DBA55C7CC65BDF5B680BCBCED51D5333462283FD9A13E11214BB802BC049E"
+          "content": "7EC7E7A546A10FBAC30F6DE859DB17AD4B362D6ADB4384D37CFE7F2D3817AC34EECDC0F29AE4F97512BB8745E0F7F566681A024E2488B8BFDA5BE8632FF869B1"
         }
       ],
       "licenses": [
@@ -3451,7 +3451,7 @@
           }
         }
       ],
-      "purl": "pkg:nuget/Swashbuckle.AspNetCore@7.3.0",
+      "purl": "pkg:nuget/Swashbuckle.AspNetCore@8.1.1",
       "externalReferences": [
         {
           "url": "https://github.com/domaindrivendev/Swashbuckle.AspNetCore",
@@ -3465,20 +3465,20 @@
     },
     {
       "type": "library",
-      "bom-ref": "pkg:nuget/Swashbuckle.AspNetCore.Swagger@7.3.0",
+      "bom-ref": "pkg:nuget/Swashbuckle.AspNetCore.Swagger@8.1.1",
       "authors": [
         {
           "name": "domaindrivendev"
         }
       ],
       "name": "Swashbuckle.AspNetCore.Swagger",
-      "version": "7.3.0",
+      "version": "8.1.1",
       "description": "Middleware to expose Swagger JSON endpoints from APIs built on ASP.NET Core",
       "scope": "required",
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "AFDCC096A60502D32253C57E6C53AFB57E0EB956E1B17C28AC4B2BE016B47A454562C2511F8B9962D89C0890CAF98E7A6117E79D0400CCB202093DADFCCD6B31"
+          "content": "FCAB0EE2A302687B1672013DBA368D3640BB83725E7AEFE9AD067C0E54694C51004209B89D53255EFAF969E828C362439D97E3EDF63C51EE38DA90ECCF8C1924"
         }
       ],
       "licenses": [
@@ -3489,7 +3489,7 @@
         }
       ],
       "copyright": "Copyright (c) 2016-2025 Richard Morris",
-      "purl": "pkg:nuget/Swashbuckle.AspNetCore.Swagger@7.3.0",
+      "purl": "pkg:nuget/Swashbuckle.AspNetCore.Swagger@8.1.1",
       "externalReferences": [
         {
           "url": "https://github.com/domaindrivendev/Swashbuckle.AspNetCore",
@@ -3503,20 +3503,20 @@
     },
     {
       "type": "library",
-      "bom-ref": "pkg:nuget/Swashbuckle.AspNetCore.SwaggerGen@7.3.0",
+      "bom-ref": "pkg:nuget/Swashbuckle.AspNetCore.SwaggerGen@8.1.1",
       "authors": [
         {
           "name": "domaindrivendev"
         }
       ],
       "name": "Swashbuckle.AspNetCore.SwaggerGen",
-      "version": "7.3.0",
+      "version": "8.1.1",
       "description": "Swagger Generator for APIs built on ASP.NET Core",
       "scope": "required",
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "1B45C2057F34E039CA7C1AFC0402780E2D27DCC4D1F0EE5C425E6F83F2E9676DD0B855396F609F7FDAFEC8F5F44B7F7BE5E1C3ABCDEC6B2426D651573709B6C7"
+          "content": "3BB55EE2468303DD0F0221AEDF30375C6A085B4C012EE7811BE0A45798C31586D9BD31CB002093C0F89AE3454FCEDFAB83E84A231573EB91D7DBF8D1A79B52CE"
         }
       ],
       "licenses": [
@@ -3527,7 +3527,7 @@
         }
       ],
       "copyright": "Copyright (c) 2016-2025 Richard Morris",
-      "purl": "pkg:nuget/Swashbuckle.AspNetCore.SwaggerGen@7.3.0",
+      "purl": "pkg:nuget/Swashbuckle.AspNetCore.SwaggerGen@8.1.1",
       "externalReferences": [
         {
           "url": "https://github.com/domaindrivendev/Swashbuckle.AspNetCore",
@@ -3541,20 +3541,20 @@
     },
     {
       "type": "library",
-      "bom-ref": "pkg:nuget/Swashbuckle.AspNetCore.SwaggerUI@7.3.0",
+      "bom-ref": "pkg:nuget/Swashbuckle.AspNetCore.SwaggerUI@8.1.1",
       "authors": [
         {
           "name": "domaindrivendev"
         }
       ],
       "name": "Swashbuckle.AspNetCore.SwaggerUI",
-      "version": "7.3.0",
+      "version": "8.1.1",
       "description": "Middleware to expose an embedded version of the swagger-ui from an ASP.NET Core application",
       "scope": "required",
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "B78BA244A8EB19C2ED31F5E9DCF1C8D13616752C5F80DE33233CAA061DE35E4DEB2B7DCEAE941A4884D13C29A27008752DA1ABE98E1FF7046A7D5F1DB46CC79D"
+          "content": "0DEA325C289254BFD222E6BFD4180C2C5EBA96F1196641AB6AC603AF6D54D3A291A56B6A24B14C6097361C41B7A2ECF4B100268276E408EA9CF6AE15EE3210C8"
         }
       ],
       "licenses": [
@@ -3565,7 +3565,7 @@
         }
       ],
       "copyright": "Copyright (c) 2016-2025 Richard Morris",
-      "purl": "pkg:nuget/Swashbuckle.AspNetCore.SwaggerUI@7.3.0",
+      "purl": "pkg:nuget/Swashbuckle.AspNetCore.SwaggerUI@8.1.1",
       "externalReferences": [
         {
           "url": "https://github.com/domaindrivendev/Swashbuckle.AspNetCore",
@@ -3693,20 +3693,20 @@
     },
     {
       "type": "library",
-      "bom-ref": "pkg:nuget/System.IdentityModel.Tokens.Jwt@8.6.0",
+      "bom-ref": "pkg:nuget/System.IdentityModel.Tokens.Jwt@8.8.0",
       "authors": [
         {
           "name": "Microsoft"
         }
       ],
       "name": "System.IdentityModel.Tokens.Jwt",
-      "version": "8.6.0",
+      "version": "8.8.0",
       "description": "Includes types that provide support for creating, serializing and validating JSON Web Tokens. As of IdentityModel 7x, this is a legacy tool that should be replaced with Microsoft.IdentityModel.JsonWebTokens.",
       "scope": "required",
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "564E334A701BA6C1BCB7AC0488AAD1EBAE65BB5E5EE47D0029E783C2CDF03AEA7311270CC7371A1D2C74E9E2BB5A0FE19478E7C338131236460F9EF92150913A"
+          "content": "654A178547904CB0B7FBED320FCE0E6A32E066AC1AE563DE329B93036F9F1008AFD9E5551CCCD95D3E7216034CB401B7F8ACDE9E9E1E7A3EBB91164F9308CF29"
         }
       ],
       "licenses": [
@@ -3717,7 +3717,7 @@
         }
       ],
       "copyright": "\u00A9 Microsoft Corporation. All rights reserved.",
-      "purl": "pkg:nuget/System.IdentityModel.Tokens.Jwt@8.6.0",
+      "purl": "pkg:nuget/System.IdentityModel.Tokens.Jwt@8.8.0",
       "externalReferences": [
         {
           "url": "https://github.com/AzureAD/azure-activedirectory-identitymodel-extensions-for-dotnet",
@@ -3731,20 +3731,20 @@
     },
     {
       "type": "library",
-      "bom-ref": "pkg:nuget/System.IO.Pipelines@9.0.0",
+      "bom-ref": "pkg:nuget/System.IO.Pipelines@9.0.1",
       "authors": [
         {
           "name": "Microsoft"
         }
       ],
       "name": "System.IO.Pipelines",
-      "version": "9.0.0",
+      "version": "9.0.1",
       "description": "Single producer single consumer byte buffer management.\n\nCommonly Used Types:\nSystem.IO.Pipelines.Pipe\nSystem.IO.Pipelines.PipeWriter\nSystem.IO.Pipelines.PipeReader",
       "scope": "excluded",
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "5C8795291F34C2E0E5D390C8E07B9FC9EED34F80F509AD419B8CC93DCEE6827A1DAC2CB439F710D42D3403BB1EE7A74CBE0E3C708EB84CC0FE60A71997EA8E68"
+          "content": "59F0FCD3A5F9B80D249B07B2669FF2774BAD1C34E630FCBD7723599325C73204A6E2ED449AA3CD18F015C63DC342A086C2B4970792BDA9C2E4A0D202E24924FC"
         }
       ],
       "licenses": [
@@ -3755,7 +3755,7 @@
         }
       ],
       "copyright": "\u00A9 Microsoft Corporation. All rights reserved.",
-      "purl": "pkg:nuget/System.IO.Pipelines@9.0.0",
+      "purl": "pkg:nuget/System.IO.Pipelines@9.0.1",
       "externalReferences": [
         {
           "url": "https://dot.net/",
@@ -3880,20 +3880,20 @@
     },
     {
       "type": "library",
-      "bom-ref": "pkg:nuget/System.Text.Encodings.Web@8.0.0",
+      "bom-ref": "pkg:nuget/System.Text.Encodings.Web@9.0.4",
       "authors": [
         {
           "name": "Microsoft"
         }
       ],
       "name": "System.Text.Encodings.Web",
-      "version": "8.0.0",
+      "version": "9.0.4",
       "description": "Provides types for encoding and escaping strings for use in JavaScript, HyperText Markup Language (HTML), and uniform resource locators (URL).\n\nCommonly Used Types:\nSystem.Text.Encodings.Web.HtmlEncoder\nSystem.Text.Encodings.Web.UrlEncoder\nSystem.Text.Encodings.Web.JavaScriptEncoder",
       "scope": "required",
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "BA0822C38C3B658ABA9495642D269E882B827E3BE4AD2DC1426D8A97D3CBC5A2277C5F80847D0CB9381078AF01523328C4992CAA058146D5D8EE6B8A08609C32"
+          "content": "AE4F768954837B0367523E0D04E6BCB283EA72CFD00519A024193DC37E0B88AECB20F5BAA772C6E3A06FEB8BECDCFC25AEDB214AB03CDDE506CA365BC009FE58"
         }
       ],
       "licenses": [
@@ -3904,7 +3904,7 @@
         }
       ],
       "copyright": "\u00A9 Microsoft Corporation. All rights reserved.",
-      "purl": "pkg:nuget/System.Text.Encodings.Web@8.0.0",
+      "purl": "pkg:nuget/System.Text.Encodings.Web@9.0.4",
       "externalReferences": [
         {
           "url": "https://dot.net/",
@@ -3918,58 +3918,20 @@
     },
     {
       "type": "library",
-      "bom-ref": "pkg:nuget/System.Text.Encodings.Web@9.0.0",
-      "authors": [
-        {
-          "name": "Microsoft"
-        }
-      ],
-      "name": "System.Text.Encodings.Web",
-      "version": "9.0.0",
-      "description": "Provides types for encoding and escaping strings for use in JavaScript, HyperText Markup Language (HTML), and uniform resource locators (URL).\n\nCommonly Used Types:\nSystem.Text.Encodings.Web.HtmlEncoder\nSystem.Text.Encodings.Web.UrlEncoder\nSystem.Text.Encodings.Web.JavaScriptEncoder",
-      "scope": "excluded",
-      "hashes": [
-        {
-          "alg": "SHA-512",
-          "content": "560331B9B46A9C25BE6FF5B2BDA0D77156A696D671283E7B1E7740612AD1C63BBF6B7F910A3334FF2EAE672CC9241C0F5C64156376D057D03ED1952262246497"
-        }
-      ],
-      "licenses": [
-        {
-          "license": {
-            "id": "MIT"
-          }
-        }
-      ],
-      "copyright": "\u00A9 Microsoft Corporation. All rights reserved.",
-      "purl": "pkg:nuget/System.Text.Encodings.Web@9.0.0",
-      "externalReferences": [
-        {
-          "url": "https://dot.net/",
-          "type": "website"
-        },
-        {
-          "url": "https://github.com/dotnet/runtime",
-          "type": "vcs"
-        }
-      ]
-    },
-    {
-      "type": "library",
-      "bom-ref": "pkg:nuget/System.Text.Json@9.0.0",
+      "bom-ref": "pkg:nuget/System.Text.Json@9.0.1",
       "authors": [
         {
           "name": "Microsoft"
         }
       ],
       "name": "System.Text.Json",
-      "version": "9.0.0",
+      "version": "9.0.1",
       "description": "Provides high-performance and low-allocating types that serialize objects to JavaScript Object Notation (JSON) text and deserialize JSON text to objects, with UTF-8 support built-in. Also provides types to read and write JSON text encoded as UTF-8, and to create an in-memory document object model (DOM), that is read-only, for random access of the JSON elements within a structured view of the data.\n\nThe System.Text.Json library is built-in as part of the shared framework in .NET Runtime. The package can be installed when you need to use it in other target frameworks.",
       "scope": "excluded",
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "E8B783221E66105D12CB0049A07ABB4EDE34E4829BEDD3A7D7B09EEFEA2EE4AB7284450770C569AC5CC185AEFF36B47518FE57D376CD5C32B68DCA7C3D031345"
+          "content": "8C4707C5F64F3A34E14FAA0F8A2EC3CB10B4D785F8FE3AEFDCB3EB1D89D5CF7905F58BBD1F56A5C0FC24FFDC355D66505B2CEF88C3A8B20B2EA8585F7F92D16C"
         }
       ],
       "licenses": [
@@ -3980,7 +3942,7 @@
         }
       ],
       "copyright": "\u00A9 Microsoft Corporation. All rights reserved.",
-      "purl": "pkg:nuget/System.Text.Json@9.0.0",
+      "purl": "pkg:nuget/System.Text.Json@9.0.1",
       "externalReferences": [
         {
           "url": "https://dot.net/",
@@ -4000,25 +3962,25 @@
         "pkg:nuget/GraphQL.Client@6.1.0",
         "pkg:nuget/GraphQL.Client.Serializer.Newtonsoft@6.1.0",
         "pkg:nuget/GraphQL.Client.Serializer.SystemTextJson@6.1.0",
-        "pkg:nuget/IPAddressRange@6.1.0",
-        "pkg:nuget/Microsoft.AspNetCore.Components@8.0.13",
-        "pkg:nuget/Microsoft.IdentityModel.Tokens@8.6.0",
+        "pkg:nuget/IPAddressRange@6.2.0",
+        "pkg:nuget/Microsoft.AspNetCore.Components@8.0.15",
+        "pkg:nuget/Microsoft.IdentityModel.Tokens@8.8.0",
         "pkg:nuget/Microsoft.Rest.ClientRuntime@2.3.24",
         "pkg:nuget/RestSharp@112.1.0",
         "pkg:nuget/RestSharp.Serializers.NewtonsoftJson@112.1.0",
-        "pkg:nuget/System.IdentityModel.Tokens.Jwt@8.6.0",
-        "pkg:nuget/HtmlAgilityPack@1.11.73",
-        "pkg:nuget/MailKit@4.10.0",
-        "pkg:nuget/Microsoft.AspNetCore.Components.Authorization@8.0.13",
+        "pkg:nuget/System.IdentityModel.Tokens.Jwt@8.8.0",
+        "pkg:nuget/HtmlAgilityPack@1.12.1",
+        "pkg:nuget/MailKit@4.11.0",
+        "pkg:nuget/Microsoft.AspNetCore.Components.Authorization@8.0.15",
         "pkg:nuget/Microsoft.AspNetCore.Http@2.3.0",
-        "pkg:nuget/MimeKit@4.10.0",
+        "pkg:nuget/MimeKit@4.11.0",
         "pkg:nuget/PuppeteerSharp@20.1.3",
-        "pkg:nuget/System.Text.Encodings.Web@8.0.0",
-        "pkg:nuget/Microsoft.AspNetCore.Authentication.JwtBearer@8.0.13",
-        "pkg:nuget/Novell.Directory.Ldap.NETStandard@3.6.0",
-        "pkg:nuget/Swashbuckle.AspNetCore@7.3.0",
+        "pkg:nuget/System.Text.Encodings.Web@9.0.4",
+        "pkg:nuget/Microsoft.AspNetCore.Authentication.JwtBearer@8.0.15",
+        "pkg:nuget/Novell.Directory.Ldap.NETStandard@4.0.0",
+        "pkg:nuget/Swashbuckle.AspNetCore@8.1.1",
         "pkg:nuget/BlazorTable@1.17.0",
-        "pkg:nuget/bunit@1.38.5",
+        "pkg:nuget/bunit@1.39.5",
         "pkg:nuget/Microsoft.NET.Test.Sdk@17.13.0",
         "pkg:nuget/NUnit@4.3.2",
         "pkg:nuget/NUnit3TestAdapter@5.0.0"
@@ -4044,32 +4006,31 @@
     {
       "ref": "pkg:nuget/BlazorTable@1.17.0",
       "dependsOn": [
-        "pkg:nuget/LinqKit.Core@1.1.26",
-        "pkg:nuget/Microsoft.AspNetCore.Components@8.0.13",
+        "pkg:nuget/Microsoft.AspNetCore.Components@8.0.15",
         "pkg:nuget/Microsoft.AspNetCore.Components.Web@3.1.18",
         "pkg:nuget/Microsoft.Extensions.Localization@3.1.18"
       ]
     },
     {
-      "ref": "pkg:nuget/BouncyCastle.Cryptography@2.5.0",
+      "ref": "pkg:nuget/BouncyCastle.Cryptography@2.5.1",
       "dependsOn": []
     },
     {
-      "ref": "pkg:nuget/bunit.core@1.38.5",
+      "ref": "pkg:nuget/bunit.core@1.39.5",
       "dependsOn": [
-        "pkg:nuget/Microsoft.AspNetCore.Components@8.0.13",
+        "pkg:nuget/Microsoft.AspNetCore.Components@8.0.15",
         "pkg:nuget/Microsoft.Extensions.Logging@8.0.1",
         "pkg:nuget/Microsoft.Extensions.Logging.Abstractions@8.0.3"
       ]
     },
     {
-      "ref": "pkg:nuget/bunit.web@1.38.5",
+      "ref": "pkg:nuget/bunit.web@1.39.5",
       "dependsOn": [
         "pkg:nuget/AngleSharp@1.2.0",
         "pkg:nuget/AngleSharp.Css@1.0.0-beta.144",
         "pkg:nuget/AngleSharp.Diffing@1.0.0",
-        "pkg:nuget/Microsoft.AspNetCore.Components@8.0.13",
-        "pkg:nuget/Microsoft.AspNetCore.Components.Authorization@8.0.13",
+        "pkg:nuget/Microsoft.AspNetCore.Components@8.0.15",
+        "pkg:nuget/Microsoft.AspNetCore.Components.Authorization@8.0.15",
         "pkg:nuget/Microsoft.AspNetCore.Components.Web@8.0.11",
         "pkg:nuget/Microsoft.AspNetCore.Components.WebAssembly@8.0.11",
         "pkg:nuget/Microsoft.AspNetCore.Components.WebAssembly.Authentication@8.0.11",
@@ -4077,15 +4038,15 @@
         "pkg:nuget/Microsoft.Extensions.Localization.Abstractions@8.0.11",
         "pkg:nuget/Microsoft.Extensions.Logging@8.0.1",
         "pkg:nuget/Microsoft.Extensions.Logging.Abstractions@8.0.3",
-        "pkg:nuget/System.Text.Json@9.0.0",
-        "pkg:nuget/bunit.core@1.38.5"
+        "pkg:nuget/System.Text.Json@9.0.1",
+        "pkg:nuget/bunit.core@1.39.5"
       ]
     },
     {
-      "ref": "pkg:nuget/bunit@1.38.5",
+      "ref": "pkg:nuget/bunit@1.39.5",
       "dependsOn": [
-        "pkg:nuget/bunit.core@1.38.5",
-        "pkg:nuget/bunit.web@1.38.5"
+        "pkg:nuget/bunit.core@1.39.5",
+        "pkg:nuget/bunit.web@1.39.5"
       ]
     },
     {
@@ -4126,11 +4087,11 @@
       "dependsOn": []
     },
     {
-      "ref": "pkg:nuget/HtmlAgilityPack@1.11.73",
+      "ref": "pkg:nuget/HtmlAgilityPack@1.12.1",
       "dependsOn": []
     },
     {
-      "ref": "pkg:nuget/IPAddressRange@6.1.0",
+      "ref": "pkg:nuget/IPAddressRange@6.2.0",
       "dependsOn": []
     },
     {
@@ -4138,9 +4099,9 @@
       "dependsOn": []
     },
     {
-      "ref": "pkg:nuget/MailKit@4.10.0",
+      "ref": "pkg:nuget/MailKit@4.11.0",
       "dependsOn": [
-        "pkg:nuget/MimeKit@4.10.0",
+        "pkg:nuget/MimeKit@4.11.0",
         "pkg:nuget/System.Formats.Asn1@8.0.1"
       ]
     },
@@ -4151,46 +4112,46 @@
       ]
     },
     {
-      "ref": "pkg:nuget/Microsoft.AspNetCore.Authentication.JwtBearer@8.0.13",
+      "ref": "pkg:nuget/Microsoft.AspNetCore.Authentication.JwtBearer@8.0.15",
       "dependsOn": [
         "pkg:nuget/Microsoft.IdentityModel.Protocols.OpenIdConnect@7.1.2"
       ]
     },
     {
-      "ref": "pkg:nuget/Microsoft.AspNetCore.Authorization@8.0.13",
+      "ref": "pkg:nuget/Microsoft.AspNetCore.Authorization@8.0.15",
       "dependsOn": [
-        "pkg:nuget/Microsoft.AspNetCore.Metadata@8.0.13",
+        "pkg:nuget/Microsoft.AspNetCore.Metadata@8.0.15",
         "pkg:nuget/Microsoft.Extensions.Logging.Abstractions@8.0.3",
         "pkg:nuget/Microsoft.Extensions.Options@8.0.2"
       ]
     },
     {
-      "ref": "pkg:nuget/Microsoft.AspNetCore.Components.Analyzers@8.0.13",
+      "ref": "pkg:nuget/Microsoft.AspNetCore.Components.Analyzers@8.0.15",
       "dependsOn": []
     },
     {
-      "ref": "pkg:nuget/Microsoft.AspNetCore.Components.Authorization@8.0.13",
+      "ref": "pkg:nuget/Microsoft.AspNetCore.Components.Authorization@8.0.15",
       "dependsOn": [
-        "pkg:nuget/Microsoft.AspNetCore.Authorization@8.0.13",
-        "pkg:nuget/Microsoft.AspNetCore.Components@8.0.13"
+        "pkg:nuget/Microsoft.AspNetCore.Authorization@8.0.15",
+        "pkg:nuget/Microsoft.AspNetCore.Components@8.0.15"
       ]
     },
     {
       "ref": "pkg:nuget/Microsoft.AspNetCore.Components.Forms@3.1.18",
       "dependsOn": [
-        "pkg:nuget/Microsoft.AspNetCore.Components@8.0.13"
+        "pkg:nuget/Microsoft.AspNetCore.Components@8.0.15"
       ]
     },
     {
       "ref": "pkg:nuget/Microsoft.AspNetCore.Components.Forms@8.0.11",
       "dependsOn": [
-        "pkg:nuget/Microsoft.AspNetCore.Components@8.0.13"
+        "pkg:nuget/Microsoft.AspNetCore.Components@8.0.15"
       ]
     },
     {
       "ref": "pkg:nuget/Microsoft.AspNetCore.Components.Web@3.1.18",
       "dependsOn": [
-        "pkg:nuget/Microsoft.AspNetCore.Components@8.0.13",
+        "pkg:nuget/Microsoft.AspNetCore.Components@8.0.15",
         "pkg:nuget/Microsoft.AspNetCore.Components.Forms@3.1.18",
         "pkg:nuget/Microsoft.Extensions.DependencyInjection@8.0.0",
         "pkg:nuget/Microsoft.JSInterop@3.1.18"
@@ -4199,18 +4160,18 @@
     {
       "ref": "pkg:nuget/Microsoft.AspNetCore.Components.Web@8.0.11",
       "dependsOn": [
-        "pkg:nuget/Microsoft.AspNetCore.Components@8.0.13",
+        "pkg:nuget/Microsoft.AspNetCore.Components@8.0.15",
         "pkg:nuget/Microsoft.AspNetCore.Components.Forms@8.0.11",
         "pkg:nuget/Microsoft.Extensions.DependencyInjection@8.0.1",
         "pkg:nuget/Microsoft.Extensions.Primitives@8.0.0",
         "pkg:nuget/Microsoft.JSInterop@8.0.11",
-        "pkg:nuget/System.IO.Pipelines@9.0.0"
+        "pkg:nuget/System.IO.Pipelines@9.0.1"
       ]
     },
     {
       "ref": "pkg:nuget/Microsoft.AspNetCore.Components.WebAssembly.Authentication@8.0.11",
       "dependsOn": [
-        "pkg:nuget/Microsoft.AspNetCore.Components.Authorization@8.0.13",
+        "pkg:nuget/Microsoft.AspNetCore.Components.Authorization@8.0.15",
         "pkg:nuget/Microsoft.AspNetCore.Components.Web@8.0.11"
       ]
     },
@@ -4225,17 +4186,17 @@
       ]
     },
     {
-      "ref": "pkg:nuget/Microsoft.AspNetCore.Components@8.0.13",
+      "ref": "pkg:nuget/Microsoft.AspNetCore.Components@8.0.15",
       "dependsOn": [
-        "pkg:nuget/Microsoft.AspNetCore.Authorization@8.0.13",
-        "pkg:nuget/Microsoft.AspNetCore.Components.Analyzers@8.0.13"
+        "pkg:nuget/Microsoft.AspNetCore.Authorization@8.0.15",
+        "pkg:nuget/Microsoft.AspNetCore.Components.Analyzers@8.0.15"
       ]
     },
     {
       "ref": "pkg:nuget/Microsoft.AspNetCore.Http.Abstractions@2.3.0",
       "dependsOn": [
         "pkg:nuget/Microsoft.AspNetCore.Http.Features@2.3.0",
-        "pkg:nuget/System.Text.Encodings.Web@8.0.0"
+        "pkg:nuget/System.Text.Encodings.Web@9.0.4"
       ]
     },
     {
@@ -4255,14 +4216,14 @@
       ]
     },
     {
-      "ref": "pkg:nuget/Microsoft.AspNetCore.Metadata@8.0.13",
+      "ref": "pkg:nuget/Microsoft.AspNetCore.Metadata@8.0.15",
       "dependsOn": []
     },
     {
       "ref": "pkg:nuget/Microsoft.AspNetCore.WebUtilities@2.3.0",
       "dependsOn": [
         "pkg:nuget/Microsoft.Net.Http.Headers@2.3.0",
-        "pkg:nuget/System.Text.Encodings.Web@8.0.0"
+        "pkg:nuget/System.Text.Encodings.Web@9.0.4"
       ]
     },
     {
@@ -4430,41 +4391,41 @@
       "dependsOn": []
     },
     {
-      "ref": "pkg:nuget/Microsoft.IdentityModel.Abstractions@8.6.0",
+      "ref": "pkg:nuget/Microsoft.IdentityModel.Abstractions@8.8.0",
       "dependsOn": []
     },
     {
-      "ref": "pkg:nuget/Microsoft.IdentityModel.JsonWebTokens@8.6.0",
+      "ref": "pkg:nuget/Microsoft.IdentityModel.JsonWebTokens@8.8.0",
       "dependsOn": [
-        "pkg:nuget/Microsoft.IdentityModel.Tokens@8.6.0"
+        "pkg:nuget/Microsoft.IdentityModel.Tokens@8.8.0"
       ]
     },
     {
-      "ref": "pkg:nuget/Microsoft.IdentityModel.Logging@8.6.0",
+      "ref": "pkg:nuget/Microsoft.IdentityModel.Logging@8.8.0",
       "dependsOn": [
-        "pkg:nuget/Microsoft.IdentityModel.Abstractions@8.6.0"
+        "pkg:nuget/Microsoft.IdentityModel.Abstractions@8.8.0"
       ]
     },
     {
       "ref": "pkg:nuget/Microsoft.IdentityModel.Protocols.OpenIdConnect@7.1.2",
       "dependsOn": [
         "pkg:nuget/Microsoft.IdentityModel.Protocols@7.1.2",
-        "pkg:nuget/System.IdentityModel.Tokens.Jwt@8.6.0"
+        "pkg:nuget/System.IdentityModel.Tokens.Jwt@8.8.0"
       ]
     },
     {
       "ref": "pkg:nuget/Microsoft.IdentityModel.Protocols@7.1.2",
       "dependsOn": [
-        "pkg:nuget/Microsoft.IdentityModel.Logging@8.6.0",
-        "pkg:nuget/Microsoft.IdentityModel.Tokens@8.6.0"
+        "pkg:nuget/Microsoft.IdentityModel.Logging@8.8.0",
+        "pkg:nuget/Microsoft.IdentityModel.Tokens@8.8.0"
       ]
     },
     {
-      "ref": "pkg:nuget/Microsoft.IdentityModel.Tokens@8.6.0",
+      "ref": "pkg:nuget/Microsoft.IdentityModel.Tokens@8.8.0",
       "dependsOn": [
         "pkg:nuget/Microsoft.Bcl.Memory@9.0.0",
         "pkg:nuget/Microsoft.Extensions.Logging.Abstractions@8.0.3",
-        "pkg:nuget/Microsoft.IdentityModel.Logging@8.6.0"
+        "pkg:nuget/Microsoft.IdentityModel.Logging@8.8.0"
       ]
     },
     {
@@ -4496,7 +4457,7 @@
       ]
     },
     {
-      "ref": "pkg:nuget/Microsoft.OpenApi@1.6.22",
+      "ref": "pkg:nuget/Microsoft.OpenApi@1.6.23",
       "dependsOn": []
     },
     {
@@ -4552,10 +4513,9 @@
       ]
     },
     {
-      "ref": "pkg:nuget/MimeKit@4.10.0",
+      "ref": "pkg:nuget/MimeKit@4.11.0",
       "dependsOn": [
-        "pkg:nuget/BouncyCastle.Cryptography@2.5.0",
-        "pkg:nuget/System.Formats.Asn1@8.0.1",
+        "pkg:nuget/BouncyCastle.Cryptography@2.5.1",
         "pkg:nuget/System.Security.Cryptography.Pkcs@8.0.1"
       ]
     },
@@ -4564,7 +4524,7 @@
       "dependsOn": []
     },
     {
-      "ref": "pkg:nuget/Novell.Directory.Ldap.NETStandard@3.6.0",
+      "ref": "pkg:nuget/Novell.Directory.Ldap.NETStandard@4.0.0",
       "dependsOn": [
         "pkg:nuget/Microsoft.Extensions.Logging.Abstractions@8.0.3"
       ]
@@ -4598,28 +4558,28 @@
       "dependsOn": []
     },
     {
-      "ref": "pkg:nuget/Swashbuckle.AspNetCore.Swagger@7.3.0",
+      "ref": "pkg:nuget/Swashbuckle.AspNetCore.Swagger@8.1.1",
       "dependsOn": [
-        "pkg:nuget/Microsoft.OpenApi@1.6.22"
+        "pkg:nuget/Microsoft.OpenApi@1.6.23"
       ]
     },
     {
-      "ref": "pkg:nuget/Swashbuckle.AspNetCore.SwaggerGen@7.3.0",
+      "ref": "pkg:nuget/Swashbuckle.AspNetCore.SwaggerGen@8.1.1",
       "dependsOn": [
-        "pkg:nuget/Swashbuckle.AspNetCore.Swagger@7.3.0"
+        "pkg:nuget/Swashbuckle.AspNetCore.Swagger@8.1.1"
       ]
     },
     {
-      "ref": "pkg:nuget/Swashbuckle.AspNetCore.SwaggerUI@7.3.0",
+      "ref": "pkg:nuget/Swashbuckle.AspNetCore.SwaggerUI@8.1.1",
       "dependsOn": []
     },
     {
-      "ref": "pkg:nuget/Swashbuckle.AspNetCore@7.3.0",
+      "ref": "pkg:nuget/Swashbuckle.AspNetCore@8.1.1",
       "dependsOn": [
         "pkg:nuget/Microsoft.Extensions.ApiDescription.Server@6.0.5",
-        "pkg:nuget/Swashbuckle.AspNetCore.Swagger@7.3.0",
-        "pkg:nuget/Swashbuckle.AspNetCore.SwaggerGen@7.3.0",
-        "pkg:nuget/Swashbuckle.AspNetCore.SwaggerUI@7.3.0"
+        "pkg:nuget/Swashbuckle.AspNetCore.Swagger@8.1.1",
+        "pkg:nuget/Swashbuckle.AspNetCore.SwaggerGen@8.1.1",
+        "pkg:nuget/Swashbuckle.AspNetCore.SwaggerUI@8.1.1"
       ]
     },
     {
@@ -4635,14 +4595,14 @@
       "dependsOn": []
     },
     {
-      "ref": "pkg:nuget/System.IdentityModel.Tokens.Jwt@8.6.0",
+      "ref": "pkg:nuget/System.IdentityModel.Tokens.Jwt@8.8.0",
       "dependsOn": [
-        "pkg:nuget/Microsoft.IdentityModel.JsonWebTokens@8.6.0",
-        "pkg:nuget/Microsoft.IdentityModel.Tokens@8.6.0"
+        "pkg:nuget/Microsoft.IdentityModel.JsonWebTokens@8.8.0",
+        "pkg:nuget/Microsoft.IdentityModel.Tokens@8.8.0"
       ]
     },
     {
-      "ref": "pkg:nuget/System.IO.Pipelines@9.0.0",
+      "ref": "pkg:nuget/System.IO.Pipelines@9.0.1",
       "dependsOn": []
     },
     {
@@ -4658,18 +4618,14 @@
       "dependsOn": []
     },
     {
-      "ref": "pkg:nuget/System.Text.Encodings.Web@8.0.0",
+      "ref": "pkg:nuget/System.Text.Encodings.Web@9.0.4",
       "dependsOn": []
     },
     {
-      "ref": "pkg:nuget/System.Text.Encodings.Web@9.0.0",
-      "dependsOn": []
-    },
-    {
-      "ref": "pkg:nuget/System.Text.Json@9.0.0",
+      "ref": "pkg:nuget/System.Text.Json@9.0.1",
       "dependsOn": [
-        "pkg:nuget/System.IO.Pipelines@9.0.0",
-        "pkg:nuget/System.Text.Encodings.Web@9.0.0"
+        "pkg:nuget/System.IO.Pipelines@9.0.1",
+        "pkg:nuget/System.Text.Encodings.Web@9.0.4"
       ]
     }
   ]

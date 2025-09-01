@@ -39,7 +39,6 @@ def normalize_rulebases(
 ) -> None:
     normalized_config_dict['policies'] = []
 
-    # delete_v: morgen hier weiter, es fehlen die dyn objects in normalized_config_dict
     # fill nwobj_name_to_uid_map:
     for nw_obj in normalized_config_dict['network_objects'] + normalized_config_global.get('network_objects', []):
         nwobj_name_to_uid_map[nw_obj['obj_name']] = nw_obj['obj_uid']

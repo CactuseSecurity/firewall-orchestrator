@@ -300,7 +300,6 @@ def get_objects(sid, fm_api_url, native_config_domain, native_config_global, ado
 
 
 
-
 # def getZones(sid, fm_api_url, nativeConfig, adom_name, limit, debug_level):
 #     nativeConfig.update({"zones": {}})
 

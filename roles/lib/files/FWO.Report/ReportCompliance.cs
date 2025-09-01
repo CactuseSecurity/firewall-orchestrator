@@ -197,10 +197,7 @@ namespace FWO.Report
                         }
                     }
 
-                    if (_includeHeaderInExport)
-                    {
-                        sb.AppendLine(string.Join(_separator, propertyNames.Select(p => $"\"{p}\"")));
-                    }
+                    TryAppendCsvHeader(sb, propertyNames);
 
                     foreach (RuleViewData ruleViewData in RuleViewData)
                     {
@@ -216,7 +213,7 @@ namespace FWO.Report
 
                     return sb.ToString();
                 }
-                catch (System.Exception e)
+                catch (Exception e)
                 {
                     Log.TryWriteLog(LogType.Error, "Compliance Report", $"Error while exporting compliance report to CSV: {e.Message}", _debugConfig.ExtendedLogReportGeneration);
                 }
@@ -403,24 +400,7 @@ namespace FWO.Report
 
                     if (IsDiffReport)
                     {
-                        if (rule.ViolationDetails == "")
-                        {
-                            DateTime from = DateTime.Now.AddDays(-DiffReferenceInDays);
-                            rule.ViolationDetails = $"No changes between {from:dd.MM.yyyy} - {from:HH:mm} and {DateTime.Now:dd.MM.yyyy} - {DateTime.Now:HH:mm}";                            
-                        }
-
-
-                        var variables = new { ruleId = rule.Id };
-                        List<ComplianceViolation>? violations = await apiConnection.SendQueryAsync<List<ComplianceViolation>>(ComplianceQueries.getViolationsByRuleID, variables: variables);
-
-                        if (violations != null)
-                        {
-                            rule.Compliance = violations.Where(violation => violation.RemovedDate == null).ToList().Count > 0 ? ComplianceViolationType.MultipleViolations : ComplianceViolationType.None;
-                        }
-                        
-
-
-                        
+                        await PostProcessDiffReportsRule(rule, apiConnection);
                     }
 
                     return;
@@ -435,6 +415,24 @@ namespace FWO.Report
                 Log.TryWriteLog(LogType.Error, "Compliance Report", $"Error while setting compliance data for rule {rule.Id}: {e.Message}", _debugConfig.ExtendedLogReportGeneration);
                 return;
             }
+        }
+
+        private async Task PostProcessDiffReportsRule(Rule rule, ApiConnection apiConnection)
+        {
+            if (rule.ViolationDetails == "")
+            {
+                DateTime from = DateTime.Now.AddDays(-DiffReferenceInDays);
+                rule.ViolationDetails = $"No changes between {from:dd.MM.yyyy} - {from:HH:mm} and {DateTime.Now:dd.MM.yyyy} - {DateTime.Now:HH:mm}";                            
+            }
+
+
+            var variables = new { ruleId = rule.Id };
+            List<ComplianceViolation>? violations = await apiConnection.SendQueryAsync<List<ComplianceViolation>>(ComplianceQueries.getViolationsByRuleID, variables: variables);
+
+            if (violations != null)
+            {
+                rule.Compliance = violations.Where(violation => violation.RemovedDate == null).ToList().Count > 0 ? ComplianceViolationType.MultipleViolations : ComplianceViolationType.None;
+            }   
         }
 
         private Task AddViolationDataToViolationDetails(Rule rule, ComplianceViolation violation, ref int printedViolations, int violationCount, ref bool abbreviated)
@@ -541,6 +539,14 @@ namespace FWO.Report
             });
 
             return string.Join(_separator, values.Select(value => $"\"{value}\""));
+        }
+
+        private void TryAppendCsvHeader(StringBuilder sb, List<string> propertyNames)
+        {
+            if (_includeHeaderInExport)
+            {
+                sb.AppendLine(string.Join(_separator, propertyNames.Select(p => $"\"{p}\"")));
+            }
         }
 
         public override string ExportToHtml()

@@ -106,6 +106,8 @@ def update_config_with_fortinet_api_call(config_json, sid, api_base_url, api_pat
         if len(result)<limit:
             returned_new_objects = False
 
+    if result_name == 'nw_obj_global_firewall/internet-service-basic':
+        full_result = full_result[0]['response']['results']
     config_json.append({'type': result_name, 'data': full_result})
 
 

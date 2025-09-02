@@ -201,8 +201,9 @@ def normalize_single_manager_config(native_config: dict[str, Any], native_config
     mgm_uid = native_config["management_uid"]
     normalize_rulebases(import_state, mgm_uid, native_config, native_config_global, normalized_config_dict, normalized_config_global, 
                         is_global_loop_iteration)
-
     logger.info("completed normalizing rulebases for manager: " + native_config.get('domain_name',''))
+
+    normalize_gateways(native_config, normalized_config_dict)
     
 
 def build_adom_list(importState : ImportStateController):
@@ -299,7 +300,34 @@ def get_objects(sid, fm_api_url, native_config_domain, native_config_global, ado
             native_config_global['objects'], sid, fm_api_url, "sys/proxy/json", "nw_obj_global_firewall/internet-service-basic", limit=limit, payload=payload, method='exec')
 
 
+def normalize_gateways(native_config, normalized_config_dict):
+    for gateway in native_config['gateways']:
+        normalized_gateway = {}
+        normalized_gateway['Uid'] = gateway['uid']
+        normalized_gateway['Name'] = gateway['name']
+        normalized_gateway['Interfaces'] = normalize_interfaces()
+        normalized_gateway['Routing'] = normalize_routing()
+        normalized_gateway['RulebaseLinks'] = normalize_links(gateway['rulebase_links'])
 
+def normalize_interfaces():
+    # TODO
+    return []
+
+def normalize_routing():
+    # TODO
+    return []
+
+def normalize_links(rulebase_links : list):
+    for link in rulebase_links:
+        link['link_type'] = link.pop('type')
+
+        # Remove from_rulebase_uid and from_rule_uid if link_type is initial
+        if link['link_type'] == 'initial':
+            if link['from_rulebase_uid'] != None:
+                link['from_rulebase_uid'] = None
+            if link['from_rule_uid'] != None:
+                link['from_rule_uid'] = None
+    return rulebase_links
 
 # def getZones(sid, fm_api_url, nativeConfig, adom_name, limit, debug_level):
 #     nativeConfig.update({"zones": {}})

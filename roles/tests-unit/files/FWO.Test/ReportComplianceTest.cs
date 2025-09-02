@@ -40,7 +40,7 @@ namespace FWO.Test
 
         }
 
-        [Test, Ignore("temporarily disabled for importer-rework")]
+        [Test]
         public async Task ProcessChunksParallelized_MinimalTestData_CreatesCorrectDiffs()
         {
             // ARRANGE
@@ -122,12 +122,12 @@ namespace FWO.Test
 
             // ACT
 
-            // List<Rule> testResults = await _testReport.ProcessChunksParallelized(ruleChunks, ct);
+            List<Rule> testResults = await _testReport.ProcessChunksParallelized(ruleChunks, ct, new SimulatedApiConnection());
 
             // ASSERT
 
-            // Assert.That(testResults.First(r => r.Id == rule1.Id).ViolationDetails == controlRule1, message: $"{testResults.First(r => r.Id == rule1.Id).ViolationDetails} VS. {controlRule1}");
-            // Assert.That(testResults.First(r => r.Id == rule2.Id).ViolationDetails == controlRule2 , message: $"{testResults.First(r => r.Id == rule2.Id).ViolationDetails} VS. {controlRule2}");
+            Assert.That(testResults.First(r => r.Id == rule1.Id).ViolationDetails == controlRule1, message: $"{testResults.First(r => r.Id == rule1.Id).ViolationDetails} VS. {controlRule1}");
+            Assert.That(testResults.First(r => r.Id == rule2.Id).ViolationDetails == controlRule2 , message: $"{testResults.First(r => r.Id == rule2.Id).ViolationDetails} VS. {controlRule2}");
         }
 
         private List<Rule>[] BuildFixedRuleChunksParallel(int numberOfChunks, int numberOfRulesPerChunk, int startRuleId = 1, int? maxDegreeOfParallelism = null)

@@ -501,17 +501,14 @@ namespace FWO.Report
 
         private bool ShowRule(Rule rule)
         {
-            if (rule.Compliance == ComplianceViolationType.None)
+            if (rule.Compliance == ComplianceViolationType.None || (rule.Action != "accept" && rule.Action != "ipsec"))
             {
                 return false;
             }
 
-            if (IsDiffReport)
+            if (IsDiffReport && (rule.ViolationDetails.StartsWith("No changes") || rule.Disabled))
             {
-                if (rule.ViolationDetails.StartsWith("No changes") || rule.Disabled)
-                {
-                    return false;
-                }    
+                return false;
             }
 
             return true;

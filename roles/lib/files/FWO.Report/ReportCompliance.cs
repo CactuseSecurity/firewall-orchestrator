@@ -26,6 +26,7 @@ namespace FWO.Report
         public Dictionary<ComplianceViolation, char> ViolationDiffs = new();
         public List<ComplianceViolation> Violations { get; set; } = [];
         public int DiffReferenceInDays { get; set; } = 0;
+        public bool ShowAllRules { get; set; }
 
         #endregion
 
@@ -97,11 +98,12 @@ namespace FWO.Report
                 _debugConfig = new();
             }
         }
-        
+
         public ReportCompliance(DynGraphqlQuery query, UserConfig userConfig, ReportType reportType, ReportParams reportParams) : this(query, userConfig, reportType)
         {
             IsDiffReport = reportParams.ComplianceFilter.IsDiffReport;
             DiffReferenceInDays = reportParams.ComplianceFilter.DiffReferenceInDays;
+            ShowAllRules = reportParams.ComplianceFilter.ShowCompliantRules;
         }
 
 
@@ -147,7 +149,7 @@ namespace FWO.Report
             if (chunks != null)
             {
                 RuleViewData.Clear();
-                Rules = await ProcessChunksParallelized(chunks, ct);
+                Rules = await ProcessChunksParallelized(chunks, ct, apiConnection);
                 Log.TryWriteLog(LogType.Debug, "Compliance Report", $"Fetched {Rules.Count} rules for compliance report.", _debugConfig.ExtendedLogReportGeneration);
             }
             else
@@ -195,19 +197,23 @@ namespace FWO.Report
                         }
                     }
 
-                    if (_includeHeaderInExport)
-                    {
-                        sb.AppendLine(string.Join(_separator, propertyNames.Select(p => $"\"{p}\"")));
-                    }
+                    TryAppendCsvHeader(sb, propertyNames);
 
                     foreach (RuleViewData ruleViewData in RuleViewData)
                     {
+                        // Skip marked (i.e. compliant rules) rules if configured.
+
+                        if (!ShowAllRules && !ruleViewData.Show)
+                        {
+                            continue;
+                        }
+
                         sb.AppendLine(GetLineForRule(ruleViewData, properties));
                     }
 
                     return sb.ToString();
                 }
-                catch (System.Exception e)
+                catch (Exception e)
                 {
                     Log.TryWriteLog(LogType.Error, "Compliance Report", $"Error while exporting compliance report to CSV: {e.Message}", _debugConfig.ExtendedLogReportGeneration);
                 }
@@ -282,7 +288,7 @@ namespace FWO.Report
             return await Task.WhenAll(tasks);
         }
 
-        public async Task<List<Rule>> ProcessChunksParallelized(List<Rule>[] chunks, CancellationToken ct)
+        public async Task<List<Rule>> ProcessChunksParallelized(List<Rule>[] chunks, CancellationToken ct, ApiConnection apiConnection)
         {
             List<Task<List<Rule>>> tasks = new();
 
@@ -298,7 +304,7 @@ namespace FWO.Report
                     {
                         foreach (Rule rule in chunk)
                         {
-                            await SetComplianceDataForRule(rule);
+                            await SetComplianceDataForRule(rule, apiConnection);
                             RuleViewData.Add(new RuleViewData(rule, _natRuleDisplayHtml, OutputLocation.report, ShowRule(rule), _devices ?? [], _managements ?? []));
                         }
 
@@ -374,7 +380,7 @@ namespace FWO.Report
             return queryVariables;
         }
 
-        private async Task SetComplianceDataForRule(Rule rule)
+        private async Task SetComplianceDataForRule(Rule rule, ApiConnection apiConnection)
         {
             try
             {
@@ -392,10 +398,9 @@ namespace FWO.Report
                         await AddViolationDataToViolationDetails(rule, violation, ref printedViolations, violationCount, ref abbreviated);
                     }
 
-                    if (IsDiffReport && rule.ViolationDetails == "")
+                    if (IsDiffReport)
                     {
-                        DateTime from = DateTime.Now.AddDays(-DiffReferenceInDays);
-                        rule.ViolationDetails = $"No changes between {from:dd.MM.yyyy} - {from:HH:mm} and {DateTime.Now:dd.MM.yyyy} - {DateTime.Now:HH:mm}";
+                        await PostProcessDiffReportsRule(rule, apiConnection);
                     }
 
                     return;
@@ -410,6 +415,24 @@ namespace FWO.Report
                 Log.TryWriteLog(LogType.Error, "Compliance Report", $"Error while setting compliance data for rule {rule.Id}: {e.Message}", _debugConfig.ExtendedLogReportGeneration);
                 return;
             }
+        }
+
+        private async Task PostProcessDiffReportsRule(Rule rule, ApiConnection apiConnection)
+        {
+            if (rule.ViolationDetails == "")
+            {
+                DateTime from = DateTime.Now.AddDays(-DiffReferenceInDays);
+                rule.ViolationDetails = $"No changes between {from:dd.MM.yyyy} - {from:HH:mm} and {DateTime.Now:dd.MM.yyyy} - {DateTime.Now:HH:mm}";                            
+            }
+
+
+            var variables = new { ruleId = rule.Id };
+            List<ComplianceViolation>? violations = await apiConnection.SendQueryAsync<List<ComplianceViolation>>(ComplianceQueries.getViolationsByRuleID, variables: variables);
+
+            if (violations != null)
+            {
+                rule.Compliance = violations.Where(violation => violation.RemovedDate == null).ToList().Count > 0 ? ComplianceViolationType.MultipleViolations : ComplianceViolationType.None;
+            }   
         }
 
         private Task AddViolationDataToViolationDetails(Rule rule, ComplianceViolation violation, ref int printedViolations, int violationCount, ref bool abbreviated)
@@ -475,7 +498,7 @@ namespace FWO.Report
 
         private bool ShowRule(Rule rule)
         {
-            if (rule.Compliance == ComplianceViolationType.None && !IsDiffReport)
+            if (rule.Compliance == ComplianceViolationType.None)
             {
                 return false;
             }
@@ -516,6 +539,14 @@ namespace FWO.Report
             });
 
             return string.Join(_separator, values.Select(value => $"\"{value}\""));
+        }
+
+        private void TryAppendCsvHeader(StringBuilder sb, List<string> propertyNames)
+        {
+            if (_includeHeaderInExport)
+            {
+                sb.AppendLine(string.Join(_separator, propertyNames.Select(p => $"\"{p}\"")));
+            }
         }
 
         public override string ExportToHtml()

@@ -1,6 +1,7 @@
 using FWO.Basics;
 using FWO.Basics.Interfaces;
 using FWO.Data;
+using FWO.Logging;
 using FWO.Ui.Display;
 using System.Text.Json;
 
@@ -31,24 +32,24 @@ namespace FWO.Report.Data.ViewData
         public RuleViewData(Rule rule, NatRuleDisplayHtml natRuleDisplayHtml, OutputLocation outputLocation, bool show, List<Device>? devices = null, List<Management>? managements = null)
         {
             DataObject = rule;
-
-            MgmtId = rule.MgmtId.ToString();
-            MgmtName = managements?.FirstOrDefault(m => m.Id == rule.MgmtId)?.Name ?? "";
-            Uid = rule.Uid ?? "";
-            Name = rule.Name ?? "";
-            Source = natRuleDisplayHtml.DisplaySource(rule, outputLocation, ReportType.Compliance);
-            Destination = natRuleDisplayHtml.DisplayDestination(rule, outputLocation, ReportType.Compliance);
-            Services = ResolveServices(rule);
-            Action = rule.Action;
-            InstallOn = ResolveInstallOn(rule, devices ?? []);
-            Compliance = ResolveCompliance(rule.Compliance);
-            ViolationDetails = rule.ViolationDetails;
-            ChangeID = GetFromCustomField(rule, "field-2");
-            AdoITID = GetFromCustomField(rule, "field-3");
-            Comment = rule.Comment ?? "";
-            RulebaseId = rule.RulebaseId.ToString();
-            RulebaseName = rule.Rulebase?.Name ?? "";
             Show = show;
+
+            MgmtId              = SafeCall(rule, "MgmtId", () => rule.MgmtId.ToString());
+            MgmtName            = SafeCall(rule, "MgmtName",() => managements?.FirstOrDefault(m => m.Id == rule.MgmtId)?.Name ?? "");
+            Uid                 = SafeCall(rule, "Uid",() => rule.Uid ?? "");
+            Name                = SafeCall(rule, "Name",() => rule.Name ?? "");
+            Source              = SafeCall(rule, "Source",() => natRuleDisplayHtml.DisplaySource(rule, outputLocation, ReportType.Compliance));
+            Destination         = SafeCall(rule, "Destination",() => natRuleDisplayHtml.DisplayDestination(rule, outputLocation, ReportType.Compliance));
+            Services            = SafeCall(rule, "Services",() => ResolveServices(rule));
+            Action              = SafeCall(rule, "Action",() => rule.Action);
+            InstallOn           = SafeCall(rule, "InstallOn",() => ResolveInstallOn(rule, devices ?? []));
+            Compliance          = SafeCall(rule, "Compliance",() => ResolveCompliance(rule.Compliance));
+            ViolationDetails    = SafeCall(rule, "ViolationDetails",() => rule.ViolationDetails);
+            ChangeID            = SafeCall(rule, "ChangeID",() => GetFromCustomField(rule, "field-2"));
+            AdoITID             = SafeCall(rule, "AdoITID",() => GetFromCustomField(rule, "field-3"));
+            Comment             = SafeCall(rule, "Comment",() => rule.Comment ?? "");
+            RulebaseId          = SafeCall(rule, "RulebaseId",() => rule.RulebaseId.ToString());
+            RulebaseName        = SafeCall(rule, "RulebaseName",() => rule.Rulebase?.Name ?? "");
         }
 
         private string ResolveServices(Rule rule)
@@ -73,7 +74,7 @@ namespace FWO.Report.Data.ViewData
             {
                 string customFieldsString = rule.CustomFields.Replace("'", "\"");
                 Dictionary<string, string>? customFields = JsonSerializer.Deserialize<Dictionary<string, string>>(customFieldsString);
-                return customFields != null && customFields.TryGetValue(field, out string? value) ? value : "";                
+                return customFields != null && customFields.TryGetValue(field, out string? value) ? value : "";
             }
             catch (JsonException)
             {
@@ -112,5 +113,19 @@ namespace FWO.Report.Data.ViewData
 
             return installOn;
         }
+        
+        private string SafeCall(Rule rule, string column, Func<string> func)
+        {
+            try
+            {
+                return func();
+            }
+            catch (Exception ex)
+            {
+                Log.WriteError($"Creating rule view data - Displayerror in rule {rule.Id} column {column}: {ex.Message}");
+                return "Displayerror";
+            }
+        }
+
     }
 }

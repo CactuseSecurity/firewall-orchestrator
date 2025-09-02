@@ -588,6 +588,11 @@
             }
             else
             {
+                if (discoveredDevice.Uid == null || discoveredDevice.Uid == "")
+                {
+                    // fortinet does not have uids for devices, so we are using the device name instead
+                    discoveredDevice.Uid = discoveredDevice.Name;
+                }
                 // insert new device
                 var Variables = new
                 {

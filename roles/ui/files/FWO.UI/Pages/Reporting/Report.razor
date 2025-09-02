@@ -128,7 +128,7 @@
                                 break;
 
                             case ReportType.Compliance:
-                                    <ComplianceReport ReportData="currentReport.ReportData" RulesPerPage="rulesPerPage" @bind-SelectedRules="_selectedItemsComplianceReportTable" @ref="_complianceReport"/>
+                                    <ComplianceReport ReportData="currentReport.ReportData" RulesPerPage="rulesPerPage" @bind-SelectedRules="_selectedItemsComplianceReportTable" @ref="_complianceReport" ShowAnyRule="((ReportCompliance)currentReport).ShowAllRules"/>
                                 break;
 
                             case ReportType.Changes:

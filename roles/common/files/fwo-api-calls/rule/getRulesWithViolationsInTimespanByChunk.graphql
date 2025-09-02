@@ -16,12 +16,7 @@ query getRulesWithViolationsInTimespanByChunk(
     ...ruleDetails
 
     violations: compliance_violations(
-      where: {
-        _or: [
-          { removed_date: { _gte: $from_date, _lt: $to_date } }
-          { found_date:   { _gte: $from_date, _lt: $to_date } }
-        ]
-      }
+      where: { found_date:   { _gte: $from_date, _lt: $to_date } }
     ) {
       id
       rule_id

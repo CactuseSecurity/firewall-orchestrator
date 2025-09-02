@@ -506,9 +506,12 @@ namespace FWO.Report
                 return false;
             }
 
-            if (IsDiffReport && rule.ViolationDetails.StartsWith("No changes"))
+            if (IsDiffReport)
             {
-                return false;
+                if (rule.ViolationDetails.StartsWith("No changes") || rule.Disabled)
+                {
+                    return false;
+                }    
             }
 
             return true;

@@ -214,11 +214,10 @@ RETURNS boolean AS $$
             ELSE
                 IF EXISTS ( -- ip of rule_from object is in tenant_network of tenant
                     SELECT rf.obj_id FROM rule_from rf
-                        LEFT JOIN rule r ON (rf.rule_id=r.rule_id)
                         LEFT JOIN objgrp_flat ON (rf.obj_id=objgrp_flat.objgrp_flat_id)
                         LEFT JOIN object ON (objgrp_flat.objgrp_flat_member_id=object.obj_id)
                         LEFT JOIN tenant_network ON
-                            (ip_ranges_overlap(obj_ip, obj_ip_end, tenant_net_ip, tenant_net_ip_end, rf.negated != r.rule_src_neg))
+                            (ip_ranges_overlap(obj_ip, obj_ip_end, tenant_net_ip, tenant_net_ip_end, rf.negated))
                     WHERE rule_from_id = rule_from.rule_from_id AND tenant_id = t_id
                 ) THEN
                     show := true;
@@ -226,11 +225,10 @@ RETURNS boolean AS $$
                     FOR rule_to_obj IN
                         SELECT rt.*, tenant_network.tenant_id
                         FROM rule_to rt
-                            LEFT JOIN rule r ON (rt.rule_id=r.rule_id)
                             LEFT JOIN objgrp_flat ON (rt.obj_id=objgrp_flat_id)
                             LEFT JOIN object ON (objgrp_flat_member_id=object.obj_id)
                             LEFT JOIN tenant_network ON
-                                (ip_ranges_overlap(obj_ip, obj_ip_end, tenant_net_ip, tenant_net_ip_end, rt.negated != r.rule_dst_neg))
+                                (ip_ranges_overlap(obj_ip, obj_ip_end, tenant_net_ip, tenant_net_ip_end, rt.negated))
                         WHERE rt.rule_id = rule_from.rule_id
                     LOOP
                         IF rule_to_obj.tenant_id = t_id THEN
@@ -269,11 +267,10 @@ RETURNS boolean AS $$
 			ELSE
                 IF EXISTS ( -- ip of rule_to object is in tenant_network of tenant
                     SELECT rt.obj_id FROM rule_to rt
-                        LEFT JOIN rule r ON (rt.rule_id=r.rule_id)
                         LEFT JOIN objgrp_flat ON (rt.obj_id=objgrp_flat.objgrp_flat_id)
                         LEFT JOIN object ON (objgrp_flat.objgrp_flat_member_id=object.obj_id)
                         LEFT JOIN tenant_network ON
-                            (ip_ranges_overlap(obj_ip, obj_ip_end, tenant_net_ip, tenant_net_ip_end, rt.negated != r.rule_dst_neg))
+                            (ip_ranges_overlap(obj_ip, obj_ip_end, tenant_net_ip, tenant_net_ip_end, rt.negated))
                     WHERE rule_to_id = rule_to.rule_to_id AND tenant_id = t_id
                 ) THEN
                     show := true;
@@ -281,11 +278,10 @@ RETURNS boolean AS $$
                     FOR rule_from_obj IN
                         SELECT rf.*, tenant_network.tenant_id
                         FROM rule_from rf
-                            LEFT JOIN rule r ON (rf.rule_id=r.rule_id)
                             LEFT JOIN objgrp_flat ON (rf.obj_id=objgrp_flat_id)
                             LEFT JOIN object ON (objgrp_flat.objgrp_flat_member_id=object.obj_id)
                             LEFT JOIN tenant_network ON
-                                (ip_ranges_overlap(obj_ip, obj_ip_end, tenant_net_ip, tenant_net_ip_end, rf.negated != r.rule_src_neg))
+                                (ip_ranges_overlap(obj_ip, obj_ip_end, tenant_net_ip, tenant_net_ip_end, rf.negated))
                         WHERE rf.rule_id = rule_to.rule_id
                     LOOP
                         IF rule_from_obj.tenant_id = t_id THEN

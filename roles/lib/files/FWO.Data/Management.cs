@@ -75,6 +75,18 @@ namespace FWO.Data
         [JsonProperty("rulebases"), JsonPropertyName("rulebases")]
         public Rulebase[] Rulebases { get; set; } = [];
 
+        [JsonProperty("networkObjects"), JsonPropertyName("networkObjects")]
+        public NetworkObject[] Objects { get; set; } = [];
+
+        [JsonProperty("serviceObjects"), JsonPropertyName("serviceObjects")]
+        public NetworkService[] Services { get; set; } = [];
+
+        [JsonProperty("userObjects"), JsonPropertyName("userObjects")]
+        public NetworkUser[] Users { get; set; } = [];
+
+        [JsonProperty("zoneObjects"), JsonPropertyName("zoneObjects")]
+        public NetworkZone[] Zones { get; set; } = [];
+
         [JsonProperty("deviceType"), JsonPropertyName("deviceType")]
         public DeviceType DeviceType { get; set; } = new();
 

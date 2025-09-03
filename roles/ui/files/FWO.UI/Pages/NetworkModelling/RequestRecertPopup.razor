@@ -64,18 +64,6 @@
                 <br>
                 @(userConfig.GetText("U9029"))
                 <br>
-                @if(MissingAppRoles.Count > 0)
-                {
-                    <br>
-                    <h5>@(userConfig.GetText("app_roles_not_implemented"))</h5>
-                    <AppRoleTable AppRoles="MissingAppRoles" DiffMode="false" Split="false"/>
-                }
-                @if(DifferingAppRoles.Count > 0)
-                {
-                    <br>
-                    <h5>@(userConfig.GetText("app_roles_with_diffs"))</h5>
-                    <AppRoleTable AppRoles="DifferingAppRoles" DiffMode="false" Split="false"/>
-                }
                 @if(VarianceResult.ConnsNotImplemented.Count > 0)
                 {
                     <br>
@@ -103,15 +91,15 @@
                     <Authorized>
                         @if (userConfig.User.Ownerships.Contains(AppHandler.Application.Id))
                         {
-                            <button type="button" class="btn btn-sm btn-primary" @onclick="StartRecert">@(DisplayService.DisplayButton(userConfig, "recertify", Icons.Recertify))</button>
+                            <button type="button" class="btn btn-sm btn-success" @onclick="StartRecert">@(DisplayService.DisplayButton(userConfig, "recertify", Icons.Recertify))</button>
                         }
                         else
                         {
-                            <button type="button" class="btn btn-sm btn-primary" disabled>@(DisplayService.DisplayButton(userConfig, "recertify", Icons.Recertify))</button>
+                            <button type="button" class="btn btn-sm btn-success" disabled>@(DisplayService.DisplayButton(userConfig, "recertify", Icons.Recertify))</button>
                         }
                     </Authorized>
                     <NotAuthorized>
-                        <button type="button" class="btn btn-sm btn-primary" disabled>@(DisplayService.DisplayButton(userConfig, "recertify", Icons.Recertify))</button>
+                        <button type="button" class="btn btn-sm btn-success" disabled>@(DisplayService.DisplayButton(userConfig, "recertify", Icons.Recertify))</button>
                     </NotAuthorized>
                 </AuthorizeView>
             }
@@ -226,7 +214,7 @@
     {
         ExtStateHandler extStateHandler = new(apiConnection);
         ModellingVarianceAnalysis varianceAnalysis = new(apiConnection, extStateHandler, userConfig, AppHandler!.Application, DisplayMessageInUi);
-        VarianceResult = await varianceAnalysis.AnalyseRulesVsModelledConnections(AppHandler!.Connections, new(){ AnalyseRemainingRules = true });
+        VarianceResult = await varianceAnalysis.AnalyseRulesVsModelledConnections(AppHandler!.Connections, new(){ AnalyseRemainingRules = true }, true, true);
         MissingAppRoles = [];
         foreach(var mgt in VarianceResult.MissingAppRoles.Keys)
         {

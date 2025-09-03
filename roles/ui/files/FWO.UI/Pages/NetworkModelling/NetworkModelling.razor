@@ -41,7 +41,7 @@
                 </div>
                 <div class="col-sm-6">
                     <div class="btn-group">
-                        <button type="button" class="ms-5 btn btn-sm btn-primary" @onclick="Report">
+                        <button type="button" class="btn btn-sm btn-primary" @onclick="Report">
                             @(DisplayService.DisplayButton(userConfig, "generate_report", Icons.GenerateReport))
                         </button>
                         <button type="button" class="btn btn-sm btn-dark" @onclick="ShowHistory">
@@ -51,13 +51,13 @@
                         {
                             <AuthorizeView Roles="@($"{Roles.Modeller}, {Roles.Requester}, {Roles.Implementer}, {Roles.Admin}, {Roles.Auditor}")">
                                 <Authorized>
-                                    <button type="button" class="ms-5 btn btn-sm btn-primary" @onclick="RequestFwChange">
+                                    <button type="button" class="btn btn-sm btn-primary" @onclick="RequestFwChange">
                                         @(DisplayService.DisplayButtonWithTooltip(userConfig, "request_fw_change", Icons.RequestFwChange, UserConfig.PureLineStat(ChangeStatus)))
                                     </button>
                                 </Authorized>
                                 <NotAuthorized>
                                     <div data-toggle="tooltip" title="@(userConfig.PureLine("C9012"))">
-                                        <button type="button" class="ms-5 btn btn-sm btn-primary" disabled>
+                                        <button type="button" class="btn btn-sm btn-primary" disabled>
                                             @(DisplayService.DisplayButton(userConfig, "request_fw_change", Icons.RequestFwChange))
                                         </button>
                                     </div>
@@ -68,13 +68,13 @@
                         {
                             <AuthorizeView Roles="@($"{Roles.Modeller}, {Roles.Admin}, {Roles.Auditor}")">
                                 <Authorized>
-                                    <button type="button" class="ms-5 btn btn-sm btn-primary" @onclick="Recertify">
+                                    <button type="button" class="btn btn-sm btn-success" @onclick="Recertify">
                                         @(DisplayService.DisplayButtonWithTooltip(userConfig, "recertify", Icons.Recertify, UserConfig.PureLineStat(RecertStatus)))
                                     </button>
                                 </Authorized>
                                 <NotAuthorized>
                                     <div data-toggle="tooltip" title="@(userConfig.PureLine("C9012"))">
-                                        <button type="button" class="ms-5 btn btn-sm btn-primary" disabled>
+                                        <button type="button" class="btn btn-sm btn-success" disabled>
                                             @(DisplayService.DisplayButton(userConfig, "recertify", Icons.Recertify))
                                         </button>
                                     </div>
@@ -97,13 +97,11 @@
                             </button>
                             <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.Auditor}")">
                                 <Authorized>
-                                    &nbsp;
-                                    <button type="button" class="btn btn-sm btn-dark" @onclick="ManualAppServer">
+                                    <button type="button" class="btn btn-sm btn-warning" @onclick="ManualAppServer">
                                         @(DisplayService.DisplayButton(userConfig, "edit_app_server", Icons.Edit, "", Icons.Host))
                                     </button>
                                 </Authorized>
                             </AuthorizeView>
-                            &nbsp;
                             @if(userConfig.VarianceAnalysisRefresh)
                             {
                                 <button type="button" class="btn btn-sm btn-primary" @onclick="RefreshState">
@@ -117,7 +115,7 @@
                 <div class="mx-2 mt-2">
                     <TabSet WholeWidth="false" DarkMode="false" KeepPanelsAlive="false" @ref="appHandler!.Tabset">
                         <Tab Title="@(userConfig.GetText("connections"))" Position=0>
-                            <button type="button" class="btn btn-sm btn-success mb-2" @onclick="appHandler!.AddConnection">
+                            <button type="button" class="btn btn-sm btn-success" @onclick="appHandler!.AddConnection">
                                 @(DisplayService.DisplayButton(userConfig, "add_connection", Icons.Add))
                             </button>                            
                             <ConnectionTable UseResponsiveTable="true" ShowPageSizeInput="true" Connections="@appHandler!.GetRegularConnections()" @bind-AppHandler="appHandler" AppActive="appActive" ShowModellingState="true" ShowProductionState="true" />
@@ -125,7 +123,7 @@
                         <Tab Title="@(userConfig.GetText("provided_interfaces"))" Position=1>
                             <div class="d-flex justify-content-between">
                                 <div>
-                                    <button type="button" class="btn btn-sm btn-success mb-2" @onclick="appHandler!.AddInterface">
+                                    <button type="button" class="btn btn-sm btn-success" @onclick="appHandler!.AddInterface">
                                         @(DisplayService.DisplayButton(userConfig, "add_interface", Icons.Add))
                                     </button>
                                 </div>
@@ -143,10 +141,10 @@
                         @if (selectedApp.CommSvcPossible)
                         {
                             <Tab Title="@(userConfig.GetText("common_services"))" Position=2>
-                                <button type="button" class="btn btn-sm btn-success mb-2"
+                                <button type="button" class="btn btn-sm btn-success"
                                     @onclick="appHandler!.AddCommonService">@(DisplayService.DisplayButton(userConfig, "add_common_service", Icons.Add))
                                 </button>
-                                <ConnectionTable UseResponsiveTable="true" Connections="@appHandler!.GetCommonServices()" @bind-AppHandler="appHandler" AppActive="appActive" ShowModellingState="true" ShowProductionState="true" />
+                                <ConnectionTable UseResponsiveTable="true" ShowPageSizeInput="true" Connections="@appHandler!.GetCommonServices()" @bind-AppHandler="appHandler" AppActive="appActive" ShowModellingState="true" ShowProductionState="true" />
                             </Tab>
                         }
                     </TabSet>
@@ -448,9 +446,8 @@ else
                     {
                         if(lastResponse != null && IsTempError(lastResponse))
                         {
-                            string tooltip = userConfig.GetText("temp_error_extended") + ": " + lastResponse;
-                            //ChangeStatus = $"<div data-toggle=\"tooltip\" title=\"{tooltip}\">{userConfig.GetText("temp_error")}</div>";
-                            ChangeStatus = $"{userConfig.GetText("temp_error")}: {tooltip}</div>";
+                            string errorText = userConfig.GetText("temp_error_extended") + ": " + lastResponse;
+                            ChangeStatus = $"{userConfig.GetText("temp_error")}: {errorText}";
                         }
                         else
                         {
@@ -461,9 +458,8 @@ else
                     {
                         if(lastResponse != null)
                         {
-                            string tooltip = states.Name[intTicket.StateId] + ": " + lastResponse;
-                            //ChangeStatus = $"<div data-toggle=\"tooltip\" title=\"{tooltip}\">{userConfig.GetText("implementation_error")}</div>";
-                            ChangeStatus = $"{userConfig.GetText("implementation_error")}: {tooltip}</div>";
+                            string errorText = states.Name[intTicket.StateId] + ": " + lastResponse;
+                            ChangeStatus = $"{userConfig.GetText("implementation_error")}: {errorText}";
                         }
                         else
                         {

@@ -95,8 +95,7 @@ class FwConfigImport():
         if import_state.Stats.ErrorCount>0:
             raise FwoImporterError("Import failed due to errors.")
         else:
-            if self.import_state.DebugLevel > 7: #TODO: always use this?
-                config_importer.consistency_check_db()
+            config_importer.consistency_check_db()
             config_importer.write_latest_config()
 
 
@@ -345,6 +344,7 @@ class FwConfigImport():
         normalized_config_from_db = self.get_latest_config_from_db()
         if normalized_config != normalized_config_from_db:
             all_diffs = find_all_diffs(normalized_config.model_dump(), normalized_config_from_db.model_dump())
-            logger.error(f"normalized config for mgm id {self.import_state.MgmDetails.Id} is inconsistent to database state: {all_diffs[0]}")
+            logger.warning(f"normalized config for mgm id {self.import_state.MgmDetails.Id} is inconsistent to database state: {all_diffs[0]}")
             logger.debug(f"all differences: {all_diffs}")
-            raise FwoImporterError("the database state created by this import is not consistent to the normalized config")
+            # TODO: long-term this should raise an error:
+            # raise FwoImporterError("the database state created by this import is not consistent to the normalized config")

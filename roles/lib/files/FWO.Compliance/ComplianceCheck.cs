@@ -22,13 +22,10 @@ namespace FWO.Compliance
         private ReportFilters _reportFilters = new();
         private CompliancePolicy? _policy = null;
         private List<ComplianceNetworkZone> _networkZones = [];
-
-        private readonly List<Rule> _nonEvaluableRules = [];
         
         private readonly UserConfig _userConfig;
         private readonly ApiConnection _apiConnection;
         private readonly DebugConfig _debugConfig;
-
 
         /// <summary>
         /// Constructor for compliance check
@@ -99,7 +96,6 @@ namespace FWO.Compliance
                     ComplianceReport = complianceReport;
 
                     ComplianceReport.Violations.Clear();
-                    _nonEvaluableRules.Clear();
 
                     await CheckRuleComplianceForAllRules();
                 }
@@ -308,68 +304,15 @@ namespace FWO.Compliance
 
             foreach (Rule rule in ComplianceReport!.ReportData.RulesFlat)
             {
-                if (await ComplianceReport!.CheckEvaluability(rule))
+                bool ruleIsCompliant = await CheckRuleCompliance(rule);
+
+                if (!ruleIsCompliant)
                 {
-                    bool ruleIsCompliant = await CheckRuleCompliance(rule);
-
-                    if (!ruleIsCompliant)
-                    {
-                        nonCompliantRules++;
-                    }
-                }
-                else
-                {
-                    // Set counter
-
-                    nonEvaluableRules++;
-
-                    // Add to control collection
-                    
-                    _nonEvaluableRules.Add(rule);
+                    nonCompliantRules++;
                 }
             }
 
             Log.TryWriteLog(LogType.Info, "Compliance Check", $"Checked compliance for every rule and found {nonCompliantRules} non-compliant rules", _debugConfig.ExtendedLogComplianceCheck);
-            Log.TryWriteLog(LogType.Info, "Compliance Check", $"Checked compliance for every rule and found {nonEvaluableRules} non-evaluable rules", _debugConfig.ExtendedLogComplianceCheck);
-        }
-
-        private async Task CheckRuleCompliancePerManagement(ManagementReport management)
-        {
-            int nonCompliantRules = 0;
-            int nonEvaluableRules = 0;
-
-            Log.TryWriteLog(LogType.Info, "Compliance Check", $"Checking compliance for management {management.Id} '{management.Name}'", _debugConfig.ExtendedLogComplianceCheck);
-
-            foreach (var rulebase in management.Rulebases)
-            {
-                foreach (var rule in rulebase.Rules)
-                {
-                    if (await ComplianceReport!.CheckEvaluability(rule))
-                    {
-                        bool ruleIsCompliant = await CheckRuleCompliance(rule);
-
-                        if (!ruleIsCompliant)
-                        {
-                            nonCompliantRules++;
-                        }
-                    }
-                    else
-                    {
-                        // Set counter
-
-                        nonEvaluableRules++;
-
-                        // Add to control collection
-
-                        _nonEvaluableRules.Add(rule);
-                    }
-
-
-                }
-            }
-
-            Log.TryWriteLog(LogType.Info, "Compliance Check", $"Checked compliance for management {management.Id} '{management.Name}' and found {nonCompliantRules} non-compliant rules", _debugConfig.ExtendedLogComplianceCheck);
-            Log.TryWriteLog(LogType.Info, "Compliance Check", $"Checked compliance for management {management.Id} '{management.Name}' and found {nonEvaluableRules} non-evaluable rules", _debugConfig.ExtendedLogComplianceCheck);
         }
 
         public async Task<bool> CheckRuleCompliance(Rule rule)

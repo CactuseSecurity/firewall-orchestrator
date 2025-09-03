@@ -222,7 +222,7 @@ class FwConfigImport():
                                     gateways=self.NormalizedConfig.gateways,
                                     ConfigFormat=self.NormalizedConfig.ConfigFormat)
         
-            errorsFound = self.deleteLatestConfig()
+            errorsFound = self.deleteLatestConfigOfManagement()
             if errorsFound:
                 getFwoLogger().warning(f"error while trying to delete latest config for mgm_id: {self.import_state.ImportId}")
             insertMutation = FwoApi.get_graphql_code([fwo_const.graphql_query_path + "import/storeLatestConfig.graphql"])
@@ -253,9 +253,9 @@ class FwConfigImport():
                 getFwoLogger().warning(f"error while writing latest config for mgm_id: {self.import_state.ImportId}")        
 
         
-    def deleteLatestConfig(self) -> int:
+    def deleteLatestConfigOfManagement(self) -> int:
         logger = getFwoLogger()
-        deleteMutation = FwoApi.get_graphql_code([fwo_const.graphql_query_path + "import/deleteLatestConfig.graphql"])
+        deleteMutation = FwoApi.get_graphql_code([fwo_const.graphql_query_path + "import/deleteLatestConfigOfManagement.graphql"])
         try:
             query_variables = { 'mgmId': self.import_state.MgmDetails.Id }
             import_result = self.import_state.api_call.call(deleteMutation, query_variables=query_variables)

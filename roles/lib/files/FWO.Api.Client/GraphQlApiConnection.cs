@@ -214,9 +214,6 @@ namespace FWO.Api.Client
                 {
                     subscription.Dispose();
                 }
-
-                subscriptions.Clear();
-                GC.Collect();
             }
         }
 

@@ -202,6 +202,12 @@ namespace FWO.Ui.Display
                         collectedServices.Add(nwService.Object);
                     }
                 }
+
+                if (!service.Content.ServiceGroupFlats.Any())
+                {
+                    collectedServices.Add(service.Content);
+                }
+
             }
             List<NetworkService> serviceList = [.. collectedServices];
             serviceList.Sort(delegate (NetworkService x, NetworkService y) { return x.Name.CompareTo(y.Name); });

@@ -40,7 +40,7 @@ namespace FWO.Report.Data.ViewData
             Name                = SafeCall(rule, "Name",() => rule.Name ?? "");
             Source              = SafeCall(rule, "Source",() => natRuleDisplayHtml.DisplaySource(rule, outputLocation, ReportType.Compliance));
             Destination         = SafeCall(rule, "Destination",() => natRuleDisplayHtml.DisplayDestination(rule, outputLocation, ReportType.Compliance));
-            Services            = SafeCall(rule, "Services",() => ResolveServices(rule));
+            Services            = SafeCall(rule, "Services",() => natRuleDisplayHtml.DisplayServices(rule, outputLocation, ReportType.Compliance));
             Action              = SafeCall(rule, "Action",() => rule.Action);
             InstallOn           = SafeCall(rule, "InstallOn",() => ResolveInstallOn(rule, devices ?? []));
             Compliance          = SafeCall(rule, "Compliance",() => ResolveCompliance(rule.Compliance));

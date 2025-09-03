@@ -27,8 +27,8 @@ class FwConfigImportCheckConsistency(FwConfigImport):
         service_provider = ServiceProvider()
         self._global_state = service_provider.get_service(Services.GLOBAL_STATE)
         self.import_state = import_details
-        self.maps = FwConfigImportObject()
-        
+
+        self.maps = FwConfigImportObject() # TODO don't use like this (separation of concerns) - see #3154
         for mgr in config_list.ManagerSet:
             for cfg in mgr.Configs:
                 import_worker = FwConfigImport()

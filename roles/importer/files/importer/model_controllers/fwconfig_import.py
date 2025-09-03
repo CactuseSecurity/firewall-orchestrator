@@ -76,7 +76,7 @@ class FwConfigImport():
     def import_config(self, service_provider: ServiceProvider, import_state: ImportStateController, manager: FwConfigManager, config: FwConfigNormalized):
         global_state = service_provider.get_service(Services.GLOBAL_STATE)
         global_state.normalized_config = config
-        if manager:
+        if manager.IsSuperManager:
             # store global config as it is needed when importing sub managers which might reference it
             global_state.global_normalized_config = config
         mgm_id = self.import_state.lookupManagementId(manager.ManagerUid)
@@ -90,7 +90,7 @@ class FwConfigImport():
         if not manager.IsSuperManager:
             self.import_state.MgmDetails.SubManagerIds = []
             self.import_state.MgmDetails.SubManagers = []
-        config_importer = FwConfigImport()
+        config_importer = FwConfigImport() #TODO: strange to create another import object here - see #3154
         config_importer.import_single_config(manager)
         if import_state.Stats.ErrorCount>0:
             raise FwoImporterError("Import failed due to errors.")

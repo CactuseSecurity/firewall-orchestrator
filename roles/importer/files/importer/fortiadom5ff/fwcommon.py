@@ -199,8 +199,9 @@ def normalize_single_manager_config(native_config: dict[str, Any], native_config
     logger.info("completed normalizing service objects")
     #fmgr_gateway.normalizeGateways(native_conf, import_state, normalized_config_dict)
 
+    mgm_uid = native_config["management_uid"]
     # initialize_rulebases(native_config)
-    normalize_rulebases(import_state, native_config, native_config_global, normalized_config_dict, normalized_config_global, 
+    normalize_rulebases(import_state, mgm_uid, native_config, native_config_global, normalized_config_dict, normalized_config_global, 
                         is_global_loop_iteration)
 
     logger.info("completed normalizing rulebases")

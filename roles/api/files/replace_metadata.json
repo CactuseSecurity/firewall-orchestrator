@@ -21236,6 +21236,17 @@
                   }
                 },
                 {
+                  "role": "importer",
+                  "permission": {
+                    "columns": [
+                      "uiuser_id",
+                      "uiuser_username"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
                   "role": "middleware-server",
                   "permission": {
                     "columns": [

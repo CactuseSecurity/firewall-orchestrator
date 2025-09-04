@@ -281,7 +281,8 @@ def getAccessPolicy(sid, fm_api_url, native_config_domain, adom_device_vdom_poli
     fmgr_getter.update_config_with_fortinet_api_call(
         native_config_domain['rulebases'], sid, fm_api_url, "/pm/config/adom/" + adom_name + "/pkg/" + local_pkg_name + "/firewall" + consolidated + "/policy6", 'rules_adom_v6_' + local_pkg_name, limit=limit)
     # delete_v: hier initial link immer lokal, erweitern wenn wir global header/footer holen
-    link_v4_and_v6_rulebase(native_config_domain['rulebases'], local_pkg_name, previous_rulebase, is_global)
+    link_list, previous_rulebase = link_v4_and_v6_rulebase(native_config_domain['rulebases'], local_pkg_name, previous_rulebase, is_global)
+    device_config['rulebase_links'].extend(link_list)
 
     # get global footer rulebase:
     # if device['global_rulebase_name'] != None and device['global_rulebase_name'] != '':
@@ -344,22 +345,11 @@ def has_rulebase_data(rulebases, type_prefix, pkg_name):
     has_data = False
     for rulebase in rulebases:
         if rulebase['type'] == type_prefix + '_' + pkg_name:
-            rulebase.update({'name': pkg_name, 'uid': pkg_name})
+            rulebase.update({'name': type_prefix + '_' + pkg_name,
+                             'uid': type_prefix + '_' + pkg_name})
             if len(rulebase['data']) > 0:
                 has_data = True
     return has_data
-
-
-def link_initial_rulebase(device_config, local_pkg_name, is_global):
-    device_config['rulebase_links'].append({
-        'from_rulebase_uid': '',
-        'from_rule_uid': '',
-        'to_rulebase_uid': local_pkg_name,
-        'type': 'concatenated',
-        'is_global': is_global,
-        'is_initial': True,
-        'is_section': False
-    })
 
 def getNatPolicy(sid, fm_api_url, nativeConfig, adom_name, device, limit):
     scope = 'global'

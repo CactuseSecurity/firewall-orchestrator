@@ -11,4 +11,5 @@ class Services(Enum):
     PREV_GROUP_FLATS_MAPPER = "prev_group_flats_mapper"
     GLOBAL_STATE = "global_state"
     FW_CONFIG_IMPORT_GATEWAY = "fwconfig_import_gateway"
+    FWO_CONFIG = "fwo_config"
 

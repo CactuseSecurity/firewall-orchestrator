@@ -32,6 +32,7 @@ nwobj_name_to_uid_map = {}
 
 def normalize_rulebases(
     import_state: ImportState,
+    mgm_uid: str,
     nativeConfig: dict,
     native_config_global: dict,
     normalized_config_dict: dict,
@@ -50,14 +51,14 @@ def normalize_rulebases(
             fetched_rulebase_uids.append(normalized_rulebase_global.uid)
     for gateway in nativeConfig['gateways']:
         normalize_rulebases_for_each_link_destination(
-            gateway, fetched_rulebase_uids, nativeConfig, native_config_global,
-            is_global_loop_iteration, import_state, normalized_config_dict,
+            gateway, mgm_uid, fetched_rulebase_uids, nativeConfig, native_config_global,
+            is_global_loop_iteration, normalized_config_dict,
             normalized_config_global)
 
     # todo: parse nat rulebase here
 
 
-def normalize_rulebases_for_each_link_destination(gateway, fetched_rulebase_uids, nativeConfig, native_config_global, is_global_loop_iteration, import_state, normalized_config_dict, normalized_config_global):
+def normalize_rulebases_for_each_link_destination(gateway, mgm_uid, fetched_rulebase_uids, nativeConfig, native_config_global, is_global_loop_iteration, normalized_config_dict, normalized_config_global):
     logger = getFwoLogger()
     for rulebase_link in gateway['rulebase_links']:
         if rulebase_link['to_rulebase_uid'] not in fetched_rulebase_uids and rulebase_link['to_rulebase_uid'] != '':
@@ -74,7 +75,7 @@ def normalize_rulebases_for_each_link_destination(gateway, fetched_rulebase_uids
                 logger.warning('found to_rulebase link without rulebase in nativeConfig: ' + str(rulebase_link))
                 continue
             rulebase_link['is_section'] = is_section
-            normalized_rulebase = initialize_normalized_rulebase(rulebase_to_parse, import_state.MgmDetails.Uid)
+            normalized_rulebase = initialize_normalized_rulebase(rulebase_to_parse, mgm_uid)
             parse_rulebase(normalized_config_dict, rulebase_to_parse, is_section, is_placeholder, normalized_rulebase)
             fetched_rulebase_uids.append(rulebase_link['to_rulebase_uid'])
 

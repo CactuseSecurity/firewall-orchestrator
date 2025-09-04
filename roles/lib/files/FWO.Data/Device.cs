@@ -39,8 +39,8 @@ namespace FWO.Data
         [JsonProperty("comment"), JsonPropertyName("comment")]
         public string? Comment { get; set; }
 
-        // [JsonProperty("rulebase_links"), JsonPropertyName("rulebase_links")]
-        // public RulebasePerGateway[] Rulebases { get; set; } = [];
+        [JsonProperty("rulebase_links"), JsonPropertyName("rulebase_links")]
+        public RulebaseLink[] RulebaseLinks { get; set; } = [];
 
         public bool Selected { get; set; } = false;
         public bool Relevant { get; set; }

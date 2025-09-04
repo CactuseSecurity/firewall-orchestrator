@@ -2,10 +2,11 @@ from fwo_log import getFwoLogger
 import json
 import cp_const
 from fwo_const import list_delimiter
-import fwo_alert, fwo_api_call as fwo_api_call
+import fwo_api_call as fwo_api_call
 import ipaddress 
 import fwo_globals
 import fwo_const
+from fwo_base import cidrToRange
 from services.service_provider import ServiceProvider
 from services.enums import Services
 from fwo_api_call import FwoApiCall, FwoApi
@@ -275,46 +276,3 @@ def make_host(ip_in) -> str | None:
         return f"{ip_in}/32"
     elif isinstance(ip_obj, ipaddress.IPv6Address):
         return f"{ip_in}/128"
-
-
-def cidrToRange(ip):
-    logger = getFwoLogger()
-
-    if isinstance(ip, str):
-        # dealing with ranges:
-        if '-' in ip:
-            return '-'.split(ip)
-
-        ipVersion = validIPAddress(ip)
-        if ipVersion=='Invalid':
-            logger.warning("error while decoding ip '" + ip + "'")
-            return [ip]
-        elif ipVersion=='IPv4':
-            net = ipaddress.IPv4Network(ip)
-        else:
-            net = ipaddress.IPv6Network(ip)    
-        return [make_host(str(net.network_address)), make_host(str(net.broadcast_address))]
-            
-    return [ip]
-
-
-def validIPAddress(IP: str) -> str: 
-    try: 
-        t = type(ipaddress.ip_address(IP))
-        if t is ipaddress.IPv4Address:
-            return "IPv4"
-        elif t is ipaddress.IPv6Address:
-            return "IPv6"
-        else:
-            return 'Invalid'
-    except Exception:
-        try:
-            t = type(ipaddress.ip_network(IP))
-            if t is ipaddress.IPv4Network:
-                return "IPv4"
-            elif t is ipaddress.IPv6Network:
-                return "IPv6"
-            else:
-                return 'Invalid'        
-        except Exception:
-            return "Invalid"

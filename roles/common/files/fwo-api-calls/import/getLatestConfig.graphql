@@ -1,1 +1,6 @@
-query getLatestConfig($mgmId: Int!) { latest_config(where: {mgm_id: {_eq: $mgmId}}) { config } }
+query getLatestConfig($mgmId: Int!) {
+  latest_config(where: { mgm_id: { _eq: $mgmId } }) {
+    import_id
+    config
+  }
+}

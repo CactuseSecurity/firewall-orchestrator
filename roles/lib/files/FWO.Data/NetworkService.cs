@@ -56,6 +56,9 @@ namespace FWO.Data
         [JsonProperty("svc_color_id"), JsonPropertyName("svc_color_id")]
         public int? ColorId { get; set; }
 
+        [JsonProperty("stm_color"), JsonPropertyName("stm_color")]
+        public Color Color { get; set; } = new();
+
         [JsonProperty("ip_proto_id"), JsonPropertyName("ip_proto_id")]
         public int? ProtoId { get; set; }
 
@@ -73,6 +76,9 @@ namespace FWO.Data
 
         [JsonProperty("svcgrp_flats"), JsonPropertyName("svcgrp_flats")]
         public GroupFlat<NetworkService>[] ServiceGroupFlats { get; set; } = [];
+
+        [JsonProperty("svc_rpcnr"), JsonPropertyName("svc_rpcnr")]
+        public long? RpcNumber { get; set; }
 
         public long Number;
         public bool IsSurplus = false;

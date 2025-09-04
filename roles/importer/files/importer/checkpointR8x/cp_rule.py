@@ -63,6 +63,7 @@ def normalize_rulebases_for_each_link_destination(
             if rulebase_to_parse == {}:
                 logger.warning('found to_rulebase link without rulebase in nativeConfig: ' + str(rulebase_link))
                 continue
+            # delete_v: das sollte hier nichts bewirken und kann weg nach tests!
             rulebase_link['is_section'] = is_section
             normalized_rulebase = initialize_normalized_rulebase(rulebase_to_parse, importState.MgmDetails.Uid)
             parse_rulebase(rulebase_to_parse, is_section, is_placeholder, normalized_rulebase)

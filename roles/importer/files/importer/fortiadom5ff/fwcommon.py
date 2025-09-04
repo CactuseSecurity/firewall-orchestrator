@@ -308,7 +308,7 @@ def normalize_gateways(native_config, normalized_config_dict):
         normalized_gateway['Interfaces'] = normalize_interfaces()
         normalized_gateway['Routing'] = normalize_routing()
         normalized_gateway['RulebaseLinks'] = normalize_links(gateway['rulebase_links'])
-        normalized_config_dict.append(normalized_gateway)
+        normalized_config_dict['gateways'].append(normalized_gateway)
 
 def normalize_interfaces():
     # TODO

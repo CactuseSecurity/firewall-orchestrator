@@ -1,0 +1,440 @@
+﻿@using FWO.Api.Client
+@using FWO.Api.Client.Queries
+@using FWO.Basics
+@using FWO.Data
+@using FWO.Recert
+@using FWO.Services
+@using System.Text.Json
+
+
+@inject ApiConnection apiConnection
+@inject GlobalConfig globalConfig
+@inject UserConfig userConfig
+
+
+<button type="button" class="col-sm-1 btn btn-sm btn-success" @onclick="AddNotification" @onclick:preventDefault>@(DisplayService.DisplayButton(userConfig, "add", Icons.Add))</button>
+
+<div class="m-2 vheight75">
+    <Table class="table table-bordered th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="FwoNotification" Items="Notifications" PageSize="0" ColumnReorder="true">
+        <Column TableItem="FwoNotification" Title="@(userConfig.GetText("action"))" Field="(x => x.Id)" Sortable="false" Filterable="false">
+            <Template>
+                <div class="btn-group">
+                    <button type="button" class="btn btn-sm btn-warning" @onclick="() => EditNotification(context)">@(DisplayService.DisplayButton(userConfig, "edit", Icons.Edit))</button>
+                    <button type="button" class="btn btn-sm btn-danger" @onclick="() => RequestDeleteNotification(context)">@(DisplayService.DisplayButton(userConfig, "delete", Icons.Delete))</button>
+                </div>
+            </Template>
+        </Column>
+        <Column TableItem="FwoNotification" Title="@(userConfig.GetText("id"))" Field="@(x => x.Id)" Sortable="true" Filterable="false" />
+        <Column TableItem="FwoNotification" Title="@(userConfig.GetText("notification"))" Field="@(x => x.Id)" Sortable="false" Filterable="false">
+            <Template>
+                @(DisplayNotification(context))
+            </Template>
+        </Column>
+    </Table>
+</div>
+
+
+<PopUp Title="@(userConfig.GetText(EditNotifString))" Show="@EditNotifMode" Size=PopupSize.Large OnClose="Close">
+    <Body>
+        @if (EditNotifMode)
+        {
+            @if(Enum.GetValues(typeof(NotificationChannel)).Length > 1)
+            {
+                <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H4101"))">
+                    <label class="col-form-label col-sm-4">@(userConfig.GetText("channel")):</label>
+                    <div class="col-sm-8">
+                        <Dropdown ElementType="NotificationChannel" @bind-SelectedElement="actNotification.Channel" ElementToString="@(i => userConfig.GetText(i.ToString()))"
+                                Elements="Enum.GetValues(typeof(NotificationChannel)).Cast<NotificationChannel>()" >
+                            <ElementTemplate Context="channel">
+                                @(userConfig.GetText(channel.ToString()))
+                            </ElementTemplate>
+                        </Dropdown>
+                    </div>
+                </div>
+            }
+            <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H4102"))">
+                <label class="col-form-label col-sm-4">@(userConfig.GetText("layout")):</label>
+                <div class="col-sm-8">
+                    <Dropdown ElementType="NotificationLayout" @bind-SelectedElement="actNotification.Layout" ElementToString="@(i => userConfig.GetText(i.ToString()))"
+                            Elements="Enum.GetValues(typeof(NotificationLayout)).Cast<NotificationLayout>()" >
+                        <ElementTemplate Context="layout">
+                            @(userConfig.GetText(layout.ToString()))
+                        </ElementTemplate>
+                    </Dropdown>
+                </div>
+            </div>
+
+            <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H4103"))">
+                <label class="col-form-label col-sm-4">@(userConfig.GetText("deadline")):</label>
+                <div class="col-sm-8">
+                    <Dropdown ElementType="NotificationDeadline" @bind-SelectedElement="actNotification.Deadline" ElementToString="@(i => userConfig.GetText(i.ToString()))"
+                            Elements="Enum.GetValues(typeof(NotificationDeadline)).Cast<NotificationDeadline>()" >
+                        <ElementTemplate Context="deadline">
+                            @(userConfig.GetText(deadline.ToString()))
+                        </ElementTemplate>
+                    </Dropdown>
+                </div>
+            </div>
+
+            @if(actNotification.Deadline != NotificationDeadline.None)
+            {
+                <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H4104"))">
+                    <label class="col-form-label col-sm-4">@(userConfig.GetText("notif_before_deadline")):</label>
+                    <div class="col-sm-2">
+                        <input type="number" class="form-control form-control-sm w-100" @bind="actNotification.OffsetBeforeDeadline" />
+                    </div>
+                    <div class="col-sm-2">
+                        <Dropdown ElementType="SchedulerInterval" @bind-SelectedElement="actNotification.IntervalBeforeDeadline" ElementToString="@(i => userConfig.GetText(i.ToString()))"
+                                Elements="Enum.GetValues(typeof(SchedulerInterval)).Cast<SchedulerInterval>().Where(x => x.OfferedForRecert())" >
+                            <ElementTemplate Context="interval">
+                                @(userConfig.GetText(interval.ToString()))
+                            </ElementTemplate>
+                        </Dropdown>
+                    </div>
+                </div>
+                <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H4105"))">
+                    <label class="col-form-label col-sm-4">@(userConfig.GetText("notif_after_deadline")):</label>
+                    <div class="col-sm-2">
+                        <input type="number" class="form-control form-control-sm w-100" @bind="actNotification.RepeatOffsetAfterDeadline" />
+                    </div>
+                    <div class="col-sm-2">
+                        <Dropdown ElementType="SchedulerInterval" @bind-SelectedElement="actNotification.RepeatIntervalAfterDeadline" ElementToString="@(i => userConfig.GetText(i.ToString()))"
+                                Elements="Enum.GetValues(typeof(SchedulerInterval)).Cast<SchedulerInterval>().Where(x => x.OfferedForRecert())" >
+                            <ElementTemplate Context="interval">
+                                @(userConfig.GetText(interval.ToString()))
+                            </ElementTemplate>
+                        </Dropdown>
+                    </div>
+                    <label class="col-form-label col-sm-2">@(userConfig.GetText("max_number")):</label>
+                    <div class="col-sm-2">
+                        <input type="number" class="form-control form-control-sm w-100" @bind="actNotification.RepetitionsAfterDeadline" />
+                    </div>
+                </div>
+            }
+
+            <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H4106"))">
+                <label class="col-form-label col-sm-4">@(userConfig.GetText("email_subject")):</label>
+                <div class="col-sm-8">
+                    <input type="text" class="form-control form-control-sm w-100" @bind="actNotification.EmailSubject" />
+                </div>
+            </div>
+
+            <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H4107"))">
+                <label class="col-form-label col-sm-4">@(userConfig.GetText("recipient_to")):</label>
+                <div class="col-sm-8">
+                    <Dropdown ElementType="EmailRecipientOption" @bind-SelectedElement="actNotification.RecipientTo" ElementToString="@(i => userConfig.GetText(i.ToString()))"
+                            Elements="Enum.GetValues(typeof(EmailRecipientOption)).Cast<EmailRecipientOption>()" >
+                        <ElementTemplate Context="recip">
+                            @(userConfig.GetText(recip.ToString()))
+                        </ElementTemplate>
+                    </Dropdown>
+                    @if(actNotification.RecipientTo == EmailRecipientOption.OtherAddresses)
+                    {
+                        <div class="col-sm-12 mt-2">
+                            <EditList ElementType="string" Elements="ToAddresses.ToArray()" ElementsToAdd="ToAddressesToAdd" ElementsToDelete="ToAddressesToDelete" StdLayout="false">
+                                <Display Context="addr">
+                                    <div class="col-sm-12 border bg-transparent">@(addr)</div>
+                                </Display>
+                            </EditList>
+                        </div>
+                        <div class="row col-sm-12 mt-1">
+                            <input type="text" class="col-sm-10" @bind="actToAddress" />
+                            <button type="button" class="col-sm-2 btn btn-sm btn-primary" @onclick="AddToAddress" @onclick:preventDefault>@(DisplayService.DisplayButton(userConfig, "add", Icons.Add))</button>
+                        </div>
+                    }
+                </div>
+            </div>
+
+            <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H4108"))">
+                <label class="col-form-label col-sm-4">@(userConfig.GetText("recipient_cc")):</label>
+                <div class="col-sm-8">
+                    <Dropdown ElementType="EmailRecipientOption" @bind-SelectedElement="actNotification.RecipientCc" ElementToString="@(i => userConfig.GetText(i.ToString()))"
+                            Elements="Enum.GetValues(typeof(EmailRecipientOption)).Cast<EmailRecipientOption>()" >
+                        <ElementTemplate Context="recip">
+                            @(userConfig.GetText(recip.ToString()))
+                        </ElementTemplate>
+                    </Dropdown>
+                    @if(actNotification.RecipientCc == EmailRecipientOption.OtherAddresses)
+                    {
+                        <div class="col-sm-12 mt-2">
+                            <EditList ElementType="string" Elements="CcAddresses.ToArray()" ElementsToAdd="CcAddressesToAdd" ElementsToDelete="CcAddressesToDelete" StdLayout="false">
+                                <Display Context="addr">
+                                    <div class="col-sm-12 border bg-transparent">@(addr)</div>
+                                </Display>
+                            </EditList>
+                        </div>
+                        <div class="row col-sm-12 mt-1">
+                            <input type="text" class="col-sm-10" @bind="actCcAddress" />
+                            <button type="button" class="col-sm-2 btn btn-sm btn-primary" @onclick="AddCcAddress" @onclick:preventDefault>@(DisplayService.DisplayButton(userConfig, "add", Icons.Add))</button>
+                        </div>
+                    }
+                </div>
+            </div>
+        }
+    </Body>
+    <Footer>
+        <div class="btn-group">
+            <AuthorizeView Roles="@Roles.Admin">
+                <Authorized>
+                    <button type="button" class="btn btn-sm btn-primary" @onclick:preventDefault="true" @onclick="Save">@(DisplayService.DisplayButton(userConfig, "save", Icons.Save))</button>
+                </Authorized>
+                <NotAuthorized>
+                    <button type="button" class="btn btn-sm btn-primary" disabled>@(DisplayService.DisplayButton(userConfig, "save", Icons.Save))</button>
+                </NotAuthorized> 
+            </AuthorizeView>
+            <button type="button" class="btn btn-sm btn-secondary" @onclick="Close">@(DisplayService.DisplayButton(userConfig, "cancel", Icons.Cancel))</button>
+        </div>
+    </Footer>
+</PopUp>
+<ConfirmDelete @bind-Display="DeleteNotifMode" PerformAction="Delete" Title="@userConfig.GetText("delete_notification")" DeleteMessage="@(GetDeleteMessage())" />
+
+@code
+{
+    [CascadingParameter]
+    Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
+
+    [Parameter]
+    public NotificationClient Client { get; set; }
+
+
+    private List<FwoNotification> Notifications = [];
+    private FwoNotification actNotification = new();
+
+    private List<string> ToAddresses = [];
+    private List<string> ToAddressesToAdd = [];
+    private List<string> ToAddressesToDelete = [];
+    private string actToAddress = "";
+    private List<string> CcAddresses = [];
+    private List<string> CcAddressesToAdd = [];
+    private List<string> CcAddressesToDelete = [];
+    private string actCcAddress = "";
+    
+    private bool AddNotifMode = false;
+    private bool EditNotifMode = false;
+    private bool DeleteNotifMode = false;
+    private const string EditNotifString = "edit_notification";
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            Notifications = await apiConnection.SendQueryAsync<List<FwoNotification>>(NotificationQueries.getNotifications, new { client = Client.ToString() });
+            InitActNotification();
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("fetch_data"), "", false);
+        }
+    }
+
+    private void InitActNotification()
+    {
+        actNotification = new(){ NotificationClient = Client };
+        if(Client == NotificationClient.Recertification)
+        {
+            actNotification.Deadline = NotificationDeadline.RecertDate;
+            actNotification.RecipientTo = EmailRecipientOption.OwnerMainResponsible;
+            actNotification.RecipientCc = EmailRecipientOption.None;
+        }
+    }
+
+    private void EditNotification(FwoNotification notification)
+    {
+        actNotification = notification;
+        ToAddresses = EmailHelper.SplitAddresses(notification.EmailAddressTo);
+        CcAddresses = EmailHelper.SplitAddresses(notification.EmailAddressCc);
+        EditNotifMode = true;
+    }
+
+    private void RequestDeleteNotification(FwoNotification notification)
+    {
+        actNotification = notification;
+        DeleteNotifMode = true;
+    }
+
+    private void AddNotification()
+    {
+        InitActNotification();
+        AddNotifMode = true;
+        EditNotifMode = true;
+    }
+
+    private void AddToAddress()
+    {
+        bool shortened = false;
+        actToAddress = Sanitizer.SanitizeMand(actToAddress, ref shortened);
+        ToAddressesToAdd.Add(actToAddress);
+        actToAddress = "";
+        if(shortened)
+        {
+            DisplayMessageInUi(null, userConfig.GetText("email_address"), userConfig.GetText("U0001"), true);
+        }
+    }
+
+    private void AddCcAddress()
+    {
+        bool shortened = false;
+        actCcAddress = Sanitizer.SanitizeMand(actCcAddress, ref shortened);
+        CcAddressesToAdd.Add(actCcAddress);
+        actCcAddress = "";
+        if(shortened)
+        {
+            DisplayMessageInUi(null, userConfig.GetText("email_address"), userConfig.GetText("U0001"), true);
+        }
+    }
+
+    public string DisplayNotification(FwoNotification notification)
+    {
+        // todo: change to name?
+        return $"{notification.OffsetBeforeDeadline} {userConfig.GetText(notification.IntervalBeforeDeadline.ToString())}: {notification.RecipientTo.ToString()}";
+    }
+
+    private string GetDeleteMessage()
+    {
+        return userConfig.GetText("U4001") + DisplayNotification(actNotification);
+    }
+
+    private async Task Save()
+    {
+        try
+        {
+            SyncAddresses();
+            if(CheckConsistency())
+            {
+                if(AddNotifMode)
+                {
+                    var Variables = new
+                    {
+                        client = Client.ToString(),
+                        channel = actNotification.Channel.ToString(),
+                        recipientTo = actNotification.RecipientTo.ToString(),
+                        emailAddressTo = actNotification.EmailAddressTo,
+                        recipientCc = actNotification.RecipientCc.ToString(),
+                        emailAddressCc = actNotification.EmailAddressCc,
+                        subject = actNotification.EmailSubject,
+                        layout = actNotification.Layout.ToString(),
+                        deadline = actNotification.Deadline.ToString(),
+                        intervalBeforeDeadline = (int)actNotification.IntervalBeforeDeadline,
+                        offsetBeforeDeadline = actNotification.OffsetBeforeDeadline,
+                        intervalAfterDeadline = (int)actNotification.RepeatIntervalAfterDeadline,
+                        offsetAfterDeadline = actNotification.RepeatOffsetAfterDeadline,
+                        repetitionsAfterDeadline = actNotification.RepetitionsAfterDeadline
+                    };
+                    ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<ReturnIdWrapper>(NotificationQueries.addNotification, Variables)).ReturnIds;
+                    if (returnIds != null)
+                    {
+                        actNotification.Id = returnIds[0].NewId;
+                        Notifications.Add(actNotification);
+                    }
+                }
+                else
+                {
+                    var Variables = new
+                    {
+                        id = actNotification.Id,
+                        channel = actNotification.Channel.ToString(),
+                        recipientTo = actNotification.RecipientTo.ToString(),
+                        emailAddressTo = actNotification.EmailAddressTo,
+                        recipientCc = actNotification.RecipientCc.ToString(),
+                        emailAddressCc = actNotification.EmailAddressCc,
+                        subject = actNotification.EmailSubject,
+                        layout = actNotification.Layout.ToString(),
+                        deadline = actNotification.Deadline.ToString(),
+                        intervalBeforeDeadline = (int)actNotification.IntervalBeforeDeadline,
+                        offsetBeforeDeadline = actNotification.OffsetBeforeDeadline,
+                        intervalAfterDeadline = (int)actNotification.RepeatIntervalAfterDeadline,
+                        offsetAfterDeadline = actNotification.RepeatOffsetAfterDeadline,
+                        repetitionsAfterDeadline = actNotification.RepetitionsAfterDeadline
+                    };
+                    await apiConnection.SendQueryAsync<ReturnIdWrapper>(NotificationQueries.updateNotification, Variables);
+                    Notifications[Notifications.FindIndex(x => x.Id == actNotification.Id)] = actNotification;
+                }
+                Close();
+            }
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText(EditNotifString), "", true);
+        }
+    }
+
+    private void SyncAddresses()
+    {
+        foreach (var addr in ToAddressesToDelete)
+        {
+            ToAddresses.Remove(addr);
+        }
+        ToAddressesToDelete = [];
+        ToAddresses.AddRange(ToAddressesToAdd);
+        ToAddressesToAdd = [];
+        actNotification.EmailAddressTo = String.Join(",", ToAddresses);
+
+        foreach (var addr in CcAddressesToDelete)
+        {
+            CcAddresses.Remove(addr);
+        }
+        CcAddressesToDelete = [];
+        CcAddresses.AddRange(CcAddressesToAdd);
+        CcAddressesToAdd = [];
+        actNotification.EmailAddressCc = String.Join(",", CcAddresses);
+    }
+
+    private bool CheckConsistency()
+    {
+        if(actNotification.Channel == NotificationChannel.Email && actNotification.EmailSubject == "")
+        {
+            DisplayMessageInUi(null, userConfig.GetText(EditNotifString), userConfig.GetText("E4010"), false);
+            return false;
+        }
+        if(actNotification.RecipientTo == EmailRecipientOption.None ||
+            actNotification.RecipientTo == EmailRecipientOption.OtherAddresses && ToAddresses.Count == 0 ||
+            actNotification.RecipientCc == EmailRecipientOption.OtherAddresses && CcAddresses.Count == 0)
+        {
+            DisplayMessageInUi(null, userConfig.GetText(EditNotifString), userConfig.GetText("E4011"), false);
+            return false;
+        }
+        if(actNotification.Deadline != NotificationDeadline.None)
+        {
+            if(actNotification.OffsetBeforeDeadline == null && actNotification.RepeatOffsetAfterDeadline == null)
+            {
+                DisplayMessageInUi(null, userConfig.GetText(EditNotifString), userConfig.GetText("E4012"), false);
+                return false;
+            }
+            if(actNotification.RepeatOffsetAfterDeadline != null && actNotification.RepetitionsAfterDeadline == null ||
+                (actNotification.RepeatOffsetAfterDeadline == null && actNotification.RepetitionsAfterDeadline != null))
+            {
+                DisplayMessageInUi(null, userConfig.GetText(EditNotifString), userConfig.GetText("E4013"), false);
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private async Task Delete()
+    {
+        try
+        {
+            await apiConnection.SendQueryAsync<ReturnIdWrapper>(NotificationQueries.deleteNotification, new { id = actNotification.Id });
+            Notifications.Remove(actNotification);
+            DeleteNotifMode = false;
+            StateHasChanged();
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("delete_notification"), "", true);
+        }
+    }
+
+    private void Close()
+    {
+        ToAddresses = [];
+        ToAddressesToAdd = [];
+        ToAddressesToDelete = [];
+        CcAddresses = [];
+        CcAddressesToAdd = [];
+        CcAddressesToDelete = [];
+        AddNotifMode = false;
+        EditNotifMode = false;
+    }
+}

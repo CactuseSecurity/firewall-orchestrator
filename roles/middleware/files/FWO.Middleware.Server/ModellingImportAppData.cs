@@ -65,6 +65,12 @@ namespace FWO.Middleware.Server
         public string ImportSource { get; set; } = "";
 
         /// <summary>
+        /// Recertification interval
+        /// </summary>
+        [JsonProperty("recert_interval"), JsonPropertyName("recert_interval")]
+        public int? RecertInterval { get; set; }
+
+        /// <summary>
         /// App Servers of App
         /// </summary>
         [JsonProperty("app_servers"), JsonPropertyName("app_servers")]
@@ -81,12 +87,6 @@ namespace FWO.Middleware.Server
         /// </summary>
         [JsonProperty("name"), JsonPropertyName("name")]
         public string Name { get; set; } = "";
-
-        // /// <summary>
-        // /// App Server Subnet
-        // /// </summary>
-        // [JsonProperty("subnet"), JsonPropertyName("subnet")]
-        // public string Subnet { get; set; } = "";
 
         /// <summary>
         /// App Server Ip

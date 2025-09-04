@@ -25,7 +25,7 @@
         </div>
     </form>
     <hr />
-    <button type="button" class="btn btn-sm btn-primary" @onclick="SaveRecertificationDisplayPeriod">@(userConfig.GetText("save"))</button>  
+    <button type="button" class="btn btn-sm btn-primary" @onclick="SaveRecertificationDisplayPeriod">@(DisplayService.DisplayButton(userConfig, "save", Icons.Save))</button>  
 }
 else
 {

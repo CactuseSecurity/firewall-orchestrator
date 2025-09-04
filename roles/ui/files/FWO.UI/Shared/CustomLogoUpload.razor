@@ -16,13 +16,13 @@
             <Authorized>
                 <InputFile id="fileUpload" hidden accept="@SupportedFileFormats" OnChange="@(async (InputFileChangeEventArgs e) => await UploadCustomLogo(e))" />
                 <label class="btn btn-sm @(UploadSuccess ? "btn-success" : "btn-primary")" for="fileUpload">
-                    @(ModellingHandlerBase.DisplayButton(UserConfig, "select_file", (UploadSuccess ? Icons.Check : Icons.Add), "select_file"))
+                    @(DisplayService.DisplayButton(UserConfig, "select_file", (UploadSuccess ? Icons.Check : Icons.Add), "select_file"))
                 </label>
             </Authorized>
             <NotAuthorized>
                 <button type="button" disabled class="btn btn-sm btn-primary">
                     <span class="ms-2">
-                        @(ModellingHandlerBase.DisplayButton(UserConfig, "select_file", Icons.Add, "select_file"))
+                        @(DisplayService.DisplayButton(UserConfig, "select_file", Icons.Add, "select_file"))
                     </span>
                 </button>
             </NotAuthorized>

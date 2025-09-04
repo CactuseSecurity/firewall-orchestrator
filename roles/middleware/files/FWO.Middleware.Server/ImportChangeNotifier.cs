@@ -88,7 +88,7 @@ namespace FWO.Middleware.Server
                     WorkInProgress = true;
                     if (await NewImportFound())
                     {
-                        if (globalConfig.ImpChangeNotifyType != (int)ImpChangeNotificationType.SimpleText)
+                        if (globalConfig.ImpChangeNotifyType != (int)NotificationLayout.SimpleText)
                         {
                             await GenerateChangeReport();
                         }
@@ -146,25 +146,14 @@ namespace FWO.Middleware.Server
 
         private async Task SendEmail()
         {
-            string decryptedSecret = "";
-            try
-            {
-                string mainKey = AesEnc.GetMainKey();
-                decryptedSecret = AesEnc.Decrypt(globalConfig.EmailPassword, mainKey);
-            }
-            catch (Exception exception)
-            {
-                Log.WriteError(LogMessageTitle, $"Could not decrypt mailserver password.", exception);
-            }
-
+            string decryptedSecret = AesEnc.TryDecrypt(globalConfig.EmailPassword, false, LogMessageTitle, "Could not decrypt mailserver password.");
             EmailConnection emailConnection = new(globalConfig.EmailServerAddress, globalConfig.EmailPort,
                 globalConfig.EmailTls, globalConfig.EmailUser, decryptedSecret, globalConfig.EmailSenderAddress);
-            MailKitMailer mailer = new(emailConnection);
 
             MailData? mail = await PrepareEmail();
 
-            await mailer.SendAsync(mail, emailConnection, new CancellationToken(),
-                globalConfig.ImpChangeNotifyType == (int)ImpChangeNotificationType.HtmlInBody);
+            await MailKitMailer.SendAsync(mail, emailConnection,
+                globalConfig.ImpChangeNotifyType == (int)NotificationLayout.HtmlInBody, new());
         }
 
         private async Task<MailData> PrepareEmail()
@@ -176,10 +165,10 @@ namespace FWO.Middleware.Server
             {
                 switch (globalConfig.ImpChangeNotifyType)
                 {
-                    case (int)ImpChangeNotificationType.HtmlInBody:
-                        body += changeReport?.ExportToHtml();
+                    case (int)NotificationLayout.HtmlInBody:
+                        body += changeReport.ExportToHtml();
                         break;
-                    case (int)ImpChangeNotificationType.PdfAsAttachment:
+                    case (int)NotificationLayout.PdfAsAttachment:
                         string html = changeReport.ExportToHtml();
                         string? pdfData = await changeReport.ToPdf(html);
 
@@ -188,20 +177,20 @@ namespace FWO.Middleware.Server
 
                         attachment = CreateAttachment(pdfData, GlobalConst.kPdf);
                         break;
-                    case (int)ImpChangeNotificationType.HtmlAsAttachment:
-                        attachment = CreateAttachment(changeReport?.ExportToHtml(), GlobalConst.kHtml);
+                    case (int)NotificationLayout.HtmlAsAttachment:
+                        attachment = CreateAttachment(changeReport.ExportToHtml(), GlobalConst.kHtml);
                         break;
-                    // case (int)ImpChangeNotificationType.CsvAsAttachment: // Currently not implemented
-                    //     attachment = CreateAttachment(changeReport?.ExportToCsv(), GlobalConst.kCsv);
-                    //     break;
-                    case (int)ImpChangeNotificationType.JsonAsAttachment:
-                        attachment = CreateAttachment(changeReport?.ExportToJson(), GlobalConst.kJson);
+                    case (int)NotificationLayout.CsvAsAttachment:
+                        attachment = CreateAttachment(changeReport.ExportToCsv(), GlobalConst.kCsv);
+                        break;
+                    case (int)NotificationLayout.JsonAsAttachment:
+                        attachment = CreateAttachment(changeReport.ExportToJson(), GlobalConst.kJson);
                         break;
                     default:
                         break;
                 }
             }
-            MailData mailData = new(CollectRecipients(), subject, body);
+            MailData mailData = new(CollectRecipients(), subject) { Body = body};
             if (attachment != null)
             {
                 mailData.Attachments = new FormFileCollection() { attachment };
@@ -219,7 +208,7 @@ namespace FWO.Middleware.Server
                 {
                     mgmtCounter += imp.RelevantChanges;
                 }
-                body.Append(globalConfig.ImpChangeNotifyType == (int)ImpChangeNotificationType.HtmlInBody ? "<br>" : "\r\n\r\n");
+                body.Append(globalConfig.ImpChangeNotifyType == (int)NotificationLayout.HtmlInBody ? "<br>" : "\r\n\r\n");
                 body.Append($"{importsToNotify.FirstOrDefault(x => x.MgmtId == mgmtId).Mgmt.MgmtName} (id={mgmtId}): {mgmtCounter} {userConfig.GetText("changes")}");
             }
             return body.ToString();
@@ -253,6 +242,7 @@ namespace FWO.Middleware.Server
             }
             return null;
         }
+
         private List<string> CollectRecipients()
         {
             if (globalConfig.UseDummyEmailAddress)

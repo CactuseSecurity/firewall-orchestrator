@@ -48,6 +48,7 @@ namespace FWO.Api.Client.Queries
         public static readonly string replaceUsedInterface;
         public static readonly string updateConnectionFwRequested;
         public static readonly string updateConnectionRemove;
+        public static readonly string updateConnectionDecommission;
         public static readonly string deleteConnection;
         public static readonly string addAppServerToConnection;
         public static readonly string removeAppServerFromConnection;
@@ -160,6 +161,7 @@ namespace FWO.Api.Client.Queries
                 replaceUsedInterface = File.ReadAllText(QueryPath + "modelling/replaceUsedInterface.graphql");
                 updateConnectionFwRequested = File.ReadAllText(QueryPath + "modelling/updateConnectionFwRequested.graphql");
                 updateConnectionRemove = File.ReadAllText(QueryPath + "modelling/updateConnectionRemove.graphql");
+                updateConnectionDecommission = File.ReadAllText(QueryPath + "modelling/updateConnectionDecommission.graphql");
                 deleteConnection = File.ReadAllText(QueryPath + "modelling/deleteConnection.graphql");
                 addAppServerToConnection = File.ReadAllText(QueryPath + "modelling/addAppServerToConnection.graphql");
                 removeAppServerFromConnection = File.ReadAllText(QueryPath + "modelling/removeAppServerFromConnection.graphql");

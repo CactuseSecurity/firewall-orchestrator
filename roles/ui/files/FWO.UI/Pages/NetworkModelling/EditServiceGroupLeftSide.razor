@@ -19,20 +19,20 @@
                 <div class="col-sm-2">
                     <button type="button" class="btn btn-sm btn-primary w-100" @onclick="() =>
                         {SvcGroupHandler.ServicesToSvcGroup(selectedServices); selectedServices = new();
-                        SvcGroupHandlerChanged.InvokeAsync(SvcGroupHandler);}">@(SvcGroupHandler.DisplayButton("to_services_group", Icons.Use))</button>
+                        SvcGroupHandlerChanged.InvokeAsync(SvcGroupHandler);}">@(DisplayService.DisplayButton(userConfig, "to_services_group", Icons.Use))</button>
                 </div>
             }
         </div>
         <div class="btn-group mt-2">
             <button type="button" class="btn btn-sm btn-success" @onclick="() =>
-                {SvcGroupHandler.CreateService(); SvcGroupHandlerChanged.InvokeAsync(SvcGroupHandler);}">@(SvcGroupHandler.DisplayButton("add_service", Icons.Add))</button>
+                {SvcGroupHandler.CreateService(); SvcGroupHandlerChanged.InvokeAsync(SvcGroupHandler);}">@(DisplayService.DisplayButton(userConfig, "add_service", Icons.Add))</button>
             @if(selectedServices.Count == 1)
             {
                 <button type="button" class="btn btn-sm btn-warning" @onclick="() =>
-                    {SvcGroupHandler.EditService(selectedServices.First()); selectedServices = new(); SvcGroupHandlerChanged.InvokeAsync(SvcGroupHandler);}">@(SvcGroupHandler.DisplayButton("edit_service", Icons.Edit))</button>
+                    {SvcGroupHandler.EditService(selectedServices.First()); selectedServices = new(); SvcGroupHandlerChanged.InvokeAsync(SvcGroupHandler);}">@(DisplayService.DisplayButton(userConfig, "edit_service", Icons.Edit))</button>
                 <button type="button" class="btn btn-sm btn-danger" @onclick="async () =>
                     {await SvcGroupHandler.RequestDeleteService(selectedServices.First()); selectedServices = new();
-                    await SvcGroupHandlerChanged.InvokeAsync(SvcGroupHandler);}">@(SvcGroupHandler.DisplayButton("delete", Icons.Delete))</button>
+                    await SvcGroupHandlerChanged.InvokeAsync(SvcGroupHandler);}">@(DisplayService.DisplayButton(userConfig, "delete", Icons.Delete))</button>
             }
         </div>
     </div>

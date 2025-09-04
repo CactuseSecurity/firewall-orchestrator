@@ -1,0 +1,12 @@
+mutation updateNotificationLastSent(
+  $id: Int!
+  $lastSent: timestamp
+  ) {
+  update_notification_by_pk(
+    pk_columns: { id: $id }
+    _set: {
+    last_sent: $lastSent
+  }) {
+    updatedId: id
+  }
+}

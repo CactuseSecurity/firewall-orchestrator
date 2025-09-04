@@ -27,8 +27,8 @@ class FwConfigImportCheckConsistency(FwConfigImport):
         service_provider = ServiceProvider()
         self._global_state = service_provider.get_service(Services.GLOBAL_STATE)
         self.import_state = import_details
-        self.maps = FwConfigImportObject()
-        
+
+        self.maps = FwConfigImportObject() # TODO don't use like this (separation of concerns) - see #3154
         for mgr in config_list.ManagerSet:
             for cfg in mgr.Configs:
                 import_worker = FwConfigImport()
@@ -101,7 +101,7 @@ class FwConfigImportCheckConsistency(FwConfigImport):
         # add all nw obj refs from groups
         for obj_id in single_config.network_objects:
             if single_config.network_objects[obj_id].obj_typ=='group':
-                if single_config.network_objects[obj_id].obj_member_refs is not None:
+                if single_config.network_objects[obj_id].obj_member_refs is not None and len(single_config.network_objects[obj_id].obj_member_refs)>0:
                     all_used_obj_refs += single_config.network_objects[obj_id].obj_member_refs.split(fwo_const.list_delimiter)
         return all_used_obj_refs
     
@@ -134,6 +134,8 @@ class FwConfigImportCheckConsistency(FwConfigImport):
         global_objects = set()
 
         for mgr in sorted(config.ManagerSet, key=lambda m: not getattr(m, 'IsSuperManager', False)):
+            if len(mgr.Configs)==0:
+                continue
             if mgr.IsSuperManager:
                 global_objects = config.get_all_service_object_uids(mgr.ManagerUid)
             all_used_obj_refs: set[str] = set()
@@ -169,7 +171,7 @@ class FwConfigImportCheckConsistency(FwConfigImport):
             if single_config.service_objects[objId].svc_typ=='group':
                 if single_config.service_objects[objId].svc_member_refs is not None:
                     member_refs = single_config.service_objects[objId].svc_member_refs
-                    if member_refs is None:
+                    if member_refs is None or len(member_refs) == 0:
                         continue
                     all_used_obj_refs |= set(member_refs.split(fwo_const.list_delimiter))
         return all_used_obj_refs

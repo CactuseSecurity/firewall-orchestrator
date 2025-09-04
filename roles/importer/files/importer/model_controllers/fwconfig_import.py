@@ -76,7 +76,7 @@ class FwConfigImport():
     def import_config(self, service_provider: ServiceProvider, import_state: ImportStateController, manager: FwConfigManager, config: FwConfigNormalized):
         global_state = service_provider.get_service(Services.GLOBAL_STATE)
         global_state.normalized_config = config
-        if manager:
+        if manager.IsSuperManager:
             # store global config as it is needed when importing sub managers which might reference it
             global_state.global_normalized_config = config
         mgm_id = self.import_state.lookupManagementId(manager.ManagerUid)
@@ -90,13 +90,12 @@ class FwConfigImport():
         if not manager.IsSuperManager:
             self.import_state.MgmDetails.SubManagerIds = []
             self.import_state.MgmDetails.SubManagers = []
-        config_importer = FwConfigImport()
+        config_importer = FwConfigImport() #TODO: strange to create another import object here - see #3154
         config_importer.import_single_config(manager)
         if import_state.Stats.ErrorCount>0:
             raise FwoImporterError("Import failed due to errors.")
         else:
-            if self.import_state.DebugLevel > 7: #TODO: always use this?
-                config_importer.consistency_check_db()
+            config_importer.consistency_check_db()
             config_importer.write_latest_config()
 
 
@@ -221,7 +220,17 @@ class FwConfigImport():
         errorsFound = 0
 
         if self.import_state.ImportVersion>8:
-            errorsFound = self.deleteLatestConfig()
+            # convert FwConfigImport to FwConfigNormalized
+            self.NormalizedConfig = FwConfigNormalized(action=self.NormalizedConfig.action, 
+                                    network_objects=self.NormalizedConfig.network_objects, 
+                                    service_objects=self.NormalizedConfig.service_objects, 
+                                    users=self.NormalizedConfig.users,
+                                    zone_objects=self.NormalizedConfig.zone_objects,
+                                    rulebases=self.NormalizedConfig.rulebases,
+                                    gateways=self.NormalizedConfig.gateways,
+                                    ConfigFormat=self.NormalizedConfig.ConfigFormat)
+        
+            errorsFound = self.deleteLatestConfigOfManagement()
             if errorsFound:
                 getFwoLogger().warning(f"error while trying to delete latest config for mgm_id: {self.import_state.ImportId}")
             insertMutation = FwoApi.get_graphql_code([fwo_const.graphql_query_path + "import/storeLatestConfig.graphql"])
@@ -252,9 +261,9 @@ class FwConfigImport():
                 getFwoLogger().warning(f"error while writing latest config for mgm_id: {self.import_state.ImportId}")        
 
         
-    def deleteLatestConfig(self) -> int:
+    def deleteLatestConfigOfManagement(self) -> int:
         logger = getFwoLogger()
-        deleteMutation = FwoApi.get_graphql_code([fwo_const.graphql_query_path + "import/deleteLatestConfig.graphql"])
+        deleteMutation = FwoApi.get_graphql_code([fwo_const.graphql_query_path + "import/deleteLatestConfigOfManagement.graphql"])
         try:
             query_variables = { 'mgmId': self.import_state.MgmDetails.Id }
             import_result = self.import_state.api_call.call(deleteMutation, query_variables=query_variables)
@@ -345,6 +354,7 @@ class FwConfigImport():
         normalized_config_from_db = self.get_latest_config_from_db()
         if normalized_config != normalized_config_from_db:
             all_diffs = find_all_diffs(normalized_config.model_dump(), normalized_config_from_db.model_dump())
-            logger.error(f"normalized config for mgm id {self.import_state.MgmDetails.Id} is inconsistent to database state: {all_diffs[0]}")
+            logger.warning(f"normalized config for mgm id {self.import_state.MgmDetails.Id} is inconsistent to database state: {all_diffs[0]}")
             logger.debug(f"all differences: {all_diffs}")
-            raise FwoImporterError("the database state created by this import is not consistent to the normalized config")
+            # TODO: long-term this should raise an error:
+            # raise FwoImporterError("the database state created by this import is not consistent to the normalized config")

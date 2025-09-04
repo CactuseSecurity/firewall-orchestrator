@@ -101,7 +101,7 @@ class FwConfigImportCheckConsistency(FwConfigImport):
         # add all nw obj refs from groups
         for obj_id in single_config.network_objects:
             if single_config.network_objects[obj_id].obj_typ=='group':
-                if single_config.network_objects[obj_id].obj_member_refs is not None and single_config.network_objects[obj_id].obj_member_refs is not '':
+                if single_config.network_objects[obj_id].obj_member_refs is not None and len(single_config.network_objects[obj_id].obj_member_refs)>0:
                     all_used_obj_refs += single_config.network_objects[obj_id].obj_member_refs.split(fwo_const.list_delimiter)
         return all_used_obj_refs
     
@@ -171,7 +171,7 @@ class FwConfigImportCheckConsistency(FwConfigImport):
             if single_config.service_objects[objId].svc_typ=='group':
                 if single_config.service_objects[objId].svc_member_refs is not None:
                     member_refs = single_config.service_objects[objId].svc_member_refs
-                    if member_refs is None or member_refs == '':
+                    if member_refs is None or len(member_refs) == 0:
                         continue
                     all_used_obj_refs |= set(member_refs.split(fwo_const.list_delimiter))
         return all_used_obj_refs

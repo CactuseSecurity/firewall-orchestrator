@@ -298,7 +298,6 @@ namespace FWO.Compliance
         private async Task CheckRuleComplianceForAllRules()
         {
             int nonCompliantRules = 0;
-            int nonEvaluableRules = 0;
 
             Log.TryWriteLog(LogType.Info, "Compliance Check", $"Checking compliance for every rule.", _debugConfig.ExtendedLogComplianceCheck);
 

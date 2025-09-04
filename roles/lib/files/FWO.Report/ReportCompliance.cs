@@ -233,13 +233,20 @@ namespace FWO.Report
 
         #region Methods - Public
 
-        public Task<bool> CheckEvaluability(Rule rule)
+        public Task<bool> CheckEvaluability(Rule rule, List<NetworkObject> networkObjects)
         {
-            bool isEvaluable = true;
+            return Task.FromResult(!(
 
+                // Check IP Properties for null values (use case: empty groups)
 
+                networkObjects.Any(networkObject => networkObject.IP == null && networkObject.IpEnd == null) ||
 
-            return Task.FromResult(isEvaluable);
+                // Check IP Properties for 0.0.0.0/0 and ::/0 (use cases: any, all, FQDN, updatable objects)
+
+                networkObjects.Any(networkObject => networkObject.IP == "0.0.0.0/32" && networkObject.IpEnd == "255.255.255.255/32") ||
+                networkObjects.Any(networkObject => networkObject.IP == "::/128" && networkObject.IpEnd == "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff/128")
+
+            ));
         }
 
         public async Task<List<T>[]?> GetDataParallelized<T>(int rulesCount, int elementsPerFetch, ApiConnection apiConnection, CancellationToken ct, string query)
@@ -298,8 +305,10 @@ namespace FWO.Report
                         foreach (var rule in chunk)
                         {
                             await SetComplianceDataForRule(rule, apiConnection);
-                            localViewData.Add(new RuleViewData(rule, _natRuleDisplayHtml, OutputLocation.report, ShowRule(rule), _devices ?? [], _managements ?? []));
                             networkObjects[rule] = GetAllNetworkObjectsFromRule(rule);
+                            bool isEvaluable = await CheckEvaluability(rule, networkObjects[rule]);
+                            ComplianceViolationType complianceViolationType = isEvaluable ? rule.Compliance : ComplianceViolationType.NotEvaluable;
+                            localViewData.Add(new RuleViewData(rule, _natRuleDisplayHtml, OutputLocation.report, ShowRule(rule), _devices ?? [], _managements ?? [], complianceViolationType));
                         }
 
                         return (chunk, localViewData, networkObjects);

@@ -43,7 +43,7 @@
                     </div>
                     @if(Devices.Count > 0)
                     {
-                        <button @onclick="AddRule" type="button" class="col-sm-2 btn btn-sm btn-success" id="addRule">@userConfig.GetText("add")</button>
+                        <button @onclick="AddRule" type="button" class="col-sm-2 btn btn-sm btn-success" id="addRule">@(DisplayService.DisplayButton(userConfig, "add", Icons.Add))</button>
                     }
                 </div>
             </div>

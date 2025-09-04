@@ -88,11 +88,12 @@ namespace FWO.Services
             return true;
         }
 
-        public async Task<ModellingVarianceResult> AnalyseRulesVsModelledConnections(List<ModellingConnection> connections, ModellingFilter modellingFilter, bool fullAnalysis = true)
+        public async Task<ModellingVarianceResult> AnalyseRulesVsModelledConnections(List<ModellingConnection> connections,
+            ModellingFilter modellingFilter, bool fullAnalysis = true, bool ignoreGroups = false)
         {
             await InitManagements();
             varianceResult = new() { Managements = RelevantManagements };
-            if(ruleRecognitionOption.NwSeparateGroupAnalysis && fullAnalysis)
+            if(ruleRecognitionOption.NwSeparateGroupAnalysis && fullAnalysis && !ignoreGroups)
             {
                 await GetNwObjectsProductionState();
                 PreAnalyseAllAppRoles(connections);
@@ -156,7 +157,7 @@ namespace FWO.Services
         {
             try
             {
-                List<TicketId> ticketIds = await apiConnection.SendQueryAsync<List<TicketId>>(ExtRequestQueries.getLatestTicketId, new{ownerId = owner.Id});
+                List<TicketId> ticketIds = await apiConnection.SendQueryAsync<List<TicketId>>(ExtRequestQueries.getLatestTicketIds, new{ownerId = owner.Id});
                 if(ticketIds.Count == 0)
                 {
                     return userConfig.GetText("never_requested");

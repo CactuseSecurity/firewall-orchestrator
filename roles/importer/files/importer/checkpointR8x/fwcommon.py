@@ -459,7 +459,7 @@ def get_objects(native_config_dict: dict[str,Any], importState: ImportStateContr
     # loop over sub-managers in case of mds
     manager_index = 0
     for manager_details in manager_details_list:
-        if manager_details.ImportDisabled:
+        if manager_details.ImportDisabled and not importState.ForceImport:
             continue
 
         is_stand_alone_manager = (len(manager_details_list) == 1)

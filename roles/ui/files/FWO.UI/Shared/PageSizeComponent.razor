@@ -1,4 +1,4 @@
-﻿@inject UserConfig UserConfig
+@inject UserConfig UserConfig
 
 
 <form class="my-1" onsubmit="SubmitPageSize">
@@ -12,13 +12,13 @@
 @code {
     [Parameter] public EventCallback<int> PageSizeCallback { get; set; }
 
-    private int PageSize { get; set; } = 0;
+    [Parameter] public int PageSize { get; set; } = 0;
 
     protected override async Task OnInitializedAsync()
     {
         await SubmitPageSize();
 
-        base.OnInitialized();
+        await base.OnInitializedAsync();
     }
 
     private async Task SubmitPageSize()

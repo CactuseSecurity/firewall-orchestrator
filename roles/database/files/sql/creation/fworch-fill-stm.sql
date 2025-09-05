@@ -145,6 +145,7 @@ insert into config (config_key, config_value, config_user) VALUES ('complianceCh
 insert into config (config_key, config_value, config_user) VALUES ('complianceCheckStartAt', '00:00:00', 0);
 insert into config (config_key, config_value, config_user) VALUES ('complianceCheckPolicy', '0', 0);
 insert into config (config_key, config_value, config_user) VALUES ('complianceCheckMaxPrintedViolations', '0', 0);
+insert into config (config_key, config_value, config_user) VALUES ('complianceCheckSortMatrixByID', 'false', 0);
 insert into config (config_key, config_value, config_user) VALUES ('availableModules', '[1,2,3,4,5,6]', 0);
 insert into config (config_key, config_value, config_user) VALUES ('debugConfig', '{"debugLevel":8, "extendedLogComplianceCheck":true, "extendedLogReportGeneration":true, "extendedLogScheduler":true}', 0);
 insert into config (config_key, config_value, config_user) VALUES ('reportSchedulerConfig', '', 0);

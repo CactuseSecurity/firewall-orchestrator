@@ -17,23 +17,30 @@
                 <Template>
                     <div class="btn-group">
                         <button type="button" class="btn btn-sm btn-primary" @onclick="async () =>
-                                                                                                     { await AppHandler.ShowDetails(context); await AppHandlerChanged.InvokeAsync(AppHandler); }">
-                        @(AppHandler.DisplayButton("details", Icons.Display))
-                    </button>
-                    @if(AppActive)
+                            { await AppHandler.ShowDetails(context); await AppHandlerChanged.InvokeAsync(AppHandler); }">
+                            @(DisplayService.DisplayButton(userConfig, "details", Icons.Display))
+                        </button>
+                        @if(AppActive)
                         {
                             @if(!context.GetBoolProperty(ConState.InterfaceRejected.ToString()) && !context.GetBoolProperty(ConState.Rejected.ToString()))
                             {
                                 <button type="button" class="btn btn-sm btn-warning" @onclick="async () =>
-                                                                                                                     { await AppHandler.EditConn(context); await AppHandlerChanged.InvokeAsync(AppHandler); }">
-                        @(AppHandler.DisplayButton("edit", Icons.Edit))
-                    </button>
-                                        }
+                                    { await AppHandler.EditConn(context); await AppHandlerChanged.InvokeAsync(AppHandler); }">
+                                       @(DisplayService.DisplayButton(userConfig, "edit", Icons.Edit))
+                                </button>
+                            }
                             <button type="button" class="btn btn-sm btn-danger" @onclick="async () =>
-                                                                                                            { await AppHandler.RequestDeleteConnection(context); await AppHandlerChanged.InvokeAsync(AppHandler); }">
-                        @(AppHandler.DisplayButton("delete", Icons.Delete))
-                    </button>
-                                        }
+                                { await AppHandler.RequestDeleteConnection(context); await AppHandlerChanged.InvokeAsync(AppHandler); }">
+                                @(DisplayService.DisplayButton(userConfig, "delete", Icons.Delete))
+                            </button>
+                            @if(context.IsInterface)
+                            {
+                                <button type="button" class="btn btn-sm btn-secondary" @onclick="async () =>
+                                    { await AppHandler.ShowUsingConnections(context); await AppHandlerChanged.InvokeAsync(AppHandler); }">
+                                    @(DisplayService.DisplayButton(userConfig, "where_used", Icons.Question))
+                                </button>
+                            }
+                        }
                     </div>
                 </Template>
             </Column>
@@ -274,6 +281,9 @@
                         break;
                     case nameof(ConState.InterfaceRejected):
                         relevantProps.Add($"<span style=\"color:red\" data-toggle=\"tooltip\" title=\"{userConfig.PureLine("C9011")}\">{false.ShowAsHtml()}</span>");
+                        break;
+                    case nameof(ConState.InterfaceDecommissioned):
+                        relevantProps.Add($"<span style=\"color:red\" data-toggle=\"tooltip\" title=\"{userConfig.PureLine("C9026")}\">{false.ShowAsHtml()}</span>");
                         break;
                     case nameof(ConState.Requested):
                         relevantProps.Add($"<span class=\"text-warning\" data-toggle=\"tooltip\" title=\"{userConfig.PureLine("C9008")}\">{Exclamation()}</span>");

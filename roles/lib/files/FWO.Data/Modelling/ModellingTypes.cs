@@ -21,7 +21,9 @@
             InitRequests = 9,
             Request = 10,
             Implement = 11,
-            Reject = 12
+            Reject = 12,
+            Decommission = 13,
+            Recertify = 14
         }
 
         public enum ModObjectType

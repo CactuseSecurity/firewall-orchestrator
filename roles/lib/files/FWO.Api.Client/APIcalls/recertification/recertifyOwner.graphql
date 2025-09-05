@@ -1,0 +1,23 @@
+mutation recertifyOwner(
+  $ownerId: Int!
+  $userDn: String
+  $recertified: Boolean
+  $recertDate: timestamp
+  $nextRecertDate: timestamp
+  $comment: String
+  ) {
+  insert_owner_recertification(
+    objects: {
+      owner_id: $ownerId
+      user_dn: $userDn
+      recertified: $recertified
+      recert_date: $recertDate
+      next_recert_date: $nextRecertDate
+      comment: $comment
+      }
+    ) {
+      returning {
+        newIdLong: id
+      }
+    }
+  }

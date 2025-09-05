@@ -35,6 +35,7 @@ namespace FWO.Ui.Display
             {
                 result.AppendJoin("<br>", Array.ConvertAll(rule.Services, service => ServiceToHtml(service.Content, rule.MgmtId, chapterNumber, location, style, reportType)));
             }
+            
             return result.ToString();
         }
 

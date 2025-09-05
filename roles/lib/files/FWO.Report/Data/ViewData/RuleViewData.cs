@@ -29,7 +29,7 @@ namespace FWO.Report.Data.ViewData
         public Rule? DataObject { get; set; }
         public bool Show { get; set; } = true;
 
-        public RuleViewData(Rule rule, NatRuleDisplayHtml natRuleDisplayHtml, OutputLocation outputLocation, bool show, List<Device>? devices = null, List<Management>? managements = null)
+        public RuleViewData(Rule rule, NatRuleDisplayHtml natRuleDisplayHtml, OutputLocation outputLocation, bool show, List<Device>? devices = null, List<Management>? managements = null, ComplianceViolationType? complianceViolationType = null)
         {
             DataObject = rule;
             Show = show;
@@ -40,10 +40,10 @@ namespace FWO.Report.Data.ViewData
             Name                = SafeCall(rule, "Name",() => rule.Name ?? "");
             Source              = SafeCall(rule, "Source",() => natRuleDisplayHtml.DisplaySource(rule, outputLocation, ReportType.Compliance));
             Destination         = SafeCall(rule, "Destination",() => natRuleDisplayHtml.DisplayDestination(rule, outputLocation, ReportType.Compliance));
-            Services            = SafeCall(rule, "Services",() => ResolveServices(rule));
+            Services            = SafeCall(rule, "Services",() => natRuleDisplayHtml.DisplayServices(rule, outputLocation, ReportType.Compliance));
             Action              = SafeCall(rule, "Action",() => rule.Action);
             InstallOn           = SafeCall(rule, "InstallOn",() => ResolveInstallOn(rule, devices ?? []));
-            Compliance          = SafeCall(rule, "Compliance",() => ResolveCompliance(rule.Compliance));
+            Compliance          = SafeCall(rule, "Compliance",() => ResolveCompliance(rule, complianceViolationType));
             ViolationDetails    = SafeCall(rule, "ViolationDetails",() => rule.ViolationDetails);
             ChangeID            = SafeCall(rule, "ChangeID",() => GetFromCustomField(rule, "field-2"));
             AdoITID             = SafeCall(rule, "AdoITID",() => GetFromCustomField(rule, "field-3"));
@@ -52,17 +52,11 @@ namespace FWO.Report.Data.ViewData
             RulebaseName        = SafeCall(rule, "RulebaseName",() => rule.Rulebase?.Name ?? "");
         }
 
-        private string ResolveServices(Rule rule)
+        private string ResolveCompliance(Rule rule, ComplianceViolationType? complianceViolationType)
         {
-            var services = rule.Services.Select(s => s.Content.Name).ToList();
-            return string.Join(" | ", services);
-        }
-
-        private string ResolveCompliance(ComplianceViolationType complianceViolationType)
-        {
-            return complianceViolationType switch
+            return (complianceViolationType ?? rule.Compliance) switch
             {
-                ComplianceViolationType.NotEvaluable => "NOT EVALUABLE",
+                ComplianceViolationType.NotAssessable => "NOT ASSESSABLE",
                 ComplianceViolationType.None => "TRUE",
                 _ => "FALSE"
             };

@@ -12,6 +12,7 @@ using FWO.Data.Middleware;
 using FWO.Logging;
 using FWO.Report.Data.ViewData;
 using FWO.Ui.Display;
+using System.Collections.Frozen;
 
 namespace FWO.Report
 {
@@ -21,6 +22,7 @@ namespace FWO.Report
         #region Properties
         
         public List<Rule> Rules { get; set; } = [];
+        public FrozenDictionary<Rule, List<NetworkObject>>? RuleNetworkObjectMap { get; set; }
         public List<RuleViewData> RuleViewData = [];
         public bool IsDiffReport { get; set; } = false;
         public Dictionary<ComplianceViolation, char> ViolationDiffs = new();
@@ -231,23 +233,62 @@ namespace FWO.Report
 
         #region Methods - Public
 
-        public Task<bool> CheckEvaluability(Rule rule)
+        public Task<(bool isAssessable, string violationDetails)> CheckAssessability(List<NetworkObject> networkObjects)
         {
-            string internetZoneObjectUid = "";
+            bool isAssessable = true;
+            StringBuilder violationDetailsBuilder = new();
 
-            if (userConfig.GlobalConfig is GlobalConfig globalConfig)
+            isAssessable &= !TryAddNotAssessableDetails(
+                networkObjects,
+                n => n.IP == null && n.IpEnd == null,
+                "Network objects in source or destination without IP: ",
+                violationDetailsBuilder);
+
+            isAssessable &= !TryAddNotAssessableDetails(
+                networkObjects,
+                n => (n.IP == "0.0.0.0/32" && n.IpEnd == "255.255.255.255/32")
+                || (n.IP == "::/128" && n.IpEnd == "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff/128"),
+                "Network objects in source or destination with 0.0.0.0/0 or ::/0: ",
+                violationDetailsBuilder);
+
+            isAssessable &= !TryAddNotAssessableDetails(
+                networkObjects,
+                n => n.IP == "255.255.255.255/32" && n.IpEnd == "255.255.255.255/32",
+                "Network objects in source or destination with 255.255.255.255/32: ",
+                violationDetailsBuilder);
+
+            isAssessable &= !TryAddNotAssessableDetails(
+                networkObjects,
+                n => n.IP == "0.0.0.0/32" && n.IpEnd == "0.0.0.0/32",
+                "Network objects in source or destination with 0.0.0.0/32: ",
+                violationDetailsBuilder);
+
+            return Task.FromResult((isAssessable, violationDetailsBuilder.ToString()));
+        }
+
+        private bool TryAddNotAssessableDetails(IEnumerable<NetworkObject> networkObjects, Func<NetworkObject, bool> predicate, string headerText, StringBuilder details, Func<NetworkObject, string>? itemFormatter = null)
+        {
+            Func<NetworkObject, string> format = itemFormatter ?? (n => n.Name);
+
+            List<string> notAssessableDetails = networkObjects
+                .Where(predicate)
+                .Select(format)
+                .ToList();
+
+            if (notAssessableDetails.Count == 0)
             {
-                internetZoneObjectUid = globalConfig.ComplianceCheckInternetZoneObject;
+                return false;
             }
 
-            if (internetZoneObjectUid != "")
+            if (details.Length > 0)
             {
-                return Task.FromResult(!(rule.Froms.Any(from => from.Object.Uid == internetZoneObjectUid) || rule.Tos.Any(to => to.Object.Uid == internetZoneObjectUid)));
+                details.Append("<br>");
             }
-            else
-            {
-                return Task.FromResult(true);
-            }
+
+            details.Append(headerText);
+            details.Append(string.Join(",", notAssessableDetails));
+                
+            return true;
         }
 
         public async Task<List<T>[]?> GetDataParallelized<T>(int rulesCount, int elementsPerFetch, ApiConnection apiConnection, CancellationToken ct, string query)
@@ -290,31 +331,42 @@ namespace FWO.Report
 
         public async Task<List<Rule>> ProcessChunksParallelized(List<Rule>[] chunks, CancellationToken ct, ApiConnection apiConnection)
         {
-            List<Task<(List<Rule> processed, List<RuleViewData> viewData)>> tasks = new();
+            List<Task<(List<Rule> processed, List<RuleViewData> viewData, Dictionary<Rule, List<NetworkObject>> networkObjects)>> tasks = new();
 
             foreach (List<Rule> chunk in chunks)
             {
                 await _semaphore.WaitAsync(ct);
 
-                Task<(List<Rule>, List<RuleViewData>)> task = Task.Run<(List<Rule>, List<RuleViewData>)>(async () =>
+                Task<(List<Rule>, List<RuleViewData>, Dictionary<Rule, List<NetworkObject>>)> task = Task.Run<(List<Rule>, List<RuleViewData>, Dictionary<Rule, List<NetworkObject>>)>(async () =>
                 {
-                    var localViewData = new List<RuleViewData>(chunk.Count);
+                    List<RuleViewData> localViewData = new(chunk.Count);
+                    Dictionary<Rule, List<NetworkObject>> networkObjects = new();
 
                     try
                     {
                         foreach (var rule in chunk)
                         {
                             await SetComplianceDataForRule(rule, apiConnection);
-                            localViewData.Add(new RuleViewData(rule, _natRuleDisplayHtml, OutputLocation.report, ShowRule(rule), _devices ?? [], _managements ?? []));
+                            networkObjects[rule] = GetAllNetworkObjectsFromRule(rule);
+                            (bool isAssessable, string violationDetails) checkAssessabilityResult = await CheckAssessability(networkObjects[rule]);
+                            ComplianceViolationType complianceViolationType = checkAssessabilityResult.isAssessable ? rule.Compliance : ComplianceViolationType.NotAssessable;
+                            RuleViewData ruleViewData = new RuleViewData(rule, _natRuleDisplayHtml, OutputLocation.report, ShowRule(rule), _devices ?? [], _managements ?? [], complianceViolationType);
+
+                            if (!checkAssessabilityResult.isAssessable )
+                            {
+                                ruleViewData.ViolationDetails = checkAssessabilityResult.violationDetails;
+                            }
+
+                            localViewData.Add(ruleViewData);
                         }
 
-                        return (chunk, localViewData);
+                        return (chunk, localViewData, networkObjects);
                     }
                     catch (Exception e)
                     {
                         Log.TryWriteLog(LogType.Error, "Compliance Report", $"Failed processing chunk: {e.Message}.", _debugConfig.ExtendedLogReportGeneration);
 
-                        return (chunk, localViewData);
+                        return (chunk, localViewData, networkObjects);
                     }
                     finally
                     {
@@ -325,26 +377,37 @@ namespace FWO.Report
                 tasks.Add(task);
             }
 
-            (List<Rule> processed, List<RuleViewData> viewData)[]? results = await Task.WhenAll(tasks);
+            (List<Rule> processed, List<RuleViewData> viewData, Dictionary<Rule, List<NetworkObject>> networkObjects)[]? results = await Task.WhenAll(tasks);
 
-            // Gather results.
-
-            RuleViewData.Capacity = results.Sum(r => r.viewData.Count);
-            List<Rule> processedRulesFlat = new(results.Sum(r => r.processed.Count));
-
-            foreach ((List<Rule> processed, List<RuleViewData> viewData) result in results)
-            {
-                RuleViewData.AddRange(result.viewData);
-                processedRulesFlat.AddRange(result.processed);
-            }
-
-            return processedRulesFlat;
+            return await GatherReportData(results);
         }
-        
+
 
         #endregion
 
         #region Methods - Private
+
+        private Task<List<Rule>> GatherReportData((List<Rule> processed, List<RuleViewData> viewData, Dictionary<Rule, List<NetworkObject>> networkObjects)[]? results)
+        {
+            RuleViewData.Capacity = results.Sum(r => r.viewData.Count);
+            List<Rule> processedRulesFlat = new(results.Sum(r => r.processed.Count));
+            Dictionary<Rule, List<NetworkObject>> networkObjectsDict = new();
+
+            foreach ((List<Rule> processed, List<RuleViewData> viewData, Dictionary<Rule, List<NetworkObject>> networkObjects) result in results)
+            {
+                RuleViewData.AddRange(result.viewData);
+                processedRulesFlat.AddRange(result.processed);
+
+                foreach (KeyValuePair<Rule, List<NetworkObject>> kvp in result.networkObjects)
+                {
+                    networkObjectsDict[kvp.Key] = kvp.Value;
+                }
+            }
+
+            RuleNetworkObjectMap = networkObjectsDict.ToFrozenDictionary();
+
+            return Task.FromResult(processedRulesFlat);
+        }
 
         private Dictionary<string, object> CreateQueryVariables(int offset, int limit, string query)
         {
@@ -392,26 +455,17 @@ namespace FWO.Report
                 int printedViolations = 0;
                 bool abbreviated = false;
 
-                if (await CheckEvaluability(rule))
+                for (int violationCount = 1; violationCount <= rule.Violations.Count; violationCount++)
                 {
-                    for (int violationCount = 1; violationCount <= rule.Violations.Count; violationCount++)
-                    {
-                        ComplianceViolation violation = rule.Violations.ElementAt(violationCount - 1);
+                    ComplianceViolation violation = rule.Violations.ElementAt(violationCount - 1);
 
-                        await AddViolationDataToViolationDetails(rule, violation, ref printedViolations, violationCount, ref abbreviated);
-                    }
-
-                    if (IsDiffReport)
-                    {
-                        await PostProcessDiffReportsRule(rule, apiConnection);
-                    }
-
-                    return;
+                    await AddViolationDataToViolationDetails(rule, violation, ref printedViolations, violationCount, ref abbreviated);
                 }
 
-                // If the rule is not evaluable, set compliance to NotEvaluable.
-
-                rule.Compliance = ComplianceViolationType.NotEvaluable;
+                if (IsDiffReport)
+                {
+                    await PostProcessDiffReportsRule(rule, apiConnection);
+                }
             }
             catch (Exception e)
             {
@@ -550,6 +604,31 @@ namespace FWO.Report
             {
                 sb.AppendLine(string.Join(_separator, propertyNames.Select(p => $"\"{p}\"")));
             }
+        }
+
+        private List<NetworkObject> GetAllNetworkObjectsFromRule(Rule rule)
+        {
+            HashSet<NetworkObject> allObjects = [];
+
+            foreach (NetworkLocation networkLocation in rule.Tos.Concat(rule.Froms).ToList())
+            {
+                if (networkLocation.Object.ObjectGroupFlats.Any())
+                {
+                    foreach (GroupFlat<NetworkObject> groupFlat in networkLocation.Object.ObjectGroupFlats)
+                    {
+                        if (groupFlat.Object != null)
+                        {
+                            allObjects.Add(groupFlat.Object);
+                        }
+                    }
+                }
+                else
+                {
+                    allObjects.Add(networkLocation.Object);
+                }
+            }
+
+            return allObjects.ToList();
         }
 
         public override string ExportToHtml()

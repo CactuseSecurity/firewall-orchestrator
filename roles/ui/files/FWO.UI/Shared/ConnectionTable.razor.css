@@ -11,7 +11,7 @@
 
 @media(height > 700px) and (height < 800px) and (width > 700px) {
     .connectiontable-responsive {
-        max-height: 45vh;
+        max-height: 40vh;
     }
 }
 
@@ -60,5 +60,92 @@
 @media(height > 1200px) and (width < 1100px) {
     .connectiontable-responsive {
         max-height: 72vh;
+    }
+}
+
+#lsb-content:not([style*="width:0px"]) ~ * .connectiontable-responsive,
+body:has(#lsb-content:not([style*="width:0px"])) .connectiontable-responsive {
+    max-height: 35vh;
+}
+
+@media(height < 700px) {
+    #lsb-content:not([style*="width:0px"]) ~ * .connectiontable-responsive,
+    body:has(#lsb-content:not([style*="width:0px"])) .connectiontable-responsive {
+        max-height: 25vh;
+    }
+}
+
+@media(height > 700px) and (height < 800px) and (width > 700px) {
+    #lsb-content:not([style*="width:0px"]) ~ * .connectiontable-responsive,
+    body:has(#lsb-content:not([style*="width:0px"])) .connectiontable-responsive {
+        max-height: 30vh;
+    }
+}
+
+@media(height > 800px) and (width > 700px) {
+    #lsb-content:not([style*="width:0px"]) ~ * .connectiontable-responsive,
+    body:has(#lsb-content:not([style*="width:0px"])) .connectiontable-responsive {
+        max-height: 38vh;
+    }
+}
+
+@media(height > 900px) and (width > 800px) {
+    #lsb-content:not([style*="width:0px"]) ~ * .connectiontable-responsive,
+    body:has(#lsb-content:not([style*="width:0px"])) .connectiontable-responsive {
+        max-height: 40vh;
+    }
+}
+
+@media(height > 1000px) and (width > 800px) {
+    #lsb-content:not([style*="width:0px"]) ~ * .connectiontable-responsive,
+    body:has(#lsb-content:not([style*="width:0px"])) .connectiontable-responsive {
+        max-height: 50vh;
+    }
+}
+
+@media(height > 1100px) and (width > 800px) {
+    #lsb-content:not([style*="width:0px"]) ~ * .connectiontable-responsive,
+    body:has(#lsb-content:not([style*="width:0px"])) .connectiontable-responsive {
+        max-height: 55vh;
+    }
+}
+
+@media(height > 900px) and (width > 1200px) {
+    #lsb-content:not([style*="width:0px"]) ~ * .connectiontable-responsive,
+    body:has(#lsb-content:not([style*="width:0px"])) .connectiontable-responsive {
+        max-height: 45vh;
+    }
+}
+
+@media(height > 1100px) and (width > 1200px) {
+    #lsb-content:not([style*="width:0px"]) ~ * .connectiontable-responsive,
+    body:has(#lsb-content:not([style*="width:0px"])) .connectiontable-responsive {
+        max-height: 55vh;
+    }
+}
+
+@media(height > 1200px) and (width > 1600px) {
+    #lsb-content:not([style*="width:0px"]) ~ * .connectiontable-responsive,
+    body:has(#lsb-content:not([style*="width:0px"])) .connectiontable-responsive {
+        max-height: 60vh;
+    }
+}
+
+@media(height > 1200px) and (width < 1100px) {
+    #lsb-content:not([style*="width:0px"]) ~ * .connectiontable-responsive,
+    body:has(#lsb-content:not([style*="width:0px"])) .connectiontable-responsive {
+        max-height: 67vh;
+    }
+}
+
+@container (width < 800px) {
+    .connectiontable-responsive {
+        max-height: 30vh;
+    }
+}
+
+@container (width < 600px) {
+    .connectiontable-responsive {
+        max-height: 25vh;
     }
 }

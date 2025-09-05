@@ -379,8 +379,16 @@ namespace FWO.Report
 
             (List<Rule> processed, List<RuleViewData> viewData, Dictionary<Rule, List<NetworkObject>> networkObjects)[]? results = await Task.WhenAll(tasks);
 
-            // Gather results.
+            return await GatherReportData(results);
+        }
 
+
+        #endregion
+
+        #region Methods - Private
+
+        private Task<List<Rule>> GatherReportData((List<Rule> processed, List<RuleViewData> viewData, Dictionary<Rule, List<NetworkObject>> networkObjects)[]? results)
+        {
             RuleViewData.Capacity = results.Sum(r => r.viewData.Count);
             List<Rule> processedRulesFlat = new(results.Sum(r => r.processed.Count));
             Dictionary<Rule, List<NetworkObject>> networkObjectsDict = new();
@@ -398,13 +406,8 @@ namespace FWO.Report
 
             RuleNetworkObjectMap = networkObjectsDict.ToFrozenDictionary();
 
-            return processedRulesFlat;
+            return Task.FromResult(processedRulesFlat);
         }
-        
-
-        #endregion
-
-        #region Methods - Private
 
         private Dictionary<string, object> CreateQueryVariables(int offset, int limit, string query)
         {

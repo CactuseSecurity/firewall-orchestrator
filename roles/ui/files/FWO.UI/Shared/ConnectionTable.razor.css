@@ -117,7 +117,7 @@ body:has(#lsb-content:not([style*="width:0px"])) .connectiontable-responsive {
     }
 }
 
-@media(height > 1100px) and (width > 1200px) {
+@media(height > 1200px) and (width > 1200px) {
     #lsb-content:not([style*="width:0px"]) ~ * .connectiontable-responsive,
     body:has(#lsb-content:not([style*="width:0px"])) .connectiontable-responsive {
         max-height: 55vh;

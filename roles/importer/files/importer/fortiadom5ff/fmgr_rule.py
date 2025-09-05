@@ -7,7 +7,6 @@ from fwo_base import extend_string_list, sanitize
 from fmgr_service import create_svc_object
 from fmgr_network import create_network_object, get_first_ip_of_destination
 from fmgr_zone import add_zone_if_missing
-from fmgr_getter import fortinet_api_call, update_config_with_fortinet_api_call
 import fmgr_getter
 from fmgr_gw_networking import get_device_from_package
 from fwo_log import getFwoLogger
@@ -62,21 +61,20 @@ def normalize_rulebases_for_each_link_destination(gateway, mgm_uid, fetched_rule
     logger = getFwoLogger()
     for rulebase_link in gateway['rulebase_links']:
         if rulebase_link['to_rulebase_uid'] not in fetched_rulebase_uids and rulebase_link['to_rulebase_uid'] != '':
-            rulebase_to_parse, is_section, is_placeholder = find_rulebase_to_parse(
-                nativeConfig['rulebases'], rulebase_link['to_rulebase_uid'])
+            rulebase_to_parse = find_rulebase_to_parse(nativeConfig['rulebases'], rulebase_link['to_rulebase_uid'])
             # search in global rulebase
             found_rulebase_in_global = False
             if rulebase_to_parse == {} and not is_global_loop_iteration and native_config_global is not None:
-                rulebase_to_parse, is_section, is_placeholder = find_rulebase_to_parse(
+                rulebase_to_parse = find_rulebase_to_parse(
                     native_config_global['rulebases'], rulebase_link['to_rulebase_uid']
                     )
                 found_rulebase_in_global = True
             if rulebase_to_parse == {}:
                 logger.warning('found to_rulebase link without rulebase in nativeConfig: ' + str(rulebase_link))
                 continue
-            rulebase_link['is_section'] = is_section
+
             normalized_rulebase = initialize_normalized_rulebase(rulebase_to_parse, mgm_uid)
-            parse_rulebase(normalized_config_dict, rulebase_to_parse, is_section, is_placeholder, normalized_rulebase)
+            parse_rulebase(normalized_config_dict, rulebase_to_parse, normalized_rulebase)
             fetched_rulebase_uids.append(rulebase_link['to_rulebase_uid'])
 
             if found_rulebase_in_global:
@@ -85,55 +83,27 @@ def normalize_rulebases_for_each_link_destination(gateway, mgm_uid, fetched_rule
                 normalized_config_dict['policies'].append(normalized_rulebase)
 
 def find_rulebase_to_parse(rulebase_list, rulebase_uid):
-    """
-    decide if input rulebase is true rulebase, section or placeholder
-    """
     for rulebase in rulebase_list:
-        if rulebase['type'].endswith(rulebase_uid):
-            return rulebase, False, False
-        rulebase_to_parse, is_section, is_placeholder = find_rulebase_to_parse_in_case_of_chunk(rulebase, rulebase_uid)
-        if rulebase_to_parse != {}:
-            return rulebase_to_parse, is_section, is_placeholder
-    
-    # handle case: no rulebase found
-    return {}, False, False
-
-def find_rulebase_to_parse_in_case_of_chunk(rulebase, rulebase_uid):
-    return {}, False, False
+        if rulebase['uid'] == rulebase_uid:
+            return rulebase
+    return {}
                     
 def initialize_normalized_rulebase(rulebase_to_parse, mgm_uid):
+    """
+    we use 'type' as uid/name since a rulebase may have a v4 and a v6 part
+    """
     rulebaseName = rulebase_to_parse['type']
     rulebaseUid = rulebase_to_parse['type']
     normalized_rulebase = Rulebase(uid=rulebaseUid, name=rulebaseName, mgm_uid=mgm_uid, Rules={})
     return normalized_rulebase
 
-def parse_rulebase(normalized_config,rulebase_to_parse, is_section, is_placeholder, normalized_rulebase):
-    logger = getFwoLogger()
+def parse_rulebase(normalized_config, rulebase_to_parse, normalized_rulebase):
 
     rule_num = 1
+    for native_rule in rulebase_to_parse['data']:
+        rule_num = parse_single_rule(normalized_config, native_rule, normalized_rulebase, rule_num)
 
-    if is_section:
-        for rule in rulebase_to_parse['rulebase']:
-            # delete_v: kann es passieren, dass eine section über mehrere chunks geht?
-            # delte_v sind import_id, parent_uid, config2import wirklich egal? Dann können wir diese argumente löschen - NAT ACHTUNG
-            rule_num = parse_single_rule(normalized_config, rule, normalized_rulebase, normalized_rulebase.uid, None, rule_num)
-
-        if fwo_globals.debug_level>3:
-            logger.debug("parsed rulebase " + normalized_rulebase.uid)
-        return rule_num
-    elif is_placeholder:
-        rule_num = parse_single_rule(normalized_config, rulebase_to_parse, normalized_rulebase, normalized_rulebase.uid, rule_num)
-    else:
-        rule_num = parse_rulebase_chunk(normalized_config, rulebase_to_parse, normalized_rulebase, rule_num)                    
-
-def parse_rulebase_chunk(normalized_config, rulebase_to_parse, normalized_rulebase, rule_num):
-    logger = getFwoLogger()
-    for rule in rulebase_to_parse['data']:
-        rule_num = parse_single_rule(normalized_config, rule, normalized_rulebase, normalized_rulebase.uid, rule_num)
-    return rule_num
-
-def parse_single_rule(normalized_config, native_rule, rulebase: Rulebase, layer_name, rule_num, debug_level=0):
-    logger = getFwoLogger()
+def parse_single_rule(normalized_config, native_rule, rulebase: Rulebase, rule_num):
     # Extract basic rule information
     rule_disabled = True  # Default to disabled
     if 'status' in native_rule and (native_rule['status'] == 1 or native_rule['status'] == 'enable'):
@@ -268,38 +238,11 @@ def rule_parse_negation_flags(native_rule, rulebase_name):
     return rule_src_neg, rule_dst_neg, rule_svc_neg, rule_installon
 
 
-def initialize_rulebases(native_config):
-#delete_v: hier auf native_config_domain umschreiben, die Dinger bei rulebases, bzw nat_rulebases einsortieren
-    # initialize access rules
-    if 'rules_global_header_v4' not in native_config:
-        native_config.update({'rules_global_header_v4': {}})
-    if 'rules_global_header_v6' not in native_config:
-        native_config.update({'rules_global_header_v6': {}})
-    if 'rules_adom_v4' not in native_config:
-        native_config.update({'rules_adom_v4': {}})
-    if 'rules_adom_v6' not in native_config:
-        native_config.update({'rules_adom_v6': {}})
-    if 'rules_global_footer_v4' not in native_config:
-        native_config.update({'rules_global_footer_v4': {}})
-    if 'rules_global_footer_v6' not in native_config:
-        native_config.update({'rules_global_footer_v6': {}})
-
-    # initialize nat rules
-    if 'rules_global_nat' not in native_config:
-        native_config.update({'rules_global_nat': {}})
-    if 'rules_adom_nat' not in native_config:
-        native_config.update({'rules_adom_nat': {}})
-    
-    # new in v8.3.1:
-    # initialize hitcounts
-    if 'rules_hitcount' not in native_config:
-        native_config.update({'rules_hitcount': {}})
-
-
 def getAccessPolicy(sid, fm_api_url, native_config_domain, adom_device_vdom_policy_package_structure, adom_name, mgm_details_device, device_config, limit):
     consolidated = '' # '/consolidated'
     logger = getFwoLogger()
 
+    previous_rulebase = ''
     local_pkg_name = find_local_pkg(adom_device_vdom_policy_package_structure, adom_name, mgm_details_device)
     # delete_v: hier global_pkg_name später
     #global_pkg_name = device['global_rulebase_name']
@@ -331,14 +274,15 @@ def getAccessPolicy(sid, fm_api_url, native_config_domain, adom_device_vdom_poli
     #     fmgr_getter.update_config_with_fortinet_api_call(
     #         nativeConfig['rules_global_header_v6'], sid, fm_api_url, "/pm/config/global/pkg/" + global_pkg_name + "/global/header" + consolidated + "/policy6", local_pkg_name, limit=limit)
     
-    # delete_v: hier initial link wenn global header nicht existiert, sonst link von global header
     is_global = False
-    link_initial_rulebase(device_config, local_pkg_name, is_global)
     # get local rulebase
     fmgr_getter.update_config_with_fortinet_api_call(
         native_config_domain['rulebases'], sid, fm_api_url, "/pm/config/adom/" + adom_name + "/pkg/" + local_pkg_name + "/firewall" + consolidated + "/policy", 'rules_adom_v4_' + local_pkg_name, options=options, limit=limit)
     fmgr_getter.update_config_with_fortinet_api_call(
         native_config_domain['rulebases'], sid, fm_api_url, "/pm/config/adom/" + adom_name + "/pkg/" + local_pkg_name + "/firewall" + consolidated + "/policy6", 'rules_adom_v6_' + local_pkg_name, limit=limit)
+    # delete_v: hier initial link immer lokal, erweitern wenn wir global header/footer holen
+    link_list, previous_rulebase = link_v4_and_v6_rulebase(native_config_domain['rulebases'], local_pkg_name, previous_rulebase, is_global)
+    device_config['rulebase_links'].extend(link_list)
 
     # get global footer rulebase:
     # if device['global_rulebase_name'] != None and device['global_rulebase_name'] != '':
@@ -367,16 +311,45 @@ def find_local_pkg(adom_device_vdom_policy_package_structure, adom_name, mgm_det
                 return adom_device_vdom_policy_package_structure[adom_name][device][vdom]
     raise FwoDeviceWithoutLocalPackage('Could not find local package for ' + mgm_details_device['name'] + ' in Fortimanager Config') from None
 
-def link_initial_rulebase(device_config, local_pkg_name, is_global):
-    device_config['rulebase_links'].append({
-        'from_rulebase_uid': '',
+def link_v4_and_v6_rulebase(rulebases, pkg_name, previous_rulebase, is_global):
+    link_list = []
+    has_v4_data = has_rulebase_data(rulebases, 'rules_adom_v4', pkg_name)
+    has_v6_data = has_rulebase_data(rulebases, 'rules_adom_v6', pkg_name)
+
+    if has_v4_data:
+        link_list.append(build_link(previous_rulebase, 'rules_adom_v4' + '_' + pkg_name, is_global))
+        previous_rulebase = 'rules_adom_v4' + '_' + pkg_name
+    if has_v6_data:
+        link_list.append(build_link(previous_rulebase, 'rules_adom_v6' + '_' + pkg_name, is_global))
+        previous_rulebase = 'rules_adom_v6' + '_' + pkg_name
+    
+    return link_list, previous_rulebase
+
+
+def build_link(previous_rulebase, full_pkg_name, is_global):
+    if previous_rulebase == '':
+        is_initial = True
+    else:
+        is_initial = False
+    return {
+        'from_rulebase_uid': previous_rulebase,
         'from_rule_uid': '',
-        'to_rulebase_uid': local_pkg_name,
+        'to_rulebase_uid': full_pkg_name,
         'type': 'concatenated',
         'is_global': is_global,
-        'is_initial': True,
+        'is_initial': is_initial,
         'is_section': False
-    })
+    }
+
+def has_rulebase_data(rulebases, type_prefix, pkg_name):
+    has_data = False
+    for rulebase in rulebases:
+        if rulebase['type'] == type_prefix + '_' + pkg_name:
+            rulebase.update({'name': type_prefix + '_' + pkg_name,
+                             'uid': type_prefix + '_' + pkg_name})
+            if len(rulebase['data']) > 0:
+                has_data = True
+    return has_data
 
 def getNatPolicy(sid, fm_api_url, nativeConfig, adom_name, device, limit):
     scope = 'global'
@@ -393,29 +366,7 @@ def getNatPolicy(sid, fm_api_url, nativeConfig, adom_name, device, limit):
             nativeConfig['rules_adom_nat'], sid, fm_api_url, "/pm/config/" + scope + "/pkg/" + pkg + '/' + nat_type, device['local_rulebase_name'], limit=limit)
 
 
-# delete_v: versuch das von cp_rule zu kopieren
-#def normalizeRulebases (nativeConfig, import_state, normalizedConfig):
-def normalize_access_rules(native_config, native_config_global, import_state, normalized_config_dict, normalized_config_global, is_global_loop_iteration):
-    logger = getFwoLogger()
-    rules = []
-    first_v4 = True
-    first_v6 = True
-    nat_rule_number = 0
-    rule_number = 0
-    src_ref_all = ""
-    dst_ref_all = ""
-    for rule_table in rule_access_scope:
-        #src_ref_all = resolve_raw_objects("all", list_delimiter, native_config, 'name', 'uuid', rule_type=rule_table, jwt=jwt, import_id=import_id, mgm_id=mgm_details['id'])
-        #dst_ref_all = resolve_raw_objects("all", list_delimiter, native_config, 'name', 'uuid', rule_type=rule_table, jwt=jwt, import_id=import_id, mgm_id=mgm_details['id'])
-        for localPkgName in native_config[rule_table]:
-                rule_number, first_v4, first_v6 = insert_headers(rule_table, first_v6, first_v4, native_config, rules, import_id, localPkgName,src_ref_all,dst_ref_all,rule_number)
-
-                for rule_orig in native_config[rule_table][localPkgName]:
-
-                    normalize_rule(rule_orig, rules, native_config, rule_table, localPkgName, rule_number, src_ref_all, dst_ref_all, normalized_config_dict)
-
-    normalized_config_dict.update({'rules': rules})
-
+# delete_v: ab hier kann sehr viel weg, ich lasses vorerst zB für die hitcounter
 def normalize_rule(rule_orig, rules, native_config, rule_table, localPkgName, rule_number, src_ref_all, dst_ref_all, normalized_config_dict):
     rule = {'rule_src': '', 'rule_dst': '', 'rule_svc': ''}
     xlate_rule = None

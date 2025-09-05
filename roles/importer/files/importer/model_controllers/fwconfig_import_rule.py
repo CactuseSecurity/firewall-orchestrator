@@ -611,8 +611,8 @@ class FwConfigImportRule():
                 if changes>0:
                     for rulebase in import_result['data']['insert_rulebase']['returning']:
                         newRulebaseIds.append(rulebase['id'])
-                    # finally, add the new rulebases to the map for next step (adding rulebase with rules)
-                    self.import_details.SetRulebaseMap(self.import_details.api_call) 
+                # finally, add the new rulebases to the map for next step (adding rulebase with rules)
+                self.import_details.SetRulebaseMap(self.import_details.api_call) 
                 return 0, changes, newRulebaseIds
         except Exception:
             raise FwoApiWriteError(f"failed to write new rulebases: {str(traceback.format_exc())}")

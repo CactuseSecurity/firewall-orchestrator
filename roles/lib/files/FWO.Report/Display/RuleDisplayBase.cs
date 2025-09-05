@@ -31,7 +31,7 @@ namespace FWO.Ui.Display
 
         public static string DisplayIsCompliant(Rule rule, OutputLocation location)
         {
-            if (rule.Compliance != ComplianceViolationType.NotEvaluable)
+            if (rule.Compliance != ComplianceViolationType.NotAssessable)
             {
                 bool isCompliant = true;
 

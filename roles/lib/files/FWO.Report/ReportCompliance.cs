@@ -233,20 +233,62 @@ namespace FWO.Report
 
         #region Methods - Public
 
-        public Task<bool> CheckEvaluability(Rule rule, List<NetworkObject> networkObjects)
+        public Task<(bool isAssessable, string violationDetails)> CheckAssessability(List<NetworkObject> networkObjects)
         {
-            return Task.FromResult(!(
+            bool isAssessable = true;
+            StringBuilder violationDetailsBuilder = new();
 
-                // Check IP Properties for null values (use case: empty groups)
+            isAssessable &= !TryAddNotAssessableDetails(
+                networkObjects,
+                n => n.IP == null && n.IpEnd == null,
+                "Network objects in source or destination without IP: ",
+                violationDetailsBuilder);
 
-                networkObjects.Any(networkObject => networkObject.IP == null && networkObject.IpEnd == null) ||
+            isAssessable &= !TryAddNotAssessableDetails(
+                networkObjects,
+                n => (n.IP == "0.0.0.0/32" && n.IpEnd == "255.255.255.255/32")
+                || (n.IP == "::/128" && n.IpEnd == "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff/128"),
+                "Network objects in source or destination with 0.0.0.0/0 or ::/0: ",
+                violationDetailsBuilder);
 
-                // Check IP Properties for 0.0.0.0/0 and ::/0 (use cases: any, all, FQDN, updatable objects)
+            isAssessable &= !TryAddNotAssessableDetails(
+                networkObjects,
+                n => n.IP == "255.255.255.255/32" && n.IpEnd == "255.255.255.255/32",
+                "Network objects in source or destination with 255.255.255.255/32: ",
+                violationDetailsBuilder);
 
-                networkObjects.Any(networkObject => networkObject.IP == "0.0.0.0/32" && networkObject.IpEnd == "255.255.255.255/32") ||
-                networkObjects.Any(networkObject => networkObject.IP == "::/128" && networkObject.IpEnd == "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff/128")
+            isAssessable &= !TryAddNotAssessableDetails(
+                networkObjects,
+                n => n.IP == "0.0.0.0/32" && n.IpEnd == "0.0.0.0/32",
+                "Network objects in source or destination with 0.0.0.0/32: ",
+                violationDetailsBuilder);
 
-            ));
+            return Task.FromResult((isAssessable, violationDetailsBuilder.ToString()));
+        }
+
+        private bool TryAddNotAssessableDetails(IEnumerable<NetworkObject> networkObjects, Func<NetworkObject, bool> predicate, string headerText, StringBuilder details, Func<NetworkObject, string>? itemFormatter = null)
+        {
+            Func<NetworkObject, string> format = itemFormatter ?? (n => n.Name);
+
+            List<string> notAssessableDetails = networkObjects
+                .Where(predicate)
+                .Select(format)
+                .ToList();
+
+            if (notAssessableDetails.Count == 0)
+            {
+                return false;
+            }
+
+            if (details.Length > 0)
+            {
+                details.Append("<br>");
+            }
+
+            details.Append(headerText);
+            details.Append(string.Join(",", notAssessableDetails));
+                
+            return true;
         }
 
         public async Task<List<T>[]?> GetDataParallelized<T>(int rulesCount, int elementsPerFetch, ApiConnection apiConnection, CancellationToken ct, string query)
@@ -306,9 +348,16 @@ namespace FWO.Report
                         {
                             await SetComplianceDataForRule(rule, apiConnection);
                             networkObjects[rule] = GetAllNetworkObjectsFromRule(rule);
-                            bool isEvaluable = await CheckEvaluability(rule, networkObjects[rule]);
-                            ComplianceViolationType complianceViolationType = isEvaluable ? rule.Compliance : ComplianceViolationType.NotEvaluable;
-                            localViewData.Add(new RuleViewData(rule, _natRuleDisplayHtml, OutputLocation.report, ShowRule(rule), _devices ?? [], _managements ?? [], complianceViolationType));
+                            (bool isAssessable, string violationDetails) checkAssessabilityResult = await CheckAssessability(networkObjects[rule]);
+                            ComplianceViolationType complianceViolationType = checkAssessabilityResult.isAssessable ? rule.Compliance : ComplianceViolationType.NotAssessable;
+                            RuleViewData ruleViewData = new RuleViewData(rule, _natRuleDisplayHtml, OutputLocation.report, ShowRule(rule), _devices ?? [], _managements ?? [], complianceViolationType);
+
+                            if (!checkAssessabilityResult.isAssessable )
+                            {
+                                ruleViewData.ViolationDetails = checkAssessabilityResult.violationDetails;
+                            }
+
+                            localViewData.Add(ruleViewData);
                         }
 
                         return (chunk, localViewData, networkObjects);

@@ -9,7 +9,7 @@ namespace FWO.Compliance
             return violationType switch
             {
                 ComplianceViolationType.None => "Compliant",
-                ComplianceViolationType.NotEvaluable => "Not evaluable",
+                ComplianceViolationType.NotAssessable => "Not assessable",
                 ComplianceViolationType.MatrixViolation => "Matrix violation",
                 ComplianceViolationType.ServiceViolation => "Service violation",
                 ComplianceViolationType.MultipleViolations => "Multiple violations",

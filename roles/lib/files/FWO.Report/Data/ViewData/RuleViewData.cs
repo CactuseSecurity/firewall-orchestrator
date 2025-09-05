@@ -54,10 +54,9 @@ namespace FWO.Report.Data.ViewData
 
         private string ResolveCompliance(Rule rule, ComplianceViolationType? complianceViolationType)
         {
-
             return (complianceViolationType ?? rule.Compliance) switch
             {
-                ComplianceViolationType.NotEvaluable => "NOT EVALUABLE",
+                ComplianceViolationType.NotAssessable => "NOT ASSESSABLE",
                 ComplianceViolationType.None => "TRUE",
                 _ => "FALSE"
             };

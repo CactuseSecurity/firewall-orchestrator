@@ -194,6 +194,7 @@
 
     private List<ReportType> availableReportTypes { get; set; } = [];
     private ReportFilters actReportFilters = new();
+    List<FwoOwner> owners = [];
     private bool InitDone = false;
     private int? injectedAppId = null;
     private bool autoGenerateReport = false;
@@ -247,7 +248,7 @@
                 injectedAppId = appId;
                 if(showModellingReports)
                 {
-                    List<FwoOwner> owners = await apiConnection.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getEditableOwners, new { appIds = appId });
+                    owners = await apiConnection.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getEditableOwners, new { appIds = appId });
                     if(owners.Count > 0)
                     {
                         actReportFilters.ModellingFilter.SelectedOwner = owners.First();
@@ -351,7 +352,14 @@
 
     private async Task SyncFiltersFromTemplate(ReportTemplate template)
     {
-        template.ReportParams.ModellingFilter.SelectedOwner = template.ReportParams.ModellingFilter.SelectedTemplateOwner;
+        if (template.ReportParams.ReportType == (int)ReportType.OwnerRecertification)
+        {
+            template.ReportParams.ModellingFilter.SelectedOwners = owners;
+        }
+        else
+        {
+            template.ReportParams.ModellingFilter.SelectedOwner = template.ReportParams.ModellingFilter.SelectedTemplateOwner;
+        }
         filterInput = template.Filter;
         Tenant? tenantFromTemplate = null;
         if (template.ReportParams.TenantFilter.IsActive)

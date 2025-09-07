@@ -11235,19 +11235,20 @@
                   "permission": {
                     "check": {},
                     "columns": [
-                      "report_id",
                       "description",
+                      "read_only",
+                      "report_csv",
+                      "report_end_time",
+                      "report_html",
+                      "report_id",
+                      "report_json",
                       "report_name",
                       "report_owner_id",
+                      "report_pdf",
+                      "report_start_time",
                       "report_template_id",
                       "report_type",
-                      "tenant_wide_visible",
-                      "report_json",
-                      "report_csv",
-                      "report_html",
-                      "report_pdf",
-                      "report_end_time",
-                      "report_start_time"
+                      "tenant_wide_visible"
                     ]
                   }
                 },
@@ -11256,19 +11257,20 @@
                   "permission": {
                     "check": {},
                     "columns": [
-                      "report_id",
                       "description",
+                      "read_only",
+                      "report_csv",
+                      "report_end_time",
+                      "report_html",
+                      "report_id",
+                      "report_json",
                       "report_name",
                       "report_owner_id",
+                      "report_pdf",
+                      "report_start_time",
                       "report_template_id",
                       "report_type",
-                      "tenant_wide_visible",
-                      "report_json",
-                      "report_csv",
-                      "report_html",
-                      "report_pdf",
-                      "report_end_time",
-                      "report_start_time"
+                      "tenant_wide_visible"
                     ]
                   }
                 },
@@ -11277,19 +11279,20 @@
                   "permission": {
                     "check": {},
                     "columns": [
-                      "report_id",
                       "description",
+                      "read_only",
+                      "report_csv",
+                      "report_end_time",
+                      "report_html",
+                      "report_id",
+                      "report_json",
                       "report_name",
                       "report_owner_id",
+                      "report_pdf",
+                      "report_start_time",
                       "report_template_id",
                       "report_type",
-                      "tenant_wide_visible",
-                      "report_json",
-                      "report_csv",
-                      "report_html",
-                      "report_pdf",
-                      "report_end_time",
-                      "report_start_time"
+                      "tenant_wide_visible"
                     ]
                   }
                 },
@@ -11298,19 +11301,20 @@
                   "permission": {
                     "check": {},
                     "columns": [
-                      "report_id",
                       "description",
+                      "read_only",
+                      "report_csv",
+                      "report_end_time",
+                      "report_html",
+                      "report_id",
+                      "report_json",
                       "report_name",
                       "report_owner_id",
+                      "report_pdf",
+                      "report_start_time",
                       "report_template_id",
                       "report_type",
-                      "tenant_wide_visible",
-                      "report_json",
-                      "report_csv",
-                      "report_html",
-                      "report_pdf",
-                      "report_end_time",
-                      "report_start_time"
+                      "tenant_wide_visible"
                     ]
                   },
                   "comment": ""
@@ -11320,19 +11324,20 @@
                   "permission": {
                     "check": {},
                     "columns": [
-                      "report_id",
                       "description",
+                      "read_only",
+                      "report_csv",
+                      "report_end_time",
+                      "report_html",
+                      "report_id",
+                      "report_json",
                       "report_name",
                       "report_owner_id",
+                      "report_pdf",
+                      "report_start_time",
                       "report_template_id",
                       "report_type",
-                      "tenant_wide_visible",
-                      "report_json",
-                      "report_csv",
-                      "report_html",
-                      "report_pdf",
-                      "report_end_time",
-                      "report_start_time"
+                      "tenant_wide_visible"
                     ]
                   }
                 },
@@ -11341,19 +11346,20 @@
                   "permission": {
                     "check": {},
                     "columns": [
-                      "report_id",
                       "description",
+                      "read_only",
+                      "report_csv",
+                      "report_end_time",
+                      "report_html",
+                      "report_id",
+                      "report_json",
                       "report_name",
                       "report_owner_id",
+                      "report_pdf",
+                      "report_start_time",
                       "report_template_id",
                       "report_type",
-                      "tenant_wide_visible",
-                      "report_json",
-                      "report_csv",
-                      "report_html",
-                      "report_pdf",
-                      "report_end_time",
-                      "report_start_time"
+                      "tenant_wide_visible"
                     ]
                   }
                 },
@@ -11362,19 +11368,20 @@
                   "permission": {
                     "check": {},
                     "columns": [
-                      "report_id",
                       "description",
+                      "read_only",
+                      "report_csv",
+                      "report_end_time",
+                      "report_html",
+                      "report_id",
+                      "report_json",
                       "report_name",
                       "report_owner_id",
+                      "report_pdf",
+                      "report_start_time",
                       "report_template_id",
                       "report_type",
-                      "tenant_wide_visible",
-                      "report_json",
-                      "report_csv",
-                      "report_html",
-                      "report_pdf",
-                      "report_end_time",
-                      "report_start_time"
+                      "tenant_wide_visible"
                     ]
                   }
                 }
@@ -11384,19 +11391,20 @@
                   "role": "auditor",
                   "permission": {
                     "columns": [
-                      "report_id",
                       "description",
+                      "read_only",
+                      "report_csv",
+                      "report_end_time",
+                      "report_html",
+                      "report_id",
+                      "report_json",
                       "report_name",
                       "report_owner_id",
+                      "report_pdf",
+                      "report_start_time",
                       "report_template_id",
                       "report_type",
-                      "tenant_wide_visible",
-                      "report_json",
-                      "report_csv",
-                      "report_html",
-                      "report_pdf",
-                      "report_end_time",
-                      "report_start_time"
+                      "tenant_wide_visible"
                     ],
                     "filter": {}
                   }
@@ -11405,19 +11413,20 @@
                   "role": "fw-admin",
                   "permission": {
                     "columns": [
-                      "report_id",
                       "description",
+                      "read_only",
+                      "report_csv",
+                      "report_end_time",
+                      "report_html",
+                      "report_id",
+                      "report_json",
                       "report_name",
                       "report_owner_id",
+                      "report_pdf",
+                      "report_start_time",
                       "report_template_id",
                       "report_type",
-                      "tenant_wide_visible",
-                      "report_json",
-                      "report_csv",
-                      "report_html",
-                      "report_pdf",
-                      "report_end_time",
-                      "report_start_time"
+                      "tenant_wide_visible"
                     ],
                     "filter": {
                       "report_owner_id": {
@@ -11431,19 +11440,20 @@
                   "role": "modeller",
                   "permission": {
                     "columns": [
-                      "report_id",
                       "description",
+                      "read_only",
+                      "report_csv",
+                      "report_end_time",
+                      "report_html",
+                      "report_id",
+                      "report_json",
                       "report_name",
                       "report_owner_id",
+                      "report_pdf",
+                      "report_start_time",
                       "report_template_id",
                       "report_type",
-                      "tenant_wide_visible",
-                      "report_json",
-                      "report_csv",
-                      "report_html",
-                      "report_pdf",
-                      "report_end_time",
-                      "report_start_time"
+                      "tenant_wide_visible"
                     ],
                     "filter": {
                       "report_owner_id": {
@@ -11457,19 +11467,20 @@
                   "role": "recertifier",
                   "permission": {
                     "columns": [
-                      "report_id",
                       "description",
+                      "read_only",
+                      "report_csv",
+                      "report_end_time",
+                      "report_html",
+                      "report_id",
+                      "report_json",
                       "report_name",
                       "report_owner_id",
+                      "report_pdf",
+                      "report_start_time",
                       "report_template_id",
                       "report_type",
-                      "tenant_wide_visible",
-                      "report_json",
-                      "report_csv",
-                      "report_html",
-                      "report_pdf",
-                      "report_end_time",
-                      "report_start_time"
+                      "tenant_wide_visible"
                     ],
                     "filter": {
                       "report_owner_id": {
@@ -11483,19 +11494,20 @@
                   "role": "reporter",
                   "permission": {
                     "columns": [
-                      "report_id",
                       "description",
+                      "read_only",
+                      "report_csv",
+                      "report_end_time",
+                      "report_html",
+                      "report_id",
+                      "report_json",
                       "report_name",
                       "report_owner_id",
+                      "report_pdf",
+                      "report_start_time",
                       "report_template_id",
                       "report_type",
-                      "tenant_wide_visible",
-                      "report_json",
-                      "report_csv",
-                      "report_html",
-                      "report_pdf",
-                      "report_end_time",
-                      "report_start_time"
+                      "tenant_wide_visible"
                     ],
                     "filter": {
                       "report_owner_id": {
@@ -11509,19 +11521,20 @@
                   "role": "reporter-viewall",
                   "permission": {
                     "columns": [
-                      "report_id",
                       "description",
+                      "read_only",
+                      "report_csv",
+                      "report_end_time",
+                      "report_html",
+                      "report_id",
+                      "report_json",
                       "report_name",
                       "report_owner_id",
+                      "report_pdf",
+                      "report_start_time",
                       "report_template_id",
                       "report_type",
-                      "tenant_wide_visible",
-                      "report_json",
-                      "report_csv",
-                      "report_html",
-                      "report_pdf",
-                      "report_end_time",
-                      "report_start_time"
+                      "tenant_wide_visible"
                     ],
                     "filter": {
                       "report_owner_id": {

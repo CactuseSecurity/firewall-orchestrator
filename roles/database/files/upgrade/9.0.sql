@@ -1171,31 +1171,31 @@ ON CONFLICT (config_key, config_user) DO NOTHING;
 
 -- add assessability issue
 
-create table if not exists compliance.assessability_issue
-(
-    violation_id BIGINT NOT NULL,
-	type_id INT NOT NULL,
-	PRIMARY KEY(violation_id, type_id)
-);
+-- create table if not exists compliance.assessability_issue
+-- (
+--     violation_id BIGINT NOT NULL,
+-- 	type_id INT NOT NULL,
+-- 	PRIMARY KEY(violation_id, type_id)
+-- );
 
-create table if not exists compliance.assessability_issue_type
-(
-	type_id INT PRIMARY KEY,
-    type_name VARCHAR(50) NOT NULL
-);
+-- create table if not exists compliance.assessability_issue_type
+-- (
+-- 	type_id INT PRIMARY KEY,
+--     type_name VARCHAR(50) NOT NULL
+-- );
 
 
-ALTER TABLE compliance.assessability_issue 
-DROP CONSTRAINT IF EXISTS compliance_assessability_issue_type_foreign_key;
-ALTER TABLE compliance.assessability_issue ADD CONSTRAINT compliance_assessability_issue_type_foreign_key FOREIGN KEY (type_id) REFERENCES compliance.assessability_issue_type(type_id) ON UPDATE RESTRICT ON DELETE CASCADE;
-ALTER TABLE compliance.assessability_issue 
-DROP CONSTRAINT IF EXISTS compliance_assessability_issue_violation_foreign_key;
-ALTER TABLE compliance.assessability_issue ADD CONSTRAINT compliance_assessability_issue_violation_foreign_key FOREIGN KEY (violation_id) REFERENCES compliance.violation(id) ON UPDATE RESTRICT ON DELETE CASCADE;
+-- ALTER TABLE compliance.assessability_issue 
+-- DROP CONSTRAINT IF EXISTS compliance_assessability_issue_type_foreign_key;
+-- ALTER TABLE compliance.assessability_issue ADD CONSTRAINT compliance_assessability_issue_type_foreign_key FOREIGN KEY (type_id) REFERENCES compliance.assessability_issue_type(type_id) ON UPDATE RESTRICT ON DELETE CASCADE;
+-- ALTER TABLE compliance.assessability_issue 
+-- DROP CONSTRAINT IF EXISTS compliance_assessability_issue_violation_foreign_key;
+-- ALTER TABLE compliance.assessability_issue ADD CONSTRAINT compliance_assessability_issue_violation_foreign_key FOREIGN KEY (violation_id) REFERENCES compliance.violation(id) ON UPDATE RESTRICT ON DELETE CASCADE;
 
-insert into compliance.assessability_issue_type (type_id, type_name) VALUES (1, 'empty group') ON CONFLICT DO NOTHING;
-insert into compliance.assessability_issue_type (type_id, type_name) VALUES (2, 'broadcast address') ON CONFLICT DO NOTHING;
-insert into compliance.assessability_issue_type (type_id, type_name) VALUES (3, 'DHCP IP undefined address') ON CONFLICT DO NOTHING;
-insert into compliance.assessability_issue_type (type_id, type_name) VALUES (4, 'dynamic internet address') ON CONFLICT DO NOTHING;
+-- insert into compliance.assessability_issue_type (type_id, type_name) VALUES (1, 'empty group') ON CONFLICT DO NOTHING;
+-- insert into compliance.assessability_issue_type (type_id, type_name) VALUES (2, 'broadcast address') ON CONFLICT DO NOTHING;
+-- insert into compliance.assessability_issue_type (type_id, type_name) VALUES (3, 'DHCP IP undefined address') ON CONFLICT DO NOTHING;
+-- insert into compliance.assessability_issue_type (type_id, type_name) VALUES (4, 'dynamic internet address') ON CONFLICT DO NOTHING;
 
 -- add unique constraint for report_template_name
 

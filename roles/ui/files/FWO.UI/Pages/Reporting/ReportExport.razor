@@ -9,7 +9,7 @@
 @inject UserConfig userConfig
 
 <button type="button" class="btn btn-sm btn-dark" @onclick='() =>
-        { if (ReportToExport != null) { ShowExportDialog = true; reportExportFile = new ReportFile { Name = "Report", OwnerId = userConfig.User.DbId }; }
+        { if (ReportToExport != null) { ShowExportDialog = true; reportExportFile = new ReportFile { Name = "Report", OwningUserId = userConfig.User.DbId }; }
         else { DisplayMessageInUi(null, userConfig.GetText("export_report"), userConfig.GetText("E1002"), true); } }'>
     @(DisplayService.DisplayButton(userConfig, "export_report", Icons.Export))
 </button>
@@ -194,7 +194,7 @@
                             report_name = reportExportFile.Name,
                             report_start_time = DateTime.Now, // TODO: Change to correct dates
                             report_end_time = DateTime.Now,
-                            report_owner_id = reportExportFile.OwnerId,
+                            report_owner_id = reportExportFile.OwningUserId,
                             report_csv = reportExportFile.Csv,
                             report_pdf = reportExportFile.Pdf,
                             report_html = reportExportFile.Html,

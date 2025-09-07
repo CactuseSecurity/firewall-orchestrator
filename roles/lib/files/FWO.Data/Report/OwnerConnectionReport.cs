@@ -1,8 +1,8 @@
-﻿using FWO.Data.Modelling;
+using FWO.Data.Modelling;
 
 namespace FWO.Data.Report
 {
-    public class OwnerReport : ConnectionReport
+    public class OwnerConnectionReport : ConnectionReport
     {
         public FwoOwner Owner { get; set; } = new();
         public List<ModellingConnection> Connections { get; set; } = [];
@@ -20,15 +20,15 @@ namespace FWO.Data.Report
         public string ImplementationState { get; set; } = "";
 
 
-        public OwnerReport()
+        public OwnerConnectionReport()
         {}
 
-        public OwnerReport(long dummyARid)
+        public OwnerConnectionReport(long dummyARid)
         {
             DummyARid = dummyARid;
         }
 
-        public OwnerReport(OwnerReport report): base(report)
+        public OwnerConnectionReport(OwnerConnectionReport report): base(report)
         {
             Owner = report.Owner;
             Connections = report.Connections;

@@ -232,9 +232,9 @@
     {
         try
         {
-            availableReportTypes = CustomSortReportType(
+            availableReportTypes = ReportTypeGroups.CustomSortReportType(
                 JsonSerializer.Deserialize<List<ReportType>>(string.IsNullOrEmpty(userConfig.AvailableReportTypes) ? "[]" : userConfig.AvailableReportTypes)
-                ?? throw new JsonException("Config data could not be parsed."));
+                ?? throw new JsonException("Config data could not be parsed."), showRuleRelatedReports, showModellingReports);
             SetProperRoleForReport();
             actReportFilters.DeviceFilter.Managements = await apiConnection.SendQueryAsync<List<ManagementSelect>>(DeviceQueries.getDevicesByManagement);
             if(int.TryParse(AppId, out int appId))
@@ -497,34 +497,5 @@
             DisplayMessageInUi(unexpectedError, userConfig.GetText("filter"), "", false);
 #endif
         }
-    }
-
-    private List<ReportType> CustomSortReportType(List<ReportType> ListIn)
-    {
-        List<ReportType> ListOut = [];
-        List<ReportType> orderedReportTypeList = new ()
-        {
-            ReportType.Rules, ReportType.ResolvedRules, ReportType.ResolvedRulesTech, ReportType.UnusedRules, ReportType.NatRules,
-            ReportType.Recertification,
-            ReportType.Changes, ReportType.ResolvedChanges, ReportType.ResolvedChangesTech, 
-            ReportType.Statistics,
-            ReportType.Connections,
-            ReportType.AppRules,
-            ReportType.VarianceAnalysis
-        };
-        foreach (var reportType in orderedReportTypeList)
-        {
-            if (ListIn.Contains(reportType))
-            {
-                if(showRuleRelatedReports && reportType.IsDeviceRelatedReport() || showModellingReports && reportType.IsModellingReport())
-                {
-                    ListOut.Add(reportType);
-                }
-                ListIn.Remove(reportType);
-            }
-        }
-        // finally add remaining report types
-        ListOut.AddRange(ListIn);
-        return ListOut;
     }
 }

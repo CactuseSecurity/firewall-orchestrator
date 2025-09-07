@@ -971,6 +971,7 @@ Create table "report"
 	"tenant_wide_visible" Integer,
 	"report_type" Integer,
 	"description" varchar,
+	"read_only" Boolean default FALSE,
  	primary key ("report_id")
 );
 

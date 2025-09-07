@@ -241,13 +241,14 @@ class FwConfigImportCheckConsistency(FwConfigImport):
 
     
     def checkZoneObjectConsistency(self, config: FwConfigManagerListController):
+
+        global_objects = set()
         for mgr in sorted(config.ManagerSet, key=lambda m: not getattr(m, 'IsSuperManager', False)):
             if len(mgr.Configs)==0:
                 continue
             if mgr.IsSuperManager:
                 global_objects = config.get_all_zone_uids(mgr.ManagerUid)
-            else:
-                global_objects = set()
+
             all_used_obj_refs: set[str] = set()
             for single_config in mgr.Configs:
                 all_used_obj_refs |= self._collect_zone_refs_from_rules(single_config)

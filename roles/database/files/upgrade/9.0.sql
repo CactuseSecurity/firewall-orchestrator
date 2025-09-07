@@ -113,6 +113,94 @@ ALTER TYPE rule_field_enum ADD VALUE IF NOT EXISTS 'modelled_destination';
 insert into stm_track (track_id,track_name) VALUES (23,'detailed log') ON CONFLICT DO NOTHING; -- check point R8x
 insert into stm_track (track_id,track_name) VALUES (24,'extended log') ON CONFLICT DO NOTHING; -- check point R8x
 
+-- 8.8.8
+DO $$ 
+BEGIN
+    IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'fwo_ro') THEN
+        CREATE ROLE fwo_ro WITH LOGIN NOSUPERUSER INHERIT NOCREATEDB NOCREATEROLE;
+    END IF;
+END
+$$;
+
+
+GRANT CONNECT ON DATABASE fworchdb TO fwo_ro;
+
+GRANT USAGE ON SCHEMA compliance TO fwo_ro;
+GRANT SELECT ON ALL TABLES IN SCHEMA compliance TO fwo_ro;
+GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA compliance TO fwo_ro;
+ALTER DEFAULT PRIVILEGES IN SCHEMA compliance GRANT SELECT ON TABLES TO fwo_ro;
+ALTER DEFAULT PRIVILEGES IN SCHEMA compliance GRANT USAGE, SELECT ON SEQUENCES TO fwo_ro;
+
+GRANT USAGE ON SCHEMA modelling TO fwo_ro;
+GRANT SELECT ON ALL TABLES IN SCHEMA modelling TO fwo_ro;
+GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA modelling TO fwo_ro;
+ALTER DEFAULT PRIVILEGES IN SCHEMA modelling GRANT SELECT ON TABLES TO fwo_ro;
+ALTER DEFAULT PRIVILEGES IN SCHEMA modelling GRANT USAGE, SELECT ON SEQUENCES TO fwo_ro;
+
+GRANT USAGE ON SCHEMA public TO fwo_ro;
+GRANT SELECT ON ALL TABLES IN SCHEMA public TO fwo_ro;
+GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO fwo_ro;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT ON TABLES TO fwo_ro;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT USAGE, SELECT ON SEQUENCES TO fwo_ro;
+
+GRANT USAGE ON SCHEMA request TO fwo_ro;
+GRANT SELECT ON ALL TABLES IN SCHEMA request TO fwo_ro;
+GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA request TO fwo_ro;
+ALTER DEFAULT PRIVILEGES IN SCHEMA request GRANT SELECT ON TABLES TO fwo_ro;
+ALTER DEFAULT PRIVILEGES IN SCHEMA request GRANT USAGE, SELECT ON SEQUENCES TO fwo_ro;
+
+-- 8.8.9
+-- create table if not exists owner_recertification
+-- (
+--     id BIGSERIAL PRIMARY KEY,
+--     owner_id int NOT NULL,
+--     user_dn varchar,
+--     recertified boolean default false,
+--     recert_date Timestamp,
+--     comment varchar,
+--     next_recert_date Timestamp
+-- );
+
+-- create table if not exists notification
+-- (
+--     id SERIAL PRIMARY KEY,
+-- 	notification_client Varchar,
+-- 	user_id int,
+-- 	owner_id int,
+-- 	channel Varchar,
+-- 	recipient_to Varchar,
+--     email_address_to Varchar,
+-- 	recipient_cc Varchar,
+-- 	email_address_cc Varchar,
+-- 	email_subject Varchar,
+-- 	layout Varchar,
+-- 	deadline Varchar,
+-- 	interval_before_deadline int,
+-- 	offset_before_deadline int,
+-- 	repeat_interval_after_deadline int,
+-- 	repeat_offset_after_deadline int,
+-- 	repetitions_after_deadline int,
+-- 	last_sent Timestamp
+-- );
+
+-- alter table notification drop constraint if exists notification_owner_foreign_key;
+-- ALTER TABLE notification ADD CONSTRAINT notification_owner_foreign_key FOREIGN KEY (owner_id) REFERENCES owner(id) ON UPDATE RESTRICT ON DELETE CASCADE;
+-- alter table notification drop constraint if exists notification_user_foreign_key;
+-- ALTER TABLE notification ADD CONSTRAINT notification_user_foreign_key FOREIGN KEY (user_id) REFERENCES uiuser(uiuser_id) ON UPDATE RESTRICT ON DELETE CASCADE;
+
+-- alter table owner add column if not exists last_recertified Timestamp;
+-- alter table owner add column if not exists last_recertifier int;
+-- alter table owner add column if not exists last_recertifier_dn Varchar;
+-- alter table owner add column if not exists next_recert_date Timestamp;
+
+-- alter table owner drop constraint if exists owner_last_recertifier_uiuser_uiuser_id_f_key;
+-- alter table owner add constraint owner_last_recertifier_uiuser_uiuser_id_f_key foreign key (last_recertifier) references uiuser (uiuser_id) on update restrict;
+
+-- insert into config (config_key, config_value, config_user) VALUES ('modDecommEmailReceiver', 'None', 0) ON CONFLICT DO NOTHING;
+-- insert into config (config_key, config_value, config_user) VALUES ('modDecommEmailSubject', '', 0) ON CONFLICT DO NOTHING;
+-- insert into config (config_key, config_value, config_user) VALUES ('modDecommEmailBody', '', 0) ON CONFLICT DO NOTHING;
+
+------------------------------------------------------------------------------------
 -- rename changes_found column to rule_changes_found in import_control table
 DO $$
 BEGIN
@@ -298,6 +386,39 @@ CREATE TABLE IF NOT EXISTS "latest_config" (
     "config" jsonb NOT NULL,
     PRIMARY KEY ("mgm_id")
 );
+
+
+-- Drop old primary key if it exists
+DO $$
+BEGIN
+    IF EXISTS (
+        SELECT 1
+        FROM pg_constraint
+        WHERE conrelid = 'latest_config'::regclass
+          AND contype = 'p'
+    ) THEN
+        ALTER TABLE latest_config DROP CONSTRAINT latest_config_pkey;
+    END IF;
+END $$;
+
+-- Add new primary key on mgm_id if not already set
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1
+        FROM pg_constraint
+        WHERE conrelid = 'latest_config'::regclass
+          AND contype = 'p'
+          AND conkey = ARRAY[
+              (SELECT attnum FROM pg_attribute
+               WHERE attrelid = 'latest_config'::regclass
+                 AND attname = 'mgm_id')
+          ]
+    ) THEN
+        ALTER TABLE latest_config ADD CONSTRAINT latest_config_pkey PRIMARY KEY (mgm_id);
+    END IF;
+END $$;
+
 
 ALTER table "import_control" ADD COLUMN IF NOT EXISTS "is_full_import" BOOLEAN DEFAULT FALSE;
 
@@ -1047,6 +1168,34 @@ ON CONFLICT (config_key, config_user) DO NOTHING;
 INSERT INTO config (config_key, config_value, config_user) 
 VALUES ('complianceCheckPolicy', '0', 0)
 ON CONFLICT (config_key, config_user) DO NOTHING;
+
+-- add assessability issue
+
+create table if not exists compliance.assessability_issue
+(
+    violation_id BIGINT NOT NULL,
+	type_id INT NOT NULL,
+	PRIMARY KEY(violation_id, type_id)
+);
+
+create table if not exists compliance.assessability_issue_type
+(
+	type_id INT PRIMARY KEY,
+    type_name VARCHAR(50) NOT NULL
+);
+
+
+ALTER TABLE compliance.assessability_issue 
+DROP CONSTRAINT IF EXISTS compliance_assessability_issue_type_foreign_key;
+ALTER TABLE compliance.assessability_issue ADD CONSTRAINT compliance_assessability_issue_type_foreign_key FOREIGN KEY (type_id) REFERENCES compliance.assessability_issue_type(type_id) ON UPDATE RESTRICT ON DELETE CASCADE;
+ALTER TABLE compliance.assessability_issue 
+DROP CONSTRAINT IF EXISTS compliance_assessability_issue_violation_foreign_key;
+ALTER TABLE compliance.assessability_issue ADD CONSTRAINT compliance_assessability_issue_violation_foreign_key FOREIGN KEY (violation_id) REFERENCES compliance.violation(id) ON UPDATE RESTRICT ON DELETE CASCADE;
+
+insert into compliance.assessability_issue_type (type_id, type_name) VALUES (1, 'empty group') ON CONFLICT DO NOTHING;
+insert into compliance.assessability_issue_type (type_id, type_name) VALUES (2, 'broadcast address') ON CONFLICT DO NOTHING;
+insert into compliance.assessability_issue_type (type_id, type_name) VALUES (3, 'DHCP IP undefined address') ON CONFLICT DO NOTHING;
+insert into compliance.assessability_issue_type (type_id, type_name) VALUES (4, 'dynamic internet address') ON CONFLICT DO NOTHING;
 
 -- add unique constraint for report_template_name
 

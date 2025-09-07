@@ -249,21 +249,6 @@ def getAccessPolicy(sid, fm_api_url, native_config_domain, adom_device_vdom_poli
     options = ['extra info', 'scope member', 'get meta']
     # pkg_name = device['package_name'] pkg_name is not used at all
 
-    # get hitcount task number
-    hitcount_payload = {
-        "params": [
-            {
-                "data": {
-                    "adom": adom_name,
-                    "pkg": local_pkg_name
-                }
-            }
-        ]
-    }
-    hitcount_task = fmgr_getter.fortinet_api_call(
-        sid, fm_api_url, "/sys/hitcount", payload=hitcount_payload, method="get")
-    time.sleep(2)
-
     # delete_v: hier initial link wenn global header existiert
     # get global header rulebase:
     # if device['global_rulebase_name'] is None or device['global_rulebase_name'] == '':
@@ -291,6 +276,27 @@ def getAccessPolicy(sid, fm_api_url, native_config_domain, adom_device_vdom_poli
     #     fmgr_getter.update_config_with_fortinet_api_call(
     #         nativeConfig['rules_global_footer_v6'], sid, fm_api_url, "/pm/config/global/pkg/" + global_pkg_name + "/global/footer" + consolidated + "/policy6", local_pkg_name, limit=limit)
 
+    ### now dealing with hitcounts
+
+    # get hitcount task number
+    hitcount_payload = {
+        "params": [
+            {
+                "data": {
+                    "adom": adom_name,
+                    "pkg": local_pkg_name
+                }
+            }
+        ]
+    }
+    hitcount_task = fmgr_getter.fortinet_api_call(
+        sid, fm_api_url, "/sys/hitcount", payload=hitcount_payload, method="get")
+    time.sleep(2)
+
+    if len(hitcount_task) == 0 or 'task' not in hitcount_task[0]:
+        logger.warning(f"did not get hitcount task for adom {adom_name} and package {local_pkg_name} - skipping hitcount")
+        return
+    
     # execute hitcount task
     hitcount_payload = {
         "params": [

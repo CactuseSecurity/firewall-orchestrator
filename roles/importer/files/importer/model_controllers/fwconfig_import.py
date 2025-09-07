@@ -258,7 +258,7 @@ class FwConfigImport():
                 errorsFound = 1
 
             if errorsFound:
-                getFwoLogger().warning(f"error while writing latest config for mgm_id: {self.import_state.ImportId}")        
+                getFwoLogger().warning(f"error while writing latest config for import_id {self.import_state.ImportId}, mgm_id: {self.import_state.MgmDetails.Id}, mgm_uid: {self.import_state.MgmDetails.Uid}")
 
         
     def deleteLatestConfigOfManagement(self) -> int:

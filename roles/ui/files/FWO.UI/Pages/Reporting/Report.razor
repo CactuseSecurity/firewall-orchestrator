@@ -137,6 +137,10 @@
                             <VariancesReport OwnerData="currentReport.ReportData.OwnerData"/>
                             break;
 
+                        case ReportType.OwnerRecertification:
+                            <OwnerRecertReport OwnerData="currentReport.ReportData.OwnerData"/>
+                            break;
+
                         default:
                             break;
                     }
@@ -394,7 +398,7 @@
             processing = true;
             SetProperRoleForReport();
             await PrepareReportGeneration();
-            currentReport = await ReportGenerator.Generate(ConstructReportTemplate(), apiConnection, userConfig, DisplayMessageInUi, token);
+            currentReport = await ReportGenerator.GenerateFromTemplate(ConstructReportTemplate(), apiConnection, userConfig, DisplayMessageInUi, token);
             processing = false;
             PostProcess();
         }

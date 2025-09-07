@@ -1,0 +1,36 @@
+﻿@using FWO.Ui.Display
+@using FWO.Config.Api
+@using FWO.Report
+@using FWO.Report.Filter
+@using FWO.Data.Modelling
+
+
+@inject UserConfig userConfig
+
+<h5>@(userConfig.GetText("U4003"))</h5>
+
+@if(OwnerData.Count > 0)
+{
+    <Table TableClass="table table-bordered table-sm th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="FwoOwner" Items="OwnerData.Select(o => o.Owner)">
+        <Column TableItem="FwoOwner" Title="@(userConfig.GetText("next_recert_date"))" Field="@(x => x.Id)" >
+            <Template>
+                @(GetNextRecertDate(context))
+            </Template>
+        </Column>
+        <Column TableItem="FwoOwner" Title="@(userConfig.GetText("id"))" Field="@(x => x.Id)" />
+        <Column TableItem="FwoOwner" Title="@(userConfig.GetText("name"))" Field="@(x => x.Name)" />
+        <Column TableItem="FwoOwner" Title="@(userConfig.GetText("last_recertified"))" Field="@(x => x.LastRecertified)" />
+        <Column TableItem="FwoOwner" Title="@(userConfig.GetText("last_recertifier"))" Field="@(x => new DistName(x.LastRecertifierDn).UserName)" />
+    </Table>
+}
+
+@code
+{
+    [Parameter]
+    public List<OwnerConnectionReport> OwnerData { get; set; } = [];
+
+    private string GetNextRecertDate(FwoOwner owner)
+    {
+        return owner.NextRecertDate != null ? ((DateTime)owner.NextRecertDate).ToString("dd.MM.yyyy") : "";
+    }
+}

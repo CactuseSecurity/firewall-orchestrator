@@ -2861,6 +2861,8 @@ INSERT INTO txt VALUES ('U4001', 'German',  'Sind sie sicher, dass sie folgende 
 INSERT INTO txt VALUES ('U4001', 'English', 'Do you really want to delete notification ');
 INSERT INTO txt VALUES ('U4002', 'German',  'Die App @@APPNAME@@ mit @@RULE_NUMBER@@ Regeln wurde erfolgreich rezertifiziert.');
 INSERT INTO txt VALUES ('U4002', 'English', 'Recertified @@APPNAME@@ with @@RULE_NUMBER@@ rules successfully.');
+INSERT INTO txt VALUES ('U4003', 'German',  'Die Rezertifizierung folgender Apps ist &uuml;berf&auml;llig:');
+INSERT INTO txt VALUES ('U4003', 'English', 'Following apps are overdue to be recertified:');
 
 INSERT INTO txt VALUES ('U5001', 'German',  'Setup und Verwaltung des Firewall Orchestrator. Bitte eine Einstellung in der linken Randleiste ausw&auml;hlen.');
 INSERT INTO txt VALUES ('U5001', 'English', 'Setup and administration of Firewall Orchestrator. Please choose a setting in the left sidebar.');

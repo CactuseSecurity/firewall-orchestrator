@@ -202,7 +202,7 @@ namespace FWO.Middleware.Server
                     }
                 };
 
-                ReportData reportData = (await ReportGenerator.Generate(new ReportTemplate("", reportParams), apiConnection, userConfig, DefaultInit.DoNothing))?.ReportData ?? new();
+                ReportData reportData = (await ReportGenerator.GenerateFromTemplate(new ReportTemplate("", reportParams), apiConnection, userConfig, DefaultInit.DoNothing))?.ReportData ?? new();
 
                 foreach (var management in reportData.ManagementData)
                 {

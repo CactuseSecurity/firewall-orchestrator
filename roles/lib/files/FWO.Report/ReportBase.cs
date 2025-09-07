@@ -217,7 +217,7 @@ namespace FWO.Report
                     HtmlTemplate = HtmlTemplate.Replace("<p>##Date-of-Config##: ##GeneratedFor## (UTC)</p>", "");
                 }
 
-                if(ownerFilter != null)
+                if(ownerFilter != null && ownerFilter != "")
                 {
                     HtmlTemplate = HtmlTemplate.Replace("##OwnerFilters##", userConfig.GetText("owners") + ": " + ownerFilter);
                 }

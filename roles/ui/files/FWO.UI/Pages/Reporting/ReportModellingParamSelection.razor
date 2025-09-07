@@ -4,13 +4,16 @@
 @inject UserConfig userConfig
 
 <div class="p-3">
-    <h5 class="text-left">@(userConfig.GetText("owner"))</h5>
-    <Dropdown ElementType="FwoOwner" ElementToString="@(o => o.Display(userConfig.GetText("common_service")))" Nullable="false" 
-            @bind-SelectedElement="ModellingFilter.SelectedOwner" Elements="ownerList">
-        <ElementTemplate Context="owner">
-            @owner.Display(userConfig.GetText("common_service"))
-        </ElementTemplate>
-    </Dropdown>
+    @if(ReportType != ReportType.OwnerRecertification)
+    {
+        <h5 class="text-left">@(userConfig.GetText("owner"))</h5>
+        <Dropdown ElementType="FwoOwner" ElementToString="@(o => o.Display(userConfig.GetText("common_service")))" Nullable="false" 
+                @bind-SelectedElement="ModellingFilter.SelectedOwner" Elements="ownerList">
+            <ElementTemplate Context="owner">
+                @owner.Display(userConfig.GetText("common_service"))
+            </ElementTemplate>
+        </Dropdown>
+    }
     @if(ReportType == ReportType.AppRules)
     {
         <br>
@@ -48,7 +51,7 @@
             <label class="form-check-label text-white" for="showFull">@(userConfig.GetText("show_full_rules"))</label>
         </div>
     }
-     else if(ReportType == ReportType.VarianceAnalysis)
+    else if(ReportType == ReportType.VarianceAnalysis)
     {
         <br>
         <h5 class="text-left">@(userConfig.GetText("variance_filters"))</h5>
@@ -88,14 +91,30 @@
         try
         {
             ownerList = await ModellingHandlerBase.GetOwnApps(authenticationStateTask ?? throw new AuthenticationException("Authentication missing"), userConfig, apiConnection, DisplayMessageInUi);
-            if(ownerList.Count > 0)
-            {
-                ModellingFilter.SelectedOwner = InjectedAppId == null ? ownerList.First() : ownerList.FirstOrDefault(o => o.Id == InjectedAppId) ?? ownerList.First();
-            }
         }
         catch (Exception exception)
         {
             DisplayMessageInUi(exception, userConfig.GetText("object_fetch"), "", true);
+        }
+    }
+
+    protected override void OnParametersSet()
+    {
+        if(ReportType == ReportType.OwnerRecertification)
+        {
+            ModellingFilter.SelectedOwners = ownerList;
+        }
+        else
+        {
+            PickSelectedOwner();
+        }
+    }
+
+    private void PickSelectedOwner()
+    {
+        if(ownerList.Count > 0)
+        {
+            ModellingFilter.SelectedOwner = InjectedAppId == null ? ownerList.First() : ownerList.FirstOrDefault(o => o.Id == InjectedAppId) ?? ownerList.First();
         }
     }
 }

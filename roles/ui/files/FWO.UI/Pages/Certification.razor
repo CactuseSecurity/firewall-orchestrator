@@ -238,7 +238,7 @@
                 return;
             }
 
-            currentReport = await ReportGenerator.Generate(new ReportTemplate("", prepareReportParams()), apiConnection, userConfig, DisplayMessageInUi);
+            currentReport = await ReportGenerator.GenerateFromTemplate(new ReportTemplate("", prepareReportParams()), apiConnection, userConfig, DisplayMessageInUi);
             if(currentReport != null)
             {
                 managementsReport = currentReport?.ReportData.ManagementData ?? new();

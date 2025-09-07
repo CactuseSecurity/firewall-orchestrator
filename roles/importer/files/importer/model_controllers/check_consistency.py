@@ -246,6 +246,8 @@ class FwConfigImportCheckConsistency(FwConfigImport):
                 continue
             if mgr.IsSuperManager:
                 global_objects = config.get_all_zone_uids(mgr.ManagerUid)
+            else:
+                global_objects = set()
             all_used_obj_refs: set[str] = set()
             for single_config in mgr.Configs:
                 all_used_obj_refs |= self._collect_zone_refs_from_rules(single_config)
@@ -253,9 +255,9 @@ class FwConfigImportCheckConsistency(FwConfigImport):
                 all_used_obj_refs = set(all_used_obj_refs)
 
             # and get all refs not contained in zone_objects
-            unresolvableObRefs = all_used_obj_refs - config.get_all_zone_uids(mgr.ManagerUid) - global_objects
-            if len(unresolvableObRefs)>0:
-                self.issues.update({'unresolvableZoneObRefs': list(unresolvableObRefs)})
+            unresolvable_object_refs = all_used_obj_refs - config.get_all_zone_uids(mgr.ManagerUid) - global_objects
+            if len(unresolvable_object_refs)>0:
+                self.issues.update({'unresolvableZoneObRefs': list(unresolvable_object_refs)})
 
    
     @staticmethod

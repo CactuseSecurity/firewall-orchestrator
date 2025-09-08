@@ -22,6 +22,7 @@ class Uid2IdMapper:
     outdated_nwobj_uid2id: Dict[str, int]
     outdated_svc_uid2id: Dict[str, int]
     outdated_user_uid2id: Dict[str, int]
+    outdated_zone_uid2id: Dict[str, int]
     outdated_rule_uid2id: Dict[str, int]
 
     @property
@@ -42,14 +43,17 @@ class Uid2IdMapper:
         self.svc_uid2id = {}
         self.user_uid2id = {}
         self.rule_uid2id = {}
+        self.zone_uid2id = {}
         self.outdated_nwobj_uid2id = {}
         self.outdated_svc_uid2id = {}
         self.outdated_user_uid2id = {}
+        self.outdated_zone_uid2id = {}
         self.outdated_rule_uid2id = {}
         self.global_nwobj_uid2id = {}
         self.global_svc_uid2id = {}
         self.global_user_uid2id = {}
         self.global_rule_uid2id = {}
+        self.global_zone_uid2id = {}
 
     def log_error(self, message: str):
         """
@@ -93,6 +97,7 @@ class Uid2IdMapper:
             self.log_error(f"Network object UID '{uid}' not found in mapping.")
         return nwobj_id
     
+
     def get_service_object_id(self, uid: str, before_update: bool = False, local_only: bool = False) -> int:
         """
         Get the ID for a given service object UID.
@@ -116,6 +121,7 @@ class Uid2IdMapper:
             self.log_error(f"Service object UID '{uid}' not found in mapping.")
         return svc_id
     
+
     def get_user_id(self, uid: str, before_update: bool = False, local_only: bool = False) -> int:
         """
         Get the ID for a given user UID.
@@ -138,6 +144,31 @@ class Uid2IdMapper:
             self.log_error(f"User UID '{uid}' not found in mapping.")
         return usr_id
     
+
+    def get_zone_object_id(self, uid: str, before_update: bool = False, local_only: bool = False) -> int:
+        """
+        Get the ID for a given zone UID.
+        
+        Args:
+            uid (str): The UID of the zone.
+            before_update (bool): If True, use the outdated mapping if available.
+        
+        Returns:
+            int: The ID of the zone
+        """
+        if before_update:
+            zone_id = self.outdated_zone_uid2id.get(uid)
+            if zone_id is not None:
+                return zone_id
+
+        zone_id = self.zone_uid2id.get(uid)
+        if not local_only and zone_id is None:
+            zone_id = self.global_zone_uid2id.get(uid)
+        if zone_id is None:
+            self.log_error(f"Zone UID '{uid}' not found in mapping.")
+        return zone_id
+
+
     def get_rule_id(self, uid: str, before_update: bool = False) -> int:
         """
         Get the ID for a given rule UID.
@@ -209,6 +240,32 @@ class Uid2IdMapper:
             main_map[mapping['svc_uid']] = mapping['svc_id']
 
         self.log_debug(f"Added {len(mappings)} service object mappings.")
+        return True
+
+
+    def add_zone_mappings(self, mappings: list[dict], is_global=False) -> bool:
+        """
+        Add zone object mappings to the internal mapping dictionary.
+
+        Args:
+            mappings (list[dict]): A list of dictionaries containing UID and ID mappings.
+                    Each dictionary should have 'zone_name' and 'zone_id' keys.
+
+        Returns:
+            bool: True if the mappings were added successfully, False otherwise.
+        """
+        main_map = self.global_zone_uid2id if is_global else self.zone_uid2id
+        outdated_map = self.outdated_zone_uid2id
+
+        for mapping in mappings:
+            if 'zone_name' not in mapping or 'zone_id' not in mapping:
+                self.log_error("Invalid mapping format. Each mapping must contain 'zone_name' and 'zone_id'.")
+                return False
+            if mapping['zone_name'] in main_map:
+                outdated_map[mapping['zone_name']] = main_map[mapping['zone_name']]
+            main_map[mapping['zone_name']] = mapping['zone_id']
+
+        self.log_debug(f"Added {len(mappings)} zone mappings.")
         return True
 
 

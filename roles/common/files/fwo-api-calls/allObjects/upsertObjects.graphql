@@ -4,15 +4,19 @@ mutation upsertObjects(
   $removedNwObjectUids: [String!]!
   $removedSvcObjectUids: [String!]!
   $removedUserUids: [String!]!
+  $removedZoneUids: [String!]!
   $newNwObjects: [object_insert_input!]!
   $newSvcObjects: [service_insert_input!]!
   $newUsers: [usr_insert_input!]!
+  $newZones: [zone_insert_input!]!
 ) {
-  update_object(where: {mgm_id: {_eq: $mgmId}, obj_uid: {_in: $removedNwObjectUids}, removed: {_is_null: true}},
-    _set: {
-      removed: $importId,
-      active: false
+  update_object(
+    where: {
+      mgm_id: { _eq: $mgmId }
+      obj_uid: { _in: $removedNwObjectUids }
+      removed: { _is_null: true }
     }
+    _set: { removed: $importId, active: false }
   ) {
     affected_rows
     returning {
@@ -21,11 +25,13 @@ mutation upsertObjects(
       obj_typ_id
     }
   }
-  update_service(where: {mgm_id: {_eq: $mgmId}, svc_uid: {_in: $removedSvcObjectUids}, removed: {_is_null: true}},
-    _set: {
-      removed: $importId,
-      active: false
+  update_service(
+    where: {
+      mgm_id: { _eq: $mgmId }
+      svc_uid: { _in: $removedSvcObjectUids }
+      removed: { _is_null: true }
     }
+    _set: { removed: $importId, active: false }
   ) {
     affected_rows
     returning {
@@ -33,16 +39,32 @@ mutation upsertObjects(
       svc_uid
     }
   }
-  update_usr(where: {mgm_id: {_eq: $mgmId}, user_uid: {_in: $removedUserUids}, removed: {_is_null: true}},
-    _set: {
-      removed: $importId,
-      active: false
+  update_usr(
+    where: {
+      mgm_id: { _eq: $mgmId }
+      user_uid: { _in: $removedUserUids }
+      removed: { _is_null: true }
     }
+    _set: { removed: $importId, active: false }
   ) {
     affected_rows
     returning {
       user_id
       user_uid
+    }
+  }
+  update_zone(
+    where: {
+      mgm_id: { _eq: $mgmId }
+      zone_name: { _in: $removedZoneUids }
+      removed: { _is_null: true }
+    }
+    _set: { removed: $importId, active: false }
+  ) {
+    affected_rows
+    returning {
+      zone_id
+      zone_name
     }
   }
   insert_object(objects: $newNwObjects) {
@@ -65,6 +87,13 @@ mutation upsertObjects(
     returning {
       user_id
       user_uid
+    }
+  }
+  insert_zone(objects: $newZones) {
+    affected_rows
+    returning {
+      zone_id
+      zone_name
     }
   }
 }

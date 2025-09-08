@@ -4,8 +4,6 @@ def normalize_zones(full_config, config2import, import_id):
     for orig_zone in full_config['zone_objects']['zone_list']:
         zone = {}
         zone.update({'zone_name': orig_zone})
-        zone.update({'zone_uid': orig_zone})
-        # zone.update({'control_id': import_id})
         zones.append(zone)
         
     config2import.update({'zone_objects': zones})
@@ -25,6 +23,6 @@ def add_zone_if_missing(normalized_config: dict, zone_string):
             if zone_string == zone['zone_name']:
                 zone_exists = True
         if not zone_exists:
-            normalized_config['zone_objects'].append({'zone_name': zone_string, 'zone_uid': zone_string})
+            normalized_config['zone_objects'].append({'zone_name': zone_string})
     return zone_string
     

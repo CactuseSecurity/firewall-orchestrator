@@ -106,7 +106,7 @@ def update_config_with_fortinet_api_call(config_json, sid, api_base_url, api_pat
         if len(result)<limit:
             returned_new_objects = False
 
-    parse_special_fortinet_api_results(result_name, full_result)
+    full_result = parse_special_fortinet_api_results(result_name, full_result)
 
     config_json.append({'type': result_name, 'data': full_result})
 
@@ -119,6 +119,7 @@ def parse_special_fortinet_api_results(result_name, full_result):
             logger = getFwoLogger()
             logger.warning(f"did not get expected results for {result_name} - setting to empty list")
             full_result = []
+    return full_result
 
 
 def fortinet_api_call(sid, api_base_url, api_path, payload={}, method='get'):

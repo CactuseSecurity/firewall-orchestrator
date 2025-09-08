@@ -128,20 +128,20 @@
                 Interval = 500
             };
 
-		UIMessageQueTimer.Elapsed += OnUIMessageTimerTick;
+        UIMessageQueTimer.Elapsed += OnUIMessageTimerTick;
 
-		EventMediator.Subscribe<UserSessionClosedEvent>(nameof(CircuitHandlerService), _ => OnUserSessionClosedEvent(_.EventArgs));
+        EventMediator.Subscribe<UserSessionClosedEvent>(nameof(CircuitHandlerService), _ => OnUserSessionClosedEvent(_.EventArgs));
     }
 
-	private void OnUserSessionClosedEvent(UserSessionClosedEventArgs? e)
-	{
-		if (e == null || string.IsNullOrEmpty(e.UserDn))
-		{
-			return;
-		}
+    private void OnUserSessionClosedEvent(UserSessionClosedEventArgs? e)
+    {
+        if (e == null || string.IsNullOrEmpty(e.UserDn))
+        {
+            return;
+        }
 
-		JwtEventService.RemoveJwtTimers(e.UserDn);
-	}
+        JwtEventService.RemoveJwtTimers(e.UserDn);
+    }
 
     private async Task KeyHandler(KeyboardEventArgs ev)
     {
@@ -301,6 +301,15 @@
 
     private void HideUIMessage(string messageId)
     {
+        UIMessage? uiMessage = UIMessages.FirstOrDefault(_ => _.Id == messageId);
+
+        if (uiMessage is null)
+        {
+            return;
+        }
+
+        uiMessage.Dispose();
+
         UIMessages.RemoveAll(_ => _.Id == messageId);
 
         InvokeAsync(StateHasChanged);
@@ -445,7 +454,7 @@
         {
             Log.WriteError("Write Alert", $"Could not write alert for user {userConfig.User.DbId}: ", exc);
         }
-    }    
+    }
 
     public async Task AcknowledgeAlert(long alertId)
     {
@@ -467,7 +476,9 @@
 
 	public void Dispose()
 	{
-		UIMessageQueTimer?.Dispose();
+        UIMessageQueTimer?.Dispose();
+        alertSubscription?.Dispose();
+
 		EventMediator.Unsubscribe<UserSessionClosedEvent>(nameof(CircuitHandlerService));
 	}
 }

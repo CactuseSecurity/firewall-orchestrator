@@ -475,8 +475,14 @@
 	}
 
 	public void Dispose()
-	{
-        UIMessageQueTimer?.Dispose();
+    {
+        if(UIMessageQueTimer is not null)
+        {
+            UIMessageQueTimer.Stop();
+            UIMessageQueTimer.Elapsed -= OnUIMessageTimerTick;
+            UIMessageQueTimer.Dispose();
+        }
+
         alertSubscription?.Dispose();
 
 		EventMediator.Unsubscribe<UserSessionClosedEvent>(nameof(CircuitHandlerService));

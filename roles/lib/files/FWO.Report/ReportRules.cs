@@ -51,7 +51,8 @@ namespace FWO.Report
             foreach (var management in managementsWithRelevantImportId)
             {
                 SetMgtQueryVars(management);    // this includes mgm_id AND relevant import ID!
-                ManagementReport managementReport = (await apiConnection.SendQueryAsync<List<ManagementReport>>(Query.FullQuery, Query.QueryVariables))[0];
+                List<ManagementReport> result = await apiConnection.SendQueryAsync<List<ManagementReport>>(Query.FullQuery, Query.QueryVariables);
+                ManagementReport managementReport = result[0];
                 managementReport.Import = management.Import;
                 ReportData.ManagementData.Add(managementReport);
             }
@@ -127,8 +128,8 @@ namespace FWO.Report
         protected virtual void SetMgtQueryVars(ManagementReport management)
         {
             Query.QueryVariables[QueryVar.MgmId] = management.Id;
-            Query.QueryVariables[QueryVar.ImportIdStart] = management.Import.ImportAggregate.ImportAggregateMax.RelevantImportId ?? -1; /* managment was not yet imported at that time */;
-            Query.QueryVariables[QueryVar.ImportIdEnd] = management.Import.ImportAggregate.ImportAggregateMax.RelevantImportId ?? -1; /* managment was not yet imported at that time */;
+            Query.QueryVariables[QueryVar.ImportIdStart] = management.RelevantImportId ?? -1;
+            Query.QueryVariables[QueryVar.ImportIdEnd]   = management.RelevantImportId ?? -1;
         }
 
         public override async Task<bool> GetObjectsInReport(int objectsPerFetch, ApiConnection apiConnection, Func<ReportData, Task> callback) // to be called when exporting
@@ -312,10 +313,11 @@ namespace FWO.Report
             int managementCounter = 0;
             int deviceCounter = 0;
             int ruleCounter = 0;
-            foreach (ManagementReportController managementReport in ReportData.ManagementData.Where(mgt => !mgt.Ignore && mgt.Devices != null &&
+            foreach (var mgt in ReportData.ManagementData.Where(mgt => !mgt.Ignore && mgt.Devices != null &&
                     mgt.ContainsRules()))
             {
                 managementCounter++;
+                var managementReport = new ManagementReportController(mgt);
                 foreach (var device in managementReport.Devices.Where(dev => dev.ContainsRules()))
                 {
                     deviceCounter++;
@@ -570,14 +572,7 @@ namespace FWO.Report
 
         private void AppendRulesForRulebaseHtml(ref StringBuilder report, RulebaseLink rbLink, ManagementReport managementReport, DeviceReport device, int chapterNumber, RuleDisplayHtml ruleDisplayHtml)
         {
-            Rule[]? rb = GetRulesByRulebaseId(rbLink.NextRulebaseId, managementReport);
-
-            if (rb == null)
-            {
-                return;
-            }
-
-            foreach (var rule in rb)
+            foreach (var rule in _rulesCache[(device.Id, managementReport.Id)])
             {
                 if (string.IsNullOrEmpty(rule.SectionHeader))
                 {
@@ -610,13 +605,6 @@ namespace FWO.Report
                 else
                 {
                     report.AppendLine(RuleDisplayHtml.DisplaySectionHeader(rule, ColumnCount));
-                }
-
-                // if there is a rulebase link starting from the current rule id, follow it
-                RulebaseLink? nextRbLink = device.RulebaseLinks.FirstOrDefault(_ => _.FromRuleId == rule.Id);
-                if (nextRbLink != null)
-                {
-                    AppendRulesForRulebaseHtml(ref report, nextRbLink, managementReport, device, chapterNumber, ruleDisplayHtml);
                 }
             }
         }

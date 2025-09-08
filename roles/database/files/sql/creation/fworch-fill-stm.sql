@@ -135,7 +135,7 @@ insert into config (config_key, config_value, config_user) VALUES ('manageOwnerL
 insert into config (config_key, config_value, config_user) VALUES ('modModelledMarker', 'FWOC', 0);
 insert into config (config_key, config_value, config_user) VALUES ('modModelledMarkerLocation', 'rulename', 0);
 insert into config (config_key, config_value, config_user) VALUES ('ruleRecognitionOption', '{"nwRegardIp":true,"nwRegardName":false,"nwRegardGroupName":false,"nwResolveGroup":false,"svcRegardPortAndProt":true,"svcRegardName":false,"svcRegardGroupName":false,"svcResolveGroup":true,"svcSplitPortRanges":false}', 0);
-insert into config (config_key, config_value, config_user) VALUES ('availableReportTypes', '[1,2,3,4,5,6,7,8,9,10,21,22,31,32]', 0);
+insert into config (config_key, config_value, config_user) VALUES ('availableReportTypes', '[1,2,3,4,5,6,7,8,9,10,21,22,31]', 0);
 insert into config (config_key, config_value, config_user) VALUES ('varianceAnalysisSleepTime', '0', 0);
 insert into config (config_key, config_value, config_user) VALUES ('varianceAnalysisStartAt', '00:00:00', 0);
 insert into config (config_key, config_value, config_user) VALUES ('varianceAnalysisSync', 'false', 0);
@@ -143,16 +143,12 @@ insert into config (config_key, config_value, config_user) VALUES ('varianceAnal
 insert into config (config_key, config_value, config_user) VALUES ('resolveNetworkAreas', 'False', 0);
 insert into config (config_key, config_value, config_user) VALUES ('complianceCheckSleepTime', '0', 0);
 insert into config (config_key, config_value, config_user) VALUES ('complianceCheckStartAt', '00:00:00', 0);
-insert into config (config_key, config_value, config_user) VALUES ('complianceCheckMailRecipients', '', 0);
-insert into config (config_key, config_value, config_user) VALUES ('complianceCheckMailSubject', '', 0);
-insert into config (config_key, config_value, config_user) VALUES ('complianceCheckMailBody', '', 0);
 insert into config (config_key, config_value, config_user) VALUES ('complianceCheckPolicy', '0', 0);
-insert into config (config_key, config_value, config_user) VALUES ('complianceCheckScheduledDiffReports', '[]', 0);
-insert into config (config_key, config_value, config_user) VALUES ('complianceCheckDiffReferenceInterval', '0', 0);
-insert into config (config_key, config_value, config_user) VALUES ('complianceCheckInternetZoneObject', '', 0);
+insert into config (config_key, config_value, config_user) VALUES ('complianceCheckMaxPrintedViolations', '0', 0);
+insert into config (config_key, config_value, config_user) VALUES ('complianceCheckSortMatrixByID', 'false', 0);
 insert into config (config_key, config_value, config_user) VALUES ('availableModules', '[1,2,3,4,5,6]', 0);
 insert into config (config_key, config_value, config_user) VALUES ('debugConfig', '{"debugLevel":8, "extendedLogComplianceCheck":true, "extendedLogReportGeneration":true, "extendedLogScheduler":true}', 0);
-
+insert into config (config_key, config_value, config_user) VALUES ('reportSchedulerConfig', '', 0);
 
 INSERT INTO "report_format" ("report_format_name") VALUES ('json');
 INSERT INTO "report_format" ("report_format_name") VALUES ('pdf');
@@ -274,7 +270,7 @@ INSERT INTO "report_template" ("report_filter","report_template_name","report_te
                 "recertShowAnyMatch": true,
                 "recertificationDisplayPeriod": 30}}');
 INSERT INTO "report_template" ("report_filter","report_template_name","report_template_comment","report_template_owner", "report_parameters") 
-    VALUES ('',
+    VALUES ('action=accept',
         'Compliance: Unresolved violations','T0108', 0, 
         '{"report_type":31,"device_filter":{"management":[]},
             "time_filter": {
@@ -291,13 +287,12 @@ INSERT INTO "report_template" ("report_filter","report_template_name","report_te
                 "open_end": false},
             "compliance_filter": {
                 "isDiffReport": false,
-                "diffReferenceInDays": 0,
-                "showCompliantRules": false,
-                "excludedRuleActions": ["inner layer", "drop"]}}');
+                "diff_reference_in_days": 0,
+                "show_compliant_rules": true}}');
 INSERT INTO "report_template" ("report_filter","report_template_name","report_template_comment","report_template_owner", "report_parameters") 
-    VALUES ('',
-        'Compliance: Unresolved violations (Prototype)','T0108', 0, 
-        '{"report_type":32,"device_filter":{"management":[]},
+    VALUES ('action=accept',
+        'Compliance: Diffs','T0108', 0, 
+        '{"report_type":31,"device_filter":{"management":[]},
             "time_filter": {
                 "is_shortcut": true,
                 "shortcut": "now",
@@ -311,10 +306,9 @@ INSERT INTO "report_template" ("report_filter","report_template_name","report_te
                 "open_start": false,
                 "open_end": false},
             "compliance_filter": {
-                "isDiffReport": false,
-                "diffReferenceInDays": 0,
-                "showCompliantRules": false,
-                "excludedRuleActions": ["inner layer", "drop"]}}');
+                "is_diff_report": true,
+                "diff_reference_in_days": 7,
+                "show_compliant_rules": false}}');
 
 insert into parent_rule_type (id, name) VALUES (1, 'section');          -- do not restart numbering
 insert into parent_rule_type (id, name) VALUES (2, 'guarded-layer');    -- restart numbering, rule restrictions are ANDed to all rules below it, layer is not entered if guard does not apply
@@ -519,3 +513,8 @@ insert into stm_link_type (id, name) VALUES (2, 'ordered');
 insert into stm_link_type (id, name) VALUES (3, 'inline');
 insert into stm_link_type (id, name) VALUES (4, 'concatenated');
 insert into stm_link_type (id, name) VALUES (5, 'domain');
+
+-- insert into compliance.assessability_issue_type (type_id, type_name) VALUES (1, 'empty group');
+-- insert into compliance.assessability_issue_type (type_id, type_name) VALUES (2, 'broadcast address');
+-- insert into compliance.assessability_issue_type (type_id, type_name) VALUES (3, 'DHCP IP undefined address');
+-- insert into compliance.assessability_issue_type (type_id, type_name) VALUES (4, 'dynamic internet address');

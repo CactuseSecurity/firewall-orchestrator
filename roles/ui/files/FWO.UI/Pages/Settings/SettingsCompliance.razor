@@ -71,6 +71,20 @@
                 <input type="text" @bind="configData!.ComplianceCheckInternetZoneObject"/>
             </div>
         </div> *@
+        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5814"))">
+            <label class="col-form-label col-sm-4">@(userConfig.GetText("complianceCheckMaxPrintedViolations"))</label>
+            <div class="col-sm-2">
+                <input type="text" @bind="configData!.ComplianceCheckMaxPrintedViolations"/>
+            </div>
+        </div>
+        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5815"))">
+            <label class="col-form-label col-sm-4">@(userConfig.GetText("complianceCheckSortMatrixByID"))</label>
+            <div class="col-sm-7">
+                <input type="checkbox" @bind="configData!.ComplianceCheckSortMatrixByID"/>
+            </div>
+        </div>
+
+        
     </form>
     <hr />
     <AuthorizeView Roles="@Roles.Admin">

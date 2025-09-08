@@ -5,6 +5,7 @@ import traceback
 import time
 from pprint import pformat
 import string
+from typing import Any
 
 import fwo_globals
 from fwo_log import getFwoLogger
@@ -12,7 +13,10 @@ from fwo_const import fwo_api_http_import_timeout
 from fwo_exceptions import FwoApiServiceUnavailable, FwoApiTimeout
 from query_analyzer import QueryAnalyzer
 from fwo_exceptions import FwoImporterError, FwoApiLoginFailed
+from services.enums import Services
+from services.service_provider import ServiceProvider
 
+JSON_CONTENT_TYPE = 'application/json'
 
 # this class is used for making calls to the FWO API (will supersede fwo_api.py)
 class FwoApi():
@@ -37,7 +41,7 @@ class FwoApi():
 
         role = 'importer'
         request_headers = { 
-            'Content-Type': 'application/json', 
+            'Content-Type': JSON_CONTENT_TYPE, 
             'Authorization': f'Bearer {self.FwoJwt}', 
             'x-hasura-role': role 
         }
@@ -53,7 +57,7 @@ class FwoApi():
                     session.verify = False
                 else: 
                     session.verify = fwo_globals.verify_certs
-                session.headers = request_headers
+                session.headers.update(request_headers)
 
                 if analyze_payload and self.query_info["chunking_info"]["needs_chunking"]:
                     started = time.time()
@@ -83,11 +87,10 @@ class FwoApi():
             logger.error(f"Unexpected error during API call: {str(e)}")
             logger.debug(pformat(self.query_info))
             try:
-               return_object
+                logger.debug(pformat(return_object))
             except NameError:
                 logger.error(f"Unexpected error during API call: {str(e)}")
                 raise FwoImporterError(f"return_object not defined. Error during API call: {str(e)}")
-            logger.debug(pformat(return_object))
             raise FwoImporterError(f"Unexpected error during API call: {str(e)}")
 
     @staticmethod
@@ -99,7 +102,7 @@ class FwoApi():
                 session.verify = False
             else: 
                 session.verify = fwo_globals.verify_certs
-            session.headers = {'Content-Type': 'application/json'}
+            session.headers = {'Content-Type': JSON_CONTENT_TYPE}
 
             try:
                 response = session.post(user_management_api_base_url + method, data=json.dumps(payload))
@@ -114,6 +117,75 @@ class FwoApi():
                                 ", ssl_verification: " + str(fwo_globals.verify_certs)
                 raise FwoApiLoginFailed(error_txt)
 
+    def call_endpoint(self, method: str, endpoint: str, params: Any = None) -> Any:
+        """
+        Generic method to call any middleware endpoint.
+        
+        Args:
+            method: HTTP method (GET, POST, PUT, DELETE, PATCH)
+            endpoint: API endpoint path (e.g., "AuthenticationToken/Get", "User", "Role/User")
+            data: Request payload data
+            
+        Returns:
+            Response data - could be various types based on the endpoint
+            
+        Raises:
+            FwoApiLoginFailed: If authentication fails
+            FwoImporterError: If request fails or returns error
+        """
+        service_provider = ServiceProvider()
+        fwo_config = service_provider.get_service(Services.FWO_CONFIG)
+        url = fwo_config['user_management_api_base_url'] + endpoint.lstrip('/')
+
+        with requests.Session() as session:
+
+            logger = getFwoLogger()
+
+            if fwo_globals.verify_certs is None:
+                session.verify = False
+            else: 
+                session.verify = fwo_globals.verify_certs
+
+            session.headers = {
+                'Authorization': f"Bearer {self.FwoJwt}",
+                'Content-Type': JSON_CONTENT_TYPE
+            }
+
+            try:
+                if method.upper() == 'GET':
+                    response = session.get(url, json=params, timeout=int(fwo_api_http_import_timeout))
+                elif method.upper() == 'POST':
+                    response = session.post(url, json=params, timeout=int(fwo_api_http_import_timeout))
+                elif method.upper() == 'PUT':
+                    response = session.put(url, json=params, timeout=int(fwo_api_http_import_timeout))
+                elif method.upper() == 'DELETE':
+                    response = session.delete(url, json=params, timeout=int(fwo_api_http_import_timeout))
+                elif method.upper() == 'PATCH':
+                    response = session.patch(url, json=params, timeout=int(fwo_api_http_import_timeout))
+                else:
+                    raise FwoImporterError(f"Unsupported HTTP method: {method}")
+                    
+                # Check for HTTP errors
+                if response.status_code == 401:
+                    raise FwoApiLoginFailed(f"Authentication failed for endpoint: {endpoint}")
+                elif response.status_code == 503:
+                    raise FwoApiServiceUnavailable("FWO Middleware API HTTP error 503 (middleware died?)")
+                elif response.status_code == 502:
+                    raise FwoApiTimeout("FWO Middleware API HTTP error 502 (might have reached timeout)")
+                
+                response.raise_for_status()
+                
+                # Try to parse JSON response
+                try:
+                    result = response.json()
+                    return result
+                except ValueError:
+                    # If response is not JSON, return the text content
+                    return response.text
+                    
+            except requests.exceptions.RequestException as e:
+                logger.error(f"Middleware API request failed: {str(e)}")
+                raise FwoImporterError(f"Middleware API request failed: {str(e)}")
     
     def _handle_request_exception(self, exception, query_payload, headers):
         """
@@ -132,7 +204,7 @@ class FwoApi():
         raise exception
 
 
-    def _call_chunked(self, session, query, query_variables="", debug_level=0):
+    def _call_chunked(self, session, query, query_variables: dict = {}, debug_level=0):
         """
             Splits a defined query variable into chunks and posts the queries chunk by chunk.
         """
@@ -354,7 +426,7 @@ class FwoApi():
                 printable_chars = set(string.printable)
                 with open(file, "r", encoding="utf-8", errors="ignore") as f:
                     code += "".join(filter(printable_chars.__contains__, f.read())) + " "
-            except FileNotFoundError as e:
+            except FileNotFoundError:
                 logger = getFwoLogger()
                 logger.error("fwo_api: file not found: " + file)
                 raise
@@ -364,6 +436,6 @@ class FwoApi():
 
     @staticmethod
     def _read_clean_text_from_file(filePath: str) -> str:
-        printable_chars = set(str.printable)
+        printable_chars = set(string.printable)
         with open(filePath, "r", encoding="utf-8", errors="ignore") as f:
             return "".join(filter(printable_chars.__contains__, f.read()))

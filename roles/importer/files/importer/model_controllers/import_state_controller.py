@@ -13,7 +13,7 @@ from fwo_const import fwo_config_filename, graphql_query_path
 from fwo_exceptions import FwoImporterError
 from models.import_state import ImportState
 from model_controllers.fworch_config_controller import FworchConfigController
-from model_controllers.management_controller import ManagementController
+from model_controllers.management_controller import ManagementController, DeviceInfo, ConnectionInfo, CredentialInfo, ManagerInfo, DomainInfo
 from model_controllers.import_statistics_controller import ImportStatisticsController
 
 
@@ -22,6 +22,7 @@ class ImportStateController(ImportState):
 
     api_connection:FwoApi
     api_call: FwoApiCall
+    management_map: dict[str, int]  # maps management uid to management id
 
     def __init__(self, debugLevel, configChangedSinceLastImport, fwoConfig, mgmDetails, jwt, force, 
                  version=8, isFullImport=False, isInitialImport=False, isClearingImport=False, verifyCerts=False, LastSuccessfulImport=None):
@@ -103,8 +104,13 @@ class ImportStateController(ImportState):
 
         try: # get mgm_details (fw-type, port, ip, user credentials):
             mgm_controller = ManagementController(
-                hostname='', id=int(mgmId), uid='', devices={},
-                name='', deviceTypeName='', deviceTypeVersion=''
+                mgm_id=int(mgmId), uid='', devices={},
+                device_info=DeviceInfo(),
+                connection_info=ConnectionInfo(),
+                importer_hostname='',
+                credential_info=CredentialInfo(),
+                manager_info=ManagerInfo(),
+                domain_info=DomainInfo()
             )
             mgmDetails = mgm_controller.get_mgm_details(api_conn, mgmId, debugLevel) 
         except Exception as e:
@@ -325,10 +331,10 @@ class ImportStateController(ImportState):
         except Exception:
             logger = getFwoLogger()
             logger.error("Error while getting managements")
-            self.ManagementMap = {}
+            self.ManagementMap: dict[str, int] = {}
             raise
         
-        m = {}
+        m: dict[str, int] = {}
         mgm = result['data']['management'][0]
         m.update({mgm['mgm_uid']: mgm['mgm_id']})
         for sub_mgr in mgm['sub_managers']:

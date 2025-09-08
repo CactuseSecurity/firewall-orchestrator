@@ -31,7 +31,7 @@ namespace FWO.Ui.Display
 
         public static string DisplayIsCompliant(Rule rule, OutputLocation location)
         {
-            if (rule.Compliance != ComplianceViolationType.NotEvaluable)
+            if (rule.Compliance != ComplianceViolationType.NotAssessable)
             {
                 bool isCompliant = true;
 
@@ -172,6 +172,13 @@ namespace FWO.Ui.Display
                             collectedUserNetworkObjects.Add(new NetworkLocation(networkObject.User, nwObject.Object));
                         }
                     }
+
+                    // Fallback for empty groups.
+
+                    if (!networkObject.Object.ObjectGroupFlats.Any())
+                    {
+                        collectedUserNetworkObjects.Add(networkObject);
+                    }
                 }
                 else
                 {
@@ -195,6 +202,12 @@ namespace FWO.Ui.Display
                         collectedServices.Add(nwService.Object);
                     }
                 }
+
+                if (!service.Content.ServiceGroupFlats.Any())
+                {
+                    collectedServices.Add(service.Content);
+                }
+
             }
             List<NetworkService> serviceList = [.. collectedServices];
             serviceList.Sort(delegate (NetworkService x, NetworkService y) { return x.Name.CompareTo(y.Name); });

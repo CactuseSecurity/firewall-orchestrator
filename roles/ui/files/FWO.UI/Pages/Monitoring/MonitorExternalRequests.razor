@@ -1,4 +1,4 @@
-﻿@using FWO.Data.Middleware
+@using FWO.Data.Middleware
 @using FWO.Middleware.Client
 @using RestSharp
 @using System.Net
@@ -26,7 +26,7 @@
                 <label for="cbx_show_all" class="form-check-label">@(userConfig.GetText("show_all"))</label>
             </div>
         </div>
-        <PageSizeComponent PageSizeCallback="UpdatePageSize"></PageSizeComponent>
+        <PageSizeComponent PageSize="20" PageSizeCallback="UpdatePageSize"></PageSizeComponent>
         <Table PageSize="PageSize" class="table table-bordered th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="ExternalRequest" Items="openRequests" ColumnReorder="true">
             <Column TableItem="ExternalRequest" Title="@(userConfig.GetText("actions"))" Field="(x => x.Id)" Sortable="false" Filterable="false">
                 <Template Context="request">
@@ -48,7 +48,7 @@
                                 </Authorized>
                                 <NotAuthorized>
                                     <button type="button" class="btn btn-sm btn-danger" disabled>@(userConfig.GetText("unlock"))</button>
-                                </NotAuthorized> 
+                                </NotAuthorized>
                             </AuthorizeView>
                         }
                     </div>
@@ -175,7 +175,7 @@ else
                 </Authorized>
                 <NotAuthorized>
                     <button type="button" class="btn btn-sm btn-danger" disabled>@(userConfig.GetText("change_state"))</button>
-                </NotAuthorized> 
+                </NotAuthorized>
             </AuthorizeView>
         </div>
     </Footer>
@@ -258,8 +258,8 @@ else
 
     private async Task ChangeDisplay()
     {
-        displayAll = !displayAll; 
-        await FetchData(); 
+        displayAll = !displayAll;
+        await FetchData();
     }
 
     private void Details(ExternalRequest request)

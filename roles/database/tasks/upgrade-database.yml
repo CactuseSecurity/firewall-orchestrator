@@ -30,9 +30,9 @@
 
 - debug: 
     msg:
-      - "installed_version: {{ installed_version }}"
-      - "current_version: {{ current_version }}"
-      - "all_upgrades_available: {{ all_upgrades_available }}"
+        - "installed_version: {{ installed_version }}"
+        - "current_version: {{ current_version }}"
+        - "all_upgrades_available: {{ all_upgrades_available }}"
 
 - name: Copy relevant upgrade files
   copy:

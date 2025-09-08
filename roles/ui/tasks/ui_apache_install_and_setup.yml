@@ -7,14 +7,9 @@
         - "{{ wsgi_package_name }}"
       environment: "{{ proxy_env }}"
 
-    - name: enable apache modules proxy proxy_http ssl
+    - name: enable required apache modules
       apache2_module: state=present name={{ item }}
-      loop:
-        - rewrite
-        - proxy
-        - proxy_http
-        - ssl
-        - proxy_wstunnel
+      loop: "{{ apache2_required_modules }}"
 
     - name: create apache certificates
       include_role:

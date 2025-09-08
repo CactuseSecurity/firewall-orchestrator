@@ -651,10 +651,10 @@ CREATE TABLE "import_full_config" (
 );
 
 CREATE TABLE IF NOT EXISTS "latest_config" (
-    "import_id" bigint NOT NULL,
     "mgm_id" integer NOT NULL,
+    "import_id" bigint NOT NULL,
     "config" jsonb NOT NULL,
-    PRIMARY KEY ("import_id")
+    PRIMARY KEY ("mgm_id")
 );
 
 -- temporary import tables -------------------------------------
@@ -1465,13 +1465,27 @@ create table compliance.violation
 (
     id BIGSERIAL PRIMARY KEY,
 	rule_id bigint NOT NULL,
-	found_date timestamp default now(),
+	found_date timestamp with time zone default now(),
 	removed_date timestamp with time zone,
 	details TEXT,
 	risk_score real,
 	policy_id INT NOT NULL,
 	criterion_id INT NOT NULL
 );
+
+-- create table compliance.assessability_issue
+-- (
+--     violation_id BIGINT NOT NULL,
+-- 	type_id INT NOT NULL,
+-- 	PRIMARY KEY(violation_id, type_id)
+-- );
+
+-- create table compliance.assessability_issue_type
+-- (
+-- 	type_id INT PRIMARY KEY,
+--     type_name VARCHAR(50) NOT NULL
+-- );
+
 
 --- Network modelling ---
 create schema modelling;

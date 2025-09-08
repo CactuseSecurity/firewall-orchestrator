@@ -72,18 +72,18 @@
     {
         try
         {
-            RollbackMode = false;
-            workInProgress = false;
+            RollbackMode = true;
+            workInProgress = true;
             var variablesRollback = new { importId = importId };
             var ReturnId = await apiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.ImportQueries.rollbackLastImport, variablesRollback);
 
-            // var variablesDeleteLatestConfig = new { mgmId = ManagementId };
-            // ReturnId = await apiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.ImportQueries.deleteLatestConfig, variablesDeleteLatestConfig);
+            var variablesdeleteLatestConfigOfManagement = new { mgmId = ManagementId };
+            ReturnId = await apiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.ImportQueries.deleteLatestConfigOfManagement, variablesdeleteLatestConfigOfManagement);
 
             Log.WriteDebug("Delete Import", $"rolled back last import (id={importId}) of mangement with ID {ManagementId}");
             workInProgress = false;
 
-            DisplayMessageInUi(null, userConfig.GetText("rollback_import"), userConfig.GetText("U5107"), false);
+            DisplayMessageInUi(null, userConfig.GetText("rollback_import"), userConfig.GetText("U5107"), false);            
         }
         catch (System.Exception exception)
         {
@@ -121,7 +121,7 @@
             workInProgress = false;
             DisplayMessageInUi(exception, userConfig.GetText("rollback_import"), "", true);
         }
-        await DeleteLatestConfig(ManagementId);
+        await deleteLatestConfigOfManagement(ManagementId);
     }
 
     private async Task FullMgmRollback()
@@ -183,17 +183,17 @@
             workInProgress = false;
             DisplayMessageInUi(exception, userConfig.GetText("rollback_import"), "", true);
         }
-        await DeleteLatestConfig(ManagementId);
+        await deleteLatestConfigOfManagement(ManagementId);
     }
 
-    private async Task DeleteLatestConfig(int mgmId)
+    private async Task deleteLatestConfigOfManagement(int mgmId)
     {
 
         // in any case, delete latest_config for this management
         try
         {
-            var variablesDeleteLatestConfig = new { mgmId = ManagementId };
-            ReturnId id = await apiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.ImportQueries.deleteLatestConfig, variablesDeleteLatestConfig);
+            var variablesdeleteLatestConfigOfManagement = new { mgmId = ManagementId };
+            ReturnId id = await apiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.ImportQueries.deleteLatestConfigOfManagement, variablesdeleteLatestConfigOfManagement);
         }
         catch (System.Exception exception)
         {

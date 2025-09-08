@@ -18,7 +18,7 @@ from models.fwconfigmanager import FwConfigManager
 from model_controllers.management_controller import ManagementController
 from fmgr_network import normalize_network_objects
 from fmgr_service import normalize_service_objects
-from fmgr_rule import normalize_rulebases, initialize_rulebases, getAccessPolicy
+from fmgr_rule import normalize_rulebases, getAccessPolicy
 from fmgr_consts import nw_obj_types, svc_obj_types, user_obj_types
 from fwo_base import ConfigAction
 from models.fwconfig_normalized import FwConfigNormalized
@@ -31,7 +31,7 @@ def has_config_changed(full_config, mgm_details, force=False):
 def get_config(config_in: FwConfigManagerListController, importState: ImportStateController):
     logger = getFwoLogger()
     
-    if config_in.has_empty_config() and config_in.is_native():   # no native config was passed in, so getting it from FW-Manager
+    if config_in.has_empty_config():   # no native config was passed in, so getting it from FW-Manager
         config_in.native_config.update({'domains': []})
         parsing_config_only = False
     else:
@@ -70,9 +70,6 @@ def get_config(config_in: FwConfigManagerListController, importState: ImportStat
             #getInterfacesAndRouting(
             #    sid, fm_api_url, nativeConfig, adom_name, adom.Devices, limit)
 
-            # initialize all rule dicts
-            # delete_v: wenn initialize_rulebases wirklich überflüssig, dann in fmgr_getter löschen
-            #fmgr_rule.initialize_rulebases(native_config_adom, adom_name)
             for mgm_details_device in adom.Devices:
                 device_config = initialize_device_config(mgm_details_device)
                 native_config_adom['gateways'].append(device_config)
@@ -88,12 +85,12 @@ def get_config(config_in: FwConfigManagerListController, importState: ImportStat
         except Exception:
             raise FwLogoutFailed("logout exception probably due to timeout - irrelevant, so ignoring it")
 
-        write_native_config_to_file(importState, config_in)
+        write_native_config_to_file(importState, config_in.native_config)
 
     # delete_v: brauchen wir hier wirklich sid, dann muss die auch für parsing_config_only TRUE erzeugt werden
-    normalizedConfig = normalize_config(importState, config_in.native_config)
+    normalized_managers = normalize_config(importState, config_in.native_config)
     logger.info("completed getting config")
-    return 0, normalizedConfig
+    return 0, normalized_managers
 
 
 def initialize_native_config_domain(mgm_details : ManagementController):
@@ -134,6 +131,7 @@ def normalize_config(import_state, native_config: dict[str,Any]) -> FwConfigMana
     for native_conf in native_config['domains']:
         normalized_config_dict = deepcopy(fwo_const.emptyNormalizedFwConfigJsonDict)
 
+        # delete_v: is_global_loop_iteration scheint immer False zu sein, kann dann weg
         normalize_single_manager_config(native_conf, native_config_global, normalized_config_dict, normalized_config_global, 
                                                             import_state, is_global_loop_iteration=False)
 
@@ -142,7 +140,7 @@ def normalize_config(import_state, native_config: dict[str,Any]) -> FwConfigMana
             network_objects=FwConfigNormalizedController.convertListToDict(normalized_config_dict.get('network_objects', []), 'obj_uid'),
             service_objects=FwConfigNormalizedController.convertListToDict(normalized_config_dict.get('service_objects', []), 'svc_uid'),
             zone_objects=FwConfigNormalizedController.convertListToDict(normalized_config_dict.get('zone_objects', []), 'zone_uid'),
-            rulebases=normalized_config_dict.get('rules', []),
+            rulebases=normalized_config_dict.get('policies', []),
             gateways=normalized_config_dict.get('gateways', [])
         )
 
@@ -185,6 +183,7 @@ def normalize_single_manager_config(native_config: dict[str, Any], native_config
     current_svc_obj_types = deepcopy(svc_obj_types)
     if native_config['is-super-manager']:
         current_nw_obj_types = ["nw_obj_global_" + t for t in current_nw_obj_types]
+        current_nw_obj_types.append('nw_obj_global_firewall/internet-service-basic')
         current_svc_obj_types = ["svc_obj_global_" + t for t in current_svc_obj_types]
     else:
         current_nw_obj_types = [f"nw_obj_adom/{native_config.get('domain_name','')}_{t}" for t in current_nw_obj_types]
@@ -193,17 +192,18 @@ def normalize_single_manager_config(native_config: dict[str, Any], native_config
     logger = getFwoLogger()
     normalize_network_objects(import_state, native_config, native_config_global, normalized_config_dict, normalized_config_global, 
                                            current_nw_obj_types)
-    logger.info("completed normalizing network objects")
+    logger.info("completed normalizing network objects for manager: " + native_config.get('domain_name',''))
     normalize_service_objects(import_state, native_config, native_config_global, normalized_config_dict, normalized_config_global, 
                                            current_svc_obj_types)
-    logger.info("completed normalizing service objects")
+    logger.info("completed normalizing service objects for manager: " + native_config.get('domain_name',''))
     #fmgr_gateway.normalizeGateways(native_conf, import_state, normalized_config_dict)
 
-    # initialize_rulebases(native_config)
-    normalize_rulebases(import_state, native_config, native_config_global, import_state, normalized_config_dict, normalized_config_global, 
+    mgm_uid = native_config["management_uid"]
+    normalize_rulebases(import_state, mgm_uid, native_config, native_config_global, normalized_config_dict, normalized_config_global, 
                         is_global_loop_iteration)
+    logger.info("completed normalizing rulebases for manager: " + native_config.get('domain_name',''))
 
-    logger.info("completed normalizing rulebases")
+    normalize_gateways(native_config, normalized_config_dict)
     
 
 def build_adom_list(importState : ImportStateController):
@@ -300,8 +300,35 @@ def get_objects(sid, fm_api_url, native_config_domain, native_config_global, ado
             native_config_global['objects'], sid, fm_api_url, "sys/proxy/json", "nw_obj_global_firewall/internet-service-basic", limit=limit, payload=payload, method='exec')
 
 
+def normalize_gateways(native_config, normalized_config_dict):
+    for gateway in native_config['gateways']:
+        normalized_gateway = {}
+        normalized_gateway['Uid'] = gateway['uid']
+        normalized_gateway['Name'] = gateway['name']
+        normalized_gateway['Interfaces'] = normalize_interfaces()
+        normalized_gateway['Routing'] = normalize_routing()
+        normalized_gateway['RulebaseLinks'] = normalize_links(gateway['rulebase_links'])
+        normalized_config_dict['gateways'].append(normalized_gateway)
 
+def normalize_interfaces():
+    # TODO
+    return []
 
+def normalize_routing():
+    # TODO
+    return []
+
+def normalize_links(rulebase_links : list):
+    for link in rulebase_links:
+        link['link_type'] = link.pop('type')
+
+        # Remove from_rulebase_uid and from_rule_uid if link_type is initial
+        if link['link_type'] == 'initial':
+            if link['from_rulebase_uid'] != None:
+                link['from_rulebase_uid'] = None
+            if link['from_rule_uid'] != None:
+                link['from_rule_uid'] = None
+    return rulebase_links
 
 # def getZones(sid, fm_api_url, nativeConfig, adom_name, limit, debug_level):
 #     nativeConfig.update({"zones": {}})

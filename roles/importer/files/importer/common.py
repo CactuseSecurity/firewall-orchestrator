@@ -1,6 +1,7 @@
 import importlib
 import traceback
-import sys, time
+import sys
+import time
 from socket import gethostname
 
 from fwo_const import importer_base_dir, fwo_config_filename
@@ -9,7 +10,6 @@ if importer_base_dir not in sys.path:
     sys.path.append(importer_base_dir) # adding absolute path here once
 from fwo_api import FwoApi
 from fwo_api_call import FwoApiCall
-from fwo_base import register_services
 from fwo_log import getFwoLogger
 from fwo_const import fw_module_name, import_tmp_path, importer_user_name
 import fwo_globals
@@ -18,7 +18,6 @@ from fwo_exceptions import ShutdownRequested, FwoApiLoginFailed, FwoImporterErro
 from fwo_base import stringIsUri
 import fwo_file_import
 from model_controllers.import_state_controller import ImportStateController
-from models.fwconfigmanagerlist import FwConfigManagerList
 from models.gateway import Gateway
 from model_controllers.fwconfig_import import FwConfigImport
 from model_controllers.management_controller import ManagementController
@@ -35,27 +34,24 @@ from fwo_config import readConfig
 """  
     import_management: import a single management (if no import for it is running)
     if mgmId is that of a super management, it will import all submanagements as well
-    lock mgmt for import via FWORCH API call, generating new import_id y
+    lock mgmt for import via FWORCH API call, generating new import_id
     check if we need to import (no md5, api call if anything has changed since last import)
     get complete config (get, enrich, parse)
     write into json dict write json dict to new table (single entry for complete config)
-    trigger import from json into csv and from there into destination tables
-    release mgmt for import via FWORCH API call (also removing import_id y data from import_tables?)
-    no changes: remove import_control?
+    this top level function mainly deals with exception handling
+
+    expects service_provider to be initialized
 """
 def import_management(mgmId=None, ssl_verification=None, debug_level_in=0, 
         limit=150, force=False, clearManagementData=False, suppress_cert_warnings_in=None,
-        in_file=None, version=8, services_registered: bool = False) -> int:
+        in_file=None, version=8) -> int:
 
     fwo_signalling.registerSignallingHandlers()
     logger = getFwoLogger(debug_level=debug_level_in)
-    config_changed_since_last_import = True
+    # config_changed_since_last_import = True //TODO: implement change detection
     verify_certs = (ssl_verification is not None)
 
-    if services_registered:
-        service_provider = ServiceProvider()
-    else:
-        service_provider = register_services()
+    service_provider = ServiceProvider()
     global_state = service_provider.get_service(Services.GLOBAL_STATE)
 
     fwoConfig = FworchConfigController.fromJson(readConfig(fwo_config_filename))

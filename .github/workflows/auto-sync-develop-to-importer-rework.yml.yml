@@ -2,66 +2,74 @@ name: Sync develop to importer-rework
 
 on:
   push:
-    branches:
-      - develop
+    branches: [develop]
+
+permissions:
+  contents: write
+  pull-requests: write
 
 jobs:
   sync-branches:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repo
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Set up Git
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
 
-      - name: Ensure "automation" label exists (create or update)
+      - name: Ensure "automation" label exists
         run: |
-            gh label create automation \
+          gh label create automation \
             --color "0e8a16" \
             --description "Automatically created for syncing branches" \
             --force
         env:
-            GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Fetch all branches
-        run: git fetch origin importer-rework
-
-      - name: Check if develop is ahead of importer-rework
-        id: ahead_check
+      - name: Compute ahead/behind
+        id: ab
         run: |
-          git fetch origin
-          git rev-list --left-right --count origin/importer-rework...origin/develop > counts.txt
-          ahead=$(cut -f2 counts.txt)
-          echo "ahead_count=$ahead" >> $GITHUB_OUTPUT
+          git fetch origin develop importer-rework
+          read behind ahead < <(git rev-list --left-right --count origin/importer-rework...origin/develop)
+          echo "ahead=$ahead"  >> $GITHUB_OUTPUT
+          echo "behind=$behind" >> $GITHUB_OUTPUT
+        # rev-list separates counts with a TAB. :contentReference[oaicite:2]{index=2}
 
-      - name: Check for existing PR
+      - name: Push sync branch (mirror develop)
+        if: steps.ab.outputs.ahead != '0'
+        run: |
+          BR=bot/sync-develop-into-importer-rework
+          git checkout -B "$BR" origin/develop
+          git push -f origin "HEAD:$BR"
+
+      - name: Check for existing PR (sync branch → importer-rework)
         id: pr_check
+        if: steps.ab.outputs.ahead != '0'
         run: |
           existing_pr=$(gh pr list \
             --base importer-rework \
-            --head develop \
+            --head bot/sync-develop-into-importer-rework \
             --state open \
             --json number \
-            --jq '.[0].number')
-
+            --jq '.[0].number // empty')
           echo "existing_pr=$existing_pr" >> $GITHUB_OUTPUT
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Create PR from develop to importer-rework
-        if: steps.ahead_check.outputs.ahead_count != '0' && steps.pr_check.outputs.existing_pr == ''
+      - name: Create PR from sync branch to importer-rework
+        if: steps.ab.outputs.ahead != '0' && steps.pr_check.outputs.existing_pr == ''
         run: |
           gh pr create \
             --base importer-rework \
-            --head develop \
+            --head bot/sync-develop-into-importer-rework \
             --title "Sync develop → importer-rework" \
-            --body "This PR was auto-created to sync changes from \`develop\` into \`importer-rework\`." \
-            --label automation \
-            --repo ${{ github.repository }}
+            --body "Auto-sync from \`develop\` via sync branch." \
+            --label automation
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 

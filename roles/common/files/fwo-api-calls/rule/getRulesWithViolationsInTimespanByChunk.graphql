@@ -1,0 +1,36 @@
+query getRulesWithViolationsInTimespanByChunk(
+  $limit: Int
+  $offset: Int
+  $active: Boolean
+  $import_id_start: bigint
+  $import_id_end: bigint
+  $from_date: timestamptz
+  $to_date: timestamptz
+) {
+  rule(
+    limit: $limit
+    offset: $offset
+    order_by: { rule_id: asc }
+    where: { removed: { _is_null: true } }
+  ) {
+    ...ruleDetails
+
+    violations: compliance_violations(
+      where: { found_date:   { _gte: $from_date, _lt: $to_date } }
+    ) {
+      id
+      rule_id
+      found_date
+      removed_date
+      details
+      risk_score
+      policy_id
+      criterion_id
+    }
+
+    rulebase: rulebase {
+      id
+      name
+    }
+  }
+}

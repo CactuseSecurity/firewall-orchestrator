@@ -13,6 +13,7 @@ def normalize_network_objects(import_state: ImportStateController, native_config
     
     if 'objects' not in native_config:
         return # no objects to normalize
+    # objects dicts have type as toplevel key due to rewrite_native_config_obj_type_as_key
     for current_obj_type in native_config['objects']:
         if not(current_obj_type in nw_obj_types and 'data' in native_config['objects'][current_obj_type]):
             continue
@@ -61,9 +62,13 @@ def normalize_network_object(obj_orig, nw_objects, normalized_config, import_sta
         obj['obj_ip_end']= obj.get('obj_ip', None)
 
     obj.update({'obj_comment': obj_orig.get('comment', None)})
-    if 'color' in obj_orig and obj_orig['color']==0:
-        obj.update({'obj_color': 'black'})  # todo: deal with all other colors (will be currently ignored)
-                                            # we would need a list of fortinet color codes
+    # todo: deal with all other colors (will be currently ignored)
+    # we would need a list of fortinet color codes, maybe:
+    # https://community.fortinet.com/t5/Support-Forum/Object-color-codes-for-CLI/td-p/249479
+    #if 'color' in obj_orig and obj_orig['color']==0:
+    #    obj.update({'obj_color': 'black'})
+    obj.update({'obj_color': 'black'})
+                                            
 
     obj.update({'obj_uid': obj_orig.get('uuid', obj_orig['name'])})  # using name as fallback, but this should not happen
 

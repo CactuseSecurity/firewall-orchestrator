@@ -1271,6 +1271,12 @@ INSERT INTO config (config_key, config_value, config_user)
 VALUES ('reportSchedulerConfig', '', 0)
 ON CONFLICT (config_key, config_user) DO NOTHING;
 
+-- add parameter to choose order by column of network matrix between name and id
+
+INSERT INTO config (config_key, config_value, config_user) 
+VALUES ('complianceCheckSortMatrixByID', 'false', 0)
+ON CONFLICT (config_key, config_user) DO NOTHING;
+
 -- adding labels (simple version without mapping tables and without foreign keys)
 
 -- CREATE TABLE label (

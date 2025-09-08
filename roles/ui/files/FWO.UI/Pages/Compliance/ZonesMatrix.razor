@@ -21,7 +21,7 @@
                 <thead>
                     <tr>
                         <th></th>
-                        @foreach (var destinationZone in networkZoneService.NetworkZones)
+                        @foreach (var destinationZone in GetSortedNetworkzones())
                         {
                             <th @onclick="() => ExecuteZoneAction(destinationZone)" class="zone-header-rotated">
                                 <div class="zone-name text-rotated">@(destinationZone.Name)</div>
@@ -30,7 +30,7 @@
                     </tr>
                 </thead>
                 <tbody>
-                    @foreach (var sourceZone in networkZoneService.NetworkZones)
+                    @foreach (var sourceZone in GetSortedNetworkzones())
                     {
                         <tr>
                             <th @onclick="() => ExecuteZoneAction(sourceZone)" class="zone-header">
@@ -109,5 +109,17 @@
         {
             // Jump to communication
         }
+    }
+
+    private List<ComplianceNetworkZone> GetSortedNetworkzones()
+    {
+        List<ComplianceNetworkZone> complianceNetworkZones = networkZoneService.NetworkZones;
+
+        if(userConfig.GlobalConfig!.ComplianceCheckSortMatrixByID)
+        {
+            complianceNetworkZones = complianceNetworkZones.OrderBy(zone => zone.Id).ToList();
+        }
+
+        return complianceNetworkZones;
     }
 }

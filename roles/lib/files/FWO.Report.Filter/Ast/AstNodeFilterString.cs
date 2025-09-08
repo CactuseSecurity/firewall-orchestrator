@@ -107,7 +107,7 @@ namespace FWO.Report.Filter.Ast
             }
             foreach (string field in recertFieldNames)
             {
-                ownerSearchParts.Add($"{{owner_recertification: {{{field}: {{{queryOperator}: ${queryVarName} }} }} }} ");
+                ownerSearchParts.Add($"{{owner_recertifications: {{{field}: {{{queryOperator}: ${queryVarName} }} }} }} ");
             }
             query.OwnerWhereStatement += $"_or: [ {string.Join(", ", ownerSearchParts)} ]";
         }

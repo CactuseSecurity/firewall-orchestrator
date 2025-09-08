@@ -9906,6 +9906,18 @@
                   }
                 },
                 {
+                  "name": "owner_recertifications",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "owner_id",
+                      "table": {
+                        "name": "owner_recertification",
+                        "schema": "public"
+                      }
+                    }
+                  }
+                },
+                {
                   "name": "owner_tickets",
                   "using": {
                     "foreign_key_constraint_on": {
@@ -10612,6 +10624,14 @@
                 "name": "owner_recertification",
                 "schema": "public"
               },
+              "object_relationships": [
+                {
+                  "name": "owner",
+                  "using": {
+                    "foreign_key_constraint_on": "owner_id"
+                  }
+                }
+              ],
               "insert_permissions": [
                 {
                   "role": "modeller",

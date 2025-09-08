@@ -48,9 +48,10 @@ namespace FWO.Middleware.Server.Controllers
             }
             catch (Exception exception)
             {
-                Log.WriteError("Get NormalizedConfig", "Error while getting normalized config.", exception);
+                string errorString = $"Error while getting normalized config: {exception.Message}.";
+                Log.WriteError("Get NormalizedConfig", errorString, exception);
+                return StatusCode(500, errorString);
             }
-            return StatusCode(500, "An error occurred while getting the normalized config.");
         }
 
         private async Task<bool> InitUserEnvironment()

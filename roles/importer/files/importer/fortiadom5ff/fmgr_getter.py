@@ -106,9 +106,20 @@ def update_config_with_fortinet_api_call(config_json, sid, api_base_url, api_pat
         if len(result)<limit:
             returned_new_objects = False
 
-    if result_name == 'nw_obj_global_firewall/internet-service-basic':
-        full_result = full_result[0]['response']['results']
+    full_result = parse_special_fortinet_api_results(result_name, full_result)
+
     config_json.append({'type': result_name, 'data': full_result})
+
+
+def parse_special_fortinet_api_results(result_name, full_result):
+    if result_name == 'nw_obj_global_firewall/internet-service-basic':
+        if len(full_result)>0 and 'response' in full_result[0] and 'results' in full_result[0]['response']: 
+            full_result = full_result[0]['response']['results']
+        else:
+            logger = getFwoLogger()
+            logger.warning(f"did not get expected results for {result_name} - setting to empty list")
+            full_result = []
+    return full_result
 
 
 def fortinet_api_call(sid, api_base_url, api_path, payload={}, method='get'):

@@ -241,33 +241,35 @@ class FwConfigImportCheckConsistency(FwConfigImport):
 
     
     def checkZoneObjectConsistency(self, config: FwConfigManagerListController):
-        all_used_zone_refs = set()
-        for mgr in config.ManagerSet:
+
+        global_objects = set()
+        for mgr in sorted(config.ManagerSet, key=lambda m: not getattr(m, 'IsSuperManager', False)):
+            if len(mgr.Configs)==0:
+                continue
+            if mgr.IsSuperManager:
+                global_objects = config.get_all_zone_uids(mgr.ManagerUid)
+
+            all_used_obj_refs: set[str] = set()
             for single_config in mgr.Configs:
-                all_used_zone_refs = all_used_zone_refs.union(self._collect_zone_refs_from_rules(single_config))
+                all_used_obj_refs |= self._collect_zone_refs_from_rules(single_config)
+                # now make list unique 
+                all_used_obj_refs = set(all_used_obj_refs)
 
-                # we currently do not have zone groups - skipping group ref handling
-                # we currently do not have zone types - skipping type handling
+            # and get all refs not contained in zone_objects
+            unresolvable_object_refs = all_used_obj_refs - config.get_all_zone_uids(mgr.ManagerUid) - global_objects
+            if len(unresolvable_object_refs)>0:
+                self.issues.update({'unresolvableZoneObRefs': list(unresolvable_object_refs)})
 
-            self._check_zone_refs(all_used_zone_refs, config.get_all_zone_uids(mgr.ManagerUid))
-
-
-    def _check_zone_refs(self, all_used_zone_refs, all_zone_uids):
-        # now make list unique and get all refs not contained in zone_objects
-        all_used_zone_refs = set(all_used_zone_refs)
-        unresolvable_zone_refs = all_used_zone_refs - all_zone_uids
-        if len(unresolvable_zone_refs)>0:
-            self.issues.update({'unresolvableZoneRefs': list(unresolvable_zone_refs)})
-    
+   
     @staticmethod
     def _collect_zone_refs_from_rules(single_config):
         all_used_zones_refs = []
         for rb in single_config.rulebases:
-            for ruleId in rb.Rules:
-                if rb.Rules[ruleId].rule_src_zone is not None:
-                    all_used_zones_refs.append(rb.Rules[ruleId].rule_src_zone)
-                if rb.Rules[ruleId].rule_dst_zone is not None:
-                    all_used_zones_refs.append(rb.Rules[ruleId].rule_dst_zone)
+            for rule_id in rb.Rules:
+                if rb.Rules[rule_id].rule_src_zone is not None:
+                    all_used_zones_refs.append(rb.Rules[rule_id].rule_src_zone)
+                if rb.Rules[rule_id].rule_dst_zone is not None:
+                    all_used_zones_refs.append(rb.Rules[rule_id].rule_dst_zone)
         return set(all_used_zones_refs)
 
 

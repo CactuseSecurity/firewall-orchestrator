@@ -1473,6 +1473,20 @@ create table compliance.violation
 	criterion_id INT NOT NULL
 );
 
+-- create table compliance.assessability_issue
+-- (
+--     violation_id BIGINT NOT NULL,
+-- 	type_id INT NOT NULL,
+-- 	PRIMARY KEY(violation_id, type_id)
+-- );
+
+-- create table compliance.assessability_issue_type
+-- (
+-- 	type_id INT PRIMARY KEY,
+--     type_name VARCHAR(50) NOT NULL
+-- );
+
+
 --- Network modelling ---
 create schema modelling;
 

@@ -476,6 +476,10 @@
 
 	public void Dispose()
     {
+        JwtEventService.OnPermissionChanged -= OnPermissionsChanged;
+        JwtEventService.OnJwtAboutToExpire -= OnJwtAboutToExpire;
+        JwtEventService.OnJwtExpired -= OnJwtExpired;
+
         if(UIMessageQueTimer is not null)
         {
             UIMessageQueTimer.Stop();

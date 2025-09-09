@@ -1,5 +1,5 @@
 from logging import Logger
-from typing import Dict, List
+from typing import dict, List
 from fwo_log import getFwoLogger
 from model_controllers.import_state_controller import ImportStateController
 from services.service_provider import ServiceProvider
@@ -15,15 +15,15 @@ class Uid2IdMapper:
 
     import_state: ImportStateController
     logger: Logger
-    nwobj_uid2id: Dict[str, int]
-    svc_uid2id: Dict[str, int]
-    user_uid2id: Dict[str, int]
-    rule_uid2id: Dict[str, int]
-    outdated_nwobj_uid2id: Dict[str, int]
-    outdated_svc_uid2id: Dict[str, int]
-    outdated_user_uid2id: Dict[str, int]
-    outdated_zone_name2id: Dict[str, int]
-    outdated_rule_uid2id: Dict[str, int]
+    nwobj_uid2id: dict[str, int]
+    svc_uid2id: dict[str, int]
+    user_uid2id: dict[str, int]
+    rule_uid2id: dict[str, int]
+    outdated_nwobj_uid2id: dict[str, int]
+    outdated_svc_uid2id: dict[str, int]
+    outdated_user_uid2id: dict[str, int]
+    outdated_zone_name2id: dict[str, int]
+    outdated_rule_uid2id: dict[str, int]
 
     @property
     def api_connection(self):

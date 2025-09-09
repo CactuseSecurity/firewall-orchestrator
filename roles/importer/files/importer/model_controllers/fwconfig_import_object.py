@@ -112,21 +112,20 @@ class FwConfigImportObject():
         self.remove_outdated_memberships(prevConfig, Type.USER)
 
         # calculate zone object diffs
-        deleted_zone_uids = list(prevConfig.zone_objects.keys() - self.normalized_config.zone_objects.keys())
-        new_zone_uids = list(self.normalized_config.zone_objects.keys() - prevConfig.zone_objects.keys())
-        zone_uids_in_both = list(self.normalized_config.zone_objects.keys() & prevConfig.zone_objects.keys())
+        deleted_zone_names = list(prevConfig.zone_objects.keys() - self.normalized_config.zone_objects.keys())
+        new_zone_names = list(self.normalized_config.zone_objects.keys() - prevConfig.zone_objects.keys())
+        zone_names_in_both = list(self.normalized_config.zone_objects.keys() & prevConfig.zone_objects.keys())
         changed_zones = []
 
-        # NB: zone_uid is actually zone_name here
-        for zone_uid in zone_uids_in_both:
-            if self.normalized_config.zone_objects[zone_uid] != prevConfig.zone_objects[zone_uid]:
-                new_zone_uids.append(zone_uid)
-                deleted_zone_uids.append(zone_uid)
-                changed_zones.append(zone_uid)
+        for zone_name in zone_names_in_both:
+            if self.normalized_config.zone_objects[zone_name] != prevConfig.zone_objects[zone_name]:
+                new_zone_names.append(zone_name)
+                deleted_zone_names.append(zone_name)
+                changed_zones.append(zone_name)
 
         # add newly created objects
         newNwObjIds, newNwSvcIds, newUserIds, new_zone_ids, removedNwObjIds, removedNwSvcIds, removedUserIds, removed_zone_ids =  \
-            self.updateObjectsViaApi(single_manager, newNwobjUids, newSvcObjUids, newUserUids, new_zone_uids, deletedNwobjUids, deletedSvcObjUids, deletedUserUids, deleted_zone_uids)
+            self.updateObjectsViaApi(single_manager, newNwobjUids, newSvcObjUids, newUserUids, new_zone_names, deletedNwobjUids, deletedSvcObjUids, deletedUserUids, deleted_zone_names)
         
         self.uid2id_mapper.add_network_object_mappings(newNwObjIds, is_global=single_manager.IsSuperManager)
         self.uid2id_mapper.add_service_object_mappings(newNwSvcIds, is_global=single_manager.IsSuperManager)
@@ -234,7 +233,7 @@ class FwConfigImportObject():
             map.update({proto['ip_proto_name'].lower(): proto['ip_proto_id']})
         return map
 
-    def updateObjectsViaApi(self, single_manager, newNwObjectUids, newSvcObjectUids, newUserUids, new_zone_uids, removedNwObjectUids, removedSvcObjectUids, removedUserUids, removed_zone_uids):
+    def updateObjectsViaApi(self, single_manager, newNwObjectUids, newSvcObjectUids, newUserUids, new_zone_names, removedNwObjectUids, removedSvcObjectUids, removedUserUids, removed_zone_names):
         # here we also mark old objects removed before adding the new versions
         logger = getFwoLogger(debug_level=self.import_state.DebugLevel)
         newNwObjIds = []
@@ -253,11 +252,11 @@ class FwConfigImportObject():
             'newNwObjects': self.prepareNewNwObjects(newNwObjectUids, this_managements_id),
             'newSvcObjects': self.prepareNewSvcObjects(newSvcObjectUids, this_managements_id),
             'newUsers': self.prepareNewUserObjects(newUserUids, this_managements_id),
-            'newZones': self.prepare_new_zones(new_zone_uids, this_managements_id),
+            'newZones': self.prepare_new_zones(new_zone_names, this_managements_id),
             'removedNwObjectUids': removedNwObjectUids,
             'removedSvcObjectUids': removedSvcObjectUids,
             'removedUserUids': removedUserUids,
-            'removedZoneUids': removed_zone_uids
+            'removedZoneUids': removed_zone_names
         }
 
         if self.import_state.DebugLevel>8:
@@ -329,9 +328,9 @@ class FwConfigImportObject():
         return newObjs
     
  
-    def prepare_new_zones(self, new_zone_uids, mgm_id):
+    def prepare_new_zones(self, new_zone_names, mgm_id):
         new_objects = []
-        for uid in new_zone_uids:
+        for uid in new_zone_names:
             new_objects.append({
                 'mgm_id': mgm_id,
                 'zone_create': self.import_state.ImportId,

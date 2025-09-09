@@ -22,7 +22,7 @@ class Uid2IdMapper:
     outdated_nwobj_uid2id: Dict[str, int]
     outdated_svc_uid2id: Dict[str, int]
     outdated_user_uid2id: Dict[str, int]
-    outdated_zone_uid2id: Dict[str, int]
+    outdated_zone_name2id: Dict[str, int]
     outdated_rule_uid2id: Dict[str, int]
 
     @property
@@ -43,17 +43,17 @@ class Uid2IdMapper:
         self.svc_uid2id = {}
         self.user_uid2id = {}
         self.rule_uid2id = {}
-        self.zone_uid2id = {}
+        self.zone_name2id = {}
         self.outdated_nwobj_uid2id = {}
         self.outdated_svc_uid2id = {}
         self.outdated_user_uid2id = {}
-        self.outdated_zone_uid2id = {}
+        self.outdated_zone_name2id = {}
         self.outdated_rule_uid2id = {}
         self.global_nwobj_uid2id = {}
         self.global_svc_uid2id = {}
         self.global_user_uid2id = {}
         self.global_rule_uid2id = {}
-        self.global_zone_uid2id = {}
+        self.global_zone_name2id = {}
 
     def log_error(self, message: str):
         """
@@ -157,13 +157,13 @@ class Uid2IdMapper:
             int: The ID of the zone
         """
         if before_update:
-            zone_id = self.outdated_zone_uid2id.get(uid)
+            zone_id = self.outdated_zone_name2id.get(uid)
             if zone_id is not None:
                 return zone_id
 
-        zone_id = self.zone_uid2id.get(uid)
+        zone_id = self.zone_name2id.get(uid)
         if not local_only and zone_id is None:
-            zone_id = self.global_zone_uid2id.get(uid)
+            zone_id = self.global_zone_name2id.get(uid)
         if zone_id is None:
             self.log_error(f"Zone UID '{uid}' not found in mapping.")
         return zone_id
@@ -254,8 +254,8 @@ class Uid2IdMapper:
         Returns:
             bool: True if the mappings were added successfully, False otherwise.
         """
-        main_map = self.global_zone_uid2id if is_global else self.zone_uid2id
-        outdated_map = self.outdated_zone_uid2id
+        main_map = self.global_zone_name2id if is_global else self.zone_name2id
+        outdated_map = self.outdated_zone_name2id
 
         for mapping in mappings:
             if 'zone_name' not in mapping or 'zone_id' not in mapping:

@@ -1,20 +1,22 @@
 from pydantic import Field
 
 class Management():
-    Id: int
-    Name: str
-    Uid: str
-    Hostname: str
-    ImportDisabled: bool
-    Devices: dict
-    ImporterHostname: str
-    DeviceTypeName: str
-    DeviceTypeVersion: str
-    Port: int
-    ImportUser: str
-    Secret: str
-    IsSuperManager: bool
-    SubManagerIds: list[int] = []
-    DomainName: str = Field(alias='configPath', default='')
-    DomainUid: str = Field(alias='domainUid', default='')
-    SubManagers: list['Management'] = Field(default=[], alias='subManager')
+    Id: int = Field(description="Unique identifier for the (super-)management")
+    Name: str = Field(description="Name of the management")
+    Uid: str = Field(description="Unique identifier string of the management")
+    IsSuperManager: bool = Field(description="Indicates if the management is a super manager")
+    Hostname: str = Field(description="Hostname of the management server")
+    ImportDisabled: bool = Field(description="Indicates if import is disabled for the management")
+    Devices: dict = Field(description="Dictionary of devices managed by this entity")
+    ImporterHostname: str = Field(description="Hostname of the machine running the importer")
+    DeviceTypeName: str = Field(description="Name of the device type")
+    DeviceTypeVersion: str = Field(description="Version of the device type")
+    Port: int = Field(description="Port used for management communication")
+    ImportUser: str = Field(description="Username used for import operations")
+    Secret: str = Field(description="Secret or password for import operations")
+    SubManagerIds: list[int] = Field(default=[], description="List of sub-manager IDs")
+    CurrentMgmId: int = Field(description="Tracks the current management in multi-management imports")
+    CurrentMgmIsSuperManager: bool = Field(description="Indicates if the current management is a super manager")
+    DomainName: str = Field(alias='configPath', default='', description="Domain name")
+    DomainUid: str = Field(alias='domainUid', default='', description="Domain UID")
+    SubManagers: list['Management'] = Field(default=[], alias='subManager', description="List of sub-manager entities")

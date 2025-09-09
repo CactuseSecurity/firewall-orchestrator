@@ -279,7 +279,7 @@ class Uid2IdMapper:
             variables = {'uids': uids}
         else:
             # If no UIDs are provided, fetch all UIDs for the Management
-            variables = {'mgmId': self.import_state.MgmDetails.Id}
+            variables = {'mgmId': self.import_state.MgmDetails.CurrentMgmId}
         try:
             response = self.import_state.api_connection.call(query, variables)
             if response is None:
@@ -316,7 +316,7 @@ class Uid2IdMapper:
             variables = {'uids': uids}
         else:
             # If no UIDs are provided, fetch all UIDs for the Management
-            variables = {'mgmId': self.import_state.MgmDetails.Id}
+            variables = {'mgmId': self.import_state.MgmDetails.CurrentMgmId}
         try:
             response = self.import_state.api_connection.call(query, variables)
             if response is None:
@@ -351,7 +351,7 @@ class Uid2IdMapper:
             variables = {'uids': uids}
         else:
             # If no UIDs are provided, fetch all UIDs for the Management
-            variables = {'mgmId': self.import_state.MgmDetails.Id}
+            variables = {'mgmId': self.import_state.MgmDetails.CurrentMgmId}
         try:
             response = self.import_state.api_connection.call(query, variables)
             if response is None:
@@ -386,7 +386,7 @@ class Uid2IdMapper:
             variables = {'uids': uids}
         else:
             # If no UIDs are provided, fetch all UIDs for the Management
-            variables = {'mgmId': self.import_state.MgmDetails.Id}
+            variables = {'mgmId': self.import_state.MgmDetails.CurrentMgmId}
         try:
             response = self.import_state.api_connection.call(query, variables)
             if response is None:

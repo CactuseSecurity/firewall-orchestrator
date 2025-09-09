@@ -69,6 +69,10 @@ class ManagementController(Management):
         self.IsSuperManager = manager_info.is_super_manager
         self.SubManagerIds = manager_info.sub_manager_ids or []
         self.SubManagers = manager_info.sub_managers or []
+
+        # Current Sub-Manager info for multi-management imports
+        self.CurrentMgmId = mgm_id
+        self.CurrentMgmIsSuperManager = manager_info.is_super_manager
         
         # Domain info
         self.DomainName = domain_info.domain_name

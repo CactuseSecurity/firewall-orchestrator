@@ -1,0 +1,47 @@
+﻿@inject UserConfig userConfig
+
+<PopUp Title="@(userConfig.GetText("using_connections") + InterfaceName)" Show="@Display" Size=PopupSize.Medium OnClose="Close">
+    <Body>
+        @if (Display)
+        {
+            <Table TableClass="table table-bordered table-sm th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="ModellingConnection" Items="UsingConnections">
+                <Column TableItem="ModellingConnection" Title="@(userConfig.GetText("id"))" Field="@(x => x.Id)" />
+                <Column TableItem="ModellingConnection" Title="@(userConfig.GetText("owner"))" Field="@(x => x.App.Name)" >
+                    <Template>
+                        @(context.App.Name)
+                    </Template>
+                </Column>
+                <Column TableItem="ModellingConnection" Title="@(userConfig.GetText("name"))" Field="@(x => x.Name)" />
+            </Table>
+        }
+    </Body>
+    <Footer>
+        <button type="button" class="btn btn-sm btn-secondary" @onclick="Close">@(userConfig.GetText("ok"))</button>
+    </Footer>
+</PopUp>
+
+
+@code
+{
+    [CascadingParameter]
+    Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
+
+    [Parameter]
+    public bool Display { get; set; } = false;
+
+    [Parameter]
+    public EventCallback<bool> DisplayChanged { get; set; }
+
+    [Parameter] 
+    public string InterfaceName { get; set; } = "";
+
+    [Parameter] 
+    public List<ModellingConnection> UsingConnections { get; set; } = [];
+
+
+    private void Close()
+    {
+        Display = false;
+        DisplayChanged.InvokeAsync(Display);
+    }
+}

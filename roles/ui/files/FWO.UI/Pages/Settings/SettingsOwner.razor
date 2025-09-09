@@ -248,7 +248,7 @@
                                 }
                                 else
                                 {
-                                    <Dropdown @bind-SelectedElement="actRecCheckParams.RecertCheckInterval" ElementToString="@(i => userConfig.GetText(i.ToString()))"
+                                    <Dropdown ElementType="SchedulerInterval" @bind-SelectedElement="actRecCheckParams.RecertCheckInterval" ElementToString="@(i => userConfig.GetText(i.ToString()))"
                                             Elements="Enum.GetValues(typeof(SchedulerInterval)).Cast<SchedulerInterval>().Where(x => x.OfferedForRecert())" >
                                         <ElementTemplate Context="interval">
                                             @(userConfig.GetText(interval.ToString()))

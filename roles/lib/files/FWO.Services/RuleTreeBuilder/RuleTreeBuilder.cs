@@ -120,9 +120,17 @@ namespace FWO.Services.RuleTreeBuilder
                     lastPosition = HandleRulebaseLinkQueueItem(RuleTreeBuilderQueue.Dequeue(), lastPosition);
                 }
             }
+            else if (currentQueueItem.link.LinkType == 4)
+            {
+                if (currentQueueItem.link.IsInitial)
+                {
+                    nextParent = RuleTree;
+                }
+                
+            }
 
             // Create order number.
-            List<Rule> currentRules = currentQueueItem.rulebase.Rules.ToList();
+                List<Rule> currentRules = currentQueueItem.rulebase.Rules.ToList();
             foreach (Rule currentRule in currentRules)
             {
                 // Make clone if rule was alreade processed.
@@ -141,6 +149,11 @@ namespace FWO.Services.RuleTreeBuilder
                     nextPosition = lastPosition.ToList();
                 }
                 else if (nextParent.GetPositionString() == OrderedLayerCount.ToString() && !nextParent.Children.Any())
+                {
+                    nextPosition.Add(0);
+                }
+
+                if (nextPosition.Count == 0)
                 {
                     nextPosition.Add(0);
                 }

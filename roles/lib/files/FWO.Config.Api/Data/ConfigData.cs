@@ -427,6 +427,9 @@ namespace FWO.Config.Api.Data
         
         [JsonProperty("complianceCheckSortMatrixByID"), JsonPropertyName("complianceCheckSortMatrixByID")]
         public bool ComplianceCheckSortMatrixByID { get; set; } = false;
+
+        [JsonProperty("complianceCheckRelevantManagements"), JsonPropertyName("complianceCheckRelevantManagements")]
+        public string ComplianceCheckRelevantManagements { get; set; } = "";
         
         [JsonProperty("reportSchedulerConfig"), JsonPropertyName("reportSchedulerConfig")]
         public string ReportSchedulerConfig { get; set; } = "";

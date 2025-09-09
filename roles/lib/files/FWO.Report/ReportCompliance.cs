@@ -47,6 +47,8 @@ namespace FWO.Report
         private readonly int _maxCellSize;
         private readonly int _maxPrintedViolations;
 
+        private List<int> _relevanteManagementIDs = new();
+
 
         #endregion
 
@@ -99,6 +101,23 @@ namespace FWO.Report
                 Log.WriteWarning("Compliance Report", "No debug config found, using default values.");
                 _debugConfig = new();
             }
+
+            if (userConfig.GlobalConfig != null && !string.IsNullOrEmpty(userConfig.GlobalConfig.ComplianceCheckRelevantManagements))
+            {
+                try
+                {
+                    _relevanteManagementIDs = userConfig.GlobalConfig.ComplianceCheckRelevantManagements
+                        .Split(',', StringSplitOptions.RemoveEmptyEntries)
+                        .Select(s => int.Parse(s.Trim()))
+                        .ToList();
+                }
+                catch (System.Exception e)
+                {
+                    Log.TryWriteLog(LogType.Error, "Compliance Report", $"Error while parsing relevant mangement IDs: {e.Message}", _debugConfig.ExtendedLogReportGeneration);
+                }
+            }
+
+
         }
 
         public ReportCompliance(DynGraphqlQuery query, UserConfig userConfig, ReportType reportType, ReportParams reportParams) : this(query, userConfig, reportType)
@@ -441,6 +460,11 @@ namespace FWO.Report
             if (query.Contains("to_date"))
             {
                 queryVariables["to_date"] = DateTime.Now;
+            }
+
+            if (query.Contains("mgm_ids"))
+            {
+                queryVariables["mgm_ids"] = _relevanteManagementIDs;
             }
 
             return queryVariables;

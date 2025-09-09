@@ -37,9 +37,7 @@ def get_config(config_in: FwConfigManagerListController, importState: ImportStat
     else:
         parsing_config_only = True
 
-    if parsing_config_only:
-        sid = None  
-    else: # no native config was passed in, so getting it from FortiManager
+    if not parsing_config_only: # no native config was passed in, so getting it from FortiManager
         sid = get_sid(importState)
         limit = importState.FwoConfig.ApiFetchSize
         fm_api_url = importState.MgmDetails.buildFwApiString()
@@ -50,7 +48,7 @@ def get_config(config_in: FwConfigManagerListController, importState: ImportStat
         arbitrary_vdom_for_updateable_objects = get_arbitrary_vdom(adom_device_vdom_structure)
         adom_device_vdom_policy_package_structure = add_policy_package_to_vdoms(adom_device_vdom_structure, sid, fm_api_url)
         # adom_device_vdom_policy_package_structure = {adom: {device: {vdom1: pol_pkg1}, {vdom2: pol_pkg2}}}
-        #delete_v: später hier globale pol_pgk holen mit /pm/pkg/global
+        global_packages = get_global_packages(sid, fm_api_url, adom_device_vdom_policy_package_structure)
 
         # get global
         get_objects(sid, fm_api_url, native_config_global, native_config_global, '', limit, nw_obj_types, svc_obj_types, 'global', arbitrary_vdom_for_updateable_objects)
@@ -61,7 +59,6 @@ def get_config(config_in: FwConfigManagerListController, importState: ImportStat
             config_in.native_config['domains'].append(native_config_adom)
 
             adom_scope = 'adom/'+adom_name
-            # delete_v: objekte werden auch importiert wenn es kein device gibt, ist das gewollt?
             get_objects(sid, fm_api_url, native_config_adom, native_config_global, adom_name, limit, nw_obj_types, svc_obj_types, adom_scope, arbitrary_vdom_for_updateable_objects)
             # currently reading zone from objects/rules for backward compat with FortiManager 6.x
             # getZones(sid, fm_api_url, full_config, adom_name, limit, debug_level)
@@ -87,7 +84,6 @@ def get_config(config_in: FwConfigManagerListController, importState: ImportStat
 
         write_native_config_to_file(importState, config_in.native_config)
 
-    # delete_v: brauchen wir hier wirklich sid, dann muss die auch für parsing_config_only TRUE erzeugt werden
     normalized_managers = normalize_config(importState, config_in.native_config)
     logger.info("completed getting config")
     return 0, normalized_managers
@@ -115,7 +111,6 @@ def get_arbitrary_vdom(adom_device_vdom_structure):
 
 def normalize_config(import_state, native_config: dict[str,Any]) -> FwConfigManagerListController:
 
-    # delete_v: einfach kopiert von cp
     manager_list = FwConfigManagerListController()
 
     native_config_global = {} # TODO: implement reading for FortiManager 5ff
@@ -213,7 +208,7 @@ def build_adom_list(importState : ImportStateController):
             adom_list.append(deepcopy(subManager))
     return adom_list
 
-def build_adom_device_vdom_structure(adom_list, sid, fm_api_url):
+def build_adom_device_vdom_structure(adom_list, sid, fm_api_url) -> dict:
     adom_device_vdom_structure = {}
     for adom in adom_list:
         adom_device_vdom_structure.update({adom.DomainName: {}})
@@ -225,7 +220,7 @@ def build_adom_device_vdom_structure(adom_list, sid, fm_api_url):
 def add_policy_package_to_vdoms(adom_device_vdom_structure, sid, fm_api_url):
     adom_device_vdom_policy_package_structure = deepcopy(adom_device_vdom_structure)
     for adom in adom_device_vdom_policy_package_structure:
-        policy_packages_result = fmgr_getter.get_policy_packages_from_manager(adom, sid, fm_api_url)
+        policy_packages_result = fmgr_getter.get_policy_packages_from_manager(sid, fm_api_url, adom=adom)
         for policy_package in policy_packages_result:
             if 'scope member' in policy_package:
                 parse_policy_package(policy_package, adom_device_vdom_policy_package_structure, adom)
@@ -238,6 +233,16 @@ def parse_policy_package(policy_package, adom_device_vdom_policy_package_structu
                 for vdom in adom_device_vdom_policy_package_structure[adom][device]:
                     if vdom == scope_member['vdom']:
                         adom_device_vdom_policy_package_structure[adom][device].update({vdom: policy_package['name']})
+
+def get_global_packages(sid, fm_api_url, adom_device_vdom_policy_package_structure) -> list:
+    global_packages = []
+    global_packages_results = fmgr_getter.get_policy_packages_from_manager(sid, fm_api_url, adom='')
+    for policy_package in global_packages_results:
+        if 'scope member' in policy_package:
+            for adom in adom_device_vdom_policy_package_structure:
+                if policy_package['scope member'] == adom:
+                    global_packages.append(policy_package['name'])
+    return global_packages
 
 def initialize_device_config(mgm_details_device):
     device_config = {'name': mgm_details_device['name'],

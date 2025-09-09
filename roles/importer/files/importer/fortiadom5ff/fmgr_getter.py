@@ -160,8 +160,11 @@ def parse_device_and_vdom(fmgr_device, mgm_details_device, device_vdom_dict, fou
                     device_vdom_dict.update({fmgr_device['name']: {fmgr_vdom['name']: ''}})
     return found_fmgr_device
             
-def get_policy_packages_from_manager(adom, sid, fm_api_url):
-
-    policy_packages_result = fortinet_api_call(sid, fm_api_url, '/pm/pkg/adom/' + adom)
+def get_policy_packages_from_manager(sid, fm_api_url, adom=''):
+    if adom == '':
+        url = '/pm/pkg/global'
+    else:
+        url = '/pm/pkg/adom/' + adom
+    policy_packages_result = fortinet_api_call(sid, fm_api_url, url)
 
     return policy_packages_result

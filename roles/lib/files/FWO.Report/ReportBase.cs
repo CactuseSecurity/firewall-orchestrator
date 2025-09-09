@@ -159,7 +159,7 @@ namespace FWO.Report
                 ReportType.Connections => new ReportConnections(query, userConfig, repType),
                 ReportType.AppRules => new ReportAppRules(query, userConfig, repType, reportFilter.ReportParams.ModellingFilter),
                 ReportType.VarianceAnalysis => new ReportVariances(query, userConfig, repType),
-				ReportType.OwnerRecertification => new ReportOwnerRecerts(query, userConfig, repType),
+                ReportType.OwnerRecertification => new ReportOwnerRecerts(query, userConfig, repType),
                 _ => throw new NotSupportedException("Report Type is not supported."),
             };
         }
@@ -189,51 +189,12 @@ namespace FWO.Report
             if(string.IsNullOrEmpty(htmlExport))
             {
                 HtmlTemplate = HtmlTemplate.Replace("##Title##", title);
-                if(filter != "")
-                {
-                    HtmlTemplate = HtmlTemplate.Replace("##Filter##", userConfig.GetText("filter") + ": " + filter);
-                }
-                else
-                {
-                    HtmlTemplate = HtmlTemplate.Replace("<p>##Filter##</p>", "");
-                }
+                ReplaceFilter(filter);
                 HtmlTemplate = HtmlTemplate.Replace("##GeneratedOn##", userConfig.GetText("generated_on"));
                 HtmlTemplate = HtmlTemplate.Replace("##Date##", date.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssK"));
-                if(ReportType.IsChangeReport())
-                {
-                    (string startTime, string stopTime) = DynGraphqlQuery.ResolveTimeRange(timeFilter!);
-                    string timeRange = $"{userConfig.GetText("change_time")}: " +
-                        $"{userConfig.GetText("from")}: {ToUtcString(startTime)}, " +
-                        $"{userConfig.GetText("until")}: {ToUtcString(stopTime)}";
-                    HtmlTemplate = HtmlTemplate.Replace("##Date-of-Config##: ##GeneratedFor##", timeRange);
-                }
-                else if(ReportType.IsRuleReport() || ReportType == ReportType.Statistics)
-                {
-                    HtmlTemplate = HtmlTemplate.Replace("##Date-of-Config##", userConfig.GetText("date_of_config"));
-                    HtmlTemplate = HtmlTemplate.Replace("##GeneratedFor##", ToUtcString(Query.ReportTimeString));
-                }
-                else
-                {
-                    HtmlTemplate = HtmlTemplate.Replace("<p>##Date-of-Config##: ##GeneratedFor## (UTC)</p>", "");
-                }
-
-                if(ownerFilter != null && ownerFilter != "")
-                {
-                    HtmlTemplate = HtmlTemplate.Replace("##OwnerFilters##", userConfig.GetText("owners") + ": " + ownerFilter);
-                }
-                else
-                {
-                    HtmlTemplate = HtmlTemplate.Replace("<p>##OwnerFilters##</p>", "");
-                }
-
-                if(deviceFilter != null)
-                {
-                    HtmlTemplate = HtmlTemplate.Replace("##OtherFilters##", userConfig.GetText("devices") + ": " + deviceFilter);
-                }
-                else
-                {
-                    HtmlTemplate = HtmlTemplate.Replace("<p>##OtherFilters##</p>", "");
-                }
+                ReplaceDateOfConfig(timeFilter);
+                ReplaceOwnerFilter(ownerFilter);
+                ReplaceOtherFilter(deviceFilter);
 
                 string htmlToC = BuildHTMLToC(htmlReport.ToString());
 
@@ -244,13 +205,70 @@ namespace FWO.Report
             return htmlExport;
         }
 
-        public static string ToUtcString(string? timestring)
+        private void ReplaceFilter(string filter)
+        {
+            if(filter != "")
+            {
+                HtmlTemplate = HtmlTemplate.Replace("##Filter##", userConfig.GetText("filter") + ": " + filter);
+            }
+            else
+            {
+                HtmlTemplate = HtmlTemplate.Replace("<p>##Filter##</p>", "");
+            }
+        }
+        
+        private void ReplaceDateOfConfig(TimeFilter? timeFilter)
+        {
+            if (ReportType.IsChangeReport())
+            {
+                (string startTime, string stopTime) = DynGraphqlQuery.ResolveTimeRange(timeFilter ?? new());
+                string timeRange = $"{userConfig.GetText("change_time")}: " +
+                    $"{userConfig.GetText("from")}: {ToUtcString(startTime)}, " +
+                    $"{userConfig.GetText("until")}: {ToUtcString(stopTime)}";
+                HtmlTemplate = HtmlTemplate.Replace("##Date-of-Config##: ##GeneratedFor##", timeRange);
+            }
+            else if (ReportType.IsRuleReport() || ReportType == ReportType.Statistics)
+            {
+                HtmlTemplate = HtmlTemplate.Replace("##Date-of-Config##", userConfig.GetText("date_of_config"));
+                HtmlTemplate = HtmlTemplate.Replace("##GeneratedFor##", ToUtcString(Query.ReportTimeString));
+            }
+            else
+            {
+                HtmlTemplate = HtmlTemplate.Replace("<p>##Date-of-Config##: ##GeneratedFor## (UTC)</p>", "");
+            }
+        }
+
+        private void ReplaceOwnerFilter(string? ownerFilter)
+        {
+            if(ownerFilter != null && ownerFilter != "")
+            {
+                HtmlTemplate = HtmlTemplate.Replace("##OwnerFilters##", userConfig.GetText("owners") + ": " + ownerFilter);
+            }
+            else
+            {
+                HtmlTemplate = HtmlTemplate.Replace("<p>##OwnerFilters##</p>", "");
+            }
+        }
+
+        private void ReplaceOtherFilter(string? deviceFilter)
+        {
+            if(deviceFilter != null)
+            {
+                HtmlTemplate = HtmlTemplate.Replace("##OtherFilters##", userConfig.GetText("devices") + ": " + deviceFilter);
+            }
+            else
+            {
+                HtmlTemplate = HtmlTemplate.Replace("<p>##OtherFilters##</p>", "");
+            }
+        }
+
+        private static string ToUtcString(string? timestring)
         {
             try
             {
                 return timestring != null ? DateTime.Parse(timestring).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssK") : "";
             }
-            catch(Exception)
+            catch (Exception)
             {
                 return timestring ?? "";
             }

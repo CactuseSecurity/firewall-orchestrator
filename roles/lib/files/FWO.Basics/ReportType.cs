@@ -33,7 +33,7 @@ namespace FWO.Basics
                 ReportType.Recertification or
                 ReportType.UnusedRules or
                 ReportType.AppRules => true,
-                _ => false,
+                _ => false
             };
         }
 
@@ -44,7 +44,7 @@ namespace FWO.Basics
                 ReportType.Changes or
                 ReportType.ResolvedChanges or
                 ReportType.ResolvedChangesTech => true,
-                _ => false,
+                _ => false
             };
         }
 
@@ -56,7 +56,7 @@ namespace FWO.Basics
                 ReportType.ResolvedRulesTech or
                 ReportType.ResolvedChanges or
                 ReportType.ResolvedChangesTech => true,
-                _ => false,
+                _ => false
             };
         }
 
@@ -66,7 +66,7 @@ namespace FWO.Basics
             {
                 ReportType.ResolvedRulesTech or
                 ReportType.ResolvedChangesTech => true,
-                _ => false,
+                _ => false
             };
         }
 
@@ -81,7 +81,7 @@ namespace FWO.Basics
             {
                 ReportType.Connections or
                 ReportType.VarianceAnalysis => true,
-                _ => false,
+                _ => false
             };
         }
 
@@ -93,7 +93,23 @@ namespace FWO.Basics
                 ReportType.AppRules or
                 ReportType.VarianceAnalysis or
                 ReportType.OwnerRecertification => true,
-                _ => false,
+                _ => false
+            };
+        }
+
+        public static bool HasTimeFilter(this ReportType reportType)
+        {
+            return reportType switch
+            {
+                ReportType.Rules or
+                ReportType.ResolvedRules or
+                ReportType.ResolvedRulesTech or
+                ReportType.NatRules or
+                ReportType.Statistics or
+                ReportType.Changes or
+                ReportType.ResolvedChanges or
+                ReportType.ResolvedChangesTech => true,
+                _ => false
             };
         }
 

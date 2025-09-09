@@ -348,7 +348,7 @@ namespace FWO.Report.Filter
             }
             if ((ReportType)reportParams.ReportParams.ReportType == ReportType.OwnerRecertification)
             {
-                SetOwnerRecertFilter(ref query, reportParams.ReportParams.ModellingFilter);
+                SetOwnerRecertFilter(ref query, reportParams.ReportParams.ModellingFilter, reportParams.ReportParams.RecertFilter);
             }
             if ((ReportType)reportParams.ReportParams.ReportType == ReportType.UnusedRules)
             {
@@ -544,7 +544,7 @@ namespace FWO.Report.Filter
             }
         }
 
-        private static void SetOwnerRecertFilter(ref DynGraphqlQuery query, ModellingFilter? modellingFilter)
+        private static void SetOwnerRecertFilter(ref DynGraphqlQuery query, ModellingFilter? modellingFilter, RecertFilter? recertFilter)
         {
             if (modellingFilter != null)
             {
@@ -552,9 +552,12 @@ namespace FWO.Report.Filter
                 query.QueryVariables["selectedOwners"] = new List<int> (modellingFilter.SelectedOwners.Select(o => o.Id)).ToArray();
                 query.OwnerWhereStatement += $@"{{ id: {{ _in: $selectedOwners }} }}";
 
-                query.QueryParameters.Add("$refDate: timestamp");
-                query.QueryVariables["refDate"] = DateTime.Now;
-                query.OwnerWhereStatement += $@"{{ next_recert_date: {{ _lte: $refDate }} }}";
+                if (!modellingFilter.ShowAllOwners)
+                {
+                    query.QueryParameters.Add("$refDate: timestamp");
+                    query.QueryVariables["refDate"] = DateTime.Now.AddDays(recertFilter?.RecertificationDisplayPeriod ?? 0);
+                    query.OwnerWhereStatement += $@"{{ next_recert_date: {{ _lte: $refDate }} }}";
+                }
             }
         }
 

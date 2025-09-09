@@ -28,7 +28,8 @@ namespace FWO.Report
 
         protected string GenerateHtmlFrame(string title, string filter, DateTime date, StringBuilder htmlReport)
         {
-            return GenerateHtmlFrameBase(title, filter, date, htmlReport, null, string.Join("; ", ReportData.OwnerData.ConvertAll(o => o.Name)));
+            string? ownerFilter = ReportType == ReportType.OwnerRecertification ? null : string.Join("; ", ReportData.OwnerData.ConvertAll(o => o.Name));
+            return GenerateHtmlFrameBase(title, filter, date, htmlReport, null, ownerFilter);
         }
     }
 }

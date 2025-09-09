@@ -28,22 +28,22 @@
                 </ElementTemplate>
             </Dropdown>
         </div>
-        @if (actReportFilters.ReportType == ReportType.Recertification)
-        {
-            <ReportRecertParamSelection @bind-FilterInput="filterInput" @bind-RecertFilter="actReportFilters.RecertFilter"/>
-        }
-        else if (actReportFilters.ReportType.IsModellingReport())
+        @if (actReportFilters.ReportType.IsModellingReport())
         {
             <ReportModellingParamSelection @bind-ModellingFilter="actReportFilters.ModellingFilter" InjectedAppId="injectedAppId" ReportType="actReportFilters.ReportType"/>
         }
-        else if(actReportFilters.ReportType == ReportType.UnusedRules)
+        @if (actReportFilters.ReportType == ReportType.Recertification || actReportFilters.ReportType == ReportType.OwnerRecertification)
+        {
+            <ReportRecertParamSelection @bind-FilterInput="filterInput" @bind-RecertFilter="actReportFilters.RecertFilter" ReportType="actReportFilters.ReportType"/>
+        }
+        @if(actReportFilters.ReportType == ReportType.UnusedRules)
         {
             <div class="p-3">
                 <h5 class="text-left">@(userConfig.GetText("unused_days"))</h5>
                 <input type="number" min="1" max="5000" step="1" class="form-control form-control-sm" @bind="actReportFilters.UnusedDays" />
             </div>
         }
-        else if(actReportFilters.ReportType != ReportType.AppRules)
+        @if(actReportFilters.ReportType.HasTimeFilter())
         {
             <div class="p-3">
                 <h5 class="text-left">@(userConfig.GetText("report_time"))</h5>
@@ -53,7 +53,6 @@
                 </div>
             </div>
         }
-
         @if (actReportFilters.ReportType.IsDeviceRelatedReport())
         {
             @if (actReportFilters.ReportType != ReportType.Statistics && actReportFilters.ReportType != ReportType.AppRules)
@@ -138,7 +137,7 @@
                             break;
 
                         case ReportType.OwnerRecertification:
-                            <OwnerRecertReport OwnerData="currentReport.ReportData.OwnerData"/>
+                            <OwnerRecertReport OwnerData="currentReport.ReportData.OwnerData" RecertificationDisplayPeriod="currentReport.ReportData.RecertificationDisplayPeriod"/>
                             break;
 
                         default:

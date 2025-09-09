@@ -66,7 +66,7 @@ namespace FWO.Middleware.Server
                     NotificationService notificationService = await NotificationService.CreateAsync(NotificationClient.Recertification, globalConfig, apiConnectionMiddlewareServer, OwnerGroups);
                     foreach (var owner in owners.Where(o => IsCheckTime(o)))
                     {
-                        emailsSent += await notificationService.SendNotifications(owner, PrepareOwnerBody(owner));
+                        emailsSent += await notificationService.SendNotifications(owner, PrepareOwnerBody(owner), await PrepareOwnerReport(owner));
                         await SetOwnerLastCheck(owner);
                     }
                 }
@@ -292,6 +292,18 @@ namespace FWO.Middleware.Server
         {
             string msgText = owner.NextRecertDate >= DateTime.Today ? globalConfig.RecCheckEmailUpcomingText : globalConfig.RecCheckEmailOverdueText;
             return msgText.Replace(Placeholder.APPNAME, owner.Name);
+        }
+
+        private async Task<ReportBase?> PrepareOwnerReport(FwoOwner owner)
+        {
+            ReportParams reportParams = new((int)ReportType.OwnerRecertification, new())
+            {
+                ModellingFilter = new()
+                {
+                    SelectedOwner = owner
+                }
+            };
+            return await ReportGenerator.GenerateFromTemplate(new ReportTemplate("", reportParams), apiConnectionMiddlewareServer, new UserConfig(globalConfig), DefaultInit.DoNothing);
         }
 
         private async Task SetOwnerLastCheck(FwoOwner owner)

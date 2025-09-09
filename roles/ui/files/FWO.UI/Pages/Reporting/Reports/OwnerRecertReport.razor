@@ -7,27 +7,53 @@
 
 @inject UserConfig userConfig
 
-<h5>@(userConfig.GetText("U4003"))</h5>
-
 @if(OwnerData.Count > 0)
 {
-    <Table TableClass="table table-bordered table-sm th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="FwoOwner" Items="OwnerData.Select(o => o.Owner)">
-        <Column TableItem="FwoOwner" Title="@(userConfig.GetText("next_recert_date"))" Field="@(x => x.Id)" >
-            <Template>
-                @(GetNextRecertDate(context))
-            </Template>
-        </Column>
-        <Column TableItem="FwoOwner" Title="@(userConfig.GetText("id"))" Field="@(x => x.Id)" />
-        <Column TableItem="FwoOwner" Title="@(userConfig.GetText("name"))" Field="@(x => x.Name)" />
-        <Column TableItem="FwoOwner" Title="@(userConfig.GetText("last_recertified"))" Field="@(x => x.LastRecertified)" />
-        <Column TableItem="FwoOwner" Title="@(userConfig.GetText("last_recertifier"))" Field="@(x => new DistName(x.LastRecertifierDn).UserName)" />
-    </Table>
+    @if(overdueOwners.Count > 0)
+    {
+        <h5>@(userConfig.GetText("U4003"))</h5>
+        <OwnerRecertTable Owners="overdueOwners" />
+    }
+    else
+    {
+        <b>@(userConfig.GetText("U4004"))</b>
+        <br><br>
+    }
+    @if(upcomingOwners.Count > 0)
+    {
+        <h5>@(userConfig.GetText("U4005").Replace(Placeholder.DAYS, RecertificationDisplayPeriod.ToString()))</h5>
+        <OwnerRecertTable Owners="upcomingOwners" />
+    }
+    else if (RecertificationDisplayPeriod > 0)
+    {
+        <b>@(userConfig.GetText("U4006").Replace(Placeholder.DAYS, RecertificationDisplayPeriod.ToString()))</b>
+        <br><br>
+    }
+    @if(furtherOwners.Count > 0)
+    {
+        <h5>@(userConfig.GetText("U4007"))</h5>
+        <OwnerRecertTable Owners="furtherOwners" />
+    }
 }
 
 @code
 {
     [Parameter]
     public List<OwnerConnectionReport> OwnerData { get; set; } = [];
+
+    [Parameter]
+    public int RecertificationDisplayPeriod { get; set; } = 0;
+
+    private List<FwoOwner> overdueOwners = [];
+    private List<FwoOwner> upcomingOwners = [];
+    private List<FwoOwner> furtherOwners = [];
+
+    protected override void OnParametersSet()
+    {
+        overdueOwners = [.. OwnerData.Select(o => o.Owner).Where(o => o.RecertOverdue)];
+        upcomingOwners = [.. OwnerData.Select(o => o.Owner).Where(o => o.RecertUpcoming)];
+        furtherOwners = [.. OwnerData.Select(o => o.Owner).Where(o => !o.RecertOverdue && !o.RecertUpcoming)];
+    }
 
     private string GetNextRecertDate(FwoOwner owner)
     {

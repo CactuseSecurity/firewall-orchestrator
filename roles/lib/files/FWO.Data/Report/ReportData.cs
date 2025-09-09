@@ -6,7 +6,7 @@
         public List<OwnerConnectionReport> OwnerData { get; set; } = [];
         public List<GlobalCommonSvcReport> GlobalComSvc { get; set; } = [];
         public ManagementReport GlobalStats { get; set; } = new();
-
+        public int RecertificationDisplayPeriod { get; set; } = 0;
 
         public ReportData()
         {}

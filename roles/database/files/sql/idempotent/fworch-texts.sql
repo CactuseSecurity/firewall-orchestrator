@@ -778,6 +778,8 @@ INSERT INTO txt VALUES ('missing_objects',		'German', 	'Fehlende Objekte auf Dev
 INSERT INTO txt VALUES ('missing_objects',		'English', 	'Missing Objects on Device');
 INSERT INTO txt VALUES ('fully_modelled',		'German', 	'Vollst&auml;ndig Modelliert');
 INSERT INTO txt VALUES ('fully_modelled',		'English', 	'Fully Modelled');
+INSERT INTO txt VALUES ('show_all_owners',		'German', 	'Alle Eigent&uuml;mer zeigen');
+INSERT INTO txt VALUES ('show_all_owners',		'English', 	'Show all owners');
 
 -- schedule
 INSERT INTO txt VALUES ('schedule', 			'German',	'Terminplan');
@@ -2861,8 +2863,16 @@ INSERT INTO txt VALUES ('U4001', 'German',  'Sind sie sicher, dass sie folgende 
 INSERT INTO txt VALUES ('U4001', 'English', 'Do you really want to delete notification ');
 INSERT INTO txt VALUES ('U4002', 'German',  'Die App @@APPNAME@@ mit @@RULE_NUMBER@@ Regeln wurde erfolgreich rezertifiziert.');
 INSERT INTO txt VALUES ('U4002', 'English', 'Recertified @@APPNAME@@ with @@RULE_NUMBER@@ rules successfully.');
-INSERT INTO txt VALUES ('U4003', 'German',  'Die Rezertifizierung folgender Apps ist &uuml;berf&auml;llig:');
-INSERT INTO txt VALUES ('U4003', 'English', 'Following apps are overdue to be recertified:');
+INSERT INTO txt VALUES ('U4003', 'German',  'Rezertifizierung &uuml;berf&auml;llig');
+INSERT INTO txt VALUES ('U4003', 'English', 'Overdue to be recertified');
+INSERT INTO txt VALUES ('U4004', 'German',  'Es wurden keine &uuml;berf&auml;lligen Apps gefunden.');
+INSERT INTO txt VALUES ('U4004', 'English', 'No overdue apps found.');
+INSERT INTO txt VALUES ('U4005', 'German',  'Anstehende Rezertifizierungen in den n&auml;chsten @@DAYS@@ Tagen');
+INSERT INTO txt VALUES ('U4005', 'English', 'Upcoming recertifications in the next @@DAYS@@ days');
+INSERT INTO txt VALUES ('U4006', 'German',  'Es wurden keine anstehenden Rezertifizierungen in den n&auml;chsten @@DAYS@@ Tagen gefunden.');
+INSERT INTO txt VALUES ('U4006', 'English', 'No upcoming recertifications found in the next @@DAYS@@ days.');
+INSERT INTO txt VALUES ('U4007', 'German',  'Weitere rezertifizierte Apps');
+INSERT INTO txt VALUES ('U4007', 'English', 'Further recertified apps');
 
 INSERT INTO txt VALUES ('U5001', 'German',  'Setup und Verwaltung des Firewall Orchestrator. Bitte eine Einstellung in der linken Randleiste ausw&auml;hlen.');
 INSERT INTO txt VALUES ('U5001', 'English', 'Setup and administration of Firewall Orchestrator. Please choose a setting in the left sidebar.');
@@ -3526,6 +3536,8 @@ INSERT INTO txt VALUES ('T0107', 'German',  'Aktuell aktive Regeln, die zur Reze
 INSERT INTO txt VALUES ('T0107', 'English', 'Currently active rules with upcoming recertification');
 
 -- Contextual Info (Tooltips)
+INSERT INTO txt VALUES ('C1000', 'German',  'Zeige alle Eigent&uuml;er inklusive der rezertifizierten');
+INSERT INTO txt VALUES ('C1000', 'English', 'show all owners including recertified');
 INSERT INTO txt VALUES ('C9000', 'German',  'Dieses Objekt wurde deaktiviert und sollte von der App Rolle entfernt werden.');
 INSERT INTO txt VALUES ('C9000', 'English', 'This object was deactivated and should be removed from App Role.');
 INSERT INTO txt VALUES ('C9001', 'German',  'Dieses Objekt wurde deaktiviert und sollte von der Verbindung entfernt werden.');

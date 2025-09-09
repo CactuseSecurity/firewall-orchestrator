@@ -22,26 +22,59 @@ namespace FWO.Report
 
         public override string ExportToHtml()
         {
+            List<FwoOwner> overdueOwners = [.. ReportData.OwnerData.Select(o => o.Owner).Where(ow => ow.RecertOverdue)];
+            List<FwoOwner> upcomingOwners = [.. ReportData.OwnerData.Select(o => o.Owner).Where(ow => ow.RecertUpcoming)];
+            List<FwoOwner> furtherOwners = [.. ReportData.OwnerData.Select(o => o.Owner).Where(ow => !ow.RecertOverdue && !ow.RecertUpcoming)];
+
             StringBuilder report = new();
-            report.AppendLine($"<h3 id=\"{Guid.NewGuid()}\">{userConfig.GetText("U4003")}</h3>");
-            report.AppendLine("<table>");
-            AppendOwnerDataHeadlineHtml(ref report);
-            foreach (var ownerReport in ReportData.OwnerData)
+            if (overdueOwners.Count > 0)
             {
-                AppendOwnerDataHtml(ref report, ownerReport);
+                report.AppendLine($"<h3 id=\"{Guid.NewGuid()}\">{userConfig.GetText("U4003")}</h3>");
+                AppendOwnerTable(ref report, overdueOwners);
             }
-            report.AppendLine("</table>");
+            else
+            {
+                report.AppendLine(userConfig.GetText("U4004"));
+            }
+            report.AppendLine("<hr>");
+            if (upcomingOwners.Count > 0)
+            {
+                report.AppendLine($"<h3 id=\"{Guid.NewGuid()}\">{userConfig.GetText("U4005").Replace(Placeholder.DAYS, ReportData.RecertificationDisplayPeriod.ToString())}</h3>");
+                AppendOwnerTable(ref report, upcomingOwners);
+            }
+            else if (ReportData.RecertificationDisplayPeriod > 0)
+            {
+                report.AppendLine(userConfig.GetText("U4006").Replace(Placeholder.DAYS, ReportData.RecertificationDisplayPeriod.ToString()));
+            }
+            report.AppendLine("<hr>");
+            if (furtherOwners.Count > 0)
+            {
+                report.AppendLine($"<h3 id=\"{Guid.NewGuid()}\">{userConfig.GetText("U4007")}</h3>");
+                AppendOwnerTable(ref report, furtherOwners);
+            }
+           
             return GenerateHtmlFrame(userConfig.GetText(ReportType.ToString()), Query.RawFilter, DateTime.Now, report);
         }
 
-        public static void AppendOwnerDataHtml(ref StringBuilder report, OwnerConnectionReport ownerReport)
+        private void AppendOwnerTable(ref StringBuilder report, List<FwoOwner> owners)
+        {
+            report.AppendLine("<table>");
+            AppendOwnerDataHeadlineHtml(ref report);
+            foreach (var owner in owners)
+            {
+                AppendOwnerDataHtml(ref report, owner);
+            }
+            report.AppendLine("</table>");
+        }
+
+        private static void AppendOwnerDataHtml(ref StringBuilder report, FwoOwner owner)
         {
             report.AppendLine("<tr>");
-            report.AppendLine($"<td>{ownerReport.Owner.NextRecertDate?.ToString("dd.MM.yyyy")}</td>");
-            report.AppendLine($"<td>{ownerReport.Owner.Id}</td>");
-            report.AppendLine($"<td>{ownerReport.Owner.Name}</td>");
-            report.AppendLine($"<td>{ownerReport.Owner.LastRecertified}</td>");
-            report.AppendLine($"<td>{new DistName(ownerReport.Owner.LastRecertifierDn).UserName}</td>");
+            report.AppendLine($"<td>{owner.NextRecertDate?.ToString("dd.MM.yyyy")}</td>");
+            report.AppendLine($"<td>{owner.Id}</td>");
+            report.AppendLine($"<td>{owner.Name}</td>");
+            report.AppendLine($"<td>{owner.LastRecertified}</td>");
+            report.AppendLine($"<td>{new DistName(owner.LastRecertifierDn).UserName}</td>");
             report.AppendLine("</tr>");
         }
 

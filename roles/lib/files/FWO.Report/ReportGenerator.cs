@@ -70,10 +70,22 @@ namespace FWO.Report
             await report.Generate(0, apiConnection,
                 rep =>
                 {
-                    report.ReportData.OwnerData.Add(new() { Owner = rep.OwnerData[0].Owner });
+                    report.ReportData.OwnerData.AddRange(rep.OwnerData);
                     return Task.CompletedTask;
                 }, token);
-       }
+            report.ReportData.RecertificationDisplayPeriod = reportTemplate.ReportParams.RecertFilter.RecertificationDisplayPeriod;
+            foreach (var owner in report.ReportData.OwnerData.Select(o => o.Owner))
+            {
+                if (owner.NextRecertDate < DateTime.Now)
+                {
+                    owner.RecertOverdue = true;
+                }
+                else if (owner.NextRecertDate < DateTime.Now.AddDays(reportTemplate.ReportParams.RecertFilter.RecertificationDisplayPeriod))
+                {
+                    owner.RecertUpcoming = true;
+                }
+            }
+        }
 
         private static async Task GenerateConnectionRelatedReport(ReportBase report, ReportTemplate reportTemplate, ApiConnection apiConnection, UserConfig userConfig, Action<Exception?, string, string, bool> displayMessageInUi, CancellationToken token)
         {

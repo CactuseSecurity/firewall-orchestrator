@@ -4,7 +4,14 @@
 @inject UserConfig userConfig
 
 <div class="p-3">
-    @if(ReportType != ReportType.OwnerRecertification)
+    @if(ReportType == ReportType.OwnerRecertification)
+    {
+        <div class="form-check" data-toggle="tooltip" title="@(userConfig.PureLine("C1000"))">
+            <input class="form-check-input" id="allOwners" type="checkbox" @bind="ModellingFilter.ShowAllOwners" />
+            <label class="form-check-label text-white" for="allOwners">@(userConfig.GetText("show_all_owners"))</label>
+        </div>
+    }
+    else
     {
         <h5 class="text-left">@(userConfig.GetText("owner"))</h5>
         <Dropdown ElementType="FwoOwner" ElementToString="@(o => o.Display(userConfig.GetText("common_service")))" Nullable="false" 

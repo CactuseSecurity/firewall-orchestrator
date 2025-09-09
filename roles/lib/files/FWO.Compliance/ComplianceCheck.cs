@@ -27,6 +27,8 @@ namespace FWO.Compliance
         private readonly ApiConnection _apiConnection;
         private readonly DebugConfig _debugConfig;
 
+        private List<int> _relevanteManagementIDs = new();
+
         /// <summary>
         /// Constructor for compliance check
         /// </summary>
@@ -37,9 +39,9 @@ namespace FWO.Compliance
             _userConfig = userConfig;
             _apiConnection = apiConnection;
 
-            if (userConfig.GlobalConfig is GlobalConfig globalConfig && !string.IsNullOrEmpty(globalConfig.DebugConfig))
+            if (userConfig.GlobalConfig != null && !string.IsNullOrEmpty(userConfig.GlobalConfig.DebugConfig))
             {
-                _debugConfig = JsonSerializer.Deserialize<DebugConfig>(globalConfig.DebugConfig) ?? new();
+                _debugConfig = JsonSerializer.Deserialize<DebugConfig>(userConfig.GlobalConfig.DebugConfig) ?? new();
             }
             else
             {
@@ -47,6 +49,22 @@ namespace FWO.Compliance
 
                 _debugConfig = new();
             }
+
+            if (userConfig.GlobalConfig is GlobalConfig globalConfig && !string.IsNullOrEmpty(globalConfig.DebugConfig))
+            {
+                try
+                {
+                    _relevanteManagementIDs = userConfig.GlobalConfig.ComplianceCheckRelevantManagements
+                        .Split(',', StringSplitOptions.RemoveEmptyEntries)
+                        .Select(s => int.Parse(s.Trim()))
+                        .ToList();
+                }
+                catch (System.Exception e)
+                {
+                    Log.TryWriteLog(LogType.Error, "Compliance Check", $"Error while parsing relevant mangement IDs: {e.Message}", _debugConfig.ExtendedLogComplianceCheck);
+                }
+            }
+
         }
 
         /// <summary>

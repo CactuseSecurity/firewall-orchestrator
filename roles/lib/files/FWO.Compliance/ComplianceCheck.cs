@@ -336,18 +336,21 @@ namespace FWO.Compliance
         {
             bool ruleIsCompliant = true;
 
-            foreach (var criterion in (_policy?.Criteria ?? []).Select(c => c.Content))
+            if (rule.Action == "accept")
             {
-                switch (criterion.CriterionType)
+                foreach (var criterion in (_policy?.Criteria ?? []).Select(c => c.Content))
                 {
-                    case nameof(CriterionType.Matrix):
-                        ruleIsCompliant &= await CheckAgainstMatrix(rule);
-                        break;
-                    case nameof(CriterionType.ForbiddenService):
-                        ruleIsCompliant &= CheckForForbiddenService(rule, criterion);
-                        break;
-                    default:
-                        break;
+                    switch (criterion.CriterionType)
+                    {
+                        case nameof(CriterionType.Matrix):
+                            ruleIsCompliant &= await CheckAgainstMatrix(rule);
+                            break;
+                        case nameof(CriterionType.ForbiddenService):
+                            ruleIsCompliant &= CheckForForbiddenService(rule, criterion);
+                            break;
+                        default:
+                            break;
+                    }
                 }
             }
 

@@ -579,7 +579,7 @@ namespace FWO.Report
 
         private bool ShowRule(Rule rule)
         {
-            if (rule.Compliance == ComplianceViolationType.None || (rule.Action != "accept" && rule.Action != "ipsec"))
+            if (rule.Compliance == ComplianceViolationType.None || rule.Action != "accept")
             {
                 return false;
             }

@@ -1151,7 +1151,7 @@ class FwConfigImportRule():
         return self.import_details.api_call.call(mutation, query_variables=query_variables)
 
 
-    def PrepareRuleForImport(self, importDetails: ImportStateController, Rules, rulebaseUid: str) -> dict[str, list[Rule]]:
+    def PrepareRuleForImport(self, importDetails: ImportStateController, Rules: list[RuleNormalized], rulebaseUid: str) -> dict[str, list[Rule]]:
         prepared_rules = []
 
         # get rulebase_id for rulebaseUid
@@ -1188,8 +1188,8 @@ class FwConfigImportRule():
                 rule_implied=rule.rule_implied,
                 # parent_rule_id=rule.parent_rule_id,
                 rule_comment=rule.rule_comment,
-                rule_from_zone=None, #TODO: import zones, lookup id, use here
-                rule_to_zone=None,
+                rule_from_zone=self.uid2id_mapper.get_zone_object_id(rule.rule_src_zone) if rule.rule_src_zone is not None else None,
+                rule_to_zone=self.uid2id_mapper.get_zone_object_id(rule.rule_dst_zone) if rule.rule_dst_zone is not None else None,
                 access_rule=True,
                 nat_rule=False,
                 is_global=False,

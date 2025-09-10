@@ -247,7 +247,7 @@ class Uid2IdMapper:
         Add zone object mappings to the internal mapping dictionary.
 
         Args:
-            mappings (list[dict]): A list of dictionaries containing UID and ID mappings.
+            mappings (list[dict]): A list of dictionaries containing Name and ID mappings.
                     Each dictionary should have 'zone_name' and 'zone_id' keys.
 
         Returns:

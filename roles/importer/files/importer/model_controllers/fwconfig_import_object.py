@@ -101,6 +101,7 @@ class FwConfigImportObject():
         self.uid2id_mapper.update_network_object_mapping()
         self.uid2id_mapper.update_service_object_mapping()
         self.uid2id_mapper.update_user_mapping()
+        self.uid2id_mapper.update_zone_mapping()
 
         self.group_flats_mapper.init_config(self.normalized_config, self.global_normalized_config)
         self.prev_group_flats_mapper.init_config(prevConfig) #TODO: previous global config

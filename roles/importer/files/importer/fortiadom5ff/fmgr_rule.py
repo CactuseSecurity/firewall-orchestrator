@@ -145,7 +145,7 @@ def parse_single_rule(normalized_config, native_rule, rulebase: Rulebase, rule_n
         rule_custom_fields="; ".join(f"{k}: {v}" for k, v in native_rule.get('meta fields', {}).items()),
         rule_implied=False,
         rule_type=RuleType.ACCESS,
-        rule_last_change_admin=native_rule.get('_last-modified-by'),
+        rule_last_change_admin=None, #TODO: native_rule.get('_last-modified-by'), - see #3589
         parent_rule_uid=None,
         last_hit=None, # TODO: get last hit
         rule_comment=native_rule.get('comments'),

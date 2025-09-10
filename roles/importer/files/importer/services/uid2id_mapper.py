@@ -352,7 +352,7 @@ class Uid2IdMapper:
             return True
         except Exception as e:
             self.log_error(f"Error updating network object mapping: {e}")
-            return False # raise
+            return False #TODO: raise
     
     def update_service_object_mapping(self, uids: list[str]|None = None) -> bool:
         """
@@ -387,7 +387,7 @@ class Uid2IdMapper:
             return True
         except Exception as e:
             self.log_error(f"Error updating service object mapping: {e}")
-            return False # raise
+            return False #TODO: raise
         
     def update_user_mapping(self, uids: list[str]|None = None) -> bool:
         """
@@ -422,19 +422,54 @@ class Uid2IdMapper:
             return True
         except Exception as e:
             self.log_error(f"Error updating user mapping: {e}")
-            return False # raise
-
-    def update_rule_mapping(self, uids: list[str]|None = None) -> bool:
+            return False #TODO: raise
+    
+    def update_zone_mapping(self, names: list[str]|None = None) -> bool:
         """
-        Update the mapping for rules based on the provided UIDs.
+        Update the mapping for zones based on the provided names.
         
         Args:
-            uids (list[str]): A list of UIDs to update the mapping for. If None, all UIDs for the Management will be fetched.
+            names (list[str]): A list of zone names to update the mapping for. If None, all zones for the Management will be fetched.
         
         Returns:
             bool: True if the mapping was updated successfully, False otherwise.
         """
-        query = FwoApi.get_graphql_code([fwo_const.graphql_query_path + "rule/getmapOfUid2Id.graphql"])
+        query = FwoApi.get_graphql_code([fwo_const.graphql_query_path + "zone/getMapOfName2Id.graphql"])
+        if names is not None:
+            if len(names) == 0:
+                self.log_debug("Zone mapping updated for 0 objects")
+                return True
+            variables = {'names': names}
+        else:
+            # If no names are provided, fetch all zones for the Management
+            variables = {'mgmId': self.import_state.MgmDetails.CurrentMgmId}
+        try:
+            response = self.import_state.api_connection.call(query, variables)
+            if response is None:
+                self.log_error("Error updating zone mapping: No response from API")
+                return False
+            if 'errors' in response:
+                self.log_error(f"Error updating zone mapping: {response['errors']}")
+                return False
+            for obj in response['data']['zone']:
+                self.zone_name2id[obj['zone_name']] = obj['zone_id']
+            self.log_debug(f"Zone mapping updated for {len(response['data']['zone'])} objects")
+            return True
+        except Exception as e:
+            self.log_error(f"Error updating zone mapping: {e}")
+            return False #TODO: raise
+
+    def update_rule_mapping(self, uids: list[str]|None = None) -> bool:
+        """
+        Update the mapping for rules based on the provided UIDs.
+
+        Args:
+            uids (list[str]): A list of UIDs to update the mapping for. If None, all UIDs for the Management will be fetched.
+
+        Returns:
+            bool: True if the mapping was updated successfully, False otherwise.
+        """
+        query = FwoApi.get_graphql_code([fwo_const.graphql_query_path + "rule/getMapOfUid2Id.graphql"])
         if uids is not None:
             if len(uids) == 0:
                 self.log_debug("Rule mapping updated for 0 objects")
@@ -457,4 +492,4 @@ class Uid2IdMapper:
             return True
         except Exception as e:
             self.log_error(f"Error updating rule mapping: {e}")
-            return False # raise
+            return False #TODO: raise

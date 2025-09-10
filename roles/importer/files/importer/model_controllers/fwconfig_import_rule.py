@@ -1199,8 +1199,10 @@ class FwConfigImportRule():
                 rule_num_numeric=rule.rule_num_numeric,
                 action_id = importDetails.lookupAction(rule.rule_action),
                 track_id = importDetails.lookupTrack(rule.rule_track),
-                rule_head_text=rule.rule_head_text
-            ).dict()
+                rule_head_text=rule.rule_head_text,
+                rule_installon=rule.rule_installon,
+                last_change_admin=None #TODO: get id from rule.rule_last_change_admin
+            ).model_dump()
 
             if listOfEnforcedGwIds is not None and len(listOfEnforcedGwIds) > 0:    # leave out field, if no resolvable gateways are found
                 rule_for_import.update({'rule_installon': rule.rule_installon }) #fwo_const.list_delimiter.join(listOfEnforcedGwIds) })

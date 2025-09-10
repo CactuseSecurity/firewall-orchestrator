@@ -26,7 +26,7 @@ rule_access_scope = rule_access_scope_v6 + rule_access_scope_v4
 rule_nat_scope = ['rules_global_nat', 'rules_adom_nat']
 rule_scope = rule_access_scope + rule_nat_scope
 
-nwobj_name_to_uid_map = {}
+nwobj_name_to_uid_and_typ_map = {}
 
 
 def normalize_rulebases(
@@ -40,9 +40,9 @@ def normalize_rulebases(
 ) -> None:
     normalized_config_dict['policies'] = []
 
-    # fill nwobj_name_to_uid_map:
+    # fill nwobj_name_to_uid_and_typ_map:
     for nw_obj in normalized_config_dict['network_objects'] + normalized_config_global.get('network_objects', []):
-        nwobj_name_to_uid_map[nw_obj['obj_name']] = nw_obj['obj_uid']
+        nwobj_name_to_uid_and_typ_map[nw_obj['obj_name']] = {'uid': nw_obj['obj_uid'], 'typ': nw_obj['obj_typ']}
 
     fetched_rulebase_uids: list = []
     if normalized_config_global is not None:
@@ -199,9 +199,19 @@ def rule_parse_zone(native_rule, normalized_config):
 def rule_parse_src_addr(native_rule):
     rule_src_list = []
     rule_src_refs_list = []
-    for addr in native_rule.get('srcaddr', []) + native_rule.get('srcaddr6', []) + native_rule.get('internet-service-src-name', []):
+    for addr in native_rule.get('srcaddr', []) + native_rule.get('internet-service-src-name', []):
         rule_src_list.append(addr)
-        uid = nwobj_name_to_uid_map.get(addr, None)
+        uid = None
+        if nwobj_name_to_uid_and_typ_map.get(addr, {'typ': None})['typ'] != 'v6':
+            uid = nwobj_name_to_uid_and_typ_map.get(addr, {'uid': None})['uid']
+        if uid is None:
+            raise FwoImporterErrorInconsistencies(f"Source object '{addr}' not found in network object map.")
+        rule_src_refs_list.append(uid)
+    for addr in native_rule.get('srcaddr6', []):
+        rule_src_list.append(addr)
+        uid = None
+        if nwobj_name_to_uid_and_typ_map.get(addr, {'typ': None})['typ'] == 'v6':
+            uid = nwobj_name_to_uid_and_typ_map.get(addr, {'uid': None})['uid']
         if uid is None:
             raise FwoImporterErrorInconsistencies(f"Source object '{addr}' not found in network object map.")
         rule_src_refs_list.append(uid)
@@ -212,13 +222,22 @@ def rule_parse_dst_addr(native_rule):
     # Parse destination addresses
     rule_dst_list = []
     rule_dst_refs_list = []
-    for addr in native_rule.get('dstaddr', []) + native_rule.get('dstaddr6', []):
+    for addr in native_rule.get('dstaddr', []):
         rule_dst_list.append(addr)
-        uid = nwobj_name_to_uid_map.get(addr, None)
+        uid = None
+        if nwobj_name_to_uid_and_typ_map.get(addr, {'typ': None})['typ'] != 'v6':
+            uid = nwobj_name_to_uid_and_typ_map.get(addr, {'uid': None})['uid']
         if uid is None:
             raise FwoImporterErrorInconsistencies(f"Destination object '{addr}' not found in network object map.")
         rule_dst_refs_list.append(uid)
-        # TODO: add users
+    for addr in native_rule.get('dstaddr6', []):
+        rule_dst_list.append(addr)
+        uid = None
+        if nwobj_name_to_uid_and_typ_map.get(addr, {'typ': None})['typ'] == 'v6':
+            uid = nwobj_name_to_uid_and_typ_map.get(addr, {'uid': None})['uid']
+        if uid is None:
+            raise FwoImporterErrorInconsistencies(f"Source object '{addr}' not found in network object map.")
+        rule_dst_refs_list.append(uid)
     return rule_dst_list, rule_dst_refs_list
 
 def rule_parse_negation_flags(native_rule, rulebase_name):

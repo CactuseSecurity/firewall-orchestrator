@@ -6,6 +6,7 @@ from fmgr_zone import add_zone_if_missing
 from fwo_config import readConfig
 from model_controllers.import_state_controller import ImportStateController
 from copy import deepcopy
+from fwo_exceptions import FwoImporterErrorInconsistencies
 
 
 def normalize_network_objects(import_state: ImportStateController, native_config, native_config_global, normalized_config, normalized_config_global, nw_obj_types):
@@ -18,7 +19,7 @@ def normalize_network_objects(import_state: ImportStateController, native_config
         if not(current_obj_type in nw_obj_types and 'data' in native_config['objects'][current_obj_type]):
             continue
         for obj_orig in native_config['objects'][current_obj_type]['data']:
-            normalize_network_object(obj_orig, nw_objects, normalized_config, import_state)
+            normalize_network_object(obj_orig, nw_objects, normalized_config, native_config['objects'])
 
     if native_config.get('is-super-manager',False):
         # finally add "Original" network object for natting (only in global domain)
@@ -29,8 +30,22 @@ def normalize_network_objects(import_state: ImportStateController, native_config
 
     normalized_config.update({'network_objects': nw_objects})
 
+def get_obj_member_refs_list(obj_orig, native_config_objects):
+    obj_member_refs_list = []
+    for member_name in obj_orig['member']:
+        for obj_type in native_config_objects:
+            for potential_member in obj_type['data']:
+                if potential_member['name'] == member_name:
+                    if 'uuid' in potential_member:
+                        obj_member_refs_list.append(potential_member['uuid'])
+                    else:
+                        obj_member_refs_list.append(potential_member['name'])
+    if len(obj_member_refs_list) != len(obj_orig['member']):
+        raise FwoImporterErrorInconsistencies(
+            f"Member inconsistent for object {obj_orig['name']}, found members={str(obj_orig['member'])} and member_refs={str(obj_member_refs_list)}")
+    return obj_member_refs_list
 
-def normalize_network_object(obj_orig, nw_objects, normalized_config, import_state):
+def normalize_network_object(obj_orig, nw_objects, normalized_config, native_config_objects):
     obj_zone = 'global'
     obj = {}
     obj.update({'obj_name': obj_orig['name']})
@@ -38,10 +53,10 @@ def normalize_network_object(obj_orig, nw_objects, normalized_config, import_sta
         _parse_subnet(obj, obj_orig)
     elif 'ip6' in obj_orig: # ipv6 object
         normalize_network_object_ipv6(obj_orig, obj)
-    elif 'member' in obj_orig: # addrgrp4 / addrgrp6
+    elif 'member' in obj_orig: # addrgrp4, TODO for addrgrp6 change obj_typ to 'group_v6' and adjust obj_member_refs
         obj.update({ 'obj_typ': 'group' })
         obj.update({ 'obj_member_names' : list_delimiter.join(obj_orig['member']) })
-        obj.update({ 'obj_member_refs' : None}) # TODO: decide how to implement this # resolve_objects(obj['obj_member_names'], list_delimiter, native_config, 'name', 'uuid', jwt=import_state.Jwt, import_id=import_state.ImportId)}, mgm_id=import_state.MgmDetails.Id)
+        obj.update({ 'obj_member_refs' : list_delimiter.join(get_obj_member_refs_list(obj_orig, native_config_objects))})
     elif 'startip' in obj_orig: # ippool object
         obj.update({ 'obj_typ': 'ip_range' })
         obj.update({ 'obj_ip': obj_orig['startip'] })
@@ -95,10 +110,7 @@ def _parse_subnet (obj, obj_orig):
 
 def normalize_network_object_ipv6(obj_orig, obj):
     ipa = ipaddress.ip_network(obj_orig['ip6'])
-    if ipa.num_addresses > 1:
-        obj.update({ 'obj_typ': 'network' })
-    else:
-        obj.update({ 'obj_typ': 'host' })
+    obj.update({ 'obj_typ': 'v6' })
     obj.update({ 'obj_ip': str(ipa.network_address) })
     obj.update({ 'obj_ip_end': str(ipa.broadcast_address) })
 

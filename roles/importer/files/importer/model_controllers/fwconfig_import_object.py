@@ -56,13 +56,13 @@ class FwConfigImportObject():
 
     def updateObjectDiffs(self, prevConfig: FwConfigNormalized, single_manager: FwConfigManager):
 
+        change_logger = ChangeLogger()
         # calculate network object diffs
         # here we are handling the previous config as a dict for a while
         # previousNwObjects = prevConfig.network_objects
         deletedNwobjUids = list(prevConfig.network_objects.keys() - self.normalized_config.network_objects.keys())
         newNwobjUids = list(self.normalized_config.network_objects.keys() - prevConfig.network_objects.keys())
         nwobjUidsInBoth = list(self.normalized_config.network_objects.keys() & prevConfig.network_objects.keys())
-        change_logger = ChangeLogger()
 
         # For correct changelog and stats.
         changed_nw_objs = []
@@ -111,13 +111,26 @@ class FwConfigImportObject():
         self.remove_outdated_memberships(prevConfig, Type.SERVICE_OBJECT)
         self.remove_outdated_memberships(prevConfig, Type.USER)
 
+        # calculate zone object diffs
+        deleted_zone_names = list(prevConfig.zone_objects.keys() - self.normalized_config.zone_objects.keys())
+        new_zone_names = list(self.normalized_config.zone_objects.keys() - prevConfig.zone_objects.keys())
+        zone_names_in_both = list(self.normalized_config.zone_objects.keys() & prevConfig.zone_objects.keys())
+        changed_zones = []
+
+        for zone_name in zone_names_in_both:
+            if self.normalized_config.zone_objects[zone_name] != prevConfig.zone_objects[zone_name]:
+                new_zone_names.append(zone_name)
+                deleted_zone_names.append(zone_name)
+                changed_zones.append(zone_name)
+
         # add newly created objects
-        errors, changes, newNwObjIds, newNwSvcIds, newUserIds, removedNwObjIds, removedNwSvcIds, removedUserIds =  \
-            self.updateObjectsViaApi(single_manager, newNwobjUids, newSvcObjUids, newUserUids, deletedNwobjUids, deletedSvcObjUids, deletedUserUids)
+        newNwObjIds, newNwSvcIds, newUserIds, new_zone_ids, removedNwObjIds, removedNwSvcIds, removedUserIds, removed_zone_ids =  \
+            self.updateObjectsViaApi(single_manager, newNwobjUids, newSvcObjUids, newUserUids, new_zone_names, deletedNwobjUids, deletedSvcObjUids, deletedUserUids, deleted_zone_names)
         
         self.uid2id_mapper.add_network_object_mappings(newNwObjIds, is_global=single_manager.IsSuperManager)
         self.uid2id_mapper.add_service_object_mappings(newNwSvcIds, is_global=single_manager.IsSuperManager)
         self.uid2id_mapper.add_user_mappings(newUserIds)
+        self.uid2id_mapper.add_zone_mappings(new_zone_ids, is_global=single_manager.IsSuperManager)
 
         # insert new and updated group memberships
         self.addGroupMemberships(prevConfig, Type.NETWORK_OBJECT)
@@ -127,9 +140,7 @@ class FwConfigImportObject():
         # these objects have really been deleted so there should be no refs to them anywhere! verify this
 
         # TODO: calculate user diffs
-        # TODO: calculate zone diffs
-
-
+        # TODO: write changelog for zones
         # Get Changed Ids.
 
         change_logger.create_change_id_maps(self.uid2id_mapper, changed_nw_objs, changed_svcs, removedNwObjIds, removedNwSvcIds)
@@ -164,6 +175,7 @@ class FwConfigImportObject():
         self.import_state.Stats.ServiceObjectAddCount = len(newNwSvcIds)
         self.import_state.Stats.ServiceObjectDeleteCount = len(removedNwSvcIds)
         self.import_state.Stats.ServiceObjectChangeCount = len(change_logger.changed_service_id_map.items())
+
 
     def GetNetworkObjTypeMap(self):
         query = "query getNetworkObjTypeMap { stm_obj_typ { obj_typ_name obj_typ_id } }"
@@ -221,17 +233,17 @@ class FwConfigImportObject():
             map.update({proto['ip_proto_name'].lower(): proto['ip_proto_id']})
         return map
 
-    def updateObjectsViaApi(self, single_manager, newNwObjectUids, newSvcObjectUids, newUserUids, removedNwObjectUids, removedSvcObjectUids, removedUserUids):
+    def updateObjectsViaApi(self, single_manager, newNwObjectUids, newSvcObjectUids, newUserUids, new_zone_names, removedNwObjectUids, removedSvcObjectUids, removedUserUids, removed_zone_names):
         # here we also mark old objects removed before adding the new versions
         logger = getFwoLogger(debug_level=self.import_state.DebugLevel)
-        errors = 0
-        changes = 0
         newNwObjIds = []
         newNwSvcIds = []
         newUserIds = []
+        new_zone_ids = []
         removedNwObjIds = []
         removedNwSvcIds = []
         removedUserIds = []
+        removed_zone_ids = []
         this_managements_id = self.import_state.lookupManagementId(single_manager.ManagerUid)
         import_mutation = FwoApi.get_graphql_code([fwo_const.graphql_query_path + "allObjects/upsertObjects.graphql"])
         query_variables = {
@@ -240,38 +252,42 @@ class FwConfigImportObject():
             'newNwObjects': self.prepareNewNwObjects(newNwObjectUids, this_managements_id),
             'newSvcObjects': self.prepareNewSvcObjects(newSvcObjectUids, this_managements_id),
             'newUsers': self.prepareNewUserObjects(newUserUids, this_managements_id),
+            'newZones': self.prepare_new_zones(new_zone_names, this_managements_id),
             'removedNwObjectUids': removedNwObjectUids,
             'removedSvcObjectUids': removedSvcObjectUids,
-            'removedUserUids': removedUserUids
+            'removedUserUids': removedUserUids,
+            'removedZoneUids': removed_zone_names
         }
 
         if self.import_state.DebugLevel>8:
             logger.debug(f"fwo_api:importNwObject - import_mutation: {import_mutation}")
             # Save the query variables to a file for debugging purposes.
-            json.dump(query_variables, open(f"/usr/local/fworch/tmp/import/mgm_id_{self.import_state.MgmDetails.Id}_queryVariables.json", "w"), indent=4)
+            json.dump(query_variables, open(f"/usr/local/fworch/tmp/import/mgm_id_{self.import_state.MgmDetails.Id}_query_variables.json", "w"), indent=4)
 
         try:
             import_result = self.import_state.api_call.call(import_mutation, query_variables=query_variables, debug_level=self.import_state.DebugLevel, analyze_payload=True)
             if 'errors' in import_result:
-                logger.exception(f"fwo_api:importNwObject - error in updateObjectsViaApi: {str(import_result['errors'])}")
-                errors = 1
+                raise FwoImporterError(f"failed to update objects in updateObjectsViaApi: {str(import_result['errors'])}")
             else:
                 changes = int(import_result['data']['insert_object']['affected_rows']) + \
                     int(import_result['data']['insert_service']['affected_rows']) + \
                     int(import_result['data']['insert_usr']['affected_rows']) + \
                     int(import_result['data']['update_object']['affected_rows']) + \
                     int(import_result['data']['update_service']['affected_rows']) + \
-                    int(import_result['data']['update_usr']['affected_rows'])
+                    int(import_result['data']['update_usr']['affected_rows']) +\
+                    int(import_result['data']['update_zone']['affected_rows'])
                 newNwObjIds = import_result['data']['insert_object']['returning']
                 newNwSvcIds = import_result['data']['insert_service']['returning']
                 newUserIds = import_result['data']['insert_usr']['returning']
+                new_zone_ids = import_result['data']['insert_zone']['returning']
                 removedNwObjIds = import_result['data']['update_object']['returning']
                 removedNwSvcIds = import_result['data']['update_service']['returning']
                 removedUserIds = import_result['data']['update_usr']['returning']
+                removed_zone_ids = import_result['data']['update_zone']['returning']
         except Exception:
-            logger.exception(f"failed to update objects: {str(traceback.format_exc())}")
-            errors = 1
-        return errors, changes, newNwObjIds, newNwSvcIds, newUserIds, removedNwObjIds, removedNwSvcIds, removedUserIds
+            # logger.exception(f"failed to update objects: {str(traceback.format_exc())}")
+            raise FwoImporterError(f"failed to update objects: {str(traceback.format_exc())}")
+        return newNwObjIds, newNwSvcIds, newUserIds, new_zone_ids, removedNwObjIds, removedNwSvcIds, removedUserIds, removed_zone_ids
     
 
     def prepareNewNwObjects(self, newNwobjUids, mgm_id):
@@ -311,6 +327,19 @@ class FwConfigImportObject():
             })
         return newObjs
     
+ 
+    def prepare_new_zones(self, new_zone_names, mgm_id):
+        new_objects = []
+        for uid in new_zone_names:
+            new_objects.append({
+                'mgm_id': mgm_id,
+                'zone_create': self.import_state.ImportId,
+                'zone_last_seen': self.import_state.ImportId,
+                'zone_name': self.normalized_config.zone_objects[uid]['zone_name'],
+            })
+        return new_objects
+    
+ 
     def get_config_objects(self, type: Type, prevConfig: FwConfigNormalized):
         if type == Type.NETWORK_OBJECT:
             return prevConfig.network_objects, self.normalized_config.network_objects

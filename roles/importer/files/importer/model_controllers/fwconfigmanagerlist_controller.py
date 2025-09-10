@@ -75,16 +75,16 @@ class FwConfigManagerListController(FwConfigManagerList):
             return json.dumps(jsonDict, cls=FwoEncoder)
 
 
-    def get_all_zone_uids(self, mgr_uid):
+    def get_all_zone_names(self, mgr_uid):
         """
         Returns a list of all zone UIDs in the configuration.
         """
-        all_zone_uids = []
+        all_zone_names = []
         for mgr in self.ManagerSet:
             if mgr.IsSuperManager or mgr.ManagerUid==mgr_uid:
                 for single_config in mgr.Configs:
-                    all_zone_uids.extend(single_config.zone_objects.keys())
-        return set(all_zone_uids)
+                    all_zone_names.extend(single_config.zone_objects.keys())
+        return set(all_zone_names)
     
 
     def get_all_network_object_uids(self, mgr_uid):

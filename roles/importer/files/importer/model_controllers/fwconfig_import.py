@@ -54,8 +54,13 @@ class FwConfigImport():
         mgm_id = self.import_state.lookupManagementId(single_manager.ManagerUid)
         if mgm_id is None:
             raise FwoImporterError(f"could not find manager id in DB for UID {single_manager.ManagerUid}")
-        previousConfig = self.getLatestConfig(mgm_id=mgm_id)
+
+        # previousConfig = self.getLatestConfig(mgm_id=mgm_id)
+        # TODO: when get_latest_config_from_db() does not contain any artefact changes:
+        #  get config from primary db tables directly and not from latest_config table - 
+        previousConfig = self.get_latest_config_from_db()
         self._global_state.previous_config = previousConfig
+
         # calculate differences and write them to the database via API
         self.updateDiffs(previousConfig, single_manager)
 
@@ -355,6 +360,6 @@ class FwConfigImport():
         if normalized_config != normalized_config_from_db:
             all_diffs = find_all_diffs(normalized_config.model_dump(), normalized_config_from_db.model_dump())
             logger.warning(f"normalized config for mgm id {self.import_state.MgmDetails.Id} is inconsistent to database state: {all_diffs[0]}")
-            logger.debug(f"all differences: {all_diffs}")
+            logger.warning(f"all differences: {all_diffs}")
             # TODO: long-term this should raise an error:
             # raise FwoImporterError("the database state created by this import is not consistent to the normalized config")

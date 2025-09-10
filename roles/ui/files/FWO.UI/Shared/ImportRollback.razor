@@ -77,8 +77,8 @@
             var variablesRollback = new { importId = importId };
             var ReturnId = await apiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.ImportQueries.rollbackLastImport, variablesRollback);
 
-            var variablesdeleteLatestConfigOfManagement = new { mgmId = ManagementId };
-            ReturnId = await apiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.ImportQueries.deleteLatestConfigOfManagement, variablesdeleteLatestConfigOfManagement);
+            // var variablesdeleteLatestConfigOfManagement = new { mgmId = ManagementId };
+            // ReturnId = await apiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.ImportQueries.deleteLatestConfigOfManagement, variablesdeleteLatestConfigOfManagement);
 
             Log.WriteDebug("Delete Import", $"rolled back last import (id={importId}) of mangement with ID {ManagementId}");
             workInProgress = false;

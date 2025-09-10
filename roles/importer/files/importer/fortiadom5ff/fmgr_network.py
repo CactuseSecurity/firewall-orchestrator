@@ -34,7 +34,7 @@ def get_obj_member_refs_list(obj_orig, native_config_objects):
     obj_member_refs_list = []
     for member_name in obj_orig['member']:
         for obj_type in native_config_objects:
-            for potential_member in obj_type['data']:
+            for potential_member in native_config_objects[obj_type]['data']:
                 if potential_member['name'] == member_name:
                     if 'uuid' in potential_member:
                         obj_member_refs_list.append(potential_member['uuid'])

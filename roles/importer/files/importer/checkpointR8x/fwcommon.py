@@ -139,7 +139,7 @@ def normalize_config(import_state, config_in: FwConfigManagerListController, par
             action=ConfigAction.INSERT, 
             network_objects=FwConfigNormalizedController.convertListToDict(native_and_normalized_config_dict['normalized']['network_objects'], 'obj_uid'),
             service_objects=FwConfigNormalizedController.convertListToDict(native_and_normalized_config_dict['normalized']['service_objects'], 'svc_uid'),
-            zone_objects=FwConfigNormalizedController.convertListToDict(native_and_normalized_config_dict['normalized']['zone_objects'], 'zone_uid'),
+            zone_objects=FwConfigNormalizedController.convertListToDict(native_and_normalized_config_dict['normalized']['zone_objects'], 'zone_name'),
             rulebases=native_and_normalized_config_dict['normalized']['policies'],
             gateways=native_and_normalized_config_dict['normalized']['gateways']
         )

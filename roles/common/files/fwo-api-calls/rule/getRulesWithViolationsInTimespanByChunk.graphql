@@ -6,12 +6,13 @@ query getRulesWithViolationsInTimespanByChunk(
   $import_id_end: bigint
   $from_date: timestamptz
   $to_date: timestamptz
+  $mgm_ids: [Int!]
 ) {
   rule(
     limit: $limit
     offset: $offset
     order_by: { rule_id: asc }
-    where: { removed: { _is_null: true } }
+    where: { removed: { _is_null: true } mgm_id: { _in: $mgm_ids }}
   ) {
     ...ruleDetails
 

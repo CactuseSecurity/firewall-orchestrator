@@ -165,7 +165,7 @@ class FwConfigManagerListController(FwConfigManagerList):
     
 
     def is_native(self) -> bool:
-        return self.native_config is not None # and self.native_config != {}
+        return self.native_config is not None and self.native_config != {}
 
 
     def is_native_non_empty(self) -> bool:

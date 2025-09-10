@@ -640,7 +640,7 @@ namespace FWO.Report
                 {
                     foreach (GroupFlat<NetworkObject> groupFlat in networkLocation.Object.ObjectGroupFlats)
                     {
-                        if (groupFlat.Object != null)
+                        if (groupFlat.Object != null && groupFlat.Object.Type.Name != "group")
                         {
                             allObjects.Add(groupFlat.Object);
                         }

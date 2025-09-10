@@ -5,9 +5,6 @@ namespace FWO.Data
 {
     public class NormalizedZoneObject
     {
-        [JsonProperty("zone_uid"), JsonPropertyName("zone_uid")]
-        public string ZoneUid { get; set; } = "";
-
         [JsonProperty("zone_name"), JsonPropertyName("zone_name")]
         public string ZoneName { get; set; } = "";
 
@@ -15,8 +12,7 @@ namespace FWO.Data
         {
             return new NormalizedZoneObject
             {
-                ZoneName = networkZone.Name,
-                ZoneUid = networkZone.Name,
+                ZoneName = networkZone.Name
             };
         }
     }

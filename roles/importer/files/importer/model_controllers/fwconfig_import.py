@@ -55,10 +55,10 @@ class FwConfigImport():
         if mgm_id is None:
             raise FwoImporterError(f"could not find manager id in DB for UID {single_manager.ManagerUid}")
 
-        # previousConfig = self.getLatestConfig(mgm_id=mgm_id)
+        previousConfig = self.getLatestConfig(mgm_id=mgm_id)
         # TODO: when get_latest_config_from_db() does not contain any artefact changes:
         #  get config from primary db tables directly and not from latest_config table - 
-        previousConfig = self.get_latest_config_from_db()
+        # previousConfig = self.get_latest_config_from_db()
         self._global_state.previous_config = previousConfig
 
         # calculate differences and write them to the database via API

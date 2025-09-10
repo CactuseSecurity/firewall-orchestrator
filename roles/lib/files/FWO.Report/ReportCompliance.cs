@@ -257,7 +257,7 @@ namespace FWO.Report
             bool isAssessable = true;
             StringBuilder violationDetailsBuilder = new();
 
-            if (rule.Action != "accept")
+            if (rule.Action == "accept")
             {
                 isAssessable &= !TryAddNotAssessableDetails(
                     networkObjects,

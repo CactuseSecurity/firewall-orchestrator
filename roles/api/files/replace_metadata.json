@@ -958,14 +958,16 @@
                   "permission": {
                     "check": {},
                     "columns": [
-                      "id",
-                      "rule_id",
                       "criterion_id",
-                      "policy_id",
-                      "risk_score",
                       "details",
                       "found_date",
-                      "removed_date"
+                      "id",
+                      "mgmt_uid",
+                      "policy_id",
+                      "removed_date",
+                      "risk_score",
+                      "rule_id",
+                      "rule_uid"
                     ]
                   },
                   "comment": ""
@@ -1010,14 +1012,16 @@
                   "role": "middleware-server",
                   "permission": {
                     "columns": [
-                      "id",
-                      "rule_id",
                       "criterion_id",
-                      "policy_id",
-                      "risk_score",
                       "details",
                       "found_date",
-                      "removed_date"
+                      "id",
+                      "mgmt_uid",
+                      "policy_id",
+                      "removed_date",
+                      "risk_score",
+                      "rule_id",
+                      "rule_uid"
                     ],
                     "filter": {}
                   },

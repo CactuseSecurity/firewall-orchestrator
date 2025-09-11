@@ -252,35 +252,38 @@ namespace FWO.Report
 
         #region Methods - Public
 
-        public Task<(bool isAssessable, string violationDetails)> CheckAssessability(List<NetworkObject> networkObjects)
+        public Task<(bool isAssessable, string violationDetails)> CheckAssessability(Rule rule, List<NetworkObject> networkObjects)
         {
             bool isAssessable = true;
             StringBuilder violationDetailsBuilder = new();
 
-            isAssessable &= !TryAddNotAssessableDetails(
-                networkObjects,
-                n => n.IP == null && n.IpEnd == null,
-                "Network objects in source or destination without IP: ",
-                violationDetailsBuilder);
+            if (rule.Action == "accept")
+            {
+                isAssessable &= !TryAddNotAssessableDetails(
+                    networkObjects,
+                    n => n.IP == null && n.IpEnd == null,
+                    "Network objects in source or destination without IP: ",
+                    violationDetailsBuilder);
 
-            isAssessable &= !TryAddNotAssessableDetails(
-                networkObjects,
-                n => (n.IP == "0.0.0.0/32" && n.IpEnd == "255.255.255.255/32")
-                || (n.IP == "::/128" && n.IpEnd == "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff/128"),
-                "Network objects in source or destination with 0.0.0.0/0 or ::/0: ",
-                violationDetailsBuilder);
+                isAssessable &= !TryAddNotAssessableDetails(
+                    networkObjects,
+                    n => (n.IP == "0.0.0.0/32" && n.IpEnd == "255.255.255.255/32")
+                    || (n.IP == "::/128" && n.IpEnd == "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff/128"),
+                    "Network objects in source or destination with 0.0.0.0/0 or ::/0: ",
+                    violationDetailsBuilder);
 
-            isAssessable &= !TryAddNotAssessableDetails(
-                networkObjects,
-                n => n.IP == "255.255.255.255/32" && n.IpEnd == "255.255.255.255/32",
-                "Network objects in source or destination with 255.255.255.255/32: ",
-                violationDetailsBuilder);
+                isAssessable &= !TryAddNotAssessableDetails(
+                    networkObjects,
+                    n => n.IP == "255.255.255.255/32" && n.IpEnd == "255.255.255.255/32",
+                    "Network objects in source or destination with 255.255.255.255/32: ",
+                    violationDetailsBuilder);
 
-            isAssessable &= !TryAddNotAssessableDetails(
-                networkObjects,
-                n => n.IP == "0.0.0.0/32" && n.IpEnd == "0.0.0.0/32",
-                "Network objects in source or destination with 0.0.0.0/32: ",
-                violationDetailsBuilder);
+                isAssessable &= !TryAddNotAssessableDetails(
+                    networkObjects,
+                    n => n.IP == "0.0.0.0/32" && n.IpEnd == "0.0.0.0/32",
+                    "Network objects in source or destination with 0.0.0.0/32: ",
+                    violationDetailsBuilder);                
+            }
 
             return Task.FromResult((isAssessable, violationDetailsBuilder.ToString()));
         }
@@ -367,7 +370,7 @@ namespace FWO.Report
                         {
                             await SetComplianceDataForRule(rule, apiConnection);
                             networkObjects[rule] = GetAllNetworkObjectsFromRule(rule);
-                            (bool isAssessable, string violationDetails) checkAssessabilityResult = await CheckAssessability(networkObjects[rule]);
+                            (bool isAssessable, string violationDetails) checkAssessabilityResult = await CheckAssessability(rule, networkObjects[rule]);
                             ComplianceViolationType complianceViolationType = checkAssessabilityResult.isAssessable ? rule.Compliance : ComplianceViolationType.NotAssessable;
                             RuleViewData ruleViewData = new RuleViewData(rule, _natRuleDisplayHtml, OutputLocation.report, ShowRule(rule), _devices ?? [], _managements ?? [], complianceViolationType);
 
@@ -579,7 +582,7 @@ namespace FWO.Report
 
         private bool ShowRule(Rule rule)
         {
-            if (rule.Compliance == ComplianceViolationType.None || (rule.Action != "accept" && rule.Action != "ipsec"))
+            if (rule.Compliance == ComplianceViolationType.None || rule.Action != "accept")
             {
                 return false;
             }

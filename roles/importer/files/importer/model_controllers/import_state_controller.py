@@ -350,7 +350,7 @@ class ImportStateController(ImportState):
         if action_id is None:
             logger = getFwoLogger()
             logger.error(f"Action {actionStr} not found")
-            raise
+            raise FwoImporterError(f"Action {actionStr} not found")
         return action_id
 
     def lookupTrack(self, trackStr):
@@ -358,7 +358,7 @@ class ImportStateController(ImportState):
         if track_id is None:
             logger = getFwoLogger()
             logger.error(f"Track {trackStr} not found")
-            raise
+            raise FwoImporterError(f"Track {trackStr} not found")
         return track_id
 
     def lookupRulebaseId(self, rulebaseUid):

@@ -4,7 +4,6 @@ using FWO.Data;
 using FWO.Config.Api;
 using FWO.Report;
 using FWO.Report.Filter;
-using FWO.Report;
 
 namespace FWO.Ui.Display
 {
@@ -167,17 +166,10 @@ namespace FWO.Ui.Display
                 {
                     foreach (GroupFlat<NetworkObject> nwObject in networkObject.Object.ObjectGroupFlats)
                     {
-                        if (nwObject.Object != null && nwObject.Object.Type.Name != ObjectType.Group)    // leave out group level altogether
+                        if (nwObject.Object != null && nwObject.Object.Type.Name != ObjectType.Group || networkObject.Object.ObjectGroupFlats.Count() == 1)    // leave out group level altogether, except for empty groups
                         {
                             collectedUserNetworkObjects.Add(new NetworkLocation(networkObject.User, nwObject.Object));
                         }
-                    }
-
-                    // Fallback for empty groups.
-
-                    if (!networkObject.Object.ObjectGroupFlats.Any())
-                    {
-                        collectedUserNetworkObjects.Add(networkObject);
                     }
                 }
                 else

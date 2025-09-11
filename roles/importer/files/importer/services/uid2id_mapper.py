@@ -326,7 +326,7 @@ class Uid2IdMapper:
         Returns:
             bool: True if the mapping was updated successfully, False otherwise.
         """
-        query = FwoApi.get_graphql_code([fwo_const.graphql_query_path + "networkObject/getmapOfUid2Id.graphql"])
+        query = FwoApi.get_graphql_code([fwo_const.graphql_query_path + "networkObject/getMapOfUid2Id.graphql"])
 
         if uids is not None:
             if len(uids) == 0:
@@ -364,7 +364,7 @@ class Uid2IdMapper:
         Returns:
             bool: True if the mapping was updated successfully, False otherwise.
         """
-        query = FwoApi.get_graphql_code([fwo_const.graphql_query_path + "networkService/getmapOfUid2Id.graphql"])
+        query = FwoApi.get_graphql_code([fwo_const.graphql_query_path + "networkService/getMapOfUid2Id.graphql"])
         if uids is not None:
             if len(uids) == 0:
                 self.log_debug("Service object mapping updated for 0 objects")
@@ -399,7 +399,7 @@ class Uid2IdMapper:
         Returns:
             bool: True if the mapping was updated successfully, False otherwise.
         """
-        query = FwoApi.get_graphql_code([fwo_const.graphql_query_path + "user/getmapOfUid2Id.graphql"])
+        query = FwoApi.get_graphql_code([fwo_const.graphql_query_path + "user/getMapOfUid2Id.graphql"])
         if uids is not None:
             if len(uids) == 0:
                 self.log_debug("User mapping updated for 0 objects")

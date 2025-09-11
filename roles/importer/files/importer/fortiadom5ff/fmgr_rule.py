@@ -125,7 +125,7 @@ def parse_single_rule(normalized_config, native_rule, rulebase: Rulebase, rule_n
     # Create the normalized rule
     rule_normalized = RuleNormalized(
         rule_num=rule_num,
-        rule_num_numeric=float(rule_num),
+        rule_num_numeric=0,
         rule_disabled=rule_disabled,
         rule_src_neg=rule_src_neg,
         rule_src=list_delimiter.join(rule_src_list),

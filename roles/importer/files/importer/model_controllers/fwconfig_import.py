@@ -348,7 +348,7 @@ class FwConfigImport():
         logger = getFwoLogger(debug_level=self.import_state.DebugLevel)
         normalized_config = self.NormalizedConfig
         normalized_config_from_db = self.get_latest_config_from_db()
-        all_diffs = find_all_diffs(normalized_config.model_dump(), normalized_config_from_db.model_dump())
+        all_diffs = find_all_diffs(normalized_config.model_dump(), normalized_config_from_db.model_dump(), strict=True)
         if len(all_diffs) > 0:
             logger.warning(f"normalized config for mgm id {self.import_state.MgmDetails.CurrentMgmId} is inconsistent to database state: {all_diffs[0]}")
             if self.import_state.DebugLevel > 0:

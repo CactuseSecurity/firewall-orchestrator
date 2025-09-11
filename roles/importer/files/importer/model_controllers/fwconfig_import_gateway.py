@@ -42,17 +42,25 @@ class FwConfigImportGateway:
                 for link in gw.RulebaseLinks:
                     self.add_single_link(rb_link_list, link, gw_id, logger)
             else:
-                # gateway found in previous config, check for new/changed/deleted links
-                for link in gw.RulebaseLinks:
-                    prev_gw = next((pgw for pgw in self._global_state.previous_config.gateways if pgw.Uid == gw.Uid), None)
-                    if prev_gw is not None and not any(
-                        prev_link.__dict__ == link.__dict__ for prev_link in prev_gw.RulebaseLinks
-                    ):
-                        self.add_single_link(rb_link_list, link, gw_id, logger)
+                self.add_link_if_changed_or_new(rb_link_list, gw, logger)
+
+                # TODO: remove missing links (deleted links)
 
         rb_link_controller = RulebaseLinkController()
         rb_link_controller.insert_rulebase_links(self._global_state.import_state, rb_link_list) 
         
+
+    def add_link_if_changed_or_new(self, rb_link_list, gw, logger):
+        # gateway found in previous config, check for new/changed/deleted links
+        for link in gw.RulebaseLinks:
+            prev_gw = next((pgw for pgw in self._global_state.previous_config.gateways if pgw.Uid == gw.Uid), None)
+            gw_id = self._global_state.import_state.lookupGatewayId(prev_gw.Uid)
+
+            if prev_gw is not None and not any(
+                prev_link.__dict__ == link.__dict__ for prev_link in prev_gw.RulebaseLinks
+            ):
+                self.add_single_link(rb_link_list, link, gw_id, logger)
+
 
     def add_single_link(self, rb_link_list, link, gw_id, logger):
         from_rule_id = self._global_state.import_state.lookupRule(link.from_rule_uid)

@@ -29,12 +29,13 @@ namespace FWO.Report
         public List<ComplianceViolation> Violations { get; set; } = [];
         public int DiffReferenceInDays { get; set; } = 0;
         public bool ShowAllRules { get; set; }
+        public List<Management>? Managements  { get; set; }
 
         #endregion
 
         #region Fields
 
-        private List<Management>? _managements;
+        
         private List<Device>? _devices;
 
         private readonly int _maxDegreeOfParallelism;
@@ -142,11 +143,11 @@ namespace FWO.Report
 
             if (managements != null)
             {
-                _managements = managements;
+                Managements = managements;
 
                 _devices = new();
 
-                foreach (var management in _managements)
+                foreach (var management in Managements)
                 {
                     if (management.Devices != null && management.Devices.Length > 0)
                     {
@@ -372,7 +373,7 @@ namespace FWO.Report
                             networkObjects[rule] = GetAllNetworkObjectsFromRule(rule);
                             (bool isAssessable, string violationDetails) checkAssessabilityResult = await CheckAssessability(rule, networkObjects[rule]);
                             ComplianceViolationType complianceViolationType = checkAssessabilityResult.isAssessable ? rule.Compliance : ComplianceViolationType.NotAssessable;
-                            RuleViewData ruleViewData = new RuleViewData(rule, _natRuleDisplayHtml, OutputLocation.report, ShowRule(rule), _devices ?? [], _managements ?? [], complianceViolationType);
+                            RuleViewData ruleViewData = new RuleViewData(rule, _natRuleDisplayHtml, OutputLocation.report, ShowRule(rule), _devices ?? [], Managements ?? [], complianceViolationType);
 
                             if (!checkAssessabilityResult.isAssessable )
                             {

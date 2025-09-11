@@ -711,7 +711,7 @@ class FwConfigImportRule():
             if len(removedRuleUids[rbName])>0:   # if nothing to remove, skip this
                 removeMutation = """
                     mutation markRulesRemoved($importId: bigint!, $mgmId: Int!, $uids: [String!]!) {
-                        update_rule(where: {active: {_eq: true}, rule_uid: {_in: $uids}, mgm_id: {_eq: $mgmId}}, _set: {removed: $importId, active:false}) {
+                        update_rule(where: {removed: { _is_null: true }, rule_uid: {_in: $uids}, mgm_id: {_eq: $mgmId}}, _set: {removed: $importId, active:false}) {
                             affected_rows
                             returning { rule_id }
                         }
@@ -768,7 +768,7 @@ class FwConfigImportRule():
 
             update_rule(
                 where: {
-                active: { _eq: true },
+                removed: { _is_null: true },
                 rule_uid: { _in: $uids },
                 mgm_id: { _eq: $mgmId },
                 rule_last_seen: { _neq: $importId }
@@ -1069,7 +1069,7 @@ class FwConfigImportRule():
             query getRulebase($importId: bigint!, $mgmId: Int!, $rulebaseName: String!) {
                 rulebase(where: {mgm_id: {_eq: $mgmId}, name: {_eq: $rulebaseName}}) {
                     id
-                    rules(where: {rule: {rule_create: {_lt: $importId}, removed: {_is_null: true}, active: {_eq: true}}}, order_by: {rule: {rule_num_numeric: asc}}) {
+                    rules(where: {rule: {rule_create: {_lt: $importId}, removed: {_is_null: true}}}, order_by: {rule: {rule_num_numeric: asc}}) {
                         rule_num
                         rule_num_numeric
                         rule_uid

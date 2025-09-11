@@ -36,10 +36,7 @@ def get_obj_member_refs_list(obj_orig, native_config_objects):
         for obj_type in native_config_objects:
             for potential_member in native_config_objects[obj_type]['data']:
                 if potential_member['name'] == member_name:
-                    if 'uuid' in potential_member:
-                        obj_member_refs_list.append(potential_member['uuid'])
-                    else:
-                        obj_member_refs_list.append(potential_member['name'])
+                    obj_member_refs_list.append(potential_member.get('uuid', potential_member['name']))
     if len(obj_member_refs_list) != len(obj_orig['member']):
         raise FwoImporterErrorInconsistencies(
             f"Member inconsistent for object {obj_orig['name']}, found members={str(obj_orig['member'])} and member_refs={str(obj_member_refs_list)}")

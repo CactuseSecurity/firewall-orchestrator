@@ -45,6 +45,7 @@ def get_config(config_in: FwConfigManagerListController, importState: ImportStat
         config_in.native_config['domains'].append(native_config_global)
         adom_list = build_adom_list(importState)
         adom_device_vdom_structure = build_adom_device_vdom_structure(adom_list, sid, fm_api_url)
+        # delete_v: das geht schief für unschöne adoms
         arbitrary_vdom_for_updateable_objects = get_arbitrary_vdom(adom_device_vdom_structure)
         adom_device_vdom_policy_package_structure = add_policy_package_to_vdoms(adom_device_vdom_structure, sid, fm_api_url)
         # adom_device_vdom_policy_package_structure = {adom: {device: {vdom1: pol_pkg1}, {vdom2: pol_pkg2}}}
@@ -129,6 +130,9 @@ def normalize_config(import_state, native_config: dict[str,Any]) -> FwConfigMana
         # delete_v: is_global_loop_iteration scheint immer False zu sein, kann dann weg
         normalize_single_manager_config(native_conf, native_config_global, normalized_config_dict, normalized_config_global, 
                                                             import_state, is_global_loop_iteration=False)
+        
+        if native_conf['is-super-manager']:
+            normalized_config_global = deepcopy(normalized_config_dict)
 
         normalized_config = FwConfigNormalized(
             action=ConfigAction.INSERT, 

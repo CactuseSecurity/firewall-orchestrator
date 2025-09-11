@@ -213,7 +213,7 @@ def build_addr_list(native_rule, is_v4, target, normalized_config_dict, normaliz
         for addr in native_rule.get('dstaddr', []):
             addr_list.append(addr)
             addr_ref_list.append(find_addr_ref(addr, is_v4, normalized_config_dict, normalized_config_global))
-    elif not is_v4 and target == 'dst':
+    else:
         for addr in native_rule.get('dstaddr6', []):
             addr_list.append(addr)
             addr_ref_list.append(find_addr_ref(addr, is_v4, normalized_config_dict, normalized_config_global))

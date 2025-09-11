@@ -21,6 +21,8 @@ query getRulesWithViolationsInTimespanByChunk(
     ) {
       id
       rule_id
+      rule_uid
+      mgmt_uid
       found_date
       removed_date
       details

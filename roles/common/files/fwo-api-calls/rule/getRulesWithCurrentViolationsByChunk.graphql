@@ -4,6 +4,8 @@ query getRulesWithCurrentViolationsByChunk($limit: Int, $offset: Int, $active: B
     violations: compliance_violations( where: { removed_date: { _is_null: true } }) {
       id
       rule_id
+      rule_uid
+      mgmt_uid
       found_date
       removed_date
       details

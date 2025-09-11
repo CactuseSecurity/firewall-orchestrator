@@ -274,6 +274,8 @@ namespace FWO.Compliance
                     .Select(v => new ComplianceViolationBase
                     {
                         RuleId = v.RuleId,
+                        RuleUid = v.RuleUid,
+                        MgmtUid = v.MgmtUid,
                         Details = v.Details,
                         FoundDate = v.FoundDate,
                         RemovedDate = v.RemovedDate,
@@ -297,17 +299,12 @@ namespace FWO.Compliance
             {
                 if (ComplianceReport is ReportCompliance complianceReport)
                 {
-                    Rule rule = complianceReport.Rules.First(rule => rule.Id == violation.RuleId);
-                    string ruleUid = rule.Uid!;
-                    string managementUid = complianceReport.Managements!.First(management => management.Id == rule.MgmtId).Uid!;
-                    key = $"{managementUid}_{ruleUid}_{violation.PolicyId}_{violation.CriterionId}_{violation.Details}";
-                }                
+                    key = $"{violation.MgmtUid}_{violation.RuleUid}_{violation.PolicyId}_{violation.CriterionId}_{violation.Details}";
+                }
             }
             catch (Exception e)
             {
                 Log.WriteError("Compliance Check", "Error creating unique violation key", Error: e);
-                key = $"{violation.RuleId}_{violation.PolicyId}_{violation.CriterionId}_{violation.Details}";
-                Log.WriteDebug("Compliance Check", $"Created volatile violation key '{key}'");
                 
             }
 
@@ -435,6 +432,7 @@ namespace FWO.Compliance
             ComplianceViolation violation = new()
             {
                 RuleId = (int)rule.Id,
+                RuleUid = rule.Uid ?? "",
                 PolicyId = _policy?.Id ?? 0
             };
 

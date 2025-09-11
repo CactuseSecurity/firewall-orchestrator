@@ -26,8 +26,6 @@ rule_access_scope = rule_access_scope_v6 + rule_access_scope_v4
 rule_nat_scope = ['rules_global_nat', 'rules_adom_nat']
 rule_scope = rule_access_scope + rule_nat_scope
 
-nwobj_name_to_uid_and_typ_map = {}
-
 
 def normalize_rulebases(
     import_state: ImportState,
@@ -40,11 +38,8 @@ def normalize_rulebases(
 ) -> None:
     normalized_config_dict['policies'] = []
 
-    # fill nwobj_name_to_uid_and_typ_map:
-    for nw_obj in normalized_config_dict['network_objects'] + normalized_config_global.get('network_objects', []):
-        nwobj_name_to_uid_and_typ_map[nw_obj['obj_name']] = {'uid': nw_obj['obj_uid'], 'typ': nw_obj['obj_typ']}
-
     fetched_rulebase_uids: list = []
+    # delete_v: warum betrachten wir die globalen rulebases als fetched?
     if normalized_config_global is not None:
         for normalized_rulebase_global in normalized_config_global.get('policies', []):
             fetched_rulebase_uids.append(normalized_rulebase_global.uid)
@@ -74,7 +69,7 @@ def normalize_rulebases_for_each_link_destination(gateway, mgm_uid, fetched_rule
                 continue
 
             normalized_rulebase = initialize_normalized_rulebase(rulebase_to_parse, mgm_uid)
-            parse_rulebase(normalized_config_dict, rulebase_to_parse, normalized_rulebase)
+            parse_rulebase(normalized_config_dict, normalized_config_global, rulebase_to_parse, normalized_rulebase)
             fetched_rulebase_uids.append(rulebase_link['to_rulebase_uid'])
 
             if found_rulebase_in_global:
@@ -97,13 +92,13 @@ def initialize_normalized_rulebase(rulebase_to_parse, mgm_uid):
     normalized_rulebase = Rulebase(uid=rulebaseUid, name=rulebaseName, mgm_uid=mgm_uid, Rules={})
     return normalized_rulebase
 
-def parse_rulebase(normalized_config, rulebase_to_parse, normalized_rulebase):
+def parse_rulebase(normalized_config_dict, normalized_config_global, rulebase_to_parse, normalized_rulebase):
 
     rule_num = 1
     for native_rule in rulebase_to_parse['data']:
-        rule_num = parse_single_rule(normalized_config, native_rule, normalized_rulebase, rule_num)
+        rule_num = parse_single_rule(normalized_config_dict, normalized_config_global, native_rule, normalized_rulebase, rule_num)
 
-def parse_single_rule(normalized_config, native_rule, rulebase: Rulebase, rule_num):
+def parse_single_rule(normalized_config_dict, normalized_config_global, native_rule, rulebase: Rulebase, rule_num):
     # Extract basic rule information
     rule_disabled = True  # Default to disabled
     if 'status' in native_rule and (native_rule['status'] == 1 or native_rule['status'] == 'enable'):
@@ -112,13 +107,13 @@ def parse_single_rule(normalized_config, native_rule, rulebase: Rulebase, rule_n
     rule_action = rule_parse_action(native_rule)
 
     rule_track = rule_parse_tracking_info(native_rule)
-    
-    rule_src_list, rule_src_refs_list = rule_parse_src_addr(native_rule)
-    rule_dst_list, rule_dst_refs_list = rule_parse_dst_addr(native_rule)
+
+    rule_src_list, rule_src_refs_list = rule_parse_addresses(native_rule, 'src', normalized_config_dict, normalized_config_global)
+    rule_dst_list, rule_dst_refs_list = rule_parse_addresses(native_rule, 'dst', normalized_config_dict, normalized_config_global)
 
     rule_svc_list, rule_svc_refs_list = rule_parse_service(native_rule)
 
-    rule_src_zone, rule_dst_zone = rule_parse_zone(native_rule, normalized_config)
+    rule_src_zone, rule_dst_zone = rule_parse_zone(native_rule, normalized_config_dict)
 
     rule_src_neg, rule_dst_neg, rule_svc_neg, rule_installon = rule_parse_negation_flags(native_rule, rulebase.name)
 
@@ -185,60 +180,50 @@ def rule_parse_service(native_rule):
 
     return rule_svc_list, rule_svc_refs_list
 
-def rule_parse_zone(native_rule, normalized_config):
+def rule_parse_zone(native_rule, normalized_config_dict):
     # TODO: only using the first zone for now
     rule_src_zone = None
     if len(native_rule.get('srcintf', [])) > 0:
-        rule_src_zone = add_zone_if_missing(normalized_config, native_rule['srcintf'][0])
+        rule_src_zone = add_zone_if_missing(normalized_config_dict, native_rule['srcintf'][0])
 
     rule_dst_zone = None
     if len(native_rule.get('dstintf', [])) > 0:
-        rule_dst_zone = add_zone_if_missing(normalized_config, native_rule['dstintf'][0])
+        rule_dst_zone = add_zone_if_missing(normalized_config_dict, native_rule['dstintf'][0])
     return rule_src_zone, rule_dst_zone
 
-def rule_parse_src_addr(native_rule):
-    rule_src_list = []
-    rule_src_refs_list = []
-    for addr in native_rule.get('srcaddr', []) + native_rule.get('internet-service-src-name', []):
-        rule_src_list.append(addr)
-        uid = None
-        if nwobj_name_to_uid_and_typ_map.get(addr, {'typ': None})['typ'] != 'v6':
-            uid = nwobj_name_to_uid_and_typ_map.get(addr, {'uid': None})['uid']
-        if uid is None:
-            raise FwoImporterErrorInconsistencies(f"Source object '{addr}' not found in network object map.")
-        rule_src_refs_list.append(uid)
-    for addr in native_rule.get('srcaddr6', []):
-        rule_src_list.append(addr)
-        uid = None
-        if nwobj_name_to_uid_and_typ_map.get(addr, {'typ': None})['typ'] == 'v6':
-            uid = nwobj_name_to_uid_and_typ_map.get(addr, {'uid': None})['uid']
-        if uid is None:
-            raise FwoImporterErrorInconsistencies(f"Source object '{addr}' not found in network object map.")
-        rule_src_refs_list.append(uid)
-        # TODO: add users
-    return rule_src_list, rule_src_refs_list
+def rule_parse_addresses(native_rule, target, normalized_config_dict, normalized_config_global):
+    if target not in ['src', 'dst']:
+        raise FwoImporterErrorInconsistencies(f"target '{target}' must either be src or dst.")
+    addr_list = []
+    addr_ref_list = []
+    build_addr_list(native_rule, True, target, normalized_config_dict, normalized_config_global, addr_list, addr_ref_list)
+    build_addr_list(native_rule, False, target, normalized_config_dict, normalized_config_global, addr_list, addr_ref_list)
+    return addr_list, addr_ref_list
 
-def rule_parse_dst_addr(native_rule):
-    # Parse destination addresses
-    rule_dst_list = []
-    rule_dst_refs_list = []
-    for addr in native_rule.get('dstaddr', []):
-        rule_dst_list.append(addr)
-        uid = None
-        if nwobj_name_to_uid_and_typ_map.get(addr, {'typ': None})['typ'] != 'v6':
-            uid = nwobj_name_to_uid_and_typ_map.get(addr, {'uid': None})['uid']
-        if uid is None:
-            raise FwoImporterErrorInconsistencies(f"Destination object '{addr}' not found in network object map.")
-        rule_dst_refs_list.append(uid)
-    for addr in native_rule.get('dstaddr6', []):
-        rule_dst_list.append(addr)
-        uid = None
-        if nwobj_name_to_uid_and_typ_map.get(addr, {'typ': None})['typ'] == 'v6':
-            uid = nwobj_name_to_uid_and_typ_map.get(addr, {'uid': None})['uid']
-        if uid is None:
-            raise FwoImporterErrorInconsistencies(f"Source object '{addr}' not found in network object map.")
-        rule_dst_refs_list.append(uid)
-    return rule_dst_list, rule_dst_refs_list
+def build_addr_list(native_rule, is_v4, target, normalized_config_dict, normalized_config_global, addr_list, addr_ref_list):
+    if is_v4 and target == 'src':
+        for addr in native_rule.get('srcaddr', []) + native_rule.get('internet-service-src-name', []):
+            addr_list.append(addr)
+            addr_ref_list.append(find_addr_ref(addr, is_v4, normalized_config_dict, normalized_config_global))
+    elif not is_v4 and target == 'src':
+        for addr in native_rule.get('srcaddr6', []):
+            addr_list.append(addr)
+            addr_ref_list.append(find_addr_ref(addr, is_v4, normalized_config_dict, normalized_config_global))
+    elif is_v4 and target == 'dst':
+        for addr in native_rule.get('dstaddr', []):
+            addr_list.append(addr)
+            addr_ref_list.append(find_addr_ref(addr, is_v4, normalized_config_dict, normalized_config_global))
+    elif not is_v4 and target == 'dst':
+        for addr in native_rule.get('dstaddr6', []):
+            addr_list.append(addr)
+            addr_ref_list.append(find_addr_ref(addr, is_v4, normalized_config_dict, normalized_config_global))
+
+def find_addr_ref(addr, is_v4, normalized_config_dict, normalized_config_global):
+    for nw_obj in normalized_config_dict['network_objects'] + normalized_config_global.get('network_objects', []):
+        if addr == nw_obj['obj_name']:
+            if (is_v4 and nw_obj['obj_typ'] not in ['v6', 'group_v6']) or (not is_v4 and nw_obj['obj_typ'] in ['v6', 'group_v6']):
+                return nw_obj['obj_uid']
+    raise FwoImporterErrorInconsistencies(f"No ref found for '{addr}'.")
 
 def rule_parse_negation_flags(native_rule, rulebase_name):
     if 'srcaddr-negate' in native_rule:

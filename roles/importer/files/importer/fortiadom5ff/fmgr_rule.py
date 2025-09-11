@@ -125,7 +125,7 @@ def parse_single_rule(normalized_config, native_rule, rulebase: Rulebase, rule_n
     # Create the normalized rule
     rule_normalized = RuleNormalized(
         rule_num=rule_num,
-        rule_num_numeric=float(rule_num),
+        rule_num_numeric=0,
         rule_disabled=rule_disabled,
         rule_src_neg=rule_src_neg,
         rule_src=list_delimiter.join(rule_src_list),
@@ -145,7 +145,7 @@ def parse_single_rule(normalized_config, native_rule, rulebase: Rulebase, rule_n
         rule_custom_fields="; ".join(f"{k}: {v}" for k, v in native_rule.get('meta fields', {}).items()),
         rule_implied=False,
         rule_type=RuleType.ACCESS,
-        rule_last_change_admin=native_rule.get('_last-modified-by'),
+        rule_last_change_admin=None, #TODO: native_rule.get('_last-modified-by'), - see #3589
         parent_rule_uid=None,
         last_hit=None, # TODO: get last hit
         rule_comment=native_rule.get('comments'),

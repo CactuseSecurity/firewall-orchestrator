@@ -252,7 +252,7 @@ class ImportStateController(ImportState):
         # TODO: maps need to be updated directly after data changes
         query = """query getRulebaseMap($mgmId: Int) { rulebase(where:{mgm_id: {_eq: $mgmId}, removed:{_is_null:true }}) { id name uid } }"""
         try:
-            result = api_call.call(query=query, query_variables= {"mgmId": self.MgmDetails.Id})
+            result = api_call.call(query=query, query_variables= {"mgmId": self.MgmDetails.CurrentMgmId})
         except Exception:
             logger = getFwoLogger()
             logger.error("Error while getting rulebases")

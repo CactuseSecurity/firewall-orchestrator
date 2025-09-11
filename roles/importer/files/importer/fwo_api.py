@@ -47,6 +47,7 @@ class FwoApi():
         }
         full_query = {"query": query, "variables": query_variables}
         logger = getFwoLogger(debug_level=debug_level)
+        return_object = {}
 
         if analyze_payload:
             self.query_info = self.query_analyzer.analyze_payload(query, query_variables)
@@ -395,7 +396,7 @@ class FwoApi():
     def showImportApiCallInfo(self, api_url, query, headers, typ='debug', show_query_info=False):
         max_query_size_to_display = 1000
         query_string = json.dumps(query, indent=2)
-        header_string = json.dumps(headers, indent=2)
+        header_string = json.dumps(dict(headers), indent=2)
         api_url = json.dumps(api_url, indent=2)
         query_size = len(query_string)
 

@@ -44,7 +44,7 @@ namespace FWO.Data
                 Routing = [], // TODO: implement
                 Interfaces = [], // TODO: implement
                 RulebaseLinks = device.RulebaseLinks.Select(rl => NormalizedRulebaseLink.FromRulebaseLink(rl)).ToArray(),
-                GlobalPolicyUid = "", // TODO: implement
+                GlobalPolicyUid = null, // TODO: implement
                 EnforcedPolicyUids = [], // TODO: implement
                 EnforcedNatPolicyUids = [], // TODO: implement - property not available in Device
                 ImportDisabled = device.ImportDisabled,

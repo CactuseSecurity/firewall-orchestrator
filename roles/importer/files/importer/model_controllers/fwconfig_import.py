@@ -54,11 +54,7 @@ class FwConfigImport():
         mgm_id = self.import_state.lookupManagementId(single_manager.ManagerUid)
         if mgm_id is None:
             raise FwoImporterError(f"could not find manager id in DB for UID {single_manager.ManagerUid}")
-
-        previousConfig = self.getLatestConfig(mgm_id=mgm_id)
-        # TODO: when get_latest_config_from_db() does not contain any artefact changes:
-        #  get config from primary db tables directly and not from latest_config table - 
-        # previousConfig = self.get_latest_config_from_db()
+        previousConfig = self.get_latest_config_from_db()
         self._global_state.previous_config = previousConfig
 
         # calculate differences and write them to the database via API
@@ -87,14 +83,9 @@ class FwConfigImport():
         mgm_id = self.import_state.lookupManagementId(manager.ManagerUid)
         if mgm_id is None:
             raise FwoImporterError(f"could not find manager id in DB for UID {manager.ManagerUid}")
-        #TODO: clean separation between values relevant for all managers and those only relevant for specific managers
-        self.import_state.MgmDetails.Id = mgm_id
-        self.import_state.MgmDetails.Uid = manager.ManagerUid
-        self.import_state.MgmDetails.Name = manager.ManagerName
-        self.import_state.MgmDetails.IsSuperManager = manager.IsSuperManager
-        if not manager.IsSuperManager:
-            self.import_state.MgmDetails.SubManagerIds = []
-            self.import_state.MgmDetails.SubManagers = []
+        #TODO: clean separation between values relevant for all managers and those only relevant for specific managers - see #3646
+        self.import_state.MgmDetails.CurrentMgmId = mgm_id
+        self.import_state.MgmDetails.CurrentMgmIsSuperManager = manager.IsSuperManager
         config_importer = FwConfigImport() #TODO: strange to create another import object here - see #3154
         config_importer.import_single_config(manager)
         if import_state.Stats.ErrorCount>0:
@@ -343,7 +334,7 @@ class FwConfigImport():
     def get_latest_config_from_db(self) -> FwConfigNormalized:
         logger = getFwoLogger(debug_level=self.import_state.DebugLevel)
         params = {
-            "mgm-ids": [self.import_state.MgmDetails.Id]
+            "mgm-ids": [self.import_state.MgmDetails.CurrentMgmId]
         }
         result = self.import_state.api_connection.call_endpoint("POST", "api/NormalizedConfig/Get", params=params)
         try:
@@ -357,9 +348,10 @@ class FwConfigImport():
         logger = getFwoLogger(debug_level=self.import_state.DebugLevel)
         normalized_config = self.NormalizedConfig
         normalized_config_from_db = self.get_latest_config_from_db()
-        if normalized_config != normalized_config_from_db:
-            all_diffs = find_all_diffs(normalized_config.model_dump(), normalized_config_from_db.model_dump())
-            logger.warning(f"normalized config for mgm id {self.import_state.MgmDetails.Id} is inconsistent to database state: {all_diffs[0]}")
-            logger.warning(f"all differences: {all_diffs}")
+        all_diffs = find_all_diffs(normalized_config.model_dump(), normalized_config_from_db.model_dump(), strict=True)
+        if len(all_diffs) > 0:
+            logger.warning(f"normalized config for mgm id {self.import_state.MgmDetails.CurrentMgmId} is inconsistent to database state: {all_diffs[0]}")
+            if self.import_state.DebugLevel > 0:
+                logger.warning("all differences:\n\t" + "\n\t".join(all_diffs))
             # TODO: long-term this should raise an error:
             # raise FwoImporterError("the database state created by this import is not consistent to the normalized config")

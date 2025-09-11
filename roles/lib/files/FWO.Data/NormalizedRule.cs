@@ -115,7 +115,7 @@ namespace FWO.Data
                 RuleInstallOn = rule.InstallOn ?? "", // should not become null but it does
                 RuleTime = rule.Time,
                 RuleName = rule.Name,
-                RuleUid = rule.Uid ?? "",
+                RuleUid = rule.Uid,
                 RuleCustomFields = rule.CustomFields,
                 RuleImplied = rule.Implied,
                 RuleType = rule.NatRule ? "nat" : "access",
@@ -123,8 +123,8 @@ namespace FWO.Data
                 ParentRuleUid = rule.ParentRule?.Uid,
                 LastHit = rule.Metadata.LastHit,
                 RuleComment = rule.Comment,
-                RuleSrcZone = rule.SourceZone?.Name ?? "",
-                RuleDstZone = rule.DestinationZone?.Name ?? "",
+                RuleSrcZone = rule.SourceZone?.Name,
+                RuleDstZone = rule.DestinationZone?.Name,
                 RuleHeadText = rule.SectionHeader
             };
         }

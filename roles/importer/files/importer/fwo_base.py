@@ -18,7 +18,6 @@ from services.global_state import GlobalState
 from services.enums import Services, Lifetime
 from services.uid2id_mapper import Uid2IdMapper
 from services.group_flats_mapper import GroupFlatsMapper
-from services.enums import Services, Lifetime
 
 
 def split_list(list_in, max_list_length):

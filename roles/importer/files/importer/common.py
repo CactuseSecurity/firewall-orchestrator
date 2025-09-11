@@ -203,7 +203,7 @@ def get_config_top_level(importState: ImportStateController, in_file: str|None =
         if in_file is None:
             in_file = importState.MgmDetails.Hostname
         _, config_from_file = import_from_file(importState, in_file, gateways)
-        if not config_from_file.is_native():
+        if not config_from_file.is_native_non_empty():
             config_has_changes=True
             return config_has_changes, config_from_file
         # else we feed the native config back into the importer process for normalization

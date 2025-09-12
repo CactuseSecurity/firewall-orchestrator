@@ -56,9 +56,11 @@ class FwConfigImport():
             raise FwoImporterError(f"could not find manager id in DB for UID {single_manager.ManagerUid}")
         previousConfig = self.get_latest_config()
         self._global_state.previous_config = previousConfig
+        if single_manager.IsSuperManager:
+            self._global_state.previous_global_config = previousConfig
 
         # calculate differences and write them to the database via API
-        self.updateDiffs(previousConfig, single_manager)
+        self.updateDiffs(previousConfig, self._global_state.previous_global_config, single_manager)
 
 
     def import_management_set(self, import_state: ImportStateController, service_provider: ServiceProvider, mgr_set: FwConfigManagerListController):
@@ -163,15 +165,15 @@ class FwConfigImport():
         return configNormalized
     
 
-    def updateDiffs(self, previousConfig: FwConfigNormalized, single_manager: FwConfigManager):
-        
-        self._fw_config_import_object.updateObjectDiffs(previousConfig, single_manager)
+    def updateDiffs(self, prev_config: FwConfigNormalized, prev_global_config: FwConfigNormalized|None, single_manager: FwConfigManager):
+
+        self._fw_config_import_object.updateObjectDiffs(prev_config, prev_global_config, single_manager)
 
         if fwo_globals.shutdown_requested:
             # self.ImportDetails.addError("shutdown requested, aborting import")
             raise ImportInterruption("Shutdown requested during updateObjectDiffs.")
 
-        newRuleIds = self._fw_config_import_rule.updateRulebaseDiffs(previousConfig)
+        newRuleIds = self._fw_config_import_rule.updateRulebaseDiffs(prev_config)
 
         if fwo_globals.shutdown_requested:
             # self.ImportDetails.addError("shutdown requested, aborting import")

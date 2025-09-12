@@ -346,10 +346,20 @@ class ImportStateController(ImportState):
         return self.RuleMap.get(ruleUid, None)
 
     def lookupAction(self, actionStr):
-        return self.Actions.get(actionStr.lower(), None)
+        action_id = self.Actions.get(actionStr.lower(), None)
+        if action_id is None:
+            logger = getFwoLogger()
+            logger.error(f"Action {actionStr} not found")
+            raise FwoImporterError(f"Action {actionStr} not found")
+        return action_id
 
     def lookupTrack(self, trackStr):
-        return self.Tracks.get(trackStr.lower(), None)
+        track_id = self.Tracks.get(trackStr.lower(), None)
+        if track_id is None:
+            logger = getFwoLogger()
+            logger.error(f"Track {trackStr} not found")
+            raise FwoImporterError(f"Track {trackStr} not found")
+        return track_id
 
     def lookupRulebaseId(self, rulebaseUid):
         rulebaseId = self.RulebaseMap.get(rulebaseUid, None)

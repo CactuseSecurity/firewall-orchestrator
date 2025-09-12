@@ -1,9 +1,13 @@
 query getRulesWithCurrentViolationsByChunk($limit: Int, $offset: Int, $active: Boolean, $import_id_start: bigint, $import_id_end: bigint, $mgm_ids: [Int!]) {
   rule(limit: $limit, offset: $offset, order_by: { rule_id: asc }, where: { removed: { _is_null: true } mgm_id: { _in: $mgm_ids }}) {
+    rule_src
+    rule_dst
     ...ruleDetails
-    violations: compliance_violations( where: { removed_date: { _is_null: true } }) {
+    violations: compliance_violations_version_agnostic( where: { removed_date: { _is_null: true } }) {
       id
       rule_id
+      rule_uid
+      mgmt_uid
       found_date
       removed_date
       details

@@ -907,10 +907,6 @@ AS $function$
     END;
 $function$;
 
--- add fortinet ip v6 objects
-insert into stm_obj_typ (obj_typ_id,obj_typ_name) VALUES (22,'v6') ON CONFLICT DO NOTHING;
-insert into stm_obj_typ (obj_typ_id,obj_typ_name) VALUES (23,'group_v6') ON CONFLICT DO NOTHING;
-
 -- in this migration, in scenarios where a rulebase is used on more than one gateway, 
 -- only the rules of the first gw get a rulebase_id, the others (copies) will be deleted
 CREATE OR REPLACE FUNCTION migrateToRulebases() RETURNS VOID
@@ -1172,6 +1168,11 @@ ON CONFLICT (config_key, config_user) DO NOTHING;
 INSERT INTO config (config_key, config_value, config_user) 
 VALUES ('complianceCheckPolicy', '0', 0)
 ON CONFLICT (config_key, config_user) DO NOTHING;
+
+-- add management and rule uids to table violation
+
+ALTER TABLE compliance.violation ADD COLUMN IF NOT EXISTS rule_uid TEXT;
+ALTER TABLE compliance.violation ADD COLUMN IF NOT EXISTS mgmt_uid TEXT;
 
 -- add assessability issue
 

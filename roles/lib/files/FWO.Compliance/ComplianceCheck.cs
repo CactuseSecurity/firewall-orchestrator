@@ -263,17 +263,19 @@ namespace FWO.Compliance
                 Log.TryWriteLog(LogType.Info, "Compliance Check", $"Found {currentViolations.Count} current (i.e. removed_date == null) violations.", _debugConfig.ExtendedLogComplianceCheck);
 
                 HashSet<string> violationKeys = currentViolations
-                    .Select(ev => $"{ev.RuleId}_{ev.PolicyId}_{ev.CriterionId}_{ev.Details}")
+                    .Select(ev => CreateUniqueViolationKey(ev))
                     .ToHashSet();
 
                 Log.TryWriteLog(LogType.Info, "Compliance Check", $"Created {currentViolations.Count} unique keys for current violations.", _debugConfig.ExtendedLogComplianceCheck);
 
                 violationsForInsert = complianceReport
                     .Violations
-                    .Where(v => !violationKeys.Contains($"{v.RuleId}_{v.PolicyId}_{v.CriterionId}_{v.Details}"))
+                    .Where(v => !violationKeys.Contains(CreateUniqueViolationKey(v)))
                     .Select(v => new ComplianceViolationBase
                     {
                         RuleId = v.RuleId,
+                        RuleUid = v.RuleUid,
+                        MgmtUid = v.MgmtUid,
                         Details = v.Details,
                         FoundDate = v.FoundDate,
                         RemovedDate = v.RemovedDate,
@@ -289,6 +291,26 @@ namespace FWO.Compliance
             return Task.FromResult(violationsForInsert);
         }
 
+        private string CreateUniqueViolationKey(ComplianceViolation violation)
+        {
+            string key = "";
+
+            try
+            {
+                if (ComplianceReport is ReportCompliance complianceReport)
+                {
+                    key = $"{violation.MgmtUid}_{violation.RuleUid}_{violation.PolicyId}_{violation.CriterionId}_{violation.Details}";
+                }
+            }
+            catch (Exception e)
+            {
+                Log.WriteError("Compliance Check", "Error creating unique violation key", Error: e);
+                
+            }
+
+            return key;
+        }
+
         private Task<List<int>> GetViolationsForRemove(List<ComplianceViolation> existingViolations)
         {
             List<int> violationsForUpdate = [];
@@ -297,12 +319,8 @@ namespace FWO.Compliance
             {
                 foreach (ComplianceViolation existingViolation in existingViolations.Where(ev => ev.RemovedDate == null).ToList())
                 {
-                    ComplianceViolation? validatedViolation = complianceReport.Violations.FirstOrDefault(v =>
-                                                                v.RuleId == existingViolation.RuleId &&
-                                                                v.PolicyId == existingViolation.PolicyId &&
-                                                                v.CriterionId == existingViolation.CriterionId &&
-                                                                v.Details == existingViolation.Details);
-                                                                
+                    ComplianceViolation? validatedViolation = complianceReport.Violations.FirstOrDefault(v => CreateUniqueViolationKey(v) == CreateUniqueViolationKey(existingViolation));
+
                     if (validatedViolation == null)
                     {
                         violationsForUpdate.Add(existingViolation.Id);
@@ -414,6 +432,8 @@ namespace FWO.Compliance
             ComplianceViolation violation = new()
             {
                 RuleId = (int)rule.Id,
+                RuleUid = rule.Uid ?? "",
+                MgmtUid = ComplianceReport?.Managements?.FirstOrDefault(m => m.Id == rule.MgmtId)?.Uid ?? "",
                 PolicyId = _policy?.Id ?? 0
             };
 

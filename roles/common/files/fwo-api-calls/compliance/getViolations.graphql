@@ -8,5 +8,7 @@ query getViolations {
     removed_date
     risk_score
     rule_id
+    rule_uid
+    mgmt_uid
   }
 }

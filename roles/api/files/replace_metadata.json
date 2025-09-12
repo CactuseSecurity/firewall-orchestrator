@@ -958,14 +958,16 @@
                   "permission": {
                     "check": {},
                     "columns": [
-                      "id",
-                      "rule_id",
                       "criterion_id",
-                      "policy_id",
-                      "risk_score",
                       "details",
                       "found_date",
-                      "removed_date"
+                      "id",
+                      "mgmt_uid",
+                      "policy_id",
+                      "removed_date",
+                      "risk_score",
+                      "rule_id",
+                      "rule_uid"
                     ]
                   },
                   "comment": ""
@@ -1010,14 +1012,16 @@
                   "role": "middleware-server",
                   "permission": {
                     "columns": [
-                      "id",
-                      "rule_id",
                       "criterion_id",
-                      "policy_id",
-                      "risk_score",
                       "details",
                       "found_date",
-                      "removed_date"
+                      "id",
+                      "mgmt_uid",
+                      "policy_id",
+                      "removed_date",
+                      "risk_score",
+                      "rule_id",
+                      "rule_uid"
                     ],
                     "filter": {}
                   },
@@ -14037,6 +14041,21 @@
                     "foreign_key_constraint_on": {
                       "column": "rule_id",
                       "table": {
+                        "name": "violation",
+                        "schema": "compliance"
+                      }
+                    }
+                  }
+                },
+                {
+                  "name": "compliance_violations_version_agnostic",
+                  "using": {
+                    "manual_configuration": {
+                      "column_mapping": {
+                        "rule_uid": "rule_uid"
+                      },
+                      "insertion_order": null,
+                      "remote_table": {
                         "name": "violation",
                         "schema": "compliance"
                       }

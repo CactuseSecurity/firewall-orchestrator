@@ -1465,6 +1465,8 @@ create table compliance.violation
 (
     id BIGSERIAL PRIMARY KEY,
 	rule_id bigint NOT NULL,
+	rule_uid TEXT,
+	mgmt_uid TEXT,
 	found_date timestamp with time zone default now(),
 	removed_date timestamp with time zone,
 	details TEXT,

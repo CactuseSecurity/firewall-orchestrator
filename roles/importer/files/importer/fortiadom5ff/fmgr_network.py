@@ -107,7 +107,8 @@ def _parse_subnet (obj, obj_orig):
 
 def normalize_network_object_ipv6(obj_orig, obj):
     ipa = ipaddress.ip_network(obj_orig['ip6'])
-    obj.update({ 'obj_typ': 'network' })
+    # obj.update({ 'obj_typ': 'network' })
+    obj.update({ 'obj_typ': 'v6' })
     obj.update({ 'obj_ip': str(ipa.network_address) })
     obj.update({ 'obj_ip_end': str(ipa.broadcast_address) })
 

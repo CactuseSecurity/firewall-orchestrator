@@ -505,7 +505,6 @@ class FwConfigImportObject():
             prev_config (FwConfigNormalized): The previous normalized config.
         """
         errors = 0
-        changes = 0
         new_group_members = []
         new_group_member_flats = []
         prev_config_objects, current_config_objects = self.get_config_objects(obj_type, prev_config)

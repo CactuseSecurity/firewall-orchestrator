@@ -152,7 +152,7 @@ class Uid2IdMapper:
         Get the ID for a given zone UID.
         
         Args:
-            uid (str): The UID of the zone.
+            name (str): The name of the zone.
             before_update (bool): If True, use the outdated mapping if available.
         
         Returns:

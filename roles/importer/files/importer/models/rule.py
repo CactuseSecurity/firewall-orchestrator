@@ -137,7 +137,7 @@ class Rule(BaseModel):
     rule_dst: str
     rule_dst_neg: bool
     rule_dst_refs: str
-    rule_from_zone: str|None = None
+    rule_from_zone: int|None = None
     rule_head_text: str|None = None
     rule_implied: bool = False
     rule_installon: str|None = None
@@ -152,7 +152,7 @@ class Rule(BaseModel):
     rule_svc_neg: bool
     rule_svc_refs: str
     rule_time: str
-    rule_to_zone: str|None = None
+    rule_to_zone: int|None = None
     track_id: int
     xlate_rule: int|None = None
     rule_track: str

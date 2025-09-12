@@ -54,10 +54,10 @@ namespace FWO.Data
         public string RuleTime { get; set; } = "";
 
         [JsonProperty("rule_name"), JsonPropertyName("rule_name")]
-        public string RuleName { get; set; } = "";
+        public string? RuleName { get; set; }
 
         [JsonProperty("rule_uid"), JsonPropertyName("rule_uid")]
-        public string RuleUid { get; set; } = "";
+        public string? RuleUid { get; set; }
 
         [JsonProperty("rule_custom_fields"), JsonPropertyName("rule_custom_fields")]
         public string RuleCustomFields { get; set; } = "";
@@ -69,7 +69,7 @@ namespace FWO.Data
         public string RuleType { get; set; } = "";
 
         [JsonProperty("rule_last_change_admin"), JsonPropertyName("rule_last_change_admin")]
-        public string RuleLastChangeAdmin { get; set; } = "";
+        public string? RuleLastChangeAdmin { get; set; }
 
         [JsonProperty("parent_rule_uid"), JsonPropertyName("parent_rule_uid")]
         public string? ParentRuleUid { get; set; }
@@ -114,18 +114,18 @@ namespace FWO.Data
                 RuleTrack = rule.Track,
                 RuleInstallOn = rule.InstallOn ?? "", // should not become null but it does
                 RuleTime = rule.Time,
-                RuleName = rule.Name ?? "",
-                RuleUid = rule.Uid ?? "",
+                RuleName = rule.Name,
+                RuleUid = rule.Uid,
                 RuleCustomFields = rule.CustomFields,
                 RuleImplied = rule.Implied,
                 RuleType = rule.NatRule ? "nat" : "access",
-                RuleLastChangeAdmin = rule.LastChangeAdmin?.Name ?? "",
-                ParentRuleUid = rule.ParentRule?.Uid ?? "",
+                RuleLastChangeAdmin = rule.LastChangeAdmin?.Name,
+                ParentRuleUid = rule.ParentRule?.Uid,
                 LastHit = rule.Metadata.LastHit,
                 RuleComment = rule.Comment,
-                RuleSrcZone = rule.SourceZone?.Name ?? "",
-                RuleDstZone = rule.DestinationZone?.Name ?? "",
-                RuleHeadText = rule.SectionHeader ?? ""
+                RuleSrcZone = rule.SourceZone?.Name,
+                RuleDstZone = rule.DestinationZone?.Name,
+                RuleHeadText = rule.SectionHeader
             };
         }
     }

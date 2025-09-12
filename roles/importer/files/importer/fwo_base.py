@@ -18,7 +18,6 @@ from services.global_state import GlobalState
 from services.enums import Services, Lifetime
 from services.uid2id_mapper import Uid2IdMapper
 from services.group_flats_mapper import GroupFlatsMapper
-from services.enums import Services, Lifetime
 
 
 def split_list(list_in, max_list_length):
@@ -419,14 +418,14 @@ def init_service_provider():
     service_provider.register(Services.UID2ID_MAPPER, lambda: Uid2IdMapper(), Lifetime.IMPORT)
     return service_provider
 
-def find_all_diffs(a, b, path="root"):
+def find_all_diffs(a, b, strict=False, path="root"):
     diffs = []
     if isinstance(a, dict):
         for k in a:
             if k not in b:
                 diffs.append(f"Key '{k}' missing in second object at {path}")
             else:
-                res = find_all_diffs(a[k], b[k], f"{path}.{k}")
+                res = find_all_diffs(a[k], b[k], strict, f"{path}.{k}")
                 if res:
                     diffs.extend(res)
         for k in b:
@@ -434,14 +433,14 @@ def find_all_diffs(a, b, path="root"):
                 diffs.append(f"Key '{k}' missing in first object at {path}")
     elif isinstance(a, list):
         for i, (x, y) in enumerate(zip(a, b)):
-            res = find_all_diffs(x, y, f"{path}[{i}]")
+            res = find_all_diffs(x, y, strict, f"{path}[{i}]")
             if res:
                 diffs.extend(res)
         if len(a) != len(b):
             diffs.append(f"list length mismatch at {path}: {len(a)} != {len(b)}")
     else:
         if a != b:
-            if (a is None or a == '') and (b is None or b == ''):
+            if not strict and (a is None or a == '') and (b is None or b == ''):
                 return diffs
             diffs.append(f"Value mismatch at {path}: {a} != {b}")
     return diffs

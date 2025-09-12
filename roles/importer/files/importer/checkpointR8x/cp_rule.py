@@ -137,7 +137,6 @@ def parse_rulebase(rulebase_to_parse, is_section, is_placeholder, normalized_rul
 
     if is_section:
         for rule in rulebase_to_parse['rulebase']:
-            # delete_v: kann es passieren, dass eine section über mehrere chunks geht?
             # delte_v sind import_id, parent_uid, config2import wirklich egal? Dann können wir diese argumente löschen - NAT ACHTUNG
             rule_num = parse_single_rule(rule, normalized_rulebase, normalized_rulebase.uid, None, rule_num, None, None)
 

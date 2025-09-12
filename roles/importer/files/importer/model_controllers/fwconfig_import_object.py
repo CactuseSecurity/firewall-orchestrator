@@ -54,15 +54,15 @@ class FwConfigImportObject():
         self.ProtocolMap = self.GetProtocolMap()
 
 
-    def updateObjectDiffs(self, prevConfig: FwConfigNormalized, single_manager: FwConfigManager):
+    def updateObjectDiffs(self, prev_config: FwConfigNormalized, prev_global_config: FwConfigNormalized|None, single_manager: FwConfigManager):
 
         change_logger = ChangeLogger()
         # calculate network object diffs
         # here we are handling the previous config as a dict for a while
         # previousNwObjects = prevConfig.network_objects
-        deletedNwobjUids = list(prevConfig.network_objects.keys() - self.normalized_config.network_objects.keys())
-        newNwobjUids = list(self.normalized_config.network_objects.keys() - prevConfig.network_objects.keys())
-        nwobjUidsInBoth = list(self.normalized_config.network_objects.keys() & prevConfig.network_objects.keys())
+        deletedNwobjUids = list(prev_config.network_objects.keys() - self.normalized_config.network_objects.keys())
+        newNwobjUids = list(self.normalized_config.network_objects.keys() - prev_config.network_objects.keys())
+        nwobjUidsInBoth = list(self.normalized_config.network_objects.keys() & prev_config.network_objects.keys())
 
         # For correct changelog and stats.
         changed_nw_objs = []
@@ -70,56 +70,56 @@ class FwConfigImportObject():
 
         # decide if it is prudent to mix changed, deleted and added rules here:
         for nwObjUid in nwobjUidsInBoth:
-            if self.normalized_config.network_objects[nwObjUid] != prevConfig.network_objects[nwObjUid]:
+            if self.normalized_config.network_objects[nwObjUid] != prev_config.network_objects[nwObjUid]:
                 newNwobjUids.append(nwObjUid)
                 deletedNwobjUids.append(nwObjUid)
                 changed_nw_objs.append(nwObjUid)
 
         # calculate service object diffs
-        deletedSvcObjUids = list(prevConfig.service_objects.keys() - self.normalized_config.service_objects.keys())
-        newSvcObjUids = list(self.normalized_config.service_objects.keys() - prevConfig.service_objects.keys())
-        svcObjUidsInBoth = list(self.normalized_config.service_objects.keys() & prevConfig.service_objects.keys())
+        deletedSvcObjUids = list(prev_config.service_objects.keys() - self.normalized_config.service_objects.keys())
+        newSvcObjUids = list(self.normalized_config.service_objects.keys() - prev_config.service_objects.keys())
+        svcObjUidsInBoth = list(self.normalized_config.service_objects.keys() & prev_config.service_objects.keys())
 
         for nwSvcUid in svcObjUidsInBoth:
-            if self.normalized_config.service_objects[nwSvcUid] != prevConfig.service_objects[nwSvcUid]:
+            if self.normalized_config.service_objects[nwSvcUid] != prev_config.service_objects[nwSvcUid]:
                 newSvcObjUids.append(nwSvcUid)
                 deletedSvcObjUids.append(nwSvcUid)
                 changed_svcs.append(nwSvcUid)
         
         # calculate user diffs
-        deletedUserUids = list(prevConfig.users.keys() - self.normalized_config.users.keys())
-        newUserUids = list(self.normalized_config.users.keys() - prevConfig.users.keys())
-        userUidsInBoth = list(self.normalized_config.users.keys() & prevConfig.users.keys())
+        deletedUserUids = list(prev_config.users.keys() - self.normalized_config.users.keys())
+        newUserUids = list(self.normalized_config.users.keys() - prev_config.users.keys())
+        userUidsInBoth = list(self.normalized_config.users.keys() & prev_config.users.keys())
         for userUid in userUidsInBoth:
-            if self.normalized_config.users[userUid] != prevConfig.users[userUid]:
+            if self.normalized_config.users[userUid] != prev_config.users[userUid]:
                 newUserUids.append(userUid)
                 deletedUserUids.append(userUid)
 
         # initial mapping of object uids to ids. needs to be updated, if more objects are created in the db after this point
         #TODO: only fetch objects needed later. Esp for !isFullImport. but: newNwObjIds not enough!
         # -> newObjs + extract all objects from new/changed rules and groups, flatten them. Complete?
-        self.uid2id_mapper.update_network_object_mapping()
-        self.uid2id_mapper.update_service_object_mapping()
-        self.uid2id_mapper.update_user_mapping()
-        self.uid2id_mapper.update_zone_mapping()
+        self.uid2id_mapper.update_network_object_mapping(is_global=single_manager.IsSuperManager)
+        self.uid2id_mapper.update_service_object_mapping(is_global=single_manager.IsSuperManager)
+        self.uid2id_mapper.update_user_mapping(is_global=single_manager.IsSuperManager)
+        self.uid2id_mapper.update_zone_mapping(is_global=single_manager.IsSuperManager)
 
         self.group_flats_mapper.init_config(self.normalized_config, self.global_normalized_config)
-        self.prev_group_flats_mapper.init_config(prevConfig) #TODO: previous global config
+        self.prev_group_flats_mapper.init_config(prev_config, prev_global_config)
 
         # need to do this first, since we need the old object IDs for the group memberships
         #TODO: computationally expensive? Even without changes, all group objects and their members are compared to the previous config.
-        self.remove_outdated_memberships(prevConfig, Type.NETWORK_OBJECT)
-        self.remove_outdated_memberships(prevConfig, Type.SERVICE_OBJECT)
-        self.remove_outdated_memberships(prevConfig, Type.USER)
+        self.remove_outdated_memberships(prev_config, Type.NETWORK_OBJECT)
+        self.remove_outdated_memberships(prev_config, Type.SERVICE_OBJECT)
+        self.remove_outdated_memberships(prev_config, Type.USER)
 
         # calculate zone object diffs
-        deleted_zone_names = list(prevConfig.zone_objects.keys() - self.normalized_config.zone_objects.keys())
-        new_zone_names = list(self.normalized_config.zone_objects.keys() - prevConfig.zone_objects.keys())
-        zone_names_in_both = list(self.normalized_config.zone_objects.keys() & prevConfig.zone_objects.keys())
+        deleted_zone_names = list(prev_config.zone_objects.keys() - self.normalized_config.zone_objects.keys())
+        new_zone_names = list(self.normalized_config.zone_objects.keys() - prev_config.zone_objects.keys())
+        zone_names_in_both = list(self.normalized_config.zone_objects.keys() & prev_config.zone_objects.keys())
         changed_zones = []
 
         for zone_name in zone_names_in_both:
-            if self.normalized_config.zone_objects[zone_name] != prevConfig.zone_objects[zone_name]:
+            if self.normalized_config.zone_objects[zone_name] != prev_config.zone_objects[zone_name]:
                 new_zone_names.append(zone_name)
                 deleted_zone_names.append(zone_name)
                 changed_zones.append(zone_name)
@@ -130,13 +130,13 @@ class FwConfigImportObject():
         
         self.uid2id_mapper.add_network_object_mappings(newNwObjIds, is_global=single_manager.IsSuperManager)
         self.uid2id_mapper.add_service_object_mappings(newNwSvcIds, is_global=single_manager.IsSuperManager)
-        self.uid2id_mapper.add_user_mappings(newUserIds)
+        self.uid2id_mapper.add_user_mappings(newUserIds, is_global=single_manager.IsSuperManager)
         self.uid2id_mapper.add_zone_mappings(new_zone_ids, is_global=single_manager.IsSuperManager)
 
         # insert new and updated group memberships
-        self.addGroupMemberships(prevConfig, Type.NETWORK_OBJECT)
-        self.addGroupMemberships(prevConfig, Type.SERVICE_OBJECT)
-        self.addGroupMemberships(prevConfig, Type.USER)
+        self.addGroupMemberships(prev_config, Type.NETWORK_OBJECT)
+        self.addGroupMemberships(prev_config, Type.SERVICE_OBJECT)
+        self.addGroupMemberships(prev_config, Type.USER)
 
         # these objects have really been deleted so there should be no refs to them anywhere! verify this
 

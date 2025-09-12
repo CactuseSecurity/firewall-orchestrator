@@ -1173,6 +1173,11 @@ INSERT INTO config (config_key, config_value, config_user)
 VALUES ('complianceCheckPolicy', '0', 0)
 ON CONFLICT (config_key, config_user) DO NOTHING;
 
+-- add management and rule uids to table violation
+
+ALTER TABLE compliance.violation ADD COLUMN IF NOT EXISTS rule_uid TEXT;
+ALTER TABLE compliance.violation ADD COLUMN IF NOT EXISTS mgmt_uid TEXT;
+
 -- add assessability issue
 
 -- create table if not exists compliance.assessability_issue

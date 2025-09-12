@@ -98,10 +98,10 @@ class FwConfigImportObject():
         # initial mapping of object uids to ids. needs to be updated, if more objects are created in the db after this point
         #TODO: only fetch objects needed later. Esp for !isFullImport. but: newNwObjIds not enough!
         # -> newObjs + extract all objects from new/changed rules and groups, flatten them. Complete?
-        self.uid2id_mapper.update_network_object_mapping()
-        self.uid2id_mapper.update_service_object_mapping()
-        self.uid2id_mapper.update_user_mapping()
-        self.uid2id_mapper.update_zone_mapping()
+        self.uid2id_mapper.update_network_object_mapping(is_global=single_manager.IsSuperManager)
+        self.uid2id_mapper.update_service_object_mapping(is_global=single_manager.IsSuperManager)
+        self.uid2id_mapper.update_user_mapping(is_global=single_manager.IsSuperManager)
+        self.uid2id_mapper.update_zone_mapping(is_global=single_manager.IsSuperManager)
 
         self.group_flats_mapper.init_config(self.normalized_config, self.global_normalized_config)
         self.prev_group_flats_mapper.init_config(prevConfig) #TODO: previous global config
@@ -130,7 +130,7 @@ class FwConfigImportObject():
         
         self.uid2id_mapper.add_network_object_mappings(newNwObjIds, is_global=single_manager.IsSuperManager)
         self.uid2id_mapper.add_service_object_mappings(newNwSvcIds, is_global=single_manager.IsSuperManager)
-        self.uid2id_mapper.add_user_mappings(newUserIds)
+        self.uid2id_mapper.add_user_mappings(newUserIds, is_global=single_manager.IsSuperManager)
         self.uid2id_mapper.add_zone_mappings(new_zone_ids, is_global=single_manager.IsSuperManager)
 
         # insert new and updated group memberships

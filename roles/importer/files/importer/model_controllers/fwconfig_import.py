@@ -232,19 +232,19 @@ class FwConfigImport():
             insertMutation = FwoApi.get_graphql_code([fwo_const.graphql_query_path + "import/storeLatestConfig.graphql"])
             try:
                 query_variables = {
-                    'mgmId': self.import_state.MgmDetails.Id,
+                    'mgmId': self.import_state.MgmDetails.CurrentMgmId,
                     'importId': self.import_state.ImportId,
                     'config': self.NormalizedConfig.model_dump_json()
                 }
                 import_result = self.import_state.api_call.call(insertMutation, query_variables=query_variables)
                 if 'errors' in import_result:
                     logger.exception("fwo_api:storeLatestConfig - error while writing importable config for mgm id " +
-                                    str(self.import_state.MgmDetails.Id) + ": " + str(import_result['errors']))
+                                    str(self.import_state.MgmDetails.CurrentMgmId) + ": " + str(import_result['errors']))
                     errorsFound = 1 # error
                 else:
                     changes = import_result['data']['insert_latest_config']['affected_rows']
             except Exception:
-                logger.exception(f"failed to write latest normalized config for mgm id {str(self.import_state.MgmDetails.Id)}: {str(traceback.format_exc())}")
+                logger.exception(f"failed to write latest normalized config for mgm id {str(self.import_state.MgmDetails.CurrentMgmId)}: {str(traceback.format_exc())}")
                 errorsFound = 1 # error
                 self.import_state.addError("error while trying to write latest config for management id " + str(self.import_state.MgmDetails.Id))
                 raise
@@ -261,16 +261,16 @@ class FwConfigImport():
         logger = getFwoLogger()
         deleteMutation = FwoApi.get_graphql_code([fwo_const.graphql_query_path + "import/deleteLatestConfigOfManagement.graphql"])
         try:
-            query_variables = { 'mgmId': self.import_state.MgmDetails.Id }
+            query_variables = { 'mgmId': self.import_state.MgmDetails.CurrentMgmId }
             import_result = self.import_state.api_call.call(deleteMutation, query_variables=query_variables)
             if 'errors' in import_result:
                 logger.exception("fwo_api:import_latest_config - error while deleting last config for mgm id " +
-                                str(self.import_state.MgmDetails.Id) + ": " + str(import_result['errors']))
+                                str(self.import_state.MgmDetails.CurrentMgmId) + ": " + str(import_result['errors']))
                 return 1 # error
             else:
                 changes = import_result['data']['delete_latest_config']['affected_rows']
         except Exception:
-            self.import_state.addError(f"failed to delete latest normalized config for mgm id {str(self.import_state.MgmDetails.Id)}: {str(traceback.format_exc())}")
+            self.import_state.addError(f"failed to delete latest normalized config for mgm id {str(self.import_state.MgmDetails.CurrentMgmId)}: {str(traceback.format_exc())}")
             return 1 # error
         
         if changes<=1:  # if nothing was changed, we are also happy (assuming this to be the first config of the current management)

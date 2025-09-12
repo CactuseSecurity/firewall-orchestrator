@@ -48,16 +48,15 @@ class NetworkObject(BaseModel):
 class NetworkObjectForImport():
     obj_uid: str
     obj_name: str
-    obj_ip: str|None = None
-    obj_ip_end: str|None = None
+    obj_ip: str|None
+    obj_ip_end: str|None
     obj_color_id: int|None
-    obj_member_refs: str|None = None
-    obj_member_names: str|None = None
-    obj_comment: str|None = None
+    obj_member_refs: str|None
+    obj_member_names: str|None
+    obj_comment: str|None
     mgm_id: int
     obj_create: int
     obj_last_seen: int
-    obj_removed: int
     obj_typ_id: int
 
     def __init__(self, nwObject: NetworkObject, mgmId: int, importId: int, colorId: int, typId: int):

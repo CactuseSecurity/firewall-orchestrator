@@ -54,7 +54,7 @@ class FwConfigImport():
         mgm_id = self.import_state.lookupManagementId(single_manager.ManagerUid)
         if mgm_id is None:
             raise FwoImporterError(f"could not find manager id in DB for UID {single_manager.ManagerUid}")
-        previousConfig = self.get_latest_config_from_db()
+        previousConfig = self.get_latest_config()
         self._global_state.previous_config = previousConfig
 
         # calculate differences and write them to the database via API
@@ -294,7 +294,8 @@ class FwConfigImport():
             raise FwoImporterError("error while trying to get the latest import id")
 
     # return previous config or empty config if there is none; only returns the config of a single management
-    def getLatestConfig(self, mgm_id: int) -> FwConfigNormalized:
+    def get_latest_config(self) -> FwConfigNormalized:
+        mgm_id = self.import_state.MgmDetails.CurrentMgmId
         prev_config = FwConfigNormalized(**{
                                 'action': ConfigAction.INSERT,
                                 'network_objects': {},

@@ -433,6 +433,7 @@ namespace FWO.Compliance
             {
                 RuleId = (int)rule.Id,
                 RuleUid = rule.Uid ?? "",
+                MgmtUid = ComplianceReport?.Managements?.FirstOrDefault(m => m.Id == rule.MgmtId)?.Uid ?? "",
                 PolicyId = _policy?.Id ?? 0
             };
 

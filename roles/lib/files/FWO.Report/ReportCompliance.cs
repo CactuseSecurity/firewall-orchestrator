@@ -510,9 +510,10 @@ namespace FWO.Report
                 rule.ViolationDetails = $"No changes between {from:dd.MM.yyyy} - {from:HH:mm} and {DateTime.Now:dd.MM.yyyy} - {DateTime.Now:HH:mm}";                            
             }
 
+            string managementUid = Managements?.FirstOrDefault(m => m.Id == rule.MgmtId)?.Uid ?? "";
 
-            var variables = new { ruleId = rule.Id };
-            List<ComplianceViolation>? violations = await apiConnection.SendQueryAsync<List<ComplianceViolation>>(ComplianceQueries.getViolationsByRuleID, variables: variables);
+            var variables = new { ruleUid = rule.Uid, mgmtUid =  managementUid};
+            List<ComplianceViolation>? violations = await apiConnection.SendQueryAsync<List<ComplianceViolation>>(ComplianceQueries.getViolationsByRuleUid, variables: variables);
 
             if (violations != null)
             {

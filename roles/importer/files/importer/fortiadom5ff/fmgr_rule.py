@@ -221,9 +221,17 @@ def build_addr_list(native_rule, is_v4, target, normalized_config_dict, normaliz
 def find_addr_ref(addr, is_v4, normalized_config_dict, normalized_config_global):
     for nw_obj in normalized_config_dict['network_objects'] + normalized_config_global.get('network_objects', []):
         if addr == nw_obj['obj_name']:
-            if (is_v4 and nw_obj['obj_typ'] not in ['v6', 'group_v6']) or (not is_v4 and nw_obj['obj_typ'] in ['v6', 'group_v6']):
+            if (is_v4 and ip_type(nw_obj) == 4) or (not is_v4 and ip_type(nw_obj) == 6):
                 return nw_obj['obj_uid']
     raise FwoImporterErrorInconsistencies(f"No ref found for '{addr}'.")
+
+def ip_type(nw_obj):
+    # default to v4
+    first_ip = nw_obj.get('obj_ip', '0.0.0.0/32')
+    if first_ip == '':
+        first_ip = '0.0.0.0/32'
+    net=ipaddress.ip_network(str(first_ip))
+    return net.version
 
 def rule_parse_negation_flags(native_rule, rulebase_name):
     if 'srcaddr-negate' in native_rule:

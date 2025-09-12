@@ -37,9 +37,10 @@ class Uid2IdMap:
     
     def update(self, new_mappings: dict[str, int], is_global: bool = False):
         target_map = self.global_map if is_global else self.local
+        outdated_map = self.outdated_global if is_global else self.outdated_local
         for uid, db_id in new_mappings.items():
             if uid in target_map:
-                self.outdated_local[uid] = target_map[uid]
+                outdated_map[uid] = target_map[uid]
             target_map[uid] = db_id
 
 class Uid2IdMapper:

@@ -1,7 +1,7 @@
 import logging
 import time
 import threading
-import fwo_globals
+from services.uid2id_mapper import Uid2IdMapper
 
 
 class LogLock:
@@ -139,7 +139,7 @@ class ChangeLogger:
     changed_nwobj_id_map: dict
     changed_svc_id_map: dict
     _import_state = None
-    _uid2id_mapper = None
+    _uid2id_mapper: Uid2IdMapper|None = None
 
     def __new__(cls):
         """
@@ -154,7 +154,7 @@ class ChangeLogger:
         return cls._instance
 
 
-    def create_change_id_maps(self, uid2id_mapper, changed_nw_objs, changed_svcs, removedNwObjIds, removedNwSvcIds):
+    def create_change_id_maps(self, uid2id_mapper: Uid2IdMapper, changed_nw_objs, changed_svcs, removedNwObjIds, removedNwSvcIds):
 
         self._uid2id_mapper = uid2id_mapper
 
@@ -162,7 +162,7 @@ class ChangeLogger:
             next(removedNwObjId['obj_id']
                 for removedNwObjId in removedNwObjIds
                 if removedNwObjId['obj_uid'] == old_item
-            ): self._uid2id_mapper.nwobj_uid2id[old_item]
+            ): self._uid2id_mapper.get_network_object_id(old_item)
             for old_item in changed_nw_objs
         }
 
@@ -170,7 +170,7 @@ class ChangeLogger:
             next(removedNwSvcId['svc_id']
                 for removedNwSvcId in removedNwSvcIds
                 if removedNwSvcId['svc_uid'] == old_item
-            ): self._uid2id_mapper.svc_uid2id[old_item]
+            ): self._uid2id_mapper.get_service_object_id(old_item)
             for old_item in changed_svcs
         }
 

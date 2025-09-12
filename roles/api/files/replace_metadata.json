@@ -14048,6 +14048,21 @@
                   }
                 },
                 {
+                  "name": "compliance_violations_version_agnostic",
+                  "using": {
+                    "manual_configuration": {
+                      "column_mapping": {
+                        "rule_uid": "rule_uid"
+                      },
+                      "insertion_order": null,
+                      "remote_table": {
+                        "name": "violation",
+                        "schema": "compliance"
+                      }
+                    }
+                  }
+                },
+                {
                   "name": "rule_enforced_on_gateways",
                   "using": {
                     "foreign_key_constraint_on": {

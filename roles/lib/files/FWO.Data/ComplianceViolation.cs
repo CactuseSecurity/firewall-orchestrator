@@ -17,6 +17,8 @@ namespace FWO.Data
             {
                 Id = violation.Id,
                 RuleId = violation.RuleId,
+                RuleUid = violation.RuleUid,
+                MgmtUid = violation.MgmtUid,
                 FoundDate = violation.FoundDate,
                 RemovedDate = violation.RemovedDate,
                 Details = violation.Details,
@@ -35,6 +37,10 @@ namespace FWO.Data
     {
         [JsonProperty("rule_id"), JsonPropertyName("rule_id")]
         public int RuleId { get; set; }
+        [JsonProperty("rule_uid"), JsonPropertyName("rule_uid")]
+        public string RuleUid { get; set; } = "";
+        [JsonProperty("mgmt_uid"), JsonPropertyName("mgmt_uid")]
+        public string MgmtUid { get; set; } = "";
         [JsonProperty("found_date"), JsonPropertyName("found_date")]
         public DateTime FoundDate { get; set; } = DateTime.Now;
         [JsonProperty("removed_date"), JsonPropertyName("removed_date")]

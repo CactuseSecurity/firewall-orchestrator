@@ -112,12 +112,31 @@ namespace FWO.Report.Data.ViewData
         {
             try
             {
-                return func();
+                string displayString = func();
+
+                if (string.IsNullOrWhiteSpace(displayString) && column == "Source" || column == "Destination")
+                {
+                    string objects = "";
+
+                    if (column == "Source")
+                    {
+                        objects = rule.Source;
+                    }
+                    else if (column == "Destination")
+                    {
+                        objects = rule.Destination;
+                    }
+
+                    displayString = $"Silent error while resolving objects: {objects}";
+                }
+
+                return displayString;
+
             }
             catch (Exception ex)
             {
                 Log.WriteError($"Creating rule view data - Displayerror in rule {rule.Id} column {column}: {ex.Message}");
-                return "Displayerror";
+                return "Displayerror. Check log for details.";
             }
         }
 

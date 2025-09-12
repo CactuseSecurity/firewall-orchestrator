@@ -1,7 +1,10 @@
 import logging
 import time
 import threading
-from services.uid2id_mapper import Uid2IdMapper
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from services.uid2id_mapper import Uid2IdMapper
 
 
 class LogLock:
@@ -139,7 +142,7 @@ class ChangeLogger:
     changed_nwobj_id_map: dict
     changed_svc_id_map: dict
     _import_state = None
-    _uid2id_mapper: Uid2IdMapper|None = None
+    _uid2id_mapper: "Uid2IdMapper|None" = None
 
     def __new__(cls):
         """
@@ -154,7 +157,7 @@ class ChangeLogger:
         return cls._instance
 
 
-    def create_change_id_maps(self, uid2id_mapper: Uid2IdMapper, changed_nw_objs, changed_svcs, removedNwObjIds, removedNwSvcIds):
+    def create_change_id_maps(self, uid2id_mapper: "Uid2IdMapper", changed_nw_objs, changed_svcs, removedNwObjIds, removedNwSvcIds):
 
         self._uid2id_mapper = uid2id_mapper
 

@@ -197,7 +197,8 @@ namespace FWO.Config.Api
             Dictionary<string, string> dict = [];
             try
             {
-                List<UiText> uiTexts = await apiConnection.SendQueryAsync<List<UiText>>(ConfigQueries.getCustomTextsPerLanguage, new { language = languageName });
+                
+                List<UiText> uiTexts = apiConnection != null ? await apiConnection.SendQueryAsync<List<UiText>>(ConfigQueries.getCustomTextsPerLanguage, new { language = languageName }) : [];
                 if (uiTexts != null)
                 {
                     foreach (UiText text in uiTexts)

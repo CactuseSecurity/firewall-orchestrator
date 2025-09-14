@@ -70,12 +70,12 @@
                             </div>
                             <div class="mt-2">
                                 <ObjectGroupCollection PageSize="PageSize" FetchObjects="FetchContent" Recert="Recert" Tab="RsbTab.usedObj" StartCollapsed="false" InputDataType="OwnerReport"
-                                Data="@(PrepareObjects(CurrentReport.ReportData.OwnerData))"
+                                Data="@(PrepareObjects(CurrentReport?.ReportData.OwnerData ?? new List<OwnerReport>()))"
                                 NameExtractor="own => own.Name"
                                 NetworkObjectExtractor="own => own.GetAllNetworkObjects(true, userConfig.ResolveNetworkAreas)"
                                 NetworkServiceExtractor="own => own.GetAllServices(true)" />
                                 <ObjectGroupCollection PageSize="PageSize" FetchObjects="FetchContent" Recert="Recert" Tab="RsbTab.usedObj" StartCollapsed="false" InputDataType="GlobalCommonSvcReport"
-                                Data="CurrentReport.ReportData.GlobalComSvc"
+                                Data="CurrentReport?.ReportData.GlobalComSvc"
                                 NameExtractor="glbComSvc => glbComSvc.Name"
                                 NetworkObjectExtractor="glbComSvc => glbComSvc.GetAllNetworkObjects(true, userConfig.ResolveNetworkAreas)"
                                 NetworkServiceExtractor="glbComSvc => glbComSvc.GetAllServices(true)" />

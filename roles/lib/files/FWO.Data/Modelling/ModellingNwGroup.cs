@@ -64,7 +64,7 @@ namespace FWO.Data.Modelling
         public override bool Sanitize()
         {
             bool shortened = base.Sanitize();
-            ManagedIdString.FreePart = Sanitizer.SanitizeMand(ManagedIdString.FreePart, ref shortened);
+            ManagedIdString.FreePart = ManagedIdString.FreePart.SanitizeMand(ref shortened);
             return shortened;
         }
 

@@ -88,7 +88,7 @@
             @if (appSelected)
             {
                 <div class="form-group row m-2">
-                    <h5>@(userConfig.GetText("comm_profile"))&nbsp;
+                    <h5>@(userConfig.GetText("comm_profile"))&nbsp;</h5>
                     @if (appActive)
                     {
                         <div class="btn-group ms-5">
@@ -110,7 +110,6 @@
                             }
                         </div>
                     }
-                    </h5>
                 </div>
                 <div class="mx-2 mt-2">
                     <TabSet WholeWidth="false" DarkMode="false" KeepPanelsAlive="false" @ref="appHandler!.Tabset">
@@ -489,8 +488,8 @@ else
             if(lastRequests != null && lastRequests.Count > 0)
             {
                 bool shortened = false;
-                return Sanitizer.SanitizeCommentOpt(!string.IsNullOrEmpty(lastRequests.First().LastProcessingResponse) ? 
-                    lastRequests.First().LastProcessingResponse : lastRequests.First().LastCreationResponse, ref shortened);
+                return (!string.IsNullOrEmpty(lastRequests.First().LastProcessingResponse) ?
+                    lastRequests.First().LastProcessingResponse : lastRequests.First().LastCreationResponse).SanitizeCommentOpt(ref shortened);
             }
         }
         catch(Exception exc)

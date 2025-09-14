@@ -17,7 +17,6 @@
 	[Parameter]
 	public EventCallback<IPAddressRange?> IpRangeChanged { get; set; }
 
-	private void TryParseIpRange(string ipAddressInput)
     protected override void OnParametersSet()
     {
         if (ipRange != IpRange)

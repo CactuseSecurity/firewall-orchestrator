@@ -41,6 +41,7 @@ namespace FWO.Api.Client
             graphQlClient.HttpClient.Timeout = new TimeSpan(1, 0, 0);
         }
 
+#pragma warning disable CS8618
         public GraphQlApiConnection(string ApiServerUri, string jwt)
         {
             Initialize(ApiServerUri);
@@ -51,6 +52,7 @@ namespace FWO.Api.Client
         {
             Initialize(ApiServerUri);
         }
+#pragma warning restore CS8618
 
         public override void SetAuthHeader(string jwt)
         {

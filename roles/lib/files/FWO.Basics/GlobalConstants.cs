@@ -124,6 +124,7 @@ namespace FWO.Basics
         public const string ACTION = "@@ACTION@@";
         public const string CHANGEACTION = "@@CHANGEACTION@@";
         public const string COMMENT = "@@COMMENT@@";
+        public const string DAYS = "@@DAYS@@";
         public const string DESTINATIONS = "@@DESTINATIONS@@";
         public const string FAIL_NUMBER = "@@FAIL_NUMBER@@";
         public const string GROUPNAME = "@@GROUPNAME@@";
@@ -155,6 +156,6 @@ namespace FWO.Basics
         public const string TASKS = "@@TASKS@@";
         public const string TICKET_SUBJECT = "@@TICKET_SUBJECT@@";
         public const string TYPE = "@@TYPE@@";
-         public const string USER_NAME = "@@USER_NAME@@";
+        public const string USER_NAME = "@@USER_NAME@@";
     }
 }

@@ -21,7 +21,9 @@ namespace FWO.Api.Client
             CreateSubscription();
         }
 
+#pragma warning disable CS8618
         public GraphQlApiSubscription(ApiConnection apiConnection, GraphQLHttpClient graphQlClient, GraphQLRequest request, Action<Exception> exceptionHandler, SubscriptionUpdate OnUpdate)
+#pragma warning restore CS8618
         {
             this.OnUpdate = OnUpdate;
             this.graphQlClient = graphQlClient;
@@ -41,6 +43,10 @@ namespace FWO.Api.Client
             };
 
             Initialize();
+            if(subscription == null)
+            {
+                throw new ArgumentException("Subscription to the subscription stream was not possible.");
+            }
 
             apiConnection.OnAuthHeaderChanged += ApiConnectionOnAuthHeaderChanged;
         }

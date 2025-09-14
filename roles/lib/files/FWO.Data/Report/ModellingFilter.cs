@@ -17,6 +17,7 @@ namespace FWO.Data.Report
         public bool ShowDropRules {get; set;} = false;
 
         public bool AnalyseRemainingRules { get; set; } = false;
+        public bool RulesForDeletedConns { get; set; } = false;
 
         public bool ShowAllOwners { get; set; } = false;
 
@@ -33,6 +34,7 @@ namespace FWO.Data.Report
             ShowFullRules = modellingFilter.ShowFullRules;
             ShowDropRules = modellingFilter.ShowDropRules;
             AnalyseRemainingRules = modellingFilter.AnalyseRemainingRules;
+            RulesForDeletedConns = modellingFilter.RulesForDeletedConns;
             ShowAllOwners = modellingFilter.ShowAllOwners;
         }
     }

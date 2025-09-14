@@ -1,4 +1,5 @@
 @using FWO.Data.Middleware
+@using FWO.Data.Report
 @using FWO.Data.Workflow
 @using FWO.ExternalSystems.Tufin.SecureChange
 @using FWO.Middleware.Client
@@ -42,7 +43,7 @@
                 <br>
                 <b>@(userConfig.GetText("U9034"))</b>
             }
-            else if(ModellingError)
+            @if(ModellingError)
             {
                 @if(ModelledConnections.Count == 0)
                 {
@@ -58,7 +59,7 @@
                     <ConnectionTable Connections="ModellingErrors" @bind-AppHandler="AppHandler" Readonly="true"/>
                 }
             }
-            else if(ImplementationError)
+            @if(ImplementationError)
             {
                 // Display implementation errors
                 <br>
@@ -76,11 +77,17 @@
                     <h5>@(userConfig.GetText("connections_with_diffs"))</h5>
                     <ConnectionTable Connections="VarianceResult.RuleDifferences.Select(d => d.ModelledConnection).ToList()" @bind-AppHandler="AppHandler" Readonly="true"/>
                 }
+                @if(RulesFromDeletedConns.Count > 0)
+                {
+                    <br>
+                    <h5>@(userConfig.GetText("rules_for_deleted_conns"))</h5>
+                    <ReportedRules ReadonlyMode="true" Rules="RulesFromDeletedConns.ToArray()" SelectedReportType="ReportType.VarianceAnalysis"/>
+                }
                 @if(UnmodelledRules.Count > 0)
                 {
                     <br>
                     <h5>@(userConfig.GetText("rules_not_modelled"))</h5>
-                    <ReportedRules ReadonlyMode="true" Rules="UnmodelledRules.ToArray()" SelectedReportType="ReportType.VarianceAnalysis"/>
+                    <ReportedRules ReadonlyMode="true" Rules="UnmodelledRules.ToArray()" SelectedReportType="ReportType.AppRules" HandleAsVariance="true"/>
                 }
             }
         </Body>
@@ -143,6 +150,7 @@
     private List<ModellingAppRole> MissingAppRoles = [];
     private List<ModellingAppRole> DifferingAppRoles = [];
     private List<Rule> UnmodelledRules = [];
+    private List<Rule> RulesFromDeletedConns = [];
 
 
     protected override async Task OnParametersSetAsync()
@@ -175,17 +183,9 @@
             RequestRunning = true;
             return;
         }
-        if (!CheckModelling())
-        {
-            ModellingError = true;
-            return;
-        }
-        if (!await CheckImplementation())
-        {
-            ImplementationError= true;
-            return;
-        }
-        RecertPossible = true;
+        ModellingError= !CheckModelling();
+        ImplementationError = !await CheckImplementation();
+        RecertPossible = !ModellingError && !ImplementationError;
     }
 
     private async Task<bool> CheckRequestRunning()
@@ -214,26 +214,25 @@
     {
         ExtStateHandler extStateHandler = new(apiConnection);
         ModellingVarianceAnalysis varianceAnalysis = new(apiConnection, extStateHandler, userConfig, AppHandler!.Application, DisplayMessageInUi);
-        VarianceResult = await varianceAnalysis.AnalyseRulesVsModelledConnections(AppHandler!.Connections, new(){ AnalyseRemainingRules = true }, true, true);
-        MissingAppRoles = [];
-        foreach(var mgt in VarianceResult.MissingAppRoles.Keys)
+        ModellingFilter modellingFilter = new()
         {
-            MissingAppRoles.AddRange(VarianceResult.MissingAppRoles[mgt]);
-        }
-        MissingAppRoles = [.. MissingAppRoles.Distinct()];
-        DifferingAppRoles = [];
-        foreach(var mgt in VarianceResult.DifferingAppRoles.Keys)
+            SelectedOwner = AppHandler!.Application,
+            AnalyseRemainingRules = userConfig.ModRecertExpectAllModelled,
+            RulesForDeletedConns = true
+        };
+        VarianceResult = await varianceAnalysis.AnalyseRulesVsModelledConnections(AppHandler!.Connections, modellingFilter, true, true);
+        RulesFromDeletedConns = [];
+        foreach(var mgt in VarianceResult.DeletedModelsRules.Keys)
         {
-            DifferingAppRoles.AddRange(VarianceResult.DifferingAppRoles[mgt]);
+            RulesFromDeletedConns.AddRange(VarianceResult.DeletedModelsRules[mgt]);
         }
-        DifferingAppRoles = [.. DifferingAppRoles.Distinct()];
         UnmodelledRules = [];
         foreach(var mgt in VarianceResult.UnModelledRules.Keys)
         {
             UnmodelledRules.AddRange(VarianceResult.UnModelledRules[mgt]);
         }
 
-        return MissingAppRoles.Count == 0 && DifferingAppRoles.Count == 0 && UnmodelledRules.Count == 0
+        return MissingAppRoles.Count == 0 && DifferingAppRoles.Count == 0 && RulesFromDeletedConns.Count == 0 && UnmodelledRules.Count == 0
             && VarianceResult.ConnsNotImplemented.Count == 0 && VarianceResult.RuleDifferences.Count == 0;
     }
 

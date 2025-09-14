@@ -1633,6 +1633,8 @@ INSERT INTO txt VALUES ('show_full_rules',		'German', 	'vollst&auml;ndige Regeln
 INSERT INTO txt VALUES ('show_full_rules',		'English', 	'show full rules');
 INSERT INTO txt VALUES ('analyse_remaining_rules','German', 'Verbleibende Regeln analysieren');
 INSERT INTO txt VALUES ('analyse_remaining_rules','English','Analyse remaining rules');
+INSERT INTO txt VALUES ('rules_for_deleted_conns','German', 'Regeln von gel&ouml;schten Verbindungen');
+INSERT INTO txt VALUES ('rules_for_deleted_conns','English','Rules from deleted connections');
 INSERT INTO txt VALUES ('reject',               'German',   'Ablehnen');
 INSERT INTO txt VALUES ('reject',               'English',  'Reject');
 INSERT INTO txt VALUES ('reject_interface',     'German',   'Schnittstelle ablehnen');
@@ -2460,6 +2462,8 @@ INSERT INTO txt VALUES ('modelledMarkerLocation','German',  'Ort Markierung');
 INSERT INTO txt VALUES ('modelledMarkerLocation','English', 'Marker Location');
 INSERT INTO txt VALUES ('modRecertActive',      'German',   'Integrierte Rezertifizierung aktivieren');
 INSERT INTO txt VALUES ('modRecertActive',      'English',  'Activate Integrated Recertification');
+INSERT INTO txt VALUES ('modRecertExpectAllModelled','German','Alle Regeln modelliert erwarten');
+INSERT INTO txt VALUES ('modRecertExpectAllModelled','English','Expect all rules as modelled');
 INSERT INTO txt VALUES ('modRecertText',        'German',   'Rezertifizierungstext');
 INSERT INTO txt VALUES ('modRecertText',        'English',  'Recertification Text');
 INSERT INTO txt VALUES ('fixedPartLength',      'German',   'L&auml;nge fixer Teil');
@@ -5667,6 +5671,8 @@ INSERT INTO txt VALUES ('H5662', 'English', 'Body of decommission emails: Text o
     @@INTERFACE_NAME@@ will be replaced by the name of the interface to be decommissioned, @@NEW_INTERFACE_NAME@@ by the name of the proposed new interface, @@NEW_INTERFACE_LINK@@ by a link to this interface, 
 	@@REASON@@ by the reason text filled in the decommission form, @@USER_NAME@@ by the user initiating the decommissioning.
 ');
+INSERT INTO txt VALUES ('H5663', 'German',  'Alle Regeln modelliert erwarten: Alle dem Eigent&uuml;mer zugeordneten Regeln m&uuml;ssen modelliert sein.');
+INSERT INTO txt VALUES ('H5663', 'English', 'Expect all rules as modelled: All rules associated to the owner have to be modelled.');
 
 INSERT INTO txt VALUES ('H5701', 'German',  'Die in der Datenbank hinterlegten sprachabh&auml;ngigen Texte k&ouml;nnen individuell &uuml;berschrieben werden.
     Dabei werden die vom System vorgegebenen Texte nicht ge&auml;ndert, sondern nur durch die hier definierten Texte - falls vorhanden - &uuml;berblendet.

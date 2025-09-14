@@ -98,11 +98,15 @@ namespace FWO.Services
                 await GetNwObjectsProductionState();
                 PreAnalyseAllAppRoles(connections);
             }
-            if(await GetModelledRulesProductionState(modellingFilter))
+            if (await GetModelledRulesProductionState(modellingFilter))
             {
-                foreach(var conn in connections.Where(c => !c.IsInterface).OrderBy(c => c.Id))
+                foreach (var conn in connections.Where(c => !c.IsInterface).OrderBy(c => c.Id))
                 {
                     await AnalyseRules(conn, fullAnalysis);
+                }
+                if (modellingFilter.RulesForDeletedConns)
+                {
+                    GetRulesForDeletedConns();
                 }
             }
             return varianceResult;

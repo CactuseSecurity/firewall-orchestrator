@@ -148,10 +148,14 @@ namespace FWO.Report
             ownerReport.DifferingAppRoles = result.DifferingAppRoles;
             ownerReport.AppRoleStats = result.AppRoleStats;
             ownerReport.ImplementationState = await varianceAnalysis.GetSuccessfulRequestState();
+            if(modellingFilter.RulesForDeletedConns)
+            {
+                ownerReport.RulesForDeletedConns = result.DeletedConnRuleDataToReport();
+            }
             if(modellingFilter.AnalyseRemainingRules)
             {
-                ownerReport.ManagementData = result.MgtDataToReport();
-                ownerReport.ManagementData = await ReportAppRules.PrepareAppRulesReport(ownerReport.ManagementData, modellingFilter, apiConnection, ownerReport.Owner.Id);
+                ownerReport.UnmodelledRules = result.UnmodelledRuleDataToReport();
+                ownerReport.UnmodelledRules = await ReportAppRules.PrepareAppRulesReport(ownerReport.UnmodelledRules, modellingFilter, apiConnection, ownerReport.Owner.Id);
             }
         }
 

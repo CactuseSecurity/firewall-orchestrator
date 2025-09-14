@@ -63,6 +63,10 @@
         <br>
         <h5 class="text-left">@(userConfig.GetText("variance_filters"))</h5>
         <div class="form-check">
+            <input class="form-check-input" id="deletedConns" type="checkbox" @bind="ModellingFilter.RulesForDeletedConns" />
+            <label class="form-check-label text-white" for="deletedConns">@(userConfig.GetText("rules_for_deleted_conns"))</label>
+        </div>
+        <div class="form-check">
             <input class="form-check-input" id="analyseRemaining" type="checkbox" @bind="ModellingFilter.AnalyseRemainingRules" />
             <label class="form-check-label text-white" for="analyseRemaining">@(userConfig.GetText("analyse_remaining_rules"))</label>
         </div>

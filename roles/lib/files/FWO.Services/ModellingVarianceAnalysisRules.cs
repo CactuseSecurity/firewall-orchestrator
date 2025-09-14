@@ -71,6 +71,18 @@ namespace FWO.Services
             }
         }
 
+        private void GetRulesForDeletedConns()
+        {
+            foreach (var mgt in allModelledRules.Keys)
+            {
+                List<Rule> rulesForDeletedModels = [.. allModelledRules[mgt].Where(r => !r.ModellFound)];
+                if (rulesForDeletedModels.Count > 0)
+                {
+                    varianceResult.DeletedModelsRules.Add(mgt, rulesForDeletedModels);
+                }
+            }
+        }
+
         private async Task GetAllowedSpecUserAreas()
         {
             AllowedSrcSpecUserAreas = [];

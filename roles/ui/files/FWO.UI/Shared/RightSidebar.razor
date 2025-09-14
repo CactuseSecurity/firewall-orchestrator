@@ -62,7 +62,7 @@
                             </div>
                         </Tab>
                     }
-                    @if (CurrentReport?.ReportData.OwnerData.Count > 0 && (bool)CurrentReport?.ReportType.IsOwnerRelatedReport())
+                    @if (CurrentReport?.ReportData.OwnerData.Count > 0 && (CurrentReport?.ReportType.IsOwnerRelatedReport() ?? false))
                     {
                         <Tab Title="@(CurrentReport?.ReportType == ReportType.VarianceAnalysis ? userConfig.GetText("modelled_objects") : userConfig.GetText("used_objects"))" StartSelected="true">
                             <div class="d-md-flex justify-content-md-end sticky-marker-45">

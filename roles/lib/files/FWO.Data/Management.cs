@@ -1,4 +1,5 @@
-﻿using Newtonsoft.Json;
+using FWO.Basics;
+using Newtonsoft.Json;
 using System.Text.Json.Serialization;
 
 namespace FWO.Data
@@ -129,14 +130,14 @@ namespace FWO.Data
         public virtual bool Sanitize()
         {
             bool shortened = false;
-            Name = Sanitizer.SanitizeMand(Name, ref shortened);
-            Hostname = Sanitizer.SanitizeMand(Hostname, ref shortened);
-            ConfigPath = Sanitizer.SanitizeOpt(ConfigPath, ref shortened);
-            DomainUid = Sanitizer.SanitizeOpt(DomainUid, ref shortened);
-            ImporterHostname = Sanitizer.SanitizeMand(ImporterHostname, ref shortened);
-            Comment = Sanitizer.SanitizeCommentOpt(Comment, ref shortened);
-            CloudSubscriptionId = Sanitizer.SanitizeOpt(CloudSubscriptionId, ref shortened);
-            CloudTenantId = Sanitizer.SanitizeOpt(CloudTenantId, ref shortened);
+            Name = Name.SanitizeMand();
+            Hostname = Hostname.SanitizeMand();
+            ConfigPath = ConfigPath.SanitizeOpt();
+            DomainUid = DomainUid.SanitizeOpt();
+            ImporterHostname = ImporterHostname.SanitizeMand();
+            Comment = Comment.SanitizeCommentOpt();
+            CloudSubscriptionId = CloudSubscriptionId.SanitizeOpt();
+            CloudTenantId = CloudTenantId.SanitizeOpt();
             return shortened;
         }
     }

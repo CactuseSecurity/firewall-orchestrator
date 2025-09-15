@@ -213,7 +213,7 @@ else
     private bool firstErrorMessage = true;
     private bool workInProgress = false;
     private bool InitDone = false;
-    
+
 
     protected override async Task OnInitializedAsync()
     {
@@ -485,15 +485,14 @@ else
     {
         try
         {
-            List<ExternalRequest> lastRequests = await apiConnection.SendQueryAsync<List<ExternalRequest>>(ExtRequestQueries.getLastRequest, new{ticketId = intTicket.Id});
-            if(lastRequests != null && lastRequests.Count > 0)
+            List<ExternalRequest> lastRequests = await apiConnection.SendQueryAsync<List<ExternalRequest>>(ExtRequestQueries.getLastRequest, new { ticketId = intTicket.Id });
+            if (lastRequests != null && lastRequests.Count > 0)
             {
                 bool shortened = false;
-                return Sanitizer.SanitizeCommentOpt(!string.IsNullOrEmpty(lastRequests.First().LastProcessingResponse) ? 
-                    lastRequests.First().LastProcessingResponse : lastRequests.First().LastCreationResponse, ref shortened);
+                return (!string.IsNullOrEmpty(lastRequests.First().LastProcessingResponse) ? lastRequests.First().LastProcessingResponse : lastRequests.First().LastCreationResponse).SanitizeCommentOpt(ref shortened);
             }
         }
-        catch(Exception exc)
+        catch (Exception exc)
         {
             Log.WriteError("Get Last Response", exc.Message);
         }

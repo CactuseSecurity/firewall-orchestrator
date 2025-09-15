@@ -1,4 +1,5 @@
-﻿using System.Text.Json.Serialization; 
+using System.Text.Json.Serialization;
+using FWO.Basics;
 using Newtonsoft.Json;
 
 namespace FWO.Data
@@ -55,10 +56,10 @@ namespace FWO.Data
         public virtual bool Sanitize()
         {
             bool shortened = false;
-            Name = Sanitizer.SanitizeMand(Name, ref shortened);
-            Dn = Sanitizer.SanitizeLdapPathMand(Dn, ref shortened);
-            GroupDn = Sanitizer.SanitizeLdapPathMand(GroupDn, ref shortened);
-            ExtAppId = Sanitizer.SanitizeCommentOpt(ExtAppId, ref shortened);
+            Name = Name.SanitizeMand();
+            Dn = Dn.SanitizeLdapPathMand();
+            GroupDn = GroupDn.SanitizeLdapPathMand();
+            ExtAppId = ExtAppId.SanitizeCommentOpt();
             return shortened;
         }
     }

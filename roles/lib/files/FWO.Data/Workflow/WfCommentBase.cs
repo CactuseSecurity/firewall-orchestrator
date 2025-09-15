@@ -1,4 +1,5 @@
-﻿using System.Text.Json.Serialization; 
+using System.Text.Json.Serialization;
+using FWO.Basics;
 using Newtonsoft.Json;
 
 namespace FWO.Data.Workflow
@@ -36,8 +37,8 @@ namespace FWO.Data.Workflow
         public virtual bool Sanitize()
         {
             bool shortened = false;
-            Scope = Sanitizer.SanitizeMand(Scope, ref shortened);
-            CommentText = Sanitizer.SanitizeMand(CommentText, ref shortened);
+            Scope = Scope.SanitizeMand(ref shortened);
+            CommentText = CommentText.SanitizeMand(ref shortened);
             return shortened;
         }
     }

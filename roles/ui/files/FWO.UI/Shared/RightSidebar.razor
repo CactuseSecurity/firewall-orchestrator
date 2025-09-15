@@ -39,7 +39,7 @@
                                 Data="managementsReportObjects"
                                 NameExtractor="man => man.Name"
                                 NetworkObjectExtractor="man => man.ReportObjects"
-                                NetworkServiceExtractor="man => man.ReportServices"
+                                NetworkServiceExtractor="man => man.ReportServices.Where(s => IsValidServiceForRSB(s))"
                                 NetworkUserExtractor="man => man.ReportUsers" />
                             </div>
                         </Tab>
@@ -62,7 +62,7 @@
                             </div>
                         </Tab>
                     }
-                    @if (CurrentReport?.ReportData.OwnerData.Count > 0 && (bool)CurrentReport?.ReportType.IsOwnerRelatedReport())
+                    @if (CurrentReport?.ReportData.OwnerData.Count > 0 && CurrentReport?.ReportType.IsOwnerRelatedReport() == true)
                     {
                         <Tab Title="@(CurrentReport?.ReportType == ReportType.VarianceAnalysis ? userConfig.GetText("modelled_objects") : userConfig.GetText("used_objects"))" StartSelected="true">
                             <div class="d-md-flex justify-content-md-end sticky-marker-45">
@@ -70,12 +70,12 @@
                             </div>
                             <div class="mt-2">
                                 <ObjectGroupCollection PageSize="PageSize" FetchObjects="FetchContent" Recert="Recert" Tab="RsbTab.usedObj" StartCollapsed="false" InputDataType="OwnerReport"
-                                Data="@(PrepareObjects(CurrentReport.ReportData.OwnerData))"
+                                Data="@(CurrentReport != null ? PrepareObjects(CurrentReport.ReportData.OwnerData) : new List<OwnerReport>())"
                                 NameExtractor="own => own.Name"
                                 NetworkObjectExtractor="own => own.GetAllNetworkObjects(true, userConfig.ResolveNetworkAreas)"
                                 NetworkServiceExtractor="own => own.GetAllServices(true)" />
                                 <ObjectGroupCollection PageSize="PageSize" FetchObjects="FetchContent" Recert="Recert" Tab="RsbTab.usedObj" StartCollapsed="false" InputDataType="GlobalCommonSvcReport"
-                                Data="CurrentReport.ReportData.GlobalComSvc"
+                                Data="CurrentReport?.ReportData.GlobalComSvc"
                                 NameExtractor="glbComSvc => glbComSvc.Name"
                                 NetworkObjectExtractor="glbComSvc => glbComSvc.GetAllNetworkObjects(true, userConfig.ResolveNetworkAreas)"
                                 NetworkServiceExtractor="glbComSvc => glbComSvc.GetAllServices(true)" />
@@ -90,36 +90,36 @@
 
 @code
 {
-    [CascadingParameter]
-    Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
+        [CascadingParameter]
+        Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
 
-    [Parameter]
-    public int Width { get; set; }
+        [Parameter]
+        public int Width { get; set; }
 
-    [Parameter]
-    public EventCallback<int> WidthChanged { get; set; }
+        [Parameter]
+        public EventCallback<int> WidthChanged { get; set; }
 
 
-    [Parameter]
-    public ReportBase? CurrentReport { get; set; }
+        [Parameter]
+        public ReportBase? CurrentReport { get; set; }
 
-    [Parameter]
-    public List<Rule> SelectedRules { get; set; } = [];
+        [Parameter]
+        public List<Rule> SelectedRules { get; set; } = [];
 
-    [Parameter]
-    public EventCallback<List<Rule>> SelectedRulesChanged { get; set; }
+        [Parameter]
+        public EventCallback<List<Rule>> SelectedRulesChanged { get; set; }
 
-    [Parameter]
-    public bool AllTabVisible { get; set; } = true;
+        [Parameter]
+        public bool AllTabVisible { get; set; } = true;
 
-    [Parameter]
-    public ReportType SelectedReportType { get; set; } = ReportType.Rules;
+        [Parameter]
+        public ReportType SelectedReportType { get; set; } = ReportType.Rules;
 
-    [Parameter]
-    public TimeFilter LSBTime { get; set; } = new();
+        [Parameter]
+        public TimeFilter LSBTime { get; set; } = new();
 
-    [Parameter]
-    public bool Recert { get; set; } = false;
+        [Parameter]
+        public bool Recert { get; set; } = false;
 
     private FWO.Ui.Shared.TabSet tabset = new();
     private FWO.Ui.Shared.AnchorNavToRSB anchorNavToRSB = new();
@@ -203,7 +203,7 @@
                 [QueryVar.ImportIdEnd] = import_id_end.Values.Max(),
             };
             var mgmResult = await apiConnection.SendQueryAsync<List<ManagementReport>>(ObjectQueries.getAllObjectDetails, queryVars);
-            managementsAllObjects = mgmResult.Where(m => m.Objects.Count() > 0 || m.Services.Count() > 0 || m.Users.Count() > 0).ToList();
+            managementsAllObjects = mgmResult.Where(m => m.Objects.Count() > 0 || m.Services.Count() > 0 || m.Users.Count() > 0).ToList();            
             collapseInRSB.Collapse("all");
             await InvokeAsync(StateHasChanged);
         }
@@ -241,6 +241,23 @@
         }
 
         return prevStart != rsbTimeStart || prevEnd != rsbTimeEnd;
+    }
+
+    private bool IsValidServiceForRSB(NetworkService s)
+    {
+        if (s.Protocol == null || s.Protocol.Id == 0)
+            return false;
+
+        string protocolName = s.Protocol.Name?.Trim() ?? "";
+        string serviceName = s.Name?.Trim() ?? "";
+
+        if (protocolName.Equals("HOPOPT", StringComparison.OrdinalIgnoreCase) ||
+                serviceName.Equals("any", StringComparison.OrdinalIgnoreCase) ||
+                serviceName.Equals("all", StringComparison.OrdinalIgnoreCase))
+        {
+            return false;
+        }
+        return true;
     }
 
     private async Task<Dictionary<int, long>> GetImportIds(string time, int? mgmId = null)

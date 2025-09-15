@@ -231,7 +231,7 @@
         <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5640"))">
             <label class="col-sm-4 col-form-label col-form-label">@(userConfig.GetText("ownerGroupLdap")):</label>
             <div class="col-sm-2">
-                <Dropdown ElementType="UiLdapConnection" ElementToString="@(l => l.Name)" @bind-SelectedElement="selectedLdap" Elements="connectedLdaps">
+                <Dropdown ElementType="UiLdapConnection" ElementToString="@(l => l.Name)" SelectedElements="selectedLdaps" Elements="connectedLdaps" Multiselect="true">
                     <ElementTemplate Context="ldap">
                         @ldap.Name
                     </ElementTemplate>
@@ -522,7 +522,7 @@ else
     private DateTime varAnalysisDate = DateTime.Today;
     private DateTime varAnalysisTime = DateTime.Now.AddSeconds(-DateTime.Now.Second);
     private List<UiLdapConnection> connectedLdaps = [];
-    private UiLdapConnection selectedLdap = new();
+    private List<UiLdapConnection> selectedLdaps = new();
     private RuleRecognitionOption ruleRecognitionOption = new();
 
     private bool initComplete = false;
@@ -589,7 +589,7 @@ else
             connectedLdaps = await apiConnection.SendQueryAsync<List<UiLdapConnection>>(AuthQueries.getAllLdapConnections);
 
             // get config value of selected ldap connection for owner data (both groups and main responsible user), default value = 1 = internal ldap
-            selectedLdap = connectedLdaps.FirstOrDefault(x => x.Id == configData.OwnerLdapId) ?? new();
+            selectedLdaps = connectedLdaps.Where(x => configData.OwnerLdapIds.Contains(x.Id)).ToList();
 
             ruleRecognitionOption = string.IsNullOrEmpty(configData.RuleRecognitionOption) ? new() : JsonSerializer.Deserialize<RuleRecognitionOption>(configData.RuleRecognitionOption) ?? new();
             initComplete = true;
@@ -755,7 +755,7 @@ else
         configData!.ImportAppDataStartAt = appDataDate.Date.Add(appDataTime.TimeOfDay);
         configData!.ImportSubnetDataStartAt = subnetDataDate.Date.Add(subnetDataTime.TimeOfDay);
         configData!.VarianceAnalysisStartAt = varAnalysisDate.Date.Add(varAnalysisTime.TimeOfDay);
-        configData!.OwnerLdapId = selectedLdap.Id;
+        configData!.OwnerLdapIds = selectedLdaps.Select(x => x.Id).ToList();
         configData!.RuleRecognitionOption = JsonSerializer.Serialize(ruleRecognitionOption);
     }
 

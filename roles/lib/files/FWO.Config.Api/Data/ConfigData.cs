@@ -287,7 +287,7 @@ namespace FWO.Config.Api.Data
         public DateTime ImportAppDataStartAt { get; set; } = DateTime.Now;
 
         [JsonProperty("ownerLdapId"), JsonPropertyName("ownerLdapId")]
-        public int OwnerLdapId { get; set; } = GlobalConst.kLdapInternalId;
+        public List<int> OwnerLdapIds { get; set; } = new() { GlobalConst.kLdapInternalId };
 
         [JsonProperty("manageOwnerLdapGroups"), JsonPropertyName("manageOwnerLdapGroups")]
         public bool ManageOwnerLdapGroups { get; set; } = true;

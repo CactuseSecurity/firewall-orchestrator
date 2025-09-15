@@ -1,4 +1,4 @@
-﻿using FWO.Basics;
+using FWO.Basics;
 using FWO.Data.Workflow;
 using Newtonsoft.Json;
 using System.Text.Json;
@@ -83,10 +83,10 @@ namespace FWO.Data
 		public bool Sanitize()
         {
             bool shortened = false;
-            Name = Sanitizer.SanitizeMand(Name, ref shortened);
-            Url = Sanitizer.SanitizePasswMand(Url, ref shortened);
-			TicketTemplate = Sanitizer.SanitizeJsonMand(TicketTemplate, ref shortened);
-			TasksTemplate = Sanitizer.SanitizeJsonMand(TasksTemplate, ref shortened);
+            Name = Name.SanitizeMand();
+            Url = Url.SanitizePasswMand();
+			TicketTemplate = TicketTemplate.SanitizeJsonMand();
+			TasksTemplate = TasksTemplate.SanitizeJsonMand();
 			foreach(var template in Templates)
 			{
 				shortened = template.Sanitize();
@@ -131,16 +131,16 @@ namespace FWO.Data
 		public bool Sanitize()
 		{
 			bool shortened = false;
-			TaskType = Sanitizer.SanitizeMand(TaskType, ref shortened);
-			TicketTemplate = Sanitizer.SanitizeJsonMand(TicketTemplate, ref shortened);
-			TasksTemplate = Sanitizer.SanitizeJsonMand(TasksTemplate, ref shortened);
-			ObjectTemplate = Sanitizer.SanitizeJsonMand(ObjectTemplate, ref shortened);
-			ObjectTemplateShort = Sanitizer.SanitizeJsonMand(ObjectTemplateShort, ref shortened);
-			IpTemplate = Sanitizer.SanitizeJsonMand(IpTemplate, ref shortened);
-			NwObjGroupTemplate = Sanitizer.SanitizeJsonMand(NwObjGroupTemplate, ref shortened);
-			ServiceTemplate = Sanitizer.SanitizeJsonMand(ServiceTemplate, ref shortened);
-			IcmpTemplate = Sanitizer.SanitizeJsonMand(IcmpTemplate, ref shortened);
-			IpProtocolTemplate = Sanitizer.SanitizeJsonMand(IpProtocolTemplate, ref shortened);
+			TaskType = TaskType.SanitizeMand();
+			TicketTemplate = TicketTemplate.SanitizeJsonMand();
+			TasksTemplate = TasksTemplate.SanitizeJsonMand();
+			ObjectTemplate = ObjectTemplate.SanitizeJsonMand();
+			ObjectTemplateShort = ObjectTemplateShort.SanitizeJsonMand();
+			IpTemplate = IpTemplate.SanitizeJsonMand();
+			NwObjGroupTemplate = NwObjGroupTemplate.SanitizeJsonMand();
+			ServiceTemplate = ServiceTemplate.SanitizeJsonMand();
+			IcmpTemplate = IcmpTemplate.SanitizeJsonMand();
+			IpProtocolTemplate = IpProtocolTemplate.SanitizeJsonMand();
 			return shortened;
 		}
 	}

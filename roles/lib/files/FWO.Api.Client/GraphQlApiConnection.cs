@@ -12,9 +12,9 @@ namespace FWO.Api.Client
     public class GraphQlApiConnection : ApiConnection
     {
         // Server URL
-        public string ApiServerUri { get; private set; }
+        public string ApiServerUri { get; private set; } = "";
 
-        private GraphQLHttpClient graphQlClient;
+        private GraphQLHttpClient graphQlClient = null!;
 
         private string prevRole = "";
 

@@ -1,4 +1,5 @@
-﻿using System.Text.Json.Serialization; 
+using System.Text.Json.Serialization;
+using FWO.Basics;
 using Newtonsoft.Json;
 
 namespace FWO.Data.Workflow
@@ -88,8 +89,8 @@ namespace FWO.Data.Workflow
         public virtual bool Sanitize()
         {
             bool shortened = false;
-            optComment = Sanitizer.SanitizeOpt(optComment, ref shortened);
-            AssignedGroup = Sanitizer.SanitizeLdapPathOpt(AssignedGroup, ref shortened);
+            optComment = optComment.SanitizeOpt(ref shortened);
+            AssignedGroup = AssignedGroup.SanitizeLdapPathOpt(ref shortened);
             return shortened;
         }
 

@@ -95,9 +95,9 @@ namespace FWO.Data.Modelling
         public bool Sanitize()
         {
             bool shortened = false;
-            Name = Sanitizer.SanitizeMand(Name, ref shortened);
-            Ip = Sanitizer.SanitizeOpt(Ip, ref shortened);
-            IpEnd = Sanitizer.SanitizeOpt(IpEnd, ref shortened);
+            Name = Name.SanitizeMand();
+            Ip = Ip.SanitizeOpt();
+            IpEnd = IpEnd.SanitizeOpt();
             return shortened;
         }
     }

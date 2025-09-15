@@ -1,4 +1,5 @@
-﻿using System.Text.Json.Serialization; 
+using System.Text.Json.Serialization;
+using FWO.Basics;
 using Newtonsoft.Json;
 
 namespace FWO.Data.Workflow
@@ -148,7 +149,7 @@ namespace FWO.Data.Workflow
         public override bool Sanitize()
         {
             bool shortened = base.Sanitize();
-            Reason = Sanitizer.SanitizeOpt(Reason, ref shortened);
+            Reason = Reason.SanitizeOpt(ref shortened);
             return shortened;
         }
     }

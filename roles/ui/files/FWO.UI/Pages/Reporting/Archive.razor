@@ -64,7 +64,8 @@
 </div>
 
 <ConfirmDelete @bind-Display="ShowDeleteReportFileDialog" PerformAction="DeleteGeneratedReport"
-    Title="@userConfig.GetText("generated_report")" DeleteMessage="@(userConfig.GetText("U3002") + " \"" + reportFileContext.Name + "\" ?")" />
+    Title="@userConfig.GetText("generated_report")" DeleteMessage="@(userConfig.GetText("U3002") + " \"" + reportFileContext.Name + "\" ?")"
+    AllowedRoles="@($"{Roles.Admin}, {Roles.FwAdmin}, {Roles.Reporter}, {Roles.ReporterViewAll}, {Roles.Modeller}")"/>
 
 <ReportDownloadPopUp Title="@(userConfig.GetText("generated_report"))" ReportFile="reportFileContext"
     Show="ShowDownloadReportFileDialog" ShowJson="true" OnClose="() => ShowDownloadReportFileDialog = false" />

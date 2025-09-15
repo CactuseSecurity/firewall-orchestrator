@@ -124,6 +124,7 @@ namespace FWO.Basics
         public const string ACTION = "@@ACTION@@";
         public const string CHANGEACTION = "@@CHANGEACTION@@";
         public const string COMMENT = "@@COMMENT@@";
+        public const string CONN_NUMBER = "@@CONN_NUMBER@@";
         public const string DAYS = "@@DAYS@@";
         public const string DESTINATIONS = "@@DESTINATIONS@@";
         public const string FAIL_NUMBER = "@@FAIL_NUMBER@@";

@@ -252,7 +252,8 @@ namespace FWO.Middleware.Server
                     report_html = reportFile.Html,
                     report_json = reportFile.Json,
                     report_type = reportFile.Type,
-                    description = desc
+                    description = desc,
+                    read_only = false
                 };
                 await apiConnectionUser.SendQueryAsync<object>(ReportQueries.addGeneratedReport, queryVariables);
             }

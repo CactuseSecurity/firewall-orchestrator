@@ -7,6 +7,7 @@
     report_type
     report_owner_id
     description
+    read_only
     uiuser {
       uiuser_username
     }

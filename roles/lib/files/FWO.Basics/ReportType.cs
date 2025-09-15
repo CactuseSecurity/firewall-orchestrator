@@ -17,7 +17,8 @@ namespace FWO.Basics
         Connections = 21,
         AppRules = 22,
         VarianceAnalysis = 23,
-        OwnerRecertification = 24
+        OwnerRecertification = 24,
+        RecertificationEvent = 25
     }
 
     public static class ReportTypeGroups
@@ -80,7 +81,8 @@ namespace FWO.Basics
             return reportType switch
             {
                 ReportType.Connections or
-                ReportType.VarianceAnalysis => true,
+                ReportType.VarianceAnalysis or
+                ReportType.RecertificationEvent => true,
                 _ => false
             };
         }
@@ -92,7 +94,8 @@ namespace FWO.Basics
                 ReportType.Connections or
                 ReportType.AppRules or
                 ReportType.VarianceAnalysis or
-                ReportType.OwnerRecertification => true,
+                ReportType.OwnerRecertification or
+                ReportType.RecertificationEvent => true,
                 _ => false
             };
         }
@@ -136,7 +139,8 @@ namespace FWO.Basics
                 ReportType.Connections,
                 ReportType.AppRules,
                 ReportType.VarianceAnalysis,
-                ReportType.OwnerRecertification
+                ReportType.OwnerRecertification,
+                ReportType.RecertificationEvent
             ];
             foreach (var reportType in orderedReportTypeList.Where(r => ListIn.Contains(r)))
             {

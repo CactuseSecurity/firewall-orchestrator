@@ -62,7 +62,7 @@
             @if(ImplementationError)
             {
                 // Display implementation errors
-                <br>
+                <br><br>
                 @(userConfig.GetText("U9029"))
                 <br>
                 @if(VarianceResult.ConnsNotImplemented.Count > 0)
@@ -263,10 +263,12 @@
                 await ModellingHandlerBase.LogChange(ModellingTypes.ChangeType.Recertify, ModellingTypes.ModObjectType.CommunicationProfile, 0,
                     $"Recertified Application: {AppHandler.Application.Name} with {VarianceResult.GetAllOkRules().Count.ToString()} rules",
                     apiConnection, userConfig, AppHandler.Application.Id, DisplayMessageInUi);
+                await GenerateAndSaveReport(recertifiedOwner);
                 RefreshParent(recertifiedOwner);
 
                 string recertText = userConfig.GetText("U4002")
                     .Replace(Placeholder.APPNAME, AppHandler.Application.Name)
+                    .Replace(Placeholder.CONN_NUMBER, ModelledConnections.Count.ToString())
                     .Replace(Placeholder.RULE_NUMBER, VarianceResult.GetAllOkRules().Count.ToString());
                 DisplayMessageInUi(null, userConfig.GetText("recertification_ok"), recertText, false);
             }
@@ -274,6 +276,29 @@
             {
                 DisplayMessageInUi(exception, userConfig.GetText("recertification_error"), "", true);
             }
+        }
+    }
+
+    private async Task GenerateAndSaveReport(FwoOwner owner)
+    {
+        ReportBase? report = await ReportGenerator.GenerateFromTemplate(
+            new ReportTemplate("", new(){ ReportType = (int)ReportType.RecertificationEvent, ModellingFilter = new(){ SelectedOwner = owner}}),
+            apiConnection, userConfig, DefaultInit.DoNothing);
+        if(report != null)
+        {
+            var variables = new
+            {
+                report_name = $"{userConfig.GetText("recertification")}_{owner.Name}_{owner.ExtAppId}_{owner.LastRecertified?.ToString("yyyy-MM-dd-hh-mm-ss")}",
+                report_start_time = owner.LastRecertified,
+                report_end_time = owner.LastRecertified,
+                report_owner_id = userConfig.User.DbId,
+                report_pdf = await report.ToPdf(report.ExportToHtml()),
+                report_json = report.ExportToJson(),
+                report_type = (int?)ReportType.RecertificationEvent,
+                description = report.SetDescription(),
+                read_only = true
+            };
+            await apiConnection.SendQueryAsync<object>(ReportQueries.addGeneratedReport, variables);
         }
     }
 

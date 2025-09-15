@@ -312,6 +312,7 @@ namespace FWO.Report.Filter
 
                 case ReportType.Connections:
                 case ReportType.VarianceAnalysis:
+                case ReportType.RecertificationEvent:
                     query.FullQuery = Queries.compact(ConstructConnectionsQuery(query, paramString));
                     break;
 
@@ -446,6 +447,7 @@ namespace FWO.Report.Filter
                         break;
                     case ReportType.Connections:
                     case ReportType.VarianceAnalysis:
+                    case ReportType.RecertificationEvent:
                         break;
                     default:
                         Log.WriteError("Filter", $"Unexpected report type found: {reportType}");

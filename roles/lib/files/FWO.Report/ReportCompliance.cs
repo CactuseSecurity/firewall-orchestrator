@@ -645,7 +645,9 @@ namespace FWO.Report
                 {
                     foreach (GroupFlat<NetworkObject> groupFlat in networkLocation.Object.ObjectGroupFlats)
                     {
-                        if (groupFlat.Object != null && groupFlat.Object.Type.Name != "group")
+                        // excludes group objects, that are filled, to prevent false positives on objects without ip, but excludes empty groups
+                        
+                        if (groupFlat.Object != null && (groupFlat.Object.Type.Name != "group" || groupFlat.Object.ObjectGroupFlats.Count() == 0))
                         {
                             allObjects.Add(groupFlat.Object);
                         }

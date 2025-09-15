@@ -1,0 +1,62 @@
+﻿@using FWO.Ui.Display
+@using FWO.Config.Api
+@using FWO.Report
+@using FWO.Report.Filter
+@using FWO.Data.Modelling
+
+
+@inject UserConfig userConfig
+
+@if(OwnerData.Count > 0)
+{
+    @if(overdueOwners.Count > 0)
+    {
+        <h5>@(userConfig.GetText("U4003"))</h5>
+        <OwnerRecertTable Owners="overdueOwners" />
+    }
+    else
+    {
+        <b>@(userConfig.GetText("U4004"))</b>
+        <br><br>
+    }
+    @if(upcomingOwners.Count > 0)
+    {
+        <h5>@(userConfig.GetText("U4005").Replace(Placeholder.DAYS, RecertificationDisplayPeriod.ToString()))</h5>
+        <OwnerRecertTable Owners="upcomingOwners" />
+    }
+    else if (RecertificationDisplayPeriod > 0)
+    {
+        <b>@(userConfig.GetText("U4006").Replace(Placeholder.DAYS, RecertificationDisplayPeriod.ToString()))</b>
+        <br><br>
+    }
+    @if(furtherOwners.Count > 0)
+    {
+        <h5>@(userConfig.GetText("U4007"))</h5>
+        <OwnerRecertTable Owners="furtherOwners" />
+    }
+}
+
+@code
+{
+    [Parameter]
+    public List<OwnerConnectionReport> OwnerData { get; set; } = [];
+
+    [Parameter]
+    public int RecertificationDisplayPeriod { get; set; } = 0;
+
+    private List<FwoOwner> overdueOwners = [];
+    private List<FwoOwner> upcomingOwners = [];
+    private List<FwoOwner> furtherOwners = [];
+
+    protected override void OnParametersSet()
+    {
+        overdueOwners = [.. OwnerData.Select(o => o.Owner).Where(o => o.RecertOverdue)];
+        upcomingOwners = [.. OwnerData.Select(o => o.Owner).Where(o => o.RecertUpcoming)];
+        furtherOwners = [.. OwnerData.Select(o => o.Owner).Where(o => !o.RecertOverdue && !o.RecertUpcoming)];
+    }
+
+    private string GetNextRecertDate(FwoOwner owner)
+    {
+        return owner.NextRecertDate != null ? ((DateTime)owner.NextRecertDate).ToString("dd.MM.yyyy") : "";
+    }
+}

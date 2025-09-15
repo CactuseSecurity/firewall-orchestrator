@@ -291,3 +291,6 @@ bugfix release:
 - decommissioning of interfaces
 - iconification of modelling and related modules
 - fix overwrite of objects with interface
+
+# 8.8.10 - 07.09.2025 DEVELOP
+- new report type owner-recertification

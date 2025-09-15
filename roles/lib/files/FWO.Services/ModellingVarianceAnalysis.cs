@@ -106,7 +106,7 @@ namespace FWO.Services
                 }
                 if (modellingFilter.RulesForDeletedConns)
                 {
-                    GetRulesForDeletedConns();
+                    await GetRulesForDeletedConns([.. connections.Where(c => c.IsDocumentationOnly())]);
                 }
             }
             return varianceResult;

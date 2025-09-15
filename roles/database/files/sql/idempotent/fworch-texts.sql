@@ -3100,7 +3100,7 @@ INSERT INTO txt VALUES ('U9027', 'English', 'No connections to recertify!');
 INSERT INTO txt VALUES ('U9028', 'German',  'Folgende Verbindungen sind noch nicht korrekt modelliert und verhindern die Rezertifizierung:');
 INSERT INTO txt VALUES ('U9028', 'English', 'Following connections are not properly modelled and impede recertification: ');
 INSERT INTO txt VALUES ('U9029', 'German',  'Bei folgenden Verbindungen stimmt der Produktionsstand nicht mit dem modellierten &uuml;berein und verhindern die Rezertifizierung:');
-INSERT INTO txt VALUES ('U9029', 'English', 'For following connections are production state does not fit modelled state and impede recertification: ');
+INSERT INTO txt VALUES ('U9029', 'English', 'For following connections production state does not fit modelled state and impede recertification: ');
 INSERT INTO txt VALUES ('U9030', 'German',  'Ein gemeinsamer Dienst muss mindestens eine nicht gemeinsam genutzten Netzwerkbereich enthalten.');
 INSERT INTO txt VALUES ('U9030', 'English', 'A common service must contain at least one non-shared network area.');
 INSERT INTO txt VALUES ('U9031', 'German',  'Gemeinsame Dienste d&uuml;rfen nur Netzwerkbereichsobjekte in einer Richtung enthalten.');
@@ -3677,6 +3677,7 @@ INSERT INTO txt VALUES ('H1102', 'German',  'Folgende Report-Typen stehen zur Au
         Hinzu kommt eine Liste aller globalen Common Services.</li>
     <li>App-Regeln - Darstellung aller Regeln, in welchen Objekte eines vorgegebenen Eigent&uuml;mers verwendet werden (diese werden farblich hervorgehoben). Es kann weiter spezifiziert werden, ob nur Quelle, Ziel oder beides, sowie ob "Any"-Objekte ber&uuml;cksichtigt werden sollen.</li>
     <li>Soll-Ist - Darstellung aller Abweichungen zwischen den modellierten Verbindungen und den auf den Firewalls gefundenen Objekten und Regeln. Optional k&ouml;nnen zus&auml;tzlich die noch nicht modellierten Regeln (in Form des App-Regel-Reports) aufgelistet werden.</li>
+    <li>Eigent&uuml;mer-Rezertifizierung - Darstellung aller Eigent&uuml;mer nach ihrem Rezertifizierungsstatus.</li>
 </ul>
 ');
 INSERT INTO txt VALUES ('H1102', 'English',  'Choose from the following report types:
@@ -3696,6 +3697,7 @@ INSERT INTO txt VALUES ('H1102', 'English',  'Choose from the following report t
         Additionally a list of all global Common Services is given.</li>
     <li>App Rules - display of all rules, where objects of the given owner are used (and which are highlighted). It can be further specified, if only source, destination or both are to be considered as well as "any" objects.</li>
     <li>Variance - display all differences between the modelled connections and the objects and rules found on the Firewalls. Optionally the rules not modelled can be listed additionally (as App Rules Report).</li>
+    <li>Owner Recertification - display all owners regarding their recertification status.</li>
 </ul>
 ');
 INSERT INTO txt VALUES ('H1111', 'German',  '<li>gateway (gw, firewall, fw, device, dev): Zus&auml;tzlich zu der in der <a href="/help/reporting/leftside">Linken Randleiste</a> zu t&auml;tigenden Auswahl spezifischer Devices
@@ -3983,14 +3985,16 @@ INSERT INTO txt VALUES ('H2018', 'English', 'Count: Counts how many reports have
 INSERT INTO txt VALUES ('H3001', 'German',  'Hier sind die archivierten Reports mit Name sowie Informationen zu Erzeugungsdatum, Typ, Vorlage (nur bei termingesteuerten Reports),
     Eigent&uuml;mer sowie eine kurze Beschreibung des Inhalts zu finden.
     Sie k&ouml;nnen zum einen durch Export manuell erzeugter Reports durch Setzen des "Archiv"-Kennzeichens in <a href="/help/reporting/export">Export Report</a> erzeugt werden.
-    Zum anderen finden sich hier auch die durch das <a href="/help/reporting/scheduling">Scheduling</a> erzeugten Reports.
-    Die archivierten Reports k&ouml;nnen von hier heruntergeladen oder gel&ouml;scht werden.
+    Zum anderen finden sich hier auch die durch das <a href="/help/reporting/scheduling">Scheduling</a> und beim Rezertifizieren erzeugten Reports.
+    Die archivierten Reports k&ouml;nnen von hier heruntergeladen oder (bis auf die Rezertifizierungen) gel&ouml;scht werden.
+	In der linken Spalte kann die Anzeige der aufgelisteten Reports auf einzelne Reporttypen eingeschr&auml;nkt werden.
 ');
 INSERT INTO txt VALUES ('H3001', 'English', 'Here the archived reports can be found with name and information about creation date, type, template (only at scheduled reports),
     owner and a short description about the content.
     They may be created on the one hand by exporting manually created reports with setting the flag "Archive" in <a href="/help/reporting/export">Export Report</a>.
-    On the other hand here also the reports created by the <a href="/help/reporting/scheduling">Scheduling</a> can be found.
-    It is possible to download or delete these archived reports.
+    On the other hand here also the reports created by the <a href="/help/reporting/scheduling">Scheduling</a> or in the recertification process can be found.
+    It is possible to download or delete (except recertifications) these archived reports.
+	In the left sidebar the report display can be restricted to the particular report types. 
 ');
 
 INSERT INTO txt VALUES ('H4011', 'German',  'Im ersten Schritt muss ein Report mit den demn&auml;chst zu rezertifizierenden Regeln geladen werden.

@@ -114,7 +114,7 @@ namespace FWO.Report.Data.ViewData
             {
                 string displayString = func();
 
-                if (string.IsNullOrWhiteSpace(displayString) && column == "Source" || column == "Destination")
+                if (string.IsNullOrWhiteSpace(displayString) && (column == "Source" || column == "Destination"))
                 {
                     string objects = "";
 

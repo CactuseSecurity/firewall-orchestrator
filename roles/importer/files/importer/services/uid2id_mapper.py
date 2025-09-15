@@ -1,10 +1,47 @@
 from logging import Logger
 from fwo_log import getFwoLogger
 from model_controllers.import_state_controller import ImportStateController
+from fwo_exceptions import FwoImporterError
 from services.service_provider import ServiceProvider
 from services.enums import Services
 import fwo_const
 from fwo_api import FwoApi
+
+class Uid2IdMap:
+    """
+    A simple data structure to hold UID to ID mappings.
+    Includes current and outdated, local and global mappings.
+    """
+    def __init__(self):
+        self.local: dict[str, int] = {}
+        self.outdated_local: dict[str, int] = {}
+        self.global_map: dict[str, int] = {}
+        self.outdated_global: dict[str, int] = {}
+
+    def get(self, uid: str, before_update: bool = False, local_only: bool = False) -> int | None:
+        if before_update:
+            outdated_id = self.outdated_local.get(uid) or self.outdated_global.get(uid)
+            if outdated_id is not None:
+                return outdated_id
+            return self.local.get(uid) or self.global_map.get(uid) # was not updated, use current
+        if local_only:
+            return self.local.get(uid)
+        return self.local.get(uid) or self.global_map.get(uid)
+
+    def set(self, uid: str, db_id: int, is_global: bool = False):
+        target_map = self.global_map if is_global else self.local
+        outdated_map = self.outdated_global if is_global else self.outdated_local
+        if uid in target_map:
+            outdated_map[uid] = target_map[uid]
+        target_map[uid] = db_id
+    
+    def update(self, new_mappings: dict[str, int], is_global: bool = False):
+        target_map = self.global_map if is_global else self.local
+        outdated_map = self.outdated_global if is_global else self.outdated_local
+        for uid, db_id in new_mappings.items():
+            if uid in target_map:
+                outdated_map[uid] = target_map[uid]
+            target_map[uid] = db_id
 
 class Uid2IdMapper:
     """
@@ -14,15 +51,12 @@ class Uid2IdMapper:
 
     import_state: ImportStateController
     logger: Logger
-    nwobj_uid2id: dict[str, int]
-    svc_uid2id: dict[str, int]
-    user_uid2id: dict[str, int]
-    rule_uid2id: dict[str, int]
-    outdated_nwobj_uid2id: dict[str, int]
-    outdated_svc_uid2id: dict[str, int]
-    outdated_user_uid2id: dict[str, int]
-    outdated_zone_name2id: dict[str, int]
-    outdated_rule_uid2id: dict[str, int]
+
+    nwobj_uid2id: Uid2IdMap
+    svc_uid2id: Uid2IdMap
+    user_uid2id: Uid2IdMap
+    zone_name2id: Uid2IdMap
+    rule_uid2id: Uid2IdMap
 
     @property
     def api_connection(self):
@@ -38,21 +72,12 @@ class Uid2IdMapper:
         global_state = ServiceProvider().get_service(Services.GLOBAL_STATE)
         self.import_state = global_state.import_state
         self.logger = getFwoLogger()
-        self.nwobj_uid2id = {}
-        self.svc_uid2id = {}
-        self.user_uid2id = {}
-        self.rule_uid2id = {}
-        self.zone_name2id = {}
-        self.outdated_nwobj_uid2id = {}
-        self.outdated_svc_uid2id = {}
-        self.outdated_user_uid2id = {}
-        self.outdated_zone_name2id = {}
-        self.outdated_rule_uid2id = {}
-        self.global_nwobj_uid2id = {}
-        self.global_svc_uid2id = {}
-        self.global_user_uid2id = {}
-        self.global_rule_uid2id = {}
-        self.global_zone_name2id = {}
+
+        self.nwobj_uid2id = Uid2IdMap()
+        self.svc_uid2id = Uid2IdMap()
+        self.user_uid2id = Uid2IdMap()
+        self.zone_name2id = Uid2IdMap()
+        self.rule_uid2id = Uid2IdMap()
 
     def log_error(self, message: str):
         """
@@ -64,7 +89,7 @@ class Uid2IdMapper:
         self.logger.error(message)
         self.import_state.appendErrorString(message)
         self.import_state.increaseErrorCounterByOne()
-    
+
     def log_debug(self, message: str):
         """
         Log a debug message.
@@ -85,17 +110,10 @@ class Uid2IdMapper:
         Returns:
             int: The ID of the network object.
         """
-        if before_update:
-            nwobj_id = self.outdated_nwobj_uid2id.get(uid)
-            if nwobj_id is not None:
-                return nwobj_id
-        nwobj_id = self.nwobj_uid2id.get(uid)
-        if not local_only and nwobj_id is None:
-            nwobj_id = self.global_nwobj_uid2id.get(uid)
+        nwobj_id = self.nwobj_uid2id.get(uid, before_update, local_only)
         if nwobj_id is None:
-            self.log_error(f"Network object UID '{uid}' not found in mapping.")
+            raise KeyError(f"Network object UID '{uid}' not found in mapping.")
         return nwobj_id
-    
 
     def get_service_object_id(self, uid: str, before_update: bool = False, local_only: bool = False) -> int:
         """
@@ -108,18 +126,10 @@ class Uid2IdMapper:
         Returns:
             int: The ID of the service object.
         """
-        if before_update:
-            svc_id = self.outdated_svc_uid2id.get(uid)
-            if svc_id is not None:
-                return svc_id
-
-        svc_id = self.svc_uid2id.get(uid)
-        if not local_only and svc_id is None:
-            svc_id = self.global_svc_uid2id.get(uid)
+        svc_id = self.svc_uid2id.get(uid, before_update, local_only)
         if svc_id is None:
-            self.log_error(f"Service object UID '{uid}' not found in mapping.")
+            raise KeyError(f"Service object UID '{uid}' not found in mapping.")
         return svc_id
-    
 
     def get_user_id(self, uid: str, before_update: bool = False, local_only: bool = False) -> int:
         """
@@ -132,41 +142,26 @@ class Uid2IdMapper:
         Returns:
             int: The ID of the user.
         """
-        if before_update:
-            usr_id = self.outdated_user_uid2id.get(uid)
-            if usr_id is not None:
-                return usr_id
-        usr_id = self.user_uid2id.get(uid)
-        if not local_only and usr_id is None:
-            usr_id = self.global_user_uid2id.get(uid)
-        if usr_id is None:
-            self.log_error(f"User UID '{uid}' not found in mapping.")
-        return usr_id
-    
+        user_id = self.user_uid2id.get(uid, before_update, local_only)
+        if user_id is None:
+            raise KeyError(f"User UID '{uid}' not found in mapping.")
+        return user_id
 
-    def get_zone_object_id(self, uid: str, before_update: bool = False, local_only: bool = False) -> int:
+    def get_zone_object_id(self, name: str, before_update: bool = False, local_only: bool = False) -> int:
         """
         Get the ID for a given zone UID.
         
         Args:
-            uid (str): The UID of the zone.
+            name (str): The name of the zone.
             before_update (bool): If True, use the outdated mapping if available.
         
         Returns:
             int: The ID of the zone
         """
-        if before_update:
-            zone_id = self.outdated_zone_name2id.get(uid)
-            if zone_id is not None:
-                return zone_id
-
-        zone_id = self.zone_name2id.get(uid)
-        if not local_only and zone_id is None:
-            zone_id = self.global_zone_name2id.get(uid)
+        zone_id = self.zone_name2id.get(name, before_update, local_only)
         if zone_id is None:
-            self.log_error(f"Zone UID '{uid}' not found in mapping.")
+            raise KeyError(f"Zone Name '{name}' not found in mapping.")
         return zone_id
-
 
     def get_rule_id(self, uid: str, before_update: bool = False) -> int:
         """
@@ -179,317 +174,224 @@ class Uid2IdMapper:
         Returns:
             int: The ID of the rule.
         """
-        if before_update:
-            rule_id = self.outdated_rule_uid2id.get(uid)
-            if rule_id is not None:
-                return rule_id
-        rule_id = self.rule_uid2id.get(uid)
+        rule_id = self.rule_uid2id.get(uid, before_update)
         if rule_id is None:
-            self.log_error(f"Rule UID '{uid}' not found in mapping.")
+            raise KeyError(f"Rule UID '{uid}' not found in mapping.")
         return rule_id
-    
 
-    def add_network_object_mappings(self, mappings: list[dict], is_global=False) -> bool:
+    def add_network_object_mappings(self, mappings: list[dict], is_global=False):
         """
         Add network object mappings to the internal mapping dictionary.
 
         Args:
             mappings (list[dict]): A list of dictionaries containing UID and ID mappings.
                     Each dictionary should have 'obj_uid' and 'obj_id' keys.
-
-        Returns:
-            bool: True if the mappings were added successfully, False otherwise.
         """
-        main_map = self.global_nwobj_uid2id if is_global else self.nwobj_uid2id
-        outdated_map = self.outdated_nwobj_uid2id
-
         for mapping in mappings:
             if 'obj_uid' not in mapping or 'obj_id' not in mapping:
-                self.log_error("Invalid mapping format. Each mapping must contain 'obj_uid' and 'obj_id'.")
-                return False
-            if mapping['obj_uid'] in main_map:
-                outdated_map[mapping['obj_uid']] = main_map[mapping['obj_uid']]
-            main_map[mapping['obj_uid']] = mapping['obj_id']
+                raise ValueError("Invalid mapping format. Each mapping must contain 'obj_uid' and 'obj_id'.")
+            self.nwobj_uid2id.set(mapping['obj_uid'], mapping['obj_id'], is_global)
 
         msg = f"Added {len(mappings)} {'global ' if is_global else ''}network object mappings."
         self.log_debug(msg)
-        return True
 
-
-    def add_service_object_mappings(self, mappings: list[dict], is_global=False) -> bool:
+    def add_service_object_mappings(self, mappings: list[dict], is_global=False):
         """
         Add service object mappings to the internal mapping dictionary.
 
         Args:
             mappings (list[dict]): A list of dictionaries containing UID and ID mappings.
                     Each dictionary should have 'svc_uid' and 'svc_id' keys.
-
-        Returns:
-            bool: True if the mappings were added successfully, False otherwise.
         """
-        main_map = self.global_svc_uid2id if is_global else self.svc_uid2id
-        outdated_map = self.outdated_svc_uid2id
-
         for mapping in mappings:
             if 'svc_uid' not in mapping or 'svc_id' not in mapping:
-                self.log_error("Invalid mapping format. Each mapping must contain 'svc_uid' and 'svc_id'.")
-                return False
-            if mapping['svc_uid'] in main_map:
-                outdated_map[mapping['svc_uid']] = main_map[mapping['svc_uid']]
-            main_map[mapping['svc_uid']] = mapping['svc_id']
+                raise ValueError("Invalid mapping format. Each mapping must contain 'svc_uid' and 'svc_id'.")
+            self.svc_uid2id.set(mapping['svc_uid'], mapping['svc_id'], is_global)
 
-        self.log_debug(f"Added {len(mappings)} service object mappings.")
-        return True
+        self.log_debug(f"Added {len(mappings)} {'global ' if is_global else ''}service object mappings.")
 
-
-    def add_zone_mappings(self, mappings: list[dict], is_global=False) -> bool:
-        """
-        Add zone object mappings to the internal mapping dictionary.
-
-        Args:
-            mappings (list[dict]): A list of dictionaries containing Name and ID mappings.
-                    Each dictionary should have 'zone_name' and 'zone_id' keys.
-
-        Returns:
-            bool: True if the mappings were added successfully, False otherwise.
-        """
-        main_map = self.global_zone_name2id if is_global else self.zone_name2id
-        outdated_map = self.outdated_zone_name2id
-
-        for mapping in mappings:
-            if 'zone_name' not in mapping or 'zone_id' not in mapping:
-                self.log_error("Invalid mapping format. Each mapping must contain 'zone_name' and 'zone_id'.")
-                return False
-            if mapping['zone_name'] in main_map:
-                outdated_map[mapping['zone_name']] = main_map[mapping['zone_name']]
-            main_map[mapping['zone_name']] = mapping['zone_id']
-
-        self.log_debug(f"Added {len(mappings)} zone mappings.")
-        return True
-
-
-    def add_user_mappings(self, mappings: list[dict], is_global=False) -> bool:
+    def add_user_mappings(self, mappings: list[dict], is_global=False):
         """
         Add user object mappings to the internal mapping dictionary.
 
         Args:
             mappings (list[dict]): A list of dictionaries containing UID and ID mappings.
                     Each dictionary should have 'user_uid' and 'user_id' keys.
-
-        Returns:
-            bool: True if the mappings were added successfully, False otherwise.
         """
-        main_map = self.global_user_uid2id if is_global else self.user_uid2id
-        outdated_map = self.outdated_user_uid2id
-
         for mapping in mappings:
             if 'user_uid' not in mapping or 'user_id' not in mapping:
-                self.log_error("Invalid mapping format. Each mapping must contain 'user_uid' and 'user_id'.")
-                return False
-            if mapping['user_uid'] in main_map:
-                outdated_map[mapping['user_uid']] = main_map[mapping['user_uid']]
-            main_map[mapping['user_uid']] = mapping['user_id']
+                raise ValueError("Invalid mapping format. Each mapping must contain 'user_uid' and 'user_id'.")
+            self.user_uid2id.set(mapping['user_uid'], mapping['user_id'], is_global)
 
-        self.log_debug(f"Added {len(mappings)} service object mappings.")
-        return True
-    
+        self.log_debug(f"Added {len(mappings)} {'global ' if is_global else ''}user mappings.")
 
-    def add_rule_mappings(self, mappings: list[dict]) -> bool:
+    def add_zone_mappings(self, mappings: list[dict], is_global=False):
+        """
+        Add zone object mappings to the internal mapping dictionary.
+
+        Args:
+            mappings (list[dict]): A list of dictionaries containing Name and ID mappings.
+                    Each dictionary should have 'zone_name' and 'zone_id' keys.
+        """
+        for mapping in mappings:
+            if 'zone_name' not in mapping or 'zone_id' not in mapping:
+                raise ValueError("Invalid mapping format. Each mapping must contain 'zone_name' and 'zone_id'.")
+            self.zone_name2id.set(mapping['zone_name'], mapping['zone_id'], is_global)
+
+        self.log_debug(f"Added {len(mappings)} {'global ' if is_global else ''}zone mappings.")
+
+    def add_rule_mappings(self, mappings: list[dict]):
         """
         Add rule mappings to the internal mapping dictionary.
 
         Args:
             mappings (list[dict]): A list of dictionaries containing UID and ID mappings.
                     Each dictionary should have 'rule_uid' and 'rule_id' keys.
-
-        Returns:
-            bool: True if the mappings were added successfully, False otherwise.
         """
         for mapping in mappings:
             if 'rule_uid' not in mapping or 'rule_id' not in mapping:
-                self.log_error("Invalid mapping format. Each mapping must contain 'rule_uid' and 'rule_id'.")
-                return False
-            if mapping['rule_uid'] in self.rule_uid2id:
-                self.outdated_rule_uid2id[mapping['rule_uid']] = self.rule_uid2id[mapping['rule_uid']]
-            self.rule_uid2id[mapping['rule_uid']] = mapping['rule_id']
+                raise ValueError("Invalid mapping format. Each mapping must contain 'rule_uid' and 'rule_id'.")
+            self.rule_uid2id.set(mapping['rule_uid'], mapping['rule_id'])
+
         self.log_debug(f"Added {len(mappings)} rule mappings.")
-        return True
 
-
-    def update_network_object_mapping(self, uids: list[str]|None = None) -> bool:
+    def update_network_object_mapping(self, uids: list[str]|None = None, is_global=False):
         """
         Update the mapping for network objects based on the provided UIDs.
         
         Args:
             uids (list[str]): A list of UIDs to update the mapping for. If None, all UIDs for the Management will be fetched.
-        
-        Returns:
-            bool: True if the mapping was updated successfully, False otherwise.
         """
         query = FwoApi.get_graphql_code([fwo_const.graphql_query_path + "networkObject/getMapOfUid2Id.graphql"])
 
         if uids is not None:
             if len(uids) == 0:
                 self.log_debug("Network object mapping updated for 0 objects")
-                return True
+                return
             variables = {'uids': uids}
         else:
             # If no UIDs are provided, fetch all UIDs for the Management
             variables = {'mgmId': self.import_state.MgmDetails.CurrentMgmId}
         try:
             response = self.import_state.api_connection.call(query, variables)
-            if response is None:
-                self.log_error("Error updating network object mapping: No response from API")
-                return False
             if 'errors' in response:
-                self.log_error(f"Error updating network object mapping: {response['errors']}")
-                return False
+                raise FwoImporterError(f"Error updating network object mapping: {response['errors']}")
             self.nwobj_uid2id.update({
                 obj['obj_uid']: obj['obj_id']
                 for obj in response['data']['object']
-            })
+            }, is_global)
             self.log_debug(f"Network object mapping updated for {len(response['data']['object'])} objects")
-            return True
         except Exception as e:
-            self.log_error(f"Error updating network object mapping: {e}")
-            return False #TODO: raise
+            raise FwoImporterError(f"Error updating network object mapping: {e}")
     
-    def update_service_object_mapping(self, uids: list[str]|None = None) -> bool:
+    def update_service_object_mapping(self, uids: list[str]|None = None, is_global=False):
         """
         Update the mapping for service objects based on the provided UIDs.
         
         Args:
             uids (list[str]): A list of UIDs to update the mapping for. If None, all UIDs for the Management will be fetched.
-        
-        Returns:
-            bool: True if the mapping was updated successfully, False otherwise.
         """
         query = FwoApi.get_graphql_code([fwo_const.graphql_query_path + "networkService/getMapOfUid2Id.graphql"])
         if uids is not None:
             if len(uids) == 0:
                 self.log_debug("Service object mapping updated for 0 objects")
-                return True
+                return
             variables = {'uids': uids}
         else:
             # If no UIDs are provided, fetch all UIDs for the Management
             variables = {'mgmId': self.import_state.MgmDetails.CurrentMgmId}
         try:
             response = self.import_state.api_connection.call(query, variables)
-            if response is None:
-                self.log_error("Error updating service object mapping: No response from API")
-                return False
             if 'errors' in response:
-                self.log_error(f"Error updating service object mapping: {response['errors']}")
-                return False
-            for obj in response['data']['service']:
-                self.svc_uid2id[obj['svc_uid']] = obj['svc_id']
+                raise FwoImporterError(f"Error updating service object mapping: {response['errors']}")
+            self.svc_uid2id.update({
+                obj['svc_uid']: obj['svc_id']
+                for obj in response['data']['service']
+            }, is_global)
             self.log_debug(f"Service object mapping updated for {len(response['data']['service'])} objects")
-            return True
         except Exception as e:
-            self.log_error(f"Error updating service object mapping: {e}")
-            return False #TODO: raise
+            raise FwoImporterError(f"Error updating service object mapping: {e}")
         
-    def update_user_mapping(self, uids: list[str]|None = None) -> bool:
+    def update_user_mapping(self, uids: list[str]|None = None, is_global=False):
         """
         Update the mapping for users based on the provided UIDs.
         
         Args:
             uids (list[str]): A list of UIDs to update the mapping for. If None, all UIDs for the Management will be fetched.
-        
-        Returns:
-            bool: True if the mapping was updated successfully, False otherwise.
         """
         query = FwoApi.get_graphql_code([fwo_const.graphql_query_path + "user/getMapOfUid2Id.graphql"])
         if uids is not None:
             if len(uids) == 0:
                 self.log_debug("User mapping updated for 0 objects")
-                return True
+                return
             variables = {'uids': uids}
         else:
             # If no UIDs are provided, fetch all UIDs for the Management
             variables = {'mgmId': self.import_state.MgmDetails.CurrentMgmId}
         try:
             response = self.import_state.api_connection.call(query, variables)
-            if response is None:
-                self.log_error("Error updating user mapping: No response from API")
-                return False
             if 'errors' in response:
-                self.log_error(f"Error updating user mapping: {response['errors']}")
-                return False
-            for obj in response['data']['usr']:
-                self.user_uid2id[obj['user_uid']] = obj['user_id']
+                raise FwoImporterError(f"Error updating user mapping: {response['errors']}")
+            self.user_uid2id.update({
+                obj['user_uid']: obj['user_id']
+                for obj in response['data']['usr']
+            }, is_global)
             self.log_debug(f"User mapping updated for {len(response['data']['usr'])} objects")
-            return True
         except Exception as e:
-            self.log_error(f"Error updating user mapping: {e}")
-            return False #TODO: raise
-    
-    def update_zone_mapping(self, names: list[str]|None = None) -> bool:
+            raise FwoImporterError(f"Error updating user mapping: {e}")
+
+    def update_zone_mapping(self, names: list[str]|None = None, is_global=False):
         """
         Update the mapping for zones based on the provided names.
-        
+
         Args:
             names (list[str]): A list of zone names to update the mapping for. If None, all zones for the Management will be fetched.
-        
-        Returns:
-            bool: True if the mapping was updated successfully, False otherwise.
         """
         query = FwoApi.get_graphql_code([fwo_const.graphql_query_path + "zone/getMapOfName2Id.graphql"])
         if names is not None:
             if len(names) == 0:
                 self.log_debug("Zone mapping updated for 0 objects")
-                return True
+                return
             variables = {'names': names}
         else:
             # If no names are provided, fetch all zones for the Management
             variables = {'mgmId': self.import_state.MgmDetails.CurrentMgmId}
         try:
             response = self.import_state.api_connection.call(query, variables)
-            if response is None:
-                self.log_error("Error updating zone mapping: No response from API")
-                return False
             if 'errors' in response:
-                self.log_error(f"Error updating zone mapping: {response['errors']}")
-                return False
-            for obj in response['data']['zone']:
-                self.zone_name2id[obj['zone_name']] = obj['zone_id']
+                raise FwoImporterError(f"Error updating zone mapping: {response['errors']}")
+            self.zone_name2id.update({
+                obj['zone_name']: obj['zone_id']
+                for obj in response['data']['zone']
+            }, is_global)
             self.log_debug(f"Zone mapping updated for {len(response['data']['zone'])} objects")
-            return True
         except Exception as e:
-            self.log_error(f"Error updating zone mapping: {e}")
-            return False #TODO: raise
+            raise FwoImporterError(f"Error updating zone mapping: {e}")
 
-    def update_rule_mapping(self, uids: list[str]|None = None) -> bool:
+    def update_rule_mapping(self, uids: list[str]|None = None):
         """
         Update the mapping for rules based on the provided UIDs.
 
         Args:
             uids (list[str]): A list of UIDs to update the mapping for. If None, all UIDs for the Management will be fetched.
-
-        Returns:
-            bool: True if the mapping was updated successfully, False otherwise.
         """
         query = FwoApi.get_graphql_code([fwo_const.graphql_query_path + "rule/getMapOfUid2Id.graphql"])
         if uids is not None:
             if len(uids) == 0:
                 self.log_debug("Rule mapping updated for 0 objects")
-                return True
+                return
             variables = {'uids': uids}
         else:
             # If no UIDs are provided, fetch all UIDs for the Management
             variables = {'mgmId': self.import_state.MgmDetails.CurrentMgmId}
         try:
             response = self.import_state.api_connection.call(query, variables)
-            if response is None:
-                self.log_error("Error updating rule mapping: No response from API")
-                return False
             if 'errors' in response:
-                self.log_error(f"Error updating rule mapping: {response['errors']}")
-                return False
-            for obj in response['data']['rule']:
-                self.rule_uid2id[obj['rule_uid']] = obj['rule_id']
+                raise FwoImporterError(f"Error updating rule mapping: {response['errors']}")
+            self.rule_uid2id.update({
+                obj['rule_uid']: obj['rule_id']
+                for obj in response['data']['rule']
+            })
             self.log_debug(f"Rule mapping updated for {len(response['data']['rule'])} objects")
-            return True
         except Exception as e:
-            self.log_error(f"Error updating rule mapping: {e}")
-            return False #TODO: raise
+            raise FwoImporterError(f"Error updating rule mapping: {e}")

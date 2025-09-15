@@ -38,7 +38,6 @@ class GroupFlatsMapper:
         self.import_state.appendErrorString(message)
         self.import_state.increaseErrorCounterByOne()
     
-
     def init_config(self, normalized_config: FwConfigNormalized, global_normalized_config: FwConfigNormalized|None = None):
         self.normalized_config = normalized_config
         self.global_normalized_config = global_normalized_config

@@ -198,7 +198,7 @@ namespace FWO.Report
 
             if (RuleViewData.Count > 0)
             {
-                // Create export string
+                // Create export string.
 
                 try
                 {

@@ -65,7 +65,7 @@ namespace FWO.Report
             return GenerateHtmlFrame(userConfig.GetText(ReportType.ToString()), Query.RawFilter, DateTime.Now, report);
         }
 
-        public void AppendConnDataForOwner(ref StringBuilder report, OwnerReport ownerReport, int chapterNumber)
+        public void AppendConnDataForOwner(ref StringBuilder report, OwnerConnectionReport ownerReport, int chapterNumber)
         {
             ownerReport.PrepareObjectData(userConfig.ResolveNetworkAreas);
             if (ownerReport.RegularConnections.Count > 0)

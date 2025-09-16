@@ -98,10 +98,10 @@ def get_domain_uid(obj, global_domain):
 
 
 def account_for_updateable_objects(obj, obj_type, global_domain):
-    """Updateable objects get type group global domain
+    """Updateable objects get type network and global domain
     """
     if 'uid-in-updatable-objects-repository' in obj:
-        obj_type = 'group'
+        obj_type = 'network'
         obj['name'] = obj['name-in-updatable-objects-repository']
         if 'uid' not in obj:
             obj.update({'uid': 'uid-in-updatable-objects-repository'})

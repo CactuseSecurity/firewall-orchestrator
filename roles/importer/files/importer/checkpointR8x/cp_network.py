@@ -105,6 +105,10 @@ def account_for_updateable_objects(obj, global_domain):
                     'type': 'dynamic_net_obj'})
         if 'domain' not in obj:
             obj.update(global_domain)
+    elif 'type' in obj and obj['type'] == 'updatable-object':
+        obj.update({'type': 'dynamic_net_obj'})
+        if 'domain' not in obj:
+            obj.update(global_domain)
         
 def is_obj_already_collected(nw_objects, obj):
     logger = getFwoLogger()

@@ -146,7 +146,7 @@ def parse_rulebase(rulebase_to_parse, is_section, is_placeholder, normalized_rul
     elif is_placeholder:
         rule_num = parse_single_rule(rulebase_to_parse, normalized_rulebase, normalized_rulebase.uid, None, rule_num, None, None, gateway, policy_structure)
     else:
-        rule_num = parse_rulebase_chunk(rulebase_to_parse, normalized_rulebase, rule_num)                    
+        rule_num = parse_rulebase_chunk(rulebase_to_parse, normalized_rulebase, rule_num, gateway, policy_structure)                    
 
 def parse_rulebase_chunk(rulebase_to_parse, normalized_rulebase, rule_num, gateway, policy_structure):
     logger = getFwoLogger()

@@ -24,8 +24,6 @@ namespace FWO.Report
         public List<Rule> Rules { get; set; } = [];
         public FrozenDictionary<Rule, List<NetworkObject>>? RuleNetworkObjectMap { get; set; }
         public List<RuleViewData> RuleViewData = [];
-        public bool IsDiffReport { get; set; } = false;
-        public Dictionary<ComplianceViolation, char> ViolationDiffs = new();
         public List<ComplianceViolation> Violations { get; set; } = [];
         public int DiffReferenceInDays { get; set; } = 0;
         public bool ShowAllRules { get; set; }
@@ -126,7 +124,6 @@ namespace FWO.Report
 
         public ReportCompliance(DynGraphqlQuery query, UserConfig userConfig, ReportType reportType, ReportParams reportParams) : this(query, userConfig, reportType)
         {
-            IsDiffReport = reportParams.ComplianceFilter.IsDiffReport;
             DiffReferenceInDays = reportParams.ComplianceFilter.DiffReferenceInDays;
             ShowAllRules = reportParams.ComplianceFilter.ShowCompliantRules;
         }
@@ -491,7 +488,7 @@ namespace FWO.Report
                     await AddViolationDataToViolationDetails(rule, violation, ref printedViolations, violationCount, ref abbreviated);
                 }
 
-                if (IsDiffReport)
+                if (this is ReportComplianceDiff)
                 {
                     await PostProcessDiffReportsRule(rule, apiConnection);
                 }
@@ -524,7 +521,7 @@ namespace FWO.Report
 
         private Task AddViolationDataToViolationDetails(Rule rule, ComplianceViolation violation, ref int printedViolations, int violationCount, ref bool abbreviated)
         {
-            if (IsDiffReport)
+            if (this is ReportComplianceDiff)
             {
                 if (ViolationIsRelevantForDiff(violation))
                 {
@@ -532,7 +529,7 @@ namespace FWO.Report
                 }
             }
 
-            if ((_maxPrintedViolations == 0 || printedViolations < _maxPrintedViolations) && (!IsDiffReport || ViolationIsRelevantForDiff(violation)))
+            if ((_maxPrintedViolations == 0 || printedViolations < _maxPrintedViolations) && (!(this is ReportComplianceDiff) || ViolationIsRelevantForDiff(violation)))
             {
                 if (rule.ViolationDetails != "")
                 {
@@ -583,19 +580,16 @@ namespace FWO.Report
             return Task.CompletedTask;
         }
 
-        private bool ShowRule(Rule rule)
+        protected virtual bool ShowRule(Rule rule)
         {
+            bool showRule = true;
+
             if (rule.Compliance == ComplianceViolationType.None || rule.Action != "accept")
             {
-                return false;
+                showRule = false;
             }
 
-            if (IsDiffReport && (rule.ViolationDetails.StartsWith("No changes") || rule.Disabled))
-            {
-                return false;
-            }
-
-            return true;
+            return showRule;
         }
 
         private string GetLineForRule(RuleViewData rule, List<PropertyInfo?> properties)

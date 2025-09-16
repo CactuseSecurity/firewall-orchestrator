@@ -44,7 +44,7 @@
                 <input type="number" min="1" max="5000" step="1" class="form-control form-control-sm" @bind="actReportFilters.UnusedDays" />
             </div>
         }
-        else if(actReportFilters.ReportType != ReportType.AppRules && actReportFilters.ReportType != ReportType.Compliance)
+        else if(actReportFilters.ReportType != ReportType.AppRules && !actReportFilters.ReportType.IsComplianceReport())
         {
             <div class="p-3">
                 <h5 class="text-left">@(userConfig.GetText("report_time"))</h5>
@@ -55,7 +55,7 @@
             </div>
         }
 
-        @if (actReportFilters.ReportType == ReportType.Compliance)
+        @if (actReportFilters.ReportType.IsComplianceReport())
         {
             <div class="p-3">
                 <input class="form-check-input" type="checkbox" id="complianceShowAnyRule" checked="@_showAnyRulesInComplianceReport" @onchange="UpdateComplianceShowAnyRules"/>
@@ -128,7 +128,11 @@
                                 break;
 
                             case ReportType.Compliance:
-                                    <ComplianceReport ReportData="currentReport.ReportData" RulesPerPage="rulesPerPage" @bind-SelectedRules="_selectedItemsComplianceReportTable" @ref="_complianceReport" ShowAnyRule="((ReportCompliance)currentReport).ShowAllRules"/>
+                                <ComplianceReport ReportData="currentReport.ReportData" RulesPerPage="rulesPerPage" @bind-SelectedRules="_selectedItemsComplianceReportTable" @ref="_complianceReport" ShowAnyRule="((ReportCompliance)currentReport).ShowAllRules"/>
+                                break;
+
+                            case ReportType.ComplianceDiff:
+                                <ComplianceReport ReportData="currentReport.ReportData" RulesPerPage="rulesPerPage" @bind-SelectedRules="_selectedItemsComplianceReportTable" @ref="_complianceReport" ShowAnyRule="((ReportComplianceDiff)currentReport).ShowAllRules"/>
                                 break;
 
                             case ReportType.Changes:
@@ -317,7 +321,7 @@
 
             // Hide right sidebar for compliance report.
 
-            if(newReportType == ReportType.Compliance)
+            if(newReportType.IsComplianceReport())
             {
                 _showRightSidebar = false;
                 sidebarRightWidth = 0;                

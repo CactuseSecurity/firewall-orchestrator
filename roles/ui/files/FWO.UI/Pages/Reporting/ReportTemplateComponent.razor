@@ -91,7 +91,7 @@
                     <input id="saveTemplateUnused" type="number" min="0" class="col-sm-2" @bind="reportTemplateInEdit.ReportParams.UnusedFilter.UnusedForDays">
                 </div>
             }
-            else if(reportTypeInEdit == ReportType.Compliance)
+            else if(reportTypeInEdit.IsComplianceReport())
             {
                 if (reportTemplateInEdit.ReportParams.ComplianceFilter.IsDiffReport)
                 {
@@ -222,7 +222,7 @@
             reportTemplates = reportTemplates.Where(rt => (showRuleRelatedReports && ((ReportType)rt.ReportParams.ReportType).IsDeviceRelatedReport() || 
                                                            showModellingReports && ((ReportType)rt.ReportParams.ReportType).IsModellingReport() &&
                                                            modOwnerList.FirstOrDefault(o => o.Id == rt.ReportParams.ModellingFilter.SelectedOwner.Id) != null ||
-                                                           _showComplianceReport && ((ReportType)rt.ReportParams.ReportType) == ReportType.Compliance)).ToList();
+                                                           _showComplianceReport && ((ReportType)rt.ReportParams.ReportType).IsComplianceReport())).ToList();
             await InvokeAsync(StateHasChanged);
         }
         catch (Exception exception)

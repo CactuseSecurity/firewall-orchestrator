@@ -199,7 +199,7 @@ namespace FWO.Middleware.Server
         {
             try
             {
-                if (reportParams.ReportType != (int)ReportType.Compliance && !reportParams.DeviceFilter.IsAnyDeviceFilterSet())
+                if (reportParams.ReportType != (int)ReportType.Compliance && reportParams.ReportType != (int)ReportType.ComplianceDiff && !reportParams.DeviceFilter.IsAnyDeviceFilterSet())
                 {
                     // for scheduling no device selection means "all"
                     reportParams.DeviceFilter.Managements = await apiConnectionUser.SendQueryAsync<List<ManagementSelect>>(DeviceQueries.getDevicesByManagement);

@@ -135,7 +135,7 @@ insert into config (config_key, config_value, config_user) VALUES ('manageOwnerL
 insert into config (config_key, config_value, config_user) VALUES ('modModelledMarker', 'FWOC', 0);
 insert into config (config_key, config_value, config_user) VALUES ('modModelledMarkerLocation', 'rulename', 0);
 insert into config (config_key, config_value, config_user) VALUES ('ruleRecognitionOption', '{"nwRegardIp":true,"nwRegardName":false,"nwRegardGroupName":false,"nwResolveGroup":false,"svcRegardPortAndProt":true,"svcRegardName":false,"svcRegardGroupName":false,"svcResolveGroup":true,"svcSplitPortRanges":false}', 0);
-insert into config (config_key, config_value, config_user) VALUES ('availableReportTypes', '[1,2,3,4,5,6,7,8,9,10,21,22,31]', 0);
+insert into config (config_key, config_value, config_user) VALUES ('availableReportTypes', '[1,2,3,4,5,6,7,8,9,10,21,22,31,32]', 0);
 insert into config (config_key, config_value, config_user) VALUES ('varianceAnalysisSleepTime', '0', 0);
 insert into config (config_key, config_value, config_user) VALUES ('varianceAnalysisStartAt', '00:00:00', 0);
 insert into config (config_key, config_value, config_user) VALUES ('varianceAnalysisSync', 'false', 0);
@@ -291,8 +291,8 @@ INSERT INTO "report_template" ("report_filter","report_template_name","report_te
                 "show_compliant_rules": true}}');
 INSERT INTO "report_template" ("report_filter","report_template_name","report_template_comment","report_template_owner", "report_parameters") 
     VALUES ('action=accept',
-        'Compliance: Diffs','T0108', 0, 
-        '{"report_type":31,"device_filter":{"management":[]},
+        'Compliance: Diffs','T0109', 0, 
+        '{"report_type":32,"device_filter":{"management":[]},
             "time_filter": {
                 "is_shortcut": true,
                 "shortcut": "now",
@@ -306,7 +306,6 @@ INSERT INTO "report_template" ("report_filter","report_template_name","report_te
                 "open_start": false,
                 "open_end": false},
             "compliance_filter": {
-                "is_diff_report": true,
                 "diff_reference_in_days": 7,
                 "show_compliant_rules": false}}');
 

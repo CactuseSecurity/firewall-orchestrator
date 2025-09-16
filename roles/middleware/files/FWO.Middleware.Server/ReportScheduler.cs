@@ -248,7 +248,7 @@ namespace FWO.Middleware.Server
 
         private async Task TrySaveReport(ReportFile reportFile, ReportSchedulerConfig reportSchedulerConfig, string desc, ApiConnection apiConnectionUser)
         {
-            if (reportSchedulerConfig.ToEmail)
+            if (reportSchedulerConfig.ToArchive)
             {
                 try
                 {

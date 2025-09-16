@@ -1245,7 +1245,7 @@ ON CONFLICT (report_template_name) DO NOTHING;
 INSERT INTO "report_template" ("report_filter","report_template_name","report_template_comment","report_template_owner", "report_parameters") 
     VALUES ('action=accept',
         'Compliance: Diffs','T0109', 0, 
-        '{"report_type":31,"device_filter":{"management":[]},
+        '{"report_type":32,"device_filter":{"management":[]},
             "time_filter": {
                 "is_shortcut": true,
                 "shortcut": "now",
@@ -1259,9 +1259,8 @@ INSERT INTO "report_template" ("report_filter","report_template_name","report_te
                 "open_start": false,
                 "open_end": false},
             "compliance_filter": {
-                "is_diff_report": true,
                 "diff_reference_in_days": 7,
-                "show_compliant_rules": false}}')
+                "show_compliant_rules": false}}');
 ON CONFLICT (report_template_name) DO NOTHING;
 
 -- add parameter to limit number of printed violations in compliance report to config

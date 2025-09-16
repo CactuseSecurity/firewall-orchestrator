@@ -23,7 +23,7 @@ namespace FWO.Report
         public List<Rule> Rules { get; set; } = [];
         public List<RuleViewData> RuleViewData = [];
         public List<ComplianceViolation> Violations { get; set; } = [];
-        public bool ShowAllRules { get; set; }
+        public bool ShowNonImpactRules { get; set; }
         public List<Management>? Managements  { get; set; }
         protected virtual string InternalQuery => RuleQueries.getRulesWithCurrentViolationsByChunk;
         protected DebugConfig DebugConfig;
@@ -104,7 +104,7 @@ namespace FWO.Report
                         .Select(s => int.Parse(s.Trim()))
                         .ToList();
                 }
-                catch (System.Exception e)
+                catch (Exception e)
                 {
                     Log.TryWriteLog(LogType.Error, "Compliance Report", $"Error while parsing relevant mangement IDs: {e.Message}", DebugConfig.ExtendedLogReportGeneration);
                 }
@@ -113,7 +113,7 @@ namespace FWO.Report
 
         public ReportCompliance(DynGraphqlQuery query, UserConfig userConfig, ReportType reportType, ReportParams reportParams) : this(query, userConfig, reportType)
         {
-            ShowAllRules = reportParams.ComplianceFilter.ShowNonImpactRules;
+            ShowNonImpactRules = reportParams.ComplianceFilter.ShowNonImpactRules;
         }
 
         #endregion
@@ -209,7 +209,7 @@ namespace FWO.Report
                     {
                         // Skip marked (i.e. compliant rules) rules if configured.
 
-                        if (!ShowAllRules && !ruleViewData.Show)
+                        if (!ShowNonImpactRules && !ruleViewData.Show)
                         {
                             continue;
                         }
@@ -237,10 +237,14 @@ namespace FWO.Report
 
         #region Methods - Public
 
-        public Task<(bool isAssessable, string violationDetails)> CheckAssessability(Rule rule, List<NetworkObject> networkObjects)
+        public Task<(bool isAssessable, string violationDetails)> CheckAssessability(Rule rule, List<NetworkLocation> networkLocations)
         {
             bool isAssessable = true;
             StringBuilder violationDetailsBuilder = new();
+            
+            List<NetworkObject> networkObjects = networkLocations
+                .Select(nl => nl.Object) // ATTENTION!!! excludes users
+                .ToList();
 
             if (rule.Action == "accept")
             {
@@ -267,7 +271,7 @@ namespace FWO.Report
                     networkObjects,
                     n => n.IP == "0.0.0.0/32" && n.IpEnd == "0.0.0.0/32",
                     "Network objects in source or destination with 0.0.0.0/32: ",
-                    violationDetailsBuilder);                
+                    violationDetailsBuilder);
             }
 
             return Task.FromResult((isAssessable, violationDetailsBuilder.ToString()));
@@ -353,7 +357,7 @@ namespace FWO.Report
                         foreach (var rule in chunk)
                         {
                             await SetComplianceDataForRule(rule, apiConnection);
-                            List<NetworkObject> networkObjects = GetAllNetworkObjectsFromRule(rule);
+                            List<NetworkLocation> networkObjects = RuleDisplayBase.GetResolvedNetworkLocations(rule.Froms);
                             (bool isAssessable, string violationDetails) checkAssessabilityResult = await CheckAssessability(rule, networkObjects);
                             ComplianceViolationType complianceViolationType = checkAssessabilityResult.isAssessable ? rule.Compliance : ComplianceViolationType.NotAssessable;
                             RuleViewData ruleViewData = new RuleViewData(rule, _natRuleDisplayHtml, OutputLocation.report, ShowRule(rule), _devices ?? [], Managements ?? [], complianceViolationType);

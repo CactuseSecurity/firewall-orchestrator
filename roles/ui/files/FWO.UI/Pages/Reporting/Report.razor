@@ -129,7 +129,7 @@
 
                             case ReportType.Compliance:
                             case ReportType.ComplianceDiff:
-                                <ComplianceReport ReportData="currentReport.ReportData" RulesPerPage="rulesPerPage" @bind-SelectedRules="_selectedItemsComplianceReportTable" @ref="_complianceReport" ShowAnyRule="((ReportCompliance)currentReport).ShowAllRules"/>
+                                <ComplianceReport ReportData="currentReport.ReportData" RulesPerPage="rulesPerPage" @bind-SelectedRules="_selectedItemsComplianceReportTable" @ref="_complianceReport" ShowAnyRule="((ReportCompliance)currentReport).ShowNonImpactRules"/>
                                 break;
 
                             case ReportType.Changes:

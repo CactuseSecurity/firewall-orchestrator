@@ -972,6 +972,7 @@ Create table "report"
 	"report_type" Integer,
 	"description" varchar,
 	"read_only" Boolean default FALSE,
+	"owner_id" Integer,
  	primary key ("report_id")
 );
 
@@ -1074,7 +1075,8 @@ create table owner
 	last_recertified Timestamp,
 	last_recertifier int,
 	last_recertifier_dn Varchar,
-	next_recert_date Timestamp
+	next_recert_date Timestamp,
+	recert_active boolean default false
 );
 
 create table owner_network

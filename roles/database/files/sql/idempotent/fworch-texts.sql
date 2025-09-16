@@ -786,6 +786,8 @@ INSERT INTO txt VALUES ('fully_modelled',		'German', 	'Vollst&auml;ndig Modellie
 INSERT INTO txt VALUES ('fully_modelled',		'English', 	'Fully Modelled');
 INSERT INTO txt VALUES ('show_all_owners',		'German', 	'Alle Eigent&uuml;mer zeigen');
 INSERT INTO txt VALUES ('show_all_owners',		'English', 	'Show all owners');
+INSERT INTO txt VALUES ('recert_activated',		'German', 	'Rezertifizierung aktiviert');
+INSERT INTO txt VALUES ('recert_activated',		'English', 	'Recertification activated');
 
 -- schedule
 INSERT INTO txt VALUES ('schedule', 			'German',	'Terminplan');
@@ -3546,8 +3548,10 @@ INSERT INTO txt VALUES ('T0107', 'German',  'Aktuell aktive Regeln, die zur Reze
 INSERT INTO txt VALUES ('T0107', 'English', 'Currently active rules with upcoming recertification');
 
 -- Contextual Info (Tooltips)
-INSERT INTO txt VALUES ('C1000', 'German',  'Zeige alle Eigent&uuml;er inklusive der rezertifizierten');
-INSERT INTO txt VALUES ('C1000', 'English', 'show all owners including recertified');
+INSERT INTO txt VALUES ('C1000', 'German',  'Zeige alle Eigent&uuml;er inklusive der rezertifizierten.');
+INSERT INTO txt VALUES ('C1000', 'English', 'Show all owners including recertified.');
+INSERT INTO txt VALUES ('C1001', 'German',  'Zeige alle Eigent&uuml;er, f&uuml; welche die Rezertifizierung aktiviert ist.');
+INSERT INTO txt VALUES ('C1001', 'English', 'Show all owners with recertification activated.');
 INSERT INTO txt VALUES ('C9000', 'German',  'Dieses Objekt wurde deaktiviert und sollte von der App Rolle entfernt werden.');
 INSERT INTO txt VALUES ('C9000', 'English', 'This object was deactivated and should be removed from App Role.');
 INSERT INTO txt VALUES ('C9001', 'German',  'Dieses Objekt wurde deaktiviert und sollte von der Verbindung entfernt werden.');

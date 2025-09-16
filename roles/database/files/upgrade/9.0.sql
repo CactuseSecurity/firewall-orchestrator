@@ -1235,7 +1235,6 @@ INSERT INTO "report_template" ("report_filter","report_template_name","report_te
                 "open_start": false,
                 "open_end": false},
             "compliance_filter": {
-                "is_diff_report": false,
                 "diff_reference_in_days": 0,
                 "show_compliant_rules": true}}')
 ON CONFLICT (report_template_name) DO NOTHING;

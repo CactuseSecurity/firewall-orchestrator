@@ -286,7 +286,6 @@ INSERT INTO "report_template" ("report_filter","report_template_name","report_te
                 "open_start": false,
                 "open_end": false},
             "compliance_filter": {
-                "isDiffReport": false,
                 "diff_reference_in_days": 0,
                 "show_compliant_rules": true}}');
 INSERT INTO "report_template" ("report_filter","report_template_name","report_template_comment","report_template_owner", "report_parameters") 

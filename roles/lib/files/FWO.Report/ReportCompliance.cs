@@ -30,7 +30,7 @@ namespace FWO.Report
         public int DiffReferenceInDays { get; set; } = 0;
         public bool ShowAllRules { get; set; }
         public List<Management>? Managements  { get; set; }
-        protected virtual string InternalQuery => RuleQueries.getRulesWithViolationsInTimespanByChunk;
+        protected virtual string InternalQuery => RuleQueries.getRulesWithCurrentViolationsByChunk;
 
         #endregion
 

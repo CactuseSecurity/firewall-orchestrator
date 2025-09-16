@@ -1236,7 +1236,7 @@ INSERT INTO "report_template" ("report_filter","report_template_name","report_te
                 "open_end": false},
             "compliance_filter": {
                 "diff_reference_in_days": 0,
-                "show_compliant_rules": true}}')
+                "show_non_impact_rules": true}}')
 ON CONFLICT (report_template_name) DO NOTHING;
 
 -- add new report template for compliance: diffs
@@ -1259,7 +1259,7 @@ INSERT INTO "report_template" ("report_filter","report_template_name","report_te
                 "open_end": false},
             "compliance_filter": {
                 "diff_reference_in_days": 7,
-                "show_compliant_rules": false}}')
+                "show_non_impact_rules": false}}')
 ON CONFLICT (report_template_name) DO NOTHING;
 
 -- add parameter to limit number of printed violations in compliance report to config

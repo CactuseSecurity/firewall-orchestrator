@@ -113,7 +113,7 @@ namespace FWO.Report
 
         public ReportCompliance(DynGraphqlQuery query, UserConfig userConfig, ReportType reportType, ReportParams reportParams) : this(query, userConfig, reportType)
         {
-            ShowAllRules = reportParams.ComplianceFilter.ShowCompliantRules;
+            ShowAllRules = reportParams.ComplianceFilter.ShowNonImpactRules;
         }
 
         #endregion

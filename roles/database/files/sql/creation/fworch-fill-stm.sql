@@ -287,7 +287,7 @@ INSERT INTO "report_template" ("report_filter","report_template_name","report_te
                 "open_end": false},
             "compliance_filter": {
                 "diff_reference_in_days": 0,
-                "show_compliant_rules": true}}');
+                "show_non_impact_rules": true}}');
 INSERT INTO "report_template" ("report_filter","report_template_name","report_template_comment","report_template_owner", "report_parameters") 
     VALUES ('action=accept',
         'Compliance: Diffs','T0109', 0, 
@@ -306,7 +306,7 @@ INSERT INTO "report_template" ("report_filter","report_template_name","report_te
                 "open_end": false},
             "compliance_filter": {
                 "diff_reference_in_days": 7,
-                "show_compliant_rules": false}}');
+                "show_non_impact_rules": false}}');
 
 insert into parent_rule_type (id, name) VALUES (1, 'section');          -- do not restart numbering
 insert into parent_rule_type (id, name) VALUES (2, 'guarded-layer');    -- restart numbering, rule restrictions are ANDed to all rules below it, layer is not entered if guard does not apply

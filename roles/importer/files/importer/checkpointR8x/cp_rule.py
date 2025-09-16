@@ -66,7 +66,7 @@ def normalize_rulebases_for_each_link_destination(
             # delete_v: das sollte hier nichts bewirken und kann weg nach tests!
             rulebase_link['is_section'] = is_section
             normalized_rulebase = initialize_normalized_rulebase(rulebase_to_parse, importState.MgmDetails.Uid)
-            parse_rulebase(rulebase_to_parse, is_section, is_placeholder, normalized_rulebase)
+            parse_rulebase(rulebase_to_parse, is_section, is_placeholder, normalized_rulebase, gateway, nativeConfig['policies'])
             fetched_rulebase_uids.append(rulebase_link['to_rulebase_uid'])
 
             if found_rulebase_in_global:
@@ -130,7 +130,7 @@ def initialize_normalized_rulebase(rulebase_to_parse, mgm_uid):
     normalized_rulebase = Rulebase(uid=rulebaseUid, name=rulebaseName, mgm_uid=mgm_uid, Rules={})
     return normalized_rulebase
 
-def parse_rulebase(rulebase_to_parse, is_section, is_placeholder, normalized_rulebase):
+def parse_rulebase(rulebase_to_parse, is_section, is_placeholder, normalized_rulebase, gateway, policy_structure):
     logger = getFwoLogger()
 
     rule_num = 1
@@ -138,22 +138,22 @@ def parse_rulebase(rulebase_to_parse, is_section, is_placeholder, normalized_rul
     if is_section:
         for rule in rulebase_to_parse['rulebase']:
             # delte_v sind import_id, parent_uid, config2import wirklich egal? Dann können wir diese argumente löschen - NAT ACHTUNG
-            rule_num = parse_single_rule(rule, normalized_rulebase, normalized_rulebase.uid, None, rule_num, None, None)
+            rule_num = parse_single_rule(rule, normalized_rulebase, normalized_rulebase.uid, None, rule_num, None, None, gateway, policy_structure)
 
         if fwo_globals.debug_level>3:
             logger.debug("parsed rulebase " + normalized_rulebase.uid)
         return rule_num
     elif is_placeholder:
-        rule_num = parse_single_rule(rulebase_to_parse, normalized_rulebase, normalized_rulebase.uid, None, rule_num, None, None)
+        rule_num = parse_single_rule(rulebase_to_parse, normalized_rulebase, normalized_rulebase.uid, None, rule_num, None, None, gateway, policy_structure)
     else:
         rule_num = parse_rulebase_chunk(rulebase_to_parse, normalized_rulebase, rule_num)                    
 
-def parse_rulebase_chunk(rulebase_to_parse, normalized_rulebase, rule_num):
+def parse_rulebase_chunk(rulebase_to_parse, normalized_rulebase, rule_num, gateway, policy_structure):
     logger = getFwoLogger()
     for chunk in rulebase_to_parse['chunks']:
         for rule in chunk['rulebase']:
             if 'rule-number' in rule:
-                rule_num = parse_single_rule(rule, normalized_rulebase, normalized_rulebase.uid, None, rule_num, None, None)
+                rule_num = parse_single_rule(rule, normalized_rulebase, normalized_rulebase.uid, None, rule_num, None, None, gateway, policy_structure)
             else:
                 logger.debug("found unparsable rulebase: " + str(rulebase_to_parse))
     return rule_num
@@ -261,7 +261,7 @@ def _parse_obj_with_access_role(obj: dict[str,Any], addressObjects: dict[str,Any
                 addressObjects[obj['uid']] = obj['name'] + '@' + nw_resolved
 
 
-def parse_single_rule(nativeRule, rulebase, layer_name, import_id, rule_num, parent_uid, config2import, debug_level=0):
+def parse_single_rule(nativeRule, rulebase, layer_name, import_id, rule_num, parent_uid, config2import, gateway, policy_structure, debug_level=0):
     logger = getFwoLogger()
     rule_order_service = RuleOrderService()
 
@@ -283,7 +283,7 @@ def parse_single_rule(nativeRule, rulebase, layer_name, import_id, rule_num, par
 
     # targetObjects = parseRulePart (nativeRule['install-on'], 'install-on')
     # rule_installon = list_delimiter.join(targetObjects.values())
-    ruleEnforcedOnGateways = parse_rule_enforced_on_gateway(native_rule=nativeRule)
+    ruleEnforcedOnGateways = parse_rule_enforced_on_gateway(gateway, policy_structure, native_rule=nativeRule)
     listOfGwUids = []
     for enforceEntry in ruleEnforcedOnGateways:
         listOfGwUids.append(enforceEntry.dev_uid)
@@ -328,11 +328,9 @@ def parse_single_rule(nativeRule, rulebase, layer_name, import_id, rule_num, par
         last_hit = None
 
     rule = {
-        # "control_id":       int(import_id),
         "rule_num":         int(rule_num),
         "rule_num_numeric": 0,
         "rulebase_name":    sanitize(layer_name),
-        # rule_ruleid
         "rule_disabled": not bool(nativeRule['enabled']),
         "rule_src_neg":     bool(nativeRule['source-negate']),
         "rule_src":         sanitize(rule_src_name),
@@ -344,9 +342,7 @@ def parse_single_rule(nativeRule, rulebase, layer_name, import_id, rule_num, par
         "rule_svc":         sanitize(rule_svc_name),
         "rule_svc_refs":    sanitize(rule_svc_ref),
         "rule_action":      sanitize(rule_action, lower=True),
-        # "rule_track":       sanitize(nativeRule['track']['type']),
         "rule_track":       sanitize(rule_track, lower=True),
-        # "rule_installon":   sanitize(rule_installon),
         "rule_installon":   sanitize(strListOfGwUids),
         "rule_time":        sanitize(rule_time),
         "rule_name":        sanitize(rule_name),
@@ -354,9 +350,6 @@ def parse_single_rule(nativeRule, rulebase, layer_name, import_id, rule_num, par
         "rule_custom_fields": sanitize(rule_custom_fields),
         "rule_implied":     False,
         "rule_type":        sanitize(rule_type),
-        # "rule_head_text": sanitize(section_name),
-        # rule_from_zone
-        # rule_to_zone
         "rule_last_change_admin": sanitize(rule_last_change_admin),
         "parent_rule_uid":  sanitize(parent_rule_uid),
         "last_hit":         sanitize(last_hit)
@@ -396,11 +389,11 @@ def _parse_track(native_rule: dict[str, Any]) -> str:
     return rule_track
 
 
-def parse_rule_enforced_on_gateway(native_rule: dict) -> list[RuleEnforcedOnGatewayNormalized]:
+def parse_rule_enforced_on_gateway(gateway, policy_structure, native_rule: dict) -> list[RuleEnforcedOnGatewayNormalized]:
     """Parse rule enforcement information from native rule.
     
     Args:
-        nativeRule: The native rule dictionary containing install-on information
+        native_rule: The native rule dictionary containing install-on information
         
     Returns:
         list of RuleEnforcedOnGatewayNormalized objects
@@ -417,17 +410,24 @@ def parse_rule_enforced_on_gateway(native_rule: dict) -> list[RuleEnforcedOnGate
     for targetUid in all_target_gw_names_dict:
         targetName = all_target_gw_names_dict[targetUid]
         if targetName == 'Policy Targets': # or target == 'Any'
-            # TODO: implement the following
-            # assuming that the rule is enforced on all gateways of the current management
-            # listofEnforcingGwNames = [] # TODO: getAllGatewayNamesForManagement(mgmId)
-
-            # workaround: simply add the uid of "Policy Targets" here
-            enforceEntry = RuleEnforcedOnGatewayNormalized(rule_uid=native_rule['uid'], dev_uid=targetUid)
-            enforce_entries.append(enforceEntry)
+            device_uid_list = find_devices_for_current_policy(gateway, policy_structure)
+            for device_uid in device_uid_list:
+                enforceEntry = RuleEnforcedOnGatewayNormalized(rule_uid=native_rule['uid'], dev_uid=device_uid)
+                enforce_entries.append(enforceEntry)
         else:
             enforceEntry = RuleEnforcedOnGatewayNormalized(rule_uid=native_rule['uid'], dev_uid=targetUid)
             enforce_entries.append(enforceEntry)
     return enforce_entries
+
+def find_devices_for_current_policy(gateway, policy_structure):
+    device_uid_list = []
+    for policy in policy_structure:
+        for target in policy['targets']:
+            if target['uid'] == gateway['uid']:
+                for device in policy['targets']:
+                    device_uid_list.append(device['uid'])
+    return device_uid_list
+
 
 def resolveNwObjUidToName(nw_obj_uid):
     if nw_obj_uid in uid_to_name_map:

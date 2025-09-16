@@ -70,14 +70,13 @@ def collect_nw_objects(object_table, nw_objects, global_domain, mgm_id=0):
     for chunk in object_table['chunks']:
         if 'objects' in chunk:
             for obj in chunk['objects']:
-                obj_type = 'undef'
 
-                obj_type = account_for_updateable_objects(obj, obj_type, global_domain)
+                account_for_updateable_objects(obj, global_domain)
                 if is_obj_already_collected(nw_objects, obj):
                     continue
                 member_refs, member_names = handle_members(obj)  
                 ip_addr = get_ip_of_obj(obj, mgm_id=mgm_id)
-                obj_type, first_ip, last_ip = handle_object_type_and_ip(obj, obj_type, ip_addr)  
+                obj_type, first_ip, last_ip = handle_object_type_and_ip(obj, ip_addr)  
                 comments = get_comment_and_color_of_obj(obj)
 
                 nw_objects.append({'obj_uid': obj['uid'], 'obj_name': obj['name'], 'obj_color': obj['color'],
@@ -97,36 +96,31 @@ def get_domain_uid(obj, global_domain):
         return obj['domain']['uid']
 
 
-def account_for_updateable_objects(obj, obj_type, global_domain):
-    """Updateable objects get type network and global domain
+def account_for_updateable_objects(obj, global_domain):
+    """Updateable objects get name, uid and global domain
     """
     if 'uid-in-updatable-objects-repository' in obj:
-        obj_type = 'network'
-        obj['name'] = obj['name-in-updatable-objects-repository']
-        if 'uid' not in obj:
-            obj.update({'uid': 'uid-in-updatable-objects-repository'})
+        obj.update({'name': obj['name-in-updatable-objects-repository'],
+                    'uid': 'uid-in-updatable-objects-repository',
+                    'type': 'dynamic_net_obj'})
         if 'domain' not in obj:
             obj.update(global_domain)
-
-    return obj_type
         
 def is_obj_already_collected(nw_objects, obj):
     logger = getFwoLogger()
-    already_collected = False
     if 'uid' not in obj:
         logger.warning("found nw_object without uid: " + str(obj))
-        return already_collected
+        return False
 
     if 'domain' in obj:
         for already_collected_obj in nw_objects:
             if obj['uid'] == already_collected_obj['obj_uid'] and obj['domain']['uid'] == already_collected_obj['obj_domain']:
-                already_collected = True
-                break
+                return True
     else:
         if 'uid-in-updatable-objects-repository' not in obj:
             logger.warning("found nw_object without domain: " + obj['uid'])
 
-    return already_collected
+    return False
 
 
 def handle_members(obj):
@@ -144,8 +138,9 @@ def handle_members(obj):
             obj['members'] = None
     return member_refs, member_names
 
-def handle_object_type_and_ip(obj, obj_type, ip_addr):
+def handle_object_type_and_ip(obj, ip_addr):
     logger = getFwoLogger()
+    obj_type = 'undef'
     ipArray = cidrToRange(ip_addr)
     first_ip = None
     last_ip = None
@@ -158,8 +153,12 @@ def handle_object_type_and_ip(obj, obj_type, ip_addr):
 
     if 'type' in obj:
         obj_type = obj['type']
+
+    if obj_type == 'dynamic_net_obj':
+        first_ip = '0.0.0.0/32'
+        last_ip = '255.255.255.255/32'
         
-    if obj_type in ['updatable-object', 'group-with-exclusion', 'security-zone', 'dns-domain', 'dynamic-object']:
+    if obj_type in ['security-zone', 'dns-domain', 'dynamic-object']:
         obj_type = 'group'
 
     if obj_type == 'group-with-exclusion':

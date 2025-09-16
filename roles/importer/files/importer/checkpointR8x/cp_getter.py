@@ -118,12 +118,12 @@ def get_changes(sid,api_host,api_port,fromdate):
     return 0
 
 
-def getPolicyStructure(api_v_url, sid, show_params_policy_structure, policyStructure = None):
+def getPolicyStructure(api_v_url, sid, show_params_policy_structure, managerDetails, policy_structure = None):
 
     logger = getFwoLogger()
 
-    if policyStructure is None:
-        policyStructure = []
+    if policy_structure is None:
+        policy_structure = []
 
     current=0
     total=current+1
@@ -176,7 +176,7 @@ def getPolicyStructure(api_v_url, sid, show_params_policy_structure, policyStruc
             # parse package if at least one installation target exists for sub- or stand-alone-manager
             elif 'installation-targets-revision' in package:
                 for installationTarget in package['installation-targets-revision']:
-                    if 'target-name' in installationTarget and 'target-uid' in installationTarget:
+                    if is_valid_installation_target(installationTarget, managerDetails):
 
                         if not alreadyFetchedPackage:
                             currentPackage = { 'name': package['name'],
@@ -203,10 +203,17 @@ def getPolicyStructure(api_v_url, sid, show_params_policy_structure, policyStruc
                         logger.warning ( 'access layer in package: ' + package['uid'] + ' is missing name or uid')
             # in future threat-layers may be fetched the same way as access-layers
             
-            policyStructure.append(currentPackage)
+            policy_structure.append(currentPackage)
 
     return 0
 
+def is_valid_installation_target(installationTarget, managerDetails):
+    """ensures that target is defined as gateway in database"""
+    if 'target-name' in installationTarget and 'target-uid' in installationTarget:
+        for device in managerDetails.Devices:
+            if device['name'] == installationTarget['target-name'] and device['uid'] == installationTarget['target-uid']:
+                return True
+    return False
 
 def get_global_assignments(api_v_url, sid, show_params_policy_structure) -> list[Any]:
     logger = getFwoLogger()

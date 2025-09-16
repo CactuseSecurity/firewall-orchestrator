@@ -30,12 +30,13 @@ namespace FWO.Report
         public int DiffReferenceInDays { get; set; } = 0;
         public bool ShowAllRules { get; set; }
         public List<Management>? Managements  { get; set; }
+        protected virtual string InternalQuery => RuleQueries.getRulesWithViolationsInTimespanByChunk;
 
         #endregion
 
         #region Fields
 
-        
+
         private List<Device>? _devices;
 
         private readonly int _maxDegreeOfParallelism;
@@ -49,6 +50,8 @@ namespace FWO.Report
         private readonly int _maxPrintedViolations;
 
         private List<int> _relevanteManagementIDs = new();
+
+
 
 
         #endregion
@@ -163,9 +166,7 @@ namespace FWO.Report
 
             // Get data parallelized.
 
-            string query = IsDiffReport ? RuleQueries.getRulesWithViolationsInTimespanByChunk : RuleQueries.getRulesWithCurrentViolationsByChunk;
-
-            List<Rule>[]? chunks = await GetDataParallelized<Rule>(rulesCount, elementsPerFetch, apiConnection, ct, query);
+            List<Rule>[]? chunks = await GetDataParallelized<Rule>(rulesCount, elementsPerFetch, apiConnection, ct, InternalQuery);
 
 
             if (chunks != null)

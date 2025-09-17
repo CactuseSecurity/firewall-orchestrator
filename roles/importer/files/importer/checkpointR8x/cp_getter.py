@@ -118,95 +118,104 @@ def get_changes(sid,api_host,api_port,fromdate):
     return 0
 
 
-def getPolicyStructure(api_v_url, sid, show_params_policy_structure, policyStructure = None):
+def get_policy_structure(api_v_url, sid, show_params_policy_structure, managerDetails, policy_structure = None):
 
-    logger = getFwoLogger()
+    if policy_structure is None:
+        policy_structure = []
 
-    if policyStructure is None:
-        policyStructure = []
-
-    current=0
-    total=current+1
+    current = 0
+    total = current + 1
 
     show_params_policy_structure.update({'offset': current})
 
-    while (current<total):
+    while current < total:
+        packages, current, total = get_show_packages_via_api(api_v_url, sid, show_params_policy_structure)
 
-        try:
-            packages = cp_api_call(api_v_url, 'show-packages', show_params_policy_structure, sid)
-        except Exception:
-            logger.error("could not return 'show-packages'")
-            return 1
-
-        if 'total' in packages:
-            total=packages['total']
-        else:
-            logger.error ( 'packages do not contain total field')
-            logger.warning ( 'sid: ' + sid)
-            logger.warning ( 'api_v_url: ' + api_v_url)
-            for key, value in show_params_policy_structure.items():
-                logger.warning('show_params_policy_structure ' + key + ': ' + str(value))
-            for key, value in packages.items():
-                logger.warning('packages ' + key + ': ' + str(value))
-            return 1
-        
-        if total==0:
-            current=0
-        else:
-            if 'to' in packages:
-                current=packages['to']
-            else:
-                logger.error ( 'packages do not contain to field')
-                return 1
-        
-        # parse devices with ordered layers
         for package in packages['packages']:
-            alreadyFetchedPackage = False
-            currentPackage = {}
-            # parse package in case of supermanager
-            if 'installation-targets' in package and package['installation-targets'] == 'all':
-                if not alreadyFetchedPackage:
-                    
-                    currentPackage = { 'name': package['name'],
-                                        'uid': package['uid'],
-                                        'targets': [{'name': 'all', 'uid': 'all'}],
-                                        'access-layers': []}
-                    alreadyFetchedPackage = True
-
-            # parse package if at least one installation target exists for sub- or stand-alone-manager
-            elif 'installation-targets-revision' in package:
-                for installationTarget in package['installation-targets-revision']:
-                    if 'target-name' in installationTarget and 'target-uid' in installationTarget:
-
-                        if not alreadyFetchedPackage:
-                            currentPackage = { 'name': package['name'],
-                                                'uid': package['uid'],
-                                                'targets': [],
-                                                'access-layers': []}
-                            alreadyFetchedPackage = True
-
-                        currentPackage['targets'].append({ 'name': installationTarget['target-name'],
-                                                            'uid': installationTarget['target-uid']})
-                    else:
-                        logger.warning ( 'installation target in package: ' + package['uid'] + ' is missing name or uid')
-                
-            # add access-layers to current package, if at least one installation target was found
+            currentPackage, alreadyFetchedPackage = parse_package(package, managerDetails)
             if not alreadyFetchedPackage:
                 continue
-            if 'access-layers' in package:
-                for accessLayer in package['access-layers']:
-                    if 'name' in accessLayer and 'uid' in accessLayer:
-                        currentPackage['access-layers'].append({ 'name': accessLayer['name'],
-                                                                    'uid': accessLayer['uid'],
-                                                                    'domain': accessLayer['domain']['uid']})
-                    else:
-                        logger.warning ( 'access layer in package: ' + package['uid'] + ' is missing name or uid')
-            # in future threat-layers may be fetched the same way as access-layers
-            
-            policyStructure.append(currentPackage)
+            add_access_layers_to_current_package(package, currentPackage)
+
+            # in future threat-layers may be fetched analog to add_access_layers_to_current_package
+            policy_structure.append(currentPackage)
 
     return 0
 
+def get_show_packages_via_api(api_v_url, sid, show_params_policy_structure):
+    try:
+        packages = cp_api_call(api_v_url, 'show-packages', show_params_policy_structure, sid)
+    except Exception:
+        raise FwApiError("could not return 'show-packages'")
+
+    if 'total' in packages:
+        total = packages['total']
+    else:
+        logger.error('packages do not contain total field')
+        logger.warning('sid: ' + sid)
+        logger.warning('api_v_url: ' + api_v_url)
+        for key, value in show_params_policy_structure.items():
+            logger.warning('show_params_policy_structure ' + key + ': ' + str(value))
+        for key, value in packages.items():
+            logger.warning('packages ' + key + ': ' + str(value))
+        raise FwApiError('packages do not contain total field')
+    
+    if total == 0:
+        current = 0
+    else:
+        if 'to' in packages:
+            current = packages['to']
+        else:
+            raise FwApiError('packages do not contain to field')
+    return packages, current, total
+
+def parse_package(package, managerDetails):
+    alreadyFetchedPackage = False
+    currentPackage = {}
+    if 'installation-targets' in package and package['installation-targets'] == 'all':
+        if not alreadyFetchedPackage:
+            
+            currentPackage = { 'name': package['name'],
+                                'uid': package['uid'],
+                                'targets': [{'name': 'all', 'uid': 'all'}],
+                                'access-layers': []}
+            alreadyFetchedPackage = True
+
+    elif 'installation-targets-revision' in package:
+        for installationTarget in package['installation-targets-revision']:
+            if is_valid_installation_target(installationTarget, managerDetails):
+
+                if not alreadyFetchedPackage:
+                    currentPackage = { 'name': package['name'],
+                                        'uid': package['uid'],
+                                        'targets': [],
+                                        'access-layers': []}
+                    alreadyFetchedPackage = True
+
+                currentPackage['targets'].append({ 'name': installationTarget['target-name'],
+                                                    'uid': installationTarget['target-uid']})
+            else:
+                logger.warning ( 'installation target in package: ' + package['uid'] + ' is missing name or uid')
+    return currentPackage, alreadyFetchedPackage
+
+def is_valid_installation_target(installationTarget, managerDetails):
+    """ensures that target is defined as gateway in database"""
+    if 'target-name' in installationTarget and 'target-uid' in installationTarget:
+        for device in managerDetails.Devices:
+            if device['name'] == installationTarget['target-name'] and device['uid'] == installationTarget['target-uid']:
+                return True
+    return False
+
+def add_access_layers_to_current_package(package, currentPackage):
+
+    if 'access-layers' in package:
+        for accessLayer in package['access-layers']:
+            if 'name' in accessLayer and 'uid' in accessLayer:
+                currentPackage['access-layers'].append({ 'name': accessLayer['name'],
+                                                            'uid': accessLayer['uid'],
+                                                            'domain': accessLayer['domain']['uid']})
+            else:
+                raise FwApiError('access layer in package: ' + package['uid'] + ' is missing name or uid')
 
 def get_global_assignments(api_v_url, sid, show_params_policy_structure) -> list[Any]:
     logger = getFwoLogger()

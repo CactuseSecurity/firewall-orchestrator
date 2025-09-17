@@ -133,7 +133,9 @@ def get_policy_structure(api_v_url, sid, show_params_policy_structure, managerDe
 
         for package in packages['packages']:
             currentPackage, alreadyFetchedPackage = parse_package(package, managerDetails)
-            add_access_layers_to_current_package(package, currentPackage, alreadyFetchedPackage)
+            if not alreadyFetchedPackage:
+                continue
+            add_access_layers_to_current_package(package, currentPackage)
 
             # in future threat-layers may be fetched analog to add_access_layers_to_current_package
             policy_structure.append(currentPackage)
@@ -204,9 +206,8 @@ def is_valid_installation_target(installationTarget, managerDetails):
                 return True
     return False
 
-def add_access_layers_to_current_package(package, currentPackage, alreadyFetchedPackage):
-    if not alreadyFetchedPackage:
-        return
+def add_access_layers_to_current_package(package, currentPackage):
+
     if 'access-layers' in package:
         for accessLayer in package['access-layers']:
             if 'name' in accessLayer and 'uid' in accessLayer:

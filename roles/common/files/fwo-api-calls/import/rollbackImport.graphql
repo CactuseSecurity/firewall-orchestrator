@@ -1,4 +1,4 @@
-mutation rollbackCurrentImport($importId: bigint!) {
+mutation rollbackImport($importId: bigint!) {
     delete_rule(where: {rule_create: {_eq: $importId}}) { affected_rows }
     delete_rulebase(where: {created: {_eq: $importId}}) { affected_rows }
     delete_object(where: {obj_create: {_eq: $importId}}) { affected_rows }

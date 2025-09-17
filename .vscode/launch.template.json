@@ -2,40 +2,22 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": ".NET Core SSH Attach ubu20",
-            "type": "coreclr",
-            "request": "attach",
-            "processId": "${command:pickRemoteProcess}",
-            "pipeTransport": {
-                "pipeProgram": "ssh",
-                "pipeArgs": [ "-T", "-p 22006", "tim@localhost" ],
-                "debuggerPath": "~/vsdbg-root/vsdbg",
-                "pipeCwd": "${workspaceRoot}",
-                "quoteArgs": true
-            },
-            "sourceFileMap": {
-                "/home/tim/firewall-orchestrator/roles": "${workspaceRoot}"
-            },
-            "logging": {
-              "logging.diagnosticsLog.protocolMessages": true
-            }
-        },
-        {
             "name": "c#-MiddlewareServer",
             "type": "coreclr",
             "request": "launch",
             "preLaunchTask": "build_middleware",
             "enableStepFiltering": false,
-            "program": "${workspaceFolder}/roles/middleware/files/FWO.Middleware.Server/bin/Debug/net8.0/FWO.Middleware.Server.dll",
-            "args": [],
+            "program": "dotnet",
+            "args": [
+                "watch",
+                "run"
+            ],
             "cwd": "${workspaceFolder}/roles/middleware/files/FWO.Middleware.Server",
             "console": "internalConsole",
             "stopAtEntry": false,
             "requireExactSource": false,
-            "serverReadyAction": {
-                "action": "openExternally",
-                "pattern": "\\bNow listening on:\\s+(https?://\\S+)",
-                "uriFormat": "%s/swagger"
+            "env": {
+                "ASPNETCORE_ENVIRONMENT": "Development"
             },
             "logging": {
                 "moduleLoad": false
@@ -65,6 +47,47 @@
             }
         },
         {
+            "name": "py-import-mgm",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/roles/importer/files/importer/import-mgm.py",
+            "console": "integratedTerminal",
+            "env": {
+                "PYTHONPATH": "${PYTHONPATH}:${workspaceRoot}"
+            },
+            "args": [
+                "-m6",
+                "-d1",
+                "-f",
+                "-s",
+                //"-l",
+                // "-c"
+                //"-l250"
+                //  41 - lab fortimanager
+                //"-ihttps://fwodemodata.cactus.de/demo04_cpr8x.json",
+                //"-ihttps://fwodemodata.cactus.de/big/xxx.json",
+            ]
+        },
+        {
+            "name": ".NET Core SSH Attach ubu20",
+            "type": "coreclr",
+            "request": "attach",
+            "processId": "${command:pickRemoteProcess}",
+            "pipeTransport": {
+                "pipeProgram": "ssh",
+                "pipeArgs": [ "-T", "-p 22006", "tim@localhost" ],
+                "debuggerPath": "~/vsdbg-root/vsdbg",
+                "pipeCwd": "${workspaceRoot}",
+                "quoteArgs": true
+            },
+            "sourceFileMap": {
+                "/home/tim/firewall-orchestrator/roles": "${workspaceRoot}"
+            },
+            "logging": {
+              "logging.diagnosticsLog.protocolMessages": true
+            }
+        },
+        {
             "name": "py-normalizeRlmOwners",
             "type": "debugpy",
             "request": "launch",
@@ -88,30 +111,6 @@
             },
             "args": [
                 "-c${workspaceFolder}/scripts/customizing/modelling/customizingConfig.json"
-            ]
-        },
-        {
-            "name": "py-import-mgm",
-            "type": "debugpy",
-            "request": "launch",
-            "program": "${workspaceFolder}/roles/importer/files/importer/import-mgm.py",
-            "console": "integratedTerminal",
-            "env": {
-                "PYTHONPATH": "${PYTHONPATH}:${workspaceRoot}"
-            },
-            "args": [
-                "-m6",
-                "-d1",
-                "-f",
-                "-s",
-                //"-l",
-                // "-c"
-                //"-l250"
-                //  41 - lab fortimanager
-                //"-ihttps://fwodemodata.cactus.de/demo04_cpr8x.json",
-                //"-ihttps://fwodemodata.cactus.de/demo01_fortiMgrLab.json"
-                //"-ihttps://fwodemodata.cactus.de/demo05_fortiMgr2.json"
-                //"-ihttps://fwodemodata.cactus.de/big/xxx.json",
             ]
         },
         {

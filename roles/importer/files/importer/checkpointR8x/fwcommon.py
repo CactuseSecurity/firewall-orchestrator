@@ -180,25 +180,29 @@ def get_rules(nativeConfig: dict, importState: ImportStateController) -> int:
         'details-level': 'full'
     }
 
-    globalAssignments, globalPolicyStructure, globalDomain, globalSid = None, None, None, None
+    globalAssignments, global_policy_structure, globalDomain, globalSid = None, None, None, None
     manager_details_list = create_ordered_manager_list(importState)
     manager_index = 0
     for managerDetails in manager_details_list:
         cpManagerApiBaseUrl = importState.MgmDetails.buildFwApiString()
 
         if managerDetails.IsSuperManager:
-            globalAssignments, globalPolicyStructure, globalDomain, globalSid = handle_super_manager(
+            globalAssignments, global_policy_structure, globalDomain, globalSid = handle_super_manager(
                 managerDetails, cpManagerApiBaseUrl, show_params_policy_structure
             )
 
         sid: str = cp_getter.login(managerDetails)
-        policyStructure = get_policy_structure(cpManagerApiBaseUrl, sid, show_params_policy_structure)
+        policy_structure = []
+        cp_getter.get_policy_structure(
+            cpManagerApiBaseUrl, sid, show_params_policy_structure, managerDetails, policy_structure=policy_structure
+        )
 
         process_devices(
-            managerDetails, policyStructure, globalAssignments, globalPolicyStructure,
+            managerDetails, policy_structure, globalAssignments, global_policy_structure,
             globalDomain, globalSid, cpManagerApiBaseUrl, sid, nativeConfig['domains'][manager_index],
             nativeConfig['domains'][0], importState
         )
+        nativeConfig['domains'][manager_index].update({'policies': policy_structure})
         manager_index += 1
 
     return 0    
@@ -219,7 +223,7 @@ def handle_super_manager(managerDetails, cpManagerApiBaseUrl, show_params_policy
 
     # global assignments are fetched from mds domain
     mdsSid: str = cp_getter.login(managerDetails)
-    globalPolicyStructure = None
+    global_policy_structure = None
     global_domain = None
     global_assignments = cp_getter.get_global_assignments(cpManagerApiBaseUrl, mdsSid, show_params_policy_structure)
     global_sid = ""
@@ -233,25 +237,16 @@ def handle_super_manager(managerDetails, cpManagerApiBaseUrl, show_params_policy
             # policy structure is fetched from global domain
             managerDetails.DomainUid = global_domain
             global_sid: str = cp_getter.login(managerDetails)
-            cp_getter.getPolicyStructure(
-                cpManagerApiBaseUrl, global_sid, show_params_policy_structure, policyStructure=globalPolicyStructure
+            cp_getter.get_policy_structure(
+                cpManagerApiBaseUrl, global_sid, show_params_policy_structure, managerDetails, policy_structure=global_policy_structure
             )
         else:
             raise FwoImporterError(f"Unexpected global assignments: {str(global_assignments)}")
 
-    return global_assignments, globalPolicyStructure, global_domain, global_sid
-
-
-def get_policy_structure(cpManagerApiBaseUrl, sid, show_params_policy_structure):
-    pol_structure = []
-    cp_getter.getPolicyStructure(
-        cpManagerApiBaseUrl, sid, show_params_policy_structure, policyStructure=pol_structure
-    )
-    return pol_structure
-
+    return global_assignments, global_policy_structure, global_domain, global_sid
 
 def process_devices(
-    managerDetails, policyStructure, globalAssignments, globalPolicyStructure,
+    managerDetails, policy_structure, globalAssignments, global_policy_structure,
     globalDomain, globalSid, cpManagerApiBaseUrl, sid, nativeConfigDomain,
     nativeConfigGlobalDomain, importState
 ) -> None:
@@ -261,7 +256,7 @@ def process_devices(
         if not deviceConfig:
             continue
 
-        orderedLayerUids: list[str] = get_ordered_layer_uids(policyStructure, deviceConfig, managerDetails.getDomainString())
+        orderedLayerUids: list[str] = get_ordered_layer_uids(policy_structure, deviceConfig, managerDetails.getDomainString())
         if not orderedLayerUids:
             logger.warning(f"No ordered layers found for device: {deviceConfig['name']}")
             continue
@@ -269,7 +264,7 @@ def process_devices(
         global_ordered_layer_count = 0
         if importState.MgmDetails.IsSuperManager:
             global_ordered_layer_count = handle_global_rulebase_links(
-                managerDetails, importState, deviceConfig, globalAssignments, globalPolicyStructure, globalDomain,
+                managerDetails, importState, deviceConfig, globalAssignments, global_policy_structure, globalDomain,
                 globalSid, orderedLayerUids, nativeConfigGlobalDomain, cpManagerApiBaseUrl
             )
         else:
@@ -292,7 +287,7 @@ def initialize_device_config(device) -> dict[str, Any]:
 
 
 def handle_global_rulebase_links(
-    managerDetails, import_state, deviceConfig, globalAssignments, globalPolicyStructure, globalDomain,
+    managerDetails, import_state, deviceConfig, globalAssignments, global_policy_structure, globalDomain,
     globalSid, orderedLayerUids, nativeConfigGlobalDomain, cpManagerApiBaseUrl):
     """Searches for global access policy for current device policy,
     adds global ordered layers and defines global rulebase link
@@ -301,7 +296,7 @@ def handle_global_rulebase_links(
     logger = getFwoLogger()
     for globalAssignment in globalAssignments:
         if globalAssignment['dependent-domain']['uid'] == managerDetails.getDomainString():
-            for globalPolicy in globalPolicyStructure:
+            for globalPolicy in global_policy_structure:
                 if globalPolicy['name'] == globalAssignment['global-access-policy']:
                     global_ordered_layer_uids = get_ordered_layer_uids([globalPolicy], deviceConfig, globalDomain)
                     if not global_ordered_layer_uids:
@@ -430,12 +425,12 @@ def add_ordered_layers_to_native_config(orderedLayerUids, show_params_rules,
     return policy_rulebases_uid_list
 
 
-def get_ordered_layer_uids(policyStructure, deviceConfig, domain) -> list[str]:
+def get_ordered_layer_uids(policy_structure, deviceConfig, domain) -> list[str]:
     """Get UIDs of ordered layers for policy of device
     """
 
     orderedLayerUids = []
-    for policy in policyStructure:
+    for policy in policy_structure:
         foundTargetInPolciy = False
         for target in policy['targets']:
             if target['uid'] == deviceConfig['uid'] or target['uid'] == 'all':

@@ -75,15 +75,10 @@
             RollbackMode = true;
             workInProgress = true;
             var variablesRollback = new { importId = importId };
-            var ReturnId = await apiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.ImportQueries.rollbackLastImport, variablesRollback);
-
-            // var variablesdeleteLatestConfigOfManagement = new { mgmId = ManagementId };
-            // ReturnId = await apiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.ImportQueries.deleteLatestConfigOfManagement, variablesdeleteLatestConfigOfManagement);
+            var ReturnId = await apiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.ImportQueries.rollbackImport, variablesRollback);
 
             Log.WriteDebug("Delete Import", $"rolled back last import (id={importId}) of mangement with ID {ManagementId}");
             workInProgress = false;
-
-            DisplayMessageInUi(null, userConfig.GetText("rollback_import"), userConfig.GetText("U5107"), false);            
         }
         catch (System.Exception exception)
         {
@@ -113,6 +108,7 @@
                 if (lastImportId != null)
                 {
                     await RollbackSingleImport(ManagementId, (long)lastImportId);
+                    DisplayMessageInUi(null, userConfig.GetText("rollback_import"), userConfig.GetText("U5107"), false);            
                 }
             }
         }
@@ -121,7 +117,6 @@
             workInProgress = false;
             DisplayMessageInUi(exception, userConfig.GetText("rollback_import"), "", true);
         }
-        await deleteLatestConfigOfManagement(ManagementId);
     }
 
     private async Task FullMgmRollback()
@@ -188,8 +183,6 @@
 
     private async Task deleteLatestConfigOfManagement(int mgmId)
     {
-
-        // in any case, delete latest_config for this management
         try
         {
             var variablesdeleteLatestConfigOfManagement = new { mgmId = ManagementId };

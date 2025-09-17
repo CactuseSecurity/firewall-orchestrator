@@ -6,6 +6,10 @@
 <div class="p-3">
     @if(ReportType == ReportType.OwnerRecertification)
     {
+        <div class="form-check" data-toggle="tooltip" title="@(userConfig.PureLine("C1001"))">
+            <input class="form-check-input" id="recertActivated" type="checkbox" @bind="ModellingFilter.RecertActivated" />
+            <label class="form-check-label text-white" for="recertActivated">@(userConfig.GetText("recert_activated"))</label>
+        </div>
         <div class="form-check" data-toggle="tooltip" title="@(userConfig.PureLine("C1000"))">
             <input class="form-check-input" id="allOwners" type="checkbox" @bind="ModellingFilter.ShowAllOwners" />
             <label class="form-check-label text-white" for="allOwners">@(userConfig.GetText("show_all_owners"))</label>

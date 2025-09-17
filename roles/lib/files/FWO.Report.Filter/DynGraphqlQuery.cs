@@ -554,6 +554,10 @@ namespace FWO.Report.Filter
                 query.QueryVariables["selectedOwners"] = new List<int> (modellingFilter.SelectedOwners.Select(o => o.Id)).ToArray();
                 query.OwnerWhereStatement += $@"{{ id: {{ _in: $selectedOwners }} }}";
 
+                if (modellingFilter.RecertActivated)
+                {
+                    query.OwnerWhereStatement += $@"{{ recert_active: {{ _eq: true }} }}";
+                }
                 if (!modellingFilter.ShowAllOwners)
                 {
                     query.QueryParameters.Add("$refDate: timestamp");

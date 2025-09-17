@@ -27,7 +27,7 @@ namespace FWO.Report
 
         private void AppendRecertData(ref StringBuilder report, OwnerConnectionReport ownerReport)
         {
-            string recertText = $"{userConfig.GetText("recertified_by")} {new DistName(ownerReport.Owner.LastRecertifierDn).UserName}: {ownerReport.Owner.LastRecertified?.ToString("dd.MM.yyyy hh:mm") ?? "-"}";
+            string recertText = $"{userConfig.GetText("recertified_by")} {new DistName(ownerReport.Owner.LastRecertifierDn).UserName}: {ownerReport.Owner.LastRecertified?.ToString("dd.MM.yyyy HH:mm") ?? "-"}";
             report.AppendLine($"<h4>{recertText}</h4>");
         }
     }

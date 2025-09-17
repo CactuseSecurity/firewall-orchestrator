@@ -11,21 +11,23 @@
   $report_type: Int
   $description: String
   $read_only: Boolean
+  $owner_id: Int
 ) {
     insert_report(
       objects: {
         report_name: $report_name
         report_start_time: $report_start_time
         report_end_time: $report_end_time
-        report_owner_id : $report_owner_id
+        report_owner_id: $report_owner_id
         report_csv: $report_csv
         report_pdf: $report_pdf
         report_html: $report_html
         report_json: $report_json
-        report_template_id : $report_template_id
+        report_template_id: $report_template_id
         report_type: $report_type
         description: $description
         read_only: $read_only
+        owner_id: $owner_id
   }
   ) {
         returning {

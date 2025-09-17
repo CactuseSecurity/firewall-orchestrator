@@ -9,6 +9,7 @@ mutation updateOwner(
   $recertCheckParams: String
   $criticality: String
   $commSvcPossible: Boolean
+  $recertActive: Boolean
   ) {
   update_owner_by_pk(
     pk_columns: { id: $id }
@@ -23,6 +24,7 @@ mutation updateOwner(
       criticality: $criticality
       common_service_possible: $commSvcPossible
       active: true
+      recert_active: $recertActive
   }) {
     updatedId: id
   }

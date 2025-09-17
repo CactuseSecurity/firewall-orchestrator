@@ -64,7 +64,7 @@
                                 </NotAuthorized>
                             </AuthorizeView>
                         }
-                        @if(userConfig.ModRecertActive && appSelected && selectedApp.ConnectionCount.Aggregate.Count > 0)
+                        @if(userConfig.ModRecertActive && appSelected && selectedApp.RecertActive && selectedApp.ConnectionCount.Aggregate.Count > 0)
                         {
                             <AuthorizeView Roles="@($"{Roles.Modeller}, {Roles.Admin}, {Roles.Auditor}")">
                                 <Authorized>

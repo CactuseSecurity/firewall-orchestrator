@@ -8,6 +8,11 @@ subscription subscribeGeneratedReportsChanges {
     report_owner_id
     description
     read_only
+    owner {
+      id
+      name
+      app_id_external
+    }
     uiuser {
       uiuser_username
     }

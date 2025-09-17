@@ -2885,6 +2885,8 @@ INSERT INTO txt VALUES ('U4006', 'German',  'Es wurden keine anstehenden Rezerti
 INSERT INTO txt VALUES ('U4006', 'English', 'No upcoming recertifications found in the next @@DAYS@@ days.');
 INSERT INTO txt VALUES ('U4007', 'German',  'Weitere rezertifizierte Apps');
 INSERT INTO txt VALUES ('U4007', 'English', 'Further recertified apps');
+INSERT INTO txt VALUES ('U4008', 'German',  'Weitere Apps');
+INSERT INTO txt VALUES ('U4008', 'English', 'Further apps');
 
 INSERT INTO txt VALUES ('U5001', 'German',  'Setup und Verwaltung des Firewall Orchestrator. Bitte eine Einstellung in der linken Randleiste ausw&auml;hlen.');
 INSERT INTO txt VALUES ('U5001', 'English', 'Setup and administration of Firewall Orchestrator. Please choose a setting in the left sidebar.');
@@ -5407,6 +5409,8 @@ INSERT INTO txt VALUES ('H5590', 'German',  'IP-Adressen: Dem Eigent&uuml;mer k&
 INSERT INTO txt VALUES ('H5590', 'English', 'IP Addresses: IP addresses can be assigned to the owner.');
 INSERT INTO txt VALUES ('H5591', 'German',  'Common Service zugelassen: Modellierern wird erlaubt, hier Common Services anzulegen.');
 INSERT INTO txt VALUES ('H5591', 'English', 'Common Service Possible: Allows modellers to create common services inside.');
+INSERT INTO txt VALUES ('H5591a', 'German',  'Rezertifizierung aktiviert: Der Eigent&uuml;er wird &uuml;ber den Firewall Orchestrator rezertifiziert.');
+INSERT INTO txt VALUES ('H5591a', 'English', 'Recertification activated: This owner is to be recertified via Firewall Orchestrator.');
 INSERT INTO txt VALUES ('H5592', 'German',  'Importquelle: Falls importiert das dort vergebene Label (sh. <a href="/help/settings/modelling">Modellierungseinstellungen</a>).');
 INSERT INTO txt VALUES ('H5592', 'English', 'Import Source: If imported the label given there (see <a href="/help/settings/modelling">Modelling Settings</a>).');
 INSERT INTO txt VALUES ('H5593', 'German',  'URL des externen Ticketing Systems: Exakte Adresse inklusive Pfad, unter der die API das externen Ticket Systems erreicht werden kann.');

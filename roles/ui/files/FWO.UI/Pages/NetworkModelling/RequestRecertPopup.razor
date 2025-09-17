@@ -296,7 +296,8 @@
                 report_json = report.ExportToJson(),
                 report_type = (int?)ReportType.RecertificationEvent,
                 description = report.SetDescription(),
-                read_only = true
+                read_only = true,
+                owner_id = owner.Id
             };
             await apiConnection.SendQueryAsync<object>(ReportQueries.addGeneratedReport, variables);
         }

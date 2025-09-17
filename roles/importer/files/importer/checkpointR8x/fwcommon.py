@@ -192,7 +192,10 @@ def get_rules(nativeConfig: dict, importState: ImportStateController) -> int:
             )
 
         sid: str = cp_getter.login(managerDetails)
-        policy_structure = get_policy_structure(cpManagerApiBaseUrl, sid, show_params_policy_structure, managerDetails)
+        policy_structure = []
+        cp_getter.get_policy_structure(
+            cpManagerApiBaseUrl, sid, show_params_policy_structure, managerDetails, policy_structure=policy_structure
+        )
 
         process_devices(
             managerDetails, policy_structure, globalAssignments, global_policy_structure,
@@ -241,15 +244,6 @@ def handle_super_manager(managerDetails, cpManagerApiBaseUrl, show_params_policy
             raise FwoImporterError(f"Unexpected global assignments: {str(global_assignments)}")
 
     return global_assignments, global_policy_structure, global_domain, global_sid
-
-
-def get_policy_structure(cpManagerApiBaseUrl, sid, show_params_policy_structure, managerDetails):
-    pol_structure = []
-    cp_getter.get_policy_structure(
-        cpManagerApiBaseUrl, sid, show_params_policy_structure, managerDetails, policy_structure=pol_structure
-    )
-    return pol_structure
-
 
 def process_devices(
     managerDetails, policy_structure, globalAssignments, global_policy_structure,

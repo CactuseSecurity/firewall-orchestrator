@@ -115,9 +115,11 @@
                 <div class="mx-2 mt-2">
                     <TabSet WholeWidth="false" DarkMode="false" KeepPanelsAlive="false" @ref="appHandler!.Tabset">
                         <Tab Title="@(userConfig.GetText("connections"))" Position=0>
-                            <button type="button" class="btn btn-sm btn-success" @onclick="appHandler!.AddConnection">
-                                @(DisplayService.DisplayButton(userConfig, "add_connection", Icons.Add))
-                            </button>                            
+                            <div>
+                                <button type="button" class="btn btn-sm btn-success" @onclick="appHandler!.AddConnection">
+                                    @(DisplayService.DisplayButton(userConfig, "add_connection", Icons.Add))
+                                </button>
+                            </div>
                             <ConnectionTable UseResponsiveTable="true" ShowPageSizeInput="true" Connections="@appHandler!.GetRegularConnections()" @bind-AppHandler="appHandler" AppActive="appActive" ShowModellingState="true" ShowProductionState="true" />
                         </Tab>
                         <Tab Title="@(userConfig.GetText("provided_interfaces"))" Position=1>

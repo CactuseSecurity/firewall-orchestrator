@@ -365,16 +365,7 @@ namespace FWO.Report
 
                             // Add empty groups because display method does not get them
 
-                            foreach (NetworkLocation networkLocation in networkLocations)
-                            {
-                                foreach (GroupFlat<NetworkObject> groupFlat in networkLocation.Object.ObjectGroupFlats)
-                                {
-                                    if (groupFlat.Object != null && groupFlat.Object.Type.Name == "group" && string.IsNullOrWhiteSpace(groupFlat.Object.MemberRefs))
-                                    {
-                                        resolvedNetworkLocations.Add(new NetworkLocation(networkLocation.User, groupFlat.Object)); // adding user only for syntax
-                                    }
-                                }                               
-                            }
+                            await GatherEmptyGroups(networkLocations, resolvedNetworkLocations);
 
                             (bool isAssessable, string violationDetails) checkAssessabilityResult = await CheckAssessability(rule, resolvedNetworkLocations);
                             ComplianceViolationType complianceViolationType = checkAssessabilityResult.isAssessable ? rule.Compliance : ComplianceViolationType.NotAssessable;
@@ -414,6 +405,22 @@ namespace FWO.Report
         #endregion
 
         #region Methods - Private
+
+        private Task GatherEmptyGroups(NetworkLocation[] networkLocations, List<NetworkLocation> resolvedNetworkLocations)
+        {
+            foreach (NetworkLocation networkLocation in networkLocations)
+            {
+                foreach (GroupFlat<NetworkObject> groupFlat in networkLocation.Object.ObjectGroupFlats)
+                {
+                    if (groupFlat.Object != null && groupFlat.Object.Type.Name == "group" && string.IsNullOrWhiteSpace(groupFlat.Object.MemberRefs))
+                    {
+                        resolvedNetworkLocations.Add(new NetworkLocation(networkLocation.User, groupFlat.Object)); // adding user only for syntax
+                    }
+                }                               
+            }
+
+            return Task.CompletedTask;
+        }
 
         private Task<List<Rule>> GatherReportData((List<Rule> processed, List<RuleViewData> viewData)[]? results)
         {

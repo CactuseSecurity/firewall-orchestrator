@@ -138,13 +138,13 @@ def parse_rulebase(rulebase_to_parse, is_section, is_placeholder, normalized_rul
     if is_section:
         for rule in rulebase_to_parse['rulebase']:
             # delte_v sind import_id, parent_uid, config2import wirklich egal? Dann können wir diese argumente löschen - NAT ACHTUNG
-            rule_num = parse_single_rule(rule, normalized_rulebase, normalized_rulebase.uid, None, rule_num, None, None, gateway, policy_structure)
+            rule_num = parse_single_rule(rule, normalized_rulebase, normalized_rulebase.uid, rule_num, None, gateway, policy_structure)
 
         if fwo_globals.debug_level>3:
             logger.debug("parsed rulebase " + normalized_rulebase.uid)
         return rule_num
     elif is_placeholder:
-        rule_num = parse_single_rule(rulebase_to_parse, normalized_rulebase, normalized_rulebase.uid, None, rule_num, None, None, gateway, policy_structure)
+        rule_num = parse_single_rule(rulebase_to_parse, normalized_rulebase, normalized_rulebase.uid, rule_num, None, gateway, policy_structure)
     else:
         rule_num = parse_rulebase_chunk(rulebase_to_parse, normalized_rulebase, rule_num, gateway, policy_structure)                    
 
@@ -153,7 +153,7 @@ def parse_rulebase_chunk(rulebase_to_parse, normalized_rulebase, rule_num, gatew
     for chunk in rulebase_to_parse['chunks']:
         for rule in chunk['rulebase']:
             if 'rule-number' in rule:
-                rule_num = parse_single_rule(rule, normalized_rulebase, normalized_rulebase.uid, None, rule_num, None, None, gateway, policy_structure)
+                rule_num = parse_single_rule(rule, normalized_rulebase, normalized_rulebase.uid, rule_num, None, gateway, policy_structure)
             else:
                 logger.debug("found unparsable rulebase: " + str(rulebase_to_parse))
     return rule_num
@@ -261,7 +261,7 @@ def _parse_obj_with_access_role(obj: dict[str,Any], addressObjects: dict[str,Any
                 addressObjects[obj['uid']] = obj['name'] + '@' + nw_resolved
 
 
-def parse_single_rule(nativeRule, rulebase, layer_name, import_id, rule_num, parent_uid, config2import, gateway, policy_structure, debug_level=0):
+def parse_single_rule(nativeRule, rulebase, layer_name, rule_num, parent_uid, gateway, policy_structure):
     logger = getFwoLogger()
     rule_order_service = RuleOrderService()
 
@@ -459,118 +459,118 @@ def insertSectionHeaderRule(target_rulebase, section_name, layer_name, import_id
     return rule_num
 
 
-def parse_nat_rulebase(src_rulebase, target_rulebase, layer_name, import_id, rule_num, section_header_uids, parent_uid, config2import, debug_level=0, recursion_level=1):
+# def parse_nat_rulebase(src_rulebase, target_rulebase, layer_name, import_id, rule_num, section_header_uids, parent_uid, config2import, debug_level=0, recursion_level=1):
 
-    if (recursion_level > fwo_const.max_recursion_level):
-        raise ImportRecursionLimitReached(
-            "parse_nat_rulebase_json") from None
+#     if (recursion_level > fwo_const.max_recursion_level):
+#         raise ImportRecursionLimitReached(
+#             "parse_nat_rulebase_json") from None
 
-    logger = getFwoLogger()
-    if 'nat_rule_chunks' in src_rulebase:
-        for chunk in src_rulebase['nat_rule_chunks']:
-            if 'rulebase' in chunk:
-                for rules_chunk in chunk['rulebase']:
-                    rule_num = parse_nat_rulebase(rules_chunk, target_rulebase, layer_name, import_id, rule_num,
-                                                       section_header_uids, parent_uid, config2import, debug_level=debug_level, recursion_level=recursion_level+1)
-            else:
-                logger.warning(
-                    "parse_rule: found no rulebase in chunk:\n" + json.dumps(chunk, indent=2))
-    else:
-        if 'rulebase' in src_rulebase:
-            check_and_add_section_header(src_rulebase, target_rulebase, layer_name, import_id, rule_num, section_header_uids, parent_uid, config2import, debug_level=debug_level, recursion_level=recursion_level+1)
+#     logger = getFwoLogger()
+#     if 'nat_rule_chunks' in src_rulebase:
+#         for chunk in src_rulebase['nat_rule_chunks']:
+#             if 'rulebase' in chunk:
+#                 for rules_chunk in chunk['rulebase']:
+#                     rule_num = parse_nat_rulebase(rules_chunk, target_rulebase, layer_name, import_id, rule_num,
+#                                                        section_header_uids, parent_uid, config2import, debug_level=debug_level, recursion_level=recursion_level+1)
+#             else:
+#                 logger.warning(
+#                     "parse_rule: found no rulebase in chunk:\n" + json.dumps(chunk, indent=2))
+#     else:
+#         if 'rulebase' in src_rulebase:
+#             check_and_add_section_header(src_rulebase, target_rulebase, layer_name, import_id, rule_num, section_header_uids, parent_uid, config2import, debug_level=debug_level, recursion_level=recursion_level+1)
 
-            for rule in src_rulebase['rulebase']:
-                (rule_match, rule_xlate) = parse_nat_rule_transform(rule, rule_num)
-                rule_num = parse_single_rule(
-                    rule_match, target_rulebase, layer_name, import_id, rule_num, parent_uid, config2import)
-                parse_single_rule( # do not increase rule_num here
-                    rule_xlate, target_rulebase, layer_name, import_id, rule_num, parent_uid, config2import)
+#             for rule in src_rulebase['rulebase']:
+#                 (rule_match, rule_xlate) = parse_nat_rule_transform(rule, rule_num)
+#                 rule_num = parse_single_rule(
+#                     rule_match, target_rulebase, layer_name, rule_num, parent_uid)
+#                 parse_single_rule( # do not increase rule_num here
+#                     rule_xlate, target_rulebase, layer_name, rule_num, parent_uid)
 
-        if 'rule-number' in src_rulebase:   # rulebase is just a single rule (xlate rules do not count)
-            (rule_match, rule_xlate) = parse_nat_rule_transform(
-                src_rulebase, rule_num)
-            rule_num = parse_single_rule(
-                rule_match, target_rulebase, layer_name, import_id, rule_num, parent_uid, config2import)
-            parse_single_rule(  # do not increase rule_num here (xlate rules do not count)
-                rule_xlate, target_rulebase, layer_name, import_id, rule_num, parent_uid, config2import)
-    return rule_num
-
-
-def parseNatRulebase(src_rulebase, target_rulebase, layer_name, import_id, rule_num, section_header_uids, parent_uid, config2import, debug_level=0, recursion_level=1):
-
-    if (recursion_level > fwo_const.max_recursion_level):
-        raise ImportRecursionLimitReached(
-            "parseNatRulebase") from None
-
-    logger = getFwoLogger()
-    if 'nat_rule_chunks' in src_rulebase:
-        for chunk in src_rulebase['nat_rule_chunks']:
-            if 'rulebase' in chunk:
-                for rules_chunk in chunk['rulebase']:
-                    rule_num = parseNatRulebase(rules_chunk, target_rulebase, layer_name, import_id, rule_num,
-                                                       section_header_uids, parent_uid, config2import, debug_level=debug_level, recursion_level=recursion_level+1)
-            else:
-                logger.warning(
-                    "parse_rule: found no rulebase in chunk:\n" + json.dumps(chunk, indent=2))
-    else:
-        if 'rulebase' in src_rulebase:
-            check_and_add_section_header(src_rulebase, target_rulebase, layer_name, import_id, rule_num, section_header_uids, parent_uid, config2import, debug_level=debug_level, recursion_level=recursion_level+1)
-
-            for rule in src_rulebase['rulebase']:
-                (rule_match, rule_xlate) = parse_nat_rule_transform(rule, rule_num)
-                rule_num = parse_single_rule(
-                    rule_match, target_rulebase, layer_name, import_id, rule_num, parent_uid, config2import)
-                parse_single_rule( # do not increase rule_num here
-                    rule_xlate, target_rulebase, layer_name, import_id, rule_num, parent_uid, config2import)
-
-        if 'rule-number' in src_rulebase:   # rulebase is just a single rule (xlate rules do not count)
-            (rule_match, rule_xlate) = parse_nat_rule_transform(
-                src_rulebase, rule_num)
-            rule_num = parse_single_rule(
-                rule_match, target_rulebase, layer_name, import_id, rule_num, parent_uid, config2import)
-            parse_single_rule(  # do not increase rule_num here (xlate rules do not count)
-                rule_xlate, target_rulebase, layer_name, import_id, rule_num, parent_uid, config2import)
-    return rule_num
+#         if 'rule-number' in src_rulebase:   # rulebase is just a single rule (xlate rules do not count)
+#             (rule_match, rule_xlate) = parse_nat_rule_transform(
+#                 src_rulebase, rule_num)
+#             rule_num = parse_single_rule(
+#                 rule_match, target_rulebase, layer_name, rule_num, parent_uid)
+#             parse_single_rule(  # do not increase rule_num here (xlate rules do not count)
+#                 rule_xlate, target_rulebase, layer_name, rule_num, parent_uid)
+#     return rule_num
 
 
-def parse_nat_rule_transform(xlate_rule_in, rule_num):
-    # todo: cleanup certain fields (install-on, ....)
-    rule_match = {
-        'uid': xlate_rule_in['uid'],
-        'source': [xlate_rule_in['original-source']],
-        'destination': [xlate_rule_in['original-destination']],
-        'service': [xlate_rule_in['original-service']],
-        'action': {'name': 'Drop'},
-        'track': {'type': {'name': 'None'}},
-        'type': 'nat',
-        'rule-number': rule_num,
-        'source-negate': False,
-        'destination-negate': False,
-        'service-negate': False,
-        'install-on': [{'name': 'Policy Targets'}],
-        'time': [{'name': 'Any'}],
-        'enabled': xlate_rule_in['enabled'],
-        'comments': xlate_rule_in['comments'],
-        'rule_type': 'access'
-    }
-    rule_xlate = {
-        'uid': xlate_rule_in['uid'],
-        'source': [xlate_rule_in['translated-source']],
-        'destination': [xlate_rule_in['translated-destination']],
-        'service': [xlate_rule_in['translated-service']],
-        'action': {'name': 'Drop'},
-        'track': {'type': {'name': 'None'}},
-        'type': 'nat',
-        'rule-number': rule_num,
-        'enabled': True,
-        'source-negate': False,
-        'destination-negate': False,
-        'service-negate': False,
-        'install-on': [{'name': 'Policy Targets'}],
-        'time': [{'name': 'Any'}],
-        'rule_type': 'nat'
-    }
-    return (rule_match, rule_xlate)
+# def parseNatRulebase(src_rulebase, target_rulebase, layer_name, import_id, rule_num, section_header_uids, parent_uid, config2import, debug_level=0, recursion_level=1):
+
+#     if (recursion_level > fwo_const.max_recursion_level):
+#         raise ImportRecursionLimitReached(
+#             "parseNatRulebase") from None
+
+#     logger = getFwoLogger()
+#     if 'nat_rule_chunks' in src_rulebase:
+#         for chunk in src_rulebase['nat_rule_chunks']:
+#             if 'rulebase' in chunk:
+#                 for rules_chunk in chunk['rulebase']:
+#                     rule_num = parseNatRulebase(rules_chunk, target_rulebase, layer_name, import_id, rule_num,
+#                                                        section_header_uids, parent_uid, config2import, debug_level=debug_level, recursion_level=recursion_level+1)
+#             else:
+#                 logger.warning(
+#                     "parse_rule: found no rulebase in chunk:\n" + json.dumps(chunk, indent=2))
+#     else:
+#         if 'rulebase' in src_rulebase:
+#             check_and_add_section_header(src_rulebase, target_rulebase, layer_name, import_id, rule_num, section_header_uids, parent_uid, config2import, debug_level=debug_level, recursion_level=recursion_level+1)
+
+#             for rule in src_rulebase['rulebase']:
+#                 (rule_match, rule_xlate) = parse_nat_rule_transform(rule, rule_num)
+#                 rule_num = parse_single_rule(
+#                     rule_match, target_rulebase, layer_name, rule_num, parent_uid)
+#                 parse_single_rule( # do not increase rule_num here
+#                     rule_xlate, target_rulebase, layer_name, rule_num, parent_uid)
+
+#         if 'rule-number' in src_rulebase:   # rulebase is just a single rule (xlate rules do not count)
+#             (rule_match, rule_xlate) = parse_nat_rule_transform(
+#                 src_rulebase, rule_num)
+#             rule_num = parse_single_rule(
+#                 rule_match, target_rulebase, layer_name, rule_num, parent_uid)
+#             parse_single_rule(  # do not increase rule_num here (xlate rules do not count)
+#                 rule_xlate, target_rulebase, layer_name, rule_num, parent_uid)
+#     return rule_num
+
+
+# def parse_nat_rule_transform(xlate_rule_in, rule_num):
+#     # todo: cleanup certain fields (install-on, ....)
+#     rule_match = {
+#         'uid': xlate_rule_in['uid'],
+#         'source': [xlate_rule_in['original-source']],
+#         'destination': [xlate_rule_in['original-destination']],
+#         'service': [xlate_rule_in['original-service']],
+#         'action': {'name': 'Drop'},
+#         'track': {'type': {'name': 'None'}},
+#         'type': 'nat',
+#         'rule-number': rule_num,
+#         'source-negate': False,
+#         'destination-negate': False,
+#         'service-negate': False,
+#         'install-on': [{'name': 'Policy Targets'}],
+#         'time': [{'name': 'Any'}],
+#         'enabled': xlate_rule_in['enabled'],
+#         'comments': xlate_rule_in['comments'],
+#         'rule_type': 'access'
+#     }
+#     rule_xlate = {
+#         'uid': xlate_rule_in['uid'],
+#         'source': [xlate_rule_in['translated-source']],
+#         'destination': [xlate_rule_in['translated-destination']],
+#         'service': [xlate_rule_in['translated-service']],
+#         'action': {'name': 'Drop'},
+#         'track': {'type': {'name': 'None'}},
+#         'type': 'nat',
+#         'rule-number': rule_num,
+#         'enabled': True,
+#         'source-negate': False,
+#         'destination-negate': False,
+#         'service-negate': False,
+#         'install-on': [{'name': 'Policy Targets'}],
+#         'time': [{'name': 'Any'}],
+#         'rule_type': 'nat'
+#     }
+#     return (rule_match, rule_xlate)
 
 
 def ensure_json(raw: str) -> Any:

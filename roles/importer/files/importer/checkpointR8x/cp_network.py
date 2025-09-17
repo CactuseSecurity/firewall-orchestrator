@@ -162,10 +162,7 @@ def handle_object_type_and_ip(obj, ip_addr):
         first_ip = '0.0.0.0/32'
         last_ip = '255.255.255.255/32'
         
-    if obj_type in ['security-zone', 'dns-domain', 'dynamic-object']:
-        obj_type = 'group'
-
-    if obj_type == 'group-with-exclusion':
+    if obj_type in ['group-with-exclusion', 'security-zone', 'dns-domain', 'dynamic-object']:
         obj_type = 'group'
         # TODO: handle exclusion groups correctly
 

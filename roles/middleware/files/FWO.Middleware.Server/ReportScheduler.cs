@@ -145,7 +145,7 @@ namespace FWO.Middleware.Server
                     await apiConnectionUserContext.SendQueryAsync<object>(ReportQueries.countReportSchedule, new { report_schedule_id = reportSchedule.Id });
                     await TryAdaptDeviceFilter(reportSchedule.Template.ReportParams, apiConnectionUserContext);
 
-                    ReportBase report = await ReportGenerator.Generate(reportSchedule.Template, apiConnectionUserContext, _userConfig, DefaultInit.DoNothing, token);
+                    ReportBase? report = await ReportGenerator.Generate(reportSchedule.Template, apiConnectionUserContext, _userConfig, DefaultInit.DoNothing, token);
 
                     if (report != null)
                     {
@@ -199,7 +199,7 @@ namespace FWO.Middleware.Server
         {
             try
             {
-                if (reportParams.ReportType != (int)ReportType.Compliance && !reportParams.DeviceFilter.IsAnyDeviceFilterSet())
+                if (reportParams.ReportType != (int)ReportType.Compliance && reportParams.ReportType != (int)ReportType.ComplianceDiff && !reportParams.DeviceFilter.IsAnyDeviceFilterSet())
                 {
                     // for scheduling no device selection means "all"
                     reportParams.DeviceFilter.Managements = await apiConnectionUser.SendQueryAsync<List<ManagementSelect>>(DeviceQueries.getDevicesByManagement);
@@ -248,7 +248,7 @@ namespace FWO.Middleware.Server
 
         private async Task TrySaveReport(ReportFile reportFile, ReportSchedulerConfig reportSchedulerConfig, string desc, ApiConnection apiConnectionUser)
         {
-            if (reportSchedulerConfig.ToEmail)
+            if (reportSchedulerConfig.ToArchive)
             {
                 try
                 {

@@ -9,13 +9,17 @@ namespace FWO.Test
     {
         private MockReportCompliance _complianceReport => new(new(""), new(), Basics.ReportType.Compliance);
         private MockReportCompliance _testReport = default!;
+        private MockReportComplianceDiff _complianceDiffReport => new(new(""), new(), Basics.ReportType.ComplianceDiff);
+        private MockReportComplianceDiff _testDiffReport = default!;
+        
 
         [SetUp]
         public void SetUpTest()
         {
             _testReport = _complianceReport;
-            _testReport.MockPostProcessDiffReportsRule = true;
 
+            _testDiffReport = _complianceDiffReport;
+            _testDiffReport.MockPostProcessDiffReportsRule = true;
         }
 
         [Test]
@@ -48,8 +52,7 @@ namespace FWO.Test
             CancellationToken ct = default;
             List<Rule>[] ruleChunks = new List<Rule>[2];
 
-            _testReport.DiffReferenceInDays = 7;
-            _testReport.IsDiffReport = true;
+            _testDiffReport.DiffReferenceInDays = 7;
 
             Rule rule1 = new()
             {
@@ -69,7 +72,7 @@ namespace FWO.Test
             {
                 Id = 1,
                 RuleId = 1,
-                FoundDate = DateTime.Now.AddDays(-(_testReport.DiffReferenceInDays + 1)),
+                FoundDate = DateTime.Now.AddDays(-(_testDiffReport.DiffReferenceInDays + 1)),
                 Details = "Test violation 1",
                 RiskScore = 0,
                 PolicyId = 1,
@@ -80,7 +83,7 @@ namespace FWO.Test
             {
                 Id = 2,
                 RuleId = 1,
-                FoundDate = DateTime.Now.AddDays(-(_testReport.DiffReferenceInDays + 1)),
+                FoundDate = DateTime.Now.AddDays(-(_testDiffReport.DiffReferenceInDays + 1)),
                 RemovedDate = DateTime.Now.AddDays(-1),
                 Details = "Test violation 2",
                 RiskScore = 0,
@@ -92,8 +95,8 @@ namespace FWO.Test
             {
                 Id = 3,
                 RuleId = 2,
-                FoundDate = DateTime.Now.AddDays(-(_testReport.DiffReferenceInDays + 2)),
-                RemovedDate = DateTime.Now.AddDays(-(_testReport.DiffReferenceInDays + 1)),
+                FoundDate = DateTime.Now.AddDays(-(_testDiffReport.DiffReferenceInDays + 2)),
+                RemovedDate = DateTime.Now.AddDays(-(_testDiffReport.DiffReferenceInDays + 1)),
                 Details = "Test violation 3",
                 RiskScore = 0,
                 PolicyId = 1,
@@ -122,7 +125,7 @@ namespace FWO.Test
 
             // ACT
 
-            List<Rule> testResults = await _testReport.ProcessChunksParallelized(ruleChunks, ct, new SimulatedApiConnection());
+            List<Rule> testResults = await _testDiffReport.ProcessChunksParallelized(ruleChunks, ct, new SimulatedApiConnection());
 
             // ASSERT
 

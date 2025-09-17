@@ -271,7 +271,7 @@
             reportTemplates = reportTemplates.Where(rt => (showRuleRelatedReports && ((ReportType)rt.ReportParams.ReportType).IsDeviceRelatedReport() || 
                                                            showModellingReports && ((ReportType)rt.ReportParams.ReportType).IsModellingReport() &&
                                                            modOwnerList.FirstOrDefault(o => o.Id == rt.ReportParams.ModellingFilter.SelectedOwner.Id) != null ||
-                                                           showComplianceReport && ((ReportType)rt.ReportParams.ReportType) == ReportType.Compliance)).ToList();
+                                                           showComplianceReport && ((ReportType)rt.ReportParams.ReportType).IsComplianceReport())).ToList();
             authenticationState = await authenticationStateTask!;
         }
         catch (Exception exception)

@@ -50,7 +50,6 @@ namespace FWO.Report
                         {
                             report.ReportData.ManagementData = rep.ManagementData;
                             SetRelevantManagements(ref report.ReportData.ManagementData, reportTemplate.ReportParams.DeviceFilter);
-                            TrySetComplianceReportFilter(report, reportTemplate);
                             return Task.CompletedTask;
                         }, token);
                     if (report.ReportType == ReportType.Recertification)
@@ -187,17 +186,6 @@ namespace FWO.Report
                     mgm.Ignore = !relevantManagements.Contains(mgm.Id);
                 }
             }
-        }
-
-        private static void TrySetComplianceReportFilter(ReportBase report, ReportTemplate reportTemplate)
-        {
-            if (report.ReportType == ReportType.Compliance)
-            {
-                ReportCompliance complianceReport = (ReportCompliance)report;
-                complianceReport.IsDiffReport = reportTemplate.ReportParams.ComplianceFilter.IsDiffReport;
-                complianceReport.DiffReferenceInDays = reportTemplate.ReportParams.ComplianceFilter.DiffReferenceInDays;
-            }
-
         }
     }
 }

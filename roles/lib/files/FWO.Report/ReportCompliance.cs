@@ -357,8 +357,13 @@ namespace FWO.Report
                         foreach (var rule in chunk)
                         {
                             await SetComplianceDataForRule(rule, apiConnection);
-                            List<NetworkLocation> networkObjects = RuleDisplayBase.GetResolvedNetworkLocations(rule.Froms);
-                            (bool isAssessable, string violationDetails) checkAssessabilityResult = await CheckAssessability(rule, networkObjects);
+
+                            // Resolve network locations
+
+                            NetworkLocation[] networkLocations = rule.Froms.Concat(rule.Tos).ToArray();
+                            List<NetworkLocation> resolvedNetworkLocations = RuleDisplayBase.GetResolvedNetworkLocations(networkLocations);
+
+                            (bool isAssessable, string violationDetails) checkAssessabilityResult = await CheckAssessability(rule, resolvedNetworkLocations);
                             ComplianceViolationType complianceViolationType = checkAssessabilityResult.isAssessable ? rule.Compliance : ComplianceViolationType.NotAssessable;
                             RuleViewData ruleViewData = new RuleViewData(rule, _natRuleDisplayHtml, OutputLocation.report, ShowRule(rule), _devices ?? [], Managements ?? [], complianceViolationType);
 

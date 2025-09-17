@@ -1769,8 +1769,8 @@ INSERT INTO txt VALUES ('edit_fix_crit',      	'German', 	'Festes Kriteriium bea
 INSERT INTO txt VALUES ('edit_fix_crit',      	'English', 	'Edit Fixed Criterion');
 INSERT INTO txt VALUES ('criteria',      		'German', 	'Kriterien');
 INSERT INTO txt VALUES ('criteria',      		'English', 	'Criteria');
-INSERT INTO txt VALUES ('show_non_impact_rules' 'German',   'Zeige Regeln ohne Auswirkungen');
-INSERT INTO txt VALUES ('show_non_impact_rules' 'English',  'Show non-impact rules');
+INSERT INTO txt VALUES ('show_non_impact_rules','German',   'Zeige Regeln ohne Auswirkungen');
+INSERT INTO txt VALUES ('show_non_impact_rules','English',  'Show non-impact rules');
 
 -- settings
 INSERT INTO txt VALUES ('devices',				'German', 	'Ger&auml;te');

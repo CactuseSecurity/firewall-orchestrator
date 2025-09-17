@@ -6,7 +6,7 @@ namespace FWO.Api.Client.Queries
     {
 
         public static readonly string deleteImport;
-        public static readonly string rollbackLastImport;
+        public static readonly string rollbackImport;
         public static readonly string deleteLatestConfigOfManagement;
         public static readonly string getLastImport;
 
@@ -15,7 +15,7 @@ namespace FWO.Api.Client.Queries
             try
             {
                 deleteImport = GetQueryText("import/deleteImport.graphql");
-                rollbackLastImport = GetQueryText("import/rollback.graphql");
+                rollbackImport = GetQueryText("import/rollbackImport.graphql");
                 deleteLatestConfigOfManagement = GetQueryText("import/deleteLatestConfigOfManagement.graphql");
                 getLastImport = GetQueryText("import/getLastImport.graphql");
 

@@ -234,7 +234,7 @@ def handle_super_manager(managerDetails, cpManagerApiBaseUrl, show_params_policy
             # policy structure is fetched from global domain
             managerDetails.DomainUid = global_domain
             global_sid: str = cp_getter.login(managerDetails)
-            cp_getter.getPolicyStructure(
+            cp_getter.get_policy_structure(
                 cpManagerApiBaseUrl, global_sid, show_params_policy_structure, managerDetails, policy_structure=global_policy_structure
             )
         else:
@@ -245,7 +245,7 @@ def handle_super_manager(managerDetails, cpManagerApiBaseUrl, show_params_policy
 
 def get_policy_structure(cpManagerApiBaseUrl, sid, show_params_policy_structure, managerDetails):
     pol_structure = []
-    cp_getter.getPolicyStructure(
+    cp_getter.get_policy_structure(
         cpManagerApiBaseUrl, sid, show_params_policy_structure, managerDetails, policy_structure=pol_structure
     )
     return pol_structure

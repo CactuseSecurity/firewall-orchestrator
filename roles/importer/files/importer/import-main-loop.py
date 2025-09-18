@@ -148,7 +148,7 @@ if __name__ == '__main__':
                     except Exception:
                         logger.error("import-main-loop - error while getting FW management details for mgm_id=" + str(import_state.MgmDetails.Id) + " - skipping: " + str(traceback.format_exc()))
                         skipping = True
-                    if not skipping and mgm_details["deviceType"]["id"] in (9, 11, 17, 22, 23, 24):  # only handle CPR8x Manager, fortiManager, Cisco MgmCenter, Palo Panorama, Palo FW, FortiOS REST
+                    if not skipping and mgm_details["deviceType"]["id"] in (9, 12, 17, 22, 23, 24):  # only handle CPR8x Manager, fortiManager, Cisco MgmCenter, Palo Panorama, Palo FW, FortiOS REST
                         logger.debug("import-main-loop: starting import of mgm_id=" + str(import_state.MgmDetails.Id))
                         try:
                             import_result = import_management(mgmId=import_state.MgmDetails.Id, debug_level_in=debug_level, version=import_state.ImportVersion,

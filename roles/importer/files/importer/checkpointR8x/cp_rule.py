@@ -307,10 +307,11 @@ def parse_single_rule(nativeRule, rulebase, layer_name, rule_num, parent_uid, ga
     # new in v8.0.3:
     rule_custom_fields = nativeRule.get('custom-fields', None)
 
-    if 'meta-info' in nativeRule and 'last-modifier' in nativeRule['meta-info']:
-        rule_last_change_admin = nativeRule['meta-info']['last-modifier']
-    else:
-        rule_last_change_admin = None
+    # we leave out all last_admin info for now
+    # if 'meta-info' in nativeRule and 'last-modifier' in nativeRule['meta-info']:
+    #     rule_last_change_admin = nativeRule['meta-info']['last-modifier']
+    # else:
+    rule_last_change_admin = None
 
     parent_rule_uid = _parse_parent_rule_uid(parent_uid, native_rule=nativeRule)
 

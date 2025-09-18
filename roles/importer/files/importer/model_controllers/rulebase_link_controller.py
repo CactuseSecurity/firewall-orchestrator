@@ -12,6 +12,8 @@ class RulebaseLinkController():
     def insert_rulebase_links(self, import_state: ImportStateController, rb_links: list[RulebaseLink]):
         logger = getFwoLogger()
         query_variables = { "rulebaseLinks": rb_links }
+        if len(rb_links) == 0:
+            return
         mutation = FwoApi.get_graphql_code([f"{fwo_const.graphql_query_path}rule/insertRulebaseLinks.graphql"])      
         add_result = import_state.api_call.call(mutation, query_variables=query_variables)
         if 'errors' in add_result:

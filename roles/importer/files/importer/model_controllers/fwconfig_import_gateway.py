@@ -43,7 +43,7 @@ class FwConfigImportGateway:
                     self.add_single_link(rb_link_list, link, gw_id, logger)
         rb_link_controller = RulebaseLinkController()
         rb_link_controller.insert_rulebase_links(self._global_state.import_state, rb_link_list) 
-        
+
 
     def add_single_link(self, rb_link_list, link, gw_id, logger):
         from_rule_id = self._global_state.import_state.lookupRule(link.from_rule_uid)

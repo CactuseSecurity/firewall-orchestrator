@@ -76,6 +76,7 @@ class FwConfigImport():
             for config in manager.Configs:
                 self.import_config(service_provider, import_state, manager, config)
 
+
     def import_config(self, service_provider: ServiceProvider, import_state: ImportStateController, manager: FwConfigManager, config: FwConfigNormalized):
         global_state = service_provider.get_service(Services.GLOBAL_STATE)
         global_state.normalized_config = config

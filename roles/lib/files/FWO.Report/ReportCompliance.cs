@@ -12,7 +12,6 @@ using FWO.Data.Middleware;
 using FWO.Logging;
 using FWO.Report.Data.ViewData;
 using FWO.Ui.Display;
-using System.Collections.Frozen;
 
 namespace FWO.Report
 {
@@ -22,34 +21,27 @@ namespace FWO.Report
         #region Properties
         
         public List<Rule> Rules { get; set; } = [];
-        public FrozenDictionary<Rule, List<NetworkObject>>? RuleNetworkObjectMap { get; set; }
         public List<RuleViewData> RuleViewData = [];
-        public bool IsDiffReport { get; set; } = false;
-        public Dictionary<ComplianceViolation, char> ViolationDiffs = new();
         public List<ComplianceViolation> Violations { get; set; } = [];
-        public int DiffReferenceInDays { get; set; } = 0;
-        public bool ShowAllRules { get; set; }
+        public bool ShowNonImpactRules { get; set; }
         public List<Management>? Managements  { get; set; }
+        protected virtual string InternalQuery => RuleQueries.getRulesWithCurrentViolationsByChunk;
+        protected DebugConfig DebugConfig;
 
         #endregion
 
         #region Fields
 
-        
         private List<Device>? _devices;
-
         private readonly int _maxDegreeOfParallelism;
         private readonly SemaphoreSlim _semaphore;
         private readonly NatRuleDisplayHtml _natRuleDisplayHtml;
         private readonly List<string> _columnsToExport;
         private readonly bool _includeHeaderInExport;
         private readonly char _separator;
-        private readonly DebugConfig _debugConfig;
         private readonly int _maxCellSize;
         private readonly int _maxPrintedViolations;
-
         private List<int> _relevanteManagementIDs = new();
-
 
         #endregion
 
@@ -95,12 +87,12 @@ namespace FWO.Report
 
             if (userConfig.GlobalConfig != null && !string.IsNullOrEmpty(userConfig.GlobalConfig.DebugConfig))
             {
-                _debugConfig = JsonSerializer.Deserialize<DebugConfig>(userConfig.GlobalConfig.DebugConfig) ?? new();
+                DebugConfig = JsonSerializer.Deserialize<DebugConfig>(userConfig.GlobalConfig.DebugConfig) ?? new();
             }
             else
             {
                 Log.WriteWarning("Compliance Report", "No debug config found, using default values.");
-                _debugConfig = new();
+                DebugConfig = new();
             }
 
             if (userConfig.GlobalConfig != null && !string.IsNullOrEmpty(userConfig.GlobalConfig.ComplianceCheckRelevantManagements))
@@ -112,22 +104,17 @@ namespace FWO.Report
                         .Select(s => int.Parse(s.Trim()))
                         .ToList();
                 }
-                catch (System.Exception e)
+                catch (Exception e)
                 {
-                    Log.TryWriteLog(LogType.Error, "Compliance Report", $"Error while parsing relevant mangement IDs: {e.Message}", _debugConfig.ExtendedLogReportGeneration);
+                    Log.TryWriteLog(LogType.Error, "Compliance Report", $"Error while parsing relevant mangement IDs: {e.Message}", DebugConfig.ExtendedLogReportGeneration);
                 }
             }
-
-
         }
 
         public ReportCompliance(DynGraphqlQuery query, UserConfig userConfig, ReportType reportType, ReportParams reportParams) : this(query, userConfig, reportType)
         {
-            IsDiffReport = reportParams.ComplianceFilter.IsDiffReport;
-            DiffReferenceInDays = reportParams.ComplianceFilter.DiffReferenceInDays;
-            ShowAllRules = reportParams.ComplianceFilter.ShowCompliantRules;
+            ShowNonImpactRules = reportParams.ComplianceFilter.ShowNonImpactRules;
         }
-
 
         #endregion
 
@@ -139,7 +126,7 @@ namespace FWO.Report
 
             List<Management>? managements = await apiConnection.SendQueryAsync<List<Management>>(DeviceQueries.getManagementNames);
 
-            Log.TryWriteLog(LogType.Debug, "Compliance Report", $"Fetched info for {managements?.Count() ?? 0} managements.", _debugConfig.ExtendedLogReportGeneration);
+            Log.TryWriteLog(LogType.Debug, "Compliance Report", $"Fetched info for {managements?.Count() ?? 0} managements.", DebugConfig.ExtendedLogReportGeneration);
 
             if (managements != null)
             {
@@ -163,20 +150,17 @@ namespace FWO.Report
 
             // Get data parallelized.
 
-            string query = IsDiffReport ? RuleQueries.getRulesWithViolationsInTimespanByChunk : RuleQueries.getRulesWithCurrentViolationsByChunk;
-
-            List<Rule>[]? chunks = await GetDataParallelized<Rule>(rulesCount, elementsPerFetch, apiConnection, ct, query);
-
+            List<Rule>[]? chunks = await GetDataParallelized<Rule>(rulesCount, elementsPerFetch, apiConnection, ct, InternalQuery);
 
             if (chunks != null)
             {
                 RuleViewData.Clear();
                 Rules = await ProcessChunksParallelized(chunks, ct, apiConnection);
-                Log.TryWriteLog(LogType.Debug, "Compliance Report", $"Fetched {Rules.Count} rules for compliance report.", _debugConfig.ExtendedLogReportGeneration);
+                Log.TryWriteLog(LogType.Debug, "Compliance Report", $"Fetched {Rules.Count} rules for compliance report.", DebugConfig.ExtendedLogReportGeneration);
             }
             else
             {
-                Log.TryWriteLog(LogType.Error, "Compliance Report", "Failed to fetch rules for compliance report.", _debugConfig.ExtendedLogReportGeneration);
+                Log.TryWriteLog(LogType.Error, "Compliance Report", "Failed to fetch rules for compliance report.", DebugConfig.ExtendedLogReportGeneration);
                 return;
             }
 
@@ -225,7 +209,7 @@ namespace FWO.Report
                     {
                         // Skip marked (i.e. compliant rules) rules if configured.
 
-                        if (!ShowAllRules && !ruleViewData.Show)
+                        if (!ShowNonImpactRules && !ruleViewData.Show)
                         {
                             continue;
                         }
@@ -237,7 +221,7 @@ namespace FWO.Report
                 }
                 catch (Exception e)
                 {
-                    Log.TryWriteLog(LogType.Error, "Compliance Report", $"Error while exporting compliance report to CSV: {e.Message}", _debugConfig.ExtendedLogReportGeneration);
+                    Log.TryWriteLog(LogType.Error, "Compliance Report", $"Error while exporting compliance report to CSV: {e.Message}", DebugConfig.ExtendedLogReportGeneration);
                 }
             }
 
@@ -253,10 +237,14 @@ namespace FWO.Report
 
         #region Methods - Public
 
-        public Task<(bool isAssessable, string violationDetails)> CheckAssessability(Rule rule, List<NetworkObject> networkObjects)
+        public Task<(bool isAssessable, string violationDetails)> CheckAssessability(Rule rule, List<NetworkLocation> networkLocations)
         {
             bool isAssessable = true;
             StringBuilder violationDetailsBuilder = new();
+            
+            List<NetworkObject> networkObjects = networkLocations
+                .Select(nl => nl.Object) // ATTENTION!!! excludes users
+                .ToList();
 
             if (rule.Action == "accept")
             {
@@ -283,7 +271,7 @@ namespace FWO.Report
                     networkObjects,
                     n => n.IP == "0.0.0.0/32" && n.IpEnd == "0.0.0.0/32",
                     "Network objects in source or destination with 0.0.0.0/32: ",
-                    violationDetailsBuilder);                
+                    violationDetailsBuilder);
             }
 
             return Task.FromResult((isAssessable, violationDetailsBuilder.ToString()));
@@ -354,28 +342,36 @@ namespace FWO.Report
 
         public async Task<List<Rule>> ProcessChunksParallelized(List<Rule>[] chunks, CancellationToken ct, ApiConnection apiConnection)
         {
-            List<Task<(List<Rule> processed, List<RuleViewData> viewData, Dictionary<Rule, List<NetworkObject>> networkObjects)>> tasks = new();
+            List<Task<(List<Rule> processed, List<RuleViewData> viewData)>> tasks = new();
 
             foreach (List<Rule> chunk in chunks)
             {
                 await _semaphore.WaitAsync(ct);
 
-                Task<(List<Rule>, List<RuleViewData>, Dictionary<Rule, List<NetworkObject>>)> task = Task.Run<(List<Rule>, List<RuleViewData>, Dictionary<Rule, List<NetworkObject>>)>(async () =>
+                Task<(List<Rule>, List<RuleViewData>)> task = Task.Run<(List<Rule>, List<RuleViewData>)>(async () =>
                 {
                     List<RuleViewData> localViewData = new(chunk.Count);
-                    Dictionary<Rule, List<NetworkObject>> networkObjects = new();
-
+                    
                     try
                     {
                         foreach (var rule in chunk)
                         {
                             await SetComplianceDataForRule(rule, apiConnection);
-                            networkObjects[rule] = GetAllNetworkObjectsFromRule(rule);
-                            (bool isAssessable, string violationDetails) checkAssessabilityResult = await CheckAssessability(rule, networkObjects[rule]);
+
+                            // Resolve network locations
+
+                            NetworkLocation[] networkLocations = rule.Froms.Concat(rule.Tos).ToArray();
+                            List<NetworkLocation> resolvedNetworkLocations = RuleDisplayBase.GetResolvedNetworkLocations(networkLocations);
+
+                            // Add empty groups because display method does not get them
+
+                            await GatherEmptyGroups(networkLocations, resolvedNetworkLocations);
+
+                            (bool isAssessable, string violationDetails) checkAssessabilityResult = await CheckAssessability(rule, resolvedNetworkLocations);
                             ComplianceViolationType complianceViolationType = checkAssessabilityResult.isAssessable ? rule.Compliance : ComplianceViolationType.NotAssessable;
                             RuleViewData ruleViewData = new RuleViewData(rule, _natRuleDisplayHtml, OutputLocation.report, ShowRule(rule), _devices ?? [], Managements ?? [], complianceViolationType);
 
-                            if (!checkAssessabilityResult.isAssessable )
+                            if (!checkAssessabilityResult.isAssessable)
                             {
                                 ruleViewData.ViolationDetails = checkAssessabilityResult.violationDetails;
                             }
@@ -383,13 +379,13 @@ namespace FWO.Report
                             localViewData.Add(ruleViewData);
                         }
 
-                        return (chunk, localViewData, networkObjects);
+                        return (chunk, localViewData);
                     }
                     catch (Exception e)
                     {
-                        Log.TryWriteLog(LogType.Error, "Compliance Report", $"Failed processing chunk: {e.Message}.", _debugConfig.ExtendedLogReportGeneration);
+                        Log.TryWriteLog(LogType.Error, "Compliance Report", $"Failed processing chunk: {e.Message}.", DebugConfig.ExtendedLogReportGeneration);
 
-                        return (chunk, localViewData, networkObjects);
+                        return (chunk, localViewData);
                     }
                     finally
                     {
@@ -400,7 +396,7 @@ namespace FWO.Report
                 tasks.Add(task);
             }
 
-            (List<Rule> processed, List<RuleViewData> viewData, Dictionary<Rule, List<NetworkObject>> networkObjects)[]? results = await Task.WhenAll(tasks);
+            (List<Rule> processed, List<RuleViewData> viewData)[]? results = await Task.WhenAll(tasks);
 
             return await GatherReportData(results);
         }
@@ -410,29 +406,37 @@ namespace FWO.Report
 
         #region Methods - Private
 
-        private Task<List<Rule>> GatherReportData((List<Rule> processed, List<RuleViewData> viewData, Dictionary<Rule, List<NetworkObject>> networkObjects)[]? results)
+        private Task GatherEmptyGroups(NetworkLocation[] networkLocations, List<NetworkLocation> resolvedNetworkLocations)
+        {
+            foreach (NetworkLocation networkLocation in networkLocations)
+            {
+                foreach (GroupFlat<NetworkObject> groupFlat in networkLocation.Object.ObjectGroupFlats)
+                {
+                    if (groupFlat.Object != null && groupFlat.Object.Type.Name == "group" && string.IsNullOrWhiteSpace(groupFlat.Object.MemberRefs))
+                    {
+                        resolvedNetworkLocations.Add(new NetworkLocation(networkLocation.User, groupFlat.Object)); // adding user only for syntax
+                    }
+                }                               
+            }
+
+            return Task.CompletedTask;
+        }
+
+        private Task<List<Rule>> GatherReportData((List<Rule> processed, List<RuleViewData> viewData)[]? results)
         {
             RuleViewData.Capacity = results.Sum(r => r.viewData.Count);
             List<Rule> processedRulesFlat = new(results.Sum(r => r.processed.Count));
-            Dictionary<Rule, List<NetworkObject>> networkObjectsDict = new();
 
-            foreach ((List<Rule> processed, List<RuleViewData> viewData, Dictionary<Rule, List<NetworkObject>> networkObjects) result in results)
+            foreach ((List<Rule> processed, List<RuleViewData> viewData) result in results)
             {
                 RuleViewData.AddRange(result.viewData);
                 processedRulesFlat.AddRange(result.processed);
-
-                foreach (KeyValuePair<Rule, List<NetworkObject>> kvp in result.networkObjects)
-                {
-                    networkObjectsDict[kvp.Key] = kvp.Value;
-                }
             }
-
-            RuleNetworkObjectMap = networkObjectsDict.ToFrozenDictionary();
 
             return Task.FromResult(processedRulesFlat);
         }
 
-        private Dictionary<string, object> CreateQueryVariables(int offset, int limit, string query)
+        protected virtual Dictionary<string, object> CreateQueryVariables(int offset, int limit, string query)
         {
             Dictionary<string, object> queryVariables = new();
 
@@ -456,16 +460,6 @@ namespace FWO.Report
                 queryVariables[QueryVar.Limit] = limit;
             }
 
-            if (query.Contains("from_date"))
-            {
-                queryVariables["from_date"] = DateTime.Now.AddDays(-DiffReferenceInDays);
-            }
-
-            if (query.Contains("to_date"))
-            {
-                queryVariables["to_date"] = DateTime.Now;
-            }
-
             if (query.Contains("mgm_ids"))
             {
                 queryVariables["mgm_ids"] = _relevanteManagementIDs;
@@ -474,7 +468,7 @@ namespace FWO.Report
             return queryVariables;
         }
 
-        private async Task SetComplianceDataForRule(Rule rule, ApiConnection apiConnection)
+        protected virtual async Task SetComplianceDataForRule(Rule rule, ApiConnection apiConnection)
         {
             try
             {
@@ -487,51 +481,19 @@ namespace FWO.Report
                 {
                     ComplianceViolation violation = rule.Violations.ElementAt(violationCount - 1);
 
-                    await AddViolationDataToViolationDetails(rule, violation, ref printedViolations, violationCount, ref abbreviated);
-                }
-
-                if (IsDiffReport)
-                {
-                    await PostProcessDiffReportsRule(rule, apiConnection);
+                    await AddViolationDataToViolationDetails(rule, violation, ref printedViolations, violationCount, ref abbreviated, true);
                 }
             }
             catch (Exception e)
             {
-                Log.TryWriteLog(LogType.Error, "Compliance Report", $"Error while setting compliance data for rule {rule.Id}: {e.Message}", _debugConfig.ExtendedLogReportGeneration);
+                Log.TryWriteLog(LogType.Error, "Compliance Report", $"Error while setting compliance data for rule {rule.Id}: {e.Message}", DebugConfig.ExtendedLogReportGeneration);
                 return;
             }
         }
 
-        protected virtual async Task PostProcessDiffReportsRule(Rule rule, ApiConnection apiConnection)
+        protected virtual Task AddViolationDataToViolationDetails(Rule rule, ComplianceViolation violation, ref int printedViolations, int violationCount, ref bool abbreviated, bool concatenateDetails)
         {
-            if (rule.ViolationDetails == "")
-            {
-                DateTime from = DateTime.Now.AddDays(-DiffReferenceInDays);
-                rule.ViolationDetails = $"No changes between {from:dd.MM.yyyy} - {from:HH:mm} and {DateTime.Now:dd.MM.yyyy} - {DateTime.Now:HH:mm}";                            
-            }
-
-            string managementUid = Managements?.FirstOrDefault(m => m.Id == rule.MgmtId)?.Uid ?? "";
-
-            var variables = new { ruleUid = rule.Uid, mgmtUid =  managementUid};
-            List<ComplianceViolation>? violations = await apiConnection.SendQueryAsync<List<ComplianceViolation>>(ComplianceQueries.getViolationsByRuleUid, variables: variables);
-
-            if (violations != null)
-            {
-                rule.Compliance = violations.Where(violation => violation.RemovedDate == null).ToList().Count > 0 ? ComplianceViolationType.MultipleViolations : ComplianceViolationType.None;
-            }   
-        }
-
-        private Task AddViolationDataToViolationDetails(Rule rule, ComplianceViolation violation, ref int printedViolations, int violationCount, ref bool abbreviated)
-        {
-            if (IsDiffReport)
-            {
-                if (ViolationIsRelevantForDiff(violation))
-                {
-                    TransformViolationDetailsToDiff(violation);
-                }
-            }
-
-            if ((_maxPrintedViolations == 0 || printedViolations < _maxPrintedViolations) && (!IsDiffReport || ViolationIsRelevantForDiff(violation)))
+            if (concatenateDetails && _maxPrintedViolations == 0 || printedViolations < _maxPrintedViolations)
             {
                 if (rule.ViolationDetails != "")
                 {
@@ -555,46 +517,16 @@ namespace FWO.Report
             return Task.CompletedTask;
         }
 
-        private bool ViolationIsRelevantForDiff(ComplianceViolation violation)
+        protected virtual bool ShowRule(Rule rule)
         {
-            return violation.FoundDate > DateTime.Now.AddDays(-DiffReferenceInDays)
-                || (violation.RemovedDate != null
-                && violation.RemovedDate > DateTime.Now.AddDays(-DiffReferenceInDays));
-        }
+            bool showRule = true;
 
-        public Task TransformViolationDetailsToDiff(ComplianceViolation violation)
-        {
-            DateTime referenceDate = DateTime.Now.AddDays(-DiffReferenceInDays);
-
-            string diffPrefix = "";
-
-            if (violation.FoundDate >= referenceDate)
-            {
-                diffPrefix = $"Found: ({violation.FoundDate:dd.MM.yyyy - hh:mm}) ";
-            }
-            if (violation.RemovedDate != null && violation.RemovedDate >= referenceDate)
-            {
-                diffPrefix += $"Removed: ({violation.RemovedDate:dd.MM.yyyy - hh:mm}) ";
-            }
-
-            violation.Details = $"{diffPrefix}: {violation.Details}";
-
-            return Task.CompletedTask;
-        }
-
-        private bool ShowRule(Rule rule)
-        {
             if (rule.Compliance == ComplianceViolationType.None || rule.Action != "accept")
             {
-                return false;
+                showRule = false;
             }
 
-            if (IsDiffReport && (rule.ViolationDetails.StartsWith("No changes") || rule.Disabled))
-            {
-                return false;
-            }
-
-            return true;
+            return showRule;
         }
 
         private string GetLineForRule(RuleViewData rule, List<PropertyInfo?> properties)

@@ -57,6 +57,7 @@ fragment networkObjectDetails on object {
       obj_name
       obj_ip
       obj_ip_end
+      obj_member_refs
       type: stm_obj_typ {
         name: obj_typ_name
       }

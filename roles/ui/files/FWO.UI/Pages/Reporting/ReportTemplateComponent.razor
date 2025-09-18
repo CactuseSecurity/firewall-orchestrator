@@ -91,9 +91,9 @@
                     <input id="saveTemplateUnused" type="number" min="0" class="col-sm-2" @bind="reportTemplateInEdit.ReportParams.UnusedFilter.UnusedForDays">
                 </div>
             }
-            else if(reportTypeInEdit == ReportType.Compliance)
+            else if(reportTypeInEdit.IsComplianceReport())
             {
-                if (reportTemplateInEdit.ReportParams.ComplianceFilter.IsDiffReport)
+                if (reportTypeInEdit == ReportType.ComplianceDiff)
                 {
                     <div class="form-group row mt-2">
                         <label for="saveTemplateComplianceDiffReference" class="col-sm-3 col-form-label col-form-label-sm">Diff-Interval:</label>
@@ -101,8 +101,8 @@
                     </div>
                 }
                 <div class="form-group row mt-2">
-                    <label for="saveTemplateComplianceShowAnyRules" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("show_any_match"))</label>
-                    <input id="saveTemplateComplianceShowAnyRules" type="checkbox" min="0" class="col-sm-2" @bind="reportTemplateInEdit.ReportParams.ComplianceFilter.ShowCompliantRules">
+                    <label for="saveTemplateComplianceShowAnyRules" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("show_non_impact_rules"))</label>
+                    <input id="saveTemplateComplianceShowAnyRules" type="checkbox" min="0" class="col-sm-2" @bind="reportTemplateInEdit.ReportParams.ComplianceFilter.ShowNonImpactRules">
                 </div>
 
             }
@@ -222,7 +222,7 @@
             reportTemplates = reportTemplates.Where(rt => (showRuleRelatedReports && ((ReportType)rt.ReportParams.ReportType).IsDeviceRelatedReport() || 
                                                            showModellingReports && ((ReportType)rt.ReportParams.ReportType).IsModellingReport() &&
                                                            modOwnerList.FirstOrDefault(o => o.Id == rt.ReportParams.ModellingFilter.SelectedOwner.Id) != null ||
-                                                           _showComplianceReport && ((ReportType)rt.ReportParams.ReportType) == ReportType.Compliance)).ToList();
+                                                           _showComplianceReport && ((ReportType)rt.ReportParams.ReportType).IsComplianceReport())).ToList();
             await InvokeAsync(StateHasChanged);
         }
         catch (Exception exception)

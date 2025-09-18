@@ -101,7 +101,7 @@
                                 <Column TableItem="Rule" Title="@(userConfig.GetText("recert_comment"))" Field="@(rule => rule.Metadata.Comment)" Sortable="true" Filterable="false" />
                             }
 
-                            @if(SelectedReportType == ReportType.Compliance)
+                            @if(SelectedReportType.IsComplianceReport())
                             {
                                 <Column TableItem="Rule" Context="rule" Title="Compliance" Field="@(rChange => rChange.Compliance)" Sortable="true" Filterable="true" Hideable="true">
                                     <Template>

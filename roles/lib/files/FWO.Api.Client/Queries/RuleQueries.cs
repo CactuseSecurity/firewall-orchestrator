@@ -78,8 +78,8 @@ namespace FWO.Api.Client.Queries
                 getRuleIdsOfImport = File.ReadAllText(QueryPath + "report/getRuleIdsOfImport.graphql");
                 getRuleUidsOfDevice = File.ReadAllText(QueryPath + "report/getRuleUidsOfDevice.graphql");
                 getRulesByManagement = ruleDetailsFragments + File.ReadAllText(QueryPath + "report/getRulesByManagement.graphql");
-                getModelledRulesByManagementName = ruleDetailsFragments + File.ReadAllText(QueryPath + "report/getModelledRulesByManagementName.graphql");
-                getModelledRulesByManagementComment = ruleDetailsFragments + File.ReadAllText(QueryPath + "report/getModelledRulesByManagementComment.graphql");
+                getModelledRulesByManagementName = ruleDetailsForReportFragments + File.ReadAllText(QueryPath + "report/getModelledRulesByManagementName.graphql");
+                getModelledRulesByManagementComment = ruleDetailsForReportFragments + File.ReadAllText(QueryPath + "report/getModelledRulesByManagementComment.graphql");
                 getNatRuleOverview = natRuleOverviewFragments + File.ReadAllText(QueryPath + "rule/getNatRuleOverview.graphql");
                 getNatRuleDetails = natRuleDetailsFragments + File.ReadAllText(QueryPath + "rule/getNatRuleDetails.graphql");
                 // getNatRuleDetailsForReport = natRuleDetailsForReportFragments + File.ReadAllText(QueryPath + "rule/getNatRuleDetails.graphql");

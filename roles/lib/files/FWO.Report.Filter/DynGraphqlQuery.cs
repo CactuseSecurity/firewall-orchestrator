@@ -139,7 +139,7 @@ namespace FWO.Report.Filter
                             {{
                                 mgm_id: mgm_id
                                 {((ReportType)filter.ReportParams.ReportType == ReportType.UnusedRules ? "rule_metadatum { rule_last_hit }" : "")}
-                                ...{(filter.Detailed ? "ruleDetails" : "ruleOverview")}
+                                ...{(filter.Detailed ? "ruleDetailsForReport" : "ruleOverview")}
                             }} 
                         }}
                     }} 

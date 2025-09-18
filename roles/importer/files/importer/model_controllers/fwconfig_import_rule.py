@@ -293,7 +293,7 @@ class FwConfigImportRule():
         }
 
         try:
-            import_result = self.import_details.api_call.call(import_mutation, query_variables=query_variables)
+            import_result = self.import_details.api_call.call(import_mutation, query_variables=query_variables, analyze_payload=True)
         except Exception:
             raise FwoApiWriteError(f"failed to remove outdated rule references: {str(traceback.format_exc())}")
         if 'errors' in import_result:

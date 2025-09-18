@@ -1,5 +1,7 @@
 import time
-from datetime import datetime
+from datetime import datetime, timezone
+from dateutil import parser
+
 import urllib3
 import traceback
 
@@ -165,9 +167,19 @@ class ImportStateController(ImportState):
             self.LastSuccessfulImport = self.lastFullImportDate
 
             # Convert the string to a datetime object
-            pastDate = datetime.strptime(self.lastFullImportDate, "%Y-%m-%dT%H:%M:%S.%f")
-            now = datetime.now()
+            pastDate = parser.parse(self.lastFullImportDate)
+
+            # Ensure "now" is timezone-aware (UTC here)
+            now = datetime.now(timezone.utc)
+
+            # Normalize pastDate too (convert to UTC if it had a tz)
+            if pastDate.tzinfo is None:
+                pastDate = pastDate.replace(tzinfo=timezone.utc)
+            else:
+                pastDate = pastDate.astimezone(timezone.utc)
+
             difference = now - pastDate
+
             self.DaysSinceLastFullImport = difference.days
         else:
             self.DaysSinceLastFullImport = 0

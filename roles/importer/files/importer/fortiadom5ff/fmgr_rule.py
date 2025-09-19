@@ -137,7 +137,7 @@ def parse_single_rule(normalized_config_dict, normalized_config_global, native_r
         rule_time='',  # Time-based rules not commonly used in basic Fortinet configs
         rule_name=native_rule.get('name'),
         rule_uid=native_rule.get('uuid'),
-        rule_custom_fields="; ".join(f"{k}: {v}" for k, v in native_rule.get('meta fields', {}).items()),
+        rule_custom_fields=str(native_rule.get('meta fields', {})),
         rule_implied=False,
         rule_type=RuleType.ACCESS,
         rule_last_change_admin=None, #TODO: native_rule.get('_last-modified-by'), - see #3589

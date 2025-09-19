@@ -281,12 +281,8 @@ def parse_single_rule(nativeRule, rulebase, layer_name, rule_num, parent_uid, ga
     rule_svc_ref = list_delimiter.join(svcObjects.keys())
     rule_svc_name = list_delimiter.join(svcObjects.values())
 
-    # targetObjects = parseRulePart (nativeRule['install-on'], 'install-on')
-    # rule_installon = list_delimiter.join(targetObjects.values())
     ruleEnforcedOnGateways = parse_rule_enforced_on_gateway(gateway, policy_structure, native_rule=nativeRule)
-    listOfGwUids = []
-    for enforceEntry in ruleEnforcedOnGateways:
-        listOfGwUids.append(enforceEntry.dev_uid)
+    listOfGwUids = sorted({enforceEntry.dev_uid for enforceEntry in ruleEnforcedOnGateways})
     strListOfGwUids = list_delimiter.join(listOfGwUids)
 
     rule_track = _parse_track(native_rule=nativeRule)

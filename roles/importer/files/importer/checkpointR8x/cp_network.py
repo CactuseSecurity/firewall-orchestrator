@@ -211,7 +211,7 @@ def resolve_nw_uid_to_name(uid, nw_objects):
 
 def add_member_names_for_nw_group(idx, nw_objects):
     group = nw_objects.pop(idx)
-    if group['obj_member_refs'] == '' or group['obj_member_refs'] == None:
+    if group['obj_member_refs'] == '' or group['obj_member_refs'] is None:
         #member_names = None
         #obj_member_refs = None
         group['obj_member_names'] = None

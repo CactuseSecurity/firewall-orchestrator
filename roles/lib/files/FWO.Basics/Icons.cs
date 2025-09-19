@@ -50,7 +50,7 @@ namespace FWO.Basics
         public const string CollapseDown = "bi bi-chevron-down";
         public const string CollapseLeft = "bi bi-chevron-left";
         public const string CollapseRight = "bi bi-chevron-right";
-        public const string Share = "bi bi-share-fill"; // oi-share-boxed? oi-share?
+        public const string Share = "bi bi-share-fill";
         public const string OrderByAsc = "bi bi-caret-up-fill";
         public const string OrderByDesc = "bi bi-caret-down-fill";
         public const string Refresh = "bi bi-arrow-clockwise";
@@ -113,7 +113,7 @@ namespace FWO.Basics
         public const string Matrix = "bi bi-grid-3x3-gap-fill";
         public const string Action = "bi bi-arrow-right";
         public const string Phase = "ph-fill ph-git-commit";
-        public const string Assign = "bi bi-arrow-right-square-fill"; // "oi-arrow-circle-right" ?
+        public const string Assign = "bi bi-arrow-right-square-fill";
         
         // Monitoring
         public const string Alarm = "bi bi-bell-fill";

@@ -462,16 +462,6 @@ def normalize_rule(rule_orig, rules, native_config, rule_table, localPkgName, ru
     rule_number += 1    # nat rules have their own numbering
 
 
-# def parse_target_gateways(rule_orig, rule, localPkgName):
-#     if 'scope member' in rule_orig:
-#         installon_target = []
-#         for vdom in rule_orig['scope member']:
-#             installon_target.append(vdom['name'] + '_' + vdom['vdom'])
-#         rule.update({ 'rule_installon': '|'.join(installon_target)})
-#     else:
-#         rule.update({ 'rule_installon': localPkgName })
-
-
 def update_hit_counters(native_config, rule_table, rule_orig, rule, localPkgName, rule_access_scope_v4, rule_access_scope_v6):
     if rule_table in rule_access_scope_v4 and len(native_config['rules_hitcount'][localPkgName])>0:
         for hitcount_config in native_config['rules_hitcount'][localPkgName][0]['firewall policy']:

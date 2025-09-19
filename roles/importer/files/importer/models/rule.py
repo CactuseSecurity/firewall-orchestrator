@@ -54,7 +54,7 @@ class RuleNormalized(BaseModel):
     rule_custom_fields: str|None = None
     rule_implied: bool
     rule_type: RuleType = RuleType.SECTIONHEADER
-    rule_last_change_admin: str|None = None
+    last_change_admin: str|None = None
     parent_rule_uid: str|None = None
     last_hit: str|None = None
     rule_comment: str|None = None

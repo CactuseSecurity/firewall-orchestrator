@@ -469,7 +469,7 @@ def section_traversal_and_links(section, current_rulebase_uid, deviceConfig, is_
     if not dummy_section:
         deviceConfig['rulebase_links'].append({
             'from_rulebase_uid': current_rulebase_uid,
-            'from_rule_uid': '',
+            'from_rule_uid': None,
             'to_rulebase_uid': section['uid'],
             'type': 'concatenated',
             'is_global': is_global,
@@ -483,8 +483,8 @@ def section_traversal_and_links(section, current_rulebase_uid, deviceConfig, is_
 
 def get_placeholder_in_rulebase(rulebase):
 
-    placeholder_rule_uid = ''
-    placeholder_rulebase_uid = ''
+    placeholder_rule_uid = None
+    placeholder_rulebase_uid = None
     for rulebase_chunk in rulebase['chunks']:
         # search in case of access rulebase only
         if 'rulebase' in rulebase_chunk:

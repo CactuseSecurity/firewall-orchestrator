@@ -140,7 +140,7 @@ def parse_single_rule(normalized_config_dict, normalized_config_global, native_r
         rule_custom_fields=str(native_rule.get('meta fields', {})),
         rule_implied=False,
         rule_type=RuleType.ACCESS,
-        rule_last_change_admin=None, #TODO: native_rule.get('_last-modified-by'), - see #3589
+        last_change_admin=None, #TODO: native_rule.get('_last-modified-by'), - see #3589
         parent_rule_uid=None,
         last_hit=None, # TODO: get last hit
         rule_comment=native_rule.get('comments'),
@@ -351,7 +351,7 @@ def build_link(previous_rulebase, full_pkg_name, is_global):
         is_initial = False
     return {
         'from_rulebase_uid': previous_rulebase,
-        'from_rule_uid': '',
+        'from_rule_uid': None,
         'to_rulebase_uid': full_pkg_name,
         'type': 'concatenated',
         'is_global': is_global,
@@ -448,7 +448,7 @@ def normalize_rule(rule_orig, rules, native_config, rule_table, localPkgName, ru
 
     # new in v8.0.3:
     rule.update({ 'rule_custom_fields': rule_orig.get('meta fields', None) })
-    rule.update({ 'rule_last_change_admin': rule_orig.get('_last-modified-by',None) })
+    rule.update({ 'last_change_admin': rule_orig.get('_last-modified-by',None) })
 
     update_hit_counters(native_config, rule_table, rule_orig, rule, localPkgName, rule_access_scope_v4, rule_access_scope_v6)
 

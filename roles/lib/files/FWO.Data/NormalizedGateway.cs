@@ -41,14 +41,14 @@ namespace FWO.Data
             {
                 Uid = device.Uid ?? "",
                 Name = device.Name ?? "",
-                Routing = [], // TODO: implement
-                Interfaces = [], // TODO: implement
-                RulebaseLinks = device.RulebaseLinks.Select(rl => NormalizedRulebaseLink.FromRulebaseLink(rl)).ToArray(),
-                GlobalPolicyUid = null, // TODO: implement
-                EnforcedPolicyUids = [], // TODO: implement
-                EnforcedNatPolicyUids = [], // TODO: implement - property not available in Device
+                Routing = [], // TODO: implement (see #3645)
+                Interfaces = [], // TODO: implement (see #3645)
+                RulebaseLinks = [.. device.RulebaseLinks.Select(NormalizedRulebaseLink.FromRulebaseLink)],
+                GlobalPolicyUid = null, // TODO: implement (see #3645)
+                EnforcedPolicyUids = [], // TODO: implement (see #3645)
+                EnforcedNatPolicyUids = [], // TODO: implement - property not available in Device (see #3645)
                 ImportDisabled = device.ImportDisabled,
-                ShowInUI = !device.HideInUi // Use inverse of HideInUi
+                ShowInUI = !device.HideInUi // Use inverse of HideInUi (see #3645)
             };
         }
     }

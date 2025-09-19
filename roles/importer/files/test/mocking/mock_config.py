@@ -387,8 +387,8 @@ class MockFwConfigNormalizedBuilder():
         initial_rulebase_uid = config.rulebases[0].uid
         rulebase_links.append(
             RulebaseLinkUidBased(
-                from_rulebase_uid = "",
-                from_rule_uid = "",
+                from_rulebase_uid = None,
+                from_rule_uid = None,
                 to_rulebase_uid = initial_rulebase_uid,
                 link_type = "ordered",
                 is_initial = True,
@@ -508,7 +508,7 @@ class MockFwConfigNormalizedBuilder():
             rule_custom_fields = rule_dict.get("rule_custom_fields", None),
             rule_implied = rule_dict.get("rule_implied", False),
             rule_type = rule_dict.get("rule_type", RuleType.SECTIONHEADER),
-            rule_last_change_admin = rule_dict.get("rule_last_change_admin", None),
+            last_change_admin = rule_dict.get("last_change_admin", None),
             parent_rule_uid = rule_dict.get("parent_rule_uid", None),
             last_hit = rule_dict.get("last_hit", None),
             rule_comment = rule_dict.get("rule_comment", None),

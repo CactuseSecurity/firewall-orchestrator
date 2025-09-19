@@ -6,10 +6,10 @@ namespace FWO.Data
     public class NormalizedRulebaseLink
     {
         [JsonProperty("from_rulebase_uid"), JsonPropertyName("from_rulebase_uid")]
-        public string FromRulebaseUid { get; set; } = "";
+        public string? FromRulebaseUid { get; set; }
 
         [JsonProperty("from_rule_uid"), JsonPropertyName("from_rule_uid")]
-        public string FromRuleUid { get; set; } = "";
+        public string? FromRuleUid { get; set; }
 
         [JsonProperty("to_rulebase_uid"), JsonPropertyName("to_rulebase_uid")]
         public string ToRulebaseUid { get; set; } = "";
@@ -30,8 +30,8 @@ namespace FWO.Data
         {
             return new NormalizedRulebaseLink
             {
-                FromRulebaseUid = rulebaseLink.FromRulebase?.Uid ?? "",
-                FromRuleUid = "", // TODO: implement - need to get rule UID (see #3645)
+                FromRulebaseUid = rulebaseLink.FromRulebase?.Uid,
+                FromRuleUid = rulebaseLink.FromRule?.Uid,
                 ToRulebaseUid = rulebaseLink.ToRulebase?.Uid ?? "",
                 LinkType = rulebaseLink.LinkTypeObj?.Name ?? "",
                 IsInitial = rulebaseLink.IsInitial,

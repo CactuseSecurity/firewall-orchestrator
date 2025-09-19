@@ -1101,7 +1101,7 @@ class FwConfigImportRule():
                 track_id = importDetails.lookupTrack(rule.rule_track),
                 rule_head_text=rule.rule_head_text,
                 rule_installon=rule.rule_installon,
-                last_change_admin=None #TODO: get id from rule.rule_last_change_admin
+                last_change_admin=None #TODO: get id from rule.last_change_admin
             ).model_dump()
 
             if listOfEnforcedGwIds is not None and len(listOfEnforcedGwIds) > 0:    # leave out field, if no resolvable gateways are found

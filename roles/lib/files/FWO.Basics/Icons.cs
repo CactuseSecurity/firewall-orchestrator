@@ -84,7 +84,7 @@ namespace FWO.Basics
 
         // Modules
         public const string Reporting = "bi bi-table";
-        public const string Workflow = "ph-fill ph-git-branch"; //"oi oi-data-transfer-download"; //"oi oi-comment-square";
+        public const string Workflow = "ph-fill ph-git-branch";
         public const string Recertification = "bi bi-award-fill";
         public const string Modelling = "bi bi-puzzle-fill";
         public const string NetworkAnalysis = "bi bi-table";

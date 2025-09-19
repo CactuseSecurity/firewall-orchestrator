@@ -673,7 +673,7 @@ class FwConfigImportRule():
         for rulebase in newRules:
             rules = {"data": []}
             if includeRules:
-                rules = self.prepare_rules_for_import(self.import_details, rulebase)
+                rules = self.prepare_rules_for_import(self.import_details, list(rulebase.Rules.values()), rulebase.uid)
             rb4import = RulebaseForImport(
                 name=rulebase.name,
                 mgm_id=self.import_details.MgmDetails.CurrentMgmId,
@@ -774,7 +774,7 @@ class FwConfigImportRule():
         import_rules = []
 
         for rulebase_uid in list(rule_uids.keys()):
-                import_rules.extend(self.prepare_rules_for_import(self.import_details, [rule_with_changes for rule_with_changes in rule_order_service.target_rules_flat if rule_with_changes.rule_uid in rule_uids[rulebase_uid]], rulebaseUid=rulebase_uid)["data"])
+                import_rules.extend(self.prepare_rules_for_import(self.import_details, [rule_with_changes for rule_with_changes in rule_order_service.target_rules_flat if rule_with_changes.rule_uid in rule_uids[rulebase_uid]], rulebase_uid)["data"])
 
         create_new_rule_version_variables = {
             "objects": import_rules,
@@ -1048,13 +1048,13 @@ class FwConfigImportRule():
         return self.import_details.api_call.call(mutation, query_variables=query_variables)
 
 
-    def prepare_rules_for_import(self, importDetails: ImportStateController, rulebase: Rulebase) -> dict[str, list[Rule]]:
+    def prepare_rules_for_import(self, importDetails: ImportStateController, rules: list[RuleNormalized], rulebase_uid: str) -> dict[str, list[Rule]]:
         prepared_rules = []
 
         # get rulebase_id for rulebaseUid
-        rulebase_id = importDetails.lookupRulebaseId(rulebase.uid)
+        rulebase_id = importDetails.lookupRulebaseId(rulebase_uid)
 
-        for rule_uid, rule in rulebase.Rules.items():
+        for rule in rules:
             listOfEnforcedGwIds = []
             for gwUid in rule.rule_installon.split(fwo_const.list_delimiter):
                 gwId = importDetails.lookupGatewayId(gwUid)

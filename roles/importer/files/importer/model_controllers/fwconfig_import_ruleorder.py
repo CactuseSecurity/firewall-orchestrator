@@ -1,12 +1,12 @@
 from typing import TYPE_CHECKING
 from fwo_const import rule_num_numeric_steps
 from models.fwconfig_normalized import FwConfigNormalized
+from models.rule import RuleNormalized
 from fwo_base import compute_min_moves
 from fwo_exceptions import FwoApiFailure
 if TYPE_CHECKING:
     from model_controllers.fwconfig_import_rule import FwConfigImportRule
 from fwo_log import getFwoLogger
-import traceback
 
 class RuleOrderService:
     """
@@ -50,7 +50,7 @@ class RuleOrderService:
         return self._current_rule_num_numeric
     
     @property
-    def target_rules_flat(self) -> list:
+    def target_rules_flat(self) -> list[RuleNormalized]:
         return self._target_rules_flat
     
     @property

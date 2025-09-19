@@ -44,7 +44,7 @@
   community.postgresql.postgresql_script:
       db: "{{ fworch_db_name }}"
       path: "{{ database_install_dir }}/upgrade/{{ item }}.sql"
-  loop: "{{ upgrade_files | sort(attribute=None, key=lambda x: x | version) }}"
+  loop: "{{ upgrade_files | community.general.version_sort }}"
   become: true
   ignore_errors: false
   become_user: postgres

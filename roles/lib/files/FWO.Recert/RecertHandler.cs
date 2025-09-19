@@ -7,12 +7,12 @@ namespace FWO.Recert
 {
     public class RecertHandler(ApiConnection apiConnection, UserConfig userConfig)
     {
-        public async Task<FwoOwner> RecertifyOwnerWithRules(FwoOwner owner, List<Rule> rules, string? comment = "")
+        public async Task<FwoOwner> RecertifyOwnerWithRules(FwoOwner owner, List<Rule> rules, string? comment)
         {
             FwoOwner recertifiedOwner = await RecertifyOwner(owner, comment);
             foreach (var rule in rules)
             {
-                await RecertifySingleRule(rule, owner, comment);
+                await RecertifySingleRule(rule, recertifiedOwner, comment);
             }
             return recertifiedOwner;
         }
@@ -35,6 +35,7 @@ namespace FWO.Recert
             ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<ReturnIdWrapper>(RecertQueries.recertifyOwner, recertVariables)).ReturnIds;
             if (returnIds != null && returnIds.Length > 0)
             {
+                recertifiedOwner.LastRecertId = returnIds[0].InsertedIdLong;
                 var ownerVariables = new
                 {
                     id = owner.Id,
@@ -51,20 +52,20 @@ namespace FWO.Recert
             return recertifiedOwner;
         }
 
-        public async Task<bool> RecertifySingleRule(Rule rule, FwoOwner? owner, string? comment = "")
+        public async Task<bool> RecertifySingleRule(Rule rule, FwoOwner? owner, string? comment)
         {
             var variables = new
             {
-                ruleMetadataId = rule.Metadata.Id,
                 ruleId = rule.Id,
                 ownerId = owner?.Id ?? 0,
                 userDn = userConfig.User.Dn,
-                recertified = rule.Metadata.Recert,
+                recertified = userConfig.RecertificationMode == RecertificationMode.OwnersAndRules || rule.Metadata.Recert,
                 recertDate = DateTime.Now,
-                comment = comment
+                comment = comment,
+                ownerRecertId = owner?.LastRecertId
             };
             bool recertOk = (await apiConnection.SendQueryAsync<ReturnId>(RecertQueries.recertify, variables)).AffectedRows > 0;
-            if (recertOk && rule.Metadata.Recert)
+            if (userConfig.RecertificationMode == RecertificationMode.OwnersAndRules || rule.Metadata.Recert)
             {
                 await InitRuleRecert(rule, owner);
             }

@@ -8,3 +8,8 @@ alter table owner_recertification drop constraint if exists owner_recertificatio
 ALTER TABLE owner_recertification ADD CONSTRAINT owner_recertification_owner_foreign_key FOREIGN KEY (owner_id) REFERENCES owner(id) ON UPDATE RESTRICT ON DELETE CASCADE;
 
 alter table owner add column if not exists recert_active boolean default false;
+
+alter table recertification add column if not exists owner_recert_id bigint;
+
+alter table recertification drop constraint if exists recertification_owner_recertification_foreign_key;
+ALTER TABLE recertification ADD CONSTRAINT recertification_owner_recertification_foreign_key FOREIGN KEY (owner_recert_id) REFERENCES owner_recertification(id) ON UPDATE RESTRICT ON DELETE CASCADE;

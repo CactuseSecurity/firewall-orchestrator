@@ -1117,7 +1117,8 @@ create table recertification
 	recertified boolean default false,
 	recert_date Timestamp,
 	comment varchar,
-	next_recert_date Timestamp
+	next_recert_date Timestamp,
+	owner_recert_id bigint
 );
 
 create table owner_recertification

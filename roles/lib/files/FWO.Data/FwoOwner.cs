@@ -46,6 +46,7 @@ namespace FWO.Data
 
         public bool RecertOverdue { get; set; } = false;
         public bool RecertUpcoming { get; set; } = false;
+        public long LastRecertId { get; set; } = 0;
 
         public FwoOwner()
         { }
@@ -66,6 +67,7 @@ namespace FWO.Data
             NextRecertDate = owner.NextRecertDate;
             RecertOverdue = owner.RecertOverdue;
             RecertUpcoming = owner.RecertUpcoming;
+            LastRecertId = owner.LastRecertId;
         }
 
         public string Display(string comSvcTxt)

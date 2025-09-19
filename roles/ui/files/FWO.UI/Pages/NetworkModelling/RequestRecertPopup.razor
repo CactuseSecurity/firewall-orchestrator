@@ -259,7 +259,7 @@
             try
             {
                 RecertHandler recertHandler = new(apiConnection, userConfig);
-                FwoOwner recertifiedOwner = await recertHandler.RecertifyOwnerWithRules(AppHandler.Application, VarianceResult.GetAllOkRules());
+                FwoOwner recertifiedOwner = await recertHandler.RecertifyOwnerWithRules(AppHandler.Application, VarianceResult.GetAllOkRules(), null);
                 await ModellingHandlerBase.LogChange(ModellingTypes.ChangeType.Recertify, ModellingTypes.ModObjectType.CommunicationProfile, 0,
                     $"Recertified Application: {AppHandler.Application.Name} with {VarianceResult.GetAllOkRules().Count.ToString()} rules",
                     apiConnection, userConfig, AppHandler.Application.Id, DisplayMessageInUi);
@@ -288,7 +288,7 @@
         {
             var variables = new
             {
-                report_name = $"{userConfig.GetText("recertification")}_{owner.Name}_{owner.ExtAppId}_{owner.LastRecertified?.ToString("yyyy-MM-dd-HH-mm-ss")}",
+                report_name = $"{userConfig.GetText("recertification")}_{owner.Name.Replace(" ", "-")}_{owner.ExtAppId}_{owner.LastRecertified?.ToString("yyyy-MM-dd-HH-mm-ss")}",
                 report_start_time = owner.LastRecertified,
                 report_end_time = owner.LastRecertified,
                 report_owner_id = userConfig.User.DbId,

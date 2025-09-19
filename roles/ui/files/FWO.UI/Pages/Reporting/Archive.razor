@@ -17,6 +17,17 @@
                 @userConfig.GetText(reportType.ToString())
             </ElementTemplate>
         </Dropdown>
+        @if(selectedReportType == ReportType.RecertificationEvent)
+        {
+            <br>
+            <h5 class="text-left">@(userConfig.GetText("owner"))</h5>
+            <Dropdown ElementType="FwoOwner" ElementToString="@(o => o.Name)" SelectedElement="selectedOwner"
+                SelectedElementChanged="OwnerChanged" Elements="ownerList">
+                <ElementTemplate Context="owner">
+                    @owner.Name
+                </ElementTemplate>
+            </Dropdown>		
+        }
     </div>
 </Sidebar>
 
@@ -82,6 +93,8 @@
     private List<ReportFile> archivedReports = [];
     private List<ReportFile> visibleReports = [];
     private ReportType selectedReportType = ReportType.All;
+    private FwoOwner? selectedOwner = null;
+    private List<FwoOwner> ownerList = [];
     private Sidebar? archiveSidebar;
     private int sidebarLeftWidth = GlobalConst.kSidebarLeftWidth;
     private ReportFile reportFileContext = new();
@@ -105,6 +118,13 @@
             // Initial fetch to speed up loading before subscription is established
             archivedReports = await apiConnection.SendQueryAsync<List<ReportFile>>(ReportQueries.getGeneratedReports);
             archivedReportsSubscription = apiConnection.GetSubscription<List<ReportFile>>(HandleSubscriptionError, OnReportArchiveUpdate, ReportQueries.subscribeGeneratedReportsChanges);
+            ownerList = await apiConnection.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getEditableOwners);
+            FwoOwner? superOwner = ownerList.FirstOrDefault(o => o.Id == 0);
+            if(superOwner != null)
+            {
+                superOwner.Name = userConfig.GetText("all");
+                selectedOwner = superOwner;
+            }
             SetVisibleReports();
         }
         catch (Exception exception)
@@ -119,9 +139,19 @@
         SetVisibleReports();
     }
 
+    private void OwnerChanged(FwoOwner newOwner)
+    {
+        selectedOwner = newOwner;
+        SetVisibleReports();
+    }
+
     private void SetVisibleReports()
     {
         visibleReports = [.. selectedReportType == ReportType.All ? archivedReports : archivedReports.Where(r => r.Type == (int)selectedReportType)];
+        if(selectedReportType == ReportType.RecertificationEvent && selectedOwner != null && selectedOwner.Id != 0 && selectedOwner.ExtAppId != null)
+        {
+            visibleReports = [.. visibleReports.Where(r => r.Name.Contains(selectedOwner.ExtAppId))];
+        }
     }
 
     private async void HandleSubscriptionError(Exception exception)

@@ -29,27 +29,32 @@ namespace FWO.Report.Data.ViewData
         public Rule? DataObject { get; set; }
         public bool Show { get; set; } = true;
 
+        public RuleViewData()
+        {
+            
+        }
+
         public RuleViewData(Rule rule, NatRuleDisplayHtml natRuleDisplayHtml, OutputLocation outputLocation, bool show, List<Device>? devices = null, List<Management>? managements = null, ComplianceViolationType? complianceViolationType = null)
         {
             DataObject = rule;
             Show = show;
 
-            MgmtId              = SafeCall(rule, "MgmtId", () => rule.MgmtId.ToString());
-            MgmtName            = SafeCall(rule, "MgmtName",() => managements?.FirstOrDefault(m => m.Id == rule.MgmtId)?.Name ?? "");
-            Uid                 = SafeCall(rule, "Uid",() => rule.Uid ?? "");
-            Name                = SafeCall(rule, "Name",() => rule.Name ?? "");
-            Source              = SafeCall(rule, "Source",() => natRuleDisplayHtml.DisplaySource(rule, outputLocation, ReportType.Compliance));
-            Destination         = SafeCall(rule, "Destination",() => natRuleDisplayHtml.DisplayDestination(rule, outputLocation, ReportType.Compliance));
-            Services            = SafeCall(rule, "Services",() => natRuleDisplayHtml.DisplayServices(rule, outputLocation, ReportType.Compliance));
-            Action              = SafeCall(rule, "Action",() => rule.Action);
-            InstallOn           = SafeCall(rule, "InstallOn",() => ResolveInstallOn(rule, devices ?? []));
-            Compliance          = SafeCall(rule, "Compliance",() => ResolveCompliance(rule, complianceViolationType));
-            ViolationDetails    = SafeCall(rule, "ViolationDetails",() => rule.ViolationDetails);
-            ChangeID            = SafeCall(rule, "ChangeID",() => GetFromCustomField(rule, "field-2"));
-            AdoITID             = SafeCall(rule, "AdoITID",() => GetFromCustomField(rule, "field-3"));
-            Comment             = SafeCall(rule, "Comment",() => rule.Comment ?? "");
-            RulebaseId          = SafeCall(rule, "RulebaseId",() => rule.RulebaseId.ToString());
-            RulebaseName        = SafeCall(rule, "RulebaseName",() => rule.Rulebase?.Name ?? "");
+            MgmtId = SafeCall(rule, "MgmtId", () => rule.MgmtId.ToString());
+            MgmtName = SafeCall(rule, "MgmtName", () => managements?.FirstOrDefault(m => m.Id == rule.MgmtId)?.Name ?? "");
+            Uid = SafeCall(rule, "Uid", () => rule.Uid ?? "");
+            Name = SafeCall(rule, "Name", () => rule.Name ?? "");
+            Source = SafeCall(rule, "Source", () => natRuleDisplayHtml.DisplaySource(rule, outputLocation, ReportType.Compliance));
+            Destination = SafeCall(rule, "Destination", () => natRuleDisplayHtml.DisplayDestination(rule, outputLocation, ReportType.Compliance));
+            Services = SafeCall(rule, "Services", () => natRuleDisplayHtml.DisplayServices(rule, outputLocation, ReportType.Compliance));
+            Action = SafeCall(rule, "Action", () => rule.Action);
+            InstallOn = SafeCall(rule, "InstallOn", () => ResolveInstallOn(rule, devices ?? []));
+            Compliance = SafeCall(rule, "Compliance", () => ResolveCompliance(rule, complianceViolationType));
+            ViolationDetails = SafeCall(rule, "ViolationDetails", () => rule.ViolationDetails);
+            ChangeID = SafeCall(rule, "ChangeID", () => GetFromCustomField(rule, ["field-2", "Datum-Regelpruefung"]));
+            AdoITID = SafeCall(rule, "AdoITID", () => GetFromCustomField(rule, ["field-3", "AdoIT"]));
+            Comment = SafeCall(rule, "Comment", () => rule.Comment ?? "");
+            RulebaseId = SafeCall(rule, "RulebaseId", () => rule.RulebaseId.ToString());
+            RulebaseName = SafeCall(rule, "RulebaseName", () => rule.Rulebase?.Name ?? "");
         }
 
         private string ResolveCompliance(Rule rule, ComplianceViolationType? complianceViolationType)
@@ -62,13 +67,26 @@ namespace FWO.Report.Data.ViewData
             };
         }
 
-        private string GetFromCustomField(Rule rule, string field)
+        public string GetFromCustomField(Rule rule, string[] field)
         {
             try
             {
+                string displayString = "";
                 string customFieldsString = rule.CustomFields.Replace("'", "\"");
                 Dictionary<string, string>? customFields = JsonSerializer.Deserialize<Dictionary<string, string>>(customFieldsString);
-                return customFields != null && customFields.TryGetValue(field, out string? value) ? value : "";
+
+                if (customFields != null && field.Length > 0)
+                {
+                    foreach (string f in field)
+                    {
+                        if (customFields.TryGetValue(f, out string? value) && !string.IsNullOrWhiteSpace(value))
+                        {
+                            displayString = value;
+                            break;
+                        }
+                    }
+                }
+                return displayString;
             }
             catch (JsonException)
             {

@@ -660,6 +660,7 @@ class FwConfigImportRule():
                     rule_uid=rule_uid,
                     rule_last_modified=now,
                     rule_created=now,
+                    rule_last_hit=rule.last_hit,
                 )
                 newRuleMetadata.append(rm4import.model_dump())
         # TODO: add other fields

@@ -70,7 +70,7 @@ def collect_single_svc_object(obj):
 
     obj['port'], obj['port_end'] = normalize_port(obj)
 
-    if 'color' not in obj:
+    if 'color' not in obj or obj['color'] == '' or obj['color'] == 'none':
         obj['color'] = 'black'
     if 'comments' not in obj or obj['comments'] == '':
         obj['comments'] = None

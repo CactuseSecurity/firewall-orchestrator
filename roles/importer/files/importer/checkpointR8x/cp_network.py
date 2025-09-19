@@ -192,11 +192,11 @@ def handle_object_type_and_ip(obj, ip_addr):
 def get_comment_and_color_of_obj(obj):
     """Returns comment and sets missing color to black
     """
-    if not 'comments' in obj or obj['comments'] == '':
+    if 'comments' not in obj or obj['comments'] == '':
         comments = None
     else:
         comments = obj['comments']
-    if 'color' not in obj:
+    if 'color' not in obj or obj['color'] == '' or obj['color'] == 'none':
         obj['color'] = 'black'
     return comments
 

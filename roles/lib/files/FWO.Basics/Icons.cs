@@ -13,6 +13,7 @@ namespace FWO.Basics
         public const string ShowHistory = "bi bi-clock-history";
         public const string GenerateReport = "bi bi-newspaper";
         public const string Export = "bi bi-box-arrow-up-right";
+        public const string Rollout = "bi bi-rocket-takeoff-fill";
         public const string Download = "bi bi-download";
         public const string Load = "bi bi-file-arrow-down-fill";
         public const string ChangeState = "bi bi-graph-up-arrow";
@@ -27,7 +28,7 @@ namespace FWO.Basics
         public const string Example = "bi bi-eye-fill";
         public const string Requirement = "bi bi-eye-fill";
         public const string Security = "bi bi-shield-shaded";
-        public const string FurtherReading = "bi bi-box-arrow-up-right";
+        public const string FurtherReading = "bi bi-book-fill";
         public const string Clipboard = "bi bi-clipboard-fill";
         public const string Warning = "bi bi-exclamation-triangle-fill";
         public const string Question = "bi bi-question-lg";
@@ -103,9 +104,10 @@ namespace FWO.Basics
 
         // Workflow
         public const string Tickets = "bi bi-front";
+        public const string CreateTicket = "bi bi-plus-square-dotted";
         public const string Approval = "bi bi-check-lg";
         public const string Planning = "ph-fill ph-blueprint";
-        public const string Implementation = "ph ph-check-square";
+        public const string Implementation = "bi bi-wrench-adjustable";
         public const string Review = "bi bi-patch-check-fill";
         public const string State = "bi bi-tag-fill";
         public const string Matrix = "bi bi-grid-3x3-gap-fill";

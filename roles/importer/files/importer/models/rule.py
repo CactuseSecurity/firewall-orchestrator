@@ -124,7 +124,6 @@ class Rule(BaseModel):
     action_id: int
     is_global: bool = False
     last_change_admin: int|None = None
-    # last_hit: str|None = None
     mgm_id: int
     nat_rule: bool = False
     parent_rule_id: int|None = None

@@ -389,7 +389,7 @@ def getNatPolicy(sid, fm_api_url, nativeConfig, adom_name, device, limit):
 
 # delete_v: ab hier kann sehr viel weg, ich lasses vorerst zB für die hitcounter
 def normalize_rule(rule_orig, rules, native_config, rule_table, localPkgName, rule_number, src_ref_all, dst_ref_all, normalized_config_dict):
-    rule = {'rule_src': '', 'rule_dst': '', 'rule_svc': ''}
+    rule: dict = {'rule_src': '', 'rule_dst': '', 'rule_svc': ''}
     xlate_rule = None
     # rule.update({ 'control_id': import_id})
     rule.update({ 'rulebase_name': localPkgName})    # the rulebase_name will be set to the pkg_name as there is no rulebase_name in FortiMangaer

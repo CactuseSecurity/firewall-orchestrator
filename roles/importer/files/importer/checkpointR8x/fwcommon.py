@@ -334,7 +334,7 @@ def define_global_rulebase_link(deviceConfig, globalOrderedLayerUids, orderedLay
 
                     deviceConfig['rulebase_links'].append({
                         'from_rulebase_uid': placeholder_rulebase_uid,
-                        'from_rule_uid': '',
+                        'from_rule_uid': None,
                         'to_rulebase_uid': orderedLayerUid,
                         'type': 'domain',
                         'is_global': False,
@@ -347,8 +347,8 @@ def define_global_rulebase_link(deviceConfig, globalOrderedLayerUids, orderedLay
 
 def define_initial_rulebase(deviceConfig, orderedLayerUids, is_global):
     deviceConfig['rulebase_links'].append({
-        'from_rulebase_uid': '',
-        'from_rule_uid': '',
+        'from_rulebase_uid': None,
+        'from_rule_uid': None,
         'to_rulebase_uid': orderedLayerUids[0],
         'type': 'ordered',
         'is_global': is_global,
@@ -412,7 +412,7 @@ def add_ordered_layers_to_native_config(orderedLayerUids, show_params_rules,
             if orderedLayerIndex < len(orderedLayerUids) - 1:
                 deviceConfig['rulebase_links'].append({
                     'from_rulebase_uid': orderedLayerUid,
-                    'from_rule_uid': '',
+                    'from_rule_uid': None,
                     'to_rulebase_uid': orderedLayerUids[orderedLayerIndex + 1],
                     'type': 'ordered',
                     'is_global': is_global,

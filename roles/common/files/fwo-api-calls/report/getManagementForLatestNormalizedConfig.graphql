@@ -147,6 +147,9 @@ fragment deviceFragment on device {
 
 fragment ruleBaseLinkFragment on rulebase_link {
   gw_id
+  rule {
+    rule_uid
+  }
   rulebaseByFromRulebaseId {
     uid
   }

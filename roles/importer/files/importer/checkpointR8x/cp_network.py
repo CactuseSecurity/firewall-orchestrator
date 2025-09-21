@@ -192,11 +192,11 @@ def handle_object_type_and_ip(obj, ip_addr):
 def get_comment_and_color_of_obj(obj):
     """Returns comment and sets missing color to black
     """
-    if not 'comments' in obj or obj['comments'] == '':
+    if 'comments' not in obj or obj['comments'] == '':
         comments = None
     else:
         comments = obj['comments']
-    if 'color' not in obj:
+    if 'color' not in obj or obj['color'] == '' or obj['color'] == 'none':
         obj['color'] = 'black'
     return comments
 
@@ -211,7 +211,7 @@ def resolve_nw_uid_to_name(uid, nw_objects):
 
 def add_member_names_for_nw_group(idx, nw_objects):
     group = nw_objects.pop(idx)
-    if group['obj_member_refs'] == '' or group['obj_member_refs'] == None:
+    if group['obj_member_refs'] == '' or group['obj_member_refs'] is None:
         #member_names = None
         #obj_member_refs = None
         group['obj_member_names'] = None

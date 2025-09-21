@@ -1,6 +1,7 @@
 import re
 import cp_const
 from fwo_const import list_delimiter
+from fwo_exceptions import FwoImporterErrorInconsistencies
 
 
 # collect_svcobjects writes svc info into global users dict
@@ -26,55 +27,90 @@ def collect_svc_objects(object_table, svc_objects):
                                             })
 
 
-def collect_single_svc_object(obj):
+def _set_default_values(obj):
     """
-    Collects a single service object and appends its details to the svc_objects list.
-    Handles different types of service objects and normalizes port information.
+    Set default values for color, comments, and domain_uid.
+    """
+    if 'color' not in obj or obj['color'] == '' or obj['color'] == 'none':
+        obj['color'] = 'black'
+    
+    if 'comments' not in obj or obj['comments'] == '':
+        obj['comments'] = None
+    
+    obj['domain_uid'] = get_obj_domain_uid(obj)
+
+
+def _get_rpc_number(obj):
+    """
+    Extract RPC number from interface-uuid or program-number.
+    Returns RPC number or None.
+    """
+    if 'interface-uuid' in obj:
+        return obj['interface-uuid']
+    if 'program-number' in obj:
+        return obj['program-number']
+    return None
+
+
+def _get_session_timeout(obj):
+    """
+    Extract and stringify session timeout.
+    Returns session timeout as string or None.
+    """
+    if 'session-timeout' in obj:
+        return str(obj['session-timeout'])
+    return None
+
+
+def _get_member_references(obj):
+    """
+    Process members list and return concatenated member references.
+    Returns member reference string or None.
+    """
+    if 'members' not in obj:
+        return None
+    
+    member_refs = ''
+    for member in obj['members']:
+        member_refs += member + list_delimiter
+    return member_refs[:-1] if member_refs else None
+
+
+def _get_protocol_number(obj):
+    """
+    Extract and validate protocol number from object.
+    Returns validated protocol number or None.
     """
     proto_map = {
         'service-tcp': 6,
         'service-udp': 17,
         'service-icmp': 1
     }
-
+    
     proto = None
-
     if 'type' in obj and obj['type'] in proto_map:
         proto = proto_map[obj['type']]
     elif 'ip-protocol' in obj:
         proto = obj['ip-protocol']
-    if proto is not None and proto<0:
-        proto = None
-
-    obj['proto'] = proto
     
-    rpc_nr = None
-    member_refs = None
-    if 'members' in obj:
-        member_refs = ''
-        for member in obj['members']:
-            member_refs += member + list_delimiter
-        member_refs = member_refs[:-1]
-    obj['svc_member_refs'] = member_refs    
+    return proto if proto is None or proto >= 0 else None
 
-    if 'session-timeout' in obj:
-        session_timeout = str(obj['session-timeout'])
-    else:
-        session_timeout = None
-    obj['session_timeout'] = session_timeout
-    if 'interface-uuid' in obj:
-        rpc_nr = obj['interface-uuid']
-    if 'program-number' in obj:
-        rpc_nr = obj['program-number']
-    obj['rpc_nr'] = rpc_nr
+
+def collect_single_svc_object(obj):
+    """
+    Collects a single service object and appends its details to the svc_objects list.
+    Handles different types of service objects and normalizes port information.
+    """
+    obj['proto'] = _get_protocol_number(obj)
+    
+    obj['svc_member_refs'] = _get_member_references(obj)
+    # svc_member_names are added later in add_member_names_for_svc_group()
+
+    obj['session_timeout'] = _get_session_timeout(obj)
+    obj['rpc_nr'] = _get_rpc_number(obj)
 
     obj['port'], obj['port_end'] = normalize_port(obj)
-
-    if 'color' not in obj:
-        obj['color'] = 'black'
-    if 'comments' not in obj or obj['comments'] == '':
-        obj['comments'] = None
-    obj['domain_uid'] = get_obj_domain_uid(obj)    
+    _set_default_values(obj)
  
 
 def normalize_port(obj) -> tuple[str|None, str|None]:
@@ -135,7 +171,7 @@ def resolve_svc_uid_to_name(uid, svc_objects):
     for obj in svc_objects:
         if obj['svc_uid'] == uid:
             return obj['svc_name']
-    return 'ERROR: uid ' + uid + ' not found'
+    raise FwoImporterErrorInconsistencies('Service object member uid ' + uid + ' not found')
 
 
 def add_member_names_for_svc_group(idx, svc_objects):

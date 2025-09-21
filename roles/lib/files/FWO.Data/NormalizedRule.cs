@@ -75,7 +75,7 @@ namespace FWO.Data
         public string? ParentRuleUid { get; set; }
 
         [JsonProperty("last_hit"), JsonPropertyName("last_hit")]
-        public DateTime? LastHit { get; set; }
+        public string? LastHit { get; set; }
 
         [JsonProperty("rule_comment"), JsonPropertyName("rule_comment")]
         public string? RuleComment { get; set; }
@@ -96,6 +96,13 @@ namespace FWO.Data
         /// <returns>A normalized Rule.</returns>
         public static NormalizedRule FromRule(Rule rule)
         {
+            DateTime? lastHit = rule.Metadata.LastHit;
+            string? lastHitFormatted = null;
+            if (lastHit.HasValue)
+            {
+                lastHitFormatted = lastHit.Value.ToString("yyyy-MM-ddTHH:mm") + lastHit.Value.ToString("zzz").Replace(":", "");
+            }
+
             return new NormalizedRule
             {
                 RuleNum = rule.RuleOrderNumber,
@@ -121,7 +128,7 @@ namespace FWO.Data
                 RuleType = rule.NatRule ? "nat" : "access",
                 RuleLastChangeAdmin = rule.LastChangeAdmin?.Name,
                 ParentRuleUid = rule.ParentRule?.Uid,
-                LastHit = rule.Metadata.LastHit,
+                LastHit = lastHitFormatted,
                 RuleComment = rule.Comment,
                 RuleSrcZone = rule.SourceZone?.Name,
                 RuleDstZone = rule.DestinationZone?.Name,

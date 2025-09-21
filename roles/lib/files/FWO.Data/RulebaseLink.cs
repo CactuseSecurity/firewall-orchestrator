@@ -11,6 +11,9 @@ namespace FWO.Data
         [JsonProperty("from_rule_id"), JsonPropertyName("from_rule_id")]
         public int? FromRuleId { get; set; }    // nullable for initial rulebase and for fromRulebase links
 
+        [JsonProperty("rule"), JsonPropertyName("rule")]
+        public Rule? FromRule { get; set; }
+
         [JsonProperty("rulebaseByFromRulebaseId"), JsonPropertyName("rulebaseByFromRulebaseId")]
         public Rulebase? FromRulebase { get; set; }
 

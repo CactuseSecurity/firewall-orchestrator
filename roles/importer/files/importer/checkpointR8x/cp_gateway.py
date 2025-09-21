@@ -41,9 +41,9 @@ def get_normalized_rulebase_link(nativeConfig, gwId):
 
         # Remove from_rulebase_uid and from_rule_uid if link_type is initial
         if link['link_type'] == 'initial':
-            if link['from_rulebase_uid'] != None:
+            if link['from_rulebase_uid'] is not None:
                 link['from_rulebase_uid'] = None
-            if link['from_rule_uid'] != None:
+            if link['from_rule_uid'] is not None:
                 link['from_rule_uid'] = None
     return links
 

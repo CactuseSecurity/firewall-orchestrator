@@ -54,7 +54,7 @@ class RuleNormalized(BaseModel):
     rule_custom_fields: str|None = None
     rule_implied: bool
     rule_type: RuleType = RuleType.SECTIONHEADER
-    rule_last_change_admin: str|None = None
+    last_change_admin: str|None = None
     parent_rule_uid: str|None = None
     last_hit: str|None = None
     rule_comment: str|None = None
@@ -124,7 +124,6 @@ class Rule(BaseModel):
     action_id: int
     is_global: bool = False
     last_change_admin: int|None = None
-    # last_hit: str|None = None
     mgm_id: int
     nat_rule: bool = False
     parent_rule_id: int|None = None

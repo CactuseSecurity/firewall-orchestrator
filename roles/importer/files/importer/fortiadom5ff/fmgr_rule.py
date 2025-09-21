@@ -115,7 +115,8 @@ def parse_single_rule(normalized_config_dict, normalized_config_global, native_r
 
     rule_src_zone, rule_dst_zone = rule_parse_zone(native_rule, normalized_config_dict)
 
-    rule_src_neg, rule_dst_neg, rule_svc_neg, rule_installon = rule_parse_negation_flags(native_rule, rulebase.name)
+    rule_src_neg, rule_dst_neg, rule_svc_neg = rule_parse_negation_flags(native_rule)
+    rule_installon = rule_parse_installon(native_rule, rulebase.name)
 
     # Create the normalized rule
     rule_normalized = RuleNormalized(
@@ -140,7 +141,7 @@ def parse_single_rule(normalized_config_dict, normalized_config_global, native_r
         rule_custom_fields=str(native_rule.get('meta fields', {})),
         rule_implied=False,
         rule_type=RuleType.ACCESS,
-        rule_last_change_admin=None, #TODO: native_rule.get('_last-modified-by'), - see #3589
+        last_change_admin=None, #TODO: native_rule.get('_last-modified-by'), - see #3589
         parent_rule_uid=None,
         last_hit=None, # TODO: get last hit
         rule_comment=native_rule.get('comments'),
@@ -233,7 +234,7 @@ def ip_type(nw_obj):
     net=ipaddress.ip_network(str(first_ip))
     return net.version
 
-def rule_parse_negation_flags(native_rule, rulebase_name):
+def rule_parse_negation_flags(native_rule):
     if 'srcaddr-negate' in native_rule:
         rule_src_neg = native_rule['srcaddr-negate'] == 1 or native_rule['srcaddr-negate'] == 'disable'
     elif 'internet-service-src-negate' in native_rule:
@@ -242,12 +243,14 @@ def rule_parse_negation_flags(native_rule, rulebase_name):
         rule_src_neg = False
     rule_dst_neg = 'dstaddr-negate' in native_rule and (native_rule['dstaddr-negate'] == 1 or native_rule['dstaddr-negate'] == 'disable') #TODO: last part does not make sense?
     rule_svc_neg = 'service-negate' in native_rule and (native_rule['service-negate'] == 1 or native_rule['service-negate'] == 'disable')
+    return rule_src_neg, rule_dst_neg, rule_svc_neg
 
+def rule_parse_installon(native_rule, rulebase_name):
     if 'scope_member' in native_rule:
-        rule_installon = list_delimiter.join([vdom['name'] + '_' + vdom['vdom'] for vdom in native_rule['scope_member']])
+        rule_installon = list_delimiter.join(sorted({vdom['name'] + '_' + vdom['vdom'] for vdom in native_rule['scope_member']}))
     else:
         rule_installon = rulebase_name
-    return rule_src_neg, rule_dst_neg, rule_svc_neg, rule_installon
+    return rule_installon
 
 
 def getAccessPolicy(sid, fm_api_url, native_config_domain, adom_device_vdom_policy_package_structure, adom_name, mgm_details_device, device_config, limit):
@@ -351,7 +354,7 @@ def build_link(previous_rulebase, full_pkg_name, is_global):
         is_initial = False
     return {
         'from_rulebase_uid': previous_rulebase,
-        'from_rule_uid': '',
+        'from_rule_uid': None,
         'to_rulebase_uid': full_pkg_name,
         'type': 'concatenated',
         'is_global': is_global,
@@ -386,7 +389,7 @@ def getNatPolicy(sid, fm_api_url, nativeConfig, adom_name, device, limit):
 
 # delete_v: ab hier kann sehr viel weg, ich lasses vorerst zB für die hitcounter
 def normalize_rule(rule_orig, rules, native_config, rule_table, localPkgName, rule_number, src_ref_all, dst_ref_all, normalized_config_dict):
-    rule = {'rule_src': '', 'rule_dst': '', 'rule_svc': ''}
+    rule: dict = {'rule_src': '', 'rule_dst': '', 'rule_svc': ''}
     xlate_rule = None
     # rule.update({ 'control_id': import_id})
     rule.update({ 'rulebase_name': localPkgName})    # the rulebase_name will be set to the pkg_name as there is no rulebase_name in FortiMangaer
@@ -395,7 +398,7 @@ def normalize_rule(rule_orig, rules, native_config, rule_table, localPkgName, ru
     rule.update({ 'rule_num': rule_number})
     rule.update({ 'rule_name': rule_orig.get('name', None)})
     
-    parse_target_gateways(rule_orig, rule, localPkgName)
+    # parse_target_gateways(rule_orig, rule, localPkgName)
 
     rule.update({ 'rule_implied': False })
     rule.update({ 'rule_time': None })
@@ -448,7 +451,7 @@ def normalize_rule(rule_orig, rules, native_config, rule_table, localPkgName, ru
 
     # new in v8.0.3:
     rule.update({ 'rule_custom_fields': rule_orig.get('meta fields', None) })
-    rule.update({ 'rule_last_change_admin': rule_orig.get('_last-modified-by',None) })
+    rule.update({ 'last_change_admin': rule_orig.get('_last-modified-by',None) })
 
     update_hit_counters(native_config, rule_table, rule_orig, rule, localPkgName, rule_access_scope_v4, rule_access_scope_v6)
 
@@ -457,16 +460,6 @@ def normalize_rule(rule_orig, rules, native_config, rule_table, localPkgName, ru
     if xlate_rule is not None:
         rules.append(xlate_rule)
     rule_number += 1    # nat rules have their own numbering
-
-
-def parse_target_gateways(rule_orig, rule, localPkgName):
-    if 'scope member' in rule_orig:
-        installon_target = []
-        for vdom in rule_orig['scope member']:
-            installon_target.append(vdom['name'] + '_' + vdom['vdom'])
-        rule.update({ 'rule_installon': '|'.join(installon_target)})
-    else:
-        rule.update({ 'rule_installon': localPkgName })
 
 
 def update_hit_counters(native_config, rule_table, rule_orig, rule, localPkgName, rule_access_scope_v4, rule_access_scope_v6):

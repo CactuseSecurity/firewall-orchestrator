@@ -449,9 +449,6 @@ class FwConfigImportRule():
                     Rules=filtered_rules
                 )
                 rulebases.append(rulebase)
-        # transform rule from dict (key=uid) to list, also adding a data: layer
-        for rb in rulebases:
-            rb.Rules = list(rb.Rules.values())
         return rulebases
 
 
@@ -510,7 +507,7 @@ class FwConfigImportRule():
         }
         """
 
-        addNewRuleMetadata: list[RuleMetadatum] = self.PrepareNewRuleMetadata(newRules)
+        addNewRuleMetadata: list[dict] = self.PrepareNewRuleMetadata(newRules)
         query_variables = { 'ruleMetadata': addNewRuleMetadata }
         
         if fwo_globals.debug_level>9:
@@ -653,19 +650,19 @@ class FwConfigImportRule():
         return changes1+changes2, newRuleIds
 
 
-    # creates a structure of rulebases optinally including rules for import
-    def PrepareNewRuleMetadata(self, newRules: list[Rulebase]) -> list[RulebaseForImport]:
-        newRuleMetadata: list[RuleMetadatum] = []
+    def PrepareNewRuleMetadata(self, newRules: list[Rulebase]) -> list[dict]:
+        newRuleMetadata: list[dict] = []
 
         now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         for rulebase in newRules:
-            for rule in rulebase.Rules:
+            for rule_uid, rule in rulebase.Rules.items():
                 rm4import = RuleMetadatum(
-                    rule_uid=rule.rule_uid,
+                    rule_uid=rule_uid,
                     rule_last_modified=now,
-                    rule_created=now
+                    rule_created=now,
+                    rule_last_hit=rule.last_hit,
                 )
-                newRuleMetadata.append(rm4import.dict())
+                newRuleMetadata.append(rm4import.model_dump())
         # TODO: add other fields
         return newRuleMetadata    
 
@@ -676,7 +673,7 @@ class FwConfigImportRule():
         for rulebase in newRules:
             rules = {"data": []}
             if includeRules:
-                rules = self.PrepareRuleForImport(self.import_details, rulebase.Rules, rulebaseUid=rulebase.uid)
+                rules = self.prepare_rules_for_import(self.import_details, list(rulebase.Rules.values()), rulebase.uid)
             rb4import = RulebaseForImport(
                 name=rulebase.name,
                 mgm_id=self.import_details.MgmDetails.CurrentMgmId,
@@ -777,7 +774,7 @@ class FwConfigImportRule():
         import_rules = []
 
         for rulebase_uid in list(rule_uids.keys()):
-                import_rules.extend(self.PrepareRuleForImport(self.import_details, [rule_with_changes for rule_with_changes in rule_order_service.target_rules_flat if rule_with_changes.rule_uid in rule_uids[rulebase_uid]], rulebaseUid=rulebase_uid)["data"])
+                import_rules.extend(self.prepare_rules_for_import(self.import_details, [rule_with_changes for rule_with_changes in rule_order_service.target_rules_flat if rule_with_changes.rule_uid in rule_uids[rulebase_uid]], rulebase_uid)["data"])
 
         create_new_rule_version_variables = {
             "objects": import_rules,
@@ -1051,13 +1048,13 @@ class FwConfigImportRule():
         return self.import_details.api_call.call(mutation, query_variables=query_variables)
 
 
-    def PrepareRuleForImport(self, importDetails: ImportStateController, Rules: list[RuleNormalized], rulebaseUid: str) -> dict[str, list[Rule]]:
+    def prepare_rules_for_import(self, importDetails: ImportStateController, rules: list[RuleNormalized], rulebase_uid: str) -> dict[str, list[Rule]]:
         prepared_rules = []
 
         # get rulebase_id for rulebaseUid
-        rulebase_id = importDetails.lookupRulebaseId(rulebaseUid)
+        rulebase_id = importDetails.lookupRulebaseId(rulebase_uid)
 
-        for rule in Rules:
+        for rule in rules:
             listOfEnforcedGwIds = []
             for gwUid in rule.rule_installon.split(fwo_const.list_delimiter):
                 gwId = importDetails.lookupGatewayId(gwUid)
@@ -1101,7 +1098,7 @@ class FwConfigImportRule():
                 track_id = importDetails.lookupTrack(rule.rule_track),
                 rule_head_text=rule.rule_head_text,
                 rule_installon=rule.rule_installon,
-                last_change_admin=None #TODO: get id from rule.rule_last_change_admin
+                last_change_admin=None #TODO: get id from rule.last_change_admin
             ).model_dump()
 
             if listOfEnforcedGwIds is not None and len(listOfEnforcedGwIds) > 0:    # leave out field, if no resolvable gateways are found

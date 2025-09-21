@@ -19,14 +19,11 @@ class FwConfigImportRollback():
     # this function deletes all new entries added in this import
     # also resets all entries that have been marked removed
     # also deletes latest_config for this management
-    # TODO: use mutation from file roles/lib/files/FWO.Api.Client/APIcalls/import/rollback.graphql
-    #       but currently we cannot guarantee that lib is present on the importer machine!?
-    #       so we might have to move APIcalls to common role
     # TODO: also take super management id into account as second option
 
     def rollbackCurrentImport(self) -> None:
         logger = getFwoLogger()
-        rollbackMutation = FwoApi.get_graphql_code([f"{fwo_const.graphql_query_path}import/rollback.graphql"])
+        rollbackMutation = FwoApi.get_graphql_code([f"{fwo_const.graphql_query_path}import/rollbackImport.graphql"])
         try:
             query_variables = {
                 'importId': self.ImportDetails.ImportId

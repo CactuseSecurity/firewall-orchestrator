@@ -281,12 +281,8 @@ def parse_single_rule(nativeRule, rulebase, layer_name, rule_num, parent_uid, ga
     rule_svc_ref = list_delimiter.join(svcObjects.keys())
     rule_svc_name = list_delimiter.join(svcObjects.values())
 
-    # targetObjects = parseRulePart (nativeRule['install-on'], 'install-on')
-    # rule_installon = list_delimiter.join(targetObjects.values())
     ruleEnforcedOnGateways = parse_rule_enforced_on_gateway(gateway, policy_structure, native_rule=nativeRule)
-    listOfGwUids = []
-    for enforceEntry in ruleEnforcedOnGateways:
-        listOfGwUids.append(enforceEntry.dev_uid)
+    listOfGwUids = sorted({enforceEntry.dev_uid for enforceEntry in ruleEnforcedOnGateways})
     strListOfGwUids = list_delimiter.join(listOfGwUids)
 
     rule_track = _parse_track(native_rule=nativeRule)
@@ -309,9 +305,9 @@ def parse_single_rule(nativeRule, rulebase, layer_name, rule_num, parent_uid, ga
 
     # we leave out all last_admin info for now
     # if 'meta-info' in nativeRule and 'last-modifier' in nativeRule['meta-info']:
-    #     rule_last_change_admin = nativeRule['meta-info']['last-modifier']
+    #     last_change_admin = nativeRule['meta-info']['last-modifier']
     # else:
-    rule_last_change_admin = None
+    last_change_admin = None
 
     parent_rule_uid = _parse_parent_rule_uid(parent_uid, native_rule=nativeRule)
 
@@ -351,7 +347,7 @@ def parse_single_rule(nativeRule, rulebase, layer_name, rule_num, parent_uid, ga
         "rule_custom_fields": sanitize(rule_custom_fields),
         "rule_implied":     False,
         "rule_type":        sanitize(rule_type),
-        "rule_last_change_admin": sanitize(rule_last_change_admin),
+        "last_change_admin": sanitize(last_change_admin),
         "parent_rule_uid":  sanitize(parent_rule_uid),
         "last_hit":         sanitize(last_hit)
     }

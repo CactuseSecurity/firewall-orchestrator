@@ -754,7 +754,7 @@ AS $function$
                     END LOOP;
                 ELSE
                     -- need to deal with entries separately - split rule_installon field by '|'
-                    IF r_rule.rule_installon IS NULL THEN
+                    IF r_rule.rule_installon IS NULL OR btrim(r_rule.rule_installon) = '' THEN
                         r_rule.rule_installon := 'Policy Targets';
                     END IF;
                     SELECT ARRAY(

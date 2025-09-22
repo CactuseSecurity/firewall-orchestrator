@@ -39,7 +39,6 @@ def normalize_rulebases(
     normalized_config_dict['policies'] = []
 
     fetched_rulebase_uids: list = []
-    # delete_v: warum betrachten wir die globalen rulebases als fetched?
     if normalized_config_global is not None:
         for normalized_rulebase_global in normalized_config_global.get('policies', []):
             fetched_rulebase_uids.append(normalized_rulebase_global.uid)

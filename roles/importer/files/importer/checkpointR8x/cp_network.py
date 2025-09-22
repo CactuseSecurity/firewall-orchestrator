@@ -162,9 +162,14 @@ def handle_object_type_and_ip(obj, ip_addr):
         first_ip = '0.0.0.0/32'
         last_ip = '255.255.255.255/32'
         
-    if obj_type in ['group-with-exclusion', 'security-zone', 'dns-domain', 'dynamic-object']:
+    if obj_type in ['group-with-exclusion', 'security-zone', 'dynamic-object']:
         obj_type = 'group'
         # TODO: handle exclusion groups correctly
+
+    if obj_type == 'dns-domain':
+        obj_type = 'domain'
+        first_ip = '0.0.0.0/32'
+        last_ip = '255.255.255.255/32'
 
     if obj_type == 'security-zone':
         first_ip = '0.0.0.0/32'
@@ -173,9 +178,6 @@ def handle_object_type_and_ip(obj, ip_addr):
 
     if obj_type in ['address-range', 'multicast-address-range']:
         obj_type = 'ip_range'
-        if fwo_globals.debug_level>5:
-            logger.debug(
-                "parse_network::collect_nw_objects - found range object '" + obj['name'] + "' with ip: " + ip_addr)
         if '-' in str(ip_addr):
             first_ip, last_ip = str(ip_addr).split('-')
         else:

@@ -57,6 +57,10 @@ namespace FWO.Report
                     {
                         PrepareMetadata(report.ReportData.ManagementData, userConfig);
                     }
+                    if (report.ReportType == ReportType.RecertEventReport)
+                    {
+                        report.ReportData.OwnerData = await ReportRecertEvent.GetRecertification(reportTemplate.ReportParams.ModellingFilter.ReportId, apiConnection);
+                    }
                 }
             }
             catch (OperationCanceledException e)

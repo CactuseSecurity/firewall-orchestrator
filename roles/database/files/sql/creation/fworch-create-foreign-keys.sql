@@ -284,6 +284,7 @@ ALTER TABLE recertification ADD CONSTRAINT recertification_rule_metadata_foreign
 ALTER TABLE recertification ADD CONSTRAINT recertification_owner_foreign_key FOREIGN KEY (owner_id) REFERENCES owner(id) ON UPDATE RESTRICT ON DELETE CASCADE;
 ALTER TABLE recertification ADD CONSTRAINT recertification_owner_recertification_foreign_key FOREIGN KEY (owner_recert_id) REFERENCES owner_recertification(id) ON UPDATE RESTRICT ON DELETE CASCADE;
 ALTER TABLE owner_recertification ADD CONSTRAINT owner_recertification_owner_foreign_key FOREIGN KEY (owner_id) REFERENCES owner(id) ON UPDATE RESTRICT ON DELETE CASCADE;
+ALTER TABLE owner_recertification ADD CONSTRAINT owner_recertification_report_foreign_key FOREIGN KEY (report_id) REFERENCES report(report_id) ON UPDATE RESTRICT ON DELETE CASCADE;
 
 --- compliance.ip_range ---
 ALTER TABLE compliance.ip_range ADD CONSTRAINT compliance_ip_range_network_zone_foreign_key FOREIGN KEY (network_zone_id) REFERENCES compliance.network_zone(id) ON UPDATE RESTRICT ON DELETE CASCADE;

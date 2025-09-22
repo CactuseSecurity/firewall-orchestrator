@@ -21,10 +21,12 @@ namespace FWO.Data.Report
 
         public bool RecertActivated { get; set; } = true;
         public bool ShowAllOwners { get; set; } = false;
+        public long? OwnerRecertId { get; set; }
+        public long? ReportId { get; set; }
 
 
         public ModellingFilter()
-        {}
+        { }
 
         public ModellingFilter(ModellingFilter modellingFilter)
         {
@@ -38,6 +40,8 @@ namespace FWO.Data.Report
             RulesForDeletedConns = modellingFilter.RulesForDeletedConns;
             RecertActivated = modellingFilter.RecertActivated;
             ShowAllOwners = modellingFilter.ShowAllOwners;
+            OwnerRecertId = modellingFilter.OwnerRecertId;
+            ReportId = modellingFilter.ReportId;
         }
     }
 }

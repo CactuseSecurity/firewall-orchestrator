@@ -293,6 +293,7 @@ namespace FWO.Report.Filter
                 case ReportType.ResolvedRulesTech:
                 case ReportType.UnusedRules:
                 case ReportType.AppRules:
+                case ReportType.RecertEventReport:
                     query.FullQuery = Queries.compact(ConstructRulesQuery(query, paramString, filter));
                     break;
 
@@ -325,7 +326,7 @@ namespace FWO.Report.Filter
         private static void SetFixedFilters(ref DynGraphqlQuery query, ReportTemplate reportParams)
         {
             ReportType reportType = (ReportType)reportParams.ReportParams.ReportType;
-            if (reportType.IsRuleReport() || reportType.IsChangeReport() || reportType == ReportType.Statistics)
+            if (reportType.IsDeviceRelatedReport())
             {
                 query.QueryParameters.Add("$mgmId: [Int!] ");
             }
@@ -338,7 +339,7 @@ namespace FWO.Report.Filter
                 query.RuleWhereStatement += "{rule_head_text: {_is_null: true}}, ";
             }
             SetTenantFilter(ref query, reportParams);
-            if (((ReportType)reportParams.ReportParams.ReportType).IsDeviceRelatedReport())
+            if (((ReportType)reportParams.ReportParams.ReportType).IsDeviceRelatedReport() || (ReportType)reportParams.ReportParams.ReportType == ReportType.RecertEventReport)
             {
                 SetDeviceFilter(ref query, reportParams.ReportParams.DeviceFilter);
                 SetTimeFilter(ref query, reportParams.ReportParams.TimeFilter, (ReportType)reportParams.ReportParams.ReportType, reportParams.ReportParams.RecertFilter);
@@ -363,6 +364,15 @@ namespace FWO.Report.Filter
             {
                 SetConnectionFilter(ref query, reportParams.ReportParams.ModellingFilter);
             }
+            if ((ReportType)reportParams.ReportParams.ReportType == ReportType.RecertEventReport)
+            {
+                SetRuleRecertFilter(ref query, reportParams.ReportParams.ModellingFilter);
+            }
+        }
+
+        private static void SetRuleRecertFilter(ref DynGraphqlQuery query, ModellingFilter modellingFilter)
+        {
+            query.RuleWhereStatement += $" {{ rule_metadatum: {{ recertifications: {{ owner_recert_id: {{_eq: {modellingFilter.OwnerRecertId} }}, recertified: {{ _eq: true }} }} }} }}";
         }
 
         private static void SetDeviceFilter(ref DynGraphqlQuery query, DeviceFilter? deviceFilter)
@@ -406,6 +416,7 @@ namespace FWO.Report.Filter
                     case ReportType.NatRules:
                     case ReportType.UnusedRules:
                     case ReportType.AppRules:
+                    case ReportType.RecertEventReport:
                         query.QueryParameters.Add("$import_id_start: bigint ");
                         query.QueryParameters.Add("$import_id_end: bigint ");
                         query.RuleWhereStatement +=

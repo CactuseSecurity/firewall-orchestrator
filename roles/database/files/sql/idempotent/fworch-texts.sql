@@ -117,8 +117,8 @@ INSERT INTO txt VALUES ('ResolvedRules', 	    'German', 	'Regel-Report (aufgel&o
 INSERT INTO txt VALUES ('ResolvedRules', 		'English', 	'Rules Report (resolved)');
 INSERT INTO txt VALUES ('ResolvedRulesTech', 	'German', 	'Regel-Report (technisch)');
 INSERT INTO txt VALUES ('ResolvedRulesTech', 	'English', 	'Rules Report (technical)');
-INSERT INTO txt VALUES ('Recertification', 	    'German', 	'Rezertifizierungs-Report');
-INSERT INTO txt VALUES ('Recertification', 		'English', 	'Recertification Report');
+INSERT INTO txt VALUES ('Recertification', 	    'German', 	'Regel-Rezert-Status-Report');
+INSERT INTO txt VALUES ('Recertification', 		'English', 	'Rule Recert Status Report');
 INSERT INTO txt VALUES ('ResolvedChanges', 		'German', 	'Changes-Report (aufgel&ouml;st)');
 INSERT INTO txt VALUES ('ResolvedChanges', 		'English', 	'Changes Report (resolved)');
 INSERT INTO txt VALUES ('ResolvedChangesTech', 	'German', 	'Changes-Report (technisch)');
@@ -131,10 +131,12 @@ INSERT INTO txt VALUES ('AppRules', 	        'German', 	'App-Regel-Report');
 INSERT INTO txt VALUES ('AppRules', 		    'English', 	'App Rules Report');
 INSERT INTO txt VALUES ('VarianceAnalysis', 	'German', 	'Soll-Ist-Report');
 INSERT INTO txt VALUES ('VarianceAnalysis',     'English', 	'Variance Report');
-INSERT INTO txt VALUES ('OwnerRecertification', 'German', 	'Eigent&uuml;mer-Rezertifizierungs-Report');
-INSERT INTO txt VALUES ('OwnerRecertification', 'English', 	'Owner Recertification Report');
+INSERT INTO txt VALUES ('OwnerRecertification', 'German', 	'Eigent&uuml;mer-Rezert-Status-Report');
+INSERT INTO txt VALUES ('OwnerRecertification', 'English', 	'Owner Recert Status Report');
 INSERT INTO txt VALUES ('RecertificationEvent', 'German', 	'Rezertifizierung');
 INSERT INTO txt VALUES ('RecertificationEvent', 'English', 	'Recertification');
+INSERT INTO txt VALUES ('RecertEventReport',    'German', 	'Rezertifizierungs-Report');
+INSERT INTO txt VALUES ('RecertEventReport',    'English', 	'Recertification Report');
 INSERT INTO txt VALUES ('mixed', 	            'German', 	'Gemischt');
 INSERT INTO txt VALUES ('mixed', 	            'English', 	'Mixed');
 INSERT INTO txt VALUES ('exclusive', 	        'German', 	'Exklusiv');
@@ -1190,6 +1192,8 @@ INSERT INTO txt VALUES ('recertification_ok',   'German',   'Rezertifizierung Ok
 INSERT INTO txt VALUES ('recertification_ok',   'English',  'Recertification Ok');
 INSERT INTO txt VALUES ('recertification_error','German',   'Rezertifizierungsfehler');
 INSERT INTO txt VALUES ('recertification_error','English',  'Recertification Error');
+INSERT INTO txt VALUES ('recertified_rules',    'German',   'Rezertifizierte Regeln');
+INSERT INTO txt VALUES ('recertified_rules',    'English',  'Recertified rules');
 
 -- network modelling
 INSERT INTO txt VALUES ('network_modelling', 	'German',	'Netzwerkmodellierung');
@@ -1300,60 +1304,60 @@ INSERT INTO txt VALUES ('ext_ip_protocol_template','German','Template Ip-Protoko
 INSERT INTO txt VALUES ('ext_ip_protocol_template','English','Template Ip Protocol');
 INSERT INTO txt VALUES ('ext_ticket_template_ph','German',	'Ticket Template im JSON-Format, Bspw. f&uuml;r Tufin Secure Change:
 {
-	"ticket": {
-		"subject": "@@TICKET_SUBJECT@@",
-		"priority": "@@PRIORITY@@",
-		"requester": "@@ONBEHALF@@",
-		"domain_name": "",
-		"workflow": {
-			"name": "@@WORKFLOW_NAME@@"
-		},
-		"steps": {
-			"step": [
-				{
-					"name": "Erfassung des Antrags",
-					"tasks": {
-						"task": {
-							"fields": {
-								"field": [
-										@@TASKS@@
-								]
-							}
-						}
-					}
-				}
-			]
-		}
-	}
+    "ticket": {
+        "subject": "@@TICKET_SUBJECT@@",
+        "priority": "@@PRIORITY@@",
+        "requester": "@@ONBEHALF@@",
+        "domain_name": "",
+        "workflow": {
+            "name": "@@WORKFLOW_NAME@@"
+        },
+        "steps": {
+            "step": [
+                {
+                    "name": "Erfassung des Antrags",
+                    "tasks": {
+                        "task": {
+                            "fields": {
+                                "field": [
+                                        @@TASKS@@
+                                ]
+                            }
+                        }
+                    }
+                }
+            ]
+        }
+    }
 }
 ');
 INSERT INTO txt VALUES ('ext_ticket_template_ph','English',	'Ticket Template in JSON format, e. g.  for Tufin Secure Change:
 {
-	"ticket": {
-		"subject": "@@TICKET_SUBJECT@@",
-		"priority": "@@PRIORITY@@",
-		"requester": "@@ONBEHALF@@",
-		"domain_name": "",
-		"workflow": {
-			"name": "@@WORKFLOW_NAME@@"
-		},
-		"steps": {
-			"step": [
-				{
-					"name": "Request creation",
-					"tasks": {
-						"task": {
-							"fields": {
-								"field": [
-										@@TASKS@@
-								]
-							}
-						}
-					}
-				}
-			]
-		}
-	}
+    "ticket": {
+        "subject": "@@TICKET_SUBJECT@@",
+        "priority": "@@PRIORITY@@",
+        "requester": "@@ONBEHALF@@",
+        "domain_name": "",
+        "workflow": {
+            "name": "@@WORKFLOW_NAME@@"
+        },
+        "steps": {
+            "step": [
+                {
+                    "name": "Request creation",
+                    "tasks": {
+                        "task": {
+                            "fields": {
+                                "field": [
+                                        @@TASKS@@
+                                ]
+                            }
+                        }
+                    }
+                }
+            ]
+        }
+    }
 }');
 INSERT INTO txt VALUES ('ext_task_template_ph',  'German',	'Template Text je Verbindung, f&uuml;r Tufin Secure Change etwa:
     {
@@ -3999,14 +4003,14 @@ INSERT INTO txt VALUES ('H3001', 'German',  'Hier sind die archivierten Reports 
     Sie k&ouml;nnen zum einen durch Export manuell erzeugter Reports durch Setzen des "Archiv"-Kennzeichens in <a href="/help/reporting/export">Export Report</a> erzeugt werden.
     Zum anderen finden sich hier auch die durch das <a href="/help/reporting/scheduling">Scheduling</a> und beim Rezertifizieren erzeugten Reports.
     Die archivierten Reports k&ouml;nnen von hier heruntergeladen oder (bis auf die Rezertifizierungen) gel&ouml;scht werden.
-	In der linken Spalte kann die Anzeige der aufgelisteten Reports auf einzelne Reporttypen eingeschr&auml;nkt werden.
+    In der linken Spalte kann die Anzeige der aufgelisteten Reports auf einzelne Reporttypen eingeschr&auml;nkt werden.
 ');
 INSERT INTO txt VALUES ('H3001', 'English', 'Here the archived reports can be found with name and information about creation date, type, template (only at scheduled reports),
     owner and a short description about the content.
     They may be created on the one hand by exporting manually created reports with setting the flag "Archive" in <a href="/help/reporting/export">Export Report</a>.
     On the other hand here also the reports created by the <a href="/help/reporting/scheduling">Scheduling</a> or in the recertification process can be found.
     It is possible to download or delete (except recertifications) these archived reports.
-	In the left sidebar the report display can be restricted to the particular report types. 
+    In the left sidebar the report display can be restricted to the particular report types. 
 ');
 
 INSERT INTO txt VALUES ('H4011', 'German',  'Im ersten Schritt muss ein Report mit den demn&auml;chst zu rezertifizierenden Regeln geladen werden.
@@ -4212,12 +4216,12 @@ Login with user1_demo (password cactus1) or user2_demo (password cactus2)
 
 INSERT INTO txt VALUES ('H4034', 'German',  '
 <H4>IP-Adress-Matching</H4>
- 	Jede Regel (Quelle und Ziel) wird mit den f&uuml;r einen Eigent&uuml;mer definierten IP-Adressen auf &Uuml;berlappung gepr&uuml;ft.<br>
- 	Bei einer &Uuml;berlappung ist der Eigent&uuml;mer f&uuml;r die Rezertifizierung der Regel verantwortlich und ein entsprechender Eintrag wird
- 	abh&auml;ngig vom Rezertifizierungsintervall des Eigent&uuml;mers erzeugt.
- 	<br><br>
- 	Alle Regeln, die Netzwerkobjekte enthalten, die keinem Eigent&uuml;mer zugeordnet werden k&ouml;nnen, sind automatisch dem Super-Owner zugewiesen.
- 	<br>
+     Jede Regel (Quelle und Ziel) wird mit den f&uuml;r einen Eigent&uuml;mer definierten IP-Adressen auf &Uuml;berlappung gepr&uuml;ft.<br>
+     Bei einer &Uuml;berlappung ist der Eigent&uuml;mer f&uuml;r die Rezertifizierung der Regel verantwortlich und ein entsprechender Eintrag wird
+     abh&auml;ngig vom Rezertifizierungsintervall des Eigent&uuml;mers erzeugt.
+     <br><br>
+     Alle Regeln, die Netzwerkobjekte enthalten, die keinem Eigent&uuml;mer zugeordnet werden k&ouml;nnen, sind automatisch dem Super-Owner zugewiesen.
+     <br>
     Dieser ist somit f&uuml;r deren Rezertifzierung verantwortlich.
 <br><br>
 <H4>F&auml;lligkeitsdatum</H4>
@@ -4226,19 +4230,19 @@ INSERT INTO txt VALUES ('H4034', 'German',  '
 <br><br>
 <H4>Konfiguration</H4>
     Siehe auch <a href="/help/settings/recertificationgeneral">Rezertifizierungseinstellungen</a>.
-	<br><br>
+    <br><br>
     Es ist m&ouml;glich, die einmal n&auml;chtliche laufende Neuberechnung der anstehenden Rezertifizierungen manuell anzusto&szlig;en.
     <br>
-	Hierzu dient die Schaltfl&auml;che Einstellungen - Weitere Einstellungen - Rezertifizierung - "Neuberechnung offene Rezertifizierungen".
+    Hierzu dient die Schaltfl&auml;che Einstellungen - Weitere Einstellungen - Rezertifizierung - "Neuberechnung offene Rezertifizierungen".
 ');
 INSERT INTO txt VALUES ('H4034', 'English', '
 <H4>IP Adress Matching</H4>
- 	Each rule (source and destination) is checked for overlap with the IP addresses defined for an owner.<br>
- 	In case of an overlap, the owner is responsible for the recertification of the rule and a corresponding entry will be
- 	generated depending on the recertification interval of the owner.
- 	<br><br>
+     Each rule (source and destination) is checked for overlap with the IP addresses defined for an owner.<br>
+     In case of an overlap, the owner is responsible for the recertification of the rule and a corresponding entry will be
+     generated depending on the recertification interval of the owner.
+     <br><br>
         All rules that contain network objects that cannot be assigned to an owner are automatically assigned to the super-owner.
- 	<br>
+     <br>
     The latter is thus responsible for their recertification.
 <br><br>
 <H4>Due Date</H4>
@@ -4247,10 +4251,10 @@ INSERT INTO txt VALUES ('H4034', 'English', '
 <br><br>
 <H4CKonfiguration</H4>
     Also see <a href="/help/settings/recertificationgeneral">Recertification Settings</a>.
-	<br><br>
+    <br><br>
    It is possible to manually trigger the once-a-night running recalculation of pending recertifications.
     <br>
-	The button Settings - Further settings - Recertification - "Recalculation of open recertifications" is used for this purpose.
+    The button Settings - Further settings - Recertification - "Recalculation of open recertifications" is used for this purpose.
 ');
 
 INSERT INTO txt VALUES ('H4035', 'German',  '
@@ -5328,8 +5332,8 @@ INSERT INTO txt VALUES ('H5561', 'English', 'In this chapter general settings fo
 INSERT INTO txt VALUES ('H5562', 'German',  'Verf&uuml;gbare Auftragstypen: Es kann ausgew&auml;hlt werden, welche der technisch vorhandenen Auftragstypen zur Verwendung in den Workflows angeboten werden sollen.');
 INSERT INTO txt VALUES ('H5562', 'English', 'Available Task Types: It can be selected, which of the technically available task types should be offered for use in the workflows.');
 INSERT INTO txt VALUES ('H5563', 'German',  'Priorit&auml;ten und Deadlines: Die vorbelegten 5 Priorit&auml;tsstufen f&uuml;r Tickets k&ouml;nnen hier entsprechend den eigenen Konventionen (um-)benannt werden.
-	Zu jeder Priorit&auml;t kann ein eigenes Intervall (in Tagen) f&uuml;r die Ticket- bzw. Genehmigungs-Deadline gesetzt werden, welches dann bei der automatischen Deadline-Erzeugung genutzt wird.
-	Der Wert 0 bedeutet hierbei, dass keine Deadline gesetzt wird.
+    Zu jeder Priorit&auml;t kann ein eigenes Intervall (in Tagen) f&uuml;r die Ticket- bzw. Genehmigungs-Deadline gesetzt werden, welches dann bei der automatischen Deadline-Erzeugung genutzt wird.
+    Der Wert 0 bedeutet hierbei, dass keine Deadline gesetzt wird.
 ');
 INSERT INTO txt VALUES ('H5563', 'English', 'Priorities and Deadlines: The 5 initialized priority levels for tickets can be (re)named according to the own conventions.
     For each priority an own interval (in days) for ticket and approval deadlines can be set, which is used by the automatic computation of the deadlines.
@@ -5356,7 +5360,7 @@ INSERT INTO txt VALUES ('H5570', 'English', 'Reduced view: Selection possibiliti
 INSERT INTO txt VALUES ('H5571', 'German',  'Niemals: Es wird kein Implementierungs-Auftrag erzeugt (nur sinnvoll, falls Implementierung und folgende Phasen nicht ben&ouml;tigt werden).');
 INSERT INTO txt VALUES ('H5571', 'English', 'Never: No implementation task is created (only reasonable, if implementation and following phases are not needed).');
 INSERT INTO txt VALUES ('H5572', 'German',  'Nur eines wenn Ger&auml;t vorhanden: Bei mindestens einem vorhandenen Ger&auml;t wird das erste der Liste eingetragen
-	(kann z.B. verwendet werden, wenn es nicht auf das Ger&auml;t ankommt, bzw. wenn dies erst sp&auml;ter festgelegt werden soll).
+    (kann z.B. verwendet werden, wenn es nicht auf das Ger&auml;t ankommt, bzw. wenn dies erst sp&auml;ter festgelegt werden soll).
 ');
 INSERT INTO txt VALUES ('H5572', 'English', 'Only one if device available: The first device from the list is taken, if there is any at all
     (can e.g. be used, if the device choice is not important at this stage or can only be determined later).
@@ -5683,11 +5687,11 @@ INSERT INTO txt VALUES ('H5661', 'German',  'Titel der Stilllegungsbenachrichtig
 INSERT INTO txt VALUES ('H5661', 'English', 'Subject of decommission emails: Subject of the email to the addressed owners. Placeholders @@INTERFACE_NAME@@ will be replaced by the name of the interface to be decommissioned.');
 INSERT INTO txt VALUES ('H5662', 'German',  'Text der Stilllegungsbenachrichtigung: Text der Email-Benachrichtigung an die Nutzer der Schnittstelle, gefolgt von der Liste der betroffenen Verbindungen. Es k&ouml;nnen folgende Platzhalter genutzt werden:
     @@INTERFACE_NAME@@ wird durch den Namen der stillzulegenden Schnittstelle ersetzt, @@NEW_INTERFACE_NAME@@ mit dem Namen der vorgeschlagenen Ersatzschnittstelle, @@NEW_INTERFACE_LINK@@ mit einem Link auf diese, 
-	@@REASON@@ mit dem Begr&uuml;ndungstext, der im Stillegungsformular eingegeben wurde, @@USER_NAME@@ mit dem Nutzer, der die Stillegung veranlasst hat.
+    @@REASON@@ mit dem Begr&uuml;ndungstext, der im Stillegungsformular eingegeben wurde, @@USER_NAME@@ mit dem Nutzer, der die Stillegung veranlasst hat.
 ');
 INSERT INTO txt VALUES ('H5662', 'English', 'Body of decommission emails: Text of the email notification to the addressed owners, followed by a list of the affected connections. Some placeholders can be used:
     @@INTERFACE_NAME@@ will be replaced by the name of the interface to be decommissioned, @@NEW_INTERFACE_NAME@@ by the name of the proposed new interface, @@NEW_INTERFACE_LINK@@ by a link to this interface, 
-	@@REASON@@ by the reason text filled in the decommission form, @@USER_NAME@@ by the user initiating the decommissioning.
+    @@REASON@@ by the reason text filled in the decommission form, @@USER_NAME@@ by the user initiating the decommissioning.
 ');
 INSERT INTO txt VALUES ('H5663', 'German',  'Alle Regeln modelliert erwarten: Alle dem Eigent&uuml;mer zugeordneten Regeln m&uuml;ssen modelliert sein.');
 INSERT INTO txt VALUES ('H5663', 'English', 'Expect all rules as modelled: All rules associated to the owner have to be modelled.');
@@ -6127,7 +6131,7 @@ INSERT INTO txt VALUES ('H8137', 'English', 'Reason: Serves for a more detailled
 INSERT INTO txt VALUES ('H8138', 'German',  'Kommentare: In den Phasen Genehmigung und Planung k&ouml;nnen Kommentare zu dem fachlichen Auftrag hinzugef&uuml;gt werden. Sie werden mit Datum und Autor aufgelistet und k&ouml;nnen nicht gel&ouml;scht werden.');
 INSERT INTO txt VALUES ('H8138', 'English', 'Comments: In the approval and planning phase comments can be added to the request task. They are listed with date and author an can not be deleted.');
 INSERT INTO txt VALUES ('H8139', 'German',  'Start: Hier wird automatisch ein Zeitstempel eingetragen, sobald der Auftrag das erste mal nach der Genehmigung angefasst wird.
-	Falls aktiviert, kann dies den Beginn der Planungsphase markieren, ansonsten wird hier der Beginn der ersten Implementierung widergespiegelt.
+    Falls aktiviert, kann dies den Beginn der Planungsphase markieren, ansonsten wird hier der Beginn der ersten Implementierung widergespiegelt.
 ');
 INSERT INTO txt VALUES ('H8139', 'English', 'Start: Here the timestamp of the first change after approval is set.
     If activated, this can mark the beginning of the planning phase, else the start of the first implementation is indicated.
@@ -6155,7 +6159,7 @@ INSERT INTO txt VALUES ('H8158', 'English', 'Start: Here the timestamp of the fi
 INSERT INTO txt VALUES ('H8159', 'German',  'Stop: Wird bei Bearbeitung in der Implementierungsphase ein Status im Ausgangsbereich erreicht, wird hier der aktuelle Zeitstempel gesetzt. ');
 INSERT INTO txt VALUES ('H8159', 'English', 'Stop: When reaching a state in the exit range, the actual timestamp is set.');
 INSERT INTO txt VALUES ('H8171', 'German',  'Genehmigungen werden als eigenst&auml;ndige Objekte dem fachlichen Auftrag zugeordnet. Ein Auftrag gilt dann als genehmigt, wenn alle zugeordneten Einzelgenehmigungen den entsprechenden Status aufweisen.
-	Eine Genehmigung enth&auml;lt folgende Felder:
+    Eine Genehmigung enth&auml;lt folgende Felder:
 ');
 INSERT INTO txt VALUES ('H8171', 'English', 'Approvals are associated to the functional (request) task as separate objects. A request task is regarded as approved, if all related single approvals have the approprioate state.
     An approval contains the following fields:
@@ -6164,8 +6168,8 @@ INSERT INTO txt VALUES ('H8172', 'German',  'Ge&ouml;ffnet: Zeitstempel des Anle
 INSERT INTO txt VALUES ('H8172', 'English', 'Opened: Timestamp of the approval creation.');
 INSERT INTO txt VALUES ('H8173', 'German',  'Deadline: Beim Anlegen der Genehmigung wird automatisch eine Deadline gesetzt.
     Diese wird beim Anlegen des Auftrags aus der Priorit&auml;t des Tickets (<a href="/help/settings/workflowcustomizing">Einstellungen</a>) ermittelt.
-	Beim Anfordern weiterer Genehmigungen &uuml;ber <a href="/help/settings/stateactions">Aktionen</a> kann in dessen Parametern ebenfalls eine Deadline gesetzt werden.
-	Der Wert 0 hat dabei zur Folge, dass keine Deadline gesetzt wird.
+    Beim Anfordern weiterer Genehmigungen &uuml;ber <a href="/help/settings/stateactions">Aktionen</a> kann in dessen Parametern ebenfalls eine Deadline gesetzt werden.
+    Der Wert 0 hat dabei zur Folge, dass keine Deadline gesetzt wird.
 ');
 INSERT INTO txt VALUES ('H8173', 'English', 'Deadline: During approval creation a deadline is set automatically.
     It is computed from the ticket priority at task creation time (<a href="/help/settings/workflowcustomizing">Customizing</a>).
@@ -6181,8 +6185,8 @@ INSERT INTO txt VALUES ('H8176', 'English', 'Approver: The user setting the stat
 INSERT INTO txt VALUES ('H8177', 'German',  'Status: Status der Genehmigung.');
 INSERT INTO txt VALUES ('H8177', 'English', 'State: State of the approval.');
 INSERT INTO txt VALUES ('H8178', 'German',  'Kommentare: Nach dem Anlegen einer Genehmigung bis zur erfolgten Genehmigung k&ouml;nnen Kommentare hinzugef&uuml;gt werden.
-	Dies ist &uuml;ber eine Schaltfl&auml;che in der Genehmigungs&uuml;bersicht oder beim Status&uuml;bergang (z.B. Ablehnung) selbst m&ouml;glich.
-	Die Kommentare werden mit Datum und Autor aufgelistet und k&ouml;nnen nicht gel&ouml;scht werden.
+    Dies ist &uuml;ber eine Schaltfl&auml;che in der Genehmigungs&uuml;bersicht oder beim Status&uuml;bergang (z.B. Ablehnung) selbst m&ouml;glich.
+    Die Kommentare werden mit Datum und Autor aufgelistet und k&ouml;nnen nicht gel&ouml;scht werden.
 ');
 INSERT INTO txt VALUES ('H8178', 'English', 'Comments: After creation of an approval until it is committed comments can be added.
     This can be done via a button in the approval overview or during state transition (e.g. reject).
@@ -6345,8 +6349,8 @@ INSERT INTO txt VALUES ('H8501', 'English', 'Actions of different types provide 
     Currently following actions can be selected:
 ');
 INSERT INTO txt VALUES ('H8511', 'German',  'Autom. Weiterleitung: Obwohl die Statusweiterleitung mit dem Mechanismus der Status-Matrix weitgehend abgebildet werden kann, erweitert diese Aktion die M&ouml;glichkeiten.
-	So kann die Weiterleitung st&auml;rker auf bestimmte Objekttypen eingeschr&auml;nkt werden (die Status-Matrix gilt f&uuml;r alle Objekte eines Tasktyps).
-	Auch ein Aufblenden einer speziellen Weiterleitung als "Shortcut" kann erw&uuml;nscht sein.
+    So kann die Weiterleitung st&auml;rker auf bestimmte Objekttypen eingeschr&auml;nkt werden (die Status-Matrix gilt f&uuml;r alle Objekte eines Tasktyps).
+    Auch ein Aufblenden einer speziellen Weiterleitung als "Shortcut" kann erw&uuml;nscht sein.
 ');
 INSERT INTO txt VALUES ('H8511', 'English', 'Auto-forward: Although state forwarding can widely be realized by the state matrix mechanism, this action enlarges the options.
     The forwarding can be more restricted to dedicated object types (the state matrix is valid for all object types within a task type).
@@ -6361,7 +6365,7 @@ INSERT INTO txt VALUES ('H8512', 'English', 'Add approval: If in the course of t
 INSERT INTO txt VALUES ('H8513', 'German',  'Alarm ausl&ouml;sen: Unter Umst&auml;nden kann eine gezielte Alarmierung in einem Workflow n&uuml;tzlich sein (z.B. durch den Reviewer nach einer festgestellten Fehlimplementierung).');
 INSERT INTO txt VALUES ('H8513', 'English', 'Set alert: Possibly a specific alerting within a workflow may be useful (e.g. by the reviewer in case of a wrong or dangerous implementaion).');
 INSERT INTO txt VALUES ('H8514', 'German',  'Externer Aufruf: Aufrufe externer Komponenenten bieten ein weites Spektrum von Erweiterungs- und Integrationsm&ouml;glichkeiten, die stark vom Systemumfeld abh&auml;ngen.
-	Hier sind f&uuml;r kommende Releases die Ankn&uuml;pfungspunkte f&uuml;r Erweiterungen vorgesehen.
+    Hier sind f&uuml;r kommende Releases die Ankn&uuml;pfungspunkte f&uuml;r Erweiterungen vorgesehen.
 ');
 INSERT INTO txt VALUES ('H8514', 'English', 'External call: Calls to external components provide a wide range of extension or integration possibilities, which strongly depend on the system environment.
     Here connecting factors for extensions future releases are planned.

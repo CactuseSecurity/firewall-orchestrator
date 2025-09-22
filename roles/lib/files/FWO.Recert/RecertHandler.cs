@@ -35,7 +35,7 @@ namespace FWO.Recert
             ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<ReturnIdWrapper>(RecertQueries.recertifyOwner, recertVariables)).ReturnIds;
             if (returnIds != null && returnIds.Length > 0)
             {
-                recertifiedOwner.LastRecertId = returnIds[0].InsertedIdLong;
+                recertifiedOwner.LastRecertId = returnIds[0].NewIdLong;
                 var ownerVariables = new
                 {
                     id = owner.Id,

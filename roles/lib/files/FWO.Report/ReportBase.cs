@@ -160,7 +160,8 @@ namespace FWO.Report
                 ReportType.AppRules => new ReportAppRules(query, userConfig, repType, reportFilter.ReportParams.ModellingFilter),
                 ReportType.VarianceAnalysis => new ReportVariances(query, userConfig, repType),
                 ReportType.OwnerRecertification => new ReportOwnerRecerts(query, userConfig, repType),
-                ReportType.RecertificationEvent => new ReportRecertEvent(query, userConfig, repType),
+                ReportType.RecertificationEvent => new RecertificateOwner(query, userConfig, repType),
+                ReportType.RecertEventReport => new ReportRecertEvent(query, userConfig, repType),
                 _ => throw new NotSupportedException("Report Type is not supported."),
             };
         }

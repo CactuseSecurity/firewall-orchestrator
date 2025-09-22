@@ -18,7 +18,8 @@ namespace FWO.Basics
         AppRules = 22,
         VarianceAnalysis = 23,
         OwnerRecertification = 24,
-        RecertificationEvent = 25
+        RecertificationEvent = 25,
+        RecertEventReport = 26
     }
 
     public static class ReportTypeGroups
@@ -33,7 +34,8 @@ namespace FWO.Basics
                 ReportType.NatRules or
                 ReportType.Recertification or
                 ReportType.UnusedRules or
-                ReportType.AppRules => true,
+                ReportType.AppRules or
+                ReportType.RecertEventReport => true,
                 _ => false
             };
         }
@@ -95,7 +97,8 @@ namespace FWO.Basics
                 ReportType.AppRules or
                 ReportType.VarianceAnalysis or
                 ReportType.OwnerRecertification or
-                ReportType.RecertificationEvent => true,
+                ReportType.RecertificationEvent or
+                ReportType.RecertEventReport => true,
                 _ => false
             };
         }
@@ -140,7 +143,8 @@ namespace FWO.Basics
                 ReportType.AppRules,
                 ReportType.VarianceAnalysis,
                 ReportType.OwnerRecertification,
-                ReportType.RecertificationEvent
+                ReportType.RecertificationEvent,
+                ReportType.RecertEventReport
             ];
             foreach (var reportType in orderedReportTypeList.Where(r => ListIn.Contains(r)))
             {

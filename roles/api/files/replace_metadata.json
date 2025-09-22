@@ -10659,6 +10659,20 @@
                   }
                 }
               ],
+              "array_relationships": [
+                {
+                  "name": "recertifications",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "owner_recert_id",
+                      "table": {
+                        "name": "recertification",
+                        "schema": "public"
+                      }
+                    }
+                  }
+                }
+              ],
               "insert_permissions": [
                 {
                   "role": "modeller",
@@ -10966,6 +10980,12 @@
                   }
                 },
                 {
+                  "name": "owner_recertification",
+                  "using": {
+                    "foreign_key_constraint_on": "owner_recert_id"
+                  }
+                },
+                {
                   "name": "rule_metadatum",
                   "using": {
                     "foreign_key_constraint_on": "rule_metadata_id"
@@ -10995,6 +11015,7 @@
                     "check": {},
                     "columns": [
                       "id",
+                      "owner_recert_id",
                       "rule_id",
                       "rule_metadata_id",
                       "recertified",
@@ -11013,6 +11034,7 @@
                     "check": {},
                     "columns": [
                       "id",
+                      "owner_recert_id",
                       "rule_id",
                       "rule_metadata_id",
                       "recertified",
@@ -11031,16 +11053,17 @@
                   "permission": {
                     "check": {},
                     "columns": [
-                      "comment",
                       "id",
-                      "ip_match",
-                      "next_recert_date",
-                      "owner_id",
-                      "recert_date",
-                      "recertified",
+                      "owner_recert_id",
                       "rule_id",
                       "rule_metadata_id",
-                      "user_dn"
+                      "recertified",
+                      "comment",
+                      "ip_match",
+                      "user_dn",
+                      "owner_id",
+                      "next_recert_date",
+                      "recert_date"
                     ]
                   }
                 }
@@ -11050,16 +11073,17 @@
                   "role": "auditor",
                   "permission": {
                     "columns": [
-                      "comment",
                       "id",
-                      "ip_match",
-                      "next_recert_date",
-                      "owner_id",
-                      "recert_date",
-                      "recertified",
+                      "owner_recert_id",
                       "rule_id",
                       "rule_metadata_id",
-                      "user_dn"
+                      "recertified",
+                      "comment",
+                      "ip_match",
+                      "user_dn",
+                      "owner_id",
+                      "next_recert_date",
+                      "recert_date"
                     ],
                     "filter": {},
                     "allow_aggregations": true
@@ -11070,6 +11094,7 @@
                   "permission": {
                     "columns": [
                       "id",
+                      "owner_recert_id",
                       "rule_id",
                       "rule_metadata_id",
                       "recertified",
@@ -11089,6 +11114,7 @@
                   "permission": {
                     "columns": [
                       "id",
+                      "owner_recert_id",
                       "rule_id",
                       "rule_metadata_id",
                       "recertified",
@@ -11107,6 +11133,7 @@
                   "permission": {
                     "columns": [
                       "id",
+                      "owner_recert_id",
                       "rule_id",
                       "rule_metadata_id",
                       "recertified",
@@ -11125,16 +11152,17 @@
                   "role": "recertifier",
                   "permission": {
                     "columns": [
-                      "comment",
                       "id",
-                      "ip_match",
-                      "next_recert_date",
-                      "owner_id",
-                      "recert_date",
-                      "recertified",
+                      "owner_recert_id",
                       "rule_id",
                       "rule_metadata_id",
-                      "user_dn"
+                      "recertified",
+                      "comment",
+                      "ip_match",
+                      "user_dn",
+                      "owner_id",
+                      "next_recert_date",
+                      "recert_date"
                     ],
                     "filter": {},
                     "allow_aggregations": true
@@ -11144,16 +11172,17 @@
                   "role": "reporter",
                   "permission": {
                     "columns": [
-                      "comment",
                       "id",
-                      "ip_match",
-                      "next_recert_date",
-                      "owner_id",
-                      "recert_date",
-                      "recertified",
+                      "owner_recert_id",
                       "rule_id",
                       "rule_metadata_id",
-                      "user_dn"
+                      "recertified",
+                      "comment",
+                      "ip_match",
+                      "user_dn",
+                      "owner_id",
+                      "next_recert_date",
+                      "recert_date"
                     ],
                     "filter": {},
                     "allow_aggregations": true
@@ -11164,6 +11193,7 @@
                   "permission": {
                     "columns": [
                       "id",
+                      "owner_recert_id",
                       "rule_id",
                       "rule_metadata_id",
                       "recertified",
@@ -11185,6 +11215,7 @@
                   "permission": {
                     "columns": [
                       "id",
+                      "owner_recert_id",
                       "rule_id",
                       "rule_metadata_id",
                       "recertified",
@@ -11205,6 +11236,7 @@
                   "permission": {
                     "columns": [
                       "id",
+                      "owner_recert_id",
                       "rule_id",
                       "rule_metadata_id",
                       "recertified",

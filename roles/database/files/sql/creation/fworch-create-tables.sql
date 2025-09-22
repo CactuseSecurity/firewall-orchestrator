@@ -1129,7 +1129,8 @@ create table owner_recertification
 	recertified boolean default false,
 	recert_date Timestamp,
 	comment varchar,
-	next_recert_date Timestamp
+	next_recert_date Timestamp,
+    report_id bigint
 );
 
 create table owner_ticket

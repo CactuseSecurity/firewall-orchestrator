@@ -14,6 +14,8 @@ query getRulesWithViolationsInTimespanByChunk(
     order_by: { rule_id: asc }
     where: { removed: { _is_null: true } mgm_id: { _in: $mgm_ids }}
   ) {
+    rule_src
+    rule_dst
     ...ruleDetails
 
     violations: compliance_violations_version_agnostic(

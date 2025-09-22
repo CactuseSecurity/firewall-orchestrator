@@ -4,7 +4,7 @@ import os
 
 sys.path.append(os.path.join(os.path.dirname(__file__), '../importer'))
 
-from importer import fwo_const
+import fwo_const
 from services.group_flats_mapper import GroupFlatsMapper  # type: ignore
 from services.uid2id_mapper import Uid2IdMapper  # type: ignore
 from services.global_state import GlobalState  # type: ignore

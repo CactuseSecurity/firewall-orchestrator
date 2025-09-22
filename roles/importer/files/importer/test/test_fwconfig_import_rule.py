@@ -9,7 +9,7 @@ from test.tools.set_up_test import set_up_test_for_ruleorder_test_with_relevant_
 
 class TestFwoConfigImportRule(unittest.TestCase):
 
-    @unittest.skip("Temporary deactivated, because necessary feature in mock class (mocking api calls) is not implemented yet.")        
+    #@unittest.skip("Temporary deactivated, because necessary feature in mock class (mocking api calls) is not implemented yet.")        
     def test_update_rulebase_diffs_on_insert_delete_and_move(self):
         
         # Arrange
@@ -33,5 +33,5 @@ class TestFwoConfigImportRule(unittest.TestCase):
         self.assertEqual(fwconfig_import_rule.ImportDetails.Stats.RuleAddCount, 1)
         self.assertEqual(fwconfig_import_rule.ImportDetails.Stats.RuleDeleteCount, 1)
         self.assertEqual(fwconfig_import_rule.ImportDetails.Stats.RuleChangeCount, 0)
-        self.assertEqual(fwconfig_import_rule.ImportDetails.Stats.RuleMoveCount, 1)
+        self.assertEqual(fwconfig_import_rule.ImportDetails.Stats.RuleMoveCount, 1) 
 

@@ -1,7 +1,14 @@
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "importer"))
+
 from model_controllers.fwconfig_import_rule import FwConfigImportRule
 from models.rulebase import Rulebase
+from services.enums import Lifetime, Services
 from test.mocking.mock_import_state import MockImportStateController
-
+from fwo_base import init_service_provider
+from services.service_provider import ServiceProvider
+from services.global_state import GlobalState
 
 class MockFwConfigImportRule(FwConfigImportRule):
     """
@@ -14,22 +21,31 @@ class MockFwConfigImportRule(FwConfigImportRule):
         """
             Initializes the mock import rule controller with stubs enabled by default. 
         """
+        service_provider = init_service_provider()
+        self._import_details = MockImportStateController(stub_setCoreData=True)
+        service_provider.get_service(Services.GLOBAL_STATE).import_state = self._import_details
 
-        self._import_details = MockImportStateController()
+        
         self._stub_markRulesRemoved = True
         self._stub_getRules = False
         self._stub_addNewRuleMetadata = True
         self._stub_addNewRules = True
         self._stub_moveRules = True
 
+        super().__init__()
+
 
     @property
-    def ImportDetails(self) -> MockImportStateController:
+    def import_details(self) -> MockImportStateController:
         """
             Returns the mock import state controller.
         """
 
         return self._import_details
+    
+    @import_details.setter
+    def import_details(self, value: MockImportStateController):
+        self._import_details = value
 
     @property
     def stub_markRulesRemoved(self) -> bool:
@@ -152,7 +168,7 @@ class MockFwConfigImportRule(FwConfigImportRule):
         if not self.stub_addNewRuleMetadata:
             errors, changes, newRuleIds = super().addNewRuleMetadata(newRules)
 
-        return errors, changes, newRuleIds
+        return changes, newRuleIds
 
 
     def addNewRules(self, newRules: list[Rulebase]) -> tuple[int, int, list[int]]:

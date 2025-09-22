@@ -25,17 +25,21 @@ class MockImportStateController(ImportStateController):
         Mock class for ImportState.
     """
 
-    def __init__(self, import_id: int = 0):
+    _stub_setCoreData: bool = False
+
+    def __init__(self, import_id: int = 0, stub_setCoreData: bool = False):
         """
             Initializes without calling base init. This avoids the necessity to provide JWT and management details.
         """
+
+        self._stub_setCoreData = stub_setCoreData
 
         self.DebugLevel = 0
         self.Stats = ImportStatisticsController()
         self.call_log = []
         self.stub_responses = {}
         self.ImportVersion = 9
-        self.MgmDetails = MockManagementDetailsController()
+        self.MgmDetails = MockManagementController()
         self.api_connection = MockFwoApi()
         self.FwoConfig = FworchConfigController(
             fwoApiUri='',
@@ -53,6 +57,26 @@ class MockImportStateController(ImportStateController):
         self.service_id_map = {}
         self.network_object_id_map = {}
         self.user_id_map = {}
+
+    @property
+    def stub_setCoreData(self) -> bool:
+        """
+            Indicates whether to stub setCoreData.
+        """
+
+        return self._stub_setCoreData
+
+    @stub_setCoreData.setter
+    def stub_setCoreData(self, value: bool):
+        self._stub_setCoreData = value 
+
+    def setCoreData(self):
+
+        if self._stub_setCoreData:
+            return
+        else:
+            super().setCoreData()
+
 
 
     def call(self, *args, **kwargs):

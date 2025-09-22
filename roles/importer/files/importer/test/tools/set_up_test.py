@@ -49,6 +49,7 @@ def set_up_test_for_ruleorder_test_with_defaults():
 
 def set_up_test_for_ruleorder_test_with_relevant_changes():
         
+        config_builder = MockFwConfigNormalizedBuilder()
         previous_config, fwconfig_import_rule = set_up_test_for_ruleorder_test_with_defaults()
 
         rule_uids = list(fwconfig_import_rule.normalized_config.rulebases[0].Rules.keys())
@@ -59,7 +60,7 @@ def set_up_test_for_ruleorder_test_with_relevant_changes():
         rule_uids.pop(deleted_rule_position)
 
         inserted_rule_position = 0
-        inserted_rule = fwconfig_import_rule.normalized_config.add_rule_to_rulebase(fwconfig_import_rule.normalized_config.rulebases[0].uid)
+        inserted_rule = config_builder.add_rule(fwconfig_import_rule.normalized_config, fwconfig_import_rule.normalized_config.rulebases[0].uid)
         inserted_rule_uid = inserted_rule.rule_uid
         fwconfig_import_rule.normalized_config.rulebases[0].Rules[inserted_rule_uid] = inserted_rule
         rule_uids.insert(inserted_rule_position, inserted_rule_uid)
@@ -83,8 +84,8 @@ def reorder_rulebase_rules_dict(fwconfig_import_rule, rulebase_index, rule_uids)
     """
         Imitates the changes in order in the config dict.
     """
-    rules = copy.deepcopy(fwconfig_import_rule.NormalizedConfig.rulebases[rulebase_index].Rules)
-    fwconfig_import_rule.NormalizedConfig.rulebases[rulebase_index].Rules = {}
+    rules = copy.deepcopy(fwconfig_import_rule.normalized_config.rulebases[rulebase_index].Rules)
+    fwconfig_import_rule.normalized_config.rulebases[rulebase_index].Rules = {}
     for rule_uid in rule_uids:
-        fwconfig_import_rule.NormalizedConfig.rulebases[rulebase_index].Rules[rule_uid] = rules[rule_uid]
+        fwconfig_import_rule.normalized_config.rulebases[rulebase_index].Rules[rule_uid] = rules[rule_uid]
 

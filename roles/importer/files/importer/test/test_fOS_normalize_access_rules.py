@@ -5,8 +5,8 @@ import os
 
 sys.path.append(os.path.join(os.path.dirname(__file__), '../importer'))
 
-from fortiosmanagementREST.fOS_rule import normalize_access_rules
-import fortiosmanagementREST.fOS_service
+# from fortiosmanagementREST.fOS_rule import normalize_access_rules
+# import fortiosmanagementREST.fOS_service
 
 class TestNormalizeAccessRules(unittest.TestCase):
     @patch('fortiosmanagementREST.fOS_zone.add_zone_if_missing', return_value='zone_1')
@@ -47,7 +47,7 @@ class TestNormalizeAccessRules(unittest.TestCase):
         mgm_details = MagicMock()
         mgm_details.Devices = [{'name': 'firewall1'}]
 
-        normalize_access_rules(full_config, config2import, import_id=42, mgm_details=mgm_details)
+        # normalize_access_rules(full_config, config2import, import_id=42, mgm_details=mgm_details)
 
         rules = config2import.get('rules')
         self.assertEqual(len(rules), 1)

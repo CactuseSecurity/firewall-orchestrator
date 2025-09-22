@@ -3,8 +3,8 @@ from models.networkobject import NetworkObject
 from models.rulebase import Rulebase
 from models.serviceobject import ServiceObject
 from models.rule import RuleNormalized
-from importer import fwo_const
-from importer.fwo_api import FwoApi
+import fwo_const
+from fwo_api import FwoApi
 from .mock_config import MockFwConfigNormalizedBuilder
 
 TABLE_IDENTIFIERS = {

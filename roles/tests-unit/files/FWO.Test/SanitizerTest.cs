@@ -1,6 +1,7 @@
-﻿using NUnit.Framework;
+using NUnit.Framework;
 using NUnit.Framework.Legacy;
 using FWO.Data;
+using FWO.Basics;
 
 namespace FWO.Test
 {
@@ -48,9 +49,9 @@ namespace FWO.Test
             ClassicAssert.AreEqual(false, shortened);
             ClassicAssert.AreEqual(OkText, Sanitizer.SanitizeOpt(OkText, ref shortened));
             ClassicAssert.AreEqual(false, shortened);
-            ClassicAssert.AreEqual(OkText, Sanitizer.SanitizeMand(OkText, ref shortened));
+            ClassicAssert.AreEqual(OkText, OkText.SanitizeMand());
             ClassicAssert.AreEqual(false, shortened);
-            ClassicAssert.AreEqual(ShortenedText, Sanitizer.SanitizeMand(TextToShorten, ref shortened));
+            ClassicAssert.AreEqual(ShortenedText, TextToShorten.SanitizeMand());
             ClassicAssert.AreEqual(true, shortened);
 
             shortened = false;

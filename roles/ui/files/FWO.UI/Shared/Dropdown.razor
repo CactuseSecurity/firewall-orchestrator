@@ -324,7 +324,7 @@
 
     public void Dispose()
     {
-        if(eventService is not null && eventService.Initialized)
+        if (eventService is not null && eventService.Initialized)
         {
             eventService.OnGlobalResize -= OnGlobalResize;
             eventService.OnGlobalScroll -= OnGlobalScroll;
@@ -333,7 +333,10 @@
 
         if (jsRuntime is not null)
         {
+#pragma warning disable CS8625
             jsRuntime = null;
+#pragma warning restore CS8625
+
             JsDisposed = true;
         }
     }

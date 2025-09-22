@@ -1,4 +1,4 @@
-﻿@using NetTools;
+@using NetTools;
 
 @inject UserConfig userConfig
 
@@ -11,6 +11,7 @@
 
 	private IPAddressRange? ipRange;
 
+#pragma warning disable BL0007
 	[Parameter]
 	public IPAddressRange? IpRange
 	{
@@ -24,6 +25,7 @@
 			}
 		}
 	}
+#pragma warning restore BL0007
 
 	[Parameter]
 	public EventCallback<IPAddressRange?> IpRangeChanged { get; set; }

@@ -35,7 +35,7 @@ namespace FWO.ExternalSystems.Tufin.SecureChange
 				System.Text.Json.JsonSerializer.Deserialize<ExtMgtData>(ReqTask.OnManagement?.ExtMgtData ?? "{}") : new();
 			bool shortened = false;
 			TaskText = template.TasksTemplate
-				.Replace(Placeholder.GROUPNAME, Sanitizer.SanitizeJsonFieldMand(ReqTask.GetAddInfoValue(AdditionalInfoKeys.GrpName), ref shortened))
+				.Replace(Placeholder.GROUPNAME, ReqTask.GetAddInfoValue(AdditionalInfoKeys.GrpName).SanitizeJsonFieldMand(ref shortened))
 				.Replace(Placeholder.MANAGEMENT_ID, extMgt.ExtId ?? "0")
 				.Replace(Placeholder.MANAGEMENT_NAME, extMgt.ExtName)
 				.Replace(Placeholder.CHANGEACTION, ChangeAction)

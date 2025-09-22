@@ -1,4 +1,4 @@
-﻿using FWO.Logging;
+using FWO.Logging;
 using GraphQL;
 using GraphQL.Client.Http;
 using Newtonsoft.Json.Linq;
@@ -10,8 +10,8 @@ namespace FWO.Api.Client
         public delegate void SubscriptionUpdate(SubscriptionResponseType reponse);
         public event SubscriptionUpdate OnUpdate;
 
-        private IObservable<GraphQLResponse<dynamic>> subscriptionStream;
-        private IDisposable subscription;
+        private IObservable<GraphQLResponse<dynamic>> subscriptionStream = null!;
+        private IDisposable subscription = null!;
         private readonly GraphQLHttpClient graphQlClient;
         private readonly GraphQLRequest request;
         private readonly Action<Exception> internalExceptionHandler;

@@ -1,3 +1,4 @@
+using FWO.Basics;
 using FWO.Data.Middleware;
 using Newtonsoft.Json; 
 using System.Text.Json.Serialization; 
@@ -117,16 +118,16 @@ namespace FWO.Data
         public virtual bool Sanitize()
         {
             bool shortened = false;
-            Address = Sanitizer.SanitizeMand(Address, ref shortened);
-            SearchUser = Sanitizer.SanitizeLdapPathOpt(SearchUser, ref shortened) ?? "";
-            UserSearchPath = Sanitizer.SanitizeLdapPathOpt(UserSearchPath, ref shortened);
-            RoleSearchPath = Sanitizer.SanitizeLdapPathOpt(RoleSearchPath, ref shortened);
-            GroupSearchPath = Sanitizer.SanitizeLdapPathOpt(GroupSearchPath, ref shortened);
-            GroupWritePath = Sanitizer.SanitizeLdapPathOpt(GroupWritePath, ref shortened);
-            WriteUser = Sanitizer.SanitizeLdapPathOpt(WriteUser, ref shortened);
-            GlobalTenantName = Sanitizer.SanitizeOpt(GlobalTenantName, ref shortened);
-            SearchUserPwd = Sanitizer.SanitizePasswOpt(SearchUserPwd, ref shortened) ?? "";
-            WriteUserPwd = Sanitizer.SanitizePasswOpt(WriteUserPwd, ref shortened);
+            Address = Address.SanitizeMand();
+            SearchUser = SearchUser.SanitizeLdapPathOpt() ?? "";
+            UserSearchPath = UserSearchPath.SanitizeLdapPathOpt();
+            RoleSearchPath = RoleSearchPath.SanitizeLdapPathOpt();
+            GroupSearchPath = GroupSearchPath.SanitizeLdapPathOpt();
+            GroupWritePath = GroupWritePath.SanitizeLdapPathOpt();
+            WriteUser = WriteUser.SanitizeLdapPathOpt();
+            GlobalTenantName = GlobalTenantName.SanitizeOpt();
+            SearchUserPwd = SearchUserPwd.SanitizePasswOpt() ?? "";
+            WriteUserPwd = WriteUserPwd.SanitizePasswOpt();
             return shortened;
         }
 

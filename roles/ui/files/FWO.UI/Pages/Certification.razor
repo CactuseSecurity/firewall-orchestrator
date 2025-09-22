@@ -317,7 +317,7 @@
     private async Task ExecuteSelected()
     {
         bool shortened = false;
-        actComment = Sanitizer.SanitizeMand(actComment, ref shortened);
+        actComment = actComment.SanitizeMand();
         if(shortened)
         {
             DisplayMessageInUi(null, userConfig.GetText("execute_selected"), userConfig.GetText("U0001"), true);

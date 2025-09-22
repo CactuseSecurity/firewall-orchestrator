@@ -1,4 +1,4 @@
-﻿using FWO.Data;
+using FWO.Data;
 using FWO.Data.Modelling;
 using FWO.Basics;
 using System.Net;
@@ -41,7 +41,7 @@ namespace FWO.Services
         public static string ConstructSanitizedAppServerName(ModellingAppServer appServer, ModellingNamingConvention namingConvention, bool overwriteExistingNames=false)
         {
             bool shortened = false;
-            return Sanitizer.SanitizeJsonFieldMand(ConstructAppServerName(appServer, namingConvention, overwriteExistingNames), ref shortened);
+            return ConstructAppServerName(appServer, namingConvention, overwriteExistingNames).SanitizeJsonFieldMand(ref shortened);
         }
 
         public static string ConstructAppServerName(ModellingAppServer appServer, ModellingNamingConvention namingConvention, bool overwriteExistingNames=false)

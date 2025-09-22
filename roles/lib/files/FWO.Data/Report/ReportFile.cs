@@ -1,4 +1,5 @@
-using System.Text.Json.Serialization; 
+using System.Text.Json.Serialization;
+using FWO.Basics;
 using Newtonsoft.Json;
 
 
@@ -54,7 +55,7 @@ namespace FWO.Data.Report
         public bool Sanitize()
         {
             bool shortened = false;
-            Name = Sanitizer.SanitizeMand(Name, ref shortened);
+            Name = Name.SanitizeMand(ref shortened);
             return shortened;
         }
     }

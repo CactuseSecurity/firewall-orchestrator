@@ -42,9 +42,9 @@ namespace FWO.Data.Modelling
         public override bool Sanitize()
         {
             bool shortened = base.Sanitize();
-            Ip = Sanitizer.SanitizeCidrMand(Ip, ref shortened);
-            IpEnd = Sanitizer.SanitizeCidrMand(IpEnd, ref shortened);
-            ImportSource = Sanitizer.SanitizeMand(ImportSource, ref shortened);
+            Ip = Ip.SanitizeCidrMand();
+            IpEnd = IpEnd.SanitizeCidrMand();
+            ImportSource = ImportSource.SanitizeMand();
             return shortened;
         }
 

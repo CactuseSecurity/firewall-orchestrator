@@ -1,0 +1,9 @@
+<Project>
+  <PropertyGroup Condition="'$(MSBuildProjectName)' == 'FWO.Middleware.Server'">
+    <NoWarn></NoWarn>
+  </PropertyGroup>
+  
+  <PropertyGroup Condition="'$(MSBuildProjectName)' == 'FWO.UI'">
+    <NoWarn>$(NoWarn);CS0169</NoWarn>
+  </PropertyGroup>
+</Project>

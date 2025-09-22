@@ -95,7 +95,7 @@ namespace FWO.ExternalSystems.Tufin.SecureChange
 			bool shortened = false;
 			return template.ObjectTemplate
 				.Replace(Placeholder.TYPE, type)
-				.Replace(Placeholder.OBJECTNAME, Sanitizer.SanitizeJsonFieldMand(objInfo.Name, ref shortened))
+				.Replace(Placeholder.OBJECTNAME, objInfo.Name.SanitizeJsonFieldMand(ref shortened))
 				.Replace(Placeholder.OBJECT_TYPE, objInfo.Type)
 				.Replace(Placeholder.OBJECT_DETAILS, objInfo.Details)
 				.Replace(Placeholder.COMMENT, objInfo.Comment)
@@ -115,7 +115,7 @@ namespace FWO.ExternalSystems.Tufin.SecureChange
 		{
 			bool shortened = false;
 			return template.ObjectTemplateShort
-				.Replace(Placeholder.OBJECTNAME, Sanitizer.SanitizeJsonFieldMand(objName, ref shortened))
+				.Replace(Placeholder.OBJECTNAME, objName.SanitizeJsonFieldMand(ref shortened))
 				.Replace(Placeholder.STATUS, status)
 				.Replace(Placeholder.OBJUPDSTATUS, objUpdStatus)
 				.Replace(Placeholder.MANAGEMENT_ID, mgmId);

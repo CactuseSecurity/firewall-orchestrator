@@ -277,7 +277,7 @@ namespace FWO.ExternalSystems.Tufin.SecureChange
 				.Replace(Placeholder.APPID, appId)
 				.Replace(Placeholder.TASKS, string.Join(",", TicketTasks));
 			bool shortened = false;
-			TicketText = Sanitizer.SanitizeEolMand(TicketText, ref shortened);
+			TicketText = TicketText.SanitizeEolMand(ref shortened);
 			CheckForProperJson(TicketText);
 		}
 

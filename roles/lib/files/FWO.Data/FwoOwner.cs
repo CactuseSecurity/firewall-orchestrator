@@ -1,4 +1,5 @@
-﻿using System.Text.Json.Serialization; 
+using System.Text.Json.Serialization;
+using FWO.Basics;
 using Newtonsoft.Json;
 
 namespace FWO.Data
@@ -86,9 +87,9 @@ namespace FWO.Data
         public override bool Sanitize()
         {
             bool shortened = base.Sanitize();
-            Criticality = Sanitizer.SanitizeOpt(Criticality, ref shortened);
-            ImportSource = Sanitizer.SanitizeCommentOpt(ImportSource, ref shortened);
-            LastRecertifierDn = Sanitizer.SanitizeLdapPathOpt(LastRecertifierDn, ref shortened);
+            Criticality = Criticality.SanitizeOpt(ref shortened);
+            ImportSource = ImportSource.SanitizeCommentOpt(ref shortened);
+            LastRecertifierDn = LastRecertifierDn.SanitizeLdapPathOpt(ref shortened);
             return shortened;
         }
 

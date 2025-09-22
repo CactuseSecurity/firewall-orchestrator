@@ -10,10 +10,20 @@ namespace FWO.Data
     {
         public static StringBuilder DisplayService(NetworkService service, bool isTechReport, string? serviceName = null)
         {
-            StringBuilder result = new ();
+            StringBuilder result = new();
             string ports = service.DestinationPortEnd == null || service.DestinationPortEnd == 0 || service.DestinationPort == service.DestinationPortEnd ?
                 $"{service.DestinationPort}" : $"{service.DestinationPort}-{service.DestinationPortEnd}";
             bool displayPorts = service.Protocol != null && service.Protocol.HasPorts() && service.DestinationPort != null;
+
+            if (service.Protocol?.Id == 0 &&
+                (service.Name.Equals("any", StringComparison.OrdinalIgnoreCase) ||
+                service.Name.Equals("all", StringComparison.OrdinalIgnoreCase) ||
+                service.Protocol.Name.Equals("HOPOPT", StringComparison.OrdinalIgnoreCase)
+                ))
+            {
+                return result;
+            }
+
             if (isTechReport)
             {
                 if (displayPorts)

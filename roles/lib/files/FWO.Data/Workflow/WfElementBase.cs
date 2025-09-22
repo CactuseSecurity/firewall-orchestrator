@@ -1,4 +1,5 @@
-﻿using System.Text.Json.Serialization; 
+using System.Text.Json.Serialization;
+using FWO.Basics;
 using Newtonsoft.Json;
 
 namespace FWO.Data.Workflow
@@ -88,12 +89,12 @@ namespace FWO.Data.Workflow
         public virtual bool Sanitize()
         {
             bool shortened = false;
-            IpString = Sanitizer.SanitizeOpt(IpString, ref shortened);
-            IpEnd = Sanitizer.SanitizeOpt(IpEnd, ref shortened);
-            Field = Sanitizer.SanitizeMand(Field, ref shortened);
-            RuleUid = Sanitizer.SanitizeOpt(RuleUid, ref shortened);
-            GroupName = Sanitizer.SanitizeOpt(GroupName, ref shortened);
-            Name = Sanitizer.SanitizeOpt(Name, ref shortened);
+            IpString = IpString.SanitizeOpt(ref shortened);
+            IpEnd = IpEnd.SanitizeOpt(ref shortened);
+            Field = Field.SanitizeMand(ref shortened);
+            RuleUid = RuleUid.SanitizeOpt(ref shortened);
+            GroupName = GroupName.SanitizeOpt(ref shortened);
+            Name = Name.SanitizeOpt(ref shortened);
             return shortened;
         }
     }

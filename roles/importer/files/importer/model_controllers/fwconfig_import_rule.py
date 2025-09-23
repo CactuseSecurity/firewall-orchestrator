@@ -118,7 +118,7 @@ class FwConfigImportRule():
         num_deleted_rules, removed_rule_ids = self.markRulesRemoved(deletedRuleUids, changedRuleUids)
         num_removed_refs = self.remove_outdated_refs(prevConfig)
 
-        error_count_move, num_moved_rules, moved_rule_uids = self.verify_rules_moved(old_rule_ids)
+        _, num_moved_rules, _ = self.verify_rules_moved(old_rule_ids)
 
         new_rule_ids = [rule['rule_id'] for rule in new_rule_ids]  # extract rule_ids from the returned list of dicts
         self.write_changelog_rules(new_rule_ids, removed_rule_ids)

@@ -16,10 +16,10 @@ namespace FWO.Report
         {
             StringBuilder report = new();
             int chapterNumber = 0;
-            RecertificateOwner recertOwner = new(query, userConfig, reportType);
-            recertOwner.AppendOwnerData(ref report, ReportData.OwnerData, chapterNumber);
-
-            ConstructHtmlReport(ref report, ReportData.ManagementData, chapterNumber);
+            RecertificateOwner recertOwner = new(Query, userConfig, ReportType);
+            recertOwner.AppendOwnerData(ref report, ReportData.OwnerData, chapterNumber, 1);
+            report.AppendLine(Headline(userConfig.GetText("recertified_rules"), 3));
+            ConstructHtmlReport(ref report, ReportData.ManagementData, chapterNumber, 1);
             return GenerateHtmlFrame(userConfig.GetText(ReportType.ToString()), Query.RawFilter, DateTime.Now, report);
         }
 
@@ -27,10 +27,13 @@ namespace FWO.Report
         {
             try
             {
-                ReportFile reportFile = (await apiConnection.SendQueryAsync<List<ReportFile>>(ReportQueries.getGeneratedReport, new { report_id = reportId }))[0];
-                if (reportFile.Json != null)
+                if (reportId != null)
                 {
-                    return JsonSerializer.Deserialize<List<OwnerConnectionReport>>(reportFile.Json) ?? [];
+                    ReportFile reportFile = (await apiConnection.SendQueryAsync<List<ReportFile>>(ReportQueries.getGeneratedReport, new { report_id = reportId }))[0];
+                    if (reportFile.Json != null)
+                    {
+                        return JsonSerializer.Deserialize<List<OwnerConnectionReport>>(reportFile.Json) ?? [];
+                    }
                 }
             }
             catch (Exception exception)

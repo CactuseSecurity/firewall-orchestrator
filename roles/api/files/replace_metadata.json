@@ -10657,6 +10657,12 @@
                   "using": {
                     "foreign_key_constraint_on": "owner_id"
                   }
+                },
+                {
+                  "name": "report",
+                  "using": {
+                    "foreign_key_constraint_on": "report_id"
+                  }
                 }
               ],
               "array_relationships": [
@@ -10680,6 +10686,7 @@
                     "check": {},
                     "columns": [
                       "id",
+                      "report_id",
                       "recertified",
                       "comment",
                       "user_dn",
@@ -10697,6 +10704,7 @@
                   "permission": {
                     "columns": [
                       "id",
+                      "report_id",
                       "recertified",
                       "comment",
                       "user_dn",
@@ -10713,6 +10721,7 @@
                   "permission": {
                     "columns": [
                       "id",
+                      "report_id",
                       "recertified",
                       "comment",
                       "user_dn",
@@ -10729,6 +10738,7 @@
                   "permission": {
                     "columns": [
                       "id",
+                      "report_id",
                       "recertified",
                       "comment",
                       "user_dn",
@@ -10745,6 +10755,7 @@
                   "permission": {
                     "columns": [
                       "id",
+                      "report_id",
                       "recertified",
                       "comment",
                       "user_dn",
@@ -10753,6 +10764,19 @@
                       "recert_date"
                     ],
                     "filter": {}
+                  },
+                  "comment": ""
+                }
+              ],
+              "update_permissions": [
+                {
+                  "role": "modeller",
+                  "permission": {
+                    "columns": [
+                      "report_id"
+                    ],
+                    "filter": {},
+                    "check": null
                   },
                   "comment": ""
                 }
@@ -11311,6 +11335,20 @@
                   "name": "uiuser",
                   "using": {
                     "foreign_key_constraint_on": "report_owner_id"
+                  }
+                }
+              ],
+              "array_relationships": [
+                {
+                  "name": "owner_recertifications",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "report_id",
+                      "table": {
+                        "name": "owner_recertification",
+                        "schema": "public"
+                      }
+                    }
                   }
                 }
               ],

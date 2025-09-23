@@ -299,7 +299,12 @@
                 read_only = true,
                 owner_id = owner.Id
             };
-            await apiConnection.SendQueryAsync<object>(ReportQueries.addGeneratedReport, variables);
+            ReturnId[]? returnIds =  (await apiConnection.SendQueryAsync<ReturnIdWrapper>(ReportQueries.addGeneratedReport, variables)).ReturnIds;
+            if(returnIds != null && returnIds.Length > 0)
+            {
+                long reportId = returnIds[0].NewIdLong;
+                await apiConnection.SendQueryAsync<ReturnIdWrapper>(RecertQueries.updateRecertReportId, new{ id = owner.LastRecertId, reportId = reportId });
+            }
         }
     }
 

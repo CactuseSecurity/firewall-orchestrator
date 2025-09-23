@@ -18,22 +18,22 @@ namespace FWO.Report
             return GenerateHtmlFrame(userConfig.GetText(ReportType.ToString()), Query.RawFilter, DateTime.Now, report);
         }
 
-        public void AppendOwnerData(ref StringBuilder report, List<OwnerConnectionReport> ownerReports, int chapterNumber)
+        public void AppendOwnerData(ref StringBuilder report, List<OwnerConnectionReport> ownerReports, int chapterNumber, int levelshift = 0)
         {
+            Levelshift = levelshift;
             foreach (var ownerReport in ownerReports)
             {
                 chapterNumber++;
-                AppendRecertData(ref report, ownerReport);
-                report.AppendLine($"<h3 id=\"{Guid.NewGuid()}\">{ownerReport.Name}</h3>");
+                report.AppendLine(Headline(GetRecertText(ownerReport, userConfig), 2));
                 AppendConnDataForOwner(ref report, ownerReport, chapterNumber);
                 report.AppendLine("<hr>");
             }
         }
 
-        private void AppendRecertData(ref StringBuilder report, OwnerConnectionReport ownerReport)
+        public static string GetRecertText(OwnerConnectionReport ownerReport, UserConfig userConfig)
         {
-            string recertText = $"{userConfig.GetText("recertified_by")} {new DistName(ownerReport.Owner.LastRecertifierDn).UserName}: {ownerReport.Owner.LastRecertified?.ToString("dd.MM.yyyy HH:mm") ?? "-"}";
-            report.AppendLine($"<h4>{recertText}</h4>");
+            return $"{userConfig.GetText("recertification")} {ownerReport.Owner.LastRecertified?.ToString("dd.MM.yyyy HH:mm") ?? "-"} " +
+                (ownerReport.Owner.LastRecertifierDn != null ? $"{userConfig.GetText("by")} {new DistName(ownerReport.Owner.LastRecertifierDn).UserName}" : "");
         }
     }
 }

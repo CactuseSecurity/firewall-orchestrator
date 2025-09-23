@@ -31,7 +31,7 @@
   }
   ) {
         returning {
-            report_id
+            newIdLong: report_id
         }
     }
 }

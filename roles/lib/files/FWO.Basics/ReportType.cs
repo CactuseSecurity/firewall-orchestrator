@@ -135,15 +135,15 @@ namespace FWO.Basics
             List<ReportType> orderedReportTypeList =
             [
                 ReportType.All,
+                ReportType.RecertificationEvent,
                 ReportType.Rules, ReportType.ResolvedRules, ReportType.ResolvedRulesTech, ReportType.UnusedRules, ReportType.NatRules,
-                ReportType.Recertification,
                 ReportType.Changes, ReportType.ResolvedChanges, ReportType.ResolvedChangesTech,
                 ReportType.Statistics,
                 ReportType.Connections,
                 ReportType.AppRules,
                 ReportType.VarianceAnalysis,
+                ReportType.Recertification,
                 ReportType.OwnerRecertification,
-                ReportType.RecertificationEvent,
                 ReportType.RecertEventReport
             ];
             foreach (var reportType in orderedReportTypeList.Where(r => ListIn.Contains(r)))

@@ -27,6 +27,6 @@ namespace FWO.Data
         public string Comment { get; set; } = "";
 
         [JsonProperty("report_id"), JsonPropertyName("report_id")]
-        public long ReportId { get; set; }
+        public long? ReportId { get; set; }
     }
 }

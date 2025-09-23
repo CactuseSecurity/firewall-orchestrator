@@ -97,6 +97,7 @@ namespace FWO.Report
         public ReportData ReportData { get; set; } = new();
         public int CustomWidth { get; set; } = 0;
         public int CustomHeight { get; set; } = 0;
+        protected int Levelshift = 0;
 
         protected string htmlExport = "";
 
@@ -229,7 +230,7 @@ namespace FWO.Report
                     $"{userConfig.GetText("until")}: {ToUtcString(stopTime)}";
                 HtmlTemplate = HtmlTemplate.Replace("##Date-of-Config##: ##GeneratedFor##", timeRange);
             }
-            else if (ReportType.IsRuleReport() || ReportType == ReportType.Statistics)
+            else if ((ReportType.IsRuleReport() && ReportType != ReportType.RecertEventReport) || ReportType == ReportType.Statistics)
             {
                 HtmlTemplate = HtmlTemplate.Replace("##Date-of-Config##", userConfig.GetText("date_of_config"));
                 HtmlTemplate = HtmlTemplate.Replace("##GeneratedFor##", ToUtcString(Query.ReportTimeString));
@@ -254,7 +255,7 @@ namespace FWO.Report
 
         private void ReplaceOtherFilter(string? deviceFilter)
         {
-            if(deviceFilter != null)
+            if(deviceFilter != null && ReportType != ReportType.RecertEventReport)
             {
                 HtmlTemplate = HtmlTemplate.Replace("##OtherFilters##", userConfig.GetText("devices") + ": " + deviceFilter);
             }
@@ -472,6 +473,11 @@ namespace FWO.Report
                 }
                 sb.AppendLine("</ul>");
             }
+        }
+        
+        protected string Headline(string? title, int level)
+        {
+            return $"<h{level + Levelshift} id=\"{Guid.NewGuid()}\">{title}</h{level + Levelshift}>";
         }
 
         public static bool IsValidHTML(string html)

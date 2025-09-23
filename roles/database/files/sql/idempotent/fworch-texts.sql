@@ -1142,6 +1142,8 @@ INSERT INTO txt VALUES ('recert_history',       'German',   'Rezertifizierungshi
 INSERT INTO txt VALUES ('recert_history',       'English',  'Recertification history');
 INSERT INTO txt VALUES ('recertified_by',       'German',   'rezertifiziert von');
 INSERT INTO txt VALUES ('recertified_by',       'English',  'recertified by');
+INSERT INTO txt VALUES ('by',                   'German',   'durch');
+INSERT INTO txt VALUES ('by',                   'English',  'by');
 INSERT INTO txt VALUES ('decertified_by',       'German',   'dezertifiziert von');
 INSERT INTO txt VALUES ('decertified_by',       'English',  'decertified by');
 INSERT INTO txt VALUES ('as_owner',             'German',   'als Eigent&uuml;mer');

@@ -9,13 +9,15 @@
 
 @if(OwnerData.Count > 0)
 {
-    <h5>@(userConfig.GetText("recertification"))</h5>
-    <OwnerRecertTable Owners="owners" />
+    <h4>@(RecertificateOwner.GetRecertText(OwnerData[0], userConfig))</h4>
+    <div class="ml-13">
+        <ConnectionsReport OwnerData="OwnerData" />
+    </div>
 
     @if(Managements.Count > 0)
     {
         <br>
-        <h5>@(userConfig.GetText("rules"))</h5>
+        <h5>@(userConfig.GetText("recertified_rules"))</h5>
         <div class="ml-13">
             <RulesReport Managements="Managements" SelectedReportType="ReportType.Rules" RulesPerPage="RulesPerPage" @bind-SelectedRules="SelectedRules" />
         </div>
@@ -38,13 +40,4 @@
 
     [Parameter]
     public List<Rule> SelectedRules { get; set; } = [];
-
-
-    private List<FwoOwner> owners = [];
-
-
-    protected override void OnParametersSet()
-    {
-        owners = [.. OwnerData.Select(o => o.Owner)];
-    }
 }

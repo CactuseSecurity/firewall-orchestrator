@@ -275,7 +275,7 @@ namespace FWO.Report
             {
                 ReportRules rulesReport = new(new(""), userConfig, ReportType.Rules);
                 report.AppendLine($"<h4 id=\"{Guid.NewGuid()}\">{userConfig.GetText("rules_for_deleted_conns")}</h4>");
-                rulesReport.ConstructHtmlReport(ref report, ownerReport.RulesForDeletedConns, chapterNumber, true);
+                rulesReport.ConstructHtmlReport(ref report, ownerReport.RulesForDeletedConns, chapterNumber, 2);
                 report.AppendLine("<hr>");
             }
         }
@@ -286,7 +286,7 @@ namespace FWO.Report
             {
                 ReportRules rulesReport = new(new(""), userConfig, ReportType.AppRules);
                 report.AppendLine($"<h4 id=\"{Guid.NewGuid()}\">{userConfig.GetText("remaining_rules")}</h4>");
-                rulesReport.ConstructHtmlReport(ref report, ownerReport.UnmodelledRules, chapterNumber, true);
+                rulesReport.ConstructHtmlReport(ref report, ownerReport.UnmodelledRules, chapterNumber, 2);
                 report.AppendLine("<hr>");
             }
         }

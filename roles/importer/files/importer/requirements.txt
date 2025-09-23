@@ -1,10 +1,17 @@
+# Core runtime
 pydantic>=2.0,<3.0
 jsonpickle>=3.0
-gnupg>=0.5
-pytest>=7.0
-graphql-core>=3.0
-requests>=2.0
-cryptography>=40.0
-netaddr>=1.0
-urllib3>=2.0
 python-dateutil>=2.8
+netaddr>=1.0
+
+# Crypto (AES/CBC via cryptography.hazmat)
+cryptography>=40.0
+
+# HTTP / GraphQL stack
+# Note: Requests >=2.32.0 is compatible with urllib3 2.x
+requests>=2.32.0
+urllib3>=2.0
+graphql-core>=3.0
+
+# Test
+pytest>=7.0

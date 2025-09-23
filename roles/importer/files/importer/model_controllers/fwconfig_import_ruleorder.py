@@ -168,7 +168,7 @@ class RuleOrderService:
                 # Handle singular inserts and moves.
                 
                 elif self._is_rule_uid_in_return_object(rule_uid, self._new_rule_uids) or self._is_rule_uid_in_return_object(rule_uid, self._moved_rule_uids):
-                    self._update_rule_num_numeric_on_singular_insert_or_move(rule_uid) ## TODO: Change method name
+                    self._update_rule_num_numeric_on_singular_insert_or_move(rule_uid, rulebase_uid) ## TODO: Change method name
 
                 # Raise if unexpected rule uid.
 
@@ -205,26 +205,37 @@ class RuleOrderService:
         return map(list, zip(*uids_and_rules)) if uids_and_rules else ([], [])
 
 
-    def _update_rule_num_numeric_on_singular_insert_or_move(self, rule_uid): 
+    def _update_rule_num_numeric_on_singular_insert_or_move(self, rule_uid, target_rulebase_uid): 
 
         new_rule_num_numeric = 0.0
         next_rules_rule_num_numeric = 0.0
         previous_rule_num_numeric = 0.0
 
+        target_rulebase = next(rulebase for rulebase in self._fw_config_import_rule.normalized_config.rulebases if rulebase.uid == target_rulebase_uid)
+
         index, changed_rule = self._get_index_and_rule_object_from_flat_list(self._target_rules_flat, rule_uid)
         prev_rule_uid, next_rule_uid = self._get_adjacent_list_element(self._target_rule_uids, index)
 
         if not prev_rule_uid:
-            next_rules_rule_num_numeric = self._get_relevant_rule_num_numeric(next_rule_uid, self.fw_config_import_rule.import_details, self._target_rules_flat)
-            changed_rule.rule_num_numeric = next_rules_rule_num_numeric / 2 or 1
+            min_num_numeric_rule = min((r for r in target_rulebase.Rules.values()  if r.rule_num_numeric != 0), key=lambda x: x.rule_num_numeric, default=None)
+            
+            if min_num_numeric_rule:
+                changed_rule.rule_num_numeric = min_num_numeric_rule.rule_num_numeric / 2 or 1
+            else:
+                changed_rule.rule_num_numeric = rule_num_numeric_steps
+
             
         elif not next_rule_uid:
-            previous_rule_num_numeric = self._get_relevant_rule_num_numeric(prev_rule_uid, self.fw_config_import_rule.import_details, self._target_rules_flat)
-            changed_rule.rule_num_numeric = previous_rule_num_numeric + rule_num_numeric_steps
+            changed_rule.rule_num_numeric = rule_num_numeric_steps
+
+            max_num_numeric_rule = max((r for r in target_rulebase.Rules.values()), key=lambda x: x.rule_num_numeric, default=None)
+
+            if max_num_numeric_rule:
+                changed_rule.rule_num_numeric += max_num_numeric_rule.rule_num_numeric
                     
         else:
-            previous_rule_num_numeric = self._get_relevant_rule_num_numeric(prev_rule_uid, self.fw_config_import_rule.import_details, self._target_rules_flat)
-            next_rules_rule_num_numeric = self._get_relevant_rule_num_numeric(next_rule_uid, self.fw_config_import_rule.import_details, self._target_rules_flat)
+            previous_rule_num_numeric = self._get_relevant_rule_num_numeric(prev_rule_uid, self.fw_config_import_rule.import_details, self._target_rules_flat, False, target_rulebase)
+            next_rules_rule_num_numeric = self._get_relevant_rule_num_numeric(next_rule_uid, self.fw_config_import_rule.import_details, self._target_rules_flat, True, target_rulebase)
             changed_rule.rule_num_numeric = (previous_rule_num_numeric + next_rules_rule_num_numeric) / 2
 
         self._updated_rules.append(changed_rule.rule_uid)
@@ -310,7 +321,7 @@ class RuleOrderService:
         )
     
 
-    def _get_relevant_rule_num_numeric(self, rule_uid, import_state, flat_list):
+    def _get_relevant_rule_num_numeric(self, rule_uid, import_state, flat_list, ascending, target_rulebase):
         relevant_rule_num_numeric = 0.0
 
         if rule_uid in self._updated_rules:
@@ -318,6 +329,37 @@ class RuleOrderService:
             relevant_rule_num_numeric = rule.rule_num_numeric
         elif self._is_part_of_consecutive_insert(rule_uid):
             relevant_rule_num_numeric = 0
+        elif self._is_rule_uid_in_return_object(rule_uid, self._new_rule_uids) or self._is_rule_uid_in_return_object(rule_uid, self._moved_rule_uids):
+            index, changed_rule = self._get_index_and_rule_object_from_flat_list(target_rulebase.Rules.values(), rule_uid)
+            prev_rule_uid, next_rule_uid = self._get_adjacent_list_element(self._target_rule_uids, index)
+
+            if ascending:
+                if next_rule_uid:
+                    relevant_rule_num_numeric = self._get_relevant_rule_num_numeric(next_rule_uid, import_state, flat_list, ascending, target_rulebase)
+                else:
+                    max_num_numeric_rule = max((r for r in target_rulebase.Rules.values()), key=lambda x: x.rule_num_numeric, default=None)
+
+                    if max_num_numeric_rule:
+                        changed_rule.rule_num_numeric += max_num_numeric_rule.rule_num_numeric
+
+                    return max_num_numeric_rule
+            else:
+                if prev_rule_uid:
+                    relevant_rule_num_numeric = self._get_relevant_rule_num_numeric(prev_rule_uid, import_state, flat_list, ascending, target_rulebase)
+                else:
+                    min_num_numeric_rule = min(
+                        (r for r in target_rulebase.Rules.values() if r.rule_num_numeric != 0),
+                        key=lambda x: x.rule_num_numeric,
+                        default=None 
+                    )
+                    
+                    if min_num_numeric_rule:
+                        changed_rule.rule_num_numeric = min_num_numeric_rule.rule_num_numeric / 2 or 1
+                    else:
+                        changed_rule.rule_num_numeric = rule_num_numeric_steps
+
+                    return changed_rule.rule_num_numeric
+            
         else:
             _, rule = self._get_index_and_rule_object_from_flat_list(self._source_rules_flat, rule_uid)
             relevant_rule_num_numeric = rule.rule_num_numeric

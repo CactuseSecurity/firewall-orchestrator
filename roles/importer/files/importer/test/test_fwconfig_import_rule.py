@@ -30,8 +30,8 @@ class TestFwoConfigImportRule(unittest.TestCase):
         self.assertEqual(rule_uids, sorted_rulebase_rules_uids) # The sequence of the rule_num_numeric values
 
         # Insert, delete and move recognized in ImportDetails
-        self.assertEqual(fwconfig_import_rule.ImportDetails.Stats.RuleAddCount, 1)
-        self.assertEqual(fwconfig_import_rule.ImportDetails.Stats.RuleDeleteCount, 1)
-        self.assertEqual(fwconfig_import_rule.ImportDetails.Stats.RuleChangeCount, 0)
-        self.assertEqual(fwconfig_import_rule.ImportDetails.Stats.RuleMoveCount, 1) 
+        self.assertEqual(fwconfig_import_rule.import_details.Stats.RuleAddCount, 1)
+        self.assertEqual(fwconfig_import_rule.import_details.Stats.RuleDeleteCount, 1)
+        self.assertEqual(fwconfig_import_rule.import_details.Stats.RuleChangeCount, 0)
+        self.assertEqual(fwconfig_import_rule.import_details.Stats.RuleMoveCount, 1) 
 

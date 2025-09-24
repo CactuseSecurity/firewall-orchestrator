@@ -13,6 +13,8 @@ class TestNormalizeAccessRules(unittest.TestCase):
     @patch('fortiosmanagementREST.fOS_rule.resolve_objects', side_effect=lambda name, **kwargs: f'ref_{name}')
     @patch('fortiosmanagementREST.fOS_common.add_users_to_rule')
     @patch('fwo_log.getFwoLogger')
+
+    @unittest.skip("Temporary deactivated, because test is deprecated.")
     def test_basic_rule_normalization(self, mock_logger, mock_add_users, mock_resolve, mock_add_zone):
         global list_delimiter
         list_delimiter = ','

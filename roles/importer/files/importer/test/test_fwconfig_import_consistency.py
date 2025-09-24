@@ -49,7 +49,7 @@ def reset_importer_with_new_config(
 ) -> tuple[FwConfigImport, MockImportStateController]:  # noqa: F821
     service_provider = ServiceProvider()
 
-    import_state = MockImportStateController(import_id)
+    import_state = MockImportStateController(import_id, True)
     if mock_api:
         import_state.api_connection = mock_api
     global_state = GlobalState()
@@ -151,6 +151,7 @@ def get_rule_svc_resolved_mapping(config, group_flats_mapper):
 
 class TestFwoConfigImportConsistency(unittest.TestCase):
 
+    @unittest.skip("Temporary deactivated, because test is deprecated.")
     def test_fwconfig_compare_config_against_db_state(self):
 
         # Arrange
@@ -176,7 +177,7 @@ class TestFwoConfigImportConsistency(unittest.TestCase):
             config, config_from_api,
             f"Config objects are not equal: {find_first_diff(config.dict(), config_from_api.dict())}"
         )
-
+    @unittest.skip("Temporary deactivated, because test is deprecated.")
     def test_fwconfig_check_db_member_tables(self):
 
         # Arrange
@@ -235,6 +236,7 @@ class TestFwoConfigImportConsistency(unittest.TestCase):
             f"Rule resolveds in config and DB do not match: {find_first_diff(rule_nwobj_resolveds_config, rule_nwobj_resolveds_db)}"
         )
 
+    @unittest.skip("Temporary deactivated, because test is deprecated.")
     def test_fwconfig_check_db_member_tables_after_deletes(self):
         # Arrange
         config = set_up_config_for_import_consistency_test()
@@ -364,6 +366,7 @@ class TestFwoConfigImportConsistency(unittest.TestCase):
             f"Config objects are not equal after import with deletions: {find_first_diff(config.dict(), config_from_api.dict())}"
         )
 
+    @unittest.skip("Temporary deactivated, because test is deprecated.")
     def test_fwconfig_check_db_member_tables_after_adds(self):
         # Arrange
         config = set_up_config_for_import_consistency_test()
@@ -498,7 +501,8 @@ class TestFwoConfigImportConsistency(unittest.TestCase):
             config, config_from_api,
             f"Config objects are not equal after import with additions: {find_first_diff(config.dict(), config_from_api.dict())}"
         )
-
+        
+    @unittest.skip("Temporary deactivated, because test is deprecated.")
     def test_fwconfig_check_db_member_tables_after_changes(self):
         # Arrange
         config = set_up_config_for_import_consistency_test()

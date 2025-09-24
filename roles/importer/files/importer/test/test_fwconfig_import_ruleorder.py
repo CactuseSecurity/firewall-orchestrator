@@ -10,7 +10,7 @@ from test.tools.set_up_test import set_up_test_for_ruleorder_test_with_delete_in
 
 class TestFwoConfigImportRule(unittest.TestCase):
 
-    @unittest.skip("Temporary deactivated, because necessary feature in mock class (mocking api calls) is not implemented yet.")    
+    @unittest.skip("Temporary deactivated, because test is deprecated.")    
     def test_initialized(self):
 
         # Arrange

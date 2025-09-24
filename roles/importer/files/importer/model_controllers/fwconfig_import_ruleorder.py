@@ -247,13 +247,14 @@ class RuleOrderService:
         _index = index
         prev_rule_num_numeric = 0
         next_rule_num_numeric = 0
+        target_rulebase = next(rulebase for rulebase in self._fw_config_import_rule.normalized_config.rulebases if rulebase.uid == rulebase_uid)
 
         while prev_rule_num_numeric == 0:
             
             prev_rule_uid, _ = self._get_adjacent_list_element(self._target_rule_uids, _index)
 
             if prev_rule_uid:
-                prev_rule_num_numeric = self._get_relevant_rule_num_numeric(prev_rule_uid, self.fw_config_import_rule.import_details, self._target_rules_flat)
+                prev_rule_num_numeric = self._get_relevant_rule_num_numeric(prev_rule_uid, self.fw_config_import_rule.import_details, self._target_rules_flat, False, target_rulebase)
                 _index -= 1
             else:
                 break
@@ -265,7 +266,7 @@ class RuleOrderService:
             _, next_rule_uid = self._get_adjacent_list_element(self._target_rule_uids, _index)
 
             if next_rule_uid and next_rule_uid in list(next(rulebase for rulebase in self.fw_config_import_rule.normalized_config.rulebases if rulebase.uid == rulebase_uid).Rules.keys()):
-                next_rule_num_numeric = self._get_relevant_rule_num_numeric(next_rule_uid, self.fw_config_import_rule.import_details, self._target_rules_flat)
+                next_rule_num_numeric = self._get_relevant_rule_num_numeric(next_rule_uid, self.fw_config_import_rule.import_details, self._target_rules_flat, True, target_rulebase)
                 _index += 1
             else:
                 break

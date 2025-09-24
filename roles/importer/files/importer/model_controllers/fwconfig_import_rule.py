@@ -100,6 +100,14 @@ class FwConfigImportRule():
                 self.collect_changed_rules(ruleUid, currentRulebase, previousRulebase, rulebaseId, changedRuleUids)
                 self.collect_last_hit_changes(ruleUid, currentRulebase, previousRulebase, new_hit_information)
 
+        # add moved rules that are not in changed rules (e.g. move across rulebases)
+        for rulebaseId in movedRuleUids:
+            for ruleUid in movedRuleUids[rulebaseId]:
+                if ruleUid not in changedRuleUids.get(rulebaseId, []):
+                    if rulebaseId not in changedRuleUids:
+                        changedRuleUids[rulebaseId] = []
+                    changedRuleUids[rulebaseId].append(ruleUid)
+
         # add full rule details first
         newRulebases = self.getRules(newRuleUids)
 

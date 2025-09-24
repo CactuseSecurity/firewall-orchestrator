@@ -5,7 +5,7 @@ import os
 sys.path.append(os.path.join(os.path.dirname(__file__), '../importer'))
 
 from model_controllers.fwconfig_import_ruleorder import RuleOrderService
-from test.tools.set_up_test import set_up_test_for_ruleorder_test_with_relevant_changes
+from test.tools.set_up_test import set_up_test_for_ruleorder_test_with_delete_insert_move
 
 
 class TestFwoConfigImportRule(unittest.TestCase):
@@ -14,7 +14,7 @@ class TestFwoConfigImportRule(unittest.TestCase):
     def test_initialized(self):
 
         # Arrange
-        previous_config, fwconfig_import_rule, _ = set_up_test_for_ruleorder_test_with_relevant_changes()
+        previous_config, fwconfig_import_rule, _ = set_up_test_for_ruleorder_test_with_delete_insert_move()
         rule_order_service = RuleOrderService()
         fwconfig_import_rule.ImportDetails.setup_response((1, 2), {'a': 3}, 'Erwartete Antwort')
 

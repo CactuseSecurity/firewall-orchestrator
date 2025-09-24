@@ -58,6 +58,7 @@ class FwConfigImportRule():
 
     def updateRulebaseDiffs(self, prevConfig: FwConfigNormalized):
         logger = getFwoLogger(debug_level=self.import_details.DebugLevel)
+
         # calculate rule diffs
         changedRuleUids = {}
         deletedRuleUids = {}
@@ -118,7 +119,7 @@ class FwConfigImportRule():
         num_deleted_rules, removed_rule_ids = self.markRulesRemoved(deletedRuleUids, changedRuleUids)
         num_removed_refs = self.remove_outdated_refs(prevConfig)
 
-        _, num_moved_rules, _ = self.verify_rules_moved(old_rule_ids)
+        _, num_moved_rules, _ = self.verify_rules_moved(changedRuleUids)
 
         new_rule_ids = [rule['rule_id'] for rule in new_rule_ids]  # extract rule_ids from the returned list of dicts
         self.write_changelog_rules(new_rule_ids, removed_rule_ids)
@@ -897,11 +898,23 @@ class FwConfigImportRule():
         rule_order_service = RuleOrderService()
         error_count_move = 0 
         number_of_moved_rules = 0
+
         moved_rule_uids = []
 
-        for rule_uid in rule_order_service._moved_rule_uids.values():
+        changed_rule_uids_flat = [
+            uid 
+            for uids in changed_rule_uids.values() 
+            for uid in uids
+        ]
 
-            if rule_uid in changed_rule_uids:
+        rule_order_service_moved_rule_uids_flat = [
+            rule_uid 
+            for rule_uids in rule_order_service._moved_rule_uids.values()
+            for rule_uid in rule_uids
+        ]
+
+        for rule_uid in rule_order_service_moved_rule_uids_flat:
+            if rule_uid in changed_rule_uids_flat:
                 moved_rule_uids.append(rule_uid)
                 number_of_moved_rules += 1
             else:

@@ -32,6 +32,6 @@ class TestFwoConfigImportRule(unittest.TestCase):
         # Insert, delete and move recognized in ImportDetails
         self.assertEqual(fwconfig_import_rule.import_details.Stats.RuleAddCount, 1)
         self.assertEqual(fwconfig_import_rule.import_details.Stats.RuleDeleteCount, 1)
-        self.assertEqual(fwconfig_import_rule.import_details.Stats.RuleChangeCount, 0)
+        self.assertEqual(fwconfig_import_rule.import_details.Stats.RuleChangeCount, 1)
         self.assertEqual(fwconfig_import_rule.import_details.Stats.RuleMoveCount, 1) 
 

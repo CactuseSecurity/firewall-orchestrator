@@ -12,7 +12,7 @@ from fmgr_gw_networking import get_device_from_package
 from fwo_log import getFwoLogger
 from model_controllers.route_controller import get_matching_route_obj, get_ip_of_interface_obj
 from fwo_exceptions import FwoDeviceWithoutLocalPackage, FwoImporterErrorInconsistencies
-from fmgr_base import resolve_raw_objects, resolve_objects
+#from fmgr_base import resolve_raw_objects, resolve_objects
 from models.rule import Rule, RuleNormalized, RuleAction, RuleTrack, RuleType
 from models.rulebase import Rulebase
 import fwo_globals

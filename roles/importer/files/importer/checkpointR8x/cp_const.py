@@ -27,7 +27,7 @@ local_nw_obj_table_names = [
 ]
 
 # the global objects need to be fetched only once per super manager
-global_nw_obj_table_names = [ 'updatable-objects-repository-content', 'updatable-objects', 'dynamic-objects' ]
+global_nw_obj_table_names = [ 'updatable-objects', 'dynamic-objects' ]
 
 nw_obj_table_names = local_nw_obj_table_names + global_nw_obj_table_names
 

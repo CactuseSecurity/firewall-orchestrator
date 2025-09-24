@@ -71,7 +71,6 @@ def collect_nw_objects(object_table, nw_objects, global_domain, mgm_id=0):
         if 'objects' in chunk:
             for obj in chunk['objects']:
 
-                account_for_updateable_objects(obj, global_domain)
                 if is_obj_already_collected(nw_objects, obj):
                     continue
                 member_refs, member_names = handle_members(obj)  
@@ -94,21 +93,7 @@ def get_domain_uid(obj, global_domain):
         return obj.update({'domain': global_domain})
     else:
         return obj['domain']['uid']
-
-
-def account_for_updateable_objects(obj, global_domain):
-    """Updateable objects get name, uid and global domain
-    """
-    if 'uid-in-updatable-objects-repository' in obj:
-        obj.update({'name': obj['name-in-updatable-objects-repository'],
-                    'uid': 'uid-in-updatable-objects-repository',
-                    'type': 'dynamic_net_obj'})
-        if 'domain' not in obj:
-            obj.update(global_domain)
-    elif 'type' in obj and obj['type'] == 'updatable-object':
-        obj.update({'type': 'dynamic_net_obj'})
-        if 'domain' not in obj:
-            obj.update(global_domain)
+    
         
 def is_obj_already_collected(nw_objects, obj):
     logger = getFwoLogger()
@@ -121,8 +106,7 @@ def is_obj_already_collected(nw_objects, obj):
             if obj['uid'] == already_collected_obj['obj_uid'] and obj['domain']['uid'] == already_collected_obj['obj_domain']:
                 return True
     else:
-        if 'uid-in-updatable-objects-repository' not in obj:
-            logger.warning("found nw_object without domain: " + obj['uid'])
+        logger.warning("found nw_object without domain: " + obj['uid'])
 
     return False
 
@@ -158,13 +142,19 @@ def handle_object_type_and_ip(obj, ip_addr):
     if 'type' in obj:
         obj_type = obj['type']
 
-    if obj_type == 'dynamic_net_obj':
+    if obj_type == 'updatable-object':
         first_ip = '0.0.0.0/32'
         last_ip = '255.255.255.255/32'
+        obj_type = 'dynamic_net_obj'
         
-    if obj_type in ['group-with-exclusion', 'security-zone', 'dns-domain', 'dynamic-object']:
+    if obj_type in ['group-with-exclusion', 'security-zone', 'dynamic-object']:
         obj_type = 'group'
         # TODO: handle exclusion groups correctly
+
+    if obj_type == 'dns-domain':
+        obj_type = 'domain'
+        first_ip = '0.0.0.0/32'
+        last_ip = '255.255.255.255/32'
 
     if obj_type == 'security-zone':
         first_ip = '0.0.0.0/32'
@@ -173,9 +163,6 @@ def handle_object_type_and_ip(obj, ip_addr):
 
     if obj_type in ['address-range', 'multicast-address-range']:
         obj_type = 'ip_range'
-        if fwo_globals.debug_level>5:
-            logger.debug(
-                "parse_network::collect_nw_objects - found range object '" + obj['name'] + "' with ip: " + ip_addr)
         if '-' in str(ip_addr):
             first_ip, last_ip = str(ip_addr).split('-')
         else:

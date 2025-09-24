@@ -253,7 +253,7 @@ class RuleOrderService:
             
             prev_rule_uid, _ = self._get_adjacent_list_element(self._target_rule_uids, _index)
 
-            if prev_rule_uid:
+            if prev_rule_uid and prev_rule_uid in list(next(rulebase for rulebase in self.fw_config_import_rule.normalized_config.rulebases if rulebase.uid == rulebase_uid).Rules.keys()):
                 prev_rule_num_numeric = self._get_relevant_rule_num_numeric(prev_rule_uid, self.fw_config_import_rule.import_details, self._target_rules_flat, False, target_rulebase)
                 _index -= 1
             else:

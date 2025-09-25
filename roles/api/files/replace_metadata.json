@@ -11561,9 +11561,18 @@
                       "tenant_wide_visible"
                     ],
                     "filter": {
-                      "report_owner_id": {
-                        "_eq": "X-Hasura-User-Id"
-                      }
+                      "_or": [
+                        {
+                          "report_owner_id": {
+                            "_eq": "X-Hasura-User-Id"
+                          }
+                        },
+                        {
+                          "owner_id": {
+                            "_in": "x-hasura-editable-owners"
+                          }
+                        }
+                      ]
                     },
                     "allow_aggregations": true
                   }
@@ -11626,9 +11635,18 @@
                       "report_start_time"
                     ],
                     "filter": {
-                      "report_owner_id": {
-                        "_eq": "X-Hasura-User-Id"
-                      }
+                      "_or": [
+                        {
+                          "report_owner_id": {
+                            "_eq": "X-Hasura-User-Id"
+                          }
+                        },
+                        {
+                          "owner_id": {
+                            "_in": "x-hasura-editable-owners"
+                          }
+                        }
+                      ]
                     },
                     "allow_aggregations": true
                   }
@@ -11654,9 +11672,18 @@
                       "tenant_wide_visible"
                     ],
                     "filter": {
-                      "report_owner_id": {
-                        "_eq": "X-Hasura-User-Id"
-                      }
+                      "_or": [
+                        {
+                          "report_owner_id": {
+                            "_eq": "X-Hasura-User-Id"
+                          }
+                        },
+                        {
+                          "owner_id": {
+                            "_in": "x-hasura-editable-owners"
+                          }
+                        }
+                      ]
                     },
                     "allow_aggregations": true
                   }
@@ -11682,9 +11709,18 @@
                       "tenant_wide_visible"
                     ],
                     "filter": {
-                      "report_owner_id": {
-                        "_eq": "X-Hasura-User-Id"
-                      }
+                      "_or": [
+                        {
+                          "report_owner_id": {
+                            "_eq": "X-Hasura-User-Id"
+                          }
+                        },
+                        {
+                          "owner_id": {
+                            "_in": "x-hasura-editable-owners"
+                          }
+                        }
+                      ]
                     },
                     "allow_aggregations": true
                   }
@@ -19735,11 +19771,7 @@
                       "uiuser_username",
                       "uuid"
                     ],
-                    "filter": {
-                      "uuid": {
-                        "_eq": "x-hasura-uuid"
-                      }
-                    }
+                    "filter": {}
                   }
                 },
                 {
@@ -19762,11 +19794,7 @@
                       "uiuser_username",
                       "uuid"
                     ],
-                    "filter": {
-                      "uuid": {
-                        "_eq": "x-hasura-uuid"
-                      }
-                    }
+                    "filter": {}
                   }
                 },
                 {
@@ -19789,11 +19817,7 @@
                       "uiuser_username",
                       "uuid"
                     ],
-                    "filter": {
-                      "uuid": {
-                        "_eq": "x-hasura-uuid"
-                      }
-                    }
+                    "filter": {}
                   }
                 },
                 {

@@ -105,38 +105,38 @@ INSERT INTO txt VALUES ('Saturday',             'German', 	'Samstag');
 INSERT INTO txt VALUES ('Saturday',             'English', 	'Saturday');
 INSERT INTO txt VALUES ('All',		            'German', 	'Alle');
 INSERT INTO txt VALUES ('All',		            'English', 	'All');
-INSERT INTO txt VALUES ('Rules', 			    'German', 	'Regel-Report');
-INSERT INTO txt VALUES ('Rules', 			    'English', 	'Rules Report');
-INSERT INTO txt VALUES ('Changes', 			    'German', 	'Changes-Report');
-INSERT INTO txt VALUES ('Changes', 			    'English', 	'Changes Report');
-INSERT INTO txt VALUES ('Statistics', 			'German', 	'Statistik-Report');
-INSERT INTO txt VALUES ('Statistics', 			'English', 	'Statistics Report');
-INSERT INTO txt VALUES ('NatRules', 			'German', 	'NAT-Regel-Report');
-INSERT INTO txt VALUES ('NatRules', 			'English', 	'NAT Rules Report');
-INSERT INTO txt VALUES ('ResolvedRules', 	    'German', 	'Regel-Report (aufgel&ouml;st)');
-INSERT INTO txt VALUES ('ResolvedRules', 		'English', 	'Rules Report (resolved)');
-INSERT INTO txt VALUES ('ResolvedRulesTech', 	'German', 	'Regel-Report (technisch)');
-INSERT INTO txt VALUES ('ResolvedRulesTech', 	'English', 	'Rules Report (technical)');
-INSERT INTO txt VALUES ('Recertification', 	    'German', 	'Regel-Rezert-Status-Report');
-INSERT INTO txt VALUES ('Recertification', 		'English', 	'Rule Recert Status Report');
-INSERT INTO txt VALUES ('ResolvedChanges', 		'German', 	'Changes-Report (aufgel&ouml;st)');
-INSERT INTO txt VALUES ('ResolvedChanges', 		'English', 	'Changes Report (resolved)');
-INSERT INTO txt VALUES ('ResolvedChangesTech', 	'German', 	'Changes-Report (technisch)');
-INSERT INTO txt VALUES ('ResolvedChangesTech', 	'English', 	'Changes Report (technical)');
-INSERT INTO txt VALUES ('UnusedRules', 	        'German', 	'Unbenutzte-Regel-Report');
-INSERT INTO txt VALUES ('UnusedRules', 	        'English', 	'Unused Rules Report');
-INSERT INTO txt VALUES ('Connections', 	        'German', 	'Verbindungs-Report');
-INSERT INTO txt VALUES ('Connections', 	        'English', 	'Connections Report');
-INSERT INTO txt VALUES ('AppRules', 	        'German', 	'App-Regel-Report');
-INSERT INTO txt VALUES ('AppRules', 		    'English', 	'App Rules Report');
-INSERT INTO txt VALUES ('VarianceAnalysis', 	'German', 	'Soll-Ist-Report');
-INSERT INTO txt VALUES ('VarianceAnalysis',     'English', 	'Variance Report');
-INSERT INTO txt VALUES ('OwnerRecertification', 'German', 	'Eigent&uuml;mer-Rezert-Status-Report');
-INSERT INTO txt VALUES ('OwnerRecertification', 'English', 	'Owner Recert Status Report');
-INSERT INTO txt VALUES ('RecertificationEvent', 'German', 	'Rezertifizierung');
-INSERT INTO txt VALUES ('RecertificationEvent', 'English', 	'Recertification');
-INSERT INTO txt VALUES ('RecertEventReport',    'German', 	'Rezertifizierungs-Report');
-INSERT INTO txt VALUES ('RecertEventReport',    'English', 	'Recertification Report');
+INSERT INTO txt VALUES ('Rules', 			    'German', 	'Regeln: Standard');
+INSERT INTO txt VALUES ('Rules', 			    'English', 	'Rules: Standard');
+INSERT INTO txt VALUES ('Changes', 			    'German', 	'Changes: Standard');
+INSERT INTO txt VALUES ('Changes', 			    'English', 	'Changes: Standard');
+INSERT INTO txt VALUES ('Statistics', 			'German', 	'Statistik');
+INSERT INTO txt VALUES ('Statistics', 			'English', 	'Statistics');
+INSERT INTO txt VALUES ('NatRules', 			'German', 	'Regeln: NAT');
+INSERT INTO txt VALUES ('NatRules', 			'English', 	'Rules: NAT');
+INSERT INTO txt VALUES ('ResolvedRules', 	    'German', 	'Regeln: Aufgel&ouml;st');
+INSERT INTO txt VALUES ('ResolvedRules', 		'English', 	'Rules: Resolved');
+INSERT INTO txt VALUES ('ResolvedRulesTech', 	'German', 	'Regeln: Technisch');
+INSERT INTO txt VALUES ('ResolvedRulesTech', 	'English', 	'Rules: Technical');
+INSERT INTO txt VALUES ('Recertification', 	    'German', 	'Zert: Regel-&Uuml;bersicht');
+INSERT INTO txt VALUES ('Recertification', 		'English', 	'Cert: Rule Overview');
+INSERT INTO txt VALUES ('ResolvedChanges', 		'German', 	'Changes: Aufgel&ouml;st');
+INSERT INTO txt VALUES ('ResolvedChanges', 		'English', 	'Changes: Resolved');
+INSERT INTO txt VALUES ('ResolvedChangesTech', 	'German', 	'Changes: Technisch');
+INSERT INTO txt VALUES ('ResolvedChangesTech', 	'English', 	'Changes: Technical');
+INSERT INTO txt VALUES ('UnusedRules', 	        'German', 	'Regeln: Unbenutzt');
+INSERT INTO txt VALUES ('UnusedRules', 	        'English', 	'Rules: Unused');
+INSERT INTO txt VALUES ('Connections', 	        'German', 	'Modell: Verbindungen');
+INSERT INTO txt VALUES ('Connections', 	        'English', 	'Model: Connections');
+INSERT INTO txt VALUES ('AppRules', 	        'German', 	'Modell: App-Regeln');
+INSERT INTO txt VALUES ('AppRules', 		    'English', 	'Model: App Rules');
+INSERT INTO txt VALUES ('VarianceAnalysis', 	'German', 	'Modell: Soll-Ist');
+INSERT INTO txt VALUES ('VarianceAnalysis',     'English', 	'Model: Variances');
+INSERT INTO txt VALUES ('OwnerRecertification', 'German', 	'Zert: Eigent&uuml;mer-&Uuml;bersicht');
+INSERT INTO txt VALUES ('OwnerRecertification', 'English', 	'Cert: Owner Overview');
+INSERT INTO txt VALUES ('RecertificationEvent', 'German', 	'Zert: Zertifikat');
+INSERT INTO txt VALUES ('RecertificationEvent', 'English', 	'Cert: Certificate');
+INSERT INTO txt VALUES ('RecertEventReport',    'German', 	'Zert: Zert-Regel-Details');
+INSERT INTO txt VALUES ('RecertEventReport',    'English', 	'Cert: Cert Rule Details');
 INSERT INTO txt VALUES ('mixed', 	            'German', 	'Gemischt');
 INSERT INTO txt VALUES ('mixed', 	            'English', 	'Mixed');
 INSERT INTO txt VALUES ('exclusive', 	        'German', 	'Exklusiv');
@@ -3679,43 +3679,45 @@ INSERT INTO txt VALUES ('H1101', 'English', '<li> All filtering is case insensit
 ');
 INSERT INTO txt VALUES ('H1102', 'German',  'Folgende Report-Typen stehen zur Auswahl:
 <ul>
-    <li>Regeln - Anzeige von Zugriffsregeln; Default-Report-Zeitpunkt: jetzt</li>
-    <li>Regeln (aufgel&ouml;st) - Anzeige von Zugriffsregeln, wobei s&auml;mtliche Gruppen in Quelle, Ziel und Dienst aufgel&ouml;st werden.
-     Dies erm&ouml;glicht einen Export in einer einzigen Tabelle ohne Hilfstabellen, in denen die Objekt-Definitionen stehen. Default-Report-Zeitpunkt: jetzt</li>
-    <li>Regeln (technisch) - wie der aufgel&ouml;ste Regel-Report, nur dass Objektnamen nicht angezeigt werden. Default-Report-Zeitpunkt: jetzt</li>
-    <li>Unbenutzte Regeln - Anzeige aller Regeln die das letztemal vor einem vorgegebenen Zeitpunkt benutzt wurden. Ger&auml;te, die keine Nutzungsinformation liefern, werden ignoriert.
-    Falls der Reporter auch die Rolle "requester" hat, wird bei Selektion ausgegebener Regeln eine Schaltfl&auml;che zur Erzeugung eines L&ouml;schantrags angeboten.</li>
-    <li>NAT-Regeln - Anzeige der NAT-Regeln und nicht der Zugriffsregeln. Default-Report-Zeitpunkt: jetzt</li>
-    <li>Rezertifizierung - Anzeige aller Regeln mit anstehenden Rezertifizierungen. Der Default-Report-Zeitraum kann in den Einstellungen gesetzt werden</li>
-    <li>&Auml;nderungen - Anzeige von &Auml;nderungen in einem bestimmten Zeitraum. Default-Report-Zeitraum: dieses Jahr</li>
-    <li>&Auml;nderungen (aufgel&ouml;st) - Anzeige von &Auml;nderungen in einem bestimmten Zeitraum, wobei s&auml;mtliche Gruppen in Quelle, Ziel und Dienst aufgel&ouml;st werden. Default-Report-Zeitraum: dieses Jahr</li>
-    <li>&Auml;nderungen (technisch)- wie der aufgel&ouml;ste &Auml;nderungs-Report, nur dass Objektnamen nicht angezeigt werden. Default-Report-Zeitraum: dieses Jahr</li>
+    <li>Regeln: Standard - Anzeige von Zugriffsregeln; Default-Report-Zeitpunkt: jetzt</li>
+    <li>Regeln: Aufgel&ouml;st - Anzeige von Zugriffsregeln, wobei s&auml;mtliche Gruppen in Quelle, Ziel und Dienst aufgel&ouml;st werden.
+        Dies erm&ouml;glicht einen Export in einer einzigen Tabelle ohne Hilfstabellen, in denen die Objekt-Definitionen stehen. Default-Report-Zeitpunkt: jetzt</li>
+    <li>Regeln: Technisch - wie der aufgel&ouml;ste Regel-Report, nur dass Objektnamen nicht angezeigt werden. Default-Report-Zeitpunkt: jetzt</li>
+    <li>Regeln: Unbenutzt - Anzeige aller Regeln die das letztemal vor einem vorgegebenen Zeitpunkt benutzt wurden. Ger&auml;te, die keine Nutzungsinformation liefern, werden ignoriert.
+        Falls der Reporter auch die Rolle "requester" hat, wird bei Selektion ausgegebener Regeln eine Schaltfl&auml;che zur Erzeugung eines L&ouml;schantrags angeboten.</li>
+    <li>Regeln: NAT - Anzeige der NAT-Regeln und nicht der Zugriffsregeln. Default-Report-Zeitpunkt: jetzt</li>
+    <li>Changes: Standard - Anzeige von &Auml;nderungen in einem bestimmten Zeitraum. Default-Report-Zeitraum: dieses Jahr</li>
+    <li>Changes: Aufgel&ouml;st - Anzeige von &Auml;nderungen in einem bestimmten Zeitraum, wobei s&auml;mtliche Gruppen in Quelle, Ziel und Dienst aufgel&ouml;st werden. Default-Report-Zeitraum: dieses Jahr</li>
+    <li>Changes: Technisch - wie der aufgel&ouml;ste Changes-Report, nur dass Objektnamen nicht angezeigt werden. Default-Report-Zeitraum: dieses Jahr</li>
     <li>Statistik - Anzeige von Statistikdaten &uuml;ber Anzahl von Objekten und Regeln. Default-Report-Zeitpunkt: jetzt</li>
-    <li>Verbindungen - Anzeige aller in einer Applikation modellierten Verbindungen, Schnittstellen und eigener Common Services mit zus&auml;tzlicher Auflistung aller hierin verwendeter Netzwerk- und Serviceobjekte.
+    <li>Modell: Verbindungen - Anzeige aller in einer Applikation modellierten Verbindungen, Schnittstellen und eigener Common Services mit zus&auml;tzlicher Auflistung aller hierin verwendeter Netzwerk- und Serviceobjekte.
         Hinzu kommt eine Liste aller globalen Common Services.</li>
-    <li>App-Regeln - Darstellung aller Regeln, in welchen Objekte eines vorgegebenen Eigent&uuml;mers verwendet werden (diese werden farblich hervorgehoben). Es kann weiter spezifiziert werden, ob nur Quelle, Ziel oder beides, sowie ob "Any"-Objekte ber&uuml;cksichtigt werden sollen.</li>
-    <li>Soll-Ist - Darstellung aller Abweichungen zwischen den modellierten Verbindungen und den auf den Firewalls gefundenen Objekten und Regeln. Optional k&ouml;nnen zus&auml;tzlich die noch nicht modellierten Regeln (in Form des App-Regel-Reports) aufgelistet werden.</li>
-    <li>Eigent&uuml;mer-Rezertifizierung - Darstellung aller Eigent&uuml;mer nach ihrem Rezertifizierungsstatus.</li>
+    <li>Modell: App-Regeln - Darstellung aller Regeln, in welchen Objekte eines vorgegebenen Eigent&uuml;mers verwendet werden (diese werden farblich hervorgehoben). Es kann weiter spezifiziert werden, ob nur Quelle, Ziel oder beides, sowie ob "Any"-Objekte ber&uuml;cksichtigt werden sollen.</li>
+    <li>Modell: Soll-Ist - Darstellung aller Abweichungen zwischen den modellierten Verbindungen und den auf den Firewalls gefundenen Objekten und Regeln. Optional k&ouml;nnen zus&auml;tzlich die noch nicht modellierten Regeln (in Form des App-Regel-Reports) aufgelistet werden.</li>
+    <li>Zert: Regel-&Uuml;bersicht - Anzeige aller Regeln mit anstehenden Rezertifizierungen. Der Default-Report-Zeitraum kann in den Einstellungen gesetzt werden</li>
+    <li>Zert: Eigent&uuml;mer-&Uuml;bersicht - Darstellung aller Eigent&uuml;mer nach ihrem Rezertifizierungsstatus.</li>
+    <li>Zert: Zert-Regel-Details - Darstellung einer Eigent&uuml;mer-Rezertifizierung mitsamt der mitrezertifizierten Regeln</li>
 </ul>
 ');
 INSERT INTO txt VALUES ('H1102', 'English',  'Choose from the following report types:
 <ul>
-    <li>Rules - display access rules; default report time: now</li>
-    <li>Rules (resolved) - display access rules but not showing any group structure but only resolved group content. Default report time: now</li>
-    <li>Rules (technical) - display access rules, resolving groups and not showing object names. Default report time: now<</li>
-    <li>Unused Rules - display all rules where the rule last hit lies before a given time. Devices delivering no usage information are disregarded.
-    If the reporter has also a requester role, a button to create a delete rule request is offered after selecting reported rules.</li>
-    <li>NAT Rules - display NAT rules instead of access rules. Default report time: now</li>
-    <li>Recertification - display all rules where recertifications are upcoming. Default report interval can be defined in settings</li>
-    <li>Changes - display all changes in a defined time interval. Default report interval: this year</li>
-    <li>Changes (resolved) - display all changes in a defined time interval but not showing any group structure but only resolved group content. Default report interval: this year</li>
-    <li>Changes (technical) - display all changes in a defined time interval resolving groups and not showing object names. Default report interval: this year</li>
+    <li>Rules: Standard - display access rules; default report time: now</li>
+    <li>Rules: Resolved - display access rules but not showing any group structure but only resolved group content. Default report time: now</li>
+    <li>Rules: Technical - display access rules, resolving groups and not showing object names. Default report time: now<</li>
+    <li>Rules: Unused - display all rules where the rule last hit lies before a given time. Devices delivering no usage information are disregarded.
+        If the reporter has also a requester role, a button to create a delete rule request is offered after selecting reported rules.</li>
+    <li>Rules: NAT - display NAT rules instead of access rules. Default report time: now</li>
+    <li>Changes: Standard - display all changes in a defined time interval. Default report interval: this year</li>
+    <li>Changes: Resolved - display all changes in a defined time interval but not showing any group structure but only resolved group content. Default report interval: this year</li>
+    <li>Changes: Technical - display all changes in a defined time interval resolving groups and not showing object names. Default report interval: this year</li>
     <li>Statistics - display statistical data on the number of objects and rules. Default report time: now</li>
-    <li>Connections - display of all connections, interfaces and Common Services modelled in an application with additional lists of all network and service objects used here.
+    <li>Model: Connections - display of all connections, interfaces and Common Services modelled in an application with additional lists of all network and service objects used here.
         Additionally a list of all global Common Services is given.</li>
-    <li>App Rules - display of all rules, where objects of the given owner are used (and which are highlighted). It can be further specified, if only source, destination or both are to be considered as well as "any" objects.</li>
-    <li>Variance - display all differences between the modelled connections and the objects and rules found on the Firewalls. Optionally the rules not modelled can be listed additionally (as App Rules Report).</li>
-    <li>Owner Recertification - display all owners regarding their recertification status.</li>
+    <li>Model: App Rules - display of all rules, where objects of the given owner are used (and which are highlighted). It can be further specified, if only source, destination or both are to be considered as well as "any" objects.</li>
+    <li>Model: Variances - display all differences between the modelled connections and the objects and rules found on the Firewalls. Optionally the rules not modelled can be listed additionally (as App Rules Report).</li>
+    <li>Cert: Rule Overview - display all rules where recertifications are upcoming. Default report interval can be defined in settings</li>
+    <li>Cert: Owner Overview - display all owners regarding their recertification status.</li>
+    <li>Cert: Cert Rule Details - display an owner recertification together with the related rule recertifications.</li>
 </ul>
 ');
 INSERT INTO txt VALUES ('H1111', 'German',  '<li>gateway (gw, firewall, fw, device, dev): Zus&auml;tzlich zu der in der <a href="/help/reporting/leftside">Linken Randleiste</a> zu t&auml;tigenden Auswahl spezifischer Devices
@@ -3846,20 +3848,20 @@ INSERT INTO txt VALUES ('H1402', 'English', '<li>Number</li><li>Name</li><li>Sou
 ');
 INSERT INTO txt VALUES ('H1403', 'German',  'Zus&auml;tzlich werden in einzelnen Reporttypen weitere Spalten dargestellt:
     <ul>
-        <li>Changes Report: &Auml;nderungszeit, &Auml;nderungstyp (Regelnummerierung entf&auml;llt daf&uuml;r)</li>
-        <li>Unbenutzte-Regel-Report: Letzter Treffer</li>
-        <li>NAT-Regel-Report: Umgesetzte Quelle, Umgesetztes Ziel, Umgesetzte Dienste</li>
-        <li>Rezertifizierungs-Report: Datum n&auml;chste Rezertifizierung, Eigent&uuml;mer, IP-Adress-&Uuml;bereinstimmung, Letzter Treffer</li>
-        <li>Verbindungs-Report: Hier werden die Spalten Nummer, Name, Fachliche Begr&uuml;ndung, Quelle, Dienst und Ziel angeboten</li>
+        <li>Changes: &Auml;nderungszeit, &Auml;nderungstyp (Regelnummerierung entf&auml;llt daf&uuml;r)</li>
+        <li>Regeln: Unbenutzt: Letzter Treffer</li>
+        <li>Regeln: NAT: Umgesetzte Quelle, Umgesetztes Ziel, Umgesetzte Dienste</li>
+        <li>Zert: Zert-Regel-Details: Datum n&auml;chste Rezertifizierung, Eigent&uuml;mer, IP-Adress-&Uuml;bereinstimmung, Letzter Treffer</li>
+        <li>Modell: Verbindungen: Hier werden die Spalten Nummer, Name, Fachliche Begr&uuml;ndung, Quelle, Dienst und Ziel angeboten</li>
     </ul>
 ');
 INSERT INTO txt VALUES ('H1403', 'English', 'Additionally in the different Report Types further columns are displayed:
     <ul>
-        <li>Changes Report: Change Time, Change Type (but no rule numbering)</li>
-        <li>Unused Rules Report: Last Hit</li>
-        <li>NAT Rules Report: Translated Source, Translated Destination, Translated Services</li>
-        <li>Recertification Report: Next Recertification Date, Owner, IP address match, Last Hit</li>
-        <li>Connections report: Here the columns Number, Name, Functional Reason, Source, Service and Destination are offered.</li>
+        <li>Changes: Change Time, Change Type (but no rule numbering)</li>
+        <li>Rules: Unused: Last Hit</li>
+        <li>Rules: NAT: Translated Source, Translated Destination, Translated Services</li>
+        <li>Model: Cert Rule Details: Next Recertification Date, Owner, IP address match, Last Hit</li>
+        <li>Model: Connections: Here the columns Number, Name, Functional Reason, Source, Service and Destination are offered.</li>
     </ul>
 ');
 
@@ -3895,8 +3897,8 @@ INSERT INTO txt VALUES ('H1505', 'German',  'F&uuml;r Report-Typen, welche die A
 INSERT INTO txt VALUES ('H1505', 'English', 'For report types requiring a report time there are two options:
     Selecting a particular time with the date/time picker or using the default value "now".
 ');
-INSERT INTO txt VALUES ('H1506', 'German',  'F&uuml;r Report-Typen, die Zeitintervalle ben&ouml;tigen (nicht Unbenutzte-Regel- und Rezertifizierungs-Report), kann gew&auml;hlt werden zwischen:');
-INSERT INTO txt VALUES ('H1506', 'English', 'For report types requiring a time range (not Unused Rule or Recertification Report) a selection can be done between:');
+INSERT INTO txt VALUES ('H1506', 'German',  'F&uuml;r Report-Typen, die Zeitintervalle ben&ouml;tigen (nicht Regeln: Unbenutzt und Zert: Zert-Regel-Details), kann gew&auml;hlt werden zwischen:');
+INSERT INTO txt VALUES ('H1506', 'English', 'For report types requiring a time range (not Rules: Unused or Cert: Cert Rule Details) a selection can be done between:');
 INSERT INTO txt VALUES ('H1507', 'German',  'Vordefinierte Abk&uuml;rzungen "dieses Jahr", "letztes Jahr", "dieser Monat", "letzter Monat", "diese Woche", "letzte Woche", "heute" oder "gestern"');
 INSERT INTO txt VALUES ('H1507', 'English', 'Predefined shortcuts "this year", "last year", "this month", "last month", "this week", "last week", "today" or "yesterday"');
 INSERT INTO txt VALUES ('H1508', 'German',  'Zeitintervalle in Tagen, Wochen, Monaten oder Jahren relativ zum aktuellen Zeitpunkt');
@@ -3911,7 +3913,7 @@ INSERT INTO txt VALUES ('H1510', 'English', 'Only for Unused Rules Report: Unuse
     Rules never used are also displayed if their creation date is older than a tolerance interval defined in the <a href="/help/settings/report">Report Settings</a>.
     There also the default value for the unused interval can be defined.
 ');
-INSERT INTO txt VALUES ('H1511', 'German',  'Nur beim Rezertifizierungs-Report: Rezertifizierungsparameter
+INSERT INTO txt VALUES ('H1511', 'German',  'Nur beim Zert-Regel-Details: Rezertifizierungsparameter
     <ul><li>F&auml;llig in: Hier wird festgelegt, wie weit die Suche nach zu rezertifizierenden Regeln gehen soll (in Tagen).
         Der Default-Wert kann sowohl vom Administrator in den <a href="/help/settings/recertificationgeneral">Allgemeinen</a>
         als auch vom jeweiligen Nutzer in den <a href="/help/settings/recertificationpersonal">Pers&ouml;nlichen</a> Rezertifizierungseinstellungen festgelegt werden.</li>
@@ -3919,7 +3921,7 @@ INSERT INTO txt VALUES ('H1511', 'German',  'Nur beim Rezertifizierungs-Report: 
     <li>Any-Regeln anzeigen: Wenn das H&auml;kchen gesetzt ist, werden auch Regeln mit Ip 0.0.0.0 in Quelle oder Ziel dargestellt.
         Beim deselektieren wird ein exkludierender Ausdruck zur Filterzeile hinzugef&uuml;gt.</li></ul>
 ');
-INSERT INTO txt VALUES ('H1511', 'English', 'Only for Recertification Report: Recertification Parameters
+INSERT INTO txt VALUES ('H1511', 'English', 'Only for Cert Rule Details: Recertification Parameters
     <ul><li>Due within: Select how far ahead should be searched for rules to be recertified (in days).
         The default value can be set by the administrator in the <a href="/help/settings/recertificationgeneral">General</a>
         as well as in the <a href="/help/settings/recertificationpersonal">Personal</a> Recertification Settings by the user.</li>
@@ -3927,16 +3929,16 @@ INSERT INTO txt VALUES ('H1511', 'English', 'Only for Recertification Report: Re
     <li>Show any rules: If flag is set, rules with Ip 0.0.0.0 in source or destination are shown.
         When deselecting an excluding statement is added to the filter line.</li></ul>
 ');
-INSERT INTO txt VALUES ('H1512', 'German',  'Nur bei Verbindungs-und App-Regel-Report: Eigent&uuml;mer: Hier kann aus den dem Nutzer zur Modellierung zugeordneten Eigent&uuml;merschaften ausgew&auml;hlt werden. ');
-INSERT INTO txt VALUES ('H1512', 'English', 'Only for Connections and App Rules Report: Owner: Select the modelling owner out of the ownerships related to the user.');
-INSERT INTO txt VALUES ('H1513', 'German',  'Nur beim App-Regel-Report: Weitere Parameter zur Einschr&auml;nkung der Treffermenge: Ber&uuml;cksichtigung von Quelle und/oder Ziel, Any- oder Drop-Regeln.
+INSERT INTO txt VALUES ('H1512', 'German',  'Nur bei Modell: Verbindungen und App-Regeln: Eigent&uuml;mer: Hier kann aus den dem Nutzer zur Modellierung zugeordneten Eigent&uuml;merschaften ausgew&auml;hlt werden. ');
+INSERT INTO txt VALUES ('H1512', 'English', 'Only for Model: Connections and App Rules: Owner: Select the modelling owner out of the ownerships related to the user.');
+INSERT INTO txt VALUES ('H1513', 'German',  'Nur beim Modell: App-Regeln: Weitere Parameter zur Einschr&auml;nkung der Treffermenge: Ber&uuml;cksichtigung von Quelle und/oder Ziel, Any- oder Drop-Regeln.
     Desweiteren, ob nicht relevante Teile der Regel dargestellt werden sollen oder nicht.
 ');
-INSERT INTO txt VALUES ('H1513', 'English', 'Only for App Rules Report: Further parameters to reduce the selected rules: Regard Source and/or Destination, Any or Drop rules.
+INSERT INTO txt VALUES ('H1513', 'English', 'Only for Model: App Rules: Further parameters to reduce the selected rules: Regard Source and/or Destination, Any or Drop rules.
     Furtheron, if not relevant parts of the rules shall be displayed or not.
 ');
-INSERT INTO txt VALUES ('H1514', 'German',  'Nur beim Soll-Ist-Report: Verbleibende Regeln analysieren: Die dem Eigent&uuml;mer zugeordneten nicht modellierten Regeln werden in Form eines App-Regel-Reports an den report angeh&auml;ngt.');
-INSERT INTO txt VALUES ('H1514', 'English', 'Only for Variance Report: Analyse remaining rules: Not modelled rules associated to the owner are appended to the report as App Rules Report.');
+INSERT INTO txt VALUES ('H1514', 'German',  'Nur beim Modell: Soll-Ist: Verbleibende Regeln analysieren: Die dem Eigent&uuml;mer zugeordneten nicht modellierten Regeln werden in Form eines App-Regel-Reports an den report angeh&auml;ngt.');
+INSERT INTO txt VALUES ('H1514', 'English', 'Only for Model: Variances: Analyse remaining rules: Not modelled rules associated to the owner are appended to the report as App Rules Report.');
 
 INSERT INTO txt VALUES ('H1601', 'German',  'Die rechte Randleiste hat mehrere Reiter, die je nach Report eingeblendet werden: F&uuml;r regelbasierte Reports werden unter "Alle" s&auml;mtliche aktuell abgeholten Objekte dargestellt,
     w&auml;hrend unter "Report" nur die Objekte der im Report vorkommenden Regeln gezeigt werden.
@@ -4072,7 +4074,7 @@ INSERT INTO txt VALUES ('H4031', 'German',  'In diesem Modul k&ouml;nnen Nutzer 
         </li>
     </ol>
     Eine Regel gilt erst dann als vollst&auml;ndig rezertifiziert, wenn alle Eigent&uuml;mer die Regel rezertifiziert haben.<br>
-    Im Reporting-Modul steht au&szlig;erdem ein Rezertifizierungs-Report zur Verf&uuml;gung.
+    Im Reporting-Modul steht au&szlig;erdem ein Zert-Regel-Details-Report zur Verf&uuml;gung.
     Desweiteren kann in den <a href="/help/settings/recertificationgeneral">Einstellungen</a> konfiguriert werden, dass bei Dezertifizierung durch alle Eigent&uuml;mer automatisch ein L&ouml;schauftrag erzeugt wird.
 ');
 INSERT INTO txt VALUES ('H4031', 'English', '
@@ -4091,7 +4093,7 @@ INSERT INTO txt VALUES ('H4031', 'English', '
         </li>
     </ol>
     A rule is not considered fully recertified until all owners have recertified the rule.<br>
-    A recertification report is also available in the reporting module.
+    A Cert Rule Details report is also available in the reporting module.
     Furtheron it can be configured in the <a href="/help/settings/recertificationgeneral">settings</a> that after decertification by all owners a delete request is created automatically.
 ');
 

@@ -2,6 +2,7 @@ import copy
 import jsonpickle
 import ipaddress
 import time
+from time import strftime, localtime
 from fwo_const import list_delimiter, nat_postfix, dummy_ip
 from fwo_base import extend_string_list, sanitize
 from fmgr_service import create_svc_object
@@ -15,7 +16,6 @@ from fwo_exceptions import FwoDeviceWithoutLocalPackage, FwoImporterErrorInconsi
 #from fmgr_base import resolve_raw_objects, resolve_objects
 from models.rule import Rule, RuleNormalized, RuleAction, RuleTrack, RuleType
 from models.rulebase import Rulebase
-import fwo_globals
 from models.import_state import ImportState
 
 
@@ -30,7 +30,7 @@ rule_scope = rule_access_scope + rule_nat_scope
 def normalize_rulebases(
     import_state: ImportState,
     mgm_uid: str,
-    nativeConfig: dict,
+    native_config: dict,
     native_config_global: dict,
     normalized_config_dict: dict,
     normalized_config_global: dict,
@@ -42,20 +42,20 @@ def normalize_rulebases(
     if normalized_config_global is not None:
         for normalized_rulebase_global in normalized_config_global.get('policies', []):
             fetched_rulebase_uids.append(normalized_rulebase_global.uid)
-    for gateway in nativeConfig['gateways']:
+    for gateway in native_config['gateways']:
         normalize_rulebases_for_each_link_destination(
-            gateway, mgm_uid, fetched_rulebase_uids, nativeConfig, native_config_global,
+            gateway, mgm_uid, fetched_rulebase_uids, native_config, native_config_global,
             is_global_loop_iteration, normalized_config_dict,
             normalized_config_global)
 
     # todo: parse nat rulebase here
 
 
-def normalize_rulebases_for_each_link_destination(gateway, mgm_uid, fetched_rulebase_uids, nativeConfig, native_config_global, is_global_loop_iteration, normalized_config_dict, normalized_config_global):
+def normalize_rulebases_for_each_link_destination(gateway, mgm_uid, fetched_rulebase_uids, native_config, native_config_global, is_global_loop_iteration, normalized_config_dict, normalized_config_global):
     logger = getFwoLogger()
     for rulebase_link in gateway['rulebase_links']:
         if rulebase_link['to_rulebase_uid'] not in fetched_rulebase_uids and rulebase_link['to_rulebase_uid'] != '':
-            rulebase_to_parse = find_rulebase_to_parse(nativeConfig['rulebases'], rulebase_link['to_rulebase_uid'])
+            rulebase_to_parse = find_rulebase_to_parse(native_config['rulebases'], rulebase_link['to_rulebase_uid'])
             # search in global rulebase
             found_rulebase_in_global = False
             if rulebase_to_parse == {} and not is_global_loop_iteration and native_config_global is not None:
@@ -117,6 +117,8 @@ def parse_single_rule(normalized_config_dict, normalized_config_global, native_r
     rule_src_neg, rule_dst_neg, rule_svc_neg = rule_parse_negation_flags(native_rule)
     rule_installon = rule_parse_installon(native_rule, rulebase.name)
 
+    last_hit = rule_parse_last_hit(native_rule)
+
     # Create the normalized rule
     rule_normalized = RuleNormalized(
         rule_num=rule_num,
@@ -140,9 +142,9 @@ def parse_single_rule(normalized_config_dict, normalized_config_global, native_r
         rule_custom_fields=str(native_rule.get('meta fields', {})),
         rule_implied=False,
         rule_type=RuleType.ACCESS,
-        last_change_admin=None, #TODO: native_rule.get('_last-modified-by'), - see #3589
+        last_change_admin=native_rule.get('_last-modified-by', ''),
         parent_rule_uid=None,
-        last_hit=None, # TODO: get last hit
+        last_hit=last_hit,
         rule_comment=native_rule.get('comments'),
         rule_src_zone=rule_src_zone,
         rule_dst_zone=rule_dst_zone,
@@ -251,8 +253,13 @@ def rule_parse_installon(native_rule, rulebase_name):
         rule_installon = rulebase_name
     return rule_installon
 
+def rule_parse_last_hit(native_rule):
+    last_hit = native_rule.get('_last_hit', None)
+    if last_hit != None:
+        last_hit = strftime("%Y-%m-%d %H:%M:%S", localtime(last_hit))
+    return last_hit
 
-def getAccessPolicy(sid, fm_api_url, native_config_domain, adom_device_vdom_policy_package_structure, adom_name, mgm_details_device, device_config, limit):
+def get_access_policy(sid, fm_api_url, native_config_domain, adom_device_vdom_policy_package_structure, adom_name, mgm_details_device, device_config, limit):
     consolidated = '' # '/consolidated'
     logger = getFwoLogger()
 
@@ -386,93 +393,7 @@ def getNatPolicy(sid, fm_api_url, nativeConfig, adom_name, device, limit):
             nativeConfig['rules_adom_nat'], sid, fm_api_url, "/pm/config/" + scope + "/pkg/" + pkg + '/' + nat_type, device['local_rulebase_name'], limit=limit)
 
 
-# delete_v: ab hier kann sehr viel weg, ich lasses vorerst zB für die hitcounter
-def normalize_rule(rule_orig, rules, native_config, rule_table, localPkgName, rule_number, src_ref_all, dst_ref_all, normalized_config_dict):
-    rule: dict = {'rule_src': '', 'rule_dst': '', 'rule_svc': ''}
-    xlate_rule = None
-    # rule.update({ 'control_id': import_id})
-    rule.update({ 'rulebase_name': localPkgName})    # the rulebase_name will be set to the pkg_name as there is no rulebase_name in FortiMangaer
-    rule.update({ 'rule_ruleid': rule_orig['policyid']})
-    rule.update({ 'rule_uid': rule_orig['uuid']})
-    rule.update({ 'rule_num': rule_number})
-    rule.update({ 'rule_name': rule_orig.get('name', None)})
-    
-    # parse_target_gateways(rule_orig, rule, localPkgName)
-
-    rule.update({ 'rule_implied': False })
-    rule.update({ 'rule_time': None })
-    rule.update({ 'rule_type': 'access' })
-    rule.update({ 'parent_rule_id': None })
-
-    rule.update({ 'rule_comment': rule_orig.get('comments', None)})
-    if rule_orig['action']==0:
-        rule.update({ 'rule_action': 'Drop' })
-    else:
-        rule.update({ 'rule_action': 'Accept' })
-    if 'status' in rule_orig and (rule_orig['status']=='enable' or rule_orig['status']==1):
-        rule.update({ 'rule_disabled': False })
-    else:
-        rule.update({ 'rule_disabled': True })
-    if rule_orig['logtraffic'] == 'disable':
-        rule.update({ 'rule_track': 'None'})
-    else:
-        rule.update({ 'rule_track': 'Log'})
-
-    rule['rule_src'] = extend_string_list(rule['rule_src'], rule_orig, 'srcaddr', list_delimiter)
-    rule['rule_dst'] = extend_string_list(rule['rule_dst'], rule_orig, 'dstaddr', list_delimiter)
-    rule['rule_svc'] = extend_string_list(rule['rule_svc'], rule_orig, 'service', list_delimiter)
-    rule['rule_src'] = extend_string_list(rule['rule_src'], rule_orig, 'srcaddr6', list_delimiter)
-    rule['rule_dst'] = extend_string_list(rule['rule_dst'], rule_orig, 'dstaddr6', list_delimiter)
-    rule['rule_src'] = extend_string_list(rule['rule_src'], rule_orig, 'internet-service-src-name', list_delimiter)
-
-    if len(rule_orig['srcintf'])>0:
-        src_obj_zone = add_zone_if_missing (normalized_config_dict, rule_orig['srcintf'][0])
-        rule.update({ 'rule_from_zone': src_obj_zone }) # todo: currently only using the first zone
-    if len(rule_orig['dstintf'])>0:
-        dst_obj_zone = add_zone_if_missing (normalized_config_dict, rule_orig['dstintf'][0])
-        rule.update({ 'rule_to_zone': dst_obj_zone }) # todo: currently only using the first zone
-
-    if 'srcaddr-negate' in rule_orig:
-        rule.update({ 'rule_src_neg': rule_orig['srcaddr-negate']=='disable'})
-    elif 'internet-service-src-negate' in rule_orig:
-        rule.update({ 'rule_src_neg': rule_orig['internet-service-src-negate']=='disable'})
-    if 'dstaddr-negate' in rule_orig:
-        rule.update({ 'rule_dst_neg': rule_orig['dstaddr-negate']=='disable'})
-    if 'service-negate' in rule_orig:
-        rule.update({ 'rule_svc_neg': rule_orig['service-negate']=='disable'})
-
-    rule.update({ 'rule_src_refs': resolve_raw_objects(rule['rule_src'], list_delimiter, native_config, 'name', 'uuid', \
-        rule_type=rule_table, jwt=None, import_id=None, rule_uid=rule_orig['uuid'], object_type=NETWORK_OBJECT, mgm_id=mgm_details['id']) })
-    rule.update({ 'rule_dst_refs': resolve_raw_objects(rule['rule_dst'], list_delimiter, native_config, 'name', 'uuid', \
-        rule_type=rule_table, jwt=None, import_id=None, rule_uid=rule_orig['uuid'], object_type=NETWORK_OBJECT, mgm_id=mgm_details['id']) })
-    rule.update({ 'rule_svc_refs': rule['rule_svc'] }) # services do not have uids, so using name instead
-    add_users_to_rule(rule_orig, rule)
-
-    # new in v8.0.3:
-    rule.update({ 'rule_custom_fields': rule_orig.get('meta fields', None) })
-    rule.update({ 'last_change_admin': rule_orig.get('_last-modified-by',None) })
-
-    update_hit_counters(native_config, rule_table, rule_orig, rule, localPkgName, rule_access_scope_v4, rule_access_scope_v6)
-
-    xlate_rule = handle_combined_nat_rule(rule, rule_orig, normalized_config_dict, nat_rule_number, import_id, localPkgName, dev_id)
-    rules.append(rule)
-    if xlate_rule is not None:
-        rules.append(xlate_rule)
-    rule_number += 1    # nat rules have their own numbering
-
-
-def update_hit_counters(native_config, rule_table, rule_orig, rule, localPkgName, rule_access_scope_v4, rule_access_scope_v6):
-    if rule_table in rule_access_scope_v4 and len(native_config['rules_hitcount'][localPkgName])>0:
-        for hitcount_config in native_config['rules_hitcount'][localPkgName][0]['firewall policy']:
-            if rule_orig['policyid'] == hitcount_config['last_hit']:
-                rule.update({ 'last_hit': time.strftime("%Y-%m-%dT%H:%M:%S%z", time.localtime(hitcount_config['policyid']))})
-    elif rule_table in rule_access_scope_v6 and len(native_config['rules_hitcount'][localPkgName])>0:
-        for hitcount_config in native_config['rules_hitcount'][localPkgName][0]['firewall policy6']:
-            if rule_orig['policyid'] == hitcount_config['last_hit']:
-                rule.update({ 'last_hit': time.strftime("%Y-%m-%dT%H:%M:%S%z", time.localtime(hitcount_config['policyid']))})
-    else:
-        rule.update({ 'last_hit': None})
-
+# delete_v: ab hier kann sehr viel weg, ich lasses vorerst zB für die nat
 # pure nat rules 
 def normalize_nat_rules(full_config, config2import, import_id, jwt=None):
     nat_rules = []

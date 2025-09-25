@@ -98,7 +98,6 @@ def update_config_with_fortinet_api_call(config_json, sid, api_base_url, api_pat
         # adding options
         if len(options)>0:
             payload['params'][0].update({'option': options})
-            # payload['params'][0].update({'filter': options})
 
         result = fortinet_api_call(sid, api_base_url, api_path, payload=payload, method=method)
         full_result.extend(result)

@@ -64,6 +64,10 @@ def normalize_network_object(obj_orig, nw_objects, normalized_config, native_con
         obj.update({ 'obj_ip_end': obj_orig['end-ip'] })
     elif 'extip' in obj_orig: # vip object, simplifying to a single ip
         normalize_vip_object(obj_orig, obj, nw_objects)
+    elif 'wildcard-fqdn' in obj_orig:
+        obj.update({ 'obj_typ': 'domain' })
+        obj.update({ 'obj_ip': '0.0.0.0'})
+        obj.update({ 'obj_ip_end': '255.255.255.255'})
     else: # 'fqdn' in obj_orig: # "fully qualified domain name address" // other unknown types
         obj.update({ 'obj_typ': 'network' })
         obj.update({ 'obj_ip': '0.0.0.0'})

@@ -12,7 +12,7 @@ from fmgr_gw_networking import get_device_from_package
 from fwo_log import getFwoLogger
 from model_controllers.route_controller import get_matching_route_obj, get_ip_of_interface_obj
 from fwo_exceptions import FwoDeviceWithoutLocalPackage, FwoImporterErrorInconsistencies
-from fmgr_base import resolve_raw_objects, resolve_objects
+#from fmgr_base import resolve_raw_objects, resolve_objects
 from models.rule import Rule, RuleNormalized, RuleAction, RuleTrack, RuleType
 from models.rulebase import Rulebase
 import fwo_globals
@@ -39,7 +39,6 @@ def normalize_rulebases(
     normalized_config_dict['policies'] = []
 
     fetched_rulebase_uids: list = []
-    # delete_v: warum betrachten wir die globalen rulebases als fetched?
     if normalized_config_global is not None:
         for normalized_rulebase_global in normalized_config_global.get('policies', []):
             fetched_rulebase_uids.append(normalized_rulebase_global.uid)

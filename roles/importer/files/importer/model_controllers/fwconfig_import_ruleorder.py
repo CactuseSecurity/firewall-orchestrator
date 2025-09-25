@@ -109,10 +109,10 @@ class RuleOrderService:
 
         # Transfer existing rule_num_numeric values to target rules.
 
-        for target_rule in self._target_rules_flat:
-            if target_rule.rule_uid in self._source_rule_uids:
-                _, source_rule = self._get_index_and_rule_object_from_flat_list(self._source_rules_flat, target_rule.rule_uid)
-                target_rule.rule_num_numeric = source_rule.rule_num_numeric
+        # for target_rule in self._target_rules_flat:
+        #     if target_rule.rule_uid in self._source_rule_uids:
+        #         _, source_rule = self._get_index_and_rule_object_from_flat_list(self._source_rules_flat, target_rule.rule_uid)
+        #         target_rule.rule_num_numeric = source_rule.rule_num_numeric
 
         # Compute needed operations and prepare return objects.
 

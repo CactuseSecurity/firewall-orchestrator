@@ -7,6 +7,8 @@ sys.path.append(os.path.join(os.path.dirname(__file__), '../importer'))
 from test.mocking.mock_config import MockFwConfigNormalizedBuilder
 from test.mocking.mock_fwconfig_import_rule import MockFwConfigImportRule
 
+from fwo_const import rule_num_numeric_steps
+
 def set_up_config_for_import_consistency_test():
 
     config_builder = MockFwConfigNormalizedBuilder()
@@ -35,14 +37,15 @@ def set_up_test_for_ruleorder_test_with_defaults():
         }
     )
     new_num_numeric = 0.0
-    rule_num_numeric_steps = 10.0
+
+
+    fwconfig_import_rule = MockFwConfigImportRule()
+    fwconfig_import_rule.normalized_config = copy.deepcopy(previous_config)
+
     for rulebase in previous_config.rulebases:
         for rule in rulebase.Rules.values():
             new_num_numeric += rule_num_numeric_steps
             rule.rule_num_numeric = new_num_numeric
-
-    fwconfig_import_rule = MockFwConfigImportRule()
-    fwconfig_import_rule.normalized_config = copy.deepcopy(previous_config)
 
     return previous_config, fwconfig_import_rule
 

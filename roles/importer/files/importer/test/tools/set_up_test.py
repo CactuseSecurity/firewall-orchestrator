@@ -99,7 +99,17 @@ def set_up_test_for_ruleorder_test_with_move_across_rulebases():
     return previous_config, fwconfig_import_rule, source_rulebase_uids, target_rulebase_uids
 
 
+def set_up_test_for_ruleorder_test_with_move_to_beginning_middle_and_end_of_rulebase():
+    config_builder = MockFwConfigNormalizedBuilder()
+    previous_config, fwconfig_import_rule = set_up_test_for_ruleorder_test_with_defaults()
 
+    rule_uids = list(fwconfig_import_rule.normalized_config.rulebases[0].Rules.keys())
+
+    move_rule_in_config(fwconfig_import_rule, 0, (len(rule_uids) - 1)//2, 0, rule_uids)  # Move to beginning
+    move_rule_in_config(fwconfig_import_rule, 0, 1, (len(rule_uids) - 1)//2, rule_uids)  # Move to middle
+    move_rule_in_config(fwconfig_import_rule, 0, 2, len(rule_uids) - 1, rule_uids)  # Move to end
+
+    return previous_config, fwconfig_import_rule, rule_uids
 
 
 def reorder_rulebase_rules_dict(fwconfig_import_rule, rulebase_index, rule_uids):

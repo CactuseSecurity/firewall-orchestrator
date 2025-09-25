@@ -107,6 +107,13 @@ class RuleOrderService:
         self._source_rule_uids, self._source_rules_flat = self._parse_rule_uids_and_objects_from_config(self._previous_config)
         self._target_rule_uids, self._target_rules_flat = self._parse_rule_uids_and_objects_from_config(self._fw_config_import_rule.normalized_config)
 
+        # Transfer existing rule_num_numeric values to target rules.
+
+        for target_rule in self._target_rules_flat:
+            if target_rule.rule_uid in self._source_rule_uids:
+                _, source_rule = self._get_index_and_rule_object_from_flat_list(self._source_rules_flat, target_rule.rule_uid)
+                target_rule.rule_num_numeric = source_rule.rule_num_numeric
+
         # Compute needed operations and prepare return objects.
 
         self._compute_min_moves_result = compute_min_moves(self._source_rule_uids, self._target_rule_uids)
@@ -213,8 +220,8 @@ class RuleOrderService:
 
         target_rulebase = next(rulebase for rulebase in self._fw_config_import_rule.normalized_config.rulebases if rulebase.uid == target_rulebase_uid)
 
-        index, changed_rule = self._get_index_and_rule_object_from_flat_list(self._target_rules_flat, rule_uid)
-        prev_rule_uid, next_rule_uid = self._get_adjacent_list_element(self._target_rule_uids, index)
+        index, changed_rule = self._get_index_and_rule_object_from_flat_list(list(target_rulebase.Rules.values()), rule_uid)
+        prev_rule_uid, next_rule_uid = self._get_adjacent_list_element(list(target_rulebase.Rules.keys()), index)
 
         if not prev_rule_uid:
             min_num_numeric_rule = min((r for r in target_rulebase.Rules.values()  if r.rule_num_numeric != 0), key=lambda x: x.rule_num_numeric, default=None)

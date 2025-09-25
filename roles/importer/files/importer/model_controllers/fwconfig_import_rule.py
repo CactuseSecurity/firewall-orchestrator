@@ -101,12 +101,7 @@ class FwConfigImportRule():
                 self.collect_last_hit_changes(ruleUid, currentRulebase, previousRulebase, new_hit_information)
 
         # add moved rules that are not in changed rules (e.g. move across rulebases)
-        for rulebaseId in movedRuleUids:
-            for ruleUid in movedRuleUids[rulebaseId]:
-                if ruleUid not in changedRuleUids.get(rulebaseId, []):
-                    if rulebaseId not in changedRuleUids:
-                        changedRuleUids[rulebaseId] = []
-                    changedRuleUids[rulebaseId].append(ruleUid)
+        self._collect_uncaught_moves(movedRuleUids, changedRuleUids)
 
         # add full rule details first
         newRulebases = self.getRules(newRuleUids)
@@ -139,7 +134,15 @@ class FwConfigImportRule():
 
         # TODO: rule_nwobj_resolved fuellen (recert?)
         return new_rule_ids
+    
 
+    def _collect_uncaught_moves(self, movedRuleUids, changedRuleUids):
+        for rulebaseId in movedRuleUids:
+            for ruleUid in movedRuleUids[rulebaseId]:
+                if ruleUid not in changedRuleUids.get(rulebaseId, []):
+                    if rulebaseId not in changedRuleUids:
+                        changedRuleUids[rulebaseId] = []
+                    changedRuleUids[rulebaseId].append(ruleUid)
 
     def collect_last_hit_changes(self, rule_uid, current_rulebase, previous_rulebase, new_hit_information):
         if self.last_hit_changed(current_rulebase.Rules[rule_uid], previous_rulebase.Rules[rule_uid]):

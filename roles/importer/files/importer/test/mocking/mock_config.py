@@ -582,7 +582,7 @@ class MockFwConfigNormalizedBuilder():
                 link_type = "ordered",
                 is_initial = False,
                 is_global = False,
-                is_section = False
+                is_section = True
             )
         )
 

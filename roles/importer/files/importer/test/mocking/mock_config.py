@@ -162,14 +162,7 @@ class MockFwConfigNormalizedBuilder():
 
             # Create a new rulebase.
 
-            new_rulebase_uid = self.uid_manager.create_uid()
-            new_rulebase = Rulebase(
-                uid = new_rulebase_uid,
-                name = f"Rulebase {new_rulebase_uid}",
-                mgm_uid = mock_mgm_uid,
-                id=None
-            )
-            config.rulebases.append(new_rulebase)
+            _, new_rulebase_uid = self.add_rulebase(config, mock_mgm_uid)
 
             for i in range(number_of_rules):
 
@@ -194,7 +187,7 @@ class MockFwConfigNormalizedBuilder():
             )
         )
 
-        return config
+        return config, mock_mgm_uid
     
     def add_rule_with_nested_groups(self, config: FwConfigNormalized):
         """
@@ -577,10 +570,40 @@ class MockFwConfigNormalizedBuilder():
         # svc.svc_port = 6 if svc.svc_port == 17 else 17  # Toggle between TCP (6) and UDP (17)
         svc.svc_color = "blue" if svc.svc_color == "black" else "black"  # Toggle color for subtle change
 
+    def add_cp_section_header(self, config: FwConfigNormalized, gateway: Gateway, index: int, from_rulebase_uid: str, to_rulebase_uid: str) -> None:
+
+        current_from_rulebase_uid = config.rulebases[index - 1].uid
+        current_from_rule_uid = list(config.rulebases[index - 1].Rules.values())[-1].rule_uid
+        gateway.RulebaseLinks.append(
+            RulebaseLinkUidBased(
+                from_rulebase_uid = current_from_rulebase_uid,
+                from_rule_uid = current_from_rule_uid,
+                to_rulebase_uid = config.rulebases[index].uid,
+                link_type = "ordered",
+                is_initial = False,
+                is_global = False,
+                is_section = False
+            )
+        )
+
+
+    def add_rulebase(self, config: FwConfigNormalized, mgm_uid: str) -> tuple[Rulebase, str]:
+
+        new_rulebase_uid = self.uid_manager.create_uid()
+        new_rulebase = Rulebase(
+            uid = new_rulebase_uid,
+            name = f"Rulebase {new_rulebase_uid}",
+            mgm_uid = mgm_uid,
+            id=None
+        )
+        config.rulebases.append(new_rulebase)
+
+        return new_rulebase, new_rulebase_uid
+
 
 if __name__ == '__main__':
     mock_config_builder = MockFwConfigNormalizedBuilder()
-    mock_config = mock_config_builder.build_config(
+    mock_config, _ = mock_config_builder.build_config(
         {
             "rule_config": [10,10,10],
             "network_object_config": 10,

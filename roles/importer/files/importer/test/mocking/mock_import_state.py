@@ -70,13 +70,13 @@ class MockImportStateController(ImportStateController):
     def stub_setCoreData(self, value: bool):
         self._stub_setCoreData = value 
 
+
     def setCoreData(self):
 
         if self._stub_setCoreData:
             return
         else:
             super().setCoreData()
-
 
 
     def call(self, *args, **kwargs):

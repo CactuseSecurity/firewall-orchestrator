@@ -1,8 +1,4 @@
 import unittest
-import sys
-import os
-
-sys.path.append(os.path.join(os.path.dirname(__file__), '../importer'))
 
 from test.tools.set_up_test import set_up_test_for_ruleorder_test_with_delete_insert_move
 from test.tools.set_up_test import set_up_test_for_ruleorder_test_with_consecutive_insertions
@@ -10,7 +6,7 @@ from test.tools.set_up_test import set_up_test_for_ruleorder_test_with_move_acro
 from test.tools.set_up_test import set_up_test_for_ruleorder_test_with_move_to_beginning_middle_and_end_of_rulebase
 
 
-class TestFwoConfigImportRule(unittest.TestCase):
+class TestUpdateRulebaseDiffs(unittest.TestCase):
       
     def test_update_rulebase_diffs_on_insert_delete_and_move(self):
         

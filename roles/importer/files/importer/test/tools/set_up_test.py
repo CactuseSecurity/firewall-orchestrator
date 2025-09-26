@@ -1,18 +1,17 @@
-import sys
-import os
 import copy
 
-sys.path.append(os.path.join(os.path.dirname(__file__), '../importer'))
+from fwo_base import init_service_provider
+from fwo_const import rule_num_numeric_steps
 
 from test.mocking.mock_config import MockFwConfigNormalizedBuilder
 from test.mocking.mock_fwconfig_import_rule import MockFwConfigImportRule
+from test.mocking.mock_fwconfig_import_gateway import MockFwConfigImportGateway
 
-from fwo_const import rule_num_numeric_steps
 
 def set_up_config_for_import_consistency_test():
 
     config_builder = MockFwConfigNormalizedBuilder()
-    config = config_builder.build_config(
+    config, _ = config_builder.build_config(
         {
             "rule_config": [10, 10, 10],
             "network_object_config": 10,
@@ -28,7 +27,7 @@ def set_up_config_for_import_consistency_test():
 def set_up_test_for_ruleorder_test_with_defaults():
 
     config_builder = MockFwConfigNormalizedBuilder()
-    previous_config = config_builder.build_config(
+    previous_config, _ = config_builder.build_config(
         {
             "rule_config": [10,10,10],
             "network_object_config": 10,
@@ -48,6 +47,31 @@ def set_up_test_for_ruleorder_test_with_defaults():
             rule.rule_num_numeric = new_num_numeric
 
     return previous_config, fwconfig_import_rule
+
+
+def set_up_test_for_rulebase_link_test_with_defaults():
+
+    init_service_provider()
+
+    fw_config_import_gateway = MockFwConfigImportGateway()
+    config_builder = MockFwConfigNormalizedBuilder()
+
+    previous_config, mgm_uid = config_builder.build_config(
+        {
+            "rule_config": [10,10,10],
+            "network_object_config": 10,
+            "service_config": 10,
+            "user_config": 10,
+            "gateway_config": 2,
+            "rulebase_link_config": 4
+        }
+    )
+    normalized_config = copy.deepcopy(previous_config)
+
+    fw_config_import_gateway._global_state.normalized_config = normalized_config
+    fw_config_import_gateway._global_state.previous_config = previous_config
+    
+    return config_builder, fw_config_import_gateway, mgm_uid
 
 
 def set_up_test_for_ruleorder_test_with_delete_insert_move():
@@ -166,3 +190,19 @@ def move_rule_in_config(fwconfig_import_rule, rulebase_index, source_position, t
     rule_uids.insert(target_position, rule_uid)
 
     reorder_rulebase_rules_dict(fwconfig_import_rule, rulebase_index, rule_uids)
+
+def update_rule_map_and_rulebase_map(normalized_config, import_state):
+
+    import_state.RulebaseMap = {}
+    import_state.RuleMap = {}
+
+    rulebase_id = 1
+    rule_id = 1
+
+    for rulebase in normalized_config.rulebases:
+        import_state.RulebaseMap[rulebase.uid] = rulebase_id
+        rulebase_id += 1
+        for rule in rulebase.Rules.values():
+            import_state.RuleMap[rule.rule_uid] = rule_id
+            rule_id += 1
+

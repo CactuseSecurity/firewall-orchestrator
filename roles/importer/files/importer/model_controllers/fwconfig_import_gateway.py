@@ -22,7 +22,9 @@ class FwConfigImportGateway:
 
     def update_gateway_diffs(self):
         # add gateway details:
-        self.update_rulebase_link_diffs()
+        rb_link_list = self.update_rulebase_link_diffs()
+        rb_link_controller = RulebaseLinkController()
+        rb_link_controller.insert_rulebase_links(self._global_state.import_state, rb_link_list)         
         # self.updateRuleEnforcedOnGatewayDiffs(prevConfig)
         self.update_interface_diffs()
         self.update_routing_diffs()
@@ -32,6 +34,7 @@ class FwConfigImportGateway:
     def update_rulebase_link_diffs(self):
         logger = getFwoLogger(debug_level=self._global_state.import_state.DebugLevel)
         rb_link_list = []
+
         for gw in self._global_state.normalized_config.gateways:
             if gw not in self._global_state.previous_config.gateways:   # this check finds all changes in gateway (including rulebase link changes)
                 if self._global_state.import_state.DebugLevel>8:
@@ -41,8 +44,9 @@ class FwConfigImportGateway:
                     logger.warning(f"did not find a gwId for UID {gw.Uid}")
                 for link in gw.RulebaseLinks:
                     self.add_single_link(rb_link_list, link, gw_id, logger)
-        rb_link_controller = RulebaseLinkController()
-        rb_link_controller.insert_rulebase_links(self._global_state.import_state, rb_link_list) 
+
+        return rb_link_list
+
 
 
     def add_single_link(self, rb_link_list, link, gw_id, logger):

@@ -295,81 +295,98 @@ class MockFwConfigNormalizedBuilder():
             elif change_obj == "nested_member":
                 self.change_network_object_subtle(config, "cpr-from1-member1-member1")
         elif change_type == "add":
-            if change_obj == "from":
-                self.add_network_object(config, {
-                    "obj_uid": "cpr-from-new",
-                    "obj_name": "cpr-from-new",
-                    "obj_typ": "host"
-                })
-                rule.rule_src += list_delimiter + "cpr-from-new"
-                rule.rule_src_refs += list_delimiter + "cpr-from-new"
-            elif change_obj == "svc":
-                self.add_service_object(config, {
-                    "svc_uid": "cpr-svc-new",
-                    "svc_name": "cpr-svc-new",
-                    "svc_typ": "simple"
-                })
-                rule.rule_svc += list_delimiter + "cpr-svc-new"
-                rule.rule_svc_refs += list_delimiter + "cpr-svc-new"
-            elif change_obj == "member":
-                from_obj = config.network_objects.get("cpr-from1")
-                self.add_network_object(config, {
-                    "obj_uid": "cpr-from-member-new",
-                    "obj_name": "cpr-from-member-new",
-                    "obj_typ": "host"
-                })
-                from_obj.obj_member_names += list_delimiter + "cpr-from-member-new"
-                from_obj.obj_member_refs += list_delimiter + "cpr-from-member-new"
-            elif change_obj == "member_svc":
-                svc_obj = config.service_objects.get("cpr-svc1")
-                self.add_service_object(config, {
-                    "svc_uid": "cpr-svc-member-new",
-                    "svc_name": "cpr-svc-member-new",
-                    "svc_typ": "simple"
-                })
-                svc_obj.svc_member_names += list_delimiter + "cpr-svc-member-new"
-                svc_obj.svc_member_refs += list_delimiter + "cpr-svc-member-new"
-            elif change_obj == "nested_member":
-                member = config.network_objects.get("cpr-from1-member1")
-                self.add_network_object(config, {
-                    "obj_uid": "cpr-from-member1-member-new",
-                    "obj_name": "cpr-from-member1-member-new",
-                    "obj_typ": "host"
-                })
-                member.obj_member_names += list_delimiter + "cpr-from-member1-member-new"
-                member.obj_member_refs += list_delimiter + "cpr-from-member1-member-new"
-            elif change_obj == "nested_member_svc":
-                member_svc = config.service_objects.get("cpr-svc1-member1")
-                self.add_service_object(config, {
-                    "svc_uid": "cpr-svc-member1-member-new",
-                    "svc_name": "cpr-svc-member1-member-new",
-                    "svc_typ": "simple"
-                })
-                member_svc.svc_member_names = "cpr-svc-member1-member-new"
-                member_svc.svc_member_refs = "cpr-svc-member1-member-new"
+            self._add_rule_with_nested_groups(config, rule, rulebase, change_obj)
+
         elif change_type == "remove":
-            if change_obj == "from":
-                rule.rule_src = rule.rule_src.replace("cpr-from1", "").strip(list_delimiter)
-                rule.rule_src_refs = rule.rule_src_refs.replace("cpr-from1", "").strip(list_delimiter)
-            elif change_obj == "svc":
-                rule.rule_svc = rule.rule_svc.replace("cpr-svc1", "").strip(list_delimiter)
-                rule.rule_svc_refs = rule.rule_svc_refs.replace("cpr-svc1", "").strip(list_delimiter)
-            elif change_obj == "member":
-                from_obj = config.network_objects.get("cpr-from1")
-                from_obj.obj_member_names = from_obj.obj_member_names.replace("cpr-from1-member1", "").strip(list_delimiter)
-                from_obj.obj_member_refs = from_obj.obj_member_refs.replace("cpr-from1-member1", "").strip(list_delimiter)
-            elif change_obj == "member_svc":
-                svc_obj = config.service_objects.get("cpr-svc1")
-                svc_obj.svc_member_names = svc_obj.svc_member_names.replace("cpr-svc1-member1", "").strip(list_delimiter)
-                svc_obj.svc_member_refs = svc_obj.svc_member_refs.replace("cpr-svc1-member1", "").strip(list_delimiter)
-            elif change_obj == "nested_member":
-                from_obj = config.network_objects.get("cpr-from1-member1")
-                from_obj.obj_member_names = from_obj.obj_member_names.replace("cpr-from1-member1-member2", "").strip(list_delimiter)
-                from_obj.obj_member_refs = from_obj.obj_member_refs.replace("cpr-from1-member1-member2", "").strip(list_delimiter)
-            elif change_obj == "nested_member_svc":
-                svc_obj = config.service_objects.get("cpr-svc1-member1")
-                svc_obj.svc_member_names = svc_obj.svc_member_names.replace("cpr-svc1-member1-member1", "").strip(list_delimiter)
-                svc_obj.svc_member_refs = svc_obj.svc_member_refs.replace("cpr-svc1-member1-member1", "").strip(list_delimiter)
+            self._remove_rule_with_nested_groups(config, rule, rulebase, change_obj)
+
+
+    def _add_rule_with_nested_groups(self, config: FwConfigNormalized, rule, rulebase, change_obj):
+
+        if change_obj == "from":
+            self.add_network_object(config, {
+                "obj_uid": "cpr-from-new",
+                "obj_name": "cpr-from-new",
+                "obj_typ": "host"
+            })
+            rule.rule_src += list_delimiter + "cpr-from-new"
+            rule.rule_src_refs += list_delimiter + "cpr-from-new"
+        elif change_obj == "svc":
+            self.add_service_object(config, {
+                "svc_uid": "cpr-svc-new",
+                "svc_name": "cpr-svc-new",
+                "svc_typ": "simple"
+            })
+            rule.rule_svc += list_delimiter + "cpr-svc-new"
+            rule.rule_svc_refs += list_delimiter + "cpr-svc-new"
+        elif change_obj == "member":
+            from_obj = config.network_objects.get("cpr-from1")
+            self.add_network_object(config, {
+                "obj_uid": "cpr-from-member-new",
+                "obj_name": "cpr-from-member-new",
+                "obj_typ": "host"
+            })
+            from_obj.obj_member_names += list_delimiter + "cpr-from-member-new"
+            from_obj.obj_member_refs += list_delimiter + "cpr-from-member-new"
+        elif change_obj == "member_svc":
+            svc_obj = config.service_objects.get("cpr-svc1")
+            self.add_service_object(config, {
+                "svc_uid": "cpr-svc-member-new",
+                "svc_name": "cpr-svc-member-new",
+                "svc_typ": "simple"
+            })
+            svc_obj.svc_member_names += list_delimiter + "cpr-svc-member-new"
+            svc_obj.svc_member_refs += list_delimiter + "cpr-svc-member-new"
+        elif change_obj == "nested_member":
+            member = config.network_objects.get("cpr-from1-member1")
+            self.add_network_object(config, {
+                "obj_uid": "cpr-from-member1-member-new",
+                "obj_name": "cpr-from-member1-member-new",
+                "obj_typ": "host"
+            })
+            member.obj_member_names += list_delimiter + "cpr-from-member1-member-new"
+            member.obj_member_refs += list_delimiter + "cpr-from-member1-member-new"
+        elif change_obj == "nested_member_svc":
+            member_svc = config.service_objects.get("cpr-svc1-member1")
+            self.add_service_object(config, {
+                "svc_uid": "cpr-svc-member1-member-new",
+                "svc_name": "cpr-svc-member1-member-new",
+                "svc_typ": "simple"
+            })
+            member_svc.svc_member_names = "cpr-svc-member1-member-new"
+            member_svc.svc_member_refs = "cpr-svc-member1-member-new"
+
+
+    def _remove_rule_with_nested_groups(self, config: FwConfigNormalized, rule, rulebase, change_obj):
+        """
+        Removes a rule with nested groups from the configuration.
+        Args:
+            config (FwConfigNormalized): The configuration to modify.
+            rule (RuleNormalized): The rule to remove.
+            rulebase (Rulebase): The rulebase containing the rule.
+        """
+        if change_obj == "from":
+            rule.rule_src = rule.rule_src.replace("cpr-from1", "").strip(list_delimiter)
+            rule.rule_src_refs = rule.rule_src_refs.replace("cpr-from1", "").strip(list_delimiter)
+        elif change_obj == "svc":
+            rule.rule_svc = rule.rule_svc.replace("cpr-svc1", "").strip(list_delimiter)
+            rule.rule_svc_refs = rule.rule_svc_refs.replace("cpr-svc1", "").strip(list_delimiter)
+        elif change_obj == "member":
+            from_obj = config.network_objects.get("cpr-from1")
+            from_obj.obj_member_names = from_obj.obj_member_names.replace("cpr-from1-member1", "").strip(list_delimiter)
+            from_obj.obj_member_refs = from_obj.obj_member_refs.replace("cpr-from1-member1", "").strip(list_delimiter)
+        elif change_obj == "member_svc":
+            svc_obj = config.service_objects.get("cpr-svc1")
+            svc_obj.svc_member_names = svc_obj.svc_member_names.replace("cpr-svc1-member1", "").strip(list_delimiter)
+            svc_obj.svc_member_refs = svc_obj.svc_member_refs.replace("cpr-svc1-member1", "").strip(list_delimiter)
+        elif change_obj == "nested_member":
+            from_obj = config.network_objects.get("cpr-from1-member1")
+            from_obj.obj_member_names = from_obj.obj_member_names.replace("cpr-from1-member1-member2", "").strip(list_delimiter)
+            from_obj.obj_member_refs = from_obj.obj_member_refs.replace("cpr-from1-member1-member2", "").strip(list_delimiter)
+        elif change_obj == "nested_member_svc":
+            svc_obj = config.service_objects.get("cpr-svc1-member1")
+            svc_obj.svc_member_names = svc_obj.svc_member_names.replace("cpr-svc1-member1-member1", "").strip(list_delimiter)
+            svc_obj.svc_member_refs = svc_obj.svc_member_refs.replace("cpr-svc1-member1-member1", "").strip(list_delimiter)
 
 
     def create_rulebase_links(self, config: FwConfigNormalized) -> list[RulebaseLinkUidBased]:

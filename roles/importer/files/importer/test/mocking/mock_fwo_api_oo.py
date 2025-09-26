@@ -7,6 +7,11 @@ import fwo_const
 from fwo_api import FwoApi
 from .mock_config import MockFwConfigNormalizedBuilder
 
+CHECK_POINT = 'Check Point'
+PALO_ALTO = 'Palo Alto'
+FORTINET_FORTIOS_GATEWAY = 'Fortinet FortiOS Gateway'
+FORTIOS_MANAGEMENT = 'FortiOS Management'
+
 TABLE_IDENTIFIERS = {
     "stm_change_type": "change_type_id",
     "stm_usr_typ": "usr_typ_id",
@@ -86,14 +91,14 @@ STM_TABLES = {
             ('FortiGateStandalone', '5ff', 'Fortinet', '', True, False, False),
             ('Barracuda Firewall Control Center', 'Vx', 'phion', '', True, False, False),
             ('phion netfence', '3.x', 'phion', '', False, False, False),
-            ('Check Point R5x-R7x', '', 'Check Point', '', True, False, False),
+            ('Check Point R5x-R7x', '', CHECK_POINT, '', True, False, False),
             ('JUNOS', '10-21', 'Juniper',
              'any;0;0;65535;;junos-predefined-service;simple;', True, False, False),
-            ('Check Point R8x', '', 'Check Point', '', True, False, False),
+            ('Check Point R8x', '', CHECK_POINT, '', True, False, False),
             ('FortiGate', '5ff', 'Fortinet', '', False, False, False),
             ('FortiADOM', '5ff', 'Fortinet', '', True, False, False),
             ('FortiManager', '5ff', 'Fortinet', '', True, True, False),
-            ('Check Point MDS R8x', '', 'Check Point', '', True, True, False),
+            ('Check Point MDS R8x', '', CHECK_POINT, '', True, True, False),
             ('Cisco Firepower Management Center', '7ff', 'Cisco', '', True, True, False),
             ('Cisco Firepower Domain', '7ff', 'Cisco', '', False, True, False),
             ('Cisco Firepower Gateway', '7ff', 'Cisco', '', False, False, False),
@@ -101,29 +106,29 @@ STM_TABLES = {
             ('DummyRouter Gateway', '1', 'DummyRouter', '', False, False, True),
             ('Azure', '2022ff', 'Microsoft', '', False, True, False),
             ('Azure Firewall', '2022ff', 'Microsoft', '', False, False, False),
-            ('Palo Alto Firewall', '2023ff', 'Palo Alto', '', False, True, False),
-            ('Palo Alto Panorama', '2023ff', 'Palo Alto', '', True, True, False),
-            ('Palo Alto Management', '2023ff', 'Palo Alto',
+            ('Palo Alto Firewall', '2023ff', PALO_ALTO, '', False, True, False),
+            ('Palo Alto Panorama', '2023ff', PALO_ALTO, '', True, True, False),
+            ('Palo Alto Management', '2023ff', PALO_ALTO,
              '', False, True, False),
-            ('FortiOS Management', 'REST', 'Fortinet',
+            (FORTIOS_MANAGEMENT, 'REST', 'Fortinet',
              '', False, True, False),
-            ('Fortinet FortiOS Gateway', 'REST',
+            (FORTINET_FORTIOS_GATEWAY, 'REST',
              'Fortinet', '', False, False, False),
             ('NSX DFW Gateway','REST','VMWare','',
              False,False,False),
             ('NSX','REST','VMWare','',
              False,True,False),
-            ('FortiOS Management','REST','Fortinet','',
+            (FORTIOS_MANAGEMENT,'REST','Fortinet','',
              False,True,False),
-            ('Fortinet FortiOS Gateway','REST','Fortinet','',
+            (FORTINET_FORTIOS_GATEWAY,'REST','Fortinet','',
              False,False,False),
             ('NSX DFW Gateway','REST','VMWare','',
              False,False,False),
             ('NSX','REST','VMWare','',
              False,True,False),
-            ('FortiOS Management','REST','Fortinet','',
+            (FORTIOS_MANAGEMENT,'REST','Fortinet','',
              False,True,False),
-            ('Fortinet FortiOS Gateway','REST','Fortinet','',
+            (FORTINET_FORTIOS_GATEWAY,'REST','Fortinet','',
              False,False,False)
         ], start=1)
     ],
@@ -204,43 +209,7 @@ class MockFwoApi(FwoApi):
             field = sel.name.value
             # pprint.pprint(object_to_dict(sel))
             if field.startswith("insert_"):
-                table = field[len("insert_"):]
-                # Find the argument name for objects
-                try:
-                    arg_name = next((a.value.name.value for a in sel.arguments if a.name.value == "objects"), None)
-                    objects = variables.get(arg_name, [])
-                except AttributeError:
-                    objects = [{
-                        field.name.value: variables.get(field.value.name.value, None) for field in sel.arguments[0].value.fields
-                    }]
-                if table not in self.tables:
-                    self.tables[table] = {}
-                returning = []
-                for obj in objects:
-                    pk = len(self.tables[table]) + 1
-                    obj = dict(obj)  # copy
-                    if table not in ["objgrp", "svcgrp", "usergrp", "objgrp_flat", "svcgrp_flat", "usergrp_flat"]: # using pair of reference ids as primary key
-                        obj[TABLE_IDENTIFIERS.get(table, f"{table}_id")] = pk
-                    if any(("create" in key for key in obj.keys())):
-                        obj["removed"] = None
-                        obj["active"] = True
-                    if table == "rulebase":
-                        obj.pop("rules", None)  # remove rules from rulebase insert. why are they even there?
-                        if any((row["mgm_id"] == obj["mgm_id"] and 
-                                row["uid"] == obj["uid"] for row in self.tables.get("rulebase", {}).values())):
-                            continue  # mock on_conflict unique_rulebase_mgm_id_uid constraint
-                    if table in INSERT_UNIQUE_PK_CONSTRAINTS:
-                        # Check for unique constraints
-                        unique_keys = INSERT_UNIQUE_PK_CONSTRAINTS[table]
-                        if any(all(row.get(key) == obj.get(key) for key in unique_keys)
-                               for row in self.tables[table].values()):
-                            raise ValueError(f"Unique constraint violation for {table} with keys {unique_keys}.")
-                    self.tables[table][pk] = obj
-                    returning.append(obj)
-                result["data"][field] = {
-                    "affected_rows": len(objects),
-                    "returning": returning
-                }
+                self._handle_insert(sel, variables, result, field)
             elif field.startswith("update_"):
                 table = field[len("update_"):]
                 returning = []
@@ -281,6 +250,46 @@ class MockFwoApi(FwoApi):
         return result
 
 
+    def _handle_insert(self, sel, variables, result, field):
+        table = field[len("insert_"):]
+        # Find the argument name for objects
+        try:
+            arg_name = next((a.value.name.value for a in sel.arguments if a.name.value == "objects"), None)
+            objects = variables.get(arg_name, [])
+        except AttributeError:
+            objects = [{
+                field.name.value: variables.get(field.value.name.value, None) for field in sel.arguments[0].value.fields
+            }]
+        if table not in self.tables:
+            self.tables[table] = {}
+        returning = []
+        for obj in objects:
+            pk = len(self.tables[table]) + 1
+            obj = dict(obj)  # copy
+            if table not in ["objgrp", "svcgrp", "usergrp", "objgrp_flat", "svcgrp_flat", "usergrp_flat"]: # using pair of reference ids as primary key
+                obj[TABLE_IDENTIFIERS.get(table, f"{table}_id")] = pk
+            if any(("create" in key for key in obj.keys())):
+                obj["removed"] = None
+                obj["active"] = True
+            if table == "rulebase":
+                obj.pop("rules", None)  # remove rules from rulebase insert. why are they even there?
+                if any((row["mgm_id"] == obj["mgm_id"] and 
+                        row["uid"] == obj["uid"] for row in self.tables.get("rulebase", {}).values())):
+                    continue  # mock on_conflict unique_rulebase_mgm_id_uid constraint
+            if table in INSERT_UNIQUE_PK_CONSTRAINTS:
+                # Check for unique constraints
+                unique_keys = INSERT_UNIQUE_PK_CONSTRAINTS[table]
+                if any(all(row.get(key) == obj.get(key) for key in unique_keys)
+                        for row in self.tables[table].values()):
+                    raise ValueError(f"Unique constraint violation for {table} with keys {unique_keys}.")
+            self.tables[table][pk] = obj
+            returning.append(obj)
+        result["data"][field] = {
+            "affected_rows": len(objects),
+            "returning": returning
+        }
+
+
     def _get_value_from_node(self, value_node, variables):
         """Resolve a value from an AST node, using variables if needed."""
         if isinstance(value_node, VariableNode):
@@ -319,6 +328,12 @@ class MockFwoApi(FwoApi):
             key = field.name.value
             value = field.value
 
+            return self._check_where_field(row, variables, key, value)
+
+        return True
+    
+    
+    def _check_where_field(self, row, variables, key, value):
             if key == "_and":
                 if not isinstance(value, ListValueNode):
                     raise ValueError("_and must be a list")
@@ -338,31 +353,35 @@ class MockFwoApi(FwoApi):
                 if self._row_matches_where(row, value, variables):
                     return False
             else:
-                # Flat field check
-                if key not in row:
-                    raise ValueError(f"Field '{key}' not present in row (possible reference or invalid field).")
-                if not isinstance(value, ObjectValueNode):
-                    raise ValueError(f"Non-flat where clause for field '{key}'.")
-                for op_field in value.fields:
-                    op = op_field.name.value
-                    op_val = self._get_value_from_node(op_field.value, variables)
-                    if op == "_eq":
-                        if row.get(key) != op_val:
-                            return False
-                    elif op == "_in":
-                        if row.get(key) not in op_val:
-                            return False
-                    elif op == "_is_null":
-                        if op_val and row.get(key) is not None:
-                            return False
-                        elif not op_val and row.get(key) is None:
-                            return False
-                    elif op == "_neq":
-                        if row.get(key) == op_val:
-                            return False
-                    else:
-                        raise ValueError(f"Unsupported operator '{op}' in where clause.")
-        return True
+                return self._check_flat_field(row, variables, key, value)
+                
+
+    def _check_flat_field(self, row, variables, key, value):
+
+        if key not in row:
+            raise ValueError(f"Field '{key}' not present in row (possible reference or invalid field).")
+        if not isinstance(value, ObjectValueNode):
+            raise ValueError(f"Non-flat where clause for field '{key}'.")
+        for op_field in value.fields:
+            op = op_field.name.value
+            op_val = self._get_value_from_node(op_field.value, variables)
+            if op == "_eq":
+                if row.get(key) != op_val:
+                    return False
+            elif op == "_in":
+                if row.get(key) not in op_val:
+                    return False
+            elif op == "_is_null":
+                if op_val and row.get(key) is not None:
+                    return False
+                elif not op_val and row.get(key) is None:
+                    return False
+            elif op == "_neq":
+                if row.get(key) == op_val:
+                    return False
+            else:
+                raise ValueError(f"Unsupported operator '{op}' in where clause.")
+                
 
     def _row_matches_where_bool_exp(self, row, or_values):
         """
@@ -379,9 +398,6 @@ class MockFwoApi(FwoApi):
                 else:
                     raise ValueError(f"Unsupported operator '{key}' in where clause.")
         return True
-                    
-
-
 
 
     def _update_row(self, row, set_node: ArgumentNode, variables):
@@ -441,106 +457,117 @@ class MockFwoApi(FwoApi):
         config.gateways = gateways
         import_id = import_state.ImportId
 
-        def obj_dict_from_row(row):
-            if row['obj_create'] > import_id or row.get('removed') and row['removed'] <= import_id:
-                return None
-            dict = {}
-            for key, value in row.items():
-                if key == 'obj_id':
-                    continue
-                if key == 'obj_color_id':
-                    dict['obj_color'] = import_state.lookupColorStr(value)
-                elif key == 'obj_typ_id':
-                    dict['obj_typ'] = self.tables['stm_obj_typ'].get(value, {}).get('obj_typ_name', 'unknown')
-                else:
-                    dict[key] = value
-            return dict
-        def service_dict_from_row(row):
-            if row['svc_create'] > import_id or row.get('removed') and row['removed'] <= import_id:
-                return None
-            dict = {}
-            for key, value in row.items():
-                if key == 'svc_id':
-                    continue
-                if key == 'svc_color_id':
-                    dict['svc_color'] = import_state.lookupColorStr(value)
-                elif key == 'svc_typ_id':
-                    dict['svc_typ'] = self.tables['stm_svc_typ'].get(value, {}).get('svc_typ_name', 'unknown')
-                elif key == 'ip_proto_id':
-                    dict['ip_proto'] = row['ip_proto_id']
-                else:
-                    dict[key] = value
-            return dict
-        def user_dict_from_row(row):
-            if row['user_create'] > import_id or row.get('removed') and row['removed'] <= import_id:
-                return None
-            dict = {}
-            for key, value in row.items():
-                if key in ['user_id', 'mgm_id', 'user_create', 'user_last_seen', 'active', 'removed']:
-                    continue
-                elif key == 'usr_typ_id':
-                    dict['user_typ'] = self.tables['stm_usr_typ'].get(value, {}).get('usr_typ_name', 'unknown')
-                elif value is None:
-                    continue
-                else:
-                    dict[key] = value
-            return dict
-        def rulebase_dict_from_row(row):
-            if row.get('created') and row['created'] > import_id or row.get('removed') and row['removed'] <= import_id:
-                return None
-            dict = {}
-            for key, value in row.items():
-                if key == 'id':
-                    continue
-                if key == 'mgm_id':
-                    dict['mgm_uid'] = mgm_uid
-                dict[key] = value
-            dict['rules'] = {}
-            return dict
-        def rule_dict_from_row(row):
-            if row['rule_create'] > import_id or row.get('removed') and row['removed'] <= import_id:
-                return None
-            dict = {}
-            for key, value in row.items():
-                if key == 'rule_id':
-                    continue
-                if key == 'mgm_id':
-                    dict['mgm_uid'] = mgm_uid
-                dict[key] = value
-            return dict
         for table_name, rows in self.tables.items():
             for row in rows.values():
                 if row.get('active', True) is False:
                     continue
                 if table_name == "object":
                     # create new dict without the primary key
-                    obj = obj_dict_from_row(row)
+                    obj = self.obj_dict_from_row(row, import_id, import_state)
                     if obj:
                         config.network_objects[row['obj_uid']] = NetworkObject.parse_obj(obj)
                 elif table_name == "service":
                     # create new dict without the primary key
-                    svc = service_dict_from_row(row)
+                    svc = self.service_dict_from_row(row, import_id, import_state)
                     if svc:
                         config.service_objects[row['svc_uid']] = ServiceObject.parse_obj(svc)
                 elif table_name == "usr":
                     # create new dict without the primary key
-                    user = user_dict_from_row(row)
+                    user = self.user_dict_from_row(row)
                     if user:
                         config.users[row['user_uid']] = user
                 elif table_name == "rulebase":
                     # create new dict without the primary key
-                    rulebase = rulebase_dict_from_row(row)
+                    rulebase = self.rulebase_dict_from_row(row, import_id, mgm_uid)
                     if rulebase:
                         config.rulebases.append(Rulebase.parse_obj(rulebase))
                 elif table_name == "rule":
                     # create new dict without the primary key
-                    rule = rule_dict_from_row(row)
+                    rule = self.rule_dict_from_row(row, import_id, mgm_uid)
                     # find the rulebase by uid
                     rulebase = next((rb for rb in config.rulebases if next((rb_db["uid"] for rb_db in self.tables.get("rulebase", {}).values() if rb_db["id"] == row['rulebase_id']), None) == rb.uid), None)
                     if rulebase and rule:
                         rulebase.Rules[row['rule_uid']] = RuleNormalized.parse_obj(rule)
 
         return config
+    
+
+    def obj_dict_from_row(self, row, import_id, import_state):
+        if row['obj_create'] > import_id or row.get('removed') and row['removed'] <= import_id:
+            return None
+        dict = {}
+        for key, value in row.items():
+            if key == 'obj_id':
+                continue
+            if key == 'obj_color_id':
+                dict['obj_color'] = import_state.lookupColorStr(value)
+            elif key == 'obj_typ_id':
+                dict['obj_typ'] = self.tables['stm_obj_typ'].get(value, {}).get('obj_typ_name', 'unknown')
+            else:
+                dict[key] = value
+        return dict
+    
+
+    def service_dict_from_row(self, row, import_id, import_state):
+        if row['svc_create'] > import_id or row.get('removed') and row['removed'] <= import_id:
+            return None
+        dict = {}
+        for key, value in row.items():
+            if key == 'svc_id':
+                continue
+            if key == 'svc_color_id':
+                dict['svc_color'] = import_state.lookupColorStr(value)
+            elif key == 'svc_typ_id':
+                dict['svc_typ'] = self.tables['stm_svc_typ'].get(value, {}).get('svc_typ_name', 'unknown')
+            elif key == 'ip_proto_id':
+                dict['ip_proto'] = row['ip_proto_id']
+            else:
+                dict[key] = value
+        return dict
+    
+
+    def user_dict_from_row(self, row, import_id):
+        if row['user_create'] > import_id or row.get('removed') and row['removed'] <= import_id:
+            return None
+        dict = {}
+        for key, value in row.items():
+            if key in ['user_id', 'mgm_id', 'user_create', 'user_last_seen', 'active', 'removed']:
+                continue
+            elif key == 'usr_typ_id':
+                dict['user_typ'] = self.tables['stm_usr_typ'].get(value, {}).get('usr_typ_name', 'unknown')
+            elif value is None:
+                continue
+            else:
+                dict[key] = value
+        return dict
+    
+
+    def rulebase_dict_from_row(row, import_id, mgm_uid):
+        if row.get('created') and row['created'] > import_id or row.get('removed') and row['removed'] <= import_id:
+            return None
+        dict = {}
+        for key, value in row.items():
+            if key == 'id':
+                continue
+            if key == 'mgm_id':
+                dict['mgm_uid'] = mgm_uid
+            dict[key] = value
+        dict['rules'] = {}
+        return dict
+    
+
+    def rule_dict_from_row(row, import_id, mgm_uid):
+        if row['rule_create'] > import_id or row.get('removed') and row['removed'] <= import_id:
+            return None
+        dict = {}
+        for key, value in row.items():
+            if key == 'rule_id':
+                continue
+            if key == 'mgm_id':
+                dict['mgm_uid'] = mgm_uid
+            dict[key] = value
+        return dict
+
 
     def get_table(self, table_name):
         """

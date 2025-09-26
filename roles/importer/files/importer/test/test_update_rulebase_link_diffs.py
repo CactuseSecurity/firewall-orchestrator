@@ -28,9 +28,9 @@ class TestUpdateRulebaseLinkDiffs(unittest.TestCase):
         # Assert
 
         self.assertTrue(len(rb_link_list) == 1, f"expected {1} new rulebase link, got {len(rb_link_list)}")
-        self.assertTrue(rb_link_list[-1]['from_rulebase_id'] == from_rulebase_id, f"expected last rulebase link to have from_rulebase_id {from_rulebase_id}, got {rb_link_list[-1]['from_rulebase_id']}")
-        self.assertTrue(rb_link_list[-1]['to_rulebase_id'] == to_rulebase_id, f"expected last rulebase link to point to new rulebase id {to_rulebase_id}, got {rb_link_list[-1]['to_rulebase_id']}")
-        self.assertTrue(rb_link_list[-1]['is_section'], f"expected last rulebase link to have is_section true, got false")
+        self.assertTrue(rb_link_list[0]['from_rulebase_id'] == from_rulebase_id, f"expected last rulebase link to have from_rulebase_id {from_rulebase_id}, got {rb_link_list[0]['from_rulebase_id']}")
+        self.assertTrue(rb_link_list[0]['to_rulebase_id'] == to_rulebase_id, f"expected last rulebase link to point to new rulebase id {to_rulebase_id}, got {rb_link_list[0]['to_rulebase_id']}")
+        self.assertTrue(rb_link_list[0]['is_section'], f"expected last rulebase link to have is_section true, got false")
 
 
     def test_add_cp_section_header_in_existing_rulebase(self):
@@ -59,9 +59,9 @@ class TestUpdateRulebaseLinkDiffs(unittest.TestCase):
         # Assert
 
         self.assertTrue(len(rb_link_list) == 1, f"expected {1} new rulebase link, got {len(rb_link_list)}")
-        self.assertTrue(rb_link_list[-1]['from_rulebase_id'] == from_rulebase_id, f"expected last rulebase link to have from_rulebase_id {from_rulebase_id}, got {rb_link_list[-1]['from_rulebase_id']}")
-        self.assertTrue(rb_link_list[-1]['to_rulebase_id'] == to_rulebase_id, f"expected last rulebase link to point to new rulebase id {to_rulebase_id}, got {rb_link_list[-1]['to_rulebase_id']}")
-        self.assertTrue(rb_link_list[-1]['is_section'], f"expected last rulebase link to have is_section true, got false")
+        self.assertTrue(rb_link_list[0]['from_rulebase_id'] == from_rulebase_id, f"expected last rulebase link to have from_rulebase_id {from_rulebase_id}, got {rb_link_list[0]['from_rulebase_id']}")
+        self.assertTrue(rb_link_list[0]['to_rulebase_id'] == to_rulebase_id, f"expected last rulebase link to point to new rulebase id {to_rulebase_id}, got {rb_link_list[0]['to_rulebase_id']}")
+        self.assertTrue(rb_link_list[0]['is_section'], f"expected last rulebase link to have is_section true, got false")
 
 
 
@@ -75,8 +75,40 @@ class TestUpdateRulebaseLinkDiffs(unittest.TestCase):
         raise NotImplementedError()
 
 
-    @unittest.skip("Temporary deactivated, because test is not implemented.")
     def test_add_inline_layer(self):
+                
+        # Arrange
+
+        config_builder, fw_config_import_gateway, mgm_uid = set_up_test_for_rulebase_link_test_with_defaults()
+
+        last_rulebase = fw_config_import_gateway._global_state.normalized_config.rulebases[-1]
+        last_rulebase_last_rule_uid = list(last_rulebase.Rules.keys())[-1]
+        last_rulebase_last_rule = last_rulebase.Rules.pop(last_rulebase_last_rule_uid)
+
+        new_rulebase, new_rulebase_uid = config_builder.add_rulebase(fw_config_import_gateway._global_state.normalized_config, mgm_uid)
+        config_builder.add_rule(fw_config_import_gateway._global_state.normalized_config, new_rulebase_uid, last_rulebase_last_rule.model_dump())
+        gateway = fw_config_import_gateway._global_state.normalized_config.gateways[0]
+        new_last_rulebase_last_rule_uid = list(last_rulebase.Rules.keys())[-1]
+        config_builder.add_inline_layer(fw_config_import_gateway._global_state.normalized_config, gateway, len(gateway.RulebaseLinks), new_rulebase_uid, last_rulebase.uid, new_last_rulebase_last_rule_uid)
+
+        update_rule_map_and_rulebase_map(fw_config_import_gateway._global_state.normalized_config, fw_config_import_gateway._global_state.import_state)
+        from_rule_id = fw_config_import_gateway._global_state.import_state.lookupRule(new_last_rulebase_last_rule_uid)
+        to_rulebase_id = fw_config_import_gateway._global_state.import_state.lookupRulebaseId(new_rulebase_uid)
+        from_rulebase_id = fw_config_import_gateway._global_state.import_state.lookupRulebaseId(last_rulebase.uid)
+
+        # Act
+
+        rb_link_list = fw_config_import_gateway.update_rulebase_link_diffs()
+
+        # Assert
+
+        self.assertTrue(len(rb_link_list) == 1, f"expected {1} new rulebase link, got {len(rb_link_list)}")
+        self.assertTrue(rb_link_list[0]['from_rule_id'] == from_rule_id, f"expected last rulebase link to have from_rule_id {from_rule_id}, got {rb_link_list[0]['from_rule_id']}")
+        self.assertTrue(rb_link_list[0]['from_rulebase_id'] == from_rulebase_id, f"expected last rulebase link to have from_rulebase_id {from_rulebase_id}, got {rb_link_list[0]['from_rulebase_id']}")
+        self.assertTrue(rb_link_list[0]['to_rulebase_id'] == to_rulebase_id, f"expected last rulebase link to point to new rulebase id {to_rulebase_id}, got {rb_link_list[0]['to_rulebase_id']}")
+        self.assertTrue(rb_link_list[0]['is_section'], f"expected last rulebase link to have is_section true, got false")
+
+
         raise NotImplementedError()
 
 

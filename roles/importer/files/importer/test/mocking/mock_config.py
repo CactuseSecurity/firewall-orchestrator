@@ -585,6 +585,23 @@ class MockFwConfigNormalizedBuilder():
                 is_section = True
             )
         )
+    
+
+    def add_inline_layer(self, config: FwConfigNormalized, gateway: Gateway, index: int, from_rulebase_uid: str, to_rulebase_uid: str, from_rule_uid: str) -> None:
+
+        current_from_rulebase_uid = config.rulebases[index - 1].uid
+        current_from_rule_uid = list(config.rulebases[index - 1].Rules.values())[-1].rule_uid
+        gateway.RulebaseLinks.append(
+            RulebaseLinkUidBased(
+                from_rulebase_uid = current_from_rulebase_uid,
+                from_rule_uid = current_from_rule_uid,
+                to_rulebase_uid = config.rulebases[index].uid,
+                link_type = "inline",
+                is_initial = False,
+                is_global = False,
+                is_section = False
+            )
+        )
 
 
     def add_rulebase(self, config: FwConfigNormalized, mgm_uid: str) -> tuple[Rulebase, str]:

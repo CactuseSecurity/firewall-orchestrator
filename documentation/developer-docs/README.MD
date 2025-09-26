@@ -11,7 +11,8 @@
 ## Misc
 ### UI 
 
-[Open Iconic Icons](https://useiconic.com/open)
+[Bootstrap Icons](https://icons.getbootstrap.com): v1.13.1 [MIT License](https://github.com/twbs/icons/blob/main/LICENSE)
+[Phosphor Icons](https://phosphoricons.com): v2.1.0 [MIT License](https://github.com/phosphor-icons/homepage/blob/master/LICENSE)
 
 ### importer
 

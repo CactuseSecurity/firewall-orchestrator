@@ -211,42 +211,9 @@ class MockFwoApi(FwoApi):
             if field.startswith("insert_"):
                 self._handle_insert(sel, variables, result, field)
             elif field.startswith("update_"):
-                table = field[len("update_"):]
-                returning = []
-                affected = 0
-                # Find argument names for where and _set
-                where_arg = next((a for a in sel.arguments if a.name.value == "where"), None)
-                set_arg = next((a for a in sel.arguments if a.name.value == "_set"), None)
-                if where_arg and set_arg:
-                    # pprint.pprint(object_to_dict(where_arg))
-                    for pk, row in self.tables.get(table, {}).items():
-                        if self._row_matches_where(row, where_arg, variables):
-                            self._update_row(row, set_arg, variables)
-                            returning.append(row)
-                            affected += 1
-                result["data"][field] = {
-                    "affected_rows": affected,
-                    "returning": returning
-                }
+                self._handle_update(sel, variables, result, field)
             elif field.startswith("delete_"):
-                table = field[len("delete_"):]
-                returning = []
-                affected = 0
-                # Find argument name for where
-                where_arg = next((a for a in sel.arguments if a.name.value == "where"), None)
-                if where_arg:
-                    to_delete = []
-                    for pk, row in self.tables.get(table, {}).items():
-                        if self._row_matches_where(row, where_arg, variables):
-                            returning.append(row)
-                            to_delete.append(pk)
-                            affected += 1
-                    for pk in to_delete:
-                        del self.tables[table][pk]
-                result["data"][field] = {
-                    "affected_rows": affected,
-                    "returning": returning
-                }
+                self._handle_delete(sel, variables, result, field)
         return result
 
 
@@ -264,28 +231,76 @@ class MockFwoApi(FwoApi):
             self.tables[table] = {}
         returning = []
         for obj in objects:
-            pk = len(self.tables[table]) + 1
-            obj = dict(obj)  # copy
-            if table not in ["objgrp", "svcgrp", "usergrp", "objgrp_flat", "svcgrp_flat", "usergrp_flat"]: # using pair of reference ids as primary key
-                obj[TABLE_IDENTIFIERS.get(table, f"{table}_id")] = pk
-            if any(("create" in key for key in obj.keys())):
-                obj["removed"] = None
-                obj["active"] = True
-            if table == "rulebase":
-                obj.pop("rules", None)  # remove rules from rulebase insert. why are they even there?
-                if any((row["mgm_id"] == obj["mgm_id"] and 
-                        row["uid"] == obj["uid"] for row in self.tables.get("rulebase", {}).values())):
-                    continue  # mock on_conflict unique_rulebase_mgm_id_uid constraint
-            if table in INSERT_UNIQUE_PK_CONSTRAINTS:
-                # Check for unique constraints
-                unique_keys = INSERT_UNIQUE_PK_CONSTRAINTS[table]
-                if any(all(row.get(key) == obj.get(key) for key in unique_keys)
-                        for row in self.tables[table].values()):
-                    raise ValueError(f"Unique constraint violation for {table} with keys {unique_keys}.")
-            self.tables[table][pk] = obj
-            returning.append(obj)
+            if self._handle_object(table, obj, returning):
+                continue  # skip due to unique constraint
         result["data"][field] = {
             "affected_rows": len(objects),
+            "returning": returning
+        }
+
+
+    def _handle_object(self, table, obj, returning):
+        pk = len(self.tables[table]) + 1
+        obj = dict(obj)  # copy
+        if table not in ["objgrp", "svcgrp", "usergrp", "objgrp_flat", "svcgrp_flat", "usergrp_flat"]: # using pair of reference ids as primary key
+            obj[TABLE_IDENTIFIERS.get(table, f"{table}_id")] = pk
+        if any(("create" in key for key in obj.keys())):
+            obj["removed"] = None
+            obj["active"] = True
+        if table == "rulebase":
+            obj.pop("rules", None)  # remove rules from rulebase insert. why are they even there?
+            if any((row["mgm_id"] == obj["mgm_id"] and 
+                    row["uid"] == obj["uid"] for row in self.tables.get("rulebase", {}).values())):
+                return True  # mock on_conflict unique_rulebase_mgm_id_uid constraint
+        if table in INSERT_UNIQUE_PK_CONSTRAINTS:
+            # Check for unique constraints
+            unique_keys = INSERT_UNIQUE_PK_CONSTRAINTS[table]
+            if any(all(row.get(key) == obj.get(key) for key in unique_keys)
+                    for row in self.tables[table].values()):
+                raise ValueError(f"Unique constraint violation for {table} with keys {unique_keys}.")
+        self.tables[table][pk] = obj
+        returning.append(obj)
+
+        return False  # not skipped
+    
+
+    def _handle_update(self, sel, variables, result, field):
+        table = field[len("update_"):]
+        returning = []
+        affected = 0
+        # Find argument names for where and _set
+        where_arg = next((a for a in sel.arguments if a.name.value == "where"), None)
+        set_arg = next((a for a in sel.arguments if a.name.value == "_set"), None)
+        if where_arg and set_arg:
+            # pprint.pprint(object_to_dict(where_arg))
+            for pk, row in self.tables.get(table, {}).items():
+                if self._row_matches_where(row, where_arg, variables):
+                    self._update_row(row, set_arg, variables)
+                    returning.append(row)
+                    affected += 1
+        result["data"][field] = {
+            "affected_rows": affected,
+            "returning": returning
+        }
+
+
+    def _handle_delete(self, sel, variables, result, field):
+        table = field[len("delete_"):]
+        returning = []
+        affected = 0
+        # Find argument name for where
+        where_arg = next((a for a in sel.arguments if a.name.value == "where"), None)
+        if where_arg:
+            to_delete = []
+            for pk, row in self.tables.get(table, {}).items():
+                if self._row_matches_where(row, where_arg, variables):
+                    returning.append(row)
+                    to_delete.append(pk)
+                    affected += 1
+            for pk in to_delete:
+                del self.tables[table][pk]
+        result["data"][field] = {
+            "affected_rows": affected,
             "returning": returning
         }
 
@@ -334,27 +349,32 @@ class MockFwoApi(FwoApi):
     
     
     def _check_where_field(self, row, variables, key, value):
-            if key == "_and":
-                if not isinstance(value, ListValueNode):
-                    raise ValueError("_and must be a list")
-                if not all(self._row_matches_where(row, v, variables) for v in value.values):
-                    return False
-            elif key == "_or":
-                if isinstance(value, ListValueNode):
-                    if not any(self._row_matches_where(row, v, variables) for v in value.values): # type: ignore
-                        return False
-                elif isinstance(value, VariableNode):
-                    or_values = variables.get(value.name.value, [])
-                    if not isinstance(or_values, list):
-                        raise ValueError(f"Expected list for '_or' variable '{value.name.value}', got {type(or_values)}.")
-                    if not self._row_matches_where_bool_exp(row, or_values):
-                        return False
-            elif key == "_not":
-                if self._row_matches_where(row, value, variables):
-                    return False
-            else:
-                return self._check_flat_field(row, variables, key, value)
+        if key == "_and":
+            if not isinstance(value, ListValueNode):
+                raise ValueError("_and must be a list")
+            if not all(self._row_matches_where(row, v, variables) for v in value.values):
+                return False
+        elif key == "_or":
+            self._check_where_field_or(row, variables, value)
+
+        elif key == "_not":
+            if self._row_matches_where(row, value, variables):
+                return False
+        else:
+            return self._check_flat_field(row, variables, key, value)
                 
+
+    def _check_where_field_or(self, row, variables, value):
+        if isinstance(value, ListValueNode):
+            if not any(self._row_matches_where(row, v, variables) for v in value.values): # type: ignore
+                return False
+        elif isinstance(value, VariableNode):
+            or_values = variables.get(value.name.value, [])
+            if not isinstance(or_values, list):
+                raise ValueError(f"Expected list for '_or' variable '{value.name.value}', got {type(or_values)}.")
+            if not self._row_matches_where_bool_exp(row, or_values):
+                return False
+
 
     def _check_flat_field(self, row, variables, key, value):
 
@@ -366,19 +386,13 @@ class MockFwoApi(FwoApi):
             op = op_field.name.value
             op_val = self._get_value_from_node(op_field.value, variables)
             if op == "_eq":
-                if row.get(key) != op_val:
-                    return False
+                return row.get(key) == op_val
             elif op == "_in":
-                if row.get(key) not in op_val:
-                    return False
+                return row.get(key) in op_val
             elif op == "_is_null":
-                if op_val and row.get(key) is not None:
-                    return False
-                elif not op_val and row.get(key) is None:
-                    return False
+                return op_val or row.get(key) is None
             elif op == "_neq":
-                if row.get(key) == op_val:
-                    return False
+                return row.get(key) != op_val
             else:
                 raise ValueError(f"Unsupported operator '{op}' in where clause.")
                 
@@ -461,36 +475,40 @@ class MockFwoApi(FwoApi):
             for row in rows.values():
                 if row.get('active', True) is False:
                     continue
-                if table_name == "object":
-                    # create new dict without the primary key
-                    obj = self.obj_dict_from_row(row, import_id, import_state)
-                    if obj:
-                        config.network_objects[row['obj_uid']] = NetworkObject.parse_obj(obj)
-                elif table_name == "service":
-                    # create new dict without the primary key
-                    svc = self.service_dict_from_row(row, import_id, import_state)
-                    if svc:
-                        config.service_objects[row['svc_uid']] = ServiceObject.parse_obj(svc)
-                elif table_name == "usr":
-                    # create new dict without the primary key
-                    user = self.user_dict_from_row(row)
-                    if user:
-                        config.users[row['user_uid']] = user
-                elif table_name == "rulebase":
-                    # create new dict without the primary key
-                    rulebase = self.rulebase_dict_from_row(row, import_id, mgm_uid)
-                    if rulebase:
-                        config.rulebases.append(Rulebase.parse_obj(rulebase))
-                elif table_name == "rule":
-                    # create new dict without the primary key
-                    rule = self.rule_dict_from_row(row, import_id, mgm_uid)
-                    # find the rulebase by uid
-                    rulebase = next((rb for rb in config.rulebases if next((rb_db["uid"] for rb_db in self.tables.get("rulebase", {}).values() if rb_db["id"] == row['rulebase_id']), None) == rb.uid), None)
-                    if rulebase and rule:
-                        rulebase.Rules[row['rule_uid']] = RuleNormalized.parse_obj(rule)
+                self._process_row(row, import_id, mgm_uid, import_state, config, table_name)
 
         return config
     
+
+    def _process_row(self, row, import_id, mgm_uid, import_state, config, table_name):
+        if table_name == "object":
+            # create new dict without the primary key
+            obj = self.obj_dict_from_row(row, import_id, import_state)
+            if obj:
+                config.network_objects[row['obj_uid']] = NetworkObject.parse_obj(obj)
+        elif table_name == "service":
+            # create new dict without the primary key
+            svc = self.service_dict_from_row(row, import_id, import_state)
+            if svc:
+                config.service_objects[row['svc_uid']] = ServiceObject.parse_obj(svc)
+        elif table_name == "usr":
+            # create new dict without the primary key
+            user = self.user_dict_from_row(row, import_id)
+            if user:
+                config.users[row['user_uid']] = user
+        elif table_name == "rulebase":
+            # create new dict without the primary key
+            rulebase = self.rulebase_dict_from_row(row, import_id, mgm_uid)
+            if rulebase:
+                config.rulebases.append(Rulebase.parse_obj(rulebase))
+        elif table_name == "rule":
+            # create new dict without the primary key
+            rule = self.rule_dict_from_row(row, import_id, mgm_uid)
+            # find the rulebase by uid
+            rulebase = next((rb for rb in config.rulebases if next((rb_db["uid"] for rb_db in self.tables.get("rulebase", {}).values() if rb_db["id"] == row['rulebase_id']), None) == rb.uid), None)
+            if rulebase and rule:
+                rulebase.Rules[row['rule_uid']] = RuleNormalized.parse_obj(rule)
+
 
     def obj_dict_from_row(self, row, import_id, import_state):
         if row['obj_create'] > import_id or row.get('removed') and row['removed'] <= import_id:
@@ -542,7 +560,7 @@ class MockFwoApi(FwoApi):
         return dict
     
 
-    def rulebase_dict_from_row(row, import_id, mgm_uid):
+    def rulebase_dict_from_row(self, row, import_id, mgm_uid):
         if row.get('created') and row['created'] > import_id or row.get('removed') and row['removed'] <= import_id:
             return None
         dict = {}
@@ -556,7 +574,7 @@ class MockFwoApi(FwoApi):
         return dict
     
 
-    def rule_dict_from_row(row, import_id, mgm_uid):
+    def rule_dict_from_row(self, row, import_id, mgm_uid):
         if row['rule_create'] > import_id or row.get('removed') and row['removed'] <= import_id:
             return None
         dict = {}

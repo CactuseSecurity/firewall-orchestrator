@@ -1,5 +1,5 @@
 @font-face {
-  font-family: "Phosphor-Fill";
+  font-family: "Phosphor-Fill", sans-serif;
   src:
     url("./Phosphor-Fill.woff2") format("woff2"),
     url("./Phosphor-Fill.woff") format("woff"),

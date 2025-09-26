@@ -77,6 +77,16 @@
                 <CustomLogoUpload AuthorizedRoles="@Roles.Admin" SupportedFileFormats=".png,.jpg,.jpeg"></CustomLogoUpload>
             </div>
         </div>
+        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5411"))">
+            <label class="col-form-label col-sm-4">@(userConfig.GetText("color_scheme")):</label>
+            <div class="col-sm-2">
+                <Dropdown ElementType="ColorScheme" ElementToString="@(c => userConfig.GetText(c.Name ))" @bind-SelectedElement="selectedColorScheme" Elements="ColorScheme.AvailableSchemes">
+                    <ElementTemplate Context="colorScheme">
+                        @(userConfig.GetText(colorScheme.Name))
+                    </ElementTemplate>
+                </Dropdown>
+            </div>
+        </div>
         <hr />
         <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5412"))">
             <label class="col-form-label col-sm-4">@(userConfig.GetText("elementsPerFetch"))*:</label>
@@ -223,6 +233,7 @@ else
 
     private ConfigData? configData;
     private Language selectedLanguage = new Language();
+    private ColorScheme selectedColorScheme = new ColorScheme();
     private DateTime autoDiscStartDate = DateTime.Today;
     private DateTime autoDiscStartTime = DateTime.Now.AddSeconds(-DateTime.Now.Second);
     private List<Module> availableModules { get; set; } = [];
@@ -239,6 +250,7 @@ else
 
             configData = await globalConfig.GetEditableConfig();
             selectedLanguage = globalConfig.UiLanguages.FirstOrDefault(l => l.Name == configData.DefaultLanguage) ?? new Language();
+            selectedColorScheme = ColorScheme.GetSchemeByName(configData.ColorScheme);
             autoDiscStartDate = autoDiscStartTime = configData.AutoDiscoverStartAt;
             availableModules = JsonSerializer.Deserialize<List<Module>>(string.IsNullOrEmpty(configData.AvailableModules) ? ModuleGroups.AllModulesNumList() : configData.AvailableModules) ?? throw new JsonException("Config data could not be parsed.");
             modulesVisibleDict = [];
@@ -261,6 +273,8 @@ else
             if(configData != null)
             {
                 configData.DefaultLanguage = selectedLanguage.Name;
+                configData.ColorScheme = selectedColorScheme.Name;
+                StateHasChanged();
                 configData.AutoDiscoverStartAt = autoDiscStartDate.Date.Add(autoDiscStartTime.TimeOfDay);
                 availableModules = [];
                 foreach(Module module in modulesVisibleDict.Keys)

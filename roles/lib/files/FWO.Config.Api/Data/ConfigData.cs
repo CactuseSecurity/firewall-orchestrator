@@ -406,6 +406,9 @@ namespace FWO.Config.Api.Data
         [JsonProperty("resolveNetworkAreas"), JsonPropertyName("resolveNetworkAreas")]
         public bool ResolveNetworkAreas { get; set; } = false;
 
+        [JsonProperty("colorScheme"), JsonPropertyName("colorScheme"), UserConfigData]
+        public string ColorScheme { get; set; } = "color_scheme_blue";
+
         public ConfigData(bool editable = false)
         {
             Editable = editable;

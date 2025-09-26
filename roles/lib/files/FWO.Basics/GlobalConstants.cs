@@ -12,6 +12,8 @@ namespace FWO.Basics
         public const string kEnglish = "English";
         public const int kTenant0Id = 1;
 
+        public const int kSessionExpirationTimeDefault = 720; // 60 * 12
+
         public const int kSidebarLeftWidth = 300;
         public const int kGlobLibraryWidth = kSidebarLeftWidth + 400;
         public const int kObjLibraryWidth = kSidebarLeftWidth + 300;

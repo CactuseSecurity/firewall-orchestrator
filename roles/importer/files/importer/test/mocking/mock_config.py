@@ -295,13 +295,13 @@ class MockFwConfigNormalizedBuilder():
             elif change_obj == "nested_member":
                 self.change_network_object_subtle(config, "cpr-from1-member1-member1")
         elif change_type == "add":
-            self._add_rule_with_nested_groups(config, rule, rulebase, change_obj)
+            self._add_rule_with_nested_groups(config, rule, change_obj)
 
         elif change_type == "remove":
             self._remove_rule_with_nested_groups(config, rule, rulebase, change_obj)
 
 
-    def _add_rule_with_nested_groups(self, config: FwConfigNormalized, rule, rulebase, change_obj):
+    def _add_rule_with_nested_groups(self, config: FwConfigNormalized, rule, change_obj):
 
         if change_obj == "from":
             self.add_network_object(config, {
@@ -587,7 +587,7 @@ class MockFwConfigNormalizedBuilder():
         # svc.svc_port = 6 if svc.svc_port == 17 else 17  # Toggle between TCP (6) and UDP (17)
         svc.svc_color = "blue" if svc.svc_color == "black" else "black"  # Toggle color for subtle change
 
-    def add_cp_section_header(self, config: FwConfigNormalized, gateway: Gateway, index: int, from_rulebase_uid: str, to_rulebase_uid: str) -> None:
+    def add_cp_section_header(self, config: FwConfigNormalized, gateway: Gateway, index: int) -> None:
 
         current_from_rulebase_uid = config.rulebases[index - 1].uid
         current_from_rule_uid = list(config.rulebases[index - 1].Rules.values())[-1].rule_uid
@@ -606,13 +606,11 @@ class MockFwConfigNormalizedBuilder():
 
     def add_inline_layer(self, config: FwConfigNormalized, gateway: Gateway, index: int, from_rulebase_uid: str, to_rulebase_uid: str, from_rule_uid: str) -> None:
 
-        current_from_rulebase_uid = config.rulebases[index - 1].uid
-        current_from_rule_uid = list(config.rulebases[index - 1].Rules.values())[-1].rule_uid
         gateway.RulebaseLinks.append(
             RulebaseLinkUidBased(
-                from_rulebase_uid = current_from_rulebase_uid,
-                from_rule_uid = current_from_rule_uid,
-                to_rulebase_uid = config.rulebases[index].uid,
+                from_rulebase_uid = from_rulebase_uid,
+                from_rule_uid = from_rule_uid,
+                to_rulebase_uid = to_rulebase_uid,
                 link_type = "inline",
                 is_initial = False,
                 is_global = False,

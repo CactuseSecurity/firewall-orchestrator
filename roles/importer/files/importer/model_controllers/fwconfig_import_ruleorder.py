@@ -327,7 +327,6 @@ class RuleOrderService:
     def _get_relevant_rule_num_numeric(
         self,
         rule_uid,
-        import_state,
         flat_list,
         ascending: bool,
         target_rulebase

@@ -30,7 +30,7 @@ class TestUpdateRulebaseLinkDiffs(unittest.TestCase):
         self.assertTrue(len(rb_link_list) == 1, f"expected {1} new rulebase link, got {len(rb_link_list)}")
         self.assertTrue(rb_link_list[0]['from_rulebase_id'] == from_rulebase_id, f"expected last rulebase link to have from_rulebase_id {from_rulebase_id}, got {rb_link_list[0]['from_rulebase_id']}")
         self.assertTrue(rb_link_list[0]['to_rulebase_id'] == to_rulebase_id, f"expected last rulebase link to point to new rulebase id {to_rulebase_id}, got {rb_link_list[0]['to_rulebase_id']}")
-        self.assertTrue(rb_link_list[0]['is_section'], f"expected last rulebase link to have is_section true, got false")
+        self.assertTrue(rb_link_list[0]['is_section'], "expected last rulebase link to have is_section true, got false")
 
 
     def test_add_cp_section_header_in_existing_rulebase(self):
@@ -61,7 +61,7 @@ class TestUpdateRulebaseLinkDiffs(unittest.TestCase):
         self.assertTrue(len(rb_link_list) == 1, f"expected {1} new rulebase link, got {len(rb_link_list)}")
         self.assertTrue(rb_link_list[0]['from_rulebase_id'] == from_rulebase_id, f"expected last rulebase link to have from_rulebase_id {from_rulebase_id}, got {rb_link_list[0]['from_rulebase_id']}")
         self.assertTrue(rb_link_list[0]['to_rulebase_id'] == to_rulebase_id, f"expected last rulebase link to point to new rulebase id {to_rulebase_id}, got {rb_link_list[0]['to_rulebase_id']}")
-        self.assertTrue(rb_link_list[0]['is_section'], f"expected last rulebase link to have is_section true, got false")
+        self.assertTrue(rb_link_list[0]['is_section'], "expected last rulebase link to have is_section true, got false")
 
 
 
@@ -106,7 +106,7 @@ class TestUpdateRulebaseLinkDiffs(unittest.TestCase):
         self.assertTrue(rb_link_list[0]['from_rule_id'] == from_rule_id, f"expected last rulebase link to have from_rule_id {from_rule_id}, got {rb_link_list[0]['from_rule_id']}")
         self.assertTrue(rb_link_list[0]['from_rulebase_id'] == from_rulebase_id, f"expected last rulebase link to have from_rulebase_id {from_rulebase_id}, got {rb_link_list[0]['from_rulebase_id']}")
         self.assertTrue(rb_link_list[0]['to_rulebase_id'] == to_rulebase_id, f"expected last rulebase link to point to new rulebase id {to_rulebase_id}, got {rb_link_list[0]['to_rulebase_id']}")
-        self.assertTrue(rb_link_list[0]['is_section'], f"expected last rulebase link to have is_section true, got false")
+        self.assertTrue(rb_link_list[0]['is_section'], "expected last rulebase link to have is_section true, got false")
 
 
         raise NotImplementedError()

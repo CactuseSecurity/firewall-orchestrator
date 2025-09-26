@@ -498,9 +498,7 @@ class MockFwoApi(FwoApi):
                 config.users[row['user_uid']] = user
         elif table_name == "rulebase":
             # create new dict without the primary key
-            rulebase = self.rulebase_dict_from_row(row, import_id, mgm_uid)
-            if rulebase:
-                config.rulebases.append(Rulebase.parse_obj(rulebase))
+            self._try_add_rulebase(config, row, import_id, mgm_uid)
         elif table_name == "rule":
             # create new dict without the primary key
             rule = self.rule_dict_from_row(row, import_id, mgm_uid)
@@ -508,6 +506,12 @@ class MockFwoApi(FwoApi):
             rulebase = next((rb for rb in config.rulebases if next((rb_db["uid"] for rb_db in self.tables.get("rulebase", {}).values() if rb_db["id"] == row['rulebase_id']), None) == rb.uid), None)
             if rulebase and rule:
                 rulebase.Rules[row['rule_uid']] = RuleNormalized.parse_obj(rule)
+
+
+    def _try_add_rulebase(self, config, row, import_id, mgm_uid):
+        rulebase = self.rulebase_dict_from_row(row, import_id, mgm_uid)
+        if rulebase:
+            config.rulebases.append(Rulebase.parse_obj(rulebase))
 
 
     def obj_dict_from_row(self, row, import_id, import_state):

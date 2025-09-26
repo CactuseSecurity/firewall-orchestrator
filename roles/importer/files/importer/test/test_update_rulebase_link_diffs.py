@@ -27,7 +27,7 @@ class TestUpdateRulebaseLinkDiffs(unittest.TestCase):
 
         # Assert
 
-        self.assertTrue(len(rb_link_list) == len(gateway.RulebaseLinks), f"expected {len(gateway.RulebaseLinks)} new rulebase link, got {len(rb_link_list)}")
+        self.assertTrue(len(rb_link_list) == 1, f"expected {1} new rulebase link, got {len(rb_link_list)}")
         self.assertTrue(rb_link_list[-1]['from_rulebase_id'] == from_rulebase_id, f"expected last rulebase link to have from_rulebase_id {from_rulebase_id}, got {rb_link_list[-1]['from_rulebase_id']}")
         self.assertTrue(rb_link_list[-1]['to_rulebase_id'] == to_rulebase_id, f"expected last rulebase link to point to new rulebase id {to_rulebase_id}, got {rb_link_list[-1]['to_rulebase_id']}")
         self.assertTrue(rb_link_list[-1]['is_section'], f"expected last rulebase link to have is_section true, got false")
@@ -58,7 +58,7 @@ class TestUpdateRulebaseLinkDiffs(unittest.TestCase):
 
         # Assert
 
-        self.assertTrue(len(rb_link_list) == len(gateway.RulebaseLinks), f"expected {len(gateway.RulebaseLinks)} new rulebase link, got {len(rb_link_list)}")
+        self.assertTrue(len(rb_link_list) == 1, f"expected {1} new rulebase link, got {len(rb_link_list)}")
         self.assertTrue(rb_link_list[-1]['from_rulebase_id'] == from_rulebase_id, f"expected last rulebase link to have from_rulebase_id {from_rulebase_id}, got {rb_link_list[-1]['from_rulebase_id']}")
         self.assertTrue(rb_link_list[-1]['to_rulebase_id'] == to_rulebase_id, f"expected last rulebase link to point to new rulebase id {to_rulebase_id}, got {rb_link_list[-1]['to_rulebase_id']}")
         self.assertTrue(rb_link_list[-1]['is_section'], f"expected last rulebase link to have is_section true, got false")

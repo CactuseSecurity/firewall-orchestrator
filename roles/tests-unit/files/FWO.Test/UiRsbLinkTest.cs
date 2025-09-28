@@ -54,9 +54,8 @@ namespace FWO.Test
             var removeUrlFragmentInvocation = JSInterop.SetupVoid("removeUrlFragment");
 
             // Act
-            var cut = RenderComponent<RightSidebar>(); // render once without report
-            cut.SetParametersAndRender(parameters => parameters
-                .Add(p => p.CurrentReport, currentReport)); // render again with report to trigger OnParametersSetAsync
+            var cut = RenderComponent<RightSidebar>(parameters => parameters
+                .Add(p => p.CurrentReport, currentReport));
 
             // manually trigger 
             var anchorNavToRSB = cut.FindComponent<AnchorNavToRSB>();

@@ -331,6 +331,8 @@
                 break;
         }
 
+        idPref += "0x"; // chapter numbers
+
         return idPref;
     }
 
@@ -341,10 +343,6 @@
 
     RenderFragment AddLinkToObject(ObjCategory objCategory, long objId, string type, string name, bool highlighted=false)
     {
-        @* if(Tab == RsbTab.usedObj || Tab == RsbTab.unusedObj)
-        {
-            return @<span class="@ReportBase.GetIconClass(objCategory, type)">@name</span>;
-        } *@
         RsbTab targetTab = Tab == RsbTab.all ? RsbTab.all : RsbTab.report;
         string htmlObjRefPrefix = GetIDPrefix(objCategory, targetTab, true);
 

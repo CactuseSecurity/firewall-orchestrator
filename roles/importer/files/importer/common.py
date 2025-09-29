@@ -238,7 +238,7 @@ def get_config_from_api(importState: ImportStateController, config_in) -> tuple[
         raise
 
     # check for changes from product-specific FW API, if we are importing from file we assume config changes
-    config_changed_since_last_import = importState.ImportFileName != None or \
+    config_changed_since_last_import = importState.ImportFileName is not None or \
         fw_module.has_config_changed(config_in, importState, force=importState.ForceImport)
     if config_changed_since_last_import:
         logger.info ( "has_config_changed: changes found or forced mode -> go ahead with getting config, Force = " + str(importState.ForceImport))

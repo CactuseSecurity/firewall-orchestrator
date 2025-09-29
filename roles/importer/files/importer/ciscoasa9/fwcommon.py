@@ -19,14 +19,39 @@ Usage:
 from __future__ import annotations
 from typing import Any
 
+from model_controllers.fwconfigmanagerlist_controller import FwConfigManagerListController
+from model_controllers.import_state_controller import ImportStateController
+from models.fwconfigmanagerlist import FwConfigManagerList
+from fwo_log import getFwoLogger
+
 def has_config_changed(full_config, mgm_details, force=False):
     # dummy - may be filled with real check later on
     return True
 
+def get_config(config_in: FwConfigManagerListController, importState: ImportStateController) -> tuple[int, FwConfigManagerList]:
+    """
+    Retrieve and parse the ASA configuration.
 
-def get_config(config2import, full_config, current_import_id, mgm_details, limit=100, force=False, jwt=''):
-    config2import = parse_asa_config(full_config)
-    config2import["import_id"] = current_import_id
+    Args:
+        config_in: Configuration input details.
+        importState: Current import state.
+    
+    Returns:
+        A tuple containing the status code and the parsed configuration.
+    """
+    logger = getFwoLogger()
+    logger.debug ( "starting checkpointR8x/get_config" )
+
+    if config_in.native_config_is_empty:
+        raw_config = "" #TODO: get from device via ssh using importState.MgmDetails.Hostname, importState.MgmDetails.ImportUser and importState.MgmDetails.Secret
+        config2import = parse_asa_config(raw_config)
+        config_in.native_config = config2import
+
+    normalize_config(config_in, importState)
+
+    raise NotImplementedError("get_config not implemented yet for ASA")
+
+    return 0, config_in
     
 
 def _parse_address(tokens: list[str], idx: int) -> tuple[dict[str, Any], int]:
@@ -202,7 +227,6 @@ def _parse_access_list(lines: list[str], start: int, result: dict[str, Any]) -> 
     result["acls"].setdefault(acl_name, []).append(rule)
     return start + 1
 
-
 def _parse_access_group(stripped: str, result: dict[str, Any]) -> None:
     parts = stripped.split()
     entry = {"acl": parts[1], "direction": parts[2]}
@@ -211,8 +235,8 @@ def _parse_access_group(stripped: str, result: dict[str, Any]) -> None:
     result["access_groups"].append(entry)
 
 
-def parse_asa_config(config: str) -> dict[str, Any]:
-    """Convert raw ASA configuration text to a normalized Python dict."""
+def parse_asa_config(config: str) -> dict:
+    """Convert raw ASA configuration text to a normalized Python dict. (The native config)"""
 
     lines = config.splitlines()
     result: dict[str, Any] = {
@@ -264,4 +288,9 @@ def parse_asa_config(config: str) -> dict[str, Any]:
             _parse_access_group(stripped, result)
         i += 1
 
-    return result
+    # TODO: create native config object
+    raise NotImplementedError("parse_asa_config not fully implemented yet")
+
+def normalize_config(config_in: FwConfigManagerListController, importState: ImportStateController):
+    # TODO: implement normalization logic
+    raise NotImplementedError("normalize_config not implemented yet for ASA")

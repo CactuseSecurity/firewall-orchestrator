@@ -159,6 +159,9 @@ class FwConfigManagerListController(FwConfigManagerList):
                     json_data.write(config_copy_without_native.toJsonString(prettyPrint=True))
                 time_write_debug_json = int(time.time()) - debug_start_time
                 logger.debug(f"storeFullNormalizedConfigToFile - writing normalized config json files duration {str(time_write_debug_json)}s")
+                
+                return normalized_config_filename
+            
             except Exception:
                 logger.error(f"import_management - unspecified error while dumping normalized config to json file: {str(traceback.format_exc())}")
                 raise

@@ -1,47 +1,17 @@
 import secrets
 
-from netaddr import IPAddress, IPNetwork
-
-if __name__ == '__main__': # for usage as executable script
-    import sys
-    import os
-    sys.path.append(
-        os.path.abspath(
-            os.path.join(os.path.dirname(__file__), '../../importer')
-        )
-    )
-    sys.path.append(
-        os.path.abspath(
-            os.path.join(os.path.dirname(__file__), '../../')
-        )
-    )
-    from .uid_manager import UidManager
-    from models.fwconfig_normalized import FwConfigNormalized
-    from pydantic import PrivateAttr
-    from models.rule import RuleNormalized, RuleAction, RuleTrack, RuleType
-    from models.networkobject import NetworkObject
-    from models.serviceobject import ServiceObject
-    from models.rulebase import Rulebase
-    from fwo_const import rule_num_numeric_steps, dummy_ip, list_delimiter, user_delimiter
-    from fwo_globals import set_global_values
-    from model_controllers.fwconfigmanagerlist_controller import FwConfigManagerListController
-    from .mock_import_state import MockImportStateController
-    from model_controllers.fwconfigmanager_controller import FwConfigManager
-    from models.gateway import Gateway
-    from models.rulebase_link import RulebaseLinkUidBased
-    from fwo_const import list_delimiter, user_delimiter
-else: # for usage in unit tests
-    from . uid_manager import UidManager
-    from models.fwconfig_normalized import FwConfigNormalized
-    from models.rulebase import Rulebase
-    from models.rule import RuleNormalized, RuleAction, RuleTrack, RuleType
-    from pydantic import PrivateAttr
-    from fwo_const import rule_num_numeric_steps, dummy_ip, list_delimiter, user_delimiter
-    from models.networkobject import NetworkObject
-    from models.serviceobject import ServiceObject
-    from models.gateway import Gateway
-    from models.rulebase_link import RulebaseLinkUidBased
-    from fwo_const import list_delimiter, user_delimiter
+from netaddr import IPNetwork
+from models.rule import RuleNormalized, RuleAction, RuleTrack, RuleType
+from .uid_manager import UidManager
+from models.fwconfig_normalized import FwConfigNormalized
+from pydantic import PrivateAttr
+from models.networkobject import NetworkObject
+from models.serviceobject import ServiceObject
+from models.rulebase import Rulebase
+from fwo_const import rule_num_numeric_steps, dummy_ip, list_delimiter, user_delimiter
+from models.gateway import Gateway
+from models.rulebase_link import RulebaseLinkUidBased
+from fwo_const import list_delimiter, user_delimiter
 
 
 DUMMY_IP = IPNetwork(dummy_ip)
@@ -630,31 +600,4 @@ class MockFwConfigNormalizedBuilder():
         config.rulebases.append(new_rulebase)
 
         return new_rulebase, new_rulebase_uid
-
-
-if __name__ == '__main__':
-    mock_config_builder = MockFwConfigNormalizedBuilder()
-    mock_config, _ = mock_config_builder.build_config(
-        {
-            "rule_config": [10,10,10],
-            "network_object_config": 10,
-            "service_config": 10,
-            "user_config": 10,
-            "gateway_uid": "cbdd1e35-b6e9-4ead-b13f-fd6389e34987",
-            "gateway_name": "sting-gw"
-        }
-    )
-
-    fw_mock_import_state = MockImportStateController()
-    set_global_values(debug_level_in = 8)
-    fw_config_manager_list_controller = FwConfigManagerListController()
-    fw_config_manager = FwConfigManager(
-        ManagerUid = "6ae3760206b9bfbd2282b5964f6ea07869374f427533c72faa7418c28f7a77f2",
-        ManagerName= "sting-mgmt"
-    )
-    fw_config_manager.Configs.append(mock_config)
-    fw_config_manager_list_controller.ManagerSet.append(fw_config_manager)
-    fw_config_manager_list_controller.storeFullNormalizedConfigToFile(fw_mock_import_state)
-
-    print("MockConfig: File saved on disk.")
 

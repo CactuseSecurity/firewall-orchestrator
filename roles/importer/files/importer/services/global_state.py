@@ -1,5 +1,10 @@
-from model_controllers.import_state_controller import ImportStateController
-from models.fwconfig_normalized import FwConfigNormalized
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from model_controllers.import_state_controller import ImportStateController
+    from models.fwconfig_normalized import FwConfigNormalized
 
 
 class GlobalState:

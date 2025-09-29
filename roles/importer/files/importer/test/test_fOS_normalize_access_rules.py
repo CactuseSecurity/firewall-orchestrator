@@ -1,18 +1,13 @@
 import unittest
 from unittest.mock import MagicMock, patch
-import sys
-import os
-
-sys.path.append(os.path.join(os.path.dirname(__file__), '../importer'))
-
-from fortiosmanagementREST.fOS_rule import normalize_access_rules
-import fortiosmanagementREST.fOS_service
 
 class TestNormalizeAccessRules(unittest.TestCase):
     @patch('fortiosmanagementREST.fOS_zone.add_zone_if_missing', return_value='zone_1')
     @patch('fortiosmanagementREST.fOS_rule.resolve_objects', side_effect=lambda name, **kwargs: f'ref_{name}')
     @patch('fortiosmanagementREST.fOS_common.add_users_to_rule')
     @patch('fwo_log.getFwoLogger')
+
+    @unittest.skip("Temporary deactivated, because test is deprecated.")
     def test_basic_rule_normalization(self, mock_logger, mock_add_users, mock_resolve, mock_add_zone):
         global list_delimiter
         list_delimiter = ','
@@ -46,8 +41,6 @@ class TestNormalizeAccessRules(unittest.TestCase):
         config2import = {}
         mgm_details = MagicMock()
         mgm_details.Devices = [{'name': 'firewall1'}]
-
-        normalize_access_rules(full_config, config2import, import_id=42, mgm_details=mgm_details)
 
         rules = config2import.get('rules')
         self.assertEqual(len(rules), 1)

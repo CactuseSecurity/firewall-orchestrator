@@ -380,6 +380,17 @@
             ]
         },
         {
+            "name": "py-create-mock-config",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/roles/importer/files/importer/test/tools/create_mock_config_file.py",
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}/roles/importer/files/importer",
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}/roles/importer/files/importer:${env:PYTHONPATH}"
+            }
+        },
+        {
             "name": "c#-FWO Test",
             "type": "coreclr",
             "request": "launch",

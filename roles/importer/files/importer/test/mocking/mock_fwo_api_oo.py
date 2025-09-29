@@ -404,8 +404,8 @@ class MockFwoApi(FwoApi):
         for v in or_values: # v = {'_and': [{'field1: {'_eq': 'value1'}}, {'field2': {'_eq': 'value2'}}]}
             fields = v['_and'] # [{'field1': {'_eq': 'value1'}}, {'field2': {'_eq': 'value2'}}]
             for field in fields: # {'field1': {'_eq': 'value1'}}
-                field_name, value = next(iter(field.items())) # i.e. name = 'field1', value = {'_eq': 'value1'}
-                key, value = next(iter(value.items())) # i.e. key = '_eq', value = 'value1'
+                field_name, value = next(iter(field.items())) 
+                key, value = next(iter(value.items())) 
                 if key == "_eq":
                     if row.get(field_name) != value:
                         return False

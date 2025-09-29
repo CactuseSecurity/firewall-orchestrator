@@ -3,7 +3,6 @@ namespace FWO.Basics
     public enum ReportType
     {
         Undefined = 0,
-
         Rules = 1,
         Changes = 2,
         Statistics = 3,
@@ -18,6 +17,7 @@ namespace FWO.Basics
         Connections = 21,
         AppRules = 22,
         VarianceAnalysis = 23,
+        OwnerRecertification = 24,
 
         Compliance = 31,
         ComplianceDiff = 32
@@ -36,7 +36,7 @@ namespace FWO.Basics
                 ReportType.Recertification or
                 ReportType.UnusedRules or
                 ReportType.AppRules => true,
-                _ => false,
+                _ => false
             };
         }
 
@@ -47,7 +47,7 @@ namespace FWO.Basics
                 ReportType.Changes or
                 ReportType.ResolvedChanges or
                 ReportType.ResolvedChangesTech => true,
-                _ => false,
+                _ => false
             };
         }
 
@@ -71,7 +71,7 @@ namespace FWO.Basics
             {
                 ReportType.ResolvedRulesTech or
                 ReportType.ResolvedChangesTech => true,
-                _ => false,
+                _ => false
             };
         }
 
@@ -80,9 +80,14 @@ namespace FWO.Basics
             return reportType.IsRuleReport() || reportType.IsChangeReport() || reportType == ReportType.Statistics;
         }
 
-        public static bool IsOwnerRelatedReport(this ReportType reportType)
+        public static bool IsConnectionRelatedReport(this ReportType reportType)
         {
-            return reportType == ReportType.Connections || reportType == ReportType.VarianceAnalysis;
+            return reportType switch
+            {
+                ReportType.Connections or
+                ReportType.VarianceAnalysis => true,
+                _ => false
+            };
         }
 
         public static bool IsModellingReport(this ReportType reportType)
@@ -91,14 +96,68 @@ namespace FWO.Basics
             {
                 ReportType.Connections or
                 ReportType.AppRules or
-                ReportType.VarianceAnalysis => true,
-                _ => false,
+                ReportType.VarianceAnalysis or
+                ReportType.OwnerRecertification => true,
+                _ => false
             };
         }
 
         public static bool IsComplianceReport(this ReportType reportType)
         {
             return reportType == ReportType.Compliance || reportType == ReportType.ComplianceDiff;
+        }
+        public static bool HasTimeFilter(this ReportType reportType)
+        {
+            return reportType switch
+            {
+                ReportType.Rules or
+                ReportType.ResolvedRules or
+                ReportType.ResolvedRulesTech or
+                ReportType.NatRules or
+                ReportType.Statistics or
+                ReportType.Changes or
+                ReportType.ResolvedChanges or
+                ReportType.ResolvedChangesTech => true,
+                _ => false
+            };
+        }
+
+        public static List<ReportType> AllReportTypes()
+        {
+            return [.. Enum.GetValues(typeof(ReportType)).Cast<ReportType>().Where(r => r != ReportType.All)];
+        }
+
+        public static List<ReportType> ReportTypeSelection(bool ruleRelated = true, bool modellingRelated = true)
+        {
+            return CustomSortReportType([.. Enum.GetValues(typeof(ReportType)).Cast<ReportType>()], ruleRelated, modellingRelated);
+        }
+
+        public static List<ReportType> CustomSortReportType(List<ReportType> ListIn, bool ruleRelated, bool modellingRelated)
+        {
+            List<ReportType> ListOut = [];
+            List<ReportType> orderedReportTypeList =
+            [
+                ReportType.Undefined,
+                ReportType.Rules, ReportType.ResolvedRules, ReportType.ResolvedRulesTech, ReportType.UnusedRules, ReportType.NatRules,
+                ReportType.Recertification,
+                ReportType.Changes, ReportType.ResolvedChanges, ReportType.ResolvedChangesTech,
+                ReportType.Statistics,
+                ReportType.Connections,
+                ReportType.AppRules,
+                ReportType.VarianceAnalysis,
+                ReportType.OwnerRecertification
+            ];
+            foreach (var reportType in orderedReportTypeList.Where(r => ListIn.Contains(r)))
+            {
+                if (reportType == ReportType.Undefined || ruleRelated && reportType.IsDeviceRelatedReport() || modellingRelated && reportType.IsModellingReport())
+                {
+                    ListOut.Add(reportType);
+                }
+                ListIn.Remove(reportType);
+            }
+            // finally add remaining report types
+            ListOut.AddRange(ListIn);
+            return ListOut;
         }
     }
 }

@@ -9,6 +9,7 @@ namespace FWO.Api.Client.Queries
 
         public static readonly string prepareNextRecertification;
         public static readonly string recertify;
+        public static readonly string recertifyOwner;
         public static readonly string getOpenRecertsForRule;
         public static readonly string getOpenRecerts;
         public static readonly string clearOpenRecerts;
@@ -30,6 +31,7 @@ namespace FWO.Api.Client.Queries
 
                 prepareNextRecertification = GetQueryText("recertification/prepareNextRecertification.graphql");
                 recertify = GetQueryText("recertification/recertify.graphql");
+                recertifyOwner = GetQueryText("recertification/recertifyOwner.graphql");
                 getOpenRecertsForRule = GetQueryText("recertification/getOpenRecertsForRule.graphql");
                 getOpenRecerts = GetQueryText("recertification/getOpenRecerts.graphql");
                 clearOpenRecerts = GetQueryText("recertification/clearOpenRecerts.graphql");

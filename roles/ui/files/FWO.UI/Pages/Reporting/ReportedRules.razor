@@ -33,7 +33,7 @@
         }
         @if(SelectedReportType == ReportType.Recertification)
         {
-            <Column TableItem="Rule" Context="rule" Title="@(userConfig.GetText("next_recert"))" Field="@(r => r.Metadata.RuleRecertification)" Sortable="false" Filterable="false">
+            <Column TableItem="Rule" Context="rule" Title="@(userConfig.GetText("next_recert_date"))" Field="@(r => r.Metadata.RuleRecertification)" Sortable="false" Filterable="false">
                 <Template>
                     @((MarkupString)RuleDisplayHtml.DisplayNextRecert(rule.Metadata))
                 </Template>

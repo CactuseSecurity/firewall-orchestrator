@@ -1,23 +1,19 @@
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
-using FWO.Basics;
 using FWO.Config.Api;
 using FWO.Data;
 using FWO.Data.Workflow;
 using FWO.Mail;
-using FWO.Logging;
 using FWO.Middleware.Client;
-using Microsoft.AspNetCore.Http;
 using Newtonsoft.Json;
 using System.Text.Json.Serialization;
-using System.Text.RegularExpressions;
 
 namespace FWO.Services
 {
     public class EmailActionParams
     {
         [JsonProperty("to"), JsonPropertyName("to")]
-        public EmailRecipientOption RecipientTo { get; set; } = EmailRecipientOption.Requester;
+        public EmailRecipientOption RecipientTo { get; set; } = EmailRecipientOption.None;
 
         [JsonProperty("cc"), JsonPropertyName("cc")]
         public EmailRecipientOption? RecipientCC { get; set; }
@@ -63,16 +59,16 @@ namespace FWO.Services
             ScopedUserCc = scopedUserCc;
         }
 
-        public async Task<bool> SendEmailToOwnerResponsibles(FwoOwner owner, string subject, string body)
+        public async Task<bool> SendEmailToOwnerResponsibles(FwoOwner owner, string subject, string body, EmailRecipientOption recOpt, bool reqInCc = false)
         {
-            List<string>? requester = userConfig.ModReqEmailRequesterInCc ? new() { GetEmailAddress(userConfig.User.Dn) } : null;
-            return await SendEmail(GetRecipients(userConfig.ModReqEmailReceiver, null, owner, null), subject, body, requester);
+            List<string>? requester = reqInCc ? new() { GetEmailAddress(userConfig.User.Dn) } : null;
+            return await SendEmail(GetRecipients(recOpt, null, owner, null, null), subject, body, requester);
         }
 
         public async Task<bool> SendOwnerEmailFromAction(EmailActionParams emailActionParams, WfStatefulObject statefulObject, FwoOwner? owner)
         {
-            List<string> tos = GetRecipients(emailActionParams.RecipientTo, statefulObject, owner, ScopedUserTo);
-            List<string>? ccs = emailActionParams.RecipientCC != null ? GetRecipients((EmailRecipientOption)emailActionParams.RecipientCC, statefulObject, owner, ScopedUserCc) : null;
+            List<string> tos = GetRecipients(emailActionParams.RecipientTo, statefulObject, owner, ScopedUserTo, null);
+            List<string>? ccs = emailActionParams.RecipientCC != null ? GetRecipients((EmailRecipientOption)emailActionParams.RecipientCC, statefulObject, owner, ScopedUserCc, null) : null;
             return await SendEmail(tos, emailActionParams.Subject, emailActionParams.Body, ccs);
         }
 
@@ -90,7 +86,7 @@ namespace FWO.Services
             return await MailKitMailer.SendAsync(new MailData(tos, subject) { Body = body, Cc = ccs ?? [] }, emailConnection, true, new CancellationToken());
         }
 
-        private List<string> GetRecipients(EmailRecipientOption recipientOption, WfStatefulObject? statefulObject, FwoOwner? owner, string? scopedUser)
+        public List<string> GetRecipients(EmailRecipientOption recipientOption, WfStatefulObject? statefulObject, FwoOwner? owner, string? scopedUser, List<string>? otherAddresses)
         {
             List<string> recipients = [];
             switch (recipientOption)
@@ -132,7 +128,12 @@ namespace FWO.Services
                     {
                         recipients.AddRange(ownerGroupAdresses);
                     }
-
+                    break;
+                case EmailRecipientOption.OtherAddresses:
+                    if (otherAddresses != null)
+                    {
+                        recipients.AddRange(otherAddresses);
+                    }
                     break;
                 default:
                     break;
@@ -154,6 +155,17 @@ namespace FWO.Services
             }
 
             return recipients;
+        }
+
+        /// <summary>
+        /// Split email addresses from string to list
+        /// </summary>
+        /// <param name="addresslist"></param>
+        /// <returns></returns>
+        public static List<string> SplitAddresses(string addresslist)
+        {
+            string[] separatingStrings = [",", ";", "|"];
+            return [.. addresslist.Split(separatingStrings, StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries)];
         }
 
         private List<string> CollectEmailAddressesFromOwner(FwoOwner? owner)
@@ -239,7 +251,7 @@ namespace FWO.Services
         {
             try
             {
-                Regex regex = new (@"\s", RegexOptions.None, TimeSpan.FromMilliseconds(500));
+                Regex regex = new(@"\s", RegexOptions.None, TimeSpan.FromMilliseconds(500));
                 return $"{regex.Replace(input, "")}_{DateTime.Now.ToUniversalTime().ToString("yyyy-MM-ddTHH-mm-ssK")}.{fileFormat}";
             }
             catch (RegexMatchTimeoutException)

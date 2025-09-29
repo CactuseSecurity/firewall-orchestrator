@@ -527,7 +527,7 @@ namespace FWO.Report
             report.AppendLine($"<th>{userConfig.GetText("number")}</th>");
             if (ReportType == ReportType.Recertification)
             {
-                report.AppendLine($"<th>{userConfig.GetText("next_recert")}</th>");
+                report.AppendLine($"<th>{userConfig.GetText("next_recert_date")}</th>");
                 report.AppendLine($"<th>{userConfig.GetText("owner")}</th>");
                 report.AppendLine($"<th>{userConfig.GetText("ip_matches")}</th>");
                 report.AppendLine($"<th>{userConfig.GetText("last_hit")}</th>");

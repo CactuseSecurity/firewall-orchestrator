@@ -1,0 +1,36 @@
+mutation updateNotification(
+  $id: Int!
+  $channel: String!
+  $recipientTo: String
+  $emailAddressTo: String
+  $recipientCc: String
+  $emailAddressCc: String
+  $subject: String
+  $layout: String!
+  $deadline: String
+  $intervalBeforeDeadline: Int
+  $offsetBeforeDeadline: Int
+  $intervalAfterDeadline: Int
+  $offsetAfterDeadline: Int
+  $repetitionsAfterDeadline: Int
+  ) {
+  update_notification_by_pk(
+    pk_columns: { id: $id }
+    _set: {
+    channel: $channel
+    recipient_to: $recipientTo
+    email_address_to: $emailAddressTo
+    recipient_cc: $recipientCc
+    email_address_cc: $emailAddressCc
+    email_subject: $subject
+    layout: $layout
+    deadline: $deadline
+    interval_before_deadline: $intervalBeforeDeadline
+    offset_before_deadline: $offsetBeforeDeadline
+    repeat_interval_after_deadline: $intervalAfterDeadline
+    repeat_offset_after_deadline: $offsetAfterDeadline
+    repetitions_after_deadline: $repetitionsAfterDeadline
+  }) {
+    updatedId: id
+  }
+}

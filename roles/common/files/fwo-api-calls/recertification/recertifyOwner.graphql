@@ -5,7 +5,7 @@ mutation recertifyOwner(
   $recertDate: timestamp
   $nextRecertDate: timestamp
   $comment: String
-  ) {
+) {
   insert_owner_recertification(
     objects: {
       owner_id: $ownerId
@@ -14,10 +14,10 @@ mutation recertifyOwner(
       recert_date: $recertDate
       next_recert_date: $nextRecertDate
       comment: $comment
-      }
-    ) {
-      returning {
-        newIdLong: id
-      }
+    }
+  ) {
+    returning {
+      newIdLong: id
     }
   }
+}

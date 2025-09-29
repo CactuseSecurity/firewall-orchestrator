@@ -27,7 +27,7 @@ namespace FWO.Test
         static readonly ApiConnection apiConnection = new UiRsbTestApiConn();
         static readonly ReportBase currentReport = SimulatedReport.DetailedReport();
 
-        [Test, Ignore("temporarily disabled for importer-rework")]
+        [Test]
         public async Task ObjShouldBeVisibleAfterNavigation()
         {
             // Event Service
@@ -60,11 +60,11 @@ namespace FWO.Test
             // manually trigger 
             var anchorNavToRSB = cut.FindComponent<AnchorNavToRSB>();
             Task timeout = Task.Delay(2000);
-            Task scrollTask = anchorNavToRSB.InvokeAsync(() => anchorNavToRSB.Instance.ScrollToFragment());
+            Task scrollTask = anchorNavToRSB.InvokeAsync(() => anchorNavToRSB.Instance.NavigateAndScrollToFragment());
             Task completedTask = await Task.WhenAny(scrollTask, timeout);
             if (completedTask == timeout)
             {
-                Log.WriteDebug("Test UI RSB", "scrollToFragment does not complete timely (circle dependency through state changes?)");
+                Log.WriteDebug("Test UI RSB", "NavigateAndScrollToFragment does not complete timely (circle dependency through state changes?)");
             }
             // Assert
             Assert.That(scrollIntoRSBViewInvocation.Invocations, Is.Not.Empty, "scrollIntoRSBView should have been called");

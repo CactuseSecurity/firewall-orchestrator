@@ -587,15 +587,13 @@ class MockFwConfigNormalizedBuilder():
         # svc.svc_port = 6 if svc.svc_port == 17 else 17  # Toggle between TCP (6) and UDP (17)
         svc.svc_color = "blue" if svc.svc_color == "black" else "black"  # Toggle color for subtle change
 
-    def add_cp_section_header(self, config: FwConfigNormalized, gateway: Gateway, index: int) -> None:
+    def add_cp_section_header(self, gateway: Gateway, from_rulebase_uid: str, to_rulebase_uid: str, from_rule_uid: str) -> None:
 
-        current_from_rulebase_uid = config.rulebases[index - 1].uid
-        current_from_rule_uid = list(config.rulebases[index - 1].Rules.values())[-1].rule_uid
         gateway.RulebaseLinks.append(
             RulebaseLinkUidBased(
-                from_rulebase_uid = current_from_rulebase_uid,
-                from_rule_uid = current_from_rule_uid,
-                to_rulebase_uid = config.rulebases[index].uid,
+                from_rulebase_uid = from_rulebase_uid,
+                from_rule_uid = from_rule_uid,
+                to_rulebase_uid = to_rulebase_uid,
                 link_type = "ordered",
                 is_initial = False,
                 is_global = False,

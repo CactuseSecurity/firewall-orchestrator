@@ -13,9 +13,10 @@ class TestUpdateRulebaseLinkDiffs(unittest.TestCase):
         config_builder, fw_config_import_gateway, mgm_uid = set_up_test_for_rulebase_link_test_with_defaults()
 
         last_rulebase = fw_config_import_gateway._global_state.normalized_config.rulebases[-1]
-        new_rulebase, new_rulebase_uid = config_builder.add_rulebase(fw_config_import_gateway._global_state.normalized_config, mgm_uid)
+        last_rulebase_last_rule_uid = list(last_rulebase.Rules.keys())[-1]
+        _, new_rulebase_uid = config_builder.add_rulebase(fw_config_import_gateway._global_state.normalized_config, mgm_uid)
         gateway = fw_config_import_gateway._global_state.normalized_config.gateways[0]
-        config_builder.add_cp_section_header(fw_config_import_gateway._global_state.normalized_config, gateway, len(gateway.RulebaseLinks), new_rulebase_uid, last_rulebase.uid)
+        config_builder.add_cp_section_header(gateway, last_rulebase.uid, new_rulebase_uid, last_rulebase_last_rule_uid)
         
         update_rule_map_and_rulebase_map(fw_config_import_gateway._global_state.normalized_config, fw_config_import_gateway._global_state.import_state)
         to_rulebase_id = fw_config_import_gateway._global_state.import_state.lookupRulebaseId(new_rulebase_uid)
@@ -43,10 +44,10 @@ class TestUpdateRulebaseLinkDiffs(unittest.TestCase):
         last_rulebase_last_rule_uid = list(last_rulebase.Rules.keys())[-1]
         last_rulebase_last_rule = last_rulebase.Rules.pop(last_rulebase_last_rule_uid)
 
-        new_rulebase, new_rulebase_uid = config_builder.add_rulebase(fw_config_import_gateway._global_state.normalized_config, mgm_uid)
+        _, new_rulebase_uid = config_builder.add_rulebase(fw_config_import_gateway._global_state.normalized_config, mgm_uid)
         config_builder.add_rule(fw_config_import_gateway._global_state.normalized_config, new_rulebase_uid, last_rulebase_last_rule.model_dump())
         gateway = fw_config_import_gateway._global_state.normalized_config.gateways[0]
-        config_builder.add_cp_section_header(fw_config_import_gateway._global_state.normalized_config, gateway, len(gateway.RulebaseLinks), new_rulebase_uid, last_rulebase.uid)
+        config_builder.add_cp_section_header(gateway, last_rulebase.uid, new_rulebase_uid, last_rulebase_last_rule_uid)
 
         update_rule_map_and_rulebase_map(fw_config_import_gateway._global_state.normalized_config, fw_config_import_gateway._global_state.import_state)
         to_rulebase_id = fw_config_import_gateway._global_state.import_state.lookupRulebaseId(new_rulebase_uid)
@@ -89,7 +90,8 @@ class TestUpdateRulebaseLinkDiffs(unittest.TestCase):
         config_builder.add_rule(fw_config_import_gateway._global_state.normalized_config, new_rulebase_uid, last_rulebase_last_rule.model_dump())
         gateway = fw_config_import_gateway._global_state.normalized_config.gateways[0]
         new_last_rulebase_last_rule_uid = list(last_rulebase.Rules.keys())[-1]
-        config_builder.add_inline_layer(fw_config_import_gateway._global_state.normalized_config, gateway, len(gateway.RulebaseLinks), new_rulebase_uid, last_rulebase.uid, new_last_rulebase_last_rule_uid)
+        index = len(gateway.RulebaseLinks)
+        config_builder.add_inline_layer(gateway, index, last_rulebase.uid, new_rulebase_uid, new_last_rulebase_last_rule_uid)
 
         update_rule_map_and_rulebase_map(fw_config_import_gateway._global_state.normalized_config, fw_config_import_gateway._global_state.import_state)
         from_rule_id = fw_config_import_gateway._global_state.import_state.lookupRule(new_last_rulebase_last_rule_uid)

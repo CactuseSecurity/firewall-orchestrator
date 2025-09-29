@@ -159,20 +159,20 @@ def object_to_dict(obj, max_depth=10):
     """
     if max_depth < 0:
         return str(obj)  # Avoid infinite recursion
-    dict = {}
-    dict['type'] = type(obj).__name__
+    obj_dict = {}
+    obj_dict['type'] = type(obj).__name__
     if hasattr(obj, 'name'):
         name = obj.name.value if hasattr(obj.name, 'value') else obj.name
-        dict['name'] = name
+        obj_dict['name'] = name
     if hasattr(obj, 'value'):
-        dict['value'] = object_to_dict(obj.value, max_depth - 1)
+        obj_dict['value'] = object_to_dict(obj.value, max_depth - 1)
     elif hasattr(obj, 'fields'):
-        dict['fields'] = [object_to_dict(field, max_depth - 1) for field in obj.fields]
+        obj_dict['fields'] = [object_to_dict(field, max_depth - 1) for field in obj.fields]
     elif hasattr(obj, 'arguments'):
-        dict['arguments'] = [object_to_dict(arg, max_depth - 1) for arg in obj.arguments]
+        obj_dict['arguments'] = [object_to_dict(arg, max_depth - 1) for arg in obj.arguments]
     elif hasattr(obj, 'values'):
-        dict['values'] = [object_to_dict(value, max_depth - 1) for value in obj.values]
-    return dict
+        obj_dict['values'] = [object_to_dict(value, max_depth - 1) for value in obj.values]
+    return obj_dict
 
 class MockFwoApi(FwoApi):
     """
@@ -404,8 +404,8 @@ class MockFwoApi(FwoApi):
         for v in or_values: # v = {'_and': [{'field1: {'_eq': 'value1'}}, {'field2': {'_eq': 'value2'}}]}
             fields = v['_and'] # [{'field1': {'_eq': 'value1'}}, {'field2': {'_eq': 'value2'}}]
             for field in fields: # {'field1': {'_eq': 'value1'}}
-                field_name, value = next(iter(field.items())) # name = 'field1', value = {'_eq': 'value1'}
-                key, value = next(iter(value.items())) # key = '_eq', value = 'value1'
+                field_name, value = next(iter(field.items())) # i.e. name = 'field1', value = {'_eq': 'value1'}
+                key, value = next(iter(value.items())) # i.e. key = '_eq', value = 'value1'
                 if key == "_eq":
                     if row.get(field_name) != value:
                         return False
@@ -517,78 +517,78 @@ class MockFwoApi(FwoApi):
     def obj_dict_from_row(self, row, import_id, import_state):
         if row['obj_create'] > import_id or row.get('removed') and row['removed'] <= import_id:
             return None
-        dict = {}
+        obj_dict = {}
         for key, value in row.items():
             if key == 'obj_id':
                 continue
             if key == 'obj_color_id':
-                dict['obj_color'] = import_state.lookupColorStr(value)
+                obj_dict['obj_color'] = import_state.lookupColorStr(value)
             elif key == 'obj_typ_id':
-                dict['obj_typ'] = self.tables['stm_obj_typ'].get(value, {}).get('obj_typ_name', 'unknown')
+                obj_dict['obj_typ'] = self.tables['stm_obj_typ'].get(value, {}).get('obj_typ_name', 'unknown')
             else:
-                dict[key] = value
-        return dict
+                obj_dict[key] = value
+        return obj_dict
     
 
     def service_dict_from_row(self, row, import_id, import_state):
         if row['svc_create'] > import_id or row.get('removed') and row['removed'] <= import_id:
             return None
-        dict = {}
+        svc_dict = {}
         for key, value in row.items():
             if key == 'svc_id':
                 continue
             if key == 'svc_color_id':
-                dict['svc_color'] = import_state.lookupColorStr(value)
+                svc_dict['svc_color'] = import_state.lookupColorStr(value)
             elif key == 'svc_typ_id':
-                dict['svc_typ'] = self.tables['stm_svc_typ'].get(value, {}).get('svc_typ_name', 'unknown')
+                svc_dict['svc_typ'] = self.tables['stm_svc_typ'].get(value, {}).get('svc_typ_name', 'unknown')
             elif key == 'ip_proto_id':
-                dict['ip_proto'] = row['ip_proto_id']
+                svc_dict['ip_proto'] = row['ip_proto_id']
             else:
-                dict[key] = value
-        return dict
+                svc_dict[key] = value
+        return svc_dict
     
 
     def user_dict_from_row(self, row, import_id):
         if row['user_create'] > import_id or row.get('removed') and row['removed'] <= import_id:
             return None
-        dict = {}
+        usr_dict = {}
         for key, value in row.items():
             if key in ['user_id', 'mgm_id', 'user_create', 'user_last_seen', 'active', 'removed']:
                 continue
             elif key == 'usr_typ_id':
-                dict['user_typ'] = self.tables['stm_usr_typ'].get(value, {}).get('usr_typ_name', 'unknown')
+                usr_dict['user_typ'] = self.tables['stm_usr_typ'].get(value, {}).get('usr_typ_name', 'unknown')
             elif value is None:
                 continue
             else:
-                dict[key] = value
-        return dict
+                usr_dict[key] = value
+        return usr_dict
     
 
     def rulebase_dict_from_row(self, row, import_id, mgm_uid):
         if row.get('created') and row['created'] > import_id or row.get('removed') and row['removed'] <= import_id:
             return None
-        dict = {}
+        rb_dict = {}
         for key, value in row.items():
             if key == 'id':
                 continue
             if key == 'mgm_id':
-                dict['mgm_uid'] = mgm_uid
-            dict[key] = value
-        dict['rules'] = {}
-        return dict
+                rb_dict['mgm_uid'] = mgm_uid
+            rb_dict[key] = value
+        rb_dict['rules'] = {}
+        return rb_dict
     
 
     def rule_dict_from_row(self, row, import_id, mgm_uid):
         if row['rule_create'] > import_id or row.get('removed') and row['removed'] <= import_id:
             return None
-        dict = {}
+        rule_dict = {}
         for key, value in row.items():
             if key == 'rule_id':
                 continue
             if key == 'mgm_id':
-                dict['mgm_uid'] = mgm_uid
-            dict[key] = value
-        return dict
+                rule_dict['mgm_uid'] = mgm_uid
+            rule_dict[key] = value
+        return rule_dict
 
 
     def get_table(self, table_name):
@@ -603,7 +603,7 @@ class MockFwoApi(FwoApi):
         """
         nwobj_uid = self.tables.get("object", {}).get(obj_id, {}).get("obj_uid", None)
         if nwobj_uid is None:
-            raise Exception(f"Network object ID {obj_id} not found in database.")
+            raise KeyError(f"Network object ID {obj_id} not found in database.")
         return nwobj_uid
     
     def get_svc_uid(self, svc_id):
@@ -612,7 +612,7 @@ class MockFwoApi(FwoApi):
         """
         svc_uid = self.tables.get("service", {}).get(svc_id, {}).get("svc_uid", None)
         if svc_uid is None:
-            raise Exception(f"Service ID {svc_id} not found in database.")
+            raise KeyError(f"Service ID {svc_id} not found in database.")
         return svc_uid
     
     def get_user_uid(self, user_id):
@@ -621,7 +621,7 @@ class MockFwoApi(FwoApi):
         """
         user_uid = self.tables.get("usr", {}).get(user_id, {}).get("user_uid", None)
         if user_uid is None:
-            raise Exception(f"User ID {user_id} not found in database.")
+            raise KeyError(f"User ID {user_id} not found in database.")
         return user_uid
     
     def get_rule_uid(self, rule_id):
@@ -630,7 +630,7 @@ class MockFwoApi(FwoApi):
         """
         rule_uid = self.tables.get("rule", {}).get(rule_id, {}).get("rule_uid", None)
         if rule_uid is None:
-            raise Exception(f"Rule ID {rule_id} not found in database.")
+            raise KeyError(f"Rule ID {rule_id} not found in database.")
         return rule_uid
 
     def get_nwobj_member_mappings(self):

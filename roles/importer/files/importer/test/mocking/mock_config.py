@@ -604,9 +604,10 @@ class MockFwConfigNormalizedBuilder():
         )
     
 
-    def add_inline_layer(self, config: FwConfigNormalized, gateway: Gateway, index: int, from_rulebase_uid: str, to_rulebase_uid: str, from_rule_uid: str) -> None:
+    def add_inline_layer(self, gateway: Gateway, index: int, from_rulebase_uid: str, to_rulebase_uid: str, from_rule_uid: str) -> None:
 
-        gateway.RulebaseLinks.append(
+        gateway.RulebaseLinks.insert(
+            index,
             RulebaseLinkUidBased(
                 from_rulebase_uid = from_rulebase_uid,
                 from_rule_uid = from_rule_uid,

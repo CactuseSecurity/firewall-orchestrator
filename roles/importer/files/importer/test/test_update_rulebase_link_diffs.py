@@ -108,10 +108,7 @@ class TestUpdateRulebaseLinkDiffs(unittest.TestCase):
         self.assertTrue(rb_link_list[0]['from_rule_id'] == from_rule_id, f"expected last rulebase link to have from_rule_id {from_rule_id}, got {rb_link_list[0]['from_rule_id']}")
         self.assertTrue(rb_link_list[0]['from_rulebase_id'] == from_rulebase_id, f"expected last rulebase link to have from_rulebase_id {from_rulebase_id}, got {rb_link_list[0]['from_rulebase_id']}")
         self.assertTrue(rb_link_list[0]['to_rulebase_id'] == to_rulebase_id, f"expected last rulebase link to point to new rulebase id {to_rulebase_id}, got {rb_link_list[0]['to_rulebase_id']}")
-        self.assertTrue(rb_link_list[0]['is_section'], "expected last rulebase link to have is_section true, got false")
-
-
-        raise NotImplementedError()
+        self.assertTrue(rb_link_list[0]['is_section'] == False, "expected last rulebase link to have is_section false, got true")
 
 
     @unittest.skip("Temporary deactivated, because test is not implemented.")

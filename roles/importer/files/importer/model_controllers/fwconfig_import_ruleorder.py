@@ -211,10 +211,13 @@ class RuleOrderService:
         next_rules_rule_num_numeric = 0.0
         previous_rule_num_numeric = 0.0
 
-        target_rulebase = next(rulebase for rulebase in self._fw_config_import_rule.normalized_config.rulebases if rulebase.uid == target_rulebase_uid)
-        unchanged_target_rulebase = next(rulebase for rulebase in self._previous_config.rulebases if rulebase.uid == target_rulebase_uid)
-        changed_and_unchanged_rules = list(target_rulebase.Rules.values()) + list(unchanged_target_rulebase.Rules.values())
+        target_rulebase = next((rulebase for rulebase in self._fw_config_import_rule.normalized_config.rulebases if rulebase.uid == target_rulebase_uid), None)
+        unchanged_target_rulebase = next((rulebase for rulebase in self._previous_config.rulebases if rulebase.uid == target_rulebase_uid), None)
+        changed_and_unchanged_rules = list(target_rulebase.Rules.values())
 
+        if unchanged_target_rulebase:
+            changed_and_unchanged_rules.extend(list(unchanged_target_rulebase.Rules.values()))
+        
         index, changed_rule = self._get_index_and_rule_object_from_flat_list(list(target_rulebase.Rules.values()), rule_uid)
         prev_rule_uid, next_rule_uid = self._get_adjacent_list_element(list(target_rulebase.Rules.keys()), index)
 

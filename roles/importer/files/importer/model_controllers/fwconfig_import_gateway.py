@@ -2,7 +2,7 @@ from model_controllers.import_state_controller import ImportStateController
 from model_controllers.fwconfig_normalized_controller import FwConfigNormalized
 from fwo_log import getFwoLogger
 from model_controllers.rulebase_link_controller import RulebaseLinkController
-from models.rulebase_link import RulebaseLink
+from models.rulebase_link import RulebaseLink, RulebaseLinkUidBased
 from services.service_provider import ServiceProvider
 from services.global_state import GlobalState
 from services.enums import Services
@@ -42,14 +42,15 @@ class FwConfigImportGateway:
                 gw_id = self._global_state.import_state.lookupGatewayId(gw.Uid)
                 if gw_id is None or gw_id == '' or gw_id == 'none':
                     logger.warning(f"did not find a gwId for UID {gw.Uid}")
+
                 for link in gw.RulebaseLinks:
-                    self.add_single_link(rb_link_list, link, gw_id, logger)
+                    self.try_add_single_link(rb_link_list, link, gw, gw_id, logger)
 
         return rb_link_list
 
 
 
-    def add_single_link(self, rb_link_list, link, gw_id, logger):
+    def try_add_single_link(self, rb_link_list, link, gw, gw_id, logger):
         from_rule_id = self._global_state.import_state.lookupRule(link.from_rule_uid)
         if link.from_rulebase_uid is None or link.from_rulebase_uid == '':
             from_rulebase_id = None
@@ -62,19 +63,40 @@ class FwConfigImportGateway:
         link_type_id = self._global_state.import_state.lookupLinkType(link.link_type)
         if link_type_id is None or type(link_type_id) is not int:
             logger.warning(f"did not find a link_type_id for link_type {link.link_type}")
-        rb_link_list.append(RulebaseLink(gw_id=gw_id, 
-                                from_rule_id=from_rule_id,
-                                to_rulebase_id=to_rulebase_id,
-                                link_type=link_type_id,
-                                is_initial=link.is_initial,
-                                is_global=link.is_global,
-                                is_section = link.is_section,
-                                from_rulebase_id=from_rulebase_id,
-                                created=self._global_state.import_state.ImportId).toDict())
-        
-        if self._global_state.import_state.DebugLevel > 8:
-            logger.debug(f"link {link} was added")
 
+        if self._is_new_link(link):
+            rb_link_list.append(RulebaseLink(gw_id=gw_id, 
+                                    from_rule_id=from_rule_id,
+                                    to_rulebase_id=to_rulebase_id,
+                                    link_type=link_type_id,
+                                    is_initial=link.is_initial,
+                                    is_global=link.is_global,
+                                    is_section = link.is_section,
+                                    from_rulebase_id=from_rulebase_id,
+                                    created=self._global_state.import_state.ImportId).toDict())
+            
+            if self._global_state.import_state.DebugLevel > 8:
+                logger.debug(f"link {link} was added")
+
+
+    def _is_new_link(self, link: RulebaseLinkUidBased):
+
+        previous_config_gw = next((p_gw for p_gw in self._global_state.previous_config.gateways), None)
+
+        if previous_config_gw:
+            existing_link = next((
+                existing_link 
+                for existing_link in previous_config_gw.RulebaseLinks 
+                if existing_link.toDict() == link.toDict() 
+            ), None)
+
+            if existing_link:
+                return False
+            
+        return True
+
+
+            
         # TODO: check for changed rbLink
         # for prev_gw in prevConfig.gateways:
         #     if prev_gw.Uid == gw.Uid:

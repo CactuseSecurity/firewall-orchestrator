@@ -124,7 +124,7 @@ namespace FWO.Basics
 
         public static List<ReportType> AllReportTypes()
         {
-            return [.. Enum.GetValues(typeof(ReportType)).Cast<ReportType>().Where(r => r != ReportType.All)];
+            return [.. Enum.GetValues(typeof(ReportType)).Cast<ReportType>().Where(r => r != ReportType.Undefined)];
         }
 
         public static List<ReportType> ReportTypeSelection(bool ruleRelated = true, bool modellingRelated = true)

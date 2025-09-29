@@ -340,7 +340,7 @@ namespace FWO.Report.Filter
                     break;
 
                 case ReportType.OwnerRecertification:
-                    query.FullQuery = Queries.compact(ConstructOwnerRecertQuery(query, paramString));
+                    query.FullQuery = Queries.Compact(ConstructOwnerRecertQuery(query, paramString));
                     break;
             }
         }

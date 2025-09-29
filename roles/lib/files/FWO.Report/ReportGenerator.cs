@@ -159,7 +159,8 @@ namespace FWO.Report
 
             if (_currentReport is ReportVariances reportVariances)
             {
-                reportVariances.SetDifferenceCounters();
+                // TODO: TMP-MERGE - fix this
+                // reportVariances.SetDifferenceCounters();
                 reportVariances.ReportData.ElementsCount += reportVariances.MissARCounter + reportVariances.DiffARCounter + reportVariances.MissConnCounter + reportVariances.DiffConnCounter;
             }
         }

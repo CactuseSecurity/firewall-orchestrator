@@ -112,9 +112,6 @@ def normalize_config(import_state, native_config: dict[str,Any]) -> FwConfigMana
 
     manager_list = FwConfigManagerListController()
 
-    native_config_global = {} # TODO: implement reading for FortiManager 5ff
-    normalized_config_global = {} # TODO: implement reading for FortiManager 5ff
-
     if 'domains' not in native_config:
         raise ImportInterruption("No domains found in native config. Cannot normalize config.")
 
@@ -123,12 +120,13 @@ def normalize_config(import_state, native_config: dict[str,Any]) -> FwConfigMana
     for native_conf in native_config['domains']:
         normalized_config_dict = deepcopy(fwo_const.emptyNormalizedFwConfigJsonDict)
 
+        if native_conf['is-super-manager']:
+            native_config_global = native_conf
+            normalized_config_global = normalized_config_dict
+
         # delete_v: is_global_loop_iteration scheint immer False zu sein, kann dann weg
         normalize_single_manager_config(native_conf, native_config_global, normalized_config_dict, normalized_config_global, 
                                                             import_state, is_global_loop_iteration=False)
-        
-        if native_conf['is-super-manager']:
-            normalized_config_global = deepcopy(normalized_config_dict)
 
         normalized_config = FwConfigNormalized(
             action=ConfigAction.INSERT, 
@@ -238,11 +236,11 @@ def parse_policy_package(policy_package, adom_device_vdom_policy_package_structu
 def add_global_policy_package_to_vdom(adom_device_vdom_policy_package_structure, sid, fm_api_url, adom):
     global_assignment_result = fmgr_getter.fortinet_api_call(sid, fm_api_url, '/pm/config/adom/' + adom + '/_adom/options')
     for global_assignment in global_assignment_result:
-        if global_assignment['assign_excluded'] == 'disable' and global_assignment['specify_assign_pkg'] == 'disable':
+        if global_assignment['assign_excluded'] == 0 and global_assignment['specify_assign_pkg_list'] == 0:
             assign_case_all(adom_device_vdom_policy_package_structure, adom, global_assignment)
-        elif global_assignment['assign_excluded'] == 'disable' and global_assignment['specify_assign_pkg'] == 'enable':
+        elif global_assignment['assign_excluded'] == 0 and global_assignment['specify_assign_pkg_list'] == 1:
             assign_case_include(adom_device_vdom_policy_package_structure, adom, global_assignment)
-        elif global_assignment['assign_excluded'] == 'enable' and global_assignment['specify_assign_pkg'] == 'enable':
+        elif global_assignment['assign_excluded'] == 1 and global_assignment['specify_assign_pkg_list'] == 1:
             assign_case_exclude(adom_device_vdom_policy_package_structure, adom, global_assignment)
         else:
             raise ImportInterruption('Broken global assign format.')
@@ -250,29 +248,26 @@ def add_global_policy_package_to_vdom(adom_device_vdom_policy_package_structure,
 def assign_case_all(adom_device_vdom_policy_package_structure, adom, global_assignment):
     for device in adom_device_vdom_policy_package_structure[adom]:
         for vdom in adom_device_vdom_policy_package_structure[adom][device]:
-            vdom['global'] = global_assignment['assign_name']
+            adom_device_vdom_policy_package_structure[adom][device][vdom]['global'] = global_assignment['assign_name']
 
 def assign_case_include(adom_device_vdom_policy_package_structure, adom, global_assignment):
     for device in adom_device_vdom_policy_package_structure[adom]:
         for vdom in adom_device_vdom_policy_package_structure[adom][device]:
-            match_assign_and_vdom_policy_package(global_assignment, vdom, True)
+            match_assign_and_vdom_policy_package(global_assignment, adom_device_vdom_policy_package_structure[adom][device][vdom], True)
 
 def assign_case_exclude(adom_device_vdom_policy_package_structure, adom, global_assignment):
     for device in adom_device_vdom_policy_package_structure[adom]:
         for vdom in adom_device_vdom_policy_package_structure[adom][device]:
-            match_assign_and_vdom_policy_package(global_assignment, vdom, False)
+            match_assign_and_vdom_policy_package(global_assignment, adom_device_vdom_policy_package_structure[adom][device][vdom], False)
 
-def match_assign_and_vdom_policy_package(global_assignment, vdom, is_include):
-    for package in global_assignment['pkg_list']:
+def match_assign_and_vdom_policy_package(global_assignment, vdom_structure, is_include):
+    for package in global_assignment['pkg list']:
         if is_include:
-            if package['name'] == vdom['local']:
-                vdom['global'] = global_assignment['assign_name']
+            if package['name'] == vdom_structure['local']:
+                vdom_structure['global'] = global_assignment['assign_name']
         else:
-            if package['name'] != vdom['local']:
-                vdom['global'] = global_assignment['assign_name']
-
-
-
+            if package['name'] != vdom_structure['local']:
+                vdom_structure['global'] = global_assignment['assign_name']
 
 def initialize_device_config(mgm_details_device):
     device_config = {'name': mgm_details_device['name'],

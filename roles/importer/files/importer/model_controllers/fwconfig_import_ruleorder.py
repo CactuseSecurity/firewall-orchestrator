@@ -112,6 +112,14 @@ class RuleOrderService:
         self._compute_min_moves_result = compute_min_moves(self._source_rule_uids, self._target_rule_uids)
 
         for rulebase in self._fw_config_import_rule.normalized_config.rulebases:
+
+            # Get previous configs rule_uids to check for unrecognized moves across rulebases (e.g. deleting a section header)
+
+            previous_rulebase_uids = []
+            previous_configs_rulebase = next((rb for rb in previous_config.rulebases if rb.uid == rulebase.uid), None)
+            if previous_configs_rulebase:
+                previous_rulebase_uids.extend(list(previous_configs_rulebase.Rules.keys()))
+
             rule_uids = set(rulebase.Rules.keys())
 
             self._new_rule_uids[rulebase.uid] = [
@@ -126,6 +134,12 @@ class RuleOrderService:
                 if move_uid in rule_uids
             ]
             
+            # Add undetected moves across rulebases.
+
+            for rule_uid in rule_uids:
+                if rule_uid not in self._new_rule_uids[rulebase.uid] and rule_uid not in self._moved_rule_uids[rulebase.uid] and rule_uid not in previous_rulebase_uids:
+                    self._moved_rule_uids[rulebase.uid].append(rule_uid)
+
             if (len(self._moved_rule_uids) > 0 or len(self._new_rule_uids > 0)) and not rulebase.uid in self._inserts_and_moves:
                 self._inserts_and_moves[rulebase.uid] = []
 

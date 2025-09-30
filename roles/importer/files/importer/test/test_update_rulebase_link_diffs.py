@@ -1,6 +1,6 @@
 import unittest
 
-from test.tools.set_up_test import set_up_test_for_rulebase_link_test_with_defaults, update_rule_map_and_rulebase_map
+from test.tools.set_up_test import set_up_test_for_rulebase_link_test_with_defaults, set_up_test_for_ruleorder_test_with_delete_of_section_header, update_rule_map_and_rulebase_map
 from test.mocking.mock_fwconfig_import_gateway import MockFwConfigImportGateway
 from fwo_base import init_service_provider
 
@@ -65,10 +65,20 @@ class TestUpdateRulebaseLinkDiffs(unittest.TestCase):
         self.assertTrue(new_links[0]['is_section'], "expected last rulebase link to have is_section true, got false")
 
 
-
-    @unittest.skip("Temporary deactivated, because test is not implemented.")
     def test_delete_cp_section_header(self):
-        raise NotImplementedError()
+
+        # Arrange
+        
+        previous_config, fwconfig_import_rule, _ = set_up_test_for_ruleorder_test_with_delete_of_section_header()
+
+        fw_config_import_gateway = MockFwConfigImportGateway()
+        fw_config_import_gateway._global_state.normalized_config = fwconfig_import_rule.normalized_config
+        fw_config_import_gateway._global_state.previous_config = previous_config
+        fw_config_import_gateway._global_state.import_state = fwconfig_import_rule.import_details
+
+        _, deleted_links_ids = fw_config_import_gateway.update_rulebase_link_diffs()
+
+        self.assertTrue(False, "Unit test is only partially implemented.")
 
 
     @unittest.skip("Temporary deactivated, because test is not implemented.")

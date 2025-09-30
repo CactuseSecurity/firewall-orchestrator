@@ -15,7 +15,7 @@
       "-p",
       "test_*.py",
       "-s",
-      "./roles/importer/files/test"
+      "./roles/importer/files/importer/test"
     ],
     "python.testing.pytestEnabled": false,
     "python.testing.unittestEnabled": true,

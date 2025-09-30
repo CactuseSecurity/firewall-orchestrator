@@ -4,6 +4,7 @@ from test.tools.set_up_test import set_up_test_for_ruleorder_test_with_delete_in
 from test.tools.set_up_test import set_up_test_for_ruleorder_test_with_consecutive_insertions
 from test.tools.set_up_test import set_up_test_for_ruleorder_test_with_move_across_rulebases
 from test.tools.set_up_test import set_up_test_for_ruleorder_test_with_move_to_beginning_middle_and_end_of_rulebase
+from test.tools.set_up_test import set_up_test_for_ruleorder_test_with_delete_of_section_header
 
 
 class TestUpdateRulebaseDiffs(unittest.TestCase):
@@ -64,6 +65,7 @@ class TestUpdateRulebaseDiffs(unittest.TestCase):
 
 
     def test_update_rulebase_diffs_on_move_across_rulebases(self):
+
         # Arrange
 
         previous_config, fwconfig_import_rule, source_rulebase_uids, target_rulebase_uids = set_up_test_for_ruleorder_test_with_move_across_rulebases()
@@ -96,6 +98,7 @@ class TestUpdateRulebaseDiffs(unittest.TestCase):
 
 
     def test_update_rulebase_diffs_on_moves_to_beginning_middle_and_end_of_rulebase(self):
+
         # Arrange
 
         previous_config, fwconfig_import_rule, rule_uids = set_up_test_for_ruleorder_test_with_move_to_beginning_middle_and_end_of_rulebase()
@@ -120,5 +123,34 @@ class TestUpdateRulebaseDiffs(unittest.TestCase):
         self.assertEqual(fwconfig_import_rule.import_details.Stats.RuleDeleteCount, 0)
         self.assertEqual(fwconfig_import_rule.import_details.Stats.RuleChangeCount, 3)
         self.assertEqual(fwconfig_import_rule.import_details.Stats.RuleMoveCount, 3)
+
+
+    def test_update_rulebase_diffs_on_delete_section_header(self):
+            
+            # Arrange
+
+            previous_config, fwconfig_import_rule, rule_uids = set_up_test_for_ruleorder_test_with_delete_of_section_header()
+
+            # Act
+
+            fwconfig_import_rule.updateRulebaseDiffs(previous_config)
+
+            # Assert
+
+            # The order of the entries in normalized_config
+            self.assertEqual(rule_uids, list(fwconfig_import_rule.normalized_config.rulebases[0].Rules.keys())) 
+
+            sorted_rulebase_rules = sorted(list(fwconfig_import_rule.normalized_config.rulebases[0].Rules.values()), key=lambda r: r.rule_num_numeric)
+            sorted_rulebase_rules_uids = [r.rule_uid for r in sorted_rulebase_rules]
+            
+            # The sequence of the rule_num_numeric values
+            self.assertEqual(rule_uids, sorted_rulebase_rules_uids) 
+
+            # Move to beginning, middle and end recognized in ImportDetails
+            self.assertEqual(fwconfig_import_rule.import_details.Stats.RuleAddCount, 0)
+            self.assertEqual(fwconfig_import_rule.import_details.Stats.RuleDeleteCount, 0)
+            self.assertEqual(fwconfig_import_rule.import_details.Stats.RuleChangeCount, 3)
+            self.assertEqual(fwconfig_import_rule.import_details.Stats.RuleMoveCount, 3)
+
 
         

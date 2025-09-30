@@ -139,6 +139,55 @@ def set_up_test_for_ruleorder_test_with_move_to_beginning_middle_and_end_of_rule
     return previous_config, fwconfig_import_rule, rule_uids
 
 
+def set_up_test_for_ruleorder_test_with_delete_of_section_header():
+
+    init_service_provider()
+
+    fwconfig_import_rule = MockFwConfigImportRule()
+    config_builder = MockFwConfigNormalizedBuilder()
+
+    previous_config, mgm_uid = config_builder.build_config(
+        {
+            "rule_config": [10,10,10],
+            "network_object_config": 10,
+            "service_config": 10,
+            "user_config": 10,
+            "gateway_config": 2,
+            "rulebase_link_config": 4
+        }
+    )
+    normalized_config = copy.deepcopy(previous_config)
+
+    new_num_numeric = 0
+    for rulebase in normalized_config.rulebases:
+        for rule in rulebase.Rules.values():
+            new_num_numeric += rule_num_numeric_steps
+            rule.rule_num_numeric = new_num_numeric
+
+    fwconfig_import_rule.global_state.normalized_config = normalized_config
+    fwconfig_import_rule.global_state.previous_config = previous_config
+
+    last_rulebase = fwconfig_import_rule.global_state.normalized_config.rulebases[-1]
+    last_rulebase_last_rule_uid = list(last_rulebase.Rules.keys())[-1]
+    last_rulebase_last_rule = last_rulebase.Rules.pop(last_rulebase_last_rule_uid)
+
+    _, new_rulebase_uid = config_builder.add_rulebase(fwconfig_import_rule.global_state.normalized_config, mgm_uid)
+    config_builder.add_rule(fwconfig_import_rule.global_state.normalized_config, new_rulebase_uid, last_rulebase_last_rule.model_dump())
+    gateway = fwconfig_import_rule.global_state.normalized_config.gateways[0]
+    config_builder.add_cp_section_header(gateway, last_rulebase.uid, new_rulebase_uid, last_rulebase_last_rule_uid)
+
+    update_rule_map_and_rulebase_map(fwconfig_import_rule.global_state.normalized_config, fwconfig_import_rule.global_state.import_state)
+    to_rulebase_id = fwconfig_import_rule.global_state.import_state.lookupRulebaseId(new_rulebase_uid)
+    from_rulebase_id = fwconfig_import_rule.global_state.import_state.lookupRulebaseId(last_rulebase.uid)
+
+    config = fwconfig_import_rule.global_state.normalized_config
+    fwconfig_import_rule.global_state.normalized_config = fwconfig_import_rule.global_state.previous_config
+    fwconfig_import_rule.normalized_config = fwconfig_import_rule.global_state.previous_config
+    fwconfig_import_rule.global_state.previous_config = config
+
+    return fwconfig_import_rule.global_state.previous_config, fwconfig_import_rule, list(fwconfig_import_rule.global_state.normalized_config.rulebases[-1].Rules.keys())
+
+
 def reorder_rulebase_rules_dict(fwconfig_import_rule, rulebase_index, rule_uids):
     """
         Imitates the changes in order in the config dict.

@@ -163,8 +163,7 @@
 
     private void SetVisibleReportTypes()
     {
-        visibleReportTypes = ReportTypeGroups.ReportTypeSelection(showRuleRelatedReports, showModellingReports);
-        visibleReportTypes = [.. visibleReportTypes.Where(v => visibleReports.Any(r => r.Type == (int)v))];
+        visibleReportTypes = [.. ReportTypeGroups.ReportTypeSelection(showRuleRelatedReports, showModellingReports).Where(v => visibleReports.Any(r => r.Type == (int)v))];
     }
 
     private async void HandleSubscriptionError(Exception exception)

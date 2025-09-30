@@ -103,6 +103,8 @@ INSERT INTO txt VALUES ('Friday',               'German', 	'Freitag');
 INSERT INTO txt VALUES ('Friday',               'English', 	'Friday');
 INSERT INTO txt VALUES ('Saturday',             'German', 	'Samstag');
 INSERT INTO txt VALUES ('Saturday',             'English', 	'Saturday');
+INSERT INTO txt VALUES ('All',		            'German', 	'Alle');
+INSERT INTO txt VALUES ('All',		            'English', 	'All');
 INSERT INTO txt VALUES ('Rules', 			    'German', 	'Regel-Report');
 INSERT INTO txt VALUES ('Rules', 			    'English', 	'Rules Report');
 INSERT INTO txt VALUES ('Changes', 			    'German', 	'Changes-Report');
@@ -129,6 +131,8 @@ INSERT INTO txt VALUES ('AppRules', 	        'German', 	'App-Regel-Report');
 INSERT INTO txt VALUES ('AppRules', 		    'English', 	'App Rules Report');
 INSERT INTO txt VALUES ('VarianceAnalysis', 	'German', 	'Soll-Ist-Report');
 INSERT INTO txt VALUES ('VarianceAnalysis',     'English', 	'Variance Report');
+INSERT INTO txt VALUES ('OwnerRecertification', 'German', 	'Eigent&uuml;mer-Rezertifizierungs-Report');
+INSERT INTO txt VALUES ('OwnerRecertification', 'English', 	'Owner Recertification Report');
 INSERT INTO txt VALUES ('mixed', 	            'German', 	'Gemischt');
 INSERT INTO txt VALUES ('mixed', 	            'English', 	'Mixed');
 INSERT INTO txt VALUES ('exclusive', 	        'German', 	'Exklusiv');
@@ -173,8 +177,8 @@ INSERT INTO txt VALUES ('Implement', 	        'German', 	'Implementieren');
 INSERT INTO txt VALUES ('Implement', 	        'English', 	'Implement');
 INSERT INTO txt VALUES ('Reject', 	            'German', 	'Ablehnen');
 INSERT INTO txt VALUES ('Reject', 	            'English', 	'Reject');
-INSERT INTO txt VALUES ('SimpleText', 	        'German', 	'Einfacher Text (kein &Auml;nderungsreport)');
-INSERT INTO txt VALUES ('SimpleText', 	        'English', 	'Simple Text (no Change Report)');
+INSERT INTO txt VALUES ('SimpleText', 	        'German', 	'Einfacher Text (kein Report)');
+INSERT INTO txt VALUES ('SimpleText', 	        'English', 	'Simple Text (no Report)');
 INSERT INTO txt VALUES ('HtmlInBody', 	        'German', 	'Html in Email');
 INSERT INTO txt VALUES ('HtmlInBody', 	        'English', 	'Html in email body');
 INSERT INTO txt VALUES ('PdfAsAttachment', 	    'German', 	'Pdf als Anhang');
@@ -207,6 +211,8 @@ INSERT INTO txt VALUES ('LastCommenter', 		'German',	'Letzter Kommentierender');
 INSERT INTO txt VALUES ('LastCommenter', 	    'English',	'Last commenter');
 INSERT INTO txt VALUES ('AllCommenters', 		'German',	'Alle Kommentierenden');
 INSERT INTO txt VALUES ('AllCommenters', 	    'English',	'All commenters');
+INSERT INTO txt VALUES ('OtherAddresses',         'German',	'Andere Adressen');
+INSERT INTO txt VALUES ('OtherAddresses', 	    'English',	'Other Addresses');
 INSERT INTO txt VALUES ('Standard', 		    'German',	'Normal');
 INSERT INTO txt VALUES ('Standard', 	        'English',	'Standard');
 INSERT INTO txt VALUES ('InterfaceRequested', 	'German',	'Schnittstelle beantragt');
@@ -221,6 +227,12 @@ INSERT INTO txt VALUES ('Rejected',             'German',	'Abgelehnt');
 INSERT INTO txt VALUES ('Rejected', 	        'English',	'Rejected');
 INSERT INTO txt VALUES ('Internal',             'German',	'Intern');
 INSERT INTO txt VALUES ('Internal', 	        'English',	'Internal');
+INSERT INTO txt VALUES ('RuleByRule',           'German',	'Regel f&uuml;r Regel');
+INSERT INTO txt VALUES ('RuleByRule', 	        'English',	'Rule by Rule');
+INSERT INTO txt VALUES ('OwnersAndRules',       'German',	'Eigent&uuml;mer und Regeln');
+INSERT INTO txt VALUES ('OwnersAndRules', 	    'English',	'Owners And Rules');
+INSERT INTO txt VALUES ('RecertDate',       	'German',	'Rezertifizierungsdatum');
+INSERT INTO txt VALUES ('RecertDate', 	    	'English',	'Recertification Date');
 
 -- general
 INSERT INTO txt VALUES ('cancel', 				'German',	'Abbrechen');
@@ -766,6 +778,8 @@ INSERT INTO txt VALUES ('missing_objects',		'German', 	'Fehlende Objekte auf Dev
 INSERT INTO txt VALUES ('missing_objects',		'English', 	'Missing Objects on Device');
 INSERT INTO txt VALUES ('fully_modelled',		'German', 	'Vollst&auml;ndig Modelliert');
 INSERT INTO txt VALUES ('fully_modelled',		'English', 	'Fully Modelled');
+INSERT INTO txt VALUES ('show_all_owners',		'German', 	'Alle Eigent&uuml;mer zeigen');
+INSERT INTO txt VALUES ('show_all_owners',		'English', 	'Show all owners');
 
 -- schedule
 INSERT INTO txt VALUES ('schedule', 			'German',	'Terminplan');
@@ -1094,10 +1108,14 @@ INSERT INTO txt VALUES ('execute_selected',		'German', 	'Ausgew&auml;hlte Aktion
 INSERT INTO txt VALUES ('execute_selected',		'English', 	'Execute Selected Actions');
 INSERT INTO txt VALUES ('missing_owner_id',		'German', 	'Fehlende Eigent&uuml;mer ID');
 INSERT INTO txt VALUES ('missing_owner_id',		'English', 	'missing owner id');
-INSERT INTO txt VALUES ('next_recert',		    'German', 	'Datum n&auml;chste Rezertifizierung');
-INSERT INTO txt VALUES ('next_recert',		    'English', 	'Next Recertification Date');
+INSERT INTO txt VALUES ('next_recert_date',		'German', 	'Datum n&auml;chste Rezertifizierung');
+INSERT INTO txt VALUES ('next_recert_date',		'English', 	'Next Recertification Date');
 INSERT INTO txt VALUES ('last_recertifier',		'German', 	'Letzter Rezertifizierer');
-INSERT INTO txt VALUES ('last_recertifier',		'English', 	'Last Recertifier Name');
+INSERT INTO txt VALUES ('last_recertifier',		'English', 	'Last Recertifier');
+INSERT INTO txt VALUES ('last_recertified',		'German', 	'Letzte Rezertifizierung');
+INSERT INTO txt VALUES ('last_recertified',		'English', 	'Last Recertification');
+INSERT INTO txt VALUES ('next_recertification',	'German', 	'N&auml;chste Rezertifizierung');
+INSERT INTO txt VALUES ('next_recertification',	'English', 	'Next Recertification');
 INSERT INTO txt VALUES ('unknown',		        'German', 	'(unbekannt)');
 INSERT INTO txt VALUES ('unknown',		        'English', 	'(unknown)');
 INSERT INTO txt VALUES ('recerts_executed',		'German', 	'Durchgef&uuml;hrte Rezertifizierungen: ');
@@ -1142,6 +1160,28 @@ INSERT INTO txt VALUES ('at_startup',           'German',   'Beim Hochfahren');
 INSERT INTO txt VALUES ('at_startup',           'English',  'At startup');
 INSERT INTO txt VALUES ('daily',                'German',   'T&auml;glich');
 INSERT INTO txt VALUES ('daily',                'English',  'Daily');
+INSERT INTO txt VALUES ('recertificationMode',  'German',   'Rezertifizierungsmodus');
+INSERT INTO txt VALUES ('recertificationMode',  'English',  'Recertification Mode');
+INSERT INTO txt VALUES ('email_address',        'German',   'Email-Adresse');
+INSERT INTO txt VALUES ('email_address',        'English',  'Email address');
+INSERT INTO txt VALUES ('channel',        		'German',   'Kanal');
+INSERT INTO txt VALUES ('channel',        		'English',  'Channel');
+INSERT INTO txt VALUES ('layout',        		'German',   'Layout');
+INSERT INTO txt VALUES ('layout',        		'English',  'Layout');
+INSERT INTO txt VALUES ('notif_before_deadline','German',   'Benachrichtigungen vor Termin');
+INSERT INTO txt VALUES ('notif_before_deadline','English',  'Notifications before Deadline');
+INSERT INTO txt VALUES ('notif_after_deadline', 'German',   'Benachrichtigungen nach Termin');
+INSERT INTO txt VALUES ('notif_after_deadline', 'English',  'Notifications after Deadline');
+INSERT INTO txt VALUES ('max_number',    		'German',   'Maximale Anzahl');
+INSERT INTO txt VALUES ('max_number',    		'English',  'Max Number');
+INSERT INTO txt VALUES ('recipient_to',    		'German',   'Empf&auml;nger (To)');
+INSERT INTO txt VALUES ('recipient_to',    		'English',  'Recipient (To)');
+INSERT INTO txt VALUES ('recipient_cc',    		'German',   'Empf&auml;nger (Cc)');
+INSERT INTO txt VALUES ('recipient_cc',    		'English',  'Recipient (Cc)');
+INSERT INTO txt VALUES ('recertification_ok',   'German',   'Rezertifizierung Ok');
+INSERT INTO txt VALUES ('recertification_ok',   'English',  'Recertification Ok');
+INSERT INTO txt VALUES ('recertification_error','German',   'Rezertifizierungsfehler');
+INSERT INTO txt VALUES ('recertification_error','English',  'Recertification Error');
 
 -- network modelling
 INSERT INTO txt VALUES ('network_modelling', 	'German',	'Netzwerkmodellierung');
@@ -1539,6 +1579,10 @@ INSERT INTO txt VALUES ('regular_connection',   'German', 	'Standard-Verbindung'
 INSERT INTO txt VALUES ('regular_connection',   'English', 	'Regular Connection');
 INSERT INTO txt VALUES ('regular_connections', 	'German',	'Standard-Verbindungen');
 INSERT INTO txt VALUES ('regular_connections', 	'English',	'Regular Connections');
+INSERT INTO txt VALUES ('using_connections', 	'German',	'Nutzende Verbindungen von ');
+INSERT INTO txt VALUES ('using_connections', 	'English',	'Using Connections of ');
+INSERT INTO txt VALUES ('where_used',           'German', 	'Wo genutzt?');
+INSERT INTO txt VALUES ('where_used',           'English', 	'Where used?');
 INSERT INTO txt VALUES ('show_all',             'German', 	'Alle darstellen');
 INSERT INTO txt VALUES ('show_all',             'English', 	'Show all');
 INSERT INTO txt VALUES ('fetch_limit',          'German', 	'Limit');
@@ -1593,6 +1637,10 @@ INSERT INTO txt VALUES ('reject',               'German',   'Ablehnen');
 INSERT INTO txt VALUES ('reject',               'English',  'Reject');
 INSERT INTO txt VALUES ('reject_interface',     'German',   'Schnittstelle ablehnen');
 INSERT INTO txt VALUES ('reject_interface',     'English',  'Reject interface');
+INSERT INTO txt VALUES ('decommission',         'German',   'Stilllegen');
+INSERT INTO txt VALUES ('decommission',         'English',  'Decommission');
+INSERT INTO txt VALUES ('decomm_interface',     'German',   'Schnittstelle stilllegen');
+INSERT INTO txt VALUES ('decomm_interface',     'English',  'Decommission interface');
 INSERT INTO txt VALUES ('on',                   'German',   ' auf ');
 INSERT INTO txt VALUES ('on',                   'English',  ' on ');
 INSERT INTO txt VALUES ('create_rule',          'German',   'Regeln anlegen');
@@ -1685,6 +1733,9 @@ INSERT INTO txt VALUES ('modelled_source', 		'German', 	'Modellierte Quelle');
 INSERT INTO txt VALUES ('modelled_source', 		'English', 	'Modelled Source');
 INSERT INTO txt VALUES ('modelled_destination', 'German', 	'Modelliertes Ziel');
 INSERT INTO txt VALUES ('modelled_destination', 'English', 	'Modelled Destination');
+INSERT INTO txt VALUES ('last_requested',		'German', 	'Letzte Beantragung');
+INSERT INTO txt VALUES ('last_requested',		'English', 	'Last Requested');
+
 
 -- compliance
 INSERT INTO txt VALUES ('compliance',			'German', 	'Compliance');
@@ -2105,10 +2156,12 @@ INSERT INTO txt VALUES ('recDeleteRuleTicketPriority','German','Priorit&auml;t f
 INSERT INTO txt VALUES ('recDeleteRuleTicketPriority','English','Priority for delete rule ticket');
 INSERT INTO txt VALUES ('recDeleteRuleInitState','German',  'Initialer Status f&uuml;r L&ouml;schantrag');
 INSERT INTO txt VALUES ('recDeleteRuleInitState','English', 'Initial state for delete rule ticket');
-INSERT INTO txt VALUES ('recCheckActive',       'German','Rezert Check - aktiv');
-INSERT INTO txt VALUES ('recCheckActive',       'English','Recert Check - active');
-INSERT INTO txt VALUES ('recCheckEmailSubject', 'German','Rezert Check - Email Betreff');
-INSERT INTO txt VALUES ('recCheckEmailSubject', 'English','Recert Check - Email subject');
+INSERT INTO txt VALUES ('recCheckActive',       'German',	'Rezert Check - aktiv');
+INSERT INTO txt VALUES ('recCheckActive',       'English',	'Recert Check - active');
+INSERT INTO txt VALUES ('recCheckNotifications','German',	'Rezert Check - Benachrichtigungen');
+INSERT INTO txt VALUES ('recCheckNotifications','English',	'Recert Check - Notifications');
+INSERT INTO txt VALUES ('recCheckEmailSubject', 'German',	'Rezert Check - Email Betreff');
+INSERT INTO txt VALUES ('recCheckEmailSubject', 'English',	'Recert Check - Email subject');
 INSERT INTO txt VALUES ('recCheckEmailUpcomingText','German','Rezert Check - Text anstehend');
 INSERT INTO txt VALUES ('recCheckEmailUpcomingText','English','Recert Check - text upcoming');
 INSERT INTO txt VALUES ('recCheckEmailOverdueText','German','Rezert Check - Text &uuml;berf&auml;llig');
@@ -2385,14 +2438,20 @@ INSERT INTO txt VALUES ('modReqTicketTitle',    'German',   'Titel des Schnittst
 INSERT INTO txt VALUES ('modReqTicketTitle',    'English',  'Title of interface request ticket');
 INSERT INTO txt VALUES ('modReqTaskTitle',      'German',   'Titel des Schnittstellenauftrags');
 INSERT INTO txt VALUES ('modReqTaskTitle',      'English',  'Title of interface request task');
+INSERT INTO txt VALUES ('modDecommEmailReceiver','German',  'Empf&auml;nger der Stilllegungsbenachrichtigung');
+INSERT INTO txt VALUES ('modDecommEmailReceiver','English', 'Receiver of decommission email');
+INSERT INTO txt VALUES ('modDecommEmailSubject','German',   'Titel der Stilllegungsbenachrichtigung');
+INSERT INTO txt VALUES ('modDecommEmailSubject','English',  'Subject of decommission emails');
+INSERT INTO txt VALUES ('modDecommEmailBody',   'German',   'Text der Stilllegungsbenachrichtigung');
+INSERT INTO txt VALUES ('modDecommEmailBody',   'English',  'Body of decommission emails');
 INSERT INTO txt VALUES ('modRolloutActive',     'German',   'Automatische Firewallbeantragung aktivieren');
 INSERT INTO txt VALUES ('modRolloutActive',     'English',  'Activate automatic Firewall request');
 INSERT INTO txt VALUES ('modRolloutResolveServiceGroups','German','Servicegruppen aufl&ouml;sen');
 INSERT INTO txt VALUES ('modRolloutResolveServiceGroups','English','Resolve service groups');
 INSERT INTO txt VALUES ('modRolloutBundleTasks','German',   'Tasks zusammenfassen');
 INSERT INTO txt VALUES ('modRolloutBundleTasks','English',  'Bundle tasks');
-INSERT INTO txt VALUES ('modRolloutNatHeuristic',	'German','NAT Heuristik');
-INSERT INTO txt VALUES ('modRolloutNatHeuristic',	'English','NAT Heuristic');
+INSERT INTO txt VALUES ('modRolloutNatHeuristic','German',  'NAT Heuristik');
+INSERT INTO txt VALUES ('modRolloutNatHeuristic','English', 'NAT Heuristic');
 INSERT INTO txt VALUES ('modRolloutErrorText',  'German',   'Fehlertext');
 INSERT INTO txt VALUES ('modRolloutErrorText',  'English',  'Error text');
 INSERT INTO txt VALUES ('modelledMarker',       'German',   'Markierung Modelliert');
@@ -2481,7 +2540,12 @@ INSERT INTO txt VALUES ('resolveNetworkAreas',  'German',   'Netzbereiche aufl&o
 INSERT INTO txt VALUES ('resolveNetworkAreas',  'English',  'Resolve Network Areas');
 INSERT INTO txt VALUES ('availableModules',     'German', 	'Verf&uuml;gbare Module');
 INSERT INTO txt VALUES ('availableModules',     'English', 	'Available Modules');
-
+INSERT INTO txt VALUES ('notification',   		'German', 	'Benachrichtigung');
+INSERT INTO txt VALUES ('notification',   		'English', 	'Notification');
+INSERT INTO txt VALUES ('edit_notification',    'German', 	'Benachrichtigung bearbeiten');
+INSERT INTO txt VALUES ('edit_notification',    'English', 	'Edit Notification');
+INSERT INTO txt VALUES ('delete_notification',  'German', 	'Benachrichtigung l&ouml;schen');
+INSERT INTO txt VALUES ('delete_notification',  'English', 	'Delete Notification');
 
 -- monitoring
 INSERT INTO txt VALUES ('open_alerts',          'German', 	'Offene Alarme');
@@ -2758,6 +2822,7 @@ INSERT INTO txt VALUES ('import_app_server',    'English',  'Import app servers'
 --            5300-5399: defaults
 --            5400-5499: personal settings
 --            5500-5599: workflow module
+--            5600-5699: workflow module
 -- 6000-6999: API
 -- 7000-7999: Monitoring
 -- 8000-8999: Workflow
@@ -2793,6 +2858,21 @@ INSERT INTO txt VALUES ('U2002', 'English', 'Do you really want to delete report
 
 INSERT INTO txt VALUES ('U3002', 'German',  'Sind sie sicher, dass sie folgenden Report l&ouml;schen wollen: ');
 INSERT INTO txt VALUES ('U3002', 'English', 'Do you really want to delete generated report ');
+
+INSERT INTO txt VALUES ('U4001', 'German',  'Sind sie sicher, dass sie folgende Benachrichtigung l&ouml;schen wollen: ');
+INSERT INTO txt VALUES ('U4001', 'English', 'Do you really want to delete notification ');
+INSERT INTO txt VALUES ('U4002', 'German',  'Die App @@APPNAME@@ mit @@RULE_NUMBER@@ Regeln wurde erfolgreich rezertifiziert.');
+INSERT INTO txt VALUES ('U4002', 'English', 'Recertified @@APPNAME@@ with @@RULE_NUMBER@@ rules successfully.');
+INSERT INTO txt VALUES ('U4003', 'German',  'Rezertifizierung &uuml;berf&auml;llig');
+INSERT INTO txt VALUES ('U4003', 'English', 'Overdue to be recertified');
+INSERT INTO txt VALUES ('U4004', 'German',  'Es wurden keine &uuml;berf&auml;lligen Apps gefunden.');
+INSERT INTO txt VALUES ('U4004', 'English', 'No overdue apps found.');
+INSERT INTO txt VALUES ('U4005', 'German',  'Anstehende Rezertifizierungen in den n&auml;chsten @@DAYS@@ Tagen');
+INSERT INTO txt VALUES ('U4005', 'English', 'Upcoming recertifications in the next @@DAYS@@ days');
+INSERT INTO txt VALUES ('U4006', 'German',  'Es wurden keine anstehenden Rezertifizierungen in den n&auml;chsten @@DAYS@@ Tagen gefunden.');
+INSERT INTO txt VALUES ('U4006', 'English', 'No upcoming recertifications found in the next @@DAYS@@ days.');
+INSERT INTO txt VALUES ('U4007', 'German',  'Weitere rezertifizierte Apps');
+INSERT INTO txt VALUES ('U4007', 'English', 'Further recertified apps');
 
 INSERT INTO txt VALUES ('U5001', 'German',  'Setup und Verwaltung des Firewall Orchestrator. Bitte eine Einstellung in der linken Randleiste ausw&auml;hlen.');
 INSERT INTO txt VALUES ('U5001', 'English', 'Setup and administration of Firewall Orchestrator. Please choose a setting in the left sidebar.');
@@ -3019,8 +3099,16 @@ INSERT INTO txt VALUES ('U9029', 'German',  'Bei folgenden Verbindungen stimmt d
 INSERT INTO txt VALUES ('U9029', 'English', 'For following connections are production state does not fit modelled state and impede recertification: ');
 INSERT INTO txt VALUES ('U9030', 'German',  'Ein gemeinsamer Dienst muss mindestens eine nicht gemeinsam genutzten Netzwerkbereich enthalten.');
 INSERT INTO txt VALUES ('U9030', 'English', 'A common service must contain at least one non-shared network area.');
-INSERT INTO txt VALUES ('U9031', 'German',  'Gemeinsame Dienste dürfen nur Netzwerkbereichsobjekte in einer Richtung enthalten.');
+INSERT INTO txt VALUES ('U9031', 'German',  'Gemeinsame Dienste d&uuml;rfen nur Netzwerkbereichsobjekte in einer Richtung enthalten.');
 INSERT INTO txt VALUES ('U9031', 'English', 'Common services must contain only network area objects in direction.');
+INSERT INTO txt VALUES ('U9032', 'German',  'Sie wird von folgenden verbindungen genutzt: ');
+INSERT INTO txt VALUES ('U9032', 'English', 'It is used by following connections: ');
+INSERT INTO txt VALUES ('U9033', 'German',  '@@OK_NUMBER@@ Benachrichtigungen an App-Verantwortliche gesendet.');
+INSERT INTO txt VALUES ('U9033', 'English', '@@OK_NUMBER@@ emails sent to App responsibles.');
+INSERT INTO txt VALUES ('U9034', 'German',  'Es ist noch ein Firewall-&Auml;nderungsantrag in Bearbeitung!');
+INSERT INTO txt VALUES ('U9034', 'English', 'A Firewall Change request is running!');
+INSERT INTO txt VALUES ('U9035', 'German',  'Sind sie sicher, dass sie folgende Schnittstelle stillegen wollen: ');
+INSERT INTO txt VALUES ('U9035', 'English', 'Are you sure you want to decommission following interface: ');
 
 -- error messages
 INSERT INTO txt VALUES ('E0001', 'German',  'Nicht klassifizierter Fehler: ');
@@ -3080,6 +3168,14 @@ INSERT INTO txt VALUES ('E4003', 'German',  'Keine &Auml;nderungen f&uuml;r die 
 INSERT INTO txt VALUES ('E4003', 'English', 'No changes found for given criteria');
 INSERT INTO txt VALUES ('E4004', 'German',  'Nutzungsdaten nicht unterst&uuml;tzt f&uuml;r: ');
 INSERT INTO txt VALUES ('E4004', 'English', 'Usage data not supported for: ');
+INSERT INTO txt VALUES ('E4010', 'German',  'Betreff fehlt');
+INSERT INTO txt VALUES ('E4010', 'English', 'Subject missing');
+INSERT INTO txt VALUES ('E4011', 'German',  'Email-Adressen nicht konsistent');
+INSERT INTO txt VALUES ('E4011', 'English', 'Email addresses not consistent');
+INSERT INTO txt VALUES ('E4012', 'German',  'Mindestens ein Offset vor oder nach dem Termin muss gef&uuml;llt sein');
+INSERT INTO txt VALUES ('E4012', 'English', 'At least one offset before or after deadline has to be filled');
+INSERT INTO txt VALUES ('E4013', 'German',  'Daten f&uuml;r Benachrichtigung nach Termin nicht konsistent');
+INSERT INTO txt VALUES ('E4013', 'English', 'Data for Notifications after Deadline not consistent');
 
 INSERT INTO txt VALUES ('E5101', 'German',  'L&ouml;schen des Managements nicht erlaubt, da noch Gateways zugeordnet sind. Diese zuerst l&ouml;schen wenn m&ouml;glich');
 INSERT INTO txt VALUES ('E5101', 'English', 'Deletion of management not allowed as there are related Gateways. Delete them first if possible');
@@ -3353,6 +3449,8 @@ INSERT INTO txt VALUES ('E9017', 'German',  'Schnittstelle kann die angeforderte
 INSERT INTO txt VALUES ('E9017', 'English', 'Interface cannot replace requested one: the directions of the interfaces do not match (one is a source interface, the other a destination interface).');
 INSERT INTO txt VALUES ('E9018', 'German',  'Name schon vergeben. Bitte einen anderen w&auml;hlen.');
 INSERT INTO txt VALUES ('E9018', 'English', 'Name already used. Please choose another.');
+INSERT INTO txt VALUES ('E9019', 'German',  'Benachrichtigungen an @@FAIL_NUMBER@@ App-Verantwortliche konnte nicht gesendet werden.');
+INSERT INTO txt VALUES ('E9019', 'English', 'Email could not be sent to @@FAIL_NUMBER@@ App responsibles.');
 INSERT INTO txt VALUES ('E9101', 'German',  'Fehler bei externer Auftragserzeugung.');
 INSERT INTO txt VALUES ('E9101', 'English', 'Error at external ticket creation.');
 INSERT INTO txt VALUES ('E9102', 'German',  'Fehler beim &Auml;ndern des externen Auftragsstatus.');
@@ -3438,6 +3536,8 @@ INSERT INTO txt VALUES ('T0107', 'German',  'Aktuell aktive Regeln, die zur Reze
 INSERT INTO txt VALUES ('T0107', 'English', 'Currently active rules with upcoming recertification');
 
 -- Contextual Info (Tooltips)
+INSERT INTO txt VALUES ('C1000', 'German',  'Zeige alle Eigent&uuml;er inklusive der rezertifizierten');
+INSERT INTO txt VALUES ('C1000', 'English', 'show all owners including recertified');
 INSERT INTO txt VALUES ('C9000', 'German',  'Dieses Objekt wurde deaktiviert und sollte von der App Rolle entfernt werden.');
 INSERT INTO txt VALUES ('C9000', 'English', 'This object was deactivated and should be removed from App Role.');
 INSERT INTO txt VALUES ('C9001', 'German',  'Dieses Objekt wurde deaktiviert und sollte von der Verbindung entfernt werden.');
@@ -3498,6 +3598,8 @@ INSERT INTO txt VALUES ('C9024', 'German',  'Der Produktionsstand entspricht der
 INSERT INTO txt VALUES ('C9024', 'English', 'Production state fits to modelled connection.');
 INSERT INTO txt VALUES ('C9025', 'German',  'Asynchroner Soll-Ist-Abgleich wurde noch nicht durchgef&uuml;hrt.');
 INSERT INTO txt VALUES ('C9025', 'English', 'Asynchroneous Variance Analysis not performed yet.');
+INSERT INTO txt VALUES ('C9026', 'German',  'Schnittstelle wurde stillgelegt.');
+INSERT INTO txt VALUES ('C9026', 'English', 'Interface was decommissioned.');
 
 -- help pages
 INSERT INTO txt VALUES ('H0001', 'German',  'Firewall Orchestrator ist eine Anwendung zum Erzeugen und Verwalten von verschiedenen Reports aus Konfigurationsdaten verteilter Firewallsysteme.
@@ -4296,6 +4398,23 @@ mutation addSingleOwner {
 </pre>
 ');
 
+INSERT INTO txt VALUES ('H4101', 'German',  'Kanal: Legt fest, auf welchem Weg die Nachrichten geschickt werden (z.Zt. nur Email).');
+INSERT INTO txt VALUES ('H4101', 'English', 'Channel: Defines on which way the notificastions are delivered (currently onl email).');
+INSERT INTO txt VALUES ('H4102', 'German',  'Layout: Legt fest in welchem Format die Nachrichten erzeugt werden sollen (z.B. als PDF-Attachment).');
+INSERT INTO txt VALUES ('H4102', 'English', 'Layout: Defines in which format the notifications are created (e.g. as PDF attachment).');
+INSERT INTO txt VALUES ('H4103', 'German',  'Deadline: Referenzdatum, relativ zu dem Nachrichten verschickt werden sollen.');
+INSERT INTO txt VALUES ('H4103', 'English', 'Deadline: Reference date for the submission of notifications.');
+INSERT INTO txt VALUES ('H4104', 'German',  'Benachrichtigungen vor Termin: Definiert das Zeitintervall vor dem Referenzdatum, in dem eine Benachrichtigung stattfinden soll.');
+INSERT INTO txt VALUES ('H4104', 'English', 'Notifications before Deadline: Defines the time interval relative to the reference date, where one notification is to be sent.');
+INSERT INTO txt VALUES ('H4105', 'German',  'Benachrichtigungen nach Termin: Definiert ein Zeitintervall f&uuml;r wiederkehrende Benachrichtigungen nach Ablauf des Referenzdatums mit einer maximalen Anzahl von Wiederholungen.');
+INSERT INTO txt VALUES ('H4105', 'English', 'Notifications after Deadline: Defines a time interval for recurring notifications after reaching the reference date with a maximum number of repetitions.');
+INSERT INTO txt VALUES ('H4106', 'German',  'Email Betreff: Betreff der Benachrichtigungs, falls nicht schon durch &uuml;bergeordnete Einstellungen gesetzt.');
+INSERT INTO txt VALUES ('H4106', 'English', 'Email subject: Subject line of the notification, if not already set by prior settings.');
+INSERT INTO txt VALUES ('H4107', 'German',  'Empf&auml;nger (To): Es werden verschiedene Rollen (je nach Kontext) als Empf&auml;nger angeboten, zu denen dann automatisch die entsprechenden Adressen ermittelt werden. Bei "Andere Adressen" k&ouml;nnen manuell Adressen eingegeben werden.');
+INSERT INTO txt VALUES ('H4107', 'English', 'Recipient (To): Different roles are offered as recipients (depending on context), for which the addresses are determined automatically. With "Other Addresses" addreesses can be inserted manually.');
+INSERT INTO txt VALUES ('H4108', 'German',  'Empf&auml;nger (Cc). Wie "Empf&auml;nger (To)" f&uuml;r Empf&auml;nger im CC.');
+INSERT INTO txt VALUES ('H4108', 'English', 'Recipient (Cc). As "Recipient (To)" for recipient in CC.');
+
 INSERT INTO txt VALUES ('H5001', 'German',  'In diesem Abschnitt werden die Setup- und Verwaltungseinstellungen behandelt.
     Die meisten Einstellungen k&ouml;nnen nur von Nutzern mit der Administrator-Rolle gesehen und ge&auml;ndert werden.
     Der Auditor kann zwar die Einstellungen sehen, da er aber keine Schreibrechte hat, sind alle Schaltfl&auml;chen, die zu &Auml;nderungen f&uuml;hren w&uuml;rden, deaktiviert.
@@ -4858,8 +4977,8 @@ INSERT INTO txt VALUES ('H5415', 'German',  'Datenaufbewahrungszeit (in Tagen): 
 INSERT INTO txt VALUES ('H5415', 'English', 'Data retention time (in days): Defines how long the data is kept in the database (currently not supported).');
 INSERT INTO txt VALUES ('H5416', 'German',  '&Auml;nderungsbenachrichtigung via Email:');
 INSERT INTO txt VALUES ('H5416', 'English', 'Change notification via email:');
-INSERT INTO txt VALUES ('H5417', 'German',  'Rezertifizierungsintervall (in Tagen): Maximale Zeit, nach der eine Regel rezertifiziert werden soll.');
-INSERT INTO txt VALUES ('H5417', 'English', 'Recertification Period (in days): Maximum time, after when a rule should be recertified.');
+INSERT INTO txt VALUES ('H5417', 'German',  'Rezertifizierungsintervall (in Tagen): Maximale Zeit, nach der eine Regel rezertifiziert werden soll. Bei Rezertifizierungsmodus "Eigent&uuml;mer und Regeln": Default-Wert, wenn im Eigent&uuml;mer kein Wert gesetzt ist.');
+INSERT INTO txt VALUES ('H5417', 'English', 'Recertification Period (in days): Maximum time, after when a rule should be recertified. In case of Recertification Mode "Owners And Rules": Default period if no value set in owner.');
 INSERT INTO txt VALUES ('H5418', 'German',  'Rezertifizierungserinnerungsintervall (in Tagen): Zeit vor dem F&auml;lligkeitsdatum, ab der eine Regel als f&auml;llig hervorgehoben werden soll.');
 INSERT INTO txt VALUES ('H5418', 'English', 'Recertification Notice Period (in days): Time before the due date when the rule should be marked as upcoming recertification.');
 INSERT INTO txt VALUES ('H5419', 'German',  'Rezertifizierungsanzeigeintervall (in Tagen): Vorausschauintervall f&uuml;r f&auml;llige Rezertifizierungen.');
@@ -4896,7 +5015,7 @@ INSERT INTO txt VALUES ('H5428', 'German',  'Rezert Check - aktiv: aktviere bzw.
 INSERT INTO txt VALUES ('H5428', 'English', 'Recert Check - active: enable or disable recurring recertification checks to send out notification or escalation emails to owners.');
 INSERT INTO txt VALUES ('H5429', 'German',  'Rezert Check alle: Abstand der Pr&uuml;fungen f&uuml;r den Versand von Benachrichtigungs- oder Eskalations-Emails an die Eigent&uuml;mer.');
 INSERT INTO txt VALUES ('H5429', 'English', 'Recert Check every: Interval between checks for recertification notifications.');
-INSERT INTO txt VALUES ('H5430', 'German',  'Rezert Check - Email Titel: Titel der Benachrichtigungs-Email.');
+INSERT INTO txt VALUES ('H5430', 'German',  'Rezert Check - Email Betreff: Betreff der Benachrichtigungs-Email.');
 INSERT INTO txt VALUES ('H5430', 'English', 'Recert Check - Email subject: Subject line of the notification email.');
 INSERT INTO txt VALUES ('H5431', 'German',  'Der Administrator kann Vorgaben f&uuml;r Passw&ouml;rter definieren, gegen die alle neuen Passw&ouml;rter aller (internen) Nutzer gepr&uuml;ft werden.');
 INSERT INTO txt VALUES ('H5431', 'English', 'The admin user can define a password policy, against which all new passwords of all (internal) users are checked.');
@@ -4960,6 +5079,10 @@ INSERT INTO txt VALUES ('H5456', 'German',  'Netzbereiche aufl&ouml;sen: Darstel
 INSERT INTO txt VALUES ('H5456', 'English', 'Resolve Network Areas: Display of all elements of a network area in connection related reports.');
 INSERT INTO txt VALUES ('H5457', 'German',  'Verf&uuml;gbare Module: Es kann ausgew&auml;hlt werden, welche der technisch vorhandenen Module zur Verwendung in der Oberfl&auml;che angeboten werden sollen. Die Anzahl der angebotenen Module beim Nutzer kann je nach Rolle geringer sein.');
 INSERT INTO txt VALUES ('H5457', 'English', 'Available Modules: It can be selected, which of the technically available modules should be offered for use in the UI. The number of offered modules to the user can be smaller depending on the respective role.');
+INSERT INTO txt VALUES ('H5458', 'German',  'Rezertifizierungsmodus: Methode der Rezertifizierung.');
+INSERT INTO txt VALUES ('H5458', 'English', 'Recertification Mode: Type of recertification.');
+INSERT INTO txt VALUES ('H5459', 'German',  'Rezert Check - Benachrichtigungen: Legt fest, wer in welchem Zeitintervall vor dem Rezert-Termin benachrichtigt wird.');
+INSERT INTO txt VALUES ('H5459', 'English', 'Recert Check - Notifications: Defines who will be notified in which time interval before the recert deadline.');
 INSERT INTO txt VALUES ('H5461', 'German',  'Jeder Nutzer kann seine eigene bevorzugte Sprache f&uuml;r die Anwendung einstellen.<br>
     Alle Texte werden in dieser Sprache dargestellt, soweit verf&uuml;gbar. Wenn nicht, wird die Standardsprache verwendet. Wenn der Text auch dort nicht verf&uuml;gbar ist, wird Englisch genutzt.
     Die Standardsprache beim ersten Anmelden kann vom Admin f&uuml;r alle Nutzer in den <a href="/help/settings/defaults">Standardeinstellungen</a> definiert werden.<br><br>
@@ -5532,6 +5655,18 @@ INSERT INTO txt VALUES ('H5658', 'German',  'Rezertifizierungstext: Text, der zu
 INSERT INTO txt VALUES ('H5658', 'English', 'Recertification Text: Text to be shown to confirm recertification. If the text contains a placeholder "@@APPNAME@@", it is replaced by the app name.');
 INSERT INTO txt VALUES ('H5659', 'German',  'Netzwerkareas f&uuml;r Updatable Objects: Vom Administrator vorgegebene Netzwerkareas, welche f&uuml;r die Zuordnung &uuml;ber die Sonderkonfiguration "Updatable Objects" genutzt werden d&uuml;rfen. Die beiden Auswahlfelder "in Quelle" und "in Ziel" legen fest, wo die Netzwerkarea genutzt werden darf.');
 INSERT INTO txt VALUES ('H5659', 'English', 'Network Areas for Updatable Objects: Network areas defined by the administrator, which are permitted to be used for assignment via the Extra Configurations "Updatable Objects". The flags "in Source" and "in Destination" determine, where the Network Areas are allowed to be used.');
+INSERT INTO txt VALUES ('H5660', 'German',  'Empf&auml;nger der Stilllegungsbenachrichtigung: Auswahl, wem die Email mit der Stilllegungsbenachrichtigung geschickt werden soll: Der Eigent&uuml;mergruppe (Default), dem Hauptverantwortlichen oder beiden.');
+INSERT INTO txt VALUES ('H5660', 'English', 'Receiver of decommission emails: Selection to whom the decommission notification email should be sent: the Owner Group, the Owner Main Responsible or both.');
+INSERT INTO txt VALUES ('H5661', 'German',  'Titel der Stilllegungsbenachrichtigung: Betreff der Email-Benachrichtigung an die betroffenen Eigent&uuml;mer. Platzhalter @@INTERFACE_NAME@@ werden mit dem Namen der zu l&ouml;schenden Schnittstelle ersetzt.');
+INSERT INTO txt VALUES ('H5661', 'English', 'Subject of decommission emails: Subject of the email to the addressed owners. Placeholders @@INTERFACE_NAME@@ will be replaced by the name of the interface to be decommissioned.');
+INSERT INTO txt VALUES ('H5662', 'German',  'Text der Stilllegungsbenachrichtigung: Text der Email-Benachrichtigung an die Nutzer der Schnittstelle, gefolgt von der Liste der betroffenen Verbindungen. Es k&ouml;nnen folgende Platzhalter genutzt werden:
+    @@INTERFACE_NAME@@ wird durch den Namen der stillzulegenden Schnittstelle ersetzt, @@NEW_INTERFACE_NAME@@ mit dem Namen der vorgeschlagenen Ersatzschnittstelle, @@NEW_INTERFACE_LINK@@ mit einem Link auf diese, 
+	@@REASON@@ mit dem Begr&uuml;ndungstext, der im Stillegungsformular eingegeben wurde, @@USER_NAME@@ mit dem Nutzer, der die Stillegung veranlasst hat.
+');
+INSERT INTO txt VALUES ('H5662', 'English', 'Body of decommission emails: Text of the email notification to the addressed owners, followed by a list of the affected connections. Some placeholders can be used:
+    @@INTERFACE_NAME@@ will be replaced by the name of the interface to be decommissioned, @@NEW_INTERFACE_NAME@@ by the name of the proposed new interface, @@NEW_INTERFACE_LINK@@ by a link to this interface, 
+	@@REASON@@ by the reason text filled in the decommission form, @@USER_NAME@@ by the user initiating the decommissioning.
+');
 
 INSERT INTO txt VALUES ('H5701', 'German',  'Die in der Datenbank hinterlegten sprachabh&auml;ngigen Texte k&ouml;nnen individuell &uuml;berschrieben werden.
     Dabei werden die vom System vorgegebenen Texte nicht ge&auml;ndert, sondern nur durch die hier definierten Texte - falls vorhanden - &uuml;berblendet.

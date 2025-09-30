@@ -284,3 +284,13 @@ bugfix release:
 # 8.8.8 - 21.08.2025 DEVELOP
 - add read-only db user fwo_ro
 - also reducing db listener to localhost
+
+# 8.8.9 - 27.08.2025 DEVELOP
+- prepare tables + settings for owner recert + first throw recert popup
+- notification service
+- decommissioning of interfaces
+- iconification of modelling and related modules
+- fix overwrite of objects with interface
+
+# 8.8.10 - 07.09.2025 DEVELOP
+- new report type owner-recertification

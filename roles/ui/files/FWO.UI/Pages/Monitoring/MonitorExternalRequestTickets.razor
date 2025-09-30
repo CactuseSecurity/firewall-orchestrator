@@ -1,4 +1,4 @@
-﻿@using FWO.Data.Middleware
+@using FWO.Data.Middleware
 @using FWO.Data.Modelling
 @using FWO.Data.Workflow
 @using FWO.Middleware.Client
@@ -20,7 +20,7 @@
 {
     <SelectOwner SelectedOwner="actOwner" SelectedOwnerChanged="FetchOwnerData" Apps="allOwners" />
     <div class="m-2 vheight75">
-        <PageSizeComponent PageSizeCallback="UpdatePageSize"></PageSizeComponent>
+        <PageSizeComponent PageSize="20" PageSizeCallback="UpdatePageSize"></PageSizeComponent>
         <Table PageSize="PageSize" class="table table-bordered th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="OwnerTicket" Items="ownerTickets" ColumnReorder="true">
             <Column TableItem="OwnerTicket" Title="@(userConfig.GetText("actions"))" Field="(x => x.Ticket.Id)" Sortable="false" Filterable="false">
                 <Template>
@@ -236,7 +236,7 @@ else
             }
 
             await ModellingHandlerBase.LogChange(ModellingTypes.ChangeType.InitRequests, ModellingTypes.ModObjectType.CommunicationProfile,
-                0, $"Reinitialized Rollout Requests", apiConnection, userConfig, 
+                0, $"Reinitialized Rollout Requests", apiConnection, userConfig,
 				actOwnerTicket.Ticket.Tasks.FirstOrDefault()?.Owners.FirstOrDefault()?.Owner.Id, DefaultInit.DoNothing, userConfig.User.Name);
         }
         catch (Exception exception)

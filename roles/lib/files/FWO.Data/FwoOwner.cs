@@ -29,6 +29,20 @@ namespace FWO.Data
         [JsonProperty("connections_aggregate"), JsonPropertyName("connections_aggregate")]
         public AggregateCount ConnectionCount { get; set; } = new();
 
+        [JsonProperty("last_recertified"), JsonPropertyName("last_recertified")]
+        public DateTime? LastRecertified { get; set; }
+
+        [JsonProperty("last_recertifier"), JsonPropertyName("last_recertifier")]
+        public int? LastRecertifierId { get; set; }
+
+        [JsonProperty("last_recertifier_dn"), JsonPropertyName("last_recertifier_dn")]
+        public string? LastRecertifierDn { get; set; }
+
+        [JsonProperty("next_recert_date"), JsonPropertyName("next_recert_date")]
+        public DateTime? NextRecertDate { get; set; }
+
+        public bool RecertOverdue { get; set; } = false;
+        public bool RecertUpcoming { get; set; } = false;
 
         public FwoOwner()
         { }
@@ -43,6 +57,12 @@ namespace FWO.Data
             ImportSource = owner.ImportSource;
             CommSvcPossible = owner.CommSvcPossible;
             ConnectionCount = owner.ConnectionCount;
+            LastRecertified = owner.LastRecertified;
+            LastRecertifierId = owner.LastRecertifierId;
+            LastRecertifierDn = owner.LastRecertifierDn;
+            NextRecertDate = owner.NextRecertDate;
+            RecertOverdue = owner.RecertOverdue;
+            RecertUpcoming = owner.RecertUpcoming;
         }
 
         public string Display(string comSvcTxt)
@@ -68,6 +88,7 @@ namespace FWO.Data
             bool shortened = base.Sanitize();
             Criticality = Sanitizer.SanitizeOpt(Criticality, ref shortened);
             ImportSource = Sanitizer.SanitizeCommentOpt(ImportSource, ref shortened);
+            LastRecertifierDn = Sanitizer.SanitizeLdapPathOpt(LastRecertifierDn, ref shortened);
             return shortened;
         }
 

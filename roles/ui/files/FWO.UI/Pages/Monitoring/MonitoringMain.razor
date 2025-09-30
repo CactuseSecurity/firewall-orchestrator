@@ -1,4 +1,4 @@
-﻿@using FWO.Data.Middleware
+@using FWO.Data.Middleware
 @using FWO.Middleware.Client
 @using RestSharp
 @using System.Net
@@ -31,7 +31,7 @@
         else
         {
             <div class="vheight75">
-                <PageSizeComponent PageSizeCallback="UpdatePageSize"></PageSizeComponent>
+                <PageSizeComponent PageSize="20" PageSizeCallback="UpdatePageSize"></PageSizeComponent>
                 <Table PageSize="PageSize" TableClass="table table-bordered table-sm th-bg-secondary sticky-header" TableItem="Alert" Items="alertEntrys">
                     <Column Context="alert" TableItem="Alert" Title="@(userConfig.GetText("actions"))" Field="(x => x.Id)">
                         <Template>
@@ -213,7 +213,7 @@
     {
         try
         {
-            actStatus = JsonSerializer.Deserialize<ImportStatus>(( alert.JsonData ?? throw new ArgumentException($"Missing Import Data!") ).ToString() 
+            actStatus = JsonSerializer.Deserialize<ImportStatus>(( alert.JsonData ?? throw new ArgumentException($"Missing Import Data!") ).ToString()
 				?? throw new FormatException($"Could not convert Import Data to string!")) ?? throw new JsonException($"Import Data not converted!");
             DetailsMode = true;
         }

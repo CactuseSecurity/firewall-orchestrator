@@ -28,39 +28,38 @@
                 </ElementTemplate>
             </Dropdown>
         </div>
-        @if (actReportFilters.ReportType == ReportType.Recertification)
-        {
-            <ReportRecertParamSelection @bind-FilterInput="filterInput" @bind-RecertFilter="actReportFilters.RecertFilter"/>
-        }
-        else if (actReportFilters.ReportType.IsModellingReport())
+        @if (actReportFilters.ReportType.IsModellingReport())
         {
             <ReportModellingParamSelection @bind-ModellingFilter="actReportFilters.ModellingFilter" InjectedAppId="injectedAppId" ReportType="actReportFilters.ReportType"/>
         }
-        else if(actReportFilters.ReportType == ReportType.UnusedRules)
+        @if (actReportFilters.ReportType == ReportType.Recertification || actReportFilters.ReportType == ReportType.OwnerRecertification)
+        {
+            <ReportRecertParamSelection @bind-FilterInput="filterInput" @bind-RecertFilter="actReportFilters.RecertFilter" ReportType="actReportFilters.ReportType"/>
+        }
+        @if(actReportFilters.ReportType == ReportType.UnusedRules)
         {
             <div class="p-3">
                 <h5 class="text-left">@(userConfig.GetText("unused_days"))</h5>
                 <input type="number" min="1" max="5000" step="1" class="form-control form-control-sm" @bind="actReportFilters.UnusedDays" />
             </div>
         }
-        else if(actReportFilters.ReportType != ReportType.AppRules)
+        @if(actReportFilters.ReportType.HasTimeFilter())
         {
             <div class="p-3">
                 <h5 class="text-left">@(userConfig.GetText("report_time"))</h5>
                 <div class="input-group">
                     <input type="text" class="form-control form-control-sm" value="@actReportFilters.DisplayedTimeSelection" disabled />
-                    <button type="button" class="btn btn-sm btn-secondary" @onclick="SelectTime">@(userConfig.GetText("change"))</button>
+                    <button type="button" class="btn btn-sm btn-secondary" @onclick="SelectTime">@(DisplayService.DisplayButton(userConfig, "change", Icons.Edit))</button>
                 </div>
             </div>
         }
-
         @if (actReportFilters.ReportType.IsDeviceRelatedReport())
         {
             @if (actReportFilters.ReportType != ReportType.Statistics && actReportFilters.ReportType != ReportType.AppRules)
             {
                 <ReportTenantSelection SelectedTenant="actReportFilters.SelectedTenant" SelectedTenantChanged="TenantViewChanged" TenantFilteringAllowed="tenantFilteringAllowed"/>
             }
-            <DeviceSelection @bind-DeviceFilter="actReportFilters.DeviceFilter" @bind-CollapseAll="actReportFilters.CollapseDevices" @bind-SelectAll="actReportFilters.SelectAll"></DeviceSelection>
+            <DeviceSelection @bind-DeviceFilter="actReportFilters.DeviceFilter" @bind-CollapseAll="actReportFilters.CollapseDevices" @bind-SelectAll="actReportFilters.SelectAll"/>
         }
     </Sidebar>
 
@@ -80,18 +79,18 @@
         <div class="btn-group m-1 sticky-marker-60" style="z-index: 16;">
             @if (processing == false)
             {
-                <button type="button" class="btn btn-sm btn-primary" @onclick="GenerateReport">@(userConfig.GetText("generate_report"))</button>
+                <button type="button" class="btn btn-sm btn-primary" @onclick="GenerateReport">@(DisplayService.DisplayButton(userConfig, "generate_report", Icons.GenerateReport))</button>
             }
             else
             {
-                <button type="button" class="btn btn-sm btn-danger" @onclick="() => CancelGeneration()">@(userConfig.GetText("stop_fetching"))</button>
+                <button type="button" class="btn btn-sm btn-danger" @onclick="() => CancelGeneration()">@(DisplayService.DisplayButton(userConfig, "stop_fetching", Icons.Cancel))</button>
             }
             <ReportExport ReportToExport="currentReport" />
-            <button type="button" class="btn btn-sm btn-secondary" @onclick="() => { reportTemplateControl.NewTemplate(ConstructReportTemplate()); }">@(userConfig.GetText("save_as_template"))</button>
+            <button type="button" class="btn btn-sm btn-secondary" @onclick="() => { reportTemplateControl.NewTemplate(ConstructReportTemplate()); }">@(DisplayService.DisplayButton(userConfig, "save_as_template", Icons.Template))</button>
             @if(currentReport != null && currentReport.ReportType == ReportType.UnusedRules && selectedItemsRuleReportTable.Count > 0 
                 && (authenticationStateTask!.Result.User.IsInRole(Roles.Admin) || authenticationStateTask!.Result.User.IsInRole(Roles.Requester) || authenticationStateTask!.Result.User.IsInRole(Roles.Auditor)))
             {
-                <button type="button" class="btn btn-sm btn-danger" @onclick="() => {ShowCreateTicketDialog = true;}">@(userConfig.GetText("create_delete_ticket"))</button>
+                <button type="button" class="btn btn-sm btn-danger" @onclick="() => {ShowCreateTicketDialog = true;}">@(DisplayService.DisplayButton(userConfig, "create_delete_ticket", Icons.Workflow))</button>
             }
         </div>
 
@@ -135,6 +134,10 @@
 
                         case ReportType.VarianceAnalysis:
                             <VariancesReport OwnerData="currentReport.ReportData.OwnerData"/>
+                            break;
+
+                        case ReportType.OwnerRecertification:
+                            <OwnerRecertReport OwnerData="currentReport.ReportData.OwnerData" RecertificationDisplayPeriod="currentReport.ReportData.RecertificationDisplayPeriod"/>
                             break;
 
                         default:
@@ -190,6 +193,7 @@
 
     private List<ReportType> availableReportTypes { get; set; } = [];
     private ReportFilters actReportFilters = new();
+    List<FwoOwner> owners = [];
     private bool InitDone = false;
     private int? injectedAppId = null;
     private bool autoGenerateReport = false;
@@ -232,9 +236,9 @@
     {
         try
         {
-            availableReportTypes = CustomSortReportType(
+            availableReportTypes = ReportTypeGroups.CustomSortReportType(
                 JsonSerializer.Deserialize<List<ReportType>>(string.IsNullOrEmpty(userConfig.AvailableReportTypes) ? "[]" : userConfig.AvailableReportTypes)
-                ?? throw new JsonException("Config data could not be parsed."));
+                ?? throw new JsonException("Config data could not be parsed."), showRuleRelatedReports, showModellingReports);
             SetProperRoleForReport();
             actReportFilters.DeviceFilter.Managements = await apiConnection.SendQueryAsync<List<ManagementSelect>>(DeviceQueries.getDevicesByManagement);
             if(int.TryParse(AppId, out int appId))
@@ -243,7 +247,7 @@
                 injectedAppId = appId;
                 if(showModellingReports)
                 {
-                    List<FwoOwner> owners = await apiConnection.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getEditableOwners, new { appIds = appId });
+                    owners = await apiConnection.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getEditableOwners, new { appIds = appId });
                     if(owners.Count > 0)
                     {
                         actReportFilters.ModellingFilter.SelectedOwner = owners.First();
@@ -347,7 +351,14 @@
 
     private async Task SyncFiltersFromTemplate(ReportTemplate template)
     {
-        template.ReportParams.ModellingFilter.SelectedOwner = template.ReportParams.ModellingFilter.SelectedTemplateOwner;
+        if (template.ReportParams.ReportType == (int)ReportType.OwnerRecertification)
+        {
+            template.ReportParams.ModellingFilter.SelectedOwners = owners;
+        }
+        else
+        {
+            template.ReportParams.ModellingFilter.SelectedOwner = template.ReportParams.ModellingFilter.SelectedTemplateOwner;
+        }
         filterInput = template.Filter;
         Tenant? tenantFromTemplate = null;
         if (template.ReportParams.TenantFilter.IsActive)
@@ -394,7 +405,7 @@
             processing = true;
             SetProperRoleForReport();
             await PrepareReportGeneration();
-            currentReport = await ReportGenerator.Generate(ConstructReportTemplate(), apiConnection, userConfig, DisplayMessageInUi, token);
+            currentReport = await ReportGenerator.GenerateFromTemplate(ConstructReportTemplate(), apiConnection, userConfig, DisplayMessageInUi, token);
             processing = false;
             PostProcess();
         }
@@ -497,34 +508,5 @@
             DisplayMessageInUi(unexpectedError, userConfig.GetText("filter"), "", false);
 #endif
         }
-    }
-
-    private List<ReportType> CustomSortReportType(List<ReportType> ListIn)
-    {
-        List<ReportType> ListOut = [];
-        List<ReportType> orderedReportTypeList = new ()
-        {
-            ReportType.Rules, ReportType.ResolvedRules, ReportType.ResolvedRulesTech, ReportType.UnusedRules, ReportType.NatRules,
-            ReportType.Recertification,
-            ReportType.Changes, ReportType.ResolvedChanges, ReportType.ResolvedChangesTech, 
-            ReportType.Statistics,
-            ReportType.Connections,
-            ReportType.AppRules,
-            ReportType.VarianceAnalysis
-        };
-        foreach (var reportType in orderedReportTypeList)
-        {
-            if (ListIn.Contains(reportType))
-            {
-                if(showRuleRelatedReports && reportType.IsDeviceRelatedReport() || showModellingReports && reportType.IsModellingReport())
-                {
-                    ListOut.Add(reportType);
-                }
-                ListIn.Remove(reportType);
-            }
-        }
-        // finally add remaining report types
-        ListOut.AddRange(ListIn);
-        return ListOut;
     }
 }

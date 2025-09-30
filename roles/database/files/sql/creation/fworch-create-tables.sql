@@ -1185,6 +1185,8 @@ Create table IF NOT EXISTS "rulebase_link"
 	"is_section" BOOLEAN DEFAULT TRUE,
 	"created" BIGINT,
 	"removed" BIGINT
+);
+
 create table owner_recertification
 (
 	id BIGSERIAL PRIMARY KEY,

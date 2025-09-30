@@ -49,7 +49,6 @@ def get_config(config_in: FwConfigManagerListController, importState: ImportStat
         arbitrary_vdom_for_updateable_objects = get_arbitrary_vdom(adom_device_vdom_structure)
         adom_device_vdom_policy_package_structure = add_policy_package_to_vdoms(adom_device_vdom_structure, sid, fm_api_url)
         # adom_device_vdom_policy_package_structure = {adom: {device: {vdom1: pol_pkg1}, {vdom2: pol_pkg2}}}
-        global_packages = get_global_packages(sid, fm_api_url, adom_device_vdom_policy_package_structure)
 
         # get global
         get_objects(sid, fm_api_url, native_config_global, native_config_global, '', limit, nw_obj_types, svc_obj_types, 'global', arbitrary_vdom_for_updateable_objects)
@@ -72,7 +71,7 @@ def get_config(config_in: FwConfigManagerListController, importState: ImportStat
                 device_config = initialize_device_config(mgm_details_device)
                 native_config_adom['gateways'].append(device_config)
                 get_access_policy(
-                    sid, fm_api_url, native_config_adom, adom_device_vdom_policy_package_structure, adom_name, mgm_details_device, device_config, limit)
+                    sid, fm_api_url, native_config_adom, native_config_global, adom_device_vdom_policy_package_structure, adom_name, mgm_details_device, device_config, limit)
                 # delete_v: nat später
                 #fmgr_rule.getNatPolicy(
                 #    sid, fm_api_url, nativeConfig, adom_name, mgm_details_device, limit)
@@ -117,8 +116,6 @@ def normalize_config(import_state, native_config: dict[str,Any]) -> FwConfigMana
     normalized_config_global = {} # TODO: implement reading for FortiManager 5ff
 
     if 'domains' not in native_config:
-        logger = getFwoLogger()
-        logger.error("No domains found in native config. Cannot normalize config.")
         raise ImportInterruption("No domains found in native config. Cannot normalize config.")
 
     rewrite_native_config_obj_type_as_key(native_config) # for easier accessability of objects in normalization process
@@ -223,10 +220,11 @@ def build_adom_device_vdom_structure(adom_list, sid, fm_api_url) -> dict:
 def add_policy_package_to_vdoms(adom_device_vdom_structure, sid, fm_api_url):
     adom_device_vdom_policy_package_structure = deepcopy(adom_device_vdom_structure)
     for adom in adom_device_vdom_policy_package_structure:
-        policy_packages_result = fmgr_getter.get_policy_packages_from_manager(sid, fm_api_url, adom=adom)
+        policy_packages_result = fmgr_getter.fortinet_api_call(sid, fm_api_url, '/pm/pkg/adom/' + adom)
         for policy_package in policy_packages_result:
             if 'scope member' in policy_package:
                 parse_policy_package(policy_package, adom_device_vdom_policy_package_structure, adom)
+        add_global_policy_package_to_vdom(adom_device_vdom_policy_package_structure, sid, fm_api_url, adom)
     return adom_device_vdom_policy_package_structure
 
 def parse_policy_package(policy_package, adom_device_vdom_policy_package_structure, adom):
@@ -235,17 +233,46 @@ def parse_policy_package(policy_package, adom_device_vdom_policy_package_structu
             if device == scope_member['name']:
                 for vdom in adom_device_vdom_policy_package_structure[adom][device]:
                     if vdom == scope_member['vdom']:
-                        adom_device_vdom_policy_package_structure[adom][device].update({vdom: policy_package['name']})
+                        adom_device_vdom_policy_package_structure[adom][device].update({vdom: {'local': policy_package['name'], 'global': ''}})
 
-def get_global_packages(sid, fm_api_url, adom_device_vdom_policy_package_structure) -> list:
-    global_packages = []
-    global_packages_results = fmgr_getter.get_policy_packages_from_manager(sid, fm_api_url, adom='')
-    for policy_package in global_packages_results:
-        if 'scope member' in policy_package:
-            for adom in adom_device_vdom_policy_package_structure:
-                if policy_package['scope member'] == adom:
-                    global_packages.append(policy_package['name'])
-    return global_packages
+def add_global_policy_package_to_vdom(adom_device_vdom_policy_package_structure, sid, fm_api_url, adom):
+    global_assignment_result = fmgr_getter.fortinet_api_call(sid, fm_api_url, '/pm/config/adom/' + adom + '/_adom/options')
+    for global_assignment in global_assignment_result:
+        if global_assignment['assign_excluded'] == 'disable' and global_assignment['specify_assign_pkg'] == 'disable':
+            assign_case_all(adom_device_vdom_policy_package_structure, adom, global_assignment)
+        elif global_assignment['assign_excluded'] == 'disable' and global_assignment['specify_assign_pkg'] == 'enable':
+            assign_case_include(adom_device_vdom_policy_package_structure, adom, global_assignment)
+        elif global_assignment['assign_excluded'] == 'enable' and global_assignment['specify_assign_pkg'] == 'enable':
+            assign_case_exclude(adom_device_vdom_policy_package_structure, adom, global_assignment)
+        else:
+            raise ImportInterruption('Broken global assign format.')
+        
+def assign_case_all(adom_device_vdom_policy_package_structure, adom, global_assignment):
+    for device in adom_device_vdom_policy_package_structure[adom]:
+        for vdom in adom_device_vdom_policy_package_structure[adom][device]:
+            vdom['global'] = global_assignment['assign_name']
+
+def assign_case_include(adom_device_vdom_policy_package_structure, adom, global_assignment):
+    for device in adom_device_vdom_policy_package_structure[adom]:
+        for vdom in adom_device_vdom_policy_package_structure[adom][device]:
+            match_assign_and_vdom_policy_package(global_assignment, vdom, True)
+
+def assign_case_exclude(adom_device_vdom_policy_package_structure, adom, global_assignment):
+    for device in adom_device_vdom_policy_package_structure[adom]:
+        for vdom in adom_device_vdom_policy_package_structure[adom][device]:
+            match_assign_and_vdom_policy_package(global_assignment, vdom, False)
+
+def match_assign_and_vdom_policy_package(global_assignment, vdom, is_include):
+    for package in global_assignment['pkg_list']:
+        if is_include:
+            if package['name'] == vdom['local']:
+                vdom['global'] = global_assignment['assign_name']
+        else:
+            if package['name'] != vdom['local']:
+                vdom['global'] = global_assignment['assign_name']
+
+
+
 
 def initialize_device_config(mgm_details_device):
     device_config = {'name': mgm_details_device['name'],

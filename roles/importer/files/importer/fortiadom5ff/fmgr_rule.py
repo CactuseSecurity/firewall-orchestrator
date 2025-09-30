@@ -259,65 +259,84 @@ def rule_parse_last_hit(native_rule):
         last_hit = strftime("%Y-%m-%d %H:%M:%S", localtime(last_hit))
     return last_hit
 
-def get_access_policy(sid, fm_api_url, native_config_domain, adom_device_vdom_policy_package_structure, adom_name, mgm_details_device, device_config, limit):
-    consolidated = '' # '/consolidated'
-    logger = getFwoLogger()
+def get_access_policy(sid, fm_api_url, native_config_adom, native_config_global, adom_device_vdom_policy_package_structure, adom_name, mgm_details_device, device_config, limit):
 
     previous_rulebase = ''
-    local_pkg_name = find_local_pkg(adom_device_vdom_policy_package_structure, adom_name, mgm_details_device)
-    # delete_v: hier global_pkg_name später
-    #global_pkg_name = device['global_rulebase_name']
+    link_list = []
+    local_pkg_name, global_pkg_name = find_packages(adom_device_vdom_policy_package_structure, adom_name, mgm_details_device)
     options = ['extra info', 'scope member', 'get meta']
-    # pkg_name = device['package_name'] pkg_name is not used at all
 
-    # delete_v: hier initial link wenn global header existiert
-    # get global header rulebase:
-    # if device['global_rulebase_name'] is None or device['global_rulebase_name'] == '':
-    #     logger.debug('no global rulebase name defined in fortimanager, ADOM=' + adom_name + ', local_package=' + local_pkg_name)
-    # else:
-    #     fmgr_getter.update_config_with_fortinet_api_call(
-    #         nativeConfig['rules_global_header_v4'], sid, fm_api_url, "/pm/config/global/pkg/" + global_pkg_name + "/global/header" + consolidated + "/policy", local_pkg_name, limit=limit)
-    #     fmgr_getter.update_config_with_fortinet_api_call(
-    #         nativeConfig['rules_global_header_v6'], sid, fm_api_url, "/pm/config/global/pkg/" + global_pkg_name + "/global/header" + consolidated + "/policy6", local_pkg_name, limit=limit)
+    previous_rulebase = get_and_link_global_rulebase(
+        'header', previous_rulebase, global_pkg_name, native_config_global, sid, fm_api_url, options, limit, link_list)
     
-    is_global = False
-    # get local rulebase
-    fmgr_getter.update_config_with_fortinet_api_call(
-        native_config_domain['rulebases'], sid, fm_api_url, "/pm/config/adom/" + adom_name + "/pkg/" + local_pkg_name + "/firewall" + consolidated + "/policy", 'rules_adom_v4_' + local_pkg_name, options=options, limit=limit)
-    fmgr_getter.update_config_with_fortinet_api_call(
-        native_config_domain['rulebases'], sid, fm_api_url, "/pm/config/adom/" + adom_name + "/pkg/" + local_pkg_name + "/firewall" + consolidated + "/policy6", 'rules_adom_v6_' + local_pkg_name, limit=limit)
-    # delete_v: hier initial link immer lokal, erweitern wenn wir global header/footer holen
-    link_list, previous_rulebase = link_v4_and_v6_rulebase(native_config_domain['rulebases'], local_pkg_name, previous_rulebase, is_global)
+    previous_rulebase = get_and_link_local_rulebase(
+        'rules_adom', previous_rulebase, adom_name, local_pkg_name, native_config_adom, sid, fm_api_url, options, limit, link_list)
+    
+    previous_rulebase = get_and_link_global_rulebase(
+        'footer', previous_rulebase, global_pkg_name, native_config_global, sid, fm_api_url, options, limit, link_list)
+
     device_config['rulebase_links'].extend(link_list)
 
-    # get global footer rulebase:
-    # if device['global_rulebase_name'] != None and device['global_rulebase_name'] != '':
-    #     fmgr_getter.update_config_with_fortinet_api_call(
-    #         nativeConfig['rules_global_footer_v4'], sid, fm_api_url, "/pm/config/global/pkg/" + global_pkg_name + "/global/footer" + consolidated + "/policy", local_pkg_name, limit=limit)
-    #     fmgr_getter.update_config_with_fortinet_api_call(
-    #         nativeConfig['rules_global_footer_v6'], sid, fm_api_url, "/pm/config/global/pkg/" + global_pkg_name + "/global/footer" + consolidated + "/policy6", local_pkg_name, limit=limit)
+def get_and_link_global_rulebase(header_or_footer, previous_rulebase, global_pkg_name, native_config_global, sid, fm_api_url, options, limit, link_list):
+    rulebase_type_prefix = 'rules_global_' + header_or_footer
+    if global_pkg_name != '':
+        if not is_rulebase_already_fetched(native_config_global['rulebases'], rulebase_type_prefix + '_v4_' + global_pkg_name):
+            fmgr_getter.update_config_with_fortinet_api_call(
+                native_config_global['rulebases'],
+                sid, fm_api_url,
+                '/pm/config/global/pkg/' + global_pkg_name + '/global/' + header_or_footer + '/policy',
+                rulebase_type_prefix + '_v4_' + global_pkg_name,
+                options=options, limit=limit)
+        if not is_rulebase_already_fetched(native_config_global['rulebases'], rulebase_type_prefix + '_v6_' + global_pkg_name):
+            # delete_v: hier auch options=options?
+            fmgr_getter.update_config_with_fortinet_api_call(
+                native_config_global['rulebases'],
+                sid, fm_api_url,
+                '/pm/config/global/pkg/' + global_pkg_name + '/global/' + header_or_footer + '/policy6',
+                rulebase_type_prefix + '_v6_' + global_pkg_name,
+                limit=limit)
+        previous_rulebase = link_rulebase(link_list, native_config_global['rulebases'], global_pkg_name, rulebase_type_prefix, previous_rulebase, True)
+    return previous_rulebase
 
-def find_local_pkg(adom_device_vdom_policy_package_structure, adom_name, mgm_details_device):
+def get_and_link_local_rulebase(rulebase_type_prefix, previous_rulebase, adom_name, local_pkg_name, native_config_adom, sid, fm_api_url, options, limit, link_list):
+    if not is_rulebase_already_fetched(native_config_adom['rulebases'], rulebase_type_prefix + '_v4_' + local_pkg_name):
+        fmgr_getter.update_config_with_fortinet_api_call(
+            native_config_adom['rulebases'],
+            sid, fm_api_url,
+            '/pm/config/adom/' + adom_name + '/pkg/' + local_pkg_name + '/firewall/policy',
+            rulebase_type_prefix + '_v4_' + local_pkg_name,
+            options=options, limit=limit)
+    if not is_rulebase_already_fetched(native_config_adom['rulebases'], rulebase_type_prefix + '_v6_' + local_pkg_name):
+        fmgr_getter.update_config_with_fortinet_api_call(
+            native_config_adom['rulebases'],
+            sid, fm_api_url,
+            '/pm/config/adom/' + adom_name + '/pkg/' + local_pkg_name + '/firewall/policy6',
+            rulebase_type_prefix + '_v6_' + local_pkg_name,
+            limit=limit)
+    previous_rulebase = link_rulebase(link_list, native_config_adom['rulebases'], local_pkg_name, rulebase_type_prefix, previous_rulebase, False)
+
+def find_packages(adom_device_vdom_policy_package_structure, adom_name, mgm_details_device):
     for device in adom_device_vdom_policy_package_structure[adom_name]:
         for vdom in adom_device_vdom_policy_package_structure[adom_name][device]:
             if mgm_details_device['name'] == device + '_' + vdom:
-                return adom_device_vdom_policy_package_structure[adom_name][device][vdom]
+                return adom_device_vdom_policy_package_structure[adom_name][device][vdom]['local'], adom_device_vdom_policy_package_structure[adom_name][device][vdom]['global']
     raise FwoDeviceWithoutLocalPackage('Could not find local package for ' + mgm_details_device['name'] + ' in Fortimanager Config') from None
 
-def link_v4_and_v6_rulebase(rulebases, pkg_name, previous_rulebase, is_global):
-    link_list = []
-    has_v4_data = has_rulebase_data(rulebases, 'rules_adom_v4', pkg_name)
-    has_v6_data = has_rulebase_data(rulebases, 'rules_adom_v6', pkg_name)
+def is_rulebase_already_fetched(rulebases, type):
+    for rulebase in rulebases:
+        if rulebase['type'] == type:
+            return True
+    return False
 
-    if has_v4_data:
-        link_list.append(build_link(previous_rulebase, 'rules_adom_v4' + '_' + pkg_name, is_global))
-        previous_rulebase = 'rules_adom_v4' + '_' + pkg_name
-    if has_v6_data:
-        link_list.append(build_link(previous_rulebase, 'rules_adom_v6' + '_' + pkg_name, is_global))
-        previous_rulebase = 'rules_adom_v6' + '_' + pkg_name
+def link_rulebase(link_list, rulebases, pkg_name, rulebase_type_prefix, previous_rulebase, is_global):
+    for version in ['v4', 'v6']:
+        full_pkg_name = rulebase_type_prefix + '_' + version + '_' + pkg_name
+        has_data = has_rulebase_data(rulebases, full_pkg_name, is_global)
+        if has_data:
+            link_list.append(build_link(previous_rulebase, full_pkg_name, is_global))
+            previous_rulebase = full_pkg_name
     
-    return link_list, previous_rulebase
-
+    return previous_rulebase
 
 def build_link(previous_rulebase, full_pkg_name, is_global):
     if previous_rulebase == '':
@@ -334,14 +353,17 @@ def build_link(previous_rulebase, full_pkg_name, is_global):
         'is_section': False
     }
 
-def has_rulebase_data(rulebases, type_prefix, pkg_name):
+def has_rulebase_data(rulebases, full_pkg_name, is_global):
+    """adds name and uid to rulebase and removes empty global rulebases"""
     has_data = False
     for rulebase in rulebases:
-        if rulebase['type'] == type_prefix + '_' + pkg_name:
-            rulebase.update({'name': type_prefix + '_' + pkg_name,
-                             'uid': type_prefix + '_' + pkg_name})
+        if rulebase['type'] == full_pkg_name:
+            rulebase.update({'name': full_pkg_name,
+                             'uid': full_pkg_name})
             if len(rulebase['data']) > 0:
                 has_data = True
+            elif is_global:
+                rulebases.remove(rulebase)
     return has_data
 
 def getNatPolicy(sid, fm_api_url, nativeConfig, adom_name, device, limit):

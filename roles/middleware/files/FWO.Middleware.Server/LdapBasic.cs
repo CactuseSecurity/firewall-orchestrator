@@ -20,9 +20,11 @@ namespace FWO.Middleware.Server
 
         // some ldap keywords
         private readonly string UniqueMember = "uniqueMember";
+        private readonly string UniqueMemberLowerCase = "uniquemember";
         private readonly string BusinessCategory = "businessCategory";
         private readonly string MemberOf = "memberOf";
-        private readonly string OwnerGroup = "ownergroup";
+        private readonly string MemberOfLowerCase = "memberof";
+        private readonly string OwnerGroupLowerCase = "ownergroup";
 
 
         /// <summary>
@@ -207,7 +209,7 @@ namespace FWO.Middleware.Server
 
         private async Task SearchUserName(string userName, List<LdapEntry> possibleUserEntries, LdapConnection connection)
         {
-            string[] attrList = ["*", MemberOf];
+            string[] attrList = ["*", MemberOfLowerCase];
             string userSearchFilter = GetUserSearchFilter(userName);
 
             // Search for users in ldap with same name as user to validate
@@ -355,7 +357,7 @@ namespace FWO.Middleware.Server
             List<string> groups = [];
             foreach (var attribute in user.GetAttributeSet())
             {
-                if (attribute.Name.ToLower() == MemberOf)
+                if (attribute.Name.ToLower() == MemberOfLowerCase)
                 {
                     groups.AddRange(attribute.StringValueArray.Where(membership => GroupSearchPath != null && membership.EndsWith(GroupSearchPath)));
                 }
@@ -637,7 +639,7 @@ namespace FWO.Middleware.Server
                 await TryBind(connection, WriteUser, WriteUserPwd);
 
                 // Add a new value to the description attribute
-                LdapAttribute attribute = new(UniqueMember, userDn);
+                LdapAttribute attribute = new(UniqueMemberLowerCase, userDn);
                 LdapModification[] mods = [new(ldapModification, attribute)];
 
                 try

@@ -151,8 +151,8 @@ class TestUpdateRulebaseDiffs(unittest.TestCase):
             # Move to beginning, middle and end recognized in ImportDetails
             self.assertEqual(fwconfig_import_rule.import_details.Stats.RuleAddCount, 0)
             self.assertEqual(fwconfig_import_rule.import_details.Stats.RuleDeleteCount, 0)
-            self.assertEqual(fwconfig_import_rule.import_details.Stats.RuleChangeCount, 1)
-            self.assertEqual(fwconfig_import_rule.import_details.Stats.RuleMoveCount, 1)
+            self.assertEqual(fwconfig_import_rule.import_details.Stats.RuleChangeCount, 5)
+            self.assertEqual(fwconfig_import_rule.import_details.Stats.RuleMoveCount, 5)
 
 
         

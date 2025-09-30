@@ -184,9 +184,9 @@ namespace FWO.Report
                 }, token);
         }
 
-        private static void PrepareMetadata(List<ManagementReport> ManagementReports, UserConfig userConfig)
+        private static void PrepareMetadata(List<ManagementReport> managementReports, UserConfig userConfig)
         {
-            foreach (var managementReport in ManagementReports)
+            foreach (var managementReport in managementReports)
             {
                 foreach (var device in managementReport.Devices.Where(d => d.ContainsRules()))
                 {

@@ -363,10 +363,10 @@
 
         foreach (var management in managementsReport)
         {
-            foreach (var device in management.Devices.Where(d => d.Rules != null))
-            {
-                if(device.ContainsRules())
-                {
+        //    foreach (var device in management.Devices.Where(d => d.Rules != null))
+         //   {
+          //      if (device.ContainsRules())
+        //        {
                     // TODO: implement recertification logic
                     // foreach (var rb in device.Rulebases)
                     // {
@@ -379,13 +379,14 @@
                     //         }
                     //     }
                     // }
-                // current develop state:
-                // foreach (var rule in device.Rules!.Where(r => r.Metadata.Recert || r.Metadata.ToBeRemoved))
-                // {
-                //     rule.DeviceId = device.Id;
-                //     Certifications.Add(rule);
-                // }
-            }
+                    // current develop state:
+                    // foreach (var rule in device.Rules!.Where(r => r.Metadata.Recert || r.Metadata.ToBeRemoved))
+                    // {
+                    //     rule.DeviceId = device.Id;
+                    //     Certifications.Add(rule);
+                    // }
+           //     }
+            //}
         }
     }
 

@@ -80,7 +80,7 @@
     private GraphQlApiSubscription<List<ReportFile>>? archivedReportsSubscription;
     private List<ReportFile> archivedReports = [];
     private List<ReportFile> visibleReports = [];
-    private ReportType selectedReportType = ReportType.All;
+    private ReportType selectedReportType = ReportType.Undefined;
     private Sidebar? archiveSidebar;
     private int sidebarLeftWidth = GlobalConst.kSidebarLeftWidth;
     private ReportFile reportFileContext = new();
@@ -120,7 +120,7 @@
 
     private void SetVisibleReports()
     {
-        visibleReports = [.. selectedReportType == ReportType.All ? archivedReports : archivedReports.Where(r => r.Type == (int)selectedReportType)];
+        visibleReports = [.. selectedReportType == ReportType.Undefined ? archivedReports : archivedReports.Where(r => r.Type == (int)selectedReportType)];
     }
 
     private async void HandleSubscriptionError(Exception exception)

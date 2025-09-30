@@ -8,6 +8,7 @@ from fwo_api import FwoApi
 class RulebaseLinkController():
 
     rulbase_to_gateway_map: dict = {}
+    rb_links: list[RulebaseLink]
 
     def insert_rulebase_links(self, import_state: ImportStateController, rb_links: list[RulebaseLink]):
         logger = getFwoLogger()
@@ -40,14 +41,14 @@ class RulebaseLinkController():
             import_state.Stats.addError(f"fwo_api:getRulebaseLinks - error while getting rulebaseLinks: {str(links['errors'])}")
             logger.exception(f"fwo_api:getRulebaseLinks - error while getting rulebaseLinks: {str(links['errors'])}")
         else:
-            rb_links = links['data']['rulebase_link']
-        return rb_links
+            self.rb_links = links['data']['rulebase_link']
+
 
     # add an entry for all rulebase to gateway pairs that are conained in the rulebase_links table
     def set_map_of_all_enforcing_gateway_ids_for_rulebase_id(self, importState: ImportStateController):
-        rb_links = self.get_rulebase_links(importState)
+        self.get_rulebase_links(importState)
 
-        for link in rb_links:
+        for link in self.rb_links:
             rulebase_id = link['to_rulebase_id']
             gw_id = link['gw_id']
             if rulebase_id not in self.rulbase_to_gateway_map:

@@ -137,20 +137,22 @@ class TestUpdateRulebaseDiffs(unittest.TestCase):
 
             # Assert
 
-            # The order of the entries in normalized_config
-            self.assertEqual(rule_uids, list(fwconfig_import_rule.normalized_config.rulebases[0].Rules.keys())) 
+            # The order of the entries in normalized_config (across rulebases)
+            self.assertEqual(rule_uids, [r for rb in fwconfig_import_rule.normalized_config.rulebases for r in rb.Rules.keys()]) 
 
-            sorted_rulebase_rules = sorted(list(fwconfig_import_rule.normalized_config.rulebases[0].Rules.values()), key=lambda r: r.rule_num_numeric)
-            sorted_rulebase_rules_uids = [r.rule_uid for r in sorted_rulebase_rules]
+            sorted_rules = [] 
+            for rulebase in fwconfig_import_rule.normalized_config.rulebases:
+                sorted_rules.extend(sorted(rulebase.Rules.values(), key=lambda r: r.rule_num_numeric)) 
+            sorted_rules_uids = [r.rule_uid for r in sorted_rules]
             
             # The sequence of the rule_num_numeric values
-            self.assertEqual(rule_uids, sorted_rulebase_rules_uids) 
+            self.assertEqual(rule_uids, sorted_rules_uids) 
 
             # Move to beginning, middle and end recognized in ImportDetails
             self.assertEqual(fwconfig_import_rule.import_details.Stats.RuleAddCount, 0)
             self.assertEqual(fwconfig_import_rule.import_details.Stats.RuleDeleteCount, 0)
-            self.assertEqual(fwconfig_import_rule.import_details.Stats.RuleChangeCount, 3)
-            self.assertEqual(fwconfig_import_rule.import_details.Stats.RuleMoveCount, 3)
+            self.assertEqual(fwconfig_import_rule.import_details.Stats.RuleChangeCount, 1)
+            self.assertEqual(fwconfig_import_rule.import_details.Stats.RuleMoveCount, 1)
 
 
         

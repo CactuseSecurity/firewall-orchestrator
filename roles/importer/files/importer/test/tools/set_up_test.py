@@ -27,7 +27,7 @@ def set_up_config_for_import_consistency_test():
 def set_up_test_for_ruleorder_test_with_defaults():
 
     config_builder = MockFwConfigNormalizedBuilder()
-    previous_config, _ = config_builder.build_config(
+    previous_config, mgm_uid = config_builder.build_config(
         {
             "rule_config": [10,10,10],
             "network_object_config": 10,
@@ -35,18 +35,13 @@ def set_up_test_for_ruleorder_test_with_defaults():
             "user_config": 10
         }
     )
-    new_num_numeric = 0.0
-
 
     fwconfig_import_rule = MockFwConfigImportRule()
     fwconfig_import_rule.normalized_config = copy.deepcopy(previous_config)
 
-    for rulebase in previous_config.rulebases:
-        for rule in rulebase.Rules.values():
-            new_num_numeric += rule_num_numeric_steps
-            rule.rule_num_numeric = new_num_numeric
+    update_rule_num_numerics(previous_config)
 
-    return previous_config, fwconfig_import_rule
+    return previous_config, fwconfig_import_rule, config_builder, mgm_uid
 
 
 def set_up_test_for_rulebase_link_test_with_defaults():
@@ -61,9 +56,7 @@ def set_up_test_for_rulebase_link_test_with_defaults():
             "rule_config": [10,10,10],
             "network_object_config": 10,
             "service_config": 10,
-            "user_config": 10,
-            "gateway_config": 2,
-            "rulebase_link_config": 4
+            "user_config": 10
         }
     )
     normalized_config = copy.deepcopy(previous_config)
@@ -76,8 +69,7 @@ def set_up_test_for_rulebase_link_test_with_defaults():
 
 def set_up_test_for_ruleorder_test_with_delete_insert_move():
         
-        config_builder = MockFwConfigNormalizedBuilder()
-        previous_config, fwconfig_import_rule = set_up_test_for_ruleorder_test_with_defaults()
+        previous_config, fwconfig_import_rule, config_builder, _ = set_up_test_for_ruleorder_test_with_defaults()
 
         rule_uids = list(fwconfig_import_rule.normalized_config.rulebases[0].Rules.keys())
 
@@ -90,8 +82,7 @@ def set_up_test_for_ruleorder_test_with_delete_insert_move():
 
 def set_up_test_for_ruleorder_test_with_consecutive_insertions():
         
-        config_builder = MockFwConfigNormalizedBuilder()
-        previous_config, fwconfig_import_rule = set_up_test_for_ruleorder_test_with_defaults()
+        previous_config, fwconfig_import_rule, config_builder, _ = set_up_test_for_ruleorder_test_with_defaults()
 
         rule_uids = list(fwconfig_import_rule.normalized_config.rulebases[0].Rules.keys())
 
@@ -114,8 +105,8 @@ def set_up_test_for_ruleorder_test_with_consecutive_insertions():
 
 
 def set_up_test_for_ruleorder_test_with_move_across_rulebases():
-    config_builder = MockFwConfigNormalizedBuilder()
-    previous_config, fwconfig_import_rule = set_up_test_for_ruleorder_test_with_defaults()
+
+    previous_config, fwconfig_import_rule, config_builder, _ = set_up_test_for_ruleorder_test_with_defaults()
 
     source_rulebase_uids = list(fwconfig_import_rule.normalized_config.rulebases[0].Rules.keys())
     target_rulebase_uids = list(fwconfig_import_rule.normalized_config.rulebases[1].Rules.keys())
@@ -127,8 +118,8 @@ def set_up_test_for_ruleorder_test_with_move_across_rulebases():
 
 
 def set_up_test_for_ruleorder_test_with_move_to_beginning_middle_and_end_of_rulebase():
-    config_builder = MockFwConfigNormalizedBuilder()
-    previous_config, fwconfig_import_rule = set_up_test_for_ruleorder_test_with_defaults()
+
+    previous_config, fwconfig_import_rule, _, _ = set_up_test_for_ruleorder_test_with_defaults()
 
     rule_uids = list(fwconfig_import_rule.normalized_config.rulebases[0].Rules.keys())
 
@@ -141,51 +132,29 @@ def set_up_test_for_ruleorder_test_with_move_to_beginning_middle_and_end_of_rule
 
 def set_up_test_for_ruleorder_test_with_delete_of_section_header():
 
-    init_service_provider()
+    previous_config, fwconfig_import_rule, config_builder, mgm_uid = set_up_test_for_ruleorder_test_with_defaults()
 
-    fwconfig_import_rule = MockFwConfigImportRule()
-    config_builder = MockFwConfigNormalizedBuilder()
+    # Move last five rules of last rulebase to new rulebase (previous config).
 
-    previous_config, mgm_uid = config_builder.build_config(
-        {
-            "rule_config": [10,10,10],
-            "network_object_config": 10,
-            "service_config": 10,
-            "user_config": 10,
-            "gateway_config": 2,
-            "rulebase_link_config": 4
-        }
-    )
-    normalized_config = copy.deepcopy(previous_config)
+    last_rulebase = previous_config.rulebases[-1]
+    last_five_rules_uids = list(last_rulebase.Rules.keys())[-5:]
 
-    new_num_numeric = 0
-    for rulebase in normalized_config.rulebases:
-        for rule in rulebase.Rules.values():
-            new_num_numeric += rule_num_numeric_steps
-            rule.rule_num_numeric = new_num_numeric
+    _, new_rulebase_uid = config_builder.add_rulebase(previous_config, mgm_uid)
 
-    fwconfig_import_rule.global_state.normalized_config = normalized_config
-    fwconfig_import_rule.global_state.previous_config = previous_config
+    for rule_uid in last_five_rules_uids:
+        rule = last_rulebase.Rules.pop(rule_uid)
+        config_builder.add_rule(previous_config, new_rulebase_uid, rule.model_dump())
+    
+    # Create rulebase link for cp_section header (previous config)
 
-    last_rulebase = fwconfig_import_rule.global_state.normalized_config.rulebases[-1]
     last_rulebase_last_rule_uid = list(last_rulebase.Rules.keys())[-1]
-    last_rulebase_last_rule = last_rulebase.Rules.pop(last_rulebase_last_rule_uid)
-
-    _, new_rulebase_uid = config_builder.add_rulebase(fwconfig_import_rule.global_state.normalized_config, mgm_uid)
-    config_builder.add_rule(fwconfig_import_rule.global_state.normalized_config, new_rulebase_uid, last_rulebase_last_rule.model_dump())
-    gateway = fwconfig_import_rule.global_state.normalized_config.gateways[0]
+    gateway = previous_config.gateways[0]
     config_builder.add_cp_section_header(gateway, last_rulebase.uid, new_rulebase_uid, last_rulebase_last_rule_uid)
 
-    update_rule_map_and_rulebase_map(fwconfig_import_rule.global_state.normalized_config, fwconfig_import_rule.global_state.import_state)
-    to_rulebase_id = fwconfig_import_rule.global_state.import_state.lookupRulebaseId(new_rulebase_uid)
-    from_rulebase_id = fwconfig_import_rule.global_state.import_state.lookupRulebaseId(last_rulebase.uid)
+    update_rule_map_and_rulebase_map(fwconfig_import_rule.normalized_config, fwconfig_import_rule.global_state.import_state)
+    update_rule_num_numerics(previous_config)
 
-    config = fwconfig_import_rule.global_state.normalized_config
-    fwconfig_import_rule.global_state.normalized_config = fwconfig_import_rule.global_state.previous_config
-    fwconfig_import_rule.normalized_config = fwconfig_import_rule.global_state.previous_config
-    fwconfig_import_rule.global_state.previous_config = config
-
-    return fwconfig_import_rule.global_state.previous_config, fwconfig_import_rule, list(fwconfig_import_rule.global_state.normalized_config.rulebases[-1].Rules.keys())
+    return previous_config, fwconfig_import_rule, [r for rb in fwconfig_import_rule.normalized_config.rulebases for r in rb.Rules.keys()]
 
 
 def reorder_rulebase_rules_dict(fwconfig_import_rule, rulebase_index, rule_uids):
@@ -240,6 +209,7 @@ def move_rule_in_config(fwconfig_import_rule, rulebase_index, source_position, t
 
     reorder_rulebase_rules_dict(fwconfig_import_rule, rulebase_index, rule_uids)
 
+
 def update_rule_map_and_rulebase_map(normalized_config, import_state):
 
     import_state.RulebaseMap = {}
@@ -254,4 +224,13 @@ def update_rule_map_and_rulebase_map(normalized_config, import_state):
         for rule in rulebase.Rules.values():
             import_state.RuleMap[rule.rule_uid] = rule_id
             rule_id += 1
+
+
+def update_rule_num_numerics(config):
+    
+    for rulebase in config.rulebases:
+        new_num_numeric = 0
+        for rule in rulebase.Rules.values():
+            new_num_numeric += rule_num_numeric_steps
+            rule.rule_num_numeric = new_num_numeric
 

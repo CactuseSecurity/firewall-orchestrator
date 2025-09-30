@@ -27,12 +27,11 @@ class FwConfigImportGateway:
         self._rb_link_controller = RulebaseLinkController()
 
 
-
     def update_gateway_diffs(self):
 
         # add gateway details:
         links_in_db = self._rb_link_controller.get_rulebase_links(self._global_state.import_state)
-        required_inserts, required_removes = self.update_rulebase_link_diffs(links_in_db)
+        required_inserts, required_removes = self.update_rulebase_link_diffs()
         self._rb_link_controller.insert_rulebase_links(self._global_state.import_state, required_inserts)         
         # self.updateRuleEnforcedOnGatewayDiffs(prevConfig)
         self.update_interface_diffs()
@@ -40,7 +39,7 @@ class FwConfigImportGateway:
         # self.ImportDetails.Stats.addError('simulate error')
 
 
-    def update_rulebase_link_diffs(self, links_in_db: list[RulebaseLink]):
+    def update_rulebase_link_diffs(self):
 
         required_inserts: list[RulebaseLinkUidBased] = []
         required_removes: list[int] = []

@@ -37,11 +37,11 @@ class ImportStatisticsController(ImportStatistics):
             self.ServiceObjectAddCount + self.ServiceObjectDeleteCount + self.ServiceObjectChangeCount + \
             self.UserObjectAddCount + self.UserObjectDeleteCount + self.UserObjectChangeCount + \
             self.ZoneObjectAddCount + self.ZoneObjectDeleteCount + self.ZoneObjectChangeCount + \
-            self.RuleAddCount + self.RuleDeleteCount + self.RuleChangeCount + self.RuleMoveCount + \
+            self.RuleAddCount + self.RuleDeleteCount + self.RuleChangeCount + \
             self.rule_enforce_change_count + self.rulebase_add_count + self.rulebase_change_count + self.rulebase_delete_count
 
     def getRuleChangeNumber(self):
-        return self.RuleAddCount + self.RuleDeleteCount + self.RuleChangeCount + self.RuleMoveCount + \
+        return self.RuleAddCount + self.RuleDeleteCount + self.RuleChangeCount + \
             self.rule_enforce_change_count + self.rulebase_add_count + self.rulebase_change_count + self.rulebase_delete_count
 
     def getChangeDetails(self):

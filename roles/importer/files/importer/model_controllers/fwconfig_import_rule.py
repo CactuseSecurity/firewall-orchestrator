@@ -132,8 +132,22 @@ class FwConfigImportRule():
         self.import_details.Stats.RuleMoveCount += num_moved_rules
         self.import_details.Stats.RuleChangeCount += num_changed_rules
 
+        removed_rule_ids.extend(old_rule_ids)
+
+        if len(removed_rule_ids) > 0:
+            self._create_removed_rules_map(removed_rule_ids)
+            
         # TODO: rule_nwobj_resolved fuellen (recert?)
         return new_rule_ids
+    
+
+    def _create_removed_rules_map(self, removed_rule_ids: list[int]):
+        removed_rule_ids_set = set(removed_rule_ids)
+        for rule_id in removed_rule_ids_set:
+            rule_uid = next((k for k, v in self.import_details.RuleMap.items() if v == rule_id), None)
+            if rule_uid:
+                self.import_details.removed_rules_map[rule_uid] = rule_id
+
     
 
     def _collect_uncaught_moves(self, movedRuleUids, changedRuleUids):

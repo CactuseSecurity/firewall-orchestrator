@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, TypeAdapter
 
 
 # RulebaseLinkUidBased is the model for a rulebase_link (containing no DB IDs)
@@ -38,6 +38,10 @@ class RulebaseLink(BaseModel):
     removed: int|None = None
 
 
+    class Config:
+                populate_by_name = True
+
+
     def toDict(self):
         return {
             "gw_id": self.gw_id,
@@ -51,4 +55,9 @@ class RulebaseLink(BaseModel):
             "created": self.created,
             "removed": self.removed
         }
+    
+
+def parse_rulebase_links(data: list[dict]) -> list[RulebaseLink]:
+    adapter = TypeAdapter(list[RulebaseLink])
+    return adapter.validate_python(data)       
     

@@ -67,7 +67,7 @@ class FwConfigImportGateway:
                         link_in_db = next((
                             existing_link 
                             for existing_link in self._rb_link_controller.rb_links
-                            if existing_link.toDict() == link
+                            if {**existing_link.toDict(), "created": 0} == {**link, "created": 0}
                         ), None)
                         if link_in_db:
                             required_removes.append(link_in_db.id)
@@ -78,6 +78,12 @@ class FwConfigImportGateway:
 
     def try_add_single_link(self, rb_link_list, link, gw, gw_id, logger):
         from_rule_id = self._global_state.import_state.lookupRule(link.from_rule_uid)
+
+        # Try to resolve from_rule_uid with removed_rules_map, if resolving failed
+
+        if not from_rule_id:
+            from_rule_id = self._global_state.import_state.removed_rules_map.get(link.from_rule_uid, None)
+
         if link.from_rulebase_uid is None or link.from_rulebase_uid == '':
             from_rulebase_id = None
         else:

@@ -1,5 +1,6 @@
 # from pydantic import BaseModel
-from models.rulebase_link import RulebaseLink
+
+from models.rulebase_link import RulebaseLink, parse_rulebase_links
 from model_controllers.import_state_controller import ImportStateController
 from fwo_log import getFwoLogger
 import fwo_const
@@ -41,7 +42,7 @@ class RulebaseLinkController():
             import_state.Stats.addError(f"fwo_api:getRulebaseLinks - error while getting rulebaseLinks: {str(links['errors'])}")
             logger.exception(f"fwo_api:getRulebaseLinks - error while getting rulebaseLinks: {str(links['errors'])}")
         else:
-            self.rb_links = links['data']['rulebase_link']
+            self.rb_links: list[RulebaseLink] = parse_rulebase_links(links['data']['rulebase_link'])
 
 
     # add an entry for all rulebase to gateway pairs that are conained in the rulebase_links table
@@ -49,13 +50,14 @@ class RulebaseLinkController():
         self.get_rulebase_links(importState)
 
         for link in self.rb_links:
-            rulebase_id = link['to_rulebase_id']
-            gw_id = link['gw_id']
+            rulebase_id = link.to_rulebase_id
+            gw_id = link.gw_id
             if rulebase_id not in self.rulbase_to_gateway_map:
                 self.rulbase_to_gateway_map.update({rulebase_id: []})
             if gw_id not in self.rulbase_to_gateway_map[rulebase_id]:
                 self.rulbase_to_gateway_map[rulebase_id].append(gw_id)
         
+
     def get_gw_ids_for_rulebase_id(self, rulebase_id):
         return self.rulbase_to_gateway_map.get(rulebase_id, [])
     

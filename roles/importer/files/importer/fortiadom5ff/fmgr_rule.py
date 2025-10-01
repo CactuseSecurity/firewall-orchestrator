@@ -261,7 +261,7 @@ def rule_parse_last_hit(native_rule):
 
 def get_access_policy(sid, fm_api_url, native_config_adom, native_config_global, adom_device_vdom_policy_package_structure, adom_name, mgm_details_device, device_config, limit):
 
-    previous_rulebase = ''
+    previous_rulebase = None
     link_list = []
     local_pkg_name, global_pkg_name = find_packages(adom_device_vdom_policy_package_structure, adom_name, mgm_details_device)
     options = ['extra info', 'scope member', 'get meta']
@@ -314,6 +314,7 @@ def get_and_link_local_rulebase(rulebase_type_prefix, previous_rulebase, adom_na
             rulebase_type_prefix + '_v6_' + local_pkg_name,
             limit=limit)
     previous_rulebase = link_rulebase(link_list, native_config_adom['rulebases'], local_pkg_name, rulebase_type_prefix, previous_rulebase, False)
+    return previous_rulebase
 
 def find_packages(adom_device_vdom_policy_package_structure, adom_name, mgm_details_device):
     for device in adom_device_vdom_policy_package_structure[adom_name]:
@@ -339,7 +340,7 @@ def link_rulebase(link_list, rulebases, pkg_name, rulebase_type_prefix, previous
     return previous_rulebase
 
 def build_link(previous_rulebase, full_pkg_name, is_global):
-    if previous_rulebase == '':
+    if previous_rulebase is None:
         is_initial = True
     else:
         is_initial = False

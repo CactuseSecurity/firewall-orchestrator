@@ -790,6 +790,8 @@ INSERT INTO txt VALUES ('show_all_owners',		'German', 	'Alle Eigent&uuml;mer zei
 INSERT INTO txt VALUES ('show_all_owners',		'English', 	'Show all owners');
 INSERT INTO txt VALUES ('recert_activated',		'German', 	'Rezertifizierung aktiviert');
 INSERT INTO txt VALUES ('recert_activated',		'English', 	'Recertification activated');
+INSERT INTO txt VALUES ('no_recerts',			'German', 	'keine Rezertifizierung vorhanden');
+INSERT INTO txt VALUES ('no_recerts',			'English', 	'No recertification available');
 
 -- schedule
 INSERT INTO txt VALUES ('schedule', 			'German',	'Terminplan');

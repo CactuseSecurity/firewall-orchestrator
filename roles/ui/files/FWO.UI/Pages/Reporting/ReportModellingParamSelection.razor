@@ -79,12 +79,19 @@
     {
         <br>
         <h5 class="text-left">@(userConfig.GetText("recertification"))</h5>
-        <Dropdown ElementType="OwnerRecertification" ElementToString="@(o => o.RecertDate?.ToString("yyyy-MM-dd HH:mm:ss"))" Nullable="true" 
-                SelectedElement="selectedOwnerRecert" SelectedElementChanged="OwnerRecertChanged" Elements="ownerRecerts">
-            <ElementTemplate Context="rec">
-                @(rec.RecertDate?.ToString("yyyy-MM-dd HH:mm:ss"))
-            </ElementTemplate>
-        </Dropdown>
+        @if(ownerRecerts.Count == 0)
+        {
+            <input class="form-control form-control-sm" disabled type="text" placeholder="@(userConfig.GetText("no_recerts"))" />
+        }
+        else
+        {
+            <Dropdown ElementType="OwnerRecertification" ElementToString="@(o => o.RecertDate?.ToString("yyyy-MM-dd HH:mm:ss"))" Nullable="true" 
+                    SelectedElement="selectedOwnerRecert" SelectedElementChanged="OwnerRecertChanged" Elements="ownerRecerts">
+                <ElementTemplate Context="rec">
+                    @(rec.RecertDate?.ToString("yyyy-MM-dd HH:mm:ss"))
+                </ElementTemplate>
+            </Dropdown>
+        }
     }
 </div>
 

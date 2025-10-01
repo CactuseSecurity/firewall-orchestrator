@@ -52,11 +52,18 @@ class MockImportStateController(ImportStateController):
         self.IsFullImport = True
         self.setCoreData()
 
-        self.track_id_map = {}
+        self.track_id_map = {
+            "ordered": 2,
+            "inline": 3,
+            "concatenated": 4,
+            "domain": 5
+        }
+        
         self.action_id_map = {}
         self.service_id_map = {}
         self.network_object_id_map = {}
         self.user_id_map = {}
+
 
     @property
     def stub_setCoreData(self) -> bool:

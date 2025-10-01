@@ -30,7 +30,7 @@ class FwConfigImportGateway:
     def update_gateway_diffs(self):
 
         # add gateway details:
-        links_in_db = self._rb_link_controller.get_rulebase_links(self._global_state.import_state)
+        self._rb_link_controller.get_rulebase_links(self._global_state.import_state)
         required_inserts, required_removes = self.update_rulebase_link_diffs()
         self._rb_link_controller.insert_rulebase_links(self._global_state.import_state, required_inserts)         
         # self.updateRuleEnforcedOnGatewayDiffs(prevConfig)
@@ -59,18 +59,18 @@ class FwConfigImportGateway:
                 for link in gw.RulebaseLinks:
                     self.try_add_single_link(required_inserts, link, previous_config_gw, gw_id, logger)
 
-                # if previous_config_gw:
-                #     removed_rulebase_links = []
-                #     for link in previous_config_gw.RulebaseLinks:
-                #         self.try_add_single_link(removed_rulebase_links, link, gw, gw_id, logger)
-                #     for link in removed_rulebase_links:
-                #         link_in_db = next((
-                #             existing_link 
-                #             for existing_link in links_in_db 
-                #             if existing_link.toDict() == link.toDict() 
-                #         ), None)
-                #         if link_in_db:
-                #             required_removes.append(link_in_db.id)
+                if previous_config_gw:
+                    removed_rulebase_links = []
+                    for link in previous_config_gw.RulebaseLinks:
+                        self.try_add_single_link(removed_rulebase_links, link, gw, gw_id, logger)
+                    for link in removed_rulebase_links:
+                        link_in_db = next((
+                            existing_link 
+                            for existing_link in self._rb_link_controller.rb_links
+                            if existing_link.toDict() == link
+                        ), None)
+                        if link_in_db:
+                            required_removes.append(link_in_db.id)
 
         return required_inserts, required_removes
 

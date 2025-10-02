@@ -5,34 +5,19 @@ mutation recertify(
   $recertified: Boolean
   $recertDate: timestamp
   $comment: String
-<<<<<<< HEAD:roles/common/files/fwo-api-calls/recertification/recertify.graphql
-) {
-  update_recertification(
-    where: {
-      _and: [
-        { rule_metadata_id: { _eq: $ruleMetadataId } }
-        { owner_id: { _eq: $ownerId } }
-        { recert_date: { _is_null: true } }
-      ]
-    }
-=======
   $ownerRecertId: bigint
   ) {
   update_recertification(
     where: {_and: [{rule_id: {_eq: $ruleId}}, {owner_id: {_eq: $ownerId}}, {recert_date: {_is_null: true}}]},
->>>>>>> 6adeebac6ebd45845352a510ad6cd7da642af500:roles/lib/files/FWO.Api.Client/APIcalls/recertification/recertify.graphql
     _set: {
       user_dn: $userDn
       recertified: $recertified
       recert_date: $recertDate
       comment: $comment
-<<<<<<< HEAD:roles/common/files/fwo-api-calls/recertification/recertify.graphql
-=======
       owner_recert_id: $ownerRecertId
       }
     ) {
       affected_rows
->>>>>>> 6adeebac6ebd45845352a510ad6cd7da642af500:roles/lib/files/FWO.Api.Client/APIcalls/recertification/recertify.graphql
     }
   ) {
     affected_rows

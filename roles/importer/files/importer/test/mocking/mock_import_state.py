@@ -64,6 +64,8 @@ class MockImportStateController(ImportStateController):
         self.network_object_id_map = {}
         self.user_id_map = {}
 
+        self.removed_rules_map = {}
+
 
     @property
     def stub_setCoreData(self) -> bool:

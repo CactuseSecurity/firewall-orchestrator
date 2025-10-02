@@ -24,19 +24,23 @@ class MockFwConfigNormalizedBuilder():
         and rules, using a UID manager to generate unique identifiers.
     """
 
+
     _uid_manager: UidManager = PrivateAttr()
     _seed: int = 42  # Seed for reproducibility in tests
+
 
     def __init__(self):
         """
             Initializes the mock configuration builder with an internal UID manager.
         """
-        self._uid_manager = UidManager()
+        self.set_up()
+
 
     @property
     def uid_manager(self) -> UidManager:
         """Returns the internal UID manager."""
         return self._uid_manager
+
 
     @staticmethod
     def empty_config() -> FwConfigNormalized:
@@ -51,6 +55,14 @@ class MockFwConfigNormalizedBuilder():
             users={},
             rulebases=[]
         )
+
+
+    def set_up(self):
+        """
+            Sets up config builder to an initial state.
+        """
+
+        self._uid_manager = UidManager()        
 
 
     def build_config(self, mock_config: dict):

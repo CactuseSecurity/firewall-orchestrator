@@ -47,29 +47,6 @@ def set_up_test_for_ruleorder_test_with_defaults():
     return previous_config, fwconfig_import_rule, config_builder, mgm_uid
 
 
-def set_up_test_for_rulebase_link_test_with_defaults():
-
-    init_service_provider()
-
-    fw_config_import_gateway = MockFwConfigImportGateway()
-    config_builder = MockFwConfigNormalizedBuilder()
-
-    previous_config, mgm_uid = config_builder.build_config(
-        {
-            "rule_config": [10,10,10],
-            "network_object_config": 10,
-            "service_config": 10,
-            "user_config": 10
-        }
-    )
-    normalized_config = copy.deepcopy(previous_config)
-
-    fw_config_import_gateway._global_state.normalized_config = normalized_config
-    fw_config_import_gateway._global_state.previous_config = previous_config
-    
-    return config_builder, fw_config_import_gateway, mgm_uid
-
-
 def set_up_test_for_ruleorder_test_with_delete_insert_move():
         
         previous_config, fwconfig_import_rule, config_builder, _ = set_up_test_for_ruleorder_test_with_defaults()

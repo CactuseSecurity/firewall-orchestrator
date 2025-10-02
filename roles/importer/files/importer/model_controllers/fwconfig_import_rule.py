@@ -131,11 +131,12 @@ class FwConfigImportRule():
         self.import_details.Stats.RuleDeleteCount += num_deleted_rules
         self.import_details.Stats.RuleMoveCount += num_moved_rules
         self.import_details.Stats.RuleChangeCount += num_changed_rules
-
-        removed_rule_ids.extend(old_rule_ids)
-
-        if len(removed_rule_ids) > 0:
-            self._create_removed_rules_map(removed_rule_ids)
+        
+        for removed_rules_by_rulebase in list(removed_rule_ids.values()):
+            old_rule_ids.extend(removed_rules_by_rulebase)
+ 
+        if len(old_rule_ids) > 0:
+            self._create_removed_rules_map(old_rule_ids)
             
         # TODO: rule_nwobj_resolved fuellen (recert?)
         return new_rule_ids
@@ -830,7 +831,7 @@ class FwConfigImportRule():
             }
 
 
-            collected_changed_rule_ids = list(self._changed_rule_id_map.keys())
+            collected_changed_rule_ids = list(self._changed_rule_id_map.keys()) or []
 
 
         return changes, collected_changed_rule_ids, insert_rules_return

@@ -31,7 +31,7 @@
         </div>
         @if (actReportFilters.ReportType.IsModellingReport())
         {
-            <ReportModellingParamSelection @bind-ModellingFilter="actReportFilters.ModellingFilter" InjectedAppId="injectedAppId" ReportType="actReportFilters.ReportType"/>
+            <ReportModellingParamSelection @bind-ModellingFilter="actReportFilters.ModellingFilter" @bind-TimeFilter="actReportFilters.TimeFilter" InjectedAppId="injectedAppId" ReportType="actReportFilters.ReportType"/>
         }
         @if (actReportFilters.ReportType == ReportType.Recertification || actReportFilters.ReportType == ReportType.OwnerRecertification)
         {
@@ -63,7 +63,7 @@
             </div>
         }
 
-        @if (actReportFilters.ReportType.IsDeviceRelatedReport())
+        @if (actReportFilters.ReportType.IsDeviceRelatedReport() && actReportFilters.ReportType != ReportType.RecertEventReport)
         {
             @if (actReportFilters.ReportType != ReportType.Statistics && actReportFilters.ReportType != ReportType.AppRules)
             {
@@ -153,6 +153,11 @@
 
                         case ReportType.OwnerRecertification:
                             <OwnerRecertReport OwnerData="currentReport.ReportData.OwnerData" RecertificationDisplayPeriod="currentReport.ReportData.RecertificationDisplayPeriod"/>
+                            break;
+
+                        case ReportType.RecertEventReport:
+                            <RecertEventReport OwnerData="currentReport.ReportData.OwnerData" Managements="currentReport.ReportData.ManagementData" RulesPerPage="rulesPerPage"
+                                @bind-SelectedRules="selectedItemsRuleReportTable"/>
                             break;
 
                         default:
@@ -373,7 +378,7 @@
 
     private void AdjustDeviceSelection()
     {
-        if(actReportFilters.ReportType == ReportType.AppRules)
+        if(actReportFilters.ReportType == ReportType.AppRules || actReportFilters.ReportType == ReportType.RecertEventReport)
         {
             if(!actReportFilters.DeviceFilter.IsAnyDeviceFilterSet())
             {

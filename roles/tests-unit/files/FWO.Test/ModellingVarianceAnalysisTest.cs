@@ -121,10 +121,10 @@ namespace FWO.Test
         public async Task TestGetSuccessfulRequestState()
         {
             ModellingVarianceAnalysis varianceAnalysis = new(varianceAnalysisApiConnection, extStateHandler, userConfig, Application, DefaultInit.DoNothing);
-            
+
             ClassicAssert.AreEqual("Last successful: 1967-01-10 08:00:00, Implemented: 2025-06-26 08:00:00, Walter", await varianceAnalysis.GetSuccessfulRequestState());
         }
-        
+
         [Test, Ignore("temporarily disabled for importer-rework")]
         public async Task TestAnalyseModelledConnectionsForRequest()
         {
@@ -497,7 +497,7 @@ namespace FWO.Test
         //     ClassicAssert.AreEqual(1, result.UnModelledRules.Count);
         //     ClassicAssert.AreEqual("NonModelledRule", result.UnModelledRules[1][0].Name);
 
-        //     List<ManagementReport> reports = result.MgtDataToReport();
+        //    List<ManagementReport> reports = result.UnmodelledRuleDataToReport();
 
         //     ClassicAssert.AreEqual(1, reports.Count);
         //     ClassicAssert.AreEqual(1, reports[0].Devices.Length);
@@ -616,7 +616,7 @@ namespace FWO.Test
             ClassicAssert.AreEqual("Conn7", result.RuleDifferences[0].ModelledConnection.Name);
             ClassicAssert.AreEqual(1, result.RuleDifferences[0].ImplementedRules.Count);
             ClassicAssert.AreEqual("FWOC7_mgt3", result.RuleDifferences[0].ImplementedRules[0].Name);
- 
+
             userConfig.ModRolloutNatHeuristic = false;
 
             varianceAnalysis = new(varianceAnalysisApiConnection, extStateHandler, userConfig, Application, DefaultInit.DoNothing);

@@ -295,6 +295,9 @@ bugfix release:
 # 8.8.10 - 07.09.2025 DEVELOP
 - new report type owner-recertification
 
+# 8.9.1 - 02.10.2025 DEVELOP
+- owner-recertification
+
 # 9.0 - 30.06.2025 DEVELOP
 - rule to gateway mapping 1:n
 - add report output for rule to gw mapping

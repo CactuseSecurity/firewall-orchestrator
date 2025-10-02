@@ -37,6 +37,7 @@ namespace FWO.Report
                 AppendMissingConns(ref report, ownerReport, chapterNumber);
                 AppendConnDiffs(ref report, ownerReport, chapterNumber);
                 AppendObjects(ref report, ownerReport, chapterNumber);
+                AppendRulesForDeletedConns(ref report, ownerReport, chapterNumber);
                 AppendRemainingRules(ref report, ownerReport, chapterNumber);
                 report.AppendLine("<hr>");
             }
@@ -262,13 +263,24 @@ namespace FWO.Report
             AppendNetworkServicesHtml(ownerReport.AllServices, chapterNumber, ref report);
         }
 
+        private void AppendRulesForDeletedConns(ref StringBuilder report, OwnerConnectionReport ownerReport, int chapterNumber)
+        {
+            if (ownerReport.RulesForDeletedConns.Count > 0)
+            {
+                ReportRules rulesReport = new(new(""), userConfig, ReportType.Rules);
+                report.AppendLine($"<h4 id=\"{Guid.NewGuid()}\">{userConfig.GetText("rules_for_deleted_conns")}</h4>");
+                rulesReport.ConstructHtmlReport(ref report, ownerReport.RulesForDeletedConns, chapterNumber, 2);
+                report.AppendLine("<hr>");
+            }
+        }
+
         private void AppendRemainingRules(ref StringBuilder report, OwnerConnectionReport ownerReport, int chapterNumber)
         {
-            if (ownerReport.ManagementData.Count > 0)
+            if (ownerReport.UnmodelledRules.Count > 0)
             {
                 ReportRules rulesReport = new(new(""), userConfig, ReportType.AppRules);
                 report.AppendLine($"<h4 id=\"{Guid.NewGuid()}\">{userConfig.GetText("remaining_rules")}</h4>");
-                rulesReport.ConstructHtmlReport(ref report, ownerReport.ManagementData, chapterNumber, true);
+                rulesReport.ConstructHtmlReport(ref report, ownerReport.UnmodelledRules, chapterNumber, 2);
                 report.AppendLine("<hr>");
             }
         }

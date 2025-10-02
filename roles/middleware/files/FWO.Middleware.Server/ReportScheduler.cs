@@ -184,8 +184,9 @@ namespace FWO.Middleware.Server
             if (((ReportType)reportSchedule.Template.ReportParams.ReportType).IsModellingReport())
             {
                 _userConfig.User.Groups = reportSchedule.ScheduleOwningUser.Groups;
-                await UiUserHandler.GetOwnershipsFromOwnerLdap(apiConnectionUserContext, _userConfig.User);
-                if (!_userConfig.User.Ownerships.Contains(reportSchedule.Template.ReportParams.ModellingFilter.SelectedOwner.Id))
+                await UiUserHandler.GetOwnershipsFromOwnerLdap(apiConnectionScheduler, _userConfig.User);
+                if (!_userConfig.User.Ownerships.Contains(reportSchedule.Template.ReportParams.ModellingFilter.SelectedOwner.Id)
+                    && !_userConfig.User.Ownerships.Contains(0))
                 {
                     Log.WriteInfo(LogMessageTitle, "Report not generated as owner is not valid anymore.");
                     return false;
@@ -263,7 +264,8 @@ namespace FWO.Middleware.Server
                         report_html = reportFile.Html,
                         report_json = reportFile.Json,
                         report_type = reportFile.Type,
-                        description = desc
+                        description = desc,
+                        read_only = false
                     };
                     await apiConnectionUser.SendQueryAsync<object>(ReportQueries.addGeneratedReport, queryVariables);
                 }

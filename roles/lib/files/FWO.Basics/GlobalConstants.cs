@@ -12,6 +12,8 @@ namespace FWO.Basics
         public const string kEnglish = "English";
         public const int kTenant0Id = 1;
 
+        public const int kSessionExpirationTimeDefault = 720; // 60 * 12
+
         public const int kSidebarLeftWidth = 300;
         public const int kGlobLibraryWidth = kSidebarLeftWidth + 400;
         public const int kObjLibraryWidth = kSidebarLeftWidth + 300;
@@ -127,6 +129,7 @@ namespace FWO.Basics
         public const string ACTION = "@@ACTION@@";
         public const string CHANGEACTION = "@@CHANGEACTION@@";
         public const string COMMENT = "@@COMMENT@@";
+        public const string CONN_NUMBER = "@@CONN_NUMBER@@";
         public const string DAYS = "@@DAYS@@";
         public const string DESTINATIONS = "@@DESTINATIONS@@";
         public const string FAIL_NUMBER = "@@FAIL_NUMBER@@";

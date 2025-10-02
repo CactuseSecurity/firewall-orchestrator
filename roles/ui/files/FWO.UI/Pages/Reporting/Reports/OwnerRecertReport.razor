@@ -31,7 +31,7 @@
     }
     @if(furtherOwners.Count > 0)
     {
-        <h5>@(userConfig.GetText("U4007"))</h5>
+        <h5>@(userConfig.GetText( allRecertified ? "U4007" : "U4008"))</h5>
         <OwnerRecertTable Owners="furtherOwners" />
     }
 }
@@ -47,12 +47,14 @@
     private List<FwoOwner> overdueOwners = [];
     private List<FwoOwner> upcomingOwners = [];
     private List<FwoOwner> furtherOwners = [];
+    private bool allRecertified = false;
 
     protected override void OnParametersSet()
     {
         overdueOwners = [.. OwnerData.Select(o => o.Owner).Where(o => o.RecertOverdue)];
         upcomingOwners = [.. OwnerData.Select(o => o.Owner).Where(o => o.RecertUpcoming)];
         furtherOwners = [.. OwnerData.Select(o => o.Owner).Where(o => !o.RecertOverdue && !o.RecertUpcoming)];
+        allRecertified = !furtherOwners.Any( o => o.NextRecertDate == null);
     }
 
     private string GetNextRecertDate(FwoOwner owner)

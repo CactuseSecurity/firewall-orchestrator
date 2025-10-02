@@ -22,6 +22,7 @@ namespace FWO.Data.Modelling
         public List<ModProdDifference> RuleDifferences { get; set; } = [];
         public List<ModProdDifference> OkRules { get; set; } = [];
         public Dictionary<int, List<Rule>> UnModelledRules { get; set; } = [];
+        public Dictionary<int, List<Rule>> DeletedModelsRules { get; set; } = [];
         public int ModelledCount { get; set; } = 0;
         public List<Management> Managements { get; set; } = [];
 
@@ -67,15 +68,25 @@ namespace FWO.Data.Modelling
             return allOkRules;
         }
 
-        public List<ManagementReport> MgtDataToReport()
+        public List<ManagementReport> UnmodelledRuleDataToReport()
+        {
+            return MgtDataToReport(UnModelledRules);
+        }
+
+        public List<ManagementReport> DeletedConnRuleDataToReport()
+        {
+            return MgtDataToReport(DeletedModelsRules);
+        }
+
+        private List<ManagementReport> MgtDataToReport(Dictionary<int, List<Rule>> rulesToReport)
         {
             List<ManagementReport> managementReports = [];
-            foreach (var mgtId in UnModelledRules.Keys.Where(m => UnModelledRules[m].Count > 0))
+            foreach (var mgtId in rulesToReport.Keys.Where(m => rulesToReport[m].Count > 0))
             {
                 Management? mgt = Managements.FirstOrDefault(m => m.Id == mgtId);
                 ManagementReport managementReport = new() { Id = mgtId, Name = mgt?.Name ?? "" };
                 List<DeviceReport> deviceReports = [];
-                foreach (var rule in UnModelledRules[mgtId])
+                foreach (var rule in rulesToReport[mgtId])
                 {
                     // TODO: Migrate
                     // DeviceReport? existingDev = deviceReports.FirstOrDefault(d => d.Id == rule.DeviceId);

@@ -152,6 +152,9 @@ def parse_asa_config(raw_config: str) -> Config:
     routes: List[Route] = []
     mgmt_access: List[MgmtAccessRule] = []
     additional_settings: List[str] = []
+    class_maps: List[ClassMap] = []
+    policy_maps: dict[str, PolicyMap] = {}  # name -> PolicyMap (so we can fill in pieces)
+    service_policies: List[ServicePolicyBinding] = []
 
     i = 0
     while i < len(lines):
@@ -459,6 +462,100 @@ def parse_asa_config(raw_config: str) -> Config:
                 additional_settings.append(line)
                 break
 
+        # class-map <NAME>
+        if re.match(r"^class-map\s+\S+", line, re.I):
+            block, i = _consume_block(lines, i, re.compile(r"^class-map\s+\S+", re.I))
+            name = block[0].split()[1]
+            matches: List[str] = []
+            for b in block[1:]:
+                s = b.strip()
+                mm = re.match(r"^match\s+(.+)$", s, re.I)
+                if mm:
+                    matches.append(mm.group(1))
+            class_maps.append(ClassMap(name=name, matches=matches))
+            continue
+
+        # policy-map type inspect dns <NAME>
+        m = re.match(r"^policy-map\s+type\s+inspect\s+dns\s+(\S+)$", line, re.I)
+        if m:
+            block, i = _consume_block(lines, i, re.compile(r"^policy-map\s+type\s+inspect\s+dns\s+\S+$", re.I))
+            pm_name = m.group(1)
+            pm = policy_maps.get(pm_name) or PolicyMap(name=pm_name, type_str="inspect dns")
+            params = DnsInspectParameters()
+            # inside we expect "parameters" sub-block
+            j = 1
+            while j < len(block):
+                s = block[j].strip()
+                if s == "parameters":
+                    # consume sub-block of parameters (indented further)
+                    k = j + 1
+                    while k < len(block) and block[k].startswith("  "):  # double indent
+                        t = block[k].strip()
+                        m1 = re.match(r"^message-length\s+maximum\s+client\s+(auto|\d+)$", t, re.I)
+                        m2 = re.match(r"^message-length\s+maximum\s+(\d+)$", t, re.I)
+                        m3 = re.match(r"^no\s+tcp-inspection$", t, re.I)
+                        if m1:
+                            v = m1.group(1).lower()
+                            params.message_length_max_client = "auto" if v == "auto" else int(v)
+                        elif m2:
+                            params.message_length_max = int(m2.group(1))
+                        elif m3:
+                            params.tcp_inspection = False
+                        k += 1
+                    j = k
+                    continue
+                j += 1
+            pm.parameters_dns = params
+            policy_maps[pm_name] = pm
+            continue
+
+        m = re.match(r"^policy-map\s+(\S+)$", line, re.I)
+        if m:
+            block, i = _consume_block(lines, i, re.compile(r"^policy-map\s+\S+$", re.I))
+            pm_name = m.group(1)
+            pm = policy_maps.get(pm_name) or PolicyMap(name=pm_name)
+
+            # find "class <NAME>" blocks within
+            idx = 1
+            while idx < len(block):
+                s = block[idx].strip()
+                mc = re.match(r"^class\s+(\S+)$", s, re.I)
+                if mc:
+                    class_name = mc.group(1)
+                    inspections: List[InspectionAction] = []
+                    idx += 1
+                    # collect lines under this class (1 indent)
+                    while idx < len(block) and block[idx].startswith(" "):
+                        t = block[idx].strip()
+                        mi = re.match(r"^inspect\s+(\S+)(?:\s+(\S+))?$", t, re.I)
+                        if mi:
+                            inspections.append(
+                                InspectionAction(protocol=mi.group(1).lower(),
+                                                 policy_map=(mi.group(2) if mi.group(2) else None))
+                            )
+                        else:
+                            # ignore other class-level lines for now
+                            pass
+                        idx += 1
+                    pm.classes.append(PolicyClass(class_name=class_name, inspections=inspections))
+                else:
+                    idx += 1
+
+            policy_maps[pm_name] = pm
+            continue
+
+        m = re.match(r"^service-policy\s+(\S+)\s+(global|interface\s+\S+)$", line, re.I)
+        if m:
+            pm_name = m.group(1)
+            scope_part = m.group(2).lower()
+            if scope_part == "global":
+                service_policies.append(ServicePolicyBinding(policy_map=pm_name, scope="global"))
+            else:
+                iface = scope_part.split()[1]
+                service_policies.append(ServicePolicyBinding(policy_map=pm_name, scope="interface", interface=iface))
+            i += 1
+            continue
+
         i += 1
 
     # Build AccessList objects
@@ -490,6 +587,9 @@ def parse_asa_config(raw_config: str) -> Config:
         routes=routes,
         mgmt_access=mgmt_access,
         names=names,
+        class_maps=class_maps,
+        policy_maps=list(policy_maps.values()),
+        service_policies=service_policies,
     )
     return cfg
 

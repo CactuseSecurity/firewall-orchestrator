@@ -41,8 +41,12 @@ namespace FWO.Data
         [JsonProperty("next_recert_date"), JsonPropertyName("next_recert_date")]
         public DateTime? NextRecertDate { get; set; }
 
+        [JsonProperty("recert_active"), JsonPropertyName("recert_active")]
+        public bool RecertActive { get; set; } = false;
+
         public bool RecertOverdue { get; set; } = false;
         public bool RecertUpcoming { get; set; } = false;
+        public long LastRecertId { get; set; } = 0;
 
         public FwoOwner()
         { }
@@ -63,6 +67,7 @@ namespace FWO.Data
             NextRecertDate = owner.NextRecertDate;
             RecertOverdue = owner.RecertOverdue;
             RecertUpcoming = owner.RecertUpcoming;
+            LastRecertId = owner.LastRecertId;
         }
 
         public string Display(string comSvcTxt)

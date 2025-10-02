@@ -51,6 +51,9 @@ namespace FWO.Data.Report
         [JsonProperty("read_only"), JsonPropertyName("read_only")]
         public bool ReadOnly { get; set; } = false;
 
+        [JsonProperty("owner"), JsonPropertyName("owner")]
+        public FwoOwner? Owner { get; set; }
+
         public bool Sanitize()
         {
             bool shortened = false;

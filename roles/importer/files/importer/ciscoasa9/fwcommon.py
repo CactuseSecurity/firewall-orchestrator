@@ -20,13 +20,20 @@ from __future__ import annotations
 
 import re
 from typing import List, Optional, Tuple
-from fw_models import *
+
+from netaddr import IPNetwork
+
+import fwo_const
+from asa_models import *
 from pathlib import Path
 
 from model_controllers.fwconfigmanagerlist_controller import FwConfigManagerListController
 from model_controllers.import_state_controller import ImportStateController
+from models.fwconfig_normalized import FwConfigNormalized
 from models.fwconfigmanagerlist import FwConfigManagerList
 from fwo_log import getFwoLogger
+from models.networkobject import NetworkObject
+
 
 def has_config_changed(full_config, mgm_details, force=False):
     # dummy - may be filled with real check later on
@@ -52,7 +59,6 @@ def get_config(config_in: FwConfigManagerListController, importState: ImportStat
         config2import = parse_asa_config(raw_config)
         config_in.native_config = config2import
 
-    normalize_config(config_in, importState)
     normalize_config(config_in, importState)
 
     raise NotImplementedError("get_config not implemented yet for ASA")
@@ -138,12 +144,12 @@ def parse_asa_config(raw_config: str) -> Config:
 
     asa_version = ""
     hostname = ""
-    enable_password: Optional[EnablePassword] = None
-    service_modules: List[ServiceModule] = []
+    enable_password: Optional[AsaEnablePassword] = None
+    service_modules: List[AsaServiceModule] = []
     names: List[Names] = []
     interfaces: List[Interface] = []
-    net_objects: List[NetworkObject] = []
-    net_obj_groups: List[NetworkObjectGroup] = []
+    net_objects: List[AsaNetworkObject] = []
+    net_obj_groups: List[AsaNetworkObjectGroup] = []
     svc_objects: List[ServiceObject] = []
     svc_obj_groups: List[ServiceObjectGroup] = []
     access_lists_map: dict[str, List[AccessListEntry]] = {}
@@ -182,7 +188,7 @@ def parse_asa_config(raw_config: str) -> Config:
         # enable password
         m = re.match(r"^enable password\s+(\S+)\s+(\S+)$", line, re.I)
         if m:
-            enable_password = EnablePassword(password=m.group(1), encryption_function=m.group(2))
+            enable_password = AsaEnablePassword(password=m.group(1), encryption_function=m.group(2))
             i += 1
             continue
 
@@ -204,7 +210,7 @@ def parse_asa_config(raw_config: str) -> Config:
             if keepalive_counter is None:
                 # fallback: 0
                 keepalive_counter = 0
-            service_modules.append(ServiceModule(name=name, keepalive_timeout=timeout, keepalive_counter=keepalive_counter))
+            service_modules.append(AsaServiceModule(name=name, keepalive_timeout=timeout, keepalive_counter=keepalive_counter))
             i += 1
             continue
         m = re.match(r"^service-module\s+(\S+)\s+keepalive-counter\s+(\d+)$", line, re.I)
@@ -298,11 +304,11 @@ def parse_asa_config(raw_config: str) -> Config:
             # If the object had only NAT, no host/subnet/fqdn, we still keep the NAT rule and skip object creation.
             if host or subnet or fqdn:
                 if host and not subnet:
-                    net_objects.append(NetworkObject(name=obj_name, ip_address=host, subnet_mask=None, fqdn=None, description=desc))
+                    net_objects.append(AsaNetworkObject(name=obj_name, ip_address=host, subnet_mask=None, fqdn=None, description=desc))
                 elif subnet:
-                    net_objects.append(NetworkObject(name=obj_name, ip_address=subnet, subnet_mask=mask, fqdn=None, description=desc))
+                    net_objects.append(AsaNetworkObject(name=obj_name, ip_address=subnet, subnet_mask=mask, fqdn=None, description=desc))
                 elif fqdn:
-                    net_objects.append(NetworkObject(name=obj_name, ip_address="", subnet_mask=None, fqdn=fqdn, description=desc))
+                    net_objects.append(AsaNetworkObject(name=obj_name, ip_address="", subnet_mask=None, fqdn=fqdn, description=desc))
             if pending_nat:
                 nat_rules.append(pending_nat)
             continue
@@ -327,7 +333,7 @@ def parse_asa_config(raw_config: str) -> Config:
                     members.append(f"host:{mhost.group(1)}")
                 elif msub:
                     members.append(f"subnet:{msub.group(1)}/{msub.group(2)}")
-            net_obj_groups.append(NetworkObjectGroup(name=grp_name, objects=members, description=desc))
+            net_obj_groups.append(AsaNetworkObjectGroup(name=grp_name, objects=members, description=desc))
             continue
 
         # object service
@@ -569,7 +575,7 @@ def parse_asa_config(raw_config: str) -> Config:
     if not hostname:
         hostname = "unknown"
     if not enable_password:
-        enable_password = EnablePassword(password="", encryption_function="")
+        enable_password = AsaEnablePassword(password="", encryption_function="")
 
     cfg = Config(
         asa_version=asa_version,
@@ -595,5 +601,44 @@ def parse_asa_config(raw_config: str) -> Config:
 
 
 def normalize_config(config_in: FwConfigManagerListController, importState: ImportStateController):
-    # TODO: implement normalization logic
+
+    # Objects Normalization
+
+    network_objects = []
+    for object in config_in.native_config.objects:
+        if isinstance(object, AsaNetworkObject):
+            obj = NetworkObject()
+            obj.obj_name = object.name
+            obj.obj_uid = object.name
+            if object.ip_address and object.subnet_mask:
+                obj.obj_typ = "host"
+                obj.obj_ip = object.ip_address
+                # get ip end from ip and mask mask is in 255.... notation
+                obj.obj_ip_end = str(
+                    str(IPNetwork(f"{object.ip_address}/{object.subnet_mask}").broadcast)
+                )
+                obj.obj_color = fwo_const.defaultColor
+                network_objects.append(
+
+                )
+
+    for object_group in config_in.native_config.object_groups:
+        if isinstance(object_group, AsaNetworkObjectGroup):
+            obj = NetworkObject()
+            obj.obj_name = object_group.name
+            obj.obj_uid = object_group.name
+            obj.obj_typ = "group"
+            obj.obj_member_names = "|".join(object_group.objects)
+            obj.obj_color = fwo_const.defaultColor
+
+    # create dict
+    network_objects_normalized = {}
+    for no in network_objects:
+        network_objects_normalized[no.obj_uid] = no
+
+    fwo_config_normalized = FwConfigNormalized(
+        network_objects=network_objects_normalized,
+    )
+
+
     raise NotImplementedError("normalize_config not implemented yet for ASA")

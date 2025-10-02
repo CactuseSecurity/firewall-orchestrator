@@ -5,11 +5,11 @@ from typing import List, Union, Optional, Literal, Tuple
 from pydantic import BaseModel
 
 
-class EnablePassword(BaseModel):
+class AsaEnablePassword(BaseModel):
     password: str
     encryption_function: str
 
-class ServiceModule(BaseModel):
+class AsaServiceModule(BaseModel):
     name: str
     keepalive_timeout: int
     keepalive_counter: int
@@ -29,14 +29,14 @@ class Interface(BaseModel):
     additional_settings: List[str]
     description: str | None = None
 
-class NetworkObject(BaseModel):
+class AsaNetworkObject(BaseModel):
     name: str
     ip_address: str
     subnet_mask: str | None = None
     fqdn: str | None = None
     description: str | None = None
 
-class NetworkObjectGroup(BaseModel):
+class AsaNetworkObjectGroup(BaseModel):
     name: str
     objects: List[str]
     description: str | None = None
@@ -131,11 +131,11 @@ class ServicePolicyBinding(BaseModel):
 class Config(BaseModel):
     asa_version: str
     hostname: str
-    enable_password: EnablePassword
-    service_modules: List[ServiceModule]
+    enable_password: AsaEnablePassword
+    service_modules: List[AsaServiceModule]
     additional_settings: List[str]
     interfaces: List[Interface]
-    objects: List[Union[NetworkObject, NetworkObjectGroup]]
+    objects: List[Union[AsaNetworkObject, AsaNetworkObjectGroup]]
     service_objects: List[ServiceObject] = []
     service_object_groups: List[ServiceObjectGroup] = []
     access_lists: List[AccessList] = []

@@ -1,13 +1,12 @@
 import copy
 
-from fwo_base import init_service_provider
 from fwo_const import rule_num_numeric_steps
 
+from models.fwconfig_normalized import FwConfigNormalized
 from models.rulebase_link import RulebaseLink, RulebaseLinkUidBased
 
 from test.mocking.mock_config import MockFwConfigNormalizedBuilder
 from test.mocking.mock_fwconfig_import_rule import MockFwConfigImportRule
-from test.mocking.mock_fwconfig_import_gateway import MockFwConfigImportGateway
 
 
 def set_up_config_for_import_consistency_test():
@@ -47,147 +46,67 @@ def set_up_test_for_ruleorder_test_with_defaults():
     return previous_config, fwconfig_import_rule, config_builder, mgm_uid
 
 
-def set_up_test_for_ruleorder_test_with_delete_insert_move():
-        
-        previous_config, fwconfig_import_rule, config_builder, _ = set_up_test_for_ruleorder_test_with_defaults()
-
-        rule_uids = list(fwconfig_import_rule.normalized_config.rulebases[0].Rules.keys())
-
-        delete_rule_from_config(fwconfig_import_rule, 0, 0, rule_uids)
-        insert_rule_in_config(fwconfig_import_rule, 0, 0, rule_uids, config_builder)
-        move_rule_in_config(fwconfig_import_rule, 0, 9, 0, rule_uids)
-
-        return previous_config, fwconfig_import_rule, rule_uids
-
-
-def set_up_test_for_ruleorder_test_with_consecutive_insertions():
-        
-        previous_config, fwconfig_import_rule, config_builder, _ = set_up_test_for_ruleorder_test_with_defaults()
-
-        rule_uids = list(fwconfig_import_rule.normalized_config.rulebases[0].Rules.keys())
-
-        # Inserting three new rules at the beginning of the rulebase
-        insert_rule_in_config(fwconfig_import_rule, 0, 0, rule_uids, config_builder)
-        insert_rule_in_config(fwconfig_import_rule, 0, 0, rule_uids, config_builder)
-        insert_rule_in_config(fwconfig_import_rule, 0, 0, rule_uids, config_builder)
-
-        # Inserting three new rules in the middle of the rulebase
-        insert_rule_in_config(fwconfig_import_rule, 0, (len(rule_uids) - 3)//2, rule_uids, config_builder)
-        insert_rule_in_config(fwconfig_import_rule, 0, (len(rule_uids) - 3)//2, rule_uids, config_builder)
-        insert_rule_in_config(fwconfig_import_rule, 0, (len(rule_uids) - 3)//2, rule_uids, config_builder)
-
-        # Inserting three new rules at the end of the rulebase
-        insert_rule_in_config(fwconfig_import_rule, 0, len(rule_uids), rule_uids, config_builder)
-        insert_rule_in_config(fwconfig_import_rule, 0, len(rule_uids), rule_uids, config_builder)
-        insert_rule_in_config(fwconfig_import_rule, 0, len(rule_uids), rule_uids, config_builder)
-
-        return previous_config, fwconfig_import_rule, rule_uids
-
-
-def set_up_test_for_ruleorder_test_with_move_across_rulebases():
-
-    previous_config, fwconfig_import_rule, config_builder, _ = set_up_test_for_ruleorder_test_with_defaults()
-
-    source_rulebase_uids = list(fwconfig_import_rule.normalized_config.rulebases[0].Rules.keys())
-    target_rulebase_uids = list(fwconfig_import_rule.normalized_config.rulebases[1].Rules.keys())
-
-    _, deleted_rule = delete_rule_from_config(fwconfig_import_rule, 0, 0, source_rulebase_uids)
-    insert_rule_in_config(fwconfig_import_rule, 1, 0, target_rulebase_uids, config_builder, deleted_rule)
-
-    return previous_config, fwconfig_import_rule, source_rulebase_uids, target_rulebase_uids
-
-
-def set_up_test_for_ruleorder_test_with_move_to_beginning_middle_and_end_of_rulebase():
-
-    previous_config, fwconfig_import_rule, _, _ = set_up_test_for_ruleorder_test_with_defaults()
-
-    rule_uids = list(fwconfig_import_rule.normalized_config.rulebases[0].Rules.keys())
-
-    move_rule_in_config(fwconfig_import_rule, 0, (len(rule_uids) - 1)//2, 0, rule_uids)  # Move to beginning
-    move_rule_in_config(fwconfig_import_rule, 0, 1, (len(rule_uids) - 1)//2, rule_uids)  # Move to middle
-    move_rule_in_config(fwconfig_import_rule, 0, 2, len(rule_uids) - 1, rule_uids)  # Move to end
-
-    return previous_config, fwconfig_import_rule, rule_uids
-
-
-def set_up_test_for_ruleorder_test_with_delete_of_section_header():
-
-    previous_config, fwconfig_import_rule, config_builder, mgm_uid = set_up_test_for_ruleorder_test_with_defaults()
-
-    # Move last five rules of last rulebase to new rulebase (previous config).
-
-    last_rulebase = previous_config.rulebases[-1]
-    last_five_rules_uids = list(last_rulebase.Rules.keys())[-5:]
-
-    _, new_rulebase_uid = config_builder.add_rulebase(previous_config, mgm_uid)
-
-    for rule_uid in last_five_rules_uids:
-        rule = last_rulebase.Rules.pop(rule_uid)
-        config_builder.add_rule(previous_config, new_rulebase_uid, rule.model_dump())
-    
-    # Create rulebase link for cp_section header (previous config)
-
-    last_rulebase_last_rule_uid = list(last_rulebase.Rules.keys())[-1]
-    gateway = previous_config.gateways[0]
-    config_builder.add_cp_section_header(gateway, last_rulebase.uid, new_rulebase_uid, last_rulebase_last_rule_uid)
-
-    update_rule_map_and_rulebase_map(previous_config, fwconfig_import_rule.import_details)
-    update_rule_num_numerics(previous_config)
-
-    return previous_config, fwconfig_import_rule, [r for rb in fwconfig_import_rule.normalized_config.rulebases for r in rb.Rules.keys()]
-
-
-def reorder_rulebase_rules_dict(fwconfig_import_rule, rulebase_index, rule_uids):
+def reorder_rulebase_rules_dict(config: FwConfigNormalized, rulebase_uid, rule_uids):
     """
         Imitates the changes in order in the config dict.
     """
     
-    rules = copy.deepcopy(fwconfig_import_rule.normalized_config.rulebases[rulebase_index].Rules)
-    fwconfig_import_rule.normalized_config.rulebases[rulebase_index].Rules = {}
-    for rule_uid in rule_uids:
-        fwconfig_import_rule.normalized_config.rulebases[rulebase_index].Rules[rule_uid] = rules[rule_uid]
+    rulebase = next((rb for rb in config.rulebases if rb.uid == rulebase_uid), None)
+
+    if rulebase:
+        rules = copy.deepcopy(rulebase.Rules)
+        rulebase.Rules = {}
+        for rule_uid in rule_uids:
+            rulebase.Rules[rule_uid] = rules[rule_uid]
 
 
-def delete_rule_from_config(fwconfig_import_rule, rulebase_index, rule_position, rule_uids):
+def delete_rule_from_config(config: FwConfigNormalized, rulebase_index, rule_position, rule_uids):
     """
         Imitates the deletion of a rule in the config dict.
     """
 
-    rule_uid = list(fwconfig_import_rule.normalized_config.rulebases[rulebase_index].Rules.keys())[rule_position]
-    rule = fwconfig_import_rule.normalized_config.rulebases[rulebase_index].Rules.pop(rule_uid)
+    rule_uid = list(config.rulebases[rulebase_index].Rules.keys())[rule_position]
+    rule = config.rulebases[rulebase_index].Rules.pop(rule_uid)
     rule_uids.pop(rule_position)
 
     return rule_uid, rule
 
 
-def insert_rule_in_config(fwconfig_import_rule, rulebase_index, rule_position, rule_uids, config_builder, rule = None):
+def insert_rule_in_config(config: FwConfigNormalized, rulebase_uid, rule_position, rule_uids, config_builder, rule = None):
     """
         Imitates the insertion of a rule in the config dict.
     """
 
-    if rule is None:
-        inserted_rule = config_builder.add_rule(fwconfig_import_rule.normalized_config, fwconfig_import_rule.normalized_config.rulebases[rulebase_index].uid)
-    else:
-        inserted_rule = rule
-        fwconfig_import_rule.normalized_config.rulebases[rulebase_index].Rules[inserted_rule.rule_uid] = inserted_rule
+    rulebase = next((rb for rb in config.rulebases if rb.uid == rulebase_uid), None)
 
-    rule_uids.insert(rule_position, inserted_rule.rule_uid)
+    if rulebase:
 
-    reorder_rulebase_rules_dict(fwconfig_import_rule, rulebase_index, rule_uids)
+        if rule is None:
+            inserted_rule = config_builder.add_rule(config, rulebase_uid)
+        else:
+            inserted_rule = rule
+            rulebase.Rules[inserted_rule.rule_uid] = inserted_rule
+
+        rule_uids.insert(rule_position, inserted_rule.rule_uid)
+
+        reorder_rulebase_rules_dict(config, rulebase_uid, rule_uids)
     
 
-def move_rule_in_config(fwconfig_import_rule, rulebase_index, source_position, target_position, rule_uids):
+def move_rule_in_config(config: FwConfigNormalized, rulebase_uid, source_position, target_position, rule_uids):
     """
         Imitates the moving of a rule in the config dict.
     """
 
-    rule_uid = list(fwconfig_import_rule.normalized_config.rulebases[rulebase_index].Rules.keys())[source_position]
-    rule = fwconfig_import_rule.normalized_config.rulebases[rulebase_index].Rules.pop(rule_uid)
-    fwconfig_import_rule.normalized_config.rulebases[rulebase_index].Rules[rule_uid] = rule
-    rule_uids.pop(source_position)
-    rule_uids.insert(target_position, rule_uid)
+    rulebase = next((rb for rb in config.rulebases if rb.uid == rulebase_uid), None)
 
-    reorder_rulebase_rules_dict(fwconfig_import_rule, rulebase_index, rule_uids)
+    if rulebase:
+        rule_uid = list(rulebase.Rules.keys())[source_position]
+        rule = rulebase.Rules.pop(rule_uid)
+        rulebase.Rules[rule_uid] = rule
+        rule_uids.pop(source_position)
+        rule_uids.insert(target_position, rule_uid)
+
+        reorder_rulebase_rules_dict(config, rulebase.uid, rule_uids)
 
 
 def update_rule_map_and_rulebase_map(config, import_state):

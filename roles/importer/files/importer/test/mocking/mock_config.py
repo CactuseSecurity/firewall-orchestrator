@@ -584,7 +584,10 @@ class MockFwConfigNormalizedBuilder():
         )
     
 
-    def add_inline_layer(self, gateway: Gateway, index: int, from_rulebase_uid: str, to_rulebase_uid: str, from_rule_uid: str) -> None:
+    def add_inline_layer(self, gateway: Gateway, from_rulebase_uid: str, to_rulebase_uid: str, from_rule_uid: str, index: int = 0) -> None:
+
+        if index == 0:
+            index = len(gateway.RulebaseLinks)
 
         gateway.RulebaseLinks.insert(
             index,

@@ -6,7 +6,7 @@ from models.fwconfig_normalized import FwConfigNormalized
 from test.mocking.mock_import_state import MockImportStateController
 from test.mocking.mock_config import MockFwConfigNormalizedBuilder
 from test.mocking.mock_fwconfig_import_rule import MockFwConfigImportRule
-from test.tools.set_up_test import delete_rule_from_config, insert_rule_in_config, move_rule_in_config, update_rule_map_and_rulebase_map, update_rule_num_numerics
+from test.tools.set_up_test import remove_rule_from_rulebase, insert_rule_in_config, move_rule_in_config, update_rule_map_and_rulebase_map, update_rule_num_numerics
 
 
 class TestUpdateRulebaseDiffs(unittest.TestCase):
@@ -59,8 +59,9 @@ class TestUpdateRulebaseDiffs(unittest.TestCase):
 
         rulebase = self._normalized_config.rulebases[0]
         rule_uids = list(rulebase.Rules.keys())
+        rule_uid = rule_uids[0]
 
-        delete_rule_from_config(self._normalized_config, 0, 0, rule_uids)
+        remove_rule_from_rulebase(self._normalized_config, rulebase.uid, rule_uid, rule_uids)
         insert_rule_in_config(self._normalized_config, rulebase.uid, 0, rule_uids, self._config_builder)
         move_rule_in_config(self._normalized_config, rulebase.uid, 9, 0, rule_uids)
         
@@ -139,7 +140,7 @@ class TestUpdateRulebaseDiffs(unittest.TestCase):
         target_rulebase = self._fwconfig_import_rule.normalized_config.rulebases[1]
         target_rulebase_uids = list(target_rulebase.Rules.keys())
 
-        _, deleted_rule = delete_rule_from_config(self._normalized_config, 0, 0, source_rulebase_uids)
+        deleted_rule = remove_rule_from_rulebase(self._normalized_config, source_rulebase.uid, source_rulebase_uids[0], source_rulebase_uids)
         insert_rule_in_config(self._normalized_config, target_rulebase.uid, 0, target_rulebase_uids, self._config_builder, deleted_rule)
 
         # Act

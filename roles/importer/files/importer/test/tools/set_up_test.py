@@ -60,16 +60,20 @@ def reorder_rulebase_rules_dict(config: FwConfigNormalized, rulebase_uid, rule_u
             rulebase.Rules[rule_uid] = rules[rule_uid]
 
 
-def delete_rule_from_config(config: FwConfigNormalized, rulebase_index, rule_position, rule_uids):
+def remove_rule_from_rulebase(config: FwConfigNormalized, rulebase_uid: str, rule_uid: str, uid_sequence: list[str] = None):
     """
         Imitates the deletion of a rule in the config dict.
     """
 
-    rule_uid = list(config.rulebases[rulebase_index].Rules.keys())[rule_position]
-    rule = config.rulebases[rulebase_index].Rules.pop(rule_uid)
-    rule_uids.pop(rule_position)
+    rulebase = next((rb for rb in config.rulebases if rb.uid == rulebase_uid), None)
 
-    return rule_uid, rule
+    if rulebase:
+        rule = rulebase.Rules.pop(rule_uid)
+        
+        if uid_sequence:
+            uid_sequence[:] = [uid for uid in uid_sequence if uid != rule_uid]
+
+    return rule
 
 
 def insert_rule_in_config(config: FwConfigNormalized, rulebase_uid, rule_position, rule_uids, config_builder, rule = None):

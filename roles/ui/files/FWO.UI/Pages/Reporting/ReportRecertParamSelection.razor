@@ -6,40 +6,43 @@
     <h5 class="text-left">@(userConfig.GetText("recert_parameter"))</h5>
     <h7 class="text-left text-white">@(userConfig.GetText("due_within")):</h7>
     <input type="number" min="1" max="5000" step="1" class="form-control form-control-sm" @bind="RecertFilter.RecertificationDisplayPeriod" />
-    <h7 class="text-left text-white">@(userConfig.GetText("owner"))</h7>
-    <Dropdown ElementType="FwoOwner" ElementToString="@(o => o.Name)" Nullable="true" SelectedElement="selectedOwner" 
-            SelectedElementChanged="SelectedOwnerChanged" Elements="ownerList">
-        <ElementTemplate Context="owner">
-            @owner.Name
-        </ElementTemplate>
-    </Dropdown>
-    <br>
-    <div class="form-check">
-        <input class="form-check-input" type="checkbox" id="recertShowAnyMatch"
-            @bind="RecertFilter.RecertShowAnyMatch"
-            @oninput="@(async () =>
-            { 
-                RecertFilter.RecertShowAnyMatch = !RecertFilter.RecertShowAnyMatch;
-                if (!RecertFilter.RecertShowAnyMatch) 
-                {
-                    if (FilterInput.Length > 0)
+    @if(ReportType != ReportType.OwnerRecertification)
+    {
+        <h7 class="text-left text-white">@(userConfig.GetText("owner"))</h7>
+        <Dropdown ElementType="FwoOwner" ElementToString="@(o => o.Name)" Nullable="true" SelectedElement="selectedOwner" 
+                SelectedElementChanged="SelectedOwnerChanged" Elements="ownerList">
+            <ElementTemplate Context="owner">
+                @owner.Name
+            </ElementTemplate>
+        </Dropdown>
+        <br>
+        <div class="form-check">
+            <input class="form-check-input" type="checkbox" id="recertShowAnyMatch"
+                @bind="RecertFilter.RecertShowAnyMatch"
+                @oninput="@(async () =>
+                { 
+                    RecertFilter.RecertShowAnyMatch = !RecertFilter.RecertShowAnyMatch;
+                    if (!RecertFilter.RecertShowAnyMatch) 
                     {
-                        FilterInput += " and (not src==0.0.0.0 and not dst==0.0.0.0)";
+                        if (FilterInput.Length > 0)
+                        {
+                            FilterInput += " and (not src==0.0.0.0 and not dst==0.0.0.0)";
+                        }
+                        else
+                        {
+                            FilterInput = "(not src==0.0.0.0 and not dst==0.0.0.0)";
+                        }
                     }
-                    else
+                    else 
                     {
-                        FilterInput = "(not src==0.0.0.0 and not dst==0.0.0.0)";
+                        FilterInput =  FilterInput.Replace("and (not src==0.0.0.0 and not dst==0.0.0.0)", string.Empty);
+                        FilterInput =  FilterInput.Replace("(not src==0.0.0.0 and not dst==0.0.0.0)", string.Empty);
                     }
-                }
-                else 
-                {
-                    FilterInput =  FilterInput.Replace("and (not src==0.0.0.0 and not dst==0.0.0.0)", string.Empty);
-                    FilterInput =  FilterInput.Replace("(not src==0.0.0.0 and not dst==0.0.0.0)", string.Empty);
-                }
-                await FilterInputChanged.InvokeAsync(FilterInput);
-            })" />
-        <label class="form-check-label text-white" for="recertShowAnyMatch">@(userConfig.GetText("show_any_match"))</label>
-    </div>
+                    await FilterInputChanged.InvokeAsync(FilterInput);
+                })" />
+            <label class="form-check-label text-white" for="recertShowAnyMatch">@(userConfig.GetText("show_any_match"))</label>
+        </div>
+    }
 </div>
 
 
@@ -59,6 +62,9 @@
 
     [Parameter]
     public EventCallback<RecertFilter> RecertFilterChanged { get; set; }
+
+    [Parameter]
+    public ReportType ReportType { get; set; } = ReportType.Recertification;
 
     private List<FwoOwner> ownerList = [];
     private FwoOwner? selectedOwner = null;

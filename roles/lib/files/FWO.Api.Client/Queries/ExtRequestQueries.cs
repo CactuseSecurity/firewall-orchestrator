@@ -7,7 +7,7 @@ namespace FWO.Api.Client.Queries
         public static readonly string extRequestDetailsFragment;
 
         public static readonly string addTicketId;
-        public static readonly string getLatestTicketId;
+        public static readonly string getLatestTicketIds;
         public static readonly string addExtRequest;
         public static readonly string getOpenRequests;
         public static readonly string getAndLockOpenRequests;
@@ -28,7 +28,7 @@ namespace FWO.Api.Client.Queries
                 extRequestDetailsFragment = GetQueryText("extRequest/fragments/extRequestDetails.graphql");
 
                 addTicketId = GetQueryText("extRequest/addTicketId.graphql");
-                getLatestTicketId = GetQueryText("extRequest/getLatestTicketId.graphql");
+                getLatestTicketIds = GetQueryText("extRequest/getLatestTicketIds.graphql");
                 addExtRequest = GetQueryText("extRequest/addExtRequest.graphql");
                 getOpenRequests = extRequestDetailsFragment + GetQueryText("extRequest/getOpenRequests.graphql");
                 getAndLockOpenRequests = extRequestDetailsFragment + GetQueryText("extRequest/getAndLockOpenRequests.graphql");

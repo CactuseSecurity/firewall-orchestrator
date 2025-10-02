@@ -26,13 +26,13 @@
         <div class="btn-group">
             <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.Requester}")">
                 <Authorized>
-                    <button type="button" class="btn btn-sm btn-danger" @onclick="CreateTicket">@(userConfig.GetText("create_ticket"))</button>
+                    <button type="button" class="btn btn-sm btn-danger" @onclick="CreateTicket">@(DisplayService.DisplayButton(userConfig, "create_ticket", Icons.Confirm))</button>
                 </Authorized>
                 <NotAuthorized>
-                    <button type="button" class="btn btn-sm btn-danger" disabled>@(userConfig.GetText("create_ticket"))</button>
+                    <button type="button" class="btn btn-sm btn-danger" disabled>@(DisplayService.DisplayButton(userConfig, "create_ticket", Icons.Confirm))</button>
                 </NotAuthorized> 
             </AuthorizeView>
-            <button type="button" class="btn btn-sm btn-secondary" @onclick="Close">@(userConfig.GetText("cancel"))</button>
+            <button type="button" class="btn btn-sm btn-secondary" @onclick="Close">@(DisplayService.DisplayButton(userConfig, "cancel", Icons.Cancel))</button>
         </div>
     </Footer>
 </PopUp>

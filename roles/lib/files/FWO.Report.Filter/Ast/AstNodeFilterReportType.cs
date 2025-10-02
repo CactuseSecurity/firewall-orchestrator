@@ -26,6 +26,7 @@ namespace FWO.Report.Filter.Ast
                 "connections" or "connection" => ReportType.Connections,
                 "apprules" or "apprule" => ReportType.AppRules,
                 "variances" or "variance" => ReportType.VarianceAnalysis,
+                "ownerrecertifications" or "ownerrecertification" => ReportType.OwnerRecertification,
                 _ => throw new SemanticException($"Unexpected report type found", Value.Position)
             };
         }

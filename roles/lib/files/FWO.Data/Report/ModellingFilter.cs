@@ -16,11 +16,17 @@ namespace FWO.Data.Report
         public bool ShowFullRules {get; set;} = false;
         public bool ShowDropRules {get; set;} = false;
 
-        public bool AnalyseRemainingRules {get; set;} = false;
+        public bool AnalyseRemainingRules { get; set; } = false;
+        public bool RulesForDeletedConns { get; set; } = false;
+
+        public bool RecertActivated { get; set; } = true;
+        public bool ShowAllOwners { get; set; } = false;
+        public long? OwnerRecertId { get; set; }
+        public long? ReportId { get; set; }
 
 
         public ModellingFilter()
-        {}
+        { }
 
         public ModellingFilter(ModellingFilter modellingFilter)
         {
@@ -31,6 +37,11 @@ namespace FWO.Data.Report
             ShowFullRules = modellingFilter.ShowFullRules;
             ShowDropRules = modellingFilter.ShowDropRules;
             AnalyseRemainingRules = modellingFilter.AnalyseRemainingRules;
+            RulesForDeletedConns = modellingFilter.RulesForDeletedConns;
+            RecertActivated = modellingFilter.RecertActivated;
+            ShowAllOwners = modellingFilter.ShowAllOwners;
+            OwnerRecertId = modellingFilter.OwnerRecertId;
+            ReportId = modellingFilter.ReportId;
         }
     }
 }

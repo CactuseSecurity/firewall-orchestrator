@@ -1,4 +1,4 @@
-﻿fragment ruleDetails on rule {
+﻿fragment ruleDetailsForReport on rule {
   rule_id
   rule_uid
   mgm_id

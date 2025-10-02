@@ -12,8 +12,8 @@ using FWO.FwLogic;
 namespace FWO.Services
 {
     /// <summary>
-	/// Part of Variance Analysis Class getting the production state
-	/// </summary>
+    /// Part of Variance Analysis Class getting the production state
+    /// </summary>
     public partial class ModellingVarianceAnalysis
     {
         private async Task InitManagements()
@@ -26,7 +26,7 @@ namespace FWO.Services
                 foreach (Management mgt in managements)
                 {
                     ExtMgtData extMgtData = JsonSerializer.Deserialize<ExtMgtData>(mgt.ExtMgtData ?? "");
-                    if(!string.IsNullOrEmpty(extMgtData.ExtId) || !string.IsNullOrEmpty(extMgtData.ExtName))
+                    if (!string.IsNullOrEmpty(extMgtData.ExtId) || !string.IsNullOrEmpty(extMgtData.ExtName))
                     {
                         RelevantManagements.Add(mgt);
                         if (!alreadyCreatedAppServers.ContainsKey(mgt.Id))
@@ -75,26 +75,26 @@ namespace FWO.Services
         private void IdentifyModelledRules(Management mgt, List<Rule> rulesByMgt)
         {
             // get all rulebase links for this management
-            List<RulebaseLink> rulebaseLinks = mgt.Devices.Cast<DeviceReport>().SelectMany(d => d.RulebaseLinks.Where(rl => rl.Removed!=null)).ToList();
+            List<RulebaseLink> rulebaseLinks = mgt.Devices.Cast<DeviceReport>().SelectMany(d => d.RulebaseLinks.Where(rl => rl.Removed != null)).ToList();
             allModelledRules.Add(mgt.Id, []);
             foreach (var rule in rulesByMgt)
             {
-                string? connRef = FindModelledMarker(rule);
-                if(connRef != null)
-                {
-                    if(long.TryParse(connRef, out long connId))
-                    {
-                        rule.ConnId = connId;
-                    }
-                    rule.ManagementName = mgt.Name;
-                    int enforcingDeviceId = rulebaseLinks.FirstOrDefault(rl => rl.NextRulebaseId == rule.RulebaseId)?.GatewayId ?? 0;
-                    rule.DeviceName = mgt.Devices.FirstOrDefault(d => d.Id == enforcingDeviceId)?.Name ?? "";
-                    allModelledRules[mgt.Id].Add(rule);
-                }
-                else
-                {
-                    varianceResult.UnModelledRules[mgt.Id].Add(rule);
-                }
+                rule.ManagementName = mgt.Name;
+                // TMP-MERGE fix
+                // rule.DeviceName = mgt.Devices.FirstOrDefault(d => d.Id == rule.DeviceId)?.Name ?? "";
+                // string? connRef = FindModelledMarker(rule);
+                // if (connRef != null)
+                // {
+                //     if (long.TryParse(connRef, out long connId))
+                //     {
+                //         rule.ConnId = connId;
+                //     }
+                //     allModelledRules[mgt.Id].Add(rule);
+                // }
+                // else
+                // {
+                //     varianceResult.UnModelledRules[mgt.Id].Add(rule);
+                // }
             }
         }
 
@@ -106,7 +106,7 @@ namespace FWO.Services
                 MarkerLocation.Comment => !string.IsNullOrEmpty(rule.Comment) && rule.Comment.Contains(userConfig.ModModelledMarker) ? ParseFromString(rule.Comment) : null,
                 MarkerLocation.Customfields => !string.IsNullOrEmpty(rule.CustomFields) ? GetFromCustomField(rule) : null,
                 _ => null,
-            }; 
+            };
         }
 
         [GeneratedRegex("[^0-9]")]
@@ -115,10 +115,10 @@ namespace FWO.Services
         private string? ParseFromString(string FieldString)
         {
             int idx = FieldString.IndexOf(userConfig.ModModelledMarker) + userConfig.ModModelledMarker.Length;
-            if(idx >= 0 && idx < FieldString.Length)
+            if (idx >= 0 && idx < FieldString.Length)
             {
                 int? contentLength = NonNumericRegex().Match(FieldString[idx..]).Captures.FirstOrDefault()?.Index;
-                return contentLength!= null && contentLength > 0 ? FieldString.Substring(idx, (int)contentLength) : FieldString.Substring(idx);
+                return contentLength != null && contentLength > 0 ? FieldString.Substring(idx, (int)contentLength) : FieldString.Substring(idx);
             }
             return null;
         }
@@ -145,13 +145,13 @@ namespace FWO.Services
         private async Task<List<Rule>?> GetRules(int mgtId, ModellingFilter modellingFilter)
         {
             long? relImpId = await GetRelevantImportId(mgtId);
-            if(modellingFilter.AnalyseRemainingRules)
+            if (modellingFilter.AnalyseRemainingRules)
             {
                 var RuleVariables = new
                 {
                     mgmId = mgtId,
                     import_id_start = relImpId,
-                    import_id_end   = relImpId
+                    import_id_end = relImpId
                 };
                 return await apiConnection.SendQueryAsync<List<Rule>>(RuleQueries.getRulesByManagement, RuleVariables);
             }
@@ -262,7 +262,7 @@ namespace FWO.Services
                         mgmId = mgtId,
                         objTypeIds = objTypeIds,
                         import_id_start = relImpId,
-                        import_id_end   = relImpId
+                        import_id_end = relImpId
                     };
                     return await apiConnection.SendQueryAsync<List<NetworkObject>>(ObjectQueries.getNetworkObjectsForManagement, ObjGroupVariables);
                 }

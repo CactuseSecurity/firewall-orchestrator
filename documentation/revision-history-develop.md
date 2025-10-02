@@ -294,3 +294,6 @@ bugfix release:
 
 # 8.8.10 - 07.09.2025 DEVELOP
 - new report type owner-recertification
+
+# 8.9.1 - 02.10.2025 DEVELOP
+- owner-recertification

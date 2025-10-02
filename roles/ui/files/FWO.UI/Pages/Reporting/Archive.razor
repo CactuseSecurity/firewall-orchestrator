@@ -150,7 +150,7 @@
 
     private void SetVisibleReports()
     {
-        visibleReports = [.. selectedReportType == ReportType.All ? archivedReports : archivedReports.Where(r => r.Type == (int)selectedReportType)];
+        visibleReports = [.. selectedReportType == ReportType.Undefined ? archivedReports : archivedReports.Where(r => r.Type == (int)selectedReportType)];
         if(selectedReportType == ReportType.RecertificationEvent)
         {
             ownerList = [.. availableOwnersList.Where(v => v.Id == 0 || v.ExtAppId == null || visibleReports.Any(r => r.Name.Contains(v.ExtAppId)))];

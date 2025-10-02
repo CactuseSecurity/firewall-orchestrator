@@ -80,20 +80,21 @@ namespace FWO.Services
             foreach (var rule in rulesByMgt)
             {
                 rule.ManagementName = mgt.Name;
-                rule.DeviceName = mgt.Devices.FirstOrDefault(d => d.Id == rule.DeviceId)?.Name ?? "";
-                string? connRef = FindModelledMarker(rule);
-                if (connRef != null)
-                {
-                    if (long.TryParse(connRef, out long connId))
-                    {
-                        rule.ConnId = connId;
-                    }
-                    allModelledRules[mgt.Id].Add(rule);
-                }
-                else
-                {
-                    varianceResult.UnModelledRules[mgt.Id].Add(rule);
-                }
+                // TMP-MERGE fix
+                // rule.DeviceName = mgt.Devices.FirstOrDefault(d => d.Id == rule.DeviceId)?.Name ?? "";
+                // string? connRef = FindModelledMarker(rule);
+                // if (connRef != null)
+                // {
+                //     if (long.TryParse(connRef, out long connId))
+                //     {
+                //         rule.ConnId = connId;
+                //     }
+                //     allModelledRules[mgt.Id].Add(rule);
+                // }
+                // else
+                // {
+                //     varianceResult.UnModelledRules[mgt.Id].Add(rule);
+                // }
             }
         }
 

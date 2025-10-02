@@ -17,48 +17,49 @@ class ServiceModule(BaseModel):
 class Names(BaseModel):
     name: str
     ip_address: str
-    description: Optional[str]
+    description: str | None = None
 
 class Interface(BaseModel):
     name: str
     nameif: str
-    brigde_group: Optional[str]
+    brigde_group: str | None = None
     security_level: int
-    ip_address: Optional[str]
-    subnet_mask: Optional[str]
+    ip_address: str | None = None
+    subnet_mask: str | None = None
     additional_settings: List[str]
-    description: Optional[str]
+    description: str | None = None
 
 class NetworkObject(BaseModel):
     name: str
     ip_address: str
-    subnet_mask: Optional[str]
-    fqdn: Optional[str]
-    description: Optional[str]
+    subnet_mask: str | None = None
+    fqdn: str | None = None
+    description: str | None = None
 
 class NetworkObjectGroup(BaseModel):
     name: str
     objects: List[str]
-    description: Optional[str]
+    description: str | None = None
 
 class ServiceObject(BaseModel):
     name: str
     protocol: Literal["tcp", "udp", "icmp", "ip"]
-    dst_port_eq: Optional[str] = None
-    dst_port_range: Optional[Tuple[int, int]] = None
-    description: Optional[str] = None
+    dst_port_eq: str | None = None
+    dst_port_range: Tuple[int, int] | None = None
+    description: str | None = None
 
 class ServiceObjectGroup(BaseModel):
     name: str
     proto_mode: Literal["tcp", "udp", "tcp-udp"] = "tcp"
     ports_eq: List[str] = []
     ports_range: List[Tuple[int, int]] = []
-    description: Optional[str] = None
+    description: str | None = None
+
 
 class EndpointKind(BaseModel):
     kind: Literal["any", "host", "object", "object-group", "subnet"]
     value: str
-    mask: Optional[str] = None
+    mask: str | None = None
 
 class AccessListEntry(BaseModel):
     acl_name: str
@@ -66,8 +67,8 @@ class AccessListEntry(BaseModel):
     protocol: str
     src: EndpointKind
     dst: EndpointKind
-    dst_port_eq: Optional[str] = None
-    description: Optional[str] = None
+    dst_port_eq: str | None = None
+    description: str | None = None
 
 class AccessList(BaseModel):
     name: str
@@ -83,14 +84,14 @@ class NatRule(BaseModel):
     src_if: str
     dst_if: str
     nat_type: Literal["dynamic-interface", "dynamic", "static"] = "dynamic-interface"
-    translated_object: Optional[str] = None
+    translated_object: str | None = None
 
 class Route(BaseModel):
     interface: str
     destination: str
     netmask: str
     next_hop: str
-    distance: Optional[int] = None
+    distance: int | None = None
 
 class MgmtAccessRule(BaseModel):
     protocol: Literal["http", "ssh", "telnet"]
@@ -104,13 +105,13 @@ class ClassMap(BaseModel):
     matches: List[str] = []   # e.g., ["default-inspection-traffic"]
 
 class DnsInspectParameters(BaseModel):
-    message_length_max_client: Optional[Literal["auto", "default"]] | Optional[int] = None
-    message_length_max: Optional[int] = None
+    message_length_max_client: Literal["auto", "default"] | int | None = None
+    message_length_max: int | None = None
     tcp_inspection: bool = True  # "no tcp-inspection" -> False
 
 class InspectionAction(BaseModel):
     protocol: str                 # e.g., "dns", "ftp"
-    policy_map: Optional[str] = None  # e.g., "preset_dns_map" after "inspect dns preset_dns_map"
+    policy_map: str | None = None  # e.g., "preset_dns_map" after "inspect dns preset_dns_map"
 
 class PolicyClass(BaseModel):
     class_name: str               # e.g., "inspection_default"
@@ -118,14 +119,14 @@ class PolicyClass(BaseModel):
 
 class PolicyMap(BaseModel):
     name: str                     # e.g., "global_policy" or "preset_dns_map"
-    type_str: Optional[str] = None  # e.g., "inspect dns" for typed maps
-    parameters_dns: Optional[DnsInspectParameters] = None
+    type_str: str | None = None  # e.g., "inspect dns" for typed maps
+    parameters_dns: DnsInspectParameters | None = None
     classes: List[PolicyClass] = []
 
 class ServicePolicyBinding(BaseModel):
     policy_map: str               # e.g., "global_policy"
     scope: Literal["global", "interface"] = "global"
-    interface: Optional[str] = None
+    interface: str | None = None
 
 class Config(BaseModel):
     asa_version: str

@@ -212,17 +212,17 @@ class TestUpdateRulebaseDiffs(unittest.TestCase):
             last_rulebase = self._previous_config.rulebases[-1]
             last_five_rules_uids = list(last_rulebase.Rules.keys())[-5:]
 
-            _, new_rulebase_uid = self._config_builder.add_rulebase(self._previous_config, self._mgm_uid)
+            new_rulebase = self._config_builder.add_rulebase(self._previous_config, self._mgm_uid)
 
             for rule_uid in last_five_rules_uids:
                 rule = last_rulebase.Rules.pop(rule_uid)
-                self._config_builder.add_rule(self._previous_config, new_rulebase_uid, rule.model_dump())
+                self._config_builder.add_rule(self._previous_config, new_rulebase.uid, rule.model_dump())
             
             # Create rulebase link for cp_section header (previous config)
 
             last_rulebase_last_rule_uid = list(last_rulebase.Rules.keys())[-1]
             gateway = self._previous_config.gateways[0]
-            self._config_builder.add_cp_section_header(gateway, last_rulebase.uid, new_rulebase_uid, last_rulebase_last_rule_uid)
+            self._config_builder.add_cp_section_header(gateway, last_rulebase.uid, new_rulebase.uid, last_rulebase_last_rule_uid)
 
             update_rule_map_and_rulebase_map(self._previous_config, self._import_state)
             update_rule_num_numerics(self._previous_config)

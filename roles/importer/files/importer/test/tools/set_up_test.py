@@ -5,6 +5,7 @@ from fwo_const import rule_num_numeric_steps
 from models.fwconfig_normalized import FwConfigNormalized
 from models.rulebase_link import RulebaseLink, RulebaseLinkUidBased
 
+from test.mocking.mock_import_state import MockImportStateController
 from test.mocking.mock_config import MockFwConfigNormalizedBuilder
 from test.mocking.mock_fwconfig_import_rule import MockFwConfigImportRule
 
@@ -175,3 +176,18 @@ def update_rb_links(rulebase_links: list[RulebaseLinkUidBased], gateway_id, fwco
 
     fwconfig_import_gateway._rb_link_controller.rb_links = new_rb_links
 
+
+def lookup_ids_for_rulebase_link(import_state: MockImportStateController, from_rule_uid : str = "", from_rulebase_uid : str = "", to_rulebase_uid : str = ""):
+
+    from_rule_id = None
+    from_rulebase_id = None
+    to_rulebase_id = None
+
+    if from_rule_uid != "":
+        from_rule_id = import_state.lookupRule(from_rule_uid)
+    if from_rulebase_uid != "":
+        from_rulebase_id = import_state.lookupRulebaseId(from_rulebase_uid)
+    if to_rulebase_uid != "":
+        to_rulebase_id = import_state.lookupRulebaseId(to_rulebase_uid)
+
+    return from_rule_id, from_rulebase_id, to_rulebase_id

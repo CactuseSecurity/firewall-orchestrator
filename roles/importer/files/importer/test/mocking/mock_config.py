@@ -144,13 +144,13 @@ class MockFwConfigNormalizedBuilder():
 
             # Create a new rulebase.
 
-            _, new_rulebase_uid = self.add_rulebase(config, mock_mgm_uid)
+            new_rulebase = self.add_rulebase(config, mock_mgm_uid)
 
             for i in range(number_of_rules):
 
                 # Add a new rule to the rulebase.
 
-                new_rule = self.add_rule(config, new_rulebase_uid)
+                new_rule = self.add_rule(config, new_rulebase.uid)
                 self.add_references_to_rule(config, new_rule)
 
                 if mock_config.get("initialize_rule_num_numeric"):
@@ -584,7 +584,7 @@ class MockFwConfigNormalizedBuilder():
         )
     
 
-    def add_inline_layer(self, gateway: Gateway, from_rulebase_uid: str, to_rulebase_uid: str, from_rule_uid: str, index: int = 0) -> None:
+    def add_inline_layer(self, gateway: Gateway, from_rulebase_uid: str, from_rule_uid: str, to_rulebase_uid: str, index: int = 0) -> None:
 
         if index == 0:
             index = len(gateway.RulebaseLinks)
@@ -603,16 +603,20 @@ class MockFwConfigNormalizedBuilder():
         )
 
 
-    def add_rulebase(self, config: FwConfigNormalized, mgm_uid: str) -> tuple[Rulebase, str]:
+    def add_rulebase(self, config: FwConfigNormalized, mgm_uid: str, rulebase: Rulebase = None) -> Rulebase:
 
-        new_rulebase_uid = self.uid_manager.create_uid()
-        new_rulebase = Rulebase(
-            uid = new_rulebase_uid,
-            name = f"Rulebase {new_rulebase_uid}",
-            mgm_uid = mgm_uid,
-            id=None
-        )
+        if not rulebase:
+            new_rulebase_uid = self.uid_manager.create_uid()
+            new_rulebase = Rulebase(
+                uid = new_rulebase_uid,
+                name = f"Rulebase {new_rulebase_uid}",
+                mgm_uid = mgm_uid,
+                id=None
+            )
+        else:
+            new_rulebase = rulebase
+            
         config.rulebases.append(new_rulebase)
 
-        return new_rulebase, new_rulebase_uid
+        return new_rulebase
 

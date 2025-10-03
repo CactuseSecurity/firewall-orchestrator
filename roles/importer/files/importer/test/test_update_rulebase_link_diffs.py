@@ -11,7 +11,7 @@ from services.service_provider import ServiceProvider
 from test.mocking.mock_import_state import MockImportStateController
 from test.mocking.mock_config import MockFwConfigNormalizedBuilder
 from test.mocking.mock_fwconfig_import_gateway import MockFwConfigImportGateway
-from test.tools.set_up_test import update_rb_links, update_rule_map_and_rulebase_map, update_rule_num_numerics, remove_rule_from_rulebase
+from test.tools.set_up_test import update_rb_links, update_rule_map_and_rulebase_map, update_rule_num_numerics, remove_rule_from_rulebase, lookup_ids_for_rulebase_link
 
 class TestUpdateRulebaseLinkDiffs(unittest.TestCase):
 
@@ -64,12 +64,12 @@ class TestUpdateRulebaseLinkDiffs(unittest.TestCase):
 
         last_rulebase = self._normalized_config.rulebases[-1]
         last_rulebase_last_rule_uid = list(last_rulebase.Rules.keys())[-1]
-        _, new_rulebase_uid = self._config_builder.add_rulebase(self._normalized_config, self._mgm_uid)
+        new_rulebase = self._config_builder.add_rulebase(self._normalized_config, self._mgm_uid)
         gateway = self._normalized_config.gateways[0]
-        self._config_builder.add_cp_section_header(gateway, last_rulebase.uid, new_rulebase_uid, last_rulebase_last_rule_uid)
+        self._config_builder.add_cp_section_header(gateway, last_rulebase.uid, new_rulebase.uid, last_rulebase_last_rule_uid)
         
         update_rule_map_and_rulebase_map(self._normalized_config, self._import_state)
-        to_rulebase_id = self._import_state.lookupRulebaseId(new_rulebase_uid)
+        to_rulebase_id = self._import_state.lookupRulebaseId(new_rulebase.uid)
         from_rulebase_id = self._import_state.lookupRulebaseId(last_rulebase.uid)
 
         # Act
@@ -92,13 +92,13 @@ class TestUpdateRulebaseLinkDiffs(unittest.TestCase):
         last_rulebase_last_rule_uid = list(last_rulebase.Rules.keys())[-1]
         last_rulebase_last_rule = last_rulebase.Rules.pop(last_rulebase_last_rule_uid)
 
-        _, new_rulebase_uid = self._config_builder.add_rulebase(self._normalized_config, self._mgm_uid)
-        self._config_builder.add_rule(self._normalized_config, new_rulebase_uid, last_rulebase_last_rule.model_dump())
+        new_rulebase = self._config_builder.add_rulebase(self._normalized_config, self._mgm_uid)
+        self._config_builder.add_rule(self._normalized_config, new_rulebase.uid, last_rulebase_last_rule.model_dump())
         gateway = self._normalized_config.gateways[0]
-        self._config_builder.add_cp_section_header(gateway, last_rulebase.uid, new_rulebase_uid, last_rulebase_last_rule_uid)
+        self._config_builder.add_cp_section_header(gateway, last_rulebase.uid, new_rulebase.uid, last_rulebase_last_rule_uid)
 
         update_rule_map_and_rulebase_map(self._normalized_config, self._import_state)
-        to_rulebase_id = self._import_state.lookupRulebaseId(new_rulebase_uid)
+        to_rulebase_id = self._import_state.lookupRulebaseId(new_rulebase.uid)
         from_rulebase_id = self._import_state.lookupRulebaseId(last_rulebase.uid)
 
         # Act
@@ -122,17 +122,17 @@ class TestUpdateRulebaseLinkDiffs(unittest.TestCase):
         last_rulebase = self._previous_config.rulebases[-1]
         last_five_rules_uids = list(last_rulebase.Rules.keys())[-5:]
 
-        _, new_rulebase_uid = self._config_builder.add_rulebase(self._previous_config, self._mgm_uid)
+        new_rulebase = self._config_builder.add_rulebase(self._previous_config, self._mgm_uid)
 
         for rule_uid in last_five_rules_uids:
             rule = last_rulebase.Rules.pop(rule_uid)
-            self._config_builder.add_rule(self._previous_config, new_rulebase_uid, rule.model_dump())
+            self._config_builder.add_rule(self._previous_config, new_rulebase.uid, rule.model_dump())
         
         # Create rulebase link for cp_section header (previous config)
 
         last_rulebase_last_rule_uid = list(last_rulebase.Rules.keys())[-1]
         gateway = self._previous_config.gateways[0]
-        self._config_builder.add_cp_section_header(gateway, last_rulebase.uid, new_rulebase_uid, last_rulebase_last_rule_uid)
+        self._config_builder.add_cp_section_header(gateway, last_rulebase.uid, new_rulebase.uid, last_rulebase_last_rule_uid)
 
         update_rule_map_and_rulebase_map(self._previous_config, self._import_state)
         update_rule_num_numerics(self._previous_config)
@@ -151,7 +151,17 @@ class TestUpdateRulebaseLinkDiffs(unittest.TestCase):
                 
         # Arrange
 
-        from_rule_id, from_rulebase_id, to_rulebase_id = self._add_inline_layer(self._normalized_config)
+        from_rulebase = self._normalized_config.rulebases[-1]
+        from_rule = list(from_rulebase.Rules.values())[0]
+
+        added_rulebase = self._config_builder.add_rulebase(self._normalized_config, self._mgm_uid)
+        self._config_builder.add_rule(self._normalized_config, added_rulebase.uid)
+
+        gateway = self._normalized_config.gateways[0]
+        self._config_builder.add_inline_layer(gateway, from_rulebase.uid, from_rule.rule_uid, added_rulebase.uid)
+
+        update_rule_map_and_rulebase_map(self._normalized_config, self._import_state)
+        from_rule_id, from_rulebase_id, to_rulebase_id = lookup_ids_for_rulebase_link(self._import_state, from_rule.rule_uid, from_rulebase.uid, added_rulebase.uid)
         
         # Act
 
@@ -170,7 +180,18 @@ class TestUpdateRulebaseLinkDiffs(unittest.TestCase):
 
         # Arrange
 
-        _, _, _ = self._add_inline_layer(self._previous_config)
+        from_rulebase = self._previous_config.rulebases[-1]
+        from_rule = list(from_rulebase.Rules.values())[0]
+
+        added_rulebase = self._config_builder.add_rulebase(self._previous_config, self._mgm_uid)
+        self._config_builder.add_rule(self._previous_config, added_rulebase.uid)
+
+        gateway = self._previous_config.gateways[0]
+        self._config_builder.add_inline_layer(gateway, from_rulebase.uid, from_rule.rule_uid, added_rulebase.uid)
+        
+        update_rule_map_and_rulebase_map(self._previous_config, self._import_state)
+        from_rule_id, from_rulebase_id, to_rulebase_id = lookup_ids_for_rulebase_link(self._import_state, from_rule.rule_uid, from_rulebase.uid, added_rulebase.uid)
+        update_rb_links(gateway.RulebaseLinks,1,self._fwconfig_import_gateway)
 
         # Act
 
@@ -185,13 +206,25 @@ class TestUpdateRulebaseLinkDiffs(unittest.TestCase):
     def test_move_inline_layer(self):
         # Arrange
 
-        from_rule_id, from_rulebase_id, to_rulebase_id = self._add_inline_layer(self._previous_config)
-        inline_layer_rulebase = next((rb for rb in self._previous_config.rulebases if rb.uid == to_rulebase_id), None)
-        inline_layer_rulebase_copy = copy.deepcopy(inline_layer_rulebase)
-        first_rulebase = self._normalized_config.rulebases[0]
-        from_rule_uid = list(first_rulebase.Rules.keys())[0]
-        from_rulebase_uid = first_rulebase.uid
-        from_rule_id, from_rulebase_id, _ = self._add_inline_layer(self._normalized_config, from_rulebase_uid, from_rule_uid, rulebase = inline_layer_rulebase_copy)
+        from_rulebase_previous = self._previous_config.rulebases[-1]
+        from_rule_previous = list(from_rulebase_previous.Rules.values())[0]
+
+        from_rulebase_normalized = self._normalized_config.rulebases[0]
+        from_rule_normalized = list(from_rulebase_normalized.Rules.values())[0]
+
+        added_rulebase = self._config_builder.add_rulebase(self._previous_config, self._mgm_uid)
+        self._config_builder.add_rule(self._previous_config, added_rulebase.uid)
+        added_rulebase_copy = copy.deepcopy(added_rulebase)
+        self._config_builder.add_rulebase(self._normalized_config, self._mgm_uid, added_rulebase_copy)
+
+        gateway_previous = self._previous_config.gateways[0]
+        self._config_builder.add_inline_layer(gateway_previous, from_rulebase_previous.uid, from_rule_previous.rule_uid, added_rulebase.uid)
+        gateway_normalized = self._normalized_config.gateways[0]
+        self._config_builder.add_inline_layer(gateway_normalized, from_rulebase_normalized.uid, from_rule_normalized.rule_uid, added_rulebase_copy.uid)
+
+        update_rule_map_and_rulebase_map(self._previous_config, self._import_state)
+        from_rule_id, from_rulebase_id, to_rulebase_id = lookup_ids_for_rulebase_link(self._import_state, from_rule_normalized.rule_uid, from_rulebase_normalized.uid, added_rulebase_copy.uid)
+        update_rb_links(gateway_previous.RulebaseLinks,1,self._fwconfig_import_gateway)
 
         # Act
 
@@ -207,47 +240,3 @@ class TestUpdateRulebaseLinkDiffs(unittest.TestCase):
         self.assertTrue(len(deleted_links_ids) == 1, f"expected {1} new rulebase link, got {len(deleted_links_ids)}")
         self.assertTrue(deleted_links_ids[0] == self._fwconfig_import_gateway._rb_link_controller.rb_links[-1].id)
     
-
-    def _add_inline_layer(self, config: FwConfigNormalized, from_rulebase_uid: str = "", from_rule_uid: str = "", index: int = 0, rulebase: Rulebase = None):
-
-        if from_rulebase_uid == "":
-            rulebase = config.rulebases[-1]
-            from_rulebase_uid = rulebase.uid
-
-        if from_rule_uid == "":
-
-            if not rulebase:
-                rulebase = next((rb for rb in config.rulebases if rb.uid == from_rulebase_uid), None)
-                from_rule_uid = list(rulebase.Rules.keys())[-1]
-
-        if not rulebase:
-            _, to_rulebase_uid = self._config_builder.add_rulebase(config, self._mgm_uid)
-            self._config_builder.add_rule(config, to_rulebase_uid)
-        else:
-            to_rulebase_uid = rulebase.uid
-            config.rulebases.append(rulebase)
-
-        gateway = config.gateways[0]
-        self._config_builder.add_inline_layer(gateway, from_rulebase_uid, to_rulebase_uid, from_rule_uid, index)
-
-        update_rule_map_and_rulebase_map(config, self._import_state)
-        update_rb_links(gateway.RulebaseLinks, 1, self._fwconfig_import_gateway)
-
-        return self._lookup_ids_for_rulebase_link(from_rule_uid, from_rulebase_uid, to_rulebase_uid)
-    
-
-    def _lookup_ids_for_rulebase_link(self, from_rule_uid : str = "", from_rulebase_uid : str = "", to_rulebase_uid : str = ""):
-
-        from_rule_id = None
-        from_rulebase_id = None
-        to_rulebase_id = None
-
-        if from_rule_uid != "":
-            from_rule_id = self._import_state.lookupRule(from_rule_uid)
-        if from_rulebase_uid != "":
-            from_rulebase_id = self._import_state.lookupRulebaseId(from_rulebase_uid)
-        if to_rulebase_uid != "":
-            to_rulebase_id = self._import_state.lookupRulebaseId(to_rulebase_uid)
-
-        return from_rule_id, from_rulebase_id, to_rulebase_id
-

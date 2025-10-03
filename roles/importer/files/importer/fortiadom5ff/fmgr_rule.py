@@ -68,7 +68,7 @@ def normalize_rulebases_for_each_link_destination(gateway, mgm_uid, fetched_rule
                 continue
 
             normalized_rulebase = initialize_normalized_rulebase(rulebase_to_parse, mgm_uid)
-            parse_rulebase(normalized_config_dict, normalized_config_global, rulebase_to_parse, normalized_rulebase)
+            parse_rulebase(normalized_config_dict, normalized_config_global, rulebase_to_parse, normalized_rulebase, found_rulebase_in_global)
             fetched_rulebase_uids.append(rulebase_link['to_rulebase_uid'])
 
             if found_rulebase_in_global:
@@ -91,11 +91,45 @@ def initialize_normalized_rulebase(rulebase_to_parse, mgm_uid):
     normalized_rulebase = Rulebase(uid=rulebaseUid, name=rulebaseName, mgm_uid=mgm_uid, Rules={})
     return normalized_rulebase
 
-def parse_rulebase(normalized_config_dict, normalized_config_global, rulebase_to_parse, normalized_rulebase):
+def parse_rulebase(normalized_config_dict, normalized_config_global, rulebase_to_parse, normalized_rulebase, found_rulebase_in_global):
 
     rule_num = 1
     for native_rule in rulebase_to_parse['data']:
         rule_num = parse_single_rule(normalized_config_dict, normalized_config_global, native_rule, normalized_rulebase, rule_num)
+    if not found_rulebase_in_global:
+        add_implicit_deny_rule(rule_num)
+
+def add_implicit_deny_rule(rule_num):
+    rule_normalized = RuleNormalized(
+        rule_num=rule_num,
+        rule_num_numeric=0,
+        rule_disabled=False,
+        rule_src_neg=False,
+        rule_src=list_delimiter.join(rule_src_list),
+        rule_src_refs=list_delimiter.join(rule_src_refs_list),
+        rule_dst_neg=False,
+        rule_dst=list_delimiter.join(rule_dst_list),
+        rule_dst_refs=list_delimiter.join(rule_dst_refs_list),
+        rule_svc_neg=False,
+        rule_svc=list_delimiter.join(rule_svc_list),
+        rule_svc_refs=list_delimiter.join(rule_svc_refs_list),
+        rule_action=RuleAction.DROP,
+        rule_track=RuleTrack.NONE,
+        rule_installon='',
+        rule_time='',  # Time-based rules not commonly used in basic Fortinet configs
+        rule_name='Implicit Deny',
+        rule_uid='',
+        rule_custom_fields={},
+        rule_implied=False,
+        rule_type=RuleType.ACCESS,
+        last_change_admin='',
+        parent_rule_uid=None,
+        last_hit=last_hit,
+        rule_comment='',
+        rule_src_zone=None,
+        rule_dst_zone=rule_dst_zone,
+        rule_head_text=None
+    )
 
 def parse_single_rule(normalized_config_dict, normalized_config_global, native_rule, rulebase: Rulebase, rule_num):
     # Extract basic rule information

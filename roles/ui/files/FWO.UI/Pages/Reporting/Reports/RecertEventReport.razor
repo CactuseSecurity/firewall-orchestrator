@@ -1,0 +1,43 @@
+﻿@using FWO.Ui.Display
+@using FWO.Config.Api
+@using FWO.Report
+@using FWO.Report.Filter
+@using FWO.Data.Modelling
+
+
+@inject UserConfig userConfig
+
+@if(OwnerData.Count > 0)
+{
+    <h4>@(RecertificateOwner.GetRecertText(OwnerData[0], userConfig))</h4>
+    <div class="ml-13">
+        <ConnectionsReport OwnerData="OwnerData" />
+    </div>
+
+    @if(Managements.Count > 0)
+    {
+        <br>
+        <h5>@(userConfig.GetText("recertified_rules"))</h5>
+        <div class="ml-13">
+            <RulesReport Managements="Managements" SelectedReportType="ReportType.Rules" RulesPerPage="RulesPerPage" @bind-SelectedRules="SelectedRules" />
+        </div>
+    }
+}
+
+@code
+{
+    [Parameter]
+    public List<OwnerConnectionReport> OwnerData { get; set; } = [];
+
+    [Parameter]
+    public List<ManagementReport> Managements { get; set; } = [];
+
+    [Parameter]
+    public int RulesPerPage { get; set; }
+
+    [Parameter]
+    public EventCallback<List<Rule>> SelectedRulesChanged { get; set; }
+
+    [Parameter]
+    public List<Rule> SelectedRules { get; set; } = [];
+}

@@ -13,13 +13,10 @@ using System.Text.Json;
 
 namespace FWO.Report
 {
-    public class ReportRules : ReportDevicesBase
+    public class ReportRules(DynGraphqlQuery query, UserConfig userConfig, ReportType reportType) : ReportDevicesBase(query, userConfig, reportType)
     {
         private const int ColumnCount = 12;
         protected bool UseAdditionalFilter = false;
-        private bool VarianceMode = false;
-
-        public ReportRules(DynGraphqlQuery query, UserConfig userConfig, ReportType reportType) : base(query, userConfig, reportType) {}
 
         public override async Task Generate(int elementsPerFetch, ApiConnection apiConnection, Func<ReportData, Task> callback, CancellationToken ct)
         {
@@ -348,10 +345,10 @@ namespace FWO.Report
             return GenerateHtmlFrame(userConfig.GetText(ReportType.ToString()), Query.RawFilter, DateTime.Now, report);
         }
 
-        public void ConstructHtmlReport(ref StringBuilder report, List<ManagementReport> managementData, int chapterNumber, bool varianceMode = false)
+        public void ConstructHtmlReport(ref StringBuilder report, List<ManagementReport> managementData, int chapterNumber, int levelshift = 0)
         {
             RuleDisplayHtml ruleDisplayHtml = new (userConfig);
-            VarianceMode = varianceMode;
+            Levelshift = levelshift;
 
             foreach (var managementReport in managementData.Where(mgt => !mgt.Ignore && mgt.Devices != null &&
                     Array.Exists(mgt.Devices, device => device.Rules != null && device.Rules.Length > 0)))
@@ -573,12 +570,6 @@ namespace FWO.Report
                 report.AppendLine("</table>");
                 report.AppendLine("<hr>");
             }
-        }
-
-        private string Headline (string? title, int level)
-        {
-            int Level = VarianceMode ? level + 2 : level;
-            return  $"<h{Level} id=\"{Guid.NewGuid()}\">{title}</h{Level}>";
         }
     }
 }

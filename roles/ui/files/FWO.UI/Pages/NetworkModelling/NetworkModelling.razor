@@ -64,7 +64,7 @@
                                 </NotAuthorized>
                             </AuthorizeView>
                         }
-                        @if(userConfig.ModRecertActive && appSelected && selectedApp.ConnectionCount.Aggregate.Count > 0)
+                        @if(userConfig.ModRecertActive && appSelected && selectedApp.RecertActive && selectedApp.ConnectionCount.Aggregate.Count > 0)
                         {
                             <AuthorizeView Roles="@($"{Roles.Modeller}, {Roles.Admin}, {Roles.Auditor}")">
                                 <Authorized>
@@ -143,9 +143,12 @@
                         @if (selectedApp.CommSvcPossible)
                         {
                             <Tab Title="@(userConfig.GetText("common_services"))" Position=2>
-                                <button type="button" class="btn btn-sm btn-success"
-                                    @onclick="appHandler!.AddCommonService">@(DisplayService.DisplayButton(userConfig, "add_common_service", Icons.Add))
-                                </button>
+                               <div>
+                                    <button type="button" class="btn btn-sm btn-success"
+                                            @onclick="appHandler!.AddCommonService">
+                                        @(DisplayService.DisplayButton(userConfig, "add_common_service", Icons.Add))
+                                    </button>
+                               </div>
                                 <ConnectionTable UseResponsiveTable="true" ShowPageSizeInput="true" Connections="@appHandler!.GetCommonServices()" @bind-AppHandler="appHandler" AppActive="appActive" ShowModellingState="true" ShowProductionState="true" />
                             </Tab>
                         }
@@ -215,7 +218,7 @@ else
     private bool firstErrorMessage = true;
     private bool workInProgress = false;
     private bool InitDone = false;
-    
+
 
     protected override async Task OnInitializedAsync()
     {
@@ -491,7 +494,7 @@ else
             if(lastRequests != null && lastRequests.Count > 0)
             {
                 bool shortened = false;
-                return Sanitizer.SanitizeCommentOpt(!string.IsNullOrEmpty(lastRequests.First().LastProcessingResponse) ? 
+                return Sanitizer.SanitizeCommentOpt(!string.IsNullOrEmpty(lastRequests.First().LastProcessingResponse) ?
                     lastRequests.First().LastProcessingResponse : lastRequests.First().LastCreationResponse, ref shortened);
             }
         }
@@ -501,7 +504,7 @@ else
         }
         return null;
     }
-    
+
     private bool IsTempError(string lastResponse)
     {
         return lastResponse.Contains("ACCESS_DENIED_ERROR");

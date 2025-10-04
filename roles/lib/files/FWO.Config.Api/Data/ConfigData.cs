@@ -370,6 +370,9 @@ namespace FWO.Config.Api.Data
         [JsonProperty("modRecertActive"), JsonPropertyName("modRecertActive")]
         public bool ModRecertActive { get; set; } = false;
 
+        [JsonProperty("modRecertExpectAllModelled"), JsonPropertyName("modRecertExpectAllModelled")]
+        public bool ModRecertExpectAllModelled { get; set; } = false;
+
         [JsonProperty("modRecertText"), JsonPropertyName("modRecertText")]
         public string ModRecertText { get; set; } = "";
 

@@ -97,9 +97,9 @@ def parse_rulebase(normalized_config_dict, normalized_config_global, rulebase_to
     for native_rule in rulebase_to_parse['data']:
         rule_num = parse_single_rule(normalized_config_dict, normalized_config_global, native_rule, normalized_rulebase, rule_num)
     if not found_rulebase_in_global:
-        add_implicit_deny_rule(rule_num)
+        add_implicit_deny_rule(rule_num, normalized_config_dict, normalized_config_global, normalized_rulebase)
 
-def add_implicit_deny_rule(rule_num, normalized_config_dict, normalized_config_global):
+def add_implicit_deny_rule(rule_num, normalized_config_dict, normalized_config_global, rulebase: Rulebase):
     
     deny_rule = {'srcaddr': ['all'], 'srcaddr6': ['all'], 'dstaddr': ['all'], 'dstaddr6': ['all'], 'service': ['ALL']}
 
@@ -137,6 +137,7 @@ def add_implicit_deny_rule(rule_num, normalized_config_dict, normalized_config_g
         rule_dst_zone=rule_dst_zone,
         rule_head_text=None
     )
+    rulebase.Rules[rule_normalized.rule_uid] = rule_normalized
 
 def parse_single_rule(normalized_config_dict, normalized_config_global, native_rule, rulebase: Rulebase, rule_num):
     # Extract basic rule information

@@ -21,6 +21,7 @@ from fmgr_service import normalize_service_objects
 from fmgr_rule import normalize_rulebases, get_access_policy
 from fmgr_consts import nw_obj_types, svc_obj_types, user_obj_types
 from fwo_base import ConfigAction
+from fmgr_zone import get_zones
 from models.fwconfig_normalized import FwConfigNormalized
 
 
@@ -48,10 +49,10 @@ def get_config(config_in: FwConfigManagerListController, importState: ImportStat
         # delete_v: das geht schief für unschöne adoms
         arbitrary_vdom_for_updateable_objects = get_arbitrary_vdom(adom_device_vdom_structure)
         adom_device_vdom_policy_package_structure = add_policy_package_to_vdoms(adom_device_vdom_structure, sid, fm_api_url)
-        # adom_device_vdom_policy_package_structure = {adom: {device: {vdom1: pol_pkg1}, {vdom2: pol_pkg2}}}
 
         # get global
         get_objects(sid, fm_api_url, native_config_global, native_config_global, '', limit, nw_obj_types, svc_obj_types, 'global', arbitrary_vdom_for_updateable_objects)
+        get_zones(sid, fm_api_url, native_config_global, '', limit)
 
         for adom in adom_list:
             adom_name = adom.DomainName
@@ -61,7 +62,7 @@ def get_config(config_in: FwConfigManagerListController, importState: ImportStat
             adom_scope = 'adom/'+adom_name
             get_objects(sid, fm_api_url, native_config_adom, native_config_global, adom_name, limit, nw_obj_types, svc_obj_types, adom_scope, arbitrary_vdom_for_updateable_objects)
             # currently reading zone from objects/rules for backward compat with FortiManager 6.x
-            # getZones(sid, fm_api_url, full_config, adom_name, limit, debug_level)
+            get_zones(sid, fm_api_url, native_config_adom, adom_name, limit)
             
             # todo: bring interfaces and routing in new domain native config format
             #getInterfacesAndRouting(
@@ -99,6 +100,7 @@ def initialize_native_config_domain(mgm_details : ManagementController):
         'objects': [],
         'rulebases': [],
         'nat_rulebases': [],
+        'zones': [],
         'gateways': []}
 
 def get_arbitrary_vdom(adom_device_vdom_structure):
@@ -359,37 +361,3 @@ def normalize_links(rulebase_links : list):
             if link['from_rule_uid'] != None:
                 link['from_rule_uid'] = None
     return rulebase_links
-
-# def getZones(sid, fm_api_url, nativeConfig, adom_name, limit, debug_level):
-#     nativeConfig.update({"zones": {}})
-
-#     # get global zones?
-
-#     # get local zones
-#     for device in nativeConfig['devices']:
-#         local_pkg_name = device['package']
-#         for adom in nativeConfig['adoms']:
-#             if adom['name']==adom_name:
-#                 if local_pkg_name not in adom['package_names']:
-#                     logger.error('local rulebase/package ' + local_pkg_name + ' not found in management ' + adom_name)
-#                     return 1
-#                 else:
-#                     fmgr_getter.update_config_with_fortinet_api_call(
-#                         nativeConfig['zones'], sid, fm_api_url, "/pm/config/adom/" + adom_name + "/obj/dynamic/interface", device['id'], debug=debug_level, limit=limit)
-
-#     nativeConfig['zones']['zone_list'] = []
-#     for device in nativeConfig['zones']:
-#         for mapping in nativeConfig['zones'][device]:
-#             if not isinstance(mapping, str):
-#                 if not mapping['dynamic_mapping'] is None:
-#                     for dyn_mapping in mapping['dynamic_mapping']:
-#                         if 'name' in dyn_mapping and not dyn_mapping['name'] in nativeConfig['zones']['zone_list']:
-#                             nativeConfig['zones']['zone_list'].append(dyn_mapping['name'])
-#                         if 'local-intf' in dyn_mapping and not dyn_mapping['local-intf'][0] in nativeConfig['zones']['zone_list']:
-#                             nativeConfig['zones']['zone_list'].append(dyn_mapping['local-intf'][0])
-#                 if not mapping['platform_mapping'] is None:
-#                     for dyn_mapping in mapping['platform_mapping']:
-#                         if 'intf-zone' in dyn_mapping and not dyn_mapping['intf-zone'] in nativeConfig['zones']['zone_list']:
-#                             nativeConfig['zones']['zone_list'].append(dyn_mapping['intf-zone'])
-
-

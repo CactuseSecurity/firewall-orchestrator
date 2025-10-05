@@ -99,7 +99,14 @@ def parse_rulebase(normalized_config_dict, normalized_config_global, rulebase_to
     if not found_rulebase_in_global:
         add_implicit_deny_rule(rule_num)
 
-def add_implicit_deny_rule(rule_num):
+def add_implicit_deny_rule(rule_num, normalized_config_dict, normalized_config_global):
+    
+    deny_rule = {'srcaddr': ['all'], 'srcaddr6': ['all'], 'dstaddr': ['all'], 'dstaddr6': ['all'], 'service': ['ALL']}
+
+    rule_src_list, rule_src_refs_list = rule_parse_addresses(deny_rule, 'src', normalized_config_dict, normalized_config_global)
+    rule_dst_list, rule_dst_refs_list = rule_parse_addresses(deny_rule, 'dst', normalized_config_dict, normalized_config_global)
+    rule_svc_list, rule_svc_refs_list = rule_parse_service(deny_rule)
+
     rule_normalized = RuleNormalized(
         rule_num=rule_num,
         rule_num_numeric=0,
@@ -124,7 +131,7 @@ def add_implicit_deny_rule(rule_num):
         rule_type=RuleType.ACCESS,
         last_change_admin='',
         parent_rule_uid=None,
-        last_hit=last_hit,
+        last_hit=None,
         rule_comment='',
         rule_src_zone=None,
         rule_dst_zone=rule_dst_zone,
@@ -217,15 +224,15 @@ def rule_parse_service(native_rule):
     return rule_svc_list, rule_svc_refs_list
 
 def rule_parse_zone(native_rule, normalized_config_dict):
-    # TODO: only using the first zone for now
-    rule_src_zone = None
-    if len(native_rule.get('srcintf', [])) > 0:
-        rule_src_zone = add_zone_if_missing(normalized_config_dict, native_rule['srcintf'][0])
 
-    rule_dst_zone = None
+    rule_src_zone_list = [None]
+    if len(native_rule.get('srcintf', [])) > 0:
+        rule_src_zone_list = add_zone_if_missing(normalized_config_dict, native_rule['srcintf'][0])
+
+    rule_dst_zone_list = [None]
     if len(native_rule.get('dstintf', [])) > 0:
-        rule_dst_zone = add_zone_if_missing(normalized_config_dict, native_rule['dstintf'][0])
-    return rule_src_zone, rule_dst_zone
+        rule_dst_zone_list = add_zone_if_missing(normalized_config_dict, native_rule['dstintf'][0])
+    return rule_src_zone_list, rule_dst_zone_list
 
 def rule_parse_addresses(native_rule, target, normalized_config_dict, normalized_config_global):
     if target not in ['src', 'dst']:

@@ -137,7 +137,7 @@
                 grpType = (int)selectedType
             };
             List<ModellingNwGroup> allNwObjects = await apiConnection.SendQueryAsync<List<ModellingNwGroup>>(ModellingQueries.getNwGroupObjects, Variables);
-            if(CommonAreaMode && userConfig.ModCommonAreas != "")
+            if(!SpecUserMode && !UpdObjMode && userConfig.ModCommonAreas != "")
             {
                 List<long> commonAreaIds = JsonSerializer.Deserialize<List<CommonAreaConfig>>(userConfig.ModCommonAreas)?.ConvertAll(x => x.AreaId) ?? new();
                 allNwObjects = allNwObjects.Where(o => !commonAreaIds.Contains(o.Id)).ToList();

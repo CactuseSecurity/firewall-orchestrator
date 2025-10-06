@@ -57,7 +57,7 @@ namespace FWO.Test
             DynGraphqlQuery query = Compiler.Compile(t);
 
             ClassicAssert.AreEqual(1, query.QueryVariables.Count);
-            ClassicAssert.AreEqual("%teststring%", query.QueryVariables["fullTextFiler0"]);
+            ClassicAssert.AreEqual("%teststring%", query.QueryVariables["fullTextFilter0"]);
         }
 
         [Test]
@@ -106,7 +106,7 @@ namespace FWO.Test
             DynGraphqlQuery query = Compiler.Compile(t);
             
             ClassicAssert.AreEqual(1, query.QueryVariables.Count);
-            ClassicAssert.AreEqual("cactus", query.QueryVariables["fullTextFiler0"]);
+            ClassicAssert.AreEqual("cactus", query.QueryVariables["fullTextFilter0"]);
         }
 
         [Test]
@@ -121,7 +121,7 @@ namespace FWO.Test
             DynGraphqlQuery query = Compiler.Compile(t);
 
             ClassicAssert.AreEqual(1, query.QueryVariables.Count);
-            ClassicAssert.AreEqual("cactus", query.QueryVariables["fullTextFiler0"]);
+            ClassicAssert.AreEqual("cactus", query.QueryVariables["fullTextFilter0"]);
         }
 
         [Test]

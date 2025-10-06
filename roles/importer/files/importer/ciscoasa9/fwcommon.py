@@ -24,7 +24,6 @@ from typing import List, Optional, Tuple
 from netaddr import IPNetwork
 
 import fwo_const
-from asa_models import *
 from pathlib import Path
 
 from model_controllers.fwconfigmanagerlist_controller import FwConfigManagerListController
@@ -33,6 +32,9 @@ from models.fwconfig_normalized import FwConfigNormalized
 from models.fwconfigmanagerlist import FwConfigManagerList
 from fwo_log import getFwoLogger
 from models.networkobject import NetworkObject
+from ciscoasa9.asa_models import *
+from fwo_enums import ConfigAction
+from model_controllers.fwconfig_normalized_controller import FwConfigNormalizedController
 
 
 def has_config_changed(full_config, mgm_details, force=False):
@@ -51,7 +53,9 @@ def get_config(config_in: FwConfigManagerListController, importState: ImportStat
         A tuple containing the status code and the parsed configuration.
     """
     logger = getFwoLogger()
-    logger.debug ( "starting checkpointR8x/get_config" )
+    # print current path
+    print(Path.cwd())
+    logger.debug ( "starting checkpointAsa9/get_config" )
 
     if config_in.native_config_is_empty:
         raw_config = load_config_from_file("asa.conf") #TODO: get from device via ssh using importState.MgmDetails.Hostname, importState.MgmDetails.ImportUser and importState.MgmDetails.Secret
@@ -61,14 +65,12 @@ def get_config(config_in: FwConfigManagerListController, importState: ImportStat
 
     normalize_config(config_in, importState)
 
-    raise NotImplementedError("get_config not implemented yet for ASA")
-
     return 0, config_in
 
 
 def load_config_from_file(filename: str) -> str:
     """Load ASA configuration from a file."""
-    path = Path(filename)
+    path = Path("roles", "importer", "files", "importer", "ciscoasa9", filename)
     with open(path, "r") as f:
         return f.read()
 
@@ -584,7 +586,8 @@ def parse_asa_config(raw_config: str) -> Config:
         service_modules=service_modules,
         additional_settings=additional_settings,
         interfaces=interfaces,
-        objects=[*net_objects, *net_obj_groups],
+        objects=net_objects,
+        object_groups=net_obj_groups,
         service_objects=svc_objects,
         service_object_groups=svc_obj_groups,
         access_lists=access_lists,
@@ -602,34 +605,68 @@ def parse_asa_config(raw_config: str) -> Config:
 
 def normalize_config(config_in: FwConfigManagerListController, importState: ImportStateController):
 
-    # Objects Normalization
+    # Network Objects Normalization
 
     network_objects = []
     for object in config_in.native_config.objects:
         if isinstance(object, AsaNetworkObject):
-            obj = NetworkObject()
-            obj.obj_name = object.name
-            obj.obj_uid = object.name
-            if object.ip_address and object.subnet_mask:
-                obj.obj_typ = "host"
-                obj.obj_ip = object.ip_address
-                # get ip end from ip and mask mask is in 255.... notation
-                obj.obj_ip_end = str(
-                    str(IPNetwork(f"{object.ip_address}/{object.subnet_mask}").broadcast)
-                )
-                obj.obj_color = fwo_const.defaultColor
-                network_objects.append(
-
+            if object.ip_address is not None and object.subnet_mask is not None:
+                obj = NetworkObject(
+                    obj_uid=object.name,
+                    obj_name=object.name,
+                    obj_typ="network",
+                    obj_ip=object.ip_address,
+                    obj_ip_end = str(
+                        str(IPNetwork(f"{object.ip_address}/{object.subnet_mask}").broadcast)
+                    ),
+                    obj_color=fwo_const.defaultColor
                 )
 
+            elif object.ip_address is not None and object.subnet_mask is None:
+                obj = NetworkObject(
+                    obj_uid=object.name,
+                    obj_name=object.name,
+                    obj_typ="host",
+                    obj_ip=object.ip_address,
+                    obj_ip_end=object.ip_address,
+                    obj_color=fwo_const.defaultColor
+                )
+
+            # TODO ip range
+
+            if obj:
+                network_objects.append(obj)
+            
+    # network object groups
     for object_group in config_in.native_config.object_groups:
         if isinstance(object_group, AsaNetworkObjectGroup):
-            obj = NetworkObject()
-            obj.obj_name = object_group.name
-            obj.obj_uid = object_group.name
-            obj.obj_typ = "group"
-            obj.obj_member_names = "|".join(object_group.objects)
-            obj.obj_color = fwo_const.defaultColor
+            obj = NetworkObject(
+                obj_uid=object_group.name,
+                obj_name=object_group.name,
+                obj_typ="group",
+                obj_member_names="|".join(object_group.objects),
+                obj_member_refs=fwo_const.list_delimiter.join(object_group.objects),
+                obj_color=fwo_const.defaultColor
+            )
+            network_objects.append(obj)
+
+    print("")
+    normalized_config = FwConfigNormalized(
+        action=ConfigAction.INSERT, 
+        network_objects=FwConfigNormalizedController.convertListToDict((nwobj.model_dump() for nwobj in network_objects), 'obj_uid'),
+        service_objects={},
+        zone_objects={},
+        rulebases=[],
+        gateways=[]
+    )
+
+    config_in.ManagerSet[0].Configs = [normalized_config]
+    
+
+    
+    print("")
+    return config_in
+
 
     # create dict
     network_objects_normalized = {}
@@ -639,6 +676,3 @@ def normalize_config(config_in: FwConfigManagerListController, importState: Impo
     fwo_config_normalized = FwConfigNormalized(
         network_objects=network_objects_normalized,
     )
-
-
-    raise NotImplementedError("normalize_config not implemented yet for ASA")

@@ -25,6 +25,7 @@ from netaddr import IPNetwork
 
 import fwo_const
 from pathlib import Path
+from scrapli import Scrapli
 
 from model_controllers.fwconfigmanagerlist_controller import FwConfigManagerListController
 from model_controllers.import_state_controller import ImportStateController
@@ -35,11 +36,43 @@ from models.networkobject import NetworkObject
 from ciscoasa9.asa_models import *
 from fwo_enums import ConfigAction
 from model_controllers.fwconfig_normalized_controller import FwConfigNormalizedController
+from roles.importer.files.importer.model_controllers.management_controller import ManagementController
 
 
 def has_config_changed(full_config, mgm_details, force=False):
     # dummy - may be filled with real check later on
     return True
+
+
+def load_config_from_management(mgm_details: ManagementController) -> str:
+    """Load ASA configuration from the management device using SSH.
+    
+    Args:
+        mgm_details: ManagementController object with connection details.
+
+    Returns:
+        The raw configuration as a string.
+    """
+    try:
+        device = {
+            "host": mgm_details.Hostname,
+            "port": mgm_details.Port,
+            "auth_username": mgm_details.ImportUser,
+            "auth_password": mgm_details.Secret,
+            "auth_secondary": mgm_details.Secret,
+            "auth_strict_key": False,
+            "platform": "cisco_asa"
+        }
+        conn = Scrapli(**device)
+        conn.open()
+        response = conn.send_command("show running")
+        conn.close()
+        return response.result.strip()
+    except Exception as e:
+        logger = getFwoLogger()
+        logger.error(f"Error connecting to device {mgm_details.Hostname}: {e}")
+        return ""
+
 
 def get_config(config_in: FwConfigManagerListController, importState: ImportStateController) -> tuple[int, FwConfigManagerList]:
     """
@@ -53,12 +86,11 @@ def get_config(config_in: FwConfigManagerListController, importState: ImportStat
         A tuple containing the status code and the parsed configuration.
     """
     logger = getFwoLogger()
-    # print current path
-    print(Path.cwd())
+
     logger.debug ( "starting checkpointAsa9/get_config" )
 
     if config_in.native_config_is_empty:
-        raw_config = load_config_from_file("asa.conf") #TODO: get from device via ssh using importState.MgmDetails.Hostname, importState.MgmDetails.ImportUser and importState.MgmDetails.Secret
+        raw_config = load_config_from_management(importState.MgmDetails)
 
         config2import = parse_asa_config(raw_config)
         config_in.native_config = config2import

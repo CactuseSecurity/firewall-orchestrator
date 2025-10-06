@@ -23,7 +23,23 @@ class RulebaseLinkController():
             logger.exception(f"fwo_api:insertRulebaseLinks - error while inserting: {str(add_result['errors'])}")
         else:
             changes = add_result['data']['insert_rulebase_link']['affected_rows']
-            import_state.Stats.rulebase_add_count += changes
+            import_state.Stats.rulebase_link_add_count += changes
+
+
+    def remove_rulebase_links(self, import_state: ImportStateController, removed_rb_links_ids: list[int]):
+        logger = getFwoLogger()
+        query_variables = { "removedRulebaseLinks": removed_rb_links_ids, "importId": import_state.ImportId }
+        if len(removed_rb_links_ids) == 0:
+            return
+        mutation = FwoApi.get_graphql_code([f"{fwo_const.graphql_query_path}rule/removeRulebaseLinks.graphql"])      
+        add_result = import_state.api_call.call(mutation, query_variables=query_variables)
+        if 'errors' in add_result:
+            import_state.Stats.addError(f"fwo_api:removeRulebaseLinks - error while removing: {str(add_result['errors'])}")
+            logger.exception(f"fwo_api:removeRulebaseLinks - error while removing: {str(add_result['errors'])}")
+        else:
+            changes = add_result['data']['update_rulebase_link']['affected_rows']
+            import_state.Stats.rulebase_link_delete_count += changes 
+
 
     def get_rulebase_links(self, import_state: ImportStateController, gw_ids: list[int] = []):
         logger = getFwoLogger()

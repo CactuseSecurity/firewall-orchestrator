@@ -1,3 +1,4 @@
+import copy
 from fwo_log import getFwoLogger
 
 from model_controllers.rulebase_link_controller import RulebaseLinkController
@@ -31,8 +32,9 @@ class FwConfigImportGateway:
 
         # add gateway details:
         self._rb_link_controller.get_rulebase_links(self._global_state.import_state)
-        required_inserts, required_removes = self.update_rulebase_link_diffs()
-        self._rb_link_controller.insert_rulebase_links(self._global_state.import_state, required_inserts)         
+        required_inserts, required_removes, required_updates = self.update_rulebase_link_diffs()
+        self._rb_link_controller.insert_rulebase_links(self._global_state.import_state, required_inserts)
+        self._rb_link_controller.remove_rulebase_links(self._global_state.import_state, required_removes)       
         # self.updateRuleEnforcedOnGatewayDiffs(prevConfig)
         self.update_interface_diffs()
         self.update_routing_diffs()
@@ -42,11 +44,15 @@ class FwConfigImportGateway:
     def update_rulebase_link_diffs(self):
 
         required_inserts: list[RulebaseLinkUidBased] = []
+        required_updates: list[RulebaseLinkUidBased] = []
         required_removes: list[int] = []
 
         logger = getFwoLogger(debug_level=self._global_state.import_state.DebugLevel)
 
         for gw in self._global_state.normalized_config.gateways:
+
+            previous_config_gw = next((p_gw for p_gw in self._global_state.previous_config.gateways if gw.Uid == p_gw.Uid), None)
+
             if gw not in self._global_state.previous_config.gateways:   # this check finds all changes in gateway (including rulebase link changes)
                 if self._global_state.import_state.DebugLevel>8:
                     logger.debug(f"gateway {str(gw)} NOT found in previous config")
@@ -54,15 +60,23 @@ class FwConfigImportGateway:
                 if gw_id is None or gw_id == '' or gw_id == 'none':
                     logger.warning(f"did not find a gwId for UID {gw.Uid}")
 
-                previous_config_gw = next((p_gw for p_gw in self._global_state.previous_config.gateways), None)
+                
+                # creating insert args for new rulebase links
 
                 for link in gw.RulebaseLinks:
-                    self.try_add_single_link(required_inserts, link, previous_config_gw, gw_id, logger)
+                    rulebase_links = None
+                    if previous_config_gw:
+                        rulebase_links = previous_config_gw.RulebaseLinks
+                    self.try_add_single_link(required_inserts, link, rulebase_links or [], gw_id, True, logger)
 
                 if previous_config_gw:
+
+                    # creating remove args for removed rulebase links
+
                     removed_rulebase_links = []
+
                     for link in previous_config_gw.RulebaseLinks:
-                        self.try_add_single_link(removed_rulebase_links, link, gw, gw_id, logger)
+                        self.try_add_single_link(removed_rulebase_links, link, gw.RulebaseLinks, gw_id, False, logger)
                     for link in removed_rulebase_links:
                         link_in_db = next((
                             existing_link 
@@ -72,17 +86,44 @@ class FwConfigImportGateway:
                         if link_in_db:
                             required_removes.append(link_in_db.id)
 
-        return required_inserts, required_removes
+            # creating update args for existing (because rulebase link did not change) rulebase links with new from rule ids (because rule changed)
+            
+
+            for link in gw.RulebaseLinks:
+                link_in_insert_args = next((
+                    insert_link 
+                    for insert_link in required_inserts
+                    if {**insert_link, "created": 0} == {**link.toDict(), "created": 0}
+                ), None)
+
+                # link is unchanged, because it is in normalized, but is not new
+
+                if not link_in_insert_args:
+                    link_in_db = next((
+                            existing_link 
+                            for existing_link in self._rb_link_controller.rb_links
+                            if {**existing_link.toDict(), "created": 0} == {**link.toDict(), "created": 0}
+                        ), None)
+                    
+                    if link_in_db and link_in_db.from_rule_id != self._global_state.import_state.lookupRule(link.from_rule_uid):
+                        self.try_add_single_link(required_updates, copy.deepcopy(link), [], gw_id, False, logger)
 
 
 
-    def try_add_single_link(self, rb_link_list, link, gw, gw_id, logger):
-        from_rule_id = self._global_state.import_state.lookupRule(link.from_rule_uid)
 
-        # Try to resolve from_rule_uid with removed_rules_map, if resolving failed
+        return required_inserts, required_removes, required_updates
 
-        if not from_rule_id:
-            from_rule_id = self._global_state.import_state.removed_rules_map.get(link.from_rule_uid, None)
+
+
+    def try_add_single_link(self, rb_link_list, link, link_list, gw_id, is_insert, logger):
+        
+        # If rule changed we need the id of the old version, since the rulebase links still have the old fks (for updates)
+
+        from_rule_id = self._global_state.import_state.removed_rules_map.get(link.from_rule_uid, None)
+
+        # If rule is unchanged or new id can be fetched from RuleMap, because it has been updated already
+        if not from_rule_id or is_insert:
+            from_rule_id = self._global_state.import_state.lookupRule(link.from_rule_uid)
 
         if link.from_rulebase_uid is None or link.from_rulebase_uid == '':
             from_rulebase_id = None
@@ -96,7 +137,7 @@ class FwConfigImportGateway:
         if link_type_id is None or type(link_type_id) is not int:
             logger.warning(f"did not find a link_type_id for link_type {link.link_type}")
 
-        if self._link_is_in_gateway_information(link, gw):
+        if not self._link_is_in_link_list(link, link_list):
             rb_link_list.append(RulebaseLink(gw_id=gw_id, 
                                     from_rule_id=from_rule_id,
                                     to_rulebase_id=to_rulebase_id,
@@ -111,19 +152,19 @@ class FwConfigImportGateway:
                 logger.debug(f"link {link} was added")
 
 
-    def _link_is_in_gateway_information(self, link: RulebaseLinkUidBased, gw: Gateway):
+    def _link_is_in_link_list(self, link: RulebaseLinkUidBased, link_list: list[RulebaseLinkUidBased]):
 
-        if gw:
+        if link_list:
             existing_link = next((
                 existing_link 
-                for existing_link in gw.RulebaseLinks 
+                for existing_link in link_list
                 if existing_link.toDict() == link.toDict() 
             ), None)
 
             if existing_link:
-                return False
+                return True
             
-        return True
+        return False
 
             
         # TODO: check for changed rbLink

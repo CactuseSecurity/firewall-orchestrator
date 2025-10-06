@@ -74,7 +74,7 @@ class TestUpdateRulebaseLinkDiffs(unittest.TestCase):
 
         # Act
 
-        new_links, _ = self._fwconfig_import_gateway.update_rulebase_link_diffs()
+        new_links, _, _ = self._fwconfig_import_gateway.update_rulebase_link_diffs()
 
         # Assert
 
@@ -103,7 +103,7 @@ class TestUpdateRulebaseLinkDiffs(unittest.TestCase):
 
         # Act
 
-        new_links, _ = self._fwconfig_import_gateway.update_rulebase_link_diffs()
+        new_links, _, _ = self._fwconfig_import_gateway.update_rulebase_link_diffs()
 
         # Assert
 
@@ -140,7 +140,7 @@ class TestUpdateRulebaseLinkDiffs(unittest.TestCase):
 
         # Act
 
-        _, deleted_links_ids = self._fwconfig_import_gateway.update_rulebase_link_diffs()
+        _, deleted_links_ids, _ = self._fwconfig_import_gateway.update_rulebase_link_diffs()
 
         # Assert
         
@@ -165,7 +165,7 @@ class TestUpdateRulebaseLinkDiffs(unittest.TestCase):
         
         # Act
 
-        new_links, _ = self._fwconfig_import_gateway.update_rulebase_link_diffs()
+        new_links, _, _ = self._fwconfig_import_gateway.update_rulebase_link_diffs()
 
         # Assert
 
@@ -195,7 +195,7 @@ class TestUpdateRulebaseLinkDiffs(unittest.TestCase):
 
         # Act
 
-        _, deleted_links_ids = self._fwconfig_import_gateway.update_rulebase_link_diffs()
+        _, deleted_links_ids, _ = self._fwconfig_import_gateway.update_rulebase_link_diffs()
 
         # Assert
 
@@ -228,7 +228,7 @@ class TestUpdateRulebaseLinkDiffs(unittest.TestCase):
 
         # Act
 
-        new_links, deleted_links_ids = self._fwconfig_import_gateway.update_rulebase_link_diffs()
+        new_links, deleted_links_ids, _ = self._fwconfig_import_gateway.update_rulebase_link_diffs()
 
         # Assert
 
@@ -240,3 +240,6 @@ class TestUpdateRulebaseLinkDiffs(unittest.TestCase):
         self.assertTrue(len(deleted_links_ids) == 1, f"expected {1} new rulebase link, got {len(deleted_links_ids)}")
         self.assertTrue(deleted_links_ids[0] == self._fwconfig_import_gateway._rb_link_controller.rb_links[-1].id)
     
+    unittest.skip("Not implemented")
+    def test_move_inline_layer_from_rule_only(self):
+        pass

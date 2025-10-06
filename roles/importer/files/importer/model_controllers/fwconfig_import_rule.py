@@ -132,7 +132,7 @@ class FwConfigImportRule():
         self.import_details.Stats.RuleMoveCount += num_moved_rules
         self.import_details.Stats.RuleChangeCount += num_changed_rules
         
-        for removed_rules_by_rulebase in list(removed_rule_ids.values()):
+        for removed_rules_by_rulebase in removed_rule_ids:
             old_rule_ids.extend(removed_rules_by_rulebase)
  
         if len(old_rule_ids) > 0:

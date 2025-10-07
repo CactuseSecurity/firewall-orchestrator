@@ -44,7 +44,6 @@ class FwConfigImportGateway:
     def update_rulebase_link_diffs(self):
 
         required_inserts: list[RulebaseLinkUidBased] = []
-        required_updates: list[RulebaseLinkUidBased] = []
         required_removes: list[int] = []
 
         logger = getFwoLogger(debug_level=self._global_state.import_state.DebugLevel)
@@ -60,29 +59,34 @@ class FwConfigImportGateway:
                 if gw_id is None or gw_id == '' or gw_id == 'none':
                     logger.warning(f"did not find a gwId for UID {gw.Uid}")
 
-                # creating insert args for new rulebase links
-
-                for link in gw.RulebaseLinks:
-                    rulebase_links = []
-                    if previous_config_gw:
-                        rulebase_links = previous_config_gw.RulebaseLinks
-                    self._try_add_single_link(required_inserts, link, rulebase_links, gw_id, True, logger)
+                self._create_insert_args(gw, previous_config_gw, gw_id, logger, required_inserts)
 
                 if previous_config_gw:
-
-                    # creating remove args for removed rulebase links
-
-                    removed_rulebase_links = []
-
-                    for link in previous_config_gw.RulebaseLinks:
-                        self._try_add_single_link(removed_rulebase_links, link, gw.RulebaseLinks, gw_id, False, logger)
-                    for link in removed_rulebase_links:
-                        link_in_db = self._try_get_id_based_link(link, self._rb_link_controller.rb_links)
-                        if link_in_db:
-                            required_removes.append(link_in_db.id)
+                    self._create_remove_args(gw, previous_config_gw, gw_id, logger, required_removes)
 
         return required_inserts, required_removes
+    
 
+    def _create_insert_args(self, normalized_gateway: Gateway, previous_gateway: Gateway, gw_id, logger, arg_list):
+        
+        rulebase_links = []
+
+        for link in normalized_gateway.RulebaseLinks:
+            if previous_gateway:
+                rulebase_links = previous_gateway.RulebaseLinks
+            self._try_add_single_link(arg_list, link, rulebase_links, gw_id, True, logger)
+
+
+    def _create_remove_args(self, normalized_gateway: Gateway, previous_gateway: Gateway, gw_id, logger, arg_list):
+            
+            removed_rulebase_links = []
+
+            for link in previous_gateway.RulebaseLinks:
+                self._try_add_single_link(removed_rulebase_links, link, normalized_gateway.RulebaseLinks, gw_id, False, logger)
+            for link in removed_rulebase_links:
+                link_in_db = self._try_get_id_based_link(link, self._rb_link_controller.rb_links)
+                if link_in_db:
+                    arg_list.append(link_in_db.id)
 
 
     def _try_add_single_link(self, rb_link_list, link, link_list, gw_id, is_insert, logger):

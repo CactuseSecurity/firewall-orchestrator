@@ -290,11 +290,10 @@ namespace FWO.Services
         {
             Log.WriteDebug("Search AppServer", $"Name: {appServer.Name}, Ip: {appServer.Ip}, Management: {mgt.Name}");
 
-            ModellingAppServer? existingAppServer = allExistingAppServers[mgt.Id].FirstOrDefault(a => appServerComparer.Equals(a, appServer));
-            if (existingAppServer != null)
+            if (allExistingAppServersHashes[mgt.Id].TryGetValue(appServerComparer.GetHashCode(appServer), out long existingAppServerId))
             {
                 Log.WriteDebug("Search AppServer", $"Found!!");
-                return (existingAppServer?.Id, true);
+                return (existingAppServerId, true);
             }
             else if (alreadyCreatedAppServers[mgt.Id].FirstOrDefault(a => appServerComparer.Equals(a, appServer)) != null)
             {

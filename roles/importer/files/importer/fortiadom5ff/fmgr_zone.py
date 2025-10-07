@@ -2,7 +2,6 @@ import fmgr_getter
 
 def get_zones(sid, fm_api_url, native_config, adom_name, limit):
     
-    # get global zones
     if adom_name == '':
         fmgr_getter.update_config_with_fortinet_api_call(
             native_config['zones'], sid, fm_api_url, '/pm/config/global/obj/dynamic/interface', 'interface_global', limit=limit)

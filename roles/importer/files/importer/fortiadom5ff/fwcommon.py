@@ -18,7 +18,7 @@ from models.fwconfigmanager import FwConfigManager
 from model_controllers.management_controller import ManagementController
 from fmgr_network import normalize_network_objects
 from fmgr_service import normalize_service_objects
-from fmgr_rule import normalize_rulebases, get_access_policy
+from fmgr_rule import normalize_rulebases, get_access_policy, get_nat_policy, normalize_nat_rulebases
 from fmgr_consts import nw_obj_types, svc_obj_types, user_obj_types
 from fwo_base import ConfigAction
 from fmgr_zone import get_zones
@@ -73,9 +73,8 @@ def get_config(config_in: FwConfigManagerListController, importState: ImportStat
                 native_config_adom['gateways'].append(device_config)
                 get_access_policy(
                     sid, fm_api_url, native_config_adom, native_config_global, adom_device_vdom_policy_package_structure, adom_name, mgm_details_device, device_config, limit)
-                # delete_v: nat später
-                #fmgr_rule.getNatPolicy(
-                #    sid, fm_api_url, nativeConfig, adom_name, mgm_details_device, limit)
+                get_nat_policy(
+                    sid, fm_api_url, native_config_adom, adom_device_vdom_policy_package_structure, adom_name, mgm_details_device, limit)
                                 
         try:  # logout of fortimanager API
             fmgr_getter.logout(
@@ -197,6 +196,11 @@ def normalize_single_manager_config(native_config: dict[str, Any], native_config
     normalize_rulebases(import_state, mgm_uid, native_config, native_config_global, normalized_config_dict, normalized_config_global, 
                         is_global_loop_iteration)
     logger.info("completed normalizing rulebases for manager: " + native_config.get('domain_name',''))
+
+    normalize_nat_rulebases(import_state, mgm_uid, native_config, native_config_global, normalized_config_dict, normalized_config_global, 
+                        is_global_loop_iteration)
+    normalize_nat_rulebases(native_config, normalized_config_dict, import_id, jwt=None)
+    logger.info("completed normalizing nat rulebases for manager: " + native_config.get('domain_name',''))
 
     normalize_gateways(native_config, normalized_config_dict)
     

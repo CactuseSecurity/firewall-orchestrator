@@ -32,7 +32,7 @@ class FwConfigImportGateway:
 
         # add gateway details:
         self._rb_link_controller.get_rulebase_links(self._global_state.import_state)
-        required_inserts, required_removes, required_updates = self.update_rulebase_link_diffs()
+        required_inserts, required_removes = self.update_rulebase_link_diffs()
         self._rb_link_controller.insert_rulebase_links(self._global_state.import_state, required_inserts)
         self._rb_link_controller.remove_rulebase_links(self._global_state.import_state, required_removes)       
         # self.updateRuleEnforcedOnGatewayDiffs(prevConfig)
@@ -63,10 +63,10 @@ class FwConfigImportGateway:
                 # creating insert args for new rulebase links
 
                 for link in gw.RulebaseLinks:
-                    rulebase_links = None
+                    rulebase_links = []
                     if previous_config_gw:
                         rulebase_links = previous_config_gw.RulebaseLinks
-                    self.try_add_single_link(required_inserts, link, rulebase_links or [], gw_id, True, logger)
+                    self._try_add_single_link(required_inserts, link, rulebase_links, gw_id, True, logger)
 
                 if previous_config_gw:
 
@@ -75,13 +75,9 @@ class FwConfigImportGateway:
                     removed_rulebase_links = []
 
                     for link in previous_config_gw.RulebaseLinks:
-                        self.try_add_single_link(removed_rulebase_links, link, gw.RulebaseLinks, gw_id, False, logger)
+                        self._try_add_single_link(removed_rulebase_links, link, gw.RulebaseLinks, gw_id, False, logger)
                     for link in removed_rulebase_links:
-                        link_in_db = next((
-                            existing_link 
-                            for existing_link in self._rb_link_controller.rb_links
-                            if {**existing_link.toDict(), "created": 0} == {**link, "created": 0}
-                        ), None)
+                        link_in_db = self._try_get_id_based_link(link, self._rb_link_controller.rb_links)
                         if link_in_db:
                             required_removes.append(link_in_db.id)
 
@@ -89,7 +85,7 @@ class FwConfigImportGateway:
 
 
 
-    def try_add_single_link(self, rb_link_list, link, link_list, gw_id, is_insert, logger):
+    def _try_add_single_link(self, rb_link_list, link, link_list, gw_id, is_insert, logger):
         
         # If rule changed we need the id of the old version, since the rulebase links still have the old fks (for updates)
 
@@ -139,25 +135,23 @@ class FwConfigImportGateway:
                 return True
             
         return False
+    
 
+    def _try_get_id_based_link(self, link: RulebaseLinkUidBased, link_list: list[RulebaseLink]):
             
-        # TODO: check for changed rbLink
-        # for prev_gw in prevConfig.gateways:
-        #     if prev_gw.Uid == gw.Uid:
-        #         for prev_link in prev_gw.RulebaseLinks:
-        #             if prev_link not in gw.RulebaseLinks:
-        #                 # TODO: Handle deleted links
-        #                 logger.debug(f"link {prev_link} was deleted")
-        #             if link not in prev_gw.RulebaseLinks:
-        #                 # Handle new links
-        #                 logger.debug(f"link {link} was added")
-        #                 rbLink.importInsertRulebaseLink(self.ImportDetails)
+        return next((
+            existing_link 
+            for existing_link in link_list
+            if {**existing_link.toDict(), "created": 0} == {**link, "created": 0}
+        ), None)
 
 
     def update_interface_diffs(self):
         logger = getFwoLogger(debug_level=self._global_state.import_state.DebugLevel)
         # TODO: needs to be implemented
 
+
     def update_routing_diffs(self):
         logger = getFwoLogger(debug_level=self._global_state.import_state.DebugLevel)
         # TODO: needs to be implemented
+

@@ -36,7 +36,7 @@ from models.networkobject import NetworkObject
 from ciscoasa9.asa_models import *
 from fwo_enums import ConfigAction
 from model_controllers.fwconfig_normalized_controller import FwConfigNormalizedController
-from roles.importer.files.importer.model_controllers.management_controller import ManagementController
+from model_controllers.management_controller import ManagementController
 
 
 def has_config_changed(full_config, mgm_details, force=False):

@@ -12,6 +12,7 @@
 
     <ItemGroup>
         <ProjectReference Include="..\FWO.Basics\FWO.Basics.csproj" />
+        <ProjectReference Include="..\FWO.Data\FWO.Data.csproj" />
         <ProjectReference Include="..\FWO.Logging\FWO.Logging.csproj" />
         <ProjectReference Include="..\FWO.Api.Client\FWO.Api.Client.csproj" />
         <ProjectReference Include="..\FWO.Config.Api\FWO.Config.Api.csproj" />

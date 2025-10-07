@@ -28,7 +28,7 @@ namespace FWO.Test
 
             ComplianceNetworkZone networkZoneTwo = new();
 
-            networkZoneOne.IPRanges = new IPAddressRange[]
+            networkZoneTwo.IPRanges = new IPAddressRange[]
             {
                 IpOperations.GetIPAdressRange("128.0.0.0/3"),
                 IpOperations.GetIPAdressRange("192.0.0.0/3")

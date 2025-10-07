@@ -95,7 +95,7 @@ namespace FWO.Report
 
                     if (Services.ServiceProvider.UiServices?.GetService<IRuleTreeBuilder>() is IRuleTreeBuilder ruleTreeBuilder)
                     {
-                        if (ruleTreeBuilder?.BuildRulebaseLinkQueue(deviceReport.RulebaseLinks, managementReport.Rulebases) != null)
+                        if (ruleTreeBuilder?.BuildRulebaseLinkQueue(deviceReport.RulebaseLinks.Where(link => link.Removed == null).ToArray(), managementReport.Rulebases) != null)
                         {
                             allRules = ruleTreeBuilder.BuildRuleTree();
                             ruleCount += allRules.Count;

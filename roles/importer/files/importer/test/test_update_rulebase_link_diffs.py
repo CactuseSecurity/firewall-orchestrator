@@ -165,7 +165,7 @@ class TestUpdateRulebaseLinkDiffs(unittest.TestCase):
         update_rule_map_and_rulebase_map(self._normalized_config, self._import_state)
         from_rule_id, from_rulebase_id, to_rulebase_id = lookup_ids_for_rulebase_link(self._import_state, from_rule.rule_uid, from_rulebase.uid, added_rulebase.uid)
         update_rb_links(gateway.RulebaseLinks, 1, self._fwconfig_import_gateway)
-        
+
         # Act
 
         new_links, _, _ = self._fwconfig_import_gateway.update_rulebase_link_diffs()
@@ -243,6 +243,3 @@ class TestUpdateRulebaseLinkDiffs(unittest.TestCase):
         self.assertTrue(len(deleted_links_ids) == 1, f"expected {1} new rulebase link, got {len(deleted_links_ids)}")
         self.assertTrue(deleted_links_ids[0] == self._fwconfig_import_gateway._rb_link_controller.rb_links[-1].id)
     
-    unittest.skip("Not implemented")
-    def test_move_inline_layer_from_rule_only(self):
-        pass

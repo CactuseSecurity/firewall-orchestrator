@@ -60,7 +60,6 @@ class FwConfigImportGateway:
                 if gw_id is None or gw_id == '' or gw_id == 'none':
                     logger.warning(f"did not find a gwId for UID {gw.Uid}")
 
-                
                 # creating insert args for new rulebase links
 
                 for link in gw.RulebaseLinks:
@@ -86,32 +85,7 @@ class FwConfigImportGateway:
                         if link_in_db:
                             required_removes.append(link_in_db.id)
 
-            # creating update args for existing (because rulebase link did not change) rulebase links with new from rule ids (because rule changed)
-            
-
-            for link in gw.RulebaseLinks:
-                link_in_insert_args = next((
-                    insert_link 
-                    for insert_link in required_inserts
-                    if {**insert_link, "created": 0} == {**link.toDict(), "created": 0}
-                ), None)
-
-                # link is unchanged, because it is in normalized, but is not new
-
-                if not link_in_insert_args:
-                    link_in_db = next((
-                            existing_link 
-                            for existing_link in self._rb_link_controller.rb_links
-                            if {**existing_link.toDict(), "created": 0} == {**link.toDict(), "created": 0}
-                        ), None)
-                    
-                    if link_in_db and link_in_db.from_rule_id != self._global_state.import_state.lookupRule(link.from_rule_uid):
-                        self.try_add_single_link(required_updates, copy.deepcopy(link), [], gw_id, False, logger)
-
-
-
-
-        return required_inserts, required_removes, required_updates
+        return required_inserts, required_removes
 
 
 

@@ -37,6 +37,7 @@ from ciscoasa9.asa_models import *
 from fwo_enums import ConfigAction
 from model_controllers.fwconfig_normalized_controller import FwConfigNormalizedController
 from model_controllers.management_controller import ManagementController
+from models.serviceobject import ServiceObject
 
 
 def has_config_changed(full_config, mgm_details, force=False):
@@ -91,7 +92,7 @@ def get_config(config_in: FwConfigManagerListController, importState: ImportStat
 
     if config_in.native_config_is_empty:
         raw_config = load_config_from_management(importState.MgmDetails)
-
+        raw_config = load_config_from_file("asa.conf")
         config2import = parse_asa_config(raw_config)
         config_in.native_config = config2import
 
@@ -184,8 +185,8 @@ def parse_asa_config(raw_config: str) -> Config:
     interfaces: List[Interface] = []
     net_objects: List[AsaNetworkObject] = []
     net_obj_groups: List[AsaNetworkObjectGroup] = []
-    svc_objects: List[ServiceObject] = []
-    svc_obj_groups: List[ServiceObjectGroup] = []
+    svc_objects: List[AsaServiceObject] = []
+    svc_obj_groups: List[AsaServiceObjectGroup] = []
     access_lists_map: dict[str, List[AccessListEntry]] = {}
     access_groups: List[AccessGroupBinding] = []
     nat_rules: List[NatRule] = []
@@ -393,7 +394,7 @@ def parse_asa_config(raw_config: str) -> Config:
                     desc = mdesc.group(1)
             if protocol is None:
                 protocol = "tcp"  # fallback
-            svc_objects.append(ServiceObject(name=name, protocol=protocol, dst_port_eq=eq, dst_port_range=prange, description=desc))
+            svc_objects.append(AsaServiceObject(name=name, protocol=protocol, dst_port_eq=eq, dst_port_range=prange, description=desc))
             continue
 
         # object-group service
@@ -420,7 +421,7 @@ def parse_asa_config(raw_config: str) -> Config:
                     ports_range.append((int(meq.group(1)), int(meq.group(1))))
                 elif mrange:
                     ports_range.append((int(mrange.group(1)), int(mrange.group(2))))
-            svc_obj_groups.append(ServiceObjectGroup(name=name, proto_mode=proto_mode, ports_range=ports_range, description=desc))
+            svc_obj_groups.append(AsaServiceObjectGroup(name=name, proto_mode=proto_mode, ports_range=ports_range, description=desc))
             continue
 
         # access-list (extended) – simple parser that matches your sample and common cases
@@ -682,11 +683,76 @@ def normalize_config(config_in: FwConfigManagerListController, importState: Impo
             )
             network_objects.append(obj)
 
+    
+    service_objects = []
+    for serviceObject in config_in.native_config.service_objects:
+        if serviceObject.dst_port_eq is not None and len(serviceObject.dst_port_eq) > 0:
+            obj = ServiceObject(
+                svc_uid=serviceObject.name,
+                svc_name=serviceObject.name,
+                svc_port=serviceObject.dst_port_eq,
+                svc_port_end=serviceObject.dst_port_eq,
+                svc_color=fwo_const.defaultColor,
+                svc_typ="simple",
+                svc_proto=1,  # serviceObject.protocol,
+            )
+            service_objects.append(obj)
+        elif serviceObject.dst_port_range is not None and len(serviceObject.dst_port_range) == 2:
+            obj = ServiceObject(
+                svc_uid=serviceObject.name,
+                svc_name=serviceObject.name,
+                svc_port=str(serviceObject.dst_port_range[0]),
+                svc_port_end=str(serviceObject.dst_port_range[1]),
+                svc_color=fwo_const.defaultColor,
+                svc_typ="simple",
+                svc_proto=1,  # serviceObject.protocol,
+            )
+            service_objects.append(obj)
+
+        elif len(serviceObject.dst_port_eq) == 0 and (serviceObject.dst_port_range is None or len(serviceObject.dst_port_range) == 0):
+            obj = ServiceObject(
+                svc_uid=serviceObject.name,
+                svc_name=serviceObject.name,
+                svc_color=fwo_const.defaultColor,
+                svc_typ="simple",
+                svc_proto=1,  # serviceObject.protocol,
+            )
+            service_objects.append(obj)
+    
+    # service object groups
+    for serviceObjectGroup in config_in.native_config.service_object_groups:
+        ## create service objects for each port range in the group if same ports its host else network
+        obj_names = []
+        for pr in serviceObjectGroup.ports_range:
+            obj_name = f"{serviceObjectGroup.name}-{pr[0]}" if pr[0] != pr[1] else f"{serviceObjectGroup.name}-{pr[0]}"
+            obj_names.append(obj_name)
+            obj = ServiceObject(
+                svc_uid=obj_name,
+                svc_name=obj_name,
+                svc_port=str(pr[0]),
+                svc_port_end=str(pr[1]),
+                svc_color=fwo_const.defaultColor,
+                svc_typ="simple",
+                svc_proto=1,  # serviceObjectGroup.proto_mode,
+            )
+            service_objects.append(obj)
+
+        obj = ServiceObject(
+            svc_uid=serviceObjectGroup.name,
+            svc_name=serviceObjectGroup.name,
+            svc_typ="group",
+            svc_member_names=fwo_const.list_delimiter.join(obj_names),
+            svc_member_refs=fwo_const.list_delimiter.join(obj_names),
+            svc_color=fwo_const.defaultColor,
+            svc_proto=1,  # serviceObjectGroup.proto_mode,
+        )
+        service_objects.append(obj)
+
     print("")
     normalized_config = FwConfigNormalized(
         action=ConfigAction.INSERT, 
         network_objects=FwConfigNormalizedController.convertListToDict((nwobj.model_dump() for nwobj in network_objects), 'obj_uid'),
-        service_objects={},
+        service_objects=FwConfigNormalizedController.convertListToDict((svcobj.model_dump() for svcobj in service_objects), 'svc_uid'),
         zone_objects={},
         rulebases=[],
         gateways=[]

@@ -41,14 +41,14 @@ class AsaNetworkObjectGroup(BaseModel):
     objects: List[str]
     description: str | None = None
 
-class ServiceObject(BaseModel):
+class AsaServiceObject(BaseModel):
     name: str
     protocol: Literal["tcp", "udp", "icmp", "ip"]
     dst_port_eq: str | None = None
     dst_port_range: Tuple[int, int] | None = None
     description: str | None = None
 
-class ServiceObjectGroup(BaseModel):
+class AsaServiceObjectGroup(BaseModel):
     name: str
     proto_mode: Literal["tcp", "udp", "tcp-udp"] = "tcp"
     ports_eq: List[str] = []
@@ -137,8 +137,8 @@ class Config(BaseModel):
     interfaces: List[Interface]
     objects: List[AsaNetworkObject]
     object_groups: List[AsaNetworkObjectGroup]
-    service_objects: List[ServiceObject] = []
-    service_object_groups: List[ServiceObjectGroup] = []
+    service_objects: List[AsaServiceObject] = []
+    service_object_groups: List[AsaServiceObjectGroup] = []
     access_lists: List[AccessList] = []
     access_group_bindings: List[AccessGroupBinding] = []
     nat_rules: List[NatRule] = []

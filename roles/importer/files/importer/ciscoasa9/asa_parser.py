@@ -83,8 +83,8 @@ def parse_asa_config(raw_config: str) -> Config:
     interfaces: List[Interface] = []
     net_objects: List[AsaNetworkObject] = []
     net_obj_groups: List[AsaNetworkObjectGroup] = []
-    svc_objects: List[ServiceObject] = []
-    svc_obj_groups: List[ServiceObjectGroup] = []
+    svc_objects: List[AsaServiceObject] = []
+    svc_obj_groups: List[AsaServiceObjectGroup] = []
     access_lists_map: dict[str, List[AccessListEntry]] = {}
     access_groups: List[AccessGroupBinding] = []
     nat_rules: List[NatRule] = []
@@ -286,13 +286,15 @@ def parse_asa_config(raw_config: str) -> Config:
                     protocol = msvc.group(1).lower()
                     if msvc.group(2):
                         eq = msvc.group(2)
+                        prange = (int(eq), int(eq))
+                        eq = None
                     elif msvc.group(3) and msvc.group(4):
                         prange = (int(msvc.group(3)), int(msvc.group(4)))
                 elif mdesc:
                     desc = mdesc.group(1)
             if protocol is None:
                 protocol = "tcp"  # fallback
-            svc_objects.append(ServiceObject(name=name, protocol=protocol, dst_port_eq=eq, dst_port_range=prange, description=desc))
+            svc_objects.append(AsaServiceObject(name=name, protocol=protocol, dst_port_eq=eq, dst_port_range=prange, description=desc))
             continue
 
         # object-group service
@@ -319,7 +321,7 @@ def parse_asa_config(raw_config: str) -> Config:
                     ports_range.append((int(meq.group(1)), int(meq.group(1))))
                 elif mrange:
                     ports_range.append((int(mrange.group(1)), int(mrange.group(2))))
-            svc_obj_groups.append(ServiceObjectGroup(name=name, proto_mode=proto_mode, ports_range=ports_range, description=desc))
+            svc_obj_groups.append(AsaServiceObjectGroup(name=name, proto_mode=proto_mode, ports_range=ports_range, description=desc))
             continue
 
         # access-list (extended) – simple parser that matches your sample and common cases

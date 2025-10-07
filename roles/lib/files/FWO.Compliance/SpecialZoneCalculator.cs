@@ -11,9 +11,9 @@ namespace FWO.Compliance
             _networkZone = networkZone;
         }
 
-        public void CalculateInternetZone()
+        public void CalculateInternetZone(List<ComplianceNetworkZone> excludedZones)
         {
-            throw new NotImplementedException("Method not implemented");
+
         }
 
     }

@@ -13,8 +13,9 @@ def get_zones(sid, fm_api_url, native_config, adom_name, limit):
 def normalize_zones(native_config, normalized_config_adom, is_global_loop_iteration):
     zones = []
     fetched_zones = []
-    if is_global_loop_iteration:
+    if is_global_loop_iteration: # can not find the following zones in api return
         fetched_zones.append('any')
+        fetched_zones.append('sslvpn_tun_intf')
     for zone_type in native_config['zones']:
         for mapping in zone_type.get('data', []):
             if not mapping['dynamic_mapping'] is None:

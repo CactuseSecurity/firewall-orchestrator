@@ -684,6 +684,12 @@ def normalize_config(config_in: FwConfigManagerListController, importState: Impo
             network_objects.append(obj)
 
     
+
+    protocol_map = {
+        "tcp": 6,
+        "udp": 17,
+        "icmp": 1,
+    }
     service_objects = []
     for serviceObject in config_in.native_config.service_objects:
         if serviceObject.dst_port_eq is not None and len(serviceObject.dst_port_eq) > 0:
@@ -694,7 +700,7 @@ def normalize_config(config_in: FwConfigManagerListController, importState: Impo
                 svc_port_end=serviceObject.dst_port_eq,
                 svc_color=fwo_const.defaultColor,
                 svc_typ="simple",
-                svc_proto=1,  # serviceObject.protocol,
+                ip_proto=protocol_map.get(serviceObject.protocol, 0),
             )
             service_objects.append(obj)
         elif serviceObject.dst_port_range is not None and len(serviceObject.dst_port_range) == 2:
@@ -705,7 +711,7 @@ def normalize_config(config_in: FwConfigManagerListController, importState: Impo
                 svc_port_end=str(serviceObject.dst_port_range[1]),
                 svc_color=fwo_const.defaultColor,
                 svc_typ="simple",
-                svc_proto=1,  # serviceObject.protocol,
+                ip_proto=protocol_map.get(serviceObject.protocol, 0),
             )
             service_objects.append(obj)
 
@@ -715,27 +721,29 @@ def normalize_config(config_in: FwConfigManagerListController, importState: Impo
                 svc_name=serviceObject.name,
                 svc_color=fwo_const.defaultColor,
                 svc_typ="simple",
-                svc_proto=1,  # serviceObject.protocol,
+                ip_proto=protocol_map.get(serviceObject.protocol, 0),
             )
             service_objects.append(obj)
     
     # service object groups
     for serviceObjectGroup in config_in.native_config.service_object_groups:
-        ## create service objects for each port range in the group if same ports its host else network
         obj_names = []
-        for pr in serviceObjectGroup.ports_range:
-            obj_name = f"{serviceObjectGroup.name}-{pr[0]}" if pr[0] != pr[1] else f"{serviceObjectGroup.name}-{pr[0]}"
-            obj_names.append(obj_name)
-            obj = ServiceObject(
-                svc_uid=obj_name,
-                svc_name=obj_name,
-                svc_port=str(pr[0]),
-                svc_port_end=str(pr[1]),
-                svc_color=fwo_const.defaultColor,
-                svc_typ="simple",
-                svc_proto=1,  # serviceObjectGroup.proto_mode,
-            )
-            service_objects.append(obj)
+        for protocol in serviceObjectGroup.proto_mode.split("-"):
+            if protocol not in protocol_map:
+                raise ValueError(f"Unknown protocol in service object group: {protocol}")
+            for pr in serviceObjectGroup.ports_range:
+                obj_name = f"{serviceObjectGroup.name}-{pr[0]}-{pr[1]}-{protocol}" if pr[0] != pr[1] else f"{serviceObjectGroup.name}-{pr[0]}-{protocol}"
+                obj_names.append(obj_name)
+                obj = ServiceObject(
+                    svc_uid=obj_name,
+                    svc_name=obj_name,
+                    svc_port=str(pr[0]),
+                    svc_port_end=str(pr[1]),
+                    svc_color=fwo_const.defaultColor,
+                    svc_typ="simple",
+                    ip_proto=protocol_map.get(protocol, 0),
+                )
+                service_objects.append(obj)
 
         obj = ServiceObject(
             svc_uid=serviceObjectGroup.name,
@@ -744,7 +752,6 @@ def normalize_config(config_in: FwConfigManagerListController, importState: Impo
             svc_member_names=fwo_const.list_delimiter.join(obj_names),
             svc_member_refs=fwo_const.list_delimiter.join(obj_names),
             svc_color=fwo_const.defaultColor,
-            svc_proto=1,  # serviceObjectGroup.proto_mode,
         )
         service_objects.append(obj)
 

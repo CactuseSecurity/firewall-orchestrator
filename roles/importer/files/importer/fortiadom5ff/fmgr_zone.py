@@ -1,4 +1,5 @@
 import fmgr_getter
+from fwo_exceptions import FwoNormalizedConfigParseError
 
 def get_zones(sid, fm_api_url, native_config, adom_name, limit):
     
@@ -9,7 +10,7 @@ def get_zones(sid, fm_api_url, native_config, adom_name, limit):
         fmgr_getter.update_config_with_fortinet_api_call(
             native_config['zones'], sid, fm_api_url, '/pm/config/adom/' + adom_name + '/obj/dynamic/interface', 'interface_' + adom_name, limit=limit)
 
-def normalize_zones(native_config, normalized_config_dict):
+def normalize_zones(native_config, normalized_config_adom):
     zones = []
     fetched_zones = []
     for zone_type in native_config['zones']:
@@ -21,7 +22,7 @@ def normalize_zones(native_config, normalized_config_dict):
 
     for zone in fetched_zones:
         zones.append({'zone_name': zone['name']})
-    normalized_config_dict.update({'zone_objects': zones})
+    normalized_config_adom.update({'zone_objects': zones})
 
 def fetch_dynamic_mapping(mapping, fetched_zones):
     for dyn_mapping in mapping['dynamic_mapping']:
@@ -37,20 +38,12 @@ def fetch_platform_mapping(mapping, fetched_zones):
         if 'intf-zone' in dyn_mapping and not dyn_mapping['intf-zone'] in fetched_zones:
             fetched_zones.append(dyn_mapping['intf-zone'])
 
-def add_zone_if_missing(normalized_config_dict: dict, zone_string):
-    # adding zone if it not yet exists
-
-    # also transforming any into global (normalized global zone)
-    if zone_string == 'any':
-        zone_string = 'global'    
-    if zone_string is not None:
-        if 'zone_objects' not in normalized_config_dict: # no zones yet? add empty zone_objects array
-            normalized_config_dict.update({'zone_objects': []})
-        zone_exists = False
-        for zone in normalized_config_dict['zone_objects']:
-            if zone_string == zone['zone_name']:
-                zone_exists = True
-        if not zone_exists:
-            normalized_config_dict['zone_objects'].append({'zone_name': zone_string})
-    return zone_string
-    
+def find_zones_in_normalized_config(native_zone_list : list, normalized_config, normalized_config_global):
+    """Verifies that input zones exist in normalized config"""
+    zone_out_list = []
+    for zone in native_zone_list:
+        if zone in normalized_config['zone_object'] or zone in normalized_config_global['zone_object']:
+            zone_out_list.append(zone)
+        else:
+            raise FwoNormalizedConfigParseError('Could not find zone ' + zone + 'in normalized config.')
+    return zone_out_list

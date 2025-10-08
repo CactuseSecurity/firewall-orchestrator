@@ -2,11 +2,11 @@ from asyncio.log import logger
 import ipaddress
 from fwo_log import getFwoLogger
 from fwo_const import list_delimiter, nat_postfix
-from fmgr_zone import add_zone_if_missing
+from fmgr_zone import find_zones_in_normalized_config
 from fwo_config import readConfig
 from model_controllers.import_state_controller import ImportStateController
 from copy import deepcopy
-from fwo_exceptions import FwoImporterErrorInconsistencies, FwoNormalizedConfigParseError
+from fwo_exceptions import FwoImporterErrorInconsistencies
 
 
 def normalize_network_objects(native_config, native_config_global, normalized_config, normalized_config_global, nw_obj_types):
@@ -88,20 +88,11 @@ def normalize_network_object(obj_orig, nw_objects, normalized_config, normalized
 
     obj.update({'obj_uid': obj_orig.get('uuid', obj_orig['name'])})  # using name as fallback, but this should not happen
 
-    associated_interfaces = object_parse_zone(obj_orig, normalized_config, normalized_config_global)
+    associated_interfaces = find_zones_in_normalized_config(
+        obj_orig.get('associated-interface', []), normalized_config, normalized_config_global)
     obj.update({'obj_zone': list_delimiter.join(associated_interfaces)})
     
     nw_objects.append(obj)
-
-def object_parse_zone(obj_orig, normalized_config, normalized_config_global):
-    associated_interfaces = []
-    if 'associated-interface' in obj_orig:
-        for zone in obj_orig['associated-interface']:
-            if zone in normalized_config['zone_object'] or zone in normalized_config_global['zone_object']:
-                associated_interfaces.append(zone)
-            else:
-                raise FwoNormalizedConfigParseError('Could not find zone ' + zone + 'in normalized config.')
-    return associated_interfaces
 
 def _parse_subnet (obj, obj_orig):
     ipa = ipaddress.ip_network(str(obj_orig['subnet'][0]) + '/' + str(obj_orig['subnet'][1]))

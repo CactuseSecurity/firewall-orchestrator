@@ -7,7 +7,7 @@ from fwo_const import list_delimiter, nat_postfix, dummy_ip
 from fwo_base import extend_string_list, sanitize
 from fmgr_service import create_svc_object
 from fmgr_network import create_network_object, get_first_ip_of_destination
-from fmgr_zone import add_zone_if_missing
+from fmgr_zone import find_zones_in_normalized_config
 import fmgr_getter
 from fmgr_gw_networking import get_device_from_package
 from fwo_log import getFwoLogger
@@ -32,11 +32,11 @@ def normalize_rulebases(
     mgm_uid: str,
     native_config: dict,
     native_config_global: dict,
-    normalized_config_dict: dict,
+    normalized_config_adom: dict,
     normalized_config_global: dict,
     is_global_loop_iteration: bool
 ) -> None:
-    normalized_config_dict['policies'] = []
+    normalized_config_adom['policies'] = []
 
     fetched_rulebase_uids: list = []
     if normalized_config_global is not None:
@@ -45,13 +45,13 @@ def normalize_rulebases(
     for gateway in native_config['gateways']:
         normalize_rulebases_for_each_link_destination(
             gateway, mgm_uid, fetched_rulebase_uids, native_config, native_config_global,
-            is_global_loop_iteration, normalized_config_dict,
+            is_global_loop_iteration, normalized_config_adom,
             normalized_config_global)
 
     # todo: parse nat rulebase here
 
 
-def normalize_rulebases_for_each_link_destination(gateway, mgm_uid, fetched_rulebase_uids, native_config, native_config_global, is_global_loop_iteration, normalized_config_dict, normalized_config_global):
+def normalize_rulebases_for_each_link_destination(gateway, mgm_uid, fetched_rulebase_uids, native_config, native_config_global, is_global_loop_iteration, normalized_config_adom, normalized_config_global):
     logger = getFwoLogger()
     for rulebase_link in gateway['rulebase_links']:
         if rulebase_link['to_rulebase_uid'] not in fetched_rulebase_uids and rulebase_link['to_rulebase_uid'] != '':
@@ -68,13 +68,13 @@ def normalize_rulebases_for_each_link_destination(gateway, mgm_uid, fetched_rule
                 continue
 
             normalized_rulebase = initialize_normalized_rulebase(rulebase_to_parse, mgm_uid)
-            parse_rulebase(normalized_config_dict, normalized_config_global, rulebase_to_parse, normalized_rulebase, found_rulebase_in_global)
+            parse_rulebase(normalized_config_adom, normalized_config_global, rulebase_to_parse, normalized_rulebase, found_rulebase_in_global)
             fetched_rulebase_uids.append(rulebase_link['to_rulebase_uid'])
 
             if found_rulebase_in_global:
                 normalized_config_global['policies'].append(normalized_rulebase)
             else:
-                normalized_config_dict['policies'].append(normalized_rulebase)
+                normalized_config_adom['policies'].append(normalized_rulebase)
 
 def find_rulebase_to_parse(rulebase_list, rulebase_uid):
     for rulebase in rulebase_list:
@@ -91,21 +91,28 @@ def initialize_normalized_rulebase(rulebase_to_parse, mgm_uid):
     normalized_rulebase = Rulebase(uid=rulebaseUid, name=rulebaseName, mgm_uid=mgm_uid, Rules={})
     return normalized_rulebase
 
-def parse_rulebase(normalized_config_dict, normalized_config_global, rulebase_to_parse, normalized_rulebase, found_rulebase_in_global):
+def parse_rulebase(normalized_config_adom, normalized_config_global, rulebase_to_parse, normalized_rulebase, found_rulebase_in_global):
 
     rule_num = 1
     for native_rule in rulebase_to_parse['data']:
-        rule_num = parse_single_rule(normalized_config_dict, normalized_config_global, native_rule, normalized_rulebase, rule_num)
+        rule_num = parse_single_rule(normalized_config_adom, normalized_config_global, native_rule, normalized_rulebase, rule_num)
     if not found_rulebase_in_global:
-        add_implicit_deny_rule(rule_num, normalized_config_dict, normalized_config_global, normalized_rulebase)
+        add_implicit_deny_rule(rule_num, normalized_config_adom, normalized_config_global, normalized_rulebase)
 
-def add_implicit_deny_rule(rule_num, normalized_config_dict, normalized_config_global, rulebase: Rulebase):
+def add_implicit_deny_rule(rule_num, normalized_config_adom, normalized_config_global, rulebase: Rulebase):
     
-    deny_rule = {'srcaddr': ['all'], 'srcaddr6': ['all'], 'dstaddr': ['all'], 'dstaddr6': ['all'], 'service': ['ALL']}
+    deny_rule = {'srcaddr': ['all'], 'srcaddr6': ['all'],
+                 'dstaddr': ['all'], 'dstaddr6': ['all'],
+                 'service': ['ALL'],
+                 'srcintf': ['any'], 'dstintf': ['any']}
 
-    rule_src_list, rule_src_refs_list = rule_parse_addresses(deny_rule, 'src', normalized_config_dict, normalized_config_global)
-    rule_dst_list, rule_dst_refs_list = rule_parse_addresses(deny_rule, 'dst', normalized_config_dict, normalized_config_global)
+    rule_src_list, rule_src_refs_list = rule_parse_addresses(deny_rule, 'src', normalized_config_adom, normalized_config_global)
+    rule_dst_list, rule_dst_refs_list = rule_parse_addresses(deny_rule, 'dst', normalized_config_adom, normalized_config_global)
     rule_svc_list, rule_svc_refs_list = rule_parse_service(deny_rule)
+    rule_src_zones = find_zones_in_normalized_config(
+        deny_rule.get('srcintf', []), normalized_config_adom, normalized_config_global)
+    rule_dst_zones = find_zones_in_normalized_config(
+        deny_rule.get('dstintf', []), normalized_config_adom, normalized_config_global)
 
     rule_normalized = RuleNormalized(
         rule_num=rule_num,
@@ -133,13 +140,13 @@ def add_implicit_deny_rule(rule_num, normalized_config_dict, normalized_config_g
         parent_rule_uid=None,
         last_hit=None,
         rule_comment='',
-        rule_src_zone=None,
-        rule_dst_zone=rule_dst_zone,
+        rule_src_zone=list_delimiter.join(rule_src_zones),
+        rule_dst_zone=list_delimiter.join(rule_dst_zones),
         rule_head_text=None
     )
     rulebase.Rules[rule_normalized.rule_uid] = rule_normalized
 
-def parse_single_rule(normalized_config_dict, normalized_config_global, native_rule, rulebase: Rulebase, rule_num):
+def parse_single_rule(normalized_config_adom, normalized_config_global, native_rule, rulebase: Rulebase, rule_num):
     # Extract basic rule information
     rule_disabled = True  # Default to disabled
     if 'status' in native_rule and (native_rule['status'] == 1 or native_rule['status'] == 'enable'):
@@ -149,12 +156,15 @@ def parse_single_rule(normalized_config_dict, normalized_config_global, native_r
 
     rule_track = rule_parse_tracking_info(native_rule)
 
-    rule_src_list, rule_src_refs_list = rule_parse_addresses(native_rule, 'src', normalized_config_dict, normalized_config_global)
-    rule_dst_list, rule_dst_refs_list = rule_parse_addresses(native_rule, 'dst', normalized_config_dict, normalized_config_global)
+    rule_src_list, rule_src_refs_list = rule_parse_addresses(native_rule, 'src', normalized_config_adom, normalized_config_global)
+    rule_dst_list, rule_dst_refs_list = rule_parse_addresses(native_rule, 'dst', normalized_config_adom, normalized_config_global)
 
     rule_svc_list, rule_svc_refs_list = rule_parse_service(native_rule)
 
-    rule_src_zone, rule_dst_zone = rule_parse_zone(native_rule, normalized_config_dict)
+    rule_src_zones = find_zones_in_normalized_config(
+        native_rule.get('srcintf', []), normalized_config_adom, normalized_config_global)
+    rule_dst_zones = find_zones_in_normalized_config(
+        native_rule.get('dstintf', []), normalized_config_adom, normalized_config_global)
 
     rule_src_neg, rule_dst_neg, rule_svc_neg = rule_parse_negation_flags(native_rule)
     rule_installon = rule_parse_installon(native_rule, rulebase.name)
@@ -188,8 +198,8 @@ def parse_single_rule(normalized_config_dict, normalized_config_global, native_r
         parent_rule_uid=None,
         last_hit=last_hit,
         rule_comment=native_rule.get('comments'),
-        rule_src_zone=rule_src_zone,
-        rule_dst_zone=rule_dst_zone,
+        rule_src_zone=list_delimiter.join(rule_src_zones),
+        rule_dst_zone=list_delimiter.join(rule_dst_zones),
         rule_head_text=None
     )
     
@@ -224,46 +234,35 @@ def rule_parse_service(native_rule):
 
     return rule_svc_list, rule_svc_refs_list
 
-def rule_parse_zone(native_rule, normalized_config_dict):
-
-    rule_src_zone_list = [None]
-    if len(native_rule.get('srcintf', [])) > 0:
-        rule_src_zone_list = add_zone_if_missing(normalized_config_dict, native_rule['srcintf'][0])
-
-    rule_dst_zone_list = [None]
-    if len(native_rule.get('dstintf', [])) > 0:
-        rule_dst_zone_list = add_zone_if_missing(normalized_config_dict, native_rule['dstintf'][0])
-    return rule_src_zone_list, rule_dst_zone_list
-
-def rule_parse_addresses(native_rule, target, normalized_config_dict, normalized_config_global):
+def rule_parse_addresses(native_rule, target, normalized_config_adom, normalized_config_global):
     if target not in ['src', 'dst']:
         raise FwoImporterErrorInconsistencies(f"target '{target}' must either be src or dst.")
     addr_list = []
     addr_ref_list = []
-    build_addr_list(native_rule, True, target, normalized_config_dict, normalized_config_global, addr_list, addr_ref_list)
-    build_addr_list(native_rule, False, target, normalized_config_dict, normalized_config_global, addr_list, addr_ref_list)
+    build_addr_list(native_rule, True, target, normalized_config_adom, normalized_config_global, addr_list, addr_ref_list)
+    build_addr_list(native_rule, False, target, normalized_config_adom, normalized_config_global, addr_list, addr_ref_list)
     return addr_list, addr_ref_list
 
-def build_addr_list(native_rule, is_v4, target, normalized_config_dict, normalized_config_global, addr_list, addr_ref_list):
+def build_addr_list(native_rule, is_v4, target, normalized_config_adom, normalized_config_global, addr_list, addr_ref_list):
     if is_v4 and target == 'src':
         for addr in native_rule.get('srcaddr', []) + native_rule.get('internet-service-src-name', []):
             addr_list.append(addr)
-            addr_ref_list.append(find_addr_ref(addr, is_v4, normalized_config_dict, normalized_config_global))
+            addr_ref_list.append(find_addr_ref(addr, is_v4, normalized_config_adom, normalized_config_global))
     elif not is_v4 and target == 'src':
         for addr in native_rule.get('srcaddr6', []):
             addr_list.append(addr)
-            addr_ref_list.append(find_addr_ref(addr, is_v4, normalized_config_dict, normalized_config_global))
+            addr_ref_list.append(find_addr_ref(addr, is_v4, normalized_config_adom, normalized_config_global))
     elif is_v4 and target == 'dst':
         for addr in native_rule.get('dstaddr', []):
             addr_list.append(addr)
-            addr_ref_list.append(find_addr_ref(addr, is_v4, normalized_config_dict, normalized_config_global))
+            addr_ref_list.append(find_addr_ref(addr, is_v4, normalized_config_adom, normalized_config_global))
     else:
         for addr in native_rule.get('dstaddr6', []):
             addr_list.append(addr)
-            addr_ref_list.append(find_addr_ref(addr, is_v4, normalized_config_dict, normalized_config_global))
+            addr_ref_list.append(find_addr_ref(addr, is_v4, normalized_config_adom, normalized_config_global))
 
-def find_addr_ref(addr, is_v4, normalized_config_dict, normalized_config_global):
-    for nw_obj in normalized_config_dict['network_objects'] + normalized_config_global.get('network_objects', []):
+def find_addr_ref(addr, is_v4, normalized_config_adom, normalized_config_global):
+    for nw_obj in normalized_config_adom['network_objects'] + normalized_config_global.get('network_objects', []):
         if addr == nw_obj['obj_name']:
             if (is_v4 and ip_type(nw_obj) == 4) or (not is_v4 and ip_type(nw_obj) == 6):
                 return nw_obj['obj_uid']
@@ -440,7 +439,7 @@ def get_nat_policy(sid, fm_api_url, native_config, adom_device_vdom_policy_packa
 
 # delete_v: ab hier kann sehr viel weg, ich lasses vorerst zB für die nat
 # pure nat rules 
-def normalize_nat_rulebases(native_config, normalized_config_dict, import_id, jwt=None):
+def normalize_nat_rulebases(native_config, normalized_config_adom, import_id, jwt=None):
     nat_rules = []
     rule_number = 0
 
@@ -471,9 +470,9 @@ def normalize_nat_rulebases(native_config, normalized_config_dict, import_id, jw
                         svc_name = 'svc_' + str(rule_orig['orig-port'])
                     # need to create a helper service object and add it to the nat rule, also needs to be added to service list
 
-                    if not 'service_objects' in normalized_config_dict: # is normally defined
-                        normalized_config_dict['service_objects'] = []
-                    normalized_config_dict['service_objects'].append(create_svc_object( \
+                    if not 'service_objects' in normalized_config_adom: # is normally defined
+                        normalized_config_adom['service_objects'] = []
+                    normalized_config_adom['service_objects'].append(create_svc_object( \
                         import_id=import_id, name=svc_name, proto=rule_orig['protocol'], port=rule_orig['orig-port'], comment='service created by FWO importer for NAT purposes'))
                     rule['rule_svc'] = svc_name
 
@@ -521,7 +520,7 @@ def normalize_nat_rulebases(native_config, normalized_config_dict, import_id, jw
                         svc_name = 'svc_' + str(rule_orig['nat-port'])
                     # need to create a helper service object and add it to the nat rule, also needs to be added to service list!
                     # fmgr_service.create_svc_object(name=svc_name, proto=rule_orig['protocol'], port=rule_orig['orig-port'], comment='service created by FWO importer for NAT purposes')
-                    normalized_config_dict['service_objects'].append(create_svc_object(import_id=import_id, name=svc_name, proto=rule_orig['protocol'], port=rule_orig['nat-port'], comment='service created by FWO importer for NAT purposes'))
+                    normalized_config_adom['service_objects'].append(create_svc_object(import_id=import_id, name=svc_name, proto=rule_orig['protocol'], port=rule_orig['nat-port'], comment='service created by FWO importer for NAT purposes'))
                     xlate_rule['rule_svc'] = svc_name
 
                     xlate_rule.update({ 'rule_src_refs': resolve_objects(xlate_rule['rule_src'], list_delimiter, native_config, 'name', 'uuid', rule_type=rule_table, jwt=jwt, import_id=import_id ) })
@@ -532,7 +531,7 @@ def normalize_nat_rulebases(native_config, normalized_config_dict, import_id, jw
 
                     nat_rules.append(xlate_rule)
                     rule_number += 1
-    normalized_config_dict['rules'].extend(nat_rules)
+    normalized_config_adom['rules'].extend(nat_rules)
 
 
 def insert_header(rules, import_id, header_text, rulebase_name, rule_uid, rule_number, src_refs, dst_refs):

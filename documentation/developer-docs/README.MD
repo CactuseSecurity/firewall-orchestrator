@@ -9,9 +9,6 @@
 
 
 ## Misc
-### UI 
-
-[Open Iconic Icons](https://useiconic.com/open)
 
 ### importer
 

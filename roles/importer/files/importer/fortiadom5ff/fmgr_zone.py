@@ -9,42 +9,33 @@ def get_zones(sid, fm_api_url, native_config, adom_name, limit):
         fmgr_getter.update_config_with_fortinet_api_call(
             native_config['zones'], sid, fm_api_url, '/pm/config/adom/' + adom_name + '/obj/dynamic/interface', 'interface_' + adom_name, limit=limit)
 
-    # # get local zones
-    # for device in native_config['devices']:
-    #     local_pkg_name = device['package']
-    #     for adom in native_config['adoms']:
-    #         if adom['name']==adom_name:
-    #             if local_pkg_name not in adom['package_names']:
-    #                 logger.error('local rulebase/package ' + local_pkg_name + ' not found in management ' + adom_name)
-    #                 return 1
-    #             else:
-    #                 fmgr_getter.update_config_with_fortinet_api_call(
-    #                     native_config['zones'], sid, fm_api_url, "/pm/config/adom/" + adom_name + "/obj/dynamic/interface", device['id'], debug=debug_level, limit=limit)
-
-    # native_config['zones']['zone_list'] = []
-    # for device in native_config['zones']:
-    #     for mapping in native_config['zones'][device]:
-    #         if not isinstance(mapping, str):
-    #             if not mapping['dynamic_mapping'] is None:
-    #                 for dyn_mapping in mapping['dynamic_mapping']:
-    #                     if 'name' in dyn_mapping and not dyn_mapping['name'] in native_config['zones']['zone_list']:
-    #                         native_config['zones']['zone_list'].append(dyn_mapping['name'])
-    #                     if 'local-intf' in dyn_mapping and not dyn_mapping['local-intf'][0] in native_config['zones']['zone_list']:
-    #                         native_config['zones']['zone_list'].append(dyn_mapping['local-intf'][0])
-    #             if not mapping['platform_mapping'] is None:
-    #                 for dyn_mapping in mapping['platform_mapping']:
-    #                     if 'intf-zone' in dyn_mapping and not dyn_mapping['intf-zone'] in native_config['zones']['zone_list']:
-    #                         native_config['zones']['zone_list'].append(dyn_mapping['intf-zone'])
-
-def normalize_zones(full_config, config2import, import_id):
+def normalize_zones(native_config, normalized_config_dict):
     zones = []
-    for orig_zone in full_config['zone_objects']['zone_list']:
-        zone = {}
-        zone.update({'zone_name': orig_zone})
-        zones.append(zone)
-        
-    config2import.update({'zone_objects': zones})
+    fetched_zones = []
+    for zone_type in native_config['zones']:
+        for mapping in zone_type.get('data', []):
+            if not mapping['dynamic_mapping'] is None:
+                fetch_dynamic_mapping(mapping, fetched_zones)
+            if not mapping['platform_mapping'] is None:
+                fetch_platform_mapping(mapping, fetched_zones)
 
+    for zone in fetched_zones:
+        zones.append({'zone_name': zone['name']})
+    normalized_config_dict.update({'zone_objects': zones})
+
+def fetch_dynamic_mapping(mapping, fetched_zones):
+    for dyn_mapping in mapping['dynamic_mapping']:
+        if 'name' in dyn_mapping and not dyn_mapping['name'] in fetched_zones:
+            fetched_zones.append(dyn_mapping['name'])
+        if 'local-intf' in dyn_mapping:
+            for local_interface in dyn_mapping['local-intf']:
+                if local_interface not in fetched_zones:
+                    fetched_zones.append(local_interface)
+
+def fetch_platform_mapping(mapping, fetched_zones):
+    for dyn_mapping in mapping['platform_mapping']:
+        if 'intf-zone' in dyn_mapping and not dyn_mapping['intf-zone'] in fetched_zones:
+            fetched_zones.append(dyn_mapping['intf-zone'])
 
 def add_zone_if_missing(normalized_config_dict: dict, zone_string):
     # adding zone if it not yet exists

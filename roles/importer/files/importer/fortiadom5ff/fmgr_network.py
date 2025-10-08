@@ -6,10 +6,10 @@ from fmgr_zone import add_zone_if_missing
 from fwo_config import readConfig
 from model_controllers.import_state_controller import ImportStateController
 from copy import deepcopy
-from fwo_exceptions import FwoImporterErrorInconsistencies
+from fwo_exceptions import FwoImporterErrorInconsistencies, FwoNormalizedConfigParseError
 
 
-def normalize_network_objects(import_state: ImportStateController, native_config, native_config_global, normalized_config, normalized_config_global, nw_obj_types):
+def normalize_network_objects(native_config, native_config_global, normalized_config, normalized_config_global, nw_obj_types):
     nw_objects = []
     
     if 'objects' not in native_config:
@@ -19,7 +19,7 @@ def normalize_network_objects(import_state: ImportStateController, native_config
         if not(current_obj_type in nw_obj_types and 'data' in native_config['objects'][current_obj_type]):
             continue
         for obj_orig in native_config['objects'][current_obj_type]['data']:
-            normalize_network_object(obj_orig, nw_objects, normalized_config, native_config['objects'])
+            normalize_network_object(obj_orig, nw_objects, normalized_config, normalized_config_global, native_config['objects'])
 
     if native_config.get('is-super-manager',False):
         # finally add "Original" network object for natting (only in global domain)
@@ -42,7 +42,7 @@ def get_obj_member_refs_list(obj_orig, native_config_objects):
             f"Member inconsistent for object {obj_orig['name']}, found members={str(obj_orig['member'])} and member_refs={str(obj_member_refs_list)}")
     return obj_member_refs_list
 
-def normalize_network_object(obj_orig, nw_objects, normalized_config, native_config_objects):
+def normalize_network_object(obj_orig, nw_objects, normalized_config, normalized_config_global, native_config_objects):
     obj_zone = 'global'
     obj = {}
     obj.update({'obj_name': obj_orig['name']})
@@ -88,16 +88,20 @@ def normalize_network_object(obj_orig, nw_objects, normalized_config, native_con
 
     obj.update({'obj_uid': obj_orig.get('uuid', obj_orig['name'])})  # using name as fallback, but this should not happen
 
-    # here only picking first associated interface as zone:
-    if 'associated-interface' in obj_orig and len(obj_orig['associated-interface'])>0: # and obj_orig['associated-interface'][0] != 'any':
-        obj_zone = deepcopy(obj_orig['associated-interface'][0])
-        # adding zone if it not yet exists
-        obj_zone = add_zone_if_missing (normalized_config, obj_zone)
-    obj.update({'obj_zone': obj_zone })
+    associated_interfaces = object_parse_zone(obj_orig, normalized_config, normalized_config_global)
+    obj.update({'obj_zone': list_delimiter.join(associated_interfaces)})
     
-    #obj.update({'control_id': import_state.ImportId})
     nw_objects.append(obj)
 
+def object_parse_zone(obj_orig, normalized_config, normalized_config_global):
+    associated_interfaces = []
+    if 'associated-interface' in obj_orig:
+        for zone in obj_orig['associated-interface']:
+            if zone in normalized_config['zone_object'] or zone in normalized_config_global['zone_object']:
+                associated_interfaces.append(zone)
+            else:
+                raise FwoNormalizedConfigParseError('Could not find zone ' + zone + 'in normalized config.')
+    return associated_interfaces
 
 def _parse_subnet (obj, obj_orig):
     ipa = ipaddress.ip_network(str(obj_orig['subnet'][0]) + '/' + str(obj_orig['subnet'][1]))

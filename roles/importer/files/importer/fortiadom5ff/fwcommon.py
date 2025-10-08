@@ -21,7 +21,7 @@ from fmgr_service import normalize_service_objects
 from fmgr_rule import normalize_rulebases, get_access_policy, get_nat_policy, normalize_nat_rulebases
 from fmgr_consts import nw_obj_types, svc_obj_types, user_obj_types
 from fwo_base import ConfigAction
-from fmgr_zone import get_zones
+from fmgr_zone import get_zones, normalize_zones
 from models.fwconfig_normalized import FwConfigNormalized
 
 
@@ -184,14 +184,14 @@ def normalize_single_manager_config(native_config: dict[str, Any], native_config
         current_svc_obj_types = [f"svc_obj_adom/{native_config.get('domain_name','')}_{t}" for t in current_svc_obj_types]
 
     logger = getFwoLogger()
-    normalize_network_objects(import_state, native_config, native_config_global, normalized_config_dict, normalized_config_global, 
+    normalize_zones(native_config, normalized_config_dict)
+    logger.info("completed normalizing zones for manager: " + native_config.get('domain_name',''))
+    normalize_network_objects(native_config, native_config_global, normalized_config_dict, normalized_config_global, 
                                            current_nw_obj_types)
     logger.info("completed normalizing network objects for manager: " + native_config.get('domain_name',''))
     normalize_service_objects(import_state, native_config, native_config_global, normalized_config_dict, normalized_config_global, 
                                            current_svc_obj_types)
     logger.info("completed normalizing service objects for manager: " + native_config.get('domain_name',''))
-    #fmgr_gateway.normalizeGateways(native_conf, import_state, normalized_config_dict)
-
     mgm_uid = native_config["management_uid"]
     normalize_rulebases(import_state, mgm_uid, native_config, native_config_global, normalized_config_dict, normalized_config_global, 
                         is_global_loop_iteration)

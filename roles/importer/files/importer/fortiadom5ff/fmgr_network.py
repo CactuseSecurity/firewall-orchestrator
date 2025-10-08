@@ -9,7 +9,7 @@ from copy import deepcopy
 from fwo_exceptions import FwoImporterErrorInconsistencies
 
 
-def normalize_network_objects(native_config, native_config_global, normalized_config, normalized_config_global, nw_obj_types):
+def normalize_network_objects(native_config, native_config_global, normalized_config_adom, normalized_config_global, nw_obj_types):
     nw_objects = []
     
     if 'objects' not in native_config:
@@ -19,7 +19,7 @@ def normalize_network_objects(native_config, native_config_global, normalized_co
         if not(current_obj_type in nw_obj_types and 'data' in native_config['objects'][current_obj_type]):
             continue
         for obj_orig in native_config['objects'][current_obj_type]['data']:
-            normalize_network_object(obj_orig, nw_objects, normalized_config, normalized_config_global, native_config['objects'])
+            normalize_network_object(obj_orig, nw_objects, normalized_config_adom, normalized_config_global, native_config['objects'])
 
     if native_config.get('is-super-manager',False):
         # finally add "Original" network object for natting (only in global domain)
@@ -28,7 +28,7 @@ def normalize_network_objects(native_config, native_config_global, normalized_co
         nw_objects.append(create_network_object(name=original_obj_name, type='network', ip='0.0.0.0', ip_end='255.255.255.255',\
             uid=original_obj_uid, zone='global', color='black', comment='"original" network object created by FWO importer for NAT purposes'))
 
-    normalized_config.update({'network_objects': nw_objects})
+    normalized_config_adom.update({'network_objects': nw_objects})
 
 def get_obj_member_refs_list(obj_orig, native_config_objects):
     obj_member_refs_list = []
@@ -42,8 +42,7 @@ def get_obj_member_refs_list(obj_orig, native_config_objects):
             f"Member inconsistent for object {obj_orig['name']}, found members={str(obj_orig['member'])} and member_refs={str(obj_member_refs_list)}")
     return obj_member_refs_list
 
-def normalize_network_object(obj_orig, nw_objects, normalized_config, normalized_config_global, native_config_objects):
-    obj_zone = 'global'
+def normalize_network_object(obj_orig, nw_objects, normalized_config_adom, normalized_config_global, native_config_objects):
     obj = {}
     obj.update({'obj_name': obj_orig['name']})
     if 'subnet' in obj_orig: # ipv4 object
@@ -89,7 +88,7 @@ def normalize_network_object(obj_orig, nw_objects, normalized_config, normalized
     obj.update({'obj_uid': obj_orig.get('uuid', obj_orig['name'])})  # using name as fallback, but this should not happen
 
     associated_interfaces = find_zones_in_normalized_config(
-        obj_orig.get('associated-interface', []), normalized_config, normalized_config_global)
+        obj_orig.get('associated-interface', []), normalized_config_adom, normalized_config_global)
     obj.update({'obj_zone': list_delimiter.join(associated_interfaces)})
     
     nw_objects.append(obj)

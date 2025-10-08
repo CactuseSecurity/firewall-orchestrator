@@ -40,12 +40,16 @@ def fetch_platform_mapping(mapping, fetched_zones):
         if 'intf-zone' in dyn_mapping and not dyn_mapping['intf-zone'] in fetched_zones:
             fetched_zones.append(dyn_mapping['intf-zone'])
 
-def find_zones_in_normalized_config(native_zone_list : list, normalized_config, normalized_config_global):
+def find_zones_in_normalized_config(native_zone_list : list, normalized_config_adom, normalized_config_global):
     """Verifies that input zones exist in normalized config"""
     zone_out_list = []
-    for zone in native_zone_list:
-        if zone in normalized_config['zone_objects'] or zone in normalized_config_global['zone_objects']:
-            zone_out_list.append(zone)
-        else:
-            raise FwoNormalizedConfigParseError('Could not find zone ' + zone + ' in normalized config.')
+    for nativ_zone in native_zone_list:
+        was_zone_found = False
+        for normalized_zone in normalized_config_adom['zone_objects'] + normalized_config_global['zone_objects']:
+            if nativ_zone == normalized_zone['zone_name']:
+                zone_out_list.append(normalized_zone['zone_name'])
+                was_zone_found = True
+                break
+        if not was_zone_found:
+            raise FwoNormalizedConfigParseError('Could not find zone ' + nativ_zone + ' in normalized config.')
     return zone_out_list

@@ -120,14 +120,15 @@ def normalize_config(import_state, native_config: dict[str,Any]) -> FwConfigMana
 
     for native_conf in native_config['domains']:
         normalized_config_adom = deepcopy(fwo_const.emptyNormalizedFwConfigJsonDict)
+        is_global_loop_iteration = False
 
         if native_conf['is-super-manager']:
             native_config_global = native_conf
             normalized_config_global = normalized_config_adom
+            is_global_loop_iteration = True
 
-        # delete_v: is_global_loop_iteration scheint immer False zu sein, kann dann weg
         normalize_single_manager_config(native_conf, native_config_global, normalized_config_adom, normalized_config_global, 
-                                                            import_state, is_global_loop_iteration=False)
+                                                            import_state, is_global_loop_iteration)
 
         normalized_config = FwConfigNormalized(
             action=ConfigAction.INSERT, 

@@ -359,7 +359,7 @@ namespace FWO.Basics
 
             return 0;
         }
-        
+
         public static IPAddress Increment(IPAddress address)
         {
             byte[] bytes = address.GetAddressBytes();
@@ -388,6 +388,39 @@ namespace FWO.Basics
                 bytes[i] = 255;
             }
             return new IPAddress(bytes);
+        }
+
+        public static List<IPAddressRange> Subtract(this IPAddressRange source, List<IPAddressRange> subtractor)
+        {
+            List<IPAddressRange> result = new();
+
+            IPAddress current = source.Begin;
+
+            // Gather gaps
+
+            foreach (var range in subtractor)
+            {
+                if (CompareIpValues(current, range.Begin) < 0)
+                {
+                    IPAddress prev = Decrement(range.Begin);
+                    result.Add(new IPAddressRange(current, prev));
+                }
+
+                if (!(CompareIpValues(current, range.End) > 0))
+                {
+                    current = Increment(range.End);
+                }
+
+            }
+
+            // Include top end if undefined
+
+            if (CompareIpValues(current, source.End) <= 0)
+            {
+                result.Add(new IPAddressRange(current, source.End));
+            }
+
+            return result;
         }
 
     }

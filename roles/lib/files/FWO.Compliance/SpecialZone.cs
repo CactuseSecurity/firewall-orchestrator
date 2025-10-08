@@ -8,54 +8,38 @@ namespace FWO.Compliance
 {
     public static class SpecialZone
     {
-        public static void CalculateInternetZone(List<ComplianceNetworkZone> excludedZones, ComplianceNetworkZone networkZone)
+        public static void CalculateInternetZone(List<ComplianceNetworkZone> excludedZones, ComplianceNetworkZone internetZone)
         {
-            List<IPAddressRange> excludedZonesIPRanges = new();
-            List<IPAddressRange> internetZoneIPRanges = new();
+            IPAddressRange fullRangeIPv4 = IPAddressRange.Parse("0.0.0.0/0");
+
+            List<IPAddressRange> excludedZonesIPRanges = excludedZones.ParseToListOfRanges(true);
+            List<IPAddressRange> internetZoneIPRanges = fullRangeIPv4.Subtract(excludedZonesIPRanges);
+
+            internetZone.IPRanges = internetZoneIPRanges.ToArray();
+        }
+
+        private static List<IPAddressRange> ParseToListOfRanges(this List<ComplianceNetworkZone> networkZones, bool sort)
+        {
+            List<IPAddressRange> listOfRanges = new();
 
             // Gather ip ranges from excluded network zone list
 
-            foreach (ComplianceNetworkZone excludedZone in excludedZones)
+            foreach (ComplianceNetworkZone networkZone in networkZones)
             {
-                if (excludedZone.IPRanges != null)
+                if (networkZone.IPRanges != null)
                 {
-                    excludedZonesIPRanges.AddRange(excludedZone.IPRanges);
+                    listOfRanges.AddRange(networkZone.IPRanges);
                 }
             }
 
             // Sort
 
-            excludedZonesIPRanges.Sort(new IPAddressRangeComparer());
-
-            // Get full IPv4
-
-            IPAddressRange fullRange = IPAddressRange.Parse("0.0.0.0/0");
-
-            IPAddress current = fullRange.Begin;
-
-            // Gather gaps
-
-            foreach (var range in excludedZonesIPRanges)
+            if (sort)
             {
-                if (IpOperations.CompareIpValues(current, range.Begin) < 0)
-                {
-                    IPAddress prev = IpOperations.Decrement(range.Begin);
-                    internetZoneIPRanges.Add(new IPAddressRange(current, prev));
-                }
-
-                current = IpOperations.Increment(range.End);
+                listOfRanges.Sort(new IPAddressRangeComparer());
             }
 
-            // Include top end if undefined
-
-            if (IpOperations.CompareIpValues(current, fullRange.End) <= 0)
-            {
-                internetZoneIPRanges.Add(new IPAddressRange(current, fullRange.End));
-            }
-
-            // Assign new internet zone ranges to zone object
-            
-            networkZone.IPRanges = internetZoneIPRanges.ToArray();
+            return listOfRanges;
         }
 
     }

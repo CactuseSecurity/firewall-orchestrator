@@ -40,7 +40,15 @@
     /// </summary>
     private async Task<string> GetIdFromURI()
     {
-        var currentUrl = await JSRuntime.InvokeAsync<string>("getCurrentUrl");
+        string? currentUrl = null;
+        try
+        {
+            currentUrl = await JSRuntime.InvokeAsync<string>("getCurrentUrl");
+        }
+        catch (JSException)
+        {
+            return "";
+        }
         var uri = new Uri(currentUrl, UriKind.Absolute);
         var fragment = uri.Fragment;
         if (fragment.StartsWith("#goto-"))
@@ -88,12 +96,19 @@
 
             CollapseState.Expand(elementId);
 
-            bool foundObj = await JSRuntime.InvokeAsync<bool>("scrollIntoRSBView", elementId);
-
-            if (foundObj)
+            bool foundObj = false;
+            try
             {
-                // remove #goto-{obj-link} fragment from uri
-                await JSRuntime.InvokeVoidAsync("removeUrlFragment");
+                foundObj = await JSRuntime.InvokeAsync<bool>("scrollIntoRSBView", elementId);
+                if (foundObj)
+                {
+                    // remove #goto-{obj-link} fragment from uri
+                    await JSRuntime.InvokeVoidAsync("removeUrlFragment");
+                }
+            }
+            catch (JSException)
+            {
+                return;
             }
         }
     }

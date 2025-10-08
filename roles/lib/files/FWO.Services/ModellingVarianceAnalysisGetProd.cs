@@ -11,8 +11,8 @@ using System.Text.RegularExpressions;
 namespace FWO.Services
 {
     /// <summary>
-	/// Part of Variance Analysis Class getting the production state
-	/// </summary>
+    /// Part of Variance Analysis Class getting the production state
+    /// </summary>
     public partial class ModellingVarianceAnalysis
     {
         private async Task InitManagements()
@@ -76,6 +76,8 @@ namespace FWO.Services
             allModelledRules.Add(mgt.Id, []);
             foreach (var rule in rulesByMgt)
             {
+                rule.ManagementName = mgt.Name;
+                rule.DeviceName = mgt.Devices.FirstOrDefault(d => d.Id == rule.DeviceId)?.Name ?? "";
                 string? connRef = FindModelledMarker(rule);
                 if(connRef != null)
                 {
@@ -83,8 +85,6 @@ namespace FWO.Services
                     {
                         rule.ConnId = connId;
                     }
-                    rule.ManagementName = mgt.Name;
-                    rule.DeviceName = mgt.Devices.FirstOrDefault(d => d.Id == rule.DeviceId)?.Name ?? "";
                     allModelledRules[mgt.Id].Add(rule);
                 }
                 else

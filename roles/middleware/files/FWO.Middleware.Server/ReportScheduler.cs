@@ -32,9 +32,9 @@ namespace FWO.Middleware.Server
 
         private List<Ldap> connectedLdaps;
 
-		/// <summary>
-		/// Async Constructor needing the connection, jwtWriter and subscription
-		/// </summary>
+        /// <summary>
+        /// Async Constructor needing the connection, jwtWriter and subscription
+        /// </summary>
         public static async Task<ReportScheduler> CreateAsync(ApiConnection apiConnection, JwtWriter jwtWriter, GraphQlApiSubscription<List<Ldap>> connectedLdapsSubscription)
         {
             GlobalConfig globalConfig = await GlobalConfig.ConstructAsync(apiConnection, true);
@@ -66,9 +66,9 @@ namespace FWO.Middleware.Server
             this.scheduledReports = [.. scheduledReports];            
         }
 
-		/// <summary>
-		/// set scheduling timer from config values (not applicable here)
-		/// </summary>
+        /// <summary>
+        /// set scheduling timer from config values (not applicable here)
+        /// </summary>
         protected override void OnGlobalConfigChange(List<ConfigItem> config)
         {}
 
@@ -132,14 +132,14 @@ namespace FWO.Middleware.Server
                         Name = $"{reportSchedule.Name}_{dateTimeNowRounded.ToShortDateString()}",
                         GenerationDateStart = DateTime.Now,
                         TemplateId = reportSchedule.Template.Id,
-                        OwnerId = reportSchedule.ScheduleOwningUser.DbId,
+                        OwningUserId = reportSchedule.ScheduleOwningUser.DbId,
                         Type = reportSchedule.Template.ReportParams.ReportType
                     };
 
                     await apiConnectionUserContext.SendQueryAsync<object>(ReportQueries.countReportSchedule, new { report_schedule_id = reportSchedule.Id });
                     await AdaptDeviceFilter(reportSchedule.Template.ReportParams, apiConnectionUserContext);
 
-                    ReportBase? report = await ReportGenerator.Generate(reportSchedule.Template, apiConnectionUserContext, userConfig, DefaultInit.DoNothing, token);
+                    ReportBase? report = await ReportGenerator.GenerateFromTemplate(reportSchedule.Template, apiConnectionUserContext, userConfig, DefaultInit.DoNothing, token);
                     if(report != null)
                     {
                         await report.GetObjectsInReport(int.MaxValue, apiConnectionUserContext, _ => Task.CompletedTask);
@@ -174,8 +174,9 @@ namespace FWO.Middleware.Server
             if(((ReportType)reportSchedule.Template.ReportParams.ReportType).IsModellingReport())
             {
                 userConfig.User.Groups = reportSchedule.ScheduleOwningUser.Groups;
-                await UiUserHandler.GetOwnershipsFromOwnerLdap(apiConnectionUserContext, userConfig.User);
-                if(!userConfig.User.Ownerships.Contains(reportSchedule.Template.ReportParams.ModellingFilter.SelectedOwner.Id))
+                await UiUserHandler.GetOwnershipsFromOwnerLdap(apiConnectionScheduler, userConfig.User);
+                if(!userConfig.User.Ownerships.Contains(reportSchedule.Template.ReportParams.ModellingFilter.SelectedOwner.Id)
+                    && !userConfig.User.Ownerships.Contains(0))
                 {
                     Log.WriteInfo(LogMessageTitle, "Report not generated as owner is not valid anymore.");
                     return false;
@@ -245,14 +246,15 @@ namespace FWO.Middleware.Server
                     report_name = reportFile.Name,
                     report_start_time = reportFile.GenerationDateStart,
                     report_end_time = reportFile.GenerationDateEnd,
-                    report_owner_id = reportFile.OwnerId,
+                    report_owner_id = reportFile.OwningUserId,
                     report_template_id = reportFile.TemplateId,
                     report_pdf = reportFile.Pdf,
                     report_csv = reportFile.Csv,
                     report_html = reportFile.Html,
                     report_json = reportFile.Json,
                     report_type = reportFile.Type,
-                    description = desc
+                    description = desc,
+                    read_only = false
                 };
                 await apiConnectionUser.SendQueryAsync<object>(ReportQueries.addGeneratedReport, queryVariables);
             }

@@ -495,7 +495,7 @@ namespace FWO.Test
             ClassicAssert.AreEqual(1, result.UnModelledRules.Count);
             ClassicAssert.AreEqual("NonModelledRule", result.UnModelledRules[1][0].Name);
 
-            List<ManagementReport> reports = result.MgtDataToReport();
+            List<ManagementReport> reports = result.UnmodelledRuleDataToReport();
 
             ClassicAssert.AreEqual(1, reports.Count);
             ClassicAssert.AreEqual(1, reports[0].Devices.Length);

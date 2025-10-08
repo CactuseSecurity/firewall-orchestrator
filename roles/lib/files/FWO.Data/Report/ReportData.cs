@@ -2,11 +2,11 @@
 {
     public class ReportData
     {
-        public List<ManagementReport> ManagementData = [];
-        public List<OwnerReport> OwnerData = [];
-        public List<GlobalCommonSvcReport> GlobalComSvc = [];
-        public ManagementReport GlobalStats = new();
-
+        public List<ManagementReport> ManagementData { get; set; } = [];
+        public List<OwnerConnectionReport> OwnerData { get; set; } = [];
+        public List<GlobalCommonSvcReport> GlobalComSvc { get; set; } = [];
+        public ManagementReport GlobalStats { get; set; } = new();
+        public int RecertificationDisplayPeriod { get; set; } = 0;
 
         public ReportData()
         {}
@@ -17,6 +17,7 @@
             OwnerData = reportData.OwnerData;
             GlobalComSvc = reportData.GlobalComSvc;
             GlobalStats = reportData.GlobalStats;
+            RecertificationDisplayPeriod = reportData.RecertificationDisplayPeriod;
         }
     }
 }

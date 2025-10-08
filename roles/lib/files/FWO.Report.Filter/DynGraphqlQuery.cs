@@ -20,6 +20,7 @@ namespace FWO.Report.Filter
         public string SvcObjWhereStatement { get; set; } = "";
         public string UserObjWhereStatement { get; set; } = "";
         public string ConnectionWhereStatement { get; set; } = "";
+        public string OwnerWhereStatement { get; set; } = "";
         public string OpenRulesTable { get; set; } = "rules(";
         public string OpenChangeLogRulesTable { get; set; } = "changelog_rules(";
         public List<string> QueryParameters { get; set; } =
@@ -78,17 +79,20 @@ namespace FWO.Report.Filter
         {
             query.RuleWhereStatement += "_and: [";
             query.ConnectionWhereStatement += "_and: [";
+            query.OwnerWhereStatement += "_and: [";
 
             SetFixedFilters(ref query, filter);
 
             query.RuleWhereStatement += "{";
             query.ConnectionWhereStatement += "{";
+            query.OwnerWhereStatement += "{";
 
             // now we convert the ast into a graphql query:
             ast?.Extract(ref query, (ReportType)filter.ReportParams.ReportType);
 
             query.RuleWhereStatement += "}] ";
             query.ConnectionWhereStatement += "}] ";
+            query.OwnerWhereStatement += "}] ";
         }
 
         private static string ConstructStatisticsQuery(DynGraphqlQuery query, string paramString)
@@ -135,7 +139,7 @@ namespace FWO.Report.Filter
                             {{
                                 mgm_id: mgm_id
                                 {((ReportType)filter.ReportParams.ReportType == ReportType.UnusedRules ? "rule_metadatum { rule_last_hit }" : "")}
-                                ...{(filter.Detailed ? "ruleDetails" : "ruleOverview")}
+                                ...{(filter.Detailed ? "ruleDetailsForReport" : "ruleOverview")}
                             }} 
                         }}
                     }} 
@@ -261,6 +265,19 @@ namespace FWO.Report.Filter
                 }}";
         }
 
+        private static string ConstructOwnerRecertQuery(DynGraphqlQuery query, string paramString)
+        {
+            return $@"
+                {OwnerQueries.ownerDetailsFragment}
+                query getOpenOwnerRecerts ({paramString})
+                {{
+                    owner (where: {{ {query.OwnerWhereStatement} }} order_by: {{ next_recert_date: desc, name: asc }})
+                    {{
+                        ...ownerDetails
+                    }}
+                }}";
+        }
+
         private static void ConstructFullQuery(DynGraphqlQuery query, ReportTemplate filter)
         {
             string paramString = string.Join(" ", query.QueryParameters.ToArray());
@@ -276,6 +293,7 @@ namespace FWO.Report.Filter
                 case ReportType.ResolvedRulesTech:
                 case ReportType.UnusedRules:
                 case ReportType.AppRules:
+                case ReportType.RecertEventReport:
                     query.FullQuery = Queries.compact(ConstructRulesQuery(query, paramString, filter));
                     break;
 
@@ -295,7 +313,12 @@ namespace FWO.Report.Filter
 
                 case ReportType.Connections:
                 case ReportType.VarianceAnalysis:
+                case ReportType.RecertificationEvent:
                     query.FullQuery = Queries.compact(ConstructConnectionsQuery(query, paramString));
+                    break;
+
+                case ReportType.OwnerRecertification:
+                    query.FullQuery = Queries.compact(ConstructOwnerRecertQuery(query, paramString));
                     break;
             }
         }
@@ -303,7 +326,7 @@ namespace FWO.Report.Filter
         private static void SetFixedFilters(ref DynGraphqlQuery query, ReportTemplate reportParams)
         {
             ReportType reportType = (ReportType)reportParams.ReportParams.ReportType;
-            if (reportType.IsRuleReport() || reportType.IsChangeReport() || reportType == ReportType.Statistics)
+            if (reportType.IsDeviceRelatedReport())
             {
                 query.QueryParameters.Add("$mgmId: [Int!] ");
             }
@@ -325,6 +348,10 @@ namespace FWO.Report.Filter
             {
                 SetRecertFilter(ref query, reportParams.ReportParams.RecertFilter);
             }
+            if ((ReportType)reportParams.ReportParams.ReportType == ReportType.OwnerRecertification)
+            {
+                SetOwnerRecertFilter(ref query, reportParams.ReportParams.ModellingFilter, reportParams.ReportParams.RecertFilter);
+            }
             if ((ReportType)reportParams.ReportParams.ReportType == ReportType.UnusedRules)
             {
                 SetUnusedFilter(ref query, reportParams.ReportParams.UnusedFilter);
@@ -333,10 +360,19 @@ namespace FWO.Report.Filter
             {
                 SetOwnerFilter(ref query, reportParams.ReportParams.ModellingFilter);
             }
-            if (((ReportType)reportParams.ReportParams.ReportType).IsOwnerRelatedReport())
+            if (((ReportType)reportParams.ReportParams.ReportType).IsConnectionRelatedReport())
             {
                 SetConnectionFilter(ref query, reportParams.ReportParams.ModellingFilter);
             }
+            if ((ReportType)reportParams.ReportParams.ReportType == ReportType.RecertEventReport)
+            {
+                SetRuleRecertFilter(ref query, reportParams.ReportParams.ModellingFilter);
+            }
+        }
+
+        private static void SetRuleRecertFilter(ref DynGraphqlQuery query, ModellingFilter modellingFilter)
+        {
+            query.RuleWhereStatement += $" {{ rule_metadatum: {{ recertifications: {{ owner_recert_id: {{_eq: {modellingFilter.OwnerRecertId} }}, recertified: {{ _eq: true }} }} }} }}";
         }
 
         private static void SetDeviceFilter(ref DynGraphqlQuery query, DeviceFilter? deviceFilter)
@@ -380,6 +416,7 @@ namespace FWO.Report.Filter
                     case ReportType.NatRules:
                     case ReportType.UnusedRules:
                     case ReportType.AppRules:
+                    case ReportType.RecertEventReport:
                         query.QueryParameters.Add("$import_id_start: bigint ");
                         query.QueryParameters.Add("$import_id_end: bigint ");
                         query.RuleWhereStatement +=
@@ -421,6 +458,7 @@ namespace FWO.Report.Filter
                         break;
                     case ReportType.Connections:
                     case ReportType.VarianceAnalysis:
+                    case ReportType.RecertificationEvent:
                         break;
                     default:
                         Log.WriteError("Filter", $"Unexpected report type found: {reportType}");
@@ -516,6 +554,27 @@ namespace FWO.Report.Filter
                 query.QueryParameters.Add("$ownerWhere: owner_bool_exp");
                 query.QueryVariables["ownerWhere"] = recertFilter.RecertOwnerList.Count > 0 ?
                     new { id = new { _in = recertFilter.RecertOwnerList } } : new { id = new { } };
+            }
+        }
+
+        private static void SetOwnerRecertFilter(ref DynGraphqlQuery query, ModellingFilter? modellingFilter, RecertFilter? recertFilter)
+        {
+            if (modellingFilter != null)
+            {
+                query.QueryParameters.Add("$selectedOwners: [Int!]");
+                query.QueryVariables["selectedOwners"] = new List<int> (modellingFilter.SelectedOwners.Select(o => o.Id)).ToArray();
+                query.OwnerWhereStatement += $@"{{ id: {{ _in: $selectedOwners }} }}";
+
+                if (modellingFilter.RecertActivated)
+                {
+                    query.OwnerWhereStatement += $@"{{ recert_active: {{ _eq: true }} }}";
+                }
+                if (!modellingFilter.ShowAllOwners)
+                {
+                    query.QueryParameters.Add("$refDate: timestamp");
+                    query.QueryVariables["refDate"] = DateTime.Now.AddDays(recertFilter?.RecertificationDisplayPeriod ?? 0);
+                    query.OwnerWhereStatement += $@"{{ next_recert_date: {{ _lte: $refDate }} }}";
+                }
             }
         }
 

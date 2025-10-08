@@ -120,7 +120,7 @@ namespace FWO.Middleware.Server
         {
             try
             {
-                changeReport = await ReportGenerator.Generate(new ReportTemplate("", await SetFilters()), apiConnection, userConfig, DefaultInit.DoNothing);
+                changeReport = await ReportGenerator.GenerateFromTemplate(new ReportTemplate("", await SetFilters()), apiConnection, userConfig, DefaultInit.DoNothing);
             }
             catch (Exception exception)
             {

@@ -6,27 +6,20 @@ using NetTools;
 
 namespace FWO.Compliance
 {
-    public class SpecialZoneCalculator
+    public static class SpecialZone
     {
-        private ComplianceNetworkZone _networkZone;
-
-        public SpecialZoneCalculator(ComplianceNetworkZone networkZone)
-        {
-            _networkZone = networkZone;
-        }
-
-        public void CalculateInternetZone(List<ComplianceNetworkZone> excludedZones)
+        public static void CalculateInternetZone(List<ComplianceNetworkZone> excludedZones, ComplianceNetworkZone networkZone)
         {
             List<IPAddressRange> excludedZonesIPRanges = new();
             List<IPAddressRange> internetZoneIPRanges = new();
 
             // Gather ip ranges from excluded network zone list
 
-            foreach (ComplianceNetworkZone networkZone in excludedZones)
+            foreach (ComplianceNetworkZone excludedZone in excludedZones)
             {
-                if (networkZone.IPRanges != null)
+                if (excludedZone.IPRanges != null)
                 {
-                    excludedZonesIPRanges.AddRange(networkZone.IPRanges);
+                    excludedZonesIPRanges.AddRange(excludedZone.IPRanges);
                 }
             }
 
@@ -62,7 +55,7 @@ namespace FWO.Compliance
 
             // Assign new internet zone ranges to zone object
             
-            _networkZone.IPRanges = internetZoneIPRanges.ToArray();
+            networkZone.IPRanges = internetZoneIPRanges.ToArray();
         }
 
     }

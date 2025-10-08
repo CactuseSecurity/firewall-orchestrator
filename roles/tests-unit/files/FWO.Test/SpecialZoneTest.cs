@@ -8,7 +8,7 @@ using FWO.Basics;
 namespace FWO.Test
 {
     [TestFixture]
-    public class SpecialZoneCalculatorTest
+    public class SpecialZoneTest
     {
         [Test]
         public void CalculateInternetZone_BasicZonesWithOutOverlaps_InternetzoneCalculatedCorrectly()
@@ -49,11 +49,9 @@ namespace FWO.Test
                 IpOperations.GetIPAdressRange("224.0.0.0/3"),
             };
 
-            SpecialZoneCalculator specialZoneCalculator = new(internetZone);
-
             // Act
 
-            specialZoneCalculator.CalculateInternetZone(definedAndExcludedZones);
+            SpecialZone.CalculateInternetZone(definedAndExcludedZones, internetZone);
 
 
             // Assert

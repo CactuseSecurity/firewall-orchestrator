@@ -10,9 +10,11 @@ def get_zones(sid, fm_api_url, native_config, adom_name, limit):
         fmgr_getter.update_config_with_fortinet_api_call(
             native_config['zones'], sid, fm_api_url, '/pm/config/adom/' + adom_name + '/obj/dynamic/interface', 'interface_' + adom_name, limit=limit)
 
-def normalize_zones(native_config, normalized_config_adom):
+def normalize_zones(native_config, normalized_config_adom, is_global_loop_iteration):
     zones = []
     fetched_zones = []
+    if is_global_loop_iteration:
+        fetched_zones.append('any')
     for zone_type in native_config['zones']:
         for mapping in zone_type.get('data', []):
             if not mapping['dynamic_mapping'] is None:
@@ -21,7 +23,7 @@ def normalize_zones(native_config, normalized_config_adom):
                 fetch_platform_mapping(mapping, fetched_zones)
 
     for zone in fetched_zones:
-        zones.append({'zone_name': zone['name']})
+        zones.append({'zone_name': zone})
     normalized_config_adom.update({'zone_objects': zones})
 
 def fetch_dynamic_mapping(mapping, fetched_zones):
@@ -42,8 +44,8 @@ def find_zones_in_normalized_config(native_zone_list : list, normalized_config, 
     """Verifies that input zones exist in normalized config"""
     zone_out_list = []
     for zone in native_zone_list:
-        if zone in normalized_config['zone_object'] or zone in normalized_config_global['zone_object']:
+        if zone in normalized_config['zone_objects'] or zone in normalized_config_global['zone_objects']:
             zone_out_list.append(zone)
         else:
-            raise FwoNormalizedConfigParseError('Could not find zone ' + zone + 'in normalized config.')
+            raise FwoNormalizedConfigParseError('Could not find zone ' + zone + ' in normalized config.')
     return zone_out_list

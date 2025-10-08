@@ -184,7 +184,7 @@ def normalize_single_manager_config(native_config: dict[str, Any], native_config
         current_svc_obj_types = [f"svc_obj_adom/{native_config.get('domain_name','')}_{t}" for t in current_svc_obj_types]
 
     logger = getFwoLogger()
-    normalize_zones(native_config, normalized_config_adom)
+    normalize_zones(native_config, normalized_config_adom, is_global_loop_iteration)
     logger.info("completed normalizing zones for manager: " + native_config.get('domain_name',''))
     normalize_network_objects(native_config, native_config_global, normalized_config_adom, normalized_config_global, 
                                            current_nw_obj_types)

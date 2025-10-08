@@ -4,7 +4,6 @@ using FWO.Data;
 using FWO.Data.Modelling;
 using FWO.Data.Report;
 using FWO.Logging;
-using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 
@@ -224,7 +223,7 @@ namespace FWO.Services
                 foreach (NetworkObject obj in objByMgt)
                 {
                     ModellingAppServer appServer = new(obj);
-                    appServerHashes.Add(appServerComparer.GetHashCode(appServer), appServer.Id);
+                    appServerHashes.TryAdd(appServerComparer.GetHashCode(appServer), appServer.Id);
                     aSCount++;
                 }
             }
@@ -243,7 +242,7 @@ namespace FWO.Services
                         mgmId = mgtId,
                         objTypeIds = objTypeIds,
                         import_id_start = relImpId,
-                        import_id_end   = relImpId
+                        import_id_end = relImpId
                     };
                     return await apiConnection.SendQueryAsync<List<NetworkObject>>(ObjectQueries.getNetworkObjectsForManagement, ObjGroupVariables);
                 }

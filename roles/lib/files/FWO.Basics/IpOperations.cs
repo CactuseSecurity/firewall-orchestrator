@@ -403,7 +403,11 @@ namespace FWO.Basics
                 if (CompareIpValues(current, range.Begin) < 0)
                 {
                     IPAddress prev = Decrement(range.Begin);
-                    result.Add(new IPAddressRange(current, prev));
+                    IPAddressRange newRange = new IPAddressRange(current, prev);
+                    if (source.Contains(newRange)) // HOTFIX!! Decrement and Increment have to happen in source bounds (param minIp and maxIp?), and loop should be cancelled if range.Begin is higher than sourc.End 
+                    {
+                        result.Add(newRange);
+                    }
                 }
 
                 if (!(CompareIpValues(current, range.End) > 0))
@@ -417,7 +421,11 @@ namespace FWO.Basics
 
             if (CompareIpValues(current, source.End) <= 0)
             {
-                result.Add(new IPAddressRange(current, source.End));
+                IPAddressRange newRange = new IPAddressRange(current, source.End);
+                if (source.Contains(newRange))
+                {
+                    result.Add(newRange);
+                }
             }
 
             return result;

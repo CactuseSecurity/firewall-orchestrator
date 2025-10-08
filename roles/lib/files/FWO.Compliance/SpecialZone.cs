@@ -8,7 +8,7 @@ namespace FWO.Compliance
 {
     public static class SpecialZone
     {
-        public static void CalculateInternetZone(List<ComplianceNetworkZone> excludedZones, ComplianceNetworkZone internetZone)
+        public static void CalculateInternetZone(this ComplianceNetworkZone internetZone, List<ComplianceNetworkZone> excludedZones)
         {
             IPAddressRange fullRangeIPv4 = IPAddressRange.Parse("0.0.0.0/0");
 
@@ -17,6 +17,33 @@ namespace FWO.Compliance
 
             internetZone.IPRanges = internetZoneIPRanges.ToArray();
         }
+
+        public static void CalculateLocalZone(this ComplianceNetworkZone localZone, List<IPAddressRange> localZoneRanges, List<ComplianceNetworkZone> definedZones)
+        {
+            List<IPAddressRange> definedZonesIPRanges = definedZones.ParseToListOfRanges(true);
+            List<IPAddressRange> localZoneIPRanges = new();
+
+            foreach (IPAddressRange range in localZoneRanges)
+            {
+                List<IPAddressRange> ranges = range.Subtract(definedZonesIPRanges);
+
+                foreach (IPAddressRange newRange in ranges)
+                {
+                    bool exists = localZoneIPRanges.Any(r =>
+                        r.Begin.Equals(newRange.Begin) &&
+                        r.End.Equals(newRange.End));
+
+                    if (!exists)
+                    {
+                        localZoneIPRanges.Add(newRange);
+                    }                 
+                }
+
+            }
+
+            localZone.IPRanges = localZoneIPRanges.ToArray();
+        }
+
 
         private static List<IPAddressRange> ParseToListOfRanges(this List<ComplianceNetworkZone> networkZones, bool sort)
         {

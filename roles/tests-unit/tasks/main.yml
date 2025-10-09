@@ -23,6 +23,11 @@
       var: csharp_tests
     when: csharp_tests.rc != 0
 
+  when: "'frontends' in group_names"
+  # run only once (on frontends)
+
+- block:
+
   - name: Run importer Python unit tests
     delegate_to: localhost
     environment:
@@ -30,8 +35,6 @@
     args:
       chdir: "{{ playbook_dir }}/roles/importer/files/importer/test"
     command: >
-      python3 -m unittest discover -s . -p "test_*.py" -v
+      {{ importer_venv_dir }}/bin/python3 -m unittest discover -s . -p "test_*.py" -v
 
-  when: "'frontends' in group_names"
-  # run only once (on frontends)
   

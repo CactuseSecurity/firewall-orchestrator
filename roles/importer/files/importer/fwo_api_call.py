@@ -86,7 +86,7 @@ class FwoApiCall(FwoApi):
             lock_mutation = FwoApi.get_graphql_code([fwo_const.graphql_query_path + "import/addImport.graphql"])
             lock_result = self.call(lock_mutation, 
                             query_variables={"mgmId": mgm_id, "isFullImport": is_full_import, "isInitialImport": is_initial_import })
-            if lock_result['data']['insert_import_control']['returning'][0]['control_id']:
+            if lock_result  ['data']['insert_import_control']['returning'][0]['control_id']:
                 import_id = lock_result['data']['insert_import_control']['returning'][0]['control_id']
             return import_id
         except Exception:

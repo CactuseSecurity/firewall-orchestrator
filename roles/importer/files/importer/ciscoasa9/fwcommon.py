@@ -45,6 +45,10 @@ def has_config_changed(full_config, mgm_details, force=False):
     return True
 
 
+def connect_to_virtual_asa(conn):
+    conn.channel.send_input("connect module 1 console")
+
+
 def load_config_from_management(mgm_details: ManagementController) -> str:
     """Load ASA configuration from the management device using SSH.
     
@@ -62,7 +66,8 @@ def load_config_from_management(mgm_details: ManagementController) -> str:
             "auth_password": mgm_details.Secret,
             "auth_secondary": mgm_details.Secret,
             "auth_strict_key": False,
-            "platform": "cisco_asa"
+            "platform": "cisco_asa",
+            "on_open": connect_to_virtual_asa # <-- for virtual ASA modules
         }
         conn = Scrapli(**device)
         conn.open()
@@ -91,8 +96,8 @@ def get_config(config_in: FwConfigManagerListController, importState: ImportStat
     logger.debug ( "starting checkpointAsa9/get_config" )
 
     if config_in.native_config_is_empty:
-        # raw_config = load_config_from_management(importState.MgmDetails)
-        raw_config = load_config_from_file("asa.conf")
+        raw_config = load_config_from_management(importState.MgmDetails)
+        # raw_config = load_config_from_file("asa.conf")
         config2import = parse_asa_config(raw_config)
         config_in.native_config = config2import.model_dump()
 

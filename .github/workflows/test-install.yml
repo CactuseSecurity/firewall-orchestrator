@@ -46,5 +46,6 @@ jobs:
 
       - name: Run importer unit tests
         run: |
+          PYTHONPATH="${{ github.workspace }}:${{ github.workspace }}/roles/importer/files/importer" \
           cd /home/runner/work/firewall-orchestrator/firewall-orchestrator/roles/importer/files/importer/test
           python -m unittest discover -p "test_*.py" -v

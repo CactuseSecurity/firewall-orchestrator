@@ -43,3 +43,9 @@ jobs:
           dotnet restore
           dotnet build
           dotnet test --filter "Name=HtmlToPdfTest"
+
+      - name: Run importer unit tests
+        env:
+          PYTHONPATH: ${{ github.workspace }}/roles/importer/files:${{ github.workspace }}
+        run: |
+          python -m unittest discover -s roles/importer/files/test -p "test_*.py" -v

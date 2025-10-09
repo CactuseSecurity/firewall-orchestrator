@@ -58,7 +58,8 @@ class RulebaseLinkController():
             import_state.Stats.addError(f"fwo_api:getRulebaseLinks - error while getting rulebaseLinks: {str(links['errors'])}")
             logger.exception(f"fwo_api:getRulebaseLinks - error while getting rulebaseLinks: {str(links['errors'])}")
         else:
-            self.rb_links: list[RulebaseLink] = parse_rulebase_links(links['data']['rulebase_link'])
+            parsable_rulebase_links = [link for link in links['data']['rulebase_link'] if link.get("created") is not None] # TODO: is this necessary or was the bug some corrupted local db stuff? But why does integration test fail?
+            self.rb_links: list[RulebaseLink] = parse_rulebase_links(parsable_rulebase_links)
 
 
     # add an entry for all rulebase to gateway pairs that are conained in the rulebase_links table

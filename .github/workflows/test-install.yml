@@ -45,8 +45,6 @@ jobs:
           dotnet test --filter "Name=HtmlToPdfTest"
 
       - name: Run importer unit tests
-        env:
-          PYTHONPATH: ${{ github.workspace }}/roles/importer/files:${{ github.workspace }}
         run: |
-          cd /home/runner/work/firewall-orchestrator/firewall-orchestrator/roles/importer/files/test
+          cd /home/runner/work/firewall-orchestrator/firewall-orchestrator/roles/importer/files/importer/test
           python -m unittest discover -p "test_*.py" -v

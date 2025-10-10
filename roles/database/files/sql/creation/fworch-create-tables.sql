@@ -1411,8 +1411,7 @@ create table compliance.network_zone
 	criterion_id INT,
     id_string TEXT,
 	is_internet_zone BOOLEAN DEFAULT FALSE,
-	is_local_zone BOOLEAN DEFAULT FALSE,
-
+	is_local_zone BOOLEAN DEFAULT FALSE
 );
 
 create table compliance.network_zone_communication

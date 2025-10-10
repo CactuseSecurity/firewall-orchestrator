@@ -25,4 +25,15 @@
 
   when: "'frontends' in group_names"
   # run only once (on frontends)
+
+- block:
+
+  - name: Run importer Python unit tests
+    environment:
+      PYTHONPATH: "/usr/local/fworch/importer"
+    args:
+      chdir: "/usr/local/fworch/importer/test"
+    command: >
+      {{ importer_venv_dir }}/bin/python3 -m unittest discover -s . -p "test_*.py" -v
+
   

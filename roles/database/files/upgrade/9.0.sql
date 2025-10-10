@@ -1073,6 +1073,8 @@ ALTER TABLE compliance.criterion ADD COLUMN IF NOT EXISTS "removed" TIMESTAMP WI
 ALTER TABLE compliance.criterion ADD COLUMN IF NOT EXISTS "import_source" TEXT;
 ALTER TABLE compliance.criterion ADD COLUMN IF NOT EXISTS "comment" TEXT;
 ALTER TABLE compliance.network_zone ALTER COLUMN "removed" DROP DEFAULT;
+ALTER TABLE compliance.network_zone ADD COLUMN IF NOT EXISTS "is_internet_zone" BOOLEAN DEFAULT FALSE;
+ALTER TABLE compliance.network_zone ADD COLUMN IF NOT EXISTS "is_local_zone" BOOLEAN DEFAULT FALSE;
 ALTER TABLE compliance.network_zone_communication ALTER COLUMN "removed" DROP DEFAULT;
 ALTER TABLE compliance.ip_range ALTER COLUMN "removed" DROP DEFAULT;
 ALTER TABLE compliance.policy_criterion ALTER COLUMN "removed" DROP DEFAULT;

@@ -112,7 +112,15 @@ class RuleOrderService:
         self._compute_min_moves_result = compute_min_moves(self._source_rule_uids, self._target_rule_uids)
 
         for rulebase in self._fw_config_import_rule.normalized_config.rulebases:
-            rule_uids = set(rulebase.Rules.keys())
+
+            # Get previous configs rule_uids to check for unrecognized moves across rulebases (e.g. deleting a section header)
+
+            previous_rulebase_uids = []
+            previous_configs_rulebase = next((rb for rb in previous_config.rulebases if rb.uid == rulebase.uid), None)
+            if previous_configs_rulebase:
+                previous_rulebase_uids.extend(list(previous_configs_rulebase.Rules.keys()))
+
+            rule_uids = list(rulebase.Rules.keys())
 
             self._new_rule_uids[rulebase.uid] = [
                 insertion_uid
@@ -126,6 +134,12 @@ class RuleOrderService:
                 if move_uid in rule_uids
             ]
             
+            # Add undetected moves across rulebases.
+
+            for rule_uid in rule_uids:
+                if rule_uid not in self._new_rule_uids[rulebase.uid] and rule_uid not in self._moved_rule_uids[rulebase.uid] and rule_uid not in previous_rulebase_uids:
+                    self._moved_rule_uids[rulebase.uid].append(rule_uid)
+
             if (len(self._moved_rule_uids) > 0 or len(self._new_rule_uids > 0)) and not rulebase.uid in self._inserts_and_moves:
                 self._inserts_and_moves[rulebase.uid] = []
 
@@ -133,7 +147,7 @@ class RuleOrderService:
             self._inserts_and_moves[rulebase.uid].extend(self._moved_rule_uids[rulebase.uid])
 
         for rulebase in self._previous_config.rulebases:
-            rule_uids = set(rulebase.Rules.keys())
+            rule_uids = list(rulebase.Rules.keys())
 
             self._deleted_rule_uids[rulebase.uid] = [
                 deletion_uid
@@ -241,7 +255,10 @@ class RuleOrderService:
         else:
             previous_rule_num_numeric = self._get_relevant_rule_num_numeric(prev_rule_uid, self._target_rules_flat, False, target_rulebase)
             next_rules_rule_num_numeric = self._get_relevant_rule_num_numeric(next_rule_uid, self._target_rules_flat, True, target_rulebase)
-            changed_rule.rule_num_numeric = (previous_rule_num_numeric + next_rules_rule_num_numeric) / 2
+            if new_rule_num_numeric > 0:
+                changed_rule.rule_num_numeric = (previous_rule_num_numeric + next_rules_rule_num_numeric) / 2
+            else:
+                changed_rule.rule_num_numeric = previous_rule_num_numeric + rule_num_numeric_steps
 
         self._updated_rules.append(changed_rule.rule_uid)
                     
@@ -368,7 +385,7 @@ class RuleOrderService:
         index, changed_rule = self._get_index_and_rule_object_from_flat_list(
             target_rulebase.Rules.values(), rule_uid
         )
-        prev_uid, next_uid = self._get_adjacent_list_element(self._target_rule_uids, index)
+        prev_uid, next_uid = self._get_adjacent_list_element(list(target_rulebase.Rules.keys()), index)
 
         if ascending:
             return self._num_for_ascending_case(changed_rule, next_uid, target_rulebase)

@@ -75,7 +75,7 @@ class TestUpdateRulebaseLinkDiffs(unittest.TestCase):
 
         # Act
 
-        new_links, _, _ = self._fwconfig_import_gateway.update_rulebase_link_diffs()
+        new_links, _ = self._fwconfig_import_gateway.update_rulebase_link_diffs()
 
         # Assert
 
@@ -105,7 +105,7 @@ class TestUpdateRulebaseLinkDiffs(unittest.TestCase):
 
         # Act
 
-        new_links, _, _ = self._fwconfig_import_gateway.update_rulebase_link_diffs()
+        new_links, _ = self._fwconfig_import_gateway.update_rulebase_link_diffs()
 
         # Assert
 
@@ -142,7 +142,7 @@ class TestUpdateRulebaseLinkDiffs(unittest.TestCase):
 
         # Act
 
-        _, deleted_links_ids, _ = self._fwconfig_import_gateway.update_rulebase_link_diffs()
+        _, deleted_links_ids = self._fwconfig_import_gateway.update_rulebase_link_diffs()
 
         # Assert
         
@@ -168,7 +168,7 @@ class TestUpdateRulebaseLinkDiffs(unittest.TestCase):
 
         # Act
 
-        new_links, _, _ = self._fwconfig_import_gateway.update_rulebase_link_diffs()
+        new_links, _ = self._fwconfig_import_gateway.update_rulebase_link_diffs()
 
         # Assert
 
@@ -198,7 +198,7 @@ class TestUpdateRulebaseLinkDiffs(unittest.TestCase):
 
         # Act
 
-        _, deleted_links_ids, _ = self._fwconfig_import_gateway.update_rulebase_link_diffs()
+        _, deleted_links_ids = self._fwconfig_import_gateway.update_rulebase_link_diffs()
 
         # Assert
 
@@ -231,7 +231,7 @@ class TestUpdateRulebaseLinkDiffs(unittest.TestCase):
 
         # Act
 
-        new_links, deleted_links_ids, _ = self._fwconfig_import_gateway.update_rulebase_link_diffs()
+        new_links, deleted_links_ids = self._fwconfig_import_gateway.update_rulebase_link_diffs()
 
         # Assert
 

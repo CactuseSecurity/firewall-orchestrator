@@ -65,9 +65,10 @@ def load_config_from_management(mgm_details: ManagementController, is_virtual_as
             "port": mgm_details.Port,
             "auth_username": mgm_details.ImportUser,
             "auth_password": mgm_details.Secret,
-            "auth_secondary": mgm_details.Secret,
+            "auth_secondary": mgm_details.CloudClientSecret,
             "auth_strict_key": False,
             "platform": "cisco_asa",
+            "transport_options": {"open_cmd": ["-o", "KexAlgorithms=+diffie-hellman-group14-sha1"]},
         }
         if is_virtual_asa:
             device["on_open"] = connect_to_virtual_asa

@@ -202,8 +202,63 @@ namespace FWO.Test
                 networkZoneOne,
                 networkZoneTwo
             };
-            
+
             IPAddressRange[] expectedLocalZone = localZoneRanges.ToArray();
+
+            // Act
+
+            localZone.CalculateLocalZone(localZoneRanges, definedZones);
+
+            // Assert
+
+            Assert.
+                That(localZone.IPRanges,
+                Is.EqualTo(expectedLocalZone)
+                .Using<IPAddressRange>((a, b) => a.ToString() == b.ToString()));
+
+
+        }
+        
+        [Test]
+        public void CalculateLocalZone_OverlappingDefinedZones_LocalZoneCalculatedCorrectly()
+        {
+            // Arrange
+
+            ComplianceNetworkZone localZone = new();
+
+            List<IPAddressRange> localZoneRanges = new()
+            {
+                IpOperations.GetIPAdressRange("10.0.0.0/8"),        // Private address space — RFC 1918
+                IpOperations.GetIPAdressRange("172.16.0.0/12"),     // Private address space — RFC 1918
+                IpOperations.GetIPAdressRange("192.168.0.0/16"),    // Private address space — RFC 1918
+            };
+
+            ComplianceNetworkZone networkZoneOne = new();
+
+            networkZoneOne.IPRanges = new IPAddressRange[]
+            {
+                new IPAddressRange(IPAddress.Parse("0.0.0.0"),  IPAddress.Parse("172.15.255.255"))
+            };
+
+            ComplianceNetworkZone networkZoneTwo = new();
+
+            networkZoneTwo.IPRanges = new IPAddressRange[]
+            {
+                new IPAddressRange(IPAddress.Parse("172.32.0.0"),IPAddress.Parse("192.167.255.255")),
+                new IPAddressRange(IPAddress.Parse("192.169.0.0"), IPAddress.Parse("255.255.255.255"))
+            };
+
+            List<ComplianceNetworkZone> definedZones = new List<ComplianceNetworkZone>
+            {
+                networkZoneOne,
+                networkZoneTwo
+            };
+
+            IPAddressRange[] expectedLocalZone = new IPAddressRange[]
+            {
+                IpOperations.GetIPAdressRange("172.16.0.0/12"),    
+                IpOperations.GetIPAdressRange("192.168.0.0/16")
+            };
 
             // Act
 

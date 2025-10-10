@@ -230,6 +230,8 @@ namespace FWO.Services
                 await RemoveZone(specialZone, apiConnection);
             }
 
+            // Add new internet zone
+
             ComplianceNetworkZone internetZone = new()
             {
                 IdString = "SPECIAL_ZONE_INTERNET",
@@ -238,8 +240,23 @@ namespace FWO.Services
                 CriterionId = matrixId,
             };
 
+            CalculateInternetZone(internetZone, existingZones.Where(zone => !zone.IsInternetZone && !zone.IsLocalZone).ToList());
 
+            await AddZone(internetZone, new(), apiConnection); // TODO: Get AdditionsDeletions
 
+            // Add new local zone
+
+            ComplianceNetworkZone localZone = new()
+            {
+                IdString = "SPECIAL_ZONE_LOCAL",
+                Name = "Local Zone",
+                IsLocalZone = true,
+                CriterionId = matrixId,
+            };
+
+            CalculateLocalZone(localZone, new(), existingZones.Where(zone => !zone.IsInternetZone && !zone.IsLocalZone).ToList()); // TODO: Get local zone
+
+            await AddZone(localZone, new(), apiConnection); // TODO: Get AdditionsDeletions
 
         }
         

@@ -42,9 +42,15 @@ namespace FWO.Data
 
         [JsonProperty("removed"), JsonPropertyName("removed")]
         public DateTime? Removed { get; set; }
-        
+
         [JsonProperty("criterion_id"), JsonPropertyName("criterion_id")]
         public int CriterionId { get; set; } = 0;
+
+        [JsonProperty("is_internet_zone"), JsonPropertyName("is_internet_zone")]
+        public bool IsInternetZone { get; set; } = false;
+        
+        [JsonProperty("is_local_zone"), JsonPropertyName("is_local_zone")]
+        public bool IsLocalZone { get; set; } = false;
 
         
 

@@ -1517,3 +1517,6 @@ ON CONFLICT (config_key, config_user) DO NOTHING;
 
 insert into stm_dev_typ (dev_typ_id,dev_typ_name,dev_typ_version,dev_typ_manufacturer,dev_typ_predef_svc,dev_typ_is_multi_mgmt,dev_typ_is_mgmt,is_pure_routing_device)
     VALUES (28,'Cisco Asa','9','Cisco','',false,true,false);
+
+insert into stm_dev_typ (dev_typ_id,dev_typ_name,dev_typ_version,dev_typ_manufacturer,dev_typ_predef_svc,dev_typ_is_multi_mgmt,dev_typ_is_mgmt,is_pure_routing_device)
+    VALUES (29,'Cisco Asa on FirePower','9','Cisco','',false,true,false);

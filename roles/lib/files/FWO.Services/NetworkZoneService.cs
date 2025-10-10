@@ -2,6 +2,7 @@
 using FWO.Api.Client.Queries;
 using FWO.Basics;
 using FWO.Basics.Comparer;
+using FWO.Config.Api;
 using FWO.Data;
 using FWO.Logging;
 using NetTools;
@@ -217,7 +218,7 @@ namespace FWO.Services
             await apiConnection.SendQueryAsync<dynamic>(ComplianceQueries.removeNetworkZone, variables);
         }
 
-        public static async Task UpdateSpecialZones(int matrixId, ApiConnection apiConnection)
+        public static async Task UpdateSpecialZones(int matrixId, ApiConnection apiConnection, GlobalConfig globalConfig)
         {
             // Get all zones of matrix.
 
@@ -242,7 +243,12 @@ namespace FWO.Services
 
             CalculateInternetZone(internetZone, existingZones.Where(zone => !zone.IsInternetZone && !zone.IsLocalZone).ToList());
 
-            await AddZone(internetZone, new(), apiConnection); // TODO: Get AdditionsDeletions
+            AdditionsDeletions internetZoneAddDel = new()
+            {
+                IpRangesToAdd = internetZone.IPRanges.ToList()
+            };
+
+            await AddZone(internetZone, internetZoneAddDel, apiConnection);
 
             // Add new local zone
 
@@ -254,9 +260,14 @@ namespace FWO.Services
                 CriterionId = matrixId,
             };
 
-            CalculateLocalZone(localZone, new(), existingZones.Where(zone => !zone.IsInternetZone && !zone.IsLocalZone).ToList()); // TODO: Get local zone
+            AdditionsDeletions localZoneAddDel = new()
+            {
+                IpRangesToAdd = internetZone.IPRanges.ToList()
+            };
 
-            await AddZone(localZone, new(), apiConnection); // TODO: Get AdditionsDeletions
+            CalculateLocalZone(localZone, GetLocalZoneRanges(globalConfig), existingZones.Where(zone => !zone.IsInternetZone && !zone.IsLocalZone).ToList());
+
+            await AddZone(localZone, localZoneAddDel, apiConnection); 
 
         }
         
@@ -264,7 +275,7 @@ namespace FWO.Services
         {
             IPAddressRange fullRangeIPv4 = IPAddressRange.Parse("0.0.0.0/0");
 
-            List<IPAddressRange> excludedZonesIPRanges = ParseToListOfRanges(excludedZones, true);
+            List<IPAddressRange> excludedZonesIPRanges = ParseNetworkZoneToListOfRanges(excludedZones, true);
             List<IPAddressRange> internetZoneIPRanges = fullRangeIPv4.Subtract(excludedZonesIPRanges);
 
             internetZone.IPRanges = internetZoneIPRanges.ToArray();
@@ -272,7 +283,7 @@ namespace FWO.Services
 
         public static void CalculateLocalZone(ComplianceNetworkZone localZone, List<IPAddressRange> localZoneRanges, List<ComplianceNetworkZone> definedZones)
         {
-            List<IPAddressRange> definedZonesIPRanges = ParseToListOfRanges(definedZones, true);
+            List<IPAddressRange> definedZonesIPRanges = ParseNetworkZoneToListOfRanges(definedZones, true);
             List<IPAddressRange> localZoneIPRanges = new();
 
             foreach (IPAddressRange range in localZoneRanges)
@@ -297,7 +308,7 @@ namespace FWO.Services
         }
 
 
-        private static List<IPAddressRange> ParseToListOfRanges(List<ComplianceNetworkZone> networkZones, bool sort)
+        private static List<IPAddressRange> ParseNetworkZoneToListOfRanges(List<ComplianceNetworkZone> networkZones, bool sort)
         {
             List<IPAddressRange> listOfRanges = new();
 
@@ -320,5 +331,13 @@ namespace FWO.Services
 
             return listOfRanges;
         }
+
+        private static List<IPAddressRange> GetLocalZoneRanges(GlobalConfig globalConfig)
+        {
+            // TODO: Check global config for each localZoneIPAdressRange parameter and add IPAdressRange object to list if parameter true
+            return new();
+        }
+
+
     }
 }

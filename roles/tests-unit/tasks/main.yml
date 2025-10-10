@@ -29,11 +29,10 @@
 - block:
 
   - name: Run importer Python unit tests
-    delegate_to: localhost
     environment:
-      PYTHONPATH: "{{ playbook_dir }}:{{ playbook_dir }}/roles/importer/files/importer"
+      PYTHONPATH: "/usr/local/fworch/importer"
     args:
-      chdir: "{{ playbook_dir }}/roles/importer/files/importer/test"
+      chdir: "/usr/local/fworch/importer/test"
     command: >
       {{ importer_venv_dir }}/bin/python3 -m unittest discover -s . -p "test_*.py" -v
 

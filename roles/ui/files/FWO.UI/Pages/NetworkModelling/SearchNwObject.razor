@@ -25,7 +25,7 @@
                             </ElementTemplate>
                         </Dropdown>
                     </div>
-                    <button type="button" class="btn btn-sm btn-primary col-sm-2" @onclick="InitType">@(userConfig.GetText("select"))</button>
+                    <button type="button" class="btn btn-sm btn-primary col-sm-2" @onclick="InitType">@(DisplayService.DisplayButton(userConfig, "select", Icons.Select))</button>
                 }
             </div>
             @if(typeSelected)
@@ -49,14 +49,14 @@
             {
                 <AuthorizeView Roles="@(CommonAreaMode || SpecUserMode || UpdObjMode ? Roles.Admin : Roles.Modeller)">
                     <Authorized>
-                        <button type="button" class="btn btn-sm btn-success" @onclick="AddObject">@(userConfig.GetText("select"))</button>
+                        <button type="button" class="btn btn-sm btn-success" @onclick="AddObject">@(DisplayService.DisplayButton(userConfig, "select", Icons.Select))</button>
                     </Authorized>
                     <NotAuthorized>
-                        <button type="button" class="btn btn-sm btn-danger" disabled>@(userConfig.GetText("select"))</button>
+                        <button type="button" class="btn btn-sm btn-danger" disabled>@(DisplayService.DisplayButton(userConfig, "select", Icons.Select))</button>
                     </NotAuthorized>
                 </AuthorizeView>
             }
-            <button type="button" class="btn btn-sm btn-secondary" @onclick="Close">@(userConfig.GetText("cancel"))</button>
+            <button type="button" class="btn btn-sm btn-secondary" @onclick="Close">@(DisplayService.DisplayButton(userConfig, "cancel", Icons.Cancel))</button>
         </div>
     </Footer>
 </PopUp>
@@ -137,7 +137,7 @@
                 grpType = (int)selectedType
             };
             List<ModellingNwGroup> allNwObjects = await apiConnection.SendQueryAsync<List<ModellingNwGroup>>(ModellingQueries.getNwGroupObjects, Variables);
-            if(CommonAreaMode && userConfig.ModCommonAreas != "")
+            if(!SpecUserMode && !UpdObjMode && userConfig.ModCommonAreas != "")
             {
                 List<long> commonAreaIds = JsonSerializer.Deserialize<List<CommonAreaConfig>>(userConfig.ModCommonAreas)?.ConvertAll(x => x.AreaId) ?? new();
                 allNwObjects = allNwObjects.Where(o => !commonAreaIds.Contains(o.Id)).ToList();

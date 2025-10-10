@@ -9,6 +9,7 @@ mutation newOwner(
   $criticality: String
   $importSource: String
   $commSvcPossible: Boolean
+  $recertActive: Boolean
   ) {
   insert_owner(objects: {
     name: $name
@@ -21,6 +22,7 @@ mutation newOwner(
     criticality: $criticality
     import_source: $importSource
     common_service_possible: $commSvcPossible
+    recert_active: $recertActive
   }) {
     returning {
       newId: id

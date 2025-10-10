@@ -71,7 +71,7 @@
         <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5455"))">
             <label class="col-form-label col-sm-3">@(userConfig.GetText("availableReportTypes")):</label>
             <div class="form-group row col-sm-9">
-                @foreach (ReportType type in Enum.GetValues(typeof(ReportType)))
+                @foreach (ReportType type in ReportTypeGroups.AllReportTypes())
                 {
                     <div class="form-group col-sm-3">
                         <input id="cbx_@type.ToString()" type="checkbox" @bind="reportTypesActiveDict[type]" />
@@ -116,7 +116,7 @@ else
             configData = await globalConfig.GetEditableConfig();
             availableReportTypes = JsonSerializer.Deserialize<List<ReportType>>(string.IsNullOrEmpty(configData.AvailableReportTypes) ? "[]" : configData.AvailableReportTypes) ?? throw new JsonException("Config data could not be parsed.");
             reportTypesActiveDict = [];
-            foreach(ReportType type in Enum.GetValues(typeof(ReportType)))
+            foreach(ReportType type in ReportTypeGroups.AllReportTypes())
             {
                 reportTypesActiveDict.Add(type, availableReportTypes.Contains(type));
             }

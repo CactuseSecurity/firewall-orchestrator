@@ -52,9 +52,9 @@ namespace FWO.Data.Modelling
         protected static List<ModellingAppServerWrapper> ConvertNwObjectsToAppServers(GroupFlat<NetworkObject>[] groupFlats)
         {
             List<ModellingAppServerWrapper> appServers = [];
-            foreach(var obj in groupFlats.Where(x => x.Object?.IP != null && x.Object?.IP != "").ToList())
+            foreach(var obj in groupFlats.Where(x => x.Object?.IP != null && x.Object?.IP != "").Select(o => o.Object))
             {
-                appServers.Add(new ModellingAppServerWrapper(){ Content = obj.Object != null ? new(obj.Object) : new() });
+                appServers.Add(new ModellingAppServerWrapper(){ Content = obj != null ? new(obj) : new() });
             }
             return appServers;
         }

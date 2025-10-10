@@ -1,15 +1,16 @@
-﻿using FWO.Data.Modelling;
+using FWO.Data.Modelling;
 
 namespace FWO.Data.Report
 {
-    public class OwnerReport : ConnectionReport
+    public class OwnerConnectionReport : ConnectionReport
     {
         public FwoOwner Owner { get; set; } = new();
         public List<ModellingConnection> Connections { get; set; } = [];
         public List<ModellingConnection> RegularConnections { get; set; } = [];
         public List<ModellingConnection> Interfaces { get; set; } = [];
         public List<ModellingConnection> CommonServices { get; set; } = [];
-        public List<ManagementReport> ManagementData { get; set; } = [];
+        public List<ManagementReport> UnmodelledRules { get; set; } = [];
+        public List<ManagementReport> RulesForDeletedConns { get; set; } = [];
         public List<ModProdDifference> RuleDifferences { get; set; } = [];
         private readonly long DummyARid = -1;
         public int ModelledConnectionsCount { get; set; }
@@ -20,22 +21,23 @@ namespace FWO.Data.Report
         public string ImplementationState { get; set; } = "";
 
 
-        public OwnerReport()
+        public OwnerConnectionReport()
         {}
 
-        public OwnerReport(long dummyARid)
+        public OwnerConnectionReport(long dummyARid)
         {
             DummyARid = dummyARid;
         }
 
-        public OwnerReport(OwnerReport report): base(report)
+        public OwnerConnectionReport(OwnerConnectionReport report): base(report)
         {
             Owner = report.Owner;
             Connections = report.Connections;
             RegularConnections = report.RegularConnections;
             Interfaces = report.Interfaces;
             CommonServices = report.CommonServices;
-            ManagementData = report.ManagementData;
+            UnmodelledRules = report.UnmodelledRules;
+            RulesForDeletedConns = report.RulesForDeletedConns;
             RuleDifferences = report.RuleDifferences;
             DummyARid = report.DummyARid;
             ModelledConnectionsCount = report.ModelledConnectionsCount;

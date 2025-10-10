@@ -46,7 +46,7 @@ namespace FWO.Middleware.Server.Controllers
                     return "";  // todo: Error message?
                 }
 
-                ReportBase? report = await ReportGenerator.Generate(await ConvertParameters(parameters), apiConnectionUserContext, userConfig, DefaultInit.DoNothing);
+                ReportBase? report = await ReportGenerator.GenerateFromTemplate(await ConvertParameters(parameters), apiConnectionUserContext, userConfig, DefaultInit.DoNothing);
                 return report?.ExportToJson() ?? "";
             }
             catch (Exception exception)

@@ -162,29 +162,7 @@ namespace FWO.Middleware.Server
 
         private async Task GetInternalGroups()
         {
-            List<Ldap> connectedLdaps = await ApiConnection.SendQueryAsync<List<Ldap>>(AuthQueries.getLdapConnections);
-            Ldap internalLdap = connectedLdaps.FirstOrDefault(x => x.IsInternal() && x.HasGroupHandling()) ?? throw new KeyNotFoundException("No internal Ldap with group handling found.");
-
-            List<GroupGetReturnParameters> allGroups = await internalLdap.GetAllInternalGroups();
-            ownerGroups = [];
-            foreach (var ldapUserGroup in allGroups)
-            {
-                if(ldapUserGroup.OwnerGroup)
-                {
-                    UserGroup group = new ()
-                    { 
-                        Dn = ldapUserGroup.GroupDn,
-                        Name = new DistName(ldapUserGroup.GroupDn).Group,
-                        OwnerGroup = ldapUserGroup.OwnerGroup
-                    };
-                    foreach (var userDn in ldapUserGroup.Members)
-                    {
-                        UiUser newUser = new () { Dn = userDn, Name = new DistName(userDn).UserName };
-                        group.Users.Add(newUser);
-                    }
-                    ownerGroups.Add(group);
-                }
-            }
+            ownerGroups = await MiddlewareServerServices.GetInternalGroups(ApiConnection);
         }
 
         /// <summary>

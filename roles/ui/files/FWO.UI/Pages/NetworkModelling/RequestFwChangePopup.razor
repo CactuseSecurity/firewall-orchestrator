@@ -19,6 +19,14 @@
     <Body>
         @if (Display)
         {
+            <div class="form-group row">
+                <div class="col-sm-2">@(userConfig.GetText("last_requested")): </div>
+                <div class="col-sm-10">@(LastRequestDate)</div>
+            </div>
+            <div class="form-group row">
+                <div class="col-sm-2">@(userConfig.GetText("state")): </div>
+                <div class="col-sm-10">@(UserConfig.PureLineStat(ChangeStatus))</div>
+            </div>
             @if(TaskList.Count == 0)
             {
                 <br>
@@ -65,18 +73,18 @@
             <Authorized>
                 @if (SelectedApp.Id > 0 && !WorkInProgress && !RequestInProcess && TaskList.Count > 0 && userConfig.User.Ownerships.Contains(SelectedApp.Id))
                 {
-                    <button type="button" class="btn btn-sm btn-primary" @onclick="StartRequests">@(userConfig.GetText("request_fw_change"))</button>
+                    <button type="button" class="btn btn-sm btn-primary" @onclick="StartRequests">@(DisplayService.DisplayButton(userConfig, "request_fw_change", Icons.RequestFwChange))</button>
                 }
                 else
                 {
-                    <button type="button" class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("request_fw_change"))</button>
+                    <button type="button" class="btn btn-sm btn-primary" disabled>@(DisplayService.DisplayButton(userConfig, "request_fw_change", Icons.RequestFwChange))</button>
                 }
             </Authorized>
             <NotAuthorized>
-                <button type="button" class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("request_fw_change"))</button>
+                <button type="button" class="btn btn-sm btn-primary" disabled>@(DisplayService.DisplayButton(userConfig, "request_fw_change", Icons.RequestFwChange))</button>
             </NotAuthorized>
         </AuthorizeView>
-        <button type="button" class="btn btn-sm btn-secondary" @onclick="Close">@(userConfig.GetText("close"))</button>
+        <button type="button" class="btn btn-sm btn-secondary" @onclick="Close">@(DisplayService.DisplayButton(userConfig, "close", Icons.Close))</button>
     </Footer>
 </PopUp>
 <InProgress Display="WorkInProgress" />
@@ -104,6 +112,12 @@
 
     [Parameter]
     public Func<WfTicket, Task> RefreshParent { get; set; } = DefaultInit.DoNothing;
+
+    [Parameter]
+    public string ChangeStatus { get; set; } = "";
+
+    [Parameter]
+    public string LastRequestDate { get; set; } = "";
 
 
     private List<WfReqTask> TaskList = [];
@@ -164,22 +178,18 @@
 
     private async Task<bool> GetActTicketStatus()
     {
-        List<TicketId> ticketIds = await apiConnection.SendQueryAsync<List<TicketId>>(ExtRequestQueries.getLatestTicketId, new { ownerId = SelectedApp.Id });
-        if (ticketIds.Count > 0)
+        WfTicket? intTicket = await ModellingAppHandler.GetLatestFWRequestTicket(SelectedApp, apiConnection);
+        if (intTicket != null)
         {
-            WfTicket? intTicket = await apiConnection.SendQueryAsync<WfTicket>(RequestQueries.getTicketById, new { ticketIds.First().Id });
-            if (intTicket != null)
+            SetActTicketStatus(intTicket);
+            if (RequestInProcess)
             {
-                SetActTicketStatus(intTicket);
-                if (RequestInProcess)
-                {
-                    SubscribeTaskChanges();
-                }
+                SubscribeTaskChanges();
             }
-            else
-            {
-                Dispose();
-            }
+        }
+        else
+        {
+            Dispose();
         }
         return RequestInProcess;
     }

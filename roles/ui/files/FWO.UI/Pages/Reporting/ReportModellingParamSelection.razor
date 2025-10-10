@@ -4,13 +4,27 @@
 @inject UserConfig userConfig
 
 <div class="p-3">
-    <h5 class="text-left">@(userConfig.GetText("owner"))</h5>
-    <Dropdown ElementType="FwoOwner" ElementToString="@(o => o.Display(userConfig.GetText("common_service")))" Nullable="false" 
-            @bind-SelectedElement="ModellingFilter.SelectedOwner" Elements="ownerList">
-        <ElementTemplate Context="owner">
-            @owner.Display(userConfig.GetText("common_service"))
-        </ElementTemplate>
-    </Dropdown>
+    @if(ReportType == ReportType.OwnerRecertification)
+    {
+        <div class="form-check" data-toggle="tooltip" title="@(userConfig.PureLine("C1001"))">
+            <input class="form-check-input" id="recertActivated" type="checkbox" @bind="ModellingFilter.RecertActivated" />
+            <label class="form-check-label text-white" for="recertActivated">@(userConfig.GetText("recert_activated"))</label>
+        </div>
+        <div class="form-check" data-toggle="tooltip" title="@(userConfig.PureLine("C1000"))">
+            <input class="form-check-input" id="allOwners" type="checkbox" @bind="ModellingFilter.ShowAllOwners" />
+            <label class="form-check-label text-white" for="allOwners">@(userConfig.GetText("show_all_owners"))</label>
+        </div>
+    }
+    else
+    {
+        <h5 class="text-left">@(userConfig.GetText("owner"))</h5>
+        <Dropdown ElementType="FwoOwner" ElementToString="@(o => o.Display(userConfig.GetText("common_service")))" Nullable="false" 
+                SelectedElement="ModellingFilter.SelectedOwner" SelectedElementChanged="OwnerChanged" Elements="ownerList">
+            <ElementTemplate Context="owner">
+                @owner.Display(userConfig.GetText("common_service"))
+            </ElementTemplate>
+        </Dropdown>
+    }
     @if(ReportType == ReportType.AppRules)
     {
         <br>
@@ -48,14 +62,36 @@
             <label class="form-check-label text-white" for="showFull">@(userConfig.GetText("show_full_rules"))</label>
         </div>
     }
-     else if(ReportType == ReportType.VarianceAnalysis)
+    else if(ReportType == ReportType.VarianceAnalysis)
     {
         <br>
         <h5 class="text-left">@(userConfig.GetText("variance_filters"))</h5>
         <div class="form-check">
+            <input class="form-check-input" id="deletedConns" type="checkbox" @bind="ModellingFilter.RulesForDeletedConns" />
+            <label class="form-check-label text-white" for="deletedConns">@(userConfig.GetText("rules_for_deleted_conns"))</label>
+        </div>
+        <div class="form-check">
             <input class="form-check-input" id="analyseRemaining" type="checkbox" @bind="ModellingFilter.AnalyseRemainingRules" />
             <label class="form-check-label text-white" for="analyseRemaining">@(userConfig.GetText("analyse_remaining_rules"))</label>
         </div>
+    }
+    else if(ReportType == ReportType.RecertEventReport)
+    {
+        <br>
+        <h5 class="text-left">@(userConfig.GetText("recertification"))</h5>
+        @if(ownerRecerts.Count == 0)
+        {
+            <input class="form-control form-control-sm" disabled type="text" placeholder="@(userConfig.GetText("no_recerts"))" />
+        }
+        else
+        {
+            <Dropdown ElementType="OwnerRecertification" ElementToString="@(o => o.RecertDate?.ToString("yyyy-MM-dd HH:mm:ss"))" Nullable="true" 
+                    SelectedElement="selectedOwnerRecert" SelectedElementChanged="OwnerRecertChanged" Elements="ownerRecerts">
+                <ElementTemplate Context="rec">
+                    @(rec.RecertDate?.ToString("yyyy-MM-dd HH:mm:ss"))
+                </ElementTemplate>
+            </Dropdown>
+        }
     }
 </div>
 
@@ -75,22 +111,77 @@
     public EventCallback<ModellingFilter> ModellingFilterChanged { get; set; }
 
     [Parameter]
+    public TimeFilter TimeFilter { get; set; } = new();
+
+    [Parameter]
+    public EventCallback<TimeFilter> TimeFilterChanged { get; set; }
+
+    [Parameter]
     public int? InjectedAppId { get; set; } = null;
 
     [Parameter]
     public ReportType ReportType { get; set; } = ReportType.Connections;
 
-    private List<FwoOwner> ownerList = new List<FwoOwner>();
-
+    private List<FwoOwner> ownerList = [];
+    private List<OwnerRecertification> ownerRecerts = [];
+    private OwnerRecertification? selectedOwnerRecert;
 
     protected override async Task OnInitializedAsync()
     {
         try
         {
             ownerList = await ModellingHandlerBase.GetOwnApps(authenticationStateTask ?? throw new AuthenticationException("Authentication missing"), userConfig, apiConnection, DisplayMessageInUi);
-            if(ownerList.Count > 0)
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("object_fetch"), "", true);
+        }
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if(ReportType == ReportType.OwnerRecertification)
+        {
+            ModellingFilter.SelectedOwners = ownerList;
+        }
+        else if(ModellingFilter.SelectedOwner.Id == 0)
+        {
+            PickSelectedOwner();
+        }
+        await LoadOwnerRecerts(ModellingFilter.SelectedOwner);
+    }
+
+    private async Task OwnerChanged(FwoOwner newOwner)
+    {
+        ModellingFilter.SelectedOwner = newOwner;
+        selectedOwnerRecert = null;
+        await LoadOwnerRecerts(newOwner);
+    }
+
+    private void PickSelectedOwner()
+    {
+        if(ownerList.Count > 0)
+        {
+            ModellingFilter.SelectedOwner = InjectedAppId == null ? ownerList.First() : ownerList.FirstOrDefault(o => o.Id == InjectedAppId) ?? ownerList.First();
+        }
+    }
+
+    private void OwnerRecertChanged(OwnerRecertification? newOwnerRecert)
+    {
+        selectedOwnerRecert = newOwnerRecert;
+        ModellingFilter.OwnerRecertId = newOwnerRecert?.Id;
+        ModellingFilter.ReportId = newOwnerRecert?.ReportId;
+        TimeFilter.ReportTime = (DateTime)(newOwnerRecert?.RecertDate ?? new());
+    }
+
+    private async Task LoadOwnerRecerts(FwoOwner owner)
+    {
+        try
+        {
+            ownerRecerts = await apiConnection.SendQueryAsync<List<OwnerRecertification>>(RecertQueries.getOwnerRecerts, new{ownerId = owner.Id});
+            if(selectedOwnerRecert == null)
             {
-                ModellingFilter.SelectedOwner = InjectedAppId == null ? ownerList.First() : ownerList.FirstOrDefault(o => o.Id == InjectedAppId) ?? ownerList.First();
+                selectedOwnerRecert = ownerRecerts.Count > 0 ? ownerRecerts[0] : null;
             }
         }
         catch (Exception exception)

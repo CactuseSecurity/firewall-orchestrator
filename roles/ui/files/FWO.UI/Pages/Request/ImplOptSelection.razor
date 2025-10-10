@@ -10,7 +10,7 @@
                     @owner.Display("")
                 </ElementTemplate>
                 <Append>
-                    <button type="button" class="btn btn-sm btn-primary" style="100px" @onclick="async () => {await SelectOwner(selectedOwnerOpt);}">@(userConfig.GetText("select"))</button>
+                    <button type="button" class="btn btn-sm btn-primary" style="100px" @onclick="async () => {await SelectOwner(selectedOwnerOpt);}">@(DisplayService.DisplayButton(userConfig, "select", Icons.Enter))</button>
                 </Append>
             </Dropdown>
         }
@@ -21,7 +21,7 @@
                     @device.Name
                 </ElementTemplate>
                 <Append>
-                    <button type="button" class="btn btn-sm btn-primary" style="100px" @onclick="async () => {await SelectDevice(selectedDeviceOpt);}">@(userConfig.GetText("select"))</button>
+                    <button type="button" class="btn btn-sm btn-primary" style="100px" @onclick="async () => {await SelectDevice(selectedDeviceOpt);}">@(DisplayService.DisplayButton(userConfig, "select", Icons.Enter))</button>
                 </Append>
             </Dropdown>
         }

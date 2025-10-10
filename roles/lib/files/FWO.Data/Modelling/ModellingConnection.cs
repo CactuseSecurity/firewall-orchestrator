@@ -7,20 +7,23 @@ namespace FWO.Data.Modelling
     public enum ConState
     {
         // Connections:
-        InterfaceRequested,
-        InterfaceRejected,
+        InterfaceRequested = 1,
+        InterfaceRejected = 2,
+        InterfaceDecommissioned = 3,
 
         // Interfaces:
-        Requested,
-        Rejected,
+        Requested = 11,
+        Rejected = 12,
+        Decommissioned = 13,
 
-        EmptyAppRoles,
-        DeletedObjects,
-        EmptySvcGrps,
-        DocumentationOnly,
-        VarianceChecked,
-        NotImplemented,
-        VarianceFound
+        EmptyAppRoles = 21,
+        DeletedObjects = 22,
+        EmptySvcGrps = 23,
+        DocumentationOnly = 24,
+
+        VarianceChecked = 31,
+        NotImplemented = 32,
+        VarianceFound = 33
     }
 
     public class ModellingConnection
@@ -117,6 +120,7 @@ namespace FWO.Data.Modelling
         public bool DstFromInterface { get; set; } = false;
         public bool InterfaceIsRequested { get; set; } = false;
         public bool InterfaceIsRejected { get; set; } = false;
+        public bool InterfaceIsDecommissioned { get; set; } = false;
 
         public int OrderNumber { get; set; } = 0;
         public Dictionary<string, string>? Props { get; set; }
@@ -143,6 +147,7 @@ namespace FWO.Data.Modelling
             OrderNumber = conn.OrderNumber;
             Id = conn.Id;
             AppId = conn.AppId;
+            App = conn.App;
             ProposedAppId = conn.ProposedAppId;
             Name = conn.Name;
             Reason = conn.Reason;
@@ -173,6 +178,7 @@ namespace FWO.Data.Modelling
             DstFromInterface = conn.DstFromInterface;
             InterfaceIsRequested = conn.InterfaceIsRequested;
             InterfaceIsRejected = conn.InterfaceIsRejected;
+            InterfaceIsDecommissioned = conn.InterfaceIsDecommissioned;
             ExtraConfigsFromInterface = conn.ExtraConfigsFromInterface;
         }
 
@@ -198,6 +204,11 @@ namespace FWO.Data.Modelling
             {
                 return rejectedCompare;
             }
+            int decommCompare = -Compare(GetBoolProperty(ConState.Decommissioned.ToString()), secondConnection.GetBoolProperty(ConState.Decommissioned.ToString()));
+            if (decommCompare != 0)
+            {
+                return decommCompare;
+            }
             return Name?.CompareTo(secondConnection.Name) ?? -1;
         }
 
@@ -220,7 +231,8 @@ namespace FWO.Data.Modelling
         {
             return !(IsInterface ||
                 GetBoolProperty(ConState.InterfaceRequested.ToString()) ||
-                GetBoolProperty(ConState.InterfaceRejected.ToString()) || 
+                GetBoolProperty(ConState.InterfaceRejected.ToString()) ||
+                GetBoolProperty(ConState.InterfaceDecommissioned.ToString()) ||
                 EmptyAppRolesFound(dummyAppRoleId) ||
                 DeletedObjectsFound() ||
                 EmptyServiceGroupsFound());
@@ -291,6 +303,7 @@ namespace FWO.Data.Modelling
             if (!GetBoolProperty(ConState.Rejected.ToString()))
             {
                 UpdateProperty(ConState.Requested.ToString(), !IsPublished && IsRequested);
+                UpdateProperty(ConState.Decommissioned.ToString(), IsPublished && Removed);
             }
         }
 
@@ -304,6 +317,7 @@ namespace FWO.Data.Modelling
             else
             {
                 UpdateProperty(ConState.InterfaceRequested.ToString(), InterfaceIsRequested);
+                UpdateProperty(ConState.InterfaceDecommissioned.ToString(), InterfaceIsDecommissioned);
             }
         }
 

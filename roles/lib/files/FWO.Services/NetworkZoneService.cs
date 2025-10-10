@@ -260,12 +260,12 @@ namespace FWO.Services
                 CriterionId = matrixId,
             };
 
+            CalculateLocalZone(localZone, GetLocalZoneRanges(globalConfig), existingZones.Where(zone => !zone.IsInternetZone && !zone.IsLocalZone).ToList());
+
             AdditionsDeletions localZoneAddDel = new()
             {
-                IpRangesToAdd = internetZone.IPRanges.ToList()
+                IpRangesToAdd = localZone.IPRanges.ToList()
             };
-
-            CalculateLocalZone(localZone, GetLocalZoneRanges(globalConfig), existingZones.Where(zone => !zone.IsInternetZone && !zone.IsLocalZone).ToList());
 
             await AddZone(localZone, localZoneAddDel, apiConnection); 
 
@@ -334,8 +334,23 @@ namespace FWO.Services
 
         private static List<IPAddressRange> GetLocalZoneRanges(GlobalConfig globalConfig)
         {
-            // TODO: Check global config for each localZoneIPAdressRange parameter and add IPAdressRange object to list if parameter true
-            return new();
+            List<IPAddressRange> localZoneRanges = new();
+
+            TryAddToLocalZone(globalConfig.LocalZoneIPAdressRangeRFC1918, [
+                IpOperations.GetIPAdressRange("10.0.0.0/8"),
+                IpOperations.GetIPAdressRange("172.16.0.0/12"),
+                IpOperations.GetIPAdressRange("192.168.0.0/16")
+            ], localZoneRanges);
+
+            return localZoneRanges;
+        }
+        
+        private static void TryAddToLocalZone(bool configParameter, IPAddressRange[] adds, List<IPAddressRange> localZoneRanges)
+        {
+            if (configParameter)
+            {
+                localZoneRanges.AddRange(adds);
+            }
         }
 
 

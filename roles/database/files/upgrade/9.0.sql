@@ -1282,6 +1282,12 @@ INSERT INTO config (config_key, config_value, config_user)
 VALUES ('complianceCheckSortMatrixByID', 'false', 0)
 ON CONFLICT (config_key, config_user) DO NOTHING;
 
+-- local zone parameters
+
+INSERT INTO config (config_key, config_value, config_user) 
+VALUES ('localZoneIPAdressRangeRFC1918', 'true', 0)
+ON CONFLICT (config_key, config_user) DO NOTHING;
+
 -- adding labels (simple version without mapping tables and without foreign keys)
 
 -- CREATE TABLE label (

@@ -437,6 +437,11 @@ namespace FWO.Config.Api.Data
         [JsonProperty("debugConfig"), JsonPropertyName("debugConfig")]
         public string DebugConfig { get; set; } = "";
 
+        [JsonProperty("localZoneIPAdressRangeRFC1918"), JsonPropertyName("localZoneIPAdressRangeRFC1918")]
+        public bool LocalZoneIPAdressRangeRFC1918 { get; set; } = true;
+
+        
+
         public ConfigData(bool editable = false)
         {
             Editable = editable;

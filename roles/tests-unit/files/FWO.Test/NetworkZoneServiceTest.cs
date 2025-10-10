@@ -1,6 +1,5 @@
 using NUnit.Framework;
-using FWO.Compliance;
-using FWO.Basics.Interfaces;
+using FWO.Services;
 using FWO.Data;
 using NetTools;
 using FWO.Basics;
@@ -9,7 +8,7 @@ using System.Net;
 namespace FWO.Test
 {
     [TestFixture]
-    public class SpecialZoneTest
+    public class NetworkZoneServiceTest
     {
         [Test]
         public void CalculateInternetZone_BasicZonesWithoutOverlaps_InternetZoneCalculatedCorrectly()
@@ -52,7 +51,7 @@ namespace FWO.Test
 
             // Act
 
-            internetZone.CalculateInternetZone(definedAndExcludedZones);
+            NetworkZoneService.CalculateInternetZone(internetZone, definedAndExcludedZones);
 
 
             // Assert
@@ -113,7 +112,7 @@ namespace FWO.Test
 
             // Act
 
-            internetZone.CalculateInternetZone(definedAndExcludedZones);
+            NetworkZoneService.CalculateInternetZone(internetZone, definedAndExcludedZones);
 
 
             // Assert
@@ -155,7 +154,7 @@ namespace FWO.Test
 
             // Act
 
-            localZone.CalculateLocalZone(localZoneRanges, definedZones);
+            NetworkZoneService.CalculateLocalZone(localZone, localZoneRanges, definedZones);
 
             // Assert
 
@@ -207,7 +206,7 @@ namespace FWO.Test
 
             // Act
 
-            localZone.CalculateLocalZone(localZoneRanges, definedZones);
+            NetworkZoneService.CalculateLocalZone(localZone, localZoneRanges, definedZones);
 
             // Assert
 
@@ -262,7 +261,7 @@ namespace FWO.Test
 
             // Act
 
-            localZone.CalculateLocalZone(localZoneRanges, definedZones);
+            NetworkZoneService.CalculateLocalZone(localZone, localZoneRanges, definedZones);
 
             // Assert
 

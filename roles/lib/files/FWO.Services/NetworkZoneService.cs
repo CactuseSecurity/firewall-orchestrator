@@ -1,5 +1,7 @@
 ﻿using FWO.Api.Client;
 using FWO.Api.Client.Queries;
+using FWO.Basics;
+using FWO.Basics.Comparer;
 using FWO.Data;
 using FWO.Logging;
 using NetTools;
@@ -213,6 +215,93 @@ namespace FWO.Services
                 removed = DateTime.UtcNow
             };
             await apiConnection.SendQueryAsync<dynamic>(ComplianceQueries.removeNetworkZone, variables);
+        }
+
+        public static async Task UpdateSpecialZones(int matrixId, ApiConnection apiConnection)
+        {
+            // Get all zones of matrix.
+
+            List<ComplianceNetworkZone> existingZones = await apiConnection.SendQueryAsync<List<ComplianceNetworkZone>>(ComplianceQueries.getNetworkZonesForMatrix, new { criterionId = matrixId });
+
+            // Remove existing special zones.
+
+            foreach (ComplianceNetworkZone specialZone in existingZones.Where(zone => zone.IsInternetZone || zone.IsLocalZone))
+            {
+                await RemoveZone(specialZone, apiConnection);
+            }
+
+            ComplianceNetworkZone internetZone = new()
+            {
+                IdString = "SPECIAL_ZONE_INTERNET",
+                Name = "Internet Zone",
+                IsInternetZone = true,
+                CriterionId = matrixId,
+            };
+
+
+
+
+        }
+        
+        public static void CalculateInternetZone(ComplianceNetworkZone internetZone, List<ComplianceNetworkZone> excludedZones)
+        {
+            IPAddressRange fullRangeIPv4 = IPAddressRange.Parse("0.0.0.0/0");
+
+            List<IPAddressRange> excludedZonesIPRanges = ParseToListOfRanges(excludedZones, true);
+            List<IPAddressRange> internetZoneIPRanges = fullRangeIPv4.Subtract(excludedZonesIPRanges);
+
+            internetZone.IPRanges = internetZoneIPRanges.ToArray();
+        }
+
+        public static void CalculateLocalZone(ComplianceNetworkZone localZone, List<IPAddressRange> localZoneRanges, List<ComplianceNetworkZone> definedZones)
+        {
+            List<IPAddressRange> definedZonesIPRanges = ParseToListOfRanges(definedZones, true);
+            List<IPAddressRange> localZoneIPRanges = new();
+
+            foreach (IPAddressRange range in localZoneRanges)
+            {
+                List<IPAddressRange> ranges = range.Subtract(definedZonesIPRanges);
+
+                foreach (IPAddressRange newRange in ranges)
+                {
+                    bool exists = localZoneIPRanges.Any(r =>
+                        r.Begin.Equals(newRange.Begin) &&
+                        r.End.Equals(newRange.End));
+
+                    if (!exists)
+                    {
+                        localZoneIPRanges.Add(newRange);
+                    }                 
+                }
+
+            }
+
+            localZone.IPRanges = localZoneIPRanges.ToArray();
+        }
+
+
+        private static List<IPAddressRange> ParseToListOfRanges(List<ComplianceNetworkZone> networkZones, bool sort)
+        {
+            List<IPAddressRange> listOfRanges = new();
+
+            // Gather ip ranges from excluded network zone list
+
+            foreach (ComplianceNetworkZone networkZone in networkZones)
+            {
+                if (networkZone.IPRanges != null)
+                {
+                    listOfRanges.AddRange(networkZone.IPRanges);
+                }
+            }
+
+            // Sort
+
+            if (sort)
+            {
+                listOfRanges.Sort(new IPAddressRangeComparer());
+            }
+
+            return listOfRanges;
         }
     }
 }

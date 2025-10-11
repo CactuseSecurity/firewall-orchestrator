@@ -138,7 +138,7 @@
                                     </Authorized>
                                 </AuthorizeView>
                             </div>
-                            <ConnectionTable UseResponsiveTable="true" ShowPageSizeInput="true" Connections="@appHandler!.GetInterfaces(showRejected)" @bind-AppHandler="appHandler" AppActive="appActive" ShowModellingState="true" />
+                            <ConnectionTable UseResponsiveTable="true" ShowPageSizeInput="true" Connections="@appHandler!.GetInterfaces(showRejected)" @bind-AppHandler="appHandler" AppActive="appActive" ShowModellingState="true" InterfacesPossible="true"/>
                         </Tab>
                         @if (selectedApp.CommSvcPossible)
                         {

@@ -100,6 +100,7 @@ namespace FWO.Services
         private readonly string InitEnvironment = "init_environment";
         private readonly string InsertForbidden = "insert_forbidden";
 
+        private List<ModellingConnection> FoundConnectionsForAppRole = [];
 
 
         public ModellingConnectionHandler(ApiConnection apiConnection, UserConfig userConfig, FwoOwner application,
@@ -934,10 +935,10 @@ namespace FWO.Services
         {
             try
             {
-                if(SrcAppRolesToAdd.FirstOrDefault(s => s.Id == actAppRole.Id) == null && DstAppRolesToAdd.FirstOrDefault(s => s.Id == actAppRole.Id) == null)
+                if (SrcAppRolesToAdd.FirstOrDefault(s => s.Id == actAppRole.Id) == null && DstAppRolesToAdd.FirstOrDefault(s => s.Id == actAppRole.Id) == null)
                 {
-                    List<ModellingConnection> foundConnections = await apiConnection.SendQueryAsync<List<ModellingConnection>>(ModellingQueries.getConnectionIdsForNwGroup, new { id = actAppRole.Id });
-                    if(foundConnections.Count == 0)
+                    FoundConnectionsForAppRole = [.. ModellingConnectionWrapper.Resolve(await apiConnection.SendQueryAsync<List<ModellingConnectionWrapper>>(ModellingQueries.getConnectionIdsForNwGroup, new { id = actAppRole.Id }))];
+                    if(FoundConnectionsForAppRole.Where(c => !c.Removed).ToList().Count == 0)
                     {
                         return false;
                     }
@@ -955,7 +956,8 @@ namespace FWO.Services
         {
             try
             {
-                if((await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.deleteNwGroup, new { id = actAppRole.Id })).AffectedRows > 0)
+                if (FoundConnectionsForAppRole.Count == 0 ? (await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.deleteNwGroup, new { id = actAppRole.Id })).AffectedRows > 0 : 
+                    (await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.setNwGroupDeletedState, new { id = actAppRole.Id, deleted = true })).UpdatedIdLong > 0)
                 {
                     await LogChange(ModellingTypes.ChangeType.Delete, ModellingTypes.ModObjectType.AppRole, actAppRole.Id,
                         $"Deleted App Role: {actAppRole.Display()}", Application.Id);

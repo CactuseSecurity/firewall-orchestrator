@@ -29,15 +29,15 @@ You need to
 
 ## Debugging
 
-Set debug level for extended debugging info during installation.
-
-```console
-ansible-playbook site.yml -e "debug_level='2'" -K
-
 Set dotnet installation mode to "debug" as follows (default = Release)
 ### Debugging dotnet applications
 ```console
 ansible-playbook/ site.yml -e "dotnet_mode=Debug" -K
+```
+
+Set debug level for extended debugging info during installation.
+```console
+ansible-playbook site.yml -e "debug_level='2'" -K
 ```
 
 ## Running unit tests after installation/upgrade

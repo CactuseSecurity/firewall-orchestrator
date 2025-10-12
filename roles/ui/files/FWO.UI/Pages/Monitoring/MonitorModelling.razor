@@ -100,7 +100,7 @@
             FoundConnections = [.. ModellingConnectionWrapper.Resolve(FoundConnectionWrappers)];
             foreach(var conn in FoundConnections.Where(x => x.UsedInterfaceId != null))
             {
-                await HandlerBase.ExtractUsedInterface(conn);
+                await HandlerBase?.ExtractUsedInterface(conn);
             }
         }
     }

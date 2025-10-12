@@ -46,7 +46,7 @@ def has_config_changed(full_config, mgm_details, force=False):
 
 
 def connect_to_virtual_asa(conn):
-    conn.channel.send_input("connect module 1 console")
+    conn.channel.send_input("connect module 1 console\n")
 
 
 def load_config_from_management(mgm_details: ManagementController, is_virtual_asa: bool) -> str:

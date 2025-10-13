@@ -433,14 +433,18 @@
         }
         catch(Exception exception)
         {
-            processing = false;
             if(currentReport != null)
             {
                 currentReport.ReportData = reportOrig;
             }
             reportTemplateControl.Uncollapse();
-            await InvokeAsync(StateHasChanged);
+
             DisplayMessageInUi(exception, userConfig.GetText("generate_report"), "", true);
+        }
+        finally
+        {
+            processing = false;
+            await InvokeAsync(StateHasChanged);
         }
     }
 

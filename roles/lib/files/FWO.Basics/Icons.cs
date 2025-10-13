@@ -54,6 +54,7 @@ namespace FWO.Basics
         public const string OrderByAsc = "bi bi-caret-up-fill";
         public const string OrderByDesc = "bi bi-caret-down-fill";
         public const string Refresh = "bi bi-arrow-clockwise";
+        public const string Undo = "bi bi-arrow-counterclockwise";
 
         // Object types: General
         public const string Ldap = "bi bi-journal-bookmark-fill";

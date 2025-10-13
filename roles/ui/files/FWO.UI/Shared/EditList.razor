@@ -17,7 +17,7 @@
 		<li class="@(StdLayout ? StdClass : AltClass) d-flex justify-content-between">
 			<div class="@(StdLayout ? "" : AltElemClass)" style="opacity: @(ElementsToDelete.Contains(Elements[j]) ? "0.5;" : "1;")">@Display(Elements[j])</div>
 			<span @onclick="() => ToggleRemoval(j)" class="@(StdLayout ? "" : AltButtonClass) badge @(ElementsToDelete.Contains(Elements[j]) ? "bg-success" : "bg-danger")">
-				<i class="bi @(ElementsToDelete.Contains(Elements[j]) ? "bi-arrow-counterclockwise" : "bi-x-lg") text-light"></i>
+				<i class="@(ElementsToDelete.Contains(Elements[j]) ? Icons.Undo : Icons.Close) text-light"></i>
 			</span>
 		</li>
 	}

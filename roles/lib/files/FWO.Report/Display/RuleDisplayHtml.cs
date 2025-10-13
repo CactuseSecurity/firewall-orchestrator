@@ -49,7 +49,7 @@ namespace FWO.Ui.Display
             }
             else
             {
-                return $"<div class=\"bi {(rule.Disabled ? "bi-x-lg" : "bi-check-lg")}\"></div>";
+                return $"<div class=\"bi {(rule.Disabled ? Icons.Close : Icons.Check)}\"></div>";
             }
         }
 

@@ -26,6 +26,7 @@ from netaddr import IPNetwork
 import fwo_const
 from pathlib import Path
 from scrapli import Scrapli
+import time
 
 from model_controllers.fwconfigmanagerlist_controller import FwConfigManagerListController
 from model_controllers.import_state_controller import ImportStateController
@@ -46,7 +47,9 @@ def has_config_changed(full_config, mgm_details, force=False):
 
 
 def connect_to_virtual_asa(conn):
-    conn.channel.send_input("connect module 1 console\n")
+    conn.channel.send_input("connect module 1 console")
+    time.sleep(1)
+    conn.channel.send_input("\n")
 
 
 def load_config_from_management(mgm_details: ManagementController, is_virtual_asa: bool) -> str:

@@ -87,7 +87,7 @@
             }
             <ReportExport ReportToExport="currentReport" />
             <button type="button" class="btn btn-sm btn-secondary" @onclick="() => { reportTemplateControl.NewTemplate(ConstructReportTemplate()); }">@(DisplayService.DisplayButton(userConfig, "save_as_template", Icons.Template))</button>
-            @if(currentReport != null && currentReport.ReportType == ReportType.UnusedRules && selectedItemsRuleReportTable.Count > 0 
+            @if(currentReport != null && currentReport.ReportType == ReportType.UnusedRules && selectedItemsRuleReportTable.Count > 0
                 && (authenticationStateTask!.Result.User.IsInRole(Roles.Admin) || authenticationStateTask!.Result.User.IsInRole(Roles.Requester) || authenticationStateTask!.Result.User.IsInRole(Roles.Auditor)))
             {
                 <button type="button" class="btn btn-sm btn-danger" @onclick="() => {ShowCreateTicketDialog = true;}">@(DisplayService.DisplayButton(userConfig, "create_delete_ticket", Icons.Workflow))</button>
@@ -101,55 +101,62 @@
 
         @* ==== Report main div ==== *@
         <div class="card me-1 ms-1 mb-1 shadow">
-            <div class="card-body">
-                @if (currentReport != null)
-                {
-                    @switch (currentReport.ReportType)
+            @if(processing)
+            {
+                <div class="m-auto mt-2"><Loading Size="SpinnerSize.Medium" /></div>
+            }
+            else
+            {
+                <div class="card-body">
+                    @if(currentReport != null)
                     {
-                        case ReportType.Rules:
-                        case ReportType.ResolvedRules:
-                        case ReportType.ResolvedRulesTech:
-                        case ReportType.Recertification:
-                        case ReportType.UnusedRules:
-                        case ReportType.NatRules:
-                        case ReportType.AppRules:
-                            <RulesReport Managements="currentReport.ReportData.ManagementData" SelectedReportType="actReportFilters.ReportType" RulesPerPage="rulesPerPage" 
-                                @bind-SelectedRules="selectedItemsRuleReportTable" />
-                            break;
+                        @switch(currentReport.ReportType)
+                        {
+                            case ReportType.Rules:
+                            case ReportType.ResolvedRules:
+                            case ReportType.ResolvedRulesTech:
+                            case ReportType.Recertification:
+                            case ReportType.UnusedRules:
+                            case ReportType.NatRules:
+                            case ReportType.AppRules:
+                                <RulesReport Managements="currentReport.ReportData.ManagementData" SelectedReportType="actReportFilters.ReportType" RulesPerPage="rulesPerPage"
+                                             @bind-SelectedRules="selectedItemsRuleReportTable" />
+                                break;
 
-                        case ReportType.Changes:
-                        case ReportType.ResolvedChanges:
-                        case ReportType.ResolvedChangesTech:
-                            <ChangesReport Managements="currentReport.ReportData.ManagementData" SelectedReportType="actReportFilters.ReportType" RulesPerPage="rulesPerPage"
-                                @bind-SelectedRuleChanges="selectedItemsChangeReportTable" />
-                            break;
+                            case ReportType.Changes:
+                            case ReportType.ResolvedChanges:
+                            case ReportType.ResolvedChangesTech:
+                                <ChangesReport Managements="currentReport.ReportData.ManagementData" SelectedReportType="actReportFilters.ReportType" RulesPerPage="rulesPerPage"
+                                               @bind-SelectedRuleChanges="selectedItemsChangeReportTable" />
+                                break;
 
-                        case ReportType.Statistics:
-                            <StatisticsReport Managements="currentReport.ReportData.ManagementData" GlobalStats="currentReport.ReportData.GlobalStats"/>
-                            break;
+                            case ReportType.Statistics:
+                                <StatisticsReport Managements="currentReport.ReportData.ManagementData" GlobalStats="currentReport.ReportData.GlobalStats" />
+                                break;
 
-                        case ReportType.Connections:
-                            <ConnectionsReport OwnerData="currentReport.ReportData.OwnerData" AllCommonServices="currentReport.ReportData.GlobalComSvc?.FirstOrDefault()?.GlobalComSvcs"/>
-                            break;
+                            case ReportType.Connections:
+                                <ConnectionsReport OwnerData="currentReport.ReportData.OwnerData" AllCommonServices="currentReport.ReportData.GlobalComSvc?.FirstOrDefault()?.GlobalComSvcs" />
+                                break;
 
-                        case ReportType.VarianceAnalysis:
-                            <VariancesReport OwnerData="currentReport.ReportData.OwnerData"/>
-                            break;
+                            case ReportType.VarianceAnalysis:
+                                <VariancesReport OwnerData="currentReport.ReportData.OwnerData" />
+                                break;
 
-                        case ReportType.OwnerRecertification:
-                            <OwnerRecertReport OwnerData="currentReport.ReportData.OwnerData" RecertificationDisplayPeriod="currentReport.ReportData.RecertificationDisplayPeriod"/>
-                            break;
+                            case ReportType.OwnerRecertification:
+                                <OwnerRecertReport OwnerData="currentReport.ReportData.OwnerData" RecertificationDisplayPeriod="currentReport.ReportData.RecertificationDisplayPeriod" />
+                                break;
 
-                        case ReportType.RecertEventReport:
-                            <RecertEventReport OwnerData="currentReport.ReportData.OwnerData" Managements="currentReport.ReportData.ManagementData" RulesPerPage="rulesPerPage"
-                                @bind-SelectedRules="selectedItemsRuleReportTable"/>
-                            break;
+                            case ReportType.RecertEventReport:
+                                <RecertEventReport OwnerData="currentReport.ReportData.OwnerData" Managements="currentReport.ReportData.ManagementData" RulesPerPage="rulesPerPage"
+                                                   @bind-SelectedRules="selectedItemsRuleReportTable" />
+                                break;
 
-                        default:
-                            break;
+                            default:
+                                break;
+                        }
                     }
-                }
-            </div>
+                </div>
+            }
         </div>
         @if (currentReport != null && reportGenerationDuration != 0)
         {
@@ -166,7 +173,7 @@
 
     @* ==== RIGHT SIDEBAR ==== *@
     <RightSidebar @bind-Width="sidebarRightWidth" CurrentReport="currentReport"
-        @bind-SelectedRules="selectedItemsRuleReportTable" 
+        @bind-SelectedRules="selectedItemsRuleReportTable"
         AllTabVisible="(tenantFilteringAllowed && actReportFilters.SelectedTenant == null)"
         SelectedReportType="actReportFilters.ReportType"
         LSBTime="actReportFilters.TimeFilter"/>
@@ -382,6 +389,8 @@
 
     private async Task GenerateReport()
     {
+        processing = true;
+
         if (actReportFilters.ReportType.IsDeviceRelatedReport() && !actReportFilters.DeviceFilter.IsAnyDeviceFilterSet())
         {
             DisplayMessageInUi(null, userConfig.GetText("no_device_selected"), userConfig.GetText("E1001"), true);
@@ -395,7 +404,10 @@
         await ProcessReportGeneration(token);
 
         watch.Stop();
-        reportGenerationDuration = watch.ElapsedMilliseconds/1000.0;
+        reportGenerationDuration = watch.ElapsedMilliseconds / 1000.0;
+
+        processing = false;
+
         await InvokeAsync(StateHasChanged);
         Log.WriteDebug("Report Generation", $"Generation Time: {reportGenerationDuration} s.");
     }

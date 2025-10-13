@@ -396,6 +396,9 @@
         if(actReportFilters.ReportType.IsDeviceRelatedReport() && !actReportFilters.DeviceFilter.IsAnyDeviceFilterSet())
         {
             DisplayMessageInUi(null, userConfig.GetText("no_device_selected"), userConfig.GetText("E1001"), true);
+
+            processing = false;
+
             return;
         }
         Stopwatch watch = new System.Diagnostics.Stopwatch();

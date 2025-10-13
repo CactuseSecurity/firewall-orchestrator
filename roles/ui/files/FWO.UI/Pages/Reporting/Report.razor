@@ -77,7 +77,7 @@
             </div>
         </form>
         <div class="btn-group m-1 sticky-marker-60" style="z-index: 16;">
-            @if(!processing)
+            @if (!processing)
             {
                 <button type="button" class="btn btn-sm btn-primary" @onclick="GenerateReport">@(DisplayService.DisplayButton(userConfig, "generate_report", Icons.GenerateReport))</button>
             }
@@ -101,7 +101,7 @@
 
         @* ==== Report main div ==== *@
         <div class="card me-1 ms-1 mb-1 shadow">
-            @if(processing)
+            @if (processing)
             {
                 <div class="mx-auto mt-3 mb-2">
                     <Loading Size="SpinnerSize.Medium" />

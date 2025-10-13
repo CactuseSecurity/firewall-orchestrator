@@ -65,6 +65,7 @@ namespace FWO.Api.Client.Queries
         public static readonly string removeAllServiceGroupsFromConnection;
         public static readonly string getConnectionIdsForService;
         public static readonly string getConnectionIdsForServiceGroup;
+        public static readonly string getConnectionsForNwGroup;
 
         public static readonly string getSelectedConnections;
         public static readonly string addSelectedConnection;
@@ -130,6 +131,7 @@ namespace FWO.Api.Client.Queries
                 setAreaDeletedState = File.ReadAllText(QueryPath + "modelling/setAreaDeletedState.graphql");
                 newAreaIpData = File.ReadAllText(QueryPath + "modelling/newAreaIpData.graphql");
                 getConnectionIdsForNwGroup = File.ReadAllText(QueryPath + "modelling/getConnectionIdsForNwGroup.graphql");
+                getConnectionsForNwGroup = connectionDetailsFragment + File.ReadAllText(QueryPath + "modelling/getConnectionsForNwGroup.graphql");
 
                 getAppServersByIp = appServerDetailsFragment + File.ReadAllText(QueryPath + "modelling/getAppServersByIp.graphql");
                 getAppServersByName = appServerDetailsFragment + File.ReadAllText(QueryPath + "modelling/getAppServersByName.graphql");

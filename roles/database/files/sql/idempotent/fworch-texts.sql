@@ -2728,6 +2728,8 @@ INSERT INTO txt VALUES ('unlock',               'German', 	'Entsperren');
 INSERT INTO txt VALUES ('unlock',               'English', 	'Unlock');
 INSERT INTO txt VALUES ('useCustomLogo',        'German', 	'Benutzerdefiniertes Logo');
 INSERT INTO txt VALUES ('useCustomLogo',        'English', 	'Custom logo');
+INSERT INTO txt VALUES ('app_role_users', 		'German',   'Nutzer von App Rollen');
+INSERT INTO txt VALUES ('app_role_users', 		'English',  'App Role Users');
 
 -- help pages
 INSERT INTO txt VALUES ('report_types',         'German', 	'Report-Typen');
@@ -2945,6 +2947,8 @@ INSERT INTO txt VALUES ('U5118', 'German',  'Statusanzeige aller externen Auftr&
 INSERT INTO txt VALUES ('U5118', 'English', 'Show the status of all external requests. Possibility to patch state if necessary.');
 INSERT INTO txt VALUES ('U5119', 'German',  'Statusanzeige aller Tickets f&uuml;r externe Auftr&auml;ge. M&ouml;glichkeit zum Wiederanstossen, wenn n&ouml;tig.');
 INSERT INTO txt VALUES ('U5119', 'English', 'Show the status of all tickets for external requests. Possibility to reinit if necessary.');
+INSERT INTO txt VALUES ('U5120', 'German',  'Informationen zu Modellierungsobjekten.');
+INSERT INTO txt VALUES ('U5120', 'English', 'Some Details for modelling objects.');
 
 INSERT INTO txt VALUES ('U5201', 'German',  'Sind sie sicher, dass sie folgenden Nutzer l&ouml;schen wollen: ');
 INSERT INTO txt VALUES ('U5201', 'English', 'Are you sure you want to delete user: ');

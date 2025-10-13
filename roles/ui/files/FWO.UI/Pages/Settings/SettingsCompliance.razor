@@ -89,9 +89,119 @@
                 <input type="text" @bind="configData!.ComplianceCheckRelevantManagements"/>
             </div>
         </div>
-
-        
     </form>
+    <hr />
+    <div class="form-group row" data-toggle="tooltip" title="TOOLTIP">
+        <label for="lbl_auto_calc_internet_zone" class="col-form-label col-sm-4">Auto-calculate internet zone:</label>
+        <div class="col-sm-7">
+            <input id="lbl_auto_calc_internet_zone" type="checkbox" @bind="configData!.AutoCalculateInternetZone" />        
+        </div>
+
+        @if(configData!.AutoCalculateInternetZone)
+        {
+            <label class="col-form-label col-sm-4">Exclude from internet zone:</label>
+
+            <div class="row col-sm-7">
+
+                <label class="col-form-label col-sm-12">Private address space</label>
+
+                <div class="col-sm-12 ps-5">
+                    <input id="cbx_internalZoneRange_10_0_0_0_8" type="checkbox" @bind="configData!.InternalZoneRange_10_0_0_0_8" />
+                    <label for="cbx_internalZoneRange_10_0_0_0_8" class="col-form-label">10.0.0.0/8</label>
+                </div>
+
+                <div class="col-sm-12 ps-5">
+                    <input id="cbx_internalZoneRange_172_16_0_0_12" type="checkbox" @bind="configData!.InternalZoneRange_172_16_0_0_12" />
+                    <label for="cbx_internalZoneRange_172_16_0_0_12" class="col-form-label">172.16.0.0/12</label>
+                </div>
+
+                <div class="col-sm-12 ps-5">
+                    <input id="cbx_internalZoneRange_192_168_0_0_16" type="checkbox" @bind="configData!.InternalZoneRange_192_168_0_0_16" />
+                    <label for="cbx_internalZoneRange_192_168_0_0_16" class="col-form-label">192.168.0.0/16</label>
+                </div>
+
+                <label class="col-form-label col-sm-12">Loopback, local</label>
+
+                <div class="col-sm-12 ps-5">
+                    <input id="cbx_internalZoneRange_0_0_0_0_8" type="checkbox" @bind="configData!.InternalZoneRange_0_0_0_0_8" />
+                    <label for="cbx_internalZoneRange_0_0_0_0_8" class="col-form-label">0.0.0.0/8</label>
+                </div>
+
+                <div class="col-sm-12 ps-5">
+                    <input id="cbx_internalZoneRange_127_0_0_0_8" type="checkbox" @bind="configData!.InternalZoneRange_127_0_0_0_8" />
+                    <label for="cbx_internalZoneRange_127_0_0_0_8" class="col-form-label">127.0.0.0/8</label>
+                </div>
+
+                <div class="col-sm-12 ps-5">
+                    <input id="cbx_internalZoneRange_169_254_0_0_16" type="checkbox" @bind="configData!.InternalZoneRange_169_254_0_0_16" />
+                    <label for="cbx_internalZoneRange_169_254_0_0_16" class="col-form-label">169.254.0.0/16</label>
+                </div>
+
+                <label class="col-form-label col-sm-12">Multicast / Broadcast</label>
+
+                <div class="col-sm-12 ps-5">
+                    <input id="cbx_internalZoneRange_224_0_0_0_4" type="checkbox" @bind="configData!.InternalZoneRange_224_0_0_0_4" />
+                    <label for="cbx_internalZoneRange_224_0_0_0_4" class="col-form-label">224.0.0.0/4</label>
+                </div>
+
+                <div class="col-sm-12 ps-5">
+                    <input id="cbx_internalZoneRange_240_0_0_0_4" type="checkbox" @bind="configData!.InternalZoneRange_240_0_0_0_4" />
+                    <label for="cbx_internalZoneRange_240_0_0_0_4" class="col-form-label">240.0.0.0/4</label>
+                </div>
+
+                <div class="col-sm-12 ps-5">
+                    <input id="cbx_internalZoneRange_255_255_255_255_32" type="checkbox" @bind="configData!.InternalZoneRange_255_255_255_255_32" />
+                    <label for="cbx_internalZoneRange_255_255_255_255_32" class="col-form-label">255.255.255.255/32</label>
+                </div>
+
+                <label class="col-form-label col-sm-12">Documentation / samples</label>
+
+                <div class="col-sm-12 ps-5">
+                    <input id="cbx_internalZoneRange_192_0_2_0_24" type="checkbox" @bind="configData!.InternalZoneRange_192_0_2_0_24" />
+                    <label for="cbx_internalZoneRange_192_0_2_0_24" class="col-form-label">192.0.2.0/24</label>
+                </div>
+
+                <div class="col-sm-12 ps-5">
+                    <input id="cbx_internalZoneRange_198_51_100_0_24" type="checkbox" @bind="configData!.InternalZoneRange_198_51_100_0_24" />
+                    <label for="cbx_internalZoneRange_198_51_100_0_24" class="col-form-label">198.51.100.0/24</label>
+                </div>
+
+                <div class="col-sm-12 ps-5">
+                    <input id="cbx_internalZoneRange_203_0_113_0_24" type="checkbox" @bind="configData!.InternalZoneRange_203_0_113_0_24" />
+                    <label for="cbx_internalZoneRange_203_0_113_0_24" class="col-form-label">203.0.113.0/24</label>
+                </div>
+
+                <label class="col-form-label col-sm-12">Div (benchmarking, broadcast, multicast, special purpose, etc)</label>
+
+                <div class="col-sm-12 ps-5">
+                    <input id="cbx_internalZoneRange_100_64_0_0_10" type="checkbox" @bind="configData!.InternalZoneRange_100_64_0_0_10" />
+                    <label for="cbx_internalZoneRange_100_64_0_0_10" class="col-form-label">100.64.0.0/10</label>
+                </div>
+
+                <div class="col-sm-12 ps-5">
+                    <input id="cbx_internalZoneRange_192_0_0_0_24" type="checkbox" @bind="configData!.InternalZoneRange_192_0_0_0_24" />
+                    <label for="cbx_internalZoneRange_192_0_0_0_24" class="col-form-label">192.0.0.0/24</label>
+                </div>
+
+                <div class="col-sm-12 ps-5">
+                    <input id="cbx_internalZoneRange_192_88_99_0_24" type="checkbox" @bind="configData!.InternalZoneRange_192_88_99_0_24" />
+                    <label for="cbx_internalZoneRange_192_88_99_0_24" class="col-form-label">192.88.99.0/24</label>
+                </div>
+
+                <div class="col-sm-12 ps-5">
+                    <input id="cbx_internalZoneRange_198_18_0_0_15" type="checkbox" @bind="configData!.InternalZoneRange_198_18_0_0_15" />
+                    <label for="cbx_internalZoneRange_198_18_0_0_15" class="col-form-label">198.18.0.0/15</label>
+                </div>
+            
+            </div>
+
+            <label for="lbl_auto_calc_undefined_internal_zone" class="col-form-label col-sm-4">Auto-calculate undefined internal zone:</label>
+            <div class="col-sm-7">
+                <input id="lbl_auto_calc_undefined_internal_zone" type="checkbox" @bind="configData!.AutoCalculateUndefinedInternalZone" />            
+            </div>
+
+        }
+    </div>
     <hr />
     <AuthorizeView Roles="@Roles.Admin">
         <Authorized>

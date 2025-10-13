@@ -226,7 +226,7 @@ namespace FWO.Services
 
             // Remove existing special zones.
 
-            foreach (ComplianceNetworkZone specialZone in existingZones.Where(zone => zone.IsInternetZone || zone.IsLocalZone))
+            foreach (ComplianceNetworkZone specialZone in existingZones.Where(zone => zone.IsInternetZone || zone.IsInternalZone))
             {
                 await RemoveZone(specialZone, apiConnection);
             }
@@ -241,7 +241,7 @@ namespace FWO.Services
                 CriterionId = matrixId,
             };
 
-            CalculateInternetZone(internetZone, existingZones.Where(zone => !zone.IsInternetZone && !zone.IsLocalZone).ToList());
+            CalculateInternetZone(internetZone, existingZones.Where(zone => !zone.IsInternetZone && !zone.IsInternalZone).ToList());
 
             AdditionsDeletions internetZoneAddDel = new()
             {
@@ -252,22 +252,22 @@ namespace FWO.Services
 
             // Add new local zone
 
-            ComplianceNetworkZone localZone = new()
+            ComplianceNetworkZone internalZone = new()
             {
-                IdString = "SPECIAL_ZONE_LOCAL",
+                IdString = "SPECIAL_ZONE_INTERNAL",
                 Name = "Local Zone",
-                IsLocalZone = true,
+                IsInternalZone = true,
                 CriterionId = matrixId,
             };
 
-            CalculateLocalZone(localZone, GetLocalZoneRanges(globalConfig), existingZones.Where(zone => !zone.IsInternetZone && !zone.IsLocalZone).ToList());
+            CalculateInternalZone(internalZone, GetInternalZoneRanges(globalConfig), existingZones.Where(zone => !zone.IsInternetZone && !zone.IsInternalZone).ToList());
 
-            AdditionsDeletions localZoneAddDel = new()
+            AdditionsDeletions internalZoneAddDel = new()
             {
-                IpRangesToAdd = localZone.IPRanges.ToList()
+                IpRangesToAdd = internalZone.IPRanges.ToList()
             };
 
-            await AddZone(localZone, localZoneAddDel, apiConnection); 
+            await AddZone(internalZone, internalZoneAddDel, apiConnection); 
 
         }
         
@@ -281,30 +281,30 @@ namespace FWO.Services
             internetZone.IPRanges = internetZoneIPRanges.ToArray();
         }
 
-        public static void CalculateLocalZone(ComplianceNetworkZone localZone, List<IPAddressRange> localZoneRanges, List<ComplianceNetworkZone> definedZones)
+        public static void CalculateInternalZone(ComplianceNetworkZone internalZone, List<IPAddressRange> internalZoneRanges, List<ComplianceNetworkZone> definedZones)
         {
             List<IPAddressRange> definedZonesIPRanges = ParseNetworkZoneToListOfRanges(definedZones, true);
-            List<IPAddressRange> localZoneIPRanges = new();
+            List<IPAddressRange> internalZoneIPRanges = new();
 
-            foreach (IPAddressRange range in localZoneRanges)
+            foreach (IPAddressRange range in internalZoneRanges)
             {
                 List<IPAddressRange> ranges = range.Subtract(definedZonesIPRanges);
 
                 foreach (IPAddressRange newRange in ranges)
                 {
-                    bool exists = localZoneIPRanges.Any(r =>
+                    bool exists = internalZoneIPRanges.Any(r =>
                         r.Begin.Equals(newRange.Begin) &&
                         r.End.Equals(newRange.End));
 
                     if (!exists)
                     {
-                        localZoneIPRanges.Add(newRange);
+                        internalZoneIPRanges.Add(newRange);
                     }                 
                 }
 
             }
 
-            localZone.IPRanges = localZoneIPRanges.ToArray();
+            internalZone.IPRanges = internalZoneIPRanges.ToArray();
         }
 
 
@@ -332,24 +332,35 @@ namespace FWO.Services
             return listOfRanges;
         }
 
-        private static List<IPAddressRange> GetLocalZoneRanges(GlobalConfig globalConfig)
+        private static List<IPAddressRange> GetInternalZoneRanges(GlobalConfig globalConfig)
         {
-            List<IPAddressRange> localZoneRanges = new();
+            List<IPAddressRange> internalZoneRanges = new();
 
-            TryAddToLocalZone(globalConfig.LocalZoneIPAdressRangeRFC1918, [
-                IpOperations.GetIPAdressRange("10.0.0.0/8"),
-                IpOperations.GetIPAdressRange("172.16.0.0/12"),
-                IpOperations.GetIPAdressRange("192.168.0.0/16")
-            ], localZoneRanges);
+            TryAddToInternalZone(globalConfig.InternalZoneRange_10_0_0_0_8, IpOperations.GetIPAdressRange("10.0.0.0/8"), internalZoneRanges);
+            TryAddToInternalZone(globalConfig.InternalZoneRange_172_16_0_0_12, IpOperations.GetIPAdressRange("172.16.0.0/12"), internalZoneRanges);
+            TryAddToInternalZone(globalConfig.InternalZoneRange_192_168_0_0_16, IpOperations.GetIPAdressRange("192.168.0.0/16"), internalZoneRanges);
+            TryAddToInternalZone(globalConfig.InternalZoneRange_0_0_0_0_8, IpOperations.GetIPAdressRange("0.0.0.0/8"), internalZoneRanges);
+            TryAddToInternalZone(globalConfig.InternalZoneRange_127_0_0_0_8, IpOperations.GetIPAdressRange("127.0.0.0/8"), internalZoneRanges);
+            TryAddToInternalZone(globalConfig.InternalZoneRange_169_254_0_0_16, IpOperations.GetIPAdressRange("169.254.0.0/16"), internalZoneRanges);
+            TryAddToInternalZone(globalConfig.InternalZoneRange_224_0_0_0_4, IpOperations.GetIPAdressRange("224.0.0.0/4"), internalZoneRanges);
+            TryAddToInternalZone(globalConfig.InternalZoneRange_240_0_0_0_4, IpOperations.GetIPAdressRange("240.0.0.0/4"), internalZoneRanges);
+            TryAddToInternalZone(globalConfig.InternalZoneRange_255_255_255_255_32, IpOperations.GetIPAdressRange("255.255.255.255/32"), internalZoneRanges);
+            TryAddToInternalZone(globalConfig.InternalZoneRange_192_0_2_0_24, IpOperations.GetIPAdressRange("192.0.2.0/24"), internalZoneRanges);
+            TryAddToInternalZone(globalConfig.InternalZoneRange_198_51_100_0_24, IpOperations.GetIPAdressRange("198.51.100.0/24"), internalZoneRanges);
+            TryAddToInternalZone(globalConfig.InternalZoneRange_203_0_113_0_24, IpOperations.GetIPAdressRange("203.0.113.0/24"), internalZoneRanges);
+            TryAddToInternalZone(globalConfig.InternalZoneRange_100_64_0_0_10, IpOperations.GetIPAdressRange("100.64.0.0/10"), internalZoneRanges);
+            TryAddToInternalZone(globalConfig.InternalZoneRange_192_0_0_0_24, IpOperations.GetIPAdressRange("192.0.0.0/24"), internalZoneRanges);
+            TryAddToInternalZone(globalConfig.InternalZoneRange_192_88_99_0_24, IpOperations.GetIPAdressRange("192.88.99.0/24"), internalZoneRanges);
+            TryAddToInternalZone(globalConfig.InternalZoneRange_198_18_0_0_15, IpOperations.GetIPAdressRange("198.18.0.0/15"), internalZoneRanges);
 
-            return localZoneRanges;
+            return internalZoneRanges;
         }
         
-        private static void TryAddToLocalZone(bool configParameter, IPAddressRange[] adds, List<IPAddressRange> localZoneRanges)
+        private static void TryAddToInternalZone(bool configParameter, IPAddressRange range, List<IPAddressRange> internalZoneRanges)
         {
             if (configParameter)
             {
-                localZoneRanges.AddRange(adds);
+                internalZoneRanges.Add(range);
             }
         }
 

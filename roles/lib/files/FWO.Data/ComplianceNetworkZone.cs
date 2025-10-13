@@ -49,8 +49,8 @@ namespace FWO.Data
         [JsonProperty("is_internet_zone"), JsonPropertyName("is_internet_zone")]
         public bool IsInternetZone { get; set; } = false;
         
-        [JsonProperty("is_local_zone"), JsonPropertyName("is_local_zone")]
-        public bool IsLocalZone { get; set; } = false;
+        [JsonProperty("is_internal_zone"), JsonPropertyName("is_internal_zone")]
+        public bool IsInternalZone { get; set; } = false;
 
         
 

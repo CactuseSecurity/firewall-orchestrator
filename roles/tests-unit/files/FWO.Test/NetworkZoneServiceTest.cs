@@ -125,55 +125,72 @@ namespace FWO.Test
         }
 
         [Test]
-        public void CalculateLocalZone_NoDefinedZones_LocalZoneIpRangesEqualsConfiguredRanges()
+        public void CalculateinternalZone_NoDefinedZones_internalZoneIpRangesEqualsConfiguredRanges()
         {
             // Arrange
 
-            ComplianceNetworkZone localZone = new();
-            List<IPAddressRange> localZoneRanges = new()
+            ComplianceNetworkZone internalZone = new();
+            List<IPAddressRange> internalZoneRanges = new()
             {
-                IpOperations.GetIPAdressRange("0.0.0.0/8"),         // "This network" — IANA Special-Purpose (RFC 6890); not globally routable
-                IpOperations.GetIPAdressRange("10.0.0.0/8"),        // Private address space — RFC 1918
-                IpOperations.GetIPAdressRange("100.64.0.0/10"),     // Shared address space (Carrier-Grade NAT) — RFC 6598
-                IpOperations.GetIPAdressRange("127.0.0.0/8"),       // Loopback — RFC 1122
-                IpOperations.GetIPAdressRange("169.254.0.0/16"),    // Link-local (APIPA) — RFC 3927
-                IpOperations.GetIPAdressRange("172.16.0.0/12"),     // Private address space — RFC 1918
-                IpOperations.GetIPAdressRange("192.0.0.0/24"),      // IETF Protocol Assignments — RFC 6890
-                IpOperations.GetIPAdressRange("192.0.2.0/24"),      // TEST-NET-1 (documentation) — RFC 5737
-                IpOperations.GetIPAdressRange("192.88.99.0/24"),    // 6to4 Relay Anycast (deprecated; should not be routed) — RFC 7526
-                IpOperations.GetIPAdressRange("192.168.0.0/16"),    // Private address space — RFC 1918
-                IpOperations.GetIPAdressRange("198.18.0.0/15"),     // Benchmark testing of inter-network devices — RFC 2544 / RFC 6815
-                IpOperations.GetIPAdressRange("198.51.100.0/24"),   // TEST-NET-2 (documentation) — RFC 5737
-                IpOperations.GetIPAdressRange("203.0.113.0/24"),    // TEST-NET-3 (documentation) — RFC 5737
-                IpOperations.GetIPAdressRange("224.0.0.0/4"),       // Multicast — RFC 5771; not publicly routed on the Internet
-                IpOperations.GetIPAdressRange("240.0.0.0/4"),       // Reserved for future use — RFC 6890
-                IpOperations.GetIPAdressRange("255.255.255.255/32") // Limited broadcast — RFC 919 / RFC 922
+                // Private address space
+
+                IpOperations.GetIPAdressRange("10.0.0.0/8"),        // RFC 1918
+                IpOperations.GetIPAdressRange("172.16.0.0/12"),     // RFC 1918
+                IpOperations.GetIPAdressRange("192.168.0.0/16"),    // RFC 1918
+
+                // Loopback, local
+
+                IpOperations.GetIPAdressRange("0.0.0.0/8"),         // "This network" — IANA Special-Purpose (RFC 6890)
+                IpOperations.GetIPAdressRange("127.0.0.0/8"),       // Loopback (RFC 1122)
+                IpOperations.GetIPAdressRange("169.254.0.0/16"),    // Link-local (APIPA) (RFC 3927)
+
+                
+                // Multicast / Broadcast
+
+                IpOperations.GetIPAdressRange("224.0.0.0/4"),       // Multicast (RFC 5771)
+                IpOperations.GetIPAdressRange("240.0.0.0/4"),       // Reserved for future use (RFC 6890)
+                IpOperations.GetIPAdressRange("255.255.255.255/32"),// Limited broadcast (RFC 919 / RFC 922) 
+
+                // Documentation / samples
+
+                IpOperations.GetIPAdressRange("192.0.2.0/24"),      // TEST-NET-1 (documentation) (RFC 5737)
+                IpOperations.GetIPAdressRange("198.51.100.0/24"),   // TEST-NET-2 (documentation) (RFC 5737)
+                IpOperations.GetIPAdressRange("203.0.113.0/24"),    // TEST-NET-3 (documentation) (RFC 5737)
+
+                // Div (benchmarking, broadcast, multicast, special purpose, etc)
+
+                IpOperations.GetIPAdressRange("100.64.0.0/10"),     // Shared address space (Carrier-Grade NAT) (RFC 6598)
+                IpOperations.GetIPAdressRange("192.0.0.0/24"),      // IETF Protocol Assignments (RFC 6890)
+                IpOperations.GetIPAdressRange("198.18.0.0/15"),     // Benchmark testing of inter-network devices — (RFC 2544 / RFC 6815)
+                IpOperations.GetIPAdressRange("192.88.99.0/24"),    // 6to4 Relay Anycast (deprecated; should not be routed) (RFC 7526)
+
+
             };
             List<ComplianceNetworkZone> definedZones = new();
-            IPAddressRange[] expectedLocalZone = localZoneRanges.ToArray();
+            IPAddressRange[] expectedinternalZone = internalZoneRanges.ToArray();
 
             // Act
 
-            NetworkZoneService.CalculateLocalZone(localZone, localZoneRanges, definedZones);
+            NetworkZoneService.CalculateInternalZone(internalZone, internalZoneRanges, definedZones);
 
             // Assert
 
             Assert.
-                That(localZone.IPRanges,
-                Is.EqualTo(expectedLocalZone)
+                That(internalZone.IPRanges,
+                Is.EqualTo(expectedinternalZone)
                 .Using<IPAddressRange>((a, b) => a.ToString() == b.ToString()));
 
 
         }
 
         [Test]
-        public void CalculateLocalZone_NoOverlappingDefinedZones_LocalZoneIpRangesEqualsConfiguredRanges()
+        public void CalculateinternalZone_NoOverlappingDefinedZones_internalZoneIpRangesEqualsConfiguredRanges()
         {
             // Arrange
 
-            ComplianceNetworkZone localZone = new();
+            ComplianceNetworkZone internalZone = new();
 
-            List<IPAddressRange> localZoneRanges = new()
+            List<IPAddressRange> internalZoneRanges = new()
             {
                 IpOperations.GetIPAdressRange("10.0.0.0/8"),        // Private address space — RFC 1918
                 IpOperations.GetIPAdressRange("172.16.0.0/12"),     // Private address space — RFC 1918
@@ -202,30 +219,30 @@ namespace FWO.Test
                 networkZoneTwo
             };
 
-            IPAddressRange[] expectedLocalZone = localZoneRanges.ToArray();
+            IPAddressRange[] expectedinternalZone = internalZoneRanges.ToArray();
 
             // Act
 
-            NetworkZoneService.CalculateLocalZone(localZone, localZoneRanges, definedZones);
+            NetworkZoneService.CalculateInternalZone(internalZone, internalZoneRanges, definedZones);
 
             // Assert
 
             Assert.
-                That(localZone.IPRanges,
-                Is.EqualTo(expectedLocalZone)
+                That(internalZone.IPRanges,
+                Is.EqualTo(expectedinternalZone)
                 .Using<IPAddressRange>((a, b) => a.ToString() == b.ToString()));
 
 
         }
         
         [Test]
-        public void CalculateLocalZone_OverlappingDefinedZones_LocalZoneCalculatedCorrectly()
+        public void CalculateinternalZone_OverlappingDefinedZones_internalZoneCalculatedCorrectly()
         {
             // Arrange
 
-            ComplianceNetworkZone localZone = new();
+            ComplianceNetworkZone internalZone = new();
 
-            List<IPAddressRange> localZoneRanges = new()
+            List<IPAddressRange> internalZoneRanges = new()
             {
                 IpOperations.GetIPAdressRange("10.0.0.0/8"),        // Private address space — RFC 1918
                 IpOperations.GetIPAdressRange("172.16.0.0/12"),     // Private address space — RFC 1918
@@ -253,7 +270,7 @@ namespace FWO.Test
                 networkZoneTwo
             };
 
-            IPAddressRange[] expectedLocalZone = new IPAddressRange[]
+            IPAddressRange[] expectedinternalZone = new IPAddressRange[]
             {
                 IpOperations.GetIPAdressRange("172.16.0.0/12"),    
                 IpOperations.GetIPAdressRange("192.168.0.0/16")
@@ -261,13 +278,13 @@ namespace FWO.Test
 
             // Act
 
-            NetworkZoneService.CalculateLocalZone(localZone, localZoneRanges, definedZones);
+            NetworkZoneService.CalculateInternalZone(internalZone, internalZoneRanges, definedZones);
 
             // Assert
 
             Assert.
-                That(localZone.IPRanges,
-                Is.EqualTo(expectedLocalZone)
+                That(internalZone.IPRanges,
+                Is.EqualTo(expectedinternalZone)
                 .Using<IPAddressRange>((a, b) => a.ToString() == b.ToString()));
 
 

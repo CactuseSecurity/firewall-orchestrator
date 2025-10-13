@@ -56,7 +56,7 @@ namespace FWO.Basics
         public const string Refresh = "bi bi-arrow-clockwise";
 
         // Object types: General
-        public const string Ldap = "bi bi-key-fill";
+        public const string Ldap = "bi bi-journal-bookmark-fill";
         public const string Management = "bi bi-inbox-fill";
         public const string Gateway = "bi bi-shield-shaded";
         public const string Credential = "bi bi-key-fill";

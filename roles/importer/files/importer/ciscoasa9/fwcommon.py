@@ -25,7 +25,7 @@ from netaddr import IPNetwork
 
 import fwo_const
 from pathlib import Path
-from scrapli import Scrapli
+from scrapli.driver import GenericDriver
 import time
 
 from model_controllers.fwconfigmanagerlist_controller import FwConfigManagerListController
@@ -62,12 +62,6 @@ def has_config_changed(full_config, mgm_details, force=False):
     return True
 
 
-def connect_to_virtual_asa(conn):
-    conn.channel.send_input("connect module 1 console")
-    time.sleep(1)
-    conn.channel.send_input("\n")
-
-
 def load_config_from_management(mgm_details: ManagementController, is_virtual_asa: bool) -> str:
     """Load ASA configuration from the management device using SSH.
     
@@ -78,26 +72,50 @@ def load_config_from_management(mgm_details: ManagementController, is_virtual_as
     Returns:
         The raw configuration as a string.
     """
+    logger = getFwoLogger()
     try:
         device = {
             "host": mgm_details.Hostname,
             "port": mgm_details.Port,
             "auth_username": mgm_details.ImportUser,
             "auth_password": mgm_details.Secret,
-            "auth_secondary": mgm_details.CloudClientSecret,
             "auth_strict_key": False,
-            "platform": "cisco_asa",
             "transport_options": {"open_cmd": ["-o", "KexAlgorithms=+diffie-hellman-group14-sha1"]},
         }
-        if is_virtual_asa:
-            device["on_open"] = connect_to_virtual_asa
-        conn = Scrapli(**device)
+
+        conn = GenericDriver(**device)
         conn.open()
-        response = conn.send_command("show running")
+
+        if is_virtual_asa:
+            conn.send_command("connect module 1 console\n")
+            time.sleep(2)
+            conn.send_command("\n")
+            time.sleep(2)
+
+        if conn.get_prompt().endswith(">"):
+            try:
+                conn.send_command("terminal pager 0")
+            except Exception as e:
+                logger.warning(f"Could not disable paging: {e}")
+        
+            conn.send_interactive(
+                [
+                    ("enable", "Password", False),
+                    (mgm_details.CloudClientSecret, "#", True)
+                ]
+            )
+
+        response = conn.send_interactive(
+            [
+                ("show running", ": end", False)
+            ],
+            timeout_ops=600
+        )
+
+        conn.send_command("exit")
         conn.close()
         return response.result.strip()
     except Exception as e:
-        logger = getFwoLogger()
         logger.error(f"Error connecting to device {mgm_details.Hostname}: {e}")
         return ""
 

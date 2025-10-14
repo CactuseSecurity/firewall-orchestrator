@@ -115,8 +115,8 @@ def get_config(config_in: FwConfigManagerListController, importState: ImportStat
     is_virtual_asa = importState.MgmDetails.DeviceTypeName == "Cisco Asa on FirePower"
 
     if config_in.native_config_is_empty:
-        raw_config = load_config_from_management(importState.MgmDetails, is_virtual_asa)
-        # raw_config = load_config_from_file("asa.conf")
+        # raw_config = load_config_from_management(importState.MgmDetails, is_virtual_asa)
+        raw_config = load_config_from_file("asa.conf")
         config2import = parse_asa_config(raw_config)
         config_in.native_config = config2import.model_dump()
 
@@ -152,7 +152,8 @@ def normalize_config(config_in: FwConfigManagerListController, importState: Impo
                     obj_typ="network",
                     obj_ip=IPNetwork(object.ip_address),
                     obj_ip_end = ip_end,
-                    obj_color=fwo_const.defaultColor
+                    obj_color=fwo_const.defaultColor,
+                    obj_comment=object.description
                 )
                 network_objects.append(obj)
 
@@ -163,7 +164,8 @@ def normalize_config(config_in: FwConfigManagerListController, importState: Impo
                     obj_typ="host",
                     obj_ip=IPNetwork(f"{object.ip_address}/32"),
                     obj_ip_end=IPNetwork(f"{object.ip_address}/32"),
-                    obj_color=fwo_const.defaultColor
+                    obj_color=fwo_const.defaultColor,
+                    obj_comment=object.description
                 )
                 network_objects.append(obj)
 
@@ -179,7 +181,8 @@ def normalize_config(config_in: FwConfigManagerListController, importState: Impo
                 obj_typ="group",
                 obj_member_names="|".join(object_group.objects),
                 obj_member_refs=fwo_const.list_delimiter.join(object_group.objects),
-                obj_color=fwo_const.defaultColor
+                obj_color=fwo_const.defaultColor,
+                obj_comment=object_group.description
             )
             network_objects.append(obj)
 
@@ -258,6 +261,7 @@ def normalize_config(config_in: FwConfigManagerListController, importState: Impo
                 svc_color=fwo_const.defaultColor,
                 svc_typ="simple",
                 ip_proto=protocol_map.get(serviceObject.protocol, 0),
+                svc_comment=serviceObject.description
             )
             service_objects[serviceObject.name] = obj
         elif serviceObject.dst_port_range is not None and len(serviceObject.dst_port_range) == 2:
@@ -269,6 +273,7 @@ def normalize_config(config_in: FwConfigManagerListController, importState: Impo
                 svc_color=fwo_const.defaultColor,
                 svc_typ="simple",
                 ip_proto=protocol_map.get(serviceObject.protocol, 0),
+                svc_comment=serviceObject.description
             )
             service_objects[serviceObject.name] = obj
 
@@ -279,6 +284,7 @@ def normalize_config(config_in: FwConfigManagerListController, importState: Impo
                 svc_color=fwo_const.defaultColor,
                 svc_typ="simple",
                 ip_proto=protocol_map.get(serviceObject.protocol, 0),
+                svc_comment=serviceObject.description
             )
             service_objects[serviceObject.name] = obj
     
@@ -301,6 +307,7 @@ def normalize_config(config_in: FwConfigManagerListController, importState: Impo
                     svc_color=fwo_const.defaultColor,
                     svc_typ="simple",
                     ip_proto=protocol_map.get(protocol, 0),
+                    svc_comment=serviceObjectGroup.description
                 )
                 service_objects[obj_name] = obj
 
@@ -311,6 +318,7 @@ def normalize_config(config_in: FwConfigManagerListController, importState: Impo
             svc_member_names=fwo_const.list_delimiter.join(obj_names),
             svc_member_refs=fwo_const.list_delimiter.join(obj_names),
             svc_color=fwo_const.defaultColor,
+            svc_comment=serviceObjectGroup.description
         )
         service_objects[serviceObjectGroup.name] = obj
 
@@ -329,7 +337,9 @@ def normalize_config(config_in: FwConfigManagerListController, importState: Impo
                         obj_typ="host",
                         obj_ip=IPNetwork(f"{entry.src.value}/32"),
                         obj_ip_end=IPNetwork(f"{entry.src.value}/32"),
-                        obj_color=fwo_const.defaultColor
+                        obj_color=fwo_const.defaultColor,
+                        obj_comment=entry.description
+
                     )
                     network_objects[entry.src.value] = obj
                 
@@ -340,7 +350,8 @@ def normalize_config(config_in: FwConfigManagerListController, importState: Impo
                         obj_typ="host",
                         obj_ip=IPNetwork(f"{entry.dst.value}/32"),
                         obj_ip_end=IPNetwork(f"{entry.dst.value}/32"),
-                        obj_color=fwo_const.defaultColor
+                        obj_color=fwo_const.defaultColor,
+                        obj_comment=entry.description
                     )
                     network_objects[entry.dst.value] = obj
 
@@ -351,7 +362,8 @@ def normalize_config(config_in: FwConfigManagerListController, importState: Impo
                             obj_uid=entry.src.value,
                             obj_name=entry.src.value,
                             obj_typ="group" if entry.src.kind == "object-group" else "network",
-                            obj_color=fwo_const.defaultColor
+                            obj_color=fwo_const.defaultColor,
+                            obj_comment=entry.description
                         )
                         network_objects[entry.src.value] = obj
                 else:
@@ -368,12 +380,12 @@ def normalize_config(config_in: FwConfigManagerListController, importState: Impo
                     obj = ServiceObject(
                         svc_uid=svc_obj_name,
                         svc_name=svc_obj_name,
-                        #TODO: check if port is string like ssh and convert to number from lookup table
                         svc_port=int(entry.dst_port_eq) if entry.dst_port_eq.isdigit() else name_to_port[entry.dst_port_eq],
                         svc_port_end=int(entry.dst_port_eq) if entry.dst_port_eq.isdigit() else name_to_port[entry.dst_port_eq],
                         svc_color=fwo_const.defaultColor,
                         svc_typ="simple",
                         ip_proto=protocol_map.get(entry.protocol, 0),
+                        svc_comment=entry.description
                     )
                     service_objects[svc_obj_name] = obj
             cnt += 1

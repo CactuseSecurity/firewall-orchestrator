@@ -298,7 +298,7 @@ def parse_asa_config(raw_config: str) -> Config:
 # ───────────────────────── Example usage ─────────────────────────
 if __name__ == "__main__":
 
-    cfg_file = Path("asa.conf")
+    cfg_file = Path("ciscoasa9/asa.conf")
 
     with cfg_file.open("r", encoding="utf-8") as f:
         text = f.read()

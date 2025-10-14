@@ -2,7 +2,10 @@ import json
 import re
 from pathlib import Path
 from typing import List, Optional, Union, Literal, Tuple
-from asa_models import *
+from ciscoasa9.asa_models import AccessGroupBinding, AccessList, AccessListEntry, AsaEnablePassword,\
+    AsaNetworkObject, AsaNetworkObjectGroup, AsaServiceModule, AsaServiceObject, AsaServiceObjectGroup,\
+    ClassMap, Config, DnsInspectParameters, EndpointKind, InspectionAction, Interface, MgmtAccessRule,\
+    Names, NatRule, PolicyClass, PolicyMap, Route, ServicePolicyBinding  
 
 _ws = r"[ \t]+"
 

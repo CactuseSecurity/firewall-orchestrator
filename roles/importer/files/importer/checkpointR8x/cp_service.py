@@ -1,6 +1,7 @@
 import re
 import cp_const
 from fwo_const import list_delimiter
+from fwo_log import getFwoLogger
 from fwo_exceptions import FwoImporterErrorInconsistencies
 
 
@@ -72,7 +73,14 @@ def _get_member_references(obj):
     
     member_refs = ''
     for member in obj['members']:
-        member_refs += member + list_delimiter
+        if type(member) is str:
+            member_refs += member + list_delimiter
+        elif type(member) is dict and 'uid' in member:
+            member_refs += member['uid'] + list_delimiter
+        else:
+            logger = getFwoLogger()
+            logger.warning(f"Service object member is neither str nor dict with uid: {member}") 
+
     return member_refs[:-1] if member_refs else None
 
 

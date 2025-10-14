@@ -22,10 +22,10 @@ namespace FWO.Services
         private List<WfReqElement> unchangedGroupMembersDuringCreate = [];
         private List<WfReqElement> unchangedGroupMembers = [];
 
-        private async Task AnalyseConnectionForRequest(Management mgt, ModellingConnection conn)
+        private void AnalyseConnectionForRequest(Management mgt, ModellingConnection conn)
         {
             varianceResult = new() { Managements = RelevantManagements };
-            await AnalyseRules(conn, false);
+            AnalyseRules(conn, false);
             if(varianceResult.ConnsNotImplemented.Count > 0)
             {
                 AddAccessTaskList.Add(ConstructCreateTask(mgt, conn));

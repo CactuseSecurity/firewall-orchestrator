@@ -255,7 +255,7 @@ namespace FWO.Services
             ComplianceNetworkZone internalZone = new()
             {
                 IdString = "SPECIAL_ZONE_INTERNAL",
-                Name = "Local Zone",
+                Name = "Undefined Internal Zone",
                 IsInternalZone = true,
                 CriterionId = matrixId,
             };

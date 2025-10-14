@@ -236,7 +236,7 @@ namespace FWO.Test
         }
         
         [Test]
-        public void CalculateinternalZone_OverlappingDefinedZones_internalZoneCalculatedCorrectly()
+        public void CalculateinternalZone_OverlappingDefinedZones_InternalZoneCalculatedCorrectly()
         {
             // Arrange
 

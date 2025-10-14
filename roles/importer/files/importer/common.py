@@ -267,6 +267,8 @@ def get_module_package_name(import_state: ImportStateController):
     elif import_state.MgmDetails.DeviceTypeName.lower() == 'fortimanager':
         pkg_name = import_state.MgmDetails.DeviceTypeName.lower().replace(' ', '').replace('fortimanager', 'FortiAdom').lower() +\
             import_state.MgmDetails.DeviceTypeVersion.replace(' ', '').lower()
+    elif import_state.MgmDetails.DeviceTypeName == 'Cisco Asa on FirePower':
+        pkg_name = 'ciscoasa' + import_state.MgmDetails.DeviceTypeVersion
     else:
         pkg_name = f"{import_state.MgmDetails.DeviceTypeName.lower().replace(' ', '')}{import_state.MgmDetails.DeviceTypeVersion}"
 

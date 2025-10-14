@@ -26,6 +26,7 @@ from netaddr import IPNetwork
 import fwo_const
 from pathlib import Path
 from scrapli import Scrapli
+import time
 
 from model_controllers.fwconfigmanagerlist_controller import FwConfigManagerListController
 from model_controllers.import_state_controller import ImportStateController
@@ -48,11 +49,18 @@ def has_config_changed(full_config, mgm_details, force=False):
     return True
 
 
-def load_config_from_management(mgm_details: ManagementController) -> str:
+def connect_to_virtual_asa(conn):
+    conn.channel.send_input("connect module 1 console")
+    time.sleep(1)
+    conn.channel.send_input("\n")
+
+
+def load_config_from_management(mgm_details: ManagementController, is_virtual_asa: bool) -> str:
     """Load ASA configuration from the management device using SSH.
     
     Args:
         mgm_details: ManagementController object with connection details.
+        is_virtual_asa: Boolean indicating if the device is a virtual ASA inside of a FirePower instance.
 
     Returns:
         The raw configuration as a string.
@@ -63,10 +71,13 @@ def load_config_from_management(mgm_details: ManagementController) -> str:
             "port": mgm_details.Port,
             "auth_username": mgm_details.ImportUser,
             "auth_password": mgm_details.Secret,
-            "auth_secondary": mgm_details.Secret,
+            "auth_secondary": mgm_details.CloudClientSecret,
             "auth_strict_key": False,
-            "platform": "cisco_asa"
+            "platform": "cisco_asa",
+            "transport_options": {"open_cmd": ["-o", "KexAlgorithms=+diffie-hellman-group14-sha1"]},
         }
+        if is_virtual_asa:
+            device["on_open"] = connect_to_virtual_asa
         conn = Scrapli(**device)
         conn.open()
         response = conn.send_command("show running")
@@ -93,9 +104,11 @@ def get_config(config_in: FwConfigManagerListController, importState: ImportStat
 
     logger.debug ( "starting checkpointAsa9/get_config" )
 
+    is_virtual_asa = importState.MgmDetails.DeviceTypeName == "Cisco Asa on FirePower"
+
     if config_in.native_config_is_empty:
-        # raw_config = load_config_from_management(importState.MgmDetails)
-        raw_config = load_config_from_file("asa.conf")
+        raw_config = load_config_from_management(importState.MgmDetails, is_virtual_asa)
+        # raw_config = load_config_from_file("asa.conf")
         config2import = parse_asa_config(raw_config)
         config_in.native_config = config2import.model_dump()
 

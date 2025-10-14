@@ -1,6 +1,7 @@
 import uuid
 
 class UidManager:
+
     def __init__(self):
         self.used_uids = []
 

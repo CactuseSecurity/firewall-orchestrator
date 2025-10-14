@@ -33,7 +33,10 @@ from models.fwconfig_normalized import FwConfigNormalized
 from models.fwconfigmanagerlist import FwConfigManagerList
 from fwo_log import getFwoLogger
 from models.networkobject import NetworkObject
-from ciscoasa9.asa_models import *
+from ciscoasa9.asa_models import AccessGroupBinding, AccessList, AccessListEntry, AsaEnablePassword,\
+    AsaNetworkObject, AsaNetworkObjectGroup, AsaServiceModule, AsaServiceObject, AsaServiceObjectGroup,\
+    ClassMap, Config, DnsInspectParameters, EndpointKind, InspectionAction, Interface, MgmtAccessRule,\
+    Names, NatRule, PolicyClass, PolicyMap, Route, ServicePolicyBinding  
 from fwo_enums import ConfigAction
 from model_controllers.fwconfig_normalized_controller import FwConfigNormalizedController
 from model_controllers.management_controller import ManagementController
@@ -331,7 +334,12 @@ def parse_asa_config(raw_config: str) -> Config:
                     dst_if = mnat.group(2).strip()
                     ntype  = mnat.group(3).lower()
                     tobj   = mnat.group(4).lower()
-                    nat_type = "dynamic-interface" if (ntype == "dynamic" and tobj == "interface") else ntype
+                    if ntype == "dynamic":
+                        nat_type = "dynamic"
+                    elif ntype == "static":
+                        nat_type = "static"
+                    else:
+                        raise ValueError(f"Unsupported NAT type in line: {s}")
                     pending_nat = NatRule(
                         object_name=obj_name, src_if=src_if, dst_if=dst_if,
                         nat_type=nat_type, translated_object=(None if tobj == "interface" else tobj)
@@ -392,8 +400,8 @@ def parse_asa_config(raw_config: str) -> Config:
                         prange = (int(msvc.group(3)), int(msvc.group(4)))
                 elif mdesc:
                     desc = mdesc.group(1)
-            if protocol is None:
-                protocol = "tcp"  # fallback
+            if protocol is None or protocol not in ("tcp", "udp", "icmp", "ip"):
+                raise ValueError(f"Unsupported or missing protocol in service object: {block[0]}")
             svc_objects.append(AsaServiceObject(name=name, protocol=protocol, dst_port_eq=eq, dst_port_range=prange, description=desc))
             continue
 
@@ -445,8 +453,10 @@ def parse_asa_config(raw_config: str) -> Config:
             if len(tokens) >= 2 and tokens[0] == "eq":
                 dst_port_eq = tokens[1]
 
+            # Ensure action is either 'permit' or 'deny' for type safety
+            action_literal = 'permit' if action == 'permit' else 'deny'
             entry = AccessListEntry(
-                acl_name=acl_name, action=action, protocol=protocol, src=src, dst=dst, dst_port_eq=dst_port_eq
+                acl_name=acl_name, action=action_literal, protocol=protocol, src=src, dst=dst, dst_port_eq=dst_port_eq
             )
             access_lists_map.setdefault(acl_name, []).append(entry)
             i += 1
@@ -455,7 +465,10 @@ def parse_asa_config(raw_config: str) -> Config:
         # access-group
         m = re.match(r"^access-group\s+(\S+)\s+(in|out)\s+interface\s+(\S+)$", line, re.I)
         if m:
-            access_groups.append(AccessGroupBinding(acl_name=m.group(1), direction=m.group(2), interface=m.group(3)))
+            direction = m.group(2)
+            if direction not in ("in", "out"):
+                raise ValueError(f"Invalid direction value: {direction}")
+            access_groups.append(AccessGroupBinding(acl_name=m.group(1), direction=direction, interface=m.group(3)))
             i += 1
             continue
 
@@ -481,7 +494,10 @@ def parse_asa_config(raw_config: str) -> Config:
         # management access (http/ssh/telnet)
         m = re.match(r"^(http|ssh|telnet)\s+(\d+\.\d+\.\d+\.\d+)\s+(\d+\.\d+\.\d+\.\d+)\s+(\S+)$", line, re.I)
         if m:
-            mgmt_access.append(MgmtAccessRule(protocol=m.group(1).lower(), source_ip=m.group(2), source_mask=m.group(3), interface=m.group(4)))
+            protocol_str = m.group(1).lower()
+            if protocol_str not in ("http", "ssh", "telnet"):
+                raise ValueError(f"Invalid protocol for MgmtAccessRule: {protocol_str}")
+            mgmt_access.append(MgmtAccessRule(protocol=protocol_str, source_ip=m.group(2), source_mask=m.group(3), interface=m.group(4)))
             i += 1
             continue
 
@@ -644,31 +660,32 @@ def normalize_config(config_in: FwConfigManagerListController, importState: Impo
     for object in native_config.objects:
         if isinstance(object, AsaNetworkObject):
             if object.ip_address is not None and object.subnet_mask is not None:
+                ip_end = IPNetwork(f"{object.ip_address}/{object.subnet_mask}").broadcast
+                ip_end = str(ip_end)
+                ip_end = IPNetwork(f"{ip_end}/{32}") if ip_end else None
                 obj = NetworkObject(
                     obj_uid=object.name,
                     obj_name=object.name,
                     obj_typ="network",
-                    obj_ip=object.ip_address,
-                    obj_ip_end = str(
-                        str(IPNetwork(f"{object.ip_address}/{object.subnet_mask}").broadcast)
-                    ),
+                    obj_ip=IPNetwork(object.ip_address),
+                    obj_ip_end = ip_end,
                     obj_color=fwo_const.defaultColor
                 )
+                network_objects.append(obj)
 
             elif object.ip_address is not None and object.subnet_mask is None:
                 obj = NetworkObject(
                     obj_uid=object.name,
                     obj_name=object.name,
                     obj_typ="host",
-                    obj_ip=object.ip_address,
-                    obj_ip_end=object.ip_address,
+                    obj_ip=IPNetwork(f"{object.ip_address}/32"),
+                    obj_ip_end=IPNetwork(f"{object.ip_address}/32"),
                     obj_color=fwo_const.defaultColor
                 )
+                network_objects.append(obj)
 
             # TODO ip range
-
-            if obj:
-                network_objects.append(obj)
+                
             
     # network object groups
     for object_group in native_config.object_groups:
@@ -683,7 +700,7 @@ def normalize_config(config_in: FwConfigManagerListController, importState: Impo
             )
             network_objects.append(obj)
 
-    network_objects = FwConfigNormalizedController.convertListToDict((nwobj.model_dump() for nwobj in network_objects), 'obj_uid')
+    network_objects = FwConfigNormalizedController.convertListToDict(list(nwobj.model_dump() for nwobj in network_objects), 'obj_uid')
     
 
     protocol_map = {
@@ -746,14 +763,15 @@ def normalize_config(config_in: FwConfigManagerListController, importState: Impo
         "whois": 43,
         "www": 80
     }
+
     service_objects = {}
     for serviceObject in native_config.service_objects:
         if serviceObject.dst_port_eq is not None and len(serviceObject.dst_port_eq) > 0:
             obj = ServiceObject(
                 svc_uid=serviceObject.name,
                 svc_name=serviceObject.name,
-                svc_port=serviceObject.dst_port_eq,
-                svc_port_end=serviceObject.dst_port_eq,
+                svc_port=int(serviceObject.dst_port_eq) if serviceObject.dst_port_eq.isdigit() else name_to_port[serviceObject.dst_port_eq],
+                svc_port_end=int(serviceObject.dst_port_eq) if serviceObject.dst_port_eq.isdigit() else name_to_port[serviceObject.dst_port_eq],
                 svc_color=fwo_const.defaultColor,
                 svc_typ="simple",
                 ip_proto=protocol_map.get(serviceObject.protocol, 0),
@@ -763,15 +781,15 @@ def normalize_config(config_in: FwConfigManagerListController, importState: Impo
             obj = ServiceObject(
                 svc_uid=serviceObject.name,
                 svc_name=serviceObject.name,
-                svc_port=str(serviceObject.dst_port_range[0]),
-                svc_port_end=str(serviceObject.dst_port_range[1]),
+                svc_port=int(serviceObject.dst_port_range[0]),
+                svc_port_end=int(serviceObject.dst_port_range[1]),
                 svc_color=fwo_const.defaultColor,
                 svc_typ="simple",
                 ip_proto=protocol_map.get(serviceObject.protocol, 0),
             )
             service_objects[serviceObject.name] = obj
 
-        elif len(serviceObject.dst_port_eq) == 0 and (serviceObject.dst_port_range is None or len(serviceObject.dst_port_range) == 0):
+        elif serviceObject.dst_port_eq is not None and len(serviceObject.dst_port_eq) == 0 and (serviceObject.dst_port_range is None or len(serviceObject.dst_port_range) == 0):
             obj = ServiceObject(
                 svc_uid=serviceObject.name,
                 svc_name=serviceObject.name,
@@ -795,8 +813,8 @@ def normalize_config(config_in: FwConfigManagerListController, importState: Impo
                 obj = ServiceObject(
                     svc_uid=obj_name,
                     svc_name=obj_name,
-                    svc_port=str(pr[0]),
-                    svc_port_end=str(pr[1]),
+                    svc_port=int(pr[0]),
+                    svc_port_end=int(pr[1]),
                     svc_color=fwo_const.defaultColor,
                     svc_typ="simple",
                     ip_proto=protocol_map.get(protocol, 0),
@@ -826,8 +844,8 @@ def normalize_config(config_in: FwConfigManagerListController, importState: Impo
                         obj_uid=entry.src.value,
                         obj_name=entry.src.value,
                         obj_typ="host",
-                        obj_ip=entry.src.value,
-                        obj_ip_end=entry.src.value,
+                        obj_ip=IPNetwork(f"{entry.src.value}/32"),
+                        obj_ip_end=IPNetwork(f"{entry.src.value}/32"),
                         obj_color=fwo_const.defaultColor
                     )
                     network_objects[entry.src.value] = obj
@@ -837,8 +855,8 @@ def normalize_config(config_in: FwConfigManagerListController, importState: Impo
                         obj_uid=entry.dst.value,
                         obj_name=entry.dst.value,
                         obj_typ="host",
-                        obj_ip=entry.dst.value,
-                        obj_ip_end=entry.dst.value,
+                        obj_ip=IPNetwork(f"{entry.dst.value}/32"),
+                        obj_ip_end=IPNetwork(f"{entry.dst.value}/32"),
                         obj_color=fwo_const.defaultColor
                     )
                     network_objects[entry.dst.value] = obj
@@ -863,7 +881,7 @@ def normalize_config(config_in: FwConfigManagerListController, importState: Impo
             # service object for protocol/port
             if entry.protocol in ("tcp", "udp", "icmp"):
                 svc_obj_name = f"{entry.dst_port_eq}-{entry.protocol}"
-                if svc_obj_name not in service_objects.keys():
+                if svc_obj_name not in service_objects.keys() and entry.dst_port_eq is not None and len(entry.dst_port_eq) > 0:
                     obj = ServiceObject(
                         svc_uid=svc_obj_name,
                         svc_name=svc_obj_name,

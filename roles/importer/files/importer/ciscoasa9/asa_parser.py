@@ -70,8 +70,6 @@ def _parse_endpoint(tokens: List[str]) -> Tuple[EndpointKind, int]:
     # fallback
     return EndpointKind(kind="any", value="any"), 1
 
-# ───────────────────────── Parsers ─────────────────────────
-
 def parse_asa_config(raw_config: str) -> Config:
     lines = _clean_lines(raw_config)
 
@@ -229,7 +227,12 @@ def parse_asa_config(raw_config: str) -> Config:
                     dst_if = mnat.group(2).strip()
                     ntype  = mnat.group(3).lower()
                     tobj   = mnat.group(4).lower()
-                    nat_type = "dynamic-interface" if (ntype == "dynamic" and tobj == "interface") else ntype
+                    if ntype == "dynamic":
+                        nat_type = "dynamic"
+                    elif ntype == "static":
+                        nat_type = "static"
+                    else:
+                        raise ValueError(f"Unsupported NAT type in line: {s}")
                     pending_nat = NatRule(
                         object_name=obj_name, src_if=src_if, dst_if=dst_if,
                         nat_type=nat_type, translated_object=(None if tobj == "interface" else tobj)
@@ -286,14 +289,12 @@ def parse_asa_config(raw_config: str) -> Config:
                     protocol = msvc.group(1).lower()
                     if msvc.group(2):
                         eq = msvc.group(2)
-                        prange = (int(eq), int(eq))
-                        eq = None
                     elif msvc.group(3) and msvc.group(4):
                         prange = (int(msvc.group(3)), int(msvc.group(4)))
                 elif mdesc:
                     desc = mdesc.group(1)
-            if protocol is None:
-                protocol = "tcp"  # fallback
+            if protocol is None or protocol not in ("tcp", "udp", "icmp", "ip"):
+                raise ValueError(f"Unsupported or missing protocol in service object: {block[0]}")
             svc_objects.append(AsaServiceObject(name=name, protocol=protocol, dst_port_eq=eq, dst_port_range=prange, description=desc))
             continue
 
@@ -345,8 +346,10 @@ def parse_asa_config(raw_config: str) -> Config:
             if len(tokens) >= 2 and tokens[0] == "eq":
                 dst_port_eq = tokens[1]
 
+            # Ensure action is either 'permit' or 'deny' for type safety
+            action_literal = 'permit' if action == 'permit' else 'deny'
             entry = AccessListEntry(
-                acl_name=acl_name, action=action, protocol=protocol, src=src, dst=dst, dst_port_eq=dst_port_eq
+                acl_name=acl_name, action=action_literal, protocol=protocol, src=src, dst=dst, dst_port_eq=dst_port_eq
             )
             access_lists_map.setdefault(acl_name, []).append(entry)
             i += 1
@@ -355,7 +358,10 @@ def parse_asa_config(raw_config: str) -> Config:
         # access-group
         m = re.match(r"^access-group\s+(\S+)\s+(in|out)\s+interface\s+(\S+)$", line, re.I)
         if m:
-            access_groups.append(AccessGroupBinding(acl_name=m.group(1), direction=m.group(2), interface=m.group(3)))
+            direction = m.group(2)
+            if direction not in ("in", "out"):
+                raise ValueError(f"Invalid direction value: {direction}")
+            access_groups.append(AccessGroupBinding(acl_name=m.group(1), direction=direction, interface=m.group(3)))
             i += 1
             continue
 
@@ -381,7 +387,10 @@ def parse_asa_config(raw_config: str) -> Config:
         # management access (http/ssh/telnet)
         m = re.match(r"^(http|ssh|telnet)\s+(\d+\.\d+\.\d+\.\d+)\s+(\d+\.\d+\.\d+\.\d+)\s+(\S+)$", line, re.I)
         if m:
-            mgmt_access.append(MgmtAccessRule(protocol=m.group(1).lower(), source_ip=m.group(2), source_mask=m.group(3), interface=m.group(4)))
+            protocol_str = m.group(1).lower()
+            if protocol_str not in ("http", "ssh", "telnet"):
+                raise ValueError(f"Invalid protocol for MgmtAccessRule: {protocol_str}")
+            mgmt_access.append(MgmtAccessRule(protocol=protocol_str, source_ip=m.group(2), source_mask=m.group(3), interface=m.group(4)))
             i += 1
             continue
 
@@ -534,6 +543,7 @@ def parse_asa_config(raw_config: str) -> Config:
         service_policies=service_policies,
     )
     return cfg
+
 
 # ───────────────────────── Example usage ─────────────────────────
 if __name__ == "__main__":

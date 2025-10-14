@@ -83,7 +83,7 @@ class NatRule(BaseModel):
     object_name: str
     src_if: str
     dst_if: str
-    nat_type: Literal["dynamic-interface", "dynamic", "static"] = "dynamic-interface"
+    nat_type: Literal["dynamic", "static"] = "dynamic"
     translated_object: str | None = None
 
 class Route(BaseModel):

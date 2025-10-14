@@ -114,7 +114,7 @@ def load_config_from_management(mgm_details: ManagementController, is_virtual_as
         )
 
         try:
-        conn.send_command("exit")
+            conn.send_command("exit")
         except Exception as e:
             logger.warning(f"Could not exit session cleanly: {e}")
 

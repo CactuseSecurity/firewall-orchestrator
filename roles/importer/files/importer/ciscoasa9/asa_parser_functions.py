@@ -1,4 +1,3 @@
-
 import json
 import re
 from pathlib import Path
@@ -237,24 +236,40 @@ def _parse_service_object_group_block(block: List[str]) -> AsaServiceObjectGroup
         pm = hdr[3].lower()
         if pm in ("tcp", "udp", "tcp-udp"):
             proto_mode = pm
-    
+
     desc = None
     ports_range: List[Tuple[int, int]] = []
-    
+    nested_groups: List[str] = []
+    protocols: List[str] = []
+
     for b in block[1:]:
         s = b.strip()
         mdesc = re.match(r"^description\s+(.+)$", s, re.I)
         meq = re.match(r"^port-object\s+eq\s+(\S+)$", s, re.I)
         mrange = re.match(r"^port-object\s+range\s+(\d+)\s+(\d+)$", s, re.I)
-        
+        mobj = re.match(r"^service-object\s+object\s+(\S+)$", s, re.I)
+        mproto = re.match(r"^service-object\s+(tcp|udp|icmp)$", s, re.I)
+
         if mdesc:
             desc = mdesc.group(1)
         elif meq:
             ports_range.append((int(meq.group(1)), int(meq.group(1))))
         elif mrange:
             ports_range.append((int(mrange.group(1)), int(mrange.group(2))))
-    
-    return AsaServiceObjectGroup(name=name, proto_mode=proto_mode, ports_range=ports_range, description=desc)
+        elif mobj:
+            nested_groups.append(mobj.group(1))
+        elif mproto:
+            protocols.append(mproto.group(1))
+            proto_mode = "service" 
+            
+    return AsaServiceObjectGroup(
+        name=name,
+        proto_mode=proto_mode,
+        ports_range=ports_range,
+        nested_groups=nested_groups,
+        protocols=protocols,
+        description=desc
+    )
 
 
 def _parse_class_map_block(block: List[str]) -> ClassMap:
@@ -335,3 +350,50 @@ def _parse_policy_map_block(block: List[str], pm_name: str) -> PolicyMap:
             idx += 1
     
     return pm
+
+def _parse_access_list_entry(line: str) -> AccessListEntry:
+    """
+    Parse an access-list entry line and return an AccessListEntry object.
+    Handles various formats as specified in the requirements.
+    """
+    # Tokenize the line after 'access-list'
+    parts = line.split()
+    acl_name = parts[1]  # Access list name
+    action = parts[3].lower()  # Action (permit/deny)
+    protocol = parts[4].lower()  # Protocol (ip/tcp/udp/icmp)
+    tokens = parts[5:]  # Remaining tokens
+
+    # Parse source endpoint
+    src, consumed = _parse_endpoint(tokens)
+    tokens = tokens[consumed:]
+
+    # Parse destination endpoint
+    dst, consumed = _parse_endpoint(tokens)
+    tokens = tokens[consumed:]
+
+    # Optional destination port or range
+    dst_port_eq = None
+    dst_port_range = None
+    if len(tokens) >= 2 and tokens[0] == "eq":
+        dst_port_eq = tokens[1]
+        tokens = tokens[2:]
+    elif len(tokens) >= 3 and tokens[0] == "range":
+        dst_port_range = (int(tokens[1]), int(tokens[2]))
+        tokens = tokens[3:]
+
+    # Optional inactive flag
+    inactive = "inactive" in tokens
+
+    # Ensure action is either 'permit' or 'deny' for type safety
+    action_literal = 'permit' if action == 'permit' else 'deny'
+
+    return AccessListEntry(
+        acl_name=acl_name,
+        action=action_literal,
+        protocol=protocol,
+        src=src,
+        dst=dst,
+        dst_port_eq=dst_port_eq,
+        dst_port_range=dst_port_range,
+        inactive=inactive
+    )

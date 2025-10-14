@@ -47,7 +47,11 @@ from ciscoasa9.asa_parser_functions import _clean_lines, _consume_block, _parse_
     _parse_network_object_group_block, _parse_policy_map_block, _parse_service_object_block, \
     _parse_service_object_group_block, _parse_endpoint
 from ciscoasa9.asa_parser import parse_asa_config
-from asa_maps import name_to_port, protocol_map
+from ciscoasa9.asa_maps import name_to_port, protocol_map
+from models.rulebase import Rulebase
+from models.rule import RuleNormalized, RuleAction, RuleTrack, RuleType
+from models.gateway import Gateway
+from models.rulebase_link import RulebaseLinkUidBased
 
 
 def has_config_changed(full_config, mgm_details, force=False):
@@ -228,14 +232,40 @@ def normalize_config(config_in: FwConfigManagerListController, importState: Impo
             )
             service_objects[serviceObject.name] = obj
     
+    
+
+    # create service objs for all ports
+    for pr in ("tcp", "udp", "icmp", "ip"):
+        obj_name = f"any-{pr}" 
+        obj = ServiceObject(
+            svc_uid=obj_name,
+            svc_name=obj_name,
+            svc_port=0,
+            svc_port_end=65535,
+            svc_color=fwo_const.defaultColor,
+            svc_typ="simple",
+            ip_proto=protocol_map.get(pr, 0),
+            svc_comment="any " + pr
+        )
+        service_objects[obj_name] = obj
+
     # service object groups
     for serviceObjectGroup in native_config.service_object_groups:
         obj_names = []
         for protocol in serviceObjectGroup.proto_mode.split("-"):
-            if protocol not in protocol_map:
+            if protocol not in protocol_map and protocol != "service":
                 raise ValueError(f"Unknown protocol in service object group: {protocol}")
+            
+            if protocol == "service":
+                for obj in serviceObjectGroup.nested_groups:
+                    obj_names.append(obj)
+                for pr in serviceObjectGroup.protocols:
+                    obj_name = f"any-{pr}"
+                    obj_names.append(obj_name)
+                continue
+            
             for pr in serviceObjectGroup.ports_range:
-                obj_name = f"{pr[0]}-{pr[1]}-{protocol}-" if pr[0] != pr[1] else f"{pr[0]}-{protocol}"
+                obj_name = f"{pr[0]}-{pr[1]}-{protocol}" if pr[0] != pr[1] else f"{pr[0]}-{protocol}"
                 obj_names.append(obj_name)
                 if obj_name in service_objects.keys():
                     continue
@@ -329,7 +359,25 @@ def normalize_config(config_in: FwConfigManagerListController, importState: Impo
                     )
                     service_objects[svc_obj_name] = obj
             cnt += 1
-        
+
+    rulebases = build_rulebases_from_access_lists(native_config.access_lists, importState.MgmDetails.Uid)
+
+
+    gateway1 = Gateway(
+        Uid=native_config.hostname,
+        Name=native_config.hostname,
+        Routing=[],
+        RulebaseLinks=[
+            RulebaseLinkUidBased(to_rulebase_uid="acl1", link_type="ordered", is_initial=True, is_global=False, is_section=False),
+            RulebaseLinkUidBased(from_rule_uid="acl1", to_rulebase_uid="acl2", link_type="ordered", is_initial=False, is_global=False, is_section=False)
+            ],
+        GlobalPolicyUid=None,
+        EnforcedPolicyUids=[rb.uid for rb in rulebases],
+        EnforcedNatPolicyUids=[],
+        ImportDisabled=False,
+        ShowInUI=True
+    )
+
 
 
     normalized_config = FwConfigNormalized(
@@ -337,11 +385,69 @@ def normalize_config(config_in: FwConfigManagerListController, importState: Impo
         network_objects=network_objects,
         service_objects=service_objects,
         zone_objects={},
-        rulebases=[],
-        gateways=[]
+        rulebases=rulebases,
+        gateways=[gateway1],
     )
 
     config_in.ManagerSet[0].Configs = [normalized_config]
+    config_in.ManagerSet[0].ManagerUid = importState.MgmDetails.Uid
     
     return config_in
 
+
+def build_rulebases_from_access_lists(access_lists: List[AccessList], mgm_uid: str) -> List[Rulebase]:
+    rulebases = []
+
+    for access_list in access_lists:
+        rules = {}
+        for idx, entry in enumerate(access_list.entries, start=1):
+            rule_uid = f"{access_list.name}-{idx:04d}"
+
+            svc_ref = ""
+            if entry.dst_port_eq:
+                svc_ref = f"{entry.dst_port_eq}-{entry.protocol}"
+            else:
+                svc_ref = f"any-{entry.protocol}"
+
+            rule = RuleNormalized(
+                rule_num=idx,
+                rule_num_numeric=float(idx),
+                rule_disabled=False,
+                rule_src_neg=False,
+                rule_src=entry.src.value,
+                rule_src_refs=entry.src.value,
+                rule_dst_neg=False,
+                rule_dst=entry.dst.value,
+                rule_dst_refs=entry.dst.value,
+                rule_svc_neg=False,
+                rule_svc=svc_ref,
+                rule_svc_refs=svc_ref,
+                rule_action=RuleAction.ACCEPT if entry.action == "permit" else RuleAction.DROP,
+                rule_track=RuleTrack.NONE,
+                rule_installon="",
+                rule_time="",
+                rule_name=f"{access_list.name}-{idx:04d}",
+                rule_uid=rule_uid,
+                rule_custom_fields=None,
+                rule_implied=False,
+                rule_type=RuleType.ACCESS,
+                last_change_admin=None,
+                parent_rule_uid=None,
+                last_hit=None,
+                rule_comment=entry.description,
+                rule_src_zone=None,
+                rule_dst_zone=None,
+                rule_head_text=None
+            )
+            rules[rule_uid] = rule
+
+        rulebase = Rulebase(
+            uid=access_list.name,
+            name=access_list.name,
+            mgm_uid=mgm_uid,  # Replace with actual management UID if available
+            is_global=False,
+            Rules=rules
+        )
+        rulebases.append(rulebase)
+
+    return rulebases

@@ -50,9 +50,11 @@ class AsaServiceObject(BaseModel):
 
 class AsaServiceObjectGroup(BaseModel):
     name: str
-    proto_mode: Literal["tcp", "udp", "tcp-udp"] = "tcp"
+    proto_mode: Literal["tcp", "udp", "tcp-udp", "service"] = "tcp"  # Added "service" as a valid proto_mode
     ports_eq: List[str] = []
     ports_range: List[Tuple[int, int]] = []
+    nested_groups: List[str] = []  # Added to support nested service groups
+    protocols: List[str] = []  # Added to support protocol-only service objects
     description: str | None = None
 
 
@@ -68,6 +70,8 @@ class AccessListEntry(BaseModel):
     src: EndpointKind
     dst: EndpointKind
     dst_port_eq: str | None = None
+    dst_port_range: tuple[int, int] | None = None  # Added field for port range
+    inactive: bool = False  # Added field for inactive flag
     description: str | None = None
 
 class AccessList(BaseModel):

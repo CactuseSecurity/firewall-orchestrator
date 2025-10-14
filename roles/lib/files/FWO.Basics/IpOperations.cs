@@ -2,6 +2,7 @@ using System.Net.Sockets;
 using System.Net;
 using NetTools;
 using System;
+using System.Numerics;
 
 namespace FWO.Basics
 {
@@ -390,7 +391,7 @@ namespace FWO.Basics
             return new IPAddress(bytes);
         }
 
-        public static List<IPAddressRange> Subtract(this IPAddressRange source, List<IPAddressRange> subtractor)
+        public static List<IPAddressRange> _Subtract(this IPAddressRange source, List<IPAddressRange> subtractor)
         {
             List<IPAddressRange> result = new();
 
@@ -429,6 +430,147 @@ namespace FWO.Basics
             }
 
             return result;
+        }
+
+        public static List<IPAddressRange> Subtract(this IPAddressRange source, List<IPAddressRange> subtractor)
+        {
+            List<IPNetwork2> sourceNetwork = new();
+            List<IPNetwork2> subtractorNetwork = new();
+
+            if (source.Begin.ToString().Equals(source.End.ToString()))
+            {
+                sourceNetwork.Add(IPNetwork2.Parse(source.ToString(), 32));
+            }
+            else if (IPNetwork2.TryParseRange(source.ToString(), out IEnumerable<IPNetwork2> parsedSourceRange))
+            {
+                sourceNetwork.AddRange(parsedSourceRange);
+            }
+             
+            foreach (IPAddressRange range in subtractor)
+            {
+                if (range.Begin.ToString().Equals(range.End.ToString()))
+                {
+                    subtractorNetwork.Add(IPNetwork2.Parse(range.ToString(), 32));
+                }
+                else if (IPNetwork2.TryParseRange(range.ToString(), out IEnumerable<IPNetwork2> parsedSubtractorRange))
+                {
+                    subtractorNetwork.AddRange(parsedSubtractorRange);
+                }
+            }
+
+            List<IPNetwork2> result = sourceNetwork.Subtract(subtractorNetwork).ToList();
+            List<IPAddressRange> mergedRanges = result.ToMergedRanges();
+
+            return mergedRanges;
+        }
+        
+
+        public static IEnumerable<IPNetwork2> Subtract(
+            this IEnumerable<IPNetwork2> source,
+            IEnumerable<IPNetwork2> subtract)
+        {
+            if (source == null) throw new ArgumentNullException(nameof(source));
+            if (subtract == null) throw new ArgumentNullException(nameof(subtract));
+
+            var result = source.ToList();
+
+            foreach (var sub in subtract)
+            {
+                // jedes Netz aus 'subtract' von allen bisherigen abziehen
+                result = result
+                    .SelectMany(n => n - sub) // nutzt IPNetwork2's Operator -
+                    .ToList();
+            }
+
+            return result;
+        }
+        
+
+        public static List<IPAddressRange> ToMergedRanges(
+            this IEnumerable<IPNetwork2> networks,
+            bool includeNetworkAndBroadcast = true)
+        {
+            var list = networks?.ToList() ?? new List<IPNetwork2>();
+            if (list.Count == 0) return new List<IPAddressRange>();
+
+            // 1) in [start,end] (inklusive) umwandeln
+            var intervals = list.Select(n =>
+            {
+                var start = includeNetworkAndBroadcast ? n.Network : n.FirstUsable;
+                var end   = includeNetworkAndBroadcast ? n.Broadcast : n.LastUsable;
+                return (start, end);
+            }).ToList();
+
+            // Sicherheit: alles gleicher AddressFamily?
+            var af = intervals[0].start.AddressFamily;
+            if (intervals.Any(t => t.start.AddressFamily != af || t.end.AddressFamily != af))
+                throw new InvalidOperationException("Gemischte AddressFamily (IPv4/IPv6) in den Netzen.");
+
+            // 2) sortieren
+            intervals.Sort((a, b) => CompareIp(a.start, b.start));
+
+            // 3) zusammenführen (merge), wenn überlappend ODER direkt benachbart
+            var merged = new List<(IPAddress start, IPAddress end)>();
+            (IPAddress s, IPAddress e) cur = intervals[0];
+
+            foreach (var (s, e) in intervals.Skip(1))
+            {
+                // Wenn s <= cur.e + 1  => zusammenlegen
+                var nextToCurEndPlusOne = CompareIp(s, AddIp(cur.e, 1)) <= 0;
+                if (nextToCurEndPlusOne)
+                {
+                    if (CompareIp(e, cur.e) > 0) cur.e = e;
+                }
+                else
+                {
+                    merged.Add(cur);
+                    cur = (s, e);
+                }
+            }
+            merged.Add(cur);
+
+            // 4) in IPAddressRange (inklusive) umwandeln
+            return merged.Select(t => new IPAddressRange(t.start, t.end)).ToList();
+        }
+
+        // ------ Hilfsfunktionen (IPv4 & IPv6) ------
+        private static int CompareIp(IPAddress a, IPAddress b)
+            => ToBigInteger(a).CompareTo(ToBigInteger(b));
+
+        private static IPAddress AddIp(IPAddress ip, long delta)
+        {
+            var bi = ToBigInteger(ip) + new BigInteger(delta);
+            if (bi < BigInteger.Zero) bi = BigInteger.Zero;
+            var family = ip.AddressFamily;
+            var max = MaxValue(family);
+            if (bi > max) bi = max;
+            return FromBigInteger(bi, family);
+        }
+
+        private static BigInteger ToBigInteger(IPAddress ip)
+        {
+            var bytes = ip.GetAddressBytes(); // big-endian
+            var le = bytes.Reverse().Concat(new byte[] { 0 }).ToArray(); // little-endian + unsignd pad
+            return new BigInteger(le);
+        }
+
+        private static IPAddress FromBigInteger(BigInteger value, AddressFamily family)
+        {
+            int len = family == AddressFamily.InterNetwork ? 4 : 16;
+            var bytesLE = value.ToByteArray(); // little-endian
+            var bytesBE = new byte[len];
+            for (int i = 0; i < len; i++)
+            {
+                var src = i < bytesLE.Length ? bytesLE[i] : (byte)0;
+                bytesBE[len - 1 - i] = src;
+            }
+            return new IPAddress(bytesBE);
+        }
+
+        private static BigInteger MaxValue(AddressFamily family)
+        {
+            int bits = family == AddressFamily.InterNetwork ? 32 : 128;
+            return (BigInteger.One << bits) - 1;
         }
 
     }

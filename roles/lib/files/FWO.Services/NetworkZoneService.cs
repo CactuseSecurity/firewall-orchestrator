@@ -229,26 +229,8 @@ namespace FWO.Services
             foreach (ComplianceNetworkZone specialZone in existingZones.Where(zone => zone.IsInternetZone || zone.IsInternalZone))
             {
                 await RemoveZone(specialZone, apiConnection);
+                existingZones.Remove(specialZone);
             }
-
-            // Add new internet zone
-
-            ComplianceNetworkZone internetZone = new()
-            {
-                IdString = "SPECIAL_ZONE_INTERNET",
-                Name = "Internet Zone",
-                IsInternetZone = true,
-                CriterionId = matrixId,
-            };
-
-            CalculateInternetZone(internetZone, existingZones.Where(zone => !zone.IsInternetZone && !zone.IsInternalZone).ToList());
-
-            AdditionsDeletions internetZoneAddDel = new()
-            {
-                IpRangesToAdd = internetZone.IPRanges.ToList()
-            };
-
-            await AddZone(internetZone, internetZoneAddDel, apiConnection);
 
             // Add new local zone
 
@@ -260,14 +242,37 @@ namespace FWO.Services
                 CriterionId = matrixId,
             };
 
-            CalculateInternalZone(internalZone, GetInternalZoneRanges(globalConfig), existingZones.Where(zone => !zone.IsInternetZone && !zone.IsInternalZone).ToList());
+            CalculateInternalZone(internalZone, GetInternalZoneRanges(globalConfig), existingZones);
 
             AdditionsDeletions internalZoneAddDel = new()
             {
                 IpRangesToAdd = internalZone.IPRanges.ToList()
             };
 
-            await AddZone(internalZone, internalZoneAddDel, apiConnection); 
+            await AddZone(internalZone, internalZoneAddDel, apiConnection);
+
+            existingZones.Add(internalZone);
+
+            // Add new internet zone
+
+            ComplianceNetworkZone internetZone = new()
+            {
+                IdString = "SPECIAL_ZONE_INTERNET",
+                Name = "Internet Zone",
+                IsInternetZone = true,
+                CriterionId = matrixId,
+            };
+
+            CalculateInternetZone(internetZone, existingZones);
+
+            AdditionsDeletions internetZoneAddDel = new()
+            {
+                IpRangesToAdd = internetZone.IPRanges.ToList()
+            };
+
+            await AddZone(internetZone, internetZoneAddDel, apiConnection);
+
+
 
         }
         
@@ -298,7 +303,23 @@ namespace FWO.Services
 
                     if (!exists)
                     {
-                        internalZoneIPRanges.Add(newRange);
+                        bool isSubnetOfExisting = internalZoneIPRanges.Any(r =>
+                            r.Contains(newRange));
+
+                        if (!isSubnetOfExisting)
+                        {
+
+                            bool overlapsWithExisting = internalZoneIPRanges.Any(r =>
+                                IpOperations.RangeOverlapExists(r, newRange));
+
+                            if (overlapsWithExisting)
+                            {
+                                // TODO: Handle overlaps
+                            }
+                            
+                            internalZoneIPRanges.Add(newRange);
+                        }
+                        
                     }                 
                 }
 
@@ -311,6 +332,7 @@ namespace FWO.Services
         private static List<IPAddressRange> ParseNetworkZoneToListOfRanges(List<ComplianceNetworkZone> networkZones, bool sort)
         {
             List<IPAddressRange> listOfRanges = new();
+
 
             // Gather ip ranges from excluded network zone list
 

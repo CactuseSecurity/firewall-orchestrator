@@ -93,17 +93,18 @@ def load_config_from_management(mgm_details: ManagementController, is_virtual_as
             time.sleep(2)
 
         if conn.get_prompt().endswith(">"):
-            try:
-                conn.send_command("terminal pager 0")
-            except Exception as e:
-                logger.warning(f"Could not disable paging: {e}")
-        
             conn.send_interactive(
                 [
                     ("enable", "Password", False),
                     (mgm_details.CloudClientSecret, "#", True)
                 ]
             )
+
+        if conn.get_prompt().endswith("#"):
+            try:
+                conn.send_command("terminal pager 0")
+            except Exception as e:
+                logger.warning(f"Could not disable paging: {e}")
 
         response = conn.send_interactive(
             [

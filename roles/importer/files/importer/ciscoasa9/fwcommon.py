@@ -47,6 +47,7 @@ from ciscoasa9.asa_parser_functions import _clean_lines, _consume_block, _parse_
     _parse_network_object_group_block, _parse_policy_map_block, _parse_service_object_block, \
     _parse_service_object_group_block, _parse_endpoint
 from ciscoasa9.asa_parser import parse_asa_config
+from asa_maps import name_to_port, protocol_map
 
 
 def has_config_changed(full_config, mgm_details, force=False):
@@ -189,79 +190,18 @@ def normalize_config(config_in: FwConfigManagerListController, importState: Impo
     network_objects = FwConfigNormalizedController.convertListToDict(list(nwobj.model_dump() for nwobj in network_objects), 'obj_uid')
     
 
-    protocol_map = {
-        "tcp": 6,
-        "udp": 17,
-        "icmp": 1,
-    }
-
-    name_to_port = {
-        "aol": 5120,
-        "bgp": 179,
-        "chargen": 19,
-        "cifs": 3020,
-        "citrix-ica": 1494,
-        "cmd": 514,
-        "ctiqbe": 2748,
-        "daytime": 13,
-        "discard": 9,
-        "domain": 53,
-        "echo": 7,
-        "exec": 512,
-        "finger": 79,
-        "ftp": 21,
-        "ftp-data": 20,
-        "gopher": 70,
-        "h323": 1720,
-        "hostname": 101,
-        "http": 80,
-        "https": 443,
-        "ident": 113,
-        "imap4": 143,
-        "irc": 194,
-        "kerberos": 88,
-        "klogin": 543,
-        "kshell": 544,
-        "ldap": 389,
-        "ldaps": 636,
-        "login": 513,
-        "lotusnotes": 1352,
-        "lpd": 515,
-        "netbios-ssn": 139,
-        "nfs": 2049,
-        "nntp": 119,
-        "pcanywhere-data": 5631,
-        "pim-auto-rp": 496,
-        "pop2": 109,
-        "pop3": 110,
-        "pptp": 1723,
-        "rsh": 514,
-        "rtsp": 554,
-        "sip": 5060,
-        "smtp": 25,
-        "sqlnet": 1522,
-        "ssh": 22,
-        "sunrpc": 111,
-        "tacacs": 49,
-        "talk": 517,
-        "telnet": 23,
-        "uucp": 540,
-        "whois": 43,
-        "www": 80
-    }
-
     service_objects = {}
     for serviceObject in native_config.service_objects:
         if serviceObject.dst_port_eq is not None and len(serviceObject.dst_port_eq) > 0:
             obj = ServiceObject(
                 svc_uid=serviceObject.name,
                 svc_name=serviceObject.name,
-                svc_port=int(serviceObject.dst_port_eq) if serviceObject.dst_port_eq.isdigit() else name_to_port[serviceObject.dst_port_eq],
-                svc_port_end=int(serviceObject.dst_port_eq) if serviceObject.dst_port_eq.isdigit() else name_to_port[serviceObject.dst_port_eq],
+                svc_port=int(serviceObject.dst_port_eq) if serviceObject.dst_port_eq.isdigit() else name_to_port[serviceObject.dst_port_eq]["port"],
+                svc_port_end=int(serviceObject.dst_port_eq) if serviceObject.dst_port_eq.isdigit() else name_to_port[serviceObject.dst_port_eq]["port"],
                 svc_color=fwo_const.defaultColor,
                 svc_typ="simple",
                 ip_proto=protocol_map.get(serviceObject.protocol, 0),
-                svc_comment=serviceObject.description
+                svc_comment=serviceObject.description if serviceObject.dst_port_eq.isdigit() else name_to_port[serviceObject.dst_port_eq]["description"]
             )
             service_objects[serviceObject.name] = obj
         elif serviceObject.dst_port_range is not None and len(serviceObject.dst_port_range) == 2:
@@ -380,16 +320,16 @@ def normalize_config(config_in: FwConfigManagerListController, importState: Impo
                     obj = ServiceObject(
                         svc_uid=svc_obj_name,
                         svc_name=svc_obj_name,
-                        svc_port=int(entry.dst_port_eq) if entry.dst_port_eq.isdigit() else name_to_port[entry.dst_port_eq],
-                        svc_port_end=int(entry.dst_port_eq) if entry.dst_port_eq.isdigit() else name_to_port[entry.dst_port_eq],
+                        svc_port=int(entry.dst_port_eq) if entry.dst_port_eq.isdigit() else name_to_port[entry.dst_port_eq]["port"],
+                        svc_port_end=int(entry.dst_port_eq) if entry.dst_port_eq.isdigit() else name_to_port[entry.dst_port_eq]["port"],
                         svc_color=fwo_const.defaultColor,
                         svc_typ="simple",
                         ip_proto=protocol_map.get(entry.protocol, 0),
-                        svc_comment=entry.description
+                        svc_comment=entry.description if entry.dst_port_eq.isdigit() else name_to_port[entry.dst_port_eq]["description"]
                     )
                     service_objects[svc_obj_name] = obj
             cnt += 1
-
+        
 
 
     normalized_config = FwConfigNormalized(

@@ -50,6 +50,9 @@ from ciscoasa9.asa_parser import parse_asa_config
 
 
 def has_config_changed(full_config, mgm_details, force=False):
+    full_config = full_config
+    mgm_details = mgm_details
+    force = force
     # dummy - may be filled with real check later on
     return True
 
@@ -388,17 +391,5 @@ def normalize_config(config_in: FwConfigManagerListController, importState: Impo
 
     config_in.ManagerSet[0].Configs = [normalized_config]
     
-
-    
-    print("")
     return config_in
 
-
-    # create dict
-    network_objects_normalized = {}
-    for no in network_objects:
-        network_objects_normalized[no.obj_uid] = no
-
-    fwo_config_normalized = FwConfigNormalized(
-        network_objects=network_objects_normalized,
-    )

@@ -220,7 +220,7 @@ namespace FWO.Services
 
         public static async Task UpdateSpecialZones(int matrixId, ApiConnection apiConnection, GlobalConfig globalConfig)
         {
-            // Get all zones of matrix.
+            // Get all zones of the matrix.
 
             List<ComplianceNetworkZone> existingZones = await apiConnection.SendQueryAsync<List<ComplianceNetworkZone>>(ComplianceQueries.getNetworkZonesForMatrix, new { criterionId = matrixId });
 

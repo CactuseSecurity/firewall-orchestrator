@@ -110,15 +110,9 @@ namespace FWO.Basics
         {
             string output = CommentRegex().Replace(input, "").Trim();
             string ignorableChangeCompareString = output + "\n";
-            if (input != null)
+            if (input != null && output.Length < input.Length && ignorableChangeCompareString != input)
             {
-                if (output.Length < input.Length) // there is always an EOL char added in text fields
-                {
-                    if (ignorableChangeCompareString != input)
-                    {
-                        shortened = true;
-                    }
-                }
+                shortened = true;
             }
             return output;
         }

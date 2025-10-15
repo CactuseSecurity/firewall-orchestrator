@@ -232,48 +232,54 @@ namespace FWO.Services
                 existingZones.Remove(specialZone);
             }
 
-            // Add new local zone
-
-            ComplianceNetworkZone internalZone = new()
+            if (globalConfig.AutoCalculateInternetZone)
             {
-                IdString = "SPECIAL_ZONE_INTERNAL",
-                Name = "Undefined Internal Zone",
-                IsInternalZone = true,
-                CriterionId = matrixId,
-            };
 
-            CalculateInternalZone(internalZone, GetInternalZoneRanges(globalConfig), existingZones);
+                // Add new local zone (even if AutoCalculateUndefinedInternalZone is false, because we need it to exclude the reserved ranges from internet zone)
 
-            AdditionsDeletions internalZoneAddDel = new()
-            {
-                IpRangesToAdd = internalZone.IPRanges.ToList()
-            };
+                ComplianceNetworkZone internalZone = new()
+                {
+                    IdString = "SPECIAL_ZONE_INTERNAL",
+                    Name = "Undefined Internal Zone",
+                    IsInternalZone = true,
+                    CriterionId = matrixId,
+                };
 
-            await AddZone(internalZone, internalZoneAddDel, apiConnection);
+                CalculateInternalZone(internalZone, GetInternalZoneRanges(globalConfig), existingZones);
 
-            existingZones.Add(internalZone);
+                AdditionsDeletions internalZoneAddDel = new()
+                {
+                    IpRangesToAdd = internalZone.IPRanges.ToList()
+                };
 
-            // Add new internet zone
+                existingZones.Add(internalZone);
 
-            ComplianceNetworkZone internetZone = new()
-            {
-                IdString = "SPECIAL_ZONE_INTERNET",
-                Name = "Internet Zone",
-                IsInternetZone = true,
-                CriterionId = matrixId,
-            };
+                // Write internal zone to db if configured
 
-            CalculateInternetZone(internetZone, existingZones);
+                if (globalConfig.AutoCalculateUndefinedInternalZone)
+                {
+                    await AddZone(internalZone, internalZoneAddDel, apiConnection);
+                }
 
-            AdditionsDeletions internetZoneAddDel = new()
-            {
-                IpRangesToAdd = internetZone.IPRanges.ToList()
-            };
+                // Add new internet zone
 
-            await AddZone(internetZone, internetZoneAddDel, apiConnection);
+                ComplianceNetworkZone internetZone = new()
+                {
+                    IdString = "SPECIAL_ZONE_INTERNET",
+                    Name = "Internet Zone",
+                    IsInternetZone = true,
+                    CriterionId = matrixId,
+                };
 
+                CalculateInternetZone(internetZone, existingZones);
 
+                AdditionsDeletions internetZoneAddDel = new()
+                {
+                    IpRangesToAdd = internetZone.IPRanges.ToList()
+                };
 
+                await AddZone(internetZone, internetZoneAddDel, apiConnection);
+            }
         }
         
         public static void CalculateInternetZone(ComplianceNetworkZone internetZone, List<ComplianceNetworkZone> excludedZones)

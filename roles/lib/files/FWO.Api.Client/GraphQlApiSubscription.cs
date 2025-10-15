@@ -10,7 +10,7 @@ namespace FWO.Api.Client
         public delegate void SubscriptionUpdate(SubscriptionResponseType reponse);
         public event SubscriptionUpdate OnUpdate;
 
-        private IObservable<GraphQLResponse<dynamic>> subscriptionStream;
+        private IObservable<GraphQLResponse<dynamic>> subscriptionStream = null!;
         private IDisposable subscription;
         private readonly GraphQLHttpClient graphQlClient;
         private readonly GraphQLRequest request;
@@ -20,10 +20,7 @@ namespace FWO.Api.Client
         {
             CreateSubscription();
         }
-
-#pragma warning disable CS8618
         public GraphQlApiSubscription(ApiConnection apiConnection, GraphQLHttpClient graphQlClient, GraphQLRequest request, Action<Exception> exceptionHandler, SubscriptionUpdate OnUpdate)
-#pragma warning restore CS8618
         {
             this.OnUpdate = OnUpdate;
             this.graphQlClient = graphQlClient;

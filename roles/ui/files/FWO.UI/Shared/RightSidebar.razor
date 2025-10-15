@@ -441,11 +441,11 @@
         }
     }
 
-    private List<OwnerReport> PrepareObjects(List<OwnerReport> ownerData)
+    private List<OwnerConnectionReport> PrepareObjects(List<OwnerConnectionReport> ownerData)
     {
         if(CurrentReport?.ReportType == ReportType.VarianceAnalysis)
         {
-            List<OwnerReport> ownerDataForRsb = [];
+            List<OwnerConnectionReport> ownerDataForRsb = [];
             foreach(var ownerReport in ownerData)
             {
                 ownerDataForRsb.Add(ReportVariances.CollectObjectsInReport(ownerReport));

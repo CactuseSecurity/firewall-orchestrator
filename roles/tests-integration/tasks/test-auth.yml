@@ -1,106 +1,117 @@
 # this playbook contains middleware server tests
 
-- name:  wait for middleware port to become available
-  wait_for:
-    port: "{{ middleware_web_listener_port }}"
-    host: "{{ middleware_hostname }}"
-    connect_timeout: 1
-    delay: 10
-    timeout: 25
+- name: wait for middleware port to become available
+  ansible.builtin.wait_for:
+      port: "{{ middleware_web_listener_port }}"
+      host: "{{ middleware_hostname }}"
+      connect_timeout: 1
+      delay: 10
+      timeout: 25
 
 - name: middleware test get jwt valid creds
-  uri:
-    url: https://{{ middleware_hostname }}:{{ middleware_web_listener_port }}/api/AuthenticationToken/Get/
-    method: POST
-    headers:
-      Content-Type: application/json
-    body:
-      Username: user1{{ test_postfix }}
-      Password: "{{ test_user1_pw }}"
-    body_format: json
-    validate_certs: false
-    return_content: true
+  ansible.builtin.uri:
+      url: "https://{{ middleware_hostname }}:{{ middleware_web_listener_port }}/api/AuthenticationToken/Get/"
+      method: POST
+      headers:
+          Content-Type: application/json
+      body:
+          Username: "user1{{ test_postfix }}"
+          Password: "{{ test_user1_pw }}"
+      body_format: json
+      validate_certs: false
+      return_content: true
   register: sample_jwt
   changed_when: false
 #  environment: "{{ proxy_env }}"
 
-- debug: var=sample_jwt
+- ansible.builtin.debug:
+      var: sample_jwt
 
-- set_fact: jwt_header="{{sample_jwt.content.split('.')[0]}}"
+# --- JWT header decode (base64url -> json) ---
+- name: extract raw jwt header and payload segments
+  ansible.builtin.set_fact:
+      jwt_header_raw: "{{ sample_jwt.content.split('.')[0] }}"
+      jwt_payload_raw: "{{ sample_jwt.content.split('.')[1] }}"
 
-- debug: var=jwt_header
+# pad and translate base64url for header
+- name: normalize/pad base64url header
+  ansible.builtin.set_fact:
+      jwt_header_b64: >-
+          {{ jwt_header_raw
+             | regex_replace('-', '+')
+             | regex_replace('_', '/')
+             ~ ('=' * ((4 - (jwt_header_raw | length % 4)) % 4)) }}
 
-## adding potentially missing base64 "=" padding to header:
-- set_fact: jwt_header="{{ jwt_header }}=" cacheable=true
-  when: "jwt_header|length % 4 > 0"
-  loop:
-    - 1
-    - 2
-    - 3
+- ansible.builtin.debug: { var: jwt_header_b64 }
 
-- debug: var=jwt_header
+- name: decode + parse header json
+  ansible.builtin.set_fact:
+      jwt_header: "{{ jwt_header_b64 | b64decode | from_json }}"
 
-- set_fact: jwt_header="{{ jwt_header|b64decode }}"
-- debug: var=jwt_header
-- set_fact: jwt_type="{{ jwt_header.typ }}"
-- debug: var=jwt_type
+- ansible.builtin.debug: { var: jwt_header }
+
+- name: pick header 'typ'
+  ansible.builtin.set_fact:
+      jwt_type: "{{ jwt_header['typ'] | default(jwt_header.typ, true) }}"
+
+- ansible.builtin.debug: { var: jwt_type }
 
 - name: middleware get jwt test valid creds output
-  debug:
-    msg: "ERROR unexpected jwt test result (jwt_type does not match 'JWT'): {{ jwt_type }}"
+  ansible.builtin.debug:
+      msg: "ERROR unexpected jwt test result (jwt_type does not match 'JWT'): {{ jwt_type }}"
   when: "jwt_type is not match('JWT')"
 
-- set_fact: jwt_encoded_payload="{{sample_jwt.content.split('.')[1]}}"
+# --- JWT payload decode (base64url -> json) ---
+- name: normalize/pad base64url payload
+  ansible.builtin.set_fact:
+      jwt_payload_b64: >-
+          {{ jwt_payload_raw
+             | regex_replace('-', '+')
+             | regex_replace('_', '/')
+             ~ ('=' * ((4 - (jwt_payload_raw | length % 4)) % 4)) }}
 
-- name: show jwt encoded payload pre padding
-  debug: var=jwt_encoded_payload
-## adding potentially missing base64 = padding to payload:
-- set_fact: jwt_encoded_payload="{{ jwt_encoded_payload }}=" cacheable=true
-  when: "jwt_encoded_payload|length % 4 > 0"
-  loop:
-    - 1
-    - 2
-    - 3
+- ansible.builtin.debug:
+      var: jwt_payload_b64
 
-- name: show jwt encoded payload post padding
-  debug: var=jwt_encoded_payload
-
-- set_fact: jwt_payload="{{ jwt_encoded_payload|b64decode }}"
+- name: decode + parse payload json
+  ansible.builtin.set_fact:
+      jwt_payload: "{{ jwt_payload_b64 | b64decode | from_json }}"
 
 - name: show jwt decoded payload
-  debug: var=jwt_payload
+  ansible.builtin.debug:
+      var: jwt_payload
 
-- set_fact: jwt_unique_user_name="{{ jwt_payload.unique_name }}"
-  when: "'unique_name' in jwt_payload"
-
-- set_fact: jwt_unique_user_name="{{ jwt_payload.name }}"
-  when: "'name' in jwt_payload"
+- name: select username from payload (unique_name or name)
+  ansible.builtin.set_fact:
+      jwt_unique_user_name: >-
+          {{ ( 'unique_name' in jwt_payload ) | ternary(jwt_payload.unique_name, jwt_payload.name) }}
 
 - name: Verify JWT Middleware and Check Valid Credentials, Output User 'user1_test'
-  debug:
-    msg: "ERROR: Unexpected JWT test result (username does not match 'user1{{ test_postfix }}'): {{ jwt_unique_user_name }}"
+  ansible.builtin.debug:
+      msg: "ERROR: Unexpected JWT test result (username does not match 'user1{{ test_postfix }}'): {{ jwt_unique_user_name }}"
   when: "jwt_unique_user_name != 'user1' ~ test_postfix"
 
+# --- negative test: wrong credentials ---
 - name: middleware test get jwt wrong creds
-  uri:
-    url: https://{{ middleware_hostname }}:{{ middleware_web_listener_port }}/api/AuthenticationToken/Get/
-    method: POST
-    headers:
-      Content-Type: application/json
-    body:
-      Username: user1{{ test_postfix }}
-      Password: wrong-pwd
-    body_format: json
-    validate_certs: false
-    return_content: true
+  ansible.builtin.uri:
+      url: "https://{{ middleware_hostname }}:{{ middleware_web_listener_port }}/api/AuthenticationToken/Get/"
+      method: POST
+      headers:
+          Content-Type: application/json
+      body:
+          Username: "user1{{ test_postfix }}"
+          Password: "wrong-pwd"
+      body_format: json
+      validate_certs: false
+      return_content: true
   register: sample_jwt
   changed_when: false
   ignore_errors: true
 
-- debug:
-    var: sample_jwt
+- ansible.builtin.debug:
+      var: sample_jwt
 
 - name: middleware get jwt test wrong creds output
-  debug:
-    msg: "ERROR unexpected jwt test result (not equal 'error: Invalid credentials.'): {{ sample_jwt.content }}"
-  when: sample_jwt.content is not match(".*error.*Invalid\scredentials\..*")
+  ansible.builtin.debug:
+      msg: "ERROR unexpected jwt test result (not equal 'error: Invalid credentials.'): {{ sample_jwt.content }}"
+  when: sample_jwt.content is not match(".*error.*Invalid\\scredentials\\..*")

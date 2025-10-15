@@ -5,6 +5,7 @@ namespace FWO.Api.Client.Queries
     public class ObjectQueries : Queries
     {
         public static readonly string networkObjectDetailsFragment;
+        public static readonly string networkObjectDetailsForVarianceFragment;
         public static readonly string getNetworkObjectDetails;
         public static readonly string getNetworkObjectsForManagement;
         public static readonly string networkServiceDetailsFragment;
@@ -23,13 +24,16 @@ namespace FWO.Api.Client.Queries
             {
                 networkObjectDetailsFragment =
                     File.ReadAllText(QueryPath + "networkObject/fragments/networkObjectDetails.graphql");
+                    
+                networkObjectDetailsForVarianceFragment =
+                    File.ReadAllText(QueryPath + "networkObject/fragments/networkObjectDetailsForVariance.graphql");
 
                 getNetworkObjectDetails =
                     networkObjectDetailsFragment +
                     File.ReadAllText(QueryPath + "networkObject/getNetworkObjectDetails.graphql");
 
                 getNetworkObjectsForManagement =
-                    networkObjectDetailsFragment +
+                    networkObjectDetailsForVarianceFragment +
                     File.ReadAllText(QueryPath + "networkObject/getNetworkObjectsForManagement.graphql");
 
                 networkServiceDetailsFragment =

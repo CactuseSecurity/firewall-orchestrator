@@ -32,15 +32,16 @@ namespace FWO.Report
                 AppendMissingConns(ref report, ownerReport, chapterNumber);
                 AppendConnDiffs(ref report, ownerReport, chapterNumber);
                 AppendObjects(ref report, ownerReport, chapterNumber);
+                AppendRulesForDeletedConns(ref report, ownerReport, chapterNumber);
                 AppendRemainingRules(ref report, ownerReport, chapterNumber);
                 report.AppendLine("<hr>");
             }
             return GenerateHtmlFrame(userConfig.GetText(ReportType.ToString()), Query.RawFilter, DateTime.Now, report);
         }
 
-        public static OwnerReport CollectObjectsInReport(OwnerReport ownerReport)
+        public static OwnerConnectionReport CollectObjectsInReport(OwnerConnectionReport ownerReport)
         {
-            OwnerReport modifiedOwnerReport = new(){ Connections = [.. ownerReport.Connections] };
+            OwnerConnectionReport modifiedOwnerReport = new(){ Connections = [.. ownerReport.Connections] };
             modifiedOwnerReport.Connections.AddRange(ownerReport.RuleDifferences.ConvertAll(o => o.ModelledConnection));
             if(ownerReport.MissingAppRoles.Count > 0 || ownerReport.DifferingAppRoles.Count > 0)
             {
@@ -72,7 +73,7 @@ namespace FWO.Report
             return $"{appRoles}{userConfig.GetText("connections")}.: {missConnCounter} {userConfig.GetText("not_implemented")}, {diffConnCounter} {userConfig.GetText("with_diffs")}";
         }
 
-        private void AppendStats(ref StringBuilder report, OwnerReport ownerReport)
+        private void AppendStats(ref StringBuilder report, OwnerConnectionReport ownerReport)
         {
             report.AppendLine("<table>");
             report.AppendLine("<tr>");
@@ -103,7 +104,7 @@ namespace FWO.Report
             report.AppendLine("</table>");
         }
 
-        private void AppendMissingAppRoles(ref StringBuilder report, OwnerReport ownerReport)
+        private void AppendMissingAppRoles(ref StringBuilder report, OwnerConnectionReport ownerReport)
         {
             if(ownerReport.AppRoleStats.AppRolesMissingCount > 0)
             {
@@ -120,7 +121,7 @@ namespace FWO.Report
             }
         }
 
-        private void AppendAppRoleDiffs(ref StringBuilder report, OwnerReport ownerReport)
+        private void AppendAppRoleDiffs(ref StringBuilder report, OwnerConnectionReport ownerReport)
         {
             if(ownerReport.AppRoleStats.AppRolesDifferenceCount > 0)
             {
@@ -193,7 +194,7 @@ namespace FWO.Report
             report.AppendLine("</tr>");
         }
 
-        private void AppendMissingConns(ref StringBuilder report, OwnerReport ownerReport, int chapterNumber)
+        private void AppendMissingConns(ref StringBuilder report, OwnerConnectionReport ownerReport, int chapterNumber)
         {
             if(ownerReport.RegularConnections.Count > 0)
             {
@@ -213,7 +214,7 @@ namespace FWO.Report
             }
         }
 
-        private void AppendConnDiffs(ref StringBuilder report, OwnerReport ownerReport, int chapterNumber)
+        private void AppendConnDiffs(ref StringBuilder report, OwnerConnectionReport ownerReport, int chapterNumber)
         {
             if(ownerReport.RuleDifferences.Count > 0 && ruleDiffDisplay != null)
             {
@@ -257,7 +258,7 @@ namespace FWO.Report
             }
         }
 
-        private void AppendObjects(ref StringBuilder report, OwnerReport ownerReport, int chapterNumber)
+        private void AppendObjects(ref StringBuilder report, OwnerConnectionReport ownerReport, int chapterNumber)
         {
             List<ModellingConnection> relevantConns = CollectObjectsInReport(ownerReport).Connections;
             ownerReport.AllObjects = ConnectionReport.GetAllNetworkObjects(relevantConns, true, userConfig.ResolveNetworkAreas);
@@ -267,14 +268,25 @@ namespace FWO.Report
             AppendNetworkObjectsHtml(ownerReport.AllObjects, chapterNumber, ref report);
             AppendNetworkServicesHtml(ownerReport.AllServices, chapterNumber, ref report);
         }
-     
-        private void AppendRemainingRules(ref StringBuilder report, OwnerReport ownerReport, int chapterNumber)
+
+        private void AppendRulesForDeletedConns(ref StringBuilder report, OwnerConnectionReport ownerReport, int chapterNumber)
         {
-            if(ownerReport.ManagementData.Count > 0)
+            if (ownerReport.RulesForDeletedConns.Count > 0)
+            {
+                ReportRules rulesReport = new(new(""), userConfig, ReportType.Rules);
+                report.AppendLine($"<h4 id=\"{Guid.NewGuid()}\">{userConfig.GetText("rules_for_deleted_conns")}</h4>");
+                rulesReport.ConstructHtmlReport(ref report, ownerReport.RulesForDeletedConns, chapterNumber, 2);
+                report.AppendLine("<hr>");
+            }
+        }
+
+        private void AppendRemainingRules(ref StringBuilder report, OwnerConnectionReport ownerReport, int chapterNumber)
+        {
+            if (ownerReport.UnmodelledRules.Count > 0)
             {
                 ReportRules rulesReport = new(new(""), userConfig, ReportType.AppRules);
                 report.AppendLine($"<h4 id=\"{Guid.NewGuid()}\">{userConfig.GetText("remaining_rules")}</h4>");
-                rulesReport.ConstructHtmlReport(ref report, ownerReport.ManagementData, chapterNumber, true);
+                rulesReport.ConstructHtmlReport(ref report, ownerReport.UnmodelledRules, chapterNumber, 2);
                 report.AppendLine("<hr>");
             }
         }

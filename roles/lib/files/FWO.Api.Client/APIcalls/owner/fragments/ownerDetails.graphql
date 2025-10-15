@@ -17,4 +17,5 @@ fragment ownerDetails on owner {
   last_recertifier
   last_recertifier_dn
   next_recert_date
+  recert_active
 }

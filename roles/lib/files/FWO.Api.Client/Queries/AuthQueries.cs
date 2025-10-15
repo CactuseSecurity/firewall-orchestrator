@@ -37,6 +37,7 @@ namespace FWO.Api.Client.Queries
         public static readonly string getLdapConnections;
         public static readonly string getAllLdapConnections;
         public static readonly string getLdapConnectionsSubscription;
+        public static readonly string getLdapConnectionForUserSearchById;
         public static readonly string newLdapConnection;
         public static readonly string updateLdapConnection;
         public static readonly string deleteLdapConnection;
@@ -76,6 +77,7 @@ namespace FWO.Api.Client.Queries
                 getLdapConnections = File.ReadAllText(QueryPath + "auth/getLdapConnections.graphql");
                 getAllLdapConnections = File.ReadAllText(QueryPath + "auth/getAllLdapConnections.graphql");
                 getLdapConnectionsSubscription = File.ReadAllText(QueryPath + "auth/getLdapConnectionsSubscription.graphql");
+                getLdapConnectionForUserSearchById = File.ReadAllText(QueryPath + "auth/getLdapConnectionForUserSearchById.graphql");
                 newLdapConnection = File.ReadAllText(QueryPath + "auth/newLdapConnection.graphql");
                 updateLdapConnection = File.ReadAllText(QueryPath + "auth/updateLdapConnection.graphql");
                 deleteLdapConnection = File.ReadAllText(QueryPath + "auth/deleteLdapConnection.graphql");

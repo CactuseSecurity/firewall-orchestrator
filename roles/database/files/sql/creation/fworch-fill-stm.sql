@@ -104,6 +104,7 @@ insert into config (config_key, config_value, config_user) VALUES ('modRolloutBu
 insert into config (config_key, config_value, config_user) VALUES ('modRolloutNatHeuristic', 'false', 0);
 insert into config (config_key, config_value, config_user) VALUES ('modRolloutErrorText', 'Error during external request', 0);
 insert into config (config_key, config_value, config_user) VALUES ('modRecertActive', 'false', 0);
+insert into config (config_key, config_value, config_user) VALUES ('modRecertExpectAllModelled', 'false', 0);
 insert into config (config_key, config_value, config_user) VALUES ('modRecertText', '', 0);
 insert into config (config_key, config_value, config_user) VALUES ('modIconify', 'True', 0);
 insert into config (config_key, config_value, config_user) VALUES ('reducedProtocolSet', 'True', 0);

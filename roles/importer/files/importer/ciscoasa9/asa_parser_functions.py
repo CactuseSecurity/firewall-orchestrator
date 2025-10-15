@@ -200,7 +200,7 @@ def _parse_network_object_group_block(block: List[str]) -> AsaNetworkObjectGroup
     return AsaNetworkObjectGroup(name=grp_name, objects=members, description=desc)
 
 
-def _parse_service_object_block(block: List[str]) -> AsaServiceObject:
+def _parse_service_object_block(block: List[str]) -> AsaServiceObject | None:
     """Parse an object service block."""
     name = block[0].split()[2]
     protocol = None
@@ -233,7 +233,8 @@ def _parse_service_object_block(block: List[str]) -> AsaServiceObject:
             prange = (proto_mode, (int(mrange.group(2)), int(mrange.group(3))))
 
     if protocol is None or protocol not in ("tcp", "udp", "icmp", "ip"):
-        raise ValueError(f"Unsupported or missing protocol in service object: {block[0]}")
+        # raise ValueError(f"Unsupported or missing protocol in service object: {block[0]}")
+        return None  # skip unsupported service objects
 
     # eq and prange can be either str or tuple, normalize for AsaServiceObject
     dst_port_eq = eq[1] if isinstance(eq, tuple) else eq

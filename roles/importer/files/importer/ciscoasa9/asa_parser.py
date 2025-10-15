@@ -127,7 +127,9 @@ def parse_asa_config(raw_config: str) -> Config:
         # object service
         if re.match(r"^object\s+service\s+\S+$", line, re.I):
             block, i = _consume_block(lines, i, re.compile(r"^object\s+service\s+\S+$", re.I))
-            svc_objects.append(_parse_service_object_block(block))
+            svc_obj = _parse_service_object_block(block)
+            if svc_obj:
+                svc_objects.append(svc_obj)
             continue
 
         # object service with inline protocol definition

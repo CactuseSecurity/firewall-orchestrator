@@ -308,4 +308,4 @@ if __name__ == "__main__":
     config = parse_asa_config(text)
 
     # You can dump the entire parsed config as JSON
-    print(json.dumps(config.model_dump(exclude_none=True)["service_object_groups"], indent=2))
+    print(json.dumps(config.model_dump(exclude_none=True)["names"], indent=2))

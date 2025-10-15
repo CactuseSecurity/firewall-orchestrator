@@ -143,8 +143,8 @@ def get_config(config_in: FwConfigManagerListController, importState: ImportStat
     is_virtual_asa = importState.MgmDetails.DeviceTypeName == "Cisco Asa on FirePower"
 
     if config_in.native_config_is_empty:
-        # raw_config = load_config_from_management(importState.MgmDetails, is_virtual_asa)
-        raw_config = load_config_from_file("asa.conf")
+        raw_config = load_config_from_management(importState.MgmDetails, is_virtual_asa)
+        # raw_config = load_config_from_file("asa.conf")
         config2import = parse_asa_config(raw_config)
         config_in.native_config = config2import.model_dump()
 
@@ -165,6 +165,22 @@ def normalize_config(config_in: FwConfigManagerListController, importState: Impo
     
     native_config = Config.model_validate(config_in.native_config)
     network_objects = []
+
+
+    # names (host just ip and name and description)
+    for name in native_config.names:
+        obj = NetworkObject(
+            obj_uid=name.name,
+            obj_name=name.name,
+            obj_typ="host",
+            obj_ip=IPNetwork(f"{name.ip_address}/32"),
+            obj_ip_end=IPNetwork(f"{name.ip_address}/32"),
+            obj_color=fwo_const.defaultColor,
+            obj_comment=name.description
+        )
+        network_objects.append(obj)
+
+
     for object in native_config.objects:
         if isinstance(object, AsaNetworkObject):
             if object.ip_address is not None and object.subnet_mask is not None:
@@ -273,9 +289,9 @@ def normalize_config(config_in: FwConfigManagerListController, importState: Impo
     for serviceObjectGroup in native_config.service_object_groups:
         obj_names = []
 
-        # Handle 'mixed' proto_mode
+        # Handle 'mixed' proto_mode (service object groups containing multiple protocols)
         if serviceObjectGroup.proto_mode == "mixed":
-            # Handle ports_eq for each protocol
+            # Handle ports_eq for each protocol (single port equals)
             if hasattr(serviceObjectGroup, "ports_eq"):
                 for protos, eq_ports in serviceObjectGroup.ports_eq.items():
                     for proto in protos.split("-"):
@@ -283,6 +299,7 @@ def normalize_config(config_in: FwConfigManagerListController, importState: Impo
                             obj_name = f"{port}-{proto}"
                             obj_names.append(obj_name)
                             if obj_name not in service_objects:
+                                # Create service object for each port/protocol combination
                                 obj = ServiceObject(
                                     svc_uid=obj_name,
                                     svc_name=obj_name,
@@ -295,13 +312,14 @@ def normalize_config(config_in: FwConfigManagerListController, importState: Impo
                                 )
                                 service_objects[obj_name] = obj
 
-            # Handle ports_range for each protocol
+            # Handle ports_range for each protocol (port ranges)
             if hasattr(serviceObjectGroup, "ports_range"):
                 for proto, ranges in serviceObjectGroup.ports_range.items():
                     for pr in ranges:
                         obj_name = f"{pr[0]}-{pr[1]}-{proto}" if pr[0] != pr[1] else f"{pr[0]}-{proto}"
                         obj_names.append(obj_name)
                         if obj_name not in service_objects:
+                            # Create service object for each port range/protocol combination
                             obj = ServiceObject(
                                 svc_uid=obj_name,
                                 svc_name=obj_name,
@@ -314,7 +332,7 @@ def normalize_config(config_in: FwConfigManagerListController, importState: Impo
                             )
                             service_objects[obj_name] = obj
 
-            # Handle nested_refs
+            # Handle nested_refs (references to other service objects/groups)
             for obj in getattr(serviceObjectGroup, "nested_refs", []):
                 obj_names.append(obj)
 

@@ -272,34 +272,98 @@ def normalize_config(config_in: FwConfigManagerListController, importState: Impo
     # service object groups
     for serviceObjectGroup in native_config.service_object_groups:
         obj_names = []
-        for protocol in serviceObjectGroup.proto_mode.split("-"):
-            if protocol not in protocol_map and protocol != "service":
-                raise ValueError(f"Unknown protocol in service object group: {protocol}")
-            
-            if protocol == "service":
-                for obj in serviceObjectGroup.nested_refs:
-                    obj_names.append(obj)
-                for pr in serviceObjectGroup.protocols:
-                    obj_name = f"any-{pr}"
-                    obj_names.append(obj_name)
-                continue
-            
-            for pr in serviceObjectGroup.ports_range:
-                obj_name = f"{pr[0]}-{pr[1]}-{protocol}" if pr[0] != pr[1] else f"{pr[0]}-{protocol}"
-                obj_names.append(obj_name)
-                if obj_name in service_objects.keys():
+
+        # Handle 'mixed' proto_mode
+        if serviceObjectGroup.proto_mode == "mixed":
+            # Handle ports_eq for each protocol
+            if hasattr(serviceObjectGroup, "ports_eq"):
+                for protos, eq_ports in serviceObjectGroup.ports_eq.items():
+                    for proto in protos.split("-"):
+                        for port in eq_ports:
+                            obj_name = f"{port}-{proto}"
+                            obj_names.append(obj_name)
+                            if obj_name not in service_objects:
+                                obj = ServiceObject(
+                                    svc_uid=obj_name,
+                                    svc_name=obj_name,
+                                    svc_port=int(port) if str(port).isdigit() else name_to_port[port]["port"],
+                                    svc_port_end=int(port) if str(port).isdigit() else name_to_port[port]["port"],
+                                    svc_color=fwo_const.defaultColor,
+                                    svc_typ="simple",
+                                    ip_proto=protocol_map.get(proto, 0),
+                                    svc_comment=serviceObjectGroup.description
+                                )
+                                service_objects[obj_name] = obj
+
+            # Handle ports_range for each protocol
+            if hasattr(serviceObjectGroup, "ports_range"):
+                for proto, ranges in serviceObjectGroup.ports_range.items():
+                    for pr in ranges:
+                        obj_name = f"{pr[0]}-{pr[1]}-{proto}" if pr[0] != pr[1] else f"{pr[0]}-{proto}"
+                        obj_names.append(obj_name)
+                        if obj_name not in service_objects:
+                            obj = ServiceObject(
+                                svc_uid=obj_name,
+                                svc_name=obj_name,
+                                svc_port=int(pr[0]),
+                                svc_port_end=int(pr[1]),
+                                svc_color=fwo_const.defaultColor,
+                                svc_typ="simple",
+                                ip_proto=protocol_map.get(proto, 0),
+                                svc_comment=serviceObjectGroup.description
+                            )
+                            service_objects[obj_name] = obj
+
+            # Handle nested_refs
+            for obj in getattr(serviceObjectGroup, "nested_refs", []):
+                obj_names.append(obj)
+
+        else:
+            # Original logic for non-mixed proto_mode
+            for protocol in serviceObjectGroup.proto_mode.split("-"):
+                if protocol not in protocol_map and protocol != "service":
+                    raise ValueError(f"Unknown protocol in service object group: {protocol}")
+
+                if protocol == "service":
+                    for obj in serviceObjectGroup.nested_refs:
+                        obj_names.append(obj)
+                    for pr in serviceObjectGroup.protocols:
+                        obj_name = f"any-{pr}"
+                        obj_names.append(obj_name)
                     continue
-                obj = ServiceObject(
-                    svc_uid=obj_name,
-                    svc_name=obj_name,
-                    svc_port=int(pr[0]),
-                    svc_port_end=int(pr[1]),
-                    svc_color=fwo_const.defaultColor,
-                    svc_typ="simple",
-                    ip_proto=protocol_map.get(protocol, 0),
-                    svc_comment=serviceObjectGroup.description
-                )
-                service_objects[obj_name] = obj
+
+                for pr in serviceObjectGroup.ports_eq[serviceObjectGroup.proto_mode]:
+                    obj_name = f"{pr}-{protocol}"
+                    obj_names.append(obj_name)
+                    if obj_name not in service_objects:
+                        obj = ServiceObject(
+                            svc_uid=obj_name,
+                            svc_name=obj_name,
+                            svc_port=int(pr) if str(pr).isdigit() else name_to_port[pr]["port"],
+                            svc_port_end=int(pr) if str(pr).isdigit() else name_to_port[pr]["port"],
+                            svc_color=fwo_const.defaultColor,
+                            svc_typ="simple",
+                            ip_proto=protocol_map.get(protocol, 0),
+                            svc_comment=serviceObjectGroup.description
+                        )
+                        service_objects[obj_name] = obj
+                        
+                for pr in serviceObjectGroup.ports_range[serviceObjectGroup.proto_mode]:
+                    obj_name = f"{pr[0]}-{pr[1]}-{protocol}" if pr[0] != pr[1] else f"{pr[0]}-{protocol}"
+                    obj_names.append(obj_name)
+                    if obj_name not in service_objects:
+                        obj = ServiceObject(
+                            svc_uid=obj_name,
+                            svc_name=obj_name,
+                            svc_port=int(pr[0]),
+                            svc_port_end=int(pr[1]),
+                            svc_color=fwo_const.defaultColor,
+                            svc_typ="simple",
+                            ip_proto=protocol_map.get(protocol, 0),
+                            svc_comment=serviceObjectGroup.description
+                        )
+                        service_objects[obj_name] = obj
+                        
 
         obj = ServiceObject(
             svc_uid=serviceObjectGroup.name,
@@ -316,17 +380,20 @@ def normalize_config(config_in: FwConfigManagerListController, importState: Impo
     for access_lists in native_config.access_lists:
         create_objects_for_access_lists(access_lists, network_objects, service_objects, importState)
 
-    rulebases = build_rulebases_from_access_lists(native_config.access_lists, importState.MgmDetails.Uid)
+    rulebases = build_rulebases_from_access_lists(native_config.access_lists, importState.MgmDetails.Uid, protocol_groups=native_config.protocol_groups)
 
+    rulebase_links = []
+    if len(rulebases) > 0:
+        rulebase_links.append(RulebaseLinkUidBased(to_rulebase_uid=rulebases[0].uid, link_type="ordered", is_initial=True, is_global=False, is_section=False))
+        for idx in range(1, len(rulebases)):
+            rulebase_links.append(RulebaseLinkUidBased(from_rule_uid=rulebases[idx-1].uid, to_rulebase_uid=rulebases[idx].uid, link_type="ordered", is_initial=False, is_global=False, is_section=False))
+    
 
-    gateway1 = Gateway(
+    gateway = Gateway(
         Uid=native_config.hostname,
         Name=native_config.hostname,
         Routing=[],
-        RulebaseLinks=[
-            RulebaseLinkUidBased(to_rulebase_uid="acl1", link_type="ordered", is_initial=True, is_global=False, is_section=False),
-            RulebaseLinkUidBased(from_rule_uid="acl1", to_rulebase_uid="acl2", link_type="ordered", is_initial=False, is_global=False, is_section=False)
-            ],
+        RulebaseLinks=rulebase_links,
         GlobalPolicyUid=None,
         EnforcedPolicyUids=[rb.uid for rb in rulebases],
         EnforcedNatPolicyUids=[],
@@ -342,7 +409,8 @@ def normalize_config(config_in: FwConfigManagerListController, importState: Impo
         service_objects=service_objects,
         zone_objects={},
         rulebases=rulebases,
-        gateways=[gateway1],
+        gateways=[gateway],
+        # gateways=[]
     )
 
     config_in.ManagerSet[0].Configs = [normalized_config]
@@ -371,8 +439,6 @@ def build_rulebases_from_access_lists(access_lists: List[AccessList], mgm_uid: s
                     svc_ref = f"any-{entry.protocol.value}"
                 elif entry.dst_port.kind in ("service", "service-group"):
                     svc_ref = entry.dst_port.value
-                    if entry.protocol.value not in 
-                    getFwoLogger().warning(f"service/group dst port in access list: {entry.dst_port.value}")
                 else:
                     svc_ref = f"any-{entry.protocol.value}"
             elif entry.protocol.kind == "ip":
@@ -388,14 +454,14 @@ def build_rulebases_from_access_lists(access_lists: List[AccessList], mgm_uid: s
                         break
                 
                 for pr in allowed_protocols:
-                    
+                    svc_ref = f"any-{pr}"
             else:
-                svc_ref = "any"
+                svc_ref = fwo_const.list_delimiter.join([f"any-{p}" for p in ("tcp", "udp", "icmp")])
 
             rule = RuleNormalized(
                 rule_num=idx,
                 rule_num_numeric=float(idx),
-                rule_disabled=False,
+                rule_disabled=entry.inactive,
                 rule_src_neg=False,
                 rule_src=entry.src.value,
                 rule_src_refs=entry.src.value,
@@ -405,11 +471,11 @@ def build_rulebases_from_access_lists(access_lists: List[AccessList], mgm_uid: s
                 rule_svc_neg=False,
                 rule_svc=svc_ref,
                 rule_svc_refs=svc_ref,
-                rule_action=RuleAction.ACCEPT if entry.action == "permit" else RuleAction.DROP,
+                rule_action=RuleAction.ACCEPT if entry.action == "permit" else RuleAction.REJECT,
                 rule_track=RuleTrack.NONE,
                 rule_installon="",
                 rule_time="",
-                rule_name=f"{access_list.name}-{idx:04d}",
+                rule_name=f"{access_list.name}-{idx:03d}",
                 rule_uid=rule_uid,
                 rule_custom_fields=None,
                 rule_implied=False,
@@ -491,8 +557,24 @@ def create_objects_for_access_lists(access_lists: AccessList, network_objects: d
                             svc_comment="service object created during import"
                         )
                         service_objects[obj_name] = obj
+            elif entry.protocol.value == "ip":
+                for pr in ("tcp", "udp", "icmp"):
+                    obj_name = f"any-{pr}"
+                    if obj_name not in service_objects.keys():
+                        obj = ServiceObject(
+                            svc_uid=obj_name,
+                            svc_name=obj_name,
+                            svc_port=0,
+                            svc_port_end=65535,
+                            svc_color=fwo_const.defaultColor,
+                            svc_typ="simple",
+                            ip_proto=protocol_map.get(pr, 0),
+                            svc_comment="service object created during import"
+                        )
+                        service_objects[obj_name] = obj
+                
 
-                elif entry.dst_port.kind in 
+            
 
         # create network objects
         for ep in (entry.src, entry.dst):
@@ -513,10 +595,10 @@ def create_objects_for_access_lists(access_lists: AccessList, network_objects: d
                     obj = NetworkObject(
                         obj_uid="any",
                         obj_name="any",
-                        obj_typ="group",
-                        obj_member_names="any",
-                        obj_member_refs="any",
-                        obj_ip=IPNetwork("0.0.0.0/0"),
+                        obj_typ="network",
+                        obj_member_names="",
+                        obj_member_refs="",
+                        obj_ip=IPNetwork("0.0.0.0/32"),
                         obj_ip_end=IPNetwork("255.255.255.255/32"),
                         obj_color=fwo_const.defaultColor,
                         obj_comment="network object created during import"

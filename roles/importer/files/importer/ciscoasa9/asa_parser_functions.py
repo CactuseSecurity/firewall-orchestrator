@@ -431,7 +431,7 @@ def _parse_access_list_entry(line: str, protocol_groups: List[AsaProtocolGroup],
     tokens = tokens[consumed:]
 
     # Parse destination port
-    dst_port = EndpointKind(kind="service", value="any")  # Default value
+    dst_port = EndpointKind(kind="any", value="any")  # Default value
     if len(tokens) >= 2 and tokens[0] == "eq":
         dst_port = EndpointKind(kind="eq", value=tokens[1])
         tokens = tokens[2:]

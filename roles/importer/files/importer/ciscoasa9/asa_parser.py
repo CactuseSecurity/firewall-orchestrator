@@ -3,13 +3,14 @@ import re
 from pathlib import Path
 from typing import List, Optional
 from ciscoasa9.asa_models import AccessGroupBinding, AccessList, AccessListEntry, AsaEnablePassword,\
-    AsaNetworkObject, AsaNetworkObjectGroup, AsaServiceModule, AsaServiceObject, AsaServiceObjectGroup,\
+    AsaNetworkObject, AsaNetworkObjectGroup, AsaProtocolGroup, AsaServiceModule, AsaServiceObject, AsaServiceObjectGroup,\
     ClassMap, Config, DnsInspectParameters, EndpointKind, InspectionAction, Interface, MgmtAccessRule,\
     Names, NatRule, PolicyClass, PolicyMap, Route, ServicePolicyBinding
 from ciscoasa9.asa_parser_functions import _clean_lines, _consume_block, _parse_class_map_block, \
     _parse_dns_inspect_policy_map_block, _parse_interface_block, _parse_network_object_block, \
-    _parse_network_object_group_block, _parse_policy_map_block, _parse_service_object_block, \
-    _parse_service_object_group_block, _parse_endpoint
+    _parse_network_object_group_block, _parse_policy_map_block, _parse_service_object_block, _parse_service_object_block_with_inline_protocol, \
+    _parse_service_object_group_block, _parse_endpoint, _parse_protocol_object_group_block, \
+    _parse_access_list_entry, _parse_service_object_group_block_without_inline_protocol
 
 
 def parse_asa_config(raw_config: str) -> Config:
@@ -34,6 +35,7 @@ def parse_asa_config(raw_config: str) -> Config:
     class_maps: List[ClassMap] = []
     policy_maps: dict[str, PolicyMap] = {}  # name -> PolicyMap (so we can fill in pieces)
     service_policies: List[ServicePolicyBinding] = []
+    protocol_groups: List[AsaProtocolGroup] = []  # For object-group protocol
 
     i = 0
     while i < len(lines):
@@ -128,42 +130,41 @@ def parse_asa_config(raw_config: str) -> Config:
             svc_objects.append(_parse_service_object_block(block))
             continue
 
-        # object-group service
-        if re.match(r"^object-group\s+service\s+\S+", line, re.I):
+        # object service with inline protocol definition
+        if re.match(r"^object service \S+ (tcp|udp|icmp|ip|tcp-udp)( .+)?$", line, re.I):
+            block, i = _consume_block(lines, i, re.compile(r"^object service \S+ (tcp|udp|icmp|ip|tcp-udp)( .+)?$", re.I))
+            svc_objects.append(_parse_service_object_block_with_inline_protocol(block))
+            continue
+
+        # object-group service with inline protocol (e.g. "object-group service NAME check if tcp udp or tcp-udp")
+        if re.match(r"^object-group\s+service\s+\S+ (tcp|udp|icmp|ip|tcp-udp)( .+)?$", line, re.I):
             block, i = _consume_block(lines, i, re.compile(r"^object-group\s+service\s+\S+", re.I))
             svc_obj_groups.append(_parse_service_object_group_block(block))
             continue
 
-        # access-list (extended) – simple parser that matches your sample and common cases
-        if re.match(r"^access-list\s+\S+\s+extended\s+(permit|deny)\s+", line, re.I):
-            # tokenize after 'access-list'
-            parts = line.split()
-            acl_name = parts[1]
-            action = parts[3].lower()
-            protocol = parts[4].lower()
-            tokens = parts[5:]
-
-            # src
-            src, consumed = _parse_endpoint(tokens)
-            tokens = tokens[consumed:]
-            # dst
-            dst, consumed = _parse_endpoint(tokens)
-            tokens = tokens[consumed:]
-
-            # optional 'eq <port>'
-            dst_port_eq = None
-            if len(tokens) >= 2 and tokens[0] == "eq":
-                dst_port_eq = tokens[1]
-
-            # Ensure action is either 'permit' or 'deny' for type safety
-            action_literal = 'permit' if action == 'permit' else 'deny'
-            entry = AccessListEntry(
-                acl_name=acl_name, action=action_literal, protocol=protocol, src=src, dst=dst, dst_port_eq=dst_port_eq
-            )
-            access_lists_map.setdefault(acl_name, []).append(entry)
-            i += 1
+        # object-group service without inliine protocol (will be defined in each line)
+        if re.match(r"^object-group\s+service\s+\S+\s*$", line, re.I):
+            block, i = _consume_block(lines, i, re.compile(r"^object-group\s+service\s+\S+\s*$", re.I))
+            svc_obj_groups.append(_parse_service_object_group_block_without_inline_protocol(block))
             continue
 
+        # object-group protocol
+        if re.match(r"^object-group\s+protocol\s+\S+$", line, re.I):
+            block, i = _consume_block(lines, i, re.compile(r"^object-group\s+protocol\s+\S+$", re.I))
+            protocol_groups.append(_parse_protocol_object_group_block(block))
+            continue
+
+        # access-list (extended) – updated to use the new AccessListEntry structure
+        if re.match(r"^access-list\s+\S+\s+extended\s+(permit|deny)\s+", line, re.I):
+            try:
+                entry = _parse_access_list_entry(line, protocol_groups, svc_objects, svc_obj_groups)  # Use the updated parser function
+                access_lists_map.setdefault(entry.acl_name, []).append(entry)
+                i += 1
+                continue
+            except Exception as e:
+                print(f"Warning: Failed to parse access-list line: {line}. Error: {e}")
+                i += 1
+                continue
         # access-group
         m = re.match(r"^access-group\s+(\S+)\s+(in|out)\s+interface\s+(\S+)$", line, re.I)
         if m:
@@ -291,6 +292,7 @@ def parse_asa_config(raw_config: str) -> Config:
         class_maps=class_maps,
         policy_maps=list(policy_maps.values()),
         service_policies=service_policies,
+        protocol_groups=protocol_groups,
     )
     return cfg
 
@@ -306,4 +308,4 @@ if __name__ == "__main__":
     config = parse_asa_config(text)
 
     # You can dump the entire parsed config as JSON
-    print(json.dumps(config.model_dump(exclude_none=True), indent=2))
+    print(json.dumps(config.model_dump(exclude_none=True)["access_group_bindings"], indent=2))

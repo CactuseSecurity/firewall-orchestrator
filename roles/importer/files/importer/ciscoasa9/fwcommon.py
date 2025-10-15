@@ -35,7 +35,7 @@ from models.fwconfigmanagerlist import FwConfigManagerList
 from fwo_log import getFwoLogger
 from models.networkobject import NetworkObject
 from ciscoasa9.asa_models import AccessGroupBinding, AccessList, AccessListEntry, AsaEnablePassword,\
-    AsaNetworkObject, AsaNetworkObjectGroup, AsaServiceModule, AsaServiceObject, AsaServiceObjectGroup,\
+    AsaNetworkObject, AsaNetworkObjectGroup, AsaProtocolGroup, AsaServiceModule, AsaServiceObject, AsaServiceObjectGroup,\
     ClassMap, Config, DnsInspectParameters, EndpointKind, InspectionAction, Interface, MgmtAccessRule,\
     Names, NatRule, PolicyClass, PolicyMap, Route, ServicePolicyBinding  
 from fwo_enums import ConfigAction
@@ -135,9 +135,6 @@ def load_config_from_file(filename: str) -> str:
     path = Path("roles", "importer", "files", "importer", "ciscoasa9", filename)
     with open(path, "r") as f:
         return f.read()
-
-
-
 
 def normalize_config(config_in: FwConfigManagerListController, importState: ImportStateController):
 
@@ -257,7 +254,7 @@ def normalize_config(config_in: FwConfigManagerListController, importState: Impo
                 raise ValueError(f"Unknown protocol in service object group: {protocol}")
             
             if protocol == "service":
-                for obj in serviceObjectGroup.nested_groups:
+                for obj in serviceObjectGroup.nested_refs:
                     obj_names.append(obj)
                 for pr in serviceObjectGroup.protocols:
                     obj_name = f"any-{pr}"
@@ -294,71 +291,7 @@ def normalize_config(config_in: FwConfigManagerListController, importState: Impo
 
 
     for access_lists in native_config.access_lists:
-        cnt = 1
-        for entry in access_lists.entries:
-            rule_name = f"{access_lists.name}-{cnt:04d}"
-            src_ref = entry.src.value
-            dst_ref = entry.dst.value
-            if entry.protocol == "ip":
-                if entry.src.value not in network_objects.keys():
-                    obj = NetworkObject(
-                        obj_uid=entry.src.value,
-                        obj_name=entry.src.value,
-                        obj_typ="host",
-                        obj_ip=IPNetwork(f"{entry.src.value}/32"),
-                        obj_ip_end=IPNetwork(f"{entry.src.value}/32"),
-                        obj_color=fwo_const.defaultColor,
-                        obj_comment=entry.description
-
-                    )
-                    network_objects[entry.src.value] = obj
-                
-                if entry.dst.value not in network_objects.keys():
-                    obj = NetworkObject(
-                        obj_uid=entry.dst.value,
-                        obj_name=entry.dst.value,
-                        obj_typ="host",
-                        obj_ip=IPNetwork(f"{entry.dst.value}/32"),
-                        obj_ip_end=IPNetwork(f"{entry.dst.value}/32"),
-                        obj_color=fwo_const.defaultColor,
-                        obj_comment=entry.description
-                    )
-                    network_objects[entry.dst.value] = obj
-
-            elif entry.protocol in ("tcp", "udp", "icmp"):
-                if entry.src.kind in ("object", "object-group"):
-                    if entry.src.value not in network_objects.keys():
-                        obj = NetworkObject(
-                            obj_uid=entry.src.value,
-                            obj_name=entry.src.value,
-                            obj_typ="group" if entry.src.kind == "object-group" else "network",
-                            obj_color=fwo_const.defaultColor,
-                            obj_comment=entry.description
-                        )
-                        network_objects[entry.src.value] = obj
-                else:
-                    raise ValueError(f"Unknown source kind in access-list entry: {entry.src.kind}")
-        
-            else:
-                raise ValueError(f"Unknown protocol in access-list entry: {entry.protocol}")
-
-
-            # service object for protocol/port
-            if entry.protocol in ("tcp", "udp", "icmp"):
-                svc_obj_name = f"{entry.dst_port_eq}-{entry.protocol}"
-                if svc_obj_name not in service_objects.keys() and entry.dst_port_eq is not None and len(entry.dst_port_eq) > 0:
-                    obj = ServiceObject(
-                        svc_uid=svc_obj_name,
-                        svc_name=svc_obj_name,
-                        svc_port=int(entry.dst_port_eq) if entry.dst_port_eq.isdigit() else name_to_port[entry.dst_port_eq]["port"],
-                        svc_port_end=int(entry.dst_port_eq) if entry.dst_port_eq.isdigit() else name_to_port[entry.dst_port_eq]["port"],
-                        svc_color=fwo_const.defaultColor,
-                        svc_typ="simple",
-                        ip_proto=protocol_map.get(entry.protocol, 0),
-                        svc_comment=entry.description if entry.dst_port_eq.isdigit() else name_to_port[entry.dst_port_eq]["description"]
-                    )
-                    service_objects[svc_obj_name] = obj
-            cnt += 1
+        create_objects_for_access_lists(access_lists, network_objects, service_objects, importState)
 
     rulebases = build_rulebases_from_access_lists(native_config.access_lists, importState.MgmDetails.Uid)
 
@@ -395,7 +328,7 @@ def normalize_config(config_in: FwConfigManagerListController, importState: Impo
     return config_in
 
 
-def build_rulebases_from_access_lists(access_lists: List[AccessList], mgm_uid: str) -> List[Rulebase]:
+def build_rulebases_from_access_lists(access_lists: List[AccessList], mgm_uid: str, protocol_groups: List[AsaProtocolGroup]) -> List[Rulebase]:
     rulebases = []
 
     for access_list in access_lists:
@@ -404,10 +337,37 @@ def build_rulebases_from_access_lists(access_lists: List[AccessList], mgm_uid: s
             rule_uid = f"{access_list.name}-{idx:04d}"
 
             svc_ref = ""
-            if entry.dst_port_eq:
-                svc_ref = f"{entry.dst_port_eq}-{entry.protocol}"
+            if entry.protocol.kind == "protocol" and entry.protocol.value in ("tcp", "udp", "icmp"):
+                if entry.dst_port.kind == "eq":
+                    svc_ref = f"{entry.dst_port.value}-{entry.protocol.value}"
+                elif entry.dst_port.kind == "range":
+                    ports = entry.dst_port.value.split("-")
+                    if len(ports) == 2:
+                        svc_ref = f"{ports[0]}-{ports[1]}-{entry.protocol.value}"
+                elif entry.dst_port.kind == "any":
+                    svc_ref = f"any-{entry.protocol.value}"
+                elif entry.dst_port.kind in ("service", "service-group"):
+                    svc_ref = entry.dst_port.value
+                    if entry.protocol.value not in 
+                    getFwoLogger().warning(f"service/group dst port in access list: {entry.dst_port.value}")
+                else:
+                    svc_ref = f"any-{entry.protocol.value}"
+            elif entry.protocol.kind == "ip":
+                svc_ref = fwo_const.list_delimiter.join([f"any-{p}" for p in ("tcp", "udp", "icmp")])
+            elif entry.protocol.kind in ("service-group", "service"):
+                svc_ref = entry.protocol.value
+            elif entry.protocol.kind == "protocol-group":
+                svc_ref = ""
+                allowed_protocols = []
+                for pg in protocol_groups:
+                    if pg.name == entry.protocol.value:
+                        allowed_protocols = pg.protocols
+                        break
+                
+                for pr in allowed_protocols:
+                    
             else:
-                svc_ref = f"any-{entry.protocol}"
+                svc_ref = "any"
 
             rule = RuleNormalized(
                 rule_num=idx,
@@ -451,3 +411,96 @@ def build_rulebases_from_access_lists(access_lists: List[AccessList], mgm_uid: s
         rulebases.append(rulebase)
 
     return rulebases
+
+
+
+def create_objects_for_access_lists(access_lists: AccessList, network_objects: dict, service_objects: dict, importState: ImportStateController):
+    cnt = 1
+    for entry in access_lists.entries:
+        rule_name = f"{access_lists.name}-{cnt:03d}"
+        src_ref = entry.src.value
+        dst_ref = entry.dst.value
+
+        # create services
+        if entry.protocol.kind == "protocol":
+            if entry.protocol.value in ("tcp", "udp", "icmp"):
+                if entry.dst_port.kind == "eq":
+                    obj_name = f"{entry.dst_port.value}-{entry.protocol.value}"
+                    if obj_name not in service_objects.keys():
+                        obj = ServiceObject(
+                            svc_uid=obj_name,
+                            svc_name=obj_name,
+                            svc_port=int(entry.dst_port.value) if entry.dst_port.value.isdigit() else name_to_port[entry.dst_port.value]["port"],
+                            svc_port_end=int(entry.dst_port.value) if entry.dst_port.value.isdigit() else name_to_port[entry.dst_port.value]["port"],
+                            svc_color=fwo_const.defaultColor,
+                            svc_typ="simple",
+                            ip_proto=protocol_map.get(entry.protocol.value, 0),
+                            svc_comment="service object created during import"
+                        )
+                        service_objects[obj_name] = obj
+                elif entry.dst_port.kind == "range":
+                    ports = entry.dst_port.value.split("-")
+                    if len(ports) == 2 and ports[0].isdigit() and ports[1].isdigit():
+                        obj_name = f"{ports[0]}-{ports[1]}-{entry.protocol.value}"
+                        if obj_name not in service_objects.keys():
+                            obj = ServiceObject(
+                                svc_uid=obj_name,
+                                svc_name=obj_name,
+                                svc_port=int(ports[0]),
+                                svc_port_end=int(ports[1]),
+                                svc_color=fwo_const.defaultColor,
+                                svc_typ="simple",
+                                ip_proto=protocol_map.get(entry.protocol.value, 0),
+                                svc_comment="service object created during import"
+                            )
+                            service_objects[obj_name] = obj
+                elif entry.dst_port.kind == "any":
+                    obj_name = f"any-{entry.protocol.value}"
+                    if obj_name not in service_objects.keys():
+                        obj = ServiceObject(
+                            svc_uid=obj_name,
+                            svc_name=obj_name,
+                            svc_port=0,
+                            svc_port_end=65535,
+                            svc_color=fwo_const.defaultColor,
+                            svc_typ="simple",
+                            ip_proto=protocol_map.get(entry.protocol.value, 0),
+                            svc_comment="service object created during import"
+                        )
+                        service_objects[obj_name] = obj
+
+                elif entry.dst_port.kind in 
+
+        # create network objects
+        for ep in (entry.src, entry.dst):
+            if ep.kind == "host":
+                if ep.value not in network_objects.keys():
+                    obj = NetworkObject(
+                        obj_uid=ep.value,
+                        obj_name=ep.value,
+                        obj_typ="host",
+                        obj_ip=IPNetwork(f"{ep.value}/32"),
+                        obj_ip_end=IPNetwork(f"{ep.value}/32"),
+                        obj_color=fwo_const.defaultColor,
+                        obj_comment="network object created during import"
+                    )
+                    network_objects[ep.value] = obj
+            elif ep.kind == "any":
+                if "any" not in network_objects.keys():
+                    obj = NetworkObject(
+                        obj_uid="any",
+                        obj_name="any",
+                        obj_typ="group",
+                        obj_member_names="any",
+                        obj_member_refs="any",
+                        obj_ip=IPNetwork("0.0.0.0/0"),
+                        obj_ip_end=IPNetwork("255.255.255.255/32"),
+                        obj_color=fwo_const.defaultColor,
+                        obj_comment="network object created during import"
+                    )
+                    network_objects["any"] = obj
+            elif ep.kind in ("object", "object-group"):
+                # assume object exists
+                pass
+            else:
+                raise ValueError(f"Unknown endpoint kind: {ep.kind}")

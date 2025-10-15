@@ -43,34 +43,37 @@ class AsaNetworkObjectGroup(BaseModel):
 
 class AsaServiceObject(BaseModel):
     name: str
-    protocol: Literal["tcp", "udp", "icmp", "ip"]
+    protocol: Literal["tcp", "udp", "icmp", "ip", "tcp-udp"]
     dst_port_eq: str | None = None
     dst_port_range: Tuple[int, int] | None = None
     description: str | None = None
 
 class AsaServiceObjectGroup(BaseModel):
     name: str
-    proto_mode: Literal["tcp", "udp", "tcp-udp", "service"] = "tcp"  # Added "service" as a valid proto_mode
-    ports_eq: List[str] = []
-    ports_range: List[Tuple[int, int]] = []
-    nested_groups: List[str] = []  # Added to support nested service groups
-    protocols: List[str] = []  # Added to support protocol-only service objects
+    proto_mode: Literal["tcp", "udp", "tcp-udp", "service", "mixed"] = "tcp"
+    ports_eq: dict[str, list[str]] = {}  # proto_mode -> list of ports
+    ports_range: dict[str, list[Tuple[int, int]]] = {}  # proto_mode -> list of (start_port, end_port)
+    nested_refs: List[str] = [] 
+    protocols: List[str] = [] 
     description: str | None = None
 
+class AsaProtocolGroup(BaseModel):
+    name: str
+    protocols: List[str] 
+    description: str | None = None
 
 class EndpointKind(BaseModel):
-    kind: Literal["any", "host", "object", "object-group", "subnet"]
+    kind: Literal["any", "host", "object", "object-group", "service", "protocol-group", "protocol", "eq", "range", "service-group"]
     value: str
     mask: str | None = None
 
 class AccessListEntry(BaseModel):
     acl_name: str
     action: Literal["permit", "deny"]
-    protocol: str
+    protocol: EndpointKind  # Changed to use EndpointKind for kind and value
     src: EndpointKind
     dst: EndpointKind
-    dst_port_eq: str | None = None
-    dst_port_range: tuple[int, int] | None = None  # Added field for port range
+    dst_port: EndpointKind  # Changed to use EndpointKind for kind and value
     inactive: bool = False  # Added field for inactive flag
     description: str | None = None
 
@@ -152,3 +155,4 @@ class Config(BaseModel):
     class_maps: List[ClassMap] = []
     policy_maps: List[PolicyMap] = []
     service_policies: List[ServicePolicyBinding] = []
+    protocol_groups: List[AsaProtocolGroup] = []

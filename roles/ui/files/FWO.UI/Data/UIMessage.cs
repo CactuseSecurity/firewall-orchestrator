@@ -2,7 +2,7 @@ using FWO.Data;
 
 namespace FWO.Ui.Data
 {
-    public class UIMessage
+    public class UIMessage : IDisposable
     {
         public string Id { get; } = Guid.NewGuid().ToString();
         public string? Title { get; set; }
@@ -35,11 +35,27 @@ namespace FWO.Ui.Data
                 case MessageType.Error:
                     cssClass += " alert alert-danger";
                     break;
-                default:                    
+                default:
                     break;
             }
 
             return cssClass;
+        }
+
+        public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if(ShowTimer != null)
+            {
+                ShowTimer.Stop();
+                ShowTimer.Dispose();
+                ShowTimer = null;
+            }
         }
     }
 }

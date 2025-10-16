@@ -18,6 +18,8 @@ def normalize_zones(native_config, normalized_config_adom, is_global_loop_iterat
         fetched_zones.append('sslvpn_tun_intf')
     for zone_type in native_config['zones']:
         for mapping in zone_type.get('data', []):
+            if 'defmap-intf' in mapping and not mapping['defmap-intf'] in fetched_zones:
+                fetched_zones.append(mapping['defmap-intf'])
             if not mapping['dynamic_mapping'] is None:
                 fetch_dynamic_mapping(mapping, fetched_zones)
             if not mapping['platform_mapping'] is None:

@@ -8,6 +8,7 @@ from fwo_base import extend_string_list, sanitize
 from fmgr_service import create_svc_object
 from fmgr_network import create_network_object, get_first_ip_of_destination
 from fmgr_zone import find_zones_in_normalized_config
+from fmgr_consts import nat_types
 import fmgr_getter
 from fmgr_gw_networking import get_device_from_package
 from fwo_log import getFwoLogger
@@ -75,6 +76,16 @@ def normalize_rulebases_for_each_link_destination(gateway, mgm_uid, fetched_rule
                 normalized_config_global['policies'].append(normalized_rulebase)
             else:
                 normalized_config_adom['policies'].append(normalized_rulebase)
+
+        normalize_nat_rulebase()
+
+def normalize_nat_rulebase(rulebase_link):
+    if not rulebase_link['is_section']:
+        check_if_nat_rulebases_exist()
+
+def check_if_nat_rulebases_exist():
+    for nat_type in nat_types:
+        nat_type_string 
 
 def find_rulebase_to_parse(rulebase_list, rulebase_uid):
     for rulebase in rulebase_list:
@@ -373,7 +384,7 @@ def is_rulebase_already_fetched(rulebases, type):
 def link_rulebase(link_list, rulebases, pkg_name, rulebase_type_prefix, previous_rulebase, is_global):
     for version in ['v4', 'v6']:
         full_pkg_name = rulebase_type_prefix + '_' + version + '_' + pkg_name
-        has_data = has_rulebase_data(rulebases, full_pkg_name, is_global)
+        has_data = has_rulebase_data(rulebases, full_pkg_name, is_global, version, pkg_name)
         if has_data:
             link_list.append(build_link(previous_rulebase, full_pkg_name, is_global))
             previous_rulebase = full_pkg_name
@@ -395,13 +406,21 @@ def build_link(previous_rulebase, full_pkg_name, is_global):
         'is_section': False
     }
 
-def has_rulebase_data(rulebases, full_pkg_name, is_global):
+def has_rulebase_data(rulebases, full_pkg_name, is_global, version, pkg_name):
+    # delete_v: hier nach urlaub weiter mit nat, gerade die letzten 3 keys hinzugefügt
     """adds name and uid to rulebase and removes empty global rulebases"""
     has_data = False
+    if version == 'v4':
+        is_v4 = True
+    else:
+        is_v4 = False
     for rulebase in rulebases:
         if rulebase['type'] == full_pkg_name:
             rulebase.update({'name': full_pkg_name,
-                             'uid': full_pkg_name})
+                             'uid': full_pkg_name,
+                             'is_global': is_global,
+                             'is_v4': is_v4,
+                             'package': pkg_name})
             if len(rulebase['data']) > 0:
                 has_data = True
             elif is_global:
@@ -411,31 +430,17 @@ def has_rulebase_data(rulebases, full_pkg_name, is_global):
 def get_nat_policy(sid, fm_api_url, native_config, adom_device_vdom_policy_package_structure, adom_name, mgm_details_device, limit):
     local_pkg_name, global_pkg_name = find_packages(adom_device_vdom_policy_package_structure, adom_name, mgm_details_device)
     if adom_name == '':
-        for nat_type in ['central/dnat', 'central/dnat6', 'firewall/central-snat-map']:
+        for nat_type in nat_types:
             fmgr_getter.update_config_with_fortinet_api_call(
                 native_config['nat_rulebases'], sid, fm_api_url,
                 '/pm/config/global/pkg/' + global_pkg_name + '/' + nat_type,
                 nat_type + '_global_' + global_pkg_name, limit=limit)
     else:
-        for nat_type in ['central/dnat', 'central/dnat6', 'firewall/central-snat-map']:
+        for nat_type in nat_types:
             fmgr_getter.update_config_with_fortinet_api_call(
                 native_config['nat_rulebases'], sid, fm_api_url,
                 '/pm/config/adom/' + adom_name + '/pkg/' + local_pkg_name + '/' + nat_type,
                 nat_type + '_adom_' + adom_name + '_' + local_pkg_name, limit=limit)
-
-    # scope = 'global'
-    # pkg = device['global_rulebase_name']
-    # if pkg is not None and pkg != '':   # only read global rulebase if it exists
-    #     for nat_type in ['central/dnat', 'central/dnat6', 'firewall/central-snat-map']:
-    #         fmgr_getter.update_config_with_fortinet_api_call(
-    #             nativeConfig['rules_global_nat'], sid, fm_api_url, "/pm/config/" + scope + "/pkg/" + pkg + '/' + nat_type, device['local_rulebase_name'], limit=limit)
-
-    # scope = 'adom/'+adom_name
-    # pkg = device['local_rulebase_name']
-    # for nat_type in ['central/dnat', 'central/dnat6', 'firewall/central-snat-map']:
-    #     fmgr_getter.update_config_with_fortinet_api_call(
-    #         nativeConfig['rules_adom_nat'], sid, fm_api_url, "/pm/config/" + scope + "/pkg/" + pkg + '/' + nat_type, device['local_rulebase_name'], limit=limit)
-
 
 # delete_v: ab hier kann sehr viel weg, ich lasses vorerst zB für die nat
 # pure nat rules 

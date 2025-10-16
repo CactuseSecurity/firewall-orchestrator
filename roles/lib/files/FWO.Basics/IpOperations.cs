@@ -392,7 +392,6 @@ namespace FWO.Basics
 
             return mergedRanges;
         }
-        
 
         public static IEnumerable<IPNetwork2> Subtract(
             this IEnumerable<IPNetwork2> source,

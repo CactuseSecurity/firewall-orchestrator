@@ -303,19 +303,15 @@ namespace FWO.Services
 
                 foreach (IPAddressRange newRange in ranges)
                 {
-                    // Dont add if exactly this range is already in internalZoneIPRanges
-
-                    if (!internalZoneIPRanges.Any(r => r.Begin.Equals(newRange.Begin) && r.End.Equals(newRange.End)))
-                    {
+                    bool add =
+                        // Dont add if exactly this range is already in internalZoneIPRanges
+                        !internalZoneIPRanges.Any(r => r.Begin.Equals(newRange.Begin) && r.End.Equals(newRange.End))
                         // Dont add if new range is completely within an existing range
+                        && !internalZoneIPRanges.Any(r => r.Contains(newRange)); 
 
-                        if (!internalZoneIPRanges.Any(r => r.Contains(newRange)))
-                        {
-                            // Add if conditions are met
-
-                            internalZoneIPRanges.Add(newRange);
-                        }
-                        
+                    if (add)
+                    {
+                        internalZoneIPRanges.Add(newRange);
                     }                 
                 }
 

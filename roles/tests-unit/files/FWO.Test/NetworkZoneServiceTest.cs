@@ -167,7 +167,9 @@ namespace FWO.Test
 
             };
             List<ComplianceNetworkZone> definedZones = new();
-            IPAddressRange[] expectedinternalZone = internalZoneRanges.ToArray();
+            IPAddressRange[] expectedinternalZone = internalZoneRanges
+                                                        .Where(range => !range.ToString().Equals("255.255.255.255")) // Only disjoint ranges. 255.255.255.255/32 is in 240.0.0.0/4.
+                                                        .ToArray();
 
             // Act
 

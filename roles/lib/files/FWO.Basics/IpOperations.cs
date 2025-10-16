@@ -361,77 +361,6 @@ namespace FWO.Basics
             return 0;
         }
 
-        public static IPAddress Increment(IPAddress address)
-        {
-            byte[] bytes = address.GetAddressBytes();
-            for (int i = bytes.Length - 1; i >= 0; i--)
-            {
-                if (bytes[i] < 255)
-                {
-                    bytes[i]++;
-                    break;
-                }
-                bytes[i] = 0;
-            }
-            return new IPAddress(bytes);
-        }
-
-        public static IPAddress Decrement(IPAddress address)
-        {
-            byte[] bytes = address.GetAddressBytes();
-            for (int i = bytes.Length - 1; i >= 0; i--)
-            {
-                if (bytes[i] > 0)
-                {
-                    bytes[i]--;
-                    break;
-                }
-                bytes[i] = 255;
-            }
-            return new IPAddress(bytes);
-        }
-
-        public static List<IPAddressRange> _Subtract(this IPAddressRange source, List<IPAddressRange> subtractor)
-        {
-            List<IPAddressRange> result = new();
-
-            IPAddress current = source.Begin;
-
-            // Gather gaps
-
-            foreach (var range in subtractor)
-            {
-                if (CompareIpValues(current, range.Begin) < 0)
-                {
-                    IPAddress prev = Decrement(range.Begin);
-                    IPAddressRange newRange = new IPAddressRange(current, prev);
-                    if (source.Contains(newRange)) // HOTFIX!! Decrement and Increment have to happen in source bounds (param minIp and maxIp?), and loop should be cancelled if range.Begin is higher than sourc.End 
-                    {
-                        result.Add(newRange);
-                    }
-                }
-
-                if (!(CompareIpValues(current, range.End) > 0))
-                {
-                    current = Increment(range.End);
-                }
-
-            }
-
-            // Include top end if undefined
-
-            if (CompareIpValues(current, source.End) <= 0)
-            {
-                IPAddressRange newRange = new IPAddressRange(current, source.End);
-                if (source.Contains(newRange))
-                {
-                    result.Add(newRange);
-                }
-            }
-
-            return result;
-        }
-
         public static List<IPAddressRange> Subtract(this IPAddressRange source, List<IPAddressRange> subtractor)
         {
             List<IPNetwork2> sourceNetwork = new();
@@ -485,10 +414,7 @@ namespace FWO.Basics
             return result;
         }
         
-
-        public static List<IPAddressRange> ToMergedRanges(
-            this IEnumerable<IPNetwork2> networks,
-            bool includeNetworkAndBroadcast = true)
+        public static List<IPAddressRange> ToMergedRanges(this IEnumerable<IPNetwork2> networks, bool includeNetworkAndBroadcast = true)
         {
             var list = networks?.ToList() ?? new List<IPNetwork2>();
             if (list.Count == 0) return new List<IPAddressRange>();
@@ -507,7 +433,7 @@ namespace FWO.Basics
                 throw new InvalidOperationException("Gemischte AddressFamily (IPv4/IPv6) in den Netzen.");
 
             // 2) sortieren
-            intervals.Sort((a, b) => CompareIp(a.start, b.start));
+            intervals.Sort((a, b) => CompareIpValues(a.start, b.start));
 
             // 3) zusammenführen (merge), wenn überlappend ODER direkt benachbart
             var merged = new List<(IPAddress start, IPAddress end)>();
@@ -516,10 +442,10 @@ namespace FWO.Basics
             foreach (var (s, e) in intervals.Skip(1))
             {
                 // Wenn s <= cur.e + 1  => zusammenlegen
-                var nextToCurEndPlusOne = CompareIp(s, AddIp(cur.e, 1)) <= 0;
+                var nextToCurEndPlusOne = CompareIpValues(s, AddIp(cur.e, 1)) <= 0;
                 if (nextToCurEndPlusOne)
                 {
-                    if (CompareIp(e, cur.e) > 0) cur.e = e;
+                    if (CompareIpValues(e, cur.e) > 0) cur.e = e;
                 }
                 else
                 {
@@ -532,10 +458,6 @@ namespace FWO.Basics
             // 4) in IPAddressRange (inklusive) umwandeln
             return merged.Select(t => new IPAddressRange(t.start, t.end)).ToList();
         }
-
-        // ------ Hilfsfunktionen (IPv4 & IPv6) ------
-        private static int CompareIp(IPAddress a, IPAddress b)
-            => ToBigInteger(a).CompareTo(ToBigInteger(b));
 
         private static IPAddress AddIp(IPAddress ip, long delta)
         {

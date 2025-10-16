@@ -312,7 +312,7 @@ namespace FWO.Services
                         if (!internalZoneIPRanges.Any(r => r.Contains(newRange)))
                         {
                             // Add if conditions are met
-                                   
+
                             internalZoneIPRanges.Add(newRange);
                         }
                         
@@ -323,7 +323,6 @@ namespace FWO.Services
 
             internalZone.IPRanges = internalZoneIPRanges.ToArray();
         }
-
 
         private static List<IPAddressRange> ParseNetworkZoneToListOfRanges(List<ComplianceNetworkZone> networkZones, bool sort)
         {
@@ -381,7 +380,5 @@ namespace FWO.Services
                 internalZoneRanges.Add(range);
             }
         }
-
-
     }
 }

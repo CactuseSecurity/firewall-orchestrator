@@ -297,6 +297,34 @@
                         </div>
                     }
                 </div>
+                <div class="form-group row mt-2">
+                    <label class="col-sm-3 col-form-label col-form-label-sm" data-toggle="tooltip" title="Owner Lifecycle Status">Lifecycle Status:</label>
+                    @if (Readonly)
+                    {
+                        <label class="col-sm-5">@(actOwner.LifecycleStatus ?? "")</label>
+                    }
+                    else
+                    {
+                        <div class="col-sm-5">
+                            <Dropdown ElementType="string" @bind-SelectedElement="actOwner.LifecycleStatus" Elements=@(new[] { "planned", "in production", "end of life" }) Nullable="true">
+                                <ElementTemplate Context="status">
+                                    @status
+                                </ElementTemplate>
+                            </Dropdown>
+                        </div>
+                    }
+                    @*<div class="form-check form-check-inline col-sm-3" data-toggle="tooltip" title="@(userConfig.PureLine("H5591"))">
+                        @if (Readonly && userConfig.AllowManualOwnerAdmin)
+                        {
+                            <input id="cbx_comm_svc_possible" disabled class="form-check-input" type="checkbox" @bind="actOwner.CommSvcPossible">
+                        }
+                        else
+                        {
+                            <input id="cbx_comm_svc_possible" class="form-check-input" type="checkbox" @bind="actOwner.CommSvcPossible">
+                        }
+                        <label for="cbx_comm_svc_possible" class="form-check-label"><small>@(userConfig.GetText("comm_svc_possible"))</small></label>
+                    </div>*@
+                </div>
             }
         </Body>
         <Footer>

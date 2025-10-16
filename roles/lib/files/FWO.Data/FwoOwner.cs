@@ -1,4 +1,4 @@
-﻿using System.Text.Json.Serialization; 
+using System.Text.Json.Serialization; 
 using Newtonsoft.Json;
 
 namespace FWO.Data
@@ -16,6 +16,9 @@ namespace FWO.Data
 
         [JsonProperty("criticality"), JsonPropertyName("criticality")]
         public string? Criticality { get; set; }
+
+        [JsonProperty("lifecycle_status"), JsonPropertyName("lifecycle_status")]
+        public string? LifecycleStatus { get; set; }
 
         [JsonProperty("active"), JsonPropertyName("active")]
         public bool Active { get; set; } = true;

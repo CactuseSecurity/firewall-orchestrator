@@ -72,7 +72,10 @@ def _get_member_references(obj):
     
     member_refs = ''
     for member in obj['members']:
-        member_refs += member + list_delimiter
+        if isinstance(member, str):
+            member_refs += member + list_delimiter
+        elif isinstance(member, dict) and 'uid' in member and isinstance(member['uid'], str):
+            member_refs += member['uid'] + list_delimiter
     return member_refs[:-1] if member_refs else None
 
 

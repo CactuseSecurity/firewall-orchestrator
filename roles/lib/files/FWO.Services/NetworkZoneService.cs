@@ -303,26 +303,16 @@ namespace FWO.Services
 
                 foreach (IPAddressRange newRange in ranges)
                 {
-                    bool exists = internalZoneIPRanges.Any(r =>
-                        r.Begin.Equals(newRange.Begin) &&
-                        r.End.Equals(newRange.End));
+                    // Dont add if exactly this range is already in internalZoneIPRanges
 
-                    if (!exists)
+                    if (!internalZoneIPRanges.Any(r => r.Begin.Equals(newRange.Begin) && r.End.Equals(newRange.End)))
                     {
-                        bool isSubnetOfExisting = internalZoneIPRanges.Any(r =>
-                            r.Contains(newRange));
+                        // Dont add if new range is completely within an existing range
 
-                        if (!isSubnetOfExisting)
+                        if (!internalZoneIPRanges.Any(r => r.Contains(newRange)))
                         {
-
-                            bool overlapsWithExisting = internalZoneIPRanges.Any(r =>
-                                IpOperations.RangeOverlapExists(r, newRange));
-
-                            if (overlapsWithExisting)
-                            {
-                                // TODO: Handle overlaps
-                            }
-                            
+                            // Add if conditions are met
+                                   
                             internalZoneIPRanges.Add(newRange);
                         }
                         

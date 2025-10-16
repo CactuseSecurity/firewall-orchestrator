@@ -13,7 +13,7 @@ namespace FWO.Basics
             {
                 return (await Dns.GetHostEntryAsync(address)).HostName;
             }
-            catch(Exception)
+            catch (Exception)
             {
                 return "";
             }
@@ -65,25 +65,25 @@ namespace FWO.Basics
                 bool ipStartOK = IPAddress.TryParse(ipStart, out IPAddress? ipAdressStart);
                 bool ipEndOK = IPAddress.TryParse(ipEnd, out IPAddress? ipAdressEnd);
 
-                if(ipAdressStart is null || ipAdressEnd is null)
+                if (ipAdressStart is null || ipAdressEnd is null)
                 {
                     return false;
                 }
 
-                if(strictv4Parse && ipAdressStart?.AddressFamily == AddressFamily.InterNetwork && ipAdressEnd?.AddressFamily == AddressFamily.InterNetwork)
+                if (strictv4Parse && ipAdressStart?.AddressFamily == AddressFamily.InterNetwork && ipAdressEnd?.AddressFamily == AddressFamily.InterNetwork)
                 {
-                    if(!IsValidIPv4(ipStart) || !IsValidIPv4(ipEnd))
+                    if (!IsValidIPv4(ipStart) || !IsValidIPv4(ipEnd))
                     {
                         return false;
                     }
                 }
 
-                if(!ipStartOK || !ipEndOK)
+                if (!ipStartOK || !ipEndOK)
                 {
                     return false;
                 }
 
-                if(!IPAddress.TryParse(ipStart, out _) || !IPAddress.TryParse(ipEnd, out _))
+                if (!IPAddress.TryParse(ipStart, out _) || !IPAddress.TryParse(ipEnd, out _))
                 {
                     return false;
                 }
@@ -93,16 +93,16 @@ namespace FWO.Basics
 
                 return true;
             }
-            catch(Exception) 
+            catch (Exception)
             {
                 return false;
             }
         }
 
-        public static bool TryParseIPString<T>(this string ipString, out T? ipResult, bool strictv4Parse = false) 
+        public static bool TryParseIPString<T>(this string ipString, out T? ipResult, bool strictv4Parse = false)
         {
             ipResult = default;
-            
+
             try
             {
                 (string ipStart, string ipEnd) = SplitIpToRange(ipString);
@@ -110,34 +110,35 @@ namespace FWO.Basics
                 bool ipStartOK = IPAddress.TryParse(ipStart, out IPAddress? ipAdressStart);
                 bool ipEndOK = IPAddress.TryParse(ipEnd, out IPAddress? ipAdressEnd);
 
-                if(ipAdressStart is null || ipAdressEnd is null)
+                if (ipAdressStart is null || ipAdressEnd is null)
                 {
                     return false;
                 }
 
-                if(strictv4Parse && ipAdressStart?.AddressFamily == AddressFamily.InterNetwork && ipAdressEnd?.AddressFamily == AddressFamily.InterNetwork)
+                if (strictv4Parse && ipAdressStart?.AddressFamily == AddressFamily.InterNetwork && ipAdressEnd?.AddressFamily == AddressFamily.InterNetwork)
                 {
-                    if(!IsValidIPv4(ipStart) || !IsValidIPv4(ipEnd))
+                    if (!IsValidIPv4(ipStart) || !IsValidIPv4(ipEnd))
                     {
                         return false;
                     }
                 }
 
-                if(!ipStartOK || !ipEndOK)
+                if (!ipStartOK || !ipEndOK)
                 {
                     return false;
                 }
 
-                if(typeof(T) == typeof((string, string)))
+                if (typeof(T) == typeof((string, string)))
                 {
                     ipResult = (T)Convert.ChangeType((ipAdressStart!.ToString(), ipAdressEnd!.ToString()), typeof(T));
                     return true;
                 }
-                else if(typeof(T) == typeof(IPAddressRange) && IPAddressRange.TryParse(ipString, out IPAddressRange ipRange))
+                else if (typeof(T) == typeof(IPAddressRange) && IPAddressRange.TryParse(ipString, out IPAddressRange ipRange))
                 {
                     ipResult = (T)Convert.ChangeType(ipRange, typeof(T));
                     return true;
-                }else if(typeof(T) == typeof((IPAddress, IPAddress)))
+                }
+                else if (typeof(T) == typeof((IPAddress, IPAddress)))
                 {
                     Tuple<IPAddress, IPAddress>? ipTuple = new(ipAdressStart!, ipAdressEnd!);
                     ipResult = (T)Convert.ChangeType(ipTuple, typeof(T));
@@ -146,7 +147,7 @@ namespace FWO.Basics
 
                 return false;
             }
-            catch(Exception)
+            catch (Exception)
             {
                 return false;
             }
@@ -156,7 +157,7 @@ namespace FWO.Basics
         {
             byte[] addBytes = [.. ipAddress.Split('.').Where(_ => byte.Parse(_) <= 255 && byte.Parse(_) >= 0).Select(byte.Parse)];
 
-            return addBytes.Length == 4;            
+            return addBytes.Length == 4;
         }
 
         public static string GetObjectType(string ip1, string ip2)
@@ -347,16 +348,88 @@ namespace FWO.Basics
         /// </summary>
         public static int CompareIpFamilies(IPAddress ip1, IPAddress ip2)
         {
-            if (ip1.AddressFamily == AddressFamily.InterNetwork && ip2.AddressFamily == AddressFamily.InterNetworkV6 )
+            if (ip1.AddressFamily == AddressFamily.InterNetwork && ip2.AddressFamily == AddressFamily.InterNetworkV6)
             {
                 return -1;
             }
-            if (ip1.AddressFamily == AddressFamily.InterNetworkV6 && ip2.AddressFamily == AddressFamily.InterNetwork )
+            if (ip1.AddressFamily == AddressFamily.InterNetworkV6 && ip2.AddressFamily == AddressFamily.InterNetwork)
             {
                 return 1;
             }
 
             return 0;
         }
+
+        public static IPAddress Increment(IPAddress address)
+        {
+            byte[] bytes = address.GetAddressBytes();
+            for (int i = bytes.Length - 1; i >= 0; i--)
+            {
+                if (bytes[i] < 255)
+                {
+                    bytes[i]++;
+                    break;
+                }
+                bytes[i] = 0;
+            }
+            return new IPAddress(bytes);
+        }
+
+        public static IPAddress Decrement(IPAddress address)
+        {
+            byte[] bytes = address.GetAddressBytes();
+            for (int i = bytes.Length - 1; i >= 0; i--)
+            {
+                if (bytes[i] > 0)
+                {
+                    bytes[i]--;
+                    break;
+                }
+                bytes[i] = 255;
+            }
+            return new IPAddress(bytes);
+        }
+
+        public static List<IPAddressRange> Subtract(this IPAddressRange source, List<IPAddressRange> subtractor)
+        {
+            List<IPAddressRange> result = new();
+
+            IPAddress current = source.Begin;
+
+            // Gather gaps
+
+            foreach (var range in subtractor)
+            {
+                if (CompareIpValues(current, range.Begin) < 0)
+                {
+                    IPAddress prev = Decrement(range.Begin);
+                    IPAddressRange newRange = new IPAddressRange(current, prev);
+                    if (source.Contains(newRange)) // HOTFIX!! Decrement and Increment have to happen in source bounds (param minIp and maxIp?), and loop should be cancelled if range.Begin is higher than sourc.End 
+                    {
+                        result.Add(newRange);
+                    }
+                }
+
+                if (!(CompareIpValues(current, range.End) > 0))
+                {
+                    current = Increment(range.End);
+                }
+
+            }
+
+            // Include top end if undefined
+
+            if (CompareIpValues(current, source.End) <= 0)
+            {
+                IPAddressRange newRange = new IPAddressRange(current, source.End);
+                if (source.Contains(newRange))
+                {
+                    result.Add(newRange);
+                }
+            }
+
+            return result;
+        }
+
     }
 }

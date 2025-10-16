@@ -14,6 +14,7 @@
             <Column TableItem="ManagementReport" Title="@(userConfig.GetText("service_objects"))" Field="@(m => m.ServiceObjectStatistics.ObjectAggregate.ObjectCount)" />
             <Column TableItem="ManagementReport" Title="@(userConfig.GetText("user_objects"))" Field="@(m => m.UserObjectStatistics.ObjectAggregate.ObjectCount)" />
             <Column TableItem="ManagementReport" Title="@(userConfig.GetText("rules"))" Field="@(m => m.RuleStatistics.ObjectAggregate.ObjectCount)" />
+            <Column TableItem="ManagementReport" Title="Unused Rules" Field="@(m => m.UnusedRulesStatistics.ObjectAggregate.ObjectCount)" />
         </Table>
     </div>
 }
@@ -27,6 +28,7 @@
                 <Column TableItem="ManagementReport" Title="@(userConfig.GetText("service_objects"))" Field="@(m => m.ServiceObjectStatistics.ObjectAggregate.ObjectCount)" />
                 <Column TableItem="ManagementReport" Title="@(userConfig.GetText("user_objects"))" Field="@(m => m.UserObjectStatistics.ObjectAggregate.ObjectCount)" />
                 <Column TableItem="ManagementReport" Title="@(userConfig.GetText("rules"))" Field="@(m => m.RuleStatistics.ObjectAggregate.ObjectCount)" />
+                <Column TableItem="ManagementReport" Title="Unused Rules" Field="@(m => m.UnusedRulesStatistics.ObjectAggregate.ObjectCount)" />
             </Table>
         </div>
         <h6>@(userConfig.GetText("no_rules_gtw"))</h6>

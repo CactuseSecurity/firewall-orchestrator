@@ -45,6 +45,7 @@ namespace FWO.Report
                 globalStatisticsManagement.NetworkObjectStatistics.ObjectAggregate.ObjectCount += mgm.NetworkObjectStatistics.ObjectAggregate.ObjectCount;
                 globalStatisticsManagement.ServiceObjectStatistics.ObjectAggregate.ObjectCount += mgm.ServiceObjectStatistics.ObjectAggregate.ObjectCount;
                 globalStatisticsManagement.UserObjectStatistics.ObjectAggregate.ObjectCount += mgm.UserObjectStatistics.ObjectAggregate.ObjectCount;
+                globalStatisticsManagement.UnusedRulesStatistics.ObjectAggregate.ObjectCount += mgm.UnusedRulesStatistics.ObjectAggregate.ObjectCount < mgm.RuleStatistics.ObjectAggregate.ObjectCount ? mgm.UnusedRulesStatistics.ObjectAggregate.ObjectCount : 0 ;
             }
         }
 

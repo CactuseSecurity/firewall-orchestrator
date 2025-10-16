@@ -53,6 +53,9 @@ namespace FWO.Data.Report
         
         [JsonProperty("rules_aggregate"), JsonPropertyName("rules_aggregate")]
         public ObjectStatistics RuleStatistics { get; set; } = new ();
+        
+        [JsonProperty("unusedRules_Count"), JsonPropertyName("unusedRules_Count")]
+        public ObjectStatistics UnusedRulesStatistics { get; set; } = new ();
 
         public bool Ignore { get; set; }
         public List<long> RelevantObjectIds = [];

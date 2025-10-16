@@ -173,6 +173,7 @@ namespace FWO.Report
                         report.ReportData.GlobalStats.NetworkObjectStatistics.ObjectAggregate.ObjectCount += mgm.NetworkObjectStatistics.ObjectAggregate.ObjectCount;
                         report.ReportData.GlobalStats.ServiceObjectStatistics.ObjectAggregate.ObjectCount += mgm.ServiceObjectStatistics.ObjectAggregate.ObjectCount;
                         report.ReportData.GlobalStats.UserObjectStatistics.ObjectAggregate.ObjectCount += mgm.UserObjectStatistics.ObjectAggregate.ObjectCount;
+                        report.ReportData.GlobalStats.UnusedRulesStatistics.ObjectAggregate.ObjectCount += mgm.UnusedRulesStatistics.ObjectAggregate.ObjectCount < mgm.RuleStatistics.ObjectAggregate.ObjectCount ? mgm.UnusedRulesStatistics.ObjectAggregate.ObjectCount : 0;
                     }
                     return Task.CompletedTask;
                 }, token);

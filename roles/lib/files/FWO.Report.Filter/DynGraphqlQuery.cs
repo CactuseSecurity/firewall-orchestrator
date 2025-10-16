@@ -97,6 +97,10 @@ namespace FWO.Report.Filter
 
         private static string ConstructStatisticsQuery(DynGraphqlQuery query, string paramString)
         {
+            var insertIndex = query.RuleWhereStatement.LastIndexOf(']');
+            var unusedRulesWhereStatement = insertIndex >= 0
+                ? query.RuleWhereStatement.Insert(insertIndex, ", {rule_metadatum: { rule_last_hit: { _is_null: true }}}")
+                : query.RuleWhereStatement;
             return $@"
                 query statisticsReport ({paramString}) 
                 {{ 
@@ -108,6 +112,7 @@ namespace FWO.Report.Filter
                         services_aggregate(where: {{ {query.SvcObjWhereStatement} }}) {{ aggregate {{ count }} }}
                         usrs_aggregate(where: {{ {query.UserObjWhereStatement} }}) {{ aggregate {{ count }} }}
                         rules_aggregate(where: {{ {query.RuleWhereStatement} }}) {{ aggregate {{ count }} }}
+                        unusedRules_Count: rules_aggregate(where: {{ {unusedRulesWhereStatement}}}) {{ aggregate {{ count }} }}
                         devices({devWhereString})
                         {{
                             name: dev_name

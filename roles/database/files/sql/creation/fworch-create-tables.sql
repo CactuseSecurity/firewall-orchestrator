@@ -1410,8 +1410,8 @@ create table compliance.network_zone
 	created timestamp with time zone default now(),
 	criterion_id INT,
     id_string TEXT,
-	is_internet_zone BOOLEAN DEFAULT FALSE,
-	is_internal_zone BOOLEAN DEFAULT FALSE
+	is_auto_calculated_internet_zone BOOLEAN DEFAULT FALSE,
+	is_auto_calculated_undefined_internal_zone BOOLEAN DEFAULT FALSE
 );
 
 create table compliance.network_zone_communication

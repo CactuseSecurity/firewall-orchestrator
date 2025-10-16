@@ -226,7 +226,7 @@ namespace FWO.Services
 
             // Remove existing special zones.
 
-            foreach (ComplianceNetworkZone specialZone in existingZones.Where(zone => zone.IsInternetZone || zone.IsInternalZone))
+            foreach (ComplianceNetworkZone specialZone in existingZones.Where(zone => zone.IsAutoCalculatedInternetZone || zone.IsAutoCalculatedUndefinedInternalZone))
             {
                 await RemoveZone(specialZone, apiConnection);
                 existingZones.Remove(specialZone);
@@ -235,39 +235,39 @@ namespace FWO.Services
             if (globalConfig.AutoCalculateInternetZone)
             {
 
-                // Add new local zone (even if AutoCalculateUndefinedInternalZone is false, because we need it to exclude the reserved ranges from internet zone)
+                // Add new undefined-internal zone (even if AutoCalculatedUndefinedInternalZone is false, because we need it to exclude the reserved ranges from internet zone)
 
-                ComplianceNetworkZone internalZone = new()
+                ComplianceNetworkZone undefinedInternalZone = new()
                 {
-                    IdString = "SPECIAL_ZONE_INTERNAL",
-                    Name = "Undefined Internal Zone",
-                    IsInternalZone = true,
+                    IdString = "AUTO_CALCULATED_ZONE_UNDEFINED_INTERNAL",
+                    Name = "Auto-calculated Undefined-internal Zone",
+                    IsAutoCalculatedUndefinedInternalZone = true,
                     CriterionId = matrixId,
                 };
 
-                CalculateInternalZone(internalZone, GetInternalZoneRanges(globalConfig), existingZones);
+                CalculateUndefinedInternalZone(undefinedInternalZone, GetInternalZoneRanges(globalConfig), existingZones);
 
-                AdditionsDeletions internalZoneAddDel = new()
+                AdditionsDeletions undefinedInternalZoneAddDel = new()
                 {
-                    IpRangesToAdd = internalZone.IPRanges.ToList()
+                    IpRangesToAdd = undefinedInternalZone.IPRanges.ToList()
                 };
 
-                existingZones.Add(internalZone);
+                existingZones.Add(undefinedInternalZone);
 
-                // Write internal zone to db if configured
+                // Write undefined-internal zone to db if configured
 
                 if (globalConfig.AutoCalculateUndefinedInternalZone)
                 {
-                    await AddZone(internalZone, internalZoneAddDel, apiConnection);
+                    await AddZone(undefinedInternalZone, undefinedInternalZoneAddDel, apiConnection);
                 }
 
                 // Add new internet zone
 
                 ComplianceNetworkZone internetZone = new()
                 {
-                    IdString = "SPECIAL_ZONE_INTERNET",
-                    Name = "Internet Zone",
-                    IsInternetZone = true,
+                    IdString = "AUTO_CALCULATED_ZONE_INTERNET",
+                    Name = "Auto-calculated Internet Zone",
+                    IsAutoCalculatedInternetZone = true,
                     CriterionId = matrixId,
                 };
 
@@ -292,32 +292,32 @@ namespace FWO.Services
             internetZone.IPRanges = internetZoneIPRanges.ToArray();
         }
 
-        public static void CalculateInternalZone(ComplianceNetworkZone internalZone, List<IPAddressRange> internalZoneRanges, List<ComplianceNetworkZone> definedZones)
+        public static void CalculateUndefinedInternalZone(ComplianceNetworkZone undefinedInternalZone, List<IPAddressRange> internalZoneRanges, List<ComplianceNetworkZone> definedZones)
         {
-            List<IPAddressRange> definedZonesIPRanges = ParseNetworkZoneToListOfRanges(definedZones, true);
-            List<IPAddressRange> internalZoneIPRanges = new();
+            List<IPAddressRange> definedZonesRanges = ParseNetworkZoneToListOfRanges(definedZones, true);
+            List<IPAddressRange> undefinedInternalZoneRanges = new();
 
             foreach (IPAddressRange range in internalZoneRanges)
             {
-                List<IPAddressRange> ranges = range.Subtract(definedZonesIPRanges);
+                List<IPAddressRange> ranges = range.Subtract(definedZonesRanges);
 
                 foreach (IPAddressRange newRange in ranges)
                 {
                     bool add =
-                        // Dont add if exactly this range is already in internalZoneIPRanges
-                        !internalZoneIPRanges.Any(r => r.Begin.Equals(newRange.Begin) && r.End.Equals(newRange.End))
+                        // Dont add if exactly this range is already in undefinedInternalZoneRanges
+                        !undefinedInternalZoneRanges.Any(r => r.Begin.Equals(newRange.Begin) && r.End.Equals(newRange.End))
                         // Dont add if new range is completely within an existing range
-                        && !internalZoneIPRanges.Any(r => r.Contains(newRange)); 
+                        && !undefinedInternalZoneRanges.Any(r => r.Contains(newRange)); 
 
                     if (add)
                     {
-                        internalZoneIPRanges.Add(newRange);
+                        undefinedInternalZoneRanges.Add(newRange);
                     }                 
                 }
 
             }
 
-            internalZone.IPRanges = internalZoneIPRanges.ToArray();
+            undefinedInternalZone.IPRanges = undefinedInternalZoneRanges.ToArray();
         }
 
         private static List<IPAddressRange> ParseNetworkZoneToListOfRanges(List<ComplianceNetworkZone> networkZones, bool sort)

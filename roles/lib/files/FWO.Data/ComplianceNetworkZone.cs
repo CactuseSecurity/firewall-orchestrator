@@ -46,14 +46,11 @@ namespace FWO.Data
         [JsonProperty("criterion_id"), JsonPropertyName("criterion_id")]
         public int CriterionId { get; set; } = 0;
 
-        [JsonProperty("is_internet_zone"), JsonPropertyName("is_internet_zone")]
-        public bool IsInternetZone { get; set; } = false;
+        [JsonProperty("is_auto_calculated_internet_zone"), JsonPropertyName("is_auto_calculated_internet_zone")]
+        public bool IsAutoCalculatedInternetZone { get; set; } = false;
         
-        [JsonProperty("is_internal_zone"), JsonPropertyName("is_internal_zone")]
-        public bool IsInternalZone { get; set; } = false;
-
-        
-
+        [JsonProperty("is_auto_calculated_undefined_internal_zone"), JsonPropertyName("is_auto_calculated_undefined_internal_zone")]
+        public bool IsAutoCalculatedUndefinedInternalZone { get; set; } = false;
 
         public bool CommunicationAllowedFrom(ComplianceNetworkZone from)
         {

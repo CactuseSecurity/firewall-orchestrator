@@ -19,21 +19,21 @@ namespace FWO.Test
 
             ComplianceNetworkZone networkZoneOne = new();
 
-            networkZoneOne.IPRanges = new IPAddressRange[]
-            {
+            networkZoneOne.IPRanges =
+            [
                 IpOperations.GetIPAdressRange("0.0.0.0/3"),
                 IpOperations.GetIPAdressRange("64.0.0.0/3")
 
-            };
+            ];
 
             ComplianceNetworkZone networkZoneTwo = new();
 
-            networkZoneTwo.IPRanges = new IPAddressRange[]
-            {
+            networkZoneTwo.IPRanges =
+            [
                 IpOperations.GetIPAdressRange("128.0.0.0/3"),
                 IpOperations.GetIPAdressRange("192.0.0.0/3")
 
-            };
+            ];
 
             List<ComplianceNetworkZone> definedAndExcludedZones = new List<ComplianceNetworkZone>
             {
@@ -41,13 +41,13 @@ namespace FWO.Test
                 networkZoneTwo
             };
 
-            IPAddressRange[] expectedInternetZone = new IPAddressRange[]
-            {
+            IPAddressRange[] expectedInternetZone =
+            [
                 IpOperations.GetIPAdressRange("32.0.0.0/3"),
                 IpOperations.GetIPAdressRange("96.0.0.0/3"),
                 IpOperations.GetIPAdressRange("160.0.0.0/3"),
                 IpOperations.GetIPAdressRange("224.0.0.0/3"),
-            };
+            ];
 
             // Act
 
@@ -70,30 +70,30 @@ namespace FWO.Test
 
             ComplianceNetworkZone networkZoneOne = new();
 
-            networkZoneOne.IPRanges = new IPAddressRange[]
-            {
+            networkZoneOne.IPRanges =
+            [
                 IpOperations.GetIPAdressRange("0.0.0.0/3"),
                 IpOperations.GetIPAdressRange("64.0.0.0/3")
 
-            };
+            ];
 
             ComplianceNetworkZone networkZoneTwo = new();
 
-            networkZoneTwo.IPRanges = new IPAddressRange[]
-            {
+            networkZoneTwo.IPRanges =
+            [
                 IpOperations.GetIPAdressRange("128.0.0.0/3"),
                 IpOperations.GetIPAdressRange("192.0.0.0/3")
 
-            };
+            ];
 
             ComplianceNetworkZone overlaps = new();
 
-            overlaps.IPRanges = new IPAddressRange[]
-            {
+            overlaps.IPRanges =
+            [
                 new IPAddressRange(IPAddress.Parse("31.255.255.255"), IPAddress.Parse("32.0.0.0")),
                 new IPAddressRange(IPAddress.Parse("63.255.255.255"), IPAddress.Parse("64.0.0.0")),
                 new IPAddressRange(IPAddress.Parse("191.255.255.255"), IPAddress.Parse("224.0.0.0")),
-            };
+            ];
 
             List<ComplianceNetworkZone> definedAndExcludedZones = new List<ComplianceNetworkZone>
             {
@@ -173,7 +173,7 @@ namespace FWO.Test
 
             // Act
 
-            NetworkZoneService.CalculateInternalZone(internalZone, internalZoneRanges, definedZones);
+            NetworkZoneService.CalculateUndefinedInternalZone(internalZone, internalZoneRanges, definedZones);
 
             // Assert
 
@@ -201,19 +201,19 @@ namespace FWO.Test
 
             ComplianceNetworkZone networkZoneOne = new();
 
-            networkZoneOne.IPRanges = new IPAddressRange[]
-            {
+            networkZoneOne.IPRanges =
+            [
                 new IPAddressRange(IPAddress.Parse("0.0.0.0"),   IPAddress.Parse("9.255.255.255")),
                 new IPAddressRange(IPAddress.Parse("11.0.0.0"),  IPAddress.Parse("172.15.255.255"))
-            };
+            ];
 
             ComplianceNetworkZone networkZoneTwo = new();
 
-            networkZoneTwo.IPRanges = new IPAddressRange[]
-            {
+            networkZoneTwo.IPRanges =
+            [
                 new IPAddressRange(IPAddress.Parse("172.32.0.0"),IPAddress.Parse("192.167.255.255")),
                 new IPAddressRange(IPAddress.Parse("192.169.0.0"), IPAddress.Parse("255.255.255.255"))
-            };
+            ];
 
             List<ComplianceNetworkZone> definedZones = new List<ComplianceNetworkZone>
             {
@@ -225,7 +225,7 @@ namespace FWO.Test
 
             // Act
 
-            NetworkZoneService.CalculateInternalZone(internalZone, internalZoneRanges, definedZones);
+            NetworkZoneService.CalculateUndefinedInternalZone(internalZone, internalZoneRanges, definedZones);
 
             // Assert
 
@@ -253,18 +253,18 @@ namespace FWO.Test
 
             ComplianceNetworkZone networkZoneOne = new();
 
-            networkZoneOne.IPRanges = new IPAddressRange[]
-            {
+            networkZoneOne.IPRanges =
+            [
                 new IPAddressRange(IPAddress.Parse("0.0.0.0"),  IPAddress.Parse("172.15.255.255"))
-            };
+            ];
 
             ComplianceNetworkZone networkZoneTwo = new();
 
-            networkZoneTwo.IPRanges = new IPAddressRange[]
-            {
+            networkZoneTwo.IPRanges =
+            [
                 new IPAddressRange(IPAddress.Parse("172.32.0.0"),IPAddress.Parse("192.167.255.255")),
                 new IPAddressRange(IPAddress.Parse("192.169.0.0"), IPAddress.Parse("255.255.255.255"))
-            };
+            ];
 
             List<ComplianceNetworkZone> definedZones = new List<ComplianceNetworkZone>
             {
@@ -272,15 +272,15 @@ namespace FWO.Test
                 networkZoneTwo
             };
 
-            IPAddressRange[] expectedinternalZone = new IPAddressRange[]
-            {
+            IPAddressRange[] expectedinternalZone =
+            [
                 IpOperations.GetIPAdressRange("172.16.0.0/12"),    
                 IpOperations.GetIPAdressRange("192.168.0.0/16")
-            };
+            ];
 
             // Act
 
-            NetworkZoneService.CalculateInternalZone(internalZone, internalZoneRanges, definedZones);
+            NetworkZoneService.CalculateUndefinedInternalZone(internalZone, internalZoneRanges, definedZones);
 
             // Assert
 

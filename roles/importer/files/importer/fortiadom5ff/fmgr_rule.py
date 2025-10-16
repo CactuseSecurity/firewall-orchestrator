@@ -85,7 +85,8 @@ def normalize_nat_rulebase(rulebase_link):
 
 def check_if_nat_rulebases_exist():
     for nat_type in nat_types:
-        nat_type_string 
+        # delete_v: hier weiter nat_type_string 
+        pass
 
 def find_rulebase_to_parse(rulebase_list, rulebase_uid):
     for rulebase in rulebase_list:

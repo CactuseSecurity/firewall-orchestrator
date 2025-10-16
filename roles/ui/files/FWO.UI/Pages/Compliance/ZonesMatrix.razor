@@ -86,6 +86,13 @@
 
     private void ExecuteCommunicationAction(ComplianceNetworkZone sourceZone, ComplianceNetworkZone destinationZone)
     {
+        if(!sourceZone.IsAutoCalculatedUndefinedInternalZone && !destinationZone.IsAutoCalculatedUndefinedInternalZone)
+        {
+            // Return to make auto-calculated undefined-internal zone readonly
+            
+            return;
+        }
+
         if (EditMode)
         {
             if (AddCommunication.Contains((sourceZone, destinationZone)))
@@ -113,12 +120,30 @@
 
     private List<ComplianceNetworkZone> GetSortedNetworkzones()
     {
-        List<ComplianceNetworkZone> complianceNetworkZones = networkZoneService.NetworkZones;
+        List<ComplianceNetworkZone> complianceNetworkZones = networkZoneService.NetworkZones.ToList();
 
         if(userConfig.GlobalConfig!.ComplianceCheckSortMatrixByID)
         {
             complianceNetworkZones = complianceNetworkZones.OrderBy(zone => zone.Id).ToList();
         }
+
+        ComplianceNetworkZone? internetZone = networkZoneService.NetworkZones.FirstOrDefault(zone => zone.IsAutoCalculatedInternetZone);
+
+        if(internetZone != null)
+        {
+            complianceNetworkZones.Remove(internetZone);
+            complianceNetworkZones.Insert(0, internetZone);
+
+            ComplianceNetworkZone? undefinedInternalZone = networkZoneService.NetworkZones.FirstOrDefault(zone => zone.IsAutoCalculatedUndefinedInternalZone);
+
+            if(undefinedInternalZone != null)
+            {
+                complianceNetworkZones.Remove(undefinedInternalZone);
+                complianceNetworkZones.Insert(1, undefinedInternalZone);
+            }
+        }
+
+
 
         return complianceNetworkZones;
     }

@@ -19,7 +19,7 @@ def normalize_network_objects(import_state: ImportStateController, native_config
         if not(current_obj_type in nw_obj_types and 'data' in native_config['objects'][current_obj_type]):
             continue
         for obj_orig in native_config['objects'][current_obj_type]['data']:
-            normalize_network_object(obj_orig, nw_objects, normalized_config, native_config['objects'])
+            normalize_network_object(obj_orig, nw_objects, normalized_config, native_config['objects'], current_obj_type)
 
     if native_config.get('is-super-manager',False):
         # finally add "Original" network object for natting (only in global domain)
@@ -30,10 +30,12 @@ def normalize_network_objects(import_state: ImportStateController, native_config
 
     normalized_config.update({'network_objects': nw_objects})
 
-def get_obj_member_refs_list(obj_orig, native_config_objects):
+def get_obj_member_refs_list(obj_orig, native_config_objects, current_obj_type):
     obj_member_refs_list = []
     for member_name in obj_orig['member']:
         for obj_type in native_config_objects:
+            if exclude_object_types_in_member_ref_search(obj_type, current_obj_type):
+                continue
             for potential_member in native_config_objects[obj_type]['data']:
                 if potential_member['name'] == member_name:
                     obj_member_refs_list.append(potential_member.get('uuid', potential_member['name']))
@@ -42,7 +44,15 @@ def get_obj_member_refs_list(obj_orig, native_config_objects):
             f"Member inconsistent for object {obj_orig['name']}, found members={str(obj_orig['member'])} and member_refs={str(obj_member_refs_list)}")
     return obj_member_refs_list
 
-def normalize_network_object(obj_orig, nw_objects, normalized_config, native_config_objects):
+def exclude_object_types_in_member_ref_search(obj_type, current_obj_type):
+    #TODO expand for all kinds of missmatches in group and member
+    skip_member_ref_loop = False
+    if current_obj_type.endswith('firewall/addrgrp'):
+        if obj_type.endswith('firewall/ippool'):
+            skip_member_ref_loop = True
+    return skip_member_ref_loop
+
+def normalize_network_object(obj_orig, nw_objects, normalized_config, native_config_objects, current_obj_type):
     obj_zone = 'global'
     obj = {}
     obj.update({'obj_name': obj_orig['name']})
@@ -53,7 +63,7 @@ def normalize_network_object(obj_orig, nw_objects, normalized_config, native_con
     elif 'member' in obj_orig: # addrgrp4, TODO for addrgrp6 change obj_typ to 'group_v6' and adjust obj_member_refs
         obj.update({ 'obj_typ': 'group' })
         obj.update({ 'obj_member_names' : list_delimiter.join(obj_orig['member']) })
-        obj.update({ 'obj_member_refs' : list_delimiter.join(get_obj_member_refs_list(obj_orig, native_config_objects))})
+        obj.update({ 'obj_member_refs' : list_delimiter.join(get_obj_member_refs_list(obj_orig, native_config_objects, current_obj_type))})
     elif 'startip' in obj_orig: # ippool object
         obj.update({ 'obj_typ': 'ip_range' })
         obj.update({ 'obj_ip': obj_orig['startip'] })

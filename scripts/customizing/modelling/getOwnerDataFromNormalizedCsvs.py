@@ -46,16 +46,28 @@ defaultConfigFileName = baseDirEtc + "secrets/customizingConfig.json"
 importSourceString = "tufinRlm" # change this to "cmdb-csv-export"? or will this break anything?
 
 
-class owner:
-    def __init__(self, name, app_id_external, main_user, biso, import_source):
+class Owner:
+    def __init__(self, name, app_id_external, main_user, recert_period_days, import_source):
         self.name = name
         self.app_id_external = app_id_external
         self.main_user = main_user
-        self.biso = biso
         self.modellers = []
         self.import_source = import_source
+        self.recert_period_days = recert_period_days
         self.app_servers = []
 
+    def to_json(self):
+        return (
+            {
+                "name": self.name,
+                "app_id_external": self.app_id_external,
+                "main_user": self.main_user,
+                # "criticality": self.criticality,
+                "import_source": self.import_source,
+                "recert_period_days": self.recert_period_days,
+                "app_servers": [ip.to_json() for ip in self.app_servers]
+            }
+        )
 
 class app_ip:
     def __init__(self, app_id_external: str, ip_start: IPAddress, ip_end: IPAddress, type: str, name: str):
@@ -64,6 +76,17 @@ class app_ip:
         self.ip_start = ip_start
         self.ip_end = ip_end
         self.type = type
+
+    def to_json(self):
+        return (
+            {
+            "name": self.name,
+            "app_id_external": self.app_id_external,
+            "ip_start": str(IPAddress(self.ip_start)),
+            "ip_end": str(IPAddress(self.ip_end)),
+            "type": self.type
+            }
+        )
         
 
 def readConfig(configFilename, keyToGet):
@@ -123,9 +146,9 @@ def match_and_extract_columns(colname, compiled_patterns):
 # adds data from csv file to appData
 # order of files in important: we only import apps which are included in files 3 and 4 (which only contain active apps)
 # so first import files 3 and 4, then import files 1 and 2^
-def extract_app_data_from_csv (csvFile: str, appData: dict, containsIp: bool): 
+def extract_app_data_from_csv (csvFile: str, app_data: list): 
 
-    appDataFromCsv = []
+    apps_from_csv = []
     csvFile = repoTargetDir + '/' + csvFile # add directory to csv files
 
     # read csv file:
@@ -144,72 +167,59 @@ def extract_app_data_from_csv (csvFile: str, appData: dict, containsIp: bool):
             appNameColumn = next(i for i, h in enumerate(headers) if name_pattern.match(h))
             appIdColumn = next(i for i, h in enumerate(headers) if app_id_pattern.match(h))
             appOwnerTISOColumn = next(i for i, h in enumerate(headers) if owner_tiso_pattern.match(h))
-            appOwnerBISOColumn = next(i for i, h in enumerate(headers) if owner_kwita_pattern.match(h))
+            appOwnerkwItAColumn = next(i for i, h in enumerate(headers) if owner_kwita_pattern.match(h))
             
-            appDataFromCsv = list(reader)  # Read remaining rows
+            apps_from_csv = list(reader)  # Read remaining rows
     except Exception:
         logger.error("error while trying to read csv file '" + csvFile + "', exception: " + str(traceback.format_exc()))
         sys.exit(1)
 
     countSkips = 0
     # append all owners from CSV
-    for line in appDataFromCsv:
-        appId = line[appIdColumn]
-        if appId.lower().startswith('app-') or appId.lower().startswith('com-'):
+    for line in apps_from_csv:
+        app_id = line[appIdColumn]
+        if app_id.lower().startswith('app-') or app_id.lower().startswith('com-'):
             appName = line[appNameColumn]
             appMainUser = line[appOwnerTISOColumn]
             mainUserDn = buildDN(appMainUser, ldapPath)
-            bisoDn = buildDN(line[appOwnerBISOColumn], ldapPath)
-            if mainUserDn=='':
-                logger.warning('adding app without main user: ' + appId)
-            if appId not in appData.keys() and not containsIp:
-                # only add app if it is in file 3 or 4
-                appData.update({
-                    appId: owner(app_id_external=app_id, appName=appName, main_user=mainUserDn,import_source=importSourceString)})
+            kwITA = line[appOwnerkwItAColumn]
+            if kwITA is None or kwITA == '' or kwITA.lower() == 'nein':
+                recert_period_days = 365
             else:
-                logger.debug(f'ignoring line from csv file: {appId} - inactive?')
-                countSkips += 1
+                recert_period_days = 182
+            if mainUserDn=='':
+                logger.warning('adding app without main user: ' + app_id)
+            app_list.append(Owner(app_id_external=app_id, name=appName, main_user=mainUserDn, recert_period_days = recert_period_days, import_source=importSourceString))
         else:
-            logger.info(f'ignoring line from csv file: {appId} - inconclusive appId')
+            logger.info(f'ignoring line from csv file: {app_id} - inconclusive appId')
             countSkips += 1
-    logger.info(f"{str(csvFile)}: #total lines {str(len(appDataFromCsv))}, skipped: {str(countSkips)}")
+    logger.info(f"{str(csvFile)}: #total lines {str(len(apps_from_csv))}, skipped: {str(countSkips)}")
+    #app_list.extend(app_list)
 
 
 # adds ip data from csv file to appData
-def extract_ip_data_from_csv (csv_filename: str, app_data_dict: dict, containsIp: bool): 
+def extract_ip_data_from_csv (csv_filename: str, app_dict: dict[str: Owner]): 
 
-    app_id_col_name = 'Alfabet-ID'
-    ip_col_name = 'IP'
-    column_names = [app_id_col_name, ip_col_name]
-    column_prefix = r'[.*?]:'
-    col_patterns = []
     valid_app_id_prefixes = ['app-', 'com-']
-    # Compile regex patterns for matching column names
-    column_patterns = [re.compile(fr'^{column_prefix}\s*({name})$') for name in column_names]
 
     ip_data = []
     csv_filename = repoTargetDir + '/' + csv_filename # add directory to csv files
 
     # read csv file:
     try:
-        with open(csv_filename, newline='', encoding='utf-8') as file_obj:
-            reader = csv.DictReader(file_obj)
-
-            # Determine which columns to keep and how to rename them
-            selected = {}
-            for col in reader.fieldnames:
-                matched, new_name = match_and_extract_columns(col, column_patterns)
-                if matched:
-                    selected[col] = new_name
-
-            print(f"Selected columns and renaming: {selected}")
-
-            # Read and transform
-            ip_data = [
-                {new: row[old] for old, new in selected.items()}
-                for row in reader
-            ]
-
+        with open(csv_filename, newline='', encoding='utf-8') as csvFile:
+            reader = csv.reader(csvFile)
+            headers = next(reader)  # Get header row first
+            
+            # Define regex patterns for column headers
+            app_id_pattern = re.compile(r'.*?:\s*Alfabet-ID$')
+            ip_pattern = re.compile(r'.*?:\s*IP')
+            
+            # Find column indices using regex
+            app_id_column_no = next(i for i, h in enumerate(headers) if app_id_pattern.match(h))
+            ip_column_no = next(i for i, h in enumerate(headers) if ip_pattern.match(h))
+            
+            ip_data = list(reader)  # Read remaining rows
     except Exception:
         logger.error("error while trying to read csv file '" + csv_filename + "', exception: " + str(traceback.format_exc()))
         sys.exit(1)
@@ -217,19 +227,28 @@ def extract_ip_data_from_csv (csv_filename: str, app_data_dict: dict, containsIp
     countSkips = 0
     # append all owners from CSV
     for line in ip_data:
-        app_id: str = line[app_id_col_name]
-        if len(valid_app_id_prefixes)==0 or app_id.lower() in valid_app_id_prefixes:
-            if containsIp and app_id in app_data_dict.keys():
+        app_id: str = line[app_id_column_no]
+        app_id_prefix = app_id.split('-')[0].lower() + '-'
+
+        if len(valid_app_id_prefixes)==0 or app_id_prefix in valid_app_id_prefixes:
+            if app_id in app_dict.keys():
                 # add app server ip addresses (but do not add the whole app - it must already exist)
-                app_server_ip = line[ip_col_name]
-                if app_server_ip is not None and app_server_ip != "" and app_server_ip not in app_data_dict[app_id]['app_servers']:
-                    if '/' in app_server_ip:
-                        # calc start and end ip for subnet
-                        pass
+                app_server_ip_str = line[ip_column_no]
+                if app_server_ip_str is not None and app_server_ip_str != "":
+                    try:
+                        ip_range = IPNetwork(app_server_ip_str)
+                    except Exception:
+                        logger.warning(f'error parsing IP/network {app_server_ip_str} for app {app_id}, skipping this entry')
+                        countSkips += 1
+                        continue
+                    if ip_range.size > 1:
+                        ip_type = "network"
                     else:
-                        app_data_dict[app_id]['app_servers'].append(
-                            app_ip(ip=app_server_ip, ip_end=app_server_ip, type="host", name=f"host_{app_server_ip}")
-                        )
+                        ip_type = "host"
+
+                    app_server_ip = app_ip(app_id_external=app_id, ip_start=ip_range.first, ip_end=ip_range.last, type=ip_type, name=f"{ip_type}_{app_server_ip_str}")
+                    if app_server_ip not in app_dict[app_id].app_servers:
+                        app_dict[app_id].app_servers.append(app_server_ip)
                 else:
                     # logger.debug(f'ignoring line from csv file: {appId} - empty IP')
                     countSkips += 1                    
@@ -240,6 +259,20 @@ def extract_ip_data_from_csv (csv_filename: str, app_data_dict: dict, containsIp
             logger.info(f'ignoring line from csv file: {app_id} - inconclusive appId')
             countSkips += 1
     logger.info(f"{str(csv_filename)}: #total lines {str(len(ip_data))}, skipped: {str(countSkips)}")
+
+
+def transform_owner_dict_to_list(app_data):
+    owner_data = { "owners": [] }
+    for app_id in app_data:
+        owner_data['owners'].append( app_data[app_id].to_json())
+    return owner_data
+
+
+def transform_app_list_to_dict(app_list):
+    app_data_dict = {}
+    for app in app_list:
+        app_data_dict[app.app_id_external] = app
+    return app_data_dict
 
 
 if __name__ == "__main__":
@@ -271,41 +304,34 @@ if __name__ == "__main__":
 
     #############################################
     # 1. get CSV files from github repo
-    repoUrl = "https://" + gitUsername + ":" + gitPassword + "@" + gitRepoUrl
-    if os.path.exists(repoTargetDir):
-        # If the repository already exists, open it and perform a pull
-        repo = git.Repo(repoTargetDir)
-        origin = repo.remotes.origin
-        origin.pull()
-    else:
-        repo = git.Repo.clone_from(repoUrl, repoTargetDir)
+
+    try:
+        repoUrl = "https://" + gitUsername + ":" + gitPassword + "@" + gitRepoUrl
+        if os.path.exists(repoTargetDir):
+            # If the repository already exists, open it and perform a pull
+            repo = git.Repo(repoTargetDir)
+            origin = repo.remotes.origin
+            origin.pull()
+        else:
+            repo = git.Repo.clone_from(repoUrl, repoTargetDir)
+    except Exception as e:
+        logger.warning("could not clone/pull git repo from " + repoUrl + ", exception: " + str(traceback.format_exc()))
+        logger.warning("trying to read csv files from folder given as parameter...")
+        # sys.exit(1)
 
     #############################################
     # 2. get app data from CSV files
-    appData = {}
+    app_data = {}
+    app_list = []
     for csvFile in csvAllOwnerFiles:
-        extract_app_data_from_csv(csvFile, appData, False)
+        extract_app_data_from_csv(csvFile, app_list)
+
+    app_dict = transform_app_list_to_dict(app_list)
+
     for csvFile in csvAppServerFiles:
-        extract_ip_data_from_csv(csvFile, appData, True)
+        extract_ip_data_from_csv(csvFile, app_dict)
 
-    owner_data = { "owners": [] } 
-
-    for app_id in appData:
-        if appData[app_id]['app_id_external'] != '':
-            owner_data['owners'].append(
-                {
-                    "name": appData[app_id]['name'],
-                    "app_id_external": appData[app_id]['app_id_external'],
-                    "main_user": appData[app_id]['main_user'],
-                    "modellers": appData[app_id]['modellers'],
-                    "criticality": appData[app_id]['criticality'] if 'criticality' in appData[app_id] else None,
-                    "import_source": appData[app_id]['import_source'],
-                    "app_servers": appData[app_id]['app_servers'],
-                    "recert_period_days": appData[app_id]['recert_period_days'] if 'recert_period_days' in appData[app_id] else 182
-                }
-            )
-        else:
-            logger.warning(f"App {app_id} has no external app id, skipping...")
+    owner_data = transform_owner_dict_to_list(app_dict)
 
     #############################################    
     # 3. write owners to json file
@@ -316,14 +342,14 @@ if __name__ == "__main__":
         
     #############################################    
     # 4. Some statistics
-    logger.info(f"total #apps: {str(len(appData))}")
+    logger.info(f"total #apps: {str(len(app_dict))}")
     appsWithIp = 0
-    for app_id in appData:
-        appsWithIp += 1 if len(appData[app_id]['app_servers']) > 0 else 0
+    for app_id in app_dict:
+        appsWithIp += 1 if len(app_dict[app_id].app_servers) > 0 else 0
     logger.info(f"#apps with ip addresses: {str(appsWithIp)}")
     totalIps = 0
-    for app_id in appData:
-        totalIps += len(appData[app_id]['app_servers'])
+    for app_id in app_dict:
+        totalIps += len(app_dict[app_id].app_servers)
     logger.info(f"#ip addresses in total: {str(totalIps)}")
 
     sys.exit(0)

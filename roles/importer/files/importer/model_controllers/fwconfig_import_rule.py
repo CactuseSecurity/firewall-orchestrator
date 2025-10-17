@@ -1101,6 +1101,22 @@ class FwConfigImportRule():
                     listOfEnforcedGwIds.append(gwId)
             if len(listOfEnforcedGwIds) == 0:
                 listOfEnforcedGwIds = None
+            
+            rule_from_zone_id = None
+            if rule.rule_src_zone is not None:
+                from_zones = rule.rule_src_zone.split(fwo_const.list_delimiter)
+                if len(from_zones) > 1:
+                    logger = getFwoLogger()
+                    logger.warning(f"rule {rule.rule_uid} has multiple source zones defined, only the first one will be used")
+                rule_from_zone_id = self.uid2id_mapper.get_zone_object_id(from_zones[0])
+
+            rule_to_zone_id = None
+            if rule.rule_dst_zone is not None:
+                to_zones = rule.rule_dst_zone.split(fwo_const.list_delimiter)
+                if len(to_zones) > 1:
+                    logger = getFwoLogger()
+                    logger.warning(f"rule {rule.rule_uid} has multiple destination zones defined, only the first one will be used")
+                rule_to_zone_id = self.uid2id_mapper.get_zone_object_id(to_zones[0])
 
             rule_for_import = Rule(
                 mgm_id=importDetails.MgmDetails.CurrentMgmId,
@@ -1124,8 +1140,8 @@ class FwConfigImportRule():
                 rule_implied=rule.rule_implied,
                 # parent_rule_id=rule.parent_rule_id,
                 rule_comment=rule.rule_comment,
-                rule_from_zone=self.uid2id_mapper.get_zone_object_id(rule.rule_src_zone) if rule.rule_src_zone is not None else None,
-                rule_to_zone=self.uid2id_mapper.get_zone_object_id(rule.rule_dst_zone) if rule.rule_dst_zone is not None else None,
+                rule_from_zone=rule_from_zone_id,
+                rule_to_zone=rule_to_zone_id,
                 access_rule=True,
                 nat_rule=False,
                 is_global=False,

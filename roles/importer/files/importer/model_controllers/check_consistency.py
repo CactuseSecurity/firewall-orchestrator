@@ -262,14 +262,15 @@ class FwConfigImportCheckConsistency(FwConfigImport):
 
    
     @staticmethod
-    def _collect_zone_refs_from_rules(single_config):
+    def _collect_zone_refs_from_rules(single_config: FwConfigNormalized) -> set[str]:
         all_used_zones_refs = []
         for rb in single_config.rulebases:
             for rule_id in rb.Rules:
-                if rb.Rules[rule_id].rule_src_zone is not None:
-                    all_used_zones_refs.append(rb.Rules[rule_id].rule_src_zone)
-                if rb.Rules[rule_id].rule_dst_zone is not None:
-                    all_used_zones_refs.append(rb.Rules[rule_id].rule_dst_zone)
+                rule = rb.Rules[rule_id]
+                if rule.rule_src_zone is not None:
+                    all_used_zones_refs.extend(rule.rule_src_zone.split(fwo_const.list_delimiter))
+                if rule.rule_dst_zone is not None:
+                    all_used_zones_refs.extend(rule.rule_dst_zone.split(fwo_const.list_delimiter))
         return set(all_used_zones_refs)
 
 

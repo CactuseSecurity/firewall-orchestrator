@@ -1,4 +1,6 @@
-﻿@using FWO.Middleware.Client
+@using FWO.Data.Middleware
+@using FWO.Middleware.Client
+@using RestSharp
 
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig
@@ -42,7 +44,7 @@
             </Authorized>
             <NotAuthorized>
                 <button type="button" class="btn btn-sm btn-primary" disabled>@(DisplayService.DisplayButton(userConfig, "request_interface", Icons.Workflow))</button>
-            </NotAuthorized> 
+            </NotAuthorized>
         </AuthorizeView>
         <button type="button" class="btn btn-sm btn-secondary" @onclick="Close">@(DisplayService.DisplayButton(userConfig, "cancel", Icons.Cancel))</button>
     </Footer>
@@ -91,6 +93,7 @@
 
     private async Task SendRequest()
     {
+        await DetermineRecipient(SelectedOwner); // Pass SelectedOwner to DetermineRecipient
         WorkInProgress = true;
         try
         {
@@ -101,7 +104,7 @@
 
                 if(ticketId > 0)
                 {
-                    ModellingConnectionHandler ConnHandler = new (apiConnection, userConfig, SelectedOwner, 
+                    ModellingConnectionHandler ConnHandler = new (apiConnection, userConfig, SelectedOwner,
                         new(), new(), true, false, DisplayMessageInUi, DefaultInit.DoNothing, false);
                     await ConnHandler.PartialInit();
                     ConnHandler.RequesterId = RequestingOwner.Id;
@@ -121,6 +124,45 @@
         WorkInProgress = false;
     }
 
+    private async Task<EmailRecipientOption> DetermineRecipient(FwoOwner owner)
+    {
+        try
+        {
+            if(string.IsNullOrEmpty(owner.GroupDn))
+            {
+                // No group registered - send to main responsible
+                return EmailRecipientOption.OwnerMainResponsible;
+            }
+
+            RestResponse<List<GroupGetReturnParameters>> response = await middlewareClient.GetInternalGroups();
+
+            if(response.StatusCode == System.Net.HttpStatusCode.OK && response.Data != null)
+            {
+                GroupGetReturnParameters? ownerGroup = response.Data.FirstOrDefault(g => g.GroupDn == owner.GroupDn);
+
+                if(ownerGroup == null)
+                {
+                    return EmailRecipientOption.OwnerMainResponsible;
+                }
+
+                if(ownerGroup.Members == null || ownerGroup.Members.Count == 0)
+                {
+                    //Group has no members - send to main responsible
+                    return EmailRecipientOption.OwnerMainResponsible;
+                }
+
+                return EmailRecipientOption.OwnerGroupOnly;
+            }
+
+            return EmailRecipientOption.OwnerMainResponsible;
+        }
+        catch(Exception exception)
+        {
+            DisplayMessageInUi(exception, "", "", false);
+            return EmailRecipientOption.OwnerMainResponsible;
+        }
+    }
+
     private bool CheckInput()
     {
         if(Reason == "" || InterfaceName == "")
@@ -137,18 +179,21 @@
     }
 
     private async Task SendEmail(long connId)
-    {       
+    {
         try
         {
-            EmailHelper emailHelper = new(apiConnection, middlewareClient, userConfig, DisplayMessageInUi);         
+            EmailHelper emailHelper = new(apiConnection, middlewareClient, userConfig, DisplayMessageInUi);
 
             await emailHelper.Init();
 
             string interfaceUrl = $"{userConfig.UiHostName}/networkmodelling/{SelectedOwner.ExtAppId}/{connId}";
             string subject = userConfig.ModReqEmailSubject;
             string body = $"{RequestingOwner.Name} {userConfig.ModReqEmailBody} {SelectedOwner.Name} <br>" +
-                $"<a target=\"_blank\" href=\"{interfaceUrl}\">{userConfig.GetText("interface")}: {InterfaceName}</a><br>"; 
-            if(await emailHelper.SendEmailToOwnerResponsibles(SelectedOwner, subject, body, userConfig.ModReqEmailReceiver, userConfig.ModReqEmailRequesterInCc))
+                $"<a target=\"_blank\" href=\"{interfaceUrl}\">{userConfig.GetText("interface")}: {InterfaceName}</a><br>";
+
+            EmailRecipientOption recipientOption = await DetermineRecipient(SelectedOwner);
+
+            if(await emailHelper.SendEmailToOwnerResponsibles(SelectedOwner, subject, body, recipientOption, userConfig.ModReqEmailRequesterInCc))
             {
                 DisplayMessageInUi(null, userConfig.GetText("send_email"), userConfig.GetText("U9011"), false);
             }

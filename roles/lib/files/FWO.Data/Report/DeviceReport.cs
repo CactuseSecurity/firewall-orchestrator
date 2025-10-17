@@ -57,6 +57,9 @@ namespace FWO.Data.Report
             return Rules != null && Rules.Count() >0 ;
         }
 
+        /// <summary>
+        /// Conforms <see cref="DeviceReport"/> internal data to be valid for further usage.
+        /// </summary>
         public void EnforceValidity()
         {
             if (UnusedRulesStatistics.ObjectAggregate.ObjectCount >= RuleStatistics.ObjectAggregate.ObjectCount)

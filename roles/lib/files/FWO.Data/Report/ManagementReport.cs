@@ -108,6 +108,9 @@ namespace FWO.Data.Report
             return $"{Name} [{string.Join(separator, Array.ConvertAll(Devices, device => device.Name))}]";
         }
 
+        /// <summary>
+        /// Conforms <see cref="ManagementReport"/> internal data to be valid for further usage.
+        /// </summary>
         public void EnforceValidity()
         {
             if (UnusedRulesStatistics.ObjectAggregate.ObjectCount >= RuleStatistics.ObjectAggregate.ObjectCount)

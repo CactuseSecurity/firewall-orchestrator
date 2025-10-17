@@ -77,7 +77,7 @@ def normalize_rulebases_for_each_link_destination(gateway, mgm_uid, fetched_rule
             else:
                 normalized_config_adom['policies'].append(normalized_rulebase)
 
-        normalize_nat_rulebase()
+        #normalize_nat_rulebase(rulebase_link)
 
 def normalize_nat_rulebase(rulebase_link):
     if not rulebase_link['is_section']:

@@ -236,7 +236,7 @@
         try
         {
             bool shortened = false;
-            newGroupName = Sanitizer.SanitizeMand(newGroupName, ref shortened);
+            newGroupName = newGroupName.SanitizeMand(ref shortened);
             if(shortened)
             {
                 DisplayMessageInUi(null, userConfig.GetText("save_group"), userConfig.GetText("U0001"), true);

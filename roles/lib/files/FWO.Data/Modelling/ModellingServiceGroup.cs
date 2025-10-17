@@ -59,8 +59,8 @@ namespace FWO.Data.Modelling
         public override bool Sanitize()
         {
             bool shortened = base.Sanitize();
-            Comment = Sanitizer.SanitizeCommentOpt(Comment, ref shortened);
-            Creator = Sanitizer.SanitizeOpt(Creator, ref shortened);
+            Comment = Comment.SanitizeCommentOpt(ref shortened);
+            Creator = Creator.SanitizeOpt(ref shortened);
             return shortened;
         }
     }

@@ -1,3 +1,27 @@
+-- text codes (roughly) categorized:
+-- U: user texts (explanation or confirmation texts)
+-- E: error texts
+-- A: Api errors
+-- T: texts from external sources (Ldap, other database tables)
+-- C: Contextual Info (Tooltips)
+-- H: help pages
+-- 0000-0999: General
+-- 1000-1999: Reporting
+-- 2000-2999: Scheduling
+-- 3000-3999: Archive
+-- 4000-4999: Recertification
+-- 5000-5999: Settings
+--            5000-5099: general
+--            5100-5199: devices
+--            5200-5299: authorization
+--            5300-5399: defaults
+--            5400-5499: personal settings
+--            5500-5599: workflow module
+--            5600-5699: workflow module
+-- 6000-6999: API
+-- 7000-7999: Monitoring
+-- 8000-8999: Workflow
+-- 9000-9999: Modelling
 
 -- cleanup
 DELETE FROM txt;
@@ -644,6 +668,8 @@ INSERT INTO txt VALUES ('user_objects',		    'German', 	'Nutzerobjekte');
 INSERT INTO txt VALUES ('user_objects',		    'English', 	'User objects');
 INSERT INTO txt VALUES ('rules',		        'German', 	'Regeln');
 INSERT INTO txt VALUES ('rules',		        'English', 	'Rules');
+INSERT INTO txt VALUES ('unused_rules',		    'German', 	'Unbenutze Regeln');
+INSERT INTO txt VALUES ('unused_rules',		    'English', 	'Unused Rules');
 INSERT INTO txt VALUES ('changes',		        'German', 	'&Auml;nderungen');
 INSERT INTO txt VALUES ('changes',		        'English', 	'Changes');
 INSERT INTO txt VALUES ('used_objects',		    'German', 	'Benutzte Objekte');
@@ -2824,31 +2850,6 @@ INSERT INTO txt VALUES ('naming_convention',    'German',   'Namenskonvention');
 INSERT INTO txt VALUES ('naming_convention',    'English',  'Naming Convention');
 INSERT INTO txt VALUES ('import_app_server',    'German',   'App Server importieren');
 INSERT INTO txt VALUES ('import_app_server',    'English',  'Import app servers');
-
--- text codes (roughly) categorized:
--- U: user texts (explanation or confirmation texts)
--- E: error texts
--- A: Api errors
--- T: texts from external sources (Ldap, other database tables)
--- C: Contextual Info (Tooltips)
--- H: help pages
--- 0000-0999: General
--- 1000-1999: Reporting
--- 2000-2999: Scheduling
--- 3000-3999: Archive
--- 4000-4999: Recertification
--- 5000-5999: Settings
---            5000-5099: general
---            5100-5199: devices
---            5200-5299: authorization
---            5300-5399: defaults
---            5400-5499: personal settings
---            5500-5599: workflow module
---            5600-5699: workflow module
--- 6000-6999: API
--- 7000-7999: Monitoring
--- 8000-8999: Workflow
--- 9000-9999: Modelling
 
 -- user messages
 INSERT INTO txt VALUES ('U0001', 'German',  'Eingabetext wurde um nicht erlaubte Zeichen gek&uuml;rzt');

@@ -41,10 +41,12 @@ namespace FWO.Report
 
             foreach (ManagementReport mgm in ReportData.ManagementData.Where(mgt => !mgt.Ignore))
             {
+                mgm.EnforceValidity();
                 globalStatisticsManagement.RuleStatistics.ObjectAggregate.ObjectCount += mgm.RuleStatistics.ObjectAggregate.ObjectCount;
                 globalStatisticsManagement.NetworkObjectStatistics.ObjectAggregate.ObjectCount += mgm.NetworkObjectStatistics.ObjectAggregate.ObjectCount;
                 globalStatisticsManagement.ServiceObjectStatistics.ObjectAggregate.ObjectCount += mgm.ServiceObjectStatistics.ObjectAggregate.ObjectCount;
                 globalStatisticsManagement.UserObjectStatistics.ObjectAggregate.ObjectCount += mgm.UserObjectStatistics.ObjectAggregate.ObjectCount;
+                globalStatisticsManagement.UnusedRulesStatistics.ObjectAggregate.ObjectCount += mgm.UnusedRulesStatistics.ObjectAggregate.ObjectCount;
             }
         }
 

@@ -368,7 +368,8 @@ namespace FWO.Basics
 
             if (source.Begin.ToString().Equals(source.End.ToString()))
             {
-                sourceNetwork.Add(IPNetwork2.Parse(source.ToString(), 32));
+                int sourceMask = source.Begin.AddressFamily == AddressFamily.InterNetwork ? 32 : 128;
+                sourceNetwork.Add(IPNetwork2.Parse(source.ToString(), (byte) sourceMask));
             }
             else if (IPNetwork2.TryParseRange(source.ToString(), out IEnumerable<IPNetwork2> parsedSourceRange))
             {
@@ -379,7 +380,8 @@ namespace FWO.Basics
             {
                 if (range.Begin.ToString().Equals(range.End.ToString()))
                 {
-                    subtractorNetwork.Add(IPNetwork2.Parse(range.ToString(), 32));
+                    int rangeMask = source.Begin.AddressFamily == AddressFamily.InterNetwork ? 32 : 128;
+                    subtractorNetwork.Add(IPNetwork2.Parse(range.ToString(), (byte) rangeMask));
                 }
                 else if (IPNetwork2.TryParseRange(range.ToString(), out IEnumerable<IPNetwork2> parsedSubtractorRange))
                 {

@@ -132,7 +132,21 @@ def extract_app_data_from_csv (csvFile: str, appData: dict, containsIp: bool):
     try:
         with open(csvFile, newline='') as csvFile:
             reader = csv.reader(csvFile)
-            appDataFromCsv += list(reader)[1:]# Skip headers in first line
+            headers = next(reader)  # Get header row first
+            
+            # Define regex patterns for column headers
+            name_pattern = re.compile(r'.*?:\s*Name')
+            app_id_pattern = re.compile(r'.*?:\s*Alfabet-ID$')
+            owner_tiso_pattern = re.compile(r'.*?:\s*TISO')
+            owner_kwita_pattern = re.compile(r'.*?:\s*kwITA')
+            
+            # Find column indices using regex
+            appNameColumn = next(i for i, h in enumerate(headers) if name_pattern.match(h))
+            appIdColumn = next(i for i, h in enumerate(headers) if app_id_pattern.match(h))
+            appOwnerTISOColumn = next(i for i, h in enumerate(headers) if owner_tiso_pattern.match(h))
+            appOwnerBISOColumn = next(i for i, h in enumerate(headers) if owner_kwita_pattern.match(h))
+            
+            appDataFromCsv = list(reader)  # Read remaining rows
     except Exception:
         logger.error("error while trying to read csv file '" + csvFile + "', exception: " + str(traceback.format_exc()))
         sys.exit(1)
@@ -150,7 +164,8 @@ def extract_app_data_from_csv (csvFile: str, appData: dict, containsIp: bool):
                 logger.warning('adding app without main user: ' + appId)
             if appId not in appData.keys() and not containsIp:
                 # only add app if it is in file 3 or 4
-                appData.update({appId: owner(app_id_external=app_id, appName=appName, main_user=mainUserDn,import_source=importSourceString)})
+                appData.update({
+                    appId: owner(app_id_external=app_id, appName=appName, main_user=mainUserDn,import_source=importSourceString)})
             else:
                 logger.debug(f'ignoring line from csv file: {appId} - inactive?')
                 countSkips += 1
@@ -234,6 +249,8 @@ if __name__ == "__main__":
                         help='Filename of custom config file for modelling imports')
     parser.add_argument('-s', "--suppress_certificate_warnings", action='store_true', default = True,
                         help = "suppress certificate warnings")
+    parser.add_argument('-f', "--import_from_folder", 
+                        help = "if set, will try to read csv files from given folder instead of git repo")
     parser.add_argument('-l', '--limit', metavar='api_limit', default='150',
                         help='The maximal number of returned results per HTTPS Connection; default=50')
 
@@ -246,8 +263,8 @@ if __name__ == "__main__":
 
     # read config
     ldapPath = readConfig(args.config, 'ldapPath')
-    gitRepoUrl = readConfig(args.config, 'ipamGitRepo')
-    gitUsername = readConfig(args.config, 'ipamGitUser')
+    gitRepoUrl = readConfig(args.config, 'gitRepo')
+    gitUsername = readConfig(args.config, 'gitUser')
     gitPassword = readConfig(args.config, 'gitpassword')
     csvAllOwnerFiles = readConfig(args.config, 'csvAllOwnerFiles')
     csvAppServerFiles = readConfig(args.config, 'csvAppServerFiles')
@@ -283,7 +300,7 @@ if __name__ == "__main__":
                     "modellers": appData[app_id]['modellers'],
                     "criticality": appData[app_id]['criticality'] if 'criticality' in appData[app_id] else None,
                     "import_source": appData[app_id]['import_source'],
-                    "app_servers": appData[app_id]['app_servers']
+                    "app_servers": appData[app_id]['app_servers'],
                     "recert_period_days": appData[app_id]['recert_period_days'] if 'recert_period_days' in appData[app_id] else 182
                 }
             )

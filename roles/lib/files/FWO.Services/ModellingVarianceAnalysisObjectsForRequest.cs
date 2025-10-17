@@ -1,4 +1,4 @@
-﻿using FWO.Basics;
+using FWO.Basics;
 using FWO.Data;
 using FWO.Data.Modelling;
 using FWO.Data.Workflow;
@@ -274,7 +274,7 @@ namespace FWO.Services
             Log.WriteDebug($"Search {nwGroupType}", $"Name: {appRole.Name}, IdString: {appRole.IdString}, Management: {mgt.Name}");
 
             bool shortened = false;
-            string sanitizedARName = Sanitizer.SanitizeJsonFieldMand(appRole.IdString, ref shortened);
+            string sanitizedARName = appRole.IdString.SanitizeJsonFieldMand(ref shortened);
             if (allProdAppRoles.ContainsKey(mgt.Id))
             {
                 existingAppRole = allProdAppRoles[mgt.Id].FirstOrDefault(a => a.Name == appRole.IdString || a.Name == sanitizedARName);

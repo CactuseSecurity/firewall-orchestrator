@@ -313,7 +313,7 @@ namespace FWO.Middleware.Server
         {
             try
             {
-                await apiConnection.SendQueryAsync<ReturnIdWrapper>(ModellingQueries.setAreaDeletedState, new { id = area.Id, deleted = true });
+                await apiConnection.SendQueryAsync<ReturnIdWrapper>(ModellingQueries.setNwGroupDeletedState, new { id = area.Id, deleted = true });
                 await apiConnection.SendQueryAsync<ReturnIdWrapper>(ModellingQueries.removeSelectedNwGroupObjectFromAllApps, new { nwGroupId = area.Id });
             }
             catch (Exception exc)
@@ -330,7 +330,7 @@ namespace FWO.Middleware.Server
         {
             try
             {
-                await apiConnection.SendQueryAsync<ReturnIdWrapper>(ModellingQueries.setAreaDeletedState, new { id = area.Id, deleted = false });
+                await apiConnection.SendQueryAsync<ReturnIdWrapper>(ModellingQueries.setNwGroupDeletedState, new { id = area.Id, deleted = false });
             }
             catch (Exception exc)
             {

@@ -1,4 +1,4 @@
-mutation setAreaDeletedState(
+mutation setNwGroupDeletedState(
   $id: bigint!
   $deleted: Boolean!
   ) {

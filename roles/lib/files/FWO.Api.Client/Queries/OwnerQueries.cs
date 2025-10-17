@@ -1,4 +1,4 @@
-﻿using FWO.Logging;
+using FWO.Logging;
 
 namespace FWO.Api.Client.Queries
 {
@@ -14,6 +14,7 @@ namespace FWO.Api.Client.Queries
         public static readonly string updateOwner;
         public static readonly string deactivateOwner;
         public static readonly string deleteOwner;
+        public static readonly string getOwnerLifeCycles;
         // public static readonly string setDefaultOwner;
         public static readonly string setOwnerLastCheck;
         public static readonly string setOwnerLastRecert;
@@ -43,6 +44,7 @@ namespace FWO.Api.Client.Queries
                 updateOwner = File.ReadAllText(QueryPath + "owner/updateOwner.graphql");
                 deactivateOwner = File.ReadAllText(QueryPath + "owner/deactivateOwner.graphql");
                 deleteOwner = File.ReadAllText(QueryPath + "owner/deleteOwner.graphql");
+                getOwnerLifeCycles = File.ReadAllText(QueryPath + "owner/getOwnerLifeCycles.graphql");
                 //setDefaultOwner = File.ReadAllText(QueryPath + "owner/setDefaultOwner.graphql");
                 setOwnerLastCheck = File.ReadAllText(QueryPath + "owner/setOwnerLastCheck.graphql");
                 setOwnerLastRecert = File.ReadAllText(QueryPath + "owner/setOwnerLastRecert.graphql");

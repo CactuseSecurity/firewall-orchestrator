@@ -301,14 +301,15 @@
                     <label class="col-sm-3 col-form-label col-form-label-sm" data-toggle="tooltip" title="Owner Lifecycle Status">Lifecycle Status:</label>
                     @if (Readonly)
                     {
-                        <label class="col-sm-5">@(actOwner.LifecycleStatus ?? "")</label>
-                    }
+                        <label class="col-sm-5">@(lifecycles.FirstOrDefault(x => x.Id == actOwner.LifecycleStatusId)?.Name ?? "")</label>
+                                }
                     else
                     {
                         <div class="col-sm-5">
-                            <Dropdown ElementType="string" @bind-SelectedElement="actOwner.LifecycleStatus" Elements=@(new[] { "planned", "in production", "end of life" }) Nullable="true">
-                                <ElementTemplate Context="status">
-                                    @status
+                            @* <Dropdown ElementType="string" @bind-SelectedElement="actOwner.LifecycleStatus" Elements=@(new[] { "planned", "in production", "end of life" }) Nullable="true"> *@                                             
+                             <Dropdown ElementType="LifecycleStatus" ElementToString="@(t => t.Name)" @bind-SelectedElement="selectedLifecycleStatus" Elements="lifecycles" Nullable="true">
+                                <ElementTemplate Context="lifecycle">
+                                    @lifecycle.Name
                                 </ElementTemplate>
                             </Dropdown>
                         </div>
@@ -363,8 +364,10 @@ else
     private List<FwoOwner> sampleOwners = [];
     private FwoOwner actOwner = new();
     private Tenant? selectedTenant;
+    private LifecycleStatus? selectedLifecycleStatus;
     private DayOfWeek? selectedDayOfWeek;
     private List<Tenant> tenants = [];
+    private List<LifecycleStatus> lifecycles = [];
 
     private bool showCleanupButton = false;
     private bool CleanupMode = false;
@@ -392,6 +395,7 @@ else
         try
         {
             owners = await apiConnection.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getOwners);
+            lifecycles = await apiConnection.SendQueryAsync<List<LifecycleStatus>>(OwnerQueries.getOwnerLifeCycles);
             AnalyseSampleOwners();
 
             RestResponse<List<TenantGetReturnParameters>> middlewareServerResponse = await middlewareClient.GetTenants();
@@ -455,6 +459,7 @@ else
         {
             actOwner = owner;
             selectedTenant = tenants.FirstOrDefault(x => x.Id == actOwner.TenantId);
+            selectedLifecycleStatus = lifecycles.FirstOrDefault(x => x.Id == actOwner.LifecycleStatusId);
             actRecCheckParams = (actOwner.RecertCheckParamString != null ? System.Text.Json.JsonSerializer.Deserialize<RecertCheckParams>(actOwner.RecertCheckParamString) ?? new RecertCheckParams() : new RecertCheckParams());
             selectedDayOfWeek = (DayOfWeek?)actRecCheckParams?.RecertCheckWeekday;
             if(AddOwnerMode)
@@ -484,6 +489,7 @@ else
         try
         {
             actOwner.TenantId = selectedTenant?.Id;
+            actOwner.LifecycleStatusId = selectedLifecycleStatus?.Id;
             if(actRecCheckParams.RecertCheckDayOfMonth == 0)
             {
                 actRecCheckParams.RecertCheckDayOfMonth = null;
@@ -528,8 +534,9 @@ else
             appIdExternal = string.IsNullOrEmpty(actOwner.ExtAppId) ? null : actOwner.ExtAppId,
             recertCheckParams = actOwner.RecertCheckParamString,
             commSvcPossible = actOwner.CommSvcPossible,
-            recertActive = actOwner.RecertActive
-        };
+            recertActive = actOwner.RecertActive,
+            LifecycleStatusId = actOwner.LifecycleStatusId
+    };
         ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<ReturnIdWrapper>(OwnerQueries.newOwner, variables)).ReturnIds;
         if (returnIds == null)
         {
@@ -564,7 +571,8 @@ else
             appIdExternal = string.IsNullOrEmpty(actOwner.ExtAppId) ? null : actOwner.ExtAppId,
             recertCheckParams = actOwner.RecertCheckParamString,
             commSvcPossible = actOwner.CommSvcPossible,
-            recertActive = actOwner.RecertActive
+            recertActive = actOwner.RecertActive,
+            LifecycleStatusId = actOwner.LifecycleStatusId
         };
         int udId = (await apiConnection.SendQueryAsync<ReturnId>(OwnerQueries.updateOwner, Variables)).UpdatedId;
         if(udId != actOwner.Id)

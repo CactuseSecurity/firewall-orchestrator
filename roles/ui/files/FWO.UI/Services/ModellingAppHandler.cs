@@ -98,7 +98,7 @@ namespace FWO.Ui.Services
 
         public static async Task<WfTicket?> GetLatestFWRequestTicket(FwoOwner application, ApiConnection apiConnection)
         {
-            List<TicketId> ticketIds = await apiConnection.SendQueryAsync<List<TicketId>>(ExtRequestQueries.getLatestTicketIds, new { ownerId = application.Id });
+            List<TicketId> ticketIds = await apiConnection.SendQueryAsync<List<TicketId>>(ExtRequestQueries.getLatestTicketId, new { ownerId = application.Id });
             if (ticketIds.Count > 0)
             {
                 return await apiConnection.SendQueryAsync<WfTicket>(RequestQueries.getTicketById, new { ticketIds[0].Id });

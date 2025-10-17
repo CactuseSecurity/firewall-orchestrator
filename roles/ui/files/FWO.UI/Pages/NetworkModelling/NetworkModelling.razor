@@ -64,7 +64,7 @@
                                 </NotAuthorized>
                             </AuthorizeView>
                         }
-                        @if(userConfig.ModRecertActive && appSelected && selectedApp.ConnectionCount.Aggregate.Count > 0)
+                        @if(userConfig.ModRecertActive && appSelected && selectedApp.RecertActive && selectedApp.ConnectionCount.Aggregate.Count > 0)
                         {
                             <AuthorizeView Roles="@($"{Roles.Modeller}, {Roles.Admin}, {Roles.Auditor}")">
                                 <Authorized>
@@ -115,9 +115,11 @@
                 <div class="mx-2 mt-2">
                     <TabSet WholeWidth="false" DarkMode="false" KeepPanelsAlive="false" @ref="appHandler!.Tabset">
                         <Tab Title="@(userConfig.GetText("connections"))" Position=0>
-                            <button type="button" class="btn btn-sm btn-success" @onclick="appHandler!.AddConnection">
-                                @(DisplayService.DisplayButton(userConfig, "add_connection", Icons.Add))
-                            </button>                            
+                            <div>
+                                <button type="button" class="btn btn-sm btn-success" @onclick="appHandler!.AddConnection">
+                                    @(DisplayService.DisplayButton(userConfig, "add_connection", Icons.Add))
+                                </button>
+                            </div>
                             <ConnectionTable UseResponsiveTable="true" ShowPageSizeInput="true" Connections="@appHandler!.GetRegularConnections()" @bind-AppHandler="appHandler" AppActive="appActive" ShowModellingState="true" ShowProductionState="true" />
                         </Tab>
                         <Tab Title="@(userConfig.GetText("provided_interfaces"))" Position=1>
@@ -136,14 +138,17 @@
                                     </Authorized>
                                 </AuthorizeView>
                             </div>
-                            <ConnectionTable UseResponsiveTable="true" ShowPageSizeInput="true" Connections="@appHandler!.GetInterfaces(showRejected)" @bind-AppHandler="appHandler" AppActive="appActive" ShowModellingState="true" />
+                            <ConnectionTable UseResponsiveTable="true" ShowPageSizeInput="true" Connections="@appHandler!.GetInterfaces(showRejected)" @bind-AppHandler="appHandler" AppActive="appActive" ShowModellingState="true" InterfacesPossible="true"/>
                         </Tab>
                         @if (selectedApp.CommSvcPossible)
                         {
                             <Tab Title="@(userConfig.GetText("common_services"))" Position=2>
-                                <button type="button" class="btn btn-sm btn-success"
-                                    @onclick="appHandler!.AddCommonService">@(DisplayService.DisplayButton(userConfig, "add_common_service", Icons.Add))
-                                </button>
+                               <div>
+                                    <button type="button" class="btn btn-sm btn-success"
+                                            @onclick="appHandler!.AddCommonService">
+                                        @(DisplayService.DisplayButton(userConfig, "add_common_service", Icons.Add))
+                                    </button>
+                               </div>
                                 <ConnectionTable UseResponsiveTable="true" ShowPageSizeInput="true" Connections="@appHandler!.GetCommonServices()" @bind-AppHandler="appHandler" AppActive="appActive" ShowModellingState="true" ShowProductionState="true" />
                             </Tab>
                         }
@@ -213,7 +218,7 @@ else
     private bool firstErrorMessage = true;
     private bool workInProgress = false;
     private bool InitDone = false;
-    
+
 
     protected override async Task OnInitializedAsync()
     {
@@ -404,7 +409,7 @@ else
         if(userConfig.ModRolloutActive)
         {
             apiConnection.SetProperRole(authenticationStateTask!.Result.User, [ Roles.Modeller, Roles.Admin, Roles.Auditor ]);
-            List<TicketId> ticketIds = await apiConnection.SendQueryAsync<List<TicketId>>(ExtRequestQueries.getLatestTicketIds, new{ownerId = selectedApp.Id});
+            List<TicketId> ticketIds = await apiConnection.SendQueryAsync<List<TicketId>>(ExtRequestQueries.getLatestTicketId, new{ownerId = selectedApp.Id});
             if(ticketIds.Count == 0)
             {
                 ChangeStatus = userConfig.GetText("never_requested");
@@ -412,7 +417,7 @@ else
             }
             else
             {
-                WfTicket? intTicket = await apiConnection.SendQueryAsync<WfTicket>(RequestQueries.getTicketById, new { ticketIds.First().Id });
+                WfTicket? intTicket = await apiConnection.SendQueryAsync<WfTicket>(RequestQueries.getTicketById, new { ticketIds[0].Id });
                 apiConnection.SetProperRole(authenticationStateTask!.Result.User, [ Roles.Modeller, Roles.Admin, Roles.Auditor ]);
                 if(intTicket != null)
                 {
@@ -489,7 +494,7 @@ else
             if(lastRequests != null && lastRequests.Count > 0)
             {
                 bool shortened = false;
-                return Sanitizer.SanitizeCommentOpt(!string.IsNullOrEmpty(lastRequests.First().LastProcessingResponse) ? 
+                return Sanitizer.SanitizeCommentOpt(!string.IsNullOrEmpty(lastRequests.First().LastProcessingResponse) ?
                     lastRequests.First().LastProcessingResponse : lastRequests.First().LastCreationResponse, ref shortened);
             }
         }
@@ -499,7 +504,7 @@ else
         }
         return null;
     }
-    
+
     private bool IsTempError(string lastResponse)
     {
         return lastResponse.Contains("ACCESS_DENIED_ERROR");

@@ -30,21 +30,7 @@
             <Authorized>
                 @if (!recertCalcInProgress)
                 {
-                    <button type="button" class="btn btn-sm btn-info" @onclick:preventDefault="true" @onclick="@( async () => {
-                        recertCalcInProgress = true;
-                        if (await RecertRefresh.RecalcRecerts(apiConnection))
-                        {
-                            DisplayMessageInUi(null, userConfig.GetText("fetch_data"), "Error during recertification refresh", true);
-                        }
-                        recertCalcInProgress = false;
-
-                        Log.WriteAudit(
-                            Title: $"Owners Settings",
-                            Text: $"Recertification started",
-                            UserName: userConfig.User.Name,
-                            UserDN: userConfig.User.Dn);
-
-                    })">@(userConfig.GetText("recalc_recerts"))</button>
+                    <button type="button" class="btn btn-sm btn-info" @onclick:preventDefault="true" @onclick="@(RecalcRecerts)">@(userConfig.GetText("recalc_recerts"))</button>
                 }
                 else
                 {
@@ -227,6 +213,17 @@
                                 </div>
                             </div>
                         </div>
+                        <div class="form-check form-check-inline col-sm-3" data-toggle="tooltip" title="@(userConfig.PureLine("H5591a"))">
+                            @if(Readonly)
+                            {
+                                <input id="cbx_recert_activated" disabled class="form-check-input" type="checkbox" @bind="actOwner.RecertActive">
+                            }
+                            else
+                            {
+                                <input id="cbx_recert_activated" class="form-check-input" type="checkbox" @bind="actOwner.RecertActive">
+                            }
+                            <label for="cbx_recert_activated" class="form-check-label"><small>@(userConfig.GetText("recert_activated"))</small></label>
+                        </div>
                     </div>
                     <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5588"))">
                         <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("recert_check_every")):</label>
@@ -390,6 +387,22 @@ else
         InitComplete = true;
     }
 
+    private async Task RecalcRecerts()
+    {
+        recertCalcInProgress = true;
+        if (await RecertRefresh.RecalcRecerts(apiConnection))
+        {
+            DisplayMessageInUi(null, userConfig.GetText("fetch_data"), "Error during recertification refresh", true);
+        }
+        recertCalcInProgress = false;
+
+        Log.WriteAudit(
+            Title: $"Owners Settings",
+            Text: $"Recertification recalculated",
+            UserName: userConfig.User.Name,
+            UserDN: userConfig.User.Dn);
+    }
+
     private void AnalyseSampleOwners()
     {
         sampleOwners = [.. owners.Where(o => o.Name.EndsWith(GlobalConst.k_demo))];
@@ -486,7 +499,8 @@ else
             recertInterval = actOwner.RecertInterval,
             appIdExternal = string.IsNullOrEmpty(actOwner.ExtAppId) ? null : actOwner.ExtAppId,
             recertCheckParams = actOwner.RecertCheckParamString,
-            commSvcPossible = actOwner.CommSvcPossible
+            commSvcPossible = actOwner.CommSvcPossible,
+            recertActive = actOwner.RecertActive
         };
         ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<ReturnIdWrapper>(OwnerQueries.newOwner, variables)).ReturnIds;
         if (returnIds == null)
@@ -521,7 +535,8 @@ else
             recertInterval = actOwner.RecertInterval,
             appIdExternal = string.IsNullOrEmpty(actOwner.ExtAppId) ? null : actOwner.ExtAppId,
             recertCheckParams = actOwner.RecertCheckParamString,
-            commSvcPossible = actOwner.CommSvcPossible
+            commSvcPossible = actOwner.CommSvcPossible,
+            recertActive = actOwner.RecertActive
         };
         int udId = (await apiConnection.SendQueryAsync<ReturnId>(OwnerQueries.updateOwner, Variables)).UpdatedId;
         if(udId != actOwner.Id)

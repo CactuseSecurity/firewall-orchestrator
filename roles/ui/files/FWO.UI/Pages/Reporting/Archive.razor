@@ -12,11 +12,22 @@
     <div class="p-3 mt-2">
         <h5 class="text-left">@(userConfig.GetText("report_type"))</h5>
         <Dropdown ElementType="ReportType" ElementToString="@(r => userConfig.GetText(r.ToString()))" SelectedElement="selectedReportType"
-            SelectedElementChanged="ReportTypeChanged" Elements="ReportTypeGroups.ReportTypeSelection(showRuleRelatedReports, showModellingReports)">
+            SelectedElementChanged="ReportTypeChanged" Elements="visibleReportTypes">
             <ElementTemplate Context="reportType">
                 @userConfig.GetText(reportType.ToString())
             </ElementTemplate>
         </Dropdown>
+        @if(selectedReportType == ReportType.RecertificationEvent)
+        {
+            <br>
+            <h5 class="text-left">@(userConfig.GetText("owner"))</h5>
+            <Dropdown ElementType="FwoOwner" ElementToString="@(o => o.Name)" SelectedElement="selectedOwner"
+                SelectedElementChanged="OwnerChanged" Elements="ownerList">
+                <ElementTemplate Context="owner">
+                    @owner.Name
+                </ElementTemplate>
+            </Dropdown>		
+        }
     </div>
 </Sidebar>
 
@@ -64,7 +75,8 @@
 </div>
 
 <ConfirmDelete @bind-Display="ShowDeleteReportFileDialog" PerformAction="DeleteGeneratedReport"
-    Title="@userConfig.GetText("generated_report")" DeleteMessage="@(userConfig.GetText("U3002") + " \"" + reportFileContext.Name + "\" ?")" />
+    Title="@userConfig.GetText("generated_report")" DeleteMessage="@(userConfig.GetText("U3002") + " \"" + reportFileContext.Name + "\" ?")"
+    AllowedRoles="@($"{Roles.Admin}, {Roles.FwAdmin}, {Roles.Reporter}, {Roles.ReporterViewAll}, {Roles.Modeller}")"/>
 
 <ReportDownloadPopUp Title="@(userConfig.GetText("generated_report"))" ReportFile="reportFileContext"
     Show="ShowDownloadReportFileDialog" ShowJson="true" OnClose="() => ShowDownloadReportFileDialog = false" />
@@ -80,7 +92,11 @@
     private GraphQlApiSubscription<List<ReportFile>>? archivedReportsSubscription;
     private List<ReportFile> archivedReports = [];
     private List<ReportFile> visibleReports = [];
+    private List<ReportType> visibleReportTypes = [];
     private ReportType selectedReportType = ReportType.All;
+    private FwoOwner? selectedOwner = null;
+    private List<FwoOwner> availableOwnersList = [];
+    private List<FwoOwner> ownerList = [];
     private Sidebar? archiveSidebar;
     private int sidebarLeftWidth = GlobalConst.kSidebarLeftWidth;
     private ReportFile reportFileContext = new();
@@ -104,7 +120,15 @@
             // Initial fetch to speed up loading before subscription is established
             archivedReports = await apiConnection.SendQueryAsync<List<ReportFile>>(ReportQueries.getGeneratedReports);
             archivedReportsSubscription = apiConnection.GetSubscription<List<ReportFile>>(HandleSubscriptionError, OnReportArchiveUpdate, ReportQueries.subscribeGeneratedReportsChanges);
+            availableOwnersList = await apiConnection.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getEditableOwners);
+            FwoOwner? superOwner = availableOwnersList.FirstOrDefault(o => o.Id == 0);
+            if(superOwner != null)
+            {
+                superOwner.Name = userConfig.GetText("all");
+                selectedOwner = superOwner;
+            }
             SetVisibleReports();
+            SetVisibleReportTypes();
         }
         catch (Exception exception)
         {
@@ -118,9 +142,28 @@
         SetVisibleReports();
     }
 
+    private void OwnerChanged(FwoOwner newOwner)
+    {
+        selectedOwner = newOwner;
+        SetVisibleReports();
+    }
+
     private void SetVisibleReports()
     {
         visibleReports = [.. selectedReportType == ReportType.All ? archivedReports : archivedReports.Where(r => r.Type == (int)selectedReportType)];
+        if(selectedReportType == ReportType.RecertificationEvent)
+        {
+            ownerList = [.. availableOwnersList.Where(v => v.Id == 0 || v.ExtAppId == null || visibleReports.Any(r => r.Name.Contains(v.ExtAppId)))];
+            if(selectedOwner != null && selectedOwner.Id != 0 && selectedOwner.ExtAppId != null)
+            {
+                visibleReports = [.. visibleReports.Where(r => r.Name.Contains(selectedOwner.ExtAppId))];
+            }
+        }
+    }
+
+    private void SetVisibleReportTypes()
+    {
+        visibleReportTypes = [.. ReportTypeGroups.ReportTypeSelection(showRuleRelatedReports, showModellingReports).Where(v => visibleReports.Any(r => r.Type == (int)v))];
     }
 
     private async void HandleSubscriptionError(Exception exception)
@@ -133,6 +176,7 @@
         Log.WriteDebug("Report Archiving", "Received report archive update.");
         archivedReports = newArchivedReports;
         SetVisibleReports();
+        SetVisibleReportTypes();
         await InvokeAsync(StateHasChanged);
     }
 

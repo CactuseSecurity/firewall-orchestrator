@@ -145,6 +145,7 @@ namespace FWO.Test
             {"remove_rule", "Remove Rule"},
             {"English", "English"},
             {"last_successful", "Last successful"},
+            {"common_service", "Common Service"},
         };
 
         public override string GetText(string key)

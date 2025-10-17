@@ -2,7 +2,7 @@
 
 @inject UserConfig userConfig
 
-<Table TableClass="table table-bordered table-sm th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="FwoOwner" Items="Owners">
+<Table TableClass="table table-bordered table-sm th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="FwoOwner" Items="Owners" PageSize="0">
     <Column TableItem="FwoOwner" Title="@(userConfig.GetText("next_recert_date"))" Field="@(x => x.Id)" >
         <Template>
             @(GetNextRecertDate(context))

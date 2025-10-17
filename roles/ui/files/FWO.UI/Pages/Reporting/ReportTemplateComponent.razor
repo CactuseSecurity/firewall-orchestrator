@@ -91,7 +91,7 @@
                     <input id="saveTemplateUnused" type="number" min="0" class="col-sm-2" @bind="reportTemplateInEdit.ReportParams.UnusedFilter.UnusedForDays">
                 </div>
             }
-            else if(reportTypeInEdit.IsDeviceRelatedReport())
+            else if(reportTypeInEdit.IsDeviceRelatedReport() && (ReportType)reportTypeInEdit != ReportType.RecertEventReport)
             {
                 <div class="form-group row mt-2">
                     <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("report_time")):</label>
@@ -107,7 +107,7 @@
                 </div>
             }
 
-            @if(reportTypeInEdit.IsDeviceRelatedReport())
+            @if(reportTypeInEdit.IsDeviceRelatedReport() && (ReportType)reportTypeInEdit != ReportType.RecertEventReport)
             {
                 <div class="form-group row mt-2">
                     <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("devices")):</label>

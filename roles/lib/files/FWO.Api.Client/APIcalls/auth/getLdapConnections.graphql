@@ -1,4 +1,4 @@
-# returns a list of all available ldap connections
+# returns a list of all active ldap connections
 # the field ldap_searchpath_for_roles is not null only for the internal ldap
 
 query getLdapConnections {

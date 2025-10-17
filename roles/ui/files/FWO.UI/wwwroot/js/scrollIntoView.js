@@ -6,9 +6,11 @@ function scrollIntoRSBView(htmlObjId) {
     obj.scrollIntoView({ behavior: "smooth", block: "center" });
     // Expand row
     let toggleLink = obj.previousElementSibling.querySelector("a");
-    if (toggleLink) {
+    let ariaEpended = toggleLink.getAttribute("aria-expanded");
+    if (ariaEpended == 'false')
+    {
         toggleLink.click();
-    }
+    }       
   // Highlight the row
   obj.style.transition = "background-color 500ms linear";
   obj.style.backgroundColor = "#a4d7f5";

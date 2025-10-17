@@ -994,6 +994,12 @@ ALTER TABLE "rulebase_link" ADD COLUMN IF NOT EXISTS "removed" BIGINT;
 -- add obj type access-role for cp import
 INSERT INTO stm_obj_typ (obj_typ_id,obj_typ_name) VALUES (21,'access-role') ON CONFLICT DO NOTHING;
 
+-- change ip not Null constraint, only applicable if obj_typ_name is host, network or machines_range
+ALTER TABLE "object" DROP CONSTRAINT IF EXISTS "object_obj_ip_not_null" CASCADE;
+ALTER TABLE "object" DROP CONSTRAINT IF EXISTS "object_obj_ip_end_not_null" CASCADE;
+ALTER TABLE "object" ADD CONSTRAINT object_obj_ip_not_null CHECK NOT (obj_ip IS NULL AND obj_typ_id IN (1, 3, 4));
+ALTER TABLE "object" ADD CONSTRAINT object_obj_ip_end_not_null CHECK NOT (obj_ip_end IS NULL AND obj_typ_id IN (1, 3, 4));
+
 -- remove dev_id fk and set nullable if column exists
 ALTER TABLE changelog_rule DROP CONSTRAINT IF EXISTS changelog_rule_dev_id_fkey;
 

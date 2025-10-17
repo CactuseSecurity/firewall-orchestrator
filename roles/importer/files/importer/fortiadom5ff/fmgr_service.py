@@ -4,7 +4,7 @@ from model_controllers.import_state_controller import ImportStateController
 from fwo_log import getFwoLogger
 from typing import Any
 
-def normalize_service_objects(import_state: ImportStateController, native_config, native_config_global, normalized_config, 
+def normalize_service_objects(import_state: ImportStateController, native_config, native_config_global, normalized_config_adom, 
                               normalized_config_global, svc_obj_types):
     svc_objects = []
     logger = getFwoLogger()
@@ -23,7 +23,7 @@ def normalize_service_objects(import_state: ImportStateController, native_config
         svc_objects.append(create_svc_object(name=original_obj_name, proto=0, color='foreground', port=None,\
             comment='"original" service object created by FWO importer for NAT purposes'))
 
-    normalized_config.update({'service_objects': svc_objects})
+    normalized_config_adom.update({'service_objects': svc_objects})
 
 def normalize_service_object(obj_orig, svc_objects):
     member_names = ''

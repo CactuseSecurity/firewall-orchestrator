@@ -267,9 +267,9 @@ class FwConfigImportCheckConsistency(FwConfigImport):
         for rb in single_config.rulebases:
             for rule_id in rb.Rules:
                 if rb.Rules[rule_id].rule_src_zone is not None:
-                    all_used_zones_refs.append(rb.Rules[rule_id].rule_src_zone)
+                    all_used_zones_refs.extend(rb.Rules[rule_id].rule_src_zone.split(fwo_const.line_delimiter))
                 if rb.Rules[rule_id].rule_dst_zone is not None:
-                    all_used_zones_refs.append(rb.Rules[rule_id].rule_dst_zone)
+                    all_used_zones_refs.extend(rb.Rules[rule_id].rule_dst_zone.split(fwo_const.line_delimiter))
         return set(all_used_zones_refs)
 
 

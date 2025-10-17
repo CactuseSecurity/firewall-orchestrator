@@ -101,7 +101,9 @@ namespace FWO.Services
                         id = zone.Id
                     }
                 ),
-                criterionId = networkZone.CriterionId
+                criterionId = networkZone.CriterionId,
+                isAutoCalculatedInternetZone = networkZone.IsAutoCalculatedInternetZone,
+                isAutoCalculatedUndefinedInternalZone = networkZone.IsAutoCalculatedUndefinedInternalZone
             };
 
             await apiConnection.SendQueryAsync<dynamic>(ComplianceQueries.addNetworkZone, variables);

@@ -36,7 +36,7 @@
                             <th @onclick="() => ExecuteZoneAction(sourceZone)" class="zone-header">
                                 <div class="zone-name">@(sourceZone.Name)</div>
                             </th>
-                            @foreach (var destinationZone in networkZoneService.NetworkZones)
+                            @foreach (var destinationZone in GetSortedNetworkzones())
                             {
                                 var allowed = sourceZone.CommunicationAllowedTo(destinationZone);
                                 var allowed_in_edit = AddCommunication.Contains((sourceZone, destinationZone));

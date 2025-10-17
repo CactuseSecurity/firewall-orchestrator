@@ -73,14 +73,10 @@ def _get_member_references(obj):
     
     member_refs = ''
     for member in obj['members']:
-        if type(member) is str:
+        if isinstance(member, str):
             member_refs += member + list_delimiter
-        elif type(member) is dict and 'uid' in member:
+        elif isinstance(member, dict) and 'uid' in member and isinstance(member['uid'], str):
             member_refs += member['uid'] + list_delimiter
-        else:
-            logger = getFwoLogger()
-            logger.warning(f"Service object member is neither str nor dict with uid: {member}") 
-
     return member_refs[:-1] if member_refs else None
 
 

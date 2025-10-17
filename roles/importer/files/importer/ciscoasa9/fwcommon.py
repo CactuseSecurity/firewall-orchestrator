@@ -58,7 +58,7 @@ def has_config_changed(full_config, mgm_details, force=False):
     full_config = full_config
     mgm_details = mgm_details
     force = force
-    # dummy - may be filled with real check later on
+    # TODO: dummy - may be filled with real check later on
     return True
 
 
@@ -143,8 +143,8 @@ def get_config(config_in: FwConfigManagerListController, importState: ImportStat
     is_virtual_asa = importState.MgmDetails.DeviceTypeName == "Cisco Asa on FirePower"
 
     if config_in.native_config_is_empty:
-        raw_config = load_config_from_management(importState.MgmDetails, is_virtual_asa)
-        # raw_config = load_config_from_file("asa.conf")
+        # raw_config = load_config_from_management(importState.MgmDetails, is_virtual_asa)
+        raw_config = load_config_from_file("asa.conf")
         config2import = parse_asa_config(raw_config)
         config_in.native_config = config2import.model_dump()
 
@@ -404,16 +404,16 @@ def normalize_config(config_in: FwConfigManagerListController, importState: Impo
     if len(rulebases) > 0:
         rulebase_links.append(RulebaseLinkUidBased(to_rulebase_uid=rulebases[0].uid, link_type="ordered", is_initial=True, is_global=False, is_section=False))
         for idx in range(1, len(rulebases)):
-            rulebase_links.append(RulebaseLinkUidBased(from_rule_uid=rulebases[idx-1].uid, to_rulebase_uid=rulebases[idx].uid, link_type="ordered", is_initial=False, is_global=False, is_section=False))
+            rulebase_links.append(RulebaseLinkUidBased(from_rulebase_uid=rulebases[idx-1].uid, to_rulebase_uid=rulebases[idx].uid, link_type="ordered", is_initial=False, is_global=False, is_section=False))
     
 
     gateway = Gateway(
-        Uid=native_config.hostname,
-        Name=native_config.hostname,
+        Uid=native_config.hostname,  #TODO: check if correct
+        Name=native_config.hostname, #TODO: check if correct
         Routing=[],
         RulebaseLinks=rulebase_links,
         GlobalPolicyUid=None,
-        EnforcedPolicyUids=[rb.uid for rb in rulebases],
+        EnforcedPolicyUids=[],
         EnforcedNatPolicyUids=[],
         ImportDisabled=False,
         ShowInUI=True
@@ -476,16 +476,24 @@ def build_rulebases_from_access_lists(access_lists: List[AccessList], mgm_uid: s
             else:
                 svc_ref = fwo_const.list_delimiter.join([f"any-{p}" for p in ("tcp", "udp", "icmp")])
 
+            src_ref = entry.src.value
+            if entry.src.mask is not None:
+                src_ref = str(IPNetwork(f"{entry.src.value}/{entry.src.mask}"))
+
+            dst_ref = entry.dst.value
+            if entry.dst.mask is not None:
+                dst_ref = str(IPNetwork(f"{entry.dst.value}/{entry.dst.mask}"))
+
             rule = RuleNormalized(
                 rule_num=idx,
                 rule_num_numeric=float(idx),
                 rule_disabled=entry.inactive,
                 rule_src_neg=False,
-                rule_src=entry.src.value,
-                rule_src_refs=entry.src.value,
+                rule_src=src_ref,
+                rule_src_refs=src_ref,
                 rule_dst_neg=False,
-                rule_dst=entry.dst.value,
-                rule_dst_refs=entry.dst.value,
+                rule_dst=dst_ref,
+                rule_dst_refs=dst_ref,
                 rule_svc_neg=False,
                 rule_svc=svc_ref,
                 rule_svc_refs=svc_ref,
@@ -590,9 +598,6 @@ def create_objects_for_access_lists(access_lists: AccessList, network_objects: d
                             svc_comment="service object created during import"
                         )
                         service_objects[obj_name] = obj
-                
-
-            
 
         # create network objects
         for ep in (entry.src, entry.dst):
@@ -608,6 +613,25 @@ def create_objects_for_access_lists(access_lists: AccessList, network_objects: d
                         obj_comment="network object created during import"
                     )
                     network_objects[ep.value] = obj
+            elif ep.kind == "subnet":
+                #obj name is subnet in cidr notation
+                obj_name = str(IPNetwork(f"{ep.value}/{ep.mask}"))
+                if obj_name not in network_objects.keys():
+                    ip_end = IPNetwork(f"{ep.value}/{ep.mask}").broadcast
+                    ip_end = str(ip_end)
+                    if not ip_end:
+                        raise ValueError(f"Could not determine broadcast address for subnet {ep.value}/{ep.mask}")
+                    ip_end = IPNetwork(f"{ip_end}/32")
+                    obj = NetworkObject(
+                        obj_uid=obj_name,
+                        obj_name=obj_name,
+                        obj_typ="network",
+                        obj_ip=IPNetwork(f"{ep.value}/32"),
+                        obj_ip_end=ip_end,
+                        obj_color=fwo_const.defaultColor,
+                        obj_comment="network object created during import"
+                    )
+                    network_objects[obj_name] = obj
             elif ep.kind == "any":
                 if "any" not in network_objects.keys():
                     obj = NetworkObject(

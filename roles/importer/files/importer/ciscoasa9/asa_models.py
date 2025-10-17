@@ -63,7 +63,7 @@ class AsaProtocolGroup(BaseModel):
     description: str | None = None
 
 class EndpointKind(BaseModel):
-    kind: Literal["any", "host", "object", "object-group", "service", "protocol-group", "protocol", "eq", "range", "service-group"]
+    kind: Literal["any", "host", "subnet", "object", "object-group", "service", "protocol-group", "protocol", "eq", "range", "service-group"]
     value: str
     mask: str | None = None
 

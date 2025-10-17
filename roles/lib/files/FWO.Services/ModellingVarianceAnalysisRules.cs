@@ -22,11 +22,11 @@ namespace FWO.Services
         private NetworkServiceGroupComparer networkServiceGroupComparer = new(new());
         private bool FullAnalysis = false;
 
-        private async Task AnalyseRules(ModellingConnection conn, bool fullAnalysis)
+        private void AnalyseRules(ModellingConnection conn, bool fullAnalysis)
         {
             FullAnalysis = fullAnalysis;
-            await GetAllowedSpecUserAreas();
-            await GetAllowedUpdatableObjAreas();
+            GetAllowedSpecUserAreas();
+            GetAllowedUpdatableObjAreas();
             networkObjectComparer = new(ruleRecognitionOption);
             networkObjectGroupComparer = new(ruleRecognitionOption);
             networkServiceComparer = new(ruleRecognitionOption);
@@ -71,11 +71,21 @@ namespace FWO.Services
             }
         }
 
-        private void GetRulesForDeletedConns()
+        private async Task GetRulesForDeletedConns(List<ModellingConnection> dokuOnlyConnections)
         {
+            await GetDeletedConnections();
+            List<ModellingConnection> RegardedAsDeletedConns = [.. DeletedConns, .. dokuOnlyConnections];
+            List<int> RegardedDeletedConnectionIds = RegardedAsDeletedConns.ConvertAll(c => c.Id);
             foreach (var mgt in allModelledRules.Keys)
             {
-                List<Rule> rulesForDeletedModels = [.. allModelledRules[mgt].Where(r => !r.ModellFound)];
+                List<Rule> rulesForDeletedModels = [];
+                foreach (var rule in allModelledRules[mgt].Where(r => !r.ModellFound))
+                {
+                    if (int.TryParse(FindModelledMarker(rule), out int connId) && RegardedDeletedConnectionIds.Contains(connId))
+                    {
+                        rulesForDeletedModels.Add(rule);
+                    }
+                }
                 if (rulesForDeletedModels.Count > 0)
                 {
                     varianceResult.DeletedModelsRules.Add(mgt, rulesForDeletedModels);
@@ -83,15 +93,14 @@ namespace FWO.Services
             }
         }
 
-        private async Task GetAllowedSpecUserAreas()
+        private void GetAllowedSpecUserAreas()
         {
             AllowedSrcSpecUserAreas = [];
             AllowedDestSpecUserAreas = [];
             if (userConfig.ModSpecUserAreas != "" && userConfig.ModSpecUserAreas != "[]")
             {
-                List<ModellingNetworkArea> allAreas = await apiConnection.SendQueryAsync<List<ModellingNetworkArea>>(ModellingQueries.getNwGroupObjects, new { grpType = (int)ModellingTypes.ModObjectType.NetworkArea });
                 List<CommonAreaConfig> configItems = JsonSerializer.Deserialize<List<CommonAreaConfig>>(userConfig.ModSpecUserAreas) ?? [];
-                foreach (var configItem in configItems.Where(c => allAreas.FirstOrDefault(a => a.Id == c.AreaId) != null))
+                foreach (var configItem in configItems.Where(c => AllAreas.FirstOrDefault(a => a.Id == c.AreaId) != null))
                 {
                     if (configItem.UseInSrc)
                     {
@@ -105,15 +114,14 @@ namespace FWO.Services
             }
         }
 
-        private async Task GetAllowedUpdatableObjAreas()
+        private void GetAllowedUpdatableObjAreas()
         {
             AllowedSrcUpdatableObjAreas = [];
             AllowedDestUpdatableObjAreas = [];
             if (userConfig.ModUpdatableObjAreas != "" && userConfig.ModUpdatableObjAreas != "[]")
             {
-                List<ModellingNetworkArea> allAreas = await apiConnection.SendQueryAsync<List<ModellingNetworkArea>>(ModellingQueries.getNwGroupObjects, new { grpType = (int)ModellingTypes.ModObjectType.NetworkArea });
                 List<CommonAreaConfig> configItems = JsonSerializer.Deserialize<List<CommonAreaConfig>>(userConfig.ModUpdatableObjAreas) ?? [];
-                foreach (var configItem in configItems.Where(c => allAreas.FirstOrDefault(a => a.Id == c.AreaId) != null))
+                foreach (var configItem in configItems.Where(c => AllAreas.FirstOrDefault(a => a.Id == c.AreaId) != null))
                 {
                     if (configItem.UseInSrc)
                     {

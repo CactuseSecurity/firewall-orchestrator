@@ -46,7 +46,7 @@ namespace FWO.Report.Filter.Ast
 
         private void ExtractFullTextFilter(DynGraphqlQuery query)
         {
-            string queryVarName = AddVariable<string>(query, "fullTextFiler", Operator.Kind, semanticValue!);
+            string queryVarName = AddVariable<string>(query, "fullTextFilter", Operator.Kind, semanticValue!);
             string queryOperator = ExtractOperator();
 
             ExtractToRuleFilter(query, queryVarName, queryOperator);

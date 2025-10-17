@@ -17,6 +17,7 @@
             OwnerData = reportData.OwnerData;
             GlobalComSvc = reportData.GlobalComSvc;
             GlobalStats = reportData.GlobalStats;
+            RecertificationDisplayPeriod = reportData.RecertificationDisplayPeriod;
         }
     }
 }

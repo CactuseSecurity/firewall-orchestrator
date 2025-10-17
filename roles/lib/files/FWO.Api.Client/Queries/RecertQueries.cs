@@ -10,11 +10,14 @@ namespace FWO.Api.Client.Queries
         public static readonly string prepareNextRecertification;
         public static readonly string recertify;
         public static readonly string recertifyOwner;
+        public static readonly string recertifyRuleDirectly;
         public static readonly string getOpenRecertsForRule;
         public static readonly string getOpenRecerts;
         public static readonly string clearOpenRecerts;
         public static readonly string addRecertEntries;
         public static readonly string refreshViewRuleWithOwner;
+        public static readonly string getOwnerRecerts;
+        public static readonly string updateRecertReportId;
 
 
         static RecertQueries()
@@ -31,11 +34,14 @@ namespace FWO.Api.Client.Queries
                 prepareNextRecertification = File.ReadAllText(QueryPath + "recertification/prepareNextRecertification.graphql");
                 recertify = File.ReadAllText(QueryPath + "recertification/recertify.graphql");
                 recertifyOwner = File.ReadAllText(QueryPath + "recertification/recertifyOwner.graphql");
+                recertifyRuleDirectly = File.ReadAllText(QueryPath + "recertification/recertifyRuleDirectly.graphql");
                 getOpenRecertsForRule = File.ReadAllText(QueryPath + "recertification/getOpenRecertsForRule.graphql");
                 getOpenRecerts = File.ReadAllText(QueryPath + "recertification/getOpenRecerts.graphql");
                 clearOpenRecerts = File.ReadAllText(QueryPath + "recertification/clearOpenRecerts.graphql");
                 addRecertEntries = File.ReadAllText(QueryPath + "recertification/addRecertEntries.graphql");
                 refreshViewRuleWithOwner = File.ReadAllText(QueryPath + "recertification/refreshViewRuleWithOwner.graphql");
+                getOwnerRecerts = File.ReadAllText(QueryPath + "recertification/getOwnerRecerts.graphql");
+                updateRecertReportId = File.ReadAllText(QueryPath + "recertification/updateRecertReportId.graphql");
             }
             catch (Exception exception)
             {

@@ -198,10 +198,10 @@ def normalize_single_manager_config(native_config: dict[str, Any], native_config
                         is_global_loop_iteration)
     logger.info("completed normalizing rulebases for manager: " + native_config.get('domain_name',''))
 
-    normalize_nat_rulebases(import_state, mgm_uid, native_config, native_config_global, normalized_config_adom, normalized_config_global, 
-                        is_global_loop_iteration)
-    normalize_nat_rulebases(native_config, normalized_config_adom, import_id, jwt=None)
-    logger.info("completed normalizing nat rulebases for manager: " + native_config.get('domain_name',''))
+    #normalize_nat_rulebases(import_state, mgm_uid, native_config, native_config_global, normalized_config_adom, normalized_config_global, 
+    #                    is_global_loop_iteration)
+    #normalize_nat_rulebases(native_config, normalized_config_adom, import_id, jwt=None)
+    #logger.info("completed normalizing nat rulebases for manager: " + native_config.get('domain_name',''))
 
     normalize_gateways(native_config, normalized_config_adom)
     

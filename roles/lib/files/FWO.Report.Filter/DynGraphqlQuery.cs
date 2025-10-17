@@ -118,6 +118,7 @@ namespace FWO.Report.Filter
                             name: dev_name
                             id: dev_id
                             rules_aggregate(where: {{ {query.RuleWhereStatement} }}) {{ aggregate {{ count }} }}
+                            unusedRules_Count: rules_aggregate(where: {{ {unusedRulesWhereStatement}}}) {{ aggregate {{ count }} }}
                         }}
                     }}
                 }}";

@@ -36,6 +36,7 @@
             <Table style="font-size:small" TableClass="table table-bordered table-sm th-bg-secondary table-responsive" TableItem="DeviceReport" Items="managementReport.Devices" PageSize="0">
                 <Column TableItem="DeviceReport" Title="@(userConfig.GetText("gateway"))" Field="@(d => d.Name)" />
                 <Column TableItem="DeviceReport" Title="@(userConfig.GetText("no_of_rules"))" Field="@(d => d.RuleStatistics.ObjectAggregate.ObjectCount)" />
+                <Column TableItem="DeviceReport" Title="@(userConfig.GetText("unused_rules"))" Field="@(d => d.UnusedRulesStatistics.ObjectAggregate.ObjectCount)" />
             </Table>
         </div>
     </Collapse>

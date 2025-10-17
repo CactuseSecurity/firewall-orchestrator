@@ -114,6 +114,11 @@ namespace FWO.Data.Report
             {
                 UnusedRulesStatistics.ObjectAggregate.ObjectCount = 0;
             }
+
+            foreach (var device in Devices)
+            {
+                device.EnforceValidity();
+            }
         }
     }
 

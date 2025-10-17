@@ -20,6 +20,9 @@ namespace FWO.Data.Report
         [JsonProperty("rules_aggregate"), JsonPropertyName("rules_aggregate")]
         public ObjectStatistics RuleStatistics { get; set; } = new ObjectStatistics();
 
+        [JsonProperty("unusedRules_Count"), JsonPropertyName("unusedRules_Count")]
+        public ObjectStatistics UnusedRulesStatistics { get; set; } = new();
+
 
         public DeviceReport()
         { }
@@ -52,6 +55,14 @@ namespace FWO.Data.Report
         public bool ContainsRules()
         {
             return Rules != null && Rules.Count() >0 ;
+        }
+
+        public void EnforceValidity()
+        {
+            if (UnusedRulesStatistics.ObjectAggregate.ObjectCount >= RuleStatistics.ObjectAggregate.ObjectCount)
+            {
+                UnusedRulesStatistics.ObjectAggregate.ObjectCount = 0;
+            }
         }
     }
 

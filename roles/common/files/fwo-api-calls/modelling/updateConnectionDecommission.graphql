@@ -1,0 +1,17 @@
+mutation updateConnectionDecommission(
+  $id: Int!
+  $removalDate: timestamp
+  $connProp: String
+  $reason: String
+  ) {
+  update_modelling_connection_by_pk(
+    pk_columns: { id: $id }
+    _set: {
+      removed: true
+      removal_date: $removalDate
+	  conn_prop: $connProp
+	  reason: $reason
+  }) {
+    updatedId: id
+  }
+}

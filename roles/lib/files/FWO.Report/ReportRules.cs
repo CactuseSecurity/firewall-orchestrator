@@ -16,7 +16,7 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace FWO.Report
 {
-    public static class DeviceReportExtensions 
+    public static class DeviceReportExtensions
     {
         public static bool ContainsRules(this DeviceReport device)
         {
@@ -28,16 +28,14 @@ namespace FWO.Report
             return management.Devices != null && management.Devices.Any(d => d.ContainsRules());
         }
     }
-    
-    public class ReportRules : ReportDevicesBase
+
+    public class ReportRules(DynGraphqlQuery query, UserConfig userConfig, ReportType reportType) : ReportDevicesBase(query, userConfig, reportType)
     {
         private const int ColumnCount = 12;
         protected bool UseAdditionalFilter = false;
         private bool VarianceMode = false;
 
         private static Dictionary<(int deviceId, int managementId), List<Rule>> _rulesCache = new();
-
-        public ReportRules(DynGraphqlQuery query, UserConfig userConfig, ReportType reportType) : base(query, userConfig, reportType) { }
 
         public override async Task Generate(int elementsPerFetch, ApiConnection apiConnection, Func<ReportData, Task> callback, CancellationToken ct)
         {
@@ -129,7 +127,7 @@ namespace FWO.Report
         {
             Query.QueryVariables[QueryVar.MgmId] = management.Id;
             Query.QueryVariables[QueryVar.ImportIdStart] = management.RelevantImportId ?? -1;
-            Query.QueryVariables[QueryVar.ImportIdEnd]   = management.RelevantImportId ?? -1;
+            Query.QueryVariables[QueryVar.ImportIdEnd] = management.RelevantImportId ?? -1;
         }
 
         public override async Task<bool> GetObjectsInReport(int objectsPerFetch, ApiConnection apiConnection, Func<ReportData, Task> callback) // to be called when exporting
@@ -174,7 +172,7 @@ namespace FWO.Report
             int fetchCount = 0;
             int elementsPerFetch = (int)objQueryVariables.GetValueOrDefault(QueryVar.Limit)!;
             ManagementReport filteredObjects;
-            ManagementReport allFilteredObjects = new ();
+            ManagementReport allFilteredObjects = new();
             while (keepFetching && ++fetchCount <= maxFetchCycles)
             {
                 filteredObjects = (await apiConnection.SendQueryAsync<List<ManagementReport>>(query, objQueryVariables))[0];
@@ -203,7 +201,7 @@ namespace FWO.Report
 
         private void FillReport(ManagementReport allFilteredObjects, ManagementReport managementReport, ObjCategory objects)
         {
-            if(UseAdditionalFilter)
+            if (UseAdditionalFilter)
             {
                 AdditionalFilter(allFilteredObjects, managementReport.RelevantObjectIds);
             }
@@ -221,7 +219,7 @@ namespace FWO.Report
                 managementReport.ReportUsers = allFilteredObjects.ReportUsers;
             }
         }
-        
+
         private static string GetQuery(ObjCategory objects)
         {
             return objects switch
@@ -274,7 +272,7 @@ namespace FWO.Report
                 return [];
             }
         }
-        
+
         public static int GetRuleCount(ManagementReport mgmReport, RulebaseLink? currentRbLink, RulebaseLink[] rulebaseLinks)
         {
             if (currentRbLink != null)
@@ -496,10 +494,10 @@ namespace FWO.Report
             return GenerateHtmlFrame(userConfig.GetText(ReportType.ToString()), Query.RawFilter, DateTime.Now, report);
         }
 
-        public void ConstructHtmlReport(ref StringBuilder report, List<ManagementReport> managementData, int chapterNumber, bool varianceMode = false)
+        public void ConstructHtmlReport(ref StringBuilder report, List<ManagementReport> managementData, int chapterNumber, int levelshift = 0)
         {
             RuleDisplayHtml ruleDisplayHtml = new(userConfig);
-            VarianceMode = varianceMode;
+            Levelshift = levelshift;
 
             foreach (ManagementReport managementReport in managementData.Where(mgt => !mgt.Ignore && mgt.ContainsRules()))
             {
@@ -527,7 +525,7 @@ namespace FWO.Report
             report.AppendLine($"<th>{userConfig.GetText("number")}</th>");
             if (ReportType == ReportType.Recertification)
             {
-                report.AppendLine($"<th>{userConfig.GetText("next_recert")}</th>");
+                report.AppendLine($"<th>{userConfig.GetText("next_recert_date")}</th>");
                 report.AppendLine($"<th>{userConfig.GetText("owner")}</th>");
                 report.AppendLine($"<th>{userConfig.GetText("ip_matches")}</th>");
                 report.AppendLine($"<th>{userConfig.GetText("last_hit")}</th>");
@@ -668,7 +666,7 @@ namespace FWO.Report
                 int objNumber = 1;
                 foreach (var svcobj in managementReport.ReportServices)
                 {
-					AppendServiceForManagementHtml(ref report, chapterNumber, objNumber++, svcobj);
+                    AppendServiceForManagementHtml(ref report, chapterNumber, objNumber++, svcobj);
                 }
                 report.AppendLine("</table>");
                 report.AppendLine("<hr>");
@@ -681,7 +679,7 @@ namespace FWO.Report
             report.AppendLine($"<td>{objNumber}</td>");
             report.AppendLine($"<td><a name={ObjCatString.Svc}{chapterNumber}x{svcobj.Id}>{svcobj.Name}</a></td>");
             report.AppendLine($"<td>{(svcobj.Type.Name != "" ? userConfig.GetText(svcobj.Type.Name) : "")}</td>");
-            report.AppendLine($"<td>{((svcobj.Type.Name!=ServiceType.Group && svcobj.Protocol != null) ? svcobj.Protocol.Name : "")}</td>");
+            report.AppendLine($"<td>{((svcobj.Type.Name != ServiceType.Group && svcobj.Protocol != null) ? svcobj.Protocol.Name : "")}</td>");
             if (svcobj.DestinationPortEnd != null && svcobj.DestinationPortEnd != svcobj.DestinationPort)
             {
                 report.AppendLine($"<td>{svcobj.DestinationPort}-{svcobj.DestinationPortEnd}</td>");
@@ -725,12 +723,6 @@ namespace FWO.Report
                 report.AppendLine("</table>");
                 report.AppendLine("<hr>");
             }
-        }
-
-        private string Headline(string? title, int level)
-        {
-            int Level = VarianceMode ? level + 2 : level;
-            return $"<h{Level} id=\"{Guid.NewGuid()}\">{title}</h{Level}>";
         }
     }
 }

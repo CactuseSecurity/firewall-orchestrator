@@ -14,13 +14,13 @@
         <div class="btn-group">
             <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.Requester}, {Roles.Approver}, {Roles.Planner}, {Roles.Implementer}, {Roles.FwAdmin}")">
                 <Authorized>
-                    <button type="button" class="btn btn-sm btn-danger" @onclick:preventDefault @onclick="Perform">@(userConfig.GetText("delete"))</button>
+                    <button type="button" class="btn btn-sm btn-danger" @onclick:preventDefault @onclick="Perform">@(DisplayService.DisplayButton(userConfig, "delete", Icons.Delete))</button>
                 </Authorized>
                 <NotAuthorized>
-                    <button type="button" class="btn btn-sm btn-danger" disabled>@(userConfig.GetText("delete"))</button>
+                    <button type="button" class="btn btn-sm btn-danger" disabled>@(DisplayService.DisplayButton(userConfig, "delete", Icons.Delete))</button>
                 </NotAuthorized> 
             </AuthorizeView>
-            <button type="button" class="btn btn-sm btn-secondary" @onclick:preventDefault @onclick="Close">@(userConfig.GetText("cancel"))</button>
+            <button type="button" class="btn btn-sm btn-secondary" @onclick:preventDefault @onclick="Close">@(DisplayService.DisplayButton(userConfig, "cancel", Icons.Cancel))</button>
         </div>
     </Footer>
 </PopUp>

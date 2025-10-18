@@ -6,8 +6,8 @@
 {
     <div class="p-3">
         <h5 class="text-left">@(userConfig.GetText("tenant_view"))</h5>
-        <Dropdown SelectedElement="SelectedTenant" SelectedElementChanged="SelectedTenantChanged"
-                ElementType="Tenant" ElementToString="@(t => t.Name)" Nullable="true" Elements="tenantList">
+        <Dropdown ElementType="Tenant" SelectedElement="SelectedTenant" SelectedElementChanged="SelectedTenantChanged"
+                ElementToString="@(t => t.Name)" Nullable="true" Elements="tenantList">
             <ElementTemplate Context="tenant">
                 @tenant.Name
             </ElementTemplate>

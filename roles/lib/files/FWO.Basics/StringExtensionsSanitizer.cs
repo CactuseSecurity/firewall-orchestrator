@@ -21,7 +21,7 @@ namespace FWO.Basics
             return output;
         }
 
-        [GeneratedRegex(@"[^\w\.\*\-\:\?@/\(\)\[\]\{\}\$\+<>#\$ ]")]
+        [GeneratedRegex(@"[^\w\.\*\-\:\?@/\(\)\[\]\{\}\$\+<>#\$\=\, ]")]
         private static partial Regex RemoveSpecialChars();
     }
 }

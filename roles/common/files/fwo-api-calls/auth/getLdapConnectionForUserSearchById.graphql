@@ -1,0 +1,10 @@
+query getLdapConnectionForUserSearchById ($id: bigint!){
+  ldap_connection_by_pk(ldap_connection_id: $id) {
+    ldap_server
+    ldap_port
+    ldap_tls
+    ldap_search_user
+    ldap_search_user_pwd
+    ldap_searchpath_for_users
+  }
+}

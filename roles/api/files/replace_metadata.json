@@ -9435,6 +9435,68 @@
             },
             {
               "table": {
+                "name": "notification",
+                "schema": "public"
+              },
+              "object_relationships": [
+                {
+                  "name": "owner",
+                  "using": {
+                    "foreign_key_constraint_on": "owner_id"
+                  }
+                },
+                {
+                  "name": "uiuser",
+                  "using": {
+                    "foreign_key_constraint_on": "user_id"
+                  }
+                }
+              ],
+              "select_permissions": [
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "channel",
+                      "deadline",
+                      "email_address_cc",
+                      "email_address_to",
+                      "email_subject",
+                      "layout",
+                      "notification_client",
+                      "recipient_cc",
+                      "recipient_to",
+                      "id",
+                      "interval_before_deadline",
+                      "offset_before_deadline",
+                      "owner_id",
+                      "repeat_interval_after_deadline",
+                      "repeat_offset_after_deadline",
+                      "repetitions_after_deadline",
+                      "user_id",
+                      "last_sent"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                }
+              ],
+              "update_permissions": [
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "last_sent"
+                    ],
+                    "filter": {},
+                    "check": {}
+                  },
+                  "comment": ""
+                }
+              ]
+            },
+            {
+              "table": {
                 "name": "object",
                 "schema": "public"
               },
@@ -10479,6 +10541,12 @@
                   "using": {
                     "foreign_key_constraint_on": "tenant_id"
                   }
+                },
+                {
+                  "name": "uiuser",
+                  "using": {
+                    "foreign_key_constraint_on": "last_recertifier"
+                  }
                 }
               ],
               "array_relationships": [
@@ -10531,6 +10599,18 @@
                   }
                 },
                 {
+                  "name": "notifications",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "owner_id",
+                      "table": {
+                        "name": "notification",
+                        "schema": "public"
+                      }
+                    }
+                  }
+                },
+                {
                   "name": "nwgroups",
                   "using": {
                     "foreign_key_constraint_on": {
@@ -10555,6 +10635,18 @@
                   }
                 },
                 {
+                  "name": "owner_recertifications",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "owner_id",
+                      "table": {
+                        "name": "owner_recertification",
+                        "schema": "public"
+                      }
+                    }
+                  }
+                },
+                {
                   "name": "owner_tickets",
                   "using": {
                     "foreign_key_constraint_on": {
@@ -10573,6 +10665,18 @@
                       "column": "owner_id",
                       "table": {
                         "name": "recertification",
+                        "schema": "public"
+                      }
+                    }
+                  }
+                },
+                {
+                  "name": "reports",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "owner_id",
+                      "table": {
+                        "name": "report",
                         "schema": "public"
                       }
                     }
@@ -10658,19 +10762,20 @@
                     "check": {},
                     "columns": [
                       "active",
-                      "common_service_possible",
-                      "is_default",
                       "app_id_external",
+                      "common_service_possible",
                       "criticality",
                       "dn",
                       "group_dn",
-                      "import_source",
-                      "name",
-                      "recert_check_params",
                       "id",
+                      "import_source",
+                      "is_default",
+                      "last_recert_check",
+                      "name",
+                      "recert_active",
+                      "recert_check_params",
                       "recert_interval",
-                      "tenant_id",
-                      "last_recert_check"
+                      "tenant_id"
                     ]
                   },
                   "comment": ""
@@ -10682,19 +10787,24 @@
                   "permission": {
                     "columns": [
                       "active",
-                      "app_id_external",
                       "common_service_possible",
+                      "is_default",
+                      "recert_active",
+                      "app_id_external",
                       "criticality",
                       "dn",
                       "group_dn",
-                      "id",
                       "import_source",
-                      "is_default",
-                      "last_recert_check",
+                      "last_recertifier_dn",
                       "name",
                       "recert_check_params",
+                      "id",
+                      "last_recertifier",
                       "recert_interval",
-                      "tenant_id"
+                      "tenant_id",
+                      "last_recert_check",
+                      "last_recertified",
+                      "next_recert_date"
                     ],
                     "filter": {}
                   }
@@ -10704,19 +10814,24 @@
                   "permission": {
                     "columns": [
                       "active",
-                      "app_id_external",
                       "common_service_possible",
+                      "is_default",
+                      "recert_active",
+                      "app_id_external",
                       "criticality",
                       "dn",
                       "group_dn",
-                      "id",
                       "import_source",
-                      "is_default",
-                      "last_recert_check",
+                      "last_recertifier_dn",
                       "name",
                       "recert_check_params",
+                      "id",
+                      "last_recertifier",
                       "recert_interval",
-                      "tenant_id"
+                      "tenant_id",
+                      "last_recert_check",
+                      "last_recertified",
+                      "next_recert_date"
                     ],
                     "filter": {}
                   }
@@ -10735,7 +10850,12 @@
                       "import_source",
                       "is_default",
                       "last_recert_check",
+                      "last_recertified",
+                      "last_recertifier",
+                      "last_recertifier_dn",
                       "name",
+                      "next_recert_date",
+                      "recert_active",
                       "recert_check_params",
                       "recert_interval",
                       "tenant_id"
@@ -10748,19 +10868,24 @@
                   "permission": {
                     "columns": [
                       "active",
-                      "app_id_external",
                       "common_service_possible",
+                      "is_default",
+                      "recert_active",
+                      "app_id_external",
                       "criticality",
                       "dn",
                       "group_dn",
-                      "id",
                       "import_source",
-                      "is_default",
-                      "last_recert_check",
+                      "last_recertifier_dn",
                       "name",
                       "recert_check_params",
+                      "id",
+                      "last_recertifier",
                       "recert_interval",
-                      "tenant_id"
+                      "tenant_id",
+                      "last_recert_check",
+                      "last_recertified",
+                      "next_recert_date"
                     ],
                     "filter": {}
                   }
@@ -10770,19 +10895,24 @@
                   "permission": {
                     "columns": [
                       "active",
-                      "app_id_external",
                       "common_service_possible",
+                      "is_default",
+                      "recert_active",
+                      "app_id_external",
                       "criticality",
                       "dn",
                       "group_dn",
-                      "id",
                       "import_source",
-                      "is_default",
-                      "last_recert_check",
+                      "last_recertifier_dn",
                       "name",
                       "recert_check_params",
+                      "id",
+                      "last_recertifier",
                       "recert_interval",
-                      "tenant_id"
+                      "tenant_id",
+                      "last_recert_check",
+                      "last_recertified",
+                      "next_recert_date"
                     ],
                     "filter": {}
                   }
@@ -10792,19 +10922,24 @@
                   "permission": {
                     "columns": [
                       "active",
-                      "app_id_external",
                       "common_service_possible",
+                      "is_default",
+                      "recert_active",
+                      "app_id_external",
                       "criticality",
                       "dn",
                       "group_dn",
-                      "id",
                       "import_source",
-                      "is_default",
-                      "last_recert_check",
+                      "last_recertifier_dn",
                       "name",
                       "recert_check_params",
+                      "id",
+                      "last_recertifier",
                       "recert_interval",
-                      "tenant_id"
+                      "tenant_id",
+                      "last_recert_check",
+                      "last_recertified",
+                      "next_recert_date"
                     ],
                     "filter": {
                       "_and": [
@@ -10834,17 +10969,22 @@
                       "active",
                       "common_service_possible",
                       "is_default",
+                      "recert_active",
                       "app_id_external",
                       "criticality",
                       "dn",
                       "group_dn",
                       "import_source",
+                      "last_recertifier_dn",
                       "name",
                       "recert_check_params",
                       "id",
+                      "last_recertifier",
                       "recert_interval",
                       "tenant_id",
-                      "last_recert_check"
+                      "last_recert_check",
+                      "last_recertified",
+                      "next_recert_date"
                     ],
                     "filter": {}
                   }
@@ -10856,17 +10996,22 @@
                       "active",
                       "common_service_possible",
                       "is_default",
+                      "recert_active",
                       "app_id_external",
                       "criticality",
                       "dn",
                       "group_dn",
                       "import_source",
+                      "last_recertifier_dn",
                       "name",
                       "recert_check_params",
                       "id",
+                      "last_recertifier",
                       "recert_interval",
                       "tenant_id",
-                      "last_recert_check"
+                      "last_recert_check",
+                      "last_recertified",
+                      "next_recert_date"
                     ],
                     "filter": {
                       "_or": [
@@ -10892,17 +11037,22 @@
                       "active",
                       "common_service_possible",
                       "is_default",
+                      "recert_active",
                       "app_id_external",
                       "criticality",
                       "dn",
                       "group_dn",
                       "import_source",
+                      "last_recertifier_dn",
                       "name",
                       "recert_check_params",
                       "id",
+                      "last_recertifier",
                       "recert_interval",
                       "tenant_id",
-                      "last_recert_check"
+                      "last_recert_check",
+                      "last_recertified",
+                      "next_recert_date"
                     ],
                     "filter": {
                       "_or": [
@@ -10928,17 +11078,22 @@
                       "active",
                       "common_service_possible",
                       "is_default",
+                      "recert_active",
                       "app_id_external",
                       "criticality",
                       "dn",
                       "group_dn",
                       "import_source",
+                      "last_recertifier_dn",
                       "name",
                       "recert_check_params",
                       "id",
+                      "last_recertifier",
                       "recert_interval",
                       "tenant_id",
-                      "last_recert_check"
+                      "last_recert_check",
+                      "last_recertified",
+                      "next_recert_date"
                     ],
                     "filter": {},
                     "allow_aggregations": true
@@ -10951,23 +11106,57 @@
                       "active",
                       "common_service_possible",
                       "is_default",
+                      "recert_active",
                       "app_id_external",
                       "criticality",
                       "dn",
                       "group_dn",
                       "import_source",
+                      "last_recertifier_dn",
                       "name",
                       "recert_check_params",
                       "id",
+                      "last_recertifier",
                       "recert_interval",
                       "tenant_id",
-                      "last_recert_check"
+                      "last_recert_check",
+                      "last_recertified",
+                      "next_recert_date"
                     ],
                     "filter": {}
                   }
                 },
                 {
                   "role": "reviewer",
+                  "permission": {
+                    "columns": [
+                      "active",
+                      "common_service_possible",
+                      "is_default",
+                      "recert_active",
+                      "app_id_external",
+                      "criticality",
+                      "dn",
+                      "group_dn",
+                      "import_source",
+                      "last_recertifier_dn",
+                      "name",
+                      "recert_check_params",
+                      "id",
+                      "last_recertifier",
+                      "recert_interval",
+                      "tenant_id",
+                      "last_recert_check",
+                      "last_recertified",
+                      "next_recert_date"
+                    ],
+                    "filter": {}
+                  }
+                }
+              ],
+              "update_permissions": [
+                {
+                  "role": "middleware-server",
                   "permission": {
                     "columns": [
                       "active",
@@ -10981,37 +11170,47 @@
                       "is_default",
                       "last_recert_check",
                       "name",
+                      "recert_active",
                       "recert_check_params",
                       "recert_interval",
                       "tenant_id"
                     ],
-                    "filter": {}
-                  }
-                }
-              ],
-              "update_permissions": [
-                {
-                  "role": "middleware-server",
-                  "permission": {
-                    "columns": [
-                      "active",
-                      "common_service_possible",
-                      "is_default",
-                      "app_id_external",
-                      "criticality",
-                      "dn",
-                      "group_dn",
-                      "import_source",
-                      "name",
-                      "recert_check_params",
-                      "id",
-                      "recert_interval",
-                      "tenant_id",
-                      "last_recert_check"
-                    ],
                     "filter": {},
                     "check": null
                   }
+                },
+                {
+                  "role": "modeller",
+                  "permission": {
+                    "columns": [
+                      "last_recert_check",
+                      "last_recertified",
+                      "last_recertifier",
+                      "last_recertifier_dn",
+                      "next_recert_date",
+                      "recert_active"
+                    ],
+                    "filter": {
+                      "_and": [
+                        {
+                          "_or": [
+                            {
+                              "tenant_id": {
+                                "_is_null": true
+                              }
+                            },
+                            {
+                              "tenant_id": {
+                                "_eq": "x-hasura-tenant-id"
+                              }
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    "check": {}
+                  },
+                  "comment": ""
                 }
               ]
             },
@@ -11171,6 +11370,142 @@
                   "role": "middleware-server",
                   "permission": {
                     "filter": {}
+                  },
+                  "comment": ""
+                }
+              ]
+            },
+            {
+              "table": {
+                "name": "owner_recertification",
+                "schema": "public"
+              },
+              "object_relationships": [
+                {
+                  "name": "owner",
+                  "using": {
+                    "foreign_key_constraint_on": "owner_id"
+                  }
+                },
+                {
+                  "name": "report",
+                  "using": {
+                    "foreign_key_constraint_on": "report_id"
+                  }
+                }
+              ],
+              "array_relationships": [
+                {
+                  "name": "recertifications",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "owner_recert_id",
+                      "table": {
+                        "name": "recertification",
+                        "schema": "public"
+                      }
+                    }
+                  }
+                }
+              ],
+              "insert_permissions": [
+                {
+                  "role": "modeller",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "id",
+                      "report_id",
+                      "recertified",
+                      "comment",
+                      "user_dn",
+                      "owner_id",
+                      "next_recert_date",
+                      "recert_date"
+                    ]
+                  },
+                  "comment": ""
+                }
+              ],
+              "select_permissions": [
+                {
+                  "role": "auditor",
+                  "permission": {
+                    "columns": [
+                      "id",
+                      "report_id",
+                      "recertified",
+                      "comment",
+                      "user_dn",
+                      "owner_id",
+                      "next_recert_date",
+                      "recert_date"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "fw-admin",
+                  "permission": {
+                    "columns": [
+                      "id",
+                      "report_id",
+                      "recertified",
+                      "comment",
+                      "user_dn",
+                      "owner_id",
+                      "next_recert_date",
+                      "recert_date"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "id",
+                      "report_id",
+                      "recertified",
+                      "comment",
+                      "user_dn",
+                      "owner_id",
+                      "next_recert_date",
+                      "recert_date"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "modeller",
+                  "permission": {
+                    "columns": [
+                      "id",
+                      "report_id",
+                      "recertified",
+                      "comment",
+                      "user_dn",
+                      "owner_id",
+                      "next_recert_date",
+                      "recert_date"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                }
+              ],
+              "update_permissions": [
+                {
+                  "role": "modeller",
+                  "permission": {
+                    "columns": [
+                      "report_id"
+                    ],
+                    "filter": {},
+                    "check": null
                   },
                   "comment": ""
                 }
@@ -11398,6 +11733,12 @@
                   }
                 },
                 {
+                  "name": "owner_recertification",
+                  "using": {
+                    "foreign_key_constraint_on": "owner_recert_id"
+                  }
+                },
+                {
                   "name": "rule_metadatum",
                   "using": {
                     "foreign_key_constraint_on": "rule_metadata_id"
@@ -11427,6 +11768,7 @@
                     "check": {},
                     "columns": [
                       "id",
+                      "owner_recert_id",
                       "rule_id",
                       "rule_metadata_id",
                       "recertified",
@@ -11440,20 +11782,41 @@
                   }
                 },
                 {
+                  "role": "modeller",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "id",
+                      "owner_recert_id",
+                      "rule_id",
+                      "rule_metadata_id",
+                      "recertified",
+                      "comment",
+                      "ip_match",
+                      "user_dn",
+                      "owner_id",
+                      "next_recert_date",
+                      "recert_date"
+                    ]
+                  },
+                  "comment": ""
+                },
+                {
                   "role": "recertifier",
                   "permission": {
                     "check": {},
                     "columns": [
-                      "comment",
                       "id",
-                      "ip_match",
-                      "next_recert_date",
-                      "owner_id",
-                      "recert_date",
-                      "recertified",
+                      "owner_recert_id",
                       "rule_id",
                       "rule_metadata_id",
-                      "user_dn"
+                      "recertified",
+                      "comment",
+                      "ip_match",
+                      "user_dn",
+                      "owner_id",
+                      "next_recert_date",
+                      "recert_date"
                     ]
                   }
                 }
@@ -11463,26 +11826,48 @@
                   "role": "auditor",
                   "permission": {
                     "columns": [
-                      "comment",
                       "id",
-                      "ip_match",
-                      "next_recert_date",
-                      "owner_id",
-                      "recert_date",
-                      "recertified",
+                      "owner_recert_id",
                       "rule_id",
                       "rule_metadata_id",
-                      "user_dn"
+                      "recertified",
+                      "comment",
+                      "ip_match",
+                      "user_dn",
+                      "owner_id",
+                      "next_recert_date",
+                      "recert_date"
                     ],
                     "filter": {},
                     "allow_aggregations": true
                   }
                 },
                 {
+                  "role": "fw-admin",
+                  "permission": {
+                    "columns": [
+                      "id",
+                      "owner_recert_id",
+                      "rule_id",
+                      "rule_metadata_id",
+                      "recertified",
+                      "comment",
+                      "ip_match",
+                      "user_dn",
+                      "owner_id",
+                      "next_recert_date",
+                      "recert_date"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
                   "role": "middleware-server",
                   "permission": {
                     "columns": [
                       "id",
+                      "owner_recert_id",
                       "rule_id",
                       "rule_metadata_id",
                       "recertified",
@@ -11497,19 +11882,40 @@
                   }
                 },
                 {
+                  "role": "modeller",
+                  "permission": {
+                    "columns": [
+                      "id",
+                      "owner_recert_id",
+                      "rule_id",
+                      "rule_metadata_id",
+                      "recertified",
+                      "comment",
+                      "ip_match",
+                      "user_dn",
+                      "owner_id",
+                      "next_recert_date",
+                      "recert_date"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
                   "role": "recertifier",
                   "permission": {
                     "columns": [
-                      "comment",
                       "id",
-                      "ip_match",
-                      "next_recert_date",
-                      "owner_id",
-                      "recert_date",
-                      "recertified",
+                      "owner_recert_id",
                       "rule_id",
                       "rule_metadata_id",
-                      "user_dn"
+                      "recertified",
+                      "comment",
+                      "ip_match",
+                      "user_dn",
+                      "owner_id",
+                      "next_recert_date",
+                      "recert_date"
                     ],
                     "filter": {},
                     "allow_aggregations": true
@@ -11519,16 +11925,17 @@
                   "role": "reporter",
                   "permission": {
                     "columns": [
-                      "comment",
                       "id",
-                      "ip_match",
-                      "next_recert_date",
-                      "owner_id",
-                      "recert_date",
-                      "recertified",
+                      "owner_recert_id",
                       "rule_id",
                       "rule_metadata_id",
-                      "user_dn"
+                      "recertified",
+                      "comment",
+                      "ip_match",
+                      "user_dn",
+                      "owner_id",
+                      "next_recert_date",
+                      "recert_date"
                     ],
                     "filter": {},
                     "allow_aggregations": true
@@ -11539,6 +11946,7 @@
                   "permission": {
                     "columns": [
                       "id",
+                      "owner_recert_id",
                       "rule_id",
                       "rule_metadata_id",
                       "recertified",
@@ -11556,10 +11964,32 @@
               ],
               "update_permissions": [
                 {
+                  "role": "modeller",
+                  "permission": {
+                    "columns": [
+                      "id",
+                      "owner_recert_id",
+                      "rule_id",
+                      "rule_metadata_id",
+                      "recertified",
+                      "comment",
+                      "ip_match",
+                      "user_dn",
+                      "owner_id",
+                      "next_recert_date",
+                      "recert_date"
+                    ],
+                    "filter": {},
+                    "check": {}
+                  },
+                  "comment": ""
+                },
+                {
                   "role": "recertifier",
                   "permission": {
                     "columns": [
                       "id",
+                      "owner_recert_id",
                       "rule_id",
                       "rule_metadata_id",
                       "recertified",
@@ -11613,6 +12043,12 @@
               },
               "object_relationships": [
                 {
+                  "name": "owner",
+                  "using": {
+                    "foreign_key_constraint_on": "owner_id"
+                  }
+                },
+                {
                   "name": "report_template",
                   "using": {
                     "foreign_key_constraint_on": "report_template_id"
@@ -11631,6 +12067,20 @@
                   }
                 }
               ],
+              "array_relationships": [
+                {
+                  "name": "owner_recertifications",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "report_id",
+                      "table": {
+                        "name": "owner_recertification",
+                        "schema": "public"
+                      }
+                    }
+                  }
+                }
+              ],
               "insert_permissions": [
                 {
                   "role": "auditor",
@@ -11638,8 +12088,10 @@
                     "check": {},
                     "columns": [
                       "report_id",
+                      "read_only",
                       "description",
                       "report_name",
+                      "owner_id",
                       "report_owner_id",
                       "report_template_id",
                       "report_type",
@@ -11659,8 +12111,10 @@
                     "check": {},
                     "columns": [
                       "report_id",
+                      "read_only",
                       "description",
                       "report_name",
+                      "owner_id",
                       "report_owner_id",
                       "report_template_id",
                       "report_type",
@@ -11680,8 +12134,10 @@
                     "check": {},
                     "columns": [
                       "report_id",
+                      "read_only",
                       "description",
                       "report_name",
+                      "owner_id",
                       "report_owner_id",
                       "report_template_id",
                       "report_type",
@@ -11701,8 +12157,10 @@
                     "check": {},
                     "columns": [
                       "report_id",
+                      "read_only",
                       "description",
                       "report_name",
+                      "owner_id",
                       "report_owner_id",
                       "report_template_id",
                       "report_type",
@@ -11723,8 +12181,10 @@
                     "check": {},
                     "columns": [
                       "report_id",
+                      "read_only",
                       "description",
                       "report_name",
+                      "owner_id",
                       "report_owner_id",
                       "report_template_id",
                       "report_type",
@@ -11744,8 +12204,10 @@
                     "check": {},
                     "columns": [
                       "report_id",
+                      "read_only",
                       "description",
                       "report_name",
+                      "owner_id",
                       "report_owner_id",
                       "report_template_id",
                       "report_type",
@@ -11765,8 +12227,10 @@
                     "check": {},
                     "columns": [
                       "report_id",
+                      "read_only",
                       "description",
                       "report_name",
+                      "owner_id",
                       "report_owner_id",
                       "report_template_id",
                       "report_type",
@@ -11787,8 +12251,10 @@
                   "permission": {
                     "columns": [
                       "report_id",
+                      "read_only",
                       "description",
                       "report_name",
+                      "owner_id",
                       "report_owner_id",
                       "report_template_id",
                       "report_type",
@@ -11807,24 +12273,35 @@
                   "role": "fw-admin",
                   "permission": {
                     "columns": [
-                      "report_id",
                       "description",
+                      "owner_id",
+                      "read_only",
+                      "report_csv",
+                      "report_end_time",
+                      "report_html",
+                      "report_id",
+                      "report_json",
                       "report_name",
                       "report_owner_id",
+                      "report_pdf",
+                      "report_start_time",
                       "report_template_id",
                       "report_type",
-                      "tenant_wide_visible",
-                      "report_json",
-                      "report_csv",
-                      "report_html",
-                      "report_pdf",
-                      "report_end_time",
-                      "report_start_time"
+                      "tenant_wide_visible"
                     ],
                     "filter": {
-                      "report_owner_id": {
-                        "_eq": "X-Hasura-User-Id"
-                      }
+                      "_or": [
+                        {
+                          "report_owner_id": {
+                            "_eq": "X-Hasura-User-Id"
+                          }
+                        },
+                        {
+                          "owner_id": {
+                            "_in": "x-hasura-editable-owners"
+                          }
+                        }
+                      ]
                     },
                     "allow_aggregations": true
                   }
@@ -11833,24 +12310,35 @@
                   "role": "modeller",
                   "permission": {
                     "columns": [
-                      "report_id",
                       "description",
+                      "owner_id",
+                      "read_only",
+                      "report_csv",
+                      "report_end_time",
+                      "report_html",
+                      "report_id",
+                      "report_json",
                       "report_name",
                       "report_owner_id",
+                      "report_pdf",
+                      "report_start_time",
                       "report_template_id",
                       "report_type",
-                      "tenant_wide_visible",
-                      "report_json",
-                      "report_csv",
-                      "report_html",
-                      "report_pdf",
-                      "report_end_time",
-                      "report_start_time"
+                      "tenant_wide_visible"
                     ],
                     "filter": {
-                      "report_owner_id": {
-                        "_eq": "X-Hasura-User-Id"
-                      }
+                      "_or": [
+                        {
+                          "report_owner_id": {
+                            "_eq": "X-Hasura-User-Id"
+                          }
+                        },
+                        {
+                          "owner_id": {
+                            "_in": "x-hasura-editable-owners"
+                          }
+                        }
+                      ]
                     },
                     "allow_aggregations": true
                   }
@@ -11860,8 +12348,10 @@
                   "permission": {
                     "columns": [
                       "report_id",
+                      "read_only",
                       "description",
                       "report_name",
+                      "owner_id",
                       "report_owner_id",
                       "report_template_id",
                       "report_type",
@@ -11874,9 +12364,18 @@
                       "report_start_time"
                     ],
                     "filter": {
-                      "report_owner_id": {
-                        "_eq": "X-Hasura-User-Id"
-                      }
+                      "_or": [
+                        {
+                          "report_owner_id": {
+                            "_eq": "X-Hasura-User-Id"
+                          }
+                        },
+                        {
+                          "owner_id": {
+                            "_in": "x-hasura-editable-owners"
+                          }
+                        }
+                      ]
                     },
                     "allow_aggregations": true
                   }
@@ -11885,24 +12384,35 @@
                   "role": "reporter",
                   "permission": {
                     "columns": [
-                      "report_id",
                       "description",
+                      "owner_id",
+                      "read_only",
+                      "report_csv",
+                      "report_end_time",
+                      "report_html",
+                      "report_id",
+                      "report_json",
                       "report_name",
                       "report_owner_id",
+                      "report_pdf",
+                      "report_start_time",
                       "report_template_id",
                       "report_type",
-                      "tenant_wide_visible",
-                      "report_json",
-                      "report_csv",
-                      "report_html",
-                      "report_pdf",
-                      "report_end_time",
-                      "report_start_time"
+                      "tenant_wide_visible"
                     ],
                     "filter": {
-                      "report_owner_id": {
-                        "_eq": "X-Hasura-User-Id"
-                      }
+                      "_or": [
+                        {
+                          "report_owner_id": {
+                            "_eq": "X-Hasura-User-Id"
+                          }
+                        },
+                        {
+                          "owner_id": {
+                            "_in": "x-hasura-editable-owners"
+                          }
+                        }
+                      ]
                     },
                     "allow_aggregations": true
                   }
@@ -11911,24 +12421,35 @@
                   "role": "reporter-viewall",
                   "permission": {
                     "columns": [
-                      "report_id",
                       "description",
+                      "owner_id",
+                      "read_only",
+                      "report_csv",
+                      "report_end_time",
+                      "report_html",
+                      "report_id",
+                      "report_json",
                       "report_name",
                       "report_owner_id",
+                      "report_pdf",
+                      "report_start_time",
                       "report_template_id",
                       "report_type",
-                      "tenant_wide_visible",
-                      "report_json",
-                      "report_csv",
-                      "report_html",
-                      "report_pdf",
-                      "report_end_time",
-                      "report_start_time"
+                      "tenant_wide_visible"
                     ],
                     "filter": {
-                      "report_owner_id": {
-                        "_eq": "X-Hasura-User-Id"
-                      }
+                      "_or": [
+                        {
+                          "report_owner_id": {
+                            "_eq": "X-Hasura-User-Id"
+                          }
+                        },
+                        {
+                          "owner_id": {
+                            "_in": "x-hasura-editable-owners"
+                          }
+                        }
+                      ]
                     },
                     "allow_aggregations": true
                   }
@@ -20948,12 +21469,36 @@
                   }
                 },
                 {
+                  "name": "notifications",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "user_id",
+                      "table": {
+                        "name": "notification",
+                        "schema": "public"
+                      }
+                    }
+                  }
+                },
+                {
                   "name": "objects",
                   "using": {
                     "foreign_key_constraint_on": {
                       "column": "last_change_admin",
                       "table": {
                         "name": "object",
+                        "schema": "public"
+                      }
+                    }
+                  }
+                },
+                {
+                  "name": "owners",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "last_recertifier",
+                      "table": {
+                        "name": "owner",
                         "schema": "public"
                       }
                     }
@@ -21358,11 +21903,7 @@
                       "uiuser_username",
                       "uuid"
                     ],
-                    "filter": {
-                      "uuid": {
-                        "_eq": "x-hasura-uuid"
-                      }
-                    }
+                    "filter": {}
                   }
                 },
                 {
@@ -21385,11 +21926,7 @@
                       "uiuser_username",
                       "uuid"
                     ],
-                    "filter": {
-                      "uuid": {
-                        "_eq": "x-hasura-uuid"
-                      }
-                    }
+                    "filter": {}
                   }
                 },
                 {
@@ -21412,11 +21949,7 @@
                       "uiuser_username",
                       "uuid"
                     ],
-                    "filter": {
-                      "uuid": {
-                        "_eq": "x-hasura-uuid"
-                      }
-                    }
+                    "filter": {}
                   }
                 },
                 {

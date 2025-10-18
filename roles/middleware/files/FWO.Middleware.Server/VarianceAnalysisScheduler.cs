@@ -68,7 +68,7 @@ namespace FWO.Middleware.Server
                 };
 
                 List<FwoOwner> owners = await apiConnection.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getOwners);
-                ReportBase? report = await ReportGenerator.Generate(new ReportTemplate("", new(){ ReportType = (int)ReportType.Connections, ModellingFilter = new(){ SelectedOwners = owners}}), apiConnection, userConfig, DefaultInit.DoNothing);
+                ReportBase? report = await ReportGenerator.GenerateFromTemplate(new ReportTemplate("", new(){ ReportType = (int)ReportType.Connections, ModellingFilter = new(){ SelectedOwners = owners}}), apiConnection, userConfig, DefaultInit.DoNothing);
                 if(report == null || report.ReportData.OwnerData.Count == 0)
                 {
                     Log.WriteInfo(LogMessageTitle, $"No data found.");

@@ -71,6 +71,28 @@ namespace FWO.Services
             }
         }
 
+        private async Task GetRulesForDeletedConns(List<ModellingConnection> dokuOnlyConnections)
+        {
+            await GetDeletedConnections();
+            List<ModellingConnection> RegardedAsDeletedConns = [.. DeletedConns, .. dokuOnlyConnections];
+            List<int> RegardedDeletedConnectionIds = RegardedAsDeletedConns.ConvertAll(c => c.Id);
+            foreach (var mgt in allModelledRules.Keys)
+            {
+                List<Rule> rulesForDeletedModels = [];
+                foreach (var rule in allModelledRules[mgt].Where(r => !r.ModellFound))
+                {
+                    if (int.TryParse(FindModelledMarker(rule), out int connId) && RegardedDeletedConnectionIds.Contains(connId))
+                    {
+                        rulesForDeletedModels.Add(rule);
+                    }
+                }
+                if (rulesForDeletedModels.Count > 0)
+                {
+                    varianceResult.DeletedModelsRules.Add(mgt, rulesForDeletedModels);
+                }
+            }
+        }
+
         private async Task GetAllowedSpecUserAreas()
         {
             AllowedSrcSpecUserAreas = [];

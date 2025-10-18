@@ -1,5 +1,8 @@
 @inherits LayoutComponentBase
 @using FWO.Middleware.Client
+@using FWO.Services.EventMediator
+@using FWO.Services.EventMediator.Events
+@using FWO.Services.EventMediator.Interfaces
 @using FWO.Ui.Auth
 @using FWO.Ui.Data
 @using FWO.Ui.Services
@@ -17,6 +20,9 @@
 @inject AuthenticationStateProvider authenticationProvider
 @inject ProtectedSessionStorage sessionStorage
 @inject CircuitHandler circuitHandler
+@inject IEventMediator EventMediator
+
+@implements IDisposable
 
 <NavigationMenu @bind-ShowAlert="showAlert" />
 
@@ -27,7 +33,7 @@
         <button type="button" @onclick="@(() => ShowMessage("warning", "warning", MessageType.Warning))">warning</button>
         <button type="button" @onclick="@(() => ShowMessage("error", "error", MessageType.Error))">error</button>
         <button type="button" @onclick="@(() => ShowMessage("success", "success", MessageType.Success))">success</button>
-        <button type="button" @onclick="@(() => {  UIMessageQue.Clear(); UIMessages.Clear(); })">clear</button> *@    
+        <button type="button" @onclick="@(() => {  UIMessageQue.Clear(); UIMessages.Clear(); })">clear</button> *@
         <CascadingValue Value="@DisplayMessageInUiFunction">
             @Body
         </CascadingValue>
@@ -118,13 +124,24 @@
         UIMessageQueTimer = new()
             {
                 AutoReset = true,
-                Enabled = true,
-                Interval = 150
+                Enabled = false,
+                Interval = 500
             };
 
         UIMessageQueTimer.Elapsed += OnUIMessageTimerTick;
+
+        EventMediator.Subscribe<UserSessionClosedEvent>(nameof(CircuitHandlerService), _ => OnUserSessionClosedEvent(_.EventArgs));
     }
 
+    private void OnUserSessionClosedEvent(UserSessionClosedEventArgs? e)
+    {
+        if (e == null || string.IsNullOrEmpty(e.UserDn))
+        {
+            return;
+        }
+
+        JwtEventService.RemoveJwtTimers(e.UserDn);
+    }
 
     private async Task KeyHandler(KeyboardEventArgs ev)
     {
@@ -250,6 +267,8 @@
             {
                 UIMessageQue.Enqueue(uiMessage);
             }
+
+            UIMessageQueTimer?.Start();
         }
     }
 
@@ -260,6 +279,17 @@
 
     private void OnUIMessageTimerTick(object? _, ElapsedEventArgs __)
     {
+        if(UIMessageQueTimer is null)
+        {
+            return;
+        }
+
+        if(UIMessageQue == null || UIMessageQue.Count == 0)
+        {
+            UIMessageQueTimer.Stop();
+            return;
+        }
+
         if (UIMessageQue.Count > 0 && UIMessages.Count < userConfig.MaxMessages)
         {
             UIMessage uiMessage = UIMessageQue.Dequeue();
@@ -271,6 +301,15 @@
 
     private void HideUIMessage(string messageId)
     {
+        UIMessage? uiMessage = UIMessages.FirstOrDefault(_ => _.Id == messageId);
+
+        if (uiMessage is null)
+        {
+            return;
+        }
+
+        uiMessage.Dispose();
+
         UIMessages.RemoveAll(_ => _.Id == messageId);
 
         InvokeAsync(StateHasChanged);
@@ -433,5 +472,23 @@
         {
             Log.WriteError("Acknowledge Alert", $"Could not acknowledge alert for ui: ", exception);
         }
-    }
+	}
+
+	public void Dispose()
+    {
+        JwtEventService.OnPermissionChanged -= OnPermissionsChanged;
+        JwtEventService.OnJwtAboutToExpire -= OnJwtAboutToExpire;
+        JwtEventService.OnJwtExpired -= OnJwtExpired;
+
+        if(UIMessageQueTimer is not null)
+        {
+            UIMessageQueTimer.Stop();
+            UIMessageQueTimer.Elapsed -= OnUIMessageTimerTick;
+            UIMessageQueTimer.Dispose();
+        }
+
+        alertSubscription?.Dispose();
+
+		EventMediator.Unsubscribe<UserSessionClosedEvent>(nameof(CircuitHandlerService));
+	}
 }

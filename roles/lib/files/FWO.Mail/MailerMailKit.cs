@@ -113,7 +113,7 @@ namespace FWO.Mail
             mail.Sender = new MailboxAddress(senderString, senderString);
 
             // Receiver
-            foreach (string mailAddress in mailData.To)
+            foreach (string mailAddress in mailData.To.Where(x => !string.IsNullOrWhiteSpace(x)))
             {
                 mail.To.Add(MailboxAddress.Parse(mailAddress));
             }
@@ -160,9 +160,8 @@ namespace FWO.Mail
 
                 // Check if we got any attachments and add the to the builder for our message
                 await AddAttachments(mailData, body);
-
-                mail.Body = body.ToMessageBody(); // correction compared to source code
             }
+            mail.Body = body.ToMessageBody(); // correction compared to source code
         }
 
         private static async Task AddAttachments(MailData mailData, MimeKit.BodyBuilder body)

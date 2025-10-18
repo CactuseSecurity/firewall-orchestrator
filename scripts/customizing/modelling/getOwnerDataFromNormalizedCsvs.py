@@ -89,7 +89,7 @@ class app_ip:
         )
         
 
-def readConfig(configFilename, keyToGet):
+def read_custom_config(configFilename, keyToGet):
     try:
         with open(configFilename, "r") as customConfigFH:
             customConfig = json.loads(customConfigFH.read())
@@ -100,7 +100,7 @@ def readConfig(configFilename, keyToGet):
         sys.exit(1)
 
 
-def buildDN(userId, ldapPath):
+def build_dn(userId, ldapPath):
     dn = ""
     if len(userId)>0:
         if '{USERID}' in ldapPath:
@@ -110,7 +110,7 @@ def buildDN(userId, ldapPath):
     return dn
 
 
-def getLogger(debug_level_in=0):
+def get_logger(debug_level_in=0):
     debug_level=int(debug_level_in)
     if debug_level>=1:
         llevel = logging.DEBUG
@@ -146,7 +146,7 @@ def match_and_extract_columns(colname, compiled_patterns):
 # adds data from csv file to appData
 # order of files in important: we only import apps which are included in files 3 and 4 (which only contain active apps)
 # so first import files 3 and 4, then import files 1 and 2^
-def extract_app_data_from_csv (csvFile: str, app_data: list): 
+def extract_app_data_from_csv (csvFile: str, app_list: list): 
 
     apps_from_csv = []
     csvFile = repoTargetDir + '/' + csvFile # add directory to csv files
@@ -181,7 +181,7 @@ def extract_app_data_from_csv (csvFile: str, app_data: list):
         if app_id.lower().startswith('app-') or app_id.lower().startswith('com-'):
             appName = line[appNameColumn]
             appMainUser = line[appOwnerTISOColumn]
-            mainUserDn = buildDN(appMainUser, ldapPath)
+            mainUserDn = build_dn(appMainUser, ldapPath)
             kwITA = line[appOwnerkwItAColumn]
             if kwITA is None or kwITA == '' or kwITA.lower() == 'nein':
                 recert_period_days = 365
@@ -197,15 +197,7 @@ def extract_app_data_from_csv (csvFile: str, app_data: list):
     #app_list.extend(app_list)
 
 
-# adds ip data from csv file to appData
-def extract_ip_data_from_csv (csv_filename: str, app_dict: dict[str: Owner]): 
-
-    valid_app_id_prefixes = ['app-', 'com-']
-
-    ip_data = []
-    csv_filename = repoTargetDir + '/' + csv_filename # add directory to csv files
-
-    # read csv file:
+def read_ip_data_from_csv(csv_filename):
     try:
         with open(csv_filename, newline='', encoding='utf-8') as csvFile:
             reader = csv.reader(csvFile)
@@ -223,8 +215,46 @@ def extract_ip_data_from_csv (csv_filename: str, app_dict: dict[str: Owner]):
     except Exception:
         logger.error("error while trying to read csv file '" + csv_filename + "', exception: " + str(traceback.format_exc()))
         sys.exit(1)
+    
+    return ip_data, app_id_column_no, ip_column_no
 
-    countSkips = 0
+
+def parse_ip(line, app_id, ip_column_no, app_dict, count_skips):
+    # add app server ip addresses (but do not add the whole app - it must already exist)
+    app_server_ip_str = line[ip_column_no]
+    if app_server_ip_str is not None and app_server_ip_str != "":
+        try:
+            ip_range = IPNetwork(app_server_ip_str)
+        except Exception:
+            logger.warning(f'error parsing IP/network {app_server_ip_str} for app {app_id}, skipping this entry')
+            count_skips += 1
+            return count_skips
+        if ip_range.size > 1:
+            ip_type = "network"
+        else:
+            ip_type = "host"
+
+        app_server_ip = app_ip(app_id_external=app_id, ip_start=ip_range.first, ip_end=ip_range.last, type=ip_type, name=f"{ip_type}_{app_server_ip_str}")
+        if app_server_ip not in app_dict[app_id].app_servers:
+            app_dict[app_id].app_servers.append(app_server_ip)
+    else:
+        # logger.debug(f'ignoring line from csv file: {appId} - empty IP')
+        count_skips += 1                    
+
+    return count_skips
+
+
+# adds ip data from csv file to appData
+def extract_ip_data_from_csv (csv_filename: str, app_dict: dict[str: Owner]): 
+
+    valid_app_id_prefixes = ['app-', 'com-']
+
+    ip_data = []
+    csv_filename = repoTargetDir + '/' + csv_filename # add directory to csv files
+
+    ip_data, app_id_column_no, ip_column_no = read_ip_data_from_csv(csv_filename)
+
+    count_skips = 0
     # append all owners from CSV
     for line in ip_data:
         app_id: str = line[app_id_column_no]
@@ -232,33 +262,14 @@ def extract_ip_data_from_csv (csv_filename: str, app_dict: dict[str: Owner]):
 
         if len(valid_app_id_prefixes)==0 or app_id_prefix in valid_app_id_prefixes:
             if app_id in app_dict.keys():
-                # add app server ip addresses (but do not add the whole app - it must already exist)
-                app_server_ip_str = line[ip_column_no]
-                if app_server_ip_str is not None and app_server_ip_str != "":
-                    try:
-                        ip_range = IPNetwork(app_server_ip_str)
-                    except Exception:
-                        logger.warning(f'error parsing IP/network {app_server_ip_str} for app {app_id}, skipping this entry')
-                        countSkips += 1
-                        continue
-                    if ip_range.size > 1:
-                        ip_type = "network"
-                    else:
-                        ip_type = "host"
-
-                    app_server_ip = app_ip(app_id_external=app_id, ip_start=ip_range.first, ip_end=ip_range.last, type=ip_type, name=f"{ip_type}_{app_server_ip_str}")
-                    if app_server_ip not in app_dict[app_id].app_servers:
-                        app_dict[app_id].app_servers.append(app_server_ip)
-                else:
-                    # logger.debug(f'ignoring line from csv file: {appId} - empty IP')
-                    countSkips += 1                    
+                count_skips = parse_ip(line, app_id, ip_column_no, app_dict, count_skips)
             else:
                 logger.debug(f'ignoring line from csv file: {app_id} - inactive?')
-                countSkips += 1
+                count_skips += 1
         else:
             logger.info(f'ignoring line from csv file: {app_id} - inconclusive appId')
-            countSkips += 1
-    logger.info(f"{str(csv_filename)}: #total lines {str(len(ip_data))}, skipped: {str(countSkips)}")
+            count_skips += 1
+    logger.info(f"{str(csv_filename)}: #total lines {str(len(ip_data))}, skipped: {str(count_skips)}")
 
 
 def transform_owner_dict_to_list(app_data):
@@ -292,15 +303,15 @@ if __name__ == "__main__":
     if args.suppress_certificate_warnings:
         requests.packages.urllib3.disable_warnings()
 
-    logger = getLogger(debug_level_in=2)
+    logger = get_logger(debug_level_in=2)
 
     # read config
-    ldapPath = readConfig(args.config, 'ldapPath')
-    gitRepoUrl = readConfig(args.config, 'gitRepo')
-    gitUsername = readConfig(args.config, 'gitUser')
-    gitPassword = readConfig(args.config, 'gitpassword')
-    csvAllOwnerFiles = readConfig(args.config, 'csvAllOwnerFiles')
-    csvAppServerFiles = readConfig(args.config, 'csvAppServerFiles')
+    ldapPath = read_custom_config(args.config, 'ldapPath')
+    gitRepoUrl = read_custom_config(args.config, 'gitRepo')
+    gitUsername = read_custom_config(args.config, 'gitUser')
+    gitPassword = read_custom_config(args.config, 'gitpassword')
+    csvAllOwnerFiles = read_custom_config(args.config, 'csvAllOwnerFiles')
+    csvAppServerFiles = read_custom_config(args.config, 'csvAppServerFiles')
 
     #############################################
     # 1. get CSV files from github repo
@@ -321,7 +332,6 @@ if __name__ == "__main__":
 
     #############################################
     # 2. get app data from CSV files
-    app_data = {}
     app_list = []
     for csvFile in csvAllOwnerFiles:
         extract_app_data_from_csv(csvFile, app_list)
@@ -331,14 +341,12 @@ if __name__ == "__main__":
     for csvFile in csvAppServerFiles:
         extract_ip_data_from_csv(csvFile, app_dict)
 
-    owner_data = transform_owner_dict_to_list(app_dict)
-
     #############################################    
     # 3. write owners to json file
     path = os.path.dirname(__file__)
     fileOut = path + '/' + Path(os.path.basename(__file__)).stem + ".json"
     with open(fileOut, "w") as outFH:
-        json.dump(owner_data, outFH, indent=3)
+        json.dump(transform_owner_dict_to_list(app_dict), outFH, indent=3)
         
     #############################################    
     # 4. Some statistics

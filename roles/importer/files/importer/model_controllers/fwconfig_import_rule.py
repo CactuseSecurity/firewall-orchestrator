@@ -1092,6 +1092,8 @@ class FwConfigImportRule():
 
         # get rulebase_id for rulebaseUid
         rulebase_id = importDetails.lookupRulebaseId(rulebase_uid)
+        if rulebase_id is None:
+            raise FwoApiWriteError(f"could not find rulebase id for rulebase uid {rulebase_uid} during rule import preparation")
 
         for rule in rules:
             listOfEnforcedGwIds = []
@@ -1101,44 +1103,8 @@ class FwConfigImportRule():
                     listOfEnforcedGwIds.append(gwId)
             if len(listOfEnforcedGwIds) == 0:
                 listOfEnforcedGwIds = None
-
-            rule_for_import = Rule(
-                mgm_id=importDetails.MgmDetails.CurrentMgmId,
-                rule_num=rule.rule_num,
-                rule_disabled=rule.rule_disabled,
-                rule_src_neg=rule.rule_src_neg,
-                rule_src=rule.rule_src,
-                rule_src_refs=rule.rule_src_refs,
-                rule_dst_neg=rule.rule_dst_neg,
-                rule_dst=rule.rule_dst,
-                rule_dst_refs=rule.rule_dst_refs,
-                rule_svc_neg=rule.rule_svc_neg,
-                rule_svc=rule.rule_svc,
-                rule_svc_refs=rule.rule_svc_refs,
-                rule_action=rule.rule_action,
-                rule_track=rule.rule_track,
-                rule_time=rule.rule_time,
-                rule_name=rule.rule_name,
-                rule_uid=rule.rule_uid,
-                rule_custom_fields=rule.rule_custom_fields,
-                rule_implied=rule.rule_implied,
-                # parent_rule_id=rule.parent_rule_id,
-                rule_comment=rule.rule_comment,
-                rule_from_zone=self.uid2id_mapper.get_zone_object_id(rule.rule_src_zone) if rule.rule_src_zone is not None else None,
-                rule_to_zone=self.uid2id_mapper.get_zone_object_id(rule.rule_dst_zone) if rule.rule_dst_zone is not None else None,
-                access_rule=True,
-                nat_rule=False,
-                is_global=False,
-                rulebase_id=rulebase_id,
-                rule_create=importDetails.ImportId,
-                rule_last_seen=importDetails.ImportId,
-                rule_num_numeric=rule.rule_num_numeric,
-                action_id = importDetails.lookupAction(rule.rule_action),
-                track_id = importDetails.lookupTrack(rule.rule_track),
-                rule_head_text=rule.rule_head_text,
-                rule_installon=rule.rule_installon,
-                last_change_admin=None #TODO: get id from rule.last_change_admin
-            ).model_dump()
+            
+            rule_for_import = self.prepare_single_rule_for_import(rule, importDetails, rulebase_id)
 
             if listOfEnforcedGwIds is not None and len(listOfEnforcedGwIds) > 0:    # leave out field, if no resolvable gateways are found
                 rule_for_import.update({'rule_installon': rule.rule_installon }) #fwo_const.list_delimiter.join(listOfEnforcedGwIds) })
@@ -1146,6 +1112,62 @@ class FwConfigImportRule():
             prepared_rules.append(rule_for_import)
         return { "data": prepared_rules }
     
+    def prepare_single_rule_for_import(self, rule: RuleNormalized, importDetails: ImportStateController, rulebase_id: int) -> dict:
+        rule_from_zone_id = None
+        if rule.rule_src_zone is not None:
+            from_zones = rule.rule_src_zone.split(fwo_const.list_delimiter)
+            if len(from_zones) > 1:
+                logger = getFwoLogger()
+                logger.warning(f"rule {rule.rule_uid} has multiple source zones defined, only the first one will be used")
+            rule_from_zone_id = self.uid2id_mapper.get_zone_object_id(from_zones[0])
+
+        rule_to_zone_id = None
+        if rule.rule_dst_zone is not None:
+            to_zones = rule.rule_dst_zone.split(fwo_const.list_delimiter)
+            if len(to_zones) > 1:
+                logger = getFwoLogger()
+                logger.warning(f"rule {rule.rule_uid} has multiple destination zones defined, only the first one will be used")
+            rule_to_zone_id = self.uid2id_mapper.get_zone_object_id(to_zones[0])
+
+        rule_for_import = Rule(
+            mgm_id=importDetails.MgmDetails.CurrentMgmId,
+            rule_num=rule.rule_num,
+            rule_disabled=rule.rule_disabled,
+            rule_src_neg=rule.rule_src_neg,
+            rule_src=rule.rule_src,
+            rule_src_refs=rule.rule_src_refs,
+            rule_dst_neg=rule.rule_dst_neg,
+            rule_dst=rule.rule_dst,
+            rule_dst_refs=rule.rule_dst_refs,
+            rule_svc_neg=rule.rule_svc_neg,
+            rule_svc=rule.rule_svc,
+            rule_svc_refs=rule.rule_svc_refs,
+            rule_action=rule.rule_action,
+            rule_track=rule.rule_track,
+            rule_time=rule.rule_time,
+            rule_name=rule.rule_name,
+            rule_uid=rule.rule_uid,
+            rule_custom_fields=rule.rule_custom_fields,
+            rule_implied=rule.rule_implied,
+            # parent_rule_id=rule.parent_rule_id,
+            rule_comment=rule.rule_comment,
+            rule_from_zone=rule_from_zone_id,
+            rule_to_zone=rule_to_zone_id,
+            access_rule=True,
+            nat_rule=False,
+            is_global=False,
+            rulebase_id=rulebase_id,
+            rule_create=importDetails.ImportId,
+            rule_last_seen=importDetails.ImportId,
+            rule_num_numeric=rule.rule_num_numeric,
+            action_id = importDetails.lookupAction(rule.rule_action),
+            track_id = importDetails.lookupTrack(rule.rule_track),
+            rule_head_text=rule.rule_head_text,
+            rule_installon=rule.rule_installon,
+            last_change_admin=None #TODO: get id from rule.last_change_admin
+        ).model_dump()
+
+        return rule_for_import
 
     def write_changelog_rules(self, added_rules_ids, removed_rules_ids):
         logger = getFwoLogger()

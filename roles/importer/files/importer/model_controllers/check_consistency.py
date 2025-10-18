@@ -262,15 +262,16 @@ class FwConfigImportCheckConsistency(FwConfigImport):
 
    
     @staticmethod
-    def _collect_zone_refs_from_rules(single_config):
-        all_used_zones_refs = []
+    def _collect_zone_refs_from_rules(single_config: FwConfigNormalized) -> set[str]:
+        all_used_zones_refs = set()
         for rb in single_config.rulebases:
             for rule_id in rb.Rules:
-                if rb.Rules[rule_id].rule_src_zone is not None:
-                    all_used_zones_refs.append(rb.Rules[rule_id].rule_src_zone)
-                if rb.Rules[rule_id].rule_dst_zone is not None:
-                    all_used_zones_refs.append(rb.Rules[rule_id].rule_dst_zone)
-        return set(all_used_zones_refs)
+                rule = rb.Rules[rule_id]
+                if rule.rule_src_zone is not None:
+                    all_used_zones_refs.update(rule.rule_src_zone.split(fwo_const.list_delimiter))
+                if rule.rule_dst_zone is not None:
+                    all_used_zones_refs.update(rule.rule_dst_zone.split(fwo_const.list_delimiter))
+        return all_used_zones_refs
 
 
     # check if all color refs are valid (in the DB)

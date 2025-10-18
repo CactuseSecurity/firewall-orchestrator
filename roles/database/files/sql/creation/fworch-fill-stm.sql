@@ -149,6 +149,25 @@ insert into config (config_key, config_value, config_user) VALUES ('complianceCh
 insert into config (config_key, config_value, config_user) VALUES ('availableModules', '[1,2,3,4,5,6]', 0);
 insert into config (config_key, config_value, config_user) VALUES ('debugConfig', '{"debugLevel":8, "extendedLogComplianceCheck":true, "extendedLogReportGeneration":true, "extendedLogScheduler":true}', 0);
 insert into config (config_key, config_value, config_user) VALUES ('reportSchedulerConfig', '', 0);
+insert into config (config_key, config_value, config_user) VALUES ('autoCalculateInternetZone', 'true', 0);
+insert into config (config_key, config_value, config_user) VALUES ('autoCalculateUndefinedInternalZone', 'true', 0);
+insert into config (config_key, config_value, config_user) VALUES ('internalZoneRange_10_0_0_0_8', 'true', 0);
+insert into config (config_key, config_value, config_user) VALUES ('internalZoneRange_172_16_0_0_12', 'true', 0);
+insert into config (config_key, config_value, config_user) VALUES ('internalZoneRange_192_168_0_0_16', 'true', 0);
+insert into config (config_key, config_value, config_user) VALUES ('internalZoneRange_0_0_0_0_8', 'true', 0);
+insert into config (config_key, config_value, config_user) VALUES ('internalZoneRange_127_0_0_0_8', 'true', 0);
+insert into config (config_key, config_value, config_user) VALUES ('internalZoneRange_169_254_0_0_16', 'true', 0);
+insert into config (config_key, config_value, config_user) VALUES ('internalZoneRange_224_0_0_0_4', 'true', 0);
+insert into config (config_key, config_value, config_user) VALUES ('internalZoneRange_240_0_0_0_4', 'true', 0);
+insert into config (config_key, config_value, config_user) VALUES ('internalZoneRange_255_255_255_255_32', 'true', 0);
+insert into config (config_key, config_value, config_user) VALUES ('internalZoneRange_192_0_2_0_24', 'true', 0);
+insert into config (config_key, config_value, config_user) VALUES ('internalZoneRange_198_51_100_0_24', 'true', 0);
+insert into config (config_key, config_value, config_user) VALUES ('internalZoneRange_203_0_113_0_24', 'true', 0);
+insert into config (config_key, config_value, config_user) VALUES ('internalZoneRange_100_64_0_0_10', 'true', 0);
+insert into config (config_key, config_value, config_user) VALUES ('internalZoneRange_192_0_0_0_24', 'true', 0);
+insert into config (config_key, config_value, config_user) VALUES ('internalZoneRange_192_88_99_0_24', 'true', 0);
+insert into config (config_key, config_value, config_user) VALUES ('internalZoneRange_198_18_0_0_15', 'true', 0);
+
 
 INSERT INTO "report_format" ("report_format_name") VALUES ('json');
 INSERT INTO "report_format" ("report_format_name") VALUES ('pdf');

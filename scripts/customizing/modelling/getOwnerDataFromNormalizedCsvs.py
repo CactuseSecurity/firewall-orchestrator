@@ -238,7 +238,6 @@ def parse_ip(line, app_id, ip_column_no, app_dict, count_skips):
         if app_server_ip not in app_dict[app_id].app_servers:
             app_dict[app_id].app_servers.append(app_server_ip)
     else:
-        # logger.debug(f'ignoring line from csv file: {appId} - empty IP')
         count_skips += 1                    
 
     return count_skips

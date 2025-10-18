@@ -7,7 +7,7 @@
 
 # dependencies: 
 #   a) package python3-git must be installed
-#   b) requires the following config items in /usr/local/orch/etc/secrets/customizingConfig.json
+#   b) requires the following config items in /usr/local/orch/etc/secrets/customizingConfig.json (or given config file):
 
 '''
 sample config file /usr/local/orch/etc/secrets/customizingConfig.json
@@ -36,14 +36,13 @@ import git  # apt install python3-git # or: pip install git
 import csv
 import re
 from netaddr import IPAddress, IPNetwork
-import pydantic
 
 
 baseDir = "/usr/local/fworch/"
 baseDirEtc = baseDir + "etc/"
 repoTargetDir = baseDirEtc + "cmdb-repo"
 defaultConfigFileName = baseDirEtc + "secrets/customizingConfig.json"
-importSourceString = "tufinRlm" # change this to "cmdb-csv-export"? or will this break anything?
+importSourceString = "tufinRlm"
 
 
 class Owner:
@@ -68,6 +67,7 @@ class Owner:
                 "app_servers": [ip.to_json() for ip in self.app_servers]
             }
         )
+
 
 class app_ip:
     def __init__(self, app_id_external: str, ip_start: IPAddress, ip_end: IPAddress, type: str, name: str):
@@ -118,7 +118,6 @@ def get_logger(debug_level_in=0):
         llevel = logging.INFO
 
     logger = logging.getLogger('import-fworch-app-data')
-    # logHandler = logging.StreamHandler(stream=stdout)
     logformat = "%(asctime)s [%(levelname)-5.5s] [%(filename)-10.10s:%(funcName)-10.10s:%(lineno)4d] %(message)s"
     logging.basicConfig(format=logformat, datefmt="%Y-%m-%dT%H:%M:%S%z", level=llevel)
     logger.setLevel(llevel)
@@ -133,25 +132,8 @@ def get_logger(debug_level_in=0):
     return logger
 
 
-def match_and_extract_columns(colname, compiled_patterns):
-    """Return (True, new_name) if the column matches a pattern, else (False, None)."""
-    for p in compiled_patterns:
-        m = p.search(colname)
-        if m:
-            # Capture the inner part — e.g., 'Alfabet-ID' or 'IP'
-            return True, m.group(1)
-    return False, None
 
-
-# adds data from csv file to appData
-# order of files in important: we only import apps which are included in files 3 and 4 (which only contain active apps)
-# so first import files 3 and 4, then import files 1 and 2^
-def extract_app_data_from_csv (csvFile: str, app_list: list): 
-
-    apps_from_csv = []
-    csvFile = repoTargetDir + '/' + csvFile # add directory to csv files
-
-    # read csv file:
+def read_app_data_from_csv(csvFile: str):
     try:
         with open(csvFile, newline='') as csvFile:
             reader = csv.reader(csvFile)
@@ -164,32 +146,45 @@ def extract_app_data_from_csv (csvFile: str, app_list: list):
             owner_kwita_pattern = re.compile(r'.*?:\s*kwITA')
             
             # Find column indices using regex
-            appNameColumn = next(i for i, h in enumerate(headers) if name_pattern.match(h))
-            appIdColumn = next(i for i, h in enumerate(headers) if app_id_pattern.match(h))
-            appOwnerTISOColumn = next(i for i, h in enumerate(headers) if owner_tiso_pattern.match(h))
-            appOwnerkwItAColumn = next(i for i, h in enumerate(headers) if owner_kwita_pattern.match(h))
+            app_name_column = next(i for i, h in enumerate(headers) if name_pattern.match(h))
+            app_id_column = next(i for i, h in enumerate(headers) if app_id_pattern.match(h))
+            app_owner_tiso_column = next(i for i, h in enumerate(headers) if owner_tiso_pattern.match(h))
+            app_owner_kwita_column = next(i for i, h in enumerate(headers) if owner_kwita_pattern.match(h))
             
             apps_from_csv = list(reader)  # Read remaining rows
     except Exception:
         logger.error("error while trying to read csv file '" + csvFile + "', exception: " + str(traceback.format_exc()))
         sys.exit(1)
+    
+    return apps_from_csv, app_name_column, app_id_column, app_owner_tiso_column, app_owner_kwita_column
+
+
+# adds data from csv file to appData
+# order of files in important: we only import apps which are included in files 3 and 4 (which only contain active apps)
+# so first import files 3 and 4, then import files 1 and 2^
+def extract_app_data_from_csv (csvFile: str, app_list: list): 
+
+    apps_from_csv = []
+    csvFile = repoTargetDir + '/' + csvFile # add directory to csv files
+
+    apps_from_csv, app_name_column, app_id_column, app_owner_tiso_column, app_owner_kwita_column = read_app_data_from_csv(csvFile)
 
     countSkips = 0
     # append all owners from CSV
     for line in apps_from_csv:
-        app_id = line[appIdColumn]
+        app_id = line[app_id_column]
         if app_id.lower().startswith('app-') or app_id.lower().startswith('com-'):
-            appName = line[appNameColumn]
-            appMainUser = line[appOwnerTISOColumn]
-            mainUserDn = build_dn(appMainUser, ldapPath)
-            kwITA = line[appOwnerkwItAColumn]
-            if kwITA is None or kwITA == '' or kwITA.lower() == 'nein':
+            app_name = line[app_name_column]
+            app_main_user = line[app_owner_tiso_column]
+            main_user_dn = build_dn(app_main_user, ldapPath)
+            kwita = line[app_owner_kwita_column]
+            if kwita is None or kwita == '' or kwita.lower() == 'nein':
                 recert_period_days = 365
             else:
                 recert_period_days = 182
-            if mainUserDn=='':
+            if main_user_dn=='':
                 logger.warning('adding app without main user: ' + app_id)
-            app_list.append(Owner(app_id_external=app_id, name=appName, main_user=mainUserDn, recert_period_days = recert_period_days, import_source=importSourceString))
+            app_list.append(Owner(app_id_external=app_id, name=app_name, main_user=main_user_dn, recert_period_days = recert_period_days, import_source=importSourceString))
         else:
             logger.info(f'ignoring line from csv file: {app_id} - inconclusive appId')
             countSkips += 1

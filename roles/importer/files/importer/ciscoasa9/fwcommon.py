@@ -18,8 +18,7 @@ Usage:
 
 from __future__ import annotations
 
-import re
-from typing import List, Optional, Tuple
+from typing import List
 
 from netaddr import IPNetwork
 
@@ -42,16 +41,13 @@ from fwo_enums import ConfigAction
 from model_controllers.fwconfig_normalized_controller import FwConfigNormalizedController
 from model_controllers.management_controller import ManagementController
 from models.serviceobject import ServiceObject
-from ciscoasa9.asa_parser_functions import _clean_lines, _consume_block, _parse_class_map_block, \
-    _parse_dns_inspect_policy_map_block, _parse_interface_block, _parse_network_object_block, \
-    _parse_network_object_group_block, _parse_policy_map_block, _parse_service_object_block, \
-    _parse_service_object_group_block, _parse_endpoint
 from ciscoasa9.asa_parser import parse_asa_config
 from ciscoasa9.asa_maps import name_to_port, protocol_map
 from models.rulebase import Rulebase
 from models.rule import RuleNormalized, RuleAction, RuleTrack, RuleType
 from models.gateway import Gateway
 from models.rulebase_link import RulebaseLinkUidBased
+from fwo_base import write_native_config_to_file
 
 
 def has_config_changed(full_config, mgm_details, force=False):
@@ -148,6 +144,8 @@ def get_config(config_in: FwConfigManagerListController, importState: ImportStat
         config2import = parse_asa_config(raw_config)
         config_in.native_config = config2import.model_dump()
 
+    write_native_config_to_file(importState, config_in.native_config)
+
     normalize_config(config_in, importState)
 
     return 0, config_in
@@ -198,7 +196,7 @@ def normalize_config(config_in: FwConfigManagerListController, importState: Impo
                 )
                 network_objects.append(obj)
 
-            elif object.ip_address is not None and object.subnet_mask is None:
+            elif object.ip_address is not None and object.subnet_mask is None and object.fqdn is None:
                 obj = NetworkObject(
                     obj_uid=object.name,
                     obj_name=object.name,
@@ -211,6 +209,7 @@ def normalize_config(config_in: FwConfigManagerListController, importState: Impo
                 network_objects.append(obj)
 
             # TODO ip range
+            # TODO fqdn
                 
             
     # network object groups

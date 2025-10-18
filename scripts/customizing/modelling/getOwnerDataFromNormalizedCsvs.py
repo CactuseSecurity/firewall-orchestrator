@@ -194,7 +194,6 @@ def extract_app_data_from_csv (csvFile: str, app_list: list):
             logger.info(f'ignoring line from csv file: {app_id} - inconclusive appId')
             countSkips += 1
     logger.info(f"{str(csvFile)}: #total lines {str(len(apps_from_csv))}, skipped: {str(countSkips)}")
-    #app_list.extend(app_list)
 
 
 def read_ip_data_from_csv(csv_filename):

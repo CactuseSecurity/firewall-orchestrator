@@ -20,7 +20,7 @@ from __future__ import annotations
 
 from typing import List
 
-from netaddr import IPNetwork
+from netaddr import IPAddress, IPNetwork
 
 import fwo_const
 from pathlib import Path
@@ -158,10 +158,10 @@ def load_config_from_file(filename: str) -> str:
         return f.read()
 
 def normalize_config(config_in: FwConfigManagerListController, importState: ImportStateController):
-
+    logger = getFwoLogger()
     # Network Objects Normalization
     
-    native_config = Config.model_validate(config_in.native_config)
+    native_config: Config = Config.model_validate(config_in.native_config)
     network_objects = []
 
 
@@ -180,51 +180,53 @@ def normalize_config(config_in: FwConfigManagerListController, importState: Impo
 
 
     for object in native_config.objects:
-        if isinstance(object, AsaNetworkObject):
-            if object.ip_address is not None and object.subnet_mask is not None:
-                ip_end = IPNetwork(f"{object.ip_address}/{object.subnet_mask}").broadcast
-                ip_end = str(ip_end)
-                ip_end = IPNetwork(f"{ip_end}/{32}") if ip_end else None
-                obj = NetworkObject(
-                    obj_uid=object.name,
-                    obj_name=object.name,
-                    obj_typ="network",
-                    obj_ip=IPNetwork(object.ip_address),
-                    obj_ip_end = ip_end,
-                    obj_color=fwo_const.defaultColor,
-                    obj_comment=object.description
-                )
-                network_objects.append(obj)
+        if object.fqdn is not None:
+            logger.warning(f"Skipping FQDN object {object.name}")
+            continue  # skip fqdn for now
 
-            elif object.ip_address is not None and object.subnet_mask is None and object.fqdn is None:
-                obj = NetworkObject(
-                    obj_uid=object.name,
-                    obj_name=object.name,
-                    obj_typ="host",
-                    obj_ip=IPNetwork(f"{object.ip_address}/32"),
-                    obj_ip_end=IPNetwork(f"{object.ip_address}/32"),
-                    obj_color=fwo_const.defaultColor,
-                    obj_comment=object.description
-                )
-                network_objects.append(obj)
+        if object.ip_address is not None and object.subnet_mask is not None:
+            network = IPNetwork(f"{object.ip_address}/{object.subnet_mask}")
+            ip_start = IPNetwork(f"{object.ip_address}/32")
+            ip_end = IPNetwork(f"{IPAddress(network.first + network.size - 1)}/32")
+            obj = NetworkObject(
+                obj_uid=object.name,
+                obj_name=object.name,
+                obj_typ="network",
+                obj_ip=ip_start,
+                obj_ip_end=ip_end,
+                obj_color=fwo_const.defaultColor,
+                obj_comment=object.description
+            )
+            network_objects.append(obj)
 
-            # TODO ip range
-            # TODO fqdn
+        elif object.ip_address is not None and object.subnet_mask is None and object.fqdn is None:
+            obj = NetworkObject(
+                obj_uid=object.name,
+                obj_name=object.name,
+                obj_typ="host",
+                obj_ip=IPNetwork(f"{object.ip_address}/32"),
+                obj_ip_end=IPNetwork(f"{object.ip_address}/32"),
+                obj_color=fwo_const.defaultColor,
+                obj_comment=object.description
+            )
+            network_objects.append(obj)
+
+        # TODO ip range
+        # TODO fqdn
                 
             
     # network object groups
     for object_group in native_config.object_groups:
-        if isinstance(object_group, AsaNetworkObjectGroup):
-            obj = NetworkObject(
-                obj_uid=object_group.name,
-                obj_name=object_group.name,
-                obj_typ="group",
-                obj_member_names="|".join(object_group.objects),
-                obj_member_refs=fwo_const.list_delimiter.join(object_group.objects),
-                obj_color=fwo_const.defaultColor,
-                obj_comment=object_group.description
-            )
-            network_objects.append(obj)
+        obj = NetworkObject(
+            obj_uid=object_group.name,
+            obj_name=object_group.name,
+            obj_typ="group",
+            obj_member_names="|".join(object_group.objects),
+            obj_member_refs=fwo_const.list_delimiter.join(object_group.objects),
+            obj_color=fwo_const.defaultColor,
+            obj_comment=object_group.description
+        )
+        network_objects.append(obj)
 
     network_objects = FwConfigNormalizedController.convertListToDict(list(nwobj.model_dump() for nwobj in network_objects), 'obj_uid')
     
@@ -616,16 +618,14 @@ def create_objects_for_access_lists(access_lists: AccessList, network_objects: d
                 #obj name is subnet in cidr notation
                 obj_name = str(IPNetwork(f"{ep.value}/{ep.mask}"))
                 if obj_name not in network_objects.keys():
-                    ip_end = IPNetwork(f"{ep.value}/{ep.mask}").broadcast
-                    ip_end = str(ip_end)
-                    if not ip_end:
-                        raise ValueError(f"Could not determine broadcast address for subnet {ep.value}/{ep.mask}")
-                    ip_end = IPNetwork(f"{ip_end}/32")
+                    network = IPNetwork(f"{ep.value}/{ep.mask}")
+                    ip_start = IPNetwork(f"{ep.value}/32")
+                    ip_end = IPNetwork(f"{IPAddress(network.first + network.size - 1)}/32")
                     obj = NetworkObject(
                         obj_uid=obj_name,
                         obj_name=obj_name,
                         obj_typ="network",
-                        obj_ip=IPNetwork(f"{ep.value}/32"),
+                        obj_ip=ip_start,
                         obj_ip_end=ip_end,
                         obj_color=fwo_const.defaultColor,
                         obj_comment="network object created during import"

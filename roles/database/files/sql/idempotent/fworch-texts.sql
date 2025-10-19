@@ -2604,6 +2604,22 @@ INSERT INTO txt VALUES ('complianceCheckSortMatrixByID', 'German', 'Matrixsortie
 INSERT INTO txt VALUES ('complianceCheckSortMatrixByID', 'English', 'Matrix sorting by zone ID');
 INSERT INTO txt VALUES ('complianceCheckRelevantManagements','German', 'Relevante Managements');
 INSERT INTO txt VALUES ('complianceCheckRelevantManagements','English','Relevant managements');
+INSERT INTO txt VALUES ('complianceCheckAutoCalcInternetZone','German', 'Internetzone automatisch berechnen');
+INSERT INTO txt VALUES ('complianceCheckAutoCalcInternetZone','English','Auto-calculate internet zone');
+INSERT INTO txt VALUES ('complianceCheckAutoCalcUndefinedInternalZone','German', 'Undefiniert-intern Zone automatisch berechnen');
+INSERT INTO txt VALUES ('complianceCheckAutoCalcUndefinedInternalZone','English','Auto-calculate undefined-internal zone');
+INSERT INTO txt VALUES ('complianceCheckExcludeFromInternetZone','German', 'Von Internetzonenberechnung ausschließen');
+INSERT INTO txt VALUES ('complianceCheckExcludeFromInternetZone','English','Exclude from internet zone calculation');
+INSERT INTO txt VALUES ('complianceCheckPrivateAdressSpace','German', 'Privater Adressbereich');
+INSERT INTO txt VALUES ('complianceCheckPrivateAdressSpace','English','Private address space');
+INSERT INTO txt VALUES ('complianceCheckLoopbackLocal','German', 'Loopback / local');
+INSERT INTO txt VALUES ('complianceCheckLoopbackLocal','English','Loopback / lokal');
+INSERT INTO txt VALUES ('complianceCheckMulticastBroadcast','German', 'Multicast / Broadcast');
+INSERT INTO txt VALUES ('complianceCheckMulticastBroadcast','English','Multicast / broadcast');
+INSERT INTO txt VALUES ('complianceCheckDocumentationSamples','German', 'Dokumentation / Beispiele');
+INSERT INTO txt VALUES ('complianceCheckDocumentationSamples','English','Documentation / samples');
+INSERT INTO txt VALUES ('complianceCheckDiv','German', 'Div (Benchmarking, Broadcast, Multicast, Spezialzweck usw.)');
+INSERT INTO txt VALUES ('complianceCheckDiv','English','Div (benchmarking, broadcast, multicast, special purpose, etc)');
 INSERT INTO txt VALUES ('availableModules',     'German', 	'Verf&uuml;gbare Module');
 INSERT INTO txt VALUES ('availableModules',     'English', 	'Available Modules');
 INSERT INTO txt VALUES ('notification',   		'German', 	'Benachrichtigung');
@@ -5836,6 +5852,41 @@ INSERT INTO txt VALUES ('H5815', 'German',  'Wenn aktiviert, werden Netzwerkzone
 INSERT INTO txt VALUES ('H5815', 'English', 'When enabled, network zone matrices are sorted by zone ID (default: sorted by name).');
 INSERT INTO txt VALUES ('H5816', 'German',  'Durch Komma getrennte Liste von relevanten Management IDs.');
 INSERT INTO txt VALUES ('H5816', 'English', 'Comma-separated list of relevant management IDs.');
+INSERT INTO txt VALUES ('H5817', 'German',  'Wenn aktiviert, wird bei &Auml;nderungen in Compliance-Matrizen automatisch eine "Internetzone" hinzugef&uuml;gt, die alle Adressbereiche beinhaltet, die nicht in anderen Zonen definiert sind.');
+INSERT INTO txt VALUES ('H5817', 'English', 'If enabled, changes to compliance matrices will automatically add an "Internetzone" that includes all address ranges not defined in other zones.');
+INSERT INTO txt VALUES ('H5818', 'German',  'Adressbereiche, die aus der Berechnung der Internetzone ausgeschlossen werden sollen.');
+INSERT INTO txt VALUES ('H5818', 'English', 'Address ranges that should be excluded from the Internet zone calculation.');
+INSERT INTO txt VALUES ('H5819', 'German',  'Wenn aktiviert, wird bei &Auml;nderungen in Compliance-Matrizen automatisch eine "Undefiniert-Intern-Zone" hinzugef&uuml;gt, die alle Adressbereiche beinhaltet, die nicht in anderen Zonen definiert sind und von der Internetzone ausgeschlossen wurden.');
+INSERT INTO txt VALUES ('H5819', 'English', 'When enabled, changes to compliance matrices automatically add an "Undefined Internal Zone" that includes all address ranges not defined in other zones and excluded from the Internet zone.');
+INSERT INTO txt VALUES ('H5820', 'German',  'Teilbereich des privaten Adressbereichs gemäß RFC 1918');
+INSERT INTO txt VALUES ('H5820', 'English', 'Part of the private address range according to RFC 1918');
+INSERT INTO txt VALUES ('H5821', 'German',  'Spezialbereich für „diese“ Netzwerke, Quelle unbekannt (unspezifische Adresse).');
+INSERT INTO txt VALUES ('H5821', 'English', 'Special range for “this” network, used as an unspecified address.');
+INSERT INTO txt VALUES ('H5822', 'German',  'Loopback-Adressbereich zur internen Kommunikation eines Hosts.');
+INSERT INTO txt VALUES ('H5822', 'English', 'Loopback address range for internal host communication.');
+INSERT INTO txt VALUES ('H5823', 'German',  'Link-Local-Adressbereich für automatische Adressvergabe ohne DHCP.');
+INSERT INTO txt VALUES ('H5823', 'English', 'Link-local address range for automatic addressing without DHCP.');
+INSERT INTO txt VALUES ('H5824', 'German',  'Multicast-Adressbereich für die Zustellung an mehrere Empfänger.');
+INSERT INTO txt VALUES ('H5824', 'English', 'Multicast address range for delivery to multiple recipients.');
+INSERT INTO txt VALUES ('H5825', 'German',  'Reservierter Bereich für zukünftige oder experimentelle Nutzung.');
+INSERT INTO txt VALUES ('H5825', 'English', 'Reserved range for future or experimental use.');
+INSERT INTO txt VALUES ('H5826', 'German',  'Broadcast-Adresse für die Ansprache aller Hosts im lokalen Netzwerk.');
+INSERT INTO txt VALUES ('H5826', 'English', 'Broadcast address for addressing all hosts in the local network.');
+INSERT INTO txt VALUES ('H5827', 'German',  'Dokumentationsnetz für Beispiele in Handbüchern und Tutorials.');
+INSERT INTO txt VALUES ('H5827', 'English', 'Documentation network for examples in manuals and tutorials.');
+INSERT INTO txt VALUES ('H5828', 'German',  'Zweites Dokumentationsnetz für Lehr- und Beispielzwecke.');
+INSERT INTO txt VALUES ('H5828', 'English', 'Second documentation network for educational and example purposes.');
+INSERT INTO txt VALUES ('H5829', 'German',  'Drittes Dokumentationsnetz für Lehr- und Beispielzwecke.');
+INSERT INTO txt VALUES ('H5829', 'English', 'Third documentation network for educational and example purposes.');
+INSERT INTO txt VALUES ('H5830', 'German',  'Carrier-Grade NAT-Bereich für Provider-interne Adressierung.');
+INSERT INTO txt VALUES ('H5830', 'English', 'Carrier-grade NAT range for provider-internal addressing.');
+INSERT INTO txt VALUES ('H5831', 'German',  'Reservierter Adressbereich für spezielle Zwecke (IANA).');
+INSERT INTO txt VALUES ('H5831', 'English', 'Reserved address block for special purposes (IANA).');
+INSERT INTO txt VALUES ('H5832', 'German',  'Adressbereich für Netzwerkleistungs- und Benchmark-Tests.');
+INSERT INTO txt VALUES ('H5832', 'English', 'Address range for network performance and benchmark testing.');
+INSERT INTO txt VALUES ('H5833', 'German',  'Ehemaliger IPv6-Übergangsbereich (6to4-Relay), heute obsolet.');
+INSERT INTO txt VALUES ('H5833', 'English', 'Former IPv6 transition range (6to4 relay), now obsolete.');
+
 
 INSERT INTO txt VALUES ('H6001', 'German',  'Firewall Orchestrator verf&uuml;gt &uuml;ber zwei APIs:
     <ul>

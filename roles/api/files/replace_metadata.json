@@ -493,15 +493,17 @@
                   "permission": {
                     "check": {},
                     "columns": [
-                      "id",
-                      "owner_id",
-                      "super_network_zone_id",
-                      "description",
-                      "name",
-                      "criterion_id",
-                      "id_string",
                       "created",
-                      "removed"
+                      "criterion_id",
+                      "description",
+                      "id",
+                      "id_string",
+                      "is_auto_calculated_internet_zone",
+                      "is_auto_calculated_undefined_internal_zone",
+                      "name",
+                      "owner_id",
+                      "removed",
+                      "super_network_zone_id"
                     ]
                   }
                 }
@@ -547,15 +549,17 @@
                   "role": "middleware-server",
                   "permission": {
                     "columns": [
-                      "id",
-                      "owner_id",
-                      "super_network_zone_id",
-                      "description",
-                      "name",
-                      "criterion_id",
-                      "id_string",
                       "created",
-                      "removed"
+                      "criterion_id",
+                      "description",
+                      "id",
+                      "id_string",
+                      "is_auto_calculated_internet_zone",
+                      "is_auto_calculated_undefined_internal_zone",
+                      "name",
+                      "owner_id",
+                      "removed",
+                      "super_network_zone_id"
                     ],
                     "filter": {},
                     "allow_aggregations": true

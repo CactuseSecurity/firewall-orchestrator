@@ -112,6 +112,8 @@ namespace FWO.Middleware.Server
                 await DeactivateZone(existingZone);
             }
 
+            await NetworkZoneService.UpdateSpecialZones(MatrixId, apiConnection, globalConfig);
+
             // Reload existing zones with all Ids
             ExistingZones = await apiConnection.SendQueryAsync<List<ComplianceNetworkZone>>(ComplianceQueries.getNetworkZonesForMatrix, new { criterionId = MatrixId });
             foreach (var zone in ExistingZones)

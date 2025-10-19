@@ -351,7 +351,7 @@ def normalize_config(config_in: FwConfigManagerListController, importState: Impo
                         obj_names.append(obj_name)
                     continue
 
-                for pr in serviceObjectGroup.ports_eq[serviceObjectGroup.proto_mode]:
+                for pr in serviceObjectGroup.ports_eq.get(serviceObjectGroup.proto_mode, []):
                     obj_name = f"{pr}-{protocol}"
                     obj_names.append(obj_name)
                     if obj_name not in service_objects:
@@ -366,8 +366,8 @@ def normalize_config(config_in: FwConfigManagerListController, importState: Impo
                             svc_comment=serviceObjectGroup.description
                         )
                         service_objects[obj_name] = obj
-                        
-                for pr in serviceObjectGroup.ports_range[serviceObjectGroup.proto_mode]:
+
+                for pr in serviceObjectGroup.ports_range.get(serviceObjectGroup.proto_mode, []):
                     obj_name = f"{pr[0]}-{pr[1]}-{protocol}" if pr[0] != pr[1] else f"{pr[0]}-{protocol}"
                     obj_names.append(obj_name)
                     if obj_name not in service_objects:

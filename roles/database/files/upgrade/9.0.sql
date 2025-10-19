@@ -1073,6 +1073,8 @@ ALTER TABLE compliance.criterion ADD COLUMN IF NOT EXISTS "removed" TIMESTAMP WI
 ALTER TABLE compliance.criterion ADD COLUMN IF NOT EXISTS "import_source" TEXT;
 ALTER TABLE compliance.criterion ADD COLUMN IF NOT EXISTS "comment" TEXT;
 ALTER TABLE compliance.network_zone ALTER COLUMN "removed" DROP DEFAULT;
+ALTER TABLE compliance.network_zone ADD COLUMN IF NOT EXISTS "is_auto_calculated_internet_zone" BOOLEAN DEFAULT FALSE;
+ALTER TABLE compliance.network_zone ADD COLUMN IF NOT EXISTS "is_auto_calculated_undefined_internal_zone" BOOLEAN DEFAULT FALSE;
 ALTER TABLE compliance.network_zone_communication ALTER COLUMN "removed" DROP DEFAULT;
 ALTER TABLE compliance.ip_range ALTER COLUMN "removed" DROP DEFAULT;
 ALTER TABLE compliance.policy_criterion ALTER COLUMN "removed" DROP DEFAULT;
@@ -1278,6 +1280,35 @@ ON CONFLICT (config_key, config_user) DO NOTHING;
 
 INSERT INTO config (config_key, config_value, config_user) 
 VALUES ('complianceCheckSortMatrixByID', 'false', 0)
+ON CONFLICT (config_key, config_user) DO NOTHING;
+
+-- internal zone parameters
+
+INSERT INTO config (config_key, config_value, config_user) VALUES ('internalZoneRange_10_0_0_0_8', 'true', 0) ON CONFLICT (config_key, config_user) DO NOTHING;
+INSERT INTO config (config_key, config_value, config_user) VALUES ('internalZoneRange_172_16_0_0_12', 'true', 0) ON CONFLICT (config_key, config_user) DO NOTHING;
+INSERT INTO config (config_key, config_value, config_user) VALUES ('internalZoneRange_192_168_0_0_16', 'true', 0) ON CONFLICT (config_key, config_user) DO NOTHING;
+INSERT INTO config (config_key, config_value, config_user) VALUES ('internalZoneRange_0_0_0_0_8', 'true', 0) ON CONFLICT (config_key, config_user) DO NOTHING;
+INSERT INTO config (config_key, config_value, config_user) VALUES ('internalZoneRange_127_0_0_0_8', 'true', 0) ON CONFLICT (config_key, config_user) DO NOTHING;
+INSERT INTO config (config_key, config_value, config_user) VALUES ('internalZoneRange_169_254_0_0_16', 'true', 0) ON CONFLICT (config_key, config_user) DO NOTHING;
+INSERT INTO config (config_key, config_value, config_user) VALUES ('internalZoneRange_224_0_0_0_4', 'true', 0) ON CONFLICT (config_key, config_user) DO NOTHING;
+INSERT INTO config (config_key, config_value, config_user) VALUES ('internalZoneRange_240_0_0_0_4', 'true', 0) ON CONFLICT (config_key, config_user) DO NOTHING;
+INSERT INTO config (config_key, config_value, config_user) VALUES ('internalZoneRange_255_255_255_255_32', 'true', 0) ON CONFLICT (config_key, config_user) DO NOTHING;
+INSERT INTO config (config_key, config_value, config_user) VALUES ('internalZoneRange_192_0_2_0_24', 'true', 0) ON CONFLICT (config_key, config_user) DO NOTHING;
+INSERT INTO config (config_key, config_value, config_user) VALUES ('internalZoneRange_198_51_100_0_24', 'true', 0) ON CONFLICT (config_key, config_user) DO NOTHING;
+INSERT INTO config (config_key, config_value, config_user) VALUES ('internalZoneRange_203_0_113_0_24', 'true', 0) ON CONFLICT (config_key, config_user) DO NOTHING;
+INSERT INTO config (config_key, config_value, config_user) VALUES ('internalZoneRange_100_64_0_0_10', 'true', 0) ON CONFLICT (config_key, config_user) DO NOTHING;
+INSERT INTO config (config_key, config_value, config_user) VALUES ('internalZoneRange_192_0_0_0_24', 'true', 0) ON CONFLICT (config_key, config_user) DO NOTHING;
+INSERT INTO config (config_key, config_value, config_user) VALUES ('internalZoneRange_192_88_99_0_24', 'true', 0) ON CONFLICT (config_key, config_user) DO NOTHING;
+INSERT INTO config (config_key, config_value, config_user) VALUES ('internalZoneRange_198_18_0_0_15', 'true', 0) ON CONFLICT (config_key, config_user) DO NOTHING;
+
+-- auto calculate special zone parameters
+
+INSERT INTO config (config_key, config_value, config_user) 
+VALUES ('autoCalculateInternetZone', 'true', 0)
+ON CONFLICT (config_key, config_user) DO NOTHING;
+
+INSERT INTO config (config_key, config_value, config_user) 
+VALUES ('autoCalculateUndefinedInternalZone', 'true', 0)
 ON CONFLICT (config_key, config_user) DO NOTHING;
 
 -- adding labels (simple version without mapping tables and without foreign keys)

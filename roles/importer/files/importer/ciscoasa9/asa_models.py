@@ -32,18 +32,24 @@ class Interface(BaseModel):
 class AsaNetworkObject(BaseModel):
     name: str
     ip_address: str
+    ip_address_end: str | None = None # for range objects
     subnet_mask: str | None = None
     fqdn: str | None = None
     description: str | None = None
 
 class AsaNetworkObjectGroup(BaseModel):
     name: str
-    objects: List[str]
+    objects: List[AsaNetworkObjectGroupMember]
     description: str | None = None
+
+class AsaNetworkObjectGroupMember(BaseModel):
+    kind: Literal["object", "object-group", "host", "hostv6", "subnet", "subnetv6"]
+    value: str
+    mask: str | None = None
 
 class AsaServiceObject(BaseModel):
     name: str
-    protocol: Literal["tcp", "udp", "icmp", "ip", "tcp-udp"]
+    protocol: Literal["tcp", "udp", "ip", "tcp-udp", "icmp", "gre"]
     dst_port_eq: str | None = None
     dst_port_range: Tuple[int, int] | None = None
     description: str | None = None

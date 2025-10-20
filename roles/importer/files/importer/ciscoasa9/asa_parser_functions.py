@@ -3,9 +3,10 @@ import re
 from pathlib import Path
 from typing import Dict, List, Optional, Union, Literal, Tuple
 from ciscoasa9.asa_models import AccessGroupBinding, AccessList, AccessListEntry, AsaEnablePassword,\
-    AsaNetworkObject, AsaNetworkObjectGroup, AsaServiceModule, AsaServiceObject, AsaServiceObjectGroup,\
+    AsaNetworkObject, AsaNetworkObjectGroup, AsaNetworkObjectGroupMember, AsaServiceModule, AsaServiceObject, AsaServiceObjectGroup,\
     ClassMap, Config, DnsInspectParameters, EndpointKind, InspectionAction, Interface, MgmtAccessRule,\
     Names, NatRule, PolicyClass, PolicyMap, Route, ServicePolicyBinding, AsaProtocolGroup
+from fwo_log import getFwoLogger
 
 
 _ws = r"[ \t]+"
@@ -86,7 +87,7 @@ def _parse_interface_block(block: List[str]) -> Interface:
     mask = None
     desc = None
     additional = []
-    
+
     for b in block[1:]:
         s = b.strip()
         if s.startswith("nameif "):
@@ -109,11 +110,11 @@ def _parse_interface_block(block: List[str]) -> Interface:
         else:
             # keep less common interface settings
             additional.append(s)
-    
+
     # Defaults for missing bits
     nameif = nameif or if_name
     sec = sec if sec is not None else 0
-    
+
     return Interface(
         name=if_name, nameif=nameif, brigde_group=br, security_level=sec,
         ip_address=ip, subnet_mask=mask, additional_settings=additional, description=desc
@@ -124,24 +125,28 @@ def _parse_network_object_block(block: List[str]) -> Tuple[Optional[AsaNetworkOb
     """Parse an object network block. Returns (network_object, nat_rule)."""
     obj_name = block[0].split()[2]
     host = None
+    range = None
     subnet = None
     mask = None
     fqdn = None
     desc = None
     pending_nat = None
-    
+
     for b in block[1:]:
         s = b.strip()
         mhost = re.match(r"^host\s+(\S+)$", s, re.I)
         msub = re.match(r"^subnet\s+(\S+)\s+(\S+)$", s, re.I)
+        mrange = re.match(r"^range\s+(\S+)\s+(\S+)$", s, re.I)
         mfqdn = re.match(r"^fqdn\s+v4\s+(\S+)$", s, re.I)
         mdesc = re.match(description_re, s, re.I)
         mnat  = re.match(r"^nat\s+\(([^,]+),([^)]+)\)\s+(dynamic|static)\s+(\S+)$", s, re.I)
-        
+
         if mhost:
             host = mhost.group(1)
         elif msub:
             subnet, mask = msub.group(1), msub.group(2)
+        elif mrange:
+            range = mrange.group(1), mrange.group(2)
         elif mfqdn:
             fqdn = mfqdn.group(1)
         elif mdesc:
@@ -161,43 +166,58 @@ def _parse_network_object_block(block: List[str]) -> Tuple[Optional[AsaNetworkOb
                 object_name=obj_name, src_if=src_if, dst_if=dst_if,
                 nat_type=nat_type, translated_object=(None if tobj == "interface" else tobj)
             )
-    
+
     # Create network object if we have host/subnet/fqdn
     net_obj = None
-    if host or subnet or fqdn:
+    if host or subnet or range or fqdn:
         if host and not subnet:
-            net_obj = AsaNetworkObject(name=obj_name, ip_address=host, subnet_mask=None, fqdn=None, description=desc)
+            net_obj = AsaNetworkObject(name=obj_name, ip_address=host, ip_address_end=None, subnet_mask=None, fqdn=None, description=desc)
         elif subnet:
-            net_obj = AsaNetworkObject(name=obj_name, ip_address=subnet, subnet_mask=mask, fqdn=None, description=desc)
+            net_obj = AsaNetworkObject(name=obj_name, ip_address=subnet, ip_address_end=None, subnet_mask=mask, fqdn=None, description=desc)
+        elif range:
+            net_obj = AsaNetworkObject(name=obj_name, ip_address=range[0], ip_address_end=range[1], subnet_mask=None, fqdn=None, description=desc)
         elif fqdn:
-            net_obj = AsaNetworkObject(name=obj_name, ip_address="", subnet_mask=None, fqdn=fqdn, description=desc)
-    
+            net_obj = AsaNetworkObject(name=obj_name, ip_address="", ip_address_end=None, subnet_mask=None, fqdn=fqdn, description=desc)
+
     return net_obj, pending_nat
 
 def _parse_network_object_group_block(block: List[str]) -> AsaNetworkObjectGroup:
     """Parse an object-group network block."""
     grp_name = block[0].split()[2]
     desc = None
-    members: List[str] = []
+    members: List[AsaNetworkObjectGroupMember] = []
 
     for b in block[1:]:
         s = b.strip()
         mdesc = re.match(description_re, s, re.I)
         mobj  = re.match(r"^network-object\s+object\s+(\S+)$", s, re.I)
-        mhost = re.match(r"^network-object\s+host\s+(\S+)$", s, re.I)
+        mhost = re.match(r"^network-object\s+host\s+(\d+\.\d+\.\d+\.\d+)$", s, re.I)
+        mhostv6 = re.match(r"^network-object\s+host\s+(\S+)$", s, re.I)  # e.g. 2001:db8:abcd::1
         msub  = re.match(r"^network-object\s+(\d+\.\d+\.\d+\.\d+)\s+(\d+\.\d+\.\d+\.\d+)$", s, re.I)
+        msubv6 = re.match(r"^network-object\s+(\S+)$", s, re.I) # e.g. 2001:db8:abcd::/40 or 2001::/12
         mgroup = re.match(r"^group-object\s+(\S+)$", s, re.I)
 
         if mdesc:
             desc = mdesc.group(1)
         elif mobj:
-            members.append(mobj.group(1))
+            ref = mobj.group(1)
+            members.append(AsaNetworkObjectGroupMember(kind="object", value=ref))
         elif mhost:
-            members.append(f"{mhost.group(1)}")
+            ip = mhost.group(1)
+            members.append(AsaNetworkObjectGroupMember(kind="host", value=ip))
+        elif mhostv6:
+            ip = mhostv6.group(1)
+            members.append(AsaNetworkObjectGroupMember(kind="hostv6", value=ip))
         elif msub:
-            members.append(f"{msub.group(1)}/{msub.group(2)}")
+            ip = msub.group(1)
+            mask = msub.group(2)
+            members.append(AsaNetworkObjectGroupMember(kind="subnet", value=ip, mask=mask))
+        elif msubv6:
+            ip = msubv6.group(1)
+            members.append(AsaNetworkObjectGroupMember(kind="subnetv6", value=ip))
         elif mgroup:
-            members.append(f"{mgroup.group(1)}")
+            ref = mgroup.group(1)
+            members.append(AsaNetworkObjectGroupMember(kind="object-group", value=ref))
 
     return AsaNetworkObjectGroup(name=grp_name, objects=members, description=desc)
 
@@ -213,39 +233,32 @@ def _parse_service_object_block(block: List[str]) -> AsaServiceObject | None:
     for b in block[1:]:
         s = b.strip()
         # e.g., "service tcp destination eq 1234"
-        msvc = re.match(r"^service\s+(tcp|udp|icmp|ip)\s+(?:destination\s+)?(?:eq\s+(\S+)|range\s+(\d+)\s+(\d+))$", s, re.I)
+        meq = re.match(r"^service\s+(tcp|udp|ip)\s+destination\s+eq\s+(\S+)$", s, re.I)
+        mrange = re.match(r"^service\s+(tcp|udp|ip)\s+destination\s+range\s+(\d+)\s+(\d+)$", s, re.I)
         mdesc = re.match(description_re, s, re.I)
-        meq = re.match(r"^port-object\s+(tcp|udp|icmp|ip)?\s*eq\s+(\S+)$", s, re.I)  # Match port-object eq with optional proto
-        mrange = re.match(r"^port-object\s+(tcp|udp|icmp|ip)?\s*range\s+(\d+)\s+(\d+)$", s, re.I)  # Match port-object range with optional proto
+        micmp = re.match(r"^service\s+icmp.*$", s, re.I)
+        msvc = re.match(r"^service\s+(\S+)$", s, re.I)
 
-        if msvc:
-            protocol = msvc.group(1).lower()
-            if msvc.group(2):
-                eq = msvc.group(2)
-            elif msvc.group(3) and msvc.group(4):
-                prange = (int(msvc.group(3)), int(msvc.group(4)))
+        if meq:
+            protocol = meq.group(1).lower()
+            eq = meq.group(2)
+        elif mrange:
+            protocol = mrange.group(1).lower()
+            prange = (int(mrange.group(2)), int(mrange.group(3)))
         elif mdesc:
             desc = mdesc.group(1)
-        elif meq:
-            # If protocol is specified in port-object, use it
-            proto_mode = meq.group(1).lower() if meq.group(1) else protocol
-            eq = (proto_mode, meq.group(2))
-        elif mrange:
-            proto_mode = mrange.group(1).lower() if mrange.group(1) else protocol
-            prange = (proto_mode, (int(mrange.group(2)), int(mrange.group(3))))
+        elif micmp:
+            protocol = "icmp"
+            #TODO: handle ICMP type/code if needed
+        elif msvc:
+            protocol = msvc.group(1).lower()
 
-    if protocol is None or protocol not in ("tcp", "udp", "icmp", "ip"):
-        return None  # skip unsupported service objects
+    if protocol is None or protocol not in ("tcp", "udp", "ip", "icmp", "gre"):
+        logger = getFwoLogger()
+        logger.warning(f"Unsupported or missing protocol {protocol} in service object {name}")
+        return None  # unsupported protocol
 
-    # eq and prange can be either str or tuple, normalize for AsaServiceObject
-    dst_port_eq = eq[1] if isinstance(eq, tuple) else eq
-    dst_port_range = prange[1] if isinstance(prange, tuple) else prange
-
-    # Ensure dst_port_range is a tuple of two ints or None
-    if isinstance(dst_port_range, int):
-        dst_port_range = None
-
-    return AsaServiceObject(name=name, protocol=protocol, dst_port_eq=dst_port_eq, dst_port_range=dst_port_range, description=desc)
+    return AsaServiceObject(name=name, protocol=protocol, dst_port_eq=eq, dst_port_range=prange, description=desc)
 
 
 def _convert_ports_to_dicts(
@@ -267,7 +280,7 @@ def _convert_ports_to_dicts(
         if proto not in ports_range_dict:
             ports_range_dict[proto] = []
         ports_range_dict[proto].append(prange)
-    
+
     return ports_eq_dict, ports_range_dict
 
 
@@ -324,13 +337,13 @@ def _parse_class_map_block(block: List[str]) -> ClassMap:
     """Parse a class-map block."""
     name = block[0].split()[1]
     matches: List[str] = []
-    
+
     for b in block[1:]:
         s = b.strip()
         mm = re.match(r"^match\s+(.+)$", s, re.I)
         if mm:
             matches.append(mm.group(1))
-    
+
     return ClassMap(name=name, matches=matches)
 
 
@@ -346,7 +359,7 @@ def _parse_dns_parameters_block(block: List[str], start_idx: int) -> Tuple[DnsIn
         m1 = re.match(r"^message-length\s+maximum\s+client\s+(auto|\d+)$", t, re.I)
         m2 = re.match(r"^message-length\s+maximum\s+(\d+)$", t, re.I)
         m3 = re.match(r"^no\s+tcp-inspection$", t, re.I)
-        
+
         if m1:
             v = m1.group(1).lower()
             params.message_length_max_client = "auto" if v == "auto" else int(v)
@@ -362,7 +375,7 @@ def _parse_dns_inspect_policy_map_block(block: List[str], pm_name: str) -> Polic
     """Parse a policy-map type inspect dns block."""
     pm = PolicyMap(name=pm_name, type_str="inspect dns")
     params = DnsInspectParameters()
-    
+
     j = 1
     while j < len(block):
         s = block[j].strip()
@@ -370,7 +383,7 @@ def _parse_dns_inspect_policy_map_block(block: List[str], pm_name: str) -> Polic
             params, j = _parse_dns_parameters_block(block, j)
             continue
         j += 1
-    
+
     pm.parameters_dns = params
     return pm
 
@@ -378,7 +391,7 @@ def _parse_dns_inspect_policy_map_block(block: List[str], pm_name: str) -> Polic
 def _parse_policy_map_block(block: List[str], pm_name: str) -> PolicyMap:
     """Parse a regular policy-map block."""
     pm = PolicyMap(name=pm_name)
-    
+
     # find "class <NAME>" blocks within
     idx = 1
     while idx < len(block):
@@ -404,7 +417,7 @@ def _parse_policy_map_block(block: List[str], pm_name: str) -> PolicyMap:
             pm.classes.append(PolicyClass(class_name=class_name, inspections=inspections))
         else:
             idx += 1
-    
+
     return pm
 
 def _parse_access_list_entry(line: str, protocol_groups: List[AsaProtocolGroup], svc_objects: List[AsaServiceObject], svc_obj_groups: List[AsaServiceObjectGroup]) -> AccessListEntry:

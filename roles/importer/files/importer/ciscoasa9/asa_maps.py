@@ -377,8 +377,24 @@ name_to_port = {
 }
 
 protocol_map = {
-    "tcp": 6,
-    "udp": 17,
-    "icmp": 1,
-    "ip": 0
+  "ah": 51,
+  "eigrp": 88,
+  "esp": 50,
+  "gre": 47,
+  "icmp": 1,
+  "icmp6": 58,
+  "igmp": 2,
+  "igrp": 9,
+  "ip": 0,
+  "ipinip": 4,
+  "ipsec": 50,
+  "nos": 94,
+  "ospf": 89,
+  "pcp": 108,
+  "pim": 103,
+  "pptp": 47,
+  "sctp": 132,
+  "snp": 77,
+  "tcp": 6,
+  "udp": 17
 }

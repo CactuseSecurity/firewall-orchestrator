@@ -157,7 +157,6 @@ def _import_management(service_provider, importState: ImportStateController, con
     if config_changed_since_last_import or importState.ForceImport:
         FwConfigImportCheckConsistency(importState, config_normalized).checkConfigConsistency(config_normalized)
         config_importer.import_management_set(importState, service_provider, config_normalized)
-        importState.api_call.update_hit_counter(importState, config_normalized)
 
     # delete data that has passed the retention time
     # TODO: replace by deletion of old data with removed date > retention?

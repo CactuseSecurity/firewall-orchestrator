@@ -98,7 +98,9 @@ class FwConfigImportRule():
             for ruleUid in ruleUidsInBoth[rulebaseId]:
                 self.preserve_rule_num_numeric(currentRulebase, previousRulebase, ruleUid)
                 self.collect_changed_rules(ruleUid, currentRulebase, previousRulebase, rulebaseId, changedRuleUids)
-                self.collect_last_hit_changes(ruleUid, currentRulebase, previousRulebase, new_hit_information)
+
+        # collect hit information for all rules with hit data
+        self.collect_all_hit_information(prevConfig, new_hit_information, ruleUidsInBoth)
 
         # add moved rules that are not in changed rules (e.g. move across rulebases)
         self._collect_uncaught_moves(movedRuleUids, changedRuleUids)
@@ -108,7 +110,7 @@ class FwConfigImportRule():
 
         # update rule_metadata before adding rules
         num_added_metadata_rules, new_rule_metadata_ids = self.addNewRuleMetadata(newRulebases)
-        _, _ = self.update_rule_metadata_last_hit(new_hit_information)
+        _ = self.update_rule_metadata_last_hit(new_hit_information)
 
         # # now update the database with all rule diffs
         self.uid2id_mapper.update_rule_mapping()
@@ -159,10 +161,88 @@ class FwConfigImportRule():
                         changedRuleUids[rulebaseId] = []
                     changedRuleUids[rulebaseId].append(ruleUid)
 
-    def collect_last_hit_changes(self, rule_uid, current_rulebase, previous_rulebase, new_hit_information):
-        if self.last_hit_changed(current_rulebase.Rules[rule_uid], previous_rulebase.Rules[rule_uid]):
-            self.append_rule_metadata_last_hit(new_hit_information, current_rulebase.Rules[rule_uid], self.import_details.MgmDetails.CurrentMgmId)
+    def collect_all_hit_information(self, prev_config: FwConfigNormalized, new_hit_information, rules_in_both_configs: dict|None = None):
+        """
+        Consolidated hit information collection for ALL rules that need hit updates.
 
+        Args:
+            prev_config: Previous configuration for comparison
+            new_hit_information: List to append hit update information to
+            rules_in_both_configs: Dict of rulebase_id -> list of rule_uids that exist in both configs
+        """
+        processed_rules = set()
+
+        # First, handle rules that exist in both configs (for changed hit info)
+        if rules_in_both_configs:
+            for rulebase_id, rule_uids in rules_in_both_configs.items():
+                current_rulebase = self.normalized_config.getRulebase(rulebase_id)
+                previous_rulebase = prev_config.getRulebase(rulebase_id)
+
+                if current_rulebase and previous_rulebase:
+                    for rule_uid in rule_uids:
+                        current_rule = current_rulebase.Rules[rule_uid]
+                        previous_rule = previous_rulebase.Rules[rule_uid]
+
+                        # Check if hit information changed
+                        if (current_rule.last_hit != previous_rule.last_hit and 
+                            current_rule.last_hit is not None):
+                            self._add_hit_update(new_hit_information, current_rule)
+                            processed_rules.add(rule_uid)
+
+        # Then, handle ALL other rules with hit information (new rules, etc.)
+        for rulebase in self.normalized_config.rulebases:
+            for rule_uid, rule in rulebase.Rules.items():
+                if (rule.last_hit is not None and 
+                    rule_uid not in processed_rules):
+
+                    # Check if this is a new rule or hit info differs from previous
+                    should_update = True
+                    prev_rulebase = prev_config.getRulebase(rulebase.uid)
+
+                    if (prev_rulebase and 
+                        rule_uid in prev_rulebase.Rules and 
+                        prev_rulebase.Rules[rule_uid].last_hit == rule.last_hit):
+                        should_update = False  # Hit info unchanged
+
+                    if should_update:
+                        self._add_hit_update(new_hit_information, rule)
+                        processed_rules.add(rule_uid)
+
+    def _add_hit_update(self, new_hit_information: list[dict], rule: RuleNormalized):
+        """Add a hit information update entry for a rule."""
+        new_hit_information.append({ 
+            "where": { "rule_uid": { "_eq": rule.rule_uid } },
+            "_set": { "rule_last_hit": rule.last_hit }
+        })
+
+    def update_rule_metadata_last_hit(self, new_hit_information: list[dict]) -> int:
+        """
+        Updates rule_metadata.rule_last_hit for all rules with hit information changes.
+        This method executes the actual database updates for hit information.
+
+        Args:
+            new_hit_information (list[dict]): The hit information to update.
+
+        Returns:
+            int: Number of changes made.
+        """
+        logger = getFwoLogger()
+        changes = 0
+
+        if len(new_hit_information) > 0:
+            update_last_hit_mutation = FwoApi.get_graphql_code([fwo_const.graphql_query_path + "rule_metadata/updateLastHits.graphql"])
+            query_variables = { 'hit_info': new_hit_information  }
+
+            try:
+                import_result = self.import_details.api_call.call(update_last_hit_mutation, query_variables=query_variables, debug_level=self.import_details.DebugLevel, analyze_payload=True)
+                if 'errors' in import_result:
+                    logger.exception(f"fwo_api:importNwObject - error in addNewRuleMetadata: {str(import_result['errors'])}")
+                    return 0
+                    # do not count last hit changes as changes here
+            except Exception:
+                raise FwoApiWriteError(f"failed to update RuleMetadata last hit info: {str(traceback.format_exc())}")
+
+        return changes
 
     @staticmethod
     def collect_changed_rules(rule_uid, current_rulebase, previous_rulebase, rulebase_id, changed_rule_uids):
@@ -173,12 +253,7 @@ class FwConfigImportRule():
     @staticmethod
     def preserve_rule_num_numeric(current_rulebase, previous_rulebase, rule_uid):
         if current_rulebase.Rules[rule_uid].rule_num_numeric == 0:
-            current_rulebase.Rules[rule_uid].rule_num_numeric = previous_rulebase.Rules[rule_uid].rule_num_numeric 
-
-
-    @staticmethod
-    def last_hit_changed(current_rule, previous_rule):
-        return current_rule.last_hit != previous_rule.last_hit
+            current_rulebase.Rules[rule_uid].rule_num_numeric = previous_rulebase.Rules[rule_uid].rule_num_numeric
     
 
     def get_members(self, type, refs) -> list[str]:
@@ -554,40 +629,6 @@ class FwConfigImportRule():
                     newRuleMetaDataIds.append(rule_metadata_id)
         
         return changes, newRuleIds
-
-
-    # collect new last hit information
-    @staticmethod
-    def append_rule_metadata_last_hit (new_hit_information: list[dict], rule: RuleNormalized, mgm_id: int):
-        if new_hit_information is None:
-            new_hit_information = []        
-        new_hit_information.append({ 
-            "where": { "rule_uid": { "_eq": rule.rule_uid } },
-            "_set": { "rule_last_hit": rule.last_hit }
-        })
-
-
-    # adds new rule_metadatum to the database
-    def update_rule_metadata_last_hit (self, new_hit_information: list[dict]):
-        logger = getFwoLogger()
-        errors = 0
-        changes = 0
-
-        if len(new_hit_information) > 0:
-            update_last_hit_mutation = FwoApi.get_graphql_code([fwo_const.graphql_query_path + "rule_metadata/updateLastHits.graphql"])
-            query_variables = { 'hit_info': new_hit_information  }
-            
-            try:
-                import_result = self.import_details.api_call.call(update_last_hit_mutation, query_variables=query_variables, debug_level=self.import_details.DebugLevel, analyze_payload=True)
-                if 'errors' in import_result:
-                    logger.exception(f"fwo_api:importNwObject - error in addNewRuleMetadata: {str(import_result['errors'])}")
-                    return 1, 0
-                    # do not count last hit changes as changes here
-            except Exception:
-                errors = 1
-                raise FwoApiWriteError(f"failed to update RuleMetadata last hit info: {str(traceback.format_exc())}")
-        
-        return errors, changes
 
 
     def addRulebasesWithoutRules(self, newRules: list[Rulebase]):
@@ -1139,9 +1180,6 @@ class FwConfigImportRule():
                 rule_installon=rule.rule_installon,
                 last_change_admin=None #TODO: get id from rule.last_change_admin
             ).model_dump()
-
-            if listOfEnforcedGwIds is not None and len(listOfEnforcedGwIds) > 0:    # leave out field, if no resolvable gateways are found
-                rule_for_import.update({'rule_installon': rule.rule_installon }) #fwo_const.list_delimiter.join(listOfEnforcedGwIds) })
 
             prepared_rules.append(rule_for_import)
         return { "data": prepared_rules }

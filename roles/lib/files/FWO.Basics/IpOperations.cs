@@ -141,8 +141,8 @@ namespace FWO.Basics
                 }
                 else if (typeof(T) == typeof((IPAddress, IPAddress)))
                 {
-                    Tuple<IPAddress, IPAddress>? ipTuple = new(ipAdressStart!, ipAdressEnd!);
-                    ipResult = (T)Convert.ChangeType(ipTuple, typeof(T));
+                    (IPAddress, IPAddress) ipTuple = (ipAdressStart!, ipAdressEnd!);
+                    ipResult = (T) (object) ipTuple;
                     return true;
                 }
 

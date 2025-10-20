@@ -212,7 +212,8 @@ def _parse_service_object_block(block: List[str]) -> AsaServiceObject | None:
 
     for b in block[1:]:
         s = b.strip()
-        msvc = re.match(r"^service\s+(tcp|udp|icmp|ip)\s+(?:destination\s+)?(?:eq\s+(\S+)|range\s+(\d+)\s+(\d+))$", s, re.I)
+        # e.g., "service tcp destination eq 1234"
+        msvc = re.match(r"^service\s+(tcp|udp|icmp|ip)(?:\s+destination)?\s+(?:eq\s+(\S+)|range\s+(\d+)\s+(\d+))$", s, re.I)
         mdesc = re.match(description_re, s, re.I)
         meq = re.match(r"^port-object\s+(tcp|udp|icmp|ip)?\s*eq\s+(\S+)$", s, re.I)  # Match port-object eq with optional proto
         mrange = re.match(r"^port-object\s+(tcp|udp|icmp|ip)?\s*range\s+(\d+)\s+(\d+)$", s, re.I)  # Match port-object range with optional proto
@@ -234,7 +235,6 @@ def _parse_service_object_block(block: List[str]) -> AsaServiceObject | None:
             prange = (proto_mode, (int(mrange.group(2)), int(mrange.group(3))))
 
     if protocol is None or protocol not in ("tcp", "udp", "icmp", "ip"):
-        # raise ValueError(f"Unsupported or missing protocol in service object: {block[0]}")
         return None  # skip unsupported service objects
 
     # eq and prange can be either str or tuple, normalize for AsaServiceObject
@@ -246,6 +246,29 @@ def _parse_service_object_block(block: List[str]) -> AsaServiceObject | None:
         dst_port_range = None
 
     return AsaServiceObject(name=name, protocol=protocol, dst_port_eq=dst_port_eq, dst_port_range=dst_port_range, description=desc)
+
+
+def _convert_ports_to_dicts(
+    ports_eq: List[Tuple[str, str]], 
+    ports_range: List[Tuple[str, Tuple[int, int]]]
+) -> Tuple[Dict[str, List[str]], Dict[str, List[Tuple[int, int]]]]:
+    """
+    Convert port lists to dictionaries grouped by protocol.
+    Returns (ports_eq_dict, ports_range_dict).
+    """
+    ports_eq_dict: Dict[str, List[str]] = {}
+    for proto, port in ports_eq:
+        if proto not in ports_eq_dict:
+            ports_eq_dict[proto] = []
+        ports_eq_dict[proto].append(port)
+
+    ports_range_dict: Dict[str, List[Tuple[int, int]]] = {}
+    for proto, prange in ports_range:
+        if proto not in ports_range_dict:
+            ports_range_dict[proto] = []
+        ports_range_dict[proto].append(prange)
+    
+    return ports_eq_dict, ports_range_dict
 
 
 def _parse_service_object_group_block(block: List[str]) -> AsaServiceObjectGroup:
@@ -283,20 +306,8 @@ def _parse_service_object_group_block(block: List[str]) -> AsaServiceObjectGroup
         elif mproto and len(mproto.groups()) == 1:
             protocols.append(mproto.group(1).lower())
 
-            
-    # Convert ports_eq from List[Tuple[str, str]] to Dict[str, List[str]]
-    ports_eq_dict: Dict[str, List[str]] = {}
-    for proto, port in ports_eq:
-        if proto not in ports_eq_dict:
-            ports_eq_dict[proto] = []
-        ports_eq_dict[proto].append(port)
-
-    # Convert ports_range from List[Tuple[str, Tuple[int, int]]] to Dict[str, List[Tuple[int, int]]]
-    ports_range_dict: Dict[str, List[Tuple[int, int]]] = {}
-    for proto, prange in ports_range:
-        if proto not in ports_range_dict:
-            ports_range_dict[proto] = []
-        ports_range_dict[proto].append(prange)
+    # Convert port lists to dictionaries using helper function
+    ports_eq_dict, ports_range_dict = _convert_ports_to_dicts(ports_eq, ports_range)
 
     return AsaServiceObjectGroup(
         name=name,

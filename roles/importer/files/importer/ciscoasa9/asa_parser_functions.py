@@ -334,6 +334,30 @@ def _parse_class_map_block(block: List[str]) -> ClassMap:
     return ClassMap(name=name, matches=matches)
 
 
+def _parse_dns_parameters_block(block: List[str], start_idx: int) -> Tuple[DnsInspectParameters, int]:
+    """
+    Parse a 'parameters' sub-block within a DNS inspect policy-map.
+    Returns (DnsInspectParameters, next_index).
+    """
+    params = DnsInspectParameters()
+    k = start_idx + 1
+    while k < len(block) and block[k].startswith("  "):  # double indent
+        t = block[k].strip()
+        m1 = re.match(r"^message-length\s+maximum\s+client\s+(auto|\d+)$", t, re.I)
+        m2 = re.match(r"^message-length\s+maximum\s+(\d+)$", t, re.I)
+        m3 = re.match(r"^no\s+tcp-inspection$", t, re.I)
+        
+        if m1:
+            v = m1.group(1).lower()
+            params.message_length_max_client = "auto" if v == "auto" else int(v)
+        elif m2:
+            params.message_length_max = int(m2.group(1))
+        elif m3:
+            params.tcp_inspection = False
+        k += 1
+    return params, k
+
+
 def _parse_dns_inspect_policy_map_block(block: List[str], pm_name: str) -> PolicyMap:
     """Parse a policy-map type inspect dns block."""
     pm = PolicyMap(name=pm_name, type_str="inspect dns")
@@ -343,23 +367,7 @@ def _parse_dns_inspect_policy_map_block(block: List[str], pm_name: str) -> Polic
     while j < len(block):
         s = block[j].strip()
         if s == "parameters":
-            # consume sub-block of parameters (indented further)
-            k = j + 1
-            while k < len(block) and block[k].startswith("  "):  # double indent
-                t = block[k].strip()
-                m1 = re.match(r"^message-length\s+maximum\s+client\s+(auto|\d+)$", t, re.I)
-                m2 = re.match(r"^message-length\s+maximum\s+(\d+)$", t, re.I)
-                m3 = re.match(r"^no\s+tcp-inspection$", t, re.I)
-                
-                if m1:
-                    v = m1.group(1).lower()
-                    params.message_length_max_client = "auto" if v == "auto" else int(v)
-                elif m2:
-                    params.message_length_max = int(m2.group(1))
-                elif m3:
-                    params.tcp_inspection = False
-                k += 1
-            j = k
+            params, j = _parse_dns_parameters_block(block, j)
             continue
         j += 1
     

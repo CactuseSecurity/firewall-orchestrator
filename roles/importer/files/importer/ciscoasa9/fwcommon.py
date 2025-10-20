@@ -50,6 +50,7 @@ from models.rulebase_link import RulebaseLinkUidBased
 from fwo_base import write_native_config_to_file
 from ciscoasa9.asa_normalize import (
     create_objects_for_access_lists,
+    create_protocol_any_service_objects,
     normalize_network_objects,
     normalize_service_objects,
     normalize_service_object_groups
@@ -195,6 +196,7 @@ def normalize_config(config_in: FwConfigManagerListController, importState: Impo
     # Step 2: Normalize service objects (service objects with ports/protocols)
     logger.debug("Normalizing service objects...")
     service_objects = normalize_service_objects(native_config)
+    service_objects = create_protocol_any_service_objects(service_objects)
 
     # Step 3: Normalize service object groups (including mixed protocol groups)
     logger.debug("Normalizing service object groups...")

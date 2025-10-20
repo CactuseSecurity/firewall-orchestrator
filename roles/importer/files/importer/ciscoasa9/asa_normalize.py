@@ -168,7 +168,11 @@ def normalize_service_objects(native_config: Config) -> dict:
             )
             service_objects[svc.name] = obj
 
-    # Create default 'any' service objects for common protocols
+    return service_objects
+
+
+def create_protocol_any_service_objects(service_objects: dict) -> dict:
+        # Create default 'any' service objects for common protocols
     for proto in ("tcp", "udp", "icmp", "ip"):
         obj_name = f"any-{proto}"
         obj = ServiceObject(
@@ -184,6 +188,149 @@ def normalize_service_objects(native_config: Config) -> dict:
         service_objects[obj_name] = obj
 
     return service_objects
+
+
+def _create_service_for_port(port: str, proto: str, description: str, service_objects: dict) -> str:
+    """Create a service object for a single port and protocol."""
+    obj_name = f"{port}-{proto}"
+    if obj_name not in service_objects:
+        obj = ServiceObject(
+            svc_uid=obj_name,
+            svc_name=obj_name,
+            svc_port=int(port) if str(port).isdigit() else name_to_port[port]["port"],
+            svc_port_end=int(port) if str(port).isdigit() else name_to_port[port]["port"],
+            svc_color=fwo_const.defaultColor,
+            svc_typ="simple",
+            ip_proto=protocol_map.get(proto, 0),
+            svc_comment=description
+        )
+        service_objects[obj_name] = obj
+    return obj_name
+
+
+def _create_service_for_port_range(port_range: tuple, proto: str, description: str, service_objects: dict) -> str:
+    """Create a service object for a port range and protocol."""
+    obj_name = f"{port_range[0]}-{port_range[1]}-{proto}" if port_range[0] != port_range[1] else f"{port_range[0]}-{proto}"
+    if obj_name not in service_objects:
+        obj = ServiceObject(
+            svc_uid=obj_name,
+            svc_name=obj_name,
+            svc_port=int(port_range[0]),
+            svc_port_end=int(port_range[1]),
+            svc_color=fwo_const.defaultColor,
+            svc_typ="simple",
+            ip_proto=protocol_map.get(proto, 0),
+            svc_comment=description
+        )
+        service_objects[obj_name] = obj
+    return obj_name
+
+
+def _process_mixed_protocol_eq_ports(group, service_objects: dict) -> list:
+    """Process equal ports for mixed protocol groups."""
+    obj_names = []
+    if hasattr(group, "ports_eq"):
+        for protos, eq_ports in group.ports_eq.items():
+            for proto in protos.split("-"):
+                for port in eq_ports:
+                    obj_name = _create_service_for_port(port, proto, group.description, service_objects)
+                    obj_names.append(obj_name)
+    return obj_names
+
+
+def _process_mixed_protocol_range_ports(group, service_objects: dict) -> list:
+    """Process port ranges for mixed protocol groups."""
+    obj_names = []
+    if hasattr(group, "ports_range"):
+        for proto, ranges in group.ports_range.items():
+            for pr in ranges:
+                obj_name = _create_service_for_port_range(pr, proto, group.description, service_objects)
+                obj_names.append(obj_name)
+    return obj_names
+
+
+def _process_mixed_protocol_group(group, service_objects: dict) -> list:
+    """Process a mixed protocol service group."""
+    obj_names = []
+    
+    # Process ports_eq (single port values)
+    obj_names.extend(_process_mixed_protocol_eq_ports(group, service_objects))
+    
+    # Process ports_range (port ranges)
+    obj_names.extend(_process_mixed_protocol_range_ports(group, service_objects))
+    
+    # Process nested references
+    obj_names.extend(getattr(group, "nested_refs", []))
+    
+    return obj_names
+
+
+def _process_service_protocol_group(group, protocol: str, service_objects: dict) -> list:
+    """Process a service group that references other services."""
+    obj_names = []
+    
+    # Add nested service references
+    obj_names.extend(group.nested_refs)
+    
+    # Add any-protocol references
+    for pr in group.protocols:
+        obj_name = f"any-{pr}"
+        obj_names.append(obj_name)
+    
+    return obj_names
+
+
+def _process_single_protocol_eq_ports(group, protocol: str, service_objects: dict) -> list:
+    """Process equal ports for single protocol groups."""
+    obj_names = []
+    for pr in group.ports_eq.get(group.proto_mode, []):
+        obj_name = _create_service_for_port(pr, protocol, group.description, service_objects)
+        obj_names.append(obj_name)
+    return obj_names
+
+
+def _process_single_protocol_range_ports(group, protocol: str, service_objects: dict) -> list:
+    """Process port ranges for single protocol groups."""
+    obj_names = []
+    for pr in group.ports_range.get(group.proto_mode, []):
+        obj_name = _create_service_for_port_range(pr, protocol, group.description, service_objects)
+        obj_names.append(obj_name)
+    return obj_names
+
+
+def _process_single_protocol_group(group, service_objects: dict) -> list:
+    """Process a single-protocol service group."""
+    obj_names = []
+    
+    for protocol in group.proto_mode.split("-"):
+        if protocol not in protocol_map and protocol != "service":
+            raise ValueError(f"Unknown protocol in service object group: {protocol}")
+
+        if protocol == "service":
+            obj_names.extend(_process_service_protocol_group(group, protocol, service_objects))
+            continue
+
+        # Process single port values
+        obj_names.extend(_process_single_protocol_eq_ports(group, protocol, service_objects))
+        
+        # Process port ranges
+        obj_names.extend(_process_single_protocol_range_ports(group, protocol, service_objects))
+    
+    return obj_names
+
+
+def _create_service_group_object(group_name: str, obj_names: list, description: str|None, service_objects: dict):
+    """Create the final service group object."""
+    obj = ServiceObject(
+        svc_uid=group_name,
+        svc_name=group_name,
+        svc_typ="group",
+        svc_member_names=fwo_const.list_delimiter.join(obj_names),
+        svc_member_refs=fwo_const.list_delimiter.join(obj_names),
+        svc_color=fwo_const.defaultColor,
+        svc_comment=description
+    )
+    service_objects[group_name] = obj
 
 
 def normalize_service_object_groups(native_config: Config, service_objects: dict) -> dict:
@@ -202,114 +349,12 @@ def normalize_service_object_groups(native_config: Config, service_objects: dict
         Updated dictionary of service objects including groups.
     """
     for group in native_config.service_object_groups:
-        obj_names = []
-
         if group.proto_mode == "mixed":
-            # Handle mixed protocol groups (containing multiple protocols)
-            
-            # Process ports_eq (single port values)
-            if hasattr(group, "ports_eq"):
-                for protos, eq_ports in group.ports_eq.items():
-                    for proto in protos.split("-"):
-                        for port in eq_ports:
-                            obj_name = f"{port}-{proto}"
-                            obj_names.append(obj_name)
-                            if obj_name not in service_objects:
-                                obj = ServiceObject(
-                                    svc_uid=obj_name,
-                                    svc_name=obj_name,
-                                    svc_port=int(port) if str(port).isdigit() else name_to_port[port]["port"],
-                                    svc_port_end=int(port) if str(port).isdigit() else name_to_port[port]["port"],
-                                    svc_color=fwo_const.defaultColor,
-                                    svc_typ="simple",
-                                    ip_proto=protocol_map.get(proto, 0),
-                                    svc_comment=group.description
-                                )
-                                service_objects[obj_name] = obj
-
-            # Process ports_range (port ranges)
-            if hasattr(group, "ports_range"):
-                for proto, ranges in group.ports_range.items():
-                    for pr in ranges:
-                        obj_name = f"{pr[0]}-{pr[1]}-{proto}" if pr[0] != pr[1] else f"{pr[0]}-{proto}"
-                        obj_names.append(obj_name)
-                        if obj_name not in service_objects:
-                            obj = ServiceObject(
-                                svc_uid=obj_name,
-                                svc_name=obj_name,
-                                svc_port=int(pr[0]),
-                                svc_port_end=int(pr[1]),
-                                svc_color=fwo_const.defaultColor,
-                                svc_typ="simple",
-                                ip_proto=protocol_map.get(proto, 0),
-                                svc_comment=group.description
-                            )
-                            service_objects[obj_name] = obj
-
-            # Process nested references (references to other service objects/groups)
-            for obj in getattr(group, "nested_refs", []):
-                obj_names.append(obj)
-
+            obj_names = _process_mixed_protocol_group(group, service_objects)
         else:
-            # Handle single-protocol or service groups
-            for protocol in group.proto_mode.split("-"):
-                if protocol not in protocol_map and protocol != "service":
-                    raise ValueError(f"Unknown protocol in service object group: {protocol}")
-
-                if protocol == "service":
-                    # Service group referencing other services
-                    for obj in group.nested_refs:
-                        obj_names.append(obj)
-                    for pr in group.protocols:
-                        obj_name = f"any-{pr}"
-                        obj_names.append(obj_name)
-                    continue
-
-                # Process single port values
-                for pr in group.ports_eq.get(group.proto_mode, []):
-                    obj_name = f"{pr}-{protocol}"
-                    obj_names.append(obj_name)
-                    if obj_name not in service_objects:
-                        obj = ServiceObject(
-                            svc_uid=obj_name,
-                            svc_name=obj_name,
-                            svc_port=int(pr) if str(pr).isdigit() else name_to_port[pr]["port"],
-                            svc_port_end=int(pr) if str(pr).isdigit() else name_to_port[pr]["port"],
-                            svc_color=fwo_const.defaultColor,
-                            svc_typ="simple",
-                            ip_proto=protocol_map.get(protocol, 0),
-                            svc_comment=group.description
-                        )
-                        service_objects[obj_name] = obj
-
-                # Process port ranges
-                for pr in group.ports_range.get(group.proto_mode, []):
-                    obj_name = f"{pr[0]}-{pr[1]}-{protocol}" if pr[0] != pr[1] else f"{pr[0]}-{protocol}"
-                    obj_names.append(obj_name)
-                    if obj_name not in service_objects:
-                        obj = ServiceObject(
-                            svc_uid=obj_name,
-                            svc_name=obj_name,
-                            svc_port=int(pr[0]),
-                            svc_port_end=int(pr[1]),
-                            svc_color=fwo_const.defaultColor,
-                            svc_typ="simple",
-                            ip_proto=protocol_map.get(protocol, 0),
-                            svc_comment=group.description
-                        )
-                        service_objects[obj_name] = obj
-
-        # Create the service group object
-        obj = ServiceObject(
-            svc_uid=group.name,
-            svc_name=group.name,
-            svc_typ="group",
-            svc_member_names=fwo_const.list_delimiter.join(obj_names),
-            svc_member_refs=fwo_const.list_delimiter.join(obj_names),
-            svc_color=fwo_const.defaultColor,
-            svc_comment=group.description
-        )
-        service_objects[group.name] = obj
+            obj_names = _process_single_protocol_group(group, service_objects)
+        
+        _create_service_group_object(group.name, obj_names, group.description, service_objects)
 
     return service_objects
 

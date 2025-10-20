@@ -23,7 +23,8 @@
     </div>
 </div>
 <hr />
-<button type="button" class="btn btn-sm btn-primary" @onclick="async () => { await ChangeLanguage(selectedLanguage); StateHasChanged(); }" @onclick:preventDefault>@(userConfig.GetText("apply_changes"))</button>
+<button type="button" class="btn btn-sm btn-primary" @onclick="async () => { await ChangeLanguage(selectedLanguage); StateHasChanged(); }" @onclick:preventDefault>
+    @(DisplayService.DisplayButton(userConfig, "apply_changes", Icons.Save))</button>
 
 @code
 {

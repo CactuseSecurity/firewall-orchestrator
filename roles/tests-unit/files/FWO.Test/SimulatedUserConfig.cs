@@ -64,7 +64,7 @@ namespace FWO.Test
             {"network_services","Network Services"},
             {"protocol","Protocol"},
             {"port","Port"},
-            {"next_recert","Next Recertification Date"},
+            {"next_recert_date","Next Recertification Date"},
             {"owner","Owner"},
             {"ip_matches","IP address match"},
             {"last_hit","Last Hit"},
@@ -145,6 +145,7 @@ namespace FWO.Test
             {"remove_rule", "Remove Rule"},
             {"English", "English"},
             {"last_successful", "Last successful"},
+            {"common_service", "Common Service"},
         };
 
         public override string GetText(string key)

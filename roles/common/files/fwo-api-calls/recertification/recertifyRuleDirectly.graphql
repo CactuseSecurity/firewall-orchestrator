@@ -1,0 +1,27 @@
+mutation recertifyRuleDirectly(
+  $ruleMetadataId: bigint!
+  $ruleId: bigint!
+  $ownerId: Int!
+  $nextRecertDate: timestamp
+  $userDn: String
+  $recertified: Boolean
+  $recertDate: timestamp
+  $comment: String
+  $ownerRecertId: bigint
+  ) {
+  insert_recertification(objects: {
+    rule_metadata_id: $ruleMetadataId
+    rule_id: $ruleId
+    owner_id: $ownerId
+    next_recert_date: $nextRecertDate
+    user_dn: $userDn
+    recertified: $recertified
+    recert_date: $recertDate
+    comment: $comment
+    owner_recert_id: $ownerRecertId
+  }) {
+    returning {
+      newIdLong: id
+    }
+  }
+}

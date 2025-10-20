@@ -13,8 +13,8 @@
 @attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.FwAdmin}, {Roles.Reporter}, {Roles.ReporterViewAll}, {Roles.Auditor}, {Roles.Modeller}")]
 
 <ReportTabset/>
-
-<button type="button" class="btn btn-sm btn-success mb-1" @onclick="OnAddReportScheduleButtonClick">@(_userConfig.GetText("add"))</button>
+<button type="button" class="btn btn-sm btn-success mb-1" @onclick="() => { reportScheduleInEdit = new ReportSchedule() { RepeatInterval = SchedulerInterval.Never }; ShowAddReportScheduleDialog = true; }">
+    @(DisplayService.DisplayButton(_userConfig, "add", Icons.Add))</button>
 
 <div class="vheight75">
     <Table TableClass="table table-bordered table-sm th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="ReportSchedule" Items="reportSchedules" PageSize="0">
@@ -23,8 +23,10 @@
                 @if (context.ScheduleOwningUser.DbId == uiUserDbId || authenticationState != null && authenticationState.User.IsInRole(Roles.Admin))
                 {
                     <div class="btn-group">
-                        <button type="button" class="btn btn-sm btn-warning" @onclick="() => OnEditReportScheduleButtonClick(context)">@(_userConfig.GetText("edit"))</button>
-                        <button type="button" class="btn btn-sm btn-danger" @onclick="() => { reportScheduleInEdit = context; ShowDeleteReportScheduleDialog = true; }">@(_userConfig.GetText("delete"))</button>
+                        <button type="button" class="btn btn-sm btn-warning" @onclick="() => { reportScheduleInEdit = context; actDate = actTime = context.StartTime; ShowEditReportScheduleDialog = true; }">
+                            @(DisplayService.DisplayButton(_userConfig, "edit", Icons.Edit))</button>
+                        <button type="button" class="btn btn-sm btn-danger" @onclick="() => { reportScheduleInEdit = context; ShowDeleteReportScheduleDialog = true; }">
+                            @(DisplayService.DisplayButton(_userConfig, "delete", Icons.Delete))</button>
                     </div>
                 }
             </Template>
@@ -85,7 +87,7 @@
                     <input id="scheduleRepeatEvery" type="number" min="1" class="form-control form-control-sm" @bind="reportScheduleInEdit.RepeatOffset" />
                 </div>
                 <div class="col-sm-5">
-                    <Dropdown @bind-SelectedElement="reportScheduleInEdit.RepeatInterval" ElementToString="@(i => _userConfig.GetText(i.ToString()))"
+                    <Dropdown ElementType="SchedulerInterval" @bind-SelectedElement="reportScheduleInEdit.RepeatInterval" ElementToString="@(i => _userConfig.GetText(i.ToString()))"
                             Elements="Enum.GetValues(typeof(SchedulerInterval)).Cast<SchedulerInterval>().Where(x => x.OfferedForReportOrNever())" >
                         <ElementTemplate Context="interval">
                             @(_userConfig.GetText(interval.ToString()))
@@ -195,8 +197,10 @@
     </Body>
     <Footer>
         <div class="btn-group">
-            <button type="button" class="btn btn-sm btn-primary" @onclick="async () => await (ShowAddReportScheduleDialog ? AddReportSchedule() : UpdateReportSchedule())">@(_userConfig.GetText("save"))</button>
-            <button type="button" class="btn btn-sm btn-secondary" @onclick="() => ShowEditReportScheduleDialog = ShowAddReportScheduleDialog = false">@(_userConfig.GetText("cancel"))</button>
+            <button type="button" class="btn btn-sm btn-primary" @onclick="async () => await (ShowAddReportScheduleDialog ? AddReportSchedule() : UpdateReportSchedule())">
+                @(DisplayService.DisplayButton(_userConfig, "save", Icons.Save))</button>
+            <button type="button" class="btn btn-sm btn-secondary" @onclick="() => ShowEditReportScheduleDialog = ShowAddReportScheduleDialog = false">
+                @(DisplayService.DisplayButton(_userConfig, "cancel", Icons.Cancel))</button>
         </div>
     </Footer>
 </PopUp>
@@ -207,8 +211,10 @@
     </Body>
     <Footer>
         <div class="btn-group">
-            <button type="button" class="btn btn-sm btn-danger" @onclick="DeleteReportSchedule">@(_userConfig.GetText("delete"))</button>
-            <button type="button" class="btn btn-sm btn-secondary" @onclick="() => ShowDeleteReportScheduleDialog = false">@(_userConfig.GetText("cancel"))</button>
+            <button type="button" class="btn btn-sm btn-danger" @onclick="DeleteReportSchedule">
+                @(DisplayService.DisplayButton(_userConfig, "delete", Icons.Delete))</button>
+            <button type="button" class="btn btn-sm btn-secondary" @onclick="() => ShowDeleteReportScheduleDialog = false">
+                @(DisplayService.DisplayButton(_userConfig, "cancel", Icons.Cancel))</button>
         </div>
     </Footer>
 </PopUp>

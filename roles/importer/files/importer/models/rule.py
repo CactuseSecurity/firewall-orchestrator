@@ -47,10 +47,10 @@ class RuleNormalized(BaseModel):
     rule_svc_refs: str
     rule_action: RuleAction
     rule_track: RuleTrack
-    rule_installon: str
-    rule_time: str
+    rule_installon: str|None = None
+    rule_time: str|None = None
     rule_name: str|None = None
-    rule_uid: str
+    rule_uid: str|None = None
     rule_custom_fields: str|None = None
     rule_implied: bool
     rule_type: RuleType = RuleType.SECTIONHEADER
@@ -150,11 +150,11 @@ class Rule(BaseModel):
     rule_svc: str
     rule_svc_neg: bool
     rule_svc_refs: str
-    rule_time: str
+    rule_time: str|None = None
     rule_to_zone: int|None = None
     track_id: int
     xlate_rule: int|None = None
     rule_track: str
-    rule_uid: str
-    rulebase_id: int|None # = None
+    rule_uid: str|None = None
+    rulebase_id: int|None = None
 

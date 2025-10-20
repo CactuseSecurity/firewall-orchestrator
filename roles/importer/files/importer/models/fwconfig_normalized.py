@@ -70,13 +70,3 @@ class FwConfigNormalized(FwConfig):
             if rb.uid == rulebaseUid:
                 return rb
         return Rulebase(uid='', name='', mgm_uid='')
-
-
-    def getOrderedRuleList(self, policyUid: str) -> list[dict]:
-        """
-        get the policy with a specific uid as an ordered list (ordered by rule_num)
-        :param policyUid: The UID of the relevant policy.
-        :return: Returns the policy with a specific uid as an ordered list [ruleUid, rule_num].
-        """
-        ruleList = [{'Uid': rule_uid, 'rule_num': details['rule_num']} for rule_uid, details in self.getRulebase(policyUid).items()]
-        return sorted(ruleList, key=lambda x: x['rule_num'])

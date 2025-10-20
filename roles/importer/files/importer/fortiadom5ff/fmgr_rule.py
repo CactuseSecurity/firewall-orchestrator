@@ -92,12 +92,12 @@ def initialize_normalized_rulebase(rulebase_to_parse, mgm_uid):
     return normalized_rulebase
 
 def parse_rulebase(normalized_config_dict, normalized_config_global, rulebase_to_parse, normalized_rulebase):
-
-    rule_num = 1
+    """Parses a native Fortinet rulebase into a normalized rulebase."""
     for native_rule in rulebase_to_parse['data']:
-        rule_num = parse_single_rule(normalized_config_dict, normalized_config_global, native_rule, normalized_rulebase, rule_num)
+        parse_single_rule(normalized_config_dict, normalized_config_global, native_rule, normalized_rulebase)
 
-def parse_single_rule(normalized_config_dict, normalized_config_global, native_rule, rulebase: Rulebase, rule_num):
+def parse_single_rule(normalized_config_dict, normalized_config_global, native_rule, rulebase: Rulebase):
+    """Parses a single native Fortinet rule into a normalized rule and adds it to the given rulebase."""
     # Extract basic rule information
     rule_disabled = True  # Default to disabled
     if 'status' in native_rule and (native_rule['status'] == 1 or native_rule['status'] == 'enable'):
@@ -119,7 +119,7 @@ def parse_single_rule(normalized_config_dict, normalized_config_global, native_r
 
     # Create the normalized rule
     rule_normalized = RuleNormalized(
-        rule_num=rule_num,
+        rule_num=0,
         rule_num_numeric=0,
         rule_disabled=rule_disabled,
         rule_src_neg=rule_src_neg,
@@ -153,8 +153,6 @@ def parse_single_rule(normalized_config_dict, normalized_config_global, native_r
     rulebase.Rules[rule_normalized.rule_uid] = rule_normalized
 
     # TODO: handle NAT
-    
-    return rule_num + 1
 
 def rule_parse_action(native_rule):
     # Extract action - Fortinet uses 0 for deny/drop, 1 for accept
@@ -245,7 +243,7 @@ def rule_parse_negation_flags(native_rule):
     return rule_src_neg, rule_dst_neg, rule_svc_neg
 
 def rule_parse_installon(native_rule, rulebase_name):
-    if 'scope_member' in native_rule:
+    if 'scope_member' in native_rule and native_rule['scope_member']:
         rule_installon = list_delimiter.join(sorted({vdom['name'] + '_' + vdom['vdom'] for vdom in native_rule['scope_member']}))
     else:
         rule_installon = rulebase_name
@@ -565,18 +563,17 @@ def normalize_nat_rules(full_config, config2import, import_id, jwt=None):
                     xlate_rule.update({ 'rule_type': 'xlate' })
 
                     nat_rules.append(xlate_rule)
-                    rule_number += 1
     config2import['rules'].extend(nat_rules)
 
 
-def insert_header(rules, import_id, header_text, rulebase_name, rule_uid, rule_number, src_refs, dst_refs):
+def insert_header(rules, import_id, header_text, rulebase_name, rule_uid, src_refs, dst_refs):
     rule = {
         "control_id": import_id,
         "rule_head_text": header_text,
         "rulebase_name": rulebase_name,
         "rule_ruleid": None,
         "rule_uid":  rule_uid + rulebase_name,
-        "rule_num": rule_number,
+        "rule_num": 0,
         "rule_disabled": False,
         "rule_src": "all",
         "rule_dst": "all", 

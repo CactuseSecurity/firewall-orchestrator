@@ -281,7 +281,7 @@ def parse_single_rule(nativeRule, rulebase, layer_name, rule_num, parent_uid, ga
 
     ruleEnforcedOnGateways = parse_rule_enforced_on_gateway(gateway, policy_structure, native_rule=nativeRule)
     listOfGwUids = sorted({enforceEntry.dev_uid for enforceEntry in ruleEnforcedOnGateways})
-    strListOfGwUids = list_delimiter.join(listOfGwUids)
+    strListOfGwUids = list_delimiter.join(listOfGwUids) if listOfGwUids else None
 
     rule_track = _parse_track(native_rule=nativeRule)
 
@@ -293,7 +293,7 @@ def parse_single_rule(nativeRule, rulebase, layer_name, rule_num, parent_uid, ga
         logger.warning('found rule without action: ' + str(nativeRule))
 
     timeObjects = parseRulePart (nativeRule['time'], 'time')
-    rule_time = list_delimiter.join(timeObjects.values())   # only considering the first time object
+    rule_time = list_delimiter.join(timeObjects.values()) if timeObjects else None
 
     # starting with the non-chunk objects
     rule_name = nativeRule.get('name', None)

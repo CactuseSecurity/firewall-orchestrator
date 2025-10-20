@@ -54,7 +54,7 @@ class FwConfigImport():
         mgm_id = self.import_state.lookupManagementId(single_manager.ManagerUid)
         if mgm_id is None:
             raise FwoImporterError(f"could not find manager id in DB for UID {single_manager.ManagerUid}")
-        previousConfig = self.get_latest_config()
+        previousConfig = self.get_latest_config_from_db()
         self._global_state.previous_config = previousConfig
         if single_manager.IsSuperManager:
             self._global_state.previous_global_config = previousConfig

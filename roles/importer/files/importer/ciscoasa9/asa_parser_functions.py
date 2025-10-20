@@ -213,7 +213,7 @@ def _parse_service_object_block(block: List[str]) -> AsaServiceObject | None:
     for b in block[1:]:
         s = b.strip()
         # e.g., "service tcp destination eq 1234"
-        msvc = re.match(r"^service\s+(tcp|udp|icmp|ip)(?:\s+destination)?\s+(?:eq\s+(\S+)|range\s+(\d+)\s+(\d+))$", s, re.I)
+        msvc = re.match(r"^service\s+(tcp|udp|icmp|ip)\s+(?:destination\s+)?(?:eq\s+(\S+)|range\s+(\d+)\s+(\d+))$", s, re.I)
         mdesc = re.match(description_re, s, re.I)
         meq = re.match(r"^port-object\s+(tcp|udp|icmp|ip)?\s*eq\s+(\S+)$", s, re.I)  # Match port-object eq with optional proto
         mrange = re.match(r"^port-object\s+(tcp|udp|icmp|ip)?\s*range\s+(\d+)\s+(\d+)$", s, re.I)  # Match port-object range with optional proto

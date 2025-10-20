@@ -7,11 +7,11 @@ namespace FWO.Api.Client
 {
     public class GraphQlApiSubscription<SubscriptionResponseType> : ApiSubscription, IDisposable
     {
-        public delegate void SubscriptionUpdate(SubscriptionResponseType reponse);
+        public delegate void SubscriptionUpdate(SubscriptionResponseType response);
         public event SubscriptionUpdate OnUpdate;
 
-        private IObservable<GraphQLResponse<dynamic>> subscriptionStream;
-        private IDisposable subscription;
+        private IObservable<GraphQLResponse<dynamic>> subscriptionStream = null!;
+        private IDisposable subscription = null!;
         private readonly GraphQLHttpClient graphQlClient;
         private readonly GraphQLRequest request;
         private readonly Action<Exception> internalExceptionHandler;
@@ -20,7 +20,6 @@ namespace FWO.Api.Client
         {
             CreateSubscription();
         }
-
         public GraphQlApiSubscription(ApiConnection apiConnection, GraphQLHttpClient graphQlClient, GraphQLRequest request, Action<Exception> exceptionHandler, SubscriptionUpdate OnUpdate)
         {
             this.OnUpdate = OnUpdate;

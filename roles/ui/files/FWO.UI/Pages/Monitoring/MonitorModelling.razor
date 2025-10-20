@@ -40,7 +40,7 @@
         </div>
     </div>
     <div class="form-group row mt-2">
-        <ConnectionTable Connections="@(ModellingConnectionWrapper.Resolve(FoundConnections).ToList())" ShowAppName="true" Readonly="true"/>
+        <ConnectionTable Connections="@(FoundConnections)" ShowAppName="true" Readonly="true" InterfacesPossible="true"/>
     </div>
 </div>
 
@@ -53,12 +53,14 @@
     private FwoOwner? SelectedOwner;
     private List<ModellingAppRole> AppRoles = [];
     private ModellingAppRole? SelectedAppRole;
-    private List<ModellingConnectionWrapper> FoundConnections = [];
+    private List<ModellingConnection> FoundConnections = [];
+    ModellingHandlerBase? HandlerBase;
 
     protected override async Task OnInitializedAsync()
     {
         try
         {
+            HandlerBase = new(apiConnection, userConfig, new(), false, DisplayMessageInUi);
             Owners = await apiConnection.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getOwners);
             if (Owners.Count > 0)
             {
@@ -73,22 +75,36 @@
 
     private async Task OwnerChanged(FwoOwner newOwner)
     {
-        SelectedOwner = newOwner;
-        AppRoles = (await apiConnection.SendQueryAsync<List<ModellingAppRole>>(ModellingQueries.getAppRoles, new { appId = SelectedOwner.Id })).OrderBy(x => x.Id).ToList();
-        if(AppRoles.Count > 0)
+        if(newOwner != SelectedOwner)
         {
-            await ARChanged(AppRoles[0]);
-        }
-        else
-        {
-            SelectedAppRole = null;
-            FoundConnections = [];
+            SelectedOwner = newOwner;
+            AppRoles = (await apiConnection.SendQueryAsync<List<ModellingAppRole>>(ModellingQueries.getAppRoles, new { appId = SelectedOwner.Id })).OrderBy(x => x.Id).ToList();
+            if(AppRoles.Count > 0)
+            {
+                await ARChanged(AppRoles[0]);
+            }
+            else
+            {
+                SelectedAppRole = null;
+                FoundConnections = [];
+            }
         }
     }
 
     private async Task ARChanged(ModellingAppRole newAppRole)
     {
-        SelectedAppRole = newAppRole;
-        FoundConnections = await apiConnection.SendQueryAsync<List<ModellingConnectionWrapper>>(ModellingQueries.getConnectionsForNwGroup, new { id = SelectedAppRole.Id });
+        if(newAppRole != SelectedAppRole)
+        {
+            SelectedAppRole = newAppRole;
+            List<ModellingConnectionWrapper> FoundConnectionWrappers = await apiConnection.SendQueryAsync<List<ModellingConnectionWrapper>>(ModellingQueries.getConnectionsForNwGroup, new { id = SelectedAppRole.Id });
+            FoundConnections = [.. ModellingConnectionWrapper.Resolve(FoundConnectionWrappers)];
+            foreach(var conn in FoundConnections.Where(x => x.UsedInterfaceId != null))
+            {
+                if (HandlerBase != null)
+                {
+                    await HandlerBase.ExtractUsedInterface(conn);
+                }
+            }
+        }
     }
 }

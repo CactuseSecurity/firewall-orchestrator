@@ -20,7 +20,7 @@
     @if(owner.Interfaces.Count > 0)
     {
         <Collapse Title="@userConfig.GetText("interfaces")" Style="@("primary")" StartToggled="false">
-            <ConnectionTable Connections="@owner.Interfaces" Readonly="true"/>
+            <ConnectionTable Connections="@owner.Interfaces" Readonly="true" InterfacesPossible="true"/>
         </Collapse>
     }
     @if(owner.CommonServices.Count > 0)

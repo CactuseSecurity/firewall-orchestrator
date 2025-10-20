@@ -8,12 +8,14 @@ mutation addNetworkZone (
   $communicationDestinations: [compliance_network_zone_communication_insert_input!]!
   $subNetworkZones: [compliance_network_zone_insert_input!]!
   $criterionId: Int
+  $isAutoCalculatedInternetZone: Boolean
+  $isAutoCalculatedUndefinedInternalZone: Boolean
 ) {
   insert_compliance_network_zone_one (
     object: {
       super_network_zone_id: $superNetworkZoneId,
       name: $name,
-	  id_string: $idString
+	    id_string: $idString,
       description: $description,    
       ip_ranges: {
         data: $ipRanges
@@ -26,8 +28,10 @@ mutation addNetworkZone (
       },
       sub_network_zones: {
         data: $subNetworkZones
-      }
-      criterion_id: $criterionId
+      },
+      criterion_id: $criterionId,
+      is_auto_calculated_internet_zone: $isAutoCalculatedInternetZone,
+      is_auto_calculated_undefined_internal_zone: $isAutoCalculatedUndefinedInternalZone
     }
   ) {
     id

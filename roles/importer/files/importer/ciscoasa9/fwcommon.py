@@ -58,9 +58,9 @@ from ciscoasa9.asa_normalize import (
 
 
 def has_config_changed(full_config, mgm_details, force=False):
-    full_config = full_config
-    mgm_details = mgm_details
-    force = force
+    a = full_config
+    b = mgm_details
+    c = force
     # TODO: dummy - may be filled with real check later on
     return True
 
@@ -205,7 +205,7 @@ def normalize_config(config_in: FwConfigManagerListController, importState: Impo
     # Step 4: Create objects for inline definitions in access lists
     logger.debug("Creating objects for access list inline definitions...")
     for access_list in native_config.access_lists:
-        create_objects_for_access_lists(access_list, network_objects, service_objects, importState)
+        create_objects_for_access_lists(access_list, network_objects, service_objects)
 
     # Step 5: Build rulebases from access lists
     logger.debug("Building rulebases from access lists...")

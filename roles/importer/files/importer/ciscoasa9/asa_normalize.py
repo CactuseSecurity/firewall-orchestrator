@@ -314,7 +314,7 @@ def _process_single_protocol_group(group, service_objects: dict) -> list:
             raise ValueError(f"Unknown protocol in service object group: {protocol}")
 
         if protocol == "service":
-            obj_names.extend(_process_service_protocol_group(group, protocol, service_objects))
+            obj_names.extend(_process_service_protocol_group(group))
             continue
 
         # Process single port values
@@ -366,7 +366,7 @@ def normalize_service_object_groups(native_config: Config, service_objects: dict
     return service_objects
 
 
-def create_objects_for_access_lists(access_lists: AccessList, network_objects: dict, service_objects: dict, importState: ImportStateController):
+def create_objects_for_access_lists(access_lists: AccessList, network_objects: dict, service_objects: dict):
     """
     Create network and service objects from inline definitions in access list entries.
     

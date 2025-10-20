@@ -96,7 +96,8 @@ def _parse_interface_block(block: List[str]) -> Interface:
             sec = int(s.split()[1])
         elif s.startswith("ip address "):
             parts = s.split()
-            if len(parts) >= 4 and parts[2].count(".") == 3 and parts[3].count(".") == 3:
+            is_valid_ip = len(parts) >= 4 and parts[2].count(".") == 3 and parts[3].count(".") == 3
+            if is_valid_ip:
                 ip, mask = parts[2], parts[3]
             elif "dhcp" in parts:
                 additional.append(s)

@@ -9,6 +9,7 @@ from ciscoasa9.asa_models import AccessGroupBinding, AccessList, AccessListEntry
 
 
 _ws = r"[ \t]+"
+description_re = r"^description\s+(.+)$"
 
 def _clean_lines(text: str) -> List[str]:
     lines = []
@@ -134,7 +135,7 @@ def _parse_network_object_block(block: List[str]) -> Tuple[Optional[AsaNetworkOb
         mhost = re.match(r"^host\s+(\S+)$", s, re.I)
         msub = re.match(r"^subnet\s+(\S+)\s+(\S+)$", s, re.I)
         mfqdn = re.match(r"^fqdn\s+v4\s+(\S+)$", s, re.I)
-        mdesc = re.match(r"^description\s+(.+)$", s, re.I)
+        mdesc = re.match(description_re, s, re.I)
         mnat  = re.match(r"^nat\s+\(([^,]+),([^)]+)\)\s+(dynamic|static)\s+(\S+)$", s, re.I)
         
         if mhost:
@@ -181,7 +182,7 @@ def _parse_network_object_group_block(block: List[str]) -> AsaNetworkObjectGroup
 
     for b in block[1:]:
         s = b.strip()
-        mdesc = re.match(r"^description\s+(.+)$", s, re.I)
+        mdesc = re.match(description_re, s, re.I)
         mobj  = re.match(r"^network-object\s+object\s+(\S+)$", s, re.I)
         mhost = re.match(r"^network-object\s+host\s+(\S+)$", s, re.I)
         msub  = re.match(r"^network-object\s+(\d+\.\d+\.\d+\.\d+)\s+(\d+\.\d+\.\d+\.\d+)$", s, re.I)
@@ -211,9 +212,8 @@ def _parse_service_object_block(block: List[str]) -> AsaServiceObject | None:
 
     for b in block[1:]:
         s = b.strip()
-        # e.g., "service tcp destination eq 1234"
         msvc = re.match(r"^service\s+(tcp|udp|icmp|ip)\s+(?:destination\s+)?(?:eq\s+(\S+)|range\s+(\d+)\s+(\d+))$", s, re.I)
-        mdesc = re.match(r"^description\s+(.+)$", s, re.I)
+        mdesc = re.match(description_re, s, re.I)
         meq = re.match(r"^port-object\s+(tcp|udp|icmp|ip)?\s*eq\s+(\S+)$", s, re.I)  # Match port-object eq with optional proto
         mrange = re.match(r"^port-object\s+(tcp|udp|icmp|ip)?\s*range\s+(\d+)\s+(\d+)$", s, re.I)  # Match port-object range with optional proto
 
@@ -266,7 +266,7 @@ def _parse_service_object_group_block(block: List[str]) -> AsaServiceObjectGroup
 
     for b in block[1:]:
         s = b.strip()
-        mdesc = re.match(r"^description\s+(.+)$", s, re.I)
+        mdesc = re.match(description_re, s, re.I)
         meq = re.match(r"^port-object\s*eq\s+(\S+)$", s, re.I)
         mrange = re.match(r"^port-object\srange\s+(\d+)\s+(\d+)$", s, re.I)
         mobj = re.match(r"^service-object\s+object\s+(\S+)$", s, re.I)
@@ -477,7 +477,7 @@ def _parse_protocol_object_group_block(block: List[str]) -> AsaProtocolGroup:
 
     for b in block[1:]:
         s = b.strip()
-        mdesc = re.match(r"^description\s+(.+)$", s, re.I)
+        mdesc = re.match(description_re, s, re.I)
         mproto = re.match(r"^protocol-object\s+(\S+)$", s, re.I)
 
         if mdesc:
@@ -510,7 +510,7 @@ def _parse_service_object_block_with_inline_protocol(block: List[str]) -> AsaSer
     for b in block[1:]:
         s = b.strip()
         msvc = re.match(r"^service\s+(?:destination\s+)?(?:eq\s+(\S+)|range\s+(\d+)\s+(\d+))$", s, re.I)
-        mdesc = re.match(r"^description\s+(.+)$", s, re.I)
+        mdesc = re.match(description_re, s, re.I)
         meq = re.match(r"^port-object\s+eq\s+(\S+)$", s, re.I)  # Match port-object eq
         mrange = re.match(r"^port-object\s+range\s+(\d+)\s+(\d+)$", s, re.I)  # Match port-object range
 
@@ -543,7 +543,7 @@ def _parse_service_object_group_block_without_inline_protocol(block: List[str]) 
     current_proto_mode: str = "tcp"  # Default protocol mode
     for b in block[1:]:
         s = b.strip()
-        mdesc = re.match(r"^description\s+(.+)$", s, re.I)
+        mdesc = re.match(description_re, s, re.I)
         meq = re.match(r"^port-object\s+eq\s+(\S+)$", s, re.I)
         mrange = re.match(r"^port-object\s+range\s+(\d+)\s+(\d+)$", s, re.I)
         mobj = re.match(r"^service-object\s+object\s+(\S+)$", s, re.I)

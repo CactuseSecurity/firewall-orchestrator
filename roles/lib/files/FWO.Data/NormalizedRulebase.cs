@@ -39,8 +39,8 @@ namespace FWO.Data
             return new NormalizedRulebase
             {
                 Id = null, // Id is omitted in normalized representation
-                Uid = rulebase.Uid ?? "",
-                Name = rulebase.Name ?? "",
+                Uid = rulebase.Uid,
+                Name = rulebase.Name,
                 MgmUid = mgmUid,
                 IsGlobal = rulebase.IsGlobal,
                 Rules = rulebase.Rules.ToDictionary(

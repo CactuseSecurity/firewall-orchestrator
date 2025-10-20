@@ -184,7 +184,7 @@ def parse_asa_config(raw_config: str) -> Config:
         # If present outside, they'll still be parsed by the object-block logic earlier.
 
         # route
-        m = re.match(r"^route\s+(\S+)\s+(\d+\.\d+\.\d+\.\d+)\s+(\d+\.\d+\.\d+\.\d+)\s+(\d+\.\d+\.\d+\.\d+)(?:\s+(\d+))?$", line, re.I)
+        m = re.match(r"^route\s+(\S+)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)(?:\s+(\d+))?$", line, re.I)
         if m:
             routes.append(Route(
                 interface=m.group(1),

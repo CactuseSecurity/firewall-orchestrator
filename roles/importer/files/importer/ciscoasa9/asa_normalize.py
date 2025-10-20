@@ -132,15 +132,22 @@ def normalize_service_objects(native_config: Config) -> dict:
     for svc in native_config.service_objects:
         if svc.dst_port_eq and len(svc.dst_port_eq) > 0:
             # Service with specific port (eq)
+            if svc.dst_port_eq.isdigit():
+                p = int(svc.dst_port_eq)
+                com = svc.description
+            else:
+                p = name_to_port[svc.dst_port_eq]["port"]
+                com = name_to_port[svc.dst_port_eq]["description"]
+
             obj = ServiceObject(
                 svc_uid=svc.name,
                 svc_name=svc.name,
-                svc_port=int(svc.dst_port_eq) if svc.dst_port_eq.isdigit() else name_to_port[svc.dst_port_eq]["port"],
-                svc_port_end=int(svc.dst_port_eq) if svc.dst_port_eq.isdigit() else name_to_port[svc.dst_port_eq]["port"],
+                svc_port=p,
+                svc_port_end=p,
                 svc_color=fwo_const.defaultColor,
                 svc_typ="simple",
                 ip_proto=protocol_map.get(svc.protocol, 0),
-                svc_comment=svc.description if svc.dst_port_eq.isdigit() else name_to_port[svc.dst_port_eq]["description"]
+                svc_comment=com
             )
             service_objects[svc.name] = obj
         elif svc.dst_port_range and len(svc.dst_port_range) == 2:
@@ -265,7 +272,7 @@ def _process_mixed_protocol_group(group, service_objects: dict) -> list:
     return obj_names
 
 
-def _process_service_protocol_group(group, protocol: str, service_objects: dict) -> list:
+def _process_service_protocol_group(group) -> list:
     """Process a service group that references other services."""
     obj_names = []
     
@@ -378,6 +385,8 @@ def create_objects_for_access_lists(access_lists: AccessList, network_objects: d
         rule_name = f"{access_lists.name}-{cnt:03d}"
         src_ref = entry.src.value
         dst_ref = entry.dst.value
+        creation_commment_service = "service object created during import"
+        creation_comment_network = "network object created during import"
 
         # Create service objects for inline service definitions
         if entry.protocol.kind == "protocol":
@@ -394,7 +403,7 @@ def create_objects_for_access_lists(access_lists: AccessList, network_objects: d
                             svc_color=fwo_const.defaultColor,
                             svc_typ="simple",
                             ip_proto=protocol_map.get(entry.protocol.value, 0),
-                            svc_comment="service object created during import"
+                            svc_comment=creation_commment_service
                         )
                         service_objects[obj_name] = obj
                 elif entry.dst_port.kind == "range":
@@ -411,7 +420,7 @@ def create_objects_for_access_lists(access_lists: AccessList, network_objects: d
                                 svc_color=fwo_const.defaultColor,
                                 svc_typ="simple",
                                 ip_proto=protocol_map.get(entry.protocol.value, 0),
-                                svc_comment="service object created during import"
+                                svc_comment=creation_commment_service
                             )
                             service_objects[obj_name] = obj
                 elif entry.dst_port.kind == "any":
@@ -426,7 +435,7 @@ def create_objects_for_access_lists(access_lists: AccessList, network_objects: d
                             svc_color=fwo_const.defaultColor,
                             svc_typ="simple",
                             ip_proto=protocol_map.get(entry.protocol.value, 0),
-                            svc_comment="service object created during import"
+                            svc_comment=creation_commment_service
                         )
                         service_objects[obj_name] = obj
             elif entry.protocol.value == "ip":
@@ -442,7 +451,7 @@ def create_objects_for_access_lists(access_lists: AccessList, network_objects: d
                             svc_color=fwo_const.defaultColor,
                             svc_typ="simple",
                             ip_proto=protocol_map.get(pr, 0),
-                            svc_comment="service object created during import"
+                            svc_comment=creation_commment_service
                         )
                         service_objects[obj_name] = obj
 
@@ -458,7 +467,7 @@ def create_objects_for_access_lists(access_lists: AccessList, network_objects: d
                         obj_ip=IPNetwork(f"{ep.value}/32"),
                         obj_ip_end=IPNetwork(f"{ep.value}/32"),
                         obj_color=fwo_const.defaultColor,
-                        obj_comment="network object created during import"
+                        obj_comment=creation_comment_network
                     )
                     network_objects[ep.value] = obj
             elif ep.kind == "subnet":
@@ -476,7 +485,7 @@ def create_objects_for_access_lists(access_lists: AccessList, network_objects: d
                         obj_ip=ip_start,
                         obj_ip_end=ip_end,
                         obj_color=fwo_const.defaultColor,
-                        obj_comment="network object created during import"
+                        obj_comment=creation_comment_network
                     )
                     network_objects[obj_name] = obj
             elif ep.kind == "any":
@@ -491,7 +500,7 @@ def create_objects_for_access_lists(access_lists: AccessList, network_objects: d
                         obj_ip=IPNetwork("0.0.0.0/32"),
                         obj_ip_end=IPNetwork("255.255.255.255/32"),
                         obj_color=fwo_const.defaultColor,
-                        obj_comment="network object created during import"
+                        obj_comment=creation_comment_network
                     )
                     network_objects["any"] = obj
             elif ep.kind in ("object", "object-group"):

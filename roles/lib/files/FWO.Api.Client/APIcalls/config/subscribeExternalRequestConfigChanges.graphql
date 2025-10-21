@@ -1,5 +1,12 @@
 ﻿subscription subscribeExternalRequestConfigChanges  {
-  config (where: { _or: [{config_key: {_eq: "externalRequestSleepTime"}}, {config_key: {_eq: "externalRequestStartAt"}} ]}, limit: 2){
+  config (where: { _or: [
+    {config_key: {_eq: "externalRequestSleepTime"}},
+    {config_key: {_eq: "externalRequestStartAt"}},
+    {config_key: {_eq: "modRolloutBundleTasks"}},
+    {config_key: {_eq: "externalRequestWaitCycles"}},
+    {config_key: {_eq: "extTicketSystems"}},
+    {config_key: {_eq: "modNamingConvention"}}
+  ]}){
     config_key
     config_value
   }

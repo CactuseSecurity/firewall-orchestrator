@@ -36,7 +36,7 @@
                     <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.Requester}, {Roles.Auditor}")">
                         <li class="nav-item px-2">
                             <NavLink class="nav-link" href="request/tickets">
-                                <span class="@Icons.Workflow"></span> @(userConfig.GetText("create_ticket"))
+                                <span class="@Icons.CreateTicket"></span> @(userConfig.GetText("create_ticket"))
                             </NavLink>
                         </li>
                     </AuthorizeView>

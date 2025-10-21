@@ -17,7 +17,9 @@ namespace FWO.Basics
         Connections = 21,
         AppRules = 22,
         VarianceAnalysis = 23,
-        OwnerRecertification = 24
+        OwnerRecertification = 24,
+        RecertificationEvent = 25,
+        RecertEventReport = 26
     }
 
     public static class ReportTypeGroups
@@ -32,7 +34,8 @@ namespace FWO.Basics
                 ReportType.NatRules or
                 ReportType.Recertification or
                 ReportType.UnusedRules or
-                ReportType.AppRules => true,
+                ReportType.AppRules or
+                ReportType.RecertEventReport => true,
                 _ => false
             };
         }
@@ -80,7 +83,8 @@ namespace FWO.Basics
             return reportType switch
             {
                 ReportType.Connections or
-                ReportType.VarianceAnalysis => true,
+                ReportType.VarianceAnalysis or
+                ReportType.RecertificationEvent => true,
                 _ => false
             };
         }
@@ -92,7 +96,9 @@ namespace FWO.Basics
                 ReportType.Connections or
                 ReportType.AppRules or
                 ReportType.VarianceAnalysis or
-                ReportType.OwnerRecertification => true,
+                ReportType.OwnerRecertification or
+                ReportType.RecertificationEvent or
+                ReportType.RecertEventReport => true,
                 _ => false
             };
         }
@@ -129,14 +135,16 @@ namespace FWO.Basics
             List<ReportType> orderedReportTypeList =
             [
                 ReportType.All,
+                ReportType.RecertificationEvent,
                 ReportType.Rules, ReportType.ResolvedRules, ReportType.ResolvedRulesTech, ReportType.UnusedRules, ReportType.NatRules,
-                ReportType.Recertification,
                 ReportType.Changes, ReportType.ResolvedChanges, ReportType.ResolvedChangesTech,
                 ReportType.Statistics,
                 ReportType.Connections,
                 ReportType.AppRules,
                 ReportType.VarianceAnalysis,
-                ReportType.OwnerRecertification
+                ReportType.Recertification,
+                ReportType.OwnerRecertification,
+                ReportType.RecertEventReport
             ];
             foreach (var reportType in orderedReportTypeList.Where(r => ListIn.Contains(r)))
             {

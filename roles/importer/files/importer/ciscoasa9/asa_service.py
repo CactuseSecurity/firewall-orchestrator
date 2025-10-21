@@ -392,8 +392,9 @@ def normalize_service_object_groups(service_groups: List[AsaServiceObjectGroup],
         # look for duplicates and remove them
         unique_obj_names = list(set(obj_names))
         if len(unique_obj_names) < len(obj_names):
+            duplicates = [x for x in obj_names if obj_names.count(x) > 1]
             logger = getFwoLogger()
-            logger.warning(f"Removed duplicate service object references found in group {group.name}")
+            logger.debug(f"Removed duplicate service object references found in group {group.name}: {duplicates}")
 
         # Create the group object
         group_obj = create_service_group_object(group.name, unique_obj_names, group.description)

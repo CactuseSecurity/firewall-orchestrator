@@ -10,6 +10,7 @@ from models.serviceobject import ServiceObject
 from ciscoasa9.asa_models import AsaServiceObject, AsaServiceObjectGroup, AccessListEntry
 from ciscoasa9.asa_maps import name_to_port, protocol_map
 import fwo_const
+from roles.importer.files.importer.fwo_log import getFwoLogger
 
 
 def create_service_object(name: str, port: int, port_end: int, protocol: str, comment: Optional[str] = None) -> ServiceObject:
@@ -387,9 +388,15 @@ def normalize_service_object_groups(service_groups: List[AsaServiceObjectGroup],
             obj_names = process_mixed_protocol_group(group, service_objects)
         else:
             obj_names = process_single_protocol_group(group, service_objects)
+        
+        # look for duplicates and remove them
+        unique_obj_names = list(set(obj_names))
+        if len(unique_obj_names) < len(obj_names):
+            logger = getFwoLogger()
+            logger.warning(f"Removed duplicate service object references found in group {group.name}")
 
         # Create the group object
-        group_obj = create_service_group_object(group.name, obj_names, group.description)
+        group_obj = create_service_group_object(group.name, unique_obj_names, group.description)
         service_objects[group.name] = group_obj
 
     return service_objects

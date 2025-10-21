@@ -10,7 +10,7 @@ from models.serviceobject import ServiceObject
 from ciscoasa9.asa_models import AsaServiceObject, AsaServiceObjectGroup, AccessListEntry
 from ciscoasa9.asa_maps import name_to_port, protocol_map
 import fwo_const
-from roles.importer.files.importer.fwo_log import getFwoLogger
+from fwo_log import getFwoLogger
 
 
 def create_service_object(name: str, port: int, port_end: int, protocol: str, comment: Optional[str] = None) -> ServiceObject:

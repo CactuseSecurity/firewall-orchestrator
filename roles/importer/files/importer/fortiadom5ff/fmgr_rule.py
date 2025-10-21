@@ -177,7 +177,10 @@ def rule_parse_service(native_rule):
     for svc in native_rule.get('service', []):
         rule_svc_list.append(svc)
         rule_svc_refs_list.append(svc)
-    if rule_svc_list == [] and 'internet-service-name' in native_rule and len(native_rule['internet-service-name'] > 0):
+    if rule_svc_list == [] and 'internet-service-name' in native_rule and len(native_rule['internet-service-name']) > 0:
+        rule_svc_list.append('ALL')
+        rule_svc_refs_list.append('ALL')
+    if rule_svc_list == [] and 'internet-service-src-name' in native_rule and len(native_rule['internet-service-src-name']) > 0:
         rule_svc_list.append('ALL')
         rule_svc_refs_list.append('ALL')
 

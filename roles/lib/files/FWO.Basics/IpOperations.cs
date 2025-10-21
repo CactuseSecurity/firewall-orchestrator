@@ -55,7 +55,7 @@ namespace FWO.Basics
             return (ipStart, ipEnd);
         }
 
-        public static bool TryParseIPStringToRange(this string ipString, out (string Start, string End) ipRange, bool strictv4Parse = false)
+        public static bool TryParseIPStringToRange(this string ipString, out (string start, string end) ipRange, bool strictv4Parse = false)
         {
             ipRange = default;
 
@@ -89,8 +89,8 @@ namespace FWO.Basics
                     return false;
                 }
 
-                ipRange.Start = ipStart;
-                ipRange.End = ipEnd;
+                ipRange.start = ipStart;
+                ipRange.end = ipEnd;
 
                 return true;
             }
@@ -141,8 +141,8 @@ namespace FWO.Basics
                 }
                 else if (typeof(T) == typeof((IPAddress, IPAddress)))
                 {
-                    Tuple<IPAddress, IPAddress>? ipTuple = new(ipAdressStart!, ipAdressEnd!);
-                    ipResult = (T)Convert.ChangeType(ipTuple, typeof(T));
+                    (IPAddress, IPAddress) ipTuple = (ipAdressStart!, ipAdressEnd!);
+                    ipResult = (T) (object) ipTuple;
                     return true;
                 }
 

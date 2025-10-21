@@ -1,39 +1,45 @@
 - block:
+      - name: ensure test_dir exists
+        file:
+            path: "{{ test_dir }}/csharp"
+            state: directory
+            owner: "{{ fworch_user }}"
+            group: "{{ fworch_group }}"
+            mode: "0755"
+        become: true
 
-  - name: copy test files to frontend target
-    copy:
-      src: FWO.Test
-      dest: "{{ test_dir }}/csharp"
-      owner: "{{ fworch_user }}"
-      group: "{{ fworch_group }}"
-    become: true
+      - name: sync test files to frontend target
+        synchronize:
+            src: FWO.Test
+            dest: "{{ test_dir }}/csharp"
+            rsync_opts:
+                - "--chown={{ fworch_user }}:{{ fworch_group }}"
+                - "--delete"
+        become: true
 
-  - name: run csharp tests
-    command: dotnet test
-    args:
-      chdir: "{{ csharp_test_start_dir }}"
-    become: true
-    become_user: "{{ fworch_user }}"
-    register: csharp_tests
-    ignore_errors: false
-    environment: "{{ proxy_env }}"
+      - name: run csharp tests
+        command: dotnet test
+        args:
+            chdir: "{{ csharp_test_start_dir }}"
+        become: true
+        become_user: "{{ fworch_user }}"
+        register: csharp_tests
+        ignore_errors: false
+        environment: "{{ proxy_env }}"
 
-  - name: show csharp test results in case of errors
-    debug:
-      var: csharp_tests
-    when: csharp_tests.rc != 0
+      - name: show csharp test results in case of errors
+        debug:
+            var: csharp_tests
+        when: csharp_tests.rc != 0
 
   when: "'frontends' in group_names"
   # run only once (on frontends)
 
 - block:
-
-  - name: Run importer Python unit tests
-    environment:
-      PYTHONPATH: "/usr/local/fworch/importer"
-    args:
-      chdir: "/usr/local/fworch/importer/test"
-    command: >
-      {{ importer_venv_dir }}/bin/python3 -m unittest discover -s . -p "test_*.py" -v
-
-  
+      - name: Run importer Python unit tests
+        environment:
+            PYTHONPATH: "/usr/local/fworch/importer"
+        args:
+            chdir: "/usr/local/fworch/importer/test"
+        command: >
+            {{ importer_venv_dir }}/bin/python3 -m unittest discover -s . -p "test_*.py" -v

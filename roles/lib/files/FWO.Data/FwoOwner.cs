@@ -17,8 +17,8 @@ namespace FWO.Data
         [JsonProperty("criticality"), JsonPropertyName("criticality")]
         public string? Criticality { get; set; }
 
-        [JsonProperty("lifecycle_status_id"), JsonPropertyName("lifecycle_status_id")]
-        public int? LifecycleStatusId { get; set; }
+        [JsonProperty("owner_lifecycle_state_id"), JsonPropertyName("owner_lifecycle_state_id")]
+        public int? OwnerLifeCycleStateId { get; set; }
 
         [JsonProperty("active"), JsonPropertyName("active")]
         public bool Active { get; set; } = true;

@@ -2072,6 +2072,8 @@ INSERT INTO txt VALUES ('write_user_pwd',       'German', 	'Passwort Schreibende
 INSERT INTO txt VALUES ('write_user_pwd',       'English', 	'Write User Password');
 INSERT INTO txt VALUES ('tenant',               'German', 	'Mandant');
 INSERT INTO txt VALUES ('tenant',               'English', 	'Tenant');
+INSERT INTO txt VALUES ('lifecyclestate',       'German', 	'Produktionszyklus');
+INSERT INTO txt VALUES ('lifecyclestate',       'English', 	'Lifecycle State');
 INSERT INTO txt VALUES ('global_tenant_name',   'German', 	'Globaler Mandantenname');
 INSERT INTO txt VALUES ('global_tenant_name',   'English', 	'Global Tenant Name');
 INSERT INTO txt VALUES ('pwMinLength',          'German', 	'Mindestl&auml;nge');
@@ -2376,6 +2378,16 @@ INSERT INTO txt VALUES ('assign_state_to',      'German',   'Status zuordnen zu:
 INSERT INTO txt VALUES ('assign_state_to',      'English',  'Assign state to: ');
 INSERT INTO txt VALUES ('select_action',        'German',   'Aktion ausw&auml;hlen');
 INSERT INTO txt VALUES ('select_action',        'English',  'Select action');
+INSERT INTO txt VALUES ('manage_lifecycles',    'German',   'Produktionszyklen verwalten');
+INSERT INTO txt VALUES ('manage_lifecycles',    'English',  'Manage Lifecycles');
+INSERT INTO txt VALUES ('add_lifecycle',        'German',   'Produktionszyklus hinzuf&uuml;gen');
+INSERT INTO txt VALUES ('add_lifecycle',        'English',  'Add lifecycle');
+INSERT INTO txt VALUES ('lifecycles',           'German',   'Produktionszyklen');
+INSERT INTO txt VALUES ('lifecycles',           'English',  'Lifecycles');
+INSERT INTO txt VALUES ('edit_lifecycle',       'German',   'Produktionszyklus bearbeiten');
+INSERT INTO txt VALUES ('edit_lifecycle',       'English',  'Edit lifecycle');
+INSERT INTO txt VALUES ('delete_lifecycle',     'German',   'Produktionszyklus l&ouml;schen');
+INSERT INTO txt VALUES ('delete_lifecycle',     'English',  'Delete lifecycle');
 INSERT INTO txt VALUES ('owners',               'German',   'Eigent&uuml;mer');
 INSERT INTO txt VALUES ('owners',               'English',  'Owners');
 INSERT INTO txt VALUES ('add_owner',            'German',   'Eigent&uuml;mer hinzuf&uuml;gen');
@@ -2986,6 +2998,8 @@ INSERT INTO txt VALUES ('U5217', 'German',  'Sind sie sicher, dass sie folgenden
 INSERT INTO txt VALUES ('U5217', 'English', 'Are you sure you want to delete owner: ');
 INSERT INTO txt VALUES ('U5218', 'German',  'L&ouml;scht alle Beispiel-Eigent&uuml;mer (auf "_demo" endend)');
 INSERT INTO txt VALUES ('U5218', 'English', 'Deletes all sample owners (ending with "_demo")');
+INSERT INTO txt VALUES ('U5219', 'German',  'Sind sie sicher, dass sie folgenden Produktionszyklus l&ouml;schen wollen: ');
+INSERT INTO txt VALUES ('U5219', 'English', 'Are you sure you want to delete lifecycle: ');
 
 INSERT INTO txt VALUES ('U5301', 'German',  'Einstellungen ge&auml;ndert.');
 INSERT INTO txt VALUES ('U5301', 'English', 'Settings changed.');
@@ -3350,6 +3364,8 @@ INSERT INTO txt VALUES ('E5291', 'German',  'Eigent&uuml;mer konnte nicht gespei
 INSERT INTO txt VALUES ('E5291', 'English', 'Owner could not be saved');
 INSERT INTO txt VALUES ('E5292', 'German',  'Dn oder Gruppe muss gef&uuml;llt sein');
 INSERT INTO txt VALUES ('E5292', 'English', 'Dn or group has to be filled');
+INSERT INTO txt VALUES ('E5293', 'German',  'Produktionszyklus konnte nicht gespeichert werden');
+INSERT INTO txt VALUES ('E5293', 'English', 'Lifecycle could not be saved');
 
 INSERT INTO txt VALUES ('E5301', 'German',  'Konfiguration konnte nicht gelesen oder verarbeitet werden.');
 INSERT INTO txt VALUES ('E5301', 'English', 'Error reading or processing Config.');
@@ -5705,6 +5721,10 @@ INSERT INTO txt VALUES ('H5662', 'English', 'Body of decommission emails: Text o
 ');
 INSERT INTO txt VALUES ('H5663', 'German',  'Alle Regeln modelliert erwarten: Alle dem Eigent&uuml;mer zugeordneten Regeln m&uuml;ssen modelliert sein.');
 INSERT INTO txt VALUES ('H5663', 'English', 'Expect all rules as modelled: All rules associated to the owner have to be modelled.');
+INSERT INTO txt VALUES ('H5664', 'German',  'Produktionszyklus: Gibt an, in welchem Produktionszyklus sich der Eigentümer befindet.');
+INSERT INTO txt VALUES ('H5664', 'English', 'Lifecycle State: The lifecycle phase assigned to the owner.');
+INSERT INTO txt VALUES ('H5665', 'German',  'Name: Name des Produktionszyklus');
+INSERT INTO txt VALUES ('H5665', 'English', 'Name: Lifecycle name');
 
 INSERT INTO txt VALUES ('H5701', 'German',  'Die in der Datenbank hinterlegten sprachabh&auml;ngigen Texte k&ouml;nnen individuell &uuml;berschrieben werden.
     Dabei werden die vom System vorgegebenen Texte nicht ge&auml;ndert, sondern nur durch die hier definierten Texte - falls vorhanden - &uuml;berblendet.

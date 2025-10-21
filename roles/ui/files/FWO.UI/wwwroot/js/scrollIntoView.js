@@ -2,7 +2,9 @@
 function scrollIntoRSBView(htmlObjId) {
     let obj =  document.getElementById(htmlObjId)?.parentElement?.parentElement; // gets the tr element containing the obj
     if (!obj)
+    {
         return false;
+    }
     obj.scrollIntoView({ behavior: "smooth", block: "center" });
     // Expand row
     let toggleLink = obj.previousElementSibling.querySelector("a");

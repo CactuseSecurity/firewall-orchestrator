@@ -190,8 +190,9 @@ def create_service_for_port_range(port_range: Tuple[str, str], proto: str, servi
             start = name_to_port[start]["port"]
         if not end.isdigit():
             if not description:
-                description = ""
-            description += f"{end}: {name_to_port[end]['description']}"
+                description = f"{end}: {name_to_port[end]['description']}"
+            else:
+                description += f"; {end}: {name_to_port[end]['description']}"
             end = name_to_port[end]["port"]
         obj = create_service_object(obj_name, int(start), int(end), proto, description)
         service_objects[obj_name] = obj

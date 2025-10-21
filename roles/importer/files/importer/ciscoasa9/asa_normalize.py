@@ -120,7 +120,8 @@ def normalize_config(config_in, importState):
         importState.MgmDetails.Uid,
         protocol_groups=native_config.protocol_groups,
         network_objects=network_objects,
-        service_objects=service_objects
+        service_objects=service_objects,
+        gateway_uid=native_config.hostname
     )
 
     # Step 4: Create rulebase links (ordered chain of rulebases)

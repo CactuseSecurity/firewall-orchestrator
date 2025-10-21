@@ -73,7 +73,8 @@ def resolve_network_reference_for_rule(endpoint, network_objects: Dict) -> str:
 
 def create_rule_from_acl_entry(access_list_name: str, idx: int, entry: AccessListEntry, 
                               protocol_groups: List[AsaProtocolGroup], 
-                              network_objects: Dict, service_objects: Dict) -> RuleNormalized:
+                              network_objects: Dict, service_objects: Dict,
+                              gateway_uid: str) -> RuleNormalized:
     """Create a normalized rule from an ACL entry.
 
     Args:
@@ -83,6 +84,7 @@ def create_rule_from_acl_entry(access_list_name: str, idx: int, entry: AccessLis
         protocol_groups: List of protocol groups for resolving references
         network_objects: Dictionary of network objects to update if needed
         service_objects: Dictionary of service objects to update if needed
+        gateway_uid: UID of the gateway object representing the ASA device
 
     Returns:
         Normalized rule object
@@ -112,7 +114,7 @@ def create_rule_from_acl_entry(access_list_name: str, idx: int, entry: AccessLis
         rule_svc_refs=svc_ref,
         rule_action=RuleAction.ACCEPT if entry.action == "permit" else RuleAction.REJECT,
         rule_track=RuleTrack.NONE,
-        rule_installon="",
+        rule_installon=gateway_uid,
         rule_time="",
         rule_name=f"{access_list_name}-{idx:03d}",
         rule_uid=rule_uid,
@@ -133,7 +135,8 @@ def create_rule_from_acl_entry(access_list_name: str, idx: int, entry: AccessLis
 
 def build_rulebases_from_access_lists(access_lists: List[AccessList], mgm_uid: str, 
                                      protocol_groups: List[AsaProtocolGroup],
-                                     network_objects: Dict, service_objects: Dict) -> List[Rulebase]:
+                                     network_objects: Dict, service_objects: Dict,
+                                     gateway_uid: str) -> List[Rulebase]:
     """Build rulebases from ASA access lists.
 
     Each access list becomes a separate rulebase containing normalized rules.
@@ -145,6 +148,7 @@ def build_rulebases_from_access_lists(access_lists: List[AccessList], mgm_uid: s
         protocol_groups: List of protocol groups for resolving protocol-group references
         network_objects: Dictionary of network objects to update if needed
         service_objects: Dictionary of service objects to update if needed
+        gateway_uid: UID of the gateway object representing the ASA device
 
     Returns:
         List of normalized rulebases
@@ -161,7 +165,8 @@ def build_rulebases_from_access_lists(access_lists: List[AccessList], mgm_uid: s
                 entry, 
                 protocol_groups, 
                 network_objects, 
-                service_objects
+                service_objects,
+                gateway_uid
             )
             rules[rule.rule_uid] = rule
 

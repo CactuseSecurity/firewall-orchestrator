@@ -470,7 +470,7 @@ def _parse_access_list_entry(line: str, protocol_groups: List[AsaProtocolGroup],
         dst_port = EndpointKind(kind="eq", value=tokens[1])
         tokens = tokens[2:]
     elif len(tokens) >= 3 and tokens[0] == "range":
-        dst_port = EndpointKind(kind="range", value=f"{tokens[1]}-{tokens[2]}")
+        dst_port = EndpointKind(kind="range", value=f"{tokens[1]} {tokens[2]}")
         tokens = tokens[3:]
     elif len(tokens) >= 2 and tokens[0] == "object-group":
         dst_port = EndpointKind(kind="service-group", value=tokens[1])

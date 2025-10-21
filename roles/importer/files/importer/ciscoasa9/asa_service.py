@@ -244,7 +244,7 @@ def create_service_for_acl_entry(entry: AccessListEntry, service_objects: Dict[s
 
             elif entry.dst_port.kind == "range":
                 # Port range (e.g., 'range 1024 65535')
-                ports = entry.dst_port.value.split("-")
+                ports = entry.dst_port.value.split() # expecting "start end"
                 return create_service_for_port_range((ports[0], ports[1]), entry.protocol.value, service_objects)
 
             elif entry.dst_port.kind == "any":
@@ -299,7 +299,7 @@ def normalize_service_object_groups(service_groups: List[AsaServiceObjectGroup],
         obj_names = []
         if hasattr(group, "ports_eq"):
             for protos, eq_ports in group.ports_eq.items():
-                for proto in protos.split("-"):
+                for proto in protos.split("-"): # handles "tcp-udp"
                     for port in eq_ports:
                         obj_name = create_service_for_port(port, proto, service_objects)
                         obj_names.append(obj_name)
@@ -364,7 +364,7 @@ def normalize_service_object_groups(service_groups: List[AsaServiceObjectGroup],
         """Process a single-protocol service group."""
         obj_names = []
 
-        for protocol in group.proto_mode.split("-"):
+        for protocol in group.proto_mode.split("-"): # handles "tcp-udp"
             if protocol not in protocol_map and protocol != "service":
                 raise ValueError(f"Unknown protocol in service object group: {protocol}")
 

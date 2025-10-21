@@ -234,7 +234,7 @@ def _parse_service_object_block(block: List[str]) -> AsaServiceObject | None:
         s = b.strip()
         # e.g., "service tcp destination eq 1234"
         meq = re.match(r"^service\s+(tcp|udp|ip)\s+destination\s+eq\s+(\S+)$", s, re.I)
-        mrange = re.match(r"^service\s+(tcp|udp|ip)\s+destination\s+range\s+(\d+)\s+(\d+)$", s, re.I)
+        mrange = re.match(r"^service\s+(tcp|udp|ip)\s+destination\s+range\s+(\S+)\s+(\S+)$", s, re.I)
         mdesc = re.match(description_re, s, re.I)
         micmp = re.match(r"^service\s+icmp.*$", s, re.I)
         msvc = re.match(r"^service\s+(\S+)$", s, re.I)
@@ -244,7 +244,7 @@ def _parse_service_object_block(block: List[str]) -> AsaServiceObject | None:
             eq = meq.group(2)
         elif mrange:
             protocol = mrange.group(1).lower()
-            prange = (int(mrange.group(2)), int(mrange.group(3)))
+            prange = (mrange.group(2), mrange.group(3))
         elif mdesc:
             desc = mdesc.group(1)
         elif micmp:
@@ -263,8 +263,8 @@ def _parse_service_object_block(block: List[str]) -> AsaServiceObject | None:
 
 def _convert_ports_to_dicts(
     ports_eq: List[Tuple[str, str]], 
-    ports_range: List[Tuple[str, Tuple[int, int]]]
-) -> Tuple[Dict[str, List[str]], Dict[str, List[Tuple[int, int]]]]:
+    ports_range: List[Tuple[str, Tuple[str, str]]]
+) -> Tuple[Dict[str, List[str]], Dict[str, List[Tuple[str, str]]]]:
     """
     Convert port lists to dictionaries grouped by protocol.
     Returns (ports_eq_dict, ports_range_dict).
@@ -275,7 +275,7 @@ def _convert_ports_to_dicts(
             ports_eq_dict[proto] = []
         ports_eq_dict[proto].append(port)
 
-    ports_range_dict: Dict[str, List[Tuple[int, int]]] = {}
+    ports_range_dict: Dict[str, List[Tuple[str, str]]] = {}
     for proto, prange in ports_range:
         if proto not in ports_range_dict:
             ports_range_dict[proto] = []
@@ -296,7 +296,7 @@ def _parse_service_object_group_block(block: List[str]) -> AsaServiceObjectGroup
 
     desc = None
     ports_eq: List[Tuple[str, str]] = []
-    ports_range: List[Tuple[str, Tuple[int, int]]] = []
+    ports_range: List[Tuple[str, Tuple[str, str]]] = []
     nested_groups: List[str] = []
     protocols: List[str] = []
 
@@ -313,7 +313,7 @@ def _parse_service_object_group_block(block: List[str]) -> AsaServiceObjectGroup
         elif meq:
             ports_eq.append((proto_mode, meq.group(1)))
         elif mrange:
-            ports_range.append((proto_mode, (int(mrange.group(1)), int(mrange.group(2)))))
+            ports_range.append((proto_mode, (mrange.group(1), mrange.group(2))))
         elif mobj:
             nested_groups.append(mobj.group(1))
         elif mproto and len(mproto.groups()) == 1:
@@ -524,52 +524,13 @@ def _parse_protocol_object_group_block(block: List[str]) -> AsaProtocolGroup:
     )
 
 
-
-def _parse_service_object_block_with_inline_protocol(block: List[str]) -> AsaServiceObject:
-    """Parse an object service block that includes protocol in the header line."""
-    hdr = block[0].split()
-    name = hdr[2]
-    if len(hdr) < 4:
-        raise ValueError(f"Missing protocol in service object header: {block[0]}")
-    protocol = hdr[3].lower()
-    if protocol not in ("tcp", "udp", "tcp-udp", "icmp", "ip"):
-        raise ValueError(f"Unsupported protocol '{protocol}' in service object: {block[0]}")
-
-    eq = None
-    prange = None
-    desc = None
-
-    for b in block[1:]:
-        s = b.strip()
-        msvc = re.match(r"^service\s+(?:destination\s+)?(?:eq\s+(\S+)|range\s+(\d+)\s+(\d+))$", s, re.I)
-        mdesc = re.match(description_re, s, re.I)
-        meq = re.match(r"^port-object\s+eq\s+(\S+)$", s, re.I)  # Match port-object eq
-        mrange = re.match(r"^port-object\s+range\s+(\d+)\s+(\d+)$", s, re.I)  # Match port-object range
-
-        if msvc:
-            if msvc.group(1):
-                eq = msvc.group(1)
-            elif msvc.group(2) and msvc.group(3):
-                prange = (int(msvc.group(2)), int(msvc.group(3)))
-        elif mdesc:
-            desc = mdesc.group(1)
-        elif meq:
-            eq = meq.group(1)  # Handle port-object eq
-        elif mrange:
-            prange = (int(mrange.group(1)), int(mrange.group(2)))  # Handle port-object range
-
-    return AsaServiceObject(name=name, protocol=protocol, dst_port_eq=eq, dst_port_range=prange, description=desc)
-
-
-
-
 def _parse_service_object_group_block_without_inline_protocol(block: List[str]) -> AsaServiceObjectGroup:
     """Parse an object-group service block without inline protocol in the header line."""
     grp_name = block[0].split()[2]
     desc = None
     ports_eq: List[Tuple[str, str]] = []
-    ports_range: List[Tuple[str, Tuple[int, int]]] = []
-    nested_groups: List[str] = []
+    ports_range: List[Tuple[str, Tuple[str, str]]] = []
+    nested_refs: List[str] = []
     protocols: List[str] = []
 
     current_proto_mode: str = "tcp"  # Default protocol mode
@@ -577,21 +538,21 @@ def _parse_service_object_group_block_without_inline_protocol(block: List[str]) 
         s = b.strip()
         mdesc = re.match(description_re, s, re.I)
         meq = re.match(r"^port-object\s+eq\s+(\S+)$", s, re.I)
-        mrange = re.match(r"^port-object\s+range\s+(\d+)\s+(\d+)$", s, re.I)
+        mrange = re.match(r"^port-object\s+range\s+(\S+)\s+(\S+)$", s, re.I)
         mobj = re.match(r"^service-object\s+object\s+(\S+)$", s, re.I)
         mproto = re.match(r"^service-object\s+(tcp|udp|icmp|tcp-udp)$", s, re.I)
         # Handle lines like: service-object tcp destination eq https
         msvc_eq = re.match(r"^service-object\s+(tcp|udp|icmp|tcp-udp)\s+(?:destination\s+)?eq\s+(\S+)$", s, re.I)
-        msvc_range = re.match(r"^service-object\s+(tcp|udp|icmp|tcp-udp)\s+(?:destination\s+)?range\s+(\d+)\s+(\d+)$", s, re.I)
+        msvc_range = re.match(r"^service-object\s+(tcp|udp|icmp|tcp-udp)\s+(?:destination\s+)?range\s+(\S+)\s+(\S+)$", s, re.I)
 
         if mdesc:
             desc = mdesc.group(1)
         elif meq:
             ports_eq.append((current_proto_mode, meq.group(1)))
         elif mrange:
-            ports_range.append((current_proto_mode, (int(mrange.group(1)), int(mrange.group(2)))))
+            ports_range.append((current_proto_mode, (mrange.group(1), mrange.group(2))))
         elif mobj:
-            nested_groups.append(mobj.group(1))
+            nested_refs.append(mobj.group(1))
         elif mproto: 
             if len(mproto.groups()) == 1:
                 protocols.append(mproto.group(1).lower())
@@ -605,21 +566,21 @@ def _parse_service_object_group_block_without_inline_protocol(block: List[str]) 
             current_proto_mode = proto
         elif msvc_range:
             proto = msvc_range.group(1).lower()
-            port1 = int(msvc_range.group(2))
-            port2 = int(msvc_range.group(3))
+            port1 = msvc_range.group(2)
+            port2 = msvc_range.group(3)
             ports_range.append((proto, (port1, port2)))
             current_proto_mode = proto
 
     # Determine proto_mode based on contents
     proto_mode: Literal['tcp', 'udp', 'tcp-udp', 'service', 'mixed'] = "mixed"  # default value
-    if protocols and not (ports_eq or ports_range or nested_groups):
+    if protocols and not (ports_eq or ports_range or nested_refs):
         proto_mode = "service"
-    elif len(protocols) == 1 and not (ports_eq or ports_range or nested_groups):
+    elif len(protocols) == 1 and not (ports_eq or ports_range or nested_refs):
         if protocols[0] in ("tcp", "udp", "tcp-udp"):
             proto_mode = protocols[0]  # type: ignore
         else:
             proto_mode = "service"
-    elif len(protocols) > 1 and not (ports_eq or ports_range or nested_groups):
+    elif len(protocols) > 1 and not (ports_eq or ports_range or nested_refs):
         proto_mode = "mixed"
 
     # Convert ports_eq from List[Tuple[str, str]] to Dict[str, List[str]]
@@ -629,19 +590,44 @@ def _parse_service_object_group_block_without_inline_protocol(block: List[str]) 
             ports_eq_dict[proto] = []
         ports_eq_dict[proto].append(port)
 
-    # Convert ports_range from List[Tuple[str, Tuple[int, int]]] to Dict[str, List[Tuple[int, int]]]
-    ports_range_dict: Dict[str, List[Tuple[int, int]]] = {}
+    # Convert ports_range from List[Tuple[str, Tuple[str, str]]] to Dict[str, List[Tuple[str, str]]]
+    ports_range_dict: Dict[str, List[Tuple[str, str]]] = {}
     for proto, prange in ports_range:
         if proto not in ports_range_dict:
             ports_range_dict[proto] = []
-        ports_range_dict[proto].append(prange)
+        ports_range_dict[proto].append((str(prange[0]), str(prange[1])))
 
     return AsaServiceObjectGroup(
         name=grp_name,
         proto_mode=proto_mode,
         ports_eq=ports_eq_dict,
         ports_range=ports_range_dict,
-        nested_refs=nested_groups,
+        nested_refs=nested_refs,
         protocols=protocols,
+        description=desc
+    )
+
+def _parse_icmp_object_group_block(block: List[str]) -> AsaServiceObjectGroup:
+    """Parse an object-group icmp-type block."""
+    grp_name = block[0].split()[2]
+    desc = None
+    objects: List[str] = []
+    for b in block[1:]:
+        s = b.strip()
+        mdesc = re.match(description_re, s, re.I)
+        mobj = re.match(r"^icmp-object\s+(\S+)$", s, re.I)
+
+        if mdesc:
+            desc = mdesc.group(1)
+        elif mobj:
+            objects.append(mobj.group(1))
+    
+    return AsaServiceObjectGroup(
+        name=grp_name,
+        proto_mode="icmp",
+        ports_eq={"icmp": objects},
+        ports_range={},
+        nested_refs=[],
+        protocols=["icmp"],
         description=desc
     )

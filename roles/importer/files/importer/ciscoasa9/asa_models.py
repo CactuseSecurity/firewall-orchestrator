@@ -51,17 +51,17 @@ class AsaServiceObject(BaseModel):
     name: str
     protocol: Literal["tcp", "udp", "ip", "tcp-udp", "icmp", "gre"]
     dst_port_eq: str | None = None
-    dst_port_range: Tuple[int, int] | None = None
+    dst_port_range: Tuple[str, str] | None = None
     description: str | None = None
 
 class AsaServiceObjectGroup(BaseModel):
     name: str
-    proto_mode: Literal["tcp", "udp", "tcp-udp", "service", "mixed"] = "tcp"
-    ports_eq: dict[str, list[str]] = {}  # proto_mode -> list of ports
-    ports_range: dict[str, list[Tuple[int, int]]] = {}  # proto_mode -> list of (start_port, end_port)
-    nested_refs: List[str] = [] 
-    protocols: List[str] = [] 
-    description: str | None = None
+    proto_mode: Literal["tcp", "udp", "tcp-udp", "service", "mixed", "icmp"]
+    ports_eq: dict[str, list[str]]  # proto_mode -> list of ports
+    ports_range: dict[str, list[Tuple[str, str]]]  # proto_mode -> list of (start_port, end_port)
+    nested_refs: List[str]
+    protocols: List[str]
+    description: str | None
 
 class AsaProtocolGroup(BaseModel):
     name: str

@@ -5,7 +5,7 @@ It manages both explicit service objects/groups and implicit service objects cre
 inline ACL definitions.
 """
 
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Tuple
 from models.serviceobject import ServiceObject
 from ciscoasa9.asa_models import AsaServiceObject, AsaServiceObjectGroup, AccessListEntry
 from ciscoasa9.asa_maps import name_to_port, protocol_map
@@ -18,7 +18,7 @@ def create_service_object(name: str, port: int, port_end: int, protocol: str, co
     Args:
         name: Service object name/UID
         port: Start port number
-        port_end: End port number  
+        port_end: End port number
         protocol: Protocol name (tcp, udp, icmp, etc.)
         comment: Optional description
 
@@ -92,27 +92,23 @@ def normalize_service_objects(service_objects: List[AsaServiceObject]) -> Dict[s
     normalized = {}
 
     for svc in service_objects:
-        if svc.dst_port_eq and len(svc.dst_port_eq) > 0:
+        if svc.dst_port_eq:
             # Service with specific port (eq)
-            if svc.dst_port_eq.isdigit():
-                port = int(svc.dst_port_eq)
-                comment = svc.description
-            else:
-                port = name_to_port[svc.dst_port_eq]["port"]
-                comment = name_to_port[svc.dst_port_eq]["description"]
+            port = svc.dst_port_eq
+            if not port.isdigit():
+                port = name_to_port[port]["port"]
 
-            obj = create_service_object(svc.name, port, port, svc.protocol, comment)
+            obj = create_service_object(svc.name, int(port), int(port), svc.protocol, svc.description)
             normalized[svc.name] = obj
 
-        elif svc.dst_port_range and len(svc.dst_port_range) == 2:
+        elif svc.dst_port_range:
             # Service with port range
-            obj = create_service_object(
-                svc.name, 
-                int(svc.dst_port_range[0]), 
-                int(svc.dst_port_range[1]), 
-                svc.protocol, 
-                svc.description
-            )
+            start, end = svc.dst_port_range
+            if not start.isdigit():
+                start = name_to_port[start]["port"]
+            if not end.isdigit():
+                end = name_to_port[end]["port"]
+            obj = create_service_object( svc.name, int(start), int(end), svc.protocol, svc.description)
             normalized[svc.name] = obj
 
         else:
@@ -148,33 +144,38 @@ def create_protocol_any_service_objects() -> Dict[str, ServiceObject]:
     return service_objects
 
 
-def create_service_for_port(port: str, proto: str, description: str, service_objects: Dict[str, ServiceObject]) -> str:
+def create_service_for_port(port: str, proto: str, service_objects: Dict[str, ServiceObject]) -> str:
     """Create a service object for a single port and protocol if it doesn't exist.
 
     Args:
         port: Port number or name
         proto: Protocol name
-        description: Service description
         service_objects: Dictionary to update with new service object
 
     Returns:
         Service object name/UID
     """
+    if proto == "icmp":
+        obj = create_protocol_service_object(f"icmp-{port}", "icmp", None)
+        service_objects[obj.svc_uid] = obj
+        return obj.svc_uid
     obj_name = f"{port}-{proto}"
     if obj_name not in service_objects:
-        port_num = int(port) if str(port).isdigit() else name_to_port[port]["port"]
-        obj = create_service_object(obj_name, port_num, port_num, proto, description)
+        description = None
+        if not port.isdigit():
+            description = name_to_port[port]["description"]
+            port = name_to_port[port]["port"]
+        obj = create_service_object(obj_name, int(port), int(port), proto, description)
         service_objects[obj_name] = obj
     return obj_name
 
 
-def create_service_for_port_range(port_range: tuple, proto: str, description: str, service_objects: Dict[str, ServiceObject]) -> str:
+def create_service_for_port_range(port_range: Tuple[str, str], proto: str, service_objects: Dict[str, ServiceObject]) -> str:
     """Create a service object for a port range and protocol if it doesn't exist.
 
     Args:
         port_range: Tuple of (start_port, end_port)
         proto: Protocol name
-        description: Service description
         service_objects: Dictionary to update with new service object
 
     Returns:
@@ -182,7 +183,17 @@ def create_service_for_port_range(port_range: tuple, proto: str, description: st
     """
     obj_name = f"{port_range[0]}-{port_range[1]}-{proto}" if port_range[0] != port_range[1] else f"{port_range[0]}-{proto}"
     if obj_name not in service_objects:
-        obj = create_service_object(obj_name, int(port_range[0]), int(port_range[1]), proto, description)
+        start, end = port_range
+        description = None
+        if not start.isdigit():
+            description = f"{start}: {name_to_port[start]['description']}"
+            start = name_to_port[start]["port"]
+        if not end.isdigit():
+            if not description:
+                description = ""
+            description += f"{end}: {name_to_port[end]['description']}"
+            end = name_to_port[end]["port"]
+        obj = create_service_object(obj_name, int(start), int(end), proto, description)
         service_objects[obj_name] = obj
     return obj_name
 
@@ -229,16 +240,12 @@ def create_service_for_acl_entry(entry: AccessListEntry, service_objects: Dict[s
         if entry.protocol.value in ("tcp", "udp", "icmp"):
             if entry.dst_port.kind == "eq":
                 # Single port (e.g., 'eq 443' or 'eq https')
-                return create_service_for_port(entry.dst_port.value, entry.protocol.value, creation_comment, service_objects)
+                return create_service_for_port(entry.dst_port.value, entry.protocol.value, service_objects)
 
             elif entry.dst_port.kind == "range":
                 # Port range (e.g., 'range 1024 65535')
                 ports = entry.dst_port.value.split("-")
-                if len(ports) == 2 and ports[0].isdigit() and ports[1].isdigit():
-                    return create_service_for_port_range((ports[0], ports[1]), entry.protocol.value, creation_comment, service_objects)
-                else:
-                    # Fallback for malformed range
-                    return create_any_protocol_service(entry.protocol.value, service_objects)
+                return create_service_for_port_range((ports[0], ports[1]), entry.protocol.value, service_objects)
 
             elif entry.dst_port.kind == "any":
                 # Any port for the protocol
@@ -287,28 +294,28 @@ def normalize_service_object_groups(service_groups: List[AsaServiceObjectGroup],
     Returns:
         Updated service objects dictionary including groups
     """
-    def process_mixed_protocol_eq_ports(group, service_objects: Dict[str, ServiceObject]) -> List[str]:
+    def process_mixed_protocol_eq_ports(group: AsaServiceObjectGroup, service_objects: Dict[str, ServiceObject]) -> List[str]:
         """Process equal ports for mixed protocol groups."""
         obj_names = []
         if hasattr(group, "ports_eq"):
             for protos, eq_ports in group.ports_eq.items():
                 for proto in protos.split("-"):
                     for port in eq_ports:
-                        obj_name = create_service_for_port(port, proto, group.description, service_objects)
+                        obj_name = create_service_for_port(port, proto, service_objects)
                         obj_names.append(obj_name)
         return obj_names
 
-    def process_mixed_protocol_range_ports(group, service_objects: Dict[str, ServiceObject]) -> List[str]:
+    def process_mixed_protocol_range_ports(group: AsaServiceObjectGroup, service_objects: Dict[str, ServiceObject]) -> List[str]:
         """Process port ranges for mixed protocol groups."""
         obj_names = []
         if hasattr(group, "ports_range"):
             for proto, ranges in group.ports_range.items():
                 for pr in ranges:
-                    obj_name = create_service_for_port_range(pr, proto, group.description, service_objects)
+                    obj_name = create_service_for_port_range(pr, proto, service_objects)
                     obj_names.append(obj_name)
         return obj_names
 
-    def process_mixed_protocol_group(group, service_objects: Dict[str, ServiceObject]) -> List[str]:
+    def process_mixed_protocol_group(group: AsaServiceObjectGroup, service_objects: Dict[str, ServiceObject]) -> List[str]:
         """Process a mixed protocol service group."""
         obj_names = []
 
@@ -323,7 +330,7 @@ def normalize_service_object_groups(service_groups: List[AsaServiceObjectGroup],
 
         return obj_names
 
-    def process_service_protocol_group(group) -> List[str]:
+    def process_service_protocol_group(group: AsaServiceObjectGroup) -> List[str]:
         """Process a service group that references other services."""
         obj_names = []
 
@@ -337,23 +344,23 @@ def normalize_service_object_groups(service_groups: List[AsaServiceObjectGroup],
 
         return obj_names
 
-    def process_single_protocol_eq_ports(group, protocol: str, service_objects: Dict[str, ServiceObject]) -> List[str]:
+    def process_single_protocol_eq_ports(group: AsaServiceObjectGroup, protocol: str, service_objects: Dict[str, ServiceObject]) -> List[str]:
         """Process equal ports for single protocol groups."""
         obj_names = []
         for pr in group.ports_eq.get(group.proto_mode, []):
-            obj_name = create_service_for_port(pr, protocol, group.description, service_objects)
+            obj_name = create_service_for_port(pr, protocol, service_objects)
             obj_names.append(obj_name)
         return obj_names
 
-    def process_single_protocol_range_ports(group, protocol: str, service_objects: Dict[str, ServiceObject]) -> List[str]:
+    def process_single_protocol_range_ports(group: AsaServiceObjectGroup, protocol: str, service_objects: Dict[str, ServiceObject]) -> List[str]:
         """Process port ranges for single protocol groups."""
         obj_names = []
         for pr in group.ports_range.get(group.proto_mode, []):
-            obj_name = create_service_for_port_range(pr, protocol, group.description, service_objects)
+            obj_name = create_service_for_port_range(pr, protocol, service_objects)
             obj_names.append(obj_name)
         return obj_names
 
-    def process_single_protocol_group(group, service_objects: Dict[str, ServiceObject]) -> List[str]:
+    def process_single_protocol_group(group: AsaServiceObjectGroup, service_objects: Dict[str, ServiceObject]) -> List[str]:
         """Process a single-protocol service group."""
         obj_names = []
 

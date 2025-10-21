@@ -7,8 +7,8 @@ from ciscoasa9.asa_models import AccessGroupBinding, AccessList, AccessListEntry
     ClassMap, Config, DnsInspectParameters, EndpointKind, InspectionAction, Interface, MgmtAccessRule,\
     Names, NatRule, PolicyClass, PolicyMap, Route, ServicePolicyBinding
 from ciscoasa9.asa_parser_functions import _clean_lines, _consume_block, _parse_class_map_block, \
-    _parse_dns_inspect_policy_map_block, _parse_interface_block, _parse_network_object_block, \
-    _parse_network_object_group_block, _parse_policy_map_block, _parse_service_object_block, _parse_service_object_block_with_inline_protocol, \
+    _parse_dns_inspect_policy_map_block, _parse_icmp_object_group_block, _parse_interface_block, _parse_network_object_block, \
+    _parse_network_object_group_block, _parse_policy_map_block, _parse_service_object_block, \
     _parse_service_object_group_block, _parse_endpoint, _parse_protocol_object_group_block, \
     _parse_access_list_entry, _parse_service_object_group_block_without_inline_protocol
 
@@ -132,12 +132,6 @@ def parse_asa_config(raw_config: str) -> Config:
                 svc_objects.append(svc_obj)
             continue
 
-        # object service with inline protocol definition
-        if re.match(r"^object service \S+ (tcp|udp|icmp|ip|tcp-udp)( .+)?$", line, re.I):
-            block, i = _consume_block(lines, i, re.compile(r"^object service \S+ (tcp|udp|icmp|ip|tcp-udp)( .+)?$", re.I))
-            svc_objects.append(_parse_service_object_block_with_inline_protocol(block))
-            continue
-
         # object-group service with inline protocol (e.g. "object-group service NAME check if tcp udp or tcp-udp")
         if re.match(r"^object-group\s+service\s+\S+ (tcp|udp|icmp|ip|tcp-udp)( .+)?$", line, re.I):
             block, i = _consume_block(lines, i, re.compile(r"^object-group\s+service\s+\S+", re.I))
@@ -148,6 +142,12 @@ def parse_asa_config(raw_config: str) -> Config:
         if re.match(r"^object-group\s+service\s+\S+\s*$", line, re.I):
             block, i = _consume_block(lines, i, re.compile(r"^object-group\s+service\s+\S+\s*$", re.I))
             svc_obj_groups.append(_parse_service_object_group_block_without_inline_protocol(block))
+            continue
+
+        # object-group icmp-type
+        if re.match(r"^object-group\s+icmp-type\s+\S+$", line, re.I):
+            block, i = _consume_block(lines, i, re.compile(r"^object-group\s+icmp-type\s+\S+$", re.I))
+            svc_obj_groups.append(_parse_icmp_object_group_block(block))
             continue
 
         # object-group protocol

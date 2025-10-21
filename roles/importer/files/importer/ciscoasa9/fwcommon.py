@@ -85,7 +85,7 @@ def load_config_from_management(mgm_details: ManagementController, is_virtual_as
         return response.result.strip()
     except Exception as e:
         logger.error(f"Error connecting to device {mgm_details.Hostname}: {e}")
-        return ""
+        raise
 
 
 def get_config(config_in: FwConfigManagerListController, importState: ImportStateController) -> tuple[int, FwConfigManagerList]:

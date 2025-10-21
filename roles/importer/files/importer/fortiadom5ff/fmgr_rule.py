@@ -243,6 +243,12 @@ def rule_parse_service(native_rule):
     for svc in native_rule.get('service', []):
         rule_svc_list.append(svc)
         rule_svc_refs_list.append(svc)
+    if rule_svc_list == [] and 'internet-service-name' in native_rule and len(native_rule['internet-service-name']) > 0:
+        rule_svc_list.append('ALL')
+        rule_svc_refs_list.append('ALL')
+    if rule_svc_list == [] and 'internet-service-src-name' in native_rule and len(native_rule['internet-service-src-name']) > 0:
+        rule_svc_list.append('ALL')
+        rule_svc_refs_list.append('ALL')
 
     return rule_svc_list, rule_svc_refs_list
 
@@ -265,7 +271,7 @@ def build_addr_list(native_rule, is_v4, target, normalized_config_adom, normaliz
             addr_list.append(addr)
             addr_ref_list.append(find_addr_ref(addr, is_v4, normalized_config_adom, normalized_config_global))
     elif is_v4 and target == 'dst':
-        for addr in native_rule.get('dstaddr', []):
+        for addr in native_rule.get('dstaddr', []) + native_rule.get('internet-service-name', []):
             addr_list.append(addr)
             addr_ref_list.append(find_addr_ref(addr, is_v4, normalized_config_adom, normalized_config_global))
     else:
@@ -289,6 +295,7 @@ def ip_type(nw_obj):
     return net.version
 
 def rule_parse_negation_flags(native_rule):
+    # if customer decides to mix internet-service and "normal" addr obj in src/dst and mix negates this will prob. not work correctly
     if 'srcaddr-negate' in native_rule:
         rule_src_neg = native_rule['srcaddr-negate'] == 1 or native_rule['srcaddr-negate'] == 'disable'
     elif 'internet-service-src-negate' in native_rule:

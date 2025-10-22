@@ -18,19 +18,19 @@
                 {
                     <AuthorizeView Roles="@AllowedRoles">
                         <Authorized>
-                            <button type="button" class="btn btn-sm btn-danger" @onclick="Perform">@(Remove ? userConfig.GetText("remove") : userConfig.GetText("delete"))</button>
+                            <button type="button" class="btn btn-sm btn-danger" @onclick="Perform">@(DisplayService.DisplayButton(userConfig, Remove ? userConfig.GetText("remove") : userConfig.GetText("delete"), Icons.Delete))</button>
                         </Authorized>
                         <NotAuthorized>
-                            <button type="button" class="btn btn-sm btn-danger" disabled>@(Remove ? userConfig.GetText("remove") : userConfig.GetText("delete"))</button>
+                            <button type="button" class="btn btn-sm btn-danger" disabled>@(DisplayService.DisplayButton(userConfig, Remove ? userConfig.GetText("remove") : userConfig.GetText("delete"), Icons.Delete))</button>
                         </NotAuthorized> 
                     </AuthorizeView>
                 }
                 else
                 {
-                    <button type="button" class="btn btn-sm btn-danger" disabled>@(Remove ? userConfig.GetText("remove") : userConfig.GetText("delete"))</button>
+                    <button type="button" class="btn btn-sm btn-danger" disabled>@(DisplayService.DisplayButton(userConfig, Remove ? userConfig.GetText("remove") : userConfig.GetText("delete"), Icons.Delete))</button>
                 }
             }
-            <button type="button" class="btn btn-sm btn-secondary" @onclick="Cancel">@(userConfig.GetText("cancel"))</button>
+            <button type="button" class="btn btn-sm btn-secondary" @onclick="Cancel">@(DisplayService.DisplayButton(userConfig, "cancel", Icons.Cancel))</button>
         </div>
     </Footer>
 </PopUp>

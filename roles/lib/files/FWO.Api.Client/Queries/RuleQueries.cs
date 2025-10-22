@@ -31,7 +31,7 @@ namespace FWO.Api.Client.Queries
         public static readonly string getRulesWithViolationsInTimespanByChunk;
         public static readonly string getRulesWithCurrentViolationsByChunk;
 
-    
+
         static RuleQueries()
         {
             try

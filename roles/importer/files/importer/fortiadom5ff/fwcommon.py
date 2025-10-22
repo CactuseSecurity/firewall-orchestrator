@@ -18,7 +18,7 @@ from models.fwconfigmanager import FwConfigManager
 from model_controllers.management_controller import ManagementController
 from fmgr_network import normalize_network_objects
 from fmgr_service import normalize_service_objects
-from fmgr_rule import normalize_rulebases, getAccessPolicy
+from fmgr_rule import normalize_rulebases
 from fmgr_consts import nw_obj_types, svc_obj_types, user_obj_types
 from fwo_base import ConfigAction
 from models.fwconfig_normalized import FwConfigNormalized

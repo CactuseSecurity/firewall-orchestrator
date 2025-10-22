@@ -74,7 +74,7 @@ namespace FWO.Report
                     {
                         (bool newObjects, Dictionary<string, int> maxAddedCounts) = mgtToFill.Merge((await apiConnection.SendQueryAsync<List<ManagementReport>>(Query.FullQuery, Query.QueryVariables))[0]);
                         // new objects might have been added, but if none reached the limit of elementsPerFetch, we can stop fetching
-                        keepFetching = newObjects && maxAddedCounts.Values.Any(v => v >= elementsPerFetch);
+                        keepFetching = newObjects && maxAddedCounts["Rules"] >= elementsPerFetch; // limit is only set on rules for rule report query
                     }
                 }
                 await callback(ReportData);

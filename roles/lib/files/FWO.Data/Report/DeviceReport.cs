@@ -23,10 +23,14 @@ namespace FWO.Data.Report
         [JsonProperty("rules_aggregate"), JsonPropertyName("rules_aggregate")]
         public ObjectStatistics RuleStatistics { get; set; } = new ObjectStatistics();
 
-        public List<Rule> GetRuleList()
         [JsonProperty("unusedRules_Count"), JsonPropertyName("unusedRules_Count")]
         public ObjectStatistics UnusedRulesStatistics { get; set; } = new();
 
+        public List<Rule> GetRuleList()
+        {
+            // TODO: implement this method to return a list of rules associated with the device // MERGE
+            return new List<Rule>();
+        }
 
         public DeviceReport()
         { }

@@ -115,7 +115,7 @@ namespace FWO.Report.Filter
                         usrs_aggregate(where: {{ {query.UserObjWhereStatement} }}) {{ aggregate {{ count }} }}
                         rules_aggregate(where: {{ {query.RuleWhereStatement} }}) {{ aggregate {{ count }} }}
                         unusedRules_Count: rules_aggregate(where: {{ {unusedRulesWhereStatement}}}) {{ aggregate {{ count }} }}
-                        devices({devWhereString})
+                        devices( {{ devWhereStringDefault }} )
                         {{
                             name: dev_name
                             id: dev_id

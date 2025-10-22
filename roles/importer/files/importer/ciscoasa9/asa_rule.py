@@ -112,7 +112,7 @@ def create_rule_from_acl_entry(access_list_name: str, idx: int, entry: AccessLis
         rule_svc_neg=False,
         rule_svc=svc_ref,
         rule_svc_refs=svc_ref,
-        rule_action=RuleAction.ACCEPT if entry.action == "permit" else RuleAction.REJECT,
+        rule_action=RuleAction.ACCEPT if entry.action == "permit" else RuleAction.DROP,
         rule_track=RuleTrack.NONE,
         rule_installon=gateway_uid,
         rule_time="",

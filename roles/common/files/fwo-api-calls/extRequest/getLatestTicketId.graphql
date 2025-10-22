@@ -1,0 +1,6 @@
+
+query getLatestTicketId ($ownerId: Int!) {
+  owner_ticket (where: {owner_id: {_eq: $ownerId}} order_by: { ticket_id: desc }, limit: 1){
+    ticket_id
+  }
+}

@@ -1,0 +1,19 @@
+fragment networkObjectDetailsForVariance on object {
+  obj_id
+  obj_name
+  obj_ip
+  obj_ip_end
+  objgrp_flats(where: {
+    active: { _eq: $active }
+    import_last_seen: { _gte: $import_id_start }
+    import_created: { _lte: $import_id_end }
+  } order_by: {objgrp_flat_member_id: asc}) {
+    id_flat: objgrp_flat_id
+    byFlatId: objectByObjgrpFlatMemberId {
+      obj_id
+      obj_name
+      obj_ip
+      obj_ip_end
+    }
+  }
+}

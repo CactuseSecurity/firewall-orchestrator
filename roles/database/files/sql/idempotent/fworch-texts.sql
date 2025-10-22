@@ -1,3 +1,27 @@
+-- text codes (roughly) categorized:
+-- U: user texts (explanation or confirmation texts)
+-- E: error texts
+-- A: Api errors
+-- T: texts from external sources (Ldap, other database tables)
+-- C: Contextual Info (Tooltips)
+-- H: help pages
+-- 0000-0999: General
+-- 1000-1999: Reporting
+-- 2000-2999: Scheduling
+-- 3000-3999: Archive
+-- 4000-4999: Recertification
+-- 5000-5999: Settings
+--            5000-5099: general
+--            5100-5199: devices
+--            5200-5299: authorization
+--            5300-5399: defaults
+--            5400-5499: personal settings
+--            5500-5599: workflow module
+--            5600-5699: workflow module
+-- 6000-6999: API
+-- 7000-7999: Monitoring
+-- 8000-8999: Workflow
+-- 9000-9999: Modelling
 
 -- cleanup
 DELETE FROM txt;
@@ -644,6 +668,8 @@ INSERT INTO txt VALUES ('user_objects',		    'German', 	'Nutzerobjekte');
 INSERT INTO txt VALUES ('user_objects',		    'English', 	'User objects');
 INSERT INTO txt VALUES ('rules',		        'German', 	'Regeln');
 INSERT INTO txt VALUES ('rules',		        'English', 	'Rules');
+INSERT INTO txt VALUES ('unused_rules',		    'German', 	'Unbenutze Regeln');
+INSERT INTO txt VALUES ('unused_rules',		    'English', 	'Unused Rules');
 INSERT INTO txt VALUES ('changes',		        'German', 	'&Auml;nderungen');
 INSERT INTO txt VALUES ('changes',		        'English', 	'Changes');
 INSERT INTO txt VALUES ('used_objects',		    'German', 	'Benutzte Objekte');
@@ -2792,6 +2818,8 @@ INSERT INTO txt VALUES ('unlock',               'German', 	'Entsperren');
 INSERT INTO txt VALUES ('unlock',               'English', 	'Unlock');
 INSERT INTO txt VALUES ('useCustomLogo',        'German', 	'Benutzerdefiniertes Logo');
 INSERT INTO txt VALUES ('useCustomLogo',        'English', 	'Custom logo');
+INSERT INTO txt VALUES ('app_role_users', 		'German',   'Nutzer von App Rollen');
+INSERT INTO txt VALUES ('app_role_users', 		'English',  'App Role Users');
 
 -- help pages
 INSERT INTO txt VALUES ('report_types',         'German', 	'Report-Typen');
@@ -2888,31 +2916,6 @@ INSERT INTO txt VALUES ('import_app_server',    'German',   'App Server importie
 INSERT INTO txt VALUES ('import_app_server',    'English',  'Import app servers');
 INSERT INTO txt VALUES ('import_matrix',   		'German', 	'Matrix-Import');
 INSERT INTO txt VALUES ('import_matrix',   		'English', 	'Matrix Import');
-
--- text codes (roughly) categorized:
--- U: user texts (explanation or confirmation texts)
--- E: error texts
--- A: Api errors
--- T: texts from external sources (Ldap, other database tables)
--- C: Contextual Info (Tooltips)
--- H: help pages
--- 0000-0999: General
--- 1000-1999: Reporting
--- 2000-2999: Scheduling
--- 3000-3999: Archive
--- 4000-4999: Recertification + Compliance
--- 5000-5999: Settings
---            5000-5099: general
---            5100-5199: devices
---            5200-5299: authorization
---            5300-5399: defaults
---            5400-5499: personal settings
---            5500-5599: workflow module
---            5600-5699: workflow module
--- 6000-6999: API
--- 7000-7999: Monitoring
--- 8000-8999: Workflow
--- 9000-9999: Modelling
 
 -- user messages
 INSERT INTO txt VALUES ('U0001', 'German',  'Eingabetext wurde um nicht erlaubte Zeichen gek&uuml;rzt');
@@ -3021,6 +3024,8 @@ INSERT INTO txt VALUES ('U5118', 'German',  'Statusanzeige aller externen Auftr&
 INSERT INTO txt VALUES ('U5118', 'English', 'Show the status of all external requests. Possibility to patch state if necessary.');
 INSERT INTO txt VALUES ('U5119', 'German',  'Statusanzeige aller Tickets f&uuml;r externe Auftr&auml;ge. M&ouml;glichkeit zum Wiederanstossen, wenn n&ouml;tig.');
 INSERT INTO txt VALUES ('U5119', 'English', 'Show the status of all tickets for external requests. Possibility to reinit if necessary.');
+INSERT INTO txt VALUES ('U5120', 'German',  'Informationen zu Modellierungsobjekten.');
+INSERT INTO txt VALUES ('U5120', 'English', 'Some Details for modelling objects.');
 
 INSERT INTO txt VALUES ('U5201', 'German',  'Sind sie sicher, dass sie folgenden Nutzer l&ouml;schen wollen: ');
 INSERT INTO txt VALUES ('U5201', 'English', 'Are you sure you want to delete user: ');

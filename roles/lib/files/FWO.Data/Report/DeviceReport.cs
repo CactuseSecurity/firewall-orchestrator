@@ -1,4 +1,4 @@
-﻿using System.Text.Json.Serialization; 
+﻿using System.Text.Json.Serialization;
 using Newtonsoft.Json;
 
 namespace FWO.Data.Report
@@ -24,9 +24,16 @@ namespace FWO.Data.Report
         public ObjectStatistics RuleStatistics { get; set; } = new ObjectStatistics();
 
         public List<Rule> GetRuleList()
+        [JsonProperty("unusedRules_Count"), JsonPropertyName("unusedRules_Count")]
+        public ObjectStatistics UnusedRulesStatistics { get; set; } = new();
+
+
+        public DeviceReport()
+        { }
+
+        public DeviceReport(DeviceReport device)
         {
             // TODO: implement this method to return a list of rules associated with the device
-            return [];
         }
 
         public void AddRule(Rule rule)
@@ -35,10 +42,33 @@ namespace FWO.Data.Report
         }
         public int GetNumerOfRules()
         {
+            // foreach (Rule rule in Rules)
+            // {
+            //     if (string.IsNullOrEmpty(rule.SectionHeader)) // Not a section header
+            //     {
+            //         rule.DisplayOrderNumber = ruleNumber++;
+            //     }
+            // }
             return 0;
             // TODO: implement this method to return the numer of rules for this device
         }
 
+        public bool ContainsRules()
+        {
+            return true;
+            // merge:            // return Rules != null && Rules.Count() > 0;
+        }
+
+        /// <summary>
+        /// Conforms <see cref="DeviceReport"/> internal data to be valid for further usage.
+        /// </summary>
+        public void EnforceValidity()
+        {
+            if (UnusedRulesStatistics.ObjectAggregate.ObjectCount >= RuleStatistics.ObjectAggregate.ObjectCount)
+            {
+                UnusedRulesStatistics.ObjectAggregate.ObjectCount = 0;
+            }
+        }
     }
 
 

@@ -150,6 +150,9 @@ ALTER DEFAULT PRIVILEGES IN SCHEMA request GRANT SELECT ON TABLES TO fwo_ro;
 ALTER DEFAULT PRIVILEGES IN SCHEMA request GRANT USAGE, SELECT ON SEQUENCES TO fwo_ro;
 
 -- 8.8.9
+
+ALTER TABLE recertification ADD column IF NOT EXISTS owner_recert_id BIGINT;
+
 create table if not exists owner_recertification
 (
     id BIGSERIAL PRIMARY KEY,

@@ -3,7 +3,7 @@
 
 @inject UserConfig userConfig
 
-@if(ShowPageSizeInput)
+@if (ShowPageSizeInput)
 {
     <PageSizeComponent PageSizeCallback="UpdatePageSize"></PageSizeComponent>
 }
@@ -17,29 +17,29 @@
                 <Template>
                     <div class="btn-group">
                         <button type="button" class="btn btn-sm btn-primary" @onclick="async () =>
-                                                                                                         { await AppHandler.ShowDetails(context); await AppHandlerChanged.InvokeAsync(AppHandler); }">
-                        @(DisplayService.DisplayButton(userConfig, "details", Icons.Display))
-                    </button>
-                    @if(AppActive)
+                            { await AppHandler.ShowDetails(context); await AppHandlerChanged.InvokeAsync(AppHandler); }">
+                            @(DisplayService.DisplayButton(userConfig, "details", Icons.Display))
+                        </button>
+                        @if(AppActive)
                         {
                             @if(!context.GetBoolProperty(ConState.InterfaceRejected.ToString()) && !context.GetBoolProperty(ConState.Rejected.ToString()))
                             {
                                 <button type="button" class="btn btn-sm btn-warning" @onclick="async () =>
-                                                                                                                         { await AppHandler.EditConn(context); await AppHandlerChanged.InvokeAsync(AppHandler); }">
-                        @(DisplayService.DisplayButton(userConfig, "edit", Icons.Edit))
-                    </button>
-                                        }
+                                    { await AppHandler.EditConn(context); await AppHandlerChanged.InvokeAsync(AppHandler); }">
+                                    @(DisplayService.DisplayButton(userConfig, "edit", Icons.Edit))
+                                </button>
+                            }
                             <button type="button" class="btn btn-sm btn-danger" @onclick="async () =>
-                                                                                                                { await AppHandler.RequestDeleteConnection(context); await AppHandlerChanged.InvokeAsync(AppHandler); }">
-                        @(DisplayService.DisplayButton(userConfig, "delete", Icons.Delete))
-                    </button>
-                    @if(context.IsInterface)
+                                { await AppHandler.RequestDeleteConnection(context); await AppHandlerChanged.InvokeAsync(AppHandler); }">
+                                @(DisplayService.DisplayButton(userConfig, "delete", Icons.Delete))
+                            </button>
+                            @if(context.IsInterface)
                             {
                                 <button type="button" class="btn btn-sm btn-secondary" @onclick="async () =>
-                                                                                                                           { await AppHandler.ShowUsingConnections(context); await AppHandlerChanged.InvokeAsync(AppHandler); }">
-                        @(DisplayService.DisplayButton(userConfig, "where_used", Icons.Question))
-                    </button>
-                                        }
+                                    { await AppHandler.ShowUsingConnections(context); await AppHandlerChanged.InvokeAsync(AppHandler); }">
+                                    @(DisplayService.DisplayButton(userConfig, "where_used", Icons.Question))
+                                </button>
+                            }
                         }
                     </div>
                 </Template>
@@ -67,7 +67,10 @@
             {
                 <Column TableItem="ModellingConnection" Title="@(userConfig.GetText("published"))" Field="@(x => x.IsPublished)" Sortable="true" Filterable="true">
                     <Template>
-                        @context.IsPublished.ShowAsHtml()
+                        @if(context.IsInterface)
+                        {
+                            @context.IsPublished.ShowAsHtml()
+                        }
                     </Template>
                 </Column>
             }
@@ -218,11 +221,11 @@
 
     private void ToggleSelection(ModellingConnection conn)
     {
-        if(SelectInterfaceView)
+        if (SelectInterfaceView)
         {
-            if(!SelectedConns.Remove(conn))
+            if (!SelectedConns.Remove(conn))
             {
-                if(SelectionType != SelectionType.Multiple)
+                if (SelectionType != SelectionType.Multiple)
                 {
                     SelectedConns = [];
                 }
@@ -243,7 +246,7 @@
 
     private string DisplayConditional(ModellingConnection conn, string content)
     {
-        if(conn.IsRequested)
+        if (conn.IsRequested)
         {
             return $"<span class=\"text-secondary\">{content}</span>";
         }
@@ -270,14 +273,14 @@
     private List<string> CollectModellingProps(ModellingConnection connection)
     {
         List<string> relevantProps = [];
-        if(connection.Props != null)
+        if (connection.Props != null)
         {
-            foreach(var prop in connection.Props)
+            foreach (var prop in connection.Props)
             {
-                switch(prop.Key)
+                switch (prop.Key)
                 {
                     case nameof(ConState.InterfaceRequested):
-                        if(!connection.Props.ContainsKey(ConState.InterfaceRejected.ToString()))
+                        if (!connection.Props.ContainsKey(ConState.InterfaceRejected.ToString()))
                         {
                             relevantProps.Add($"<span class=\"text-warning\" data-toggle=\"tooltip\" title=\"{userConfig.PureLine("C9007")}\">{Exclamation()}</span>");
                         }
@@ -298,7 +301,7 @@
                         relevantProps.Add($"<span class=\"text-warning\" data-toggle=\"tooltip\" title=\"{(connection.IsInterface ? userConfig.PureLine("C9016") : userConfig.PureLine("C9014"))}\">{Exclamation()}</span>");
                         break;
                     case nameof(ConState.EmptySvcGrps):
-                        relevantProps.Add($"<span class=\"text-warning\" data-toggle=\"tooltip\" title=\"{(connection.IsInterface ? userConfig.PureLine("C9019") : userConfig.PureLine("C9018"))}\">{Exclamation()}</span>");
+                        relevantProps.Add($"<span class=\"text-warning\" data-toggle=\"tooltip\" title=\"{( connection.IsInterface ? userConfig.PureLine("C9019") : userConfig.PureLine("C9018") )}\">{Exclamation()}</span>");
                         break;
                     case nameof(ConState.DocumentationOnly):
                         relevantProps.Add($"<span class=\"text-warning\" data-toggle=\"tooltip\" title=\"{userConfig.PureLine("C9020")}\">{Exclamation()}</span>");
@@ -314,11 +317,11 @@
     private List<string> CollectImplementationProps(ModellingConnection connection)
     {
         List<string> relevantProps = [];
-        if(connection.Props != null)
+        if (connection.Props != null)
         {
-            foreach(var prop in connection.Props)
+            foreach (var prop in connection.Props)
             {
-                switch(prop.Key)
+                switch (prop.Key)
                 {
                     case nameof(ConState.NotImplemented):
                         relevantProps.Add($"<span class=\"text-warning\" data-toggle=\"tooltip\" title=\"{userConfig.PureLine("C9021")}\">{Exclamation()}</span>");

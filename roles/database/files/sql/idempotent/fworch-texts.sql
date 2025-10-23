@@ -5726,6 +5726,10 @@ INSERT INTO txt VALUES ('H5664', 'German',  'Produktionszyklus: Gibt an, in welc
 INSERT INTO txt VALUES ('H5664', 'English', 'Lifecycle State: The lifecycle phase assigned to the owner.');
 INSERT INTO txt VALUES ('H5665', 'German',  'Name: Name des Produktionszyklus');
 INSERT INTO txt VALUES ('H5665', 'English', 'Name: Lifecycle name');
+INSERT INTO txt VALUES ('H5666', 'German',  'In diesem Kapitel können die Produktionszyklen von Eigent&uuml;mern eingesehen, erstellt, bearbeitet und gelöscht werden. Produktionszyklen definieren den aktuellen Zustand eines Eigent&uuml;mers (z. B. Geplant, Im Betrieb, Auslaufend).
+');
+INSERT INTO txt VALUES ('H5666', 'English', 'In this chapter, the lifecycle states of owners can be viewed, created, edited, and deleted. Lifecycle states define the current status of an owner (e.g., Planned, In Production, End of Life).
+');
 
 INSERT INTO txt VALUES ('H5701', 'German',  'Die in der Datenbank hinterlegten sprachabh&auml;ngigen Texte k&ouml;nnen individuell &uuml;berschrieben werden.
     Dabei werden die vom System vorgegebenen Texte nicht ge&auml;ndert, sondern nur durch die hier definierten Texte - falls vorhanden - &uuml;berblendet.

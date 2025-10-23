@@ -338,7 +338,7 @@
         </Footer>
     </PopUp>
 
-    <PopUp Title="@(userConfig.GetText("manage_lifecycles"))" Show="@ManageLifeCyclesMode" Size=PopupSize.XLarge OnClose="() => ManageLifeCyclesMode = false">
+    <PopUp Title="@(userConfig.GetText("manage_lifecycles"))" HelpPage="settings/ownerlifecycles" Show="@ManageLifeCyclesMode" Size=PopupSize.XLarge OnClose="() => ManageLifeCyclesMode = false">
         <Body>
             @if (ManageLifeCyclesMode)
             {

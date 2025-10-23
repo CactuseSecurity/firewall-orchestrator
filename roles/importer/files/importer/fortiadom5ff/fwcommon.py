@@ -11,7 +11,6 @@ from fwo_base import write_native_config_to_file
 import fmgr_getter
 from fwo_log import getFwoLogger
 from fmgr_gw_networking import getInterfacesAndRouting, normalize_network_data
-from model_controllers.route_controller import get_ip_of_interface_obj
 from model_controllers.fwconfigmanagerlist_controller import FwConfigManagerListController
 from model_controllers.fwconfig_normalized_controller import FwConfigNormalizedController
 from models.fwconfigmanager import FwConfigManager
@@ -194,7 +193,7 @@ def normalize_single_manager_config(native_config: dict[str, Any], native_config
                                            current_svc_obj_types)
     logger.info("completed normalizing service objects for manager: " + native_config.get('domain_name',''))
     mgm_uid = native_config["management_uid"]
-    normalize_rulebases(import_state, mgm_uid, native_config, native_config_global, normalized_config_adom, normalized_config_global, 
+    normalize_rulebases(mgm_uid, native_config, native_config_global, normalized_config_adom, normalized_config_global, 
                         is_global_loop_iteration)
     logger.info("completed normalizing rulebases for manager: " + native_config.get('domain_name',''))
 

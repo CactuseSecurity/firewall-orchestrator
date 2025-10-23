@@ -24,7 +24,7 @@ uid_to_name_map = {}
     - migrate section headers from rule to ordering element 
     ...
 """
-def normalize_rulebases (nativeConfig, native_config_global, importState, normalized_config_dict, 
+def normalize_rulebases(nativeConfig, native_config_global, importState, normalized_config_dict, 
                          normalized_config_global, is_global_loop_iteration):
     
     normalized_config_dict['policies'] = []

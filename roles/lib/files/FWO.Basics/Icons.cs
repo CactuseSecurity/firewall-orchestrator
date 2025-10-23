@@ -2,6 +2,25 @@ namespace FWO.Basics
 {
     public struct Icons
     {
+        // Bootstrap
+        public const string Save = "bi bi-save";
+        public const string Select = "bi bi-save";
+        public const string Cancel = "bi bi-x-square-fill";
+        public const string Confirm = "bi bi-hand-thumbs-up-fill";
+        public const string Reject = "bi bi-hand-thumbs-down-fill";
+        public const string Recertify = "bi bi-patch-check-fill";
+        public const string RequestFwChange = "bi bi-sign-intersection-t-fill";
+        public const string ShowHistory = "bi bi-clock-history";
+        public const string GenerateReport = "bi bi-newspaper";
+        public const string Export = "bi bi-box-arrow-up-right";
+        public const string Download = "bi bi-download";
+        public const string Load = "bi bi-file-arrow-down-fill";
+        public const string ChangeState = "bi bi-graph-up-arrow";
+        public const string Approve = "bi bi-hand-thumbs-up-fill";
+        public const string Cleanup = "bi bi-slash-circle-fill";
+        public const string Create = "bi bi-patch-plus-fill";
+        public const string Enter = "bi bi-arrow-return-left";
+
         // General
         public const string Locked = "oi oi-lock-locked";
         public const string Type = "oi oi-list";
@@ -11,6 +30,7 @@ namespace FWO.Basics
         public const string FurtherReading = "oi oi-external-link";
         public const string Clipboard = "oi oi-clipboard";
         public const string Warning = "oi oi-warning";
+        public const string Question = "oi oi-question-mark";
 
         // Actions
         public const string Add = "oi oi-plus";
@@ -78,7 +98,6 @@ namespace FWO.Basics
         public const string Template = "oi oi-document";
         public const string Schedule = "oi oi-timer";
         public const string Archive = "oi oi-hard-drive";
-        public const string Export = "oi oi-arrow-thick-right";
         public const string Output = "oi oi-share";
         public const string Filter = "oi oi-eye";
 

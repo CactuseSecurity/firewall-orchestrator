@@ -16,6 +16,7 @@ namespace FWO.Api.Client.Queries
         public static readonly string deleteOwner;
         // public static readonly string setDefaultOwner;
         public static readonly string setOwnerLastCheck;
+        public static readonly string setOwnerLastRecert;
         public static readonly string getOwnersFromGroups;
         public static readonly string getOwnersForUser;
         public static readonly string getNetworkOwnerships;

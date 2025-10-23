@@ -280,6 +280,7 @@ def link_v4_and_v6_rulebase(rulebases, pkg_name, previous_rulebase, is_global):
 def build_link(previous_rulebase, full_pkg_name, is_global):
     if previous_rulebase == '':
         is_initial = True
+        previous_rulebase = None
     else:
         is_initial = False
     return {

@@ -8,57 +8,78 @@
 @page "/report/archive"
 @attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.FwAdmin}, {Roles.Reporter}, {Roles.ReporterViewAll}, {Roles.Auditor}, {Roles.Modeller}")]
 
-<ReportTabset/>
+<Sidebar @ref="archiveSidebar" Collapsible="true" Resizeable="true" PositionLeft="true" @bind-Width="sidebarLeftWidth" >
+    <div class="p-3 mt-2">
+        <h5 class="text-left">@(userConfig.GetText("report_type"))</h5>
+        <Dropdown ElementType="ReportType" ElementToString="@(r => userConfig.GetText(r.ToString()))" SelectedElement="selectedReportType"
+            SelectedElementChanged="ReportTypeChanged" Elements="visibleReportTypes">
+            <ElementTemplate Context="reportType">
+                @userConfig.GetText(reportType.ToString())
+            </ElementTemplate>
+        </Dropdown>
+        @if(selectedReportType == ReportType.RecertificationEvent)
+        {
+            <br>
+            <h5 class="text-left">@(userConfig.GetText("owner"))</h5>
+            <Dropdown ElementType="FwoOwner" ElementToString="@(o => o.Name)" SelectedElement="selectedOwner"
+                SelectedElementChanged="OwnerChanged" Elements="ownerList">
+                <ElementTemplate Context="owner">
+                    @owner.Name
+                </ElementTemplate>
+            </Dropdown>		
+        }
+    </div>
+</Sidebar>
 
-<div class="vheight75">
-    <Table TableClass="table table-bordered table-sm th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="ReportFile" Items="archivedReports" PageSize="0">
-        <Column TableItem="ReportFile" Title="@(userConfig.GetText("actions"))">
-            <Template>
-                <div class="btn-group">
-                    @if (!Exporting)
-                    {
-                        <button type="button" class="btn btn-sm btn-primary" @onclick="async () => { Exporting = true; await GetGeneratedReportContent(context.Id); ShowDownloadReportFileDialog = true; Exporting = false; }">@(userConfig.GetText("download"))</button>
-                        @if (context.ReportOwningUser.DbId == userConfig.User.DbId || authenticationStateTask!.Result.User.IsInRole(Roles.Admin))
+<div style="margin-left: @($"{sidebarLeftWidth + 10}px");">
+    <ReportTabset/>
+
+    <div class="vheight75">
+        <Table TableClass="table table-bordered table-sm th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="ReportFile" Items="visibleReports" PageSize="0">
+            <Column TableItem="ReportFile" Title="@(userConfig.GetText("actions"))">
+                <Template>
+                    <div class="btn-group">
+                        @if (!Exporting)
                         {
-                            <button type="button" class="btn btn-sm btn-danger" @onclick="() => { reportFileContext = context; ShowDeleteReportFileDialog = true; }">@(userConfig.GetText("delete"))</button>
+                            <button type="button" class="btn btn-sm btn-primary" @onclick="async () => { Exporting = true; await GetGeneratedReportContent(context.Id); ShowDownloadReportFileDialog = true; Exporting = false; }">
+                                @(DisplayService.DisplayButton(userConfig, "download", Icons.Download))</button>
+                            @if (!context.ReadOnly && (context.OwningUserId == userConfig.User.DbId || authenticationStateTask!.Result.User.IsInRole(Roles.Admin)))
+                            {
+                                <button type="button" class="btn btn-sm btn-danger" @onclick="() => { reportFileContext = context; ShowDeleteReportFileDialog = true; }">
+                                    @(DisplayService.DisplayButton(userConfig, "delete", Icons.Delete))</button>
+                            }
                         }
-                    }
-                    else
-                    {                    
-                        <Exporting/>
-                    }
-                </div>
-            </Template>
-        </Column>
-        <Column TableItem="ReportFile" Title="@(userConfig.GetText("name"))" Field="@(reportFile => reportFile.Name)" Sortable="true" Filterable="true"/>
-        <Column TableItem="ReportFile" Title="@(userConfig.GetText("report_type"))" Field="@(reportFile => reportFile.Type)" Sortable="true">
-            <Template>
-                @(userConfig.GetText(((ReportType)((int)(context.Type ?? 0))).ToString() ?? "none"))
-            </Template>
-        </Column>
-        <Column TableItem="ReportFile" Title="@(userConfig.GetText("template"))" Field="@(reportFile => reportFile.Template.Name)" Filterable="true"/>
-        <Column TableItem="ReportFile" Title="@(userConfig.GetText("generation_date"))" Field="@(reportFile => reportFile.GenerationDateStart)" Sortable="true" Filterable="true">
-            <Template>
-                @(context.GenerationDateStart.ToString("yyyy-MM-dd HH:mm:ssK"))
-            </Template>
-        </Column>
-        <Column TableItem="ReportFile" Title="@(userConfig.GetText("owner"))" Field="@(reportFile => reportFile.ReportOwningUser.Name)" Sortable="true" Filterable="true"/>
-        <Column TableItem="ReportFile" Title="@(userConfig.GetText("description"))" Field="@(reportFile => reportFile.Description)" Sortable="true" Filterable="true"/>
-    </Table>
+                        else
+                        {                    
+                            <Exporting/>
+                        }
+                    </div>
+                </Template>
+            </Column>
+            <Column TableItem="ReportFile" Title="@(userConfig.GetText("name"))" Field="@(reportFile => reportFile.Name)" Sortable="true" Filterable="true"/>
+            <Column TableItem="ReportFile" Title="@(userConfig.GetText("report_type"))" Field="@(reportFile => reportFile.Type)" Sortable="true">
+                <Template>
+                    @(userConfig.GetText(((ReportType)((int)(context.Type ?? 0))).ToString() ?? "none"))
+                </Template>
+            </Column>
+            <Column TableItem="ReportFile" Title="@(userConfig.GetText("template"))" Field="@(reportFile => reportFile.Template.Name)" Filterable="true"/>
+            <Column TableItem="ReportFile" Title="@(userConfig.GetText("generation_date"))" Field="@(reportFile => reportFile.GenerationDateStart)" Sortable="true" Filterable="true">
+                <Template>
+                    @(context.GenerationDateStart.ToString("yyyy-MM-dd HH:mm:ssK"))
+                </Template>
+            </Column>
+            <Column TableItem="ReportFile" Title="@(userConfig.GetText("user"))" Field="@(reportFile => reportFile.ReportOwningUser.Name)" Sortable="true" Filterable="true"/>
+            <Column TableItem="ReportFile" Title="@(userConfig.GetText("description"))" Field="@(reportFile => reportFile.Description)" Sortable="true" Filterable="true"/>
+        </Table>
+    </div>
 </div>
 
-<PopUp Show="ShowDeleteReportFileDialog" Title="@(userConfig.GetText("generated_report"))" Size=PopupSize.Small>
-    <Body>
-        <p>@(userConfig.GetText("U3002")) "@reportFileContext.Name" ?</p>
-    </Body>
-    <Footer>
-        <button type="button" class="btn btn-sm btn-danger" @onclick="DeleteGeneratedReport">@(userConfig.GetText("delete"))</button>
-        <button type="button" class="btn btn-sm btn-secondary" @onclick="() => ShowDeleteReportFileDialog = false">@(userConfig.GetText("cancel"))</button>
-    </Footer>
-</PopUp>
+<ConfirmDelete @bind-Display="ShowDeleteReportFileDialog" PerformAction="DeleteGeneratedReport"
+    Title="@userConfig.GetText("generated_report")" DeleteMessage="@(userConfig.GetText("U3002") + " \"" + reportFileContext.Name + "\" ?")"
+    AllowedRoles="@($"{Roles.Admin}, {Roles.FwAdmin}, {Roles.Reporter}, {Roles.ReporterViewAll}, {Roles.Modeller}")"/>
 
 <ReportDownloadPopUp Title="@(userConfig.GetText("generated_report"))" ReportFile="reportFileContext"
-Show="ShowDownloadReportFileDialog" ShowJson="true" OnClose="() => ShowDownloadReportFileDialog = false" />
+    Show="ShowDownloadReportFileDialog" ShowJson="true" OnClose="() => ShowDownloadReportFileDialog = false" />
 
 @code
 {
@@ -68,22 +89,46 @@ Show="ShowDownloadReportFileDialog" ShowJson="true" OnClose="() => ShowDownloadR
     [CascadingParameter]
     private Task<AuthenticationState>? authenticationStateTask { get; set; }
 
-    private GraphQlApiSubscription<ReportFile[]>? archivedReportsSubscription;
+    private GraphQlApiSubscription<List<ReportFile>>? archivedReportsSubscription;
     private List<ReportFile> archivedReports = [];
-
+    private List<ReportFile> visibleReports = [];
+    private ReportType selectedReportType = ReportType.Undefined;
+    private List<ReportType> visibleReportTypes = [];
+    private FwoOwner? selectedOwner = null;
+    private List<FwoOwner> availableOwnersList = [];
+    private List<FwoOwner> ownerList = [];
+    private Sidebar? archiveSidebar;
+    private int sidebarLeftWidth = GlobalConst.kSidebarLeftWidth;
     private ReportFile reportFileContext = new();
     private bool ShowDeleteReportFileDialog = false;
     private bool ShowDownloadReportFileDialog = false;
-
     private bool Exporting = false;
+    private bool showRuleRelatedReports => authenticationStateTask!.Result.User.IsInRole(Roles.Reporter)
+        || authenticationStateTask!.Result.User.IsInRole(Roles.ReporterViewAll)
+        || authenticationStateTask!.Result.User.IsInRole(Roles.FwAdmin)
+        || authenticationStateTask!.Result.User.IsInRole(Roles.Admin)
+        || authenticationStateTask!.Result.User.IsInRole(Roles.Auditor);
+    private bool showModellingReports => authenticationStateTask!.Result.User.IsInRole(Roles.Modeller)
+        || authenticationStateTask!.Result.User.IsInRole(Roles.Admin)
+        || authenticationStateTask!.Result.User.IsInRole(Roles.Auditor);
+
 
     protected override async Task OnInitializedAsync()
     {
         try
         {
             // Initial fetch to speed up loading before subscription is established
-            archivedReports = (await apiConnection.SendQueryAsync<ReportFile[]>(ReportQueries.getGeneratedReports)).ToList();
-            archivedReportsSubscription = apiConnection.GetSubscription<ReportFile[]>(HandleSubscriptionError, OnReportArchiveUpdate, ReportQueries.subscribeGeneratedReportsChanges);
+            archivedReports = await apiConnection.SendQueryAsync<List<ReportFile>>(ReportQueries.getGeneratedReports);
+            archivedReportsSubscription = apiConnection.GetSubscription<List<ReportFile>>(HandleSubscriptionError, OnReportArchiveUpdate, ReportQueries.subscribeGeneratedReportsChanges);
+            availableOwnersList = await apiConnection.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getEditableOwners);
+            FwoOwner? superOwner = availableOwnersList.FirstOrDefault(o => o.Id == 0);
+            if(superOwner != null)
+            {
+                superOwner.Name = userConfig.GetText("all");
+                selectedOwner = superOwner;
+            }
+            SetVisibleReports();
+            SetVisibleReportTypes();
         }
         catch (Exception exception)
         {
@@ -91,15 +136,47 @@ Show="ShowDownloadReportFileDialog" ShowJson="true" OnClose="() => ShowDownloadR
         }
     }
 
+    private void ReportTypeChanged(ReportType newReportType)
+    {
+        selectedReportType = newReportType;
+        SetVisibleReports();
+    }
+
+    private void OwnerChanged(FwoOwner newOwner)
+    {
+        selectedOwner = newOwner;
+        SetVisibleReports();
+    }
+
+    private void SetVisibleReports()
+    {
+        visibleReports = [.. selectedReportType == ReportType.Undefined ? archivedReports : archivedReports.Where(r => r.Type == (int)selectedReportType)];
+        if(selectedReportType == ReportType.RecertificationEvent)
+        {
+            ownerList = [.. availableOwnersList.Where(v => v.Id == 0 || v.ExtAppId == null || visibleReports.Any(r => r.Name.Contains(v.ExtAppId)))];
+            if(selectedOwner != null && selectedOwner.Id != 0 && selectedOwner.ExtAppId != null)
+            {
+                visibleReports = [.. visibleReports.Where(r => r.Name.Contains(selectedOwner.ExtAppId))];
+            }
+        }
+    }
+
+    private void SetVisibleReportTypes()
+    {
+        visibleReportTypes = [.. ReportTypeGroups.ReportTypeSelection(showRuleRelatedReports, showModellingReports).Where(v => visibleReports.Any(r => r.Type == (int)v))];
+    }
+
     private async void HandleSubscriptionError(Exception exception)
     {
         await InvokeAsync(() => DisplayMessageInUi(exception, userConfig.GetText("archive_tile"), userConfig.GetText("archive_upd_err_msg"), true));
     }
 
-    private async void OnReportArchiveUpdate(ReportFile[] newArchivedReports)
+    private async void OnReportArchiveUpdate(List<ReportFile> newArchivedReports)
     {
         Log.WriteDebug("Report Archiving", "Received report archive update.");
-        archivedReports = newArchivedReports.ToList();
+        archivedReports = newArchivedReports;
+        SetVisibleReports();
+        SetVisibleReportTypes();
         await InvokeAsync(StateHasChanged);
     }
 
@@ -107,12 +184,7 @@ Show="ShowDownloadReportFileDialog" ShowJson="true" OnClose="() => ShowDownloadR
     {
         try
         {
-            var queryVariables = new
-            {
-                report_id = reportId
-            };
-
-            reportFileContext = (await apiConnection.SendQueryAsync<ReportFile[]>(ReportQueries.getGeneratedReport, queryVariables))[0];
+            reportFileContext = (await apiConnection.SendQueryAsync<ReportFile[]>(ReportQueries.getGeneratedReport, new { report_id = reportId }))[0];
         }
         catch (Exception exception)
         {
@@ -125,15 +197,8 @@ Show="ShowDownloadReportFileDialog" ShowJson="true" OnClose="() => ShowDownloadR
     {
         try
         {
-            var queryVariables = new
-            {
-                report_id = reportFileContext.Id
-            };
-
-            await apiConnection.SendQueryAsync<object>(ReportQueries.deleteGeneratedReport, queryVariables);
-
+            await apiConnection.SendQueryAsync<object>(ReportQueries.deleteGeneratedReport, new { report_id = reportFileContext.Id });
             archivedReports.Remove(reportFileContext);
-
             ShowDeleteReportFileDialog = false;
         }
         catch (Exception exception)

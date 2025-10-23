@@ -1,0 +1,22 @@
+
+query getNotifications ($client: String! ){
+  notification (where: { notification_client: {_eq: $client} } order_by: { id: asc }){
+    id
+    notification_client
+    owner_id 
+    channel
+    recipient_to
+    email_address_to
+    recipient_cc
+    email_address_cc
+    email_subject
+    layout
+    deadline
+    interval_before_deadline
+    offset_before_deadline
+    repeat_interval_after_deadline
+    repeat_offset_after_deadline
+    repetitions_after_deadline
+    last_sent
+  }
+}

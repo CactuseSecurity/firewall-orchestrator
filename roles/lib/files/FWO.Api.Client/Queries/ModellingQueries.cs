@@ -48,6 +48,7 @@ namespace FWO.Api.Client.Queries
         public static readonly string replaceUsedInterface;
         public static readonly string updateConnectionFwRequested;
         public static readonly string updateConnectionRemove;
+        public static readonly string updateConnectionDecommission;
         public static readonly string deleteConnection;
         public static readonly string addAppServerToConnection;
         public static readonly string removeAppServerFromConnection;
@@ -145,7 +146,7 @@ namespace FWO.Api.Client.Queries
                 getConnectionIdsForAppServer = GetQueryText("modelling/getConnectionIdsForAppServer.graphql");
 
                 getPublishedInterfaces = connectionDetailsFragment + GetQueryText("modelling/getPublishedInterfaces.graphql");
-                getConnectionById = connectionDetailsFragment + GetQueryText("modelling/getConnectionById.graphql");                
+                getConnectionById = connectionDetailsFragment + GetQueryText("modelling/getConnectionById.graphql");
                 getConnections = connectionDetailsFragment + GetQueryText("modelling/getConnections.graphql");
                 getConnectionsResolved = connectionResolvedDetailsFragment + GetQueryText("modelling/getConnectionsResolved.graphql");
                 getConnectionsByTicketId = connectionDetailsFragment + GetQueryText("modelling/getConnectionsByTicketId.graphql");

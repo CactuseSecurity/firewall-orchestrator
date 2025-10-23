@@ -12,6 +12,8 @@ namespace FWO.Basics
         public const string kEnglish = "English";
         public const int kTenant0Id = 1;
 
+        public const int kSessionExpirationTimeDefault = 720; // 60 * 12
+
         public const int kSidebarLeftWidth = 300;
         public const int kGlobLibraryWidth = kSidebarLeftWidth + 400;
         public const int kObjLibraryWidth = kSidebarLeftWidth + 300;
@@ -20,6 +22,7 @@ namespace FWO.Basics
         public const int kHoursToMilliseconds = 3600000;
         public const int kMinutesToMilliseconds = 60000;
         public const int kSecondsToMilliseconds = 1000;
+        public const int kDaysPerWeek = 7;
         public const int kMaxPortNumber = 65535;
 
         public const string kHtml = "html";
@@ -126,16 +129,23 @@ namespace FWO.Basics
         public const string ACTION = "@@ACTION@@";
         public const string CHANGEACTION = "@@CHANGEACTION@@";
         public const string COMMENT = "@@COMMENT@@";
+        public const string CONN_NUMBER = "@@CONN_NUMBER@@";
+        public const string DAYS = "@@DAYS@@";
         public const string DESTINATIONS = "@@DESTINATIONS@@";
+        public const string FAIL_NUMBER = "@@FAIL_NUMBER@@";
         public const string GROUPNAME = "@@GROUPNAME@@";
+        public const string INTERFACE_NAME = "@@INTERFACE_NAME@@";
         public const string IP = "@@IP@@";
         public const string MANAGEMENT_ID = "@@MANAGEMENT_ID@@";
         public const string MANAGEMENT_NAME = "@@MANAGEMENT_NAME@@";
         public const string MEMBERS = "@@MEMBERS@@";
+        public const string NEW_INTERFACE_LINK = "@@NEW_INTERFACE_LINK@@";
+        public const string NEW_INTERFACE_NAME = "@@NEW_INTERFACE_NAME@@";
         public const string OBJECT_DETAILS = "@@OBJECT_DETAILS@@";
         public const string OBJECTNAME = "@@OBJECTNAME@@";
         public const string OBJECT_TYPE = "@@OBJECT_TYPE@@";
         public const string OBJUPDSTATUS = "@@OBJUPDSTATUS@@";
+        public const string OK_NUMBER = "@@OK_NUMBER@@";
         public const string ONBEHALF = "@@ONBEHALF@@";
         public const string ORDERNAME = "@@ORDERNAME@@";
         public const string PORT = "@@PORT@@";
@@ -143,6 +153,7 @@ namespace FWO.Basics
         public const string PROTOCOLNAME = "@@PROTOCOLNAME@@";
         public const string PROTOCOLID = "@@PROTOCOLID@@";
         public const string REASON = "@@REASON@@";
+        public const string RULE_NUMBER = "@@RULE_NUMBER@@";
         public const string SERVICENAME = "@@SERVICENAME@@";
         public const string SERVICES = "@@SERVICES@@";
         public const string SOURCES = "@@SOURCES@@";
@@ -151,5 +162,6 @@ namespace FWO.Basics
         public const string TASKS = "@@TASKS@@";
         public const string TICKET_SUBJECT = "@@TICKET_SUBJECT@@";
         public const string TYPE = "@@TYPE@@";
+        public const string USER_NAME = "@@USER_NAME@@";
     }
 }

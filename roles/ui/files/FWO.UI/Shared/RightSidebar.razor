@@ -19,68 +19,84 @@
                     {
                         <Tab Title="@(userConfig.GetText("all"))" Position=0>
                             <div class="d-md-flex justify-content-md-end sticky-marker-45">
-                                <div class="btn btn-secondary btn-sm w-50" @onclick="@(() => collapseInRSB.Collapse("all"))">@(userConfig.GetText("collapse_all"))</div>
+                                <div class="btn btn-secondary btn-sm w-50"
+                                    @onclick="@(() => collapseInRSB.Collapse("all"))">@(userConfig.GetText("collapse_all"))
+                                </div>
                             </div>
                             <div class="mt-2">
-                                <ObjectGroupCollection PageSize="PageSize" FetchObjects="FetchContent" Recert="Recert" Tab="RsbTab.all" InputDataType="ManagementReport" Data="managementsAllObjects"
-                                NameExtractor="man => man.Name" NetworkObjectExtractor="man => man.Objects"
-                                NetworkServiceExtractor="man => man.Services" NetworkUserExtractor="man => man.Users" />
+                                <ObjectGroupCollection PageSize="PageSize" FetchObjects="FetchContent" Recert="Recert"
+                                    Tab="RsbTab.all" InputDataType="ManagementReport" Data="managementsAllObjects"
+                                    NameExtractor="man => man.Name" NetworkObjectExtractor="man => man.Objects"
+                                    NetworkServiceExtractor="man => man.Services" NetworkUserExtractor="man => man.Users" />
                             </div>
                         </Tab>
                     }
-                    @if (CurrentReport?.ReportData.ManagementData.Count > 0 && (CurrentReport?.ReportType.IsRuleReport() ?? false))
+                    @if (CurrentReport?.ReportData.ManagementData.Count > 0 && (CurrentReport?.ReportType.IsRuleReport()
+                                        ?? false))
                     {
                         <Tab Title="@(userConfig.GetText("report"))" StartSelected="true">
                             <div class="d-md-flex justify-content-md-end sticky-marker-45">
-                                <div class="btn btn-secondary btn-sm w-50" @onclick="@(() => collapseInRSB.Collapse("report"))">@(userConfig.GetText("collapse_all"))</div>
+                                <div class="btn btn-secondary btn-sm w-50"
+                                    @onclick="@(() => collapseInRSB.Collapse("report"))">
+                                    @(userConfig.GetText("collapse_all"))</div>
                             </div>
                             <div class="mt-2">
-                                <ObjectGroupCollection PageSize="PageSize" FetchObjects="FetchContent" Recert="Recert" Tab="RsbTab.report" InputDataType="ManagementReport"
-                                Data="CurrentReport.ReportData.ManagementData
-                                                                            .Where(m => m.Devices.Any(d => d.RulebaseLinks != null && d.RulebaseLinks.Any(rb => rb.NextRulebaseId != null)))"
-
-                                NameExtractor="man => man.Name"
-                                NetworkObjectExtractor="man => man.ReportObjects"
+                                <ObjectGroupCollection PageSize="PageSize" FetchObjects="FetchContent" Recert="Recert"
+                                    Tab="RsbTab.report" InputDataType="ManagementReport"
+                                    Data="CurrentReport.ReportData.ManagementData
+                                                                                                                .Where(m => m.Devices.Any(d => d.RulebaseLinks != null && d.RulebaseLinks.Any(rb => rb.NextRulebaseId != null)))"
+                                NameExtractor="man => man.Name" NetworkObjectExtractor="man => man.ReportObjects"
                                 NetworkServiceExtractor="man => man.ReportServices"
                                 NetworkUserExtractor="man => man.ReportUsers" />
+                        </div>
+                    </Tab>
+                    <Tab Title="@(userConfig.GetText("rule"))">
+                        <div class="btn-group btn-group-sm d-md-flex justify-content-md-between sticky-marker-45">
+                            <div class="btn btn-dark btn-sm w-50"
+                                @onclick="@(async () => { SelectedRules.Clear(); await SelectedRulesChanged.InvokeAsync(SelectedRules); })">
+                                @(userConfig.GetText("clear_all"))</div>
+                            <div class="btn btn-secondary btn-sm w-50"
+                                @onclick="@(() => collapseInRSB.Collapse("rule"))">@(userConfig.GetText("collapse_all"))
                             </div>
-                        </Tab>
-                        <Tab Title="@(userConfig.GetText("rule"))">
-                            <div class="btn-group btn-group-sm d-md-flex justify-content-md-between sticky-marker-45">
-                                <div class="btn btn-dark btn-sm w-50" @onclick="@(async () => { SelectedRules.Clear(); await SelectedRulesChanged.InvokeAsync(SelectedRules); })">@(userConfig.GetText("clear_all"))</div>
-                                <div class="btn btn-secondary btn-sm w-50" @onclick="@(() => collapseInRSB.Collapse("rule"))">@(userConfig.GetText("collapse_all"))</div>
-                            </div>
-                            <div class="mt-2">
-                                <ObjectGroupCollection PageSize="PageSize" FetchObjects="FetchContent" Recert="Recert" Tab="RsbTab.rule" StartContentDetailed="true" StartCollapsed="false" InputDataType="Rule"
+                        </div>
+                        <div class="mt-2">
+                            <ObjectGroupCollection PageSize="PageSize" FetchObjects="FetchContent" Recert="Recert"
+                                Tab="RsbTab.rule" StartContentDetailed="true" StartCollapsed="false"
+                                InputDataType="Rule"
                                 Data="selectedRulesDetailed.Where(r => SelectedRules.Any(sr => sr.Id == r.Id)).ToList()"
                                 NameExtractor=@(rule => $"{rule.DeviceName} - Rule {rule.Id} {rule.Name}")
                                 NetworkObjectExtractor="rule => rule.Froms.Select(nl => nl.Object)
-                                                                        .Union(rule.Tos.Select(nl => nl.Object))
-                                                                        .Union(rule.NatData.TranslatedFroms.Select(nl => nl.Object))
-                                                                        .Union(rule.NatData.TranslatedTos.Select(nl => nl.Object)).OrderBy(o => o.Name).ToArray()"
+                                                                                                        .Union(rule.Tos.Select(nl => nl.Object))
+                                                                                                        .Union(rule.NatData.TranslatedFroms.Select(nl => nl.Object))
+                                                                                                        .Union(rule.NatData.TranslatedTos.Select(nl => nl.Object)).OrderBy(o => o.Name).ToArray()"
                                 NetworkServiceExtractor="rule => rule.Services.Select(sw => sw.Content)
-                                                                        .Union(rule.NatData.TranslatedServices.Select(sw => sw.Content)).OrderBy(s => s.Name).ToArray()"
+                                                                                                        .Union(rule.NatData.TranslatedServices.Select(sw => sw.Content)).OrderBy(s => s.Name).ToArray()"
                                 NetworkUserExtractor="rule => rule.Froms.Select(nl => nl.User).Distinct().Where(u => u != null).OrderBy(u => u.Name).ToArray()" />
-                            </div>
-                        </Tab>
-                    }
-                    @if (CurrentReport?.ReportData.OwnerData.Count > 0 && (CurrentReport?.ReportType.IsOwnerRelatedReport() ?? false))
+                        </div>
+                    </Tab>
+                                        }
+                    @if (CurrentReport?.ReportData.OwnerData.Count > 0 &&
+                                        (bool)CurrentReport?.ReportType.IsConnectionRelatedReport())
                     {
-                        <Tab Title="@(CurrentReport?.ReportType == ReportType.VarianceAnalysis ? userConfig.GetText("modelled_objects") : userConfig.GetText("used_objects"))" StartSelected="true">
+                        <Tab Title="@(CurrentReport?.ReportType == ReportType.VarianceAnalysis ? userConfig.GetText("modelled_objects") : userConfig.GetText("used_objects"))"
+                            StartSelected="true">
                             <div class="d-md-flex justify-content-md-end sticky-marker-45">
-                                <div class="btn btn-secondary btn-sm w-50" @onclick="@(() => collapseInRSB.Collapse("report"))">@(userConfig.GetText("collapse_all"))</div>
+                                <div class="btn btn-secondary btn-sm w-50"
+                                    @onclick="@(() => collapseInRSB.Collapse("report"))">
+                                    @(userConfig.GetText("collapse_all"))</div>
                             </div>
                             <div class="mt-2">
-                                <ObjectGroupCollection PageSize="PageSize" FetchObjects="FetchContent" Recert="Recert" Tab="RsbTab.usedObj" StartCollapsed="false" InputDataType="OwnerReport"
-                                Data="@(PrepareObjects(CurrentReport.ReportData.OwnerData))"
-                                NameExtractor="own => own.Name"
-                                NetworkObjectExtractor="own => own.GetAllNetworkObjects(true, userConfig.ResolveNetworkAreas)"
-                                NetworkServiceExtractor="own => own.GetAllServices(true)" />
-                                <ObjectGroupCollection PageSize="PageSize" FetchObjects="FetchContent" Recert="Recert" Tab="RsbTab.usedObj" StartCollapsed="false" InputDataType="GlobalCommonSvcReport"
-                                Data="CurrentReport.ReportData.GlobalComSvc"
-                                NameExtractor="glbComSvc => glbComSvc.Name"
-                                NetworkObjectExtractor="glbComSvc => glbComSvc.GetAllNetworkObjects(true, userConfig.ResolveNetworkAreas)"
-                                NetworkServiceExtractor="glbComSvc => glbComSvc.GetAllServices(true)" />
+                                <ObjectGroupCollection PageSize="PageSize" FetchObjects="FetchContent" Recert="Recert"
+                                    Tab="RsbTab.usedObj" StartCollapsed="false" InputDataType="OwnerConnectionReport"
+                                    Data="@(PrepareObjects(CurrentReport.ReportData.OwnerData))"
+                                    NameExtractor="own => own.Name"
+                                    NetworkObjectExtractor="own => own.GetAllNetworkObjects(true, userConfig.ResolveNetworkAreas)"
+                                    NetworkServiceExtractor="own => own.GetAllServices(true)" />
+                                <ObjectGroupCollection PageSize="PageSize" FetchObjects="FetchContent" Recert="Recert"
+                                    Tab="RsbTab.usedObj" StartCollapsed="false" InputDataType="GlobalCommonSvcReport"
+                                    Data="CurrentReport.ReportData.GlobalComSvc" NameExtractor="glbComSvc => glbComSvc.Name"
+                                    NetworkObjectExtractor="glbComSvc => glbComSvc.GetAllNetworkObjects(true, userConfig.ResolveNetworkAreas)"
+                                    NetworkServiceExtractor="glbComSvc => glbComSvc.GetAllServices(true)" />
                             </div>
                         </Tab>
                     }
@@ -173,7 +189,7 @@
         {
             if (!selectedRulesDetailed.Any(r => r.Id == rule.Id))
             {
-                selectedRulesDetailed.Add(new () { Id = rule.Id, Name = rule.Name, MgmtId = rule.MgmtId });
+                selectedRulesDetailed.Add(new() { Id = rule.Id, Name = rule.Name, MgmtId = rule.MgmtId });
             }
         }
     }
@@ -203,8 +219,10 @@
                 [QueryVar.ImportIdStart] = import_id_start.Values.Any(v => v > 0) ? import_id_start.Values.Where(v => v > 0).Min() : 0,
                 [QueryVar.ImportIdEnd] = import_id_end.Values.Max(),
             };
-            var mgmResult = await apiConnection.SendQueryAsync<List<ManagementReport>>(ObjectQueries.getAllObjectDetails, queryVars);
-            managementsAllObjects = mgmResult.Where(m => m.Objects.Count() > 0 || m.Services.Count() > 0 || m.Users.Count() > 0).ToList();
+            var mgmResult = await apiConnection.SendQueryAsync<List<ManagementReport>>(ObjectQueries.getAllObjectDetails,
+            queryVars);
+            managementsAllObjects = mgmResult.Where(m => m.Objects.Count() > 0 || m.Services.Count() > 0 || m.Users.Count() >
+            0).ToList();
             collapseInRSB.Collapse("all");
             await InvokeAsync(StateHasChanged);
         }
@@ -252,7 +270,8 @@
         };
         if (mgmId != null)
             queryVars.Add(QueryVar.MgmIds, mgmId);
-        List<ManagementReport> result = await apiConnection.SendQueryAsync<List<ManagementReport>>(ReportQueries.getRelevantImportIdsAtTime, queryVars);
+        List<ManagementReport> result = await
+        apiConnection.SendQueryAsync<List<ManagementReport>>(ReportQueries.getRelevantImportIdsAtTime, queryVars);
         Dictionary<int, long> importIds = new();
         foreach (ManagementReport mgm in result)
         {
@@ -261,7 +280,8 @@
         return importIds;
     }
 
-    public async Task FetchContent(RsbTab rsbTab, ObjCategory objType, Func<Task> hasChangedCallback, long id = 0, bool nat = false)
+    public async Task FetchContent(RsbTab rsbTab, ObjCategory objType, Func<Task> hasChangedCallback, long id = 0, bool nat
+    = false)
     {
         Log.WriteDebug("Fetching Content..", $"nat: {nat}");
 
@@ -299,13 +319,13 @@
             mgt.Detailed[(int)objType - 1] = true;
 
         var queryVars = new Dictionary<string, object>
-        {
-            { QueryVar.Limit, userConfig.ElementsPerFetch },
-            { QueryVar.Offset, 0 },
-            { QueryVar.ManagementId, (int)id },
-            { QueryVar.ImportIdStart, import_id_start.GetValueOrDefault((int)id, 0) },
-            { QueryVar.ImportIdEnd, import_id_end.GetValueOrDefault((int)id, 0) }
-        };
+{
+{ QueryVar.Limit, userConfig.ElementsPerFetch },
+{ QueryVar.Offset, 0 },
+{ QueryVar.ManagementId, (int)id },
+{ QueryVar.ImportIdStart, import_id_start.GetValueOrDefault((int)id, 0) },
+{ QueryVar.ImportIdEnd, import_id_end.GetValueOrDefault((int)id, 0) }
+};
 
         string query = objType switch
         {
@@ -352,32 +372,32 @@
             mgtReport.Detailed[(int)objType - 1] = true;
 
         var queryVars = new Dictionary<string, object>
-        {
-            { QueryVar.Limit, userConfig.ElementsPerFetch },
-            { QueryVar.Offset, 0 },
-            { QueryVar.MgmIds, (int)id }
-        };
+{
+{ QueryVar.Limit, userConfig.ElementsPerFetch },
+{ QueryVar.Offset, 0 },
+{ QueryVar.MgmIds, (int)id }
+};
 
         bool gotAllObjects = await CurrentReport!.GetObjectsForManagementInReport(
-            queryVars, objType,
-            userConfig.AutoFillRightSidebar ? int.MaxValue : userConfig.MaxInitialFetchesRightSidebar,
-            apiConnection,
-            async managementsUpdate =>
+        queryVars, objType,
+        userConfig.AutoFillRightSidebar ? int.MaxValue : userConfig.MaxInitialFetchesRightSidebar,
+        apiConnection,
+        async managementsUpdate =>
+        {
+            var mgtUpdated = managementsUpdate.ManagementData.FirstOrDefault(m => m.Id == id);
+            if (mgtUpdated != null)
             {
-                var mgtUpdated = managementsUpdate.ManagementData.FirstOrDefault(m => m.Id == id);
-                if (mgtUpdated != null)
-                {
-                    if (objType == ObjCategory.all || objType == ObjCategory.nobj)
-                        mgtReport.ReportObjects = mgtUpdated.ReportObjects;
+                if (objType == ObjCategory.all || objType == ObjCategory.nobj)
+                    mgtReport.ReportObjects = mgtUpdated.ReportObjects;
 
-                    if (objType == ObjCategory.all || objType == ObjCategory.nsrv)
-                        mgtReport.ReportServices = mgtUpdated.ReportServices;
+                if (objType == ObjCategory.all || objType == ObjCategory.nsrv)
+                    mgtReport.ReportServices = mgtUpdated.ReportServices;
 
-                    if (objType == ObjCategory.all || objType == ObjCategory.user)
-                        mgtReport.ReportUsers = mgtUpdated.ReportUsers;
-                }
-                await hasChangedCallback();
-            });
+                if (objType == ObjCategory.all || objType == ObjCategory.user)
+                    mgtReport.ReportUsers = mgtUpdated.ReportUsers;
+            }
+            await hasChangedCallback();
+        });
 
         if (!gotAllObjects)
         {
@@ -398,13 +418,13 @@
         }
 
         var queryVars = new Dictionary<string, object>
-        {
-            { QueryVar.Limit, userConfig.ElementsPerFetch },
-            { QueryVar.Offset, 0 },
-            { QueryVar.ImportIdStart, import_id_start.GetValueOrDefault((int)rule.MgmtId, 0) },
-            { QueryVar.ImportIdEnd, import_id_end.GetValueOrDefault((int)rule.MgmtId, 0) },
-            { QueryVar.RuleId, id }
-        };
+{
+{ QueryVar.Limit, userConfig.ElementsPerFetch },
+{ QueryVar.Offset, 0 },
+{ QueryVar.ImportIdStart, import_id_start.GetValueOrDefault((int)rule.MgmtId, 0) },
+{ QueryVar.ImportIdEnd, import_id_end.GetValueOrDefault((int)rule.MgmtId, 0) },
+{ QueryVar.RuleId, id }
+};
 
         string query = nat ? RuleQueries.getNatRuleDetails : RuleQueries.getRuleDetails;
 
@@ -420,10 +440,12 @@
 
             rule.Froms = rule.Froms.Concat(ruleUpdated?.Froms ?? []).ToArray();
             rule.Tos = rule.Tos.Concat(ruleUpdated?.Tos ?? []).ToArray();
-            rule.NatData.TranslatedFroms = rule.NatData.TranslatedFroms.Concat(ruleUpdated?.NatData.TranslatedFroms ?? []).ToArray();
+            rule.NatData.TranslatedFroms = rule.NatData.TranslatedFroms.Concat(ruleUpdated?.NatData.TranslatedFroms ??
+            []).ToArray();
             rule.NatData.TranslatedTos = rule.NatData.TranslatedTos.Concat(ruleUpdated?.NatData.TranslatedTos ?? []).ToArray();
             rule.Services = rule.Services.Concat(ruleUpdated?.Services ?? []).ToArray();
-            rule.NatData.TranslatedServices = rule.NatData.TranslatedServices.Concat(ruleUpdated?.NatData.TranslatedServices ?? []).ToArray();
+            rule.NatData.TranslatedServices = rule.NatData.TranslatedServices.Concat(ruleUpdated?.NatData.TranslatedServices ??
+            []).ToArray();
 
             rule.Detailed = true;
 
@@ -447,7 +469,8 @@
 
             while (keepFetching && (++fetchCount <= userConfig.MaxInitialFetchesRightSidebar || userConfig.AutoFillRightSidebar))
             {
-                List<ManagementReport> managementsCurrentFetch = await apiConnection.SendQueryAsync<List<ManagementReport>>(query, queryVars);
+                List<ManagementReport> managementsCurrentFetch = await apiConnection.SendQueryAsync<List<ManagementReport>>(query,
+                queryVars);
                 if (fetchCount == 1)
                 {
                     reportData.ManagementData = managementsCurrentFetch;
@@ -475,12 +498,12 @@
         }
     }
 
-    private List<OwnerReport> PrepareObjects(List<OwnerReport> ownerData)
+    private List<OwnerConnectionReport> PrepareObjects(List<OwnerConnectionReport> ownerData)
     {
-        if(CurrentReport?.ReportType == ReportType.VarianceAnalysis)
+        if (CurrentReport?.ReportType == ReportType.VarianceAnalysis)
         {
-            List<OwnerReport> ownerDataForRsb = [];
-            foreach(var ownerReport in ownerData)
+            List<OwnerConnectionReport> ownerDataForRsb = [];
+            foreach (var ownerReport in ownerData)
             {
                 ownerDataForRsb.Add(ReportVariances.CollectObjectsInReport(ownerReport));
             }

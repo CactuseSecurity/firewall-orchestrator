@@ -67,7 +67,10 @@
             {
                 <Column TableItem="ModellingConnection" Title="@(userConfig.GetText("published"))" Field="@(x => x.IsPublished)" Sortable="true" Filterable="true">
                     <Template>
-                        @(context.IsInterface ? context.IsPublished.ShowAsHtml() : "")
+                        @if(context.IsInterface)
+                        {
+                            @context.IsPublished.ShowAsHtml()
+                        }
                     </Template>
                 </Column>
             }
@@ -182,7 +185,7 @@
     [Parameter]
     public SelectionType SelectionType { get; set; } = SelectionType.Single;
 
-    [Parameter] 
+    [Parameter]
     public EventCallback<int> PageSizeCallback { get; set; }
 
     [Parameter]

@@ -152,26 +152,7 @@ namespace FWO.Data.Report
                 maxAddedCounts["NetworkUsers"] = managementReportToMerge.Users.Length;
             }
 
-            if (managementReport.ReportObjects != null && managementReportToMerge.ReportObjects != null && managementReportToMerge.ReportObjects.Length > 0)
-            {
-                managementReport.ReportObjects = managementReport.ReportObjects.Concat(managementReportToMerge.ReportObjects).ToArray();
-                newObjects = true;
-                maxAddedCounts["ReportObjects"] = managementReportToMerge.ReportObjects.Length;
-            }
-
-            if (managementReport.ReportServices != null && managementReportToMerge.ReportServices != null && managementReportToMerge.ReportServices.Length > 0)
-            {
-                managementReport.ReportServices = managementReport.ReportServices.Concat(managementReportToMerge.ReportServices).ToArray();
-                newObjects = true;
-                maxAddedCounts["ReportServices"] = managementReportToMerge.ReportServices.Length;
-            }
-
-            if (managementReport.ReportUsers != null && managementReportToMerge.ReportUsers != null && managementReportToMerge.ReportUsers.Length > 0)
-            {
-                managementReport.ReportUsers = managementReport.ReportUsers.Concat(managementReportToMerge.ReportUsers).ToArray();
-                newObjects = true;
-                maxAddedCounts["ReportUsers"] = managementReportToMerge.ReportUsers.Length;
-            }
+            MergeReportObjects(managementReport, managementReportToMerge, maxAddedCounts, ref newObjects);
 
             foreach (RulebaseReport rulebaseReport in managementReport.Rulebases)
             {
@@ -187,6 +168,30 @@ namespace FWO.Data.Report
             }
 
             return (newObjects, maxAddedCounts);
+        }
+
+        private static void MergeReportObjects(ManagementReport target, ManagementReport source, Dictionary<string, int> addedCounts, ref bool newObjects)
+        {
+            if (target.ReportObjects != null && source.ReportObjects != null && source.ReportObjects.Length > 0)
+            {
+                target.ReportObjects = target.ReportObjects.Concat(source.ReportObjects).ToArray();
+                newObjects = true;
+                addedCounts["ReportObjects"] = source.ReportObjects.Length;
+            }
+
+            if (target.ReportServices != null && source.ReportServices != null && source.ReportServices.Length > 0)
+            {
+                target.ReportServices = target.ReportServices.Concat(source.ReportServices).ToArray();
+                newObjects = true;
+                addedCounts["ReportServices"] = source.ReportServices.Length;
+            }
+
+            if (target.ReportUsers != null && source.ReportUsers != null && source.ReportUsers.Length > 0)
+            {
+                target.ReportUsers = target.ReportUsers.Concat(source.ReportUsers).ToArray();
+                newObjects = true;
+                addedCounts["ReportUsers"] = source.ReportUsers.Length;
+            }
         }
     }
 }

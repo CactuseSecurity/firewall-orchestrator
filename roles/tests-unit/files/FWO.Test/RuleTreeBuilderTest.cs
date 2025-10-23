@@ -5,6 +5,7 @@ using FWO.Services.RuleTreeBuilder;
 using FWO.Data;
 using FWO.Data.Report;
 using FWO.Test.Mocks;
+using NUnit.Framework.Legacy;
 
 namespace FWO.Test
 {
@@ -77,7 +78,13 @@ namespace FWO.Test
             queue = _ruleTreeBuilder.BuildRulebaseLinkQueue(RulebaseLinks!, Rulebases!);
 
             // Assert
-            //Assert.That(_ruleTreeBuilder.RuleTree.ToJson(), Is.EqualTo(_reportRules.ControlTree.ToJson()));
+            CollectionAssert.AreEqual(RulebaseLinks!, queue!.Select(tuple => tuple.Item1)); // Equal because same objects
+            Assert.That(IsEqualTo(Rulebases!, queue!.Select(tuple => tuple.Item2))); // Needs custom equality check, because rulebase objects get cloned in BuildRulebaseLinkQueue.
+
+            /*
+                For the basic setup, the order of the queue is exactly related to the order of the Arrays. Fuurther testing should verify if this is the case for every setup.
+                If so this might be a possibility to reuce the complexity of the tested methods.
+            */
         }
 
         [Test]
@@ -171,6 +178,37 @@ namespace FWO.Test
                 new RulebaseLink{ FromRulebaseId = 3, NextRulebaseId = 4, LinkType = 4, IsSection = true },
                 new RulebaseLink{ FromRuleId = 8, FromRulebaseId = 4, NextRulebaseId = 5, LinkType = 3 }
             ];
+        }
+
+        private bool IsEqualTo(RulebaseReport[] rulebaseCollection1, IEnumerable<RulebaseReport> rulebaseCollection2)
+        {
+            for (int i = 0; i < rulebaseCollection1.Length; i++)
+            {
+                RulebaseReport rulebase1 = rulebaseCollection1[i];
+                RulebaseReport rulebase2 = rulebaseCollection2.ElementAt(i);
+
+                bool propertiesEqual =
+                    rulebase1.Id == rulebase2.Id ||
+                    rulebase1.Name == rulebase2.Name ||
+                    rulebase1.RuleChanges == rulebase2.RuleChanges ||
+                    rulebase1.RuleStatistics == rulebase2.RuleStatistics;
+                
+                if (!propertiesEqual || rulebase1.Rules.Length != rulebase2.Rules.Length)
+                {
+                    return false;
+                }
+                
+                for (int j = 0; j < rulebase1.Rules.Length; j++)
+                {
+                    if(!(rulebase1.Rules[j] == rulebase2.Rules[j]))
+                    {
+                        return false;
+                    }   
+                }
+
+            }
+
+            return true;
         }
 
 

@@ -173,9 +173,10 @@ namespace FWO.Data.Report
                 maxAddedCounts["ReportUsers"] = managementReportToMerge.ReportUsers.Length;
             }
 
-            for (int i = 0; i < managementReport.Rulebases.Length; i++)
+            foreach (RulebaseReport rulebaseReport in managementReport.Rulebases)
             {
-                RulebaseReport rulebaseReport = managementReport.Rulebases[i];
+                if (!managementReportToMerge.Rulebases.Any(rbr => rbr.Id == rulebaseReport.Id))
+                    throw new NotSupportedException("Cannot merge ManagementReports with different Rulebases.");
                 RulebaseReport rulebaseReportToMerge = managementReportToMerge.Rulebases.First(rbr => rbr.Id == rulebaseReport.Id);
                 if (rulebaseReportToMerge.Rules.Length > 0)
                 {

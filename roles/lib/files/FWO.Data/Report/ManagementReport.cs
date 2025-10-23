@@ -87,6 +87,30 @@ namespace FWO.Data.Report
     }
     public static class ManagementUtility
     {
+        private static void MergeReportObjects(ManagementReport target, ManagementReport source, Dictionary<string, int> addedCounts, ref bool newObjects)
+        {
+            if (target.ReportObjects != null && source.ReportObjects != null && source.ReportObjects.Length > 0)
+            {
+                target.ReportObjects = target.ReportObjects.Concat(source.ReportObjects).ToArray();
+                newObjects = true;
+                addedCounts["ReportObjects"] = source.ReportObjects.Length;
+            }
+
+            if (target.ReportServices != null && source.ReportServices != null && source.ReportServices.Length > 0)
+            {
+                target.ReportServices = target.ReportServices.Concat(source.ReportServices).ToArray();
+                newObjects = true;
+                addedCounts["ReportServices"] = source.ReportServices.Length;
+            }
+
+            if (target.ReportUsers != null && source.ReportUsers != null && source.ReportUsers.Length > 0)
+            {
+                target.ReportUsers = target.ReportUsers.Concat(source.ReportUsers).ToArray();
+                newObjects = true;
+                addedCounts["ReportUsers"] = source.ReportUsers.Length;
+            }
+        }
+
         public static (bool, Dictionary<string, int>) Merge(this List<ManagementReport> managementReports, List<ManagementReport> managementReportsToMerge)
         {
             bool newObjects = false;
@@ -168,30 +192,6 @@ namespace FWO.Data.Report
             }
 
             return (newObjects, maxAddedCounts);
-        }
-
-        private static void MergeReportObjects(ManagementReport target, ManagementReport source, Dictionary<string, int> addedCounts, ref bool newObjects)
-        {
-            if (target.ReportObjects != null && source.ReportObjects != null && source.ReportObjects.Length > 0)
-            {
-                target.ReportObjects = target.ReportObjects.Concat(source.ReportObjects).ToArray();
-                newObjects = true;
-                addedCounts["ReportObjects"] = source.ReportObjects.Length;
-            }
-
-            if (target.ReportServices != null && source.ReportServices != null && source.ReportServices.Length > 0)
-            {
-                target.ReportServices = target.ReportServices.Concat(source.ReportServices).ToArray();
-                newObjects = true;
-                addedCounts["ReportServices"] = source.ReportServices.Length;
-            }
-
-            if (target.ReportUsers != null && source.ReportUsers != null && source.ReportUsers.Length > 0)
-            {
-                target.ReportUsers = target.ReportUsers.Concat(source.ReportUsers).ToArray();
-                newObjects = true;
-                addedCounts["ReportUsers"] = source.ReportUsers.Length;
-            }
         }
     }
 }

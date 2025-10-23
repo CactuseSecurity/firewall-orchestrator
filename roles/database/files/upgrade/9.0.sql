@@ -1311,6 +1311,9 @@ INSERT INTO config (config_key, config_value, config_user)
 VALUES ('autoCalculateUndefinedInternalZone', 'true', 0)
 ON CONFLICT (config_key, config_user) DO NOTHING;
 
+-- set deprecated field rule_num to 0 for all rules to avoid inconsistencies
+UPDATE rule SET rule_num = 0;
+
 -- adding labels (simple version without mapping tables and without foreign keys)
 
 -- CREATE TABLE label (

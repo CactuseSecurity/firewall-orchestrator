@@ -17,6 +17,6 @@ query getModelledRulesByManagementName (
     rule_name: { _ilike: $marker }
   }
   order_by: { rule_num_numeric: asc }){
-    ...ruleDetails
+    ...ruleDetailsForReport
   }
 }

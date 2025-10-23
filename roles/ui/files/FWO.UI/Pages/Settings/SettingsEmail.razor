@@ -178,9 +178,9 @@
             }
             else 
             {
-                MailData mailData = new MailData(new List<string> { userConfig.User.Email }, "Test mail from Firewall Orchestrator"){ Body = "... this is the body - just testing ..." };
+                MailData mailData = new MailData([ userConfig.User.Email ], "Test mail from Firewall Orchestrator"){ Body = "... this is the body - just testing ..."};
 
-                if (await MailKitMailer.SendAsync(mailData, actEmailConnection, false, new CancellationToken()))
+                if (await MailKitMailer.SendAsync(mailData, actEmailConnection, false, new()))
                 {
                     DisplayMessageInUi(null, userConfig.GetText("test_email_connection"), userConfig.GetText("U5402"), false);
                 } 

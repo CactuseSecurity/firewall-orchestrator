@@ -10,7 +10,7 @@ namespace FWO.Encryption
         public static string TryEncrypt(string secret)
         {
             string mainKey = GetMainKey();
- 
+
             // only encrypt secret if it was not already encrypted
             try
             {
@@ -23,7 +23,7 @@ namespace FWO.Encryption
             }
         }
 
-        public static string TryDecrypt(string secret, bool returnOrigin = false, string logMessageTitle = "", string logText = "", bool onlyWarning = false )
+        public static string TryDecrypt(string secret, bool returnOrigin = false, string logMessageTitle = "", string logText = "", bool onlyWarning = false)
         {
             try
             {
@@ -42,8 +42,8 @@ namespace FWO.Encryption
                     {
                         Log.WriteError(logMessageTitle, logText, exception);
                     }
-                }			
-                 return returnOrigin ? secret : "";
+                }
+                return returnOrigin ? secret : "";
             }
         }
 

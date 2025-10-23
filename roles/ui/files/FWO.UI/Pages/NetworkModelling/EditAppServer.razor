@@ -70,13 +70,13 @@
                 {
                     <AuthorizeView Roles="@Roles.Admin">
                         <Authorized>
-                            <button type="button" class="btn btn-sm btn-danger" @onclick="Save">@(userConfig.GetText("save"))</button>
+                            <button type="button" class="btn btn-sm btn-danger" @onclick="Save">@(DisplayService.DisplayButton(userConfig, "save", Icons.Save))</button>
                         </Authorized>
                         <NotAuthorized>
-                            <button type="button" class="btn btn-sm btn-danger" disabled>@(userConfig.GetText("save"))</button>
+                            <button type="button" class="btn btn-sm btn-danger" disabled>@(DisplayService.DisplayButton(userConfig, "save", Icons.Save))</button>
                         </NotAuthorized>
                     </AuthorizeView>
-                    <button type="button" class="btn btn-sm btn-secondary" @onclick="Cancel">@(userConfig.GetText("cancel"))</button>
+                    <button type="button" class="btn btn-sm btn-secondary" @onclick="Cancel">@(DisplayService.DisplayButton(userConfig, "cancel", Icons.Cancel))</button>
                 }
             </div>
         </Footer>

@@ -72,14 +72,14 @@ def normalize_rulebases_for_each_link_destination(gateway, mgm_uid, fetched_rule
             else:
                 normalized_config_adom['policies'].append(normalized_rulebase)
 
-        normalize_nat_rulebase(rulebase_link, native_config)
+        normalize_nat_rulebase(rulebase_link, native_config, normalized_config_adom, normalized_config_global)
 
-def normalize_nat_rulebase(rulebase_link, native_config):
+def normalize_nat_rulebase(rulebase_link, native_config, normalized_config_adom, normalized_config_global):
     if not rulebase_link['is_section']:
         for nat_type in nat_types:
             nat_type_string = nat_type + '_' + rulebase_link['to_rulebase_uid']
             nat_rulebase = get_native_nat_rulebase(native_config, nat_type_string)
-            parse_nat_rulebase(nat_rulebase)
+            parse_nat_rulebase(nat_rulebase, normalized_config_adom, normalized_config_global)
 
 def get_native_nat_rulebase(native_config, nat_type_string):
     logger = getFwoLogger()
@@ -452,11 +452,15 @@ def get_nat_policy(sid, fm_api_url, native_config, adom_device_vdom_policy_packa
 
 # delete_v: ab hier kann sehr viel weg, ich lasses vorerst zB für die nat
 # pure nat rules 
-def parse_nat_rulebase(nat_rulebase): #(nat_rulebase, normalized_config_adom, import_id, jwt=None):
+
+
+def parse_nat_rulebase(nat_rulebase, normalized_config_adom, normalized_config_global): #(nat_rulebase, normalized_config_adom, import_id, jwt=None):
     nat_rules = []
     rule_number = 0
     for rule_orig in nat_rulebase:
 
+        rule_src_list, rule_src_refs_list = rule_parse_addresses(rule_orig, 'src', normalized_config_adom, normalized_config_global)
+        rule_dst_list, rule_dst_refs_list = rule_parse_addresses(rule_orig, 'dst', normalized_config_adom, normalized_config_global)
 
         rule_normalized = RuleNormalized(
             rule_num=rule_number,
@@ -475,11 +479,11 @@ def parse_nat_rulebase(nat_rulebase): #(nat_rulebase, normalized_config_adom, im
             rule_track=rule_track,
             rule_installon=rule_installon,
             rule_time='',  # Time-based rules not commonly used in basic Fortinet configs
-            rule_name=native_rule.get('name'),
-            rule_uid=native_rule.get('uuid'),
-            rule_custom_fields=str(native_rule.get('meta fields', {})),
+            rule_name=rule_orig.get('name', ''),
+            rule_uid=rule_orig.get('uuid'),
+            rule_custom_fields=str({}),
             rule_implied=False,
-            rule_type=RuleType.ACCESS,
+            rule_type=RuleType.NAT,
             last_change_admin=native_rule.get('_last-modified-by', ''),
             parent_rule_uid=None,
             last_hit=last_hit,
@@ -577,37 +581,6 @@ def parse_nat_rulebase(nat_rulebase): #(nat_rulebase, normalized_config_adom, im
             nat_rules.append(xlate_rule)
             rule_number += 1
     normalized_config_adom['rules'].extend(nat_rules)
-
-
-def insert_header(rules, import_id, header_text, rulebase_name, rule_uid, rule_number, src_refs, dst_refs):
-    rule = {
-        "control_id": import_id,
-        "rule_head_text": header_text,
-        "rulebase_name": rulebase_name,
-        "rule_ruleid": None,
-        "rule_uid":  rule_uid + rulebase_name,
-        "rule_num": rule_number,
-        "rule_disabled": False,
-        "rule_src": "all",
-        "rule_dst": "all", 
-        "rule_svc": "ALL",
-        "rule_src_neg": False,
-        "rule_dst_neg": False,
-        "rule_svc_neg": False,
-        "rule_src_refs": src_refs,
-        "rule_dst_refs": dst_refs,
-        "rule_svc_refs": "ALL",
-        "rule_action": "Accept",
-        "rule_track": "None",
-        "rule_installon": None,
-        "rule_time": None,
-        "rule_type": "access",
-        "parent_rule_id": None,
-        "rule_implied": False,
-        "rule_comment": None
-    }
-    rules.append(rule)
-
 
 def create_xlate_rule(rule):
     xlate_rule = copy.deepcopy(rule)
@@ -721,37 +694,6 @@ def handle_combined_nat_rule(rule, rule_orig, config2import, nat_rule_number, im
     # else: (no nat object found) no dnatting involved, dst stays "Original"
 
     return xlate_rule
-
-
-def insert_headers(rule_table, first_v6, first_v4, full_config, rules, import_id, localPkgName,src_ref_all,dst_ref_all,rule_number):
-    if rule_table in rule_access_scope_v6 and first_v6:
-        insert_header(rules, import_id, "IPv6 rules", localPkgName, "IPv6HeaderText", rule_number, src_ref_all, dst_ref_all)
-        rule_number += 1
-        first_v6 = False
-    elif rule_table in rule_access_scope_v4 and first_v4:
-        insert_header(rules, import_id, "IPv4 rules", localPkgName, "IPv4HeaderText", rule_number, src_ref_all, dst_ref_all)
-        rule_number += 1
-        first_v4 = False
-    if rule_table == 'rules_adom_v4' and len(full_config['rules_adom_v4'][localPkgName])>0:
-        insert_header(rules, import_id, "Adom Rules IPv4", localPkgName, "IPv4AdomRules", rule_number, src_ref_all, dst_ref_all)
-        rule_number += 1
-    elif rule_table == 'rules_adom_v6' and len(full_config['rules_adom_v6'][localPkgName])>0:
-        insert_header(rules, import_id, "Adom Rules IPv6", localPkgName, "IPv6AdomRules", rule_number, src_ref_all, dst_ref_all)
-        rule_number += 1
-    elif rule_table == 'rules_global_header_v4' and len(full_config['rules_global_header_v4'][localPkgName])>0:
-        insert_header(rules, import_id, "Global Header Rules IPv4", localPkgName, "IPv4GlobalHeaderRules", rule_number, src_ref_all, dst_ref_all)
-        rule_number += 1
-    elif rule_table == 'rules_global_header_v6' and len(full_config['rules_global_header_v6'][localPkgName])>0:
-        insert_header(rules, import_id, "Global Header Rules IPv6", localPkgName, "IPv6GlobalHeaderRules", rule_number, src_ref_all, dst_ref_all)
-        rule_number += 1
-    elif rule_table == 'rules_global_footer_v4' and len(full_config['rules_global_footer_v4'][localPkgName])>0:
-        insert_header(rules, import_id, "Global Footer Rules IPv4", localPkgName, "IPv4GlobalFooterRules", rule_number, src_ref_all, dst_ref_all)
-        rule_number += 1
-    elif rule_table == 'rules_global_footer_v6' and len(full_config['rules_global_footer_v6'][localPkgName])>0:
-        insert_header(rules, import_id, "Global Footer Rules IPv6", localPkgName, "IPv6GlobalFooterRules", rule_number, src_ref_all, dst_ref_all)
-        rule_number += 1
-    return rule_number, first_v4, first_v6
-
 
 def extract_nat_objects(nwobj_list, all_nwobjects):
     nat_obj_list = []

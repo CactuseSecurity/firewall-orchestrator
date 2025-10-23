@@ -152,33 +152,6 @@ namespace FWO.Data.Report
                 maxAddedCounts["NetworkUsers"] = managementReportToMerge.Users.Length;
             }
 
-            for (int i = 0; i < managementReport.Rulebases.Length; i++)
-            {
-                RulebaseReport rulebaseReport = managementReport.Rulebases[i];
-                RulebaseReport rulebaseReportToMerge = managementReportToMerge.Rulebases.First(rbr => rbr.Id == rulebaseReport.Id);
-                if (rulebaseReportToMerge.Rules.Length > 0)
-                {
-                    rulebaseReport.Rules = [.. rulebaseReport.Rules, .. rulebaseReportToMerge.Rules];
-                    newObjects = true;
-                    maxAddedCounts["Rules"] = Math.Max(maxAddedCounts["Rules"], rulebaseReportToMerge.Rules.Length);
-                }
-            }
-
-            return (newObjects, maxAddedCounts);
-        }
-
-        public static (bool, Dictionary<string, int>) MergeReportObjects(this ManagementReport managementReport, ManagementReport managementReportToMerge)
-        {
-            bool newObjects = false;
-            Dictionary<string, int> maxAddedCounts = new()
-            {
-                { "ReportObjects", 0 },
-                { "ReportServices", 0 },
-                { "ReportUsers", 0 },
-                { "Rules", 0 },
-                { "RuleChanges", 0 },
-            };
-
             if (managementReport.ReportObjects != null && managementReportToMerge.ReportObjects != null && managementReportToMerge.ReportObjects.Length > 0)
             {
                 managementReport.ReportObjects = managementReport.ReportObjects.Concat(managementReportToMerge.ReportObjects).ToArray();

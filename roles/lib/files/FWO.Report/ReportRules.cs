@@ -185,7 +185,7 @@ namespace FWO.Report
                 }
                 else
                 {
-                    (bool newObjects, Dictionary<string, int> maxAddedCounts) = allFilteredObjects.MergeReportObjects(filteredObjects);
+                    (bool newObjects, Dictionary<string, int> maxAddedCounts) = allFilteredObjects.Merge(filteredObjects);
                     keepFetching = newObjects && maxAddedCounts.Values.Any(v => v >= elementsPerFetch);
                 }
 

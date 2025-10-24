@@ -6,7 +6,7 @@
 
 @if(Phase == WorkflowPhases.request && !WfHandler.ReadOnlyMode)
 {
-    <button type="button" class="btn btn-success m-2" @onclick="AddTicket">@(ModellingHandlerBase.DisplayButton(userConfig, "add_new_request", Icons.Add))</button>
+    <button type="button" class="btn btn-success m-2" @onclick="AddTicket">@(DisplayService.DisplayButton(userConfig, "add_new_request", Icons.Add))</button>
 }
 
 <div class="m-2 vheight75">
@@ -16,11 +16,11 @@
                 <div class="btn-group">
                     @if (Phase == WorkflowPhases.request && context.StateId < WfHandler.MasterStateMatrix.LowestEndState && !WfHandler.ReadOnlyMode)
                     {
-                        <button type="button" class="btn btn-sm btn-warning" @onclick="async () => await EditTicket(context)">@(ModellingHandlerBase.DisplayButton(userConfig, "edit", Icons.Edit))</button>
+                        <button type="button" class="btn btn-sm btn-warning" @onclick="async () => await EditTicket(context)">@(DisplayService.DisplayButton(userConfig, "edit", Icons.Edit))</button>
                     }
                     else
                     {
-                        <button type="button" class="btn btn-sm btn-primary" @onclick="async () => await ShowTicketDetails(context)">@(ModellingHandlerBase.DisplayButton(userConfig, "details", Icons.Display))</button>
+                        <button type="button" class="btn btn-sm btn-primary" @onclick="async () => await ShowTicketDetails(context)">@(DisplayService.DisplayButton(userConfig, "details", Icons.Display))</button>
                     }
                 </div>
             </Template>

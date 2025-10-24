@@ -28,7 +28,7 @@ namespace FWO.Data.Report
         public UiUser ReportOwningUser { get; set; } = new ();
 
         [JsonProperty("report_owner_id"), JsonPropertyName("report_owner_id")]
-        public int OwnerId { get; set; }
+        public int OwningUserId { get; set; }
 
         [JsonProperty("report_json"), JsonPropertyName("report_json")]
         public string? Json { get; set; }
@@ -47,6 +47,12 @@ namespace FWO.Data.Report
 
         [JsonProperty("description"), JsonPropertyName("description")]
         public String? Description { get; set; }
+
+        [JsonProperty("read_only"), JsonPropertyName("read_only")]
+        public bool ReadOnly { get; set; } = false;
+
+        [JsonProperty("owner"), JsonPropertyName("owner")]
+        public FwoOwner? Owner { get; set; }
 
         public bool Sanitize()
         {

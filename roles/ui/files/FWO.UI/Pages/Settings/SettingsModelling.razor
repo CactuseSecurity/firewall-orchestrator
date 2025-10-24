@@ -80,7 +80,7 @@
                 <div class="row col-sm-12 mt-1">
                     <input type="number" class="col-sm-2" @bind="actAppServerType.Id" />
                     <input type="text" class="col-sm-8" @bind="actAppServerType.Name" />
-                    <button type="button" class="col-sm-2 btn btn-sm btn-primary" @onclick="AddAppServerType" @onclick:preventDefault>@(ModellingHandlerBase.DisplayButton(userConfig, "add", Icons.Add))</button>
+                    <button type="button" class="col-sm-2 btn btn-sm btn-primary" @onclick="AddAppServerType" @onclick:preventDefault>@(DisplayService.DisplayButton(userConfig, "add", Icons.Add))</button>
                 </div>
             </div>
         </div>
@@ -108,7 +108,7 @@
                 </EditList>
                 <div class="row col-sm-12 mt-1">
                     <input type="text" class="col-sm-10" @bind="actExtraConfig" />
-                    <button type="button" class="col-sm-2 btn btn-sm btn-primary" @onclick="AddExtraConfig" @onclick:preventDefault>@(ModellingHandlerBase.DisplayButton(userConfig, "add", Icons.Add))</button>
+                    <button type="button" class="col-sm-2 btn btn-sm btn-primary" @onclick="AddExtraConfig" @onclick:preventDefault>@(DisplayService.DisplayButton(userConfig, "add", Icons.Add))</button>
                 </div>
             </div>
         </div>
@@ -214,7 +214,7 @@
                 </EditList>
                 <div class="row col-sm-12 mt-1">
                     <input type="text" class="col-sm-10" @bind="actPath" />
-                    <button type="button" class="col-sm-2 btn btn-sm btn-primary" @onclick="AddPath" @onclick:preventDefault>@(ModellingHandlerBase.DisplayButton(userConfig, "add", Icons.Add))</button>
+                    <button type="button" class="col-sm-2 btn btn-sm btn-primary" @onclick="AddPath" @onclick:preventDefault>@(DisplayService.DisplayButton(userConfig, "add", Icons.Add))</button>
                 </div>
             </div>
         </div>
@@ -262,7 +262,7 @@
                 </EditList>
                 <div class="row col-sm-12 mt-1">
                     <input type="text" class="col-sm-10" @bind="SubnetActPath" />
-                    <button type="button" class="col-sm-2 btn btn-sm btn-primary" @onclick="AddPathSubnet" @onclick:preventDefault>@(ModellingHandlerBase.DisplayButton(userConfig, "add", Icons.Add))</button>
+                    <button type="button" class="col-sm-2 btn btn-sm btn-primary" @onclick="AddPathSubnet" @onclick:preventDefault>@(DisplayService.DisplayButton(userConfig, "add", Icons.Add))</button>
                 </div>
             </div>
         </div>
@@ -283,7 +283,8 @@
         <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5630"))">
             <label class="col-form-label col-sm-4">@(userConfig.GetText("modReqEmailReceiver")):</label>
             <div class="col-sm-3">
-                <Dropdown @bind-SelectedElement="configData!.ModReqEmailReceiver" ElementToString="@(o => userConfig.GetText(o.ToString()))" Elements="selectableRecipientOptions">
+                <Dropdown ElementType="EmailRecipientOption" @bind-SelectedElement="configData!.ModReqEmailReceiver"
+                        ElementToString="@(o => userConfig.GetText(o.ToString()))" Elements="EmailRecipientGroups.GetModellingOptions()">
                     <ElementTemplate Context="opt">
                         @(userConfig.GetText(opt.ToString()))
                     </ElementTemplate>
@@ -309,6 +310,26 @@
         <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5626"))">
             <label class="col-form-label col-sm-4">@(userConfig.GetText("modReqTaskTitle")):</label>
             <input type="text" class="col-sm-6" @bind="configData!.ModReqTaskTitle" />
+        </div>
+        <hr />
+        <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5660"))">
+            <label class="col-form-label col-sm-4">@(userConfig.GetText("modDecommEmailReceiver")):</label>
+            <div class="col-sm-3">
+                <Dropdown ElementType="EmailRecipientOption" @bind-SelectedElement="configData!.ModDecommEmailReceiver"
+                        ElementToString="@(o => userConfig.GetText(o.ToString()))" Elements="EmailRecipientGroups.GetModellingOptions()">
+                    <ElementTemplate Context="opt">
+                        @(userConfig.GetText(opt.ToString()))
+                    </ElementTemplate>
+                </Dropdown>
+            </div>
+        </div>
+        <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5661"))">
+            <label class="col-form-label col-sm-4">@(userConfig.GetText("modDecommEmailSubject")):</label>
+            <input type="text" class="col-sm-6" @bind="configData!.ModDecommEmailSubject" />
+        </div>
+        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5662"))">
+            <label class="col-form-label col-sm-4">@(userConfig.GetText("modDecommEmailBody")):</label>
+            <textarea class="col-sm-7 mt-2" rows="4" name="text" @bind="configData!.ModDecommEmailBody"></textarea>
         </div>
         <hr />
         <div class="form-group row mt-2">
@@ -387,6 +408,12 @@
                 <label for="cbx_recert_active" class="col-form-label col-sm-8">@(userConfig.GetText("modRecertActive")):</label>
                 <div class="col-sm-2">
                     <input id="cbx_recert_active" type="checkbox" class="w-100" @bind="configData!.ModRecertActive">
+                </div>
+            </div>
+            <div class="row col-sm-4 align-items-center" data-toggle="tooltip" title="@(userConfig.PureLine("H5663"))">
+                <label for="cbx_expect_modelled" class="col-form-label col-sm-8">@(userConfig.GetText("modRecertExpectAllModelled")):</label>
+                <div class="col-sm-2">
+                    <input id="cbx_expect_modelled" type="checkbox" class="w-100" @bind="configData!.ModRecertExpectAllModelled">
                 </div>
             </div>
         </div>
@@ -500,9 +527,6 @@ else
     private DateTime subnetDataTime = DateTime.Now.AddSeconds(-DateTime.Now.Second);
     private DateTime varAnalysisDate = DateTime.Today;
     private DateTime varAnalysisTime = DateTime.Now.AddSeconds(-DateTime.Now.Second);
-    private List<EmailRecipientOption> selectableRecipientOptions = [ EmailRecipientOption.OwnerGroupOnly,
-        EmailRecipientOption.AllOwnerResponsibles, EmailRecipientOption.OwnerMainResponsible, EmailRecipientOption.FallbackToMainResponsibleIfOwnerGroupEmpty ];
-
     private List<UiLdapConnection> connectedLdaps = [];
     private UiLdapConnection selectedLdap = new();
     private RuleRecognitionOption ruleRecognitionOption = new();

@@ -1,0 +1,12 @@
+mutation updateLifeCycle(
+  $id: Int!
+  $name: String!
+  ) {
+   update_owner_lifecycle_state_by_pk(
+    pk_columns: { id: $id }
+    _set: {
+      name: $name
+  }) {
+    updatedId: id
+  }
+}

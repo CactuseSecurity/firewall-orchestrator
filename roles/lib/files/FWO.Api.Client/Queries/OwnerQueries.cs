@@ -1,4 +1,4 @@
-﻿using FWO.Logging;
+using FWO.Logging;
 
 namespace FWO.Api.Client.Queries
 {
@@ -11,9 +11,13 @@ namespace FWO.Api.Client.Queries
         public static readonly string getEditableOwners;
         public static readonly string getEditableOwnersWithConn;
         public static readonly string newOwner;
+        public static readonly string newLifeCycle;
         public static readonly string updateOwner;
+        public static readonly string updateLifeCycle;
         public static readonly string deactivateOwner;
         public static readonly string deleteOwner;
+        public static readonly string deleteLifeCycle;
+        public static readonly string getOwnerLifeCycleStates;
         // public static readonly string setDefaultOwner;
         public static readonly string setOwnerLastCheck;
         public static readonly string setOwnerLastRecert;
@@ -40,9 +44,13 @@ namespace FWO.Api.Client.Queries
                 getEditableOwners = ownerDetailsFragment + File.ReadAllText(QueryPath + "owner/getEditableOwners.graphql");
                 getEditableOwnersWithConn = ownerDetailsFragment + File.ReadAllText(QueryPath + "owner/getEditableOwnersWithConn.graphql");
                 newOwner = File.ReadAllText(QueryPath + "owner/newOwner.graphql");
+                newLifeCycle = File.ReadAllText(QueryPath + "owner/newLifeCycle.graphql");
                 updateOwner = File.ReadAllText(QueryPath + "owner/updateOwner.graphql");
+                updateLifeCycle = File.ReadAllText(QueryPath + "owner/updateLifeCycle.graphql");
                 deactivateOwner = File.ReadAllText(QueryPath + "owner/deactivateOwner.graphql");
                 deleteOwner = File.ReadAllText(QueryPath + "owner/deleteOwner.graphql");
+                deleteLifeCycle = File.ReadAllText(QueryPath + "owner/deleteLifeCycle.graphql");
+                getOwnerLifeCycleStates = File.ReadAllText(QueryPath + "owner/getOwnerLifeCycleStates.graphql");
                 //setDefaultOwner = File.ReadAllText(QueryPath + "owner/setDefaultOwner.graphql");
                 setOwnerLastCheck = File.ReadAllText(QueryPath + "owner/setOwnerLastCheck.graphql");
                 setOwnerLastRecert = File.ReadAllText(QueryPath + "owner/setOwnerLastRecert.graphql");

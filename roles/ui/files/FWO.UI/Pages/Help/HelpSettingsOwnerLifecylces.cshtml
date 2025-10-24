@@ -1,0 +1,20 @@
+@page "/help/settings/ownerlifecycles"
+@model FWO.Ui.Pages.Help.MainModel
+@{
+    Layout = "HelpLayout";
+}
+@section sidebar {
+    @{
+        await Html.RenderPartialAsync("HelpSettingsSidebar.cshtml");
+    }
+}
+@using FWO.Config.Api
+@inject UserConfig userConfig
+
+<div class="p-2">
+    <h3>@(userConfig.GetText("manage_lifecycles"))</h3>
+    @(Html.Raw(userConfig.GetText("H5666")))
+    <ul>
+        <li>@(Html.Raw(userConfig.GetText("H5665")))</li>
+    </ul>
+</div>

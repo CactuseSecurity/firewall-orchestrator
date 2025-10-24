@@ -46,6 +46,10 @@
         {
             <button type="button" class="btn btn-sm btn-danger" @onclick="RequestRemoveSampleData">@(userConfig.GetText("remove_sample_data"))</button>
         }
+        @if (userConfig.AllowManualOwnerAdmin)
+        {
+            <button type="button" class="btn btn-sm btn-success" @onclick="ManageLifeCycles">@(userConfig.GetText("manage_owner_lc_state"))</button>
+        }
         <br><br>
     </div>
 
@@ -297,6 +301,23 @@
                         </div>
                     }
                 </div>
+                <div class="form-group row mt-2">
+                    <label class="col-sm-3 col-form-label col-form-label-sm" data-toggle="tooltip" title="@(userConfig.PureLine("H5664"))">@(userConfig.GetText("owner_lc_state")):</label>
+                    @if (Readonly)
+                    {
+                        <label class="col-sm-5">@(ownerLifeCycleStates.FirstOrDefault(x => x.Id == actOwner.OwnerLifeCycleStateId)?.Name ?? "")</label>
+                                }
+                    else
+                    {
+                        <div class="col-sm-5">                                             
+                            <Dropdown ElementType="OwnerLifeCycleState" ElementToString="@(t => t.Name)" @bind-SelectedElement="selectedOwnerLifeCycleState" Elements="ownerLifeCycleStates" Nullable="true">
+                                <ElementTemplate Context="lifecycleState">
+                                    @lifecycleState.Name
+                                </ElementTemplate>
+                            </Dropdown>
+                        </div>
+                    }                    
+                </div>
             }
         </Body>
         <Footer>
@@ -317,8 +338,94 @@
         </Footer>
     </PopUp>
 
+    <PopUp Title="@(userConfig.GetText("manage_owner_lc_state"))" HelpPage="settings/ownerlifecycles" Show="@ManageLifeCyclesMode" Size=PopupSize.XLarge OnClose="() => ManageLifeCyclesMode = false">
+        <Body>
+            @if (ManageLifeCyclesMode)
+            {
+                <div class="col-sm-12">
+                    <div class="btn-group m-1">
+                    @if (userConfig.AllowManualOwnerAdmin)
+                    {
+                            <button type="button" class="btn btn-sm btn-success" @onclick="AddLifeCycle">@(userConfig.GetText("add_owner_lc_state"))</button>
+                    }
+                    </div>
+                    <Table class="table table-bordered th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="OwnerLifeCycleState" Items="ownerLifeCycleStates" PageSize="0" ColumnReorder="true">
+                        <Column TableItem="OwnerLifeCycleState" Title="@(userConfig.GetText("owner_lc_states"))" Field="(x => x.Id)" Sortable="false" Filterable="false">
+                            <Template Context="item">
+                                <div class="btn-group">                                    
+                                    @if (userConfig.AllowManualOwnerAdmin)
+                                    {
+                                        <button type="button" class="btn btn-sm btn-warning" @onclick="() =>  EditLifeCyle(item)">@(userConfig.GetText("edit"))</button>
+                                            <AuthorizeView Roles="@Roles.Admin" Context="ctx">
+                                                <Authorized>
+                                                <button type="button" class="btn btn-sm btn-danger" @onclick="() => RequestDeleteLifeCycle(item)">@(userConfig.GetText("delete"))</button>
+                                                </Authorized>
+                                                <NotAuthorized>
+                                                    <button type="button" disabled class="btn btn-sm btn-danger">@(userConfig.GetText("delete"))</button>
+                                                </NotAuthorized>
+                                            </AuthorizeView>
+                                    }
+                                </div>
+                            </Template>
+                        </Column>
+                        <Column TableItem="OwnerLifeCycleState" Title="@(userConfig.GetText("id"))" Field="@(x => x.Id)" Sortable="true" Filterable="true" />
+                        <Column TableItem="OwnerLifeCycleState" Title="@(userConfig.GetText("name"))" Field="@(x => x.Name)" Sortable="true" Filterable="true" />
+                    </Table>
+                </div>
+            }
+        </Body>
+    </PopUp>
+
+    <PopUp Title="@(userConfig.GetText("edit_owner_lc_state"))" Show="@EditLifeCycleMode" Size=PopupSize.XLarge OnClose="() => EditLifeCycleMode = false">
+        <Body>
+            @if (EditLifeCycleMode)
+            {
+                <div class="col-sm-12">
+                    <div class="form-group row me-2">
+                        <div class="col-sm-1">
+                            <div class="form-group row">
+                                <label class="col-sm-6 col-form-label col-form-label-sm">@(userConfig.GetText("id")):</label>
+                                <label class="col-sm-6 col-form-label col-form-label-sm">@(actLifeCycleState.Id)</label>
+                            </div>
+                        </div>
+                        <div class="col-sm-11 me-auto">
+                            <div class="form-group row me-auto" data-toggle="tooltip" title="@(userConfig.PureLine("H5665"))">
+                                <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("name"))*:</label>
+                                @if (Readonly)
+                                {
+                                    <label class="col-sm-10 me-auto">@actLifeCycleState.Name</label>
+                                }
+                                else
+                                {
+                                    <input type="text" class="col-sm-10 me-auto" @bind="actLifeCycleState.Name" />
+                                }
+                            </div>
+                        </div>
+                    </div>                    
+                </div>
+            }
+        </Body>
+        <Footer>
+            <div class="btn-group">
+                @if (!Readonly || !userConfig.AllowManualOwnerAdmin)
+                {
+                    <AuthorizeView Roles="@Roles.Admin">
+                        <Authorized>
+                            <button type="button" class="btn btn-sm btn-primary" @onclick="SaveLifeCycle">@(userConfig.GetText("save"))</button>
+                        </Authorized>
+                        <NotAuthorized>
+                            <button type="button" class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("save"))</button>
+                        </NotAuthorized>
+                    </AuthorizeView>
+                }
+                <button type="button" class="btn btn-sm btn-secondary" @onclick="CancelLifeCycle">@(userConfig.GetText("cancel"))</button>
+            </div>
+        </Footer>
+    </PopUp>
+
     <SearchUser @bind-Display="SearchMode" AddUser="AddUser" AddGroup="AddGroup" UserSearchMode="UserSearchMode" GroupSearchMode="@(!UserSearchMode)" Title="@(actOwner.Name)" OwnerGroupsOnly="true"/>
     <ConfirmDelete @bind-Display="DeleteOwnerMode" PerformAction="DeleteOwner" Title="@userConfig.GetText("delete_owner")" DeleteMessage="@(userConfig.GetText("U5217") + actOwner.Name + "?")"/>
+    <ConfirmDelete @bind-Display="DeleteLifeCycleMode" PerformAction="DeleteLifeCycle" Title="@userConfig.GetText("delete_owner_lc_state")" DeleteMessage="@(userConfig.GetText("U5219") + actLifeCycleState.Name + "?")" />
     <ConfirmDelete @bind-Display="CleanupMode" PerformAction="RemoveSampleData" Title="@userConfig.GetText("remove_sample_data")" DeleteMessage="@cleanupMessage"/>
 }
 else
@@ -334,22 +441,29 @@ else
     private List<FwoOwner> owners = [];
     private List<FwoOwner> sampleOwners = [];
     private FwoOwner actOwner = new();
+    private OwnerLifeCycleState actLifeCycleState = new();
     private Tenant? selectedTenant;
+    private OwnerLifeCycleState? selectedOwnerLifeCycleState;
     private DayOfWeek? selectedDayOfWeek;
     private List<Tenant> tenants = [];
+    private List<OwnerLifeCycleState> ownerLifeCycleStates = [];
 
     private bool showCleanupButton = false;
     private bool CleanupMode = false;
     private string cleanupMessage = "";
     private bool EditOwnerMode = false;
+    private bool EditLifeCycleMode = false;
     private bool Readonly = false;
     private bool AddOwnerMode = false;
+    private bool AddLifeCycleMode = false;
     private bool DeleteOwnerMode = false;
+    private bool DeleteLifeCycleMode = false;
     private bool SearchMode = false;
     private bool UserSearchMode = false;
     private bool InitComplete = false;
     private RecertCheckParams actRecCheckParams = new();
     private bool recertCalcInProgress = false;
+    private bool ManageLifeCyclesMode = false;
 
     private List<NwObjectElement> actIpAddresses = [];
     private List<NwObjectElement> ipsToAdd = [];
@@ -364,6 +478,7 @@ else
         try
         {
             owners = await apiConnection.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getOwners);
+            ownerLifeCycleStates = await apiConnection.SendQueryAsync<List<OwnerLifeCycleState>>(OwnerQueries.getOwnerLifeCycleStates);
             AnalyseSampleOwners();
 
             RestResponse<List<TenantGetReturnParameters>> middlewareServerResponse = await middlewareClient.GetTenants();
@@ -415,6 +530,108 @@ else
         await EditOwner(new FwoOwner());
     }
 
+    private void ManageLifeCycles()
+    {
+        ManageLifeCyclesMode = true;
+    }
+
+    private void EditLifeCyle(OwnerLifeCycleState ownerLifeCycleState)
+    {
+        try
+        {
+            actLifeCycleState = ownerLifeCycleState;
+            EditLifeCycleMode = true;
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("fetch_data"), "", true);
+        }
+    }
+
+
+    private void AddLifeCycle()
+    {
+        AddLifeCycleMode = true;
+        EditLifeCyle(new OwnerLifeCycleState());
+    }
+
+    private async Task SaveLifeCycle()
+    {
+        try
+        {
+            if (actLifeCycleState.Sanitize())
+            {
+                DisplayMessageInUi(null, userConfig.GetText("edit_owner_lc_state"), userConfig.GetText("U0001"), true);
+            }
+            if (CheckValuesLifeCycle())
+            {
+                if (AddLifeCycleMode)
+                {
+                    await AddLifeCycleInDb();//
+                }
+                else
+                {
+                    await UpdateLifeCycleInDb();
+                }                
+                EditLifeCycleMode = false;
+                AddLifeCycleMode = false;
+            }
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("edit_owner_lc_state"), "", true);
+        }
+    }
+
+    private async Task AddLifeCycleInDb()
+    {
+        // make sure we do not add multiple owners with empty string external app id
+        var variables = new
+        {
+            name = actLifeCycleState.Name,
+
+        };
+
+        ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<ReturnIdWrapper>(OwnerQueries.newLifeCycle, variables)).ReturnIds;  //Next
+        if (returnIds == null)
+        {
+            DisplayMessageInUi(null, userConfig.GetText("add_owner_lc_state"), userConfig.GetText("E5293"), true);
+        }
+        else
+        {
+            actLifeCycleState.Id = returnIds[0].NewId;
+            ownerLifeCycleStates.Add(actLifeCycleState);
+
+            Log.WriteAudit(
+                Title: $"LifeCycle Settings",
+                Text: $"Added LifeCycle: {actLifeCycleState.Name}");
+
+        }
+    }
+
+    private async Task UpdateLifeCycleInDb()
+    {
+        // make sure we do not add multiple owners with empty string external app id
+        var Variables = new
+        {
+            id = actLifeCycleState.Id,
+            name = actLifeCycleState.Name,
+
+        };
+        int udId = (await apiConnection.SendQueryAsync<ReturnId>(OwnerQueries.updateLifeCycle, Variables)).UpdatedId;   //next
+        if (udId != actLifeCycleState.Id)
+        {
+            DisplayMessageInUi(null, userConfig.GetText("edit_owner_lc_state"), userConfig.GetText("E5293"), true);
+        }
+        else
+        {
+            ownerLifeCycleStates[ownerLifeCycleStates.FindIndex(x => x.Id == actLifeCycleState.Id)] = actLifeCycleState;
+            Log.WriteAudit(
+                Title: $"LifeCycle Settings",
+                Text: $"Edited LifeCycle: {actLifeCycleState.Name}");
+        }
+    }
+
     private async Task DisplayOwner(FwoOwner owner)
     {
         Readonly = true;
@@ -427,6 +644,7 @@ else
         {
             actOwner = owner;
             selectedTenant = tenants.FirstOrDefault(x => x.Id == actOwner.TenantId);
+            selectedOwnerLifeCycleState = ownerLifeCycleStates.FirstOrDefault(x => x.Id == actOwner.OwnerLifeCycleStateId);
             actRecCheckParams = (actOwner.RecertCheckParamString != null ? System.Text.Json.JsonSerializer.Deserialize<RecertCheckParams>(actOwner.RecertCheckParamString) ?? new RecertCheckParams() : new RecertCheckParams());
             selectedDayOfWeek = (DayOfWeek?)actRecCheckParams?.RecertCheckWeekday;
             if(AddOwnerMode)
@@ -456,6 +674,7 @@ else
         try
         {
             actOwner.TenantId = selectedTenant?.Id;
+            actOwner.OwnerLifeCycleStateId = selectedOwnerLifeCycleState?.Id;
             if(actRecCheckParams.RecertCheckDayOfMonth == 0)
             {
                 actRecCheckParams.RecertCheckDayOfMonth = null;
@@ -500,7 +719,8 @@ else
             appIdExternal = string.IsNullOrEmpty(actOwner.ExtAppId) ? null : actOwner.ExtAppId,
             recertCheckParams = actOwner.RecertCheckParamString,
             commSvcPossible = actOwner.CommSvcPossible,
-            recertActive = actOwner.RecertActive
+            recertActive = actOwner.RecertActive,
+            ownerLifeCycleStateId = actOwner.OwnerLifeCycleStateId
         };
         ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<ReturnIdWrapper>(OwnerQueries.newOwner, variables)).ReturnIds;
         if (returnIds == null)
@@ -535,8 +755,9 @@ else
             recertInterval = actOwner.RecertInterval,
             appIdExternal = string.IsNullOrEmpty(actOwner.ExtAppId) ? null : actOwner.ExtAppId,
             recertCheckParams = actOwner.RecertCheckParamString,
-            commSvcPossible = actOwner.CommSvcPossible,
-            recertActive = actOwner.RecertActive
+            ownerLifeCycleStateId = actOwner.OwnerLifeCycleStateId,
+            commSvcPossible = actOwner.CommSvcPossible,            
+            recertActive = actOwner.RecertActive            
         };
         int udId = (await apiConnection.SendQueryAsync<ReturnId>(OwnerQueries.updateOwner, Variables)).UpdatedId;
         if(udId != actOwner.Id)
@@ -625,6 +846,15 @@ else
         Readonly = false;
     }
 
+    private void CancelLifeCycle()
+    {
+        EditLifeCycleMode = false;
+        AddLifeCycleMode = false;
+        DeleteLifeCycleMode = false;
+        CleanupMode = false;
+        Readonly = false;
+    }
+
     private void RequestDeleteOwner(FwoOwner owner)
     {
         actOwner = owner;
@@ -648,6 +878,31 @@ else
         catch (Exception exception)
         {
             DisplayMessageInUi(exception, userConfig.GetText("delete_owner"), "", true);
+        }
+        StateHasChanged();
+    }
+
+    private void RequestDeleteLifeCycle(OwnerLifeCycleState ownerLifeCycleState)
+    {
+        actLifeCycleState = ownerLifeCycleState;
+        DeleteLifeCycleMode = true;
+    }
+
+    private async Task DeleteLifeCycle()
+    {
+        try
+        {
+            await apiConnection.SendQueryAsync<ReturnId>(OwnerQueries.deleteLifeCycle, new { id = actLifeCycleState.Id });
+            ownerLifeCycleStates.Remove(actLifeCycleState);
+            DeleteLifeCycleMode = false;
+
+            Log.WriteAudit(
+                Title: $"LifeCycle Settings",
+                Text: $"Deleted LifeCycle: {actLifeCycleState.Name}");
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("delete_owner_lc_state"), "", true);
         }
         StateHasChanged();
     }
@@ -685,6 +940,16 @@ else
         if (actOwner.Dn == "" && actOwner.GroupDn == "")
         {
             DisplayMessageInUi(null, userConfig.GetText("edit_owner"), userConfig.GetText("E5292"), true);
+            return false;
+        }
+        return true;
+    }
+
+    private bool CheckValuesLifeCycle()
+    {
+        if (actLifeCycleState.Name == null || actLifeCycleState.Name == "")
+        {
+            DisplayMessageInUi(null, userConfig.GetText("edit_owner_lc_state"), userConfig.GetText("E5102"), true);
             return false;
         }
         return true;

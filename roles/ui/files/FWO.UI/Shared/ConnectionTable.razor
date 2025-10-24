@@ -67,7 +67,10 @@
             {
                 <Column TableItem="ModellingConnection" Title="@(userConfig.GetText("published"))" Field="@(x => x.IsPublished)" Sortable="true" Filterable="true">
                     <Template>
-                        @(context.IsInterface ? context.IsPublished.ShowAsHtml() : "")
+                        @if (context.IsInterface)
+                        {
+                            context.IsPublished.ShowAsHtml();
+                        }
                     </Template>
                 </Column>
             }

@@ -349,6 +349,26 @@ Create table "zone"
  primary key ("zone_id")
 );
 
+--crosstabulation rule zone for source
+Create table "rule_source_to_zone"
+(
+	"rule_id" BIGINT NOT NULL,
+	"zone_id" Integer NOT NULL,
+	"created" BIGINT NOT NULL,
+	"removed" BIGINT,
+	primary key (rule_id, zone_id, created)
+);
+
+--crosstabulation rule zone for destination
+Create table "rule_destination_to_zone"
+(
+	"rule_id" BIGINT NOT NULL,
+	"zone_id" Integer NOT NULL,
+	"created" BIGINT NOT NULL,
+	"removed" BIGINT,
+	primary key (rule_id, zone_id, created)
+);
+
 Create table "usr"
 (
 	"user_id" BIGSERIAL PRIMARY KEY,

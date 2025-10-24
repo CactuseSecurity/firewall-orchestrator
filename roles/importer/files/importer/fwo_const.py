@@ -39,6 +39,7 @@ max_objs_per_chunk = 1000
 api_call_chunk_size = 1000
 rule_num_numeric_steps = 1024.0
 
+# TODO replace rules with policies, breaks all importers except forti and cp
 emptyNormalizedFwConfigJsonDict = {
     'network_objects': [],
     'service_objects': [],

@@ -29,6 +29,13 @@ class FwoNativeConfigFetchError(Exception):
         self.message = message
         super().__init__(self.message)
 
+class FwoNormalizedConfigParseError(Exception):
+    """Raised while parsing normalized config"""
+
+    def __init__(self, message="Parsing normalized config failed"):
+        self.message = message
+        super().__init__(self.message)
+
 class SecretDecryptionFailed(Exception):
     """Raised when the attempt to decrypt a secret with the given key fails"""
 

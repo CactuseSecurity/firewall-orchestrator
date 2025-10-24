@@ -15390,6 +15390,19 @@
                   "comment": ""
                 },
                 {
+                  "role": "auditor",
+                  "permission": {
+                    "columns": [
+                      "created",
+                      "removed",
+                      "dev_id",
+                      "rule_id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
                   "role": "middleware-server",
                   "permission": {
                     "columns": [

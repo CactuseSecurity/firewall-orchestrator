@@ -119,8 +119,8 @@ def add_implicit_deny_rule(rule_num, normalized_config_adom, normalized_config_g
                  'service': ['ALL'],
                  'srcintf': ['any'], 'dstintf': ['any']}
 
-    rule_src_list, rule_src_refs_list = rule_parse_addresses(deny_rule, 'src', normalized_config_adom, normalized_config_global)
-    rule_dst_list, rule_dst_refs_list = rule_parse_addresses(deny_rule, 'dst', normalized_config_adom, normalized_config_global)
+    rule_src_list, rule_src_refs_list = rule_parse_addresses(deny_rule, 'src', normalized_config_adom, normalized_config_global, False)
+    rule_dst_list, rule_dst_refs_list = rule_parse_addresses(deny_rule, 'dst', normalized_config_adom, normalized_config_global, False)
     rule_svc_list, rule_svc_refs_list = rule_parse_service(deny_rule)
     rule_src_zones = find_zones_in_normalized_config(
         deny_rule.get('srcintf', []), normalized_config_adom, normalized_config_global)
@@ -169,8 +169,8 @@ def parse_single_rule(normalized_config_adom, normalized_config_global, native_r
 
     rule_track = rule_parse_tracking_info(native_rule)
 
-    rule_src_list, rule_src_refs_list = rule_parse_addresses(native_rule, 'src', normalized_config_adom, normalized_config_global)
-    rule_dst_list, rule_dst_refs_list = rule_parse_addresses(native_rule, 'dst', normalized_config_adom, normalized_config_global)
+    rule_src_list, rule_src_refs_list = rule_parse_addresses(native_rule, 'src', normalized_config_adom, normalized_config_global, False)
+    rule_dst_list, rule_dst_refs_list = rule_parse_addresses(native_rule, 'dst', normalized_config_adom, normalized_config_global, False)
 
     rule_svc_list, rule_svc_refs_list = rule_parse_service(native_rule)
 
@@ -253,13 +253,16 @@ def rule_parse_service(native_rule):
 
     return rule_svc_list, rule_svc_refs_list
 
-def rule_parse_addresses(native_rule, target, normalized_config_adom, normalized_config_global):
+def rule_parse_addresses(native_rule, target, normalized_config_adom, normalized_config_global, is_nat):
     if target not in ['src', 'dst']:
         raise FwoImporterErrorInconsistencies(f"target '{target}' must either be src or dst.")
     addr_list = []
     addr_ref_list = []
-    build_addr_list(native_rule, True, target, normalized_config_adom, normalized_config_global, addr_list, addr_ref_list)
-    build_addr_list(native_rule, False, target, normalized_config_adom, normalized_config_global, addr_list, addr_ref_list)
+    if not is_nat:
+        build_addr_list(native_rule, True, target, normalized_config_adom, normalized_config_global, addr_list, addr_ref_list)
+        build_addr_list(native_rule, False, target, normalized_config_adom, normalized_config_global, addr_list, addr_ref_list)
+    else:
+        build_nat_addr_list(native_rule, target, normalized_config_adom, normalized_config_global, addr_list, addr_ref_list)
     return addr_list, addr_ref_list
 
 def build_addr_list(native_rule, is_v4, target, normalized_config_adom, normalized_config_global, addr_list, addr_ref_list):
@@ -277,6 +280,12 @@ def build_addr_list(native_rule, is_v4, target, normalized_config_adom, normaliz
             addr_ref_list.append(find_addr_ref(addr, is_v4, normalized_config_adom, normalized_config_global))
     else:
         for addr in native_rule.get('dstaddr6', []):
+            addr_list.append(addr)
+            addr_ref_list.append(find_addr_ref(addr, is_v4, normalized_config_adom, normalized_config_global))
+
+def build_nat_addr_list(native_rule, target, normalized_config_adom, normalized_config_global, addr_list, addr_ref_list):
+    if is_v4 and target == 'src':
+        for addr in native_rule.get('orig-addr', []):
             addr_list.append(addr)
             addr_ref_list.append(find_addr_ref(addr, is_v4, normalized_config_adom, normalized_config_global))
 
@@ -459,8 +468,8 @@ def parse_nat_rulebase(nat_rulebase, normalized_config_adom, normalized_config_g
     rule_number = 0
     for rule_orig in nat_rulebase:
 
-        rule_src_list, rule_src_refs_list = rule_parse_addresses(rule_orig, 'src', normalized_config_adom, normalized_config_global)
-        rule_dst_list, rule_dst_refs_list = rule_parse_addresses(rule_orig, 'dst', normalized_config_adom, normalized_config_global)
+        rule_src_list, rule_src_refs_list = rule_parse_addresses(rule_orig, 'src', normalized_config_adom, normalized_config_global, True)
+        rule_dst_list, rule_dst_refs_list = rule_parse_addresses(rule_orig, 'dst', normalized_config_adom, normalized_config_global, True)
 
         rule_normalized = RuleNormalized(
             rule_num=rule_number,

@@ -16391,6 +16391,7 @@
                     "check": {},
                     "columns": [
                       "rs_create",
+                      "removed",
                       "rs_last_seen",
                       "rule_id",
                       "svc_id",

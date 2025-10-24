@@ -1612,3 +1612,48 @@ ON CONFLICT (config_key, config_user) DO NOTHING;
 -- ALTER TABLE "rule_from" DROP COLUMN IF EXISTS "rf_last_seen";
 -- ALTER TABLE "rule_to" DROP COLUMN IF EXISTS "rt_last_seen";
 -- ALTER TABLE "rule_service" DROP COLUMN IF EXISTS "rs_last_seen";
+
+
+-- add crosstabulations rules with zone for source and destination
+
+--crosstabulation rule zone for source
+Create table IF NOT EXISTS "rule_source_to_zone"
+(
+	"rule_id" BIGINT NOT NULL,
+	"zone_id" Integer NOT NULL,
+	"created" BIGINT NOT NULL,
+	"removed" BIGINT,
+	primary key (rule_id, zone_id, created)
+);
+
+--crosstabulation rule zone for destination
+Create table IF NOT EXISTS "rule_destination_to_zone"
+(
+	"rule_id" BIGINT NOT NULL,
+	"zone_id" Integer NOT NULL,
+	"created" BIGINT NOT NULL,
+	"removed" BIGINT,
+	primary key (rule_id, zone_id, created)
+);
+
+--crosstabulation rule zone for destination FKs
+ALTER TABLE "rule_destination_to_zone" 
+DROP CONSTRAINT IF EXISTS rule_destination_to_zone_rule_id_rule_rule_id_fkey;
+ALTER TABLE "rule_destination_to_zone"
+DROP CONSTRAINT IF EXISTS rule_destination_to_zone_zone_id_zone_zone_id_fkey;
+
+ALTER TABLE "rule_destination_to_zone"
+ADD CONSTRAINT rule_destination_to_zone_rule_id_rule_rule_id_fkey FOREIGN KEY ("rule_id") REFERENCES "rule" ("rule_id");
+ALTER TABLE "rule_destination_to_zone"
+ADD CONSTRAINT rule_destination_to_zone_zone_id_zone_zone_id_fkey FOREIGN KEY ("zone_id") REFERENCES "zone" ("zone_id");
+
+--crosstabulation rule zone for source FKs
+ALTER TABLE "rule_source_to_zone" 
+DROP CONSTRAINT IF EXISTS rule_source_to_zone_rule_id_rule_rule_id_fkey;
+ALTER TABLE "rule_source_to_zone"
+DROP CONSTRAINT IF EXISTS rule_source_to_zone_zone_id_zone_zone_id_fkey;
+
+ALTER TABLE "rule_source_to_zone"
+ADD CONSTRAINT rule_source_to_zone_rule_id_rule_rule_id_fkey FOREIGN KEY ("rule_id") REFERENCES "rule" ("rule_id");
+ALTER TABLE "rule_source_to_zone"
+ADD CONSTRAINT rule_source_to_zone_zone_id_zone_zone_id_fkey FOREIGN KEY ("zone_id") REFERENCES "zone" ("zone_id");

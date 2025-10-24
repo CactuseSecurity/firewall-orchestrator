@@ -14856,6 +14856,7 @@
                       "rule_svc",
                       "rule_svc_refs",
                       "rule_track",
+                      "rulebase_id",
                       "rule_uid"
                     ],
                     "computed_fields": [
@@ -14908,6 +14909,7 @@
                       "rule_svc",
                       "rule_svc_refs",
                       "rule_track",
+                      "rulebase_id",
                       "rule_uid"
                     ],
                     "computed_fields": [

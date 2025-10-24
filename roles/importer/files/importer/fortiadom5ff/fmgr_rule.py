@@ -219,7 +219,7 @@ def parse_single_rule(normalized_config_adom, normalized_config_global, native_r
     # Add the rule to the rulebase
     rulebase.Rules[rule_normalized.rule_uid] = rule_normalized
 
-    # TODO: handle NAT
+    # TODO: handle combined NAT, see handle_combined_nat_rule
     
     return rule_num + 1
 
@@ -284,10 +284,15 @@ def build_addr_list(native_rule, is_v4, target, normalized_config_adom, normaliz
             addr_ref_list.append(find_addr_ref(addr, is_v4, normalized_config_adom, normalized_config_global))
 
 def build_nat_addr_list(native_rule, target, normalized_config_adom, normalized_config_global, addr_list, addr_ref_list):
-    if is_v4 and target == 'src':
+    # so far only ip v4 expected
+    if target == 'src':
         for addr in native_rule.get('orig-addr', []):
             addr_list.append(addr)
-            addr_ref_list.append(find_addr_ref(addr, is_v4, normalized_config_adom, normalized_config_global))
+            addr_ref_list.append(find_addr_ref(addr, True, normalized_config_adom, normalized_config_global))
+    if target == 'dst':
+        for addr in native_rule.get('dst-addr', []):
+            addr_list.append(addr)
+            addr_ref_list.append(find_addr_ref(addr, True, normalized_config_adom, normalized_config_global))
 
 def find_addr_ref(addr, is_v4, normalized_config_adom, normalized_config_global):
     for nw_obj in normalized_config_adom['network_objects'] + normalized_config_global.get('network_objects', []):

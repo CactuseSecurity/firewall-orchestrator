@@ -48,7 +48,7 @@
         }
         @if (userConfig.AllowManualOwnerAdmin)
         {
-            <button type="button" class="btn btn-sm btn-success" @onclick="ManageLifeCycles">@(userConfig.GetText("manage_lifecycles"))</button>
+            <button type="button" class="btn btn-sm btn-success" @onclick="ManageLifeCycles">@(userConfig.GetText("manage_owner_lc_state"))</button>
         }
         <br><br>
     </div>
@@ -302,7 +302,7 @@
                     }
                 </div>
                 <div class="form-group row mt-2">
-                    <label class="col-sm-3 col-form-label col-form-label-sm" data-toggle="tooltip" title="@(userConfig.PureLine("H5664"))">@(userConfig.GetText("lifecyclestate")):</label>
+                    <label class="col-sm-3 col-form-label col-form-label-sm" data-toggle="tooltip" title="@(userConfig.PureLine("H5664"))">@(userConfig.GetText("owner_lc_state")):</label>
                     @if (Readonly)
                     {
                         <label class="col-sm-5">@(ownerLifeCycleStates.FirstOrDefault(x => x.Id == actOwner.OwnerLifeCycleStateId)?.Name ?? "")</label>
@@ -338,7 +338,7 @@
         </Footer>
     </PopUp>
 
-    <PopUp Title="@(userConfig.GetText("manage_lifecycles"))" HelpPage="settings/ownerlifecycles" Show="@ManageLifeCyclesMode" Size=PopupSize.XLarge OnClose="() => ManageLifeCyclesMode = false">
+    <PopUp Title="@(userConfig.GetText("manage_owner_lc_state"))" HelpPage="settings/ownerlifecycles" Show="@ManageLifeCyclesMode" Size=PopupSize.XLarge OnClose="() => ManageLifeCyclesMode = false">
         <Body>
             @if (ManageLifeCyclesMode)
             {
@@ -346,11 +346,11 @@
                     <div class="btn-group m-1">
                     @if (userConfig.AllowManualOwnerAdmin)
                     {
-                            <button type="button" class="btn btn-sm btn-success" @onclick="AddLifeCycle">@(userConfig.GetText("add_lifecycle"))</button>
+                            <button type="button" class="btn btn-sm btn-success" @onclick="AddLifeCycle">@(userConfig.GetText("add_owner_lc_state"))</button>
                     }
                     </div>
                     <Table class="table table-bordered th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="OwnerLifeCycleState" Items="ownerLifeCycleStates" PageSize="0" ColumnReorder="true">
-                        <Column TableItem="OwnerLifeCycleState" Title="@(userConfig.GetText("lifecycles"))" Field="(x => x.Id)" Sortable="false" Filterable="false">                            
+                        <Column TableItem="OwnerLifeCycleState" Title="@(userConfig.GetText("owner_lc_states"))" Field="(x => x.Id)" Sortable="false" Filterable="false">
                             <Template Context="item">
                                 <div class="btn-group">                                    
                                     @if (userConfig.AllowManualOwnerAdmin)
@@ -376,7 +376,7 @@
         </Body>
     </PopUp>
 
-    <PopUp Title="@(userConfig.GetText("edit_lifecycle"))" Show="@EditLifeCycleMode" Size=PopupSize.XLarge OnClose="() => EditLifeCycleMode = false">
+    <PopUp Title="@(userConfig.GetText("edit_owner_lc_state"))" Show="@EditLifeCycleMode" Size=PopupSize.XLarge OnClose="() => EditLifeCycleMode = false">
         <Body>
             @if (EditLifeCycleMode)
             {
@@ -425,7 +425,7 @@
 
     <SearchUser @bind-Display="SearchMode" AddUser="AddUser" AddGroup="AddGroup" UserSearchMode="UserSearchMode" GroupSearchMode="@(!UserSearchMode)" Title="@(actOwner.Name)" OwnerGroupsOnly="true"/>
     <ConfirmDelete @bind-Display="DeleteOwnerMode" PerformAction="DeleteOwner" Title="@userConfig.GetText("delete_owner")" DeleteMessage="@(userConfig.GetText("U5217") + actOwner.Name + "?")"/>
-    <ConfirmDelete @bind-Display="DeleteLifeCycleMode" PerformAction="DeleteLifeCycle" Title="@userConfig.GetText("delete_lifecycle")" DeleteMessage="@(userConfig.GetText("U5219") + actLifeCycleState.Name + "?")" />
+    <ConfirmDelete @bind-Display="DeleteLifeCycleMode" PerformAction="DeleteLifeCycle" Title="@userConfig.GetText("delete_owner_lc_state")" DeleteMessage="@(userConfig.GetText("U5219") + actLifeCycleState.Name + "?")" />
     <ConfirmDelete @bind-Display="CleanupMode" PerformAction="RemoveSampleData" Title="@userConfig.GetText("remove_sample_data")" DeleteMessage="@cleanupMessage"/>
 }
 else
@@ -561,7 +561,7 @@ else
         {
             if (actLifeCycleState.Sanitize())
             {
-                DisplayMessageInUi(null, userConfig.GetText("edit_lifecycle"), userConfig.GetText("U0001"), true);
+                DisplayMessageInUi(null, userConfig.GetText("edit_owner_lc_state"), userConfig.GetText("U0001"), true);
             }
             if (CheckValuesLifeCycle())
             {
@@ -579,7 +579,7 @@ else
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi(exception, userConfig.GetText("edit_lifecycle"), "", true);
+            DisplayMessageInUi(exception, userConfig.GetText("edit_owner_lc_state"), "", true);
         }
     }
 
@@ -595,7 +595,7 @@ else
         ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<ReturnIdWrapper>(OwnerQueries.newLifeCycle, variables)).ReturnIds;  //Next
         if (returnIds == null)
         {
-            DisplayMessageInUi(null, userConfig.GetText("add_lifecycle"), userConfig.GetText("E5293"), true);
+            DisplayMessageInUi(null, userConfig.GetText("add_owner_lc_state"), userConfig.GetText("E5293"), true);
         }
         else
         {
@@ -621,7 +621,7 @@ else
         int udId = (await apiConnection.SendQueryAsync<ReturnId>(OwnerQueries.updateLifeCycle, Variables)).UpdatedId;   //next
         if (udId != actLifeCycleState.Id)
         {
-            DisplayMessageInUi(null, userConfig.GetText("edit_lifecycle"), userConfig.GetText("E5293"), true);
+            DisplayMessageInUi(null, userConfig.GetText("edit_owner_lc_state"), userConfig.GetText("E5293"), true);
         }
         else
         {
@@ -902,7 +902,7 @@ else
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi(exception, userConfig.GetText("delete_lifecycle"), "", true);
+            DisplayMessageInUi(exception, userConfig.GetText("delete_owner_lc_state"), "", true);
         }
         StateHasChanged();
     }
@@ -949,7 +949,7 @@ else
     {
         if (actLifeCycleState.Name == null || actLifeCycleState.Name == "")
         {
-            DisplayMessageInUi(null, userConfig.GetText("edit_lifecycle"), userConfig.GetText("E5102"), true);
+            DisplayMessageInUi(null, userConfig.GetText("edit_owner_lc_state"), userConfig.GetText("E5102"), true);
             return false;
         }
         return true;

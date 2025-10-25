@@ -108,9 +108,9 @@ class FwConfigImportCheckConsistency(FwConfigImport):
 
     def _collect_all_used_objects_from_rules(self, rb):
         all_used_obj_refs = []
-        for rule_id in rb.Rules:
-            all_used_obj_refs += rb.Rules[rule_id].rule_src_refs.split(fwo_const.list_delimiter)
-            all_used_obj_refs += rb.Rules[rule_id].rule_dst_refs.split(fwo_const.list_delimiter)
+        for rule_id in rb.rules:
+            all_used_obj_refs += rb.rules[rule_id].rule_src_refs.split(fwo_const.list_delimiter)
+            all_used_obj_refs += rb.rules[rule_id].rule_dst_refs.split(fwo_const.list_delimiter)
         
         return all_used_obj_refs
 
@@ -181,8 +181,8 @@ class FwConfigImportCheckConsistency(FwConfigImport):
     def _collect_service_object_refs_from_rules(single_config) -> set[str]:
         all_used_obj_refs: set[str] = set()
         for rb in single_config.rulebases:
-            for ruleId in rb.Rules:
-                all_used_obj_refs |= set(rb.Rules[ruleId].rule_svc_refs.split(fwo_const.list_delimiter))
+            for ruleId in rb.rules:
+                all_used_obj_refs |= set(rb.rules[ruleId].rule_svc_refs.split(fwo_const.list_delimiter))
         return all_used_obj_refs
 
 
@@ -208,10 +208,10 @@ class FwConfigImportCheckConsistency(FwConfigImport):
     def _collect_users_from_rules(self, single_config):
         all_used_obj_refs = []
         for rb in single_config.rulebases:
-            for ruleId in rb.Rules:
-                if fwo_const.user_delimiter in rb.Rules[ruleId].rule_src_refs:
-                    all_used_obj_refs += self._collectUsersFromRule(rb.Rules[ruleId].rule_src_refs.split(fwo_const.list_delimiter))
-                    all_used_obj_refs += self._collectUsersFromRule(rb.Rules[ruleId].rule_dst_refs.split(fwo_const.list_delimiter))
+            for ruleId in rb.rules:
+                if fwo_const.user_delimiter in rb.rules[ruleId].rule_src_refs:
+                    all_used_obj_refs += self._collectUsersFromRule(rb.rules[ruleId].rule_src_refs.split(fwo_const.list_delimiter))
+                    all_used_obj_refs += self._collectUsersFromRule(rb.rules[ruleId].rule_dst_refs.split(fwo_const.list_delimiter))
         return all_used_obj_refs
 
 
@@ -265,8 +265,8 @@ class FwConfigImportCheckConsistency(FwConfigImport):
     def _collect_zone_refs_from_rules(single_config: FwConfigNormalized) -> set[str]:
         all_used_zones_refs = set()
         for rb in single_config.rulebases:
-            for rule_id in rb.Rules:
-                rule = rb.Rules[rule_id]
+            for rule_id in rb.rules:
+                rule = rb.rules[rule_id]
                 if rule.rule_src_zone is not None:
                     all_used_zones_refs.update(rule.rule_src_zone.split(fwo_const.list_delimiter))
                 if rule.rule_dst_zone is not None:
@@ -362,8 +362,8 @@ class FwConfigImportCheckConsistency(FwConfigImport):
         track_refs = []
         action_refs = []
         for rb in rulebases:
-            track_refs.extend(rule.rule_track for rule in rb.Rules.values())
-            action_refs.extend(rule.rule_action for rule in rb.Rules.values())
+            track_refs.extend(rule.rule_track for rule in rb.rules.values())
+            action_refs.extend(rule.rule_action for rule in rb.rules.values())
         return track_refs, action_refs
 
 
@@ -434,7 +434,7 @@ class FwConfigImportCheckConsistency(FwConfigImport):
                 for rb in single_config.rulebases:
                     all_rulebase_uids.add(rb.uid)
                     # collect rule UIDs
-                    for rule_uid in rb.Rules:
+                    for rule_uid in rb.rules:
                         all_rule_uids.add(rule_uid)
         return all_rulebase_uids, all_rule_uids
 

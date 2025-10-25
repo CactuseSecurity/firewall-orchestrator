@@ -58,7 +58,7 @@ class TestUpdateRulebaseDiffs(unittest.TestCase):
         # Arrange
 
         rulebase = self._normalized_config.rulebases[0]
-        rule_uids = list(rulebase.Rules.keys())
+        rule_uids = list(rulebase.rules.keys())
         rule_uid = rule_uids[0]
 
         remove_rule_from_rulebase(self._normalized_config, rulebase.uid, rule_uid, rule_uids)
@@ -72,9 +72,9 @@ class TestUpdateRulebaseDiffs(unittest.TestCase):
         # Assert
 
         # The order of the entries in normalized_config
-        self.assertEqual(rule_uids, list(rulebase.Rules.keys())) 
+        self.assertEqual(rule_uids, list(rulebase.rules.keys())) 
 
-        sorted_rulebase_rules = sorted(list(rulebase.Rules.values()), key=lambda r: r.rule_num_numeric)
+        sorted_rulebase_rules = sorted(list(rulebase.rules.values()), key=lambda r: r.rule_num_numeric)
         sorted_rulebase_rules_uids = [r.rule_uid for r in sorted_rulebase_rules]
         
         # The sequence of the rule_num_numeric values
@@ -92,7 +92,7 @@ class TestUpdateRulebaseDiffs(unittest.TestCase):
         # Arrange
 
         rulebase = self._normalized_config.rulebases[0]
-        rule_uids = list(rulebase.Rules.keys())
+        rule_uids = list(rulebase.rules.keys())
 
         # Inserting three new rules at the beginning of the rulebase
         insert_rule_in_config(self._normalized_config, rulebase.uid, 0, rule_uids, self._config_builder)
@@ -116,9 +116,9 @@ class TestUpdateRulebaseDiffs(unittest.TestCase):
         # Assert
 
         # The order of the entries in normalized_config
-        self.assertEqual(rule_uids, list(rulebase.Rules.keys())) 
+        self.assertEqual(rule_uids, list(rulebase.rules.keys())) 
 
-        sorted_rulebase_rules = sorted(list(rulebase.Rules.values()), key=lambda r: r.rule_num_numeric)
+        sorted_rulebase_rules = sorted(list(rulebase.rules.values()), key=lambda r: r.rule_num_numeric)
         sorted_rulebase_rules_uids = [r.rule_uid for r in sorted_rulebase_rules]
         
         # The sequence of the rule_num_numeric values
@@ -136,9 +136,9 @@ class TestUpdateRulebaseDiffs(unittest.TestCase):
         # Arrange
 
         source_rulebase = self._fwconfig_import_rule.normalized_config.rulebases[0]
-        source_rulebase_uids = list(source_rulebase.Rules.keys())
+        source_rulebase_uids = list(source_rulebase.rules.keys())
         target_rulebase = self._fwconfig_import_rule.normalized_config.rulebases[1]
-        target_rulebase_uids = list(target_rulebase.Rules.keys())
+        target_rulebase_uids = list(target_rulebase.rules.keys())
 
         deleted_rule = remove_rule_from_rulebase(self._normalized_config, source_rulebase.uid, source_rulebase_uids[0], source_rulebase_uids)
         insert_rule_in_config(self._normalized_config, target_rulebase.uid, 0, target_rulebase_uids, self._config_builder, deleted_rule)
@@ -150,13 +150,13 @@ class TestUpdateRulebaseDiffs(unittest.TestCase):
         # Assert
 
         # The order of the entries in normalized_config
-        self.assertEqual(source_rulebase_uids, list(source_rulebase.Rules.keys())) 
-        self.assertEqual(target_rulebase_uids, list(target_rulebase.Rules.keys())) 
+        self.assertEqual(source_rulebase_uids, list(source_rulebase.rules.keys())) 
+        self.assertEqual(target_rulebase_uids, list(target_rulebase.rules.keys())) 
 
-        sorted_source_rulebase_rules = sorted(list(source_rulebase.Rules.values()), key=lambda r: r.rule_num_numeric)
+        sorted_source_rulebase_rules = sorted(list(source_rulebase.rules.values()), key=lambda r: r.rule_num_numeric)
         sorted_source_rulebase_rules_uids = [r.rule_uid for r in sorted_source_rulebase_rules]
         
-        sorted_target_rulebase_rules = sorted(list(target_rulebase.Rules.values()), key=lambda r: r.rule_num_numeric)
+        sorted_target_rulebase_rules = sorted(list(target_rulebase.rules.values()), key=lambda r: r.rule_num_numeric)
         sorted_target_rulebase_rules_uids = [r.rule_uid for r in sorted_target_rulebase_rules]
 
         # The sequence of the rule_num_numeric values
@@ -175,7 +175,7 @@ class TestUpdateRulebaseDiffs(unittest.TestCase):
         # Arrange
 
         rulebase = self._normalized_config.rulebases[0]
-        rule_uids = list(rulebase.Rules.keys())
+        rule_uids = list(rulebase.rules.keys())
 
         move_rule_in_config(self._normalized_config, rulebase.uid, (len(rule_uids) - 1)//2, 0, rule_uids)  # Move to beginning
         move_rule_in_config(self._normalized_config, rulebase.uid, 1, (len(rule_uids) - 1)//2, rule_uids)  # Move to middle
@@ -188,9 +188,9 @@ class TestUpdateRulebaseDiffs(unittest.TestCase):
         # Assert
 
         # The order of the entries in normalized_config
-        self.assertEqual(rule_uids, list(rulebase.Rules.keys())) 
+        self.assertEqual(rule_uids, list(rulebase.rules.keys())) 
 
-        sorted_rulebase_rules = sorted(list(rulebase.Rules.values()), key=lambda r: r.rule_num_numeric)
+        sorted_rulebase_rules = sorted(list(rulebase.rules.values()), key=lambda r: r.rule_num_numeric)
         sorted_rulebase_rules_uids = [r.rule_uid for r in sorted_rulebase_rules]
         
         # The sequence of the rule_num_numeric values
@@ -210,24 +210,24 @@ class TestUpdateRulebaseDiffs(unittest.TestCase):
             # Move last five rules of last rulebase to new rulebase (previous config).
 
             last_rulebase = self._previous_config.rulebases[-1]
-            last_five_rules_uids = list(last_rulebase.Rules.keys())[-5:]
+            last_five_rules_uids = list(last_rulebase.rules.keys())[-5:]
 
             new_rulebase = self._config_builder.add_rulebase(self._previous_config, self._mgm_uid)
 
             for rule_uid in last_five_rules_uids:
-                rule = last_rulebase.Rules.pop(rule_uid)
+                rule = last_rulebase.rules.pop(rule_uid)
                 self._config_builder.add_rule(self._previous_config, new_rulebase.uid, rule.model_dump())
             
             # Create rulebase link for cp_section header (previous config)
 
-            last_rulebase_last_rule_uid = list(last_rulebase.Rules.keys())[-1]
+            last_rulebase_last_rule_uid = list(last_rulebase.rules.keys())[-1]
             gateway = self._previous_config.gateways[0]
             self._config_builder.add_cp_section_header(gateway, last_rulebase.uid, new_rulebase.uid, last_rulebase_last_rule_uid)
 
             update_rule_map_and_rulebase_map(self._previous_config, self._import_state)
             update_rule_num_numerics(self._previous_config)
 
-            rule_uids = [r for rb in self._normalized_config.rulebases for r in rb.Rules.keys()]
+            rule_uids = [r for rb in self._normalized_config.rulebases for r in rb.rules.keys()]
 
             # Act
 
@@ -236,11 +236,11 @@ class TestUpdateRulebaseDiffs(unittest.TestCase):
             # Assert
 
             # The order of the entries in normalized_config (across rulebases)
-            self.assertEqual(rule_uids, [r for rb in self._normalized_config.rulebases for r in rb.Rules.keys()]) 
+            self.assertEqual(rule_uids, [r for rb in self._normalized_config.rulebases for r in rb.rules.keys()]) 
 
             sorted_rules = [] 
             for rulebase in self._normalized_config.rulebases:
-                sorted_rules.extend(sorted(rulebase.Rules.values(), key=lambda r: r.rule_num_numeric)) 
+                sorted_rules.extend(sorted(rulebase.rules.values(), key=lambda r: r.rule_num_numeric)) 
             sorted_rules_uids = [r.rule_uid for r in sorted_rules]
             
             # The sequence of the rule_num_numeric values

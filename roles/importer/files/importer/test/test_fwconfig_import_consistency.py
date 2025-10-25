@@ -119,7 +119,7 @@ def get_rule_from_mapping(config):
     return {
         rule.rule_uid: set(rule.rule_src_refs.split(fwo_const.list_delimiter))
         for rulebase in config.rulebases
-        for rule in rulebase.Rules.values()
+        for rule in rulebase.rules.values()
     }
 
 
@@ -127,7 +127,7 @@ def get_rule_svc_mapping(config):
     return {
         rule.rule_uid: set(rule.rule_svc_refs.split(fwo_const.list_delimiter))
         for rulebase in config.rulebases
-        for rule in rulebase.Rules.values()
+        for rule in rulebase.rules.values()
     }
 
 
@@ -141,7 +141,7 @@ def get_rule_nwobj_resolved_mapping(config, group_flats_mapper):
                 rule.rule_dst_refs.split(fwo_const.list_delimiter)
             ]))
         for rulebase in config.rulebases
-        for rule in rulebase.Rules.values()
+        for rule in rulebase.rules.values()
     }
 
 
@@ -152,7 +152,7 @@ def get_rule_svc_resolved_mapping(config, group_flats_mapper):
             group_flats_mapper.get_service_object_flats(
                 rule.rule_svc_refs.split(fwo_const.list_delimiter)))
         for rulebase in config.rulebases
-        for rule in rulebase.Rules.values()
+        for rule in rulebase.rules.values()
     }
 
 

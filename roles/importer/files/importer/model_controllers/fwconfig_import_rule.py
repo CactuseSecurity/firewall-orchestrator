@@ -850,14 +850,14 @@ class FwConfigImportRule():
         }
         """
 
-        import_rules = []
+        import_rules: list[Rule] = []
 
         for rulebase_uid in list(rule_uids.keys()):
             rules_with_changes = [r for r in rule_order_service.target_rules_flat if r.rule_uid in rule_uids[rulebase_uid]]
             import_rules.extend(self.prepare_rules_for_import(rules_with_changes, rulebase_uid))
 
         create_new_rule_version_variables = {
-            "objects": import_rules,
+            "objects": [rule.model_dump() for rule in import_rules],
             "uids": [rule.rule_uid for rule in import_rules],
             "mgmId": self.import_details.MgmDetails.CurrentMgmId,
             "importId": self.import_details.ImportId

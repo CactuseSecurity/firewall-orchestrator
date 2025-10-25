@@ -196,13 +196,14 @@ class FwConfigImportRule():
                 current_rule = current_rulebase.rules[rule_uid]
                 previous_rule = previous_rulebase.rules.get(rule_uid) if previous_rulebase else None
 
-                if previous_rule is None:
-                    # rulebase or rule is new
+                if current_rule.last_hit is None:
+                    continue  # No hit information to update
+
+                if previous_rule is None or \
+                    (current_rule.last_hit != previous_rule.last_hit):
+                    # rulebase or rule is new or hit information changed
                     add_hit_update(new_hit_information, current_rule)
                     processed_rules.add(rule_uid)
-                elif (current_rule.last_hit != previous_rule.last_hit and 
-                    # check if hit information changed
-                    current_rule.last_hit is not None):
                     add_hit_update(new_hit_information, current_rule)
                     processed_rules.add(rule_uid)
 

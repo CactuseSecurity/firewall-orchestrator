@@ -7,7 +7,7 @@ class NetworkObject(BaseModel):
     obj_ip: IPNetwork | None = None
     obj_ip_end: IPNetwork | None = None
     obj_color: str
-    obj_typ: str
+    obj_typ: str # host ->   | network ->  | ip_range -> | group ->
     obj_member_refs: str | None = None
     obj_member_names: str | None = None
     obj_comment: str | None = None

@@ -204,8 +204,6 @@ class FwConfigImportRule():
                     # rulebase or rule is new or hit information changed
                     add_hit_update(new_hit_information, current_rule)
                     processed_rules.add(rule_uid)
-                    add_hit_update(new_hit_information, current_rule)
-                    processed_rules.add(rule_uid)
 
     def update_rule_metadata_last_hit(self, new_hit_information: list[dict]) -> int:
         """

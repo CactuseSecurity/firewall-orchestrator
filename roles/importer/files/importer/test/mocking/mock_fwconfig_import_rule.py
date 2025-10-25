@@ -169,7 +169,7 @@ class MockFwConfigImportRule(FwConfigImportRule):
 
     # Overridden methods with stubbing behavior
 
-    def mark_rules_removed(self, removedRuleUids: dict[str, list[str]], changedRuleUids: dict[str, list[str]]) -> tuple[int, list[str]]:
+    def mark_rules_removed(self, removedRuleUids: dict[str, list[str]]) -> tuple[int, list[int]]:
         """
             Simulates marking rules as removed. Can delegate to the base class if not stubbed.
 
@@ -188,7 +188,7 @@ class MockFwConfigImportRule(FwConfigImportRule):
             collectedRemovedRuleIds.extend(removedRuleUids[rulebase])
 
         if not self.stub_markRulesRemoved:
-            changes, collectedRemovedRuleIds = super().mark_rules_removed(removedRuleUids, changedRuleUids)
+            changes, collectedRemovedRuleIds = super().mark_rules_removed(removedRuleUids)
 
         return changes, collectedRemovedRuleIds
 

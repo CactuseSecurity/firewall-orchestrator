@@ -1,3 +1,4 @@
+from typing import Optional
 from pydantic import BaseModel
 
 from fwo_base import ConfigAction, ConfFormat
@@ -60,13 +61,13 @@ class FwConfigNormalized(FwConfig):
     }
 
 
-    def getRulebase(self, rulebaseUid: str) -> Rulebase:
+    def get_rulebase(self, rulebaseUid: str) -> Optional[Rulebase]:
         """
         get the policy with a specific uid  
         :param policyUid: The UID of the relevant policy.
-        :return: Returns the policy with a specific uid, otherwise returns empty policy.
+        :return: Returns the policy with a specific uid, otherwise returns None.
         """
         for rb in self.rulebases:
             if rb.uid == rulebaseUid:
                 return rb
-        return Rulebase(uid='', name='', mgm_uid='')
+        return None

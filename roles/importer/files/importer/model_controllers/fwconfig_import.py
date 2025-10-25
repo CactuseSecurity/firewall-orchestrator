@@ -1,4 +1,5 @@
 import traceback
+from typing import Optional
 
 import fwo_const
 from fwo_api_call import FwoApiCall
@@ -26,7 +27,7 @@ from model_controllers.fwconfigmanagerlist_controller import FwConfigManagerList
 class FwConfigImport():
 
     import_state: ImportStateController
-    NormalizedConfig: FwConfigNormalized
+    NormalizedConfig: Optional[FwConfigNormalized]
 
     _fw_config_import_rule: FwConfigImportRule
     _fw_config_import_object: FwConfigImportObject
@@ -40,7 +41,8 @@ class FwConfigImport():
     def __init__(self):
         service_provider = ServiceProvider()
         self._global_state = service_provider.get_service(Services.GLOBAL_STATE)
-
+        if self._global_state.import_state is None:
+            raise FwoImporterError("import_state not set in global state")
         self.import_state = self._global_state.import_state
         self.NormalizedConfig = self._global_state.normalized_config
 
@@ -219,6 +221,8 @@ class FwConfigImport():
         errorsFound = 0
 
         if self.import_state.ImportVersion>8:
+            if self.NormalizedConfig is None:
+                raise FwoImporterError("cannot write latest config: NormalizedConfig is None")
             # convert FwConfigImport to FwConfigNormalized
             self.NormalizedConfig = FwConfigNormalized(action=self.NormalizedConfig.action, 
                                     network_objects=self.NormalizedConfig.network_objects, 
@@ -351,6 +355,8 @@ class FwConfigImport():
     def consistency_check_db(self):
         logger = getFwoLogger(debug_level=self.import_state.DebugLevel)
         normalized_config = self.NormalizedConfig
+        if normalized_config is None:
+            raise FwoImporterError("cannot perform consistency check: NormalizedConfig is None")
         normalized_config_from_db = self.get_latest_config_from_db()
         all_diffs = find_all_diffs(normalized_config.model_dump(), normalized_config_from_db.model_dump(), strict=True)
         if len(all_diffs) > 0:

@@ -69,11 +69,11 @@ class FwConfigImportRule():
             raise FwoImporterError("cannot update rulebase diffs: normalized_config is None")
 
         # calculate rule diffs
-        changedRuleUids = {}
+        changedRuleUids: dict[str, list[str]] = {} # rulebase_id -> list of rule_uids
         deletedRuleUids: dict[str, list[str]] = {}
         newRuleUids: dict[str, list[str]] = {}
         movedRuleUids: dict[str, list[str]] = {}
-        ruleUidsInBoth: dict[str, list[str]] = {} # rulebase_id -> list of rule_uids
+        ruleUidsInBoth: dict[str, list[str]] = {}
         previous_rulebase_uids: list[str] = []
         current_rulebase_uids: list[str] = []
         new_hit_information = []
@@ -793,7 +793,16 @@ class FwConfigImportRule():
         return changes, collectedRemovedRuleIds
 
 
-    def create_new_rule_version(self, rule_uids):
+    def create_new_rule_version(self, rule_uids: dict[str, list[str]]) -> tuple[int, list[int], list[dict]]:
+        """
+        Creates new versions of rules specified in rule_uids by inserting new rule entries and marking the old ones as removed.
+
+        Args:
+            rule_uids (dict[str, list[str]]): A dictionary where keys are rulebase UIDs and values are lists of rule UIDs to be updated.
+
+        Returns:
+            tuple[int, list[int], list[dict]]: A tuple containing the number of changes made, a list of old rule IDs that were changed, and a list of newly inserted rule entries.
+        """
         logger = getFwoLogger()
         self._changed_rule_id_map = {}
         rule_order_service = RuleOrderService()
@@ -849,7 +858,7 @@ class FwConfigImportRule():
 
         create_new_rule_version_variables = {
             "objects": import_rules,
-            "uids": [rule["rule_uid"] for rule in import_rules],
+            "uids": [rule.rule_uid for rule in import_rules],
             "mgmId": self.import_details.MgmDetails.CurrentMgmId,
             "importId": self.import_details.ImportId
         }
@@ -964,7 +973,7 @@ class FwConfigImportRule():
             logger.exception(f"failed to move rules: {str(traceback.format_exc())}")
             return 1, 0, []
         
-    def verify_rules_moved(self, changed_rule_uids):
+    def verify_rules_moved(self, changed_rule_uids: dict[str, list[str]]) -> tuple[int, int, list[str]]:
         rule_order_service = RuleOrderService()
         error_count_move = 0 
         number_of_moved_rules = 0

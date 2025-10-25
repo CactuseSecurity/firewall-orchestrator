@@ -151,7 +151,7 @@ def parse_single_rule(normalized_config_dict, normalized_config_global, native_r
     )
     
     # Add the rule to the rulebase
-    rulebase.Rules[rule_normalized.rule_uid] = rule_normalized
+    rulebase.rules[rule_normalized.rule_uid] = rule_normalized
 
     # TODO: handle NAT
 

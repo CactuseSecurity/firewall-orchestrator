@@ -20,7 +20,7 @@ namespace FWO.Data
         [JsonProperty("is_global"), JsonPropertyName("is_global")]
         public bool IsGlobal { get; set; }
 
-        [JsonProperty("Rules"), JsonPropertyName("Rules")]
+        [JsonProperty("rules"), JsonPropertyName("Rules")]
         public Dictionary<string, NormalizedRule> Rules { get; set; } = [];
 
         /// <summary>

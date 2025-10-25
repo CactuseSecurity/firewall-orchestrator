@@ -351,7 +351,7 @@ def parse_single_rule(nativeRule, rulebase, layer_name, rule_num, parent_uid, ga
     }
     if comments is not None:
         rule['rule_comment'] = sanitize(comments)
-    rulebase.Rules.update({ rule['rule_uid']: RuleNormalized(**rule)})
+    rulebase.rules.update({ rule['rule_uid']: RuleNormalized(**rule)})
 
     return rule_num + 1
 

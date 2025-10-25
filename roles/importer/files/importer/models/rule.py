@@ -67,8 +67,8 @@ class RuleNormalized(BaseModel):
             return NotImplemented
         # Compare all fields except 'last_hit' and 'rule_num'
         exclude = {"last_hit", "rule_num"}
-        self_dict = self.dict(exclude=exclude)
-        other_dict = other.dict(exclude=exclude)
+        self_dict = self.model_dump(exclude=exclude)
+        other_dict = other.model_dump(exclude=exclude)
         return self_dict == other_dict
     
 """

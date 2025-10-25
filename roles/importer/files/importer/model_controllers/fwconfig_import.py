@@ -356,6 +356,6 @@ class FwConfigImport():
         if len(all_diffs) > 0:
             logger.warning(f"normalized config for mgm id {self.import_state.MgmDetails.CurrentMgmId} is inconsistent to database state: {all_diffs[0]}")
             if self.import_state.DebugLevel > 0:
-                logger.warning("all differences:\n\t" + "\n\t".join(all_diffs))
+                logger.warning(f"all {len(all_diffs)} differences:\n\t" + "\n\t".join(all_diffs))
             # TODO: long-term this should raise an error:
             # raise FwoImporterError("the database state created by this import is not consistent to the normalized config")

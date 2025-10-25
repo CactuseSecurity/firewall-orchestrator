@@ -9784,7 +9784,8 @@
                       "obj_sys_writecom",
                       "active",
                       "obj_create",
-                      "obj_last_seen"
+                      "obj_last_seen",
+                      "removed"
                     ],
                     "filter": {},
                     "allow_aggregations": true
@@ -9797,6 +9798,7 @@
                       "obj_create",
                       "obj_id",
                       "obj_last_seen",
+                      "removed",
                       "active",
                       "initial_config",
                       "obj_nat",
@@ -9902,7 +9904,8 @@
                       "obj_sys_writecom",
                       "active",
                       "obj_create",
-                      "obj_last_seen"
+                      "obj_last_seen",
+                      "removed"
                     ],
                     "filter": {},
                     "allow_aggregations": true
@@ -9941,7 +9944,8 @@
                       "obj_sys_writecom",
                       "active",
                       "obj_create",
-                      "obj_last_seen"
+                      "obj_last_seen",
+                      "removed"
                     ],
                     "filter": {
                       "mgm_id": {
@@ -9984,7 +9988,8 @@
                       "obj_sys_writecom",
                       "active",
                       "obj_create",
-                      "obj_last_seen"
+                      "obj_last_seen",
+                      "removed"
                     ],
                     "filter": {
                       "mgm_id": {
@@ -10027,7 +10032,8 @@
                       "obj_sys_writecom",
                       "active",
                       "obj_create",
-                      "obj_last_seen"
+                      "obj_last_seen",
+                      "removed"
                     ],
                     "filter": {
                       "mgm_id": {
@@ -10070,7 +10076,8 @@
                       "obj_sys_writecom",
                       "active",
                       "obj_create",
-                      "obj_last_seen"
+                      "obj_last_seen",
+                      "removed"
                     ],
                     "filter": {},
                     "allow_aggregations": true
@@ -10188,6 +10195,7 @@
                       "objgrp_member_id",
                       "import_created",
                       "import_last_seen",
+                      "removed",
                       "active",
                       "negated"
                     ],
@@ -10202,6 +10210,7 @@
                       "import_created",
                       "import_last_seen",
                       "objgrp_id",
+                      "removed",
                       "objgrp_member_id",
                       "active",
                       "negated"
@@ -10249,6 +10258,7 @@
                       "objgrp_member_id",
                       "import_created",
                       "import_last_seen",
+                      "removed",
                       "active",
                       "negated"
                     ],
@@ -10264,6 +10274,7 @@
                       "objgrp_member_id",
                       "import_created",
                       "import_last_seen",
+                      "removed",
                       "active",
                       "negated"
                     ],
@@ -10279,6 +10290,7 @@
                       "objgrp_member_id",
                       "import_created",
                       "import_last_seen",
+                      "removed",
                       "active",
                       "negated"
                     ],
@@ -10294,6 +10306,7 @@
                       "objgrp_member_id",
                       "import_created",
                       "import_last_seen",
+                      "removed",
                       "active",
                       "negated"
                     ],
@@ -10389,6 +10402,7 @@
                       "active",
                       "import_created",
                       "import_last_seen",
+                      "removed",
                       "negated"
                     ],
                     "filter": {},
@@ -10401,6 +10415,7 @@
                     "columns": [
                       "import_created",
                       "import_last_seen",
+                      "removed",
                       "objgrp_flat_id",
                       "objgrp_flat_member_id",
                       "active",
@@ -10447,6 +10462,7 @@
                     "columns": [
                       "objgrp_flat_id",
                       "objgrp_flat_member_id",
+                      "removed",
                       "active",
                       "import_created",
                       "import_last_seen",
@@ -10462,6 +10478,7 @@
                     "columns": [
                       "objgrp_flat_id",
                       "objgrp_flat_member_id",
+                      "removed",
                       "active",
                       "import_created",
                       "import_last_seen",
@@ -10477,6 +10494,7 @@
                     "columns": [
                       "objgrp_flat_id",
                       "objgrp_flat_member_id",
+                      "removed",
                       "active",
                       "import_created",
                       "import_last_seen",
@@ -10492,6 +10510,7 @@
                     "columns": [
                       "objgrp_flat_id",
                       "objgrp_flat_member_id",
+                      "removed",
                       "active",
                       "import_created",
                       "import_last_seen",
@@ -14802,6 +14821,7 @@
                       "rule_create",
                       "rule_id",
                       "rule_last_seen",
+                      "removed",
                       "xlate_rule",
                       "access_rule",
                       "active",
@@ -14836,6 +14856,7 @@
                       "rule_svc",
                       "rule_svc_refs",
                       "rule_track",
+                      "rulebase_id",
                       "rule_uid"
                     ],
                     "computed_fields": [
@@ -14853,6 +14874,7 @@
                       "rule_create",
                       "rule_id",
                       "rule_last_seen",
+                      "removed",
                       "xlate_rule",
                       "access_rule",
                       "active",
@@ -14887,6 +14909,7 @@
                       "rule_svc",
                       "rule_svc_refs",
                       "rule_track",
+                      "rulebase_id",
                       "rule_uid"
                     ],
                     "computed_fields": [
@@ -15011,6 +15034,7 @@
                       "rule_create",
                       "rule_id",
                       "rule_last_seen",
+                      "removed",
                       "xlate_rule",
                       "access_rule",
                       "active",
@@ -15080,6 +15104,7 @@
                       "rule_create",
                       "rule_id",
                       "rule_last_seen",
+                      "removed",
                       "xlate_rule",
                       "access_rule",
                       "active",
@@ -15149,6 +15174,7 @@
                       "rule_create",
                       "rule_id",
                       "rule_last_seen",
+                      "removed",
                       "xlate_rule",
                       "access_rule",
                       "active",
@@ -15218,6 +15244,7 @@
                       "rule_create",
                       "rule_id",
                       "rule_last_seen",
+                      "removed",
                       "xlate_rule",
                       "access_rule",
                       "active",
@@ -15351,6 +15378,19 @@
                 },
                 {
                   "role": "importer",
+                  "permission": {
+                    "columns": [
+                      "created",
+                      "removed",
+                      "dev_id",
+                      "rule_id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "auditor",
                   "permission": {
                     "columns": [
                       "created",
@@ -15528,6 +15568,7 @@
                       "obj_id",
                       "rf_create",
                       "rf_last_seen",
+                      "removed",
                       "rule_from_id",
                       "rule_id",
                       "user_id",
@@ -15548,6 +15589,7 @@
                       "obj_id",
                       "rf_create",
                       "rf_last_seen",
+                      "removed",
                       "rule_from_id",
                       "rule_id",
                       "user_id",
@@ -15608,6 +15650,7 @@
                       "obj_id",
                       "rf_create",
                       "rf_last_seen",
+                      "removed",
                       "rule_from_id",
                       "rule_id",
                       "user_id",
@@ -15650,6 +15693,7 @@
                       "obj_id",
                       "rf_create",
                       "rf_last_seen",
+                      "removed",
                       "rule_from_id",
                       "rule_id",
                       "user_id",
@@ -15692,6 +15736,7 @@
                       "obj_id",
                       "rf_create",
                       "rf_last_seen",
+                      "removed",
                       "rule_from_id",
                       "rule_id",
                       "user_id",
@@ -15734,6 +15779,7 @@
                       "obj_id",
                       "rf_create",
                       "rf_last_seen",
+                      "removed",
                       "rule_from_id",
                       "rule_id",
                       "user_id",
@@ -16359,8 +16405,8 @@
                   "permission": {
                     "check": {},
                     "columns": [
-                      "removed",
                       "rs_create",
+                      "removed",
                       "rs_last_seen",
                       "rule_id",
                       "svc_id",
@@ -16381,6 +16427,7 @@
                       "active",
                       "rs_create",
                       "rs_last_seen",
+                      "removed",
                       "negated"
                     ],
                     "filter": {}
@@ -16392,6 +16439,7 @@
                     "columns": [
                       "rs_create",
                       "rs_last_seen",
+                      "removed",
                       "rule_id",
                       "svc_id",
                       "active",
@@ -16442,6 +16490,7 @@
                       "active",
                       "rs_create",
                       "rs_last_seen",
+                      "removed",
                       "negated"
                     ],
                     "filter": {},
@@ -16457,6 +16506,7 @@
                       "active",
                       "rs_create",
                       "rs_last_seen",
+                      "removed",
                       "negated"
                     ],
                     "filter": {},
@@ -16472,6 +16522,7 @@
                       "active",
                       "rs_create",
                       "rs_last_seen",
+                      "removed",
                       "negated"
                     ],
                     "filter": {},
@@ -16487,6 +16538,7 @@
                       "active",
                       "rs_create",
                       "rs_last_seen",
+                      "removed",
                       "negated"
                     ],
                     "filter": {}
@@ -16774,6 +16826,7 @@
                       "obj_id",
                       "rt_create",
                       "rt_last_seen",
+                      "removed",
                       "rule_id",
                       "rule_to_id",
                       "user_id",
@@ -16795,6 +16848,7 @@
                       "obj_id",
                       "rt_create",
                       "rt_last_seen",
+                      "removed",
                       "rule_id",
                       "rule_to_id",
                       "user_id"
@@ -16853,6 +16907,7 @@
                       "obj_id",
                       "rt_create",
                       "rt_last_seen",
+                      "removed",
                       "rule_id",
                       "rule_to_id",
                       "user_id"
@@ -16893,6 +16948,7 @@
                       "obj_id",
                       "rt_create",
                       "rt_last_seen",
+                      "removed",
                       "rule_id",
                       "rule_to_id",
                       "user_id",
@@ -16937,6 +16993,7 @@
                       "obj_id",
                       "rt_create",
                       "rt_last_seen",
+                      "removed",
                       "rule_id",
                       "rule_to_id",
                       "user_id"
@@ -16977,6 +17034,7 @@
                       "obj_id",
                       "rt_create",
                       "rt_last_seen",
+                      "removed",
                       "rule_id",
                       "rule_to_id",
                       "user_id",
@@ -17295,6 +17353,57 @@
                   "comment": ""
                 },
                 {
+                  "role": "auditor",
+                  "permission": {
+                    "columns": [
+                      "created",
+                      "removed",
+                      "is_global",
+                      "name",
+                      "uid",
+                      "id",
+                      "mgm_id"
+                    ],
+                    "filter": {},
+                    "allow_aggregations": true
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "reporter-viewall",
+                  "permission": {
+                    "columns": [
+                      "created",
+                      "removed",
+                      "is_global",
+                      "name",
+                      "uid",
+                      "id",
+                      "mgm_id"
+                    ],
+                    "filter": {},
+                    "allow_aggregations": true
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "reporter",
+                  "permission": {
+                    "columns": [
+                      "created",
+                      "removed",
+                      "is_global",
+                      "name",
+                      "uid",
+                      "id",
+                      "mgm_id"
+                    ],
+                    "filter": {},
+                    "allow_aggregations": true
+                  },
+                  "comment": ""
+                },
+                {
                   "role": "middleware-server",
                   "permission": {
                     "columns": [
@@ -17438,6 +17547,91 @@
                   "permission": {
                     "columns": [
                       "created",
+                      "removed",
+                      "from_rule_id",
+                      "removed",
+                      "is_global",
+                      "is_initial",
+                      "is_section",
+                      "from_rulebase_id",
+                      "gw_id",
+                      "id",
+                      "link_type",
+                      "to_rulebase_id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "auditor",
+                  "permission": {
+                    "columns": [
+                      "created",
+                      "removed",
+                      "from_rule_id",
+                      "removed",
+                      "is_global",
+                      "is_initial",
+                      "is_section",
+                      "from_rulebase_id",
+                      "gw_id",
+                      "id",
+                      "link_type",
+                      "to_rulebase_id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "reporter-viewall",
+                  "permission": {
+                    "columns": [
+                      "created",
+                      "removed",
+                      "from_rule_id",
+                      "removed",
+                      "is_global",
+                      "is_initial",
+                      "is_section",
+                      "from_rulebase_id",
+                      "gw_id",
+                      "id",
+                      "link_type",
+                      "to_rulebase_id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "reporter",
+                  "permission": {
+                    "columns": [
+                      "created",
+                      "removed",
+                      "from_rule_id",
+                      "removed",
+                      "is_global",
+                      "is_initial",
+                      "is_section",
+                      "from_rulebase_id",
+                      "gw_id",
+                      "id",
+                      "link_type",
+                      "to_rulebase_id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "modeller",
+                  "permission": {
+                    "columns": [
+                      "created",
+                      "removed",
                       "from_rule_id",
                       "removed",
                       "is_global",
@@ -17745,6 +17939,7 @@
                       "active",
                       "last_change_admin",
                       "svc_create",
+                      "removed",
                       "svc_last_seen"
                     ],
                     "filter": {},
@@ -17758,6 +17953,7 @@
                       "svc_create",
                       "svc_id",
                       "svc_last_seen",
+                      "removed",
                       "active",
                       "initial_config",
                       "srv_keeponinstall",
@@ -17843,6 +18039,7 @@
                       "svc_create",
                       "svc_id",
                       "svc_last_seen",
+                      "removed",
                       "active",
                       "initial_config",
                       "srv_keeponinstall",
@@ -17914,7 +18111,8 @@
                       "active",
                       "last_change_admin",
                       "svc_create",
-                      "svc_last_seen"
+                      "svc_last_seen",
+                      "removed"
                     ],
                     "filter": {
                       "mgm_id": {
@@ -17960,7 +18158,8 @@
                       "active",
                       "last_change_admin",
                       "svc_create",
-                      "svc_last_seen"
+                      "svc_last_seen",
+                      "removed"
                     ],
                     "filter": {
                       "mgm_id": {
@@ -18006,6 +18205,7 @@
                       "active",
                       "last_change_admin",
                       "svc_create",
+                      "removed",
                       "svc_last_seen"
                     ],
                     "filter": {
@@ -18051,6 +18251,7 @@
                       "svc_sync_delay_start",
                       "active",
                       "last_change_admin",
+                      "removed",
                       "svc_create",
                       "svc_last_seen"
                     ],
@@ -19750,6 +19951,7 @@
                       "svcgrp_id",
                       "svcgrp_member_id",
                       "import_created",
+                      "removed",
                       "import_last_seen",
                       "active",
                       "negated"
@@ -19764,6 +19966,7 @@
                     "columns": [
                       "import_created",
                       "import_last_seen",
+                      "removed",
                       "svcgrp_id",
                       "svcgrp_member_id",
                       "active",
@@ -19812,6 +20015,7 @@
                       "svcgrp_member_id",
                       "import_created",
                       "import_last_seen",
+                      "removed",
                       "active",
                       "negated"
                     ],
@@ -19827,6 +20031,7 @@
                       "svcgrp_member_id",
                       "import_created",
                       "import_last_seen",
+                      "removed",
                       "active",
                       "negated"
                     ],
@@ -19842,6 +20047,7 @@
                       "svcgrp_member_id",
                       "import_created",
                       "import_last_seen",
+                      "removed",
                       "active",
                       "negated"
                     ],
@@ -19857,6 +20063,7 @@
                       "svcgrp_member_id",
                       "import_created",
                       "import_last_seen",
+                      "removed",
                       "active",
                       "negated"
                     ],
@@ -19951,6 +20158,7 @@
                       "svcgrp_flat_member_id",
                       "import_created",
                       "import_last_seen",
+                      "removed",
                       "active",
                       "negated"
                     ],
@@ -19966,6 +20174,7 @@
                       "negated",
                       "import_created",
                       "import_last_seen",
+                      "removed",
                       "svcgrp_flat_id",
                       "svcgrp_flat_member_id"
                     ],
@@ -19981,6 +20190,7 @@
                       "negated",
                       "import_created",
                       "import_last_seen",
+                      "removed",
                       "svcgrp_flat_id",
                       "svcgrp_flat_member_id"
                     ],
@@ -20012,6 +20222,7 @@
                       "svcgrp_flat_member_id",
                       "import_created",
                       "import_last_seen",
+                      "removed",
                       "active",
                       "negated"
                     ],
@@ -20027,6 +20238,7 @@
                       "svcgrp_flat_member_id",
                       "import_created",
                       "import_last_seen",
+                      "removed",
                       "active",
                       "negated"
                     ],
@@ -20042,6 +20254,7 @@
                       "svcgrp_flat_member_id",
                       "import_created",
                       "import_last_seen",
+                      "removed",
                       "active",
                       "negated"
                     ],
@@ -20057,6 +20270,7 @@
                       "svcgrp_flat_member_id",
                       "import_created",
                       "import_last_seen",
+                      "removed",
                       "active",
                       "negated"
                     ],
@@ -22258,6 +22472,7 @@
                       "usergrp_id",
                       "usergrp_member_id",
                       "import_created",
+                      "removed",
                       "import_last_seen",
                       "active"
                     ],
@@ -22273,6 +22488,7 @@
                       "usergrp_member_id",
                       "import_created",
                       "import_last_seen",
+                      "removed",
                       "active"
                     ],
                     "filter": {},
@@ -22285,6 +22501,7 @@
                     "columns": [
                       "import_created",
                       "import_last_seen",
+                      "removed",
                       "usergrp_id",
                       "usergrp_member_id",
                       "active"
@@ -22300,6 +22517,7 @@
                       "usergrp_member_id",
                       "import_created",
                       "import_last_seen",
+                      "removed",
                       "active"
                     ],
                     "filter": {},
@@ -22312,6 +22530,7 @@
                     "columns": [
                       "import_created",
                       "import_last_seen",
+                      "removed",
                       "removed",
                       "usergrp_id",
                       "usergrp_member_id",
@@ -22346,6 +22565,7 @@
                       "usergrp_member_id",
                       "import_created",
                       "import_last_seen",
+                      "removed",
                       "active"
                     ],
                     "filter": {},
@@ -22360,6 +22580,7 @@
                       "usergrp_member_id",
                       "import_created",
                       "import_last_seen",
+                      "removed",
                       "active"
                     ],
                     "filter": {},
@@ -22374,6 +22595,7 @@
                       "usergrp_member_id",
                       "import_created",
                       "import_last_seen",
+                      "removed",
                       "active"
                     ],
                     "filter": {},
@@ -22388,6 +22610,7 @@
                       "usergrp_member_id",
                       "import_created",
                       "import_last_seen",
+                      "removed",
                       "active"
                     ],
                     "filter": {},
@@ -22402,6 +22625,7 @@
                       "usergrp_member_id",
                       "import_created",
                       "import_last_seen",
+                      "removed",
                       "active"
                     ],
                     "filter": {}
@@ -22415,6 +22639,7 @@
                       "usergrp_member_id",
                       "import_created",
                       "import_last_seen",
+                      "removed",
                       "active"
                     ],
                     "filter": {},
@@ -22429,6 +22654,7 @@
                       "usergrp_member_id",
                       "import_created",
                       "import_last_seen",
+                      "removed",
                       "active"
                     ],
                     "filter": {},
@@ -22521,7 +22747,8 @@
                       "usergrp_flat_id",
                       "usergrp_flat_member_id",
                       "import_created",
-                      "import_last_seen"
+                      "import_last_seen",
+                      "removed"
                     ],
                     "filter": {},
                     "allow_aggregations": true
@@ -22533,6 +22760,7 @@
                     "columns": [
                       "import_created",
                       "import_last_seen",
+                      "removed",
                       "usergrp_flat_id",
                       "usergrp_flat_member_id",
                       "active"
@@ -22580,6 +22808,7 @@
                       "usergrp_flat_id",
                       "usergrp_flat_member_id",
                       "import_created",
+                      "removed",
                       "import_last_seen"
                     ],
                     "filter": {},
@@ -22594,6 +22823,7 @@
                       "usergrp_flat_id",
                       "usergrp_flat_member_id",
                       "import_created",
+                      "removed",
                       "import_last_seen"
                     ],
                     "filter": {},
@@ -22608,6 +22838,7 @@
                       "usergrp_flat_id",
                       "usergrp_flat_member_id",
                       "import_created",
+                      "removed",
                       "import_last_seen"
                     ],
                     "filter": {},
@@ -22622,6 +22853,7 @@
                       "usergrp_flat_id",
                       "usergrp_flat_member_id",
                       "import_created",
+                      "removed",
                       "import_last_seen"
                     ],
                     "filter": {}
@@ -22918,6 +23150,7 @@
                       "time_restrict",
                       "user_create",
                       "user_last_seen",
+                      "removed",
                       "user_comment",
                       "user_uid",
                       "user_firstname",
@@ -22936,6 +23169,7 @@
                       "user_create",
                       "user_id",
                       "user_last_seen",
+                      "removed",
                       "active",
                       "user_authmethod",
                       "user_firstname",
@@ -23000,6 +23234,7 @@
                       "user_create",
                       "user_id",
                       "user_last_seen",
+                      "removed",
                       "active",
                       "user_authmethod",
                       "user_firstname",
@@ -23044,6 +23279,7 @@
                       "time_restrict",
                       "user_create",
                       "user_last_seen",
+                      "removed",
                       "user_comment",
                       "user_uid",
                       "user_firstname",
@@ -23079,6 +23315,7 @@
                       "time_restrict",
                       "user_create",
                       "user_last_seen",
+                      "removed",
                       "user_comment",
                       "user_uid",
                       "user_firstname",
@@ -23114,6 +23351,7 @@
                       "time_restrict",
                       "user_create",
                       "user_last_seen",
+                      "removed",
                       "user_comment",
                       "user_uid",
                       "user_firstname",
@@ -23149,6 +23387,7 @@
                       "time_restrict",
                       "user_create",
                       "user_last_seen",
+                      "removed",
                       "user_comment",
                       "user_uid",
                       "user_firstname",
@@ -23631,6 +23870,7 @@
                       "zone_id",
                       "zone_create",
                       "zone_last_seen",
+                      "removed",
                       "mgm_id",
                       "zone_name",
                       "active"
@@ -23645,6 +23885,7 @@
                     "columns": [
                       "zone_create",
                       "zone_last_seen",
+                      "removed",
                       "active",
                       "zone_name",
                       "mgm_id",
@@ -23677,6 +23918,7 @@
                     "columns": [
                       "zone_create",
                       "zone_last_seen",
+                      "removed",
                       "active",
                       "zone_name",
                       "mgm_id",
@@ -23693,6 +23935,7 @@
                       "zone_id",
                       "zone_create",
                       "zone_last_seen",
+                      "removed",
                       "mgm_id",
                       "zone_name",
                       "active"
@@ -23712,6 +23955,7 @@
                       "zone_id",
                       "zone_create",
                       "zone_last_seen",
+                      "removed",
                       "mgm_id",
                       "zone_name",
                       "active"
@@ -23731,6 +23975,7 @@
                       "zone_id",
                       "zone_create",
                       "zone_last_seen",
+                      "removed",
                       "mgm_id",
                       "zone_name",
                       "active"
@@ -23751,6 +23996,7 @@
                       "mgm_id",
                       "zone_create",
                       "zone_last_seen",
+                      "removed",
                       "zone_id",
                       "zone_name"
                     ],
@@ -23765,12 +24011,8 @@
                   "permission": {
                     "columns": [
                       "removed",
-                      "zone_create",
                       "zone_last_seen",
-                      "active",
-                      "zone_name",
-                      "mgm_id",
-                      "zone_id"
+                      "active"
                     ],
                     "filter": {},
                     "check": {}

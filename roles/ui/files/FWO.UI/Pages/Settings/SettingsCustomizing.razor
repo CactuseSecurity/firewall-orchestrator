@@ -91,7 +91,7 @@
                 userConfig.PureLine("H5572") + "\r\n" + userConfig.PureLine("H5573") + "\r\n" + userConfig.PureLine("H5574") + "\r\n" + userConfig.PureLine("H5575"))">
             <label class="col-form-label col-sm-3">@(userConfig.GetText("reqAutoCreateImplTasks")):</label>
             <div class="col-sm-4">
-                <Dropdown @bind-SelectedElement="configData!.ReqAutoCreateImplTasks" ElementToString="@(o => userConfig.GetText(o.ToString()))" Elements="Enum.GetValues(typeof(AutoCreateImplTaskOptions)).Cast<AutoCreateImplTaskOptions>()" >
+                <Dropdown ElementType="AutoCreateImplTaskOptions" @bind-SelectedElement="configData!.ReqAutoCreateImplTasks" ElementToString="@(o => userConfig.GetText(o.ToString()))" Elements="Enum.GetValues(typeof(AutoCreateImplTaskOptions)).Cast<AutoCreateImplTaskOptions>()" >
                     <ElementTemplate Context="opt">
                         @(userConfig.GetText(opt.ToString()))
                     </ElementTemplate>

@@ -1,51 +1,50 @@
-
-  # install all upgrades between running version and version currently being installed
+# install all upgrades between running version and version currently being installed
 
 - name: guard - stop when trying anything but an upgrade with existing database
   fail:
-    msg: "Error: You chose upgrade on a system without existing database {{ fworch_db_name }}"
+      msg: "Error: You chose upgrade on a system without existing database {{ fworch_db_name }}"
   when: db_exists.query_result.0.count == 0
 
 - name: create upgrade dir
   file:
-    path: "{{ database_install_dir }}/upgrade"
-    state: directory
+      path: "{{ database_install_dir }}/upgrade"
+      state: directory
   become: true
- 
-- set_fact: 
-    installed_version: "{{ old_version }}"
-    current_version: "{{ product_version }}"
-    all_upgrades_available: "{{ lookup('fileglob', 'upgrade/*.sql') }}"
-    upgrade_files: []
+
+- set_fact:
+      installed_version: "{{ old_version }}"
+      current_version: "{{ product_version }}"
+      all_upgrades_available: "{{ lookup('fileglob', 'upgrade/*.sql') }}"
+      upgrade_files: []
 
 - name: set list of relevant upgrade files (without extension)
   set_fact:
-    upgrade_files: "{{ upgrade_files + [ item | basename | splitext | first | regex_replace('([\\d\\.]+)\\.sql', '\\1') ] }}"
+      upgrade_files: "{{ upgrade_files + [ item | basename | splitext | first | regex_replace('([\\d\\.]+)\\.sql', '\\1') ] }}"
   when: |
-    item | basename | splitext | first | regex_replace('([\\d\\.]+)\\.sql', '\\1') is version(installed_version, '>=') 
-    and 
-    item | basename | splitext | first | regex_replace('([\\d\\.]+)\\.sql', '\\1') is version(current_version, '<=')
+      item | basename | splitext | first | regex_replace('([\\d\\.]+)\\.sql', '\\1') is version(installed_version, '>=') 
+      and 
+      item | basename | splitext | first | regex_replace('([\\d\\.]+)\\.sql', '\\1') is version(current_version, '<=')
   with_fileglob:
-    - "upgrade/*.sql"
+      - "upgrade/*.sql"
 
-- debug: 
-    msg:
-        - "installed_version: {{ installed_version }}"
-        - "current_version: {{ current_version }}"
-        - "all_upgrades_available: {{ all_upgrades_available }}"
+- debug:
+      msg:
+          - "installed_version: {{ installed_version }}"
+          - "current_version: {{ current_version }}"
+          - "all_upgrades_available: {{ all_upgrades_available }}"
 
 - name: Copy relevant upgrade files
   copy:
-    src: "upgrade/{{ item }}.sql"
-    dest: "{{ database_install_dir }}/upgrade/"
+      src: "upgrade/{{ item }}.sql"
+      dest: "{{ database_install_dir }}/upgrade/"
   loop: "{{ upgrade_files }}"
   become: true
 
 - name: install upgrades
   community.postgresql.postgresql_script:
-    db: "{{ fworch_db_name }}"
-    path: "{{ database_install_dir }}/upgrade/{{ item }}.sql"
-  loop: "{{ upgrade_files | sort }}"
+      db: "{{ fworch_db_name }}"
+      path: "{{ database_install_dir }}/upgrade/{{ item }}.sql"
+  loop: "{{ upgrade_files | community.general.version_sort }}"
   become: true
   ignore_errors: false
   become_user: postgres

@@ -7,6 +7,7 @@ using FWO.Data.Report;
 using FWO.Test.Mocks;
 using FWO.Test.Tools.CustomAssert;
 using NUnit.Framework.Legacy;
+using FWO.Basics;
 
 namespace FWO.Test
 {
@@ -144,8 +145,14 @@ namespace FWO.Test
 
             // Assert
 
-            AssertWithDump.AreEqual(_controlTree!.ToJson(), _ruleTreeBuilder.RuleTree.ToJson());
-            //Assert.That(_ruleTreeBuilder.RuleTree.ToJson(), Is.EqualTo(_controlTree!.ToJson()));
+            if (LocalSettings.CSharpUnitTestsVerbose)
+            {
+                AssertWithDump.AreEqual(_controlTree!.ToJson(), _ruleTreeBuilder.RuleTree.ToJson());
+            }
+            else
+            {
+                Assert.That(_ruleTreeBuilder.RuleTree.ToJson(), Is.EqualTo(_controlTree!.ToJson()));
+            }
         }
 
         [Test]

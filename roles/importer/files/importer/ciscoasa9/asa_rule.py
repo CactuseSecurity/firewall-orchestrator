@@ -117,7 +117,7 @@ def create_rule_from_acl_entry(access_list_name: str, idx: int, entry: AccessLis
         rule_svc_refs=svc_ref,
         rule_action=RuleAction.ACCEPT if entry.action == "permit" else RuleAction.DROP,
         rule_track=RuleTrack.NONE,
-        rule_installon=gateway_uid,
+        rule_installon="", #gateway_uid, TODO: commented out for now to avoid duplication issues
         rule_time="",
         rule_name=f"{access_list_name}-{idx:03d}",
         rule_uid=rule_uid,

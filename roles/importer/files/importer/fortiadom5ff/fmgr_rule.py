@@ -261,7 +261,7 @@ def get_access_policy(sid, fm_api_url, native_config_domain, adom_device_vdom_po
     consolidated = '' # '/consolidated'
     logger = getFwoLogger()
 
-    previous_rulebase = ''
+    previous_rulebase = None
     local_pkg_name = find_local_pkg(adom_device_vdom_policy_package_structure, adom_name, mgm_details_device)
     # delete_v: hier global_pkg_name später
     #global_pkg_name = device['global_rulebase_name']
@@ -351,7 +351,7 @@ def link_v4_and_v6_rulebase(rulebases, pkg_name, previous_rulebase, is_global):
     return link_list, previous_rulebase
 
 def build_link(previous_rulebase, full_pkg_name, is_global):
-    if previous_rulebase == '':
+    if previous_rulebase is None:
         is_initial = True
         previous_rulebase = None
     else:

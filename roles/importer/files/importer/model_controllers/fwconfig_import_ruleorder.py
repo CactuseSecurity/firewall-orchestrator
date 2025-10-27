@@ -362,7 +362,7 @@ class RuleOrderService:
 
         # 1) Already updated rule? -> simple return
         if rule_uid in self._updated_rules:
-            _, rule = self._get_index_and_rule_object_from_flat_list(flat_list, rule_uid)
+            _, rule = self._get_index_and_rule_object_from_flat_list(self._target_rules_flat, rule_uid)
             return float(rule.rule_num_numeric)
 
         # 2) Part of a consecutive insert? -> defined value (0)

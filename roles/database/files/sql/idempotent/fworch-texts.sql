@@ -2404,11 +2404,11 @@ INSERT INTO txt VALUES ('assign_state_to',      'German',   'Status zuordnen zu:
 INSERT INTO txt VALUES ('assign_state_to',      'English',  'Assign state to: ');
 INSERT INTO txt VALUES ('select_action',        'German',   'Aktion ausw&auml;hlen');
 INSERT INTO txt VALUES ('select_action',        'English',  'Select action');
-INSERT INTO txt VALUES ('manage_owner_lc_state','German',   'Produktions-Lifecylce-Stati ändern');
+INSERT INTO txt VALUES ('manage_owner_lc_state','German',   'Produktions-Lifecylce-Status ändern');
 INSERT INTO txt VALUES ('manage_owner_lc_state','English',  'Manage production lifecycle states');
 INSERT INTO txt VALUES ('add_owner_lc_state',   'German',   'Lifecycle Status hinzufügen');
 INSERT INTO txt VALUES ('add_owner_lc_state',   'English',  'Add Owner Lifecycle State');
-INSERT INTO txt VALUES ('owner_lc_states',      'German',   'Produktions-Stati');
+INSERT INTO txt VALUES ('owner_lc_states',      'German',   'Produktions-Status');
 INSERT INTO txt VALUES ('owner_lc_states',      'English',  'Production Lifecycle States');
 INSERT INTO txt VALUES ('edit_owner_lc_state',  'German',   'Lifecycle Status bearbeiten');
 INSERT INTO txt VALUES ('edit_owner_lc_state',  'English',  'Edit Owner Lifecycle State');
@@ -5726,7 +5726,7 @@ INSERT INTO txt VALUES ('H5664', 'German',  'Produktionsstatus: Gibt an, in welc
 INSERT INTO txt VALUES ('H5664', 'English', 'Production state: The Owner Lifecycle State assigned to the owner.');
 INSERT INTO txt VALUES ('H5665', 'German',  'Name: Name des Produktionsstatus');
 INSERT INTO txt VALUES ('H5665', 'English', 'Name: Owner Lifecycle State name');
-INSERT INTO txt VALUES ('H5666', 'German',  'In diesem Kapitel können die Produktions-Stati von Eigent&uuml;mern eingesehen, erstellt, bearbeitet und gelöscht werden. Produktions-Stati definieren den aktuellen Zustand eines Eigent&uuml;mers (z. B. Geplant, Im Betrieb, Auslaufend).');
+INSERT INTO txt VALUES ('H5666', 'German',  'In diesem Kapitel können die Produktions-Status von Eigent&uuml;mern eingesehen, erstellt, bearbeitet und gelöscht werden. Produktions-Status definieren den aktuellen Zustand eines Eigent&uuml;mers (z. B. Geplant, Im Betrieb, Auslaufend).');
 INSERT INTO txt VALUES ('H5666', 'English', 'In this chapter, Production Lifecycle States of owners can be viewed, created, edited, and deleted. Production Lifecycle States define the current status of an owner (e.g., Planned, In Production, End of Life).');
 
 INSERT INTO txt VALUES ('H5701', 'German',  'Die in der Datenbank hinterlegten sprachabh&auml;ngigen Texte k&ouml;nnen individuell &uuml;berschrieben werden.

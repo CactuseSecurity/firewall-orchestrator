@@ -10,6 +10,7 @@ from models.serviceobject import ServiceObject
 from ciscoasa9.asa_models import AsaServiceObject, AsaServiceObjectGroup, AccessListEntry
 from ciscoasa9.asa_maps import name_to_port, protocol_map
 import fwo_const
+import fwo_base
 from fwo_log import getFwoLogger
 
 
@@ -74,8 +75,8 @@ def create_service_group_object(name: str, member_refs: List[str], comment: Opti
         svc_uid=name,
         svc_name=name,
         svc_typ="group",
-        svc_member_names=fwo_const.list_delimiter.join(member_refs),
-        svc_member_refs=fwo_const.list_delimiter.join(member_refs),
+        svc_member_names=fwo_base.sort_and_join(member_refs),
+        svc_member_refs=fwo_base.sort_and_join(member_refs),
         svc_color=fwo_const.defaultColor,
         svc_comment=comment
     )
@@ -265,7 +266,7 @@ def create_service_for_acl_entry(entry: AccessListEntry, service_objects: Dict[s
             svc_refs = []
             for proto in ("tcp", "udp", "icmp"):
                 svc_refs.append(create_any_protocol_service(proto, service_objects))
-            return fwo_const.list_delimiter.join(svc_refs)
+            return fwo_base.sort_and_join(svc_refs)
         else:
             # Unknown protocol, default to any for the protocol
             return create_any_protocol_service(entry.protocol.value, service_objects)
@@ -283,7 +284,7 @@ def create_service_for_acl_entry(entry: AccessListEntry, service_objects: Dict[s
         svc_refs = []
         for proto in ("tcp", "udp", "icmp"):
             svc_refs.append(create_any_protocol_service(proto, service_objects))
-        return fwo_const.list_delimiter.join(svc_refs)
+        return fwo_base.sort_and_join(svc_refs)
 
 
 def normalize_service_object_groups(service_groups: List[AsaServiceObjectGroup], service_objects: Dict[str, ServiceObject]) -> Dict[str, ServiceObject]:

@@ -11,6 +11,7 @@ from netaddr import IPAddress, IPNetwork
 from ciscoasa9.asa_models import AsaNetworkObject, AsaNetworkObjectGroup, AsaNetworkObjectGroupMember, EndpointKind, Names
 from models.networkobject import NetworkObject
 import fwo_const
+import fwo_base
 
 
 def create_network_host(name: str, ip_address: str, comment: Optional[str], ip_version: int) -> NetworkObject:
@@ -114,8 +115,8 @@ def create_network_group_object(name: str, member_refs: List[str], comment: Opti
         obj_uid=name,
         obj_name=name,
         obj_typ="group",
-        obj_member_names="|".join(member_refs),
-        obj_member_refs=fwo_const.list_delimiter.join(member_refs),
+        obj_member_names=fwo_base.sort_and_join(member_refs),
+        obj_member_refs=fwo_base.sort_and_join(member_refs),
         obj_color=fwo_const.defaultColor,
         obj_comment=comment
     )

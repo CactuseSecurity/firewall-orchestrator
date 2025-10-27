@@ -12,7 +12,8 @@ from models.rulebase import Rulebase
 from ciscoasa9.asa_models import AccessList, AccessListEntry, AsaProtocolGroup
 from ciscoasa9.asa_service import create_service_for_acl_entry, create_any_protocol_service
 from ciscoasa9.asa_network import get_network_rule_endpoint
-import fwo_const
+from fwo_log import getFwoLogger
+import fwo_base
 
 
 def resolve_service_reference_for_rule(entry: AccessListEntry, protocol_groups: List[AsaProtocolGroup], service_objects: Dict) -> str:
@@ -39,13 +40,15 @@ def resolve_service_reference_for_rule(entry: AccessListEntry, protocol_groups: 
             for proto in allowed_protocols:
                 svc_ref = create_any_protocol_service(proto, service_objects)
                 svc_refs.append(svc_ref)
-            return fwo_const.list_delimiter.join(svc_refs)
+            return fwo_base.sort_and_join(svc_refs)
         else:
             # Fallback if protocol group not found
+            logger = getFwoLogger()
+            logger.warning(f"Protocol group '{entry.protocol.value}' not found. Defaulting to tcp/udp/icmp any.")
             svc_refs = []
             for proto in ("tcp", "udp", "icmp"):
                 svc_refs.append(create_any_protocol_service(proto, service_objects))
-            return fwo_const.list_delimiter.join(svc_refs)
+            return fwo_base.sort_and_join(svc_refs)
     else:
         # Handle other protocol types using existing function
         return create_service_for_acl_entry(entry, service_objects)

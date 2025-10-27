@@ -298,36 +298,35 @@ class RuleOrderService:
 
         if self._fw_config_import_rule is None:
             return 0.0
-        else:
-            target_rulebase = next(rulebase for rulebase in self._fw_config_import_rule.normalized_config.rulebases if rulebase.uid == rulebase_uid)
+        target_rulebase = next(rulebase for rulebase in self._fw_config_import_rule.normalized_config.rulebases if rulebase.uid == rulebase_uid)
 
-            while prev_rule_num_numeric == 0:
-                
-                prev_rule_uid, _ = self._get_adjacent_list_element(self._target_rule_uids, _index)
-
-                if prev_rule_uid and prev_rule_uid in list(next(rulebase for rulebase in self.rulebases if rulebase.uid == rulebase_uid).Rules.keys()):
-                    prev_rule_num_numeric = self._get_relevant_rule_num_numeric(prev_rule_uid, self._target_rules_flat, False, target_rulebase)
-                    _index -= 1
-                else:
-                    break
-
-            _index = index
-
-            while next_rule_num_numeric == 0:
-                
-                _, next_rule_uid = self._get_adjacent_list_element(self._target_rule_uids, _index)
-
-                if next_rule_uid and next_rule_uid in list(next(rulebase for rulebase in self.rulebases if rulebase.uid == rulebase_uid).Rules.keys()):
-                    next_rule_num_numeric = self._get_relevant_rule_num_numeric(next_rule_uid, self._target_rules_flat, True, target_rulebase)
-                    _index += 1
-                else:
-                    break
-
-            if next_rule_num_numeric == 0:
-                next_rule_num_numeric = prev_rule_num_numeric + rule_num_numeric_steps
+        while prev_rule_num_numeric == 0:
             
+            prev_rule_uid, _ = self._get_adjacent_list_element(self._target_rule_uids, _index)
 
-            return (prev_rule_num_numeric + next_rule_num_numeric) / 2
+            if prev_rule_uid and prev_rule_uid in list(next(rulebase for rulebase in self.rulebases if rulebase.uid == rulebase_uid).Rules.keys()):
+                prev_rule_num_numeric = self._get_relevant_rule_num_numeric(prev_rule_uid, self._target_rules_flat, False, target_rulebase)
+                _index -= 1
+            else:
+                break
+
+        _index = index
+
+        while next_rule_num_numeric == 0:
+            
+            _, next_rule_uid = self._get_adjacent_list_element(self._target_rule_uids, _index)
+
+            if next_rule_uid and next_rule_uid in list(next(rulebase for rulebase in self.rulebases if rulebase.uid == rulebase_uid).Rules.keys()):
+                next_rule_num_numeric = self._get_relevant_rule_num_numeric(next_rule_uid, self._target_rules_flat, True, target_rulebase)
+                _index += 1
+            else:
+                break
+
+        if next_rule_num_numeric == 0:
+            next_rule_num_numeric = prev_rule_num_numeric + rule_num_numeric_steps
+        
+
+        return (prev_rule_num_numeric + next_rule_num_numeric) / 2
 
     def _is_part_of_consecutive_insert(self, rule_uid: str):
 

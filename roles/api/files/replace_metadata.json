@@ -10487,6 +10487,12 @@
             },
             {
               "table": {
+                "name": "owner_lifecycle_state",
+                "schema": "public"
+              }
+            },
+            {
+              "table": {
                 "name": "owner_network",
                 "schema": "public"
               },

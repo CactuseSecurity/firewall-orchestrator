@@ -82,13 +82,9 @@ namespace FWO.Test
             queue = _ruleTreeBuilder.BuildRulebaseLinkQueue(RulebaseLinks!, Rulebases!);
 
             // Assert
+
             CollectionAssert.AreEqual(RulebaseLinks!, queue!.Select(tuple => tuple.Item1)); // Equal because same objects
             Assert.That(IsEqualTo(Rulebases!, queue!.Select(tuple => tuple.Item2))); // Needs custom equality check, because rulebase objects get cloned in BuildRulebaseLinkQueue.
-
-            /*
-                For the basic setup, the order of the queue is exactly related to the order of the Arrays. Fuurther testing should verify if this is the case for every setup.
-                If so this might be a possibility to reuce the complexity of the tested methods.
-            */
         }
 
         [Test]
@@ -104,6 +100,7 @@ namespace FWO.Test
             queue = _ruleTreeBuilder.BuildRulebaseLinkQueue(RulebaseLinks!, Rulebases!);
 
             // Assert
+
             CollectionAssert.AreEqual(RulebaseLinks!, queue!.Select(tuple => tuple.Item1)); // Equal because same objects
             Assert.That(IsEqualTo(Rulebases!, queue!.Select(tuple => tuple.Item2))); // Needs custom equality check, because rulebase objects get cloned in BuildRulebaseLinkQueue.
         }
@@ -194,8 +191,14 @@ namespace FWO.Test
 
             // Assert
 
-            AssertWithDump.AreEqual(_controlTree!.ToJson(), _ruleTreeBuilder.RuleTree.ToJson());
-            //Assert.That(_ruleTreeBuilder.RuleTree.ToJson(), Is.EqualTo(_controlTree!.ToJson()));
+            if (LocalSettings.CSharpUnitTestsVerbose)
+            {
+                AssertWithDump.AreEqual(_controlTree!.ToJson(), _ruleTreeBuilder.RuleTree.ToJson());
+            }
+            else
+            {
+                Assert.That(_ruleTreeBuilder.RuleTree.ToJson(), Is.EqualTo(_controlTree!.ToJson()));
+            }
         }
 
         [Test]
@@ -211,7 +214,15 @@ namespace FWO.Test
             _ruleTreeBuilder.BuildRuleTree();
 
             // Assert
-            Assert.That(_ruleTreeBuilder.RuleTree.ToJson(), Is.EqualTo(_controlTree!.ToJson()));
+
+            if (LocalSettings.CSharpUnitTestsVerbose)
+            {
+                AssertWithDump.AreEqual(_controlTree!.ToJson(), _ruleTreeBuilder.RuleTree.ToJson());
+            }
+            else
+            {
+                Assert.That(_ruleTreeBuilder.RuleTree.ToJson(), Is.EqualTo(_controlTree!.ToJson()));
+            }
         }
 
         [Test]
@@ -228,14 +239,15 @@ namespace FWO.Test
 
             // Assert
 
-            AssertWithDump.AreEqual(_controlTree!.ToJson(), _ruleTreeBuilder.RuleTree.ToJson());
-            //Assert.That(_ruleTreeBuilder.RuleTree.ToJson(), Is.EqualTo(_controlTree!.ToJson()));
+            if (LocalSettings.CSharpUnitTestsVerbose)
+            {
+                AssertWithDump.AreEqual(_controlTree!.ToJson(), _ruleTreeBuilder.RuleTree.ToJson());
+            }
+            else
+            {
+                Assert.That(_ruleTreeBuilder.RuleTree.ToJson(), Is.EqualTo(_controlTree!.ToJson()));
+            }
         }
-
-        #endregion
-
-        #region GetSectionParent
-       
 
         #endregion
 
@@ -338,29 +350,29 @@ namespace FWO.Test
 
             Rulebases =
             [
-                MockReportRules.CreateRulebaseReport("No rules but section", 0),                // 1
-                MockReportRules.CreateRulebaseReport("Section 1", 3),                           // 2
-                MockReportRules.CreateRulebaseReport("Rules then section", 3),                  // 3
-                MockReportRules.CreateRulebaseReport("Section 2", 3),                           // 4
-                MockReportRules.CreateRulebaseReport("Inline layer first", 4),                  // 5
-                MockReportRules.CreateRulebaseReport("Inline layer 1", 3),                      // 6
-                MockReportRules.CreateRulebaseReport("Inline layer in the middle", 7),          // 7
-                MockReportRules.CreateRulebaseReport("Inline layer 2", 3),                      // 8
-                MockReportRules.CreateRulebaseReport("Inline layers in sections", 0),           // 9
-                MockReportRules.CreateRulebaseReport("Section 3", 1),                           // 10
-                MockReportRules.CreateRulebaseReport("Inline layer 3", 3),                      // 11
-                MockReportRules.CreateRulebaseReport("Section 4", 7),                           // 12
-                MockReportRules.CreateRulebaseReport("Inline layer 4", 3),                      // 13
-                MockReportRules.CreateRulebaseReport("Sections in inline layers", 5),           // 14
-                MockReportRules.CreateRulebaseReport("Inline layer 5", 0),                      // 15
-                MockReportRules.CreateRulebaseReport("Section 5", 3),                           // 16
-                MockReportRules.CreateRulebaseReport("Inline layer 6", 3),                      // 17
-                MockReportRules.CreateRulebaseReport("Section 6", 3),                           // 18
-                MockReportRules.CreateRulebaseReport("Inline layers in inline layers", 5),      // 19
-                MockReportRules.CreateRulebaseReport("Inline layer 7", 1),                      // 20    
-                MockReportRules.CreateRulebaseReport("Inline layer 8", 3),                      // 21
-                MockReportRules.CreateRulebaseReport("Inline layer 9", 4),                      // 22
-                MockReportRules.CreateRulebaseReport("Inline layer 10", 3)                      // 23
+                MockReportRules.CreateRulebaseReport("No rules but section", 0),                // rulebase ID: 1
+                MockReportRules.CreateRulebaseReport("Section 1", 3),                           // rulebase ID: 2
+                MockReportRules.CreateRulebaseReport("Rules then section", 3),                  // rulebase ID: 3
+                MockReportRules.CreateRulebaseReport("Section 2", 3),                           // rulebase ID: 4
+                MockReportRules.CreateRulebaseReport("Inline layer first", 4),                  // rulebase ID: 5
+                MockReportRules.CreateRulebaseReport("Inline layer 1", 3),                      // rulebase ID: 6
+                MockReportRules.CreateRulebaseReport("Inline layer in the middle", 7),          // rulebase ID: 7
+                MockReportRules.CreateRulebaseReport("Inline layer 2", 3),                      // rulebase ID: 8
+                MockReportRules.CreateRulebaseReport("Inline layers in sections", 0),           // rulebase ID: 9
+                MockReportRules.CreateRulebaseReport("Section 3", 1),                           // rulebase ID: 10
+                MockReportRules.CreateRulebaseReport("Inline layer 3", 3),                      // rulebase ID: 11
+                MockReportRules.CreateRulebaseReport("Section 4", 7),                           // rulebase ID: 12
+                MockReportRules.CreateRulebaseReport("Inline layer 4", 3),                      // rulebase ID: 13
+                MockReportRules.CreateRulebaseReport("Sections in inline layers", 5),           // rulebase ID: 14
+                MockReportRules.CreateRulebaseReport("Inline layer 5", 0),                      // rulebase ID: 15
+                MockReportRules.CreateRulebaseReport("Section 5", 3),                           // rulebase ID: 16
+                MockReportRules.CreateRulebaseReport("Inline layer 6", 3),                      // rulebase ID: 17
+                MockReportRules.CreateRulebaseReport("Section 6", 3),                           // rulebase ID: 18
+                MockReportRules.CreateRulebaseReport("Inline layers in inline layers", 5),      // rulebase ID: 19
+                MockReportRules.CreateRulebaseReport("Inline layer 7", 1),                      // rulebase ID: 20    
+                MockReportRules.CreateRulebaseReport("Inline layer 8", 3),                      // rulebase ID: 21
+                MockReportRules.CreateRulebaseReport("Inline layer 9", 4),                      // rulebase ID: 22
+                MockReportRules.CreateRulebaseReport("Inline layer 10", 3)                      // rulebase ID: 23
             ];
 
             RulebaseLinks =

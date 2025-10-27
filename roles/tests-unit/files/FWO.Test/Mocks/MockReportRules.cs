@@ -1,4 +1,3 @@
-using FWO.Api.Client;
 using FWO.Basics;
 using FWO.Config.Api;
 using FWO.Data;
@@ -13,8 +12,6 @@ namespace FWO.Test.Mocks
     {
         public static int RulebaseId { get; set; } = 0;
         public static int RuleId { get; set; } = 0;
-
-        public RuleTreeItem ControlTree = new();
 
         public MockReportRules(DynGraphqlQuery query, UserConfig userConfig, ReportType reportType, Func<List<ManagementReport>>? setupFunc = null) : base(query, userConfig, reportType)
         {

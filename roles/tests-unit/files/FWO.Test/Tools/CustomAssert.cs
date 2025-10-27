@@ -13,6 +13,12 @@ namespace FWO.Test.Tools.CustomAssert
             MaxDepth = int.MaxValue
         };
 
+        /// <summary>
+        /// Asserts that two strings are equal. If they are not, it attempts to parse them as JSON and pretty-print them for easier comparison.
+        /// </summary>
+        /// <param name="expected"></param>
+        /// <param name="actual"></param>
+        /// <param name="message"></param>
         public static void AreEqual(string expected, string actual, string? message = null)
         {
             try
@@ -39,7 +45,8 @@ namespace FWO.Test.Tools.CustomAssert
                 }
                 catch (JsonException)
                 {
-                    // Falls kein valides JSON – einfach roh ausgeben
+                    // If no valid JSON just print raw strings
+
                     TestContext.WriteLine("\n=== EXPECTED (raw) ===");
                     TestContext.WriteLine(expected);
 

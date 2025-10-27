@@ -15414,20 +15414,7 @@
                     "allow_aggregations": true
                   },
                   "comment": ""
-                },
-                {
-                  "role": "auditor",
-                  "permission": {
-                    "columns": [
-                      "created",
-                      "removed",
-                      "dev_id",
-                      "rule_id"
-                    ],
-                    "filter": {}
-                  },
-                  "comment": ""
-                },
+                },               
                 {
                   "role": "middleware-server",
                   "permission": {
@@ -17987,86 +17974,6 @@
                       "removed",
                       "from_rule_id",
                       "removed",
-                      "is_global",
-                      "is_initial",
-                      "is_section",
-                      "from_rulebase_id",
-                      "gw_id",
-                      "id",
-                      "link_type",
-                      "to_rulebase_id"
-                    ],
-                    "filter": {}
-                  },
-                  "comment": ""
-                },
-                {
-                  "role": "modeller",
-                  "permission": {
-                    "columns": [
-                      "created",
-                      "removed",
-                      "from_rule_id",
-                      "is_global",
-                      "is_initial",
-                      "is_section",
-                      "from_rulebase_id",
-                      "gw_id",
-                      "id",
-                      "link_type",
-                      "to_rulebase_id"
-                    ],
-                    "filter": {}
-                  },
-                  "comment": ""
-                },
-                {
-                  "role": "auditor",
-                  "permission": {
-                    "columns": [
-                      "created",
-                      "removed",
-                      "from_rule_id",
-                      "is_global",
-                      "is_initial",
-                      "is_section",
-                      "from_rulebase_id",
-                      "gw_id",
-                      "id",
-                      "link_type",
-                      "to_rulebase_id"
-                    ],
-                    "filter": {}
-                  },
-                  "comment": ""
-                },
-                {
-                  "role": "reporter-viewall",
-                  "permission": {
-                    "columns": [
-                      "created",
-                      "removed",
-                      "from_rule_id",
-                      "is_global",
-                      "is_initial",
-                      "is_section",
-                      "from_rulebase_id",
-                      "gw_id",
-                      "id",
-                      "link_type",
-                      "to_rulebase_id"
-                    ],
-                    "filter": {}
-                  },
-                  "comment": ""
-                },
-                {
-                  "role": "reporter",
-                  "permission": {
-                    "columns": [
-                      "created",
-                      "removed",
-                      "from_rule_id",
                       "is_global",
                       "is_initial",
                       "is_section",

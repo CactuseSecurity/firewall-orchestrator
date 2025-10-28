@@ -159,60 +159,82 @@ def _parse_interface_block(block: List[str]) -> Interface:
 def _parse_network_object_block(block: List[str]) -> Tuple[Optional[AsaNetworkObject], Optional[NatRule]]:
     """Parse an object network block. Returns (network_object, nat_rule)."""
     obj_name = block[0].split()[2]
-    host = None
-    range = None
-    subnet = None
-    mask = None
-    fqdn = None
-    desc = None
-    pending_nat = None
+    host: Optional[str] = None
+    range_: Optional[Tuple[str, str]] = None
+    subnet: Optional[str] = None
+    mask: Optional[str] = None
+    fqdn: Optional[str] = None
+    desc: Optional[str] = None
+    pending_nat: Optional[NatRule] = None
 
+    # compile regexes once
+    patterns = [
+        (re.compile(r"^host\s+(\S+)$", re.I), lambda m: _assign_host(m)),
+        (re.compile(r"^subnet\s+(\S+)\s+(\S+)$", re.I), lambda m: _assign_subnet(m)),
+        (re.compile(r"^range\s+(\S+)\s+(\S+)$", re.I), lambda m: _assign_range(m)),
+        (re.compile(r"^fqdn\s+v4\s+(\S+)$", re.I), lambda m: _assign_fqdn(m)),
+        (re.compile(description_re, re.I), lambda m: _assign_desc(m)),
+        (re.compile(r"^nat\s+\(([^,]+),([^)]+)\)\s+(dynamic|static)\s+(\S+)$", re.I), lambda m: _assign_nat(m)),
+    ]
+
+    # helper setters to keep loop simple
+    def _assign_host(m: re.Match):
+        nonlocal host
+        host = m.group(1)
+
+    def _assign_subnet(m: re.Match):
+        nonlocal subnet, mask
+        subnet, mask = m.group(1), m.group(2)
+
+    def _assign_range(m: re.Match):
+        nonlocal range_
+        range_ = (m.group(1), m.group(2))
+
+    def _assign_fqdn(m: re.Match):
+        nonlocal fqdn
+        fqdn = m.group(1)
+
+    def _assign_desc(m: re.Match):
+        nonlocal desc
+        desc = m.group(1)
+
+    def _assign_nat(m: re.Match):
+        nonlocal pending_nat
+        src_if = m.group(1).strip()
+        dst_if = m.group(2).strip()
+        ntype = m.group(3).lower()
+        tobj = m.group(4).lower()
+        if ntype not in ("dynamic", "static"):
+            raise ValueError(f"Unsupported NAT type in line: {m.string}")
+        translated = None if tobj == "interface" else tobj
+        pending_nat = NatRule(
+            object_name=obj_name, src_if=src_if, dst_if=dst_if,
+            nat_type=ntype, translated_object=translated
+        )
+
+    # iterate lines and apply first-matching handler
     for b in block[1:]:
         s = b.strip()
-        mhost = re.match(r"^host\s+(\S+)$", s, re.I)
-        msub = re.match(r"^subnet\s+(\S+)\s+(\S+)$", s, re.I)
-        mrange = re.match(r"^range\s+(\S+)\s+(\S+)$", s, re.I)
-        mfqdn = re.match(r"^fqdn\s+v4\s+(\S+)$", s, re.I)
-        mdesc = re.match(description_re, s, re.I)
-        mnat  = re.match(r"^nat\s+\(([^,]+),([^)]+)\)\s+(dynamic|static)\s+(\S+)$", s, re.I)
+        for regex, handler in patterns:
+            m = regex.match(s)
+            if m:
+                handler(m)
+                break
 
-        if mhost:
-            host = mhost.group(1)
-        elif msub:
-            subnet, mask = msub.group(1), msub.group(2)
-        elif mrange:
-            range = mrange.group(1), mrange.group(2)
-        elif mfqdn:
-            fqdn = mfqdn.group(1)
-        elif mdesc:
-            desc = mdesc.group(1)
-        elif mnat:
-            src_if = mnat.group(1).strip()
-            dst_if = mnat.group(2).strip()
-            ntype  = mnat.group(3).lower()
-            tobj   = mnat.group(4).lower()
-            if ntype == "dynamic":
-                nat_type = "dynamic"
-            elif ntype == "static":
-                nat_type = "static"
-            else:
-                raise ValueError(f"Unsupported NAT type in line: {s}")
-            pending_nat = NatRule(
-                object_name=obj_name, src_if=src_if, dst_if=dst_if,
-                nat_type=nat_type, translated_object=(None if tobj == "interface" else tobj)
-            )
-
-    # Create network object if we have host/subnet/fqdn
-    net_obj = None
-    if host or subnet or range or fqdn:
-        if host and not subnet:
-            net_obj = AsaNetworkObject(name=obj_name, ip_address=host, ip_address_end=None, subnet_mask=None, fqdn=None, description=desc)
-        elif subnet:
-            net_obj = AsaNetworkObject(name=obj_name, ip_address=subnet, ip_address_end=None, subnet_mask=mask, fqdn=None, description=desc)
-        elif range:
-            net_obj = AsaNetworkObject(name=obj_name, ip_address=range[0], ip_address_end=range[1], subnet_mask=None, fqdn=None, description=desc)
-        elif fqdn:
-            net_obj = AsaNetworkObject(name=obj_name, ip_address="", ip_address_end=None, subnet_mask=None, fqdn=fqdn, description=desc)
+    # Build network object according to priority: host, subnet, range, fqdn
+    net_obj: Optional[AsaNetworkObject] = None
+    if host:
+        net_obj = AsaNetworkObject(name=obj_name, ip_address=host, ip_address_end=None,
+                                   subnet_mask=None, fqdn=None, description=desc)
+    elif subnet:
+        net_obj = AsaNetworkObject(name=obj_name, ip_address=subnet, ip_address_end=None,
+                                   subnet_mask=mask, fqdn=None, description=desc)
+    elif range_:
+        net_obj = AsaNetworkObject(name=obj_name, ip_address=range_[0], ip_address_end=range_[1],
+                                   subnet_mask=None, fqdn=None, description=desc)
+    elif fqdn:
+        net_obj = AsaNetworkObject(name=obj_name, ip_address="", ip_address_end=None,
+                                   subnet_mask=None, fqdn=fqdn, description=desc)
 
     return net_obj, pending_nat
 

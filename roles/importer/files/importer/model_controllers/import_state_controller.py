@@ -261,13 +261,13 @@ class ImportStateController(ImportState):
     # limited to the current mgm_id
     # creates a dict with key = rulebase.name and value = rulebase.id
     def SetRulebaseMap(self, api_call):
+        logger = getFwoLogger()
 
         # TODO: maps need to be updated directly after data changes
         query = """query getRulebaseMap($mgmId: Int) { rulebase(where:{mgm_id: {_eq: $mgmId}, removed:{_is_null:true }}) { id name uid } }"""
         try:
             result = api_call.call(query=query, query_variables= {"mgmId": self.MgmDetails.CurrentMgmId})
         except Exception:
-            logger = getFwoLogger()
             logger.error("Error while getting rulebases")
             self.RulebaseMap = {}
             raise
@@ -278,6 +278,8 @@ class ImportStateController(ImportState):
             m.update({rulebase['name']: rbid})
             m.update({rulebase['uid']: rbid})
         self.RulebaseMap = m
+
+        logger.debug(f"updated rulebase map for mgm_id {self.MgmDetails.CurrentMgmId} with {len(self.RulebaseMap)} entries")
 
     # limited to the current mgm_id
     # creats a dict with key = rule.uid and value = rule.id 
@@ -374,11 +376,12 @@ class ImportStateController(ImportState):
             raise FwoImporterError(f"Track {trackStr} not found")
         return track_id
 
-    def lookupRulebaseId(self, rulebaseUid):
+    def lookupRulebaseId(self, rulebaseUid) -> int:
         rulebaseId = self.RulebaseMap.get(rulebaseUid, None)
         if rulebaseId is None:
             logger = getFwoLogger()
             logger.error(f"Rulebase {rulebaseUid} not found")
+            raise FwoImporterError(f"Rulebase {rulebaseUid} not found")
         return rulebaseId
 
     def lookupLinkType(self, linkUid):

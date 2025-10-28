@@ -133,7 +133,7 @@ def _parse_network_object_block(block: List[str]) -> Tuple[Optional[AsaNetworkOb
     """Parse an object network block. Returns (network_object, nat_rule)."""
     obj_name = block[0].split()[2]
     host: Optional[str] = None
-    range_: Optional[Tuple[str, str]] = None
+    ip_range: Optional[Tuple[str, str]] = None
     subnet: Optional[str] = None
     mask: Optional[str] = None
     fqdn: Optional[str] = None
@@ -160,8 +160,8 @@ def _parse_network_object_block(block: List[str]) -> Tuple[Optional[AsaNetworkOb
         subnet, mask = m.group(1), m.group(2)
 
     def _assign_range(m: re.Match):
-        nonlocal range_
-        range_ = (m.group(1), m.group(2))
+        nonlocal ip_range
+        ip_range = (m.group(1), m.group(2))
 
     def _assign_fqdn(m: re.Match):
         nonlocal fqdn
@@ -202,8 +202,8 @@ def _parse_network_object_block(block: List[str]) -> Tuple[Optional[AsaNetworkOb
     elif subnet:
         net_obj = AsaNetworkObject(name=obj_name, ip_address=subnet, ip_address_end=None,
                                    subnet_mask=mask, fqdn=None, description=desc)
-    elif range_:
-        range_start, range_end = range_
+    elif ip_range:
+        range_start, range_end = ip_range
         net_obj = AsaNetworkObject(name=obj_name, ip_address=range_start, ip_address_end=range_end,
                                    subnet_mask=None, fqdn=None, description=desc)
     elif fqdn:

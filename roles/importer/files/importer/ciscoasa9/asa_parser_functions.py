@@ -132,6 +132,31 @@ def _parse_interface_block(block: List[str]) -> Interface:
     )
 
 
+def _create_network_object_from_parts(
+    name: str,
+    host: Optional[str],
+    subnet: Optional[str],
+    mask: Optional[str],
+    ip_range: Optional[Tuple[str, str]],
+    fqdn: Optional[str],
+    description: Optional[str]
+) -> AsaNetworkObject:
+    """Helper to create AsaNetworkObject from parts."""
+    if not any([host, subnet, ip_range, fqdn]):
+        raise ValueError(f"Cannot create network object {name}: no valid address information provided.")
+
+    if host and not subnet:
+        return AsaNetworkObject(name=name, ip_address=host, ip_address_end=None, subnet_mask=None, fqdn=None, description=description)
+    elif subnet:
+        return AsaNetworkObject(name=name, ip_address=subnet, ip_address_end=None, subnet_mask=mask, fqdn=None, description=description)
+    elif ip_range:
+        return AsaNetworkObject(name=name, ip_address=ip_range[0], ip_address_end=ip_range[1], subnet_mask=None, fqdn=None, description=description)
+    elif fqdn:
+        return AsaNetworkObject(name=name, ip_address="", ip_address_end=None, subnet_mask=None, fqdn=fqdn, description=description)
+    else:
+        raise ValueError(f"Cannot create network object {name}: no valid address information provided.")
+
+
 def _parse_network_object_block(block: List[str]) -> Tuple[Optional[AsaNetworkObject], Optional[NatRule]]:
     """Parse an object network block. Returns (network_object, nat_rule)."""
     obj_name = block[0].split()[2]
@@ -176,17 +201,16 @@ def _parse_network_object_block(block: List[str]) -> Tuple[Optional[AsaNetworkOb
             )
 
     # Create network object if we have host/subnet/fqdn
-    net_obj = None
-    if host or subnet or ip_range or fqdn:
-        if host and not subnet:
-            net_obj = AsaNetworkObject(name=obj_name, ip_address=host, ip_address_end=None, subnet_mask=None, fqdn=None, description=desc)
-        elif subnet:
-            net_obj = AsaNetworkObject(name=obj_name, ip_address=subnet, ip_address_end=None, subnet_mask=mask, fqdn=None, description=desc)
-        elif ip_range:
-            net_obj = AsaNetworkObject(name=obj_name, ip_address=ip_range[0], ip_address_end=ip_range[1], subnet_mask=None, fqdn=None, description=desc)
-        elif fqdn:
-            net_obj = AsaNetworkObject(name=obj_name, ip_address="", ip_address_end=None, subnet_mask=None, fqdn=fqdn, description=desc)
-
+    net_obj = _create_network_object_from_parts(
+        name=obj_name,
+        host=host,
+        subnet=subnet,
+        mask=mask,
+        ip_range=ip_range,
+        fqdn=fqdn,
+        description=desc,
+    )
+    
     return net_obj, pending_nat
 
 

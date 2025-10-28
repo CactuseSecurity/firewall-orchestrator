@@ -38,6 +38,25 @@ class TestFwConfigImportRuleOrder(unittest.TestCase):
         self._rule_order_service = RuleOrderService()
 
 
+    def test_initialize_on_initial_import(self):
+            
+            # Arrange
+
+            self._previous_config = self._config_builder.empty_config()
+
+            # Act
+
+            self._rule_order_service.initialize(self._previous_config, self._fwconfig_import_rule)
+
+            # Assert
+
+            for rulebase in self._normalized_config.rulebases:
+                for index, rule_uid in enumerate(rulebase.Rules):
+                    expected_rule_num_numeric = (index + 1) * rule_num_numeric_steps
+                    actual_rule_num_numeric = rulebase.Rules[rule_uid].rule_num_numeric
+                    self.assertTrue(actual_rule_num_numeric == expected_rule_num_numeric, f"Rule UID: {rule_uid}, actual rule_num_numeric: {actual_rule_num_numeric}, expected: {expected_rule_num_numeric}")
+
+
     def test_initialize_on_insert_delete_and_move(self):
         
         # Arrange

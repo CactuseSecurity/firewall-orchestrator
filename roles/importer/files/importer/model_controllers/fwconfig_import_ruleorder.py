@@ -15,8 +15,6 @@ class RuleOrderService:
 
     _instance = None
     _fw_config_import_rule = None
-
-    _current_rule_num_numeric: float
     _previous_config: FwConfigNormalized
     
 
@@ -29,7 +27,6 @@ class RuleOrderService:
         if cls._instance is None:
             from model_controllers.fwconfig_import_rule import FwConfigImportRule
             cls._instance = super(RuleOrderService, cls).__new__(cls)
-            cls._instance._current_rule_num_numeric = 0
             cls._instance._previous_config = None
             cls._instance._compute_min_moves_result = None
             cls._instance._source_rule_uids = []
@@ -44,10 +41,6 @@ class RuleOrderService:
             cls._instance._logger = None
         return cls._instance
 
-
-    @property
-    def current_rule_num_numeric(self) -> float:
-        return self._current_rule_num_numeric
     
     @property
     def target_rules_flat(self) -> list[RuleNormalized]:
@@ -86,13 +79,7 @@ class RuleOrderService:
         return self._previous_config
     
 
-    def get_new_rule_num_numeric(self) -> float:
-        self._current_rule_num_numeric += rule_num_numeric_steps
-        return self._current_rule_num_numeric
-    
-
     def reset_to_defaults(self):
-        self._current_rule_num_numeric = 0.0
         self._previous_config = None
         self._normalized_config = None
         self._compute_min_moves_result = {
@@ -209,25 +196,13 @@ class RuleOrderService:
 
 
     def _set_initial_rule_num_numerics(self):
-            for rulebase_id, rule_uids in self._inserts_and_moves.items():
+            for _, rule_uids in self._inserts_and_moves.items():
+                current_rule_num_numeric = 0
                 for rule_uid in rule_uids:
                     if len(self._source_rules_flat) == 0:
                         _, changed_rule = self._get_index_and_rule_object_from_flat_list(self.target_rules_flat, rule_uid)
-                        changed_rule.rule_num_numeric = self.get_new_rule_num_numeric()
-
-                        # Make rule_num_numerics relative to rulebase.
-
-                        if self._is_last_rule(changed_rule, rulebase_id):
-                            self._current_rule_num_numeric = 0
-
-
-    def _is_last_rule(self, rule, rulebase_uid):
-        if self._fw_config_import_rule is None:
-            return False
-        else:
-            rulebase = next(rulebase for rulebase in self._fw_config_import_rule.normalized_config.rulebases if rulebase.uid == rulebase_uid)
-            rulebase_rules = list(rulebase.Rules.values())
-            return rulebase_rules[-1] is rule
+                        current_rule_num_numeric += rule_num_numeric_steps
+                        changed_rule.rule_num_numeric = current_rule_num_numeric
 
 
     def _parse_rule_uids_and_objects_from_config(self, config: FwConfigNormalized):

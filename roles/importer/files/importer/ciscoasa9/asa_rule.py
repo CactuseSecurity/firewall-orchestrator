@@ -175,10 +175,9 @@ def build_rulebases_from_access_lists(access_lists: List[AccessList], mgm_uid: s
     for access_list in access_lists:
         rules = {}
 
-        for idx, entry in enumerate(access_list.entries, start=1):
+        for entry in access_list.entries:
             rule = create_rule_from_acl_entry(
                 access_list.name, 
-                idx, 
                 entry, 
                 protocol_groups, 
                 network_objects, 

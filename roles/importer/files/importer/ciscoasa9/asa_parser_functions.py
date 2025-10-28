@@ -492,7 +492,7 @@ def _parse_policy_map_block(block: List[str], pm_name: str) -> PolicyMap:
     return pm
 
 
-def _parse_access_list_protocol_group_block(parts: List[str], protocol_groups: List[AsaProtocolGroup], svc_objects: List[AsaServiceObject], svc_obj_groups: List[AsaServiceObjectGroup]) -> Tuple[EndpointKind, List[str]]:
+def _parse_access_list_entry_protocol(parts: List[str], protocol_groups: List[AsaProtocolGroup], svc_objects: List[AsaServiceObject], svc_obj_groups: List[AsaServiceObjectGroup]) -> Tuple[EndpointKind, List[str]]:
     """
     Parse the protocol part of an access-list entry.
     Returns (protocol EndpointKind, remaining tokens List[str]).
@@ -565,7 +565,7 @@ def _parse_access_list_entry(line: str, protocol_groups: List[AsaProtocolGroup],
     action = parts[3].lower()  # Action (permit/deny)
 
     # Parse protocol or protocol/service object-group
-    protocol, tokens = _parse_access_list_protocol_group_block(parts, protocol_groups, svc_objects, svc_obj_groups)
+    protocol, tokens = _parse_access_list_entry_protocol(parts, protocol_groups, svc_objects, svc_obj_groups)
 
     # Parse source endpoint
     src, consumed = _parse_endpoint(tokens)

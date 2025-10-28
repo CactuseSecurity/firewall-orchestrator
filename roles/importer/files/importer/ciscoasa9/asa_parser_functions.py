@@ -9,8 +9,6 @@ from ciscoasa9.asa_models import AccessGroupBinding, AccessList, AccessListEntry
 from fwo_log import getFwoLogger
 
 
-description_re = r"^description\s"
-
 def _clean_lines(text: str) -> List[str]:
     lines = []
     for raw in text.splitlines():
@@ -76,7 +74,12 @@ def _parse_endpoint(tokens: List[str]) -> Tuple[EndpointKind, int]:
     return EndpointKind(kind="any", value="any"), 1
 
 
-def _parse_interface_block_find_value(block: List[str], prefix: str, only_first: bool = False) -> Optional[str]:
+def _find_description(blocks: List[str]) -> Optional[str]:
+    """Helper to find description line in a block."""
+    return _find_line_with_prefix(list(blocks), "description ")
+
+
+def _find_line_with_prefix(block: List[str], prefix: str, only_first: bool = False) -> Optional[str]:
     """Helper to find a single value in an interface block by prefix."""
     v = None
     for b in list(block):
@@ -112,12 +115,12 @@ def _parse_interface_block(block: List[str]) -> Interface:
     blocks = list(block)[1:]
 
     # Extract values and remove consumed lines from blocks
-    nameif = _parse_interface_block_find_value(blocks, "nameif ", True)
-    br = _parse_interface_block_find_value(blocks, "bridge-group ", True)
-    sec = _parse_interface_block_find_value(blocks, "security-level ", True)
+    nameif = _find_line_with_prefix(blocks, "nameif ", True)
+    br = _find_line_with_prefix(blocks, "bridge-group ", True)
+    sec = _find_line_with_prefix(blocks, "security-level ", True)
     sec = int(sec) if sec is not None else 0
     ip, mask = _parse_interface_block_find_ip_address(blocks, "ip address ")
-    desc = _parse_interface_block_find_value(blocks, "description ")
+    desc = _find_line_with_prefix(blocks, "description ")
     # All non-consumed lines remain in blocks as additional
 
     # Defaults for missing bits
@@ -137,7 +140,7 @@ def _parse_network_object_block(block: List[str]) -> Tuple[Optional[AsaNetworkOb
     subnet = None
     mask = None
     fqdn = None
-    desc = None
+    desc = _find_description(block[1:])
     pending_nat = None
 
     for b in block[1:]:
@@ -146,7 +149,6 @@ def _parse_network_object_block(block: List[str]) -> Tuple[Optional[AsaNetworkOb
         msub = re.match(r"^subnet\s+(\S+)\s+(\S+)$", s, re.I)
         mrange = re.match(r"^range\s+(\S+)\s+(\S+)$", s, re.I)
         mfqdn = re.match(r"^fqdn\s+v4\s+(\S+)$", s, re.I)
-        mdesc = re.match(description_re, s, re.I)
         mnat  = re.match(r"^nat\s+\(([^,]+),([^)]+)\)\s+(dynamic|static)\s+(\S+)$", s, re.I)
 
         if mhost:
@@ -157,8 +159,6 @@ def _parse_network_object_block(block: List[str]) -> Tuple[Optional[AsaNetworkOb
             range = mrange.group(1), mrange.group(2)
         elif mfqdn:
             fqdn = mfqdn.group(1)
-        elif mdesc:
-            desc = parse_description(s)
         elif mnat:
             src_if = mnat.group(1).strip()
             dst_if = mnat.group(2).strip()
@@ -190,33 +190,22 @@ def _parse_network_object_block(block: List[str]) -> Tuple[Optional[AsaNetworkOb
     return net_obj, pending_nat
 
 
-def parse_description(description_line: str) -> str:
-    """Parse description line to extract description text."""
-    match = re.match(description_re, description_line, re.I)
-    if match:
-        return description_line[match.end():].strip()
-    return ""
-
-
 def _parse_network_object_group_block(block: List[str]) -> AsaNetworkObjectGroup:
     """Parse an object-group network block."""
     grp_name = block[0].split()[2]
-    desc = None
+    desc = _find_description(block[1:])
     members: List[AsaNetworkObjectGroupMember] = []
 
     for b in block[1:]:
         s = b.strip()
-        mdesc = re.match(description_re, s, re.I)
         mobj  = re.match(r"^network-object\s+object\s+(\S+)$", s, re.I)
         mhost = re.match(r"^network-object\s+host\s+(\d+\.\d+\.\d+\.\d+)$", s, re.I)
         mhostv6 = re.match(r"^network-object\s+host\s+(\S+)$", s, re.I)  # e.g. 2001:db8:abcd::1
         msub  = re.match(r"^network-object\s+(\d+\.\d+\.\d+\.\d+)\s+(\d+\.\d+\.\d+\.\d+)$", s, re.I)
         msubv6 = re.match(r"^network-object\s+(\S+)$", s, re.I) # e.g. 2001:db8:abcd::/40 or 2001::/12
         mgroup = re.match(r"^group-object\s+(\S+)$", s, re.I)
-
-        if mdesc:
-            desc = parse_description(s)
-        elif mobj:
+        
+        if mobj:
             ref = mobj.group(1)
             members.append(AsaNetworkObjectGroupMember(kind="object", value=ref))
         elif mhost:
@@ -245,14 +234,13 @@ def _parse_service_object_block(block: List[str]) -> AsaServiceObject | None:
     protocol = None
     eq = None
     prange = None
-    desc = None
+    desc = _find_description(block[1:])
 
     for b in block[1:]:
         s = b.strip()
         # e.g., "service tcp destination eq 1234"
         meq = re.match(r"^service\s+(tcp|udp|ip)\s+destination\s+eq\s+(\S+)$", s, re.I)
         mrange = re.match(r"^service\s+(tcp|udp|ip)\s+destination\s+range\s+(\S+)\s+(\S+)$", s, re.I)
-        mdesc = re.match(description_re, s, re.I)
         micmp = re.match(r"^service\s+icmp.*$", s, re.I)
         msvc = re.match(r"^service\s+(\S+)$", s, re.I)
 
@@ -262,8 +250,6 @@ def _parse_service_object_block(block: List[str]) -> AsaServiceObject | None:
         elif mrange:
             protocol = mrange.group(1).lower()
             prange = (mrange.group(2), mrange.group(3))
-        elif mdesc:
-            desc = parse_description(s)
         elif micmp:
             protocol = "icmp"
             #TODO: handle ICMP type/code if needed
@@ -311,7 +297,7 @@ def _parse_service_object_group_block(block: List[str]) -> AsaServiceObjectGroup
         if pm in ("tcp", "udp", "tcp-udp"):
             proto_mode = pm
 
-    desc = None
+    desc = _find_description(block[1:])
     ports_eq: List[Tuple[str, str]] = []
     ports_range: List[Tuple[str, Tuple[str, str]]] = []
     nested_groups: List[str] = []
@@ -319,15 +305,12 @@ def _parse_service_object_group_block(block: List[str]) -> AsaServiceObjectGroup
 
     for b in block[1:]:
         s = b.strip()
-        mdesc = re.match(description_re, s, re.I)
         meq = re.match(r"^port-object\s*eq\s+(\S+)$", s, re.I)
         mrange = re.match(r"^port-object\srange\s+(\d+)\s+(\d+)$", s, re.I)
         mobj = re.match(r"^service-object\s+object\s+(\S+)$", s, re.I)
         mproto = re.match(r"^service-object\s+(tcp|udp|icmp)$", s, re.I)
 
-        if mdesc:
-            desc = parse_description(s)
-        elif meq:
+        if meq:
             ports_eq.append((proto_mode, meq.group(1)))
         elif mrange:
             ports_range.append((proto_mode, (mrange.group(1), mrange.group(2))))
@@ -357,9 +340,9 @@ def _parse_class_map_block(block: List[str]) -> ClassMap:
 
     for b in block[1:]:
         s = b.strip()
-        mm = re.match(r"^match\s", s, re.I)
-        if mm:
-            matches.append(s[mm.end():].strip())
+        mat = _find_line_with_prefix([s], "match ")
+        if mat:
+            matches.append(mat)
 
     return ClassMap(name=name, matches=matches)
 
@@ -554,17 +537,14 @@ def _parse_access_list_entry(line: str, protocol_groups: List[AsaProtocolGroup],
 def _parse_protocol_object_group_block(block: List[str]) -> AsaProtocolGroup:
     """Parse an object-group protocol block."""
     name = block[0].split()[2]
-    desc = None
+    desc = _find_description(block[1:])
     protocols: List[str] = []
 
     for b in block[1:]:
         s = b.strip()
-        mdesc = re.match(description_re, s, re.I)
         mproto = re.match(r"^protocol-object\s+(\S+)$", s, re.I)
-
-        if mdesc:
-            desc = parse_description(s)
-        elif mproto:
+        
+        if mproto:
             protocols.append(mproto.group(1))
 
     return AsaProtocolGroup(
@@ -577,13 +557,12 @@ def _parse_protocol_object_group_block(block: List[str]) -> AsaProtocolGroup:
 def _parse_service_object_group_block_without_inline_protocol(block: List[str]) -> AsaServiceObjectGroup:
     """Parse an object-group service block without inline protocol in the header line."""
     grp_name = block[0].split()[2]
-    desc = None
+    desc = _find_description(block[1:])
     ports_eq: List[Tuple[str, str]] = []
     ports_range: List[Tuple[str, Tuple[str, str]]] = []
     nested_refs: List[str] = []
     protocols: List[str] = [] # list of fully enabled protocols
 
-    mdesc = re.compile(description_re, re.I)
     mgrp = re.compile(r"^group-object\s+(\S+)$", re.I)
     mobj = re.compile(r"^service-object\s+object\s+(\S+)$", re.I)
     mproto = re.compile(r"^service-object\s+(tcp|udp|icmp|tcp-udp)$", re.I)
@@ -593,17 +572,14 @@ def _parse_service_object_group_block_without_inline_protocol(block: List[str]) 
 
     for b in block[1:]:
         s = b.strip()
-        
-        mdesc_match = mdesc.match(s)
+    
         mobj_match = mobj.match(s)
         mgrp_match = mgrp.match(s)
         mproto_match = mproto.match(s)
         msvc_eq_match = msvc_eq.match(s)
         msvc_range_match = msvc_range.match(s)
-
-        if mdesc_match:
-            desc = parse_description(s)
-        elif mobj_match:
+        
+        if mobj_match:
             nested_refs.append(mobj_match.group(1))
         elif mgrp_match:
             nested_refs.append(mgrp_match.group(1))
@@ -635,17 +611,13 @@ def _parse_service_object_group_block_without_inline_protocol(block: List[str]) 
 def _parse_icmp_object_group_block(block: List[str]) -> AsaServiceObjectGroup:
     """Parse an object-group icmp-type block."""
     grp_name = block[0].split()[2]
-    desc = None
+    desc = _find_description(block[1:])
     objects: List[str] = []
     for b in block[1:]:
         s = b.strip()
-        mdesc = re.match(description_re, s, re.I)
-        mobj = re.match(r"^icmp-object\s+(\S+)$", s, re.I)
-
-        if mdesc:
-            desc = parse_description(s) 
-        elif mobj:
-            objects.append(mobj.group(1))
+        mobj = _find_line_with_prefix([s], "icmp-object ", True)
+        if mobj:
+            objects.append(mobj)
     
     return AsaServiceObjectGroup(
         name=grp_name,

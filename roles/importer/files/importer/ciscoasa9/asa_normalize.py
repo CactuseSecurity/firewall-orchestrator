@@ -46,7 +46,7 @@ def normalize_all_network_objects(native_config: Config, logger) -> dict:
     network_objects = normalize_names(native_config.names)
 
     # Add individual network objects
-    network_objects.update(normalize_network_objects(native_config.objects, logger))
+    network_objects.update(normalize_network_objects(native_config.objects))
 
     # Add network object groups
     normalize_network_object_groups(native_config.object_groups, network_objects, logger)

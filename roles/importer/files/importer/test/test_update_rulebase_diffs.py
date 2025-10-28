@@ -7,7 +7,9 @@ from test.mocking.mock_import_state import MockImportStateController
 from test.mocking.mock_config import MockFwConfigNormalizedBuilder
 from test.mocking.mock_fwconfig_import_rule import MockFwConfigImportRule
 from test.tools.set_up_test import remove_rule_from_rulebase, insert_rule_in_config, move_rule_in_config, update_rule_map_and_rulebase_map, update_rule_num_numerics
-
+from fwo_base import init_service_provider
+from services.service_provider import ServiceProvider
+from services.enums import Services
 
 class TestUpdateRulebaseDiffs(unittest.TestCase):
 
@@ -26,6 +28,9 @@ class TestUpdateRulebaseDiffs(unittest.TestCase):
         """
         
         cls._config_builder = MockFwConfigNormalizedBuilder()
+        init_service_provider()
+        service_provider = ServiceProvider()
+        cls._global_state = service_provider.get_service(Services.GLOBAL_STATE)
 
 
     def setUp(self):
@@ -48,6 +53,8 @@ class TestUpdateRulebaseDiffs(unittest.TestCase):
         self._fwconfig_import_rule.normalized_config = copy.deepcopy(self._previous_config)
         self._import_state = self._fwconfig_import_rule.import_details
         self._normalized_config = self._fwconfig_import_rule.normalized_config
+        self._global_state.normalized_config = self._normalized_config
+        self._global_state.import_details = self._import_state
 
         update_rule_num_numerics(self._previous_config)
         update_rule_map_and_rulebase_map(self._previous_config, self._import_state)

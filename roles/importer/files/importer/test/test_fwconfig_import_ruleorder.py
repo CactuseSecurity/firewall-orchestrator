@@ -8,8 +8,24 @@ from test.mocking.mock_config import MockFwConfigNormalizedBuilder
 from test.tools.set_up_test import remove_rule_from_rulebase, insert_rule_in_config, move_rule_in_config, update_rule_map_and_rulebase_map, update_rule_num_numerics
 from fwo_const import rule_num_numeric_steps
 import fwo_local_settings
+from fwo_base import init_service_provider
+
+from services.service_provider import ServiceProvider
+from services.enums import Services
+
 
 class TestFwConfigImportRuleOrder(unittest.TestCase):
+
+    @classmethod
+    def setUpClass(cls):
+        """
+            Gets invoked one time before running any tests.
+        """
+
+        init_service_provider()
+        service_provider = ServiceProvider()
+        cls._global_state = service_provider.get_service(Services.GLOBAL_STATE)
+
 
     def setUp(self):
         """
@@ -32,6 +48,8 @@ class TestFwConfigImportRuleOrder(unittest.TestCase):
         self._fwconfig_import_rule.normalized_config = copy.deepcopy(self._previous_config)
         self._import_state = self._fwconfig_import_rule.import_details
         self._normalized_config = self._fwconfig_import_rule.normalized_config
+        self._global_state.normalized_config = self._normalized_config
+        self._global_state.import_details = self._import_state
 
         update_rule_num_numerics(self._previous_config)
         update_rule_map_and_rulebase_map(self._previous_config, self._import_state)
@@ -69,7 +87,7 @@ class TestFwConfigImportRuleOrder(unittest.TestCase):
 
             # Act
 
-            self._rule_order_service.initialize(self._previous_config, self._fwconfig_import_rule)
+            self._rule_order_service.initialize(self._previous_config)
 
             # Assert
 
@@ -94,7 +112,7 @@ class TestFwConfigImportRuleOrder(unittest.TestCase):
         
         # Act
 
-        self._rule_order_service.initialize(self._previous_config, self._fwconfig_import_rule)
+        self._rule_order_service.initialize(self._previous_config)
 
         # # Assert
 
@@ -126,7 +144,7 @@ class TestFwConfigImportRuleOrder(unittest.TestCase):
 
         # Act
 
-        self._rule_order_service.initialize(self._previous_config, self._fwconfig_import_rule)
+        self._rule_order_service.initialize(self._previous_config)
 
         # Assert
 
@@ -157,7 +175,7 @@ class TestFwConfigImportRuleOrder(unittest.TestCase):
 
         # Act
 
-        self._rule_order_service.initialize(self._previous_config, self._fwconfig_import_rule)
+        self._rule_order_service.initialize(self._previous_config)
 
         # Assert
 
@@ -177,7 +195,7 @@ class TestFwConfigImportRuleOrder(unittest.TestCase):
 
         # Act
 
-        self._rule_order_service.initialize(self._previous_config, self._fwconfig_import_rule)
+        self._rule_order_service.initialize(self._previous_config)
 
         # Assert
 

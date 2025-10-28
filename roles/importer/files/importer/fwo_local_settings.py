@@ -2,11 +2,11 @@ import os
 import json
 from pathlib import Path
 
-csharp_unit_tests_verbose: bool = False
+python_unit_tests_verbose: bool = False
 
 def _load_from_env():
 
-    global csharp_unit_tests_verbose
+    global python_unit_tests_verbose
 
     path = os.getenv("FWORCH_LOCAL_SETTINGS_PATH")
 
@@ -14,8 +14,8 @@ def _load_from_env():
         try:
             with open(path, "r", encoding="utf-8") as f:
                 data = json.load(f)
-            csharp_unit_tests_verbose = bool(
-                data.get("test.unittests.csharp.verbose", False)
+            python_unit_tests_verbose = bool(
+                data.get("test.unittests.python.verbose", False)
             )
         except Exception as e:
             print(f"Reading local settings from {path} failed ({e}). Using defaults.")

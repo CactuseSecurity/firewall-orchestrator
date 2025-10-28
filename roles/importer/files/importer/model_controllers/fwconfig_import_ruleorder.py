@@ -170,6 +170,7 @@ class RuleOrderService:
     def update_rule_num_numerics(self):
 
         # Set initial rule_num_numerics if it is the first import.
+
         if len(self._source_rules_flat) == 0:
             self._set_initial_rule_num_numerics()
             return
@@ -199,10 +200,9 @@ class RuleOrderService:
             for _, rule_uids in self._inserts_and_moves.items():
                 current_rule_num_numeric = 0
                 for rule_uid in rule_uids:
-                    if len(self._source_rules_flat) == 0:
-                        _, changed_rule = self._get_index_and_rule_object_from_flat_list(self.target_rules_flat, rule_uid)
-                        current_rule_num_numeric += rule_num_numeric_steps
-                        changed_rule.rule_num_numeric = current_rule_num_numeric
+                    _, changed_rule = self._get_index_and_rule_object_from_flat_list(self.target_rules_flat, rule_uid)
+                    current_rule_num_numeric += rule_num_numeric_steps
+                    changed_rule.rule_num_numeric = current_rule_num_numeric
 
 
     def _parse_rule_uids_and_objects_from_config(self, config: FwConfigNormalized):
@@ -217,7 +217,6 @@ class RuleOrderService:
 
     def _update_rule_num_numeric_on_singular_insert_or_move(self, rule_uid, target_rulebase_uid): 
 
-        new_rule_num_numeric = 0.0
         next_rules_rule_num_numeric = 0.0
         previous_rule_num_numeric = 0.0
 
@@ -256,7 +255,7 @@ class RuleOrderService:
         else:
             previous_rule_num_numeric = self._get_relevant_rule_num_numeric(prev_rule_uid, self._target_rules_flat, False, target_rulebase)
             next_rules_rule_num_numeric = self._get_relevant_rule_num_numeric(next_rule_uid, self._target_rules_flat, True, target_rulebase)
-            if new_rule_num_numeric > 0:
+            if next_rules_rule_num_numeric > 0:
                 changed_rule.rule_num_numeric = (previous_rule_num_numeric + next_rules_rule_num_numeric) / 2
             else:
                 changed_rule.rule_num_numeric = previous_rule_num_numeric + rule_num_numeric_steps
@@ -299,6 +298,7 @@ class RuleOrderService:
 
         if next_rule_num_numeric == 0:
             next_rule_num_numeric = prev_rule_num_numeric + rule_num_numeric_steps
+            return next_rule_num_numeric
         
 
         return (prev_rule_num_numeric + next_rule_num_numeric) / 2
@@ -437,9 +437,9 @@ class RuleOrderService:
             return float(changed_rule.rule_num_numeric)
 
         # Fallback if there are no >0 values
-        step = getattr(self, "rule_num_numeric_steps", 1)
-        changed_rule.rule_num_numeric = step
-        return float(step)
+        # step = getattr(self, "rule_num_numeric_steps", 1)
+        # changed_rule.rule_num_numeric = step
+        return 0
 
 
     def _max_num_numeric_rule(self, target_rulebase):

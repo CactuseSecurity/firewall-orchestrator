@@ -88,10 +88,10 @@
             @if (appSelected)
             {
                 <div class="form-group row m-2">
-                    <h5>@(userConfig.GetText("comm_profile"))&nbsp;</h5>
+                    <h5 class="w-auto">@(userConfig.GetText("comm_profile"))&nbsp;</h5>
                     @if (appActive)
                     {
-                        <div class="btn-group ms-5">
+                        <div class="btn-group ms-5 w-auto">
                             <button type="button" class="btn btn-sm btn-dark" @onclick="ShareLink">
                                 @(DisplayService.DisplayButton(userConfig, "share_link", Icons.Share))
                             </button>

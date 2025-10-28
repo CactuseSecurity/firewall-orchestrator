@@ -21,7 +21,7 @@ from ciscoasa9.asa_normalize import normalize_config
 
 
 def has_config_changed(full_config, mgm_details, force=False):
-    # TODO: dummy - may be filled with real check later on
+    # We don't get this info from ASA, so we always return True
     return True
 
 

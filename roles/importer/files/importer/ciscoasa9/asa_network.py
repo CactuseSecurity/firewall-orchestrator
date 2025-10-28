@@ -223,6 +223,57 @@ def normalize_network_object_groups(object_groups: List[AsaNetworkObjectGroup],
     return network_objects
 
 
+def _get_network_group_member_host(member: AsaNetworkObjectGroupMember) -> NetworkObject:
+    """Create a host network object for a network object group member.
+
+    Args:
+        member: Network object group member of kind 'host' or 'hostv6'
+
+    Returns:
+        NetworkObject instance
+    """
+    ip_version = 6 if member.kind == "hostv6" else 4
+    return create_network_host(member.value, member.value, None, ip_version=ip_version)
+
+
+def get_network_group_member_ref(member: AsaNetworkObjectGroupMember) -> str:
+    """Get the reference string for a network object group member.
+
+    Args:
+        member: Network object group member
+    Returns:
+
+        Reference string for the member
+    """
+    if member.kind == "subnet":
+        if member.mask is None:
+            raise ValueError("Subnet mask is required for subnet member kind.")
+        return f"{member.value}/{member.mask}"
+    else:
+        return member.value
+    
+
+def create_network_group_member(ref: str, member: AsaNetworkObjectGroupMember) -> NetworkObject:
+    """Create a network object for a network object group member.
+
+    Args:
+        ref: Reference string for the member
+        member: Network object group member
+    Returns:
+        NetworkObject instance
+    """
+    if member.kind == "host":
+        return create_network_host(ref, member.value, None, ip_version=4)
+    elif member.kind == "hostv6":
+        return create_network_host(ref, member.value, None, ip_version=6)
+    elif member.kind == "subnet":
+        return create_network_subnet(ref, member.value, member.mask, None, ip_version=4)
+    elif member.kind == "subnetv6":
+        return create_network_subnet(ref, member.value, None, None, ip_version=6)
+    else:
+        raise ValueError(f"Unsupported member kind '{member.kind}' in network object group.")
+
+
 def get_network_group_member(member: AsaNetworkObjectGroupMember, network_objects: Dict[str, NetworkObject]) -> NetworkObject:
     """Get network object for a network object group member reference. If it does not exist, create it.
 
@@ -233,44 +284,13 @@ def get_network_group_member(member: AsaNetworkObjectGroupMember, network_object
     Returns:
         NetworkObject instance
     """
-    # helper to return existing object if present
-    def _existing(ref: str) -> Optional[NetworkObject]:
-        return network_objects.get(ref)
-
-    if member.kind in ("host", "hostv6"):
-        ref = member.value
-        existing = _existing(ref)
-        if existing:
-            return existing
-        ip_version = 6 if member.kind == "hostv6" else 4
-        network_object = create_network_host(ref, member.value, None, ip_version=ip_version)
-
-    elif member.kind in ("subnet", "subnetv6"):
-        if member.kind == "subnet":
-            if member.mask is None:
-                raise ValueError("Subnet mask is required for subnet member kind.")
-            ref = f"{member.value}/{member.mask}"
-            existing = _existing(ref)
-            if existing:
-                return existing
-            network_object = create_network_subnet(ref, member.value, member.mask, None, ip_version=4)
-        else:  # subnetv6
-            ref = member.value  # already CIDR for IPv6
-            existing = _existing(ref)
-            if existing:
-                return existing
-            network_object = create_network_subnet(ref, member.value, None, None, ip_version=6)
-
-    elif member.kind in ("object", "object-group"):
-        ref = member.value
-        ref_obj = network_objects.get(ref)
-        if not ref_obj:
-            raise ValueError(f"Referenced network object '{ref}' not found in configuration.")
-        return ref_obj
-
-    else:
-        raise ValueError(f"Unsupported member kind '{member.kind}' in network object group.")
-
+    ref = get_network_group_member_ref(member)
+    if ref in network_objects:
+        return network_objects[ref]
+    if member.kind in ("object", "object-group"):
+        raise ValueError(f"Referenced network object '{ref}' not found in configuration.")
+    
+    network_object = create_network_group_member(ref, member)
     network_objects[network_object.obj_uid] = network_object
     return network_object
 

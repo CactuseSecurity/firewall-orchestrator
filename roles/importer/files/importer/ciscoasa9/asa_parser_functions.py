@@ -491,16 +491,12 @@ def _parse_policy_map_block(block: List[str], pm_name: str) -> PolicyMap:
 
     return pm
 
-def _parse_access_list_entry(line: str, protocol_groups: List[AsaProtocolGroup], svc_objects: List[AsaServiceObject], svc_obj_groups: List[AsaServiceObjectGroup]) -> AccessListEntry:
-    """
-    Parse an access-list entry line and return an AccessListEntry object.
-    Handles various formats as specified in the requirements.
-    """
-    # Tokenize the line after 'access-list'
-    parts = line.split()
-    acl_name = parts[1]  # Access list name
-    action = parts[3].lower()  # Action (permit/deny)
 
+def _parse_access_list_protocol_group_block(parts: List[str], protocol_groups: List[AsaProtocolGroup], svc_objects: List[AsaServiceObject], svc_obj_groups: List[AsaServiceObjectGroup]) -> Tuple[EndpointKind, List[str]]:
+    """
+    Parse the protocol part of an access-list entry.
+    Returns (protocol EndpointKind, remaining tokens List[str]).
+    """
     # Determine protocol
     protocol = None
     tokens = []  # Ensure tokens is always initialized
@@ -527,15 +523,14 @@ def _parse_access_list_entry(line: str, protocol_groups: List[AsaProtocolGroup],
         protocol = EndpointKind(kind="protocol", value=parts[4].lower())
         tokens = parts[5:]
 
-    # Parse source endpoint
-    src, consumed = _parse_endpoint(tokens)
-    tokens = tokens[consumed:]
+    return protocol, tokens
 
-    # Parse destination endpoint
-    dst, consumed = _parse_endpoint(tokens)
-    tokens = tokens[consumed:]
 
-    # Parse destination port
+def _parse_access_list_entry_dest_port(tokens: List[str], protocol: EndpointKind) -> Tuple[EndpointKind, List[str]]:
+    """
+    Parse the destination port part of an access-list entry.
+    Returns (dst_port EndpointKind, remaining tokens List[str]).
+    """
     dst_port = EndpointKind(kind="any", value="any")  # Default value
     if len(tokens) >= 2 and tokens[0] == "eq":
         dst_port = EndpointKind(kind="eq", value=tokens[1])
@@ -555,6 +550,33 @@ def _parse_access_list_entry(line: str, protocol_groups: List[AsaProtocolGroup],
         dst_port = EndpointKind(kind="service-group", value=protocol.value)
     elif protocol.kind == "service" and dst_port.value == "any":
         dst_port = EndpointKind(kind="service", value=protocol.value)
+
+    return dst_port, tokens
+
+
+def _parse_access_list_entry(line: str, protocol_groups: List[AsaProtocolGroup], svc_objects: List[AsaServiceObject], svc_obj_groups: List[AsaServiceObjectGroup]) -> AccessListEntry:
+    """
+    Parse an access-list entry line and return an AccessListEntry object.
+    Handles various formats as specified in the requirements.
+    """
+    # Tokenize the line after 'access-list'
+    parts = line.split()
+    acl_name = parts[1]  # Access list name
+    action = parts[3].lower()  # Action (permit/deny)
+
+    # Parse protocol or protocol/service object-group
+    protocol, tokens = _parse_access_list_protocol_group_block(parts, protocol_groups, svc_objects, svc_obj_groups)
+
+    # Parse source endpoint
+    src, consumed = _parse_endpoint(tokens)
+    tokens = tokens[consumed:]
+
+    # Parse destination endpoint
+    dst, consumed = _parse_endpoint(tokens)
+    tokens = tokens[consumed:]
+
+    # Parse destination port
+    dst_port, tokens = _parse_access_list_entry_dest_port(tokens, protocol)
 
     # Optional inactive flag
     inactive = "inactive" in tokens

@@ -227,6 +227,59 @@ def create_any_protocol_service(proto: str, service_objects: Dict[str, ServiceOb
     return obj_name
 
 
+
+def create_service_for_protocol_entry_with_single_protocol(entry: AccessListEntry, service_objects: Dict[str, ServiceObject]) -> str:
+    """Create service reference for a protocol entry with set protocol.
+    Args:
+        entry: Access list entry with protocol
+        service_objects: Dictionary to update with new service objects
+    Returns:
+        Service reference string (single object or delimited list)
+    """
+    if entry.dst_port.kind == "eq":
+        # Single port (e.g., 'eq 443' or 'eq https')
+        return create_service_for_port(entry.dst_port.value, entry.protocol.value, service_objects)
+
+    elif entry.dst_port.kind == "range":
+        # Port range (e.g., 'range 1024 65535')
+        ports = entry.dst_port.value.split() # expecting "start end"
+        return create_service_for_port_range((ports[0], ports[1]), entry.protocol.value, service_objects)
+
+    elif entry.dst_port.kind == "any":
+        # Any port for the protocol
+        return create_any_protocol_service(entry.protocol.value, service_objects)
+
+    elif entry.dst_port.kind in ("service", "service-group"):
+        # Reference to existing service object/group
+        return entry.dst_port.value
+    else:
+        # Default to any port for the protocol
+        return create_any_protocol_service(entry.protocol.value, service_objects)
+
+
+def create_service_for_protocol_entry(entry: AccessListEntry, service_objects: Dict[str, ServiceObject]) -> str:
+    """Create service reference for a protocol group entry.
+    Args:
+        entry: Access list entry with protocol group
+        service_objects: Dictionary to update with new service objects
+    Returns:
+        Service reference string (single object or delimited list)
+    """
+
+    if entry.protocol.value in ("tcp", "udp", "icmp"):
+        return create_service_for_protocol_entry_with_single_protocol(entry, service_objects)
+
+    elif entry.protocol.value == "ip":
+        # 'ip' protocol means all protocols (tcp, udp, icmp)
+        svc_refs = []
+        for proto in ("tcp", "udp", "icmp"):
+            svc_refs.append(create_any_protocol_service(proto, service_objects))
+        return fwo_base.sort_and_join(svc_refs)
+    else:
+        # Unknown protocol, default to any for the protocol
+        return create_any_protocol_service(entry.protocol.value, service_objects)
+
+
 def create_service_for_acl_entry(entry: AccessListEntry, service_objects: Dict[str, ServiceObject]) -> str:
     """Create service object(s) for an ACL entry and return the service reference.
 
@@ -237,39 +290,8 @@ def create_service_for_acl_entry(entry: AccessListEntry, service_objects: Dict[s
     Returns:
         Service reference string (single object or delimited list)
     """
-    creation_comment = "service object created during import"
-
     if entry.protocol.kind == "protocol":
-        if entry.protocol.value in ("tcp", "udp", "icmp"):
-            if entry.dst_port.kind == "eq":
-                # Single port (e.g., 'eq 443' or 'eq https')
-                return create_service_for_port(entry.dst_port.value, entry.protocol.value, service_objects)
-
-            elif entry.dst_port.kind == "range":
-                # Port range (e.g., 'range 1024 65535')
-                ports = entry.dst_port.value.split() # expecting "start end"
-                return create_service_for_port_range((ports[0], ports[1]), entry.protocol.value, service_objects)
-
-            elif entry.dst_port.kind == "any":
-                # Any port for the protocol
-                return create_any_protocol_service(entry.protocol.value, service_objects)
-
-            elif entry.dst_port.kind in ("service", "service-group"):
-                # Reference to existing service object/group
-                return entry.dst_port.value
-            else:
-                # Default to any port for the protocol
-                return create_any_protocol_service(entry.protocol.value, service_objects)
-
-        elif entry.protocol.value == "ip":
-            # 'ip' protocol means all protocols (tcp, udp, icmp)
-            svc_refs = []
-            for proto in ("tcp", "udp", "icmp"):
-                svc_refs.append(create_any_protocol_service(proto, service_objects))
-            return fwo_base.sort_and_join(svc_refs)
-        else:
-            # Unknown protocol, default to any for the protocol
-            return create_any_protocol_service(entry.protocol.value, service_objects)
+        return create_service_for_protocol_entry(entry, service_objects)
 
     elif entry.protocol.kind in ("service-group", "service"):
         # Reference to service object or group

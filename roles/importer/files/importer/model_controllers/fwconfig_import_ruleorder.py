@@ -492,3 +492,4 @@ class RuleOrderService:
                     return True
                 
         return False
+    

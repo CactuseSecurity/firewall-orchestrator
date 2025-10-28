@@ -340,9 +340,9 @@ def _parse_class_map_block(block: List[str]) -> ClassMap:
 
     for b in block[1:]:
         s = b.strip()
-        mat = _find_line_with_prefix([s], "match ")
-        if mat:
-            matches.append(mat)
+        mm = re.match(r"^match\s", s, re.I)
+        if mm:
+            matches.append(s[mm.end():].strip())
 
     return ClassMap(name=name, matches=matches)
 
@@ -615,9 +615,9 @@ def _parse_icmp_object_group_block(block: List[str]) -> AsaServiceObjectGroup:
     objects: List[str] = []
     for b in block[1:]:
         s = b.strip()
-        mobj = _find_line_with_prefix([s], "icmp-object ", True)
+        mobj = re.match(r"^icmp-object\s+(\S+)$", s, re.I)
         if mobj:
-            objects.append(mobj)
+            objects.append(mobj.group(1))
     
     return AsaServiceObjectGroup(
         name=grp_name,

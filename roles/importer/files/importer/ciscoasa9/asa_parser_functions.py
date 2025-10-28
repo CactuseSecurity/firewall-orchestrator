@@ -9,7 +9,6 @@ from ciscoasa9.asa_models import AccessGroupBinding, AccessList, AccessListEntry
 from fwo_log import getFwoLogger
 
 
-_ws = r"[ \t]+"
 description_re = r"^description\s+(.+)$"
 
 def _clean_lines(text: str) -> List[str]:
@@ -592,83 +591,54 @@ def _parse_protocol_object_group_block(block: List[str]) -> AsaProtocolGroup:
 def _parse_service_object_group_block_without_inline_protocol(block: List[str]) -> AsaServiceObjectGroup:
     """Parse an object-group service block without inline protocol in the header line."""
     grp_name = block[0].split()[2]
-    desc: Optional[str] = None
+    desc = None
     ports_eq: List[Tuple[str, str]] = []
     ports_range: List[Tuple[str, Tuple[str, str]]] = []
     nested_refs: List[str] = []
-    protocols: List[str] = []
+    protocols: List[str] = [] # list of fully enabled protocols
 
-    current_proto_mode = "tcp"  # Default protocol mode
-
-    # Compile patterns once
-    pat_desc = re.compile(description_re, re.I)
-    pat_port_eq = re.compile(r"^port-object\s+eq\s+(\S+)$", re.I)
-    pat_port_range = re.compile(r"^port-object\s+range\s+(\S+)\s+(\S+)$", re.I)
-    pat_obj = re.compile(r"^service-object\s+object\s+(\S+)$", re.I)
-    pat_proto = re.compile(r"^service-object\s+(tcp|udp|icmp|tcp-udp)$", re.I)
-    pat_svc_eq = re.compile(r"^service-object\s+(tcp|udp|icmp|tcp-udp)\s+(?:destination\s+)?eq\s+(\S+)$", re.I)
-    pat_svc_range = re.compile(r"^service-object\s+(tcp|udp|icmp|tcp-udp)\s+(?:destination\s+)?range\s+(\S+)\s+(\S+)$", re.I)
+    mdesc = re.compile(description_re, re.I)
+    mgrp = re.compile(r"^group-object\s+(\S+)$", re.I)
+    mobj = re.compile(r"^service-object\s+object\s+(\S+)$", re.I)
+    mproto = re.compile(r"^service-object\s+(tcp|udp|icmp|tcp-udp)$", re.I)
+    # Handle lines like: service-object tcp destination eq https
+    msvc_eq = re.compile(r"^service-object\s+(tcp|udp|icmp|tcp-udp)\s+(?:destination\s+)?eq\s+(\S+)$", re.I)
+    msvc_range = re.compile(r"^service-object\s+(tcp|udp|icmp|tcp-udp)\s+(?:destination\s+)?range\s+(\S+)\s+(\S+)$", re.I)
 
     for b in block[1:]:
         s = b.strip()
-        m = pat_desc.match(s)
-        if m:
-            desc = m.group(1)
-            continue
+        
+        mdesc_match = mdesc.match(s)
+        mobj_match = mobj.match(s)
+        mgrp_match = mgrp.match(s)
+        mproto_match = mproto.match(s)
+        msvc_eq_match = msvc_eq.match(s)
+        msvc_range_match = msvc_range.match(s)
 
-        m = pat_port_eq.match(s)
-        if m:
-            ports_eq.append((current_proto_mode, m.group(1)))
-            continue
-
-        m = pat_port_range.match(s)
-        if m:
-            ports_range.append((current_proto_mode, (m.group(1), m.group(2))))
-            continue
-
-        m = pat_obj.match(s)
-        if m:
-            nested_refs.append(m.group(1))
-            continue
-
-        m = pat_proto.match(s)
-        if m:
-            proto = m.group(1).lower()
-            protocols.append(proto)
-            current_proto_mode = proto
-            continue
-
-        m = pat_svc_eq.match(s)
-        if m:
-            proto = m.group(1).lower()
-            port = m.group(2)
+        if mdesc_match:
+            desc = mdesc_match.group(1)
+        elif mobj_match:
+            nested_refs.append(mobj_match.group(1))
+        elif mgrp_match:
+            nested_refs.append(mgrp_match.group(1))
+        elif mproto_match:
+            protocols.append(mproto_match.group(1))
+        elif msvc_eq_match:
+            proto = msvc_eq_match.group(1)
+            port = msvc_eq_match.group(2)
             ports_eq.append((proto, port))
-            current_proto_mode = proto
-            continue
-
-        m = pat_svc_range.match(s)
-        if m:
-            proto = m.group(1).lower()
-            ports_range.append((proto, (m.group(2), m.group(3))))
-            current_proto_mode = proto
-            continue
-
-    # Determine proto_mode based on contents
-    has_only_protocols = bool(protocols) and not (ports_eq or ports_range or nested_refs)
-    if has_only_protocols:
-        if len(protocols) == 1:
-            proto_mode = protocols[0] if protocols[0] in ("tcp", "udp", "tcp-udp") else "service"
-        else:
-            proto_mode = "mixed"
-    else:
-        proto_mode = "mixed"
+        elif msvc_range_match:
+            proto = msvc_range_match.group(1)
+            port1 = msvc_range_match.group(2)
+            port2 = msvc_range_match.group(3)
+            ports_range.append((proto, (port1, port2)))
 
     # Convert port lists to dictionaries using existing helper
     ports_eq_dict, ports_range_dict = _convert_ports_to_dicts(ports_eq, ports_range)
 
     return AsaServiceObjectGroup(
         name=grp_name,
-        proto_mode=proto_mode,
+        proto_mode=None,
         ports_eq=ports_eq_dict,
         ports_range=ports_range_dict,
         nested_refs=nested_refs,

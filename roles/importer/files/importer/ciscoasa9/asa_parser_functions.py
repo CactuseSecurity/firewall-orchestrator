@@ -77,82 +77,56 @@ def _parse_endpoint(tokens: List[str]) -> Tuple[EndpointKind, int]:
     return EndpointKind(kind="any", value="any"), 1
 
 
+def _parse_interface_block_find_value(block: List[str], prefix: str, only_first: bool = False) -> Optional[str]:
+    """Helper to find a single value in an interface block by prefix."""
+    v = None
+    for b in list(block):
+        s = b.strip()
+        if s.startswith(prefix):
+            if only_first:
+                v = s.split()[1]
+            else:
+                v = s[len(prefix):].strip()
+            block.remove(b)
+    return v
+
+
+def _parse_interface_block_find_ip_address(block: List[str], prefix: str) -> Tuple[Optional[str], Optional[str]]:
+    """Helper to find IP address and mask in an interface block."""
+    ip = None
+    mask = None
+    for b in list(block):
+        s = b.strip()
+        if s.startswith(prefix):
+            parts = s.split()
+            if len(parts) >= 4:
+                is_valid_ip = parts[2].count(".") == 3 and parts[3].count(".") == 3
+                if is_valid_ip:
+                    ip, mask = parts[2], parts[3]
+                    block.remove(b)
+    return ip, mask
+
+
 def _parse_interface_block(block: List[str]) -> Interface:
     """Parse an interface block and return an Interface object."""
     if_name = block[0].split()[1]
-    nameif = None
-    br = None
-    sec = None
-    ip = None
-    mask = None
-    desc = None
-    additional: List[str] = []
+    blocks = list(block)[1:]
 
-    def _set_nameif(s: str):
-        nonlocal nameif
-        parts = s.split()
-        if len(parts) >= 2:
-            nameif = parts[1]
-
-    def _set_bridge(s: str):
-        nonlocal br
-        parts = s.split()
-        if len(parts) >= 2:
-            br = parts[1]
-
-    def _set_security(s: str):
-        nonlocal sec
-        parts = s.split()
-        if len(parts) >= 2:
-            try:
-                sec = int(parts[1])
-            except ValueError:
-                pass
-
-    def _handle_ip(s: str):
-        nonlocal ip, mask
-        parts = s.split()
-        # Expect forms like: "ip address A.B.C.D M.M.M.M" or "ip address dhcp ..."
-        if len(parts) >= 4 and parts[2].count(".") == 3 and parts[3].count(".") == 3:
-            ip, mask = parts[2], parts[3]
-        elif "dhcp" in parts:
-            additional.append(s)
-
-    def _handle_management(s: str):
-        additional.append("management-only")
-
-    def _handle_description(s: str):
-        nonlocal desc
-        desc = s[len("description "):] if len(s) > len("description ") else ""
-
-    def _handle_other(s: str):
-        additional.append(s)
-
-    handlers = [
-        ("nameif ", _set_nameif),
-        ("bridge-group ", _set_bridge),
-        ("security-level ", _set_security),
-        ("ip address ", _handle_ip),
-        ("management-only", _handle_management),
-        ("description ", _handle_description),
-    ]
-
-    for b in block[1:]:
-        s = b.strip()
-        for prefix, handler in handlers:
-            if s.startswith(prefix):
-                handler(s)
-                break
-        else:
-            _handle_other(s)
+    # Extract values and remove consumed lines from blocks
+    nameif = _parse_interface_block_find_value(blocks, "nameif ", True)
+    br = _parse_interface_block_find_value(blocks, "bridge-group ", True)
+    sec = _parse_interface_block_find_value(blocks, "security-level ", True)
+    sec = int(sec) if sec is not None else 0
+    ip, mask = _parse_interface_block_find_ip_address(blocks, "ip address ")
+    desc = _parse_interface_block_find_value(blocks, "description ")
+    # All non-consumed lines remain in blocks as additional
 
     # Defaults for missing bits
     nameif = nameif or if_name
-    sec = sec if sec is not None else 0
 
     return Interface(
         name=if_name, nameif=nameif, brigde_group=br, security_level=sec,
-        ip_address=ip, subnet_mask=mask, additional_settings=additional, description=desc
+        ip_address=ip, subnet_mask=mask, additional_settings=blocks, description=desc
     )
 
 

@@ -136,7 +136,7 @@ def _parse_network_object_block(block: List[str]) -> Tuple[Optional[AsaNetworkOb
     """Parse an object network block. Returns (network_object, nat_rule)."""
     obj_name = block[0].split()[2]
     host = None
-    range = None
+    ip_range = None
     subnet = None
     mask = None
     fqdn = None
@@ -156,7 +156,7 @@ def _parse_network_object_block(block: List[str]) -> Tuple[Optional[AsaNetworkOb
         elif msub:
             subnet, mask = msub.group(1), msub.group(2)
         elif mrange:
-            range = mrange.group(1), mrange.group(2)
+            ip_range = mrange.group(1), mrange.group(2)
         elif mfqdn:
             fqdn = mfqdn.group(1)
         elif mnat:
@@ -177,13 +177,13 @@ def _parse_network_object_block(block: List[str]) -> Tuple[Optional[AsaNetworkOb
 
     # Create network object if we have host/subnet/fqdn
     net_obj = None
-    if host or subnet or range or fqdn:
+    if host or subnet or ip_range or fqdn:
         if host and not subnet:
             net_obj = AsaNetworkObject(name=obj_name, ip_address=host, ip_address_end=None, subnet_mask=None, fqdn=None, description=desc)
         elif subnet:
             net_obj = AsaNetworkObject(name=obj_name, ip_address=subnet, ip_address_end=None, subnet_mask=mask, fqdn=None, description=desc)
-        elif range:
-            net_obj = AsaNetworkObject(name=obj_name, ip_address=range[0], ip_address_end=range[1], subnet_mask=None, fqdn=None, description=desc)
+        elif ip_range:
+            net_obj = AsaNetworkObject(name=obj_name, ip_address=ip_range[0], ip_address_end=ip_range[1], subnet_mask=None, fqdn=None, description=desc)
         elif fqdn:
             net_obj = AsaNetworkObject(name=obj_name, ip_address="", ip_address_end=None, subnet_mask=None, fqdn=fqdn, description=desc)
 

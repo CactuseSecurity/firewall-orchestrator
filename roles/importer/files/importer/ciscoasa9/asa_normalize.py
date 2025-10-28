@@ -81,7 +81,7 @@ def normalize_all_service_objects(native_config: Config) -> dict:
     return service_objects
 
 
-def normalize_config(config_in, importState):
+def normalize_config(config_in, import_state):
     """
     Normalize the ASA configuration into a structured format for the database.
 
@@ -117,7 +117,7 @@ def normalize_config(config_in, importState):
     logger.debug("Building rulebases from access lists...")
     rulebases = build_rulebases_from_access_lists(
         native_config.access_lists,
-        importState.MgmDetails.Uid,
+        import_state.MgmDetails.Uid,
         protocol_groups=native_config.protocol_groups,
         network_objects=network_objects,
         service_objects=service_objects,
@@ -173,6 +173,6 @@ def normalize_config(config_in, importState):
 
     # Update the configuration input with normalized data
     config_in.ManagerSet[0].Configs = [normalized_config]
-    config_in.ManagerSet[0].ManagerUid = importState.MgmDetails.Uid
+    config_in.ManagerSet[0].ManagerUid = import_state.MgmDetails.Uid
 
     return config_in

@@ -16,6 +16,7 @@ from models.rule import RuleNormalized, RuleAction, RuleTrack, RuleType
 from models.rulebase import Rulebase
 
 NETWORK_OBJECT='network_object'
+STRING_PKG = '/pkg/'
 rule_access_scope_v4 = ['rules_global_header_v4', 'rules_adom_v4', 'rules_global_footer_v4']
 rule_access_scope_v6 = ['rules_global_header_v6', 'rules_adom_v6', 'rules_global_footer_v6']
 rule_access_scope = rule_access_scope_v6 + rule_access_scope_v4

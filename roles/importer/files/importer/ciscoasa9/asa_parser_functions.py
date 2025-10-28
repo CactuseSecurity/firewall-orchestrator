@@ -475,10 +475,7 @@ def _parse_access_list_entry_protocol(parts: List[str], protocol_groups: List[As
     # Determine protocol
     protocol = None
     tokens = []  # Ensure tokens is always initialized
-    if parts[4] in ("tcp", "udp", "icmp", "ip"):
-        protocol = EndpointKind(kind="protocol", value=parts[4].lower())
-        tokens = parts[5:]
-    elif parts[4] == "object-group":
+    if parts[4] == "object-group":
         group_name = parts[5]
         if any(group.name == group_name for group in protocol_groups):
             protocol = EndpointKind(kind="protocol-group", value=group_name)

@@ -88,7 +88,7 @@ def load_config_from_management(mgm_details: ManagementController, is_virtual_as
         raise
 
 
-def get_config(config_in: FwConfigManagerListController, importState: ImportStateController) -> tuple[int, FwConfigManagerList]:
+def get_config(config_in: FwConfigManagerListController, import_state: ImportStateController) -> tuple[int, FwConfigManagerList]:
     """
     Retrieve and parse the ASA configuration.
 
@@ -103,17 +103,17 @@ def get_config(config_in: FwConfigManagerListController, importState: ImportStat
 
     logger.debug ( "starting checkpointAsa9/get_config" )
 
-    is_virtual_asa = importState.MgmDetails.DeviceTypeName == "Cisco Asa on FirePower"
+    is_virtual_asa = import_state.MgmDetails.DeviceTypeName == "Cisco Asa on FirePower"
 
     if config_in.native_config_is_empty:
-        raw_config = load_config_from_management(importState.MgmDetails, is_virtual_asa)
+        raw_config = load_config_from_management(import_state.MgmDetails, is_virtual_asa)
         # raw_config = load_config_from_file("asa.conf")
         config2import = parse_asa_config(raw_config)
         config_in.native_config = config2import.model_dump()
 
-    write_native_config_to_file(importState, config_in.native_config)
+    write_native_config_to_file(import_state, config_in.native_config)
 
-    normalize_config(config_in, importState)
+    normalize_config(config_in, import_state)
 
     return 0, config_in
 

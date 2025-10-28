@@ -16,6 +16,38 @@ from fwo_log import getFwoLogger
 import fwo_base
 
 
+def create_service_for_protocol_group_entry(protocol_group_name: str, protocol_groups: List[AsaProtocolGroup], service_objects: Dict) -> str:
+    """Resolve service reference for a protocol group.
+
+    Args:
+        protocol_group_name: Name of the protocol group
+        protocol_groups: List of protocol groups for resolving references
+        service_objects: Dictionary of service objects to update if needed
+    Returns:
+        Service reference string
+    """
+    logger = getFwoLogger()
+    allowed_protocols = []
+    for pg in protocol_groups:
+        if pg.name == protocol_group_name:
+            allowed_protocols = pg.protocols
+            break
+
+    if allowed_protocols:
+        svc_refs = []
+        for proto in allowed_protocols:
+            svc_ref = create_any_protocol_service(proto, service_objects)
+            svc_refs.append(svc_ref)
+        return fwo_base.sort_and_join(svc_refs)
+    else:
+        # Fallback if protocol group not found
+        logger.warning(f"Protocol group '{protocol_group_name}' not found. Defaulting to tcp/udp/icmp any.")
+        svc_refs = []
+        for proto in ("tcp", "udp", "icmp"):
+            svc_refs.append(create_any_protocol_service(proto, service_objects))
+        return fwo_base.sort_and_join(svc_refs)
+
+
 def resolve_service_reference_for_rule(entry: AccessListEntry, protocol_groups: List[AsaProtocolGroup], service_objects: Dict) -> str:
     """Resolve service reference for a rule entry.
 
@@ -29,26 +61,7 @@ def resolve_service_reference_for_rule(entry: AccessListEntry, protocol_groups: 
     """
     if entry.protocol.kind == "protocol-group":
         # Protocol group - resolve to list of protocols
-        allowed_protocols = []
-        for pg in protocol_groups:
-            if pg.name == entry.protocol.value:
-                allowed_protocols = pg.protocols
-                break
-
-        if allowed_protocols:
-            svc_refs = []
-            for proto in allowed_protocols:
-                svc_ref = create_any_protocol_service(proto, service_objects)
-                svc_refs.append(svc_ref)
-            return fwo_base.sort_and_join(svc_refs)
-        else:
-            # Fallback if protocol group not found
-            logger = getFwoLogger()
-            logger.warning(f"Protocol group '{entry.protocol.value}' not found. Defaulting to tcp/udp/icmp any.")
-            svc_refs = []
-            for proto in ("tcp", "udp", "icmp"):
-                svc_refs.append(create_any_protocol_service(proto, service_objects))
-            return fwo_base.sort_and_join(svc_refs)
+        return create_service_for_protocol_group_entry(entry.protocol.value, protocol_groups, service_objects)
     else:
         # Handle other protocol types using existing function
         return create_service_for_acl_entry(entry, service_objects)

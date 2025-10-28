@@ -86,65 +86,30 @@ def _parse_interface_block(block: List[str]) -> Interface:
     ip = None
     mask = None
     desc = None
-    additional: List[str] = []
-
-    def _set_nameif(s: str):
-        nonlocal nameif
-        parts = s.split()
-        if len(parts) >= 2:
-            nameif = parts[1]
-
-    def _set_bridge(s: str):
-        nonlocal br
-        parts = s.split()
-        if len(parts) >= 2:
-            br = parts[1]
-
-    def _set_security(s: str):
-        nonlocal sec
-        parts = s.split()
-        if len(parts) >= 2:
-            try:
-                sec = int(parts[1])
-            except ValueError:
-                pass
-
-    def _handle_ip(s: str):
-        nonlocal ip, mask
-        parts = s.split()
-        # Expect forms like: "ip address A.B.C.D M.M.M.M" or "ip address dhcp ..."
-        if len(parts) >= 4 and parts[2].count(".") == 3 and parts[3].count(".") == 3:
-            ip, mask = parts[2], parts[3]
-        elif "dhcp" in parts:
-            additional.append(s)
-
-    def _handle_management(s: str):
-        additional.append("management-only")
-
-    def _handle_description(s: str):
-        nonlocal desc
-        desc = s[len("description "):] if len(s) > len("description ") else ""
-
-    def _handle_other(s: str):
-        additional.append(s)
-
-    handlers = [
-        ("nameif ", _set_nameif),
-        ("bridge-group ", _set_bridge),
-        ("security-level ", _set_security),
-        ("ip address ", _handle_ip),
-        ("management-only", _handle_management),
-        ("description ", _handle_description),
-    ]
+    additional = []
 
     for b in block[1:]:
         s = b.strip()
-        for prefix, handler in handlers:
-            if s.startswith(prefix):
-                handler(s)
-                break
+        if s.startswith("nameif "):
+            nameif = s.split()[1]
+        elif s.startswith("bridge-group "):
+            br = s.split()[1]
+        elif s.startswith("security-level "):
+            sec = int(s.split()[1])
+        elif s.startswith("ip address "):
+            parts = s.split()
+            is_valid_ip = len(parts) >= 4 and parts[2].count(".") == 3 and parts[3].count(".") == 3
+            if is_valid_ip:
+                ip, mask = parts[2], parts[3]
+            elif "dhcp" in parts:
+                additional.append(s)
+        elif s.startswith("management-only"):
+            additional.append("management-only")
+        elif s.startswith("description "):
+            desc = s[len("description "):]
         else:
-            _handle_other(s)
+            # keep less common interface settings
+            additional.append(s)
 
     # Defaults for missing bits
     nameif = nameif or if_name

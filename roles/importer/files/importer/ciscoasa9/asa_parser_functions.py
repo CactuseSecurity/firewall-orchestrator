@@ -9,7 +9,7 @@ from ciscoasa9.asa_models import AccessGroupBinding, AccessList, AccessListEntry
 from fwo_log import getFwoLogger
 
 
-description_re = r"^description\s+(.+)$"
+description_re = r"^description\s+(.+?)$"
 
 def _clean_lines(text: str) -> List[str]:
     lines = []
@@ -371,7 +371,7 @@ def _parse_class_map_block(block: List[str]) -> ClassMap:
 
     for b in block[1:]:
         s = b.strip()
-        mm = re.match(r"^match\s+(.+)$", s, re.I)
+        mm = re.match(r"^match\s+(.+?)$", s, re.I)
         if mm:
             matches.append(mm.group(1))
 

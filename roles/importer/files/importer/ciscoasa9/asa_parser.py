@@ -47,7 +47,7 @@ def parse_asa_config(raw_config: str) -> Config:
             continue
 
         # ASA version
-        m = re.match(r"^ASA Version\s+(.+)$", line, re.I)
+        m = re.match(r"^ASA Version\s+(.+?)$", line, re.I)
         if m:
             asa_version = m.group(1).strip()
             i += 1
@@ -95,7 +95,7 @@ def parse_asa_config(raw_config: str) -> Config:
             continue
 
         # name (alias) lines
-        m = re.match(r"^name\s+(\d{1,3}(?:\.\d{1,3}){3})\s+(\S+)(?:\s+description\s+(.+))?$", line, re.I)
+        m = re.match(r"^name\s+(\d{1,3}(?:\.\d{1,3}){3})\s+(\S+)(?:\s+description\s+(.+?))?$", line, re.I)
         if m:
             ip, alias, desc = m.group(1), m.group(2), m.group(3)
             names.append(Names(name=alias, ip_address=ip, description=desc.strip() if desc else None))

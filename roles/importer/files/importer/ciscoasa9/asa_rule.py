@@ -87,7 +87,7 @@ def resolve_network_reference_for_rule(endpoint, network_objects: Dict) -> str:
         return network_obj.obj_uid
 
 
-def create_rule_from_acl_entry(access_list_name: str, idx: int, entry: AccessListEntry, 
+def create_rule_from_acl_entry(access_list_name: str, entry: AccessListEntry, 
                               protocol_groups: List[AsaProtocolGroup], 
                               network_objects: Dict, service_objects: Dict,
                               gateway_uid: str) -> RuleNormalized:

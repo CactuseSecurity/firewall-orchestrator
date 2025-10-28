@@ -55,10 +55,11 @@ string ApiUri = ConfigFile.ApiServerUri;
 string MiddlewareUri = ConfigFile.MiddlewareServerUri;
 string ProductVersion = ConfigFile.ProductVersion;
 
-builder.Services.AddControllers(options =>
-{
-    options.Filters.Add<SanitizeUrlFilter>();
-});
+// builder.Services.AddScoped<SanitizeUrlFilter>();
+// builder.Services.AddControllers(options =>
+// {
+//     options.Filters.Add<SanitizeUrlFilter>();
+// });
 
 builder.Services.AddScoped<ApiConnection>(_ => new GraphQlApiConnection(ApiUri));
 builder.Services.AddScoped<MiddlewareClient>(_ => new MiddlewareClient(MiddlewareUri));
@@ -126,6 +127,8 @@ else
 app.UseStaticFiles();
 
 app.UseRouting();
+
+app.UseMiddleware<UrlSanitizerMiddleware>();
 
 app.UseAuthentication();
 app.UseAuthorization();

@@ -121,7 +121,8 @@ namespace UrlSanitizerTests
 
             var actionContext = new ActionContext(httpContext, new Microsoft.AspNetCore.Routing.RouteData(), new ActionDescriptor());
             var actionArguments = new Dictionary<string, object> { { "url", "http://evil.com" } };
-            var ctx = new ActionExecutingContext(actionContext, new List<IFilterMetadata>(), actionArguments, controller: null);
+            var mockController = new Mock<Controller>();
+            var ctx = new ActionExecutingContext(actionContext, new List<IFilterMetadata>(), (IDictionary<string, object?>)actionArguments, mockController.Object);
 
             filter.OnActionExecuting(ctx);
 

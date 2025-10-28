@@ -445,35 +445,49 @@ def _parse_dns_inspect_policy_map_block(block: List[str], pm_name: str) -> Polic
     return pm
 
 
+def _parse_policy_class_block(block: List[str], start_idx: int) -> Tuple[Optional[PolicyClass], int]:
+    """
+    Parse a 'class <NAME>' sub-block starting at start_idx.
+    Returns (PolicyClass or None, next_index).
+    """
+    if start_idx >= len(block):
+        return None, start_idx + 1
+
+    header = block[start_idx].strip()
+    mc = re.match(r"^class\s+(\S+)$", header, re.I)
+    if not mc:
+        return None, start_idx + 1
+
+    class_name = mc.group(1)
+    inspections: List[InspectionAction] = []
+    idx = start_idx + 1
+    # collect lines under this class (1 indent)
+    while idx < len(block) and block[idx].startswith(" "):
+        t = block[idx].strip()
+        mi = re.match(r"^inspect\s+(\S+)(?:\s+(\S+))?$", t, re.I)
+        if mi:
+            inspections.append(
+                InspectionAction(
+                    protocol=mi.group(1).lower(),
+                    policy_map=(mi.group(2) if mi.group(2) else None)
+                )
+            )
+        # ignore other class-level lines for now
+        idx += 1
+
+    return PolicyClass(class_name=class_name, inspections=inspections), idx
+
+
 def _parse_policy_map_block(block: List[str], pm_name: str) -> PolicyMap:
     """Parse a regular policy-map block."""
     pm = PolicyMap(name=pm_name)
 
-    # find "class <NAME>" blocks within
     idx = 1
     while idx < len(block):
-        s = block[idx].strip()
-        mc = re.match(r"^class\s+(\S+)$", s, re.I)
-        if mc:
-            class_name = mc.group(1)
-            inspections: List[InspectionAction] = []
-            idx += 1
-            # collect lines under this class (1 indent)
-            while idx < len(block) and block[idx].startswith(" "):
-                t = block[idx].strip()
-                mi = re.match(r"^inspect\s+(\S+)(?:\s+(\S+))?$", t, re.I)
-                if mi:
-                    inspections.append(
-                        InspectionAction(protocol=mi.group(1).lower(),
-                                       policy_map=(mi.group(2) if mi.group(2) else None))
-                    )
-                else:
-                    # ignore other class-level lines for now
-                    pass
-                idx += 1
-            pm.classes.append(PolicyClass(class_name=class_name, inspections=inspections))
-        else:
-            idx += 1
+        cls, next_idx = _parse_policy_class_block(block, idx)
+        if cls is not None:
+            pm.classes.append(cls)
+        idx = next_idx
 
     return pm
 

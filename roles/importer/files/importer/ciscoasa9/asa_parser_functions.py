@@ -77,47 +77,56 @@ def _parse_endpoint(tokens: List[str]) -> Tuple[EndpointKind, int]:
     return EndpointKind(kind="any", value="any"), 1
 
 
+def _parse_interface_block_find_value(block: List[str], prefix: str, only_first: bool = False) -> Optional[str]:
+    """Helper to find a single value in an interface block by prefix."""
+    v = None
+    for b in list(block):
+        s = b.strip()
+        if s.startswith(prefix):
+            if only_first:
+                v = s.split()[1]
+            else:
+                v = s[len(prefix):].strip()
+            block.remove(b)
+    return v
+
+
+def _parse_interface_block_find_ip_address(block: List[str], prefix: str) -> Tuple[Optional[str], Optional[str]]:
+    """Helper to find IP address and mask in an interface block."""
+    ip = None
+    mask = None
+    for b in list(block):
+        s = b.strip()
+        if s.startswith(prefix):
+            parts = s.split()
+            if len(parts) >= 4:
+                is_valid_ip = parts[2].count(".") == 3 and parts[3].count(".") == 3
+                if is_valid_ip:
+                    ip, mask = parts[2], parts[3]
+                    block.remove(b)
+    return ip, mask
+
+
 def _parse_interface_block(block: List[str]) -> Interface:
     """Parse an interface block and return an Interface object."""
     if_name = block[0].split()[1]
-    nameif = None
-    br = None
-    sec = None
-    ip = None
-    mask = None
-    desc = None
-    additional = []
+    blocks = list(block)[1:]
 
-    for b in block[1:]:
-        s = b.strip()
-        if s.startswith("nameif "):
-            nameif = s.split()[1]
-        elif s.startswith("bridge-group "):
-            br = s.split()[1]
-        elif s.startswith("security-level "):
-            sec = int(s.split()[1])
-        elif s.startswith("ip address "):
-            parts = s.split()
-            is_valid_ip = len(parts) >= 4 and parts[2].count(".") == 3 and parts[3].count(".") == 3
-            if is_valid_ip:
-                ip, mask = parts[2], parts[3]
-            elif "dhcp" in parts:
-                additional.append(s)
-        elif s.startswith("management-only"):
-            additional.append("management-only")
-        elif s.startswith("description "):
-            desc = s[len("description "):]
-        else:
-            # keep less common interface settings
-            additional.append(s)
+    # Extract values and remove consumed lines from blocks
+    nameif = _parse_interface_block_find_value(blocks, "nameif ", True)
+    br = _parse_interface_block_find_value(blocks, "bridge-group ", True)
+    sec = _parse_interface_block_find_value(blocks, "security-level ", True)
+    sec = int(sec) if sec is not None else 0
+    ip, mask = _parse_interface_block_find_ip_address(blocks, "ip address ")
+    desc = _parse_interface_block_find_value(blocks, "description ")
+    # All non-consumed lines remain in blocks as additional
 
     # Defaults for missing bits
     nameif = nameif or if_name
-    sec = sec if sec is not None else 0
 
     return Interface(
         name=if_name, nameif=nameif, brigde_group=br, security_level=sec,
-        ip_address=ip, subnet_mask=mask, additional_settings=additional, description=desc
+        ip_address=ip, subnet_mask=mask, additional_settings=blocks, description=desc
     )
 
 

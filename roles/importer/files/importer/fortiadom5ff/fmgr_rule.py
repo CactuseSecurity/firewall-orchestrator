@@ -490,8 +490,8 @@ def parse_nat_rulebase(nat_rulebase, normalized_config_adom, normalized_config_g
             rule_svc_neg=False,
             rule_svc=list_delimiter.join(rule_svc_list),
             rule_svc_refs=list_delimiter.join(rule_svc_refs_list),
-            rule_action=rule_action,
-            rule_track=rule_track,
+            rule_action=RuleAction.DROP,
+            rule_track=RuleTrack.NONE,
             rule_installon=rule_installon,
             rule_time='',  # Time-based rules not commonly used in basic Fortinet configs
             rule_name=rule_orig.get('name', ''),

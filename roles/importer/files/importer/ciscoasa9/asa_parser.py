@@ -95,7 +95,7 @@ def parse_asa_config(raw_config: str) -> Config:
             continue
 
         # name (alias) lines
-        m = re.match(r"^name\s+(\d{1,3}(?:\.\d{1,3}){3})\s+(\S+)(?:\s+description\s)", line, re.I)
+        m = re.match(r"^name\s+(\d{1,3}(?:\.\d{1,3}){3})\s+(\S+)(?:\s+description\s)?", line, re.I)
         if m:
             ip, alias = m.group(1), m.group(2)
             desc = line[m.end():].strip()

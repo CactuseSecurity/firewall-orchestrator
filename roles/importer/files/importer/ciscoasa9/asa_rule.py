@@ -103,8 +103,8 @@ def create_rule_from_acl_entry(access_list_name: str, idx: int, entry: AccessLis
 
     # Create normalized rule
     rule = RuleNormalized(
-        rule_num=idx,
-        rule_num_numeric=float(idx),
+        rule_num=0,
+        rule_num_numeric=0, # will be set later
         rule_disabled=entry.inactive,
         rule_src_neg=False,
         rule_src=src_ref,

@@ -105,7 +105,8 @@ def create_rule_from_acl_entry(access_list_name: str, idx: int, entry: AccessLis
     Returns:
         Normalized rule object
     """
-    rule_uid = f"{access_list_name}-{idx:04d}"
+    # Generate unique rule UID by hashing entry dict
+    rule_uid = fwo_base.generate_hash_from_dict(entry.model_dump())
 
     # Resolve service reference
     svc_ref = resolve_service_reference_for_rule(entry, protocol_groups, service_objects)
@@ -132,7 +133,7 @@ def create_rule_from_acl_entry(access_list_name: str, idx: int, entry: AccessLis
         rule_track=RuleTrack.NONE,
         rule_installon="", #gateway_uid, TODO: commented out for now to avoid duplication issues
         rule_time="",
-        rule_name=f"{access_list_name}-{idx:03d}",
+        rule_name=access_list_name,
         rule_uid=rule_uid,
         rule_custom_fields=None,
         rule_implied=False,

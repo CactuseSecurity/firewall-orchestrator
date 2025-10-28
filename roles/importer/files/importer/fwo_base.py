@@ -1,3 +1,4 @@
+import hashlib
 import json
 from copy import deepcopy
 import re
@@ -453,3 +454,8 @@ def find_all_diffs(a, b, strict=False, path="root"):
 def sort_and_join(input_list: List[str]) -> str:
     """ Sorts the input list of strings and joins them using the standard list delimiter. """
     return fwo_const.list_delimiter.join(sorted(input_list))
+
+def generate_hash_from_dict(input_dict: dict) -> str:
+    """ Generates a consistent hash from a dictionary by serializing it with sorted keys. """
+    dict_string = json.dumps(input_dict, sort_keys=True)
+    return hashlib.sha256(dict_string.encode('utf-8')).hexdigest()

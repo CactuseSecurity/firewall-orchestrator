@@ -204,7 +204,8 @@ def _parse_network_object_block(block: List[str]) -> Tuple[Optional[AsaNetworkOb
         net_obj = AsaNetworkObject(name=obj_name, ip_address=subnet, ip_address_end=None,
                                    subnet_mask=mask, fqdn=None, description=desc)
     elif range_:
-        net_obj = AsaNetworkObject(name=obj_name, ip_address=range_[0], ip_address_end=range_[1],
+        range_start, range_end = range_
+        net_obj = AsaNetworkObject(name=obj_name, ip_address=range_start, ip_address_end=range_end,
                                    subnet_mask=None, fqdn=None, description=desc)
     elif fqdn:
         net_obj = AsaNetworkObject(name=obj_name, ip_address="", ip_address_end=None,

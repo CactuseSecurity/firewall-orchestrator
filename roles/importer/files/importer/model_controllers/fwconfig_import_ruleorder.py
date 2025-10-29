@@ -1,7 +1,6 @@
 from fwo_const import rule_num_numeric_steps
 from models.fwconfig_normalized import FwConfigNormalized
 from models.rule import RuleNormalized
-from fwo_base import compute_min_moves
 from fwo_exceptions import FwoApiFailure
 from fwo_log import getFwoLogger
 from services.service_provider import ServiceProvider
@@ -12,32 +11,8 @@ class RuleOrderService:
         A singleton service that holds data and provides logic to compute rule order values.
     """
 
-    _instance = None
-    _previous_config: FwConfigNormalized
-    
-
-    def __new__(cls):
-        """
-            Singleton pattern: Creates instance and sets defaults if constructed first time and sets that object to a protected class variable. 
-            If the constructor is called when there is already an instance returns that instance instead. That way there will only be one instance of this type throudgh the whole runtime.
-        """
-
-        if cls._instance is None:
-            cls._instance = super(RuleOrderService, cls).__new__(cls)
-            cls._instance._previous_config = None
-            cls._instance._compute_min_moves_result = None
-            cls._instance._source_rule_uids = []
-            cls._instance._source_rules_flat = []
-            cls._instance._target_rule_uids = []
-            cls._instance._target_rules_flat = []
-            cls._instance._deleted_rule_uids = {}
-            cls._instance._new_rule_uids = {}
-            cls._instance._moved_rule_uids = {}
-            cls._instance._inserts_and_moves = {}
-            cls._instance._updated_rules = []
-            cls._instance._logger = None
-        return cls._instance
-
+    def __init__(self):
+        pass     
     
     @property
     def target_rules_flat(self) -> list[RuleNormalized]:
@@ -81,24 +56,22 @@ class RuleOrderService:
 
     def initialize(self, previous_config: FwConfigNormalized):
 
-        # Move to __init__ after adjusting implementation to established service architecture.
-
         service_provider = ServiceProvider()
         self._global_state = service_provider.get_service(Services.GLOBAL_STATE)
         import_details = self._global_state.import_state
-        self._normalized_config = self._global_state.normalized_config
 
         self._logger = getFwoLogger(debug_level=import_details.DebugLevel)
         self.reset_to_defaults()
-        self._previous_config = previous_config
 
-        # Parse configs to rule uid lists and rule object lists, for easier handling.
-
-        self._source_rule_uids, self._source_rules_flat = self._parse_rule_uids_and_objects_from_config(self._previous_config)
+        # process previous config
+        self._normalized_config = self._global_state.normalized_config
         self._target_rule_uids, self._target_rules_flat = self._parse_rule_uids_and_objects_from_config(self._normalized_config)
+        self._previous_config = previous_config
+        self._source_rule_uids, self._source_rules_flat = self._parse_rule_uids_and_objects_from_config(self._previous_config)
 
         # Compute needed operations and prepare return objects.
 
+        from fwo_base import compute_min_moves # lazy import to avoid circular import conflict
         self._compute_min_moves_result = compute_min_moves(self._source_rule_uids, self._target_rule_uids)
 
         for rulebase in self._normalized_config.rulebases:
@@ -448,5 +421,4 @@ class RuleOrderService:
                     return True
                 
         return False
-    
     

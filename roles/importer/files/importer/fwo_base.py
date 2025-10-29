@@ -13,6 +13,7 @@ import fwo_config
 from fwo_const import csv_delimiter, apostrophe, line_delimiter
 from fwo_enums import ConfFormat, ConfigAction
 from fwo_log import getFwoLogger, getFwoAlertLogger
+from model_controllers.fwconfig_import_ruleorder import RuleOrderService
 from services.service_provider import ServiceProvider
 from services.global_state import GlobalState
 from services.enums import Services, Lifetime
@@ -416,6 +417,7 @@ def init_service_provider():
     service_provider.register(Services.GROUP_FLATS_MAPPER, lambda: GroupFlatsMapper(), Lifetime.IMPORT)
     service_provider.register(Services.PREV_GROUP_FLATS_MAPPER, lambda: GroupFlatsMapper(), Lifetime.IMPORT)
     service_provider.register(Services.UID2ID_MAPPER, lambda: Uid2IdMapper(), Lifetime.IMPORT)
+    service_provider.register(Services.RULE_ORDER_SERVICE, lambda: RuleOrderService(), Lifetime.IMPORT)
     return service_provider
 
 def find_all_diffs(a, b, strict=False, path="root"):

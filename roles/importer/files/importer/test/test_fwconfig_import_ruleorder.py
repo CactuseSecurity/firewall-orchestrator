@@ -25,6 +25,7 @@ class TestFwConfigImportRuleOrder(unittest.TestCase):
         init_service_provider()
         service_provider = ServiceProvider()
         cls._global_state = service_provider.get_service(Services.GLOBAL_STATE)
+        cls._rule_order_service = service_provider.get_service(Services.RULE_ORDER_SERVICE, 1)
 
 
     def setUp(self):
@@ -53,8 +54,6 @@ class TestFwConfigImportRuleOrder(unittest.TestCase):
 
         update_rule_num_numerics(self._previous_config)
         update_rule_map_and_rulebase_map(self._previous_config, self._import_state)
-
-        self._rule_order_service = RuleOrderService()
 
 
     def tearDown(self):

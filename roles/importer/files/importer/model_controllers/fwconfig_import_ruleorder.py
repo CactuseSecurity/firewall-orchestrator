@@ -3,6 +3,8 @@ from models.fwconfig_normalized import FwConfigNormalized
 from models.rule import RuleNormalized
 from fwo_exceptions import FwoApiFailure
 from fwo_log import getFwoLogger
+
+from services.global_state import GlobalState
 from services.service_provider import ServiceProvider
 from services.enums import Services
 
@@ -11,45 +13,74 @@ class RuleOrderService:
         A singleton service that holds data and provides logic to compute rule order values.
     """
 
+    _service_provider: ServiceProvider
+    _global_state: GlobalState
+    _normalized_config: FwConfigNormalized | None
+    _previous_config: FwConfigNormalized | None
+
+    _target_rule_uids: list[str]
+    _target_rules_flat: list[RuleNormalized]
+    _source_rule_uids: list[str]
+    _source_rules_flat: list[RuleNormalized]
+
+    _min_moves: dict[str, list]
+
+    _deleted_rule_uids: dict[str, list[str]]
+    _new_rule_uids: dict[str, list[str]]
+    _moved_rule_uids: dict[str, list[str]]
+
+    _inserts_and_moves: dict[str, list[str]]
+    _updated_rules: list[str]
+
+
     def __init__(self):
-        self.initialize()
+        self._initialize(1, set_configs=False)
+
 
     @property
     def target_rules_flat(self) -> list[RuleNormalized]:
         return self._target_rules_flat
     
-    @property
-    def compute_min_moves_result(self):
-        return self._compute_min_moves_result
-    
-    @property
-    def logger(self):
-        return self._logger
-    
-    @property
-    def updated_values(self):
-        return self._updated_rules
-    
-    @property
-    def previous_config(self):
-        return self._previous_config
+
+    def update_rule_order_diffs(self, debug_level: int) -> dict[str, dict[str, list[str]]]:
+        """
+            Determines diffs that are relevant for the rule order and updates rule_num_numeric in the corresponding rules in normalized config.
+        """
+
+        self._initialize(debug_level)
+        self._calculate_necessary_transformations()
+        self._update_rule_num_numerics()
+
+
+        return {
+            "deleted_rule_uids": self._deleted_rule_uids,
+            "new_rule_uids": self._new_rule_uids,
+            "moved_rule_uids": self._moved_rule_uids
+        }
     
 
-    def initialize(self):
+    def _initialize(self, debug_level: int, set_configs: bool = True) -> None:
+        """
+            Prepares rule order service to calculate rule order diffs and update rule num numerics. 
+            Expects previous config object and normalized config object in global state.
+        """
+
+        # Get logger and global state.
+
+        self._logger = getFwoLogger(debug_level=debug_level)
         self._service_provider = ServiceProvider()
         self._global_state = self._service_provider.get_service(Services.GLOBAL_STATE)
-        self._normalized_config = self._global_state.normalized_config
-        self._target_rule_uids, self._target_rules_flat = self._parse_rule_uids_and_objects_from_config(self._normalized_config)
-        self._previous_config = self._global_state.previous_config
-        self._source_rule_uids, self._source_rules_flat = self._parse_rule_uids_and_objects_from_config(self._previous_config)
 
-        self._compute_min_moves_result = {
-            "deletions": [], 
-            "insertions": [], 
-            "reposition_moves": [], 
-            "moves": [], 
-            "operations": []
-        }
+        # Verifies config objects in global state.
+
+        if set_configs: # make premature initialization via __init__ possible
+            if not self._global_state.normalized_config or not self._global_state.previous_config:
+                raise ValueError("Config objects in global state not correctly initialized — expected non-None values.")
+
+            # Instantiate objects for next steps.
+
+            self._normalized_config = self._global_state.normalized_config
+            self._previous_config = self._global_state.previous_config
 
         self._deleted_rule_uids = {}
         self._new_rule_uids = {}
@@ -59,17 +90,27 @@ class RuleOrderService:
         self._updated_rules = []
 
 
+    def _calculate_necessary_transformations(self):
 
-    def update_rule_num_numerics(self):
+        if self._normalized_config is None or self._previous_config is None:
+            raise ValueError("Config objects in global state not correctly initialized — expected non-None values.") 
+
+        # Parse rules from config to flat lists.
         
-        self._logger = getFwoLogger(debug_level=self._global_state.import_state.DebugLevel)
+        self._target_rule_uids, self._target_rules_flat = self._parse_rule_uids_and_objects_from_config(self._normalized_config)
+        self._source_rule_uids, self._source_rules_flat = self._parse_rule_uids_and_objects_from_config(self._previous_config)
+
+
+        # Compute necessary mutations.
 
         from fwo_base import compute_min_moves # lazy import to avoid circular import conflict
-        self._compute_min_moves_result = compute_min_moves(self._source_rule_uids, self._target_rule_uids)
+        self._min_moves = compute_min_moves(self._source_rule_uids, self._target_rule_uids) # use flat lists to get moves across rulebases right
+
+        # Translate _min_moves to rulebase uid keyed dictionaries of rule uid lists.
 
         for rulebase in self._normalized_config.rulebases:
 
-            previous_rulebase_uids = []
+            previous_rulebase_uids: list[str] = []
             previous_configs_rulebase = next((rb for rb in self._previous_config.rulebases if rb.uid == rulebase.uid), None)
             if previous_configs_rulebase:
                 previous_rulebase_uids.extend(list(previous_configs_rulebase.Rules.keys()))
@@ -78,17 +119,17 @@ class RuleOrderService:
 
             self._new_rule_uids[rulebase.uid] = [
                 insertion_uid
-                for _, insertion_uid in self._compute_min_moves_result["insertions"]
+                for _, insertion_uid in self._min_moves["insertions"]
                 if insertion_uid in rule_uids
             ]
 
             self._moved_rule_uids[rulebase.uid] = [
                 move_uid
-                for _, move_uid, _ in self._compute_min_moves_result["reposition_moves"]
+                for _, move_uid, _ in self._min_moves["reposition_moves"]
                 if move_uid in rule_uids
             ]
             
-            # Add undetected moves across rulebases.
+            # Add undetected moves (i.e. across rulebases).
 
             for rule_uid in rule_uids:
                 if rule_uid not in self._new_rule_uids[rulebase.uid] and rule_uid not in self._moved_rule_uids[rulebase.uid] and rule_uid not in previous_rulebase_uids:
@@ -105,19 +146,13 @@ class RuleOrderService:
 
             self._deleted_rule_uids[rulebase.uid] = [
                 deletion_uid
-                for _, deletion_uid in self._compute_min_moves_result["deletions"]
+                for _, deletion_uid in self._min_moves["deletions"]
                 if deletion_uid in rule_uids
             ]
 
-        # Update rule_num_numeric
-
-        self._update_rule_num_numerics()
-
-        return self._deleted_rule_uids, self._new_rule_uids, self._moved_rule_uids
-
 
     def _update_rule_num_numerics(self):
-
+        
         # Set initial rule_num_numerics if it is the first import.
 
         if len(self._source_rules_flat) == 0:
@@ -130,14 +165,14 @@ class RuleOrderService:
                 # Compute value if it is a consecutive insert.
 
                 if(self._is_part_of_consecutive_insert(rule_uid)):
-                     _, rule = self._get_index_and_rule_object_from_flat_list(self.target_rules_flat, rule_uid)
-                     rule.rule_num_numeric = self._calculate_rule_num_numeric_for_consecutive_insert(rule_uid, rulebase_uid)
-                     self.updated_values.append(rule_uid)
+                     self._update_rule_on_consecutive_insert(rule_uid, rulebase_uid)
+                     self._updated_rules.append(rule_uid)
 
                 # Handle singular inserts and moves.
                 
                 elif self._is_rule_uid_in_return_object(rule_uid, self._new_rule_uids) or self._is_rule_uid_in_return_object(rule_uid, self._moved_rule_uids):
-                    self._update_rule_num_numeric_on_singular_insert_or_move(rule_uid, rulebase_uid) ## TODO: Change method name
+                    self._update_rule_on_move_or_insert(rule_uid, rulebase_uid)
+                    self._updated_rules.append(rule_uid)
 
                 # Raise if unexpected rule uid.
 
@@ -149,22 +184,12 @@ class RuleOrderService:
             for _, rule_uids in self._inserts_and_moves.items():
                 current_rule_num_numeric = 0
                 for rule_uid in rule_uids:
-                    _, changed_rule = self._get_index_and_rule_object_from_flat_list(self.target_rules_flat, rule_uid)
+                    _, changed_rule = self._get_index_and_rule_object_from_flat_list(self._target_rules_flat, rule_uid)
                     current_rule_num_numeric += rule_num_numeric_steps
                     changed_rule.rule_num_numeric = current_rule_num_numeric
 
 
-    def _parse_rule_uids_and_objects_from_config(self, config: FwConfigNormalized):
-        uids_and_rules = [
-            (rule_uid, rule)
-            for rulebase in config.rulebases
-            for rule_uid, rule in rulebase.Rules.items()
-        ]
-
-        return map(list, zip(*uids_and_rules)) if uids_and_rules else ([], [])
-
-
-    def _update_rule_num_numeric_on_singular_insert_or_move(self, rule_uid, target_rulebase_uid): 
+    def _update_rule_on_move_or_insert(self, rule_uid, target_rulebase_uid): 
 
         next_rules_rule_num_numeric = 0.0
         previous_rule_num_numeric = 0.0
@@ -190,7 +215,6 @@ class RuleOrderService:
             else:
                 changed_rule.rule_num_numeric = rule_num_numeric_steps
 
-            
         elif not next_rule_uid:
             changed_rule.rule_num_numeric = rule_num_numeric_steps
 
@@ -207,12 +231,10 @@ class RuleOrderService:
             else:
                 changed_rule.rule_num_numeric = previous_rule_num_numeric + rule_num_numeric_steps
 
-        self._updated_rules.append(changed_rule.rule_uid)
-                    
 
+    def _update_rule_on_consecutive_insert(self, rule_uid: str, rulebase_uid: str) -> float:
 
-    def _calculate_rule_num_numeric_for_consecutive_insert(self, rule_uid: str, rulebase_uid: str) -> float:
-        index, _ = self._get_index_and_rule_object_from_flat_list(self.target_rules_flat, rule_uid)
+        index, rule = self._get_index_and_rule_object_from_flat_list(self._target_rules_flat, rule_uid)
         _index = index
         prev_rule_num_numeric = 0
         next_rule_num_numeric = 0
@@ -243,10 +265,23 @@ class RuleOrderService:
 
         if next_rule_num_numeric == 0:
             next_rule_num_numeric = prev_rule_num_numeric + rule_num_numeric_steps
-            return next_rule_num_numeric
+            rule.rule_num_numeric = next_rule_num_numeric
+            return 
         
+        rule.rule_num_numeric =  (prev_rule_num_numeric + next_rule_num_numeric) / 2
 
-        return (prev_rule_num_numeric + next_rule_num_numeric) / 2
+    def _parse_rule_uids_and_objects_from_config(self, config: FwConfigNormalized):
+        uids_and_rules = [
+            (rule_uid, rule)
+            for rulebase in config.rulebases
+            for rule_uid, rule in rulebase.Rules.items()
+        ]
+
+        return map(list, zip(*uids_and_rules)) if uids_and_rules else ([], [])
+
+
+
+
 
     def _is_part_of_consecutive_insert(self, rule_uid: str):
 

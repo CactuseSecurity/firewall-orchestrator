@@ -287,14 +287,15 @@ def validate_ip_address(address):
         # print("IP address {} is not valid".format(address)) 
 
 
-def lcs_dp(seq1, seq2):
+def lcs_dp(seq1: list[Any], seq2: list[Any]) -> tuple[list[list[int]], int]:
     """
     Compute the length and dynamic programming (DP) table for the longest common subsequence (LCS)
     between seq1 and seq2. Returns (dp, length) where dp is a 2D table and
     length = dp[len(seq1)][len(seq2)].
     """
-    m, n = len(seq1), len(seq2)
-    dp = [[0]*(n+1) for _ in range(m+1)]
+    m: int = len(seq1)
+    n: int = len(seq2)
+    dp: list[list[int]] = [[0]*(n+1) for _ in range(m+1)]
    
     for i in range(m):
         for j in range(n):
@@ -305,13 +306,14 @@ def lcs_dp(seq1, seq2):
     return dp, dp[m][n]
 
 
-def backtrack_lcs(seq1, seq2, dp):
+def backtrack_lcs(seq1, seq2, dp) -> list[tuple[int, int]]:
     """
     Backtracks the dynamic programming (DP) table to recover one longest common subsequence (LCS) (as a list of (i, j) index pairs).
     These index pairs indicate positions in seq1 and seq2 that match in the LCS.
     """
-    lcs_indices = []
-    i, j = len(seq1), len(seq2)
+    lcs_indices: list[tuple[int, int]] = []
+    i: int = len(seq1)
+    j: int = len(seq2)
     while i > 0 and j > 0:
         if seq1[i-1] == seq2[j-1]:
             lcs_indices.append((i-1, j-1))
@@ -325,7 +327,7 @@ def backtrack_lcs(seq1, seq2, dp):
     return lcs_indices
 
 
-def compute_min_moves(source, target):
+def compute_min_moves(source: list[Any], target: list[Any]) -> dict[str, Any]:
     """
     Computes the minimal number of operations required to transform the source list into the target list,
     where allowed operations are:
@@ -336,32 +338,32 @@ def compute_min_moves(source, target):
     Returns a dictionary with all gathered data (total_moves, operations, deletions, insertions and moves) where operations is a list of suggested human readable operations.
     """
     # Build sets (assume uniqueness for membership checks)
-    target_set = set(target)
-    source_set = set(source)
+    target_set: set[Any] = set(target)
+    source_set: set[Any] = set(source)
    
     # Identify the common elements:
-    S_common = [elem for elem in source if elem in target_set]
-    T_common = [elem for elem in target if elem in source_set]
+    S_common: list[Any] = [elem for elem in source if elem in target_set]
+    T_common: list[Any] = [elem for elem in target if elem in source_set]
    
     # Calculate deletions and insertions:
-    deletions = [ (i, elem) for i, elem in enumerate(source) if elem not in target_set ]
-    insertions = [ (j, elem) for j, elem in enumerate(target) if elem not in source_set ]
+    deletions: list[tuple[int, Any]] = [ (i, elem) for i, elem in enumerate(source) if elem not in target_set ]
+    insertions: list[tuple[int, Any]] = [ (j, elem) for j, elem in enumerate(target) if elem not in source_set ]
    
     # Compute the longest common subsequence (LCS) between S_common and T_common – these are common elements already in correct relative order.
-    dp, lcs_length = lcs_dp(S_common, T_common)
-    lcs_indices = backtrack_lcs(S_common, T_common, dp)
+    lcs_data: tuple[list[list[int]], int] = lcs_dp(S_common, T_common)
+    lcs_indices: list[tuple[int, int]] = backtrack_lcs(S_common, T_common, lcs_data[0])
    
     # To decide which common elements must be repositioned, mark the indices in S_common which are part of the LCS.
-    in_place = [False] * len(S_common)
+    in_place: list[bool] = [False] * len(S_common)
     for i, _ in lcs_indices:
         in_place[i] = True
     # Every common element in S_common not in the LCS will need a pop-and-reinsert.
-    reposition_moves = []
+    reposition_moves: list[tuple[int, Any, int]] = []
     # To better explain (rough indexing): We traverse the source list and when we get to a common element,
     # we check if it is “in place”. Note that because S_common is a filtered version of source, we need
     # to convert back to indices in the original source. We do this by iterating over source and whenever
     # we encounter an element in target_set, we pop the next value from S_common.
-    s_common_iter = 0
+    s_common_iter: int = 0
     for orig_index, elem in enumerate(source):
         if elem in target_set:
             # This element is one of the common ones.
@@ -371,12 +373,12 @@ def compute_min_moves(source, target):
                 reposition_moves.append((orig_index, elem, target.index(elem)))
             s_common_iter += 1
 
-    total_moves = (len(deletions)
+    total_moves: int = (len(deletions)
                    + len(insertions)
                    + len(reposition_moves))
 
     # Build a list of human‐readable operations.
-    operations = []
+    operations: list[str] = []
     for idx, elem in deletions:
         operations.append(f"Delete element '{elem}' at source index {idx}.")
     for idx, elem in insertions:

@@ -25,7 +25,7 @@ class TestFwConfigImportRuleOrder(unittest.TestCase):
         init_service_provider()
         cls._service_provider = ServiceProvider()
         cls._global_state = cls._service_provider.get_service(Services.GLOBAL_STATE)
-        # cls._rule_order_service = service_provider.get_service(Services.RULE_ORDER_SERVICE, 1)
+        cls._debug_level: int = 1
 
 
     def setUp(self):
@@ -67,14 +67,18 @@ class TestFwConfigImportRuleOrder(unittest.TestCase):
             outcome = self._outcome
 
             if len(outcome.result.failures) > 0:
-                print("\nPrevious Config Rule Num Numerics:")
-                for rb in self._previous_config.rulebases:
-                    for rule in rb.Rules.values():
-                        print(f"Rule UID: {rule.rule_uid}, rule_num_numeric: {rule.rule_num_numeric}")
-                print("\nNormalized Config Rule Num Numerics:")
-                for rb in self._normalized_config.rulebases:
-                    for rule in rb.Rules.values():
-                        print(f"Rule UID: {rule.rule_uid}, rule_num_numeric: {rule.rule_num_numeric}")
+                self._print_rule_num_numerics()
+
+
+    def _print_rule_num_numerics(self):
+        print("\nPrevious Config Rule Num Numerics:")
+        for rb in self._previous_config.rulebases:
+            for rule in rb.Rules.values():
+                print(f"Rule UID: {rule.rule_uid}, rule_num_numeric: {rule.rule_num_numeric}")
+        print("\nNormalized Config Rule Num Numerics:")
+        for rb in self._normalized_config.rulebases:
+            for rule in rb.Rules.values():
+                print(f"Rule UID: {rule.rule_uid}, rule_num_numeric: {rule.rule_num_numeric}")
 
 
     def test_initialize_on_initial_import(self):
@@ -83,14 +87,12 @@ class TestFwConfigImportRuleOrder(unittest.TestCase):
 
             self._previous_config = self._config_builder.empty_config()
             self._global_state.previous_config = self._previous_config
-            self._rule_order_service.initialize()
 
             # Act
 
-            self._rule_order_service.update_rule_num_numerics()
+            self._rule_order_service.update_rule_order_diffs(self._debug_level)
 
             # Assert
-
             for rulebase in self._normalized_config.rulebases:
                 for index, rule_uid in enumerate(rulebase.Rules):
                     expected_rule_num_numeric = (index + 1) * rule_num_numeric_steps
@@ -109,11 +111,10 @@ class TestFwConfigImportRuleOrder(unittest.TestCase):
         remove_rule_from_rulebase(self._normalized_config, rulebase.uid, removed_rule_uid, rule_uids)
         inserted_rule_uid = insert_rule_in_config(self._normalized_config, rulebase.uid, 0, rule_uids, self._config_builder)
         moved_rule_uid = move_rule_in_config(self._normalized_config, rulebase.uid, 9, 0, rule_uids)
-        self._rule_order_service.initialize()
 
         # Act
 
-        self._rule_order_service.update_rule_num_numerics()
+        self._rule_order_service.update_rule_order_diffs(self._debug_level)
 
         # # Assert
 
@@ -143,11 +144,9 @@ class TestFwConfigImportRuleOrder(unittest.TestCase):
         rule_1_18_uid = insert_rule_in_config(self._normalized_config, rulebase.uid, 17, rule_uids, self._config_builder)
         rule_1_19_uid = insert_rule_in_config(self._normalized_config, rulebase.uid, 18, rule_uids, self._config_builder)
 
-        self._rule_order_service.initialize()
-
         # Act
 
-        self._rule_order_service.update_rule_num_numerics()
+        self._rule_order_service.update_rule_order_diffs(self._debug_level)
 
         # Assert
 
@@ -175,11 +174,10 @@ class TestFwConfigImportRuleOrder(unittest.TestCase):
 
         deleted_rule = remove_rule_from_rulebase(self._normalized_config, source_rulebase.uid, source_rulebase_uids[0], source_rulebase_uids)
         insert_rule_in_config(self._normalized_config, target_rulebase.uid, 0, target_rulebase_uids, self._config_builder, deleted_rule)
-        self._rule_order_service.initialize()
 
         # Act
 
-        self._rule_order_service.update_rule_num_numerics()
+        self._rule_order_service.update_rule_order_diffs(self._debug_level)
 
         # Assert
 
@@ -196,11 +194,10 @@ class TestFwConfigImportRuleOrder(unittest.TestCase):
         beginning_rule_uid = move_rule_in_config(self._normalized_config, rulebase.uid, 5, 0, rule_uids)  # Move to beginning
         middle_rule_uid = move_rule_in_config(self._normalized_config, rulebase.uid, 1, 4, rule_uids)  # Move to middle
         end_rule_uid = move_rule_in_config(self._normalized_config, rulebase.uid, 2, 9, rule_uids)  # Move to end
-        self._rule_order_service.initialize()
 
         # Act
 
-        self._rule_order_service.update_rule_num_numerics()
+        self._rule_order_service.update_rule_order_diffs(self._debug_level)
 
         # Assert
 

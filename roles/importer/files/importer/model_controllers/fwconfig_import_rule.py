@@ -17,7 +17,6 @@ from datetime import datetime
 from models.rule_from import RuleFrom
 from models.rule_to import RuleTo
 from models.rule_service import RuleService
-from model_controllers.fwconfig_import_ruleorder import RuleOrderService
 from models.rule import RuleNormalized
 from services.group_flats_mapper import GroupFlatsMapper
 from services.enums import Services
@@ -61,16 +60,13 @@ class FwConfigImportRule():
 
         # calculate rule diffs
         changedRuleUids = {}
-        deletedRuleUids = {}
-        newRuleUids = {}
-        movedRuleUids = {}
         ruleUidsInBoth = {}
         previousRulebaseUids = []
         currentRulebaseUids = []
         new_hit_information = []
 
-        self.rule_order_service.initialize()
-        deletedRuleUids, newRuleUids, movedRuleUids = self.rule_order_service.update_rule_num_numerics()
+        #self.rule_order_service = service_provider.get_service(Services.RULE_ORDER_SERVICE, self.import_details.ImportId)
+        rule_order_diffs: dict[str, dict[str, list[str]]] = self.rule_order_service.update_rule_order_diffs(self.import_details.DebugLevel)
 
         # collect rulebase UIDs of previous config
         for rulebase in prevConfig.rulebases:
@@ -101,10 +97,10 @@ class FwConfigImportRule():
                 self.collect_last_hit_changes(ruleUid, currentRulebase, previousRulebase, new_hit_information)
 
         # add moved rules that are not in changed rules (e.g. move across rulebases)
-        self._collect_uncaught_moves(movedRuleUids, changedRuleUids)
+        self._collect_uncaught_moves(rule_order_diffs["moved_rule_uids"], changedRuleUids)
 
         # add full rule details first
-        newRulebases = self.getRules(newRuleUids)
+        newRulebases = self.getRules(rule_order_diffs["new_rule_uids"])
 
         # update rule_metadata before adding rules
         num_added_metadata_rules, new_rule_metadata_ids = self.addNewRuleMetadata(newRulebases)
@@ -119,7 +115,7 @@ class FwConfigImportRule():
         self.uid2id_mapper.add_rule_mappings(new_rule_ids + updated_rule_ids)
         num_new_refs = self.add_new_refs(prevConfig)
 
-        num_deleted_rules, removed_rule_ids = self.markRulesRemoved(deletedRuleUids, changedRuleUids)
+        num_deleted_rules, removed_rule_ids = self.markRulesRemoved(rule_order_diffs["deleted_rule_uids"], changedRuleUids)
         num_removed_refs = self.remove_outdated_refs(prevConfig)
 
         _, num_moved_rules, _ = self.verify_rules_moved(changedRuleUids)

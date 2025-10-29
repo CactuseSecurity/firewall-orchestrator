@@ -20,6 +20,7 @@ class TestUpdateRulebaseDiffs(unittest.TestCase):
     _normalized_config: FwConfigNormalized
     _import_state: MockImportStateController
     _import_id: int
+    _debug_level: int
 
 
     @classmethod
@@ -33,6 +34,7 @@ class TestUpdateRulebaseDiffs(unittest.TestCase):
         cls._service_provider = ServiceProvider()
         cls._global_state = cls._service_provider.get_service(Services.GLOBAL_STATE)
         cls._import_id = 0
+        cls._debug_level = 1
 
 
     def setUp(self):
@@ -62,8 +64,6 @@ class TestUpdateRulebaseDiffs(unittest.TestCase):
 
         self._global_state.import_details = self._import_state
         
-        rule_order_service = self._service_provider.get_service(Services.RULE_ORDER_SERVICE, self._import_id)
-        rule_order_service.initialize()
         update_rule_num_numerics(self._previous_config)
         update_rule_map_and_rulebase_map(self._previous_config, self._import_state)
         

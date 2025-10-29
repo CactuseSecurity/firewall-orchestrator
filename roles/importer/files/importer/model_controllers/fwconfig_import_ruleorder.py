@@ -12,8 +12,8 @@ class RuleOrderService:
     """
 
     def __init__(self):
-        pass     
-    
+        self.initialize()
+
     @property
     def target_rules_flat(self) -> list[RuleNormalized]:
         return self._target_rules_flat
@@ -35,7 +35,14 @@ class RuleOrderService:
         return self._previous_config
     
 
-    def reset_to_defaults(self):
+    def initialize(self):
+        self._service_provider = ServiceProvider()
+        self._global_state = self._service_provider.get_service(Services.GLOBAL_STATE)
+        self._normalized_config = self._global_state.normalized_config
+        self._target_rule_uids, self._target_rules_flat = self._parse_rule_uids_and_objects_from_config(self._normalized_config)
+        self._previous_config = self._global_state.previous_config
+        self._source_rule_uids, self._source_rules_flat = self._parse_rule_uids_and_objects_from_config(self._previous_config)
+
         self._compute_min_moves_result = {
             "deletions": [], 
             "insertions": [], 
@@ -43,43 +50,27 @@ class RuleOrderService:
             "moves": [], 
             "operations": []
         }
-        self._source_rule_uids = []
-        self._target_rule_uids = []
+
         self._deleted_rule_uids = {}
         self._new_rule_uids = {}
         self._moved_rule_uids = {}
-        self._source_rules_flat = []
-        self._target_rules_flat = []
+
         self._inserts_and_moves = {}
         self._updated_rules = []
 
 
-    def initialize(self, previous_config: FwConfigNormalized):
 
-        service_provider = ServiceProvider()
-        self._global_state = service_provider.get_service(Services.GLOBAL_STATE)
-        import_details = self._global_state.import_state
-
-        self._logger = getFwoLogger(debug_level=import_details.DebugLevel)
-        self.reset_to_defaults()
-
-        # process previous config
-        self._normalized_config = self._global_state.normalized_config
-        self._target_rule_uids, self._target_rules_flat = self._parse_rule_uids_and_objects_from_config(self._normalized_config)
-        self._previous_config = previous_config
-        self._source_rule_uids, self._source_rules_flat = self._parse_rule_uids_and_objects_from_config(self._previous_config)
-
-        # Compute needed operations and prepare return objects.
+    def update_rule_num_numerics(self):
+        
+        self._logger = getFwoLogger(debug_level=self._global_state.import_state.DebugLevel)
 
         from fwo_base import compute_min_moves # lazy import to avoid circular import conflict
         self._compute_min_moves_result = compute_min_moves(self._source_rule_uids, self._target_rule_uids)
 
         for rulebase in self._normalized_config.rulebases:
 
-            # Get previous configs rule_uids to check for unrecognized moves across rulebases (e.g. deleting a section header)
-
             previous_rulebase_uids = []
-            previous_configs_rulebase = next((rb for rb in previous_config.rulebases if rb.uid == rulebase.uid), None)
+            previous_configs_rulebase = next((rb for rb in self._previous_config.rulebases if rb.uid == rulebase.uid), None)
             if previous_configs_rulebase:
                 previous_rulebase_uids.extend(list(previous_configs_rulebase.Rules.keys()))
 
@@ -120,12 +111,12 @@ class RuleOrderService:
 
         # Update rule_num_numeric
 
-        self.update_rule_num_numerics()
+        self._update_rule_num_numerics()
 
         return self._deleted_rule_uids, self._new_rule_uids, self._moved_rule_uids
 
 
-    def update_rule_num_numerics(self):
+    def _update_rule_num_numerics(self):
 
         # Set initial rule_num_numerics if it is the first import.
 

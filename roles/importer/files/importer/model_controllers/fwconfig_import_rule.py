@@ -69,8 +69,8 @@ class FwConfigImportRule():
         currentRulebaseUids = []
         new_hit_information = []
 
-        
-        deletedRuleUids, newRuleUids, movedRuleUids = self.rule_order_service.initialize(prevConfig)
+        self.rule_order_service.initialize()
+        deletedRuleUids, newRuleUids, movedRuleUids = self.rule_order_service.update_rule_num_numerics()
 
         # collect rulebase UIDs of previous config
         for rulebase in prevConfig.rulebases:

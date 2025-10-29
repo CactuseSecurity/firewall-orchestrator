@@ -19,6 +19,7 @@ class TestUpdateRulebaseDiffs(unittest.TestCase):
     _previous_config: FwConfigNormalized
     _normalized_config: FwConfigNormalized
     _import_state: MockImportStateController
+    _import_id: int
 
 
     @classmethod
@@ -29,8 +30,9 @@ class TestUpdateRulebaseDiffs(unittest.TestCase):
         
         cls._config_builder = MockFwConfigNormalizedBuilder()
         init_service_provider()
-        service_provider = ServiceProvider()
-        cls._global_state = service_provider.get_service(Services.GLOBAL_STATE)
+        cls._service_provider = ServiceProvider()
+        cls._global_state = cls._service_provider.get_service(Services.GLOBAL_STATE)
+        cls._import_id = 0
 
 
     def setUp(self):
@@ -48,14 +50,20 @@ class TestUpdateRulebaseDiffs(unittest.TestCase):
                 "user_config": 10
             }
         )
+        self._global_state.normalized_config = copy.deepcopy(self._previous_config)
+        self._global_state.previous_config = self._previous_config
 
         self._fwconfig_import_rule = MockFwConfigImportRule()
-        self._fwconfig_import_rule.normalized_config = copy.deepcopy(self._previous_config)
+        self._import_id += 1
+        self._fwconfig_import_rule.import_details.ImportId = self._import_id
+        self._fwconfig_import_rule.normalized_config = self._global_state.normalized_config
         self._import_state = self._fwconfig_import_rule.import_details
         self._normalized_config = self._fwconfig_import_rule.normalized_config
-        self._global_state.normalized_config = self._normalized_config
-        self._global_state.import_details = self._import_state
 
+        self._global_state.import_details = self._import_state
+        
+        rule_order_service = self._service_provider.get_service(Services.RULE_ORDER_SERVICE, self._import_id)
+        rule_order_service.initialize()
         update_rule_num_numerics(self._previous_config)
         update_rule_map_and_rulebase_map(self._previous_config, self._import_state)
         

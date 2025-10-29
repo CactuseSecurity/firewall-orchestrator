@@ -56,6 +56,7 @@ class FwConfigImportRule():
         self.rule_order_service = service_provider.get_service(Services.RULE_ORDER_SERVICE, self.import_details.ImportId)
 
     def updateRulebaseDiffs(self, prevConfig: FwConfigNormalized):
+        
         logger = getFwoLogger(debug_level=self.import_details.DebugLevel)
 
         # calculate rule diffs
@@ -65,7 +66,6 @@ class FwConfigImportRule():
         currentRulebaseUids = []
         new_hit_information = []
 
-        #self.rule_order_service = service_provider.get_service(Services.RULE_ORDER_SERVICE, self.import_details.ImportId)
         rule_order_diffs: dict[str, dict[str, list[str]]] = self.rule_order_service.update_rule_order_diffs(self.import_details.DebugLevel)
 
         # collect rulebase UIDs of previous config

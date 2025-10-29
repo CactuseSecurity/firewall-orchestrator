@@ -131,8 +131,8 @@ class RuleOrderService:
             
             # Add undetected moves (i.e. across rulebases).
 
-            for rule_uid in rule_uids:
-                if rule_uid not in self._new_rule_uids[rulebase.uid] and rule_uid not in self._moved_rule_uids[rulebase.uid] and rule_uid not in previous_rulebase_uids:
+            for _, rule_uid, _ in self._min_moves["reposition_moves"]:
+                if rule_uid not in self._new_rule_uids[rulebase.uid] and rule_uid not in self._moved_rule_uids[rulebase.uid]:
                     self._moved_rule_uids[rulebase.uid].append(rule_uid)
 
             if (len(self._moved_rule_uids) > 0 or len(self._new_rule_uids) > 0) and not rulebase.uid in self._inserts_and_moves:
@@ -232,7 +232,7 @@ class RuleOrderService:
                 changed_rule.rule_num_numeric = previous_rule_num_numeric + rule_num_numeric_steps
 
 
-    def _update_rule_on_consecutive_insert(self, rule_uid: str, rulebase_uid: str) -> float:
+    def _update_rule_on_consecutive_insert(self, rule_uid: str, rulebase_uid: str) -> None:
 
         index, rule = self._get_index_and_rule_object_from_flat_list(self._target_rules_flat, rule_uid)
         _index = index

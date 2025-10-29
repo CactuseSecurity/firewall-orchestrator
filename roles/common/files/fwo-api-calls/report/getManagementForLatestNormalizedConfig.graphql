@@ -135,7 +135,7 @@ fragment deviceFragment on device {
   name: dev_name
   #TODO: routing
   #TODO: interfaces
-  rulebase_links {
+  rulebase_links(where: { removed: { _is_null: true } }) {
     ...ruleBaseLinkFragment
   }
   global_rulebase_uid

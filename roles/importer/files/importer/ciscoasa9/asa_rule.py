@@ -89,8 +89,7 @@ def resolve_network_reference_for_rule(endpoint, network_objects: Dict) -> str:
 
 def create_rule_from_acl_entry(access_list_name: str, entry: AccessListEntry, 
                               protocol_groups: List[AsaProtocolGroup], 
-                              network_objects: Dict, service_objects: Dict,
-                              gateway_uid: str) -> RuleNormalized:
+                              network_objects: Dict, service_objects: Dict) -> RuleNormalized:
     """Create a normalized rule from an ACL entry.
 
     Args:
@@ -152,8 +151,7 @@ def create_rule_from_acl_entry(access_list_name: str, entry: AccessListEntry,
 
 def build_rulebases_from_access_lists(access_lists: List[AccessList], mgm_uid: str, 
                                      protocol_groups: List[AsaProtocolGroup],
-                                     network_objects: Dict, service_objects: Dict,
-                                     gateway_uid: str) -> List[Rulebase]:
+                                     network_objects: Dict, service_objects: Dict) -> List[Rulebase]:
     """Build rulebases from ASA access lists.
 
     Each access list becomes a separate rulebase containing normalized rules.
@@ -181,8 +179,7 @@ def build_rulebases_from_access_lists(access_lists: List[AccessList], mgm_uid: s
                 entry, 
                 protocol_groups, 
                 network_objects, 
-                service_objects,
-                gateway_uid
+                service_objects
             )
             rules[rule.rule_uid] = rule
 

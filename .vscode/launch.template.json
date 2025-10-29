@@ -79,6 +79,29 @@
             }
         },
         {
+            "name": "c#-Blazor UI - development",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "build_UI",
+            "program": "dotnet",
+            "args": [
+                "watch",
+                "run"
+            ],
+            "cwd": "${workspaceFolder}/roles/ui/files/FWO.UI",
+            "stopAtEntry": false,
+            "requireExactSource": false,
+            "env": {
+                "ASPNETCORE_ENVIRONMENT": "Development"
+            },
+            "sourceFileMap": {
+                "/Views": "${workspaceFolder}/Views"
+            },
+            "logging": {
+                "moduleLoad": false
+            }
+        },
+        {
             "name": "py-normalizeRlmOwners",
             "type": "debugpy",
             "request": "launch",

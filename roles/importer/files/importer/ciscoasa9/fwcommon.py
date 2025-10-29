@@ -107,7 +107,7 @@ def get_config(config_in: FwConfigManagerListController, import_state: ImportSta
 
     if config_in.native_config_is_empty:
         raw_config = load_config_from_management(import_state.MgmDetails, is_virtual_asa)
-        # raw_config = load_config_from_file("asa.conf")
+        # raw_config = load_config_from_file("test_asa.conf")
         config2import = parse_asa_config(raw_config)
         config_in.native_config = config2import.model_dump()
 

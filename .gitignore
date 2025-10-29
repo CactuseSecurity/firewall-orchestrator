@@ -1,5 +1,6 @@
 .vs/
 .vscode/launch.json
+.vscode/settings.local.json
 .idea/
 .test_data/
 roles/importer/venv/

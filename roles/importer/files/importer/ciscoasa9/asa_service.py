@@ -322,22 +322,28 @@ def normalize_service_object_groups(service_groups: List[AsaServiceObjectGroup],
     def process_mixed_protocol_eq_ports(group: AsaServiceObjectGroup, service_objects: Dict[str, ServiceObject]) -> List[str]:
         """Process equal ports for mixed protocol groups."""
         obj_names = []
-        if hasattr(group, "ports_eq"):
-            for protos, eq_ports in group.ports_eq.items():
-                for proto in protos.split("-"): # handles "tcp-udp"
-                    for port in eq_ports:
-                        obj_name = create_service_for_port(port, proto, service_objects)
-                        obj_names.append(obj_name)
+        for protos, eq_ports in group.ports_eq.items():
+            for proto in protos.split("-"): # handles "tcp-udp"
+                for port in eq_ports:
+                    obj_name = create_service_for_port(port, proto, service_objects)
+                    obj_names.append(obj_name)
         return obj_names
 
     def process_mixed_protocol_range_ports(group: AsaServiceObjectGroup, service_objects: Dict[str, ServiceObject]) -> List[str]:
         """Process port ranges for mixed protocol groups."""
         obj_names = []
-        if hasattr(group, "ports_range"):
-            for proto, ranges in group.ports_range.items():
-                for pr in ranges:
-                    obj_name = create_service_for_port_range(pr, proto, service_objects)
-                    obj_names.append(obj_name)
+        for proto, ranges in group.ports_range.items():
+            for pr in ranges:
+                obj_name = create_service_for_port_range(pr, proto, service_objects)
+                obj_names.append(obj_name)
+        return obj_names
+
+    def process_fully_enabled_protocols(group: AsaServiceObjectGroup, service_objects: Dict[str, ServiceObject]) -> List[str]:
+        """Process protocols that allow all ports."""
+        obj_names = []
+        for proto in group.protocols:
+            obj_name = create_any_protocol_service(proto, service_objects)
+            obj_names.append(obj_name)
         return obj_names
 
     def process_mixed_protocol_group(group: AsaServiceObjectGroup, service_objects: Dict[str, ServiceObject]) -> List[str]:
@@ -350,38 +356,27 @@ def normalize_service_object_groups(service_groups: List[AsaServiceObjectGroup],
         # Process ports_range (port ranges)
         obj_names.extend(process_mixed_protocol_range_ports(group, service_objects))
 
+        # Process any-protocol references
+        obj_names.extend(process_fully_enabled_protocols(group, service_objects))
+
         # Process nested references
-        obj_names.extend(getattr(group, "nested_refs", []))
-
-        return obj_names
-
-    def process_service_protocol_group(group: AsaServiceObjectGroup) -> List[str]:
-        """Process a service group that references other services."""
-        obj_names = []
-
-        # Add nested service references
         obj_names.extend(group.nested_refs)
 
-        # Add any-protocol references
-        for pr in group.protocols:
-            obj_name = f"any-{pr}"
-            obj_names.append(obj_name)
-
         return obj_names
 
-    def process_single_protocol_eq_ports(group: AsaServiceObjectGroup, protocol: str, service_objects: Dict[str, ServiceObject]) -> List[str]:
+    def process_single_protocol_eq_ports(protocol: str, ports: list[str], service_objects: dict[str, ServiceObject]) -> list[str]:
         """Process equal ports for single protocol groups."""
         obj_names = []
-        for pr in group.ports_eq.get(group.proto_mode, []):
-            obj_name = create_service_for_port(pr, protocol, service_objects)
+        for port in ports:
+            obj_name = create_service_for_port(port, protocol, service_objects)
             obj_names.append(obj_name)
         return obj_names
 
-    def process_single_protocol_range_ports(group: AsaServiceObjectGroup, protocol: str, service_objects: Dict[str, ServiceObject]) -> List[str]:
+    def process_single_protocol_range_ports(protocol: str, ranges: list[tuple[str, str]], service_objects: dict[str, ServiceObject]) -> list[str]:
         """Process port ranges for single protocol groups."""
         obj_names = []
-        for pr in group.ports_range.get(group.proto_mode, []):
-            obj_name = create_service_for_port_range(pr, protocol, service_objects)
+        for range in ranges:
+            obj_name = create_service_for_port_range(range, protocol, service_objects)
             obj_names.append(obj_name)
         return obj_names
 
@@ -389,29 +384,31 @@ def normalize_service_object_groups(service_groups: List[AsaServiceObjectGroup],
         """Process a single-protocol service group."""
         obj_names = []
 
+        if not group.proto_mode:
+            raise ValueError(f"Service object group {group.name} missing proto_mode")
+
         for protocol in group.proto_mode.split("-"): # handles "tcp-udp"
-            if protocol not in protocol_map and protocol != "service":
+            if protocol not in protocol_map:
                 raise ValueError(f"Unknown protocol in service object group: {protocol}")
 
-            if protocol == "service":
-                obj_names.extend(process_service_protocol_group(group))
-                continue
-
             # Process single port values
-            obj_names.extend(process_single_protocol_eq_ports(group, protocol, service_objects))
+            obj_names.extend(process_single_protocol_eq_ports(protocol, group.ports_eq.get(group.proto_mode, []), service_objects))
 
             # Process port ranges
-            obj_names.extend(process_single_protocol_range_ports(group, protocol, service_objects))
+            obj_names.extend(process_single_protocol_range_ports(protocol, group.ports_range.get(group.proto_mode, []), service_objects))
+
+            # Process nested references
+            obj_names.extend(group.nested_refs)
 
         return obj_names
 
     # Process each service group
     for group in service_groups:
-        if group.proto_mode == "mixed":
-            obj_names = process_mixed_protocol_group(group, service_objects)
-        else:
+        if group.proto_mode:
             obj_names = process_single_protocol_group(group, service_objects)
-        
+        else:
+            obj_names = process_mixed_protocol_group(group, service_objects)
+
         # look for duplicates and remove them
         unique_obj_names = list(set(obj_names))
         if len(unique_obj_names) < len(obj_names):

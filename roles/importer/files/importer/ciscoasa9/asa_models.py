@@ -56,9 +56,9 @@ class AsaServiceObject(BaseModel):
 
 class AsaServiceObjectGroup(BaseModel):
     name: str
-    proto_mode: Literal["tcp", "udp", "tcp-udp", "service", "mixed", "icmp"] | None
-    ports_eq: dict[str, list[str]]  # proto_mode -> list of ports
-    ports_range: dict[str, list[Tuple[str, str]]]  # proto_mode -> list of (start_port, end_port)
+    proto_mode: Literal["tcp", "udp", "tcp-udp"] | None
+    ports_eq: dict[str, list[str]]  # protocol -> list of ports
+    ports_range: dict[str, list[Tuple[str, str]]]  # protocol -> list of (start_port, end_port)
     nested_refs: List[str]
     protocols: List[str]
     description: str | None

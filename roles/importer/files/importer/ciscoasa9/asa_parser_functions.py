@@ -19,7 +19,7 @@ def _clean_lines(text: str) -> List[str]:
         lines.append(line)
     return lines
 
-def _consume_block(lines: List[str], start_idx: int, start_re: re.Pattern) -> Tuple[List[str], int]:
+def _consume_block(lines: List[str], start_idx: int) -> Tuple[List[str], int]:
     """
     Consume a block that starts at start_idx (matching start_re) and continues
     until next top-level directive (blank line or line not starting with space)
@@ -36,10 +36,6 @@ def _consume_block(lines: List[str], start_idx: int, start_re: re.Pattern) -> Tu
             block.append(l)
             i += 1
             continue
-        # Next top-level directive (not indented)
-        if start_re.match(l):
-            # a new block of same type begins; end this block
-            break
         # another directive starts; end this block
         break
     return block, i
@@ -140,11 +136,8 @@ def _create_network_object_from_parts(
     ip_range: Optional[Tuple[str, str]],
     fqdn: Optional[str],
     description: Optional[str]
-) -> AsaNetworkObject:
+) -> AsaNetworkObject|None:
     """Helper to create AsaNetworkObject from parts."""
-    if not any([host, subnet, ip_range, fqdn]):
-        raise ValueError(f"Cannot create network object {name}: no valid address information provided.")
-
     if host and not subnet:
         return AsaNetworkObject(name=name, ip_address=host, ip_address_end=None, subnet_mask=None, fqdn=None, description=description)
     elif subnet:
@@ -153,8 +146,10 @@ def _create_network_object_from_parts(
         return AsaNetworkObject(name=name, ip_address=ip_range[0], ip_address_end=ip_range[1], subnet_mask=None, fqdn=None, description=description)
     elif fqdn:
         return AsaNetworkObject(name=name, ip_address="", ip_address_end=None, subnet_mask=None, fqdn=fqdn, description=description)
-    else:
-        raise ValueError(f"Cannot create network object {name}: no valid address information provided.")
+
+    logger = getFwoLogger()
+    logger.warning(f"Cannot create network object {name}: no valid address information provided. NAT object?")
+    return None
 
 
 def _parse_network_object_block(block: List[str]) -> Tuple[Optional[AsaNetworkObject], Optional[NatRule]]:
@@ -310,38 +305,95 @@ def _convert_ports_to_dicts(
 
     return ports_eq_dict, ports_range_dict
 
+def _consume_port_objects(service_group_block: List[str], proto_mode: str) -> Tuple[List[Tuple[str, str]], List[Tuple[str, Tuple[str, str]]]]:
+    """Helper to consume port-object lines from a service object group block."""
+    ports_eq: List[Tuple[str, str]] = []
+    ports_range: List[Tuple[str, Tuple[str, str]]] = []
+
+    for b in list(service_group_block):
+        s = b.strip()
+        mport_eq = re.match(r"^port-object\s+eq\s+(\S+)$", s, re.I)
+        mport_range = re.match(r"^port-object\s+range\s+(\d+)\s+(\d+)$", s, re.I)
+
+        if mport_eq:
+            ports_eq.append((proto_mode, mport_eq.group(1)))
+        elif mport_range:
+            ports_range.append((proto_mode, (mport_range.group(1), mport_range.group(2))))
+        else:
+            continue
+        service_group_block.remove(b)
+
+    return ports_eq, ports_range
+
+def _consume_service_definitions(service_group_block: List[str]) -> Tuple[List[Tuple[str, str]], List[Tuple[str, Tuple[str, str]]], List[str]]:
+    """Helper to consume service-object definitions from a service object group block."""
+    ports_eq: List[Tuple[str, str]] = []
+    ports_range: List[Tuple[str, Tuple[str, str]]] = []
+    protocols: List[str] = [] # list of fully enabled protocols
+
+    for b in list(service_group_block):
+        s = b.strip()
+        mproto = re.match(r"^service-object\s+(tcp|udp|icmp|tcp-udp)$", s, re.I)
+        msvc_eq = re.match(r"^service-object\s+(tcp|udp|icmp|tcp-udp)\s+(?:destination\s+)?eq\s+(\S+)$", s, re.I)
+        msvc_range = re.match(r"^service-object\s+(tcp|udp|icmp|tcp-udp)\s+(?:destination\s+)?range\s+(\S+)\s+(\S+)$", s, re.I)
+        if mproto:
+            protocols.append(mproto.group(1).lower())
+        elif msvc_eq:
+            ports_eq.append((msvc_eq.group(1).lower(), msvc_eq.group(2)))
+        elif msvc_range:
+            ports_range.append((msvc_range.group(1).lower(), (msvc_range.group(2), msvc_range.group(3))))
+        else:
+            continue
+        service_group_block.remove(b)
+
+    return ports_eq, ports_range, protocols
+
+def _consume_service_references(service_group_block: List[str]) -> List[str]:
+    """Helper to consume service-object and group-object lines from a service object group block."""
+    nested_refs: List[str] = []
+
+    for b in service_group_block:
+        s = b.strip()
+        mobj = re.match(r"^service-object\s+object\s+(\S+)$", s, re.I)
+        mgrp = re.match(r"^group-object\s+(\S+)$", s, re.I)
+
+        if mobj:
+            nested_refs.append(mobj.group(1))
+        elif mgrp:
+            nested_refs.append(mgrp.group(1))
+        else:
+            continue
+        service_group_block.remove(b)
+
+    return nested_refs
 
 def _parse_service_object_group_block(block: List[str]) -> AsaServiceObjectGroup:
     """Parse an object-group service block."""
     hdr = block[0].split()
     name = hdr[2]
-    proto_mode = "tcp"
+
+    # Optional global protocol set for all defined ports/ranges
+    proto_mode = None
     if len(hdr) >= 4:
         pm = hdr[3].lower()
         if pm in ("tcp", "udp", "tcp-udp"):
             proto_mode = pm
+        else:
+            logger = getFwoLogger()
+            logger.warning(f"Unsupported proto_mode '{pm}' in service object group '{name}'")
 
     desc = _find_description(block[1:])
+
     ports_eq: List[Tuple[str, str]] = []
     ports_range: List[Tuple[str, Tuple[str, str]]] = []
-    nested_groups: List[str] = []
+    nested_refs: List[str] = []
     protocols: List[str] = []
 
-    for b in block[1:]:
-        s = b.strip()
-        meq = re.match(r"^port-object\s*eq\s+(\S+)$", s, re.I)
-        mrange = re.match(r"^port-object\srange\s+(\d+)\s+(\d+)$", s, re.I)
-        mobj = re.match(r"^service-object\s+object\s+(\S+)$", s, re.I)
-        mproto = re.match(r"^service-object\s+(tcp|udp|icmp)$", s, re.I)
-
-        if meq:
-            ports_eq.append((proto_mode, meq.group(1)))
-        elif mrange:
-            ports_range.append((proto_mode, (mrange.group(1), mrange.group(2))))
-        elif mobj:
-            nested_groups.append(mobj.group(1))
-        elif mproto and len(mproto.groups()) == 1:
-            protocols.append(mproto.group(1).lower())
+    if proto_mode:
+        ports_eq, ports_range = _consume_port_objects(block[1:], proto_mode)
+    else:
+        ports_eq, ports_range, protocols = _consume_service_definitions(block[1:])
+    nested_refs = _consume_service_references(block[1:])
 
     # Convert port lists to dictionaries using helper function
     ports_eq_dict, ports_range_dict = _convert_ports_to_dicts(ports_eq, ports_range)
@@ -351,7 +403,7 @@ def _parse_service_object_group_block(block: List[str]) -> AsaServiceObjectGroup
         proto_mode=proto_mode,
         ports_eq=ports_eq_dict,
         ports_range=ports_range_dict,
-        nested_refs=nested_groups,
+        nested_refs=nested_refs,
         protocols=protocols,
         description=desc
     )
@@ -578,60 +630,6 @@ def _parse_protocol_object_group_block(block: List[str]) -> AsaProtocolGroup:
     )
 
 
-def _parse_service_object_group_block_without_inline_protocol(block: List[str]) -> AsaServiceObjectGroup:
-    """Parse an object-group service block without inline protocol in the header line."""
-    grp_name = block[0].split()[2]
-    desc = _find_description(block[1:])
-    ports_eq: List[Tuple[str, str]] = []
-    ports_range: List[Tuple[str, Tuple[str, str]]] = []
-    nested_refs: List[str] = []
-    protocols: List[str] = [] # list of fully enabled protocols
-
-    mgrp = re.compile(r"^group-object\s+(\S+)$", re.I)
-    mobj = re.compile(r"^service-object\s+object\s+(\S+)$", re.I)
-    mproto = re.compile(r"^service-object\s+(tcp|udp|icmp|tcp-udp)$", re.I)
-    # Handle lines like: service-object tcp destination eq https
-    msvc_eq = re.compile(r"^service-object\s+(tcp|udp|icmp|tcp-udp)\s+(?:destination\s+)?eq\s+(\S+)$", re.I)
-    msvc_range = re.compile(r"^service-object\s+(tcp|udp|icmp|tcp-udp)\s+(?:destination\s+)?range\s+(\S+)\s+(\S+)$", re.I)
-
-    for b in block[1:]:
-        s = b.strip()
-    
-        mobj_match = mobj.match(s)
-        mgrp_match = mgrp.match(s)
-        mproto_match = mproto.match(s)
-        msvc_eq_match = msvc_eq.match(s)
-        msvc_range_match = msvc_range.match(s)
-        
-        if mobj_match:
-            nested_refs.append(mobj_match.group(1))
-        elif mgrp_match:
-            nested_refs.append(mgrp_match.group(1))
-        elif mproto_match:
-            protocols.append(mproto_match.group(1))
-        elif msvc_eq_match:
-            proto = msvc_eq_match.group(1)
-            port = msvc_eq_match.group(2)
-            ports_eq.append((proto, port))
-        elif msvc_range_match:
-            proto = msvc_range_match.group(1)
-            port1 = msvc_range_match.group(2)
-            port2 = msvc_range_match.group(3)
-            ports_range.append((proto, (port1, port2)))
-
-    # Convert port lists to dictionaries using existing helper
-    ports_eq_dict, ports_range_dict = _convert_ports_to_dicts(ports_eq, ports_range)
-
-    return AsaServiceObjectGroup(
-        name=grp_name,
-        proto_mode=None,
-        ports_eq=ports_eq_dict,
-        ports_range=ports_range_dict,
-        nested_refs=nested_refs,
-        protocols=protocols,
-        description=desc
-    )
-
 def _parse_icmp_object_group_block(block: List[str]) -> AsaServiceObjectGroup:
     """Parse an object-group icmp-type block."""
     grp_name = block[0].split()[2]
@@ -645,10 +643,10 @@ def _parse_icmp_object_group_block(block: List[str]) -> AsaServiceObjectGroup:
     
     return AsaServiceObjectGroup(
         name=grp_name,
-        proto_mode="icmp",
+        proto_mode=None,
         ports_eq={"icmp": objects},
         ports_range={},
         nested_refs=[],
-        protocols=["icmp"],
+        protocols=[],
         description=desc
     )

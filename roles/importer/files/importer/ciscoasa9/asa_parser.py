@@ -10,7 +10,7 @@ from ciscoasa9.asa_parser_functions import _clean_lines, _consume_block, _parse_
     _parse_dns_inspect_policy_map_block, _parse_icmp_object_group_block, _parse_interface_block, _parse_network_object_block, \
     _parse_network_object_group_block, _parse_policy_map_block, _parse_service_object_block, \
     _parse_service_object_group_block, _parse_endpoint, _parse_protocol_object_group_block, \
-    _parse_access_list_entry, _parse_service_object_group_block_without_inline_protocol
+    _parse_access_list_entry
 
 
 def parse_asa_config(raw_config: str) -> Config:
@@ -31,8 +31,7 @@ def parse_asa_config(raw_config: str) -> Config:
         (re.compile(r"^object\s+network\s+\S+$", re.I), _handle_network_object_block),
         (re.compile(r"^object-group\s+network\s+\S+$", re.I), _handle_network_object_group_block),
         (re.compile(r"^object\s+service\s+\S+$", re.I), _handle_service_object_block),
-        (re.compile(r"^object-group\s+service\s+\S+ (tcp|udp|icmp|ip|tcp-udp)( .+)?$", re.I), _handle_service_object_group_with_protocol),
-        (re.compile(r"^object-group\s+service\s+\S+\s*$", re.I), _handle_service_object_group_without_protocol),
+        (re.compile(r"^object-group\s+service\s+\S+", re.I), _handle_service_object_group), # left intentionally without $
         (re.compile(r"^object-group\s+icmp-type\s+\S+$", re.I), _handle_icmp_object_group_block),
         (re.compile(r"^object-group\s+protocol\s+\S+$", re.I), _handle_protocol_object_group_block),
         (re.compile(r"^access-list\s+\S+\s+extended\s+(permit|deny)\s+", re.I), _handle_access_list_entry),
@@ -135,13 +134,13 @@ def _handle_name(match, line, lines, i, state):
 
 
 def _handle_interface_block(match, line, lines, i, state):
-    block, new_i = _consume_block(lines, i, re.compile(r"^interface\s+\S+", re.I))
+    block, new_i = _consume_block(lines, i)
     state.interfaces.append(_parse_interface_block(block))
     return new_i
 
 
 def _handle_network_object_block(match, line, lines, i, state):
-    block, new_i = _consume_block(lines, i, re.compile(r"^object\s+network\s+\S+$", re.I))
+    block, new_i = _consume_block(lines, i)
     net_obj, pending_nat = _parse_network_object_block(block)
     if net_obj:
         state.net_objects.append(net_obj)
@@ -151,39 +150,33 @@ def _handle_network_object_block(match, line, lines, i, state):
 
 
 def _handle_network_object_group_block(match, line, lines, i, state):
-    block, new_i = _consume_block(lines, i, re.compile(r"^object-group\s+network\s+\S+$", re.I))
+    block, new_i = _consume_block(lines, i)
     state.net_obj_groups.append(_parse_network_object_group_block(block))
     return new_i
 
 
 def _handle_service_object_block(match, line, lines, i, state):
-    block, new_i = _consume_block(lines, i, re.compile(r"^object\s+service\s+\S+$", re.I))
+    block, new_i = _consume_block(lines, i)
     svc_obj = _parse_service_object_block(block)
     if svc_obj:
         state.svc_objects.append(svc_obj)
     return new_i
 
 
-def _handle_service_object_group_with_protocol(match, line, lines, i, state):
-    block, new_i = _consume_block(lines, i, re.compile(r"^object-group\s+service\s+\S+", re.I))
+def _handle_service_object_group(match, line, lines, i, state):
+    block, new_i = _consume_block(lines, i)
     state.svc_obj_groups.append(_parse_service_object_group_block(block))
     return new_i
 
 
-def _handle_service_object_group_without_protocol(match, line, lines, i, state):
-    block, new_i = _consume_block(lines, i, re.compile(r"^object-group\s+service\s+\S+\s*$", re.I))
-    state.svc_obj_groups.append(_parse_service_object_group_block_without_inline_protocol(block))
-    return new_i
-
-
 def _handle_icmp_object_group_block(match, line, lines, i, state):
-    block, new_i = _consume_block(lines, i, re.compile(r"^object-group\s+icmp-type\s+\S+$", re.I))
+    block, new_i = _consume_block(lines, i)
     state.svc_obj_groups.append(_parse_icmp_object_group_block(block))
     return new_i
 
 
 def _handle_protocol_object_group_block(match, line, lines, i, state):
-    block, new_i = _consume_block(lines, i, re.compile(r"^object-group\s+protocol\s+\S+$", re.I))
+    block, new_i = _consume_block(lines, i)
     state.protocol_groups.append(_parse_protocol_object_group_block(block))
     return new_i
 
@@ -225,13 +218,13 @@ def _handle_mgmt_access(match, line, lines, i, state):
 
 
 def _handle_class_map_block(match, line, lines, i, state):
-    block, new_i = _consume_block(lines, i, re.compile(r"^class-map\s+\S+", re.I))
+    block, new_i = _consume_block(lines, i)
     state.class_maps.append(_parse_class_map_block(block))
     return new_i
 
 
 def _handle_dns_inspect_policy_map_block(match, line, lines, i, state):
-    block, new_i = _consume_block(lines, i, re.compile(r"^policy-map\s+type\s+inspect\s+dns\s+\S+$", re.I))
+    block, new_i = _consume_block(lines, i)
     pm_name = match.group(1)
     pm = _parse_dns_inspect_policy_map_block(block, pm_name)
     state.policy_maps[pm_name] = pm
@@ -239,7 +232,7 @@ def _handle_dns_inspect_policy_map_block(match, line, lines, i, state):
 
 
 def _handle_policy_map_block(match, line, lines, i, state):
-    block, new_i = _consume_block(lines, i, re.compile(r"^policy-map\s+\S+$", re.I))
+    block, new_i = _consume_block(lines, i)
     pm_name = match.group(1)
     pm = _parse_policy_map_block(block, pm_name)
     state.policy_maps[pm_name] = pm

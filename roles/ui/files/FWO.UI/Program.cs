@@ -123,7 +123,11 @@ app.UseStaticFiles();
 app.UseRouting();
 
 app.UseWhen(
-    context => context.Request.Path.StartsWithSegments("/help"),
+    ctx => !ctx.Request.Path.StartsWithSegments("/_blazor") &&
+           !ctx.Request.Path.StartsWithSegments("/_framework") &&
+           !ctx.Request.Path.StartsWithSegments("/css") &&
+           !ctx.Request.Path.StartsWithSegments("/js") &&
+           !ctx.Request.Path.StartsWithSegments("/images"),
     branch =>
     {
         branch.UseMiddleware<UrlSanitizerMiddleware>();

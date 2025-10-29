@@ -259,12 +259,12 @@ class ImportStateController(ImportState):
 
 
     # limited to the current mgm_id
-    # creates a dict with key = rulebase.name and value = rulebase.id
+    # creates a dict with key = rulebase.uid and value = rulebase.id
     def SetRulebaseMap(self, api_call):
         logger = getFwoLogger()
 
         # TODO: maps need to be updated directly after data changes
-        query = """query getRulebaseMap($mgmId: Int) { rulebase(where:{mgm_id: {_eq: $mgmId}, removed:{_is_null:true }}) { id name uid } }"""
+        query = """query getRulebaseMap($mgmId: Int) { rulebase(where:{mgm_id: {_eq: $mgmId}, removed:{_is_null:true }}) { id uid } }"""
         try:
             result = api_call.call(query=query, query_variables= {"mgmId": self.MgmDetails.CurrentMgmId})
         except Exception:
@@ -275,7 +275,6 @@ class ImportStateController(ImportState):
         m = {}
         for rulebase in result['data']['rulebase']:
             rbid = rulebase['id']
-            m.update({rulebase['name']: rbid})
             m.update({rulebase['uid']: rbid})
         self.RulebaseMap = m
 
@@ -380,8 +379,11 @@ class ImportStateController(ImportState):
         rulebaseId = self.RulebaseMap.get(rulebaseUid, None)
         if rulebaseId is None:
             logger = getFwoLogger()
-            logger.error(f"Rulebase {rulebaseUid} not found")
-            raise FwoImporterError(f"Rulebase {rulebaseUid} not found")
+            logger.error(f"Rulebase {rulebaseUid} not found in {len(self.RulebaseMap)} known rulebases")
+            with open(f"/usr/local/fworch/tmp/import/debug_rulebase_map_{self.MgmDetails.Id}.txt", "w") as f:
+                for k, v in self.RulebaseMap.items():
+                    f.write(f"{k}: {v}\n")
+            raise FwoImporterError(f"Rulebase {rulebaseUid} not found in {len(self.RulebaseMap)} known rulebases")
         return rulebaseId
 
     def lookupLinkType(self, linkUid):

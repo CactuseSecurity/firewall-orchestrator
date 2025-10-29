@@ -130,7 +130,7 @@ def normalize_config(config_in, import_state):
         # First rulebase is the initial entry point
         rulebase_links.append(RulebaseLinkUidBased(
             to_rulebase_uid=rulebases[0].uid,
-            link_type="concatenated",
+            link_type="ordered",
             is_initial=True,
             is_global=False,
             is_section=False
@@ -140,7 +140,7 @@ def normalize_config(config_in, import_state):
             rulebase_links.append(RulebaseLinkUidBased(
                 from_rulebase_uid=rulebases[idx-1].uid,
                 to_rulebase_uid=rulebases[idx].uid,
-                link_type="concatenated",
+                link_type="ordered",
                 is_initial=False,
                 is_global=False,
                 is_section=False

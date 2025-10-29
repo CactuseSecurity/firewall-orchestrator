@@ -22,7 +22,7 @@ class Names(BaseModel):
 class Interface(BaseModel):
     name: str
     nameif: str
-    brigde_group: str | None = None
+    bridge_group: str | None = None
     security_level: int
     ip_address: str | None = None
     subnet_mask: str | None = None

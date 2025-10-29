@@ -123,7 +123,7 @@ def _parse_interface_block(block: List[str]) -> Interface:
     nameif = nameif or if_name
 
     return Interface(
-        name=if_name, nameif=nameif, brigde_group=br, security_level=sec,
+        name=if_name, nameif=nameif, bridge_group=br, security_level=sec,
         ip_address=ip, subnet_mask=mask, additional_settings=blocks, description=desc
     )
 

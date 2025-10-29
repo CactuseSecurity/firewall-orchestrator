@@ -38,13 +38,16 @@
                             </th>
                             @foreach (var destinationZone in GetSortedNetworkzones())
                             {
-                                var allowed = sourceZone.CommunicationAllowedTo(destinationZone);
-                                var allowed_in_edit = AddCommunication.Contains((sourceZone, destinationZone));
-                                var disallowed_in_edit = DeleteCommunication.Contains((sourceZone, destinationZone));
+                                bool readonlyZone = sourceZone.IsAutoCalculatedUndefinedInternalZone || destinationZone.IsAutoCalculatedUndefinedInternalZone;
+                                bool allowed = sourceZone.CommunicationAllowedTo(destinationZone);
+                                bool allowedInEdit = AddCommunication.Contains((sourceZone, destinationZone));
+                                bool disallowedInEdit = DeleteCommunication.Contains((sourceZone, destinationZone));
+
                                 <td @onclick="() => ExecuteCommunicationAction(sourceZone, destinationZone)"
-                                    class="communication-cell @(allowed_in_edit ? "allowed-in-edit" : "")
-                                    @(disallowed_in_edit ? "disallowed-in-edit" : "")
-                                    @(allowed && !allowed_in_edit && !disallowed_in_edit ? "allowed" : "disallowed")" />
+                                    class="communication-cell @(!readonlyZone && allowedInEdit ? "allowed-in-edit" : "")
+                                    @(!readonlyZone && disallowedInEdit ? "disallowed-in-edit" : "")
+                                    @(!readonlyZone && allowed && !allowedInEdit && !disallowedInEdit ? "allowed" : "disallowed")
+                                    @(readonlyZone ? "readonly" : "")" />
                             }
                         </tr>
                     }

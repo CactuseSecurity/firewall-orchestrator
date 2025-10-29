@@ -116,7 +116,7 @@ def parse_single_rule(normalized_config_dict, normalized_config_global, native_r
     rule_src_zone, rule_dst_zone = rule_parse_zone(native_rule, normalized_config_dict)
 
     rule_src_neg, rule_dst_neg, rule_svc_neg = rule_parse_negation_flags(native_rule)
-    rule_installon = rule_parse_installon(native_rule, rulebase.name)
+    rule_installon = rule_parse_installon(native_rule)
 
     # Create the normalized rule
     rule_normalized = RuleNormalized(
@@ -250,11 +250,10 @@ def rule_parse_negation_flags(native_rule):
     rule_svc_neg = 'service-negate' in native_rule and (native_rule['service-negate'] == 1 or native_rule['service-negate'] == 'disable')
     return rule_src_neg, rule_dst_neg, rule_svc_neg
 
-def rule_parse_installon(native_rule, rulebase_name):
+def rule_parse_installon(native_rule) -> str|None:
+    rule_installon = None
     if 'scope_member' in native_rule and native_rule['scope_member']:
         rule_installon = list_delimiter.join(sorted({vdom['name'] + '_' + vdom['vdom'] for vdom in native_rule['scope_member']}))
-    else:
-        rule_installon = rulebase_name
     return rule_installon
 
 def get_access_policy(sid, fm_api_url, native_config_domain, adom_device_vdom_policy_package_structure, adom_name, mgm_details_device, device_config, limit):

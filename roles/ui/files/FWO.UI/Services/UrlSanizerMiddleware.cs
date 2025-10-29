@@ -1,33 +1,30 @@
 namespace FWO.Ui.Services
 {
-    public class UrlSanitizerMiddleware
+    public sealed class UrlSanitizerMiddleware
     {
-        public interface IUrlSanitizer
-        {
-            string? Clean(string url);
-        }
         private readonly RequestDelegate _next;
         private readonly IUrlSanitizer _sanitizer;
 
         public UrlSanitizerMiddleware(RequestDelegate next, IUrlSanitizer sanitizer)
         {
-            _next = next;
-            _sanitizer = sanitizer;
+            _next = next ?? throw new ArgumentNullException(nameof(next));
+            _sanitizer = sanitizer ?? throw new ArgumentNullException(nameof(sanitizer));
         }
 
         public async Task InvokeAsync(HttpContext context)
         {
-            var originalUrl = context.Request.Path + context.Request.QueryString;
-            var sanitized = _sanitizer.Clean(originalUrl);
+            // Build ABSOLUTE URL because Clean expects absolute
+            var req = context.Request;
+            var absolute = $"{req.Scheme}://{req.Host}{req.Path}{req.QueryString}";
 
-            if (sanitized == null)
+            var sanitized = _sanitizer.Clean(absolute);
+            if (sanitized is null)
             {
                 context.Response.StatusCode = 400;
                 await context.Response.WriteAsync("Invalid or unsafe URL.");
                 return;
             }
 
-            // Continue with request
             await _next(context);
         }
     }

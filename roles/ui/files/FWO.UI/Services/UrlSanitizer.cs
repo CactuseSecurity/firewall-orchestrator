@@ -6,7 +6,6 @@ using System.Text.RegularExpressions;
 
 namespace FWO.Ui.Services
 {
-
     public sealed partial class UrlSanitizer : IUrlSanitizer
     {
         const char PathDelimiter = '/';

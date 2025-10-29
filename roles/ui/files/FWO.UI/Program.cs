@@ -128,7 +128,12 @@ app.UseStaticFiles();
 
 app.UseRouting();
 
-app.UseMiddleware<UrlSanitizerMiddleware>();
+app.UseWhen(
+    context => context.Request.Path.StartsWithSegments("/help"),
+    branch =>
+    {
+        branch.UseMiddleware<UrlSanitizerMiddleware>();
+    });
 
 app.UseAuthentication();
 app.UseAuthorization();

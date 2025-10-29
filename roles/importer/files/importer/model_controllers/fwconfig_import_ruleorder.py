@@ -130,14 +130,11 @@ class RuleOrderService:
             ]
             
             # Add undetected moves (i.e. across rulebases).
-
-            for _, rule_uid, _ in self._min_moves["reposition_moves"]:
-                if rule_uid not in self._new_rule_uids[rulebase.uid] and rule_uid not in self._moved_rule_uids[rulebase.uid]:
+            for rule_uid in rule_uids:
+                if rule_uid not in self._new_rule_uids[rulebase.uid] and rule_uid not in self._moved_rule_uids[rulebase.uid] and rule_uid not in previous_rulebase_uids:
                     self._moved_rule_uids[rulebase.uid].append(rule_uid)
 
-            if (len(self._moved_rule_uids) > 0 or len(self._new_rule_uids) > 0) and not rulebase.uid in self._inserts_and_moves:
-                self._inserts_and_moves[rulebase.uid] = []
-
+            self._inserts_and_moves[rulebase.uid] = []
             self._inserts_and_moves[rulebase.uid].extend(self._new_rule_uids[rulebase.uid])
             self._inserts_and_moves[rulebase.uid].extend(self._moved_rule_uids[rulebase.uid])
 

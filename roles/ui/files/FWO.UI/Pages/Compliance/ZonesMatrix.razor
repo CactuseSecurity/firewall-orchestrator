@@ -135,14 +135,30 @@
         if(internetZone != null)
         {
             complianceNetworkZones.Remove(internetZone);
-            complianceNetworkZones.Insert(0, internetZone);
+
+            if(!userConfig.GlobalConfig!.AutoCalculatedZonesAtTheEnd)
+            {
+                complianceNetworkZones.Insert(0, internetZone);
+            }
+            else
+            {
+                complianceNetworkZones.Add(internetZone);
+            }
 
             ComplianceNetworkZone? undefinedInternalZone = networkZoneService.NetworkZones.FirstOrDefault(zone => zone.IsAutoCalculatedUndefinedInternalZone);
 
             if(undefinedInternalZone != null)
             {
                 complianceNetworkZones.Remove(undefinedInternalZone);
-                complianceNetworkZones.Insert(1, undefinedInternalZone);
+
+                if(!userConfig.GlobalConfig!.AutoCalculatedZonesAtTheEnd)
+                {
+                    complianceNetworkZones.Insert(1, undefinedInternalZone);
+                }
+                else
+                {
+                    complianceNetworkZones.Add(undefinedInternalZone);
+                }
             }
         }
 

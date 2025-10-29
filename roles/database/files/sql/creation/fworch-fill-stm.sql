@@ -171,6 +171,7 @@ insert into config (config_key, config_value, config_user) VALUES ('internalZone
 insert into config (config_key, config_value, config_user) VALUES ('internalZoneRange_192_0_0_0_24', 'true', 0);
 insert into config (config_key, config_value, config_user) VALUES ('internalZoneRange_192_88_99_0_24', 'true', 0);
 insert into config (config_key, config_value, config_user) VALUES ('internalZoneRange_198_18_0_0_15', 'true', 0);
+insert into config (config_key, config_value, config_user) VALUES ('autoCalculatedZonesAtTheEnd', 'true', 0);
 
 
 INSERT INTO "report_format" ("report_format_name") VALUES ('json');

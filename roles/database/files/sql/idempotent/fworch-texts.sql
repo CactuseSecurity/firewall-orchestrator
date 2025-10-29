@@ -2620,6 +2620,8 @@ INSERT INTO txt VALUES ('complianceCheckDocumentationSamples','German', 'Dokumen
 INSERT INTO txt VALUES ('complianceCheckDocumentationSamples','English','Documentation / samples');
 INSERT INTO txt VALUES ('complianceCheckDiv','German', 'Div (Benchmarking, Spezialzweck usw.)');
 INSERT INTO txt VALUES ('complianceCheckDiv','English','Div (benchmarking, special purpose, etc)');
+INSERT INTO txt VALUES ('complianceCheckAutoCalculatedZonesAtTheEnd','German', 'Auto-kalkulierte Zonen nach anderen Zonen anordnen.');
+INSERT INTO txt VALUES ('complianceCheckAutoCalculatedZonesAtTheEnd','English','Arrange auto-calculated zones according to other zones.');
 INSERT INTO txt VALUES ('availableModules',     'German', 	'Verf&uuml;gbare Module');
 INSERT INTO txt VALUES ('availableModules',     'English', 	'Available Modules');
 INSERT INTO txt VALUES ('notification',   		'German', 	'Benachrichtigung');
@@ -5886,7 +5888,8 @@ INSERT INTO txt VALUES ('H5832', 'German',  'Adressbereich für Netzwerkleistung
 INSERT INTO txt VALUES ('H5832', 'English', 'Address range for network performance and benchmark testing.');
 INSERT INTO txt VALUES ('H5833', 'German',  'Ehemaliger IPv6-Übergangsbereich (6to4-Relay), heute obsolet.');
 INSERT INTO txt VALUES ('H5833', 'English', 'Former IPv6 transition range (6to4 relay), now obsolete.');
-
+INSERT INTO txt VALUES ('H5834', 'German',  'Wenn aktiviert, werden die auto-kalkulierten Zonen am Ende der Matrix-Achsen eingeordnet. Default: am Anfang.');
+INSERT INTO txt VALUES ('H5834', 'English', 'When activated, the auto-calculated zones are placed at the end of the matrix axes. Default: at the beginning.');
 
 INSERT INTO txt VALUES ('H6001', 'German',  'Firewall Orchestrator verf&uuml;gt &uuml;ber zwei APIs:
     <ul>

@@ -197,7 +197,12 @@
                     <input id="lbl_auto_calc_undefined_internal_zone" type="checkbox" @bind="configData!.AutoCalculateUndefinedInternalZone" />            
                 </div>
             </div>
-
+            <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5834"))">
+                <label for="lbl_auto_calc_zones_at_the_end" class="col-form-label col-sm-4">@(userConfig.GetText("complianceCheckAutoCalculatedZonesAtTheEnd")):</label>
+                <div class="col-sm-7">
+                    <input id="lbl_auto_calc_zones_at_the_end" type="checkbox" @bind="configData!.AutoCalculatedZonesAtTheEnd" />            
+                </div>
+            </div>
         }
     <hr />
     <AuthorizeView Roles="@Roles.Admin">

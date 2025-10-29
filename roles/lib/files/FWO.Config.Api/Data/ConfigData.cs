@@ -505,6 +505,9 @@ namespace FWO.Config.Api.Data
         [JsonProperty("internalZoneRange_198_18_0_0_15"), JsonPropertyName("internalZoneRange_198_18_0_0_15")]
         public bool InternalZoneRange_198_18_0_0_15 { get; set; } = true;
 
+        [JsonProperty("autoCalculatedZonesAtTheEnd"), JsonPropertyName("autoCalculatedZonesAtTheEnd")]
+        public bool AutoCalculatedZonesAtTheEnd { get; set; } = true;
+
         public ConfigData(bool editable = false)
         {
             Editable = editable;

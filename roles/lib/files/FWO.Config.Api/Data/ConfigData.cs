@@ -508,6 +508,9 @@ namespace FWO.Config.Api.Data
         [JsonProperty("autoCalculatedZonesAtTheEnd"), JsonPropertyName("autoCalculatedZonesAtTheEnd")]
         public bool AutoCalculatedZonesAtTheEnd { get; set; } = true;
 
+        [JsonProperty("treatDynamicAndDomainObjectsAsInternet"), JsonPropertyName("treatDynamicAndDomainObjectsAsInternet")]
+        public bool TreatDynamicAndDomainObjectsAsInternet { get; set; } = true;
+        
         public ConfigData(bool editable = false)
         {
             Editable = editable;

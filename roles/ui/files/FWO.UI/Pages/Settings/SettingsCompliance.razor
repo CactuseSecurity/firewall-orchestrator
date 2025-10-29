@@ -203,6 +203,12 @@
                     <input id="lbl_auto_calc_zones_at_the_end" type="checkbox" @bind="configData!.AutoCalculatedZonesAtTheEnd" />            
                 </div>
             </div>
+            <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5835"))">
+                <label for="lbl_treat_dynamic_and_domain_objects_as_internet" class="col-form-label col-sm-4">@(userConfig.GetText("complianceCheckTreatDynamicAndDomainObjectsAsInternet")):</label>
+                <div class="col-sm-7">
+                    <input id="lbl_treat_dynamic_and_domain_objects_as_internet" type="checkbox" @bind="configData!.TreatDynamicAndDomainObjectsAsInternet" />            
+                </div>
+            </div>
         }
     <hr />
     <AuthorizeView Roles="@Roles.Admin">

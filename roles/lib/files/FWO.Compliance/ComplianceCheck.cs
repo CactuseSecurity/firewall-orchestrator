@@ -666,7 +666,11 @@ namespace FWO.Compliance
             {
                 List<ComplianceNetworkZone>? networkZones = null;
 
-                if (dataItem.ipRanges.Count > 0)
+                if (_userConfig.GlobalConfig is GlobalConfig globalConfig && globalConfig.AutoCalculateInternetZone && globalConfig.TreatDynamicAndDomainObjectsAsInternet)
+                {
+                    map.Add((dataItem.networkObject, _networkZones.Where(zone => zone.IsAutoCalculatedInternetZone).ToList()));
+                }
+                else if (dataItem.ipRanges.Count > 0)
                 {
                     networkZones = DetermineZones(dataItem.ipRanges);
                 }

@@ -2622,6 +2622,8 @@ INSERT INTO txt VALUES ('complianceCheckDiv','German', 'Div (Benchmarking, Spezi
 INSERT INTO txt VALUES ('complianceCheckDiv','English','Div (benchmarking, special purpose, etc)');
 INSERT INTO txt VALUES ('complianceCheckAutoCalculatedZonesAtTheEnd','German', 'Auto-kalkulierte Zonen nach anderen Zonen anordnen.');
 INSERT INTO txt VALUES ('complianceCheckAutoCalculatedZonesAtTheEnd','English','Arrange auto-calculated zones according to other zones.');
+INSERT INTO txt VALUES ('complianceCheckTreatDynamicAndDomainObjectsAsInternet','German', 'Behandel dynamische und Domain-Objekte als Internet.');
+INSERT INTO txt VALUES ('complianceCheckTreatDynamicAndDomainObjectsAsInternet','English','Treat dynamic and domain objects as internet.');
 INSERT INTO txt VALUES ('availableModules',     'German', 	'Verf&uuml;gbare Module');
 INSERT INTO txt VALUES ('availableModules',     'English', 	'Available Modules');
 INSERT INTO txt VALUES ('notification',   		'German', 	'Benachrichtigung');
@@ -5890,6 +5892,8 @@ INSERT INTO txt VALUES ('H5833', 'German',  'Ehemaliger IPv6-Übergangsbereich (
 INSERT INTO txt VALUES ('H5833', 'English', 'Former IPv6 transition range (6to4 relay), now obsolete.');
 INSERT INTO txt VALUES ('H5834', 'German',  'Wenn aktiviert, werden die auto-kalkulierten Zonen am Ende der Matrix-Achsen eingeordnet. Default: am Anfang.');
 INSERT INTO txt VALUES ('H5834', 'English', 'When activated, the auto-calculated zones are placed at the end of the matrix axes. Default: at the beginning.');
+INSERT INTO txt VALUES ('H5835', 'German',  'Wenn aktiviert, werden dynamische und Domain-Objekte in der Compliance-Auswertung als Teil der Internetzone angenommen. Default: Objekte werden gleich behandelt wie andere Netzwerkobjekte.');
+INSERT INTO txt VALUES ('H5835', 'English', 'When enabled, dynamic and domain objects are considered part of the Internet zone in the compliance evaluation. Default: Objects are treated the same as other network objects.');
 
 INSERT INTO txt VALUES ('H6001', 'German',  'Firewall Orchestrator verf&uuml;gt &uuml;ber zwei APIs:
     <ul>

@@ -260,6 +260,9 @@ class ImportStateController(ImportState):
 
     # limited to the current mgm_id
     # creates a dict with key = rulebase.uid and value = rulebase.id
+    # TODO: map update inconsistencies: import_state is global over all sub managers, so map needs to be updated for each sub manager
+    #   currently, this is done in fwconfig_import_rule. But what about other maps? - see #3646
+    # TODO: global rulebases not yet included
     def SetRulebaseMap(self, api_call):
         logger = getFwoLogger()
 
@@ -303,10 +306,10 @@ class ImportStateController(ImportState):
     # and also            key = gateway.name and value = gateway.id
     def SetGatewayMap(self, api_call):
         query = """
-            query getGatewayMap($mgmId: Int) {
+            query getGatewayMap {
                 device {
+                    mgm_id
                     dev_id
-                    dev_name
                     dev_uid
                 }
             }
@@ -321,8 +324,9 @@ class ImportStateController(ImportState):
         
         m = {}
         for gw in result['data']['device']:
-            m.update({gw['dev_name']: gw['dev_id']})
-            m.update({gw['dev_uid']: gw['dev_id']})
+            if gw['mgm_id'] not in m:
+                m[gw['mgm_id']] = {}
+            m[gw['mgm_id']][gw['dev_uid']] = gw['dev_id']
         self.GatewayMap = m
 
     # getting all managements (not limitited to the current mgm_id) to support super managements
@@ -386,8 +390,21 @@ class ImportStateController(ImportState):
     def lookupLinkType(self, linkUid):
         return self.LinkTypes.get(linkUid, -1)
 
-    def lookupGatewayId(self, gwUid):
-        return self.GatewayMap.get(gwUid, None)
+    def lookupGatewayId(self, gwUid: str) -> int|None:
+        mgm_id = self.MgmDetails.CurrentMgmId
+        gws_for_mgm = self.GatewayMap.get(mgm_id, {})
+        gw_id = gws_for_mgm.get(gwUid, None)
+        if gw_id is None:
+            logger = getFwoLogger()
+            logger.error(f"fwo_api:import_latest_config - no gateway id found for current mgm id '{mgm_id}' and gateway uid '{gwUid}' in {len(gws_for_mgm)} known gateways for this mgm")
+            raise FwoImporterError(f"fwo_api:import_latest_config - no gateway id found for current mgm id '{mgm_id}' and gateway uid '{gwUid}' in {len(gws_for_mgm)} known gateways for this mgm")
+        return gw_id
+    
+    def lookup_all_gateway_ids(self) -> list[int]:
+        mgm_id = self.MgmDetails.CurrentMgmId
+        gws_for_mgm = self.GatewayMap.get(mgm_id, {})
+        gw_ids = list(gws_for_mgm.values())
+        return gw_ids
 
     def lookupManagementId(self, mgmUid):
         if not self.ManagementMap.get(mgmUid, None):

@@ -380,9 +380,6 @@ class ImportStateController(ImportState):
         if rulebaseId is None:
             logger = getFwoLogger()
             logger.error(f"Rulebase {rulebaseUid} not found in {len(self.RulebaseMap)} known rulebases")
-            with open(f"/usr/local/fworch/tmp/import/debug_rulebase_map_{self.MgmDetails.Id}.txt", "w") as f:
-                for k, v in self.RulebaseMap.items():
-                    f.write(f"{k}: {v}\n")
             raise FwoImporterError(f"Rulebase {rulebaseUid} not found in {len(self.RulebaseMap)} known rulebases")
         return rulebaseId
 

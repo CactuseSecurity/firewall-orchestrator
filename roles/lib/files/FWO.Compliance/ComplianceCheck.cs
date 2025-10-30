@@ -701,7 +701,7 @@ namespace FWO.Compliance
 
             // Get ip ranges that are not in any zone
             List<IPAddressRange> undefinedIpRanges = [.. unseenIpAddressRanges.SelectMany(x => x)];
-            if (undefinedIpRanges.Count > 0)
+            if (!(_userConfig.GlobalConfig is GlobalConfig globalConfig && globalConfig.AutoCalculateInternetZone) && undefinedIpRanges.Count > 0)
             {
                 result.Add
                 (

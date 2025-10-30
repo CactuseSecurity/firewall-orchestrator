@@ -26,6 +26,8 @@ class ConnectionInfo:
 class CredentialInfo:
     secret: str = ''
     import_user: str = ''
+    cloud_client_id: str = ''
+    cloud_client_secret: str = ''
 
 @dataclass
 class ManagerInfo:
@@ -64,7 +66,9 @@ class ManagementController(Management):
         # Credential info
         self.ImportUser = credential_info.import_user
         self.Secret = credential_info.secret
-        
+        self.CloudClientId = credential_info.cloud_client_id
+        self.CloudClientSecret = credential_info.cloud_client_secret
+
         # Manager info
         self.IsSuperManager = manager_info.is_super_manager
         self.SubManagerIds = manager_info.sub_manager_ids or []
@@ -93,7 +97,9 @@ class ManagementController(Management):
         
         credential_info = CredentialInfo(
             import_user=json_dict['import_credential']['user'],
-            secret=json_dict['import_credential']['secret']
+            secret=json_dict['import_credential']['secret'],
+            cloud_client_id=json_dict['import_credential']['cloud_client_id'],
+            cloud_client_secret=json_dict['import_credential']['cloud_client_secret']
         )
         
         manager_info = ManagerInfo(

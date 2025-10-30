@@ -239,7 +239,7 @@ def get_config_from_api(importState: ImportStateController, config_in) -> tuple[
         raise
 
     # check for changes from product-specific FW API, if we are importing from file we assume config changes
-    config_changed_since_last_import = importState.ImportFileName != None or \
+    config_changed_since_last_import = importState.ImportFileName is not None or \
         fw_module.has_config_changed(config_in, importState, force=importState.ForceImport)
     if config_changed_since_last_import:
         logger.info ( "has_config_changed: changes found or forced mode -> go ahead with getting config, Force = " + str(importState.ForceImport))
@@ -268,6 +268,8 @@ def get_module_package_name(import_state: ImportStateController):
     elif import_state.MgmDetails.DeviceTypeName.lower() == 'fortimanager':
         pkg_name = import_state.MgmDetails.DeviceTypeName.lower().replace(' ', '').replace('fortimanager', 'FortiAdom').lower() +\
             import_state.MgmDetails.DeviceTypeVersion.replace(' ', '').lower()
+    elif import_state.MgmDetails.DeviceTypeName == 'Cisco Asa on FirePower':
+        pkg_name = 'ciscoasa' + import_state.MgmDetails.DeviceTypeVersion
     else:
         pkg_name = f"{import_state.MgmDetails.DeviceTypeName.lower().replace(' ', '')}{import_state.MgmDetails.DeviceTypeVersion}"
 

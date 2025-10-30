@@ -1,10 +1,11 @@
-﻿using FWO.Basics;
+using FWO.Basics;
 using FWO.Data;
 using FWO.Logging;
 using Microsoft.IdentityModel.JsonWebTokens;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
+using System.Security.Cryptography;
 using System.Text.Json;
 
 namespace FWO.Middleware.Server
@@ -120,9 +121,9 @@ namespace FWO.Middleware.Server
 			claimsIdentity.AddClaim(new Claim("x-hasura-user-id", user.DbId.ToString()));
 			if (user.Dn != null && user.Dn.Length > 0)
 				claimsIdentity.AddClaim(new Claim("x-hasura-uuid", user.Dn));   // UUID used for access to reports via API
-				
+
 			if (user.Tenant != null)
-			{ 
+			{
 				claimsIdentity.AddClaim(new Claim("x-hasura-tenant-id", user.Tenant.Id.ToString()));
 				if(user.Tenant.VisibleGatewayIds != null && user.Tenant.VisibleManagementIds != null)
 				{
@@ -178,5 +179,13 @@ namespace FWO.Middleware.Server
 			}
 			return defaultRole;
 		}
-	}
+
+        /// <summary>
+        /// Generates a cryptographically secure refresh token
+        /// </summary>
+        public static string GenerateRefreshToken()
+        {
+            return Convert.ToBase64String(RandomNumberGenerator.GetBytes(64));
+        }
+    }
 }

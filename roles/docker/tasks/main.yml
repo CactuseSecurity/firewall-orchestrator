@@ -1,66 +1,65 @@
 ---
-- block:  
-  - set_fact:
-      ansible_user: "{{ lookup('env','USER') }}"
-      os_codename: "{{ ansible_lsb.codename | lower }}"
-  
-  # for trixie there is no docker image yet
-  - set_fact: 
-      os_codename: bookworm
-    when: "os_codename == 'trixie'"
- 
-  - name: Install packages for docker download n installation
-    package:
-      name: "{{ item }}"
-    loop:
-      - gnupg2
-      - apt-transport-https
-      - ca-certificates
-      - curl
+- block:
+    - set_fact:
+        ansible_user: "{{ lookup('env','USER') }}"
+        os_codename: "{{ ansible_lsb.codename | lower }}"
 
-  - name: adding docker apt signing key
-    get_url:
-      url: https://download.docker.com/linux/ubuntu/gpg
-      dest: /etc/apt/trusted.gpg.d/docker.asc
-      force: true
-      mode: "0644"
-    environment: "{{ proxy_env }}"
+    # for trixie there is no docker image yet
+    - set_fact:
+        os_codename: bookworm
+      when: "os_codename == 'trixie'"
 
-  - name: add docker repo
-    lineinfile:
-      path: "/etc/apt/sources.list.d/docker.list"
-      regexp: '.*https://download.docker.com/linux/.*'
-      create: true
-      regexp: 'download.docker.com'
-      line: "deb [arch=amd64] https://download.docker.com/linux/{{ ansible_distribution | lower }} {{ os_codename }} stable"
+    - name: Install packages for docker download n installation
+      package:
+        name: "{{ item }}"
+      loop:
+        - gnupg2
+        - apt-transport-https
+        - ca-certificates
+        - curl
 
-  - name: apt update
-    apt: update_cache=true
-    environment: "{{ proxy_env }}"
+    - name: adding docker apt signing key
+      get_url:
+        url: https://download.docker.com/linux/ubuntu/gpg
+        dest: /etc/apt/trusted.gpg.d/docker.asc
+        force: true
+        mode: "0644"
+      environment: "{{ proxy_env }}"
 
-  - name: Install all packages for docker
-    package:
-      name: "{{ item }}"
-    loop:
-      - docker-ce
-      - docker-ce-cli
-      - containerd.io
-       
-  - name: Add the group 'docker' for {{ ansible_user }} and {{ fworch_user }} to allow running docker
-    user:
+    - name: add docker repo
+      lineinfile:
+        path: "/etc/apt/sources.list.d/docker.list"
+        regexp: ".*https://download.docker.com/linux/.*"
+        create: true
+        line: "deb [arch=amd64] https://download.docker.com/linux/{{ ansible_distribution | lower }} {{ os_codename }} stable"
+
+    - name: apt update
+      apt: update_cache=true
+      environment: "{{ proxy_env }}"
+
+    - name: Install all packages for docker
+      package:
+        name: "{{ item }}"
+      loop:
+        - docker-ce
+        - docker-ce-cli
+        - containerd.io
+
+    - name: Add the group 'docker' for {{ ansible_user }} and {{ fworch_user }} to allow running docker
+      user:
         name: "{{ item }}"
         groups: docker
         append: true
-    loop:
-      -  "{{ ansible_user }}"
-      -  "{{ fworch_user }}"
+      loop:
+        - "{{ ansible_user }}"
+        - "{{ fworch_user }}"
 
-  - name: set proxy for docker daemon to get images via proxy
-    import_tasks: set-docker-daemon-proxy.yml
-    notify: "docker restart"
+    - name: set proxy for docker daemon to get images via proxy
+      import_tasks: set-docker-daemon-proxy.yml
+      notify: "docker restart"
 
-  - name: include upgrade script
-    import_tasks: run-upgrades.yml
-    when: "installation_mode == 'upgrade'"
+    - name: include upgrade script
+      import_tasks: run-upgrades.yml
+      when: "installation_mode == 'upgrade'"
 
   become: true

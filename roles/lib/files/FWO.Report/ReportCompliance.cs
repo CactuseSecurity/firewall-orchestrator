@@ -42,6 +42,7 @@ namespace FWO.Report
         private readonly int _maxCellSize;
         private readonly int _maxPrintedViolations;
         private List<int> _relevanteManagementIDs = new();
+        private readonly GlobalConfig? _globalConfig;
 
         #endregion
 
@@ -80,6 +81,7 @@ namespace FWO.Report
 
             if (userConfig.GlobalConfig != null)
             {
+                _globalConfig = userConfig.GlobalConfig;
                 _maxPrintedViolations = userConfig.GlobalConfig.ComplianceCheckMaxPrintedViolations;
             }
 
@@ -250,14 +252,14 @@ namespace FWO.Report
             {
                 isAssessable &= !TryAddNotAssessableDetails(
                     networkObjects,
-                    n => n.IP == null && n.IpEnd == null,
+                    n => n.IP == null && n.IpEnd == null && !(_globalConfig.AutoCalculateInternetZone &&  _globalConfig.TreatDynamicAndDomainObjectsAsInternet && (n.Type.Name == "domain" || n.Type.Name == "dynamic_net_obj")),
                     "Network objects in source or destination without IP: ",
                     violationDetailsBuilder);
 
                 isAssessable &= !TryAddNotAssessableDetails(
                     networkObjects,
-                    n => (n.IP == "0.0.0.0/32" && n.IpEnd == "255.255.255.255/32")
-                    || (n.IP == "::/128" && n.IpEnd == "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff/128"),
+                    n => ((n.IP == "0.0.0.0/32" && n.IpEnd == "255.255.255.255/32")
+                    || (n.IP == "::/128" && n.IpEnd == "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff/128")) && !(_globalConfig.AutoCalculateInternetZone &&  _globalConfig.TreatDynamicAndDomainObjectsAsInternet && (n.Type.Name == "domain" || n.Type.Name == "dynamic_net_obj")),
                     "Network objects in source or destination with 0.0.0.0/0 or ::/0: ",
                     violationDetailsBuilder);
 

@@ -20,7 +20,7 @@ query getManagementForLatestNormalizedConfig(
     rulebases(where: { removed: { _is_null: true } }) {
       ...rulebaseFragment
     }
-    devices {
+    devices(where: {rulebase_links: {removed: {_is_null: true}}}) {
       ...deviceFragment
     }
   }

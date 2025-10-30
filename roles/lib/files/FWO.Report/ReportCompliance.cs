@@ -239,80 +239,6 @@ namespace FWO.Report
 
         #region Methods - Public
 
-        public Task<(bool isAssessable, string violationDetails)> CheckAssessability(Rule rule, List<NetworkLocation> networkLocations)
-        {
-            bool isAssessable = true;
-            StringBuilder violationDetailsBuilder = new();
-
-            List<NetworkObject> networkObjects = networkLocations
-                .Select(nl => nl.Object) // ATTENTION!!! excludes users
-                .ToList();
-
-            // If treated as part of internet zone dynamic and domain objects are irrelevant for the assessability check
-
-            if (_globalConfig!.AutoCalculateInternetZone && _globalConfig.TreatDynamicAndDomainObjectsAsInternet)
-            {
-                networkObjects = networkObjects
-                    .Where(n => !new List<string> { "domain", "dynamic_net_obj" }.Contains(n.Type.Name))
-                    .ToList();
-            }
-            
-            if (rule.Action == "accept")
-            {
-                isAssessable &= !TryAddNotAssessableDetails(
-                    networkObjects,
-                    n => n.IP == null && n.IpEnd == null,
-                    "Network objects in source or destination without IP: ",
-                    violationDetailsBuilder);
-
-                isAssessable &= !TryAddNotAssessableDetails(
-                    networkObjects,
-                    n => ((n.IP == "0.0.0.0/32" && n.IpEnd == "255.255.255.255/32")
-                    || (n.IP == "::/128" && n.IpEnd == "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff/128")),
-                    "Network objects in source or destination with 0.0.0.0/0 or ::/0: ",
-                    violationDetailsBuilder);
-
-                isAssessable &= !TryAddNotAssessableDetails(
-                    networkObjects,
-                    n => n.IP == "255.255.255.255/32" && n.IpEnd == "255.255.255.255/32",
-                    "Network objects in source or destination with 255.255.255.255/32: ",
-                    violationDetailsBuilder);
-
-                isAssessable &= !TryAddNotAssessableDetails(
-                    networkObjects,
-                    n => n.IP == "0.0.0.0/32" && n.IpEnd == "0.0.0.0/32",
-                    "Network objects in source or destination with 0.0.0.0/32: ",
-                    violationDetailsBuilder);
-            }
-
-            return Task.FromResult((isAssessable, violationDetailsBuilder.ToString()));
-        }
-
-        private bool TryAddNotAssessableDetails(IEnumerable<NetworkObject> networkObjects, Func<NetworkObject, bool> predicate, string headerText, StringBuilder details, Func<NetworkObject, string>? itemFormatter = null)
-        {
-            Func<NetworkObject, string> format = itemFormatter ?? (n => n.Name);
-
-            List<string> notAssessableDetails = networkObjects
-                .Where(predicate)
-                .Select(format)
-                .ToList();
-
-            if (notAssessableDetails.Count == 0)
-            {
-                return false;
-            }
-
-            if (details.Length > 0)
-            {
-                details.Append("<br>");
-            }
-
-            details.Append(headerText);
-            details.Append(string.Join(",", notAssessableDetails));
-                
-            return true;
-        }
-
         public async Task<List<T>[]?> GetDataParallelized<T>(int rulesCount, int elementsPerFetch, ApiConnection apiConnection, CancellationToken ct, string query)
         {
             List<Task<List<T>>> tasks = new();
@@ -377,16 +303,7 @@ namespace FWO.Report
                             // Add empty groups because display method does not get them
 
                             await GatherEmptyGroups(networkLocations, resolvedNetworkLocations);
-
-                            (bool isAssessable, string violationDetails) checkAssessabilityResult = await CheckAssessability(rule, resolvedNetworkLocations);
-                            ComplianceViolationType complianceViolationType = checkAssessabilityResult.isAssessable ? rule.Compliance : ComplianceViolationType.NotAssessable;
-                            RuleViewData ruleViewData = new RuleViewData(rule, _natRuleDisplayHtml, OutputLocation.report, ShowRule(rule), _devices ?? [], Managements ?? [], complianceViolationType);
-
-                            // if (!checkAssessabilityResult.isAssessable)
-                            // {
-                            // ruleViewData.ViolationDetails = checkAssessabilityResult.violationDetails;
-                            // }
-
+                            RuleViewData ruleViewData = new RuleViewData(rule, _natRuleDisplayHtml, OutputLocation.report, ShowRule(rule), _devices ?? [], Managements ?? [], rule.Compliance);
                             localViewData.Add(ruleViewData);
                         }
 
@@ -576,33 +493,6 @@ namespace FWO.Report
             {
                 sb.AppendLine(string.Join(_separator, propertyNames.Select(p => $"\"{p}\"")));
             }
-        }
-
-        private List<NetworkObject> GetAllNetworkObjectsFromRule(Rule rule)
-        {
-            HashSet<NetworkObject> allObjects = [];
-
-            foreach (NetworkLocation networkLocation in rule.Tos.Concat(rule.Froms).ToList())
-            {
-                if (networkLocation.Object.ObjectGroupFlats.Any())
-                {
-                    foreach (GroupFlat<NetworkObject> groupFlat in networkLocation.Object.ObjectGroupFlats)
-                    {
-                        // excludes group objects, that are filled, to prevent false positives on objects without ip, but excludes empty groups
-                        
-                        if (groupFlat.Object != null && (groupFlat.Object.Type.Name != "group" || groupFlat.Object.ObjectGroupFlats.Count() == 0))
-                        {
-                            allObjects.Add(groupFlat.Object);
-                        }
-                    }
-                }
-                else
-                {
-                    allObjects.Add(networkLocation.Object);
-                }
-            }
-
-            return allObjects.ToList();
         }
 
         public override string ExportToHtml()

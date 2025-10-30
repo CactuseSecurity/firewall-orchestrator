@@ -1756,7 +1756,6 @@ INSERT INTO txt VALUES ('modelled_destination', 'English', 	'Modelled Destinatio
 INSERT INTO txt VALUES ('last_requested',		'German', 	'Letzte Beantragung');
 INSERT INTO txt VALUES ('last_requested',		'English', 	'Last Requested');
 
-
 -- compliance
 INSERT INTO txt VALUES ('compliance',			'German', 	'Compliance');
 INSERT INTO txt VALUES ('compliance',			'English', 	'Compliance');
@@ -1836,6 +1835,14 @@ INSERT INTO txt VALUES ('criteria',      		'German', 	'Kriterien');
 INSERT INTO txt VALUES ('criteria',      		'English', 	'Criteria');
 INSERT INTO txt VALUES ('show_non_impact_rules','German',   'Zeige Regeln ohne Auswirkungen');
 INSERT INTO txt VALUES ('show_non_impact_rules','English',  'Show non-impact rules');
+INSERT INTO txt VALUES ('assess_ip_null',       'German',   'Netzwerkobjekte in Quelle oder Ziel ohne IP-Adresse');
+INSERT INTO txt VALUES ('assess_ip_null',       'English',  'Network objects in source or destination without IP');
+INSERT INTO txt VALUES ('assess_all_ips',       'German',   'Netzwerkobjekte in Quelle oder Ziel mit 0.0.0.0/0 oder ::/0');
+INSERT INTO txt VALUES ('assess_all_ips',       'English',  'Network objects in source or destination with 0.0.0.0/0 or ::/0');
+INSERT INTO txt VALUES ('assess_host_address',       'German',   'Netzwerkobjekte in Quelle oder Ziel mit 0.0.0.0/32');
+INSERT INTO txt VALUES ('assess_host_address',       'English',  'Network objects in source or destination with 0.0.0.0/32');
+INSERT INTO txt VALUES ('assess_broadcast',     'German',   'Netzwerkobjekte in Quelle oder Ziel mit 255.255.255.255/32');
+INSERT INTO txt VALUES ('assess_broadcast',     'English',  'Network objects in source or destination with 255.255.255.255/32');
 
 -- settings
 INSERT INTO txt VALUES ('devices',				'German', 	'Ger&auml;te');
@@ -2626,6 +2633,7 @@ INSERT INTO txt VALUES ('complianceCheckTreatDynamicAndDomainObjectsAsInternet',
 INSERT INTO txt VALUES ('complianceCheckTreatDynamicAndDomainObjectsAsInternet','English','Treat dynamic and domain objects as internet');
 INSERT INTO txt VALUES ('complianceCheckShowShortColumsInComplianceReports','German', 'Spalten mit Kurzform für Sources, Destinations und Services anzeigen');
 INSERT INTO txt VALUES ('complianceCheckShowShortColumsInComplianceReports','English','Show columns with short forms for sources, destinations and services');
+
 INSERT INTO txt VALUES ('availableModules',     'German', 	'Verf&uuml;gbare Module');
 INSERT INTO txt VALUES ('availableModules',     'English', 	'Available Modules');
 INSERT INTO txt VALUES ('notification',   		'German', 	'Benachrichtigung');

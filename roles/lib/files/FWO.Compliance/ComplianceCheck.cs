@@ -12,6 +12,7 @@ using FWO.Data.Middleware;
 using System.Text.Json;
 using FWO.Logging;
 using FWO.Ui.Display;
+using System.Linq.Expressions;
 
 namespace FWO.Compliance
 {
@@ -356,12 +357,30 @@ namespace FWO.Compliance
 
             if (rule.Action == "accept")
             {
+                // Resolve network locations
+
+                NetworkLocation[] networkLocations = rule.Froms.Concat(rule.Tos).ToArray();
+                List<NetworkLocation> resolvedNetworkLocations = RuleDisplayBase.GetResolvedNetworkLocations(networkLocations);
+
+                List<NetworkObject> resolvedSources = RuleDisplayBase
+                    .GetResolvedNetworkLocations(rule.Froms)
+                    .Select(from => from.Object)
+                    .ToList();
+
+                List<NetworkObject> resolvedDestinations = RuleDisplayBase
+                    .GetResolvedNetworkLocations(rule.Tos)
+                    .Select(to => to.Object)
+                    .ToList();
+                
                 foreach (var criterion in (_policy?.Criteria ?? []).Select(c => c.Content))
                 {
                     switch (criterion.CriterionType)
                     {
+                        case nameof(CriterionType.Assessability):
+                            ruleIsCompliant &= CheckAssessability(rule, resolvedSources, resolvedDestinations, criterion).Result;
+                            break;
                         case nameof(CriterionType.Matrix):
-                            ruleIsCompliant &= await CheckAgainstMatrix(rule);
+                            ruleIsCompliant &= await CheckAgainstMatrix(rule, criterion);
                             break;
                         case nameof(CriterionType.ForbiddenService):
                             ruleIsCompliant &= CheckForForbiddenService(rule, criterion);
@@ -375,54 +394,38 @@ namespace FWO.Compliance
             return ruleIsCompliant;
         }
 
-        private async Task<bool> CheckAgainstMatrix(Rule rule)
+        private async Task<bool> CheckAgainstMatrix(Rule rule, ComplianceCriterion criterion)
         {
             Task<List<(NetworkObject networkObject, List<IPAddressRange> ipRanges)>> fromsTask = GetNetworkObjectsWithIpRanges([.. rule.Froms.Select(nl => nl.Object)]);
             Task<List<(NetworkObject networkObject, List<IPAddressRange> ipRanges)>> tosTask = GetNetworkObjectsWithIpRanges([.. rule.Tos.Select(nl => nl.Object)]);
 
             await Task.WhenAll(fromsTask, tosTask);
 
-            bool ruleIsCompliant = CheckMatrixCompliance(rule, fromsTask.Result, tosTask.Result);
+            bool ruleIsCompliant = CheckMatrixCompliance(rule, fromsTask.Result, tosTask.Result, criterion);
 
             return ruleIsCompliant;
         }
 
-        private bool CheckMatrixCompliance(Rule rule, List<(NetworkObject networkObject, List<IPAddressRange> ipRanges)> source, List<(NetworkObject networkObject, List<IPAddressRange> ipRanges)> destination)
+        private bool CheckMatrixCompliance(Rule rule, List<(NetworkObject networkObject, List<IPAddressRange> ipRanges)> source, List<(NetworkObject networkObject, List<IPAddressRange> ipRanges)> destination, ComplianceCriterion criterion)
         {
             bool ruleIsCompliant = true;
 
             List<(NetworkObject networkObject, List<ComplianceNetworkZone>? networkZones)> sourceZones = MapZonesToNetworkObjects(source);
             List<(NetworkObject networkObject, List<ComplianceNetworkZone>? networkZones)> destinationZones = MapZonesToNetworkObjects(destination);
-            List<NetworkObject> objectsWithoutZone = [];
 
             foreach ((NetworkObject networkObject, List<ComplianceNetworkZone>? networkZones) sourceZone in sourceZones)
             {
-                if (sourceZone.networkZones == null)
-                {
-                    CreateUnresolvableZoneViolation(rule, sourceZone.networkObject, true);
-                    ruleIsCompliant = false;
-                    continue;
-                }
-
                 foreach (ComplianceNetworkZone sourceNetworkZone in sourceZone.networkZones ?? [])
                 {
                     foreach ((NetworkObject networkObject, List<ComplianceNetworkZone>? networkZones) destinationZone in destinationZones)
                     {
-
-                        if (sourceZone.networkZones == null)
-                        {
-                            CreateUnresolvableZoneViolation(rule, destinationZone.networkObject, false);
-                            ruleIsCompliant = false;
-                            continue;
-                        }
-
                         foreach (ComplianceNetworkZone destinationNetworkZone in destinationZone.networkZones ?? [])
                         {
                             if (!sourceNetworkZone.CommunicationAllowedTo(destinationNetworkZone))
                             {
                                 ComplianceCheckResult complianceCheckResult = new(rule, ComplianceViolationType.MatrixViolation)
                                 {
-                                    Criterion = _policy?.Criteria.FirstOrDefault(c => c.Content.CriterionType == CriterionType.Matrix.ToString())?.Content,
+                                    Criterion = criterion,
                                     Source = sourceZone.networkObject,
                                     SourceZone = sourceNetworkZone,
                                     Destination = destinationZone.networkObject,
@@ -431,11 +434,11 @@ namespace FWO.Compliance
 
                                 ComplianceViolation? violation = TryCreateViolation(ComplianceViolationType.MatrixViolation, rule, complianceCheckResult);
 
-
-
-                                ComplianceReport!.Violations.Add(violation!);
-
-                                ruleIsCompliant = false;
+                                if (violation != null)
+                                {
+                                    ComplianceReport!.Violations.Add(violation!);
+                                    ruleIsCompliant = false;                                    
+                                }
                             }
                         }
                     }
@@ -445,29 +448,6 @@ namespace FWO.Compliance
             return ruleIsCompliant;
         }
 
-        private void CreateUnresolvableZoneViolation(Rule rule, NetworkObject networkObject, bool isSource)
-        {
-            ComplianceCheckResult complianceCheckResult = new(rule, ComplianceViolationType.MatrixViolation)
-            {
-                Criterion = _policy?.Criteria.FirstOrDefault(c => c.Content.CriterionType == CriterionType.Matrix.ToString())?.Content,
-            };
-
-            if (isSource)
-            {
-                complianceCheckResult.Source = networkObject;
-            }
-            else
-            {
-                complianceCheckResult.Destination = networkObject;
-            }
-
-            ComplianceViolation? violation = TryCreateViolation(ComplianceViolationType.MatrixViolation, rule, complianceCheckResult);
-
-
-
-            ComplianceReport!.Violations.Add(violation!);
-        }
-
         private ComplianceViolation? TryCreateViolation(ComplianceViolationType violationType, Rule rule, ComplianceCheckResult complianceCheckResult)
         {
             ComplianceViolation violation = new()
@@ -475,38 +455,19 @@ namespace FWO.Compliance
                 RuleId = (int)rule.Id,
                 RuleUid = rule.Uid ?? "",
                 MgmtUid = ComplianceReport?.Managements?.FirstOrDefault(m => m.Id == rule.MgmtId)?.Uid ?? "",
-                PolicyId = _policy?.Id ?? 0
+                PolicyId = _policy?.Id ?? 0,
+                CriterionId = complianceCheckResult.Criterion!.Id
             };
 
             switch (violationType)
             {
                 case ComplianceViolationType.MatrixViolation:
 
-                    // Workaround!! TODO: Check compliance per criterion and transfer criterion id through the methods
-
-                    violation.CriterionId = _policy?.Criteria
-                                                .FirstOrDefault(criterionWrapper => criterionWrapper.Content.CriterionType == "Matrix")?
-                                                .Content.Id ?? 0;
-                                                
                     if (complianceCheckResult.Source is NetworkObject s && complianceCheckResult.Destination is NetworkObject d)
                     {
                         string sourceString = GetNwObjectString(s);
                         string destinationString = GetNwObjectString(d);
                         violation.Details = $"Matrix violation: {sourceString} (Zone: {complianceCheckResult.SourceZone?.Name ?? ""}) -> {destinationString} (Zone: {complianceCheckResult.DestinationZone?.Name ?? ""})";
-                    }
-                    else
-                    {
-                        if (complianceCheckResult.Source != null && complianceCheckResult.SourceZone == null)
-                        {
-                            violation.Details = $"Assessability issue: Failed to resolve zone for source {GetNwObjectString(complianceCheckResult.Source)}.";
-                        }
-                        else if (complianceCheckResult.Destination != null && complianceCheckResult.DestinationZone == null)
-                        {
-                            violation.Details = $"Assessability issue: Failed to resolve zone for destination {GetNwObjectString(complianceCheckResult.Destination)}.";
-                        }
-                        else
-                        {
-                            violation.Details = $"Assessability issue: Failed to resolve network objects.";                }
                     }
 
                     break;
@@ -515,12 +476,20 @@ namespace FWO.Compliance
 
                     if (complianceCheckResult.Service is NetworkService svc)
                     {
-                        violation.CriterionId = complianceCheckResult.Criterion?.Id ?? 0;
                         violation.Details = $"Restricted service used: {svc.Name}";
                     }
                     else
                     {
                         throw new ArgumentNullException(paramName: "complianceCheckResult.Service", message: "The service argument must be non-null when creating a service violation.");
+                    }
+
+                    break;
+
+                case ComplianceViolationType.NotAssessable:
+
+                    if (complianceCheckResult.AssessabilityIssue != null)
+                    {
+                        violation.Details = $"Assessability issue: {complianceCheckResult}";
                     }
 
                     break;
@@ -714,5 +683,80 @@ namespace FWO.Compliance
 
             return result;
         }
+
+        public Task<bool> CheckAssessability(Rule rule, List<NetworkObject> resolvedSources, List<NetworkObject> resolvedDestinations, ComplianceCriterion criterion)
+        {
+            bool isAssessable = true;
+
+            // If treated as part of internet zone dynamic and domain objects are irrelevant for the assessability check.
+
+            if (_userConfig.GlobalConfig is GlobalConfig globalConfig && globalConfig.AutoCalculateInternetZone && globalConfig.TreatDynamicAndDomainObjectsAsInternet)
+            {
+                resolvedSources = resolvedSources
+                    .Where(n => !new List<string> { "domain", "dynamic_net_obj" }.Contains(n.Type.Name))
+                    .ToList();
+
+                resolvedDestinations = resolvedDestinations
+                    .Where(n => !new List<string> { "domain", "dynamic_net_obj" }.Contains(n.Type.Name))
+                    .ToList();
+            }
+
+            // Check only accept rules for assessability.
+
+            if (rule.Action == "accept")
+            {
+                foreach (NetworkObject networkObject in resolvedSources.Concat(resolvedDestinations))
+                {
+                    // Get assessability issue type if existing.
+
+                    Expression<Func<bool>> assessabilityExpression = () => networkObject.IP == null && networkObject.IpEnd == null
+                        || (networkObject.IP == "0.0.0.0/32" && networkObject.IpEnd == "255.255.255.255/32")
+                        || (networkObject.IP == "::/128" && networkObject.IpEnd == "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff/128")
+                        || (networkObject.IP == "255.255.255.255/32" && networkObject.IpEnd == "255.255.255.255/32")
+                        || (networkObject.IP == "0.0.0.0/32" && networkObject.IpEnd == "0.0.0.0/32");
+
+                    AssessabilityIssue? assessabilityIssue = assessabilityExpression.ToAssessibilityIssue();
+
+                    if (assessabilityIssue != null)
+                    {
+                        isAssessable = false;
+
+                        // Create check result object.
+
+                        ComplianceCheckResult complianceCheckResult;
+
+                        if (resolvedSources.Contains(networkObject))
+                        {
+                            complianceCheckResult = new(rule, ComplianceViolationType.NotAssessable)
+                            {
+                                Source = networkObject
+                            };
+                        }
+                        else
+                        {
+                            complianceCheckResult = new(rule, ComplianceViolationType.NotAssessable)
+                            {
+                                Destination = networkObject
+                            };
+                        }
+
+                        complianceCheckResult.AssessabilityIssue = assessabilityIssue;
+                        complianceCheckResult.Criterion = criterion;
+
+                        // Create violation.
+
+                        ComplianceViolation? violation = TryCreateViolation(ComplianceViolationType.NotAssessable, rule, complianceCheckResult);
+
+                        if (violation != null)
+                        {
+                            ComplianceReport!.Violations.Add(violation);
+                        }
+                    }
+                }
+            }
+
+            return Task.FromResult(isAssessable);
+        }
+        
     }
 }

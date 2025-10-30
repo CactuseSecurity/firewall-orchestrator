@@ -243,23 +243,32 @@ namespace FWO.Report
         {
             bool isAssessable = true;
             StringBuilder violationDetailsBuilder = new();
-            
+
             List<NetworkObject> networkObjects = networkLocations
                 .Select(nl => nl.Object) // ATTENTION!!! excludes users
                 .ToList();
 
+            // If treated as part of internet zone dynamic and domain objects are irrelevant for the assessability check
+
+            if (_globalConfig!.AutoCalculateInternetZone && _globalConfig.TreatDynamicAndDomainObjectsAsInternet)
+            {
+                networkObjects = networkObjects
+                    .Where(n => !new List<string> { "domain", "dynamic_net_obj" }.Contains(n.Type.Name))
+                    .ToList();
+            }
+            
             if (rule.Action == "accept")
             {
                 isAssessable &= !TryAddNotAssessableDetails(
                     networkObjects,
-                    n => n.IP == null && n.IpEnd == null && !(_globalConfig.AutoCalculateInternetZone &&  _globalConfig.TreatDynamicAndDomainObjectsAsInternet && (n.Type.Name == "domain" || n.Type.Name == "dynamic_net_obj")),
+                    n => n.IP == null && n.IpEnd == null,
                     "Network objects in source or destination without IP: ",
                     violationDetailsBuilder);
 
                 isAssessable &= !TryAddNotAssessableDetails(
                     networkObjects,
                     n => ((n.IP == "0.0.0.0/32" && n.IpEnd == "255.255.255.255/32")
-                    || (n.IP == "::/128" && n.IpEnd == "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff/128")) && !(_globalConfig.AutoCalculateInternetZone &&  _globalConfig.TreatDynamicAndDomainObjectsAsInternet && (n.Type.Name == "domain" || n.Type.Name == "dynamic_net_obj")),
+                    || (n.IP == "::/128" && n.IpEnd == "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff/128")),
                     "Network objects in source or destination with 0.0.0.0/0 or ::/0: ",
                     violationDetailsBuilder);
 
@@ -373,10 +382,10 @@ namespace FWO.Report
                             ComplianceViolationType complianceViolationType = checkAssessabilityResult.isAssessable ? rule.Compliance : ComplianceViolationType.NotAssessable;
                             RuleViewData ruleViewData = new RuleViewData(rule, _natRuleDisplayHtml, OutputLocation.report, ShowRule(rule), _devices ?? [], Managements ?? [], complianceViolationType);
 
-                            if (!checkAssessabilityResult.isAssessable)
-                            {
-                                ruleViewData.ViolationDetails = checkAssessabilityResult.violationDetails;
-                            }
+                            // if (!checkAssessabilityResult.isAssessable)
+                            // {
+                            // ruleViewData.ViolationDetails = checkAssessabilityResult.violationDetails;
+                            // }
 
                             localViewData.Add(ruleViewData);
                         }

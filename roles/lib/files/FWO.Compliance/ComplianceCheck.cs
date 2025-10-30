@@ -498,15 +498,15 @@ namespace FWO.Compliance
                     {
                         if (complianceCheckResult.Source != null && complianceCheckResult.SourceZone == null)
                         {
-                            violation.Details = $"Matrix violations: Failed to resolve zone for source {GetNwObjectString(complianceCheckResult.Source)}.";
+                            violation.Details = $"Assessability issue: Failed to resolve zone for source {GetNwObjectString(complianceCheckResult.Source)}.";
                         }
                         else if (complianceCheckResult.Destination != null && complianceCheckResult.DestinationZone == null)
                         {
-                            violation.Details = $"Matrix violations: Failed to resolve zone for destination {GetNwObjectString(complianceCheckResult.Destination)}.";
+                            violation.Details = $"Assessability issue: Failed to resolve zone for destination {GetNwObjectString(complianceCheckResult.Destination)}.";
                         }
                         else
                         {
-                            violation.Details = $"Matrix violation: Failed to resolve network objects.";                }
+                            violation.Details = $"Assessability issue: Failed to resolve network objects.";                }
                     }
 
                     break;

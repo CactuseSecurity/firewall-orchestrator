@@ -66,8 +66,11 @@ namespace FWO.Report
                 "Uid",
                 "Name",
                 "Source",
+                "Source (Short)",
                 "Destination",
+                "Destination (Short)",
                 "Services",
+                "Services (Short)",
                 "Action",
                 "InstallOn",
                 "Compliance",
@@ -432,9 +435,18 @@ namespace FWO.Report
                 printedViolations++;
             }
 
-            // No need to differentiate between different types of violations here at the moment.
-
-            rule.Compliance = ComplianceViolationType.MultipleViolations;
+            if (rule.Compliance == ComplianceViolationType.NotAssessable || violation.Type == ComplianceViolationType.NotAssessable)
+            {
+                rule.Compliance = ComplianceViolationType.NotAssessable;
+            }
+            else if (violationCount > 1)
+            {
+                rule.Compliance = ComplianceViolationType.MultipleViolations;
+            }
+            else
+            {
+                rule.Compliance = rule.Violations.FirstOrDefault()?.Type ?? ComplianceViolationType.None;
+            }
 
             if (_maxPrintedViolations > 0 && printedViolations == _maxPrintedViolations && violationCount < rule.Violations.Count && !abbreviated)
             {

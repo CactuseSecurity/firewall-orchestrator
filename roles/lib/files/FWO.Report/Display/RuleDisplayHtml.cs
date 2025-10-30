@@ -8,17 +8,17 @@ namespace FWO.Ui.Display
 {
     public class RuleDisplayHtml(UserConfig userConfig) : RuleDisplayBase(userConfig)
     {
-        public string DisplaySource(Rule rule, OutputLocation location, ReportType reportType, int chapterNumber = 0, string style = "")
+        public string DisplaySource(Rule rule, OutputLocation location, ReportType reportType, int chapterNumber = 0, string style = "", bool overwriteIsResolvedReport = false)
         {
             return DisplaySourceOrDestination(rule, chapterNumber, location, reportType, style, true);
         }
 
-        public string DisplayDestination(Rule rule, OutputLocation location, ReportType reportType, int chapterNumber = 0, string style = "")
+        public string DisplayDestination(Rule rule, OutputLocation location, ReportType reportType, int chapterNumber = 0, string style = "", bool overwriteIsResolvedReport = false)
         {
             return DisplaySourceOrDestination(rule, chapterNumber, location, reportType, style, false);
         }
 
-        public string DisplayServices(Rule rule, OutputLocation location, ReportType reportType, int chapterNumber = 0, string style = "")
+        public string DisplayServices(Rule rule, OutputLocation location, ReportType reportType, int chapterNumber = 0, string style = "", bool overwriteIsResolvedReport = false)
         {
             StringBuilder result = new ();
             if (rule.ServiceNegated)
@@ -26,7 +26,7 @@ namespace FWO.Ui.Display
                 result.AppendLine(userConfig.GetText("negated") + "<br>");
             }
 
-            if(reportType.IsResolvedReport())
+            if(!overwriteIsResolvedReport && reportType.IsResolvedReport())
             {
                 NetworkService[] services = GetNetworkServices(rule.Services).ToArray();
                 result.AppendJoin("<br>", Array.ConvertAll(services, service => ServiceToHtml(service, rule.MgmtId, chapterNumber, location, style, reportType)));
@@ -129,7 +129,7 @@ namespace FWO.Ui.Display
                 ReportBase.ConstructLink(ReportBase.GetIconClass(ObjCategory.nsrv, "Gateway"), gateway.Name, style, gwLink)).ToString();
         }
 
-        private string DisplaySourceOrDestination(Rule rule, int chapterNumber, OutputLocation location, ReportType reportType, string style, bool isSource)
+        private string DisplaySourceOrDestination(Rule rule, int chapterNumber, OutputLocation location, ReportType reportType, string style, bool isSource, bool overwriteIsResolvedReport = false)
         {
             StringBuilder result = new();
             if ((isSource && rule.SourceNegated) || (!isSource && rule.DestinationNegated))
@@ -138,7 +138,7 @@ namespace FWO.Ui.Display
             }
             string highlightedStyle = style + (reportType == ReportType.AppRules ? " " + GlobalConst.kStyleHighlightedRed : "");
 
-            if (reportType.IsResolvedReport())
+            if (!overwriteIsResolvedReport && reportType.IsResolvedReport())
             {
                 NetworkLocation[] userNwObjects = [.. GetResolvedNetworkLocations(isSource ? rule.Froms : rule.Tos)];
                 result.AppendJoin("<br>", Array.ConvertAll(userNwObjects,

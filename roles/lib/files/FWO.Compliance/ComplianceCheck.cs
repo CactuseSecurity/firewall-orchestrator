@@ -489,7 +489,18 @@ namespace FWO.Compliance
 
                     if (complianceCheckResult.AssessabilityIssue != null)
                     {
-                        violation.Details = $"Assessability issue: {complianceCheckResult}";
+                        string networkObject = "";
+
+                        if (complianceCheckResult.Source != null)
+                        {
+                            networkObject = GetNwObjectString(complianceCheckResult.Source);
+                        }
+                        else if (complianceCheckResult.Destination != null)
+                        {
+                            networkObject = GetNwObjectString(complianceCheckResult.Destination);
+                        }
+                        
+                        violation.Details = $"Assessability issue: {networkObject}";
                     }
 
                     break;

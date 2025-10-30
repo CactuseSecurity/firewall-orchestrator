@@ -25,6 +25,7 @@ namespace FWO.Report.Data.ViewData
         public string Comment { get; set; } = "";
         public string RulebaseId { get; set; } = "";
         public string RulebaseName { get; set; } = "";
+        public string Disabled { get; set; } = "";
 
         public Rule? DataObject { get; set; }
         public bool Show { get; set; } = true;
@@ -55,6 +56,7 @@ namespace FWO.Report.Data.ViewData
             Comment = SafeCall(rule, "Comment", () => rule.Comment ?? "");
             RulebaseId = SafeCall(rule, "RulebaseId", () => rule.RulebaseId.ToString());
             RulebaseName = SafeCall(rule, "RulebaseName", () => rule.Rulebase?.Name ?? "");
+            Disabled = SafeCall(rule, "Disabled", () => RuleDisplayBase.DisplayEnabled(rule, outputLocation));
         }
 
         private string ResolveCompliance(Rule rule, ComplianceViolationType? complianceViolationType)

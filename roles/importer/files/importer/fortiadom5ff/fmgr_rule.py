@@ -16,6 +16,8 @@ from models.rulebase import Rulebase
 
 NETWORK_OBJECT='network_object'
 STRING_PKG = '/pkg/'
+STRING_PM_CONFIG_GLOBAL_PKG = '/pm/config/global/pkg/'
+STRING_PM_CONFIG_ADOM = '/pm/config/adom/'
 rule_access_scope_v4 = ['rules_global_header_v4', 'rules_adom_v4', 'rules_global_footer_v4']
 rule_access_scope_v6 = ['rules_global_header_v6', 'rules_adom_v6', 'rules_global_footer_v6']
 rule_access_scope = rule_access_scope_v6 + rule_access_scope_v4
@@ -357,7 +359,7 @@ def get_and_link_global_rulebase(header_or_footer, previous_rulebase, global_pkg
             fmgr_getter.update_config_with_fortinet_api_call(
                 native_config_global['rulebases'],
                 sid, fm_api_url,
-                '/pm/config/global/pkg/' + global_pkg_name + '/global/' + header_or_footer + '/policy',
+                STRING_PM_CONFIG_GLOBAL_PKG + global_pkg_name + '/global/' + header_or_footer + '/policy',
                 rulebase_type_prefix + '_v4_' + global_pkg_name,
                 options=options, limit=limit)
         if not is_rulebase_already_fetched(native_config_global['rulebases'], rulebase_type_prefix + '_v6_' + global_pkg_name):
@@ -365,7 +367,7 @@ def get_and_link_global_rulebase(header_or_footer, previous_rulebase, global_pkg
             fmgr_getter.update_config_with_fortinet_api_call(
                 native_config_global['rulebases'],
                 sid, fm_api_url,
-                '/pm/config/global/pkg/' + global_pkg_name + '/global/' + header_or_footer + '/policy6',
+                STRING_PM_CONFIG_GLOBAL_PKG + global_pkg_name + '/global/' + header_or_footer + '/policy6',
                 rulebase_type_prefix + '_v6_' + global_pkg_name,
                 limit=limit)
         previous_rulebase = link_rulebase(link_list, native_config_global['rulebases'], global_pkg_name, rulebase_type_prefix, previous_rulebase, True)
@@ -376,14 +378,14 @@ def get_and_link_local_rulebase(rulebase_type_prefix, previous_rulebase, adom_na
         fmgr_getter.update_config_with_fortinet_api_call(
             native_config_adom['rulebases'],
             sid, fm_api_url,
-            '/pm/config/adom/' + adom_name + '/pkg/' + local_pkg_name + '/firewall/policy',
+            STRING_PM_CONFIG_ADOM + adom_name + STRING_PKG + local_pkg_name + '/firewall/policy',
             rulebase_type_prefix + '_v4_' + local_pkg_name,
             options=options, limit=limit)
     if not is_rulebase_already_fetched(native_config_adom['rulebases'], rulebase_type_prefix + '_v6_' + local_pkg_name):
         fmgr_getter.update_config_with_fortinet_api_call(
             native_config_adom['rulebases'],
             sid, fm_api_url,
-            '/pm/config/adom/' + adom_name + '/pkg/' + local_pkg_name + '/firewall/policy6',
+            STRING_PM_CONFIG_ADOM + adom_name + STRING_PKG + local_pkg_name + '/firewall/policy6',
             rulebase_type_prefix + '_v6_' + local_pkg_name,
             limit=limit)
     previous_rulebase = link_rulebase(link_list, native_config_adom['rulebases'], local_pkg_name, rulebase_type_prefix, previous_rulebase, False)
@@ -453,13 +455,13 @@ def get_nat_policy(sid, fm_api_url, native_config, adom_device_vdom_policy_packa
         for nat_type in nat_types:
             fmgr_getter.update_config_with_fortinet_api_call(
                 native_config['nat_rulebases'], sid, fm_api_url,
-                '/pm/config/global/pkg/' + global_pkg_name + '/' + nat_type,
+                STRING_PM_CONFIG_GLOBAL_PKG + global_pkg_name + '/' + nat_type,
                 nat_type + '_global_' + global_pkg_name, limit=limit)
     else:
         for nat_type in nat_types:
             fmgr_getter.update_config_with_fortinet_api_call(
                 native_config['nat_rulebases'], sid, fm_api_url,
-                '/pm/config/adom/' + adom_name + '/pkg/' + local_pkg_name + '/' + nat_type,
+                STRING_PM_CONFIG_ADOM + adom_name + STRING_PKG + local_pkg_name + '/' + nat_type,
                 nat_type + '_adom_' + adom_name + '_' + local_pkg_name, limit=limit)
 
 # delete_v: ab hier kann sehr viel weg, ich lasses vorerst zB für die nat

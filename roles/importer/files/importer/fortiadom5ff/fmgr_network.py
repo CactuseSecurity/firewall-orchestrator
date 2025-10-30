@@ -9,7 +9,7 @@ from copy import deepcopy
 from fwo_exceptions import FwoImporterErrorInconsistencies
 
 
-def normalize_network_objects(native_config, native_config_global, normalized_config_adom, normalized_config_global, nw_obj_types):
+def normalize_network_objects(native_config, normalized_config_adom, normalized_config_global, nw_obj_types):
     nw_objects = []
     
     if 'objects' not in native_config:

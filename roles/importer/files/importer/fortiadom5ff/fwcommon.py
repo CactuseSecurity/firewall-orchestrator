@@ -186,21 +186,15 @@ def normalize_single_manager_config(native_config: 'dict[str, Any]', native_conf
     logger = getFwoLogger()
     normalize_zones(native_config, normalized_config_adom, is_global_loop_iteration)
     logger.info("completed normalizing zones for manager: " + native_config.get('domain_name',''))
-    normalize_network_objects(native_config, native_config_global, normalized_config_adom, normalized_config_global, 
+    normalize_network_objects(native_config, normalized_config_adom, normalized_config_global, 
                                            current_nw_obj_types)
     logger.info("completed normalizing network objects for manager: " + native_config.get('domain_name',''))
-    normalize_service_objects(import_state, native_config, native_config_global, normalized_config_adom, normalized_config_global, 
-                                           current_svc_obj_types)
+    normalize_service_objects(native_config, normalized_config_adom, current_svc_obj_types)
     logger.info("completed normalizing service objects for manager: " + native_config.get('domain_name',''))
     mgm_uid = native_config["management_uid"]
     normalize_rulebases(mgm_uid, native_config, native_config_global, normalized_config_adom, normalized_config_global, 
                         is_global_loop_iteration)
     logger.info("completed normalizing rulebases for manager: " + native_config.get('domain_name',''))
-
-    #normalize_nat_rulebases(import_state, mgm_uid, native_config, native_config_global, normalized_config_adom, normalized_config_global, 
-    #                    is_global_loop_iteration)
-    #normalize_nat_rulebases(native_config, normalized_config_adom, import_id, jwt=None)
-    #logger.info("completed normalizing nat rulebases for manager: " + native_config.get('domain_name',''))
 
     normalize_gateways(native_config, normalized_config_adom)
     

@@ -4,10 +4,8 @@ from model_controllers.import_state_controller import ImportStateController
 from fwo_log import getFwoLogger
 from typing import Any
 
-def normalize_service_objects(import_state: ImportStateController, native_config, native_config_global, normalized_config_adom, 
-                              normalized_config_global, svc_obj_types):
+def normalize_service_objects(native_config, normalized_config_adom, svc_obj_types):
     svc_objects = []
-    logger = getFwoLogger()
     
     if 'objects' not in native_config:
         return # no objects to normalize
@@ -119,7 +117,7 @@ def check_split(obj_orig) -> bool:
     return (count > 1)
 
 
-def extractPorts(port_ranges) -> 'tuple[list[Any], list[Any]]':
+def extract_ports(port_ranges) -> 'tuple[list[Any], list[Any]]':
     ports = []
     port_ends = []
     if port_ranges is not None and len(port_ranges) > 0:
@@ -179,7 +177,7 @@ def add_object(svc_objects, type, name, color, proto, port_ranges, member_names,
                             }])
     else:
         range_names = ''
-        ports, port_ends = extractPorts(port_ranges)
+        ports, port_ends = extract_ports(port_ranges)
         split = (len(ports) > 1)
         for index, port in enumerate(ports):
             port_end = port_ends[index]

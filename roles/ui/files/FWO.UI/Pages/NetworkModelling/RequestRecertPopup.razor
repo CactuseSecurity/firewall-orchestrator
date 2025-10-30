@@ -1,0 +1,317 @@
+@using FWO.Data.Middleware
+@using FWO.Data.Report
+@using FWO.Data.Workflow
+@using FWO.ExternalSystems.Tufin.SecureChange
+@using FWO.Middleware.Client
+@using FWO.Recert
+@using FWO.Report
+@using FWO.Ui.Pages.Reporting
+@using Newtonsoft.Json
+@using RestSharp
+@using System.Net
+@using System.Text.Json.Serialization
+
+
+@inject ApiConnection apiConnection
+@inject UserConfig userConfig
+@inject MiddlewareClient middlewareClient
+
+@if (Display && AppHandler != null)
+{
+    <PopUp Title="@(GetTitle())" Show="@Display" Size=PopupSize.XLarge OnClose="Close">
+        <Body>
+            <div class="form-group row">
+                <div class="col-sm-2">@(userConfig.GetText("last_recertified")): </div>
+                <div class="col-sm-10">@(AppHandler?.Application.LastRecertified?.ToString("dd.MM.yyyy"))</div>
+            </div>
+            <div class="form-group row">
+                <div class="col-sm-2">@(userConfig.GetText("last_recertifier")): </div>
+                <div class="col-sm-10">@(new DistName(AppHandler?.Application.LastRecertifierDn).UserName)</div>
+            </div>
+            <div class="form-group row">
+                <div class="col-sm-2">@(userConfig.GetText("next_recertification")): </div>
+                <div class="col-sm-10">@(AppHandler?.Application.NextRecertDate?.ToString("dd.MM.yyyy"))</div>
+            </div>
+            @if(RecertPossible)
+            {
+                // Display all rules to recertify (name, last recert, ...)
+                <br>
+                @((MarkupString)userConfig.ModRecertText.Replace(Placeholder.APPNAME, AppHandler!.DisplayApp(AppHandler.Application)))
+            }
+            else if(RequestRunning)
+            {
+                <br>
+                <b>@(userConfig.GetText("U9034"))</b>
+            }
+            @if(ModellingError)
+            {
+                @if(ModelledConnections.Count == 0)
+                {
+                    <br>
+                    <b>@(userConfig.GetText("U9027"))</b>
+                }
+                else
+                {
+                    // Display modelling errors
+                    <br>
+                    @(userConfig.GetText("U9028"))
+                    <br><br>
+                    <ConnectionTable Connections="ModellingErrors" @bind-AppHandler="AppHandler" Readonly="true"/>
+                }
+            }
+            @if(ImplementationError)
+            {
+                // Display implementation errors
+                <br><br>
+                @(userConfig.GetText("U9029"))
+                <br>
+                @if(VarianceResult.ConnsNotImplemented.Count > 0)
+                {
+                    <br>
+                    <h5>@(userConfig.GetText("connections_not_implemented"))</h5>
+                    <ConnectionTable Connections="VarianceResult.ConnsNotImplemented" @bind-AppHandler="AppHandler" Readonly="true"/>
+                }
+                @if(VarianceResult.RuleDifferences.Count > 0)
+                {
+                    <br>
+                    <h5>@(userConfig.GetText("connections_with_diffs"))</h5>
+                    <ConnectionTable Connections="VarianceResult.RuleDifferences.Select(d => d.ModelledConnection).ToList()" @bind-AppHandler="AppHandler" Readonly="true"/>
+                }
+                @if(RulesFromDeletedConns.Count > 0)
+                {
+                    <br>
+                    <h5>@(userConfig.GetText("rules_for_deleted_conns"))</h5>
+                    <ReportedRules ReadonlyMode="true" Rules="RulesFromDeletedConns.ToArray()" SelectedReportType="ReportType.VarianceAnalysis"/>
+                }
+                @if(UnmodelledRules.Count > 0)
+                {
+                    <br>
+                    <h5>@(userConfig.GetText("rules_not_modelled"))</h5>
+                    <ReportedRules ReadonlyMode="true" Rules="UnmodelledRules.ToArray()" SelectedReportType="ReportType.AppRules" HandleAsVariance="true"/>
+                }
+            }
+        </Body>
+        <Footer>
+            @if (!WorkInProgress && RecertPossible)
+            {
+                <AuthorizeView Roles="@Roles.Modeller">
+                    <Authorized>
+                        @if (userConfig.User.Ownerships.Contains(AppHandler.Application.Id))
+                        {
+                            <button type="button" class="btn btn-sm btn-success" @onclick="StartRecert">@(DisplayService.DisplayButton(userConfig, "recertify", Icons.Recertify))</button>
+                        }
+                        else
+                        {
+                            <button type="button" class="btn btn-sm btn-success" disabled>@(DisplayService.DisplayButton(userConfig, "recertify", Icons.Recertify))</button>
+                        }
+                    </Authorized>
+                    <NotAuthorized>
+                        <button type="button" class="btn btn-sm btn-success" disabled>@(DisplayService.DisplayButton(userConfig, "recertify", Icons.Recertify))</button>
+                    </NotAuthorized>
+                </AuthorizeView>
+            }
+            <button type="button" class="btn btn-sm btn-secondary" @onclick="Close">@(DisplayService.DisplayButton(userConfig, "cancel", Icons.Cancel))</button>
+        </Footer>
+    </PopUp>
+}
+
+<InProgress Display="WorkInProgress" />
+
+
+@code
+{
+    [CascadingParameter]
+    private Task<AuthenticationState>? authenticationStateTask { get; set; }
+
+    [CascadingParameter]
+    Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
+
+    [Parameter]
+    public bool Display { get; set; } = false;
+
+    [Parameter]
+    public EventCallback<bool> DisplayChanged { get; set; }
+
+    [Parameter]
+    public ModellingAppHandler? AppHandler { get; set; }
+
+    [Parameter]
+    public Func<FwoOwner, bool> RefreshParent { get; set; } = DefaultInit.DoNothingSync;
+
+    private bool WorkInProgress = false;
+    private bool FirstTry = true;
+    private bool RecertPossible = false;
+    private bool RequestRunning = false;
+    private bool ModellingError = false;
+    private bool ImplementationError = false;
+    private ModellingVarianceResult VarianceResult = new();
+    private List<ModellingConnection> ModelledConnections = [];
+    private List<ModellingConnection> ModellingErrors = [];
+    private List<ModellingAppRole> MissingAppRoles = [];
+    private List<ModellingAppRole> DifferingAppRoles = [];
+    private List<Rule> UnmodelledRules = [];
+    private List<Rule> RulesFromDeletedConns = [];
+
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (Display && AppHandler != null && FirstTry)
+        {
+            FirstTry = false;
+            RequestRunning = false;
+            ModellingError = false;
+            ImplementationError = false;
+            RecertPossible = false;
+            WorkInProgress = true;
+            await Task.Yield();
+            StateHasChanged();
+
+            await CheckRecertPossible();
+            WorkInProgress = false;
+        }
+    }
+
+    private string GetTitle()
+    {
+        return (userConfig.GetText("recertification") + ": " + AppHandler?.Application.Name);
+    }
+
+    private async Task CheckRecertPossible()
+    {
+        if(await CheckRequestRunning())
+        {
+            RequestRunning = true;
+            return;
+        }
+        ModellingError= !CheckModelling();
+        ImplementationError = !await CheckImplementation();
+        RecertPossible = !ModellingError && !ImplementationError;
+    }
+
+    private async Task<bool> CheckRequestRunning()
+    {
+        WfTicket? intTicket = await ModellingAppHandler.GetLatestFWRequestTicket(AppHandler!.Application, apiConnection);
+        if(intTicket != null)
+        {
+           ExtStateHandler extStateHandler = new(apiConnection);
+           return extStateHandler.IsInProgress(intTicket.StateId) && intTicket.Tasks.Any(t => extStateHandler.IsInProgress(t.StateId));
+        }
+        return false;
+    }
+
+    private bool CheckModelling()
+    {
+        ModelledConnections = [.. AppHandler!.Connections.Where(x => !x.IsInterface && !x.IsDocumentationOnly())];
+        if (ModelledConnections.Count == 0)
+        {
+            return false;
+        }
+        ModellingErrors = [.. ModelledConnections.Where(c => AppHandler!.HasModellingIssues(c))];
+        return ModellingErrors.Count == 0;
+    }
+
+    private async Task<bool> CheckImplementation()
+    {
+        ExtStateHandler extStateHandler = new(apiConnection);
+        ModellingVarianceAnalysis varianceAnalysis = new(apiConnection, extStateHandler, userConfig, AppHandler!.Application, DisplayMessageInUi);
+        ModellingFilter modellingFilter = new()
+        {
+            SelectedOwner = AppHandler!.Application,
+            AnalyseRemainingRules = userConfig.ModRecertExpectAllModelled,
+            RulesForDeletedConns = true
+        };
+        VarianceResult = await varianceAnalysis.AnalyseRulesVsModelledConnections(AppHandler!.Connections, modellingFilter, true, true);
+        RulesFromDeletedConns = [];
+        foreach(var mgt in VarianceResult.DeletedModelsRules.Keys)
+        {
+            RulesFromDeletedConns.AddRange(VarianceResult.DeletedModelsRules[mgt]);
+        }
+        UnmodelledRules = [];
+        foreach(var mgt in VarianceResult.UnModelledRules.Keys)
+        {
+            UnmodelledRules.AddRange(VarianceResult.UnModelledRules[mgt]);
+        }
+
+        return MissingAppRoles.Count == 0 && DifferingAppRoles.Count == 0 && RulesFromDeletedConns.Count == 0 && UnmodelledRules.Count == 0
+            && VarianceResult.ConnsNotImplemented.Count == 0 && VarianceResult.RuleDifferences.Count == 0;
+    }
+
+    private async Task StartRecert()
+    {
+        try
+        {
+            WorkInProgress = true;
+            await DoRecertification();
+            WorkInProgress = false;
+            Close();
+        }
+        catch (Exception exception)
+        {
+            WorkInProgress = false;
+            DisplayMessageInUi(exception, userConfig.GetText("recertify"), "", true);
+        }
+    }
+
+    private async Task DoRecertification()
+    {
+        if(AppHandler != null)
+        {
+            try
+            {
+                RecertHandler recertHandler = new(apiConnection, userConfig);
+                FwoOwner recertifiedOwner = await recertHandler.RecertifyOwnerWithRules(AppHandler.Application, VarianceResult.GetAllOkRules(), null);
+                await ModellingHandlerBase.LogChange(ModellingTypes.ChangeType.Recertify, ModellingTypes.ModObjectType.CommunicationProfile, 0,
+                    $"Recertified Application: {AppHandler.Application.Name} with {VarianceResult.GetAllOkRules().Count.ToString()} rules",
+                    apiConnection, userConfig, AppHandler.Application.Id, DisplayMessageInUi);
+                await GenerateAndSaveReport(recertifiedOwner);
+                RefreshParent(recertifiedOwner);
+
+                string recertText = userConfig.GetText("U4002")
+                    .Replace(Placeholder.APPNAME, AppHandler.Application.Name)
+                    .Replace(Placeholder.CONN_NUMBER, ModelledConnections.Count.ToString())
+                    .Replace(Placeholder.RULE_NUMBER, VarianceResult.GetAllOkRules().Count.ToString());
+                DisplayMessageInUi(null, userConfig.GetText("recertification_ok"), recertText, false);
+            }
+            catch(Exception exception)
+            {
+                DisplayMessageInUi(exception, userConfig.GetText("recertification_error"), "", true);
+            }
+        }
+    }
+
+    private async Task GenerateAndSaveReport(FwoOwner owner)
+    {
+        ReportBase? report = await ReportGenerator.GenerateFromTemplate(
+            new ReportTemplate("", new(){ ReportType = (int)ReportType.RecertificationEvent, ModellingFilter = new(){ SelectedOwner = owner}}),
+            apiConnection, userConfig, DefaultInit.DoNothing);
+        if(report != null)
+        {
+            var variables = new
+            {
+                report_name = $"{userConfig.GetText("recertification")}_{owner.Name.Replace(" ", "-")}_{owner.ExtAppId}_{owner.LastRecertified?.ToString("yyyy-MM-dd-HH-mm-ss")}",
+                report_start_time = owner.LastRecertified,
+                report_end_time = owner.LastRecertified,
+                report_owner_id = userConfig.User.DbId,
+                report_pdf = await report.ToPdf(report.ExportToHtml()),
+                report_json = report.ExportToJson(),
+                report_type = (int?)ReportType.RecertificationEvent,
+                description = report.SetDescription(),
+                read_only = true,
+                owner_id = owner.Id
+            };
+            ReturnId[]? returnIds =  (await apiConnection.SendQueryAsync<ReturnIdWrapper>(ReportQueries.addGeneratedReport, variables)).ReturnIds;
+            if(returnIds != null && returnIds.Length > 0)
+            {
+                long reportId = returnIds[0].NewIdLong;
+                await apiConnection.SendQueryAsync<ReturnIdWrapper>(RecertQueries.updateRecertReportId, new{ id = owner.LastRecertId, reportId = reportId });
+            }
+        }
+    }
+
+    private void Close()
+    {
+        FirstTry = true;
+        Display = false;
+        DisplayChanged.InvokeAsync(Display);
+    }
+}

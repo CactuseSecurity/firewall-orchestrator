@@ -285,6 +285,19 @@ bugfix release:
 - add read-only db user fwo_ro
 - also reducing db listener to localhost and other hardening changes
 
+# 8.8.9 - 27.08.2025 DEVELOP
+- prepare tables + settings for owner recert + first throw recert popup
+- notification service
+- decommissioning of interfaces
+- iconification of modelling and related modules
+- fix overwrite of objects with interface
+
+# 8.8.10 - 07.09.2025 DEVELOP
+- new report type owner-recertification
+
+# 8.9.1 - 02.10.2025 DEVELOP
+- owner-recertification
+
 # 9.0 - 30.06.2025 DEVELOP
 - rule to gateway mapping 1:n
 - add report output for rule to gw mapping
@@ -309,3 +322,4 @@ make sure to place your venv outside the repo, e.g. into /home/user/dev/venv
     python3 -m venv installer-venv
     source installer-venv/bin/activate
     pip install -r path-to-repo/roles/importer/files/importer/requirements.txt
+- also reducing db listener to localhost

@@ -1006,6 +1006,8 @@ Create table "report"
 	"tenant_wide_visible" Integer,
 	"report_type" Integer,
 	"description" varchar,
+	"read_only" Boolean default FALSE,
+	"owner_id" Integer,
  	primary key ("report_id")
 );
 
@@ -1029,6 +1031,28 @@ Create table "report_template_viewable_by_user"
 	"report_template_id" Integer NOT NULL,
 	"uiuser_id" Integer NOT NULL,
  	primary key ("uiuser_id","report_template_id")
+);
+
+create table notification
+(
+    id SERIAL PRIMARY KEY,
+	notification_client Varchar,
+	user_id int,
+	owner_id int,
+	channel Varchar,
+	recipient_to Varchar,
+    email_address_to Varchar,
+	recipient_cc Varchar,
+	email_address_cc Varchar,
+	email_subject Varchar,
+	layout Varchar,
+	deadline Varchar,
+	interval_before_deadline int,
+	offset_before_deadline int,
+	repeat_interval_after_deadline int,
+	repeat_offset_after_deadline int,
+	repetitions_after_deadline int,
+	last_sent Timestamp
 );
 
 -- configuration
@@ -1082,7 +1106,12 @@ create table owner
 	criticality Varchar,
 	active boolean default true,
 	import_source Varchar,
-	common_service_possible boolean default false
+	common_service_possible boolean default false,
+	last_recertified Timestamp,
+	last_recertifier int,
+	last_recertifier_dn Varchar,
+	next_recert_date Timestamp,
+	recert_active boolean default false
 );
 
 create table owner_network
@@ -1123,7 +1152,8 @@ create table recertification
 	recertified boolean default false,
 	recert_date Timestamp,
 	comment varchar,
-	next_recert_date Timestamp
+	next_recert_date Timestamp,
+	owner_recert_id bigint
 );
 
 Create Table IF NOT EXISTS "rule_enforced_on_gateway" 
@@ -1158,6 +1188,18 @@ Create table IF NOT EXISTS "rulebase_link"
 	"is_section" BOOLEAN DEFAULT TRUE,
 	"created" BIGINT,
 	"removed" BIGINT
+);
+
+create table owner_recertification
+(
+	id BIGSERIAL PRIMARY KEY,
+    owner_id int NOT NULL,
+	user_dn varchar,
+	recertified boolean default false,
+	recert_date Timestamp,
+	comment varchar,
+	next_recert_date Timestamp,
+    report_id bigint
 );
 
 create table owner_ticket
@@ -1409,7 +1451,9 @@ create table compliance.network_zone
 	removed timestamp with time zone,
 	created timestamp with time zone default now(),
 	criterion_id INT,
-    id_string TEXT
+    id_string TEXT,
+	is_auto_calculated_internet_zone BOOLEAN DEFAULT FALSE,
+	is_auto_calculated_undefined_internal_zone BOOLEAN DEFAULT FALSE
 );
 
 create table compliance.network_zone_communication

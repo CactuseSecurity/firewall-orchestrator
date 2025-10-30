@@ -104,7 +104,7 @@ namespace FWO.Compliance
 
                 ReportTemplate template = new("", _reportFilters.ToReportParams());
 
-                ReportBase? currentReport = await ReportGenerator.Generate(template, _apiConnection, _userConfig, DefaultInit.DoNothing);
+                ReportBase? currentReport = await ReportGenerator.GenerateFromTemplate(template, _apiConnection, _userConfig, DefaultInit.DoNothing);
 
 
                 if (currentReport is ReportCompliance complianceReport)

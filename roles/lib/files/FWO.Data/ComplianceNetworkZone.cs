@@ -42,12 +42,15 @@ namespace FWO.Data
 
         [JsonProperty("removed"), JsonPropertyName("removed")]
         public DateTime? Removed { get; set; }
-        
+
         [JsonProperty("criterion_id"), JsonPropertyName("criterion_id")]
         public int CriterionId { get; set; } = 0;
 
+        [JsonProperty("is_auto_calculated_internet_zone"), JsonPropertyName("is_auto_calculated_internet_zone")]
+        public bool IsAutoCalculatedInternetZone { get; set; } = false;
         
-
+        [JsonProperty("is_auto_calculated_undefined_internal_zone"), JsonPropertyName("is_auto_calculated_undefined_internal_zone")]
+        public bool IsAutoCalculatedUndefinedInternalZone { get; set; } = false;
 
         public bool CommunicationAllowedFrom(ComplianceNetworkZone from)
         {

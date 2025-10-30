@@ -2,6 +2,11 @@ fragment connectionResolvedDetails on modelling_connection {
   id
   app_id
   proposed_app_id
+  owner: owner {
+    id
+    name
+    app_id_external
+  }
   name
   reason
   is_interface

@@ -235,15 +235,22 @@ namespace FWO.Basics
 
         private static (IPAddress start, IPAddress end) IPv4CidrToRange(byte[] addressBytes, int prefixLength)
         {
+            if (prefixLength is < 0 or > 32)
+                throw new ArgumentOutOfRangeException(nameof(prefixLength));
+
             uint ipAddress = BitConverter.ToUInt32([.. addressBytes.Reverse()], 0);
-            uint mask = (uint.MaxValue << (32 - prefixLength)) & uint.MaxValue;
+
+            uint mask = prefixLength == 0
+                ? 0u
+                : uint.MaxValue << (32 - prefixLength);
 
             uint startIp = ipAddress & mask;
-            uint endIp = startIp | ~mask;
+            uint endIp   = startIp   | ~mask;
 
             return (new IPAddress([.. BitConverter.GetBytes(startIp).Reverse()]),
                     new IPAddress([.. BitConverter.GetBytes(endIp).Reverse()]));
         }
+
 
         private static (IPAddress start, IPAddress end) IPv6CidrToRange(byte[] addressBytes, int prefixLength)
         {

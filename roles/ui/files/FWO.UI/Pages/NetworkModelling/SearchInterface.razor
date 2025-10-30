@@ -16,14 +16,14 @@
             {
                 <AuthorizeView Roles="@Roles.Modeller">
                     <Authorized>
-                        <button type="button" class="btn btn-sm btn-success" @onclick="SelectInterface">@(userConfig.GetText("select"))</button>
+                        <button type="button" class="btn btn-sm btn-success" @onclick="SelectInterface">@(DisplayService.DisplayButton(userConfig, "select", Icons.Select))</button>
                     </Authorized>
                     <NotAuthorized>
-                        <button type="button" class="btn btn-sm btn-success" disabled>@(userConfig.GetText("select"))</button>
+                        <button type="button" class="btn btn-sm btn-success" disabled>@(DisplayService.DisplayButton(userConfig, "select", Icons.Select))</button>
                     </NotAuthorized>
                 </AuthorizeView>
             }
-            <button type="button" class="btn btn-sm btn-secondary" @onclick="Close">@(userConfig.GetText("cancel"))</button>
+            <button type="button" class="btn btn-sm btn-secondary" @onclick="Close">@(DisplayService.DisplayButton(userConfig, "cancel", Icons.Cancel))</button>
         </div>
     </Footer>
 </PopUp>

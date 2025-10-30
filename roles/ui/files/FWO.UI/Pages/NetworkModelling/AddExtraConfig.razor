@@ -28,13 +28,13 @@
             <div class="btn-group">
                 <AuthorizeView Roles="@Roles.Modeller">
                     <Authorized>
-                        <button type="button" class="btn btn-sm btn-danger" @onclick="Save">@(userConfig.GetText("add"))</button>
+                        <button type="button" class="btn btn-sm btn-danger" @onclick="Save">@(DisplayService.DisplayButton(userConfig, "add", Icons.Add))</button>
                     </Authorized>
                     <NotAuthorized>
-                        <button type="button" class="btn btn-sm btn-danger" disabled>@(userConfig.GetText("add"))</button>
+                        <button type="button" class="btn btn-sm btn-danger" disabled>@(DisplayService.DisplayButton(userConfig, "add", Icons.Add))</button>
                     </NotAuthorized> 
                 </AuthorizeView>
-                <button type="button" class="btn btn-sm btn-secondary" @onclick="Cancel">@(userConfig.GetText("cancel"))</button>
+                <button type="button" class="btn btn-sm btn-secondary" @onclick="Cancel">@(DisplayService.DisplayButton(userConfig, "cancel", Icons.Cancel))</button>
             </div>
         </Footer>
     </PopUp>

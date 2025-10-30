@@ -83,6 +83,12 @@
                 <input type="text" @bind="configData!.ComplianceCheckRelevantManagements"/>
             </div>
         </div>
+        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5836"))">
+            <label for="lbl_show_short_columns_in_compliance_reports" class="col-form-label col-sm-4">@(userConfig.GetText("complianceCheckShowShortColumsInComplianceReports")):</label>
+            <div class="col-sm-7">
+                <input id="lbl_show_short_columns" type="checkbox" @bind="configData!.ShowShortColumnsInComplianceReports" />            
+            </div>
+        </div>        
     </form>
     <hr />
     <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5817"))">

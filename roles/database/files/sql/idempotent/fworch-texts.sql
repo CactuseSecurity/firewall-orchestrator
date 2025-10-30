@@ -2620,10 +2620,12 @@ INSERT INTO txt VALUES ('complianceCheckDocumentationSamples','German', 'Dokumen
 INSERT INTO txt VALUES ('complianceCheckDocumentationSamples','English','Documentation / samples');
 INSERT INTO txt VALUES ('complianceCheckDiv','German', 'Div (Benchmarking, Spezialzweck usw.)');
 INSERT INTO txt VALUES ('complianceCheckDiv','English','Div (benchmarking, special purpose, etc)');
-INSERT INTO txt VALUES ('complianceCheckAutoCalculatedZonesAtTheEnd','German', 'Auto-kalkulierte Zonen nach anderen Zonen anordnen.');
-INSERT INTO txt VALUES ('complianceCheckAutoCalculatedZonesAtTheEnd','English','Arrange auto-calculated zones according to other zones.');
-INSERT INTO txt VALUES ('complianceCheckTreatDynamicAndDomainObjectsAsInternet','German', 'Behandel dynamische und Domain-Objekte als Internet.');
-INSERT INTO txt VALUES ('complianceCheckTreatDynamicAndDomainObjectsAsInternet','English','Treat dynamic and domain objects as internet.');
+INSERT INTO txt VALUES ('complianceCheckAutoCalculatedZonesAtTheEnd','German', 'Auto-kalkulierte Zonen nach anderen Zonen anordnen');
+INSERT INTO txt VALUES ('complianceCheckAutoCalculatedZonesAtTheEnd','English','Arrange auto-calculated zones according to other zones');
+INSERT INTO txt VALUES ('complianceCheckTreatDynamicAndDomainObjectsAsInternet','German', 'Behandel dynamische und Domain-Objekte als Internet');
+INSERT INTO txt VALUES ('complianceCheckTreatDynamicAndDomainObjectsAsInternet','English','Treat dynamic and domain objects as internet');
+INSERT INTO txt VALUES ('complianceCheckShowShortColumsInComplianceReports','German', 'Spalten mit Kurzform für Sources, Destinations und Services anzeigen');
+INSERT INTO txt VALUES ('complianceCheckShowShortColumsInComplianceReports','English','Show columns with short forms for sources, destinations and services');
 INSERT INTO txt VALUES ('availableModules',     'German', 	'Verf&uuml;gbare Module');
 INSERT INTO txt VALUES ('availableModules',     'English', 	'Available Modules');
 INSERT INTO txt VALUES ('notification',   		'German', 	'Benachrichtigung');
@@ -5894,6 +5896,8 @@ INSERT INTO txt VALUES ('H5834', 'German',  'Wenn aktiviert, werden die auto-kal
 INSERT INTO txt VALUES ('H5834', 'English', 'When activated, the auto-calculated zones are placed at the end of the matrix axes. Default: at the beginning.');
 INSERT INTO txt VALUES ('H5835', 'German',  'Wenn aktiviert, werden dynamische und Domain-Objekte in der Compliance-Auswertung als Teil der Internetzone angenommen. Default: Objekte werden gleich behandelt wie andere Netzwerkobjekte.');
 INSERT INTO txt VALUES ('H5835', 'English', 'When enabled, dynamic and domain objects are considered part of the Internet zone in the compliance evaluation. Default: Objects are treated the same as other network objects.');
+INSERT INTO txt VALUES ('H5836', 'German',  'Wenn aktiviert, werden in compliance reports zusätzlich zu den aufgelösten Spalten für Sources, Destinations und Services Spalten mit der Kurzform angezeigt.');
+INSERT INTO txt VALUES ('H5836', 'English', 'When enabled, compliance reports will display columns with the short form in addition to the resolved columns for sources, destinations and services.');
 
 INSERT INTO txt VALUES ('H6001', 'German',  'Firewall Orchestrator verf&uuml;gt &uuml;ber zwei APIs:
     <ul>

@@ -666,7 +666,7 @@ namespace FWO.Compliance
             {
                 List<ComplianceNetworkZone>? networkZones = null;
 
-                if (_userConfig.GlobalConfig is GlobalConfig globalConfig && globalConfig.AutoCalculateInternetZone && globalConfig.TreatDynamicAndDomainObjectsAsInternet)
+                if (_userConfig.GlobalConfig is GlobalConfig globalConfig && globalConfig.AutoCalculateInternetZone && globalConfig.TreatDynamicAndDomainObjectsAsInternet && (dataItem.networkObject.Type.Name == "dynamic_net_obj" || dataItem.networkObject.Type.Name == "domain"))
                 {
                     networkZones = _networkZones.Where(zone => zone.IsAutoCalculatedInternetZone)?.ToList();
                 }

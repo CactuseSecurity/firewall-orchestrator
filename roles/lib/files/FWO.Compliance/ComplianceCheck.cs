@@ -668,7 +668,7 @@ namespace FWO.Compliance
 
                 if (_userConfig.GlobalConfig is GlobalConfig globalConfig && globalConfig.AutoCalculateInternetZone && globalConfig.TreatDynamicAndDomainObjectsAsInternet)
                 {
-                    map.Add((dataItem.networkObject, _networkZones.Where(zone => zone.IsAutoCalculatedInternetZone).ToList()));
+                    networkZones = _networkZones.Where(zone => zone.IsAutoCalculatedInternetZone)?.ToList();
                 }
                 else if (dataItem.ipRanges.Count > 0)
                 {

@@ -1,8 +1,5 @@
 
-from curses import raw
 from typing import Any
-
-import json
 import fwo_const
 from copy import deepcopy
 from model_controllers.import_state_controller import ImportStateController
@@ -17,7 +14,7 @@ from models.fwconfigmanager import FwConfigManager
 from model_controllers.management_controller import ManagementController
 from fmgr_network import normalize_network_objects
 from fmgr_service import normalize_service_objects
-from fmgr_rule import normalize_rulebases, get_access_policy, get_nat_policy, normalize_nat_rulebases
+from fmgr_rule import normalize_rulebases, get_access_policy, get_nat_policy
 from fmgr_consts import nw_obj_types, svc_obj_types, user_obj_types
 from fwo_base import ConfigAction
 from fmgr_zone import get_zones, normalize_zones
@@ -108,7 +105,7 @@ def get_arbitrary_vdom(adom_device_vdom_structure):
                 return {'adom': adom, 'device': device, 'vdom': vdom}
 
 
-def normalize_config(import_state, native_config: dict[str,Any]) -> FwConfigManagerListController:
+def normalize_config(import_state, native_config: 'dict[str,Any]') -> FwConfigManagerListController:
 
     manager_list = FwConfigManagerListController()
 
@@ -116,6 +113,9 @@ def normalize_config(import_state, native_config: dict[str,Any]) -> FwConfigMana
         raise ImportInterruption("No domains found in native config. Cannot normalize config.")
 
     rewrite_native_config_obj_type_as_key(native_config) # for easier accessability of objects in normalization process
+
+    native_config_global = {}
+    normalized_config_global = {}
 
     for native_conf in native_config['domains']:
         normalized_config_adom = deepcopy(fwo_const.emptyNormalizedFwConfigJsonDict)
@@ -169,7 +169,7 @@ def rewrite_native_config_obj_type_as_key(native_config):
         domain['objects'] = obj_dict
 
 
-def normalize_single_manager_config(native_config: dict[str, Any], native_config_global: dict[str, Any], normalized_config_adom: dict,
+def normalize_single_manager_config(native_config: 'dict[str, Any]', native_config_global: 'dict[str, Any]', normalized_config_adom: dict,
                                     normalized_config_global: dict, import_state: ImportStateController,
                                     is_global_loop_iteration: bool):
 

@@ -1,5 +1,4 @@
 import copy
-import jsonpickle
 import ipaddress
 from time import strftime, localtime
 from fwo_const import list_delimiter, nat_postfix, dummy_ip
@@ -32,10 +31,10 @@ def normalize_rulebases(
     normalized_config_global: dict,
     is_global_loop_iteration: bool
 ) -> None:
+    
     normalized_config_adom['policies'] = []
-
     fetched_rulebase_uids: list = []
-    if normalized_config_global is not None:
+    if normalized_config_global != {}:
         for normalized_rulebase_global in normalized_config_global.get('policies', []):
             fetched_rulebase_uids.append(normalized_rulebase_global.uid)
     for gateway in native_config['gateways']:
@@ -43,9 +42,6 @@ def normalize_rulebases(
             gateway, mgm_uid, fetched_rulebase_uids, native_config, native_config_global,
             is_global_loop_iteration, normalized_config_adom,
             normalized_config_global)
-
-    # todo: parse nat rulebase here
-
 
 def normalize_rulebases_for_each_link_destination(gateway, mgm_uid, fetched_rulebase_uids, native_config,
         native_config_global, is_global_loop_iteration, normalized_config_adom, normalized_config_global):
@@ -55,7 +51,7 @@ def normalize_rulebases_for_each_link_destination(gateway, mgm_uid, fetched_rule
             rulebase_to_parse = find_rulebase_to_parse(native_config['rulebases'], rulebase_link['to_rulebase_uid'])
             # search in global rulebase
             found_rulebase_in_global = False
-            if rulebase_to_parse == {} and not is_global_loop_iteration and native_config_global is not None:
+            if rulebase_to_parse == {} and not is_global_loop_iteration and native_config_global != {}:
                 rulebase_to_parse = find_rulebase_to_parse(
                     native_config_global['rulebases'], rulebase_link['to_rulebase_uid']
                     )
@@ -73,14 +69,15 @@ def normalize_rulebases_for_each_link_destination(gateway, mgm_uid, fetched_rule
             else:
                 normalized_config_adom['policies'].append(normalized_rulebase)
 
-        normalize_nat_rulebase(rulebase_link, native_config, normalized_config_adom, normalized_config_global)
+        # normalizing nat rulebases is work in progress
+        #normalize_nat_rulebase(rulebase_link, native_config, normalized_config_adom, normalized_config_global)
 
 def normalize_nat_rulebase(rulebase_link, native_config, normalized_config_adom, normalized_config_global):
     if not rulebase_link['is_section']:
         for nat_type in nat_types:
             nat_type_string = nat_type + '_' + rulebase_link['to_rulebase_uid']
             nat_rulebase = get_native_nat_rulebase(native_config, nat_type_string)
-            parse_nat_rulebase(nat_rulebase, normalized_config_adom, normalized_config_global)
+            parse_nat_rulebase(nat_rulebase, nat_type_string, normalized_config_adom, normalized_config_global)
 
 def get_native_nat_rulebase(native_config, nat_type_string):
     logger = getFwoLogger()
@@ -468,8 +465,9 @@ def get_nat_policy(sid, fm_api_url, native_config, adom_device_vdom_policy_packa
 # delete_v: ab hier kann sehr viel weg, ich lasses vorerst zB für die nat
 # pure nat rules 
 
-
-def parse_nat_rulebase(nat_rulebase, normalized_config_adom, normalized_config_global): #(nat_rulebase, normalized_config_adom, import_id, jwt=None):
+def parse_nat_rulebase(nat_rulebase, nat_type_string, normalized_config_adom, normalized_config_global):
+    # this function is not called until it is ready
+    return
     nat_rules = []
     rule_number = 0
     for rule_orig in nat_rulebase:
@@ -492,7 +490,7 @@ def parse_nat_rulebase(nat_rulebase, normalized_config_adom, normalized_config_g
             rule_svc_refs=list_delimiter.join(rule_svc_refs_list),
             rule_action=RuleAction.DROP,
             rule_track=RuleTrack.NONE,
-            rule_installon=rule_installon,
+            rule_installon=nat_type_string,
             rule_time='',  # Time-based rules not commonly used in basic Fortinet configs
             rule_name=rule_orig.get('name', ''),
             rule_uid=rule_orig.get('uuid'),
@@ -641,7 +639,7 @@ def handle_combined_nat_rule(rule, rule_orig, config2import, nat_rule_number, im
                         interface_name = matching_route.interface
                         hideInterface=interface_name
                         if hideInterface is None:
-                            logger.warning('src nat behind interface: found route with undefined interface ' + str(jsonpickle.dumps(matching_route, unpicklable=True)))
+                            logger.warning('src nat behind interface: found route with undefined interface ') #+ str(jsonpickle.dumps(matching_route, unpicklable=True)))
                         if destination_interface_ip is None:
                             logger.warning('src nat behind interface: found no matching interface IP in rule with UID '
                             + rule['rule_uid'] + ', dest_ip: ' + destination_ip)

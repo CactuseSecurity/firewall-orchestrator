@@ -119,7 +119,7 @@ def check_split(obj_orig) -> bool:
     return (count > 1)
 
 
-def extractPorts(port_ranges) -> tuple[list[Any], list[Any]]:
+def extractPorts(port_ranges) -> 'tuple[list[Any], list[Any]]':
     ports = []
     port_ends = []
     if port_ranges is not None and len(port_ranges) > 0:
@@ -150,7 +150,7 @@ def extractPorts(port_ranges) -> tuple[list[Any], list[Any]]:
     return ports, port_ends
 
 
-def create_svc_object(name, proto, color, port, comment) -> dict[str, Any]:
+def create_svc_object(name, proto, color, port, comment) -> 'dict[str, Any]':
     return {
         'svc_name': name,
         'svc_typ': 'simple',

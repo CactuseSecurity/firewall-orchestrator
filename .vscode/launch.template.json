@@ -54,19 +54,20 @@
                 "moduleLoad": false
             }
         },
-        {
+                {
             "name": "c#-Blazor UI",
             "type": "coreclr",
             "request": "launch",
             "preLaunchTask": "build_UI",
-            "program": "dotnet",
-            "args": [
-                "watch",
-                "run"
-            ],
+            "program": "${workspaceFolder}/roles/ui/files/FWO.UI/bin/Debug/net8.0/FWO.Ui.dll",
+            "args": [],
             "cwd": "${workspaceFolder}/roles/ui/files/FWO.UI",
             "stopAtEntry": false,
             "requireExactSource": false,
+            "serverReadyAction": {
+                "action": "openExternally",
+                "pattern": "\\bNow listening on:\\s+(https?://\\S+)"
+            },
             "env": {
                 "ASPNETCORE_ENVIRONMENT": "Development"
             },

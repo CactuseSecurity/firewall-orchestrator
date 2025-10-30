@@ -1,15 +1,17 @@
+import hashlib
 import json
 from copy import deepcopy
 import re
 from enum import Enum
-from typing import Any, get_type_hints
-import ipaddress 
+from typing import Any, List, get_type_hints
+import ipaddress
 import traceback
 import time
 
 
 import fwo_globals
 import fwo_config
+import fwo_const
 from fwo_const import csv_delimiter, apostrophe, line_delimiter
 from fwo_enums import ConfFormat, ConfigAction
 from fwo_log import getFwoLogger, getFwoAlertLogger
@@ -47,7 +49,7 @@ def csv_add_field(content, no_csv_delimiter=False):
         if not no_csv_delimiter:
             field_result += csv_delimiter
     return field_result
- 
+
 
 def sanitize(content, lower: bool = False) -> None | str:
     if content is None:
@@ -88,7 +90,7 @@ def jsonToLogFormat(jsonData):
         jsonString = jsonData
     else:
         jsonString = str(jsonData)
-    
+
     if jsonString[0] == '{' and jsonString[-1] == '}':
         jsonString = jsonString[1:len(jsonString)-1]
     return jsonString
@@ -209,7 +211,7 @@ def deserializeClassToDictRecursively(obj: Any, seen=None) -> Any:
     # Check for circular references
     if id(obj) in seen:
         return f"<Circular reference to {obj.__class__.__name__}>"
-    
+
     seen.add(id(obj))
 
     if isinstance(obj, list):
@@ -248,14 +250,14 @@ def cidrToRange(ip):
         elif ipVersion=='IPv4':
             net = ipaddress.IPv4Network(ip)
         elif ipVersion=='IPv6':
-            net = ipaddress.IPv6Network(ip)    
+            net = ipaddress.IPv6Network(ip)
         return [str(net.network_address), str(net.broadcast_address)]
-            
+
     return [ip]
 
 
-def validIPAddress(IP: str) -> str: 
-    try: 
+def validIPAddress(IP: str) -> str:
+    try:
         t = type(ipaddress.ip_address(IP))
         if t is ipaddress.IPv4Address:
             return "IPv4"
@@ -271,7 +273,7 @@ def validIPAddress(IP: str) -> str:
             elif t is ipaddress.IPv6Network:
                 return "IPv6"
             else:
-                return 'Invalid'        
+                return 'Invalid'
         except Exception:
             return "Invalid"
 
@@ -284,7 +286,7 @@ def validate_ip_address(address):
         # print("IP address {} is valid. The object returned is {}".format(address, ip))
     except ValueError:
         return False
-        # print("IP address {} is not valid".format(address)) 
+        # print("IP address {} is not valid".format(address))
 
 
 def lcs_dp(seq1: list[Any], seq2: list[Any]) -> tuple[list[list[int]], int]:
@@ -296,7 +298,7 @@ def lcs_dp(seq1: list[Any], seq2: list[Any]) -> tuple[list[list[int]], int]:
     m: int = len(seq1)
     n: int = len(seq2)
     dp: list[list[int]] = [[0]*(n+1) for _ in range(m+1)]
-   
+
     for i in range(m):
         for j in range(n):
             if seq1[i] == seq2[j]:
@@ -340,19 +342,19 @@ def compute_min_moves(source: list[Any], target: list[Any]) -> dict[str, Any]:
     # Build sets (assume uniqueness for membership checks)
     target_set: set[Any] = set(target)
     source_set: set[Any] = set(source)
-   
+
     # Identify the common elements:
     S_common: list[Any] = [elem for elem in source if elem in target_set]
     T_common: list[Any] = [elem for elem in target if elem in source_set]
-   
+
     # Calculate deletions and insertions:
     deletions: list[tuple[int, Any]] = [ (i, elem) for i, elem in enumerate(source) if elem not in target_set ]
     insertions: list[tuple[int, Any]] = [ (j, elem) for j, elem in enumerate(target) if elem not in source_set ]
-   
+
     # Compute the longest common subsequence (LCS) between S_common and T_common – these are common elements already in correct relative order.
     lcs_data: tuple[list[list[int]], int] = lcs_dp(S_common, T_common)
     lcs_indices: list[tuple[int, int]] = backtrack_lcs(S_common, T_common, lcs_data[0])
-   
+
     # To decide which common elements must be repositioned, mark the indices in S_common which are part of the LCS.
     in_place: list[bool] = [False] * len(S_common)
     for i, _ in lcs_indices:
@@ -385,7 +387,7 @@ def compute_min_moves(source: list[Any], target: list[Any]) -> dict[str, Any]:
         operations.append(f"Insert element '{elem}' at target position {idx}.")
     for idx, elem, target_pos in reposition_moves:
         operations.append(f"Pop element '{elem}' from source index {idx} and reinsert at target position {target_pos}.")
-   
+
     return {
         "moves": total_moves,
         "operations": operations,
@@ -401,9 +403,9 @@ def write_native_config_to_file(importState, configNative):
         logger = getFwoLogger(debug_level=importState.DebugLevel)
         debug_start_time = int(time.time())
         try:
-                full_native_config_filename = f"{import_tmp_path}/mgm_id_{str(importState.MgmDetails.Id)}_config_native.json"
-                with open(full_native_config_filename, "w") as json_data:
-                    json_data.write(json.dumps(configNative, indent=2))
+            full_native_config_filename = f"{import_tmp_path}/mgm_id_{str(importState.MgmDetails.Id)}_config_native.json"
+            with open(full_native_config_filename, "w") as json_data:
+                json_data.write(json.dumps(configNative, indent=2))
         except Exception:
             logger.error(f"import_management - unspecified error while dumping config to json file: {str(traceback.format_exc())}")
             raise
@@ -421,6 +423,7 @@ def init_service_provider():
     service_provider.register(Services.UID2ID_MAPPER, lambda: Uid2IdMapper(), Lifetime.IMPORT)
     service_provider.register(Services.RULE_ORDER_SERVICE, lambda: RuleOrderService(), Lifetime.IMPORT)
     return service_provider
+
 
 def find_all_diffs(a, b, strict=False, path="root"):
     diffs = []
@@ -441,10 +444,22 @@ def find_all_diffs(a, b, strict=False, path="root"):
             if res:
                 diffs.extend(res)
         if len(a) != len(b):
-            diffs.append(f"list length mismatch at {path}: {len(a)} != {len(b)}")
+            diffs.append(
+                f"list length mismatch at {path}: {len(a)} != {len(b)}")
     else:
         if a != b:
-            if not strict and (a is None or a == '') and (b is None or b == ''):
+            if not strict and (a is None or a == '') and (b is None
+                                                          or b == ''):
                 return diffs
             diffs.append(f"Value mismatch at {path}: {a} != {b}")
     return diffs
+
+
+def sort_and_join(input_list: List[str]) -> str:
+    """ Sorts the input list of strings and joins them using the standard list delimiter. """
+    return fwo_const.list_delimiter.join(sorted(input_list))
+
+def generate_hash_from_dict(input_dict: dict) -> str:
+    """ Generates a consistent hash from a dictionary by serializing it with sorted keys. """
+    dict_string = json.dumps(input_dict, sort_keys=True)
+    return hashlib.sha256(dict_string.encode('utf-8')).hexdigest()

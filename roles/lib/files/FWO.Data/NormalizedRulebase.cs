@@ -15,7 +15,7 @@ namespace FWO.Data
         public string Name { get; set; } = "";
 
         [JsonProperty("mgm_uid"), JsonPropertyName("mgm_uid")]
-        public string MgmUid { get; set; } = "";
+        public string? MgmUid { get; set; } = null;
 
         [JsonProperty("is_global"), JsonPropertyName("is_global")]
         public bool IsGlobal { get; set; }

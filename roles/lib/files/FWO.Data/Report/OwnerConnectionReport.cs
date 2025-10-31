@@ -9,7 +9,8 @@ namespace FWO.Data.Report
         public List<ModellingConnection> RegularConnections { get; set; } = [];
         public List<ModellingConnection> Interfaces { get; set; } = [];
         public List<ModellingConnection> CommonServices { get; set; } = [];
-        public List<ManagementReport> ManagementData { get; set; } = [];
+        public List<ManagementReport> UnmodelledRules { get; set; } = [];
+        public List<ManagementReport> RulesForDeletedConns { get; set; } = [];
         public List<ModProdDifference> RuleDifferences { get; set; } = [];
         private readonly long DummyARid = -1;
         public int ModelledConnectionsCount { get; set; }
@@ -35,7 +36,8 @@ namespace FWO.Data.Report
             RegularConnections = report.RegularConnections;
             Interfaces = report.Interfaces;
             CommonServices = report.CommonServices;
-            ManagementData = report.ManagementData;
+            UnmodelledRules = report.UnmodelledRules;
+            RulesForDeletedConns = report.RulesForDeletedConns;
             RuleDifferences = report.RuleDifferences;
             DummyARid = report.DummyARid;
             ModelledConnectionsCount = report.ModelledConnectionsCount;

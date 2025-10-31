@@ -294,3 +294,10 @@ bugfix release:
 
 # 8.8.10 - 07.09.2025 DEVELOP
 - new report type owner-recertification
+
+# 8.9.1 - 02.10.2025 DEVELOP
+- owner-recertification
+
+# 8.9.2 - 17.10.2025 DEVELOP
+- add ownerLifeCycleState 
+- add manageable ownerLifeCycleState menu

@@ -10,6 +10,7 @@ fragment ownerDetails on owner {
   recert_check_params
   last_recert_check
   criticality
+  owner_lifecycle_state_id
   active
   import_source
   common_service_possible
@@ -17,4 +18,5 @@ fragment ownerDetails on owner {
   last_recertifier
   last_recertifier_dn
   next_recert_date
+  recert_active
 }

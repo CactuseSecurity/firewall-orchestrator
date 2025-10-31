@@ -29,7 +29,7 @@ namespace FWO.Report
             StringBuilder report = new();
             if (overdueOwners.Count > 0)
             {
-                report.AppendLine($"<h3 id=\"{Guid.NewGuid()}\">{userConfig.GetText("U4003")}</h3>");
+                report.AppendLine(Headline(userConfig.GetText("U4003"), 3));
                 AppendOwnerTable(ref report, overdueOwners);
             }
             else
@@ -39,7 +39,7 @@ namespace FWO.Report
             report.AppendLine("<hr>");
             if (upcomingOwners.Count > 0)
             {
-                report.AppendLine($"<h3 id=\"{Guid.NewGuid()}\">{userConfig.GetText("U4005").Replace(Placeholder.DAYS, ReportData.RecertificationDisplayPeriod.ToString())}</h3>");
+                report.AppendLine(Headline(userConfig.GetText("U4005").Replace(Placeholder.DAYS, ReportData.RecertificationDisplayPeriod.ToString()), 3));
                 AppendOwnerTable(ref report, upcomingOwners);
             }
             else if (ReportData.RecertificationDisplayPeriod > 0)
@@ -49,7 +49,7 @@ namespace FWO.Report
             report.AppendLine("<hr>");
             if (furtherOwners.Count > 0)
             {
-                report.AppendLine($"<h3 id=\"{Guid.NewGuid()}\">{userConfig.GetText("U4007")}</h3>");
+                report.AppendLine(Headline(userConfig.GetText(!furtherOwners.Any( o => o.NextRecertDate == null) ? "U4007" : "U4008"), 3));
                 AppendOwnerTable(ref report, furtherOwners);
             }
            

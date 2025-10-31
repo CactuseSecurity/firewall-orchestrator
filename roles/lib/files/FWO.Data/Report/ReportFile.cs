@@ -1,5 +1,6 @@
-using System.Text.Json.Serialization; 
+using FWO.Basics;
 using Newtonsoft.Json;
+using System.Text.Json.Serialization;
 
 
 namespace FWO.Data.Report
@@ -51,10 +52,13 @@ namespace FWO.Data.Report
         [JsonProperty("read_only"), JsonPropertyName("read_only")]
         public bool ReadOnly { get; set; } = false;
 
+        [JsonProperty("owner"), JsonPropertyName("owner")]
+        public FwoOwner? Owner { get; set; }
+
         public bool Sanitize()
         {
             bool shortened = false;
-            Name = Sanitizer.SanitizeMand(Name, ref shortened);
+            Name = Name.SanitizeMand(ref shortened);
             return shortened;
         }
     }

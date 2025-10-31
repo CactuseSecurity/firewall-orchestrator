@@ -82,12 +82,20 @@
             </Collapse>
         </div>
     }
-    @if(owner.ManagementData.Count > 0)
+    @if(owner.RulesForDeletedConns.Count > 0)
+    {
+        <br>
+        <h5>@(userConfig.GetText("rules_for_deleted_conns"))</h5>
+        <div class="ml-13">
+            <RulesReport Managements="owner.RulesForDeletedConns" SelectedReportType="ReportType.Rules" RulesPerPage="rulesPerPage" @bind-SelectedRules="selectedRules" />
+        </div>
+    }
+    @if(owner.UnmodelledRules.Count > 0)
     {
         <br>
         <h5>@(userConfig.GetText("rules_not_modelled"))</h5>
         <div class="ml-13">
-            <RulesReport Managements="owner.ManagementData" SelectedReportType="ReportType.AppRules" RulesPerPage="rulesPerPage" @bind-SelectedRules="selectedRules" />
+            <RulesReport Managements="owner.UnmodelledRules" SelectedReportType="ReportType.AppRules" RulesPerPage="rulesPerPage" @bind-SelectedRules="selectedRules" />
         </div>
     }
 }

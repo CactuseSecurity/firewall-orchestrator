@@ -57,6 +57,10 @@ namespace FWO.Report
                     {
                         PrepareMetadata(report.ReportData.ManagementData, userConfig);
                     }
+                    if (report.ReportType == ReportType.RecertEventReport)
+                    {
+                        report.ReportData.OwnerData = await ReportRecertEvent.GetRecertification(reportTemplate.ReportParams.ModellingFilter.ReportId, apiConnection);
+                    }
                 }
             }
             catch (OperationCanceledException e)
@@ -148,10 +152,14 @@ namespace FWO.Report
             ownerReport.DifferingAppRoles = result.DifferingAppRoles;
             ownerReport.AppRoleStats = result.AppRoleStats;
             ownerReport.ImplementationState = await varianceAnalysis.GetSuccessfulRequestState();
+            if(modellingFilter.RulesForDeletedConns)
+            {
+                ownerReport.RulesForDeletedConns = result.DeletedConnRuleDataToReport();
+            }
             if(modellingFilter.AnalyseRemainingRules)
             {
-                ownerReport.ManagementData = result.MgtDataToReport();
-                ownerReport.ManagementData = await ReportAppRules.PrepareAppRulesReport(ownerReport.ManagementData, modellingFilter, apiConnection, ownerReport.Owner.Id);
+                ownerReport.UnmodelledRules = result.UnmodelledRuleDataToReport();
+                ownerReport.UnmodelledRules = await ReportAppRules.PrepareAppRulesReport(ownerReport.UnmodelledRules, modellingFilter, apiConnection, ownerReport.Owner.Id);
             }
         }
 
@@ -165,10 +173,12 @@ namespace FWO.Report
                     SetRelevantManagements(report.ReportData.ManagementData, reportTemplate.ReportParams.DeviceFilter);
                     foreach (var mgm in report.ReportData.ManagementData.Where(mgt => !mgt.Ignore))
                     {
+                        mgm.EnforceValidity();
                         report.ReportData.GlobalStats.RuleStatistics.ObjectAggregate.ObjectCount += mgm.RuleStatistics.ObjectAggregate.ObjectCount;
                         report.ReportData.GlobalStats.NetworkObjectStatistics.ObjectAggregate.ObjectCount += mgm.NetworkObjectStatistics.ObjectAggregate.ObjectCount;
                         report.ReportData.GlobalStats.ServiceObjectStatistics.ObjectAggregate.ObjectCount += mgm.ServiceObjectStatistics.ObjectAggregate.ObjectCount;
                         report.ReportData.GlobalStats.UserObjectStatistics.ObjectAggregate.ObjectCount += mgm.UserObjectStatistics.ObjectAggregate.ObjectCount;
+                        report.ReportData.GlobalStats.UnusedRulesStatistics.ObjectAggregate.ObjectCount += mgm.UnusedRulesStatistics.ObjectAggregate.ObjectCount;
                     }
                     return Task.CompletedTask;
                 }, token);

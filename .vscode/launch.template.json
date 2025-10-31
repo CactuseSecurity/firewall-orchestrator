@@ -54,7 +54,34 @@
                 "moduleLoad": false
             }
         },
-                {
+        {
+            "name": "c#-MiddlewareServer - Hot Reload",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "build_middleware",
+            "enableStepFiltering": false,
+            "program": "dotnet",
+            "args": [
+                "watch",
+                "run"
+            ],
+            "cwd": "${workspaceFolder}/roles/middleware/files/FWO.Middleware.Server",
+            "console": "internalConsole",
+            "stopAtEntry": false,
+            "requireExactSource": false,
+            "serverReadyAction": {
+                "action": "openExternally",
+                "pattern": "\\bNow listening on:\\s+(https?://\\S+)",
+                "uriFormat": "%s/swagger"
+            },
+            "env": {
+                "ASPNETCORE_ENVIRONMENT": "Development"
+            },
+            "logging": {
+                "moduleLoad": false
+            }
+        },
+        {
             "name": "c#-Blazor UI",
             "type": "coreclr",
             "request": "launch",
@@ -79,7 +106,7 @@
             }
         },
         {
-            "name": "c#-Blazor UI - development",
+            "name": "c#-Blazor UI - Hot Reload",
             "type": "coreclr",
             "request": "launch",
             "preLaunchTask": "build_UI",

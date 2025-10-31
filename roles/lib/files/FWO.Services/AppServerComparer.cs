@@ -25,7 +25,7 @@ namespace FWO.Services
 
             string appServer1Name = AppServerHelper.ConstructSanitizedAppServerName(appServer1, NamingConvention);
             string appServer2Name = AppServerHelper.ConstructSanitizedAppServerName(appServer2, NamingConvention);
-            return appServer1Name == appServer2Name;
+            return string.Equals(appServer1Name, appServer2Name, StringComparison.OrdinalIgnoreCase);
         }
 
         public int GetHashCode(ModellingAppServerWrapper appServerWrapper)
@@ -35,7 +35,7 @@ namespace FWO.Services
 
         public int GetHashCode(ModellingAppServer appServer)
         {
-            string appServerName = AppServerHelper.ConstructSanitizedAppServerName(appServer, NamingConvention).Trim();
+            string appServerName = AppServerHelper.ConstructSanitizedAppServerName(appServer, NamingConvention).ToLower().Trim();
             return HashCode.Combine(appServerName);
         }
     }

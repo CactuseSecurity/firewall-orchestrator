@@ -10,8 +10,8 @@ namespace FWO.Data
 
         public string CidrString         
         {
-            get => this.getCidrString();
-            set => this.setCidrFromString(value);
+            get => this.GetCidrString();
+            set => this.SetCidrFromString(value);
         }
 
         public Cidr()
@@ -19,15 +19,15 @@ namespace FWO.Data
 
         public Cidr(string value)
         {
-            this.setCidrFromString(value);
+            this.SetCidrFromString(value);
         }
 
-        private string getCidrString()
+        private string GetCidrString()
         {
-            return (Valid ? IpRange.ToCidrString() : "");
+            return Valid ? IpRange.ToCidrString() : "";
         }
 
-        private void setCidrFromString(string value)
+        private void SetCidrFromString(string value)
         {
             try
             {
@@ -58,6 +58,5 @@ namespace FWO.Data
         {
             return !IsV6();
         }
-        
     }
 }

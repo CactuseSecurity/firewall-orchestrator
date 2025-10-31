@@ -89,7 +89,7 @@ def initialize_normalized_rulebase(rulebase_to_parse, mgm_uid):
     """
     rulebaseName = rulebase_to_parse['type']
     rulebaseUid = rulebase_to_parse['type']
-    normalized_rulebase = Rulebase(uid=rulebaseUid, name=rulebaseName, mgm_uid=mgm_uid, Rules={})
+    normalized_rulebase = Rulebase(uid=rulebaseUid, name=rulebaseName, mgm_uid=mgm_uid, rules={})
     return normalized_rulebase
 
 def parse_rulebase(normalized_config_dict, normalized_config_global, rulebase_to_parse, normalized_rulebase):

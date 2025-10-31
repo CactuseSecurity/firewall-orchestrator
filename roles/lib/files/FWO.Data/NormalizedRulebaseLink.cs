@@ -28,12 +28,17 @@ namespace FWO.Data
 
         public static NormalizedRulebaseLink FromRulebaseLink(RulebaseLink rulebaseLink)
         {
+            if (rulebaseLink.ToRulebase == null || rulebaseLink.LinkTypeObj == null)
+            {
+                throw new ArgumentException("ToRulebase and LinkTypeObj cannot be null in RulebaseLink.");
+            }
+
             return new NormalizedRulebaseLink
             {
                 FromRulebaseUid = rulebaseLink.FromRulebase?.Uid,
                 FromRuleUid = rulebaseLink.FromRule?.Uid,
-                ToRulebaseUid = rulebaseLink.ToRulebase?.Uid ?? "",
-                LinkType = rulebaseLink.LinkTypeObj?.Name ?? "",
+                ToRulebaseUid = rulebaseLink.ToRulebase.Uid,
+                LinkType = rulebaseLink.LinkTypeObj.Name,
                 IsInitial = rulebaseLink.IsInitial,
                 IsGlobal = rulebaseLink.IsGlobal,
                 IsSection = rulebaseLink.IsSection

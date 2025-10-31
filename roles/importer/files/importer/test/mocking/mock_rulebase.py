@@ -4,7 +4,7 @@ class MockRulebase:
     name = ""
     mgm_uid = ""
     is_global = False
-    Rules = {}
+    rules = {}
 
 
     def to_dict(self):
@@ -14,6 +14,6 @@ class MockRulebase:
             "name": self.name,
             "mgm_uid": self.mgm_uid,
             "is_global": self.is_global,
-            "Rules": self.Rules
+            "rules": self.rules
         }
     

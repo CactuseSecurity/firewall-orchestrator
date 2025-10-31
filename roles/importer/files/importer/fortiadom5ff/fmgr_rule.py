@@ -89,16 +89,16 @@ def initialize_normalized_rulebase(rulebase_to_parse, mgm_uid):
     """
     rulebaseName = rulebase_to_parse['type']
     rulebaseUid = rulebase_to_parse['type']
-    normalized_rulebase = Rulebase(uid=rulebaseUid, name=rulebaseName, mgm_uid=mgm_uid, Rules={})
+    normalized_rulebase = Rulebase(uid=rulebaseUid, name=rulebaseName, mgm_uid=mgm_uid, rules={})
     return normalized_rulebase
 
 def parse_rulebase(normalized_config_dict, normalized_config_global, rulebase_to_parse, normalized_rulebase):
-
-    rule_num = 1
+    """Parses a native Fortinet rulebase into a normalized rulebase."""
     for native_rule in rulebase_to_parse['data']:
-        rule_num = parse_single_rule(normalized_config_dict, normalized_config_global, native_rule, normalized_rulebase, rule_num)
+        parse_single_rule(normalized_config_dict, normalized_config_global, native_rule, normalized_rulebase)
 
-def parse_single_rule(normalized_config_dict, normalized_config_global, native_rule, rulebase: Rulebase, rule_num):
+def parse_single_rule(normalized_config_dict, normalized_config_global, native_rule, rulebase: Rulebase):
+    """Parses a single native Fortinet rule into a normalized rule and adds it to the given rulebase."""
     # Extract basic rule information
     rule_disabled = True  # Default to disabled
     if 'status' in native_rule and (native_rule['status'] == 1 or native_rule['status'] == 'enable'):
@@ -116,11 +116,11 @@ def parse_single_rule(normalized_config_dict, normalized_config_global, native_r
     rule_src_zone, rule_dst_zone = rule_parse_zone(native_rule, normalized_config_dict)
 
     rule_src_neg, rule_dst_neg, rule_svc_neg = rule_parse_negation_flags(native_rule)
-    rule_installon = rule_parse_installon(native_rule, rulebase.name)
+    rule_installon = rule_parse_installon(native_rule)
 
     # Create the normalized rule
     rule_normalized = RuleNormalized(
-        rule_num=rule_num,
+        rule_num=0,
         rule_num_numeric=0,
         rule_disabled=rule_disabled,
         rule_src_neg=rule_src_neg,
@@ -151,11 +151,9 @@ def parse_single_rule(normalized_config_dict, normalized_config_global, native_r
     )
     
     # Add the rule to the rulebase
-    rulebase.Rules[rule_normalized.rule_uid] = rule_normalized
+    rulebase.rules[rule_normalized.rule_uid] = rule_normalized
 
     # TODO: handle NAT
-    
-    return rule_num + 1
 
 def rule_parse_action(native_rule):
     # Extract action - Fortinet uses 0 for deny/drop, 1 for accept
@@ -252,11 +250,10 @@ def rule_parse_negation_flags(native_rule):
     rule_svc_neg = 'service-negate' in native_rule and (native_rule['service-negate'] == 1 or native_rule['service-negate'] == 'disable')
     return rule_src_neg, rule_dst_neg, rule_svc_neg
 
-def rule_parse_installon(native_rule, rulebase_name):
-    if 'scope_member' in native_rule:
+def rule_parse_installon(native_rule) -> str|None:
+    rule_installon = None
+    if 'scope_member' in native_rule and native_rule['scope_member']:
         rule_installon = list_delimiter.join(sorted({vdom['name'] + '_' + vdom['vdom'] for vdom in native_rule['scope_member']}))
-    else:
-        rule_installon = rulebase_name
     return rule_installon
 
 def get_access_policy(sid, fm_api_url, native_config_domain, adom_device_vdom_policy_package_structure, adom_name, mgm_details_device, device_config, limit):
@@ -355,6 +352,7 @@ def link_v4_and_v6_rulebase(rulebases, pkg_name, previous_rulebase, is_global):
 def build_link(previous_rulebase, full_pkg_name, is_global):
     if previous_rulebase is None:
         is_initial = True
+        previous_rulebase = None
     else:
         is_initial = False
     return {
@@ -571,18 +569,17 @@ def normalize_nat_rules(full_config, config2import, import_id, jwt=None):
                     xlate_rule.update({ 'rule_type': 'xlate' })
 
                     nat_rules.append(xlate_rule)
-                    rule_number += 1
     config2import['rules'].extend(nat_rules)
 
 
-def insert_header(rules, import_id, header_text, rulebase_name, rule_uid, rule_number, src_refs, dst_refs):
+def insert_header(rules, import_id, header_text, rulebase_name, rule_uid, src_refs, dst_refs):
     rule = {
         "control_id": import_id,
         "rule_head_text": header_text,
         "rulebase_name": rulebase_name,
         "rule_ruleid": None,
         "rule_uid":  rule_uid + rulebase_name,
-        "rule_num": rule_number,
+        "rule_num": 0,
         "rule_disabled": False,
         "rule_src": "all",
         "rule_dst": "all", 
@@ -719,34 +716,26 @@ def handle_combined_nat_rule(rule, rule_orig, config2import, nat_rule_number, im
     return xlate_rule
 
 
-def insert_headers(rule_table, first_v6, first_v4, full_config, rules, import_id, localPkgName,src_ref_all,dst_ref_all,rule_number):
+def insert_headers(rule_table, first_v6, first_v4, full_config, rules, import_id, localPkgName,src_ref_all,dst_ref_all):
     if rule_table in rule_access_scope_v6 and first_v6:
-        insert_header(rules, import_id, "IPv6 rules", localPkgName, "IPv6HeaderText", rule_number, src_ref_all, dst_ref_all)
-        rule_number += 1
+        insert_header(rules, import_id, "IPv6 rules", localPkgName, "IPv6HeaderText", src_ref_all, dst_ref_all)
         first_v6 = False
     elif rule_table in rule_access_scope_v4 and first_v4:
-        insert_header(rules, import_id, "IPv4 rules", localPkgName, "IPv4HeaderText", rule_number, src_ref_all, dst_ref_all)
-        rule_number += 1
+        insert_header(rules, import_id, "IPv4 rules", localPkgName, "IPv4HeaderText", src_ref_all, dst_ref_all)
         first_v4 = False
     if rule_table == 'rules_adom_v4' and len(full_config['rules_adom_v4'][localPkgName])>0:
-        insert_header(rules, import_id, "Adom Rules IPv4", localPkgName, "IPv4AdomRules", rule_number, src_ref_all, dst_ref_all)
-        rule_number += 1
+        insert_header(rules, import_id, "Adom Rules IPv4", localPkgName, "IPv4AdomRules", src_ref_all, dst_ref_all)
     elif rule_table == 'rules_adom_v6' and len(full_config['rules_adom_v6'][localPkgName])>0:
-        insert_header(rules, import_id, "Adom Rules IPv6", localPkgName, "IPv6AdomRules", rule_number, src_ref_all, dst_ref_all)
-        rule_number += 1
+        insert_header(rules, import_id, "Adom Rules IPv6", localPkgName, "IPv6AdomRules", src_ref_all, dst_ref_all)
     elif rule_table == 'rules_global_header_v4' and len(full_config['rules_global_header_v4'][localPkgName])>0:
-        insert_header(rules, import_id, "Global Header Rules IPv4", localPkgName, "IPv4GlobalHeaderRules", rule_number, src_ref_all, dst_ref_all)
-        rule_number += 1
+        insert_header(rules, import_id, "Global Header Rules IPv4", localPkgName, "IPv4GlobalHeaderRules", src_ref_all, dst_ref_all)
     elif rule_table == 'rules_global_header_v6' and len(full_config['rules_global_header_v6'][localPkgName])>0:
-        insert_header(rules, import_id, "Global Header Rules IPv6", localPkgName, "IPv6GlobalHeaderRules", rule_number, src_ref_all, dst_ref_all)
-        rule_number += 1
+        insert_header(rules, import_id, "Global Header Rules IPv6", localPkgName, "IPv6GlobalHeaderRules", src_ref_all, dst_ref_all)
     elif rule_table == 'rules_global_footer_v4' and len(full_config['rules_global_footer_v4'][localPkgName])>0:
-        insert_header(rules, import_id, "Global Footer Rules IPv4", localPkgName, "IPv4GlobalFooterRules", rule_number, src_ref_all, dst_ref_all)
-        rule_number += 1
+        insert_header(rules, import_id, "Global Footer Rules IPv4", localPkgName, "IPv4GlobalFooterRules", src_ref_all, dst_ref_all)
     elif rule_table == 'rules_global_footer_v6' and len(full_config['rules_global_footer_v6'][localPkgName])>0:
-        insert_header(rules, import_id, "Global Footer Rules IPv6", localPkgName, "IPv6GlobalFooterRules", rule_number, src_ref_all, dst_ref_all)
-        rule_number += 1
-    return rule_number, first_v4, first_v6
+        insert_header(rules, import_id, "Global Footer Rules IPv6", localPkgName, "IPv6GlobalFooterRules", src_ref_all, dst_ref_all)
+    return first_v4, first_v6
 
 
 def extract_nat_objects(nwobj_list, all_nwobjects):

@@ -1,4 +1,3 @@
-import copy
 from fwo_log import getFwoLogger
 
 from model_controllers.rulebase_link_controller import RulebaseLinkController
@@ -6,6 +5,7 @@ from model_controllers.rulebase_link_controller import RulebaseLinkController
 from models.gateway import Gateway
 from models.rulebase_link import RulebaseLink, RulebaseLinkUidBased
 
+from fwo_exceptions import FwoImporterError
 from services.enums import Services
 from services.global_state import GlobalState
 from services.service_provider import ServiceProvider
@@ -30,6 +30,9 @@ class FwConfigImportGateway:
 
     def update_gateway_diffs(self):
 
+        if self._global_state.import_state is None:
+            raise FwoImporterError("ImportState is None in update_gateway_diffs")
+
         # add gateway details:
         self._rb_link_controller.get_rulebase_links(self._global_state.import_state)
         required_inserts, required_removes = self.update_rulebase_link_diffs()
@@ -43,6 +46,13 @@ class FwConfigImportGateway:
 
     def update_rulebase_link_diffs(self):
 
+        if self._global_state.import_state is None: #TODO: should rework global state to not need these checks ? - #3154
+            raise FwoImporterError("ImportState is None in update_rulebase_link_diffs")
+        if self._global_state.normalized_config is None:
+            raise FwoImporterError("normalized_config is None in update_rulebase_link_diffs")
+        if self._global_state.previous_config is None:
+            raise FwoImporterError("previous_config is None in update_rulebase_link_diffs")
+
         required_inserts: list[RulebaseLinkUidBased] = []
         required_removes: list[int] = []
 
@@ -55,8 +65,10 @@ class FwConfigImportGateway:
             if gw not in self._global_state.previous_config.gateways:   # this check finds all changes in gateway (including rulebase link changes)
                 if self._global_state.import_state.DebugLevel>8:
                     logger.debug(f"gateway {str(gw)} NOT found in previous config")
+                if gw.Uid is None:
+                    raise FwoImporterError("found gateway with Uid = None")
                 gw_id = self._global_state.import_state.lookupGatewayId(gw.Uid)
-                if gw_id is None or gw_id == '' or gw_id == 'none':
+                if gw_id is None:
                     logger.warning(f"did not find a gwId for UID {gw.Uid}")
 
                 self._create_insert_args(gw, previous_config_gw, gw_id, logger, required_inserts)
@@ -67,7 +79,7 @@ class FwConfigImportGateway:
         return required_inserts, required_removes
     
 
-    def _create_insert_args(self, normalized_gateway: Gateway, previous_gateway: Gateway, gw_id, logger, arg_list):
+    def _create_insert_args(self, normalized_gateway: Gateway, previous_gateway: Gateway|None, gw_id, logger, arg_list):
         
         rulebase_links = []
 
@@ -90,6 +102,9 @@ class FwConfigImportGateway:
 
 
     def _try_add_single_link(self, rb_link_list, link, link_list, gw_id, is_insert, logger):
+
+        if self._global_state.import_state is None:
+            raise FwoImporterError("ImportState is None in _try_add_single_link")
         
         # If rule changed we need the id of the old version, since the rulebase links still have the old fks (for updates)
 

@@ -6,10 +6,10 @@ namespace FWO.Data
     public class NormalizedGateway
     {
         [JsonProperty("Uid"), JsonPropertyName("Uid")]
-        public string Uid { get; set; } = "";
+        public string? Uid { get; set; }
 
         [JsonProperty("Name"), JsonPropertyName("Name")]
-        public string Name { get; set; } = "";
+        public string? Name { get; set; }
 
         [JsonProperty("Routing"), JsonPropertyName("Routing")]
         public object[] Routing { get; set; } = [];
@@ -24,10 +24,10 @@ namespace FWO.Data
         public string? GlobalPolicyUid { get; set; }
 
         [JsonProperty("EnforcedPolicyUids"), JsonPropertyName("EnforcedPolicyUids")]
-        public string[] EnforcedPolicyUids { get; set; } = [];
+        public string[]? EnforcedPolicyUids { get; set; }
 
         [JsonProperty("EnforcedNatPolicyUids"), JsonPropertyName("EnforcedNatPolicyUids")]
-        public string[] EnforcedNatPolicyUids { get; set; } = [];
+        public string[]? EnforcedNatPolicyUids { get; set; }
 
         [JsonProperty("ImportDisabled"), JsonPropertyName("ImportDisabled")]
         public bool ImportDisabled { get; set; }
@@ -39,16 +39,16 @@ namespace FWO.Data
         {
             return new NormalizedGateway
             {
-                Uid = device.Uid ?? "",
-                Name = device.Name ?? "",
+                Uid = device.Uid,
+                Name = device.Name,
                 Routing = [], // TODO: implement (see #3645)
                 Interfaces = [], // TODO: implement (see #3645)
                 RulebaseLinks = [.. device.RulebaseLinks.Select(NormalizedRulebaseLink.FromRulebaseLink)],
-                GlobalPolicyUid = null, // TODO: implement (see #3645)
+                GlobalPolicyUid = device.GlobalRulebaseUid,
                 EnforcedPolicyUids = [], // TODO: implement (see #3645)
                 EnforcedNatPolicyUids = [], // TODO: implement - property not available in Device (see #3645)
                 ImportDisabled = device.ImportDisabled,
-                ShowInUI = !device.HideInUi // Use inverse of HideInUi (see #3645)
+                ShowInUI = !device.HideInUi
             };
         }
     }

@@ -169,7 +169,7 @@ class MockFwConfigImportRule(FwConfigImportRule):
 
     # Overridden methods with stubbing behavior
 
-    def markRulesRemoved(self, removedRuleUids: dict[str, list[str]], changedRuleUids: dict[str, list[str]]) -> tuple[int, int, dict[str, list[str]]]:
+    def mark_rules_removed(self, removedRuleUids: dict[str, list[str]]) -> tuple[int, list[int]]:
         """
             Simulates marking rules as removed. Can delegate to the base class if not stubbed.
 
@@ -182,12 +182,13 @@ class MockFwConfigImportRule(FwConfigImportRule):
         """
         
         changes = 0
+        collectedRemovedRuleIds = []
         for rulebase in removedRuleUids.keys():
             changes += len(removedRuleUids[rulebase])
-        collectedRemovedRuleIds = removedRuleUids
+            collectedRemovedRuleIds.extend(removedRuleUids[rulebase])
 
         if not self.stub_markRulesRemoved:
-            changes, collectedRemovedRuleIds = super().markRulesRemoved(removedRuleUids, changedRuleUids)
+            changes, collectedRemovedRuleIds = super().mark_rules_removed(removedRuleUids)
 
         return changes, collectedRemovedRuleIds
 
@@ -211,7 +212,7 @@ class MockFwConfigImportRule(FwConfigImportRule):
         return rulebases
 
 
-    def addNewRuleMetadata(self, newRules: list[Rulebase]) -> tuple[int, int, list[int]]:
+    def addNewRuleMetadata(self, newRules: list[Rulebase]) -> tuple[int, list[int]]:
         """
             Simulates adding metadata for new rules. Delegates to base if not stubbed.
 
@@ -222,17 +223,16 @@ class MockFwConfigImportRule(FwConfigImportRule):
                 tuple: (changes, newRuleIds)
         """
 
-        errors = 0
         changes = 0
         newRuleIds: list[int] = []
 
         if not self.stub_addNewRuleMetadata:
-            errors, changes, newRuleIds = super().addNewRuleMetadata(newRules)
+            changes, newRuleIds = super().addNewRuleMetadata(newRules)
 
         return changes, newRuleIds
 
 
-    def addNewRules(self, newRules: list[Rulebase]) -> tuple[int, int, list[int]]:
+    def add_new_rules(self, rulebases: list[Rulebase]) -> tuple[int, list[dict]]:
         """
             Simulates adding new rules to db and returning their ids. Delegates to base if not stubbed.
 
@@ -246,18 +246,18 @@ class MockFwConfigImportRule(FwConfigImportRule):
         changes = 0
         newRuleIds = []
 
-        for rulebase in newRules:
-            for rule in list(rulebase.Rules.values()):
+        for rulebase in rulebases:
+            for rule in list(rulebase.rules.values()):
                 changes += 1
                 newRuleIds.append({"rule_uid": rule.rule_uid, "rule_id": changes})
 
         if not self.stub_addNewRuleMetadata:
-            changes, newRuleIds = super().addNewRules(newRules)
+            changes, newRuleIds = super().add_new_rules(rulebases)
 
         return changes, newRuleIds
 
 
-    def moveRules(self, moved_rule_uids: dict[str, list[str]]) -> tuple[int, int, list[int]]:
+    def moveRules(self, moved_rule_uids: dict[str, list[str]]) -> tuple[int, list[int]]:
         """
             Simulates moving rules to a new location.  Delegates to base if not stubbed.
 

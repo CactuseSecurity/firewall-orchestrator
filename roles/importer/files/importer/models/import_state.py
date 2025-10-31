@@ -24,6 +24,7 @@ class ImportState():
     Actions: dict[str, int]
     Tracks: dict[str, int]
     LinkTypes: dict[str, int]
+    GatewayMap: dict[int, dict[str, int]] # mgm_id -> ( key = gateway.uid and value = gateway.id )
     RulebaseMap: dict[str, int]
     RuleMap: dict[str, int]
     responsible_for_importing: bool = True

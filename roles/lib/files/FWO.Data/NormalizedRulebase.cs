@@ -20,7 +20,7 @@ namespace FWO.Data
         [JsonProperty("is_global"), JsonPropertyName("is_global")]
         public bool IsGlobal { get; set; }
 
-        [JsonProperty("Rules"), JsonPropertyName("Rules")]
+        [JsonProperty("rules"), JsonPropertyName("Rules")]
         public Dictionary<string, NormalizedRule> Rules { get; set; } = [];
 
         /// <summary>
@@ -39,8 +39,8 @@ namespace FWO.Data
             return new NormalizedRulebase
             {
                 Id = null, // Id is omitted in normalized representation
-                Uid = rulebase.Uid ?? "",
-                Name = rulebase.Name ?? "",
+                Uid = rulebase.Uid,
+                Name = rulebase.Name,
                 MgmUid = mgmUid,
                 IsGlobal = rulebase.IsGlobal,
                 Rules = rulebase.Rules.ToDictionary(

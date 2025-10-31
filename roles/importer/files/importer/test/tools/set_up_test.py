@@ -83,6 +83,7 @@ def insert_rule_in_config(config: FwConfigNormalized, rulebase_uid, rule_positio
     """
 
     rulebase = next((rb for rb in config.rulebases if rb.uid == rulebase_uid), None)
+    inserted_rule_uid = ""
 
     if rulebase:
 
@@ -95,6 +96,10 @@ def insert_rule_in_config(config: FwConfigNormalized, rulebase_uid, rule_positio
         rule_uids.insert(rule_position, inserted_rule.rule_uid)
 
         reorder_rulebase_rules_dict(config, rulebase_uid, rule_uids)
+
+        inserted_rule_uid = inserted_rule.rule_uid
+
+    return inserted_rule_uid
     
 
 def move_rule_in_config(config: FwConfigNormalized, rulebase_uid, source_position, target_position, rule_uids):
@@ -103,6 +108,7 @@ def move_rule_in_config(config: FwConfigNormalized, rulebase_uid, source_positio
     """
 
     rulebase = next((rb for rb in config.rulebases if rb.uid == rulebase_uid), None)
+    moved_rule_uid = ""
 
     if rulebase:
         rule_uid = list(rulebase.rules.keys())[source_position]
@@ -112,6 +118,10 @@ def move_rule_in_config(config: FwConfigNormalized, rulebase_uid, source_positio
         rule_uids.insert(target_position, rule_uid)
 
         reorder_rulebase_rules_dict(config, rulebase.uid, rule_uids)
+
+        moved_rule_uid = rule_uid
+
+    return moved_rule_uid
 
 
 def update_rule_map_and_rulebase_map(config, import_state):

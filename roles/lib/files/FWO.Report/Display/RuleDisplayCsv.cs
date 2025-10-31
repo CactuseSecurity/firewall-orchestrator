@@ -1,4 +1,4 @@
-﻿using FWO.Basics;
+using FWO.Basics;
 using FWO.Data;
 using FWO.Config.Api;
 using System.Text;
@@ -29,7 +29,7 @@ namespace FWO.Ui.Display
 
         public string DisplaySourceZoneCsv(Rule rule)
         {
-            return OutputCsv(DisplaySourceZone(rule));
+            return OutputCsv(ListNetworkZones(rule.RuleSourceZones));
         }
 
         public string DisplaySourceCsv(Rule rule, ReportType reportType)
@@ -39,7 +39,7 @@ namespace FWO.Ui.Display
 
         public string DisplayDestinationZoneCsv(Rule rule)
         {
-            return OutputCsv(DisplayDestinationZone(rule));
+            return OutputCsv(ListNetworkZones(rule.RuleDestinationZones));
         }
 
         public string DisplayDestinationCsv(Rule rule, ReportType reportType)
@@ -158,6 +158,16 @@ namespace FWO.Ui.Display
             }
 
             return result.ToString();
+        }
+
+        protected string ListNetworkZones(NetworkZone[] networkZones)
+        {
+            List<string> displayedZones = new List<string>();
+            foreach (NetworkZone networkZone in networkZones)
+            {
+                displayedZones.Add(Quote(networkZone.Name));
+            }
+            return string.Join(",", displayedZones);
         }
     }
 }

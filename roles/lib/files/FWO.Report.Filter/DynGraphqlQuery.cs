@@ -419,6 +419,11 @@ namespace FWO.Report.Filter
         }
         private static string GetDevWhereFilter(ref DynGraphqlQuery query, DeviceFilter? deviceFilter)
         {
+            if (deviceFilter == null || deviceFilter.Managements == null)
+            {
+                return devWhereStringStart + devWhereStringEnd;
+            }
+
             string devWhereStatement = devWhereStringStart;
             bool first = true;
 
@@ -426,6 +431,8 @@ namespace FWO.Report.Filter
 
             foreach (ManagementSelect mgmt in deviceFilter.Managements)
             {
+                if (mgmt.Devices == null) continue; 
+
                 foreach (DeviceSelect dev in mgmt.Devices)
                 {
                     if (dev.Selected)

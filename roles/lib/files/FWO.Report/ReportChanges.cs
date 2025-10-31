@@ -293,10 +293,10 @@ namespace FWO.Report
                             report.Append(ruleChangeDisplayJson.DisplayChangeTime(ruleChange));
                             report.Append(ruleChangeDisplayJson.DisplayChangeAction(ruleChange));
                             report.Append(ruleChangeDisplayJson.DisplayName(ruleChange));
-                            report.Append(ruleChangeDisplayJson.DisplaySourceZone(ruleChange));
+                            report.Append(ruleChangeDisplayJson.DisplaySourceZones(ruleChange));
                             report.Append(ruleChangeDisplayJson.DisplaySourceNegated(ruleChange));
                             report.Append(ruleChangeDisplayJson.DisplaySource(ruleChange, ReportType));
-                            report.Append(ruleChangeDisplayJson.DisplayDestinationZone(ruleChange));
+                            report.Append(ruleChangeDisplayJson.DisplayDestinationZones(ruleChange));
                             report.Append(ruleChangeDisplayJson.DisplayDestinationNegated(ruleChange));
                             report.Append(ruleChangeDisplayJson.DisplayDestination(ruleChange, ReportType));
                             report.Append(ruleChangeDisplayJson.DisplayServiceNegated(ruleChange));

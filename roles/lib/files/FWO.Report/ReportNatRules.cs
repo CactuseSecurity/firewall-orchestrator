@@ -1,4 +1,4 @@
-﻿using FWO.Basics;
+using FWO.Basics;
 using FWO.Config.Api;
 using FWO.Data;
 using FWO.Report.Filter;
@@ -93,9 +93,9 @@ namespace FWO.Report
 				report.AppendLine("<tr>");
 				report.AppendLine($"<td>{RuleDisplayBase.DisplayNumber(rule)}</td>");
 				report.AppendLine($"<td>{RuleDisplayBase.DisplayName(rule)}</td>");
-				report.AppendLine($"<td>{RuleDisplayBase.DisplaySourceZone(rule)}</td>");
+				report.AppendLine($"<td>{RuleDisplayBase.DisplaySourceZones(rule)}</td>");
 				report.AppendLine($"<td>{ruleDisplay.DisplaySource(rule, OutputLocation.export, ReportType, chapterNumber)}</td>");
-				report.AppendLine($"<td>{RuleDisplayBase.DisplayDestinationZone(rule)}</td>");
+				report.AppendLine($"<td>{RuleDisplayBase.DisplayDestinationZones(rule)}</td>");
 				report.AppendLine($"<td>{ruleDisplay.DisplayDestination(rule, OutputLocation.export, ReportType, chapterNumber)}</td>");
 				report.AppendLine($"<td>{ruleDisplay.DisplayServices(rule, OutputLocation.export, ReportType, chapterNumber)}</td>");
 				report.AppendLine($"<td>{ruleDisplay.DisplayTranslatedSource(rule, OutputLocation.export, chapterNumber)}</td>");

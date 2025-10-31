@@ -12,7 +12,6 @@ from fwo_exceptions import ImportRecursionLimitReached, FwoImporterErrorInconsis
 from models.rulebase import Rulebase
 from models.rule import RuleNormalized
 from models.rule_enforced_on_gateway import RuleEnforcedOnGatewayNormalized
-from model_controllers.fwconfig_import_ruleorder import RuleOrderService
 
 uid_to_name_map = {}
 
@@ -261,7 +260,6 @@ def _parse_obj_with_access_role(obj: dict[str,Any], addressObjects: dict[str,Any
 
 def parse_single_rule(nativeRule, rulebase, layer_name, rule_num, parent_uid, gateway, policy_structure):
     logger = getFwoLogger()
-    rule_order_service = RuleOrderService()
 
     # reference to domain rule layer, filling up basic fields
     if not('type' in nativeRule and nativeRule['type'] != 'place-holder' and 'rule-number' in nativeRule):  # standard rule, no section header

@@ -46,8 +46,7 @@ namespace FWO.Report
         {
             violations = violations.Where(violation =>
                 violation.FoundDate > DateTime.Now.AddDays(-DiffReferenceInDays)
-                || (violation.RemovedDate != null
-                && violation.RemovedDate > DateTime.Now.AddDays(-DiffReferenceInDays)))
+                && violation.RemovedDate == null)
                 .ToList();
 
             return violations;

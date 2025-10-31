@@ -432,13 +432,8 @@ namespace FWO.Compliance
                                     DestinationZone = destinationNetworkZone
                                 };
 
-                                ComplianceViolation? violation = TryCreateViolation(ComplianceViolationType.MatrixViolation, rule, complianceCheckResult);
-
-                                if (violation != null)
-                                {
-                                    ComplianceReport!.Violations.Add(violation!);
-                                    ruleIsCompliant = false;                                    
-                                }
+                                CreateViolation(ComplianceViolationType.MatrixViolation, rule, complianceCheckResult);
+                                ruleIsCompliant = false;
                             }
                         }
                     }
@@ -448,7 +443,7 @@ namespace FWO.Compliance
             return ruleIsCompliant;
         }
 
-        private ComplianceViolation? TryCreateViolation(ComplianceViolationType violationType, Rule rule, ComplianceCheckResult complianceCheckResult)
+        private void CreateViolation(ComplianceViolationType violationType, Rule rule, ComplianceCheckResult complianceCheckResult)
         {
             ComplianceViolation violation = new()
             {
@@ -499,7 +494,7 @@ namespace FWO.Compliance
                         {
                             networkObject = GetNwObjectString(complianceCheckResult.Destination);
                         }
-                        
+
                         violation.Details = $"Assessability issue: {networkObject}";
                     }
 
@@ -507,10 +502,10 @@ namespace FWO.Compliance
 
                 default:
 
-                    return null;
+                    return;
             }
 
-            return violation;
+            ComplianceReport!.Violations.Add(violation);
         }
 
         private string GetNwObjectString(NetworkObject networkObject)
@@ -582,13 +577,7 @@ namespace FWO.Compliance
                         Service = service.Content
                     };
 
-                    ComplianceViolation? violation = TryCreateViolation(ComplianceViolationType.ServiceViolation, rule, complianceCheckResult);
-
-                    if (violation != null)
-                    {
-                        ComplianceReport!.Violations.Add(violation);
-                    }
-                    
+                    CreateViolation(ComplianceViolationType.ServiceViolation, rule, complianceCheckResult);
                     ruleIsCompliant = false;
                 }
             }
@@ -648,7 +637,7 @@ namespace FWO.Compliance
 
                 if (_userConfig.GlobalConfig is GlobalConfig globalConfig && globalConfig.AutoCalculateInternetZone && globalConfig.TreatDynamicAndDomainObjectsAsInternet && (dataItem.networkObject.Type.Name == "dynamic_net_obj" || dataItem.networkObject.Type.Name == "domain"))
                 {
-                    networkZones = _networkZones.Where(zone => zone.IsAutoCalculatedInternetZone)?.ToList();
+                    networkZones = _networkZones.Where(zone => zone.IsAutoCalculatedInternetZone).ToList();
                 }
                 else if (dataItem.ipRanges.Count > 0)
                 {
@@ -701,16 +690,8 @@ namespace FWO.Compliance
 
             // If treated as part of internet zone dynamic and domain objects are irrelevant for the assessability check.
 
-            if (_userConfig.GlobalConfig is GlobalConfig globalConfig && globalConfig.AutoCalculateInternetZone && globalConfig.TreatDynamicAndDomainObjectsAsInternet)
-            {
-                resolvedSources = resolvedSources
-                    .Where(n => !new List<string> { "domain", "dynamic_net_obj" }.Contains(n.Type.Name))
-                    .ToList();
-
-                resolvedDestinations = resolvedDestinations
-                    .Where(n => !new List<string> { "domain", "dynamic_net_obj" }.Contains(n.Type.Name))
-                    .ToList();
-            }
+            resolvedSources = TryFilterDynamicAndDomainObjects(resolvedSources);
+            resolvedDestinations = TryFilterDynamicAndDomainObjects(resolvedDestinations);
 
             // Check only accept rules for assessability.
 
@@ -720,18 +701,11 @@ namespace FWO.Compliance
                 {
                     // Get assessability issue type if existing.
 
-                    Expression<Func<bool>> assessabilityExpression = () => networkObject.IP == null && networkObject.IpEnd == null
-                        || (networkObject.IP == "0.0.0.0/32" && networkObject.IpEnd == "255.255.255.255/32")
-                        || (networkObject.IP == "::/128" && networkObject.IpEnd == "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff/128")
-                        || (networkObject.IP == "255.255.255.255/32" && networkObject.IpEnd == "255.255.255.255/32")
-                        || (networkObject.IP == "0.0.0.0/32" && networkObject.IpEnd == "0.0.0.0/32");
-
+                    Expression<Func<bool>> assessabilityExpression = CreateAssessabilityExpression(networkObject);
                     AssessabilityIssue? assessabilityIssue = assessabilityExpression.ToAssessibilityIssue();
 
                     if (assessabilityIssue != null)
                     {
-                        isAssessable = false;
-
                         // Create check result object.
 
                         ComplianceCheckResult complianceCheckResult;
@@ -756,17 +730,35 @@ namespace FWO.Compliance
 
                         // Create violation.
 
-                        ComplianceViolation? violation = TryCreateViolation(ComplianceViolationType.NotAssessable, rule, complianceCheckResult);
-
-                        if (violation != null)
-                        {
-                            ComplianceReport!.Violations.Add(violation);
-                        }
+                        CreateViolation(ComplianceViolationType.NotAssessable, rule, complianceCheckResult);
+                        isAssessable = false;
                     }
                 }
             }
 
             return Task.FromResult(isAssessable);
+        }
+
+        private List<NetworkObject> TryFilterDynamicAndDomainObjects(List<NetworkObject> networkObjects)
+        {
+            if (_userConfig.GlobalConfig is GlobalConfig globalConfig && globalConfig.AutoCalculateInternetZone && globalConfig.TreatDynamicAndDomainObjectsAsInternet)
+            {
+                networkObjects = networkObjects
+                    .Where(n => !new List<string> { "domain", "dynamic_net_obj" }.Contains(n.Type.Name))
+                    .ToList();
+            }
+
+            return networkObjects;
+        }
+
+        private Expression<Func<bool>> CreateAssessabilityExpression(NetworkObject networkObject)
+        {
+            return () =>
+                networkObject.IP == null && networkObject.IpEnd == null
+                || (networkObject.IP == "0.0.0.0/32" && networkObject.IpEnd == "255.255.255.255/32")
+                || (networkObject.IP == "::/128" && networkObject.IpEnd == "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff/128")
+                || (networkObject.IP == "255.255.255.255/32" && networkObject.IpEnd == "255.255.255.255/32")
+                || (networkObject.IP == "0.0.0.0/32" && networkObject.IpEnd == "0.0.0.0/32");
         }
         
     }

@@ -42,7 +42,6 @@ namespace FWO.Report
         private readonly int _maxCellSize;
         private readonly int _maxPrintedViolations;
         private List<int> _relevanteManagementIDs = new();
-        private readonly GlobalConfig? _globalConfig;
 
         #endregion
 
@@ -84,7 +83,6 @@ namespace FWO.Report
 
             if (userConfig.GlobalConfig != null)
             {
-                _globalConfig = userConfig.GlobalConfig;
                 _maxPrintedViolations = userConfig.GlobalConfig.ComplianceCheckMaxPrintedViolations;
             }
 
@@ -431,7 +429,7 @@ namespace FWO.Report
                 {   
                     // Cut violation details when printed violations limit is reached.
 
-                    if (addedViolationDetails == _maxPrintedViolations)
+                    if (_maxPrintedViolations > 0 && addedViolationDetails == _maxPrintedViolations)
                     {
                         rule.ViolationDetails += $"<br>Too many violations to display ({rule.Violations.Count}), please check the system for details.";
                         return;

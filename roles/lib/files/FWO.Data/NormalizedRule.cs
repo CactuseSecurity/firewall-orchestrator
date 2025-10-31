@@ -80,11 +80,11 @@ namespace FWO.Data
         [JsonProperty("rule_comment"), JsonPropertyName("rule_comment")]
         public string? RuleComment { get; set; }
 
-        [JsonProperty("rule_src_zone"), JsonPropertyName("rule_src_zone")]
-        public string? RuleSrcZone { get; set; }
+        [JsonProperty("rule_src_zones"), JsonPropertyName("rule_src_zones")]
+        public string? RuleSrcZones { get; set; }
 
-        [JsonProperty("rule_dst_zone"), JsonPropertyName("rule_dst_zone")]
-        public string? RuleDstZone { get; set; }
+        [JsonProperty("rule_dst_zones"), JsonPropertyName("rule_dst_zones")]
+        public string? RuleDstZones { get; set; }
 
         [JsonProperty("rule_head_text"), JsonPropertyName("rule_head_text")]
         public string? RuleHeadText { get; set; }
@@ -130,8 +130,8 @@ namespace FWO.Data
                 ParentRuleUid = rule.ParentRule?.Uid,
                 LastHit = lastHitFormatted,
                 RuleComment = rule.Comment,
-                RuleSrcZone = rule.RuleSourceZones?.Length > 0 ? string.Join(",", rule.RuleSourceZones.Select(z => z.Name)) : "",
-                RuleDstZone = rule.RuleDestinationZones?.Length > 0 ? string.Join(",", rule.RuleDestinationZones.Select(z => z.Name)) : "",
+                RuleSrcZones = rule.RuleSourceZones?.Length > 0 ? string.Join(",", rule.RuleSourceZones.Select(z => z.Name)) : "",
+                RuleDstZones = rule.RuleDestinationZones?.Length > 0 ? string.Join(",", rule.RuleDestinationZones.Select(z => z.Name)) : "",
                 RuleHeadText = rule.SectionHeader
             };
         }       

@@ -53,12 +53,12 @@
       ...networkObjectDetails
     }
   }
-    rule_dst_zones: rule_destination_to_zones {
-      zone {
-        zone_name
-		zone_id
-      }
+  rule_dst_zones: rule_destination_to_zones {
+    zone {
+      zone_name
+      zone_id
     }
+  }
   rule_tos(where: {
     rt_create: { _lte: $import_id_end }
     _or: [

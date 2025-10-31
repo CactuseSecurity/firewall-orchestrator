@@ -1,3 +1,4 @@
+@using FWO.Basics
 @using FWO.Data.Report
 @using FWO.Middleware.Client
 @using FWO.Recert
@@ -321,7 +322,7 @@
     private async Task ExecuteSelected()
     {
         bool shortened = false;
-        actComment = Sanitizer.SanitizeMand(actComment, ref shortened);
+        actComment = actComment.SanitizeMand(ref shortened);
         if(shortened)
         {
             DisplayMessageInUi(null, userConfig.GetText("execute_selected"), userConfig.GetText("U0001"), true);

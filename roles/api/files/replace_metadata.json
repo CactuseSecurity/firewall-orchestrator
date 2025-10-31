@@ -10569,6 +10569,12 @@
               },
               "object_relationships": [
                 {
+                  "name": "owner_lifecycle_state",
+                  "using": {
+                    "foreign_key_constraint_on": "owner_lifecycle_state_id"
+                  }
+                },
+                {
                   "name": "tenant",
                   "using": {
                     "foreign_key_constraint_on": "tenant_id"
@@ -11262,7 +11268,21 @@
               "table": {
                 "name": "owner_lifecycle_state",
                 "schema": "public"
-              }
+              },
+              "array_relationships": [
+                {
+                  "name": "owners",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "owner_lifecycle_state_id",
+                      "table": {
+                        "name": "owner",
+                        "schema": "public"
+                      }
+                    }
+                  }
+                }
+              ]
             },
             {
               "table": {
@@ -14638,6 +14658,18 @@
                   }
                 },
                 {
+                  "name": "rule_destination_to_zones",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "rule_id",
+                      "table": {
+                        "name": "rule_destination_to_zone",
+                        "schema": "public"
+                      }
+                    }
+                  }
+                },
+                {
                   "name": "rule_enforced_on_gateways",
                   "using": {
                     "foreign_key_constraint_on": {
@@ -14680,6 +14712,18 @@
                       "column": "rule_id",
                       "table": {
                         "name": "rule_service",
+                        "schema": "public"
+                      }
+                    }
+                  }
+                },
+                {
+                  "name": "rule_source_to_zones",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "rule_id",
+                      "table": {
+                        "name": "rule_source_to_zone",
                         "schema": "public"
                       }
                     }
@@ -15375,6 +15419,20 @@
                 "name": "rule_destination_to_zone",
                 "schema": "public"
               },
+              "object_relationships": [
+                {
+                  "name": "rule",
+                  "using": {
+                    "foreign_key_constraint_on": "rule_id"
+                  }
+                },
+                {
+                  "name": "zone",
+                  "using": {
+                    "foreign_key_constraint_on": "zone_id"
+                  }
+                }
+              ],
               "insert_permissions": [
                 {
                   "role": "importer",
@@ -15432,7 +15490,7 @@
                     "allow_aggregations": true
                   },
                   "comment": ""
-                },               
+                },
                 {
                   "role": "middleware-server",
                   "permission": {
@@ -16790,6 +16848,20 @@
                 "name": "rule_source_to_zone",
                 "schema": "public"
               },
+              "object_relationships": [
+                {
+                  "name": "rule",
+                  "using": {
+                    "foreign_key_constraint_on": "rule_id"
+                  }
+                },
+                {
+                  "name": "zone",
+                  "using": {
+                    "foreign_key_constraint_on": "zone_id"
+                  }
+                }
+              ],
               "insert_permissions": [
                 {
                   "role": "importer",
@@ -17715,23 +17787,6 @@
               ],
               "select_permissions": [
                 {
-                  "role": "importer",
-                  "permission": {
-                    "columns": [
-                      "created",
-                      "removed",
-                      "is_global",
-                      "name",
-                      "uid",
-                      "id",
-                      "mgm_id"
-                    ],
-                    "filter": {},
-                    "allow_aggregations": true
-                  },
-                  "comment": ""
-                },
-                {
                   "role": "auditor",
                   "permission": {
                     "columns": [
@@ -17749,7 +17804,24 @@
                   "comment": ""
                 },
                 {
-                  "role": "reporter-viewall",
+                  "role": "importer",
+                  "permission": {
+                    "columns": [
+                      "created",
+                      "removed",
+                      "is_global",
+                      "name",
+                      "uid",
+                      "id",
+                      "mgm_id"
+                    ],
+                    "filter": {},
+                    "allow_aggregations": true
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "middleware-server",
                   "permission": {
                     "columns": [
                       "created",
@@ -17783,7 +17855,7 @@
                   "comment": ""
                 },
                 {
-                  "role": "middleware-server",
+                  "role": "reporter-viewall",
                   "permission": {
                     "columns": [
                       "created",
@@ -17794,7 +17866,8 @@
                       "id",
                       "mgm_id"
                     ],
-                    "filter": {}
+                    "filter": {},
+                    "allow_aggregations": true
                   },
                   "comment": ""
                 }
@@ -17901,6 +17974,27 @@
               ],
               "select_permissions": [
                 {
+                  "role": "auditor",
+                  "permission": {
+                    "columns": [
+                      "created",
+                      "removed",
+                      "from_rule_id",
+                      "removed",
+                      "is_global",
+                      "is_initial",
+                      "is_section",
+                      "from_rulebase_id",
+                      "gw_id",
+                      "id",
+                      "link_type",
+                      "to_rulebase_id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
                   "role": "importer",
                   "permission": {
                     "columns": [
@@ -17943,34 +18037,12 @@
                   "comment": ""
                 },
                 {
-                  "role": "auditor",
+                  "role": "modeller",
                   "permission": {
                     "columns": [
                       "created",
                       "removed",
                       "from_rule_id",
-                      "removed",
-                      "is_global",
-                      "is_initial",
-                      "is_section",
-                      "from_rulebase_id",
-                      "gw_id",
-                      "id",
-                      "link_type",
-                      "to_rulebase_id"
-                    ],
-                    "filter": {}
-                  },
-                  "comment": ""
-                },
-                {
-                  "role": "reporter-viewall",
-                  "permission": {
-                    "columns": [
-                      "created",
-                      "removed",
-                      "from_rule_id",
-                      "removed",
                       "is_global",
                       "is_initial",
                       "is_section",
@@ -18006,12 +18078,13 @@
                   "comment": ""
                 },
                 {
-                  "role": "modeller",
+                  "role": "reporter-viewall",
                   "permission": {
                     "columns": [
                       "created",
                       "removed",
                       "from_rule_id",
+                      "removed",
                       "is_global",
                       "is_initial",
                       "is_section",
@@ -24192,6 +24265,30 @@
                       "column": "zone_id",
                       "table": {
                         "name": "object",
+                        "schema": "public"
+                      }
+                    }
+                  }
+                },
+                {
+                  "name": "rule_destination_to_zones",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "zone_id",
+                      "table": {
+                        "name": "rule_destination_to_zone",
+                        "schema": "public"
+                      }
+                    }
+                  }
+                },
+                {
+                  "name": "rule_source_to_zones",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "zone_id",
+                      "table": {
+                        "name": "rule_source_to_zone",
                         "schema": "public"
                       }
                     }

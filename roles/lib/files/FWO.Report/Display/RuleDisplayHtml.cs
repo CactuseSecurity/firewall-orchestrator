@@ -20,13 +20,13 @@ namespace FWO.Ui.Display
 
         public string DisplayServices(Rule rule, OutputLocation location, ReportType reportType, int chapterNumber = 0, string style = "", bool overwriteIsResolvedReport = false)
         {
-            StringBuilder result = new ();
+            StringBuilder result = new();
             if (rule.ServiceNegated)
             {
                 result.AppendLine(userConfig.GetText("negated") + "<br>");
             }
 
-            if(!overwriteIsResolvedReport && reportType.IsResolvedReport())
+            if (!overwriteIsResolvedReport && reportType.IsResolvedReport())
             {
                 NetworkService[] services = GetNetworkServices(rule.Services).ToArray();
                 result.AppendJoin("<br>", Array.ConvertAll(services, service => ServiceToHtml(service, rule.MgmtId, chapterNumber, location, style, reportType)));
@@ -35,13 +35,13 @@ namespace FWO.Ui.Display
             {
                 result.AppendJoin("<br>", Array.ConvertAll(rule.Services, service => ServiceToHtml(service.Content, rule.MgmtId, chapterNumber, location, style, reportType)));
             }
-            
+
             return result.ToString();
         }
 
         public static string DisplayEnforcingGateways(Rule rule, OutputLocation location, ReportType reportType, int chapterNumber = 0, string style = "")
         {
-            StringBuilder result = new ();
+            StringBuilder result = new();
             result.AppendJoin("<br>", Array.ConvertAll(rule.EnforcingGateways, gw => EnforcingGatewayToHtml(gw.Content, rule.MgmtId, chapterNumber, location, style, reportType)));
             return result.ToString();
         }
@@ -79,7 +79,7 @@ namespace FWO.Ui.Display
         public static string DisplayLastRecertifier(RuleMetadata rule)
         {
             int count = 0;
-            return string.Join("", Array.ConvertAll<Recertification, string>(rule.RuleRecertification.ToArray(), 
+            return string.Join("", Array.ConvertAll<Recertification, string>(rule.RuleRecertification.ToArray(),
                 recert => GetLastRecertifierDisplayString(CountString(rule.RuleRecertification.Count > 1, ++count), recert).ToString()));
         }
 
@@ -102,7 +102,7 @@ namespace FWO.Ui.Display
                 objectLink = ReportBase.ConstructLink(ReportBase.GetIconClass(ObjCategory.nobj, networkLocation.Object.Type.Name), networkLocation.Object.Name, style, objLink);
             }
 
-            string nwLocation = DisplayNetworkLocation( networkLocation, reportType, userOutput, objectLink).ToString();
+            string nwLocation = DisplayNetworkLocation(networkLocation, reportType, userOutput, objectLink).ToString();
 
             return reportType.IsRuleReport() ? $"<span style=\"{style}\">{nwLocation}</span>" : nwLocation;
         }
@@ -192,17 +192,17 @@ namespace FWO.Ui.Display
             return "<p" + color + ">" + countString + dateOnly + "</p>";
         }
 
-        private static string GetOwnerDisplayString (string countString, Recertification recert)
+        private static string GetOwnerDisplayString(string countString, Recertification recert)
         {
             return "<p>" + countString + (recert.FwoOwner != null && recert.FwoOwner?.Name != null ? recert.FwoOwner.Name : "") + "</p>";
         }
 
-        private static string GetIpMatchDisplayString (string countString, Recertification recert)
+        private static string GetIpMatchDisplayString(string countString, Recertification recert)
         {
             return "<p>" + countString + (recert.IpMatch != null && recert.IpMatch != "" ? recert.IpMatch : "&#8208;") + "</p>";
         }
 
-        private static string GetLastRecertifierDisplayString (string countString, Recertification recert)
+        private static string GetLastRecertifierDisplayString(string countString, Recertification recert)
         {
             return "<p>" + countString + "</p>"; // TODO: fetch last recertifier
         }

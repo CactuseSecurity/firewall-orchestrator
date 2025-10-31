@@ -5,6 +5,7 @@ namespace FWO.Api.Client.Queries
     public class ObjectQueries : Queries
     {
         public static readonly string networkObjectDetailsFragment;
+        public static readonly string networkObjectDetailsForVarianceFragment;
         public static readonly string getNetworkObjectDetails;
         public static readonly string getNetworkObjectsForManagement;
         public static readonly string networkServiceDetailsFragment;
@@ -17,19 +18,22 @@ namespace FWO.Api.Client.Queries
         public static readonly string getReportFilteredNetworkServiceDetails;
         public static readonly string getReportFilteredUserDetails;
 
-        static ObjectQueries() 
+        static ObjectQueries()
         {
             try
             {
                 networkObjectDetailsFragment =
                     GetQueryText("networkObject/fragments/networkObjectDetails.graphql");
 
+                networkObjectDetailsForVarianceFragment =
+                    GetQueryText("networkObject/fragments/networkObjectDetailsForVariance.graphql");
+
                 getNetworkObjectDetails =
                     networkObjectDetailsFragment +
                     GetQueryText("networkObject/getNetworkObjectDetails.graphql");
 
                 getNetworkObjectsForManagement =
-                    networkObjectDetailsFragment +
+                    networkObjectDetailsForVarianceFragment +
                     GetQueryText("networkObject/getNetworkObjectsForManagement.graphql");
 
                 networkServiceDetailsFragment =
@@ -53,7 +57,7 @@ namespace FWO.Api.Client.Queries
                     GetQueryText("allObjects/getAllObjectDetails.graphql");
 
                 // for rule export and RSB obj filtering per report
-                getReportFilteredObjectDetails = 
+                getReportFilteredObjectDetails =
                     userDetailsFragment +
                     networkServiceDetailsFragment +
                     networkObjectDetailsFragment +
@@ -73,7 +77,7 @@ namespace FWO.Api.Client.Queries
             }
             catch (Exception exception)
             {
-                Log.WriteError("Initialize Api Queries", "Api Object Queries could not be loaded." , exception);
+                Log.WriteError("Initialize Api Queries", "Api Object Queries could not be loaded.", exception);
                 Environment.Exit(-1);
             }
         }

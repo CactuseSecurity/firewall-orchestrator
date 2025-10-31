@@ -69,6 +69,9 @@ namespace FWO.Data.Report
         [JsonProperty("rules_aggregate"), JsonPropertyName("rules_aggregate")]
         public ObjectStatistics RuleStatistics { get; set; } = new();
 
+        [JsonProperty("unusedRules_Count"), JsonPropertyName("unusedRules_Count")]
+        public ObjectStatistics UnusedRulesStatistics { get; set; } = new();
+
         public bool Ignore { get; set; }
         public List<long> RelevantObjectIds = [];
         public List<long> HighlightedObjectIds = [];
@@ -82,6 +85,22 @@ namespace FWO.Data.Report
         public string NameAndDeviceNames(string separator = ", ")
         {
             return $"{Name} [{string.Join(separator, Array.ConvertAll(Devices, device => device.Name))}]";
+        }
+
+        /// <summary>
+        /// Conforms <see cref="ManagementReport"/> internal data to be valid for further usage.
+        /// </summary>
+        public void EnforceValidity()
+        {
+            if (UnusedRulesStatistics.ObjectAggregate.ObjectCount >= RuleStatistics.ObjectAggregate.ObjectCount)
+            {
+                UnusedRulesStatistics.ObjectAggregate.ObjectCount = 0;
+            }
+
+            foreach (var device in Devices)
+            {
+                device.EnforceValidity();
+            }
         }
 
     }
@@ -123,10 +142,10 @@ namespace FWO.Data.Report
                 { "RuleChanges", 0 },
             };
 
-            foreach(var managementReportToMerge in managementReportsToMerge)
+            foreach (var managementReportToMerge in managementReportsToMerge)
             {
                 ManagementReport? mgmtToFill = managementReports.FirstOrDefault(m => m.Id == managementReportToMerge.Id);
-                if(mgmtToFill!= null)
+                if (mgmtToFill != null)
                 {
                     (bool newObjs, Dictionary<string, int> addedCounts) = mgmtToFill.Merge(managementReportToMerge);
                     if (newObjs)

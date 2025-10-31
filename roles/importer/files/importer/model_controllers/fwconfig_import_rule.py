@@ -793,10 +793,19 @@ class FwConfigImportRule():
         }
         """
 
-        import_rules = []
+        import_rules: list = []
 
         for rulebase_uid in list(rule_uids.keys()):
-                import_rules.extend(self.prepare_rules_for_import(self.import_details, [rule_with_changes for rule_with_changes in self.rule_order_service.target_rules_flat if rule_with_changes.rule_uid in rule_uids[rulebase_uid]], rulebase_uid)["data"])
+                
+                changed_rule_of_rulebase: list[RuleNormalized] = [
+                    rule_with_changes 
+                    for rule_with_changes in self.rule_order_service.target_rules_flat 
+                    if rule_with_changes.rule_uid in rule_uids[rulebase_uid]
+                ]
+
+                import_rules_of_rulebase: dict[str, list[Rule]] = self.prepare_rules_for_import(self.import_details, changed_rule_of_rulebase, rulebase_uid)
+
+                import_rules.extend(import_rules_of_rulebase["data"])
 
         create_new_rule_version_variables = {
             "objects": import_rules,

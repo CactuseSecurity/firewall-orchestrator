@@ -1,4 +1,5 @@
-﻿using Newtonsoft.Json;
+using FWO.Basics;
+using Newtonsoft.Json;
 using System.Text.Json.Serialization;
 
 namespace FWO.Data
@@ -51,12 +52,12 @@ namespace FWO.Data
         public bool Sanitize()
         {
             bool shortened = false;
-            Name = Sanitizer.SanitizeMand(Name, ref shortened);
-            ImportUser = Sanitizer.SanitizeOpt(ImportUser, ref shortened);
-            PublicKey = Sanitizer.SanitizeKeyOpt(PublicKey, ref shortened);
-            Secret = Sanitizer.SanitizeKeyMand(Secret, ref shortened);
-            CloudClientId = Sanitizer.SanitizeOpt(CloudClientId, ref shortened);
-            CloudClientSecret = Sanitizer.SanitizeKeyOpt(CloudClientSecret, ref shortened);
+            Name = Name.SanitizeMand(ref shortened);
+            ImportUser = ImportUser.SanitizeOpt(ref shortened);
+            PublicKey = PublicKey.SanitizeKeyOpt(ref shortened);
+            Secret = Secret.SanitizeKeyMand(ref shortened);
+            CloudClientId = CloudClientId.SanitizeOpt(ref shortened);
+            CloudClientSecret = CloudClientSecret.SanitizeKeyOpt(ref shortened);
             return shortened;
         }
     }

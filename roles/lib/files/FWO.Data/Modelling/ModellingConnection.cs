@@ -441,11 +441,11 @@ namespace FWO.Data.Modelling
         public bool Sanitize()
         {
             bool shortened = false;
-            Name = Sanitizer.SanitizeOpt(Name, ref shortened);
-            Reason = Sanitizer.SanitizeCommentOpt(Reason, ref shortened);
-            Creator = Sanitizer.SanitizeOpt(Creator, ref shortened);
-            Properties = Sanitizer.SanitizeKeyOpt(Properties, ref shortened);
-            ExtraParams = Sanitizer.SanitizeKeyOpt(ExtraParams, ref shortened);
+            Name = Name.SanitizeOpt(ref shortened);
+            Reason = Reason.SanitizeCommentOpt(ref shortened);
+            Creator = Creator.SanitizeOpt(ref shortened);
+            Properties = Properties.SanitizeKeyOpt(ref shortened);
+            ExtraParams = ExtraParams.SanitizeKeyOpt(ref shortened);
             return shortened;
         }
 

@@ -13,7 +13,7 @@ namespace FWO.Config.Api
         /// <summary>
         /// Internal connection to api server. Used to get/edit config data.
         /// </summary>
-        protected ApiConnection apiConnection;
+        protected ApiConnection? apiConnection;
 
         public int UserId { get; private set; }
         public bool Initialized { get; private set; } = false;

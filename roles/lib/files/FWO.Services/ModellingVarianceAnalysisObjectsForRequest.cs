@@ -1,4 +1,4 @@
-﻿using FWO.Basics;
+using FWO.Basics;
 using FWO.Data;
 using FWO.Data.Modelling;
 using FWO.Data.Workflow;
@@ -22,10 +22,10 @@ namespace FWO.Services
         private List<WfReqElement> unchangedGroupMembersDuringCreate = [];
         private List<WfReqElement> unchangedGroupMembers = [];
 
-        private async Task AnalyseConnectionForRequest(Management mgt, ModellingConnection conn)
+        private void AnalyseConnectionForRequest(Management mgt, ModellingConnection conn)
         {
             varianceResult = new() { Managements = RelevantManagements };
-            await AnalyseRules(conn, false);
+            AnalyseRules(conn, false);
             if(varianceResult.ConnsNotImplemented.Count > 0)
             {
                 AddAccessTaskList.Add(ConstructCreateTask(mgt, conn));
@@ -274,7 +274,7 @@ namespace FWO.Services
             Log.WriteDebug($"Search {nwGroupType}", $"Name: {appRole.Name}, IdString: {appRole.IdString}, Management: {mgt.Name}");
 
             bool shortened = false;
-            string sanitizedARName = Sanitizer.SanitizeJsonFieldMand(appRole.IdString, ref shortened);
+            string sanitizedARName = appRole.IdString.SanitizeJsonFieldMand(ref shortened);
             if (allProdAppRoles.ContainsKey(mgt.Id))
             {
                 existingAppRole = allProdAppRoles[mgt.Id].FirstOrDefault(a => a.Name == appRole.IdString || a.Name == sanitizedARName);
@@ -290,11 +290,10 @@ namespace FWO.Services
         {
             Log.WriteDebug("Search AppServer", $"Name: {appServer.Name}, Ip: {appServer.Ip}, Management: {mgt.Name}");
 
-            ModellingAppServer? existingAppServer = allExistingAppServers[mgt.Id].FirstOrDefault(a => appServerComparer.Equals(a, appServer));
-            if (existingAppServer != null)
+            if (allExistingAppServersHashes[mgt.Id].TryGetValue(appServerComparer.GetHashCode(appServer), out long existingAppServerId))
             {
                 Log.WriteDebug("Search AppServer", $"Found!!");
-                return (existingAppServer?.Id, true);
+                return (existingAppServerId, true);
             }
             else if (alreadyCreatedAppServers[mgt.Id].FirstOrDefault(a => appServerComparer.Equals(a, appServer)) != null)
             {

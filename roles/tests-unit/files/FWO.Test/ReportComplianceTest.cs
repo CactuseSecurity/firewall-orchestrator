@@ -17,7 +17,6 @@ namespace FWO.Test
         public void SetUpTest()
         {
             _testReport = _complianceReport;
-
             _testDiffReport = _complianceDiffReport;
             _testDiffReport.MockPostProcessDiffReportsRule = true;
         }

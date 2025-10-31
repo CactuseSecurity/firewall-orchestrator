@@ -404,15 +404,11 @@ namespace FWO.Report
                 rule.ViolationDetails = "";
                 rule.Compliance = ComplianceViolationType.None;
                 int addedViolationDetails = 0;
-                List<ComplianceViolation> violations;
+                List<ComplianceViolation> violations = rule.Violations.ToList();
 
                 // Filter violations.
 
-                if (filteredViolations == null)
-                {
-                    violations = rule.Violations.ToList();
-                }
-                else
+                if (filteredViolations != null)
                 {
                     violations = filteredViolations;
                 }

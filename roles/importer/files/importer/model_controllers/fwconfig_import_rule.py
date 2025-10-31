@@ -17,7 +17,6 @@ from datetime import datetime
 from models.rule_from import RuleFrom
 from models.rule_to import RuleTo
 from models.rule_service import RuleService
-from model_controllers.fwconfig_import_ruleorder import RuleOrderService
 from models.rule import RuleNormalized
 from services.group_flats_mapper import GroupFlatsMapper
 from services.enums import Services
@@ -54,23 +53,20 @@ class FwConfigImportRule():
         self.uid2id_mapper = service_provider.get_service(Services.UID2ID_MAPPER, self.import_details.ImportId)
         self.group_flats_mapper = service_provider.get_service(Services.GROUP_FLATS_MAPPER, self.import_details.ImportId)
         self.prev_group_flats_mapper = service_provider.get_service(Services.PREV_GROUP_FLATS_MAPPER, self.import_details.ImportId)
-
+        self.rule_order_service = service_provider.get_service(Services.RULE_ORDER_SERVICE, self.import_details.ImportId)
 
     def updateRulebaseDiffs(self, prevConfig: FwConfigNormalized):
+        
         logger = getFwoLogger(debug_level=self.import_details.DebugLevel)
 
         # calculate rule diffs
         changedRuleUids = {}
-        deletedRuleUids = {}
-        newRuleUids = {}
-        movedRuleUids = {}
         ruleUidsInBoth = {}
         previousRulebaseUids = []
         currentRulebaseUids = []
         new_hit_information = []
 
-        rule_order_service = RuleOrderService()
-        deletedRuleUids, newRuleUids, movedRuleUids = rule_order_service.initialize(prevConfig, self)
+        rule_order_diffs: dict[str, dict[str, list[str]]] = self.rule_order_service.update_rule_order_diffs(self.import_details.DebugLevel)
 
         # collect rulebase UIDs of previous config
         for rulebase in prevConfig.rulebases:
@@ -101,10 +97,10 @@ class FwConfigImportRule():
                 self.collect_last_hit_changes(ruleUid, currentRulebase, previousRulebase, new_hit_information)
 
         # add moved rules that are not in changed rules (e.g. move across rulebases)
-        self._collect_uncaught_moves(movedRuleUids, changedRuleUids)
+        self._collect_uncaught_moves(rule_order_diffs["moved_rule_uids"], changedRuleUids)
 
         # add full rule details first
-        newRulebases = self.getRules(newRuleUids)
+        newRulebases = self.getRules(rule_order_diffs["new_rule_uids"])
 
         # update rule_metadata before adding rules
         num_added_metadata_rules, new_rule_metadata_ids = self.addNewRuleMetadata(newRulebases)
@@ -119,7 +115,7 @@ class FwConfigImportRule():
         self.uid2id_mapper.add_rule_mappings(new_rule_ids + updated_rule_ids)
         num_new_refs = self.add_new_refs(prevConfig)
 
-        num_deleted_rules, removed_rule_ids = self.markRulesRemoved(deletedRuleUids, changedRuleUids)
+        num_deleted_rules, removed_rule_ids = self.markRulesRemoved(rule_order_diffs["deleted_rule_uids"], changedRuleUids)
         num_removed_refs = self.remove_outdated_refs(prevConfig)
 
         _, num_moved_rules, _ = self.verify_rules_moved(changedRuleUids)
@@ -753,7 +749,6 @@ class FwConfigImportRule():
     def create_new_rule_version(self, rule_uids):
         logger = getFwoLogger()
         self._changed_rule_id_map = {}
-        rule_order_service = RuleOrderService()
 
         if len(rule_uids) == 0:
             return 0, [], []
@@ -798,10 +793,19 @@ class FwConfigImportRule():
         }
         """
 
-        import_rules = []
+        import_rules: list = []
 
         for rulebase_uid in list(rule_uids.keys()):
-                import_rules.extend(self.prepare_rules_for_import(self.import_details, [rule_with_changes for rule_with_changes in rule_order_service.target_rules_flat if rule_with_changes.rule_uid in rule_uids[rulebase_uid]], rulebase_uid)["data"])
+                
+                changed_rule_of_rulebase: list[RuleNormalized] = [
+                    rule_with_changes 
+                    for rule_with_changes in self.rule_order_service.target_rules_flat 
+                    if rule_with_changes.rule_uid in rule_uids[rulebase_uid]
+                ]
+
+                import_rules_of_rulebase: dict[str, list[Rule]] = self.prepare_rules_for_import(self.import_details, changed_rule_of_rulebase, rulebase_uid)
+
+                import_rules.extend(import_rules_of_rulebase["data"])
 
         create_new_rule_version_variables = {
             "objects": import_rules,
@@ -921,7 +925,6 @@ class FwConfigImportRule():
             return 1, 0, []
         
     def verify_rules_moved(self, changed_rule_uids):
-        rule_order_service = RuleOrderService()
         error_count_move = 0 
         number_of_moved_rules = 0
 
@@ -935,7 +938,7 @@ class FwConfigImportRule():
 
         rule_order_service_moved_rule_uids_flat = [
             rule_uid 
-            for rule_uids in rule_order_service._moved_rule_uids.values()
+            for rule_uids in self.rule_order_service._moved_rule_uids.values()
             for rule_uid in rule_uids
         ]
 

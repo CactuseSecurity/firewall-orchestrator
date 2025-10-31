@@ -33,9 +33,6 @@ namespace FWO.Report.Filter.Ast
                 case TokenKind.RecertDisplay:
                     ExtractRecertDisplayFilter(query);
                     break;
-                case TokenKind.Owner:
-                    ExtractOwnerFilter(query);
-                    break;
                 case TokenKind.Unused:
                     ExtractUnusedFilter(query);
                     break;
@@ -57,12 +54,6 @@ namespace FWO.Report.Filter.Ast
                 ": $" + queryVarName + "}, svc_port_end: {_gte: $" + queryVarName + " } } } } }";
             query.ConnectionWhereStatement += $"_or: [ {{ service_connections: {{service: {{ port: {{ _lte: ${queryVarName} }}, port_end: {{ _gte: ${queryVarName} }} }} }} }}, " +
                 $"{{ service_group_connections: {{service_group: {{ service_service_groups: {{ service: {{ port: {{ _lte: ${queryVarName} }}, port_end: {{ _gte: ${queryVarName} }} }} }} }} }} }} ]";
-        }
-
-        private void ExtractOwnerFilter(DynGraphqlQuery query)
-        {
-            string QueryVarName = AddVariable<string>(query, "owner", Operator.Kind, Value.Text);
-            query.RuleWhereStatement += $"owner: {{  {ExtractOperator()}: ${QueryVarName} }}";
         }
 
         private void ExtractUnusedFilter(DynGraphqlQuery query)

@@ -1104,6 +1104,7 @@ create table owner
     last_recert_check Timestamp,
     recert_check_params Varchar,
 	criticality Varchar,
+	owner_lifecycle_state_id int,
 	active boolean default true,
 	import_source Varchar,
 	common_service_possible boolean default false,
@@ -1112,6 +1113,11 @@ create table owner
 	last_recertifier_dn Varchar,
 	next_recert_date Timestamp,
 	recert_active boolean default false
+);
+
+CREATE TABLE owner_lifecycle_state (
+    id SERIAL PRIMARY KEY,
+    name Varchar NOT NULL
 );
 
 create table owner_network

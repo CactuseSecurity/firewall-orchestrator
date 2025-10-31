@@ -120,7 +120,7 @@ header {
 
 .bg-blue {
     z-index: 10;
-    background-image: linear-gradient(#054B8C, #03335E);
+    background-image: linear-gradient(var(--bg-color, #054B8C), var(--bg-color-2, #03335E));
 }
 
 .bg-gray {
@@ -173,10 +173,9 @@ h2,
 h3,
 h4,
 h5 {
-    color: #2FA5ED;
+    color: var(--heading-color, #2FA5ED); /* fallback if not set */
     font-weight: bold;
 }
-
 .popup-body {
     height: fit-content;
     /* Increase/decrease this value for cross-browser compatibility */

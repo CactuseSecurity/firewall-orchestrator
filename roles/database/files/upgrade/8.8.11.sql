@@ -1,0 +1,10 @@
+INSERT INTO txt VALUES ('color_scheme',     'German', 	'Farbschema');
+INSERT INTO txt VALUES ('color_scheme',     'English', 	'Color Scheme');
+INSERT INTO txt VALUES ('color_scheme_standard',        'German', 	'Standard Farbschema');
+INSERT INTO txt VALUES ('color_scheme_standard',        'English', 	'Standard Color Scheme');
+INSERT INTO txt VALUES ('color_scheme_green',   'German', 	'Gr&uuml;nes Farbschema');
+INSERT INTO txt VALUES ('color_scheme_green',   'English', 	'Green Color Scheme');
+INSERT INTO txt VALUES ('color_scheme_red',     'German', 	'Rotes Farbschema');
+INSERT INTO txt VALUES ('color_scheme_red',     'English', 	'Red Color Scheme');
+INSERT INTO txt VALUES ('color_scheme_purple',    'German', 	'Violettes Farbschema');
+INSERT INTO txt VALUES ('color_scheme_purple',    'English', 	'Purple Color Scheme');

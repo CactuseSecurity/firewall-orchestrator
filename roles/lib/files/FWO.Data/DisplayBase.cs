@@ -29,7 +29,7 @@ namespace FWO.Data
                 }
                 else
                 {
-                    result.Append(service.Protocol?.Name != null ? $"{service.Protocol?.Name}" : $"{service.Name}");
+                    result.Append(ShouldDisplayProtocolName(service) ? $"{service.Protocol?.Name}" : $"{service.Name}");
                 }
             }
             else
@@ -39,7 +39,7 @@ namespace FWO.Data
                 {
                     result.Append($" ({ports}/{service.Protocol?.Name})");
                 }
-                else if (service.Protocol?.Name != null)
+                else if (ShouldDisplayProtocolName(service))
                 {
                     result.Append($" ({service.Protocol?.Name})");
                 }
@@ -282,6 +282,13 @@ namespace FWO.Data
                 result += inBrackets ? ")" : "";
             }
             return result;
+        }
+
+        private static bool ShouldDisplayProtocolName(NetworkService service)
+        {
+            return service.Protocol?.Name != null &&
+                   !(service.Protocol.Id == 0 &&
+                     (service.Name.Equals("Any") || service.Name.Equals("ALL")));
         }
     }
 }

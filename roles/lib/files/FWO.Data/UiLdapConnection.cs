@@ -1,3 +1,4 @@
+using FWO.Basics;
 using FWO.Data.Middleware;
 using Newtonsoft.Json;
 using System.Text.Json.Serialization; 
@@ -38,7 +39,7 @@ namespace FWO.Data
         public override bool Sanitize()
         {
             bool shortened = base.Sanitize();
-            Name = Sanitizer.SanitizeMand(Name, ref shortened);
+            Name = Name.SanitizeMand(ref shortened);
             return shortened;
         }
 

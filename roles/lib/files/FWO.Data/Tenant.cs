@@ -1,4 +1,5 @@
-﻿using FWO.Data.Middleware;
+using FWO.Basics;
+using FWO.Data.Middleware;
 using Newtonsoft.Json;
 using System.Text.Json.Serialization; 
 
@@ -77,9 +78,9 @@ namespace FWO.Data
         public bool Sanitize()
         {
             bool shortened = false;
-            Name = Sanitizer.SanitizeLdapNameMand(Name, ref shortened);
-            Comment = Sanitizer.SanitizeOpt(Comment, ref shortened);
-            Project = Sanitizer.SanitizeOpt(Project, ref shortened);
+            Name = Name.SanitizeLdapNameMand(ref shortened);
+            Comment = Comment.SanitizeOpt(ref shortened);
+            Project = Project.SanitizeOpt(ref shortened);
             return shortened;
         }
 

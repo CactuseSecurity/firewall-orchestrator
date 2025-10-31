@@ -34,8 +34,8 @@ namespace FWO.Data.Modelling
         public bool Sanitize()
         {
             bool shortened = false;
-            ExtraConfigType = Sanitizer.SanitizeMand(ExtraConfigType, ref shortened);
-            ExtraConfigText = Sanitizer.SanitizeMand(ExtraConfigText, ref shortened);
+            ExtraConfigType = ExtraConfigType.SanitizeMand(ref shortened);
+            ExtraConfigText = ExtraConfigText.SanitizeMand(ref shortened);
             return shortened;
         }
     }

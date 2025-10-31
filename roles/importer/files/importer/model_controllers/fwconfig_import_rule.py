@@ -127,7 +127,7 @@ class FwConfigImportRule():
         self.uid2id_mapper.add_rule_mappings(new_rule_ids + updated_rule_ids)
         num_new_refs = self.add_new_refs(prevConfig)
 
-        num_deleted_rules, removed_rule_ids = self.mark_rules_removed(rule_order_diffs["deleted_rule_uids"], changedRuleUids)
+        num_deleted_rules, removed_rule_ids = self.mark_rules_removed(rule_order_diffs["deleted_rule_uids"])
         num_removed_refs = self.remove_outdated_refs(prevConfig)
 
         _, num_moved_rules, _ = self.verify_rules_moved(changedRuleUids)
@@ -855,9 +855,9 @@ class FwConfigImportRule():
                     if rule_with_changes.rule_uid in rule_uids[rulebase_uid]
                 ]
 
-                import_rules_of_rulebase: dict[str, list[Rule]] = self.prepare_rules_for_import(self.import_details, changed_rule_of_rulebase, rulebase_uid)
+                import_rules_of_rulebase = self.prepare_rules_for_import(changed_rule_of_rulebase, rulebase_uid)
 
-                import_rules.extend(import_rules_of_rulebase["data"])
+                import_rules.extend(import_rules_of_rulebase)
 
         create_new_rule_version_variables = {
             "objects": [rule.model_dump() for rule in import_rules],

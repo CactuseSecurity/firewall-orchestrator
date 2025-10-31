@@ -270,7 +270,7 @@ class RuleOrderService:
         uids_and_rules = [
             (rule_uid, rule)
             for rulebase in config.rulebases
-            for rule_uid, rule in rulebase.Rules.items()
+            for rule_uid, rule in rulebase.rules.items()
         ]
 
         return map(list, zip(*uids_and_rules)) if uids_and_rules else ([], [])

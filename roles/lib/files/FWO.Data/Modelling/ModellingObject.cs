@@ -67,7 +67,7 @@ namespace FWO.Data.Modelling
         public virtual bool Sanitize()
         {
             bool shortened = false;
-            Name = Sanitizer.SanitizeMand(Name, ref shortened);
+            Name = Name.SanitizeMand(ref shortened);
             return shortened;
         }
     }

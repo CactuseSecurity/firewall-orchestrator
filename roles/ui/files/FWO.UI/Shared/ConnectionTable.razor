@@ -26,7 +26,7 @@
                             {
                                 <button type="button" class="btn btn-sm btn-warning" @onclick="async () =>
                                     { await AppHandler.EditConn(context); await AppHandlerChanged.InvokeAsync(AppHandler); }">
-                                       @(DisplayService.DisplayButton(userConfig, "edit", Icons.Edit))
+                                    @(DisplayService.DisplayButton(userConfig, "edit", Icons.Edit))
                                 </button>
                             }
                             <button type="button" class="btn btn-sm btn-danger" @onclick="async () =>
@@ -63,11 +63,14 @@
         <Column TableItem="ModellingConnection" Title="@(userConfig.GetText("id"))" Field="@(x => x.Id)" Sortable="true" Filterable="true" />
         @if(!SelectInterfaceView && !DiffMode)
         {
-            @if(Connections.Count > 0 && Connections.First().IsInterface)
+            @if(InterfacesPossible)
             {
                 <Column TableItem="ModellingConnection" Title="@(userConfig.GetText("published"))" Field="@(x => x.IsPublished)" Sortable="true" Filterable="true">
                     <Template>
-                        @(context.IsPublished.ShowAsHtml())
+                        @if(context.IsInterface)
+                        {
+                            @context.IsPublished.ShowAsHtml()
+                        }
                     </Template>
                 </Column>
             }
@@ -182,7 +185,7 @@
     [Parameter]
     public SelectionType SelectionType { get; set; } = SelectionType.Single;
 
-    [Parameter] 
+    [Parameter]
     public EventCallback<int> PageSizeCallback { get; set; }
 
     [Parameter]
@@ -199,6 +202,9 @@
 
     [Parameter]
     public bool UseResponsiveTable { get; set; } = false;
+
+    [Parameter]
+    public bool InterfacesPossible { get; set; } = false;
 
     private int PageSize { get; set; }
 
@@ -231,10 +237,10 @@
 
     private string getTableRowClass(ModellingConnection conn)
     {
-        @* if(conn.IsRequested)
+        if(conn.Removed)
         {
             return "td-bg-light-grey";
-        } *@
+        }
         return "";
     }
 

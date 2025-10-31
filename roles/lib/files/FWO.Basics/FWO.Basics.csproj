@@ -11,4 +11,8 @@
     <PackageReference Include="IPNetwork2" Version="3.4.832" />
   </ItemGroup>
 
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
 </Project>

@@ -298,7 +298,7 @@ namespace FWO.Report
                         {
                             await SetComplianceDataForRule(rule, apiConnection);
 
-                            // Resolve network locations
+                            // Resolve network locations TODO: Move resolving completely to ComplianceCheck or RuleViewData
 
                             NetworkLocation[] networkLocations = rule.Froms.Concat(rule.Tos).ToArray();
                             List<NetworkLocation> resolvedNetworkLocations = RuleDisplayBase.GetResolvedNetworkLocations(networkLocations);
@@ -399,20 +399,73 @@ namespace FWO.Report
             return queryVariables;
         }
 
-        protected virtual async Task SetComplianceDataForRule(Rule rule, ApiConnection apiConnection)
+        protected virtual async Task SetComplianceDataForRule(Rule rule, ApiConnection apiConnection, List<ComplianceViolation>? filteredViolations = null, Func<ComplianceViolation, string>? formatter = null)
         {
             try
             {
                 rule.ViolationDetails = "";
                 rule.Compliance = ComplianceViolationType.None;
-                int printedViolations = 0;
-                bool abbreviated = false;
+                int addedViolationDetails = 0;
+                List<ComplianceViolation> violations;
 
-                for (int violationCount = 1; violationCount <= rule.Violations.Count; violationCount++)
+                // Filter violations.
+
+                if (filteredViolations == null)
                 {
-                    ComplianceViolation violation = rule.Violations.ElementAt(violationCount - 1);
+                    violations = rule.Violations.ToList();
+                }
+                else
+                {
+                    violations = filteredViolations;
+                }
 
-                    await AddViolationDataToViolationDetails(rule, violation, ref printedViolations, violationCount, ref abbreviated, true);
+                // If rule is not assessable only display assessability issues in details.
+
+                if (violations.Any(violation => violation.Type == ComplianceViolationType.NotAssessable))
+                {
+                    rule.Compliance = ComplianceViolationType.NotAssessable;
+                    violations = violations.Where(violation => violation.Type == ComplianceViolationType.NotAssessable).ToList();
+                }
+
+                foreach (ComplianceViolation violation in violations)
+                {   
+                    // Cut violation details when printed violations limit is reached.
+
+                    if (addedViolationDetails == _maxPrintedViolations)
+                    {
+                        rule.ViolationDetails += $"<br>Too many violations to display ({rule.Violations.Count}), please check the system for details.";
+                        return;
+                    }
+
+                    // Make line breaks in violation details between violations.
+
+                    if (rule.ViolationDetails != "")
+                    {
+                        rule.ViolationDetails += "<br>";
+                    }
+
+                    // Set rule compliance.
+
+                    if (rule.Compliance != ComplianceViolationType.NotAssessable && addedViolationDetails > 1)
+                    {
+                        rule.Compliance = ComplianceViolationType.MultipleViolations;
+                    }
+                    else
+                    {
+                        rule.Compliance = violation.Type;
+                    }
+
+                    // Add to violation details.
+
+                    string violationDetails = violation.Details;
+
+                    if (formatter != null)
+                    {
+                        violationDetails = formatter(violation);
+                    }
+                    
+                    rule.ViolationDetails += violationDetails;
+                    addedViolationDetails++;
                 }
             }
             catch (Exception e)
@@ -420,41 +473,6 @@ namespace FWO.Report
                 Log.TryWriteLog(LogType.Error, "Compliance Report", $"Error while setting compliance data for rule {rule.Id}: {e.Message}", DebugConfig.ExtendedLogReportGeneration);
                 return;
             }
-        }
-
-        protected virtual Task AddViolationDataToViolationDetails(Rule rule, ComplianceViolation violation, ref int printedViolations, int violationCount, ref bool abbreviated, bool concatenateDetails)
-        {
-            if (concatenateDetails && _maxPrintedViolations == 0 || printedViolations < _maxPrintedViolations)
-            {
-                if (rule.ViolationDetails != "")
-                {
-                    rule.ViolationDetails += "<br>";
-                }
-
-                rule.ViolationDetails += violation.Details;
-                printedViolations++;
-            }
-
-            if (rule.Compliance == ComplianceViolationType.NotAssessable || violation.Type == ComplianceViolationType.NotAssessable)
-            {
-                rule.Compliance = ComplianceViolationType.NotAssessable;
-            }
-            else if (violationCount > 1)
-            {
-                rule.Compliance = ComplianceViolationType.MultipleViolations;
-            }
-            else
-            {
-                rule.Compliance = rule.Violations.FirstOrDefault()?.Type ?? ComplianceViolationType.None;
-            }
-
-            if (_maxPrintedViolations > 0 && printedViolations == _maxPrintedViolations && violationCount < rule.Violations.Count && !abbreviated)
-            {
-                rule.ViolationDetails += $"<br>Too many violations to display ({rule.Violations.Count}), please check the system for details.";
-                abbreviated = true;
-            }
-
-            return Task.CompletedTask;
         }
 
         protected virtual bool ShowRule(Rule rule)

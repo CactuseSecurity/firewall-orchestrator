@@ -3,8 +3,11 @@ using FWO.Data;
 
 namespace FWO.Compliance
 {
-    public static class ComplianceExtensions
+    public static partial class ComplianceExtensions
     {
+
+
+        
         public static string ToString(this ComplianceViolationType violationType)
         {
             return violationType switch

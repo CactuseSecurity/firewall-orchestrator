@@ -31,6 +31,11 @@ query getRulesWithViolationsInTimespanByChunk(
       risk_score
       policy_id
       criterion_id
+      criterion: criterion{
+        id
+        name
+        criterion_type
+      }
     }
 
     rulebase: rulebase {

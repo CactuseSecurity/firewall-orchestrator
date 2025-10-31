@@ -6,7 +6,7 @@ using FWO.Data.Modelling;
 using FWO.Data.Report;
 using FWO.Data.Workflow;
 using FWO.Logging;
-using System.Text.Json; 
+using System.Text.Json;
 
 
 namespace FWO.Services
@@ -18,11 +18,11 @@ namespace FWO.Services
             UserConfig userConfig, FwoOwner owner, Action<Exception?, string, string, bool> displayMessageInUi)
     {
         private readonly ModellingNamingConvention namingConvention = JsonSerializer.Deserialize<ModellingNamingConvention>(userConfig.ModNamingConvention) ?? new();
-        private readonly RuleRecognitionOption ruleRecognitionOption = string.IsNullOrEmpty(userConfig.RuleRecognitionOption) ? new() : 
+        private readonly RuleRecognitionOption ruleRecognitionOption = string.IsNullOrEmpty(userConfig.RuleRecognitionOption) ? new() :
             JsonSerializer.Deserialize<RuleRecognitionOption>(userConfig.RuleRecognitionOption) ?? new();
         private readonly ModellingAppZoneHandler AppZoneHandler = new(apiConnection, userConfig, owner, displayMessageInUi);
         private AppServerComparer appServerComparer = new(new());
-        private List<Management> RelevantManagements {get; set; } = [];
+        private List<Management> RelevantManagements { get; set; } = [];
 
         private List<WfReqTask> TaskList = [];
         private List<WfReqTask> AddAccessTaskList = [];
@@ -33,14 +33,15 @@ namespace FWO.Services
         private List<WfReqElement> elements = [];
 
         private ModellingVarianceResult varianceResult = new();
-        
+
         private Dictionary<int, List<Rule>> allModelledRules = [];
         private List<ModellingAppRole> allModelledAppRoles = [];
 
         private readonly Dictionary<int, List<ModellingAppRole>> allProdAppRoles = [];
-        private readonly Dictionary<int, List<ModellingAppServer>> allExistingAppServers = [];
+        private readonly Dictionary<int, Dictionary<int, long>> allExistingAppServersHashes = [];
         private readonly Dictionary<int, List<ModellingAppServer>> alreadyCreatedAppServers = [];
         private List<ModellingConnection> DeletedConns = [];
+        private List<ModellingNetworkArea> AllAreas = [];
 
         public ModellingAppZone? PlannedAppZoneDbUpdate { get; set; } = default;
 
@@ -48,10 +49,10 @@ namespace FWO.Services
         {
             connections = [.. connections.Where(x => !x.IsDocumentationOnly())];
             varianceResult = await AnalyseRulesVsModelledConnections(connections, new(), false);
-            foreach(var conn in connections)
+            foreach (var conn in connections)
             {
                 conn.AddProperty(ConState.VarianceChecked.ToString());
-                if(varianceResult.ConnsNotImplemented.FirstOrDefault(c => c.Id == conn.Id) != null)
+                if (varianceResult.ConnsNotImplemented.FirstOrDefault(c => c.Id == conn.Id) != null)
                 {
                     conn.AddProperty(ConState.NotImplemented.ToString());
                 }
@@ -67,7 +68,7 @@ namespace FWO.Services
                 {
                     conn.RemoveProperty(ConState.VarianceFound.ToString());
                 }
-            }            
+            }
         }
 
         public async Task<bool> AnalyseConnsForStatusAsync(List<ModellingConnection> connections)
@@ -75,12 +76,12 @@ namespace FWO.Services
             try
             {
                 await AnalyseConnsForStatus(connections);
-                foreach(var conn in connections)
+                foreach (var conn in connections)
                 {
                     await UpdateConnectionStatus(conn);
                 }
             }
-            catch(Exception exc)
+            catch (Exception exc)
             {
                 Log.WriteError("Analyse Conns For Status Async", $" Error: ", exc);
                 return false;
@@ -92,8 +93,9 @@ namespace FWO.Services
             ModellingFilter modellingFilter, bool fullAnalysis = true, bool ignoreGroups = false)
         {
             await InitManagements();
+            await LoadAreas();
             varianceResult = new() { Managements = RelevantManagements };
-            if(ruleRecognitionOption.NwSeparateGroupAnalysis && fullAnalysis && !ignoreGroups)
+            if (ruleRecognitionOption.NwSeparateGroupAnalysis && fullAnalysis && !ignoreGroups)
             {
                 await GetNwObjectsProductionState();
                 PreAnalyseAllAppRoles(connections);
@@ -102,7 +104,7 @@ namespace FWO.Services
             {
                 foreach (var conn in connections.Where(c => !c.IsInterface).OrderBy(c => c.Id))
                 {
-                    await AnalyseRules(conn, fullAnalysis);
+                    AnalyseRules(conn, fullAnalysis);
                 }
                 if (modellingFilter.RulesForDeletedConns)
                 {
@@ -114,8 +116,9 @@ namespace FWO.Services
 
         public async Task<List<WfReqTask>> AnalyseModelledConnectionsForRequest(List<ModellingConnection> connections)
         {
-            appServerComparer = new (namingConvention);
+            appServerComparer = new(namingConvention);
             await InitManagements();
+            await LoadAreas();
             await GetModelledRulesProductionState(new() { AnalyseRemainingRules = false });
             await GetNwObjectsProductionState();
             await GetDeletedConnections();
@@ -138,7 +141,7 @@ namespace FWO.Services
                     AnalyseServicesForRequest(conn);
                     if (elements.Count > 0)
                     {
-                        await AnalyseConnectionForRequest(mgt, conn);
+                        AnalyseConnectionForRequest(mgt, conn);
                     }
                 }
                 AnalyseDeletedConnsForRequest(mgt, [.. connections.Where(c => c.IsDocumentationOnly())]);
@@ -161,17 +164,17 @@ namespace FWO.Services
         {
             try
             {
-                List<TicketId> ticketIds = await apiConnection.SendQueryAsync<List<TicketId>>(ExtRequestQueries.getLatestTicketIds, new{ownerId = owner.Id});
-                if(ticketIds.Count == 0)
+                List<TicketId> ticketIds = await apiConnection.SendQueryAsync<List<TicketId>>(ExtRequestQueries.getLatestTicketIds, new { ownerId = owner.Id });
+                if (ticketIds.Count == 0)
                 {
                     return userConfig.GetText("never_requested");
                 }
                 else
                 {
-                    foreach(var ticketId in ticketIds)
+                    foreach (var ticketId in ticketIds)
                     {
                         WfTicket? intTicket = await apiConnection.SendQueryAsync<WfTicket>(RequestQueries.getTicketById, new { ticketId.Id });
-                        if(extStateHandler.IsDone(intTicket.StateId))
+                        if (extStateHandler.IsDone(intTicket.StateId))
                         {
                             return $"{userConfig.GetText("last_successful")}: {intTicket.CreationDate.ToString("yyyy-MM-dd HH:mm:ss")}, {userConfig.GetText("implemented")}: {intTicket.CompletionDate?.ToString("yyyy-MM-dd HH:mm:ss")}, {intTicket.Requester?.Name}";
                         }
@@ -206,14 +209,14 @@ namespace FWO.Services
 
         private void CollectModelledAppRoles(List<ModellingConnection> connections)
         {
-            AppRoleComparer appRoleComparer = new ();
-            foreach(var conn in connections.Where(c => !c.IsInterface).OrderBy(c => c.Id))
+            AppRoleComparer appRoleComparer = new();
+            foreach (var conn in connections.Where(c => !c.IsInterface).OrderBy(c => c.Id))
             {
-                foreach(var modelledAppRole in ModellingAppRoleWrapper.Resolve(conn.SourceAppRoles))
+                foreach (var modelledAppRole in ModellingAppRoleWrapper.Resolve(conn.SourceAppRoles))
                 {
                     allModelledAppRoles.Add(modelledAppRole);
                 }
-                foreach(var modelledAppRole in ModellingAppRoleWrapper.Resolve(conn.DestinationAppRoles))
+                foreach (var modelledAppRole in ModellingAppRoleWrapper.Resolve(conn.DestinationAppRoles))
                 {
                     allModelledAppRoles.Add(modelledAppRole);
                 }
@@ -243,7 +246,7 @@ namespace FWO.Services
         private string ConstructComment(ModellingConnection conn)
         {
             string comment = userConfig.ModModelledMarker + conn.Id.ToString();
-            if(conn.IsCommonService)
+            if (conn.IsCommonService)
             {
                 comment += ", ComSvc";
             }
@@ -266,10 +269,15 @@ namespace FWO.Services
                 };
                 await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.updateConnectionProperties, Variables);
             }
-            catch(Exception exc)
+            catch (Exception exc)
             {
                 Log.WriteError("Update Connection Properties", $"Could not change state for Connection {conn.Id}: ", exc);
             }
+        }
+
+        private async Task LoadAreas()
+        {
+            AllAreas = await apiConnection.SendQueryAsync<List<ModellingNetworkArea>>(ModellingQueries.getNwGroupObjects, new { grpType = (int)ModellingTypes.ModObjectType.NetworkArea });
         }
     }
 }

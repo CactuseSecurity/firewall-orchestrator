@@ -16,7 +16,7 @@ Type=simple
 WorkingDirectory={{ importer_home }}
 ExecStartPre=/bin/sleep 10
 ExecStart={{ importer_venv_dir }}/bin/python {{ importer_home}}/import-main-loop.py
-Environment="PATH={{ importer_venv_dir }}/bin"
+Environment="PATH={{ importer_venv_dir }}/bin:/usr/bin:/bin"
 Environment="VIRTUAL_ENV={{ importer_venv_dir }}"
 TimeoutStopSec=300min
 StandardOutput=journal

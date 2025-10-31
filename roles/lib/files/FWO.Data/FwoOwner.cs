@@ -1,5 +1,6 @@
-﻿using System.Text.Json.Serialization; 
+using FWO.Basics;
 using Newtonsoft.Json;
+using System.Text.Json.Serialization; 
 
 namespace FWO.Data
 {
@@ -16,6 +17,9 @@ namespace FWO.Data
 
         [JsonProperty("criticality"), JsonPropertyName("criticality")]
         public string? Criticality { get; set; }
+
+        [JsonProperty("owner_lifecycle_state_id"), JsonPropertyName("owner_lifecycle_state_id")]
+        public int? OwnerLifeCycleStateId { get; set; }
 
         [JsonProperty("active"), JsonPropertyName("active")]
         public bool Active { get; set; } = true;
@@ -91,9 +95,9 @@ namespace FWO.Data
         public override bool Sanitize()
         {
             bool shortened = base.Sanitize();
-            Criticality = Sanitizer.SanitizeOpt(Criticality, ref shortened);
-            ImportSource = Sanitizer.SanitizeCommentOpt(ImportSource, ref shortened);
-            LastRecertifierDn = Sanitizer.SanitizeLdapPathOpt(LastRecertifierDn, ref shortened);
+            Criticality = Criticality.SanitizeOpt(ref shortened);
+            ImportSource = ImportSource.SanitizeCommentOpt(ref shortened);
+            LastRecertifierDn = LastRecertifierDn.SanitizeLdapPathOpt(ref shortened);
             return shortened;
         }
 

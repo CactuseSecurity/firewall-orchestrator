@@ -1657,3 +1657,12 @@ ALTER TABLE "rule_source_to_zone"
 ADD CONSTRAINT rule_source_to_zone_rule_id_rule_rule_id_fkey FOREIGN KEY ("rule_id") REFERENCES "rule" ("rule_id");
 ALTER TABLE "rule_source_to_zone"
 ADD CONSTRAINT rule_source_to_zone_zone_id_zone_zone_id_fkey FOREIGN KEY ("zone_id") REFERENCES "zone" ("zone_id");
+
+
+insert into stm_dev_typ (dev_typ_id,dev_typ_name,dev_typ_version,dev_typ_manufacturer,dev_typ_predef_svc,dev_typ_is_multi_mgmt,dev_typ_is_mgmt,is_pure_routing_device)
+    VALUES (28,'Cisco Asa','9','Cisco','',false,true,false)
+    ON CONFLICT (dev_typ_id) DO NOTHING;
+
+insert into stm_dev_typ (dev_typ_id,dev_typ_name,dev_typ_version,dev_typ_manufacturer,dev_typ_predef_svc,dev_typ_is_multi_mgmt,dev_typ_is_mgmt,is_pure_routing_device)
+    VALUES (29,'Cisco Asa on FirePower','9','Cisco','',false,true,false)
+    ON CONFLICT (dev_typ_id) DO NOTHING;

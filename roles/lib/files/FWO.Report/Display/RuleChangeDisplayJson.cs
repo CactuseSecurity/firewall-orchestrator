@@ -1,4 +1,4 @@
-﻿using FWO.Basics;
+using FWO.Basics;
 using FWO.Data;
 using FWO.Config.Api;
 using FWO.Report.Filter;
@@ -37,13 +37,13 @@ namespace FWO.Ui.Display
             }
         }
 
-        public string DisplaySourceZone(RuleChange ruleChange)
+        public string DisplaySourceZones(RuleChange ruleChange)
         {
             switch (ruleChange.ChangeAction)
             {
-                case 'D': return DisplaySourceZone(ruleChange.OldRule.SourceZone?.Name);
-                case 'I': return DisplaySourceZone(ruleChange.NewRule.SourceZone?.Name);
-                case 'C': return DisplaySourceZone(DisplayDiff(ruleChange.OldRule.SourceZone?.Name, ruleChange.NewRule.SourceZone?.Name));
+                case 'D': return DisplayRuleSourceZones(ruleChange.OldRule.RuleSourceZones);
+                case 'I': return DisplayRuleSourceZones(ruleChange.NewRule.RuleSourceZones);
+                case 'C': return DisplayJsonArray("source zones", DisplayArrayDiff(ListNetworkZones(ruleChange.OldRule.RuleSourceZones), ListNetworkZones(ruleChange.NewRule.RuleSourceZones)));
                 default: return "";
             }
         }
@@ -73,13 +73,13 @@ namespace FWO.Ui.Display
             }
         }
 
-        public string DisplayDestinationZone(RuleChange ruleChange)
+        public string DisplayDestinationZones(RuleChange ruleChange)
         {
             switch (ruleChange.ChangeAction)
             {
-                case 'D': return DisplayDestinationZone(ruleChange.OldRule.DestinationZone?.Name);
-                case 'I': return DisplayDestinationZone(ruleChange.NewRule.DestinationZone?.Name);
-                case 'C': return DisplayDestinationZone(DisplayDiff(ruleChange.OldRule.DestinationZone?.Name, ruleChange.NewRule.DestinationZone?.Name));
+                case 'D': return DisplayRuleDestinationZones(ruleChange.OldRule.RuleDestinationZones);
+                case 'I': return DisplayRuleDestinationZones(ruleChange.NewRule.RuleDestinationZones);
+                case 'C': return DisplayJsonArray("destination zones", DisplayArrayDiff(ListNetworkZones(ruleChange.OldRule.RuleDestinationZones), ListNetworkZones(ruleChange.NewRule.RuleDestinationZones)));
                 default: return "";
             }
         }

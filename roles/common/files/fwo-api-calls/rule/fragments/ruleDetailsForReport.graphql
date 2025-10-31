@@ -7,11 +7,13 @@
   section_header: rule_head_text
   rule_comment
   rule_track
-  rule_disabled
-  src_zone: zone {
-    zone_name
-    zone_id
-  }
+  rule_disabled  
+  rule_src_zones: rule_source_to_zones {
+      zone {
+        zone_name
+		zone_id
+      }
+    }
   rule_metadatum {
     rule_metadata_id
     rule_created
@@ -51,10 +53,12 @@
       ...networkObjectDetails
     }
   }
-  dst_zone: zoneByRuleToZone {
-    zone_name
-    zone_id
-  }
+    rule_dst_zones: rule_destination_to_zones {
+      zone {
+        zone_name
+		zone_id
+      }
+    }
   rule_tos(where: {
     rt_create: { _lte: $import_id_end }
     _or: [

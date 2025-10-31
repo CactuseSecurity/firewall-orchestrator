@@ -121,9 +121,9 @@
                             }
                             @if (EmptyColumns[2] == false)
                             {
-                                <Column TableItem="Rule" Context="rule" Title="@(userConfig.GetText("source_zone"))" Field="@(rChange => rChange.SourceZone)" Sortable="true" Filterable="false" Hideable="true">
+                                <Column TableItem="Rule" Context="rule" Title="@(userConfig.GetText("source_zone"))" Field="@(rChange => rChange.RuleSourceZones)" Sortable="true" Filterable="false" Hideable="true">
                                     <Template>
-                                        @((MarkupString)RuleDisplayHtml.DisplaySourceZone(rule))
+                                        @((MarkupString)RuleDisplayHtml.DisplaySourceZones(rule))
                                     </Template>
                                 </Column>
                             }
@@ -137,9 +137,9 @@
                             }
                             @if (EmptyColumns[4] == false)
                             {
-                                <Column TableItem="Rule" Context="rule" Title="@(userConfig.GetText("destination_zone"))" Field="@(rChange => rChange.Name)" Sortable="true" Filterable="false" Hideable="true">
+                                <Column TableItem="Rule" Context="rule" Title="@(userConfig.GetText("destination_zone"))" Field="@(rChange => rChange.RuleDestinationZones)" Sortable="true" Filterable="false" Hideable="true">
                                     <Template>
-                                        @((MarkupString)RuleDisplayHtml.DisplayDestinationZone(rule))
+                                        @((MarkupString)RuleDisplayHtml.DisplayDestinationZones(rule))
                                     </Template>
                                 </Column>
                             }

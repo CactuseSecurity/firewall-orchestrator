@@ -97,9 +97,9 @@
         <Column TableItem="Rule" Title="@(userConfig.GetText("name"))" Field="@(r => r.Name)" Sortable="true" Filterable="false" Hideable="true" />
         @if (SelectedReportType != ReportType.VarianceAnalysis && !HandleAsVariance)
         {
-            <Column TableItem="Rule" Context="rule" Title="@(userConfig.GetText("source_zone"))" Field="@(r => r.SourceZone)" Sortable="true" Filterable="false" Hideable="true">
+            <Column TableItem="Rule" Context="rule" Title="@(userConfig.GetText("source_zone"))" Field="@(r => r.RuleSourceZones)" Sortable="true" Filterable="false" Hideable="true">
                 <Template>
-                    @((MarkupString)RuleDisplayBase.DisplaySourceZone(rule))
+                    @((MarkupString)RuleDisplayBase.DisplaySourceZones(rule))
                 </Template>
             </Column>
         }
@@ -110,9 +110,9 @@
         </Column>
         @if (SelectedReportType != ReportType.VarianceAnalysis && !HandleAsVariance)
         {
-            <Column TableItem="Rule" Context="rule" Title="@(userConfig.GetText("destination_zone"))" Field="@(r => r.Name)" Sortable="true" Filterable="false" Hideable="true">
+            <Column TableItem="Rule" Context="rule" Title="@(userConfig.GetText("destination_zone"))" Field="@(r => r.RuleDestinationZones)" Sortable="true" Filterable="false" Hideable="true">
                 <Template>
-                    @((MarkupString)RuleDisplayBase.DisplayDestinationZone(rule))
+                    @((MarkupString)RuleDisplayBase.DisplayDestinationZones(rule))
                 </Template>
             </Column>
         }

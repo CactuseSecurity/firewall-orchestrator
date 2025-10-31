@@ -1,4 +1,4 @@
-﻿using NUnit.Framework;
+using NUnit.Framework;
 using NUnit.Framework.Legacy;
 using FWO.Logging;
 using FWO.Report;
@@ -738,10 +738,10 @@ namespace FWO.Test
                 DisplayOrderNumber = 1,
                 Track = "none",
                 Uid = "uid1",
-                SourceZone = new NetworkZone() { Name = "srczn" },
+                RuleSourceZones = new NetworkZone[] { new NetworkZone { Name = "srczn1" }, new NetworkZone { Name = "srczn2" }, new NetworkZone { Name = "srczn3" } },
                 SourceNegated = false,
                 Froms = InitFroms(resolved),
-                DestinationZone = new NetworkZone() { Name = "dstzn" },
+                RuleDestinationZones = new NetworkZone[] { new NetworkZone { Name = "dstzn1" }, new NetworkZone { Name = "dstzn2" }, new NetworkZone { Name = "dstzn3" } },                
                 DestinationNegated = false,
                 Tos = InitTos(resolved),
                 ServiceNegated = false,

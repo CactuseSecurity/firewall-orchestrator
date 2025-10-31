@@ -22,7 +22,7 @@ namespace FWO.Data
         public string Name { get; set; } = "";
 
         [JsonProperty("uid"), JsonPropertyName("uid")]
-        public string? Uid { get; set; } = "";
+        public string? Uid { get; set; } = null;
 
         [JsonProperty("hostname"), JsonPropertyName("hostname")]
         public string Hostname { get; set; } = "";

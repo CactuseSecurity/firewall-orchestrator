@@ -79,7 +79,8 @@ Create table "management" -- contains an entry for each firewall management syst
 	"multi_device_manager_id" integer,		-- if this manager belongs to another multi_device_manager, then this id points to it
 	"is_super_manager" BOOLEAN DEFAULT FALSE,
 	"ext_mgm_data" Varchar,
-	"mgm_uid" Varchar NOT NULL DEFAULT '',
+	"mgm_uid" Varchar,
+	CONSTRAINT mgm_uid_unique UNIQUE (mgm_uid),	
 	"rulebase_name" Varchar NOT NULL DEFAULT '',
 	"rulebase_uid" Varchar NOT NULL DEFAULT '',
  primary key ("mgm_id")

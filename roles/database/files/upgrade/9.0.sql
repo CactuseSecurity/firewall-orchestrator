@@ -1620,3 +1620,12 @@ insert into stm_dev_typ (dev_typ_id,dev_typ_name,dev_typ_version,dev_typ_manufac
 insert into stm_dev_typ (dev_typ_id,dev_typ_name,dev_typ_version,dev_typ_manufacturer,dev_typ_predef_svc,dev_typ_is_multi_mgmt,dev_typ_is_mgmt,is_pure_routing_device)
     VALUES (29,'Cisco Asa on FirePower','9','Cisco','',false,true,false)
     ON CONFLICT (dev_typ_id) DO NOTHING;
+	
+	
+-- mgm_uid UNIQUE and can be Null - "" empty string not allowed
+ALTER TABLE management DROP CONSTRAINT IF EXISTS mgm_uid_unique;
+ALTER TABLE management ALTER COLUMN mgm_uid DROP NOT NULL;
+ALTER TABLE management ALTER COLUMN mgm_uid DROP DEFAULT;
+UPDATE management SET mgm_uid = NULL WHERE mgm_uid = '';
+ALTER TABLE management ADD CONSTRAINT mgm_uid_unique UNIQUE (mgm_uid);
+

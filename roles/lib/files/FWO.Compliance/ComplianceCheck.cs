@@ -701,9 +701,7 @@ namespace FWO.Compliance
                 {
                     // Get assessability issue type if existing.
 
-                    //Expression<Func<bool>> assessabilityExpression = CreateAssessabilityExpression(networkObject);
                     AssessabilityIssue? assessabilityIssue = TryGetAssessabilityIssue(networkObject);
-                    //assessabilityExpression.ToAssessibilityIssue();
 
                     if (assessabilityIssue != null)
                     {

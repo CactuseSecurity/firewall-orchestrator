@@ -80,17 +80,17 @@ namespace FWO.Ui.Display
 
         public new string DisplayName(Rule rule)
         {
-            return (rule.Name != null ? SanitizeComment(rule.Name) : "");
+            return rule.Name != null ? SanitizeComment(rule.Name) : "";
         }
 
         public new string DisplayComment(Rule rule)
         {
-            return (rule.Comment != null ? SanitizeComment(rule.Comment) : "");
+            return rule.Comment != null ? SanitizeComment(rule.Comment) : "";
         }
         
         public string DisplayEnabled(Rule rule)
         {
-            return (rule.Disabled) ? "disabled" : "enabled";
+            return rule.Disabled ? "disabled" : "enabled";
         }
 
         public string DisplaySource(Rule rule, ReportType reportType)

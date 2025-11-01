@@ -6,6 +6,8 @@ namespace FWO.Data
     public enum CriterionType
     {
         Matrix = 1,
+        Assessability = 2,
+
         ForbiddenService = 10,
         ForbiddenSource = 11,
         ForbiddenDestination = 12,

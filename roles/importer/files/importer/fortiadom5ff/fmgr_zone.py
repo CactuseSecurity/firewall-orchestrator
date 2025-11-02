@@ -1,5 +1,7 @@
 import fmgr_getter
 from fwo_exceptions import FwoNormalizedConfigParseError
+from typing import Any
+
 
 def get_zones(sid, fm_api_url, native_config, adom_name, limit):
     
@@ -12,17 +14,17 @@ def get_zones(sid, fm_api_url, native_config, adom_name, limit):
 
 
 def normalize_zones(native_config, normalized_config_adom, is_global_loop_iteration):
-    zones = []
-    fetched_zones = []
+    zones: list[dict] = []
+    fetched_zones: list[str] = []
     if is_global_loop_iteration: # can not find the following zones in api return
         statically_add_missing_global_zones(fetched_zones)
     for zone_type in native_config['zones']:
         for mapping in zone_type.get('data', []):
-            if 'defmap-intf' in mapping and not mapping['defmap-intf'] in fetched_zones:
+            if 'defmap-intf' in mapping and mapping['defmap-intf'] not in fetched_zones:
                 fetched_zones.append(mapping['defmap-intf'])
-            if not mapping['dynamic_mapping'] is None:
+            if mapping['dynamic_mapping'] is not None:
                 fetch_dynamic_mapping(mapping, fetched_zones)
-            if not mapping['platform_mapping'] is None:
+            if mapping['platform_mapping'] is not None:
                 fetch_platform_mapping(mapping, fetched_zones)
 
     for zone in fetched_zones:
@@ -30,7 +32,7 @@ def normalize_zones(native_config, normalized_config_adom, is_global_loop_iterat
     normalized_config_adom.update({'zone_objects': zones})
 
 
-def statically_add_missing_global_zones(fetched_zones)
+def statically_add_missing_global_zones(fetched_zones: list[str]) -> None:
     for zone in ['any', 'sslvpn_tun_intf', 'virtual-wan-link']:
         fetched_zones.append(zone)
 

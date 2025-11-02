@@ -175,7 +175,7 @@ def update_rb_links(rulebase_links: list[RulebaseLinkUidBased], gateway_id, fwco
             id = link_id,
             gw_id = gateway_id,
             from_rule_id = fwconfig_import_gateway._global_state.import_state.lookupRule(link.from_rule_uid),
-            from_rulebase_id = fwconfig_import_gateway._global_state.import_state.lookupRulebaseId(link.from_rulebase_uid),
+            from_rulebase_id = fwconfig_import_gateway._global_state.import_state.lookupRulebaseId(link.from_rulebase_uid) if link.from_rulebase_uid else None,
             to_rulebase_id = fwconfig_import_gateway._global_state.import_state.lookupRulebaseId(link.to_rulebase_uid),
             link_type = link_type,
             is_initial = link.is_initial,

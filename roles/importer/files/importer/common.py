@@ -92,8 +92,9 @@ def import_management(mgmId=None, ssl_verification=None, debug_level_in=0,
     except (FwoApiWriteError, FwoImporterError) as e:
         importState.addError(f"FwoApiWriteError or FwoImporterError: {str(e.args)} - aborting import")
         rollBackExceptionHandler(importState, configImporter=config_importer, exc=e, errorText="")
-    except FwoImporterErrorInconsistencies:
+    except FwoImporterErrorInconsistencies as e:
         importState.delete_import() # delete whole import
+        importState.addError(str(e.args))
     except ValueError:
         importState.addError("ValueError - aborting import")
         raise

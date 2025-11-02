@@ -15,7 +15,7 @@ def normalize_zones(native_config, normalized_config_adom, is_global_loop_iterat
     zones = []
     fetched_zones = []
     if is_global_loop_iteration: # can not find the following zones in api return
-        add_global_zones(fetched_zones)
+        statically_add_missing_global_zones(fetched_zones)
     for zone_type in native_config['zones']:
         for mapping in zone_type.get('data', []):
             if 'defmap-intf' in mapping and not mapping['defmap-intf'] in fetched_zones:
@@ -30,7 +30,7 @@ def normalize_zones(native_config, normalized_config_adom, is_global_loop_iterat
     normalized_config_adom.update({'zone_objects': zones})
 
 
-def add_global_zones(fetched_zones)
+def statically_add_missing_global_zones(fetched_zones)
     for zone in ['any', 'sslvpn_tun_intf', 'virtual-wan-link']:
         fetched_zones.append(zone)
 

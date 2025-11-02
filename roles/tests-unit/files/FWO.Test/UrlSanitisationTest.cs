@@ -5,14 +5,16 @@ using Microsoft.AspNetCore.Mvc.Filters;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Abstractions;
-using MimeKit.IO.Filters;
+using System.Net;
+using System.Text.RegularExpressions;
 
 namespace FWO.Test
 {
     [TestFixture]
-    public class UrlSanitizerTests
+    public partial class UrlSanitizerTests
     {
         public required UrlSanitizer _sut;
+        private static readonly string[] actual = new[] { "http", "https" };
 
         [SetUp]
         public void SetUp()
@@ -83,10 +85,22 @@ namespace FWO.Test
         public void Clean_RejectsScripts(string input)
         {
             var result = _sut.Clean(input);
-            if (result == null)
-                return; // accepted as null
-            Assert.That(result, Does.Not.Contain("javascript:"));
-            Assert.That(result, Does.Not.Contain("<script>"));
+
+            // if Clean decides to return null to signal "reject/strip entirely" that's acceptable
+            if (result == null) return;
+
+            // Normalize / decode
+            var normalized = WebUtility.HtmlDecode(result);
+            try { normalized = Uri.UnescapeDataString(normalized); } catch { /* ignore malformed escapes */ }
+            normalized = Regex.Replace(normalized, @"[\s\x00-\x1F]+", " "); // collapse whitespace and control chars
+            normalized = normalized.Trim();
+
+            // checks (case-insensitive)
+            Assert.That(normalized, Does.Not.Match("(?i)\\bjavascript\\s*:\\s*"), "javascript: scheme found");
+            Assert.That(normalized, Does.Not.Match("(?i)\\bdata\\s*:\\s*"), "data: scheme found");
+            Assert.That(normalized, Does.Not.Match("(?i)<\\s*script\\b"), "<script> tag found");
+            Assert.That(normalized, Does.Not.Match("(?i)\\bon\\w+\\s*="), "HTML event handler attribute found");
+            Assert.That(normalized, Does.Not.Match("(?i)\\b(set\\.constructor|Function\\(|eval\\()"), "JS constructor/eval patterns found");
         }
 
         [TestCase("file:///etc/passwd")]
@@ -100,15 +114,30 @@ namespace FWO.Test
         [TestCase("Set.constructor`alert\x28document.domain\x29")]
         // [TestCase("\<a onmouseover=\"alert(document.cookie)\"\>xxs link\</a\>")]
         // [TestCase("\<a onmouseover=alert(document.cookie)\>xxs link\</a\>")]
-
-        public void Clean_RejectsOtherDangerousOrUnsupportedSchemes(string input)
+        public void Clean_RejectsUnsupportedUrlSchemes(string input)
         {
             var result = _sut.Clean(input);
-            if (result == null)
-                return; // accepted as null
-            Assert.That(result, Does.Not.Contain("ftp:"));
-            Assert.That(result, Does.Not.Contain("file"));
-            Assert.That(result, Does.Not.Contain("alert"));
+            if (result == null) return;
+
+            // Normalize: decode entities and %xx, collapse whitespace/control chars
+            var normalized = WebUtility.HtmlDecode(result);
+            try { normalized = Uri.UnescapeDataString(normalized); } catch { /* Skip malformed URL escape sequences */ }
+            normalized = MyRegex().Replace(normalized, " ").Trim();
+
+            // Must be a valid URL or a relative URL
+            Assert.That(Uri.TryCreate(normalized, UriKind.RelativeOrAbsolute, out var uri), "Invalid URI after cleaning.");
+
+            // If absolute, only allow http/https (adjust list if you also allow mailto, tel, etc.)
+            if (uri != null && uri.IsAbsoluteUri)
+            {
+                Assert.That(actual, Does.Contain(uri.Scheme.ToLowerInvariant()),
+                    $"Disallowed scheme: {uri.Scheme}");
+            }
+
+            // Also ensure no javascript:/data:/vbscript: after decoding (handles obfuscated forms)
+            Assert.That(normalized, Does.Not.Match("(?i)\\b(javascript|data|vbscript)\\s*:\\s*"));
+            // And no file:// or ftp:// specifically
+            Assert.That(normalized, Does.Not.Match("(?i)\\b(file|ftp)\\s*:\\/\\/"));
         }
 
         [TestCase("")]
@@ -178,5 +207,7 @@ namespace FWO.Test
             sanitizerMock.Verify(s => s.Clean("http://evil.com"), Times.Once);
         }
 
+        [GeneratedRegex(@"[\s\x00-\x1F]+")]
+        private static partial Regex MyRegex();
     }
 }

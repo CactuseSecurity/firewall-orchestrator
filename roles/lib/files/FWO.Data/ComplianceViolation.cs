@@ -10,7 +10,7 @@ namespace FWO.Data
         [JsonProperty("id"), JsonPropertyName("id")]
         public int Id { get; set; }
 
-        public ComplianceViolationType Type => ParseViolationType(Criterion);
+        public ComplianceViolationType Type { get; set; } = ComplianceViolationType.None;
 
 
         public static ComplianceViolation Copy(ComplianceViolation violation)

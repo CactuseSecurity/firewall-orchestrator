@@ -37,20 +37,11 @@ namespace FWO.Report
             return showRule;
         }
 
-        protected override Task SetComplianceDataForRule(Rule rule, ApiConnection apiConnection, List<ComplianceViolation>? filteredViolations = null, Func<ComplianceViolation, string>? formatter = null)
+        protected override Task SetComplianceDataForRule(Rule rule, ApiConnection apiConnection, Func<ComplianceViolation, string>? formatter = null)
         {
-            return base.SetComplianceDataForRule(rule, apiConnection, FilterViolations(rule.Violations), FormatViolationDetails);
+            return base.SetComplianceDataForRule(rule, apiConnection, FormatViolationDetails);
         }
 
-        private List<ComplianceViolation> FilterViolations (List<ComplianceViolation> violations)
-        {
-            violations = violations.Where(violation =>
-                violation.FoundDate > DateTime.Now.AddDays(-DiffReferenceInDays)
-                && violation.RemovedDate == null)
-                .ToList();
-
-            return violations;
-        }
 
         private string FormatViolationDetails(ComplianceViolation violation)
         {

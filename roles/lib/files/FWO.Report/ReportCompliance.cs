@@ -397,28 +397,25 @@ namespace FWO.Report
             return queryVariables;
         }
 
-        protected virtual async Task SetComplianceDataForRule(Rule rule, ApiConnection apiConnection, List<ComplianceViolation>? filteredViolations = null, Func<ComplianceViolation, string>? formatter = null)
+        protected virtual async Task SetComplianceDataForRule(Rule rule, ApiConnection apiConnection, Func<ComplianceViolation, string>? formatter = null)
         {
             try
             {
                 rule.ViolationDetails = "";
                 rule.Compliance = ComplianceViolationType.None;
                 int addedViolationDetails = 0;
-                List<ComplianceViolation> violations = rule.Violations.ToList();
-
-                // Filter violations.
-
-                if (filteredViolations != null)
-                {
-                    violations = filteredViolations;
-                }
+                List<ComplianceViolation> violations;
 
                 // If rule is not assessable only display assessability issues in details.
 
-                if (violations.Any(violation => violation.Type == ComplianceViolationType.NotAssessable))
+                if (rule.Violations.Any(violation => violation.Type == ComplianceViolationType.NotAssessable))
                 {
                     rule.Compliance = ComplianceViolationType.NotAssessable;
-                    violations = violations.Where(violation => violation.Type == ComplianceViolationType.NotAssessable).ToList();
+                    violations = rule.Violations.Where(violation => violation.Type == ComplianceViolationType.NotAssessable).ToList();
+                }
+                else
+                {
+                    violations = rule.Violations.ToList();
                 }
 
                 foreach (ComplianceViolation violation in violations)

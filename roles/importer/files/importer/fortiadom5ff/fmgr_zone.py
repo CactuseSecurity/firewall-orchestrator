@@ -10,12 +10,12 @@ def get_zones(sid, fm_api_url, native_config, adom_name, limit):
         fmgr_getter.update_config_with_fortinet_api_call(
             native_config['zones'], sid, fm_api_url, '/pm/config/adom/' + adom_name + '/obj/dynamic/interface', 'interface_' + adom_name, limit=limit)
 
+
 def normalize_zones(native_config, normalized_config_adom, is_global_loop_iteration):
     zones = []
     fetched_zones = []
     if is_global_loop_iteration: # can not find the following zones in api return
-        fetched_zones.append('any')
-        fetched_zones.append('sslvpn_tun_intf')
+        add_global_zones(fetched_zones)
     for zone_type in native_config['zones']:
         for mapping in zone_type.get('data', []):
             if 'defmap-intf' in mapping and not mapping['defmap-intf'] in fetched_zones:
@@ -28,6 +28,14 @@ def normalize_zones(native_config, normalized_config_adom, is_global_loop_iterat
     for zone in fetched_zones:
         zones.append({'zone_name': zone})
     normalized_config_adom.update({'zone_objects': zones})
+
+
+def add_global_zones(fetched_zones)
+    for zone in ['any', 'sslvpn_tun_intf', 'virtual-wan-link']:
+        fetched_zones.append(zone)
+
+    # double check, if these zones cannot be parsed from api results
+
 
 def fetch_dynamic_mapping(mapping, fetched_zones):
     for dyn_mapping in mapping['dynamic_mapping']:

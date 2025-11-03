@@ -92,7 +92,7 @@ namespace FWO.Data
         {
             ComplianceViolation? violation = null;
 
-            if (reader.TokenType == JsonToken.Null)
+            if (reader.TokenType != JsonToken.Null)
             {
                 // Try deserialize base.
 

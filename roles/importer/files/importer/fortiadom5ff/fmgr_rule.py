@@ -144,7 +144,7 @@ def add_implicit_deny_rule(normalized_config_adom, normalized_config_global, rul
         rule_installon=None,
         rule_time=None,  # Time-based rules not commonly used in basic Fortinet configs
         rule_name='Implicit Deny',
-        rule_uid=None,
+        rule_uid=f"{rulebase.uid}_implicit_deny",
         rule_custom_fields=str({}),
         rule_implied=True,
         rule_type=RuleType.ACCESS,

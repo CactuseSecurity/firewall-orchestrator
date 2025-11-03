@@ -37,7 +37,7 @@
 
         @if (EmptyColumns[2] == false)
         {
-            <Column TableItem="RuleViewData" Context="rule" Title="Uid" Field="@(r => r.Uid)" Sortable="true" Filterable="true" Hideable="true">
+            <Column TableItem="RuleViewData" Context="rule" Title="Uid" Field="@(r => r.Uid)" Sortable="true" Filterable="true" Hideable="true"  DefaultSortColumn="true">
                 <Template>
                     @((MarkupString)rule.Uid)
                 </Template>

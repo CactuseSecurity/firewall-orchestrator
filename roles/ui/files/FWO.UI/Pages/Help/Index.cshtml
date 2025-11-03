@@ -1,4 +1,4 @@
-﻿@page "/help"
+@page "/help"
 @model FWO.Ui.Pages.Help.MainModel
 @{
     Layout = "HelpLayout";
@@ -188,6 +188,9 @@
                     <a href="/help/settings/owners/?lang=@($"{userConfig.GetUserLanguage()}")">@userConfig.GetText("owners")</a>
                 </li>
                 <li class="nav-item px-2">
+                    <a href="/help/settings/ownerlifecycles/?lang=@($"{userConfig.GetUserLanguage()}")">@userConfig.GetText("manage_lifecycles")</a>
+                </li>
+                <li class="nav-item px-2">
                     <a href="/help/settings/email/?lang=@($"{userConfig.GetUserLanguage()}")">@userConfig.GetText("email_settings")</a>
                 </li>
                 <li class="nav-item px-2">
@@ -207,6 +210,9 @@
                 </li>
                 <li class="nav-item px-2">
                     <a href="/help/settings/extticketing/?lang=@($"{userConfig.GetUserLanguage()}")">@userConfig.GetText("ext_ticketing")</a>
+                </li>
+                <li class="nav-item px-2">
+                    <a href="/help/settings/compliance/?lang=@($"{userConfig.GetUserLanguage()}")">@userConfig.GetText("compliance")</a>
                 </li>
                 <li class="nav-item px-2">
                     <a href="/help/settings/passwordpolicy/?lang=@($"{userConfig.GetUserLanguage()}")">@userConfig.GetText("password_policy")</a>

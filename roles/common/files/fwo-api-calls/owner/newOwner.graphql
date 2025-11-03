@@ -1,0 +1,33 @@
+mutation newOwner(
+  $name: String!
+  $dn: String!
+  $groupDn: String!
+  $tenantId: Int
+  $recertInterval: Int
+  $appIdExternal: String
+  $recertCheckParams: String
+  $ownerLifeCycleStateId: Int
+  $criticality: String
+  $importSource: String
+  $commSvcPossible: Boolean
+  $recertActive: Boolean
+  ) {
+  insert_owner(objects: {
+    name: $name
+    dn: $dn
+    group_dn: $groupDn
+    tenant_id: $tenantId
+    recert_interval: $recertInterval
+    app_id_external: $appIdExternal
+    recert_check_params: $recertCheckParams
+    owner_lifecycle_state_id: $ownerLifeCycleStateId
+    criticality: $criticality
+    import_source: $importSource
+    common_service_possible: $commSvcPossible
+    recert_active: $recertActive
+  }) {
+    returning {
+      newId: id
+    }
+  }
+}

@@ -1,0 +1,211 @@
+query getManagementForNormalizedConfig(
+  $mgm_id: Int!
+  $import_id: Int!
+) {
+  management(where: { mgm_id: { _eq: $mgm_id } }) {
+    id: mgm_id
+    uid: mgm_uid
+    name: mgm_name
+    networkObjects: objects(
+      where: {
+        obj_create: { _lte: $import_id }
+        _or: [
+          { removed: { _is_null: true } }
+          { removed: { _gte: $import_id } }
+        ]
+      }
+    ) {
+      ...networkObjectFragment
+    }
+    serviceObjects: services(
+      where: {
+        svc_create: { _lte: $import_id }
+        _or: [
+          { removed: { _is_null: true } }
+          { removed: { _gte: $import_id } }
+        ]
+      }
+    ) {
+      ...serviceObjectFragment
+    }
+    userObjects: usrs(
+      where: {
+        user_create: { _lte: $import_id_end }
+        _or: [
+          { removed: { _is_null: true } }
+          { removed: { _gte: $import_id_start } }
+        ]
+      }
+    ) {
+      ...userObjectFragment
+    }
+    zoneObjects: zones(
+      where: {
+        zone_create: { _lte: $import_id }
+        _or: [
+          { removed: { _is_null: true } }
+          { removed: { _gte: $import_id } }
+        ]
+      }
+    ) {
+      zone_name
+    }
+    rulebases(
+      where: {
+        created: { _lte: $import_id }
+        _or: [
+          { removed: { _is_null: true } }
+          { removed: { _gte: $import_id } }
+        ]
+      }
+    ) {
+      ...rulebaseFragment
+    }
+    devices {
+      ...deviceFragment
+    }
+  }
+}
+
+fragment networkObjectFragment on object {
+  obj_id
+  obj_uid
+  obj_name
+  obj_ip
+  obj_ip_end
+  type: stm_obj_typ {
+    name: obj_typ_name
+  }
+  obj_color: stm_color {
+    color_name
+  }
+  obj_member_refs
+  obj_member_names
+  obj_comment
+}
+
+fragment serviceObjectFragment on service {
+  svc_id
+  svc_uid
+  svc_name
+  svc_port
+  svc_port_end
+  svc_timeout
+  service_type: stm_svc_typ {
+    name: svc_typ_name
+  }
+  stm_color {
+    color_name
+  }
+  ip_proto_id
+  svc_member_refs
+  svc_member_names
+  svc_comment
+  svc_rpcnr
+}
+
+fragment userObjectFragment on usr {
+  user_id
+  user_uid
+  user_name
+  user_lastname
+  user_firstname
+  type: stm_usr_typ {
+    usr_typ_name
+  }
+  user_member_names
+  user_member_refs
+  user_comment
+}
+
+fragment rulebaseFragment on rulebase {
+  id
+  name
+  uid
+  is_global
+  rules(where: {
+    rule_create: { _lte: $import_id }
+    _or: [
+      { removed: { _is_null: true } }
+      { removed: { _gte: $import_id } }
+    ]
+  }) {
+    ...ruleFragment
+  }
+}
+
+fragment ruleFragment on rule {
+  rule_id
+  rule_uid
+  rule_name
+  rule_num
+  rule_num_numeric
+  rule_disabled
+  rule_src_neg
+  rule_src
+  rule_src_refs
+  rule_dst_neg
+  rule_dst
+  rule_dst_refs
+  rule_svc_neg
+  rule_svc
+  rule_svc_refs
+  rule_action
+  rule_track
+  rule_installon
+  rule_time
+  rule_custom_fields
+  rule_implied
+  nat_rule
+  uiuser {
+    uiuser_username
+  }
+  rule {
+    rule_uid
+  }
+  rule_metadatum {
+    rule_last_hit
+  }
+  rule_comment
+  src_zone: zone {
+    zone_name
+  }
+  dst_zone: zoneByRuleToZone {
+    zone_name
+  }
+  section_header: rule_head_text
+}
+
+fragment deviceFragment on device {
+  id: dev_id
+  uid: dev_uid
+  name: dev_name
+  #TODO: routing
+  #TODO: interfaces
+  rulebase_links {
+    ...ruleBaseLinkFragment
+  }
+  #TODO: GlobalPolicyUid
+  #TODO: EnforcedPolicyUids
+  #TODO: EnforcedNatPolicyUids
+  #TODO: ImportDisabled
+  #TODO: ShowInUI
+}
+
+fragment ruleBaseLinkFragment on rulebase_link {
+  rule {
+    rule_uid
+  }
+  rulebaseByFromRulebaseId {
+    uid
+  }
+  rulebase {
+    uid
+  }
+  stm_link_type {
+    name
+  }
+  is_initial
+  is_global
+  is_section
+}

@@ -14,6 +14,9 @@ namespace FWO.Data
         [JsonProperty("name"), JsonPropertyName("name")]
         public string Name { get; set; } = "";
 
+        [JsonProperty("id_string"), JsonPropertyName("id_string")]
+        public string IdString { get; set; } = "";
+
         [JsonProperty("description"), JsonPropertyName("description")]
         public string Description { get; set; } = "";
 
@@ -34,6 +37,20 @@ namespace FWO.Data
             ItemConverterParameters = ["to_network_zone"]), JsonPropertyName("network_zone_communication_destinations")]
         public ComplianceNetworkZone[] AllowedCommunicationDestinations { get; set; } = [];
 
+        [JsonProperty("created"), JsonPropertyName("created")]
+        public DateTime Created { get; set; }
+
+        [JsonProperty("removed"), JsonPropertyName("removed")]
+        public DateTime? Removed { get; set; }
+
+        [JsonProperty("criterion_id"), JsonPropertyName("criterion_id")]
+        public int CriterionId { get; set; } = 0;
+
+        [JsonProperty("is_auto_calculated_internet_zone"), JsonPropertyName("is_auto_calculated_internet_zone")]
+        public bool IsAutoCalculatedInternetZone { get; set; } = false;
+        
+        [JsonProperty("is_auto_calculated_undefined_internal_zone"), JsonPropertyName("is_auto_calculated_undefined_internal_zone")]
+        public bool IsAutoCalculatedUndefinedInternalZone { get; set; } = false;
 
         public bool CommunicationAllowedFrom(ComplianceNetworkZone from)
         {
@@ -107,28 +124,29 @@ namespace FWO.Data
                 ipRangesClone[i] = new IPAddressRange(IPRanges[i].Begin, IPRanges[i].End);
             }
 
-			return new ComplianceNetworkZone()
+            return new ComplianceNetworkZone()
             {
                 Id = Id,
                 Superzone = (ComplianceNetworkZone?)Superzone?.Clone(),
                 Name = Name,
                 Description = Description,
                 IPRanges = ipRangesClone,
+                CriterionId = CriterionId,
                 Subzones = CloneArray(Subzones),
-				AllowedCommunicationSources = CloneArray(AllowedCommunicationSources),
-				AllowedCommunicationDestinations = CloneArray(AllowedCommunicationDestinations)
+                AllowedCommunicationSources = CloneArray(AllowedCommunicationSources),
+                AllowedCommunicationDestinations = CloneArray(AllowedCommunicationDestinations)
             };
         }
 
         private static ComplianceNetworkZone[] CloneArray(ComplianceNetworkZone[] array)
         {
-			ComplianceNetworkZone[] arrayClone = new ComplianceNetworkZone[array.Length];
-			for (int i = 0; i < array.Length; i++)
-			{
-				arrayClone[i] = (ComplianceNetworkZone)array[i].Clone();
-			}
+            ComplianceNetworkZone[] arrayClone = new ComplianceNetworkZone[array.Length];
+            for (int i = 0; i < array.Length; i++)
+            {
+                arrayClone[i] = (ComplianceNetworkZone)array[i].Clone();
+            }
             return arrayClone;
-		}
+        }
 
         public override bool Equals(object? obj)
         {
@@ -136,9 +154,9 @@ namespace FWO.Data
             return ((ComplianceNetworkZone)obj).Id == Id;
         }
 
-		public override int GetHashCode()
-		{
-			return HashCode.Combine(Id);
-		}
-	}
+        public override int GetHashCode()
+        {
+            return HashCode.Combine(Id);
+        }
+    }
 }

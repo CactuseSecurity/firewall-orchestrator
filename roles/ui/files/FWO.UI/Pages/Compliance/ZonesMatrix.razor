@@ -1,169 +1,80 @@
-﻿@using FWO.Services
+﻿@using NetTools;
 
-@page "/compliance/zones/matrix"
-
-@layout ComplianceLayout
-
-@inject ApiConnection apiConnection
 @inject UserConfig userConfig
+@inject NetworkZoneService networkZoneService
 
-<div class="ms-2 mb-3">
-    <h3>@userConfig.GetText("zone_comm_matrix")</h3>
-    @if (zones.Length > 0)
-    {
-        @if (editMode)
-        {
-            <div class="btn-group" role="group">
-                <button type="button" class="btn btn-sm btn-secondary" @onclick="() => ToggleEditMode(false)">@userConfig.GetText("cancel")</button>
-                <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.FwAdmin}")">
-                    <Authorized>
-                        <button type="button" class="btn btn-sm btn-primary" @onclick="CommitChanges">@userConfig.GetText("commit_changes")</button>
-                    </Authorized>
-                    <NotAuthorized>
-                        <button type="button" disabled class="btn btn-sm btn-primary">@userConfig.GetText("commit_changes")</button>
-                    </NotAuthorized>
-                </AuthorizeView>
-            </div>
-        }
-        else
-        {
-            <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.FwAdmin}, {Roles.Auditor}")">
-                <button type="button" class="btn btn-sm btn-primary" @onclick="() => ToggleEditMode(true)">@userConfig.GetText("edit")</button>
-            </AuthorizeView>
-        }
-    }
-</div>
-
-@if (zones.Length > 0)
-{
-    <table>
-        <tr>
-            <td></td>
-            <td>
-                <div class="direction-info">@(userConfig.GetText("destination"))</div>
-            </td>
-        </tr>
-        <tr>
-            <td>
-                <div class="ms-3"></div> @*Hacky fix because of a firefox display bug
-            resulting in the text being diplayed inside of the table.*@
-                <div class="direction-info text-rotated">@(userConfig.GetText("source"))</div>
-            </td>
-            <td>
-                <table class="communication-matrix">
-                    <thead>
-                        <tr>
-                            <th></th>
-                            @foreach (var destinationZone in zones)
-                            {
-                                <th @onclick="() => ExecuteZoneAction(destinationZone)" class="zone-header-rotated">
-                                    <div class="zone-name text-rotated">@(destinationZone.Name)</div>
-                                </th>
-                            }
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @foreach (var sourceZone in zones)
+<table>
+    <tr>
+        <td></td>
+        <td>
+            <div class="direction-info">@(userConfig.GetText("destination"))</div>
+        </td>
+    </tr>
+    <tr>
+        <td>
+            <div class="ms-3"></div> @*Hacky fix because of a firefox display bug
+        resulting in the text being diplayed inside of the table.*@
+            <div class="direction-info text-rotated">@(userConfig.GetText("source"))</div>
+        </td>
+        <td>
+            <table class="communication-matrix">
+                <thead>
+                    <tr>
+                        <th></th>
+                        @foreach (var destinationZone in GetSortedNetworkzones())
                         {
-                            <tr>
-                                <th @onclick="() => ExecuteZoneAction(sourceZone)" class="zone-header">
-                                    <div class="zone-name">@(sourceZone.Name)</div>
-                                </th>
-                                @foreach (var destinationZone in zones)
-                                {
-                                    var allowed = sourceZone.CommunicationAllowedTo(destinationZone);
-                                    var allowed_in_edit = addCommunication.Contains((sourceZone, destinationZone));
-                                    var disallowed_in_edit = deleteCommunication.Contains((sourceZone, destinationZone));
-                                    <td @onclick="() => ExecuteCommunicationAction(sourceZone, destinationZone)"
-                                        class="communication-cell @(allowed_in_edit ? "allowed-in-edit" : "")
+                            <th @onclick="() => ExecuteZoneAction(destinationZone)" class="zone-header-rotated">
+                                <div class="zone-name text-rotated">@(destinationZone.Name)</div>
+                            </th>
+                        }
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var sourceZone in GetSortedNetworkzones())
+                    {
+                        <tr>
+                            <th @onclick="() => ExecuteZoneAction(sourceZone)" class="zone-header">
+                                <div class="zone-name">@(sourceZone.Name)</div>
+                            </th>
+                            @foreach (var destinationZone in GetSortedNetworkzones())
+                            {
+                                var allowed = sourceZone.CommunicationAllowedTo(destinationZone);
+                                var allowed_in_edit = AddCommunication.Contains((sourceZone, destinationZone));
+                                var disallowed_in_edit = DeleteCommunication.Contains((sourceZone, destinationZone));
+                                <td @onclick="() => ExecuteCommunicationAction(sourceZone, destinationZone)"
+                                    class="communication-cell @(allowed_in_edit ? "allowed-in-edit" : "")
                                     @(disallowed_in_edit ? "disallowed-in-edit" : "")
                                     @(allowed && !allowed_in_edit && !disallowed_in_edit ? "allowed" : "disallowed")" />
-                                }
-                            </tr>
-                        }
-                    </tbody>
-                </table>
-            </td>
-        </tr>
-    </table>
-}
-else
-{
-    @(userConfig.GetText("no_network_zones"))
-}
-
+                            }
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </td>
+    </tr>
+</table>
 
 @code
 {
-    [CascadingParameter]
-    private Task<AuthenticationState>? authenticationStateTask { get; set; }
+	[Parameter]
+    public bool EditMode { get; set; } = false;
 
-    [CascadingParameter]
-    Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
+	[Parameter]
+	public List<(ComplianceNetworkZone, ComplianceNetworkZone)> AddCommunication { get; set; } = [];
 
-    private bool editMode = false;
+	[Parameter]
+    public EventCallback<List<(ComplianceNetworkZone, ComplianceNetworkZone)>> AddCommunicationChanged { get; set; }
 
-    private ComplianceNetworkZone[] zones = new ComplianceNetworkZone[0];
-    private List<(ComplianceNetworkZone, ComplianceNetworkZone)> addCommunication = new List<(ComplianceNetworkZone, ComplianceNetworkZone)>();
-    private List<(ComplianceNetworkZone, ComplianceNetworkZone)> deleteCommunication = new List<(ComplianceNetworkZone, ComplianceNetworkZone)>();
+	[Parameter]
+	public List<(ComplianceNetworkZone, ComplianceNetworkZone)> DeleteCommunication { get; set; } = [];
 
-    protected async override Task OnInitializedAsync()
-    {
-        try
-        {
-            apiConnection.SetProperRole(authenticationStateTask!.Result.User,
-                [ Roles.Admin, Roles.FwAdmin, Roles.ReporterViewAll, Roles.Reporter,
-                Roles.Requester, Roles.Approver, Roles.Planner, Roles.Implementer, Roles.Reviewer, Roles.Auditor ]);
-            zones = await apiConnection.SendQueryAsync<ComplianceNetworkZone[]>(ComplianceQueries.getNetworkZones);
-        }
-        catch (Exception exception)
-        {
-            DisplayMessageInUi(exception, userConfig.GetText("object_fetch"), "", true);
-        }
-    }
+	[Parameter]
+    public EventCallback<List<(ComplianceNetworkZone, ComplianceNetworkZone)>> DeleteCommunicationChanged { get; set; }
 
-    private void ToggleEditMode(bool editMode)
-    {
-        this.editMode = editMode;
-        addCommunication.Clear();
-        deleteCommunication.Clear();
-    }
-
-    private async Task CommitChanges()
-    {
-        try
-        {
-            var variables = new
-            {
-                add_zone_communication = addCommunication.ConvertAll(zones =>
-                    new
-                    {
-                        from_network_zone_id = zones.Item1.Id,
-                        to_network_zone_id = zones.Item2.Id
-                    }
-                ),
-                delete_zone_communication_exp = deleteCommunication.ConvertAll(zones =>
-                    new
-                    {
-                        from_network_zone_id = new { _eq = zones.Item1.Id },
-                        to_network_zone_id = new { _eq = zones.Item2.Id }
-                    }
-                )
-            };
-            await apiConnection.SendQueryAsync<dynamic>(ComplianceQueries.modifyNetworkZoneCommunication, variables);
-            zones = await apiConnection.SendQueryAsync<ComplianceNetworkZone[]>(ComplianceQueries.getNetworkZones);
-            ToggleEditMode(false);
-            DisplayMessageInUi(null, userConfig.GetText("U0012"), userConfig.GetText("U0013"), false);
-        }
-        catch (Exception exception)
-        {
-            DisplayMessageInUi(exception, userConfig.GetText("E0034"), userConfig.GetText("E0035"), true);
-        }
-    }
-
+	
     private void ExecuteZoneAction(ComplianceNetworkZone zone)
     {
-        if (editMode)
+        if (EditMode)
         {
 
         }
@@ -175,28 +86,65 @@ else
 
     private void ExecuteCommunicationAction(ComplianceNetworkZone sourceZone, ComplianceNetworkZone destinationZone)
     {
-        if (editMode)
+        if(!sourceZone.IsAutoCalculatedUndefinedInternalZone && !destinationZone.IsAutoCalculatedUndefinedInternalZone)
         {
-            if (addCommunication.Contains((sourceZone, destinationZone)))
+            // Return to make auto-calculated undefined-internal zone readonly
+            
+            return;
+        }
+
+        if (EditMode)
+        {
+            if (AddCommunication.Contains((sourceZone, destinationZone)))
             {
-                addCommunication.Remove((sourceZone, destinationZone));
+                AddCommunication.Remove((sourceZone, destinationZone));
             }
-            else if (deleteCommunication.Contains((sourceZone, destinationZone)))
+            else if (DeleteCommunication.Contains((sourceZone, destinationZone)))
             {
-                deleteCommunication.Remove((sourceZone, destinationZone));
+                DeleteCommunication.Remove((sourceZone, destinationZone));
             }
             else if (sourceZone.CommunicationAllowedTo(destinationZone))
             {
-                deleteCommunication.Add((sourceZone, destinationZone));
+                DeleteCommunication.Add((sourceZone, destinationZone));
             }
             else
             {
-                addCommunication.Add((sourceZone, destinationZone));
+                AddCommunication.Add((sourceZone, destinationZone));
             }
         }
         else
         {
             // Jump to communication
         }
+    }
+
+    private List<ComplianceNetworkZone> GetSortedNetworkzones()
+    {
+        List<ComplianceNetworkZone> complianceNetworkZones = networkZoneService.NetworkZones.ToList();
+
+        if(userConfig.GlobalConfig!.ComplianceCheckSortMatrixByID)
+        {
+            complianceNetworkZones = complianceNetworkZones.OrderBy(zone => zone.Id).ToList();
+        }
+
+        ComplianceNetworkZone? internetZone = networkZoneService.NetworkZones.FirstOrDefault(zone => zone.IsAutoCalculatedInternetZone);
+
+        if(internetZone != null)
+        {
+            complianceNetworkZones.Remove(internetZone);
+            complianceNetworkZones.Insert(0, internetZone);
+
+            ComplianceNetworkZone? undefinedInternalZone = networkZoneService.NetworkZones.FirstOrDefault(zone => zone.IsAutoCalculatedUndefinedInternalZone);
+
+            if(undefinedInternalZone != null)
+            {
+                complianceNetworkZones.Remove(undefinedInternalZone);
+                complianceNetworkZones.Insert(1, undefinedInternalZone);
+            }
+        }
+
+
+
+        return complianceNetworkZones;
     }
 }

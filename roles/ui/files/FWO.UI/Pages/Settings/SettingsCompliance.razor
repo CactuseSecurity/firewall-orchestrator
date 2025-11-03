@@ -1,0 +1,337 @@
+@page "/settings/compliance"
+@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
+
+@using FWO.Services.EventMediator.Events
+@using FWO.Services.EventMediator.Interfaces
+@using FWO.Ui.Data
+
+@implements IDisposable
+@inject ApiConnection apiConnection
+@inject GlobalConfig globalConfig
+@inject UserConfig userConfig
+@inject IEventMediator EventMediator
+
+<div class="input-group">
+    <h3>@(userConfig.GetText("compliance"))</h3>
+    <HelpLink Page="settings/compliance" />
+</div>
+@(userConfig.GetText("U5324"))
+<hr />
+<div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5813"))">
+    <label class="col-form-label col-sm-4">@userConfig.GetText("fix_criteria"):</label>
+	<div class="col-sm-2">
+		<button type="button" class="btn btn-sm btn-primary" @onclick="EditFixCrit">@(userConfig.GetText("edit_fix_crit"))</button>
+	</div>
+</div>
+<hr />
+<div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5812"))">
+    <label class="col-form-label col-sm-4">@userConfig.GetText("import_matrix"):</label>
+    <div class="row col-sm-6">
+        <ImportFileUpload SupportedFileFormats=".json" AuthorizedRoles="@Roles.Admin" UploadCase="FileUploadCase.ImportComplianceMatrix"/>
+    </div>
+</div>
+<hr />
+@if(configData != null)
+{
+    <form onsubmit="return false">
+        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5801"))">
+            <label class="col-form-label col-sm-4">@(userConfig.GetText("complianceCheckSleepTime")):</label>
+            <div class="col-sm-2">
+                <input type="number" min="0" @bind="configData!.ComplianceCheckSleepTime" />
+            </div>
+        </div>
+        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5802"))">
+            <label class="col-form-label col-sm-4">@(userConfig.GetText("complianceCheckStartAt")):</label>
+            <div class="col-sm-4">
+                <div class="row">
+                    <input type="time" step="60" class="ml-13 col-sm-5" @bind="complianceCheckStartTime" />
+                    <input type="date" class="col-sm-5" @bind="complianceCheckStartDate" />
+                </div>
+            </div>
+        </div>
+        <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5810"))">
+            <label class="col-form-label col-sm-4">@(userConfig.GetText("policy"))*:</label>
+            <div class="col-sm-2">
+                <Dropdown ElementType="CompliancePolicy" ElementToString="@(p => p.Name)" @bind-SelectedElement="actPolicy" Elements="policies">
+                    <ElementTemplate Context="policy">
+                        @policy.Name
+                    </ElementTemplate>
+                </Dropdown>
+            </div>
+        </div>
+        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5809"))">
+            <label class="col-form-label col-sm-4">@(userConfig.GetText("complianceMatrixAllowNetworkZones"))</label>
+            <div class="col-sm-7">
+                <input type="checkbox" @bind="configData!.ComplianceMatrixAllowNetworkZones"/>
+            </div>
+        </div>
+        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5814"))">
+            <label class="col-form-label col-sm-4">@(userConfig.GetText("complianceCheckMaxPrintedViolations"))</label>
+            <div class="col-sm-2">
+                <input type="text" @bind="configData!.ComplianceCheckMaxPrintedViolations"/>
+            </div>
+        </div>
+        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5815"))">
+            <label class="col-form-label col-sm-4">@(userConfig.GetText("complianceCheckSortMatrixByID"))</label>
+            <div class="col-sm-7">
+                <input type="checkbox" @bind="configData!.ComplianceCheckSortMatrixByID"/>
+            </div>
+        </div>
+        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5811"))">
+            <label class="col-form-label col-sm-4">@(userConfig.GetText("complianceCheckRelevantManagements"))</label>
+            <div class="col-sm-2">
+                <input type="text" @bind="configData!.ComplianceCheckRelevantManagements"/>
+            </div>
+        </div>
+    </form>
+    <hr />
+    <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5817"))">
+        <label for="lbl_auto_calc_internet_zone" class="col-form-label col-sm-4">@(userConfig.GetText("complianceCheckAutoCalcInternetZone")):</label>
+        <div class="col-sm-7">
+            <input id="lbl_auto_calc_internet_zone" type="checkbox" @bind="configData!.AutoCalculateInternetZone" />        
+        </div>
+    </div>
+
+        @if(configData!.AutoCalculateInternetZone)
+        {
+            <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5818"))">
+                <label class="col-form-label col-sm-4">@(userConfig.GetText("complianceCheckExcludeFromInternetZone")):</label>
+
+                <div class="row col-sm-7">
+
+                    <label class="col-form-label col-sm-12">@(userConfig.GetText("complianceCheckPrivateAdressSpace"))</label>
+
+                    <div class="col-sm-12 ps-5" data-toggle="tooltip" title="@(userConfig.PureLine("H5820"))">
+                        <input id="cbx_internalZoneRange_10_0_0_0_8" type="checkbox" @bind="configData!.InternalZoneRange_10_0_0_0_8" />
+                        <label for="cbx_internalZoneRange_10_0_0_0_8" class="col-form-label">10.0.0.0/8</label>
+                    </div>
+
+                    <div class="col-sm-12 ps-5" data-toggle="tooltip" title="@(userConfig.PureLine("H5820"))">
+                        <input id="cbx_internalZoneRange_172_16_0_0_12" type="checkbox" @bind="configData!.InternalZoneRange_172_16_0_0_12" />
+                        <label for="cbx_internalZoneRange_172_16_0_0_12" class="col-form-label">172.16.0.0/12</label>
+                    </div>
+
+                    <div class="col-sm-12 ps-5" data-toggle="tooltip" title="@(userConfig.PureLine("H5820"))">
+                        <input id="cbx_internalZoneRange_192_168_0_0_16" type="checkbox" @bind="configData!.InternalZoneRange_192_168_0_0_16" />
+                        <label for="cbx_internalZoneRange_192_168_0_0_16" class="col-form-label">192.168.0.0/16</label>
+                    </div>
+
+                    <label class="col-form-label col-sm-12">@(userConfig.GetText("complianceCheckLoopbackLocal"))</label>
+
+                    <div class="col-sm-12 ps-5" data-toggle="tooltip" title="@(userConfig.PureLine("H5821"))">
+                        <input id="cbx_internalZoneRange_0_0_0_0_8" type="checkbox" @bind="configData!.InternalZoneRange_0_0_0_0_8" />
+                        <label for="cbx_internalZoneRange_0_0_0_0_8" class="col-form-label">0.0.0.0/8</label>
+                    </div>
+
+                    <div class="col-sm-12 ps-5" data-toggle="tooltip" title="@(userConfig.PureLine("H5822"))">
+                        <input id="cbx_internalZoneRange_127_0_0_0_8" type="checkbox" @bind="configData!.InternalZoneRange_127_0_0_0_8" />
+                        <label for="cbx_internalZoneRange_127_0_0_0_8" class="col-form-label">127.0.0.0/8</label>
+                    </div>
+
+                    <div class="col-sm-12 ps-5" data-toggle="tooltip" title="@(userConfig.PureLine("H5823"))">
+                        <input id="cbx_internalZoneRange_169_254_0_0_16" type="checkbox" @bind="configData!.InternalZoneRange_169_254_0_0_16" />
+                        <label for="cbx_internalZoneRange_169_254_0_0_16" class="col-form-label">169.254.0.0/16</label>
+                    </div>
+
+                    <label class="col-form-label col-sm-12">@(userConfig.GetText("complianceCheckMulticastBroadcast"))</label>
+
+                    <div class="col-sm-12 ps-5" data-toggle="tooltip" title="@(userConfig.PureLine("H5824"))">
+                        <input id="cbx_internalZoneRange_224_0_0_0_4" type="checkbox" @bind="configData!.InternalZoneRange_224_0_0_0_4" />
+                        <label for="cbx_internalZoneRange_224_0_0_0_4" class="col-form-label">224.0.0.0/4</label>
+                    </div>
+
+                    <div class="col-sm-12 ps-5" data-toggle="tooltip" title="@(userConfig.PureLine("H5825"))">
+                        <input id="cbx_internalZoneRange_240_0_0_0_4" type="checkbox" @bind="configData!.InternalZoneRange_240_0_0_0_4" />
+                        <label for="cbx_internalZoneRange_240_0_0_0_4" class="col-form-label">240.0.0.0/4</label>
+                    </div>
+
+                    <div class="col-sm-12 ps-5" data-toggle="tooltip" title="@(userConfig.PureLine("H5826"))">
+                        <input id="cbx_internalZoneRange_255_255_255_255_32" type="checkbox" @bind="configData!.InternalZoneRange_255_255_255_255_32" />
+                        <label for="cbx_internalZoneRange_255_255_255_255_32" class="col-form-label">255.255.255.255/32</label>
+                    </div>
+
+                    <label class="col-form-label col-sm-12">@(userConfig.GetText("complianceCheckDocumentationSamples"))</label>
+
+                    <div class="col-sm-12 ps-5" data-toggle="tooltip" title="@(userConfig.PureLine("H5827"))">
+                        <input id="cbx_internalZoneRange_192_0_2_0_24" type="checkbox" @bind="configData!.InternalZoneRange_192_0_2_0_24" />
+                        <label for="cbx_internalZoneRange_192_0_2_0_24" class="col-form-label">192.0.2.0/24</label>
+                    </div>
+
+                    <div class="col-sm-12 ps-5" data-toggle="tooltip" title="@(userConfig.PureLine("H5828"))">
+                        <input id="cbx_internalZoneRange_198_51_100_0_24" type="checkbox" @bind="configData!.InternalZoneRange_198_51_100_0_24" />
+                        <label for="cbx_internalZoneRange_198_51_100_0_24" class="col-form-label">198.51.100.0/24</label>
+                    </div>
+
+                    <div class="col-sm-12 ps-5" data-toggle="tooltip" title="@(userConfig.PureLine("H5829"))">
+                        <input id="cbx_internalZoneRange_203_0_113_0_24" type="checkbox" @bind="configData!.InternalZoneRange_203_0_113_0_24" />
+                        <label for="cbx_internalZoneRange_203_0_113_0_24" class="col-form-label">203.0.113.0/24</label>
+                    </div>
+
+                    <label class="col-form-label col-sm-12">@(userConfig.GetText("complianceCheckDiv"))</label>
+
+                    <div class="col-sm-12 ps-5" data-toggle="tooltip" title="@(userConfig.PureLine("H5830"))">
+                        <input id="cbx_internalZoneRange_100_64_0_0_10" type="checkbox" @bind="configData!.InternalZoneRange_100_64_0_0_10" />
+                        <label for="cbx_internalZoneRange_100_64_0_0_10" class="col-form-label">100.64.0.0/10</label>
+                    </div>
+
+                    <div class="col-sm-12 ps-5" data-toggle="tooltip" title="@(userConfig.PureLine("H5831"))">
+                        <input id="cbx_internalZoneRange_192_0_0_0_24" type="checkbox" @bind="configData!.InternalZoneRange_192_0_0_0_24" />
+                        <label for="cbx_internalZoneRange_192_0_0_0_24" class="col-form-label">192.0.0.0/24</label>
+                    </div>
+
+                    <div class="col-sm-12 ps-5" data-toggle="tooltip" title="@(userConfig.PureLine("H5832"))">
+                        <input id="cbx_internalZoneRange_192_88_99_0_24" type="checkbox" @bind="configData!.InternalZoneRange_192_88_99_0_24" />
+                        <label for="cbx_internalZoneRange_192_88_99_0_24" class="col-form-label">192.88.99.0/24</label>
+                    </div>
+
+                    <div class="col-sm-12 ps-5" data-toggle="tooltip" title="@(userConfig.PureLine("H5833"))">
+                        <input id="cbx_internalZoneRange_198_18_0_0_15" type="checkbox" @bind="configData!.InternalZoneRange_198_18_0_0_15" />
+                        <label for="cbx_internalZoneRange_198_18_0_0_15" class="col-form-label">198.18.0.0/15</label>
+                    </div>
+                
+                </div>
+            </div>
+            <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5819"))">
+                <label for="lbl_auto_calc_undefined_internal_zone" class="col-form-label col-sm-4">@(userConfig.GetText("complianceCheckAutoCalcUndefinedInternalZone")):</label>
+                <div class="col-sm-7">
+                    <input id="lbl_auto_calc_undefined_internal_zone" type="checkbox" @bind="configData!.AutoCalculateUndefinedInternalZone" />            
+                </div>
+            </div>
+
+        }
+    <hr />
+    <AuthorizeView Roles="@Roles.Admin">
+        <Authorized>
+            <button type="button" class="btn btn-sm btn-primary" @onclick="Save" @onclick:preventDefault>@(userConfig.GetText("save"))</button>
+        </Authorized>
+        <NotAuthorized>
+            <button type="button" class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("save"))</button>
+        </NotAuthorized>
+    </AuthorizeView>
+}
+else
+{
+    <Loading/>
+}
+<ComplianceFixCriteria @bind-Display="EditFixCritMode" />
+
+<PopUp Title="@(userConfig.GetText("import_matrix"))" Show="@ShowImportPopUp" Size=PopupSize.Small OnClose="() => ShowImportPopUp = false">
+    <Body>
+        @if(ImportSuccess)
+        {
+            <div class="mt-3">
+                @($"{userConfig.GetText("E9401")}: {ImportMessage}")
+            </div>
+        }
+		else
+		{
+            <div class="alert alert-info mt-3" role="alert">
+                @($"{userConfig.GetText("E9402")}: {ImportMessage}")
+            </div>
+		}
+    </Body>
+    <Footer>
+        <div class="btn-group">
+            <button type="button" class="btn btn-sm btn-primary" @onclick="() => ShowImportPopUp = false">@(userConfig.GetText("ok"))</button>
+        </div>
+    </Footer>
+</PopUp>
+
+@code
+{
+    [CascadingParameter]
+    Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
+
+    private ConfigData? configData;
+    private DateTime complianceCheckStartDate = DateTime.Today;
+    private DateTime complianceCheckStartTime = DateTime.Now.AddSeconds(-DateTime.Now.Second);
+    private bool EditFixCritMode = false;
+    private List<CompliancePolicy> policies = [];
+    private CompliancePolicy? actPolicy;
+    private bool ShowImportPopUp { get; set; }
+    private ErrorBaseModel? ImportError;
+	private string ImportMessage = "";
+	private bool ImportSuccess = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            configData = await globalConfig.GetEditableConfig();
+            complianceCheckStartDate = complianceCheckStartTime = configData.ComplianceCheckStartAt;
+            policies = await apiConnection.SendQueryAsync<List<CompliancePolicy>>(ComplianceQueries.getPolicies);
+            if(configData.ComplianceCheckPolicyId > 0)
+            {
+                actPolicy = policies.FirstOrDefault(p => p.Id == configData.ComplianceCheckPolicyId);
+            }
+			EventMediator.Subscribe<FileUploadEvent>(nameof(FileUploadService.ReadFileToBytes), _ => OnFileUploadEvent(_.EventArgs));
+            EventMediator.Subscribe<FileUploadEvent>(nameof(FileUploadService.ImportComplianceMatrix), _ => OnComplianceMatrixImportEvent(_.EventArgs));
+        }
+        catch(Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("read_config"), userConfig.GetText("E5301"), false);
+        }
+    }
+
+    private void OnFileUploadEvent(FileUploadEventArgs? e)
+    {
+        if(e is null)
+        {
+            return;
+        }
+        if(!e.Success && e.Error is not null)
+        {
+            DisplayMessageInUi(e.Error.InternalException, userConfig.GetText("modelling_settings"), e.Error.Message ?? "", true);
+            return;
+        }
+    }
+
+    private void OnComplianceMatrixImportEvent(FileUploadEventArgs? e)
+    {
+        if(e is null)
+        {
+            return;
+        }
+		ImportSuccess = e.Success;
+        ImportError = e.Error;
+		ImportMessage = e.Data?.ToString() ?? "";
+        ShowImportPopUp = true;
+        StateHasChanged();
+    }
+
+    private void EditFixCrit()
+    {
+        EditFixCritMode = true;
+    }
+
+    private async Task Save()
+    {
+        try
+        {
+            if(configData != null)
+            {
+                configData.ComplianceCheckStartAt = complianceCheckStartDate.Date.Add(complianceCheckStartTime.TimeOfDay);
+                configData.ComplianceCheckPolicyId = actPolicy?.Id ?? 0;
+                await globalConfig.WriteToDatabase(configData, apiConnection);
+                DisplayMessageInUi(null, userConfig.GetText("change_default"), userConfig.GetText("U5301"), false);
+            }
+            else
+            {
+                throw new ArgumentException("Data saved before loaded. This should be impossible.");
+            }
+        }
+        catch(Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("change_default"), "", true);
+        }
+    }
+
+	/// <summary>
+    /// Unsubscribes from file upload events when the component is disposed.
+    /// </summary>
+    public void Dispose()
+    {
+        EventMediator.Unsubscribe<FileUploadEvent>(nameof(FileUploadService.ReadFileToBytes));
+        EventMediator.Unsubscribe<AppServerImportEvent>(nameof(FileUploadService.ImportComplianceMatrix));
+    }
+}

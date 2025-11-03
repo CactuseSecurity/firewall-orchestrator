@@ -443,7 +443,7 @@ Die folgenden Hauptmen&uuml;punkte stehen (je nach Rollenzugeh&ouml;rigkeit) zur
     <li><a href="/certification">Rezertifizierung</a>: Workflow zur Bereinigung des Regelwerks um nicht mehr ben&ouml;tigte Regeln</li>
     <li><a href="/networkmodelling">Modellierung</a>: Erlaubt die verteilte Modellierung von Kommunikationsverbindungen (Soll-Zustand)</li>
     <li><a href="/network_analysis">Netzanalyse</a>: Pfadanalyse - welche Firewalls liegen zwischen zwei IP-Adressen?</li>
-    <li><a href="/compliance/zones/configuration">Compliance</a>: Definition von Zonenmatrix und Zugriffs-Compliance</li>
+    <li><a href="/compliance/matrix">Compliance</a>: Definition von Zonenmatrix und Zugriffs-Compliance</li>
     <li><a href="/monitoring">Monitoring</a>: Alarmierung, Log-Files, Import-Status, ...</li>
     <li><a href="/help" target="_blank">Hilfeseiten</a>: Benutzerhandbuch</li>
     <li><a href="/settings">Einstellungen</a>: Alle Einstellungen wie z.B. Sprache der Benutzeroberfl&auml;che oder
@@ -461,7 +461,7 @@ The following top-level menu items are available (depending on role memberships)
     <li><a href="/certification">Recertification</a>: Rulebase sanitization by continuously cleaning up existing rules</li>
     <li><a href="/networkmodelling">Modelling</a>: Allows for distributed modelling of network connections (target state)</li>
     <li><a href="/network_analysis">Network Analysis</a>: Path analysis - which firewall is crossed when routing between two IP addresses?</li>
-    <li><a href="/compliance/zones/configuration">Compliance</a>: Defining zone matrix and access compliance</li>
+    <li><a href="/compliance/matrix">Compliance</a>: Defining zone matrix and access compliance</li>
     <li><a href="/monitoring">Monitoring</a>: Alarms, log files, import status, ...</li>
     <li><a href="/help" target="_blank">Help</a>: Manual pages</li>
     <li><a href="/settings">Settings</a>: All settings like e.g. language of the user interface or
@@ -702,6 +702,8 @@ INSERT INTO txt VALUES ('objects',		        'German', 	'Objekte');
 INSERT INTO txt VALUES ('objects',		        'English', 	'Objects');
 INSERT INTO txt VALUES ('report_duration',		'German', 	'Report-Generierung in');
 INSERT INTO txt VALUES ('report_duration',		'English', 	'Report generation took');
+INSERT INTO txt VALUES ('report_elements',       'German', 	'Ausgewertete Elemente');
+INSERT INTO txt VALUES ('report_elements',       'English', 'Evaluated elements');
 INSERT INTO txt VALUES ('seconds',		        'German', 	'Sekunden');
 INSERT INTO txt VALUES ('seconds',		        'English', 	'seconds');
 INSERT INTO txt VALUES ('minutes',		        'German', 	'Minuten');
@@ -1786,8 +1788,8 @@ INSERT INTO txt VALUES ('compliance',			'German', 	'Compliance');
 INSERT INTO txt VALUES ('compliance',			'English', 	'Compliance');
 INSERT INTO txt VALUES ('network_zones',		'German', 	'Netzwerkzonen');
 INSERT INTO txt VALUES ('network_zones',		'English', 	'Network zones');
-INSERT INTO txt VALUES ('matrix',				'German', 	'Matrix');
-INSERT INTO txt VALUES ('matrix',				'English', 	'Matrix');
+INSERT INTO txt VALUES ('matrix',				'German', 	'Zonen-Matrix');
+INSERT INTO txt VALUES ('matrix',				'English', 	'Zones Matrix');
 INSERT INTO txt VALUES ('checks',				'German', 	'&Uuml;berpr&uuml;fung');
 INSERT INTO txt VALUES ('checks',				'English', 	'Checks');
 INSERT INTO txt VALUES ('check',				'German', 	'&Uuml;berpr&uuml;fen');
@@ -1840,6 +1842,26 @@ INSERT INTO txt VALUES ('file_upload_failed',   'German', 	'Datei hochladen ist 
 INSERT INTO txt VALUES ('file_upload_failed',   'English',  'File upload failed.');
 INSERT INTO txt VALUES ('wrong_input_data',     'German',   'Falsche Eingabedaten');
 INSERT INTO txt VALUES ('wrong_input_data',     'English',  'Wrong input data');
+INSERT INTO txt VALUES ('add_matrix',     		'German',   'Matrix hinzuf&uuml;gen');
+INSERT INTO txt VALUES ('add_matrix',     		'English',  'Add Matrix');
+INSERT INTO txt VALUES ('delete_matrix',     	'German',   'Matrix l&ouml;schen');
+INSERT INTO txt VALUES ('delete_matrix',     	'English',  'Delete Matrix');
+INSERT INTO txt VALUES ('policy',      			'German', 	'Policy');
+INSERT INTO txt VALUES ('policy',      			'English', 	'Policy');
+INSERT INTO txt VALUES ('policies',      		'German', 	'Policies');
+INSERT INTO txt VALUES ('policies',      		'English', 	'Policies');
+INSERT INTO txt VALUES ('edit_policy',      	'German', 	'Policy bearbeiten');
+INSERT INTO txt VALUES ('edit_policy',      	'English', 	'Edit Policy');
+INSERT INTO txt VALUES ('delete_policy',      	'German', 	'Policy l&ouml;schen');
+INSERT INTO txt VALUES ('delete_policy',      	'English', 	'Delete Policy');
+INSERT INTO txt VALUES ('fix_criteria',      	'German', 	'Feste Kriterien');
+INSERT INTO txt VALUES ('fix_criteria',      	'English', 	'Fixed Criteria');
+INSERT INTO txt VALUES ('edit_fix_crit',      	'German', 	'Festes Kriteriium bearbeiten');
+INSERT INTO txt VALUES ('edit_fix_crit',      	'English', 	'Edit Fixed Criterion');
+INSERT INTO txt VALUES ('criteria',      		'German', 	'Kriterien');
+INSERT INTO txt VALUES ('criteria',      		'English', 	'Criteria');
+INSERT INTO txt VALUES ('show_non_impact_rules','German',   'Zeige Regeln ohne Auswirkungen');
+INSERT INTO txt VALUES ('show_non_impact_rules','English',  'Show non-impact rules');
 
 -- settings
 INSERT INTO txt VALUES ('devices',				'German', 	'Ger&auml;te');
@@ -1976,6 +1998,10 @@ INSERT INTO txt VALUES ('last_incomplete',      'German', 	'Letzter Unvollendete
 INSERT INTO txt VALUES ('last_incomplete',      'English', 	'Last Incomplete');
 INSERT INTO txt VALUES ('rollback',             'German', 	'Zur&uuml;cksetzen');
 INSERT INTO txt VALUES ('rollback',             'English', 	'Rollback');
+INSERT INTO txt VALUES ('full_rollback',        'German', 	'Komplett zur&uuml;cksetzen');
+INSERT INTO txt VALUES ('full_rollback',        'English', 	'Full rollback');
+INSERT INTO txt VALUES ('not_imported_yet',     'German', 	'Kein Import f&uuml;r dieses Management vorhanden');
+INSERT INTO txt VALUES ('not_imported_yet',     'English', 	'No existing Import for this management');
 INSERT INTO txt VALUES ('last_success',         'German', 	'Letzter Erfolg');
 INSERT INTO txt VALUES ('last_success',         'English', 	'Last Success');
 INSERT INTO txt VALUES ('last_import',          'German', 	'Letzter Import');
@@ -2098,6 +2124,8 @@ INSERT INTO txt VALUES ('write_user_pwd',       'German', 	'Passwort Schreibende
 INSERT INTO txt VALUES ('write_user_pwd',       'English', 	'Write User Password');
 INSERT INTO txt VALUES ('tenant',               'German', 	'Mandant');
 INSERT INTO txt VALUES ('tenant',               'English', 	'Tenant');
+INSERT INTO txt VALUES ('owner_lc_state',       'German', 	'Produktionsstatus');
+INSERT INTO txt VALUES ('owner_lc_state',       'English', 	'Production state');
 INSERT INTO txt VALUES ('global_tenant_name',   'German', 	'Globaler Mandantenname');
 INSERT INTO txt VALUES ('global_tenant_name',   'English', 	'Global Tenant Name');
 INSERT INTO txt VALUES ('pwMinLength',          'German', 	'Mindestl&auml;nge');
@@ -2402,6 +2430,16 @@ INSERT INTO txt VALUES ('assign_state_to',      'German',   'Status zuordnen zu:
 INSERT INTO txt VALUES ('assign_state_to',      'English',  'Assign state to: ');
 INSERT INTO txt VALUES ('select_action',        'German',   'Aktion ausw&auml;hlen');
 INSERT INTO txt VALUES ('select_action',        'English',  'Select action');
+INSERT INTO txt VALUES ('manage_owner_lc_state','German',   'Produktions-Lifecylce-Status ändern');
+INSERT INTO txt VALUES ('manage_owner_lc_state','English',  'Manage production lifecycle states');
+INSERT INTO txt VALUES ('add_owner_lc_state',   'German',   'Lifecycle Status hinzufügen');
+INSERT INTO txt VALUES ('add_owner_lc_state',   'English',  'Add Owner Lifecycle State');
+INSERT INTO txt VALUES ('owner_lc_states',      'German',   'Produktions-Status');
+INSERT INTO txt VALUES ('owner_lc_states',      'English',  'Production Lifecycle States');
+INSERT INTO txt VALUES ('edit_owner_lc_state',  'German',   'Lifecycle Status bearbeiten');
+INSERT INTO txt VALUES ('edit_owner_lc_state',  'English',  'Edit Owner Lifecycle State');
+INSERT INTO txt VALUES ('delete_owner_lc_state','German',   'Lifecycle Status l&ouml;schen');
+INSERT INTO txt VALUES ('delete_owner_lc_state','English',  'Delete Owner Lifecycle State');
 INSERT INTO txt VALUES ('owners',               'German',   'Eigent&uuml;mer');
 INSERT INTO txt VALUES ('owners',               'English',  'Owners');
 INSERT INTO txt VALUES ('add_owner',            'German',   'Eigent&uuml;mer hinzuf&uuml;gen');
@@ -2584,6 +2622,42 @@ INSERT INTO txt VALUES ('varianceAnalysisStartAt','German', 'Soll-Ist-Abgleich-S
 INSERT INTO txt VALUES ('varianceAnalysisStartAt','English','Variance Analysis start at');
 INSERT INTO txt VALUES ('resolveNetworkAreas',  'German',   'Netzbereiche aufl&ouml;sen');
 INSERT INTO txt VALUES ('resolveNetworkAreas',  'English',  'Resolve Network Areas');
+INSERT INTO txt VALUES ('complianceCheckSleepTime','German','Compliance-Check-Intervall (in Minuten)');
+INSERT INTO txt VALUES ('complianceCheckSleepTime','English','Compliance Check sleep time (in minutes)');
+INSERT INTO txt VALUES ('complianceCheckStartAt','German',  'Compliance-Check-Start');
+INSERT INTO txt VALUES ('complianceCheckStartAt','English',' Compliance Check start at');
+INSERT INTO txt VALUES ('complianceCheckMailRecipients','German','Empf&auml;nger-Email-Adressen f&uuml;r Benachrichtigungen');
+INSERT INTO txt VALUES ('complianceCheckMailRecipients','English','Recipient email addresses for notifications');
+INSERT INTO txt VALUES ('complianceCheckMailSubject','German','Titel der Benachrichtigung');
+INSERT INTO txt VALUES ('complianceCheckMailSubject','English','Subject of notification emails');
+INSERT INTO txt VALUES ('complianceCheckMailBody','German', 'Text der Benachrichtigung');
+INSERT INTO txt VALUES ('complianceCheckMailBody','English','Body of notification emails');
+INSERT INTO txt VALUES ('complianceMatrixAllowNetworkZones','German', 'Netzwerkzonenverschachtelung erlauben');
+INSERT INTO txt VALUES ('complianceMatrixAllowNetworkZones','English','Nested Network Zones allowed');
+INSERT INTO txt VALUES ('complianceCheckInternetZoneObject','German', 'Internetzone');
+INSERT INTO txt VALUES ('complianceCheckInternetZoneObject','English','Internet zone');
+INSERT INTO txt VALUES ('complianceCheckMaxPrintedViolations','German', 'Maximale Anzahl gedruckter Verst&ouml;&szlig;e pro Regel');
+INSERT INTO txt VALUES ('complianceCheckMaxPrintedViolations','English','Maximum number of printed violations per rule');
+INSERT INTO txt VALUES ('complianceCheckSortMatrixByID', 'German', 'Matrixsortierung nach Zonen-ID');
+INSERT INTO txt VALUES ('complianceCheckSortMatrixByID', 'English', 'Matrix sorting by zone ID');
+INSERT INTO txt VALUES ('complianceCheckRelevantManagements','German', 'Relevante Managements');
+INSERT INTO txt VALUES ('complianceCheckRelevantManagements','English','Relevant managements');
+INSERT INTO txt VALUES ('complianceCheckAutoCalcInternetZone','German', 'Internetzone automatisch berechnen');
+INSERT INTO txt VALUES ('complianceCheckAutoCalcInternetZone','English','Auto-calculate internet zone');
+INSERT INTO txt VALUES ('complianceCheckAutoCalcUndefinedInternalZone','German', 'Undefiniert-intern Zone automatisch berechnen');
+INSERT INTO txt VALUES ('complianceCheckAutoCalcUndefinedInternalZone','English','Auto-calculate undefined-internal zone');
+INSERT INTO txt VALUES ('complianceCheckExcludeFromInternetZone','German', 'Von Internetzonenberechnung ausschließen');
+INSERT INTO txt VALUES ('complianceCheckExcludeFromInternetZone','English','Exclude from internet zone calculation');
+INSERT INTO txt VALUES ('complianceCheckPrivateAdressSpace','German', 'Privater Adressbereich');
+INSERT INTO txt VALUES ('complianceCheckPrivateAdressSpace','English','Private address space');
+INSERT INTO txt VALUES ('complianceCheckLoopbackLocal','German', 'Loopback / local');
+INSERT INTO txt VALUES ('complianceCheckLoopbackLocal','English','Loopback / lokal');
+INSERT INTO txt VALUES ('complianceCheckMulticastBroadcast','German', 'Multicast / Broadcast');
+INSERT INTO txt VALUES ('complianceCheckMulticastBroadcast','English','Multicast / broadcast');
+INSERT INTO txt VALUES ('complianceCheckDocumentationSamples','German', 'Dokumentation / Beispiele');
+INSERT INTO txt VALUES ('complianceCheckDocumentationSamples','English','Documentation / samples');
+INSERT INTO txt VALUES ('complianceCheckDiv','German', 'Div (Benchmarking, Broadcast, Multicast, Spezialzweck usw.)');
+INSERT INTO txt VALUES ('complianceCheckDiv','English','Div (benchmarking, broadcast, multicast, special purpose, etc)');
 INSERT INTO txt VALUES ('availableModules',     'German', 	'Verf&uuml;gbare Module');
 INSERT INTO txt VALUES ('availableModules',     'English', 	'Available Modules');
 INSERT INTO txt VALUES ('notification',   		'German', 	'Benachrichtigung');
@@ -2612,6 +2686,8 @@ INSERT INTO txt VALUES ('suspected_cause',      'German', 	'Vermutliche Ursache'
 INSERT INTO txt VALUES ('suspected_cause',      'English', 	'Suspected Cause');
 INSERT INTO txt VALUES ('device',				'German', 	'Ger&auml;t');
 INSERT INTO txt VALUES ('device',				'English', 	'Device');
+INSERT INTO txt VALUES ('enforcing_devices',	'German', 	'Filter-Devices');
+INSERT INTO txt VALUES ('enforcing_devices',	'English', 	'Enforcing Devices');
 INSERT INTO txt VALUES ('object_type',          'German', 	'Objekt-Typ');
 INSERT INTO txt VALUES ('object_type',          'English', 	'Object Type');
 INSERT INTO txt VALUES ('object_name',          'German', 	'Objektname');
@@ -2850,6 +2926,8 @@ INSERT INTO txt VALUES ('naming_convention',    'German',   'Namenskonvention');
 INSERT INTO txt VALUES ('naming_convention',    'English',  'Naming Convention');
 INSERT INTO txt VALUES ('import_app_server',    'German',   'App Server importieren');
 INSERT INTO txt VALUES ('import_app_server',    'English',  'Import app servers');
+INSERT INTO txt VALUES ('import_matrix',   		'German', 	'Matrix-Import');
+INSERT INTO txt VALUES ('import_matrix',   		'English', 	'Matrix Import');
 
 -- user messages
 INSERT INTO txt VALUES ('U0001', 'German',  'Eingabetext wurde um nicht erlaubte Zeichen gek&uuml;rzt');
@@ -2898,6 +2976,16 @@ INSERT INTO txt VALUES ('U4007', 'German',  'Weitere rezertifizierte Apps');
 INSERT INTO txt VALUES ('U4007', 'English', 'Further recertified apps');
 INSERT INTO txt VALUES ('U4008', 'German',  'Weitere Apps');
 INSERT INTO txt VALUES ('U4008', 'English', 'Further apps');
+INSERT INTO txt VALUES ('U4501', 'German',  'Sind sie sicher, dass sie folgende Policy l&ouml;schen wollen: ');
+INSERT INTO txt VALUES ('U4501', 'English', 'Are you sure you want to delete policy: ');
+INSERT INTO txt VALUES ('U4502', 'German',  'Sind sie sicher, dass sie folgendes Fixes Kriterium l&ouml;schen wollen: ');
+INSERT INTO txt VALUES ('U4502', 'English', 'Are you sure you want to delete fix criterion: ');
+INSERT INTO txt VALUES ('U4503', 'German',  'Sind sie sicher, dass sie folgende Matrix l&ouml;schen wollen: ');
+INSERT INTO txt VALUES ('U4503', 'English', 'Are you sure you want to delete matrix: ');
+INSERT INTO txt VALUES ('U4504', 'German',  'Die Matrix kann nicht gel&ouml;scht werden, da sie in mindestens einer aktiven Policy verwendet wird.');
+INSERT INTO txt VALUES ('U4504', 'English', 'Matrix cannot be deleted as it is used in at least one active Policy.');
+INSERT INTO txt VALUES ('U4505', 'German',  'Die Matrix kann nicht gel&ouml;scht werden, da sie von einer anderen Quelle importiert wurde.');
+INSERT INTO txt VALUES ('U4505', 'English', 'Matrix cannot be deleted as it is imported from another source.');
 
 INSERT INTO txt VALUES ('U5001', 'German',  'Setup und Verwaltung des Firewall Orchestrator. Bitte eine Einstellung in der linken Randleiste ausw&auml;hlen.');
 INSERT INTO txt VALUES ('U5001', 'English', 'Setup and administration of Firewall Orchestrator. Please choose a setting in the left sidebar.');
@@ -2987,6 +3075,8 @@ INSERT INTO txt VALUES ('U5217', 'German',  'Sind sie sicher, dass sie folgenden
 INSERT INTO txt VALUES ('U5217', 'English', 'Are you sure you want to delete owner: ');
 INSERT INTO txt VALUES ('U5218', 'German',  'L&ouml;scht alle Beispiel-Eigent&uuml;mer (auf "_demo" endend)');
 INSERT INTO txt VALUES ('U5218', 'English', 'Deletes all sample owners (ending with "_demo")');
+INSERT INTO txt VALUES ('U5219', 'German',  'Sind sie sicher, dass sie folgenden Lifecycle Status l&ouml;schen wollen: ');
+INSERT INTO txt VALUES ('U5219', 'English', 'Are you sure you want to delete Owner Lifecycle State: ');
 
 INSERT INTO txt VALUES ('U5301', 'German',  'Einstellungen ge&auml;ndert.');
 INSERT INTO txt VALUES ('U5301', 'English', 'Settings changed.');
@@ -3022,6 +3112,10 @@ INSERT INTO txt VALUES ('U5322', 'German',  'Verwaltung der Voreinstellungen f&u
 INSERT INTO txt VALUES ('U5322', 'English', 'Administration of default settings for network modelling');
 INSERT INTO txt VALUES ('U5323', 'German',  'Verwaltung der Voreinstellungen f&uuml;r das Reporting');
 INSERT INTO txt VALUES ('U5323', 'English', 'Administration of default settings for reporting');
+INSERT INTO txt VALUES ('U5324', 'German',  'Verwaltung der Compliance-Voreinstellungen f&uuml;r alle Nutzer');
+INSERT INTO txt VALUES ('U5324', 'English', 'Administration of compliance settings for all users');
+INSERT INTO txt VALUES ('U5325', 'German',  'Mehrere Service-Uids mit Komma trennen');
+INSERT INTO txt VALUES ('U5325', 'English', 'Multiple service uids can be separated by using commas');
 
 INSERT INTO txt VALUES ('U5401', 'German',  'Passwort ge&auml;ndert.');
 INSERT INTO txt VALUES ('U5401', 'English', 'Password changed.');
@@ -3222,6 +3316,8 @@ INSERT INTO txt VALUES ('E5108', 'German',  'Email-Adresse muss "@"-Zeichen enth
 INSERT INTO txt VALUES ('E5108', 'English', 'Email address must contain "@"-sign.');
 INSERT INTO txt VALUES ('E5109', 'German',  'Bitte keine Leerzeichen im Namen verwenden.');
 INSERT INTO txt VALUES ('E5109', 'English', 'Please do not use spaces in the name.');
+INSERT INTO txt VALUES ('E5110', 'German',  'UID f&uuml;r Check Point Managements muss gesetzt sein.');
+INSERT INTO txt VALUES ('E5110', 'English', 'UID for Check Point managements has to be set.');
 INSERT INTO txt VALUES ('E5111', 'German',  'Es gibt bereits ein Gateway mit derselben Konfiguration und Import aktiviert');
 INSERT INTO txt VALUES ('E5111', 'English', 'There is already a gateway in the same configuration with import enabled');
 INSERT INTO txt VALUES ('E5112', 'German',  'Gateway konnte nicht angelegt werden');
@@ -3351,6 +3447,8 @@ INSERT INTO txt VALUES ('E5291', 'German',  'Eigent&uuml;mer konnte nicht gespei
 INSERT INTO txt VALUES ('E5291', 'English', 'Owner could not be saved');
 INSERT INTO txt VALUES ('E5292', 'German',  'Dn oder Gruppe muss gef&uuml;llt sein');
 INSERT INTO txt VALUES ('E5292', 'English', 'Dn or group has to be filled');
+INSERT INTO txt VALUES ('E5293', 'German',  'Lifecycle Status konnte nicht gespeichert werden');
+INSERT INTO txt VALUES ('E5293', 'English', 'Owner Lifecycle State could not be saved');
 
 INSERT INTO txt VALUES ('E5301', 'German',  'Konfiguration konnte nicht gelesen oder verarbeitet werden.');
 INSERT INTO txt VALUES ('E5301', 'English', 'Error reading or processing Config.');
@@ -3501,6 +3599,10 @@ INSERT INTO txt VALUES ('E9302', 'English', 'HTML is invalid!');
 
 INSERT INTO txt VALUES ('E9400', 'German',  'Leere Datei hochgeladen/keine &Auml;nderungen wurden vorgenommen');
 INSERT INTO txt VALUES ('E9400', 'English', 'Empty file provided/no changes where applied');
+INSERT INTO txt VALUES ('E9401', 'German',  'Matrix erfolgreich importiert');
+INSERT INTO txt VALUES ('E9401', 'English', 'Matrix imported successfully');
+INSERT INTO txt VALUES ('E9402', 'German',  'Fehlr beim Import der Matrix');
+INSERT INTO txt VALUES ('E9402', 'English', 'Error importing matrix');
 
 -- errors from Api
 INSERT INTO txt VALUES ('A0001', 'German',  'Ung&uuml;ltige Anmeldedaten. Nutzername darf nicht leer sein');
@@ -3561,6 +3663,10 @@ INSERT INTO txt VALUES ('T0106', 'German',  'Aktuell aktive unbenutzte Regeln al
 INSERT INTO txt VALUES ('T0106', 'English', 'Currently active unused rules of all gateways');
 INSERT INTO txt VALUES ('T0107', 'German',  'Aktuell aktive Regeln, die zur Rezertifizierung anstehen');
 INSERT INTO txt VALUES ('T0107', 'English', 'Currently active rules with upcoming recertification');
+INSERT INTO txt VALUES ('T0108', 'German',  'Alle nicht gel&ouml;sten Compliance-Verletzungen');
+INSERT INTO txt VALUES ('T0108', 'English', 'All unresolved compliance violations');
+INSERT INTO txt VALUES ('T0109', 'German',  'Veränderungen der Compliance-Verletzungen in Zeitraum x');
+INSERT INTO txt VALUES ('T0109', 'English', 'Changes in compliance violations in period x');
 
 -- Contextual Info (Tooltips)
 INSERT INTO txt VALUES ('C1000', 'German',  'Zeige alle Eigent&uuml;er inklusive der rezertifizierten.');
@@ -4574,6 +4680,8 @@ INSERT INTO txt VALUES ('H5103', 'English', 'For firewall gateways without a sep
 ');
 INSERT INTO txt VALUES ('H5104', 'German',  'Wenn Beispieldaten (definiert durch die Endung "_demo" vom Namen) existieren, wird eine Schaltfl&auml;che angezeigt, um diese und alle verkn&uuml;pften <a href="/help/settings/gateways">Gateways</a> zu l&ouml;schen.');
 INSERT INTO txt VALUES ('H5104', 'English', 'If there are sample data (defined by the ending "_demo" of the name), a button is displayed to delete them and all related <a href="/help/settings/gateways">gateways</a>.');
+INSERT INTO txt VALUES ('H5110', 'German',  'Uid: Eindeutige ID des Managements.');
+INSERT INTO txt VALUES ('H5110', 'English', 'Uid: Unique id of the mangement.');
 INSERT INTO txt VALUES ('H5111', 'German',  'Name*: Name des Managements. <br>
     F&uuml;r die meisten Firewalls ist dies ein willk&uuml;rlicher Name. Ausnahmen sind direkt verbundene Gateways von Fortigate, Netscreen und Juniper.
     Hier muss der Name des Firewallgateways eingetragen werden.<br>
@@ -4701,6 +4809,8 @@ INSERT INTO txt VALUES ('H5141', 'English', 'Admins can create and administrate 
     The clone button helps defining new gateways by copying the data from existing ones.
     Before saving at least one of the parameters Device Type, Management or Rulebase has to be different from the existing gateways if the Import Disabled flag is not set.
 ');
+INSERT INTO txt VALUES ('H5150', 'German',  'UID*: Eindeutige ID des Gateways.');
+INSERT INTO txt VALUES ('H5150', 'English', 'UID*: Unique ID of the Gateway.');
 INSERT INTO txt VALUES ('H5151', 'German',  'Name*: Name des Gateways. F&uuml;r Legacy Fortinet (ssh) muss dies der reale Name des Firewallgateways sein wie in der Config definiert.');
 INSERT INTO txt VALUES ('H5151', 'English', 'Name*: Name of the Gateway. For legacy Fortinet (ssh) this must be the real name of the firewall gateway as defined in the config.');
 INSERT INTO txt VALUES ('H5152', 'German',  'Kommentar: Optionaler Kommentar zu diesem Gateway.');
@@ -5706,6 +5816,12 @@ INSERT INTO txt VALUES ('H5662', 'English', 'Body of decommission emails: Text o
 ');
 INSERT INTO txt VALUES ('H5663', 'German',  'Alle Regeln modelliert erwarten: Alle dem Eigent&uuml;mer zugeordneten Regeln m&uuml;ssen modelliert sein.');
 INSERT INTO txt VALUES ('H5663', 'English', 'Expect all rules as modelled: All rules associated to the owner have to be modelled.');
+INSERT INTO txt VALUES ('H5664', 'German',  'Produktionsstatus: Gibt an, in welchem Lifecycle Status sich der Eigentümer befindet.');
+INSERT INTO txt VALUES ('H5664', 'English', 'Production state: The Owner Lifecycle State assigned to the owner.');
+INSERT INTO txt VALUES ('H5665', 'German',  'Name: Name des Produktionsstatus');
+INSERT INTO txt VALUES ('H5665', 'English', 'Name: Owner Lifecycle State name');
+INSERT INTO txt VALUES ('H5666', 'German',  'In diesem Kapitel können die Produktions-Status von Eigent&uuml;mern eingesehen, erstellt, bearbeitet und gelöscht werden. Produktions-Status definieren den aktuellen Zustand eines Eigent&uuml;mers (z. B. Geplant, Im Betrieb, Auslaufend).');
+INSERT INTO txt VALUES ('H5666', 'English', 'In this chapter, Production Lifecycle States of owners can be viewed, created, edited, and deleted. Production Lifecycle States define the current status of an owner (e.g., Planned, In Production, End of Life).');
 
 INSERT INTO txt VALUES ('H5701', 'German',  'Die in der Datenbank hinterlegten sprachabh&auml;ngigen Texte k&ouml;nnen individuell &uuml;berschrieben werden.
     Dabei werden die vom System vorgegebenen Texte nicht ge&auml;ndert, sondern nur durch die hier definierten Texte - falls vorhanden - &uuml;berblendet.
@@ -5731,6 +5847,73 @@ INSERT INTO txt VALUES ('H5704', 'German',  'In der Tabelle der Suchergebnisse k
 INSERT INTO txt VALUES ('H5704', 'English', 'In the table of search results new texts can be defined per key, existing texts can be marked for deletion by setting the "Delete" flag.
     If only a text is removed, the system text will be overwritten by an empty text! All changes get effective only by pressing the "Save" button.
 ');
+INSERT INTO txt VALUES ('H5801', 'German',  'Compliance-Check-Intervall (in Minuten): legt das Intervall fest, in dem der Compliance-Check durchgef&uuml;hrt werden soll.');
+INSERT INTO txt VALUES ('H5801', 'English', 'Compliance Check sleep time (in minutes): defines the interval in which the compliance check should be performed.');
+INSERT INTO txt VALUES ('H5802', 'German',  'Compliance-Check-Start: legt eine Bezugszeit fest, ab dem die Intervalle f&uuml;r den Compliance-Check gerechnet werden.');
+INSERT INTO txt VALUES ('H5802', 'English', 'Compliance Check start at: defines a referential time from which the Compliance Check intervals are calculated.');
+INSERT INTO txt VALUES ('H5803', 'German',  'Hier werden alle Einstellungen rund um den Compliance-Check verwaltet.');
+INSERT INTO txt VALUES ('H5803', 'English', 'Here all settings around the Compliance Check are administrated.');
+INSERT INTO txt VALUES ('H5804', 'German',  'Empf&auml;nger-Email-Adressen f&uuml;r Benachrichtigungen: Komma-separierte Liste von Email-Adressen, die bei Compliance-Verst&ouml;ssen benachrichtigt werden. Default-Wert = "leer".');
+INSERT INTO txt VALUES ('H5804', 'English', 'Recipient email addresses for change notifications: A comma-separated list of email addresses, which will be informed in the case of compliance issues. Default value = "empty".');
+INSERT INTO txt VALUES ('H5805', 'German',  'Titel der Benachrichtigung: Betreffzeile der Benachrichtigungs-Email. Default-Wert = "leer".');
+INSERT INTO txt VALUES ('H5805', 'English', 'Subject of notification emails: Subject line for notification emails. Default value = "empty".');
+INSERT INTO txt VALUES ('H5806', 'German',  'Text der Benachrichtigung: Email-Text f&uuml;r die Benachrichtigung. Der Email wird ein Compliance-Report angeh&auml;ngt. Default-Wert = "leer".');
+INSERT INTO txt VALUES ('H5806', 'English', 'Body of notification emails: Email text for the notification. A Compliance report will be attached to the email. Default value = "empty".');
+INSERT INTO txt VALUES ('H5807', 'German',  'Wenn aktiviert, werden die durch die Compliance-Prüfung erzeugten Daten in der Datenbank gespeichert.');
+INSERT INTO txt VALUES ('H5807', 'English', 'If checked, the data that is generated by the compliance check will be persisted in the database.');
+INSERT INTO txt VALUES ('H5808', 'German',  'Hier werden die Dienste definiert, die bei der Compliance-Prüfung ber&uuml;cksichtigt werden sollen. Wenn dieses Feld leer ist, werden keine Dienste eingeschr&auml;nkt.');
+INSERT INTO txt VALUES ('H5808', 'English', 'Sets up services that should be checked for during compliance check. If this field is empty, no service will be restricted.');
+INSERT INTO txt VALUES ('H5809', 'German',  'Wenn aktiviert, wird beim Erstellen der Compliance-Matrix eine Schachtelung der Netzwerk-Zonen erm&ouml;glicht.');
+INSERT INTO txt VALUES ('H5809', 'English', 'If checked, the use of nested network zones for compliance matrices is enabled.');
+INSERT INTO txt VALUES ('H5810', 'German',  'Die Policy, die f&uuml;r den termingesteuerten Compliance Check genutzt wird.');
+INSERT INTO txt VALUES ('H5810', 'English', 'Policy used for the scheduled compliance check.');
+INSERT INTO txt VALUES ('H5811', 'German',  'Das Netzwerkobjekt, dass die Netzwerkzone "Internet" darstellt.');
+INSERT INTO txt VALUES ('H5811', 'English', 'The network object that is taken for the network zone "Internet".');
+INSERT INTO txt VALUES ('H5812', 'German',  'Importieren einer Matrix via JSON Datei. ');
+INSERT INTO txt VALUES ('H5812', 'English', 'Import of a matrix via JSON file. ');
+INSERT INTO txt VALUES ('H5813', 'German',  'Definition vom Kriterien mit fixem Inhalt');
+INSERT INTO txt VALUES ('H5813', 'English', 'Definition of Criteria with fixed content. ');
+INSERT INTO txt VALUES ('H5814', 'German',  'Maximal Anzahl von Violations die im Compliance Report pro Rule angezeigt werden. Bei 0 keine Beschränkung.');
+INSERT INTO txt VALUES ('H5814', 'English', 'Maximum number of violations shown in the compliance report per rule. If set to 0, no limitation is applied.');
+INSERT INTO txt VALUES ('H5815', 'German',  'Wenn aktiviert, werden Netzwerkzonenmatrizen nach Zonen-ID sortiert (Default: Sortierung nach Name).');
+INSERT INTO txt VALUES ('H5815', 'English', 'When enabled, network zone matrices are sorted by zone ID (default: sorted by name).');
+INSERT INTO txt VALUES ('H5816', 'German',  'Durch Komma getrennte Liste von relevanten Management IDs.');
+INSERT INTO txt VALUES ('H5816', 'English', 'Comma-separated list of relevant management IDs.');
+INSERT INTO txt VALUES ('H5817', 'German',  'Wenn aktiviert, wird bei &Auml;nderungen in Compliance-Matrizen automatisch eine "Internetzone" hinzugef&uuml;gt, die alle Adressbereiche beinhaltet, die nicht in anderen Zonen definiert sind.');
+INSERT INTO txt VALUES ('H5817', 'English', 'If enabled, changes to compliance matrices will automatically add an "Internetzone" that includes all address ranges not defined in other zones.');
+INSERT INTO txt VALUES ('H5818', 'German',  'Adressbereiche, die aus der Berechnung der Internetzone ausgeschlossen werden sollen.');
+INSERT INTO txt VALUES ('H5818', 'English', 'Address ranges that should be excluded from the Internet zone calculation.');
+INSERT INTO txt VALUES ('H5819', 'German',  'Wenn aktiviert, wird bei &Auml;nderungen in Compliance-Matrizen automatisch eine "Undefiniert-Intern-Zone" hinzugef&uuml;gt, die alle Adressbereiche beinhaltet, die nicht in anderen Zonen definiert sind und von der Internetzone ausgeschlossen wurden.');
+INSERT INTO txt VALUES ('H5819', 'English', 'When enabled, changes to compliance matrices automatically add an "Undefined Internal Zone" that includes all address ranges not defined in other zones and excluded from the Internet zone.');
+INSERT INTO txt VALUES ('H5820', 'German',  'Teilbereich des privaten Adressbereichs gemäß RFC 1918');
+INSERT INTO txt VALUES ('H5820', 'English', 'Part of the private address range according to RFC 1918');
+INSERT INTO txt VALUES ('H5821', 'German',  'Spezialbereich für „diese“ Netzwerke, Quelle unbekannt (unspezifische Adresse).');
+INSERT INTO txt VALUES ('H5821', 'English', 'Special range for “this” network, used as an unspecified address.');
+INSERT INTO txt VALUES ('H5822', 'German',  'Loopback-Adressbereich zur internen Kommunikation eines Hosts.');
+INSERT INTO txt VALUES ('H5822', 'English', 'Loopback address range for internal host communication.');
+INSERT INTO txt VALUES ('H5823', 'German',  'Link-Local-Adressbereich für automatische Adressvergabe ohne DHCP.');
+INSERT INTO txt VALUES ('H5823', 'English', 'Link-local address range for automatic addressing without DHCP.');
+INSERT INTO txt VALUES ('H5824', 'German',  'Multicast-Adressbereich für die Zustellung an mehrere Empfänger.');
+INSERT INTO txt VALUES ('H5824', 'English', 'Multicast address range for delivery to multiple recipients.');
+INSERT INTO txt VALUES ('H5825', 'German',  'Reservierter Bereich für zukünftige oder experimentelle Nutzung.');
+INSERT INTO txt VALUES ('H5825', 'English', 'Reserved range for future or experimental use.');
+INSERT INTO txt VALUES ('H5826', 'German',  'Broadcast-Adresse für die Ansprache aller Hosts im lokalen Netzwerk.');
+INSERT INTO txt VALUES ('H5826', 'English', 'Broadcast address for addressing all hosts in the local network.');
+INSERT INTO txt VALUES ('H5827', 'German',  'Dokumentationsnetz für Beispiele in Handbüchern und Tutorials.');
+INSERT INTO txt VALUES ('H5827', 'English', 'Documentation network for examples in manuals and tutorials.');
+INSERT INTO txt VALUES ('H5828', 'German',  'Zweites Dokumentationsnetz für Lehr- und Beispielzwecke.');
+INSERT INTO txt VALUES ('H5828', 'English', 'Second documentation network for educational and example purposes.');
+INSERT INTO txt VALUES ('H5829', 'German',  'Drittes Dokumentationsnetz für Lehr- und Beispielzwecke.');
+INSERT INTO txt VALUES ('H5829', 'English', 'Third documentation network for educational and example purposes.');
+INSERT INTO txt VALUES ('H5830', 'German',  'Carrier-Grade NAT-Bereich für Provider-interne Adressierung.');
+INSERT INTO txt VALUES ('H5830', 'English', 'Carrier-grade NAT range for provider-internal addressing.');
+INSERT INTO txt VALUES ('H5831', 'German',  'Reservierter Adressbereich für spezielle Zwecke (IANA).');
+INSERT INTO txt VALUES ('H5831', 'English', 'Reserved address block for special purposes (IANA).');
+INSERT INTO txt VALUES ('H5832', 'German',  'Adressbereich für Netzwerkleistungs- und Benchmark-Tests.');
+INSERT INTO txt VALUES ('H5832', 'English', 'Address range for network performance and benchmark testing.');
+INSERT INTO txt VALUES ('H5833', 'German',  'Ehemaliger IPv6-Übergangsbereich (6to4-Relay), heute obsolet.');
+INSERT INTO txt VALUES ('H5833', 'English', 'Former IPv6 transition range (6to4 relay), now obsolete.');
+
 
 INSERT INTO txt VALUES ('H6001', 'German',  'Firewall Orchestrator verf&uuml;gt &uuml;ber zwei APIs:
     <ul>

@@ -2,7 +2,7 @@ namespace FWO.Basics
 {
     public enum ReportType
     {
-        All = 0,
+        Undefined = 0,
         Rules = 1,
         Changes = 2,
         Statistics = 3,
@@ -19,7 +19,10 @@ namespace FWO.Basics
         VarianceAnalysis = 23,
         OwnerRecertification = 24,
         RecertificationEvent = 25,
-        RecertEventReport = 26
+        RecertEventReport = 26,
+        Compliance = 31,
+        ComplianceDiff = 32
+
     }
 
     public static class ReportTypeGroups
@@ -58,8 +61,10 @@ namespace FWO.Basics
                 ReportType.ResolvedRules or
                 ReportType.ResolvedRulesTech or
                 ReportType.ResolvedChanges or
-                ReportType.ResolvedChangesTech => true,
-                _ => false
+                ReportType.ResolvedChangesTech or
+                ReportType.Compliance or
+                ReportType.ComplianceDiff => true,
+                _ => false,
             };
         }
 
@@ -103,6 +108,10 @@ namespace FWO.Basics
             };
         }
 
+        public static bool IsComplianceReport(this ReportType reportType)
+        {
+            return reportType == ReportType.Compliance || reportType == ReportType.ComplianceDiff;
+        }
         public static bool HasTimeFilter(this ReportType reportType)
         {
             return reportType switch
@@ -121,7 +130,7 @@ namespace FWO.Basics
 
         public static List<ReportType> AllReportTypes()
         {
-            return [.. Enum.GetValues(typeof(ReportType)).Cast<ReportType>().Where(r => r != ReportType.All)];
+            return [.. Enum.GetValues(typeof(ReportType)).Cast<ReportType>().Where(r => r != ReportType.Undefined)];
         }
 
         public static List<ReportType> ReportTypeSelection(bool ruleRelated = true, bool modellingRelated = true)
@@ -134,7 +143,7 @@ namespace FWO.Basics
             List<ReportType> ListOut = [];
             List<ReportType> orderedReportTypeList =
             [
-                ReportType.All,
+                ReportType.Undefined,
                 ReportType.RecertificationEvent,
                 ReportType.Rules, ReportType.ResolvedRules, ReportType.ResolvedRulesTech, ReportType.UnusedRules, ReportType.NatRules,
                 ReportType.Changes, ReportType.ResolvedChanges, ReportType.ResolvedChangesTech,
@@ -148,7 +157,7 @@ namespace FWO.Basics
             ];
             foreach (var reportType in orderedReportTypeList.Where(r => ListIn.Contains(r)))
             {
-                if (reportType == ReportType.All || ruleRelated && reportType.IsDeviceRelatedReport() || modellingRelated && reportType.IsModellingReport())
+                if (reportType == ReportType.Undefined || ruleRelated && reportType.IsDeviceRelatedReport() || modellingRelated && reportType.IsModellingReport())
                 {
                     ListOut.Add(reportType);
                 }

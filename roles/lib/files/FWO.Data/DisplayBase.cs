@@ -8,6 +8,13 @@ namespace FWO.Data
 {
     public static class DisplayBase
     {
+        public static StringBuilder DisplayGateway(Device gateway, bool isTechReport, string? gatewayName = null)
+        {
+            StringBuilder result = new ();
+            // result.Append($" <p class=\"no-break\">{gateway.Name}</p>");
+            result.Append($" {gateway.Name}");
+            return result;
+        }        
         public static StringBuilder DisplayService(NetworkService service, bool isTechReport, string? serviceName = null)
         {
             StringBuilder result = new ();
@@ -143,12 +150,31 @@ namespace FWO.Data
                         result = inBrackets ? " (" : "";
                         if (nwObjType == ObjectType.Network)
                         {
-                            if(IpStart.GetNetmask() == "")
+                            if (IpStart.GetNetmask() == "")
                             {
-                                IPAddressRange ipRange = new (IPAddress.Parse(IpStart), IPAddress.Parse(IpEnd));
+                                if (IpStart.IsGreater(IpEnd))
+                                {
+                                    // swap
+                                    Log.WriteWarning("Ip displaying", $"Wrong ip format {IpStart} - {IpEnd} - swapping values");
+                                    string temp = IpStart;
+                                    IpStart = IpEnd;
+                                    IpEnd = temp;
+                                }
+                                IPAddressRange ipRange = new(IPAddress.Parse(IpStart), IPAddress.Parse(IpEnd));
                                 if (ipRange != null)
                                 {
-                                    result += ipRange.ToCidrString();
+                                    try
+                                    {
+                                        // tryint to convert range to network
+                                        string rangeString = ipRange.ToCidrString();
+                                        result += rangeString;
+                                    }
+                                    catch (Exception exc)
+                                    {
+                                        Log.WriteWarning("Ip displaying", $"Wrong ip format {IpStart} - {IpEnd} is not a network\nMessage: {exc.Message}");
+                                        // we display the incorrect ip data nevertheless without throwing errors
+                                        result += $"{IpStart}-{IpEnd}";
+                                    }
                                 }
                             }
                             else
@@ -168,7 +194,10 @@ namespace FWO.Data
                     }
                     catch (Exception exc)
                     {
-                        Log.WriteError("Ip displaying", $"Wrong ip format {IpStart} - {IpEnd}\nMessage: {exc.Message}");
+                        Log.WriteWarning("Ip displaying", $"Wrong ip format {IpStart} - {IpEnd}\nMessage: {exc.Message}");
+                        // we display the incorrect ip data nevertheless without throwing errors
+                        result += $"{IpStart}-{IpEnd}";
+                        result += inBrackets ? ")" : "";
                     }
                 }
             }
@@ -235,7 +264,7 @@ namespace FWO.Data
             return result;
         }
 
-        public static string DisplayPort(int? port, int? portEnd, bool inBrackets = false)
+        public static string DisplayPort(int? port, int? portEnd, bool inBrackets = false, string? proto = null)
         {
             string result = "";
             if (port != null)
@@ -249,6 +278,7 @@ namespace FWO.Data
                 {
                     result += $"{port}-{portEnd}";
                 }
+                result += proto != null ? $"/{proto}" : "";
                 result += inBrackets ? ")" : "";
             }
             return result;

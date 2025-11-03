@@ -55,17 +55,16 @@ namespace FWO.Test
 
             // Act
             var cut = RenderComponent<RightSidebar>(parameters => parameters
-                .Add(p => p.CurrentReport, currentReport)
-                .Add(p => p.SelectedRules, [currentReport.ReportData.ManagementData[0].Devices[0].Rules![0]]));
+                .Add(p => p.CurrentReport, currentReport));
 
             // manually trigger 
             var anchorNavToRSB = cut.FindComponent<AnchorNavToRSB>();
             Task timeout = Task.Delay(2000);
-            Task scrollTask = anchorNavToRSB.InvokeAsync(() => anchorNavToRSB.Instance.ScrollToFragment());
+            Task scrollTask = anchorNavToRSB.InvokeAsync(() => anchorNavToRSB.Instance.NavigateAndScrollToFragment());
             Task completedTask = await Task.WhenAny(scrollTask, timeout);
             if (completedTask == timeout)
             {
-                Log.WriteDebug("Test UI RSB", "scrollToFragment does not complete timely (circle dependency through state changes?)");
+                Log.WriteDebug("Test UI RSB", "NavigateAndScrollToFragment does not complete timely (circle dependency through state changes?)");
             }
             // Assert
             Assert.That(scrollIntoRSBViewInvocation.Invocations, Is.Not.Empty, "scrollIntoRSBView should have been called");

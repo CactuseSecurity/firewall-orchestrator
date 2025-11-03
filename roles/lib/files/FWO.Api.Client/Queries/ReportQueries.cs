@@ -34,37 +34,42 @@ namespace FWO.Api.Client.Queries
         public static readonly string getImportsToNotify;
         public static readonly string setImportsNotified;
 
-        static ReportQueries() 
+        public static readonly string getManagementForNormalizedConfig;
+        public static readonly string getManagementForLatestNormalizedConfig;
+
+        static ReportQueries()
         {
             try
             {
-                addReportTemplate = File.ReadAllText(QueryPath + "report/addReportTemplate.graphql");
-                addReportSchedule = File.ReadAllText(QueryPath + "report/addReportSchedule.graphql");
-                addReportScheduleFileFormats = File.ReadAllText(QueryPath + "report/addReportScheduleFileFormats.graphql");
-                editReportSchedule = File.ReadAllText(QueryPath + "report/editReportSchedule.graphql");
-                deleteReportSchedule = File.ReadAllText(QueryPath + "report/deleteReportSchedule.graphql");
-                getReportSchedules = File.ReadAllText(QueryPath + "report/getReportSchedules.graphql");
-                countReportSchedule = File.ReadAllText(QueryPath + "report/countReportSchedule.graphql");
-                getReportsOverview = File.ReadAllText(QueryPath + "report/getReportsOverview.graphql");
-                getReportsById = File.ReadAllText(QueryPath + "report/getReportById.graphql");
-                getReportTemplates = File.ReadAllText(QueryPath + "report/getReportTemplates.graphql");
-                getRelevantImportIdsAtTime = File.ReadAllText(QueryPath + "report/getRelevantImportIdsAtTime.graphql");
-                getRelevantImportIdsInTimeRange = File.ReadAllText(QueryPath + "report/getRelevantImportIdsInTimeRange.graphql");
-                statisticsReportCurrent = File.ReadAllText(QueryPath + "report/statisticsCurrent.graphql");
-                statisticsReportCurrent = File.ReadAllText(QueryPath + "report/statisticsCurrentOverall.graphql");
-                updateReportTemplate = File.ReadAllText(QueryPath + "report/updateReportTemplate.graphql");
-                deleteReportTemplate = File.ReadAllText(QueryPath + "report/deleteReportTemplate.graphql");
-                subscribeReportScheduleChanges = File.ReadAllText(QueryPath + "report/subscribeReportScheduleChanges.graphql");
-                subscribeGeneratedReportsChanges = File.ReadAllText(QueryPath + "report/subscribeGeneratedReportsChanges.graphql");
-                getGeneratedReports = File.ReadAllText(QueryPath + "report/getGeneratedReports.graphql");
-                getGeneratedReport = File.ReadAllText(QueryPath + "report/getGeneratedReport.graphql");
-                deleteGeneratedReport = File.ReadAllText(QueryPath + "report/deleteGeneratedReport.graphql");
-                addGeneratedReport = File.ReadAllText(QueryPath + "report/addGeneratedReport.graphql");
-                getUsageDataCount = File.ReadAllText(QueryPath + "report/getUsageDataCount.graphql");
+                addReportTemplate = GetQueryText("report/addReportTemplate.graphql");
+                addReportSchedule = GetQueryText("report/addReportSchedule.graphql");
+                addReportScheduleFileFormats = GetQueryText("report/addReportScheduleFileFormats.graphql");
+                editReportSchedule = GetQueryText("report/editReportSchedule.graphql");
+                deleteReportSchedule = GetQueryText("report/deleteReportSchedule.graphql");
+                getReportSchedules = GetQueryText("report/getReportSchedules.graphql");
+                countReportSchedule = GetQueryText("report/countReportSchedule.graphql");
+                getReportsOverview = GetQueryText("report/getReportsOverview.graphql");
+                getReportsById = GetQueryText("report/getReportById.graphql");
+                getReportTemplates = GetQueryText("report/getReportTemplates.graphql");
+                getRelevantImportIdsAtTime = GetQueryText("report/getRelevantImportIdsAtTime.graphql");
+                getRelevantImportIdsInTimeRange = GetQueryText("report/getRelevantImportIdsInTimeRange.graphql");
+                statisticsReportCurrent = GetQueryText("report/statisticsCurrent.graphql");
+                statisticsReportCurrent = GetQueryText("report/statisticsCurrentOverall.graphql");
+                updateReportTemplate = GetQueryText("report/updateReportTemplate.graphql");
+                deleteReportTemplate = GetQueryText("report/deleteReportTemplate.graphql");
+                subscribeReportScheduleChanges = GetQueryText("report/subscribeReportScheduleChanges.graphql");
+                subscribeGeneratedReportsChanges = GetQueryText("report/subscribeGeneratedReportsChanges.graphql");
+                getGeneratedReports = GetQueryText("report/getGeneratedReports.graphql");
+                getGeneratedReport = GetQueryText("report/getGeneratedReport.graphql");
+                deleteGeneratedReport = GetQueryText("report/deleteGeneratedReport.graphql");
+                addGeneratedReport = GetQueryText("report/addGeneratedReport.graphql");
+                getUsageDataCount = GetQueryText("report/getUsageDataCount.graphql");
                 // note: currently we only check for rule changes, but this should be extended to other changes in the future
-                // getImportsToNotify = File.ReadAllText(QueryPath + "report/getImportsToNotifyForAnyChanges.phql");
-                getImportsToNotify = File.ReadAllText(QueryPath + "report/getImportsToNotifyForRuleChanges.graphql");
-                setImportsNotified = File.ReadAllText(QueryPath + "report/setImportsNotified.graphql");
+                // getImportsToNotify = GetQueryText("report/getImportsToNotifyForAnyChanges.phql");
+                getImportsToNotify = GetQueryText("report/getImportsToNotifyForRuleChanges.graphql");
+                setImportsNotified = GetQueryText("report/setImportsNotified.graphql");
+                getManagementForNormalizedConfig = GetQueryText("report/getManagementForNormalizedConfig.graphql");
+                getManagementForLatestNormalizedConfig = GetQueryText("report/getManagementForLatestNormalizedConfig.graphql");
             }
             catch (Exception exception)
             {

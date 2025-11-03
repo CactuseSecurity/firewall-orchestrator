@@ -1,0 +1,33 @@
+mutation updateOwner(
+  $id: Int!
+  $name: String!
+  $dn: String!
+  $groupDn: String!
+  $tenantId: Int
+  $recertInterval: Int
+  $appIdExternal: String
+  $recertCheckParams: String
+  $ownerLifeCycleStateId: Int
+  $criticality: String
+  $commSvcPossible: Boolean
+  $recertActive: Boolean
+  ) {
+  update_owner_by_pk(
+    pk_columns: { id: $id }
+    _set: {
+      name: $name
+      dn: $dn
+      group_dn: $groupDn
+      tenant_id: $tenantId
+      recert_interval: $recertInterval
+      app_id_external: $appIdExternal
+      recert_check_params: $recertCheckParams
+      owner_lifecycle_state_id: $ownerLifeCycleStateId
+      criticality: $criticality
+      common_service_possible: $commSvcPossible
+      active: true
+      recert_active: $recertActive
+  }) {
+    updatedId: id
+  }
+}

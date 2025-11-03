@@ -1,0 +1,24 @@
+﻿subscription subscribeComplianceCheckConfigChanges {
+  config(
+    where: {
+      _or: [
+        { config_key: { _eq: "importCheckCertificates" } }
+        { config_key: { _eq: "importSuppressCertificateWarnings" } }
+        { config_key: { _eq: "complianceCheckInternetZoneObject" } }
+        { config_key: { _eq: "complianceCheckMailBody" } }
+        { config_key: { _eq: "complianceCheckMailRecipients" } }
+        { config_key: { _eq: "complianceCheckMailSubject" } }
+        { config_key: { _eq: "complianceCheckMaxPrintedViolations" } }
+        { config_key: { _eq: "complianceCheckPolicy" } }
+        { config_key: { _eq: "complianceCheckRelevantManagements" } }
+        { config_key: { _eq: "complianceCheckScheduledDiffReports" } }
+        { config_key: { _eq: "complianceCheckSleepTime" } }
+        { config_key: { _eq: "complianceCheckStartAt" } }
+      ]
+    }
+    limit: 12
+  ) {
+    config_key
+    config_value
+  }
+}

@@ -1,0 +1,34 @@
+query getRelevantImportIdsAtTime(
+  $time: timestamp!
+  $mgmIds: [Int!]
+  $ruleChangesFound: Boolean
+) {
+  management(where: {
+    hide_in_gui: {_eq: false}
+    _or: [
+      { mgm_id: {_in: $mgmIds}}
+      {_and: {
+      	is_super_manager: {_eq: true}
+        managementByMultiDeviceManagerId: { mgm_id: {_in: $mgmIds}}
+      }}
+    ]
+  } order_by: {mgm_name: asc}) {
+    name: mgm_name
+    id: mgm_id
+    managementByMultiDeviceManagerId {
+      id: mgm_id
+    }
+    import: import_controls_aggregate(where: {
+      stop_time: {_lte: $time}
+      successful_import: {_eq: true}
+      any_changes_found: {_eq: true}
+      rule_changes_found: {_eq: $ruleChangesFound}
+    }) {
+      aggregate {
+        max {
+          id: control_id
+        }
+      }
+    }
+  }
+}

@@ -55,8 +55,8 @@ def parse_obj_list(ip_list, import_id, config, id):
             ipaddress.ip_network(ip)
             # valid ip
             ip_obj['obj_ip'] = ip
-        except:
-            # no valid ip - asuming azureTag
+        except Exception:
+            # no valid ip - assuming azureTag
             ip_obj['obj_ip'] = '0.0.0.0/0'
             ip = '0.0.0.0/0'
             ip_obj['obj_name'] = "#"+ip_obj['obj_name']

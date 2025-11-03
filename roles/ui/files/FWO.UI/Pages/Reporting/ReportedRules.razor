@@ -19,7 +19,7 @@
         {
             <Column TableItem="Rule" Context="rule" Title="@(userConfig.GetText("number"))" DefaultSortColumn="true" Field="@(r => r.OrderNumber)" Sortable="true" Filterable="false" Hideable="true">
                 <Template>
-                    @((MarkupString)ruleDisplay.DisplayNumber(rule))
+                    @((MarkupString)RuleDisplayBase.DisplayNumber(rule))
                 </Template>
             </Column>
         }
@@ -27,7 +27,7 @@
         {
             <Column TableItem="Rule" Context="rule" Title="@(userConfig.GetText("last_hit"))" Field="@(r => r.Metadata.LastHit)" Sortable="false" Filterable="false">
                 <Template>
-                    @((MarkupString)RuleDisplayHtml.DisplayLastHit(rule))
+                    @((MarkupString)RuleDisplayHtml.DisplayLastHit(rule.Metadata))
                 </Template>
             </Column>
         }
@@ -35,22 +35,22 @@
         {
             <Column TableItem="Rule" Context="rule" Title="@(userConfig.GetText("next_recert_date"))" Field="@(r => r.Metadata.RuleRecertification)" Sortable="false" Filterable="false">
                 <Template>
-                    @((MarkupString)RuleDisplayHtml.DisplayNextRecert(rule))
+                    @((MarkupString)RuleDisplayHtml.DisplayNextRecert(rule.Metadata))
                 </Template>
             </Column>
             <Column TableItem="Rule" Context="rule" Title="@(userConfig.GetText("owner"))" Field="@(r => r.Metadata.RuleRecertification)" Sortable="false" Filterable="false">
                 <Template>
-                    @((MarkupString)RuleDisplayHtml.DisplayOwner(rule))
+                    @((MarkupString)RuleDisplayHtml.DisplayOwner(rule.Metadata))
                 </Template>
             </Column>
             <Column TableItem="Rule" Context="rule" Title="@(userConfig.GetText("ip_matches"))" Field="@(r => r.Metadata.RuleRecertification)" Sortable="false" Filterable="false">
                 <Template>
-                    @((MarkupString)RuleDisplayHtml.DisplayRecertIpMatches(rule))
+                    @((MarkupString)RuleDisplayHtml.DisplayRecertIpMatches(rule.Metadata))
                 </Template>
             </Column>
             <Column TableItem="Rule" Context="rule" Title="@(userConfig.GetText("last_hit"))" Field="@(r => r.Metadata.LastHit)" Sortable="false" Filterable="false">
                 <Template>
-                    @((MarkupString)RuleDisplayHtml.DisplayLastHit(rule))
+                    @((MarkupString)RuleDisplayHtml.DisplayLastHit(rule.Metadata))
                 </Template>
             </Column>
             @if(Recertification && RecertificationHistory)
@@ -58,7 +58,7 @@
                 // TODO: implement 2nd recert report containing latest recerts
                 <Column TableItem="Rule" Context="rule" Title="@(userConfig.GetText("last_recertifier"))" Field="@(r => r.Metadata.RuleRecertification)" Sortable="false" Filterable="true">
                     <Template>
-                        @((MarkupString)RuleDisplayHtml.DisplayLastRecertifier(rule))
+                        @((MarkupString)RuleDisplayHtml.DisplayLastRecertifier(rule.Metadata))
                     </Template>
                 </Column>
             }
@@ -99,7 +99,7 @@
         {
             <Column TableItem="Rule" Context="rule" Title="@(userConfig.GetText("source_zone"))" Field="@(r => r.SourceZone)" Sortable="true" Filterable="false" Hideable="true">
                 <Template>
-                    @((MarkupString)ruleDisplay.DisplaySourceZone(rule))
+                    @((MarkupString)RuleDisplayBase.DisplaySourceZone(rule))
                 </Template>
             </Column>
         }
@@ -112,7 +112,7 @@
         {
             <Column TableItem="Rule" Context="rule" Title="@(userConfig.GetText("destination_zone"))" Field="@(r => r.Name)" Sortable="true" Filterable="false" Hideable="true">
                 <Template>
-                    @((MarkupString)ruleDisplay.DisplayDestinationZone(rule))
+                    @((MarkupString)RuleDisplayBase.DisplayDestinationZone(rule))
                 </Template>
             </Column>
         }
@@ -151,7 +151,7 @@
         }
         <Column TableItem="Rule" Context="rule" Title="@(userConfig.GetText("enabled"))" Field="@(r => r.Disabled)" Sortable="true" Filterable="false" Hideable="true">
             <Template>
-                @((MarkupString)RuleDisplayHtml.DisplayEnabled(rule, getActLocation()))
+                @((MarkupString)RuleDisplayBase.DisplayEnabled(rule, getActLocation()))
             </Template>
         </Column>
         <Column TableItem="Rule" Title="@(userConfig.GetText("uid"))" Field="@(r => r.Uid)" Sortable="true" Filterable="false" Hideable="true" />

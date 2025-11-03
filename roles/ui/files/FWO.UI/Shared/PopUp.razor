@@ -5,7 +5,13 @@
             <div class="@(SizeClass())">
                 <div class="modal-content @(SizeClassContent())">
                     <div class="modal-header justify-content-between">
-                        <h5>@Title</h5>
+                        <div style="display:flex;align-items:center;gap:0.2rem;">
+                            <h5 class="mb-0">@Title</h5>
+                            @if (!string.IsNullOrWhiteSpace(HelpPage))
+                            {
+                                <HelpLink Page="@HelpPage" />
+                            }
+                        </div>
                         <button type="button" class="modern-close" @onclick="Close">
                             <span>&times;</span>
                         </button>
@@ -32,6 +38,9 @@
 {
     [Parameter]
     public string Title { get; set; } = "EMPTY_TITLE";
+
+    [Parameter]
+    public string? HelpPage { get; set; }
 
     [Parameter]
     public RenderFragment? Body { get; set; }

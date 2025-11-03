@@ -21,11 +21,25 @@ ALTER TABLE object ADD CONSTRAINT object_obj_ip_not_null CHECK (obj_ip IS NOT NU
 ALTER TABLE object ADD CONSTRAINT object_obj_ip_end_not_null CHECK (obj_ip_end IS NOT NULL OR obj_typ_id=2);
 ALTER TABLE owner ADD CONSTRAINT owner_name_unique_in_tenant UNIQUE ("name","tenant_id");
 ALTER TABLE owner_network ADD CONSTRAINT port_in_valid_range CHECK (port > 0 and port <= 65535);
+ALTER TABLE owner_network ADD CONSTRAINT owner_network_ip_is_host CHECK (is_single_ip(ip));
+ALTER TABLE owner_network ADD CONSTRAINT owner_network_ip_end_is_host CHECK (is_single_ip(ip_end));
 ALTER TABLE owner_network ADD CONSTRAINT owner_network_ip_unique UNIQUE (owner_id, ip, ip_end, import_source);
 ALTER TABLE request.reqelement ADD CONSTRAINT port_in_valid_range CHECK (port > 0 and port <= 65535);
 ALTER TABLE request.implelement ADD CONSTRAINT port_in_valid_range CHECK (port > 0 and port <= 65535);
-Alter Table "rule" add Constraint "rule_altkey" UNIQUE ("dev_id","rule_uid","rule_create",xlate_rule);
-Alter Table "rule_metadata" add Constraint "rule_metadata_alt_key" UNIQUE ("rule_uid","dev_id");
+-- Alter Table "rule" add Constraint "rule_altkey" UNIQUE ("dev_id","rule_uid","rule_create",xlate_rule);
+Alter Table "rule" ADD Constraint "rule_unique_mgm_id_rule_uid_rule_create_xlate_rule" UNIQUE ("mgm_id", "rule_uid","rule_create","xlate_rule");
+-- Alter Table "rule_metadata" add Constraint "rule_metadata_alt_key" UNIQUE ("rule_uid","dev_id");
+-- Alter Table "rule_metadata" add Constraint "rule_metadata_alt_key" UNIQUE ("rule_uid","dev_id","rulebase_id");
+ALTER TABLE rule_metadata ADD Constraint "rule_metadata_rule_uid_unique" unique ("rule_uid");
+Alter table "rulebase" add CONSTRAINT unique_rulebase_mgm_id_uid UNIQUE ("mgm_id", "uid");
+Alter table "rulebase_link" add CONSTRAINT unique_rulebase_link
+	UNIQUE (
+	"gw_id",
+	"from_rulebase_id",
+	"from_rule_id",
+	"to_rulebase_id",
+	"created"
+	);
 Alter Table "service" add Constraint "svc_altkey" UNIQUE ("mgm_id","svc_uid","svc_create");
 Alter Table "stm_dev_typ" add Constraint "Alter_Key1" UNIQUE ("dev_typ_name","dev_typ_version");
 Alter Table "usr" add Constraint "usr_altkey" UNIQUE ("mgm_id","user_name","user_create");
@@ -35,15 +49,18 @@ create unique index if not exists only_one_future_recert_per_owner_per_rule on r
     where recert_date IS NULL;
 
 --- compliance
+
 CREATE EXTENSION IF NOT EXISTS btree_gist;
 ALTER TABLE compliance.ip_range ADD CONSTRAINT "exclude_overlapping_ip_ranges"
 EXCLUDE USING gist (
     network_zone_id WITH =,
     numrange(ip_range_start - '0.0.0.0'::inet, ip_range_end - '0.0.0.0'::inet, '[]') WITH &&
-);
+)
+WHERE (removed IS NULL);
 
-ALTER TABLE owner_network ADD CONSTRAINT owner_network_ip_is_host CHECK (is_single_ip(ip));
-ALTER TABLE owner_network ADD CONSTRAINT owner_network_ip_end_is_host CHECK (is_single_ip(ip_end));
+--- report template
 
--- Alter Table modelling.service add Constraint "modelling_service_unique_name" UNIQUE ("name", "app_id");
--- Alter Table modelling.service add Constraint "modelling_service_unique_name_ext_app_id" UNIQUE ("name", "ext_app_id");
+ALTER TABLE report_template
+ADD CONSTRAINT unique_report_template_name UNIQUE (report_template_name);
+
+

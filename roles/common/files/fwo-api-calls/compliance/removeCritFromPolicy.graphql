@@ -1,0 +1,17 @@
+mutation removeCritFromPolicy(
+  $policyId: Int!
+  $criterionId: Int!
+  $removed: timestamptz
+) {
+  update_compliance_policy_criterion(
+    where: {
+	  policy_id: {_eq: $policyId}
+	  criterion_id: {_eq: $criterionId}
+	  removed: {_is_null: true}
+	}
+    _set: {
+    removed: $removed
+  }) {
+    affected_rows
+  }
+}

@@ -24,7 +24,6 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest]
-        # os: [ubuntu-latest, ubuntu-22.04]
     steps:
       - uses: actions/checkout@v4
 
@@ -44,3 +43,4 @@ jobs:
           dotnet restore
           dotnet build
           dotnet test --filter "Name=HtmlToPdfTest"
+

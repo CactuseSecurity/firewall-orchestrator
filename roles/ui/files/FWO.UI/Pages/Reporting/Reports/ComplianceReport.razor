@@ -1,0 +1,292 @@
+@using FWO.Report
+@using FWO.Report.Data.ViewData
+@using FWO.Ui.Display
+
+@inject UserConfig userConfig
+
+<Collapse Title="Compliance Report" Style="@("primary")" StartToggled="true">
+    <Table SelectedItems="SelectedRules"
+        RowClickAction="@(async rule => await OnRowSelected(rule))"
+        style="font-size:small" 
+        TableClass="table table-bordered table-sm th-bg-secondary table-responsive overflow-auto sticky-header" 
+        TableItem="RuleViewData" 
+        Items="_reportRules" 
+        ShowSearchBar="false"
+        PageSize="RulesPerPage" 
+        ColumnReorder="true" 
+        TableRowClass="@(rule => getTableRowClasses(rule))"
+        @ref="_reportTable">
+
+        @if (EmptyColumns[0] == false)
+        {
+            <Column TableItem="RuleViewData" Context="rule" Title="MgmtId" Field="@(r => r.MgmtId)" Sortable="true" Filterable="true" Hideable="true">
+                <Template>
+                    @((MarkupString)rule.MgmtId)
+                </Template>
+            </Column>
+        }
+
+        @if (EmptyColumns[1] == false)
+        {
+            <Column TableItem="RuleViewData" Context="rule" Title="MgmtName" Field="@(r => r.MgmtName)" Sortable="true" Filterable="true" Hideable="true">
+                <Template>
+                    @((MarkupString)rule.MgmtName)
+                </Template>
+            </Column>
+        }
+
+        @if (EmptyColumns[2] == false)
+        {
+            <Column TableItem="RuleViewData" Context="rule" Title="Uid" Field="@(r => r.Uid)" Sortable="true" Filterable="true" Hideable="true">
+                <Template>
+                    @((MarkupString)rule.Uid)
+                </Template>
+            </Column>
+        }
+
+        @if (EmptyColumns[3] == false)
+        {
+            <Column TableItem="RuleViewData" Context="rule" Title="Name" Field="@(r => r.Name)" Sortable="true" Filterable="true" Hideable="true">
+                <Template>
+                    @((MarkupString)rule.Name)
+                </Template>
+            </Column>
+        }
+
+        @if (EmptyColumns[4] == false)
+        {
+            <Column TableItem="RuleViewData" Context="rule" Title="Source" Field="@(r => r.Source)" Sortable="true" Filterable="true" Hideable="true">
+                <Template>
+                    @((MarkupString)rule.Source)
+                </Template>
+            </Column>
+        }
+
+        @if (EmptyColumns[5] == false)
+        {
+            <Column TableItem="RuleViewData" Context="rule" Title="Destination" Field="@(r => r.Destination)" Sortable="true" Filterable="true" Hideable="true">
+                <Template>
+                    @((MarkupString)rule.Destination)
+                </Template>
+            </Column>
+        }
+
+        @if (EmptyColumns[6] == false)
+        {
+            <Column TableItem="RuleViewData" Context="rule" Title="Services" Field="@(r => r.Services)" Sortable="true" Filterable="true" Hideable="true">
+                <Template>
+                    @((MarkupString)rule.Services)
+                </Template>
+            </Column>
+        }
+
+        @if (EmptyColumns[7] == false)
+        {
+            <Column TableItem="RuleViewData" Context="rule" Title="Action" Field="@(r => r.Action)" Sortable="true" Filterable="true" Hideable="true">
+                <Template>
+                    @((MarkupString)rule.Action)
+                </Template>
+            </Column>
+        }
+
+        @if (EmptyColumns[8] == false)
+        {
+            <Column TableItem="RuleViewData" Context="rule" Title="InstallOn" Field="@(r => r.InstallOn)" Sortable="true" Filterable="true" Hideable="true">
+                <Template>
+                    @((MarkupString)rule.InstallOn)
+                </Template>
+            </Column>
+        }
+
+        @if (EmptyColumns[9] == false)
+        {
+            <Column TableItem="RuleViewData" Context="rule" Title="Compliance" Field="@(r => r.Compliance)" Sortable="true" Filterable="true" Hideable="true">
+                <Template>
+                    @((MarkupString)rule.Compliance)
+                </Template>
+            </Column>
+        }
+
+        @if (EmptyColumns[10] == false)
+        {
+            <Column TableItem="RuleViewData" Context="rule" Title="ViolationDetails" Field="@(r => r.ViolationDetails)" Sortable="true" Filterable="true" Hideable="true">
+                <Template>
+                    @((MarkupString)rule.ViolationDetails)
+                </Template>
+            </Column>
+        }
+
+        @if (EmptyColumns[11] == false)
+        {
+            <Column TableItem="RuleViewData" Context="rule" Title="ChangeID" Field="@(r => r.ChangeID)" Sortable="true" Filterable="true" Hideable="true">
+                <Template>
+                    @((MarkupString)rule.ChangeID)
+                </Template>
+            </Column>
+        }
+
+        @if (EmptyColumns[12] == false)
+        {
+            <Column TableItem="RuleViewData" Context="rule" Title="AdoITID" Field="@(r => r.AdoITID)" Sortable="true" Filterable="true" Hideable="true" DefaultSortColumn="true">
+                <Template>
+                    @((MarkupString)rule.AdoITID)
+                </Template>
+            </Column>
+        }
+
+        @if (EmptyColumns[13] == false)
+        {
+            <Column TableItem="RuleViewData" Context="rule" Title="Comment" Field="@(r => r.Comment)" Sortable="true" Filterable="true" Hideable="true">
+                <Template>
+                    @((MarkupString)rule.Comment)
+                </Template>
+            </Column>
+        }
+
+        @if (EmptyColumns[14] == false)
+        {
+            <Column TableItem="RuleViewData" Context="rule" Title="RulebaseId" Field="@(r => r.RulebaseId)" Sortable="true" Filterable="true" Hideable="true">
+                <Template>
+                    @((MarkupString)rule.RulebaseId)
+                </Template>
+            </Column>
+        }
+
+        @if (EmptyColumns[15] == false)
+        {
+            <Column TableItem="RuleViewData" Context="rule" Title="RulebaseName" Field="@(r => r.RulebaseName)" Sortable="true" Filterable="true" Hideable="true">
+                <Template>
+                    @((MarkupString)rule.RulebaseName)
+                </Template>
+            </Column>
+        }
+
+        <DetailTemplate TableItem="RuleViewData">
+            @if(context.DataObject?.Metadata != null)
+            {
+                <Detail Title="@(userConfig.GetText("created"))" Data="@context.DataObject.Metadata?.Created?.ToString()" />
+                <Detail Title="@(userConfig.GetText("last_modified"))" Data="@context.DataObject.Metadata?.LastModified?.ToString()" />
+                <Detail Title="@(userConfig.GetText("first_hit"))" Data="@context.DataObject.Metadata?.FirstHit?.ToString()" />
+                <Detail Title="@(userConfig.GetText("last_hit"))" Data="@context.DataObject.Metadata?.LastHit?.ToString()" />
+                <Detail Title="@(userConfig.GetText("last_certify_date"))" Data="@context.DataObject.Metadata?.LastCertified?.ToString()" />
+                <Detail Title="@(userConfig.GetText("last_recertifier"))" Data="@context.DataObject.Metadata?.LastCertifierDn?.ToString()" />
+                <Detail Title="@(userConfig.GetText("decert_date"))" Data="@context.DataObject.Metadata?.DecertificationDate?.ToString()" />
+                <Detail Title="@(userConfig.GetText("recert_comment"))" Data="@context.DataObject.Metadata?.Comment?.ToString()" />
+                <Detail Title="@(userConfig.GetText("recert_history"))" Data="@(context.DataObject.Metadata?.RecertHistory.Count > 0 ? ":" : "")" />
+                @foreach(var recert in context.DataObject.Metadata!.RecertHistory)
+                {
+                    <Detail Title="@(recert.RecertDate.ToString())" Data="@(getHistoryString(recert))" />
+                }
+            }
+        </DetailTemplate>
+
+        <CustomRow TableItem="RuleViewData" IsActiveForItem="(rule => !String.IsNullOrEmpty(rule.DataObject!.SectionHeader))">
+            <tr>
+                <td class="bg-light" colspan="@(_reportTable?.Columns.Count + 1)">
+                    <div class="font-weight-bold">@(context.DataObject!.SectionHeader)</div>
+                </td>
+            </tr>
+        </CustomRow>
+
+        <Pager ShowPageNumber="true" ShowTotalCount="true" />
+    </Table>
+</Collapse>
+
+@code
+{
+    [Parameter]
+    public ReportData ReportData {get; set;} = new();
+
+    [Parameter]
+    public EventCallback<List<RuleViewData>> SelectedRulesChanged { get; set; }
+
+    [Parameter]
+    public List<RuleViewData> SelectedRules { get; set; } = [];
+
+    [Parameter]
+    public int RulesPerPage { get; set; }
+
+    [Parameter]
+    public EventCallback<int> WidthChanged { get; set; }
+
+    [Parameter]
+    public int Width { get; set; }
+
+    [Parameter]
+    public bool ShowAnyRule { get; set; }
+
+    private ITable<RuleViewData>? _reportTable;
+
+    private RuleViewData[] _reportRules = [];
+    private RuleViewData[] _visibleRules = [];
+    private RuleViewData[] _allRules = [];
+
+    private const int ColumnsCount = 16;
+    private bool[] EmptyColumns = new bool[ColumnsCount];
+
+    private NatRuleDisplayHtml? ruleDisplay;
+    
+    protected override void OnInitialized()
+    {
+        ruleDisplay = new NatRuleDisplayHtml(userConfig);
+        UpdateRuleViewData();
+    }
+
+    private async Task OnRowSelected(RuleViewData rule)
+    {
+        if (SelectedRules.Contains(rule))
+        {
+            SelectedRules.Remove(rule);
+        }
+        else
+        {
+            SelectedRules.Add(rule);
+        }
+        
+        await SelectedRulesChanged.InvokeAsync(SelectedRules);
+    }
+
+    private string getTableRowClasses(RuleViewData rule)
+    {
+        string classes = "";
+
+        if(rule.DataObject?.SectionHeader != null)
+        {
+            classes = "hide-all-but-second-child second-child-full-width ";
+        }
+
+        return classes;
+    }
+
+    private string getHistoryString(Recertification recert)
+    {
+        string username = new DistName(recert.UserDn).UserName;
+        return $"{userConfig.GetText(recert.Recertified ? "recertified_by" : "decertified_by")} {username} " +
+            $"{userConfig.GetText("as_owner")} {recert.FwoOwner?.Name} {userConfig.GetText("comment")}: {recert.Comment}";
+    }
+
+    public void UpdateRuleViewData(ReportData? reportData = null)
+    {
+        if(reportData != null)
+        {
+            ReportData = reportData;
+        }
+        
+        _allRules = ReportData.RuleViewData.Cast<RuleViewData>().ToArray();
+        _visibleRules = _allRules.Where(r => r.Show).ToArray();
+
+        UpdateVisibleRules();
+    }
+
+    public void UpdateVisibleRules()
+    {
+        if (ShowAnyRule)
+        {
+            _reportRules = _allRules;
+        }
+        else
+        {
+            _reportRules = _visibleRules;
+        }
+    }
+}

@@ -45,7 +45,7 @@ namespace FWO.Middleware.Server
             {
                 string messageText = $"No valid network data found in any of the following import files {string.Join(", ", importfilePathAndNames)}. No changes were made.";
                 Log.WriteInfo(LogMessageTitle, messageText);
-                await AddLogEntry(2, LevelFile, messageText);
+                await AddLogEntry(GlobalConst.kImportAreaSubnetData, 2, LevelFile, messageText);
             }
             return FailedImports;
         }
@@ -75,7 +75,7 @@ namespace FWO.Middleware.Server
             {
                 string errorText = $"Import from file {importfilePathAndName}.json could not be processed.";
                 Log.WriteError(LogMessageTitle, errorText, ex);
-                await AddLogEntry(2, LevelFile, errorText);
+                await AddLogEntry(GlobalConst.kImportAreaSubnetData, 2, LevelFile, errorText);
                 failedImports.Add(importfilePathAndName);
             }
         }
@@ -117,7 +117,7 @@ namespace FWO.Middleware.Server
 
             string messageText = $"Imported {successCounter} areas successfully, {failCounter} areas failed. Deleted {deleteCounter} areas, {deleteFailCounter} failed.";
             Log.WriteInfo(LogMessageTitle, messageText);
-            await AddLogEntry(0, LevelFile, messageText);
+            await AddLogEntry(GlobalConst.kImportAreaSubnetData, 0, LevelFile, messageText);
         }
 
         private static ModellingImportNwData ConvertNwDataToRanges(ModellingImportNwData nwData)
@@ -220,7 +220,7 @@ namespace FWO.Middleware.Server
             {
                 string errorText = $"Area {incomingArea.Name}({incomingArea.IdString}) could not be processed.";
                 Log.WriteError(LogMessageTitle, errorText, exc);
-                await AddLogEntry(1, LevelArea, errorText);
+                await AddLogEntry(GlobalConst.kImportAreaSubnetData, 1, LevelArea, errorText);
                 return false;
             }
             return true;
@@ -320,7 +320,7 @@ namespace FWO.Middleware.Server
             {
                 string errorText = $"Outdated Area {area.Name} could not be deleted.";
                 Log.WriteError(LogMessageTitle, errorText, exc);
-                await AddLogEntry(1, LevelArea, errorText);
+                await AddLogEntry(GlobalConst.kImportAreaSubnetData, 1, LevelArea, errorText);
                 return false;
             }
             return true;
@@ -336,31 +336,7 @@ namespace FWO.Middleware.Server
             {
                 string errorText = $"Area {area.Name}({area.IdString}) could not be reactivated.";
                 Log.WriteError(LogMessageTitle, errorText, exc);
-                await AddLogEntry(1, LevelArea, errorText);
-            }
-        }
-        
-        private async Task AddLogEntry(int severity, string level, string description)
-        {
-            try
-            {
-                var Variables = new
-                {
-                    user = 0,
-                    source = GlobalConst.kImportAreaSubnetData,
-                    severity = severity,
-                    suspectedCause = level,
-                    description = description
-                };
-                ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<ReturnIdWrapper>(MonitorQueries.addDataImportLogEntry, Variables)).ReturnIds;
-                if (returnIds == null)
-                {
-                    Log.WriteError("Write Log", "Log could not be written to database");
-                }
-            }
-            catch (Exception exc)
-            {
-                Log.WriteError("Write Log", $"Could not write log: ", exc);
+                await AddLogEntry(GlobalConst.kImportAreaSubnetData, 1, LevelArea, errorText);
             }
         }
     }

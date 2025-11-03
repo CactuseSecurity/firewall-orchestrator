@@ -15,6 +15,11 @@ namespace FWO.Data
 
         public ComplianceViolationType Type { get; set; } = ComplianceViolationType.None;
 
+        public ComplianceViolation()
+        {
+
+        }
+        
         public ComplianceViolation(int id, ComplianceViolationBase baseObj)
         {
             Id = id;

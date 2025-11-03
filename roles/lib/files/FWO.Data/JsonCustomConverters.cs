@@ -92,25 +92,27 @@ namespace FWO.Data
         {
             ComplianceViolation? violation = null;
 
-            // Try deserialize base.
-
-            ComplianceViolationBase? violationBase = serializer.Deserialize<ComplianceViolationBase>(reader);
-
-            if (violationBase != null)
+            if (reader.TokenType == JsonToken.Null)
             {
-                // Get id from json object.
+                // Try deserialize base.
 
                 JObject jsonObject = JObject.Load(reader);
-                int id = jsonObject.GetValue("id")?.ToObject<int>() ?? 0;
+                ComplianceViolationBase? violationBase = jsonObject.ToObject<ComplianceViolationBase>(serializer);
 
-                // Create instance from base and set id.
+                if (violationBase != null)
+                {
+                    // Get id from json object.
 
-                violation = new(id, violationBase);
+                    int id = jsonObject.GetValue("id")?.ToObject<int>() ?? 0;
 
-                // Parse Violation Type via criterion.
+                    // Create instance from base and set id.
 
-                violation.Type = violation.ParseViolationType(violation.Criterion);
+                    violation = new(id, violationBase);
 
+                    // Parse Violation Type via criterion.
+
+                    violation.Type = violation.ParseViolationType(violation.Criterion);
+                }
             }
 
             return violation;

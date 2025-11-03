@@ -62,19 +62,22 @@ class FwConfigImportGateway:
 
             previous_config_gw = next((p_gw for p_gw in self._global_state.previous_config.gateways if gw.Uid == p_gw.Uid), None)
 
-            if gw not in self._global_state.previous_config.gateways:   # this check finds all changes in gateway (including rulebase link changes)
-                if self._global_state.import_state.DebugLevel>8:
-                    logger.debug(f"gateway {str(gw)} NOT found in previous config")
-                if gw.Uid is None:
-                    raise FwoImporterError("found gateway with Uid = None")
-                gw_id = self._global_state.import_state.lookupGatewayId(gw.Uid)
-                if gw_id is None:
-                    logger.warning(f"did not find a gwId for UID {gw.Uid}")
+            if gw in self._global_state.previous_config.gateways:   # this check finds all changes in gateway (including rulebase link changes)
+                # gateway found with exactly same properties in previous config
+                continue
 
-                self._create_insert_args(gw, previous_config_gw, gw_id, logger, required_inserts)
+            if self._global_state.import_state.DebugLevel>8:
+                logger.debug(f"gateway {str(gw)} NOT found in previous config")
+            if gw.Uid is None:
+                raise FwoImporterError("found gateway with Uid = None")
+            gw_id = self._global_state.import_state.lookupGatewayId(gw.Uid)
+            if gw_id is None:
+                logger.warning(f"did not find a gwId for UID {gw.Uid}")
 
-                if previous_config_gw:
-                    self._create_remove_args(gw, previous_config_gw, gw_id, logger, required_removes)
+            self._create_insert_args(gw, previous_config_gw, gw_id, logger, required_inserts)
+
+            if previous_config_gw:
+                self._create_remove_args(gw, previous_config_gw, gw_id, logger, required_removes)
 
         return required_inserts, required_removes
     

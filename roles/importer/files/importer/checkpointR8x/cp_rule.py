@@ -430,7 +430,7 @@ def resolveNwObjUidToName(nw_obj_uid):
     
 
 # delete_v: left here only for nat case
-def check_and_add_section_header(src_rulebase, target_rulebase, layer_name, import_id, section_header_uids, parent_uid, config2import, debug_level=0, recursion_level=1):
+def check_and_add_section_header(src_rulebase, target_rulebase, layer_name, import_id, section_header_uids, parent_uid):
     # if current rulebase starts a new section, add section header, but only if it does not exist yet (can happen by chunking a section)
     if 'type' in src_rulebase and src_rulebase['type'] == 'access-section' and 'uid' in src_rulebase: # and not src_rulebase['uid'] in section_header_uids:
         section_name = default_section_header_text
@@ -440,12 +440,12 @@ def check_and_add_section_header(src_rulebase, target_rulebase, layer_name, impo
             parent_uid = src_rulebase['parent_rule_uid']
         else:
             parent_uid = ""
-        insertSectionHeaderRule(target_rulebase, section_name, layer_name, import_id, src_rulebase['uid'], section_header_uids, parent_uid)
+        insert_section_header_rule(target_rulebase, section_name, layer_name, import_id, src_rulebase['uid'], section_header_uids, parent_uid)
         parent_uid = src_rulebase['uid']
     return
 
 
-def insertSectionHeaderRule(target_rulebase, section_name, layer_name, import_id, src_rulebase_uid, section_header_uids, parent_uid):
+def insert_section_header_rule(target_rulebase, section_name, layer_name, import_id, src_rulebase_uid, section_header_uids, parent_uid):
     # TODO: re-implement
     return
 

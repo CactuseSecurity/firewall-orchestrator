@@ -608,27 +608,44 @@ $$ LANGUAGE 'plpgsql' STABLE;
 
 
 CREATE OR REPLACE FUNCTION public.get_rulebase_for_owner(rulebase_row rulebase, ownerid integer)
- RETURNS SETOF rule
- LANGUAGE plpgsql
- STABLE
-AS $function$
-    BEGIN
-        RETURN QUERY
-        SELECT r.* FROM rule r
-            LEFT JOIN rule_from rf ON (r.rule_id=rf.rule_id)
-            LEFT JOIN objgrp_flat rf_of ON (rf.obj_id=rf_of.objgrp_flat_id)
-            LEFT JOIN object rf_o ON (rf_of.objgrp_flat_member_id=rf_o.obj_id)
-            LEFT JOIN owner_network ON
-            (ip_ranges_overlap(rf_o.obj_ip, rf_o.obj_ip_end, ip, ip_end, rf.negated != r.rule_src_neg))
-        WHERE r.rulebase_id = rulebase_row.id AND owner_id = ownerid AND rule_head_text IS NULL
-        UNION
-        SELECT r.* FROM rule r
-            LEFT JOIN rule_to rt ON (r.rule_id=rt.rule_id)
-            LEFT JOIN objgrp_flat rt_of ON (rt.obj_id=rt_of.objgrp_flat_id)
-            LEFT JOIN object rt_o ON (rt_of.objgrp_flat_member_id=rt_o.obj_id)
-            LEFT JOIN owner_network ON
-            (ip_ranges_overlap(rt_o.obj_ip, rt_o.obj_ip_end, ip, ip_end, rt.negated != r.rule_dst_neg))
-        WHERE r.rulebase_id = rulebase_row.id AND owner_id = ownerid AND rule_head_text IS NULL
-        ORDER BY rule_name;
-    END;
-$function$
+RETURNS SETOF rule
+LANGUAGE sql
+STABLE
+AS $$
+  SELECT r.*
+  FROM rule r
+  WHERE r.rulebase_id = rulebase_row.id
+    AND r.rule_head_text IS NULL
+    AND (
+      r.rule_id IN (
+        SELECT rf.rule_id
+        FROM rule_from rf
+        JOIN objgrp_flat of1 ON of1.objgrp_flat_id = rf.obj_id
+        JOIN object      o1  ON o1.obj_id = of1.objgrp_flat_member_id
+        JOIN owner_network onet1 ON onet1.owner_id = ownerid
+        WHERE rf.rule_id = r.rule_id
+          AND ip_ranges_overlap(
+                o1.obj_ip, o1.obj_ip_end,
+                onet1.ip, onet1.ip_end,
+                rf.negated <> r.rule_src_neg
+              )
+      )
+      OR
+      r.rule_id IN (
+        SELECT rt.rule_id
+        FROM rule_to rt
+        JOIN objgrp_flat of2 ON of2.objgrp_flat_id = rt.obj_id
+        JOIN object      o2  ON o2.obj_id = of2.objgrp_flat_member_id
+        JOIN owner_network onet2 ON onet2.owner_id = ownerid
+        WHERE rt.rule_id = r.rule_id
+          AND ip_ranges_overlap(
+                o2.obj_ip, o2.obj_ip_end,
+                onet2.ip, onet2.ip_end,
+                rt.negated <> r.rule_dst_neg
+              )
+      )
+    )
+  ORDER BY r.rule_name;
+$$;
+
+

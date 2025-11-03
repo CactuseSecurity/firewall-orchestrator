@@ -22,12 +22,12 @@ namespace FWO.Compliance
         private ReportFilters _reportFilters = new();
         private CompliancePolicy? _policy = null;
         private List<ComplianceNetworkZone> _networkZones = [];
-        
+
         private readonly UserConfig _userConfig;
         private readonly ApiConnection _apiConnection;
         private readonly DebugConfig _debugConfig;
 
-        private List<int> _relevanteManagementIDs = new();
+        private readonly List<int> _relevantManagementIDs = new();
 
         /// <summary>
         /// Constructor for compliance check
@@ -54,7 +54,7 @@ namespace FWO.Compliance
             {
                 try
                 {
-                    _relevanteManagementIDs = userConfig.GlobalConfig.ComplianceCheckRelevantManagements
+                    _relevantManagementIDs = userConfig.GlobalConfig.ComplianceCheckRelevantManagements
                         .Split(',', StringSplitOptions.RemoveEmptyEntries)
                         .Select(s => int.Parse(s.Trim()))
                         .ToList();
@@ -120,13 +120,13 @@ namespace FWO.Compliance
                 else
                 {
                     Log.WriteError("Compliance Check", "Could not generate compliance report.");
-                }    
+                }
             }
             catch (System.Exception e)
             {
                 Log.WriteError("Compliance Check", "Error while checking for compliance violations.", e);
             }
-            
+
         }
 
         /// <summary>
@@ -305,7 +305,7 @@ namespace FWO.Compliance
             catch (Exception e)
             {
                 Log.WriteError("Compliance Check", "Error creating unique violation key", Error: e);
-                
+
             }
 
             return key;
@@ -330,7 +330,7 @@ namespace FWO.Compliance
 
             return Task.FromResult(violationsForUpdate);
         }
-        
+
         private async Task CheckRuleComplianceForAllRules()
         {
             int nonCompliantRules = 0;
@@ -387,62 +387,124 @@ namespace FWO.Compliance
             return ruleIsCompliant;
         }
 
+        private bool CheckMatrixCompliance(List<IPAddressRange> source, List<IPAddressRange> destination, out List<(ComplianceNetworkZone, ComplianceNetworkZone)> forbiddenCommunication)
+        {
+            // Determine all matching source zones
+            List<ComplianceNetworkZone> sourceZones = DetermineZones(source);
+
+            // Determine all macthing destination zones
+            List<ComplianceNetworkZone> destinationZones = DetermineZones(destination);
+
+            forbiddenCommunication = [];
+
+            foreach (ComplianceNetworkZone sourceZone in sourceZones)
+            {
+                foreach (ComplianceNetworkZone destinationZone in destinationZones.Where(d => !sourceZone.CommunicationAllowedTo(d)))
+                {
+                    forbiddenCommunication.Add((sourceZone, destinationZone));
+                }
+            }
+
+            return forbiddenCommunication.Count == 0;
+        }
+
         private bool CheckMatrixCompliance(Rule rule, List<(NetworkObject networkObject, List<IPAddressRange> ipRanges)> source, List<(NetworkObject networkObject, List<IPAddressRange> ipRanges)> destination)
         {
             bool ruleIsCompliant = true;
 
             List<(NetworkObject networkObject, List<ComplianceNetworkZone>? networkZones)> sourceZones = MapZonesToNetworkObjects(source);
             List<(NetworkObject networkObject, List<ComplianceNetworkZone>? networkZones)> destinationZones = MapZonesToNetworkObjects(destination);
-            List<NetworkObject> objectsWithoutZone = [];
+            ComplianceCriterion? matrixCriterion = _policy?.Criteria.FirstOrDefault(c => c.Content.CriterionType == CriterionType.Matrix.ToString())?.Content;
+
+            if (!HandleUnresolvedZones(rule, sourceZones, true))
+            {
+                ruleIsCompliant = false;
+            }
+
+            if (!HandleUnresolvedZones(rule, destinationZones, false))
+            {
+                ruleIsCompliant = false;
+            }
 
             foreach ((NetworkObject networkObject, List<ComplianceNetworkZone>? networkZones) sourceZone in sourceZones)
             {
                 if (sourceZone.networkZones == null)
                 {
-                    CreateUnresolvableZoneViolation(rule, sourceZone.networkObject, true);
-                    ruleIsCompliant = false;
                     continue;
                 }
 
-                foreach (ComplianceNetworkZone sourceNetworkZone in sourceZone.networkZones ?? [])
+                foreach ((NetworkObject networkObject, List<ComplianceNetworkZone>? networkZones) destinationZone in destinationZones)
                 {
-                    foreach ((NetworkObject networkObject, List<ComplianceNetworkZone>? networkZones) destinationZone in destinationZones)
+                    if (destinationZone.networkZones == null)
                     {
+                        continue;
+                    }
 
-                        if (sourceZone.networkZones == null)
-                        {
-                            CreateUnresolvableZoneViolation(rule, destinationZone.networkObject, false);
-                            ruleIsCompliant = false;
-                            continue;
-                        }
-
-                        foreach (ComplianceNetworkZone destinationNetworkZone in destinationZone.networkZones ?? [])
-                        {
-                            if (!sourceNetworkZone.CommunicationAllowedTo(destinationNetworkZone))
-                            {
-                                ComplianceCheckResult complianceCheckResult = new(rule, ComplianceViolationType.MatrixViolation)
-                                {
-                                    Criterion = _policy?.Criteria.FirstOrDefault(c => c.Content.CriterionType == CriterionType.Matrix.ToString())?.Content,
-                                    Source = sourceZone.networkObject,
-                                    SourceZone = sourceNetworkZone,
-                                    Destination = destinationZone.networkObject,
-                                    DestinationZone = destinationNetworkZone
-                                };
-
-                                ComplianceViolation? violation = TryCreateViolation(ComplianceViolationType.MatrixViolation, rule, complianceCheckResult);
-
-
-
-                                ComplianceReport!.Violations.Add(violation!);
-
-                                ruleIsCompliant = false;
-                            }
-                        }
+                    if (!CheckZonePairCompliance(rule, matrixCriterion, sourceZone, destinationZone))
+                    {
+                        ruleIsCompliant = false;
                     }
                 }
             }
 
             return ruleIsCompliant;
+        }
+
+        private bool HandleUnresolvedZones(Rule rule, IEnumerable<(NetworkObject networkObject, List<ComplianceNetworkZone>? networkZones)> zones, bool isSource)
+        {
+            bool zonesResolvable = true;
+
+            foreach ((NetworkObject networkObject, List<ComplianceNetworkZone>? networkZones) zone in zones)
+            {
+                if (zone.networkZones != null)
+                {
+                    continue;
+                }
+
+                CreateUnresolvableZoneViolation(rule, zone.networkObject, isSource);
+                zonesResolvable = false;
+            }
+
+            return zonesResolvable;
+        }
+
+        private bool CheckZonePairCompliance(Rule rule, ComplianceCriterion? matrixCriterion, (NetworkObject networkObject, List<ComplianceNetworkZone>? networkZones) sourceZone, (NetworkObject networkObject, List<ComplianceNetworkZone>? networkZones) destinationZone)
+        {
+            bool zonesCompliant = true;
+
+            foreach (ComplianceNetworkZone sourceNetworkZone in sourceZone.networkZones!)
+            {
+                foreach (ComplianceNetworkZone destinationNetworkZone in destinationZone.networkZones!)
+                {
+                    if (sourceNetworkZone.CommunicationAllowedTo(destinationNetworkZone))
+                    {
+                        continue;
+                    }
+
+                    AddMatrixViolation(rule, matrixCriterion, sourceZone.networkObject, sourceNetworkZone, destinationZone.networkObject, destinationNetworkZone);
+                    zonesCompliant = false;
+                }
+            }
+
+            return zonesCompliant;
+        }
+
+        private void AddMatrixViolation(Rule rule, ComplianceCriterion? matrixCriterion, NetworkObject source, ComplianceNetworkZone sourceZone, NetworkObject destination, ComplianceNetworkZone destinationZone)
+        {
+            ComplianceCheckResult complianceCheckResult = new(rule, ComplianceViolationType.MatrixViolation)
+            {
+                Criterion = matrixCriterion,
+                Source = source,
+                SourceZone = sourceZone,
+                Destination = destination,
+                DestinationZone = destinationZone
+            };
+
+            ComplianceViolation? violation = TryCreateViolation(ComplianceViolationType.MatrixViolation, rule, complianceCheckResult);
+
+
+
+            ComplianceReport!.Violations.Add(violation!);
         }
 
         private void CreateUnresolvableZoneViolation(Rule rule, NetworkObject networkObject, bool isSource)
@@ -487,7 +549,7 @@ namespace FWO.Compliance
                     violation.CriterionId = _policy?.Criteria
                                                 .FirstOrDefault(criterionWrapper => criterionWrapper.Content.CriterionType == "Matrix")?
                                                 .Content.Id ?? 0;
-                                                
+
                     if (complianceCheckResult.Source is NetworkObject s && complianceCheckResult.Destination is NetworkObject d)
                     {
                         string sourceString = GetNwObjectString(s);
@@ -506,7 +568,8 @@ namespace FWO.Compliance
                         }
                         else
                         {
-                            violation.Details = $"Matrix violation: Failed to resolve network objects.";                }
+                            violation.Details = $"Matrix violation: Failed to resolve network objects.";
+                        }
                     }
 
                     break;
@@ -541,27 +604,6 @@ namespace FWO.Compliance
             networkObjectString += NwObjDisplay.DisplayIp(networkObject.IP, networkObject.IpEnd, networkObject.Type.Name, true);
 
             return networkObjectString;
-        }
-
-        private bool CheckMatrixCompliance(List<IPAddressRange> source, List<IPAddressRange> destination, out List<(ComplianceNetworkZone, ComplianceNetworkZone)> forbiddenCommunication)
-        {
-            // Determine all matching source zones
-            List<ComplianceNetworkZone> sourceZones = DetermineZones(source);
-
-            // Determine all macthing destination zones
-            List<ComplianceNetworkZone> destinationZones = DetermineZones(destination);
-
-            forbiddenCommunication = [];
-
-            foreach (ComplianceNetworkZone sourceZone in sourceZones)
-            {
-                foreach (ComplianceNetworkZone destinationZone in destinationZones.Where(d => !sourceZone.CommunicationAllowedTo(d)))
-                {
-                    forbiddenCommunication.Add((sourceZone, destinationZone));
-                }
-            }
-
-            return forbiddenCommunication.Count == 0;
         }
 
         private async Task SetUpReportFilters()
@@ -608,14 +650,14 @@ namespace FWO.Compliance
                     {
                         ComplianceReport!.Violations.Add(violation);
                     }
-                    
+
                     ruleIsCompliant = false;
                 }
             }
 
             return ruleIsCompliant;
         }
-        
+
         private static Task<List<(NetworkObject networkObject, List<IPAddressRange> ipRanges)>> GetNetworkObjectsWithIpRanges(List<NetworkObject> networkObjects)
         {
             List<(NetworkObject networkObject, List<IPAddressRange> ipRanges)> networkObjectsWithIpRange = [];
@@ -670,7 +712,7 @@ namespace FWO.Compliance
                 {
                     networkZones = DetermineZones(dataItem.ipRanges);
                 }
-                
+
                 map.Add((dataItem.networkObject, networkZones));
             }
 

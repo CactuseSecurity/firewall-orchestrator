@@ -7,11 +7,11 @@ namespace FWO.Test
     [TestFixture]
     internal class ReportComplianceTest
     {
-        private MockReportCompliance _complianceReport => new(new(""), new(), Basics.ReportType.Compliance);
+        private static MockReportCompliance _complianceReport => new(new(""), new(), Basics.ReportType.Compliance);
         private MockReportCompliance _testReport = default!;
-        private MockReportComplianceDiff _complianceDiffReport => new(new(""), new(), Basics.ReportType.ComplianceDiff);
+        private static MockReportComplianceDiff _complianceDiffReport => new(new(""), new(), Basics.ReportType.ComplianceDiff);
         private MockReportComplianceDiff _testDiffReport = default!;
-        
+
 
         [SetUp]
         public void SetUpTest()
@@ -129,7 +129,7 @@ namespace FWO.Test
             // ASSERT
 
             Assert.That(testResults.First(r => r.Id == rule1.Id).ViolationDetails == controlRule1, message: $"{testResults.First(r => r.Id == rule1.Id).ViolationDetails} VS. {controlRule1}");
-            Assert.That(testResults.First(r => r.Id == rule2.Id).ViolationDetails == controlRule2 , message: $"{testResults.First(r => r.Id == rule2.Id).ViolationDetails} VS. {controlRule2}");
+            Assert.That(testResults.First(r => r.Id == rule2.Id).ViolationDetails == controlRule2, message: $"{testResults.First(r => r.Id == rule2.Id).ViolationDetails} VS. {controlRule2}");
         }
 
         private List<Rule>[] BuildFixedRuleChunksParallel(int numberOfChunks, int numberOfRulesPerChunk, int startRuleId = 1, int? maxDegreeOfParallelism = null)

@@ -47,11 +47,6 @@ namespace FWO.Data
     }
 
     public class AggregateCountLastHit
-    // {
-    //     [JsonProperty("device"), JsonPropertyName("device")]
-    //     public List<DeviceLastHit> Devices {get; set;} = [];
-    // }
-    // public class DeviceLastHit
     {
         [JsonProperty("rulebase_link"), JsonPropertyName("rulebase_link")]
         public List<RulebaseLink> RulebasesOnGateway { get; set; } = [];
@@ -62,7 +57,7 @@ namespace FWO.Data
         [JsonProperty("rulebase"), JsonPropertyName("rulebase")]
         public RulebaseLastHit Rulebase { get; set; } = new RulebaseLastHit();
     }
-    
+
     public class RulebaseLastHit
     {
         [JsonProperty("rulesWithHits"), JsonPropertyName("rulesWithHits")]

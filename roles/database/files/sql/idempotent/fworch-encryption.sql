@@ -130,34 +130,59 @@ $$ LANGUAGE plpgsql;
 SELECT * FROM encryptPasswords (getMainKey());
 
 -- function for adding local ldap data with encrypted pwds into ldap_connection
+
+-- assumes ldap_connection(active boolean NOT NULL [DEFAULT true])
+
 CREATE OR REPLACE FUNCTION insertLocalLdapWithEncryptedPasswords(
-    serverName TEXT, 
-    port INTEGER,
-    userSearchPath TEXT,
-    roleSearchPath TEXT, 
-    groupSearchPath TEXT,
-    groupWritePath TEXT,
-    tenantLevel INTEGER,
-    searchUser TEXT,
-    searchUserPwd TEXT,
-    writeUser TEXT,
-    writeUserPwd TEXT,
-    ldapType INTEGER
-) RETURNS VOID AS $$
-DECLARE
-    t_key TEXT;
-    t_encryptedReadPwd TEXT;
-    t_encryptedWritePwd TEXT;
-BEGIN
-    IF NOT EXISTS (SELECT * FROM ldap_connection WHERE ldap_server = serverName)
-    THEN
-        SELECT INTO t_key * FROM getMainKey();
-        SELECT INTO t_encryptedReadPwd * FROM encryptText(searchUserPwd, t_key);
-        SELECT INTO t_encryptedWritePwd * FROM encryptText(writeUserPwd, t_key);
-        INSERT INTO ldap_connection
-            (ldap_server, ldap_port, ldap_searchpath_for_users, ldap_searchpath_for_roles, ldap_searchpath_for_groups, ldap_writepath_for_groups,
-            ldap_tenant_level, ldap_search_user, ldap_search_user_pwd, ldap_write_user, ldap_write_user_pwd, ldap_type)
-            VALUES (serverName, port, userSearchPath, roleSearchPath, groupSearchPath, groupWritePath, tenantLevel, searchUser, t_encryptedReadPwd, writeUser, t_encryptedWritePwd, ldapType);
-    END IF;
-END;
-$$ LANGUAGE plpgsql;
+    serverName       text, 
+    port             integer,
+    userSearchPath   text,
+    roleSearchPath   text, 
+    groupSearchPath  text,
+    groupWritePath   text,
+    tenantLevel      integer,
+    searchUser       text,
+    searchUserPwd    text,
+    writeUser        text,
+    writeUserPwd     text,
+    ldapType         integer,
+    activeFlag       boolean DEFAULT true   -- ← include active explicitly
+) RETURNS void
+LANGUAGE sql
+VOLATILE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+WITH k AS (SELECT getMainKey() AS mk)
+INSERT INTO ldap_connection (
+  ldap_server,
+  ldap_port,
+  ldap_searchpath_for_users,
+  ldap_searchpath_for_roles,
+  ldap_searchpath_for_groups,
+  ldap_writepath_for_groups,
+  ldap_tenant_level,
+  ldap_search_user,
+  ldap_search_user_pwd,
+  ldap_write_user,
+  ldap_write_user_pwd,
+  ldap_type,
+  active
+)
+SELECT
+  serverName,
+  port,
+  userSearchPath,
+  roleSearchPath,
+  groupSearchPath,
+  groupWritePath,
+  tenantLevel,
+  searchUser,
+  encryptText(searchUserPwd, k.mk),
+  writeUser,
+  encryptText(writeUserPwd, k.mk),
+  ldapType,
+  activeFlag
+FROM k
+ON CONFLICT (ldap_server, ldap_port, active) DO NOTHING;
+$$;

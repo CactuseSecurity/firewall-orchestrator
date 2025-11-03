@@ -121,9 +121,9 @@ namespace FWO.Report
             try
             {
                 // TODO: the following only deals with first rulebase of a gateway:
-                // return (await apiConnection.SendQueryAsync<List<AggregateCountLastHit>>(ReportQueries.getUsageDataCount, new { devId })
-                //     )[0].RulebasesOnGateway[0].Rulebase.RulesWithHits.Aggregate.Count > 0;
-                return false;   // TODO: implement
+                var result = await apiConnection.SendQueryAsync<List<AggregateCountLastHit>>(ReportQueries.getUsageDataCount, new { devId });
+                return result?.FirstOrDefault()?.RulebasesOnGateway?.FirstOrDefault()?.ToRulebase?.Rules?.Length > 0;
+
             }
             catch (Exception)
             {

@@ -49,37 +49,66 @@ $$ LANGUAGE plpgsql VOLATILE;
 
 Alter table "ldap_connection" ADD COLUMN IF NOT EXISTS "ldap_writepath_for_groups" Varchar;
 
+ALTER TABLE ldap_connection ADD CONSTRAINT ldap_connection_server_unique UNIQUE (ldap_server, ldap_port, active);
+
+-- assumes ldap_connection(active boolean NOT NULL [DEFAULT true])
+
+-- assumes ldap_connection(active boolean NOT NULL [DEFAULT true])
+
 CREATE OR REPLACE FUNCTION insertLocalLdapWithEncryptedPasswords(
-    serverName TEXT, 
-    port INTEGER,
-    userSearchPath TEXT,
-    roleSearchPath TEXT, 
-    groupSearchPath TEXT,
-    groupWritePath TEXT,
-    tenantLevel INTEGER,
-    searchUser TEXT,
-    searchUserPwd TEXT,
-    writeUser TEXT,
-    writeUserPwd TEXT,
-    ldapType INTEGER
-) RETURNS VOID AS $$
-DECLARE
-    t_key TEXT;
-    t_encryptedReadPwd TEXT;
-    t_encryptedWritePwd TEXT;
-BEGIN
-    IF NOT EXISTS (SELECT * FROM ldap_connection WHERE ldap_server = serverName)
-    THEN
-        SELECT INTO t_key * FROM getMainKey();
-        SELECT INTO t_encryptedReadPwd * FROM encryptText(searchUserPwd, t_key);
-        SELECT INTO t_encryptedWritePwd * FROM encryptText(writeUserPwd, t_key);
-        INSERT INTO ldap_connection
-            (ldap_server, ldap_port, ldap_searchpath_for_users, ldap_searchpath_for_roles, ldap_searchpath_for_groups, ldap_writepath_for_groups,
-            ldap_tenant_level, ldap_search_user, ldap_search_user_pwd, ldap_write_user, ldap_write_user_pwd, ldap_type)
-            VALUES (serverName, port, userSearchPath, roleSearchPath, groupSearchPath, groupWritePath, tenantLevel, searchUser, t_encryptedReadPwd, writeUser, t_encryptedWritePwd, ldapType);
-    END IF;
-END;
-$$ LANGUAGE plpgsql;
+    serverName       text, 
+    port             integer,
+    userSearchPath   text,
+    roleSearchPath   text, 
+    groupSearchPath  text,
+    groupWritePath   text,
+    tenantLevel      integer,
+    searchUser       text,
+    searchUserPwd    text,
+    writeUser        text,
+    writeUserPwd     text,
+    ldapType         integer,
+    activeFlag       boolean DEFAULT true   -- ← include active explicitly
+) RETURNS void
+LANGUAGE sql
+VOLATILE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+WITH k AS (SELECT getMainKey() AS mk)
+INSERT INTO ldap_connection (
+  ldap_server,
+  ldap_port,
+  ldap_searchpath_for_users,
+  ldap_searchpath_for_roles,
+  ldap_searchpath_for_groups,
+  ldap_writepath_for_groups,
+  ldap_tenant_level,
+  ldap_search_user,
+  ldap_search_user_pwd,
+  ldap_write_user,
+  ldap_write_user_pwd,
+  ldap_type,
+  active
+)
+SELECT
+  serverName,
+  port,
+  userSearchPath,
+  roleSearchPath,
+  groupSearchPath,
+  groupWritePath,
+  tenantLevel,
+  searchUser,
+  encryptText(searchUserPwd, k.mk),
+  writeUser,
+  encryptText(writeUserPwd, k.mk),
+  ldapType,
+  activeFlag
+FROM k
+ON CONFLICT (ldap_server, ldap_port, active) DO NOTHING;
+$$;
+
 
 
 -- 8.7.2
@@ -443,8 +472,6 @@ Create table IF NOT EXISTS "rulebase"
 	"created" BIGINT,
 	"removed" BIGINT
 );
-
--- ALTER TABLE "rulebase" ADD COLUMN IF NOT EXISTS "uid" Varchar NOT NULL;
 
 ALTER TABLE "rulebase" DROP CONSTRAINT IF EXISTS "fk_rulebase_mgm_id" CASCADE;
 Alter table "rulebase" add CONSTRAINT fk_rulebase_mgm_id foreign key ("mgm_id") references "management" ("mgm_id") on update restrict on delete cascade;
@@ -1015,31 +1042,46 @@ Alter Table "rule" ADD Constraint "rule_unique_mgm_id_rule_uid_rule_create_xlate
 
 -- rewrite get_rulebase_for_owner to work with rulebase instead of device
 CREATE OR REPLACE FUNCTION public.get_rulebase_for_owner(rulebase_row rulebase, ownerid integer)
- RETURNS SETOF rule
- LANGUAGE plpgsql
- STABLE
-AS 
-$function$
-    BEGIN
-        RETURN QUERY
-        SELECT r.* FROM rule r
-            LEFT JOIN rule_from rf ON (r.rule_id=rf.rule_id)
-            LEFT JOIN objgrp_flat rf_of ON (rf.obj_id=rf_of.objgrp_flat_id)
-            LEFT JOIN object rf_o ON (rf_of.objgrp_flat_member_id=rf_o.obj_id)
-            LEFT JOIN owner_network ON
-            (ip_ranges_overlap(rf_o.obj_ip, rf_o.obj_ip_end, ip, ip_end, rf.negated != r.rule_src_neg))
-        WHERE r.rulebase_id = rulebase_row.id AND owner_id = ownerid AND rule_head_text IS NULL
-        UNION
-        SELECT r.* FROM rule r
-            LEFT JOIN rule_to rt ON (r.rule_id=rt.rule_id)
-            LEFT JOIN objgrp_flat rt_of ON (rt.obj_id=rt_of.objgrp_flat_id)
-            LEFT JOIN object rt_o ON (rt_of.objgrp_flat_member_id=rt_o.obj_id)
-            LEFT JOIN owner_network ON
-            (ip_ranges_overlap(rt_o.obj_ip, rt_o.obj_ip_end, ip, ip_end, rt.negated != r.rule_dst_neg))
-        WHERE r.rulebase_id = rulebase_row.id AND owner_id = ownerid AND rule_head_text IS NULL
-        ORDER BY rule_name;
-    END;
-$function$;
+RETURNS SETOF rule
+LANGUAGE sql
+STABLE
+AS $$
+  SELECT r.*
+  FROM rule r
+  WHERE r.rulebase_id = rulebase_row.id
+    AND r.rule_head_text IS NULL
+    AND (
+      r.rule_id IN (
+        SELECT rf.rule_id
+        FROM rule_from rf
+        JOIN objgrp_flat of1 ON of1.objgrp_flat_id = rf.obj_id
+        JOIN object      o1  ON o1.obj_id = of1.objgrp_flat_member_id
+        JOIN owner_network onet1 ON onet1.owner_id = ownerid
+        WHERE rf.rule_id = r.rule_id
+          AND ip_ranges_overlap(
+                o1.obj_ip, o1.obj_ip_end,
+                onet1.ip, onet1.ip_end,
+                rf.negated <> r.rule_src_neg
+              )
+      )
+      OR
+      r.rule_id IN (
+        SELECT rt.rule_id
+        FROM rule_to rt
+        JOIN objgrp_flat of2 ON of2.objgrp_flat_id = rt.obj_id
+        JOIN object      o2  ON o2.obj_id = of2.objgrp_flat_member_id
+        JOIN owner_network onet2 ON onet2.owner_id = ownerid
+        WHERE rt.rule_id = r.rule_id
+          AND ip_ranges_overlap(
+                o2.obj_ip, o2.obj_ip_end,
+                onet2.ip, onet2.ip_end,
+                rt.negated <> r.rule_dst_neg
+              )
+      )
+    )
+  ORDER BY r.rule_name;
+$$;
+
 
 -- drop only after migration
 

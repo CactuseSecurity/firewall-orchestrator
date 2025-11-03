@@ -1,10 +1,13 @@
 using FWO.Basics.Interfaces;
 using Newtonsoft.Json;
+using FWO.Data;
 using System.Text.Json.Serialization;
 
 
 namespace FWO.Data
 {
+
+    [Newtonsoft.Json.JsonConverter(typeof(ComplianceViolationConverter))]
     public class ComplianceViolation : ComplianceViolationBase, IComplianceViolation
     {
         [JsonProperty("id"), JsonPropertyName("id")]
@@ -36,7 +39,7 @@ namespace FWO.Data
             {
                 return ComplianceViolationType.None;
             }
-            
+
             switch (criterion.CriterionType)
             {
                 case "Matrix":
@@ -48,12 +51,12 @@ namespace FWO.Data
                 case "ForbiddenService":
                     return ComplianceViolationType.ServiceViolation;
 
-                    // TODO : implement for all criterion types
+                // TODO : implement for all criterion types
 
                 default:
                     return ComplianceViolationType.None;
             }
-        }        
+        }
     }
 
     /// <summary>
@@ -83,10 +86,6 @@ namespace FWO.Data
         [JsonProperty("criterion"), JsonPropertyName("criterion")]
         public ComplianceCriterion? Criterion { get; set; }
     }
-
-
-
-
 }
 
 

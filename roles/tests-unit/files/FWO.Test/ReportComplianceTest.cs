@@ -76,7 +76,8 @@ namespace FWO.Test
                         },
                         type: ComplianceViolationType.NotAssessable
 
-                    )
+                    ),
+                    CreateMockComplianceViolation(2,2, foundDate, type: ComplianceViolationType.MatrixViolation)
                 ]
             };
 
@@ -85,9 +86,9 @@ namespace FWO.Test
                 Id = 2,
                 Name = "Testrule 2",
                 Violations = [
-                        CreateMockComplianceViolation(2,2, foundDate, type: ComplianceViolationType.MatrixViolation),
                         CreateMockComplianceViolation(3,2, foundDate, type: ComplianceViolationType.MatrixViolation),
-                        CreateMockComplianceViolation(4,2, foundDate, type: ComplianceViolationType.MatrixViolation)
+                        CreateMockComplianceViolation(4,2, foundDate, type: ComplianceViolationType.MatrixViolation),
+                        CreateMockComplianceViolation(5,2, foundDate, type: ComplianceViolationType.MatrixViolation)
                     ]
             };
 
@@ -96,8 +97,8 @@ namespace FWO.Test
                 Id = 3,
                 Name = "Testrule 3",
                 Violations = [
-                    CreateMockComplianceViolation(5,3, foundDate, type: ComplianceViolationType.MatrixViolation),
-                    CreateMockComplianceViolation(6,3, foundDate, type: ComplianceViolationType.ServiceViolation)
+                    CreateMockComplianceViolation(6,3, foundDate, type: ComplianceViolationType.MatrixViolation),
+                    CreateMockComplianceViolation(7,3, foundDate, type: ComplianceViolationType.ServiceViolation)
                 ]
             };
             
@@ -106,7 +107,7 @@ namespace FWO.Test
                 Id = 4,
                 Name = "Testrule 4",
                 Violations = [
-                    CreateMockComplianceViolation(7,4, foundDate, criterion:
+                    CreateMockComplianceViolation(8,4, foundDate, criterion:
 
                         new()
                         {
@@ -127,9 +128,9 @@ namespace FWO.Test
             ];
 
             string controlNotAssessable = CreateViolationDetailsControlString(foundDate, 1);
-            string controlAbbreviated = CreateViolationDetailsControlString(foundDate, 2) + "<br>" + CreateViolationDetailsControlString(foundDate, 3) + "<br>Too many violations to display (3), please check the system for details.";
-            string controlMultiple = CreateViolationDetailsControlString(foundDate, 5) + "<br>" + CreateViolationDetailsControlString(foundDate, 6);
-            string controlSingular = CreateViolationDetailsControlString(foundDate, 7);
+            string controlAbbreviated = CreateViolationDetailsControlString(foundDate, 3) + "<br>" + CreateViolationDetailsControlString(foundDate, 4) + "<br>Too many violations to display (3), please check the system for details.";
+            string controlMultiple = CreateViolationDetailsControlString(foundDate, 6) + "<br>" + CreateViolationDetailsControlString(foundDate, 7);
+            string controlSingular = CreateViolationDetailsControlString(foundDate, 8);
 
             // ACT
 

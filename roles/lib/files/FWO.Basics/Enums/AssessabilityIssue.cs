@@ -1,4 +1,4 @@
-namespace FWO.Compliance
+namespace FWO.Basics.Enums
 {
     public enum AssessabilityIssue
     {
@@ -6,6 +6,5 @@ namespace FWO.Compliance
         AllIPs,
         HostAddress,
         Broadcast
-
     }
 }

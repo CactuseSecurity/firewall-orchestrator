@@ -1,3 +1,4 @@
+using FWO.Basics.Enums;
 using FWO.Data;
 
 namespace FWO.Compliance

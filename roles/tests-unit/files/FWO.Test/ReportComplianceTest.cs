@@ -67,7 +67,8 @@ namespace FWO.Test
                         new()
                         {
                             CriterionType = nameof(ComplianceViolationType.NotAssessable)
-                        }
+                        },
+                        type: ComplianceViolationType.NotAssessable
 
                     )
                 ]
@@ -78,9 +79,9 @@ namespace FWO.Test
                 Id = 2,
                 Name = "Testrule 2",
                 Violations = [
-                        CreateMockComplianceViolation(2,2, foundDate),
-                        CreateMockComplianceViolation(3,2, foundDate),
-                        CreateMockComplianceViolation(4,2, foundDate)
+                        CreateMockComplianceViolation(2,2, foundDate, type: ComplianceViolationType.MatrixViolation),
+                        CreateMockComplianceViolation(3,2, foundDate, type: ComplianceViolationType.MatrixViolation),
+                        CreateMockComplianceViolation(4,2, foundDate, type: ComplianceViolationType.MatrixViolation)
                     ]
             };
 
@@ -89,8 +90,8 @@ namespace FWO.Test
                 Id = 3,
                 Name = "Testrule 3",
                 Violations = [
-                    CreateMockComplianceViolation(5,3, foundDate),
-                    CreateMockComplianceViolation(6,3, foundDate)
+                    CreateMockComplianceViolation(5,3, foundDate, type: ComplianceViolationType.MatrixViolation),
+                    CreateMockComplianceViolation(6,3, foundDate, type: ComplianceViolationType.ServiceViolation)
                 ]
             };
             
@@ -189,10 +190,9 @@ namespace FWO.Test
                 Criterion = criterion
             };
 
-            if (violation.Type == null)
-            {
-                
-            }
+            violation.Type = type;
+
+            return violation;
         }
         
         private string CreateViolationDetailsControlString(DateTime foundDate, int violationId)

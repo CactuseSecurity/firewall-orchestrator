@@ -1623,9 +1623,16 @@ insert into stm_dev_typ (dev_typ_id,dev_typ_name,dev_typ_version,dev_typ_manufac
 	
 	
 -- mgm_uid UNIQUE and can be Null - "" empty string not allowed
-ALTER TABLE management DROP CONSTRAINT IF EXISTS mgm_uid_unique;
 ALTER TABLE management ALTER COLUMN mgm_uid DROP NOT NULL;
 ALTER TABLE management ALTER COLUMN mgm_uid DROP DEFAULT;
-UPDATE management SET mgm_uid = NULL WHERE LENGTH(TRIM(mgm_uid)) = 0;
-ALTER TABLE management ADD CONSTRAINT mgm_uid_unique UNIQUE (mgm_uid);
+UPDATE management SET mgm_uid = NULL WHERE LENGTH(TRIM(COALESCE(mgm_uid,''))) = 0;
 
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint WHERE conname = 'mgm_uid_unique'
+  ) THEN
+    ALTER TABLE management ADD CONSTRAINT mgm_uid_unique UNIQUE (mgm_uid);
+  END IF;
+END$$;

@@ -61,7 +61,7 @@ query getManagementForNormalizedConfig(
     ) {
       ...rulebaseFragment
     }
-    devices (where: {rulebase_links: {removed: {_is_null: true}}}) {
+    devices {
       ...deviceFragment
     }
   }

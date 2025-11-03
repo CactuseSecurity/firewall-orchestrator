@@ -23,10 +23,12 @@ namespace FWO.Compliance
         private ReportFilters _reportFilters = new();
         public CompliancePolicy? Policy = null;
         public List<ComplianceNetworkZone> NetworkZones = [];
-        
-        private readonly UserConfig _userConfig;
+
         private readonly ApiConnection _apiConnection;
+        private readonly UserConfig _userConfig;
+        private readonly GlobalConfig _globalConfig;
         private readonly DebugConfig _debugConfig;
+        
 
         /// <summary>
         /// Constructor for compliance check
@@ -35,17 +37,34 @@ namespace FWO.Compliance
         /// <param name="apiConnection">Api connection</param>
         public ComplianceCheck(UserConfig userConfig, ApiConnection apiConnection)
         {
-            _userConfig = userConfig;
             _apiConnection = apiConnection;
+            _userConfig = userConfig;
 
-            if (userConfig.GlobalConfig != null && !string.IsNullOrEmpty(userConfig.GlobalConfig.DebugConfig))
+            if (userConfig.GlobalConfig != null)
             {
-                _debugConfig = JsonSerializer.Deserialize<DebugConfig>(userConfig.GlobalConfig.DebugConfig) ?? new();
+                _globalConfig = userConfig.GlobalConfig;
+            }
+            else
+            {
+                Log.WriteWarning("Compliance Check", "No global config found, using default values.");
+                _globalConfig = new();
+            }
+            
+            if (!string.IsNullOrEmpty(_globalConfig.DebugConfig))
+            {
+                try
+                {
+                    _debugConfig = JsonSerializer.Deserialize<DebugConfig>(_globalConfig.DebugConfig)!;
+                }
+                catch (Exception e)
+                {
+                    Log.WriteWarning("Compliance Check", $"Exception while deserializing debug config, using default values. Exception: {e.Message}");
+                    _debugConfig = new();
+                }
             }
             else
             {
                 Log.WriteWarning("Compliance Check", "No debug config found, using default values.");
-
                 _debugConfig = new();
             }
 
@@ -61,7 +80,7 @@ namespace FWO.Compliance
             {
                 Log.TryWriteLog(LogType.Info, "Compliance Check", "Starting compliance check.", _debugConfig.ExtendedLogComplianceCheck);
 
-                int? policyId = _userConfig.GlobalConfig?.ComplianceCheckPolicyId;
+                int? policyId = _globalConfig.ComplianceCheckPolicyId;
 
                 if (policyId == null || policyId == 0)
                 {
@@ -445,7 +464,7 @@ namespace FWO.Compliance
                     {
                         string sourceString = GetNwObjectString(s);
                         string destinationString = GetNwObjectString(d);
-                        violation.Details = $"Matrix violation: {sourceString} (Zone: {complianceCheckResult.SourceZone?.Name ?? ""}) -> {destinationString} (Zone: {complianceCheckResult.DestinationZone?.Name ?? ""})";
+                        violation.Details = $"{_userConfig.GetText("H5839")}: {sourceString} (Zone: {complianceCheckResult.SourceZone?.Name ?? ""}) -> {destinationString} (Zone: {complianceCheckResult.DestinationZone?.Name ?? ""})";
                     }
 
                     break;
@@ -454,7 +473,7 @@ namespace FWO.Compliance
 
                     if (complianceCheckResult.Service is NetworkService svc)
                     {
-                        violation.Details = $"Restricted service used: {svc.Name}";
+                        violation.Details = $"{_userConfig.GetText("H5840")}: {svc.Name}";
                     }
                     else
                     {
@@ -478,7 +497,9 @@ namespace FWO.Compliance
                             networkObject = GetNwObjectString(complianceCheckResult.Destination);
                         }
 
-                        violation.Details = $"Assessability issue: {networkObject}";
+                        string assessabilityIssueType = complianceCheckResult.AssessabilityIssue.Value.ToString();
+
+                        violation.Details = $"{_userConfig.GetText("H5841")}: {_userConfig.GetText(assessabilityIssueType)}({networkObject})";
                     }
 
                     break;

@@ -1865,8 +1865,8 @@ INSERT INTO txt VALUES ('assess_ip_null',       'German',   'Netzwerkobjekte in 
 INSERT INTO txt VALUES ('assess_ip_null',       'English',  'Network objects in source or destination without IP');
 INSERT INTO txt VALUES ('assess_all_ips',       'German',   'Netzwerkobjekte in Quelle oder Ziel mit 0.0.0.0/0 oder ::/0');
 INSERT INTO txt VALUES ('assess_all_ips',       'English',  'Network objects in source or destination with 0.0.0.0/0 or ::/0');
-INSERT INTO txt VALUES ('assess_host_address',       'German',   'Netzwerkobjekte in Quelle oder Ziel mit 0.0.0.0/32');
-INSERT INTO txt VALUES ('assess_host_address',       'English',  'Network objects in source or destination with 0.0.0.0/32');
+INSERT INTO txt VALUES ('assess_host_address',  'German',   'Netzwerkobjekte in Quelle oder Ziel mit 0.0.0.0/32');
+INSERT INTO txt VALUES ('assess_host_address',  'English',  'Network objects in source or destination with 0.0.0.0/32');
 INSERT INTO txt VALUES ('assess_broadcast',     'German',   'Netzwerkobjekte in Quelle oder Ziel mit 255.255.255.255/32');
 INSERT INTO txt VALUES ('assess_broadcast',     'English',  'Network objects in source or destination with 255.255.255.255/32');
 
@@ -5937,6 +5937,12 @@ INSERT INTO txt VALUES ('H5837', 'German',  'Editieren der Compliance-Matrix. Ro
 INSERT INTO txt VALUES ('H5837', 'English', 'Editing the compliance matrix. Red: allowed communication. Green: restricted communication.');
 INSERT INTO txt VALUES ('H5838', 'German',  'Editieren von importierten Matrizen nicht möglich.');
 INSERT INTO txt VALUES ('H5838', 'English', 'Editing imported matrices not possible.');
+INSERT INTO txt VALUES ('H5839', 'German',  'Matrixverletzung');
+INSERT INTO txt VALUES ('H5839', 'English', 'Matrix violation');
+INSERT INTO txt VALUES ('H5840', 'German',  'Verbotener Service');
+INSERT INTO txt VALUES ('H5840', 'English', 'Restricted Service');
+INSERT INTO txt VALUES ('H5841', 'German',  'Auswertbarkeitsproblem');
+INSERT INTO txt VALUES ('H5841', 'English', 'Assessability issue');
 
 INSERT INTO txt VALUES ('H6001', 'German',  'Firewall Orchestrator verf&uuml;gt &uuml;ber zwei APIs:
     <ul>

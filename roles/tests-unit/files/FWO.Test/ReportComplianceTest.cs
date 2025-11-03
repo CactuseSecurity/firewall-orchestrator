@@ -1,3 +1,4 @@
+using FWO.Config.Api;
 using FWO.Data;
 using FWO.Test.Mocks;
 using NUnit.Framework;
@@ -17,7 +18,12 @@ namespace FWO.Test
         public void SetUpTest()
         {
             _testReport = _complianceReport;
-            _testDiffReport = _complianceDiffReport;
+            SimulatedGlobalConfig globalConfig = new();
+            globalConfig.ComplianceCheckMaxPrintedViolations = 2;
+            UserConfig userConfig = new(globalConfig);
+
+            _testDiffReport =  new(new(""), userConfig, Basics.ReportType.ComplianceDiff);
+;
             _testDiffReport.MockPostProcessDiffReportsRule = true;
         }
 
@@ -105,7 +111,8 @@ namespace FWO.Test
                         new()
                         {
                             CriterionType = nameof(ComplianceViolationType.ServiceViolation)
-                        }
+                        },
+                        type: ComplianceViolationType.ServiceViolation
 
                     )
                 ]
@@ -120,9 +127,9 @@ namespace FWO.Test
             ];
 
             string controlNotAssessable = CreateViolationDetailsControlString(foundDate, 1);
-            string controlAbbreviated = CreateViolationDetailsControlString(foundDate, 2) + "<br>" + CreateViolationDetailsControlString(foundDate, 3);
-            string controlMultiple = CreateViolationDetailsControlString(foundDate, 4) + "<br>" + CreateViolationDetailsControlString(foundDate, 5) + "<br>Too many violations to display (3), please check the system for details.";
-            string controlSingular = CreateViolationDetailsControlString(foundDate, 6);
+            string controlAbbreviated = CreateViolationDetailsControlString(foundDate, 2) + "<br>" + CreateViolationDetailsControlString(foundDate, 3) + "<br>Too many violations to display (3), please check the system for details.";
+            string controlMultiple = CreateViolationDetailsControlString(foundDate, 5) + "<br>" + CreateViolationDetailsControlString(foundDate, 6);
+            string controlSingular = CreateViolationDetailsControlString(foundDate, 7);
 
             // ACT
 
@@ -131,10 +138,13 @@ namespace FWO.Test
             // ASSERT
 
             Assert.That(testResults.Count == 4);
-            Assert.That(notAssessable.ViolationDetails == controlNotAssessable && notAssessable.Compliance == ComplianceViolationType.NotAssessable);
+            Assert.That(notAssessable.ViolationDetails == controlNotAssessable);
+            Assert.That(notAssessable.Compliance == ComplianceViolationType.NotAssessable);
             Assert.That(abbreviated.ViolationDetails == controlAbbreviated);
-            Assert.That(multiple.ViolationDetails == controlMultiple && multiple.Compliance == ComplianceViolationType.MultipleViolations);
-            Assert.That(singular.ViolationDetails == controlSingular && singular.Compliance == ComplianceViolationType.ServiceViolation);
+            Assert.That(multiple.ViolationDetails == controlMultiple);
+            Assert.That(multiple.Compliance == ComplianceViolationType.MultipleViolations);
+            Assert.That(singular.ViolationDetails == controlSingular);
+            Assert.That(singular.Compliance == ComplianceViolationType.ServiceViolation);
         }
 
         private List<Rule>[] BuildFixedRuleChunksParallel(int numberOfChunks, int numberOfRulesPerChunk, int startRuleId = 1, int? maxDegreeOfParallelism = null)
@@ -197,7 +207,7 @@ namespace FWO.Test
         
         private string CreateViolationDetailsControlString(DateTime foundDate, int violationId)
         {
-            return $"Found: ({foundDate:dd.MM.yyyy}) - {foundDate:hh:mm}) : Test violation {violationId}";
+            return $"Found: ({foundDate:dd.MM.yyyy} - {foundDate:hh:mm}) Test violation {violationId}";
         }
 
     }

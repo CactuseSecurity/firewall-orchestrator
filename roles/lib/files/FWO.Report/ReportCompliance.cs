@@ -437,7 +437,7 @@ namespace FWO.Report
 
                     // Set rule compliance.
 
-                    if (rule.Compliance != ComplianceViolationType.NotAssessable && addedViolationDetails > 1)
+                    if (rule.Compliance != ComplianceViolationType.NotAssessable && addedViolationDetails > 0)
                     {
                         rule.Compliance = ComplianceViolationType.MultipleViolations;
                     }

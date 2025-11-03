@@ -437,6 +437,9 @@ namespace FWO.Config.Api.Data
         [JsonProperty("debugConfig"), JsonPropertyName("debugConfig")]
         public string DebugConfig { get; set; } = "";
 
+        [JsonProperty("colorScheme"), JsonPropertyName("colorScheme"), UserConfigData]
+        public string ColorScheme { get; set; } = "color_scheme_blue";
+
         public ConfigData(bool editable = false)
         {
             Editable = editable;

@@ -28,8 +28,6 @@ namespace FWO.Compliance
         private readonly ApiConnection _apiConnection;
         private readonly DebugConfig _debugConfig;
 
-        private List<int> _relevanteManagementIDs = new();
-
         /// <summary>
         /// Constructor for compliance check
         /// </summary>

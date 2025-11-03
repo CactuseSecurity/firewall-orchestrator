@@ -47,12 +47,12 @@ namespace FWO.Report.Data.ViewData
             MgmtName = SafeCall(rule, "MgmtName", () => managements?.FirstOrDefault(m => m.Id == rule.MgmtId)?.Name ?? "");
             Uid = SafeCall(rule, "Uid", () => rule.Uid ?? "");
             Name = SafeCall(rule, "Name", () => rule.Name ?? "");
-            Source = SafeCall(rule, "Source", () => natRuleDisplayHtml.DisplaySource(rule, outputLocation, ReportType.Compliance));
-            SourceShort = SafeCall(rule, "Source (Short)", () => natRuleDisplayHtml.DisplaySource(rule, outputLocation, ReportType.Compliance, overwriteIsResolvedReport: true));
-            Destination = SafeCall(rule, "Destination", () => natRuleDisplayHtml.DisplayDestination(rule, outputLocation, ReportType.Compliance));
-            DestinationShort = SafeCall(rule, "Destination (Short)", () => natRuleDisplayHtml.DisplayDestination(rule, outputLocation, ReportType.Compliance, overwriteIsResolvedReport: true));
-            Services = SafeCall(rule, "Services", () => natRuleDisplayHtml.DisplayServices(rule, outputLocation, ReportType.Compliance));
-            ServicesShort = SafeCall(rule, "Services (Short)", () => natRuleDisplayHtml.DisplayServices(rule, outputLocation, ReportType.Compliance, overwriteIsResolvedReport: true));
+            Source = SafeCall(rule, "Source", () => natRuleDisplayHtml.DisplaySource(rule, outputLocation, ReportType.ComplianceReport));
+            SourceShort = SafeCall(rule, "Source (Short)", () => natRuleDisplayHtml.DisplaySource(rule, outputLocation, ReportType.ComplianceReport, overwriteIsResolvedReport: true));
+            Destination = SafeCall(rule, "Destination", () => natRuleDisplayHtml.DisplayDestination(rule, outputLocation, ReportType.ComplianceReport));
+            DestinationShort = SafeCall(rule, "Destination (Short)", () => natRuleDisplayHtml.DisplayDestination(rule, outputLocation, ReportType.ComplianceReport, overwriteIsResolvedReport: true));
+            Services = SafeCall(rule, "Services", () => natRuleDisplayHtml.DisplayServices(rule, outputLocation, ReportType.ComplianceReport));
+            ServicesShort = SafeCall(rule, "Services (Short)", () => natRuleDisplayHtml.DisplayServices(rule, outputLocation, ReportType.ComplianceReport, overwriteIsResolvedReport: true));
             Action = SafeCall(rule, "Action", () => rule.Action);
             InstallOn = SafeCall(rule, "InstallOn", () => ResolveInstallOn(rule, devices ?? []));
             Compliance = SafeCall(rule, "Compliance", () => ResolveCompliance(rule, complianceViolationType));

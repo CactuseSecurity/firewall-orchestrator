@@ -14,6 +14,7 @@ using System.Text.Json;
 using FWO.Logging;
 using FWO.Ui.Display;
 using System.Linq.Expressions;
+using FWO.Data.Extensions;
 
 namespace FWO.Compliance
 {
@@ -498,7 +499,7 @@ namespace FWO.Compliance
                             networkObject = GetNwObjectString(complianceCheckResult.Destination);
                         }
 
-                        string assessabilityIssueType = complianceCheckResult.AssessabilityIssue.Value.ToString();
+                        string assessabilityIssueType = complianceCheckResult.AssessabilityIssue.Value.ToAssessabilityIssueString();
 
                         violation.Details = $"{_userConfig.GetText("H5841")}: {_userConfig.GetText(assessabilityIssueType)}({networkObject})";
                     }
@@ -550,7 +551,7 @@ namespace FWO.Compliance
 
             _reportFilters = new()
             {
-                ReportType = ReportType.Compliance
+                ReportType = ReportType.ComplianceReport
             };
 
             _reportFilters.DeviceFilter.Managements = await _apiConnection.SendQueryAsync<List<ManagementSelect>>(DeviceQueries.getDevicesByManagement);

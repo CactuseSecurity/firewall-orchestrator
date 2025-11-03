@@ -8,9 +8,9 @@ namespace FWO.Test
     [TestFixture]
     internal class ReportComplianceTest
     {
-        private MockReportCompliance _complianceReport => new(new(""), new(), Basics.ReportType.Compliance);
+        private MockReportCompliance _complianceReport => new(new(""), new(), Basics.ReportType.ComplianceReport);
         private MockReportCompliance _testReport = default!;
-        private MockReportComplianceDiff _complianceDiffReport => new(new(""), new(){ComplianceCheckMaxPrintedViolations = 2}, Basics.ReportType.ComplianceDiff);
+        private MockReportComplianceDiff _complianceDiffReport => new(new(""), new(){ComplianceCheckMaxPrintedViolations = 2}, Basics.ReportType.ComplianceDiffReport);
         private MockReportComplianceDiff _testDiffReport = default!;
         
 
@@ -22,7 +22,7 @@ namespace FWO.Test
             globalConfig.ComplianceCheckMaxPrintedViolations = 2;
             UserConfig userConfig = new(globalConfig);
 
-            _testDiffReport =  new(new(""), userConfig, Basics.ReportType.ComplianceDiff);
+            _testDiffReport =  new(new(""), userConfig, Basics.ReportType.ComplianceDiffReport);
 ;
             _testDiffReport.MockPostProcessDiffReportsRule = true;
         }

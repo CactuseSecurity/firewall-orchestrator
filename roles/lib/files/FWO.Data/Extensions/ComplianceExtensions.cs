@@ -4,19 +4,14 @@ namespace FWO.Data.Extensions
 {
     public static partial class ComplianceExtensions
     {
-
-
-        
-        public static string ToString(this ComplianceViolationType violationType)
+        public static ComplianceViolationType ToViolationType(this string violationType)
         {
             return violationType switch
             {
-                ComplianceViolationType.None => "Compliant",
-                ComplianceViolationType.NotAssessable => "Not assessable",
-                ComplianceViolationType.MatrixViolation => "Matrix violation",
-                ComplianceViolationType.ServiceViolation => "Service violation",
-                ComplianceViolationType.MultipleViolations => "Multiple violations",
-                _ => $"<Unknown Status: {violationType}>"
+                nameof(CriterionType.Assessability) => ComplianceViolationType.NotAssessable ,
+                nameof(CriterionType.Matrix) => ComplianceViolationType.MatrixViolation,
+                nameof(CriterionType.ForbiddenService) => ComplianceViolationType.ServiceViolation,
+                _ => throw new NotImplementedException()
             };
         }
 

@@ -90,29 +90,30 @@ namespace FWO.Data
     {
         public override ComplianceViolation? ReadJson(JsonReader reader, Type objectType, ComplianceViolation? existingValue, bool hasExistingValue, JsonSerializer serializer)
         {
-            // Zuerst ein normales Objekt lesen
-            var violation = serializer.Deserialize<ComplianceViolationBase>(reader);
-            if (violation == null)
-                return null;
+            ComplianceViolation? violation = null;
 
-            // Das endgültige Objekt zusammensetzen
-            var result = new ComplianceViolation
+            // Try deserialize base.
+
+            ComplianceViolationBase? violationBase = serializer.Deserialize<ComplianceViolationBase>(reader);
+
+            if (violationBase != null)
             {
-                RuleId = violation.RuleId,
-                RuleUid = violation.RuleUid,
-                MgmtUid = violation.MgmtUid,
-                FoundDate = violation.FoundDate,
-                RemovedDate = violation.RemovedDate,
-                Details = violation.Details,
-                RiskScore = violation.RiskScore,
-                PolicyId = violation.PolicyId,
-                CriterionId = violation.CriterionId,
-                Criterion = violation.Criterion,
-            };
+                // Get id from json object.
 
-            // Hier wird der ComplianceType aus dem Criterion geparst
-            result.Type = result.ParseViolationType(violation.Criterion);
-            return result;
+                JObject jsonObject = JObject.Load(reader);
+                int id = jsonObject.GetValue("id")?.ToObject<int>() ?? 0;
+
+                // Create instance from base and set id.
+
+                violation = new(id, violationBase);
+
+                // Parse Violation Type via criterion.
+
+                violation.Type = violation.ParseViolationType(violation.Criterion);
+
+            }
+
+            return violation;
         }
 
         public override void WriteJson(JsonWriter writer, ComplianceViolation? value, JsonSerializer serializer)

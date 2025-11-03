@@ -33,7 +33,7 @@ namespace FWO.Test
                 _complianceCheck.NetworkZones.Add(networkZone);
             }
 
-            MockReportCompliance complianceReport = new(new(""), new(), Basics.ReportType.Compliance);
+            MockReportCompliance complianceReport = new(new(""), new(), Basics.ReportType.ComplianceReport);
 
             _complianceCheck.ComplianceReport = complianceReport;
         }

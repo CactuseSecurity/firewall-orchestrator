@@ -64,9 +64,9 @@
 
         @if (EmptyColumns[5] == false && (userConfig.GlobalConfig?.ShowShortColumnsInComplianceReports ?? true))
         {
-            <Column TableItem="RuleViewData" Context="rule" Title="Source (Short)" Field="@(r => r.Source)" Sortable="true" Filterable="true" Hideable="true">
+            <Column TableItem="RuleViewData" Context="rule" Title="Source (Short)" Field="@(r => r.SourceShort)" Sortable="true" Filterable="true" Hideable="true">
                 <Template>
-                    @((MarkupString)rule.Source)
+                    @((MarkupString)rule.SourceShort)
                 </Template>
             </Column>
         }
@@ -83,9 +83,9 @@
 
         @if (EmptyColumns[7] == false && (userConfig.GlobalConfig?.ShowShortColumnsInComplianceReports ?? true))
         {
-            <Column TableItem="RuleViewData" Context="rule" Title="Destination (short)" Field="@(r => r.Destination)" Sortable="true" Filterable="true" Hideable="true">
+            <Column TableItem="RuleViewData" Context="rule" Title="Destination (short)" Field="@(r => r.DestinationShort)" Sortable="true" Filterable="true" Hideable="true">
                 <Template>
-                    @((MarkupString)rule.Destination)
+                    @((MarkupString)rule.DestinationShort)
                 </Template>
             </Column>
         }
@@ -101,9 +101,9 @@
 
         @if (EmptyColumns[9] == false && (userConfig.GlobalConfig?.ShowShortColumnsInComplianceReports ?? true))
         {
-            <Column TableItem="RuleViewData" Context="rule" Title="Services (short)" Field="@(r => r.Services)" Sortable="true" Filterable="true" Hideable="true">
+            <Column TableItem="RuleViewData" Context="rule" Title="Services (short)" Field="@(r => r.ServicesShort)" Sortable="true" Filterable="true" Hideable="true">
                 <Template>
-                    @((MarkupString)rule.Services)
+                    @((MarkupString)rule.ServicesShort)
                 </Template>
             </Column>
         }

@@ -10,12 +10,12 @@ namespace FWO.Ui.Display
     {
         public string DisplaySource(Rule rule, OutputLocation location, ReportType reportType, int chapterNumber = 0, string style = "", bool overwriteIsResolvedReport = false)
         {
-            return DisplaySourceOrDestination(rule, chapterNumber, location, reportType, style, true);
+            return DisplaySourceOrDestination(rule, chapterNumber, location, reportType, style, true, overwriteIsResolvedReport);
         }
 
         public string DisplayDestination(Rule rule, OutputLocation location, ReportType reportType, int chapterNumber = 0, string style = "", bool overwriteIsResolvedReport = false)
         {
-            return DisplaySourceOrDestination(rule, chapterNumber, location, reportType, style, false);
+            return DisplaySourceOrDestination(rule, chapterNumber, location, reportType, style, false, overwriteIsResolvedReport);
         }
 
         public string DisplayServices(Rule rule, OutputLocation location, ReportType reportType, int chapterNumber = 0, string style = "", bool overwriteIsResolvedReport = false)

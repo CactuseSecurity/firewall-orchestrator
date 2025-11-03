@@ -49,21 +49,6 @@ namespace FWO.Compliance
                 _debugConfig = new();
             }
 
-            if (userConfig.GlobalConfig is GlobalConfig globalConfig && !string.IsNullOrEmpty(globalConfig.DebugConfig))
-            {
-                try
-                {
-                    _relevanteManagementIDs = userConfig.GlobalConfig.ComplianceCheckRelevantManagements
-                        .Split(',', StringSplitOptions.RemoveEmptyEntries)
-                        .Select(s => int.Parse(s.Trim()))
-                        .ToList();
-                }
-                catch (System.Exception e)
-                {
-                    Log.TryWriteLog(LogType.Error, "Compliance Check", $"Error while parsing relevant mangement IDs: {e.Message}", _debugConfig.ExtendedLogComplianceCheck);
-                }
-            }
-
         }
 
         /// <summary>

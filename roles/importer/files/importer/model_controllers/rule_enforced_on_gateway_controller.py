@@ -13,7 +13,7 @@ class RuleEnforcedOnGatewayController:
     def __init__(self, import_state: ImportStateController):
         self.import_details: ImportStateController = import_state
 
-    def add_new_rule_enforced_on_gateway_refs(self, new_rules, import_state):
+    def add_new_rule_enforced_on_gateway_refs(self, new_rules: list[Rule], import_state: ImportStateController):
         """
         Main function to add new rule-to-gateway references.
         """

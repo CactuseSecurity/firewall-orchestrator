@@ -120,7 +120,7 @@ class FwConfigImport():
         if len(self.import_state.MgmDetails.SubManagerIds)>0:
             # Read config
             fwo_api = FwoApi(self.import_state.FwoConfig.FwoApiUri, self.import_state.Jwt)
-            fwo_api_call = FwoApiCall(fwo_api) #TODO why not used ??
+            _ = FwoApiCall(fwo_api) #TODO why not used ??
             # # Authenticate to get JWT
             # try:
             #     jwt = fwo_api.login(importer_user_name, fwoConfig.ImporterPassword, fwoConfig.FwoUserMgmtApiUri)
@@ -143,7 +143,7 @@ class FwConfigImport():
                 mgm_details = ManagementController.fromJson(mgm_details_raw)
                 configNormalized.addManager(
                     manager=FwConfigManager(
-                        ManagerUid=ManagementController.calcManagerUidHash(mgm_details_raw),
+                        ManagerUid=ManagementController.calcManagerUidHash(mgm_details),
                         ManagerName=mgm_details.Name,
                         IsSuperManager=mgm_details.IsSuperManager,
                         SubManagerIds=mgm_details.SubManagerIds,
@@ -188,10 +188,10 @@ class FwConfigImport():
         self._fw_config_import_gateway.update_gateway_diffs()
 
         # get new rules details from API (for obj refs as well as enforcing gateways)
-        errors, changes, newRules = self._fw_config_import_rule.getRulesByIdWithRefUids(newRuleIds)
+        _, _, newRules = self._fw_config_import_rule.getRulesByIdWithRefUids(newRuleIds)
 
         enforcingController = RuleEnforcedOnGatewayController(self.import_state)
-        ids = enforcingController.add_new_rule_enforced_on_gateway_refs(newRules, self.import_state)
+        enforcingController.add_new_rule_enforced_on_gateway_refs(newRules, self.import_state)
         
 
     # cleanup configs which do not need to be retained according to data retention time

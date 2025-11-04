@@ -55,7 +55,7 @@ class FwConfigImportRule():
         self.prev_group_flats_mapper = service_provider.get_service(Services.PREV_GROUP_FLATS_MAPPER, self.import_details.ImportId)
         self.rule_order_service = service_provider.get_service(Services.RULE_ORDER_SERVICE, self.import_details.ImportId)
 
-    def updateRulebaseDiffs(self, prevConfig: FwConfigNormalized):
+    def updateRulebaseDiffs(self, prevConfig: FwConfigNormalized) -> list[int]:
         
         logger = getFwoLogger(debug_level=self.import_details.DebugLevel)
 

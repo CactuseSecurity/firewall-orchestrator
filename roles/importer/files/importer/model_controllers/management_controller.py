@@ -1,5 +1,6 @@
 import hashlib
 from dataclasses import dataclass
+from typing import Any
 
 from models.management import Management
 from fwo_exceptions import FwLoginFailed
@@ -83,7 +84,7 @@ class ManagementController(Management):
         self.DomainUid = domain_info.domain_uid
 
     @classmethod
-    def fromJson(cls, json_dict: dict):
+    def fromJson(cls, json_dict: dict[str, Any]) -> "ManagementController":
         device_info = DeviceInfo(
             name=json_dict['name'],
             type_name=json_dict['deviceType']['name'],
@@ -177,7 +178,7 @@ class ManagementController(Management):
         return hashlib.sha256(combination.encode()).hexdigest()
 
 
-    def get_mgm_details(self, api_conn: FwoApi, mgm_id: int, debug_level: int = 0) -> dict:
+    def get_mgm_details(self, api_conn: FwoApi, mgm_id: int, debug_level: int = 0) -> dict[str, Any]:
 
         service_provider = ServiceProvider()
         _global_state = service_provider.get_service(Services.GLOBAL_STATE)

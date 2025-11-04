@@ -282,7 +282,7 @@ class ImportStateController(ImportState):
     # limited to the current mgm_id
     # creats a dict with key = rule.uid and value = rule.id 
     # should be called sparsely, as there might be a lot of rules for a mgmt
-    def SetRuleMap(self, api_call):
+    def SetRuleMap(self, api_call: FwoApi) -> None:
         query = """query getRuleMap($mgmId: Int) { rule(where:{mgm_id: {_eq: $mgmId}, removed:{_is_null:true }}) { rule_id rule_uid } }"""
         try:
             result = api_call.call(query=query, query_variables= {"mgmId": self.MgmDetails.Id})

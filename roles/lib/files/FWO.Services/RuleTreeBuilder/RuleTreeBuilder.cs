@@ -80,7 +80,7 @@ namespace FWO.Services.RuleTreeBuilder
 
             // Prepare creation of order numbers.
 
-            (nextPosition,nextParent) = PrepareOrderNumberCreation(currentQueueItem, lastPosition, nextQueueItem);
+            (nextPosition, nextParent, lastPosition) = PrepareOrderNumberCreation(currentQueueItem, lastPosition, nextQueueItem);
 
             // Create order number.
                 List<Rule> currentRules = currentQueueItem.rulebase.Rules.ToList();
@@ -97,19 +97,7 @@ namespace FWO.Services.RuleTreeBuilder
 
                 // Update next position.
 
-                if (nextPosition == null)
-                {
-                    nextPosition = lastPosition?.ToList() ?? [];
-                }
-                else if (nextParent?.GetPositionString() == OrderedLayerCount.ToString() && nextParent.Children.Count == 0)
-                {
-                    nextPosition.Add(0);
-                }
-
-                if (nextPosition.Count == 0)
-                {
-                    nextPosition.Add(0);
-                }
+                nextPosition = UpdateNextPosition(nextPosition, nextParent, lastPosition);
 
                 // Update order number.
 
@@ -284,7 +272,7 @@ namespace FWO.Services.RuleTreeBuilder
             }
         }
 
-        private (List<int>?,RuleTreeItem?) PrepareOrderNumberCreation((RulebaseLink link, RulebaseReport rulebase) currentQueueItem, List<int>? lastPosition,  (RulebaseLink link, RulebaseReport rulebase)? nextQueueItem)
+        private (List<int>?, RuleTreeItem?, List<int>?) PrepareOrderNumberCreation((RulebaseLink link, RulebaseReport rulebase) currentQueueItem, List<int>? lastPosition,  (RulebaseLink link, RulebaseReport rulebase)? nextQueueItem)
         {
             List<int>? nextPosition = null;
             RuleTreeItem? nextParent = null;
@@ -329,16 +317,31 @@ namespace FWO.Services.RuleTreeBuilder
                     lastPosition = HandleRulebaseLinkQueueItem(RuleTreeBuilderQueue.Dequeue(), lastPosition);
                 }
             }
-            else if (currentQueueItem.link.LinkType == 4)
+            else if (currentQueueItem.link.LinkType == 4 && currentQueueItem.link.IsInitial)
             {
-                if (currentQueueItem.link.IsInitial)
-                {
-                    nextParent = RuleTree;
-                }
-                
+                nextParent = RuleTree;
             }
             
-            return(nextPosition, nextParent);
+            return(nextPosition, nextParent, lastPosition);
+        }
+
+        private List<int> UpdateNextPosition(List<int>? nextPosition, RuleTreeItem? nextParent, List<int>? lastPosition)
+        {
+            if (nextPosition == null)
+            {
+                nextPosition = lastPosition?.ToList() ?? [];
+            }
+            else if (nextParent?.GetPositionString() == OrderedLayerCount.ToString() && nextParent.Children.Count == 0)
+            {
+                nextPosition.Add(0);
+            }
+
+            if (nextPosition.Count == 0)
+            {
+                nextPosition.Add(0);
+            }
+
+            return nextPosition;
         }
     }
 }

@@ -1,0 +1,177 @@
+{
+  "ConfigFormat": "NORMALIZED",
+  "ManagerSet": [
+    {
+      "ManagerUid": "forti-mgr cactus",
+      "ManagerName": "forti-mgr cactus",
+      "IsSuperManager": true,
+      "DomainUid": "",
+      "DomainName": "",
+      "SubManagerIds": [],
+      "Configs": [
+        {
+          "ConfigFormat": "NORMALIZED_LEGACY",
+          "action": "INSERT",{
+          "network_objects": {
+            "fb6dc52c-a40e-51f0-58af-1e9bdb08123e": {
+              "obj_uid": "fb6dc52c-a40e-51f0-58af-1e9bdb08123e",
+              "obj_name": "gEMS_ALL_UNKNOWN_CLIENTS",
+              "obj_ip": "0.0.0.0/32",
+              "obj_ip_end": "255.255.255.255/32",
+              "obj_color": "black",
+              "obj_typ": "network",
+              "obj_member_refs": null,
+              "obj_member_names": null,
+              "obj_comment": null
+            }
+          },
+          "service_objects": {
+            "gblock-high-risk": {
+              "svc_uid": "gblock-high-risk",
+              "svc_name": "gblock-high-risk",
+              "svc_port": null,
+              "svc_port_end": null,
+              "svc_color": "foreground",
+              "svc_typ": "simple",
+              "ip_proto": 0,
+              "svc_member_refs": null,
+              "svc_member_names": null,
+              "svc_comment": null,
+              "svc_timeout": null,
+              "rpc_nr": null
+            }
+          },
+          "users": {},
+          "zone_objects": {
+            "any": {
+              "zone_name": "any"
+            },
+            "sslvpn_tun_intf": {
+              "zone_name": "sslvpn_tun_intf"
+            }
+          },
+          "rulebases": [],
+          "gateways": []
+        }
+      ]
+    },
+    {
+      "ManagerUid": "25952584-ae41-51f0-0c4e-cd435e7407a6",
+      "ManagerName": "forti-mgr cactus_my_adom",
+      "IsSuperManager": false,
+      "DomainUid": "",
+      "DomainName": "my_adom",
+      "SubManagerIds": [],
+      "Configs": [
+        {
+          "ConfigFormat": "NORMALIZED_LEGACY",
+          "action": "INSERT",
+          "network_objects": {
+            "43416d70-add5-51f0-95f5-8b42df816932": {
+              "obj_uid": "43416d70-add5-51f0-95f5-8b42df816932",
+              "obj_name": "FABRIC_DEVICE",
+              "obj_ip": "0.0.0.0/32",
+              "obj_ip_end": "255.255.255.255/32",
+              "obj_color": "black",
+              "obj_typ": "network",
+              "obj_member_refs": null,
+              "obj_member_names": null,
+              "obj_comment": "IPv4 addresses of Fabric Devices."
+            }
+          },
+          "service_objects": {
+            "block-high-risk": {
+              "svc_uid": "block-high-risk",
+              "svc_name": "block-high-risk",
+              "svc_port": null,
+              "svc_port_end": null,
+              "svc_color": "foreground",
+              "svc_typ": "simple",
+              "ip_proto": 0,
+              "svc_member_refs": null,
+              "svc_member_names": null,
+              "svc_comment": null,
+              "svc_timeout": null,
+              "rpc_nr": null
+            }
+          },
+          "users": {},
+          "zone_objects": {
+            "1-A1": {
+              "zone_name": "1-A1"
+            },
+            "1-A10": {
+              "zone_name": "1-A10"
+            }
+          },
+          "rulebases": [
+            {
+              "id": null,
+              "uid": "rules_adom_v4_mypkg",
+              "name": "rules_adom_v4_mypkg",
+              "mgm_uid": "25952584-ae41-51f0-0c4e-cd435e7407a6",
+              "is_global": false,
+              "Rules": {
+                "3fa82664-5717-4562-b3fc-2c963f66afa6": {
+                  "rule_num": 1,
+                  "rule_num_numeric": 0.0,
+                  "rule_disabled": false,
+                  "rule_src_neg": false,
+                  "rule_src": "gmail.com",
+                  "rule_src_refs": "4340e634-add5-51f0-f96e-1a939e4c3326",
+                  "rule_dst_neg": false,
+                  "rule_dst": "gmail.com",
+                  "rule_dst_refs": "4340e634-add5-51f0-f96e-1a939e4c3326",
+                  "rule_svc_neg": false,
+                  "rule_svc": "HTTP",
+                  "rule_svc_refs": "HTTP",
+                  "rule_action": "accept",
+                  "rule_track": "none",
+                  "rule_installon": "rules_adom_v4_mypkg",
+                  "rule_time": "",
+                  "rule_name": "my combined nat rule",
+                  "rule_uid": "3fa82664-5717-4562-b3fc-2c963f66afa6",
+                  "rule_custom_fields": "{}",
+                  "rule_implied": false,
+                  "rule_type": "access",
+                  "last_change_admin": "tim",
+                  "parent_rule_uid": null,
+                  "last_hit": null,
+                  "rule_comment": null,
+                  "rule_src_zone": "dmz",
+                  "rule_dst_zone": "dmz",
+                  "rule_head_text": null
+                }
+              }
+            }
+          ],
+          "gateways": [
+            {
+              "Uid": "fg1_root",
+              "Name": "fg1_root",
+              "Routing": [],
+              "Interfaces": [],
+              "RulebaseLinks": [
+                {
+                  "from_rulebase_uid": null,
+                  "from_rule_uid": null,
+                  "to_rulebase_uid": "rules_adom_v4_mypkg",
+                  "link_type": "ordered",
+                  "is_initial": true,
+                  "is_global": false,
+                  "is_section": false
+                }
+              ],
+              "GlobalPolicyUid": null,
+              "EnforcedPolicyUids": [],
+              "EnforcedNatPolicyUids": [],
+              "ImportDisabled": false,
+              "ShowInUI": true
+            }
+          ]
+        }
+      ]
+    },
+  ],
+  "native_config": {}
+}

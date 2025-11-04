@@ -424,7 +424,7 @@ namespace FWO.Report.Filter
 
             devWhereStatement += "_or: [{";
 
-            foreach (ManagementSelect mgmt in deviceFilter.Managements)
+            foreach (ManagementSelect mgmt in deviceFilter?.Managements ?? [])
             {
                 foreach (DeviceSelect dev in mgmt.Devices)
                 {

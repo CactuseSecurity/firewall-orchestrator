@@ -102,14 +102,15 @@ namespace FWO.Services.RuleTreeBuilder
 
                 // Create header item for section.
 
-                nextParent = nextParent.AddItem(header: currentQueueItem.rulebase.Name ?? "", position: nextPosition.ToList(), addToChildren: true, addToFlatList: true, setLastAddedItem: true);
+                nextParent = nextParent.AddItem(header: currentQueueItem.rulebase.Name ?? "", position: nextPosition?.ToList(), addToChildren: true, addToFlatList: true, setLastAddedItem: true);
                 nextParent.IsSectionHeader = true;
             }
             else if (currentQueueItem.link.LinkType == 3)
             {
                 nextParent = RuleTree.LastAddedItem as RuleTreeItem;
-                nextParent.IsInlineLayerRoot = true;
-                nextPosition = lastPosition.ToList();
+                if(nextParent !=null)
+                    nextParent.IsInlineLayerRoot = true;
+                nextPosition = lastPosition?.ToList()?? [];
                 nextPosition.Add(0);
                 lastPosition = nextPosition;
 
@@ -146,9 +147,9 @@ namespace FWO.Services.RuleTreeBuilder
 
                 if (nextPosition == null)
                 {
-                    nextPosition = lastPosition.ToList();
+                    nextPosition = lastPosition?.ToList() ?? [];
                 }
-                else if (nextParent.GetPositionString() == OrderedLayerCount.ToString() && !nextParent.Children.Any())
+                else if (nextParent?.GetPositionString() == OrderedLayerCount.ToString() && !nextParent.Children.Any())
                 {
                     nextPosition.Add(0);
                 }
@@ -164,7 +165,7 @@ namespace FWO.Services.RuleTreeBuilder
 
                 // Get and update tree item that holds currentRule as data.
 
-                RuleTreeItem treeItem = nextParent.AddItem(addToChildren: true, addToFlatList: true, setLastAddedItem: true);
+                RuleTreeItem treeItem = nextParent?.AddItem(addToChildren: true, addToFlatList: true, setLastAddedItem: true) ?? new RuleTreeItem();
                 treeItem.Data = rule;
                 RuleTree.ElementsFlat.Add(treeItem);
                 treeItem.Position = nextPosition.ToList();
@@ -188,7 +189,7 @@ namespace FWO.Services.RuleTreeBuilder
 
                 if (nextQueueItem?.link is RulebaseLink nextLink)
                 {
-                    if ((nextLink.LinkType == 3 && nextLink.FromRuleId == currentRule.Id) || nextLink.IsSection && RuleTree.LastAddedItem.Data.RulebaseId == nextLink.FromRulebaseId && currentRule == currentRules.Last())
+                    if ((nextLink.LinkType == 3 && nextLink.FromRuleId == currentRule.Id) || nextLink.IsSection && RuleTree.LastAddedItem?.Data?.RulebaseId == nextLink.FromRulebaseId && currentRule == currentRules.Last())
                     {
                         nextQueueItem = RuleTreeBuilderQueue.Dequeue();
 
@@ -204,7 +205,7 @@ namespace FWO.Services.RuleTreeBuilder
                 }
             }
 
-            return lastPosition;
+            return lastPosition ?? [];
         }
 
         /// <summary>
@@ -301,33 +302,33 @@ namespace FWO.Services.RuleTreeBuilder
         /// </summary>
         private RuleTreeItem GetSectionParent(List<int>? nextPosition = null)
         {
-            List<int>? position = nextPosition.ToList();
+            List<int> position = nextPosition?.ToList() ?? [];
             if (position.Last() == 0) position.Remove(position.Last());
-            RuleTreeItem item = RuleTree.ElementsFlat.First(x => x.GetPositionString() == string.Join(".", position)) as RuleTreeItem;
+            RuleTreeItem item = RuleTree.ElementsFlat.First(x => x.GetPositionString() == string.Join(".", position)) as RuleTreeItem ?? new RuleTreeItem();
 
-            if (item.Data is Rule && (item.Parent as RuleTreeItem).IsOrderedLayerHeader && nextPosition.Last() != 0)
+            if (item.Data is Rule && (item.Parent as RuleTreeItem ?? new RuleTreeItem()).IsOrderedLayerHeader && nextPosition?.Last() != 0)
             {
-                return item.Parent as RuleTreeItem;
+                return item.Parent as RuleTreeItem ?? new RuleTreeItem();
             }
             else if (item.IsOrderedLayerHeader)
             {
                 return item;
             }
-            else if ((item.Parent as RuleTreeItem).IsSectionHeader)
+            else if ((item.Parent as RuleTreeItem ?? new RuleTreeItem()).IsSectionHeader)
             {
-                if (nextPosition.Last() == 0)
+                if (nextPosition?.Last() == 0)
                 {
                     return item;
                 }
-                return item.Parent.Parent as RuleTreeItem;
+                return item.Parent?.Parent as RuleTreeItem ?? new RuleTreeItem();
             }
             else if ((item as RuleTreeItem).IsInlineLayerRoot)
             {
                 return item;
             }
-            else if ((item.Parent as RuleTreeItem).IsInlineLayerRoot)
+            else if ((item.Parent as RuleTreeItem ?? new RuleTreeItem()).IsInlineLayerRoot)
             {
-                return item.Parent as RuleTreeItem;
+                return item.Parent as RuleTreeItem ?? new RuleTreeItem();
             }
             else
             {

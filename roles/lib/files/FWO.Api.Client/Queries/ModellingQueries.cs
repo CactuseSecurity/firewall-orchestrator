@@ -180,6 +180,7 @@ namespace FWO.Api.Client.Queries
                 removeAllServiceGroupsFromConnection = GetQueryText("modelling/removeAllServiceGroupsFromConnection.graphql");
                 getConnectionIdsForService = GetQueryText("modelling/getConnectionIdsForService.graphql");
                 getConnectionIdsForServiceGroup = GetQueryText("modelling/getConnectionIdsForServiceGroup.graphql");
+                updateConnectionDecommission = string.Empty;
 
                 getSelectedConnections = connectionDetailsFragment + GetQueryText("modelling/getSelectedConnections.graphql");
                 addSelectedConnection = GetQueryText("modelling/addSelectedConnection.graphql");

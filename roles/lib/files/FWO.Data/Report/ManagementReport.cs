@@ -79,7 +79,9 @@ namespace FWO.Data.Report
         public bool[] Detailed = [false, false, false]; // nobj, nsrv, user
 
         public ManagementReport()
-        { }
+        {
+            Uid = string.Empty;
+        }
 
 
         public string NameAndDeviceNames(string separator = ", ")

@@ -3,6 +3,7 @@ import traceback
 import json
 import datetime
 import time
+from typing import Any
 
 import fwo_const
 import fwo_globals
@@ -12,6 +13,7 @@ from fwo_exceptions import FwoApiFailedLockImport
 from query_analyzer import QueryAnalyzer
 from model_controllers.import_statistics_controller import ImportStatisticsController
 from models.management import Management
+from roles.importer.files.importer.model_controllers.management_controller import ManagementController
 
 # NOTE: we cannot import ImportState(Controller) here due to circular refs
 
@@ -253,8 +255,8 @@ class FwoApiCall(FwoApi):
         return self.call(error_query, query_variables=query_variables)['data']['import_control']
 
 
-    def create_data_issue(self, import_id=None, obj_name=None, mgm_id=None, dev_id=None, severity=1,
-            rule_uid=None, object_type=None, description=None, source='import'):
+    def create_data_issue(self, import_id: str | None = None, obj_name: str | None = None, mgm_id: int | None = None, dev_id: int | None = None, severity: int = 1,
+            rule_uid: str | None = None, object_type: str | None = None, description: str | None = None, source: str = 'import'):
         logger = getFwoLogger()
         if obj_name=='all' or obj_name=='Original': 
             return True # ignore resolve errors for enriched objects that are not in the native config
@@ -286,8 +288,8 @@ class FwoApiCall(FwoApi):
         return len(changes)==1
 
 
-    def set_alert(self, import_id=None, title=None, mgm_id=None, dev_id=None, severity=1,
-            jsonData=None, description=None, source='import', user_id=None, refAlert=None, alertCode=None, mgm_details = None):
+    def set_alert(self, import_id: int | None = None, title: str | None = None, mgm_id: str | None = None, dev_id: int | None = None, severity: int | None = 1,
+            jsonData: dict[str, Any] | None = None, description: str | None = None, source: str = 'import', user_id: int | None = None, refAlert: str | None = None, alertCode: int | None = None, mgm_details: ManagementController | None = None):
 
         logger = getFwoLogger()
 
@@ -329,7 +331,7 @@ class FwoApiCall(FwoApi):
             raise
         return True
 
-    def _set_alert_build_query_vars(self, query_variables, dev_id, user_id, mgm_id, refAlert, title, description, alertCode):
+    def _set_alert_build_query_vars(self, query_variables: dict[str, Any], dev_id: int | None, user_id: int | None, mgm_id: str | None, refAlert: str | None, title: str | None, description: str | None, alertCode: int | None):
         if dev_id is not None:
             query_variables.update({"devId": dev_id})
         if user_id is not None:

@@ -64,7 +64,7 @@ class ImportStateController(ImportState):
     def increaseErrorCounterByOne(self):
         self.increaseErrorCounter(1)
 
-    def appendErrorString(self, errorStr):
+    def appendErrorString(self, errorStr: str):
         self.Stats.ErrorDetails.append(errorStr)
 
     def getErrors(self):
@@ -72,8 +72,8 @@ class ImportStateController(ImportState):
 
     def getErrorString(self):
         return str(self.Stats.ErrorDetails)
-    
-    def addError(self, error, log=False):
+
+    def addError(self, error: str, log: bool = False):
         self.increaseErrorCounterByOne()
         self.appendErrorString(str(error))
         if log and not self.Stats.ErrorAlreadyLogged:

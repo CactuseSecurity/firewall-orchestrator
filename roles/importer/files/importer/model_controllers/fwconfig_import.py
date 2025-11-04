@@ -1,4 +1,5 @@
 import traceback
+from typing import Any
 
 import fwo_const
 from fwo_api_call import FwoApiCall
@@ -68,8 +69,6 @@ class FwConfigImport():
 
 
     def import_management_set(self, import_state: ImportStateController, service_provider: ServiceProvider, mgr_set: FwConfigManagerListController):
-        global_state = service_provider.get_service(Services.GLOBAL_STATE) # TODO why not use self._global_state?
-
         for manager in sorted(mgr_set.ManagerSet, key=lambda m: not getattr(m, 'IsSuperManager', False)):
             """
             the following loop is a preparation for future functionality
@@ -143,7 +142,7 @@ class FwConfigImport():
                 mgm_details = ManagementController.fromJson(mgm_details_raw)
                 configNormalized.addManager(
                     manager=FwConfigManager(
-                        ManagerUid=ManagementController.calcManagerUidHash(mgm_details),
+                        ManagerUid=ManagementController.calcManagerUidHash(mgm_details_raw), # TODO: check: should be mgm_details
                         ManagerName=mgm_details.Name,
                         IsSuperManager=mgm_details.IsSuperManager,
                         SubManagerIds=mgm_details.SubManagerIds,
@@ -238,7 +237,7 @@ class FwConfigImport():
                 getFwoLogger().warning(f"error while trying to delete latest config for mgm_id: {self.import_state.ImportId}")
             insertMutation = FwoApi.get_graphql_code([fwo_const.graphql_query_path + "import/storeLatestConfig.graphql"])
             try:
-                query_variables = {
+                query_variables: dict[str, Any] = {
                     'mgmId': self.import_state.MgmDetails.CurrentMgmId,
                     'importId': self.import_state.ImportId,
                     'config': self.NormalizedConfig.model_dump_json()
@@ -303,16 +302,7 @@ class FwConfigImport():
     # return previous config or empty config if there is none; only returns the config of a single management
     def get_latest_config(self) -> FwConfigNormalized:
         mgm_id = self.import_state.MgmDetails.CurrentMgmId
-        prev_config = FwConfigNormalized(**{
-                                'action': ConfigAction.INSERT,
-                                'network_objects': {},
-                                'service_objects': {},
-                                'users': {},
-                                'zone_objects': {},
-                                'rules': [],
-                                'gateways': [],
-                                'ConfigFormat': ConfFormat.NORMALIZED_LEGACY
-                            })
+        prev_config = FwConfigNormalized()
         logger = getFwoLogger(debug_level=self.import_state.DebugLevel)
 
         latest_import_id = self.get_latest_import_id()

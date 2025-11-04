@@ -333,17 +333,17 @@ namespace FWO.Report
             ];
             if (_globalConfig.ShowShortColumnsInComplianceReports)
             {
-                _columnsToExport.Add("Source (Short)");
+                _columnsToExport.Add("SourceShort");
             }
             _columnsToExport.Add("Destination");
             if (_globalConfig.ShowShortColumnsInComplianceReports)
             {
-                _columnsToExport.Add("Destination (Short)");
+                _columnsToExport.Add("DestinationShort");
             }
             _columnsToExport.Add("Services");
             if (_globalConfig.ShowShortColumnsInComplianceReports)
             {
-                _columnsToExport.Add("Services (Short)");
+                _columnsToExport.Add("ServicesShort");
             }
             _columnsToExport.AddRange(
             [

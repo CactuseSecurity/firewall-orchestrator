@@ -46,8 +46,8 @@
             "any": {
               "zone_name": "any"
             },
-            "sslvpn_tun_intf": {
-              "zone_name": "sslvpn_tun_intf"
+            "dmz": {
+              "zone_name": "dmz"
             }
           },
           "rulebases": [],
@@ -67,9 +67,9 @@
           "ConfigFormat": "NORMALIZED_LEGACY",
           "action": "INSERT",
           "network_objects": {
-            "43416d70-add5-51f0-95f5-8b42df816932": {
-              "obj_uid": "43416d70-add5-51f0-95f5-8b42df816932",
-              "obj_name": "FABRIC_DEVICE",
+            "4340e634-add5-51f0-f96e-1a939e4c3326": {
+              "obj_uid": "4340e634-add5-51f0-f96e-1a939e4c3326",
+              "obj_name": "gmail.com",
               "obj_ip": "0.0.0.0/32",
               "obj_ip_end": "255.255.255.255/32",
               "obj_color": "black",
@@ -83,11 +83,11 @@
             "block-high-risk": {
               "svc_uid": "block-high-risk",
               "svc_name": "block-high-risk",
-              "svc_port": null,
-              "svc_port_end": null,
+              "svc_port": 1234,
+              "svc_port_end": 1234,
               "svc_color": "foreground",
               "svc_typ": "simple",
-              "ip_proto": 0,
+              "ip_proto": 6,
               "svc_member_refs": null,
               "svc_member_names": null,
               "svc_comment": null,
@@ -100,8 +100,8 @@
             "1-A1": {
               "zone_name": "1-A1"
             },
-            "1-A10": {
-              "zone_name": "1-A10"
+            "dmz": {
+              "zone_name": "dmz"
             }
           },
           "rulebases": [
@@ -123,8 +123,8 @@
                   "rule_dst": "gmail.com",
                   "rule_dst_refs": "4340e634-add5-51f0-f96e-1a939e4c3326",
                   "rule_svc_neg": false,
-                  "rule_svc": "HTTP",
-                  "rule_svc_refs": "HTTP",
+                  "rule_svc": "block-high-risk",
+                  "rule_svc_refs": "block-high-risk",
                   "rule_action": "accept",
                   "rule_track": "none",
                   "rule_installon": "rules_adom_v4_mypkg",

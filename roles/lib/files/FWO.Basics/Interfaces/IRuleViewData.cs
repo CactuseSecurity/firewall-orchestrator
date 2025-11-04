@@ -16,7 +16,7 @@ namespace FWO.Basics.Interfaces
         string AdoITID { get; set; }
         string Comment { get; set; }
         string RulebaseId { get; set; }
-        string Disabled { get; set; }
+        string Enabled { get; set; }
     }   
 }
 

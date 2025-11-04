@@ -355,12 +355,9 @@ namespace FWO.Report
                 "AdoITID",
                 "Comment",
                 "RulebaseId",
-                "RulebaseName"
+                "RulebaseName",
+                "Enabled"
             ]);
-            if (_globalConfig.ShowShortColumnsInComplianceReports)
-            {
-                _columnsToExport.Add("Disabled");
-            }
         }
 
         private Task GatherEmptyGroups(NetworkLocation[] networkLocations, List<NetworkLocation> resolvedNetworkLocations)
@@ -516,7 +513,7 @@ namespace FWO.Report
 
                     if (value is string str)
                     {
-                        if (p.Name == "Disabled")
+                        if (p.Name == "Enabled")
                         {
                             if (str.Contains(Icons.Check))
                             {

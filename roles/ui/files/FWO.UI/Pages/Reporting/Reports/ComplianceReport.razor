@@ -191,9 +191,9 @@
 
         @if (EmptyColumns[19] == false)
         {
-            <Column TableItem="RuleViewData" Context="rule" Title="Disabled" Field="@(r => r.Disabled)" Sortable="true" Filterable="true" Hideable="true">
+            <Column TableItem="RuleViewData" Context="rule" Title="Enabled" Field="@(r => r.Enabled)" Sortable="true" Filterable="true" Hideable="true">
                 <Template>
-                    @((MarkupString)rule.Disabled)
+                    @((MarkupString)rule.Enabled)
                 </Template>
             </Column>
         }

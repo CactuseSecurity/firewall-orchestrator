@@ -80,55 +80,7 @@ namespace FWO.Services.RuleTreeBuilder
 
             // Prepare creation of order numbers.
 
-            if (currentQueueItem.link.LinkType == 2 && !currentQueueItem.link.IsGlobal)
-            {
-                // Create position root and header item for new ordered layer
-
-                OrderedLayerCount++;
-                nextPosition = new List<int> { OrderedLayerCount };
-                nextParent = RuleTree.AddItem(header: currentQueueItem.rulebase.Name ?? "", position: nextPosition.ToList(), addToChildren: true, addToFlatList: true, setLastAddedItem: true);
-                nextParent.IsOrderedLayerHeader = true;
-                lastPosition = nextPosition;
-            }
-            else if (currentQueueItem.link.IsSection)
-            {
-                // Get the starting point for the next position.
-
-                nextPosition = lastPosition;
-
-                // Get parent for header item.
-
-                nextParent = GetSectionParent(nextPosition);
-
-                // Create header item for section.
-
-                nextParent = nextParent.AddItem(header: currentQueueItem.rulebase.Name ?? "", position: nextPosition?.ToList(), addToChildren: true, addToFlatList: true, setLastAddedItem: true);
-                nextParent.IsSectionHeader = true;
-            }
-            else if (currentQueueItem.link.LinkType == 3)
-            {
-                nextParent = RuleTree.LastAddedItem as RuleTreeItem;
-                if(nextParent !=null)
-                    nextParent.IsInlineLayerRoot = true;
-                nextPosition = lastPosition?.ToList()?? [];
-                nextPosition.Add(0);
-                lastPosition = nextPosition;
-
-                // Handle sections in inline layers without direct rules.
-
-                if (nextQueueItem?.link is RulebaseLink nextLink && currentQueueItem.rulebase.Rules.Count() == 0 && nextLink.IsSection && nextLink.FromRulebaseId == currentQueueItem.link.NextRulebaseId)
-                {
-                    lastPosition = HandleRulebaseLinkQueueItem(RuleTreeBuilderQueue.Dequeue(), lastPosition);
-                }
-            }
-            else if (currentQueueItem.link.LinkType == 4)
-            {
-                if (currentQueueItem.link.IsInitial)
-                {
-                    nextParent = RuleTree;
-                }
-                
-            }
+            (nextPosition,nextParent) = PrepareOrderNumberCreation(currentQueueItem, lastPosition, nextQueueItem);
 
             // Create order number.
                 List<Rule> currentRules = currentQueueItem.rulebase.Rules.ToList();
@@ -149,7 +101,7 @@ namespace FWO.Services.RuleTreeBuilder
                 {
                     nextPosition = lastPosition?.ToList() ?? [];
                 }
-                else if (nextParent?.GetPositionString() == OrderedLayerCount.ToString() && !nextParent.Children.Any())
+                else if (nextParent?.GetPositionString() == OrderedLayerCount.ToString() && nextParent.Children.Count == 0)
                 {
                     nextPosition.Add(0);
                 }
@@ -186,22 +138,18 @@ namespace FWO.Services.RuleTreeBuilder
                 lastPosition = nextPosition;
 
                 // Handle inline layers.
-
-                if (nextQueueItem?.link is RulebaseLink nextLink)
+                
+                if (nextQueueItem?.link is RulebaseLink nextLink && ((nextLink.LinkType == 3 && nextLink.FromRuleId == currentRule.Id) || nextLink.IsSection && RuleTree.LastAddedItem?.Data?.RulebaseId == nextLink.FromRulebaseId && currentRule == currentRules.Last()))
                 {
-                    if ((nextLink.LinkType == 3 && nextLink.FromRuleId == currentRule.Id) || nextLink.IsSection && RuleTree.LastAddedItem?.Data?.RulebaseId == nextLink.FromRulebaseId && currentRule == currentRules.Last())
-                    {
-                        nextQueueItem = RuleTreeBuilderQueue.Dequeue();
+                    nextQueueItem = RuleTreeBuilderQueue.Dequeue();
 
-                        lastPosition = HandleRulebaseLinkQueueItem(nextQueueItem.Value, lastPosition);
+                    lastPosition = HandleRulebaseLinkQueueItem(nextQueueItem.Value, lastPosition);
 
-                        // Update current and next queue items in case this loop continues after handling an inline layer.
+                    // Update current and next queue items in case this loop continues after handling an inline layer.
 
-                        currentQueueItem = nextQueueItem.Value;
+                    currentQueueItem = nextQueueItem.Value;
 
-                        nextQueueItem = TryPeekNextQueueItem();
-                    }
-
+                    nextQueueItem = TryPeekNextQueueItem();
                 }
             }
 
@@ -334,6 +282,63 @@ namespace FWO.Services.RuleTreeBuilder
             {
                 return new();
             }
+        }
+
+        private (List<int>?,RuleTreeItem?) PrepareOrderNumberCreation((RulebaseLink link, RulebaseReport rulebase) currentQueueItem, List<int>? lastPosition,  (RulebaseLink link, RulebaseReport rulebase)? nextQueueItem)
+        {
+            List<int>? nextPosition = null;
+            RuleTreeItem? nextParent = null;
+            if (currentQueueItem.link.LinkType == 2 && !currentQueueItem.link.IsGlobal)
+            {
+                // Create position root and header item for new ordered layer
+
+                OrderedLayerCount++;
+                nextPosition = new List<int> { OrderedLayerCount };
+                nextParent = RuleTree.AddItem(header: currentQueueItem.rulebase.Name ?? "", position: nextPosition.ToList(), addToChildren: true, addToFlatList: true, setLastAddedItem: true);
+                nextParent.IsOrderedLayerHeader = true;
+                lastPosition = nextPosition;
+            }
+            else if (currentQueueItem.link.IsSection)
+            {
+                // Get the starting point for the next position.
+
+                nextPosition = lastPosition;
+
+                // Get parent for header item.
+
+                nextParent = GetSectionParent(nextPosition);
+
+                // Create header item for section.
+
+                nextParent = nextParent.AddItem(header: currentQueueItem.rulebase.Name ?? "", position: nextPosition?.ToList(), addToChildren: true, addToFlatList: true, setLastAddedItem: true);
+                nextParent.IsSectionHeader = true;
+            }
+            else if (currentQueueItem.link.LinkType == 3)
+            {
+                nextParent = RuleTree.LastAddedItem as RuleTreeItem;
+                if(nextParent !=null)
+                    nextParent.IsInlineLayerRoot = true;
+                nextPosition = lastPosition?.ToList()?? [];
+                nextPosition.Add(0);
+                lastPosition = nextPosition;
+
+                // Handle sections in inline layers without direct rules.
+
+                if (nextQueueItem?.link is RulebaseLink nextLink && currentQueueItem.rulebase.Rules.Count() == 0 && nextLink.IsSection && nextLink.FromRulebaseId == currentQueueItem.link.NextRulebaseId)
+                {
+                    lastPosition = HandleRulebaseLinkQueueItem(RuleTreeBuilderQueue.Dequeue(), lastPosition);
+                }
+            }
+            else if (currentQueueItem.link.LinkType == 4)
+            {
+                if (currentQueueItem.link.IsInitial)
+                {
+                    nextParent = RuleTree;
+                }
+                
+            }
+            
+            return(nextPosition, nextParent);
         }
     }
 }

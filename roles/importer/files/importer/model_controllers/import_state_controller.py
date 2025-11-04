@@ -26,8 +26,8 @@ class ImportStateController(ImportState):
     api_call: FwoApiCall
     management_map: dict[str, int]  # maps management uid to management id
 
-    def __init__(self, debugLevel, configChangedSinceLastImport, fwoConfig, mgmDetails, jwt, force, 
-                 version=8, isFullImport=False, isInitialImport=False, isClearingImport=False, verifyCerts=False, LastSuccessfulImport=None):
+    def __init__(self, debugLevel: int, configChangedSinceLastImport: bool, fwoConfig: dict, mgmDetails: dict, jwt: str, force: str, 
+                 version: int, isFullImport: bool = False, isInitialImport: bool = False, isClearingImport: bool = False, verifyCerts: bool = False, LastSuccessfulImport: str | None = None):
         self.Stats = ImportStatisticsController()
         self.StartTime = int(time.time())
         self.DebugLevel = debugLevel
@@ -387,14 +387,14 @@ class ImportStateController(ImportState):
     def lookupGatewayId(self, gwUid):
         return self.GatewayMap.get(gwUid, None)
 
-    def lookupManagementId(self, mgmUid):
+    def lookupManagementId(self, mgmUid: str) -> int | None:
         if not self.ManagementMap.get(mgmUid, None):
             logger = getFwoLogger()
             logger.error(f"fwo_api:import_latest_config - no mgm id found for current manager uid '{mgmUid}'")
         return self.ManagementMap.get(mgmUid, None)
 
 
-    def lookupColorId(self, color_str):
+    def lookupColorId(self, color_str: str) -> int:
         return self.ColorMap.get(color_str, 1)  # 1 = forground color black
     
 

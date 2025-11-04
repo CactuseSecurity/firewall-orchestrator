@@ -27,7 +27,7 @@ class FwoApi():
     query_analyzer: QueryAnalyzer
 
 
-    def __init__(self, ApiUri, Jwt):
+    def __init__(self, ApiUri: str, Jwt: str):
         self.FwoApiUrl = ApiUri
         self.FwoJwt = Jwt
         self.query_info = {}

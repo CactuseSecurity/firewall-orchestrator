@@ -40,8 +40,12 @@ class FwConfigImport():
     def __init__(self):
         service_provider = ServiceProvider()
         self._global_state = service_provider.get_service(Services.GLOBAL_STATE)
-
+        if self._global_state.import_state is None:
+            raise FwoImporterError("import_state is not set in global_state")
         self.import_state = self._global_state.import_state
+
+        if self._global_state.normalized_config is None:
+            raise FwoImporterError("normalized_config is not set in global_state")
         self.NormalizedConfig = self._global_state.normalized_config
 
         self._fw_config_import_object = FwConfigImportObject()
@@ -64,7 +68,7 @@ class FwConfigImport():
 
 
     def import_management_set(self, import_state: ImportStateController, service_provider: ServiceProvider, mgr_set: FwConfigManagerListController):
-        global_state = service_provider.get_service(Services.GLOBAL_STATE)
+        global_state = service_provider.get_service(Services.GLOBAL_STATE) # TODO why not use self._global_state?
 
         for manager in sorted(mgr_set.ManagerSet, key=lambda m: not getattr(m, 'IsSuperManager', False)):
             """
@@ -116,7 +120,7 @@ class FwConfigImport():
         if len(self.import_state.MgmDetails.SubManagerIds)>0:
             # Read config
             fwo_api = FwoApi(self.import_state.FwoConfig.FwoApiUri, self.import_state.Jwt)
-            fwo_api_call = FwoApiCall(fwo_api)
+            fwo_api_call = FwoApiCall(fwo_api) #TODO why not used ??
             # # Authenticate to get JWT
             # try:
             #     jwt = fwo_api.login(importer_user_name, fwoConfig.ImporterPassword, fwoConfig.FwoUserMgmtApiUri)

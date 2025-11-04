@@ -123,7 +123,7 @@ class FwConfigManagerListController(FwConfigManagerList):
         return set(all_user_objects)
     
 
-    def addManager(self, manager):
+    def addManager(self, manager: FwConfigManager):
         self.ManagerSet.append(manager)
 
     def getFirstManager(self):

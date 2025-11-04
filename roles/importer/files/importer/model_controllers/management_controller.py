@@ -177,7 +177,7 @@ class ManagementController(Management):
         return hashlib.sha256(combination.encode()).hexdigest()
 
 
-    def get_mgm_details(self, api_conn, mgm_id, debug_level=0):
+    def get_mgm_details(self, api_conn: FwoApi, mgm_id: int, debug_level: int = 0) -> dict:
 
         service_provider = ServiceProvider()
         _global_state = service_provider.get_service(Services.GLOBAL_STATE)

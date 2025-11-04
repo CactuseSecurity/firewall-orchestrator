@@ -1,4 +1,5 @@
 from logging import Logger
+from typing import Any
 from fwo_log import getFwoLogger
 from model_controllers.import_state_controller import ImportStateController
 from fwo_exceptions import FwoImporterError
@@ -59,11 +60,8 @@ class Uid2IdMapper:
     rule_uid2id: Uid2IdMap
 
     @property
-    def api_connection(self):
-        if self.import_state is None:
-            return None
-        else:
-            return self.import_state.api_connection
+    def api_connection(self) -> FwoApi:
+        return self.import_state.api_connection
 
     def __init__(self):
         """
@@ -179,7 +177,7 @@ class Uid2IdMapper:
             raise KeyError(f"Rule UID '{uid}' not found in mapping.")
         return rule_id
 
-    def add_network_object_mappings(self, mappings: list[dict], is_global=False):
+    def add_network_object_mappings(self, mappings: list[dict[str, Any]], is_global: bool = False):
         """
         Add network object mappings to the internal mapping dictionary.
 
@@ -195,7 +193,7 @@ class Uid2IdMapper:
         msg = f"Added {len(mappings)} {'global ' if is_global else ''}network object mappings."
         self.log_debug(msg)
 
-    def add_service_object_mappings(self, mappings: list[dict], is_global=False):
+    def add_service_object_mappings(self, mappings: list[dict[str, Any]], is_global: bool = False):
         """
         Add service object mappings to the internal mapping dictionary.
 
@@ -210,7 +208,7 @@ class Uid2IdMapper:
 
         self.log_debug(f"Added {len(mappings)} {'global ' if is_global else ''}service object mappings.")
 
-    def add_user_mappings(self, mappings: list[dict], is_global=False):
+    def add_user_mappings(self, mappings: list[dict[str, Any]], is_global: bool = False):
         """
         Add user object mappings to the internal mapping dictionary.
 
@@ -225,7 +223,7 @@ class Uid2IdMapper:
 
         self.log_debug(f"Added {len(mappings)} {'global ' if is_global else ''}user mappings.")
 
-    def add_zone_mappings(self, mappings: list[dict], is_global=False):
+    def add_zone_mappings(self, mappings: list[dict[str, Any]], is_global: bool = False):
         """
         Add zone object mappings to the internal mapping dictionary.
 
@@ -240,7 +238,7 @@ class Uid2IdMapper:
 
         self.log_debug(f"Added {len(mappings)} {'global ' if is_global else ''}zone mappings.")
 
-    def add_rule_mappings(self, mappings: list[dict]):
+    def add_rule_mappings(self, mappings: list[dict[str, Any]]):
         """
         Add rule mappings to the internal mapping dictionary.
 
@@ -255,7 +253,7 @@ class Uid2IdMapper:
 
         self.log_debug(f"Added {len(mappings)} rule mappings.")
 
-    def update_network_object_mapping(self, uids: list[str]|None = None, is_global=False):
+    def update_network_object_mapping(self, uids: list[str]|None = None, is_global: bool = False):
         """
         Update the mapping for network objects based on the provided UIDs.
         
@@ -283,8 +281,8 @@ class Uid2IdMapper:
             self.log_debug(f"Network object mapping updated for {len(response['data']['object'])} objects")
         except Exception as e:
             raise FwoImporterError(f"Error updating network object mapping: {e}")
-    
-    def update_service_object_mapping(self, uids: list[str]|None = None, is_global=False):
+
+    def update_service_object_mapping(self, uids: list[str]|None = None, is_global: bool = False):
         """
         Update the mapping for service objects based on the provided UIDs.
         
@@ -311,8 +309,8 @@ class Uid2IdMapper:
             self.log_debug(f"Service object mapping updated for {len(response['data']['service'])} objects")
         except Exception as e:
             raise FwoImporterError(f"Error updating service object mapping: {e}")
-        
-    def update_user_mapping(self, uids: list[str]|None = None, is_global=False):
+
+    def update_user_mapping(self, uids: list[str]|None = None, is_global: bool = False):
         """
         Update the mapping for users based on the provided UIDs.
         
@@ -340,7 +338,7 @@ class Uid2IdMapper:
         except Exception as e:
             raise FwoImporterError(f"Error updating user mapping: {e}")
 
-    def update_zone_mapping(self, names: list[str]|None = None, is_global=False):
+    def update_zone_mapping(self, names: list[str]|None = None, is_global: bool = False):
         """
         Update the mapping for zones based on the provided names.
 

@@ -425,7 +425,7 @@ def init_service_provider():
     return service_provider
 
 
-def find_all_diffs(a, b, strict=False, path="root"):
+def find_all_diffs(a, b, strict=False, path="root") -> list[str]:
     diffs = []
     if isinstance(a, dict):
         for k in a:

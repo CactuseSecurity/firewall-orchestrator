@@ -1,6 +1,6 @@
 from enum import Enum
 import traceback
-import time, datetime
+import datetime
 import json
 from typing import Any
 
@@ -11,7 +11,7 @@ from models.networkobject import NetworkObjectForImport
 from models.fwconfigmanager import FwConfigManager
 from models.serviceobject import ServiceObjectForImport
 import fwo_const
-from fwo_api_call import FwoApiCall, FwoApi
+from fwo_api_call import FwoApi
 from fwo_exceptions import FwoDuplicateKeyViolation, FwoImporterError
 from services.group_flats_mapper import GroupFlatsMapper
 from services.uid2id_mapper import Uid2IdMapper
@@ -60,13 +60,13 @@ class FwConfigImportObject():
         # calculate network object diffs
         # here we are handling the previous config as a dict for a while
         # previousNwObjects = prevConfig.network_objects
-        deletedNwobjUids = list(prev_config.network_objects.keys() - self.normalized_config.network_objects.keys())
-        newNwobjUids = list(self.normalized_config.network_objects.keys() - prev_config.network_objects.keys())
-        nwobjUidsInBoth = list(self.normalized_config.network_objects.keys() & prev_config.network_objects.keys())
+        deletedNwobjUids: list[str] = list(prev_config.network_objects.keys() - self.normalized_config.network_objects.keys())
+        newNwobjUids: list[str] = list(self.normalized_config.network_objects.keys() - prev_config.network_objects.keys())
+        nwobjUidsInBoth: list[str] = list(self.normalized_config.network_objects.keys() & prev_config.network_objects.keys())
 
         # For correct changelog and stats.
-        changed_nw_objs = []
-        changed_svcs = []
+        changed_nw_objs: list[str] = []
+        changed_svcs: list[str] = []
 
         # decide if it is prudent to mix changed, deleted and added rules here:
         for nwObjUid in nwobjUidsInBoth:
@@ -76,9 +76,9 @@ class FwConfigImportObject():
                 changed_nw_objs.append(nwObjUid)
 
         # calculate service object diffs
-        deletedSvcObjUids = list(prev_config.service_objects.keys() - self.normalized_config.service_objects.keys())
-        newSvcObjUids = list(self.normalized_config.service_objects.keys() - prev_config.service_objects.keys())
-        svcObjUidsInBoth = list(self.normalized_config.service_objects.keys() & prev_config.service_objects.keys())
+        deletedSvcObjUids: list[str] = list(prev_config.service_objects.keys() - self.normalized_config.service_objects.keys())
+        newSvcObjUids: list[str] = list(self.normalized_config.service_objects.keys() - prev_config.service_objects.keys())
+        svcObjUidsInBoth: list[str] = list(self.normalized_config.service_objects.keys() & prev_config.service_objects.keys())
 
         for nwSvcUid in svcObjUidsInBoth:
             if self.normalized_config.service_objects[nwSvcUid] != prev_config.service_objects[nwSvcUid]:
@@ -87,9 +87,9 @@ class FwConfigImportObject():
                 changed_svcs.append(nwSvcUid)
         
         # calculate user diffs
-        deletedUserUids = list(prev_config.users.keys() - self.normalized_config.users.keys())
-        newUserUids = list(self.normalized_config.users.keys() - prev_config.users.keys())
-        userUidsInBoth = list(self.normalized_config.users.keys() & prev_config.users.keys())
+        deletedUserUids: list[str] = list(prev_config.users.keys() - self.normalized_config.users.keys())
+        newUserUids: list[str] = list(self.normalized_config.users.keys() - prev_config.users.keys())
+        userUidsInBoth: list[str] = list(self.normalized_config.users.keys() & prev_config.users.keys())
         for userUid in userUidsInBoth:
             if self.normalized_config.users[userUid] != prev_config.users[userUid]:
                 newUserUids.append(userUid)
@@ -113,10 +113,10 @@ class FwConfigImportObject():
         self.remove_outdated_memberships(prev_config, Type.USER)
 
         # calculate zone object diffs
-        deleted_zone_names = list(prev_config.zone_objects.keys() - self.normalized_config.zone_objects.keys())
-        new_zone_names = list(self.normalized_config.zone_objects.keys() - prev_config.zone_objects.keys())
-        zone_names_in_both = list(self.normalized_config.zone_objects.keys() & prev_config.zone_objects.keys())
-        changed_zones = []
+        deleted_zone_names: list[str] = list(prev_config.zone_objects.keys() - self.normalized_config.zone_objects.keys())
+        new_zone_names: list[str] = list(self.normalized_config.zone_objects.keys() - prev_config.zone_objects.keys())
+        zone_names_in_both: list[str] = list(self.normalized_config.zone_objects.keys() & prev_config.zone_objects.keys())
+        changed_zones: list[str] = []
 
         for zone_name in zone_names_in_both:
             if self.normalized_config.zone_objects[zone_name] != prev_config.zone_objects[zone_name]:
@@ -125,7 +125,7 @@ class FwConfigImportObject():
                 changed_zones.append(zone_name)
 
         # add newly created objects
-        newNwObjIds, newNwSvcIds, newUserIds, new_zone_ids, removedNwObjIds, removedNwSvcIds, removedUserIds, removed_zone_ids =  \
+        newNwObjIds, newNwSvcIds, newUserIds, new_zone_ids, removedNwObjIds, removedNwSvcIds, _, _ =  \
             self.updateObjectsViaApi(single_manager, newNwobjUids, newSvcObjUids, newUserUids, new_zone_names, deletedNwobjUids, deletedSvcObjUids, deletedUserUids, deleted_zone_names)
         
         self.uid2id_mapper.add_network_object_mappings(newNwObjIds, is_global=single_manager.IsSuperManager)
@@ -178,7 +178,7 @@ class FwConfigImportObject():
         self.import_state.Stats.ServiceObjectChangeCount = len(change_logger.changed_service_id_map.items())
 
 
-    def GetNetworkObjTypeMap(self):
+    def GetNetworkObjTypeMap(self) -> dict[str, int]:
         query = "query getNetworkObjTypeMap { stm_obj_typ { obj_typ_name obj_typ_id } }"
         try:
             result = self.import_state.api_call.call(query=query, query_variables={})
@@ -187,12 +187,12 @@ class FwConfigImportObject():
             logger.error(f"Error while getting stm_obj_typ: str{e}")
             return {}
         
-        map = {}
+        map: dict[str, Any] = {}
         for nwType in result['data']['stm_obj_typ']:
             map.update({nwType['obj_typ_name']: nwType['obj_typ_id']})
         return map
 
-    def GetServiceObjTypeMap(self):
+    def GetServiceObjTypeMap(self) -> dict[str, int]:
         query = "query getServiceObjTypeMap { stm_svc_typ { svc_typ_name svc_typ_id } }"
         try:
             result = self.import_state.api_call.call(query=query, query_variables={})
@@ -201,12 +201,12 @@ class FwConfigImportObject():
             logger.error(f"Error while getting stm_svc_typ: {str(e)}")
             return {}
         
-        map = {}
+        map: dict[str, Any] = {}
         for svcType in result['data']['stm_svc_typ']:
             map.update({svcType['svc_typ_name']: svcType['svc_typ_id']})
         return map
 
-    def GetUserObjTypeMap(self):
+    def GetUserObjTypeMap(self) -> dict[str, int]:
         query = "query getUserObjTypeMap { stm_usr_typ { usr_typ_name usr_typ_id } }"
         try:
             result = self.import_state.api_call.call(query=query, query_variables={})
@@ -215,12 +215,12 @@ class FwConfigImportObject():
             logger.error(f"Error while getting stm_usr_typ: {str(e)}")
             return {}
         
-        map = {}
+        map: dict[str, Any] = {}
         for usrType in result['data']['stm_usr_typ']:
             map.update({usrType['usr_typ_name']: usrType['usr_typ_id']})
         return map
 
-    def GetProtocolMap(self):
+    def GetProtocolMap(self) -> dict[str, int]:
         query = "query getIpProtocols { stm_ip_proto { ip_proto_id ip_proto_name } }"
         try:
             result = self.import_state.api_call.call(query=query, query_variables={})
@@ -229,12 +229,12 @@ class FwConfigImportObject():
             logger.error(f"Error while getting stm_ip_proto: {str(e)}")
             return {}
         
-        map = {}
+        map: dict[str, Any] = {}
         for proto in result['data']['stm_ip_proto']:
             map.update({proto['ip_proto_name'].lower(): proto['ip_proto_id']})
         return map
 
-    def updateObjectsViaApi(self, single_manager, newNwObjectUids, newSvcObjectUids, newUserUids, new_zone_names, removedNwObjectUids, removedSvcObjectUids, removedUserUids, removed_zone_names):
+    def updateObjectsViaApi(self, single_manager: FwConfigManager, newNwObjectUids: list[str], newSvcObjectUids: list[str], newUserUids: list[str], new_zone_names: list[str], removedNwObjectUids: list[str], removedSvcObjectUids: list[str], removedUserUids: list[str], removed_zone_names: list[str]):
         # here we also mark old objects removed before adding the new versions
         logger = getFwoLogger(debug_level=self.import_state.DebugLevel)
         newNwObjIds = []

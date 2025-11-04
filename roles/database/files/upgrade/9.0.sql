@@ -1632,3 +1632,94 @@ insert into stm_dev_typ (dev_typ_id,dev_typ_name,dev_typ_version,dev_typ_manufac
 insert into stm_dev_typ (dev_typ_id,dev_typ_name,dev_typ_version,dev_typ_manufacturer,dev_typ_predef_svc,dev_typ_is_multi_mgmt,dev_typ_is_mgmt,is_pure_routing_device)
     VALUES (29,'Cisco Asa on FirePower','9','Cisco','',false,true,false)
     ON CONFLICT (dev_typ_id) DO NOTHING;
+	
+	
+	
+-- rule_metadata add mgm_id + fk, drop constraint
+ALTER TABLE rule_metadata ADD COLUMN IF NOT EXISTS mgm_id Integer;
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 
+        FROM pg_constraint
+        WHERE conname = 'rule_metadata_mgm_id_management_id_fk'
+    ) THEN
+        ALTER TABLE rule_metadata
+        ADD CONSTRAINT rule_metadata_mgm_id_management_id_fk
+        FOREIGN KEY (mgm_id) REFERENCES management(mgm_id)
+        ON UPDATE RESTRICT; --ON DELETE CASCADE;
+    END IF;
+END$$;
+
+ALTER TABLE rule DROP CONSTRAINT IF EXISTS rule_rule_metadata_rule_uid_f_key;	-- blocks drop unique from rule_metadata.rule_uid
+ALTER TABLE rule_metadata DROP CONSTRAINT IF EXISTS rule_metadata_rule_uid_unique;
+ALTER TABLE rule ADD CONSTRAINT rule_rule_metadata_rule_uid_f_key -- FK auf beide neue UINQUE?
+FOREIGN KEY (rule_uid) REFERENCES rule_metadata (rule_uid);
+
+
+--ALTER TABLE rule
+--ADD CONSTRAINT rule_rule_metadata_fk
+--FOREIGN KEY (rule_uid, mgm_id)
+--REFERENCES rule_metadata (rule_uid, mgm_id);
+
+
+
+-- mgm_id in rule_metadata updaten - from rule.rule_uid == rule_metadata.rule_uid
+DO $$
+BEGIN
+    -- Check for duplicate combinations of mgm_id + rule_uid
+    IF EXISTS (
+        SELECT 1
+        FROM rule_metadata rm
+        JOIN rule r ON rm.rule_uid = r.rule_uid
+        GROUP BY r.mgm_id, rm.rule_uid
+        HAVING COUNT(*) > 1
+    ) THEN
+        RAISE EXCEPTION 'Duplicate mgm_id + rule_uid combinations detected!';
+    ELSE
+        -- Check whether all rule_metadata.rule_uid have a matching entry in rule.
+        IF EXISTS (
+            SELECT 1
+            FROM rule_metadata rm
+            LEFT JOIN rule r ON rm.rule_uid = r.rule_uid
+            WHERE r.rule_uid IS NULL
+        ) THEN
+            RAISE EXCEPTION 'Some rule_metadata.rule_uid have no matching rule!';
+        ELSE
+            -- Update mgm_id in rule_medata from rule.mgm_id if rule_metadata. rule_uid == rule.rule_uid
+            UPDATE rule_metadata rm
+            SET mgm_id = r.mgm_id
+            FROM rule r
+            WHERE rm.rule_uid = r.rule_uid
+			AND rm.mgm_id IS NULL;
+        END IF;
+    END IF;
+END$$;
+
+
+
+-- mgm_id not null 
+DO $$
+BEGIN
+    IF EXISTS (
+        SELECT 1 FROM rule_metadata WHERE mgm_id IS NULL
+    ) THEN
+        RAISE EXCEPTION 'Cannot set mgm_id NOT NULL: some rows have NULL values!';
+    ELSE
+        ALTER TABLE rule_metadata
+        ALTER COLUMN mgm_id SET NOT NULL;
+    END IF;
+END$$;
+
+-- combination (mgm_id + rule_uid) unique
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1
+        FROM pg_constraint
+        WHERE conname = 'rule_metadata_mgm_id_rule_uid_unique'
+    ) THEN
+        ALTER TABLE rule_metadata
+        ADD CONSTRAINT rule_metadata_mgm_id_rule_uid_unique UNIQUE (mgm_id, rule_uid);
+    END IF;
+END$$;

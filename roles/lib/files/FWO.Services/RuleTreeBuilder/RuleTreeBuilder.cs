@@ -331,7 +331,7 @@ namespace FWO.Services.RuleTreeBuilder
             {
                 nextPosition = lastPosition?.ToList() ?? [];
             }
-            else if (nextParent?.GetPositionString() == OrderedLayerCount.ToString() && nextParent.Children.Count == 0)
+            else if (nextParent?.GetPositionString() == OrderedLayerCount.ToString() && nextParent?.Children.Count == 0)
             {
                 nextPosition.Add(0);
             }

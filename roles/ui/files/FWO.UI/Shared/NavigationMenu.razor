@@ -28,99 +28,99 @@
 				<span class="navbar-toggler-icon"></span>
 			</button>
 
-            <div class="navbar-collapse @NavMenuCollapseClass">
-                <ul class="@NavPaddingCollapseClass d-flex flex-wrap navbar-nav align-items-start flex-row">
-                    @if(availableModules.Contains(Module.Report))
-                    {
-                        <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.FwAdmin}, {Roles.Reporter}, {Roles.ReporterViewAll}, {Roles.Auditor}, {Roles.Modeller}")">
-                            <li class="nav-item px-2">
-                                <a href="@("/" + PageName.ReportGeneration)" class="nav-link @(navigationManager.Uri.Contains("/report/") ? "active" : "")">
-                                    <span class="@Icons.Reporting"></span> @(userConfig.GetText("reporting"))
-                                </a>
-                            </li>
-                        </AuthorizeView>
-                    }
-                    @if(availableModules.Contains(Module.Workflow))
-                    {
-                        <AuthorizeView Roles="@($"{Roles.Admin}, {WorkflowRoles()}, {Roles.FwAdmin}, {Roles.Auditor}")">
-                            <li class="nav-item px-2">
-                                <NavLink class="nav-link" href="@firstWorkflowPage">
-                                    <span class="@Icons.Workflow"></span> @(userConfig.GetText("workflow"))
-                                </NavLink>
-                            </li>
-                        </AuthorizeView>
-                    }
-                    @if(availableModules.Contains(Module.Recertification))
-                    {
-                        <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.Recertifier}, {Roles.Auditor}")">
-                            <li class="nav-item px-2">
-                                <NavLink class="nav-link" href="@("/" + PageName.Certification)">
-                                    <span class="@Icons.Recertification"></span> @(userConfig.GetText("recertification"))
-                                </NavLink>
-                            </li>
-                        </AuthorizeView>
-                    }
-                    @if(availableModules.Contains(Module.Modelling))
-                    {
-                        <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.Modeller}, {Roles.Auditor}")">
-                            <li class="nav-item px-2">
-                                <NavLink class="nav-link" href="/networkmodelling">
-                                    <span class="@Icons.Modelling"></span> @(userConfig.GetText("modelling"))
-                                </NavLink>
-                            </li>
-                        </AuthorizeView>
-                    }
-                    @if(availableModules.Contains(Module.NetworkAnalysis))
-                    {
-                        <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.FwAdmin}, {Roles.Planner}, {Roles.Auditor}")">
-                            <li class="nav-item px-2">
-                                <NavLink class="nav-link" href="/network_analysis">
-                                    <span class="@Icons.NetworkAnalysis"></span> @(userConfig.GetText("network_analysis"))
-                                </NavLink>
-                            </li>
-                        </AuthorizeView>
-                    }
-                    @if(availableModules.Contains(Module.Compliance))
-                    {
-                        <AuthorizeView Roles="@($"{ComplianceRoles()}")">
-                            <li class="nav-item px-2">
-                                <NavLink class="nav-link" href="/compliance/policies">
-                                    <span class="@Icons.Compliance"></span> @(userConfig.GetText("compliance"))
-                                </NavLink>
-                            </li>
-                        </AuthorizeView> 
-                    }               
-                </ul>
-                <ul class="@NavPaddingCollapseClass d-flex flex-wrap navbar-nav align-items-end ms-auto flex-row">
-                    <li class="nav-item px-2">
-                        @* d-flex align-items-center *@
-                        <NavLink class="nav-link" href="/monitoring">
-                            <span class="@Icons.Monitoring">
-                                @if (ShowAlert)
-                                {
-                                    <span class="@Icons.Alarm" style="color: red; margin-left: 5px; width: 15px; height: 10px;"></span>
-                                }
-                            </span>
-                            @(userConfig.GetText("monitoring"))
-                        </NavLink>
-                    </li>
-                    <li class="nav-item px-2">
-                        <NavLink class="nav-link" href="/settings">
-                            <span class="@Icons.Settings"></span> @(userConfig.GetText("settings"))
-                        </NavLink>
-                    </li>
-                    <li class="nav-item px-2">
-                        <HelpLink> @userConfig.GetText("help")</HelpLink>
-                    </li>
-                    <li class="nav-item px-2">
-                        <NavLink class="nav-link" href="/settings/user">
-                            <span class="@Icons.User"></span> @(userConfig.User.Name.ToUpper())
-                        </NavLink>
-                    </li>
-                </ul>
-            </div>
-        </nav>
-    </div>
+			<div class="navbar-collapse @NavMenuCollapseClass">
+				<ul class="@NavPaddingCollapseClass d-flex flex-wrap navbar-nav align-items-start flex-row">
+					@if (availableModules.Contains(Module.Report))
+					{
+						<AuthorizeView Roles="@($"{Roles.Admin}, {Roles.FwAdmin}, {Roles.Reporter}, {Roles.ReporterViewAll}, {Roles.Auditor}, {Roles.Modeller}")">
+							<li class="nav-item px-2">
+								<a href="@("/" + PageName.ReportGeneration)" class="nav-link @(navigationManager.Uri.Contains("/report/") ? "active" : "")">
+									<span class="@Icons.Reporting"></span> @(userConfig.GetText("reporting"))
+								</a>
+							</li>
+						</AuthorizeView>
+					}
+					@if (availableModules.Contains(Module.Workflow))
+					{
+						<AuthorizeView Roles="@($"{Roles.Admin}, {WorkflowRoles()}, {Roles.FwAdmin}, {Roles.Auditor}")">
+							<li class="nav-item px-2">
+								<NavLink class="nav-link" href="@firstWorkflowPage">
+									<span class="@Icons.Workflow"></span> @(userConfig.GetText("workflow"))
+								</NavLink>
+							</li>
+						</AuthorizeView>
+					}
+					@if (availableModules.Contains(Module.Recertification) && userConfig.RecertificationMode == RecertificationMode.RuleByRule)
+					{
+						<AuthorizeView Roles="@($"{Roles.Admin}, {Roles.Recertifier}, {Roles.Auditor}")">
+							<li class="nav-item px-2">
+								<NavLink class="nav-link" href="@("/" + PageName.Certification)">
+									<span class="@Icons.Recertification"></span> @(userConfig.GetText("recertification"))
+								</NavLink>
+							</li>
+						</AuthorizeView>
+					}
+					@if (availableModules.Contains(Module.Modelling))
+					{
+						<AuthorizeView Roles="@($"{Roles.Admin}, {Roles.Modeller}, {Roles.Auditor}")">
+							<li class="nav-item px-2">
+								<NavLink class="nav-link" href="/networkmodelling">
+									<span class="@Icons.Modelling"></span> @(userConfig.GetText("modelling"))
+								</NavLink>
+							</li>
+						</AuthorizeView>
+					}
+					@if (availableModules.Contains(Module.NetworkAnalysis))
+					{
+						<AuthorizeView Roles="@($"{Roles.Admin}, {Roles.FwAdmin}, {Roles.Planner}, {Roles.Auditor}")">
+							<li class="nav-item px-2">
+								<NavLink class="nav-link" href="/network_analysis">
+									<span class="@Icons.NetworkAnalysis"></span> @(userConfig.GetText("network_analysis"))
+								</NavLink>
+							</li>
+						</AuthorizeView>
+					}
+					@if (availableModules.Contains(Module.Compliance))
+					{
+						<AuthorizeView Roles="@($"{ComplianceRoles()}")">
+							<li class="nav-item px-2">
+								<NavLink class="nav-link" href="/compliance/policies">
+									<span class="@Icons.Compliance"></span> @(userConfig.GetText("compliance"))
+								</NavLink>
+							</li>
+						</AuthorizeView>
+					}
+				</ul>
+				<ul class="@NavPaddingCollapseClass d-flex flex-wrap navbar-nav align-items-end ms-auto flex-row">
+					<li class="nav-item px-2">
+						@* d-flex align-items-center *@
+						<NavLink class="nav-link" href="/monitoring">
+							<span class="@Icons.Monitoring">
+								@if (ShowAlert)
+								{
+									<span class="@Icons.Alarm" style="color: red; margin-left: 5px; width: 15px; height: 10px;"></span>
+								}
+							</span>
+							@(userConfig.GetText("monitoring"))
+						</NavLink>
+					</li>
+					<li class="nav-item px-2">
+						<NavLink class="nav-link" href="/settings">
+							<span class="@Icons.Settings"></span> @(userConfig.GetText("settings"))
+						</NavLink>
+					</li>
+					<li class="nav-item px-2">
+						<HelpLink> @userConfig.GetText("help")</HelpLink>
+					</li>
+					<li class="nav-item px-2">
+						<NavLink class="nav-link" href="/settings/user">
+							<span class="@Icons.User"></span> @(userConfig.User.Name.ToUpper())
+						</NavLink>
+					</li>
+				</ul>
+			</div>
+		</nav>
+	</div>
 }
 
 @code

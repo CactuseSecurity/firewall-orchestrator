@@ -12,10 +12,9 @@ namespace FWO.Report
 {
     public static class ReportGenerator
     {
-
         private static ReportBase? _currentReport;
 
-        public static async Task<ReportBase?> Generate(ReportTemplate reportTemplate, ApiConnection apiConnection, UserConfig userConfig, Action<Exception?, string, string, bool> displayMessageInUi, CancellationToken? token = null)
+        public static async Task<ReportBase?> GenerateFromTemplate(ReportTemplate reportTemplate, ApiConnection apiConnection, UserConfig userConfig, Action<Exception?, string, string, bool> displayMessageInUi, CancellationToken? token = null)
         {
             try
             {
@@ -35,9 +34,13 @@ namespace FWO.Report
         {
             try
             {
-                if (report.ReportType.IsOwnerRelatedReport())
+                if (report.ReportType.IsConnectionRelatedReport())
                 {
-                    await GenerateOwnerRelatedReport(report, reportTemplate, apiConnection, userConfig, displayMessageInUi, token);
+                    await GenerateConnectionRelatedReport(report, reportTemplate, apiConnection, userConfig, displayMessageInUi, token);
+                }
+                else if (report.ReportType == ReportType.OwnerRecertification)
+                {
+                    await GenerateOwnerReport(report, reportTemplate, apiConnection, token);
                 }
                 else if (report.ReportType == ReportType.Statistics)
                 {
@@ -49,12 +52,16 @@ namespace FWO.Report
                         rep =>
                         {
                             report.ReportData.ManagementData = rep.ManagementData;
-                            SetRelevantManagements(ref report.ReportData.ManagementData, reportTemplate.ReportParams.DeviceFilter);
+                            SetRelevantManagements(report.ReportData.ManagementData, reportTemplate.ReportParams.DeviceFilter);
                             return Task.CompletedTask;
                         }, token);
                     if (report.ReportType == ReportType.Recertification)
                     {
                         PrepareMetadata(report.ReportData.ManagementData, userConfig);
+                    }
+                    if (report.ReportType == ReportType.RecertEventReport)
+                    {
+                        report.ReportData.OwnerData = await ReportRecertEvent.GetRecertification(reportTemplate.ReportParams.ModellingFilter.ReportId, apiConnection);
                     }
                 }
             }
@@ -64,7 +71,29 @@ namespace FWO.Report
             }
         }
 
-        private static async Task GenerateOwnerRelatedReport(ReportBase report, ReportTemplate reportTemplate, ApiConnection apiConnection, UserConfig userConfig, Action<Exception?, string, string, bool> displayMessageInUi, CancellationToken token)
+        private static async Task GenerateOwnerReport(ReportBase report, ReportTemplate reportTemplate, ApiConnection apiConnection, CancellationToken token)
+        {
+            await report.Generate(0, apiConnection,
+                rep =>
+                {
+                    report.ReportData.OwnerData.AddRange(rep.OwnerData);
+                    return Task.CompletedTask;
+                }, token);
+            report.ReportData.RecertificationDisplayPeriod = reportTemplate.ReportParams.RecertFilter.RecertificationDisplayPeriod;
+            foreach (var owner in report.ReportData.OwnerData.Select(o => o.Owner))
+            {
+                if (owner.NextRecertDate < DateTime.Now)
+                {
+                    owner.RecertOverdue = true;
+                }
+                else if (owner.NextRecertDate < DateTime.Now.AddDays(reportTemplate.ReportParams.RecertFilter.RecertificationDisplayPeriod))
+                {
+                    owner.RecertUpcoming = true;
+                }
+            }
+        }
+
+        private static async Task GenerateConnectionRelatedReport(ReportBase report, ReportTemplate reportTemplate, ApiConnection apiConnection, UserConfig userConfig, Action<Exception?, string, string, bool> displayMessageInUi, CancellationToken token)
         {
             _currentReport = report;
             ModellingAppRole dummyAppRole = new();
@@ -75,7 +104,7 @@ namespace FWO.Report
             }
             foreach (var selectedOwner in reportTemplate.ReportParams.ModellingFilter.SelectedOwners)
             {
-                OwnerReport actOwnerData = new(dummyAppRole.Id) { Name = selectedOwner.Display(""), Owner = selectedOwner };
+                OwnerConnectionReport actOwnerData = new(dummyAppRole.Id) { Name = selectedOwner.Display(""), Owner = selectedOwner };
                 report.ReportData.OwnerData.Add(actOwnerData);
                 await report.Generate(userConfig.ElementsPerFetch, apiConnection,
                     rep =>
@@ -95,7 +124,7 @@ namespace FWO.Report
             }
         }
 
-        private static async Task PrepareConnReportData(FwoOwner selectedOwner, OwnerReport ownerReport, ReportType reportType, ModellingFilter modellingFilter,
+        private static async Task PrepareConnReportData(FwoOwner selectedOwner, OwnerConnectionReport ownerReport, ReportType reportType, ModellingFilter modellingFilter,
             ApiConnection apiConnection, UserConfig userConfig, Action<Exception?, string, string, bool> displayMessageInUi)
         {
             ModellingHandlerBase handlerBase = new(apiConnection, userConfig, new(), false, displayMessageInUi);
@@ -109,11 +138,11 @@ namespace FWO.Report
             }
             ownerReport.Name = selectedOwner.Name;
             ownerReport.RegularConnections = [.. ownerReport.Connections.Where(x => !x.IsInterface && !x.IsCommonService && !x.GetBoolProperty(ConState.InterfaceRejected.ToString()))];
-            ownerReport.Interfaces = [.. ownerReport.Connections.Where(x => x.IsInterface && !x.GetBoolProperty(ConState.Rejected.ToString()))];
+            ownerReport.Interfaces = [.. ownerReport.Connections.Where(x => x.IsInterface && !(x.GetBoolProperty(ConState.Rejected.ToString()) || x.GetBoolProperty(ConState.Decommissioned.ToString())))];
             ownerReport.CommonServices = [.. ownerReport.Connections.Where(x => !x.IsInterface && x.IsCommonService && !x.GetBoolProperty(ConState.InterfaceRejected.ToString()))];
         }
 
-        private static async Task PrepareVarianceData(OwnerReport ownerReport, ModellingFilter modellingFilter, ApiConnection apiConnection,
+        private static async Task PrepareVarianceData(OwnerConnectionReport ownerReport, ModellingFilter modellingFilter, ApiConnection apiConnection,
             UserConfig userConfig, Action<Exception?, string, string, bool> displayMessageInUi)
         {
             ownerReport.ExtractConnectionsToAnalyse();
@@ -126,15 +155,20 @@ namespace FWO.Report
             ownerReport.DifferingAppRoles = result.DifferingAppRoles;
             ownerReport.AppRoleStats = result.AppRoleStats;
             ownerReport.ImplementationState = await varianceAnalysis.GetSuccessfulRequestState();
+            if (modellingFilter.RulesForDeletedConns)
+            {
+                ownerReport.RulesForDeletedConns = result.DeletedConnRuleDataToReport();
+            }
             if (modellingFilter.AnalyseRemainingRules)
             {
-                ownerReport.ManagementData = result.MgtDataToReport();
-                ownerReport.ManagementData = await ReportAppRules.PrepareAppRulesReport(ownerReport.ManagementData, modellingFilter, apiConnection, ownerReport.Owner.Id);
+                ownerReport.UnmodelledRules = result.UnmodelledRuleDataToReport();
+                ownerReport.UnmodelledRules = await ReportAppRules.PrepareAppRulesReport(ownerReport.UnmodelledRules, modellingFilter, apiConnection, ownerReport.Owner.Id);
             }
 
             if (_currentReport is ReportVariances reportVariances)
             {
-                reportVariances.SetDifferenceCounters();
+                // TODO: TMP-MERGE - fix this
+                // reportVariances.SetDifferenceCounters();
                 reportVariances.ReportData.ElementsCount += reportVariances.MissARCounter + reportVariances.DiffARCounter + reportVariances.MissConnCounter + reportVariances.DiffConnCounter;
             }
         }
@@ -146,27 +180,28 @@ namespace FWO.Report
                 rep =>
                 {
                     report.ReportData.ManagementData = rep.ManagementData;
-                    SetRelevantManagements(ref report.ReportData.ManagementData, reportTemplate.ReportParams.DeviceFilter);
+                    SetRelevantManagements(report.ReportData.ManagementData, reportTemplate.ReportParams.DeviceFilter);
                     foreach (var mgm in report.ReportData.ManagementData.Where(mgt => !mgt.Ignore))
                     {
+                        mgm.EnforceValidity();
                         report.ReportData.GlobalStats.RuleStatistics.ObjectAggregate.ObjectCount += mgm.RuleStatistics.ObjectAggregate.ObjectCount;
                         report.ReportData.GlobalStats.NetworkObjectStatistics.ObjectAggregate.ObjectCount += mgm.NetworkObjectStatistics.ObjectAggregate.ObjectCount;
                         report.ReportData.GlobalStats.ServiceObjectStatistics.ObjectAggregate.ObjectCount += mgm.ServiceObjectStatistics.ObjectAggregate.ObjectCount;
                         report.ReportData.GlobalStats.UserObjectStatistics.ObjectAggregate.ObjectCount += mgm.UserObjectStatistics.ObjectAggregate.ObjectCount;
+                        report.ReportData.GlobalStats.UnusedRulesStatistics.ObjectAggregate.ObjectCount += mgm.UnusedRulesStatistics.ObjectAggregate.ObjectCount;
                     }
                     return Task.CompletedTask;
                 }, token);
         }
 
-        private static void PrepareMetadata(List<ManagementReport> ManagementReports, UserConfig userConfig)
+        private static void PrepareMetadata(List<ManagementReport> managementReports, UserConfig userConfig)
         {
-            foreach (var managementReport in ManagementReports)
+            foreach (var managementReport in managementReports)
             {
                 foreach (var device in managementReport.Devices.Where(d => d.ContainsRules()))
                 {
                     if (device.ContainsRules())
                     {
-                        // rulesFound = true;
                         foreach (var rulebaseLink in device.RulebaseLinks)
                         {
                             // rule.Metadata.UpdateRecertPeriods(userConfig.RecertificationPeriod, userConfig.RecertificationNoticePeriod);
@@ -176,7 +211,7 @@ namespace FWO.Report
             }
         }
 
-        private static void SetRelevantManagements(ref List<ManagementReport> managementsReport, DeviceFilter deviceFilter)
+        private static void SetRelevantManagements(List<ManagementReport> managementsReport, DeviceFilter deviceFilter)
         {
             if (deviceFilter.IsAnyDeviceFilterSet())
             {

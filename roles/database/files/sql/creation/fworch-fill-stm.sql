@@ -95,12 +95,16 @@ insert into config (config_key, config_value, config_user) VALUES ('modReqEmailS
 insert into config (config_key, config_value, config_user) VALUES ('modReqEmailBody', '', 0);
 insert into config (config_key, config_value, config_user) VALUES ('modReqTicketTitle', '', 0);
 insert into config (config_key, config_value, config_user) VALUES ('modReqTaskTitle', '', 0);
+insert into config (config_key, config_value, config_user) VALUES ('modDecommEmailReceiver', 'None', 0);
+insert into config (config_key, config_value, config_user) VALUES ('modDecommEmailSubject', '', 0);
+insert into config (config_key, config_value, config_user) VALUES ('modDecommEmailBody', '', 0);
 insert into config (config_key, config_value, config_user) VALUES ('modRolloutActive', 'true', 0);
 insert into config (config_key, config_value, config_user) VALUES ('modRolloutResolveServiceGroups', 'true', 0);
 insert into config (config_key, config_value, config_user) VALUES ('modRolloutBundleTasks', 'false', 0);
 insert into config (config_key, config_value, config_user) VALUES ('modRolloutNatHeuristic', 'false', 0);
 insert into config (config_key, config_value, config_user) VALUES ('modRolloutErrorText', 'Error during external request', 0);
 insert into config (config_key, config_value, config_user) VALUES ('modRecertActive', 'false', 0);
+insert into config (config_key, config_value, config_user) VALUES ('modRecertExpectAllModelled', 'false', 0);
 insert into config (config_key, config_value, config_user) VALUES ('modRecertText', '', 0);
 insert into config (config_key, config_value, config_user) VALUES ('modIconify', 'True', 0);
 insert into config (config_key, config_value, config_user) VALUES ('reducedProtocolSet', 'True', 0);
@@ -149,6 +153,25 @@ insert into config (config_key, config_value, config_user) VALUES ('complianceCh
 insert into config (config_key, config_value, config_user) VALUES ('availableModules', '[1,2,3,4,5,6]', 0);
 insert into config (config_key, config_value, config_user) VALUES ('debugConfig', '{"debugLevel":8, "extendedLogComplianceCheck":true, "extendedLogReportGeneration":true, "extendedLogScheduler":true}', 0);
 insert into config (config_key, config_value, config_user) VALUES ('reportSchedulerConfig', '', 0);
+insert into config (config_key, config_value, config_user) VALUES ('autoCalculateInternetZone', 'true', 0);
+insert into config (config_key, config_value, config_user) VALUES ('autoCalculateUndefinedInternalZone', 'true', 0);
+insert into config (config_key, config_value, config_user) VALUES ('internalZoneRange_10_0_0_0_8', 'true', 0);
+insert into config (config_key, config_value, config_user) VALUES ('internalZoneRange_172_16_0_0_12', 'true', 0);
+insert into config (config_key, config_value, config_user) VALUES ('internalZoneRange_192_168_0_0_16', 'true', 0);
+insert into config (config_key, config_value, config_user) VALUES ('internalZoneRange_0_0_0_0_8', 'true', 0);
+insert into config (config_key, config_value, config_user) VALUES ('internalZoneRange_127_0_0_0_8', 'true', 0);
+insert into config (config_key, config_value, config_user) VALUES ('internalZoneRange_169_254_0_0_16', 'true', 0);
+insert into config (config_key, config_value, config_user) VALUES ('internalZoneRange_224_0_0_0_4', 'true', 0);
+insert into config (config_key, config_value, config_user) VALUES ('internalZoneRange_240_0_0_0_4', 'true', 0);
+insert into config (config_key, config_value, config_user) VALUES ('internalZoneRange_255_255_255_255_32', 'true', 0);
+insert into config (config_key, config_value, config_user) VALUES ('internalZoneRange_192_0_2_0_24', 'true', 0);
+insert into config (config_key, config_value, config_user) VALUES ('internalZoneRange_198_51_100_0_24', 'true', 0);
+insert into config (config_key, config_value, config_user) VALUES ('internalZoneRange_203_0_113_0_24', 'true', 0);
+insert into config (config_key, config_value, config_user) VALUES ('internalZoneRange_100_64_0_0_10', 'true', 0);
+insert into config (config_key, config_value, config_user) VALUES ('internalZoneRange_192_0_0_0_24', 'true', 0);
+insert into config (config_key, config_value, config_user) VALUES ('internalZoneRange_192_88_99_0_24', 'true', 0);
+insert into config (config_key, config_value, config_user) VALUES ('internalZoneRange_198_18_0_0_15', 'true', 0);
+
 
 INSERT INTO "report_format" ("report_format_name") VALUES ('json');
 INSERT INTO "report_format" ("report_format_name") VALUES ('pdf');
@@ -456,6 +479,10 @@ insert into stm_dev_typ (dev_typ_id,dev_typ_name,dev_typ_version,dev_typ_manufac
     VALUES (26,'NSX','REST','VMWare','',false,true,false) ON CONFLICT DO NOTHING;
 insert into stm_dev_typ (dev_typ_id,dev_typ_name,dev_typ_version,dev_typ_manufacturer,dev_typ_predef_svc,dev_typ_is_multi_mgmt,dev_typ_is_mgmt,is_pure_routing_device)
     VALUES (27,'NSX DFW Gateway','REST','VMWare','',false,false,false) ON CONFLICT DO NOTHING;
+insert into stm_dev_typ (dev_typ_id,dev_typ_name,dev_typ_version,dev_typ_manufacturer,dev_typ_predef_svc,dev_typ_is_multi_mgmt,dev_typ_is_mgmt,is_pure_routing_device)
+    VALUES (28,'Cisco Asa','9','Cisco','',false,true,false);
+insert into stm_dev_typ (dev_typ_id,dev_typ_name,dev_typ_version,dev_typ_manufacturer,dev_typ_predef_svc,dev_typ_is_multi_mgmt,dev_typ_is_mgmt,is_pure_routing_device)
+    VALUES (29,'Cisco Asa on FirePower','9','Cisco','',false,true,false);
 
 -- SET statement_timeout = 0;
 -- SET client_encoding = 'UTF8';

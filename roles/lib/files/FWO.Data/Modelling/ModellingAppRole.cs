@@ -52,9 +52,9 @@ namespace FWO.Data.Modelling
         protected static List<ModellingAppServerWrapper> ConvertNwObjectsToAppServers(GroupFlat<NetworkObject>[] groupFlats)
         {
             List<ModellingAppServerWrapper> appServers = [];
-            foreach(var obj in groupFlats.Where(x => x.Object?.IP != null && x.Object?.IP != "").ToList())
+            foreach(var obj in groupFlats.Where(x => x.Object?.IP != null && x.Object?.IP != "").Select(o => o.Object))
             {
-                appServers.Add(new ModellingAppServerWrapper(){ Content = obj.Object != null ? new(obj.Object) : new() });
+                appServers.Add(new ModellingAppServerWrapper(){ Content = obj != null ? new(obj) : new() });
             }
             return appServers;
         }
@@ -104,8 +104,8 @@ namespace FWO.Data.Modelling
         public override bool Sanitize()
         {
             bool shortened = base.Sanitize();
-            Comment = Sanitizer.SanitizeCommentOpt(Comment, ref shortened);
-            Creator = Sanitizer.SanitizeOpt(Creator, ref shortened);
+            Comment = Comment.SanitizeCommentOpt(ref shortened);
+            Creator = Creator.SanitizeOpt(ref shortened);
             return shortened;
         }
     }

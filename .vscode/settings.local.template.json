@@ -1,0 +1,4 @@
+{
+  "test.unittests.csharp.verbose": true,
+  "test.unittests.python.verbose": true
+}

@@ -5,7 +5,14 @@ subscription subscribeGeneratedReportsChanges {
     report_start_time
     report_end_time
     report_type
+    report_owner_id
     description
+    read_only
+    owner {
+      id
+      name
+      app_id_external
+    }
     uiuser {
       uiuser_username
     }

@@ -1,4 +1,4 @@
-﻿using FWO.Logging;
+using FWO.Logging;
 
 namespace FWO.Api.Client.Queries
 {
@@ -11,11 +11,16 @@ namespace FWO.Api.Client.Queries
         public static readonly string getEditableOwners;
         public static readonly string getEditableOwnersWithConn;
         public static readonly string newOwner;
+        public static readonly string newLifeCycle;
         public static readonly string updateOwner;
+        public static readonly string updateLifeCycle;
         public static readonly string deactivateOwner;
         public static readonly string deleteOwner;
+        public static readonly string deleteLifeCycle;
+        public static readonly string getOwnerLifeCycleStates;
         // public static readonly string setDefaultOwner;
         public static readonly string setOwnerLastCheck;
+        public static readonly string setOwnerLastRecert;
         public static readonly string getOwnersFromGroups;
         public static readonly string getOwnersForUser;
         public static readonly string getNetworkOwnerships;
@@ -39,11 +44,16 @@ namespace FWO.Api.Client.Queries
                 getEditableOwners = ownerDetailsFragment + GetQueryText("owner/getEditableOwners.graphql");
                 getEditableOwnersWithConn = ownerDetailsFragment + GetQueryText("owner/getEditableOwnersWithConn.graphql");
                 newOwner = GetQueryText("owner/newOwner.graphql");
+                newLifeCycle = GetQueryText("owner/newLifeCycle.graphql");
                 updateOwner = GetQueryText("owner/updateOwner.graphql");
+                updateLifeCycle = GetQueryText("owner/updateLifeCycle.graphql");
                 deactivateOwner = GetQueryText("owner/deactivateOwner.graphql");
                 deleteOwner = GetQueryText("owner/deleteOwner.graphql");
+                deleteLifeCycle = GetQueryText("owner/deleteLifeCycle.graphql");
+                getOwnerLifeCycleStates = GetQueryText("owner/getOwnerLifeCycleStates.graphql");
                 //setDefaultOwner = GetQueryText("owner/setDefaultOwner.graphql");
                 setOwnerLastCheck = GetQueryText("owner/setOwnerLastCheck.graphql");
+                setOwnerLastRecert = GetQueryText("owner/setOwnerLastRecert.graphql");
                 getOwnersFromGroups = ownerDetailsFragment + GetQueryText("owner/getOwnersFromGroups.graphql");
                 getOwnersForUser = ownerDetailsFragment + GetQueryText("owner/getOwnersForUser.graphql");
                 getNetworkOwnerships = ownerDetailsFragment + GetQueryText("owner/getNetworkOwnerships.graphql");

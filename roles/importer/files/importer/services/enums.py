@@ -12,4 +12,5 @@ class Services(Enum):
     GLOBAL_STATE = "global_state"
     FW_CONFIG_IMPORT_GATEWAY = "fwconfig_import_gateway"
     FWO_CONFIG = "fwo_config"
+    RULE_ORDER_SERVICE = "rule_order_service"
 

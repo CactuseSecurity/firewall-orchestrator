@@ -17,7 +17,6 @@ from datetime import datetime
 from models.rule_from import RuleFrom
 from models.rule_to import RuleTo
 from models.rule_service import RuleService
-from model_controllers.fwconfig_import_ruleorder import RuleOrderService
 from models.rule import RuleNormalized
 from services.group_flats_mapper import GroupFlatsMapper
 from services.enums import Services
@@ -54,23 +53,20 @@ class FwConfigImportRule():
         self.uid2id_mapper = service_provider.get_service(Services.UID2ID_MAPPER, self.import_details.ImportId)
         self.group_flats_mapper = service_provider.get_service(Services.GROUP_FLATS_MAPPER, self.import_details.ImportId)
         self.prev_group_flats_mapper = service_provider.get_service(Services.PREV_GROUP_FLATS_MAPPER, self.import_details.ImportId)
-
+        self.rule_order_service = service_provider.get_service(Services.RULE_ORDER_SERVICE, self.import_details.ImportId)
 
     def updateRulebaseDiffs(self, prevConfig: FwConfigNormalized):
+        
         logger = getFwoLogger(debug_level=self.import_details.DebugLevel)
 
         # calculate rule diffs
         changedRuleUids = {}
-        deletedRuleUids = {}
-        newRuleUids = {}
-        movedRuleUids = {}
         ruleUidsInBoth = {}
         previousRulebaseUids = []
         currentRulebaseUids = []
         new_hit_information = []
 
-        rule_order_service = RuleOrderService()
-        deletedRuleUids, newRuleUids, movedRuleUids = rule_order_service.initialize(prevConfig, self)
+        rule_order_diffs: dict[str, dict[str, list[str]]] = self.rule_order_service.update_rule_order_diffs(self.import_details.DebugLevel)
 
         # collect rulebase UIDs of previous config
         for rulebase in prevConfig.rulebases:
@@ -101,10 +97,10 @@ class FwConfigImportRule():
                 self.collect_last_hit_changes(ruleUid, currentRulebase, previousRulebase, new_hit_information)
 
         # add moved rules that are not in changed rules (e.g. move across rulebases)
-        self._collect_uncaught_moves(movedRuleUids, changedRuleUids)
+        self._collect_uncaught_moves(rule_order_diffs["moved_rule_uids"], changedRuleUids)
 
         # add full rule details first
-        newRulebases = self.getRules(newRuleUids)
+        newRulebases = self.getRules(rule_order_diffs["new_rule_uids"])
 
         # update rule_metadata before adding rules
         num_added_metadata_rules, new_rule_metadata_ids = self.addNewRuleMetadata(newRulebases)
@@ -119,7 +115,7 @@ class FwConfigImportRule():
         self.uid2id_mapper.add_rule_mappings(new_rule_ids + updated_rule_ids)
         num_new_refs = self.add_new_refs(prevConfig)
 
-        num_deleted_rules, removed_rule_ids = self.markRulesRemoved(deletedRuleUids, changedRuleUids)
+        num_deleted_rules, removed_rule_ids = self.markRulesRemoved(rule_order_diffs["deleted_rule_uids"], changedRuleUids)
         num_removed_refs = self.remove_outdated_refs(prevConfig)
 
         _, num_moved_rules, _ = self.verify_rules_moved(changedRuleUids)
@@ -133,7 +129,7 @@ class FwConfigImportRule():
         self.import_details.Stats.RuleChangeCount += num_changed_rules
         
         for removed_rules_by_rulebase in removed_rule_ids:
-            old_rule_ids.extend(removed_rules_by_rulebase)
+            old_rule_ids.append(removed_rules_by_rulebase)
  
         if len(old_rule_ids) > 0:
             self._create_removed_rules_map(old_rule_ids)
@@ -753,7 +749,6 @@ class FwConfigImportRule():
     def create_new_rule_version(self, rule_uids):
         logger = getFwoLogger()
         self._changed_rule_id_map = {}
-        rule_order_service = RuleOrderService()
 
         if len(rule_uids) == 0:
             return 0, [], []
@@ -798,10 +793,19 @@ class FwConfigImportRule():
         }
         """
 
-        import_rules = []
+        import_rules: list = []
 
         for rulebase_uid in list(rule_uids.keys()):
-                import_rules.extend(self.prepare_rules_for_import(self.import_details, [rule_with_changes for rule_with_changes in rule_order_service.target_rules_flat if rule_with_changes.rule_uid in rule_uids[rulebase_uid]], rulebase_uid)["data"])
+                
+                changed_rule_of_rulebase: list[RuleNormalized] = [
+                    rule_with_changes 
+                    for rule_with_changes in self.rule_order_service.target_rules_flat 
+                    if rule_with_changes.rule_uid in rule_uids[rulebase_uid]
+                ]
+
+                import_rules_of_rulebase: dict[str, list[Rule]] = self.prepare_rules_for_import(self.import_details, changed_rule_of_rulebase, rulebase_uid)
+
+                import_rules.extend(import_rules_of_rulebase["data"])
 
         create_new_rule_version_variables = {
             "objects": import_rules,
@@ -921,7 +925,6 @@ class FwConfigImportRule():
             return 1, 0, []
         
     def verify_rules_moved(self, changed_rule_uids):
-        rule_order_service = RuleOrderService()
         error_count_move = 0 
         number_of_moved_rules = 0
 
@@ -935,7 +938,7 @@ class FwConfigImportRule():
 
         rule_order_service_moved_rule_uids_flat = [
             rule_uid 
-            for rule_uids in rule_order_service._moved_rule_uids.values()
+            for rule_uids in self.rule_order_service._moved_rule_uids.values()
             for rule_uid in rule_uids
         ]
 
@@ -1092,6 +1095,8 @@ class FwConfigImportRule():
 
         # get rulebase_id for rulebaseUid
         rulebase_id = importDetails.lookupRulebaseId(rulebase_uid)
+        if rulebase_id is None:
+            raise FwoApiWriteError(f"could not find rulebase id for rulebase uid {rulebase_uid} during rule import preparation")
 
         for rule in rules:
             listOfEnforcedGwIds = []
@@ -1101,44 +1106,8 @@ class FwConfigImportRule():
                     listOfEnforcedGwIds.append(gwId)
             if len(listOfEnforcedGwIds) == 0:
                 listOfEnforcedGwIds = None
-
-            rule_for_import = Rule(
-                mgm_id=importDetails.MgmDetails.CurrentMgmId,
-                rule_num=rule.rule_num,
-                rule_disabled=rule.rule_disabled,
-                rule_src_neg=rule.rule_src_neg,
-                rule_src=rule.rule_src,
-                rule_src_refs=rule.rule_src_refs,
-                rule_dst_neg=rule.rule_dst_neg,
-                rule_dst=rule.rule_dst,
-                rule_dst_refs=rule.rule_dst_refs,
-                rule_svc_neg=rule.rule_svc_neg,
-                rule_svc=rule.rule_svc,
-                rule_svc_refs=rule.rule_svc_refs,
-                rule_action=rule.rule_action,
-                rule_track=rule.rule_track,
-                rule_time=rule.rule_time,
-                rule_name=rule.rule_name,
-                rule_uid=rule.rule_uid,
-                rule_custom_fields=rule.rule_custom_fields,
-                rule_implied=rule.rule_implied,
-                # parent_rule_id=rule.parent_rule_id,
-                rule_comment=rule.rule_comment,
-                rule_from_zone=self.uid2id_mapper.get_zone_object_id(rule.rule_src_zone) if rule.rule_src_zone is not None else None,
-                rule_to_zone=self.uid2id_mapper.get_zone_object_id(rule.rule_dst_zone) if rule.rule_dst_zone is not None else None,
-                access_rule=True,
-                nat_rule=False,
-                is_global=False,
-                rulebase_id=rulebase_id,
-                rule_create=importDetails.ImportId,
-                rule_last_seen=importDetails.ImportId,
-                rule_num_numeric=rule.rule_num_numeric,
-                action_id = importDetails.lookupAction(rule.rule_action),
-                track_id = importDetails.lookupTrack(rule.rule_track),
-                rule_head_text=rule.rule_head_text,
-                rule_installon=rule.rule_installon,
-                last_change_admin=None #TODO: get id from rule.last_change_admin
-            ).model_dump()
+            
+            rule_for_import = self.prepare_single_rule_for_import(rule, importDetails, rulebase_id)
 
             if listOfEnforcedGwIds is not None and len(listOfEnforcedGwIds) > 0:    # leave out field, if no resolvable gateways are found
                 rule_for_import.update({'rule_installon': rule.rule_installon }) #fwo_const.list_delimiter.join(listOfEnforcedGwIds) })
@@ -1146,6 +1115,62 @@ class FwConfigImportRule():
             prepared_rules.append(rule_for_import)
         return { "data": prepared_rules }
     
+    def prepare_single_rule_for_import(self, rule: RuleNormalized, importDetails: ImportStateController, rulebase_id: int) -> dict:
+        rule_from_zone_id = None
+        if rule.rule_src_zone is not None:
+            from_zones = rule.rule_src_zone.split(fwo_const.list_delimiter)
+            if len(from_zones) > 1:
+                logger = getFwoLogger()
+                logger.warning(f"rule {rule.rule_uid} has multiple source zones defined, only the first one will be used")
+            rule_from_zone_id = self.uid2id_mapper.get_zone_object_id(from_zones[0])
+
+        rule_to_zone_id = None
+        if rule.rule_dst_zone is not None:
+            to_zones = rule.rule_dst_zone.split(fwo_const.list_delimiter)
+            if len(to_zones) > 1:
+                logger = getFwoLogger()
+                logger.warning(f"rule {rule.rule_uid} has multiple destination zones defined, only the first one will be used")
+            rule_to_zone_id = self.uid2id_mapper.get_zone_object_id(to_zones[0])
+
+        rule_for_import = Rule(
+            mgm_id=importDetails.MgmDetails.CurrentMgmId,
+            rule_num=rule.rule_num,
+            rule_disabled=rule.rule_disabled,
+            rule_src_neg=rule.rule_src_neg,
+            rule_src=rule.rule_src,
+            rule_src_refs=rule.rule_src_refs,
+            rule_dst_neg=rule.rule_dst_neg,
+            rule_dst=rule.rule_dst,
+            rule_dst_refs=rule.rule_dst_refs,
+            rule_svc_neg=rule.rule_svc_neg,
+            rule_svc=rule.rule_svc,
+            rule_svc_refs=rule.rule_svc_refs,
+            rule_action=rule.rule_action,
+            rule_track=rule.rule_track,
+            rule_time=rule.rule_time,
+            rule_name=rule.rule_name,
+            rule_uid=rule.rule_uid,
+            rule_custom_fields=rule.rule_custom_fields,
+            rule_implied=rule.rule_implied,
+            # parent_rule_id=rule.parent_rule_id,
+            rule_comment=rule.rule_comment,
+            rule_from_zone=rule_from_zone_id,
+            rule_to_zone=rule_to_zone_id,
+            access_rule=True,
+            nat_rule=False,
+            is_global=False,
+            rulebase_id=rulebase_id,
+            rule_create=importDetails.ImportId,
+            rule_last_seen=importDetails.ImportId,
+            rule_num_numeric=rule.rule_num_numeric,
+            action_id = importDetails.lookupAction(rule.rule_action),
+            track_id = importDetails.lookupTrack(rule.rule_track),
+            rule_head_text=rule.rule_head_text,
+            rule_installon=rule.rule_installon,
+            last_change_admin=None #TODO: get id from rule.last_change_admin
+        ).model_dump()
+
+        return rule_for_import
 
     def write_changelog_rules(self, added_rules_ids, removed_rules_ids):
         logger = getFwoLogger()

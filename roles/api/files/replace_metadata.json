@@ -493,15 +493,17 @@
                   "permission": {
                     "check": {},
                     "columns": [
-                      "id",
-                      "owner_id",
-                      "super_network_zone_id",
-                      "description",
-                      "name",
-                      "criterion_id",
-                      "id_string",
                       "created",
-                      "removed"
+                      "criterion_id",
+                      "description",
+                      "id",
+                      "id_string",
+                      "is_auto_calculated_internet_zone",
+                      "is_auto_calculated_undefined_internal_zone",
+                      "name",
+                      "owner_id",
+                      "removed",
+                      "super_network_zone_id"
                     ]
                   }
                 }
@@ -547,15 +549,17 @@
                   "role": "middleware-server",
                   "permission": {
                     "columns": [
-                      "id",
-                      "owner_id",
-                      "super_network_zone_id",
-                      "description",
-                      "name",
-                      "criterion_id",
-                      "id_string",
                       "created",
-                      "removed"
+                      "criterion_id",
+                      "description",
+                      "id",
+                      "id_string",
+                      "is_auto_calculated_internet_zone",
+                      "is_auto_calculated_undefined_internal_zone",
+                      "name",
+                      "owner_id",
+                      "removed",
+                      "super_network_zone_id"
                     ],
                     "filter": {},
                     "allow_aggregations": true
@@ -9431,6 +9435,68 @@
             },
             {
               "table": {
+                "name": "notification",
+                "schema": "public"
+              },
+              "object_relationships": [
+                {
+                  "name": "owner",
+                  "using": {
+                    "foreign_key_constraint_on": "owner_id"
+                  }
+                },
+                {
+                  "name": "uiuser",
+                  "using": {
+                    "foreign_key_constraint_on": "user_id"
+                  }
+                }
+              ],
+              "select_permissions": [
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "channel",
+                      "deadline",
+                      "email_address_cc",
+                      "email_address_to",
+                      "email_subject",
+                      "layout",
+                      "notification_client",
+                      "recipient_cc",
+                      "recipient_to",
+                      "id",
+                      "interval_before_deadline",
+                      "offset_before_deadline",
+                      "owner_id",
+                      "repeat_interval_after_deadline",
+                      "repeat_offset_after_deadline",
+                      "repetitions_after_deadline",
+                      "user_id",
+                      "last_sent"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                }
+              ],
+              "update_permissions": [
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "last_sent"
+                    ],
+                    "filter": {},
+                    "check": {}
+                  },
+                  "comment": ""
+                }
+              ]
+            },
+            {
+              "table": {
                 "name": "object",
                 "schema": "public"
               },
@@ -9718,7 +9784,8 @@
                       "obj_sys_writecom",
                       "active",
                       "obj_create",
-                      "obj_last_seen"
+                      "obj_last_seen",
+                      "removed"
                     ],
                     "filter": {},
                     "allow_aggregations": true
@@ -9731,6 +9798,7 @@
                       "obj_create",
                       "obj_id",
                       "obj_last_seen",
+                      "removed",
                       "active",
                       "initial_config",
                       "obj_nat",
@@ -9836,7 +9904,8 @@
                       "obj_sys_writecom",
                       "active",
                       "obj_create",
-                      "obj_last_seen"
+                      "obj_last_seen",
+                      "removed"
                     ],
                     "filter": {},
                     "allow_aggregations": true
@@ -9875,7 +9944,8 @@
                       "obj_sys_writecom",
                       "active",
                       "obj_create",
-                      "obj_last_seen"
+                      "obj_last_seen",
+                      "removed"
                     ],
                     "filter": {
                       "mgm_id": {
@@ -9918,7 +9988,8 @@
                       "obj_sys_writecom",
                       "active",
                       "obj_create",
-                      "obj_last_seen"
+                      "obj_last_seen",
+                      "removed"
                     ],
                     "filter": {
                       "mgm_id": {
@@ -9961,7 +10032,8 @@
                       "obj_sys_writecom",
                       "active",
                       "obj_create",
-                      "obj_last_seen"
+                      "obj_last_seen",
+                      "removed"
                     ],
                     "filter": {
                       "mgm_id": {
@@ -10004,7 +10076,8 @@
                       "obj_sys_writecom",
                       "active",
                       "obj_create",
-                      "obj_last_seen"
+                      "obj_last_seen",
+                      "removed"
                     ],
                     "filter": {},
                     "allow_aggregations": true
@@ -10122,6 +10195,7 @@
                       "objgrp_member_id",
                       "import_created",
                       "import_last_seen",
+                      "removed",
                       "active",
                       "negated"
                     ],
@@ -10136,6 +10210,7 @@
                       "import_created",
                       "import_last_seen",
                       "objgrp_id",
+                      "removed",
                       "objgrp_member_id",
                       "active",
                       "negated"
@@ -10183,6 +10258,7 @@
                       "objgrp_member_id",
                       "import_created",
                       "import_last_seen",
+                      "removed",
                       "active",
                       "negated"
                     ],
@@ -10198,6 +10274,7 @@
                       "objgrp_member_id",
                       "import_created",
                       "import_last_seen",
+                      "removed",
                       "active",
                       "negated"
                     ],
@@ -10213,6 +10290,7 @@
                       "objgrp_member_id",
                       "import_created",
                       "import_last_seen",
+                      "removed",
                       "active",
                       "negated"
                     ],
@@ -10228,6 +10306,7 @@
                       "objgrp_member_id",
                       "import_created",
                       "import_last_seen",
+                      "removed",
                       "active",
                       "negated"
                     ],
@@ -10323,6 +10402,7 @@
                       "active",
                       "import_created",
                       "import_last_seen",
+                      "removed",
                       "negated"
                     ],
                     "filter": {},
@@ -10335,6 +10415,7 @@
                     "columns": [
                       "import_created",
                       "import_last_seen",
+                      "removed",
                       "objgrp_flat_id",
                       "objgrp_flat_member_id",
                       "active",
@@ -10381,6 +10462,7 @@
                     "columns": [
                       "objgrp_flat_id",
                       "objgrp_flat_member_id",
+                      "removed",
                       "active",
                       "import_created",
                       "import_last_seen",
@@ -10396,6 +10478,7 @@
                     "columns": [
                       "objgrp_flat_id",
                       "objgrp_flat_member_id",
+                      "removed",
                       "active",
                       "import_created",
                       "import_last_seen",
@@ -10411,6 +10494,7 @@
                     "columns": [
                       "objgrp_flat_id",
                       "objgrp_flat_member_id",
+                      "removed",
                       "active",
                       "import_created",
                       "import_last_seen",
@@ -10426,6 +10510,7 @@
                     "columns": [
                       "objgrp_flat_id",
                       "objgrp_flat_member_id",
+                      "removed",
                       "active",
                       "import_created",
                       "import_last_seen",
@@ -10474,6 +10559,12 @@
                   "name": "tenant",
                   "using": {
                     "foreign_key_constraint_on": "tenant_id"
+                  }
+                },
+                {
+                  "name": "uiuser",
+                  "using": {
+                    "foreign_key_constraint_on": "last_recertifier"
                   }
                 }
               ],
@@ -10527,6 +10618,18 @@
                   }
                 },
                 {
+                  "name": "notifications",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "owner_id",
+                      "table": {
+                        "name": "notification",
+                        "schema": "public"
+                      }
+                    }
+                  }
+                },
+                {
                   "name": "nwgroups",
                   "using": {
                     "foreign_key_constraint_on": {
@@ -10551,6 +10654,18 @@
                   }
                 },
                 {
+                  "name": "owner_recertifications",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "owner_id",
+                      "table": {
+                        "name": "owner_recertification",
+                        "schema": "public"
+                      }
+                    }
+                  }
+                },
+                {
                   "name": "owner_tickets",
                   "using": {
                     "foreign_key_constraint_on": {
@@ -10569,6 +10684,18 @@
                       "column": "owner_id",
                       "table": {
                         "name": "recertification",
+                        "schema": "public"
+                      }
+                    }
+                  }
+                },
+                {
+                  "name": "reports",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "owner_id",
+                      "table": {
+                        "name": "report",
                         "schema": "public"
                       }
                     }
@@ -10654,19 +10781,20 @@
                     "check": {},
                     "columns": [
                       "active",
-                      "common_service_possible",
-                      "is_default",
                       "app_id_external",
+                      "common_service_possible",
                       "criticality",
                       "dn",
                       "group_dn",
-                      "import_source",
-                      "name",
-                      "recert_check_params",
                       "id",
+                      "import_source",
+                      "is_default",
+                      "last_recert_check",
+                      "name",
+                      "recert_active",
+                      "recert_check_params",
                       "recert_interval",
-                      "tenant_id",
-                      "last_recert_check"
+                      "tenant_id"
                     ]
                   },
                   "comment": ""
@@ -10687,7 +10815,13 @@
                       "import_source",
                       "is_default",
                       "last_recert_check",
+                      "last_recertified",
+                      "last_recertifier",
+                      "last_recertifier_dn",
                       "name",
+                      "next_recert_date",
+                      "owner_lifecycle_state_id",
+                      "recert_active",
                       "recert_check_params",
                       "recert_interval",
                       "tenant_id"
@@ -10709,7 +10843,13 @@
                       "import_source",
                       "is_default",
                       "last_recert_check",
+                      "last_recertified",
+                      "last_recertifier",
+                      "last_recertifier_dn",
                       "name",
+                      "next_recert_date",
+                      "owner_lifecycle_state_id",
+                      "recert_active",
                       "recert_check_params",
                       "recert_interval",
                       "tenant_id"
@@ -10731,7 +10871,13 @@
                       "import_source",
                       "is_default",
                       "last_recert_check",
+                      "last_recertified",
+                      "last_recertifier",
+                      "last_recertifier_dn",
                       "name",
+                      "next_recert_date",
+                      "owner_lifecycle_state_id",
+                      "recert_active",
                       "recert_check_params",
                       "recert_interval",
                       "tenant_id"
@@ -10753,7 +10899,13 @@
                       "import_source",
                       "is_default",
                       "last_recert_check",
+                      "last_recertified",
+                      "last_recertifier",
+                      "last_recertifier_dn",
                       "name",
+                      "next_recert_date",
+                      "owner_lifecycle_state_id",
+                      "recert_active",
                       "recert_check_params",
                       "recert_interval",
                       "tenant_id"
@@ -10775,7 +10927,13 @@
                       "import_source",
                       "is_default",
                       "last_recert_check",
+                      "last_recertified",
+                      "last_recertifier",
+                      "last_recertifier_dn",
                       "name",
+                      "next_recert_date",
+                      "owner_lifecycle_state_id",
+                      "recert_active",
                       "recert_check_params",
                       "recert_interval",
                       "tenant_id"
@@ -10797,7 +10955,13 @@
                       "import_source",
                       "is_default",
                       "last_recert_check",
+                      "last_recertified",
+                      "last_recertifier",
+                      "last_recertifier_dn",
                       "name",
+                      "next_recert_date",
+                      "owner_lifecycle_state_id",
+                      "recert_active",
                       "recert_check_params",
                       "recert_interval",
                       "tenant_id"
@@ -10828,19 +10992,25 @@
                   "permission": {
                     "columns": [
                       "active",
-                      "common_service_possible",
-                      "is_default",
                       "app_id_external",
+                      "common_service_possible",
                       "criticality",
                       "dn",
                       "group_dn",
-                      "import_source",
-                      "name",
-                      "recert_check_params",
                       "id",
+                      "import_source",
+                      "is_default",
+                      "last_recert_check",
+                      "last_recertified",
+                      "last_recertifier",
+                      "last_recertifier_dn",
+                      "name",
+                      "next_recert_date",
+                      "owner_lifecycle_state_id",
+                      "recert_active",
+                      "recert_check_params",
                       "recert_interval",
-                      "tenant_id",
-                      "last_recert_check"
+                      "tenant_id"
                     ],
                     "filter": {}
                   }
@@ -10850,19 +11020,25 @@
                   "permission": {
                     "columns": [
                       "active",
-                      "common_service_possible",
-                      "is_default",
                       "app_id_external",
+                      "common_service_possible",
                       "criticality",
                       "dn",
                       "group_dn",
-                      "import_source",
-                      "name",
-                      "recert_check_params",
                       "id",
+                      "import_source",
+                      "is_default",
+                      "last_recert_check",
+                      "last_recertified",
+                      "last_recertifier",
+                      "last_recertifier_dn",
+                      "name",
+                      "next_recert_date",
+                      "owner_lifecycle_state_id",
+                      "recert_active",
+                      "recert_check_params",
                       "recert_interval",
-                      "tenant_id",
-                      "last_recert_check"
+                      "tenant_id"
                     ],
                     "filter": {
                       "_or": [
@@ -10886,19 +11062,25 @@
                   "permission": {
                     "columns": [
                       "active",
-                      "common_service_possible",
-                      "is_default",
                       "app_id_external",
+                      "common_service_possible",
                       "criticality",
                       "dn",
                       "group_dn",
-                      "import_source",
-                      "name",
-                      "recert_check_params",
                       "id",
+                      "import_source",
+                      "is_default",
+                      "last_recert_check",
+                      "last_recertified",
+                      "last_recertifier",
+                      "last_recertifier_dn",
+                      "name",
+                      "next_recert_date",
+                      "owner_lifecycle_state_id",
+                      "recert_active",
+                      "recert_check_params",
                       "recert_interval",
-                      "tenant_id",
-                      "last_recert_check"
+                      "tenant_id"
                     ],
                     "filter": {
                       "_or": [
@@ -10922,19 +11104,25 @@
                   "permission": {
                     "columns": [
                       "active",
-                      "common_service_possible",
-                      "is_default",
                       "app_id_external",
+                      "common_service_possible",
                       "criticality",
                       "dn",
                       "group_dn",
-                      "import_source",
-                      "name",
-                      "recert_check_params",
                       "id",
+                      "import_source",
+                      "is_default",
+                      "last_recert_check",
+                      "last_recertified",
+                      "last_recertifier",
+                      "last_recertifier_dn",
+                      "name",
+                      "next_recert_date",
+                      "owner_lifecycle_state_id",
+                      "recert_active",
+                      "recert_check_params",
                       "recert_interval",
-                      "tenant_id",
-                      "last_recert_check"
+                      "tenant_id"
                     ],
                     "filter": {},
                     "allow_aggregations": true
@@ -10945,19 +11133,25 @@
                   "permission": {
                     "columns": [
                       "active",
-                      "common_service_possible",
-                      "is_default",
                       "app_id_external",
+                      "common_service_possible",
                       "criticality",
                       "dn",
                       "group_dn",
-                      "import_source",
-                      "name",
-                      "recert_check_params",
                       "id",
+                      "import_source",
+                      "is_default",
+                      "last_recert_check",
+                      "last_recertified",
+                      "last_recertifier",
+                      "last_recertifier_dn",
+                      "name",
+                      "next_recert_date",
+                      "owner_lifecycle_state_id",
+                      "recert_active",
+                      "recert_check_params",
                       "recert_interval",
-                      "tenant_id",
-                      "last_recert_check"
+                      "tenant_id"
                     ],
                     "filter": {}
                   }
@@ -10976,7 +11170,13 @@
                       "import_source",
                       "is_default",
                       "last_recert_check",
+                      "last_recertified",
+                      "last_recertifier",
+                      "last_recertifier_dn",
                       "name",
+                      "next_recert_date",
+                      "owner_lifecycle_state_id",
+                      "recert_active",
                       "recert_check_params",
                       "recert_interval",
                       "tenant_id"
@@ -10991,25 +11191,65 @@
                   "permission": {
                     "columns": [
                       "active",
-                      "common_service_possible",
-                      "is_default",
                       "app_id_external",
+                      "common_service_possible",
                       "criticality",
                       "dn",
                       "group_dn",
-                      "import_source",
-                      "name",
-                      "recert_check_params",
                       "id",
+                      "import_source",
+                      "is_default",
+                      "last_recert_check",
+                      "name",
+                      "recert_active",
+                      "recert_check_params",
                       "recert_interval",
-                      "tenant_id",
-                      "last_recert_check"
+                      "tenant_id"
                     ],
                     "filter": {},
                     "check": null
                   }
+                },
+                {
+                  "role": "modeller",
+                  "permission": {
+                    "columns": [
+                      "last_recert_check",
+                      "last_recertified",
+                      "last_recertifier",
+                      "last_recertifier_dn",
+                      "next_recert_date",
+                      "recert_active"
+                    ],
+                    "filter": {
+                      "_and": [
+                        {
+                          "_or": [
+                            {
+                              "tenant_id": {
+                                "_is_null": true
+                              }
+                            },
+                            {
+                              "tenant_id": {
+                                "_eq": "x-hasura-tenant-id"
+                              }
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    "check": {}
+                  },
+                  "comment": ""
                 }
               ]
+            },
+            {
+              "table": {
+                "name": "owner_lifecycle_state",
+                "schema": "public"
+              }
             },
             {
               "table": {
@@ -11167,6 +11407,142 @@
                   "role": "middleware-server",
                   "permission": {
                     "filter": {}
+                  },
+                  "comment": ""
+                }
+              ]
+            },
+            {
+              "table": {
+                "name": "owner_recertification",
+                "schema": "public"
+              },
+              "object_relationships": [
+                {
+                  "name": "owner",
+                  "using": {
+                    "foreign_key_constraint_on": "owner_id"
+                  }
+                },
+                {
+                  "name": "report",
+                  "using": {
+                    "foreign_key_constraint_on": "report_id"
+                  }
+                }
+              ],
+              "array_relationships": [
+                {
+                  "name": "recertifications",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "owner_recert_id",
+                      "table": {
+                        "name": "recertification",
+                        "schema": "public"
+                      }
+                    }
+                  }
+                }
+              ],
+              "insert_permissions": [
+                {
+                  "role": "modeller",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "id",
+                      "report_id",
+                      "recertified",
+                      "comment",
+                      "user_dn",
+                      "owner_id",
+                      "next_recert_date",
+                      "recert_date"
+                    ]
+                  },
+                  "comment": ""
+                }
+              ],
+              "select_permissions": [
+                {
+                  "role": "auditor",
+                  "permission": {
+                    "columns": [
+                      "id",
+                      "report_id",
+                      "recertified",
+                      "comment",
+                      "user_dn",
+                      "owner_id",
+                      "next_recert_date",
+                      "recert_date"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "fw-admin",
+                  "permission": {
+                    "columns": [
+                      "id",
+                      "report_id",
+                      "recertified",
+                      "comment",
+                      "user_dn",
+                      "owner_id",
+                      "next_recert_date",
+                      "recert_date"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "id",
+                      "report_id",
+                      "recertified",
+                      "comment",
+                      "user_dn",
+                      "owner_id",
+                      "next_recert_date",
+                      "recert_date"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "modeller",
+                  "permission": {
+                    "columns": [
+                      "id",
+                      "report_id",
+                      "recertified",
+                      "comment",
+                      "user_dn",
+                      "owner_id",
+                      "next_recert_date",
+                      "recert_date"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                }
+              ],
+              "update_permissions": [
+                {
+                  "role": "modeller",
+                  "permission": {
+                    "columns": [
+                      "report_id"
+                    ],
+                    "filter": {},
+                    "check": null
                   },
                   "comment": ""
                 }
@@ -11394,6 +11770,12 @@
                   }
                 },
                 {
+                  "name": "owner_recertification",
+                  "using": {
+                    "foreign_key_constraint_on": "owner_recert_id"
+                  }
+                },
+                {
                   "name": "rule_metadatum",
                   "using": {
                     "foreign_key_constraint_on": "rule_metadata_id"
@@ -11423,6 +11805,7 @@
                     "check": {},
                     "columns": [
                       "id",
+                      "owner_recert_id",
                       "rule_id",
                       "rule_metadata_id",
                       "recertified",
@@ -11436,20 +11819,41 @@
                   }
                 },
                 {
+                  "role": "modeller",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "id",
+                      "owner_recert_id",
+                      "rule_id",
+                      "rule_metadata_id",
+                      "recertified",
+                      "comment",
+                      "ip_match",
+                      "user_dn",
+                      "owner_id",
+                      "next_recert_date",
+                      "recert_date"
+                    ]
+                  },
+                  "comment": ""
+                },
+                {
                   "role": "recertifier",
                   "permission": {
                     "check": {},
                     "columns": [
-                      "comment",
                       "id",
-                      "ip_match",
-                      "next_recert_date",
-                      "owner_id",
-                      "recert_date",
-                      "recertified",
+                      "owner_recert_id",
                       "rule_id",
                       "rule_metadata_id",
-                      "user_dn"
+                      "recertified",
+                      "comment",
+                      "ip_match",
+                      "user_dn",
+                      "owner_id",
+                      "next_recert_date",
+                      "recert_date"
                     ]
                   }
                 }
@@ -11459,26 +11863,48 @@
                   "role": "auditor",
                   "permission": {
                     "columns": [
-                      "comment",
                       "id",
-                      "ip_match",
-                      "next_recert_date",
-                      "owner_id",
-                      "recert_date",
-                      "recertified",
+                      "owner_recert_id",
                       "rule_id",
                       "rule_metadata_id",
-                      "user_dn"
+                      "recertified",
+                      "comment",
+                      "ip_match",
+                      "user_dn",
+                      "owner_id",
+                      "next_recert_date",
+                      "recert_date"
                     ],
                     "filter": {},
                     "allow_aggregations": true
                   }
                 },
                 {
+                  "role": "fw-admin",
+                  "permission": {
+                    "columns": [
+                      "id",
+                      "owner_recert_id",
+                      "rule_id",
+                      "rule_metadata_id",
+                      "recertified",
+                      "comment",
+                      "ip_match",
+                      "user_dn",
+                      "owner_id",
+                      "next_recert_date",
+                      "recert_date"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
                   "role": "middleware-server",
                   "permission": {
                     "columns": [
                       "id",
+                      "owner_recert_id",
                       "rule_id",
                       "rule_metadata_id",
                       "recertified",
@@ -11493,19 +11919,40 @@
                   }
                 },
                 {
+                  "role": "modeller",
+                  "permission": {
+                    "columns": [
+                      "id",
+                      "owner_recert_id",
+                      "rule_id",
+                      "rule_metadata_id",
+                      "recertified",
+                      "comment",
+                      "ip_match",
+                      "user_dn",
+                      "owner_id",
+                      "next_recert_date",
+                      "recert_date"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
                   "role": "recertifier",
                   "permission": {
                     "columns": [
-                      "comment",
                       "id",
-                      "ip_match",
-                      "next_recert_date",
-                      "owner_id",
-                      "recert_date",
-                      "recertified",
+                      "owner_recert_id",
                       "rule_id",
                       "rule_metadata_id",
-                      "user_dn"
+                      "recertified",
+                      "comment",
+                      "ip_match",
+                      "user_dn",
+                      "owner_id",
+                      "next_recert_date",
+                      "recert_date"
                     ],
                     "filter": {},
                     "allow_aggregations": true
@@ -11515,16 +11962,17 @@
                   "role": "reporter",
                   "permission": {
                     "columns": [
-                      "comment",
                       "id",
-                      "ip_match",
-                      "next_recert_date",
-                      "owner_id",
-                      "recert_date",
-                      "recertified",
+                      "owner_recert_id",
                       "rule_id",
                       "rule_metadata_id",
-                      "user_dn"
+                      "recertified",
+                      "comment",
+                      "ip_match",
+                      "user_dn",
+                      "owner_id",
+                      "next_recert_date",
+                      "recert_date"
                     ],
                     "filter": {},
                     "allow_aggregations": true
@@ -11535,6 +11983,7 @@
                   "permission": {
                     "columns": [
                       "id",
+                      "owner_recert_id",
                       "rule_id",
                       "rule_metadata_id",
                       "recertified",
@@ -11552,10 +12001,32 @@
               ],
               "update_permissions": [
                 {
+                  "role": "modeller",
+                  "permission": {
+                    "columns": [
+                      "id",
+                      "owner_recert_id",
+                      "rule_id",
+                      "rule_metadata_id",
+                      "recertified",
+                      "comment",
+                      "ip_match",
+                      "user_dn",
+                      "owner_id",
+                      "next_recert_date",
+                      "recert_date"
+                    ],
+                    "filter": {},
+                    "check": {}
+                  },
+                  "comment": ""
+                },
+                {
                   "role": "recertifier",
                   "permission": {
                     "columns": [
                       "id",
+                      "owner_recert_id",
                       "rule_id",
                       "rule_metadata_id",
                       "recertified",
@@ -11609,6 +12080,12 @@
               },
               "object_relationships": [
                 {
+                  "name": "owner",
+                  "using": {
+                    "foreign_key_constraint_on": "owner_id"
+                  }
+                },
+                {
                   "name": "report_template",
                   "using": {
                     "foreign_key_constraint_on": "report_template_id"
@@ -11627,6 +12104,20 @@
                   }
                 }
               ],
+              "array_relationships": [
+                {
+                  "name": "owner_recertifications",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "report_id",
+                      "table": {
+                        "name": "owner_recertification",
+                        "schema": "public"
+                      }
+                    }
+                  }
+                }
+              ],
               "insert_permissions": [
                 {
                   "role": "auditor",
@@ -11634,8 +12125,10 @@
                     "check": {},
                     "columns": [
                       "report_id",
+                      "read_only",
                       "description",
                       "report_name",
+                      "owner_id",
                       "report_owner_id",
                       "report_template_id",
                       "report_type",
@@ -11655,8 +12148,10 @@
                     "check": {},
                     "columns": [
                       "report_id",
+                      "read_only",
                       "description",
                       "report_name",
+                      "owner_id",
                       "report_owner_id",
                       "report_template_id",
                       "report_type",
@@ -11676,8 +12171,10 @@
                     "check": {},
                     "columns": [
                       "report_id",
+                      "read_only",
                       "description",
                       "report_name",
+                      "owner_id",
                       "report_owner_id",
                       "report_template_id",
                       "report_type",
@@ -11697,8 +12194,10 @@
                     "check": {},
                     "columns": [
                       "report_id",
+                      "read_only",
                       "description",
                       "report_name",
+                      "owner_id",
                       "report_owner_id",
                       "report_template_id",
                       "report_type",
@@ -11719,8 +12218,10 @@
                     "check": {},
                     "columns": [
                       "report_id",
+                      "read_only",
                       "description",
                       "report_name",
+                      "owner_id",
                       "report_owner_id",
                       "report_template_id",
                       "report_type",
@@ -11740,8 +12241,10 @@
                     "check": {},
                     "columns": [
                       "report_id",
+                      "read_only",
                       "description",
                       "report_name",
+                      "owner_id",
                       "report_owner_id",
                       "report_template_id",
                       "report_type",
@@ -11761,8 +12264,10 @@
                     "check": {},
                     "columns": [
                       "report_id",
+                      "read_only",
                       "description",
                       "report_name",
+                      "owner_id",
                       "report_owner_id",
                       "report_template_id",
                       "report_type",
@@ -11783,8 +12288,10 @@
                   "permission": {
                     "columns": [
                       "report_id",
+                      "read_only",
                       "description",
                       "report_name",
+                      "owner_id",
                       "report_owner_id",
                       "report_template_id",
                       "report_type",
@@ -11803,24 +12310,35 @@
                   "role": "fw-admin",
                   "permission": {
                     "columns": [
-                      "report_id",
                       "description",
+                      "owner_id",
+                      "read_only",
+                      "report_csv",
+                      "report_end_time",
+                      "report_html",
+                      "report_id",
+                      "report_json",
                       "report_name",
                       "report_owner_id",
+                      "report_pdf",
+                      "report_start_time",
                       "report_template_id",
                       "report_type",
-                      "tenant_wide_visible",
-                      "report_json",
-                      "report_csv",
-                      "report_html",
-                      "report_pdf",
-                      "report_end_time",
-                      "report_start_time"
+                      "tenant_wide_visible"
                     ],
                     "filter": {
-                      "report_owner_id": {
-                        "_eq": "X-Hasura-User-Id"
-                      }
+                      "_or": [
+                        {
+                          "report_owner_id": {
+                            "_eq": "X-Hasura-User-Id"
+                          }
+                        },
+                        {
+                          "owner_id": {
+                            "_in": "x-hasura-editable-owners"
+                          }
+                        }
+                      ]
                     },
                     "allow_aggregations": true
                   }
@@ -11829,24 +12347,35 @@
                   "role": "modeller",
                   "permission": {
                     "columns": [
-                      "report_id",
                       "description",
+                      "owner_id",
+                      "read_only",
+                      "report_csv",
+                      "report_end_time",
+                      "report_html",
+                      "report_id",
+                      "report_json",
                       "report_name",
                       "report_owner_id",
+                      "report_pdf",
+                      "report_start_time",
                       "report_template_id",
                       "report_type",
-                      "tenant_wide_visible",
-                      "report_json",
-                      "report_csv",
-                      "report_html",
-                      "report_pdf",
-                      "report_end_time",
-                      "report_start_time"
+                      "tenant_wide_visible"
                     ],
                     "filter": {
-                      "report_owner_id": {
-                        "_eq": "X-Hasura-User-Id"
-                      }
+                      "_or": [
+                        {
+                          "report_owner_id": {
+                            "_eq": "X-Hasura-User-Id"
+                          }
+                        },
+                        {
+                          "owner_id": {
+                            "_in": "x-hasura-editable-owners"
+                          }
+                        }
+                      ]
                     },
                     "allow_aggregations": true
                   }
@@ -11856,8 +12385,10 @@
                   "permission": {
                     "columns": [
                       "report_id",
+                      "read_only",
                       "description",
                       "report_name",
+                      "owner_id",
                       "report_owner_id",
                       "report_template_id",
                       "report_type",
@@ -11870,9 +12401,18 @@
                       "report_start_time"
                     ],
                     "filter": {
-                      "report_owner_id": {
-                        "_eq": "X-Hasura-User-Id"
-                      }
+                      "_or": [
+                        {
+                          "report_owner_id": {
+                            "_eq": "X-Hasura-User-Id"
+                          }
+                        },
+                        {
+                          "owner_id": {
+                            "_in": "x-hasura-editable-owners"
+                          }
+                        }
+                      ]
                     },
                     "allow_aggregations": true
                   }
@@ -11881,24 +12421,35 @@
                   "role": "reporter",
                   "permission": {
                     "columns": [
-                      "report_id",
                       "description",
+                      "owner_id",
+                      "read_only",
+                      "report_csv",
+                      "report_end_time",
+                      "report_html",
+                      "report_id",
+                      "report_json",
                       "report_name",
                       "report_owner_id",
+                      "report_pdf",
+                      "report_start_time",
                       "report_template_id",
                       "report_type",
-                      "tenant_wide_visible",
-                      "report_json",
-                      "report_csv",
-                      "report_html",
-                      "report_pdf",
-                      "report_end_time",
-                      "report_start_time"
+                      "tenant_wide_visible"
                     ],
                     "filter": {
-                      "report_owner_id": {
-                        "_eq": "X-Hasura-User-Id"
-                      }
+                      "_or": [
+                        {
+                          "report_owner_id": {
+                            "_eq": "X-Hasura-User-Id"
+                          }
+                        },
+                        {
+                          "owner_id": {
+                            "_in": "x-hasura-editable-owners"
+                          }
+                        }
+                      ]
                     },
                     "allow_aggregations": true
                   }
@@ -11907,24 +12458,35 @@
                   "role": "reporter-viewall",
                   "permission": {
                     "columns": [
-                      "report_id",
                       "description",
+                      "owner_id",
+                      "read_only",
+                      "report_csv",
+                      "report_end_time",
+                      "report_html",
+                      "report_id",
+                      "report_json",
                       "report_name",
                       "report_owner_id",
+                      "report_pdf",
+                      "report_start_time",
                       "report_template_id",
                       "report_type",
-                      "tenant_wide_visible",
-                      "report_json",
-                      "report_csv",
-                      "report_html",
-                      "report_pdf",
-                      "report_end_time",
-                      "report_start_time"
+                      "tenant_wide_visible"
                     ],
                     "filter": {
-                      "report_owner_id": {
-                        "_eq": "X-Hasura-User-Id"
-                      }
+                      "_or": [
+                        {
+                          "report_owner_id": {
+                            "_eq": "X-Hasura-User-Id"
+                          }
+                        },
+                        {
+                          "owner_id": {
+                            "_in": "x-hasura-editable-owners"
+                          }
+                        }
+                      ]
                     },
                     "allow_aggregations": true
                   }
@@ -14277,6 +14839,7 @@
                       "rule_create",
                       "rule_id",
                       "rule_last_seen",
+                      "removed",
                       "xlate_rule",
                       "access_rule",
                       "active",
@@ -14311,6 +14874,7 @@
                       "rule_svc",
                       "rule_svc_refs",
                       "rule_track",
+                      "rulebase_id",
                       "rule_uid"
                     ],
                     "computed_fields": [
@@ -14328,6 +14892,7 @@
                       "rule_create",
                       "rule_id",
                       "rule_last_seen",
+                      "removed",
                       "xlate_rule",
                       "access_rule",
                       "active",
@@ -14362,6 +14927,7 @@
                       "rule_svc",
                       "rule_svc_refs",
                       "rule_track",
+                      "rulebase_id",
                       "rule_uid"
                     ],
                     "computed_fields": [
@@ -14486,6 +15052,7 @@
                       "rule_create",
                       "rule_id",
                       "rule_last_seen",
+                      "removed",
                       "xlate_rule",
                       "access_rule",
                       "active",
@@ -14555,6 +15122,7 @@
                       "rule_create",
                       "rule_id",
                       "rule_last_seen",
+                      "removed",
                       "xlate_rule",
                       "access_rule",
                       "active",
@@ -14624,6 +15192,7 @@
                       "rule_create",
                       "rule_id",
                       "rule_last_seen",
+                      "removed",
                       "xlate_rule",
                       "access_rule",
                       "active",
@@ -14693,6 +15262,7 @@
                       "rule_create",
                       "rule_id",
                       "rule_last_seen",
+                      "removed",
                       "xlate_rule",
                       "access_rule",
                       "active",
@@ -14826,6 +15396,19 @@
                 },
                 {
                   "role": "importer",
+                  "permission": {
+                    "columns": [
+                      "created",
+                      "removed",
+                      "dev_id",
+                      "rule_id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "auditor",
                   "permission": {
                     "columns": [
                       "created",
@@ -15003,6 +15586,7 @@
                       "obj_id",
                       "rf_create",
                       "rf_last_seen",
+                      "removed",
                       "rule_from_id",
                       "rule_id",
                       "user_id",
@@ -15023,6 +15607,7 @@
                       "obj_id",
                       "rf_create",
                       "rf_last_seen",
+                      "removed",
                       "rule_from_id",
                       "rule_id",
                       "user_id",
@@ -15083,6 +15668,7 @@
                       "obj_id",
                       "rf_create",
                       "rf_last_seen",
+                      "removed",
                       "rule_from_id",
                       "rule_id",
                       "user_id",
@@ -15125,6 +15711,7 @@
                       "obj_id",
                       "rf_create",
                       "rf_last_seen",
+                      "removed",
                       "rule_from_id",
                       "rule_id",
                       "user_id",
@@ -15167,6 +15754,7 @@
                       "obj_id",
                       "rf_create",
                       "rf_last_seen",
+                      "removed",
                       "rule_from_id",
                       "rule_id",
                       "user_id",
@@ -15209,6 +15797,7 @@
                       "obj_id",
                       "rf_create",
                       "rf_last_seen",
+                      "removed",
                       "rule_from_id",
                       "rule_id",
                       "user_id",
@@ -15834,8 +16423,8 @@
                   "permission": {
                     "check": {},
                     "columns": [
-                      "removed",
                       "rs_create",
+                      "removed",
                       "rs_last_seen",
                       "rule_id",
                       "svc_id",
@@ -15856,6 +16445,7 @@
                       "active",
                       "rs_create",
                       "rs_last_seen",
+                      "removed",
                       "negated"
                     ],
                     "filter": {}
@@ -15867,6 +16457,7 @@
                     "columns": [
                       "rs_create",
                       "rs_last_seen",
+                      "removed",
                       "rule_id",
                       "svc_id",
                       "active",
@@ -15917,6 +16508,7 @@
                       "active",
                       "rs_create",
                       "rs_last_seen",
+                      "removed",
                       "negated"
                     ],
                     "filter": {},
@@ -15932,6 +16524,7 @@
                       "active",
                       "rs_create",
                       "rs_last_seen",
+                      "removed",
                       "negated"
                     ],
                     "filter": {},
@@ -15947,6 +16540,7 @@
                       "active",
                       "rs_create",
                       "rs_last_seen",
+                      "removed",
                       "negated"
                     ],
                     "filter": {},
@@ -15962,6 +16556,7 @@
                       "active",
                       "rs_create",
                       "rs_last_seen",
+                      "removed",
                       "negated"
                     ],
                     "filter": {}
@@ -16249,6 +16844,7 @@
                       "obj_id",
                       "rt_create",
                       "rt_last_seen",
+                      "removed",
                       "rule_id",
                       "rule_to_id",
                       "user_id",
@@ -16270,6 +16866,7 @@
                       "obj_id",
                       "rt_create",
                       "rt_last_seen",
+                      "removed",
                       "rule_id",
                       "rule_to_id",
                       "user_id"
@@ -16328,6 +16925,7 @@
                       "obj_id",
                       "rt_create",
                       "rt_last_seen",
+                      "removed",
                       "rule_id",
                       "rule_to_id",
                       "user_id"
@@ -16368,6 +16966,7 @@
                       "obj_id",
                       "rt_create",
                       "rt_last_seen",
+                      "removed",
                       "rule_id",
                       "rule_to_id",
                       "user_id",
@@ -16412,6 +17011,7 @@
                       "obj_id",
                       "rt_create",
                       "rt_last_seen",
+                      "removed",
                       "rule_id",
                       "rule_to_id",
                       "user_id"
@@ -16452,6 +17052,7 @@
                       "obj_id",
                       "rt_create",
                       "rt_last_seen",
+                      "removed",
                       "rule_id",
                       "rule_to_id",
                       "user_id",
@@ -16770,6 +17371,57 @@
                   "comment": ""
                 },
                 {
+                  "role": "auditor",
+                  "permission": {
+                    "columns": [
+                      "created",
+                      "removed",
+                      "is_global",
+                      "name",
+                      "uid",
+                      "id",
+                      "mgm_id"
+                    ],
+                    "filter": {},
+                    "allow_aggregations": true
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "reporter-viewall",
+                  "permission": {
+                    "columns": [
+                      "created",
+                      "removed",
+                      "is_global",
+                      "name",
+                      "uid",
+                      "id",
+                      "mgm_id"
+                    ],
+                    "filter": {},
+                    "allow_aggregations": true
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "reporter",
+                  "permission": {
+                    "columns": [
+                      "created",
+                      "removed",
+                      "is_global",
+                      "name",
+                      "uid",
+                      "id",
+                      "mgm_id"
+                    ],
+                    "filter": {},
+                    "allow_aggregations": true
+                  },
+                  "comment": ""
+                },
+                {
                   "role": "middleware-server",
                   "permission": {
                     "columns": [
@@ -16913,6 +17565,91 @@
                   "permission": {
                     "columns": [
                       "created",
+                      "removed",
+                      "from_rule_id",
+                      "removed",
+                      "is_global",
+                      "is_initial",
+                      "is_section",
+                      "from_rulebase_id",
+                      "gw_id",
+                      "id",
+                      "link_type",
+                      "to_rulebase_id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "auditor",
+                  "permission": {
+                    "columns": [
+                      "created",
+                      "removed",
+                      "from_rule_id",
+                      "removed",
+                      "is_global",
+                      "is_initial",
+                      "is_section",
+                      "from_rulebase_id",
+                      "gw_id",
+                      "id",
+                      "link_type",
+                      "to_rulebase_id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "reporter-viewall",
+                  "permission": {
+                    "columns": [
+                      "created",
+                      "removed",
+                      "from_rule_id",
+                      "removed",
+                      "is_global",
+                      "is_initial",
+                      "is_section",
+                      "from_rulebase_id",
+                      "gw_id",
+                      "id",
+                      "link_type",
+                      "to_rulebase_id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "reporter",
+                  "permission": {
+                    "columns": [
+                      "created",
+                      "removed",
+                      "from_rule_id",
+                      "removed",
+                      "is_global",
+                      "is_initial",
+                      "is_section",
+                      "from_rulebase_id",
+                      "gw_id",
+                      "id",
+                      "link_type",
+                      "to_rulebase_id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "modeller",
+                  "permission": {
+                    "columns": [
+                      "created",
+                      "removed",
                       "from_rule_id",
                       "removed",
                       "is_global",
@@ -17220,6 +17957,7 @@
                       "active",
                       "last_change_admin",
                       "svc_create",
+                      "removed",
                       "svc_last_seen"
                     ],
                     "filter": {},
@@ -17233,6 +17971,7 @@
                       "svc_create",
                       "svc_id",
                       "svc_last_seen",
+                      "removed",
                       "active",
                       "initial_config",
                       "srv_keeponinstall",
@@ -17318,6 +18057,7 @@
                       "svc_create",
                       "svc_id",
                       "svc_last_seen",
+                      "removed",
                       "active",
                       "initial_config",
                       "srv_keeponinstall",
@@ -17389,7 +18129,8 @@
                       "active",
                       "last_change_admin",
                       "svc_create",
-                      "svc_last_seen"
+                      "svc_last_seen",
+                      "removed"
                     ],
                     "filter": {
                       "mgm_id": {
@@ -17435,7 +18176,8 @@
                       "active",
                       "last_change_admin",
                       "svc_create",
-                      "svc_last_seen"
+                      "svc_last_seen",
+                      "removed"
                     ],
                     "filter": {
                       "mgm_id": {
@@ -17481,6 +18223,7 @@
                       "active",
                       "last_change_admin",
                       "svc_create",
+                      "removed",
                       "svc_last_seen"
                     ],
                     "filter": {
@@ -17526,6 +18269,7 @@
                       "svc_sync_delay_start",
                       "active",
                       "last_change_admin",
+                      "removed",
                       "svc_create",
                       "svc_last_seen"
                     ],
@@ -19225,6 +19969,7 @@
                       "svcgrp_id",
                       "svcgrp_member_id",
                       "import_created",
+                      "removed",
                       "import_last_seen",
                       "active",
                       "negated"
@@ -19239,6 +19984,7 @@
                     "columns": [
                       "import_created",
                       "import_last_seen",
+                      "removed",
                       "svcgrp_id",
                       "svcgrp_member_id",
                       "active",
@@ -19287,6 +20033,7 @@
                       "svcgrp_member_id",
                       "import_created",
                       "import_last_seen",
+                      "removed",
                       "active",
                       "negated"
                     ],
@@ -19302,6 +20049,7 @@
                       "svcgrp_member_id",
                       "import_created",
                       "import_last_seen",
+                      "removed",
                       "active",
                       "negated"
                     ],
@@ -19317,6 +20065,7 @@
                       "svcgrp_member_id",
                       "import_created",
                       "import_last_seen",
+                      "removed",
                       "active",
                       "negated"
                     ],
@@ -19332,6 +20081,7 @@
                       "svcgrp_member_id",
                       "import_created",
                       "import_last_seen",
+                      "removed",
                       "active",
                       "negated"
                     ],
@@ -19426,6 +20176,7 @@
                       "svcgrp_flat_member_id",
                       "import_created",
                       "import_last_seen",
+                      "removed",
                       "active",
                       "negated"
                     ],
@@ -19441,6 +20192,7 @@
                       "negated",
                       "import_created",
                       "import_last_seen",
+                      "removed",
                       "svcgrp_flat_id",
                       "svcgrp_flat_member_id"
                     ],
@@ -19456,6 +20208,7 @@
                       "negated",
                       "import_created",
                       "import_last_seen",
+                      "removed",
                       "svcgrp_flat_id",
                       "svcgrp_flat_member_id"
                     ],
@@ -19487,6 +20240,7 @@
                       "svcgrp_flat_member_id",
                       "import_created",
                       "import_last_seen",
+                      "removed",
                       "active",
                       "negated"
                     ],
@@ -19502,6 +20256,7 @@
                       "svcgrp_flat_member_id",
                       "import_created",
                       "import_last_seen",
+                      "removed",
                       "active",
                       "negated"
                     ],
@@ -19517,6 +20272,7 @@
                       "svcgrp_flat_member_id",
                       "import_created",
                       "import_last_seen",
+                      "removed",
                       "active",
                       "negated"
                     ],
@@ -19532,6 +20288,7 @@
                       "svcgrp_flat_member_id",
                       "import_created",
                       "import_last_seen",
+                      "removed",
                       "active",
                       "negated"
                     ],
@@ -20944,12 +21701,36 @@
                   }
                 },
                 {
+                  "name": "notifications",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "user_id",
+                      "table": {
+                        "name": "notification",
+                        "schema": "public"
+                      }
+                    }
+                  }
+                },
+                {
                   "name": "objects",
                   "using": {
                     "foreign_key_constraint_on": {
                       "column": "last_change_admin",
                       "table": {
                         "name": "object",
+                        "schema": "public"
+                      }
+                    }
+                  }
+                },
+                {
+                  "name": "owners",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "last_recertifier",
+                      "table": {
+                        "name": "owner",
                         "schema": "public"
                       }
                     }
@@ -21354,11 +22135,7 @@
                       "uiuser_username",
                       "uuid"
                     ],
-                    "filter": {
-                      "uuid": {
-                        "_eq": "x-hasura-uuid"
-                      }
-                    }
+                    "filter": {}
                   }
                 },
                 {
@@ -21381,11 +22158,7 @@
                       "uiuser_username",
                       "uuid"
                     ],
-                    "filter": {
-                      "uuid": {
-                        "_eq": "x-hasura-uuid"
-                      }
-                    }
+                    "filter": {}
                   }
                 },
                 {
@@ -21408,11 +22181,7 @@
                       "uiuser_username",
                       "uuid"
                     ],
-                    "filter": {
-                      "uuid": {
-                        "_eq": "x-hasura-uuid"
-                      }
-                    }
+                    "filter": {}
                   }
                 },
                 {
@@ -21721,6 +22490,7 @@
                       "usergrp_id",
                       "usergrp_member_id",
                       "import_created",
+                      "removed",
                       "import_last_seen",
                       "active"
                     ],
@@ -21736,6 +22506,7 @@
                       "usergrp_member_id",
                       "import_created",
                       "import_last_seen",
+                      "removed",
                       "active"
                     ],
                     "filter": {},
@@ -21748,6 +22519,7 @@
                     "columns": [
                       "import_created",
                       "import_last_seen",
+                      "removed",
                       "usergrp_id",
                       "usergrp_member_id",
                       "active"
@@ -21763,6 +22535,7 @@
                       "usergrp_member_id",
                       "import_created",
                       "import_last_seen",
+                      "removed",
                       "active"
                     ],
                     "filter": {},
@@ -21775,6 +22548,7 @@
                     "columns": [
                       "import_created",
                       "import_last_seen",
+                      "removed",
                       "removed",
                       "usergrp_id",
                       "usergrp_member_id",
@@ -21809,6 +22583,7 @@
                       "usergrp_member_id",
                       "import_created",
                       "import_last_seen",
+                      "removed",
                       "active"
                     ],
                     "filter": {},
@@ -21823,6 +22598,7 @@
                       "usergrp_member_id",
                       "import_created",
                       "import_last_seen",
+                      "removed",
                       "active"
                     ],
                     "filter": {},
@@ -21837,6 +22613,7 @@
                       "usergrp_member_id",
                       "import_created",
                       "import_last_seen",
+                      "removed",
                       "active"
                     ],
                     "filter": {},
@@ -21851,6 +22628,7 @@
                       "usergrp_member_id",
                       "import_created",
                       "import_last_seen",
+                      "removed",
                       "active"
                     ],
                     "filter": {},
@@ -21865,6 +22643,7 @@
                       "usergrp_member_id",
                       "import_created",
                       "import_last_seen",
+                      "removed",
                       "active"
                     ],
                     "filter": {}
@@ -21878,6 +22657,7 @@
                       "usergrp_member_id",
                       "import_created",
                       "import_last_seen",
+                      "removed",
                       "active"
                     ],
                     "filter": {},
@@ -21892,6 +22672,7 @@
                       "usergrp_member_id",
                       "import_created",
                       "import_last_seen",
+                      "removed",
                       "active"
                     ],
                     "filter": {},
@@ -21984,7 +22765,8 @@
                       "usergrp_flat_id",
                       "usergrp_flat_member_id",
                       "import_created",
-                      "import_last_seen"
+                      "import_last_seen",
+                      "removed"
                     ],
                     "filter": {},
                     "allow_aggregations": true
@@ -21996,6 +22778,7 @@
                     "columns": [
                       "import_created",
                       "import_last_seen",
+                      "removed",
                       "usergrp_flat_id",
                       "usergrp_flat_member_id",
                       "active"
@@ -22043,6 +22826,7 @@
                       "usergrp_flat_id",
                       "usergrp_flat_member_id",
                       "import_created",
+                      "removed",
                       "import_last_seen"
                     ],
                     "filter": {},
@@ -22057,6 +22841,7 @@
                       "usergrp_flat_id",
                       "usergrp_flat_member_id",
                       "import_created",
+                      "removed",
                       "import_last_seen"
                     ],
                     "filter": {},
@@ -22071,6 +22856,7 @@
                       "usergrp_flat_id",
                       "usergrp_flat_member_id",
                       "import_created",
+                      "removed",
                       "import_last_seen"
                     ],
                     "filter": {},
@@ -22085,6 +22871,7 @@
                       "usergrp_flat_id",
                       "usergrp_flat_member_id",
                       "import_created",
+                      "removed",
                       "import_last_seen"
                     ],
                     "filter": {}
@@ -22381,6 +23168,7 @@
                       "time_restrict",
                       "user_create",
                       "user_last_seen",
+                      "removed",
                       "user_comment",
                       "user_uid",
                       "user_firstname",
@@ -22399,6 +23187,7 @@
                       "user_create",
                       "user_id",
                       "user_last_seen",
+                      "removed",
                       "active",
                       "user_authmethod",
                       "user_firstname",
@@ -22463,6 +23252,7 @@
                       "user_create",
                       "user_id",
                       "user_last_seen",
+                      "removed",
                       "active",
                       "user_authmethod",
                       "user_firstname",
@@ -22507,6 +23297,7 @@
                       "time_restrict",
                       "user_create",
                       "user_last_seen",
+                      "removed",
                       "user_comment",
                       "user_uid",
                       "user_firstname",
@@ -22542,6 +23333,7 @@
                       "time_restrict",
                       "user_create",
                       "user_last_seen",
+                      "removed",
                       "user_comment",
                       "user_uid",
                       "user_firstname",
@@ -22577,6 +23369,7 @@
                       "time_restrict",
                       "user_create",
                       "user_last_seen",
+                      "removed",
                       "user_comment",
                       "user_uid",
                       "user_firstname",
@@ -22612,6 +23405,7 @@
                       "time_restrict",
                       "user_create",
                       "user_last_seen",
+                      "removed",
                       "user_comment",
                       "user_uid",
                       "user_firstname",
@@ -23094,6 +23888,7 @@
                       "zone_id",
                       "zone_create",
                       "zone_last_seen",
+                      "removed",
                       "mgm_id",
                       "zone_name",
                       "active"
@@ -23108,6 +23903,7 @@
                     "columns": [
                       "zone_create",
                       "zone_last_seen",
+                      "removed",
                       "active",
                       "zone_name",
                       "mgm_id",
@@ -23140,6 +23936,7 @@
                     "columns": [
                       "zone_create",
                       "zone_last_seen",
+                      "removed",
                       "active",
                       "zone_name",
                       "mgm_id",
@@ -23156,6 +23953,7 @@
                       "zone_id",
                       "zone_create",
                       "zone_last_seen",
+                      "removed",
                       "mgm_id",
                       "zone_name",
                       "active"
@@ -23175,6 +23973,7 @@
                       "zone_id",
                       "zone_create",
                       "zone_last_seen",
+                      "removed",
                       "mgm_id",
                       "zone_name",
                       "active"
@@ -23194,6 +23993,7 @@
                       "zone_id",
                       "zone_create",
                       "zone_last_seen",
+                      "removed",
                       "mgm_id",
                       "zone_name",
                       "active"
@@ -23214,6 +24014,7 @@
                       "mgm_id",
                       "zone_create",
                       "zone_last_seen",
+                      "removed",
                       "zone_id",
                       "zone_name"
                     ],
@@ -23228,12 +24029,8 @@
                   "permission": {
                     "columns": [
                       "removed",
-                      "zone_create",
                       "zone_last_seen",
-                      "active",
-                      "zone_name",
-                      "mgm_id",
-                      "zone_id"
+                      "active"
                     ],
                     "filter": {},
                     "check": {}

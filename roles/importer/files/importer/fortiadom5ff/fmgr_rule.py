@@ -20,6 +20,7 @@ from models.import_state import ImportState
 
 
 NETWORK_OBJECT='network_object'
+STRING_PKG = '/pkg/'
 rule_access_scope_v4 = ['rules_global_header_v4', 'rules_adom_v4', 'rules_global_footer_v4']
 rule_access_scope_v6 = ['rules_global_header_v6', 'rules_adom_v6', 'rules_global_footer_v6']
 rule_access_scope = rule_access_scope_v6 + rule_access_scope_v4
@@ -177,6 +178,12 @@ def rule_parse_service(native_rule):
     for svc in native_rule.get('service', []):
         rule_svc_list.append(svc)
         rule_svc_refs_list.append(svc)
+    if rule_svc_list == [] and 'internet-service-name' in native_rule and len(native_rule['internet-service-name']) > 0:
+        rule_svc_list.append('ALL')
+        rule_svc_refs_list.append('ALL')
+    if rule_svc_list == [] and 'internet-service-src-name' in native_rule and len(native_rule['internet-service-src-name']) > 0:
+        rule_svc_list.append('ALL')
+        rule_svc_refs_list.append('ALL')
 
     return rule_svc_list, rule_svc_refs_list
 
@@ -210,7 +217,7 @@ def build_addr_list(native_rule, is_v4, target, normalized_config_dict, normaliz
             addr_list.append(addr)
             addr_ref_list.append(find_addr_ref(addr, is_v4, normalized_config_dict, normalized_config_global))
     elif is_v4 and target == 'dst':
-        for addr in native_rule.get('dstaddr', []):
+        for addr in native_rule.get('dstaddr', []) + native_rule.get('internet-service-name', []):
             addr_list.append(addr)
             addr_ref_list.append(find_addr_ref(addr, is_v4, normalized_config_dict, normalized_config_global))
     else:
@@ -234,6 +241,7 @@ def ip_type(nw_obj):
     return net.version
 
 def rule_parse_negation_flags(native_rule):
+    # if customer decides to mix internet-service and "normal" addr obj in src/dst and mix negates this will prob. not work correctly
     if 'srcaddr-negate' in native_rule:
         rule_src_neg = native_rule['srcaddr-negate'] == 1 or native_rule['srcaddr-negate'] == 'disable'
     elif 'internet-service-src-negate' in native_rule:
@@ -251,12 +259,11 @@ def rule_parse_installon(native_rule, rulebase_name):
         rule_installon = rulebase_name
     return rule_installon
 
-
-def getAccessPolicy(sid, fm_api_url, native_config_domain, adom_device_vdom_policy_package_structure, adom_name, mgm_details_device, device_config, limit):
+def get_access_policy(sid, fm_api_url, native_config_domain, adom_device_vdom_policy_package_structure, adom_name, mgm_details_device, device_config, limit):
     consolidated = '' # '/consolidated'
     logger = getFwoLogger()
 
-    previous_rulebase = ''
+    previous_rulebase = None
     local_pkg_name = find_local_pkg(adom_device_vdom_policy_package_structure, adom_name, mgm_details_device)
     # delete_v: hier global_pkg_name später
     #global_pkg_name = device['global_rulebase_name']
@@ -272,13 +279,13 @@ def getAccessPolicy(sid, fm_api_url, native_config_domain, adom_device_vdom_poli
     #         nativeConfig['rules_global_header_v4'], sid, fm_api_url, "/pm/config/global/pkg/" + global_pkg_name + "/global/header" + consolidated + "/policy", local_pkg_name, limit=limit)
     #     fmgr_getter.update_config_with_fortinet_api_call(
     #         nativeConfig['rules_global_header_v6'], sid, fm_api_url, "/pm/config/global/pkg/" + global_pkg_name + "/global/header" + consolidated + "/policy6", local_pkg_name, limit=limit)
-    
+
     is_global = False
     # get local rulebase
     fmgr_getter.update_config_with_fortinet_api_call(
-        native_config_domain['rulebases'], sid, fm_api_url, "/pm/config/adom/" + adom_name + "/pkg/" + local_pkg_name + "/firewall" + consolidated + "/policy", 'rules_adom_v4_' + local_pkg_name, options=options, limit=limit)
+        native_config_domain['rulebases'], sid, fm_api_url, "/pm/config/adom/" + adom_name + STRING_PKG + local_pkg_name + "/firewall" + consolidated + "/policy", 'rules_adom_v4_' + local_pkg_name, options=options, limit=limit)
     fmgr_getter.update_config_with_fortinet_api_call(
-        native_config_domain['rulebases'], sid, fm_api_url, "/pm/config/adom/" + adom_name + "/pkg/" + local_pkg_name + "/firewall" + consolidated + "/policy6", 'rules_adom_v6_' + local_pkg_name, limit=limit)
+        native_config_domain['rulebases'], sid, fm_api_url, "/pm/config/adom/" + adom_name + STRING_PKG + local_pkg_name + "/firewall" + consolidated + "/policy6", 'rules_adom_v6_' + local_pkg_name, limit=limit)
     # delete_v: hier initial link immer lokal, erweitern wenn wir global header/footer holen
     link_list, previous_rulebase = link_v4_and_v6_rulebase(native_config_domain['rulebases'], local_pkg_name, previous_rulebase, is_global)
     device_config['rulebase_links'].extend(link_list)
@@ -310,7 +317,7 @@ def getAccessPolicy(sid, fm_api_url, native_config_domain, adom_device_vdom_poli
     if len(hitcount_task) == 0 or 'task' not in hitcount_task[0]:
         logger.warning(f"did not get hitcount task for adom {adom_name} and package {local_pkg_name} - skipping hitcount")
         return
-    
+
     # execute hitcount task
     hitcount_payload = {
         "params": [
@@ -345,9 +352,8 @@ def link_v4_and_v6_rulebase(rulebases, pkg_name, previous_rulebase, is_global):
     
     return link_list, previous_rulebase
 
-
 def build_link(previous_rulebase, full_pkg_name, is_global):
-    if previous_rulebase == '':
+    if previous_rulebase is None:
         is_initial = True
     else:
         is_initial = False
@@ -377,13 +383,13 @@ def getNatPolicy(sid, fm_api_url, nativeConfig, adom_name, device, limit):
     if pkg is not None and pkg != '':   # only read global rulebase if it exists
         for nat_type in ['central/dnat', 'central/dnat6', 'firewall/central-snat-map']:
             fmgr_getter.update_config_with_fortinet_api_call(
-                nativeConfig['rules_global_nat'], sid, fm_api_url, "/pm/config/" + scope + "/pkg/" + pkg + '/' + nat_type, device['local_rulebase_name'], limit=limit)
+                nativeConfig['rules_global_nat'], sid, fm_api_url, "/pm/config/" + scope + STRING_PKG + pkg + '/' + nat_type, device['local_rulebase_name'], limit=limit)
 
     scope = 'adom/'+adom_name
     pkg = device['local_rulebase_name']
     for nat_type in ['central/dnat', 'central/dnat6', 'firewall/central-snat-map']:
         fmgr_getter.update_config_with_fortinet_api_call(
-            nativeConfig['rules_adom_nat'], sid, fm_api_url, "/pm/config/" + scope + "/pkg/" + pkg + '/' + nat_type, device['local_rulebase_name'], limit=limit)
+            nativeConfig['rules_adom_nat'], sid, fm_api_url, "/pm/config/" + scope + STRING_PKG + pkg + '/' + nat_type, device['local_rulebase_name'], limit=limit)
 
 
 # delete_v: ab hier kann sehr viel weg, ich lasses vorerst zB für die hitcounter

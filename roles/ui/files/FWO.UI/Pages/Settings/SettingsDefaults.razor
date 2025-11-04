@@ -184,7 +184,8 @@
         <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5454"))">
             <label class="col-form-label col-sm-4">@(userConfig.GetText("ruleOwnershipMode")):</label>
             <div class="col-sm-2">
-                <Dropdown @bind-SelectedElement="configData!.RuleOwnershipMode" ElementToString="@(o => userConfig.GetText(o.ToString()))" Elements="Enum.GetValues(typeof(RuleOwnershipMode)).Cast<RuleOwnershipMode>()">
+                <Dropdown ElementType="RuleOwnershipMode" @bind-SelectedElement="configData!.RuleOwnershipMode"
+                        ElementToString="@(o => userConfig.GetText(o.ToString()))" Elements="Enum.GetValues(typeof(RuleOwnershipMode)).Cast<RuleOwnershipMode>()">
                     <ElementTemplate Context="opt">
                         @(userConfig.GetText(opt.ToString()))
                     </ElementTemplate>

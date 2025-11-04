@@ -1,4 +1,5 @@
-﻿using System.Text.Json.Serialization; 
+using System.Text.Json.Serialization;
+using FWO.Basics;
 using Newtonsoft.Json;
 using FWO.Basics;
 
@@ -78,12 +79,12 @@ namespace FWO.Data
         public bool Sanitize()
         {
             bool shortened = false;
-            Name = Sanitizer.SanitizeOpt(Name, ref shortened);
-            Uid = Sanitizer.SanitizeOpt(Uid, ref shortened);
-            LocalRulebase = Sanitizer.SanitizeOpt(LocalRulebase, ref shortened);
-            GlobalRulebase = Sanitizer.SanitizeOpt(GlobalRulebase, ref shortened);
-            Package = Sanitizer.SanitizeOpt(Package, ref shortened);
-            Comment = Sanitizer.SanitizeCommentOpt(Comment, ref shortened);
+            Name = Name.SanitizeOpt(ref shortened);
+            Uid = Uid.SanitizeOpt(ref shortened);
+            LocalRulebase = LocalRulebase.SanitizeOpt(ref shortened);
+            GlobalRulebase = GlobalRulebase.SanitizeOpt(ref shortened);
+            Package = Package.SanitizeOpt(ref shortened);
+            Comment = Comment.SanitizeCommentOpt(ref shortened);
             return shortened;
         }
     }

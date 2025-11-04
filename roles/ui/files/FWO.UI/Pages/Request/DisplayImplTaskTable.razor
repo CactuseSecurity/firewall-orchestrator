@@ -12,21 +12,22 @@
     {
         <div class="btn-group">
             <button type="button" class="btn btn-success m-2" @onclick:preventDefault @onclick="AddImplTask">
-                @(ModellingHandlerBase.DisplayButton(userConfig, "create_implementation", Icons.Add))</button>
+                @(DisplayService.DisplayButton(userConfig, "create_implementation", Icons.Add))</button>
             @if(WfHandler.ActReqTask.TaskType == WfTaskType.access.ToString() && userConfig.ReqActivatePathAnalysis)
             {
                 <button type="button" class="btn btn-success m-2" @onclick:preventDefault @onclick="CheckImplTasks">
-                    @(userConfig.GetText("check_impltasks"))</button>
+                    @(DisplayService.DisplayButton(userConfig, "check_impltasks", Icons.Check))</button>
                 <button type="button" class="btn btn-warning m-2" @onclick:preventDefault @onclick="AutocreateImplTasks">
-                    @(userConfig.GetText("auto_create_impltasks"))</button>
+                    @(DisplayService.DisplayButton(userConfig, "auto_create_impltasks", Icons.Create))</button>
                 @if(WfHandler.ActReqTask.ImplementationTasks.Count > 0)
                 {
                     <button type="button" class="btn btn-danger m-2" @onclick:preventDefault @onclick="CleanupImplTasks">
-                        @(userConfig.GetText("cleanup_impltasks"))</button>
+                        @(DisplayService.DisplayButton(userConfig, "cleanup_impltasks", Icons.Cleanup))</button>
                 }
                 else
                 {
-                    <button type="button" class="btn btn-danger m-2" disabled>@(userConfig.GetText("cleanup_impltasks"))</button>
+                    <button type="button" class="btn btn-danger m-2" disabled>
+						@(DisplayService.DisplayButton(userConfig, "cleanup_impltasks", Icons.Cleanup))</button>
                 }
             }
         </div>
@@ -39,20 +40,20 @@
                     <Template>
                         <div class="btn-group">
                             <button type="button" class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="() => ShowImplTask(implTask)">
-                                @(ModellingHandlerBase.DisplayButton(userConfig, "details", Icons.Display))</button>
+                                @(DisplayService.DisplayButton(userConfig, "details", Icons.Display))</button>
                             @if(!WfHandler.StateMatrix(implTask.TaskType).PhaseActive[WorkflowPhases.planning] && WfHandler.StateMatrix(implTask.TaskType).PhaseActive[WorkflowPhases.approval])
                             {
                                 <button type="button" class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="() => ShowApprovals(implTask)">
-                                    @(userConfig.GetText("approvals"))</button>
+                                    @(DisplayService.DisplayButton(userConfig, "approvals", Icons.Approval))</button>
                             }
                             @if (!WfHandler.ReadOnlyMode && IsEditable(implTask))
                             {
                                 @if (WfHandler.PlanReqTaskMode && implTask.StateId < WfHandler.StateMatrix(implTask.TaskType).LowestEndState)
                                 {
                                     <button type="button" class="btn btn-sm btn-warning" @onclick:preventDefault @onclick="() => EditImplTask(implTask)">
-                                        @(ModellingHandlerBase.DisplayButton(userConfig, "edit", Icons.Edit))</button>
+                                        @(DisplayService.DisplayButton(userConfig, "edit", Icons.Edit))</button>
                                     <button type="button" class="btn btn-sm btn-danger" @onclick:preventDefault @onclick="() => DeleteImplTask(implTask)">
-                                        @(ModellingHandlerBase.DisplayButton(userConfig, "delete", Icons.Delete))</button>
+                                        @(DisplayService.DisplayButton(userConfig, "delete", Icons.Delete))</button>
                                 }
                                 else if (Phase >= WorkflowPhases.implementation && implTask.StateId >= WfHandler.StateMatrix(implTask.TaskType).LowestInputState && WfHandler.TicketList.FirstOrDefault(x => x.Id == implTask.TicketId)?.StateId >= WfHandler.MasterStateMatrix.LowestInputState)
                                 {
@@ -61,20 +62,20 @@
                                         <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.Implementer}, {Roles.Reviewer}, {Roles.FwAdmin}")">
                                             <Authorized Context="ctx">
                                                 <button type="button" class="btn btn-sm btn-warning" @onclick:preventDefault @onclick="async () => await StartImplPhase(implTask)">
-                                                    @(ModellingHandlerBase.DisplayButton(userConfig, "start_" + Phase.ToString(), Icons.Edit))</button>
+                                                    @(DisplayService.DisplayButton(userConfig, "start_" + Phase.ToString(), Icons.Edit))</button>
                                             </Authorized>
                                             <NotAuthorized Context="ctx">
                                                 <button type="button" class="btn btn-sm btn-warning" disabled>
-                                                    @(ModellingHandlerBase.DisplayButton(userConfig, "start_" + Phase.ToString(), Icons.Edit))</button>
+                                                    @(DisplayService.DisplayButton(userConfig, "start_" + Phase.ToString(), Icons.Edit))</button>
                                             </NotAuthorized>
                                         </AuthorizeView>
                                     }
                                     else if (implTask.StateId < WfHandler.StateMatrix(implTask.TaskType).LowestEndState)
                                     {
                                         <button type="button" class="btn btn-sm btn-warning" @onclick:preventDefault @onclick="async () => await ContinueImplPhase(implTask)">
-                                            @(ModellingHandlerBase.DisplayButton(userConfig, "continue_" + Phase.ToString(), Icons.Edit))</button>
+                                            @(DisplayService.DisplayButton(userConfig, "continue_" + Phase.ToString(), Icons.Edit))</button>
                                         <button type="button" class="btn btn-sm btn-warning" @onclick:preventDefault @onclick="() => AssignImplTask(implTask)">
-                                            @(ModellingHandlerBase.DisplayButton(userConfig, "assign1", Icons.Assign))</button>
+                                            @(DisplayService.DisplayButton(userConfig, "assign1", Icons.Assign))</button>
                                     }
                                 }
                             }

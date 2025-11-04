@@ -3,31 +3,33 @@ query getNetworkZonesForMatrix ($criterionId: Int!){
     id
     name
     description
-	criterion_id
-	id_string
-    ip_ranges (where: { removed: {_is_null: true} }){
-      ip_range_start
-      ip_range_end
-    }
-    super_network_zone {
-      id
-      name
-    }
-    sub_network_zones (where: { removed: {_is_null: true} }){
-      id
-      name
-    }
-    network_zone_communication_destinations (where: { criterion_id: {_eq: $criterionId}, removed: {_is_null: true} }){
-      to_network_zone {
+    criterion_id
+    id_string
+      ip_ranges (where: { removed: {_is_null: true} }){
+        ip_range_start
+        ip_range_end
+      }
+      super_network_zone {
         id
         name
       }
-    }
-    network_zone_communication_sources (where: { criterion_id: {_eq: $criterionId}, removed: {_is_null: true} }){
-      from_network_zone {
+      sub_network_zones (where: { removed: {_is_null: true} }){
         id
         name
       }
-    }
+      network_zone_communication_destinations (where: { criterion_id: {_eq: $criterionId}, removed: {_is_null: true} }){
+        to_network_zone {
+          id
+          name
+        }
+      }
+      network_zone_communication_sources (where: { criterion_id: {_eq: $criterionId}, removed: {_is_null: true} }){
+        from_network_zone {
+          id
+          name
+        }
+      }
+      is_auto_calculated_internet_zone
+      is_auto_calculated_undefined_internal_zone
   }
 }

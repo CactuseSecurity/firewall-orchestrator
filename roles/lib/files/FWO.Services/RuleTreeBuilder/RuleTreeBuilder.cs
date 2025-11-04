@@ -305,7 +305,11 @@ namespace FWO.Services.RuleTreeBuilder
             if (position.Last() == 0) position.Remove(position.Last());
             RuleTreeItem item = RuleTree.ElementsFlat.First(x => x.GetPositionString() == string.Join(".", position)) as RuleTreeItem;
 
-            if (item.IsOrderedLayerHeader)
+            if (item.Data is Rule && (item.Parent as RuleTreeItem).IsOrderedLayerHeader && nextPosition.Last() != 0)
+            {
+                return item.Parent as RuleTreeItem;
+            }
+            else if (item.IsOrderedLayerHeader)
             {
                 return item;
             }

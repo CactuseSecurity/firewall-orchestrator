@@ -15,12 +15,17 @@ namespace FWO.Test
     [TestFixture]
     internal class ReportRulesTest
     {
+        private MockReportRules _mockReportRules = new MockReportRules(
+                new Report.Filter.DynGraphqlQuery(""),
+                new Config.Api.UserConfig(),
+                ReportType.Rules,
+                null!
+            );
+        private List<ManagementReport> _managementReports = new List<ManagementReport>();
+        private DeviceReportController _device = new DeviceReportController();
+        private ManagementReport _management = new ManagementReport();
+        private RulebaseReport _rulebase = new RulebaseReport();
 
-
-
-
-        private MockReportRules? _mockReportRules;
-        private List<ManagementReport>? _managementReports;
 
         [SetUp]
         public void setUp()

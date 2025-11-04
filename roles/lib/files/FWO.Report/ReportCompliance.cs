@@ -36,12 +36,13 @@ namespace FWO.Report
         private readonly int _maxDegreeOfParallelism;
         private readonly SemaphoreSlim _semaphore;
         private readonly NatRuleDisplayHtml _natRuleDisplayHtml;
-        private readonly List<string> _columnsToExport;
-        private readonly bool _includeHeaderInExport;
-        private readonly char _separator;
-        private readonly int _maxCellSize;
+        private List<string> _columnsToExport;
+        private bool _includeHeaderInExport;
+        private char _separator;
+        private int _maxCellSize;
         private readonly int _maxPrintedViolations;
         private List<int> _relevanteManagementIDs = new();
+        private readonly GlobalConfig _globalConfig;
 
         #endregion
 
@@ -49,48 +50,30 @@ namespace FWO.Report
 
         public ReportCompliance(DynGraphqlQuery query, UserConfig userConfig, ReportType reportType) : base(query, userConfig, reportType)
         {
+            if (userConfig.GlobalConfig != null)
+            {
+                _globalConfig = userConfig.GlobalConfig;
+            }
+            else
+            {
+                _globalConfig = new();
+            }
+
             _maxDegreeOfParallelism = Environment.ProcessorCount;
             _semaphore = new SemaphoreSlim(_maxDegreeOfParallelism);
             _natRuleDisplayHtml = new NatRuleDisplayHtml(userConfig);
 
             // CSV export config.
 
-            _includeHeaderInExport = true;
-            _separator = ';';
-            _maxCellSize = 32000; // Max size of a cell in Excel is 32,767 characters.
-            _columnsToExport = new List<string>
-            {
-                "MgmtId",
-                "MgmtName",
-                "Uid",
-                "Name",
-                "Source",
-                "Source (Short)",
-                "Destination",
-                "Destination (Short)",
-                "Services",
-                "Services (Short)",
-                "Action",
-                "InstallOn",
-                "Compliance",
-                "ViolationDetails",
-                "ChangeID",
-                "AdoITID",
-                "Comment",
-                "RulebaseId",
-                "RulebaseName"
-            };
+            SetUpCsvExport();
 
-            if (userConfig.GlobalConfig != null)
-            {
-                _maxPrintedViolations = userConfig.GlobalConfig.ComplianceCheckMaxPrintedViolations;
-            }
-
+            _maxPrintedViolations = _globalConfig.ComplianceCheckMaxPrintedViolations;
+            
             // Apply debug config.
 
-            if (userConfig.GlobalConfig != null && !string.IsNullOrEmpty(userConfig.GlobalConfig.DebugConfig))
+            if (!string.IsNullOrEmpty(_globalConfig.DebugConfig))
             {
-                DebugConfig = JsonSerializer.Deserialize<DebugConfig>(userConfig.GlobalConfig.DebugConfig) ?? new();
+                DebugConfig = JsonSerializer.Deserialize<DebugConfig>(_globalConfig.DebugConfig) ?? new();
             }
             else
             {
@@ -98,11 +81,11 @@ namespace FWO.Report
                 DebugConfig = new();
             }
 
-            if (userConfig.GlobalConfig != null && !string.IsNullOrEmpty(userConfig.GlobalConfig.ComplianceCheckRelevantManagements))
+            if (!string.IsNullOrEmpty(_globalConfig.ComplianceCheckRelevantManagements))
             {
                 try
                 {
-                    _relevanteManagementIDs = userConfig.GlobalConfig.ComplianceCheckRelevantManagements
+                    _relevanteManagementIDs = _globalConfig.ComplianceCheckRelevantManagements
                         .Split(',', StringSplitOptions.RemoveEmptyEntries)
                         .Select(s => int.Parse(s.Trim()))
                         .ToList();
@@ -289,7 +272,7 @@ namespace FWO.Report
                 Task<(List<Rule>, List<RuleViewData>)> task = Task.Run<(List<Rule>, List<RuleViewData>)>(async () =>
                 {
                     List<RuleViewData> localViewData = new(chunk.Count);
-                    
+
                     try
                     {
                         foreach (var rule in chunk)
@@ -334,6 +317,51 @@ namespace FWO.Report
         #endregion
 
         #region Methods - Private
+        
+        private void SetUpCsvExport()
+        {
+            _includeHeaderInExport = true;
+            _separator = ';';
+            _maxCellSize = 32000; // Max size of a cell in Excel is 32,767 characters.
+            _columnsToExport =
+            [
+                "MgmtId",
+                "MgmtName",
+                "Uid",
+                "Name",
+                "Source"
+            ];
+            if (_globalConfig.ShowShortColumnsInComplianceReports)
+            {
+                _columnsToExport.Add("Source (Short)");
+            }
+            _columnsToExport.Add("Destination");
+            if (_globalConfig.ShowShortColumnsInComplianceReports)
+            {
+                _columnsToExport.Add("Destination (Short)");
+            }
+            _columnsToExport.Add("Services");
+            if (_globalConfig.ShowShortColumnsInComplianceReports)
+            {
+                _columnsToExport.Add("Services (Short)");
+            }
+            _columnsToExport.AddRange(
+            [
+                "Action",
+                "InstallOn",
+                "Compliance",
+                "ViolationDetails",
+                "ChangeID",
+                "AdoITID",
+                "Comment",
+                "RulebaseId",
+                "RulebaseName"
+            ]);
+            if (_globalConfig.ShowShortColumnsInComplianceReports)
+            {
+                _columnsToExport.Add("Disabled");
+            }
+        }
 
         private Task GatherEmptyGroups(NetworkLocation[] networkLocations, List<NetworkLocation> resolvedNetworkLocations)
         {
@@ -483,11 +511,23 @@ namespace FWO.Report
             IEnumerable<string> values = properties.Select(p =>
             {
                 if (p is PropertyInfo propertyInfo)
-                {
+                {                    
                     object? value = propertyInfo.GetValue(rule);
 
                     if (value is string str)
                     {
+                        if (p.Name == "Disabled")
+                        {
+                            if (str.Contains(Icons.Check))
+                            {
+                                str = "TRUE";
+                            }
+                            else
+                            {
+                                str = "FALSE";
+                            }
+                        }
+                        
                         str = str
                                 .Replace("\r\n", " | ")
                                 .Replace("\n", " | ")

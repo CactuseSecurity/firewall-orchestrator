@@ -352,12 +352,28 @@ class FwConfigImport():
             logger.exception(f"failed to get latest normalized config from db for mgm id {str(self.import_state.MgmDetails.Id)}: {str(traceback.format_exc())}")
             raise FwoImporterError("error while trying to get the latest config")
 
+    def _sort_lists(self, config: FwConfigNormalized):
+        # sort lists in config to have consistent ordering for diff checks
+        config.rulebases.sort(key=lambda rb: rb.uid)
+        if any(gw.Uid is None for gw in config.gateways):
+            raise FwoImporterError("found gateway without UID while sorting gateways for consistency check - this should not happen")
+        config.gateways.sort(key=lambda gw: gw.Uid) # type: ignore
+        for gw in config.gateways:
+            gw.RulebaseLinks.sort(key=lambda rbl: f"{rbl.from_rulebase_uid}-{rbl.from_rule_uid}-{rbl.to_rulebase_uid}")
+            if gw.EnforcedPolicyUids is not None:
+                gw.EnforcedPolicyUids.sort()
+            if gw.EnforcedNatPolicyUids is not None:
+                gw.EnforcedNatPolicyUids.sort()
+            #TODO: interfaces and routing as soon as they are implemented
+
     def consistency_check_db(self):
         logger = getFwoLogger(debug_level=self.import_state.DebugLevel)
         normalized_config = self.NormalizedConfig
         if normalized_config is None:
             raise FwoImporterError("cannot perform consistency check: NormalizedConfig is None")
         normalized_config_from_db = self.get_latest_config_from_db()
+        self._sort_lists(normalized_config)
+        self._sort_lists(normalized_config_from_db)
         all_diffs = find_all_diffs(normalized_config.model_dump(), normalized_config_from_db.model_dump(), strict=True)
         if len(all_diffs) > 0:
             logger.warning(f"normalized config for mgm id {self.import_state.MgmDetails.CurrentMgmId} is inconsistent to database state: {all_diffs[0]}")

@@ -11,7 +11,7 @@
       "Configs": [
         {
           "ConfigFormat": "NORMALIZED_LEGACY",
-          "action": "INSERT",{
+          "action": "INSERT",
           "network_objects": {
             "fb6dc52c-a40e-51f0-58af-1e9bdb08123e": {
               "obj_uid": "fb6dc52c-a40e-51f0-58af-1e9bdb08123e",
@@ -171,7 +171,7 @@
           ]
         }
       ]
-    },
+    }
   ],
   "native_config": {}
 }

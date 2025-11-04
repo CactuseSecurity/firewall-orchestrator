@@ -1,0 +1,32 @@
+{
+   "areas": [
+      {
+         "name": "AREA51",
+         "id_string": "NA51",
+         "subnets": [
+            {
+               "ip": "10.10.10.0/24",
+               "name": "Netz01"
+            },
+            {
+               "ip": "10.10.34.16/30",
+               "name": "Netz02"
+            }
+          ]
+      },
+      {
+         "name": "AREA52",
+         "id_string": "NA52",
+         "subnets": [
+            {
+               "ip": "10.20.10.0/24",
+               "name": "Netz03"
+            },
+            {
+               "ip": "10.20.34.128/25",
+               "name": "Netz04"
+            }
+          ]
+      }
+   ]
+}

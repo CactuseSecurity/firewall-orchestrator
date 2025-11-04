@@ -213,11 +213,12 @@ def create_any_protocol_service(proto: str, service_objects: Dict[str, ServiceOb
     """
     obj_name = f"any-{proto}"
     if obj_name not in service_objects:
+        port_range = (0, 65535) if proto in ("tcp", "udp") else (None, None)
         obj = ServiceObject(
             svc_uid=obj_name,
             svc_name=obj_name,
-            svc_port=0,
-            svc_port_end=65535,
+            svc_port=port_range[0],
+            svc_port_end=port_range[1],
             svc_color=fwo_const.defaultColor,
             svc_typ="simple",
             ip_proto=protocol_map.get(proto, 0),

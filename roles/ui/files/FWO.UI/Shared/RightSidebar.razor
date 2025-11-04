@@ -44,7 +44,7 @@
                                 <ObjectGroupCollection PageSize="PageSize" FetchObjects="FetchContent" Recert="Recert"
                                     Tab="RsbTab.report" InputDataType="ManagementReport"
                                     Data="CurrentReport.ReportData.ManagementData
-                                    .Where(m => m.Devices.Any(d => d.RulebaseLinks != null && d.RulebaseLinks.Any(rb => rb.NextRulebaseId != null)))"
+                                    .Where(m => m.Devices.Any(d => d.RulebaseLinks.Any()))"
                                 NameExtractor="man => man.Name" NetworkObjectExtractor="man => man.ReportObjects"
                                 NetworkServiceExtractor="man => man.ReportServices"
                                 NetworkUserExtractor="man => man.ReportUsers" />

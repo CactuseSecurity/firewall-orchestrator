@@ -20,17 +20,25 @@ namespace FWO.Compliance
 {
     public class ComplianceCheck
     {
-        public ReportCompliance? ComplianceReport { get; set; } = null;
-
-        private ReportFilters _reportFilters = new();
+        /// <summary>
+        /// Active policy that defines the compliance criteria.
+        /// </summary>
         public CompliancePolicy? Policy = null;
+        /// <summary>
+        /// Report object to create diff and to serve as dto.
+        /// </summary>
+        public ReportCompliance? ComplianceReport { get; set; } = null;
+        /// <summary>
+        /// Filters to create compliance reports.
+        /// </summary>
+        private ReportFilters _reportFilters = new();
+        /// <summary>
+        /// Network zones to use for matrix compliance check.
+        /// </summary>
         public List<ComplianceNetworkZone> NetworkZones = [];
 
         private readonly ApiConnection _apiConnection;
         private readonly UserConfig _userConfig;
-        private readonly GlobalConfig _globalConfig;
-        private readonly DebugConfig _debugConfig;
-        
 
         /// <summary>
         /// Constructor for compliance check
@@ -41,35 +49,6 @@ namespace FWO.Compliance
         {
             _apiConnection = apiConnection;
             _userConfig = userConfig;
-
-            if (userConfig.GlobalConfig != null)
-            {
-                _globalConfig = userConfig.GlobalConfig;
-            }
-            else
-            {
-                Log.WriteWarning("Compliance Check", "No global config found, using default values.");
-                _globalConfig = new();
-            }
-            
-            if (!string.IsNullOrEmpty(_globalConfig.DebugConfig))
-            {
-                try
-                {
-                    _debugConfig = JsonSerializer.Deserialize<DebugConfig>(_globalConfig.DebugConfig)!;
-                }
-                catch (Exception e)
-                {
-                    Log.WriteWarning("Compliance Check", $"Exception while deserializing debug config, using default values. Exception: {e.Message}");
-                    _debugConfig = new();
-                }
-            }
-            else
-            {
-                Log.WriteWarning("Compliance Check", "No debug config found, using default values.");
-                _debugConfig = new();
-            }
-
         }
 
         /// <summary>
@@ -80,26 +59,35 @@ namespace FWO.Compliance
         {
             try
             {
-                Log.TryWriteLog(LogType.Info, "Compliance Check", "Starting compliance check.", _debugConfig.ExtendedLogComplianceCheck);
+                Log.TryWriteLog(LogType.Info, "Compliance Check", "Starting compliance check.", LocalSettings.ComplianceCheckVerbose);
 
-                int? policyId = _globalConfig.ComplianceCheckPolicyId;
-
-                if (policyId == null || policyId == 0)
+                if (_userConfig.ComplianceCheckPolicyId == 0)
                 {
                     Log.WriteInfo("Compliance Check", "No Policy defined.");
                     return;
                 }
-                else
+
+                Log.TryWriteLog(LogType.Info, "Compliance Check", $"Using policy {_userConfig.ComplianceCheckPolicyId}", LocalSettings.ComplianceCheckVerbose);
+
+                Policy = await _apiConnection.SendQueryAsync<CompliancePolicy>(ComplianceQueries.getPolicyById, new { id = _userConfig.ComplianceCheckPolicyId });
+
+                if (Policy == null)
                 {
-                    Log.TryWriteLog(LogType.Info, "Compliance Check", $"Using policy {policyId}", _debugConfig.ExtendedLogComplianceCheck);
+                    Log.WriteError("Compliance Check", $"Policy with id {_userConfig.ComplianceCheckPolicyId} not found.");
+                    return;
                 }
 
-                Policy = await _apiConnection.SendQueryAsync<CompliancePolicy>(ComplianceQueries.getPolicyById, new { id = policyId });
+                Log.TryWriteLog(LogType.Info, "Compliance Check", $"Policy criteria: {Policy.Criteria.Count} criteria found", LocalSettings.ComplianceCheckVerbose);
 
-                if (TryLogPolicyCriteria() == false)
+                if (Policy.Criteria.Count == 0)
                 {
-                    Log.WriteError("Compliance Check", $"Policy with id {policyId} not found.");
+                    Log.TryWriteLog(LogType.Info, "Compliance Check", $"Policy without criteria. Compliance check not possible.", LocalSettings.ComplianceCheckVerbose);
                     return;
+                }
+                
+                foreach (var criterion in Policy.Criteria)
+                {
+                    Log.TryWriteLog(LogType.Info, "Compliance Check", $"Criterion: {criterion.Content.Name} ({criterion.Content.CriterionType})", LocalSettings.ComplianceCheckVerbose);
                 }
 
                 Task loadNetworkZonesTask = LoadNetworkZones();
@@ -114,7 +102,7 @@ namespace FWO.Compliance
 
                 if (currentReport is ReportCompliance complianceReport)
                 {
-                    Log.TryWriteLog(LogType.Info, "Compliance Check", $"Compliance report generated for {complianceReport.ReportData.ElementsCount} rules.", _debugConfig.ExtendedLogComplianceCheck);
+                    Log.TryWriteLog(LogType.Info, "Compliance Check", $"Compliance report generated for {complianceReport.ReportData.ElementsCount} rules.", LocalSettings.ComplianceCheckVerbose);
 
                     ComplianceReport = complianceReport;
 
@@ -141,7 +129,7 @@ namespace FWO.Compliance
         {
             try
             {
-                Log.TryWriteLog(LogType.Info, "Compliance Check", "Persisting violations...", _debugConfig.ExtendedLogComplianceCheck);
+                Log.TryWriteLog(LogType.Info, "Compliance Check", "Persisting violations...", LocalSettings.ComplianceCheckVerbose);
 
                 List<ComplianceViolation> violationsInDb = await _apiConnection.SendQueryAsync<List<ComplianceViolation>>(ComplianceQueries.getViolations);
 
@@ -149,13 +137,13 @@ namespace FWO.Compliance
 
                 Task<List<int>> violationsForRemoveTask = GetViolationsForRemove(violationsInDb);
 
-                Log.TryWriteLog(LogType.Info, "Compliance Check", $"Found {violationsInDb.Count} rows in violations db table.", _debugConfig.ExtendedLogComplianceCheck);
+                Log.TryWriteLog(LogType.Info, "Compliance Check", $"Found {violationsInDb.Count} rows in violations db table.", LocalSettings.ComplianceCheckVerbose);
 
                 List<ComplianceViolationBase> violations = await CreateViolationInsertObjects(violationsInDb);
 
                 if (violations.Count == 0)
                 {
-                    Log.TryWriteLog(LogType.Info, "Compliance Check", "No new violations to persist.", _debugConfig.ExtendedLogComplianceCheck);
+                    Log.TryWriteLog(LogType.Info, "Compliance Check", "No new violations to persist.", LocalSettings.ComplianceCheckVerbose);
                 }
                 else
                 {
@@ -166,18 +154,18 @@ namespace FWO.Compliance
 
                     await _apiConnection.SendQueryAsync<dynamic>(ComplianceQueries.addViolations, variablesAdd);
 
-                    Log.TryWriteLog(LogType.Info, "Compliance Check", $"Persisted {violations.Count} new violations.", _debugConfig.ExtendedLogComplianceCheck);
+                    Log.TryWriteLog(LogType.Info, "Compliance Check", $"Persisted {violations.Count} new violations.", LocalSettings.ComplianceCheckVerbose);
                 }
 
                 List<int> ids = await violationsForRemoveTask;
 
                 if (ids.Count == 0)
                 {
-                    Log.TryWriteLog(LogType.Info, "Compliance Check", "No violations to remove.", _debugConfig.ExtendedLogComplianceCheck);
+                    Log.TryWriteLog(LogType.Info, "Compliance Check", "No violations to remove.", LocalSettings.ComplianceCheckVerbose);
                 }
                 else
                 {
-                    Log.TryWriteLog(LogType.Info, "Compliance Check", $"{ids.Count} violations to remove.", _debugConfig.ExtendedLogComplianceCheck);
+                    Log.TryWriteLog(LogType.Info, "Compliance Check", $"{ids.Count} violations to remove.", LocalSettings.ComplianceCheckVerbose);
 
                     DateTime removedAt = DateTime.UtcNow;
 
@@ -189,7 +177,7 @@ namespace FWO.Compliance
 
                     await _apiConnection.SendQueryAsync<dynamic>(ComplianceQueries.removeViolations, variablesRemove);
 
-                    Log.TryWriteLog(LogType.Info, "Compliance Check", $"Removed {ids.Count} violations.", _debugConfig.ExtendedLogComplianceCheck && ids.Count > 0);
+                    Log.TryWriteLog(LogType.Info, "Compliance Check", $"Removed {ids.Count} violations.", LocalSettings.ComplianceCheckVerbose && ids.Count > 0);
                 }
             }
             catch (Exception e)
@@ -223,25 +211,6 @@ namespace FWO.Compliance
             return forbiddenCommunicationsOutput;
         }
 
-        private bool TryLogPolicyCriteria()
-        {
-            if (Policy != null)
-            {
-                Log.TryWriteLog(LogType.Info, "Compliance Check", $"Policy criteria: {Policy.Criteria.Count} criteria found", _debugConfig.ExtendedLogComplianceCheck);
-
-                foreach (var criterion in Policy.Criteria)
-                {
-                    Log.TryWriteLog(LogType.Info, "Compliance Check", $"Criterion: {criterion.Content.Name} ({criterion.Content.CriterionType})", _debugConfig.ExtendedLogComplianceCheck);
-                }
-
-                return true;
-            }
-            else
-            {
-                return false;
-            }
-        }
-
         private async Task LoadNetworkZones()
         {
             if (Policy != null)
@@ -265,13 +234,13 @@ namespace FWO.Compliance
                     .Where(ev => ev.RemovedDate == null)
                     .ToList();
 
-                Log.TryWriteLog(LogType.Info, "Compliance Check", $"Found {currentViolations.Count} current (i.e. removed_date == null) violations.", _debugConfig.ExtendedLogComplianceCheck);
+                Log.TryWriteLog(LogType.Info, "Compliance Check", $"Found {currentViolations.Count} current (i.e. removed_date == null) violations.", LocalSettings.ComplianceCheckVerbose);
 
                 HashSet<string> violationKeys = currentViolations
                     .Select(ev => CreateUniqueViolationKey(ev))
                     .ToHashSet();
 
-                Log.TryWriteLog(LogType.Info, "Compliance Check", $"Created {currentViolations.Count} unique keys for current violations.", _debugConfig.ExtendedLogComplianceCheck);
+                Log.TryWriteLog(LogType.Info, "Compliance Check", $"Created {currentViolations.Count} unique keys for current violations.", LocalSettings.ComplianceCheckVerbose);
 
                 violationsForInsert = complianceReport
                     .Violations
@@ -290,7 +259,7 @@ namespace FWO.Compliance
                     })
                     .ToList();
 
-                Log.TryWriteLog(LogType.Info, "Compliance Check", $"Prepared {violationsForInsert.Count} new violations for insert.", _debugConfig.ExtendedLogComplianceCheck);
+                Log.TryWriteLog(LogType.Info, "Compliance Check", $"Prepared {violationsForInsert.Count} new violations for insert.", LocalSettings.ComplianceCheckVerbose);
             }
 
             return Task.FromResult(violationsForInsert);
@@ -302,15 +271,11 @@ namespace FWO.Compliance
 
             try
             {
-                if (ComplianceReport is ReportCompliance complianceReport)
-                {
-                    key = $"{violation.MgmtUid}_{violation.RuleUid}_{violation.PolicyId}_{violation.CriterionId}_{violation.Details}";
-                }
+                key = $"{violation.MgmtUid}_{violation.RuleUid}_{violation.PolicyId}_{violation.CriterionId}_{violation.Details}";
             }
             catch (Exception e)
             {
                 Log.WriteError("Compliance Check", "Error creating unique violation key", Error: e);
-                
             }
 
             return key;
@@ -340,7 +305,7 @@ namespace FWO.Compliance
         {
             int nonCompliantRules = 0;
 
-            Log.TryWriteLog(LogType.Info, "Compliance Check", $"Checking compliance for every rule.", _debugConfig.ExtendedLogComplianceCheck);
+            Log.TryWriteLog(LogType.Info, "Compliance Check", $"Checking compliance for every rule.", LocalSettings.ComplianceCheckVerbose);
 
             foreach (Rule rule in ComplianceReport!.ReportData.RulesFlat)
             {
@@ -352,7 +317,7 @@ namespace FWO.Compliance
                 }
             }
 
-            Log.TryWriteLog(LogType.Info, "Compliance Check", $"Checked compliance for every rule and found {nonCompliantRules} non-compliant rules", _debugConfig.ExtendedLogComplianceCheck);
+            Log.TryWriteLog(LogType.Info, "Compliance Check", $"Checked compliance for every rule and found {nonCompliantRules} non-compliant rules", LocalSettings.ComplianceCheckVerbose);
         }
 
         public async Task<bool> CheckRuleCompliance(Rule rule)
@@ -547,7 +512,7 @@ namespace FWO.Compliance
 
         private async Task SetUpReportFilters()
         {
-            Log.TryWriteLog(LogType.Info, "Compliance Check", "Setting up report filters for compliance check", _debugConfig.ExtendedLogComplianceCheck);
+            Log.TryWriteLog(LogType.Info, "Compliance Check", "Setting up report filters for compliance check", LocalSettings.ComplianceCheckVerbose);
 
             _reportFilters = new()
             {

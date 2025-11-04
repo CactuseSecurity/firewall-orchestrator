@@ -508,34 +508,12 @@ namespace FWO.Report
             IEnumerable<string> values = properties.Select(p =>
             {
                 if (p is PropertyInfo propertyInfo)
-                {                    
+                {
                     object? value = propertyInfo.GetValue(rule);
 
                     if (value is string str)
                     {
-                        if (p.Name == "Enabled")
-                        {
-                            if (str.Contains(Icons.Check))
-                            {
-                                str = "TRUE";
-                            }
-                            else
-                            {
-                                str = "FALSE";
-                            }
-                        }
-                        
-                        str = str
-                                .Replace("\r\n", " | ")
-                                .Replace("\n", " | ")
-                                .Replace("<br>", " | ");
-
-                        if (str.Length > _maxCellSize)
-                        {
-                            str = str.Substring(0, _maxCellSize) + " ... (truncated, original length: " + str.Length + " characters)";
-                        }
-
-                        return str;
+                        return TransformHtmlToCsv(p.Name, str);
                     }
                 }
 
@@ -543,6 +521,33 @@ namespace FWO.Report
             });
 
             return string.Join(_separator, values.Select(value => $"\"{value}\""));
+        }
+        
+        private string TransformHtmlToCsv(string propertyName, string htmlInput)
+        {
+            if (propertyName == "Enabled")
+            {
+                if (htmlInput.Contains(Icons.Check))
+                {
+                    htmlInput = "TRUE";
+                }
+                else
+                {
+                    htmlInput = "FALSE";
+                }
+            }
+
+            htmlInput = htmlInput
+                    .Replace("\r\n", " | ")
+                    .Replace("\n", " | ")
+                    .Replace("<br>", " | ");
+
+            if (htmlInput.Length > _maxCellSize)
+            {
+                htmlInput = htmlInput.Substring(0, _maxCellSize) + " ... (truncated, original length: " + htmlInput.Length + " characters)";
+            }
+
+            return htmlInput;
         }
 
         private void TryAppendCsvHeader(StringBuilder sb, List<string> propertyNames)

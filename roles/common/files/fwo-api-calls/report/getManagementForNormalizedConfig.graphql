@@ -182,14 +182,14 @@ fragment deviceFragment on device {
   name: dev_name
   #TODO: routing
   #TODO: interfaces
-  rulebase_links {
+  rulebase_links(where: { removed: { _is_null: true } }) {
     ...ruleBaseLinkFragment
   }
-  #TODO: GlobalPolicyUid
+  global_rulebase_uid
   #TODO: EnforcedPolicyUids
   #TODO: EnforcedNatPolicyUids
-  #TODO: ImportDisabled
-  #TODO: ShowInUI
+  importDisabled: do_not_import
+  hideInUi: hide_in_gui
 }
 
 fragment ruleBaseLinkFragment on rulebase_link {

@@ -1,6 +1,7 @@
 mutation rollbackImport($importId: bigint!) {
     delete_rule(where: {rule_create: {_eq: $importId}}) { affected_rows }
     delete_rulebase(where: {created: {_eq: $importId}}) { affected_rows }
+    delete_rulebase_link(where: {created: {_eq: $importId}}) { affected_rows }
     delete_object(where: {obj_create: {_eq: $importId}}) { affected_rows }
     delete_service(where: {svc_create: {_eq: $importId}}) { affected_rows }
     delete_usr(where: {user_create: {_eq: $importId}}) { affected_rows }
@@ -20,6 +21,7 @@ mutation rollbackImport($importId: bigint!) {
     delete_rule_enforced_on_gateway(where: {created: {_eq: $importId}}) { affected_rows }
     update_rule(where: {removed: {_eq: $importId}}, _set: {removed: null}) { affected_rows }
     update_rulebase(where: {removed: {_eq: $importId}}, _set: {removed: null}) { affected_rows }
+    update_rulebase_link(where: {removed: {_eq: $importId}}, _set: {removed: null}) { affected_rows }
     update_object(where: {removed: {_eq: $importId}}, _set: {removed: null}) { affected_rows }
     update_service(where: {removed: {_eq: $importId}}, _set: {removed: null}) { affected_rows }
     update_usr(where: {removed: {_eq: $importId}}, _set: {removed: null}) { affected_rows }

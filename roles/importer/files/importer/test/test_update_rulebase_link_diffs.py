@@ -63,7 +63,7 @@ class TestUpdateRulebaseLinkDiffs(unittest.TestCase):
         # Arrange
 
         last_rulebase = self._normalized_config.rulebases[-1]
-        last_rulebase_last_rule_uid = list(last_rulebase.Rules.keys())[-1]
+        last_rulebase_last_rule_uid = list(last_rulebase.rules.keys())[-1]
         new_rulebase = self._config_builder.add_rulebase(self._normalized_config, self._mgm_uid)
         gateway = self._normalized_config.gateways[0]
         self._config_builder.add_cp_section_header(gateway, last_rulebase.uid, new_rulebase.uid, last_rulebase_last_rule_uid)
@@ -90,8 +90,8 @@ class TestUpdateRulebaseLinkDiffs(unittest.TestCase):
         # Arrange
 
         last_rulebase = self._normalized_config.rulebases[-1]
-        last_rulebase_last_rule_uid = list(last_rulebase.Rules.keys())[-1]
-        last_rulebase_last_rule = last_rulebase.Rules.pop(last_rulebase_last_rule_uid)
+        last_rulebase_last_rule_uid = list(last_rulebase.rules.keys())[-1]
+        last_rulebase_last_rule = last_rulebase.rules.pop(last_rulebase_last_rule_uid)
 
         new_rulebase = self._config_builder.add_rulebase(self._normalized_config, self._mgm_uid)
         self._config_builder.add_rule(self._normalized_config, new_rulebase.uid, last_rulebase_last_rule.model_dump())
@@ -122,17 +122,17 @@ class TestUpdateRulebaseLinkDiffs(unittest.TestCase):
         # Move last five rules of last rulebase to new rulebase (previous config).
 
         last_rulebase = self._previous_config.rulebases[-1]
-        last_five_rules_uids = list(last_rulebase.Rules.keys())[-5:]
+        last_five_rules_uids = list(last_rulebase.rules.keys())[-5:]
 
         new_rulebase = self._config_builder.add_rulebase(self._previous_config, self._mgm_uid)
 
         for rule_uid in last_five_rules_uids:
-            rule = last_rulebase.Rules.pop(rule_uid)
+            rule = last_rulebase.rules.pop(rule_uid)
             self._config_builder.add_rule(self._previous_config, new_rulebase.uid, rule.model_dump())
         
         # Create rulebase link for cp_section header (previous config)
 
-        last_rulebase_last_rule_uid = list(last_rulebase.Rules.keys())[-1]
+        last_rulebase_last_rule_uid = list(last_rulebase.rules.keys())[-1]
         gateway = self._previous_config.gateways[0]
         self._config_builder.add_cp_section_header(gateway, last_rulebase.uid, new_rulebase.uid, last_rulebase_last_rule_uid)
 
@@ -154,7 +154,7 @@ class TestUpdateRulebaseLinkDiffs(unittest.TestCase):
         # Arrange
 
         from_rulebase = self._normalized_config.rulebases[-1]
-        from_rule = list(from_rulebase.Rules.values())[0]
+        from_rule = list(from_rulebase.rules.values())[0]
 
         added_rulebase = self._config_builder.add_rulebase(self._normalized_config, self._mgm_uid)
         self._config_builder.add_rule(self._normalized_config, added_rulebase.uid)
@@ -184,7 +184,7 @@ class TestUpdateRulebaseLinkDiffs(unittest.TestCase):
         # Arrange
 
         from_rulebase = self._previous_config.rulebases[-1]
-        from_rule = list(from_rulebase.Rules.values())[0]
+        from_rule = list(from_rulebase.rules.values())[0]
 
         added_rulebase = self._config_builder.add_rulebase(self._previous_config, self._mgm_uid)
         self._config_builder.add_rule(self._previous_config, added_rulebase.uid)
@@ -210,10 +210,10 @@ class TestUpdateRulebaseLinkDiffs(unittest.TestCase):
         # Arrange
 
         from_rulebase_previous = self._previous_config.rulebases[-1]
-        from_rule_previous = list(from_rulebase_previous.Rules.values())[0]
+        from_rule_previous = list(from_rulebase_previous.rules.values())[0]
 
         from_rulebase_normalized = self._normalized_config.rulebases[0]
-        from_rule_normalized = list(from_rulebase_normalized.Rules.values())[0]
+        from_rule_normalized = list(from_rulebase_normalized.rules.values())[0]
 
         added_rulebase = self._config_builder.add_rulebase(self._previous_config, self._mgm_uid)
         self._config_builder.add_rule(self._previous_config, added_rulebase.uid)

@@ -29,6 +29,6 @@ fragment ManagementDetails on management {
     local_rulebase_name: local_rulebase_name
   }
   isSuperManager: is_super_manager
-  superManager: multi_device_manager_id
+  multi_device_manager_id
   ...subManagements
 }

@@ -44,6 +44,10 @@ alter table owner add column if not exists next_recert_date Timestamp;
 alter table owner drop constraint if exists owner_last_recertifier_uiuser_uiuser_id_f_key;
 alter table owner add constraint owner_last_recertifier_uiuser_uiuser_id_f_key foreign key (last_recertifier) references uiuser (uiuser_id) on update restrict;
 
+alter table recertification add column if not exists owner_recert_id bigint;
+
+alter table recertification drop constraint if exists recertification_owner_recertification_foreign_key;
+ALTER TABLE recertification ADD CONSTRAINT recertification_owner_recertification_foreign_key FOREIGN KEY (owner_recert_id) REFERENCES owner_recertification(id) ON UPDATE RESTRICT ON DELETE CASCADE;
 
 DO $$
 BEGIN

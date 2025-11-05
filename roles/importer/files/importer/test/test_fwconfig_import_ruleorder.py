@@ -73,11 +73,11 @@ class TestFwConfigImportRuleOrder(unittest.TestCase):
     def _print_rule_num_numerics(self):
         print("\nPrevious Config Rule Num Numerics:")
         for rb in self._previous_config.rulebases:
-            for rule in rb.Rules.values():
+            for rule in rb.rules.values():
                 print(f"Rule UID: {rule.rule_uid}, rule_num_numeric: {rule.rule_num_numeric}")
         print("\nNormalized Config Rule Num Numerics:")
         for rb in self._normalized_config.rulebases:
-            for rule in rb.Rules.values():
+            for rule in rb.rules.values():
                 print(f"Rule UID: {rule.rule_uid}, rule_num_numeric: {rule.rule_num_numeric}")
 
 
@@ -94,9 +94,9 @@ class TestFwConfigImportRuleOrder(unittest.TestCase):
 
             # Assert
             for rulebase in self._normalized_config.rulebases:
-                for index, rule_uid in enumerate(rulebase.Rules):
+                for index, rule_uid in enumerate(rulebase.rules):
                     expected_rule_num_numeric = (index + 1) * rule_num_numeric_steps
-                    actual_rule_num_numeric = rulebase.Rules[rule_uid].rule_num_numeric
+                    actual_rule_num_numeric = rulebase.rules[rule_uid].rule_num_numeric
                     self.assertTrue(actual_rule_num_numeric == expected_rule_num_numeric, f"Rule UID: {rule_uid}, actual rule_num_numeric: {actual_rule_num_numeric}, expected: {expected_rule_num_numeric}")
 
 
@@ -105,7 +105,7 @@ class TestFwConfigImportRuleOrder(unittest.TestCase):
         # Arrange
 
         rulebase = self._normalized_config.rulebases[0]
-        rule_uids = list(rulebase.Rules.keys())
+        rule_uids = list(rulebase.rules.keys())
         removed_rule_uid = rule_uids[0]
 
         remove_rule_from_rulebase(self._normalized_config, rulebase.uid, removed_rule_uid, rule_uids)
@@ -118,8 +118,8 @@ class TestFwConfigImportRuleOrder(unittest.TestCase):
 
         # # Assert
 
-        self.assertTrue(self._get_rule(0, inserted_rule_uid).rule_num_numeric == rule_num_numeric_steps, f"Inserted rule_num_numeric is {self._normalized_config.rulebases[0].Rules[inserted_rule_uid].rule_num_numeric}, expected {rule_num_numeric_steps}")
-        self.assertTrue(self._get_rule(0, moved_rule_uid).rule_num_numeric == rule_num_numeric_steps / 2, f"Moved rule_num_numeric is {self._normalized_config.rulebases[0].Rules[moved_rule_uid].rule_num_numeric}, expected {rule_num_numeric_steps / 2}")
+        self.assertTrue(self._get_rule(0, inserted_rule_uid).rule_num_numeric == rule_num_numeric_steps, f"Inserted rule_num_numeric is {self._normalized_config.rulebases[0].rules[inserted_rule_uid].rule_num_numeric}, expected {rule_num_numeric_steps}")
+        self.assertTrue(self._get_rule(0, moved_rule_uid).rule_num_numeric == rule_num_numeric_steps / 2, f"Moved rule_num_numeric is {self._normalized_config.rulebases[0].rules[moved_rule_uid].rule_num_numeric}, expected {rule_num_numeric_steps / 2}")
 
 
     def test_initialize_on_consecutive_insertions(self):
@@ -127,7 +127,7 @@ class TestFwConfigImportRuleOrder(unittest.TestCase):
         # Arrange
 
         rulebase = self._normalized_config.rulebases[0]
-        rule_uids = list(rulebase.Rules.keys())
+        rule_uids = list(rulebase.rules.keys())
 
         # Inserting three new rules at the beginning of the rulebase
         rule_1_1_uid = insert_rule_in_config(self._normalized_config, rulebase.uid, 0, rule_uids, self._config_builder)
@@ -168,9 +168,9 @@ class TestFwConfigImportRuleOrder(unittest.TestCase):
         # Arrange
 
         source_rulebase = self._fwconfig_import_rule.normalized_config.rulebases[0]
-        source_rulebase_uids = list(source_rulebase.Rules.keys())
+        source_rulebase_uids = list(source_rulebase.rules.keys())
         target_rulebase = self._fwconfig_import_rule.normalized_config.rulebases[1]
-        target_rulebase_uids = list(target_rulebase.Rules.keys())
+        target_rulebase_uids = list(target_rulebase.rules.keys())
 
         deleted_rule = remove_rule_from_rulebase(self._normalized_config, source_rulebase.uid, source_rulebase_uids[0], source_rulebase_uids)
         insert_rule_in_config(self._normalized_config, target_rulebase.uid, 0, target_rulebase_uids, self._config_builder, deleted_rule)
@@ -181,7 +181,7 @@ class TestFwConfigImportRuleOrder(unittest.TestCase):
 
         # Assert
 
-        self.assertTrue(self._get_rule(1, deleted_rule.rule_uid).rule_num_numeric == rule_num_numeric_steps / 2, f"Moved rule_num_numeric is {self._normalized_config.rulebases[1].Rules[deleted_rule.rule_uid].rule_num_numeric}, expected {rule_num_numeric_steps / 2}")
+        self.assertTrue(self._get_rule(1, deleted_rule.rule_uid).rule_num_numeric == rule_num_numeric_steps / 2, f"Moved rule_num_numeric is {self._normalized_config.rulebases[1].rules[deleted_rule.rule_uid].rule_num_numeric}, expected {rule_num_numeric_steps / 2}")
 
 
     def test_update_rulebase_diffs_on_moves_to_beginning_middle_and_end_of_rulebase(self):
@@ -189,7 +189,7 @@ class TestFwConfigImportRuleOrder(unittest.TestCase):
         # Arrange
 
         rulebase = self._normalized_config.rulebases[0]
-        rule_uids = list(rulebase.Rules.keys())
+        rule_uids = list(rulebase.rules.keys())
 
         beginning_rule_uid = move_rule_in_config(self._normalized_config, rulebase.uid, 5, 0, rule_uids)  # Move to beginning
         middle_rule_uid = move_rule_in_config(self._normalized_config, rulebase.uid, 1, 4, rule_uids)  # Move to middle
@@ -201,9 +201,9 @@ class TestFwConfigImportRuleOrder(unittest.TestCase):
 
         # Assert
 
-        self.assertTrue(self._get_rule(0, beginning_rule_uid).rule_num_numeric == rule_num_numeric_steps / 2, f"Beginning moved rule_num_numeric is {self._normalized_config.rulebases[0].Rules[beginning_rule_uid].rule_num_numeric}, expected {rule_num_numeric_steps / 2}")
-        self.assertTrue(self._get_rule(0, middle_rule_uid).rule_num_numeric == 4608, f"Middle moved rule_num_numeric is {self._normalized_config.rulebases[0].Rules[middle_rule_uid].rule_num_numeric}, expected 4608")
-        self.assertTrue(self._get_rule(0, end_rule_uid).rule_num_numeric == 11 * rule_num_numeric_steps, f"End moved rule_num_numeric is {self._normalized_config.rulebases[0].Rules[end_rule_uid].rule_num_numeric}, expected {11 * rule_num_numeric_steps}")
+        self.assertTrue(self._get_rule(0, beginning_rule_uid).rule_num_numeric == rule_num_numeric_steps / 2, f"Beginning moved rule_num_numeric is {self._normalized_config.rulebases[0].rules[beginning_rule_uid].rule_num_numeric}, expected {rule_num_numeric_steps / 2}")
+        self.assertTrue(self._get_rule(0, middle_rule_uid).rule_num_numeric == 4608, f"Middle moved rule_num_numeric is {self._normalized_config.rulebases[0].rules[middle_rule_uid].rule_num_numeric}, expected 4608")
+        self.assertTrue(self._get_rule(0, end_rule_uid).rule_num_numeric == 11 * rule_num_numeric_steps, f"End moved rule_num_numeric is {self._normalized_config.rulebases[0].rules[end_rule_uid].rule_num_numeric}, expected {11 * rule_num_numeric_steps}")
 
 
     def _get_rule(self, rulebase_index: int, rule_uid: str) -> RuleNormalized:
@@ -212,6 +212,6 @@ class TestFwConfigImportRuleOrder(unittest.TestCase):
         """
 
         rulebase = self._normalized_config.rulebases[rulebase_index]
-        rule = rulebase.Rules.get(rule_uid, None)
+        rule = rulebase.rules.get(rule_uid, None)
 
         return rule

@@ -42,7 +42,7 @@ namespace FWO.Data
         [JsonProperty("cloudTenantId"), JsonPropertyName("cloudTenantId")]
         public string? CloudTenantId { get; set; } = "";
 
-        [JsonProperty("superManager"), JsonPropertyName("superManager")]
+        [JsonProperty("multi_device_manager_id"), JsonPropertyName("multi_device_manager_id")]
         public int? SuperManagerId { get; set; }
 
         [JsonProperty("is_super_manager"), JsonPropertyName("is_super_manager")]

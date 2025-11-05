@@ -3,12 +3,11 @@ from pydantic import BaseModel
 
 # Rulebase is the model for a rulebase (containing no DB IDs)
 class Rulebase(BaseModel):
-    id: int|None = None
     uid: str
     name: str
     mgm_uid: str
     is_global: bool = False
-    Rules: dict[str, RuleNormalized] = {}
+    rules: dict[str, RuleNormalized] = {}
 
 
 # RulebaseForImport is the model for a rule to be imported into the DB (containing IDs)
@@ -31,7 +30,4 @@ class RulebaseForImport(BaseModel):
     is_global: bool = False
     created: int
     removed: int|None = None
-    rules: dict[str, list[Rule]] = {}
-
-    def dict(self, **kwargs):
-        return super().dict(by_alias=True, exclude_unset=True, **kwargs)
+    rules: list[Rule] = []

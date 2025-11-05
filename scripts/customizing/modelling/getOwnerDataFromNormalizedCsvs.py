@@ -162,10 +162,10 @@ def read_app_data_from_csv(csvFile: str):
 # adds data from csv file to appData
 # order of files in important: we only import apps which are included in files 3 and 4 (which only contain active apps)
 # so first import files 3 and 4, then import files 1 and 2^
-def extract_app_data_from_csv (csvFile: str, app_list: list): 
+def extract_app_data_from_csv (csvFile: str, app_list: list, base_dir=repoTargetDir): 
 
     apps_from_csv = []
-    csvFile = repoTargetDir + '/' + csvFile # add directory to csv files
+    csvFile = base_dir + '/' + csvFile # add directory to csv files
 
     apps_from_csv, app_name_column, app_id_column, app_owner_tiso_column, app_owner_kwita_column = read_app_data_from_csv(csvFile)
 
@@ -238,12 +238,12 @@ def parse_ip(line, app_id, ip_column_no, app_dict, count_skips):
 
 
 # adds ip data from csv file to appData
-def extract_ip_data_from_csv (csv_filename: str, app_dict: dict[str: Owner]): 
+def extract_ip_data_from_csv (csv_filename: str, app_dict: dict[str: Owner], base_dir=repoTargetDir): 
 
     valid_app_id_prefixes = ['app-', 'com-']
 
     ip_data = []
-    csv_filename = repoTargetDir + '/' + csv_filename # add directory to csv files
+    csv_filename = base_dir + '/' + csv_filename # add directory to csv files
 
     ip_data, app_id_column_no, ip_column_no = read_ip_data_from_csv(csv_filename)
 
@@ -257,7 +257,7 @@ def extract_ip_data_from_csv (csv_filename: str, app_dict: dict[str: Owner]):
             if app_id in app_dict.keys():
                 count_skips = parse_ip(line, app_id, ip_column_no, app_dict, count_skips)
             else:
-                logger.debug(f'ignoring line from csv file: {app_id} - inactive?')
+                logger.debug(f'ignoring line from csv file as the app_id is not part of the app_list: {app_id} inactive?')
                 count_skips += 1
         else:
             logger.info(f'ignoring line from csv file: {app_id} - inconclusive appId')
@@ -306,33 +306,39 @@ if __name__ == "__main__":
     csvAllOwnerFiles = read_custom_config(args.config, 'csvAllOwnerFiles')
     csvAppServerFiles = read_custom_config(args.config, 'csvAppServerFiles')
 
-    #############################################
-    # 1. get CSV files from github repo
 
-    try:
-        repoUrl = "https://" + gitUsername + ":" + gitPassword + "@" + gitRepoUrl
-        if os.path.exists(repoTargetDir):
-            # If the repository already exists, open it and perform a pull
-            repo = git.Repo(repoTargetDir)
-            origin = repo.remotes.origin
-            origin.pull()
-        else:
-            repo = git.Repo.clone_from(repoUrl, repoTargetDir)
-    except Exception as e:
-        logger.warning("could not clone/pull git repo from " + repoUrl + ", exception: " + str(traceback.format_exc()))
-        logger.warning("trying to read csv files from folder given as parameter...")
-        # sys.exit(1)
+    if args.import_from_folder:
+        base_dir = args.import_from_folder
+    else:
+        base_dir=repoTargetDir
+
+        #############################################
+        # 1. get CSV files from github repo
+
+        try:
+            repoUrl = "https://" + gitUsername + ":" + gitPassword + "@" + gitRepoUrl
+            if os.path.exists(repoTargetDir):
+                # If the repository already exists, open it and perform a pull
+                repo = git.Repo(repoTargetDir)
+                origin = repo.remotes.origin
+                origin.pull()
+            else:
+                repo = git.Repo.clone_from(repoUrl, repoTargetDir)
+        except Exception as e:
+            logger.warning("could not clone/pull git repo from " + repoUrl + ", exception: " + str(traceback.format_exc()))
+            logger.warning("trying to read csv files from folder given as parameter...")
+            # sys.exit(1)
 
     #############################################
     # 2. get app data from CSV files
     app_list = []
     for csvFile in csvAllOwnerFiles:
-        extract_app_data_from_csv(csvFile, app_list)
+        extract_app_data_from_csv(csvFile, app_list, base_dir=base_dir)
 
     app_dict = transform_app_list_to_dict(app_list)
 
     for csvFile in csvAppServerFiles:
-        extract_ip_data_from_csv(csvFile, app_dict)
+        extract_ip_data_from_csv(csvFile, app_dict, base_dir=base_dir)
 
     #############################################    
     # 3. write owners to json file

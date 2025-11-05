@@ -1,3 +1,4 @@
+from typing import Any
 from pydantic import BaseModel, field_validator, field_serializer
 from netaddr import IPNetwork, AddrFormatError
 
@@ -73,7 +74,7 @@ class NetworkObjectForImport():
         self.obj_last_seen = importId
         self.obj_typ_id = typId
 
-    def toDict (self):
+    def toDict (self) -> dict[str, Any]:
         result = {
             'obj_uid': self.obj_uid,
             'obj_name': self.obj_name,

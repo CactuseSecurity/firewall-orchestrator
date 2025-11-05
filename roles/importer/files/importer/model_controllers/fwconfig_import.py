@@ -9,7 +9,7 @@ from fwo_exceptions import FwoImporterError, FwoApiFailedDeleteOldImports
 from fwo_exceptions import ImportInterruption
 from fwo_log import getFwoLogger
 from model_controllers.import_state_controller import ImportStateController
-from fwo_base import ConfigAction, ConfFormat, find_all_diffs
+from fwo_base import ConfigAction, find_all_diffs
 from models.fwconfig_normalized import FwConfigNormalized
 from model_controllers.fwconfig_import_object import FwConfigImportObject
 from model_controllers.fwconfig_import_rule import FwConfigImportRule

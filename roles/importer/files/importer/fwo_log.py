@@ -1,7 +1,9 @@
 import logging
 import time
 import threading
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Literal
+
+from roles.importer.files.importer.model_controllers.import_state_controller import ImportStateController
 
 if TYPE_CHECKING:
     from services.uid2id_mapper import Uid2IdMapper
@@ -157,7 +159,7 @@ class ChangeLogger:
         return cls._instance
 
 
-    def create_change_id_maps(self, uid2id_mapper: "Uid2IdMapper", changed_nw_objs, changed_svcs, removedNwObjIds, removedNwSvcIds):
+    def create_change_id_maps(self, uid2id_mapper: Uid2IdMapper, changed_nw_objs: list[str], changed_svcs: list[str], removedNwObjIds: list[dict[str, int]], removedNwSvcIds: list[dict[str, int]]):
 
         self._uid2id_mapper = uid2id_mapper
 
@@ -178,7 +180,7 @@ class ChangeLogger:
         }
 
 
-    def create_changelog_import_object(self, type, import_state, change_action, changeTyp, importTime, rule_id, rule_id_alternative = 0):
+    def create_changelog_import_object(self, type: str, import_state: ImportStateController, change_action: str, changeTyp: Literal[2, 3], importTime: str, rule_id: int, rule_id_alternative: int = 0) -> dict[str, Any]:
         
         uniqueName = self._get_changelog_import_object_unique_name(rule_id)
         old_rule_id = None

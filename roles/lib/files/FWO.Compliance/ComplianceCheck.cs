@@ -49,6 +49,11 @@ namespace FWO.Compliance
         {
             _apiConnection = apiConnection;
             _userConfig = userConfig;
+
+            if (_userConfig.GlobalConfig == null)
+            {
+                Log.WriteInfo("Compliance Check", "Global config not found.");
+            }
         }
 
         /// <summary>
@@ -61,19 +66,25 @@ namespace FWO.Compliance
             {
                 Log.TryWriteLog(LogType.Info, "Compliance Check", "Starting compliance check.", LocalSettings.ComplianceCheckVerbose);
 
-                if (_userConfig.ComplianceCheckPolicyId == 0)
+                if (_userConfig.GlobalConfig == null)
                 {
-                    Log.WriteInfo("Compliance Check", "No Policy defined.");
+                    Log.WriteInfo("Compliance Check", "Global config is necessary for compliance check, but was not found. Aborting compliance check.");
+                    return;
+                }
+
+                if (_userConfig.GlobalConfig.ComplianceCheckPolicyId == 0)
+                {
+                    Log.WriteInfo("Compliance Check", "No Policy defined. Compliance check not possible.");
                     return;
                 }
 
                 Log.TryWriteLog(LogType.Info, "Compliance Check", $"Using policy {_userConfig.ComplianceCheckPolicyId}", LocalSettings.ComplianceCheckVerbose);
 
-                Policy = await _apiConnection.SendQueryAsync<CompliancePolicy>(ComplianceQueries.getPolicyById, new { id = _userConfig.ComplianceCheckPolicyId });
+                Policy = await _apiConnection.SendQueryAsync<CompliancePolicy>(ComplianceQueries.getPolicyById, new { id = _userConfig.GlobalConfig.ComplianceCheckPolicyId });
 
                 if (Policy == null)
                 {
-                    Log.WriteError("Compliance Check", $"Policy with id {_userConfig.ComplianceCheckPolicyId} not found.");
+                    Log.WriteError("Compliance Check", $"Policy with id {_userConfig.GlobalConfig.ComplianceCheckPolicyId} not found.");
                     return;
                 }
 

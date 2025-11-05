@@ -106,7 +106,7 @@ BEGIN
 					b_never_recertified := TRUE;
 					SELECT INTO t_rule_created rule_metadata.rule_created
 						FROM rule
-						LEFT JOIN rule_metadata ON (rule.rule_uid=rule_metadata.rule_uid AND rule.dev_id=rule_metadata.dev_id)
+						LEFT JOIN rule_metadata ON (rule.rule_uid=rule_metadata.rule_uid)
 						WHERE rule_id=r_rule.rule_id;
 				END IF;
 
@@ -141,7 +141,7 @@ BEGIN
 							i_owner_id AS owner_id
 						FROM view_rule_with_owner 
 						LEFT JOIN rule USING (rule_id)
-						LEFT JOIN rule_metadata ON (rule.rule_uid=rule_metadata.rule_uid AND rule.dev_id=rule_metadata.dev_id)
+						LEFT JOIN rule_metadata ON (rule.rule_uid=rule_metadata.rule_uid)
 						WHERE view_rule_with_owner.rule_id=r_rule.rule_id AND view_rule_with_owner.owner_id IS NULL;
 				ELSE
 					INSERT INTO recertification (rule_metadata_id, next_recert_date, rule_id, ip_match, owner_id)
@@ -152,7 +152,7 @@ BEGIN
 							i_owner_id AS owner_id
 						FROM view_rule_with_owner 
 						LEFT JOIN rule USING (rule_id)
-						LEFT JOIN rule_metadata ON (rule.rule_uid=rule_metadata.rule_uid AND rule.dev_id=rule_metadata.dev_id)
+						LEFT JOIN rule_metadata ON (rule.rule_uid=rule_metadata.rule_uid)
 						WHERE view_rule_with_owner.rule_id=r_rule.rule_id AND view_rule_with_owner.owner_id=i_owner_id;
 				END IF;
 			ELSE
@@ -226,11 +226,12 @@ BEGIN
 					SELECT I.start_time::timestamp + make_interval (days => o.recert_interval) AS value
 					UNION
 					SELECT C.recert_date + make_interval (days => o.recert_interval) AS value
-				) AS temp_table))
+				) AS temp_table)),
+			NULL::bigint AS owner_recert_id
 		FROM 
 			view_rule_with_owner V 
 			LEFT JOIN rule R USING (rule_id)			
-			LEFT JOIN rule_metadata M ON (R.rule_uid=M.rule_uid AND R.dev_id=M.dev_id)
+			LEFT JOIN rule_metadata M ON (R.rule_uid=M.rule_uid)
 			LEFT JOIN owner O ON (O.id=0)
 			LEFT JOIN import_control I ON (R.rule_create=I.control_id)
 			LEFT JOIN recertification C ON (M.rule_metadata_id=C.rule_metadata_id)
@@ -253,11 +254,12 @@ BEGIN
 					SELECT I.start_time::timestamp + make_interval (days => o.recert_interval) AS value
 					UNION
 					SELECT C.recert_date + make_interval (days => o.recert_interval) AS value
-				) AS temp_table))
+				) AS temp_table)),
+			NULL::bigint AS owner_recert_id
 		FROM 
 			view_rule_with_owner V 
 			LEFT JOIN rule R USING (rule_id)			
-			LEFT JOIN rule_metadata M ON (R.rule_uid=M.rule_uid AND R.dev_id=M.dev_id)
+			LEFT JOIN rule_metadata M ON (R.rule_uid=M.rule_uid)
 			LEFT JOIN owner O ON (V.owner_id=O.id)
 			LEFT JOIN import_control I ON (R.rule_create=I.control_id)
 			LEFT JOIN recertification C ON (M.rule_metadata_id=C.rule_metadata_id)

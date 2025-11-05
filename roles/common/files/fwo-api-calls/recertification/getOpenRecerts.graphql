@@ -1,4 +1,4 @@
-query getFutureRecertsForOwners($ownerId: Int!, $mgmId: Int!) {
+query getOpenRecerts($ownerId: Int!, $mgmId: Int!) {
   recert_get_one_owner_one_mgm(
     where: { recert_date: { _is_null: true } }
     args: { i_mgm_id: $mgmId, i_owner_id: $ownerId }
@@ -13,5 +13,6 @@ query getFutureRecertsForOwners($ownerId: Int!, $mgmId: Int!) {
     next_recert_date
     recert_date
     comment
+	owner_recert_id
   }
 }

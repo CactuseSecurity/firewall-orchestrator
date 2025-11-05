@@ -9264,29 +9264,33 @@
                   "permission": {
                     "columns": [
                       "clearing_import_ran",
+                      "do_not_import",
+                      "force_initial_import",
+                      "hide_in_gui",
+                      "is_super_manager",
+                      "last_import_attempt_successful",
                       "cloud_subscription_id",
                       "cloud_tenant_id",
                       "config_path",
-                      "debug_level",
-                      "dev_typ_id",
-                      "do_not_import",
                       "domain_uid",
                       "ext_mgm_data",
-                      "force_initial_import",
-                      "hide_in_gui",
-                      "import_credential_id",
                       "importer_hostname",
-                      "last_import_attempt",
-                      "last_import_attempt_successful",
                       "last_import_md5_complete_config",
-                      "mgm_comment",
-                      "mgm_create",
-                      "mgm_id",
                       "mgm_name",
-                      "mgm_update",
-                      "multi_device_manager_id",
+                      "mgm_uid",
+                      "rulebase_name",
+                      "rulebase_uid",
                       "ssh_hostname",
-                      "ssh_port"
+                      "debug_level",
+                      "dev_typ_id",
+                      "import_credential_id",
+                      "mgm_id",
+                      "multi_device_manager_id",
+                      "ssh_port",
+                      "mgm_comment",
+                      "last_import_attempt",
+                      "mgm_create",
+                      "mgm_update"
                     ],
                     "filter": {
                       "mgm_id": {
@@ -9305,9 +9309,13 @@
                       "do_not_import",
                       "ext_mgm_data",
                       "hide_in_gui",
+                      "is_super_manager",
                       "mgm_id",
                       "mgm_name",
-                      "multi_device_manager_id"
+                      "mgm_uid",
+                      "multi_device_manager_id",
+                      "rulebase_name",
+                      "rulebase_uid"
                     ],
                     "filter": {
                       "mgm_id": {
@@ -14836,13 +14844,14 @@
                   "permission": {
                     "columns": [
                       "parent_rule_id",
+                      "removed",
                       "rule_create",
                       "rule_id",
                       "rule_last_seen",
-                      "removed",
                       "xlate_rule",
                       "access_rule",
                       "active",
+                      "is_global",
                       "nat_rule",
                       "rule_disabled",
                       "rule_dst_neg",
@@ -14857,6 +14866,7 @@
                       "dev_id",
                       "last_change_admin",
                       "mgm_id",
+                      "rulebase_id",
                       "rule_from_zone",
                       "rule_num",
                       "rule_to_zone",
@@ -14874,7 +14884,6 @@
                       "rule_svc",
                       "rule_svc_refs",
                       "rule_track",
-                      "rulebase_id",
                       "rule_uid"
                     ],
                     "computed_fields": [
@@ -14889,13 +14898,14 @@
                   "permission": {
                     "columns": [
                       "parent_rule_id",
+                      "removed",
                       "rule_create",
                       "rule_id",
                       "rule_last_seen",
-                      "removed",
                       "xlate_rule",
                       "access_rule",
                       "active",
+                      "is_global",
                       "nat_rule",
                       "rule_disabled",
                       "rule_dst_neg",
@@ -14910,6 +14920,7 @@
                       "dev_id",
                       "last_change_admin",
                       "mgm_id",
+                      "rulebase_id",
                       "rule_from_zone",
                       "rule_num",
                       "rule_to_zone",
@@ -14927,7 +14938,6 @@
                       "rule_svc",
                       "rule_svc_refs",
                       "rule_track",
-                      "rulebase_id",
                       "rule_uid"
                     ],
                     "computed_fields": [
@@ -14995,47 +15005,48 @@
                   "role": "middleware-server",
                   "permission": {
                     "columns": [
+                      "parent_rule_id",
+                      "removed",
+                      "rule_create",
+                      "rule_id",
+                      "rule_last_seen",
+                      "xlate_rule",
                       "access_rule",
-                      "action_id",
                       "active",
+                      "is_global",
+                      "nat_rule",
+                      "rule_disabled",
+                      "rule_dst_neg",
+                      "rule_implied",
+                      "rule_src_neg",
+                      "rule_svc_neg",
+                      "rule_installon",
+                      "rule_name",
+                      "rule_ruleid",
+                      "rule_time",
+                      "action_id",
                       "dev_id",
                       "last_change_admin",
                       "mgm_id",
-                      "nat_rule",
-                      "parent_rule_id",
+                      "rulebase_id",
+                      "rule_from_zone",
+                      "rule_num",
+                      "rule_to_zone",
+                      "track_id",
+                      "rule_custom_fields",
+                      "rule_num_numeric",
                       "parent_rule_type",
-                      "removed",
                       "rule_action",
                       "rule_comment",
-                      "rule_create",
-                      "rule_custom_fields",
-                      "rule_disabled",
                       "rule_dst",
-                      "rule_dst_neg",
                       "rule_dst_refs",
-                      "rule_from_zone",
                       "rule_head_text",
-                      "rule_id",
-                      "rule_implied",
-                      "rule_installon",
-                      "rule_last_seen",
-                      "rule_name",
-                      "rule_num",
-                      "rule_num_numeric",
-                      "rule_ruleid",
                       "rule_src",
-                      "rule_src_neg",
                       "rule_src_refs",
                       "rule_svc",
-                      "rule_svc_neg",
                       "rule_svc_refs",
-                      "rule_time",
-                      "rule_to_zone",
                       "rule_track",
-                      "rule_uid",
-                      "rulebase_id",
-                      "track_id",
-                      "xlate_rule"
+                      "rule_uid"
                     ],
                     "computed_fields": [
                       "rule_relevant_for_tenant"
@@ -15049,13 +15060,14 @@
                   "permission": {
                     "columns": [
                       "parent_rule_id",
+                      "removed",
                       "rule_create",
                       "rule_id",
                       "rule_last_seen",
-                      "removed",
                       "xlate_rule",
                       "access_rule",
                       "active",
+                      "is_global",
                       "nat_rule",
                       "rule_disabled",
                       "rule_dst_neg",
@@ -15070,6 +15082,7 @@
                       "dev_id",
                       "last_change_admin",
                       "mgm_id",
+                      "rulebase_id",
                       "rule_from_zone",
                       "rule_num",
                       "rule_to_zone",
@@ -15097,11 +15110,6 @@
                         {
                           "mgm_id": {
                             "_in": "x-hasura-visible-managements"
-                          }
-                        },
-                        {
-                          "dev_id": {
-                            "_in": "x-hasura-visible-devices"
                           }
                         },
                         {
@@ -15119,13 +15127,14 @@
                   "permission": {
                     "columns": [
                       "parent_rule_id",
+                      "removed",
                       "rule_create",
                       "rule_id",
                       "rule_last_seen",
-                      "removed",
                       "xlate_rule",
                       "access_rule",
                       "active",
+                      "is_global",
                       "nat_rule",
                       "rule_disabled",
                       "rule_dst_neg",
@@ -15140,6 +15149,7 @@
                       "dev_id",
                       "last_change_admin",
                       "mgm_id",
+                      "rulebase_id",
                       "rule_from_zone",
                       "rule_num",
                       "rule_to_zone",
@@ -15167,11 +15177,6 @@
                         {
                           "mgm_id": {
                             "_in": "x-hasura-visible-managements"
-                          }
-                        },
-                        {
-                          "dev_id": {
-                            "_in": "x-hasura-visible-devices"
                           }
                         },
                         {
@@ -15189,13 +15194,14 @@
                   "permission": {
                     "columns": [
                       "parent_rule_id",
+                      "removed",
                       "rule_create",
                       "rule_id",
                       "rule_last_seen",
-                      "removed",
                       "xlate_rule",
                       "access_rule",
                       "active",
+                      "is_global",
                       "nat_rule",
                       "rule_disabled",
                       "rule_dst_neg",
@@ -15210,6 +15216,7 @@
                       "dev_id",
                       "last_change_admin",
                       "mgm_id",
+                      "rulebase_id",
                       "rule_from_zone",
                       "rule_num",
                       "rule_to_zone",
@@ -15240,11 +15247,6 @@
                           }
                         },
                         {
-                          "dev_id": {
-                            "_in": "x-hasura-visible-devices"
-                          }
-                        },
-                        {
                           "rule_relevant_for_tenant": {
                             "_eq": "true"
                           }
@@ -15259,13 +15261,14 @@
                   "permission": {
                     "columns": [
                       "parent_rule_id",
+                      "removed",
                       "rule_create",
                       "rule_id",
                       "rule_last_seen",
-                      "removed",
                       "xlate_rule",
                       "access_rule",
                       "active",
+                      "is_global",
                       "nat_rule",
                       "rule_disabled",
                       "rule_dst_neg",
@@ -15280,6 +15283,7 @@
                       "dev_id",
                       "last_change_admin",
                       "mgm_id",
+                      "rulebase_id",
                       "rule_from_zone",
                       "rule_num",
                       "rule_to_zone",
@@ -15381,6 +15385,19 @@
               ],
               "select_permissions": [
                 {
+                  "role": "auditor",
+                  "permission": {
+                    "columns": [
+                      "created",
+                      "removed",
+                      "dev_id",
+                      "rule_id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
                   "role": "fw-admin",
                   "permission": {
                     "columns": [
@@ -15396,19 +15413,6 @@
                 },
                 {
                   "role": "importer",
-                  "permission": {
-                    "columns": [
-                      "created",
-                      "removed",
-                      "dev_id",
-                      "rule_id"
-                    ],
-                    "filter": {}
-                  },
-                  "comment": ""
-                },
-                {
-                  "role": "auditor",
                   "permission": {
                     "columns": [
                       "created",
@@ -17354,6 +17358,23 @@
               ],
               "select_permissions": [
                 {
+                  "role": "auditor",
+                  "permission": {
+                    "columns": [
+                      "created",
+                      "removed",
+                      "is_global",
+                      "name",
+                      "uid",
+                      "id",
+                      "mgm_id"
+                    ],
+                    "filter": {},
+                    "allow_aggregations": true
+                  },
+                  "comment": ""
+                },
+                {
                   "role": "importer",
                   "permission": {
                     "columns": [
@@ -17371,7 +17392,39 @@
                   "comment": ""
                 },
                 {
-                  "role": "auditor",
+                  "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "created",
+                      "removed",
+                      "is_global",
+                      "name",
+                      "uid",
+                      "id",
+                      "mgm_id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "recertifier",
+                  "permission": {
+                    "columns": [
+                      "created",
+                      "removed",
+                      "is_global",
+                      "name",
+                      "uid",
+                      "id",
+                      "mgm_id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "reporter",
                   "permission": {
                     "columns": [
                       "created",
@@ -17401,39 +17454,6 @@
                     ],
                     "filter": {},
                     "allow_aggregations": true
-                  },
-                  "comment": ""
-                },
-                {
-                  "role": "reporter",
-                  "permission": {
-                    "columns": [
-                      "created",
-                      "removed",
-                      "is_global",
-                      "name",
-                      "uid",
-                      "id",
-                      "mgm_id"
-                    ],
-                    "filter": {},
-                    "allow_aggregations": true
-                  },
-                  "comment": ""
-                },
-                {
-                  "role": "middleware-server",
-                  "permission": {
-                    "columns": [
-                      "created",
-                      "removed",
-                      "is_global",
-                      "name",
-                      "uid",
-                      "id",
-                      "mgm_id"
-                    ],
-                    "filter": {}
                   },
                   "comment": ""
                 }
@@ -17540,6 +17560,27 @@
               ],
               "select_permissions": [
                 {
+                  "role": "auditor",
+                  "permission": {
+                    "columns": [
+                      "created",
+                      "removed",
+                      "from_rule_id",
+                      "removed",
+                      "is_global",
+                      "is_initial",
+                      "is_section",
+                      "from_rulebase_id",
+                      "gw_id",
+                      "id",
+                      "link_type",
+                      "to_rulebase_id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
                   "role": "importer",
                   "permission": {
                     "columns": [
@@ -17582,7 +17623,7 @@
                   "comment": ""
                 },
                 {
-                  "role": "auditor",
+                  "role": "modeller",
                   "permission": {
                     "columns": [
                       "created",
@@ -17603,11 +17644,10 @@
                   "comment": ""
                 },
                 {
-                  "role": "reporter-viewall",
+                  "role": "recertifier",
                   "permission": {
                     "columns": [
                       "created",
-                      "removed",
                       "from_rule_id",
                       "removed",
                       "is_global",
@@ -17645,7 +17685,7 @@
                   "comment": ""
                 },
                 {
-                  "role": "modeller",
+                  "role": "reporter-viewall",
                   "permission": {
                     "columns": [
                       "created",

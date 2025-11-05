@@ -1,0 +1,102 @@
+@using FWO.Ui.Data
+@using FWO.Data.Report
+
+
+@inject UserConfig userConfig
+
+<CascadingValue Value="collapseDevices">
+    <div class="p-3">
+        @if(ShowTitle)
+        {
+            <h5 class="text-left">@(userConfig.GetText("select_management"))</h5>
+        }
+        <div class="@cssClass">
+            <button type="button" class="btn btn-sm btn-dark" @onclick="ToggleSelectAll">
+                @(SelectAll ? selectAllText : clearAllText)
+            </button>
+        </div>
+        <br><br>
+
+        <CascadingValue Value="collapseDevices">
+            @foreach (ManagementSelect management in DeviceFilter.Managements)
+            {
+                if (management.Visible)
+                {
+                    <div class="form-check mb-1">
+                        <input class="form-check-input" type="checkbox" id="@management.Id" @bind="management.Selected"
+                            @ref="management.UiReference" @oninput="async () => await ToggleSelectManagement(management)" />
+                        <label class="form-check-label text-white">@management.Name</label>
+                    </div>
+                }
+            }
+        </CascadingValue>
+    </div>
+</CascadingValue>
+
+@code
+{
+    [CascadingParameter]
+    Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
+
+    [Parameter]
+    public DeviceFilter DeviceFilter { get; set; } = new DeviceFilter();
+
+    [Parameter]
+    public EventCallback<DeviceFilter> DeviceFilterChanged { get; set; }
+
+    [Parameter]
+    public bool SelectAll { get; set; } = true; // state of the device select/clear all button
+
+    [Parameter]
+    public EventCallback<bool> SelectAllChanged { get; set; }
+
+    [Parameter]
+    public EventCallback<bool> CollapseAllChanged { get; set; }
+
+    [Parameter]
+    public string Environment { get; set; } = "";
+
+    [Parameter]
+    public bool ShowTitle { get; set; } = true;
+
+
+    private string cssClass = "btn-group w-100 sticky-marker";
+    private string selectAllText = "";
+    private string clearAllText = "";
+    private CollapseState collapseDevices = new CollapseState();
+
+    protected override void OnInitialized()
+    {
+        selectAllText = userConfig.GetText("select_all");
+        clearAllText = userConfig.GetText("clear_all");
+        DeviceFilter.Managements?.Sort((a, b) => a.Name?.CompareTo(b.Name) ?? -1);
+        if (Environment == GlobalConst.kCertification)
+        {
+            cssClass += "-35";
+        }
+    }
+
+    private async Task SetSelectAll()
+    {
+        if (DeviceFilter.AreAllDevicesSelected())
+            SelectAll = false;
+        if (!DeviceFilter.IsAnyDeviceFilterSet())
+            SelectAll = true;
+        await SelectAllChanged.InvokeAsync(SelectAll);
+    }
+
+    private async Task ToggleSelectAll()
+    {
+        DeviceFilter.ApplyFullDeviceSelection(SelectAll);
+        SelectAll = !SelectAll;
+        await SelectAllChanged.InvokeAsync(SelectAll);
+    }
+
+    private async Task ToggleSelectManagement(ManagementSelect management)
+    {
+        management.Selected = !management.Selected;
+        foreach (DeviceSelect device in management.Devices)
+            device.Selected = management.Selected;
+        await SetSelectAll();
+    }
+}

@@ -1,0 +1,22 @@
+- block:
+    - name: remove local copy of remote config file
+      file:
+        state: absent
+        name: "temp_remote_config_file.json"
+
+    - name: get running tcp services
+      command: git rev-parse HEAD
+      register: final_commit_id
+
+    # also handle case where we are not inside a git repo
+    - name: set final commit id to unknown if git rev-parse failed
+      set_fact:
+        final_commit_id: "unknown"
+      when: final_commit_id.rc != 0
+
+    - name: write commit id to last_commit_id.txt file
+      copy:
+        content: "{{ final_commit_id.stdout }}"
+        dest: "{{ last_commit_id_file_path }}"
+
+  become: true

@@ -111,10 +111,10 @@ namespace FWO.Data
         public DeviceWrapper[] EnforcingGateways { get; set; } = [];
 
         [JsonProperty("rule_installon"), JsonPropertyName("rule_installon")]
-        public string InstallOn { get; set; } = "";
+        public string? InstallOn { get; set; }
 
         [JsonProperty("rule_time"), JsonPropertyName("rule_time")]
-        public string Time { get; set; } = "";
+        public string? Time { get; set; }
 
         [JsonProperty("violations"), JsonPropertyName("violations")]
         public List<ComplianceViolation> Violations { get; set; } = [];

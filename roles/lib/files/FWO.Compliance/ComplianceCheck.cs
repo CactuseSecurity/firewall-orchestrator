@@ -78,7 +78,7 @@ namespace FWO.Compliance
                     return;
                 }
 
-                Log.TryWriteLog(LogType.Info, "Compliance Check", $"Using policy {_userConfig.ComplianceCheckPolicyId}", LocalSettings.ComplianceCheckVerbose);
+                Log.TryWriteLog(LogType.Info, "Compliance Check", $"Using policy {_userConfig.GlobalConfig.ComplianceCheckPolicyId}", LocalSettings.ComplianceCheckVerbose);
 
                 Policy = await _apiConnection.SendQueryAsync<CompliancePolicy>(ComplianceQueries.getPolicyById, new { id = _userConfig.GlobalConfig.ComplianceCheckPolicyId });
 
@@ -360,7 +360,7 @@ namespace FWO.Compliance
                             ruleIsCompliant &= CheckAssessability(rule, resolvedSources, resolvedDestinations, criterion).Result;
                             break;
                         case nameof(CriterionType.Matrix):
-                            ruleIsCompliant &= await CheckAgainstMatrix(rule, criterion);
+                            ruleIsCompliant &= await CheckAgainstMatrix(rule, criterion, resolvedSources, resolvedDestinations);
                             break;
                         case nameof(CriterionType.ForbiddenService):
                             ruleIsCompliant &= CheckForForbiddenService(rule, criterion);
@@ -374,10 +374,10 @@ namespace FWO.Compliance
             return ruleIsCompliant;
         }
 
-        private async Task<bool> CheckAgainstMatrix(Rule rule, ComplianceCriterion criterion)
+        private async Task<bool> CheckAgainstMatrix(Rule rule, ComplianceCriterion criterion, List<NetworkObject> resolvedSources, List<NetworkObject> resolvedDestinations)
         {
-            Task<List<(NetworkObject networkObject, List<IPAddressRange> ipRanges)>> fromsTask = GetNetworkObjectsWithIpRanges([.. rule.Froms.Select(nl => nl.Object)]);
-            Task<List<(NetworkObject networkObject, List<IPAddressRange> ipRanges)>> tosTask = GetNetworkObjectsWithIpRanges([.. rule.Tos.Select(nl => nl.Object)]);
+            Task<List<(NetworkObject networkObject, List<IPAddressRange> ipRanges)>> fromsTask = GetNetworkObjectsWithIpRanges(resolvedSources);
+            Task<List<(NetworkObject networkObject, List<IPAddressRange> ipRanges)>> tosTask = GetNetworkObjectsWithIpRanges(resolvedDestinations);
 
             await Task.WhenAll(fromsTask, tosTask);
 

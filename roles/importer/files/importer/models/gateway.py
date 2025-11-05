@@ -13,13 +13,13 @@ Gateway
 }
 """
 class Gateway(BaseModel):
-    Uid: str
-    Name: str
+    Uid: str|None = None
+    Name: str|None = None
     Routing: list[dict] = []
     Interfaces: list[dict]  = []
     RulebaseLinks: list[RulebaseLinkUidBased] = []
     GlobalPolicyUid: str|None = None
     EnforcedPolicyUids: list[str]|None = []
     EnforcedNatPolicyUids: list[str]|None = []
-    ImportDisabled: bool|None = False
-    ShowInUI: bool|None = True
+    ImportDisabled: bool = False
+    ShowInUI: bool = True

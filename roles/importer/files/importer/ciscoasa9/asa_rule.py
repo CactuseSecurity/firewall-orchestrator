@@ -192,7 +192,7 @@ def build_rulebases_from_access_lists(access_lists: List[AccessList], mgm_uid: s
             name=access_list.name,
             mgm_uid=mgm_uid,
             is_global=False,
-            Rules=rules
+            rules=rules
         )
         rulebases.append(rulebase)
 

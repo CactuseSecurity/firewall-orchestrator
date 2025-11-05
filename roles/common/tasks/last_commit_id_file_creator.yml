@@ -4,19 +4,20 @@
         state: absent
         name: "temp_remote_config_file.json"
 
-    - name: get running tcp services
+    - name: get last commit id
       command: git rev-parse HEAD
       register: final_commit_id
+      failed_when: false
+      changed_when: false
 
     # also handle case where we are not inside a git repo
-    - name: set final commit id to unknown if git rev-parse failed
+    - name: determine commit id content
       set_fact:
-        final_commit_id: "unknown"
-      when: final_commit_id.rc != 0
+        final_commit_id_value: "{{ final_commit_id.stdout if final_commit_id.rc == 0 else 'unknown' }}"
 
     - name: write commit id to last_commit_id.txt file
       copy:
-        content: "{{ final_commit_id.stdout }}"
+        content: "{{ final_commit_id_value }}"
         dest: "{{ last_commit_id_file_path }}"
 
   become: true

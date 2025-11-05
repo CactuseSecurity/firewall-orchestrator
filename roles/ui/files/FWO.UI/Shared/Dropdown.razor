@@ -4,7 +4,7 @@
 @typeparam ElementType
 
 @inject DomEventService eventService
-@inject IJSRuntime jsRuntime
+@inject IJSRuntime? jsRuntime
 @implements IDisposable
 
 <div id="@($"dropdown-{Id}")" class="input-group @(Small ? "input-group-sm" : "")">
@@ -165,7 +165,7 @@
         }
 
         // Toggle on resize of Window / scroll outside of dropdown (to avoid positional problems)
-        if (!eventService.Initialized)
+        if (!eventService.Initialized && jsRuntime != null)
         {
             await eventService.Initialize(jsRuntime);
         }
@@ -219,7 +219,7 @@
     {
         try
         {
-            if (!await jsRuntime.InvokeAsync<bool>("isChild", elementId, $"dropdown-{Id}") &&
+            if (jsRuntime != null && !await jsRuntime.InvokeAsync<bool>("isChild", elementId, $"dropdown-{Id}") &&
                 !await jsRuntime.InvokeAsync<bool>("isChild", elementId, $"dropdown-menu-{Id}"))
             {
                 Toggled = true;

@@ -10806,24 +10806,25 @@
                   "permission": {
                     "columns": [
                       "active",
-                      "common_service_possible",
-                      "is_default",
-                      "recert_active",
                       "app_id_external",
+                      "common_service_possible",
                       "criticality",
                       "dn",
                       "group_dn",
-                      "import_source",
-                      "last_recertifier_dn",
-                      "name",
-                      "recert_check_params",
                       "id",
-                      "last_recertifier",
-                      "recert_interval",
-                      "tenant_id",
+                      "import_source",
+                      "is_default",
                       "last_recert_check",
                       "last_recertified",
-                      "next_recert_date"
+                      "last_recertifier",
+                      "last_recertifier_dn",
+                      "name",
+                      "next_recert_date",
+                      "owner_lifecycle_state_id",
+                      "recert_active",
+                      "recert_check_params",
+                      "recert_interval",
+                      "tenant_id"
                     ],
                     "filter": {}
                   }
@@ -10833,24 +10834,25 @@
                   "permission": {
                     "columns": [
                       "active",
-                      "common_service_possible",
-                      "is_default",
-                      "recert_active",
                       "app_id_external",
+                      "common_service_possible",
                       "criticality",
                       "dn",
                       "group_dn",
-                      "import_source",
-                      "last_recertifier_dn",
-                      "name",
-                      "recert_check_params",
                       "id",
-                      "last_recertifier",
-                      "recert_interval",
-                      "tenant_id",
+                      "import_source",
+                      "is_default",
                       "last_recert_check",
                       "last_recertified",
-                      "next_recert_date"
+                      "last_recertifier",
+                      "last_recertifier_dn",
+                      "name",
+                      "next_recert_date",
+                      "owner_lifecycle_state_id",
+                      "recert_active",
+                      "recert_check_params",
+                      "recert_interval",
+                      "tenant_id"
                     ],
                     "filter": {}
                   }
@@ -10874,6 +10876,7 @@
                       "last_recertifier_dn",
                       "name",
                       "next_recert_date",
+                      "owner_lifecycle_state_id",
                       "recert_active",
                       "recert_check_params",
                       "recert_interval",
@@ -10887,24 +10890,25 @@
                   "permission": {
                     "columns": [
                       "active",
-                      "common_service_possible",
-                      "is_default",
-                      "recert_active",
                       "app_id_external",
+                      "common_service_possible",
                       "criticality",
                       "dn",
                       "group_dn",
-                      "import_source",
-                      "last_recertifier_dn",
-                      "name",
-                      "recert_check_params",
                       "id",
-                      "last_recertifier",
-                      "recert_interval",
-                      "tenant_id",
+                      "import_source",
+                      "is_default",
                       "last_recert_check",
                       "last_recertified",
-                      "next_recert_date"
+                      "last_recertifier",
+                      "last_recertifier_dn",
+                      "name",
+                      "next_recert_date",
+                      "owner_lifecycle_state_id",
+                      "recert_active",
+                      "recert_check_params",
+                      "recert_interval",
+                      "tenant_id"
                     ],
                     "filter": {}
                   }
@@ -10914,24 +10918,25 @@
                   "permission": {
                     "columns": [
                       "active",
-                      "common_service_possible",
-                      "is_default",
-                      "recert_active",
                       "app_id_external",
+                      "common_service_possible",
                       "criticality",
                       "dn",
                       "group_dn",
-                      "import_source",
-                      "last_recertifier_dn",
-                      "name",
-                      "recert_check_params",
                       "id",
-                      "last_recertifier",
-                      "recert_interval",
-                      "tenant_id",
+                      "import_source",
+                      "is_default",
                       "last_recert_check",
                       "last_recertified",
-                      "next_recert_date"
+                      "last_recertifier",
+                      "last_recertifier_dn",
+                      "name",
+                      "next_recert_date",
+                      "owner_lifecycle_state_id",
+                      "recert_active",
+                      "recert_check_params",
+                      "recert_interval",
+                      "tenant_id"
                     ],
                     "filter": {}
                   }
@@ -10941,24 +10946,25 @@
                   "permission": {
                     "columns": [
                       "active",
-                      "common_service_possible",
-                      "is_default",
-                      "recert_active",
                       "app_id_external",
+                      "common_service_possible",
                       "criticality",
                       "dn",
                       "group_dn",
-                      "import_source",
-                      "last_recertifier_dn",
-                      "name",
-                      "recert_check_params",
                       "id",
-                      "last_recertifier",
-                      "recert_interval",
-                      "tenant_id",
+                      "import_source",
+                      "is_default",
                       "last_recert_check",
                       "last_recertified",
-                      "next_recert_date"
+                      "last_recertifier",
+                      "last_recertifier_dn",
+                      "name",
+                      "next_recert_date",
+                      "owner_lifecycle_state_id",
+                      "recert_active",
+                      "recert_check_params",
+                      "recert_interval",
+                      "tenant_id"
                     ],
                     "filter": {
                       "_and": [
@@ -10986,24 +10992,25 @@
                   "permission": {
                     "columns": [
                       "active",
-                      "common_service_possible",
-                      "is_default",
-                      "recert_active",
                       "app_id_external",
+                      "common_service_possible",
                       "criticality",
                       "dn",
                       "group_dn",
-                      "import_source",
-                      "last_recertifier_dn",
-                      "name",
-                      "recert_check_params",
                       "id",
-                      "last_recertifier",
-                      "recert_interval",
-                      "tenant_id",
+                      "import_source",
+                      "is_default",
                       "last_recert_check",
                       "last_recertified",
-                      "next_recert_date"
+                      "last_recertifier",
+                      "last_recertifier_dn",
+                      "name",
+                      "next_recert_date",
+                      "owner_lifecycle_state_id",
+                      "recert_active",
+                      "recert_check_params",
+                      "recert_interval",
+                      "tenant_id"
                     ],
                     "filter": {}
                   }
@@ -11013,24 +11020,25 @@
                   "permission": {
                     "columns": [
                       "active",
-                      "common_service_possible",
-                      "is_default",
-                      "recert_active",
                       "app_id_external",
+                      "common_service_possible",
                       "criticality",
                       "dn",
                       "group_dn",
-                      "import_source",
-                      "last_recertifier_dn",
-                      "name",
-                      "recert_check_params",
                       "id",
-                      "last_recertifier",
-                      "recert_interval",
-                      "tenant_id",
+                      "import_source",
+                      "is_default",
                       "last_recert_check",
                       "last_recertified",
-                      "next_recert_date"
+                      "last_recertifier",
+                      "last_recertifier_dn",
+                      "name",
+                      "next_recert_date",
+                      "owner_lifecycle_state_id",
+                      "recert_active",
+                      "recert_check_params",
+                      "recert_interval",
+                      "tenant_id"
                     ],
                     "filter": {
                       "_or": [
@@ -11054,24 +11062,25 @@
                   "permission": {
                     "columns": [
                       "active",
-                      "common_service_possible",
-                      "is_default",
-                      "recert_active",
                       "app_id_external",
+                      "common_service_possible",
                       "criticality",
                       "dn",
                       "group_dn",
-                      "import_source",
-                      "last_recertifier_dn",
-                      "name",
-                      "recert_check_params",
                       "id",
-                      "last_recertifier",
-                      "recert_interval",
-                      "tenant_id",
+                      "import_source",
+                      "is_default",
                       "last_recert_check",
                       "last_recertified",
-                      "next_recert_date"
+                      "last_recertifier",
+                      "last_recertifier_dn",
+                      "name",
+                      "next_recert_date",
+                      "owner_lifecycle_state_id",
+                      "recert_active",
+                      "recert_check_params",
+                      "recert_interval",
+                      "tenant_id"
                     ],
                     "filter": {
                       "_or": [
@@ -11095,24 +11104,25 @@
                   "permission": {
                     "columns": [
                       "active",
-                      "common_service_possible",
-                      "is_default",
-                      "recert_active",
                       "app_id_external",
+                      "common_service_possible",
                       "criticality",
                       "dn",
                       "group_dn",
-                      "import_source",
-                      "last_recertifier_dn",
-                      "name",
-                      "recert_check_params",
                       "id",
-                      "last_recertifier",
-                      "recert_interval",
-                      "tenant_id",
+                      "import_source",
+                      "is_default",
                       "last_recert_check",
                       "last_recertified",
-                      "next_recert_date"
+                      "last_recertifier",
+                      "last_recertifier_dn",
+                      "name",
+                      "next_recert_date",
+                      "owner_lifecycle_state_id",
+                      "recert_active",
+                      "recert_check_params",
+                      "recert_interval",
+                      "tenant_id"
                     ],
                     "filter": {},
                     "allow_aggregations": true
@@ -11123,24 +11133,25 @@
                   "permission": {
                     "columns": [
                       "active",
-                      "common_service_possible",
-                      "is_default",
-                      "recert_active",
                       "app_id_external",
+                      "common_service_possible",
                       "criticality",
                       "dn",
                       "group_dn",
-                      "import_source",
-                      "last_recertifier_dn",
-                      "name",
-                      "recert_check_params",
                       "id",
-                      "last_recertifier",
-                      "recert_interval",
-                      "tenant_id",
+                      "import_source",
+                      "is_default",
                       "last_recert_check",
                       "last_recertified",
-                      "next_recert_date"
+                      "last_recertifier",
+                      "last_recertifier_dn",
+                      "name",
+                      "next_recert_date",
+                      "owner_lifecycle_state_id",
+                      "recert_active",
+                      "recert_check_params",
+                      "recert_interval",
+                      "tenant_id"
                     ],
                     "filter": {}
                   }
@@ -11150,24 +11161,25 @@
                   "permission": {
                     "columns": [
                       "active",
-                      "common_service_possible",
-                      "is_default",
-                      "recert_active",
                       "app_id_external",
+                      "common_service_possible",
                       "criticality",
                       "dn",
                       "group_dn",
-                      "import_source",
-                      "last_recertifier_dn",
-                      "name",
-                      "recert_check_params",
                       "id",
-                      "last_recertifier",
-                      "recert_interval",
-                      "tenant_id",
+                      "import_source",
+                      "is_default",
                       "last_recert_check",
                       "last_recertified",
-                      "next_recert_date"
+                      "last_recertifier",
+                      "last_recertifier_dn",
+                      "name",
+                      "next_recert_date",
+                      "owner_lifecycle_state_id",
+                      "recert_active",
+                      "recert_check_params",
+                      "recert_interval",
+                      "tenant_id"
                     ],
                     "filter": {}
                   }
@@ -11232,6 +11244,12 @@
                   "comment": ""
                 }
               ]
+            },
+            {
+              "table": {
+                "name": "owner_lifecycle_state",
+                "schema": "public"
+              }
             },
             {
               "table": {

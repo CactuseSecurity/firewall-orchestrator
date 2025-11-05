@@ -44,7 +44,7 @@
                                 <ObjectGroupCollection PageSize="PageSize" FetchObjects="FetchContent" Recert="Recert"
                                     Tab="RsbTab.report" InputDataType="ManagementReport"
                                     Data="CurrentReport.ReportData.ManagementData
-                                                                                                                .Where(m => m.Devices.Any(d => d.RulebaseLinks != null && d.RulebaseLinks.Any(rb => rb.NextRulebaseId != null)))"
+                                                                                                                                                    .Where(m => m.Devices.Any(d => d.RulebaseLinks != null && d.RulebaseLinks.Any(rb => rb.NextRulebaseId != null)))"
                                 NameExtractor="man => man.Name" NetworkObjectExtractor="man => man.ReportObjects"
                                 NetworkServiceExtractor="man => man.ReportServices"
                                 NetworkUserExtractor="man => man.ReportUsers" />
@@ -66,17 +66,17 @@
                                 Data="selectedRulesDetailed.Where(r => SelectedRules.Any(sr => sr.Id == r.Id)).ToList()"
                                 NameExtractor=@(rule => $"{rule.DeviceName} - Rule {rule.Id} {rule.Name}")
                                 NetworkObjectExtractor="rule => rule.Froms.Select(nl => nl.Object)
-                                                                                                        .Union(rule.Tos.Select(nl => nl.Object))
-                                                                                                        .Union(rule.NatData.TranslatedFroms.Select(nl => nl.Object))
-                                                                                                        .Union(rule.NatData.TranslatedTos.Select(nl => nl.Object)).OrderBy(o => o.Name).ToArray()"
+                                                                                                                                        .Union(rule.Tos.Select(nl => nl.Object))
+                                                                                                                                        .Union(rule.NatData.TranslatedFroms.Select(nl => nl.Object))
+                                                                                                                                        .Union(rule.NatData.TranslatedTos.Select(nl => nl.Object)).OrderBy(o => o.Name).ToArray()"
                                 NetworkServiceExtractor="rule => rule.Services.Select(sw => sw.Content)
-                                                                                                        .Union(rule.NatData.TranslatedServices.Select(sw => sw.Content)).OrderBy(s => s.Name).ToArray()"
+                                                                                                                                        .Union(rule.NatData.TranslatedServices.Select(sw => sw.Content)).OrderBy(s => s.Name).ToArray()"
                                 NetworkUserExtractor="rule => rule.Froms.Select(nl => nl.User).Distinct().Where(u => u != null).OrderBy(u => u.Name).ToArray()" />
                         </div>
                     </Tab>
                                         }
                     @if (CurrentReport?.ReportData.OwnerData.Count > 0 &&
-                                        (bool)CurrentReport?.ReportType.IsConnectionRelatedReport())
+                                        (CurrentReport?.ReportType.IsConnectionRelatedReport() ?? false))
                     {
                         <Tab Title="@(CurrentReport?.ReportType == ReportType.VarianceAnalysis ? userConfig.GetText("modelled_objects") : userConfig.GetText("used_objects"))"
                             StartSelected="true">
@@ -88,13 +88,14 @@
                             <div class="mt-2">
                                 <ObjectGroupCollection PageSize="PageSize" FetchObjects="FetchContent" Recert="Recert"
                                     Tab="RsbTab.usedObj" StartCollapsed="false" InputDataType="OwnerConnectionReport"
-                                    Data="@(PrepareObjects(CurrentReport.ReportData.OwnerData))"
+                                    Data="@(PrepareObjects(CurrentReport?.ReportData.OwnerData ?? new List<OwnerConnectionReport>()))"
                                     NameExtractor="own => own.Name"
                                     NetworkObjectExtractor="own => own.GetAllNetworkObjects(true, userConfig.ResolveNetworkAreas)"
                                     NetworkServiceExtractor="own => own.GetAllServices(true)" />
                                 <ObjectGroupCollection PageSize="PageSize" FetchObjects="FetchContent" Recert="Recert"
                                     Tab="RsbTab.usedObj" StartCollapsed="false" InputDataType="GlobalCommonSvcReport"
-                                    Data="CurrentReport.ReportData.GlobalComSvc" NameExtractor="glbComSvc => glbComSvc.Name"
+                                    Data="CurrentReport?.ReportData.GlobalComSvc"
+                                    NameExtractor="glbComSvc => glbComSvc.Name"
                                     NetworkObjectExtractor="glbComSvc => glbComSvc.GetAllNetworkObjects(true, userConfig.ResolveNetworkAreas)"
                                     NetworkServiceExtractor="glbComSvc => glbComSvc.GetAllServices(true)" />
                             </div>

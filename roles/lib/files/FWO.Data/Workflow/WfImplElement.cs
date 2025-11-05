@@ -14,8 +14,8 @@ namespace FWO.Data.Workflow
         [JsonProperty("implementation_action"), JsonPropertyName("implementation_action")]
         public string ImplAction { get; set; } = "create";
 
-        public Cidr Cidr { get; set; } = new();
-        public Cidr CidrEnd { get; set; } = new();
+        public Cidr? Cidr { get; set; } = new();
+        public Cidr? CidrEnd { get; set; } = new();
 
         public WfImplElement()
         {}
@@ -25,16 +25,16 @@ namespace FWO.Data.Workflow
             Id = element.Id;
             ImplTaskId = element.ImplTaskId;
             ImplAction = element.ImplAction;
-            Cidr = new Cidr(element.Cidr != null ? element.Cidr.CidrString : "");
-            CidrEnd = new Cidr(element.CidrEnd != null ? element.CidrEnd.CidrString : "");
+            Cidr = element.Cidr;
+            CidrEnd = element.CidrEnd;
         }
 
         public WfImplElement(WfReqElement element)
         {
             Id = 0;
             ImplAction = element.RequestAction;
-            Cidr = new Cidr(element.Cidr != null ? element.Cidr.CidrString : "");
-            CidrEnd = new Cidr(element.CidrEnd != null ? element.CidrEnd.CidrString : "");
+            Cidr = element.Cidr;
+            CidrEnd = element.CidrEnd;
             Port = element.Port;
             PortEnd = element.PortEnd;
             ProtoId = element.ProtoId;

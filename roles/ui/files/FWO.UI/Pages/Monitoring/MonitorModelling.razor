@@ -1,0 +1,110 @@
+@using FWO.Data.Middleware
+@using FWO.Data.Modelling
+@using FWO.Middleware.Client
+@using RestSharp
+@using System.Net
+
+
+@page "/monitoring/modelling"
+@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}, {Roles.FwAdmin}")]
+
+@inject ApiConnection apiConnection
+@inject UserConfig userConfig
+@inject MiddlewareClient middlewareClient
+
+
+<h3>@(userConfig.GetText("modelling"))</h3>
+@(userConfig.GetText("U5120"))
+<hr />
+
+<h5>@(userConfig.GetText("app_role_users"))</h5>
+<div class="m-2 vheight75">
+    <div class="form-group row">
+        <label class="col-sm-1 col-form-label col-form-label-sm">@(userConfig.GetText("owner")):</label>
+        <div class="col-sm-3">
+            <Dropdown ElementType="FwoOwner" ElementToString="@(o => o.Display(userConfig.GetText("common_service")))" Nullable="false" 
+                    SelectedElement="SelectedOwner" SelectedElementChanged="OwnerChanged" Elements="Owners">
+                <ElementTemplate Context="owner">
+                    @owner.Display(userConfig.GetText("common_service"))
+                </ElementTemplate>
+            </Dropdown>
+        </div>
+        <label class="col-sm-1 col-form-label col-form-label-sm">@(userConfig.GetText("app_role")):</label>
+        <div class="col-sm-3">
+            <Dropdown ElementType="ModellingAppRole" ElementToString="@(s => s.Display())" Nullable="true"
+                    SelectedElement="@SelectedAppRole" SelectedElementChanged="ARChanged" Elements="AppRoles">
+                <ElementTemplate Context="appRole">
+                    @appRole.Display()
+                </ElementTemplate>
+            </Dropdown>
+        </div>
+    </div>
+    <div class="form-group row mt-2">
+        <ConnectionTable Connections="@(FoundConnections)" ShowAppName="true" Readonly="true" InterfacesPossible="true"/>
+    </div>
+</div>
+
+@code
+{
+    [CascadingParameter]
+    Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
+
+    private List<FwoOwner> Owners = [];
+    private FwoOwner? SelectedOwner;
+    private List<ModellingAppRole> AppRoles = [];
+    private ModellingAppRole? SelectedAppRole;
+    private List<ModellingConnection> FoundConnections = [];
+    ModellingHandlerBase? HandlerBase;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            HandlerBase = new(apiConnection, userConfig, new(), false, DisplayMessageInUi);
+            Owners = await apiConnection.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getOwners);
+            if (Owners.Count > 0)
+            {
+                await OwnerChanged(Owners[0]);
+            }
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("object_fetch"), "", true);
+        }
+    }
+
+    private async Task OwnerChanged(FwoOwner newOwner)
+    {
+        if(newOwner != SelectedOwner)
+        {
+            SelectedOwner = newOwner;
+            AppRoles = (await apiConnection.SendQueryAsync<List<ModellingAppRole>>(ModellingQueries.getAppRoles, new { appId = SelectedOwner.Id })).OrderBy(x => x.Id).ToList();
+            if(AppRoles.Count > 0)
+            {
+                await ARChanged(AppRoles[0]);
+            }
+            else
+            {
+                SelectedAppRole = null;
+                FoundConnections = [];
+            }
+        }
+    }
+
+    private async Task ARChanged(ModellingAppRole newAppRole)
+    {
+        if(newAppRole != SelectedAppRole)
+        {
+            SelectedAppRole = newAppRole;
+            List<ModellingConnectionWrapper> FoundConnectionWrappers = await apiConnection.SendQueryAsync<List<ModellingConnectionWrapper>>(ModellingQueries.getConnectionsForNwGroup, new { id = SelectedAppRole.Id });
+            FoundConnections = [.. ModellingConnectionWrapper.Resolve(FoundConnectionWrappers)];
+            foreach(var conn in FoundConnections.Where(x => x.UsedInterfaceId != null))
+            {
+                if (HandlerBase != null)
+                {
+                    await HandlerBase.ExtractUsedInterface(conn);
+                }
+            }
+        }
+    }
+}

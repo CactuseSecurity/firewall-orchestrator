@@ -294,14 +294,15 @@ namespace FWO.Test
         }
 
         [Test]
-        [Ignore("GetInitialRulebaseId - RulebaseLink not in Context? / GetInitialRulesOfGateway does not get Rule[]")]
         public void GetInitialRulesOfGateway_ReturnsRules_WhenInitialRulebaseExists()
         {
             int numberOfRules = 2;
             var (management, device) = CreateBasicManagementSetup(numberOfRules);
             var deviceReportController = new DeviceReportController(DeviceReportController.FromDeviceReport(device));
 
-            var rulebase = management.Rulebases.First();//
+            management.Devices.First().RulebaseLinks.First().GatewayId = device.Id;
+            management.Devices.First().RulebaseLinks.First().IsInitial = true;
+            var rulebase = management.Rulebases.First();
             var rulesFromRulebase = ReportRules.GetRulesByRulebaseId(rulebase.Id, management);
 
             var rules = ReportRules.GetInitialRulesOfGateway(deviceReportController, management);   //GetInitialRulebaseId - RulebaseLink not in Context 

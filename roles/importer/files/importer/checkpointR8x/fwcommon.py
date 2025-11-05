@@ -259,6 +259,7 @@ def process_devices(
         orderedLayerUids: list[str] = get_ordered_layer_uids(policy_structure, deviceConfig, managerDetails.getDomainString())
         if not orderedLayerUids:
             logger.warning(f"No ordered layers found for device: {deviceConfig['name']}")
+            nativeConfigDomain['gateways'].append(deviceConfig)
             continue
 
         global_ordered_layer_count = 0

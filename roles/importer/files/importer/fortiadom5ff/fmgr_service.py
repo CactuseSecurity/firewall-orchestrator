@@ -4,10 +4,8 @@ from model_controllers.import_state_controller import ImportStateController
 from fwo_log import getFwoLogger
 from typing import Any
 
-def normalize_service_objects(import_state: ImportStateController, native_config, native_config_global, normalized_config, 
-                              normalized_config_global, svc_obj_types):
+def normalize_service_objects(native_config, normalized_config_adom, svc_obj_types):
     svc_objects = []
-    logger = getFwoLogger()
     
     if 'objects' not in native_config:
         return # no objects to normalize
@@ -23,7 +21,7 @@ def normalize_service_objects(import_state: ImportStateController, native_config
         svc_objects.append(create_svc_object(name=original_obj_name, proto=0, color='foreground', port=None,\
             comment='"original" service object created by FWO importer for NAT purposes'))
 
-    normalized_config.update({'service_objects': svc_objects})
+    normalized_config_adom.update({'service_objects': svc_objects})
 
 def normalize_service_object(obj_orig, svc_objects):
     member_names = ''
@@ -68,7 +66,7 @@ def handle_svc_protocol(obj_orig, svc_objects, svc_type, name, color, session_ti
                 proto = obj_orig['protocol-number']
             add_object(svc_objects, svc_type, name, color, proto, None, None, session_timeout)
             added_svc_obj += 1
-        case 5 | 11:
+        case 5 | 11 | 15:   # magic numbers from FortiNet: 5 = TCP/UDP, 11 = TCP/UDP/SCTP, 15 = TCP/UDP/SCTP/ICMP
             parse_standard_protocols_with_ports(obj_orig, svc_objects, svc_type, name, color, session_timeout, range_names, added_svc_obj)
         case 6:
             add_object(svc_objects, svc_type, name, color, 58, None, None, session_timeout)
@@ -119,7 +117,7 @@ def check_split(obj_orig) -> bool:
     return (count > 1)
 
 
-def extractPorts(port_ranges) -> tuple[list[Any], list[Any]]:
+def extract_ports(port_ranges) -> 'tuple[list[Any], list[Any]]':
     ports = []
     port_ends = []
     if port_ranges is not None and len(port_ranges) > 0:
@@ -150,7 +148,7 @@ def extractPorts(port_ranges) -> tuple[list[Any], list[Any]]:
     return ports, port_ends
 
 
-def create_svc_object(name, proto, color, port, comment) -> dict[str, Any]:
+def create_svc_object(name, proto, color, port, comment) -> 'dict[str, Any]':
     return {
         'svc_name': name,
         'svc_typ': 'simple',
@@ -179,7 +177,7 @@ def add_object(svc_objects, type, name, color, proto, port_ranges, member_names,
                             }])
     else:
         range_names = ''
-        ports, port_ends = extractPorts(port_ranges)
+        ports, port_ends = extract_ports(port_ranges)
         split = (len(ports) > 1)
         for index, port in enumerate(ports):
             port_end = port_ends[index]
@@ -215,4 +213,3 @@ def add_object(svc_objects, type, name, color, proto, port_ranges, member_names,
                                 'svc_timeout': session_timeout,
                                 'rpc_nr': None # ?
                                 }])
-

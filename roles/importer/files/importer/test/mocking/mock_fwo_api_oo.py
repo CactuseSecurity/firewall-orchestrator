@@ -505,7 +505,7 @@ class MockFwoApi(FwoApi):
             # find the rulebase by uid
             rulebase = next((rb for rb in config.rulebases if next((rb_db["uid"] for rb_db in self.tables.get("rulebase", {}).values() if rb_db["id"] == row['rulebase_id']), None) == rb.uid), None)
             if rulebase and rule:
-                rulebase.Rules[row['rule_uid']] = RuleNormalized.parse_obj(rule)
+                rulebase.rules[row['rule_uid']] = RuleNormalized.parse_obj(rule)
 
 
     def _try_add_rulebase(self, config, row, import_id, mgm_uid):

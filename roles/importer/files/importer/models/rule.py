@@ -1,5 +1,6 @@
 from pydantic import BaseModel
 from models.caseinsensitiveenum import CaseInsensitiveEnum
+from fwo_const import list_delimiter
 
 
 class RuleType(CaseInsensitiveEnum):
@@ -47,10 +48,10 @@ class RuleNormalized(BaseModel):
     rule_svc_refs: str
     rule_action: RuleAction
     rule_track: RuleTrack
-    rule_installon: str
-    rule_time: str
+    rule_installon: str|None = None
+    rule_time: str|None = None
     rule_name: str|None = None
-    rule_uid: str
+    rule_uid: str|None = None
     rule_custom_fields: str|None = None
     rule_implied: bool
     rule_type: RuleType = RuleType.SECTIONHEADER
@@ -66,9 +67,16 @@ class RuleNormalized(BaseModel):
         if not isinstance(other, RuleNormalized):
             return NotImplemented
         # Compare all fields except 'last_hit' and 'rule_num'
-        exclude = {"last_hit", "rule_num"}
-        self_dict = self.dict(exclude=exclude)
-        other_dict = other.dict(exclude=exclude)
+        exclude = {"last_hit", "rule_num", "rule_src_zone", "rule_dst_zone"}
+        # TODO: need to handle zones like this until we can import multiple zones properly
+        if self.rule_src_zone and other.rule_src_zone and \
+            self.rule_src_zone.split(list_delimiter)[0] != other.rule_src_zone.split(list_delimiter)[0]:
+            return False
+        if self.rule_dst_zone and other.rule_dst_zone and \
+            self.rule_dst_zone.split(list_delimiter)[0] != other.rule_dst_zone.split(list_delimiter)[0]:
+            return False
+        self_dict = self.model_dump(exclude=exclude)
+        other_dict = other.model_dump(exclude=exclude)
         return self_dict == other_dict
     
 """
@@ -150,11 +158,11 @@ class Rule(BaseModel):
     rule_svc: str
     rule_svc_neg: bool
     rule_svc_refs: str
-    rule_time: str
+    rule_time: str|None = None
     rule_to_zone: int|None = None
     track_id: int
     xlate_rule: int|None = None
     rule_track: str
-    rule_uid: str
-    rulebase_id: int|None # = None
+    rule_uid: str|None = None
+    rulebase_id: int|None = None
 

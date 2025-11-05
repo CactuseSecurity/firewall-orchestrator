@@ -17678,6 +17678,15 @@
                   },
                   "comment": ""
                 }
+              ],
+              "delete_permissions": [
+                {
+                  "role": "importer",
+                  "permission": {
+                    "filter": {}
+                  },
+                  "comment": ""
+                }
               ]
             },
             {

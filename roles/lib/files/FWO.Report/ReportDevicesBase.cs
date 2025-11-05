@@ -42,23 +42,18 @@ namespace FWO.Report
             // handle management imported as sub-management as well as part of super management
             foreach (var mgm in managementReports)
             {
-                if (mgm.SubManagements.Count > 0)
+                if (mgm.SuperManagerId != null)
                 {
-                    foreach (var s in mgm.SubManagements)
+                    var superMgmImportId = managementReports.FirstOrDefault(m => m.Id == mgm.SuperManagerId)?.RelevantImportId ?? 0;
+                    if (mgm.RelevantImportId < superMgmImportId)
                     {
-                        ManagementReport? subMgm = managementReports.FirstOrDefault(r => r.Id == s.Id);
-                        if (subMgm == null)
-                            continue;
-                        long subMgmImportId = subMgm.RelevantImportId ?? -1;
-                        long superMgmImportId = mgm.RelevantImportId ?? -1;
-                        if (subMgmImportId < superMgmImportId)
-                        {
-                            subMgm.RelevantImportId = superMgmImportId;
-                        }
+                        mgm.RelevantImportId = superMgmImportId;
+                        mgm.Import.ImportAggregate.ImportAggregateMax.RelevantImportId = superMgmImportId; //TODO: resolve redundancy
                     }
                 }
             }
-            managementReports = [.. managementReports.Where(r => r.SubManagements.Count == 0)]; // filter out super managements
+            // filter out super managements
+            managementReports = [.. managementReports.Where(m => m.IsSuperManager == false)];
 
             return managementReports;
         }

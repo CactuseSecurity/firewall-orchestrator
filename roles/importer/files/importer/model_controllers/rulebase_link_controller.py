@@ -41,16 +41,15 @@ class RulebaseLinkController():
             import_state.Stats.rulebase_link_delete_count += changes 
 
 
-    def get_rulebase_links(self, import_state: ImportStateController, gw_ids: list[int] = []):
+    def get_rulebase_links(self, import_state: ImportStateController):
         logger = getFwoLogger()
-        if gw_ids is None:
-            gw_ids = []
+        gw_ids = import_state.lookup_all_gateway_ids()
         if len(gw_ids) == 0:
-            # if no gwIds are provided, get all rulebase links
-            query_variables = {}
-        else:
-            # if gwIds are provided, use them to filter the rulebase links  
-            query_variables = { "gwIds": gw_ids}
+            logger.warning("RulebaseLinkController:get_rulebase_links - no gateway ids found for current management - skipping getting rulebase links")
+            self.rb_links = []
+            return
+        # we always need to provide gwIds since rulebase_links may be duplicate across different gateways
+        query_variables = { "gwIds": gw_ids}
 
         query = FwoApi.get_graphql_code([f"{fwo_const.graphql_query_path}rule/getRulebaseLinks.graphql"])
         links = import_state.api_call.call(query, query_variables=query_variables)

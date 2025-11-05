@@ -20,7 +20,7 @@
 @inject CircuitHandler circuitHandler
 
 @if (showLoginForm)
-{    
+{
     <div class="row text-center mt-2">
         <div class="col-xl col-lg col-md col-sm col"></div>
         <div class="col-xl-3 col-lg-4 col-md-6 col-sm-8 col-10">
@@ -32,7 +32,7 @@
             {
                 <img src="/images/FWO_logo.png">
             }
-            <br><br>            
+            <br><br>
         @* <h2 class="text-center"> @(userConfig.GetText("login")) </h2> *@
             <div class="shadow-sm card p-3">
                 <form class="d-flex flex-column">
@@ -55,14 +55,14 @@
                     {
                         <label class="m-2">@errorMessage</label>
                     }
-                </form>  
+                </form>
             </div>
         </div>
         <div class="col-xl col-lg col-md col-sm col"></div>
     </div>
     @if(ShowWelcomeMessage)
     {
-        <div class="row mt-4">            
+        <div class="row mt-4">
             <div class="col-lg-4 col-md-3 col-sm-2">
             </div>
             <div class="col-lg-4 col-md-6 col-sm-8 col-xs-12">
@@ -73,7 +73,7 @@
             <div class="col-lg-4 col-md-3 col-sm-2">
             </div>
         </div>
-    }  
+    }
 }
 
 @if (showPasswordChangeForm)
@@ -138,7 +138,7 @@
         //ApiConnection = new GraphQlApiConnection(ConfigFile.ApiServerUri);
 
         if (firstRender)
-        {      
+        {
             // This might be a reconnect. Check if there is a jwt in session storage.
             ProtectedBrowserStorageResult<string> jwtLoadRequest = await sessionStorage.GetAsync<string>("jwt");
 
@@ -157,7 +157,7 @@
             {
                 SanitizedWelcomeMessage = globalConfig.WelcomeMessage.StripDangerousHtmlTags().Replace("\n", "<br>");
                 ShowWelcomeMessage = true;
-            }            
+            }
 
             // else no reconnect / reconnect unsuccessful
             showLoginForm = true;
@@ -205,7 +205,7 @@
 
             try
             {
-                RestResponse<string> authResponse = await ((AuthStateProvider)AuthService)
+                RestResponse<TokenPair> authResponse = await ((AuthStateProvider)AuthService)
                 .Authenticate(Username, Password, ApiConnection, middlewareClient, globalConfig, userConfig, sessionStorage, ((CircuitHandlerService)circuitHandler));
 
                 if (authResponse.StatusCode == HttpStatusCode.OK)
@@ -220,10 +220,10 @@
                 else
                 {
                     // There was an error trying to authenticate the user. Probably invalid credentials or the middleware server is unreachable
-                    if(authResponse.Data != null)
+                    if(authResponse.Content != null)
                     {
                         // Probably invalid credentials
-                        errorMessage = userConfig.GetApiText(authResponse.Data);
+                        errorMessage = userConfig.GetApiText(authResponse.Content);
                         // Visualisize the error by making border of all inputboxes red
                         InputClass = "is-invalid";
                         Log.WriteInfo("Login", $"Login of user {Username} failed: " + errorMessage);
@@ -239,7 +239,7 @@
                     StateHasChanged();
                 }
             }
-            // Authentication exception (raised by us) 
+            // Authentication exception (raised by us)
             catch (AuthenticationException e)
             {
                 errorMessage = userConfig.GetText(e.Message);

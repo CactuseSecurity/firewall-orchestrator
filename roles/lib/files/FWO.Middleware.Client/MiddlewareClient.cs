@@ -1,4 +1,4 @@
-﻿using FWO.Api.Client;
+using FWO.Api.Client;
 using FWO.Data.Middleware;
 using RestSharp;
 
@@ -11,18 +11,18 @@ namespace FWO.Middleware.Client
         public MiddlewareClient(string middlewareServerUri) : base(middlewareServerUri + "api/")
         { }
 
-        public async Task<RestResponse<string>> AuthenticateUser(AuthenticationTokenGetParameters parameters)
+        public async Task<RestResponse<TokenPair>> AuthenticateUser(AuthenticationTokenGetParameters parameters)
         {
-            RestRequest request = new ("AuthenticationToken/Get", Method.Post);
+            RestRequest request = new("AuthenticationToken/GetTokenPair", Method.Post);
             request.AddJsonBody(parameters);
-            return await restClient.ExecuteAsync<string>(request);
+            return await restClient.ExecuteAsync<TokenPair>(request);
         }
 
-        public async Task<RestResponse<string>> CreateInitialJWT()
+        public async Task<RestResponse<TokenPair>> CreateInitialJWT()
         {
-            RestRequest request = new ("AuthenticationToken/Get", Method.Post);
+            RestRequest request = new ("AuthenticationToken/GetTokenPair", Method.Post);
             request.AddJsonBody(new object());
-            return await restClient.ExecuteAsync<string>(request);
+            return await restClient.ExecuteAsync<TokenPair>(request);
         }
 
         public async Task<RestResponse<int>> TestConnection(LdapGetUpdateParameters parameters)
@@ -245,6 +245,30 @@ namespace FWO.Middleware.Client
             RestRequest request = new("Compliance/ImportMatrix", Method.Post);
             request.AddJsonBody(parameters);
             return await restClient.ExecuteAsync<string>(request);
+        }
+
+        /// <summary>
+        /// Get a new token pair
+        /// </summary>
+        /// <param name="parameters"></param>
+        /// <returns></returns>
+        public async Task<RestResponse<TokenPair>> RefreshToken(RefreshTokenRequest parameters)
+        {
+            RestRequest request = new("AuthenticationToken/Refresh", Method.Post);
+            request.AddJsonBody(parameters);
+            return await restClient.ExecuteAsync<TokenPair>(request);
+        }
+
+        /// <summary>
+        /// Revoke a refresh token
+        /// </summary>
+        /// <param name="parameters"></param>
+        /// <returns></returns>
+        public async Task<RestResponse> RevokeRefreshToken(RefreshTokenRequest parameters)
+        {
+            RestRequest request = new("AuthenticationToken/Revoke", Method.Post);
+            request.AddJsonBody(parameters);
+            return await restClient.ExecuteAsync(request);
         }
 
         protected virtual void Dispose(bool disposing)

@@ -1,4 +1,5 @@
 @inherits LayoutComponentBase
+@using FWO.Data.Middleware
 @using FWO.Middleware.Client
 @using FWO.Services.EventMediator
 @using FWO.Services.EventMediator.Events
@@ -196,7 +197,7 @@
         }
         try
         {
-            RestResponse<string> authResponse = await ( (AuthStateProvider)authenticationProvider ).Authenticate(userConfig.User.Name,
+            RestResponse<TokenPair> authResponse = await ( (AuthStateProvider)authenticationProvider ).Authenticate(userConfig.User.Name,
                 password, apiConnection, middlewareClient, globalConfig, userConfig, sessionStorage, ( (CircuitHandlerService)circuitHandler ));
             if (authResponse.StatusCode == System.Net.HttpStatusCode.OK)
             {
@@ -206,7 +207,7 @@
                 return;
             }
             // There was an error trying to authenticate the user. Probably invalid credentials
-            errorMessage = ( authResponse.Data != null ? userConfig.GetApiText(authResponse.Data) : "Middleware Api Error: " + authResponse.Content );
+            errorMessage = (authResponse.Content != null ? userConfig.GetApiText(authResponse.Content) : "Middleware Api Error: " + authResponse.Content);
         }
         catch (Exception ex)
         {

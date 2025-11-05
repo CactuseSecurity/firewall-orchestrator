@@ -1,4 +1,4 @@
-﻿using FWO.Api.Client;
+using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 using FWO.Basics;
 using FWO.Config.Api;
@@ -26,17 +26,23 @@ namespace FWO.Ui.Auth
 			return Task.FromResult(new AuthenticationState(user));
 		}
 
-		public async Task<RestResponse<string>> Authenticate(string username, string password, ApiConnection apiConnection, MiddlewareClient middlewareClient,
+		public async Task<RestResponse<TokenPair>> Authenticate(string username, string password, ApiConnection apiConnection, MiddlewareClient middlewareClient,
 			GlobalConfig globalConfig, UserConfig userConfig, ProtectedSessionStorage sessionStorage, CircuitHandlerService circuitHandler)
 		{
 			// There is no jwt in session storage. Get one from auth module.
 			AuthenticationTokenGetParameters authenticationParameters = new() { Username = username, Password = password };
-			RestResponse<string> apiAuthResponse = await middlewareClient.AuthenticateUser(authenticationParameters);
+			RestResponse<TokenPair> apiAuthResponse = await middlewareClient.AuthenticateUser(authenticationParameters);
 
 			if (apiAuthResponse.StatusCode == HttpStatusCode.OK)
 			{
-				string jwtString = apiAuthResponse.Data ?? throw new ArgumentException("no response data");
-				await Authenticate(jwtString, apiConnection, middlewareClient, globalConfig, userConfig, circuitHandler, sessionStorage);
+                string tokenPairJson = apiAuthResponse.Content ?? throw new ArgumentException("no response content");
+
+                TokenPair tokenPair = System.Text.Json.JsonSerializer.Deserialize<TokenPair>(tokenPairJson) ?? throw new ArgumentException("failed to deserialize token pair");
+
+                string jwtString = tokenPair.AccessToken ?? throw new ArgumentException("no access token in response");
+
+                await Authenticate(jwtString, apiConnection, middlewareClient, globalConfig, userConfig, circuitHandler, sessionStorage);
+
 				Log.WriteAudit("AuthenticateUser", $"user {username} successfully authenticated");
 			}
 
@@ -62,7 +68,7 @@ namespace FWO.Ui.Auth
 				{
 					throw new AuthenticationException("not_authorized");
 				}
-				
+
 				// Save jwt in session storage.
 				await sessionStorage.SetAsync("jwt", jwtString);
 
@@ -209,7 +215,7 @@ namespace FWO.Ui.Auth
 			JwtReader jwtReader = new(jwtString);
 			if (await jwtReader.Validate())
 			{
-				ClaimsIdentity identity = new				
+				ClaimsIdentity identity = new
 				(
 					claims: jwtReader.GetClaims(),
 					authenticationType: "ldap",

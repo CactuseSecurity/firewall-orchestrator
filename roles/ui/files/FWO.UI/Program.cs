@@ -2,6 +2,7 @@ using BlazorTable;
 using FWO.Api.Client;
 using FWO.Config.Api;
 using FWO.Config.File;
+using FWO.Data.Middleware;
 using FWO.Logging;
 using FWO.Middleware.Client;
 using FWO.Services;
@@ -62,7 +63,7 @@ builder.Services.AddScoped<MiddlewareClient>(_ => new MiddlewareClient(Middlewar
 MiddlewareClient middlewareClient = new MiddlewareClient(MiddlewareUri);
 ApiConnection apiConn = new GraphQlApiConnection(ApiUri);
 
-RestResponse<string> createJWTResponse = middlewareClient.CreateInitialJWT().Result;
+RestResponse<TokenPair> createJWTResponse = middlewareClient.CreateInitialJWT().Result;
 bool connectionEstablished = createJWTResponse.IsSuccessful;
 int connectionAttemptsCount = 1;
 while (!connectionEstablished)
@@ -77,7 +78,9 @@ while (!connectionEstablished)
 	connectionEstablished = createJWTResponse.IsSuccessful;
 }
 
-string jwt = createJWTResponse.Data ?? throw new NullReferenceException("Received empty jwt.");
+TokenPair tokenPair = System.Text.Json.JsonSerializer.Deserialize<TokenPair>(createJWTResponse.Content) ?? throw new ArgumentException("failed to deserialize token pair");
+
+string jwt = tokenPair.AccessToken ?? throw new NullReferenceException("Received empty jwt.");
 apiConn.SetAuthHeader(jwt);
 
 // Get all non-confidential configuration settings and add to a global service (for all users)

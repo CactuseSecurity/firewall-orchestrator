@@ -8,6 +8,8 @@ using Microsoft.AspNetCore.Mvc;
 using Novell.Directory.Ldap;
 using System.Data;
 using System.Security.Authentication;
+using System.Text;
+using System.Security.Cryptography;
 
 namespace FWO.Middleware.Server.Controllers
 {
@@ -123,6 +125,90 @@ namespace FWO.Middleware.Server.Controllers
             catch (Exception e)
             {
                 return BadRequest(e.Message);
+            }
+        }
+
+        /// <summary>
+        /// Generates authentication tokens (access + refresh) given valid credentials.
+        /// </summary>
+        [HttpPost("GetTokenPair")]
+        public async Task<ActionResult<TokenPair>> GetTokenPairAsync([FromBody] AuthenticationTokenGetParameters parameters)
+        {
+            try
+            {
+                UiUser? user = null;
+
+                if(parameters != null)
+                {
+                    string? username = parameters.Username;
+                    string? password = parameters.Password;
+
+                    if(username != null && password != null)
+                        user = new UiUser { Name = username, Password = password };
+                }
+
+                AuthManager authManager = new(jwtWriter, ldaps, apiConnection);
+
+                await authManager.AuthorizeUserAsync(user, validatePassword: true);
+
+                // Creates access and refresh token and stores the access token hash in DB
+                TokenPair tokenPair = await authManager.CreateTokenPair(user);
+
+                return Ok(tokenPair);
+            }
+            catch(Exception ex)
+            {
+                Log.WriteError("Token Generation", "Error generating token pair", ex);
+                return BadRequest(ex.Message);
+            }
+        }
+
+        /// <summary>
+        /// Refreshes an access token using a valid refresh token.
+        /// </summary>
+        /// <param name="request">Refresh token request</param>
+        /// <returns>New token pair if refresh token is valid</returns>
+        [HttpPost("Refresh")]
+        public async Task<ActionResult<TokenPair>> RefreshToken([FromBody] RefreshTokenRequest request)
+        {
+            try
+            {
+                if(string.IsNullOrEmpty(request.RefreshToken))
+                {
+                    return BadRequest("Refresh token is required");
+                }
+
+                AuthManager authManager = new(jwtWriter, ldaps, apiConnection);
+
+                // Validate refresh token
+                RefreshTokenInfo? tokenInfo = await authManager.ValidateRefreshToken(request.RefreshToken);
+
+                if(tokenInfo == null)
+                {
+                    return Unauthorized("Invalid or expired refresh token");
+                }
+
+                UiUser[] users = await apiConnection.SendQueryAsync<UiUser[]>(AuthQueries.getUserByDbId, new { userId = tokenInfo.UserId });
+                UiUser? user = users.FirstOrDefault();
+
+                if(user == null)
+                {
+                    return Unauthorized("User not found");
+                }
+
+                // Revoke the old refresh token (token rotation for security)
+                await authManager.RevokeRefreshToken(request.RefreshToken);
+
+                // Create new token pair
+                TokenPair newTokens = await authManager.CreateTokenPair(user);
+
+                Log.WriteInfo("Token Refresh", $"Successfully refreshed tokens for user {user.Name}");
+                return Ok(newTokens);
+            }
+            catch(Exception ex)
+            {
+                Log.WriteError("Token Refresh", "Failed to refresh token", ex);
+                return BadRequest(ex.Message);
             }
         }
     }
@@ -422,6 +508,118 @@ namespace FWO.Middleware.Server.Controllers
 
             Management[] managementIds = await conn.SendQueryAsync<Management[]>(AuthQueries.getVisibleManagementIdsPerTenant, tenIdObj, "getVisibleManagementIdsPerTenant");
             tenant.VisibleManagementIds = Array.ConvertAll(managementIds, management => management.Id);
+        }
+
+        /// <summary>
+        /// Validates a refresh token and returns token info if valid
+        /// </summary>
+        public async Task<RefreshTokenInfo?> ValidateRefreshToken(string refreshToken)
+        {
+            try
+            {
+                string tokenHash = GenerateTokenHash(refreshToken);
+
+                var queryVariables = new
+                {
+                    tokenHash = tokenHash,
+                    currentTime = DateTime.UtcNow
+                };
+
+                RefreshTokenInfo[] result = await apiConnection.SendQueryAsync<RefreshTokenInfo[]>(AuthQueries.getRefreshToken, queryVariables);
+
+                return result?.FirstOrDefault();
+            }
+            catch(Exception ex)
+            {
+                Log.WriteError("Token Validation", "Error validating refresh token", ex);
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// Stores a refresh token in the database
+        /// </summary>
+        public async Task StoreRefreshToken(int userId, string refreshToken, DateTime expiresAt)
+        {
+            try
+            {
+                string tokenHash = GenerateTokenHash(refreshToken);
+
+                var mutationVariables = new
+                {
+                    userId = userId,
+                    tokenHash = tokenHash,
+                    expiresAt = expiresAt,
+                    createdAt = DateTime.UtcNow
+                };
+
+                await apiConnection.SendQueryAsync<object>(AuthQueries.storeRefreshToken, mutationVariables);
+            }
+            catch(Exception ex)
+            {
+                Log.WriteError("Token Storage", "Error storing refresh token", ex);
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// Revokes a refresh token by marking it as revoked
+        /// </summary>
+        public async Task RevokeRefreshToken(string refreshToken)
+        {
+            try
+            {
+                string tokenHash = GenerateTokenHash(refreshToken);
+
+                var mutationVariables = new
+                {
+                    tokenHash = tokenHash,
+                    revokedAt = DateTime.UtcNow
+                };
+
+                await apiConnection.SendQueryAsync<object>(AuthQueries.revokeRefreshToken, mutationVariables);
+            }
+            catch(Exception ex)
+            {
+                Log.WriteError("Token Revocation", "Error revoking refresh token", ex);
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// Generates a SHA256 hash of the refresh token for secure storage
+        /// </summary>
+        private static string GenerateTokenHash(string token)
+        {
+            byte[] hash = SHA256.HashData(Encoding.UTF8.GetBytes(token));
+            return Convert.ToBase64String(hash);
+        }
+
+        /// <summary>
+        /// Create access and refresh token pair for given user
+        /// </summary>
+        /// <param name="user"></param>
+        /// <param name="accessTokenLifetime"></param>
+        /// <returns></returns>
+        public async Task<TokenPair> CreateTokenPair(UiUser? user = null, TimeSpan? accessTokenLifetime = null)
+        {
+            UiUserHandler uiUserHandler = new(jwtWriter.CreateJWTMiddlewareServer());
+
+            TimeSpan accessLifetime = accessTokenLifetime ?? TimeSpan.FromMinutes(await uiUserHandler.GetExpirationTime());
+            string accessToken = await jwtWriter.CreateJWT(user, accessLifetime);
+
+            string refreshToken = JwtWriter.GenerateRefreshToken();
+            DateTime refreshExpiry = DateTime.UtcNow.AddDays(7);
+
+            await StoreRefreshToken(user?.DbId ?? 0, refreshToken, refreshExpiry);
+
+            return new TokenPair
+            {
+                AccessToken = accessToken,
+                RefreshToken = refreshToken,
+                AccessTokenExpires = DateTime.UtcNow.Add(accessLifetime),
+                RefreshTokenExpires = refreshExpiry
+            };
         }
     }
 }

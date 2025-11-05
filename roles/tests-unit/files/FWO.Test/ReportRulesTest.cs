@@ -67,26 +67,6 @@ namespace FWO.Test
         }
 
         [Test]
-        public void Test_CreateRulebaseReport_CreatesExpectedNumberOfRules()
-        {
-            int numberOfRules = 3;
-            var (management, device) = CreateBasicManagementSetup(numberOfRules);
-
-            var rulebase = management.Rulebases.First();
-            var result = ReportRules.GetRulesByRulebaseId(rulebase.Id, management);
-
-            var rulebaseLink = new RulebaseLink { NextRulebaseId = rulebase.Id };
-            int count = ReportRules.GetRuleCount(management, rulebaseLink, new[] { rulebaseLink });
-
-            Assert.That(count, Is.EqualTo(3));
-            Assert.That(result.Length, Is.EqualTo(3));
-            Assert.That(result[0].Uid, Does.StartWith($"rule-{rulebase.Id}."));
-            Assert.That(rulebase.Rules.Length, Is.EqualTo(numberOfRules));
-            Assert.That(rulebase.Name, Is.EqualTo("RB"));
-            Assert.That(rulebase.Rules[0].Name, Does.StartWith("Mock Rule"));
-        }
-
-        [Test]
         public void Test_CreateDeviceReport_HasConsistentId_And_Uid_For_Device1()
         {
             var device = MockReportRules.CreateDeviceReport(1, "Device1");
@@ -107,17 +87,6 @@ namespace FWO.Test
         }
 
         [Test]
-        public void Test_CreateRuleTreeItem_BuildsValidTree()
-        {
-            var ruleTreeItemChild = MockReportRules.CreateRuleTreeItem(2, 1, new List<int> { 1, 2 });
-            var ruleTreeItemParent = MockReportRules.CreateRuleTreeItem(1, 1, new List<int> { 1 }, new List<ITreeItem<Rule>> { ruleTreeItemChild });
-
-            Assert.That(ruleTreeItemParent.Children.Count, Is.EqualTo(1));
-            Assert.That(ruleTreeItemParent.Children[0].Data!.Id, Is.EqualTo(2));
-            Assert.That(ruleTreeItemParent.Data!.Id, Is.EqualTo(1));
-        }
-
-        [Test]
         public void Test_RulebaseId_SetterGetter()
         {
             MockReportRules.RulebaseId = 10;
@@ -135,6 +104,77 @@ namespace FWO.Test
 
             MockReportRules.RuleId = 100;
             Assert.That(MockReportRules.RuleId, Is.EqualTo(100));
+        }
+
+        [Test]
+        public void Test_ContainsRules_Scenarios()
+        {
+            var rulebaseReport = MockReportRules.CreateRulebaseReport();
+
+            var managementReport = new ManagementReport
+            {
+                Rulebases = new[] { rulebaseReport }
+            };
+
+            Assert.That(managementReport.ContainsRules(), Is.False);
+
+            var managementWithoutDevices = new ManagementReport { Devices = new DeviceReport[0] };
+            Assert.That(managementWithoutDevices.ContainsRules(), Is.False);
+
+            var managementWithDevicesWithoutRules = new ManagementReport
+            {
+                Devices = new DeviceReport[] { }
+            };
+            Assert.That(managementWithDevicesWithoutRules.ContainsRules(), Is.False);
+        }
+
+        [Test]
+        public void GetAllRulesOfGateway_ReturnsEmpty_WhenCacheEmpty()
+        {
+            var device = MockReportRules.CreateDeviceReport();
+            var management = new ManagementReport();
+
+            // Cache leeren
+            typeof(ReportRules)
+                .GetField("_rulesCache", BindingFlags.NonPublic | BindingFlags.Static)!
+                .SetValue(null, new Dictionary<(int, int), List<Rule>>());
+
+            var result = ReportRules.GetAllRulesOfGateway(DeviceReportController.FromDeviceReport(device), management);
+
+            Assert.That(result, Is.Empty);
+        }
+
+
+        //Mittlere Komplexität
+        [Test]
+        public void Test_CreateRulebaseReport_CreatesExpectedNumberOfRules()
+        {
+            int numberOfRules = 3;
+            var (management, device) = CreateBasicManagementSetup(numberOfRules);
+
+            var rulebase = management.Rulebases.First();
+            var result = ReportRules.GetRulesByRulebaseId(rulebase.Id, management);
+
+            var rulebaseLink = new RulebaseLink { NextRulebaseId = rulebase.Id };
+            int count = ReportRules.GetRuleCount(management, rulebaseLink, new[] { rulebaseLink });
+
+            Assert.That(count, Is.EqualTo(3));
+            Assert.That(result.Length, Is.EqualTo(3));
+            Assert.That(result[0].Uid, Does.StartWith($"rule-{rulebase.Id}."));
+            Assert.That(rulebase.Rules.Length, Is.EqualTo(numberOfRules));
+            Assert.That(rulebase.Name, Is.EqualTo("RB"));
+            Assert.That(rulebase.Rules[0].Name, Does.StartWith("Mock Rule"));
+        }
+
+        [Test]
+        public void Test_CreateRuleTreeItem_BuildsValidTree()
+        {
+            var ruleTreeItemChild = MockReportRules.CreateRuleTreeItem(2, 1, new List<int> { 1, 2 });
+            var ruleTreeItemParent = MockReportRules.CreateRuleTreeItem(1, 1, new List<int> { 1 }, new List<ITreeItem<Rule>> { ruleTreeItemChild });
+
+            Assert.That(ruleTreeItemParent.Children.Count, Is.EqualTo(1));
+            Assert.That(ruleTreeItemParent.Children[0].Data!.Id, Is.EqualTo(2));
+            Assert.That(ruleTreeItemParent.Data!.Id, Is.EqualTo(1));
         }
 
         [Test]
@@ -171,28 +211,25 @@ namespace FWO.Test
         }
 
         [Test]
-        public void Test_ContainsRules_Scenarios()
+        public void GetAllRulesOfGateway_ReturnsRules_FromCache()
         {
-            var rulebaseReport = MockReportRules.CreateRulebaseReport();
+            var device = MockReportRules.CreateDeviceReport();
+            var management = new ManagementReport();
+            var rules = new List<Rule> { new Rule { Id = 1, RulebaseId = 1 } };
 
-            var managementReport = new ManagementReport
-            {
-                Rulebases = new[] { rulebaseReport }
-            };
+            // Cache manuell setzen
+            typeof(ReportRules)
+                .GetField("_rulesCache", BindingFlags.NonPublic | BindingFlags.Static)!
+                .SetValue(null, new Dictionary<(int, int), List<Rule>> { [(device.Id, management.Id)] = rules });
 
-            Assert.That(managementReport.ContainsRules(), Is.False);
+            var result = ReportRules.GetAllRulesOfGateway(DeviceReportController.FromDeviceReport(device), management);
 
-            var managementWithoutDevices = new ManagementReport { Devices = new DeviceReport[0] };
-            Assert.That(managementWithoutDevices.ContainsRules(), Is.False);
-
-            var managementWithDevicesWithoutRules = new ManagementReport
-            {
-                Devices = new DeviceReport[] { }
-            };
-            Assert.That(managementWithDevicesWithoutRules.ContainsRules(), Is.False);
+            Assert.That(result, Has.Length.EqualTo(1));
+            Assert.That(result[0].Id, Is.EqualTo(1));
         }
 
 
+        //Vielleicht schon Integration
         [Test]
         public void Test_TryBuildRuleTree_FallbackWithoutRuleTreeBuilder()
         {
@@ -227,6 +264,36 @@ namespace FWO.Test
         }
 
         [Test]
+        public void ConstructHtmlReport_GeneratesHtmlSections()
+        {
+            // Arrange
+            var mockReportRules = new MockReportRules(
+                new Report.Filter.DynGraphqlQuery(""),
+                new Config.Api.UserConfig(),
+                ReportType.Rules,
+                null!
+            );
+
+            var (management, device) = CreateBasicManagementSetup(3);
+
+            mockReportRules.ReportData.ManagementData.Add(management);
+
+            management.Rulebases.First().Name = "Mock Rulebase";
+            device.Name = "Mock Device1";
+
+            var reportBuilder = new StringBuilder();
+            int chapterNumber = 0;
+
+            // Act
+            mockReportRules.ConstructHtmlReport(ref reportBuilder, mockReportRules.ReportData.ManagementData, chapterNumber);
+
+            // Assert
+            string html = reportBuilder.ToString();
+            Assert.That(html, Does.Contain("Mock Device1"));
+            Assert.That(html, Does.Contain("<hr>"));
+        }
+
+        [Test]
         [Ignore("GetInitialRulebaseId - RulebaseLink not in Context? / GetInitialRulesOfGateway does not get Rule[]")]
         public void GetInitialRulesOfGateway_ReturnsRules_WhenInitialRulebaseExists()
         {
@@ -255,70 +322,6 @@ namespace FWO.Test
             var rules = ReportRules.GetInitialRulesOfGateway(device, management);
 
             Assert.That(rules, Is.Empty);
-        }
-
-        [Test]
-        public void GetAllRulesOfGateway_ReturnsRules_FromCache()
-        {
-            var device = MockReportRules.CreateDeviceReport();
-            var management = new ManagementReport();
-            var rules = new List<Rule> { new Rule { Id = 1, RulebaseId = 1 } };
-
-            // Cache manuell setzen
-            typeof(ReportRules)
-                .GetField("_rulesCache", BindingFlags.NonPublic | BindingFlags.Static)!
-                .SetValue(null, new Dictionary<(int, int), List<Rule>> { [(device.Id, management.Id)] = rules });
-
-            var result = ReportRules.GetAllRulesOfGateway(DeviceReportController.FromDeviceReport(device), management);
-
-            Assert.That(result, Has.Length.EqualTo(1));
-            Assert.That(result[0].Id, Is.EqualTo(1));
-        }
-
-        [Test]
-        public void GetAllRulesOfGateway_ReturnsEmpty_WhenCacheEmpty()
-        {
-            var device = MockReportRules.CreateDeviceReport();
-            var management = new ManagementReport();
-
-            // Cache leeren
-            typeof(ReportRules)
-                .GetField("_rulesCache", BindingFlags.NonPublic | BindingFlags.Static)!
-                .SetValue(null, new Dictionary<(int, int), List<Rule>>());
-
-            var result = ReportRules.GetAllRulesOfGateway(DeviceReportController.FromDeviceReport(device), management);
-
-            Assert.That(result, Is.Empty);
-        }
-
-        [Test]
-        public void ConstructHtmlReport_GeneratesHtmlSections()
-        {
-            // Arrange
-            var mockReportRules = new MockReportRules(
-                new Report.Filter.DynGraphqlQuery(""),
-                new Config.Api.UserConfig(),
-                ReportType.Rules,
-                null!
-            );
-
-            var (management, device) = CreateBasicManagementSetup(3);
-
-            mockReportRules.ReportData.ManagementData.Add(management);
-
-            management.Rulebases.First().Name = "Mock Rulebase";
-            device.Name = "Mock Device1";
-
-            var reportBuilder = new StringBuilder();
-            int chapterNumber = 0;
-
-            // Act
-            mockReportRules.ConstructHtmlReport(ref reportBuilder, mockReportRules.ReportData.ManagementData, chapterNumber);
-
-            // Assert
-            string html = reportBuilder.ToString();
-            Assert.That(html, Does.Contain("Mock Device1")); 
-            Assert.That(html, Does.Contain("<hr>"));          
         }
     }
 }

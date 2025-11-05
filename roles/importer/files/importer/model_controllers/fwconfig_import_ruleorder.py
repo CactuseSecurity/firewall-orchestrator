@@ -113,9 +113,9 @@ class RuleOrderService:
             previous_rulebase_uids: list[str] = []
             previous_configs_rulebase = next((rb for rb in self._previous_config.rulebases if rb.uid == rulebase.uid), None)
             if previous_configs_rulebase:
-                previous_rulebase_uids.extend(list(previous_configs_rulebase.Rules.keys()))
+                previous_rulebase_uids.extend(list(previous_configs_rulebase.rules.keys()))
 
-            rule_uids = list(rulebase.Rules.keys())
+            rule_uids = list(rulebase.rules.keys())
 
             self._new_rule_uids[rulebase.uid] = [
                 insertion_uid
@@ -139,7 +139,7 @@ class RuleOrderService:
             self._inserts_and_moves[rulebase.uid].extend(self._moved_rule_uids[rulebase.uid])
 
         for rulebase in self._previous_config.rulebases:
-            rule_uids = list(rulebase.Rules.keys())
+            rule_uids = list(rulebase.rules.keys())
 
             self._deleted_rule_uids[rulebase.uid] = [
                 deletion_uid
@@ -187,7 +187,6 @@ class RuleOrderService:
 
 
     def _update_rule_on_move_or_insert(self, rule_uid, target_rulebase_uid): 
-
         next_rules_rule_num_numeric = 0.0
         previous_rule_num_numeric = 0.0
 
@@ -196,13 +195,13 @@ class RuleOrderService:
 
         if target_rulebase is None:
             return
-        changed_and_unchanged_rules = list(target_rulebase.Rules.values())
+        changed_and_unchanged_rules = list(target_rulebase.rules.values())
 
         if unchanged_target_rulebase:
-            changed_and_unchanged_rules.extend(list(unchanged_target_rulebase.Rules.values()))
+            changed_and_unchanged_rules.extend(list(unchanged_target_rulebase.rules.values()))
         
-        index, changed_rule = self._get_index_and_rule_object_from_flat_list(list(target_rulebase.Rules.values()), rule_uid)
-        prev_rule_uid, next_rule_uid = self._get_adjacent_list_element(list(target_rulebase.Rules.keys()), index)
+        index, changed_rule = self._get_index_and_rule_object_from_flat_list(list(target_rulebase.rules.values()), rule_uid)
+        prev_rule_uid, next_rule_uid = self._get_adjacent_list_element(list(target_rulebase.rules.keys()), index)
 
         if not prev_rule_uid:
             min_num_numeric_rule = min((r for r in changed_and_unchanged_rules  if r.rule_num_numeric != 0), key=lambda x: x.rule_num_numeric, default=None)
@@ -242,7 +241,7 @@ class RuleOrderService:
             
             prev_rule_uid, _ = self._get_adjacent_list_element(self._target_rule_uids, _index)
 
-            if prev_rule_uid and prev_rule_uid in list(next(rulebase for rulebase in self._normalized_config.rulebases if rulebase.uid == rulebase_uid).Rules.keys()):
+            if prev_rule_uid and prev_rule_uid in list(next(rulebase for rulebase in self._normalized_config.rulebases if rulebase.uid == rulebase_uid).rules.keys()):
                 prev_rule_num_numeric = self._get_relevant_rule_num_numeric(prev_rule_uid, self._target_rules_flat, False, target_rulebase)
                 _index -= 1
             else:
@@ -254,7 +253,7 @@ class RuleOrderService:
             
             _, next_rule_uid = self._get_adjacent_list_element(self._target_rule_uids, _index)
 
-            if next_rule_uid and next_rule_uid in list(next(rulebase for rulebase in self._normalized_config.rulebases if rulebase.uid == rulebase_uid).Rules.keys()):
+            if next_rule_uid and next_rule_uid in list(next(rulebase for rulebase in self._normalized_config.rulebases if rulebase.uid == rulebase_uid).rules.keys()):
                 next_rule_num_numeric = self._get_relevant_rule_num_numeric(next_rule_uid, self._target_rules_flat, True, target_rulebase)
                 _index += 1
             else:
@@ -271,7 +270,7 @@ class RuleOrderService:
         uids_and_rules = [
             (rule_uid, rule)
             for rulebase in config.rulebases
-            for rule_uid, rule in rulebase.Rules.items()
+            for rule_uid, rule in rulebase.rules.items()
         ]
 
         return map(list, zip(*uids_and_rules)) if uids_and_rules else ([], [])
@@ -343,7 +342,7 @@ class RuleOrderService:
 
         # 1) Already updated rule? -> simple return
         if rule_uid in self._updated_rules:
-            _, rule = self._get_index_and_rule_object_from_flat_list(flat_list, rule_uid)
+            _, rule = self._get_index_and_rule_object_from_flat_list(self._target_rules_flat, rule_uid)
             return float(rule.rule_num_numeric)
 
         # 2) Part of a consecutive insert? -> defined value (0)
@@ -364,9 +363,9 @@ class RuleOrderService:
         """Calculates rule_num_numeric for a new/moved rule relative to its neighbors in the target."""
         # Get rule & neighbors in the target
         index, changed_rule = self._get_index_and_rule_object_from_flat_list(
-            target_rulebase.Rules.values(), rule_uid
+            target_rulebase.rules.values(), rule_uid
         )
-        prev_uid, next_uid = self._get_adjacent_list_element(list(target_rulebase.Rules.keys()), index)
+        prev_uid, next_uid = self._get_adjacent_list_element(list(target_rulebase.rules.keys()), index)
 
         if ascending:
             return self._num_for_ascending_case(changed_rule, next_uid, target_rulebase)
@@ -422,7 +421,7 @@ class RuleOrderService:
     def _max_num_numeric_rule(self, target_rulebase):
         """Return the rule with the maximum rule_num_numeric, or None if empty."""
         return max(
-            (r for r in target_rulebase.Rules.values()),
+            (r for r in target_rulebase.rules.values()),
             key=lambda x: x.rule_num_numeric,
             default=None
         )
@@ -431,7 +430,7 @@ class RuleOrderService:
     def _min_nonzero_num_numeric_rule(self, target_rulebase):
         """Return the rule with the minimum non-zero rule_num_numeric, or None if none exist."""
         return min(
-            (r for r in target_rulebase.Rules.values() if getattr(r, "rule_num_numeric", 0) != 0),
+            (r for r in target_rulebase.rules.values() if getattr(r, "rule_num_numeric", 0) != 0),
             key=lambda x: x.rule_num_numeric,
             default=None
         )

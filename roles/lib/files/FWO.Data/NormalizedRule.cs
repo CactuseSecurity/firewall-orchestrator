@@ -48,10 +48,10 @@ namespace FWO.Data
         public string RuleTrack { get; set; } = "";
 
         [JsonProperty("rule_installon"), JsonPropertyName("rule_installon")]
-        public string RuleInstallOn { get; set; } = "";
+        public string? RuleInstallOn { get; set; }
 
         [JsonProperty("rule_time"), JsonPropertyName("rule_time")]
-        public string RuleTime { get; set; } = "";
+        public string? RuleTime { get; set; }
 
         [JsonProperty("rule_name"), JsonPropertyName("rule_name")]
         public string? RuleName { get; set; }
@@ -60,7 +60,7 @@ namespace FWO.Data
         public string? RuleUid { get; set; }
 
         [JsonProperty("rule_custom_fields"), JsonPropertyName("rule_custom_fields")]
-        public string RuleCustomFields { get; set; } = "";
+        public string? RuleCustomFields { get; set; }
 
         [JsonProperty("rule_implied"), JsonPropertyName("rule_implied")]
         public bool RuleImplied { get; set; }
@@ -119,7 +119,7 @@ namespace FWO.Data
                 RuleSvcRefs = rule.ServiceRefs,
                 RuleAction = rule.Action,
                 RuleTrack = rule.Track,
-                RuleInstallOn = rule.InstallOn ?? "", // should not become null but it does
+                RuleInstallOn = rule.InstallOn,
                 RuleTime = rule.Time,
                 RuleName = rule.Name,
                 RuleUid = rule.Uid,

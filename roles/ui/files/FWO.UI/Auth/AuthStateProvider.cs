@@ -21,7 +21,14 @@ namespace FWO.Ui.Auth
 	{
 		private ClaimsPrincipal user = new(new ClaimsIdentity());
 
-		public override Task<AuthenticationState> GetAuthenticationStateAsync()
+        private readonly TokenService tokenService;
+
+        public AuthStateProvider(TokenService tokenService)
+        {
+            this.tokenService = tokenService;
+        }
+
+        public override Task<AuthenticationState> GetAuthenticationStateAsync()
 		{
 			return Task.FromResult(new AuthenticationState(user));
 		}
@@ -38,6 +45,8 @@ namespace FWO.Ui.Auth
                 string tokenPairJson = apiAuthResponse.Content ?? throw new ArgumentException("no response content");
 
                 TokenPair tokenPair = System.Text.Json.JsonSerializer.Deserialize<TokenPair>(tokenPairJson) ?? throw new ArgumentException("failed to deserialize token pair");
+
+                tokenService.SetTokenPair(tokenPair);
 
                 string jwtString = tokenPair.AccessToken ?? throw new ArgumentException("no access token in response");
 
@@ -232,6 +241,6 @@ namespace FWO.Ui.Auth
 			}
 			return claimList;
 		}
-	}
+    }
 }
 

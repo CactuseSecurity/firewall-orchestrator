@@ -58,6 +58,19 @@ string ProductVersion = ConfigFile.ProductVersion;
 
 builder.Services.AddScoped<ApiConnection>(_ => new GraphQlApiConnection(ApiUri));
 builder.Services.AddScoped<MiddlewareClient>(_ => new MiddlewareClient(MiddlewareUri));
+builder.Services.AddScoped<TokenService>(_ =>
+{
+    var middlewareClient = _.GetRequiredService<MiddlewareClient>();
+    var apiConnection = _.GetRequiredService<ApiConnection>();
+    var tokenService = new TokenService(middlewareClient, apiConnection);
+
+    if(apiConnection is GraphQlApiConnection graphQlConn)
+    {
+        graphQlConn.SetTokenRefreshService(tokenService);
+    }
+
+    return tokenService;
+});
 
 // Create "anonymous" (empty) jwt
 MiddlewareClient middlewareClient = new MiddlewareClient(MiddlewareUri);

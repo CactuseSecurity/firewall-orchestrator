@@ -23661,11 +23661,6 @@
                       "rule_uid",
                       "rule_last_certified"
                     ],
-                    "filter": {
-                      "dev_id": {
-                        "_in": "x-hasura-visible-devices"
-                      }
-                    },
                     "allow_aggregations": true
                   }
                 },
@@ -23705,11 +23700,6 @@
                         {
                           "mgm_id": {
                             "_in": "x-hasura-visible-managements"
-                          }
-                        },
-                        {
-                          "dev_id": {
-                            "_in": "x-hasura-visible-devices"
                           }
                         }
                       ]
@@ -23753,11 +23743,6 @@
                         {
                           "mgm_id": {
                             "_in": "x-hasura-visible-managements"
-                          }
-                        },
-                        {
-                          "dev_id": {
-                            "_in": "x-hasura-visible-devices"
                           }
                         }
                       ]

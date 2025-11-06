@@ -80,7 +80,7 @@ while (!connectionEstablished)
 
 TokenPair tokenPair = System.Text.Json.JsonSerializer.Deserialize<TokenPair>(createJWTResponse.Content) ?? throw new ArgumentException("failed to deserialize token pair");
 
-string jwt = tokenPair.AccessToken ?? throw new NullReferenceException("Received empty jwt.");
+string jwt = tokenPair.AccessToken ?? throw new ArgumentException("Received empty jwt.");
 apiConn.SetAuthHeader(jwt);
 
 // Get all non-confidential configuration settings and add to a global service (for all users)

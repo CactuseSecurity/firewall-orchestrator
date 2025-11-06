@@ -23661,6 +23661,7 @@
                       "rule_uid",
                       "rule_last_certified"
                     ],
+					"filter": {},
                     "allow_aggregations": true
                   }
                 },

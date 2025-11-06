@@ -1692,6 +1692,60 @@ ALTER TABLE "rule_source_to_zone"
 ADD CONSTRAINT rule_source_to_zone_zone_id_zone_zone_id_fkey FOREIGN KEY ("zone_id") REFERENCES "zone" ("zone_id");
 
 
+-- initial fill script for rule_source_to_zone and rule_destination_to_zone
+DO $$
+DECLARE
+    inserted_source INT := 0;
+    inserted_destination INT := 0;
+    remaining_source INT;
+    remaining_destination INT;
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM rule_source_to_zone
+    ) THEN
+		INSERT INTO rule_source_to_zone (rule_id, zone_id, created, removed)
+		SELECT rule_id, rule_from_zone, rule_create, removed
+		FROM rule
+		WHERE rule_from_zone IS NOT NULL;					
+		GET DIAGNOSTICS inserted_source = ROW_COUNT;
+		
+    ELSE
+       -- RAISE NOTICE 'Table does not exist or is not empty';
+    END IF;
+	
+	IF NOT EXISTS (
+        SELECT 1 FROM rule_destination_to_zone
+    ) THEN
+		INSERT INTO rule_destination_to_zone (rule_id, zone_id, created, removed)
+		SELECT rule_id, rule_to_zone, rule_create, removed
+		FROM rule
+		WHERE rule_to_zone IS NOT NULL;				
+		GET DIAGNOSTICS inserted_destination = ROW_COUNT;
+		
+    ELSE
+       -- RAISE NOTICE 'Table does not exist or is not empty';	  
+    END IF;
+				
+	-- Count the existing rule_from_zone and rule_to_zone
+    SELECT COUNT(*) INTO remaining_source
+    FROM rule
+    WHERE rule_from_zone IS NOT NULL;
+
+    SELECT COUNT(*) INTO remaining_destination
+    FROM rule
+    WHERE rule_to_zone IS NOT NULL;			
+	IF remaining_source + remaining_destination = inserted_source + inserted_destination THEN
+        UPDATE rule
+        SET rule_from_zone = NULL,
+            rule_to_zone = NULL
+        WHERE rule_from_zone IS NOT NULL
+           OR rule_to_zone IS NOT NULL;			
+	END IF;
+					
+END
+$$;
+
+
 insert into stm_dev_typ (dev_typ_id,dev_typ_name,dev_typ_version,dev_typ_manufacturer,dev_typ_predef_svc,dev_typ_is_multi_mgmt,dev_typ_is_mgmt,is_pure_routing_device)
     VALUES (28,'Cisco Asa','9','Cisco','',false,true,false)
     ON CONFLICT (dev_typ_id) DO NOTHING;

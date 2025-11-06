@@ -4933,21 +4933,6 @@
                   }
                 },
                 {
-                  "name": "rules_with_owner",
-                  "using": {
-                    "manual_configuration": {
-                      "column_mapping": {
-                        "dev_id": "dev_id"
-                      },
-                      "insertion_order": null,
-                      "remote_table": {
-                        "name": "view_rule_with_owner",
-                        "schema": "public"
-                      }
-                    }
-                  }
-                },
-                {
                   "name": "tenant_to_devices",
                   "using": {
                     "foreign_key_constraint_on": {

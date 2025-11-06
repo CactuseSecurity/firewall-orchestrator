@@ -1,14 +1,8 @@
-﻿using NetTools;
+﻿
+using NetTools;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Linq;
 using System.Net;
-using System.Text;
-using System.Text.Json.Nodes;
-using System.Threading.Tasks;
 
 namespace FWO.Data
 {
@@ -59,7 +53,7 @@ namespace FWO.Data
             // Load the JSON as a JObject
             JObject jsonObject = JObject.Load(reader);
             // Deserialize the IP address range based on the properties ip_range_start and ip_range_end 
-			IPAddress start = IPAddress.Parse((jsonObject.GetValue("ip_range_start")?.ToObject<string>() ?? throw new ArgumentNullException("ip_range_start")).Replace("/32", ""));
+            IPAddress start = IPAddress.Parse((jsonObject.GetValue("ip_range_start")?.ToObject<string>() ?? throw new ArgumentNullException("ip_range_start")).Replace("/32", ""));
             IPAddress end = IPAddress.Parse((jsonObject.GetValue("ip_range_end")?.ToObject<string>() ?? throw new ArgumentNullException("ip_range_start")).Replace("/32", ""));
             return new IPAddressRange(start, end);
         }
@@ -77,6 +71,61 @@ namespace FWO.Data
 
                 result.WriteTo(writer);
             }
+        }
+    }
+
+    public class ComplianceViolationConverter : JsonConverter<ComplianceViolation>
+    {
+        public override ComplianceViolation? ReadJson(JsonReader reader, Type objectType, ComplianceViolation? existingValue, bool hasExistingValue, JsonSerializer serializer)
+        {
+            ComplianceViolation? violation = null;
+
+            if (reader.TokenType != JsonToken.Null)
+            {
+                // Try deserialize base.
+
+                JObject jsonObject = JObject.Load(reader);
+                ComplianceViolationBase? violationBase = jsonObject.ToObject<ComplianceViolationBase>(serializer);
+
+                if (violationBase != null)
+                {
+                    // Get id from json object.
+
+                    int id = jsonObject.GetValue("id")?.ToObject<int>() ?? 0;
+
+                    // Create instance from base and set id.
+
+                    violation = new(id, violationBase);
+
+                    // Parse Violation Type via criterion.
+
+                    violation.Type = violation.ParseViolationType(violation.Criterion);
+                }
+            }
+
+            return violation;
+        }
+
+        public override void WriteJson(JsonWriter writer, ComplianceViolation? value, JsonSerializer serializer)
+        {
+            if (value == null)
+            {
+                writer.WriteNull();
+                return;
+            }
+
+            if (value.Criterion != null)
+            {
+                value.Criterion.CriterionType = value.Type switch
+                {
+                    ComplianceViolationType.MatrixViolation => "Matrix",
+                    ComplianceViolationType.NotAssessable => "Assessability",
+                    ComplianceViolationType.ServiceViolation => "ForbiddenService",
+                    _ => value.Criterion.CriterionType
+                };
+            }
+
+            serializer.Serialize(writer, value);
         }
     }
 }

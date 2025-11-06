@@ -1,3 +1,4 @@
+using FWO.Basics.Enums;
 using FWO.Data;
 
 namespace FWO.Compliance
@@ -14,6 +15,7 @@ namespace FWO.Compliance
         public NetworkObject? Destination { get; set; }
         public ComplianceNetworkZone? DestinationZone { get; set; }
         public NetworkService? Service { get; set; }
+        public AssessabilityIssue? AssessabilityIssue { get; set; }
 
         public ComplianceCheckResult(Rule rule, ComplianceViolationType compliance = ComplianceViolationType.None)
         {

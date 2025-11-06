@@ -14,8 +14,11 @@ namespace FWO.Report.Data.ViewData
         public string Uid { get; set; } = "";
         public string Name { get; set; } = "";
         public string Source { get; set; } = "";
+        public string SourceShort { get; set; } = "";
         public string Destination { get; set; } = "";
+        public string DestinationShort { get; set; } = "";
         public string Services { get; set; } = "";
+        public string ServicesShort { get; set; } = "";
         public string Action { get; set; } = "";
         public string InstallOn { get; set; } = "";
         public string Compliance { get; set; } = "";
@@ -25,6 +28,7 @@ namespace FWO.Report.Data.ViewData
         public string Comment { get; set; } = "";
         public string RulebaseId { get; set; } = "";
         public string RulebaseName { get; set; } = "";
+        public string Enabled { get; set; } = "";
 
         public Rule? DataObject { get; set; }
         public bool Show { get; set; } = true;
@@ -43,9 +47,12 @@ namespace FWO.Report.Data.ViewData
             MgmtName = SafeCall(rule, "MgmtName", () => managements?.FirstOrDefault(m => m.Id == rule.MgmtId)?.Name ?? "");
             Uid = SafeCall(rule, "Uid", () => rule.Uid ?? "");
             Name = SafeCall(rule, "Name", () => rule.Name ?? "");
-            Source = SafeCall(rule, "Source", () => natRuleDisplayHtml.DisplaySource(rule, outputLocation, ReportType.Compliance));
-            Destination = SafeCall(rule, "Destination", () => natRuleDisplayHtml.DisplayDestination(rule, outputLocation, ReportType.Compliance));
-            Services = SafeCall(rule, "Services", () => natRuleDisplayHtml.DisplayServices(rule, outputLocation, ReportType.Compliance));
+            Source = SafeCall(rule, "Source", () => natRuleDisplayHtml.DisplaySource(rule, outputLocation, ReportType.ComplianceReport));
+            SourceShort = SafeCall(rule, "Source (Short)", () => natRuleDisplayHtml.DisplaySource(rule, outputLocation, ReportType.ComplianceReport, overwriteIsResolvedReport: true));
+            Destination = SafeCall(rule, "Destination", () => natRuleDisplayHtml.DisplayDestination(rule, outputLocation, ReportType.ComplianceReport));
+            DestinationShort = SafeCall(rule, "Destination (Short)", () => natRuleDisplayHtml.DisplayDestination(rule, outputLocation, ReportType.ComplianceReport, overwriteIsResolvedReport: true));
+            Services = SafeCall(rule, "Services", () => natRuleDisplayHtml.DisplayServices(rule, outputLocation, ReportType.ComplianceReport));
+            ServicesShort = SafeCall(rule, "Services (Short)", () => natRuleDisplayHtml.DisplayServices(rule, outputLocation, ReportType.ComplianceReport, overwriteIsResolvedReport: true));
             Action = SafeCall(rule, "Action", () => rule.Action);
             InstallOn = SafeCall(rule, "InstallOn", () => ResolveInstallOn(rule, devices ?? []));
             Compliance = SafeCall(rule, "Compliance", () => ResolveCompliance(rule, complianceViolationType));
@@ -55,6 +62,7 @@ namespace FWO.Report.Data.ViewData
             Comment = SafeCall(rule, "Comment", () => rule.Comment ?? "");
             RulebaseId = SafeCall(rule, "RulebaseId", () => rule.RulebaseId.ToString());
             RulebaseName = SafeCall(rule, "RulebaseName", () => rule.Rulebase?.Name ?? "");
+            Enabled = SafeCall(rule, "Enabled", () => RuleDisplayBase.DisplayEnabled(rule, outputLocation));
         }
 
         private string ResolveCompliance(Rule rule, ComplianceViolationType? complianceViolationType)

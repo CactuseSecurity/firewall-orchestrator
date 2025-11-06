@@ -41,9 +41,9 @@ namespace FWO.Ui.Display
         {
             switch (ruleChange.ChangeAction)
             {
-                case 'D': return DisplayRuleSourceZones(ruleChange.OldRule.RuleSourceZones);
-                case 'I': return DisplayRuleSourceZones(ruleChange.NewRule.RuleSourceZones);
-                case 'C': return DisplayJsonArray("source zones", DisplayArrayDiff(ListNetworkZones(ruleChange.OldRule.RuleSourceZones), ListNetworkZones(ruleChange.NewRule.RuleSourceZones)));
+                case 'D': return DisplayRuleSourceZones(ruleChange.OldRule.RuleSourceZones.Select(z => z.Content).ToArray());
+                case 'I': return DisplayRuleSourceZones(ruleChange.NewRule.RuleSourceZones.Select(z => z.Content).ToArray());
+                case 'C': return DisplayJsonArray("source zones", DisplayArrayDiff(ListNetworkZones(ruleChange.OldRule.RuleSourceZones.Select(z => z.Content).ToArray()), ListNetworkZones(ruleChange.NewRule.RuleSourceZones.Select(z => z.Content).ToArray())));
                 default: return "";
             }
         }
@@ -77,9 +77,9 @@ namespace FWO.Ui.Display
         {
             switch (ruleChange.ChangeAction)
             {
-                case 'D': return DisplayRuleDestinationZones(ruleChange.OldRule.RuleDestinationZones);
-                case 'I': return DisplayRuleDestinationZones(ruleChange.NewRule.RuleDestinationZones);
-                case 'C': return DisplayJsonArray("destination zones", DisplayArrayDiff(ListNetworkZones(ruleChange.OldRule.RuleDestinationZones), ListNetworkZones(ruleChange.NewRule.RuleDestinationZones)));
+                case 'D': return DisplayRuleDestinationZones(ruleChange.OldRule.RuleDestinationZones.Select(z => z.Content).ToArray());
+                case 'I': return DisplayRuleDestinationZones(ruleChange.NewRule.RuleDestinationZones.Select(z => z.Content).ToArray());
+                case 'C': return DisplayJsonArray("destination zones", DisplayArrayDiff(ListNetworkZones(ruleChange.OldRule.RuleDestinationZones.Select(z => z.Content).ToArray()), ListNetworkZones(ruleChange.NewRule.RuleDestinationZones.Select(z => z.Content).ToArray())));
                 default: return "";
             }
         }

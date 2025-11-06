@@ -48,7 +48,7 @@ namespace FWO.Data
         public string SourceRefs { get; set; } = "";
 
         [JsonProperty("rule_src_zones"), JsonPropertyName("rule_src_zones")]
-        public NetworkZone[] RuleSourceZones { get; set; } = [];
+        public ZoneWrapper[] RuleSourceZones { get; set; } = [];
 
         [JsonProperty("rule_froms"), JsonPropertyName("rule_froms")]
         public NetworkLocation[] Froms { get; set; } = [];
@@ -63,7 +63,7 @@ namespace FWO.Data
         public string DestinationRefs { get; set; } = "";
 
         [JsonProperty("rule_dst_zones"), JsonPropertyName("rule_dst_zones")]
-        public NetworkZone[] RuleDestinationZones { get; set; } = [];
+        public ZoneWrapper[] RuleDestinationZones { get; set; } = [];
 
         [JsonProperty("rule_tos"), JsonPropertyName("rule_tos")]
         public NetworkLocation[] Tos { get; set; } = [];

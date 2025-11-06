@@ -87,14 +87,14 @@ namespace FWO.Ui.Display
                 string ruleZones = "";
                 bool notFirst = false;
 
-                foreach (NetworkZone networkZone in rule.RuleSourceZones)
+                foreach (ZoneWrapper zoneWrapper in rule.RuleSourceZones)
                 {
                     if (notFirst)
                     {
                         ruleZones += "<br>";
                     }
 
-                    ruleZones += networkZone.Name;
+                    ruleZones += zoneWrapper.Content.Name;
                     notFirst = true;
                 }
                 return ruleZones;
@@ -112,14 +112,14 @@ namespace FWO.Ui.Display
                 string ruleZones = "";
                 bool notFirst = false;
 
-                foreach (NetworkZone networkZone in rule.RuleDestinationZones)
+                foreach (ZoneWrapper zoneWrapper in rule.RuleDestinationZones)
                 {
                     if (notFirst)
                     {
                         ruleZones += "<br>";
                     }
 
-                    ruleZones += networkZone.Name;
+                    ruleZones += zoneWrapper.Content.Name;
                     notFirst = true;
                 }
                 return ruleZones;

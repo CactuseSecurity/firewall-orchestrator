@@ -41,9 +41,9 @@ namespace FWO.Ui.Display
         {
             switch (ruleChange.ChangeAction)
             {
-                case 'D': return OutputCsv(ListNetworkZones(ruleChange.OldRule.RuleSourceZones));
-                case 'I': return OutputCsv(ListNetworkZones(ruleChange.NewRule.RuleSourceZones));
-                case 'C': return OutputCsv(DisplayDiff(ListNetworkZones(ruleChange.OldRule.RuleSourceZones), ListNetworkZones(ruleChange.NewRule.RuleSourceZones)));
+                case 'D': return OutputCsv(ListNetworkZones(ruleChange.OldRule.RuleSourceZones.Select(z => z.Content).ToArray()));
+                case 'I': return OutputCsv(ListNetworkZones(ruleChange.NewRule.RuleSourceZones.Select(z => z.Content).ToArray()));
+                case 'C': return OutputCsv(DisplayDiff(ListNetworkZones(ruleChange.OldRule.RuleSourceZones.Select(z => z.Content).ToArray()), ListNetworkZones(ruleChange.NewRule.RuleSourceZones.Select(z => z.Content).ToArray())));
                 default: return ",";
             }
         }
@@ -63,9 +63,9 @@ namespace FWO.Ui.Display
         {
             switch (ruleChange.ChangeAction)
             {
-                case 'D': return OutputCsv(ListNetworkZones(ruleChange.OldRule.RuleDestinationZones));
-                case 'I': return OutputCsv(ListNetworkZones(ruleChange.NewRule.RuleDestinationZones));
-                case 'C': return OutputCsv(DisplayDiff(ListNetworkZones(ruleChange.OldRule.RuleDestinationZones), ListNetworkZones(ruleChange.NewRule.RuleDestinationZones)));
+                case 'D': return OutputCsv(ListNetworkZones(ruleChange.OldRule.RuleDestinationZones.Select(z => z.Content).ToArray()));
+                case 'I': return OutputCsv(ListNetworkZones(ruleChange.NewRule.RuleDestinationZones.Select(z => z.Content).ToArray()));
+                case 'C': return OutputCsv(DisplayDiff(ListNetworkZones(ruleChange.OldRule.RuleDestinationZones.Select(z => z.Content).ToArray()), ListNetworkZones(ruleChange.NewRule.RuleDestinationZones.Select(z => z.Content).ToArray())));
                 default: return ",";
             }
         }

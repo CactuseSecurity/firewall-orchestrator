@@ -135,8 +135,8 @@
                                 @bind-SelectedRules="selectedItemsRuleReportTable" />
                             break;
 
-                        case ReportType.Compliance:
-                        case ReportType.ComplianceDiff:
+                        case ReportType.ComplianceReport:
+                        case ReportType.ComplianceDiffReport:
                             <ComplianceReport ReportData="currentReport.ReportData" RulesPerPage="rulesPerPage" @bind-SelectedRules="_selectedItemsComplianceReportTable" @ref="_complianceReport" ShowAnyRule="((ReportCompliance)currentReport).ShowNonImpactRules"/>
                             break;
 

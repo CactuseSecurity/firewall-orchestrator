@@ -2,30 +2,62 @@ using FWO.Basics.Interfaces;
 using Newtonsoft.Json;
 using System.Text.Json.Serialization;
 
+
 namespace FWO.Data
 {
+
+    [Newtonsoft.Json.JsonConverter(typeof(ComplianceViolationConverter))]
     public class ComplianceViolation : ComplianceViolationBase, IComplianceViolation
     {
         [JsonProperty("id"), JsonPropertyName("id")]
-        public int Id { get; set; }
+        public int Id { get; set; } = 0;
 
         public ComplianceViolationType Type { get; set; } = ComplianceViolationType.None;
 
-        public static ComplianceViolation Copy(ComplianceViolation violation)
+        public ComplianceViolation()
         {
-            return new()
+
+        }
+        
+        public ComplianceViolation(int id, ComplianceViolationBase baseObj)
+        {
+            Id = id;
+            RuleId = baseObj.RuleId;
+            RuleUid = baseObj.RuleUid;
+            MgmtUid = baseObj.MgmtUid;
+            FoundDate = baseObj.FoundDate;
+            RemovedDate = baseObj.RemovedDate;
+            Details = baseObj.Details;
+            RiskScore = baseObj.RiskScore;
+            PolicyId = baseObj.PolicyId;
+            CriterionId = baseObj.CriterionId;
+            Criterion = baseObj.Criterion;
+        }
+
+
+        public ComplianceViolationType ParseViolationType(ComplianceCriterion? criterion)
+        {
+            if (criterion == null)
             {
-                Id = violation.Id,
-                RuleId = violation.RuleId,
-                RuleUid = violation.RuleUid,
-                MgmtUid = violation.MgmtUid,
-                FoundDate = violation.FoundDate,
-                RemovedDate = violation.RemovedDate,
-                Details = violation.Details,
-                RiskScore = violation.RiskScore,
-                PolicyId = violation.PolicyId,
-                CriterionId = violation.CriterionId
-            };
+                return ComplianceViolationType.None;
+            }
+
+            switch (criterion.CriterionType)
+            {
+                case "Matrix":
+                    return ComplianceViolationType.MatrixViolation;
+
+                case "Assessability":
+                    return ComplianceViolationType.NotAssessable;
+
+                case "ForbiddenService":
+                    return ComplianceViolationType.ServiceViolation;
+
+                // TODO : implement for all criterion types
+
+                default:
+                    return ComplianceViolationType.None;
+            }
         }
     }
 
@@ -53,5 +85,9 @@ namespace FWO.Data
         public int PolicyId { get; set; }
         [JsonProperty("criterion_id"), JsonPropertyName("criterion_id")]
         public int CriterionId { get; set; }
+        [JsonProperty("criterion"), JsonPropertyName("criterion")]
+        public ComplianceCriterion? Criterion { get; set; }
     }
 }
+
+

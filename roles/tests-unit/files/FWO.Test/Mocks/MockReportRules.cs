@@ -100,7 +100,7 @@ namespace FWO.Test.Mocks
                 RulebaseLinks = rulebaseLinks?.ToArray() ?? []
             };
         }
-        
+
         public static RuleTreeItem CreateRuleTreeItem(int ruleId, int rulebaseId, List<int> position, List<ITreeItem<Rule>>? children = null)
         {
             RuleTreeItem item = new RuleTreeItem
@@ -117,5 +117,6 @@ namespace FWO.Test.Mocks
 
             return item;
         }
+
     }
 }

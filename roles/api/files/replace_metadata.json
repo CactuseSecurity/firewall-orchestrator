@@ -23558,21 +23558,6 @@
               },
               "object_relationships": [
                 {
-                  "name": "device",
-                  "using": {
-                    "manual_configuration": {
-                      "column_mapping": {
-                        "dev_id": "dev_id"
-                      },
-                      "insertion_order": null,
-                      "remote_table": {
-                        "name": "device",
-                        "schema": "public"
-                      }
-                    }
-                  }
-                },
-                {
                   "name": "dst_zone",
                   "using": {
                     "manual_configuration": {

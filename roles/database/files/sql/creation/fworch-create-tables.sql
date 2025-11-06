@@ -6,7 +6,7 @@ Contact			https://cactus.de/fworch
 Database		PostgreSQL 9-13
 */
 
-/* Create Sequence 
+/* Create Sequence
 
 the abs_hange_id is needed as it is incremented across 4 different tables
 
@@ -59,7 +59,7 @@ Create table "management" -- contains an entry for each firewall management syst
 	"mgm_name" Varchar NOT NULL,
 	"mgm_comment" Text,
  	"cloud_tenant_id" VARCHAR,
-	"cloud_subscription_id" VARCHAR,	
+	"cloud_subscription_id" VARCHAR,
 	"mgm_create" Timestamp NOT NULL Default now(),
 	"mgm_update" Timestamp NOT NULL Default now(),
 	"import_credential_id" Integer NOT NULL,
@@ -212,7 +212,7 @@ Create table "rule_metadata"
 	"last_change_admin" Integer,
 	"rule_decert_date" Timestamp,
 	"rule_recertification_comment" Varchar,
- primary key ("rule_metadata_id") 
+ primary key ("rule_metadata_id")
 );
 
 -- adding direct link tables rule_[svc|nwobj|user]_resolved to make report object export easier
@@ -485,7 +485,7 @@ Create table "tenant"
 	"tenant_comment" Text,
 	"tenant_report" Boolean Default true,
 	"tenant_can_view_all_devices" Boolean NOT NULL Default false,
-	"tenant_is_superadmin" Boolean NOT NULL default false,	
+	"tenant_is_superadmin" Boolean NOT NULL default false,
 	"tenant_create" Timestamp NOT NULL Default now(),
  primary key ("tenant_id")
 );
@@ -1018,7 +1018,7 @@ Create table "report_schedule"
 	"report_template_id" Integer, --FK
 	"report_schedule_owner" Integer NOT NULL, --FK
 	"report_schedule_start_time" Timestamp NOT NULL,  -- if day is bigger than 28, simply use the 1st of the next month, 00:00 am
-	"report_schedule_repeat" Integer Not NULL Default 0, -- 0 do not repeat, 1 daily, 2 weekly, 3 monthly, 4 yearly 
+	"report_schedule_repeat" Integer Not NULL Default 0, -- 0 do not repeat, 1 daily, 2 weekly, 3 monthly, 4 yearly
 	"report_schedule_every" Integer Not NULL Default 1, -- x - every x days/weeks/months/years
 	"report_schedule_active" Boolean Default TRUE,
 	"report_schedule_repetitions" Integer,
@@ -1124,7 +1124,7 @@ create table owner_network
     port int,
     ip_proto_id int,
 	nw_type int,
-	import_source Varchar default 'manual', 
+	import_source Varchar default 'manual',
 	is_deleted boolean default false,
 	custom_type int
 );
@@ -1156,7 +1156,7 @@ create table recertification
 	owner_recert_id bigint
 );
 
-Create Table IF NOT EXISTS "rule_enforced_on_gateway" 
+Create Table IF NOT EXISTS "rule_enforced_on_gateway"
 (
 	"rule_id" Integer NOT NULL,
 	"dev_id" Integer,  --  NULL if rule is available for all gateways of its management
@@ -1238,7 +1238,7 @@ CREATE TYPE rule_field_enum AS ENUM ('source', 'destination', 'service', 'rule',
 CREATE TYPE action_enum AS ENUM ('create', 'delete', 'modify', 'unchanged', 'addAfterCreation');
 
 -- create tables
-create table request.reqtask 
+create table request.reqtask
 (
     id BIGSERIAL PRIMARY KEY,
     title VARCHAR,
@@ -1267,7 +1267,7 @@ create table request.reqtask
 	mgm_id int
 );
 
-create table request.reqelement 
+create table request.reqelement
 (
     id BIGSERIAL PRIMARY KEY,
     request_action action_enum NOT NULL default 'create',
@@ -1288,7 +1288,7 @@ create table request.reqelement
 	name varchar
 );
 
-create table request.approval 
+create table request.approval
 (
     id BIGSERIAL PRIMARY KEY,
     task_id bigint,
@@ -1305,7 +1305,7 @@ create table request.approval
 	state_id int NOT NULL
 );
 
-create table request.ticket 
+create table request.ticket
 (
     id BIGSERIAL PRIMARY KEY,
     title VARCHAR NOT NULL,
@@ -1326,7 +1326,7 @@ create table request.ticket
 	ticket_priority int
 );
 
-create table request.comment 
+create table request.comment
 (
     id BIGSERIAL PRIMARY KEY,
     ref_id bigint,
@@ -1662,4 +1662,13 @@ create table modelling.change_history
 	changer Varchar,
 	change_time Timestamp default now(),
 	change_source Varchar default 'manual'
+);
+
+CREATE TABLE refresh_tokens (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER REFERENCES uiuser(uiuser_id) ON DELETE CASCADE,
+    token_hash VARCHAR(88) UNIQUE NOT NULL,
+    expires_at TIMESTAMP WITH TIME ZONE NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    revoked_at TIMESTAMP WITH TIME ZONE NULL
 );

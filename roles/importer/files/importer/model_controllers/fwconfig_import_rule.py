@@ -115,10 +115,10 @@ class FwConfigImportRule():
         num_changed_rules, old_rule_ids, updated_rule_ids = self.create_new_rule_version(changedRuleUids)
 
         self.uid2id_mapper.add_rule_mappings(new_rule_ids + updated_rule_ids)
-        num_new_refs = self.add_new_refs(prevConfig)
+        _ = self.add_new_refs(prevConfig)
 
         num_deleted_rules, removed_rule_ids = self.markRulesRemoved(rule_order_diffs["deleted_rule_uids"], changedRuleUids)
-        num_removed_refs = self.remove_outdated_refs(prevConfig)
+        _ = self.remove_outdated_refs(prevConfig)
 
         _, num_moved_rules, _ = self.verify_rules_moved(changedRuleUids)
 
@@ -711,10 +711,10 @@ class FwConfigImportRule():
         # add rules for each rulebase
         return newRulesForImport    
 
-    def markRulesRemoved(self, removedRuleUids, changedRuleUids):
+    def markRulesRemoved(self, removedRuleUids: dict[str, list[str]], changedRuleUids: dict[str, list[str]]) -> tuple[int, list[str]]:
         logger = getFwoLogger()
         changes = 0
-        collectedRemovedRuleIds = []
+        collectedRemovedRuleIds: list[str] = []
 
         # TODO: make sure not to mark new (changed) rules as removed (order of calls!)
         
@@ -729,7 +729,7 @@ class FwConfigImportRule():
                         }
                     }
                 """
-                query_variables = {  'importId': self.import_details.ImportId,
+                query_variables: dict[str, Any] = {  'importId': self.import_details.ImportId,
                                     'mgmId': self.import_details.MgmDetails.CurrentMgmId,
                                     'uids': list(removedRuleUids[rbName]) }
                 
@@ -747,7 +747,7 @@ class FwConfigImportRule():
         return changes, collectedRemovedRuleIds
 
 
-    def create_new_rule_version(self, rule_uids):
+    def create_new_rule_version(self, rule_uids: dict[str, list[str]]) -> tuple[int, list[int], list[dict[str, Any]]]:
         logger = getFwoLogger()
         self._changed_rule_id_map = {}
 
@@ -794,7 +794,7 @@ class FwConfigImportRule():
         }
         """
 
-        import_rules: list = []
+        import_rules: list[dict[str, Any]] = []
 
         for rulebase_uid in list(rule_uids.keys()):
                 
@@ -925,7 +925,7 @@ class FwConfigImportRule():
             logger.exception(f"failed to move rules: {str(traceback.format_exc())}")
             return 1, 0, []
         
-    def verify_rules_moved(self, changed_rule_uids):
+    def verify_rules_moved(self, changed_rule_uids: dict[str, list[str]]) -> tuple[int, int, list[str]]:
         error_count_move = 0 
         number_of_moved_rules = 0
 
@@ -1173,7 +1173,7 @@ class FwConfigImportRule():
 
         return rule_for_import
 
-    def write_changelog_rules(self, added_rules_ids, removed_rules_ids):
+    def write_changelog_rules(self, added_rules_ids: list[str], removed_rules_ids: list[str]) -> int:
         logger = getFwoLogger()
         errors = 0
 
@@ -1198,7 +1198,7 @@ class FwConfigImportRule():
         return errors
 
 
-    def prepare_changelog_rules_insert_objects(self, added_rules_ids, removed_rules_ids):
+    def prepare_changelog_rules_insert_objects(self, added_rules_ids: list[str], removed_rules_ids: dict[str, list[str]]) -> list[dict[str, Any]]:
         """
             Creates two lists of insert arguments for the changelog_rules db table, one for new rules, one for deleted.
         """

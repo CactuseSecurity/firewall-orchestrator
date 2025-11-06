@@ -256,8 +256,18 @@ namespace FWO.Middleware.Server
             ComplianceNetworkZone? existingZone = ExistingZones.FirstOrDefault(x => x.IdString == incomingZoneData.IdString);
             if (existingZone != null)
             {
+                // Dont allow auto-calculated undefine-internal to have allowed communications.
+
+                if (globalConfig.AutoCalculateInternetZone 
+                    && globalConfig.AutoCalculateUndefinedInternalZone 
+                    && incomingZoneData.CommData.Any(communication => communication.IdString == "AUTO_CALCULATED_ZONE_UNDEFINED_INTERNAL"))
+                {
+                    throw new ArgumentException("Matrix contains allowed communication data for readonly auto-calculated undefined-internal zone.");
+                }
+
                 List<int> existDestZoneIds = [.. existingZone.AllowedCommunicationDestinations.Select(x => x.Id)];
                 List<int> incomingDestZoneIds = [.. incomingZoneData.CommData.Select(x => ZoneIds[x.IdString])];
+
                 NetworkZoneService.AdditionsDeletions addDel = new()
                 {
                     DestinationZonesToAdd = incomingDestZoneIds.Except(existDestZoneIds).ToList().ConvertAll(i => new ComplianceNetworkZone(){ Id = i }),

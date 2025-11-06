@@ -752,6 +752,10 @@ namespace FWO.Test
 
         private static Rule InitRule1(bool resolved)
         {
+            var srcZoneNames = new[] { "srczn1", "srczn2", "srczn3" };
+            var dstZoneNames = new[] { "dstzn1", "dstzn2", "dstzn3" };
+
+
             return new Rule()
             {
                 Name = "TestRule1",
@@ -761,10 +765,10 @@ namespace FWO.Test
                 DisplayOrderNumber = 1,
                 Track = "none",
                 Uid = "uid1",
-                RuleSourceZones = new NetworkZone[] { new NetworkZone { Name = "srczn1" }, new NetworkZone { Name = "srczn2" }, new NetworkZone { Name = "srczn3" } },
+                RuleSourceZones = srcZoneNames.Select(name => new ZoneWrapper { Content = new NetworkZone { Name = name } }).ToArray(),
                 SourceNegated = false,
                 Froms = InitFroms(resolved),
-                RuleDestinationZones = new NetworkZone[] { new NetworkZone { Name = "dstzn1" }, new NetworkZone { Name = "dstzn2" }, new NetworkZone { Name = "dstzn3" } },                
+                RuleDestinationZones = dstZoneNames.Select(name => new ZoneWrapper { Content = new NetworkZone { Name = name } }).ToArray(),
                 DestinationNegated = false,
                 Tos = InitTos(resolved),
                 ServiceNegated = false,

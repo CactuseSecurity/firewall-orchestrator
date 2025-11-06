@@ -10,9 +10,8 @@ namespace FWO.Test
     {
         private MockReportCompliance _complianceReport => new(new(""), new(), Basics.ReportType.ComplianceReport);
         private MockReportCompliance _testReport = default!;
-        private MockReportComplianceDiff _complianceDiffReport => new(new(""), new(){ComplianceCheckMaxPrintedViolations = 2}, Basics.ReportType.ComplianceDiffReport);
         private MockReportComplianceDiff _testDiffReport = default!;
-        
+
 
         [SetUp]
         public void SetUpTest()
@@ -22,8 +21,8 @@ namespace FWO.Test
             globalConfig.ComplianceCheckMaxPrintedViolations = 2;
             UserConfig userConfig = new(globalConfig);
 
-            _testDiffReport =  new(new(""), userConfig, Basics.ReportType.ComplianceDiffReport);
-;
+            _testDiffReport = new(new(""), userConfig, Basics.ReportType.ComplianceDiffReport);
+            ;
             _testDiffReport.MockPostProcessDiffReportsRule = true;
         }
 
@@ -53,10 +52,6 @@ namespace FWO.Test
         public async Task ProcessChunksParallelized_DiffReport_CreatesCorrectDiffs()
         {
             // ARRANGE
-            // not assessable -> only prints not assessable details
-            // abbreviated -> abbreviated
-            // multiple
-            // singular
 
             CancellationToken ct = default;
             DateTime foundDate = DateTime.Now;
@@ -101,7 +96,7 @@ namespace FWO.Test
                     CreateMockComplianceViolation(7,3, foundDate, type: ComplianceViolationType.ServiceViolation)
                 ]
             };
-            
+
             Rule singular = new()
             {
                 Id = 4,
@@ -205,7 +200,7 @@ namespace FWO.Test
 
             return violation;
         }
-        
+
         private string CreateViolationDetailsControlString(DateTime foundDate, int violationId)
         {
             return $"Found: ({foundDate:dd.MM.yyyy} - {foundDate:hh:mm}) Test violation {violationId}";

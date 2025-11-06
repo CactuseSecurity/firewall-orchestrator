@@ -436,7 +436,7 @@ namespace FWO.Config.Api.Data
         [JsonProperty("complianceCheckInternetZoneObject"), JsonPropertyName("complianceCheckInternetZoneObject")]
         public string ComplianceCheckInternetZoneObject { get; set; } = "";
 
-        [JsonProperty("complianceCheckPrintedViolations"), JsonPropertyName("complianceCheckMaxPrintedViolations")]
+        [JsonProperty("complianceCheckMaxPrintedViolations"), JsonPropertyName("complianceCheckMaxPrintedViolations")]
         public int ComplianceCheckMaxPrintedViolations { get; set; } = 0;
         
         [JsonProperty("complianceCheckSortMatrixByID"), JsonPropertyName("complianceCheckSortMatrixByID")]

@@ -62,7 +62,7 @@ namespace FWO.Report.Data.ViewData
             Comment = SafeCall(rule, "Comment", () => rule.Comment ?? "");
             RulebaseId = SafeCall(rule, "RulebaseId", () => rule.RulebaseId.ToString());
             RulebaseName = SafeCall(rule, "RulebaseName", () => rule.Rulebase?.Name ?? "");
-            Enabled = SafeCall(rule, "Disabled", () => RuleDisplayBase.DisplayEnabled(rule, outputLocation));
+            Enabled = SafeCall(rule, "Enabled", () => RuleDisplayBase.DisplayEnabled(rule, outputLocation));
         }
 
         private string ResolveCompliance(Rule rule, ComplianceViolationType? complianceViolationType)

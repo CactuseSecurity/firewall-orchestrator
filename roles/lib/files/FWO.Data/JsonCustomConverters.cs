@@ -2,19 +2,7 @@
 using NetTools;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Linq;
 using System.Net;
-using System.Text;
-using System.Text.Json.Nodes;
-using System.Threading.Tasks;
-using FWO.Basics.Enums;
-using FWO.Data.Extensions;
-
-
-
 
 namespace FWO.Data
 {
@@ -126,7 +114,6 @@ namespace FWO.Data
                 return;
             }
 
-            // Optional: vor dem Schreiben sicherstellen, dass Criterion.CriterionType korrekt gesetzt ist
             if (value.Criterion != null)
             {
                 value.Criterion.CriterionType = value.Type switch
@@ -138,10 +125,7 @@ namespace FWO.Data
                 };
             }
 
-            // Jetzt das Objekt ganz normal schreiben
-            serializer.Serialize(writer, (ComplianceViolationBase)value);
+            serializer.Serialize(writer, value);
         }
     }
-
-
 }

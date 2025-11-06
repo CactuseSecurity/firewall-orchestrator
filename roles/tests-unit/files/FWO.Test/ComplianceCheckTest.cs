@@ -100,7 +100,7 @@ namespace FWO.Test
                 Id = ruleID,
                 Action = "accept"
             };
-            
+
             List<ServiceWrapper> services = new();
             List<NetworkLocation> froms = new();
             List<NetworkLocation> tos = new();

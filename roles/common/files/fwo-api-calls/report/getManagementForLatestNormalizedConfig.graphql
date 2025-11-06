@@ -82,7 +82,7 @@ fragment rulebaseFragment on rulebase {
   name
   uid
   is_global
-  rules(where: { removed: { _is_null: true } }) {
+  rules(where: { removed: { _is_null: true } } order_by: { rule_num_numeric: asc }) {
     ...ruleFragment
   }
 }

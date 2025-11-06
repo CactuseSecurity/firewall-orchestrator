@@ -37,7 +37,7 @@
 
         @if (EmptyColumns[2] == false)
         {
-            <Column TableItem="RuleViewData" Context="rule" Title="Uid" Field="@(r => r.Uid)" Sortable="true" Filterable="true" Hideable="true">
+            <Column TableItem="RuleViewData" Context="rule" Title="Uid" Field="@(r => r.Uid)" Sortable="true" Filterable="true" Hideable="true"  DefaultSortColumn="true">
                 <Template>
                     @((MarkupString)rule.Uid)
                 </Template>
@@ -62,7 +62,17 @@
             </Column>
         }
 
-        @if (EmptyColumns[5] == false)
+        @if (EmptyColumns[5] == false && (userConfig.GlobalConfig?.ShowShortColumnsInComplianceReports ?? true))
+        {
+            <Column TableItem="RuleViewData" Context="rule" Title="Source (Short)" Field="@(r => r.SourceShort)" Sortable="true" Filterable="true" Hideable="true">
+                <Template>
+                    @((MarkupString)rule.SourceShort)
+                </Template>
+            </Column>
+        }
+
+
+        @if (EmptyColumns[6] == false)
         {
             <Column TableItem="RuleViewData" Context="rule" Title="Destination" Field="@(r => r.Destination)" Sortable="true" Filterable="true" Hideable="true">
                 <Template>
@@ -71,7 +81,16 @@
             </Column>
         }
 
-        @if (EmptyColumns[6] == false)
+        @if (EmptyColumns[7] == false && (userConfig.GlobalConfig?.ShowShortColumnsInComplianceReports ?? true))
+        {
+            <Column TableItem="RuleViewData" Context="rule" Title="Destination (short)" Field="@(r => r.DestinationShort)" Sortable="true" Filterable="true" Hideable="true">
+                <Template>
+                    @((MarkupString)rule.DestinationShort)
+                </Template>
+            </Column>
+        }
+
+        @if (EmptyColumns[8] == false)
         {
             <Column TableItem="RuleViewData" Context="rule" Title="Services" Field="@(r => r.Services)" Sortable="true" Filterable="true" Hideable="true">
                 <Template>
@@ -80,7 +99,16 @@
             </Column>
         }
 
-        @if (EmptyColumns[7] == false)
+        @if (EmptyColumns[9] == false && (userConfig.GlobalConfig?.ShowShortColumnsInComplianceReports ?? true))
+        {
+            <Column TableItem="RuleViewData" Context="rule" Title="Services (short)" Field="@(r => r.ServicesShort)" Sortable="true" Filterable="true" Hideable="true">
+                <Template>
+                    @((MarkupString)rule.ServicesShort)
+                </Template>
+            </Column>
+        }
+
+        @if (EmptyColumns[10] == false)
         {
             <Column TableItem="RuleViewData" Context="rule" Title="Action" Field="@(r => r.Action)" Sortable="true" Filterable="true" Hideable="true">
                 <Template>
@@ -89,7 +117,7 @@
             </Column>
         }
 
-        @if (EmptyColumns[8] == false)
+        @if (EmptyColumns[11] == false)
         {
             <Column TableItem="RuleViewData" Context="rule" Title="InstallOn" Field="@(r => r.InstallOn)" Sortable="true" Filterable="true" Hideable="true">
                 <Template>
@@ -98,7 +126,7 @@
             </Column>
         }
 
-        @if (EmptyColumns[9] == false)
+        @if (EmptyColumns[12] == false)
         {
             <Column TableItem="RuleViewData" Context="rule" Title="Compliance" Field="@(r => r.Compliance)" Sortable="true" Filterable="true" Hideable="true">
                 <Template>
@@ -107,7 +135,7 @@
             </Column>
         }
 
-        @if (EmptyColumns[10] == false)
+        @if (EmptyColumns[13] == false)
         {
             <Column TableItem="RuleViewData" Context="rule" Title="ViolationDetails" Field="@(r => r.ViolationDetails)" Sortable="true" Filterable="true" Hideable="true">
                 <Template>
@@ -116,7 +144,7 @@
             </Column>
         }
 
-        @if (EmptyColumns[11] == false)
+        @if (EmptyColumns[14] == false)
         {
             <Column TableItem="RuleViewData" Context="rule" Title="ChangeID" Field="@(r => r.ChangeID)" Sortable="true" Filterable="true" Hideable="true">
                 <Template>
@@ -125,7 +153,7 @@
             </Column>
         }
 
-        @if (EmptyColumns[12] == false)
+        @if (EmptyColumns[15] == false)
         {
             <Column TableItem="RuleViewData" Context="rule" Title="AdoITID" Field="@(r => r.AdoITID)" Sortable="true" Filterable="true" Hideable="true" DefaultSortColumn="true">
                 <Template>
@@ -134,7 +162,7 @@
             </Column>
         }
 
-        @if (EmptyColumns[13] == false)
+        @if (EmptyColumns[16] == false)
         {
             <Column TableItem="RuleViewData" Context="rule" Title="Comment" Field="@(r => r.Comment)" Sortable="true" Filterable="true" Hideable="true">
                 <Template>
@@ -143,7 +171,7 @@
             </Column>
         }
 
-        @if (EmptyColumns[14] == false)
+        @if (EmptyColumns[17] == false)
         {
             <Column TableItem="RuleViewData" Context="rule" Title="RulebaseId" Field="@(r => r.RulebaseId)" Sortable="true" Filterable="true" Hideable="true">
                 <Template>
@@ -152,11 +180,20 @@
             </Column>
         }
 
-        @if (EmptyColumns[15] == false)
+        @if (EmptyColumns[18] == false)
         {
             <Column TableItem="RuleViewData" Context="rule" Title="RulebaseName" Field="@(r => r.RulebaseName)" Sortable="true" Filterable="true" Hideable="true">
                 <Template>
                     @((MarkupString)rule.RulebaseName)
+                </Template>
+            </Column>
+        }
+
+        @if (EmptyColumns[19] == false)
+        {
+            <Column TableItem="RuleViewData" Context="rule" Title="Enabled" Field="@(r => r.Enabled)" Sortable="true" Filterable="true" Hideable="true">
+                <Template>
+                    @((MarkupString)rule.Enabled)
                 </Template>
             </Column>
         }
@@ -221,7 +258,7 @@
     private RuleViewData[] _visibleRules = [];
     private RuleViewData[] _allRules = [];
 
-    private const int ColumnsCount = 16;
+    private const int ColumnsCount = 20;
     private bool[] EmptyColumns = new bool[ColumnsCount];
 
     private NatRuleDisplayHtml? ruleDisplay;

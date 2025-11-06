@@ -34,6 +34,7 @@ namespace FWO.Test
             _managementReports = _mockReportRules.SetupSingleManagementReportEmpty();
         }
 
+        [TearDown]
         public void TearDown()
         {
             typeof(ReportRules)
@@ -129,7 +130,7 @@ namespace FWO.Test
         }
 
         [Test]
-        public void GetAllRulesOfGateway_ReturnsEmpty_WhenCacheEmpty()
+        public void Test_GetAllRulesOfGateway_ReturnsEmpty_WhenCacheEmpty()
         {
             var device = MockReportRules.CreateDeviceReport();
             var management = new ManagementReport();
@@ -211,7 +212,7 @@ namespace FWO.Test
         }
 
         [Test]
-        public void GetAllRulesOfGateway_ReturnsRules_FromCache()
+        public void Test_GetAllRulesOfGateway_ReturnsRules_FromCache()
         {
             var device = MockReportRules.CreateDeviceReport();
             var management = new ManagementReport();
@@ -264,7 +265,7 @@ namespace FWO.Test
         }
 
         [Test]
-        public void ConstructHtmlReport_GeneratesHtmlSections()
+        public void Test_ConstructHtmlReport_GeneratesHtmlSections()
         {
             // Arrange
             var mockReportRules = new MockReportRules(
@@ -294,7 +295,7 @@ namespace FWO.Test
         }
 
         [Test]
-        public void GetInitialRulesOfGateway_ReturnsRules_WhenInitialRulebaseExists()
+        public void Test_GetInitialRulesOfGateway_ReturnsRules_WhenInitialRulebaseExists()
         {
             int numberOfRules = 2;
             var (management, device) = CreateBasicManagementSetup(numberOfRules);
@@ -313,7 +314,7 @@ namespace FWO.Test
         }
 
         [Test]
-        public void GetInitialRulesOfGateway_ReturnsEmpty_WhenNoInitialRulebase()
+        public void Test_GetInitialRulesOfGateway_ReturnsEmpty_WhenNoInitialRulebase()
         {
             var management = new ManagementReport();
             var device = new DeviceReportController(DeviceReportController.FromDeviceReport(MockReportRules.CreateDeviceReport()));

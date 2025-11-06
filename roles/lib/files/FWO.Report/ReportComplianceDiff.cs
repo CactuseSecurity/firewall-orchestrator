@@ -37,59 +37,15 @@ namespace FWO.Report
             return showRule;
         }
 
-        protected override Task AddViolationDataToViolationDetails(Rule rule, ComplianceViolation violation, ref int printedViolations, int violationCount, ref bool abbreviated, bool concatenateDetails)
+        protected override Task SetComplianceDataForRule(Rule rule, ApiConnection apiConnection, Func<ComplianceViolation, string>? formatter = null)
         {
-            bool relevantForDiff = ViolationIsRelevantForDiff(violation);
-
-            if (relevantForDiff)
-            {
-                TransformViolationDetailsToDiff(violation);
-            }
-
-            base.AddViolationDataToViolationDetails(rule, violation, ref printedViolations, violationCount, ref abbreviated, concatenateDetails && relevantForDiff);
-
-            return Task.CompletedTask;
+            return base.SetComplianceDataForRule(rule, apiConnection, FormatViolationDetails);
         }
 
-        protected override async Task SetComplianceDataForRule(Rule rule, ApiConnection apiConnection)
+
+        private string FormatViolationDetails(ComplianceViolation violation)
         {
-            try
-            {
-                await base.SetComplianceDataForRule(rule, apiConnection);
-                await PostProcessDiffReportsRule(rule, apiConnection);
-            }
-            catch (Exception e)
-            {
-                Log.TryWriteLog(LogType.Error, "Compliance Report", $"Error while setting compliance data for rule {rule.Id}: {e.Message}", DebugConfig.ExtendedLogReportGeneration);
-                return;
-            }
-        }
-
-        private bool ViolationIsRelevantForDiff(ComplianceViolation violation)
-        {
-            return violation.FoundDate > DateTime.Now.AddDays(-DiffReferenceInDays)
-                || (violation.RemovedDate != null
-                && violation.RemovedDate > DateTime.Now.AddDays(-DiffReferenceInDays));
-        }
-
-        public Task TransformViolationDetailsToDiff(ComplianceViolation violation)
-        {
-            DateTime referenceDate = DateTime.Now.AddDays(-DiffReferenceInDays);
-
-            string diffPrefix = "";
-
-            if (violation.FoundDate >= referenceDate)
-            {
-                diffPrefix = $"Found: ({violation.FoundDate:dd.MM.yyyy - hh:mm}) ";
-            }
-            if (violation.RemovedDate != null && violation.RemovedDate >= referenceDate)
-            {
-                diffPrefix += $"Removed: ({violation.RemovedDate:dd.MM.yyyy - hh:mm}) ";
-            }
-
-            violation.Details = $"{diffPrefix}: {violation.Details}";
-
-            return Task.CompletedTask;
+            return $"Found: ({violation.FoundDate:dd.MM.yyyy - hh:mm}) {violation.Details}";
         }
 
         protected virtual async Task PostProcessDiffReportsRule(Rule rule, ApiConnection apiConnection)

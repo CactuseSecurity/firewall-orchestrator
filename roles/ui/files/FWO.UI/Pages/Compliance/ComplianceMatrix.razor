@@ -71,10 +71,14 @@
                         </AuthorizeView>
                     </div>
                 }
-                else if(!readonlyMode)
+                else
                 {
                     <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.FwAdmin}, {Roles.Auditor}")">
-                        <button type="button" class="btn btn-sm btn-warning" @onclick="() => ToggleEditMode(true)">@userConfig.GetText("edit")</button>
+
+                        <div data-toggle="tooltip" title="@(userConfig.PureLine(readonlyMode ? "H5838" : "H5837"))">
+                            <button type="button" class="btn btn-sm btn-warning" disabled="@readonlyMode" @onclick="() => ToggleEditMode(true)">@userConfig.GetText("edit")</button>
+                        </div>
+
                     </AuthorizeView>
                 }
                 </div>

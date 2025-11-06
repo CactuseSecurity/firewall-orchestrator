@@ -115,13 +115,16 @@
             List<Management> managementsWithRelevantImportId =
                 await apiConnection.SendQueryAsync<List<Management>>(ReportQueries.getRelevantImportIdsAtTime, Variables);
             
-            if(managementsWithRelevantImportId.Count > 0)
+            if (managementsWithRelevantImportId.Count > 0)
             {
+                // we may get multiple results if this management is a submanagement of a multi device manager
+                long importId = managementsWithRelevantImportId.Select(m => m.Import.ImportAggregate.ImportAggregateMax.RelevantImportId ?? 0).Max();
+                
                 var RuleVariables = new
                 {
                     devId = newDevice.Id,
-                    import_id_start = managementsWithRelevantImportId[0].Import.ImportAggregate.ImportAggregateMax.RelevantImportId,
-                    import_id_end   = managementsWithRelevantImportId[0].Import.ImportAggregate.ImportAggregateMax.RelevantImportId
+                    import_id_start = importId,
+                    import_id_end   = importId
                 };
                 // allRulesOfDevice = await apiConnection.SendQueryAsync<List<Rule>>(RuleQueries.getRuleUidsOfDevice, RuleVariables);
             }

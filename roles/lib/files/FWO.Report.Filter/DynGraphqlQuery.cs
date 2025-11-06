@@ -330,8 +330,8 @@ namespace FWO.Report.Filter
                 case ReportType.ResolvedRulesTech:
                 case ReportType.UnusedRules:
                 case ReportType.AppRules:
-                case ReportType.Compliance:
-                case ReportType.ComplianceDiff:
+                case ReportType.ComplianceReport:
+                case ReportType.ComplianceDiffReport:
                 case ReportType.RecertEventReport:
                     query.FullQuery = Queries.Compact(ConstructRulesQuery(query, paramString, filter));
                     break;
@@ -464,8 +464,8 @@ namespace FWO.Report.Filter
                     case ReportType.NatRules:
                     case ReportType.UnusedRules:
                     case ReportType.AppRules:
-                    case ReportType.Compliance:
-                    case ReportType.ComplianceDiff:
+                    case ReportType.ComplianceReport:
+                    case ReportType.ComplianceDiffReport:
                     case ReportType.RecertEventReport:
                         query.QueryParameters.Add("$import_id_start: bigint ");
                         query.QueryParameters.Add("$import_id_end: bigint ");

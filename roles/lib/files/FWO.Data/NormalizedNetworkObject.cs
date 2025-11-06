@@ -12,10 +12,10 @@ namespace FWO.Data
         public string ObjName { get; set; } = "";
 
         [JsonProperty("obj_ip"), JsonPropertyName("obj_ip")]
-        public string ObjIp { get; set; } = "";
+        public string? ObjIp { get; set; }
 
         [JsonProperty("obj_ip_end"), JsonPropertyName("obj_ip_end")]
-        public string ObjIpEnd { get; set; } = "";
+        public string? ObjIpEnd { get; set; }
 
         [JsonProperty("obj_color"), JsonPropertyName("obj_color")]
         public string ObjColor { get; set; } = "";

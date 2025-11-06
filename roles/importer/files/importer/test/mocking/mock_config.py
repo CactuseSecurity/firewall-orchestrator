@@ -262,7 +262,7 @@ class MockFwConfigNormalizedBuilder():
             change_obj (str): The object to change. Can be "from", "svc", "member", "member_svc", "nested_member", or "nested_member_svc".
         """
         rulebase = config.rulebases[0]
-        rule = rulebase.Rules.get("cpr")
+        rule = rulebase.rules.get("cpr")
         if not rule:
             raise ValueError("Rule 'cpr' not found in the rulebase.")
         if change_type == "change":
@@ -401,7 +401,7 @@ class MockFwConfigNormalizedBuilder():
             # Create ordered rulebase link.
             
             current_from_rulebase_uid = config.rulebases[index - 1].uid
-            current_from_rule_uid = list(config.rulebases[index - 1].Rules.values())[-1].rule_uid
+            current_from_rule_uid = list(config.rulebases[index - 1].rules.values())[-1].rule_uid
             rulebase_links.append(
                 RulebaseLinkUidBased(
                     from_rulebase_uid = current_from_rulebase_uid,
@@ -493,8 +493,8 @@ class MockFwConfigNormalizedBuilder():
             rule_svc_refs = rule_dict.get("rule_svc_refs", list_delimiter.join(svc.svc_uid for svc in svc_objs)),
             rule_action = rule_dict.get("rule_action", RuleAction.ACCEPT),
             rule_track = rule_dict.get("rule_track", RuleTrack.NONE),
-            rule_installon = rule_dict.get("rule_installon", ""),
-            rule_time = rule_dict.get("rule_time", "always"),
+            rule_installon = rule_dict.get("rule_installon"),
+            rule_time = rule_dict.get("rule_time"),
             rule_name = rule_dict.get("rule_name", f"Rule {uid}"),
             rule_uid = uid,
             rule_custom_fields = rule_dict.get("rule_custom_fields", None),
@@ -510,7 +510,7 @@ class MockFwConfigNormalizedBuilder():
             rule_num = rule_dict.get("rule_num", 0),
             rule_num_numeric = rule_dict.get("rule_num_numeric", 0.0),
         )
-        rulebase.Rules[new_rule.rule_uid] = new_rule
+        rulebase.rules[new_rule.rule_uid] = new_rule
 
         return new_rule
         

@@ -161,6 +161,10 @@ INSERT INTO txt VALUES ('RecertificationEvent', 'German', 	'Zert: Zertifikat');
 INSERT INTO txt VALUES ('RecertificationEvent', 'English', 	'Cert: Certificate');
 INSERT INTO txt VALUES ('RecertEventReport',    'German', 	'Zert: Zert-Regel-Details');
 INSERT INTO txt VALUES ('RecertEventReport',    'English', 	'Cert: Cert Rule Details');
+INSERT INTO txt VALUES ('ComplianceReport',    'German', 	'Compliance Report');
+INSERT INTO txt VALUES ('ComplianceReport',    'English', 	'Compliance Report');
+INSERT INTO txt VALUES ('ComplianceDiffReport',    'German', 	'Compliance Diff Report');
+INSERT INTO txt VALUES ('ComplianceDiffReport',    'English', 	'Compliance Diff Report');
 INSERT INTO txt VALUES ('mixed', 	            'German', 	'Gemischt');
 INSERT INTO txt VALUES ('mixed', 	            'English', 	'Mixed');
 INSERT INTO txt VALUES ('exclusive', 	        'German', 	'Exklusiv');
@@ -1786,7 +1790,6 @@ INSERT INTO txt VALUES ('modelled_destination', 'English', 	'Modelled Destinatio
 INSERT INTO txt VALUES ('last_requested',		'German', 	'Letzte Beantragung');
 INSERT INTO txt VALUES ('last_requested',		'English', 	'Last Requested');
 
-
 -- compliance
 INSERT INTO txt VALUES ('compliance',			'German', 	'Compliance');
 INSERT INTO txt VALUES ('compliance',			'English', 	'Compliance');
@@ -1866,6 +1869,14 @@ INSERT INTO txt VALUES ('criteria',      		'German', 	'Kriterien');
 INSERT INTO txt VALUES ('criteria',      		'English', 	'Criteria');
 INSERT INTO txt VALUES ('show_non_impact_rules','German',   'Zeige Regeln ohne Auswirkungen');
 INSERT INTO txt VALUES ('show_non_impact_rules','English',  'Show non-impact rules');
+INSERT INTO txt VALUES ('assess_ip_null',       'German',   'Netzwerkobjekte in Quelle oder Ziel ohne IP-Adresse');
+INSERT INTO txt VALUES ('assess_ip_null',       'English',  'Network objects in source or destination without IP');
+INSERT INTO txt VALUES ('assess_all_ips',       'German',   'Netzwerkobjekte in Quelle oder Ziel mit 0.0.0.0/0 oder ::/0');
+INSERT INTO txt VALUES ('assess_all_ips',       'English',  'Network objects in source or destination with 0.0.0.0/0 or ::/0');
+INSERT INTO txt VALUES ('assess_host_address',  'German',   'Netzwerkobjekte in Quelle oder Ziel mit 0.0.0.0/32');
+INSERT INTO txt VALUES ('assess_host_address',  'English',  'Network objects in source or destination with 0.0.0.0/32');
+INSERT INTO txt VALUES ('assess_broadcast',     'German',   'Netzwerkobjekte in Quelle oder Ziel mit 255.255.255.255/32');
+INSERT INTO txt VALUES ('assess_broadcast',     'English',  'Network objects in source or destination with 255.255.255.255/32');
 
 -- settings
 INSERT INTO txt VALUES ('devices',				'German', 	'Ger&auml;te');
@@ -2660,8 +2671,15 @@ INSERT INTO txt VALUES ('complianceCheckMulticastBroadcast','German', 'Multicast
 INSERT INTO txt VALUES ('complianceCheckMulticastBroadcast','English','Multicast / broadcast');
 INSERT INTO txt VALUES ('complianceCheckDocumentationSamples','German', 'Dokumentation / Beispiele');
 INSERT INTO txt VALUES ('complianceCheckDocumentationSamples','English','Documentation / samples');
-INSERT INTO txt VALUES ('complianceCheckDiv','German', 'Div (Benchmarking, Broadcast, Multicast, Spezialzweck usw.)');
-INSERT INTO txt VALUES ('complianceCheckDiv','English','Div (benchmarking, broadcast, multicast, special purpose, etc)');
+INSERT INTO txt VALUES ('complianceCheckDiv','German', 'Div (Benchmarking, Spezialzweck usw.)');
+INSERT INTO txt VALUES ('complianceCheckDiv','English','Div (benchmarking, special purpose, etc)');
+INSERT INTO txt VALUES ('complianceCheckAutoCalculatedZonesAtTheEnd','German', 'Auto-kalkulierte Zonen nach anderen Zonen anordnen');
+INSERT INTO txt VALUES ('complianceCheckAutoCalculatedZonesAtTheEnd','English','Arrange auto-calculated zones according to other zones');
+INSERT INTO txt VALUES ('complianceCheckTreatDynamicAndDomainObjectsAsInternet','German', 'Behandel dynamische und Domain-Objekte als Internet');
+INSERT INTO txt VALUES ('complianceCheckTreatDynamicAndDomainObjectsAsInternet','English','Treat dynamic and domain objects as internet');
+INSERT INTO txt VALUES ('complianceCheckShowShortColumsInComplianceReports','German', 'Spalten mit Kurzform für Sources, Destinations und Services anzeigen');
+INSERT INTO txt VALUES ('complianceCheckShowShortColumsInComplianceReports','English','Show columns with short forms for sources, destinations and services');
+
 INSERT INTO txt VALUES ('availableModules',     'German', 	'Verf&uuml;gbare Module');
 INSERT INTO txt VALUES ('availableModules',     'English', 	'Available Modules');
 INSERT INTO txt VALUES ('notification',   		'German', 	'Benachrichtigung');
@@ -5917,7 +5935,22 @@ INSERT INTO txt VALUES ('H5832', 'German',  'Adressbereich für Netzwerkleistung
 INSERT INTO txt VALUES ('H5832', 'English', 'Address range for network performance and benchmark testing.');
 INSERT INTO txt VALUES ('H5833', 'German',  'Ehemaliger IPv6-Übergangsbereich (6to4-Relay), heute obsolet.');
 INSERT INTO txt VALUES ('H5833', 'English', 'Former IPv6 transition range (6to4 relay), now obsolete.');
-
+INSERT INTO txt VALUES ('H5834', 'German',  'Wenn aktiviert, werden die auto-kalkulierten Zonen am Ende der Matrix-Achsen eingeordnet. Default: am Anfang.');
+INSERT INTO txt VALUES ('H5834', 'English', 'When activated, the auto-calculated zones are placed at the end of the matrix axes. Default: at the beginning.');
+INSERT INTO txt VALUES ('H5835', 'German',  'Wenn aktiviert, werden dynamische und Domain-Objekte in der Compliance-Auswertung als Teil der Internetzone angenommen. Default: Objekte werden gleich behandelt wie andere Netzwerkobjekte.');
+INSERT INTO txt VALUES ('H5835', 'English', 'When enabled, dynamic and domain objects are considered part of the Internet zone in the compliance evaluation. Default: Objects are treated the same as other network objects.');
+INSERT INTO txt VALUES ('H5836', 'German',  'Wenn aktiviert, werden in compliance reports zusätzlich zu den aufgelösten Spalten für Sources, Destinations und Services Spalten mit der Kurzform angezeigt.');
+INSERT INTO txt VALUES ('H5836', 'English', 'When enabled, compliance reports will display columns with the short form in addition to the resolved columns for sources, destinations and services.');
+INSERT INTO txt VALUES ('H5837', 'German',  'Editieren der Compliance-Matrix. Rot: Erlaubte Kommunikation. Gr&uuml;n: Verbotene Kommunikation.');
+INSERT INTO txt VALUES ('H5837', 'English', 'Editing the compliance matrix. Red: allowed communication. Green: restricted communication.');
+INSERT INTO txt VALUES ('H5838', 'German',  'Editieren von importierten Matrizen nicht möglich.');
+INSERT INTO txt VALUES ('H5838', 'English', 'Editing imported matrices not possible.');
+INSERT INTO txt VALUES ('H5839', 'German',  'Matrixverletzung');
+INSERT INTO txt VALUES ('H5839', 'English', 'Matrix violation');
+INSERT INTO txt VALUES ('H5840', 'German',  'Verbotener Service');
+INSERT INTO txt VALUES ('H5840', 'English', 'Restricted Service');
+INSERT INTO txt VALUES ('H5841', 'German',  'Auswertbarkeitsproblem');
+INSERT INTO txt VALUES ('H5841', 'English', 'Assessability issue');
 
 INSERT INTO txt VALUES ('H6001', 'German',  'Firewall Orchestrator verf&uuml;gt &uuml;ber zwei APIs:
     <ul>

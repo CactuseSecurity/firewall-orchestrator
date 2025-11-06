@@ -126,10 +126,10 @@ namespace FWO.Report
         protected virtual void SetMgtQueryVars(ManagementReport management)
         {
             Query.QueryVariables[QueryVar.MgmId] = management.Id;
-            // rework: Query.QueryVariables[QueryVar.ImportIdStart] = management.RelevantImportId ?? -1;
-            // rework: Query.QueryVariables[QueryVar.ImportIdEnd] = management.RelevantImportId ?? -1;
-            Query.QueryVariables[QueryVar.ImportIdStart] = management.Import.ImportAggregate.ImportAggregateMax.RelevantImportId ?? -1; /* managment was not yet imported at that time */;
-            Query.QueryVariables[QueryVar.ImportIdEnd] = management.Import.ImportAggregate.ImportAggregateMax.RelevantImportId ?? -1; /* managment was not yet imported at that time */;
+            Query.QueryVariables[QueryVar.ImportIdStart] = management.RelevantImportId ?? -1;
+            Query.QueryVariables[QueryVar.ImportIdEnd] = management.RelevantImportId ?? -1;
+            // this does not work: Query.QueryVariables[QueryVar.ImportIdStart] = management.Import.ImportAggregate.ImportAggregateMax.RelevantImportId ?? -1; /* managment was not yet imported at that time */;
+            // this does not work: Query.QueryVariables[QueryVar.ImportIdEnd] = management.Import.ImportAggregate.ImportAggregateMax.RelevantImportId ?? -1; /* managment was not yet imported at that time */;
         }
 
         public override async Task<bool> GetObjectsInReport(int objectsPerFetch, ApiConnection apiConnection, Func<ReportData, Task> callback) // to be called when exporting

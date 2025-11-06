@@ -10,7 +10,7 @@
             TableClass="table table-bordered table-sm th-bg-secondary table-responsive overflow-auto sticky-header popover-transform" 
             PageSize="RulesPerPage" ColumnReorder="true" TableRowClass="@(r => getTableRowClasses(r))" @ref="reportTable">
 
-        @if (SelectedReportType == ReportType.VarianceAnalysis)
+        @if (SelectedReportType == ReportType.VarianceAnalysis || HandleAsVariance)
         {
             <Column TableItem="Rule" Context="rule" Title="@(userConfig.GetText("management"))" Field="@(r => r.ManagementName)" Sortable="false" Filterable="false" Hideable="true" />
             <Column TableItem="Rule" Context="rule" Title="@(userConfig.GetText("gateway"))" Field="@(r => r.DeviceName)" Sortable="false" Filterable="false" Hideable="true" />
@@ -23,7 +23,7 @@
                 </Template>
             </Column>
         }
-        @if(SelectedReportType == ReportType.UnusedRules || SelectedReportType == ReportType.AppRules)
+        @if(SelectedReportType == ReportType.UnusedRules || SelectedReportType == ReportType.AppRules && !HandleAsVariance)
         {
             <Column TableItem="Rule" Context="rule" Title="@(userConfig.GetText("last_hit"))" Field="@(r => r.Metadata.LastHit)" Sortable="false" Filterable="false">
                 <Template>
@@ -33,7 +33,7 @@
         }
         @if(SelectedReportType == ReportType.Recertification)
         {
-            <Column TableItem="Rule" Context="rule" Title="@(userConfig.GetText("next_recert"))" Field="@(r => r.Metadata.RuleRecertification)" Sortable="false" Filterable="false">
+            <Column TableItem="Rule" Context="rule" Title="@(userConfig.GetText("next_recert_date"))" Field="@(r => r.Metadata.RuleRecertification)" Sortable="false" Filterable="false">
                 <Template>
                     @((MarkupString)RuleDisplayHtml.DisplayNextRecert(rule))
                 </Template>
@@ -95,7 +95,7 @@
         }
 
         <Column TableItem="Rule" Title="@(userConfig.GetText("name"))" Field="@(r => r.Name)" Sortable="true" Filterable="false" Hideable="true" />
-        @if (SelectedReportType != ReportType.VarianceAnalysis)
+        @if (SelectedReportType != ReportType.VarianceAnalysis && !HandleAsVariance)
         {
             <Column TableItem="Rule" Context="rule" Title="@(userConfig.GetText("source_zone"))" Field="@(r => r.SourceZone)" Sortable="true" Filterable="false" Hideable="true">
                 <Template>
@@ -108,7 +108,7 @@
                 @((MarkupString)ruleDisplay.DisplaySource(rule, getActLocation(), SelectedReportType))
             </Template>
         </Column>
-        @if (SelectedReportType != ReportType.VarianceAnalysis)
+        @if (SelectedReportType != ReportType.VarianceAnalysis && !HandleAsVariance)
         {
             <Column TableItem="Rule" Context="rule" Title="@(userConfig.GetText("destination_zone"))" Field="@(r => r.Name)" Sortable="true" Filterable="false" Hideable="true">
                 <Template>
@@ -215,6 +215,9 @@
     [Parameter]
     public Rule[]? Rules { get; set; } = [];
     
+    [Parameter]
+    public bool HandleAsVariance { get; set; } = false;
+
 
     private bool RecertificationHistory { get; set; } = false;
     private ITable<Rule>? reportTable;

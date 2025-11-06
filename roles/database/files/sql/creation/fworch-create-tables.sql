@@ -971,6 +971,8 @@ Create table "report"
 	"tenant_wide_visible" Integer,
 	"report_type" Integer,
 	"description" varchar,
+	"read_only" Boolean default FALSE,
+	"owner_id" Integer,
  	primary key ("report_id")
 );
 
@@ -994,6 +996,28 @@ Create table "report_template_viewable_by_user"
 	"report_template_id" Integer NOT NULL,
 	"uiuser_id" Integer NOT NULL,
  	primary key ("uiuser_id","report_template_id")
+);
+
+create table notification
+(
+    id SERIAL PRIMARY KEY,
+	notification_client Varchar,
+	user_id int,
+	owner_id int,
+	channel Varchar,
+	recipient_to Varchar,
+    email_address_to Varchar,
+	recipient_cc Varchar,
+	email_address_cc Varchar,
+	email_subject Varchar,
+	layout Varchar,
+	deadline Varchar,
+	interval_before_deadline int,
+	offset_before_deadline int,
+	repeat_interval_after_deadline int,
+	repeat_offset_after_deadline int,
+	repetitions_after_deadline int,
+	last_sent Timestamp
 );
 
 -- configuration
@@ -1045,9 +1069,20 @@ create table owner
     last_recert_check Timestamp,
     recert_check_params Varchar,
 	criticality Varchar,
+	owner_lifecycle_state_id int,
 	active boolean default true,
 	import_source Varchar,
-	common_service_possible boolean default false
+	common_service_possible boolean default false,
+	last_recertified Timestamp,
+	last_recertifier int,
+	last_recertifier_dn Varchar,
+	next_recert_date Timestamp,
+	recert_active boolean default false
+);
+
+CREATE TABLE owner_lifecycle_state (
+    id SERIAL PRIMARY KEY,
+    name Varchar NOT NULL
 );
 
 create table owner_network
@@ -1088,7 +1123,20 @@ create table recertification
 	recertified boolean default false,
 	recert_date Timestamp,
 	comment varchar,
-	next_recert_date Timestamp
+	next_recert_date Timestamp,
+	owner_recert_id bigint
+);
+
+create table owner_recertification
+(
+	id BIGSERIAL PRIMARY KEY,
+    owner_id int NOT NULL,
+	user_dn varchar,
+	recertified boolean default false,
+	recert_date Timestamp,
+	comment varchar,
+	next_recert_date Timestamp,
+    report_id bigint
 );
 
 create table owner_ticket

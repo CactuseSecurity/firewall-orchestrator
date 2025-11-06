@@ -33,7 +33,7 @@ namespace FWO.Report
         public override string SetDescription()
         {
             int counter = 0;
-            foreach(var owner in ReportData.OwnerData)
+            foreach (var owner in ReportData.OwnerData)
             {
                 counter += owner.Connections.Count;
             }
@@ -42,22 +42,21 @@ namespace FWO.Report
 
         public override string ExportToHtml()
         {
-            StringBuilder report = new ();
+            StringBuilder report = new();
             int chapterNumber = 0;
             foreach (var ownerReport in ReportData.OwnerData)
             {
                 chapterNumber++;
-                report.AppendLine($"<h3 id=\"{Guid.NewGuid()}\">{ownerReport.Name}</h3>");
                 AppendConnDataForOwner(ref report, ownerReport, chapterNumber);
                 report.AppendLine("<hr>");
             }
 
-            if(ReportData.GlobalComSvc.Count > 0 && ReportData.GlobalComSvc[0].GlobalComSvcs.Count > 0)
+            if (ReportData.GlobalComSvc.Count > 0 && ReportData.GlobalComSvc[0].GlobalComSvcs.Count > 0)
             {
                 chapterNumber++;
                 ReportData.GlobalComSvc[0].PrepareObjectData(userConfig.ResolveNetworkAreas);
-                report.AppendLine($"<h3 id=\"{Guid.NewGuid()}\">{userConfig.GetText("global_common_services")}</h3>");
-                AppendConnectionsGroupHtml(ReportData.GlobalComSvc[0].GlobalComSvcs, ReportData.GlobalComSvc[0], chapterNumber, ref report, new(){ IsGlobalComSvc = true });
+                report.AppendLine(Headline(userConfig.GetText("global_common_services"), 3));
+                AppendConnectionsGroupHtml(ReportData.GlobalComSvc[0].GlobalComSvcs, ReportData.GlobalComSvc[0], chapterNumber, ref report, new() { IsGlobalComSvc = true });
                 report.AppendLine("<hr>");
                 AppendNetworkObjectsHtml(ReportData.GlobalComSvc[0].AllObjects, chapterNumber, ref report);
                 AppendNetworkServicesHtml(ReportData.GlobalComSvc[0].AllServices, chapterNumber, ref report);
@@ -65,26 +64,26 @@ namespace FWO.Report
             return GenerateHtmlFrame(userConfig.GetText(ReportType.ToString()), Query.RawFilter, DateTime.Now, report);
         }
 
-        public void AppendConnDataForOwner(ref StringBuilder report, OwnerReport ownerReport, int chapterNumber)
+        public void AppendConnDataForOwner(ref StringBuilder report, OwnerConnectionReport ownerReport, int chapterNumber)
         {
+            report.AppendLine(Headline(ownerReport.Owner.Display(userConfig.GetText("common_service")), 3));
             ownerReport.PrepareObjectData(userConfig.ResolveNetworkAreas);
-            if(ownerReport.RegularConnections.Count > 0)
+            if (ownerReport.RegularConnections.Count > 0)
             {
-                report.AppendLine($"<h4 id=\"{Guid.NewGuid()}\">{userConfig.GetText("connections")}</h4>");
+                report.AppendLine(Headline(userConfig.GetText("connections"), 4));
                 AppendConnectionsGroupHtml(ownerReport.RegularConnections, ownerReport, chapterNumber, ref report, new());
                 report.AppendLine("<hr>");
-                
             }
-            if(ownerReport.Interfaces.Count > 0)
+            if (ownerReport.Interfaces.Count > 0)
             {
-                report.AppendLine($"<h4 id=\"{Guid.NewGuid()}\">{userConfig.GetText("interfaces")}</h4>");
+                report.AppendLine(Headline(userConfig.GetText("interfaces"), 4));
                 ownerReport.Interfaces.Sort((ModellingConnection a, ModellingConnection b) => a.CompareTo(b));
-                AppendConnectionsGroupHtml(ownerReport.Interfaces, ownerReport, chapterNumber, ref report, new(){ IsInterface = true });
+                AppendConnectionsGroupHtml(ownerReport.Interfaces, ownerReport, chapterNumber, ref report, new() { IsInterface = true });
                 report.AppendLine("<hr>");
             }
-            if(ownerReport.CommonServices.Count > 0)
+            if (ownerReport.CommonServices.Count > 0)
             {
-                report.AppendLine($"<h4 id=\"{Guid.NewGuid()}\">{userConfig.GetText("own_common_services")}</h4>");
+                report.AppendLine(Headline(userConfig.GetText("own_common_services"), 4));
                 AppendConnectionsGroupHtml(ownerReport.CommonServices, ownerReport, chapterNumber, ref report, new());
                 report.AppendLine("<hr>");
             }
@@ -114,11 +113,11 @@ namespace FWO.Report
                 report.AppendLine($"<td>{connection.OrderNumber}</td>");
             }
             report.AppendLine($"<td>{connection.Id}</td>");
-            if(flags.IsInterface)
+            if (flags.IsInterface)
             {
                 report.AppendLine($"<td>{connection.IsPublished.ShowAsHtml()}</td>");
             }
-            if(flags.IsGlobalComSvc)
+            if (flags.IsGlobalComSvc)
             {
                 report.AppendLine($"<td>{connection.App.Name}</td>");
             }
@@ -132,12 +131,12 @@ namespace FWO.Report
         protected void AppendSourcesHtml(ModellingConnection connection, ConnectionReport connReport, int chapterNumber,
             ref StringBuilder report, ConnDisplayFlags flags)
         {
-            if(!flags.IsGlobalComSvc && ((connection.InterfaceIsRequested && connection.SrcFromInterface) || (connection.IsRequested && connection.SourceFilled())))
+            if (!flags.IsGlobalComSvc && ((connection.InterfaceIsRequested && connection.SrcFromInterface) || (connection.IsRequested && connection.SourceFilled())))
             {
-                report.AppendLine($"<td>{ModellingHandlerBase.DisplayReqInt(userConfig, connection.TicketId, connection.InterfaceIsRequested, 
+                report.AppendLine($"<td>{ModellingHandlerBase.DisplayReqInt(userConfig, connection.TicketId, connection.InterfaceIsRequested,
                     connection.GetBoolProperty(ConState.Rejected.ToString()) || connection.GetBoolProperty(ConState.InterfaceRejected.ToString()))}</td>");
             }
-            else if(flags.WithoutLinks)
+            else if (flags.WithoutLinks)
             {
                 report.AppendLine($"<td>{string.Join("<br>", GetPlainSrcNames(connection))}</td>");
             }
@@ -168,12 +167,12 @@ namespace FWO.Report
         protected void AppendDestinationsHtml(ModellingConnection connection, ConnectionReport connReport, int chapterNumber,
             ref StringBuilder report, ConnDisplayFlags flags)
         {
-            if(!flags.IsGlobalComSvc && ((connection.InterfaceIsRequested && connection.DstFromInterface) || (connection.IsRequested && connection.DestinationFilled())))
+            if (!flags.IsGlobalComSvc && ((connection.InterfaceIsRequested && connection.DstFromInterface) || (connection.IsRequested && connection.DestinationFilled())))
             {
                 report.AppendLine($"<td>{ModellingHandlerBase.DisplayReqInt(userConfig, connection.TicketId, connection.InterfaceIsRequested,
                     connection.GetBoolProperty(ConState.Rejected.ToString()) || connection.GetBoolProperty(ConState.InterfaceRejected.ToString()))}</td>");
             }
-            else if(flags.WithoutLinks)
+            else if (flags.WithoutLinks)
             {
                 report.AppendLine($"<td>{string.Join("<br>", GetPlainDstNames(connection))}</td>");
             }
@@ -209,9 +208,9 @@ namespace FWO.Report
 
         protected void AppendNetworkObjectsHtml(List<NetworkObject> networkObjects, int chapterNumber, ref StringBuilder report)
         {
-            if(networkObjects.Count > 0)
+            if (networkObjects.Count > 0)
             {
-                report.AppendLine($"<h4 id=\"{Guid.NewGuid()}\">{userConfig.GetText("network_objects")}</h4>");
+                report.AppendLine(Headline(userConfig.GetText("network_objects"), 4));
                 report.AppendLine("<table>");
                 AppendNWObjHeadlineHtml(ref report);
                 foreach (var nwObj in networkObjects)
@@ -225,7 +224,7 @@ namespace FWO.Report
                 }
                 report.AppendLine("</table>");
                 report.AppendLine("<hr>");
-           }
+            }
         }
 
         private void AppendNWObjHeadlineHtml(ref StringBuilder report)
@@ -241,9 +240,9 @@ namespace FWO.Report
 
         protected void AppendNetworkServicesHtml(List<NetworkService> networkServices, int chapterNumber, ref StringBuilder report)
         {
-            if(networkServices.Count > 0)
+            if (networkServices.Count > 0)
             {
-                report.AppendLine($"<h4 id=\"{Guid.NewGuid()}\">{userConfig.GetText("network_services")}</h4>");
+                report.AppendLine(Headline(userConfig.GetText("network_services"), 4));
                 report.AppendLine("<table>");
                 AppendNWSvcHeadlineHtml(ref report);
                 foreach (var svc in networkServices)
@@ -300,33 +299,42 @@ namespace FWO.Report
 
         private static List<string> GetLinkedSrcNames(ConnectionReport connReport, ModellingConnection conn, int chapterNumber)
         {
-            List<string> names = ModellingNetworkAreaWrapper.Resolve(conn.SourceAreas).ToList().ConvertAll(s => ConstructOutput(s, ObjCatString.NwObj, chapterNumber, connReport.ResolveObjId(s)));
-            names.AddRange(ModellingNwGroupWrapper.Resolve(conn.SourceOtherGroups).ToList().ConvertAll(s => ConstructOutput(s, ObjCatString.NwObj, chapterNumber, connReport.ResolveObjId(s))));
-            names.AddRange(ModellingAppRoleWrapper.Resolve(conn.SourceAppRoles).ToList().ConvertAll(s => ConstructOutput(s, ObjCatString.NwObj, chapterNumber, connReport.ResolveObjId(s))));
-            names.AddRange(ModellingAppServerWrapper.Resolve(conn.SourceAppServers).ToList().ConvertAll(s => ConstructOutput(s, ObjCatString.NwObj, chapterNumber, connReport.ResolveObjId(s))));
+            List<string> names = ModellingNetworkAreaWrapper.Resolve(conn.SourceAreas).ToList().ConvertAll(s => ConstructOutput(s, ObjCatString.NwObj, chapterNumber, connReport.ResolveObjId(s), GetStyle(conn, true)));
+            names.AddRange(ModellingNwGroupWrapper.Resolve(conn.SourceOtherGroups).ToList().ConvertAll(s => ConstructOutput(s, ObjCatString.NwObj, chapterNumber, connReport.ResolveObjId(s), GetStyle(conn, true))));
+            names.AddRange(ModellingAppRoleWrapper.Resolve(conn.SourceAppRoles).ToList().ConvertAll(s => ConstructOutput(s, ObjCatString.NwObj, chapterNumber, connReport.ResolveObjId(s), GetStyle(conn, true))));
+            names.AddRange(ModellingAppServerWrapper.Resolve(conn.SourceAppServers).ToList().ConvertAll(s => ConstructOutput(s, ObjCatString.NwObj, chapterNumber, connReport.ResolveObjId(s), GetStyle(conn, true))));
             return names;
         }
-        
+
         private static List<string> GetLinkedDstNames(ConnectionReport connReport, ModellingConnection conn, int chapterNumber)
         {
-            List<string> names = ModellingNetworkAreaWrapper.Resolve(conn.DestinationAreas).ToList().ConvertAll(s => ConstructOutput(s, ObjCatString.NwObj, chapterNumber, connReport.ResolveObjId(s)));
-            names.AddRange(ModellingNwGroupWrapper.Resolve(conn.DestinationOtherGroups).ToList().ConvertAll(s => ConstructOutput(s, ObjCatString.NwObj, chapterNumber, connReport.ResolveObjId(s))));
-            names.AddRange(ModellingAppRoleWrapper.Resolve(conn.DestinationAppRoles).ToList().ConvertAll(s => ConstructOutput(s, ObjCatString.NwObj, chapterNumber, connReport.ResolveObjId(s))));
-            names.AddRange(ModellingAppServerWrapper.Resolve(conn.DestinationAppServers).ToList().ConvertAll(s => ConstructOutput(s, ObjCatString.NwObj, chapterNumber, connReport.ResolveObjId(s))));
+            List<string> names = ModellingNetworkAreaWrapper.Resolve(conn.DestinationAreas).ToList().ConvertAll(s => ConstructOutput(s, ObjCatString.NwObj, chapterNumber, connReport.ResolveObjId(s), GetStyle(conn, false)));
+            names.AddRange(ModellingNwGroupWrapper.Resolve(conn.DestinationOtherGroups).ToList().ConvertAll(s => ConstructOutput(s, ObjCatString.NwObj, chapterNumber, connReport.ResolveObjId(s), GetStyle(conn, false))));
+            names.AddRange(ModellingAppRoleWrapper.Resolve(conn.DestinationAppRoles).ToList().ConvertAll(s => ConstructOutput(s, ObjCatString.NwObj, chapterNumber, connReport.ResolveObjId(s), GetStyle(conn, false))));
+            names.AddRange(ModellingAppServerWrapper.Resolve(conn.DestinationAppServers).ToList().ConvertAll(s => ConstructOutput(s, ObjCatString.NwObj, chapterNumber, connReport.ResolveObjId(s), GetStyle(conn, false))));
             return names;
         }
 
         private static List<string> GetLinkedSvcNames(ConnectionReport connReport, ModellingConnection conn, int chapterNumber)
         {
-            List<string> names = ModellingServiceGroupWrapper.Resolve(conn.ServiceGroups).ToList().ConvertAll(s => ConstructOutput(s, ObjCatString.Svc, chapterNumber, connReport.ResolveSvcId(s)));
-            names.AddRange(ModellingServiceWrapper.Resolve(conn.Services).ToList().ConvertAll(s => ConstructOutput(s, ObjCatString.Svc, chapterNumber, connReport.ResolveSvcId(s))));
+            List<string> names = ModellingServiceGroupWrapper.Resolve(conn.ServiceGroups).ToList().ConvertAll(s => ConstructOutput(s, ObjCatString.Svc, chapterNumber, connReport.ResolveSvcId(s), GetStyle(conn)));
+            names.AddRange(ModellingServiceWrapper.Resolve(conn.Services).ToList().ConvertAll(s => ConstructOutput(s, ObjCatString.Svc, chapterNumber, connReport.ResolveSvcId(s), GetStyle(conn))));
             return names;
         }
 
-        private static string ConstructOutput(ModellingObject inputObj, string type, int chapterNumber, long objId)
+        private static string ConstructOutput(ModellingObject inputObj, string type, int chapterNumber, long objId, string style)
         {
             string linkAddress = GetLinkAddress(OutputLocation.export, $"a{inputObj.AppId}", type, chapterNumber, objId, ReportType.Connections);
-            return ConstructLink("", inputObj.Display(), "", linkAddress);
+            return ConstructLink("", inputObj.Display(), style, linkAddress);
+        }
+
+        private static string GetStyle(ModellingConnection connection, bool? source = null)
+        {
+            if (connection.InterfaceIsDecommissioned && (source == null || ((bool)source && connection.SrcFromInterface) || (!(bool)source && connection.DstFromInterface)))
+            {
+                return "color: red";
+            }
+            return "";
         }
     }
 }

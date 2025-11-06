@@ -1,4 +1,5 @@
-﻿using System.Text.RegularExpressions;
+using FWO.Basics;
+using System.Text.RegularExpressions;
 
 namespace FWO.Data
 {
@@ -40,7 +41,7 @@ namespace FWO.Data
         {
             if (input != null)
             {
-                return SanitizeLdapNameMand(input, ref shortened);
+                return input.SanitizeLdapNameMand(ref shortened);
             }
             else return null;
         }
@@ -61,7 +62,7 @@ namespace FWO.Data
         {
             if (input != null)
             {
-                return SanitizeLdapPathMand(input, ref shortened);
+                return input.SanitizeLdapPathMand(ref shortened);
             }
             else return null;
         }
@@ -82,7 +83,7 @@ namespace FWO.Data
         {
             if (input != null)
             {
-                return SanitizePasswMand(input, ref shortened);
+                return input.SanitizePasswMand(ref shortened);
             }
             else return null;
         }
@@ -103,7 +104,7 @@ namespace FWO.Data
         {
             if (input != null)
             {
-                return SanitizeKeyMand(input, ref shortened);
+                return input.SanitizeKeyMand(ref shortened);
             }
             else return null;
         }
@@ -150,7 +151,7 @@ namespace FWO.Data
         {
             if (input != null)
             {
-                return SanitizeCidrMand(input, ref shortened);
+                return input.SanitizeCidrMand(ref shortened);
             }
             else return null;
         }

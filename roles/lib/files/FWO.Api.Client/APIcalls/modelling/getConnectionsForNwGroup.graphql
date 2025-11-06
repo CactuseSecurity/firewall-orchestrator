@@ -1,0 +1,12 @@
+query getConnectionsForNwGroup ($id: bigint!){
+  modelling_nwgroup_connection (where: { nwgroup_id: { _eq: $id } }){
+    connection {
+      ...connectionDetails
+      owner {
+        id
+        name
+        app_id_external
+      }
+    }
+  }
+}

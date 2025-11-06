@@ -48,7 +48,7 @@
 							</li>
 						</AuthorizeView>
 					}
-					@if (availableModules.Contains(Module.Recertification))
+					@if (availableModules.Contains(Module.Recertification) && userConfig.RecertificationMode == RecertificationMode.RuleByRule)
 					{
 						<AuthorizeView Roles="@($"{Roles.Admin}, {Roles.Recertifier}, {Roles.Auditor}")">
 							<li class="nav-item px-2">

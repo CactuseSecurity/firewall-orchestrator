@@ -155,7 +155,13 @@ namespace FWO.Config.Api
 
         public string PureLine(string text)
         {
-            string output = RemoveLinks(Regex.Replace(GetText(text).Trim(), @"\s", " "));
+            return PureLineStat(GetText(text));
+        }
+
+        public static string PureLineStat(string text)
+        {
+			var regex = new Regex(@"\s", RegexOptions.None, TimeSpan.FromSeconds(1));
+			string output = RemoveLinks(regex.Replace(text.Trim(), " "));
             output = ReplaceListElems(output);
             bool cont = true;
             while(cont)
@@ -189,6 +195,11 @@ namespace FWO.Config.Api
         public async Task<Dictionary<string, string>> GetCustomDict(string languageName)
         {
             Dictionary<string, string> dict = [];
+            if (apiConnection == null)
+            {
+                Log.WriteError("ApiConnection is null", "The ApiConnection is not initialized.");
+                return dict;
+            }
             try
             {
                 List<UiText> uiTexts = await apiConnection.SendQueryAsync<List<UiText>>(ConfigQueries.getCustomTextsPerLanguage, new { language = languageName });

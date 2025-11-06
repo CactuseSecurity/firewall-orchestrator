@@ -62,20 +62,20 @@
                             </div>
                         </Tab>
                     }
-                    @if (CurrentReport?.ReportData.OwnerData.Count > 0 && (bool)CurrentReport?.ReportType.IsOwnerRelatedReport())
+                    @if (CurrentReport?.ReportData.OwnerData.Count > 0 && (CurrentReport?.ReportType.IsConnectionRelatedReport() ?? false))
                     {
                         <Tab Title="@(CurrentReport?.ReportType == ReportType.VarianceAnalysis ? userConfig.GetText("modelled_objects") : userConfig.GetText("used_objects"))" StartSelected="true">
                             <div class="d-md-flex justify-content-md-end sticky-marker-45">
                                 <div class="btn btn-secondary btn-sm w-50" @onclick="@(() => collapseInRSB.Collapse("report"))">@(userConfig.GetText("collapse_all"))</div>
                             </div>
                             <div class="mt-2">
-                                <ObjectGroupCollection PageSize="PageSize" FetchObjects="FetchContent" Recert="Recert" Tab="RsbTab.usedObj" StartCollapsed="false" InputDataType="OwnerReport"
-                                Data="@(PrepareObjects(CurrentReport.ReportData.OwnerData))"
+                                <ObjectGroupCollection PageSize="PageSize" FetchObjects="FetchContent" Recert="Recert" Tab="RsbTab.usedObj" StartCollapsed="false" InputDataType="OwnerConnectionReport"
+                                Data="@(PrepareObjects(CurrentReport?.ReportData.OwnerData ?? new List<OwnerConnectionReport>()))"
                                 NameExtractor="own => own.Name"
                                 NetworkObjectExtractor="own => own.GetAllNetworkObjects(true, userConfig.ResolveNetworkAreas)"
                                 NetworkServiceExtractor="own => own.GetAllServices(true)" />
                                 <ObjectGroupCollection PageSize="PageSize" FetchObjects="FetchContent" Recert="Recert" Tab="RsbTab.usedObj" StartCollapsed="false" InputDataType="GlobalCommonSvcReport"
-                                Data="CurrentReport.ReportData.GlobalComSvc"
+                                Data="CurrentReport?.ReportData.GlobalComSvc"
                                 NameExtractor="glbComSvc => glbComSvc.Name"
                                 NetworkObjectExtractor="glbComSvc => glbComSvc.GetAllNetworkObjects(true, userConfig.ResolveNetworkAreas)"
                                 NetworkServiceExtractor="glbComSvc => glbComSvc.GetAllServices(true)" />
@@ -441,11 +441,11 @@
         }
     }
 
-    private List<OwnerReport> PrepareObjects(List<OwnerReport> ownerData)
+    private List<OwnerConnectionReport> PrepareObjects(List<OwnerConnectionReport> ownerData)
     {
         if(CurrentReport?.ReportType == ReportType.VarianceAnalysis)
         {
-            List<OwnerReport> ownerDataForRsb = [];
+            List<OwnerConnectionReport> ownerDataForRsb = [];
             foreach(var ownerReport in ownerData)
             {
                 ownerDataForRsb.Add(ReportVariances.CollectObjectsInReport(ownerReport));

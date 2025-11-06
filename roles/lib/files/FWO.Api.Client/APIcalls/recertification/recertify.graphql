@@ -5,6 +5,7 @@ mutation recertify(
   $recertified: Boolean
   $recertDate: timestamp
   $comment: String
+  $ownerRecertId: bigint
   ) {
   update_recertification(
     where: {_and: [{rule_id: {_eq: $ruleId}}, {owner_id: {_eq: $ownerId}}, {recert_date: {_is_null: true}}]},
@@ -13,6 +14,7 @@ mutation recertify(
       recertified: $recertified
       recert_date: $recertDate
       comment: $comment
+      owner_recert_id: $ownerRecertId
       }
     ) {
       affected_rows

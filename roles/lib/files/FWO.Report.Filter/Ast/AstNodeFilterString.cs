@@ -46,9 +46,16 @@ namespace FWO.Report.Filter.Ast
 
         private void ExtractFullTextFilter(DynGraphqlQuery query)
         {
-            string queryVarName = AddVariable<string>(query, "fullTextFiler", Operator.Kind, semanticValue!);
+            string queryVarName = AddVariable<string>(query, "fullTextFilter", Operator.Kind, semanticValue!);
             string queryOperator = ExtractOperator();
 
+            ExtractToRuleFilter(query, queryVarName, queryOperator);
+            ExtractToConnFilter(query, queryVarName, queryOperator);
+            ExtractToOwnerFilter(query, queryVarName, queryOperator);
+        }
+
+        private static void ExtractToRuleFilter(DynGraphqlQuery query, string queryVarName, string queryOperator)
+        {
             List<string> ruleFieldNames = ["rule_src", "rule_dst", "rule_svc", "rule_action", "rule_name", "rule_comment", "rule_uid"];
             List<string> ruleSearchParts = [];
             foreach (string field in ruleFieldNames)
@@ -56,7 +63,10 @@ namespace FWO.Report.Filter.Ast
                 ruleSearchParts.Add($"{{{field}: {{{queryOperator}: ${queryVarName} }} }} ");
             }
             query.RuleWhereStatement += $"_or: [ {string.Join(", ", ruleSearchParts)} ]";
+        }
 
+        private static void ExtractToConnFilter(DynGraphqlQuery query, string queryVarName, string queryOperator)
+        {
             List<string> connFieldNames = ["name", "reason" /*, "creator" */];
             List<string> nwobjFieldNames = ["name" /*, "creator" */];
             List<string> nwGroupFieldNames = ["id_string", "name", "comment" /*, "creator" */];
@@ -84,6 +94,22 @@ namespace FWO.Report.Filter.Ast
                 connSearchParts.Add($"{{ service_group_connections: {{service_group: {{{field}: {{{queryOperator}: ${queryVarName} }} }} }} }} ");
             }
             query.ConnectionWhereStatement += $"_or: [ {string.Join(", ", connSearchParts)} ]";
+        }
+
+        private static void ExtractToOwnerFilter(DynGraphqlQuery query, string queryVarName, string queryOperator)
+        {
+            List<string> ownerFieldNames = ["name", "dn", "group_dn", "last_recertifier_dn"];
+            List<string> recertFieldNames = ["user_dn", "comment"];
+            List<string> ownerSearchParts = [];
+            foreach (string field in ownerFieldNames)
+            {
+                ownerSearchParts.Add($"{{{field}: {{{queryOperator}: ${queryVarName} }} }} ");
+            }
+            foreach (string field in recertFieldNames)
+            {
+                ownerSearchParts.Add($"{{owner_recertifications: {{{field}: {{{queryOperator}: ${queryVarName} }} }} }} ");
+            }
+            query.OwnerWhereStatement += $"_or: [ {string.Join(", ", ownerSearchParts)} ]";
         }
 
         private void ExtractGatewayFilter(DynGraphqlQuery query)

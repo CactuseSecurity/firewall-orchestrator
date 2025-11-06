@@ -2,111 +2,135 @@ namespace FWO.Basics
 {
     public struct Icons
     {
+        // Bootstrap
+        public const string Save = "bi bi-floppy-fill";
+        public const string Select = "bi bi-floppy-fill";
+        public const string Cancel = "bi bi-x-square-fill";
+        public const string Confirm = "bi bi-hand-thumbs-up-fill";
+        public const string Reject = "bi bi-hand-thumbs-down-fill";
+        public const string Recertify = "bi bi-patch-check-fill";
+        public const string RequestFwChange = "bi bi-sign-intersection-t-fill";
+        public const string ShowHistory = "bi bi-clock-history";
+        public const string GenerateReport = "bi bi-newspaper";
+        public const string Export = "bi bi-box-arrow-up-right";
+        public const string Rollout = "bi bi-rocket-takeoff-fill";
+        public const string Download = "bi bi-download";
+        public const string Load = "bi bi-file-arrow-down-fill";
+        public const string ChangeState = "bi bi-graph-up-arrow";
+        public const string Approve = "bi bi-hand-thumbs-up-fill";
+        public const string Cleanup = "bi bi-slash-circle-fill";
+        public const string Create = "bi bi-patch-plus-fill";
+        public const string Enter = "bi bi-arrow-return-left";
+
         // General
-        public const string Locked = "oi oi-lock-locked";
-        public const string Type = "oi oi-list";
-        public const string Example = "oi oi-eye";
-        public const string Requirement = "oi oi-eye";
-        public const string Security = "oi oi-shield";
-        public const string FurtherReading = "oi oi-external-link";
-        public const string Clipboard = "oi oi-clipboard";
-        public const string Warning = "oi oi-warning";
+        public const string Locked = "bi bi-lock-fill";
+        public const string Type = "bi bi-list-ul";
+        public const string Example = "bi bi-eye-fill";
+        public const string Requirement = "bi bi-eye-fill";
+        public const string Security = "bi bi-shield-shaded";
+        public const string FurtherReading = "bi bi-book-fill";
+        public const string Clipboard = "bi bi-clipboard-fill";
+        public const string Warning = "bi bi-exclamation-triangle-fill";
+        public const string Question = "bi bi-question-lg";
 
         // Actions
-        public const string Add = "oi oi-plus";
-        public const string Edit = "oi oi-wrench";
-        public const string Delete = "oi oi-trash";
-        public const string Search = "oi oi-magnifying-glass";
-        public const string Display = "oi oi-eye";
-        public const string Use = "oi oi-arrow-thick-right";
-        public const string Unuse = "oi oi-arrow-thick-left";
-        public const string Close = "oi oi-x";
-        public const string Login = "oi oi-account-login";
-        public const string Logout = "oi oi-account-logout";
-        public const string Check = "oi oi-check";
-        public const string Swap = "oi oi-loop-circular";
-        public const string CollapseUp = "oi oi-collapse-up";
-        public const string CollapseDown = "oi oi-collapse-down";
-        public const string CollapseLeft = "oi oi-collapse-left";
-        public const string CollapseRight = "oi oi-collapse-right";
-        public const string Share = "oi oi-fork"; // oi-share-boxed? oi-share?
-        public const string OrderByAsc = "oi oi-caret-top";
-        public const string OrderByDesc = "oi oi-caret-bottom";
-        public const string Refresh = "oi oi-reload";
+        public const string Add = "bi bi-plus-lg";
+        public const string Edit = "bi bi-pencil-fill";
+        public const string Delete = "bi bi-trash-fill";
+        public const string Search = "bi bi-search";
+        public const string Display = "bi bi-eye-fill";
+        public const string Use = "bi bi-arrow-right";
+        public const string Unuse = "bi bi-arrow-left";
+        public const string Close = "bi bi-x-lg";
+        public const string Login = "bi bi-box-arrow-in-right";
+        public const string Logout = "bi bi-box-arrow-left";
+        public const string Check = "bi bi-check-lg";
+        public const string Swap = "bi bi-arrow-repeat";
+        public const string CollapseUp = "bi bi-chevron-up";
+        public const string CollapseDown = "bi bi-chevron-down";
+        public const string CollapseLeft = "bi bi-chevron-left";
+        public const string CollapseRight = "bi bi-chevron-right";
+        public const string Share = "bi bi-share-fill";
+        public const string OrderByAsc = "bi bi-caret-up-fill";
+        public const string OrderByDesc = "bi bi-caret-down-fill";
+        public const string Refresh = "bi bi-arrow-clockwise";
+        public const string Undo = "bi bi-arrow-counterclockwise";
 
         // Object types: General
-        public const string Ldap = "oi oi-key";
-        public const string Management = "oi oi-inbox";
-        public const string Gateway = "oi oi-shield";
-        public const string Credential = "oi oi-key";
-        public const string Role = "oi oi-tags";
-        public const string Tenant = "oi oi-command";
-        public const string Owner = "oi oi-flag";
-        public const string Email = "oi oi-envelope-closed";
-        
+        public const string Ldap = "bi bi-journal-bookmark-fill";
+        public const string Management = "bi bi-inbox-fill";
+        public const string Gateway = "bi bi-shield-shaded";
+        public const string Credential = "bi bi-key-fill";
+        public const string Role = "bi bi-tags-fill";
+        public const string Tenant = "bi bi-command";
+        public const string Owner = "bi bi-flag-fill";
+        public const string Email = "bi bi-envelope-fill";
+
         // Object types: Reporting
-        public const string UserGroup = "oi oi-people";
-        public const string ObjGroup = "oi oi-list-rich";
-        public const string Host = "oi oi-laptop";
-        public const string Network = "oi oi-rss";
-        public const string Range = "oi oi-resize-width";
-        public const string NwObject = "oi oi-laptop";
-        public const string Service = "oi oi-wrench";
-        public const string User = "oi oi-person";
+        public const string UserGroup = "bi bi-people-fill";
+        public const string ObjGroup = "bi bi-list-ul";
+        public const string Host = "bi bi-pc-display-horizontal";
+        public const string Network = "bi bi-diagram-3-fill";
+        public const string Range = "bi bi-three-dots";
+        public const string NwObject = "bi bi-pc-display-horizontal";
+        public const string Service = "bi bi-wrench-adjustable";
+        public const string User = "bi bi-person-fill";
 
         // Object types: Modelling
-        public const string ModObject = "oi oi-tag";
-        public const string ServiceGroup = "oi oi-list-rich";
-        public const string AppRole = "oi oi-list-rich";
-        public const string NwGroup = "oi oi-folder";
-        public const string Connection = "oi oi-transfer";
-        public const string Interface = "oi oi-target";
+        public const string ModObject = "bi bi-box";
+        public const string ServiceGroup = "bi bi-list-ul";
+        public const string AppRole = "bi bi-tag-fill";
+        public const string NwGroup = "bi bi-folder-fill";
+        public const string Connection = "bi bi-arrow-left-right";
+        public const string Interface = "bi bi-ethernet";
 
         // Modules
-        public const string Reporting = "oi oi-spreadsheet";
-        public const string Workflow = "oi oi-project"; //"oi oi-data-transfer-download"; //"oi oi-comment-square";
-        public const string Recertification = "oi oi-badge";
-        public const string Modelling = "oi oi-puzzle-piece";
-        public const string NetworkAnalysis = "oi oi-spreadsheet";
-        public const string Compliance = "oi oi-dashboard";
-        public const string Monitoring = "oi oi-monitor";
-        public const string Settings = "oi oi-cog";
-        public const string Help = "oi oi-info";
-        public const string Api = "oi oi-eye";
+        public const string Reporting = "bi bi-table";
+        public const string Workflow = "bi bi-signpost-split-fill";
+        public const string Recertification = "bi bi-award-fill";
+        public const string Modelling = "bi bi-puzzle-fill";
+        public const string NetworkAnalysis = "bi bi-table";
+        public const string Compliance = "bi bi-speedometer";
+        public const string Monitoring = "bi bi-display-fill";
+        public const string Settings = "bi bi-gear-wide-connected";
+        public const string Help = "bi bi-info-lg";
+        public const string Api = "bi bi-eye-fill";
 
         // Reporting
-        public const string Template = "oi oi-document";
-        public const string Schedule = "oi oi-timer";
-        public const string Archive = "oi oi-hard-drive";
-        public const string Export = "oi oi-arrow-thick-right";
-        public const string Output = "oi oi-share";
-        public const string Filter = "oi oi-eye";
+        public const string Template = "bi bi-file-earmark-text-fill";
+        public const string Schedule = "bi bi-stopwatch-fill";
+        public const string Archive = "bi bi-archive-fill";
+        public const string Output = "bi bi-share-fill";
+        public const string Filter = "bi bi-funnel-fill";
 
         // Workflow
-        public const string Tickets = "oi oi-layers";
-        public const string Approval = "oi oi-check";
-        public const string Planning = "oi oi-project";
-        public const string Implementation = "oi oi-task";
-        public const string Review = "oi oi-check";
-        public const string State = "oi oi-tag";
-        public const string Matrix = "oi oi-grid-four-up";
-        public const string Action = "oi oi-arrow-right";
-        public const string Phase = "oi oi-loop-square";
-        public const string Assign = "oi oi-arrow-thick-right"; // "oi-arrow-circle-right" ?
-        
+        public const string Tickets = "bi bi-front";
+        public const string CreateTicket = "bi bi-plus-square-dotted";
+        public const string Approval = "bi bi-check-lg";
+        public const string Planning = "bi bi-map-fill";
+        public const string Implementation = "bi bi-wrench-adjustable";
+        public const string Review = "bi bi-patch-check-fill";
+        public const string State = "bi bi-tag-fill";
+        public const string Matrix = "bi bi-grid-3x3-gap-fill";
+        public const string Action = "bi bi-arrow-right";
+        public const string Phase = "bi bi-arrow-repeat";
+        public const string Assign = "bi bi-arrow-right-square-fill";
+
         // Monitoring
-        public const string Alarm = "oi oi-bell";
-        public const string Import = "oi oi-data-transfer-download";
-        public const string UiMessages = "oi oi-monitor";
+        public const string Alarm = "bi bi-bell-fill";
+        public const string Import = "bi bi-download";
+        public const string UiMessages = "bi bi-chat-fill";
 
         // Settings
-        public const string Policy = "oi oi-document";
-        public const string Text = "oi oi-text";
-        public const string Language = "oi oi-comment-square";
+        public const string Policy = "bi bi-file-earmark-medical-fill";
+        public const string Text = "bi bi-fonts";
+        public const string Language = "bi bi-translate";
 
         // Api
-        public const string RestDoku = "oi oi-command";
-        public const string GraphQL = "oi oi-inbox";
-        public const string Hasura = "oi oi-shield";
+        public const string RestDoku = "bi bi-file-earmark-code-fill";
+        public const string GraphQL = "bi bi-code-slash";
+        public const string Hasura = "bi bi-file-earmark-spreadsheet-fill";
+        public const string Mutation = "bi bi-pencil-fill";
+        public const string Query = "bi bi-database-fill-down";
     }
 }

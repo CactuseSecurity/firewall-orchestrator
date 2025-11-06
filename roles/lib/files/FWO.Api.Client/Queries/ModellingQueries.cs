@@ -14,7 +14,7 @@ namespace FWO.Api.Client.Queries
 
         public static readonly string getAreas;
         public static readonly string newArea;
-        public static readonly string setAreaDeletedState;
+        public static readonly string setNwGroupDeletedState;
         public static readonly string newAreaIpData;
         public static readonly string getConnectionIdsForNwGroup;
 
@@ -48,6 +48,7 @@ namespace FWO.Api.Client.Queries
         public static readonly string replaceUsedInterface;
         public static readonly string updateConnectionFwRequested;
         public static readonly string updateConnectionRemove;
+        public static readonly string updateConnectionDecommission;
         public static readonly string deleteConnection;
         public static readonly string addAppServerToConnection;
         public static readonly string removeAppServerFromConnection;
@@ -64,6 +65,7 @@ namespace FWO.Api.Client.Queries
         public static readonly string removeAllServiceGroupsFromConnection;
         public static readonly string getConnectionIdsForService;
         public static readonly string getConnectionIdsForServiceGroup;
+        public static readonly string getConnectionsForNwGroup;
 
         public static readonly string getSelectedConnections;
         public static readonly string addSelectedConnection;
@@ -126,9 +128,10 @@ namespace FWO.Api.Client.Queries
 
                 getAreas = areaDetailsFragment + File.ReadAllText(QueryPath + "modelling/getAreas.graphql");
                 newArea = File.ReadAllText(QueryPath + "modelling/newArea.graphql");
-                setAreaDeletedState = File.ReadAllText(QueryPath + "modelling/setAreaDeletedState.graphql");
+                setNwGroupDeletedState = File.ReadAllText(QueryPath + "modelling/setNwGroupDeletedState.graphql");
                 newAreaIpData = File.ReadAllText(QueryPath + "modelling/newAreaIpData.graphql");
                 getConnectionIdsForNwGroup = File.ReadAllText(QueryPath + "modelling/getConnectionIdsForNwGroup.graphql");
+                getConnectionsForNwGroup = connectionDetailsFragment + File.ReadAllText(QueryPath + "modelling/getConnectionsForNwGroup.graphql");
 
                 getAppServersByIp = appServerDetailsFragment + File.ReadAllText(QueryPath + "modelling/getAppServersByIp.graphql");
                 getAppServersByName = appServerDetailsFragment + File.ReadAllText(QueryPath + "modelling/getAppServersByName.graphql");
@@ -160,6 +163,7 @@ namespace FWO.Api.Client.Queries
                 replaceUsedInterface = File.ReadAllText(QueryPath + "modelling/replaceUsedInterface.graphql");
                 updateConnectionFwRequested = File.ReadAllText(QueryPath + "modelling/updateConnectionFwRequested.graphql");
                 updateConnectionRemove = File.ReadAllText(QueryPath + "modelling/updateConnectionRemove.graphql");
+                updateConnectionDecommission = File.ReadAllText(QueryPath + "modelling/updateConnectionDecommission.graphql");
                 deleteConnection = File.ReadAllText(QueryPath + "modelling/deleteConnection.graphql");
                 addAppServerToConnection = File.ReadAllText(QueryPath + "modelling/addAppServerToConnection.graphql");
                 removeAppServerFromConnection = File.ReadAllText(QueryPath + "modelling/removeAppServerFromConnection.graphql");

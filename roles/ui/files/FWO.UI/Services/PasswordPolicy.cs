@@ -1,12 +1,9 @@
-﻿using System;
-using System.Linq;
-using System.Text.RegularExpressions;
-using FWO.Logging;
+﻿using System.Text.RegularExpressions;
 using FWO.Config.Api;
 
 namespace FWO.Ui.Services
 {
-    public class PasswordPolicy
+    public static class PasswordPolicy
     {
         public static bool CheckPolicy(string pw, GlobalConfig globalConfig, UserConfig userConfig, out string errorMsg)
         {

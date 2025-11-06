@@ -8,7 +8,6 @@ using FWO.Data.Modelling;
 using FWO.Middleware.Client;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Authorization;
-using System;
 using System.Data;
 using System.Text.Json;
 
@@ -101,6 +100,7 @@ namespace FWO.Services
         private readonly string InitEnvironment = "init_environment";
         private readonly string InsertForbidden = "insert_forbidden";
 
+        private List<ModellingConnection> FoundConnectionsForAppRole = [];
 
 
         public ModellingConnectionHandler(ApiConnection apiConnection, UserConfig userConfig, FwoOwner application,
@@ -627,20 +627,29 @@ namespace FWO.Services
             ActConn.UsedInterfaceId = interf.Id;
             ActConn.InterfaceIsRequested = interf.IsRequested;
             ActConn.InterfaceIsRejected = interf.GetBoolProperty(ConState.Rejected.ToString());
+            ActConn.InterfaceIsDecommissioned = interf.GetBoolProperty(ConState.Decommissioned.ToString());
             ActConn.TicketId = interf.TicketId;
-            if(SrcReadOnly)
+            if (SrcReadOnly)
             {
+                SrcAppServerToDelete.AddRange([.. ModellingAppServerWrapper.Resolve(ActConn.SourceAppServers)]);
                 ActConn.SourceAppServers = [.. interf.SourceAppServers];
+                SrcAppRolesToDelete.AddRange([.. ModellingAppRoleWrapper.Resolve(ActConn.SourceAppRoles)]);
                 ActConn.SourceAppRoles = [.. interf.SourceAppRoles];
+                SrcAreasToDelete.AddRange([.. ModellingNetworkAreaWrapper.Resolve(ActConn.SourceAreas)]);
                 ActConn.SourceAreas = [.. interf.SourceAreas];
+                SrcNwGroupsToDelete.AddRange([.. ModellingNwGroupWrapper.Resolve(ActConn.SourceOtherGroups)]);
                 ActConn.SourceOtherGroups = [.. interf.SourceOtherGroups];
                 ActConn.SrcFromInterface = true;
             }
             else
             {
+                DstAppServerToDelete.AddRange([.. ModellingAppServerWrapper.Resolve(ActConn.DestinationAppServers)]);
                 ActConn.DestinationAppServers = [.. interf.DestinationAppServers];
+                DstAppRolesToDelete.AddRange([.. ModellingAppRoleWrapper.Resolve(ActConn.DestinationAppRoles)]);
                 ActConn.DestinationAppRoles = [.. interf.DestinationAppRoles];
+                DstAreasToDelete.AddRange([.. ModellingNetworkAreaWrapper.Resolve(ActConn.DestinationAreas)]);
                 ActConn.DestinationAreas = [.. interf.DestinationAreas];
+                DstNwGroupsToDelete.AddRange([.. ModellingNwGroupWrapper.Resolve(ActConn.DestinationOtherGroups)]);
                 ActConn.DestinationOtherGroups = [.. interf.DestinationOtherGroups];
                 ActConn.DstFromInterface = true;
             }
@@ -673,6 +682,7 @@ namespace FWO.Services
             ActConn.UsedInterfaceId = null;
             ActConn.InterfaceIsRequested = false;
             ActConn.InterfaceIsRejected = false;
+            ActConn.InterfaceIsDecommissioned = false;
             ActConn.TicketId = null;
             SrcReadOnly = false;
             DstReadOnly = false;
@@ -925,10 +935,10 @@ namespace FWO.Services
         {
             try
             {
-                if(SrcAppRolesToAdd.FirstOrDefault(s => s.Id == actAppRole.Id) == null && DstAppRolesToAdd.FirstOrDefault(s => s.Id == actAppRole.Id) == null)
+                if (SrcAppRolesToAdd.FirstOrDefault(s => s.Id == actAppRole.Id) == null && DstAppRolesToAdd.FirstOrDefault(s => s.Id == actAppRole.Id) == null)
                 {
-                    List<ModellingConnection> foundConnections = await apiConnection.SendQueryAsync<List<ModellingConnection>>(ModellingQueries.getConnectionIdsForNwGroup, new { id = actAppRole.Id });
-                    if(foundConnections.Count == 0)
+                    FoundConnectionsForAppRole = [.. ModellingConnectionWrapper.Resolve(await apiConnection.SendQueryAsync<List<ModellingConnectionWrapper>>(ModellingQueries.getConnectionIdsForNwGroup, new { id = actAppRole.Id }))];
+                    if(FoundConnectionsForAppRole.Where(c => !c.Removed).ToList().Count == 0)
                     {
                         return false;
                     }
@@ -946,7 +956,16 @@ namespace FWO.Services
         {
             try
             {
-                if((await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.deleteNwGroup, new { id = actAppRole.Id })).AffectedRows > 0)
+                bool deleted;
+                if (FoundConnectionsForAppRole.Count == 0)
+                {
+                    deleted = (await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.deleteNwGroup, new { id = actAppRole.Id })).AffectedRows > 0;
+                }
+                else
+                {
+                    deleted = (await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.setNwGroupDeletedState, new { id = actAppRole.Id, deleted = true })).UpdatedIdLong > 0;
+                }
+                if (deleted)
                 {
                     await LogChange(ModellingTypes.ChangeType.Delete, ModellingTypes.ModObjectType.AppRole, actAppRole.Id,
                         $"Deleted App Role: {actAppRole.Display()}", Application.Id);
@@ -965,12 +984,9 @@ namespace FWO.Services
         {
             if(!SrcDropForbidden())
             {
-                foreach(var appRole in appRoles)
+                foreach(var appRole in appRoles.Where(a => ActConn.SourceAppRoles.FirstOrDefault(w => w.Content.Id == a.Id) == null && !SrcAppRolesToAdd.Contains(a)))
                 {
-                    if(ActConn.SourceAppRoles.FirstOrDefault(w => w.Content.Id == appRole.Id) == null && !SrcAppRolesToAdd.Contains(appRole))
-                    {
-                        SrcAppRolesToAdd.Add(appRole);
-                    }
+                    SrcAppRolesToAdd.Add(appRole);
                 }
                 CalcVisibility();
             }
@@ -980,12 +996,9 @@ namespace FWO.Services
         {
             if(!DstDropForbidden())
             {
-                foreach(var appRole in appRoles)
+                foreach(var appRole in appRoles.Where(a => ActConn.DestinationAppRoles.FirstOrDefault(w => w.Content.Id == a.Id) == null && !DstAppRolesToAdd.Contains(a)))
                 {
-                    if(ActConn.DestinationAppRoles.FirstOrDefault(w => w.Content.Id == appRole.Id) == null && !DstAppRolesToAdd.Contains(appRole))
-                    {
-                        DstAppRolesToAdd.Add(appRole);
-                    }
+                    DstAppRolesToAdd.Add(appRole);
                 }
                 CalcVisibility();
             }
@@ -1243,7 +1256,7 @@ namespace FWO.Services
             }
         }
 
-        public async Task<bool> Save(bool noCheck = false)
+        public async Task<bool> Save(bool noCheck = false, bool decommInterface = false)
         {
             if(ActConn.IsCommonService && !ComSvcContainsCommonNetworkArea())
             {
@@ -1259,15 +1272,22 @@ namespace FWO.Services
                 }
                 if(noCheck || CheckConn())
                 {
-                    SyncChanges();
                     ActConn.SyncState(DummyAppRole.Id);
-                    if(AddMode)
+                    if (decommInterface)
                     {
-                        await AddConnectionToDb();
+                        await DecommInterface();
                     }
                     else
                     {
-                        await UpdateConnection();
+                        SyncChanges();
+                        if (AddMode)
+                        {
+                            await AddConnectionToDb();
+                        }
+                        else
+                        {
+                            await UpdateConnection();
+                        }
                     }
                     await ReInit();
                     Close();
@@ -1281,16 +1301,22 @@ namespace FWO.Services
             return false;
         }
 
+        private async Task DecommInterface()
+        {
+            await DecommInterfaceInDb();
+            await UpdateStatusInterfaceUsersDecomm(ActConn.Id);
+        }
+
         private async Task UpdateConnection()
         {
-            if(userConfig.VarianceAnalysisSleepTime == 0 && (userConfig.VarianceAnalysisSync || userConfig.VarianceAnalysisRefresh))
+            if (userConfig.VarianceAnalysisSleepTime == 0 && (userConfig.VarianceAnalysisSync || userConfig.VarianceAnalysisRefresh))
             {
                 ActConn.CleanUpVarianceResults();
             }
             await UpdateConnectionInDb();
-            if(ActConn.IsInterface && ActConn.IsPublished)
+            if (ActConn.IsInterface && ActConn.IsPublished)
             {
-                await UpdateStatusInterfaceUsers(ActConn.Id);
+                await UpdateStatusInterfaceUsersPublished(ActConn.Id);
             }
         }
 
@@ -1338,7 +1364,7 @@ namespace FWO.Services
             return true;
         }
 
-        private async Task UpdateStatusInterfaceUsers(int interfaceId)
+        private async Task UpdateStatusInterfaceUsersPublished(int interfaceId)
         {
             try
             {
@@ -1355,17 +1381,34 @@ namespace FWO.Services
             }
         }
 
+        private async Task UpdateStatusInterfaceUsersDecomm(int interfaceId)
+        {
+            try
+            {
+                List<ModellingConnection> usingConnections = await apiConnection.SendQueryAsync<List<ModellingConnection>>(ModellingQueries.getInterfaceUsers, new { id = interfaceId });
+                foreach (var conn in usingConnections.Where(c => !c.GetBoolProperty(ConState.InterfaceDecommissioned.ToString())))
+                {
+                    conn.AddProperty(ConState.InterfaceDecommissioned.ToString());
+                    await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.updateConnectionProperties, new { id = conn.Id, connProp = conn.Properties });
+                }
+            }
+            catch (Exception exception)
+            {
+                DisplayMessageInUi(exception, userConfig.GetText("update_interf_user"), "", true);
+            }
+        }
+
         private void SyncChanges()
         {
-            if(!SrcReadOnly)
+            if (!SrcReadOnly)
             {
                 SyncSrcChanges();
             }
-            if(!DstReadOnly)
+            if (!DstReadOnly)
             {
                 SyncDstChanges();
             }
-            if(!SvcReadOnly)
+            if (!SvcReadOnly)
             {
                 SyncSvcChanges();
             }
@@ -1479,6 +1522,33 @@ namespace FWO.Services
             }
         }
 
+        private async Task DecommInterfaceInDb()
+        {
+            try
+            {
+                var Variables = new
+                {
+                    id = ActConn.Id,
+                    reason = ActConn.Reason,
+                    connProp = ActConn.Properties,
+                    removalDate = DateTime.Now
+                };
+                await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.updateConnectionDecommission, Variables);
+                await LogChange(ModellingTypes.ChangeType.Decommission, ModellingTypes.ModObjectType.Connection, ActConn.Id,
+                    $"Decommissioned {kInterface}: {ActConn.Name}", Application.Id);
+
+                Connections[Connections.FindIndex(x => x.Id == ActConn.Id)] = ActConn;
+                foreach (var conn in Connections.Where(x => x.UsedInterfaceId == ActConn.Id))
+                {
+                    await ExtractUsedInterface(conn);
+                }
+            }
+            catch(Exception exception)
+            {
+                DisplayMessageInUi(exception, userConfig.GetText(EditConnection), "", true);
+            }
+        }
+
         private async Task AddConnectionToDb(bool propose = false)
         {
             try
@@ -1503,12 +1573,12 @@ namespace FWO.Services
                     extraParams = ActConn.ExtraParams
                 };
                 ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<ReturnIdWrapper>(ModellingQueries.newConnection, Variables)).ReturnIds;
-                if(returnIds != null)
+                if (returnIds != null)
                 {
                     ActConn.Id = returnIds[0].NewId;
                     await LogChange(ModellingTypes.ChangeType.Insert, ModellingTypes.ModObjectType.Connection, ActConn.Id,
                         $"New {(ActConn.IsInterface ? kInterface : kConnection)}: {ActConn.Name}", AppId);
-                    if(ActConn.UsedInterfaceId == null || ActConn.DstFromInterface)
+                    if (ActConn.UsedInterfaceId == null || ActConn.DstFromInterface)
                     {
                         await AddNwObjects(ModellingAppServerWrapper.Resolve(ActConn.SourceAppServers).ToList(),
                              ModellingAppRoleWrapper.Resolve(ActConn.SourceAppRoles).ToList(),
@@ -1516,7 +1586,7 @@ namespace FWO.Services
                              ModellingNwGroupWrapper.Resolve(ActConn.SourceOtherGroups).ToList(),
                              ModellingTypes.ConnectionField.Source);
                     }
-                    if(ActConn.UsedInterfaceId == null || ActConn.SrcFromInterface)
+                    if (ActConn.UsedInterfaceId == null || ActConn.SrcFromInterface)
                     {
                         await AddNwObjects(ModellingAppServerWrapper.Resolve(ActConn.DestinationAppServers).ToList(),
                             ModellingAppRoleWrapper.Resolve(ActConn.DestinationAppRoles).ToList(),
@@ -1524,7 +1594,7 @@ namespace FWO.Services
                             ModellingNwGroupWrapper.Resolve(ActConn.DestinationOtherGroups).ToList(),
                             ModellingTypes.ConnectionField.Destination);
                     }
-                    if(ActConn.UsedInterfaceId == null)
+                    if (ActConn.UsedInterfaceId == null)
                     {
                         await AddSvcObjects(ModellingServiceWrapper.Resolve(ActConn.Services).ToList(),
                             ModellingServiceGroupWrapper.Resolve(ActConn.ServiceGroups).ToList());
@@ -1535,7 +1605,7 @@ namespace FWO.Services
                     Connections.Sort((ModellingConnection a, ModellingConnection b) => a?.CompareTo(b) ?? -1);
                 }
             }
-            catch(Exception exception)
+            catch (Exception exception)
             {
                 DisplayMessageInUi(exception, userConfig.GetText("add_connection"), "", true);
             }
@@ -1564,21 +1634,13 @@ namespace FWO.Services
                 await LogChange(ModellingTypes.ChangeType.Update, ModellingTypes.ModObjectType.Connection, ActConn.Id,
                     $"Updated {(ActConn.IsInterface ? kInterface : kConnection)}: {ActConn.Name}", Application.Id);
 
-                if(ActConn.UsedInterfaceId == null || ActConn.DstFromInterface)
-                {
-                    await RemoveNwObjects(SrcAppServerToDelete, SrcAppRolesToDelete, SrcAreasToDelete, SrcNwGroupsToDelete, ModellingTypes.ConnectionField.Source);
-                    await AddNwObjects(SrcAppServerToAdd, SrcAppRolesToAdd, SrcAreasToAdd, SrcNwGroupsToAdd, ModellingTypes.ConnectionField.Source);
-                }
-                if(ActConn.UsedInterfaceId == null || ActConn.SrcFromInterface)
-                {
-                    await RemoveNwObjects(DstAppServerToDelete, DstAppRolesToDelete, DstAreasToDelete, DstNwGroupsToDelete, ModellingTypes.ConnectionField.Destination);
-                    await AddNwObjects(DstAppServerToAdd, DstAppRolesToAdd, DstAreasToAdd, DstNwGroupsToAdd, ModellingTypes.ConnectionField.Destination);
-                }
-                if(ActConn.UsedInterfaceId == null)
-                {
-                    await RemoveSvcObjects();
-                    await AddSvcObjects(SvcToAdd, SvcGrpToAdd);
-                }
+                await RemoveNwObjects(SrcAppServerToDelete, SrcAppRolesToDelete, SrcAreasToDelete, SrcNwGroupsToDelete, ModellingTypes.ConnectionField.Source);
+                await AddNwObjects(SrcAppServerToAdd, SrcAppRolesToAdd, SrcAreasToAdd, SrcNwGroupsToAdd, ModellingTypes.ConnectionField.Source);
+                await RemoveNwObjects(DstAppServerToDelete, DstAppRolesToDelete, DstAreasToDelete, DstNwGroupsToDelete, ModellingTypes.ConnectionField.Destination);
+                await AddNwObjects(DstAppServerToAdd, DstAppRolesToAdd, DstAreasToAdd, DstNwGroupsToAdd, ModellingTypes.ConnectionField.Destination);
+                await RemoveSvcObjects();
+                await AddSvcObjects(SvcToAdd, SvcGrpToAdd);
+
                 Connections[Connections.FindIndex(x => x.Id == ActConn.Id)] = ActConn;
                 foreach(var conn in Connections.Where(x => x.UsedInterfaceId == ActConn.Id))
                 {

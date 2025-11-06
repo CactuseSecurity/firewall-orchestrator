@@ -1668,7 +1668,7 @@ BEGIN
         ALTER TABLE rule_metadata
         ADD CONSTRAINT rule_metadata_mgm_id_management_id_fk
         FOREIGN KEY (mgm_id) REFERENCES management(mgm_id)
-        ON UPDATE RESTRICT; --ON DELETE CASCADE;
+        ON UPDATE RESTRICT ON DELETE CASCADE;
     END IF;
 END$$;
 

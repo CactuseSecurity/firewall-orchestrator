@@ -20,8 +20,8 @@ namespace FWO.Basics
         OwnerRecertification = 24,
         RecertificationEvent = 25,
         RecertEventReport = 26,
-        Compliance = 31,
-        ComplianceDiff = 32
+        ComplianceReport = 31,
+        ComplianceDiffReport = 32
 
     }
 
@@ -62,8 +62,8 @@ namespace FWO.Basics
                 ReportType.ResolvedRulesTech or
                 ReportType.ResolvedChanges or
                 ReportType.ResolvedChangesTech or
-                ReportType.Compliance or
-                ReportType.ComplianceDiff => true,
+                ReportType.ComplianceReport or
+                ReportType.ComplianceDiffReport => true,
                 _ => false,
             };
         }
@@ -110,7 +110,7 @@ namespace FWO.Basics
 
         public static bool IsComplianceReport(this ReportType reportType)
         {
-            return reportType == ReportType.Compliance || reportType == ReportType.ComplianceDiff;
+            return reportType == ReportType.ComplianceReport || reportType == ReportType.ComplianceDiffReport;
         }
         public static bool HasTimeFilter(this ReportType reportType)
         {

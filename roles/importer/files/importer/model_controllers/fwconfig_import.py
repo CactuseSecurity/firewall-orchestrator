@@ -1,5 +1,5 @@
 import traceback
-from typing import Any
+from typing import Any, Optional
 
 import fwo_const
 from fwo_api_call import FwoApiCall
@@ -42,7 +42,7 @@ class FwConfigImport():
         service_provider = ServiceProvider()
         self._global_state = service_provider.get_service(Services.GLOBAL_STATE)
         if self._global_state.import_state is None:
-            raise FwoImporterError("import_state is not set in global_state")
+            raise FwoImporterError("import_state not set in global state")
         self.import_state = self._global_state.import_state
 
         self.NormalizedConfig = self._global_state.normalized_config
@@ -57,7 +57,7 @@ class FwConfigImport():
         mgm_id = self.import_state.lookupManagementId(single_manager.ManagerUid)
         if mgm_id is None:
             raise FwoImporterError(f"could not find manager id in DB for UID {single_manager.ManagerUid}")
-        previousConfig = self.get_latest_config()
+        previousConfig = self.get_latest_config_from_db()
         self._global_state.previous_config = previousConfig
         if single_manager.IsSuperManager:
             self._global_state.previous_global_config = previousConfig
@@ -220,6 +220,8 @@ class FwConfigImport():
         errorsFound = 0
 
         if self.import_state.ImportVersion>8:
+            if self.NormalizedConfig is None:
+                raise FwoImporterError("cannot write latest config: NormalizedConfig is None")
             # convert FwConfigImport to FwConfigNormalized
             self.NormalizedConfig = FwConfigNormalized(action=self.NormalizedConfig.action, 
                                     network_objects=self.NormalizedConfig.network_objects, 
@@ -340,14 +342,32 @@ class FwConfigImport():
             logger.exception(f"failed to get latest normalized config from db for mgm id {str(self.import_state.MgmDetails.Id)}: {str(traceback.format_exc())}")
             raise FwoImporterError("error while trying to get the latest config")
 
+    def _sort_lists(self, config: FwConfigNormalized):
+        # sort lists in config to have consistent ordering for diff checks
+        config.rulebases.sort(key=lambda rb: rb.uid)
+        if any(gw.Uid is None for gw in config.gateways):
+            raise FwoImporterError("found gateway without UID while sorting gateways for consistency check - this should not happen")
+        config.gateways.sort(key=lambda gw: gw.Uid) # type: ignore
+        for gw in config.gateways:
+            gw.RulebaseLinks.sort(key=lambda rbl: f"{rbl.from_rulebase_uid}-{rbl.from_rule_uid}-{rbl.to_rulebase_uid}")
+            if gw.EnforcedPolicyUids is not None:
+                gw.EnforcedPolicyUids.sort()
+            if gw.EnforcedNatPolicyUids is not None:
+                gw.EnforcedNatPolicyUids.sort()
+            #TODO: interfaces and routing as soon as they are implemented
+
     def consistency_check_db(self):
         logger = getFwoLogger(debug_level=self.import_state.DebugLevel)
         normalized_config = self.NormalizedConfig
+        if normalized_config is None:
+            raise FwoImporterError("cannot perform consistency check: NormalizedConfig is None")
         normalized_config_from_db = self.get_latest_config_from_db()
+        self._sort_lists(normalized_config)
+        self._sort_lists(normalized_config_from_db)
         all_diffs = find_all_diffs(normalized_config.model_dump(), normalized_config_from_db.model_dump(), strict=True)
         if len(all_diffs) > 0:
             logger.warning(f"normalized config for mgm id {self.import_state.MgmDetails.CurrentMgmId} is inconsistent to database state: {all_diffs[0]}")
             if self.import_state.DebugLevel > 0:
-                logger.warning("all differences:\n\t" + "\n\t".join(all_diffs))
+                logger.warning(f"all {len(all_diffs)} differences:\n\t" + "\n\t".join(all_diffs))
             # TODO: long-term this should raise an error:
             # raise FwoImporterError("the database state created by this import is not consistent to the normalized config")

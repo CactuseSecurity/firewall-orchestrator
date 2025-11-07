@@ -182,62 +182,6 @@ class FwoApiCall(FwoApi):
             return 1
 
 
-    def update_hit_counter(self, importState, normalizedConfig):
-        logger = getFwoLogger(debug_level=importState.DebugLevel)
-        # currently only data for check point firewalls is collected!
-
-        query_varsLocal = {"mgmId": importState.MgmDetails.Id}
-        # prerequesite: rule_uids are unique across a management
-        # this is guaranteed for the newer devices
-        # older devices like netscreen or FortiGate (via ssh) need to be checked
-        # when hits information should be gathered here in the future
-
-        for manager in sorted(normalizedConfig.ManagerSet, key=lambda m: not getattr(m, 'IsSuperManager', False)):
-            for config in manager.Configs:
-                found_hits, last_hit_update_mutation = self._build_hit_mutation(config.rulebases)
-                last_hit_update_mutation += " ]) { affected_rows } }"
-
-                if found_hits:
-                    self.update_hits_via_api(importState, last_hit_update_mutation, query_varsLocal)
-                    return 0
-                else:
-                    if len(config.rulebases)>0:
-                        logger.debug("found only rules without hit information for mgm_id " + str(importState.MgmDetails.Id))
-                        return 1
-
-    @staticmethod
-    def _build_hit_mutation(rulebases):
-        found_hits = False
-        # TODO (of minor importance) import rules per gateway to show which gateways have no hits
-        last_hit_update_mutation = """
-            mutation updateRuleLastHit($mgmId:Int!) {
-                update_rule_metadata_many(updates: [
-        """
-
-        for rb in rulebases:
-            for rule in rb.Rules:
-                if 'last_hit' in rule and rule['last_hit'] is not None:
-                    found_hits = True
-                    update_expr = '{{ where: {{ device: {{ mgm_id:{{_eq:$mgmId}} }} rule_uid: {{ _eq: "{rule_uid}" }} }}, _set: {{ rule_last_hit: "{last_hit}" }} }}, '.format(rule_uid=rule["rule_uid"], last_hit=rule['last_hit'])
-                    last_hit_update_mutation += update_expr
-        return found_hits, last_hit_update_mutation
-
-
-    def update_hits_via_api(self, importState, last_hit_update_mutation, query_varsLocal):
-        logger = getFwoLogger()
-        try:
-            update_result = self.call(last_hit_update_mutation, query_variables=query_varsLocal)
-            if 'errors' in update_result:
-                logger.exception("fwo_api:update_hit_counter - error while updating hit counters for mgm id " +
-                                str(importState.MgmDetails.Id) + ": " + str(update_result['errors']))
-            update_counter = len(update_result['data']['update_rule_metadata_many'])
-        except Exception:
-            logger.exception("failed to update hit counter for mgm id " + str(importState.MgmDetails.Id))
-            return 1 # error
-        
-        return 0
-
-
     def delete_json_config_in_import_table(self, importState, query_variables):
         logger = getFwoLogger(debug_level=importState.DebugLevel)
         delete_mutation = FwoApi.get_graphql_code([fwo_const.graphql_query_path + "import/deleteImportConfig.graphql"])

@@ -36,12 +36,13 @@ namespace FWO.Report
         private readonly int _maxDegreeOfParallelism;
         private readonly SemaphoreSlim _semaphore;
         private readonly NatRuleDisplayHtml _natRuleDisplayHtml;
-        private readonly List<string> _columnsToExport;
-        private readonly bool _includeHeaderInExport;
-        private readonly char _separator;
-        private readonly int _maxCellSize;
+        private List<string> _columnsToExport;
+        private bool _includeHeaderInExport;
+        private char _separator;
+        private int _maxCellSize;
         private readonly int _maxPrintedViolations;
         private List<int> _relevanteManagementIDs = new();
+        private readonly GlobalConfig _globalConfig;
 
         #endregion
 
@@ -49,45 +50,30 @@ namespace FWO.Report
 
         public ReportCompliance(DynGraphqlQuery query, UserConfig userConfig, ReportType reportType) : base(query, userConfig, reportType)
         {
+            if (userConfig.GlobalConfig != null)
+            {
+                _globalConfig = userConfig.GlobalConfig;
+            }
+            else
+            {
+                _globalConfig = new();
+            }
+
             _maxDegreeOfParallelism = Environment.ProcessorCount;
             _semaphore = new SemaphoreSlim(_maxDegreeOfParallelism);
             _natRuleDisplayHtml = new NatRuleDisplayHtml(userConfig);
 
             // CSV export config.
 
-            _includeHeaderInExport = true;
-            _separator = ';';
-            _maxCellSize = 32000; // Max size of a cell in Excel is 32,767 characters.
-            _columnsToExport = new List<string>
-            {
-                "MgmtId",
-                "MgmtName",
-                "Uid",
-                "Name",
-                "Source",
-                "Destination",
-                "Services",
-                "Action",
-                "InstallOn",
-                "Compliance",
-                "ViolationDetails",
-                "ChangeID",
-                "AdoITID",
-                "Comment",
-                "RulebaseId",
-                "RulebaseName"
-            };
+            SetUpCsvExport();
 
-            if (userConfig.GlobalConfig != null)
-            {
-                _maxPrintedViolations = userConfig.GlobalConfig.ComplianceCheckMaxPrintedViolations;
-            }
-
+            _maxPrintedViolations = _globalConfig.ComplianceCheckMaxPrintedViolations;
+            
             // Apply debug config.
 
-            if (userConfig.GlobalConfig != null && !string.IsNullOrEmpty(userConfig.GlobalConfig.DebugConfig))
+            if (!string.IsNullOrEmpty(_globalConfig.DebugConfig))
             {
-                DebugConfig = JsonSerializer.Deserialize<DebugConfig>(userConfig.GlobalConfig.DebugConfig) ?? new();
+                DebugConfig = JsonSerializer.Deserialize<DebugConfig>(_globalConfig.DebugConfig) ?? new();
             }
             else
             {
@@ -95,11 +81,11 @@ namespace FWO.Report
                 DebugConfig = new();
             }
 
-            if (userConfig.GlobalConfig != null && !string.IsNullOrEmpty(userConfig.GlobalConfig.ComplianceCheckRelevantManagements))
+            if (!string.IsNullOrEmpty(_globalConfig.ComplianceCheckRelevantManagements))
             {
                 try
                 {
-                    _relevanteManagementIDs = userConfig.GlobalConfig.ComplianceCheckRelevantManagements
+                    _relevanteManagementIDs = _globalConfig.ComplianceCheckRelevantManagements
                         .Split(',', StringSplitOptions.RemoveEmptyEntries)
                         .Select(s => int.Parse(s.Trim()))
                         .ToList();
@@ -237,71 +223,6 @@ namespace FWO.Report
 
         #region Methods - Public
 
-        public Task<(bool isAssessable, string violationDetails)> CheckAssessability(Rule rule, List<NetworkLocation> networkLocations)
-        {
-            bool isAssessable = true;
-            StringBuilder violationDetailsBuilder = new();
-            
-            List<NetworkObject> networkObjects = networkLocations
-                .Select(nl => nl.Object) // ATTENTION!!! excludes users
-                .ToList();
-
-            if (rule.Action == "accept")
-            {
-                isAssessable &= !TryAddNotAssessableDetails(
-                    networkObjects,
-                    n => n.IP == null && n.IpEnd == null,
-                    "Network objects in source or destination without IP: ",
-                    violationDetailsBuilder);
-
-                isAssessable &= !TryAddNotAssessableDetails(
-                    networkObjects,
-                    n => (n.IP == "0.0.0.0/32" && n.IpEnd == "255.255.255.255/32")
-                    || (n.IP == "::/128" && n.IpEnd == "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff/128"),
-                    "Network objects in source or destination with 0.0.0.0/0 or ::/0: ",
-                    violationDetailsBuilder);
-
-                isAssessable &= !TryAddNotAssessableDetails(
-                    networkObjects,
-                    n => n.IP == "255.255.255.255/32" && n.IpEnd == "255.255.255.255/32",
-                    "Network objects in source or destination with 255.255.255.255/32: ",
-                    violationDetailsBuilder);
-
-                isAssessable &= !TryAddNotAssessableDetails(
-                    networkObjects,
-                    n => n.IP == "0.0.0.0/32" && n.IpEnd == "0.0.0.0/32",
-                    "Network objects in source or destination with 0.0.0.0/32: ",
-                    violationDetailsBuilder);
-            }
-
-            return Task.FromResult((isAssessable, violationDetailsBuilder.ToString()));
-        }
-
-        private bool TryAddNotAssessableDetails(IEnumerable<NetworkObject> networkObjects, Func<NetworkObject, bool> predicate, string headerText, StringBuilder details, Func<NetworkObject, string>? itemFormatter = null)
-        {
-            Func<NetworkObject, string> format = itemFormatter ?? (n => n.Name);
-
-            List<string> notAssessableDetails = networkObjects
-                .Where(predicate)
-                .Select(format)
-                .ToList();
-
-            if (notAssessableDetails.Count == 0)
-            {
-                return false;
-            }
-
-            if (details.Length > 0)
-            {
-                details.Append("<br>");
-            }
-
-            details.Append(headerText);
-            details.Append(string.Join(",", notAssessableDetails));
-                
-            return true;
-        }
-
         public async Task<List<T>[]?> GetDataParallelized<T>(int rulesCount, int elementsPerFetch, ApiConnection apiConnection, CancellationToken ct, string query)
         {
             List<Task<List<T>>> tasks = new();
@@ -351,14 +272,14 @@ namespace FWO.Report
                 Task<(List<Rule>, List<RuleViewData>)> task = Task.Run<(List<Rule>, List<RuleViewData>)>(async () =>
                 {
                     List<RuleViewData> localViewData = new(chunk.Count);
-                    
+
                     try
                     {
                         foreach (var rule in chunk)
                         {
                             await SetComplianceDataForRule(rule, apiConnection);
 
-                            // Resolve network locations
+                            // Resolve network locations TODO: Move resolving completely to ComplianceCheck or RuleViewData
 
                             NetworkLocation[] networkLocations = rule.Froms.Concat(rule.Tos).ToArray();
                             List<NetworkLocation> resolvedNetworkLocations = RuleDisplayBase.GetResolvedNetworkLocations(networkLocations);
@@ -366,16 +287,7 @@ namespace FWO.Report
                             // Add empty groups because display method does not get them
 
                             await GatherEmptyGroups(networkLocations, resolvedNetworkLocations);
-
-                            (bool isAssessable, string violationDetails) checkAssessabilityResult = await CheckAssessability(rule, resolvedNetworkLocations);
-                            ComplianceViolationType complianceViolationType = checkAssessabilityResult.isAssessable ? rule.Compliance : ComplianceViolationType.NotAssessable;
-                            RuleViewData ruleViewData = new RuleViewData(rule, _natRuleDisplayHtml, OutputLocation.report, ShowRule(rule), _devices ?? [], Managements ?? [], complianceViolationType);
-
-                            if (!checkAssessabilityResult.isAssessable)
-                            {
-                                ruleViewData.ViolationDetails = checkAssessabilityResult.violationDetails;
-                            }
-
+                            RuleViewData ruleViewData = new RuleViewData(rule, _natRuleDisplayHtml, OutputLocation.report, ShowRule(rule), _devices ?? [], Managements ?? [], rule.Compliance);
                             localViewData.Add(ruleViewData);
                         }
 
@@ -405,6 +317,48 @@ namespace FWO.Report
         #endregion
 
         #region Methods - Private
+        
+        private void SetUpCsvExport()
+        {
+            _includeHeaderInExport = true;
+            _separator = ';';
+            _maxCellSize = 32000; // Max size of a cell in Excel is 32,767 characters.
+            _columnsToExport =
+            [
+                "MgmtId",
+                "MgmtName",
+                "Uid",
+                "Name",
+                "Source"
+            ];
+            if (_globalConfig.ShowShortColumnsInComplianceReports)
+            {
+                _columnsToExport.Add("SourceShort");
+            }
+            _columnsToExport.Add("Destination");
+            if (_globalConfig.ShowShortColumnsInComplianceReports)
+            {
+                _columnsToExport.Add("DestinationShort");
+            }
+            _columnsToExport.Add("Services");
+            if (_globalConfig.ShowShortColumnsInComplianceReports)
+            {
+                _columnsToExport.Add("ServicesShort");
+            }
+            _columnsToExport.AddRange(
+            [
+                "Action",
+                "InstallOn",
+                "Compliance",
+                "ViolationDetails",
+                "ChangeID",
+                "AdoITID",
+                "Comment",
+                "RulebaseId",
+                "RulebaseName",
+                "Enabled"
+            ]);
+        }
 
         private Task GatherEmptyGroups(NetworkLocation[] networkLocations, List<NetworkLocation> resolvedNetworkLocations)
         {
@@ -468,20 +422,66 @@ namespace FWO.Report
             return queryVariables;
         }
 
-        protected virtual async Task SetComplianceDataForRule(Rule rule, ApiConnection apiConnection)
+        protected virtual async Task SetComplianceDataForRule(Rule rule, ApiConnection apiConnection, Func<ComplianceViolation, string>? formatter = null)
         {
             try
             {
                 rule.ViolationDetails = "";
                 rule.Compliance = ComplianceViolationType.None;
-                int printedViolations = 0;
-                bool abbreviated = false;
+                int addedViolationDetails = 0;
+                List<ComplianceViolation> violations;
 
-                for (int violationCount = 1; violationCount <= rule.Violations.Count; violationCount++)
+                // If rule is not assessable only display assessability issues in details.
+
+                if (rule.Violations.Any(violation => violation.Type == ComplianceViolationType.NotAssessable))
                 {
-                    ComplianceViolation violation = rule.Violations.ElementAt(violationCount - 1);
+                    rule.Compliance = ComplianceViolationType.NotAssessable;
+                    violations = rule.Violations.Where(violation => violation.Type == ComplianceViolationType.NotAssessable).ToList();
+                }
+                else
+                {
+                    violations = rule.Violations.ToList();
+                }
 
-                    await AddViolationDataToViolationDetails(rule, violation, ref printedViolations, violationCount, ref abbreviated, true);
+                foreach (ComplianceViolation violation in violations)
+                {   
+                    // Cut violation details when printed violations limit is reached.
+
+                    if (_maxPrintedViolations > 0 && addedViolationDetails == _maxPrintedViolations)
+                    {
+                        rule.ViolationDetails += $"<br>Too many violations to display ({rule.Violations.Count}), please check the system for details.";
+                        return;
+                    }
+
+                    // Make line breaks in violation details between violations.
+
+                    if (rule.ViolationDetails != "")
+                    {
+                        rule.ViolationDetails += "<br>";
+                    }
+
+                    // Set rule compliance.
+
+                    if (rule.Compliance != ComplianceViolationType.NotAssessable && addedViolationDetails > 0)
+                    {
+                        rule.Compliance = ComplianceViolationType.MultipleViolations;
+                    }
+                    else
+                    {
+                        rule.Compliance = violation.Type;
+                    }
+
+                    // Add to violation details.
+
+                    string violationDetails = violation.Details;
+
+                    if (formatter != null)
+                    {
+                        violationDetails = formatter(violation);
+                    }
+                    
+                    rule.ViolationDetails += violationDetails;
+                    addedViolationDetails++;
                 }
             }
             catch (Exception e)
@@ -489,32 +489,6 @@ namespace FWO.Report
                 Log.TryWriteLog(LogType.Error, "Compliance Report", $"Error while setting compliance data for rule {rule.Id}: {e.Message}", DebugConfig.ExtendedLogReportGeneration);
                 return;
             }
-        }
-
-        protected virtual Task AddViolationDataToViolationDetails(Rule rule, ComplianceViolation violation, ref int printedViolations, int violationCount, ref bool abbreviated, bool concatenateDetails)
-        {
-            if (concatenateDetails && _maxPrintedViolations == 0 || printedViolations < _maxPrintedViolations)
-            {
-                if (rule.ViolationDetails != "")
-                {
-                    rule.ViolationDetails += "<br>";
-                }
-
-                rule.ViolationDetails += violation.Details;
-                printedViolations++;
-            }
-
-            // No need to differentiate between different types of violations here at the moment.
-
-            rule.Compliance = ComplianceViolationType.MultipleViolations;
-
-            if (_maxPrintedViolations > 0 && printedViolations == _maxPrintedViolations && violationCount < rule.Violations.Count && !abbreviated)
-            {
-                rule.ViolationDetails += $"<br>Too many violations to display ({rule.Violations.Count}), please check the system for details.";
-                abbreviated = true;
-            }
-
-            return Task.CompletedTask;
         }
 
         protected virtual bool ShowRule(Rule rule)
@@ -539,17 +513,7 @@ namespace FWO.Report
 
                     if (value is string str)
                     {
-                        str = str
-                                .Replace("\r\n", " | ")
-                                .Replace("\n", " | ")
-                                .Replace("<br>", " | ");
-
-                        if (str.Length > _maxCellSize)
-                        {
-                            str = str.Substring(0, _maxCellSize) + " ... (truncated, original length: " + str.Length + " characters)";
-                        }
-
-                        return str;
+                        return TransformHtmlToCsv(p.Name, str);
                     }
                 }
 
@@ -558,6 +522,33 @@ namespace FWO.Report
 
             return string.Join(_separator, values.Select(value => $"\"{value}\""));
         }
+        
+        private string TransformHtmlToCsv(string propertyName, string htmlInput)
+        {
+            if (propertyName == "Enabled")
+            {
+                if (htmlInput.Contains(Icons.Check))
+                {
+                    htmlInput = "TRUE";
+                }
+                else
+                {
+                    htmlInput = "FALSE";
+                }
+            }
+
+            htmlInput = htmlInput
+                    .Replace("\r\n", " | ")
+                    .Replace("\n", " | ")
+                    .Replace("<br>", " | ");
+
+            if (htmlInput.Length > _maxCellSize)
+            {
+                htmlInput = htmlInput.Substring(0, _maxCellSize) + " ... (truncated, original length: " + htmlInput.Length + " characters)";
+            }
+
+            return htmlInput;
+        }
 
         private void TryAppendCsvHeader(StringBuilder sb, List<string> propertyNames)
         {
@@ -565,33 +556,6 @@ namespace FWO.Report
             {
                 sb.AppendLine(string.Join(_separator, propertyNames.Select(p => $"\"{p}\"")));
             }
-        }
-
-        private List<NetworkObject> GetAllNetworkObjectsFromRule(Rule rule)
-        {
-            HashSet<NetworkObject> allObjects = [];
-
-            foreach (NetworkLocation networkLocation in rule.Tos.Concat(rule.Froms).ToList())
-            {
-                if (networkLocation.Object.ObjectGroupFlats.Any())
-                {
-                    foreach (GroupFlat<NetworkObject> groupFlat in networkLocation.Object.ObjectGroupFlats)
-                    {
-                        // excludes group objects, that are filled, to prevent false positives on objects without ip, but excludes empty groups
-                        
-                        if (groupFlat.Object != null && (groupFlat.Object.Type.Name != "group" || groupFlat.Object.ObjectGroupFlats.Count() == 0))
-                        {
-                            allObjects.Add(groupFlat.Object);
-                        }
-                    }
-                }
-                else
-                {
-                    allObjects.Add(networkLocation.Object);
-                }
-            }
-
-            return allObjects.ToList();
         }
 
         public override string ExportToHtml()

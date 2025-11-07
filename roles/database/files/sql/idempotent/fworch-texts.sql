@@ -2684,6 +2684,22 @@ INSERT INTO txt VALUES ('edit_notification',    'German', 	'Benachrichtigung bea
 INSERT INTO txt VALUES ('edit_notification',    'English', 	'Edit Notification');
 INSERT INTO txt VALUES ('delete_notification',  'German', 	'Benachrichtigung l&ouml;schen');
 INSERT INTO txt VALUES ('delete_notification',  'English', 	'Delete Notification');
+INSERT INTO txt VALUES ('notification',   		'German', 	'Benachrichtigung');
+INSERT INTO txt VALUES ('notification',   		'English', 	'Notification');
+INSERT INTO txt VALUES ('edit_notification',    'German', 	'Benachrichtigung bearbeiten');
+INSERT INTO txt VALUES ('edit_notification',    'English', 	'Edit Notification');
+INSERT INTO txt VALUES ('delete_notification',  'German', 	'Benachrichtigung l&ouml;schen');
+INSERT INTO txt VALUES ('delete_notification',  'English', 	'Delete Notification');
+INSERT INTO txt VALUES ('color_scheme',     'German', 	'Farbschema');
+INSERT INTO txt VALUES ('color_scheme',     'English', 	'Color Scheme');
+INSERT INTO txt VALUES ('color_scheme_blue',        'German', 	'Blaues Farbschema');
+INSERT INTO txt VALUES ('color_scheme_blue',        'English', 	'Blue Color Scheme');
+INSERT INTO txt VALUES ('color_scheme_green',   'German', 	'Gr&uuml;nes Farbschema');
+INSERT INTO txt VALUES ('color_scheme_green',   'English', 	'Green Color Scheme');
+INSERT INTO txt VALUES ('color_scheme_red',     'German', 	'Rotes Farbschema');
+INSERT INTO txt VALUES ('color_scheme_red',     'English', 	'Red Color Scheme');
+INSERT INTO txt VALUES ('color_scheme_purple',    'German', 	'Violettes Farbschema');
+INSERT INTO txt VALUES ('color_scheme_purple',    'English', 	'Purple Color Scheme');
 
 -- monitoring
 INSERT INTO txt VALUES ('open_alerts',          'German', 	'Offene Alarme');

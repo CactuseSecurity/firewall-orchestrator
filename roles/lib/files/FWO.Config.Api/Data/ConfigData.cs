@@ -451,6 +451,9 @@ namespace FWO.Config.Api.Data
         [JsonProperty("debugConfig"), JsonPropertyName("debugConfig")]
         public string DebugConfig { get; set; } = "";
 
+        [JsonProperty("colorScheme"), JsonPropertyName("colorScheme"), UserConfigData]
+        public string ColorScheme { get; set; } = "color_scheme_blue";
+
         [JsonProperty("autoCalculateInternetZone"), JsonPropertyName("autoCalculateInternetZone")]
         public bool AutoCalculateInternetZone { get; set; } = true;
 

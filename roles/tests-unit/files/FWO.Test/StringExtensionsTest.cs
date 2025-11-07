@@ -467,6 +467,38 @@ namespace FWO.Test
             Assert.That(ip.ToString(), Is.EqualTo(expectedIp));
             Assert.That(subnet, Is.EqualTo(expectedSubnet));
         }
+
+        // --- IpAsCidr ---
+        [TestCase("192.168.1.1", "192.168.1.1/32")]
+        [TestCase("192.168.1.0/24", "192.168.1.0/24")]
+        [TestCase("2001:db8::1", "2001:db8::1/128")]
+        [TestCase("2001:db8::/64", "2001:db8::/64")]
+        public void IpAsCidr_Works(string input, string expected)
+        {
+            string result = input.IpAsCidr();
+            Assert.That(result, Is.EqualTo(expected));
+        }
+
+        // --- ToComparableIpString ---
+        [TestCase("192.168.1.1", 43)]
+        [TestCase("2001:db8::1", 43)]
+        public void ToComparableIpString_LengthIs43(string input, int expectedLength)
+        {
+            string result = input.ToComparableIpString();
+            Assert.That(result.Length, Is.EqualTo(expectedLength));
+        }
+
+        // --- GetMatches ---
+        [TestCase("Name: John, Age: 30; Name: Alice, Age: 25", @"Name: (\w+)", 1, new[] { "John", "Alice" })]
+        [TestCase("No names here", @"Name: (\w+)", 1, new string[0])]
+        [TestCase("Value: 123, Value: 456", @"Value: (\d+)", 1, new[] { "123", "456" })]
+        [TestCase("X:1 Y:2", @"\w:(\d+)", 1, new[] { "1", "2" })]
+        public void GetMatches_Works(string input, string pattern, int groupIndex, string[] expected)
+        {
+            var result = input.GetMatches(pattern, groupIndex);
+            Assert.That(result, Is.EqualTo(expected));
+        }
+
         #endregion
     }
 }

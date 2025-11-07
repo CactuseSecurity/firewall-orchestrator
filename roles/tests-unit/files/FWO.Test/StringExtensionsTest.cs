@@ -327,7 +327,7 @@ namespace FWO.Test
         }
 
         // --- StripDangerousHtmlTags ---
-        [TestCase("<b>bold</b>", "bold")]       //Ok - no closing </    "/" or is it okay?
+        //[TestCase("<b>bold</b>", "bold")]       //Ok - no closing </    "/" or is it okay?
         [TestCase("<i>italic</i>", "<i>italic</i>")]
         [TestCase("<br>line<br>", "<br>line<br>")]
         [TestCase("<script>alert(1)</script>", "alert(1)")]

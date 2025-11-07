@@ -13,7 +13,7 @@ from fwo_exceptions import FwoApiFailedLockImport
 from query_analyzer import QueryAnalyzer
 from model_controllers.import_statistics_controller import ImportStatisticsController
 from models.management import Management
-from roles.importer.files.importer.model_controllers.management_controller import ManagementController
+from model_controllers.management_controller import ManagementController
 
 # NOTE: we cannot import ImportState(Controller) here due to circular refs
 

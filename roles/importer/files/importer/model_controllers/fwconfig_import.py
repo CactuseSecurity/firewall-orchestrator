@@ -27,7 +27,7 @@ from model_controllers.fwconfigmanagerlist_controller import FwConfigManagerList
 class FwConfigImport():
 
     import_state: ImportStateController
-    NormalizedConfig: FwConfigNormalized
+    NormalizedConfig: FwConfigNormalized | None
 
     _fw_config_import_rule: FwConfigImportRule
     _fw_config_import_object: FwConfigImportObject
@@ -45,8 +45,6 @@ class FwConfigImport():
             raise FwoImporterError("import_state is not set in global_state")
         self.import_state = self._global_state.import_state
 
-        if self._global_state.normalized_config is None:
-            raise FwoImporterError("normalized_config is not set in global_state")
         self.NormalizedConfig = self._global_state.normalized_config
 
         self._fw_config_import_object = FwConfigImportObject()

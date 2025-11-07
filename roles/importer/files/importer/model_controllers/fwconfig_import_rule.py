@@ -68,7 +68,7 @@ class FwConfigImportRule():
         currentRulebaseUids: list[str] = []
         new_hit_information: list[dict[str, Any]] = []
 
-        rule_order_diffs: dict[str, dict[str, list[int]]] = self.rule_order_service.update_rule_order_diffs(self.import_details.DebugLevel)
+        rule_order_diffs: dict[str, dict[str, list[str]]] = self.rule_order_service.update_rule_order_diffs(self.import_details.DebugLevel)
 
         # collect rulebase UIDs of previous config
         for rulebase in prevConfig.rulebases:
@@ -140,7 +140,7 @@ class FwConfigImportRule():
         return new_rule_ids
     
 
-    def _create_removed_rules_map(self, removed_rule_ids: list[int]):
+    def _create_removed_rules_map(self, removed_rule_ids: list[str]):
         removed_rule_ids_set = set(removed_rule_ids)
         for rule_id in removed_rule_ids_set:
             rule_uid = next((k for k, v in self.import_details.RuleMap.items() if v == rule_id), None)
@@ -149,7 +149,7 @@ class FwConfigImportRule():
 
     
 
-    def _collect_uncaught_moves(self, movedRuleUids: dict[str, list[int]], changedRuleUids: dict[str, list[int]]):
+    def _collect_uncaught_moves(self, movedRuleUids: dict[str, list[str]], changedRuleUids: dict[str, list[str]]):
         for rulebaseId in movedRuleUids:
             for ruleUid in movedRuleUids[rulebaseId]:
                 if ruleUid not in changedRuleUids.get(rulebaseId, []):
@@ -711,7 +711,7 @@ class FwConfigImportRule():
         # add rules for each rulebase
         return newRulesForImport    
 
-    def markRulesRemoved(self, removedRuleUids: dict[str, list[int]], changedRuleUids: dict[str, list[int]]) -> tuple[int, list[int]]:
+    def markRulesRemoved(self, removedRuleUids: dict[str, list[str]], changedRuleUids: dict[str, list[str]]) -> tuple[int, list[str]]:
         logger = getFwoLogger()
         changes = 0
         collectedRemovedRuleIds: list[str] = []
@@ -747,7 +747,7 @@ class FwConfigImportRule():
         return changes, collectedRemovedRuleIds
 
 
-    def create_new_rule_version(self, rule_uids: dict[str, list[str]]) -> tuple[int, list[int], list[dict[str, Any]]]:
+    def create_new_rule_version(self, rule_uids: dict[str, list[str]]) -> tuple[int, list[str], list[dict[str, Any]]]:
         logger = getFwoLogger()
         self._changed_rule_id_map = {}
 

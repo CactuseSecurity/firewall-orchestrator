@@ -196,7 +196,7 @@ class ChangeLogger:
         if change_action == 'D':
             old_rule_id = rule_id
 
-        rule_changelog_object =  {
+        rule_changelog_object: dict[str, Any] =  {
             f"new_{type}_id": new_rule_id,
             f"old_{type}_id": old_rule_id,
             "control_id": self._import_state.ImportId,
@@ -210,6 +210,6 @@ class ChangeLogger:
         return rule_changelog_object
     
 
-    def _get_changelog_import_object_unique_name(self, changelog_entity_id):
+    def _get_changelog_import_object_unique_name(self, changelog_entity_id: int) -> str:
         return  str(changelog_entity_id)
     

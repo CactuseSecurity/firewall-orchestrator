@@ -68,7 +68,7 @@ class FwConfigImportRule():
         currentRulebaseUids: list[str] = []
         new_hit_information: list[dict[str, Any]] = []
 
-        rule_order_diffs: dict[str, dict[str, list[str]]] = self.rule_order_service.update_rule_order_diffs(self.import_details.DebugLevel)
+        rule_order_diffs: dict[str, dict[str, list[int]]] = self.rule_order_service.update_rule_order_diffs(self.import_details.DebugLevel)
 
         # collect rulebase UIDs of previous config
         for rulebase in prevConfig.rulebases:
@@ -149,7 +149,7 @@ class FwConfigImportRule():
 
     
 
-    def _collect_uncaught_moves(self, movedRuleUids: dict[str, list[str]], changedRuleUids: dict[str, list[str]]):
+    def _collect_uncaught_moves(self, movedRuleUids: dict[str, list[int]], changedRuleUids: dict[str, list[int]]):
         for rulebaseId in movedRuleUids:
             for ruleUid in movedRuleUids[rulebaseId]:
                 if ruleUid not in changedRuleUids.get(rulebaseId, []):
@@ -711,7 +711,7 @@ class FwConfigImportRule():
         # add rules for each rulebase
         return newRulesForImport    
 
-    def markRulesRemoved(self, removedRuleUids: dict[str, list[str]], changedRuleUids: dict[str, list[str]]) -> tuple[int, list[str]]:
+    def markRulesRemoved(self, removedRuleUids: dict[str, list[int]], changedRuleUids: dict[str, list[int]]) -> tuple[int, list[int]]:
         logger = getFwoLogger()
         changes = 0
         collectedRemovedRuleIds: list[str] = []

@@ -55,7 +55,7 @@ class LogLock:
                             stopwatch = -1
                             LogLock.semaphore.release()
                             log_owned_by_external = False
-            except Exception as e:
+            except Exception as _:
                 pass
             # Wait a second
             time.sleep(1)
@@ -79,7 +79,7 @@ class LogLock:
 #         LogLock.semaphore.release()
 
 
-def getFwoLogger(debug_level=0):
+def getFwoLogger(debug_level: int = 0):
     if int(debug_level) >= 1:
         log_level = logging.DEBUG
     else:
@@ -105,9 +105,9 @@ def getFwoLogger(debug_level=0):
     return logger
 
 
-def getFwoAlertLogger(debug_level=0):
-    debug_level=int(debug_level)
-    if debug_level>=1:
+def getFwoAlertLogger(debug_level: int = 0):
+    debug_level = int(debug_level) # TODO: Check why str is passed sometimes or why the int cast is needed
+    if debug_level >= 1:
         llevel = logging.DEBUG
     else:
         llevel = logging.INFO
@@ -141,8 +141,8 @@ class ChangeLogger:
     """
 
     _instance = None
-    changed_nwobj_id_map: dict
-    changed_svc_id_map: dict
+    changed_nwobj_id_map: dict[str, int]
+    changed_svc_id_map: dict[str, int]
     _import_state = None
     _uid2id_mapper: "Uid2IdMapper | None" = None
 
@@ -159,15 +159,15 @@ class ChangeLogger:
         return cls._instance
 
 
-    def create_change_id_maps(self, uid2id_mapper: "Uid2IdMapper", changed_nw_objs: list[str], changed_svcs: list[str], removedNwObjIds: list[dict[str, int]], removedNwSvcIds: list[dict[str, int]]):
-
+    def create_change_id_maps(self, uid2id_mapper: "Uid2IdMapper", changed_nw_objs: list[str], changed_svcs: list[str], removedNwObjIds: list[dict[str, str]], removedNwSvcIds: list[dict[str, str]]):
+                                                                                                                        #TODO: removedNwObjUids?               #TODO: removedNwObjUids?
         self._uid2id_mapper = uid2id_mapper
 
         self.changed_object_id_map = {
             next(removedNwObjId['obj_id']
                 for removedNwObjId in removedNwObjIds
                 if removedNwObjId['obj_uid'] == old_item
-            ): self._uid2id_mapper.get_network_object_id(old_item)
+            ): self._uid2id_mapper.get_network_object_id(old_item) 
             for old_item in changed_nw_objs
         }
 

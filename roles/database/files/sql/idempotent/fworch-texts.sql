@@ -2666,12 +2666,6 @@ INSERT INTO txt VALUES ('edit_notification',    'German', 	'Benachrichtigung bea
 INSERT INTO txt VALUES ('edit_notification',    'English', 	'Edit Notification');
 INSERT INTO txt VALUES ('delete_notification',  'German', 	'Benachrichtigung l&ouml;schen');
 INSERT INTO txt VALUES ('delete_notification',  'English', 	'Delete Notification');
-INSERT INTO txt VALUES ('notification',   		'German', 	'Benachrichtigung');
-INSERT INTO txt VALUES ('notification',   		'English', 	'Notification');
-INSERT INTO txt VALUES ('edit_notification',    'German', 	'Benachrichtigung bearbeiten');
-INSERT INTO txt VALUES ('edit_notification',    'English', 	'Edit Notification');
-INSERT INTO txt VALUES ('delete_notification',  'German', 	'Benachrichtigung l&ouml;schen');
-INSERT INTO txt VALUES ('delete_notification',  'English', 	'Delete Notification');
 INSERT INTO txt VALUES ('color_scheme',     'German', 	'Farbschema');
 INSERT INTO txt VALUES ('color_scheme',     'English', 	'Color Scheme');
 INSERT INTO txt VALUES ('color_scheme_blue',        'German', 	'Blaues Farbschema');

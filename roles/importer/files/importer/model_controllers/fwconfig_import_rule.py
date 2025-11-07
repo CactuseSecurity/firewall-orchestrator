@@ -73,6 +73,7 @@ class FwConfigImportRule():
         ruleUidsInBoth: dict[str, list[str]] = {}
         previous_rulebase_uids: list[str] = []
         current_rulebase_uids: list[str] = []
+        removed_rulebase_uids: list[str] = []
         new_hit_information = []
 
         rule_order_diffs: dict[str, dict[str, list[str]]] = self.rule_order_service.update_rule_order_diffs(self.import_details.DebugLevel)
@@ -88,13 +89,12 @@ class FwConfigImportRule():
         for rulebase_uid in previous_rulebase_uids:
             current_rulebase = self.normalized_config.get_rulebase(rulebase_uid)
             if current_rulebase is None:
+                removed_rulebase_uids.append(rulebase_uid)
                 continue # rulebase has been deleted
             if rulebase_uid in current_rulebase_uids:
                 # deal with policies contained both in this and previous config
                 previous_rulebase = prevConfig.get_rulebase(rulebase_uid)
                 ruleUidsInBoth.update({ rulebase_uid: list(current_rulebase.rules.keys() & previous_rulebase.rules.keys()) }) # type: ignore
-            else:
-                logger.info(f"previous rulebase has been deleted: {current_rulebase.name} (id:{rulebase_uid})")
 
         # find changed rules
         for rulebase_uid in ruleUidsInBoth:
@@ -128,6 +128,7 @@ class FwConfigImportRule():
         num_new_refs = self.add_new_refs(prevConfig)
 
         num_deleted_rules, removed_rule_ids = self.mark_rules_removed(rule_order_diffs["deleted_rule_uids"])
+        num_removed_rulebases = self.mark_rulebases_removed(removed_rulebase_uids)
         num_removed_refs = self.remove_outdated_refs(prevConfig)
 
         _, num_moved_rules, _ = self.verify_rules_moved(changedRuleUids)
@@ -355,6 +356,7 @@ class FwConfigImportRule():
         return refs_to_remove
 
     def remove_outdated_refs(self, prev_config: FwConfigNormalized):
+        """Remove all outdated nwobj/svc/(user) references, including resolved ones, for changed and removed rules."""
         all_refs_to_remove = {ref_type: [] for ref_type in RefType}
         for prev_rulebase in prev_config.rulebases:
             rules = next((rb.rules for rb in self.normalized_config.rulebases if rb.uid == prev_rulebase.uid), {})
@@ -788,6 +790,31 @@ class FwConfigImportRule():
 
         return changes, collectedRemovedRuleIds
 
+    def mark_rulebases_removed(self, removedRulebaseUids: list[str]) -> int:
+        logger = getFwoLogger()
+        changes = 0
+
+        if len(removedRulebaseUids) == 0:
+            return 0
+        
+        removeMutation = """
+            mutation markRulebasesRemoved($importId: bigint!, $mgmId: Int!, $uids: [String!]!) {
+                update_rulebase(where: {removed: { _is_null: true }, uid: {_in: $uids}, mgm_id: {_eq: $mgmId}}, _set: {removed: $importId}) {
+                    affected_rows
+                }
+            }
+        """
+        query_variables = {  'importId': self.import_details.ImportId,
+                            'mgmId': self.import_details.MgmDetails.CurrentMgmId,
+                            'uids': removedRulebaseUids }
+        try:
+            removeResult = self.import_details.api_call.call(removeMutation, query_variables=query_variables)
+        except Exception:
+            raise FwoApiWriteError(f"failed to remove rulebases: {str(traceback.format_exc())}")
+        if 'errors' in removeResult:
+            raise FwoApiWriteError(f"failed to remove rulebases: {str(removeResult['errors'])}")
+        changes = int(removeResult['data']['update_rulebase']['affected_rows'])
+        return changes
 
     def create_new_rule_version(self, rule_uids: dict[str, list[str]]) -> tuple[int, list[int], list[dict]]:
         """

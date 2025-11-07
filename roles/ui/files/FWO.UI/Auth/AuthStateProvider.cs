@@ -28,12 +28,14 @@ namespace FWO.Ui.Auth
             this.tokenService = tokenService;
         }
 
-        public override Task<AuthenticationState> GetAuthenticationStateAsync()
-		{
-			return Task.FromResult(new AuthenticationState(user));
-		}
+        public override async Task<AuthenticationState> GetAuthenticationStateAsync()
+        {
+            await tokenService.InitializeAsync();
 
-		public async Task<RestResponse<TokenPair>> Authenticate(string username, string password, ApiConnection apiConnection, MiddlewareClient middlewareClient,
+            return await Task.FromResult(new AuthenticationState(user));
+        }
+
+        public async Task<RestResponse<TokenPair>> Authenticate(string username, string password, ApiConnection apiConnection, MiddlewareClient middlewareClient,
 			GlobalConfig globalConfig, UserConfig userConfig, ProtectedSessionStorage sessionStorage, CircuitHandlerService circuitHandler)
 		{
 			// There is no jwt in session storage. Get one from auth module.
@@ -46,7 +48,7 @@ namespace FWO.Ui.Auth
 
                 TokenPair tokenPair = System.Text.Json.JsonSerializer.Deserialize<TokenPair>(tokenPairJson) ?? throw new ArgumentException("failed to deserialize token pair");
 
-                tokenService.SetTokenPair(tokenPair);
+                await tokenService.SetTokenPair(tokenPair);
 
                 string jwtString = tokenPair.AccessToken ?? throw new ArgumentException("no access token in response");
 

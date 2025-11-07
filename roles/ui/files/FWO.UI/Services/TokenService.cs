@@ -3,6 +3,7 @@ using FWO.Data.Middleware;
 using FWO.Middleware.Client;
 using FWO.Logging;
 using System.IdentityModel.Tokens.Jwt;
+using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage;
 
 namespace FWO.Ui.Services
 {
@@ -11,21 +12,35 @@ namespace FWO.Ui.Services
     /// </summary>
     public class TokenService : ITokenRefreshService
     {
-        private readonly MiddlewareClient middlewareClient;
-        private readonly ApiConnection apiConnection;
         private TokenPair? currentTokenPair;
+        private readonly ProtectedSessionStorage sessionStorage;
         private readonly JwtSecurityTokenHandler jwtHandler = new();
         private readonly SemaphoreSlim refreshSemaphore = new(1, 1);
+        private readonly MiddlewareClient middlewareClient;
+        private readonly ApiConnection apiConnection;
+        private const string TOKEN_PAIR_KEY = "token_pair";
 
-        public TokenService(MiddlewareClient middlewareClient, ApiConnection apiConnection)
+        public TokenService(MiddlewareClient middlewareClient, ApiConnection apiConnection, ProtectedSessionStorage sessionStorage)
         {
             this.middlewareClient = middlewareClient;
             this.apiConnection = apiConnection;
+            this.sessionStorage = sessionStorage;
         }
 
-        public void SetTokenPair(TokenPair tokenPair)
+        public async Task InitializeAsync()
+        {
+            ProtectedBrowserStorageResult<TokenPair> result = await sessionStorage.GetAsync<TokenPair>(TOKEN_PAIR_KEY);
+
+            if(result.Success && result.Value != null)
+            {
+                currentTokenPair = result.Value;
+            }
+        }
+
+        public async Task SetTokenPair(TokenPair tokenPair)
         {
             currentTokenPair = tokenPair;
+            await sessionStorage.SetAsync(TOKEN_PAIR_KEY, tokenPair);
         }
 
         public async Task<bool> RefreshAccessTokenAsync()
@@ -41,8 +56,12 @@ namespace FWO.Ui.Services
 
                 if(currentTokenPair?.RefreshToken == null)
                 {
-                    Log.WriteWarning("Token Refresh", "No refresh token available");
-                    return false;
+                    await InitializeAsync();
+
+                    if(currentTokenPair?.RefreshToken == null)
+                    {
+                        return false;
+                    }
                 }
 
                 Log.WriteDebug("Token Refresh", "Attempting to refresh access token");
@@ -56,13 +75,12 @@ namespace FWO.Ui.Services
 
                 if(response.IsSuccessful && response.Data != null)
                 {
-                    currentTokenPair = response.Data;
+                    await SetTokenPair(response.Data);
 
-                    // Update auth headers
-                    apiConnection.SetAuthHeader(currentTokenPair.AccessToken);
-                    middlewareClient.SetAuthenticationToken(currentTokenPair.AccessToken);
+                    apiConnection.SetAuthHeader(response.Data.AccessToken);
 
                     Log.WriteInfo("Token Refresh", "Access token refreshed successfully");
+
                     return true;
                 }
                 else
@@ -74,6 +92,7 @@ namespace FWO.Ui.Services
             catch(Exception ex)
             {
                 Log.WriteError("Token Refresh", "Exception during token refresh", ex);
+
                 return false;
             }
             finally
@@ -85,7 +104,9 @@ namespace FWO.Ui.Services
         public bool IsAccessTokenExpired()
         {
             if(string.IsNullOrEmpty(currentTokenPair?.AccessToken))
+            {
                 return true;
+            }
 
             try
             {
@@ -98,6 +119,11 @@ namespace FWO.Ui.Services
                 Log.WriteWarning("Token Check", $"Failed to read JWT: {ex.Message}");
                 return true;
             }
+        }
+        public async Task ClearTokenPair()
+        {
+            currentTokenPair = null;
+            await sessionStorage.DeleteAsync(TOKEN_PAIR_KEY);
         }
     }
 }

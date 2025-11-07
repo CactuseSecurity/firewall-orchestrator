@@ -271,7 +271,6 @@ def create_service_for_protocol_entry(entry: AccessListEntry, service_objects: D
         return create_service_for_protocol_entry_with_single_protocol(entry, service_objects)
 
     elif entry.protocol.value == "ip":
-        # 'ip' protocol means all protocols (tcp, udp, icmp)
         svc_refs = []
         for proto in protocol_map.keys():
             svc_refs.append(create_any_protocol_service(proto, service_objects))

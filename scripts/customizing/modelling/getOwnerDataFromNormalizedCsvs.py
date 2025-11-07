@@ -173,25 +173,29 @@ def extract_app_data_from_csv (csvFile: str, app_list: list, base_dir=repoTarget
     countSkips = 0
     # append all owners from CSV
     for line in apps_from_csv:
-        app_id = line[app_id_column]
-        if app_id.lower().startswith('app-') or app_id.lower().startswith('com-'):
-            app_name = line[app_name_column]
-            app_main_user = line[app_owner_tiso_column]
-            main_user_dn = build_dn(app_main_user, ldapPath)
-            kwita = line[app_owner_kwita_column]
-            if kwita is None or kwita == '' or kwita.lower() == 'nein':
-                recert_period_days = 365
-            else:
-                recert_period_days = 182
-            if main_user_dn=='' and debug_level>0:
-                logger.warning('adding app without main user: ' + app_id)
-            app_list.append(Owner(app_id_external=app_id, name=app_name, main_user=main_user_dn, recert_period_days = recert_period_days, import_source=importSourceString))
-        else:
-            if debug_level>1:
-                logger.info(f'ignoring line from csv file: {app_id} - inconclusive appId')
-            countSkips += 1
+        parse_app_line(line, app_name_column, app_id_column, app_owner_tiso_column, app_owner_kwita_column, app_list, countSkips)
     if debug_level>0:
         logger.info(f"{str(csvFile)}: #total lines {str(len(apps_from_csv))}, skipped: {str(countSkips)}")
+
+
+def parse_app_line(line, app_name_column, app_id_column, app_owner_tiso_column, app_owner_kwita_column, app_list, countSkips):
+    app_id = line[app_id_column]
+    if app_id.lower().startswith('app-') or app_id.lower().startswith('com-'):
+        app_name = line[app_name_column]
+        app_main_user = line[app_owner_tiso_column]
+        main_user_dn = build_dn(app_main_user, ldapPath)
+        kwita = line[app_owner_kwita_column]
+        if kwita is None or kwita == '' or kwita.lower() == 'nein':
+            recert_period_days = 365
+        else:
+            recert_period_days = 182
+        if main_user_dn=='' and debug_level>0:
+            logger.warning('adding app without main user: ' + app_id)
+        app_list.append(Owner(app_id_external=app_id, name=app_name, main_user=main_user_dn, recert_period_days = recert_period_days, import_source=importSourceString))
+    else:
+        if debug_level>1:
+            logger.info(f'ignoring line from csv file: {app_id} - inconclusive appId')
+        countSkips += 1
 
 
 def read_ip_data_from_csv(csv_filename):

@@ -27,7 +27,7 @@ namespace FWO.Recert
                 recertified = rule.Metadata.Recert,
                 recertDate = DateTime.Now,
                 comment = comment,
-                ownerRecertId = owner?.LastRecertId
+                ownerRecertId = owner?.LastRecertId == 0 ? null : owner?.LastRecertId
             };
             bool recertOk = (await apiConnection.SendQueryAsync<ReturnId>(RecertQueries.recertify, variables)).AffectedRows > 0;
             if (rule.Metadata.Recert)

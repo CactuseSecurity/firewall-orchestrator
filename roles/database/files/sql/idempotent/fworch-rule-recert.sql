@@ -188,6 +188,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+-- select * from recert_get_one_owner_one_mgm(4,1)
 
 -- this function returns a table of future recert entries 
 -- but does not write them into the recertification table
@@ -226,7 +227,8 @@ BEGIN
 					SELECT I.start_time::timestamp + make_interval (days => o.recert_interval) AS value
 					UNION
 					SELECT C.recert_date + make_interval (days => o.recert_interval) AS value
-				) AS temp_table))
+				) AS temp_table)),
+            NULL::bigint AS owner_recert_id            
 		FROM 
 			view_rule_with_owner V 
 			LEFT JOIN rule R USING (rule_id)			
@@ -253,7 +255,8 @@ BEGIN
 					SELECT I.start_time::timestamp + make_interval (days => o.recert_interval) AS value
 					UNION
 					SELECT C.recert_date + make_interval (days => o.recert_interval) AS value
-				) AS temp_table))
+				) AS temp_table)),
+            NULL::bigint AS owner_recert_id            
 		FROM 
 			view_rule_with_owner V 
 			LEFT JOIN rule R USING (rule_id)			

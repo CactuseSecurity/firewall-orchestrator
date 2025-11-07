@@ -140,7 +140,7 @@ class FwConfigImportRule():
         return new_rule_ids
     
 
-    def _create_removed_rules_map(self, removed_rule_ids: list[str]):
+    def _create_removed_rules_map(self, removed_rule_ids: list[int]):
         removed_rule_ids_set = set(removed_rule_ids)
         for rule_id in removed_rule_ids_set:
             rule_uid = next((k for k, v in self.import_details.RuleMap.items() if v == rule_id), None)
@@ -633,10 +633,10 @@ class FwConfigImportRule():
         
     # as we cannot add the rules for all rulebases in one go (using a constraint from the rule table), 
     # we need to add them per rulebase separately
-    def addRulesWithinRulebases(self, newRules: list[Rulebase]) -> tuple[Any | Literal[0], list[str]]:
+    def addRulesWithinRulebases(self, newRules: list[Rulebase]) -> tuple[Any | Literal[0], list[int]]:
         logger = getFwoLogger()
         changes = 0
-        newRuleIds: list[str] = []
+        newRuleIds: list[int] = []
         # TODO: need to update the RulebaseMap here?!
 
         newRulesForImport: list[RulebaseForImport] = self.PrepareNewRulebases(newRules)
@@ -747,7 +747,7 @@ class FwConfigImportRule():
         return changes, collectedRemovedRuleIds
 
 
-    def create_new_rule_version(self, rule_uids: dict[str, list[str]]) -> tuple[int, list[str], list[dict[str, Any]]]:
+    def create_new_rule_version(self, rule_uids: dict[str, list[str]]) -> tuple[int, list[int], list[dict[str, Any]]]:
         logger = getFwoLogger()
         self._changed_rule_id_map = {}
 
@@ -804,7 +804,7 @@ class FwConfigImportRule():
                     if rule_with_changes.rule_uid in rule_uids[rulebase_uid]
                 ]
 
-                import_rules_of_rulebase: dict[str, list[Rule]] = self.prepare_rules_for_import(self.import_details, changed_rule_of_rulebase, rulebase_uid)
+                import_rules_of_rulebase: list[dict[str, Any]] = self.prepare_rules_for_import(self.import_details, changed_rule_of_rulebase, rulebase_uid)
 
                 import_rules.extend(import_rules_of_rulebase["data"])
 

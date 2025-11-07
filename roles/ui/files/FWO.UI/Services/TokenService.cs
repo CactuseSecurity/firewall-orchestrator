@@ -9,7 +9,7 @@ namespace FWO.Ui.Services
     /// <summary>
     /// Manages token pairs (access + refresh tokens) for the current user session.
     /// </summary>
-    public class TokenService : ITokenRefreshService // ✅ Implements interface
+    public class TokenService : ITokenRefreshService
     {
         private readonly MiddlewareClient middlewareClient;
         private readonly ApiConnection apiConnection;
@@ -34,7 +34,6 @@ namespace FWO.Ui.Services
 
             try
             {
-                // Double-check if still expired
                 if(!IsAccessTokenExpired())
                 {
                     return true;
@@ -48,12 +47,12 @@ namespace FWO.Ui.Services
 
                 Log.WriteDebug("Token Refresh", "Attempting to refresh access token");
 
-                var refreshRequest = new RefreshTokenRequest
+                RefreshTokenRequest refreshRequest = new RefreshTokenRequest
                 {
                     RefreshToken = currentTokenPair.RefreshToken
                 };
 
-                var response = await middlewareClient.RefreshToken(refreshRequest);
+                RestSharp.RestResponse<TokenPair> response = await middlewareClient.RefreshToken(refreshRequest);
 
                 if(response.IsSuccessful && response.Data != null)
                 {
@@ -90,25 +89,15 @@ namespace FWO.Ui.Services
 
             try
             {
-                var token = jwtHandler.ReadJwtToken(currentTokenPair.AccessToken);
-                // Refresh 2 minutes before actual expiry
-                return token.ValidTo <= DateTime.UtcNow.AddMinutes(2);
+                JwtSecurityToken token = jwtHandler.ReadJwtToken(currentTokenPair.AccessToken);
+
+                return token.ValidTo <= DateTime.UtcNow.AddMinutes(1);
             }
             catch(Exception ex)
             {
                 Log.WriteWarning("Token Check", $"Failed to read JWT: {ex.Message}");
                 return true;
             }
-        }
-
-        public void ClearTokens()
-        {
-            currentTokenPair = null;
-        }
-
-        public TokenPair? GetCurrentTokenPair()
-        {
-            return currentTokenPair;
         }
     }
 }

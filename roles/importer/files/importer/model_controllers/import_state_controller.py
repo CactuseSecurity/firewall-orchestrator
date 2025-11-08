@@ -47,7 +47,7 @@ class ImportStateController(ImportState):
         self.LastSuccessfulImport = LastSuccessfulImport
         self.api_connection = FwoApi(fwoConfig.FwoApiUri, jwt)
         self.api_call = FwoApiCall(self.api_connection)
-        self.removed_rules_map = {}
+        self.removed_rules_map: dict[str, int] = {}
 
     def __str__(self):
         return f"{str(self.MgmDetails)}(import_id={self.ImportId})"

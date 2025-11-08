@@ -61,7 +61,19 @@ class FwConfigNormalized(FwConfig):
     }
 
 
-    def get_rulebase(self, rulebaseUid: str) -> Optional[Rulebase]:
+    def get_rulebase(self, rulebaseUid: str) -> Rulebase:
+        """
+        get the policy with a specific uid  
+        :param policyUid: The UID of the relevant policy.
+        :return: Returns the policy with a specific uid, otherwise returns None.
+        """
+        rulebase = self.get_rulebase_or_none(rulebaseUid)
+        if rulebase is not None:
+            return rulebase
+
+        raise KeyError(f"Rulebase with UID {rulebaseUid} not found.")
+
+    def get_rulebase_or_none(self, rulebaseUid: str) -> Rulebase | None:
         """
         get the policy with a specific uid  
         :param policyUid: The UID of the relevant policy.

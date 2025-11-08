@@ -28,7 +28,7 @@ class FwConfigImportObject():
 
     import_state: ImportStateController
     normalized_config: FwConfigNormalized
-    global_normalized_config: FwConfigNormalized|None = None
+    global_normalized_config: FwConfigNormalized | None = None
     group_flats_mapper: GroupFlatsMapper
     prev_group_flats_mapper: GroupFlatsMapper
     uid2id_mapper: Uid2IdMapper
@@ -136,7 +136,7 @@ class FwConfigImportObject():
         # insert new and updated group memberships
         self.addGroupMemberships(prev_config, Type.NETWORK_OBJECT)
         self.addGroupMemberships(prev_config, Type.SERVICE_OBJECT)
-        self.addGroupMemberships(prev_config, Type.USER)
+        self.addGroupMemberships(prev_config, Type.USER) 
 
         # these objects have really been deleted so there should be no refs to them anywhere! verify this
 

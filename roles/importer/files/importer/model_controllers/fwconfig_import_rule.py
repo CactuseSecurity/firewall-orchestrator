@@ -39,10 +39,10 @@ class RefType(Enum):
 # this class is used for importing rules and rule refs into the FWO API
 class FwConfigImportRule():
 
-    _changed_rule_id_map: dict
+    _changed_rule_id_map: dict[str, int]
     global_state: GlobalState
     import_details: ImportStateController
-    normalized_config: FwConfigNormalized
+    normalized_config: FwConfigNormalized | None = None
     uid2id_mapper: Uid2IdMapper
     group_flats_mapper: GroupFlatsMapper
     prev_group_flats_mapper: GroupFlatsMapper
@@ -74,7 +74,7 @@ class FwConfigImportRule():
         ruleUidsInBoth: dict[str, list[str]] = {}
         previous_rulebase_uids: list[str] = []
         current_rulebase_uids: list[str] = []
-        new_hit_information = []
+        new_hit_information: list[dict[str, Any]] = []
 
         rule_order_diffs: dict[str, dict[str, list[str]]] = self.rule_order_service.update_rule_order_diffs(self.import_details.DebugLevel)
 
@@ -87,13 +87,14 @@ class FwConfigImportRule():
             current_rulebase_uids.append(rulebase.uid)
 
         for rulebase_uid in previous_rulebase_uids:
-            current_rulebase = self.normalized_config.get_rulebase(rulebase_uid)
+            current_rulebase = self.normalized_config.get_rulebase_or_none(rulebase_uid)
             if current_rulebase is None:
-                continue # rulebase has been deleted
+                logger.info(f"current rulebase has been deleted: {rulebase_uid}")
+                continue
             if rulebase_uid in current_rulebase_uids:
                 # deal with policies contained both in this and previous config
                 previous_rulebase = prevConfig.get_rulebase(rulebase_uid)
-                ruleUidsInBoth.update({ rulebase_uid: list(current_rulebase.rules.keys() & previous_rulebase.rules.keys()) }) # type: ignore
+                ruleUidsInBoth.update({ rulebase_uid: list(current_rulebase.rules.keys() & previous_rulebase.rules.keys()) })
             else:
                 logger.info(f"previous rulebase has been deleted: {current_rulebase.name} (id:{rulebase_uid})")
 
@@ -116,7 +117,7 @@ class FwConfigImportRule():
         newRulebases = self.getRules(rule_order_diffs["new_rule_uids"])
 
         # update rule_metadata before adding rules
-        num_added_metadata_rules, new_rule_metadata_ids = self.addNewRuleMetadata(newRulebases)
+        _, _ = self.addNewRuleMetadata(newRulebases)
         _ = self.update_rule_metadata_last_hit(new_hit_information)
 
         # # now update the database with all rule diffs
@@ -129,7 +130,7 @@ class FwConfigImportRule():
         _ = self.add_new_refs(prevConfig)
 
         num_deleted_rules, removed_rule_ids = self.mark_rules_removed(rule_order_diffs["deleted_rule_uids"])
-        num_removed_refs = self.remove_outdated_refs(prevConfig)
+        _ = self.remove_outdated_refs(prevConfig)
 
         _, num_moved_rules, _ = self.verify_rules_moved(changedRuleUids)
 
@@ -168,7 +169,7 @@ class FwConfigImportRule():
                         changedRuleUids[rulebaseId] = []
                     changedRuleUids[rulebaseId].append(ruleUid)
 
-    def collect_all_hit_information(self, prev_config: FwConfigNormalized, new_hit_information: list[dict]):
+    def collect_all_hit_information(self, prev_config: FwConfigNormalized, new_hit_information: list[dict[str, Any]]):
         """
         Consolidated hit information collection for ALL rules that need hit updates.
 
@@ -176,9 +177,9 @@ class FwConfigImportRule():
             prev_config: Previous configuration for comparison
             new_hit_information: List to append hit update information to
         """
-        processed_rules = set()
+        processed_rules: set[str] = set()
 
-        def add_hit_update(new_hit_information: list[dict], rule: RuleNormalized):
+        def add_hit_update(new_hit_information: list[dict[str, Any]], rule: RuleNormalized):
             """Add a hit information update entry for a rule."""
             new_hit_information.append({ 
                 "where": { "rule_uid": { "_eq": rule.rule_uid } },
@@ -186,6 +187,9 @@ class FwConfigImportRule():
             })
 
         # check all rulebases in current config
+        if self.normalized_config is None:
+            raise FwoImporterError("cannot collect hit information: normalized_config is None")
+        
         for current_rulebase in self.normalized_config.rulebases:
             previous_rulebase = prev_config.get_rulebase(current_rulebase.uid)
 
@@ -202,7 +206,7 @@ class FwConfigImportRule():
                     add_hit_update(new_hit_information, current_rule)
                     processed_rules.add(rule_uid)
 
-    def update_rule_metadata_last_hit(self, new_hit_information: list[dict]) -> int:
+    def update_rule_metadata_last_hit(self, new_hit_information: list[dict[str, Any]]) -> int:
         """
         Updates rule_metadata.rule_last_hit for all rules with hit information changes.
         This method executes the actual database updates for hit information.
@@ -232,26 +236,21 @@ class FwConfigImportRule():
         return changes
 
     @staticmethod
-    def collect_changed_rules(rule_uid, current_rulebase, previous_rulebase, rulebase_id, changed_rule_uids):
+    def collect_changed_rules(rule_uid: str, current_rulebase: Rulebase, previous_rulebase: Rulebase, rulebase_id: str, changed_rule_uids: dict[str, list[str]]):
         if current_rulebase.rules[rule_uid] != previous_rulebase.rules[rule_uid]:
             changed_rule_uids[rulebase_id].append(rule_uid)
 
 
     @staticmethod
-    def preserve_rule_num_numeric(current_rulebase, previous_rulebase, rule_uid):
+    def preserve_rule_num_numeric(current_rulebase: Rulebase, previous_rulebase: Rulebase, rule_uid: str):
         if current_rulebase.rules[rule_uid].rule_num_numeric == 0:
             current_rulebase.rules[rule_uid].rule_num_numeric = previous_rulebase.rules[rule_uid].rule_num_numeric
-    
 
-    def get_members(self, type, refs) -> list[str]:
-        if type == type.NETWORK_OBJECT:
-            return [member.split(fwo_const.user_delimiter)[0] for member in refs.split(fwo_const.list_delimiter) if member] if refs else []
-        return refs.split(fwo_const.list_delimiter) if refs else []
 
-    def get_rule_refs(self, rule, is_prev=False) -> dict[RefType, list[str]]:
-        froms = []
-        tos = []
-        users = []
+    def get_rule_refs(self, rule: Rule, is_prev: bool = False) -> dict[RefType, list[tuple[str, str | None]] | list[str]]:
+        froms: list[tuple[str, str | None]] = []
+        tos: list[tuple[str, str | None]] = []
+        users: list[str] = []
         for src_ref in rule.rule_src_refs.split(fwo_const.list_delimiter):
             user_ref = None
             if fwo_const.user_delimiter in src_ref:
@@ -529,9 +528,13 @@ class FwConfigImportRule():
             raise
 
 
-    def getRules(self, ruleUids) -> list[Rulebase]:
+    def getRules(self, ruleUids: dict[str, list[str]]) -> list[Rulebase]:
         #TODO: seems unnecessary, as the rulebases should already have been created this way in the normalized config
-        rulebases = []
+        rulebases: list[Rulebase] = []
+
+        if self.normalized_config is None:
+            raise FwoImporterError("cannot get rules: normalized_config is None")
+        
         for rb in self.normalized_config.rulebases:
             if rb.uid in ruleUids:
                 filtered_rules = {uid: rule for uid, rule in rb.rules.items() if uid in ruleUids[rb.uid]}
@@ -713,9 +716,9 @@ class FwConfigImportRule():
 
     # adds only new rules to the database
     # unchanged or deleted rules are not touched here
-    def add_new_rules(self, rulebases: list[Rulebase]) -> tuple[int, list[dict]]:
+    def add_new_rules(self, rulebases: list[Rulebase]) -> tuple[int, list[dict[str, Any]]]:
         #TODO: currently brute-forcing all rulebases and rules and depending on constraints to avoid duplicates. seems inefficient.
-        changes1, newRulebaseIds = self.add_rulebases_without_rules(rulebases)
+        changes1, _ = self.add_rulebases_without_rules(rulebases)
         changes2, newRuleIds = self.add_rules_within_rulebases(rulebases)
 
         return changes1 + changes2, newRuleIds
@@ -790,7 +793,7 @@ class FwConfigImportRule():
         return changes, collectedRemovedRuleIds
 
 
-    def create_new_rule_version(self, rule_uids: dict[str, list[str]]) -> tuple[int, list[int], list[dict]]:
+    def create_new_rule_version(self, rule_uids: dict[str, list[str]]) -> tuple[int, list[int], list[dict[str, Any]]]:
         """
         Creates new versions of rules specified in rule_uids by inserting new rule entries and marking the old ones as removed.
 
@@ -800,7 +803,6 @@ class FwConfigImportRule():
         Returns:
             tuple[int, list[int], list[dict]]: A tuple containing the number of changes made, a list of old rule IDs that were changed, and a list of newly inserted rule entries.
         """
-        logger = getFwoLogger()
         self._changed_rule_id_map = {}
 
         if len(rule_uids) == 0:
@@ -860,7 +862,7 @@ class FwConfigImportRule():
 
                 import_rules.extend(import_rules_of_rulebase)
 
-        create_new_rule_version_variables = {
+        create_new_rule_version_variables: dict[str, Any] = {
             "objects": [rule.model_dump() for rule in import_rules],
             "uids": [rule.rule_uid for rule in import_rules],
             "mgmId": self.import_details.MgmDetails.CurrentMgmId,
@@ -1227,7 +1229,7 @@ class FwConfigImportRule():
 
         return rule_for_import
 
-    def write_changelog_rules(self, added_rules_ids: list[str], removed_rules_ids: list[str]) -> int:
+    def write_changelog_rules(self, added_rules_ids: list[int], removed_rules_ids: list[int]) -> int:
         logger = getFwoLogger()
         errors = 0
 
@@ -1252,13 +1254,13 @@ class FwConfigImportRule():
         return errors
 
 
-    def prepare_changelog_rules_insert_objects(self, added_rules_ids: list[str], removed_rules_ids: dict[str, list[str]]) -> list[dict[str, Any]]:
+    def prepare_changelog_rules_insert_objects(self, added_rules_ids: list[int], removed_rules_ids: list[int]) -> list[dict[str, Any]]:
         """
             Creates two lists of insert arguments for the changelog_rules db table, one for new rules, one for deleted.
         """
 
         change_logger = ChangeLogger()
-        changelog_rule_insert_objects = []
+        changelog_rule_insert_objects: list[dict[str, Any]] = []
         importTime = datetime.now().isoformat()
         changeTyp = 3
 

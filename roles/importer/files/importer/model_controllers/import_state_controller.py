@@ -263,7 +263,7 @@ class ImportStateController(ImportState):
     # TODO: map update inconsistencies: import_state is global over all sub managers, so map needs to be updated for each sub manager
     #   currently, this is done in fwconfig_import_rule. But what about other maps? - see #3646
     # TODO: global rulebases not yet included
-    def SetRulebaseMap(self, api_call):
+    def SetRulebaseMap(self, api_call: FwoApiCall) -> None:
         logger = getFwoLogger()
 
         # TODO: maps need to be updated directly after data changes
@@ -363,7 +363,7 @@ class ImportStateController(ImportState):
     def lookupRule(self, ruleUid):
         return self.RuleMap.get(ruleUid, None)
 
-    def lookupAction(self, actionStr):
+    def lookupAction(self, actionStr: str) -> int:
         action_id = self.Actions.get(actionStr.lower(), None)
         if action_id is None:
             logger = getFwoLogger()
@@ -371,7 +371,7 @@ class ImportStateController(ImportState):
             raise FwoImporterError(f"Action {actionStr} not found")
         return action_id
 
-    def lookupTrack(self, trackStr):
+    def lookupTrack(self, trackStr: str) -> int:
         track_id = self.Tracks.get(trackStr.lower(), None)
         if track_id is None:
             logger = getFwoLogger()
@@ -379,7 +379,7 @@ class ImportStateController(ImportState):
             raise FwoImporterError(f"Track {trackStr} not found")
         return track_id
 
-    def lookupRulebaseId(self, rulebaseUid) -> int:
+    def lookupRulebaseId(self, rulebaseUid: str) -> int:
         rulebaseId = self.RulebaseMap.get(rulebaseUid, None)
         if rulebaseId is None:
             logger = getFwoLogger()
@@ -387,10 +387,10 @@ class ImportStateController(ImportState):
             raise FwoImporterError(f"Rulebase {rulebaseUid} not found in {len(self.RulebaseMap)} known rulebases")
         return rulebaseId
 
-    def lookupLinkType(self, linkUid):
+    def lookupLinkType(self, linkUid: str) -> int:
         return self.LinkTypes.get(linkUid, -1)
 
-    def lookupGatewayId(self, gwUid: str) -> int|None:
+    def lookupGatewayId(self, gwUid: str) -> int | None:
         mgm_id = self.MgmDetails.CurrentMgmId
         gws_for_mgm = self.GatewayMap.get(mgm_id, {})
         gw_id = gws_for_mgm.get(gwUid, None)

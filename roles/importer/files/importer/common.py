@@ -141,7 +141,7 @@ def _import_management(service_provider, importState: ImportStateController, con
     Path(import_tmp_path).mkdir(parents=True, exist_ok=True)  # make sure tmp path exists
     gateways = ManagementController.buildGatewayList(importState.MgmDetails)
 
-    importState.ImportId = importState.api_call.setImportLock(importState.MgmDetails, importState.IsFullImport, importState.IsInitialImport, fwo_globals.debug_level)
+    importState.ImportId = importState.api_call.lock_import(importState.MgmDetails, importState.IsFullImport, importState.IsInitialImport, fwo_globals.debug_level)
     logger.info(f"starting import of management {importState.MgmDetails.Name} ({str(mgmId)}), import_id={str(importState.ImportId)}")
 
     if clearManagementData:

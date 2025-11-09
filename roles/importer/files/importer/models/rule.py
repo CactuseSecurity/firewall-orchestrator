@@ -63,7 +63,7 @@ class RuleNormalized(BaseModel):
     rule_dst_zone: str|None = None
     rule_head_text: str|None = None
 
-    def __eq__(self, other):
+    def __eq__(self, other: object) -> bool:
         if not isinstance(other, RuleNormalized):
             return NotImplemented
         # Compare all fields except 'last_hit' and 'rule_num'

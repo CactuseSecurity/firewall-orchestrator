@@ -3,7 +3,6 @@ from typing import Any
 
 import fwo_const
 from model_controllers.import_state_controller import ImportStateController
-from models.rule_enforced_on_gateway import RuleEnforcedOnGateway
 from fwo_log import getFwoLogger
 from model_controllers.rulebase_link_controller import RulebaseLinkController
 from models.rule import Rule
@@ -32,7 +31,7 @@ class RuleEnforcedOnGatewayController:
         # Step 4: Insert the references into the database
         self.insert_rule_to_gateway_references(rule_to_gw_refs)
 
-    def initialize_rulebase_link_controller(self, import_state):
+    def initialize_rulebase_link_controller(self, import_state: ImportStateController) -> RulebaseLinkController:
         """
         Initialize the RulebaseLinkController and set the map of enforcing gateways.
         """
@@ -40,14 +39,14 @@ class RuleEnforcedOnGatewayController:
         rb_link_controller.set_map_of_all_enforcing_gateway_ids_for_rulebase_id(import_state)
         return rb_link_controller
 
-    def prepare_rule_to_gateway_references(self, new_rules, rb_link_controller):
+    def prepare_rule_to_gateway_references(self, new_rules: list[Rule], rb_link_controller: RulebaseLinkController) -> list[dict[str, Any]]:
         """
         Prepare the list of rule-to-gateway references based on the rules and their 'install on' settings.
         """
         rule_to_gw_refs = []
         for rule in new_rules:
-            if 'rule_installon' in rule:
-                if rule['rule_installon'] is None:
+            if 'rule_installon' in rule: # type: ignore # TODO rule is not a dict anymore
+                if rule['rule_installon'] is None: # type: ignore # TODO rule is not a dict anymore
                     self.handle_rule_without_installon(rule, rb_link_controller, rule_to_gw_refs)
                 else:
                     self.handle_rule_with_installon(rule, rule_to_gw_refs)
@@ -55,7 +54,7 @@ class RuleEnforcedOnGatewayController:
 
 
     def handle_rule_without_installon(self, 
-                                      rule: dict, 
+                                      rule: Rule, 
                                       rb_link_controller: RulebaseLinkController, 
                                       rule_to_gw_refs: list[dict[str, Any]]
                                     ) -> None:

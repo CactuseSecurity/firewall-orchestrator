@@ -535,9 +535,8 @@ class FwConfigImportRule():
             return sum((import_result['data'][f"insert_{ref_type.value}"].get('affected_rows', 0) for ref_type in RefType))
 
 
-    def getRulesByIdWithRefUids(self, ruleIds: list[int]) -> tuple[int, int, list[Rule]]:
+    def getRulesByIdWithRefUids(self, ruleIds: list[int]) -> tuple[int, int, list[dict[str, Any]]]: #TODO: change return type to list[Rule] and cast
         logger = getFwoLogger()
-        rulesToBeReferenced: list[Rule] = []
         getRuleUidRefsQuery = FwoApi.get_graphql_code([fwo_const.graphql_query_path + "rule/getRulesByIdWithRefUids.graphql"])
         query_variables = { 'ruleIds': ruleIds }
         
@@ -545,7 +544,7 @@ class FwConfigImportRule():
             import_result = self.import_details.api_call.call(getRuleUidRefsQuery, query_variables=query_variables)
             if 'errors' in import_result:
                 logger.exception(f"fwconfig_import_rule:getRulesByIdWithRefUids - error in addNewRules: {str(import_result['errors'])}")
-                return 1, 0, rulesToBeReferenced
+                return 1, 0, []
             else:
                 return 0, 0, import_result['data']['rule']
         except Exception:

@@ -1,6 +1,5 @@
 from typing import Any
 from pydantic import BaseModel
-import json
 
 
 class ServiceObject(BaseModel):

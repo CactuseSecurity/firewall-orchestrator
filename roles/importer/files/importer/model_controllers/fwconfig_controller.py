@@ -1,12 +1,11 @@
 import json
 from fwo_base import ConfFormat, ConfigAction
 from models.rulebase import Rulebase
-from models.fwconfig import FwConfig
 from netaddr import IPNetwork
 
 class FwoEncoder(json.JSONEncoder):
 
-    def default(self, obj):
+    def default(self, obj: object) -> object:
 
         if isinstance(obj, ConfigAction) or isinstance(obj, ConfFormat):
             return obj.name

@@ -1,9 +1,11 @@
+from typing import Any
 from fwo_const import rule_num_numeric_steps
 from models.fwconfig_normalized import FwConfigNormalized
 from models.rule import RuleNormalized
 from fwo_exceptions import FwoApiFailure
 from fwo_log import getFwoLogger
 
+from roles.importer.files.importer.models.rulebase import Rulebase
 from services.global_state import GlobalState
 from services.service_provider import ServiceProvider
 from services.enums import Services
@@ -23,7 +25,7 @@ class RuleOrderService:
     _source_rule_uids: list[str]
     _source_rules_flat: list[RuleNormalized]
 
-    _min_moves: dict[str, list]
+    _min_moves: dict[str, Any]
 
     _deleted_rule_uids: dict[str, list[str]]
     _new_rule_uids: dict[str, list[str]]
@@ -186,10 +188,12 @@ class RuleOrderService:
                     changed_rule.rule_num_numeric = current_rule_num_numeric
 
 
-    def _update_rule_on_move_or_insert(self, rule_uid, target_rulebase_uid): 
+    def _update_rule_on_move_or_insert(self, rule_uid: str, target_rulebase_uid: str) -> None:
         next_rules_rule_num_numeric = 0.0
         previous_rule_num_numeric = 0.0
 
+        if self._normalized_config is None or self._previous_config is None:
+            raise ValueError("Config objects in global state not correctly initialized — expected non-None values.")
         target_rulebase = next((rulebase for rulebase in self._normalized_config.rulebases if rulebase.uid == target_rulebase_uid), None)
         unchanged_target_rulebase = next((rulebase for rulebase in self._previous_config.rulebases if rulebase.uid == target_rulebase_uid), None)
 
@@ -235,6 +239,8 @@ class RuleOrderService:
         prev_rule_num_numeric = 0
         next_rule_num_numeric = 0
 
+        if self._normalized_config is None:
+            raise ValueError("Config objects in global state not correctly initialized — expected non-None values.")
         target_rulebase = next(rulebase for rulebase in self._normalized_config.rulebases if rulebase.uid == rulebase_uid)
 
         while prev_rule_num_numeric == 0:
@@ -266,7 +272,7 @@ class RuleOrderService:
         
         rule.rule_num_numeric =  (prev_rule_num_numeric + next_rule_num_numeric) / 2
 
-    def _parse_rule_uids_and_objects_from_config(self, config: FwConfigNormalized):
+    def _parse_rule_uids_and_objects_from_config(self, config: FwConfigNormalized) -> map[list[Any]] | tuple[list[str], list[RuleNormalized]]:
         uids_and_rules = [
             (rule_uid, rule)
             for rulebase in config.rulebases
@@ -309,7 +315,7 @@ class RuleOrderService:
             return True
 
 
-    def _get_adjacent_list_element(self, lst, index):
+    def _get_adjacent_list_element(self, lst:list[str], index: int) -> tuple[str | None, str | None]:
         if not lst or index < 0 or index >= len(lst):
             return None, None
 
@@ -317,8 +323,7 @@ class RuleOrderService:
         next_item = lst[index + 1] if index + 1 < len(lst) else None
         return prev_item, next_item
 
-    
-    def _get_index_and_rule_object_from_flat_list(self, flat_list, rule_uid):
+    def _get_index_and_rule_object_from_flat_list(self, flat_list: list[RuleNormalized], rule_uid: str):
         return next(
             (i, rule) for i, rule in enumerate(flat_list) if rule.rule_uid == rule_uid
         )
@@ -326,10 +331,10 @@ class RuleOrderService:
 
     def _get_relevant_rule_num_numeric(
         self,
-        rule_uid,
-        flat_list,
+        rule_uid: str,
+        flat_list: list[RuleNormalized] | None, #TODO flat_list should not be needed here
         ascending: bool,
-        target_rulebase
+        target_rulebase: Rulebase
     ) -> float:
         """
         Returns the relevant rule_num_numeric for rule_uid.
@@ -359,11 +364,11 @@ class RuleOrderService:
         return float(rule.rule_num_numeric)
 
 
-    def _compute_num_for_changed_rule(self, rule_uid, ascending: bool, target_rulebase) -> float:
+    def _compute_num_for_changed_rule(self, rule_uid: str, ascending: bool, target_rulebase: Rulebase) -> float:
         """Calculates rule_num_numeric for a new/moved rule relative to its neighbors in the target."""
         # Get rule & neighbors in the target
         index, changed_rule = self._get_index_and_rule_object_from_flat_list(
-            target_rulebase.rules.values(), rule_uid
+            list(target_rulebase.rules.values()), rule_uid
         )
         prev_uid, next_uid = self._get_adjacent_list_element(list(target_rulebase.rules.keys()), index)
 
@@ -373,7 +378,7 @@ class RuleOrderService:
             return self._num_for_descending_case(changed_rule, prev_uid, target_rulebase)
 
 
-    def _num_for_ascending_case(self, changed_rule, next_uid, target_rulebase) -> float:
+    def _num_for_ascending_case(self, changed_rule: RuleNormalized, next_uid: str | None, target_rulebase: Rulebase) -> float:
         """
         Ascending:
         - If a next neighbor exists, recursively use its relevant value
@@ -394,7 +399,7 @@ class RuleOrderService:
         return 0.0
 
 
-    def _num_for_descending_case(self, changed_rule, prev_uid, target_rulebase) -> float:
+    def _num_for_descending_case(self, changed_rule: RuleNormalized, prev_uid: str | None, target_rulebase: Rulebase) -> float:
         """
         Descending:
         - If a previous neighbor exists, recursively use its relevant value
@@ -418,7 +423,7 @@ class RuleOrderService:
         return 0
 
 
-    def _max_num_numeric_rule(self, target_rulebase):
+    def _max_num_numeric_rule(self, target_rulebase: Rulebase):
         """Return the rule with the maximum rule_num_numeric, or None if empty."""
         return max(
             (r for r in target_rulebase.rules.values()),
@@ -427,7 +432,7 @@ class RuleOrderService:
         )
 
 
-    def _min_nonzero_num_numeric_rule(self, target_rulebase):
+    def _min_nonzero_num_numeric_rule(self, target_rulebase: Rulebase):
         """Return the rule with the minimum non-zero rule_num_numeric, or None if none exist."""
         return min(
             (r for r in target_rulebase.rules.values() if getattr(r, "rule_num_numeric", 0) != 0),
@@ -436,7 +441,7 @@ class RuleOrderService:
         )
 
 
-    def _is_rule_uid_in_return_object(self, rule_uid, return_object):
+    def _is_rule_uid_in_return_object(self, rule_uid: str, return_object: Any) -> bool:
         for rule_uids in return_object.values():
             for _rule_uid in rule_uids:
                 if rule_uid == _rule_uid:

@@ -1,5 +1,6 @@
 # from pydantic import BaseModel
 
+from typing import Any
 from models.rulebase_link import RulebaseLink, parse_rulebase_links
 from model_controllers.import_state_controller import ImportStateController
 from fwo_log import getFwoLogger
@@ -8,10 +9,10 @@ from fwo_api import FwoApi
 
 class RulebaseLinkController():
 
-    rulbase_to_gateway_map: dict = {}
+    rulbase_to_gateway_map: dict[int, list[int]] = {}
     rb_links: list[RulebaseLink]
 
-    def insert_rulebase_links(self, import_state: ImportStateController, rb_links: list[RulebaseLink]):
+    def insert_rulebase_links(self, import_state: ImportStateController, rb_links: list[dict[str, Any]]) -> None:
         logger = getFwoLogger()
         query_variables = { "rulebaseLinks": rb_links }
         if len(rb_links) == 0:
@@ -26,9 +27,9 @@ class RulebaseLinkController():
             import_state.Stats.rulebase_link_add_count += changes
 
 
-    def remove_rulebase_links(self, import_state: ImportStateController, removed_rb_links_ids: list[int]):
+    def remove_rulebase_links(self, import_state: ImportStateController, removed_rb_links_ids: list[int | None]) -> None:
         logger = getFwoLogger()
-        query_variables = { "removedRulebaseLinks": removed_rb_links_ids, "importId": import_state.ImportId }
+        query_variables: dict[str, Any] = { "removedRulebaseLinks": removed_rb_links_ids, "importId": import_state.ImportId }
         if len(removed_rb_links_ids) == 0:
             return
         mutation = FwoApi.get_graphql_code([f"{fwo_const.graphql_query_path}rule/removeRulebaseLinks.graphql"])      
@@ -74,6 +75,6 @@ class RulebaseLinkController():
                 self.rulbase_to_gateway_map[rulebase_id].append(gw_id)
         
 
-    def get_gw_ids_for_rulebase_id(self, rulebase_id):
+    def get_gw_ids_for_rulebase_id(self, rulebase_id: int) -> list[int]:
         return self.rulbase_to_gateway_map.get(rulebase_id, [])
     

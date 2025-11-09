@@ -128,7 +128,7 @@ def serializeDictToClass(data: dict, cls):
     return cls(**data)
 
 
-def serializeDictToClassRecursively(data: dict, cls: Any) -> Any:
+def serializeDictToClassRecursively(data: dict[str, Any], cls: Any) -> Any:
     try:
         init_args = {}
         type_hints = get_type_hints(cls)
@@ -200,7 +200,7 @@ def oldSerializeDictToClassRecursively(data: dict, cls: Any) -> Any:
     return cls(**init_args)
 
 
-def deserializeClassToDictRecursively(obj: Any, seen=None) -> Any:
+def deserializeClassToDictRecursively(obj: Any, seen: set[int] | None = None) -> Any:
     if seen is None:
         seen = set()
 

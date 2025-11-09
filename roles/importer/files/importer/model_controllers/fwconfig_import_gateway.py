@@ -1,9 +1,11 @@
+from logging import Logger
+from typing import Any
 from fwo_log import getFwoLogger
 
 from model_controllers.rulebase_link_controller import RulebaseLinkController
 
 from models.gateway import Gateway
-from models.rulebase_link import RulebaseLink, RulebaseLinkUidBased
+from models.rulebase_link import RulebaseLink, RulebaseLinkUidBased # TODO check if we need RulebaseLinkUidBased as well
 
 from fwo_exceptions import FwoImporterError
 from services.enums import Services
@@ -44,7 +46,7 @@ class FwConfigImportGateway:
         # self.ImportDetails.Stats.addError('simulate error')
 
 
-    def update_rulebase_link_diffs(self):
+    def update_rulebase_link_diffs(self) -> tuple[list[dict[str, Any]], list[int | None]]:
 
         if self._global_state.import_state is None: #TODO: should rework global state to not need these checks ? - #3154
             raise FwoImporterError("ImportState is None in update_rulebase_link_diffs")
@@ -53,8 +55,8 @@ class FwConfigImportGateway:
         if self._global_state.previous_config is None:
             raise FwoImporterError("previous_config is None in update_rulebase_link_diffs")
 
-        required_inserts: list[RulebaseLinkUidBased] = []
-        required_removes: list[int] = []
+        required_inserts: list[dict[str, Any]] = []
+        required_removes: list[int | None] = []
 
         logger = getFwoLogger(debug_level=self._global_state.import_state.DebugLevel)
 
@@ -82,8 +84,7 @@ class FwConfigImportGateway:
         return required_inserts, required_removes
     
 
-    def _create_insert_args(self, normalized_gateway: Gateway, previous_gateway: Gateway|None, gw_id, logger, arg_list):
-        
+    def _create_insert_args(self, normalized_gateway: Gateway, previous_gateway: Gateway|None, gw_id: int | None, logger: Logger, arg_list: list[dict[str, Any]]):
         rulebase_links = []
 
         for link in normalized_gateway.RulebaseLinks:
@@ -92,9 +93,9 @@ class FwConfigImportGateway:
             self._try_add_single_link(arg_list, link, rulebase_links, gw_id, True, logger)
 
 
-    def _create_remove_args(self, normalized_gateway: Gateway, previous_gateway: Gateway, gw_id, logger, arg_list):
+    def _create_remove_args(self, normalized_gateway: Gateway, previous_gateway: Gateway, gw_id: int | None, logger: Logger, arg_list: list[int | None]):
             
-            removed_rulebase_links = []
+            removed_rulebase_links: list[dict[str, Any]] = []
 
             for link in previous_gateway.RulebaseLinks:
                 self._try_add_single_link(removed_rulebase_links, link, normalized_gateway.RulebaseLinks, gw_id, False, logger)
@@ -104,32 +105,32 @@ class FwConfigImportGateway:
                     arg_list.append(link_in_db.id)
 
 
-    def _try_add_single_link(self, rb_link_list, link, link_list, gw_id, is_insert, logger):
+    def _try_add_single_link(self, rb_link_list: list[dict[str, Any]], link: RulebaseLinkUidBased, link_list: list[RulebaseLinkUidBased], gw_id: int | None, is_insert: bool, logger: Logger):
 
         if self._global_state.import_state is None:
             raise FwoImporterError("ImportState is None in _try_add_single_link")
         
         # If rule changed we need the id of the old version, since the rulebase links still have the old fks (for updates)
 
-        from_rule_id = self._global_state.import_state.removed_rules_map.get(link.from_rule_uid, None)
+        from_rule_id = self._global_state.import_state.removed_rules_map.get(link.from_rule_uid, None) if link.from_rule_uid is not None else None
 
         # If rule is unchanged or new id can be fetched from RuleMap, because it has been updated already
         if not from_rule_id or is_insert:
-            from_rule_id = self._global_state.import_state.lookupRule(link.from_rule_uid)
+            from_rule_id = self._global_state.import_state.lookupRule(link.from_rule_uid) if link.from_rule_uid is not None else None
 
         if link.from_rulebase_uid is None or link.from_rulebase_uid == '':
             from_rulebase_id = None
         else:
             from_rulebase_id = self._global_state.import_state.lookupRulebaseId(link.from_rulebase_uid)
         to_rulebase_id = self._global_state.import_state.lookupRulebaseId(link.to_rulebase_uid)
-        if to_rulebase_id is None:
-            self._global_state.import_state.Stats.addError(f"toRulebaseId is None for link {link}")
-            return
         link_type_id = self._global_state.import_state.lookupLinkType(link.link_type)
-        if link_type_id is None or type(link_type_id) is not int:
+        if type(link_type_id) is not int:
             logger.warning(f"did not find a link_type_id for link_type {link.link_type}")
 
         if not self._link_is_in_link_list(link, link_list):
+            if gw_id is None:
+                logger.warning(f"did not find a gwId for UID {link}")
+                return
             rb_link_list.append(RulebaseLink(gw_id=gw_id, 
                                     from_rule_id=from_rule_id,
                                     to_rulebase_id=to_rulebase_id,
@@ -144,7 +145,7 @@ class FwConfigImportGateway:
                 logger.debug(f"link {link} was added")
 
 
-    def _link_is_in_link_list(self, link: RulebaseLinkUidBased, link_list: list[RulebaseLinkUidBased]):
+    def _link_is_in_link_list(self, link: RulebaseLinkUidBased, link_list: list[RulebaseLinkUidBased]) -> bool:
 
         if link_list:
             existing_link = next((
@@ -159,7 +160,7 @@ class FwConfigImportGateway:
         return False
     
 
-    def _try_get_id_based_link(self, link: RulebaseLinkUidBased, link_list: list[RulebaseLink]):
+    def _try_get_id_based_link(self, link: dict[str, Any], link_list: list[RulebaseLink]):
             
         return next((
             existing_link 
@@ -169,11 +170,11 @@ class FwConfigImportGateway:
 
 
     def update_interface_diffs(self):
-        logger = getFwoLogger(debug_level=self._global_state.import_state.DebugLevel)
+        logger = getFwoLogger(debug_level=self._global_state.import_state.DebugLevel) #type: ignore
         # TODO: needs to be implemented
 
 
     def update_routing_diffs(self):
-        logger = getFwoLogger(debug_level=self._global_state.import_state.DebugLevel)
+        logger = getFwoLogger(debug_level=self._global_state.import_state.DebugLevel) #type: ignore
         # TODO: needs to be implemented
 

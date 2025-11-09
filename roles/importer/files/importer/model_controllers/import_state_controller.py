@@ -1,5 +1,6 @@
 import time
 from datetime import datetime, timezone
+from typing import Any
 from dateutil import parser
 
 import urllib3
@@ -26,7 +27,7 @@ class ImportStateController(ImportState):
     api_call: FwoApiCall
     management_map: dict[str, int]  # maps management uid to management id
 
-    def __init__(self, debugLevel: int, configChangedSinceLastImport: bool, fwoConfig: dict, mgmDetails: dict, jwt: str, force: str, 
+    def __init__(self, debugLevel: int, configChangedSinceLastImport: bool, fwoConfig: FworchConfigController, mgmDetails: dict[str, Any], jwt: str, force: str, 
                  version: int, isFullImport: bool = False, isInitialImport: bool = False, isClearingImport: bool = False, verifyCerts: bool = False, LastSuccessfulImport: str | None = None):
         self.Stats = ImportStatisticsController()
         self.StartTime = int(time.time())
@@ -52,13 +53,13 @@ class ImportStateController(ImportState):
     def __str__(self):
         return f"{str(self.MgmDetails)}(import_id={self.ImportId})"
     
-    def setImportFileName(self, importFileName):
+    def setImportFileName(self, importFileName: str):
         self.ImportFileName = importFileName
 
-    def setImportId(self, importId):
+    def setImportId(self, importId: int):
         self.ImportId = importId
 
-    def increaseErrorCounter(self, errorNo):
+    def increaseErrorCounter(self, errorNo: int):
         self.Stats.ErrorCount = self.Stats.ErrorCount + errorNo
 
     def increaseErrorCounterByOne(self):
@@ -83,10 +84,10 @@ class ImportStateController(ImportState):
 
 
     @classmethod
-    def initializeImport(cls, mgmId, fwo_api_uri, jwt,
-                         debugLevel=0, suppressCertWarnings=False, 
-                         sslVerification=False, force=False, version=8,
-                         isClearingImport=False, isFullImport=False, isInitialImport=False,
+    def initializeImport(cls, mgmId: int, fwo_api_uri: str, jwt: str,
+                         debugLevel: int = 0, suppressCertWarnings: bool = False, 
+                         sslVerification: bool = False, force: bool = False, version: int = 8,
+                         isClearingImport: bool = False, isFullImport: bool = False, isInitialImport: bool = False,
                          ):
 
         def _check_input_parameters(mgmId):
@@ -360,7 +361,7 @@ class ImportStateController(ImportState):
 
         self.ManagementMap = m
 
-    def lookupRule(self, ruleUid):
+    def lookupRule(self, ruleUid: str) -> int | None:
         return self.RuleMap.get(ruleUid, None)
 
     def lookupAction(self, actionStr: str) -> int:

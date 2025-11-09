@@ -1,24 +1,18 @@
 import json
-import jsonpickle
 import time
 import traceback
 from copy import deepcopy
+from typing import Any
 
 import fwo_globals
 from fwo_log import getFwoLogger
-from fwo_exceptions import FwoImporterError
-from model_controllers.interface_controller import InterfaceSerializable
-from model_controllers.route_controller import RouteSerializable
-from fwo_base import split_list, serializeDictToClassRecursively, deserializeClassToDictRecursively
-from fwo_const import max_objs_per_chunk, import_tmp_path
+from fwo_base import serializeDictToClassRecursively, deserializeClassToDictRecursively
+from fwo_const import import_tmp_path
 
 from model_controllers.import_state_controller import ImportStateController
-from model_controllers.management_controller import Management
-from models.fwconfig_normalized import FwConfig, FwConfigNormalized
 from models.fwconfigmanagerlist import FwConfigManagerList
 from models.fwconfigmanager import FwConfigManager
 from model_controllers.fwconfig_controller import FwoEncoder
-from model_controllers.management_controller import ManagementController
 from fwo_base import ConfFormat
 
 """
@@ -32,7 +26,7 @@ class FwConfigManagerListController(FwConfigManagerList):
     def toJson(self):
         return deserializeClassToDictRecursively(self)
 
-    def toJsonString(self, prettyPrint=False):
+    def toJsonString(self, prettyPrint: bool=False):
         jsonDict = self.toJson()
         if prettyPrint:
             return json.dumps(jsonDict, indent=2, cls=FwoEncoder)
@@ -44,7 +38,7 @@ class FwConfigManagerListController(FwConfigManagerList):
             self.ManagerSet.extend(conf2.ManagerSet)
 
     @staticmethod
-    def generate_empty_config(is_super_manager=False):
+    def generate_empty_config(is_super_manager: bool=False):
         """
         Generates an empty FwConfigManagerListController with a single empty FwConfigManager.
         """
@@ -67,7 +61,7 @@ class FwConfigManagerListController(FwConfigManagerList):
         return deserializeClassToDictRecursively(self)
 
 # to be re-written:
-    def toJsonStringLegacy(self, prettyPrint=False):
+    def toJsonStringLegacy(self, prettyPrint: bool=False):
         jsonDict = self.toJson()
         if prettyPrint:
             return json.dumps(jsonDict, indent=2, cls=FwoEncoder)
@@ -75,11 +69,11 @@ class FwConfigManagerListController(FwConfigManagerList):
             return json.dumps(jsonDict, cls=FwoEncoder)
 
 
-    def get_all_zone_names(self, mgr_uid):
+    def get_all_zone_names(self, mgr_uid: str) -> set[str]:
         """
         Returns a list of all zone UIDs in the configuration.
         """
-        all_zone_names = []
+        all_zone_names: list[str] = []
         for mgr in self.ManagerSet:
             if mgr.IsSuperManager or mgr.ManagerUid==mgr_uid:
                 for single_config in mgr.Configs:
@@ -87,11 +81,11 @@ class FwConfigManagerListController(FwConfigManagerList):
         return set(all_zone_names)
     
 
-    def get_all_network_object_uids(self, mgr_uid):
+    def get_all_network_object_uids(self, mgr_uid: str) -> set[str]:
         """
         Returns a list of all network objects in the configuration.
         """
-        all_network_objects = []
+        all_network_objects: list[str] = []
         for mgr in self.ManagerSet:
             if mgr.IsSuperManager or mgr.ManagerUid==mgr_uid:
                 for single_config in mgr.Configs:
@@ -99,11 +93,11 @@ class FwConfigManagerListController(FwConfigManagerList):
         return set(all_network_objects)
     
 
-    def get_all_service_object_uids(self, mgr_uid):
+    def get_all_service_object_uids(self, mgr_uid: str) -> set[str]:
         """
         Returns a list of all service objects in the configuration.
         """
-        all_service_objects = []
+        all_service_objects: list[str] = []
         for mgr in self.ManagerSet:
             if mgr.IsSuperManager or mgr.ManagerUid==mgr_uid:
                 for single_config in mgr.Configs:
@@ -111,11 +105,11 @@ class FwConfigManagerListController(FwConfigManagerList):
         return set(all_service_objects)
     
 
-    def get_all_user_object_uids(self, mgr_uid):
+    def get_all_user_object_uids(self, mgr_uid: str) -> set[str]:
         """
         Returns a list of all user objects in the configuration.
         """
-        all_user_objects = []
+        all_user_objects: list[str] = []
         for mgr in self.ManagerSet:
             if mgr.IsSuperManager or mgr.ManagerUid==mgr_uid:
                 for single_config in mgr.Configs:
@@ -141,7 +135,7 @@ class FwConfigManagerListController(FwConfigManagerList):
         return rb_name
     
     @classmethod
-    def FromJson(cls, jsonIn):
+    def FromJson(cls, jsonIn: dict[str, Any]) -> 'FwConfigManagerListController':
         return serializeDictToClassRecursively(jsonIn, cls)
 
 

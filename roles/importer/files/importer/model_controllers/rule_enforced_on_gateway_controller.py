@@ -5,14 +5,13 @@ import fwo_const
 from model_controllers.import_state_controller import ImportStateController
 from fwo_log import getFwoLogger
 from model_controllers.rulebase_link_controller import RulebaseLinkController
-from models.rule import Rule
 
 
 class RuleEnforcedOnGatewayController:
     def __init__(self, import_state: ImportStateController):
         self.import_details: ImportStateController = import_state
 
-    def add_new_rule_enforced_on_gateway_refs(self, new_rules: list[Rule], import_state: ImportStateController):
+    def add_new_rule_enforced_on_gateway_refs(self, new_rules: list[dict[str, Any]], import_state: ImportStateController):
         """
         Main function to add new rule-to-gateway references.
         """
@@ -39,14 +38,14 @@ class RuleEnforcedOnGatewayController:
         rb_link_controller.set_map_of_all_enforcing_gateway_ids_for_rulebase_id(import_state)
         return rb_link_controller
 
-    def prepare_rule_to_gateway_references(self, new_rules: list[Rule], rb_link_controller: RulebaseLinkController) -> list[dict[str, Any]]:
+    def prepare_rule_to_gateway_references(self, new_rules: list[dict[str, Any]], rb_link_controller: RulebaseLinkController) -> list[dict[str, Any]]:
         """
         Prepare the list of rule-to-gateway references based on the rules and their 'install on' settings.
         """
-        rule_to_gw_refs = []
+        rule_to_gw_refs: list[dict[str, Any]] = []
         for rule in new_rules:
-            if 'rule_installon' in rule: # type: ignore # TODO rule is not a dict anymore
-                if rule['rule_installon'] is None: # type: ignore # TODO rule is not a dict anymore
+            if 'rule_installon' in rule: # TODO rule should not be a dict
+                if rule['rule_installon'] is None: # TODO rule should not be a dict
                     self.handle_rule_without_installon(rule, rb_link_controller, rule_to_gw_refs)
                 else:
                     self.handle_rule_with_installon(rule, rule_to_gw_refs)
@@ -54,7 +53,7 @@ class RuleEnforcedOnGatewayController:
 
 
     def handle_rule_without_installon(self, 
-                                      rule: Rule, 
+                                      rule: dict[str, Any], # TODO rule should not be a dict
                                       rb_link_controller: RulebaseLinkController, 
                                       rule_to_gw_refs: list[dict[str, Any]]
                                     ) -> None:
@@ -66,7 +65,7 @@ class RuleEnforcedOnGatewayController:
 
 
     def handle_rule_with_installon(self, 
-                                   rule: dict, 
+                                   rule: dict[str, Any], # TODO rule should not be a dict
                                    rule_to_gw_refs: list[dict[str, Any]]
                                    ) -> None:
         """
@@ -81,7 +80,7 @@ class RuleEnforcedOnGatewayController:
                 logger.warning(f"Found a broken reference to a non-existing gateway (uid={gw_uid}). Ignoring.")
 
 
-    def create_rule_to_gateway_reference(self, rule, gw_id) -> dict[str, Any]:
+    def create_rule_to_gateway_reference(self, rule: dict[str, Any], gw_id: int) -> dict[str, Any]:
         """
         Create a dictionary representing a rule-to-gateway reference.
         """
@@ -93,7 +92,7 @@ class RuleEnforcedOnGatewayController:
         }
     
 
-    def insert_rule_to_gateway_references(self, rule_to_gw_refs):
+    def insert_rule_to_gateway_references(self, rule_to_gw_refs: list[dict[str, Any]]) -> None:
         """
         Insert the rule-to-gateway references into the database.
         """
@@ -114,7 +113,7 @@ class RuleEnforcedOnGatewayController:
             raise
 
 
-    def insert_rules_enforced_on_gateway(self, enforcements: list[dict]) -> dict[str, Any]:
+    def insert_rules_enforced_on_gateway(self, enforcements: list[dict[str, Any]]) -> dict[str, Any]:
         """
         Insert rules enforced on gateways into the database.
         """

@@ -141,8 +141,8 @@ class ChangeLogger:
     """
 
     _instance = None
-    changed_nwobj_id_map: dict[str, int]
-    changed_svc_id_map: dict[str, int]
+    changed_nwobj_id_map: dict[int, int]
+    changed_svc_id_map: dict[int, int]
     _import_state = None
     _uid2id_mapper: "Uid2IdMapper | None" = None
 
@@ -159,7 +159,7 @@ class ChangeLogger:
         return cls._instance
 
 
-    def create_change_id_maps(self, uid2id_mapper: "Uid2IdMapper", changed_nw_objs: list[str], changed_svcs: list[str], removedNwObjIds: list[dict[str, str]], removedNwSvcIds: list[dict[str, str]]):
+    def create_change_id_maps(self, uid2id_mapper: "Uid2IdMapper", changed_nw_objs: list[str], changed_svcs: list[str], removedNwObjIds: list[dict[str, Any]], removedNwSvcIds: list[dict[str, Any]]):
                                                                                                                         #TODO: removedNwObjUids?               #TODO: removedNwObjUids?
         self._uid2id_mapper = uid2id_mapper
 

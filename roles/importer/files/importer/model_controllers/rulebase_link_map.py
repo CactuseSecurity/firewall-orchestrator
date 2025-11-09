@@ -1,17 +1,14 @@
+from typing import Any
 from fwo_log import getFwoLogger
-from models.rulebase_link import RulebaseLink
 from model_controllers.import_state_controller import ImportStateController
-from models.import_state import ImportState
-from model_controllers.import_statistics_controller import ImportStatisticsController
-from fwo_api_call import FwoApiCall
 
 class RulebaseLinkMap():
 
 
-    def getRulebaseLinks(self, importState: ImportStateController, gwIds: list[int] = []):
+    def getRulebaseLinks(self, importState: ImportStateController, gwIds: list[int] = []) -> list[dict[str, Any]]:
         logger = getFwoLogger()
         query_variables = { "gwIds": gwIds}
-        rbLinks = []
+        rbLinks: list[dict[str, Any]] = []
 
         query = """
             query getRulebaseLinks($gwIds: [Int!]) {
@@ -35,6 +32,6 @@ class RulebaseLinkMap():
     
     # TODO: implement SetMapOfAllEnforcingGatewayIdsForRulebaseId
 
-    def GetGwIdsForRulebaseId(self, rulebaseId, importState: ImportStateController):
+    def GetGwIdsForRulebaseId(self, rulebaseId: int, importState: ImportStateController) -> list[int]:
         return importState.RulbaseToGatewayMap.get(rulebaseId, [])
     

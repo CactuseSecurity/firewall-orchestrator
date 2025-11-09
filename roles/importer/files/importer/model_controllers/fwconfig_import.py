@@ -1,5 +1,5 @@
 import traceback
-from typing import Any, Optional
+from typing import Any
 
 import fwo_const
 from fwo_api_call import FwoApiCall
@@ -140,7 +140,7 @@ class FwConfigImport():
                 mgm_details = ManagementController.fromJson(mgm_details_raw)
                 configNormalized.addManager(
                     manager=FwConfigManager(
-                        ManagerUid=ManagementController.calcManagerUidHash(mgm_details_raw), # TODO: check: should be mgm_details
+                        ManagerUid=ManagementController.calcManagerUidHash(mgm_details_raw), #type: ignore # TODO: check: should be mgm_details
                         ManagerName=mgm_details.Name,
                         IsSuperManager=mgm_details.IsSuperManager,
                         SubManagerIds=mgm_details.SubManagerIds,

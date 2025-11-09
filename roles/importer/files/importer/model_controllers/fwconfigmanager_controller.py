@@ -21,7 +21,7 @@ class FwConfigManagerController(FwConfigManager):
         IsGlobal: bool = jsonDict['is_global']
         DependantManagerUids: list[str] = jsonDict['dependant_manager_uids']
         Configs: list[FwConfigNormalized] = jsonDict['configs']
-        return cls(ManagerUid, ManagerName, IsGlobal, DependantManagerUids, Configs) # TODO: this class does not have a Constructor!
+        return cls(ManagerUid, ManagerName, IsGlobal, DependantManagerUids, Configs)#type: ignore # TODO: this class does not have a Constructor!
 
     def __str__(self):
         return f"{self.ManagerUid}({str(self.Configs)})"

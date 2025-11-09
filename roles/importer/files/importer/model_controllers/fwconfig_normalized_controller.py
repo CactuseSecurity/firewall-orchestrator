@@ -1,6 +1,5 @@
+from typing import Any
 from fwo_log import getFwoLogger
-from model_controllers.import_state_controller import ImportStateController
-from models.gateway import Gateway
 from fwo_base import ConfFormat
 from models.fwconfig_normalized import FwConfigNormalized
 
@@ -14,9 +13,9 @@ class FwConfigNormalizedController():
         self.NormalizedConfig = fwConfig
 
     @staticmethod
-    def convertListToDict(listIn: list, idField: str) -> dict:
+    def convertListToDict(listIn: list[Any], idField: str) -> dict[Any, Any]:
         logger = getFwoLogger()
-        result = {}
+        result: dict[Any, Any] = {}
         for item in listIn:
             if idField in item:
                 key = item[idField]
@@ -29,7 +28,7 @@ class FwConfigNormalizedController():
         return f"{self.action}({str(self.network_objects)})"
 
     @staticmethod
-    def deleteControlIdFromDictList(dictListInOut: dict):
+    def deleteControlIdFromDictList(dictListInOut: dict[Any, Any] | list[Any]) -> dict[Any, Any] | list[Any]:
         if isinstance(dictListInOut, list): 
             deleteListDictElements(dictListInOut, ['control_id'])
         elif isinstance(dictListInOut, dict): 

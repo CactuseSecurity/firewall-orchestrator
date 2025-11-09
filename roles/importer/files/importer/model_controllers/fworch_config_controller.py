@@ -31,7 +31,7 @@ class FworchConfigController(FworchConfig):
         return cls(fwoApiUri, fwoUserMgmtApiUri, fwoImporterPwd)
 
     def __str__(self):
-        return f"{self.FwoApiUri}, {self.FwoUserMgmtApi}, {self.ApiFetchSize}"
+        return f"{self.FwoApiUri}, {self.FwoUserMgmtApi}, {self.ApiFetchSize}" # type: ignore
                                     #TODO Mispell? FwoUserMgmtApi?
     def setImporterPwd(self, importerPassword: str | None):
         self.ImporterPassword = importerPassword        

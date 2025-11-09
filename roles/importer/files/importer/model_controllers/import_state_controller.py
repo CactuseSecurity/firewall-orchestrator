@@ -44,7 +44,7 @@ class ImportStateController(ImportState):
         self.IsFullImport = isFullImport
         self.IsInitialImport = isInitialImport
         self.IsClearingImport = isClearingImport
-        self.RulbaseToGatewayMap = {}
+        self.RulbaseToGatewayMap: dict[int, list[int]] = {}
         self.LastSuccessfulImport = LastSuccessfulImport
         self.api_connection = FwoApi(fwoConfig.FwoApiUri, jwt)
         self.api_call = FwoApiCall(self.api_connection)

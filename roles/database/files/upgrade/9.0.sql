@@ -1699,18 +1699,18 @@ END$$;
 
 
 
--- mgm_id in rule_metadata updaten - from rule.rule_uid == rule_metadata.rule_uid
+-- Update mgm_id in rule_metadata - from rule.rule_uid == rule_metadata.rule_uid
 DO $$
 BEGIN
-    -- Check for duplicate combinations of mgm_id + rule_uid
+    -- Check for duplicate rule_uid across multiple mgm_id
     IF EXISTS (
         SELECT 1
-        FROM rule_metadata rm
-        JOIN rule r ON rm.rule_uid = r.rule_uid
-        GROUP BY r.mgm_id, rm.rule_uid
-        HAVING COUNT(*) > 1
+		FROM rule_metadata rm
+			JOIN rule r ON rm.rule_uid = r.rule_uid
+			GROUP BY rm.rule_uid
+			HAVING COUNT(DISTINCT r.mgm_id) > 1
     ) THEN
-        RAISE EXCEPTION 'Duplicate mgm_id + rule_uid combinations detected!';
+        RAISE EXCEPTION 'Duplicate rule_uid across multiple managements detected';
     ELSE
         -- Check whether all rule_metadata.rule_uid have a matching entry in rule.
         IF EXISTS (

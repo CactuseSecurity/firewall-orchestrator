@@ -22,7 +22,7 @@ from fwo_base import init_service_provider
 from services.enums import Services
 
 
-def get_fwo_jwt(importUser, importPwd, userManagementApi) -> tuple [str, bool]:
+def get_fwo_jwt(importUser: str, importPwd: str, userManagementApi: str) -> tuple [str, bool]:
     skipping = False
     try:
         jwt = FwoApi.login(importUser, importPwd, userManagementApi)
@@ -136,7 +136,7 @@ if __name__ == '__main__':
                         continue
                     try:
                         mgm_controller = ManagementController(
-                            mgm_id=int(import_state.MgmDetails.Id), uid='', devices={},
+                            mgm_id=int(import_state.MgmDetails.Id), uid='', devices=[],
                             device_info=DeviceInfo(),
                             connection_info=ConnectionInfo(),
                             importer_hostname='',

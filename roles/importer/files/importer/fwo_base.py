@@ -24,11 +24,11 @@ from services.uid2id_mapper import Uid2IdMapper
 from services.group_flats_mapper import GroupFlatsMapper
 
 
-def split_list(list_in, max_list_length):
+def split_list(list_in: list[Any], max_list_length: int) -> list[list[Any]]:
     if len(list_in)<max_list_length:
         return [list_in]
     else:
-        list_of_lists = []
+        list_of_lists: list[list[Any]] = []
         i=0
         while i<len(list_in):
             last_element_in_chunk = min(len(list_in), i+max_list_length)
@@ -37,7 +37,7 @@ def split_list(list_in, max_list_length):
     return list_of_lists
 
 
-def csv_add_field(content, no_csv_delimiter=False):
+def csv_add_field(content: Any, no_csv_delimiter: bool = False) -> str:
     if (content == None or content == '') and not no_csv_delimiter:  # do not add apostrophes for empty fields
         field_result = csv_delimiter
     else:
@@ -52,7 +52,7 @@ def csv_add_field(content, no_csv_delimiter=False):
     return field_result
 
 
-def sanitize(content, lower: bool = False) -> None | str:
+def sanitize(content: Any, lower: bool = False) -> None | str:
     if content is None:
         return None
     result = str(content)
@@ -64,7 +64,7 @@ def sanitize(content, lower: bool = False) -> None | str:
         return result
 
 
-def extend_string_list(list_string, src_dict, key, delimiter, jwt=None, import_id=None):
+def extend_string_list(list_string: str | None, src_dict: dict[str, list[str]], key: str, delimiter: str, jwt: Any = None, import_id: Any = None) -> str:
     if list_string is None:
         list_string = ''
     if list_string == '':
@@ -84,7 +84,7 @@ def extend_string_list(list_string, src_dict, key, delimiter, jwt=None, import_i
     return result
 
 
-def jsonToLogFormat(jsonData):
+def jsonToLogFormat(jsonData: dict[str, Any] | str) -> str:
     if type(jsonData) is dict:
         jsonString = json.dumps(jsonData)
     elif isinstance(jsonData, str):
@@ -97,7 +97,7 @@ def jsonToLogFormat(jsonData):
     return jsonString
 
 
-def writeAlertToLogFile(jsonData):
+def writeAlertToLogFile(jsonData: dict[str, Any]) -> None:
     logger = getFwoAlertLogger()
     jsonDataCopy = deepcopy(jsonData)   # make sure the original alert is not changed
     if type(jsonDataCopy) is dict and 'jsonData' in jsonDataCopy:
@@ -107,7 +107,7 @@ def writeAlertToLogFile(jsonData):
     logger.info(alertText)
 
 
-def set_ssl_verification(ssl_verification_mode):
+def set_ssl_verification(ssl_verification_mode: str) -> bool | str:
     logger = getFwoLogger()
     if ssl_verification_mode == '' or ssl_verification_mode == 'off':
         ssl_verification = False
@@ -124,12 +124,12 @@ def stringIsUri(s: str) -> re.Match[str] | None: # TODO: should return bool?
     return re.match('http://.+', s) or re.match('https://.+', s) or  re.match('file://.+', s) 
 
 
-def serializeDictToClass(data: dict, cls):
+def serializeDictToClass(data: dict[str, Any], cls: Any) -> Any:
     # Unpack the dictionary into keyword arguments
     return cls(**data)
 
 
-def serializeDictToClassRecursively(data: dict[str, Any], cls: Any) -> Any:
+def serializeDictToClassRecursively(data: dict[str, list[Any] | Any | Enum], cls: Any) -> Any:
     try:
         init_args = {}
         type_hints = get_type_hints(cls)
@@ -147,19 +147,18 @@ def serializeDictToClassRecursively(data: dict[str, Any], cls: Any) -> Any:
                     inner_type = field_type.__args__[0]
                     if isinstance(value, list):
                         init_args[field] = [
-                            serializeDictToClassRecursively(item, inner_type) if isinstance(item, dict) else item
-                            for item in value
+                            serializeDictToClassRecursively(item, inner_type) if isinstance(item, dict) else item for item in value # type: ignore
                         ]
                     else:
                         raise ValueError(f"Expected a list for field '{field}', but got {type(value).__name__}")
 
                 # Handle dictionary (nested objects)
                 elif isinstance(value, dict):
-                    init_args[field] = serializeDictToClassRecursively(value, field_type)
+                    init_args[field] = serializeDictToClassRecursively(value, field_type) # type: ignore
 
                 # Handle Enum types
                 elif isinstance(field_type, type) and issubclass(field_type, Enum):
-                    init_args[field] = field_type[value]
+                    init_args[field] = field_type[value] # type: ignore
 
                 # Direct assignment for basic types
                 else:
@@ -168,12 +167,12 @@ def serializeDictToClassRecursively(data: dict[str, Any], cls: Any) -> Any:
         # Create an instance of the class with the collected arguments
         return cls(**init_args)
 
-    except (TypeError, ValueError, KeyError) as e:
+    except (TypeError, ValueError, KeyError) as _:
         # If an error occurs, return the original dictionary as is
         return data
 
 
-def oldSerializeDictToClassRecursively(data: dict, cls: Any) -> Any:
+def oldSerializeDictToClassRecursively(data: dict[str, Any], cls: Any) -> Any:
     # Create an empty dictionary to store keyword arguments
     init_args = {}
 
@@ -187,7 +186,7 @@ def oldSerializeDictToClassRecursively(data: dict, cls: Any) -> Any:
                 # Handle list types
                 inner_type = field_type.__args__[0]
                 init_args[field] = [
-                    serializeDictToClassRecursively(item, inner_type) if isinstance(item, dict) else item
+                    serializeDictToClassRecursively(item, inner_type) if isinstance(item, dict) else item # type: ignore
                     for item in data[field]
                 ]
             elif isinstance(data[field], dict):
@@ -201,7 +200,7 @@ def oldSerializeDictToClassRecursively(data: dict, cls: Any) -> Any:
     return cls(**init_args)
 
 
-def deserializeClassToDictRecursively(obj: Any, seen: set[int] | None = None) -> Any:
+def deserializeClassToDictRecursively(obj: Any, seen: set[int] | None = None) -> dict[str, Any] | list[Any] | Any | str | int | float | bool | None:
     if seen is None:
         seen = set()
 
@@ -217,10 +216,10 @@ def deserializeClassToDictRecursively(obj: Any, seen: set[int] | None = None) ->
 
     if isinstance(obj, list):
         # If the object is a list, deserialize each item
-        return [deserializeClassToDictRecursively(item, seen) for item in obj]
+        return [deserializeClassToDictRecursively(item, seen) for item in obj] # type: ignore
     elif isinstance(obj, dict):
         # If the object is a dictionary, deserialize each key-value pair
-        return {key: deserializeClassToDictRecursively(value, seen) for key, value in obj.items()}
+        return {key: deserializeClassToDictRecursively(value, seen) for key, value in obj.items()} # type: ignore
     elif isinstance(obj, Enum):
         # If the object is an Enum, convert it to its value
         return obj.value
@@ -236,10 +235,10 @@ def deserializeClassToDictRecursively(obj: Any, seen: set[int] | None = None) ->
         return obj
 
 
-def cidrToRange(ip):
+def cidrToRange(ip: str) -> list[str]: # TODO: I have no idea what other than string it could be
     logger = getFwoLogger()
 
-    if isinstance(ip, str):
+    if isinstance(ip, str): # type: ignore
         # dealing with ranges:
         if '-' in ip:
             return '-'.split(ip)
@@ -252,7 +251,7 @@ def cidrToRange(ip):
             net = ipaddress.IPv4Network(ip)
         elif ipVersion=='IPv6':
             net = ipaddress.IPv6Network(ip)
-        return [str(net.network_address), str(net.broadcast_address)]
+        return [str(net.network_address), str(net.broadcast_address)] # type: ignore
 
     return [ip]
 
@@ -279,7 +278,7 @@ def validIPAddress(IP: str) -> str:
             return "Invalid"
 
 
-def validate_ip_address(address):
+def validate_ip_address(address: str) -> bool:
     try:
         # ipaddress.ip_address(address)
         ipaddress.ip_network(address)
@@ -309,7 +308,7 @@ def lcs_dp(seq1: list[Any], seq2: list[Any]) -> tuple[list[list[int]], int]:
     return dp, dp[m][n]
 
 
-def backtrack_lcs(seq1, seq2, dp) -> list[tuple[int, int]]:
+def backtrack_lcs(seq1: list[Any], seq2: list[Any], dp: list[list[int]]) -> list[tuple[int, int]]:
     """
     Backtracks the dynamic programming (DP) table to recover one longest common subsequence (LCS) (as a list of (i, j) index pairs).
     These index pairs indicate positions in seq1 and seq2 that match in the LCS.
@@ -429,7 +428,7 @@ def init_service_provider():
 def find_all_diffs(a: Any, b: Any, strict: bool = False, path: str = "root") -> list[str]:
     diffs: list[str] = []
     if isinstance(a, dict):
-        for k in a:
+        for k in a: # type: ignore
             if k not in b:
                 diffs.append(f"Key '{k}' missing in second object at {path}")
             else:
@@ -440,17 +439,15 @@ def find_all_diffs(a: Any, b: Any, strict: bool = False, path: str = "root") -> 
             if k not in a:
                 diffs.append(f"Key '{k}' missing in first object at {path}")
     elif isinstance(a, list):
-        for i, (x, y) in enumerate(zip(a, b)):
+        for i, (x, y) in enumerate(zip(a, b)): # type: ignore
             res = find_all_diffs(x, y, strict, f"{path}[{i}]")
             if res:
                 diffs.extend(res)
-        if len(a) != len(b):
-            diffs.append(
-                f"list length mismatch at {path}: {len(a)} != {len(b)}")
+        if len(a) != len(b): # type: ignore
+            diffs.append(f"list length mismatch at {path}: {len(a)} != {len(b)}") # type: ignore
     else:
         if a != b:
-            if not strict and (a is None or a == '') and (b is None
-                                                          or b == ''):
+            if not strict and (a is None or a == '') and (b is None or b == ''):
                 return diffs
             diffs.append(f"Value mismatch at {path}: {a} != {b}")
     return diffs
@@ -460,7 +457,7 @@ def sort_and_join(input_list: List[str]) -> str:
     """ Sorts the input list of strings and joins them using the standard list delimiter. """
     return fwo_const.list_delimiter.join(sorted(input_list))
 
-def generate_hash_from_dict(input_dict: dict) -> str:
+def generate_hash_from_dict(input_dict: dict[Any, Any]) -> str:
     """ Generates a consistent hash from a dictionary by serializing it with sorted keys. """
     dict_string = json.dumps(input_dict, sort_keys=True)
     return hashlib.sha256(dict_string.encode('utf-8')).hexdigest()

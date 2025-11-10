@@ -3,7 +3,7 @@ import json
 import fwo_const
 import fwo_log
 
-def getFwoAlerter():
+def getFwoAlerter() -> dict[str, str]:
     logger = fwo_log.getFwoLogger()
     try: 
         with open(fwo_const.fwo_config_filename, "r") as fwo_config:

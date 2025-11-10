@@ -1,8 +1,9 @@
 import signal
+from typing import Any
 import fwo_globals
 from fwo_exceptions import ShutdownRequested
 
-def handle_shutdown_signal(signum, frame):
+def handle_shutdown_signal(signum: int, frame: Any):
     fwo_globals.shutdown_requested = True
     raise ShutdownRequested
 

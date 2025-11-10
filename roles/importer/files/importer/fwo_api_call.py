@@ -3,7 +3,7 @@ import traceback
 import json
 import datetime
 import time
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import fwo_const
 import fwo_globals
@@ -12,8 +12,11 @@ from fwo_api import FwoApi
 from fwo_exceptions import FwoApiFailedLockImport
 from query_analyzer import QueryAnalyzer
 from model_controllers.import_statistics_controller import ImportStatisticsController
-from models.management import Management
 from model_controllers.management_controller import ManagementController
+from roles.importer.files.importer.models.fwconfig_normalized import FwConfigNormalized
+
+if TYPE_CHECKING:
+    from model_controllers.import_state_controller import ImportStateController
 
 # NOTE: we cannot import ImportState(Controller) here due to circular refs
 
@@ -26,14 +29,17 @@ class FwoApiCall(FwoApi):
         self.query_analyzer = QueryAnalyzer()
 
 
-    def get_mgm_ids(self, query_variables):
+    def get_mgm_ids(self, query_variables: dict[str, list[Any]]) -> list[dict[str, Any]]: # TODO: confirm return type
         # from 9.0 do not import sub-managers separately
         mgm_query = FwoApi.get_graphql_code([fwo_const.graphql_query_path + "device/getManagementWithSubs.graphql"])
-        return self.call(mgm_query, query_variables=query_variables)['data']['management']
+        result = self.call(mgm_query, query_variables=query_variables)
+        if 'data' in result and 'management' in result['data']:
+            return result['data']['management']
+        return []   
 
 
-    def get_config_value(self, key='limit') -> str|None:
-        query_variables = {'key': key}
+    def get_config_value(self, key: str='limit') -> str|None:
+        query_variables: dict[str, str] = {'key': key}
         cfg_query = FwoApi.get_graphql_code([fwo_const.graphql_query_path + "config/getConfigValue.graphql"])
         
         try:
@@ -53,8 +59,8 @@ class FwoApiCall(FwoApi):
             return None
 
 
-    def get_config_values(self, keyFilter='limit'):
-        query_variables = {'keyFilter': keyFilter+"%"}
+    def get_config_values(self, keyFilter:str='limit') -> dict[str, str]|None:
+        query_variables: dict[str, str] = {'keyFilter': keyFilter+"%"}
         config_query = FwoApi.get_graphql_code([fwo_const.graphql_query_path + "config/getConfigValuesByKeyFilter.graphql"])
         
         try:
@@ -66,21 +72,21 @@ class FwoApiCall(FwoApi):
 
         if 'data' in result and 'config' in result['data']:
             resultArray = result['data']['config']
-            dict1 = {v['config_key']: v['config_value'] for k,v in enumerate(resultArray)}
+            dict1 = {v['config_key']: v['config_value'] for _,v in enumerate(resultArray)}
             return dict1
         else:
             return None
 
 
     # this mgm field is used by mw dailycheck scheduler
-    def log_import_attempt(self, mgm_id, successful=False):
+    def log_import_attempt(self, mgm_id: int, successful: bool = False):
         now = datetime.datetime.now().isoformat()
-        query_variables = { "mgmId": mgm_id, "timeStamp": now, "success": successful }
+        query_variables: dict[str, Any] = { "mgmId": mgm_id, "timeStamp": now, "success": successful }
         mgm_mutation = FwoApi.get_graphql_code([fwo_const.graphql_query_path + "import/updateManagementLastImportAttempt.graphql"])
         return self.call(mgm_mutation, query_variables=query_variables)
 
 
-    def setImportLock(self, mgm_details: Management, is_full_import: int = False, is_initial_import: int = False, debug_level: int = 0) -> int:
+    def setImportLock(self, mgm_details: ManagementController, is_full_import: int = False, is_initial_import: int = False, debug_level: int = 0) -> int:
         logger = getFwoLogger(debug_level=debug_level)
         import_id = -1
         mgm_id = mgm_details.Id
@@ -96,14 +102,14 @@ class FwoApiCall(FwoApi):
             if import_id == -1:
                 self.create_data_issue(mgm_id=int(mgm_id), severity=1, 
                     description="failed to get import lock for management id " + str(mgm_id))
-                self.set_alert(import_id=import_id, title="import error", mgm_id=str(mgm_id), severity=1, \
+                self.set_alert(import_id=import_id, title="import error", mgm_id=mgm_id, severity=1, \
                     description="fwo_api: failed to get import lock", source='import', alertCode=15, mgm_details=mgm_details)
                 raise FwoApiFailedLockImport("fwo_api: failed to get import lock for management id " + str(mgm_id)) from None
             else:
                 return import_id
 
 
-    def count_rule_changes_per_import(self, import_id):
+    def count_rule_changes_per_import(self, import_id: int):
         logger = getFwoLogger()
         change_count_query = FwoApi.get_graphql_code([fwo_const.graphql_query_path + "import/getRuleChangesPerImport.graphql"])
         try:
@@ -115,7 +121,7 @@ class FwoApiCall(FwoApi):
         return rule_changes_in_import
 
 
-    def count_any_changes_per_import(self, import_id):
+    def count_any_changes_per_import(self, import_id: int):
         logger = getFwoLogger()
         change_count_query = FwoApi.get_graphql_code([fwo_const.graphql_query_path + "import/getChangesPerImport.graphql"])
         try:
@@ -133,7 +139,7 @@ class FwoApiCall(FwoApi):
     def unlock_import(self, import_id: int, mgm_id: int, import_stats: ImportStatisticsController) -> int:
         logger = getFwoLogger()
         error_during_import_unlock = 0
-        query_variables = {"stopTime": datetime.datetime.now().isoformat(), "importId": import_id,
+        query_variables: dict[str, Any] = {"stopTime": datetime.datetime.now().isoformat(), "importId": import_id,
                         "success": import_stats.ErrorCount == 0, "anyChangesFound": import_stats.getTotalChangeNumber() > 0, 
                         "ruleChangesFound": import_stats.getRuleChangeNumber() > 0, "changeNumber": import_stats.getRuleChangeNumber()}
 
@@ -143,21 +149,21 @@ class FwoApiCall(FwoApi):
             unlock_result = self.call(unlock_mutation, query_variables=query_variables)
             if 'errors' in unlock_result:
                 raise FwoApiFailedLockImport(unlock_result['errors'])
-            changes_in_import_control = unlock_result['data']['update_import_control']['affected_rows']
-        except Exception as e:
+            _ = unlock_result['data']['update_import_control']['affected_rows']
+        except Exception as _:
             logger.exception("failed to unlock import for management id " + str(mgm_id))
             error_during_import_unlock = 1
         return error_during_import_unlock
 
 
     #   currently temporarily only working with single chunk
-    def import_json_config(self, importState, config, startImport=True):
+    def import_json_config(self, importState: ImportStateController, config: FwConfigNormalized, startImport: bool = True):
         logger = getFwoLogger(debug_level=importState.DebugLevel)
         import_mutation = FwoApi.get_graphql_code([fwo_const.graphql_query_path + "import/addImportConfig.graphql"])
 
         try:
             debug_mode = (fwo_globals.debug_level>0)
-            query_vars = {
+            query_vars: dict[str, Any] = {
                 'debug_mode': debug_mode,
                 'mgmId': importState.MgmDetails.Id,
                 'importId': importState.ImportId,
@@ -182,7 +188,7 @@ class FwoApiCall(FwoApi):
             return 1
 
 
-    def delete_json_config_in_import_table(self, importState, query_variables):
+    def delete_json_config_in_import_table(self, importState: ImportStateController, query_variables: dict[str, Any]) -> int:
         logger = getFwoLogger(debug_level=importState.DebugLevel)
         delete_mutation = FwoApi.get_graphql_code([fwo_const.graphql_query_path + "import/deleteImportConfig.graphql"])
         try:
@@ -194,20 +200,20 @@ class FwoApiCall(FwoApi):
         return changes_in_delete_config
 
 
-    def get_error_string_from_imp_control(self, importState, query_variables):
+    def get_error_string_from_imp_control(self, _: ImportStateController, query_variables: dict[str, Any]) -> list[dict[str, Any]]: # TODO: confirm return type
         error_query = "query getErrors($importId:bigint) { import_control(where:{control_id:{_eq:$importId}}) { import_errors } }"
         return self.call(error_query, query_variables=query_variables)['data']['import_control']
 
 
-    def create_data_issue(self, import_id: str | None = None, obj_name: str | None = None, mgm_id: int | None = None, dev_id: int | None = None, severity: int = 1,
-            rule_uid: str | None = None, object_type: str | None = None, description: str | None = None, source: str = 'import'):
+    def create_data_issue(self, importId: str | int | None = None, obj_name: str | None = None, mgm_id: int | None = None, dev_id: int | None = None, severity: int = 1,
+            rule_uid: str | None = None, object_type: str | None = None, description: str | None = None, source: str = 'import') -> bool:
         logger = getFwoLogger()
         if obj_name=='all' or obj_name=='Original': 
             return True # ignore resolve errors for enriched objects that are not in the native config
         
         create_data_issue_mutation = FwoApi.get_graphql_code([fwo_const.graphql_query_path + "monitor/addLogEntry.graphql"])
         
-        query_variables = {"source": source, "severity": severity }
+        query_variables: dict[str, Any] = {"source": source, "severity": severity }
 
         if dev_id is not None:
             query_variables.update({"devId": dev_id})
@@ -227,12 +233,11 @@ class FwoApiCall(FwoApi):
             changes = result['data']['insert_log_data_issue']['returning']
         except Exception as e:
             logger.error(f"failed to create log_data_issue: {json.dumps(query_variables)}: {str(e)}")
-            raise
-            return False
+            raise # TODO: or return False?
         return len(changes)==1
 
 
-    def set_alert(self, import_id: int | None = None, title: str | None = None, mgm_id: str | None = None, dev_id: int | None = None, severity: int | None = 1,
+    def set_alert(self, import_id: int | None = None, title: str | None = None, mgm_id: int | None = None, dev_id: int | None = None, severity: int | None = 1,
             jsonData: dict[str, Any] | None = None, description: str | None = None, source: str = 'import', user_id: int | None = None, refAlert: str | None = None, alertCode: int | None = None, mgm_details: ManagementController | None = None):
 
         logger = getFwoLogger()
@@ -261,7 +266,7 @@ class FwoApiCall(FwoApi):
             if alertCode is None or mgm_id is not None:
                 return True
             # Acknowledge older alert for same problem on same management
-            query_variables = { "mgmId": mgm_id, "alertCode": alertCode, "currentAlertId": newAlertId }
+            query_variables: dict[str, Any] = { "mgmId": mgm_id, "alertCode": alertCode, "currentAlertId": newAlertId }
             existingUnacknowledgedAlerts = self.call(getAlert_query, query_variables=query_variables)
             if 'data' not in existingUnacknowledgedAlerts or 'alert' not in existingUnacknowledgedAlerts['data']:
                 return False
@@ -269,13 +274,13 @@ class FwoApiCall(FwoApi):
                 if 'alert_id' in alert:
                     now = datetime.datetime.now().isoformat()
                     query_variables = { "userId": 0, "alertId": alert['alert_id'], "ackTimeStamp": now }
-                    updateResult = self.call(ackAlert_mutation, query_variables=query_variables)
+                    _ = self.call(ackAlert_mutation, query_variables=query_variables)
         except Exception as e:
             logger.error(f"failed to create alert entry: {json.dumps(query_variables)}; exception: {str(e)}")
             raise
         return True
 
-    def _set_alert_build_query_vars(self, query_variables: dict[str, Any], dev_id: int | None, user_id: int | None, mgm_id: str | None, refAlert: str | None, title: str | None, description: str | None, alertCode: int | None):
+    def _set_alert_build_query_vars(self, query_variables: dict[str, Any], dev_id: int | None, user_id: int | None, mgm_id: int | None, refAlert: str | None, title: str | None, description: str | None, alertCode: int | None):
         if dev_id is not None:
             query_variables.update({"devId": dev_id})
         if user_id is not None:
@@ -324,7 +329,7 @@ class FwoApiCall(FwoApi):
         if importState.Stats.getChangeDetails() != {} and importState.DebugLevel>3 and len(importState.getErrors()) == 0:
             import_result += ", change details: " + str(importState.Stats.getChangeDetails())
         if importState.Stats.ErrorCount>0:
-            self.create_data_issue(import_id=importState.ImportId, severity=1, description=importState.getErrorString())
+            self.create_data_issue(importId=importState.ImportId, severity=1, description=importState.getErrorString())
             self.set_alert(import_id=importState.ImportId, title="import error", mgm_id=importState.MgmDetails.Id, severity=2, \
                 description=str(importState.getErrorString()), source='import', alertCode=14, mgm_details=importState.MgmDetails)
         if not importState.Stats.ErrorAlreadyLogged:
@@ -341,7 +346,7 @@ class FwoApiCall(FwoApi):
             if len(pastDetails['data']['import_control'])>0:
                 lastFullImportDate = pastDetails['data']['import_control'][0]['start_time']
                 lastFullImportId = pastDetails['data']['import_control'][0]['control_id']
-        except Exception as e:
+        except Exception as _:
             logger = getFwoLogger()
             logger.error(f"error while getting past import details for mgm {str(query_vars)}: {str(traceback.format_exc())}")
             raise

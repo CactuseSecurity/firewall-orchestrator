@@ -1,16 +1,13 @@
 """
     read config from file and convert to non-legacy format (in case of legacy input)
 """
-from typing import Any, get_type_hints
-from enum import Enum
-import json, requests, requests.packages
+import json, requests
+from typing import Any
 
 from fwo_log import getFwoLogger
 import fwo_globals
 from fwo_exceptions import ConfigFileNotFound, FwoImporterError
-from models.fwconfigmanagerlist import FwConfigManagerList
 from model_controllers.fwconfigmanagerlist_controller import FwConfigManagerListController
-from models.fwconfig import FwConfig
 from fwconfig_base import ConfFormat
 
 import traceback
@@ -99,7 +96,7 @@ def read_json_config_from_file(importState: ImportStateController) -> FwConfigMa
 
 ########### HELPERS ##################
 
-def detect_legacy_format(configJson) -> ConfFormat:
+def detect_legacy_format(configJson: dict[str, Any]) -> ConfFormat:
 
     result = ConfFormat.NORMALIZED_LEGACY
 
@@ -111,9 +108,9 @@ def detect_legacy_format(configJson) -> ConfFormat:
     return result
 
 
-def read_file(importState: ImportStateController) -> dict:
+def read_file(importState: ImportStateController) -> dict[str, Any]:
     logger = getFwoLogger(debug_level=importState.DebugLevel)
-    configJson = {}
+    configJson: dict[str, Any] = {}
     if importState.ImportFileName=="":
         return configJson
     try:
@@ -135,8 +132,8 @@ def read_file(importState: ImportStateController) -> dict:
                 configJson = json.load(json_file)
     except requests.exceptions.RequestException:
         try:
-            r # check if response "r" is defined
-            importState.appendErrorString(f'got HTTP status code{str(r.status_code)} while trying to read config file from URL {importState.ImportFileName}')
+            r # check if response "r" is defined # type: ignore TODO: This practice is suspicious at best
+            importState.appendErrorString(f'got HTTP status code{str(r.status_code)} while trying to read config file from URL {importState.ImportFileName}') # type: ignore
         except NameError:
             importState.appendErrorString(f'got error while trying to read config file from URL {importState.ImportFileName}')
         importState.increaseErrorCounterByOne()

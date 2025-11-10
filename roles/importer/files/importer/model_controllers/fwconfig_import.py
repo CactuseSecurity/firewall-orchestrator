@@ -209,7 +209,7 @@ class FwConfigImport():
             logger.error(f"error while trying to delete old imports for mgm {str(self.import_state.MgmDetails.Id)}")
             fwo_api_call.create_data_issue(self.import_state.FwoConfig.FwoApiUri, self.import_state.Jwt, mgm_id=int(self.import_state.MgmDetails.Id), severity=1, 
                  description="failed to get import lock for management id " + str(mgmId))
-            fwo_api_call.set_alert(import_id=self.import_state.ImportId, title="import error", mgm_id=str(mgmId), severity=1, \
+            fwo_api_call.set_alert(import_id=self.import_state.ImportId, title="import error", mgm_id=mgmId, severity=1, \
                  description="fwo_api: failed to get import lock", source='import', alertCode=15, mgm_details=self.import_state.MgmDetails)
             raise FwoApiFailedDeleteOldImports(f"management id: {mgmId}") from None
 

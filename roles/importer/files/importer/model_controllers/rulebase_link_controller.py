@@ -52,7 +52,7 @@ class RulebaseLinkController():
         # we always need to provide gwIds since rulebase_links may be duplicate across different gateways
         query_variables = { "gwIds": gw_ids}
 
-        query = FwoApi.get_graphql_code([f"{fwo_const.graphql_query_path}rule/getRulebaseLinks.graphql"])
+        query = FwoApi.get_graphql_code(file_list=[f"{fwo_const.graphql_query_path}rule/getRulebaseLinks.graphql"])
         links = import_state.api_call.call(query, query_variables=query_variables)
         if 'errors' in links:
             import_state.Stats.addError(f"fwo_api:getRulebaseLinks - error while getting rulebaseLinks: {str(links['errors'])}")

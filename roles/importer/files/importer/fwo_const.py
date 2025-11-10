@@ -1,4 +1,6 @@
-from urllib.parse import urlparse
+
+from typing import Any
+
 
 base_dir = '/usr/local/fworch'
 importer_base_dir = base_dir + '/importer'
@@ -39,7 +41,7 @@ max_objs_per_chunk = 1000
 api_call_chunk_size = 1000
 rule_num_numeric_steps = 1024.0
 
-emptyNormalizedFwConfigJsonDict = {
+emptyNormalizedFwConfigJsonDict: dict[str, list[Any]] = {
     'network_objects': [],
     'service_objects': [],
     'user_objects': [],

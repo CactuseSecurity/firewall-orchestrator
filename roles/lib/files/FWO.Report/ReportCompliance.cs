@@ -425,7 +425,9 @@ namespace FWO.Report
         private Task<List<Rule>> GatherReportData((List<Rule> processed, List<RuleViewData> viewData)[]? results)
         {
             if (results == null)
-                results = [];
+            {
+                results = [];   
+            }
             RuleViewData.Capacity = results.Sum(r => r.viewData.Count);
             List<Rule> processedRulesFlat = new(results.Sum(r => r.processed.Count));
 

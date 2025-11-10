@@ -42,7 +42,7 @@ class DomainInfo:
     domain_uid: str = ''
 
 class ManagementController(Management):
-    def __init__(self, mgm_id: int, uid: str, devices: dict[dict[str, Any], Any], device_info: DeviceInfo,
+    def __init__(self, mgm_id: int, uid: str, devices: list[dict[str, Any]], device_info: DeviceInfo,
                  connection_info: ConnectionInfo, importer_hostname: str, credential_info: CredentialInfo,
                  manager_info: ManagerInfo, domain_info: DomainInfo, 
                  import_disabled: bool = False):
@@ -162,7 +162,7 @@ class ManagementController(Management):
         devs: list['Gateway'] = []
         for dev in mgmDetails.Devices:
             # check if gateway import is enabled
-            if 'do_not_import' in dev and dev['do_not_import']: # TODO: get this key from the device # TODO: dev is dict or str?
+            if 'do_not_import' in dev and dev['do_not_import']:
                 continue
             devs.append(Gateway(Name = dev['name'], Uid = f"{dev['name']}/{mgmDetails.calcManagerUidHash()}"))
         return devs

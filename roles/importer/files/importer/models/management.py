@@ -8,7 +8,7 @@ class Management():
     IsSuperManager: bool = Field(description="Indicates if the management is a super manager")
     Hostname: str = Field(description="Hostname of the management server")
     ImportDisabled: bool = Field(description="Indicates if import is disabled for the management")
-    Devices: dict[dict[str, Any], Any] = Field(description="Dictionary of devices managed by this entity") # TODO:  dict[dict[str, Any], Any] ??
+    Devices: list[dict[str, Any]] = Field(description="Dictionary of devices managed by this entity")
     ImporterHostname: str = Field(description="Hostname of the machine running the importer")
     DeviceTypeName: str = Field(description="Name of the device type")
     DeviceTypeVersion: str = Field(description="Version of the device type")

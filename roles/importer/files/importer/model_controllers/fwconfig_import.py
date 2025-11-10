@@ -128,7 +128,7 @@ class FwConfigImport():
             for subManagerId in self.import_state.MgmDetails.SubManagerIds:
                 # Fetch sub management details
                 mgm_controller = ManagementController(
-                    mgm_id=int(subManagerId), uid='', devices={},
+                    mgm_id=int(subManagerId), uid='', devices=[],
                     device_info=DeviceInfo(),
                     connection_info=ConnectionInfo(),
                     importer_hostname='',

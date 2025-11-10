@@ -238,7 +238,7 @@ def _should_retry(e: Exception, attempt: int, max_retries: int) -> bool:
     return is_transient and is_not_last_attempt
 
 
-def _log_and_raise_error(error_msg: str, e: Exception, is_transient: bool, attempt: int, max_retries: int):
+def _log_and_raise_error(error_msg: str, is_transient: bool, attempt: int, max_retries: int):
     """Log appropriate error message and raise exception.
     
     Args:
@@ -296,7 +296,7 @@ def _attempt_connection(mgm_details: ManagementController, is_virtual_asa: bool,
         error_msg = _handle_connection_error(e, mgm_details, attempt, max_retries)
         is_transient = _is_transient_error(e)
         
-        _log_and_raise_error(error_msg, e, is_transient, attempt, max_retries)
+        _log_and_raise_error(error_msg, is_transient, attempt, max_retries)
         raise  # For type checker - will never reach here
 
 

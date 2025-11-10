@@ -73,14 +73,6 @@
 
 	[Parameter]
     public EventCallback<List<(ComplianceNetworkZone, ComplianceNetworkZone)>> DeleteCommunicationChanged { get; set; }
-
-    
-    #if DEBUG // Access to private members for component tests.
-
-        public NetworkZoneService NetworkZoneService => networkZoneService;
-
-    #endif
-
 	
     private void ExecuteZoneAction(ComplianceNetworkZone zone)
     {

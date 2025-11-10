@@ -18,6 +18,7 @@ from model_controllers.management_controller import ManagementController
 from ciscoasa9.asa_parser import parse_asa_config
 from fwo_base import write_native_config_to_file
 from ciscoasa9.asa_normalize import normalize_config
+from fwo_exceptions import FwoImporterError
 
 
 def has_config_changed(full_config, mgm_details, force=False):
@@ -47,6 +48,258 @@ def _is_transient_error(error: Exception) -> bool:
     return any(indicator in error_str for indicator in transient_indicators)
 
 
+def _connect_to_device(mgm_details: ManagementController) -> GenericDriver:
+    """Establish SSH connection to the device.
+    
+    Args:
+        mgm_details: ManagementController object with connection details.
+        
+    Returns:
+        Connected GenericDriver instance.
+    """
+    device = {
+        "host": mgm_details.Hostname,
+        "port": mgm_details.Port,
+        "auth_username": mgm_details.ImportUser,
+        "auth_password": mgm_details.Secret,
+        "auth_strict_key": False,
+        "transport_options": {"open_cmd": ["-o", "KexAlgorithms=+diffie-hellman-group14-sha1"]},
+    }
+    conn = GenericDriver(**device)
+    conn.open()
+    return conn
+
+
+def _prepare_virtual_asa(conn: GenericDriver):
+    """Connect to ASA module on virtual device.
+    
+    Args:
+        conn: Active connection to the device.
+    """
+    conn.send_command("connect module 1 console\n")
+    time.sleep(2)
+    conn.send_command("\n")
+    time.sleep(2)
+
+
+def _ensure_enable_mode(conn: GenericDriver, mgm_details: ManagementController):
+    """Ensure device is in enabled mode.
+    
+    Args:
+        conn: Active connection to the device.
+        mgm_details: ManagementController object with enable password.
+        
+    Raises:
+        FwoImporterError: If unable to enter enabled mode.
+    """
+    logger = getFwoLogger()
+    current_prompt = conn.get_prompt()
+    logger.debug(f"Current prompt: {current_prompt}")
+    
+    if current_prompt.endswith(">"):
+        logger.debug("Device is in user mode, entering enable mode")
+        try:
+            conn.send_interactive(
+                [
+                    ("enable", "Password", False),
+                    (mgm_details.CloudClientSecret, "#", True)
+                ]
+            )
+        except Exception as e:
+            logger.warning(f"Could not enter enable mode: {e}")
+            current_prompt = conn.get_prompt()
+            if not current_prompt.endswith("#"):
+                raise
+    
+    current_prompt = conn.get_prompt()
+    if not current_prompt.endswith("#"):
+        error_msg = f"Not in enabled mode (prompt: {current_prompt})."
+        logger.error(error_msg)
+        raise FwoImporterError(error_msg)
+    
+    logger.debug("Device is in enabled mode")
+
+
+def _get_running_config(conn: GenericDriver) -> str:
+    """Retrieve running configuration from device.
+    
+    Args:
+        conn: Active connection to the device.
+        
+    Returns:
+        Running configuration as string.
+    """
+    logger = getFwoLogger()
+    
+    try:
+        conn.send_command("terminal pager 0")
+    except Exception as e:
+        logger.warning(f"Could not disable paging: {e}")
+    
+    response = conn.send_interactive(
+        [("show running", ": end", False)],
+        timeout_ops=600
+    )
+    return response.result.strip()
+
+
+def _safe_close_connection(conn: GenericDriver | None):
+    """Safely close connection with proper cleanup.
+    
+    Args:
+        conn: Connection to close (can be None).
+    """
+    logger = getFwoLogger()
+    if conn is None:
+        return
+    
+    try:
+        conn.send_command("exit")
+    except Exception as e:
+        logger.warning(f"Could not exit session cleanly: {e}")
+    
+    try:
+        conn.close()
+    except Exception as e:
+        logger.warning(f"Error closing connection: {e}")
+
+
+def _handle_connection_error(e: Exception, mgm_details: ManagementController, attempt: int, max_retries: int) -> str:
+    """Build detailed error message for connection failures.
+    
+    Args:
+        e: The exception that occurred.
+        mgm_details: Management details for context.
+        attempt: Current attempt number.
+        max_retries: Maximum retry attempts.
+        
+    Returns:
+        Formatted error message.
+    """
+    error_msg = f"Error connecting to device {mgm_details.Hostname} (attempt {attempt + 1}/{max_retries}): {e}"
+    
+    error_str = str(e).lower()
+    if "password" in error_str or "enable" in error_str:
+        error_msg += "\nPossible causes: incorrect password, or device already in use by another import session"
+    elif "prompt" in error_str or "timeout" in error_str:
+        error_msg += "\nPossible causes: concurrent access from multiple import processes, or device not responding as expected"
+    
+    return error_msg
+
+
+def _log_retry_attempt(attempt: int, max_retries: int):
+    """Log retry attempt with exponential backoff.
+    
+    Args:
+        attempt: Current attempt number (0-indexed).
+        max_retries: Maximum number of retries.
+    """
+    logger = getFwoLogger()
+    
+    if attempt > 0:
+        backoff_time = 2 ** attempt
+        logger.info(f"Retry attempt {attempt + 1}/{max_retries} after {backoff_time:.2f} seconds backoff")
+        time.sleep(backoff_time)
+    else:
+        logger.debug(f"Connection attempt {attempt + 1}/{max_retries}")
+
+
+def _retrieve_config_from_device(conn: GenericDriver, mgm_details: ManagementController, is_virtual_asa: bool) -> str:
+    """Retrieve configuration from connected device.
+    
+    Args:
+        conn: Active connection to the device.
+        mgm_details: ManagementController object with connection details.
+        is_virtual_asa: Whether this is a virtual ASA device.
+        
+    Returns:
+        Running configuration as string.
+    """
+    if is_virtual_asa:
+        _prepare_virtual_asa(conn)
+    
+    _ensure_enable_mode(conn, mgm_details)
+    return _get_running_config(conn)
+
+
+def _should_retry(e: Exception, attempt: int, max_retries: int) -> bool:
+    """Determine if error warrants a retry.
+    
+    Args:
+        e: The exception that occurred.
+        attempt: Current attempt number.
+        max_retries: Maximum retry attempts.
+        
+    Returns:
+        True if should retry, False otherwise.
+    """
+    is_transient = _is_transient_error(e)
+    is_not_last_attempt = attempt < max_retries - 1
+    return is_transient and is_not_last_attempt
+
+
+def _log_and_raise_error(error_msg: str, e: Exception, is_transient: bool, attempt: int, max_retries: int):
+    """Log appropriate error message and raise exception.
+    
+    Args:
+        error_msg: Base error message.
+        e: The original exception.
+        is_transient: Whether error is transient.
+        attempt: Current attempt number.
+        max_retries: Maximum retry attempts.
+        
+    Raises:
+        FwoImporterError: Always raised with appropriate message.
+    """
+    logger = getFwoLogger()
+    
+    if attempt < max_retries - 1 and is_transient:
+        logger.warning(error_msg + "\nThis appears to be a transient error, will retry...")
+    else:
+        if not is_transient:
+            logger.error(error_msg + "\nNon-transient error detected, not retrying.")
+        else:
+            logger.error(error_msg + "\nMax retries exhausted.")
+        raise FwoImporterError(error_msg)
+
+
+def _attempt_connection(mgm_details: ManagementController, is_virtual_asa: bool, attempt: int, max_retries: int) -> str:
+    """Attempt a single connection to retrieve configuration.
+    
+    Args:
+        mgm_details: ManagementController object with connection details.
+        is_virtual_asa: Whether this is a virtual ASA device.
+        attempt: Current attempt number.
+        max_retries: Maximum retry attempts.
+        
+    Returns:
+        Running configuration as string.
+        
+    Raises:
+        FwoImporterError: If connection fails and should not retry.
+    """
+    logger = getFwoLogger()
+    conn = None
+    
+    try:
+        conn = _connect_to_device(mgm_details)
+        config = _retrieve_config_from_device(conn, mgm_details, is_virtual_asa)
+        _safe_close_connection(conn)
+        
+        if attempt > 0:
+            logger.info(f"Successfully connected after {attempt + 1} attempt(s)")
+        
+        return config
+        
+    except Exception as e:
+        _safe_close_connection(conn)
+        error_msg = _handle_connection_error(e, mgm_details, attempt, max_retries)
+        is_transient = _is_transient_error(e)
+        
+        _log_and_raise_error(error_msg, e, is_transient, attempt, max_retries)
+        raise  # For type checker - will never reach here
+
+
 def load_config_from_management(mgm_details: ManagementController, is_virtual_asa: bool, max_retries: int = 8) -> str:
     """Load ASA configuration from the management device using SSH with exponential backoff retry.
 
@@ -59,133 +312,29 @@ def load_config_from_management(mgm_details: ManagementController, is_virtual_as
         The raw configuration as a string.
         
     Raises:
-        Exception: After all retry attempts are exhausted.
+        FwoImporterError: After all retry attempts are exhausted.
     """
     logger = getFwoLogger()
-
     logger.debug("Waiting 5 seconds before starting connection...")
     time.sleep(5)
     
     last_exception = None
     
     for attempt in range(max_retries):
-        if attempt > 0:
-            backoff_time = 2 ** attempt
-            logger.info(f"Retry attempt {attempt + 1}/{max_retries} after {backoff_time:.2f} seconds backoff")
-            time.sleep(backoff_time)
-        else:
-            logger.debug(f"Connection attempt {attempt + 1}/{max_retries}")
+        _log_retry_attempt(attempt, max_retries)
         
-        conn = None
         try:
-            device = {
-                "host": mgm_details.Hostname,
-                "port": mgm_details.Port,
-                "auth_username": mgm_details.ImportUser,
-                "auth_password": mgm_details.Secret,
-                "auth_strict_key": False,
-                "transport_options": {"open_cmd": ["-o", "KexAlgorithms=+diffie-hellman-group14-sha1"]},
-            }
-
-            conn = GenericDriver(**device)
-            conn.open()
-
-            if is_virtual_asa:
-                conn.send_command("connect module 1 console\n")
-                time.sleep(2)
-                conn.send_command("\n")
-                time.sleep(2)
-
-            # Check current prompt to determine if we need to enable
-            current_prompt = conn.get_prompt()
-            logger.debug(f"Current prompt: {current_prompt}")
-            
-            # If in user mode (>), enter enable mode
-            if current_prompt.endswith(">"):
-                logger.debug("Device is in user mode, entering enable mode")
-                try:
-                    conn.send_interactive(
-                        [
-                            ("enable", "Password", False),
-                            (mgm_details.CloudClientSecret, "#", True)
-                        ]
-                    )
-                except Exception as e:
-                    logger.warning(f"Could not enter enable mode: {e}")
-                    # Check if we're already enabled despite the error
-                    current_prompt = conn.get_prompt()
-                    if not current_prompt.endswith("#"):
-                        raise
-            
-            # Verify we're in enabled mode before proceeding
-            current_prompt = conn.get_prompt()
-            if not current_prompt.endswith("#"):
-                error_msg = f"Not in enabled mode (prompt: {current_prompt})."
-                logger.error(error_msg)
-                raise Exception(error_msg)
-            
-            logger.debug("Device is in enabled mode")
-            
-            # Disable paging
-            try:
-                conn.send_command("terminal pager 0")
-            except Exception as e:
-                logger.warning(f"Could not disable paging: {e}")
-
-            response = conn.send_interactive(
-                [
-                    ("show running", ": end", False)
-                ],
-                timeout_ops=600
-            )
-
-            try:
-                conn.send_command("exit")
-            except Exception as e:
-                logger.warning(f"Could not exit session cleanly: {e}")
-
-            conn.close()
-            
-            # Success! Log and return
-            if attempt > 0:
-                logger.info(f"Successfully connected after {attempt + 1} attempt(s)")
-            
-            return response.result.strip()
-            
-        except Exception as e:
+            return _attempt_connection(mgm_details, is_virtual_asa, attempt, max_retries)
+        except FwoImporterError as e:
             last_exception = e
-            error_msg = f"Error connecting to device {mgm_details.Hostname} (attempt {attempt + 1}/{max_retries}): {e}"
-            
-            # Provide more context for common issues
-            if "Password" in str(e) or "enable" in str(e).lower():
-                error_msg += "\nPossible causes: incorrect password, or device already in use by another import session"
-            elif "prompt" in str(e).lower() or "timeout" in str(e).lower():
-                error_msg += "\nPossible causes: concurrent access from multiple import processes, or device not responding as expected"
-            
-            # Try to close connection if it's still open
-            try:
-                if conn is not None:
-                    conn.close()
-            except:
-                pass
-            
-            # Check if this is a transient error worth retrying
-            is_transient = _is_transient_error(e)
-            
-            if attempt < max_retries - 1 and is_transient:
-                logger.warning(error_msg + "\nThis appears to be a transient error, will retry...")
-            else:
-                # Last attempt or non-transient error
-                if not is_transient:
-                    logger.error(error_msg + "\nNon-transient error detected, not retrying.")
-                else:
-                    logger.error(error_msg + "\nMax retries exhausted.")
-                raise Exception(error_msg)
+            if not _should_retry(e, attempt, max_retries):
+                raise
     
-    # Should never reach here, but just in case
+    # Fallback if all retries exhausted without raising
     if last_exception:
         raise last_exception
-    raise Exception(f"Failed to connect to device {mgm_details.Hostname} after {max_retries} attempts")
+    raise FwoImporterError(f"Failed to connect to device {mgm_details.Hostname} after {max_retries} attempts")
+
 
 
 def get_config(config_in: FwConfigManagerListController, import_state: ImportStateController) -> tuple[int, FwConfigManagerList]:

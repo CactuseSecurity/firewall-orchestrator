@@ -213,11 +213,12 @@ def create_any_protocol_service(proto: str, service_objects: Dict[str, ServiceOb
     """
     obj_name = f"any-{proto}"
     if obj_name not in service_objects:
+        port_range = (0, 65535) if proto in ("tcp", "udp") else (None, None)
         obj = ServiceObject(
             svc_uid=obj_name,
             svc_name=obj_name,
-            svc_port=0,
-            svc_port_end=65535,
+            svc_port=port_range[0],
+            svc_port_end=port_range[1],
             svc_color=fwo_const.defaultColor,
             svc_typ="simple",
             ip_proto=protocol_map.get(proto, 0),
@@ -270,11 +271,22 @@ def create_service_for_protocol_entry(entry: AccessListEntry, service_objects: D
         return create_service_for_protocol_entry_with_single_protocol(entry, service_objects)
 
     elif entry.protocol.value == "ip":
-        # 'ip' protocol means all protocols (tcp, udp, icmp)
         svc_refs: List[str] = []
-        for proto in ("tcp", "udp", "icmp"):
+        for proto in protocol_map.keys():
             svc_refs.append(create_any_protocol_service(proto, service_objects))
-        return fwo_base.sort_and_join(svc_refs)
+        
+
+        reference_string = fwo_base.sort_and_join(svc_refs)
+        # create a service group for all protocols
+        service_objects["ANY"] = ServiceObject(
+            svc_uid="ANY",
+            svc_name="ANY",
+            svc_color=fwo_const.defaultColor,
+            svc_typ="group",
+            svc_member_names=reference_string,
+            svc_member_refs=reference_string,
+        )
+        return "ANY"
     else:
         # Unknown protocol, default to any for the protocol
         return create_any_protocol_service(entry.protocol.value, service_objects)

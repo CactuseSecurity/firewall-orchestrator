@@ -15,9 +15,8 @@ query getRelevantImportIdsAtTime(
   } order_by: {mgm_name: asc}) {
     name: mgm_name
     id: mgm_id
-    managementByMultiDeviceManagerId {
-      id: mgm_id
-    }
+    is_super_manager
+    multi_device_manager_id
     import: import_controls_aggregate(where: {
       stop_time: {_lte: $time}
       successful_import: {_eq: true}

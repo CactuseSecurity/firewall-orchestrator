@@ -21,7 +21,7 @@ class FwConfigImportRollback():
     # also deletes latest_config for this management
     # TODO: also take super management id into account as second option
 
-    def rollbackCurrentImport(self) -> None:
+    def rollbackCurrentImport(self) -> None | int:
         logger = getFwoLogger()
         rollbackMutation = FwoApi.get_graphql_code([f"{fwo_const.graphql_query_path}import/rollbackImport.graphql"])
         try:

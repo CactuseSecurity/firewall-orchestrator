@@ -1,9 +1,10 @@
+from typing import Any
 from fwo_log import getFwoLogger
-from netaddr import IPAddress, IPNetwork
+from netaddr import IPAddress
 
 
 class Interface:
-    def __init__(self, device_id, name, ip, netmask_bits, state_up=True, ip_version=4):
+    def __init__(self, device_id: int, name: str, ip: str, netmask_bits: int, state_up: bool = True, ip_version: int = 4):
         self.routing_device = int(device_id)
         # check if routing device id exists?
         self.name = str(name)
@@ -26,7 +27,7 @@ class Interface:
 
 
 class InterfaceSerializable(Interface):
-    def __init__(self, ifaceIn):
+    def __init__(self, ifaceIn: dict[Any, Any] | Interface):
         if type(ifaceIn) is dict:
             self.name = ifaceIn['name']
             self.routing_device = ifaceIn['routing_device']

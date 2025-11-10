@@ -42,7 +42,7 @@ class DomainInfo:
     domain_uid: str = ''
 
 class ManagementController(Management):
-    def __init__(self, mgm_id: int, uid: str, devices: dict, device_info: DeviceInfo,
+    def __init__(self, mgm_id: int, uid: str, devices: dict[dict[str, Any], Any], device_info: DeviceInfo,
                  connection_info: ConnectionInfo, importer_hostname: str, credential_info: CredentialInfo,
                  manager_info: ManagerInfo, domain_info: DomainInfo, 
                  import_disabled: bool = False):
@@ -154,15 +154,15 @@ class ManagementController(Management):
 
 
     def getDomainString(self):
-        return self.DomainUid if self.DomainUid != None else self.DomainName
+        return self.DomainUid if self.DomainUid != None else self.DomainName # type: ignore #TODO: check if None check is needed if yes, change type
 
 
     @classmethod
     def buildGatewayList(cls, mgmDetails: "ManagementController") -> list['Gateway']:
-        devs = []
+        devs: list['Gateway'] = []
         for dev in mgmDetails.Devices:
             # check if gateway import is enabled
-            if 'do_not_import' in dev and dev['do_not_import']: # TODO: get this key from the device
+            if 'do_not_import' in dev and dev['do_not_import']: # TODO: get this key from the device # TODO: dev is dict or str?
                 continue
             devs.append(Gateway(Name = dev['name'], Uid = f"{dev['name']}/{mgmDetails.calcManagerUidHash()}"))
         return devs
@@ -171,7 +171,7 @@ class ManagementController(Management):
     def calcManagerUidHash(self):
         combination = f"""
             {replaceNoneWithEmpty(self.Hostname)}
-            {replaceNoneWithEmpty(self.Port)}
+            {replaceNoneWithEmpty(str(self.Port))}
             {replaceNoneWithEmpty(self.DomainUid)}
             {replaceNoneWithEmpty(self.DomainName)}
         """
@@ -191,7 +191,7 @@ class ManagementController(Management):
                     graphql_query_path + "device/fragments/importCredentials.graphql"])
 
         api_call_result = api_conn.call(getMgmDetailsQuery, query_variables={'mgmId': mgm_id })
-        if api_call_result is None or 'data' not in api_call_result or 'management' not in api_call_result['data'] or len(api_call_result['data']['management'])<1:
+        if api_call_result is None or 'data' not in api_call_result or 'management' not in api_call_result['data'] or len(api_call_result['data']['management'])<1: #type: ignore #TODO: check if api_call_result can be None
             raise FwoApiFailure('did not succeed in getting management details from FWO API')
 
         if not '://' in api_call_result['data']['management'][0]['hostname']:

@@ -332,7 +332,7 @@ class FwoApiCall(FwoApi):
             importState.Stats.ErrorAlreadyLogged = True
 
 
-    def get_last_complete_import(self, query_vars, debug_level=0) -> tuple[int, str]:
+    def get_last_complete_import(self, query_vars: dict[str, Any], debug_level: int = 0) -> tuple[int, str]:
         mgm_query = FwoApi.get_graphql_code([fwo_const.graphql_query_path + "import/getLastCompleteImport.graphql"])
         lastFullImportDate: str = ""
         lastFullImportId: int = 0

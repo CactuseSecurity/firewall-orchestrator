@@ -3,12 +3,11 @@ import traceback
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from cryptography.hazmat.primitives import padding
-import traceback
 from fwo_log import getFwoLogger
 from fwo_const import mainKeyFile
 
 # can be used for decrypting text encrypted with C# (mw-server)
-def decrypt_aes_ciphertext(base64_encrypted_text, passphrase):
+def decrypt_aes_ciphertext(base64_encrypted_text: str, passphrase: str) -> str:
     encrypted_data = base64.b64decode(base64_encrypted_text)
     ivLength = 16 # IV length for AES is 16 bytes
 
@@ -24,7 +23,7 @@ def decrypt_aes_ciphertext(base64_encrypted_text, passphrase):
     decrypted_data = decryptor.update(encrypted_data[ivLength:]) + decryptor.finalize()
 
     # Remove padding
-    unpadder = padding.PKCS7(algorithms.AES.block_size).unpadder()
+    unpadder = padding.PKCS7(algorithms.AES.block_size).unpadder() #TODO: Check if block_size is correct #type: ignore
     try:
         unpadded_data = unpadder.update(decrypted_data) + unpadder.finalize()
         return unpadded_data.decode('utf-8')  # Assuming plaintext is UTF-8 encoded
@@ -33,7 +32,7 @@ def decrypt_aes_ciphertext(base64_encrypted_text, passphrase):
 
 
 # wrapper for trying the different decryption methods
-def decrypt(encrypted_data, passphrase):
+def decrypt(encrypted_data: str, passphrase: str) -> str:
     logger = getFwoLogger()
     try:
         decrypted = decrypt_aes_ciphertext(encrypted_data, passphrase)
@@ -43,7 +42,7 @@ def decrypt(encrypted_data, passphrase):
         return encrypted_data
 
 
-def read_main_key(filePath=mainKeyFile):
+def read_main_key(filePath: str = mainKeyFile) -> str:
     with open(filePath, "r") as keyfile:
         mainKey = keyfile.read().rstrip(' \n')
     return mainKey

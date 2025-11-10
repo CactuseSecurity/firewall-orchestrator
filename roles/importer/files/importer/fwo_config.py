@@ -3,7 +3,7 @@ from fwo_log import getFwoLogger
 import sys, json
 from fwo_const import importer_pwd_file
 
-def readConfig(fwo_config_filename='/etc/fworch/fworch.json'):
+def readConfig(fwo_config_filename: str = '/etc/fworch/fworch.json') -> dict[str, str | int | None]:
     logger = getFwoLogger()
     try:
         # read fwo config (API URLs)
@@ -27,7 +27,7 @@ def readConfig(fwo_config_filename='/etc/fworch/fworch.json'):
     except Exception:
         logger.error("unspecified error occurred while trying to read config file: "+ fwo_config_filename)
         sys.exit(1)
-    config = {
+    config: dict[str, str | int | None] = {
         "fwo_major_version": fwo_major_version, 
         "user_management_api_base_url": user_management_api_base_url, 
         "fwo_api_base_url": fwo_api_base_url,

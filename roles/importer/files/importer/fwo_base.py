@@ -16,6 +16,7 @@ from fwo_const import csv_delimiter, apostrophe, line_delimiter
 from fwo_enums import ConfFormat, ConfigAction
 from fwo_log import getFwoLogger, getFwoAlertLogger
 from model_controllers.fwconfig_import_ruleorder import RuleOrderService
+from model_controllers.import_state_controller import ImportStateController
 from services.service_provider import ServiceProvider
 from services.global_state import GlobalState
 from services.enums import Services, Lifetime
@@ -119,8 +120,8 @@ def set_ssl_verification(ssl_verification_mode):
     return ssl_verification
 
 
-def stringIsUri(s):
-    return re.match('http://.+', s) or re.match('https://.+', s) or  re.match('file://.+', s)
+def stringIsUri(s: str) -> re.Match[str] | None: # TODO: should return bool?
+    return re.match('http://.+', s) or re.match('https://.+', s) or  re.match('file://.+', s) 
 
 
 def serializeDictToClass(data: dict, cls):
@@ -397,7 +398,7 @@ def compute_min_moves(source: list[Any], target: list[Any]) -> dict[str, Any]:
     }
 
 
-def write_native_config_to_file(importState, configNative):
+def write_native_config_to_file(importState: ImportStateController, configNative: dict[str, Any]) -> None:
     from fwo_const import import_tmp_path
     if importState.DebugLevel>6:
         logger = getFwoLogger(debug_level=importState.DebugLevel)

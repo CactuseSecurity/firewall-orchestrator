@@ -48,7 +48,7 @@ class ImportStatisticsController(ImportStatistics):
             self.rule_enforce_change_count + self.rulebase_add_count + self.rulebase_change_count + self.rulebase_delete_count
 
     def getChangeDetails(self):
-        result = {}
+        result: dict[str, int] = {}
         self.collect_nw_obj_change_details(result)
         self.collect_svc_obj_change_details(result)
         self.collect_usr_obj_change_details(result)
@@ -57,9 +57,7 @@ class ImportStatisticsController(ImportStatistics):
         return result
 
 
-    def collect_nw_obj_change_details(self, result):
-        if result is None:
-            result = {}
+    def collect_nw_obj_change_details(self, result: dict[str, int]):
         if self.NetworkObjectAddCount > 0:
             result['NetworkObjectAddCount'] = self.NetworkObjectAddCount
         if self.NetworkObjectDeleteCount > 0:
@@ -68,9 +66,7 @@ class ImportStatisticsController(ImportStatistics):
             result['NetworkObjectChangeCount'] = self.NetworkObjectChangeCount
 
 
-    def collect_svc_obj_change_details(self, result):
-        if result is None:
-            result = {}
+    def collect_svc_obj_change_details(self, result: dict[str, int]):
         if self.ServiceObjectAddCount > 0:
             result['ServiceObjectAddCount'] = self.ServiceObjectAddCount
         if self.ServiceObjectDeleteCount > 0:
@@ -79,9 +75,7 @@ class ImportStatisticsController(ImportStatistics):
             result['ServiceObjectChangeCount'] = self.ServiceObjectChangeCount
 
 
-    def collect_usr_obj_change_details(self, result):
-        if result is None:
-            result = {}
+    def collect_usr_obj_change_details(self, result: dict[str, int]):
         if self.UserObjectAddCount > 0:
             result['UserObjectAddCount'] = self.UserObjectAddCount
         if self.UserObjectDeleteCount > 0:
@@ -90,9 +84,7 @@ class ImportStatisticsController(ImportStatistics):
             result['UserObjectChangeCount'] = self.UserObjectChangeCount
 
 
-    def collect_zone_obj_change_details(self, result):
-        if result is None:
-            result = {}         
+    def collect_zone_obj_change_details(self, result: dict[str, int]):
         if self.ZoneObjectAddCount > 0:
             result['ZoneObjectAddCount'] = self.ZoneObjectAddCount
         if self.ZoneObjectDeleteCount > 0:
@@ -101,9 +93,7 @@ class ImportStatisticsController(ImportStatistics):
             result['ZoneObjectChangeCount'] = self.ZoneObjectChangeCount
 
 
-    def collect_rule_change_details(self, result):
-        if result is None:
-            result = {}         
+    def collect_rule_change_details(self, result: dict[str, int]):
         if self.RuleAddCount > 0:
             result['RuleAddCount'] = self.RuleAddCount
         if self.RuleDeleteCount > 0:

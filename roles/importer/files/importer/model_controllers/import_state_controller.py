@@ -27,7 +27,7 @@ class ImportStateController(ImportState):
     api_call: FwoApiCall
     management_map: dict[str, int]  # maps management uid to management id
 
-    def __init__(self, debugLevel: int, configChangedSinceLastImport: bool, fwoConfig: FworchConfigController, mgmDetails: dict[str, Any], jwt: str, force: str, 
+    def __init__(self, debugLevel: int, configChangedSinceLastImport: bool, fwoConfig: FworchConfigController, mgmDetails: dict[str, Any], jwt: str, force: bool, 
                  version: int, isFullImport: bool = False, isInitialImport: bool = False, isClearingImport: bool = False, verifyCerts: bool = False, LastSuccessfulImport: str | None = None):
         self.Stats = ImportStatisticsController()
         self.StartTime = int(time.time())
@@ -84,31 +84,28 @@ class ImportStateController(ImportState):
 
 
     @classmethod
-    def initializeImport(cls, mgmId: int, fwo_api_uri: str, jwt: str,
+    def initializeImport(cls, mgmId: int | None, fwo_api_uri: str, jwt: str,
                          debugLevel: int = 0, suppressCertWarnings: bool = False, 
                          sslVerification: bool = False, force: bool = False, version: int = 8,
                          isClearingImport: bool = False, isFullImport: bool = False, isInitialImport: bool = False,
                          ):
 
-        def _check_input_parameters(mgmId):
-            if mgmId is None:
-                raise ValueError("parameter mgm_id is mandatory")
-
         logger = getFwoLogger()
-        _check_input_parameters(mgmId)
+        if mgmId is None:
+            raise ValueError("parameter mgm_id is mandatory")
 
         fwoConfig = FworchConfigController.fromJson(readConfig(fwo_config_filename))
 
         api_conn = FwoApi(ApiUri=fwoConfig.FwoApiUri, Jwt=jwt)
         api_call = FwoApiCall(api_conn)
         # set global https connection values
-        fwo_globals.set_global_values (suppress_cert_warnings_in=suppressCertWarnings, verify_certs_in=sslVerification, debug_level_in=debugLevel)
+        fwo_globals.set_global_values(suppress_cert_warnings_in=suppressCertWarnings, verify_certs_in=sslVerification, debug_level_in=debugLevel)
         if fwo_globals.suppress_cert_warnings:
             urllib3.disable_warnings()  # suppress ssl warnings only    
 
         try: # get mgm_details (fw-type, port, ip, user credentials):
             mgm_controller = ManagementController(
-                mgm_id=int(mgmId), uid='', devices={},
+                mgm_id=int(mgmId), uid='', devices={}, #type: ignore # TODO: why int cast here?
                 device_info=DeviceInfo(),
                 connection_info=ConnectionInfo(),
                 importer_hostname='',
@@ -117,12 +114,12 @@ class ImportStateController(ImportState):
                 domain_info=DomainInfo()
             )
             mgmDetails = mgm_controller.get_mgm_details(api_conn, mgmId, debugLevel) 
-        except Exception as e:
+        except Exception as _:
             logger.error(f"import_management - error while getting fw management details for mgm={str(mgmId)}: {str(traceback.format_exc())}")
             raise
 
         try: # get last import data
-            last_import_id, last_import_date = api_call.get_last_complete_import({"mgmId": int(mgmId)}, debug_level=0)
+            _, last_import_date = api_call.get_last_complete_import({"mgmId": int(mgmId)}, debug_level=0)
         except Exception:
             logger.error("import_management - error while getting last import data for mgm=" + str(mgmId) )
             raise
@@ -145,7 +142,7 @@ class ImportStateController(ImportState):
         result.getPastImportInfos()
         result.setCoreData()
 
-        if type(result) is str:
+        if type(result) is str: # type: ignore # TODO: This should never happen
             logger.error("error while getting import state")
             raise FwoImporterError("error while getting import state")
         
@@ -201,7 +198,7 @@ class ImportStateController(ImportState):
         self.SetRulebaseMap(api_call)
         self.SetRuleMap(api_call)
 
-    def SetActionMap(self, api_call):
+    def SetActionMap(self, api_call: FwoApiCall):
         query = "query getActionMap { stm_action { action_name action_id allowed } }"
         try:
             result = api_call.call(query=query, query_variables={})
@@ -215,7 +212,7 @@ class ImportStateController(ImportState):
             map.update({action['action_name']: action['action_id']})
         self.Actions = map
 
-    def SetTrackMap(self, api_call):
+    def SetTrackMap(self, api_call: FwoApiCall):
         query = "query getTrackMap { stm_track { track_name track_id } }"
         try:
             result = api_call.call(query=query, query_variables={})
@@ -229,7 +226,7 @@ class ImportStateController(ImportState):
             track_map.update({track['track_name']: track['track_id']})
         self.Tracks = track_map
 
-    def SetLinkTypeMap(self, api_call):
+    def SetLinkTypeMap(self, api_call: FwoApiCall):
         query = "query getLinkType { stm_link_type { id name } }"
         try:
             result = api_call.call(query=query, query_variables={})
@@ -243,7 +240,7 @@ class ImportStateController(ImportState):
             link_map.update({track['name']: track['id']})
         self.LinkTypes = link_map
 
-    def SetColorRefMap(self, api_call):
+    def SetColorRefMap(self, api_call: FwoApiCall):
         get_colors_query = FwoApi.get_graphql_code([graphql_query_path + "stmTables/getColors.graphql"])
 
         try:
@@ -276,7 +273,7 @@ class ImportStateController(ImportState):
             self.RulebaseMap = {}
             raise
         
-        m = {}
+        m: dict[str, int] = {}
         for rulebase in result['data']['rulebase']:
             rbid = rulebase['id']
             m.update({rulebase['uid']: rbid})
@@ -297,7 +294,7 @@ class ImportStateController(ImportState):
             self.RuleMap = {}
             raise
         
-        m = {}
+        m: dict[str, int] = {}
         for rule in result['data']['rule']:
             m.update({rule['rule_uid']: rule['rule_id']})
         self.RuleMap = m
@@ -305,7 +302,7 @@ class ImportStateController(ImportState):
     # getting all gateways (not limitited to the current mgm_id) to support super managements
     # creates a dict with key = gateway.uid  and value = gateway.id
     # and also            key = gateway.name and value = gateway.id
-    def SetGatewayMap(self, api_call):
+    def SetGatewayMap(self, api_call: FwoApiCall):
         query = """
             query getGatewayMap {
                 device {
@@ -332,7 +329,7 @@ class ImportStateController(ImportState):
 
     # getting all managements (not limitited to the current mgm_id) to support super managements
     # creates a dict with key = management.uid  and value = management.id
-    def SetManagementMap(self, api_call):
+    def SetManagementMap(self, api_call: FwoApiCall):
         query = """
             query getManagementMap($mgmId: Int!) {
                 management(where: {mgm_id: {_eq: $mgmId}}) {

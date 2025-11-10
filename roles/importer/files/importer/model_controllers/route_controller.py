@@ -1,10 +1,13 @@
+from typing import Any
 from fwo_log import getFwoLogger
 from netaddr import IPAddress, IPNetwork
 
+from roles.importer.files.importer.model_controllers.interface_controller import InterfaceSerializable
+
 
 class Route:
-    def __init__(self, device_id, target_gateway, destination, 
-            static=True, source=None, interface=None, metric=None, distance=None, ip_version=4):
+    def __init__(self, device_id: int, target_gateway: str, destination: str, 
+            static: bool = True, source: str | None = None, interface: str | None = None, metric: int | None = None, distance: int | None = None, ip_version: int = 4):
         self.routing_device = int(device_id)
         if interface is not None:
             self.interface = str(interface)
@@ -41,7 +44,7 @@ class Route:
         return self.ip_version==6 and self.destination == IPNetwork('::/0')
 
 
-    def routeMatches(self, destination, dev_id):
+    def routeMatches(self, destination: str, dev_id: int) -> bool:
         ip_n = IPNetwork(self.destination).cidr
         dest_n = IPNetwork(destination).cidr
         return dev_id == self.routing_device and (ip_n in dest_n or dest_n in ip_n)
@@ -52,7 +55,7 @@ class Route:
 
 
 class RouteSerializable(Route):
-    def __init__(self, routeIn):
+    def __init__(self, routeIn: dict[str, Any] | Route):
         if type(routeIn) is dict:
             self.routing_device = routeIn['routing_device']
             self.interface = routeIn['interface']
@@ -81,7 +84,7 @@ class RouteSerializable(Route):
             self.ip_version = routeIn.ip_version
 
 
-def getRouteDestination(obj):
+def getRouteDestination(obj: Route):
     return obj.destination
 
 
@@ -101,7 +104,7 @@ def getRouteDestination(obj):
 #     return default_route_v4.append(default_route_v6)
 
 
-def get_matching_route_obj(destination_ip, routing_table, dev_id):
+def get_matching_route_obj(destination_ip: str, routing_table: list[Route], dev_id: int) -> Route | None:
 
     logger = getFwoLogger()
 
@@ -118,7 +121,7 @@ def get_matching_route_obj(destination_ip, routing_table, dev_id):
     return None
 
 
-def get_ip_of_interface_obj(interface_name, dev_id, interface_list=[]):
+def get_ip_of_interface_obj(interface_name: str, dev_id: int, interface_list: list[InterfaceSerializable] = []):
     interface_details = next((sub for sub in interface_list if sub.name == interface_name and sub.routing_device==dev_id), None)
 
     if interface_details is not None:

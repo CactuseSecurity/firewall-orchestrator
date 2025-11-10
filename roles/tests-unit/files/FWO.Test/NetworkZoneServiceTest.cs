@@ -4,6 +4,11 @@ using FWO.Data;
 using NetTools;
 using FWO.Basics;
 using System.Net;
+using NSubstitute;
+using FWO.Api.Client;
+using FWO.Api.Client.Queries;
+using FWO.Config.Api;
+using System.Reflection;
 
 namespace FWO.Test
 {
@@ -125,7 +130,7 @@ namespace FWO.Test
         }
 
         [Test]
-        public void CalculateinternalZone_NoDefinedZones_internalZoneIpRangesEqualsConfiguredRanges()
+        public void CalculateUndefinedInternalZone_NoDefinedZones_internalZoneIpRangesEqualsConfiguredRanges()
         {
             // Arrange
 
@@ -186,7 +191,7 @@ namespace FWO.Test
         }
 
         [Test]
-        public void CalculateinternalZone_NoOverlappingDefinedZones_internalZoneIpRangesEqualsConfiguredRanges()
+        public void CalculateUndefinedInternalZone_NoOverlappingDefinedZones_internalZoneIpRangesEqualsConfiguredRanges()
         {
             // Arrange
 
@@ -236,9 +241,9 @@ namespace FWO.Test
 
 
         }
-        
+
         [Test]
-        public void CalculateinternalZone_OverlappingDefinedZones_InternalZoneCalculatedCorrectly()
+        public void CalculateUndefinedInternalZone_OverlappingDefinedZones_InternalZoneCalculatedCorrectly()
         {
             // Arrange
 
@@ -274,7 +279,7 @@ namespace FWO.Test
 
             IPAddressRange[] expectedinternalZone =
             [
-                IpOperations.GetIPAdressRange("172.16.0.0/12"),    
+                IpOperations.GetIPAdressRange("172.16.0.0/12"),
                 IpOperations.GetIPAdressRange("192.168.0.0/16")
             ];
 
@@ -288,9 +293,100 @@ namespace FWO.Test
                 That(internalZone.IPRanges,
                 Is.EqualTo(expectedinternalZone)
                 .Using<IPAddressRange>((a, b) => a.ToString() == b.ToString()));
-
-
         }
+
+        [Test]
+        public async Task UpdateSpecialZones_InternetZoneDummyExists_UpdateDummyToInternetZone()
+        {
+            // Arrange
+
+            ApiConnection? apiConnection = Substitute.For<ApiConnection>();
+            GlobalConfig globalConfig = new GlobalConfig { AutoCalculateInternetZone = true, AutoCalculateUndefinedInternalZone = true };
+
+            List<(string, object)> sentQueries = new();
+
+            ComplianceNetworkZone zoneOne = new ComplianceNetworkZone
+            {
+                Id = 1,
+                IdString = "zone_one",
+                Name = "Zone 1"
+            };
+
+            ComplianceNetworkZone internetZoneDummy = new ComplianceNetworkZone
+            {
+                Id = 4,
+                IdString = "AUTO_CALCULATED_ZONE_INTERNET",
+                Name = "Auto-calculated Internet Zone",
+                AllowedCommunicationDestinations = [zoneOne]
+            };
+
+            List<ComplianceNetworkZone> predefinedZones =
+                [
+                    zoneOne,
+                    new ComplianceNetworkZone
+                    {
+                        Id = 2,
+                        IdString = "zone_two",
+                        Name = "Zone 2"
+                    },
+                    new ComplianceNetworkZone
+                    {
+                        Id = 3,
+                        IdString = "zone_three",
+                        Name = "Zone 3"
+                    },
+                    internetZoneDummy
+                ];
+
+            apiConnection
+                .SendQueryAsync<List<ComplianceNetworkZone>>(
+                    ComplianceQueries.getNetworkZonesForMatrix,
+                    Arg.Any<object>())
+                .Returns(Task.FromResult(predefinedZones));
+
+            apiConnection
+                .When(x => x.SendQueryAsync<dynamic>(Arg.Any<string>(), Arg.Any<object>()))
+                .Do(callInfo =>
+                {
+                    string sentQuery = callInfo.ArgAt<string>(0);
+                    object sentVariables = callInfo.ArgAt<object>(1);
+                    sentQueries.Add((sentQuery, sentVariables));
+                });
+
+            apiConnection
+                .SendQueryAsync<dynamic>(
+                    Arg.Is<string>(q => q == ComplianceQueries.addNetworkZone),
+                    Arg.Any<object>())
+                .Returns(ci =>
+                {
+                    object vars = ci.ArgAt<object>(1);
+                    PropertyInfo nameProp = vars.GetType().GetProperty("name")!;
+                    string nameValue = nameProp.GetValue(vars)!.ToString()!;
+
+                    if (predefinedZones.Any(zone => zone.Name == nameValue))
+                        throw new ArgumentException($"An item with the same key has already been added. Key: {nameValue}");
+
+                    return Task.FromResult((dynamic)new { success = true });
+                });
+
+            // Act
+
+            await NetworkZoneService.UpdateSpecialZones(1, apiConnection!, globalConfig);
+
+            // Assert
+
+            Assert.That(sentQueries.Count == 2);
+
+            (string, object) firstSentQuery = sentQueries.First();
+            Assert.That(firstSentQuery.Item1 == ComplianceQueries.addNetworkZone);
+            Assert.That((bool)GetFromDynamic(firstSentQuery.Item2, "isAutoCalculatedUndefinedInternalZone")!);
+
+            (string, object) secondSentQuery = sentQueries.ElementAt(1);
+            Assert.That(secondSentQuery.Item1 == ComplianceQueries.updateNetworkZone);
+            Assert.That((int)GetFromDynamic(secondSentQuery.Item2, "networkZoneId")! == 4);
+        }
+        
+        private static object? GetFromDynamic(object o, string name) => o.GetType().GetProperty(name)?.GetValue(o);
 
     }
 }

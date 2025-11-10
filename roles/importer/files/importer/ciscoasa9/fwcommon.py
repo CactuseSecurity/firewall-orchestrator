@@ -8,7 +8,7 @@ orchestrate the normalization process.
 
 from pathlib import Path
 from scrapli.driver import GenericDriver
-import time 
+import time
 
 from model_controllers.fwconfigmanagerlist_controller import FwConfigManagerListController
 from model_controllers.import_state_controller import ImportStateController

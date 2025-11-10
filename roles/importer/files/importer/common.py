@@ -42,9 +42,9 @@ from fwo_config import readConfig
 
     expects service_provider to be initialized
 """
-def import_management(mgmId=None, ssl_verification=None, debug_level_in=0, 
-        limit=150, force=False, clearManagementData=False, suppress_cert_warnings_in=None,
-        in_file=None, version=8) -> int:
+def import_management(mgmId: int | None = None, ssl_verification: bool | None = None, debug_level_in: int = 0, 
+        limit: int = 150, force: bool = False, clearManagementData: bool = False, suppress_cert_warnings_in: bool | None = None,
+        in_file: str | None = None, version: int = 8) -> int:
 
     fwo_signalling.registerSignallingHandlers()
     logger = getFwoLogger(debug_level=debug_level_in)
@@ -113,8 +113,9 @@ def import_management(mgmId=None, ssl_verification=None, debug_level_in=0,
         return 1
 
 
-def _import_management(service_provider, importState: ImportStateController, config_importer=None, mgmId=None, ssl_verification=None, debug_level_in=0,
-        limit=150, clearManagementData=False, suppress_cert_warnings_in=None, in_file=None) -> None:
+def _import_management(service_provider: ServiceProvider, importState: ImportStateController, config_importer: FwConfigImport | None = None,
+        mgmId: int | None = None, ssl_verification: bool | None = None, debug_level_in: int =0,
+        limit: int =150, clearManagementData: bool = False, suppress_cert_warnings_in: bool | None = None, in_file: str | None = None) -> None:
 
     config_normalized : FwConfigManagerListController
 
@@ -166,14 +167,14 @@ def _import_management(service_provider, importState: ImportStateController, con
 
 
 
-def handle_unexpected_exception(importState=None, config_importer=None, e=None):
+def handle_unexpected_exception(importState: ImportStateController | None = None, config_importer: FwConfigImport | None = None, e: Exception | None = None):
     if 'importState' in locals() and importState is not None:
         importState.addError("Unexpected exception in import process - aborting " + traceback.format_exc())
         if 'configImporter' in locals() and config_importer is not None:
             rollBackExceptionHandler(importState, configImporter=config_importer, exc=e)
 
 
-def rollBackExceptionHandler(importState, configImporter=None, exc=None, errorText=""):
+def rollBackExceptionHandler(importState: ImportStateController, configImporter: FwConfigImport | None = None, exc: BaseException | None = None, errorText: str = ""):
     logger = getFwoLogger()
     try:
         if fwo_globals.shutdown_requested:
@@ -225,7 +226,7 @@ def import_from_file(importState: ImportStateController, fileName: str = "", gat
     return config_changed_since_last_import, configFromFile
 
 
-def get_config_from_api(importState: ImportStateController, config_in) -> tuple[bool, FwConfigManagerListController]:
+def get_config_from_api(importState: ImportStateController, config_in: FwConfigManagerListController) -> tuple[bool, FwConfigManagerListController]:
     logger = getFwoLogger(debug_level=importState.DebugLevel)
 
     try: # pick product-specific importer:
@@ -238,8 +239,7 @@ def get_config_from_api(importState: ImportStateController, config_in) -> tuple[
         raise
 
     # check for changes from product-specific FW API, if we are importing from file we assume config changes
-    config_changed_since_last_import = importState.ImportFileName is not None or \
-        fw_module.has_config_changed(config_in, importState, force=importState.ForceImport)
+    config_changed_since_last_import = fw_module.has_config_changed(config_in, importState, force=importState.ForceImport)
     if config_changed_since_last_import:
         logger.info ( "has_config_changed: changes found or forced mode -> go ahead with getting config, Force = " + str(importState.ForceImport))
     else:
@@ -251,6 +251,9 @@ def get_config_from_api(importState: ImportStateController, config_in) -> tuple[
     else:
         native_config = FwConfigManagerListController.generate_empty_config(importState.MgmDetails.IsSuperManager)
 
+    if config_in.native_config is None:
+        raise FwoImporterError("import_management: get_config returned no config")
+    
     write_native_config_to_file(importState, config_in.native_config)
 
     logger.debug("import_management: get_config completed (including normalization), duration: " 
@@ -277,7 +280,7 @@ def get_module_package_name(import_state: ImportStateController):
 
 def set_filename(import_state: ImportStateController, file_name: str = ''):
     # set file name in importState
-    if file_name == '' or file_name is None: 
+    if file_name == '': 
         # if the host name is an URI, do not connect to an API but simply read the config from this URI
         if stringIsUri(import_state.MgmDetails.Hostname):
             import_state.setImportFileName(import_state.MgmDetails.Hostname)

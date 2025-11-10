@@ -11,12 +11,12 @@ from fwo_log import getFwoLogger
 from fwo_api import FwoApi
 from fwo_exceptions import FwoApiFailedLockImport
 from query_analyzer import QueryAnalyzer
-from model_controllers.import_statistics_controller import ImportStatisticsController
 from model_controllers.management_controller import ManagementController
-from roles.importer.files.importer.models.fwconfig_normalized import FwConfigNormalized
+from models.fwconfig_normalized import FwConfigNormalized
 
 if TYPE_CHECKING:
     from model_controllers.import_state_controller import ImportStateController
+    from model_controllers.import_statistics_controller import ImportStatisticsController
 
 # NOTE: we cannot import ImportState(Controller) here due to circular refs
 
@@ -136,7 +136,7 @@ class FwoApiCall(FwoApi):
         return changes_in_import
 
 
-    def unlock_import(self, import_id: int, mgm_id: int, import_stats: ImportStatisticsController) -> int:
+    def unlock_import(self, import_id: int, mgm_id: int, import_stats: 'ImportStatisticsController') -> int:
         logger = getFwoLogger()
         error_during_import_unlock = 0
         query_variables: dict[str, Any] = {"stopTime": datetime.datetime.now().isoformat(), "importId": import_id,
@@ -157,7 +157,7 @@ class FwoApiCall(FwoApi):
 
 
     #   currently temporarily only working with single chunk
-    def import_json_config(self, importState: ImportStateController, config: FwConfigNormalized, startImport: bool = True):
+    def import_json_config(self, importState: 'ImportStateController', config: FwConfigNormalized, startImport: bool = True):
         logger = getFwoLogger(debug_level=importState.DebugLevel)
         import_mutation = FwoApi.get_graphql_code([fwo_const.graphql_query_path + "import/addImportConfig.graphql"])
 
@@ -188,7 +188,7 @@ class FwoApiCall(FwoApi):
             return 1
 
 
-    def delete_json_config_in_import_table(self, importState: ImportStateController, query_variables: dict[str, Any]) -> int:
+    def delete_json_config_in_import_table(self, importState: 'ImportStateController', query_variables: dict[str, Any]) -> int:
         logger = getFwoLogger(debug_level=importState.DebugLevel)
         delete_mutation = FwoApi.get_graphql_code([fwo_const.graphql_query_path + "import/deleteImportConfig.graphql"])
         try:
@@ -200,7 +200,7 @@ class FwoApiCall(FwoApi):
         return changes_in_delete_config
 
 
-    def get_error_string_from_imp_control(self, _: ImportStateController, query_variables: dict[str, Any]) -> list[dict[str, Any]]: # TODO: confirm return type
+    def get_error_string_from_imp_control(self, _: 'ImportStateController', query_variables: dict[str, Any]) -> list[dict[str, Any]]: # TODO: confirm return type
         error_query = "query getErrors($importId:bigint) { import_control(where:{control_id:{_eq:$importId}}) { import_errors } }"
         return self.call(error_query, query_variables=query_variables)['data']['import_control']
 
@@ -297,7 +297,7 @@ class FwoApiCall(FwoApi):
             query_variables.update({"alertCode": alertCode})
 
 
-    def complete_import(self, importState: "ImportStateController"):
+    def complete_import(self, importState: 'ImportStateController'):
         logger = getFwoLogger(debug_level=importState.DebugLevel)
         
         if fwo_globals.shutdown_requested:

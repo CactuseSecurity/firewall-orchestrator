@@ -3,10 +3,9 @@ from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from models.fwconfig_normalized import FwConfigNormalized
-
+    from model_controllers.import_state_controller import ImportStateController
 import fwo_const
 from fwo_log import getFwoLogger
-from model_controllers.import_state_controller import ImportStateController
 from services.service_provider import ServiceProvider
 from services.enums import Services
 
@@ -19,7 +18,7 @@ class GroupFlatsMapper:
     This class is responsible for mapping group objects to their fully resolved members.
     """
 
-    import_state: ImportStateController
+    import_state: 'ImportStateController'
     normalized_config: FwConfigNormalized|None = None
     global_normalized_config: FwConfigNormalized|None = None
 

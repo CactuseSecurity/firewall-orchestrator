@@ -1,6 +1,6 @@
-from typing import Any
+from typing import Any, Optional
 from fwo_const import rule_num_numeric_steps
-from models.fwconfig_normalized import FwConfigNormalized
+
 from models.rule import RuleNormalized
 from models.rulebase import Rulebase
 from services.global_state import GlobalState
@@ -10,6 +10,10 @@ from fwo_log import getFwoLogger
 from services.service_provider import ServiceProvider
 from services.enums import Services
 
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from models.fwconfig_normalized import FwConfigNormalized
+
 class RuleOrderService:
     """
         A singleton service that holds data and provides logic to compute rule order values.
@@ -17,8 +21,8 @@ class RuleOrderService:
 
     _service_provider: ServiceProvider
     _global_state: GlobalState
-    _normalized_config: FwConfigNormalized | None
-    _previous_config: FwConfigNormalized | None
+    _normalized_config: Optional['FwConfigNormalized']
+    _previous_config: Optional['FwConfigNormalized']
 
     _target_rule_uids: list[str]
     _target_rules_flat: list[RuleNormalized]
@@ -272,7 +276,7 @@ class RuleOrderService:
         
         rule.rule_num_numeric =  (prev_rule_num_numeric + next_rule_num_numeric) / 2
 
-    def _parse_rule_uids_and_objects_from_config(self, config: FwConfigNormalized) -> tuple[list[str], list[RuleNormalized]]:
+    def _parse_rule_uids_and_objects_from_config(self, config: 'FwConfigNormalized') -> tuple[list[str], list[RuleNormalized]]:
         uids_and_rules = [
             (rule_uid, rule)
             for rulebase in config.rulebases

@@ -1,7 +1,8 @@
 from logging import Logger
-from typing import Any
+from typing import TYPE_CHECKING, Any
 from fwo_log import getFwoLogger
-from model_controllers.import_state_controller import ImportStateController
+if TYPE_CHECKING:
+    from model_controllers.import_state_controller import ImportStateController
 from fwo_exceptions import FwoImporterError
 from services.service_provider import ServiceProvider
 from services.enums import Services
@@ -50,7 +51,7 @@ class Uid2IdMapper:
     This class is used to maintain a mapping between UID and relevant ID in the database.
     """
 
-    import_state: ImportStateController
+    import_state: 'ImportStateController'
     logger: Logger
 
     nwobj_uid2id: Uid2IdMap

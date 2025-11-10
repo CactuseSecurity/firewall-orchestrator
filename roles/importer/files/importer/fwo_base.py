@@ -3,7 +3,7 @@ import json
 from copy import deepcopy
 import re
 from enum import Enum
-from typing import Any, List, get_type_hints
+from typing import TYPE_CHECKING, Any, List, get_type_hints
 import ipaddress
 import traceback
 import time
@@ -16,7 +16,8 @@ from fwo_const import csv_delimiter, apostrophe, line_delimiter
 from fwo_enums import ConfFormat, ConfigAction
 from fwo_log import getFwoLogger, getFwoAlertLogger
 from model_controllers.fwconfig_import_ruleorder import RuleOrderService
-from model_controllers.import_state_controller import ImportStateController
+if TYPE_CHECKING:
+    from model_controllers.import_state_controller import ImportStateController
 from services.service_provider import ServiceProvider
 from services.global_state import GlobalState
 from services.enums import Services, Lifetime
@@ -397,7 +398,7 @@ def compute_min_moves(source: list[Any], target: list[Any]) -> dict[str, Any]:
     }
 
 
-def write_native_config_to_file(importState: ImportStateController, configNative: dict[str, Any] | None) -> None:
+def write_native_config_to_file(importState: 'ImportStateController', configNative: dict[str, Any] | None) -> None:
     from fwo_const import import_tmp_path
     if importState.DebugLevel>6:
         logger = getFwoLogger(debug_level=importState.DebugLevel)

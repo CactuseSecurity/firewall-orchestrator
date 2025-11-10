@@ -91,33 +91,25 @@
     {
         if(!sourceZone.IsAutoCalculatedUndefinedInternalZone && !destinationZone.IsAutoCalculatedUndefinedInternalZone)
         {
-            // Return to make auto-calculated undefined-internal zone readonly
-            
-            return;
-        }
-
-        if (EditMode)
-        {
-            if (AddCommunication.Contains((sourceZone, destinationZone)))
+            if (EditMode)
             {
-                AddCommunication.Remove((sourceZone, destinationZone));
+                if (AddCommunication.Contains((sourceZone, destinationZone)))
+                {
+                    AddCommunication.Remove((sourceZone, destinationZone));
+                }
+                else if (DeleteCommunication.Contains((sourceZone, destinationZone)))
+                {
+                    DeleteCommunication.Remove((sourceZone, destinationZone));
+                }
+                else if (sourceZone.CommunicationAllowedTo(destinationZone))
+                {
+                    DeleteCommunication.Add((sourceZone, destinationZone));
+                }
+                else
+                {
+                    AddCommunication.Add((sourceZone, destinationZone));
+                }
             }
-            else if (DeleteCommunication.Contains((sourceZone, destinationZone)))
-            {
-                DeleteCommunication.Remove((sourceZone, destinationZone));
-            }
-            else if (sourceZone.CommunicationAllowedTo(destinationZone))
-            {
-                DeleteCommunication.Add((sourceZone, destinationZone));
-            }
-            else
-            {
-                AddCommunication.Add((sourceZone, destinationZone));
-            }
-        }
-        else
-        {
-            // Jump to communication
         }
     }
 

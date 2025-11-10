@@ -146,7 +146,7 @@ namespace FWO.Test
         }
 
 
-        //Mittlere Komplexität
+        
         [Test]
         public void Test_CreateRulebaseReport_CreatesExpectedNumberOfRules()
         {
@@ -230,7 +230,7 @@ namespace FWO.Test
         }
 
 
-        //Vielleicht schon Integration
+        
         [Test]
         public void Test_TryBuildRuleTree_FallbackWithoutRuleTreeBuilder()
         {

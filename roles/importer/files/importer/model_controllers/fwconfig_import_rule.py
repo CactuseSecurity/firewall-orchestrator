@@ -193,7 +193,7 @@ class FwConfigImportRule():
             raise FwoImporterError("cannot collect hit information: normalized_config is None")
         
         for current_rulebase in self.normalized_config.rulebases:
-            previous_rulebase = prev_config.get_rulebase(current_rulebase.uid)
+            previous_rulebase = prev_config.get_rulebase_or_none(current_rulebase.uid)
 
             for rule_uid in current_rulebase.rules:
                 current_rule = current_rulebase.rules[rule_uid]

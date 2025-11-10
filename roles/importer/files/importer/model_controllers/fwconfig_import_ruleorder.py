@@ -2,11 +2,11 @@ from typing import Any
 from fwo_const import rule_num_numeric_steps
 from models.fwconfig_normalized import FwConfigNormalized
 from models.rule import RuleNormalized
+from models.rulebase import Rulebase
+from services.global_state import GlobalState
 from fwo_exceptions import FwoApiFailure
 from fwo_log import getFwoLogger
 
-from roles.importer.files.importer.models.rulebase import Rulebase
-from services.global_state import GlobalState
 from services.service_provider import ServiceProvider
 from services.enums import Services
 
@@ -272,14 +272,18 @@ class RuleOrderService:
         
         rule.rule_num_numeric =  (prev_rule_num_numeric + next_rule_num_numeric) / 2
 
-    def _parse_rule_uids_and_objects_from_config(self, config: FwConfigNormalized) -> map[list[Any]] | tuple[list[str], list[RuleNormalized]]:
+    def _parse_rule_uids_and_objects_from_config(self, config: FwConfigNormalized) -> tuple[list[str], list[RuleNormalized]]:
         uids_and_rules = [
             (rule_uid, rule)
             for rulebase in config.rulebases
             for rule_uid, rule in rulebase.rules.items()
         ]
 
-        return map(list, zip(*uids_and_rules)) if uids_and_rules else ([], [])
+        if not uids_and_rules:
+            return ([], [])
+        
+        uids, rules = zip(*uids_and_rules)
+        return (list(uids), list(rules))
 
 
 

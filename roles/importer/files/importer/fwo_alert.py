@@ -2,7 +2,7 @@ import fwo_api_call as fwo_api_call
 import json
 import fwo_const
 import fwo_log
-
+# TODO delete this file 
 def getFwoAlerter() -> dict[str, str]:
     logger = fwo_log.getFwoLogger()
     try: 
@@ -21,7 +21,7 @@ def getFwoAlerter() -> dict[str, str]:
         logger.error("getFwoAlerter - error while reading importer pwd file")
         raise
 
-    jwt = fwo_api_call.login(fwo_const.importer_user_name, importer_pwd, user_management_api_base_url)
+    jwt = fwo_api_call.login(fwo_const.importer_user_name, importer_pwd, user_management_api_base_url) # type: ignore
 
     return { "fwo_api_base_url": fwo_api_base_url, "jwt": jwt }
 

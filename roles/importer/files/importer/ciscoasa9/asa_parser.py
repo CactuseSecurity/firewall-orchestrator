@@ -1,26 +1,26 @@
 import json
 import re
 from pathlib import Path
-from typing import List, Optional
+from typing import Callable, List, Optional, Tuple
 from ciscoasa9.asa_models import AccessGroupBinding, AccessList, AccessListEntry, AsaEnablePassword,\
     AsaNetworkObject, AsaNetworkObjectGroup, AsaProtocolGroup, AsaServiceModule, AsaServiceObject, AsaServiceObjectGroup,\
-    ClassMap, Config, DnsInspectParameters, EndpointKind, InspectionAction, Interface, MgmtAccessRule,\
-    Names, NatRule, PolicyClass, PolicyMap, Route, ServicePolicyBinding
-from ciscoasa9.asa_parser_functions import _clean_lines, _consume_block, _parse_class_map_block, \
-    _parse_dns_inspect_policy_map_block, _parse_icmp_object_group_block, _parse_interface_block, _parse_network_object_block, \
-    _parse_network_object_group_block, _parse_policy_map_block, _parse_service_object_block, \
-    _parse_service_object_group_block, _parse_endpoint, _parse_protocol_object_group_block, \
-    _parse_access_list_entry
+    ClassMap, Config, Interface, MgmtAccessRule,\
+    Names, NatRule, PolicyMap, Route, ServicePolicyBinding
+from ciscoasa9.asa_parser_functions import clean_lines, consume_block, parse_class_map_block, \
+    parse_dns_inspect_policy_map_block, parse_icmp_object_group_block, parse_interface_block, parse_network_object_block, \
+    parse_network_object_group_block, parse_policy_map_block, parse_service_object_block, \
+    parse_service_object_group_block, parse_protocol_object_group_block, \
+    parse_access_list_entry
 
 
 def parse_asa_config(raw_config: str) -> Config:
-    lines = _clean_lines(raw_config)
+    lines = clean_lines(raw_config)
     
     # Initialize state
     state = _ParserState()
     
     # Handler registry: (pattern, handler_function)
-    handlers = [
+    handlers: List[Tuple[re.Pattern[str], Callable[[re.Match[str], str, List[str], int, _ParserState], int]]] = [
         (re.compile(r"^ASA Version\s+(\S+)$", re.I), _handle_asa_version),
         (re.compile(r"^hostname\s+(\S+)$", re.I), _handle_hostname),
         (re.compile(r"^enable password\s+(\S+)\s+(\S+)$", re.I), _handle_enable_password),
@@ -91,22 +91,22 @@ class _ParserState:
         self.protocol_groups: List[AsaProtocolGroup] = []
 
 
-def _handle_asa_version(match, line, lines, i, state):
+def _handle_asa_version(match: re.Match[str], line: str, lines: List[str], i: int, state: _ParserState) -> int:
     state.asa_version = match.group(1).strip()
     return i + 1
 
 
-def _handle_hostname(match, line, lines, i, state):
+def _handle_hostname(match: re.Match[str], line: str, lines: List[str], i: int, state: _ParserState) -> int:
     state.hostname = match.group(1)
     return i + 1
 
 
-def _handle_enable_password(match, line, lines, i, state):
+def _handle_enable_password(match: re.Match[str], line: str, lines: List[str], i: int, state: _ParserState) -> int:
     state.enable_password = AsaEnablePassword(password=match.group(1), encryption_function=match.group(2))
     return i + 1
 
 
-def _handle_service_module_timeout(match, line, lines, i, state):
+def _handle_service_module_timeout(match: re.Match[str], line: str, lines: List[str], i: int, state: _ParserState) -> int:
     name = match.group(1)
     timeout = int(match.group(2))
     keepalive_counter = _find_keepalive_counter(lines, i, name)
@@ -114,7 +114,7 @@ def _handle_service_module_timeout(match, line, lines, i, state):
     return i + 1
 
 
-def _find_keepalive_counter(lines, i, name):
+def _find_keepalive_counter(lines: List[str], i: int, name: str) -> int:
     for j in range(i + 1, min(i + 5, len(lines))):
         m = re.match(rf"^service-module\s+{re.escape(name)}\s+keepalive-counter\s+(\d+)$", lines[j].strip(), re.I)
         if m:
@@ -122,26 +122,26 @@ def _find_keepalive_counter(lines, i, name):
     return 0
 
 
-def _handle_service_module_counter(match, line, lines, i, state):
+def _handle_service_module_counter(match: re.Match[str], line: str, lines: List[str], i: int, state: _ParserState) -> int:
     return i + 1
 
 
-def _handle_name(match, line, lines, i, state):
+def _handle_name(match: re.Match[str], line: str, lines: List[str], i: int, state: _ParserState) -> int:
     ip, alias = match.group(1), match.group(2)
     desc = line[match.end():].strip() or None
     state.names.append(Names(name=alias, ip_address=ip, description=desc))
     return i + 1
 
 
-def _handle_interface_block(match, line, lines, i, state):
-    block, new_i = _consume_block(lines, i)
-    state.interfaces.append(_parse_interface_block(block))
+def _handle_interface_block(match: re.Match[str], line: str, lines: List[str], i: int, state: _ParserState) -> int:
+    block, new_i = consume_block(lines, i)
+    state.interfaces.append(parse_interface_block(block))
     return new_i
 
 
-def _handle_network_object_block(match, line, lines, i, state):
-    block, new_i = _consume_block(lines, i)
-    net_obj, pending_nat = _parse_network_object_block(block)
+def _handle_network_object_block(match: re.Match[str], line: str, lines: List[str], i: int, state: _ParserState) -> int:
+    block, new_i = consume_block(lines, i)
+    net_obj, pending_nat = parse_network_object_block(block)
     if net_obj:
         state.net_objects.append(net_obj)
     if pending_nat:
@@ -149,48 +149,48 @@ def _handle_network_object_block(match, line, lines, i, state):
     return new_i
 
 
-def _handle_network_object_group_block(match, line, lines, i, state):
-    block, new_i = _consume_block(lines, i)
-    state.net_obj_groups.append(_parse_network_object_group_block(block))
+def _handle_network_object_group_block(match: re.Match[str], line: str, lines: List[str], i: int, state: _ParserState) -> int:
+    block, new_i = consume_block(lines, i)
+    state.net_obj_groups.append(parse_network_object_group_block(block))
     return new_i
 
 
-def _handle_service_object_block(match, line, lines, i, state):
-    block, new_i = _consume_block(lines, i)
-    svc_obj = _parse_service_object_block(block)
+def _handle_service_object_block(match: re.Match[str], line: str, lines: List[str], i: int, state: _ParserState) -> int:
+    block, new_i = consume_block(lines, i)
+    svc_obj = parse_service_object_block(block)
     if svc_obj:
         state.svc_objects.append(svc_obj)
     return new_i
 
 
-def _handle_service_object_group(match, line, lines, i, state):
-    block, new_i = _consume_block(lines, i)
-    state.svc_obj_groups.append(_parse_service_object_group_block(block))
+def _handle_service_object_group(match: re.Match[str], line: str, lines: List[str], i: int, state: _ParserState) -> int:
+    block, new_i = consume_block(lines, i)
+    state.svc_obj_groups.append(parse_service_object_group_block(block))
     return new_i
 
 
-def _handle_icmp_object_group_block(match, line, lines, i, state):
-    block, new_i = _consume_block(lines, i)
-    state.svc_obj_groups.append(_parse_icmp_object_group_block(block))
+def _handle_icmp_object_group_block(match: re.Match[str], line: str, lines: List[str], i: int, state: _ParserState) -> int:
+    block, new_i = consume_block(lines, i)
+    state.svc_obj_groups.append(parse_icmp_object_group_block(block))
     return new_i
 
 
-def _handle_protocol_object_group_block(match, line, lines, i, state):
-    block, new_i = _consume_block(lines, i)
-    state.protocol_groups.append(_parse_protocol_object_group_block(block))
+def _handle_protocol_object_group_block(match: re.Match[str], line: str, lines: List[str], i: int, state: _ParserState) -> int:
+    block, new_i = consume_block(lines, i)
+    state.protocol_groups.append(parse_protocol_object_group_block(block))
     return new_i
 
 
-def _handle_access_list_entry(match, line, lines, i, state):
+def _handle_access_list_entry(match: re.Match[str], line: str, lines: List[str], i: int, state: _ParserState) -> int:
     try:
-        entry = _parse_access_list_entry(line, state.protocol_groups, state.svc_objects, state.svc_obj_groups)
+        entry = parse_access_list_entry(line, state.protocol_groups, state.svc_objects, state.svc_obj_groups)
         state.access_lists_map.setdefault(entry.acl_name, []).append(entry)
     except Exception as e:
         print(f"Warning: Failed to parse access-list line: {line}. Error: {e}")
     return i + 1
 
 
-def _handle_access_group(match, line, lines, i, state):
+def _handle_access_group(match: re.Match[str], line: str, lines: List[str], i: int, state: _ParserState) -> int:
     direction = match.group(2)
     if direction not in ("in", "out"):
         raise ValueError(f"Invalid direction value: {direction}")
@@ -198,7 +198,7 @@ def _handle_access_group(match, line, lines, i, state):
     return i + 1
 
 
-def _handle_route(match, line, lines, i, state):
+def _handle_route(match: re.Match[str], line: str, lines: List[str], i: int, state: _ParserState) -> int:
     state.routes.append(Route(
         interface=match.group(1),
         destination=match.group(2),
@@ -209,7 +209,7 @@ def _handle_route(match, line, lines, i, state):
     return i + 1
 
 
-def _handle_mgmt_access(match, line, lines, i, state):
+def _handle_mgmt_access(match: re.Match[str], line: str, lines: List[str], i: int, state: _ParserState) -> int:
     protocol_str = match.group(1).lower()
     if protocol_str not in ("http", "ssh", "telnet"):
         raise ValueError(f"Invalid protocol for MgmtAccessRule: {protocol_str}")
@@ -217,29 +217,29 @@ def _handle_mgmt_access(match, line, lines, i, state):
     return i + 1
 
 
-def _handle_class_map_block(match, line, lines, i, state):
-    block, new_i = _consume_block(lines, i)
-    state.class_maps.append(_parse_class_map_block(block))
+def _handle_class_map_block(match: re.Match[str], line: str, lines: List[str], i: int, state: _ParserState) -> int:
+    block, new_i = consume_block(lines, i)
+    state.class_maps.append(parse_class_map_block(block))
     return new_i
 
 
-def _handle_dns_inspect_policy_map_block(match, line, lines, i, state):
-    block, new_i = _consume_block(lines, i)
+def _handle_dns_inspect_policy_map_block(match: re.Match[str], line: str, lines: List[str], i: int, state: _ParserState) -> int:
+    block, new_i = consume_block(lines, i)
     pm_name = match.group(1)
-    pm = _parse_dns_inspect_policy_map_block(block, pm_name)
+    pm = parse_dns_inspect_policy_map_block(block, pm_name)
     state.policy_maps[pm_name] = pm
     return new_i
 
 
-def _handle_policy_map_block(match, line, lines, i, state):
-    block, new_i = _consume_block(lines, i)
+def _handle_policy_map_block(match: re.Match[str], line: str, lines: List[str], i: int, state: _ParserState) -> int:
+    block, new_i = consume_block(lines, i)
     pm_name = match.group(1)
-    pm = _parse_policy_map_block(block, pm_name)
+    pm = parse_policy_map_block(block, pm_name)
     state.policy_maps[pm_name] = pm
     return new_i
 
 
-def _handle_service_policy(match, line, lines, i, state):
+def _handle_service_policy(match: re.Match[str], line: str, lines: List[str], i: int, state: _ParserState) -> int:
     pm_name = match.group(1)
     scope_part = match.group(2).lower()
     if scope_part == "global":
@@ -250,7 +250,7 @@ def _handle_service_policy(match, line, lines, i, state):
     return i + 1
 
 
-def _handle_additional_settings(line, state):
+def _handle_additional_settings(line: str, state: _ParserState) -> None:
     interesting_prefixes = (
         "ftp mode", "same-security-traffic", "dynamic-access-policy-record",
         "service-policy", "user-identity", "aaa ", "icmp ", "arp ", "ssh version",

@@ -5,12 +5,18 @@ orchestrating the conversion from native ASA format to the normalized
 format used by the firewall orchestrator.
 """
 
+from logging import Logger
 from fwo_log import getFwoLogger
 from models.fwconfig_normalized import FwConfigNormalized
 from ciscoasa9.asa_models import Config
 from fwo_enums import ConfigAction
 from models.gateway import Gateway
 from models.rulebase_link import RulebaseLinkUidBased
+from ciscoasa9.asa_rule import build_rulebases_from_access_lists
+from models.networkobject import NetworkObject
+from models.serviceobject import ServiceObject
+from model_controllers.fwconfigmanagerlist_controller import FwConfigManagerListController
+from model_controllers.import_state_controller import ImportStateController
 
 # Import the new modular functions
 from ciscoasa9.asa_network import (
@@ -23,10 +29,12 @@ from ciscoasa9.asa_service import (
     create_protocol_any_service_objects,
     normalize_service_object_groups
 )
-from ciscoasa9.asa_rule import build_rulebases_from_access_lists
 
 
-def normalize_all_network_objects(native_config: Config, logger) -> dict:
+
+
+
+def normalize_all_network_objects(native_config: Config, logger: Logger) -> dict[str, NetworkObject]:
     """
     Normalize all network objects from the native ASA configuration.
 
@@ -54,7 +62,7 @@ def normalize_all_network_objects(native_config: Config, logger) -> dict:
     return network_objects
 
 
-def normalize_all_service_objects(native_config: Config) -> dict:
+def normalize_all_service_objects(native_config: Config) -> dict[str, ServiceObject]:
     """
     Normalize all service objects from the native ASA configuration.
 
@@ -81,7 +89,7 @@ def normalize_all_service_objects(native_config: Config) -> dict:
     return service_objects
 
 
-def normalize_config(config_in, import_state):
+def normalize_config(config_in: FwConfigManagerListController, import_state: ImportStateController) -> FwConfigManagerListController:
     """
     Normalize the ASA configuration into a structured format for the database.
 
@@ -125,7 +133,7 @@ def normalize_config(config_in, import_state):
     )
 
     # Step 4: Create rulebase links (ordered chain of rulebases)
-    rulebase_links = []
+    rulebase_links: list[RulebaseLinkUidBased] = []
     if len(rulebases) > 0:
         # First rulebase is the initial entry point
         rulebase_links.append(RulebaseLinkUidBased(

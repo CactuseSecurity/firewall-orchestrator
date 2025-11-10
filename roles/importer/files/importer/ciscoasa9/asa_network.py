@@ -6,6 +6,7 @@ It manages both explicit network objects/groups and implicit network objects cre
 inline ACL or group definitions.
 """
 
+from logging import Logger
 from typing import Dict, List, Optional
 from netaddr import IPAddress, IPNetwork
 from ciscoasa9.asa_models import AsaNetworkObject, AsaNetworkObjectGroup, AsaNetworkObjectGroupMember, EndpointKind, Names
@@ -150,7 +151,7 @@ def normalize_names(names: List[Names]) -> Dict[str, NetworkObject]:
     Returns:
         Dictionary of normalized network objects keyed by obj_uid
     """
-    network_objects = {}
+    network_objects: dict[str, NetworkObject] = {}
 
     for name in names:
         obj = create_network_host(name.name, name.ip_address, name.description, ip_version=4)
@@ -168,7 +169,7 @@ def normalize_network_objects(network_objects_list: List[AsaNetworkObject]) -> D
     Returns:
         Dictionary of normalized network objects keyed by obj_uid
     """
-    network_objects = {}
+    network_objects: dict[str, NetworkObject] = {}
 
     for obj in network_objects_list:
         if obj.fqdn is not None:
@@ -191,8 +192,8 @@ def normalize_network_objects(network_objects_list: List[AsaNetworkObject]) -> D
 
 
 def normalize_network_object_groups(object_groups: List[AsaNetworkObjectGroup], 
-                                   network_objects: Dict[str, NetworkObject], 
-                                   logger) -> Dict[str, NetworkObject]:
+                                   network_objects: dict[str, NetworkObject], 
+                                   logger: Logger) -> dict[str, NetworkObject]:
     """Normalize network object groups from ASA configuration.
 
     Args:
@@ -204,7 +205,7 @@ def normalize_network_object_groups(object_groups: List[AsaNetworkObjectGroup],
         Updated network objects dictionary including groups
     """
     for group in object_groups:
-        member_refs = []
+        member_refs: list[str] = []
 
         for member in group.objects:
             try:
@@ -223,7 +224,7 @@ def normalize_network_object_groups(object_groups: List[AsaNetworkObjectGroup],
     return network_objects
 
 
-def _get_network_group_member_host(member: AsaNetworkObjectGroupMember) -> NetworkObject:
+def get_network_group_member_host(member: AsaNetworkObjectGroupMember) -> NetworkObject:
     """Create a host network object for a network object group member.
 
     Args:

@@ -248,7 +248,7 @@ class FwConfigImportObject():
         this_managements_id = self.import_state.lookupManagementId(single_manager.ManagerUid)
         if this_managements_id is None:
             raise FwoImporterError(f"failed to update objects in updateObjectsViaApi: no management id found for manager uid '{single_manager.ManagerUid}'")
-        import_mutation = FwoApi.get_graphql_code([fwo_const.graphql_query_path + "allObjects/upsertObjects.graphql"])
+        import_mutation = FwoApi.get_graphql_code(file_list=[fwo_const.graphql_query_path + "allObjects/upsertObjects.graphql"])
         query_variables: dict[str, Any] = {
             'mgmId': this_managements_id,
             'importId': self.import_state.ImportId,

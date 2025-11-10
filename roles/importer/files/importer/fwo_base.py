@@ -397,7 +397,7 @@ def compute_min_moves(source: list[Any], target: list[Any]) -> dict[str, Any]:
     }
 
 
-def write_native_config_to_file(importState: ImportStateController, configNative: dict[str, Any]) -> None:
+def write_native_config_to_file(importState: ImportStateController, configNative: dict[str, Any] | None) -> None:
     from fwo_const import import_tmp_path
     if importState.DebugLevel>6:
         logger = getFwoLogger(debug_level=importState.DebugLevel)

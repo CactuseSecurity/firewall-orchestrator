@@ -43,7 +43,7 @@
                                 bool allowedInEdit = AddCommunication.Contains((sourceZone, destinationZone));
                                 bool disallowedInEdit = DeleteCommunication.Contains((sourceZone, destinationZone));
 
-                                <td @onclick="() => ExecuteCommunicationAction(sourceZone, destinationZone)"
+                                <td id="@GetMatrixElementId(sourceZone, destinationZone)" @onclick="() => ExecuteCommunicationAction(sourceZone, destinationZone)"
                                     class="communication-cell @(!readonlyZone && allowedInEdit ? "allowed-in-edit" : "")
                                     @(!readonlyZone && disallowedInEdit ? "disallowed-in-edit" : "")
                                     @(!readonlyZone && allowed && !allowedInEdit && !disallowedInEdit ? "allowed" : "disallowed")
@@ -73,6 +73,13 @@
 
 	[Parameter]
     public EventCallback<List<(ComplianceNetworkZone, ComplianceNetworkZone)>> DeleteCommunicationChanged { get; set; }
+
+    
+    #if DEBUG // Access to private members for component tests.
+
+        public NetworkZoneService NetworkZoneService => networkZoneService;
+
+    #endif
 
 	
     private void ExecuteZoneAction(ComplianceNetworkZone zone)
@@ -154,8 +161,11 @@
             }
         }
 
-
-
         return complianceNetworkZones;
+    }
+
+    private string GetMatrixElementId(ComplianceNetworkZone sourceZone, ComplianceNetworkZone destinationZone)
+    {
+        return $"matrix-element-{sourceZone.IdString.Replace(" ", "")}-to-{destinationZone.IdString.Replace(" ", "")}";
     }
 }

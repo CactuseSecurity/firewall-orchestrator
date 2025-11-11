@@ -70,7 +70,7 @@ def logout(url: str, sid: str):
     return response
 
 
-def get_changes(sid: str, api_host: str, api_port: int, fromdate: str) -> int:
+def get_changes(sid: str, api_host: str, api_port: str, fromdate: str) -> int:
     logger = getFwoLogger()
     
     dt_object = datetime.fromisoformat(fromdate)

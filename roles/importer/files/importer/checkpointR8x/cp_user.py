@@ -1,7 +1,8 @@
+from typing import Any
 from fwo_log import getFwoLogger
 import json
 
-def collect_users_from_rule(rule, users): #, objDict):
+def collect_users_from_rule(rule: dict[str, Any], users: dict[str, Any]): #, objDict):
     if 'rule-number' in rule:  # standard rule
         logger = getFwoLogger()
         if 'type' in rule and rule['type'] != 'place-holder':
@@ -45,7 +46,7 @@ def collect_users_from_rule(rule, users): #, objDict):
 
 
 # collect_users writes user info into global users dict
-def collect_users_from_rulebase(rulebase, users):
+def collect_users_from_rulebase(rulebase: dict[str, Any], users: dict[str, Any]) -> None:
     if 'rulebase_chunks' in rulebase:
         for chunk in rulebase['rulebase_chunks']:
             if 'rulebase' in chunk:
@@ -53,24 +54,24 @@ def collect_users_from_rulebase(rulebase, users):
                     collect_users_from_rule(rule, users)
     else:
         for rule in rulebase:
-            collect_users_from_rule(rule, users)
+            collect_users_from_rule(rule, users) # type: ignore #TODO refactor this 
 
 
 # the following is only used within new python-only importer:
-def parse_user_objects_from_rulebase(rulebase, users, import_id):
+def parse_user_objects_from_rulebase(rulebase: dict[str, Any], users: dict[str, Any], import_id: str) -> None:
     collect_users_from_rulebase(rulebase, users)
     for user_name in users.keys():
         # TODO: get user info via API
-        userUid = getUserUidFromCpApi(user_name)
+        _ = getUserUidFromCpApi(user_name)
         # finally add the import id
         users[user_name]['control_id'] = import_id
 
 
-
-def getUserUidFromCpApi (userName):
+def getUserUidFromCpApi (userName: str) -> str:
     # show-object with UID
     # dummy implementation returning the name as uid
     return userName
 
-def normalizeUsersLegacy():
+
+def normalizeUsersLegacy() -> None:
     raise NotImplementedError

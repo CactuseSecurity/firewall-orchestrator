@@ -1699,58 +1699,85 @@ END$$;
 
 
 
--- Update mgm_id in rule_metadata - from rule.rule_uid == rule_metadata.rule_uid
 DO $$
+DECLARE
+    rec RECORD;
+    v_do_not_import_true_count INT;
+    v_do_not_import_false_count INT;
+
 BEGIN
-    -- Check for duplicate rule_uid across multiple mgm_id
+--Check rule_metadata has entries in rule
     IF EXISTS (
         SELECT 1
-		FROM rule_metadata rm
-			JOIN rule r ON rm.rule_uid = r.rule_uid
-			GROUP BY rm.rule_uid
-			HAVING COUNT(DISTINCT r.mgm_id) > 1  --Do not import = false => Dann nehmen wir mit
+        FROM rule_metadata rm
+        LEFT JOIN rule r ON rm.rule_uid = r.rule_uid
+        WHERE r.rule_uid IS NULL
     ) THEN
-	-- Conflict Fall 1:(do not import flag == true)
-	 -- Wenn == Count(1) übernehmen Rule_UID und mgm_id  
-	 -- Wenn >= 2 Exeption und do not import true einer false Ok | beide false Expetion | beide true Expetion
-	
-        RAISE EXCEPTION 'Duplicate rule_uid across multiple managements detected';
+        RAISE EXCEPTION 'Some rule_metadata.rule_uid have no matching rule!';
     ELSE
-        -- Check whether all rule_metadata.rule_uid have a matching entry in rule.
-        IF EXISTS (
-            SELECT 1
-            FROM rule_metadata rm
-            LEFT JOIN rule r ON rm.rule_uid = r.rule_uid
-            WHERE r.rule_uid IS NULL
-        ) THEN
-            RAISE EXCEPTION 'Some rule_metadata.rule_uid have no matching rule!';
-        ELSE
-			ALTER TABLE rule DROP CONSTRAINT IF EXISTS rule_metadatum;
-			ALTER TABLE rule DROP CONSTRAINT IF EXISTS rule_rule_metadata_rule_uid_f_key;	-- blocks drop unique from rule_metadata.rule_uid
-			ALTER TABLE rule_metadata DROP CONSTRAINT IF EXISTS rule_metadata_rule_uid_unique;
-		
-            -- Update mgm_id in rule_medata from rule.mgm_id if rule_metadata. rule_uid == rule.rule_uid
+        -- Constraints droppen
+        ALTER TABLE rule DROP CONSTRAINT IF EXISTS rule_metadatum;
+        ALTER TABLE rule DROP CONSTRAINT IF EXISTS rule_rule_metadata_rule_uid_f_key;
+        ALTER TABLE rule_metadata DROP CONSTRAINT IF EXISTS rule_metadata_rule_uid_unique;
+
+-- Start loop for rule_uid und mgm_id import/transfer
+    FOR rec IN
+        SELECT 
+            rm.rule_uid,
+            COUNT(DISTINCT r.mgm_id) AS mgm_count
+        FROM rule_metadata rm
+        JOIN rule r ON rm.rule_uid = r.rule_uid
+        GROUP BY rm.rule_uid
+        HAVING COUNT(DISTINCT r.mgm_id) >= 1
+    LOOP
+        -- Case 1: exactly one mgm_id gefunden
+        IF rec.mgm_count = 1 THEN
+            --
             UPDATE rule_metadata rm
             SET mgm_id = r.mgm_id
             FROM rule r
             WHERE rm.rule_uid = r.rule_uid
-			AND rm.mgm_id IS NULL;
+              AND rm.mgm_id IS NULL
+              AND rm.rule_uid = rec.rule_uid;
+
+        -- Fall 2: genau zwei mgm_id gefunden
+        ELSIF rec.mgm_count >= 2 THEN
+            -- Count flag "do_not_import" for rule_uid 
+            SELECT 
+			COUNT(*) FILTER (WHERE m.do_not_import IS TRUE),
+			COUNT(*) FILTER (WHERE m.do_not_import IS FALSE)
+			INTO v_do_not_import_true_count, v_do_not_import_false_count
+			FROM rule r
+			JOIN management m ON r.mgm_id = m.mgm_id
+			WHERE r.rule_uid = rec.rule_uid;
+
+
+            -- check if there is just 1 "do_not_import" = false
+				IF v_do_not_import_false_count = 1 THEN
+				UPDATE rule_metadata rm
+					SET mgm_id = r.mgm_id
+					FROM rule r
+					JOIN management m ON r.mgm_id = m.mgm_id
+					WHERE rm.rule_uid = r.rule_uid
+					AND m.do_not_import IS FALSE
+					AND rm.rule_uid = rec.rule_uid
+					AND rm.mgm_id IS NULL;
+            END IF;                   
+        END IF;
+    END LOOP;
+	-- redo constraints
+	        ALTER TABLE rule_metadata ALTER COLUMN mgm_id SET NOT NULL;
+        ALTER TABLE rule_metadata ADD CONSTRAINT rule_metadata_rule_uid_unique UNIQUE(rule_uid);
+        ALTER TABLE rule ADD CONSTRAINT rule_rule_metadata_rule_uid_f_key 
+            FOREIGN KEY (rule_uid) REFERENCES rule_metadata (rule_uid);
 			
-			ALTER TABLE rule_metadata ALTER COLUMN mgm_id SET NOT NULL;
-			ALTER TABLE rule_metadata ADD CONSTRAINT rule_metadata_rule_uid_unique UNIQUE(rule_uid);
-			ALTER TABLE rule ADD CONSTRAINT rule_rule_metadata_rule_uid_f_key 
-			FOREIGN KEY (rule_uid) REFERENCES rule_metadata (rule_uid);
-							
-			-- combination (mgm_id + rule_uid) unique
-
-			IF NOT EXISTS (
-				SELECT 1
-					FROM pg_constraint
-				WHERE conname = 'rule_metadata_mgm_id_rule_uid_unique'
-			) THEN
-				ALTER TABLE rule_metadata ADD CONSTRAINT rule_metadata_mgm_id_rule_uid_unique UNIQUE (mgm_id, rule_uid);			
-			END IF;	
-
+			-- set Unique constraint to (mgm_id + rule_uid)
+        IF NOT EXISTS (
+            SELECT 1
+            FROM pg_constraint
+            WHERE conname = 'rule_metadata_mgm_id_rule_uid_unique'
+        ) THEN
+            ALTER TABLE rule_metadata ADD CONSTRAINT rule_metadata_mgm_id_rule_uid_unique UNIQUE (mgm_id, rule_uid);			
         END IF;
     END IF;
 END$$;

@@ -1,4 +1,6 @@
-﻿namespace FWO.Data
+using FWO.Basics;
+
+namespace FWO.Data
 {
     public class UserGroup
     {
@@ -38,7 +40,7 @@
         public bool Sanitize()
         {
             bool shortened = false;
-            Name = Sanitizer.SanitizeLdapNameMand(Name, ref shortened);
+            Name = Name.SanitizeLdapNameMand(ref shortened);
             return shortened;
         }
     }

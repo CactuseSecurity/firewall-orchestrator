@@ -127,7 +127,7 @@ def initialize_normalized_rulebase(rulebase_to_parse: dict[str, Any], mgm_uid: s
     normalized_rulebase = Rulebase(uid=rulebaseUid, name=rulebaseName, mgm_uid=mgm_uid, rules={})
     return normalized_rulebase
 
-def parse_rulebase(rulebase_to_parse: dict[str, Any], is_section: bool, is_placeholder: bool, normalized_rulebase: Rulebase, gateway: dict[str, Any], policy_structure: dict[str, Any]):
+def parse_rulebase(rulebase_to_parse: dict[str, Any], is_section: bool, is_placeholder: bool, normalized_rulebase: Rulebase, gateway: dict[str, Any], policy_structure: list[dict[str, Any]]):
     logger = getFwoLogger()
 
     if is_section:
@@ -143,7 +143,7 @@ def parse_rulebase(rulebase_to_parse: dict[str, Any], is_section: bool, is_place
     else:
         parse_rulebase_chunk(rulebase_to_parse, normalized_rulebase, gateway, policy_structure)                    
 
-def parse_rulebase_chunk(rulebase_to_parse: dict[str, Any], normalized_rulebase: Rulebase, gateway: dict[str, Any], policy_structure: dict[str, Any]):
+def parse_rulebase_chunk(rulebase_to_parse: dict[str, Any], normalized_rulebase: Rulebase, gateway: dict[str, Any], policy_structure: list[dict[str, Any]]):
     logger = getFwoLogger()
     for chunk in rulebase_to_parse['chunks']:
         for rule in chunk['rulebase']:
@@ -184,11 +184,10 @@ def parseRulePart (objects: dict[str, Any] | list[dict[str, Any] | None] | None,
 
     if objects is None:
         logger.debug(f"rule part {part} is None: {str(objects)}, which is normal for track field in inline layer guards")
-        return None # type: ignore TODO: check if this is ok or should raise an Exception
+        return None # type: ignore #TODO: check if this is ok or should raise an Exception
 
     if 'chunks' in objects:  # for chunks of actions?!
-        addressObjects.update(parseRulePart(objects['chunks'], part=part)) # need to parse chunk first #type: ignore #TODO: check if objects can be none
-        return addressObjects
+        addressObjects.update(parseRulePart(objects['chunks'], part=part)) # need to parse chunk first # type: ignore # TODO: This Has to be refactored
 
     if isinstance(objects, dict):
         return _parse_single_address_object(addressObjects, objects, part)
@@ -197,12 +196,11 @@ def parseRulePart (objects: dict[str, Any] | list[dict[str, Any] | None] | None,
         if obj is None:
             logger.warning(f'found list with a single None obj: {str(objects)}')
             continue
-        if o
         if 'chunks' in obj:
-            addressObjects.update(parseRulePart(obj['chunks'], part=part)) # need to parse chunk first
+            addressObjects.update(parseRulePart(obj['chunks'], part=part)) # need to parse chunk first # type: ignore # TODO: check if this is ok or should raise an Exception
         elif 'objects' in obj:
             for o in obj['objects']:
-                addressObjects.update(parseRulePart(o, part=part)) # need to parse chunk first
+                addressObjects.update(parseRulePart(o, part=part)) # need to parse chunk first # type: ignore # TODO: check if this is ok or should raise an Exception
             return addressObjects
         else:
             if 'type' in obj: # found checkpoint object
@@ -253,7 +251,7 @@ def _parse_obj_with_access_role(obj: dict[str,Any], addressObjects: dict[str,Any
                 addressObjects[obj['uid']] = obj['name'] + '@' + nw_resolved
 
 
-def parse_single_rule(nativeRule: dict[str, Any], rulebase: Rulebase, layer_name: str, parent_uid: str | None, gateway: dict[str, Any], policy_structure: dict[str, Any]):
+def parse_single_rule(nativeRule: dict[str, Any], rulebase: Rulebase, layer_name: str, parent_uid: str | None, gateway: dict[str, Any], policy_structure: list[dict[str, Any]]):
     logger = getFwoLogger()
 
     # reference to domain rule layer, filling up basic fields
@@ -279,7 +277,7 @@ def parse_single_rule(nativeRule: dict[str, Any], rulebase: Rulebase, layer_name
     rule_track = _parse_track(native_rule=nativeRule)
 
     actionObjects = parseRulePart (nativeRule['action'], 'action')
-    if actionObjects is not None:
+    if actionObjects is not None: # type: ignore # TODO: this should be never None
         rule_action = list_delimiter.join(actionObjects.values()) # expecting only a single action
     else:
         rule_action = None
@@ -315,7 +313,7 @@ def parse_single_rule(nativeRule: dict[str, Any], rulebase: Rulebase, layer_name
     else:
         last_hit = None
 
-    rule = {
+    rule: dict[str, Any] = {
         "rule_num":         0,
         "rule_num_numeric": 0,
         "rulebase_name":    sanitize(layer_name),
@@ -349,7 +347,7 @@ def parse_single_rule(nativeRule: dict[str, Any], rulebase: Rulebase, layer_name
     return
 
 
-def _parse_parent_rule_uid(parent_uid: str, native_rule: dict[str,Any]) -> str|None:
+def _parse_parent_rule_uid(parent_uid: str | None, native_rule: dict[str,Any]) -> str | None:
 
     # new in v5.1.17:
     if 'parent_rule_uid' in native_rule:
@@ -369,15 +367,15 @@ def _parse_track(native_rule: dict[str, Any]) -> str:
     if isinstance(native_rule['track'],str):
         rule_track = native_rule['track']
     else:
-        trackObjects = parseRulePart (native_rule['track'], 'track')
-        if trackObjects is None:
+        trackObjects = parseRulePart(native_rule['track'], 'track')
+        if trackObjects is None: # type: ignore # TODO: should never be None
             rule_track = 'none'
         else:
             rule_track = list_delimiter.join(trackObjects.values())
     return rule_track
 
 
-def parse_rule_enforced_on_gateway(gateway, policy_structure, native_rule: dict) -> list[RuleEnforcedOnGatewayNormalized]:
+def parse_rule_enforced_on_gateway(gateway: dict[str, Any], policy_structure: list[dict[str, Any]], native_rule: dict[str, Any]) -> list[RuleEnforcedOnGatewayNormalized]:
     """Parse rule enforcement information from native rule.
     
     Args:
@@ -392,7 +390,7 @@ def parse_rule_enforced_on_gateway(gateway, policy_structure, native_rule: dict)
     if not native_rule:
         raise ValueError('Native rule cannot be empty')
 
-    enforce_entries = []
+    enforce_entries: list[RuleEnforcedOnGatewayNormalized] = []
     all_target_gw_names_dict = parseRulePart(native_rule['install-on'], 'install-on')
 
     for targetUid in all_target_gw_names_dict:
@@ -407,8 +405,8 @@ def parse_rule_enforced_on_gateway(gateway, policy_structure, native_rule: dict)
             enforce_entries.append(enforceEntry)
     return enforce_entries
 
-def find_devices_for_current_policy(gateway, policy_structure):
-    device_uid_list = []
+def find_devices_for_current_policy(gateway: dict[str, Any], policy_structure: list[dict[str, Any]]) -> list[str]:
+    device_uid_list: list[str] = []
     for policy in policy_structure:
         for target in policy['targets']:
             if target['uid'] == gateway['uid']:
@@ -427,7 +425,7 @@ def resolveNwObjUidToName(nw_obj_uid: str) -> str:
     
 
 # delete_v: left here only for nat case
-def check_and_add_section_header(src_rulebase, target_rulebase, layer_name, import_id, section_header_uids, parent_uid):
+def check_and_add_section_header(src_rulebase: dict[str, Any], target_rulebase: Rulebase, layer_name: str, import_id: str, section_header_uids: set[str], parent_uid: str):
     # if current rulebase starts a new section, add section header, but only if it does not exist yet (can happen by chunking a section)
     if 'type' in src_rulebase and src_rulebase['type'] == 'access-section' and 'uid' in src_rulebase: # and not src_rulebase['uid'] in section_header_uids:
         section_name = default_section_header_text
@@ -442,7 +440,7 @@ def check_and_add_section_header(src_rulebase, target_rulebase, layer_name, impo
     return
 
 
-def insert_section_header_rule(target_rulebase, section_name, layer_name, import_id, src_rulebase_uid, section_header_uids, parent_uid):
+def insert_section_header_rule(target_rulebase: Rulebase, section_name: str, layer_name: str, import_id: str, src_rulebase_uid: str, section_header_uids: set[str], parent_uid: str):
     # TODO: re-implement
     return
 

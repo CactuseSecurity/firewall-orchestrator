@@ -1,0 +1,693 @@
+{
+    "spdxVersion": "SPDX-2.3",
+    "dataLicense": "CC0-1.0",
+    "SPDXID": "SPDXRef-DOCUMENT",
+    "name": "com.github.CactuseSecurity/firewall-orchestrator",
+    "documentNamespace": "https://spdx.org/spdxdocs/protobom/f0ca9a30-6673-4f43-b9c9-2efc4f3d5f9e",
+    "comment": "Exact versions could not be resolved for some packages. For more information: https://docs.github.com/en/code-security/supply-chain-security/understanding-your-software-supply-chain/about-the-dependency-graph#dependencies-included.",
+    "creationInfo": {
+        "creators": [
+            "Tool: protobom-v0.0.0-20251111180015-44acb8c1ef9f+dirty",
+            "Tool: GitHub.com-Dependency-Graph"
+        ],
+        "created": "2025-11-11T19:50:03Z"
+    },
+    "packages": [
+        {
+            "name": "System.IdentityModel.Tokens.Jwt",
+            "SPDXID": "SPDXRef-nuget-System.IdentityModel.Tokens.Jwt-8.14.0-75c946",
+            "versionInfo": "8.14.0",
+            "downloadLocation": "NOASSERTION",
+            "filesAnalyzed": false,
+            "licenseConcluded": "MIT",
+            "copyrightText": "(c) Microsoft Corporation, Copyright (c) Microsoft Corporation",
+            "externalRefs": [
+                {
+                    "referenceCategory": "PACKAGE-MANAGER",
+                    "referenceType": "purl",
+                    "referenceLocator": "pkg:nuget/System.IdentityModel.Tokens.Jwt@8.14.0"
+                }
+            ]
+        },
+        {
+            "name": "HtmlAgilityPack",
+            "SPDXID": "SPDXRef-nuget-HtmlAgilityPack-1.12.2-75c946",
+            "versionInfo": "1.12.2",
+            "downloadLocation": "NOASSERTION",
+            "filesAnalyzed": false,
+            "licenseConcluded": "MIT",
+            "copyrightText": "Copyright (c) ZZZ Projects Inc., Copyright ZZZ Projects Inc.",
+            "externalRefs": [
+                {
+                    "referenceCategory": "PACKAGE-MANAGER",
+                    "referenceType": "purl",
+                    "referenceLocator": "pkg:nuget/HtmlAgilityPack@1.12.2"
+                }
+            ]
+        },
+        {
+            "name": "PuppeteerSharp",
+            "SPDXID": "SPDXRef-nuget-PuppeteerSharp-20.2.2-75c946",
+            "versionInfo": "20.2.2",
+            "downloadLocation": "NOASSERTION",
+            "filesAnalyzed": false,
+            "licenseConcluded": "MIT",
+            "externalRefs": [
+                {
+                    "referenceCategory": "PACKAGE-MANAGER",
+                    "referenceType": "purl",
+                    "referenceLocator": "pkg:nuget/PuppeteerSharp@20.2.2"
+                }
+            ]
+        },
+        {
+            "name": "Microsoft.AspNetCore.Components.Authorization",
+            "SPDXID": "SPDXRef-nuget-Microsoft.AspNetCore.Components.Authorization-8.0.15-75c946",
+            "versionInfo": "8.0.15",
+            "downloadLocation": "NOASSERTION",
+            "filesAnalyzed": false,
+            "licenseConcluded": "MIT",
+            "copyrightText": "(c) Microsoft Corporation, Copyright (c) .NET Foundation Contributors, Copyright (c) 1989, 1993 The Regents of the University of California, Copyright (c) 1990, 1993 The Regents of the University of California, Copyright (c) 1996-1998 John D. Polstra, Copyright (c) 1998 John D. Polstra, Copyright (c) 2000-2013 Julian Seward, Copyright (c) 2007 John Birrell (jb@freebsd.org), Copyright (c) 2011-2021 The Bootstrap Authors, Copyright (c) 2011-2021 Twitter, Inc., Copyright (c) 2013 - 2018 AngleSharp, Copyright (c) 2019-2023 The Bootstrap Authors",
+            "externalRefs": [
+                {
+                    "referenceCategory": "PACKAGE-MANAGER",
+                    "referenceType": "purl",
+                    "referenceLocator": "pkg:nuget/Microsoft.AspNetCore.Components.Authorization@8.0.15"
+                }
+            ]
+        },
+        {
+            "name": "NUnit",
+            "SPDXID": "SPDXRef-nuget-NUnit-4.4.0-75c946",
+            "versionInfo": "4.4.0",
+            "downloadLocation": "NOASSERTION",
+            "filesAnalyzed": false,
+            "licenseConcluded": "MIT AND zlib-acknowledgement",
+            "copyrightText": "Copyright (c) 2000-2002 Philip A. Craig, Copyright (c) 2002-2004 James W. Newkirk, Michael C. Two, Alexei A. Vorontsov, Copyright (c) 2002-2014 Charlie Poole, Copyright (c) 2008 Jonathan Pryor, Novell, Copyright (c) 2024 Charlie Poole, Rob Prouse, Copyright (c) Charlie Poole, Rob Prouse and Contributors, WCopyright (c) Charlie Poole, Rob Prouse and Contributors",
+            "externalRefs": [
+                {
+                    "referenceCategory": "PACKAGE-MANAGER",
+                    "referenceType": "purl",
+                    "referenceLocator": "pkg:nuget/NUnit@4.4.0"
+                }
+            ]
+        },
+        {
+            "name": "Microsoft.NET.Test.Sdk",
+            "SPDXID": "SPDXRef-nuget-Microsoft.NET.Test.Sdk-17.14.1-75c946",
+            "versionInfo": "17.14.1",
+            "downloadLocation": "NOASSERTION",
+            "filesAnalyzed": false,
+            "licenseConcluded": "MIT",
+            "copyrightText": "(c) Microsoft Corporation, Copyright (c) .NET Foundation",
+            "externalRefs": [
+                {
+                    "referenceCategory": "PACKAGE-MANAGER",
+                    "referenceType": "purl",
+                    "referenceLocator": "pkg:nuget/Microsoft.NET.Test.Sdk@17.14.1"
+                }
+            ]
+        },
+        {
+            "name": "bunit",
+            "SPDXID": "SPDXRef-nuget-bunit-1.40.0-75c946",
+            "versionInfo": "1.40.0",
+            "downloadLocation": "NOASSERTION",
+            "filesAnalyzed": false,
+            "licenseConcluded": "MIT",
+            "copyrightText": "Copyright (c) .NET Foundation and Contributors",
+            "externalRefs": [
+                {
+                    "referenceCategory": "PACKAGE-MANAGER",
+                    "referenceType": "purl",
+                    "referenceLocator": "pkg:nuget/bunit@1.40.0"
+                }
+            ]
+        },
+        {
+            "name": "NUnit3TestAdapter",
+            "SPDXID": "SPDXRef-nuget-NUnit3TestAdapter-5.1.0-75c946",
+            "versionInfo": "5.1.0",
+            "downloadLocation": "NOASSERTION",
+            "filesAnalyzed": false,
+            "licenseConcluded": "MIT",
+            "copyrightText": "(c) 2022 Charlie Poole, Rob Prouse, Copyright (c) 2011-2021 Charlie Poole, 2014-2025 Terje Sandstrom, Copyright (c) 2021 Charlie Poole, Copyright (c) 2021 Charlie Poole Readonly, Copyright (c) 2022 Charlie Poole, Rob Prouse, Copyright 2011-2021 Charlie Poole, 2014-2025 Terje Sandstrom",
+            "externalRefs": [
+                {
+                    "referenceCategory": "PACKAGE-MANAGER",
+                    "referenceType": "purl",
+                    "referenceLocator": "pkg:nuget/NUnit3TestAdapter@5.1.0"
+                }
+            ]
+        },
+        {
+            "name": "Microsoft.IdentityModel.Tokens",
+            "SPDXID": "SPDXRef-nuget-Microsoft.IdentityModel.Tokens-8.14.0-75c946",
+            "versionInfo": "8.14.0",
+            "downloadLocation": "NOASSERTION",
+            "filesAnalyzed": false,
+            "licenseConcluded": "MIT",
+            "copyrightText": "(c) Microsoft Corporation, Copyright (c) Microsoft Corporation",
+            "externalRefs": [
+                {
+                    "referenceCategory": "PACKAGE-MANAGER",
+                    "referenceType": "purl",
+                    "referenceLocator": "pkg:nuget/Microsoft.IdentityModel.Tokens@8.14.0"
+                }
+            ]
+        },
+        {
+            "name": "BlazorTable",
+            "SPDXID": "SPDXRef-nuget-BlazorTable-1.17.0-75c946",
+            "versionInfo": "1.17.0",
+            "downloadLocation": "NOASSERTION",
+            "filesAnalyzed": false,
+            "licenseConcluded": "MIT",
+            "copyrightText": "(c) 2008 VeriSign, Inc.",
+            "externalRefs": [
+                {
+                    "referenceCategory": "PACKAGE-MANAGER",
+                    "referenceType": "purl",
+                    "referenceLocator": "pkg:nuget/BlazorTable@1.17.0"
+                }
+            ]
+        },
+        {
+            "name": "actions/checkout",
+            "SPDXID": "SPDXRef-githubactions-actions-checkout-4..-75c946",
+            "versionInfo": "4.*.*",
+            "downloadLocation": "NOASSERTION",
+            "filesAnalyzed": false,
+            "externalRefs": [
+                {
+                    "referenceCategory": "PACKAGE-MANAGER",
+                    "referenceType": "purl",
+                    "referenceLocator": "pkg:githubactions/actions/checkout@4.%2A.%2A"
+                }
+            ]
+        },
+        {
+            "name": "actions/setup-dotnet",
+            "SPDXID": "SPDXRef-githubactions-actions-setup-dotnet-4..-75c946",
+            "versionInfo": "4.*.*",
+            "downloadLocation": "NOASSERTION",
+            "filesAnalyzed": false,
+            "externalRefs": [
+                {
+                    "referenceCategory": "PACKAGE-MANAGER",
+                    "referenceType": "purl",
+                    "referenceLocator": "pkg:githubactions/actions/setup-dotnet@4.%2A.%2A"
+                }
+            ]
+        },
+        {
+            "name": "gitpython",
+            "SPDXID": "SPDXRef-pypi-gitpython-75c946",
+            "versionInfo": "\u003e= 3.1.0",
+            "downloadLocation": "NOASSERTION",
+            "filesAnalyzed": false,
+            "externalRefs": [
+                {
+                    "referenceCategory": "PACKAGE-MANAGER",
+                    "referenceType": "purl",
+                    "referenceLocator": "pkg:pypi/gitpython"
+                }
+            ]
+        },
+        {
+            "name": "Microsoft.Rest.ClientRuntime",
+            "SPDXID": "SPDXRef-nuget-Microsoft.Rest.ClientRuntime-2.3.24-75c946",
+            "versionInfo": "2.3.24",
+            "downloadLocation": "NOASSERTION",
+            "filesAnalyzed": false,
+            "licenseConcluded": "MIT",
+            "copyrightText": "(c) 2008 VeriSign, Inc., (c) Microsoft Corporation, Copyright (c) 2019 Microsoft, Copyright (c) Microsoft Corporation",
+            "externalRefs": [
+                {
+                    "referenceCategory": "PACKAGE-MANAGER",
+                    "referenceType": "purl",
+                    "referenceLocator": "pkg:nuget/Microsoft.Rest.ClientRuntime@2.3.24"
+                }
+            ]
+        },
+        {
+            "name": "GraphQL.Client",
+            "SPDXID": "SPDXRef-nuget-GraphQL.Client-6.1.0-75c946",
+            "versionInfo": "6.1.0",
+            "downloadLocation": "NOASSERTION",
+            "filesAnalyzed": false,
+            "licenseConcluded": "MIT",
+            "copyrightText": "Copyright (c) 2017 graphql-dotnet",
+            "externalRefs": [
+                {
+                    "referenceCategory": "PACKAGE-MANAGER",
+                    "referenceType": "purl",
+                    "referenceLocator": "pkg:nuget/GraphQL.Client@6.1.0"
+                }
+            ]
+        },
+        {
+            "name": "GraphQL.Client.Serializer.Newtonsoft",
+            "SPDXID": "SPDXRef-nuget-GraphQL.Client.Serializer.Newtonsoft-6.1.0-75c946",
+            "versionInfo": "6.1.0",
+            "downloadLocation": "NOASSERTION",
+            "filesAnalyzed": false,
+            "licenseConcluded": "MIT",
+            "copyrightText": "Copyright (c) 2017 graphql-dotnet",
+            "externalRefs": [
+                {
+                    "referenceCategory": "PACKAGE-MANAGER",
+                    "referenceType": "purl",
+                    "referenceLocator": "pkg:nuget/GraphQL.Client.Serializer.Newtonsoft@6.1.0"
+                }
+            ]
+        },
+        {
+            "name": "GraphQL.Client.Serializer.SystemTextJson",
+            "SPDXID": "SPDXRef-nuget-GraphQL.Client.Serializer.SystemTextJson-6.1.0-75c946",
+            "versionInfo": "6.1.0",
+            "downloadLocation": "NOASSERTION",
+            "filesAnalyzed": false,
+            "licenseConcluded": "MIT",
+            "copyrightText": "Copyright (c) 2017 graphql-dotnet",
+            "externalRefs": [
+                {
+                    "referenceCategory": "PACKAGE-MANAGER",
+                    "referenceType": "purl",
+                    "referenceLocator": "pkg:nuget/GraphQL.Client.Serializer.SystemTextJson@6.1.0"
+                }
+            ]
+        },
+        {
+            "name": "RestSharp",
+            "SPDXID": "SPDXRef-nuget-RestSharp-112.1.0-75c946",
+            "versionInfo": "112.1.0",
+            "downloadLocation": "NOASSERTION",
+            "filesAnalyzed": false,
+            "licenseConcluded": "Apache-2.0",
+            "externalRefs": [
+                {
+                    "referenceCategory": "PACKAGE-MANAGER",
+                    "referenceType": "purl",
+                    "referenceLocator": "pkg:nuget/RestSharp@112.1.0"
+                }
+            ]
+        },
+        {
+            "name": "RestSharp.Serializers.NewtonsoftJson",
+            "SPDXID": "SPDXRef-nuget-RestSharp.Serializers.NewtonsoftJson-112.1.0-75c946",
+            "versionInfo": "112.1.0",
+            "downloadLocation": "NOASSERTION",
+            "filesAnalyzed": false,
+            "licenseConcluded": "Apache-2.0",
+            "externalRefs": [
+                {
+                    "referenceCategory": "PACKAGE-MANAGER",
+                    "referenceType": "purl",
+                    "referenceLocator": "pkg:nuget/RestSharp.Serializers.NewtonsoftJson@112.1.0"
+                }
+            ]
+        },
+        {
+            "name": "IPAddressRange",
+            "SPDXID": "SPDXRef-nuget-IPAddressRange-6.2.0-75c946",
+            "versionInfo": "6.2.0",
+            "downloadLocation": "NOASSERTION",
+            "filesAnalyzed": false,
+            "licenseConcluded": "MPL-2.0",
+            "copyrightText": "Copyright (c) 2012-2024 J.Sakamoto, Mozilla, Copyright 2012-2024 J.Sakamoto, Mozilla",
+            "externalRefs": [
+                {
+                    "referenceCategory": "PACKAGE-MANAGER",
+                    "referenceType": "purl",
+                    "referenceLocator": "pkg:nuget/IPAddressRange@6.2.0"
+                }
+            ]
+        },
+        {
+            "name": "Microsoft.AspNetCore.Components",
+            "SPDXID": "SPDXRef-nuget-Microsoft.AspNetCore.Components-8.0.15-75c946",
+            "versionInfo": "8.0.15",
+            "downloadLocation": "NOASSERTION",
+            "filesAnalyzed": false,
+            "licenseConcluded": "MIT",
+            "copyrightText": "(c) Microsoft Corporation, Copyright (c) .NET Foundation Contributors, Copyright (c) 1989, 1993 The Regents of the University of California, Copyright (c) 1990, 1993 The Regents of the University of California, Copyright (c) 1996-1998 John D. Polstra, Copyright (c) 1998 John D. Polstra, Copyright (c) 2000-2013 Julian Seward, Copyright (c) 2007 John Birrell (jb@freebsd.org), Copyright (c) 2011-2021 The Bootstrap Authors, Copyright (c) 2011-2021 Twitter, Inc., Copyright (c) 2013 - 2018 AngleSharp, Copyright (c) 2019-2023 The Bootstrap Authors",
+            "externalRefs": [
+                {
+                    "referenceCategory": "PACKAGE-MANAGER",
+                    "referenceType": "purl",
+                    "referenceLocator": "pkg:nuget/Microsoft.AspNetCore.Components@8.0.15"
+                }
+            ]
+        },
+        {
+            "name": "System.Text.Encodings.Web",
+            "SPDXID": "SPDXRef-nuget-System.Text.Encodings.Web-9.0.8-75c946",
+            "versionInfo": "9.0.8",
+            "downloadLocation": "NOASSERTION",
+            "filesAnalyzed": false,
+            "licenseConcluded": "MIT",
+            "copyrightText": "(c) 1995-2024 Jean-loup Gailly and Mark Adler, (c) 1997-2005 Sean Eron Anderson, (c) Microsoft Corporation, Copyright (c) .NET Foundation, Copyright (c) .NET Foundation and Contributors, Copyright (c) .NET Foundation Contributors, Copyright (c) 1980, 1986, 1993 The Regents of the University of California, Copyright (c) 1989 by Hewlett-Packard Company, Palo Alto, Ca. \u0026 Digital Equipment Corporation, Maynard, Mass, Copyright (c) 1990- 1993, 1996 Open Software Foundation, Inc., Copyright (c) 1991-2022 Unicode, Inc., Copyright (c) 1998 Microsoft, Copyright (c) 1999 Lucent Technologies, Copyright (c) 2004-2006 Intel Corporation, Copyright (c) 2005-2007, Nick Galbreath, Copyright (c) 2005-2020 Rich Felker, Copyright (c) 2006 Jb Evain (jbevain@gmail.com), Copyright (c) 2007 James Newton-King, Copyright (c) 2008-2016, Wojciech Mula, Copyright (c) 2008-2020 Advanced Micro Devices, Inc., Copyright (c) 2009, 2010, 2013-2016 by the Brotli Authors, Copyright (c) 2011 Novell, Inc (http://www.novell.com), Copyright (c) 2011-2015 Intel Corporation, Copyright (c) 2011-2020 Microsoft Corp, Copyright (c) 2011, Google Inc., Copyright (c) 2012 - present, Victor Zverovich, Copyright (c) 2012-2021 Yann Collet, Copyright (c) 2013-2017, Alfred Klomp, Copyright (c) 2013-2017, Milosz Krajewski, Copyright (c) 2014 Ryan Juckett http://www.ryanjuckett.com, Copyright (c) 2015 Andrew Gallant, Copyright (c) 2015 The Chromium Authors, Copyright (c) 2015 THL A29 Limited, a Tencent company, and Milo Yip, Copyright (c) 2015 Xamarin, Inc (http://www.xamarin.com), Copyright (c) 2015-2017, Wojciech Mula, Copyright (c) 2015-2018, Wojciech Mula, Copyright (c) 2016-2017, Matthieu Darbois, Copyright (c) 2017 Yoshifumi Kawai, Copyright (c) 2018 Alexander Chermyanin, Copyright (c) 2018 Nemanja Mijailovic, Copyright (c) 2019 Microsoft Corporation, Daan Leijen, Copyright (c) 2020 Dan Shechter, Copyright (c) 2020 Mara Bos \u003cm-ou.se@m-ou.se\u003e, Copyright (c) 2021, Copyright (c) 2022 FormatJS, Copyright (c) 2022, Geoff Langdale, Copyright (c) 2022, Wojciech Mula, Copyright (c) Andrew Arnott, Copyright (c) Microsoft Corporation, Copyright (c) Six Labors, Copyright (c) The Internet Society (2003), Copyright (c) The Internet Society 1997, Copyright (c) YEAR W3C(r) (MIT, ERCIM, Keio, Beihang) Disclaimers, Copyright 2011, 2012, 2013, 2014, 2015, 2016, 2017, 2018 The Regents of the University of California, Copyright 2012 the V8 project authors, Copyright 2018 Daniel Lemire, Copyright 2019 LLVM Project, Portions (c) International Organization for Standardization 1986",
+            "externalRefs": [
+                {
+                    "referenceCategory": "PACKAGE-MANAGER",
+                    "referenceType": "purl",
+                    "referenceLocator": "pkg:nuget/System.Text.Encodings.Web@9.0.8"
+                }
+            ]
+        },
+        {
+            "name": "Microsoft.AspNetCore.Http",
+            "SPDXID": "SPDXRef-nuget-Microsoft.AspNetCore.Http-2.3.0-75c946",
+            "versionInfo": "2.3.0",
+            "downloadLocation": "NOASSERTION",
+            "filesAnalyzed": false,
+            "licenseConcluded": "Apache-2.0 AND LicenseRef-scancode-unknown",
+            "copyrightText": "(c) Microsoft Corporation, Copyright (c) .NET Foundation and Contributors",
+            "externalRefs": [
+                {
+                    "referenceCategory": "PACKAGE-MANAGER",
+                    "referenceType": "purl",
+                    "referenceLocator": "pkg:nuget/Microsoft.AspNetCore.Http@2.3.0"
+                }
+            ]
+        },
+        {
+            "name": "MimeKit",
+            "SPDXID": "SPDXRef-nuget-MimeKit-4.13.0-75c946",
+            "versionInfo": "4.13.0",
+            "downloadLocation": "NOASSERTION",
+            "filesAnalyzed": false,
+            "licenseConcluded": "MIT",
+            "copyrightText": "Copyright (c) 2012-2025 .NET Foundation and Contributors, Copyright 2013-2025 .NET Foundation and Contributors",
+            "externalRefs": [
+                {
+                    "referenceCategory": "PACKAGE-MANAGER",
+                    "referenceType": "purl",
+                    "referenceLocator": "pkg:nuget/MimeKit@4.13.0"
+                }
+            ]
+        },
+        {
+            "name": "MailKit",
+            "SPDXID": "SPDXRef-nuget-MailKit-4.13.0-75c946",
+            "versionInfo": "4.13.0",
+            "downloadLocation": "NOASSERTION",
+            "filesAnalyzed": false,
+            "licenseConcluded": "MIT",
+            "copyrightText": "Copyright (c) 2013-2024 .NET Foundation and Contributors, Copyright 2013-2025 .NET Foundation and Contributors",
+            "externalRefs": [
+                {
+                    "referenceCategory": "PACKAGE-MANAGER",
+                    "referenceType": "purl",
+                    "referenceLocator": "pkg:nuget/MailKit@4.13.0"
+                }
+            ]
+        },
+        {
+            "name": "Novell.Directory.Ldap.NETStandard",
+            "SPDXID": "SPDXRef-nuget-Novell.Directory.Ldap.NETStandard-4.0.0-75c946",
+            "versionInfo": "4.0.0",
+            "downloadLocation": "NOASSERTION",
+            "filesAnalyzed": false,
+            "licenseConcluded": "MIT",
+            "copyrightText": "(c) 2003 Novell, Inc, 2016, Copyright (c) 2000 - 2017 The Legion of the Bouncy Castle Inc. (http://www.bouncycastle.org)",
+            "externalRefs": [
+                {
+                    "referenceCategory": "PACKAGE-MANAGER",
+                    "referenceType": "purl",
+                    "referenceLocator": "pkg:nuget/Novell.Directory.Ldap.NETStandard@4.0.0"
+                }
+            ]
+        },
+        {
+            "name": "Microsoft.AspNetCore.Authentication.JwtBearer",
+            "SPDXID": "SPDXRef-nuget-Microsoft.AspNetCore.Authentication.JwtBearer-8.0.15-75c946",
+            "versionInfo": "8.0.15",
+            "downloadLocation": "NOASSERTION",
+            "filesAnalyzed": false,
+            "licenseConcluded": "MIT",
+            "copyrightText": "(c) Microsoft Corporation, Copyright (c) .NET Foundation and Contributors, Copyright (c) .NET Foundation Contributors, Copyright (c) 1989, 1993 The Regents of the University of California, Copyright (c) 1990, 1993 The Regents of the University of California, Copyright (c) 1996-1998 John D. Polstra, Copyright (c) 1998 John D. Polstra, Copyright (c) 2000-2013 Julian Seward, Copyright (c) 2007 James Newton-King, Copyright (c) 2007 John Birrell (jb@freebsd.org), Copyright (c) 2010-2019 Google LLC. http://angular.io/license, Copyright (c) 2011 Alex MacCaw (info@eribium.org), Copyright (c) 2011 Nicolas Gallagher (nicolas@nicolasgallagher.com), Copyright (c) 2011-2021 The Bootstrap Authors, Copyright (c) 2011-2021 Twitter, Inc., Copyright (c) 2013 - 2018 AngleSharp, Copyright (c) 2013-2017, Milosz Krajewski, Copyright (c) 2014-2018 Michael Daines, Copyright (c) 2015, Google Inc., Copyright (c) 2016 Richard Morris, Copyright (c) 2017 Yoshifumi Kawai, Copyright (c) 2019 David Fowler, Copyright (c) 2019-2020 West Wind Technologies, Copyright (c) 2019-2023 The Bootstrap Authors, Copyright (c) Andrew Arnott, Copyright (c) HTML5 Boilerplate, Copyright (c) Microsoft Corporation, Copyright (c) Nicolas Gallagher and Jonathan Neal, Copyright (c) Sindre Sorhus \u003csindresorhus@gmail.com\u003e (https://sindresorhus.com), Copyright 2019 The gRPC Authors, Copyright Jorn Zaefferer, Copyright OpenJS Foundation and other contributors, https://openjsf.org",
+            "externalRefs": [
+                {
+                    "referenceCategory": "PACKAGE-MANAGER",
+                    "referenceType": "purl",
+                    "referenceLocator": "pkg:nuget/Microsoft.AspNetCore.Authentication.JwtBearer@8.0.15"
+                }
+            ]
+        },
+        {
+            "name": "Swashbuckle.AspNetCore",
+            "SPDXID": "SPDXRef-nuget-Swashbuckle.AspNetCore-8.1.1-75c946",
+            "versionInfo": "8.1.1",
+            "downloadLocation": "NOASSERTION",
+            "filesAnalyzed": false,
+            "licenseConcluded": "MIT",
+            "externalRefs": [
+                {
+                    "referenceCategory": "PACKAGE-MANAGER",
+                    "referenceType": "purl",
+                    "referenceLocator": "pkg:nuget/Swashbuckle.AspNetCore@8.1.1"
+                }
+            ]
+        },
+        {
+            "name": "actions/checkout",
+            "SPDXID": "SPDXRef-githubactions-actions-checkout-3-75c946",
+            "versionInfo": "3",
+            "downloadLocation": "NOASSERTION",
+            "filesAnalyzed": false,
+            "externalRefs": [
+                {
+                    "referenceCategory": "PACKAGE-MANAGER",
+                    "referenceType": "purl",
+                    "referenceLocator": "pkg:githubactions/actions/checkout@3"
+                }
+            ]
+        },
+        {
+            "name": "github/codeql-action/analyze",
+            "SPDXID": "SPDXRef-githubactions-githubcodeql-action-analyze-2-75c946",
+            "versionInfo": "2",
+            "downloadLocation": "NOASSERTION",
+            "filesAnalyzed": false,
+            "externalRefs": [
+                {
+                    "referenceCategory": "PACKAGE-MANAGER",
+                    "referenceType": "purl",
+                    "referenceLocator": "pkg:githubactions/github/codeql-action/analyze@2"
+                }
+            ]
+        },
+        {
+            "name": "github/codeql-action/autobuild",
+            "SPDXID": "SPDXRef-githubactions-githubcodeql-action-autobuild-2-75c946",
+            "versionInfo": "2",
+            "downloadLocation": "NOASSERTION",
+            "filesAnalyzed": false,
+            "externalRefs": [
+                {
+                    "referenceCategory": "PACKAGE-MANAGER",
+                    "referenceType": "purl",
+                    "referenceLocator": "pkg:githubactions/github/codeql-action/autobuild@2"
+                }
+            ]
+        },
+        {
+            "name": "github/codeql-action/init",
+            "SPDXID": "SPDXRef-githubactions-githubcodeql-action-init-2-75c946",
+            "versionInfo": "2",
+            "downloadLocation": "NOASSERTION",
+            "filesAnalyzed": false,
+            "externalRefs": [
+                {
+                    "referenceCategory": "PACKAGE-MANAGER",
+                    "referenceType": "purl",
+                    "referenceLocator": "pkg:githubactions/github/codeql-action/init@2"
+                }
+            ]
+        },
+        {
+            "name": "com.github.CactuseSecurity/firewall-orchestrator",
+            "SPDXID": "SPDXRef-github-CactuseSecurity-firewall-orchestrator-main-0c7c2b",
+            "versionInfo": "main",
+            "downloadLocation": "git+https://github.com/CactuseSecurity/firewall-orchestrator",
+            "filesAnalyzed": false,
+            "licenseDeclared": "Apache-2.0",
+            "externalRefs": [
+                {
+                    "referenceCategory": "PACKAGE-MANAGER",
+                    "referenceType": "purl",
+                    "referenceLocator": "pkg:github/CactuseSecurity/firewall-orchestrator@main"
+                }
+            ]
+        }
+    ],
+    "relationships": [
+        {
+            "spdxElementId": "SPDXRef-github-CactuseSecurity-firewall-orchestrator-main-0c7c2b",
+            "relatedSpdxElement": "SPDXRef-nuget-Microsoft.Rest.ClientRuntime-2.3.24-75c946",
+            "relationshipType": "DEPENDS_ON"
+        },
+        {
+            "spdxElementId": "SPDXRef-github-CactuseSecurity-firewall-orchestrator-main-0c7c2b",
+            "relatedSpdxElement": "SPDXRef-githubactions-githubcodeql-action-autobuild-2-75c946",
+            "relationshipType": "DEPENDS_ON"
+        },
+        {
+            "spdxElementId": "SPDXRef-github-CactuseSecurity-firewall-orchestrator-main-0c7c2b",
+            "relatedSpdxElement": "SPDXRef-nuget-System.IdentityModel.Tokens.Jwt-8.14.0-75c946",
+            "relationshipType": "DEPENDS_ON"
+        },
+        {
+            "spdxElementId": "SPDXRef-github-CactuseSecurity-firewall-orchestrator-main-0c7c2b",
+            "relatedSpdxElement": "SPDXRef-nuget-Microsoft.AspNetCore.Components.Authorization-8.0.15-75c946",
+            "relationshipType": "DEPENDS_ON"
+        },
+        {
+            "spdxElementId": "SPDXRef-github-CactuseSecurity-firewall-orchestrator-main-0c7c2b",
+            "relatedSpdxElement": "SPDXRef-nuget-Microsoft.NET.Test.Sdk-17.14.1-75c946",
+            "relationshipType": "DEPENDS_ON"
+        },
+        {
+            "spdxElementId": "SPDXRef-github-CactuseSecurity-firewall-orchestrator-main-0c7c2b",
+            "relatedSpdxElement": "SPDXRef-githubactions-actions-setup-dotnet-4..-75c946",
+            "relationshipType": "DEPENDS_ON"
+        },
+        {
+            "spdxElementId": "SPDXRef-github-CactuseSecurity-firewall-orchestrator-main-0c7c2b",
+            "relatedSpdxElement": "SPDXRef-nuget-Novell.Directory.Ldap.NETStandard-4.0.0-75c946",
+            "relationshipType": "DEPENDS_ON"
+        },
+        {
+            "spdxElementId": "SPDXRef-github-CactuseSecurity-firewall-orchestrator-main-0c7c2b",
+            "relatedSpdxElement": "SPDXRef-githubactions-githubcodeql-action-init-2-75c946",
+            "relationshipType": "DEPENDS_ON"
+        },
+        {
+            "spdxElementId": "SPDXRef-github-CactuseSecurity-firewall-orchestrator-main-0c7c2b",
+            "relatedSpdxElement": "SPDXRef-nuget-BlazorTable-1.17.0-75c946",
+            "relationshipType": "DEPENDS_ON"
+        },
+        {
+            "spdxElementId": "SPDXRef-github-CactuseSecurity-firewall-orchestrator-main-0c7c2b",
+            "relatedSpdxElement": "SPDXRef-pypi-gitpython-75c946",
+            "relationshipType": "DEPENDS_ON"
+        },
+        {
+            "spdxElementId": "SPDXRef-github-CactuseSecurity-firewall-orchestrator-main-0c7c2b",
+            "relatedSpdxElement": "SPDXRef-nuget-GraphQL.Client-6.1.0-75c946",
+            "relationshipType": "DEPENDS_ON"
+        },
+        {
+            "spdxElementId": "SPDXRef-github-CactuseSecurity-firewall-orchestrator-main-0c7c2b",
+            "relatedSpdxElement": "SPDXRef-nuget-HtmlAgilityPack-1.12.2-75c946",
+            "relationshipType": "DEPENDS_ON"
+        },
+        {
+            "spdxElementId": "SPDXRef-github-CactuseSecurity-firewall-orchestrator-main-0c7c2b",
+            "relatedSpdxElement": "SPDXRef-nuget-Microsoft.IdentityModel.Tokens-8.14.0-75c946",
+            "relationshipType": "DEPENDS_ON"
+        },
+        {
+            "spdxElementId": "SPDXRef-github-CactuseSecurity-firewall-orchestrator-main-0c7c2b",
+            "relatedSpdxElement": "SPDXRef-nuget-GraphQL.Client.Serializer.SystemTextJson-6.1.0-75c946",
+            "relationshipType": "DEPENDS_ON"
+        },
+        {
+            "spdxElementId": "SPDXRef-github-CactuseSecurity-firewall-orchestrator-main-0c7c2b",
+            "relatedSpdxElement": "SPDXRef-nuget-MailKit-4.13.0-75c946",
+            "relationshipType": "DEPENDS_ON"
+        },
+        {
+            "spdxElementId": "SPDXRef-github-CactuseSecurity-firewall-orchestrator-main-0c7c2b",
+            "relatedSpdxElement": "SPDXRef-nuget-Microsoft.AspNetCore.Authentication.JwtBearer-8.0.15-75c946",
+            "relationshipType": "DEPENDS_ON"
+        },
+        {
+            "spdxElementId": "SPDXRef-github-CactuseSecurity-firewall-orchestrator-main-0c7c2b",
+            "relatedSpdxElement": "SPDXRef-githubactions-githubcodeql-action-analyze-2-75c946",
+            "relationshipType": "DEPENDS_ON"
+        },
+        {
+            "spdxElementId": "SPDXRef-github-CactuseSecurity-firewall-orchestrator-main-0c7c2b",
+            "relatedSpdxElement": "SPDXRef-nuget-GraphQL.Client.Serializer.Newtonsoft-6.1.0-75c946",
+            "relationshipType": "DEPENDS_ON"
+        },
+        {
+            "spdxElementId": "SPDXRef-github-CactuseSecurity-firewall-orchestrator-main-0c7c2b",
+            "relatedSpdxElement": "SPDXRef-nuget-RestSharp.Serializers.NewtonsoftJson-112.1.0-75c946",
+            "relationshipType": "DEPENDS_ON"
+        },
+        {
+            "spdxElementId": "SPDXRef-github-CactuseSecurity-firewall-orchestrator-main-0c7c2b",
+            "relatedSpdxElement": "SPDXRef-nuget-Microsoft.AspNetCore.Components-8.0.15-75c946",
+            "relationshipType": "DEPENDS_ON"
+        },
+        {
+            "spdxElementId": "SPDXRef-github-CactuseSecurity-firewall-orchestrator-main-0c7c2b",
+            "relatedSpdxElement": "SPDXRef-nuget-Swashbuckle.AspNetCore-8.1.1-75c946",
+            "relationshipType": "DEPENDS_ON"
+        },
+        {
+            "spdxElementId": "SPDXRef-github-CactuseSecurity-firewall-orchestrator-main-0c7c2b",
+            "relatedSpdxElement": "SPDXRef-nuget-NUnit-4.4.0-75c946",
+            "relationshipType": "DEPENDS_ON"
+        },
+        {
+            "spdxElementId": "SPDXRef-github-CactuseSecurity-firewall-orchestrator-main-0c7c2b",
+            "relatedSpdxElement": "SPDXRef-nuget-RestSharp-112.1.0-75c946",
+            "relationshipType": "DEPENDS_ON"
+        },
+        {
+            "spdxElementId": "SPDXRef-github-CactuseSecurity-firewall-orchestrator-main-0c7c2b",
+            "relatedSpdxElement": "SPDXRef-githubactions-actions-checkout-3-75c946",
+            "relationshipType": "DEPENDS_ON"
+        },
+        {
+            "spdxElementId": "SPDXRef-github-CactuseSecurity-firewall-orchestrator-main-0c7c2b",
+            "relatedSpdxElement": "SPDXRef-nuget-PuppeteerSharp-20.2.2-75c946",
+            "relationshipType": "DEPENDS_ON"
+        },
+        {
+            "spdxElementId": "SPDXRef-github-CactuseSecurity-firewall-orchestrator-main-0c7c2b",
+            "relatedSpdxElement": "SPDXRef-nuget-bunit-1.40.0-75c946",
+            "relationshipType": "DEPENDS_ON"
+        },
+        {
+            "spdxElementId": "SPDXRef-github-CactuseSecurity-firewall-orchestrator-main-0c7c2b",
+            "relatedSpdxElement": "SPDXRef-githubactions-actions-checkout-4..-75c946",
+            "relationshipType": "DEPENDS_ON"
+        },
+        {
+            "spdxElementId": "SPDXRef-github-CactuseSecurity-firewall-orchestrator-main-0c7c2b",
+            "relatedSpdxElement": "SPDXRef-nuget-IPAddressRange-6.2.0-75c946",
+            "relationshipType": "DEPENDS_ON"
+        },
+        {
+            "spdxElementId": "SPDXRef-github-CactuseSecurity-firewall-orchestrator-main-0c7c2b",
+            "relatedSpdxElement": "SPDXRef-nuget-System.Text.Encodings.Web-9.0.8-75c946",
+            "relationshipType": "DEPENDS_ON"
+        },
+        {
+            "spdxElementId": "SPDXRef-github-CactuseSecurity-firewall-orchestrator-main-0c7c2b",
+            "relatedSpdxElement": "SPDXRef-nuget-Microsoft.AspNetCore.Http-2.3.0-75c946",
+            "relationshipType": "DEPENDS_ON"
+        },
+        {
+            "spdxElementId": "SPDXRef-github-CactuseSecurity-firewall-orchestrator-main-0c7c2b",
+            "relatedSpdxElement": "SPDXRef-nuget-MimeKit-4.13.0-75c946",
+            "relationshipType": "DEPENDS_ON"
+        },
+        {
+            "spdxElementId": "SPDXRef-github-CactuseSecurity-firewall-orchestrator-main-0c7c2b",
+            "relatedSpdxElement": "SPDXRef-nuget-NUnit3TestAdapter-5.1.0-75c946",
+            "relationshipType": "DEPENDS_ON"
+        },
+        {
+            "spdxElementId": "SPDXRef-DOCUMENT",
+            "relatedSpdxElement": "SPDXRef-github-CactuseSecurity-firewall-orchestrator-main-0c7c2b",
+            "relationshipType": "DESCRIBES"
+        }
+    ]
+}

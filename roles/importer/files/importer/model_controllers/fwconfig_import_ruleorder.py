@@ -1,4 +1,4 @@
-from typing import Any, Optional
+from typing import Any
 from fwo_const import rule_num_numeric_steps
 
 from models.rule import RuleNormalized
@@ -21,8 +21,8 @@ class RuleOrderService:
 
     _service_provider: ServiceProvider
     _global_state: GlobalState
-    _normalized_config: Optional['FwConfigNormalized']
-    _previous_config: Optional['FwConfigNormalized']
+    _normalized_config: 'FwConfigNormalized | None'
+    _previous_config: 'FwConfigNormalized | None'
 
     _target_rule_uids: list[str]
     _target_rules_flat: list[RuleNormalized]

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import List, Literal, Tuple
+from typing import Literal
 
 from pydantic import BaseModel
 
@@ -26,7 +26,7 @@ class Interface(BaseModel):
     security_level: int
     ip_address: str | None = None
     subnet_mask: str | None = None
-    additional_settings: List[str]
+    additional_settings: list[str]
     description: str | None = None
 
 class AsaNetworkObject(BaseModel):
@@ -39,7 +39,7 @@ class AsaNetworkObject(BaseModel):
 
 class AsaNetworkObjectGroup(BaseModel):
     name: str
-    objects: List[AsaNetworkObjectGroupMember]
+    objects: list[AsaNetworkObjectGroupMember]
     description: str | None = None
 
 class AsaNetworkObjectGroupMember(BaseModel):
@@ -51,21 +51,21 @@ class AsaServiceObject(BaseModel):
     name: str
     protocol: Literal["tcp", "udp", "ip", "tcp-udp", "icmp", "gre"]
     dst_port_eq: str | None = None
-    dst_port_range: Tuple[str, str] | None = None
+    dst_port_range: tuple[str, str] | None = None
     description: str | None = None
 
 class AsaServiceObjectGroup(BaseModel):
     name: str
     proto_mode: Literal["tcp", "udp", "tcp-udp"] | None
     ports_eq: dict[str, list[str]]  # protocol -> list of ports
-    ports_range: dict[str, list[Tuple[str, str]]]  # protocol -> list of (start_port, end_port)
-    nested_refs: List[str]
-    protocols: List[str]
+    ports_range: dict[str, list[tuple[str, str]]]  # protocol -> list of (start_port, end_port)
+    nested_refs: list[str]
+    protocols: list[str]
     description: str | None
 
 class AsaProtocolGroup(BaseModel):
     name: str
-    protocols: List[str] 
+    protocols: list[str] 
     description: str | None = None
 
 class EndpointKind(BaseModel):
@@ -85,7 +85,7 @@ class AccessListEntry(BaseModel):
 
 class AccessList(BaseModel):
     name: str
-    entries: List[AccessListEntry]
+    entries: list[AccessListEntry]
 
 class AccessGroupBinding(BaseModel):
     acl_name: str
@@ -115,7 +115,7 @@ class MgmtAccessRule(BaseModel):
 
 class ClassMap(BaseModel):
     name: str
-    matches: List[str] = []   # e.g., ["default-inspection-traffic"]
+    matches: list[str] = []   # e.g., ["default-inspection-traffic"]
 
 class DnsInspectParameters(BaseModel):
     message_length_max_client: Literal["auto", "default"] | int | None = None
@@ -128,13 +128,13 @@ class InspectionAction(BaseModel):
 
 class PolicyClass(BaseModel):
     class_name: str               # e.g., "inspection_default"
-    inspections: List[InspectionAction] = []
+    inspections: list[InspectionAction] = []
 
 class PolicyMap(BaseModel):
     name: str                     # e.g., "global_policy" or "preset_dns_map"
     type_str: str | None = None  # e.g., "inspect dns" for typed maps
     parameters_dns: DnsInspectParameters | None = None
-    classes: List[PolicyClass] = []
+    classes: list[PolicyClass] = []
 
 class ServicePolicyBinding(BaseModel):
     policy_map: str               # e.g., "global_policy"
@@ -145,20 +145,20 @@ class Config(BaseModel):
     asa_version: str
     hostname: str
     enable_password: AsaEnablePassword
-    service_modules: List[AsaServiceModule]
-    additional_settings: List[str]
-    interfaces: List[Interface]
-    objects: List[AsaNetworkObject]
-    object_groups: List[AsaNetworkObjectGroup]
-    service_objects: List[AsaServiceObject] = []
-    service_object_groups: List[AsaServiceObjectGroup] = []
-    access_lists: List[AccessList] = []
-    access_group_bindings: List[AccessGroupBinding] = []
-    nat_rules: List[NatRule] = []
-    routes: List[Route] = []
-    mgmt_access: List[MgmtAccessRule] = []
-    names: List[Names] = []
-    class_maps: List[ClassMap] = []
-    policy_maps: List[PolicyMap] = []
-    service_policies: List[ServicePolicyBinding] = []
-    protocol_groups: List[AsaProtocolGroup] = []
+    service_modules: list[AsaServiceModule]
+    additional_settings: list[str]
+    interfaces: list[Interface]
+    objects: list[AsaNetworkObject]
+    object_groups: list[AsaNetworkObjectGroup]
+    service_objects: list[AsaServiceObject] = []
+    service_object_groups: list[AsaServiceObjectGroup] = []
+    access_lists: list[AccessList] = []
+    access_group_bindings: list[AccessGroupBinding] = []
+    nat_rules: list[NatRule] = []
+    routes: list[Route] = []
+    mgmt_access: list[MgmtAccessRule] = []
+    names: list[Names] = []
+    class_maps: list[ClassMap] = []
+    policy_maps: list[PolicyMap] = []
+    service_policies: list[ServicePolicyBinding] = []
+    protocol_groups: list[AsaProtocolGroup] = []

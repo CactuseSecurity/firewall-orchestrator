@@ -153,7 +153,7 @@ class ManagementController(Management):
             raise FwLoginFailed(f"Unsupported device type: {self.DeviceTypeName}")
 
 
-    def getDomainString(self):
+    def getDomainString(self) -> str:
         return self.DomainUid if self.DomainUid != None else self.DomainName # type: ignore #TODO: check if None check is needed if yes, change type
 
 

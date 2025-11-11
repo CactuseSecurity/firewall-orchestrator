@@ -3,7 +3,7 @@ import json
 from copy import deepcopy
 import re
 from enum import Enum
-from typing import TYPE_CHECKING, Any, List, get_type_hints
+from typing import TYPE_CHECKING, Any, get_type_hints
 import ipaddress
 import traceback
 import time
@@ -454,7 +454,7 @@ def find_all_diffs(a: Any, b: Any, strict: bool = False, path: str = "root") -> 
     return diffs
 
 
-def sort_and_join(input_list: List[str]) -> str:
+def sort_and_join(input_list: list[str]) -> str:
     """ Sorts the input list of strings and joins them using the standard list delimiter. """
     return fwo_const.list_delimiter.join(sorted(input_list))
 

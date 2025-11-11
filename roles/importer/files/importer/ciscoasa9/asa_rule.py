@@ -5,7 +5,6 @@ It processes ACL entries and converts them into normalized rules with proper
 service, source, and destination references.
 """
 
-from typing import List
 from netaddr import IPNetwork
 from models.rule import RuleNormalized, RuleAction, RuleTrack, RuleType
 from models.rulebase import Rulebase
@@ -18,7 +17,7 @@ from models.networkobject import NetworkObject
 from models.serviceobject import ServiceObject
 
 
-def create_service_for_protocol_group_entry(protocol_group_name: str, protocol_groups: List[AsaProtocolGroup], service_objects: dict[str, ServiceObject]) -> str:
+def create_service_for_protocol_group_entry(protocol_group_name: str, protocol_groups: list[AsaProtocolGroup], service_objects: dict[str, ServiceObject]) -> str:
     """Resolve service reference for a protocol group.
 
     Args:
@@ -50,7 +49,7 @@ def create_service_for_protocol_group_entry(protocol_group_name: str, protocol_g
         return fwo_base.sort_and_join(svc_refs)
 
 
-def resolve_service_reference_for_rule(entry: AccessListEntry, protocol_groups: List[AsaProtocolGroup], service_objects: dict[str, ServiceObject]) -> str:
+def resolve_service_reference_for_rule(entry: AccessListEntry, protocol_groups: list[AsaProtocolGroup], service_objects: dict[str, ServiceObject]) -> str:
     """Resolve service reference for a rule entry.
 
     Args:
@@ -90,7 +89,7 @@ def resolve_network_reference_for_rule(endpoint: EndpointKind, network_objects: 
 
 
 def create_rule_from_acl_entry(access_list_name: str, entry: AccessListEntry, 
-                              protocol_groups: List[AsaProtocolGroup], 
+                              protocol_groups: list[AsaProtocolGroup], 
                               network_objects: dict[str, NetworkObject], service_objects: dict[str, ServiceObject],
                               gateway_uid: str) -> RuleNormalized:
     """Create a normalized rule from an ACL entry.
@@ -152,10 +151,10 @@ def create_rule_from_acl_entry(access_list_name: str, entry: AccessListEntry,
     return rule
 
 
-def build_rulebases_from_access_lists(access_lists: List[AccessList], mgm_uid: str, 
-                                     protocol_groups: List[AsaProtocolGroup],
+def build_rulebases_from_access_lists(access_lists: list[AccessList], mgm_uid: str, 
+                                     protocol_groups: list[AsaProtocolGroup],
                                      network_objects: dict[str, NetworkObject], service_objects: dict[str, ServiceObject],
-                                     gateway_uid: str) -> List[Rulebase]:
+                                     gateway_uid: str) -> list[Rulebase]:
     """Build rulebases from ASA access lists.
 
     Each access list becomes a separate rulebase containing normalized rules.

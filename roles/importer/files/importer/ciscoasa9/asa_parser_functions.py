@@ -1,5 +1,4 @@
 import re
-from typing import Dict, List, Optional, Tuple
 from ciscoasa9.asa_models import AccessListEntry,\
     AsaNetworkObject, AsaNetworkObjectGroup, AsaNetworkObjectGroupMember, AsaServiceObject, AsaServiceObjectGroup,\
     ClassMap, DnsInspectParameters, EndpointKind, InspectionAction, Interface,\
@@ -7,8 +6,8 @@ from ciscoasa9.asa_models import AccessListEntry,\
 from fwo_log import getFwoLogger
 
 
-def clean_lines(text: str) -> List[str]:
-    lines: List[str] = []
+def clean_lines(text: str) -> list[str]:
+    lines: list[str] = []
     for raw in text.splitlines():
         line = raw.rstrip()
         # Skip leading metadata/comment lines starting with ':' (as in "show run")
@@ -17,7 +16,7 @@ def clean_lines(text: str) -> List[str]:
         lines.append(line)
     return lines
 
-def consume_block(lines: List[str], start_idx: int) -> Tuple[List[str], int]:
+def consume_block(lines: list[str], start_idx: int) -> tuple[list[str], int]:
     """
     Consume a block that starts at start_idx (matching start_re) and continues
     until next top-level directive (blank line or line not starting with space)
@@ -38,7 +37,7 @@ def consume_block(lines: List[str], start_idx: int) -> Tuple[List[str], int]:
         break
     return block, i
 
-def parse_endpoint(tokens: List[str]) -> Tuple[EndpointKind, int]:
+def parse_endpoint(tokens: list[str]) -> tuple[EndpointKind, int]:
     """
     Parse an ACL endpoint from tokens; returns (EndpointKind, tokens_consumed).
     Supported:
@@ -68,12 +67,12 @@ def parse_endpoint(tokens: List[str]) -> Tuple[EndpointKind, int]:
     return EndpointKind(kind="any", value="any"), 1
 
 
-def _find_description(blocks: List[str]) -> Optional[str]:
+def _find_description(blocks: list[str]) -> str | None:
     """Helper to find description line in a block."""
     return _find_line_with_prefix(list(blocks), "description ")
 
 
-def _find_line_with_prefix(block: List[str], prefix: str, only_first: bool = False) -> Optional[str]:
+def _find_line_with_prefix(block: list[str], prefix: str, only_first: bool = False) -> str | None:
     """Helper to find a single value in an interface block by prefix."""
     v = None
     for b in list(block):
@@ -87,7 +86,7 @@ def _find_line_with_prefix(block: List[str], prefix: str, only_first: bool = Fal
     return v
 
 
-def _parse_interface_block_find_ip_address(block: List[str], prefix: str) -> Tuple[Optional[str], Optional[str]]:
+def _parse_interface_block_find_ip_address(block: list[str], prefix: str) -> tuple[str | None, str | None]:
     """Helper to find IP address and mask in an interface block."""
     ip = None
     mask = None
@@ -103,7 +102,7 @@ def _parse_interface_block_find_ip_address(block: List[str], prefix: str) -> Tup
     return ip, mask
 
 
-def parse_interface_block(block: List[str]) -> Interface:
+def parse_interface_block(block: list[str]) -> Interface:
     """Parse an interface block and return an Interface object."""
     if_name = block[0].split()[1]
     blocks = list(block)[1:]
@@ -128,12 +127,12 @@ def parse_interface_block(block: List[str]) -> Interface:
 
 def _create_network_object_from_parts(
     name: str,
-    host: Optional[str],
-    subnet: Optional[str],
-    mask: Optional[str],
-    ip_range: Optional[Tuple[str, str]],
-    fqdn: Optional[str],
-    description: Optional[str]
+    host: str | None,
+    subnet: str | None,
+    mask: str | None,
+    ip_range: tuple[str, str] | None,
+    fqdn: str | None,
+    description: str | None
 ) -> AsaNetworkObject|None:
     """Helper to create AsaNetworkObject from parts."""
     if host and not subnet:
@@ -150,7 +149,7 @@ def _create_network_object_from_parts(
     return None
 
 
-def parse_network_object_block(block: List[str]) -> Tuple[Optional[AsaNetworkObject], Optional[NatRule]]:
+def parse_network_object_block(block: list[str]) -> tuple[AsaNetworkObject | None, NatRule | None]:
     """Parse an object network block. Returns (network_object, nat_rule)."""
     obj_name = block[0].split()[2]
     host = None
@@ -207,11 +206,11 @@ def parse_network_object_block(block: List[str]) -> Tuple[Optional[AsaNetworkObj
     return net_obj, pending_nat
 
 
-def parse_network_object_group_block(block: List[str]) -> AsaNetworkObjectGroup:
+def parse_network_object_group_block(block: list[str]) -> AsaNetworkObjectGroup:
     """Parse an object-group network block."""
     grp_name = block[0].split()[2]
     desc = _find_description(block[1:])
-    members: List[AsaNetworkObjectGroupMember] = []
+    members: list[AsaNetworkObjectGroupMember] = []
 
     for b in block[1:]:
         s = b.strip()
@@ -245,7 +244,7 @@ def parse_network_object_group_block(block: List[str]) -> AsaNetworkObjectGroup:
     return AsaNetworkObjectGroup(name=grp_name, objects=members, description=desc)
 
 
-def parse_service_object_block(block: List[str]) -> AsaServiceObject | None:
+def parse_service_object_block(block: list[str]) -> AsaServiceObject | None:
     """Parse an object service block."""
     name = block[0].split()[2]
     protocol = None
@@ -282,20 +281,20 @@ def parse_service_object_block(block: List[str]) -> AsaServiceObject | None:
 
 
 def _convert_ports_to_dicts(
-    ports_eq: List[Tuple[str, str]], 
-    ports_range: List[Tuple[str, Tuple[str, str]]]
-) -> Tuple[Dict[str, List[str]], Dict[str, List[Tuple[str, str]]]]:
+    ports_eq: list[tuple[str, str]], 
+    ports_range: list[tuple[str, tuple[str, str]]]
+) -> tuple[dict[str, list[str]], dict[str, list[tuple[str, str]]]]:
     """
     Convert port lists to dictionaries grouped by protocol.
     Returns (ports_eq_dict, ports_range_dict).
     """
-    ports_eq_dict: Dict[str, List[str]] = {}
+    ports_eq_dict: dict[str, list[str]] = {}
     for proto, port in ports_eq:
         if proto not in ports_eq_dict:
             ports_eq_dict[proto] = []
         ports_eq_dict[proto].append(port)
 
-    ports_range_dict: Dict[str, List[Tuple[str, str]]] = {}
+    ports_range_dict: dict[str, list[tuple[str, str]]] = {}
     for proto, prange in ports_range:
         if proto not in ports_range_dict:
             ports_range_dict[proto] = []
@@ -303,10 +302,10 @@ def _convert_ports_to_dicts(
 
     return ports_eq_dict, ports_range_dict
 
-def _consume_port_objects(service_group_block: List[str], proto_mode: str) -> Tuple[List[Tuple[str, str]], List[Tuple[str, Tuple[str, str]]]]:
+def _consume_port_objects(service_group_block: list[str], proto_mode: str) -> tuple[list[tuple[str, str]], list[tuple[str, tuple[str, str]]]]:
     """Helper to consume port-object lines from a service object group block."""
-    ports_eq: List[Tuple[str, str]] = []
-    ports_range: List[Tuple[str, Tuple[str, str]]] = []
+    ports_eq: list[tuple[str, str]] = []
+    ports_range: list[tuple[str, tuple[str, str]]] = []
 
     for b in list(service_group_block):
         s = b.strip()
@@ -323,11 +322,11 @@ def _consume_port_objects(service_group_block: List[str], proto_mode: str) -> Tu
 
     return ports_eq, ports_range
 
-def _consume_service_definitions(service_group_block: List[str]) -> Tuple[List[Tuple[str, str]], List[Tuple[str, Tuple[str, str]]], List[str]]:
+def _consume_service_definitions(service_group_block: list[str]) -> tuple[list[tuple[str, str]], list[tuple[str, tuple[str, str]]], list[str]]:
     """Helper to consume service-object definitions from a service object group block."""
-    ports_eq: List[Tuple[str, str]] = []
-    ports_range: List[Tuple[str, Tuple[str, str]]] = []
-    protocols: List[str] = [] # list of fully enabled protocols
+    ports_eq: list[tuple[str, str]] = []
+    ports_range: list[tuple[str, tuple[str, str]]] = []
+    protocols: list[str] = [] # list of fully enabled protocols
 
     for b in list(service_group_block):
         s = b.strip()
@@ -346,9 +345,9 @@ def _consume_service_definitions(service_group_block: List[str]) -> Tuple[List[T
 
     return ports_eq, ports_range, protocols
 
-def _consume_service_references(service_group_block: List[str]) -> List[str]:
+def _consume_service_references(service_group_block: list[str]) -> list[str]:
     """Helper to consume service-object and group-object lines from a service object group block."""
-    nested_refs: List[str] = []
+    nested_refs: list[str] = []
 
     for b in service_group_block:
         s = b.strip()
@@ -365,7 +364,7 @@ def _consume_service_references(service_group_block: List[str]) -> List[str]:
 
     return nested_refs
 
-def parse_service_object_group_block(block: List[str]) -> AsaServiceObjectGroup:
+def parse_service_object_group_block(block: list[str]) -> AsaServiceObjectGroup:
     """Parse an object-group service block."""
     hdr = block[0].split()
     name = hdr[2]
@@ -382,10 +381,10 @@ def parse_service_object_group_block(block: List[str]) -> AsaServiceObjectGroup:
 
     desc = _find_description(block[1:])
 
-    ports_eq: List[Tuple[str, str]] = []
-    ports_range: List[Tuple[str, Tuple[str, str]]] = []
-    nested_refs: List[str] = []
-    protocols: List[str] = []
+    ports_eq: list[tuple[str, str]] = []
+    ports_range: list[tuple[str, tuple[str, str]]] = []
+    nested_refs: list[str] = []
+    protocols: list[str] = []
 
     if proto_mode:
         ports_eq, ports_range = _consume_port_objects(block[1:], proto_mode)
@@ -407,10 +406,10 @@ def parse_service_object_group_block(block: List[str]) -> AsaServiceObjectGroup:
     )
 
 
-def parse_class_map_block(block: List[str]) -> ClassMap:
+def parse_class_map_block(block: list[str]) -> ClassMap:
     """Parse a class-map block."""
     name = block[0].split()[1]
-    matches: List[str] = []
+    matches: list[str] = []
 
     for b in block[1:]:
         s = b.strip()
@@ -421,7 +420,7 @@ def parse_class_map_block(block: List[str]) -> ClassMap:
     return ClassMap(name=name, matches=matches)
 
 
-def _parse_dns_parameters_block(block: List[str], start_idx: int) -> Tuple[DnsInspectParameters, int]:
+def _parse_dns_parameters_block(block: list[str], start_idx: int) -> tuple[DnsInspectParameters, int]:
     """
     Parse a 'parameters' sub-block within a DNS inspect policy-map.
     Returns (DnsInspectParameters, next_index).
@@ -445,7 +444,7 @@ def _parse_dns_parameters_block(block: List[str], start_idx: int) -> Tuple[DnsIn
     return params, k
 
 
-def parse_dns_inspect_policy_map_block(block: List[str], pm_name: str) -> PolicyMap:
+def parse_dns_inspect_policy_map_block(block: list[str], pm_name: str) -> PolicyMap:
     """Parse a policy-map type inspect dns block."""
     pm = PolicyMap(name=pm_name, type_str="inspect dns")
     params = DnsInspectParameters()
@@ -462,7 +461,7 @@ def parse_dns_inspect_policy_map_block(block: List[str], pm_name: str) -> Policy
     return pm
 
 
-def _parse_policy_class_block(block: List[str], start_idx: int) -> Tuple[Optional[PolicyClass], int]:
+def _parse_policy_class_block(block: list[str], start_idx: int) -> tuple[PolicyClass | None, int]:
     """
     Parse a 'class <NAME>' sub-block starting at start_idx.
     Returns (PolicyClass or None, next_index).
@@ -476,7 +475,7 @@ def _parse_policy_class_block(block: List[str], start_idx: int) -> Tuple[Optiona
         return None, start_idx + 1
 
     class_name = mc.group(1)
-    inspections: List[InspectionAction] = []
+    inspections: list[InspectionAction] = []
     idx = start_idx + 1
     # collect lines under this class (1 indent)
     while idx < len(block) and block[idx].startswith(" "):
@@ -495,7 +494,7 @@ def _parse_policy_class_block(block: List[str], start_idx: int) -> Tuple[Optiona
     return PolicyClass(class_name=class_name, inspections=inspections), idx
 
 
-def parse_policy_map_block(block: List[str], pm_name: str) -> PolicyMap:
+def parse_policy_map_block(block: list[str], pm_name: str) -> PolicyMap:
     """Parse a regular policy-map block."""
     pm = PolicyMap(name=pm_name)
 
@@ -509,10 +508,10 @@ def parse_policy_map_block(block: List[str], pm_name: str) -> PolicyMap:
     return pm
 
 
-def _parse_access_list_entry_protocol(parts: List[str], protocol_groups: List[AsaProtocolGroup], svc_objects: List[AsaServiceObject], svc_obj_groups: List[AsaServiceObjectGroup]) -> Tuple[EndpointKind, List[str]]:
+def _parse_access_list_entry_protocol(parts: list[str], protocol_groups: list[AsaProtocolGroup], svc_objects: list[AsaServiceObject], svc_obj_groups: list[AsaServiceObjectGroup]) -> tuple[EndpointKind, list[str]]:
     """
     Parse the protocol part of an access-list entry.
-    Returns (protocol EndpointKind, remaining tokens List[str]).
+    Returns (protocol EndpointKind, remaining tokens list[str]).
     """
     # Determine protocol
     protocol = None
@@ -540,10 +539,10 @@ def _parse_access_list_entry_protocol(parts: List[str], protocol_groups: List[As
     return protocol, tokens
 
 
-def _parse_access_list_entry_dest_port(tokens: List[str], protocol: EndpointKind) -> Tuple[EndpointKind, List[str]]:
+def _parse_access_list_entry_dest_port(tokens: list[str], protocol: EndpointKind) -> tuple[EndpointKind, list[str]]:
     """
     Parse the destination port part of an access-list entry.
-    Returns (dst_port EndpointKind, remaining tokens List[str]).
+    Returns (dst_port EndpointKind, remaining tokens list[str]).
     """
     dst_port = EndpointKind(kind="any", value="any")  # Default value
     if len(tokens) >= 2 and tokens[0] == "eq":
@@ -568,7 +567,7 @@ def _parse_access_list_entry_dest_port(tokens: List[str], protocol: EndpointKind
     return dst_port, tokens
 
 
-def parse_access_list_entry(line: str, protocol_groups: List[AsaProtocolGroup], svc_objects: List[AsaServiceObject], svc_obj_groups: List[AsaServiceObjectGroup]) -> AccessListEntry:
+def parse_access_list_entry(line: str, protocol_groups: list[AsaProtocolGroup], svc_objects: list[AsaServiceObject], svc_obj_groups: list[AsaServiceObjectGroup]) -> AccessListEntry:
     """
     Parse an access-list entry line and return an AccessListEntry object.
     Handles various formats as specified in the requirements.
@@ -608,11 +607,11 @@ def parse_access_list_entry(line: str, protocol_groups: List[AsaProtocolGroup], 
         inactive=inactive
     )
 
-def parse_protocol_object_group_block(block: List[str]) -> AsaProtocolGroup:
+def parse_protocol_object_group_block(block: list[str]) -> AsaProtocolGroup:
     """Parse an object-group protocol block."""
     name = block[0].split()[2]
     desc = _find_description(block[1:])
-    protocols: List[str] = []
+    protocols: list[str] = []
 
     for b in block[1:]:
         s = b.strip()
@@ -628,11 +627,11 @@ def parse_protocol_object_group_block(block: List[str]) -> AsaProtocolGroup:
     )
 
 
-def parse_icmp_object_group_block(block: List[str]) -> AsaServiceObjectGroup:
+def parse_icmp_object_group_block(block: list[str]) -> AsaServiceObjectGroup:
     """Parse an object-group icmp-type block."""
     grp_name = block[0].split()[2]
     desc = _find_description(block[1:])
-    objects: List[str] = []
+    objects: list[str] = []
     for b in block[1:]:
         s = b.strip()
         mobj = re.match(r"^icmp-object\s+(\S+)$", s, re.I)

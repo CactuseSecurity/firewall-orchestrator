@@ -4,7 +4,7 @@ import json
 import requests
 import time
 from datetime import datetime
-from typing import Any, List
+from typing import Any
 
 from fwo_exceptions import FwLoginFailed, FwApiError, FwApiResponseDecodingError, FwoImporterError
 from fwo_log import getFwoLogger
@@ -518,7 +518,7 @@ def assign_placeholder_uids(rulebase: dict[str, Any], section: dict[str, Any], r
                             
 def get_nat_rules_from_api_as_dict (api_v_url: str, sid: str, show_params_rules: dict[str, Any], nativeConfigDomain: dict[str, Any]={}):
     logger = getFwoLogger()
-    nat_rules: dict[str, List[Any]] = { "nat_rule_chunks": [] }
+    nat_rules: dict[str, list[Any]] = { "nat_rule_chunks": [] }
     current=0
     total=current+1
     while (current<total) :

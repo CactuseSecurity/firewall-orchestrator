@@ -2,8 +2,7 @@ from enum import Enum
 import traceback
 from difflib import ndiff
 import json
-from typing import Generator, List, Optional, Any
-from typing import List, Optional
+from typing import Generator, Any
 
 import fwo_globals
 import fwo_const
@@ -699,12 +698,12 @@ class FwConfigImportRule():
     # as we cannot add the rules for all rulebases in one go (using a constraint from the rule table), 
     # we need to add them per rulebase separately
     #TODO: separation because of constraint still needed?
-    def add_rules_within_rulebases(self, rulebases: List[Rulebase]) -> tuple[int, list[dict[str, Any]]]:
+    def add_rules_within_rulebases(self, rulebases: list[Rulebase]) -> tuple[int, list[dict[str, Any]]]:
         """
         Adds rules within the given rulebases to the database.
 
         Args:
-            rulebases (List[Rulebase]): List of Rulebase objects containing rules to be added
+            rulebases (list[Rulebase]): List of Rulebase objects containing rules to be added
 
         Returns:
             tuple[int, list[dict]]: A tuple containing the number of changes made and a list of dictionaries,
@@ -1167,7 +1166,7 @@ class FwConfigImportRule():
         
         return self.import_details.api_call.call(mutation, query_variables=query_variables)
 
-    def _get_list_of_enforced_gateways(self, rule: RuleNormalized, importDetails: ImportStateController) -> Optional[List[int]]:
+    def _get_list_of_enforced_gateways(self, rule: RuleNormalized, importDetails: ImportStateController) -> list[int] | None:
         if rule.rule_installon is None:
             return None
         enforced_gw_ids: list[int] = []
@@ -1183,7 +1182,7 @@ class FwConfigImportRule():
 
         return enforced_gw_ids
 
-    def prepare_rules_for_import(self, rules: list[RuleNormalized], rulebase_uid: str) -> List[Rule]:
+    def prepare_rules_for_import(self, rules: list[RuleNormalized], rulebase_uid: str) -> list[Rule]:
         # get rulebase_id for rulebaseUid
         rulebase_id = self.import_details.lookupRulebaseId(rulebase_uid)
 

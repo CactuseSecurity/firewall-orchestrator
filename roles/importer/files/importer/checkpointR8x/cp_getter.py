@@ -546,14 +546,14 @@ def get_nat_rules_from_api_as_dict (api_v_url: str, sid: str, show_params_rules:
     return nat_rules
 
 
-def find_element_by_uid(array: dict[str, Any], uid: str | None) -> dict[str, Any] | None: # TODO: How is this an array?
+def find_element_by_uid(array: list[dict[str, Any]], uid: str | None) -> dict[str, Any] | None:
     for el in array:
         if 'uid' in el and el['uid']==uid:
             return el
     return None
 
 
-def resolve_ref_from_object_dictionary(uid: str | None, objDict: dict[str, Any], native_config_domain: dict[str, Any]={}, field_name: str | None=None) -> dict[str, Any] | None:
+def resolve_ref_from_object_dictionary(uid: str | None, objDict: list[dict[str, Any]], native_config_domain: dict[str, Any]={}, field_name: str | None=None) -> dict[str, Any] | None:
 
     matched_obj = find_element_by_uid(objDict, uid)
         
@@ -584,21 +584,21 @@ def resolve_ref_from_object_dictionary(uid: str | None, objDict: dict[str, Any],
 
 # resolving all uid references using the object dictionary
 # dealing with a single chunk
-def resolve_ref_list_from_object_dictionary(rulebase: list[dict[str, Any]] | dict[str, Any], value: str, objDict: dict[str, Any]={}, nativeConfigDomain: dict[str, Any]={}): # TODO: what is objDict: I think it should be a list of dicts
+def resolve_ref_list_from_object_dictionary(rulebase: list[dict[str, Any]] | dict[str, Any], value: str, objDicts: list[dict[str, Any]]=[], nativeConfigDomain: dict[str, Any]={}): # TODO: what is objDict: I think it should be a list of dicts
     if isinstance(rulebase, dict):
         if 'objects-dictionary' in rulebase:
-            objDict = rulebase['objects-dictionary']
+            objDicts = rulebase['objects-dictionary']
     if isinstance(rulebase, list): # found a list of rules
         for rule in rulebase:
             if value in rule:
-                categorize_value_for_resolve_ref(rule, value, objDict, nativeConfigDomain)
+                categorize_value_for_resolve_ref(rule, value, objDicts, nativeConfigDomain)
             if 'rulebase' in rule:
-                resolve_ref_list_from_object_dictionary(rule['rulebase'], value, objDict=objDict, nativeConfigDomain=nativeConfigDomain)
+                resolve_ref_list_from_object_dictionary(rule['rulebase'], value, objDicts=objDicts, nativeConfigDomain=nativeConfigDomain)
     elif 'rulebase' in rulebase:
-        resolve_ref_list_from_object_dictionary(rulebase['rulebase'], value, objDict=objDict, nativeConfigDomain=nativeConfigDomain)
+        resolve_ref_list_from_object_dictionary(rulebase['rulebase'], value, objDicts=objDicts, nativeConfigDomain=nativeConfigDomain)
 
 
-def categorize_value_for_resolve_ref(rule: dict[str, Any], value: str, objDict: dict[str, Any], nativeConfigDomain: dict[str, Any]):
+def categorize_value_for_resolve_ref(rule: dict[str, Any], value: str, objDict: list[dict[str, Any]], nativeConfigDomain: dict[str, Any]):
     value_list: list[Any] = []
     if isinstance(rule[value], str): # assuming single uid
         rule[value] = resolve_ref_from_object_dictionary(rule[value], objDict, native_config_domain=nativeConfigDomain, field_name=value)
@@ -611,7 +611,7 @@ def categorize_value_for_resolve_ref(rule: dict[str, Any], value: str, objDict: 
             rule[value] = value_list # replace ref list with object list
 
 
-def getObjectDetailsFromApi(uid_missing_obj, sid='', apiurl='') ->  dict[str, Any]:
+def getObjectDetailsFromApi(uid_missing_obj: str, sid: str='', apiurl: str='') ->  dict[str, Any]:
     logger = getFwoLogger()
     if fwo_globals.debug_level>5:
         logger.debug(f"getting {uid_missing_obj} from API")

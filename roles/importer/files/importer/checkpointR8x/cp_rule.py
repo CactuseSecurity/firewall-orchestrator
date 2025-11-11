@@ -4,16 +4,16 @@ from typing import Any
 import ast
 
 from fwo_log import getFwoLogger
-import fwo_const
 import fwo_globals
 from fwo_const import list_delimiter, default_section_header_text
 from fwo_base import sanitize
-from fwo_exceptions import ImportRecursionLimitReached, FwoImporterErrorInconsistencies
+from fwo_exceptions import FwoImporterErrorInconsistencies
 from models.rulebase import Rulebase
 from models.rule import RuleNormalized
 from models.rule_enforced_on_gateway import RuleEnforcedOnGatewayNormalized
+from roles.importer.files.importer.model_controllers.import_state_controller import ImportStateController
 
-uid_to_name_map = {}
+uid_to_name_map: dict[str, str] = {}
 
 """
     new import format which takes the following cases into account without duplicating any rules in the DB:
@@ -23,8 +23,8 @@ uid_to_name_map = {}
     - migrate section headers from rule to ordering element 
     ...
 """
-def normalize_rulebases (nativeConfig, native_config_global, importState, normalized_config_dict, 
-                         normalized_config_global, is_global_loop_iteration):
+def normalize_rulebases (nativeConfig: dict[str, Any], native_config_global: dict[str, Any] | None, importState: ImportStateController, normalized_config_dict: dict[str, Any], 
+                         normalized_config_global: dict[str, Any] | None, is_global_loop_iteration: bool):
     
     normalized_config_dict['policies'] = []
 
@@ -32,7 +32,7 @@ def normalize_rulebases (nativeConfig, native_config_global, importState, normal
     for nw_obj in normalized_config_dict['network_objects']:
         uid_to_name_map[nw_obj['obj_uid']] = nw_obj['obj_name']
 
-    fetched_rulebase_uids = []
+    fetched_rulebase_uids: list[str] = []
     if normalized_config_global is not None and normalized_config_global != {}:
         for normalized_rulebase_global in normalized_config_global['policies']:
             fetched_rulebase_uids.append(normalized_rulebase_global.uid)
@@ -40,13 +40,13 @@ def normalize_rulebases (nativeConfig, native_config_global, importState, normal
         normalize_rulebases_for_each_link_destination(
             gateway, fetched_rulebase_uids, nativeConfig, native_config_global,
             is_global_loop_iteration, importState, normalized_config_dict,
-            normalized_config_global)
+            normalized_config_global) #type: ignore # TODO: check if normalized_config_global can be None, I am pretty sure it cannot be None here
 
     # todo: parse nat rulebase here
 
 def normalize_rulebases_for_each_link_destination(
-        gateway, fetched_rulebase_uids, nativeConfig, 
-        native_config_global, is_global_loop_iteration, importState, normalized_config_dict, normalized_config_global):
+        gateway: dict[str, Any], fetched_rulebase_uids: list[str], nativeConfig: dict[str, Any], 
+        native_config_global: dict[str, Any] | None, is_global_loop_iteration: bool, importState: ImportStateController, normalized_config_dict: dict[str, Any], normalized_config_global: dict[str, Any]):
     logger = getFwoLogger()
     for rulebase_link in gateway['rulebase_links']:
         if rulebase_link['to_rulebase_uid'] not in fetched_rulebase_uids and rulebase_link['to_rulebase_uid'] != '':
@@ -71,7 +71,7 @@ def normalize_rulebases_for_each_link_destination(
             else:
                 normalized_config_dict['policies'].append(normalized_rulebase)
 
-def find_rulebase_to_parse(rulebase_list, rulebase_uid):
+def find_rulebase_to_parse(rulebase_list: list[dict[str, Any]], rulebase_uid: str) -> tuple[dict[str, Any], bool, bool]:
     """
     decide if input rulebase is true rulebase, section or placeholder
     """
@@ -85,7 +85,7 @@ def find_rulebase_to_parse(rulebase_list, rulebase_uid):
     # handle case: no rulebase found
     return {}, False, False
 
-def find_rulebase_to_parse_in_case_of_chunk(rulebase, rulebase_uid):
+def find_rulebase_to_parse_in_case_of_chunk(rulebase: dict[str, Any], rulebase_uid: str) -> tuple[dict[str, Any], bool, bool]:
     is_section = False
     rulebase_to_parse = {}
     for chunk in rulebase['chunks']:
@@ -97,7 +97,7 @@ def find_rulebase_to_parse_in_case_of_chunk(rulebase, rulebase_uid):
                     rulebase_to_parse, is_section = find_rulebase_to_parse_in_case_of_section(is_section, rulebase_to_parse, section)
     return rulebase_to_parse, is_section, False
 
-def find_rulebase_to_parse_in_case_of_section(is_section, rulebase_to_parse, section):
+def find_rulebase_to_parse_in_case_of_section(is_section: bool, rulebase_to_parse: dict[str, Any], section: dict[str, Any]) -> tuple[dict[str, Any], bool]:
     if is_section:
         rulebase_to_parse = concatenat_sections_across_chunks(rulebase_to_parse, section)
     else:
@@ -105,7 +105,7 @@ def find_rulebase_to_parse_in_case_of_section(is_section, rulebase_to_parse, sec
         rulebase_to_parse = section
     return rulebase_to_parse, is_section
 
-def concatenat_sections_across_chunks(rulebase_to_parse, section):
+def concatenat_sections_across_chunks(rulebase_to_parse: dict[str, Any], section: dict[str, Any]) -> dict[str, Any]:
     if 'to' in rulebase_to_parse and 'from' in section:
         if rulebase_to_parse['to'] + 1 == section['from']:
             if rulebase_to_parse['name'] == section['name']:
@@ -121,13 +121,13 @@ def concatenat_sections_across_chunks(rulebase_to_parse, section):
     return rulebase_to_parse
 
                     
-def initialize_normalized_rulebase(rulebase_to_parse, mgm_uid):
+def initialize_normalized_rulebase(rulebase_to_parse: dict[str, Any], mgm_uid: str) -> Rulebase:
     rulebaseName = rulebase_to_parse['name']
     rulebaseUid = rulebase_to_parse['uid']
     normalized_rulebase = Rulebase(uid=rulebaseUid, name=rulebaseName, mgm_uid=mgm_uid, rules={})
     return normalized_rulebase
 
-def parse_rulebase(rulebase_to_parse, is_section, is_placeholder, normalized_rulebase, gateway, policy_structure):
+def parse_rulebase(rulebase_to_parse: dict[str, Any], is_section: bool, is_placeholder: bool, normalized_rulebase: Rulebase, gateway: dict[str, Any], policy_structure: dict[str, Any]):
     logger = getFwoLogger()
 
     if is_section:
@@ -179,7 +179,7 @@ def acceptMalformedParts(objects: dict, part: str ='') -> dict[str, Any]:
         return {}
 
 
-def parseRulePart (objects: dict, part: str = 'source') -> dict[str, Any]:
+def parseRulePart (objects: dict[str, Any] | list[dict[str, Any]] | None, part: str = 'source') -> dict[str, Any] | None:
     addressObjects: dict[str, Any] = {}
 
     if objects is None:
@@ -187,7 +187,7 @@ def parseRulePart (objects: dict, part: str = 'source') -> dict[str, Any]:
         return None
 
     if 'chunks' in objects:  # for chunks of actions?!
-        addressObjects.update(parseRulePart(objects['chunks'], part=part)) # need to parse chunk first
+        addressObjects.update(parseRulePart(objects['chunks'], part=part)) # need to parse chunk first #type: ignore #TODO: check if objects can be none
         return addressObjects
 
     if isinstance(objects, dict):
@@ -256,7 +256,7 @@ def _parse_obj_with_access_role(obj: dict[str,Any], addressObjects: dict[str,Any
                 addressObjects[obj['uid']] = obj['name'] + '@' + nw_resolved
 
 
-def parse_single_rule(nativeRule, rulebase, layer_name, parent_uid, gateway, policy_structure):
+def parse_single_rule(nativeRule: dict[str, Any], rulebase: Rulebase, layer_name: str, parent_uid: str | None, gateway: dict[str, Any], policy_structure: dict[str, Any]):
     logger = getFwoLogger()
 
     # reference to domain rule layer, filling up basic fields
@@ -420,7 +420,7 @@ def find_devices_for_current_policy(gateway, policy_structure):
     return device_uid_list
 
 
-def resolveNwObjUidToName(nw_obj_uid):
+def resolveNwObjUidToName(nw_obj_uid: str) -> str:
     if nw_obj_uid in uid_to_name_map:
         return uid_to_name_map[nw_obj_uid]
     else:

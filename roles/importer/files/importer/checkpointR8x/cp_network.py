@@ -1,3 +1,4 @@
+from typing import Any
 from fwo_log import getFwoLogger
 import json
 import cp_const
@@ -12,8 +13,8 @@ from services.enums import Services
 from fwo_api_call import FwoApiCall, FwoApi
 
 
-def normalize_network_objects(full_config, config2import, import_id, mgm_id=0):
-    nw_objects = []
+def normalize_network_objects(full_config: dict[str, Any], config2import: dict[str, Any], import_id: int, mgm_id: int=0):
+    nw_objects: list[dict[str, Any]] = []
     logger = getFwoLogger()
     global_domain = initialize_global_domain(full_config['objects'])
     
@@ -35,14 +36,14 @@ def normalize_network_objects(full_config, config2import, import_id, mgm_id=0):
 
     config2import.update({'network_objects': nw_objects})
 
-def set_dummy_ip_for_object_without_ip(nw_obj):
+def set_dummy_ip_for_object_without_ip(nw_obj: dict[str, Any]) -> None:
     logger = getFwoLogger()
     if nw_obj['obj_typ']!='group' and (nw_obj['obj_ip'] is None or nw_obj['obj_ip'] == ''):
         logger.warning("found object without IP :" + nw_obj['obj_name'] + " (type=" + nw_obj['obj_typ'] + ") - setting dummy IP")
         nw_obj.update({'obj_ip': fwo_const.dummy_ip})
         nw_obj.update({'obj_ip_end': fwo_const.dummy_ip})
 
-def initialize_global_domain(objects : list[dict]):
+def initialize_global_domain(objects : list[dict[str, Any]]) -> dict[str, Any]:
     """Returns CP Global Domain for MDS and standalone domain otherwise
     """
 
@@ -61,7 +62,7 @@ def initialize_global_domain(objects : list[dict]):
     return global_domain
 
 
-def collect_nw_objects(object_table, nw_objects, global_domain, mgm_id=0):
+def collect_nw_objects(object_table: dict[str, Any], nw_objects: list[dict[str, Any]], global_domain: dict[str, Any], mgm_id: int=0) -> None:
     """Collect nw_objects from object tables and write them into global nw_objects dict
     """
 
@@ -84,18 +85,18 @@ def collect_nw_objects(object_table, nw_objects, global_domain, mgm_id=0):
                                     'obj_member_refs': member_refs, 'obj_member_names': member_names})
 
 
-def get_domain_uid(obj, global_domain):
+def get_domain_uid(obj: dict[str, Any], global_domain: dict[str, Any]) -> str | dict[str, Any] | None:
     """Returns the domain UID for the given object.
     If the object has a 'domain' key with a 'uid', it returns that UID.
     Otherwise, it returns the global domain UID.
     """
     if 'domain' not in obj or 'uid' not in obj['domain']:
-        return obj.update({'domain': global_domain})
+        return obj.update({'domain': global_domain}) #TODO: check if the None value is wanted
     else:
         return obj['domain']['uid']
     
         
-def is_obj_already_collected(nw_objects, obj):
+def is_obj_already_collected(nw_objects: list[dict[str, Any]], obj: dict[str, Any]) -> bool:
     logger = getFwoLogger()
     if 'uid' not in obj:
         logger.warning("found nw_object without uid: " + str(obj))
@@ -111,7 +112,7 @@ def is_obj_already_collected(nw_objects, obj):
     return False
 
 
-def handle_members(obj):
+def handle_members(obj: dict[str, Any]) -> tuple[str | None, str | None]:
     """Gets group member uids, currently no member_names
     """
     member_refs = None
@@ -126,7 +127,7 @@ def handle_members(obj):
             obj['members'] = None
     return member_refs, member_names
 
-def handle_object_type_and_ip(obj, ip_addr):
+def handle_object_type_and_ip(obj: dict[str, Any], ip_addr: str | None) -> tuple[str, str | None, str | None]:
     logger = getFwoLogger()
     obj_type = 'undef'
     ipArray = cidrToRange(ip_addr)
@@ -176,7 +177,7 @@ def handle_object_type_and_ip(obj, ip_addr):
 
     return obj_type, first_ip, last_ip
 
-def get_comment_and_color_of_obj(obj):
+def get_comment_and_color_of_obj(obj: dict[str, Any]) -> str | None:
     """Returns comment and sets missing color to black
     """
     if 'comments' not in obj or obj['comments'] == '':
@@ -188,7 +189,7 @@ def get_comment_and_color_of_obj(obj):
     return comments
 
 # for members of groups, the name of the member obj needs to be fetched separately (starting from API v1.?)
-def resolve_nw_uid_to_name(uid, nw_objects):
+def resolve_nw_uid_to_name(uid: str, nw_objects: list[dict[str, Any]]) -> str:
     # return name of nw_objects element where obj_uid = uid
     for obj in nw_objects:
         if obj['obj_uid'] == uid:
@@ -196,7 +197,7 @@ def resolve_nw_uid_to_name(uid, nw_objects):
     return 'ERROR: uid "' + uid + '" not found'
 
 
-def add_member_names_for_nw_group(idx, nw_objects):
+def add_member_names_for_nw_group(idx: int, nw_objects: list[dict[str, Any]]) -> None:
     group = nw_objects.pop(idx)
     if group['obj_member_refs'] == '' or group['obj_member_refs'] is None:
         #member_names = None
@@ -213,7 +214,7 @@ def add_member_names_for_nw_group(idx, nw_objects):
     nw_objects.insert(idx, group)
 
 
-def validate_ip_address(address):
+def validate_ip_address(address: str) -> bool:
     try:
         # ipaddress.ip_address(address)
         ipaddress.ip_network(address)
@@ -224,7 +225,7 @@ def validate_ip_address(address):
         # print("IP address {} is not valid".format(address)) 
 
 
-def get_ip_of_obj(obj, mgm_id=None):
+def get_ip_of_obj(obj: dict[str, Any], mgm_id: int | None = None) -> str | None:
     if 'ipv4-address' in obj:
         ip_addr = obj['ipv4-address']
     elif 'ipv6-address' in obj:
@@ -255,11 +256,11 @@ def get_ip_of_obj(obj, mgm_id=None):
     return ip_addr
 
 
-def make_host(ip_in) -> str | None:
-    ip_obj = ipaddress.ip_address(ip_in)
+def make_host(ip_in: str) -> str | None:
+    ip_obj: ipaddress.IPv4Address | ipaddress.IPv6Address = ipaddress.ip_address(ip_in)
     
     # If it's a valid address, append the appropriate CIDR notation
     if isinstance(ip_obj, ipaddress.IPv4Address):
         return f"{ip_in}/32"
-    elif isinstance(ip_obj, ipaddress.IPv6Address):
+    elif isinstance(ip_obj, ipaddress.IPv6Address): # TODO: check if just else is sufficient # type: ignore
         return f"{ip_in}/128"

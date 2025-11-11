@@ -236,7 +236,7 @@ def deserializeClassToDictRecursively(obj: Any, seen: set[int] | None = None) ->
         return obj
 
 
-def cidrToRange(ip: str) -> list[str]: # TODO: I have no idea what other than string it could be
+def cidrToRange(ip: str | None) -> list[str] | list[None]: # TODO: I have no idea what other than string it could be
     logger = getFwoLogger()
 
     if isinstance(ip, str): # type: ignore

@@ -154,6 +154,10 @@ def _safe_close_connection(conn: Optional[GenericDriver]) -> None:
     if conn is None:
         return
     
+    if not conn.isalive():
+        logger.debug("Connection already closed")
+        return
+    
     try:
         conn.send_command("exit")
     except Exception as e:
@@ -198,8 +202,8 @@ def _log_retry_attempt(attempt: int, max_retries: int) -> None:
     logger = getFwoLogger()
     
     if attempt > 0:
-        backoff_time = 2 ** attempt
-        logger.info(f"Retry attempt {attempt + 1}/{max_retries} after {backoff_time:.2f} seconds backoff")
+        backoff_time = 2 ** (attempt + 1)
+        logger.info(f"Retry attempt {attempt + 1}/{max_retries} after {backoff_time} seconds backoff")
         time.sleep(backoff_time)
     else:
         logger.debug(f"Connection attempt {attempt + 1}/{max_retries}")
@@ -262,13 +266,13 @@ def _attempt_connection(mgm_details: ManagementController, is_virtual_asa: bool,
         raise FwoImporterError(error_msg) from e
 
 
-def load_config_from_management(mgm_details: ManagementController, is_virtual_asa: bool, max_retries: int = 8) -> str:
+def load_config_from_management(mgm_details: ManagementController, is_virtual_asa: bool, max_retries: int = 10) -> str:
     """Load ASA configuration from the management device using SSH with exponential backoff retry.
 
     Args:
         mgm_details: ManagementController object with connection details.
         is_virtual_asa: Boolean indicating if the device is a virtual ASA inside of a FirePower instance.
-        max_retries: Maximum number of retry attempts (default: 8).
+        max_retries: Maximum number of retry attempts (default: 10).
 
     Returns:
         The raw configuration as a string.

@@ -4,7 +4,7 @@ import json
 import requests
 import time
 from datetime import datetime
-from typing import Any
+from typing import Any, List
 
 from fwo_exceptions import FwLoginFailed, FwApiError, FwApiResponseDecodingError, FwoImporterError
 from fwo_log import getFwoLogger
@@ -17,7 +17,7 @@ from services.service_provider import ServiceProvider
 from services.enums import Services
 from fwo_api_call import FwoApiCall, FwoApi
 
-def cp_api_call(url, command, json_payload, sid, show_progress=False):
+def cp_api_call(url: str, command: str, json_payload: dict[str, Any], sid: str, show_progress: bool=False):
     url += command
     request_headers = {'Content-Type' : 'application/json'}
     if sid != '': # only not set for login
@@ -30,7 +30,7 @@ def cp_api_call(url, command, json_payload, sid, show_progress=False):
 
     try:
          r = requests.post(url, json=json_payload, headers=request_headers, verify=fwo_globals.verify_certs)
-    except requests.exceptions.RequestException as e:
+    except requests.exceptions.RequestException as _:
         if 'password' in json.dumps(json_payload):
             exception_text = "\nerror while sending api_call containing credential information to url '" + str(url)
         else:
@@ -50,7 +50,7 @@ def login(mgm_details: ManagementController):
     logger = getFwoLogger()
     payload = {'user': mgm_details.ImportUser, 'password': mgm_details.Secret}
     domain = mgm_details.getDomainString()
-    if domain is not None and domain != '':
+    if domain is not None and domain != '': # type: ignore # TODO: shouldnt be None
         payload.update({'domain': domain})
     base_url = mgm_details.buildFwApiString()
     if int(fwo_globals.debug_level)>2:
@@ -62,7 +62,7 @@ def login(mgm_details: ManagementController):
     return response["sid"]
 
 
-def logout(url, sid):
+def logout(url: str, sid: str):
     logger = getFwoLogger()
     if int(fwo_globals.debug_level)>2:
         logger.debug("logout from url " + url)
@@ -70,7 +70,7 @@ def logout(url, sid):
     return response
 
 
-def get_changes(sid,api_host,api_port,fromdate):
+def get_changes(sid: str, api_host: str, api_port: int, fromdate: str) -> int:
     logger = getFwoLogger()
     
     dt_object = datetime.fromisoformat(fromdate)
@@ -118,7 +118,7 @@ def get_changes(sid,api_host,api_port,fromdate):
     return 0
 
 
-def get_policy_structure(api_v_url, sid, show_params_policy_structure, managerDetails, policy_structure = None):
+def get_policy_structure(api_v_url: str, sid: str, show_params_policy_structure: dict[str, Any], managerDetails: ManagementController, policy_structure: list[dict[str, Any]] | None = None) -> int:
 
     if policy_structure is None:
         policy_structure = []
@@ -142,7 +142,7 @@ def get_policy_structure(api_v_url, sid, show_params_policy_structure, managerDe
 
     return 0
 
-def get_show_packages_via_api(api_v_url, sid, show_params_policy_structure):
+def get_show_packages_via_api(api_v_url: str, sid: str, show_params_policy_structure: dict[str, Any]) -> tuple[dict[str, Any], int, int]:
     try:
         packages = cp_api_call(api_v_url, 'show-packages', show_params_policy_structure, sid)
     except Exception:
@@ -169,13 +169,13 @@ def get_show_packages_via_api(api_v_url, sid, show_params_policy_structure):
             raise FwApiError('packages do not contain to field')
     return packages, current, total
 
-def parse_package(package, managerDetails):
+def parse_package(package: dict[str, Any], managerDetails: ManagementController) -> tuple[dict[str, Any], bool]:
     alreadyFetchedPackage = False
     currentPackage = {}
     if 'installation-targets' in package and package['installation-targets'] == 'all':
         if not alreadyFetchedPackage:
             
-            currentPackage = { 'name': package['name'],
+            currentPackage: dict[str, Any] = { 'name': package['name'],
                                 'uid': package['uid'],
                                 'targets': [{'name': 'all', 'uid': 'all'}],
                                 'access-layers': []}
@@ -198,7 +198,7 @@ def parse_package(package, managerDetails):
                 logger.warning ( 'installation target in package: ' + package['uid'] + ' is missing name or uid')
     return currentPackage, alreadyFetchedPackage
 
-def is_valid_installation_target(installationTarget, managerDetails):
+def is_valid_installation_target(installationTarget: dict[str, Any], managerDetails: ManagementController) -> bool:
     """ensures that target is defined as gateway in database"""
     if 'target-name' in installationTarget and 'target-uid' in installationTarget:
         for device in managerDetails.Devices:
@@ -206,7 +206,7 @@ def is_valid_installation_target(installationTarget, managerDetails):
                 return True
     return False
 
-def add_access_layers_to_current_package(package, currentPackage):
+def add_access_layers_to_current_package(package: dict[str, Any], currentPackage: dict[str, Any]) -> None:
 
     if 'access-layers' in package:
         for accessLayer in package['access-layers']:
@@ -217,12 +217,12 @@ def add_access_layers_to_current_package(package, currentPackage):
             else:
                 raise FwApiError('access layer in package: ' + package['uid'] + ' is missing name or uid')
 
-def get_global_assignments(api_v_url, sid, show_params_policy_structure) -> list[Any]:
+def get_global_assignments(api_v_url: str, sid: str, show_params_policy_structure: dict[str, Any]) -> list[Any]:
     logger = getFwoLogger()
     current=0
     total=current+1
     show_params_policy_structure.update({'offset': current})
-    global_assignments = []
+    global_assignments: list[dict[str, Any]] = []
 
     while (current<total):
         try:
@@ -254,7 +254,7 @@ def get_global_assignments(api_v_url, sid, show_params_policy_structure) -> list
         for assignment in assignments['objects']:
             if 'type' not in assignment and assignment['type'] != 'global-assignment':
                 raise FwoImporterError ('global assignment with unexpected type')
-            global_assignment = {
+            global_assignment: dict[str, Any] = {
                 'uid': assignment['uid'],
                 'global-domain': {
                     'uid': assignment['global-domain']['uid'],
@@ -271,7 +271,9 @@ def get_global_assignments(api_v_url, sid, show_params_policy_structure) -> list
     return global_assignments
                         
 
-def get_rulebases(api_v_url, sid, show_params_rules, nativeConfigDomain, deviceConfig, policy_rulebases_uid_list, is_global=False, access_type='access', rulebaseUid=None, rulebaseName=None):
+def get_rulebases(api_v_url: str, sid: str, show_params_rules: dict[str, Any], nativeConfigDomain: dict[str, Any] | None,
+                  deviceConfig: dict[str, Any] | None, policy_rulebases_uid_list: list[str], is_global: bool = False,
+                  access_type: str = 'access', rulebaseUid: str | None = None, rulebaseName: str | None = None) -> list[str]:
     
     # access_type: access / nat
     logger = getFwoLogger()
@@ -297,10 +299,10 @@ def get_rulebases(api_v_url, sid, show_params_rules, nativeConfigDomain, deviceC
         rulebaseUid = get_uid_of_rulebase(rulebaseName, api_v_url, access_type, sid)
     else:
         logger.error('must provide either rulebaseUid or rulebaseName')
-    policy_rulebases_uid_list.append(rulebaseUid)
+    policy_rulebases_uid_list.append(rulebaseUid) #type: ignore # TODO: get_uid_of_rulebase can return None but in theory should not
     
     # search all rulebases in nativeConfigDomain and import if rulebase is not already fetched
-    fetchedRulebaseList = []
+    fetchedRulebaseList: list[str] = []
     for fetchedRulebase in nativeConfigDomain[nativeConfigRulebaseKey]:
         fetchedRulebaseList.append(fetchedRulebase['uid'])
         if fetchedRulebase['uid'] == rulebaseUid:
@@ -309,7 +311,7 @@ def get_rulebases(api_v_url, sid, show_params_rules, nativeConfigDomain, deviceC
 
     # get rulebase in chunks
     if rulebaseUid not in fetchedRulebaseList:
-        current_rulebase = get_rulebases_in_chunks(rulebaseUid, show_params_rules, api_v_url, access_type, sid, nativeConfigDomain)
+        current_rulebase = get_rulebases_in_chunks(rulebaseUid, show_params_rules, api_v_url, access_type, sid, nativeConfigDomain) #type: ignore # TODO: rulebaseUid can be None but in theory should not
         nativeConfigDomain[nativeConfigRulebaseKey].append(current_rulebase)
 
     # use recursion to get inline layers
@@ -319,9 +321,9 @@ def get_rulebases(api_v_url, sid, show_params_rules, nativeConfigDomain, deviceC
     return policy_rulebases_uid_list
 
 
-def get_uid_of_rulebase(rulebaseName, api_v_url, access_type, sid):
+def get_uid_of_rulebase(rulebaseName: str, api_v_url: str, access_type: str, sid: str) -> str | None: # TODO: what happens if rulebaseUid None? Error?
     rulebaseUid = None
-    get_rulebase_uid_params = {
+    get_rulebase_uid_params: dict[str, Any] = {
         'name': rulebaseName,
         'limit': 1,
         'use-object-dictionary': False,
@@ -337,9 +339,9 @@ def get_uid_of_rulebase(rulebaseName, api_v_url, access_type, sid):
     return rulebaseUid
 
 
-def get_rulebases_in_chunks(rulebaseUid, show_params_rules, api_v_url, access_type, sid, nativeConfigDomain):
+def get_rulebases_in_chunks(rulebaseUid: str, show_params_rules: dict[str, Any], api_v_url: str, access_type: str, sid: str, nativeConfigDomain: dict[str, Any]) -> dict[str, Any]:
 
-    current_rulebase = {'uid': rulebaseUid, 'name': '', 'chunks': []}
+    current_rulebase: dict[str, Any] = {'uid': rulebaseUid, 'name': '', 'chunks': []}
     show_params_rules.update({'uid': rulebaseUid})
     current=0
     total=current+1
@@ -369,9 +371,9 @@ def get_rulebases_in_chunks(rulebaseUid, show_params_rules, api_v_url, access_ty
 
     return current_rulebase
 
-def resolve_checkpoint_uids_via_object_dict(rulebase, nativeConfigDomain,
-                                            current_rulebase,
-                                            rulebaseUid, show_params_rules):
+def resolve_checkpoint_uids_via_object_dict(rulebase: dict[str, Any], nativeConfigDomain: dict[str, Any],
+                                            current_rulebase: dict[str, Any],
+                                            rulebaseUid: str, show_params_rules: dict[str, Any]) -> None:
     """
     Checkpoint stores some rulefields as uids, function translates them to names
     """
@@ -387,7 +389,7 @@ def resolve_checkpoint_uids_via_object_dict(rulebase, nativeConfigDomain,
                      + rulebaseUid + ", params: " + str(show_params_rules))
         
 
-def control_while_loop_in_get_rulebases_in_chunks(current_rulebase, rulebase, sid, api_v_url, show_params_rules):
+def control_while_loop_in_get_rulebases_in_chunks(current_rulebase: dict[str, Any], rulebase: dict[str, Any], sid: str, api_v_url: str, show_params_rules: dict[str, Any]) -> tuple[int, int]:
     total=0
     if 'total' in rulebase:
         total=rulebase['total']
@@ -410,7 +412,7 @@ def control_while_loop_in_get_rulebases_in_chunks(current_rulebase, rulebase, si
     return total, current
 
 
-def get_inline_layers_recursively(current_rulebase, deviceConfig, nativeConfigDomain, api_v_url, sid, show_params_rules, is_global, policy_rulebases_uid_list):
+def get_inline_layers_recursively(current_rulebase: dict[str, Any], deviceConfig: dict[str, Any], nativeConfigDomain: dict[str, Any], api_v_url: str, sid: str, show_params_rules: dict[str, Any], is_global: bool, policy_rulebases_uid_list: list[str]) -> list[str]:
     """Takes current_rulebase, splits sections into sub-rulebases and searches for layerguards to fetch
     """
     current_rulebase_uid = current_rulebase['uid']
@@ -445,7 +447,7 @@ def get_inline_layers_recursively(current_rulebase, deviceConfig, nativeConfigDo
     return policy_rulebases_uid_list
 
 
-def section_traversal_and_links(section, current_rulebase_uid, deviceConfig, is_global):
+def section_traversal_and_links(section: dict[str, Any], current_rulebase_uid: str, deviceConfig: dict[str, Any], is_global: bool) -> tuple[dict[str, Any], str]:
     """If section is actually rule, fake it to be section and link sections as self-contained rulebases
     """
 
@@ -481,7 +483,7 @@ def section_traversal_and_links(section, current_rulebase_uid, deviceConfig, is_
     return section, current_rulebase_uid
 
 
-def get_placeholder_in_rulebase(rulebase):
+def get_placeholder_in_rulebase(rulebase: dict[str, Any]) -> tuple[str | None, str | None]:
 
     placeholder_rule_uid = None
     placeholder_rulebase_uid = None
@@ -492,7 +494,7 @@ def get_placeholder_in_rulebase(rulebase):
 
                 # if no section is used, use dummy section
                 if section['type'] != 'access-section':
-                    section = {
+                    section: dict[str, Any] = {
                         'type': 'access-section',
                         'rulebase': [section]
                         }
@@ -504,7 +506,7 @@ def get_placeholder_in_rulebase(rulebase):
 
     return placeholder_rule_uid, placeholder_rulebase_uid
 
-def assign_placeholder_uids(rulebase, section, rule, placeholder_rule_uid, placeholder_rulebase_uid):
+def assign_placeholder_uids(rulebase: dict[str, Any], section: dict[str, Any], rule: dict[str, Any], placeholder_rule_uid: str | None, placeholder_rulebase_uid: str | None) -> tuple[str | None, str | None]:
     if rule['type'] == 'place-holder':
         placeholder_rule_uid = rule['uid']
         if 'uid' in section:
@@ -514,9 +516,9 @@ def assign_placeholder_uids(rulebase, section, rule, placeholder_rule_uid, place
     return placeholder_rule_uid, placeholder_rulebase_uid
     
                             
-def get_nat_rules_from_api_as_dict (api_v_url, sid, show_params_rules, nativeConfigDomain={}):
+def get_nat_rules_from_api_as_dict (api_v_url: str, sid: str, show_params_rules: dict[str, Any], nativeConfigDomain: dict[str, Any]={}):
     logger = getFwoLogger()
-    nat_rules = { "nat_rule_chunks": [] }
+    nat_rules: dict[str, List[Any]] = { "nat_rule_chunks": [] }
     current=0
     total=current+1
     while (current<total) :
@@ -544,14 +546,14 @@ def get_nat_rules_from_api_as_dict (api_v_url, sid, show_params_rules, nativeCon
     return nat_rules
 
 
-def find_element_by_uid(array, uid):
+def find_element_by_uid(array: dict[str, Any], uid: str | None) -> dict[str, Any] | None: # TODO: How is this an array?
     for el in array:
         if 'uid' in el and el['uid']==uid:
             return el
     return None
 
 
-def resolve_ref_from_object_dictionary(uid, objDict, native_config_domain={}, field_name=None):
+def resolve_ref_from_object_dictionary(uid: str | None, objDict: dict[str, Any], native_config_domain: dict[str, Any]={}, field_name: str | None=None) -> dict[str, Any] | None:
 
     matched_obj = find_element_by_uid(objDict, uid)
         
@@ -582,9 +584,10 @@ def resolve_ref_from_object_dictionary(uid, objDict, native_config_domain={}, fi
 
 # resolving all uid references using the object dictionary
 # dealing with a single chunk
-def resolve_ref_list_from_object_dictionary(rulebase, value, objDict={}, nativeConfigDomain={}):
-    if 'objects-dictionary' in rulebase:
-        objDict = rulebase['objects-dictionary']
+def resolve_ref_list_from_object_dictionary(rulebase: list[dict[str, Any]] | dict[str, Any], value: str, objDict: dict[str, Any]={}, nativeConfigDomain: dict[str, Any]={}): # TODO: what is objDict: I think it should be a list of dicts
+    if isinstance(rulebase, dict):
+        if 'objects-dictionary' in rulebase:
+            objDict = rulebase['objects-dictionary']
     if isinstance(rulebase, list): # found a list of rules
         for rule in rulebase:
             if value in rule:
@@ -595,8 +598,8 @@ def resolve_ref_list_from_object_dictionary(rulebase, value, objDict={}, nativeC
         resolve_ref_list_from_object_dictionary(rulebase['rulebase'], value, objDict=objDict, nativeConfigDomain=nativeConfigDomain)
 
 
-def categorize_value_for_resolve_ref(rule, value, objDict, nativeConfigDomain):
-    value_list = []
+def categorize_value_for_resolve_ref(rule: dict[str, Any], value: str, objDict: dict[str, Any], nativeConfigDomain: dict[str, Any]):
+    value_list: list[Any] = []
     if isinstance(rule[value], str): # assuming single uid
         rule[value] = resolve_ref_from_object_dictionary(rule[value], objDict, native_config_domain=nativeConfigDomain, field_name=value)
     else:

@@ -9,6 +9,7 @@ using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 using FWO.Config.Api;
 using System.Reflection;
+using FWO.Test.Tools.CustomAssert;
 
 namespace FWO.Test
 {
@@ -300,60 +301,23 @@ namespace FWO.Test
         {
             // Arrange
 
-            ApiConnection? apiConnection = Substitute.For<ApiConnection>();
+            MockApiConnection mock = new();
+            ApiConnection apiConnection = mock;
             GlobalConfig globalConfig = new GlobalConfig { AutoCalculateInternetZone = true, AutoCalculateUndefinedInternalZone = true };
 
-            List<(string, object)> sentQueries = new();
+            List<ComplianceNetworkZone> predefinedZones = TestDataGenerator.CreateComplianceNetworkZones(4, false, false);
+            ComplianceNetworkZone zoneOne = predefinedZones.First();
+            ComplianceNetworkZone internetZoneDummy = predefinedZones.Last();
+            internetZoneDummy.IdString = "AUTO_CALCULATED_ZONE_INTERNET";
+            internetZoneDummy.AllowedCommunicationDestinations = [zoneOne];
 
-            ComplianceNetworkZone zoneOne = new ComplianceNetworkZone
-            {
-                Id = 1,
-                IdString = "zone_one",
-                Name = "Zone 1"
-            };
-
-            ComplianceNetworkZone internetZoneDummy = new ComplianceNetworkZone
-            {
-                Id = 4,
-                IdString = "AUTO_CALCULATED_ZONE_INTERNET",
-                Name = "Auto-calculated Internet Zone",
-                AllowedCommunicationDestinations = [zoneOne]
-            };
-
-            List<ComplianceNetworkZone> predefinedZones =
-                [
-                    zoneOne,
-                    new ComplianceNetworkZone
-                    {
-                        Id = 2,
-                        IdString = "zone_two",
-                        Name = "Zone 2"
-                    },
-                    new ComplianceNetworkZone
-                    {
-                        Id = 3,
-                        IdString = "zone_three",
-                        Name = "Zone 3"
-                    },
-                    internetZoneDummy
-                ];
-
-            apiConnection
+            mock.Sub
                 .SendQueryAsync<List<ComplianceNetworkZone>>(
                     ComplianceQueries.getNetworkZonesForMatrix,
                     Arg.Any<object>())
                 .Returns(Task.FromResult(predefinedZones));
 
-            apiConnection
-                .When(x => x.SendQueryAsync<dynamic>(Arg.Any<string>(), Arg.Any<object>()))
-                .Do(callInfo =>
-                {
-                    string sentQuery = callInfo.ArgAt<string>(0);
-                    object sentVariables = callInfo.ArgAt<object>(1);
-                    sentQueries.Add((sentQuery, sentVariables));
-                });
-
-            apiConnection
+            mock.Sub
                 .SendQueryAsync<dynamic>(
                     Arg.Is<string>(q => q == ComplianceQueries.addNetworkZone),
                     Arg.Any<object>())
@@ -375,18 +339,19 @@ namespace FWO.Test
 
             // Assert
 
-            Assert.That(sentQueries.Count == 2);
+            Assert.That(mock.SentQueries.Count == 2);
 
-            (string, object) firstSentQuery = sentQueries.First();
+            (string, object) firstSentQuery = mock.SentQueries.ElementAt(0);
             Assert.That(firstSentQuery.Item1 == ComplianceQueries.addNetworkZone);
-            Assert.That((bool)GetFromDynamic(firstSentQuery.Item2, "isAutoCalculatedUndefinedInternalZone")!);
+            AssertThatGeneric.PropertyIsTrue(firstSentQuery.Item2, "isAutoCalculatedUndefinedInternalZone");
 
-            (string, object) secondSentQuery = sentQueries.ElementAt(1);
+            (string, object) secondSentQuery = mock.SentQueries.ElementAt(1);
             Assert.That(secondSentQuery.Item1 == ComplianceQueries.updateNetworkZone);
-            Assert.That((int)GetFromDynamic(secondSentQuery.Item2, "networkZoneId")! == 4);
+            AssertThatGeneric.PropertyIsTrue(secondSentQuery.Item2, "isAutoCalculatedInternetZone");
+            AssertThatGeneric.PropertyIsEqual(secondSentQuery.Item2, "networkZoneId", 4);
         }
         
-        private static object? GetFromDynamic(object o, string name) => o.GetType().GetProperty(name)?.GetValue(o);
+        private static object? GetFromGeneric(object o, string name) => o.GetType().GetProperty(name)?.GetValue(o);
 
     }
 }

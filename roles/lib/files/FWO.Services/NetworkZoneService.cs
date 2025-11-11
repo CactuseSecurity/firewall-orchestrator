@@ -182,7 +182,8 @@ namespace FWO.Services
                 ),
                 addZoneCommunication = addZoneCommunication,
                 deleteZoneCommunicationExp = deleteZoneCommunicationExp,
-                removed = DateTime.UtcNow
+                removed = DateTime.UtcNow,
+                isAutoCalculatedInternetZone = networkZone.IsAutoCalculatedInternetZone
             };
 
             await apiConnection.SendQueryAsync<dynamic>(ComplianceQueries.updateNetworkZone, variables);

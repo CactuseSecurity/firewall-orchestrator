@@ -188,7 +188,7 @@ namespace FWO.Test
         [Test]
         public void Filter_InvokesSanitizer_ForUrlParameter()
         {
-            var sanitizerMock = new Mock<IUrlSanitizer>();
+            var sanitizerMock = new Moq.Mock<IUrlSanitizer>();
             sanitizerMock.Setup(s => s.Clean(It.IsAny<string>())).Returns("https://safe.test/");
 
             var filter = new SanitizeUrlFilter(sanitizerMock.Object);
@@ -199,7 +199,7 @@ namespace FWO.Test
 
             var actionContext = new ActionContext(httpContext, new Microsoft.AspNetCore.Routing.RouteData(), new ActionDescriptor());
             var actionArguments = new Dictionary<string, object> { { "url", "http://evil.com" } };
-            var mockController = new Mock<Controller>();
+            var mockController = new Moq.Mock<Controller>();
             var ctx = new ActionExecutingContext(actionContext, new List<IFilterMetadata>(), (IDictionary<string, object?>)actionArguments, mockController.Object);
 
             filter.OnActionExecuting(ctx);

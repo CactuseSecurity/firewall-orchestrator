@@ -49,7 +49,7 @@ def _connect_to_device(mgm_details: ManagementController) -> GenericDriver:
     return conn
 
 
-def _prepare_virtual_asa(conn: GenericDriver):
+def _prepare_virtual_asa(conn: GenericDriver) -> None:
     """Connect to ASA module on virtual device.
     
     Args:
@@ -78,7 +78,7 @@ def _get_current_prompt(conn: GenericDriver) -> str:
         return ""
 
 
-def _ensure_enable_mode(conn: GenericDriver, mgm_details: ManagementController):
+def _ensure_enable_mode(conn: GenericDriver, mgm_details: ManagementController) -> None:
     """Ensure device is in enabled mode.
     
     Args:
@@ -104,10 +104,14 @@ def _ensure_enable_mode(conn: GenericDriver, mgm_details: ManagementController):
         except Exception as e:
             logger.warning(f"Could not enter enable mode: {e}")
             current_prompt = _get_current_prompt(conn)
-            if not current_prompt.endswith("#"):
-                raise
-    
-    
+            if current_prompt == "":  
+                error_msg = "Could not retrieve prompt after attempting to enter enable mode."  
+                logger.error(error_msg)
+                raise FwoImporterError(error_msg) from e
+            elif not current_prompt.endswith("#"):
+                raise FwoImporterError("Failed to enter enable mode.")
+
+
     current_prompt = _get_current_prompt(conn)
     if not current_prompt.endswith("#"):
         error_msg = f"Not in enabled mode (prompt: {current_prompt})."
@@ -140,7 +144,7 @@ def _get_running_config(conn: GenericDriver) -> str:
     return response.result.strip()
 
 
-def _safe_close_connection(conn: Optional[GenericDriver]):
+def _safe_close_connection(conn: Optional[GenericDriver]) -> None:
     """Safely close connection with proper cleanup.
     
     Args:
@@ -184,7 +188,7 @@ def _handle_connection_error(e: Exception, mgm_details: ManagementController, at
     return error_msg
 
 
-def _log_retry_attempt(attempt: int, max_retries: int):
+def _log_retry_attempt(attempt: int, max_retries: int) -> None:
     """Log retry attempt with exponential backoff.
     
     Args:
@@ -216,28 +220,7 @@ def _retrieve_config_from_device(conn: GenericDriver, mgm_details: ManagementCon
         _prepare_virtual_asa(conn)
     
     _ensure_enable_mode(conn, mgm_details)
-    return _get_running_config(conn)
-
-
-def _log_and_raise_error(error_msg: str, attempt: int, max_retries: int):
-    """Log appropriate error message and raise exception.
-    
-    Args:
-        error_msg: Base error message.
-        is_transient: Whether error is transient.
-        attempt: Current attempt number.
-        max_retries: Maximum retry attempts.
-        
-    Raises:
-        FwoImporterError: Always raised with appropriate message.
-    """
-    logger = getFwoLogger()
-    
-    if attempt < max_retries - 1:
-        logger.warning(error_msg + "\nWill retry...")
-    else:
-        logger.error(error_msg + "\nMax retries exhausted.")
-    raise FwoImporterError(error_msg)
+    return _get_running_config(conn)    
 
 
 def _attempt_connection(mgm_details: ManagementController, is_virtual_asa: bool, attempt: int, max_retries: int) -> str:
@@ -272,8 +255,11 @@ def _attempt_connection(mgm_details: ManagementController, is_virtual_asa: bool,
         _safe_close_connection(conn)
         error_msg = _handle_connection_error(e, mgm_details, attempt, max_retries)
         
-        _log_and_raise_error(error_msg, attempt, max_retries)
-        raise  # For type checker - will never reach here
+        if attempt < max_retries - 1:
+            logger.warning(error_msg + "\nWill retry...")
+        else:
+            logger.error(error_msg + "\nMax retries exhausted.")
+        raise FwoImporterError(error_msg) from e
 
 
 def load_config_from_management(mgm_details: ManagementController, is_virtual_asa: bool, max_retries: int = 8) -> str:
@@ -289,22 +275,15 @@ def load_config_from_management(mgm_details: ManagementController, is_virtual_as
         
     Raises:
         FwoImporterError: After all retry attempts are exhausted.
-    """
-    last_exception = None
-    
+    """    
     for attempt in range(max_retries):
         _log_retry_attempt(attempt, max_retries)
         
         try:
             return _attempt_connection(mgm_details, is_virtual_asa, attempt, max_retries)
         except FwoImporterError as e:
-            last_exception = e
             if attempt >= max_retries - 1:
                 raise
-    
-    # Fallback if all retries exhausted without raising
-    if last_exception:
-        raise last_exception
     raise FwoImporterError(f"Failed to connect to device {mgm_details.Hostname} after {max_retries} attempts")
 
 

@@ -95,8 +95,16 @@ Note that the following domains (and their sub-domains) must be reachable throug
     pythonhosted.org (and sub-domains)
     snapcraft.io
     snapcraftcontent.com (and sub-domains)
-    visualstudio.com (for vscode-debugging only)
 
+For vscode-debugging only - most are needed for downloading extensions
+
+    visualstudio.com
+    vsassets.io (and subdomains)
+    digicert.com (and subdomains)
+    dot.net (and subdomains) 
+    windows.net (and subdomains)
+    applicationinsights.azure.com (and subdomains)
+    exp-tas.com (and subdomains)
 
 
 #### Pyhton proxy config

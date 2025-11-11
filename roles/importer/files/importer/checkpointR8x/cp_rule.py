@@ -143,7 +143,7 @@ def parse_rulebase(rulebase_to_parse: dict[str, Any], is_section: bool, is_place
     else:
         parse_rulebase_chunk(rulebase_to_parse, normalized_rulebase, gateway, policy_structure)                    
 
-def parse_rulebase_chunk(rulebase_to_parse, normalized_rulebase, gateway, policy_structure):
+def parse_rulebase_chunk(rulebase_to_parse: dict[str, Any], normalized_rulebase: Rulebase, gateway: dict[str, Any], policy_structure: dict[str, Any]):
     logger = getFwoLogger()
     for chunk in rulebase_to_parse['chunks']:
         for rule in chunk['rulebase']:
@@ -154,7 +154,7 @@ def parse_rulebase_chunk(rulebase_to_parse, normalized_rulebase, gateway, policy
     return
  
 
-def acceptMalformedParts(objects: dict, part: str ='') -> dict[str, Any]:
+def acceptMalformedParts(objects: dict[str, Any] | list[dict[str, Any]], part: str ='') -> dict[str, Any]:
     if fwo_globals.debug_level>9:
         logger.debug(f'about to accept malformed rule part ({part}): {str(objects)}')
 
@@ -179,12 +179,12 @@ def acceptMalformedParts(objects: dict, part: str ='') -> dict[str, Any]:
         return {}
 
 
-def parseRulePart (objects: dict[str, Any] | list[dict[str, Any]] | None, part: str = 'source') -> dict[str, Any] | None:
+def parseRulePart (objects: dict[str, Any] | list[dict[str, Any] | None] | None, part: str = 'source') -> dict[str, Any]:
     addressObjects: dict[str, Any] = {}
 
     if objects is None:
         logger.debug(f"rule part {part} is None: {str(objects)}, which is normal for track field in inline layer guards")
-        return None
+        return None # type: ignore TODO: check if this is ok or should raise an Exception
 
     if 'chunks' in objects:  # for chunks of actions?!
         addressObjects.update(parseRulePart(objects['chunks'], part=part)) # need to parse chunk first #type: ignore #TODO: check if objects can be none
@@ -193,14 +193,11 @@ def parseRulePart (objects: dict[str, Any] | list[dict[str, Any]] | None, part: 
     if isinstance(objects, dict):
         return _parse_single_address_object(addressObjects, objects, part)
     # assuming list of objects
-    if objects is None:
-        logger.error(f'rule part {part} is None: {str(objects)}')
-        return None
     for obj in objects:
         if obj is None:
             logger.warning(f'found list with a single None obj: {str(objects)}')
             continue
-
+        if o
         if 'chunks' in obj:
             addressObjects.update(parseRulePart(obj['chunks'], part=part)) # need to parse chunk first
         elif 'objects' in obj:
@@ -211,7 +208,7 @@ def parseRulePart (objects: dict[str, Any] | list[dict[str, Any]] | None, part: 
             if 'type' in obj: # found checkpoint object
                 _parse_obj_with_type(obj, addressObjects)
             else:
-                return acceptMalformedParts(objects, part=part)
+                return acceptMalformedParts(objects, part=part) # type: ignore # TODO: check if this is ok or should raise an Exception
 
     if '' in addressObjects.values():
         logger.warning('found empty name in one rule part (' + part + '): ' + str(addressObjects))

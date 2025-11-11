@@ -7,6 +7,7 @@ orchestrate the normalization process.
 """
 
 from pathlib import Path
+from typing import Optional
 from scrapli.driver import GenericDriver
 import time
 
@@ -24,28 +25,6 @@ from fwo_exceptions import FwoImporterError
 def has_config_changed(full_config, mgm_details, force=False):
     # We don't get this info from ASA, so we always return True
     return True
-
-
-def _is_transient_error(error: Exception) -> bool:
-    """Determine if an error is transient and worth retrying.
-    
-    Args:
-        error: The exception that occurred.
-        
-    Returns:
-        True if the error appears to be transient (network, timeout, concurrent access).
-    """
-    error_str = str(error).lower()
-    transient_indicators = [
-        "timeout",
-        "connection",
-        "already in use",
-        "concurrent",
-        "prompt",
-        "temporarily unavailable",
-        "resource busy"
-    ]
-    return any(indicator in error_str for indicator in transient_indicators)
 
 
 def _connect_to_device(mgm_details: ManagementController) -> GenericDriver:
@@ -82,6 +61,23 @@ def _prepare_virtual_asa(conn: GenericDriver):
     time.sleep(2)
 
 
+def _get_current_prompt(conn: GenericDriver) -> str:
+    """Get the current prompt from the device.
+    
+    Args:
+        conn: Active connection to the device.
+
+    Returns:
+        Current prompt as string.
+    """
+    try:
+        return conn.get_prompt().strip()
+    except Exception:
+        logger = getFwoLogger()
+        logger.warning("Could not get current prompt")
+        return ""
+
+
 def _ensure_enable_mode(conn: GenericDriver, mgm_details: ManagementController):
     """Ensure device is in enabled mode.
     
@@ -93,7 +89,7 @@ def _ensure_enable_mode(conn: GenericDriver, mgm_details: ManagementController):
         FwoImporterError: If unable to enter enabled mode.
     """
     logger = getFwoLogger()
-    current_prompt = conn.get_prompt()
+    current_prompt = _get_current_prompt(conn)
     logger.debug(f"Current prompt: {current_prompt}")
     
     if current_prompt.endswith(">"):
@@ -107,11 +103,12 @@ def _ensure_enable_mode(conn: GenericDriver, mgm_details: ManagementController):
             )
         except Exception as e:
             logger.warning(f"Could not enter enable mode: {e}")
-            current_prompt = conn.get_prompt()
+            current_prompt = _get_current_prompt(conn)
             if not current_prompt.endswith("#"):
                 raise
     
-    current_prompt = conn.get_prompt()
+    
+    current_prompt = _get_current_prompt(conn)
     if not current_prompt.endswith("#"):
         error_msg = f"Not in enabled mode (prompt: {current_prompt})."
         logger.error(error_msg)
@@ -143,7 +140,7 @@ def _get_running_config(conn: GenericDriver) -> str:
     return response.result.strip()
 
 
-def _safe_close_connection(conn: GenericDriver | None):
+def _safe_close_connection(conn: Optional[GenericDriver]):
     """Safely close connection with proper cleanup.
     
     Args:
@@ -222,28 +219,11 @@ def _retrieve_config_from_device(conn: GenericDriver, mgm_details: ManagementCon
     return _get_running_config(conn)
 
 
-def _should_retry(e: Exception, attempt: int, max_retries: int) -> bool:
-    """Determine if error warrants a retry.
-    
-    Args:
-        e: The exception that occurred.
-        attempt: Current attempt number.
-        max_retries: Maximum retry attempts.
-        
-    Returns:
-        True if should retry, False otherwise.
-    """
-    is_transient = _is_transient_error(e)
-    is_not_last_attempt = attempt < max_retries - 1
-    return is_transient and is_not_last_attempt
-
-
-def _log_and_raise_error(error_msg: str, is_transient: bool, attempt: int, max_retries: int):
+def _log_and_raise_error(error_msg: str, attempt: int, max_retries: int):
     """Log appropriate error message and raise exception.
     
     Args:
         error_msg: Base error message.
-        e: The original exception.
         is_transient: Whether error is transient.
         attempt: Current attempt number.
         max_retries: Maximum retry attempts.
@@ -253,14 +233,11 @@ def _log_and_raise_error(error_msg: str, is_transient: bool, attempt: int, max_r
     """
     logger = getFwoLogger()
     
-    if attempt < max_retries - 1 and is_transient:
-        logger.warning(error_msg + "\nThis appears to be a transient error, will retry...")
+    if attempt < max_retries - 1:
+        logger.warning(error_msg + "\nWill retry...")
     else:
-        if not is_transient:
-            logger.error(error_msg + "\nNon-transient error detected, not retrying.")
-        else:
-            logger.error(error_msg + "\nMax retries exhausted.")
-        raise FwoImporterError(error_msg)
+        logger.error(error_msg + "\nMax retries exhausted.")
+    raise FwoImporterError(error_msg)
 
 
 def _attempt_connection(mgm_details: ManagementController, is_virtual_asa: bool, attempt: int, max_retries: int) -> str:
@@ -294,9 +271,8 @@ def _attempt_connection(mgm_details: ManagementController, is_virtual_asa: bool,
     except Exception as e:
         _safe_close_connection(conn)
         error_msg = _handle_connection_error(e, mgm_details, attempt, max_retries)
-        is_transient = _is_transient_error(e)
         
-        _log_and_raise_error(error_msg, is_transient, attempt, max_retries)
+        _log_and_raise_error(error_msg, attempt, max_retries)
         raise  # For type checker - will never reach here
 
 
@@ -314,10 +290,6 @@ def load_config_from_management(mgm_details: ManagementController, is_virtual_as
     Raises:
         FwoImporterError: After all retry attempts are exhausted.
     """
-    logger = getFwoLogger()
-    logger.debug("Waiting 5 seconds before starting connection...")
-    time.sleep(5)
-    
     last_exception = None
     
     for attempt in range(max_retries):
@@ -327,14 +299,13 @@ def load_config_from_management(mgm_details: ManagementController, is_virtual_as
             return _attempt_connection(mgm_details, is_virtual_asa, attempt, max_retries)
         except FwoImporterError as e:
             last_exception = e
-            if not _should_retry(e, attempt, max_retries):
+            if attempt >= max_retries - 1:
                 raise
     
     # Fallback if all retries exhausted without raising
     if last_exception:
         raise last_exception
     raise FwoImporterError(f"Failed to connect to device {mgm_details.Hostname} after {max_retries} attempts")
-
 
 
 def get_config(config_in: FwConfigManagerListController, import_state: ImportStateController) -> tuple[int, FwConfigManagerList]:

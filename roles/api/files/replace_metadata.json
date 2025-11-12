@@ -14659,7 +14659,7 @@
                   }
                 },
                 {
-                  "name": "rule_destination_to_zones",
+                  "name": "rule_to_zones",
                   "using": {
                     "foreign_key_constraint_on": {
                       "column": "rule_id",
@@ -14719,7 +14719,7 @@
                   }
                 },
                 {
-                  "name": "rule_source_to_zones",
+                  "name": "rule_from_zones",
                   "using": {
                     "foreign_key_constraint_on": {
                       "column": "rule_id",
@@ -24293,7 +24293,7 @@
                   }
                 },
                 {
-                  "name": "rule_destination_to_zones",
+                  "name": "rule_to_zones",
                   "using": {
                     "foreign_key_constraint_on": {
                       "column": "zone_id",
@@ -24305,7 +24305,7 @@
                   }
                 },
                 {
-                  "name": "rule_source_to_zones",
+                  "name": "rule_from_zones",
                   "using": {
                     "foreign_key_constraint_on": {
                       "column": "zone_id",

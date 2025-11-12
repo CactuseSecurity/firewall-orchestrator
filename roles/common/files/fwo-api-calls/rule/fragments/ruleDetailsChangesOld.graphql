@@ -7,7 +7,7 @@
   rule_comment
   rule_track
   rule_disabled
-  rule_src_zones: rule_source_to_zones {
+  rule_from_zones {
       zone {
         zone_name
 		zone_id
@@ -51,7 +51,7 @@
       ...networkObjectDetailsChangesOld
     }
   }
-  rule_dst_zones: rule_destination_to_zones {
+  rule_to_zones {
     zone {
       zone_name
       zone_id

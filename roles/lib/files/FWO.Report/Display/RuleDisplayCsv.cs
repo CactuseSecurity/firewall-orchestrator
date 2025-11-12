@@ -29,7 +29,7 @@ namespace FWO.Ui.Display
 
         public string DisplaySourceZoneCsv(Rule rule)
         {
-            return OutputCsv(ListNetworkZones(rule.RuleSourceZones.Select(z => z.Content).ToArray()));
+            return OutputCsv(ListNetworkZones(rule.RuleFromZones.Select(z => z.Content).ToArray()));
         }
 
         public string DisplaySourceCsv(Rule rule, ReportType reportType)

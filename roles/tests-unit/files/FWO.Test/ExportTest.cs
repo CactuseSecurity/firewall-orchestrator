@@ -765,7 +765,7 @@ namespace FWO.Test
                 DisplayOrderNumber = 1,
                 Track = "none",
                 Uid = "uid1",
-                RuleSourceZones = srcZoneNames.Select(name => new ZoneWrapper { Content = new NetworkZone { Name = name } }).ToArray(),
+                RuleFromZones = srcZoneNames.Select(name => new ZoneWrapper { Content = new NetworkZone { Name = name } }).ToArray(),
                 SourceNegated = false,
                 Froms = InitFroms(resolved),
                 RuleDestinationZones = dstZoneNames.Select(name => new ZoneWrapper { Content = new NetworkZone { Name = name } }).ToArray(),

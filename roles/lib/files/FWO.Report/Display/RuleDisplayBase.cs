@@ -82,12 +82,12 @@ namespace FWO.Ui.Display
 
         public static string DisplaySourceZones(Rule rule)
         {
-            if (rule.RuleSourceZones.Length != 0)
+            if (rule.RuleFromZones.Length != 0)
             {
                 string ruleZones = "";
                 bool notFirst = false;
 
-                foreach (ZoneWrapper zoneWrapper in rule.RuleSourceZones)
+                foreach (ZoneWrapper zoneWrapper in rule.RuleFromZones)
                 {
                     if (notFirst)
                     {

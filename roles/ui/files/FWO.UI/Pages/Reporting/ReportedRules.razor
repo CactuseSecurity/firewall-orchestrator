@@ -97,7 +97,7 @@
         <Column TableItem="Rule" Title="@(userConfig.GetText("name"))" Field="@(r => r.Name)" Sortable="true" Filterable="false" Hideable="true" />
         @if (SelectedReportType != ReportType.VarianceAnalysis && !HandleAsVariance)
         {
-            <Column TableItem="Rule" Context="rule" Title="@(userConfig.GetText("source_zone"))" Field="@(r => r.RuleSourceZones)" Sortable="true" Filterable="false" Hideable="true">
+            <Column TableItem="Rule" Context="rule" Title="@(userConfig.GetText("source_zone"))" Field="@(r => r.RuleFromZones)" Sortable="true" Filterable="false" Hideable="true">
                 <Template>
                     @((MarkupString)RuleDisplayBase.DisplaySourceZones(rule))
                 </Template>

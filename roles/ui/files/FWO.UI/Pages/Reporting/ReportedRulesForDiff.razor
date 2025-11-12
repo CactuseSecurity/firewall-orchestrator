@@ -12,7 +12,7 @@
 
         <Column TableItem="Rule" Context="rule" Title="@(userConfig.GetText("management"))" Field="@(r => r.ManagementName)" Sortable="false" Filterable="false" Hideable="true" />
         <Column TableItem="Rule" Context="rule" Title="@(userConfig.GetText("gateway"))" Field="@(r => r.DeviceName)" Sortable="false" Filterable="false" Hideable="true" />
-        <Column TableItem="Rule" Context="rule" Title="@(userConfig.GetText("source_zone"))" Field="@(r => r.RuleSourceZones)" Sortable="true" Filterable="false" Hideable="true">
+        <Column TableItem="Rule" Context="rule" Title="@(userConfig.GetText("source_zone"))" Field="@(r => r.RuleFromZones)" Sortable="true" Filterable="false" Hideable="true">
             <Template>
                 @((MarkupString)RuleDisplayHtml.DisplaySourceZones(rule))
             </Template>

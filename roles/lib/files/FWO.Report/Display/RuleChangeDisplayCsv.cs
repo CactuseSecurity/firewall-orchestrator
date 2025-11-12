@@ -41,9 +41,9 @@ namespace FWO.Ui.Display
         {
             switch (ruleChange.ChangeAction)
             {
-                case 'D': return OutputCsv(ListNetworkZones(ruleChange.OldRule.RuleSourceZones.Select(z => z.Content).ToArray()));
-                case 'I': return OutputCsv(ListNetworkZones(ruleChange.NewRule.RuleSourceZones.Select(z => z.Content).ToArray()));
-                case 'C': return OutputCsv(DisplayDiff(ListNetworkZones(ruleChange.OldRule.RuleSourceZones.Select(z => z.Content).ToArray()), ListNetworkZones(ruleChange.NewRule.RuleSourceZones.Select(z => z.Content).ToArray())));
+                case 'D': return OutputCsv(ListNetworkZones(ruleChange.OldRule.RuleFromZones.Select(z => z.Content).ToArray()));
+                case 'I': return OutputCsv(ListNetworkZones(ruleChange.NewRule.RuleFromZones.Select(z => z.Content).ToArray()));
+                case 'C': return OutputCsv(DisplayDiff(ListNetworkZones(ruleChange.OldRule.RuleFromZones.Select(z => z.Content).ToArray()), ListNetworkZones(ruleChange.NewRule.RuleFromZones.Select(z => z.Content).ToArray())));
                 default: return ",";
             }
         }

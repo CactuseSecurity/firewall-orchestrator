@@ -40,6 +40,10 @@ namespace FWO.Compliance
         private readonly ApiConnection _apiConnection;
         private readonly UserConfig _userConfig;
 
+        private bool _treatDomainAndDynamicObjectsAsInternet = false;
+        private bool _autoCalculatedInternetZoneActive = false;
+        private int _complianceCheckPolicyId = 0;
+
         /// <summary>
         /// Constructor for compliance check
         /// </summary>
@@ -66,25 +70,31 @@ namespace FWO.Compliance
             {
                 Log.TryWriteLog(LogType.Info, "Compliance Check", "Starting compliance check.", LocalSettings.ComplianceCheckVerbose);
 
-                if (_userConfig.GlobalConfig == null)
+                GlobalConfig? globalConfig = _userConfig.GlobalConfig;
+
+                if (globalConfig == null)
                 {
                     Log.WriteInfo("Compliance Check", "Global config is necessary for compliance check, but was not found. Aborting compliance check.");
                     return;
                 }
 
-                if (_userConfig.GlobalConfig.ComplianceCheckPolicyId == 0)
+                _complianceCheckPolicyId = globalConfig.ComplianceCheckPolicyId;
+                _autoCalculatedInternetZoneActive = globalConfig.AutoCalculateInternetZone;
+                _treatDomainAndDynamicObjectsAsInternet = globalConfig.TreatDynamicAndDomainObjectsAsInternet;
+
+                if (_complianceCheckPolicyId == 0)
                 {
                     Log.WriteInfo("Compliance Check", "No Policy defined. Compliance check not possible.");
                     return;
                 }
 
-                Log.TryWriteLog(LogType.Info, "Compliance Check", $"Using policy {_userConfig.GlobalConfig.ComplianceCheckPolicyId}", LocalSettings.ComplianceCheckVerbose);
+                Log.TryWriteLog(LogType.Info, "Compliance Check", $"Using policy {_complianceCheckPolicyId}", LocalSettings.ComplianceCheckVerbose);
 
-                Policy = await _apiConnection.SendQueryAsync<CompliancePolicy>(ComplianceQueries.getPolicyById, new { id = _userConfig.GlobalConfig.ComplianceCheckPolicyId });
+                Policy = await _apiConnection.SendQueryAsync<CompliancePolicy>(ComplianceQueries.getPolicyById, new { id = _complianceCheckPolicyId });
 
                 if (Policy == null)
                 {
-                    Log.WriteError("Compliance Check", $"Policy with id {_userConfig.GlobalConfig.ComplianceCheckPolicyId} not found.");
+                    Log.WriteError("Compliance Check", $"Policy with id {_complianceCheckPolicyId} not found.");
                     return;
                 }
 
@@ -579,15 +589,15 @@ namespace FWO.Compliance
             return Task.FromResult(networkObjectsWithIpRange);
         }
 
-        private static List<IPAddressRange> ParseIpRange(NetworkObject networkObject)
+        public static List<IPAddressRange> ParseIpRange(NetworkObject networkObject)
         {
             List<IPAddressRange> ranges = [];
 
-            if (networkObject.Type == new NetworkObjectType() { Name = ObjectType.IPRange })
+            if (networkObject.Type.Name == ObjectType.IPRange )
             {
                 ranges.Add(IPAddressRange.Parse($"{networkObject.IP}-{networkObject.IpEnd}"));
             }
-            else if (networkObject.Type != new NetworkObjectType() { Name = ObjectType.Group } && networkObject.ObjectGroupFlats.Length > 0)
+            else if (networkObject.Type.Name != ObjectType.Group && networkObject.ObjectGroupFlats.Length > 0)
             {
                 for (int j = 0; j < networkObject.ObjectGroupFlats.Length; j++)
                 {
@@ -617,7 +627,7 @@ namespace FWO.Compliance
             {
                 List<ComplianceNetworkZone>? networkZones = null;
 
-                if (_userConfig.GlobalConfig is GlobalConfig globalConfig && globalConfig.AutoCalculateInternetZone && globalConfig.TreatDynamicAndDomainObjectsAsInternet && (dataItem.networkObject.Type.Name == "dynamic_net_obj" || dataItem.networkObject.Type.Name == "domain"))
+                if (_autoCalculatedInternetZoneActive && _treatDomainAndDynamicObjectsAsInternet && (dataItem.networkObject.Type.Name == "dynamic_net_obj" || dataItem.networkObject.Type.Name == "domain"))
                 {
                     networkZones = NetworkZones.Where(zone => zone.IsAutoCalculatedInternetZone).ToList();
                 }
@@ -650,9 +660,18 @@ namespace FWO.Compliance
                 result.Add(zone);
             }
 
+            // No need to procceed if auto calculated internet zone is activated.
+
+            if (_autoCalculatedInternetZoneActive)
+            {
+                return result;
+            }
+
             // Get ip ranges that are not in any zone
+
             List<IPAddressRange> undefinedIpRanges = [.. unseenIpAddressRanges.SelectMany(x => x)];
-            if (!(_userConfig.GlobalConfig is GlobalConfig globalConfig && globalConfig.AutoCalculateInternetZone) && undefinedIpRanges.Count > 0)
+
+            if (undefinedIpRanges.Count > 0)
             {
                 result.Add
                 (
@@ -751,17 +770,5 @@ namespace FWO.Compliance
 
             return null;
         }
-
-
-        private Expression<Func<bool>> CreateAssessabilityExpression(NetworkObject networkObject)
-        {
-            return () =>
-                networkObject.IP == null && networkObject.IpEnd == null
-                || (networkObject.IP == "0.0.0.0/32" && networkObject.IpEnd == "255.255.255.255/32")
-                || (networkObject.IP == "::/128" && networkObject.IpEnd == "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff/128")
-                || (networkObject.IP == "255.255.255.255/32" && networkObject.IpEnd == "255.255.255.255/32")
-                || (networkObject.IP == "0.0.0.0/32" && networkObject.IpEnd == "0.0.0.0/32");
-        }
-        
     }
 }

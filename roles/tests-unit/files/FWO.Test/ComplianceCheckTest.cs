@@ -1,6 +1,8 @@
+using FWO.Basics;
 using FWO.Compliance;
 using FWO.Data;
 using FWO.Test.Mocks;
+using NetTools;
 using NUnit.Framework;
 
 namespace FWO.Test
@@ -125,6 +127,25 @@ namespace FWO.Test
             return rule;
         }
 
+        [Test]
+        public async Task ParseIpRange_NwObjectOfTypeIpRange_AddedToReturnedList()
+        {
+            // Arrange
 
+            NetworkObject networkObject = new();
+            networkObject.IP = "0.0.0.0";
+            networkObject.IpEnd = "255.255.255.255";
+            networkObject.Type.Name = ObjectType.IPRange;
+
+            // Act
+
+            List<IPAddressRange> result = ComplianceCheck.ParseIpRange(networkObject);
+
+            // Assert
+
+            Assert.That(result.Count == 1);
+            Assert.That(result.First().Begin.ToString() == networkObject.IP);
+            Assert.That(result.First().End.ToString() == networkObject.IpEnd);
+        }
     }
 }

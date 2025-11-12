@@ -1805,7 +1805,7 @@ BEGIN
         END IF;
     END LOOP;
 	
-	    IF all_errors_with_no_resolve IS NOT NULL THEN
+	    IF all_errors_with_no_resolve <> '' THEN
 			RAISE EXCEPTION 'Ambiguous mgm_id assignments detected:%s', all_errors_with_no_resolve;
 		END IF;
 	

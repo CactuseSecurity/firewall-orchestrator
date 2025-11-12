@@ -30,6 +30,12 @@
         <ImportFileUpload SupportedFileFormats=".json" AuthorizedRoles="@Roles.Admin" UploadCase="FileUploadCase.ImportComplianceMatrix"/>
     </div>
 </div>
+<div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5842"))">
+    <label for="lbl_imported_matrix_readonly" class="col-form-label col-sm-4">@(userConfig.GetText("importedMatrixReadOnly")):</label>
+    <div class="col-sm-7">
+        <input id="lbl_imported_matrix_readonly" type="checkbox" @bind="configData!.ImportedMatrixReadOnly" />            
+    </div>
+</div>
 <hr />
 @if(configData != null)
 {

@@ -1,13 +1,12 @@
-from asyncio.log import logger
 import random
+from typing import Any
 
 from fwo_log import getFwoLogger
 from fwo_const import list_delimiter
 from netaddr import IPAddress
 
-def normalize_nwobjects(full_config, config2import, import_id, jwt=None, mgm_id=None):
-    logger = getFwoLogger()
-    nw_objects = []
+def normalize_nwobjects(full_config: dict[str, Any], config2import: dict[str, Any], import_id: str, jwt: str | None = None, mgm_id: str | None = None):
+    nw_objects: list[dict[str, Any]] = []
     for obj_orig in full_config["networkObjects"]:
         nw_objects.append(parse_object(obj_orig, import_id))
     for obj_grp_orig in full_config["networkObjectGroups"]:
@@ -17,12 +16,12 @@ def normalize_nwobjects(full_config, config2import, import_id, jwt=None, mgm_id=
         nw_objects.append(obj_grp)
     config2import['network_objects'] = nw_objects
 
-def parse_obj_group(orig_grp, import_id, nw_objects, id = None):
-    refs = []
-    names = []
+def parse_obj_group(orig_grp: dict[str, Any], import_id: str, nw_objects: list[dict[str, Any]], id: str | None = None):
+    refs: list[str] = []
+    names: list[str] = []
     if "literals" in orig_grp:
-        if id == None:
-            id = orig_grp["id"] if "id" in orig_grp else random.random()
+        if id is None:
+            id = orig_grp["id"] if "id" in orig_grp else str(random.random())
         for orig_literal in orig_grp["literals"]:
             literal = parse_object(orig_literal, import_id)
             literal["obj_uid"] += "_" + str(id)
@@ -36,16 +35,16 @@ def parse_obj_group(orig_grp, import_id, nw_objects, id = None):
                     orig_obj["type"] != "Network" and orig_obj["type"] != "Range" and
                     orig_obj["type"] != "FQDN"):
                     logger = getFwoLogger()
-                    logger.warn("Unknown network object type found: \"" + orig_obj["type"] + "\". Skipping.")             
+                    logger.warning("Unknown network object type found: \"" + orig_obj["type"] + "\". Skipping.")             
                     break
             names.append(orig_obj["name"])
             refs.append(orig_obj["id"])
 
     return list_delimiter.join(refs), list_delimiter.join(names)
 
-def extract_base_object_infos(obj_orig, import_id):
+def extract_base_object_infos(obj_orig: dict[str, Any], import_id: str) -> dict[str, Any]:
     logger = getFwoLogger()
-    obj = {}
+    obj: dict[str, Any] = {}
     if "id" in obj_orig:
         obj["obj_uid"] = obj_orig['id']
     else:
@@ -62,7 +61,9 @@ def extract_base_object_infos(obj_orig, import_id):
     obj['control_id'] = import_id
     return obj
 
-def parse_object(obj_orig, import_id):
+
+def parse_object(obj_orig: dict[str, Any], import_id: str) -> dict[str, Any]:
+    logger = getFwoLogger()
     obj = extract_base_object_infos(obj_orig, import_id)
     if obj_orig["type"] == "Network":  # network
         obj["obj_typ"] = "network"
@@ -73,7 +74,7 @@ def parse_object(obj_orig, import_id):
             else: # not real cidr (netmask after /)
                 obj['obj_ip'] = cidr[0] + "/" + str(IPAddress(cidr[1]).netmask_bits())
         else:
-            logger.warn("missing value field in object - skipping: " + str(obj_orig))  
+            logger.warning("missing value field in object - skipping: " + str(obj_orig))  
             obj['obj_ip'] = "0.0.0.0"        
     elif obj_orig["type"] == "Host": # host
         obj["obj_typ"] = "host"
@@ -86,7 +87,7 @@ def parse_object(obj_orig, import_id):
                 if obj_orig["value"].find("/") == -1: 
                     obj["obj_ip"] += "/32"
         else:
-            logger.warn("missing value field in object - skipping: " + str(obj_orig))  
+            logger.warning("missing value field in object - skipping: " + str(obj_orig))  
             obj['obj_ip'] = "0.0.0.0/0"        
     elif obj_orig["type"] == "Range": # ip range
         obj['obj_typ'] = 'ip_range'

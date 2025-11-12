@@ -1,4 +1,5 @@
 import json
+from typing import Any
 
 # import sys
 # from common import importer_base_dir
@@ -10,12 +11,12 @@ import cifp_getter
 from fwo_log import getFwoLogger
 
 
-def has_config_changed(full_config, mgm_details, force=False):
+def has_config_changed(full_config: dict[str, Any], mgm_details: dict[str, Any], force: bool = False) -> bool:
     # dummy - may be filled with real check later on
     return True
 
 
-def get_config(config2import, full_config, current_import_id, mgm_details, limit=1000, force=False, jwt=''):
+def get_config(config2import: dict[str, Any], full_config: dict[str, Any], current_import_id: str, mgm_details: dict[str, Any], limit: int = 1000, force: bool = False, jwt: str = '') -> int:
     logger = getFwoLogger()
     if full_config == {}:   # no native config was passed in, so getting it from Cisco Management
         parsing_config_only = False
@@ -29,11 +30,11 @@ def get_config(config2import, full_config, current_import_id, mgm_details, limit
         sessionId, domains = cifp_getter.login(mgm_details["import_credential"]['user'], mgm_details["import_credential"]['secret'],
                                 mgm_details['hostname'], mgm_details['port'])
         domain = mgm_details["configPath"]
-        if sessionId == None or sessionId == "":
+        if sessionId == "":
             logger.error(
                 'Did not succeed in logging in to Cisco Firepower API, no sid returned.')
             return 1
-        if domain == None or domain == "":
+        if domain is None or domain == "":
             logger.error(
                 'Configured domain is null or empty.')
             return 1
@@ -78,7 +79,7 @@ def get_config(config2import, full_config, current_import_id, mgm_details, limit
     # cifp_network.remove_nat_ip_entries(config2import)
     return 0
 
-def getAllAccessRules(sessionId, api_url, domains):
+def getAllAccessRules(sessionId: str, api_url: str, domains: list[dict[str, Any]]) -> list[dict[str, Any]]:
     for domain in domains:
         domain["access_policies"] = cifp_getter.update_config_with_cisco_api_call(sessionId, api_url,
             "fmc_config/v1/domain/" + domain["uuid"] + "/policy/accesspolicies" , parameters={"expanded": True}, limit=1000)
@@ -88,14 +89,14 @@ def getAllAccessRules(sessionId, api_url, domains):
             "fmc_config/v1/domain/" + domain["uuid"] + "/policy/accesspolicies/" + access_policy["id"] + "/accessrules", parameters={"expanded": True}, limit=1000)
     return domains
 
-def getScopes(searchDomain, domains):
-    scopes = []
+def getScopes(searchDomain: str, domains: list[dict[str, Any]]) -> list[str]:
+    scopes: list[str] = []
     for domain in domains:
-        if domain == domain["uuid"] or domain["name"].endswith(searchDomain):
+        if domain == domain["uuid"] or domain["name"].endswith(searchDomain): # TODO: is the check supposed to be searchDomain == domain["uuid"] ?
             scopes.append(domain["uuid"])
     return scopes
 
-def getDevices(sessionId, api_url, config, limit, scopes, devices):
+def getDevices(sessionId: str, api_url: str, config: dict[str, Any], limit: int, scopes: list[str], devices: list[dict[str, Any]]) -> None:
     logger = getFwoLogger()
     # get all devices
     for scope in scopes:
@@ -116,33 +117,45 @@ def getDevices(sessionId, api_url, config, limit, scopes, devices):
             config["devices"].remove(cisco_api_device)
             logger.info("Device \"" + cisco_api_device["name"] + "\" was found but it is not registered in FWO. Ignoring it.")
 
-def getObjects(sessionId, api_url, config, limit, scopes):
+def getObjects(sessionId: str, api_url: str, config: dict[str, Any], limit: int, scopes: list[str]) -> None:
     # network objects:
-    config["networkObjects"] = []
-    config["networkObjectGroups"] = []
+    networkObjects: list[dict[str, Any]] = []
+    networkObjectGroups: list[dict[str, Any]] = []
     # service objects:
-    config["serviceObjects"] = []
-    config["serviceObjectGroups"] = []
+    serviceObjects: list[dict[str, Any]] = []
+    serviceObjectGroups: list[dict[str, Any]] = []
     # user objects:
-    config["userObjects"] = []
-    config["userObjectGroups"] = []
+    userObjects: list[dict[str, Any]] = []
+    userObjectGroups: list[dict[str, Any]] = []
+
 
     # get those objects that exist globally and on domain level
     for scope in scopes:
         # get network objects (groups):
         # for object_type in nw_obj_types:
-        config["networkObjects"].extend(cifp_getter.update_config_with_cisco_api_call(sessionId, api_url,
+        networkObjects.extend(cifp_getter.update_config_with_cisco_api_call(sessionId, api_url,
          "fmc_config/v1/domain/" + scope + "/object/networkaddresses", parameters={"expanded": True}, limit=limit))
-        config["networkObjectGroups"].extend(cifp_getter.update_config_with_cisco_api_call(sessionId, api_url,
+        networkObjectGroups.extend(cifp_getter.update_config_with_cisco_api_call(sessionId, api_url,
          "fmc_config/v1/domain/" + scope + "/object/networkgroups", parameters={"expanded": True}, limit=limit))
         # get service objects:
         # for object_type in svc_obj_types:
-        config["serviceObjects"].extend(cifp_getter.update_config_with_cisco_api_call(sessionId, api_url,
+        serviceObjects.extend(cifp_getter.update_config_with_cisco_api_call(sessionId, api_url,
             "fmc_config/v1/domain/" + scope + "/object/ports", parameters={"expanded": True}, limit=limit))
-        config["serviceObjectGroups"].extend(cifp_getter.update_config_with_cisco_api_call(sessionId, api_url,
+        serviceObjectGroups.extend(cifp_getter.update_config_with_cisco_api_call(sessionId, api_url,
             "fmc_config/v1/domain/" + scope + "/object/portobjectgroups", parameters={"expanded": True}, limit=limit))
         # get user objects:
-        config["userObjects"].extend(cifp_getter.update_config_with_cisco_api_call(sessionId, api_url,
+        userObjects.extend(cifp_getter.update_config_with_cisco_api_call(sessionId, api_url,
             "fmc_config/v1/domain/" + scope + "/object/realmusers", parameters={"expanded": True}, limit=limit))
-        config["userObjectGroups"].extend(cifp_getter.update_config_with_cisco_api_call(sessionId, api_url,
+        userObjectGroups.extend(cifp_getter.update_config_with_cisco_api_call(sessionId, api_url,
             "fmc_config/v1/domain/" + scope + "/object/realmusergroups", parameters={"expanded": True}, limit=limit))
+        
+    
+    # network objects:
+    config["networkObjects"] = networkObjects
+    config["networkObjectGroups"] = networkObjectGroups
+    # service objects:
+    config["serviceObjects"] = serviceObjects
+    config["serviceObjectGroups"] = serviceObjectGroups
+    # user objects:
+    config["userObjects"] = userObjects
+    config["userObjectGroups"] = userObjectGroups

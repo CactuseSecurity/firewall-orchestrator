@@ -1,9 +1,10 @@
 import random
+from typing import Any
 from fwo_const import list_delimiter
 
 
-def normalize_svcobjects(full_config, config2import, import_id):
-    svc_objects = []
+def normalize_svcobjects(full_config: dict[str, Any], config2import: dict[str, Any], import_id: str) -> None:
+    svc_objects: list[dict[str, Any]] = []
     for svc_orig in full_config["serviceObjects"]:
         svc_objects.append(parse_svc(svc_orig, import_id))
     for svc_grp_orig in full_config["serviceObjectGroups"]:
@@ -13,8 +14,8 @@ def normalize_svcobjects(full_config, config2import, import_id):
         svc_objects.append(svc_grp)
     config2import['service_objects'] = svc_objects
 
-def extract_base_svc_infos(svc_orig, import_id):
-    svc = {}
+def extract_base_svc_infos(svc_orig: dict[str, Any], import_id: str) -> dict[str, Any]:
+    svc: dict[str, Any] = {}
     if "id" in svc_orig:
         svc["svc_uid"] = svc_orig["id"]
     else:
@@ -34,7 +35,7 @@ def extract_base_svc_infos(svc_orig, import_id):
     svc["control_id"] = import_id 
     return svc
 
-def parse_svc(orig_svc, import_id):
+def parse_svc(orig_svc: dict[str, Any], import_id: str) -> dict[str, Any]:
     svc = extract_base_svc_infos(orig_svc, import_id)
     svc["svc_typ"] = "simple"
     parse_port(orig_svc, svc)
@@ -55,7 +56,7 @@ def parse_svc(orig_svc, import_id):
         svc["svc_name"] += " [Not supported]"
     return svc
 
-def parse_port(orig_svc, svc):
+def parse_port(orig_svc: dict[str, Any], svc: dict[str, Any]) -> None:
     if "port" in orig_svc:
         if orig_svc["port"].find("-") != -1: # port range
             port_range = orig_svc["port"].split("-")
@@ -65,16 +66,16 @@ def parse_port(orig_svc, svc):
             svc["svc_port"] = orig_svc["port"]
             svc["svc_port_end"] = None
 
-def parse_svc_group(orig_svc_grp, import_id, svc_objects, id = None):
-    refs = []
-    names = []
+def parse_svc_group(orig_svc_grp: dict[str, Any], import_id: str, svc_objects: list[dict[str, Any]], id: str | None = None) -> tuple[str, str]:
+    refs: list[str] = []
+    names: list[str] = []
 
     if "literals" in orig_svc_grp:
-        if id == None:
-            id = orig_svc_grp["id"] if "id" in orig_svc_grp else random.random()
+        if id is None:
+            id = orig_svc_grp["id"] if "id" in orig_svc_grp else str(random.random())
         for orig_literal in orig_svc_grp["literals"]:
             literal = parse_svc(orig_literal, import_id)
-            literal["svc_uid"] += "_" + id
+            literal["svc_uid"] += "_" + str(id)
             svc_objects.append(literal)
             names.append(literal["svc_name"])
             refs.append(literal["svc_uid"])

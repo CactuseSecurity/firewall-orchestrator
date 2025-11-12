@@ -1,8 +1,8 @@
 
+from typing import Any
 from cifp_service import parse_svc_group
 from cifp_network import parse_obj_group
 import cifp_getter
-from fwo_log import getFwoLogger
 
 rule_access_scope_v4 = ['rules_global_header_v4',
                         'rules_adom_v4', 'rules_global_footer_v4']
@@ -12,30 +12,29 @@ rule_access_scope = rule_access_scope_v6 + rule_access_scope_v4
 rule_nat_scope = ['rules_global_nat', 'rules_adom_nat']
 rule_scope = rule_access_scope + rule_nat_scope
 
-def getAccessPolicy(sessionId, api_url, config, device, limit):
+def getAccessPolicy(sessionId: str, api_url: str, config: dict[str, Any], device: dict[str, Any], limit: int) -> None:
     access_policy = device["accessPolicy"]["id"]
     domain = device["domain"]
-    logger = getFwoLogger()
 
     device["rules"] = cifp_getter.update_config_with_cisco_api_call(sessionId, api_url,
         "fmc_config/v1/domain/" + domain + "/policy/accesspolicies/" + access_policy + "/accessrules", parameters={"expanded": True}, limit=limit)
 
     return
 
-def normalize_access_rules(full_config, config2import, import_id, mgm_details={}, jwt=None):
-    any_nw_svc = {"svc_uid": "any_svc_placeholder", "svc_name": "Any", "svc_comment": "Placeholder service.", 
+def normalize_access_rules(full_config: dict[str, Any], config2import: dict[str, Any], import_id: str, mgm_details: dict[str, Any] = {}, jwt: str | None = None) -> None:
+    any_nw_svc: dict[str, Any] = {"svc_uid": "any_svc_placeholder", "svc_name": "Any", "svc_comment": "Placeholder service.", 
     "svc_typ": "simple", "ip_proto": -1, "svc_port": 0, "svc_port_end": 65535, "control_id": import_id}
-    any_nw_object = {"obj_uid": "any_obj_placeholder", "obj_name": "Any", "obj_comment": "Placeholder object.",
+    any_nw_object: dict[str, Any] = {"obj_uid": "any_obj_placeholder", "obj_name": "Any", "obj_comment": "Placeholder object.",
     "obj_typ": "network", "obj_ip": "0.0.0.0/0", "control_id": import_id}
     config2import["service_objects"].append(any_nw_svc)
     config2import["network_objects"].append(any_nw_object)
 
-    rules = []
+    rules: list[dict[str, Any]] = []
     for device in full_config["devices"]:
         access_policy = device["accessPolicy"]
         rule_number = 0
         for rule_orig in device["rules"]:
-            rule = {'rule_src': 'any', 'rule_dst': 'any', 'rule_svc': 'any',
+            rule: dict[str, Any] = {'rule_src': 'any', 'rule_dst': 'any', 'rule_svc': 'any',
             'rule_src_refs': 'any_obj_placeholder', 'rule_dst_refs': 'any_obj_placeholder',
             'rule_svc_refs': 'any_svc_placeholder'}
             rule['control_id'] = import_id

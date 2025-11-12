@@ -7,7 +7,7 @@ orchestrate the normalization process.
 """
 
 from pathlib import Path
-from typing import Optional
+from typing import Any, Optional
 from scrapli.driver import GenericDriver
 import time
 
@@ -22,7 +22,7 @@ from ciscoasa9.asa_normalize import normalize_config
 from fwo_exceptions import FwoImporterError
 
 
-def has_config_changed(full_config, mgm_details, force=False):
+def has_config_changed(full_config: FwConfigManagerListController, mgm_details: ManagementController, force: bool=False):
     # We don't get this info from ASA, so we always return True
     return True
 
@@ -36,7 +36,7 @@ def _connect_to_device(mgm_details: ManagementController) -> GenericDriver:
     Returns:
         Connected GenericDriver instance.
     """
-    device = {
+    device: dict[str, Any] = {
         "host": mgm_details.Hostname,
         "port": mgm_details.Port,
         "auth_username": mgm_details.ImportUser,
@@ -285,7 +285,7 @@ def load_config_from_management(mgm_details: ManagementController, is_virtual_as
         
         try:
             return _attempt_connection(mgm_details, is_virtual_asa, attempt, max_retries)
-        except FwoImporterError as e:
+        except FwoImporterError as _:
             if attempt >= max_retries - 1:
                 raise
     raise FwoImporterError(f"Failed to connect to device {mgm_details.Hostname} after {max_retries} attempts")

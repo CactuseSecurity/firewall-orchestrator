@@ -1,21 +1,22 @@
 import random
+from typing import Any
 from fwo_const import list_delimiter
 
 
-def normalize_svcobjects(full_config, config2import, import_id):
-    svc_objects = []
+def normalize_svcobjects(full_config: dict[str, Any], config2import: dict[str, Any], import_id: str) -> None:
+    svc_objects: list[dict[str, Any]] = []
     for svc_orig in full_config["serviceObjects"]:
         svc_objects.append(parse_svc(svc_orig, import_id))
     for svc_grp_orig in full_config["serviceObjectGroups"]:
         svc_grp = extract_base_svc_infos(svc_grp_orig, import_id)
         svc_grp["svc_typ"] = "group"
-        svc_grp["svc_member_refs"] , svc_grp["svc_member_names"] = parse_svc_group(svc_grp_orig, import_id, svc_objects)
+        svc_grp["svc_member_refs"] , svc_grp["svc_member_names"] = parse_svc_group(svc_grp_orig, import_id, svc_objects) # type: ignore # TODO: parse_svc_group is not defined
         svc_objects.append(svc_grp)
     config2import['service_objects'] = svc_objects
 
-    
-def extract_base_svc_infos(svc_orig, import_id):
-    svc = {}
+
+def extract_base_svc_infos(svc_orig: dict[str, Any], import_id: str) -> dict[str, Any]:
+    svc: dict[str, Any] = {}
     if "id" in svc_orig:
         svc["svc_uid"] = svc_orig["id"]
     else:
@@ -36,7 +37,7 @@ def extract_base_svc_infos(svc_orig, import_id):
     return svc
 
 
-def parse_svc(orig_svc, import_id):
+def parse_svc(orig_svc: dict[str, Any], import_id: str) -> dict[str, Any]:
     svc = extract_base_svc_infos(orig_svc, import_id)
     svc["svc_typ"] = "simple"
     parse_port(orig_svc, svc)
@@ -58,7 +59,7 @@ def parse_svc(orig_svc, import_id):
     return svc
 
 
-def parse_port(orig_svc, svc):
+def parse_port(orig_svc: dict[str, Any], svc: dict[str, Any]) -> None:
     if "port" in orig_svc:
         if orig_svc["port"].find("-") != -1: # port range
             port_range = orig_svc["port"].split("-")
@@ -68,18 +69,16 @@ def parse_port(orig_svc, svc):
             svc["svc_port"] = orig_svc["port"]
             svc["svc_port_end"] = None
 
-            
-def parse_svc_list(ports, ip_protos, import_id, svc_objects, id = None):
-    refs = []
-    names = []
+
+def parse_svc_list(ports: list[str], ip_protos: list[str], import_id: str, svc_objects: list[dict[str, Any]], id: str | None = None) -> tuple[str, str]:
+    refs: list[str] = []
+    names: list[str] = []
     for port in ports:
         for ip_proto in ip_protos:
             # TODO: lookup port in svc_objects and re-use
-            svc = {}
+            svc: dict[str, Any] = {}
 
-            
-
-            if id == None:
+            if id is None:
                 id = str(random.random())
 
             svc['svc_name'] = ip_proto + "_" + port

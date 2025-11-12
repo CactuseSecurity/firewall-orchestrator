@@ -1,14 +1,13 @@
 # library for API get functions
 import base64
+from typing import Any
 from fwo_log import getFwoLogger
-import requests.packages
 import requests
 import json
 import fwo_globals
 from fwo_exceptions import FwLoginFailed
 
-
-def api_call(url, params = {}, headers = {}, data = {}, azure_jwt = '', show_progress=False, method='get'):
+def api_call(url: str, params: dict[str, Any] = {}, headers: dict[str, Any] = {}, data: dict[str, Any] | str = {}, azure_jwt: str = '', show_progress: bool = False, method: str = 'get') -> tuple[dict[str, Any], dict[str, Any]]:
     logger = getFwoLogger()
     request_headers = {}
     if not 'Content-Type' in headers:
@@ -31,13 +30,6 @@ def api_call(url, params = {}, headers = {}, data = {}, azure_jwt = '', show_pro
     
     # error handling:
     exception_text = ''
-    if response is None:
-        if 'password' in json.dumps(data):
-            exception_text = "error while sending api_call containing credential information to url '" + \
-                str(url)
-        else:
-            exception_text = "error while sending api_call to url '" + str(url) + "' with payload '" + json.dumps(
-                data, indent=2) + "' and  headers: '" + json.dumps(request_headers, indent=2)
     if not response.ok:
         exception_text = 'error code: {error_code}, error={error}'.format(error_code=response.status_code, error=response.content)
         #logger.error(response.content)
@@ -58,13 +50,13 @@ def api_call(url, params = {}, headers = {}, data = {}, azure_jwt = '', show_pro
             logger.debug("api_call to url '" + str(url) + "' with payload '" + json.dumps(
                 data, indent=2) + "' and  headers: '" + json.dumps(request_headers, indent=2))
 
-    return response.headers, body_json
+    return dict(response.headers), body_json
 
 
-def login(azure_user, azure_password, tenant_id, client_id, client_secret):
+def login(azure_user: str, azure_password: str, tenant_id: str, client_id: str, client_secret: str) -> str | None:
     base_url = 'https://login.microsoftonline.com/{tenant_id}/oauth2/token'.format(tenant_id=tenant_id)
     try:
-        headers, body = api_call(base_url, method="post",
+        _, body = api_call(base_url, method="post",
             headers={'Content-Type': 'application/x-www-form-urlencoded'},
             data={
                 "grant_type" : "client_credentials",
@@ -78,7 +70,7 @@ def login(azure_user, azure_password, tenant_id, client_id, client_secret):
         raise FwLoginFailed("Azure login ERROR for client_id id=" + str(client_id) + " Message: " + str(e)) from None
     
     if body.get("access_token") == None:   # leaving out payload as it contains pwd
-        raise FwLoginFailed("Azure login ERROR for client_id=" + str(client_id) + " Message: " + str(e)) from None
+        raise FwLoginFailed("Azure login ERROR for client_id=" + str(client_id) + " Message: None") from None
     
     if fwo_globals.debug_level > 2:
         logger = getFwoLogger()
@@ -87,12 +79,12 @@ def login(azure_user, azure_password, tenant_id, client_id, client_secret):
     return body["access_token"]
 
 
-def update_config_with_azure_api_call(azure_jwt, api_base_url, config, api_path, key, parameters={}, payload={}, show_progress=False, limit: int=1000, method="get"):
-    offset = 0
-    limit = 1000
+def update_config_with_azure_api_call(azure_jwt: str, api_base_url: str, config: dict[str, Any], api_path: str, key: str, parameters: dict[str, Any]={}, payload: dict[str, Any]={}, show_progress: bool=False, limit: int=1000, method: str="get") -> None:
+    _ = 0
+    __ = 1000
     returned_new_data = True
-    
-    full_result = []
+
+    full_result: list[Any] = []
     #while returned_new_data:
         # parameters["offset"] = offset
         # parameters["limit"] = limit

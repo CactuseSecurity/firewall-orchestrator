@@ -768,7 +768,7 @@ namespace FWO.Test
                 RuleFromZones = srcZoneNames.Select(name => new ZoneWrapper { Content = new NetworkZone { Name = name } }).ToArray(),
                 SourceNegated = false,
                 Froms = InitFroms(resolved),
-                RuleDestinationZones = dstZoneNames.Select(name => new ZoneWrapper { Content = new NetworkZone { Name = name } }).ToArray(),
+                RuleToZones = dstZoneNames.Select(name => new ZoneWrapper { Content = new NetworkZone { Name = name } }).ToArray(),
                 DestinationNegated = false,
                 Tos = InitTos(resolved),
                 ServiceNegated = false,

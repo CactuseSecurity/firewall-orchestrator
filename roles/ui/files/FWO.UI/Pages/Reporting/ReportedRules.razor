@@ -110,7 +110,7 @@
         </Column>
         @if (SelectedReportType != ReportType.VarianceAnalysis && !HandleAsVariance)
         {
-            <Column TableItem="Rule" Context="rule" Title="@(userConfig.GetText("destination_zone"))" Field="@(r => r.RuleDestinationZones)" Sortable="true" Filterable="false" Hideable="true">
+            <Column TableItem="Rule" Context="rule" Title="@(userConfig.GetText("destination_zone"))" Field="@(r => r.RuleToZones)" Sortable="true" Filterable="false" Hideable="true">
                 <Template>
                     @((MarkupString)RuleDisplayBase.DisplayDestinationZones(rule))
                 </Template>

@@ -27,7 +27,7 @@
                 @((MarkupString)ruleDiffDisplay.DisplayServiceDiff(rule, OutputLocation.report, ReportType.VarianceAnalysis))
             </Template>
         </Column>
-        <Column TableItem="Rule" Context="rule" Title="@(userConfig.GetText("destination_zone"))" Field="@(r => r.RuleDestinationZones)" Sortable="true" Filterable="false" Hideable="true">
+        <Column TableItem="Rule" Context="rule" Title="@(userConfig.GetText("destination_zone"))" Field="@(r => r.RuleToZones)" Sortable="true" Filterable="false" Hideable="true">
             <Template>
                 @((MarkupString)RuleDisplayHtml.DisplayDestinationZones(rule))
             </Template>

@@ -107,12 +107,12 @@ namespace FWO.Ui.Display
 
         public static string DisplayDestinationZones(Rule rule)
         {
-            if (rule.RuleDestinationZones.Length != 0)
+            if (rule.RuleToZones.Length != 0)
             {
                 string ruleZones = "";
                 bool notFirst = false;
 
-                foreach (ZoneWrapper zoneWrapper in rule.RuleDestinationZones)
+                foreach (ZoneWrapper zoneWrapper in rule.RuleToZones)
                 {
                     if (notFirst)
                     {

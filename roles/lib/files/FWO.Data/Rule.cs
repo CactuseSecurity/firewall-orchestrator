@@ -63,7 +63,7 @@ namespace FWO.Data
         public string DestinationRefs { get; set; } = "";
 
         [JsonProperty("rule_to_zones"), JsonPropertyName("rule_to_zones")]
-        public ZoneWrapper[] RuleDestinationZones { get; set; } = [];
+        public ZoneWrapper[] RuleToZones { get; set; } = [];
 
         [JsonProperty("rule_tos"), JsonPropertyName("rule_tos")]
         public NetworkLocation[] Tos { get; set; } = [];
@@ -172,7 +172,7 @@ namespace FWO.Data
             Froms = rule.Froms;
             DestinationNegated = rule.DestinationNegated;
             Destination = rule.Destination;
-            RuleDestinationZones = rule.RuleDestinationZones;
+            RuleToZones = rule.RuleToZones;
             Tos = rule.Tos;
             Action = rule.Action;
             Track = rule.Track;

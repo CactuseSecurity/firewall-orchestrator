@@ -137,7 +137,7 @@
                             }
                             @if (EmptyColumns[4] == false)
                             {
-                                <Column TableItem="Rule" Context="rule" Title="@(userConfig.GetText("destination_zone"))" Field="@(rChange => rChange.RuleDestinationZones)" Sortable="true" Filterable="false" Hideable="true">
+                                <Column TableItem="Rule" Context="rule" Title="@(userConfig.GetText("destination_zone"))" Field="@(rChange => rChange.RuleToZones)" Sortable="true" Filterable="false" Hideable="true">
                                     <Template>
                                         @((MarkupString)RuleDisplayHtml.DisplayDestinationZones(rule))
                                     </Template>

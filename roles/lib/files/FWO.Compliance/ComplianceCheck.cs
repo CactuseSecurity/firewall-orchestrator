@@ -27,8 +27,6 @@ namespace FWO.Compliance
         private readonly ApiConnection _apiConnection;
         private readonly DebugConfig _debugConfig;
 
-        private readonly List<int> _relevantManagementIDs = new();
-
         /// <summary>
         /// Constructor for compliance check
         /// </summary>
@@ -48,21 +46,6 @@ namespace FWO.Compliance
                 Log.WriteWarning("Compliance Check", "No debug config found, using default values.");
 
                 _debugConfig = new();
-            }
-
-            if (userConfig.GlobalConfig is GlobalConfig globalConfig && !string.IsNullOrEmpty(globalConfig.DebugConfig))
-            {
-                try
-                {
-                    _relevantManagementIDs = userConfig.GlobalConfig.ComplianceCheckRelevantManagements
-                        .Split(',', StringSplitOptions.RemoveEmptyEntries)
-                        .Select(s => int.Parse(s.Trim()))
-                        .ToList();
-                }
-                catch (System.Exception e)
-                {
-                    Log.TryWriteLog(LogType.Error, "Compliance Check", $"Error while parsing relevant mangement IDs: {e.Message}", _debugConfig.ExtendedLogComplianceCheck);
-                }
             }
 
         }

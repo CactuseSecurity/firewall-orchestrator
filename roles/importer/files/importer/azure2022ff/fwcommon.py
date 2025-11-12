@@ -8,10 +8,8 @@ from azure_network import normalize_nwobjects
 from azure_getter import login, update_config_with_azure_api_call
 from fwo_log import getFwoLogger
 from azure_base import azure_api_version_str
-from model_controllers.fwconfigmanagerlist_controller import FwConfigManagerListController
-from model_controllers.management_controller import ManagementController
 
-def has_config_changed(full_config: FwConfigManagerListController, mgm_details: ManagementController, force: bool=False):
+def has_config_changed(full_config: dict[str, Any], mgm_details: dict[str, Any], force: bool=False):
     # dummy - may be filled with real check later on
     return True
 

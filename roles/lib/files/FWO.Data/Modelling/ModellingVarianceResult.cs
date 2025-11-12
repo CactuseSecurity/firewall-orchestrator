@@ -242,7 +242,7 @@ namespace FWO.Data.Modelling
             }
             else
             {
-                RefreshDeviceAggregationMetadata(aggregation, deviceId, rule, management, deviceMap, deviceNameMap);
+                RefreshDeviceAggregationMetadata(aggregation, deviceId, rule, deviceMap, deviceNameMap);
             }
 
             return aggregation;
@@ -268,7 +268,7 @@ namespace FWO.Data.Modelling
             return (deviceId > 0 ? $"Device {deviceId}" : "Unknown Device", "");
         }
 
-        private static void RefreshDeviceAggregationMetadata(DeviceAggregation aggregation, int deviceId, Rule rule, Management? management, Dictionary<int, Device> deviceMap, Dictionary<string, Device> deviceNameMap)
+        private static void RefreshDeviceAggregationMetadata(DeviceAggregation aggregation, int deviceId, Rule rule, Dictionary<int, Device> deviceMap, Dictionary<string, Device> deviceNameMap)
         {
             (string candidateName, string candidateUid) = ResolveDeviceMetadata(deviceId, rule, deviceMap, deviceNameMap);
 

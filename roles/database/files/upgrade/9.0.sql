@@ -1702,25 +1702,25 @@ Create table IF NOT EXISTS "rule_to_zones"
 
 --crosstabulation rule zone for destination FKs
 ALTER TABLE "rule_to_zones" 
-DROP CONSTRAINT IF EXISTS rule_destination_to_zone_rule_id_rule_rule_id_fkey;
+DROP CONSTRAINT IF EXISTS fk_rule_to_zones_rule_id_rule_rule_id;
 ALTER TABLE "rule_to_zones"
-DROP CONSTRAINT IF EXISTS rule_destination_to_zone_zone_id_zone_zone_id_fkey;
+DROP CONSTRAINT IF EXISTS fk_rule_to_zones_zone_id_zone_zone_id;
 
 ALTER TABLE "rule_to_zones"
-ADD CONSTRAINT rule_destination_to_zone_rule_id_rule_rule_id_fkey FOREIGN KEY ("rule_id") REFERENCES "rule" ("rule_id");
+ADD CONSTRAINT fk_rule_to_zones_rule_id_rule_rule_id FOREIGN KEY ("rule_id") REFERENCES "rule" ("rule_id");
 ALTER TABLE "rule_to_zones"
-ADD CONSTRAINT rule_destination_to_zone_zone_id_zone_zone_id_fkey FOREIGN KEY ("zone_id") REFERENCES "zone" ("zone_id");
+ADD CONSTRAINT fk_rule_to_zones_zone_id_zone_zone_id FOREIGN KEY ("zone_id") REFERENCES "zone" ("zone_id");
 
 --crosstabulation rule zone for source FKs
 ALTER TABLE "rule_from_zones" 
-DROP CONSTRAINT IF EXISTS rule_source_to_zone_rule_id_rule_rule_id_fkey;
+DROP CONSTRAINT IF EXISTS fk_rule_from_zones_rule_id_rule_rule_id;
 ALTER TABLE "rule_from_zones"
-DROP CONSTRAINT IF EXISTS rule_source_to_zone_zone_id_zone_zone_id_fkey;
+DROP CONSTRAINT IF EXISTS fk_rule_from_zones_zone_id_zone_zone_id;
 
 ALTER TABLE "rule_from_zones"
-ADD CONSTRAINT rule_source_to_zone_rule_id_rule_rule_id_fkey FOREIGN KEY ("rule_id") REFERENCES "rule" ("rule_id");
+ADD CONSTRAINT fk_rule_from_zones_rule_id_rule_rule_id FOREIGN KEY ("rule_id") REFERENCES "rule" ("rule_id");
 ALTER TABLE "rule_from_zones"
-ADD CONSTRAINT rule_source_to_zone_zone_id_zone_zone_id_fkey FOREIGN KEY ("zone_id") REFERENCES "zone" ("zone_id");
+ADD CONSTRAINT fk_rule_from_zones_zone_id_zone_zone_id FOREIGN KEY ("zone_id") REFERENCES "zone" ("zone_id");
 
 
 -- initial fill script for rule_from_zones and rule_to_zones

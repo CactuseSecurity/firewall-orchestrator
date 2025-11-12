@@ -174,6 +174,7 @@ insert into config (config_key, config_value, config_user) VALUES ('internalZone
 insert into config (config_key, config_value, config_user) VALUES ('autoCalculatedZonesAtTheEnd', 'true', 0);
 insert into config (config_key, config_value, config_user) VALUES ('treatDynamicAndDomainObjectsAsInternet', 'true', 0);
 insert into config (config_key, config_value, config_user) VALUES ('showShortColumnsInComplianceReports', 'true', 0);
+insert into config (config_key, config_value, config_user) VALUES ('importedMatrixReadOnly', 'true', 0);
 
 INSERT INTO "report_format" ("report_format_name") VALUES ('json');
 INSERT INTO "report_format" ("report_format_name") VALUES ('pdf');

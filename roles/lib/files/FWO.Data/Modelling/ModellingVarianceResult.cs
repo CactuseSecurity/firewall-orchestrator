@@ -230,7 +230,7 @@ namespace FWO.Data.Modelling
         {
             if (!deviceAggregations.TryGetValue(deviceId, out DeviceAggregation? aggregation))
             {
-                (string deviceName, string deviceUid) = ResolveDeviceMetadata(deviceId, rule, management, deviceMap, deviceNameMap);
+                (string deviceName, string deviceUid) = ResolveDeviceMetadata(deviceId, rule, deviceMap, deviceNameMap);
 
                 aggregation = new DeviceAggregation
                 {
@@ -248,7 +248,7 @@ namespace FWO.Data.Modelling
             return aggregation;
         }
 
-        private static (string deviceName, string deviceUid) ResolveDeviceMetadata(int deviceId, Rule rule, Management? management, Dictionary<int, Device> deviceMap, Dictionary<string, Device> deviceNameMap)
+        private static (string deviceName, string deviceUid) ResolveDeviceMetadata(int deviceId, Rule rule, Dictionary<int, Device> deviceMap, Dictionary<string, Device> deviceNameMap)
         {
             if (deviceId > 0 && deviceMap.TryGetValue(deviceId, out Device? deviceFromManagement))
             {
@@ -270,7 +270,7 @@ namespace FWO.Data.Modelling
 
         private static void RefreshDeviceAggregationMetadata(DeviceAggregation aggregation, int deviceId, Rule rule, Management? management, Dictionary<int, Device> deviceMap, Dictionary<string, Device> deviceNameMap)
         {
-            (string candidateName, string candidateUid) = ResolveDeviceMetadata(deviceId, rule, management, deviceMap, deviceNameMap);
+            (string candidateName, string candidateUid) = ResolveDeviceMetadata(deviceId, rule, deviceMap, deviceNameMap);
 
             bool hasMeaningfulName = !string.IsNullOrWhiteSpace(candidateName);
             bool shouldReplaceName = string.IsNullOrWhiteSpace(aggregation.Name)

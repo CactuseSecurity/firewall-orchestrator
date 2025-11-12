@@ -645,7 +645,7 @@ AS $$
               )
       )
     )
-  ORDER BY r.rule_name;
+  ORDER BY r.rule_name ASC;
 $$;
 
 

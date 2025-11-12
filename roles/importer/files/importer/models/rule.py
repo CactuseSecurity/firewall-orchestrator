@@ -67,14 +67,7 @@ class RuleNormalized(BaseModel):
         if not isinstance(other, RuleNormalized):
             return NotImplemented
         # Compare all fields except 'last_hit' and 'rule_num'
-        exclude = {"last_hit", "rule_num", "rule_src_zone", "rule_dst_zone"}
-        # TODO: need to handle zones like this until we can import multiple zones properly
-        if self.rule_src_zone and other.rule_src_zone and \
-            self.rule_src_zone.split(list_delimiter)[0] != other.rule_src_zone.split(list_delimiter)[0]:
-            return False
-        if self.rule_dst_zone and other.rule_dst_zone and \
-            self.rule_dst_zone.split(list_delimiter)[0] != other.rule_dst_zone.split(list_delimiter)[0]:
-            return False
+        exclude = {"last_hit", "rule_num"}
         self_dict = self.model_dump(exclude=exclude)
         other_dict = other.model_dump(exclude=exclude)
         return self_dict == other_dict

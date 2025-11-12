@@ -1704,21 +1704,26 @@ DECLARE
     rec RECORD;
     v_do_not_import_true_count INT;
     v_do_not_import_false_count INT;
+	missing_uids TEXT;
+	too_many_mgm_ids_on_uid_and_no_resolve TEXT;
 
 BEGIN
 --Check rule_metadata has entries in rule
-    IF EXISTS (
-        SELECT 1
-        FROM rule_metadata rm
-        LEFT JOIN rule r ON rm.rule_uid = r.rule_uid
-        WHERE r.rule_uid IS NULL
-    ) THEN
-        RAISE EXCEPTION 'Some rule_metadata.rule_uid have no matching rule!';
-    ELSE
-        -- Constraints droppen
-        ALTER TABLE rule DROP CONSTRAINT IF EXISTS rule_metadatum;
-        ALTER TABLE rule DROP CONSTRAINT IF EXISTS rule_rule_metadata_rule_uid_f_key;
-        ALTER TABLE rule_metadata DROP CONSTRAINT IF EXISTS rule_metadata_rule_uid_unique;
+    SELECT string_agg(rm.rule_uid::text, ', ')
+    INTO missing_uids
+    FROM rule_metadata rm
+    LEFT JOIN rule r ON rm.rule_uid = r.rule_uid
+    WHERE r.rule_uid IS NULL;
+
+    IF missing_uids IS NOT NULL THEN
+        RAISE EXCEPTION 'Missing rule(s): %', missing_uids;
+    END IF;
+	
+	
+    -- Constraints droppen
+    ALTER TABLE rule DROP CONSTRAINT IF EXISTS rule_metadatum;
+    ALTER TABLE rule DROP CONSTRAINT IF EXISTS rule_rule_metadata_rule_uid_f_key;
+    ALTER TABLE rule_metadata DROP CONSTRAINT IF EXISTS rule_metadata_rule_uid_unique;
 
 -- Start loop for rule_uid und mgm_id import/transfer
     FOR rec IN
@@ -1740,7 +1745,7 @@ BEGIN
               AND rm.mgm_id IS NULL
               AND rm.rule_uid = rec.rule_uid;
 
-        -- Fall 2: genau zwei mgm_id gefunden
+        -- Case 2: found more then two mgm_id found
         ELSIF rec.mgm_count >= 2 THEN
             -- Count flag "do_not_import" for rule_uid 
             SELECT 
@@ -1751,9 +1756,8 @@ BEGIN
 			JOIN management m ON r.mgm_id = m.mgm_id
 			WHERE r.rule_uid = rec.rule_uid;
 
-
             -- check if there is just 1 "do_not_import" = false
-				IF v_do_not_import_false_count = 1 THEN
+			IF v_do_not_import_false_count = 1 THEN
 				UPDATE rule_metadata rm
 					SET mgm_id = r.mgm_id
 					FROM rule r
@@ -1762,6 +1766,32 @@ BEGIN
 					AND m.do_not_import IS FALSE
 					AND rm.rule_uid = rec.rule_uid
 					AND rm.mgm_id IS NULL;
+					
+			-- Warning: Not used mgm_ids where do_not_import=true
+			RAISE NOTICE 'rule_uid % has % additional mgm_id(s) marked do_not_import=true: %', 
+			rec.rule_uid, v_do_not_import_true_count,
+				(SELECT string_agg(format('mgm_id=%s', r.mgm_id), ', ')
+					FROM rule r
+					JOIN management m ON r.mgm_id = m.mgm_id
+					WHERE r.rule_uid = rec.rule_uid
+					AND m.do_not_import IS TRUE);
+					
+			ELSE
+				-- No resolve
+				SELECT string_agg(
+                       format('rule_uid=%s → mgm_id=%s (do_not_import=%s)', 
+                              r.rule_uid, r.mgm_id, m.do_not_import),
+                       E'\n'
+					)
+				INTO too_many_mgm_ids_on_uid_and_no_resolve
+				FROM rule r
+				JOIN management m ON r.mgm_id = m.mgm_id
+				WHERE r.rule_uid = rec.rule_uid;
+			
+
+				RAISE EXCEPTION 'rule_uid % has ambiguous mgm_id assignments:%s%s',
+					rec.rule_uid, E'\n', too_many_mgm_ids_on_uid_and_no_resolve;
+		
             END IF;                   
         END IF;
     END LOOP;

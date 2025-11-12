@@ -58,4 +58,21 @@ namespace FWO.Test.Tools.CustomAssert
             }
         }
     }
+
+    public static class AssertThatGeneric
+    {
+        public static void PropertyIsTrue(object target, string propertyName)
+        {
+            Assert.That(GetFromGeneric(target, propertyName)!, Is.True);
+        }
+        
+        public static void PropertyIsEqual<T>(object target, string propertyName, T expectedValue)
+        {
+            Assert.That(GetFromGeneric(target, propertyName), Is.EqualTo(expectedValue));
+        }
+       
+
+        private static object? GetFromGeneric(object o, string name) => o.GetType().GetProperty(name)?.GetValue(o);
+    }
+    
 }

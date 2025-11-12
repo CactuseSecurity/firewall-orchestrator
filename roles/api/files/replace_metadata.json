@@ -625,15 +625,16 @@
                   "role": "middleware-server",
                   "permission": {
                     "columns": [
-                      "id",
-                      "owner_id",
-                      "super_network_zone_id",
-                      "description",
-                      "name",
-                      "criterion_id",
-                      "id_string",
                       "created",
-                      "removed"
+                      "criterion_id",
+                      "description",
+                      "id",
+                      "id_string",
+                      "is_auto_calculated_internet_zone",
+                      "name",
+                      "owner_id",
+                      "removed",
+                      "super_network_zone_id"
                     ],
                     "filter": {},
                     "check": {}
@@ -15635,6 +15636,19 @@
               ],
               "select_permissions": [
                 {
+                  "role": "auditor",
+                  "permission": {
+                    "columns": [
+                      "created",
+                      "removed",
+                      "dev_id",
+                      "rule_id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
                   "role": "fw-admin",
                   "permission": {
                     "columns": [
@@ -17832,8 +17846,7 @@
                       "id",
                       "mgm_id"
                     ],
-                    "filter": {},
-                    "allow_aggregations": true
+                    "filter": {}
                   },
                   "comment": ""
                 },

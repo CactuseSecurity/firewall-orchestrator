@@ -53,7 +53,7 @@
   copy:
     content: "{{ api_hasura_admin_secret }}\n"
     dest: "{{ fworch_secrets_dir }}/hasura_admin_pwd"
-    mode: '0600'
+    mode: "0600"
     owner: "{{ fworch_user }}"
     group: "{{ fworch_group }}"
   become: true
@@ -74,11 +74,11 @@
     group: "{{ fworch_group }}"
   environment: "{{ proxy_env }}"
   become: true
-  when: not api_cli_check.stat.exists 
+  when: not api_cli_check.stat.exists
 
 - name: initialize hasura cli directory
   command: "{{ api_hasura_cli_bin }} init {{ product_name }} --skip-update-check --endpoint http://{{ api_local_listening_ip_address }}:{{ api_port }} --admin-secret {{ api_hasura_admin_secret }}"
-  args: 
+  args:
     chdir: "{{ api_home }}"
   become: true
   become_user: "{{ fworch_user }}"
@@ -88,37 +88,36 @@
 - name: set hasura env variable
   set_fact:
     hasura_env:
-      HASURA_GRAPHQL_DATABASE_URL:     "postgres://{{ api_user }}:{{ api_user_password }}@{{ fworch_db_host }}:{{ fworch_db_port }}/{{ fworch_db_name }}"
-      HASURA_GRAPHQL_ENABLE_CONSOLE:   "true"
+      HASURA_GRAPHQL_DATABASE_URL: "postgres://{{ api_user }}:{{ api_user_password }}@{{ fworch_db_host }}:{{ fworch_db_port }}/{{ fworch_db_name }}"
+      HASURA_GRAPHQL_ENABLE_CONSOLE: "true"
       HASURA_GRAPHQL_REQUEST_SIZE_LIMIT: "262144000"
       HASURA_GRAPHQL_ENABLE_TELEMETRY: "false"
-      HASURA_GRAPHQL_ADMIN_SECRET:     "{{ api_hasura_admin_secret }}"
-      HASURA_GRAPHQL_SERVER_HOST:       "127.0.0.1"
-      HASURA_GRAPHQL_SERVER_PORT:       "8080"
-      HASURA_GRAPHQL_LOG_LEVEL:        "{{ api_log_level }}"
-      HASURA_GRAPHQL_ENABLED_LOG_TYPES: '{{ api_HASURA_GRAPHQL_ENABLED_LOG_TYPES }}'
+      HASURA_GRAPHQL_ADMIN_SECRET: "{{ api_hasura_admin_secret }}"
+      HASURA_GRAPHQL_SERVER_HOST: "127.0.0.1"
+      HASURA_GRAPHQL_SERVER_PORT: "8080"
+      HASURA_GRAPHQL_LOG_LEVEL: "{{ api_log_level }}"
+      HASURA_GRAPHQL_ENABLED_LOG_TYPES: "{{ api_HASURA_GRAPHQL_ENABLED_LOG_TYPES }}"
       HASURA_GRAPHQL_CONSOLE_ASSETS_DIR: "/srv/console-assets"
       HASURA_GRAPHQL_V1_BOOLEAN_NULL_COLLAPSE: "true"
-      HASURA_GRAPHQL_CORS_DOMAIN:       "*"
+      HASURA_GRAPHQL_CORS_DOMAIN: "*"
       HASURA_GRAPHQL_INFER_FUNCTION_PERMISSIONS: "{{ api_HASURA_GRAPHQL_INFER_FUNCTION_PERMISSIONS }}"
-      HASURA_GRAPHQL_JWT_SECRET:        '
-                                        {
-                                          "type": "{{ api_hasura_jwt_alg|quote }}",
-                                          "key": "{{ api_hasura_jwt_secret | regex_replace(''\n'', ''\\n'') }}",
-                                          "claims_namespace_path": "$"
-                                        }
-                                        '
-      HTTP_PROXY:                      "{{ http_proxy }}"
-      HTTPS_PROXY:                     "{{ https_proxy }}"
-      http_proxy:                      "{{ http_proxy }}"
-      https_proxy:                     "{{ https_proxy }}"
-      no_proxy:                        "{{ no_proxy }}"
-      NO_PROXY:                        "{{ no_proxy }}"
+      HASURA_GRAPHQL_JWT_SECRET: '
+        {
+        "type": "{{ api_hasura_jwt_alg|quote }}",
+        "key": "{{ api_hasura_jwt_secret | regex_replace(''\n'', ''\\n'') }}",
+        "claims_namespace_path": "$"
+        }
+        '
+      HTTP_PROXY: "{{ http_proxy }}"
+      HTTPS_PROXY: "{{ https_proxy }}"
+      http_proxy: "{{ http_proxy }}"
+      https_proxy: "{{ https_proxy }}"
+      no_proxy: "{{ no_proxy }}"
+      NO_PROXY: "{{ no_proxy }}"
 
 - name: show hasura env for debugging
   debug:
-    var:
-      hasura_env
+    var: hasura_env
   when: debug_level > '1'
 
 - name: start hasura container
@@ -134,12 +133,12 @@
       syslog-facility: daemon
       tag: "{{ api_container_name }}"
     recreate: true
-    exposed_ports:
+    published_ports:
       - "{{ api_port }}:{{ api_port }}"
-    env:
-      "{{ hasura_env }}"
+    env: "{{ hasura_env }}"
     container_default_behavior: no_defaults
-    user: "1001:1001"  # hasura user and group id
+    user: "1001:1001" # hasura user and group id
+    pull: no
   register: docker_return
   become: true
   become_user: "{{ fworch_user }}"
@@ -147,8 +146,7 @@
 
 - name: show docker result
   debug:
-    var:
-      docker_return
+    var: docker_return
   when: debug_level > '1'
 
 - name: Get info on container
@@ -159,17 +157,17 @@
   become_user: "{{ fworch_user }}"
 
 - name: Print the status of the container in case of problems only
-  fail: 
+  fail:
     msg: "The container status is: {{ result }}"
   when: result.exists and result.container['State']['Status'] == 'exited'
 
 - name: copy hasura systemd service script
   template:
-     src: "{{ api_service_name }}.service.j2"
-     dest: "/lib/systemd/system/{{ api_service_name }}.service"
-     backup: true
-     mode: "0644"
-     owner: "root"
+    src: "{{ api_service_name }}.service.j2"
+    dest: "/lib/systemd/system/{{ api_service_name }}.service"
+    backup: true
+    mode: "0644"
+    owner: "root"
   become: true
 
 - name: make hasura docker container run at host startup
@@ -179,7 +177,7 @@
     enabled: true
   become: true
 
-- name:  wait for hasura port to become available
+- name: wait for hasura port to become available
   wait_for:
     port: "{{ api_port }}"
     host: "{{ api_local_listening_ip_address }}"
@@ -193,13 +191,13 @@
   register: api_metadata_check
 
 - name: import API metadata via metadata API directly from local file
-  uri: 
+  uri:
     url: "http://{{ api_local_listening_ip_address }}:{{ api_port }}/v1/metadata"
     method: POST
     return_content: true
-    body_format: json    
+    body_format: json
     headers:
-      Content-Type: application/json      
+      Content-Type: application/json
       x-hasura-admin-secret: "{{ api_hasura_admin_secret }}"
       x-hasura-role: "admin"
     body: "{{ lookup('file','replace_metadata.json') | from_json }}"
@@ -208,4 +206,4 @@
   environment:
     http_proxy: ""
     https_proxy: ""
-  # do not use http proxy for metadata import 
+  # do not use http proxy for metadata import

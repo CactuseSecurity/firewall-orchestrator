@@ -43,7 +43,7 @@
                                 bool allowedInEdit = AddCommunication.Contains((sourceZone, destinationZone));
                                 bool disallowedInEdit = DeleteCommunication.Contains((sourceZone, destinationZone));
 
-                                <td @onclick="() => ExecuteCommunicationAction(sourceZone, destinationZone)"
+                                <td id="@GetMatrixElementId(sourceZone, destinationZone)" @onclick="() => ExecuteCommunicationAction(sourceZone, destinationZone)"
                                     class="communication-cell @(!readonlyZone && allowedInEdit ? "allowed-in-edit" : "")
                                     @(!readonlyZone && disallowedInEdit ? "disallowed-in-edit" : "")
                                     @(!readonlyZone && allowed && !allowedInEdit && !disallowedInEdit ? "allowed" : "disallowed")
@@ -73,7 +73,6 @@
 
 	[Parameter]
     public EventCallback<List<(ComplianceNetworkZone, ComplianceNetworkZone)>> DeleteCommunicationChanged { get; set; }
-
 	
     private void ExecuteZoneAction(ComplianceNetworkZone zone)
     {
@@ -91,33 +90,25 @@
     {
         if(!sourceZone.IsAutoCalculatedUndefinedInternalZone && !destinationZone.IsAutoCalculatedUndefinedInternalZone)
         {
-            // Return to make auto-calculated undefined-internal zone readonly
-            
-            return;
-        }
-
-        if (EditMode)
-        {
-            if (AddCommunication.Contains((sourceZone, destinationZone)))
+            if (EditMode)
             {
-                AddCommunication.Remove((sourceZone, destinationZone));
+                if (AddCommunication.Contains((sourceZone, destinationZone)))
+                {
+                    AddCommunication.Remove((sourceZone, destinationZone));
+                }
+                else if (DeleteCommunication.Contains((sourceZone, destinationZone)))
+                {
+                    DeleteCommunication.Remove((sourceZone, destinationZone));
+                }
+                else if (sourceZone.CommunicationAllowedTo(destinationZone))
+                {
+                    DeleteCommunication.Add((sourceZone, destinationZone));
+                }
+                else
+                {
+                    AddCommunication.Add((sourceZone, destinationZone));
+                }
             }
-            else if (DeleteCommunication.Contains((sourceZone, destinationZone)))
-            {
-                DeleteCommunication.Remove((sourceZone, destinationZone));
-            }
-            else if (sourceZone.CommunicationAllowedTo(destinationZone))
-            {
-                DeleteCommunication.Add((sourceZone, destinationZone));
-            }
-            else
-            {
-                AddCommunication.Add((sourceZone, destinationZone));
-            }
-        }
-        else
-        {
-            // Jump to communication
         }
     }
 
@@ -162,8 +153,11 @@
             }
         }
 
-
-
         return complianceNetworkZones;
+    }
+
+    private string GetMatrixElementId(ComplianceNetworkZone sourceZone, ComplianceNetworkZone destinationZone)
+    {
+        return $"matrix-element-{sourceZone.IdString.Replace(" ", "")}-to-{destinationZone.IdString.Replace(" ", "")}";
     }
 }

@@ -2,7 +2,7 @@ from typing import Any
 from fwo_log import getFwoLogger
 from netaddr import IPAddress, IPNetwork
 
-from roles.importer.files.importer.model_controllers.interface_controller import InterfaceSerializable
+from model_controllers.interface_controller import InterfaceSerializable
 
 
 class Route:

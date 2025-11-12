@@ -350,7 +350,7 @@ Create table "zone"
 );
 
 --crosstabulation rule zone for source
-Create table "rule_source_to_zone"
+Create table "rule_from_zones"
 (
 	"rule_id" BIGINT NOT NULL,
 	"zone_id" Integer NOT NULL,
@@ -360,7 +360,7 @@ Create table "rule_source_to_zone"
 );
 
 --crosstabulation rule zone for destination
-Create table "rule_destination_to_zone"
+Create table "rule_to_zones"
 (
 	"rule_id" BIGINT NOT NULL,
 	"zone_id" Integer NOT NULL,

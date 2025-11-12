@@ -14664,7 +14664,7 @@
                     "foreign_key_constraint_on": {
                       "column": "rule_id",
                       "table": {
-                        "name": "rule_destination_to_zone",
+                        "name": "rule_to_zones",
                         "schema": "public"
                       }
                     }
@@ -14724,7 +14724,7 @@
                     "foreign_key_constraint_on": {
                       "column": "rule_id",
                       "table": {
-                        "name": "rule_source_to_zone",
+                        "name": "rule_from_zones",
                         "schema": "public"
                       }
                     }
@@ -15417,7 +15417,7 @@
             },
             {
               "table": {
-                "name": "rule_destination_to_zone",
+                "name": "rule_to_zones",
                 "schema": "public"
               },
               "object_relationships": [
@@ -16859,7 +16859,7 @@
             },
             {
               "table": {
-                "name": "rule_source_to_zone",
+                "name": "rule_from_zones",
                 "schema": "public"
               },
               "object_relationships": [
@@ -24298,7 +24298,7 @@
                     "foreign_key_constraint_on": {
                       "column": "zone_id",
                       "table": {
-                        "name": "rule_destination_to_zone",
+                        "name": "rule_to_zones",
                         "schema": "public"
                       }
                     }
@@ -24310,7 +24310,7 @@
                     "foreign_key_constraint_on": {
                       "column": "zone_id",
                       "table": {
-                        "name": "rule_source_to_zone",
+                        "name": "rule_from_zones",
                         "schema": "public"
                       }
                     }

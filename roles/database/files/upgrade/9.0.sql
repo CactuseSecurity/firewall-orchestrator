@@ -1681,7 +1681,7 @@ ON CONFLICT (config_key, config_user) DO NOTHING;
 -- add crosstabulations rules with zone for source and destination
 
 --crosstabulation rule zone for source
-Create table IF NOT EXISTS "rule_source_to_zone"
+Create table IF NOT EXISTS "rule_from_zones"
 (
 	"rule_id" BIGINT NOT NULL,
 	"zone_id" Integer NOT NULL,
@@ -1691,7 +1691,7 @@ Create table IF NOT EXISTS "rule_source_to_zone"
 );
 
 --crosstabulation rule zone for destination
-Create table IF NOT EXISTS "rule_destination_to_zone"
+Create table IF NOT EXISTS "rule_to_zones"
 (
 	"rule_id" BIGINT NOT NULL,
 	"zone_id" Integer NOT NULL,
@@ -1701,29 +1701,29 @@ Create table IF NOT EXISTS "rule_destination_to_zone"
 );
 
 --crosstabulation rule zone for destination FKs
-ALTER TABLE "rule_destination_to_zone" 
+ALTER TABLE "rule_to_zones" 
 DROP CONSTRAINT IF EXISTS rule_destination_to_zone_rule_id_rule_rule_id_fkey;
-ALTER TABLE "rule_destination_to_zone"
+ALTER TABLE "rule_to_zones"
 DROP CONSTRAINT IF EXISTS rule_destination_to_zone_zone_id_zone_zone_id_fkey;
 
-ALTER TABLE "rule_destination_to_zone"
+ALTER TABLE "rule_to_zones"
 ADD CONSTRAINT rule_destination_to_zone_rule_id_rule_rule_id_fkey FOREIGN KEY ("rule_id") REFERENCES "rule" ("rule_id");
-ALTER TABLE "rule_destination_to_zone"
+ALTER TABLE "rule_to_zones"
 ADD CONSTRAINT rule_destination_to_zone_zone_id_zone_zone_id_fkey FOREIGN KEY ("zone_id") REFERENCES "zone" ("zone_id");
 
 --crosstabulation rule zone for source FKs
-ALTER TABLE "rule_source_to_zone" 
+ALTER TABLE "rule_from_zones" 
 DROP CONSTRAINT IF EXISTS rule_source_to_zone_rule_id_rule_rule_id_fkey;
-ALTER TABLE "rule_source_to_zone"
+ALTER TABLE "rule_from_zones"
 DROP CONSTRAINT IF EXISTS rule_source_to_zone_zone_id_zone_zone_id_fkey;
 
-ALTER TABLE "rule_source_to_zone"
+ALTER TABLE "rule_from_zones"
 ADD CONSTRAINT rule_source_to_zone_rule_id_rule_rule_id_fkey FOREIGN KEY ("rule_id") REFERENCES "rule" ("rule_id");
-ALTER TABLE "rule_source_to_zone"
+ALTER TABLE "rule_from_zones"
 ADD CONSTRAINT rule_source_to_zone_zone_id_zone_zone_id_fkey FOREIGN KEY ("zone_id") REFERENCES "zone" ("zone_id");
 
 
--- initial fill script for rule_source_to_zone and rule_destination_to_zone
+-- initial fill script for rule_from_zones and rule_to_zones
 DO $$
 DECLARE
     inserted_source INT := 0;
@@ -1732,9 +1732,9 @@ DECLARE
     remaining_destination INT;
 BEGIN
     IF NOT EXISTS (
-        SELECT 1 FROM rule_source_to_zone
+        SELECT 1 FROM rule_from_zones
     ) THEN
-		INSERT INTO rule_source_to_zone (rule_id, zone_id, created, removed)
+		INSERT INTO rule_from_zones (rule_id, zone_id, created, removed)
 		SELECT rule_id, rule_from_zone, rule_create, removed
 		FROM rule
 		WHERE rule_from_zone IS NOT NULL;					
@@ -1745,9 +1745,9 @@ BEGIN
     END IF;
 	
 	IF NOT EXISTS (
-        SELECT 1 FROM rule_destination_to_zone
+        SELECT 1 FROM rule_to_zones
     ) THEN
-		INSERT INTO rule_destination_to_zone (rule_id, zone_id, created, removed)
+		INSERT INTO rule_to_zones (rule_id, zone_id, created, removed)
 		SELECT rule_id, rule_to_zone, rule_create, removed
 		FROM rule
 		WHERE rule_to_zone IS NOT NULL;				

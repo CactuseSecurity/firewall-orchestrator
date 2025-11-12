@@ -1712,6 +1712,7 @@ DECLARE
     v_do_not_import_false_count INT;
 	missing_uids TEXT;
 	too_many_mgm_ids_on_uid_and_no_resolve TEXT;
+	all_errors_with_no_resolve TEXT := '';
 
 BEGIN
 --Check rule_metadata has entries in rule
@@ -1792,17 +1793,24 @@ BEGIN
 				INTO too_many_mgm_ids_on_uid_and_no_resolve
 				FROM rule r
 				JOIN management m ON r.mgm_id = m.mgm_id
-				WHERE r.rule_uid = rec.rule_uid;
-			
+				WHERE r.rule_uid = rec.rule_uid;	
 
-				RAISE EXCEPTION 'rule_uid % has ambiguous mgm_id assignments:%s%s',
-					rec.rule_uid, E'\n', too_many_mgm_ids_on_uid_and_no_resolve;
-		
+				all_errors_with_no_resolve := all_errors_with_no_resolve || format(
+                    E'\n\nrule_uid %s has ambiguous mgm_id assignments:\n%s',
+                    rec.rule_uid,
+                    too_many_mgm_ids_on_uid_and_no_resolve
+                );
+				
             END IF;                   
         END IF;
     END LOOP;
+	
+	    IF all_errors_with_no_resolve IS NOT NULL THEN
+			RAISE EXCEPTION 'Ambiguous mgm_id assignments detected:%s', all_errors_with_no_resolve;
+		END IF;
+	
 	-- redo constraints
-	        ALTER TABLE rule_metadata ALTER COLUMN mgm_id SET NOT NULL;
+	    ALTER TABLE rule_metadata ALTER COLUMN mgm_id SET NOT NULL;
         ALTER TABLE rule_metadata ADD CONSTRAINT rule_metadata_rule_uid_unique UNIQUE(rule_uid);
         ALTER TABLE rule ADD CONSTRAINT rule_rule_metadata_rule_uid_f_key 
             FOREIGN KEY (rule_uid) REFERENCES rule_metadata (rule_uid);

@@ -17,8 +17,8 @@ mutation rollbackImport($importId: bigint!) {
     delete_rule_nwobj_resolved(where: {created: {_eq: $importId}}) { affected_rows }
     delete_rule_svc_resolved(where: {created: {_eq: $importId}}) { affected_rows }
     delete_rule_user_resolved(where: {created: {_eq: $importId}}) { affected_rows }
-    delete_rule_from_zones(where: {created: {_eq: $importId}}) { affected_rows }
-    delete_rule_to_zones(where: {created: {_eq: $importId}}) { affected_rows }
+    delete_rule_from_zone(where: {created: {_eq: $importId}}) { affected_rows }
+    delete_rule_to_zone(where: {created: {_eq: $importId}}) { affected_rows }
     delete_rule_enforced_on_gateway(where: {created: {_eq: $importId}}) { affected_rows }
     delete_rule(where: {rule_create: {_eq: $importId}}) { affected_rows }
     update_rule(where: {removed: {_eq: $importId}}, _set: {removed: null}) { affected_rows }
@@ -40,8 +40,8 @@ mutation rollbackImport($importId: bigint!) {
     update_rule_nwobj_resolved(where: {removed: {_eq: $importId}}, _set: {removed: null}) { affected_rows }
     update_rule_svc_resolved(where: {removed: {_eq: $importId}}, _set: {removed: null}) { affected_rows }
     update_rule_user_resolved(where: {removed: {_eq: $importId}}, _set: {removed: null}) { affected_rows }
-    update_rule_from_zones(where: {removed: {_eq: $importId}}, _set: {removed: null}) { affected_rows }
-    update_rule_to_zones(where: {removed: {_eq: $importId}}, _set: {removed: null}) { affected_rows }
+    update_rule_from_zone(where: {removed: {_eq: $importId}}, _set: {removed: null}) { affected_rows }
+    update_rule_to_zone(where: {removed: {_eq: $importId}}, _set: {removed: null}) { affected_rows }
     update_rule_enforced_on_gateway(where: {removed: {_eq: $importId}}, _set: {removed: null}) { affected_rows }
     delete_import_control(where: {control_id: {_eq: $importId}}) { affected_rows }            
 }

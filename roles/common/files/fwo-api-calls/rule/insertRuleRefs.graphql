@@ -5,8 +5,8 @@ mutation insertRuleRefs(
     $ruleNwObjResolveds: [rule_nwobj_resolved_insert_input!]!
     $ruleSvcResolveds: [rule_svc_resolved_insert_input!]!
     $ruleUserResolveds: [rule_user_resolved_insert_input!]!
-    $ruleFromZones: [rule_from_zones_insert_input!]!
-    $ruleToZones: [rule_to_zones_insert_input!]!
+    $ruleFromZones: [rule_from_zone_insert_input!]!
+    $ruleToZones: [rule_to_zone_insert_input!]!
 ) {
     insert_rule_from(objects: $ruleFroms) {
         affected_rows
@@ -26,10 +26,10 @@ mutation insertRuleRefs(
     insert_rule_user_resolved(objects: $ruleUserResolveds) {
         affected_rows
     }
-    insert_rule_from_zones(objects: $ruleFromZones) {
+    insert_rule_from_zone(objects: $ruleFromZones) {
         affected_rows
     }
-    insert_rule_to_zones(objects: $ruleToZones) {
+    insert_rule_to_zone(objects: $ruleToZones) {
         affected_rows
     }
 }

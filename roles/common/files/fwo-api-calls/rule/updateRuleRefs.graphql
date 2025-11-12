@@ -6,8 +6,8 @@ mutation updateRuleRefs(
     $ruleNwObjResolveds: [rule_nwobj_resolved_bool_exp!]
     $ruleSvcResolveds: [rule_svc_resolved_bool_exp!]!
     $ruleUserResolveds: [rule_user_resolved_bool_exp!]!
-    $ruleFromZones: [rule_from_zones_bool_exp!]
-    $ruleToZones: [rule_to_zones_bool_exp!]
+    $ruleFromZones: [rule_from_zone_bool_exp!]
+    $ruleToZones: [rule_to_zone_bool_exp!]
 ) {
     update_rule_from(where: {
         _or: $ruleFroms
@@ -60,7 +60,7 @@ mutation updateRuleRefs(
     }) {
         affected_rows
     }
-    update_rule_from_zones(where: {
+    update_rule_from_zone(where: {
         _or: $ruleFromZones
         removed: {_is_null: true}
     }, _set: {
@@ -68,7 +68,7 @@ mutation updateRuleRefs(
     }) {
         affected_rows
     }
-    update_rule_to_zones(where: {
+    update_rule_to_zone(where: {
         _or: $ruleToZones
         removed: {_is_null: true}
     }, _set: {

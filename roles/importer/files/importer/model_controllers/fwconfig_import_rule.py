@@ -34,8 +34,8 @@ class RefType(Enum):
     NWOBJ_RESOLVED = "rule_nwobj_resolved"
     SVC_RESOLVED = "rule_svc_resolved"
     USER_RESOLVED = "rule_user_resolved"
-    SRC_ZONE = "rule_from_zones"
-    DST_ZONE = "rule_to_zones"
+    SRC_ZONE = "rule_from_zone"
+    DST_ZONE = "rule_to_zone"
 
 # this class is used for importing rules and rule refs into the FWO API
 class FwConfigImportRule():

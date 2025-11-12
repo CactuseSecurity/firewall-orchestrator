@@ -263,26 +263,28 @@
         return prevStart != rsbTimeStart || prevEnd != rsbTimeEnd;
     }
 
-    private async Task<Dictionary<int, long>> GetImportIds(string time, int? mgmId = null)
+    private async Task<Dictionary<int, long>> GetImportIds(string time)
     {
         Dictionary<string, object> queryVars = new()
         {
             [QueryVar.Time] = time != "" ? time : DateTime.Now.ToString(DynGraphqlQuery.fullTimeFormat),
         };
-        if (mgmId != null)
-            queryVars.Add(QueryVar.MgmIds, mgmId);
-        List<ManagementReport> result = await
-        apiConnection.SendQueryAsync<List<ManagementReport>>(ReportQueries.getRelevantImportIdsAtTime, queryVars);
+        List<ManagementReport> result = await apiConnection.SendQueryAsync<List<ManagementReport>>(ReportQueries.getRelevantImportIdsAtTime, queryVars);
         Dictionary<int, long> importIds = new();
         foreach (ManagementReport mgm in result)
         {
-            importIds[mgm.Id] = mgm.Import.ImportAggregate.ImportAggregateMax.RelevantImportId ?? 0;
+            long superManagerImportId = mgm.SuperManagerId != null
+                ? result.FirstOrDefault(m => m.Id == mgm.SuperManagerId)?.Import.ImportAggregate.ImportAggregateMax.RelevantImportId ?? 0
+                : 0;
+            importIds[mgm.Id] = Math.Max(
+                mgm.Import.ImportAggregate.ImportAggregateMax.RelevantImportId ?? 0,
+                superManagerImportId
+            );
         }
         return importIds;
     }
 
-    public async Task FetchContent(RsbTab rsbTab, ObjCategory objType, Func<Task> hasChangedCallback, long id = 0, bool nat
-    = false)
+    public async Task FetchContent(RsbTab rsbTab, ObjCategory objType, Func<Task> hasChangedCallback, long id = 0, bool nat = false)
     {
         Log.WriteDebug("Fetching Content..", $"nat: {nat}");
 
@@ -320,13 +322,13 @@
             mgt.Detailed[(int)objType - 1] = true;
 
         var queryVars = new Dictionary<string, object>
-{
-{ QueryVar.Limit, userConfig.ElementsPerFetch },
-{ QueryVar.Offset, 0 },
-{ QueryVar.ManagementId, (int)id },
-{ QueryVar.ImportIdStart, import_id_start.GetValueOrDefault((int)id, 0) },
-{ QueryVar.ImportIdEnd, import_id_end.GetValueOrDefault((int)id, 0) }
-};
+        {
+            { QueryVar.Limit, userConfig.ElementsPerFetch },
+            { QueryVar.Offset, 0 },
+            { QueryVar.ManagementId, (int)id },
+            { QueryVar.ImportIdStart, import_id_start.GetValueOrDefault((int)id, 0) },
+            { QueryVar.ImportIdEnd, import_id_end.GetValueOrDefault((int)id, 0) }
+        };
 
         string query = objType switch
         {
@@ -373,32 +375,33 @@
             mgtReport.Detailed[(int)objType - 1] = true;
 
         var queryVars = new Dictionary<string, object>
-{
-{ QueryVar.Limit, userConfig.ElementsPerFetch },
-{ QueryVar.Offset, 0 },
-{ QueryVar.MgmIds, (int)id }
-};
+        {
+            { QueryVar.Limit, userConfig.ElementsPerFetch },
+            { QueryVar.Offset, 0 },
+            { QueryVar.MgmIds, (int)id }
+        };
 
         bool gotAllObjects = await CurrentReport!.GetObjectsForManagementInReport(
-        queryVars, objType,
-        userConfig.AutoFillRightSidebar ? int.MaxValue : userConfig.MaxInitialFetchesRightSidebar,
-        apiConnection,
-        async managementsUpdate =>
-        {
-            var mgtUpdated = managementsUpdate.ManagementData.FirstOrDefault(m => m.Id == id);
-            if (mgtUpdated != null)
+            queryVars, objType,
+            userConfig.AutoFillRightSidebar ? int.MaxValue : userConfig.MaxInitialFetchesRightSidebar,
+            apiConnection,
+            async managementsUpdate =>
             {
-                if (objType == ObjCategory.all || objType == ObjCategory.nobj)
-                    mgtReport.ReportObjects = mgtUpdated.ReportObjects;
+                var mgtUpdated = managementsUpdate.ManagementData.FirstOrDefault(m => m.Id == id);
+                if (mgtUpdated != null)
+                {
+                    if (objType == ObjCategory.all || objType == ObjCategory.nobj)
+                        mgtReport.ReportObjects = mgtUpdated.ReportObjects;
 
-                if (objType == ObjCategory.all || objType == ObjCategory.nsrv)
-                    mgtReport.ReportServices = mgtUpdated.ReportServices;
+                    if (objType == ObjCategory.all || objType == ObjCategory.nsrv)
+                        mgtReport.ReportServices = mgtUpdated.ReportServices;
 
-                if (objType == ObjCategory.all || objType == ObjCategory.user)
-                    mgtReport.ReportUsers = mgtUpdated.ReportUsers;
+                    if (objType == ObjCategory.all || objType == ObjCategory.user)
+                        mgtReport.ReportUsers = mgtUpdated.ReportUsers;
+                }
+                await hasChangedCallback();
             }
-            await hasChangedCallback();
-        });
+        );
 
         if (!gotAllObjects)
         {
@@ -419,13 +422,13 @@
         }
 
         var queryVars = new Dictionary<string, object>
-{
-{ QueryVar.Limit, userConfig.ElementsPerFetch },
-{ QueryVar.Offset, 0 },
-{ QueryVar.ImportIdStart, import_id_start.GetValueOrDefault((int)rule.MgmtId, 0) },
-{ QueryVar.ImportIdEnd, import_id_end.GetValueOrDefault((int)rule.MgmtId, 0) },
-{ QueryVar.RuleId, id }
-};
+        {
+            { QueryVar.Limit, userConfig.ElementsPerFetch },
+            { QueryVar.Offset, 0 },
+            { QueryVar.ImportIdStart, import_id_start.GetValueOrDefault((int)rule.MgmtId, 0) },
+            { QueryVar.ImportIdEnd, import_id_end.GetValueOrDefault((int)rule.MgmtId, 0) },
+            { QueryVar.RuleId, id }
+        };
 
         string query = nat ? RuleQueries.getNatRuleDetails : RuleQueries.getRuleDetails;
 

@@ -1,26 +1,23 @@
 import copy
-import jsonpickle
 import ipaddress
-import time
+from time import strftime, localtime
 from fwo_const import list_delimiter, nat_postfix, dummy_ip
-from fwo_base import extend_string_list, sanitize
+from fwo_base import extend_string_list
 from fmgr_service import create_svc_object
 from fmgr_network import create_network_object, get_first_ip_of_destination
-from fmgr_zone import add_zone_if_missing
+from fmgr_zone import find_zones_in_normalized_config
+from fmgr_consts import nat_types
 import fmgr_getter
-from fmgr_gw_networking import get_device_from_package
 from fwo_log import getFwoLogger
 from model_controllers.route_controller import get_matching_route_obj, get_ip_of_interface_obj
 from fwo_exceptions import FwoDeviceWithoutLocalPackage, FwoImporterErrorInconsistencies
-#from fmgr_base import resolve_raw_objects, resolve_objects
-from models.rule import Rule, RuleNormalized, RuleAction, RuleTrack, RuleType
+from models.rule import RuleNormalized, RuleAction, RuleTrack, RuleType
 from models.rulebase import Rulebase
-import fwo_globals
-from models.import_state import ImportState
-
 
 NETWORK_OBJECT='network_object'
 STRING_PKG = '/pkg/'
+STRING_PM_CONFIG_GLOBAL_PKG = '/pm/config/global/pkg/'
+STRING_PM_CONFIG_ADOM = '/pm/config/adom/'
 rule_access_scope_v4 = ['rules_global_header_v4', 'rules_adom_v4', 'rules_global_footer_v4']
 rule_access_scope_v6 = ['rules_global_header_v6', 'rules_adom_v6', 'rules_global_footer_v6']
 rule_access_scope = rule_access_scope_v6 + rule_access_scope_v4
@@ -29,37 +26,34 @@ rule_scope = rule_access_scope + rule_nat_scope
 
 
 def normalize_rulebases(
-    import_state: ImportState,
     mgm_uid: str,
-    nativeConfig: dict,
+    native_config: dict,
     native_config_global: dict,
-    normalized_config_dict: dict,
+    normalized_config_adom: dict,
     normalized_config_global: dict,
     is_global_loop_iteration: bool
 ) -> None:
-    normalized_config_dict['policies'] = []
-
+    
+    normalized_config_adom['policies'] = []
     fetched_rulebase_uids: list = []
-    if normalized_config_global is not None:
+    if normalized_config_global != {}:
         for normalized_rulebase_global in normalized_config_global.get('policies', []):
             fetched_rulebase_uids.append(normalized_rulebase_global.uid)
-    for gateway in nativeConfig['gateways']:
+    for gateway in native_config['gateways']:
         normalize_rulebases_for_each_link_destination(
-            gateway, mgm_uid, fetched_rulebase_uids, nativeConfig, native_config_global,
-            is_global_loop_iteration, normalized_config_dict,
+            gateway, mgm_uid, fetched_rulebase_uids, native_config, native_config_global,
+            is_global_loop_iteration, normalized_config_adom,
             normalized_config_global)
 
-    # todo: parse nat rulebase here
-
-
-def normalize_rulebases_for_each_link_destination(gateway, mgm_uid, fetched_rulebase_uids, nativeConfig, native_config_global, is_global_loop_iteration, normalized_config_dict, normalized_config_global):
+def normalize_rulebases_for_each_link_destination(gateway, mgm_uid, fetched_rulebase_uids, native_config,
+        native_config_global, is_global_loop_iteration, normalized_config_adom, normalized_config_global):
     logger = getFwoLogger()
     for rulebase_link in gateway['rulebase_links']:
         if rulebase_link['to_rulebase_uid'] not in fetched_rulebase_uids and rulebase_link['to_rulebase_uid'] != '':
-            rulebase_to_parse = find_rulebase_to_parse(nativeConfig['rulebases'], rulebase_link['to_rulebase_uid'])
+            rulebase_to_parse = find_rulebase_to_parse(native_config['rulebases'], rulebase_link['to_rulebase_uid'])
             # search in global rulebase
             found_rulebase_in_global = False
-            if rulebase_to_parse == {} and not is_global_loop_iteration and native_config_global is not None:
+            if rulebase_to_parse == {} and not is_global_loop_iteration and native_config_global != {}:
                 rulebase_to_parse = find_rulebase_to_parse(
                     native_config_global['rulebases'], rulebase_link['to_rulebase_uid']
                     )
@@ -69,13 +63,31 @@ def normalize_rulebases_for_each_link_destination(gateway, mgm_uid, fetched_rule
                 continue
 
             normalized_rulebase = initialize_normalized_rulebase(rulebase_to_parse, mgm_uid)
-            parse_rulebase(normalized_config_dict, normalized_config_global, rulebase_to_parse, normalized_rulebase)
+            parse_rulebase(normalized_config_adom, normalized_config_global, rulebase_to_parse, normalized_rulebase, found_rulebase_in_global)
             fetched_rulebase_uids.append(rulebase_link['to_rulebase_uid'])
 
             if found_rulebase_in_global:
                 normalized_config_global['policies'].append(normalized_rulebase)
             else:
-                normalized_config_dict['policies'].append(normalized_rulebase)
+                normalized_config_adom['policies'].append(normalized_rulebase)
+
+        # normalizing nat rulebases is work in progress
+        #normalize_nat_rulebase(rulebase_link, native_config, normalized_config_adom, normalized_config_global)
+
+def normalize_nat_rulebase(rulebase_link, native_config, normalized_config_adom, normalized_config_global):
+    if not rulebase_link['is_section']:
+        for nat_type in nat_types:
+            nat_type_string = nat_type + '_' + rulebase_link['to_rulebase_uid']
+            nat_rulebase = get_native_nat_rulebase(native_config, nat_type_string)
+            parse_nat_rulebase(nat_rulebase, nat_type_string, normalized_config_adom, normalized_config_global)
+
+def get_native_nat_rulebase(native_config, nat_type_string):
+    logger = getFwoLogger()
+    for nat_rulebase in native_config['nat_rulebases']:
+        if nat_type_string == nat_rulebase['type']:
+            return nat_rulebase['data']
+    logger.warning('no nat data for '+ nat_type_string)
+    return []
 
 def find_rulebase_to_parse(rulebase_list, rulebase_uid):
     for rulebase in rulebase_list:
@@ -89,16 +101,65 @@ def initialize_normalized_rulebase(rulebase_to_parse, mgm_uid):
     """
     rulebaseName = rulebase_to_parse['type']
     rulebaseUid = rulebase_to_parse['type']
-    normalized_rulebase = Rulebase(uid=rulebaseUid, name=rulebaseName, mgm_uid=mgm_uid, Rules={})
+    normalized_rulebase = Rulebase(uid=rulebaseUid, name=rulebaseName, mgm_uid=mgm_uid, rules={})
     return normalized_rulebase
 
-def parse_rulebase(normalized_config_dict, normalized_config_global, rulebase_to_parse, normalized_rulebase):
-
-    rule_num = 1
+def parse_rulebase(normalized_config_adom, normalized_config_global, rulebase_to_parse, normalized_rulebase, found_rulebase_in_global):
+    """Parses a native Fortinet rulebase into a normalized rulebase."""
     for native_rule in rulebase_to_parse['data']:
-        rule_num = parse_single_rule(normalized_config_dict, normalized_config_global, native_rule, normalized_rulebase, rule_num)
+        parse_single_rule(normalized_config_adom, normalized_config_global, native_rule, normalized_rulebase)
+    if not found_rulebase_in_global:
+        add_implicit_deny_rule(normalized_config_adom, normalized_config_global, normalized_rulebase)
 
-def parse_single_rule(normalized_config_dict, normalized_config_global, native_rule, rulebase: Rulebase, rule_num):
+def add_implicit_deny_rule(normalized_config_adom, normalized_config_global, rulebase: Rulebase):
+    
+    deny_rule = {'srcaddr': ['all'], 'srcaddr6': ['all'],
+                 'dstaddr': ['all'], 'dstaddr6': ['all'],
+                 'service': ['ALL'],
+                 'srcintf': ['any'], 'dstintf': ['any']}
+
+    rule_src_list, rule_src_refs_list = rule_parse_addresses(deny_rule, 'src', normalized_config_adom, normalized_config_global, False)
+    rule_dst_list, rule_dst_refs_list = rule_parse_addresses(deny_rule, 'dst', normalized_config_adom, normalized_config_global, False)
+    rule_svc_list, rule_svc_refs_list = rule_parse_service(deny_rule)
+    rule_src_zones = find_zones_in_normalized_config(
+        deny_rule.get('srcintf', []), normalized_config_adom, normalized_config_global)
+    rule_dst_zones = find_zones_in_normalized_config(
+        deny_rule.get('dstintf', []), normalized_config_adom, normalized_config_global)
+
+    rule_normalized = RuleNormalized(
+        rule_num=0,
+        rule_num_numeric=0,
+        rule_disabled=False,
+        rule_src_neg=False,
+        rule_src=list_delimiter.join(rule_src_list),
+        rule_src_refs=list_delimiter.join(rule_src_refs_list),
+        rule_dst_neg=False,
+        rule_dst=list_delimiter.join(rule_dst_list),
+        rule_dst_refs=list_delimiter.join(rule_dst_refs_list),
+        rule_svc_neg=False,
+        rule_svc=list_delimiter.join(rule_svc_list),
+        rule_svc_refs=list_delimiter.join(rule_svc_refs_list),
+        rule_action=RuleAction.DROP,
+        rule_track=RuleTrack.NONE,     # I guess this could also have different values
+        rule_installon=None,
+        rule_time=None,  # Time-based rules not commonly used in basic Fortinet configs
+        rule_name='Implicit Deny',
+        rule_uid=f"{rulebase.uid}_implicit_deny",
+        rule_custom_fields=str({}),
+        rule_implied=True,
+        rule_type=RuleType.ACCESS,
+        last_change_admin=None,
+        parent_rule_uid=None,
+        last_hit=None,
+        rule_comment=None,
+        rule_src_zone=list_delimiter.join(rule_src_zones),
+        rule_dst_zone=list_delimiter.join(rule_dst_zones),
+        rule_head_text=None
+    )
+    rulebase.rules[rule_normalized.rule_uid] = rule_normalized
+
+def parse_single_rule(normalized_config_adom, normalized_config_global, native_rule, rulebase: Rulebase):
+    """Parses a single native Fortinet rule into a normalized rule and adds it to the given rulebase."""
     # Extract basic rule information
     rule_disabled = True  # Default to disabled
     if 'status' in native_rule and (native_rule['status'] == 1 or native_rule['status'] == 'enable'):
@@ -108,19 +169,24 @@ def parse_single_rule(normalized_config_dict, normalized_config_global, native_r
 
     rule_track = rule_parse_tracking_info(native_rule)
 
-    rule_src_list, rule_src_refs_list = rule_parse_addresses(native_rule, 'src', normalized_config_dict, normalized_config_global)
-    rule_dst_list, rule_dst_refs_list = rule_parse_addresses(native_rule, 'dst', normalized_config_dict, normalized_config_global)
+    rule_src_list, rule_src_refs_list = rule_parse_addresses(native_rule, 'src', normalized_config_adom, normalized_config_global, False)
+    rule_dst_list, rule_dst_refs_list = rule_parse_addresses(native_rule, 'dst', normalized_config_adom, normalized_config_global, False)
 
     rule_svc_list, rule_svc_refs_list = rule_parse_service(native_rule)
 
-    rule_src_zone, rule_dst_zone = rule_parse_zone(native_rule, normalized_config_dict)
+    rule_src_zones = find_zones_in_normalized_config(
+        native_rule.get('srcintf', []), normalized_config_adom, normalized_config_global)
+    rule_dst_zones = find_zones_in_normalized_config(
+        native_rule.get('dstintf', []), normalized_config_adom, normalized_config_global)
 
     rule_src_neg, rule_dst_neg, rule_svc_neg = rule_parse_negation_flags(native_rule)
-    rule_installon = rule_parse_installon(native_rule, rulebase.name)
+    rule_installon = rule_parse_installon(native_rule)
+
+    last_hit = rule_parse_last_hit(native_rule)
 
     # Create the normalized rule
     rule_normalized = RuleNormalized(
-        rule_num=rule_num,
+        rule_num=0,
         rule_num_numeric=0,
         rule_disabled=rule_disabled,
         rule_src_neg=rule_src_neg,
@@ -135,27 +201,25 @@ def parse_single_rule(normalized_config_dict, normalized_config_global, native_r
         rule_action=rule_action,
         rule_track=rule_track,
         rule_installon=rule_installon,
-        rule_time='',  # Time-based rules not commonly used in basic Fortinet configs
+        rule_time=None,  # Time-based rules not commonly used in basic Fortinet configs
         rule_name=native_rule.get('name'),
         rule_uid=native_rule.get('uuid'),
         rule_custom_fields=str(native_rule.get('meta fields', {})),
         rule_implied=False,
         rule_type=RuleType.ACCESS,
-        last_change_admin=None, #TODO: native_rule.get('_last-modified-by'), - see #3589
+        last_change_admin=None, #native_rule.get('_last-modified-by', ''), not handled yet -> leave out to prevent mismatches
         parent_rule_uid=None,
-        last_hit=None, # TODO: get last hit
+        last_hit=last_hit,
         rule_comment=native_rule.get('comments'),
-        rule_src_zone=rule_src_zone,
-        rule_dst_zone=rule_dst_zone,
+        rule_src_zone=list_delimiter.join(rule_src_zones),
+        rule_dst_zone=list_delimiter.join(rule_dst_zones),
         rule_head_text=None
     )
     
     # Add the rule to the rulebase
-    rulebase.Rules[rule_normalized.rule_uid] = rule_normalized
+    rulebase.rules[rule_normalized.rule_uid] = rule_normalized
 
-    # TODO: handle NAT
-    
-    return rule_num + 1
+    # TODO: handle combined NAT, see handle_combined_nat_rule
 
 def rule_parse_action(native_rule):
     # Extract action - Fortinet uses 0 for deny/drop, 1 for accept
@@ -187,46 +251,49 @@ def rule_parse_service(native_rule):
 
     return rule_svc_list, rule_svc_refs_list
 
-def rule_parse_zone(native_rule, normalized_config_dict):
-    # TODO: only using the first zone for now
-    rule_src_zone = None
-    if len(native_rule.get('srcintf', [])) > 0:
-        rule_src_zone = add_zone_if_missing(normalized_config_dict, native_rule['srcintf'][0])
-
-    rule_dst_zone = None
-    if len(native_rule.get('dstintf', [])) > 0:
-        rule_dst_zone = add_zone_if_missing(normalized_config_dict, native_rule['dstintf'][0])
-    return rule_src_zone, rule_dst_zone
-
-def rule_parse_addresses(native_rule, target, normalized_config_dict, normalized_config_global):
+def rule_parse_addresses(native_rule, target, normalized_config_adom, normalized_config_global, is_nat):
     if target not in ['src', 'dst']:
         raise FwoImporterErrorInconsistencies(f"target '{target}' must either be src or dst.")
     addr_list = []
     addr_ref_list = []
-    build_addr_list(native_rule, True, target, normalized_config_dict, normalized_config_global, addr_list, addr_ref_list)
-    build_addr_list(native_rule, False, target, normalized_config_dict, normalized_config_global, addr_list, addr_ref_list)
+    if not is_nat:
+        build_addr_list(native_rule, True, target, normalized_config_adom, normalized_config_global, addr_list, addr_ref_list)
+        build_addr_list(native_rule, False, target, normalized_config_adom, normalized_config_global, addr_list, addr_ref_list)
+    else:
+        build_nat_addr_list(native_rule, target, normalized_config_adom, normalized_config_global, addr_list, addr_ref_list)
     return addr_list, addr_ref_list
 
-def build_addr_list(native_rule, is_v4, target, normalized_config_dict, normalized_config_global, addr_list, addr_ref_list):
+def build_addr_list(native_rule, is_v4, target, normalized_config_adom, normalized_config_global, addr_list, addr_ref_list):
     if is_v4 and target == 'src':
         for addr in native_rule.get('srcaddr', []) + native_rule.get('internet-service-src-name', []):
             addr_list.append(addr)
-            addr_ref_list.append(find_addr_ref(addr, is_v4, normalized_config_dict, normalized_config_global))
+            addr_ref_list.append(find_addr_ref(addr, is_v4, normalized_config_adom, normalized_config_global))
     elif not is_v4 and target == 'src':
         for addr in native_rule.get('srcaddr6', []):
             addr_list.append(addr)
-            addr_ref_list.append(find_addr_ref(addr, is_v4, normalized_config_dict, normalized_config_global))
+            addr_ref_list.append(find_addr_ref(addr, is_v4, normalized_config_adom, normalized_config_global))
     elif is_v4 and target == 'dst':
         for addr in native_rule.get('dstaddr', []) + native_rule.get('internet-service-name', []):
             addr_list.append(addr)
-            addr_ref_list.append(find_addr_ref(addr, is_v4, normalized_config_dict, normalized_config_global))
+            addr_ref_list.append(find_addr_ref(addr, is_v4, normalized_config_adom, normalized_config_global))
     else:
         for addr in native_rule.get('dstaddr6', []):
             addr_list.append(addr)
-            addr_ref_list.append(find_addr_ref(addr, is_v4, normalized_config_dict, normalized_config_global))
+            addr_ref_list.append(find_addr_ref(addr, is_v4, normalized_config_adom, normalized_config_global))
 
-def find_addr_ref(addr, is_v4, normalized_config_dict, normalized_config_global):
-    for nw_obj in normalized_config_dict['network_objects'] + normalized_config_global.get('network_objects', []):
+def build_nat_addr_list(native_rule, target, normalized_config_adom, normalized_config_global, addr_list, addr_ref_list):
+    # so far only ip v4 expected
+    if target == 'src':
+        for addr in native_rule.get('orig-addr', []):
+            addr_list.append(addr)
+            addr_ref_list.append(find_addr_ref(addr, True, normalized_config_adom, normalized_config_global))
+    if target == 'dst':
+        for addr in native_rule.get('dst-addr', []):
+            addr_list.append(addr)
+            addr_ref_list.append(find_addr_ref(addr, True, normalized_config_adom, normalized_config_global))
+
+def find_addr_ref(addr, is_v4, normalized_config_adom, normalized_config_global):
+    for nw_obj in normalized_config_adom['network_objects'] + normalized_config_global.get('network_objects', []):
         if addr == nw_obj['obj_name']:
             if (is_v4 and ip_type(nw_obj) == 4) or (not is_v4 and ip_type(nw_obj) == 6):
                 return nw_obj['obj_uid']
@@ -252,358 +319,285 @@ def rule_parse_negation_flags(native_rule):
     rule_svc_neg = 'service-negate' in native_rule and (native_rule['service-negate'] == 1 or native_rule['service-negate'] == 'disable')
     return rule_src_neg, rule_dst_neg, rule_svc_neg
 
-def rule_parse_installon(native_rule, rulebase_name):
-    if 'scope_member' in native_rule:
+def rule_parse_installon(native_rule) -> str|None:
+    rule_installon = None
+    if 'scope_member' in native_rule and native_rule['scope_member']:
         rule_installon = list_delimiter.join(sorted({vdom['name'] + '_' + vdom['vdom'] for vdom in native_rule['scope_member']}))
-    else:
-        rule_installon = rulebase_name
     return rule_installon
 
-def get_access_policy(sid, fm_api_url, native_config_domain, adom_device_vdom_policy_package_structure, adom_name, mgm_details_device, device_config, limit):
-    consolidated = '' # '/consolidated'
-    logger = getFwoLogger()
+def rule_parse_last_hit(native_rule):
+    last_hit = native_rule.get('_last_hit', None)
+    if last_hit != None:
+        last_hit = strftime("%Y-%m-%d %H:%M:%S", localtime(last_hit))
+    return last_hit
+
+def get_access_policy(sid, fm_api_url, native_config_adom, native_config_global, adom_device_vdom_policy_package_structure, adom_name, mgm_details_device, device_config, limit):
 
     previous_rulebase = None
-    local_pkg_name = find_local_pkg(adom_device_vdom_policy_package_structure, adom_name, mgm_details_device)
-    # delete_v: hier global_pkg_name später
-    #global_pkg_name = device['global_rulebase_name']
+    link_list = []
+    local_pkg_name, global_pkg_name = find_packages(adom_device_vdom_policy_package_structure, adom_name, mgm_details_device)
     options = ['extra info', 'scope member', 'get meta']
-    # pkg_name = device['package_name'] pkg_name is not used at all
 
-    # delete_v: hier initial link wenn global header existiert
-    # get global header rulebase:
-    # if device['global_rulebase_name'] is None or device['global_rulebase_name'] == '':
-    #     logger.debug('no global rulebase name defined in fortimanager, ADOM=' + adom_name + ', local_package=' + local_pkg_name)
-    # else:
-    #     fmgr_getter.update_config_with_fortinet_api_call(
-    #         nativeConfig['rules_global_header_v4'], sid, fm_api_url, "/pm/config/global/pkg/" + global_pkg_name + "/global/header" + consolidated + "/policy", local_pkg_name, limit=limit)
-    #     fmgr_getter.update_config_with_fortinet_api_call(
-    #         nativeConfig['rules_global_header_v6'], sid, fm_api_url, "/pm/config/global/pkg/" + global_pkg_name + "/global/header" + consolidated + "/policy6", local_pkg_name, limit=limit)
+    previous_rulebase = get_and_link_global_rulebase(
+        'header', previous_rulebase, global_pkg_name, native_config_global, sid, fm_api_url, options, limit, link_list)
+    
+    previous_rulebase = get_and_link_local_rulebase(
+        'rules_adom', previous_rulebase, adom_name, local_pkg_name, native_config_adom, sid, fm_api_url, options, limit, link_list)
+    
+    previous_rulebase = get_and_link_global_rulebase(
+        'footer', previous_rulebase, global_pkg_name, native_config_global, sid, fm_api_url, options, limit, link_list)
 
-    is_global = False
-    # get local rulebase
-    fmgr_getter.update_config_with_fortinet_api_call(
-        native_config_domain['rulebases'], sid, fm_api_url, "/pm/config/adom/" + adom_name + STRING_PKG + local_pkg_name + "/firewall" + consolidated + "/policy", 'rules_adom_v4_' + local_pkg_name, options=options, limit=limit)
-    fmgr_getter.update_config_with_fortinet_api_call(
-        native_config_domain['rulebases'], sid, fm_api_url, "/pm/config/adom/" + adom_name + STRING_PKG + local_pkg_name + "/firewall" + consolidated + "/policy6", 'rules_adom_v6_' + local_pkg_name, limit=limit)
-    # delete_v: hier initial link immer lokal, erweitern wenn wir global header/footer holen
-    link_list, previous_rulebase = link_v4_and_v6_rulebase(native_config_domain['rulebases'], local_pkg_name, previous_rulebase, is_global)
     device_config['rulebase_links'].extend(link_list)
 
-    # get global footer rulebase:
-    # if device['global_rulebase_name'] != None and device['global_rulebase_name'] != '':
-    #     fmgr_getter.update_config_with_fortinet_api_call(
-    #         nativeConfig['rules_global_footer_v4'], sid, fm_api_url, "/pm/config/global/pkg/" + global_pkg_name + "/global/footer" + consolidated + "/policy", local_pkg_name, limit=limit)
-    #     fmgr_getter.update_config_with_fortinet_api_call(
-    #         nativeConfig['rules_global_footer_v6'], sid, fm_api_url, "/pm/config/global/pkg/" + global_pkg_name + "/global/footer" + consolidated + "/policy6", local_pkg_name, limit=limit)
+def get_and_link_global_rulebase(header_or_footer, previous_rulebase, global_pkg_name, native_config_global, sid, fm_api_url, options, limit, link_list):
+    rulebase_type_prefix = 'rules_global_' + header_or_footer
+    if global_pkg_name != '':
+        if not is_rulebase_already_fetched(native_config_global['rulebases'], rulebase_type_prefix + '_v4_' + global_pkg_name):
+            fmgr_getter.update_config_with_fortinet_api_call(
+                native_config_global['rulebases'],
+                sid, fm_api_url,
+                STRING_PM_CONFIG_GLOBAL_PKG + global_pkg_name + '/global/' + header_or_footer + '/policy',
+                rulebase_type_prefix + '_v4_' + global_pkg_name,
+                options=options, limit=limit)
+        if not is_rulebase_already_fetched(native_config_global['rulebases'], rulebase_type_prefix + '_v6_' + global_pkg_name):
+            # delete_v: hier auch options=options?
+            fmgr_getter.update_config_with_fortinet_api_call(
+                native_config_global['rulebases'],
+                sid, fm_api_url,
+                STRING_PM_CONFIG_GLOBAL_PKG + global_pkg_name + '/global/' + header_or_footer + '/policy6',
+                rulebase_type_prefix + '_v6_' + global_pkg_name,
+                limit=limit)
+        previous_rulebase = link_rulebase(link_list, native_config_global['rulebases'], global_pkg_name, rulebase_type_prefix, previous_rulebase, True)
+    return previous_rulebase
 
-    ### now dealing with hitcounts
+def get_and_link_local_rulebase(rulebase_type_prefix, previous_rulebase, adom_name, local_pkg_name, native_config_adom, sid, fm_api_url, options, limit, link_list):
+    if not is_rulebase_already_fetched(native_config_adom['rulebases'], rulebase_type_prefix + '_v4_' + local_pkg_name):
+        fmgr_getter.update_config_with_fortinet_api_call(
+            native_config_adom['rulebases'],
+            sid, fm_api_url,
+            STRING_PM_CONFIG_ADOM + adom_name + STRING_PKG + local_pkg_name + '/firewall/policy',
+            rulebase_type_prefix + '_v4_' + local_pkg_name,
+            options=options, limit=limit)
+    if not is_rulebase_already_fetched(native_config_adom['rulebases'], rulebase_type_prefix + '_v6_' + local_pkg_name):
+        fmgr_getter.update_config_with_fortinet_api_call(
+            native_config_adom['rulebases'],
+            sid, fm_api_url,
+            STRING_PM_CONFIG_ADOM + adom_name + STRING_PKG + local_pkg_name + '/firewall/policy6',
+            rulebase_type_prefix + '_v6_' + local_pkg_name,
+            limit=limit)
+    previous_rulebase = link_rulebase(link_list, native_config_adom['rulebases'], local_pkg_name, rulebase_type_prefix, previous_rulebase, False)
+    return previous_rulebase
 
-    # get hitcount task number
-    hitcount_payload = {
-        "params": [
-            {
-                "data": {
-                    "adom": adom_name,
-                    "pkg": local_pkg_name
-                }
-            }
-        ]
-    }
-    hitcount_task = fmgr_getter.fortinet_api_call(
-        sid, fm_api_url, "/sys/hitcount", payload=hitcount_payload, method="get")
-    time.sleep(2)
-
-    if len(hitcount_task) == 0 or 'task' not in hitcount_task[0]:
-        logger.warning(f"did not get hitcount task for adom {adom_name} and package {local_pkg_name} - skipping hitcount")
-        return
-
-    # execute hitcount task
-    hitcount_payload = {
-        "params": [
-            {
-                "data": {
-                    "taskid": hitcount_task[0]['task']
-                }
-            }
-        ]
-    }
-    fmgr_getter.update_config_with_fortinet_api_call(
-        native_config_domain['rules_hitcount'], sid, fm_api_url, "/sys/task/result", local_pkg_name, payload=hitcount_payload, limit=limit)
-
-def find_local_pkg(adom_device_vdom_policy_package_structure, adom_name, mgm_details_device):
+def find_packages(adom_device_vdom_policy_package_structure, adom_name, mgm_details_device):
     for device in adom_device_vdom_policy_package_structure[adom_name]:
         for vdom in adom_device_vdom_policy_package_structure[adom_name][device]:
             if mgm_details_device['name'] == device + '_' + vdom:
-                return adom_device_vdom_policy_package_structure[adom_name][device][vdom]
+                device_dict =  adom_device_vdom_policy_package_structure[adom_name][device]
+                if 'local' in device_dict[vdom] and 'global' in adom_device_vdom_policy_package_structure[adom_name][device][vdom]:
+                    return device_dict[vdom]['local'], adom_device_vdom_policy_package_structure[adom_name][device][vdom]['global']
+                else:
+                    return '', ''
     raise FwoDeviceWithoutLocalPackage('Could not find local package for ' + mgm_details_device['name'] + ' in Fortimanager Config') from None
 
-def link_v4_and_v6_rulebase(rulebases, pkg_name, previous_rulebase, is_global):
-    link_list = []
-    has_v4_data = has_rulebase_data(rulebases, 'rules_adom_v4', pkg_name)
-    has_v6_data = has_rulebase_data(rulebases, 'rules_adom_v6', pkg_name)
+def is_rulebase_already_fetched(rulebases, type):
+    for rulebase in rulebases:
+        if rulebase['type'] == type:
+            return True
+    return False
 
-    if has_v4_data:
-        link_list.append(build_link(previous_rulebase, 'rules_adom_v4' + '_' + pkg_name, is_global))
-        previous_rulebase = 'rules_adom_v4' + '_' + pkg_name
-    if has_v6_data:
-        link_list.append(build_link(previous_rulebase, 'rules_adom_v6' + '_' + pkg_name, is_global))
-        previous_rulebase = 'rules_adom_v6' + '_' + pkg_name
+def link_rulebase(link_list, rulebases, pkg_name, rulebase_type_prefix, previous_rulebase, is_global):
+    for version in ['v4', 'v6']:
+        full_pkg_name = rulebase_type_prefix + '_' + version + '_' + pkg_name
+        has_data = has_rulebase_data(rulebases, full_pkg_name, is_global, version, pkg_name)
+        if has_data:
+            link_list.append(build_link(previous_rulebase, full_pkg_name, is_global))
+            previous_rulebase = full_pkg_name
     
-    return link_list, previous_rulebase
+    return previous_rulebase
 
 def build_link(previous_rulebase, full_pkg_name, is_global):
     if previous_rulebase is None:
         is_initial = True
+        previous_rulebase = None
     else:
         is_initial = False
     return {
         'from_rulebase_uid': previous_rulebase,
         'from_rule_uid': None,
         'to_rulebase_uid': full_pkg_name,
-        'type': 'concatenated',
+        # 'type': 'concatenated',
+        'type': 'ordered',
         'is_global': is_global,
         'is_initial': is_initial,
         'is_section': False
     }
 
-def has_rulebase_data(rulebases, type_prefix, pkg_name):
+def has_rulebase_data(rulebases, full_pkg_name, is_global, version, pkg_name):
+    """adds name and uid to rulebase and removes empty global rulebases"""
     has_data = False
+    if version == 'v4':
+        is_v4 = True
+    else:
+        is_v4 = False
     for rulebase in rulebases:
-        if rulebase['type'] == type_prefix + '_' + pkg_name:
-            rulebase.update({'name': type_prefix + '_' + pkg_name,
-                             'uid': type_prefix + '_' + pkg_name})
+        if rulebase['type'] == full_pkg_name:
+            rulebase.update({'name': full_pkg_name,
+                             'uid': full_pkg_name,
+                             'is_global': is_global,
+                             'is_v4': is_v4,
+                             'package': pkg_name})
             if len(rulebase['data']) > 0:
                 has_data = True
+            elif is_global:
+                rulebases.remove(rulebase)
     return has_data
 
-def getNatPolicy(sid, fm_api_url, nativeConfig, adom_name, device, limit):
-    scope = 'global'
-    pkg = device['global_rulebase_name']
-    if pkg is not None and pkg != '':   # only read global rulebase if it exists
-        for nat_type in ['central/dnat', 'central/dnat6', 'firewall/central-snat-map']:
+def get_nat_policy(sid, fm_api_url, native_config, adom_device_vdom_policy_package_structure, adom_name, mgm_details_device, limit):
+    local_pkg_name, global_pkg_name = find_packages(adom_device_vdom_policy_package_structure, adom_name, mgm_details_device)
+    if adom_name == '':
+        for nat_type in nat_types:
             fmgr_getter.update_config_with_fortinet_api_call(
-                nativeConfig['rules_global_nat'], sid, fm_api_url, "/pm/config/" + scope + STRING_PKG + pkg + '/' + nat_type, device['local_rulebase_name'], limit=limit)
-
-    scope = 'adom/'+adom_name
-    pkg = device['local_rulebase_name']
-    for nat_type in ['central/dnat', 'central/dnat6', 'firewall/central-snat-map']:
-        fmgr_getter.update_config_with_fortinet_api_call(
-            nativeConfig['rules_adom_nat'], sid, fm_api_url, "/pm/config/" + scope + STRING_PKG + pkg + '/' + nat_type, device['local_rulebase_name'], limit=limit)
-
-
-# delete_v: ab hier kann sehr viel weg, ich lasses vorerst zB für die hitcounter
-def normalize_rule(rule_orig, rules, native_config, rule_table, localPkgName, rule_number, src_ref_all, dst_ref_all, normalized_config_dict):
-    rule: dict = {'rule_src': '', 'rule_dst': '', 'rule_svc': ''}
-    xlate_rule = None
-    # rule.update({ 'control_id': import_id})
-    rule.update({ 'rulebase_name': localPkgName})    # the rulebase_name will be set to the pkg_name as there is no rulebase_name in FortiMangaer
-    rule.update({ 'rule_ruleid': rule_orig['policyid']})
-    rule.update({ 'rule_uid': rule_orig['uuid']})
-    rule.update({ 'rule_num': rule_number})
-    rule.update({ 'rule_name': rule_orig.get('name', None)})
-    
-    # parse_target_gateways(rule_orig, rule, localPkgName)
-
-    rule.update({ 'rule_implied': False })
-    rule.update({ 'rule_time': None })
-    rule.update({ 'rule_type': 'access' })
-    rule.update({ 'parent_rule_id': None })
-
-    rule.update({ 'rule_comment': rule_orig.get('comments', None)})
-    if rule_orig['action']==0:
-        rule.update({ 'rule_action': 'Drop' })
+                native_config['nat_rulebases'], sid, fm_api_url,
+                STRING_PM_CONFIG_GLOBAL_PKG + global_pkg_name + '/' + nat_type,
+                nat_type + '_global_' + global_pkg_name, limit=limit)
     else:
-        rule.update({ 'rule_action': 'Accept' })
-    if 'status' in rule_orig and (rule_orig['status']=='enable' or rule_orig['status']==1):
-        rule.update({ 'rule_disabled': False })
-    else:
-        rule.update({ 'rule_disabled': True })
-    if rule_orig['logtraffic'] == 'disable':
-        rule.update({ 'rule_track': 'None'})
-    else:
-        rule.update({ 'rule_track': 'Log'})
+        for nat_type in nat_types:
+            fmgr_getter.update_config_with_fortinet_api_call(
+                native_config['nat_rulebases'], sid, fm_api_url,
+                STRING_PM_CONFIG_ADOM + adom_name + STRING_PKG + local_pkg_name + '/' + nat_type,
+                nat_type + '_adom_' + adom_name + '_' + local_pkg_name, limit=limit)
 
-    rule['rule_src'] = extend_string_list(rule['rule_src'], rule_orig, 'srcaddr', list_delimiter)
-    rule['rule_dst'] = extend_string_list(rule['rule_dst'], rule_orig, 'dstaddr', list_delimiter)
-    rule['rule_svc'] = extend_string_list(rule['rule_svc'], rule_orig, 'service', list_delimiter)
-    rule['rule_src'] = extend_string_list(rule['rule_src'], rule_orig, 'srcaddr6', list_delimiter)
-    rule['rule_dst'] = extend_string_list(rule['rule_dst'], rule_orig, 'dstaddr6', list_delimiter)
-    rule['rule_src'] = extend_string_list(rule['rule_src'], rule_orig, 'internet-service-src-name', list_delimiter)
-
-    if len(rule_orig['srcintf'])>0:
-        src_obj_zone = add_zone_if_missing (normalized_config_dict, rule_orig['srcintf'][0])
-        rule.update({ 'rule_from_zone': src_obj_zone }) # todo: currently only using the first zone
-    if len(rule_orig['dstintf'])>0:
-        dst_obj_zone = add_zone_if_missing (normalized_config_dict, rule_orig['dstintf'][0])
-        rule.update({ 'rule_to_zone': dst_obj_zone }) # todo: currently only using the first zone
-
-    if 'srcaddr-negate' in rule_orig:
-        rule.update({ 'rule_src_neg': rule_orig['srcaddr-negate']=='disable'})
-    elif 'internet-service-src-negate' in rule_orig:
-        rule.update({ 'rule_src_neg': rule_orig['internet-service-src-negate']=='disable'})
-    if 'dstaddr-negate' in rule_orig:
-        rule.update({ 'rule_dst_neg': rule_orig['dstaddr-negate']=='disable'})
-    if 'service-negate' in rule_orig:
-        rule.update({ 'rule_svc_neg': rule_orig['service-negate']=='disable'})
-
-    rule.update({ 'rule_src_refs': resolve_raw_objects(rule['rule_src'], list_delimiter, native_config, 'name', 'uuid', \
-        rule_type=rule_table, jwt=None, import_id=None, rule_uid=rule_orig['uuid'], object_type=NETWORK_OBJECT, mgm_id=mgm_details['id']) })
-    rule.update({ 'rule_dst_refs': resolve_raw_objects(rule['rule_dst'], list_delimiter, native_config, 'name', 'uuid', \
-        rule_type=rule_table, jwt=None, import_id=None, rule_uid=rule_orig['uuid'], object_type=NETWORK_OBJECT, mgm_id=mgm_details['id']) })
-    rule.update({ 'rule_svc_refs': rule['rule_svc'] }) # services do not have uids, so using name instead
-    add_users_to_rule(rule_orig, rule)
-
-    # new in v8.0.3:
-    rule.update({ 'rule_custom_fields': rule_orig.get('meta fields', None) })
-    rule.update({ 'last_change_admin': rule_orig.get('_last-modified-by',None) })
-
-    update_hit_counters(native_config, rule_table, rule_orig, rule, localPkgName, rule_access_scope_v4, rule_access_scope_v6)
-
-    xlate_rule = handle_combined_nat_rule(rule, rule_orig, normalized_config_dict, nat_rule_number, import_id, localPkgName, dev_id)
-    rules.append(rule)
-    if xlate_rule is not None:
-        rules.append(xlate_rule)
-    rule_number += 1    # nat rules have their own numbering
-
-
-def update_hit_counters(native_config, rule_table, rule_orig, rule, localPkgName, rule_access_scope_v4, rule_access_scope_v6):
-    if rule_table in rule_access_scope_v4 and len(native_config['rules_hitcount'][localPkgName])>0:
-        for hitcount_config in native_config['rules_hitcount'][localPkgName][0]['firewall policy']:
-            if rule_orig['policyid'] == hitcount_config['last_hit']:
-                rule.update({ 'last_hit': time.strftime("%Y-%m-%dT%H:%M:%S%z", time.localtime(hitcount_config['policyid']))})
-    elif rule_table in rule_access_scope_v6 and len(native_config['rules_hitcount'][localPkgName])>0:
-        for hitcount_config in native_config['rules_hitcount'][localPkgName][0]['firewall policy6']:
-            if rule_orig['policyid'] == hitcount_config['last_hit']:
-                rule.update({ 'last_hit': time.strftime("%Y-%m-%dT%H:%M:%S%z", time.localtime(hitcount_config['policyid']))})
-    else:
-        rule.update({ 'last_hit': None})
-
+# delete_v: ab hier kann sehr viel weg, ich lasses vorerst zB für die nat
 # pure nat rules 
-def normalize_nat_rules(full_config, config2import, import_id, jwt=None):
-    nat_rules = []
-    rule_number = 0
 
-    for rule_table in rule_nat_scope:
-        for localPkgName in full_config['rules_global_nat']:
-            for rule_orig in full_config[rule_table][localPkgName]:
-                rule = {'rule_src': '', 'rule_dst': '', 'rule_svc': ''}
-                if rule_orig['nat'] == 1:   # assuming source nat
-                    rule.update({ 'control_id': import_id})
-                    rule.update({ 'rulebase_name': localPkgName})    # the rulebase_name just has to be a unique string among devices
-                    rule.update({ 'rule_ruleid': rule_orig['policyid']})
-                    rule.update({ 'rule_uid': rule_orig['uuid']})
-                    # rule.update({ 'rule_num': rule_orig['obj seq']})
-                    rule.update({ 'rule_num': rule_number })
-                    if 'comments' in rule_orig:
-                        rule.update({ 'rule_comment': rule_orig['comments']})
-                    rule.update({ 'rule_action': 'Drop' })  # not used for nat rules
-                    rule.update({ 'rule_track': 'None'}) # not used for nat rules
+def parse_nat_rulebase(nat_rulebase, nat_type_string, normalized_config_adom, normalized_config_global):
+    # this function is not called until it is ready
+    return
+    # the following is a first draft and is not yet functional
+    # nat_rules = []
+    # rule_number = 0
+    # for rule_orig in nat_rulebase:
 
-                    rule['rule_src'] = extend_string_list(rule['rule_src'], rule_orig, 'orig-addr', list_delimiter, jwt=jwt, import_id=import_id)
-                    rule['rule_dst'] = extend_string_list(rule['rule_dst'], rule_orig, 'dst-addr', list_delimiter, jwt=jwt, import_id=import_id)
-                    
-                    if rule_orig['protocol']==17:
-                        svc_name = 'udp_' + str(rule_orig['orig-port'])
-                    elif rule_orig['protocol']==6:
-                        svc_name = 'tcp_' + str(rule_orig['orig-port'])
-                    else:
-                        svc_name = 'svc_' + str(rule_orig['orig-port'])
-                    # need to create a helper service object and add it to the nat rule, also needs to be added to service list
+    #     rule_src_list, rule_src_refs_list = rule_parse_addresses(rule_orig, 'src', normalized_config_adom, normalized_config_global, True)
+    #     rule_dst_list, rule_dst_refs_list = rule_parse_addresses(rule_orig, 'dst', normalized_config_adom, normalized_config_global, True)
 
-                    if not 'service_objects' in config2import: # is normally defined
-                        config2import['service_objects'] = []
-                    config2import['service_objects'].append(create_svc_object( \
-                        import_id=import_id, name=svc_name, proto=rule_orig['protocol'], port=rule_orig['orig-port'], comment='service created by FWO importer for NAT purposes'))
-                    rule['rule_svc'] = svc_name
-
-                    #rule['rule_src'] = extend_string_list(rule['rule_src'], rule_orig, 'srcaddr6', list_delimiter, jwt=jwt, import_id=import_id)
-                    #rule['rule_dst'] = extend_string_list(rule['rule_dst'], rule_orig, 'dstaddr6', list_delimiter, jwt=jwt, import_id=import_id)
-
-                    if len(rule_orig['srcintf'])>0:
-                        rule.update({ 'rule_from_zone': rule_orig['srcintf'][0] }) # todo: currently only using the first zone
-                    if len(rule_orig['dstintf'])>0:
-                        rule.update({ 'rule_to_zone': rule_orig['dstintf'][0] }) # todo: currently only using the first zone
-
-                    rule.update({ 'rule_src_neg': False})
-                    rule.update({ 'rule_dst_neg': False})
-                    rule.update({ 'rule_svc_neg': False})
-                    rule.update({ 'rule_src_refs': resolve_raw_objects(rule['rule_src'], list_delimiter, full_config, 'name', 'uuid', rule_type=rule_table) }, \
-                        jwt=jwt, import_id=import_id, rule_uid=rule_orig['uuid'], object_type=NETWORK_OBJECT)
-                    rule.update({ 'rule_dst_refs': resolve_raw_objects(rule['rule_dst'], list_delimiter, full_config, 'name', 'uuid', rule_type=rule_table) }, \
-                        jwt=jwt, import_id=import_id, rule_uid=rule_orig['uuid'], object_type=NETWORK_OBJECT)
-                    # services do not have uids, so using name instead
-                    rule.update({ 'rule_svc_refs': rule['rule_svc'] })
-                    rule.update({ 'rule_type': 'original' })
-                    rule.update({ 'rule_installon': localPkgName })
-                    if 'status' in rule_orig and (rule_orig['status']=='enable' or rule_orig['status']==1):
-                        rule.update({ 'rule_disabled': False })
-                    else:
-                        rule.update({ 'rule_disabled': True })
-                    rule.update({ 'rule_implied': False })
-                    rule.update({ 'rule_time': None })
-                    rule.update({ 'parent_rule_id': None })
-
-                    nat_rules.append(rule)
-                    add_users_to_rule(rule_orig, rule)
-
-                    ############## now adding the xlate rule part ##########################
-                    xlate_rule = dict(rule) # copy the original (match) rule
-                    xlate_rule.update({'rule_src': '', 'rule_dst': '', 'rule_svc': ''})
-                    xlate_rule['rule_src'] = extend_string_list(xlate_rule['rule_src'], rule_orig, 'orig-addr', list_delimiter, jwt=jwt, import_id=import_id)
-                    xlate_rule['rule_dst'] = 'Original'
-                    
-                    if rule_orig['protocol']==17:
-                        svc_name = 'udp_' + str(rule_orig['nat-port'])
-                    elif rule_orig['protocol']==6:
-                        svc_name = 'tcp_' + str(rule_orig['nat-port'])
-                    else:
-                        svc_name = 'svc_' + str(rule_orig['nat-port'])
-                    # need to create a helper service object and add it to the nat rule, also needs to be added to service list!
-                    # fmgr_service.create_svc_object(name=svc_name, proto=rule_orig['protocol'], port=rule_orig['orig-port'], comment='service created by FWO importer for NAT purposes')
-                    config2import['service_objects'].append(create_svc_object(import_id=import_id, name=svc_name, proto=rule_orig['protocol'], port=rule_orig['nat-port'], comment='service created by FWO importer for NAT purposes'))
-                    xlate_rule['rule_svc'] = svc_name
-
-                    xlate_rule.update({ 'rule_src_refs': resolve_objects(xlate_rule['rule_src'], list_delimiter, full_config, 'name', 'uuid', rule_type=rule_table, jwt=jwt, import_id=import_id ) })
-                    xlate_rule.update({ 'rule_dst_refs': resolve_objects(xlate_rule['rule_dst'], list_delimiter, full_config, 'name', 'uuid', rule_type=rule_table, jwt=jwt, import_id=import_id ) })
-                    xlate_rule.update({ 'rule_svc_refs': xlate_rule['rule_svc'] })  # services do not have uids, so using name instead
-
-                    xlate_rule.update({ 'rule_type': 'xlate' })
-
-                    nat_rules.append(xlate_rule)
-                    rule_number += 1
-    config2import['rules'].extend(nat_rules)
+    #     rule_normalized = RuleNormalized(
+    #         rule_num=rule_number,
+    #         rule_num_numeric=0,
+    #         rule_disabled=False,
+    #         rule_src_neg=False,
+    #         rule_src=list_delimiter.join(rule_src_list),
+    #         rule_src_refs=list_delimiter.join(rule_src_refs_list),
+    #         rule_dst_neg=False,
+    #         rule_dst=list_delimiter.join(rule_dst_list),
+    #         rule_dst_refs=list_delimiter.join(rule_dst_refs_list),
+    #         rule_svc_neg=False,
+    #         rule_svc=list_delimiter.join(rule_svc_list),
+    #         rule_svc_refs=list_delimiter.join(rule_svc_refs_list),
+    #         rule_action=RuleAction.DROP,
+    #         rule_track=RuleTrack.NONE,
+    #         rule_installon=nat_type_string,
+    #         rule_time='',  # Time-based rules not commonly used in basic Fortinet configs
+    #         rule_name=rule_orig.get('name', ''),
+    #         rule_uid=rule_orig.get('uuid'),
+    #         rule_custom_fields=str({}),
+    #         rule_implied=False,
+    #         rule_type=RuleType.NAT,
+    #         last_change_admin=native_rule.get('_last-modified-by', ''),
+    #         parent_rule_uid=None,
+    #         last_hit=last_hit,
+    #         rule_comment=native_rule.get('comments'),
+    #         rule_src_zone=list_delimiter.join(rule_src_zones),
+    #         rule_dst_zone=list_delimiter.join(rule_dst_zones),
+    #         rule_head_text=None
+    #     )
 
 
-def insert_header(rules, import_id, header_text, rulebase_name, rule_uid, rule_number, src_refs, dst_refs):
-    rule = {
-        "control_id": import_id,
-        "rule_head_text": header_text,
-        "rulebase_name": rulebase_name,
-        "rule_ruleid": None,
-        "rule_uid":  rule_uid + rulebase_name,
-        "rule_num": rule_number,
-        "rule_disabled": False,
-        "rule_src": "all",
-        "rule_dst": "all", 
-        "rule_svc": "ALL",
-        "rule_src_neg": False,
-        "rule_dst_neg": False,
-        "rule_svc_neg": False,
-        "rule_src_refs": src_refs,
-        "rule_dst_refs": dst_refs,
-        "rule_svc_refs": "ALL",
-        "rule_action": "Accept",
-        "rule_track": "None",
-        "rule_installon": None,
-        "rule_time": None,
-        "rule_type": "access",
-        "parent_rule_id": None,
-        "rule_implied": False,
-        "rule_comment": None
-    }
-    rules.append(rule)
+    # # for rule_table in rule_nat_scope:
+    # #     for localPkgName in native_config['rules_global_nat']:
+    # for rule_orig in nat_rulebase:
+    #     rule = {'rule_src': '', 'rule_dst': '', 'rule_svc': ''}
+    #     if rule_orig['nat'] == 1:   # assuming source nat
+    #         rule.update({ 'rule_ruleid': rule_orig['policyid']})
+    #         rule.update({ 'rule_uid': rule_orig['uuid']})
+    #         # rule.update({ 'rule_num': rule_orig['obj seq']})
+    #         if 'comments' in rule_orig:
+    #             rule.update({ 'rule_comment': rule_orig['comments']})
+    #         rule.update({ 'rule_action': 'Drop' })  # not used for nat rules
+    #         rule.update({ 'rule_track': 'None'}) # not used for nat rules
 
+    #         rule['rule_src'] = extend_string_list(rule['rule_src'], rule_orig, 'orig-addr', list_delimiter, jwt=jwt, import_id=import_id)
+    #         rule['rule_dst'] = extend_string_list(rule['rule_dst'], rule_orig, 'dst-addr', list_delimiter, jwt=jwt, import_id=import_id)
+
+    #         if rule_orig['protocol']==17:
+    #             svc_name = 'udp_' + str(rule_orig['orig-port'])
+    #         elif rule_orig['protocol']==6:
+    #             svc_name = 'tcp_' + str(rule_orig['orig-port'])
+    #         else:
+    #             svc_name = 'svc_' + str(rule_orig['orig-port'])
+    #         # need to create a helper service object and add it to the nat rule, also needs to be added to service list
+
+    #         if not 'service_objects' in normalized_config_adom: # is normally defined
+    #             normalized_config_adom['service_objects'] = []
+    #         normalized_config_adom['service_objects'].append(create_svc_object( \
+    #             import_id=import_id, name=svc_name, proto=rule_orig['protocol'], port=rule_orig['orig-port'], comment='service created by FWO importer for NAT purposes'))
+    #         rule['rule_svc'] = svc_name
+
+    #         #rule['rule_src'] = extend_string_list(rule['rule_src'], rule_orig, 'srcaddr6', list_delimiter, jwt=jwt, import_id=import_id)
+    #         #rule['rule_dst'] = extend_string_list(rule['rule_dst'], rule_orig, 'dstaddr6', list_delimiter, jwt=jwt, import_id=import_id)
+
+    #         if len(rule_orig['srcintf'])>0:
+    #             rule.update({ 'rule_from_zone': rule_orig['srcintf'][0] }) # todo: currently only using the first zone
+    #         if len(rule_orig['dstintf'])>0:
+    #             rule.update({ 'rule_to_zone': rule_orig['dstintf'][0] }) # todo: currently only using the first zone
+
+    #         rule.update({ 'rule_src_neg': False})
+    #         rule.update({ 'rule_dst_neg': False})
+    #         rule.update({ 'rule_svc_neg': False})
+    #         rule.update({ 'rule_src_refs': resolve_raw_objects(rule['rule_src'], list_delimiter, native_config, 'name', 'uuid', rule_type=rule_table) }, \
+    #             jwt=jwt, import_id=import_id, rule_uid=rule_orig['uuid'], object_type=NETWORK_OBJECT)
+    #         rule.update({ 'rule_dst_refs': resolve_raw_objects(rule['rule_dst'], list_delimiter, native_config, 'name', 'uuid', rule_type=rule_table) }, \
+    #             jwt=jwt, import_id=import_id, rule_uid=rule_orig['uuid'], object_type=NETWORK_OBJECT)
+    #         # services do not have uids, so using name instead
+    #         rule.update({ 'rule_svc_refs': rule['rule_svc'] })
+    #         rule.update({ 'rule_type': 'original' })
+    #         rule.update({ 'rule_installon': localPkgName })
+    #         if 'status' in rule_orig and (rule_orig['status']=='enable' or rule_orig['status']==1):
+    #             rule.update({ 'rule_disabled': False })
+    #         else:
+    #             rule.update({ 'rule_disabled': True })
+    #         rule.update({ 'rule_implied': False })
+    #         rule.update({ 'rule_time': None })
+    #         rule.update({ 'parent_rule_id': None })
+
+    #         nat_rules.append(rule)
+    #         add_users_to_rule(rule_orig, rule)
+
+    #         ############## now adding the xlate rule part ##########################
+    #         xlate_rule = dict(rule) # copy the original (match) rule
+    #         xlate_rule.update({'rule_src': '', 'rule_dst': '', 'rule_svc': ''})
+    #         xlate_rule['rule_src'] = extend_string_list(xlate_rule['rule_src'], rule_orig, 'orig-addr', list_delimiter, jwt=jwt, import_id=import_id)
+    #         xlate_rule['rule_dst'] = 'Original'
+
+    #         if rule_orig['protocol']==17:
+    #             svc_name = 'udp_' + str(rule_orig['nat-port'])
+    #         elif rule_orig['protocol']==6:
+    #             svc_name = 'tcp_' + str(rule_orig['nat-port'])
+    #         else:
+    #             svc_name = 'svc_' + str(rule_orig['nat-port'])
+    #         # need to create a helper service object and add it to the nat rule, also needs to be added to service list!
+    #         # fmgr_service.create_svc_object(name=svc_name, proto=rule_orig['protocol'], port=rule_orig['orig-port'], comment='service created by FWO importer for NAT purposes')
+    #         normalized_config_adom['service_objects'].append(create_svc_object(import_id=import_id, name=svc_name, proto=rule_orig['protocol'], port=rule_orig['nat-port'], comment='service created by FWO importer for NAT purposes'))
+    #         xlate_rule['rule_svc'] = svc_name
+
+    #         xlate_rule.update({ 'rule_src_refs': resolve_objects(xlate_rule['rule_src'], list_delimiter, native_config, 'name', 'uuid', rule_type=rule_table, jwt=jwt, import_id=import_id ) })
+    #         xlate_rule.update({ 'rule_dst_refs': resolve_objects(xlate_rule['rule_dst'], list_delimiter, native_config, 'name', 'uuid', rule_type=rule_table, jwt=jwt, import_id=import_id ) })
+    #         xlate_rule.update({ 'rule_svc_refs': xlate_rule['rule_svc'] })  # services do not have uids, so using name instead
+
+    #         xlate_rule.update({ 'rule_type': 'xlate' })
+
+    #         nat_rules.append(xlate_rule)
+    # normalized_config_adom['rules'].extend(nat_rules)
 
 def create_xlate_rule(rule):
     xlate_rule = copy.deepcopy(rule)
@@ -649,7 +643,7 @@ def handle_combined_nat_rule(rule, rule_orig, config2import, nat_rule_number, im
                         interface_name = matching_route.interface
                         hideInterface=interface_name
                         if hideInterface is None:
-                            logger.warning('src nat behind interface: found route with undefined interface ' + str(jsonpickle.dumps(matching_route, unpicklable=True)))
+                            logger.warning('src nat behind interface: found route with undefined interface ') #+ str(jsonpickle.dumps(matching_route, unpicklable=True)))
                         if destination_interface_ip is None:
                             logger.warning('src nat behind interface: found no matching interface IP in rule with UID '
                             + rule['rule_uid'] + ', dest_ip: ' + destination_ip)
@@ -717,36 +711,6 @@ def handle_combined_nat_rule(rule, rule_orig, config2import, nat_rule_number, im
     # else: (no nat object found) no dnatting involved, dst stays "Original"
 
     return xlate_rule
-
-
-def insert_headers(rule_table, first_v6, first_v4, full_config, rules, import_id, localPkgName,src_ref_all,dst_ref_all,rule_number):
-    if rule_table in rule_access_scope_v6 and first_v6:
-        insert_header(rules, import_id, "IPv6 rules", localPkgName, "IPv6HeaderText", rule_number, src_ref_all, dst_ref_all)
-        rule_number += 1
-        first_v6 = False
-    elif rule_table in rule_access_scope_v4 and first_v4:
-        insert_header(rules, import_id, "IPv4 rules", localPkgName, "IPv4HeaderText", rule_number, src_ref_all, dst_ref_all)
-        rule_number += 1
-        first_v4 = False
-    if rule_table == 'rules_adom_v4' and len(full_config['rules_adom_v4'][localPkgName])>0:
-        insert_header(rules, import_id, "Adom Rules IPv4", localPkgName, "IPv4AdomRules", rule_number, src_ref_all, dst_ref_all)
-        rule_number += 1
-    elif rule_table == 'rules_adom_v6' and len(full_config['rules_adom_v6'][localPkgName])>0:
-        insert_header(rules, import_id, "Adom Rules IPv6", localPkgName, "IPv6AdomRules", rule_number, src_ref_all, dst_ref_all)
-        rule_number += 1
-    elif rule_table == 'rules_global_header_v4' and len(full_config['rules_global_header_v4'][localPkgName])>0:
-        insert_header(rules, import_id, "Global Header Rules IPv4", localPkgName, "IPv4GlobalHeaderRules", rule_number, src_ref_all, dst_ref_all)
-        rule_number += 1
-    elif rule_table == 'rules_global_header_v6' and len(full_config['rules_global_header_v6'][localPkgName])>0:
-        insert_header(rules, import_id, "Global Header Rules IPv6", localPkgName, "IPv6GlobalHeaderRules", rule_number, src_ref_all, dst_ref_all)
-        rule_number += 1
-    elif rule_table == 'rules_global_footer_v4' and len(full_config['rules_global_footer_v4'][localPkgName])>0:
-        insert_header(rules, import_id, "Global Footer Rules IPv4", localPkgName, "IPv4GlobalFooterRules", rule_number, src_ref_all, dst_ref_all)
-        rule_number += 1
-    elif rule_table == 'rules_global_footer_v6' and len(full_config['rules_global_footer_v6'][localPkgName])>0:
-        insert_header(rules, import_id, "Global Footer Rules IPv6", localPkgName, "IPv6GlobalFooterRules", rule_number, src_ref_all, dst_ref_all)
-        rule_number += 1
-    return rule_number, first_v4, first_v6
 
 
 def extract_nat_objects(nwobj_list, all_nwobjects):

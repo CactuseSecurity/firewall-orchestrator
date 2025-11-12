@@ -66,8 +66,10 @@ class RuleNormalized(BaseModel):
     def __eq__(self, other):
         if not isinstance(other, RuleNormalized):
             return NotImplemented
-        # Compare all fields except 'last_hit' and 'rule_num'
-        exclude = {"last_hit", "rule_num"}
+        # Compare all fields except 'last_hit' and 'rule_num' and zones
+        # Zones are excluded because they are currently not written to the rule directly,
+        #  only linked through rule_from_zone and rule_to_zone tables (similar to _resolved tables)
+        exclude = {"last_hit", "rule_num", "rule_src_zone", "rule_dst_zone"}
         self_dict = self.model_dump(exclude=exclude)
         other_dict = other.model_dump(exclude=exclude)
         return self_dict == other_dict

@@ -55,7 +55,7 @@ namespace FWO.Middleware.Server
             }
             catch (Exception exc)
             {
-                await LogErrorsWithAlert(1, "Compliance Check", GlobalConst.kComplianceCheck, AlertCode.ComplianceCheck, exc);
+                await LogErrorsWithAlert(1, "Compliance Check Scheduler", GlobalConst.kComplianceCheck, AlertCode.ComplianceCheck, exc);
             }
         }
     }

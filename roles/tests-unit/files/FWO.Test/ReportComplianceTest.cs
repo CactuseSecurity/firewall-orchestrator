@@ -1,3 +1,4 @@
+using FWO.Config.Api;
 using FWO.Data;
 using FWO.Test.Mocks;
 using NUnit.Framework;
@@ -7,9 +8,8 @@ namespace FWO.Test
     [TestFixture]
     internal class ReportComplianceTest
     {
-        private static MockReportCompliance _complianceReport => new(new(""), new(), Basics.ReportType.Compliance);
+        private MockReportCompliance _complianceReport => new(new(""), new(), Basics.ReportType.ComplianceReport);
         private MockReportCompliance _testReport = default!;
-        private static MockReportComplianceDiff _complianceDiffReport => new(new(""), new(), Basics.ReportType.ComplianceDiff);
         private MockReportComplianceDiff _testDiffReport = default!;
 
 
@@ -17,7 +17,12 @@ namespace FWO.Test
         public void SetUpTest()
         {
             _testReport = _complianceReport;
-            _testDiffReport = _complianceDiffReport;
+            SimulatedGlobalConfig globalConfig = new();
+            globalConfig.ComplianceCheckMaxPrintedViolations = 2;
+            UserConfig userConfig = new(globalConfig);
+
+            _testDiffReport = new(new(""), userConfig, Basics.ReportType.ComplianceDiffReport);
+            ;
             _testDiffReport.MockPostProcessDiffReportsRule = true;
         }
 
@@ -44,83 +49,83 @@ namespace FWO.Test
         }
 
         [Test]
-        public async Task ProcessChunksParallelized_MinimalTestData_CreatesCorrectDiffs()
+        public async Task ProcessChunksParallelized_DiffReport_CreatesCorrectDiffs()
         {
             // ARRANGE
 
             CancellationToken ct = default;
-            List<Rule>[] ruleChunks = new List<Rule>[2];
+            DateTime foundDate = DateTime.Now;
 
             _testDiffReport.DiffReferenceInDays = 7;
 
-            Rule rule1 = new()
+            Rule notAssessable = new()
             {
                 Id = 1,
-                Name = "Test Rule 1",
-                Violations = new List<ComplianceViolation>()
+                Name = "Testrule 1",
+                Violations = [
+                    CreateMockComplianceViolation(1,1, foundDate, criterion:
+
+                        new()
+                        {
+                            CriterionType = nameof(ComplianceViolationType.NotAssessable)
+                        },
+                        type: ComplianceViolationType.NotAssessable
+
+                    ),
+                    CreateMockComplianceViolation(2,2, foundDate, type: ComplianceViolationType.MatrixViolation)
+                ]
             };
 
-            Rule rule2 = new()
+            Rule abbreviated = new()
             {
                 Id = 2,
-                Name = "Test Rule 2",
-                Violations = new List<ComplianceViolation>()
+                Name = "Testrule 2",
+                Violations = [
+                        CreateMockComplianceViolation(3,2, foundDate, type: ComplianceViolationType.MatrixViolation),
+                        CreateMockComplianceViolation(4,2, foundDate, type: ComplianceViolationType.MatrixViolation),
+                        CreateMockComplianceViolation(5,2, foundDate, type: ComplianceViolationType.MatrixViolation)
+                    ]
             };
 
-            ComplianceViolation unchanged = new()
-            {
-                Id = 1,
-                RuleId = 1,
-                FoundDate = DateTime.Now.AddDays(-(_testDiffReport.DiffReferenceInDays + 1)),
-                Details = "Test violation 1",
-                RiskScore = 0,
-                PolicyId = 1,
-                CriterionId = 1
-            };
-
-            ComplianceViolation removed = new()
-            {
-                Id = 2,
-                RuleId = 1,
-                FoundDate = DateTime.Now.AddDays(-(_testDiffReport.DiffReferenceInDays + 1)),
-                RemovedDate = DateTime.Now.AddDays(-1),
-                Details = "Test violation 2",
-                RiskScore = 0,
-                PolicyId = 1,
-                CriterionId = 2
-            };
-
-            ComplianceViolation irrelevant = new()
+            Rule multiple = new()
             {
                 Id = 3,
-                RuleId = 2,
-                FoundDate = DateTime.Now.AddDays(-(_testDiffReport.DiffReferenceInDays + 2)),
-                RemovedDate = DateTime.Now.AddDays(-(_testDiffReport.DiffReferenceInDays + 1)),
-                Details = "Test violation 3",
-                RiskScore = 0,
-                PolicyId = 1,
-                CriterionId = 2
+                Name = "Testrule 3",
+                Violations = [
+                    CreateMockComplianceViolation(6,3, foundDate, type: ComplianceViolationType.MatrixViolation),
+                    CreateMockComplianceViolation(7,3, foundDate, type: ComplianceViolationType.ServiceViolation)
+                ]
             };
 
-            ComplianceViolation added = new()
+            Rule singular = new()
             {
                 Id = 4,
-                RuleId = 2,
-                FoundDate = DateTime.Now.AddDays(-1),
-                Details = "Test violation 4",
-                RiskScore = 0,
-                PolicyId = 1,
-                CriterionId = 3
+                Name = "Testrule 4",
+                Violations = [
+                    CreateMockComplianceViolation(8,4, foundDate, criterion:
+
+                        new()
+                        {
+                            CriterionType = nameof(ComplianceViolationType.ServiceViolation)
+                        },
+                        type: ComplianceViolationType.ServiceViolation
+
+                    )
+                ]
             };
 
-            rule1.Violations.AddRange([unchanged, removed]);
-            rule2.Violations.AddRange([irrelevant, added]);
+            List<Rule>[] ruleChunks =
+            [
+                new List<Rule>(){ notAssessable },
+                new List<Rule>(){ abbreviated },
+                new List<Rule>(){ multiple },
+                new List<Rule>(){ singular }
+            ];
 
-            ruleChunks[0] = new List<Rule> { rule1 };
-            ruleChunks[1] = new List<Rule> { rule2 };
-
-            string controlRule1 = $"Removed: ({removed.RemovedDate:dd.MM.yyyy} - {removed.RemovedDate:hh:mm}) : Test violation 2";
-            string controlRule2 = $"Found: ({added.FoundDate:dd.MM.yyyy} - {added.FoundDate:hh:mm}) : Test violation 4";
+            string controlNotAssessable = CreateViolationDetailsControlString(foundDate, 1);
+            string controlAbbreviated = CreateViolationDetailsControlString(foundDate, 3) + "<br>" + CreateViolationDetailsControlString(foundDate, 4) + "<br>Too many violations to display (3), please check the system for details.";
+            string controlMultiple = CreateViolationDetailsControlString(foundDate, 6) + "<br>" + CreateViolationDetailsControlString(foundDate, 7);
+            string controlSingular = CreateViolationDetailsControlString(foundDate, 8);
 
             // ACT
 
@@ -128,8 +133,14 @@ namespace FWO.Test
 
             // ASSERT
 
-            Assert.That(testResults.First(r => r.Id == rule1.Id).ViolationDetails == controlRule1, message: $"{testResults.First(r => r.Id == rule1.Id).ViolationDetails} VS. {controlRule1}");
-            Assert.That(testResults.First(r => r.Id == rule2.Id).ViolationDetails == controlRule2, message: $"{testResults.First(r => r.Id == rule2.Id).ViolationDetails} VS. {controlRule2}");
+            Assert.That(testResults.Count == 4);
+            Assert.That(notAssessable.ViolationDetails == controlNotAssessable);
+            Assert.That(notAssessable.Compliance == ComplianceViolationType.NotAssessable);
+            Assert.That(abbreviated.ViolationDetails == controlAbbreviated);
+            Assert.That(multiple.ViolationDetails == controlMultiple);
+            Assert.That(multiple.Compliance == ComplianceViolationType.MultipleViolations);
+            Assert.That(singular.ViolationDetails == controlSingular);
+            Assert.That(singular.Compliance == ComplianceViolationType.ServiceViolation);
         }
 
         private List<Rule>[] BuildFixedRuleChunksParallel(int numberOfChunks, int numberOfRulesPerChunk, int startRuleId = 1, int? maxDegreeOfParallelism = null)
@@ -156,6 +167,43 @@ namespace FWO.Test
                 });
 
             return ruleChunks;
+        }
+
+        private ComplianceViolation CreateMockComplianceViolation(int id = 0, int ruleId = 0, DateTime? foundDate = null, DateTime? removedDate = null, string details = "", int policyId = 0, ComplianceCriterion? criterion = null, ComplianceViolationType type = ComplianceViolationType.None)
+        {
+            if (string.IsNullOrEmpty(details))
+            {
+                details = $"Test violation {id}";
+            }
+
+            if (criterion == null)
+            {
+                criterion = new()
+                {
+                    Id = 0
+                };
+            }
+
+            ComplianceViolation violation = new()
+            {
+                Id = id,
+                RuleId = ruleId,
+                FoundDate = foundDate ?? DateTime.Now,
+                Details = details,
+                RiskScore = 0,
+                PolicyId = policyId,
+                CriterionId = criterion.Id,
+                Criterion = criterion
+            };
+
+            violation.Type = type;
+
+            return violation;
+        }
+
+        private string CreateViolationDetailsControlString(DateTime foundDate, int violationId)
+        {
+            return $"Found: ({foundDate:dd.MM.yyyy} - {foundDate:hh:mm}) Test violation {violationId}";
         }
 
     }

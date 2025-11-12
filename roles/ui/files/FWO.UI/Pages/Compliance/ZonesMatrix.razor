@@ -38,13 +38,16 @@
                             </th>
                             @foreach (var destinationZone in GetSortedNetworkzones())
                             {
-                                var allowed = sourceZone.CommunicationAllowedTo(destinationZone);
-                                var allowed_in_edit = AddCommunication.Contains((sourceZone, destinationZone));
-                                var disallowed_in_edit = DeleteCommunication.Contains((sourceZone, destinationZone));
-                                <td @onclick="() => ExecuteCommunicationAction(sourceZone, destinationZone)"
-                                    class="communication-cell @(allowed_in_edit ? "allowed-in-edit" : "")
-                                    @(disallowed_in_edit ? "disallowed-in-edit" : "")
-                                    @(allowed && !allowed_in_edit && !disallowed_in_edit ? "allowed" : "disallowed")" />
+                                bool readonlyZone = sourceZone.IsAutoCalculatedUndefinedInternalZone || destinationZone.IsAutoCalculatedUndefinedInternalZone;
+                                bool allowed = sourceZone.CommunicationAllowedTo(destinationZone);
+                                bool allowedInEdit = AddCommunication.Contains((sourceZone, destinationZone));
+                                bool disallowedInEdit = DeleteCommunication.Contains((sourceZone, destinationZone));
+
+                                <td id="@GetMatrixElementId(sourceZone, destinationZone)" @onclick="() => ExecuteCommunicationAction(sourceZone, destinationZone)"
+                                    class="communication-cell @(!readonlyZone && allowedInEdit ? "allowed-in-edit" : "")
+                                    @(!readonlyZone && disallowedInEdit ? "disallowed-in-edit" : "")
+                                    @(!readonlyZone && allowed && !allowedInEdit && !disallowedInEdit ? "allowed" : "disallowed")
+                                    @(readonlyZone ? "readonly" : "")" />
                             }
                         </tr>
                     }
@@ -70,7 +73,6 @@
 
 	[Parameter]
     public EventCallback<List<(ComplianceNetworkZone, ComplianceNetworkZone)>> DeleteCommunicationChanged { get; set; }
-
 	
     private void ExecuteZoneAction(ComplianceNetworkZone zone)
     {
@@ -88,33 +90,25 @@
     {
         if(!sourceZone.IsAutoCalculatedUndefinedInternalZone && !destinationZone.IsAutoCalculatedUndefinedInternalZone)
         {
-            // Return to make auto-calculated undefined-internal zone readonly
-            
-            return;
-        }
-
-        if (EditMode)
-        {
-            if (AddCommunication.Contains((sourceZone, destinationZone)))
+            if (EditMode)
             {
-                AddCommunication.Remove((sourceZone, destinationZone));
+                if (AddCommunication.Contains((sourceZone, destinationZone)))
+                {
+                    AddCommunication.Remove((sourceZone, destinationZone));
+                }
+                else if (DeleteCommunication.Contains((sourceZone, destinationZone)))
+                {
+                    DeleteCommunication.Remove((sourceZone, destinationZone));
+                }
+                else if (sourceZone.CommunicationAllowedTo(destinationZone))
+                {
+                    DeleteCommunication.Add((sourceZone, destinationZone));
+                }
+                else
+                {
+                    AddCommunication.Add((sourceZone, destinationZone));
+                }
             }
-            else if (DeleteCommunication.Contains((sourceZone, destinationZone)))
-            {
-                DeleteCommunication.Remove((sourceZone, destinationZone));
-            }
-            else if (sourceZone.CommunicationAllowedTo(destinationZone))
-            {
-                DeleteCommunication.Add((sourceZone, destinationZone));
-            }
-            else
-            {
-                AddCommunication.Add((sourceZone, destinationZone));
-            }
-        }
-        else
-        {
-            // Jump to communication
         }
     }
 
@@ -132,19 +126,38 @@
         if(internetZone != null)
         {
             complianceNetworkZones.Remove(internetZone);
-            complianceNetworkZones.Insert(0, internetZone);
+
+            if(!userConfig.GlobalConfig!.AutoCalculatedZonesAtTheEnd)
+            {
+                complianceNetworkZones.Insert(0, internetZone);
+            }
+            else
+            {
+                complianceNetworkZones.Add(internetZone);
+            }
 
             ComplianceNetworkZone? undefinedInternalZone = networkZoneService.NetworkZones.FirstOrDefault(zone => zone.IsAutoCalculatedUndefinedInternalZone);
 
             if(undefinedInternalZone != null)
             {
                 complianceNetworkZones.Remove(undefinedInternalZone);
-                complianceNetworkZones.Insert(1, undefinedInternalZone);
+
+                if(!userConfig.GlobalConfig!.AutoCalculatedZonesAtTheEnd)
+                {
+                    complianceNetworkZones.Insert(1, undefinedInternalZone);
+                }
+                else
+                {
+                    complianceNetworkZones.Add(undefinedInternalZone);
+                }
             }
         }
 
-
-
         return complianceNetworkZones;
+    }
+
+    private string GetMatrixElementId(ComplianceNetworkZone sourceZone, ComplianceNetworkZone destinationZone)
+    {
+        return $"matrix-element-{sourceZone.IdString.Replace(" ", "")}-to-{destinationZone.IdString.Replace(" ", "")}";
     }
 }

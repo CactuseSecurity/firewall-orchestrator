@@ -625,15 +625,16 @@
                   "role": "middleware-server",
                   "permission": {
                     "columns": [
-                      "id",
-                      "owner_id",
-                      "super_network_zone_id",
-                      "description",
-                      "name",
-                      "criterion_id",
-                      "id_string",
                       "created",
-                      "removed"
+                      "criterion_id",
+                      "description",
+                      "id",
+                      "id_string",
+                      "is_auto_calculated_internet_zone",
+                      "name",
+                      "owner_id",
+                      "removed",
+                      "super_network_zone_id"
                     ],
                     "filter": {},
                     "check": {}
@@ -15381,6 +15382,19 @@
               ],
               "select_permissions": [
                 {
+                  "role": "auditor",
+                  "permission": {
+                    "columns": [
+                      "created",
+                      "removed",
+                      "dev_id",
+                      "rule_id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
                   "role": "fw-admin",
                   "permission": {
                     "columns": [
@@ -15396,19 +15410,6 @@
                 },
                 {
                   "role": "importer",
-                  "permission": {
-                    "columns": [
-                      "created",
-                      "removed",
-                      "dev_id",
-                      "rule_id"
-                    ],
-                    "filter": {}
-                  },
-                  "comment": ""
-                },
-                {
-                  "role": "auditor",
                   "permission": {
                     "columns": [
                       "created",
@@ -17354,6 +17355,23 @@
               ],
               "select_permissions": [
                 {
+                  "role": "auditor",
+                  "permission": {
+                    "columns": [
+                      "created",
+                      "removed",
+                      "is_global",
+                      "name",
+                      "uid",
+                      "id",
+                      "mgm_id"
+                    ],
+                    "filter": {},
+                    "allow_aggregations": true
+                  },
+                  "comment": ""
+                },
+                {
                   "role": "importer",
                   "permission": {
                     "columns": [
@@ -17371,7 +17389,23 @@
                   "comment": ""
                 },
                 {
-                  "role": "auditor",
+                  "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "created",
+                      "removed",
+                      "is_global",
+                      "name",
+                      "uid",
+                      "id",
+                      "mgm_id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "reporter",
                   "permission": {
                     "columns": [
                       "created",
@@ -17401,39 +17435,6 @@
                     ],
                     "filter": {},
                     "allow_aggregations": true
-                  },
-                  "comment": ""
-                },
-                {
-                  "role": "reporter",
-                  "permission": {
-                    "columns": [
-                      "created",
-                      "removed",
-                      "is_global",
-                      "name",
-                      "uid",
-                      "id",
-                      "mgm_id"
-                    ],
-                    "filter": {},
-                    "allow_aggregations": true
-                  },
-                  "comment": ""
-                },
-                {
-                  "role": "middleware-server",
-                  "permission": {
-                    "columns": [
-                      "created",
-                      "removed",
-                      "is_global",
-                      "name",
-                      "uid",
-                      "id",
-                      "mgm_id"
-                    ],
-                    "filter": {}
                   },
                   "comment": ""
                 }
@@ -17540,6 +17541,27 @@
               ],
               "select_permissions": [
                 {
+                  "role": "auditor",
+                  "permission": {
+                    "columns": [
+                      "created",
+                      "removed",
+                      "from_rule_id",
+                      "removed",
+                      "is_global",
+                      "is_initial",
+                      "is_section",
+                      "from_rulebase_id",
+                      "gw_id",
+                      "id",
+                      "link_type",
+                      "to_rulebase_id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
                   "role": "importer",
                   "permission": {
                     "columns": [
@@ -17582,28 +17604,7 @@
                   "comment": ""
                 },
                 {
-                  "role": "auditor",
-                  "permission": {
-                    "columns": [
-                      "created",
-                      "removed",
-                      "from_rule_id",
-                      "removed",
-                      "is_global",
-                      "is_initial",
-                      "is_section",
-                      "from_rulebase_id",
-                      "gw_id",
-                      "id",
-                      "link_type",
-                      "to_rulebase_id"
-                    ],
-                    "filter": {}
-                  },
-                  "comment": ""
-                },
-                {
-                  "role": "reporter-viewall",
+                  "role": "modeller",
                   "permission": {
                     "columns": [
                       "created",
@@ -17645,7 +17646,7 @@
                   "comment": ""
                 },
                 {
-                  "role": "modeller",
+                  "role": "reporter-viewall",
                   "permission": {
                     "columns": [
                       "created",

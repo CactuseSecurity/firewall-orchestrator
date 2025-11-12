@@ -1809,8 +1809,8 @@ BEGIN
         ) THEN
             ALTER TABLE rule_metadata ADD CONSTRAINT rule_metadata_mgm_id_rule_uid_unique UNIQUE (mgm_id, rule_uid);			
         END IF;
-    END IF;
 END$$;
+
 
 
 

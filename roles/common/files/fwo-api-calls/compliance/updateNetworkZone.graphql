@@ -9,14 +9,16 @@ mutation updateNetworkZone (
   $deleteZoneCommunicationExp: [compliance_network_zone_communication_bool_exp!]!
   $addSubZonesExp: [compliance_network_zone_bool_exp!]!
   $deleteSubZonesExp: [compliance_network_zone_bool_exp!]!
-  $removed: timestamptz) 
+  $removed: timestamptz
+  $isAutoCalculatedInternetZone: Boolean) 
 {   
   update_compliance_network_zone (
     where: {id: {_eq: $networkZoneId}}
     _set: {
       name: $name,
       description: $description,
-      super_network_zone_id: $superNetworkZoneId
+      super_network_zone_id: $superNetworkZoneId,
+      is_auto_calculated_internet_zone: $isAutoCalculatedInternetZone
     }
   ) {
     affected_rows

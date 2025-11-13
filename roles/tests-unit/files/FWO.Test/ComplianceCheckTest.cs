@@ -148,7 +148,7 @@ namespace FWO.Test
             Assert.That(result.First().End.ToString() == networkObject.IpEnd);
         }
 
-                [Test]
+        [Test]
         public async Task ParseIpRange_NwObjectOfTypeIpRangeWithSubnetSuffix_AddedToReturnedList()
         {
             // Arrange

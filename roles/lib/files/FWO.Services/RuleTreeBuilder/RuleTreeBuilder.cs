@@ -113,9 +113,6 @@ namespace FWO.Services.RuleTreeBuilder
                 {
                     nextQueueItem = RuleTreeBuilderQueue.Dequeue();
                     lastPosition = HandleRulebaseLinkQueueItem(nextQueueItem.Value, lastPosition);
-
-                    // Update current and next queue items in case this loop continues after handling an inline layer.
-                    currentQueueItem = nextQueueItem.Value;
                     nextQueueItem = TryPeekNextQueueItem();
                 }
             }

@@ -17394,6 +17394,22 @@
                   "comment": ""
                 },
                 {
+                  "role": "recertifier",
+                  "permission": {
+                    "columns": [
+                      "created",
+                      "removed",
+                      "is_global",
+                      "name",
+                      "uid",
+                      "id",
+                      "mgm_id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
                   "role": "reporter",
                   "permission": {
                     "columns": [
@@ -17592,6 +17608,26 @@
                 },
                 {
                   "role": "modeller",
+                  "permission": {
+                    "columns": [
+                      "created",
+                      "from_rule_id",
+                      "removed",
+                      "is_global",
+                      "is_initial",
+                      "is_section",
+                      "from_rulebase_id",
+                      "gw_id",
+                      "id",
+                      "link_type",
+                      "to_rulebase_id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "recertifier",
                   "permission": {
                     "columns": [
                       "created",
@@ -23621,7 +23657,7 @@
                       "rule_uid",
                       "rule_last_certified"
                     ],
-					"filter": {},
+                    "filter": {},
                     "allow_aggregations": true
                   }
                 },

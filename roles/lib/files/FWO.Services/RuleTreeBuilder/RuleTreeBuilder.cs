@@ -69,61 +69,16 @@ namespace FWO.Services.RuleTreeBuilder
         /// </summary>
         private List<int>? HandleRulebaseLinkQueueItem((RulebaseLink link, RulebaseReport rulebase) currentQueueItem, List<int>? lastPosition)
         {
-            List<int>? nextPosition = null;
-            RuleTreeItem? nextParent = null;
-
             // Get next link and rulebase if they exist.
             (RulebaseLink link, RulebaseReport rulebase)? nextQueueItem = TryPeekNextQueueItem();
 
-            // Prepare creation of order numbers.
-            if (currentQueueItem.link.LinkType == 2 && !currentQueueItem.link.IsGlobal)
-            {
-                // Create position root and header item for new ordered layer
-                OrderedLayerCount++;
-                nextPosition = [OrderedLayerCount];
-                nextParent = RuleTree.AddItem(header: currentQueueItem.rulebase.Name ?? "", position: [.. nextPosition], addToChildren: true, addToFlatList: true, setLastAddedItem: true);
-                nextParent.IsOrderedLayerHeader = true;
-                lastPosition = nextPosition;
-            }
-            else if (currentQueueItem.link.IsSection)
-            {
-                // Get the starting point for the next position.
-                nextPosition = lastPosition;
-
-                // Get parent for header item.
-                nextParent = nextPosition != null ? GetSectionParent(nextPosition) : new();
-
-                // Create header item for section.
-                nextParent = nextParent.AddItem(header: currentQueueItem.rulebase.Name ?? "", position: nextPosition?.ToList() ?? null, addToChildren: true, addToFlatList: true, setLastAddedItem: true);
-                nextParent.IsSectionHeader = true;
-            }
-            else if (currentQueueItem.link.LinkType == 3)
-            {
-                nextParent = RuleTree.LastAddedItem as RuleTreeItem;
-                if(nextParent != null)
-                {
-                    nextParent.IsInlineLayerRoot = true;
-                }
-                nextPosition = lastPosition != null ? [.. lastPosition] : [];
-                nextPosition.Add(0);
-                lastPosition = nextPosition;
-
-                // Handle sections in inline layers without direct rules.
-                if (nextQueueItem?.link is RulebaseLink nextLink && currentQueueItem.rulebase.Rules.Length == 0 && nextLink.IsSection && nextLink.FromRulebaseId == currentQueueItem.link.NextRulebaseId)
-                {
-                    lastPosition = HandleRulebaseLinkQueueItem(RuleTreeBuilderQueue.Dequeue(), lastPosition);
-                }
-            }
-            else if (currentQueueItem.link.LinkType == 4 && currentQueueItem.link.IsInitial)
-            {
-                nextParent = RuleTree;
-            }
+            (List<int>? nextPosition, RuleTreeItem? nextParent) = InitNextPositionAndParent(currentQueueItem, ref lastPosition, nextQueueItem);
 
             // Create order number.
             List<Rule> currentRules = [.. currentQueueItem.rulebase.Rules];
             foreach (Rule currentRule in currentRules)
             {
-                // Make clone if rule was alreade processed.
+                // Make clone if rule was already processed.
                 Rule rule = currentRule;
 
                 if (_allRules.Contains(currentRule))
@@ -131,24 +86,7 @@ namespace FWO.Services.RuleTreeBuilder
                     rule = currentRule.CreateClone();
                 }
 
-                // Update next position.
-                if (nextPosition == null)
-                {
-                    nextPosition = lastPosition != null ? [.. lastPosition] : [];
-                }
-                else if (nextParent != null && nextParent.GetPositionString() == OrderedLayerCount.ToString() && nextParent.Children.Count == 0)
-                {
-                    nextPosition.Add(0);
-                }
-
-                if (nextPosition.Count == 0)
-                {
-                    nextPosition.Add(0);
-                }
-
-                // Update order number.
-
-                nextPosition[^1] = nextPosition[^1] + 1;
+                UpdateNextPosition(nextPosition, nextParent, lastPosition);
 
                 // Get and update tree item that holds currentRule as data.
                 RuleTreeItem treeItem = nextParent != null ? nextParent.AddItem(addToChildren: true, addToFlatList: true, setLastAddedItem: true) : new();
@@ -183,6 +121,75 @@ namespace FWO.Services.RuleTreeBuilder
             }
 
             return lastPosition;
+        }
+
+        private (List<int>?, RuleTreeItem?) InitNextPositionAndParent((RulebaseLink link, RulebaseReport rulebase) currentQueueItem, ref List<int>? lastPosition, (RulebaseLink link, RulebaseReport rulebase)? nextQueueItem)
+        {
+            List<int>? nextPosition = null;
+            RuleTreeItem? nextParent = null;
+            if (currentQueueItem.link.LinkType == 2 && !currentQueueItem.link.IsGlobal)
+            {
+                // Create position root and header item for new ordered layer
+                OrderedLayerCount++;
+                nextPosition = [OrderedLayerCount];
+                nextParent = RuleTree.AddItem(header: currentQueueItem.rulebase.Name ?? "", position: [.. nextPosition], addToChildren: true, addToFlatList: true, setLastAddedItem: true);
+                nextParent.IsOrderedLayerHeader = true;
+                lastPosition = nextPosition;
+            }
+            else if (currentQueueItem.link.IsSection)
+            {
+                // Get the starting point for the next position.
+                nextPosition = lastPosition;
+
+                // Get parent for header item.
+                nextParent = nextPosition != null ? GetSectionParent(nextPosition) : new();
+
+                // Create header item for section.
+                nextParent = nextParent.AddItem(header: currentQueueItem.rulebase.Name ?? "", position: nextPosition?.ToList() ?? null, addToChildren: true, addToFlatList: true, setLastAddedItem: true);
+                nextParent.IsSectionHeader = true;
+            }
+            else if (currentQueueItem.link.LinkType == 3)
+            {
+                nextParent = RuleTree.LastAddedItem as RuleTreeItem;
+                if (nextParent != null)
+                {
+                    nextParent.IsInlineLayerRoot = true;
+                }
+                nextPosition = lastPosition != null ? [.. lastPosition] : [];
+                nextPosition.Add(0);
+                lastPosition = nextPosition;
+
+                // Handle sections in inline layers without direct rules.
+                if (nextQueueItem?.link is RulebaseLink nextLink && currentQueueItem.rulebase.Rules.Length == 0 && nextLink.IsSection && nextLink.FromRulebaseId == currentQueueItem.link.NextRulebaseId)
+                {
+                    lastPosition = HandleRulebaseLinkQueueItem(RuleTreeBuilderQueue.Dequeue(), lastPosition);
+                }
+            }
+            else if (currentQueueItem.link.LinkType == 4 && currentQueueItem.link.IsInitial)
+            {
+                nextParent = RuleTree;
+            }
+            return (nextPosition, nextParent);
+        }
+        
+        private void UpdateNextPosition(List<int>? nextPosition, RuleTreeItem? nextParent, List<int>? lastPosition)
+        {
+            if (nextPosition == null)
+            {
+                nextPosition = lastPosition != null ? [.. lastPosition] : [];
+            }
+            else if (nextParent != null && nextParent.GetPositionString() == OrderedLayerCount.ToString() && nextParent.Children.Count == 0)
+            {
+                nextPosition.Add(0);
+            }
+
+            if (nextPosition.Count == 0)
+            {
+                nextPosition.Add(0);
+            }
+
+            // Update order number.
+            nextPosition[^1] = nextPosition[^1] + 1;
         }
 
         /// <summary>
@@ -261,32 +268,33 @@ namespace FWO.Services.RuleTreeBuilder
             List<int>? position = [.. nextPosition];
             if (position.Last() == 0) position.Remove(position.Last());
             RuleTreeItem? item = RuleTree.ElementsFlat.FirstOrDefault(x => x.GetPositionString() == string.Join(".", position)) as RuleTreeItem;
-            if (item != null)
+            if (item == null)
             {
-                if (item?.Data is Rule && (item.Parent as RuleTreeItem).IsOrderedLayerHeader && nextPosition.Last() != 0)
-                {
-                    return item.Parent as RuleTreeItem;
-                }
-                if (item.IsOrderedLayerHeader)
-                {
-                    return item;
-                }
-                if ((item.Parent as RuleTreeItem).IsSectionHeader)
-                {
-                    if (nextPosition.Last() == 0)
-                    {
-                        return item;
-                    }
-                    return item.Parent.Parent as RuleTreeItem;
-                }
-                if (item.IsInlineLayerRoot)
+                return new();
+            }
+            if (item.Data is Rule && (item.Parent as RuleTreeItem).IsOrderedLayerHeader && nextPosition.Last() != 0)
+            {
+                return item.Parent as RuleTreeItem;
+            }
+            if (item.IsOrderedLayerHeader)
+            {
+                return item;
+            }
+            if ((item.Parent as RuleTreeItem).IsSectionHeader)
+            {
+                if (nextPosition.Last() == 0)
                 {
                     return item;
                 }
-                if ((item.Parent as RuleTreeItem).IsInlineLayerRoot)
-                {
-                    return item.Parent as RuleTreeItem;
-                }
+                return item.Parent.Parent as RuleTreeItem;
+            }
+            if (item.IsInlineLayerRoot)
+            {
+                return item;
+            }
+            if ((item.Parent as RuleTreeItem).IsInlineLayerRoot)
+            {
+                return item.Parent as RuleTreeItem;
             }
             return new();
         }

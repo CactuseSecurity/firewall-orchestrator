@@ -1798,9 +1798,11 @@ BEGIN
 		SELECT COUNT(*) INTO count_from_zone_in_rule_after_update FROM rule WHERE rule_from_zone IS NOT NULL;
 		SELECT COUNT(*) INTO count_to_zone_in_rule_after_update FROM rule WHERE rule_to_zone IS NOT NULL;
 
-		IF cnt_from > 0 OR cnt_to > 0 THEN
-			RAISE EXCEPTION 'Cannot drop columns: non-null values remain (% from_zone: %, % to_zone: %)', cnt_from, cnt_to;
-		END IF;
+         IF count_from_zone_in_rule_after_update > 0 OR count_to_zone_in_rule_after_update > 0 THEN
+            RAISE EXCEPTION 'Cannot drop columns: non-null values remain (from_zone: %, to_zone: %)', count_from_zone_in_rule_after_update, count_to_zone_in_rule_after_update;
+        END IF;
+
+        END IF;
 		
 		--ALTER TABLE rule
 		--DROP CONSTRAINT IF EXISTS rule_rule_from_zone_fkey,

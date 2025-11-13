@@ -201,11 +201,6 @@ def get_rules(nativeConfig: dict[str, Any], importState: ImportStateController) 
             cpManagerApiBaseUrl, sid, show_params_policy_structure, managerDetails, policy_structure=policy_structure
         )
 
-        if globalSid is None:
-            raise FwoImporterError("globalSid is None when processing devices in get_rules")
-        if globalDomain is None:
-            raise FwoImporterError("globalDomain is None when processing devices in get_rules")
-
         process_devices(
             managerDetails, policy_structure, globalAssignments, global_policy_structure,
             globalDomain, globalSid, cpManagerApiBaseUrl, sid, nativeConfig['domains'][manager_index], # globalSid should not be None but is when the first manager is not supermanager 
@@ -256,7 +251,7 @@ def handle_super_manager(managerDetails: ManagementController, cpManagerApiBaseU
 
 def process_devices(
     managerDetails: ManagementController, policy_structure: list[dict[str, Any]], globalAssignments: list[Any] | None, global_policy_structure: list[dict[str, Any]] | None,
-    globalDomain: str, globalSid: str, cpManagerApiBaseUrl: str, sid: str, nativeConfigDomain: dict[str, Any],
+    globalDomain: str | None, globalSid: str | None, cpManagerApiBaseUrl: str, sid: str, nativeConfigDomain: dict[str, Any],
     nativeConfigGlobalDomain: dict[str, Any], importState: ImportStateController
 ) -> None:
     logger = getFwoLogger()
@@ -297,8 +292,8 @@ def initialize_device_config(device: dict[str, Any]) -> dict[str, Any]:
 
 
 def handle_global_rulebase_links(
-    managerDetails: ManagementController, import_state: ImportStateController, deviceConfig: dict[str, Any], globalAssignments: list[Any] | None, global_policy_structure: list[dict[str, Any]] | None, globalDomain: str,
-    globalSid: str, orderedLayerUids: list[str], nativeConfigGlobalDomain: dict[str, Any], cpManagerApiBaseUrl: str) -> int:
+    managerDetails: ManagementController, import_state: ImportStateController, deviceConfig: dict[str, Any], globalAssignments: list[Any] | None, global_policy_structure: list[dict[str, Any]] | None, globalDomain: str | None,
+    globalSid: str | None, orderedLayerUids: list[str], nativeConfigGlobalDomain: dict[str, Any], cpManagerApiBaseUrl: str) -> int:
     """Searches for global access policy for current device policy,
     adds global ordered layers and defines global rulebase link
     """
@@ -408,7 +403,7 @@ def handle_nat_rules(device: dict[str, Any], nativeConfigDomain: dict[str, Any],
 
 
 def add_ordered_layers_to_native_config(orderedLayerUids: list[str], show_params_rules: dict[str, Any],
-                                        cpManagerApiBaseUrl: str, sid: str, nativeConfigDomain: dict[str, Any],
+                                        cpManagerApiBaseUrl: str, sid: str | None, nativeConfigDomain: dict[str, Any],
                                         deviceConfig: dict[str, Any], is_global: bool, global_ordered_layer_count: int) -> list[str]:
     """Fetches ordered layers and links them
     """
@@ -443,7 +438,7 @@ def add_ordered_layers_to_native_config(orderedLayerUids: list[str], show_params
     return policy_rulebases_uid_list
 
 
-def get_ordered_layer_uids(policy_structure: list[dict[str, Any]], deviceConfig: dict[str, Any], domain: str) -> list[str]:
+def get_ordered_layer_uids(policy_structure: list[dict[str, Any]], deviceConfig: dict[str, Any], domain: str | None) -> list[str]:
     """Get UIDs of ordered layers for policy of device
     """
 
@@ -459,7 +454,7 @@ def get_ordered_layer_uids(policy_structure: list[dict[str, Any]], deviceConfig:
     return orderedLayerUids
 
 
-def append_access_layer_uid(policy: dict[str, Any], domain: str, orderedLayerUids: list[str]) -> None:
+def append_access_layer_uid(policy: dict[str, Any], domain: str | None, orderedLayerUids: list[str]) -> None:
     for accessLayer in policy['access-layers']:
         if accessLayer['domain'] == domain or domain == '':
             orderedLayerUids.append(accessLayer['uid'])

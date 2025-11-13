@@ -17,10 +17,10 @@ from services.service_provider import ServiceProvider
 from services.enums import Services
 from fwo_api_call import FwoApiCall, FwoApi
 
-def cp_api_call(url: str, command: str, json_payload: dict[str, Any], sid: str, show_progress: bool=False):
+def cp_api_call(url: str, command: str, json_payload: dict[str, Any], sid: str | None, show_progress: bool=False):
     url += command
     request_headers = {'Content-Type' : 'application/json'}
-    if sid != '': # only not set for login
+    if sid: # only not set for login
         request_headers.update({'X-chkp-sid' : sid})
 
     if fwo_globals.debug_level>8:
@@ -271,7 +271,7 @@ def get_global_assignments(api_v_url: str, sid: str, show_params_policy_structur
     return global_assignments
                         
 
-def get_rulebases(api_v_url: str, sid: str, show_params_rules: dict[str, Any], nativeConfigDomain: dict[str, Any] | None,
+def get_rulebases(api_v_url: str, sid: str | None, show_params_rules: dict[str, Any], nativeConfigDomain: dict[str, Any] | None,
                   deviceConfig: dict[str, Any] | None, policy_rulebases_uid_list: list[str], is_global: bool = False,
                   access_type: str = 'access', rulebaseUid: str | None = None, rulebaseName: str | None = None) -> list[str]:
     
@@ -321,7 +321,7 @@ def get_rulebases(api_v_url: str, sid: str, show_params_rules: dict[str, Any], n
     return policy_rulebases_uid_list
 
 
-def get_uid_of_rulebase(rulebaseName: str, api_v_url: str, access_type: str, sid: str) -> str | None: # TODO: what happens if rulebaseUid None? Error?
+def get_uid_of_rulebase(rulebaseName: str, api_v_url: str, access_type: str, sid: str | None) -> str | None: # TODO: what happens if rulebaseUid None? Error?
     rulebaseUid = None
     get_rulebase_uid_params: dict[str, Any] = {
         'name': rulebaseName,
@@ -412,7 +412,7 @@ def control_while_loop_in_get_rulebases_in_chunks(current_rulebase: dict[str, An
     return total, current
 
 
-def get_inline_layers_recursively(current_rulebase: dict[str, Any], deviceConfig: dict[str, Any], nativeConfigDomain: dict[str, Any], api_v_url: str, sid: str, show_params_rules: dict[str, Any], is_global: bool, policy_rulebases_uid_list: list[str]) -> list[str]:
+def get_inline_layers_recursively(current_rulebase: dict[str, Any], deviceConfig: dict[str, Any], nativeConfigDomain: dict[str, Any], api_v_url: str, sid: str | None, show_params_rules: dict[str, Any], is_global: bool, policy_rulebases_uid_list: list[str]) -> list[str]:
     """Takes current_rulebase, splits sections into sub-rulebases and searches for layerguards to fetch
     """
     current_rulebase_uid = current_rulebase['uid']

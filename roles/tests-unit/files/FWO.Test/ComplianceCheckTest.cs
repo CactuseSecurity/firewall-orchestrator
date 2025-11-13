@@ -147,5 +147,26 @@ namespace FWO.Test
             Assert.That(result.First().Begin.ToString() == networkObject.IP);
             Assert.That(result.First().End.ToString() == networkObject.IpEnd);
         }
+
+                [Test]
+        public async Task ParseIpRange_NwObjectOfTypeIpRangeWithSubnetSuffix_AddedToReturnedList()
+        {
+            // Arrange
+
+            NetworkObject networkObject = new();
+            networkObject.IP = "0.0.0.0/32";
+            networkObject.IpEnd = "255.255.255.255/32";
+            networkObject.Type.Name = ObjectType.IPRange;
+
+            // Act
+
+            List<IPAddressRange> result = ComplianceCheck.ParseIpRange(networkObject);
+
+            // Assert
+
+            Assert.That(result.Count == 1);
+            Assert.That(result.First().Begin.ToString() == networkObject.IP.StripOffNetmask());
+            Assert.That(result.First().End.ToString() == networkObject.IpEnd.StripOffNetmask());
+        }
     }
 }

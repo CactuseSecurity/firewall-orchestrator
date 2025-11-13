@@ -15,6 +15,7 @@ using FWO.Logging;
 using FWO.Ui.Display;
 using System.Linq.Expressions;
 using FWO.Data.Extensions;
+using System.Net;
 
 namespace FWO.Compliance
 {
@@ -595,7 +596,15 @@ namespace FWO.Compliance
 
             if (networkObject.Type.Name == ObjectType.IPRange )
             {
-                ranges.Add(IPAddressRange.Parse($"{networkObject.IP}-{networkObject.IpEnd}"));
+                if (IPAddress.TryParse(networkObject.IP.StripOffNetmask(), out IPAddress? ipStart) && IPAddress.TryParse(networkObject.IpEnd.StripOffNetmask(), out IPAddress? ipEnd))
+                {
+                    ranges.Add(new IPAddressRange(ipStart, ipEnd));
+                }
+                else
+                {
+                    
+                }
+                
             }
             else if (networkObject.Type.Name != ObjectType.Group && networkObject.ObjectGroupFlats.Length > 0)
             {

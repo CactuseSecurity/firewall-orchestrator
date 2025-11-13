@@ -316,17 +316,18 @@ namespace FWO.Test
         [Test]
         public void Test_DeviceWithMultipleRulebaseLinks_RulesMergedInOrder()
         {
-            // Arrange: zwei Rulebases mit Regeln
-            var rulebase1 = MockReportRules.CreateRulebaseReport("Rulebase1", 2); // Regel-IDs z.B. 1,2
-            var rulebase2 = MockReportRules.CreateRulebaseReport("Rulebase2", 3); // Regel-IDs z.B. 3,4,5
-            var rulebase3 = MockReportRules.CreateRulebaseReport("Rulebase2", 4); // Regel-IDs z.B. 6,7,8
-            
+            // Arrange: Management mit mehreren Rulebases
+            var rulebase1 = MockReportRules.CreateRulebaseReport("Rulebase1", 2); // Regeln 1,2
+            var rulebase2 = MockReportRules.CreateRulebaseReport("Rulebase2", 3); // Regeln 3,4,5
+            var rulebase3 = MockReportRules.CreateRulebaseReport("Rulebase3", 3); // Regeln 6,7,8
+
+            // Device mit RulebaseLinks
             var device = MockReportRules.CreateDeviceReport(1, "Device1", new List<RulebaseLink>
             {
-                new RulebaseLink { NextRulebaseId = rulebase1.Id },
-                new RulebaseLink { NextRulebaseId = rulebase2.Id, IsInitial = true },
-                new RulebaseLink { NextRulebaseId = rulebase3.Id}
-            });
+        new RulebaseLink { FromRulebaseId = rulebase1.Id, ToRulebaseId = rulebase2.Id },
+        new RulebaseLink { FromRulebaseId = rulebase2.Id, ToRulebaseId = rulebase3.Id, IsInitial = true },
+        new RulebaseLink { FromRulebaseId = rulebase3.Id, ToRulebaseId = null }
+    });
 
             var management = new ManagementReport
             {
@@ -335,24 +336,28 @@ namespace FWO.Test
                 Devices = new[] { device }
             };
 
-            management.Devices.First().RulebaseLinks.Where(x => x.IsInitial == true).First().GatewayId = device.Id;
+            // Sicherstellen, dass die initiale Rulebase korrekt verlinkt ist
+            device.RulebaseLinks.First(x => x.IsInitial).GwId = device.Id;
 
             var deviceController = new DeviceReportController(DeviceReportController.FromDeviceReport(device));
 
             // Act: Regeln vom Device abrufen
             var rules = ReportRules.GetInitialRulesOfGateway(deviceController, management);
 
-            // Assert: Prüfen, dass alle Regeln enthalten sind
+            // Assert: Alle Regeln der relevanten Rulebases enthalten
             var expectedRuleIds = rulebase2.Rules.Select(r => r.Id)
                 .Concat(rulebase3.Rules.Select(r => r.Id))
                 .ToList();
-
             Assert.That(rules.Select(r => r.Id).ToList(), Is.EquivalentTo(expectedRuleIds));
 
-            // Optional: Prüfen, ob die Reihenfolge der Links erhalten bleibt
+            // Optional: Reihenfolge prüfen, dass Regeln der Rulebases in der Reihenfolge der Links zusammengeführt werden
             var rulesInOrder = rules.Select(r => r.RulebaseId).ToList();
-            Assert.That(rulesInOrder, Is.EqualTo(new List<int> { rulebase1.Id, rulebase1.Id, rulebase2.Id, rulebase2.Id, rulebase2.Id }));
+            var expectedOrder = rulebase2.Rules.Select(r => rulebase2.Id)
+                .Concat(rulebase3.Rules.Select(r => rulebase3.Id))
+                .ToList();
+            Assert.That(rulesInOrder, Is.EqualTo(expectedOrder));
         }
+
 
         [Test]
         public void Test_GetInitialRulesOfGateway_ReturnsEmpty_WhenNoInitialRulebase()

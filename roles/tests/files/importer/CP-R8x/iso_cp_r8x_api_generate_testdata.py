@@ -1,6 +1,8 @@
 import requests
 import json
 import argparse
+import urllib3
+from urllib3.exceptions import InsecureRequestWarning
 
 
 parser = argparse.ArgumentParser(description='Create configuration from Check Point R8x management via API calls')
@@ -24,10 +26,12 @@ offset = 0
 limit = 100
 details_level = "full"  # 'standard'
 ssl_verification = False
+urllib3.disable_warnings(InsecureRequestWarning)
 use_object_dictionary = 'false'
 name_prefix = 'fworch_test_'
 obj_types = ['hosts', 'networks', 'services-tcp']
 base_ip = '10.88.99.'
+UNDEFINED_OPERATION = "error, not defined"
 
 
 def api_call(ip_addr, port, command, json_payload, sid_a):
@@ -36,7 +40,7 @@ def api_call(ip_addr, port, command, json_payload, sid_a):
         request_headers = {'Content-Type': 'application/json'}
     else:
         request_headers = {'Content-Type': 'application/json', 'X-chkp-sid': sid_a}
-    r = requests.post(url, data=json.dumps(json_payload), headers=request_headers, verify=ssl_verification)
+    r = requests.post(url, data=json.dumps(json_payload), headers=request_headers, verify=ssl_verification)  # NOSONAR - test script intentionally skips cert validation
     return r.json()
 
 
@@ -52,8 +56,8 @@ if args.delete_all_test_data:  # delete
     for obj_type in obj_types:
         current = 0
         while current < args.number_of_test_objs:
-            del_cmd = "error, not defined"
-            del_req = "error, not defined"
+            del_cmd = UNDEFINED_OPERATION
+            del_req = UNDEFINED_OPERATION
             if obj_type == 'networks':
                 del_cmd = 'delete-network'
                 del_req = {'name': name_prefix + 'net_' + str(current)}
@@ -77,8 +81,8 @@ else:  # create
     for obj_type in obj_types:
         current = 0
         while current < args.number_of_test_objs:
-            create_cmd = "error, not defined"
-            create_req = "error, not defined"
+            create_cmd = UNDEFINED_OPERATION
+            create_req = UNDEFINED_OPERATION
             if obj_type == 'networks':
                 create_cmd = 'add-network'
                 create_req = {'name': name_prefix + 'net_' + str(current),

@@ -94,7 +94,7 @@ namespace FWO.Test
             RulebaseLink[] links =
             {
                 new RulebaseLink { IsInitial = true, NextRulebaseId = 1 },
-                new RulebaseLink { FromRuleId = parentRule.Id, NextRulebaseId = 2 }
+                new RulebaseLink { FromRuleId = (int)parentRule.Id, NextRulebaseId = 2 }
             };
 
             int ruleCount = ReportRules.GetRuleCount(managementReport, links[0], links);

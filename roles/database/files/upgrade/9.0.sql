@@ -1803,11 +1803,12 @@ BEGIN
         END IF;
 
         END IF;
-		
+				
 		--ALTER TABLE rule
 		--DROP CONSTRAINT IF EXISTS rule_rule_from_zone_fkey,
 		--DROP CONSTRAINT IF EXISTS rule_rule_to_zone_fkey;
 		
+		--For dropping columns needed Views to be dropped/replaced where columns are included
 		--ALTER TABLE rule
 		--DROP COLUMN IF EXISTS rule_from_zone,
 		--DROP COLUMN IF EXISTS rule_to_zone;	

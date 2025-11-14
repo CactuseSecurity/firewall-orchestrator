@@ -13,6 +13,7 @@ using Newtonsoft.Json;
 using System.Text;
 using System.Text.Json;
 using Microsoft.Extensions.DependencyInjection;
+using System.Linq;
 
 namespace FWO.Report
 {
@@ -242,71 +243,48 @@ namespace FWO.Report
 
         public static Rule[] GetRulesByRulebaseId(int rulebaseId, ManagementReport managementReport)
         {
-            Rule[]? rules = managementReport.Rulebases.FirstOrDefault(rb => rb.Id == rulebaseId)?.Rules;
-            if (rules != null)
-            {
-                return rules;
-            }
-            return [];
+            return managementReport.Rulebases
+                .FirstOrDefault(rb => rb.Id == rulebaseId)?
+                .Rules ?? Array.Empty<Rule>();
         }
 
         public static Rule[] GetInitialRulesOfGateway(DeviceReportController deviceReport, ManagementReport managementReport)
         {
-            int? initialRulebaseId = deviceReport.GetInitialRulebaseId(managementReport);
-            if (initialRulebaseId != null)
-            {
-                Rule[]? rules = GetRulesByRulebaseId((int)initialRulebaseId, managementReport);
-                if (rules != null)
-                {
-                    return rules;
-                }
-            }
-            return [];
+            return deviceReport.GetInitialRulebaseId(managementReport) is int rulebaseId
+                ? GetRulesByRulebaseId(rulebaseId, managementReport)
+                : Array.Empty<Rule>();
         }
 
         public static Rule[] GetAllRulesOfGateway(DeviceReportController deviceReport, ManagementReport managementReport)
         {
-            if (_rulesCache.TryGetValue((deviceReport.Id, managementReport.Id), out Rule[]? allRules))
-            {
-                return allRules;
-            }
-            else
-            {
-                return Array.Empty<Rule>();
-            }
+            return _rulesCache.TryGetValue((deviceReport.Id, managementReport.Id), out Rule[]? allRules)
+                ? allRules
+                : Array.Empty<Rule>();
         }
 
         public static int GetRuleCount(ManagementReport mgmReport, RulebaseLink? currentRbLink, RulebaseLink[] rulebaseLinks)
         {
-            if (currentRbLink != null)
+            if (currentRbLink == null)
             {
-                int ruleCount = 0;
-                if (currentRbLink != null)
-                {
-                    int nextRulebaseId = currentRbLink.NextRulebaseId;
-                    RulebaseReport? nextRulebase = mgmReport.Rulebases.FirstOrDefault(_ => _.Id == nextRulebaseId);
-                    if (nextRulebase != null)
-                    {
-                        foreach (var rule in nextRulebase.Rules)
-                        {
-                            if (string.IsNullOrEmpty(rule.SectionHeader))
-                            {
-                                RulebaseLink? nextRbLink = rulebaseLinks.FirstOrDefault(_ => _.FromRuleId == rule.Id);
-                                if (nextRbLink != null)
-                                {
-                                    ruleCount += 1 + GetRuleCount(mgmReport, nextRbLink, rulebaseLinks);
-                                }
-                                else
-                                {
-                                    ruleCount++;
-                                }
-                            }
-                        }
-                        return ruleCount;
-                    }
-                }
+                return 0;
             }
-            return 0;
+
+            RulebaseReport? nextRulebase = mgmReport.Rulebases.FirstOrDefault(rb => rb.Id == currentRbLink.NextRulebaseId);
+            if (nextRulebase == null)
+            {
+                return 0;
+            }
+
+            int ruleCount = 0;
+            RulebaseLink[] links = rulebaseLinks ?? Array.Empty<RulebaseLink>();
+
+            foreach (var rule in nextRulebase.Rules.Where(rule => string.IsNullOrEmpty(rule.SectionHeader)))
+            {
+                RulebaseLink? nextRbLink = links.FirstOrDefault(link => link.FromRuleId == rule.Id);
+                ruleCount += 1 + (nextRbLink != null ? GetRuleCount(mgmReport, nextRbLink, links) : 0);
+            }
+
+            return ruleCount;
         }
 
         public override string SetDescription()

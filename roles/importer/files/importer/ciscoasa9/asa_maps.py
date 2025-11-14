@@ -385,7 +385,6 @@ protocol_map = {
   "icmp6": 58,
   "igmp": 2,
   "igrp": 9,
-  "ip": 0,
   "ipinip": 4,
   "ipsec": 50,
   "nos": 94,

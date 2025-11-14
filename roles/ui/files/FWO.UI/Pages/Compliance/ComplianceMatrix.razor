@@ -158,7 +158,7 @@
     {
         if(selectedMatrix.Id != newMatrix.Id)
         {
-            readonlyMode = !string.IsNullOrEmpty(newMatrix.ImportSource);
+            readonlyMode = userConfig.ImportedMatrixReadOnly && !string.IsNullOrEmpty(newMatrix.ImportSource);
             selectedMatrix = newMatrix;
             await LoadMatrix();
         }

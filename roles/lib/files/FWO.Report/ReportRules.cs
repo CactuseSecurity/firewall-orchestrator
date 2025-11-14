@@ -35,7 +35,7 @@ namespace FWO.Report
         protected bool UseAdditionalFilter = false;
         private bool VarianceMode = false;
 
-        private static Dictionary<(int deviceId, int managementId), List<Rule>> _rulesCache = new();
+        private static Dictionary<(int deviceId, int managementId), Rule[]> _rulesCache = new();
 
         public override async Task Generate(int elementsPerFetch, ApiConnection apiConnection, Func<ReportData, Task> callback, CancellationToken ct)
         {
@@ -110,12 +110,13 @@ namespace FWO.Report
                         }
                     }
 
-                    _rulesCache[(deviceReport.Id, managementReport.Id)] = allRules;
+                    Rule[] rulesArray = allRules.ToArray();
+                    _rulesCache[(deviceReport.Id, managementReport.Id)] = rulesArray;
 
                     // Add all rule ids to ReportedRuleIds of management, that are not already in that list
 
                     managementReport.ReportedRuleIds.AddRange(
-                        allRules.Select(r => r.Id).Except(managementReport.ReportedRuleIds)
+                        rulesArray.Select(r => r.Id).Except(managementReport.ReportedRuleIds)
                     );
                 }
             }
@@ -265,13 +266,13 @@ namespace FWO.Report
 
         public static Rule[] GetAllRulesOfGateway(DeviceReportController deviceReport, ManagementReport managementReport)
         {
-            if (_rulesCache.TryGetValue((deviceReport.Id, managementReport.Id), out List<Rule>? allRules))
+            if (_rulesCache.TryGetValue((deviceReport.Id, managementReport.Id), out Rule[]? allRules))
             {
-                return allRules.ToArray();
+                return allRules;
             }
             else
             {
-                return [];
+                return Array.Empty<Rule>();
             }
         }
 

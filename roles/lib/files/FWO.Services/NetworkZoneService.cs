@@ -182,7 +182,8 @@ namespace FWO.Services
                 ),
                 addZoneCommunication = addZoneCommunication,
                 deleteZoneCommunicationExp = deleteZoneCommunicationExp,
-                removed = DateTime.UtcNow
+                removed = DateTime.UtcNow,
+                isAutoCalculatedInternetZone = networkZone.IsAutoCalculatedInternetZone
             };
 
             await apiConnection.SendQueryAsync<dynamic>(ComplianceQueries.updateNetworkZone, variables);
@@ -228,7 +229,7 @@ namespace FWO.Services
 
             // Remove existing special zones.
 
-            foreach (ComplianceNetworkZone specialZone in existingZones.Where(zone => zone.IsAutoCalculatedInternetZone || zone.IsAutoCalculatedUndefinedInternalZone))
+            foreach (ComplianceNetworkZone specialZone in existingZones.Where(zone => zone.IsAutoCalculatedInternetZone || zone.IsAutoCalculatedUndefinedInternalZone).ToList())
             {
                 await RemoveZone(specialZone, apiConnection);
                 existingZones.Remove(specialZone);
@@ -237,7 +238,7 @@ namespace FWO.Services
             if (globalConfig.AutoCalculateInternetZone)
             {
 
-                // Add new undefined-internal zone (even if AutoCalculatedUndefinedInternalZone is false, because we need it to exclude the reserved ranges from internet zone)
+                // Create new undefined-internal zone
 
                 ComplianceNetworkZone undefinedInternalZone = new()
                 {
@@ -254,8 +255,6 @@ namespace FWO.Services
                     IpRangesToAdd = undefinedInternalZone.IPRanges.ToList()
                 };
 
-                existingZones.Add(undefinedInternalZone);
-
                 // Write undefined-internal zone to db if configured
 
                 if (globalConfig.AutoCalculateUndefinedInternalZone)
@@ -263,15 +262,13 @@ namespace FWO.Services
                     await AddZone(undefinedInternalZone, undefinedInternalZoneAddDel, apiConnection);
                 }
 
+                // Add undefined-internal zone to reference object (even if AutoCalculatedUndefinedInternalZone is false, because we need it to exclude the reserved ranges from internet zone)
+                
+                existingZones.Add(undefinedInternalZone);
+
                 // Add new internet zone
 
-                ComplianceNetworkZone internetZone = new()
-                {
-                    IdString = "AUTO_CALCULATED_ZONE_INTERNET",
-                    Name = "Auto-calculated Internet Zone",
-                    IsAutoCalculatedInternetZone = true,
-                    CriterionId = matrixId,
-                };
+                bool dummyInternetZoneExists = TryUpdateInternetZoneObject(existingZones, matrixId, out ComplianceNetworkZone internetZone);
 
                 CalculateInternetZone(internetZone, existingZones);
 
@@ -280,8 +277,42 @@ namespace FWO.Services
                     IpRangesToAdd = internetZone.IPRanges.ToList()
                 };
 
-                await AddZone(internetZone, internetZoneAddDel, apiConnection);
+                if (dummyInternetZoneExists)
+                {
+                    await UpdateZone(internetZone, internetZoneAddDel, apiConnection);
+                }
+                else
+                {
+                    await AddZone(internetZone, internetZoneAddDel, apiConnection);
+                }
+                
             }
+        }
+        
+        private static bool TryUpdateInternetZoneObject(List<ComplianceNetworkZone> existingZones, int matrixId, out ComplianceNetworkZone internetZone)
+        {
+            bool updated = false;
+            ComplianceNetworkZone? dummyInternetZone = existingZones.FirstOrDefault(zone => zone.IdString == "AUTO_CALCULATED_ZONE_INTERNET");
+
+            if (dummyInternetZone == null)
+            {
+                internetZone = new() { IdString = "AUTO_CALCULATED_ZONE_INTERNET" };
+            }
+            else
+            {
+                updated = true;
+                internetZone = dummyInternetZone;
+            }
+
+            internetZone.CriterionId = matrixId;
+            internetZone.IsAutoCalculatedInternetZone = true;
+
+            if (string.IsNullOrWhiteSpace(internetZone.Name))
+            {
+                internetZone.Name = "Auto-calculated Internet Zone";
+            }
+
+            return updated;
         }
         
         public static void CalculateInternetZone(ComplianceNetworkZone internetZone, List<ComplianceNetworkZone> excludedZones)

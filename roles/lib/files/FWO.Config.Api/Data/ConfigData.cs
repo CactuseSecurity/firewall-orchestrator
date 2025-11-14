@@ -510,9 +510,12 @@ namespace FWO.Config.Api.Data
 
         [JsonProperty("treatDynamicAndDomainObjectsAsInternet"), JsonPropertyName("treatDynamicAndDomainObjectsAsInternet")]
         public bool TreatDynamicAndDomainObjectsAsInternet { get; set; } = true;
-        
+
         [JsonProperty("showShortColumnsInComplianceReports"), JsonPropertyName("showShortColumnsInComplianceReports")]
         public bool ShowShortColumnsInComplianceReports { get; set; } = true;
+        
+        [JsonProperty("importedMatrixReadOnly"), JsonPropertyName("importedMatrixReadOnly")]
+        public bool ImportedMatrixReadOnly { get; set; } = true;
 
         public ConfigData(bool editable = false)
         {

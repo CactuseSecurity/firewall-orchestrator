@@ -1,5 +1,6 @@
 using FWO.Basics;
 using FWO.Compliance;
+using FWO.Config.Api;
 using FWO.Data;
 using FWO.Test.Mocks;
 using NetTools;
@@ -10,35 +11,48 @@ namespace FWO.Test
     [TestFixture]
     internal class ComplianceCheckTest
     {
+        #region Configuration
+
         private ComplianceCheck _complianceCheck = default!;
         private TimeSpan _maxAcceptableExecutionTime = TimeSpan.FromSeconds(60);
         private List<Rule>[] _ruleChunks = default!;
+        private GlobalConfig _globalConfig = default!;
+        private UserConfig _userConfig = default!;
 
         [SetUp]
         public void SetUpTest()
         {
-            _complianceCheck = new ComplianceCheck(new(), new SimulatedApiConnection());
-
-            CompliancePolicy policy = new();
-            ComplianceCriterionWrapper serviceCriterion = new();
-            serviceCriterion.Content.CriterionType = nameof(CriterionType.ForbiddenService);
-            ComplianceCriterionWrapper matrixCriterion = new();
-            matrixCriterion.Content.CriterionType = nameof(CriterionType.Matrix);
-            ComplianceCriterionWrapper assessabilityCriterion = new();
-            assessabilityCriterion.Content.CriterionType = nameof(CriterionType.Assessability);
-            policy.Criteria.AddRange([serviceCriterion, matrixCriterion, assessabilityCriterion]);
-            _complianceCheck.Policy = policy;
-
-            for (int i = 0; i < 50; i++)
-            {
-                ComplianceNetworkZone networkZone = new();
-                _complianceCheck.NetworkZones.Add(networkZone);
-            }
-
-            MockReportCompliance complianceReport = new(new(""), new(), Basics.ReportType.ComplianceReport);
-
-            _complianceCheck.ComplianceReport = complianceReport;
+            _globalConfig = new SimulatedGlobalConfig { AutoCalculateInternetZone = true, AutoCalculateUndefinedInternalZone = true, TreatDynamicAndDomainObjectsAsInternet = true };
+            _userConfig = new UserConfig(_globalConfig, false);
+            _complianceCheck = new ComplianceCheck(_userConfig, new SimulatedApiConnection());
+            _complianceCheck.Policy = CreatePolicy();
+            _complianceCheck.NetworkZones = CreateNetworkZones(50);
+            _complianceCheck.ComplianceReport = new(new(""), _userConfig, ReportType.ComplianceReport);
+            LocalSettings.ComplianceCheckVerbose = true;
         }
+
+        #endregion
+
+        #region Tests - CheckAll
+
+        [Test]
+        public async Task CheckAll_PolicyIdZero_AbortCheckWithLog()
+        {
+            // Arrange
+
+
+
+            // Act
+
+            await _complianceCheck.CheckAll();
+
+            // Assert
+
+        }
+
+        #endregion
+
+        #region Tests - CheckRuleCompliance
 
         [Test]
         public async Task CheckRuleCompliance_HeavyLoad_ExecutionTimeLessThanConfiguredLimit()
@@ -68,6 +82,59 @@ namespace FWO.Test
 
             Assert.That(executionTime < _maxAcceptableExecutionTime, $"Execution time was {executionTime.Seconds} s, expected: {_maxAcceptableExecutionTime.Seconds} s.");
         }
+
+        #endregion
+
+        #region Tests - ParseIpRange
+        /*
+            This region is thought to be temporary. In the long run all data generation should be done by the test framework.
+        */
+
+        [Test]
+        public async Task ParseIpRange_NwObjectOfTypeIpRange_AddedToReturnedList()
+        {
+            // Arrange
+
+            NetworkObject networkObject = new();
+            networkObject.IP = "0.0.0.0";
+            networkObject.IpEnd = "255.255.255.255";
+            networkObject.Type.Name = ObjectType.IPRange;
+
+            // Act
+
+            List<IPAddressRange> result = ComplianceCheck.ParseIpRange(networkObject);
+
+            // Assert
+
+            Assert.That(result.Count == 1);
+            Assert.That(result.First().Begin.ToString() == networkObject.IP);
+            Assert.That(result.First().End.ToString() == networkObject.IpEnd);
+        }
+
+        [Test]
+        public async Task ParseIpRange_NwObjectOfTypeIpRangeWithSubnetSuffix_AddedToReturnedList()
+        {
+            // Arrange
+
+            NetworkObject networkObject = new();
+            networkObject.IP = "0.0.0.0/32";
+            networkObject.IpEnd = "255.255.255.255/32";
+            networkObject.Type.Name = ObjectType.IPRange;
+
+            // Act
+
+            List<IPAddressRange> result = ComplianceCheck.ParseIpRange(networkObject);
+
+            // Assert
+
+            Assert.That(result.Count == 1);
+            Assert.That(result.First().Begin.ToString() == networkObject.IP.StripOffNetmask());
+            Assert.That(result.First().End.ToString() == networkObject.IpEnd.StripOffNetmask());
+        }
+
+        #endregion
+
+        #region Test-data-generation
 
         private List<Rule>[] BuildFixedRuleChunksParallel(int numberOfChunks, int numberOfRulesPerChunk, int startRuleId = 1, int? maxDegreeOfParallelism = null)
         {
@@ -127,46 +194,32 @@ namespace FWO.Test
             return rule;
         }
 
-        [Test]
-        public async Task ParseIpRange_NwObjectOfTypeIpRange_AddedToReturnedList()
+        private CompliancePolicy CreatePolicy()
         {
-            // Arrange
-
-            NetworkObject networkObject = new();
-            networkObject.IP = "0.0.0.0";
-            networkObject.IpEnd = "255.255.255.255";
-            networkObject.Type.Name = ObjectType.IPRange;
-
-            // Act
-
-            List<IPAddressRange> result = ComplianceCheck.ParseIpRange(networkObject);
-
-            // Assert
-
-            Assert.That(result.Count == 1);
-            Assert.That(result.First().Begin.ToString() == networkObject.IP);
-            Assert.That(result.First().End.ToString() == networkObject.IpEnd);
+            CompliancePolicy policy = new();
+            ComplianceCriterionWrapper serviceCriterion = new();
+            serviceCriterion.Content.CriterionType = nameof(CriterionType.ForbiddenService);
+            ComplianceCriterionWrapper matrixCriterion = new();
+            matrixCriterion.Content.CriterionType = nameof(CriterionType.Matrix);
+            ComplianceCriterionWrapper assessabilityCriterion = new();
+            assessabilityCriterion.Content.CriterionType = nameof(CriterionType.Assessability);
+            policy.Criteria.AddRange([serviceCriterion, matrixCriterion, assessabilityCriterion]);
+            return policy;
         }
 
-        [Test]
-        public async Task ParseIpRange_NwObjectOfTypeIpRangeWithSubnetSuffix_AddedToReturnedList()
+        private List<ComplianceNetworkZone> CreateNetworkZones(int numberOfZones)
         {
-            // Arrange
+            List<ComplianceNetworkZone> networkZones = new();
 
-            NetworkObject networkObject = new();
-            networkObject.IP = "0.0.0.0/32";
-            networkObject.IpEnd = "255.255.255.255/32";
-            networkObject.Type.Name = ObjectType.IPRange;
+            for (int i = 0; i < numberOfZones; i++)
+            {
+                ComplianceNetworkZone networkZone = new();
+                networkZones.Add(networkZone);
+            }
 
-            // Act
-
-            List<IPAddressRange> result = ComplianceCheck.ParseIpRange(networkObject);
-
-            // Assert
-
-            Assert.That(result.Count == 1);
-            Assert.That(result.First().Begin.ToString() == networkObject.IP.StripOffNetmask());
-            Assert.That(result.First().End.ToString() == networkObject.IpEnd.StripOffNetmask());
+            return networkZones;
         }
+
+        #endregion
     }
 }

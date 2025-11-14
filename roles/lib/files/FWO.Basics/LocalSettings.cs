@@ -1,14 +1,12 @@
-using System.IO;
 using System.Text.Json;
-
 
 namespace FWO.Basics
 {
     public static class LocalSettings
     {
-        public static bool CSharpUnitTestsVerbose { get; private set; } = false;
+        public static bool CSharpUnitTestsVerbose { get; set; } = false;
 
-        public static bool ComplianceCheckVerbose { get; private set; } = false;
+        public static bool ComplianceCheckVerbose { get; set; } = false;
 
         /// <summary>
         /// Static constructor to load local settings from a JSON file specified by the
@@ -18,6 +16,11 @@ namespace FWO.Basics
         /// If the environment variable is not set, the file is not found or cannot be read, default settings are used.
         /// </summary>
         static LocalSettings()
+        {
+            TryGetLocalSettings();
+        }
+
+        public static void TryGetLocalSettings()
         {
             string? localSettings = Environment.GetEnvironmentVariable("FWORCH_LOCAL_SETTINGS_PATH");
 
@@ -43,7 +46,7 @@ namespace FWO.Basics
                 {
                     Console.WriteLine($"Reading local settings from {localSettings} failed. Using default settings.");
                 }
-            }
+            }            
         }
     }    
 }

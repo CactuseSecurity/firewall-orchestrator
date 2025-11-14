@@ -41,7 +41,7 @@ namespace FWO.Test
         {
             typeof(ReportRules)
                 .GetField("_rulesCache", BindingFlags.NonPublic | BindingFlags.Static)!
-                .SetValue(null, new Dictionary<(int, int), List<Rule>>());
+                .SetValue(null, new Dictionary<(int, int), Rule[]>());
         }
 
         private (ManagementReport management, DeviceReport device) CreateBasicManagementSetup(int ruleCount = 3)
@@ -140,7 +140,7 @@ namespace FWO.Test
             // Cache leeren
             typeof(ReportRules)
                 .GetField("_rulesCache", BindingFlags.NonPublic | BindingFlags.Static)!
-                .SetValue(null, new Dictionary<(int, int), List<Rule>>());
+                .SetValue(null, new Dictionary<(int, int), Rule[]>());
 
             var result = ReportRules.GetAllRulesOfGateway(DeviceReportController.FromDeviceReport(device), management);
 
@@ -218,12 +218,12 @@ namespace FWO.Test
         {
             var device = MockReportRules.CreateDeviceReport();
             var management = new ManagementReport();
-            var rules = new List<Rule> { new Rule { Id = 1, RulebaseId = 1 } };
+            var rules = new Rule[] { new Rule { Id = 1, RulebaseId = 1 } };
 
             // Cache manuell setzen
             typeof(ReportRules)
                 .GetField("_rulesCache", BindingFlags.NonPublic | BindingFlags.Static)!
-                .SetValue(null, new Dictionary<(int, int), List<Rule>> { [(device.Id, management.Id)] = rules });
+                .SetValue(null, new Dictionary<(int, int), Rule[]> { [(device.Id, management.Id)] = rules });
 
             var result = ReportRules.GetAllRulesOfGateway(DeviceReportController.FromDeviceReport(device), management);
 
@@ -260,7 +260,7 @@ namespace FWO.Test
 
             var cacheField = typeof(ReportRules).GetField("_rulesCache",
                 System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static);
-            var cache = (Dictionary<(int, int), List<Rule>>)cacheField!.GetValue(null)!;
+            var cache = (Dictionary<(int, int), Rule[]>)cacheField!.GetValue(null)!;
 
             Assert.That(cache.ContainsKey((device.Id, management.Id)), Is.True);
             Assert.That(cache[(device.Id, management.Id)].Count, Is.EqualTo(3));
@@ -320,10 +320,10 @@ namespace FWO.Test
             var mgmt = SetupData().First();
 
             // Cache manuell fill with order
-            var allRulesOrdered = rbInitial.Rules.Concat(rbOther.Rules).ToList();
+            var allRulesOrdered = rbInitial.Rules.Concat(rbOther.Rules).ToArray();
             typeof(ReportRules)
                 .GetField("_rulesCache", BindingFlags.NonPublic | BindingFlags.Static)!
-                .SetValue(null, new Dictionary<(int, int), List<Rule>> { [(device.Id, mgmt.Id)] = allRulesOrdered });
+                .SetValue(null, new Dictionary<(int, int), Rule[]> { [(device.Id, mgmt.Id)] = allRulesOrdered });
 
             var devCtrl = DeviceReportController.FromDeviceReport(device);
 
@@ -338,7 +338,7 @@ namespace FWO.Test
             ClassicAssert.IsTrue(initialRules.All(r => r.RulebaseId == rbInitial.Id));
 
             // 2. All Rules check
-            ClassicAssert.AreEqual(allRulesOrdered.Count, retrievedAllRules.Length);
+            ClassicAssert.AreEqual(allRulesOrdered.Count(), retrievedAllRules.Length);
 
             // 3. Order check (InitialRB first, then OtherRB)
             for (int i = 0; i < retrievedAllRules.Count(); i++)
@@ -424,10 +424,10 @@ namespace FWO.Test
             var mgmt = SetupData().First();
 
             // Cache manuell fill mit der Reihenfolge: RB2 (initial) zuerst
-            var allRulesOrdered = rb2.Rules.Concat(rb1.Rules).Concat(rb3.Rules).ToList();
+            var allRulesOrdered = rb2.Rules.Concat(rb1.Rules).Concat(rb3.Rules).ToArray();
             typeof(ReportRules)
                 .GetField("_rulesCache", BindingFlags.NonPublic | BindingFlags.Static)!
-                .SetValue(null, new Dictionary<(int, int), List<Rule>> { [(device.Id, mgmt.Id)] = allRulesOrdered });
+                .SetValue(null, new Dictionary<(int, int), Rule[]> { [(device.Id, mgmt.Id)] = allRulesOrdered });
 
             var devCtrl = DeviceReportController.FromDeviceReport(device);
 
@@ -444,7 +444,7 @@ namespace FWO.Test
             ClassicAssert.IsTrue(initialRules.All(r => r.RulebaseId == rb2.Id));
 
             // 2. Alle Rules check
-            ClassicAssert.AreEqual(allRulesOrdered.Count, retrievedAllRules.Length);
+            ClassicAssert.AreEqual(allRulesOrdered.Count(), retrievedAllRules.Length);
 
             // 3. Order check: RB2 (initial), dann RB1, dann RB3
             for (int i = 0; i < retrievedAllRules.Count(); i++)

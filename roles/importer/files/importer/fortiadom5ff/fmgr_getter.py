@@ -1,14 +1,14 @@
 # library for API get functions
 from fwo_log import getFwoLogger
-import requests.packages
 import requests
 import json
 from typing import Any
 import fwo_globals
 from fwo_exceptions import FwLoginFailed, FwoUnknownDeviceForManager, FwApiCallFailed, FwLogoutFailed
+from models.management import Management
 
 
-def api_call(url, command, json_payload, sid, show_progress=False, method=''):
+def api_call(url: str, command: str, json_payload: dict[str, Any], sid: str, show_progress: bool=False, method: str='') -> dict[str, Any]:
     logger = getFwoLogger()
     request_headers = {'Content-Type': 'application/json'}
     if sid != '':
@@ -70,9 +70,9 @@ def login(user, password, base_url) -> str:
     return response['session']
 
 
-def logout(v_url, sid, method='exec'):
+def logout(v_url: str, sid: str, method: str ='exec'):
     logger = getFwoLogger()
-    payload = {'params': [{}]}
+    payload: dict[str, Any] = {'params': [{}]}
 
     response = api_call(v_url, 'sys/logout', payload, sid, method=method)
     if 'result' in response and 'status' in response['result'][0] and 'code' in response['result'][0]['status'] and response['result'][0]['status']['code'] == 0:
@@ -122,20 +122,20 @@ def parse_special_fortinet_api_results(result_name, full_result):
     return full_result
 
 
-def fortinet_api_call(sid, api_base_url, api_path, payload={}, method='get'):
+def fortinet_api_call(sid: str, api_base_url: str, api_path: str, payload: dict[str, Any] = {}, method: str = 'get') -> list[Any]:
     if payload == {}:
         payload = {'params': [{}]}
     result = api_call(api_base_url, api_path, payload, sid, method=method)
-    plain_result = result['result'][0]
+    plain_result: dict[str, Any] = result['result'][0]
     if 'data' in plain_result:
         result = plain_result['data']
         if isinstance(result, dict):  # code implicitly expects result to be a list, but some fmgr data results are dicts
-            result = [result]
+            result: list[Any] = [result]
     else:
         result = []
     return result
 
-def get_devices_from_manager(adom_mgm_details, sid, fm_api_url) -> dict[str, Any]:
+def get_devices_from_manager(adom_mgm_details: Management, sid: str, fm_api_url: str) -> dict[str, Any]:
     device_vdom_dict = {}
 
     device_results = fortinet_api_call(sid, fm_api_url, '/dvmdb/adom/' + adom_mgm_details.DomainName + '/device')

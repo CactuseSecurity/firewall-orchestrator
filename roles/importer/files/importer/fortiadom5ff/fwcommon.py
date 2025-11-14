@@ -6,7 +6,6 @@ from fwo_exceptions import ImportInterruption, FwLoginFailed, FwLogoutFailed
 from fwo_base import write_native_config_to_file
 import fmgr_getter
 from fwo_log import getFwoLogger
-from fmgr_gw_networking import getInterfacesAndRouting, normalize_network_data
 from model_controllers.fwconfigmanagerlist_controller import FwConfigManagerListController
 from model_controllers.fwconfig_normalized_controller import FwConfigNormalizedController
 from models.fwconfigmanager import FwConfigManager
@@ -18,6 +17,7 @@ from fmgr_consts import nw_obj_types, svc_obj_types, user_obj_types
 from fwo_base import ConfigAction
 from fmgr_zone import get_zones, normalize_zones
 from models.fwconfig_normalized import FwConfigNormalized
+from models.management import Management
 
 
 def has_config_changed(full_config, mgm_details, force=False):
@@ -27,8 +27,8 @@ def has_config_changed(full_config, mgm_details, force=False):
 def get_config(config_in: FwConfigManagerListController, importState: ImportStateController):
     logger = getFwoLogger()
     
-    if config_in.has_empty_config():   # no native config was passed in, so getting it from FW-Manager
-        config_in.native_config.update({'domains': []})
+    if config_in.has_empty_config():   # no native config was passed in, so getting it from FW-Manager 
+        config_in.native_config.update({'domains': []}) # type: ignore #TYPING: What is this? None or not None this is the question
         parsing_config_only = False
     else:
         parsing_config_only = True
@@ -38,7 +38,7 @@ def get_config(config_in: FwConfigManagerListController, importState: ImportStat
         limit = importState.FwoConfig.ApiFetchSize
         fm_api_url = importState.MgmDetails.buildFwApiString()
         native_config_global = initialize_native_config_domain(importState.MgmDetails)
-        config_in.native_config['domains'].append(native_config_global)
+        config_in.native_config['domains'].append(native_config_global) # type: ignore #TYPING: None or not None this is the question
         adom_list = build_adom_list(importState)
         adom_device_vdom_structure = build_adom_device_vdom_structure(adom_list, sid, fm_api_url)
         # delete_v: das geht schief für unschöne adoms
@@ -52,7 +52,7 @@ def get_config(config_in: FwConfigManagerListController, importState: ImportStat
         for adom in adom_list:
             adom_name = adom.DomainName
             native_config_adom = initialize_native_config_domain(adom)
-            config_in.native_config['domains'].append(native_config_adom)
+            config_in.native_config['domains'].append(native_config_adom) # type: ignore #TYPING: None or not None this is the question
 
             adom_scope = 'adom/'+adom_name
             get_objects(sid, fm_api_url, native_config_adom, native_config_global, adom_name, limit, nw_obj_types, svc_obj_types, adom_scope, arbitrary_vdom_for_updateable_objects)
@@ -79,12 +79,12 @@ def get_config(config_in: FwConfigManagerListController, importState: ImportStat
 
         write_native_config_to_file(importState, config_in.native_config)
 
-    normalized_managers = normalize_config(importState, config_in.native_config)
+    normalized_managers = normalize_config(importState, config_in.native_config) # type: ignore #TYPING: None or not None this is the question
     logger.info("completed getting config")
     return 0, normalized_managers
 
 
-def initialize_native_config_domain(mgm_details : ManagementController):
+def initialize_native_config_domain(mgm_details: Management) -> dict[str, Any]:
     return {
         'domain_name': mgm_details.DomainName,
         'domain_uid': mgm_details.DomainUid,
@@ -97,14 +97,14 @@ def initialize_native_config_domain(mgm_details : ManagementController):
         'zones': [],
         'gateways': []}
 
-def get_arbitrary_vdom(adom_device_vdom_structure):
+def get_arbitrary_vdom(adom_device_vdom_structure: dict[str, dict[str, list[str]]]) -> dict[str, str] | None:
     for adom in adom_device_vdom_structure:
         for device in adom_device_vdom_structure[adom]:
             for vdom in adom_device_vdom_structure[adom][device]:
                 return {'adom': adom, 'device': device, 'vdom': vdom}
 
 
-def normalize_config(import_state, native_config: 'dict[str,Any]') -> FwConfigManagerListController:
+def normalize_config(import_state: ImportStateController, native_config: dict[str,Any]) -> FwConfigManagerListController:
 
     manager_list = FwConfigManagerListController()
 
@@ -113,7 +113,7 @@ def normalize_config(import_state, native_config: 'dict[str,Any]') -> FwConfigMa
 
     rewrite_native_config_obj_type_as_key(native_config) # for easier accessability of objects in normalization process
 
-    native_config_global = {}
+    native_config_global: dict[str, Any] = {}
     normalized_config_global = {}
 
     for native_conf in native_config['domains']:
@@ -152,14 +152,14 @@ def normalize_config(import_state, native_config: 'dict[str,Any]') -> FwConfigMa
     return manager_list
 
 
-def rewrite_native_config_obj_type_as_key(native_config):
+def rewrite_native_config_obj_type_as_key(native_config: dict[str, Any]):
     # rewrite native config objects to have the object type as key
     # this is needed for the normalization process
 
     for domain in native_config['domains']:
         if 'objects' not in domain:
             continue
-        obj_dict = {}
+        obj_dict: dict[str, Any] = {}
         for obj_chunk in domain['objects']:
             if 'type' not in obj_chunk:
                 continue
@@ -168,8 +168,8 @@ def rewrite_native_config_obj_type_as_key(native_config):
         domain['objects'] = obj_dict
 
 
-def normalize_single_manager_config(native_config: 'dict[str, Any]', native_config_global: 'dict[str, Any]', normalized_config_adom: dict,
-                                    normalized_config_global: dict, import_state: ImportStateController,
+def normalize_single_manager_config(native_config: 'dict[str, Any]', native_config_global: 'dict[str, Any]', normalized_config_adom: dict[str, Any],
+                                    normalized_config_global: dict[str, Any], import_state: ImportStateController,
                                     is_global_loop_iteration: bool):
 
     current_nw_obj_types = deepcopy(nw_obj_types)
@@ -198,15 +198,15 @@ def normalize_single_manager_config(native_config: 'dict[str, Any]', native_conf
     normalize_gateways(native_config, normalized_config_adom)
     
 
-def build_adom_list(importState : ImportStateController):
-    adom_list = []
+def build_adom_list(importState : ImportStateController) -> list[Management]:
+    adom_list: list[Management] = []
     if importState.MgmDetails.IsSuperManager:
         for subManager in importState.MgmDetails.SubManagers:
             adom_list.append(deepcopy(subManager))
     return adom_list
 
-def build_adom_device_vdom_structure(adom_list, sid, fm_api_url) -> dict:
-    adom_device_vdom_structure = {}
+def build_adom_device_vdom_structure(adom_list: list[Management], sid: str, fm_api_url: str) -> dict[str, dict[str, list[str]]]:
+    adom_device_vdom_structure: dict[str, dict[str, list[str]]] = {}
     for adom in adom_list:
         adom_device_vdom_structure.update({adom.DomainName: {}})
         if len(adom.Devices) > 0:
@@ -214,7 +214,7 @@ def build_adom_device_vdom_structure(adom_list, sid, fm_api_url) -> dict:
             adom_device_vdom_structure[adom.DomainName].update(device_vdom_dict)
     return adom_device_vdom_structure
 
-def add_policy_package_to_vdoms(adom_device_vdom_structure, sid, fm_api_url):
+def add_policy_package_to_vdoms(adom_device_vdom_structure: dict[str, dict[str, list[str]]], sid: str, fm_api_url: str) -> dict[str, dict[str, dict[str, dict[str, str]]]]:
     adom_device_vdom_policy_package_structure = deepcopy(adom_device_vdom_structure)
     for adom in adom_device_vdom_policy_package_structure:
         policy_packages_result = fmgr_getter.fortinet_api_call(sid, fm_api_url, '/pm/pkg/adom/' + adom)
@@ -268,8 +268,8 @@ def match_assign_and_vdom_policy_package(global_assignment, vdom_structure, is_i
             if package['name'] != vdom_structure['local']:
                 vdom_structure['global'] = global_assignment['assign_name']
 
-def initialize_device_config(mgm_details_device):
-    device_config = {'name': mgm_details_device['name'],
+def initialize_device_config(mgm_details_device: dict[str, Any]) -> dict[str, Any]:
+    device_config: dict[str, Any] = {'name': mgm_details_device['name'],
                      'uid': mgm_details_device['uid'],
                      'rulebase_links': []}
     return device_config

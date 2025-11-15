@@ -45,14 +45,14 @@ namespace FWO.Report
         {
             List<IPAddressRange> ownerIps = await GetAppServers(apiConnection, ownerId);
             List<ManagementReport> relevantData = [];
-            foreach(var mgt in managementData)
+            foreach (var mgt in managementData)
             {
-                ManagementReport relevantMgt = new(){ Name = mgt.Name, Id = mgt.Id, Import = mgt.Import };
-                foreach(var dev in mgt.Devices)
+                ManagementReport relevantMgt = new() { Name = mgt.Name, Id = mgt.Id, Import = mgt.Import };
+                foreach (var dev in mgt.Devices)
                 {
                     PrepareDevice(dev, modellingFilter, relevantMgt, ownerIps);
                 }
-                if(relevantMgt.Devices.Length > 0)
+                if (relevantMgt.Devices.Length > 0)
                 {
                     relevantMgt.ReportedRuleIds = [.. relevantMgt.ReportedRuleIds.Distinct()];
                     relevantData.Add(relevantMgt);
@@ -63,15 +63,15 @@ namespace FWO.Report
 
         private static void PrepareDevice(DeviceReport dev, ModellingFilter modellingFilter, ManagementReport relevantMgt, List<IPAddressRange> ownerIps)
         {
-            DeviceReport relevantDevice = new(){ Name = dev.Name, Id = dev.Id };
-            if(dev.Rules != null)
+            DeviceReport relevantDevice = new() { Name = dev.Name, Id = dev.Id };
+            if (dev.Rules != null)
             {
                 relevantDevice.Rules = [];
-                foreach(var rule in dev.Rules)
+                foreach (var rule in dev.Rules)
                 {
                     PrepareRule(rule, modellingFilter, relevantMgt, relevantDevice, ownerIps);
                 }
-                if(relevantDevice.Rules.Length > 0)
+                if (relevantDevice.Rules.Length > 0)
                 {
                     relevantMgt.Devices = [.. relevantMgt.Devices, relevantDevice];
                 }
@@ -120,78 +120,156 @@ namespace FWO.Report
         {
             List<NetworkLocation> relevantObjects = [];
             List<NetworkLocation> disregardedObjects = [];
-            foreach(var obj in objList)
+            if (negated)
             {
-                if(obj.Object.IsAnyObject())
+                bool isMatch = CheckNegatedOverlap(objList, ownerIps);
+                if (isMatch)
                 {
-                    if(modellingFilter.ShowAnyMatch)
-                    {
-                        relevantObjects.Add(obj);
-                    }
-                    else
-                    {
-                        disregardedObjects.Add(obj);
-                    }
+                    relevantObjects.AddRange(objList);
                 }
                 else
                 {
-                    CheckSpecificObj(obj, negated, ownerIps, relevantObjects, disregardedObjects);
+                    disregardedObjects.AddRange(objList);
+                }
+            }
+            else
+            {
+                foreach (var obj in objList)
+                {
+                    if (obj.Object.IsAnyObject())
+                    {
+                        if (!negated && modellingFilter.ShowAnyMatch)
+                        {
+                            relevantObjects.Add(obj);
+                        }
+                        else
+                        {
+                            disregardedObjects.Add(obj);
+                        }
+                    }
+                    else
+                    {
+                        CheckSpecificObj(obj, ownerIps, relevantObjects, disregardedObjects);
+                    }
                 }
             }
             return (relevantObjects, disregardedObjects);
         }
 
-        private static void CheckSpecificObj(NetworkLocation obj, bool negated, List<IPAddressRange> ownerIps, List<NetworkLocation> relevantObjects, List<NetworkLocation> disregardedObjects)
+        private static bool CheckNegatedOverlap(NetworkLocation[] objList, List<IPAddressRange> ownerNetworks)
         {
-            bool found = false;
-            if(obj.Object.Type.Name == ObjectType.Group)
+            // match iff ip space covered by objList \cap ip space covered by ownerNetworks != \emptyset
+            List<(uint, uint)> ownerIpRanges = [.. ownerNetworks.Select(o => (IpOperations.IpToUint(o.Begin), IpOperations.IpToUint(o.End)))];
+            ownerIpRanges.Sort((a, b) => a.Item1.CompareTo(b.Item1));
+            for (int i = 0; i < ownerIpRanges.Count - 1; i++)
             {
-                foreach(var grpobj in obj.Object.ObjectGroupFlats.Select(o => o.Object))
+                if (ownerIpRanges[i].Item2 >= ownerIpRanges[i + 1].Item1)
                 {
-                    if(grpobj != null && CheckObj(grpobj, negated, ownerIps))
+                    // merge overlapping ranges
+                    ownerIpRanges[i] = (ownerIpRanges[i].Item1,
+                        Math.Max(ownerIpRanges[i].Item2, ownerIpRanges[i + 1].Item2));
+                    ownerIpRanges.RemoveAt(i + 1);
+                    i--;
+                }
+            }
+            // subtract ip ranges of objects from owner ip ranges
+            // for negated object list to match, at least one ip must not be contained in owner ranges
+            foreach (var obj in objList)
+            {
+                List<NetworkObject> flatObjects = obj.Object.Type.Name == ObjectType.Group
+                    ? [.. obj.Object.ObjectGroupFlats.Select(o => o.Object).Where(o => o != null).Cast<NetworkObject>()]
+                    : [obj.Object];
+                foreach (var flatObj in flatObjects)
+                {
+                    if (flatObj.IP == null || flatObj.IP == "")
+                    {
+                        continue; // skip objects without IP
+                    }
+                    uint ipStart = IpOperations.IpToUint(IPAddress.Parse(flatObj.IP.StripOffNetmask()));
+                    uint ipEnd = IpOperations.IpToUint(IPAddress.Parse((flatObj.IpEnd != null && flatObj.IpEnd != "" ? flatObj.IpEnd : flatObj.IP).StripOffNetmask()));
+                    for (int i = 0; i < ownerIpRanges.Count; i++)
+                    {
+                        (uint ownerIpStart, uint ownerIpEnd) = ownerIpRanges[i];
+                        if (ownerIpStart <= ipEnd && ownerIpEnd >= ipStart)
+                        {
+                            // overlap exists, remove object ip range from owner ip ranges
+                            if (ownerIpStart < ipStart)
+                            {
+                                // adjust start of range
+                                ownerIpRanges[i] = (ownerIpStart, ipStart - 1);
+                            }
+                            else if (ownerIpEnd > ipEnd)
+                            {
+                                // adjust end of range
+                                ownerIpRanges[i] = (ipEnd + 1, ownerIpEnd);
+                            }
+                            else
+                            {
+                                // remove this range completely
+                                ownerIpRanges.RemoveAt(i);
+                                i--;
+                            }
+                        }
+                    }
+                }
+            }
+            // if there are any owner ip ranges left, then the negated objects do not cover the whole owner ip space
+            return ownerIpRanges.Count > 0;
+        }
+
+        private static void CheckSpecificObj(NetworkLocation obj, List<IPAddressRange> ownerIps, List<NetworkLocation> relevantObjects, List<NetworkLocation> disregardedObjects)
+        {
+            if (obj.Object.Type.Name == ObjectType.Group)
+            {
+                foreach (var grpobj in obj.Object.ObjectGroupFlats.Select(o => o.Object))
+                {
+                    if (grpobj != null && CheckObj(grpobj, ownerIps))
                     {
                         relevantObjects.Add(obj);
-                        found = true;
                         break;
                     }
                 }
             }
-            else if(CheckObj(obj.Object, negated, ownerIps))
+            else if (CheckObj(obj.Object, ownerIps))
             {
                 relevantObjects.Add(obj);
-                found = true;
             }
-            if(!found)
+            else
             {
                 disregardedObjects.Add(obj);
             }
         }
 
-        private static bool CheckObj(NetworkObject obj, bool negated, List<IPAddressRange> ownerIps)
+        private static bool CheckObj(NetworkObject obj, List<IPAddressRange> ownerIps, bool negated = false)
         {
-            foreach(var ownerIpRange in ownerIps)
+            if (obj.IP == null)
             {
-                if(obj.IP == null)
-                {
-                    continue;
-                }
+                return false;
+            }
 
-                IPAddressRange objRange = new(IPAddress.Parse(obj.IP.StripOffNetmask()),
-                    IPAddress.Parse((obj.IpEnd != null && obj.IpEnd != "" ? obj.IpEnd : obj.IP).StripOffNetmask()));
+            if (obj.IsAnyObject())
+            {
+                return !negated;
+            }
 
-                if(negated)
+            foreach (var ownerIpRange in ownerIps)
                 {
-                    if (IpOperations.IpToUint(ownerIpRange.Begin) < IpOperations.IpToUint(objRange.Begin) ||
-                            (IpOperations.IpToUint(ownerIpRange.End) > IpOperations.IpToUint(objRange.End)))
+                    IPAddressRange objRange = new(IPAddress.Parse(obj.IP.StripOffNetmask()),
+                        IPAddress.Parse((obj.IpEnd != null && obj.IpEnd != "" ? obj.IpEnd : obj.IP).StripOffNetmask()));
+
+                    if (negated)
+                    {
+                        if (IpOperations.IpToUint(ownerIpRange.Begin) < IpOperations.IpToUint(objRange.Begin) ||
+                                (IpOperations.IpToUint(ownerIpRange.End) > IpOperations.IpToUint(objRange.End)))
+                        {
+                            return true;
+                        }
+                    }
+                    else if (IpOperations.RangeOverlapExists(objRange, ownerIpRange))
                     {
                         return true;
                     }
                 }
-                else if(IpOperations.RangeOverlapExists(objRange, ownerIpRange))
-                {
-                    return true;
-                }
-            }
             return false;
         }
 
@@ -199,9 +277,9 @@ namespace FWO.Report
         {
             mgt.RelevantObjectIds = [];
             mgt.HighlightedObjectIds = [];
-            foreach(var dev in mgt.Devices.Where(d => d.Rules != null))
+            foreach (var dev in mgt.Devices.Where(d => d.Rules != null))
             {
-                foreach(var rule in dev.Rules!)
+                foreach (var rule in dev.Rules!)
                 {
                     PrepareObjects(rule.Froms, rule.SourceNegated, rule.DisregardedFroms, mgt, ownerIps);
                     PrepareObjects(rule.Tos, rule.DestinationNegated, rule.DisregardedTos, mgt, ownerIps);
@@ -213,41 +291,62 @@ namespace FWO.Report
 
         private static void PrepareObjects(NetworkLocation[] networkLocations, bool negated, NetworkLocation[] disregardedLocations, ManagementReport mgt, List<IPAddressRange> ownerIps)
         {
-            foreach(var from in networkLocations.Select(f => f.Object))
+            if (negated)
             {
-                mgt.RelevantObjectIds.Add(from.Id);
-                mgt.HighlightedObjectIds.Add(from.Id);
-                if(from.Type.Name == ObjectType.Group)
+                if (CheckNegatedOverlap(networkLocations, ownerIps))
                 {
-                    foreach(var grpobj in from.ObjectGroupFlats.Select(g => g.Object).Where(gr => gr != null && CheckObj(gr, negated, ownerIps)))
+                    foreach (var nwLoc in networkLocations)
                     {
-                        mgt.HighlightedObjectIds.Add(grpobj!.Id);
+                        mgt.RelevantObjectIds.Add(nwLoc.Object.Id);
+                        mgt.HighlightedObjectIds.Add(nwLoc.Object.Id);
+                    }
+                }
+                else
+                {
+                    foreach (var nwLoc in disregardedLocations)
+                    {
+                        mgt.RelevantObjectIds.Add(nwLoc.Object.Id);
                     }
                 }
             }
-            if(networkLocations.Length == 0)
+            else
             {
-                foreach(var from in disregardedLocations)
+                foreach (var nwObj in networkLocations.Select(nl => nl.Object))
+                    {
+                        mgt.RelevantObjectIds.Add(nwObj.Id);
+                        mgt.HighlightedObjectIds.Add(nwObj.Id);
+                        if (nwObj.Type.Name == ObjectType.Group)
+                        {
+                            if (nwObj.ObjectGroupFlats.Any(g => g.Object != null && CheckObj(g.Object, ownerIps)))
+                            {
+                                mgt.HighlightedObjectIds.Add(nwObj.Id);
+                            }
+                        }
+                    }
+                if (networkLocations.Length == 0)
                 {
-                    mgt.RelevantObjectIds.Add(from.Object.Id);
+                    foreach (var nwLoc in disregardedLocations)
+                    {
+                        mgt.RelevantObjectIds.Add(nwLoc.Object.Id);
+                    }
                 }
             }
         }
 
         private static void PrepareRsbOutput(ManagementReport mgt)
         {
-            foreach(var obj in mgt.ReportObjects)
+            foreach (var obj in mgt.ReportObjects)
             {
-                obj.Highlighted = mgt.HighlightedObjectIds.Contains(obj.Id) || obj.IsAnyObject();
-                if(obj.Type.Name == ObjectType.Group)
+                obj.Highlighted = mgt.HighlightedObjectIds.Contains(obj.Id);
+                if (obj.Type.Name == ObjectType.Group)
                 {
-                    foreach(var grpobj in obj.ObjectGroupFlats.Select(g => g.Object).Where(g => g != null))
+                    foreach (var grpobj in obj.ObjectGroupFlats.Select(g => g.Object).Where(g => g != null))
                     {
-                        grpobj!.Highlighted = mgt.HighlightedObjectIds.Contains(grpobj.Id) || grpobj.IsAnyObject();
+                        grpobj!.Highlighted = mgt.HighlightedObjectIds.Contains(grpobj.Id);
                     }
-                    foreach(var grpobj in obj.ObjectGroups.Select(g => g.Object).Where(g => g != null))
+                    foreach (var grpobj in obj.ObjectGroups.Select(g => g.Object).Where(g => g != null))
                     {
-                        grpobj!.Highlighted = mgt.HighlightedObjectIds.Contains(grpobj.Id) || grpobj.IsAnyObject();
+                        grpobj!.Highlighted = mgt.HighlightedObjectIds.Contains(grpobj.Id);
                     }
                 }
             }

@@ -624,8 +624,9 @@
             {
                 return;
             }
-            Management mgmtToIgnore = managementsToDisplay[managementsToDisplay.FindIndex(x => x.Id == discoveredDevice.Management.Id)];
-            if(mgmtToIgnore.Devices.FirstOrDefault(y => y.Relevant == true) == null)
+            int index = managementsToDisplay.FindIndex(x => x.Id == discoveredDevice.Management.Id);
+            Management? mgmtToIgnore = index >= 0 ? managementsToDisplay[index] : null;
+            if (mgmtToIgnore != null &&  mgmtToIgnore.Devices.FirstOrDefault(y => y.Relevant == true) == null)
             {
                 managementsToDisplay.Remove(mgmtToIgnore);
                 if(managementsToDisplay.Count == 0)

@@ -24,9 +24,9 @@ namespace FWO.Ui.Services
 
             string decoded = HttpUtility.UrlDecode(normalizedInput);
             decoded = HttpUtility.HtmlDecode(decoded);
-            if (MyRegex().IsMatch(decoded) ||
-                MyRegex1().IsMatch(decoded) ||
-                MyRegex2().IsMatch(decoded)
+            if (RegExFindScript().IsMatch(decoded) ||
+                RegExFindOn().IsMatch(decoded) ||
+                RegExFindJavascript().IsMatch(decoded)
             ) // e.g. onload=, onclick=
             {
                 BlockingUrlLog(input);
@@ -91,13 +91,13 @@ namespace FWO.Ui.Services
         }
 
         [GeneratedRegex(@"<\s*script\b", RegexOptions.IgnoreCase, "en-US")]
-        private static partial Regex MyRegex();
+        private static partial Regex RegExFindScript();
 
         [GeneratedRegex(@"on\w+\s*=", RegexOptions.IgnoreCase, "en-US")]
-        private static partial Regex MyRegex1();
+        private static partial Regex RegExFindOn();
 
         [GeneratedRegex(@"javascript\s*:", RegexOptions.IgnoreCase, "en-US")]
-        private static partial Regex MyRegex2();
+        private static partial Regex RegExFindJavascript();
     }
 
 }

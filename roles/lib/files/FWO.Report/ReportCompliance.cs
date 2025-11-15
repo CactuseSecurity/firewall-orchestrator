@@ -36,7 +36,7 @@ namespace FWO.Report
         private readonly int _maxDegreeOfParallelism;
         private readonly SemaphoreSlim _semaphore;
         private readonly NatRuleDisplayHtml _natRuleDisplayHtml;
-        private List<string> _columnsToExport;
+        private List<string> _columnsToExport = [];
         private bool _includeHeaderInExport;
         private char _separator;
         private int _maxCellSize;
@@ -426,6 +426,7 @@ namespace FWO.Report
             return queryVariables;
         }
 
+        //TODO: Does this need to be async?
         protected virtual async Task SetComplianceDataForRule(Rule rule, ApiConnection apiConnection, Func<ComplianceViolation, string>? formatter = null)
         {
             try

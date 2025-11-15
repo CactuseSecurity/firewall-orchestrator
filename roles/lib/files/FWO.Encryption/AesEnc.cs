@@ -12,38 +12,80 @@ namespace FWO.Encryption
             string mainKey = GetMainKey();
 
             // only encrypt secret if it was not already encrypted
-            try
+            if (TryDecrypt(secret, mainKey, out _))
             {
-                Decrypt(secret, mainKey);
                 return secret;
             }
-            catch (Exception)
-            {
-                return Encrypt(secret, mainKey);
-            }
+
+            return Encrypt(secret, mainKey);
         }
 
         public static string TryDecrypt(string secret, bool returnOrigin = false, string logMessageTitle = "", string logText = "", bool onlyWarning = false)
         {
+            string mainKey;
             try
             {
-                string mainKey = GetMainKey();
-                return Decrypt(secret, mainKey);
+                mainKey = GetMainKey();
             }
             catch (Exception exception)
             {
-                if (logMessageTitle != "")
-                {
-                    if (onlyWarning)
-                    {
-                        Log.WriteWarning(logMessageTitle, logText);
-                    }
-                    else
-                    {
-                        Log.WriteError(logMessageTitle, logText, exception);
-                    }
-                }
+                HandleDecryptLog(logMessageTitle, logText, onlyWarning, exception);
                 return returnOrigin ? secret : "";
+            }
+
+            if (TryDecrypt(secret, mainKey, out string decryptedText))
+            {
+                return decryptedText;
+            }
+
+            HandleDecryptLog(logMessageTitle, logText, onlyWarning);
+            return returnOrigin ? secret : "";
+        }
+
+        public static bool TryDecrypt(string encryptedDataString, string key, out string decryptedText)
+        {
+            decryptedText = string.Empty;
+
+            if (string.IsNullOrEmpty(encryptedDataString))
+            {
+                return false;
+            }
+
+            try
+            {
+                decryptedText = CustomAesCbcDecryptBase64(encryptedDataString, key);
+                return true;
+            }
+            catch (Exception)
+            {
+                decryptedText = string.Empty;
+                return false;
+            }
+        }
+
+        private static void HandleDecryptLog(string logMessageTitle, string logText, bool onlyWarning, Exception? exception = null)
+        {
+            if (string.IsNullOrEmpty(logMessageTitle))
+            {
+                return;
+            }
+
+            string message = string.IsNullOrEmpty(logText) ? "Could not decrypt secret." : logText;
+
+            if (onlyWarning)
+            {
+                Log.WriteWarning(logMessageTitle, message);
+            }
+            else
+            {
+                if (exception != null)
+                {
+                    Log.WriteError(logMessageTitle, message, exception);
+                }
+                else
+                {
+                    Log.WriteError(logMessageTitle, message);
+                }
             }
         }
 
@@ -69,16 +111,9 @@ namespace FWO.Encryption
 
         public static string Decrypt(string encryptedDataString, string key)
         {
-            string decryptedText;
-            try
-            {
-                decryptedText = CustomAesCbcDecryptBase64(encryptedDataString, key);
-                return decryptedText;
-            }
-            catch
-            {
-                throw new ArgumentException("Could not decrypt.");
-            }
+            return TryDecrypt(encryptedDataString, key, out string decryptedText)
+                ? decryptedText
+                : string.Empty;
         }
 
         private static string CustomAesCbcEncryptBase64(string plaintext, string key)

@@ -2675,6 +2675,8 @@ INSERT INTO txt VALUES ('complianceCheckTreatDynamicAndDomainObjectsAsInternet',
 INSERT INTO txt VALUES ('complianceCheckTreatDynamicAndDomainObjectsAsInternet','English','Treat dynamic and domain objects as internet');
 INSERT INTO txt VALUES ('complianceCheckShowShortColumsInComplianceReports','German', 'Spalten mit Kurzform für Sources, Destinations und Services anzeigen');
 INSERT INTO txt VALUES ('complianceCheckShowShortColumsInComplianceReports','English','Show columns with short forms for sources, destinations and services');
+INSERT INTO txt VALUES ('importedMatrixReadOnly','German', 'Importierte Matrizen schreibgeschützt');
+INSERT INTO txt VALUES ('importedMatrixReadOnly','English','Imported matrices read-only');
 
 INSERT INTO txt VALUES ('availableModules',     'German', 	'Verf&uuml;gbare Module');
 INSERT INTO txt VALUES ('availableModules',     'English', 	'Available Modules');
@@ -5947,6 +5949,9 @@ INSERT INTO txt VALUES ('H5840', 'German',  'Verbotener Service');
 INSERT INTO txt VALUES ('H5840', 'English', 'Restricted Service');
 INSERT INTO txt VALUES ('H5841', 'German',  'Auswertbarkeitsproblem');
 INSERT INTO txt VALUES ('H5841', 'English', 'Assessability issue');
+INSERT INTO txt VALUES ('H5842', 'German',  'Wenn aktiviert, können importierte Matrizen weder gelöscht noch editiert werden.');
+INSERT INTO txt VALUES ('H5842', 'English', 'When enabled, imported matrices cannot be deleted or edited.');
+
 
 INSERT INTO txt VALUES ('H6001', 'German',  'Firewall Orchestrator verf&uuml;gt &uuml;ber zwei APIs:
     <ul>

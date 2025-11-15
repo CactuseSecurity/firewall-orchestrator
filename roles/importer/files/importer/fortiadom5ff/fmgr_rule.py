@@ -3,8 +3,6 @@ import ipaddress
 from time import strftime, localtime
 from typing import Any
 from fwo_const import list_delimiter, nat_postfix, dummy_ip
-from fwo_base import extend_string_list
-from fmgr_service import create_svc_object
 from fmgr_network import create_network_object, get_first_ip_of_destination
 from fmgr_zone import find_zones_in_normalized_config
 from fmgr_consts import nat_types

@@ -22,8 +22,8 @@ def api_call(url: str, command: str, json_payload: dict[str, Any], sid: str, sho
 
     r = requests.post(url, data=json.dumps(json_payload), headers=request_headers, verify=fwo_globals.verify_certs)
     try:
-        r
-    except Exception as e:
+        r # type: ignore #TYPING: This is always defined and does nothing
+    except Exception as _:
         if 'pass' in json.dumps(json_payload):
             exception_text = f'error while sending api_call containing credential information to url {str(url)}'
         else:
@@ -56,8 +56,8 @@ def api_call(url: str, command: str, json_payload: dict[str, Any], sid: str, sho
     return result_json
 
 
-def login(user, password, base_url) -> str:
-    payload = {
+def login(user: str, password: str, base_url: str) -> str | None:
+    payload: dict[str, Any] = {
         'id': 1,
         'params': [ { 'data': [ { 'user': user, 'passwd': password, } ] } ]
     }
@@ -82,11 +82,11 @@ def logout(v_url: str, sid: str, method: str ='exec'):
                             'api call: url: ' + str(v_url) + ',  + payload: ' + str(payload))
 
 
-def update_config_with_fortinet_api_call(config_json, sid, api_base_url, api_path, result_name, payload={}, options=[], limit=150, method='get'):
+def update_config_with_fortinet_api_call(config_json: list[dict[str, Any]], sid: str, api_base_url: str, api_path: str, result_name: str, payload: dict[str, Any] = {}, options: list[Any] = [], limit: int = 150, method: str = 'get'):
     offset = 0
     limit = int(limit)
     returned_new_objects = True
-    full_result = []
+    full_result: list[Any] = []
     while returned_new_objects:
         range = [offset, limit]
         if payload == {}:
@@ -111,7 +111,7 @@ def update_config_with_fortinet_api_call(config_json, sid, api_base_url, api_pat
     config_json.append({'type': result_name, 'data': full_result})
 
 
-def parse_special_fortinet_api_results(result_name, full_result):
+def parse_special_fortinet_api_results(result_name: str, full_result: list[Any]) -> list[Any]:
     if result_name == 'nw_obj_global_firewall/internet-service-basic':
         if len(full_result)>0 and 'response' in full_result[0] and 'results' in full_result[0]['response']: 
             full_result = full_result[0]['response']['results']
@@ -125,8 +125,8 @@ def parse_special_fortinet_api_results(result_name, full_result):
 def fortinet_api_call(sid: str, api_base_url: str, api_path: str, payload: dict[str, Any] = {}, method: str = 'get') -> list[Any]:
     if payload == {}:
         payload = {'params': [{}]}
-    result = api_call(api_base_url, api_path, payload, sid, method=method)
-    plain_result: dict[str, Any] = result['result'][0]
+    api_result = api_call(api_base_url, api_path, payload, sid, method=method)
+    plain_result: dict[str, Any] = api_result['result'][0]
     if 'data' in plain_result:
         result = plain_result['data']
         if isinstance(result, dict):  # code implicitly expects result to be a list, but some fmgr data results are dicts
@@ -136,7 +136,7 @@ def fortinet_api_call(sid: str, api_base_url: str, api_path: str, payload: dict[
     return result
 
 def get_devices_from_manager(adom_mgm_details: Management, sid: str, fm_api_url: str) -> dict[str, Any]:
-    device_vdom_dict = {}
+    device_vdom_dict: dict[str, dict[str, str]] = {}
 
     device_results = fortinet_api_call(sid, fm_api_url, '/dvmdb/adom/' + adom_mgm_details.DomainName + '/device')
     for mgm_details_device in adom_mgm_details.Devices:
@@ -149,7 +149,7 @@ def get_devices_from_manager(adom_mgm_details: Management, sid: str, fm_api_url:
         
     return device_vdom_dict
 
-def parse_device_and_vdom(fmgr_device, mgm_details_device, device_vdom_dict, found_fmgr_device):
+def parse_device_and_vdom(fmgr_device: dict[str, Any], mgm_details_device: dict[str, Any], device_vdom_dict: dict[str, dict[str, str]], found_fmgr_device: bool) -> bool:
     if 'vdom' in fmgr_device:
         for fmgr_vdom in fmgr_device['vdom']:
             if mgm_details_device['name'] == fmgr_device['name'] + '_' + fmgr_vdom['name']:
@@ -161,7 +161,7 @@ def parse_device_and_vdom(fmgr_device, mgm_details_device, device_vdom_dict, fou
     return found_fmgr_device
 
 
-def get_policy_packages_from_manager(sid, fm_api_url, adom=''):
+def get_policy_packages_from_manager(sid: str, fm_api_url: str, adom: str = '') -> list[Any]:
     if adom == '':
         url = '/pm/pkg/global'
     else:

@@ -4,13 +4,10 @@ from typing import Any
 from fwo_log import getFwoLogger
 from fwo_const import list_delimiter, nat_postfix
 from fmgr_zone import find_zones_in_normalized_config
-from fwo_config import readConfig
-from model_controllers.import_state_controller import ImportStateController
-from copy import deepcopy
 from fwo_exceptions import FwoImporterErrorInconsistencies
 
 
-def normalize_network_objects(native_config, normalized_config_adom, normalized_config_global, nw_obj_types):
+def normalize_network_objects(native_config: dict[str, Any], normalized_config_adom: dict[str, Any], normalized_config_global: dict[str, Any], nw_obj_types):
     nw_objects = []
     
     if 'objects' not in native_config:

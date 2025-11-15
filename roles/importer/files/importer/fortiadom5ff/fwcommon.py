@@ -20,7 +20,7 @@ from models.fwconfig_normalized import FwConfigNormalized
 from models.management import Management
 
 
-def has_config_changed(full_config, mgm_details, force=False):
+def has_config_changed(full_config: dict[str, Any], mgm_details: Management, force: bool = False):
     # dummy - may be filled with real check later on
     return True
 
@@ -97,7 +97,7 @@ def initialize_native_config_domain(mgm_details: Management) -> dict[str, Any]:
         'zones': [],
         'gateways': []}
 
-def get_arbitrary_vdom(adom_device_vdom_structure: dict[str, dict[str, list[str]]]) -> dict[str, str] | None:
+def get_arbitrary_vdom(adom_device_vdom_structure: dict[str, dict[str, dict[str, Any]]]) -> dict[str, str] | None:
     for adom in adom_device_vdom_structure:
         for device in adom_device_vdom_structure[adom]:
             for vdom in adom_device_vdom_structure[adom][device]:
@@ -205,8 +205,8 @@ def build_adom_list(importState : ImportStateController) -> list[Management]:
             adom_list.append(deepcopy(subManager))
     return adom_list
 
-def build_adom_device_vdom_structure(adom_list: list[Management], sid: str, fm_api_url: str) -> dict[str, dict[str, list[str]]]:
-    adom_device_vdom_structure: dict[str, dict[str, list[str]]] = {}
+def build_adom_device_vdom_structure(adom_list: list[Management], sid: str, fm_api_url: str) -> dict[str, dict[str, dict[str, Any]]]:
+    adom_device_vdom_structure: dict[str, dict[str, dict[str, Any]]] = {}
     for adom in adom_list:
         adom_device_vdom_structure.update({adom.DomainName: {}})
         if len(adom.Devices) > 0:
@@ -214,7 +214,7 @@ def build_adom_device_vdom_structure(adom_list: list[Management], sid: str, fm_a
             adom_device_vdom_structure[adom.DomainName].update(device_vdom_dict)
     return adom_device_vdom_structure
 
-def add_policy_package_to_vdoms(adom_device_vdom_structure: dict[str, dict[str, list[str]]], sid: str, fm_api_url: str) -> dict[str, dict[str, dict[str, dict[str, str]]]]:
+def add_policy_package_to_vdoms(adom_device_vdom_structure: dict[str, dict[str, dict[str, str]]], sid: str, fm_api_url: str) -> dict[str, dict[str, dict[str, Any]]]:
     adom_device_vdom_policy_package_structure = deepcopy(adom_device_vdom_structure)
     for adom in adom_device_vdom_policy_package_structure:
         policy_packages_result = fmgr_getter.fortinet_api_call(sid, fm_api_url, '/pm/pkg/adom/' + adom)
@@ -224,7 +224,7 @@ def add_policy_package_to_vdoms(adom_device_vdom_structure: dict[str, dict[str, 
         add_global_policy_package_to_vdom(adom_device_vdom_policy_package_structure, sid, fm_api_url, adom)
     return adom_device_vdom_policy_package_structure
 
-def parse_policy_package(policy_package, adom_device_vdom_policy_package_structure, adom):
+def parse_policy_package(policy_package: dict[str, Any], adom_device_vdom_policy_package_structure: dict[str, dict[str, dict[str, Any]]], adom: str):
     for scope_member in policy_package['scope member']:
         for device in adom_device_vdom_policy_package_structure[adom]:
             if device == scope_member['name']:
@@ -232,7 +232,7 @@ def parse_policy_package(policy_package, adom_device_vdom_policy_package_structu
                     if vdom == scope_member['vdom']:
                         adom_device_vdom_policy_package_structure[adom][device].update({vdom: {'local': policy_package['name'], 'global': ''}})
 
-def add_global_policy_package_to_vdom(adom_device_vdom_policy_package_structure, sid, fm_api_url, adom):
+def add_global_policy_package_to_vdom(adom_device_vdom_policy_package_structure: dict[str, dict[str, dict[str, Any]]], sid: str, fm_api_url: str, adom: str):
     global_assignment_result = fmgr_getter.fortinet_api_call(sid, fm_api_url, '/pm/config/adom/' + adom + '/_adom/options')
     for global_assignment in global_assignment_result:
         if global_assignment['assign_excluded'] == 0 and global_assignment['specify_assign_pkg_list'] == 0:
@@ -244,22 +244,22 @@ def add_global_policy_package_to_vdom(adom_device_vdom_policy_package_structure,
         else:
             raise ImportInterruption('Broken global assign format.')
         
-def assign_case_all(adom_device_vdom_policy_package_structure, adom, global_assignment):
+def assign_case_all(adom_device_vdom_policy_package_structure: dict[str, dict[str, dict[str, Any]]], adom: str, global_assignment: dict[str, Any]):
     for device in adom_device_vdom_policy_package_structure[adom]:
         for vdom in adom_device_vdom_policy_package_structure[adom][device]:
             adom_device_vdom_policy_package_structure[adom][device][vdom]['global'] = global_assignment['assign_name']
 
-def assign_case_include(adom_device_vdom_policy_package_structure, adom, global_assignment):
+def assign_case_include(adom_device_vdom_policy_package_structure: dict[str, dict[str, dict[str, Any]]], adom: str, global_assignment: dict[str, Any]):
     for device in adom_device_vdom_policy_package_structure[adom]:
         for vdom in adom_device_vdom_policy_package_structure[adom][device]:
             match_assign_and_vdom_policy_package(global_assignment, adom_device_vdom_policy_package_structure[adom][device][vdom], True)
 
-def assign_case_exclude(adom_device_vdom_policy_package_structure, adom, global_assignment):
+def assign_case_exclude(adom_device_vdom_policy_package_structure: dict[str, dict[str, dict[str, Any]]], adom: str, global_assignment: dict[str, Any]):
     for device in adom_device_vdom_policy_package_structure[adom]:
         for vdom in adom_device_vdom_policy_package_structure[adom][device]:
             match_assign_and_vdom_policy_package(global_assignment, adom_device_vdom_policy_package_structure[adom][device][vdom], False)
 
-def match_assign_and_vdom_policy_package(global_assignment, vdom_structure, is_include):
+def match_assign_and_vdom_policy_package(global_assignment: dict[str, Any], vdom_structure: dict[str, Any], is_include: bool):
     for package in global_assignment['pkg list']:
         if is_include:
             if package['name'] == vdom_structure['local']:
@@ -284,7 +284,7 @@ def get_sid(importState: ImportStateController):
     return sid
 
 
-def get_objects(sid, fm_api_url, native_config_domain, native_config_global, adom_name, limit, nw_obj_types, svc_obj_types, adom_scope, arbitrary_vdom_for_updateable_objects):
+def get_objects(sid: str, fm_api_url: str, native_config_domain: dict[str, Any], native_config_global: dict[str, Any], adom_name: str, limit: int, nw_obj_types: list[str], svc_obj_types: list[str], adom_scope: str, arbitrary_vdom_for_updateable_objects: dict[str, Any] | None):
     # get those objects that exist globally and on adom level
 
     # get network objects:
@@ -312,7 +312,7 @@ def get_objects(sid, fm_api_url, native_config_domain, native_config_global, ado
         return
     if arbitrary_vdom_for_updateable_objects['adom'] == adom_name:
         # get dynamic objects
-        payload = {
+        payload: dict[str, Any] = {
             'params': [
                 {
                     'data': {
@@ -329,7 +329,7 @@ def get_objects(sid, fm_api_url, native_config_domain, native_config_global, ado
             native_config_global['objects'], sid, fm_api_url, "sys/proxy/json", "nw_obj_global_firewall/internet-service-basic", limit=limit, payload=payload, method='exec')
 
 
-def normalize_gateways(native_config, normalized_config_adom):
+def normalize_gateways(native_config: dict[str, Any], normalized_config_adom: dict[str, Any]):
     for gateway in native_config['gateways']:
         normalized_gateway = {}
         normalized_gateway['Uid'] = gateway['uid']
@@ -339,15 +339,15 @@ def normalize_gateways(native_config, normalized_config_adom):
         normalized_gateway['RulebaseLinks'] = normalize_links(gateway['rulebase_links'])
         normalized_config_adom['gateways'].append(normalized_gateway)
 
-def normalize_interfaces():
+def normalize_interfaces() -> list[Any]:
     # TODO
     return []
 
-def normalize_routing():
+def normalize_routing() -> list[Any]:
     # TODO
     return []
 
-def normalize_links(rulebase_links : list):
+def normalize_links(rulebase_links : list[dict[str, Any]]) -> list[dict[str, Any]]:
     for link in rulebase_links:
         link['link_type'] = link.pop('type')
 

@@ -9,7 +9,6 @@ from fwo_log import getFwoLogger
 from model_controllers.fwconfigmanagerlist_controller import FwConfigManagerListController
 from model_controllers.fwconfig_normalized_controller import FwConfigNormalizedController
 from models.fwconfigmanager import FwConfigManager
-from model_controllers.management_controller import ManagementController
 from fmgr_network import normalize_network_objects
 from fmgr_service import normalize_service_objects
 from fmgr_rule import normalize_rulebases, get_access_policy, get_nat_policy

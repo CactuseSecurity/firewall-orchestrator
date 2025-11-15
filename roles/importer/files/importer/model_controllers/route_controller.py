@@ -121,7 +121,7 @@ def get_matching_route_obj(destination_ip: str, routing_table: list[Route], dev_
     return None
 
 
-def get_ip_of_interface_obj(interface_name: str, dev_id: int, interface_list: list[InterfaceSerializable] = []):
+def get_ip_of_interface_obj(interface_name: str | None, dev_id: int, interface_list: list[InterfaceSerializable]) -> str | None:
     interface_details = next((sub for sub in interface_list if sub.name == interface_name and sub.routing_device==dev_id), None)
 
     if interface_details is not None:

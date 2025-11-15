@@ -1,8 +1,7 @@
+from typing import Any
 from services.service_provider import ServiceProvider
 from services.enums import Services
 from fwo_api_call import FwoApiCall, FwoApi
-from fwo_config import readConfig
-from fwo_const import fwo_config_filename
 from fwo_log import getFwoLogger
 
 # def resolve_objects (obj_name_string_list, delimiter, obj_dict, name_key, uid_key, rule_type=None, jwt=None, import_id=None, mgm_id=None):
@@ -53,9 +52,8 @@ from fwo_log import getFwoLogger
 #     return object_tables
 
 
-def set_alerts_for_missing_objects(objects_not_found, jwt, import_id, rule_uid, object_type, mgm_id):
+def set_alerts_for_missing_objects(objects_not_found: list[str], jwt: str, import_id: int, rule_uid: str | None, object_type: str | None, mgm_id: int):
     logger = getFwoLogger()
-    fwo_config = readConfig(fwo_config_filename)
     for obj in objects_not_found:
         if obj == 'all' or obj == 'Original':
             continue
@@ -65,7 +63,7 @@ def set_alerts_for_missing_objects(objects_not_found, jwt, import_id, rule_uid, 
 
         api_call = FwoApiCall(FwoApi(ApiUri=global_state.import_state.FwoConfig.FwoApiUri, Jwt=global_state.import_state.Jwt))
 
-        if not api_call.create_data_issue(import_id=import_id, obj_name=obj, severity=1, 
+        if not api_call.create_data_issue(importId=import_id, obj_name=obj, severity=1, 
                                     rule_uid=rule_uid, mgm_id=mgm_id, object_type=object_type):
             logger.warning("resolve_raw_objects: encountered error while trying to log an import data issue using create_data_issue")
 
@@ -77,7 +75,7 @@ def set_alerts_for_missing_objects(objects_not_found, jwt, import_id, rule_uid, 
                     description=desc, source='import', alertCode=16)
 
 
-def lookup_obj_in_tables(el, object_tables, name_key, uid_key, ref_list):
+def lookup_obj_in_tables(el: str, object_tables: list[list[dict[str, Any]]], name_key: str, uid_key: str, ref_list: list[str]) -> bool:
     logger = getFwoLogger()
     break_flag = False 
     found = False

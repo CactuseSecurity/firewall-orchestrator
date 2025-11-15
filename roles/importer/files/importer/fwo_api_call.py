@@ -205,7 +205,7 @@ class FwoApiCall(FwoApi):
         return self.call(error_query, query_variables=query_variables)['data']['import_control']
 
 
-    def create_data_issue(self, importId: str | int | None = None, obj_name: str | None = None, mgm_id: int | None = None, dev_id: int | None = None, severity: int = 1,
+    def create_data_issue(self, importId: int | None = None, obj_name: str | None = None, mgm_id: int | None = None, dev_id: int | None = None, severity: int = 1,
             rule_uid: str | None = None, object_type: str | None = None, description: str | None = None, source: str = 'import') -> bool:
         logger = getFwoLogger()
         if obj_name=='all' or obj_name=='Original': 

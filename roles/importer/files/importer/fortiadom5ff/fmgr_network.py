@@ -7,8 +7,8 @@ from fmgr_zone import find_zones_in_normalized_config
 from fwo_exceptions import FwoImporterErrorInconsistencies
 
 
-def normalize_network_objects(native_config: dict[str, Any], normalized_config_adom: dict[str, Any], normalized_config_global: dict[str, Any], nw_obj_types):
-    nw_objects = []
+def normalize_network_objects(native_config: dict[str, Any], normalized_config_adom: dict[str, Any], normalized_config_global: dict[str, Any], nw_obj_types: list[str]) -> None:
+    nw_objects: list[dict[str, Any]] = []
     
     if 'objects' not in native_config:
         return # no objects to normalize
@@ -28,8 +28,8 @@ def normalize_network_objects(native_config: dict[str, Any], normalized_config_a
 
     normalized_config_adom.update({'network_objects': nw_objects})
 
-def get_obj_member_refs_list(obj_orig, native_config_objects, current_obj_type):
-    obj_member_refs_list = []
+def get_obj_member_refs_list(obj_orig: dict[str, Any], native_config_objects: dict[str, Any], current_obj_type: str) -> list[str]:
+    obj_member_refs_list: list[str] = []
     for member_name in obj_orig['member']:
         for obj_type in native_config_objects:
             if exclude_object_types_in_member_ref_search(obj_type, current_obj_type):
@@ -42,7 +42,7 @@ def get_obj_member_refs_list(obj_orig, native_config_objects, current_obj_type):
             f"Member inconsistent for object {obj_orig['name']}, found members={str(obj_orig['member'])} and member_refs={str(obj_member_refs_list)}")
     return obj_member_refs_list
 
-def exclude_object_types_in_member_ref_search(obj_type, current_obj_type):
+def exclude_object_types_in_member_ref_search(obj_type: str, current_obj_type: str) -> bool:
     #TODO expand for all kinds of missmatches in group and member
     skip_member_ref_loop = False
     if current_obj_type.endswith('firewall/addrgrp'):
@@ -50,8 +50,8 @@ def exclude_object_types_in_member_ref_search(obj_type, current_obj_type):
             skip_member_ref_loop = True
     return skip_member_ref_loop
 
-def normalize_network_object(obj_orig, nw_objects, normalized_config_adom, normalized_config_global, native_config_objects, current_obj_type):
-    obj = {}
+def normalize_network_object(obj_orig: dict[str, Any], nw_objects: list[dict[str, Any]], normalized_config_adom: dict[str, Any], normalized_config_global: dict[str, Any], native_config_objects: dict[str, Any], current_obj_type: str) -> None:
+    obj: dict[str, Any] = {}
     obj.update({'obj_name': obj_orig['name']})
     if 'subnet' in obj_orig: # ipv4 object
         _parse_subnet(obj, obj_orig)
@@ -101,7 +101,7 @@ def normalize_network_object(obj_orig, nw_objects, normalized_config_adom, norma
     
     nw_objects.append(obj)
 
-def _parse_subnet (obj, obj_orig):
+def _parse_subnet (obj: dict[str, Any], obj_orig: dict[str, Any]) -> None:
     ipa = ipaddress.ip_network(str(obj_orig['subnet'][0]) + '/' + str(obj_orig['subnet'][1]))
     if ipa.num_addresses > 1:
         obj.update({ 'obj_typ': 'network' })
@@ -111,7 +111,7 @@ def _parse_subnet (obj, obj_orig):
     obj.update({ 'obj_ip_end': str(ipa.broadcast_address) })
 
 
-def normalize_network_object_ipv6(obj_orig, obj):
+def normalize_network_object_ipv6(obj_orig: dict[str, Any], obj: dict[str, Any]) -> None:
     ipa = ipaddress.ip_network(obj_orig['ip6'])
     if ipa.num_addresses > 1:
         obj.update({ 'obj_typ': 'network' })
@@ -121,7 +121,7 @@ def normalize_network_object_ipv6(obj_orig, obj):
     obj.update({ 'obj_ip_end': str(ipa.broadcast_address) })
 
 
-def normalize_vip_object(obj_orig, obj, nw_objects):
+def normalize_vip_object(obj_orig: dict[str, Any], obj: dict[str, Any], nw_objects: list[dict[str, Any]]) -> None:
     obj_zone = 'global'
     obj.update({ 'obj_typ': 'host' })
     if 'extip' not in obj_orig or len(obj_orig['extip'])==0:
@@ -130,7 +130,7 @@ def normalize_vip_object(obj_orig, obj, nw_objects):
         if len(obj_orig['extip'])>1:
             logger.warning("vip (extip): found more than one extip, just using the first one for " + obj_orig['name'])
         set_ip_in_obj(obj, obj_orig['extip'][0])   # resolving nat range if there is one
-        nat_obj = {}
+        nat_obj: dict[str, Any] = {}
         nat_obj.update({'obj_typ': 'host' })
         nat_obj.update({'obj_color': 'black'})
         nat_obj.update({'obj_comment': 'FWO-auto-generated nat object for VIP'})
@@ -150,7 +150,7 @@ def normalize_vip_object(obj_orig, obj, nw_objects):
             nw_objects.append(nat_obj)
 
 
-def normalize_vip_object_nat_ip(obj_orig, obj, nat_obj):
+def normalize_vip_object_nat_ip(obj_orig: dict[str, Any], obj: dict[str, Any], nat_obj: dict[str, Any]) -> None:
     # now dealing with the nat ip obj (mappedip)
     if 'mappedip' not in obj_orig or len(obj_orig['mappedip'])==0:
         logger.warning("vip (extip): found empty mappedip field for " + obj_orig['name'])
@@ -171,7 +171,7 @@ def normalize_vip_object_nat_ip(obj_orig, obj, nat_obj):
     ###### range handling
 
 
-def set_ip_in_obj(nw_obj, ip): # add start and end ip in nw_obj if it is a range, otherwise do nothing
+def set_ip_in_obj(nw_obj: dict[str, Any], ip: str) -> None: # add start and end ip in nw_obj if it is a range, otherwise do nothing
     if '-' in ip: # dealing with range
         ip_start, ip_end = ip.split('-')
         nw_obj.update({'obj_ip': str(ip_start) })
@@ -182,7 +182,7 @@ def set_ip_in_obj(nw_obj, ip): # add start and end ip in nw_obj if it is a range
 
 
 # for members of groups, the name of the member obj needs to be fetched separately (starting from API v1.?)
-def resolve_nw_uid_to_name(uid, nw_objects):
+def resolve_nw_uid_to_name(uid: str, nw_objects: list[dict[str, Any]]) -> str:
     # return name of nw_objects element where obj_uid = uid
     for obj in nw_objects:
         if obj['obj_uid'] == uid:
@@ -190,7 +190,7 @@ def resolve_nw_uid_to_name(uid, nw_objects):
     return 'ERROR: uid "' + uid + '" not found'
 
 
-def add_member_names_for_nw_group(idx, nw_objects):
+def add_member_names_for_nw_group(idx: int, nw_objects: list[dict[str, Any]]) -> None:
     group = nw_objects.pop(idx)
     if group['obj_member_refs'] == '' or group['obj_member_refs'] == None:
         #member_names = None
@@ -207,7 +207,7 @@ def add_member_names_for_nw_group(idx, nw_objects):
     nw_objects.insert(idx, group)
 
 
-def create_network_object(name, type, ip, ip_end, uid, color, comment, zone):
+def create_network_object(name: str, type: str, ip: str, ip_end: str | None, uid: str, color: str, comment: str | None, zone: str | None) -> dict[str, Any]:
     # if zone is None or zone == '':
     #     zone = 'global'
     return {
@@ -222,7 +222,7 @@ def create_network_object(name, type, ip, ip_end, uid, color, comment, zone):
     }
 
 
-def get_nw_obj(nat_obj_name, nwobjects):
+def get_nw_obj(nat_obj_name: str, nwobjects: list[dict[str, Any]]) -> dict[str, Any] | None:
     for obj in nwobjects:
         if 'obj_name' in obj and obj['obj_name']==nat_obj_name:
             return obj
@@ -231,13 +231,13 @@ def get_nw_obj(nat_obj_name, nwobjects):
 
 # this removes all obj_nat_ip entries from all network objects
 # these were used during import but might cause issues if imported into db
-def remove_nat_ip_entries(config2import):
+def remove_nat_ip_entries(config2import: dict[str, Any]) -> None:
     for obj in config2import['network_objects']:
         if 'obj_nat_ip' in obj:
             obj.pop('obj_nat_ip')
 
 
-def get_first_ip_of_destination(obj_ref, config2import):
+def get_first_ip_of_destination(obj_ref: str, config2import: dict[str, Any]) -> str | None:
     logger = getFwoLogger()
     if list_delimiter in obj_ref:
         obj_ref = obj_ref.split(list_delimiter)[0]

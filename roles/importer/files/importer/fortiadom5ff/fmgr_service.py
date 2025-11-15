@@ -1,11 +1,9 @@
 import re
 from fwo_const import list_delimiter
-from model_controllers.import_state_controller import ImportStateController
-from fwo_log import getFwoLogger
 from typing import Any
 
-def normalize_service_objects(native_config, normalized_config_adom, svc_obj_types):
-    svc_objects = []
+def normalize_service_objects(native_config: dict[str, Any], normalized_config_adom: dict[str, Any], svc_obj_types: list[str]) -> None:
+    svc_objects: list[dict[str, Any]] = []
     
     if 'objects' not in native_config:
         return # no objects to normalize
@@ -23,7 +21,7 @@ def normalize_service_objects(native_config, normalized_config_adom, svc_obj_typ
 
     normalized_config_adom.update({'service_objects': svc_objects})
 
-def normalize_service_object(obj_orig, svc_objects):
+def normalize_service_object(obj_orig: dict[str, Any], svc_objects: list[dict[str, Any]]) -> None:
     member_names = ''
     if 'member' in obj_orig:
         svc_type = 'group'
@@ -36,6 +34,9 @@ def normalize_service_object(obj_orig, svc_objects):
     name = None
     if 'name' in obj_orig:
         name = str(obj_orig['name'])
+
+    if name is None:
+        raise ValueError("Service object without name encountered")
 
     color = 'foreground' #TODO: color mapping. what is color: 0? (nativeconfig entwickler_fortimanager_stand_2025-07-27, service object 'gALL')
     
@@ -50,7 +51,7 @@ def normalize_service_object(obj_orig, svc_objects):
             add_object(svc_objects, svc_type, name, color, 0, None, None, session_timeout)
 
 
-def handle_svc_protocol(obj_orig, svc_objects, svc_type, name, color, session_timeout):
+def handle_svc_protocol(obj_orig: dict[str, Any], svc_objects: list[dict[str, Any]], svc_type: str, name: str, color: str, session_timeout: Any) -> None:
     proto = 0
     range_names = ''
     added_svc_obj = 0
@@ -74,7 +75,7 @@ def handle_svc_protocol(obj_orig, svc_objects, svc_type, name, color, session_ti
             pass # not doing anything for other protocols, e.g. GRE, ESP, ...
 
 
-def parse_standard_protocols_with_ports(obj_orig, svc_objects, svc_type, name, color, session_timeout, range_names, added_svc_obj):
+def parse_standard_protocols_with_ports(obj_orig: dict[str, Any], svc_objects: list[dict[str, Any]], svc_type: str, name: str, color: str, session_timeout: Any, range_names: str, added_svc_obj: int) -> None:
     split = check_split(obj_orig)
     if "tcp-portrange" in obj_orig and len(obj_orig['tcp-portrange']) > 0:
         tcpname = name
@@ -106,7 +107,7 @@ def parse_standard_protocols_with_ports(obj_orig, svc_objects, svc_type, name, c
         added_svc_obj += 1
 
 
-def check_split(obj_orig) -> bool:
+def check_split(obj_orig: dict[str, Any]) -> bool:
     count = 0
     if "tcp-portrange" in obj_orig and len(obj_orig['tcp-portrange']) > 0:
         count += 1
@@ -117,9 +118,9 @@ def check_split(obj_orig) -> bool:
     return (count > 1)
 
 
-def extract_ports(port_ranges) -> 'tuple[list[Any], list[Any]]':
-    ports = []
-    port_ends = []
+def extract_ports(port_ranges: list[str] | None) -> 'tuple[list[Any], list[Any]]':
+    ports: list[Any] = []
+    port_ends: list[Any] = []
     if port_ranges is not None and len(port_ranges) > 0:
         for port_range in port_ranges:
             # remove src-ports
@@ -148,7 +149,7 @@ def extract_ports(port_ranges) -> 'tuple[list[Any], list[Any]]':
     return ports, port_ends
 
 
-def create_svc_object(name, proto, color, port, comment) -> 'dict[str, Any]':
+def create_svc_object(name: str, proto: int, color: str, port: Any, comment: str) -> 'dict[str, Any]':
     return {
         'svc_name': name,
         'svc_typ': 'simple',
@@ -160,10 +161,10 @@ def create_svc_object(name, proto, color, port, comment) -> 'dict[str, Any]':
     }
 
 
-def add_object(svc_objects, type, name, color, proto, port_ranges, member_names, session_timeout):
+def add_object(svc_objects: list[dict[str, Any]], type: str, name: str, color: str, proto: int, port_ranges: list[str] | None, member_names: str | None, session_timeout: Any) -> None:
     if port_ranges is None:
         svc_objects.extend([{'svc_typ': type,
-                            'svc_name': name, 
+                            'svc_name': name,
                             'svc_color': color,
                             'svc_uid': name,  # ?
                             'svc_comment': None, # ?

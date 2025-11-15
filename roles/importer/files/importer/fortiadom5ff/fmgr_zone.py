@@ -3,7 +3,7 @@ from fwo_exceptions import FwoNormalizedConfigParseError
 from typing import Any
 
 
-def get_zones(sid, fm_api_url, native_config, adom_name, limit):
+def get_zones(sid: str, fm_api_url: str, native_config: dict[str, Any], adom_name: str, limit: int):
     
     if adom_name == '':
         fmgr_getter.update_config_with_fortinet_api_call(
@@ -13,8 +13,8 @@ def get_zones(sid, fm_api_url, native_config, adom_name, limit):
             native_config['zones'], sid, fm_api_url, '/pm/config/adom/' + adom_name + '/obj/dynamic/interface', 'interface_' + adom_name, limit=limit)
 
 
-def normalize_zones(native_config, normalized_config_adom, is_global_loop_iteration):
-    zones: list[dict] = []
+def normalize_zones(native_config: dict[str, Any], normalized_config_adom: dict[str, Any], is_global_loop_iteration: bool):
+    zones: list[dict[str, Any]] = []
     fetched_zones: list[str] = []
     if is_global_loop_iteration: # can not find the following zones in api return
         statically_add_missing_global_zones(fetched_zones)
@@ -39,7 +39,7 @@ def statically_add_missing_global_zones(fetched_zones: list[str]) -> None:
     # double check, if these zones cannot be parsed from api results
 
 
-def fetch_dynamic_mapping(mapping, fetched_zones):
+def fetch_dynamic_mapping(mapping: dict[str, Any], fetched_zones: list[str]) -> None:
     for dyn_mapping in mapping['dynamic_mapping']:
         if 'name' in dyn_mapping and not dyn_mapping['name'] in fetched_zones:
             fetched_zones.append(dyn_mapping['name'])
@@ -48,14 +48,14 @@ def fetch_dynamic_mapping(mapping, fetched_zones):
                 if local_interface not in fetched_zones:
                     fetched_zones.append(local_interface)
 
-def fetch_platform_mapping(mapping, fetched_zones):
+def fetch_platform_mapping(mapping: dict[str, Any], fetched_zones: list[str]) -> None:
     for dyn_mapping in mapping['platform_mapping']:
         if 'intf-zone' in dyn_mapping and not dyn_mapping['intf-zone'] in fetched_zones:
             fetched_zones.append(dyn_mapping['intf-zone'])
 
-def find_zones_in_normalized_config(native_zone_list : list, normalized_config_adom, normalized_config_global):
+def find_zones_in_normalized_config(native_zone_list: list[str], normalized_config_adom: dict[str, Any], normalized_config_global: dict[str, Any]) -> list[str]:
     """Verifies that input zones exist in normalized config"""
-    zone_out_list = []
+    zone_out_list: list[str] = []
     for nativ_zone in native_zone_list:
         was_zone_found = False
         for normalized_zone in normalized_config_adom['zone_objects'] + normalized_config_global['zone_objects']:

@@ -77,7 +77,7 @@ for line in data:
         else:
             data[replace_counter] = line.rstrip() + ' "{}"\n'.format(ip_address)
         break
-    if fnmatch.filter([line], '    next\n'.format(uid)):
+    if fnmatch.filter([line], '    next\n'):
         uid_flag = False
     if fnmatch.filter([line], 'end\n'):
         rule_area_flag = False
@@ -98,9 +98,7 @@ with open(config_path + ".tmp", "w") as fout:
             if line == '# end recognition comment for auto-delete function\n':
                 delete_flag = False
                 last_comment_line_flag = True
-            if object_count < 2:
-                fout.write(line)
-            elif not (delete_flag or last_comment_line_flag):
+            if object_count < 2 or not (delete_flag or last_comment_line_flag):
                 fout.write(line)
     else:
         for line in data:

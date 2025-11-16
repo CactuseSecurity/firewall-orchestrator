@@ -10,7 +10,7 @@ namespace FWO.Recert
     {
         public static async Task<bool> RecalcRecerts(ApiConnection apiConnection)
         {
-            Stopwatch watch = new ();
+            Stopwatch watch = new();
 
             try
             {
@@ -42,13 +42,13 @@ namespace FWO.Recert
 
         private static async Task RecalcRecertsOfOwner(FwoOwner owner, List<Management> managements, ApiConnection apiConnection)
         {
-            Stopwatch watch = new ();
+            Stopwatch watch = new();
             watch.Start();
-            
+
             foreach (Management mgm in managements)
             {
                 List<RecertificationBase> currentRecerts =
-                    await apiConnection.SendQueryAsync<List<RecertificationBase>>(RecertQueries.getOpenRecerts, new { ownerId = owner.Id, mgmId = mgm.Id });
+                    await apiConnection.SendQueryAsync<List<RecertificationBase>>(RecertQueries.getOpenRecertsForOwners, new { ownerId = owner.Id, mgmId = mgm.Id });
 
                 if (currentRecerts.Count > 0)
                 {

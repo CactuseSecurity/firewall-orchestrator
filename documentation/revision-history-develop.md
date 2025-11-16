@@ -301,3 +301,6 @@ bugfix release:
 # 8.9.2 - 17.10.2025 DEVELOP
 - add ownerLifeCycleState 
 - add manageable ownerLifeCycleState menu
+
+# 8.9.3 - 05.11.2025 DEVELOP
+- hotfix missing permissions for app data import in certain constellations

@@ -69,7 +69,14 @@
             {
                 <ReportTenantSelection SelectedTenant="actReportFilters.SelectedTenant" SelectedTenantChanged="TenantViewChanged" TenantFilteringAllowed="tenantFilteringAllowed" />
             }
-            <DeviceSelection @bind-DeviceFilter="actReportFilters.DeviceFilter" @bind-CollapseAll="actReportFilters.CollapseDevices" @bind-SelectAll="actReportFilters.SelectAll" />
+            @if(actReportFilters.ReportType == ReportType.Recertification)
+            {
+                <ManagementSelection @bind-DeviceFilter="actReportFilters.DeviceFilter" />
+            }
+            else
+            {
+                <DeviceSelection @bind-DeviceFilter="actReportFilters.DeviceFilter" @bind-CollapseAll="actReportFilters.CollapseDevices" @bind-SelectAll="actReportFilters.SelectAll" />
+            }
         }
     </Sidebar>
 

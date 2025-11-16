@@ -60,13 +60,13 @@
                 }
                 else if (selectedOwner != null)
                 {
-                    <input type="text" class="form-control form-control-sm" readonly @bind="selectedOwner.Name" />
+                    <input type="text" class="form-control form-control-sm" readonly value="selectedOwner.Name" />
                 }
             </NotAuthorized>
         </AuthorizeView>
     </div>
 
-    <ManagementSelection Environment="GlobalConst.kCertification" @bind-DeviceFilter="deviceFilter" />
+    <ManagementSelection @bind-DeviceFilter="deviceFilter" />
 </Sidebar>
 
 @* ==== MAIN MIDDLE SECTION ==== *@
@@ -263,17 +263,17 @@
 
     private ReportParams prepareReportParams()
     {
-        List<int> ownerList = [];
+        List<int> selectedOwnerIdList = [];
         if (selectedOwner != null)
         {
-            ownerList.Add(selectedOwner.Id);
+            selectedOwnerIdList.Add(selectedOwner.Id);
         }
 
         return new ((int) ReportType.Recertification, deviceFilter)
         {
             RecertFilter = new()
             {
-                RecertOwnerList = ownerList,
+                RecertOwnerList = selectedOwnerIdList,
                 RecertShowAnyMatch = true,
                 RecertificationDisplayPeriod = recertLookAheadDays
             }

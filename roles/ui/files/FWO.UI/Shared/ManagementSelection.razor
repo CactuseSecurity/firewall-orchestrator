@@ -54,9 +54,6 @@
     public EventCallback<bool> CollapseAllChanged { get; set; }
 
     [Parameter]
-    public string Environment { get; set; } = "";
-
-    [Parameter]
     public bool ShowTitle { get; set; } = true;
 
 
@@ -70,10 +67,6 @@
         selectAllText = userConfig.GetText("select_all");
         clearAllText = userConfig.GetText("clear_all");
         DeviceFilter.Managements?.Sort((a, b) => a.Name?.CompareTo(b.Name) ?? -1);
-        if (Environment == GlobalConst.kCertification)
-        {
-            cssClass += "-35";
-        }
     }
 
     private async Task SetSelectAll()

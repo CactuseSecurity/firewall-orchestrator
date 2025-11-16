@@ -91,13 +91,16 @@
         }
     }
 
-    private void SelectedOwnerChanged(FwoOwner newOwner)
+    private void SelectedOwnerChanged(FwoOwner? newOwner)
     {
         selectedOwner = newOwner;
-        RecertFilter.RecertOwnerList = new();
-        if(newOwner != null)
+        if(newOwner == null)
         {
-            RecertFilter.RecertOwnerList.Add(newOwner.Id);
+            RecertFilter.RecertOwnerList = [.. ownerList.Select(o => o.Id)];
+        }
+        else
+        {
+            RecertFilter.RecertOwnerList = [newOwner.Id];
         }
     }
 }

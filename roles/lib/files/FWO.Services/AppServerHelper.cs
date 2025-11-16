@@ -13,14 +13,14 @@ namespace FWO.Services
     public static class AppServerHelper
     {
         public static async Task<string> ConstructAppServerNameFromDns(ModellingAppServer appServer, ModellingNamingConvention namingConvention,
-            bool overwriteExistingNames=false, bool logUnresolvable=false)
+            bool overwriteExistingNames = false, bool logUnresolvable = false)
         {
             if ((string.IsNullOrEmpty(appServer.IpEnd) || appServer.IpEnd == appServer.Ip) && IPAddress.TryParse(appServer.Ip.StripOffNetmask(), out IPAddress? ip))
             {
-                string dnsName = await IpOperations.DnsReverseLookUp(ip);
-                if(string.IsNullOrEmpty(dnsName))
+                string dnsName = await IpOperations.DnsReverseLookUpPreferredAsync(ip);
+                if (string.IsNullOrEmpty(dnsName))
                 {
-                    if(logUnresolvable)
+                    if (logUnresolvable)
                     {
                         Log.WriteWarning("Import App Server Data", $"Found empty (unresolvable) IP {appServer.Ip}");
                     }
@@ -38,13 +38,13 @@ namespace FWO.Services
             return appServer.Name;
         }
 
-        public static string ConstructSanitizedAppServerName(ModellingAppServer appServer, ModellingNamingConvention namingConvention, bool overwriteExistingNames=false)
+        public static string ConstructSanitizedAppServerName(ModellingAppServer appServer, ModellingNamingConvention namingConvention, bool overwriteExistingNames = false)
         {
             bool shortened = false;
             return ConstructAppServerName(appServer, namingConvention, overwriteExistingNames).SanitizeJsonFieldMand(ref shortened);
         }
 
-        public static string ConstructAppServerName(ModellingAppServer appServer, ModellingNamingConvention namingConvention, bool overwriteExistingNames=false)
+        public static string ConstructAppServerName(ModellingAppServer appServer, ModellingNamingConvention namingConvention, bool overwriteExistingNames = false)
         {
             if (string.IsNullOrEmpty(appServer.Name) || overwriteExistingNames)
             {
@@ -60,10 +60,10 @@ namespace FWO.Services
             List<ModellingAppServer> AppServers = await apiConnection.SendQueryAsync<List<ModellingAppServer>>(ModellingQueries.getAllAppServers);
             int correctedCounter = 0;
             int failCounter = 0;
-            foreach(var appServer in AppServers)
+            foreach (var appServer in AppServers)
             {
                 string oldName = appServer.Name;
-                if((await ConstructAppServerNameFromDns(appServer, namingConvention, userConfig.OverwriteExistingNames)) != oldName)
+                if ((await ConstructAppServerNameFromDns(appServer, namingConvention, userConfig.OverwriteExistingNames)) != oldName)
                 {
                     appServer.ImportSource = GlobalConst.kAdjustAppServerNames;
                     if (await UpdateName(apiConnection, userConfig, appServer, oldName))
@@ -86,7 +86,7 @@ namespace FWO.Services
                 List<ModellingAppServer> ExistingAppServersSameIp = await GetExistingSameIp(apiConnection, incomingAppServer);
                 return ExistingAppServersSameIp.FirstOrDefault(x => Prio(x.ImportSource) > Prio(incomingAppServer.ImportSource) && !x.IsDeleted) == null;
             }
-            catch(Exception exception)
+            catch (Exception exception)
             {
                 Log.WriteError("Check App Server Prio", $" Check of {incomingAppServer.Name} from {incomingAppServer.ImportSource} to exception:", exception);
             }
@@ -98,7 +98,7 @@ namespace FWO.Services
             try
             {
                 List<ModellingAppServer> ExistingOtherAppServersSameIp = [.. (await GetExistingSameIp(apiConnection, deletedAppServer)).Where(x => x.Id != deletedAppServer.Id)];
-                if(ExistingOtherAppServersSameIp != null && ExistingOtherAppServersSameIp.Count > 0)
+                if (ExistingOtherAppServersSameIp != null && ExistingOtherAppServersSameIp.Count > 0)
                 {
                     int maxPrio = ExistingOtherAppServersSameIp.Max(x => Prio(x.ImportSource));
                     List<ModellingAppServer> ExistingOtherAppServersMaxPrio = [.. ExistingOtherAppServersSameIp.Where(x => Prio(x.ImportSource) == maxPrio)];
@@ -112,13 +112,13 @@ namespace FWO.Services
                     await apiConnection.SendQueryAsync<ReturnIdWrapper>(ModellingQueries.setAppServerDeletedState, Variables);
                     await ModellingHandlerBase.LogChange(ModellingTypes.ChangeType.Reactivate, ModellingTypes.ModObjectType.AppServer, reactivatedAppServer.Id,
                         $"Reactivated App Server: {reactivatedAppServer.Display()}", apiConnection, userConfig, reactivatedAppServer.AppId, DefaultInit.DoNothing, null, reactivatedAppServer.ImportSource);
-                    if(userConfig.AutoReplaceAppServer)
+                    if (userConfig.AutoReplaceAppServer)
                     {
                         await ReplaceAppServer(apiConnection, deletedAppServer.Id, reactivatedId);
                     }
                 }
             }
-            catch(Exception exception)
+            catch (Exception exception)
             {
                 Log.WriteError("Reactivate App Server", $"Reactivation of other than {deletedAppServer.Name} from {deletedAppServer.ImportSource} leads to exception:", exception);
             }
@@ -129,25 +129,25 @@ namespace FWO.Services
             try
             {
                 List<ModellingAppServer> ExistingActiveAppServersSameIp = [.. (await GetExistingSameIp(apiConnection, incomingAppServer)).Where(x => x.Id != incomingAppServer.Id && !x.IsDeleted)];
-                if(ExistingActiveAppServersSameIp != null && ExistingActiveAppServersSameIp.Count > 0)
+                if (ExistingActiveAppServersSameIp != null && ExistingActiveAppServersSameIp.Count > 0)
                 {
-                    foreach(var activeAppServer in ExistingActiveAppServersSameIp)
+                    foreach (var activeAppServer in ExistingActiveAppServersSameIp)
                     {
                         await DeactivateAppServer(apiConnection, userConfig, activeAppServer, incomingAppServer);
                     }
                 }
             }
-            catch(Exception exception)
+            catch (Exception exception)
             {
                 Log.WriteError("Deactivate App Servers", $"Deactivation of {incomingAppServer.Name} from {incomingAppServer.ImportSource} leads to exception:", exception);
             }
         }
 
-        public static async Task<(long?, string?)> UpsertAppServer(ApiConnection apiConnection, UserConfig userConfig, ModellingAppServer incomingAppServer, bool nameCheck, bool manual=false, bool addMode=false)
+        public static async Task<(long?, string?)> UpsertAppServer(ApiConnection apiConnection, UserConfig userConfig, ModellingAppServer incomingAppServer, bool nameCheck, bool manual = false, bool addMode = false)
         {
             try
             {
-                if(nameCheck && await CheckNameExisting(apiConnection, incomingAppServer))
+                if (nameCheck && await CheckNameExisting(apiConnection, incomingAppServer))
                 {
                     return (null, incomingAppServer.Name);
                 }
@@ -155,7 +155,7 @@ namespace FWO.Services
                 List<ModellingAppServer> ExistingAppServersSameIp = await GetExistingSameIp(apiConnection, incomingAppServer);
 
                 long? AppServerId = null;
-                if(ExistingAppServersSameIp == null || ExistingAppServersSameIp.Count == 0)
+                if (ExistingAppServersSameIp == null || ExistingAppServersSameIp.Count == 0)
                 {
                     AppServerId = manual && !addMode ? await UpdateAppServerInDb(apiConnection, userConfig, incomingAppServer) :
                         await AddAppServerToDb(apiConnection, userConfig, incomingAppServer);
@@ -171,7 +171,7 @@ namespace FWO.Services
                 if (manual)
                 {
                     ModellingAppServer? otherAppServerSameIp = ExistingAppServersSameIp.FirstOrDefault(x => x.Id != incomingAppServer.Id && !x.IsDeleted);
-                    if(otherAppServerSameIp != null)
+                    if (otherAppServerSameIp != null)
                     {
                         return (null, otherAppServerSameIp.Name);
                     }
@@ -179,7 +179,7 @@ namespace FWO.Services
 
                 return await OverwriteAppServer(apiConnection, userConfig, incomingAppServer, ExistingAppServersSameIp);
             }
-            catch(Exception exception)
+            catch (Exception exception)
             {
                 Log.WriteError("Upsert App Server", $"Upsert of {incomingAppServer.Name} leads to exception:", exception);
                 return (null, null);
@@ -198,7 +198,7 @@ namespace FWO.Services
                 };
                 return await apiConnection.SendQueryAsync<List<ModellingAppServer>>(ModellingQueries.getAppServersByIp, Variables);
             }
-            catch(Exception exception)
+            catch (Exception exception)
             {
                 Log.WriteError("Get Existing App Server", $"leads to exception:", exception);
                 return [];
@@ -222,9 +222,9 @@ namespace FWO.Services
                 AppServerId = await AddAppServerToDb(apiConnection, userConfig, incomingAppServer);
             }
 
-            foreach(var existAppServerOtherSource in existingAppServersSameIp.Where(x => x.ImportSource != incomingAppServer.ImportSource))
+            foreach (var existAppServerOtherSource in existingAppServersSameIp.Where(x => x.ImportSource != incomingAppServer.ImportSource))
             {
-                if(!existAppServerOtherSource.IsDeleted)
+                if (!existAppServerOtherSource.IsDeleted)
                 {
                     await DeactivateAppServer(apiConnection, userConfig, existAppServerOtherSource, incomingAppServer);
                 }
@@ -239,12 +239,12 @@ namespace FWO.Services
                 await apiConnection.SendQueryAsync<ReturnIdWrapper>(ModellingQueries.setAppServerDeletedState, new { id = appServerToDeactivate.Id, deleted = true });
                 await ModellingHandlerBase.LogChange(ModellingTypes.ChangeType.MarkDeleted, ModellingTypes.ModObjectType.AppServer, appServerToDeactivate.Id,
                     $"Deactivated App Server: {appServerToDeactivate.Display()}", apiConnection, userConfig, appServerToDeactivate.AppId, DefaultInit.DoNothing, null, appServerToDeactivate.ImportSource);
-                if(userConfig.AutoReplaceAppServer)
+                if (userConfig.AutoReplaceAppServer)
                 {
                     await ReplaceAppServer(apiConnection, appServerToDeactivate.Id, newAppServer.Id);
                 }
             }
-            catch(Exception exception)
+            catch (Exception exception)
             {
                 Log.WriteError("Deactivate App Server", $"leads to exception:", exception);
             }
@@ -257,7 +257,7 @@ namespace FWO.Services
                 await apiConnection.SendQueryAsync<ReturnIdWrapper>(ModellingQueries.updateNwObjectInNwGroup, new { oldObjectId = oldAppServerId, newObjectId = newAppServerId });
                 await apiConnection.SendQueryAsync<ReturnIdWrapper>(ModellingQueries.updateNwObjectInConnection, new { oldObjectId = oldAppServerId, newObjectId = newAppServerId });
             }
-            catch(Exception exception)
+            catch (Exception exception)
             {
                 Log.WriteError("Replace App Server", $"Replacing {oldAppServerId} by {newAppServerId} leads to exception:", exception);
             }
@@ -275,12 +275,12 @@ namespace FWO.Services
                 List<ModellingAppServer> ExistingAppServersSameIp = await apiConnection.SendQueryAsync<List<ModellingAppServer>>(ModellingQueries.getAppServersByName, Variables);
                 return ExistingAppServersSameIp != null && ExistingAppServersSameIp.Count > 0 && ExistingAppServersSameIp.FirstOrDefault(x => x.Id == incomingAppServer.Id && !x.IsDeleted) == null;
             }
-            catch(Exception exception)
+            catch (Exception exception)
             {
                 Log.WriteError("Upsert App Server", $"leads to exception:", exception);
                 return false;
             }
-        } 
+        }
 
         private static string GetPrefix(ModellingAppServer appServer, ModellingNamingConvention namingConvention)
         {
@@ -292,7 +292,7 @@ namespace FWO.Services
                 _ => ""
             };
         }
-        
+
         private static async Task<bool> UpdateName(ApiConnection apiConnection, UserConfig userConfig, ModellingAppServer appServer, string oldName)
         {
             try
@@ -308,7 +308,7 @@ namespace FWO.Services
                 Log.WriteDebug($"Correct App Server Name", $"Changed {oldName} to {appServer.Name}.");
                 return true;
             }
-            catch(Exception exception)
+            catch (Exception exception)
             {
                 Log.WriteError("Correct AppServer Name", $"Leads to exception:", exception);
                 return false;
@@ -334,7 +334,7 @@ namespace FWO.Services
                     customType = appServer.CustomType
                 };
                 ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<ReturnIdWrapper>(ModellingQueries.newAppServer, Variables)).ReturnIds;
-                if(returnIds != null && returnIds.Length > 0)
+                if (returnIds != null && returnIds.Length > 0)
                 {
                     appServer.Id = returnIds[0].NewIdLong;
                     await ModellingHandlerBase.LogChange(ModellingTypes.ChangeType.Insert, ModellingTypes.ModObjectType.AppServer, appServer.Id,

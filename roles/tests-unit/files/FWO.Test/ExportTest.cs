@@ -409,7 +409,7 @@ namespace FWO.Test
             ReportRules reportRules = ConstructReportRules(false, query, userConfig, ReportType.Rules);
             int id = reportRules.ReportData.ManagementData.First().Rulebases.First().Id;
 
-            string expectedJsonResult = "[{\"id\": 0,\"uid\": null,\"name\": \"TestMgt\"," +
+            string expectedJsonResult = "[{\"id\": 0,\"uid\": \"\",\"name\": \"TestMgt\"," +
                                         "\"devices\": [{\"uid\": \"device-1\",\"id\": 1,\"name\": \"Mock Device 1\"," + 
                                         "\"rulebase_links\": [{\"gw_id\": 0,\"from_rule_id\": null,\"rule\": null,\"rulebaseByFromRulebaseId\": null,\"from_rulebase_id\": null,\"rulebase\": null,\"link_type\": 0,\"stm_link_type\": null,\"is_initial\": true,\"is_global\": false,\"is_section\": false}]," + 
                                         "\"changelog_rules\": null,\"rules_aggregate\": {\"aggregate\": {\"count\": 0}}," + 

@@ -30,7 +30,7 @@ namespace FWO.Ui.Auth
 
         public override async Task<AuthenticationState> GetAuthenticationStateAsync()
         {
-            await tokenService.InitializeAsync();
+            //await tokenService.InitializeAsync();
 
             return await Task.FromResult(new AuthenticationState(user));
         }
@@ -52,7 +52,7 @@ namespace FWO.Ui.Auth
 
                 string jwtString = tokenPair.AccessToken ?? throw new ArgumentException("no access token in response");
 
-                await Authenticate(jwtString, apiConnection, middlewareClient, globalConfig, userConfig, circuitHandler, sessionStorage);
+                await Authenticate(jwtString, apiConnection, middlewareClient, globalConfig, userConfig, circuitHandler);
 
 				Log.WriteAudit("AuthenticateUser", $"user {username} successfully authenticated");
 			}
@@ -61,7 +61,7 @@ namespace FWO.Ui.Auth
 		}
 
 		public async Task Authenticate(string jwtString, ApiConnection apiConnection, MiddlewareClient middlewareClient,
-			GlobalConfig globalConfig, UserConfig userConfig, CircuitHandlerService circuitHandler, ProtectedSessionStorage sessionStorage)
+			GlobalConfig globalConfig, UserConfig userConfig, CircuitHandlerService circuitHandler)
 		{
 			// Try to auth with jwt (validates it and creates user context on UI side).
 			JwtReader jwtReader = new(jwtString);
@@ -79,9 +79,6 @@ namespace FWO.Ui.Auth
 				{
 					throw new AuthenticationException("not_authorized");
 				}
-
-				// Save jwt in session storage.
-				await sessionStorage.SetAsync("jwt", jwtString);
 
 				// Tell api connection to use jwt as authentication
 				apiConnection.SetAuthHeader(jwtString);
@@ -107,7 +104,7 @@ namespace FWO.Ui.Auth
 				userConfig.User.Roles = await GetAllowedRoles(userConfig.User.Jwt);
 				userConfig.User.Ownerships = await GetAssignedOwners(userConfig.User.Jwt);
 				circuitHandler.User = userConfig.User;
-                
+
 				if (!userConfig.User.PasswordMustBeChanged)
 				{
 					NotifyAuthenticationStateChanged(Task.FromResult(new AuthenticationState(user)));

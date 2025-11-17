@@ -143,7 +143,7 @@ namespace FWO.Api.Client
         {
             try
             {
-                //await EnsureValidTokenAsync();
+                await EnsureValidTokenAsync();
 
                 Log.WriteDebug("API call", $"Sending API call {operationName} in role {GetActRole()}: {query.Substring(0, Math.Min(query.Length, 70)).Replace(Environment.NewLine, "")}... " +
                     (variables != null ? $"with variables: {JsonSerializer.Serialize(variables).Substring(0, Math.Min(JsonSerializer.Serialize(variables).Length, 50)).Replace(Environment.NewLine, "")}..." : ""));

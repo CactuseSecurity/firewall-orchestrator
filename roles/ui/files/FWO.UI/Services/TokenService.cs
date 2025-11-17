@@ -120,10 +120,13 @@ namespace FWO.Ui.Services
                 return true;
             }
         }
+
         public async Task ClearTokenPair()
         {
             currentTokenPair = null;
             await sessionStorage.DeleteAsync(TOKEN_PAIR_KEY);
         }
+
+
     }
 }

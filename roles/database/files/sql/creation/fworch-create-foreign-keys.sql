@@ -114,6 +114,11 @@ Alter table "rulebase_link" add CONSTRAINT fk_rulebase_link_created_import_contr
 Alter table "rulebase_link" add CONSTRAINT fk_rulebase_link_removed_import_control_control_id 
 	foreign key ("removed") references "import_control" ("control_id") on update restrict on delete cascade;
 
+ALTER TABLE "rule_to_zone"
+ADD CONSTRAINT fk_rule_to_zone_rule_id_rule_rule_id FOREIGN KEY ("rule_id") REFERENCES "rule" ("rule_id");
+ALTER TABLE "rule_to_zone"
+ADD CONSTRAINT fk_rule_to_zone_zone_id_zone_zone_id FOREIGN KEY ("zone_id") REFERENCES "zone" ("zone_id");
+
 Alter table "rule_from" add  foreign key ("obj_id") references "object" ("obj_id") on update restrict on delete cascade;
 Alter table "rule_from" add  foreign key ("rf_create") references "import_control" ("control_id") on update restrict on delete cascade;
 Alter table "rule_from" add  foreign key ("rf_last_seen") references "import_control" ("control_id") on update restrict on delete cascade;
@@ -144,6 +149,11 @@ Alter table "rule_service" add  foreign key ("rs_create") references "import_con
 Alter table "rule_service" add  foreign key ("rs_last_seen") references "import_control" ("control_id") on update restrict on delete cascade;
 Alter table "rule_service" add  foreign key ("rule_id") references "rule" ("rule_id") on update restrict on delete cascade;
 Alter table "rule_service" add  foreign key ("svc_id") references "service" ("svc_id") on update restrict on delete cascade;
+
+ALTER TABLE "rule_from_zone"
+ADD CONSTRAINT fk_rule_from_zone_rule_id_rule_rule_id FOREIGN KEY ("rule_id") REFERENCES "rule" ("rule_id");
+ALTER TABLE "rule_from_zone"
+ADD CONSTRAINT fk_rule_from_zone_zone_id_zone_zone_id FOREIGN KEY ("zone_id") REFERENCES "zone" ("zone_id");
 
 Alter table "rule_svc_resolved" add foreign key ("svc_id") references "service" ("svc_id") on update restrict on delete cascade;
 Alter table "rule_svc_resolved" add foreign key ("rule_id") references "rule" ("rule_id") on update restrict on delete cascade;

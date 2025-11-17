@@ -429,7 +429,7 @@ namespace FWO.Report.Filter
 
             devWhereStatement += "_or: [{";
 
-            foreach (ManagementSelect mgmt in deviceFilter?.Managements ?? [])
+            foreach (ManagementSelect mgmt in deviceFilter.Managements)
             {
                 if (mgmt.Devices == null) continue; 
 

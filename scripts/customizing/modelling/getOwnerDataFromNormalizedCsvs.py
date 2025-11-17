@@ -13,11 +13,11 @@
 sample config file /usr/local/orch/etc/secrets/customizingConfig.json
 
 {
-    "gitRepoUrl": "github.domain.de/CMDB-export",
-    "gitusername": "gituser1",
-    "gitpassword": "xxx",
-    "csvAllOwnerFiles": ["all-apps.csv", "all-infra-services.csv"],
-    "csvAppServerFiles": ["app-servers.csv", "com-servers.csv"],
+    "gitRepo": "github.domain.de/CMDB-export",
+    "gitUser": "gituser1",
+    "gitPassword": "xxx",
+    "csvOwnerFilePattern": "NeMo_..._meta.csv",
+    "csvAppServerFilePattern": "NeMo_..._IP.*?.csv",
     "ldapPath": "CN={USERID},OU=Benutzer,DC=DOMAIN,DC=DE"
 }
 '''
@@ -327,8 +327,8 @@ if __name__ == "__main__":
     gitRepoUrl = read_custom_config(args.config, 'gitRepo')
     gitUsername = read_custom_config(args.config, 'gitUser')
     gitPassword = read_custom_config(args.config, 'gitpassword')
-    csvAllOwnerFiles = read_custom_config(args.config, 'csvAllOwnerFiles')
-    csvAppServerFiles = read_custom_config(args.config, 'csvAppServerFiles')
+    csvOwnerFilePattern = read_custom_config(args.config, 'csvOwnerFilePattern')
+    csvAppServerFilePattern = read_custom_config(args.config, 'csvAppServerFilePattern')
 
 
     if args.import_from_folder:
@@ -341,35 +341,39 @@ if __name__ == "__main__":
     else:
         debug_level = 0
 
-        #############################################
-        # 1. get CSV files from github repo
+    #############################################
+    # 1. get CSV files from github repo
 
-        try:
-            repoUrl = "https://" + gitUsername + ":" + gitPassword + "@" + gitRepoUrl
-            if os.path.exists(repoTargetDir):
-                # If the repository already exists, open it and perform a pull
-                repo = git.Repo(repoTargetDir)
-                origin = repo.remotes.origin
-                origin.pull()
-            else:
-                repo = git.Repo.clone_from(repoUrl, repoTargetDir)
-        except Exception as e:
-            logger.warning("could not clone/pull git repo from " + repoUrl + ", exception: " + str(traceback.format_exc()))
-            logger.warning("trying to read csv files from folder given as parameter...")
-            # sys.exit(1)
+    try:
+        repoUrl = "https://" + gitUsername + ":" + gitPassword + "@" + gitRepoUrl
+        if os.path.exists(repoTargetDir):
+            # If the repository already exists, open it and perform a pull
+            repo = git.Repo(repoTargetDir)
+            origin = repo.remotes.origin
+            origin.pull()
+        else:
+            repo = git.Repo.clone_from(repoUrl, repoTargetDir)
+    except Exception as e:
+        logger.warning("could not clone/pull git repo from " + repoUrl + ", exception: " + str(traceback.format_exc()))
+        logger.warning("trying to read csv files from folder given as parameter...")
+        # sys.exit(1)
 
     #############################################
     # 2. get app data from CSV files
     app_list = []
-    for csvFile in csvAllOwnerFiles:
-        extract_app_data_from_csv(csvFile, app_list, base_dir=base_dir)
+    re_owner_file_pattern = re.compile(csvOwnerFilePattern)
+    for file_name in os.listdir(repoTargetDir):
+        if re_owner_file_pattern.match(file_name):
+            extract_app_data_from_csv(file_name, app_list, base_dir=base_dir)
 
     app_dict = transform_app_list_to_dict(app_list)
 
-    for csvFile in csvAppServerFiles:
-        if debug_level>0:
-            logger.info(f"importing IP data from file {csvFile} ...")
-        extract_ip_data_from_csv(csvFile, app_dict, base_dir=base_dir)
+    re_app_server_file_pattern = re.compile(csvAppServerFilePattern)
+    for file_name in os.listdir(repoTargetDir):
+        if re_app_server_file_pattern.match(file_name):
+            if debug_level>0:
+                logger.info(f"importing IP data from file {file_name} ...")
+            extract_ip_data_from_csv(file_name, app_dict, base_dir=base_dir)
 
     #############################################    
     # 3. write owners to json file

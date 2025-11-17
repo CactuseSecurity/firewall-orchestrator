@@ -55,10 +55,10 @@ def reorder_rulebase_rules_dict(config: FwConfigNormalized, rulebase_uid, rule_u
     rulebase = next((rb for rb in config.rulebases if rb.uid == rulebase_uid), None)
 
     if rulebase:
-        rules = copy.deepcopy(rulebase.Rules)
-        rulebase.Rules = {}
+        rules = copy.deepcopy(rulebase.rules)
+        rulebase.rules = {}
         for rule_uid in rule_uids:
-            rulebase.Rules[rule_uid] = rules[rule_uid]
+            rulebase.rules[rule_uid] = rules[rule_uid]
 
 
 def remove_rule_from_rulebase(config: FwConfigNormalized, rulebase_uid: str, rule_uid: str, uid_sequence: list[str] = None):
@@ -69,7 +69,7 @@ def remove_rule_from_rulebase(config: FwConfigNormalized, rulebase_uid: str, rul
     rulebase = next((rb for rb in config.rulebases if rb.uid == rulebase_uid), None)
 
     if rulebase:
-        rule = rulebase.Rules.pop(rule_uid)
+        rule = rulebase.rules.pop(rule_uid)
         
         if uid_sequence:
             uid_sequence[:] = [uid for uid in uid_sequence if uid != rule_uid]
@@ -83,6 +83,7 @@ def insert_rule_in_config(config: FwConfigNormalized, rulebase_uid, rule_positio
     """
 
     rulebase = next((rb for rb in config.rulebases if rb.uid == rulebase_uid), None)
+    inserted_rule_uid = ""
 
     if rulebase:
 
@@ -90,11 +91,15 @@ def insert_rule_in_config(config: FwConfigNormalized, rulebase_uid, rule_positio
             inserted_rule = config_builder.add_rule(config, rulebase_uid)
         else:
             inserted_rule = rule
-            rulebase.Rules[inserted_rule.rule_uid] = inserted_rule
+            rulebase.rules[inserted_rule.rule_uid] = inserted_rule
 
         rule_uids.insert(rule_position, inserted_rule.rule_uid)
 
         reorder_rulebase_rules_dict(config, rulebase_uid, rule_uids)
+
+        inserted_rule_uid = inserted_rule.rule_uid
+
+    return inserted_rule_uid
     
 
 def move_rule_in_config(config: FwConfigNormalized, rulebase_uid, source_position, target_position, rule_uids):
@@ -103,15 +108,20 @@ def move_rule_in_config(config: FwConfigNormalized, rulebase_uid, source_positio
     """
 
     rulebase = next((rb for rb in config.rulebases if rb.uid == rulebase_uid), None)
+    moved_rule_uid = ""
 
     if rulebase:
-        rule_uid = list(rulebase.Rules.keys())[source_position]
-        rule = rulebase.Rules.pop(rule_uid)
-        rulebase.Rules[rule_uid] = rule
+        rule_uid = list(rulebase.rules.keys())[source_position]
+        rule = rulebase.rules.pop(rule_uid)
+        rulebase.rules[rule_uid] = rule
         rule_uids.pop(source_position)
         rule_uids.insert(target_position, rule_uid)
 
         reorder_rulebase_rules_dict(config, rulebase.uid, rule_uids)
+
+        moved_rule_uid = rule_uid
+
+    return moved_rule_uid
 
 
 def update_rule_map_and_rulebase_map(config, import_state):
@@ -125,7 +135,7 @@ def update_rule_map_and_rulebase_map(config, import_state):
     for rulebase in config.rulebases:
         import_state.RulebaseMap[rulebase.uid] = rulebase_id
         rulebase_id += 1
-        for rule in rulebase.Rules.values():
+        for rule in rulebase.rules.values():
             import_state.RuleMap[rule.rule_uid] = rule_id
             rule_id += 1
 
@@ -134,7 +144,7 @@ def update_rule_num_numerics(config):
     
     for rulebase in config.rulebases:
         new_num_numeric = 0
-        for rule in rulebase.Rules.values():
+        for rule in rulebase.rules.values():
             new_num_numeric += rule_num_numeric_steps
             rule.rule_num_numeric = new_num_numeric
 
@@ -165,7 +175,7 @@ def update_rb_links(rulebase_links: list[RulebaseLinkUidBased], gateway_id, fwco
             id = link_id,
             gw_id = gateway_id,
             from_rule_id = fwconfig_import_gateway._global_state.import_state.lookupRule(link.from_rule_uid),
-            from_rulebase_id = fwconfig_import_gateway._global_state.import_state.lookupRulebaseId(link.from_rulebase_uid),
+            from_rulebase_id = fwconfig_import_gateway._global_state.import_state.lookupRulebaseId(link.from_rulebase_uid) if link.from_rulebase_uid else None,
             to_rulebase_id = fwconfig_import_gateway._global_state.import_state.lookupRulebaseId(link.to_rulebase_uid),
             link_type = link_type,
             is_initial = link.is_initial,

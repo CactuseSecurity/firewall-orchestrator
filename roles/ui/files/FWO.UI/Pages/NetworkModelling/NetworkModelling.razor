@@ -88,10 +88,10 @@
             @if (appSelected)
             {
                 <div class="form-group row m-2">
-                    <h5>@(userConfig.GetText("comm_profile"))&nbsp;
+                    <h5 class="w-auto">@(userConfig.GetText("comm_profile"))&nbsp;</h5>
                     @if (appActive)
                     {
-                        <div class="btn-group ms-5">
+                        <div class="btn-group ms-5 w-auto">
                             <button type="button" class="btn btn-sm btn-dark" @onclick="ShareLink">
                                 @(DisplayService.DisplayButton(userConfig, "share_link", Icons.Share))
                             </button>
@@ -110,7 +110,6 @@
                             }
                         </div>
                     }
-                    </h5>
                 </div>
                 <div class="mx-2 mt-2">
                     <TabSet WholeWidth="false" DarkMode="false" KeepPanelsAlive="false" @ref="appHandler!.Tabset">
@@ -138,7 +137,7 @@
                                     </Authorized>
                                 </AuthorizeView>
                             </div>
-                            <ConnectionTable UseResponsiveTable="true" ShowPageSizeInput="true" Connections="@appHandler!.GetInterfaces(showRejected)" @bind-AppHandler="appHandler" AppActive="appActive" ShowModellingState="true" />
+                            <ConnectionTable UseResponsiveTable="true" ShowPageSizeInput="true" Connections="@appHandler!.GetInterfaces(showRejected)" @bind-AppHandler="appHandler" AppActive="appActive" ShowModellingState="true" InterfacesPossible="true"/>
                         </Tab>
                         @if (selectedApp.CommSvcPossible)
                         {
@@ -409,7 +408,7 @@ else
         if(userConfig.ModRolloutActive)
         {
             apiConnection.SetProperRole(authenticationStateTask!.Result.User, [ Roles.Modeller, Roles.Admin, Roles.Auditor ]);
-            List<TicketId> ticketIds = await apiConnection.SendQueryAsync<List<TicketId>>(ExtRequestQueries.getLatestTicketIds, new{ownerId = selectedApp.Id});
+            List<TicketId> ticketIds = await apiConnection.SendQueryAsync<List<TicketId>>(ExtRequestQueries.getLatestTicketId, new{ownerId = selectedApp.Id});
             if(ticketIds.Count == 0)
             {
                 ChangeStatus = userConfig.GetText("never_requested");
@@ -417,7 +416,7 @@ else
             }
             else
             {
-                WfTicket? intTicket = await apiConnection.SendQueryAsync<WfTicket>(RequestQueries.getTicketById, new { ticketIds.First().Id });
+                WfTicket? intTicket = await apiConnection.SendQueryAsync<WfTicket>(RequestQueries.getTicketById, new { ticketIds[0].Id });
                 apiConnection.SetProperRole(authenticationStateTask!.Result.User, [ Roles.Modeller, Roles.Admin, Roles.Auditor ]);
                 if(intTicket != null)
                 {
@@ -494,8 +493,8 @@ else
             if(lastRequests != null && lastRequests.Count > 0)
             {
                 bool shortened = false;
-                return Sanitizer.SanitizeCommentOpt(!string.IsNullOrEmpty(lastRequests.First().LastProcessingResponse) ?
-                    lastRequests.First().LastProcessingResponse : lastRequests.First().LastCreationResponse, ref shortened);
+                return (!string.IsNullOrEmpty(lastRequests.First().LastProcessingResponse) ?
+                    lastRequests.First().LastProcessingResponse : lastRequests.First().LastCreationResponse).SanitizeCommentOpt(ref shortened);
             }
         }
         catch(Exception exc)

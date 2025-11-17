@@ -22,11 +22,11 @@ namespace FWO.Services
         private NetworkServiceGroupComparer networkServiceGroupComparer = new(new());
         private bool FullAnalysis = false;
 
-        private async Task AnalyseRules(ModellingConnection conn, bool fullAnalysis)
+        private void AnalyseRules(ModellingConnection conn, bool fullAnalysis)
         {
             FullAnalysis = fullAnalysis;
-            await GetAllowedSpecUserAreas();
-            await GetAllowedUpdatableObjAreas();
+            GetAllowedSpecUserAreas();
+            GetAllowedUpdatableObjAreas();
             networkObjectComparer = new(ruleRecognitionOption);
             networkObjectGroupComparer = new(ruleRecognitionOption);
             networkServiceComparer = new(ruleRecognitionOption);
@@ -93,15 +93,14 @@ namespace FWO.Services
             }
         }
 
-        private async Task GetAllowedSpecUserAreas()
+        private void GetAllowedSpecUserAreas()
         {
             AllowedSrcSpecUserAreas = [];
             AllowedDestSpecUserAreas = [];
             if (userConfig.ModSpecUserAreas != "" && userConfig.ModSpecUserAreas != "[]")
             {
-                List<ModellingNetworkArea> allAreas = await apiConnection.SendQueryAsync<List<ModellingNetworkArea>>(ModellingQueries.getNwGroupObjects, new { grpType = (int)ModellingTypes.ModObjectType.NetworkArea });
                 List<CommonAreaConfig> configItems = JsonSerializer.Deserialize<List<CommonAreaConfig>>(userConfig.ModSpecUserAreas) ?? [];
-                foreach (var configItem in configItems.Where(c => allAreas.FirstOrDefault(a => a.Id == c.AreaId) != null))
+                foreach (var configItem in configItems.Where(c => AllAreas.FirstOrDefault(a => a.Id == c.AreaId) != null))
                 {
                     if (configItem.UseInSrc)
                     {
@@ -115,15 +114,14 @@ namespace FWO.Services
             }
         }
 
-        private async Task GetAllowedUpdatableObjAreas()
+        private void GetAllowedUpdatableObjAreas()
         {
             AllowedSrcUpdatableObjAreas = [];
             AllowedDestUpdatableObjAreas = [];
             if (userConfig.ModUpdatableObjAreas != "" && userConfig.ModUpdatableObjAreas != "[]")
             {
-                List<ModellingNetworkArea> allAreas = await apiConnection.SendQueryAsync<List<ModellingNetworkArea>>(ModellingQueries.getNwGroupObjects, new { grpType = (int)ModellingTypes.ModObjectType.NetworkArea });
                 List<CommonAreaConfig> configItems = JsonSerializer.Deserialize<List<CommonAreaConfig>>(userConfig.ModUpdatableObjAreas) ?? [];
-                foreach (var configItem in configItems.Where(c => allAreas.FirstOrDefault(a => a.Id == c.AreaId) != null))
+                foreach (var configItem in configItems.Where(c => AllAreas.FirstOrDefault(a => a.Id == c.AreaId) != null))
                 {
                     if (configItem.UseInSrc)
                     {

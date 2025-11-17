@@ -1,5 +1,6 @@
-﻿using System.Text.Json.Serialization; 
+using FWO.Basics;
 using Newtonsoft.Json;
+using System.Text.Json.Serialization;
 
 namespace FWO.Data.Workflow
 {
@@ -47,8 +48,8 @@ namespace FWO.Data.Workflow
         public override bool Sanitize()
         {
             bool shortened = base.Sanitize();
-            ApproverGroup = Sanitizer.SanitizeLdapPathOpt(ApproverGroup, ref shortened);
-            ApproverDn = Sanitizer.SanitizeLdapPathOpt(ApproverDn, ref shortened);
+            ApproverGroup.SanitizeLdapPathOpt(ref shortened);
+            ApproverDn.SanitizeLdapPathOpt(ref shortened);
             return shortened;
         }
     }

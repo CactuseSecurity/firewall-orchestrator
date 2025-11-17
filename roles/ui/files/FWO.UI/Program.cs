@@ -70,14 +70,14 @@ bool connectionEstablished = createJWTResponse.IsSuccessful;
 int connectionAttemptsCount = 1;
 while (!connectionEstablished)
 {
-	Log.WriteError("Middleware Server Connection",
-	$"Error while authenticating as anonymous user from UI (Attempt {connectionAttemptsCount}), "
-	+ $"Uri: {createJWTResponse.ResponseUri?.AbsoluteUri}, "
-	+ $"HttpStatus: {createJWTResponse.StatusDescription}, "
-	+ $"Error: {createJWTResponse.ErrorMessage}");
-	Thread.Sleep(500 * connectionAttemptsCount++);
-	createJWTResponse = middlewareClient.CreateInitialJWT().Result;
-	connectionEstablished = createJWTResponse.IsSuccessful;
+    Log.WriteError("Middleware Server Connection",
+    $"Error while authenticating as anonymous user from UI (Attempt {connectionAttemptsCount}), "
+    + $"Uri: {createJWTResponse.ResponseUri?.AbsoluteUri}, "
+    + $"HttpStatus: {createJWTResponse.StatusDescription}, "
+    + $"Error: {createJWTResponse.ErrorMessage}");
+    Thread.Sleep(500 * connectionAttemptsCount++);
+    createJWTResponse = middlewareClient.CreateInitialJWT().Result;
+    connectionEstablished = createJWTResponse.IsSuccessful;
 }
 
 TokenPair tokenPair = System.Text.Json.JsonSerializer.Deserialize<TokenPair>(createJWTResponse.Content) ?? throw new ArgumentException("failed to deserialize token pair");
@@ -88,6 +88,7 @@ apiConn.SetAuthHeader(jwt);
 // Get all non-confidential configuration settings and add to a global service (for all users)
 GlobalConfig globalConfig = Task.Run(async () => await GlobalConfig.ConstructAsync(jwt, true, true)).Result;
 builder.Services.AddSingleton<GlobalConfig>(_ => globalConfig);
+builder.Services.AddSingleton<IUrlSanitizer, UrlSanitizer>();
 
 // the user's personal config
 builder.Services.AddScoped<UserConfig>(_ => new UserConfig(globalConfig));
@@ -112,19 +113,30 @@ Log.WriteInfo("Environment", $"{app.Environment.ApplicationName} runs in {app.En
 
 if (app.Environment.IsDevelopment())
 {
-	app.UseDeveloperExceptionPage();
+    app.UseDeveloperExceptionPage();
 }
 else
 {
-	app.UseExceptionHandler("/Error");
-	// The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
-	// app.UseHsts();
+    app.UseExceptionHandler("/Error");
+    // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
+    // app.UseHsts();
 }
 
 // app.UseHttpsRedirection();
 app.UseStaticFiles();
 
 app.UseRouting();
+
+app.UseWhen(
+    ctx => !ctx.Request.Path.StartsWithSegments("/_blazor") &&
+           !ctx.Request.Path.StartsWithSegments("/_framework") &&
+           !ctx.Request.Path.StartsWithSegments("/css") &&
+           !ctx.Request.Path.StartsWithSegments("/js") &&
+           !ctx.Request.Path.StartsWithSegments("/images"),
+    branch =>
+    {
+        branch.UseMiddleware<UrlSanitizerMiddleware>();
+    });
 
 app.UseAuthentication();
 app.UseAuthorization();

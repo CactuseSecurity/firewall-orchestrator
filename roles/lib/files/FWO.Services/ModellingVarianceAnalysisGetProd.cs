@@ -4,7 +4,6 @@ using FWO.Data;
 using FWO.Data.Modelling;
 using FWO.Data.Report;
 using FWO.Logging;
-using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using FWO.FwLogic;
@@ -38,7 +37,7 @@ namespace FWO.Services
             }
             catch (Exception exception)
             {
-                Log.WriteError(userConfig.GetText("fetch_data"), "Init Managements leads to error: ", exception);
+                Log.WriteError(userConfig.GetText("managements"), "Init Managements leads to error: ", exception);
             }
         }
 
@@ -65,8 +64,8 @@ namespace FWO.Services
             }
             catch (Exception exception)
             {
-                Log.WriteError(userConfig.GetText("fetch_data"), "Get Production State leads to error: ", exception);
-                displayMessageInUi(exception, userConfig.GetText("fetch_data"), "Get Production State leads to error: ", true);
+                Log.WriteError(userConfig.GetText("load_rules"), "Get Production State leads to error: ", exception);
+                displayMessageInUi(exception, userConfig.GetText("load_rules"), "Get Production State leads to error: ", true);
                 return false;
             }
             return true;
@@ -137,8 +136,8 @@ namespace FWO.Services
             }
             catch (Exception exception)
             {
-                Log.WriteError(userConfig.GetText("fetch_data"), "Get deleted connections leads to error: ", exception);
-                displayMessageInUi(exception, userConfig.GetText("fetch_data"), "Get deleted connections leads to error: ", true);
+                Log.WriteError(userConfig.GetText("connections"), "Get deleted connections leads to error: ", exception);
+                displayMessageInUi(exception, userConfig.GetText("connections"), "Get deleted connections leads to error: ", true);
             }
         }
 
@@ -186,11 +185,11 @@ namespace FWO.Services
                     aRCount += await CollectGroupObjects(mgtId);
                     aSCount += await CollectAppServers(mgtId);
                 }
-                LogFoundObjects(aRCount, aSCount);
+                Log.WriteDebug("GetNwObjectsProductionState", $"Found {aRCount} AppRoles, {aSCount} AppServer.");
             }
             catch (Exception exception)
             {
-                Log.WriteError(userConfig.GetText("fetch_data"), "Get Production State leads to error: ", exception);
+                Log.WriteError(userConfig.GetText("network_objects"), "Get Production State leads to error: ", exception);
             }
         }
 
@@ -200,14 +199,14 @@ namespace FWO.Services
             List<NetworkObject>? objGrpByMgt = await GetObjects(mgtId, [2]);
             if (objGrpByMgt != null)
             {
+                if (!allProdAppRoles.TryGetValue(mgtId, out List<ModellingAppRole>? aRList))
+                {
+                    aRList = [];
+                    allProdAppRoles.Add(mgtId, aRList);
+                }
                 foreach (NetworkObject objGrp in objGrpByMgt)
                 {
-                    // Todo: filter for naming convention??
-                    if (!allProdAppRoles.ContainsKey(mgtId))
-                    {
-                        allProdAppRoles.Add(mgtId, []);
-                    }
-                    allProdAppRoles[mgtId].Add(new(objGrp, namingConvention));
+                    aRList.Add(new(objGrp, namingConvention));
                     aRCount++;
                 }
             }
@@ -220,34 +219,19 @@ namespace FWO.Services
             List<NetworkObject>? objByMgt = await GetObjects(mgtId, [1, 3, 12]);
             if (objByMgt != null)
             {
+                if (!allExistingAppServersHashes.TryGetValue(mgtId, out Dictionary<int, long>? appServerHashes))
+                {
+                    appServerHashes = [];
+                    allExistingAppServersHashes.Add(mgtId, appServerHashes);
+                }
                 foreach (NetworkObject obj in objByMgt)
                 {
-                    if (!allExistingAppServers.ContainsKey(mgtId))
-                    {
-                        allExistingAppServers.Add(mgtId, []);
-                    }
-                    allExistingAppServers[mgtId].Add(new(obj));
+                    ModellingAppServer appServer = new(obj);
+                    appServerHashes.TryAdd(appServerComparer.GetHashCode(appServer), appServer.Id);
                     aSCount++;
                 }
             }
             return aSCount;
-        }
-
-        private void LogFoundObjects(int aRCount, int aSCount)
-        {
-            StringBuilder aRappRoles = new();
-            StringBuilder aRappServers = new();
-            foreach (int mgtId in allProdAppRoles.Keys)
-            {
-                aRappRoles.Append($" Management {mgtId}: " + string.Join(",", allProdAppRoles[mgtId].Where(a => a.Name.StartsWith("AR")).ToList().ConvertAll(x => $"{x.Name}({x.IdString})").ToList()));
-            }
-            foreach (int mgtId in allExistingAppServers.Keys)
-            {
-                aRappServers.Append($" Management {mgtId}: " + string.Join(",", allExistingAppServers[mgtId].ConvertAll(x => $"{x.Name}({x.Ip})").ToList()));
-            }
-
-            Log.WriteDebug("GetNwObjectsProductionState",
-                $"Found {aRCount} AppRoles, {aSCount} AppServer. AppRoles with AR: {aRappRoles},  AppServers: {aRappServers}");
         }
 
         private async Task<List<NetworkObject>?> GetObjects(int mgtId, int[] objTypeIds)
@@ -269,7 +253,7 @@ namespace FWO.Services
             }
             catch (Exception exception)
             {
-                Log.WriteError(userConfig.GetText("fetch_data"), "Get Production Objects leads to error: ", exception);
+                Log.WriteError(userConfig.GetText("network_objects"), "Get Production Objects leads to error: ", exception);
             }
             return [];
         }
@@ -283,12 +267,18 @@ namespace FWO.Services
                     time = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"),
                     mgmIds = mgtId
                 };
-                return (await apiConnection.SendQueryAsync<List<Management>>(ReportQueries.getRelevantImportIdsAtTime,
-                    Variables))?[0].Import.ImportAggregate.ImportAggregateMax.RelevantImportId;
+                List<Management> managements = (await apiConnection.SendQueryAsync<List<Management>>(ReportQueries.getRelevantImportIdsAtTime, Variables))!;
+                if (managements.Count == 0)
+                {
+                    Log.WriteError("GetRelevantImportId", $"No management data found for management ID {mgtId}.");
+                    return null;
+                }
+                // we may get multiple results if this management is a submanagement of a multi device manager
+                return managements.Select(m => m.Import.ImportAggregate.ImportAggregateMax.RelevantImportId ?? -1).Max();
             }
             catch (Exception exception)
             {
-                Log.WriteError(userConfig.GetText("fetch_data"), "Get ImportIds leads to error: ", exception);
+                Log.WriteError(userConfig.GetText("import_id"), "Get ImportIds leads to error: ", exception);
             }
             return null;
         }

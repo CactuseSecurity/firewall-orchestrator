@@ -198,6 +198,11 @@ namespace FWO.Config.Api
         public async Task<Dictionary<string, string>> GetCustomDict(string languageName)
         {
             Dictionary<string, string> dict = [];
+            if (apiConnection == null)
+            {
+                Log.WriteError("ApiConnection is null", "The ApiConnection is not initialized.");
+                return dict;
+            }
             try
             {
                 List<UiText> uiTexts = await apiConnection.SendQueryAsync<List<UiText>>(ConfigQueries.getCustomTextsPerLanguage, new { language = languageName });

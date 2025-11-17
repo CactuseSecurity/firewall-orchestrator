@@ -198,6 +198,7 @@ Create table "rule_metadata"
 (
 	"rule_metadata_id" BIGSERIAL,
 	"rule_uid" Text NOT NULL,
+	"mgm_id" Integer NOT NULL,
 	"rule_created" Timestamp NOT NULL Default now(),
 	"rule_last_modified" Timestamp NOT NULL Default now(),
 	"rule_first_hit" Timestamp,
@@ -1104,6 +1105,7 @@ create table owner
     last_recert_check Timestamp,
     recert_check_params Varchar,
 	criticality Varchar,
+	owner_lifecycle_state_id int,
 	active boolean default true,
 	import_source Varchar,
 	common_service_possible boolean default false,
@@ -1112,6 +1114,11 @@ create table owner
 	last_recertifier_dn Varchar,
 	next_recert_date Timestamp,
 	recert_active boolean default false
+);
+
+CREATE TABLE owner_lifecycle_state (
+    id SERIAL PRIMARY KEY,
+    name Varchar NOT NULL
 );
 
 create table owner_network

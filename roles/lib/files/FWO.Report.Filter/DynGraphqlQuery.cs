@@ -99,6 +99,10 @@ namespace FWO.Report.Filter
 
         private static string ConstructStatisticsQuery(DynGraphqlQuery query, string paramString)
         {
+            var insertIndex = query.RuleWhereStatement.LastIndexOf(']');
+            var unusedRulesWhereStatement = insertIndex >= 0
+                ? query.RuleWhereStatement.Insert(insertIndex, ", {rule_metadatum: { rule_last_hit: { _is_null: true }}}")
+                : query.RuleWhereStatement;
             return $@"
                 query statisticsReport ({paramString}) 
                 {{ 
@@ -110,6 +114,14 @@ namespace FWO.Report.Filter
                         services_aggregate(where: {{ {query.SvcObjWhereStatement} }}) {{ aggregate {{ count }} }}
                         usrs_aggregate(where: {{ {query.UserObjWhereStatement} }}) {{ aggregate {{ count }} }}
                         rules_aggregate(where: {{ {query.RuleWhereStatement} }}) {{ aggregate {{ count }} }}
+                        unusedRules_Count: rules_aggregate(where: {{ {unusedRulesWhereStatement}}}) {{ aggregate {{ count }} }}
+                        devices( {{ devWhereStringDefault }} )
+                        {{
+                            name: dev_name
+                            id: dev_id
+                            rules_aggregate(where: {{ {query.RuleWhereStatement} }}) {{ aggregate {{ count }} }}
+                            unusedRules_Count: rules_aggregate(where: {{ {unusedRulesWhereStatement}}}) {{ aggregate {{ count }} }}
+                        }}
                     }}
                 }}";
             //TODO: show number of rulebase links per gateway ?
@@ -315,8 +327,8 @@ namespace FWO.Report.Filter
                 case ReportType.ResolvedRulesTech:
                 case ReportType.UnusedRules:
                 case ReportType.AppRules:
-                case ReportType.Compliance:
-                case ReportType.ComplianceDiff:
+                case ReportType.ComplianceReport:
+                case ReportType.ComplianceDiffReport:
                 case ReportType.RecertEventReport:
                     query.FullQuery = Queries.Compact(ConstructRulesQuery(query, paramString, filter));
                     break;
@@ -447,8 +459,8 @@ namespace FWO.Report.Filter
                     case ReportType.NatRules:
                     case ReportType.UnusedRules:
                     case ReportType.AppRules:
-                    case ReportType.Compliance:
-                    case ReportType.ComplianceDiff:
+                    case ReportType.ComplianceReport:
+                    case ReportType.ComplianceDiffReport:
                     case ReportType.RecertEventReport:
                         query.QueryParameters.Add("$import_id_start: bigint ");
                         query.QueryParameters.Add("$import_id_end: bigint ");

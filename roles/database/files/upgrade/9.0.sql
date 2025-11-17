@@ -266,8 +266,39 @@ alter table recertification add column if not exists owner_recert_id bigint;
 alter table recertification drop constraint if exists recertification_owner_recertification_foreign_key;
 ALTER TABLE recertification ADD CONSTRAINT recertification_owner_recertification_foreign_key FOREIGN KEY (owner_recert_id) REFERENCES owner_recertification(id) ON UPDATE RESTRICT ON DELETE CASCADE;
 
+-- 8.9.2
+CREATE TABLE if not exists owner_lifecycle_state (
+    id SERIAL PRIMARY KEY,
+    name Varchar NOT NULL
+);
+
+alter table owner add column if not exists owner_lifecycle_state_id int;
+
+alter table owner drop constraint if exists owner_owner_lifecycle_state_foreign_key;
+ALTER TABLE owner ADD CONSTRAINT owner_owner_lifecycle_state_foreign_key FOREIGN KEY (owner_lifecycle_state_id)REFERENCES owner_lifecycle_state(id) ON DELETE SET NULL;
+
+-- changes to nw obj ip constraints
+ALTER TABLE "object" DROP CONSTRAINT IF EXISTS "object_obj_ip_not_null" CASCADE;
+ALTER TABLE "object" DROP CONSTRAINT IF EXISTS "object_obj_ip_end_not_null" CASCADE;
+
+-- magic numbers here: 1 = host object, 3 = network object, 4 = range object
+ALTER TABLE "object" ADD CONSTRAINT object_obj_ip_not_null CHECK (NOT (obj_ip IS NULL AND obj_typ_id IN (1, 3, 4)));
+ALTER TABLE "object" ADD CONSTRAINT object_obj_ip_end_not_null CHECK (NOT (obj_ip_end IS NULL AND obj_typ_id IN (1, 3, 4)));
+
+-- 8.9.2
+CREATE TABLE if not exists owner_lifecycle_state (
+    id SERIAL PRIMARY KEY,
+    name Varchar NOT NULL
+);
+
+alter table owner add column if not exists owner_lifecycle_state_id int;
+
+alter table owner drop constraint if exists owner_owner_lifecycle_state_foreign_key;
+ALTER TABLE owner ADD CONSTRAINT owner_owner_lifecycle_state_foreign_key FOREIGN KEY (owner_lifecycle_state_id)REFERENCES owner_lifecycle_state(id) ON DELETE SET NULL;
+
 
 ------------------------------------------------------------------------------------
+
 -- rename changes_found column to rule_changes_found in import_control table
 DO $$
 BEGIN
@@ -1378,6 +1409,39 @@ INSERT INTO config (config_key, config_value, config_user)
 VALUES ('autoCalculateUndefinedInternalZone', 'true', 0)
 ON CONFLICT (config_key, config_user) DO NOTHING;
 
+INSERT INTO config (config_key, config_value, config_user) 
+VALUES ('autoCalculatedZonesAtTheEnd', 'true', 0)
+ON CONFLICT (config_key, config_user) DO NOTHING;
+
+INSERT INTO config (config_key, config_value, config_user) 
+VALUES ('treatDynamicAndDomainObjectsAsInternet', 'true', 0)
+ON CONFLICT (config_key, config_user) DO NOTHING;
+
+INSERT INTO config (config_key, config_value, config_user) 
+VALUES ('showShortColumnsInComplianceReports', 'true', 0)
+ON CONFLICT (config_key, config_user) DO NOTHING;
+
+INSERT INTO config (config_key, config_value, config_user) 
+VALUES ('autoCalculatedZonesAtTheEnd', 'true', 0)
+ON CONFLICT (config_key, config_user) DO NOTHING;
+
+INSERT INTO config (config_key, config_value, config_user) 
+VALUES ('treatDynamicAndDomainObjectsAsInternet', 'true', 0)
+ON CONFLICT (config_key, config_user) DO NOTHING;
+
+INSERT INTO config (config_key, config_value, config_user) 
+VALUES ('showShortColumnsInComplianceReports', 'true', 0)
+ON CONFLICT (config_key, config_user) DO NOTHING;
+
+-- set deprecated field rule_num to 0 for all rules to avoid inconsistencies
+UPDATE rule SET rule_num = 0;
+
+-- add config value to make imported matrices editable
+
+INSERT INTO config (config_key, config_value, config_user) 
+VALUES ('importedMatrixReadOnly', 'true', 0)
+ON CONFLICT (config_key, config_user) DO NOTHING;
+
 -- adding labels (simple version without mapping tables and without foreign keys)
 
 -- CREATE TABLE label (
@@ -1629,3 +1693,147 @@ CREATE TABLE IF NOT EXISTS refresh_tokens (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     revoked_at TIMESTAMP WITH TIME ZONE NULL
 );
+	
+	
+	
+-- rule_metadata add mgm_id + fk, drop constraint
+ALTER TABLE rule_metadata ADD COLUMN IF NOT EXISTS mgm_id Integer;
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 
+        FROM pg_constraint
+        WHERE conname = 'rule_metadata_mgm_id_management_id_fk'
+    ) THEN
+        ALTER TABLE rule_metadata
+        ADD CONSTRAINT rule_metadata_mgm_id_management_id_fk
+        FOREIGN KEY (mgm_id) REFERENCES management(mgm_id)
+        ON UPDATE RESTRICT ON DELETE CASCADE;
+    END IF;
+END$$;
+
+
+
+DO $$
+DECLARE
+    rec RECORD;
+    v_do_not_import_true_count INT;
+    v_do_not_import_false_count INT;
+	missing_uids TEXT;
+	too_many_mgm_ids_on_uid_and_no_resolve TEXT;
+	all_errors_with_no_resolve TEXT := '';
+
+BEGIN
+--Check rule_metadata has entries in rule
+    SELECT string_agg(rm.rule_uid::text, ', ')
+    INTO missing_uids
+    FROM rule_metadata rm
+    LEFT JOIN rule r ON rm.rule_uid = r.rule_uid
+    WHERE r.rule_uid IS NULL;
+
+    IF missing_uids IS NOT NULL THEN
+        RAISE EXCEPTION 'Missing rule(s): %', missing_uids;
+    END IF;
+	
+	
+    -- Constraints droppen
+    ALTER TABLE rule DROP CONSTRAINT IF EXISTS rule_metadatum;
+    ALTER TABLE rule DROP CONSTRAINT IF EXISTS rule_rule_metadata_rule_uid_f_key;
+    ALTER TABLE rule_metadata DROP CONSTRAINT IF EXISTS rule_metadata_rule_uid_unique;
+
+-- Start loop for rule_uid und mgm_id import/transfer
+    FOR rec IN
+        SELECT 
+            rm.rule_uid,
+            COUNT(DISTINCT r.mgm_id) AS mgm_count
+        FROM rule_metadata rm
+        JOIN rule r ON rm.rule_uid = r.rule_uid
+        GROUP BY rm.rule_uid
+        HAVING COUNT(DISTINCT r.mgm_id) >= 1
+    LOOP
+        -- Case 1: exactly one mgm_id gefunden
+        IF rec.mgm_count = 1 THEN
+            --
+            UPDATE rule_metadata rm
+            SET mgm_id = r.mgm_id
+            FROM rule r
+            WHERE rm.rule_uid = r.rule_uid
+              AND rm.mgm_id IS NULL
+              AND rm.rule_uid = rec.rule_uid;
+
+        -- Case 2: found more then two mgm_id found
+        ELSIF rec.mgm_count >= 2 THEN
+            -- Count flag "do_not_import" for rule_uid 
+            SELECT 
+			COUNT(*) FILTER (WHERE m.do_not_import IS TRUE),
+			COUNT(*) FILTER (WHERE m.do_not_import IS FALSE)
+			INTO v_do_not_import_true_count, v_do_not_import_false_count
+			FROM rule r
+			JOIN management m ON r.mgm_id = m.mgm_id
+			WHERE r.rule_uid = rec.rule_uid;
+
+            -- check if there is just 1 "do_not_import" = false
+			IF v_do_not_import_false_count = 1 THEN
+				UPDATE rule_metadata rm
+					SET mgm_id = r.mgm_id
+					FROM rule r
+					JOIN management m ON r.mgm_id = m.mgm_id
+					WHERE rm.rule_uid = r.rule_uid
+					AND m.do_not_import IS FALSE
+					AND rm.rule_uid = rec.rule_uid
+					AND rm.mgm_id IS NULL;
+					
+			-- Warning: Not used mgm_ids where do_not_import=true
+			RAISE NOTICE 'rule_uid % has % additional mgm_id(s) marked do_not_import=true: %', 
+			rec.rule_uid, v_do_not_import_true_count,
+				(SELECT string_agg(format('mgm_id=%s', r.mgm_id), ', ')
+					FROM rule r
+					JOIN management m ON r.mgm_id = m.mgm_id
+					WHERE r.rule_uid = rec.rule_uid
+					AND m.do_not_import IS TRUE);
+					
+			ELSE
+				-- No resolve
+				SELECT string_agg(
+                       format('rule_uid=%s → mgm_id=%s (do_not_import=%s)', 
+                              r.rule_uid, r.mgm_id, m.do_not_import),
+                       E'\n'
+					)
+				INTO too_many_mgm_ids_on_uid_and_no_resolve
+				FROM rule r
+				JOIN management m ON r.mgm_id = m.mgm_id
+				WHERE r.rule_uid = rec.rule_uid;	
+
+				all_errors_with_no_resolve := all_errors_with_no_resolve || format(
+                    E'\n\nrule_uid %s has ambiguous mgm_id assignments:\n%s',
+                    rec.rule_uid,
+                    too_many_mgm_ids_on_uid_and_no_resolve
+                );
+				
+            END IF;                   
+        END IF;
+    END LOOP;
+	
+	    IF all_errors_with_no_resolve <> '' THEN
+			RAISE EXCEPTION 'Ambiguous mgm_id assignments detected:%s', all_errors_with_no_resolve;
+		END IF;
+	
+	-- redo constraints
+	    ALTER TABLE rule_metadata ALTER COLUMN mgm_id SET NOT NULL;
+        ALTER TABLE rule_metadata ADD CONSTRAINT rule_metadata_rule_uid_unique UNIQUE(rule_uid);
+        ALTER TABLE rule ADD CONSTRAINT rule_rule_metadata_rule_uid_f_key 
+            FOREIGN KEY (rule_uid) REFERENCES rule_metadata (rule_uid);
+			
+			-- set Unique constraint to (mgm_id + rule_uid)
+        IF NOT EXISTS (
+            SELECT 1
+            FROM pg_constraint
+            WHERE conname = 'rule_metadata_mgm_id_rule_uid_unique'
+        ) THEN
+            ALTER TABLE rule_metadata ADD CONSTRAINT rule_metadata_mgm_id_rule_uid_unique UNIQUE (mgm_id, rule_uid);			
+        END IF;
+END$$;
+
+
+
+

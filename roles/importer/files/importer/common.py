@@ -92,8 +92,9 @@ def import_management(mgmId=None, ssl_verification=None, debug_level_in=0,
     except (FwoApiWriteError, FwoImporterError) as e:
         importState.addError(f"FwoApiWriteError or FwoImporterError: {str(e.args)} - aborting import")
         rollBackExceptionHandler(importState, configImporter=config_importer, exc=e, errorText="")
-    except FwoImporterErrorInconsistencies:
+    except FwoImporterErrorInconsistencies as e:
         importState.delete_import() # delete whole import
+        importState.addError(str(e.args))
     except ValueError:
         importState.addError("ValueError - aborting import")
         raise
@@ -157,7 +158,6 @@ def _import_management(service_provider, importState: ImportStateController, con
     if config_changed_since_last_import or importState.ForceImport:
         FwConfigImportCheckConsistency(importState, config_normalized).checkConfigConsistency(config_normalized)
         config_importer.import_management_set(importState, service_provider, config_normalized)
-        importState.api_call.update_hit_counter(importState, config_normalized)
 
     # delete data that has passed the retention time
     # TODO: replace by deletion of old data with removed date > retention?

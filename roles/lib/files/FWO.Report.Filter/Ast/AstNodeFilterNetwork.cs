@@ -121,12 +121,12 @@ namespace FWO.Report.Filter.Ast
             // TODO: might simply set all header IP addresses to 0.0.0.0/32 instead of 0.0.0.0/0 to filter them out
 
             // logic: end_ip1 >= start_ip2 and start_ip1 <= end_ip2
-                // end_ip1 = obj_ip_end
-                // start_ip2 = QueryVarNameFirst1
-                // start_ip1 = obj_ip
-                // end_ip2 = QueryVarNameLast2
+            // end_ip1 = obj_ip_end
+            // start_ip2 = QueryVarNameFirst1
+            // start_ip1 = obj_ip
+            // end_ip2 = QueryVarNameLast2
             // obj_ip_end >= QueryVarNameFirst1 and obj_ip <= QueryVarNameLast2
-            
+
             string ipFilterString =
                     $@" obj_ip_end: {{ _gte: ${QueryVarNameFirst1} }} 
                         obj_ip: {{ _lte: ${QueryVarNameLast2} }}";
@@ -154,9 +154,16 @@ namespace FWO.Report.Filter.Ast
                           {{_and: [{{negated: {{_eq: true}}}}, {{object: {{_not: {{objgrp_flats: {{objectByObjgrpFlatMemberId: {{ {ipFilterString} }}}}}}}}}}]}}
                     ]
                 }}";
-            ipFilterString = $@" ip_end: {{ _gte: ${QueryVarNameFirst1} }} ip: {{ _lte: ${QueryVarNameLast2} }}";
+            ExtractIpFilterForConn(query, location, QueryVarNameFirst1, QueryVarNameLast2);
+        }
+
+        private static void ExtractIpFilterForConn(DynGraphqlQuery query, string location, string QueryVarNameFirst1, string QueryVarNameLast2)
+        {
+            string ipFilterString = $@" ip_end: {{ _gte: ${QueryVarNameFirst1} }} ip: {{ _lte: ${QueryVarNameLast2} }}";
             int conField = location == "src" ? 1 : 2;
-            query.ConnectionWhereStatement += $"nwobject_connections: {{connection_field: {{ _eq: {conField} }}, owner_network: {{ {ipFilterString} }} }}";
+            string nwObjString = $"{{ nwobject_connections: {{connection_field: {{ _eq: {conField} }}, owner_network: {{ {ipFilterString} }} }} }}";
+            string nwGrpString = $"{{ nwgroup_connections: {{connection_field: {{ _eq: {conField} }}, nwgroup: {{ nwobject_nwgroups: {{ owner_network: {{ {ipFilterString} }} }} }} }} }}";
+            query.ConnectionWhereStatement += $@" _or: [{nwObjString}, {nwGrpString}]";
         }
     }
 }

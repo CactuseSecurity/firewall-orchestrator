@@ -277,7 +277,7 @@ namespace FWO.Report
                     {
                         foreach (var rule in chunk)
                         {
-                            await SetComplianceDataForRule(rule, apiConnection);
+                            SetComplianceDataForRule(rule, apiConnection);
 
                             // Resolve network locations TODO: Move resolving completely to ComplianceCheck or RuleViewData
 
@@ -425,9 +425,8 @@ namespace FWO.Report
 
             return queryVariables;
         }
-
-        //TODO: Does this need to be async?
-        protected virtual async Task SetComplianceDataForRule(Rule rule, ApiConnection apiConnection, Func<ComplianceViolation, string>? formatter = null)
+        
+        protected virtual void SetComplianceDataForRule(Rule rule, ApiConnection apiConnection, Func<ComplianceViolation, string>? formatter = null)
         {
             try
             {

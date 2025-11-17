@@ -238,7 +238,8 @@ def parse_ip(line, app_id, ip_column_no, app_dict, count_skips):
 
         ip_start = IPAddress(ip_range.first)
         ip_end = IPAddress(ip_range.last)
-        app_server_ip = app_ip(app_id_external=app_id, ip_start=ip_start, ip_end=ip_end, type=ip_type, name=f"{ip_type}_{app_server_ip_str}")
+        ip_obj_name = f"{ip_type}_{app_server_ip_str}".replace('/', '_')
+        app_server_ip = app_ip(app_id_external=app_id, ip_start=ip_start, ip_end=ip_end, type=ip_type, name=ip_obj_name)
         if app_server_ip not in app_dict[app_id].app_servers:
             app_dict[app_id].app_servers.append(app_server_ip)
     else:

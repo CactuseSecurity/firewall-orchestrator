@@ -728,6 +728,7 @@ class FwConfigImportRule():
             for rule_uid, rule in rulebase.rules.items():
                 rm4import = RuleMetadatum(
                     rule_uid=rule_uid,
+                    mgm_id=self.import_details.MgmDetails.CurrentMgmId,
                     rule_last_modified=now,
                     rule_created=now,
                     rule_last_hit=rule.last_hit,

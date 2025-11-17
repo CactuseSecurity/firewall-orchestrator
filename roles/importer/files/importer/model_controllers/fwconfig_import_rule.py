@@ -180,7 +180,7 @@ class FwConfigImportRule():
         def add_hit_update(new_hit_information: list[dict], rule: RuleNormalized):
             """Add a hit information update entry for a rule."""
             new_hit_information.append({ 
-                "where": { "rule_uid": { "_eq": rule.rule_uid } },
+                "where": { "rule_uid": { "_eq": rule.rule_uid }, "mgm_id": { "_eq": self.import_details.MgmDetails.CurrentMgmId } },
                 "_set": { "rule_last_hit": rule.last_hit }
             })
 
@@ -728,6 +728,7 @@ class FwConfigImportRule():
             for rule_uid, rule in rulebase.rules.items():
                 rm4import = RuleMetadatum(
                     rule_uid=rule_uid,
+                    mgm_id=self.import_details.MgmDetails.CurrentMgmId,
                     rule_last_modified=now,
                     rule_created=now,
                     rule_last_hit=rule.last_hit,

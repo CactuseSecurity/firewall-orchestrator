@@ -2,18 +2,56 @@ using System.Net.Sockets;
 using System.Net;
 using NetTools;
 using System;
+using DnsClient;
 
 namespace FWO.Basics
 {
     public static class IpOperations
     {
+
+        // reuse the client to avoid socket churn; disable client-side cache
+        private static readonly LookupClient ReverseLookupClient = new(new LookupClientOptions
+        {
+            UseCache = false,
+            ContinueOnDnsError = true,
+            ThrowDnsErrors = false
+        });
+
+        public static async Task<IReadOnlyList<string>> DnsReverseLookUpAllAsync(
+            IPAddress address,
+            CancellationToken cancellationToken = default)
+        {
+            // QueryReverseAsync issues a PTR query and returns all answers from the DNS server
+            IDnsQueryResponse response = await ReverseLookupClient.QueryReverseAsync(address, cancellationToken)
+                .ConfigureAwait(false);
+
+            if (response.HasError || response.Answers.Count == 0)
+            {
+                return Array.Empty<string>();
+            }
+
+            return response.Answers
+                .PtrRecords()
+                .Select(ptr => ptr.PtrDomainName.Value.TrimEnd('.')) // drop trailing dot
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToArray();
+        }
+
+        public static async Task<string> DnsReverseLookUpPreferredAsync(IPAddress address)
+        {
+            IReadOnlyList<string> names = await DnsReverseLookUpAllAsync(address);
+            return names.FirstOrDefault(name => !name.StartsWith("lx", StringComparison.OrdinalIgnoreCase))
+                ?? names.FirstOrDefault()
+                ?? string.Empty;
+        }
+
         public static async Task<string> DnsReverseLookUp(IPAddress address)
         {
             try
             {
                 return (await Dns.GetHostEntryAsync(address)).HostName;
             }
-            catch(Exception)
+            catch (Exception)
             {
                 return "";
             }
@@ -51,25 +89,25 @@ namespace FWO.Basics
                 bool ipStartOK = IPAddress.TryParse(ipStart, out IPAddress? ipAdressStart);
                 bool ipEndOK = IPAddress.TryParse(ipEnd, out IPAddress? ipAdressEnd);
 
-                if(ipAdressStart is null || ipAdressEnd is null)
+                if (ipAdressStart is null || ipAdressEnd is null)
                 {
                     return false;
                 }
 
-                if(strictv4Parse && ipAdressStart?.AddressFamily == AddressFamily.InterNetwork && ipAdressEnd?.AddressFamily == AddressFamily.InterNetwork)
+                if (strictv4Parse && ipAdressStart?.AddressFamily == AddressFamily.InterNetwork && ipAdressEnd?.AddressFamily == AddressFamily.InterNetwork)
                 {
-                    if(!IsValidIPv4(ipStart) || !IsValidIPv4(ipEnd))
+                    if (!IsValidIPv4(ipStart) || !IsValidIPv4(ipEnd))
                     {
                         return false;
                     }
                 }
 
-                if(!ipStartOK || !ipEndOK)
+                if (!ipStartOK || !ipEndOK)
                 {
                     return false;
                 }
 
-                if(!IPAddress.TryParse(ipStart, out _) || !IPAddress.TryParse(ipEnd, out _))
+                if (!IPAddress.TryParse(ipStart, out _) || !IPAddress.TryParse(ipEnd, out _))
                 {
                     return false;
                 }
@@ -79,16 +117,16 @@ namespace FWO.Basics
 
                 return true;
             }
-            catch(Exception) 
+            catch (Exception)
             {
                 return false;
             }
         }
 
-        public static bool TryParseIPString<T>(this string ipString, out T? ipResult, bool strictv4Parse = false) 
+        public static bool TryParseIPString<T>(this string ipString, out T? ipResult, bool strictv4Parse = false)
         {
             ipResult = default;
-            
+
             try
             {
                 (string ipStart, string ipEnd) = SplitIpToRange(ipString);
@@ -96,34 +134,35 @@ namespace FWO.Basics
                 bool ipStartOK = IPAddress.TryParse(ipStart, out IPAddress? ipAdressStart);
                 bool ipEndOK = IPAddress.TryParse(ipEnd, out IPAddress? ipAdressEnd);
 
-                if(ipAdressStart is null || ipAdressEnd is null)
+                if (ipAdressStart is null || ipAdressEnd is null)
                 {
                     return false;
                 }
 
-                if(strictv4Parse && ipAdressStart?.AddressFamily == AddressFamily.InterNetwork && ipAdressEnd?.AddressFamily == AddressFamily.InterNetwork)
+                if (strictv4Parse && ipAdressStart?.AddressFamily == AddressFamily.InterNetwork && ipAdressEnd?.AddressFamily == AddressFamily.InterNetwork)
                 {
-                    if(!IsValidIPv4(ipStart) || !IsValidIPv4(ipEnd))
+                    if (!IsValidIPv4(ipStart) || !IsValidIPv4(ipEnd))
                     {
                         return false;
                     }
                 }
 
-                if(!ipStartOK || !ipEndOK)
+                if (!ipStartOK || !ipEndOK)
                 {
                     return false;
                 }
 
-                if(typeof(T) == typeof((string, string)))
+                if (typeof(T) == typeof((string, string)))
                 {
                     ipResult = (T)Convert.ChangeType((ipAdressStart!.ToString(), ipAdressEnd!.ToString()), typeof(T));
                     return true;
                 }
-                else if(typeof(T) == typeof(IPAddressRange) && IPAddressRange.TryParse(ipString, out IPAddressRange ipRange))
+                else if (typeof(T) == typeof(IPAddressRange) && IPAddressRange.TryParse(ipString, out IPAddressRange ipRange))
                 {
                     ipResult = (T)Convert.ChangeType(ipRange, typeof(T));
                     return true;
-                }else if(typeof(T) == typeof((IPAddress, IPAddress)))
+                }
+                else if (typeof(T) == typeof((IPAddress, IPAddress)))
                 {
                     Tuple<IPAddress, IPAddress>? ipTuple = new(ipAdressStart!, ipAdressEnd!);
                     ipResult = (T)Convert.ChangeType(ipTuple, typeof(T));
@@ -132,7 +171,7 @@ namespace FWO.Basics
 
                 return false;
             }
-            catch(Exception)
+            catch (Exception)
             {
                 return false;
             }
@@ -142,7 +181,7 @@ namespace FWO.Basics
         {
             byte[] addBytes = [.. ipAddress.Split('.').Where(_ => byte.Parse(_) <= 255 && byte.Parse(_) >= 0).Select(byte.Parse)];
 
-            return addBytes.Length == 4;            
+            return addBytes.Length == 4;
         }
 
         public static string GetObjectType(string ip1, string ip2)
@@ -333,11 +372,11 @@ namespace FWO.Basics
         /// </summary>
         public static int CompareIpFamilies(IPAddress ip1, IPAddress ip2)
         {
-            if (ip1.AddressFamily == AddressFamily.InterNetwork && ip2.AddressFamily == AddressFamily.InterNetworkV6 )
+            if (ip1.AddressFamily == AddressFamily.InterNetwork && ip2.AddressFamily == AddressFamily.InterNetworkV6)
             {
                 return -1;
             }
-            if (ip1.AddressFamily == AddressFamily.InterNetworkV6 && ip2.AddressFamily == AddressFamily.InterNetwork )
+            if (ip1.AddressFamily == AddressFamily.InterNetworkV6 && ip2.AddressFamily == AddressFamily.InterNetwork)
             {
                 return 1;
             }

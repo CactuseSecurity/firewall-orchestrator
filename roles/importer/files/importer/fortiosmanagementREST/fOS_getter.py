@@ -1,21 +1,17 @@
 # library for API get functions
-import re
+from typing import Any
 from fwo_log import getFwoLogger
-import requests.packages
 import requests
 import json
 import fwo_globals
-from fwo_exceptions import FwLoginFailed
 
 
-def api_call(url, show_progress=False):
+def api_call(url: str, show_progress:bool=False) -> dict[str, Any]:
     logger = getFwoLogger()
     request_headers = {'Content-Type': 'application/json'}
 
     r = requests.get(url, headers=request_headers, verify=fwo_globals.verify_certs)
-    if r is None:
-        exception_text = "error while sending api_call to url '" + str(url) + "' with headers: '" + json.dumps(request_headers, indent=2)
-        raise Exception(exception_text)
+    #TYPING: check for non 200 responses
     result_json = r.json()
     if 'results' not in result_json:
         raise Exception("error while sending api_call to url '" + str(url) + "' with headers: '" + json.dumps(request_headers, indent=2) + ', results=' + json.dumps(r.json()['results'], indent=2))
@@ -43,11 +39,9 @@ def api_call(url, show_progress=False):
 #     return url
 
 
-def update_config_with_fortiOS_api_call(config_json, api_url, result_name, show_progress=False, limit=150):
-    offset = 0
+def update_config_with_fortiOS_api_call(config_json: dict[str, Any], api_url: str, result_name: str, show_progress: bool = False, limit: int = 150):
     limit = int(limit)
-    returned_new_objects = True
-    full_result = []
+    full_result: list[Any] = []
     result = fortiOS_api_call(api_url)
     full_result.extend(result)
     # removing loop for api gets (no limit option in FortiOS API)
@@ -64,10 +58,10 @@ def update_config_with_fortiOS_api_call(config_json, api_url, result_name, show_
         config_json.update({result_name: full_result})
 
 
-def fortiOS_api_call(api_url):
+def fortiOS_api_call(api_url: str) -> Any:
     result = api_call(api_url)
     if 'results' in result:
         plain_result = result["results"]
     else:
-        plain_result = {}
+        plain_result: dict[str, Any] = {}
     return plain_result

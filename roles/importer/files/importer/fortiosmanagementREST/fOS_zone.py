@@ -1,8 +1,11 @@
 
-def normalize_zones(full_config, config2import, import_id):
-    zones = []
+from typing import Any
+
+
+def normalize_zones(full_config: dict[str, Any], config2import: dict[str, Any], import_id: int):
+    zones: list[dict[str, Any]] = []
     for orig_zone in full_config['zone_objects']['zone_list']:
-        zone = {}
+        zone: dict[str, Any] = {}
         zone.update({'zone_name': orig_zone})
         zone.update({'control_id': import_id})
         zones.append(zone)
@@ -10,7 +13,7 @@ def normalize_zones(full_config, config2import, import_id):
     config2import.update({'zone_objects': zones})
 
 
-def add_zone_if_missing (config2import, zone_string, import_id):
+def add_zone_if_missing(config2import: dict[str, Any], zone_string: str | None, import_id: int) -> str | None:
     # adding zone if it not yet exists
 
     # also transforming any into global (normalized global zone)

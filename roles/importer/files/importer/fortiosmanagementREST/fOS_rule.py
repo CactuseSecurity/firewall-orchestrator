@@ -1,5 +1,5 @@
 import copy
-import jsonpickle
+import jsonpickle # type: ignore
 from fwo_const import list_delimiter, nat_postfix, dummy_ip
 from fwo_base import extend_string_list
 from fOS_service import create_svc_object

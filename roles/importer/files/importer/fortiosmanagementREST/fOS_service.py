@@ -1,9 +1,10 @@
 import re
+from typing import Any
 from fwo_const import list_delimiter
 from fwo_log import getFwoLogger
 
 
-def normalize_svcobjects(full_config, config2import, import_id, scope):
+def normalize_svcobjects(full_config: dict[str, Any], config2import: dict[str, Any], import_id: int, scope: list[str]):
     logger = getFwoLogger()
     svc_objects = []
     full_config['svc_obj_lookup_dict'] = {}
@@ -19,9 +20,9 @@ def normalize_svcobjects(full_config, config2import, import_id, scope):
                 else:
                     type = 'simple'
 
-                name = None
+                name = None 
                 if 'name' in obj_orig:
-                    name = str(obj_orig['name'])
+                    name = str(obj_orig['name']) #TYPING: Can this be None???
 
                 color = None
                 if 'color' in obj_orig and str(obj_orig['color']) != "0":
@@ -31,7 +32,6 @@ def normalize_svcobjects(full_config, config2import, import_id, scope):
         #        if 'udp-idle-timer' in obj_orig and str(obj_orig['udp-idle-timer']) != 0:
         #            session_timeout = str(obj_orig['udp-idle-timer'])
 
-                proto = 0
                 range_names = ''
                 if 'protocol' in obj_orig:
                     added_svc_obj = 0
@@ -136,7 +136,7 @@ def extractSinglePortRange(port_range):
     return port, port_end
 
 
-def extractPorts(port_ranges):
+def extractPorts(port_ranges: str | None) -> tuple[list[str], list[str]]:
     ports = []
     port_ends = []
     if port_ranges is not None and len(port_ranges) > 0:
@@ -168,7 +168,7 @@ def create_svc_object(import_id, name, proto, port, comment):
     }
 
 
-def addObject(svc_objects, type, name, color, proto, port_ranges, member_names, session_timeout, import_id, full_config={}):
+def addObject(svc_objects: list[dict[str, Any]], type: str, name: str, color: str, proto: int, port_ranges, member_names, session_timeout, import_id: int, full_config: dict[str, Any]={}):
 
     # add service object in lookup table (currently no UID, name is the UID)
     full_config['svc_obj_lookup_dict'][name] = name

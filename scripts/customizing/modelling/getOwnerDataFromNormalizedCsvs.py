@@ -83,7 +83,7 @@ class app_ip:
             {
             "name": self.name,
             "app_id_external": self.app_id_external,
-            "ip_start": str(IPAddress(self.ip_start)),
+            "ip": str(IPAddress(self.ip_start)),
             "ip_end": str(IPAddress(self.ip_end)),
             "type": self.type
             }

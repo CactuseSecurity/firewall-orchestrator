@@ -36,6 +36,8 @@ class RefType(Enum):
     NWOBJ_RESOLVED = "rule_nwobj_resolved"
     SVC_RESOLVED = "rule_svc_resolved"
     USER_RESOLVED = "rule_user_resolved"
+    SRC_ZONE = "rule_from_zone"
+    DST_ZONE = "rule_to_zone"
 
 # this class is used for importing rules and rule refs into the FWO API
 class FwConfigImportRule():
@@ -183,7 +185,7 @@ class FwConfigImportRule():
         def add_hit_update(new_hit_information: list[dict[str, Any]], rule: RuleNormalized):
             """Add a hit information update entry for a rule."""
             new_hit_information.append({ 
-                "where": { "rule_uid": { "_eq": rule.rule_uid } },
+                "where": { "rule_uid": { "_eq": rule.rule_uid }, "mgm_id": { "_eq": self.import_details.MgmDetails.CurrentMgmId } },
                 "_set": { "rule_last_hit": rule.last_hit }
             })
 
@@ -252,6 +254,11 @@ class FwConfigImportRule():
         froms: list[tuple[str, str | None]] = []
         tos: list[tuple[str, str | None]] = []
         users: list[str] = []
+        nwobj_resolveds = []
+        svc_resolveds = []
+        user_resolveds = []
+        from_zones = []
+        to_zones = []
         for src_ref in rule.rule_src_refs.split(fwo_const.list_delimiter):
             user_ref = None
             if fwo_const.user_delimiter in src_ref:
@@ -273,13 +280,17 @@ class FwConfigImportRule():
             nwobj_resolveds = self.group_flats_mapper.get_network_object_flats([ref[0] for ref in froms + tos])
             svc_resolveds = self.group_flats_mapper.get_service_object_flats(svcs)
             user_resolveds = self.group_flats_mapper.get_user_flats(users)
+        from_zones = rule.rule_src_zone.split(fwo_const.list_delimiter) if rule.rule_src_zone else []
+        to_zones = rule.rule_dst_zone.split(fwo_const.list_delimiter) if rule.rule_dst_zone else []
         return {
             RefType.SRC: froms,
             RefType.DST: tos,
             RefType.SVC: svcs,
             RefType.NWOBJ_RESOLVED: nwobj_resolveds,
             RefType.SVC_RESOLVED: svc_resolveds,
-            RefType.USER_RESOLVED: user_resolveds
+            RefType.USER_RESOLVED: user_resolveds,
+            RefType.SRC_ZONE: from_zones,
+            RefType.DST_ZONE: to_zones
         }
 
     def get_ref_objs(self, ref_type: RefType, ref_uid: tuple[str, str | None] | str , prev_config: FwConfigNormalized) -> tuple[tuple[None | NetworkObject, None | Any], tuple[None | NetworkObject , None | Any]] | tuple[None | NetworkObject | ServiceObject, None | Any]: #TODO Any is user type but there is no user Type
@@ -292,14 +303,16 @@ class FwConfigImportRule():
             
             return (prev_config.network_objects.get(nwobj_uid, None), prev_config.users.get(user_uid, None) if user_uid else None), \
                      (self.normalized_config.network_objects.get(nwobj_uid, None), self.normalized_config.users.get(user_uid, None) if user_uid else None)
-        
-
-        if ref_type == RefType.NWOBJ_RESOLVED:
-            return prev_config.network_objects.get(ref_uid, None), self.normalized_config.network_objects.get(ref_uid, None) # type: ignore TODO: change ref_uid to str only
-        
-        if ref_type == RefType.SVC or ref_type == RefType.SVC_RESOLVED:
+        elif ref_type == RefType.NWOBJ_RESOLVED:
+            return prev_config.network_objects.get(ref_uid, None), self.normalized_config.network_objects.get(ref_uid, None) # type: ignore #TODO: change ref_uid to str only
+        elif ref_type == RefType.SVC or ref_type == RefType.SVC_RESOLVED:
             return prev_config.service_objects.get(ref_uid, None), self.normalized_config.service_objects.get(ref_uid, None) # type: ignore
-        return prev_config.users.get(ref_uid, None), self.normalized_config.users.get(ref_uid, None) # type: ignore
+        elif ref_type == RefType.USER_RESOLVED:
+            return prev_config.users.get(ref_uid, None), self.normalized_config.users.get(ref_uid, None) # type: ignore
+        elif ref_type == RefType.SRC_ZONE or ref_type == RefType.DST_ZONE:
+            return prev_config.zone_objects.get(ref_uid, None), self.normalized_config.zone_objects.get(ref_uid, None) # type: ignore
+        else:
+            raise FwoImporterError(f"unknown ref type: {ref_type}")
     
     def get_ref_remove_statement(self, ref_type: RefType, rule_uid: str, ref_uid: tuple[str, str | None] | str) -> dict[str, Any]:
         if ref_type == RefType.SRC or ref_type == RefType.DST:
@@ -336,6 +349,15 @@ class FwConfigImportRule():
                     {"user_id": {"_eq": self.uid2id_mapper.get_user_id(ref_uid, before_update=True)}} # type: ignore # ref_uid is str here
                 ]
             }
+        elif ref_type == RefType.SRC_ZONE or ref_type == RefType.DST_ZONE:
+            return {
+                "_and": [
+                    {"rule_id": {"_eq": self.uid2id_mapper.get_rule_id(rule_uid, before_update=True)}},
+                    {"zone_id": {"_eq": self.uid2id_mapper.get_zone_object_id(ref_uid, before_update=True)}}
+                ]
+            }
+        else:
+            raise FwoImporterError(f"unknown ref type: {ref_type}")
 
 
     def get_outdated_refs_to_remove(self, prev_rule: RuleNormalized, rule: RuleNormalized | None, prev_config: FwConfigNormalized, remove_all: bool) -> dict[RefType, list[dict[str, Any]]]:
@@ -398,7 +420,9 @@ class FwConfigImportRule():
             'ruleServices': all_refs_to_remove[RefType.SVC],
             'ruleNwObjResolveds': all_refs_to_remove[RefType.NWOBJ_RESOLVED],
             'ruleSvcResolveds': all_refs_to_remove[RefType.SVC_RESOLVED],
-            'ruleUserResolveds': all_refs_to_remove[RefType.USER_RESOLVED]
+            'ruleUserResolveds': all_refs_to_remove[RefType.USER_RESOLVED],
+            'ruleFromZones': all_refs_to_remove[RefType.SRC_ZONE],
+            'ruleToZones': all_refs_to_remove[RefType.DST_ZONE],
         }
 
         try:
@@ -467,6 +491,12 @@ class FwConfigImportRule():
                 "user_id": self.uid2id_mapper.get_user_id(ref_uid), # type: ignore # ref_uid is str here TODO: Cleanup ref_uid dict
                 "created": self.import_details.ImportId,
             }
+        elif ref_type == RefType.SRC_ZONE or ref_type == RefType.DST_ZONE:
+            return {
+                "rule_id": self.uid2id_mapper.get_rule_id(rule.rule_uid),
+                "zone_id": self.uid2id_mapper.get_zone_object_id(ref_uid),
+                "created": self.import_details.ImportId,
+            }
 
 
     def get_new_refs_to_add(self, rule: RuleNormalized, prev_rule: RuleNormalized | None, prev_config: FwConfigNormalized, add_all: bool) -> dict[RefType, list[dict[str, Any]]]:
@@ -521,7 +551,9 @@ class FwConfigImportRule():
             'ruleServices': all_refs_to_add[RefType.SVC],
             'ruleNwObjResolveds': all_refs_to_add[RefType.NWOBJ_RESOLVED],
             'ruleSvcResolveds': all_refs_to_add[RefType.SVC_RESOLVED],
-            'ruleUserResolveds': all_refs_to_add[RefType.USER_RESOLVED]
+            'ruleUserResolveds': all_refs_to_add[RefType.USER_RESOLVED],
+            'ruleFromZones': all_refs_to_add[RefType.SRC_ZONE],
+            'ruleToZones': all_refs_to_add[RefType.DST_ZONE]
         }
 
         try:
@@ -755,6 +787,7 @@ class FwConfigImportRule():
             for rule_uid, rule in rulebase.rules.items():
                 rm4import = RuleMetadatum(
                     rule_uid=rule_uid,
+                    mgm_id=self.import_details.MgmDetails.CurrentMgmId,
                     rule_last_modified=now,
                     rule_created=now,
                     rule_last_hit=rule.last_hit,
@@ -1193,22 +1226,6 @@ class FwConfigImportRule():
         return prepared_rules
     
     def prepare_single_rule_for_import(self, rule: RuleNormalized, importDetails: ImportStateController, rulebase_id: int) -> Rule:
-        rule_from_zone_id = None
-        if rule.rule_src_zone is not None:
-            from_zones = rule.rule_src_zone.split(fwo_const.list_delimiter)
-            if len(from_zones) > 1:
-                logger = getFwoLogger()
-                logger.warning(f"rule {rule.rule_uid} has multiple source zones defined, only the first one will be used")
-            rule_from_zone_id = self.uid2id_mapper.get_zone_object_id(from_zones[0])
-
-        rule_to_zone_id = None
-        if rule.rule_dst_zone is not None:
-            to_zones = rule.rule_dst_zone.split(fwo_const.list_delimiter)
-            if len(to_zones) > 1:
-                logger = getFwoLogger()
-                logger.warning(f"rule {rule.rule_uid} has multiple destination zones defined, only the first one will be used")
-            rule_to_zone_id = self.uid2id_mapper.get_zone_object_id(to_zones[0])
-
         rule_for_import = Rule(
             mgm_id=importDetails.MgmDetails.CurrentMgmId,
             rule_num=rule.rule_num,
@@ -1231,8 +1248,8 @@ class FwConfigImportRule():
             rule_implied=rule.rule_implied,
             # parent_rule_id=rule.parent_rule_id,
             rule_comment=rule.rule_comment,
-            rule_from_zone=rule_from_zone_id,
-            rule_to_zone=rule_to_zone_id,
+            rule_from_zone=None, #TODO: to be removed or changed to string of joined zone names
+            rule_to_zone=None,   #TODO: to be removed or changed to string of joined zone names
             access_rule=True,
             nat_rule=False,
             is_global=False,

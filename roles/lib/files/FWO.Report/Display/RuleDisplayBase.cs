@@ -1,4 +1,4 @@
-﻿using System.Text;
+using System.Text;
 using FWO.Basics;
 using FWO.Data;
 using FWO.Config.Api;
@@ -80,14 +80,54 @@ namespace FWO.Ui.Display
             return rule.Name ?? "";
         }
 
-        public static string DisplaySourceZone(Rule rule)
+        public static string DisplaySourceZones(Rule rule)
         {
-            return rule.SourceZone != null ? rule.SourceZone.Name : "";
+            if (rule.RuleFromZones.Length != 0)
+            {
+                string ruleZones = "";
+                bool notFirst = false;
+
+                foreach (ZoneWrapper zoneWrapper in rule.RuleFromZones)
+                {
+                    if (notFirst)
+                    {
+                        ruleZones += "<br>";
+                    }
+
+                    ruleZones += zoneWrapper.Content.Name;
+                    notFirst = true;
+                }
+                return ruleZones;
+            }
+            else
+            {
+                return "";
+            }
         }
 
-        public static string DisplayDestinationZone(Rule rule)
+        public static string DisplayDestinationZones(Rule rule)
         {
-            return rule.DestinationZone != null ? rule.DestinationZone.Name : "";
+            if (rule.RuleToZones.Length != 0)
+            {
+                string ruleZones = "";
+                bool notFirst = false;
+
+                foreach (ZoneWrapper zoneWrapper in rule.RuleToZones)
+                {
+                    if (notFirst)
+                    {
+                        ruleZones += "<br>";
+                    }
+
+                    ruleZones += zoneWrapper.Content.Name;
+                    notFirst = true;
+                }
+                return ruleZones;
+            }
+            else
+            {
+                return "";
+            }
         }
 
         public static string DisplayAction(Rule rule)

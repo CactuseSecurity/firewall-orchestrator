@@ -48,7 +48,9 @@ namespace FWO.Compliance
         private readonly UserConfig _userConfig;
 
         private List<Management>? _managements = [];
-        private List<ComplianceViolation> _currentViolationsInCheck = [];
+        public List<ComplianceViolation> CurrentViolationsInCheck { get; private set; } = [];
+
+        public List<Rule>? RulesInCheck { get; private set; } = [];
 
         private bool _treatDomainAndDynamicObjectsAsInternet = false;
         private bool _autoCalculatedInternetZoneActive = false;
@@ -99,21 +101,11 @@ namespace FWO.Compliance
                 _autoCalculatedInternetZoneActive = globalConfig.AutoCalculateInternetZone; 
                 _treatDomainAndDynamicObjectsAsInternet = globalConfig.TreatDynamicAndDomainObjectsAsInternet;
 
-                _managements  = await _apiConnection.SendQueryAsync<List<Management>>(DeviceQueries.getManagementNames);
-
-                if (_managements == null || _managements.Count == 0)
-                {
-                    Logger.TryWriteInfo("Compliance Check", "No managements found. Compliance check not possible.", true);
-                    return;
-                }
-
                 if (_complianceCheckPolicyId == 0)
                 {
                     Logger.TryWriteInfo("Compliance Check", "No Policy defined. Compliance check not possible.", true);
                     return;
                 }
-
-                Logger.TryWriteInfo("Compliance Check", $"Using policy {_complianceCheckPolicyId}", LocalSettings.ComplianceCheckVerbose);
 
                 Policy = await _apiConnection.SendQueryAsync<CompliancePolicy>(ComplianceQueries.getPolicyById, new { id = _complianceCheckPolicyId });
 
@@ -122,6 +114,17 @@ namespace FWO.Compliance
                     Logger.TryWriteError("Compliance Check", $"Policy with id {_complianceCheckPolicyId} not found.", true);
                     return;
                 }
+
+                _managements  = await _apiConnection.SendQueryAsync<List<Management>>(DeviceQueries.getManagementNames);
+                _managements = GetRelevantManagements(globalConfig, _managements);
+
+                if (_managements == null || _managements.Count == 0)
+                {
+                    Logger.TryWriteInfo("Compliance Check", "No relevant managements found. Compliance check not possible.", true);
+                    return;
+                }
+
+                Logger.TryWriteInfo("Compliance Check", $"Using policy {_complianceCheckPolicyId}", LocalSettings.ComplianceCheckVerbose);
 
                 Logger.TryWriteInfo("Compliance Check", $"Policy criteria: {Policy.Criteria.Count} criteria found", LocalSettings.ComplianceCheckVerbose);
 
@@ -136,39 +139,22 @@ namespace FWO.Compliance
                     Logger.TryWriteInfo("Compliance Check", $"Criterion: {criterion.Content.Name} ({criterion.Content.CriterionType})", LocalSettings.ComplianceCheckVerbose);
                 }
 
+                // Clear previous check data
+
+                RulesInCheck = [];
+                CurrentViolationsInCheck.Clear();
+
                 Task loadNetworkZonesTask = LoadNetworkZones();
-                List<Rule> rules =  await GetRules();
+                RulesInCheck =  await GetRelevantManagementsRules(_managements!.Select(m => m.Id).ToList());
                 await Task.WhenAll(loadNetworkZonesTask);
 
-                _currentViolationsInCheck.Clear();
+                if (RulesInCheck == null || RulesInCheck.Count == 0)
+                {
+                    Logger.TryWriteInfo("Compliance Check", "No relevant rules found. Compliance check not possible.", true);
+                    return;
+                };
 
-                await CheckRuleComplianceForAllRules(rules);
-                // List<Rule> rules = getRulesTask.Result;
-                // Task setUpReportFiltersTask = SetUpReportFilters();
-
-                // await Task.WhenAll(loadNetworkZonesTask, setUpReportFiltersTask);
-
-                // ReportTemplate template = new("", _reportFilters.ToReportParams());
-
-                // ReportBase? currentReport = await ReportGenerator.GenerateFromTemplate(template, _apiConnection, _userConfig, DefaultInit.DoNothing);
-
-
-                // if (currentReport is ReportCompliance complianceReport)
-                // {
-                //     Logger.TryWriteInfo("Compliance Check", $"Compliance report generated for {complianceReport.ReportData.ElementsCount} rules.", LocalSettings.ComplianceCheckVerbose);
-
-                //     ComplianceReport = complianceReport;
-
-                //     ComplianceReport.Violations.Clear();
-
-                //     await CheckRuleComplianceForAllRules();
-
-                //     Logger.TryWriteInfo("Compliance Check", "Compliance check completed.", true);
-                // }
-                // else
-                // {
-                //     Logger.TryWriteError("Compliance Check", "Could not generate compliance report.", true);
-                // }    
+                await CheckRuleComplianceForAllRules(RulesInCheck); 
             }
             catch (System.Exception e)
             {
@@ -324,7 +310,7 @@ namespace FWO.Compliance
                             ruleIsCompliant &= CheckAssessability(rule, resolvedSources, resolvedDestinations, criterion).Result;
                             break;
                         case nameof(CriterionType.Matrix):
-                            ruleIsCompliant &= await CheckAgainstMatrix(rule, criterion, resolvedSources, resolvedDestinations);
+                            ruleIsCompliant &= await CheckMatrixCompliance(rule, criterion, resolvedSources, resolvedDestinations);
                             break;
                         case nameof(CriterionType.ForbiddenService):
                             ruleIsCompliant &= CheckForForbiddenService(rule, criterion);
@@ -401,24 +387,17 @@ namespace FWO.Compliance
             return forbiddenCommunicationsOutput;
         }
 
-        private async Task<bool> CheckAgainstMatrix(Rule rule, ComplianceCriterion criterion, List<NetworkObject> resolvedSources, List<NetworkObject> resolvedDestinations)
+        private async Task<bool> CheckMatrixCompliance(Rule rule, ComplianceCriterion criterion, List<NetworkObject> resolvedSources, List<NetworkObject> resolvedDestinations)
         {
             Task<List<(NetworkObject networkObject, List<IPAddressRange> ipRanges)>> fromsTask = GetNetworkObjectsWithIpRanges(resolvedSources);
             Task<List<(NetworkObject networkObject, List<IPAddressRange> ipRanges)>> tosTask = GetNetworkObjectsWithIpRanges(resolvedDestinations);
 
             await Task.WhenAll(fromsTask, tosTask);
 
-            bool ruleIsCompliant = CheckMatrixCompliance(rule, fromsTask.Result, tosTask.Result, criterion);
-
-            return ruleIsCompliant;
-        }
-
-        private bool CheckMatrixCompliance(Rule rule, List<(NetworkObject networkObject, List<IPAddressRange> ipRanges)> source, List<(NetworkObject networkObject, List<IPAddressRange> ipRanges)> destination, ComplianceCriterion criterion)
-        {
             bool ruleIsCompliant = true;
 
-            List<(NetworkObject networkObject, List<ComplianceNetworkZone>? networkZones)> sourceZones = MapZonesToNetworkObjects(source);
-            List<(NetworkObject networkObject, List<ComplianceNetworkZone>? networkZones)> destinationZones = MapZonesToNetworkObjects(destination);
+            List<(NetworkObject networkObject, List<ComplianceNetworkZone>? networkZones)> sourceZones = MapZonesToNetworkObjects(fromsTask.Result);
+            List<(NetworkObject networkObject, List<ComplianceNetworkZone>? networkZones)> destinationZones = MapZonesToNetworkObjects(tosTask.Result);
 
             foreach ((NetworkObject networkObject, List<ComplianceNetworkZone>? networkZones) sourceZone in sourceZones)
             {
@@ -449,6 +428,45 @@ namespace FWO.Compliance
 
             return ruleIsCompliant;
         }
+
+
+        // private bool CheckMatrixCompliance(Rule rule, List<(NetworkObject networkObject, List<IPAddressRange> ipRanges)> source, List<(NetworkObject networkObject, List<IPAddressRange> ipRanges)> destination, ComplianceCriterion criterion)
+        // {
+            
+        //     bool ruleIsCompliant = true;
+
+        //     List<(NetworkObject networkObject, List<ComplianceNetworkZone>? networkZones)> sourceZones = MapZonesToNetworkObjects(source);
+        //     List<(NetworkObject networkObject, List<ComplianceNetworkZone>? networkZones)> destinationZones = MapZonesToNetworkObjects(destination);
+
+        //     foreach ((NetworkObject networkObject, List<ComplianceNetworkZone>? networkZones) sourceZone in sourceZones)
+        //     {
+        //         foreach (ComplianceNetworkZone sourceNetworkZone in sourceZone.networkZones ?? [])
+        //         {
+        //             foreach ((NetworkObject networkObject, List<ComplianceNetworkZone>? networkZones) destinationZone in destinationZones)
+        //             {
+        //                 foreach (ComplianceNetworkZone destinationNetworkZone in destinationZone.networkZones ?? [])
+        //                 {
+        //                     if (!sourceNetworkZone.CommunicationAllowedTo(destinationNetworkZone))
+        //                     {
+        //                         ComplianceCheckResult complianceCheckResult = new(rule, ComplianceViolationType.MatrixViolation)
+        //                         {
+        //                             Criterion = criterion,
+        //                             Source = sourceZone.networkObject,
+        //                             SourceZone = sourceNetworkZone,
+        //                             Destination = destinationZone.networkObject,
+        //                             DestinationZone = destinationNetworkZone
+        //                         };
+
+        //                         CreateViolation(ComplianceViolationType.MatrixViolation, rule, complianceCheckResult);
+        //                         ruleIsCompliant = false;
+        //                     }
+        //                 }
+        //             }
+        //         }
+        //     }
+
+        //     return ruleIsCompliant;
+        // }
 
         private void CreateViolation(ComplianceViolationType violationType, Rule rule, ComplianceCheckResult complianceCheckResult)
         {
@@ -514,7 +532,7 @@ namespace FWO.Compliance
                     return;
             }
 
-            _currentViolationsInCheck.Add(violation);
+            CurrentViolationsInCheck.Add(violation);
         }
 
         private string GetNwObjectString(NetworkObject networkObject)
@@ -548,33 +566,21 @@ namespace FWO.Compliance
             return forbiddenCommunication.Count == 0;
         }
 
-        private async Task<List<Rule>> GetRules()
+        private async Task<List<Rule>> GetRelevantManagementsRules(List<int> managementIds)
         {
-            List<Rule> rules = await _apiConnection.SendQueryAsync<List<Rule>>(RuleQueries.getRulesForSelectedManagements);
+            List<Rule>? rules = await _apiConnection.SendQueryAsync<List<Rule>>(RuleQueries.getRulesForSelectedManagements);
+
+            if (rules == null)
+            {
+                rules = [];
+            }
+            else
+            {
+                rules = rules.Where(r => managementIds.Contains(r.MgmtId)).ToList();
+            }
+
             return rules;         
         }
-
-
-        // private async Task SetUpReportFilters()
-        // {
-        //     Logger.TryWriteInfo("Compliance Check", "Setting up report filters for compliance check", LocalSettings.ComplianceCheckVerbose);
-
-        //     _reportFilters = new()
-        //     {
-        //         ReportType = ReportType.ComplianceReport
-        //     };
-
-        //     _reportFilters.DeviceFilter.Managements = await _apiConnection.SendQueryAsync<List<ManagementSelect>>(DeviceQueries.getDevicesByManagement);
-
-        //     foreach (var management in _reportFilters.DeviceFilter.Managements)
-        //     {
-        //         management.Selected = true;
-        //         foreach (var device in management.Devices)
-        //         {
-        //             device.Selected = true;
-        //         }
-        //     }
-        // }
 
         private bool CheckForForbiddenService(Rule rule, ComplianceCriterion criterion)
         {
@@ -645,7 +651,7 @@ namespace FWO.Compliance
 
                 Logger.TryWriteInfo("Compliance Check", $"Created {currentViolations.Count} unique keys for current violations.", LocalSettings.ComplianceCheckVerbose);
 
-                violationsForInsert = _currentViolationsInCheck
+                violationsForInsert = CurrentViolationsInCheck
                     .Where(v => !violationKeys.Contains(CreateUniqueViolationKey(v)))
                     .Select(v => new ComplianceViolationBase
                     {
@@ -689,7 +695,7 @@ namespace FWO.Compliance
 
             foreach (ComplianceViolation existingViolation in existingViolations.Where(ev => ev.RemovedDate == null).ToList())
             {
-                ComplianceViolation? validatedViolation = _currentViolationsInCheck.FirstOrDefault(v => CreateUniqueViolationKey(v) == CreateUniqueViolationKey(existingViolation));
+                ComplianceViolation? validatedViolation = CurrentViolationsInCheck.FirstOrDefault(v => CreateUniqueViolationKey(v) == CreateUniqueViolationKey(existingViolation));
 
                 if (validatedViolation == null)
                 {
@@ -702,9 +708,10 @@ namespace FWO.Compliance
         
         private async Task CheckRuleComplianceForAllRules(List<Rule>? rulesToCheck = null)
         {
-            List<Rule> rules = rulesToCheck ?? ComplianceReport!.ReportData.RulesFlat;
+            List<Rule> rules = rulesToCheck ?? RulesInCheck ?? [];
 
             int nonCompliantRules = 0;
+            int checkedRules = 0;
 
             Logger.TryWriteInfo("Compliance Check", $"Checking compliance for every rule.", LocalSettings.ComplianceCheckVerbose);
 
@@ -716,9 +723,11 @@ namespace FWO.Compliance
                 {
                     nonCompliantRules++;
                 }
+
+                checkedRules++;
             }
 
-            Logger.TryWriteInfo("Compliance Check", $"Checked compliance for every rule and found {nonCompliantRules} non-compliant rules", LocalSettings.ComplianceCheckVerbose);
+            Logger.TryWriteInfo("Compliance Check", $"Checked compliance for {checkedRules} rules and found {nonCompliantRules} non-compliant rules", LocalSettings.ComplianceCheckVerbose);
         }
 
         private List<(NetworkObject networkObject, List<ComplianceNetworkZone>? networkZones)> MapZonesToNetworkObjects(List<(NetworkObject networkObject, List<IPAddressRange> ipRanges)> inputData)
@@ -826,6 +835,32 @@ namespace FWO.Compliance
                 return AssessabilityIssue.HostAddress;
 
             return null;
+        }
+
+        public static List<Management> GetRelevantManagements(GlobalConfig globalConfig, List<Management> managements)
+        {
+            List<Management>? filteredManagements = [];
+            List<int> relevantManagementIDs = [];
+
+            if (!string.IsNullOrEmpty(globalConfig.ComplianceCheckRelevantManagements))
+            {
+                try
+                {
+                    relevantManagementIDs = globalConfig.ComplianceCheckRelevantManagements
+                        .Split(',', StringSplitOptions.RemoveEmptyEntries)
+                        .Select(s => int.Parse(s.Trim()))
+                        .ToList();
+
+                    filteredManagements = managements.Where(m => relevantManagementIDs.Contains(m.Id)).ToList();
+                    
+                }
+                catch (Exception e)
+                {
+                    Log.TryWriteLog(LogType.Error, "Compliance Report", $"Error while parsing relevant mangement IDs: {e.Message}", LocalSettings.ComplianceCheckVerbose);
+                }
+            }
+
+            return filteredManagements;
         }
     }
 }

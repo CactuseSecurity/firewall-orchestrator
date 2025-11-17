@@ -298,6 +298,7 @@ ALTER TABLE owner ADD CONSTRAINT owner_owner_lifecycle_state_foreign_key FOREIGN
 
 
 ------------------------------------------------------------------------------------
+
 -- rename changes_found column to rule_changes_found in import_control table
 DO $$
 BEGIN
@@ -1408,8 +1409,38 @@ INSERT INTO config (config_key, config_value, config_user)
 VALUES ('autoCalculateUndefinedInternalZone', 'true', 0)
 ON CONFLICT (config_key, config_user) DO NOTHING;
 
+INSERT INTO config (config_key, config_value, config_user) 
+VALUES ('autoCalculatedZonesAtTheEnd', 'true', 0)
+ON CONFLICT (config_key, config_user) DO NOTHING;
+
+INSERT INTO config (config_key, config_value, config_user) 
+VALUES ('treatDynamicAndDomainObjectsAsInternet', 'true', 0)
+ON CONFLICT (config_key, config_user) DO NOTHING;
+
+INSERT INTO config (config_key, config_value, config_user) 
+VALUES ('showShortColumnsInComplianceReports', 'true', 0)
+ON CONFLICT (config_key, config_user) DO NOTHING;
+
+INSERT INTO config (config_key, config_value, config_user) 
+VALUES ('autoCalculatedZonesAtTheEnd', 'true', 0)
+ON CONFLICT (config_key, config_user) DO NOTHING;
+
+INSERT INTO config (config_key, config_value, config_user) 
+VALUES ('treatDynamicAndDomainObjectsAsInternet', 'true', 0)
+ON CONFLICT (config_key, config_user) DO NOTHING;
+
+INSERT INTO config (config_key, config_value, config_user) 
+VALUES ('showShortColumnsInComplianceReports', 'true', 0)
+ON CONFLICT (config_key, config_user) DO NOTHING;
+
 -- set deprecated field rule_num to 0 for all rules to avoid inconsistencies
 UPDATE rule SET rule_num = 0;
+
+-- add config value to make imported matrices editable
+
+INSERT INTO config (config_key, config_value, config_user) 
+VALUES ('importedMatrixReadOnly', 'true', 0)
+ON CONFLICT (config_key, config_user) DO NOTHING;
 
 -- adding labels (simple version without mapping tables and without foreign keys)
 

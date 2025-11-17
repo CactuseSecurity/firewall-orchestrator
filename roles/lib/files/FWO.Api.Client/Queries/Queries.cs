@@ -6,7 +6,6 @@ namespace FWO.Api.Client.Queries
 {
     public class Queries
     {
-        // protected static readonly string QueryPath = AppDomain.CurrentDomain.BaseDirectory + "../../../../../../common/files/fwo-api-calls/";
         protected static readonly string QueryPath = GlobalConst.kFwoBaseDir + "/fwo-api-calls/";
 
         protected static string GetQueryText(string relativeQueryFileName)

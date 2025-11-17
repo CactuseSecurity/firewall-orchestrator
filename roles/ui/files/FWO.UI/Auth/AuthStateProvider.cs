@@ -107,10 +107,7 @@ namespace FWO.Ui.Auth
 				userConfig.User.Roles = await GetAllowedRoles(userConfig.User.Jwt);
 				userConfig.User.Ownerships = await GetAssignedOwners(userConfig.User.Jwt);
 				circuitHandler.User = userConfig.User;
-
-				// Add jwt expiry timer
-				JwtEventService.AddJwtTimers(userDn, (int)jwtReader.TimeUntilExpiry().TotalMilliseconds, 1000 * 60 * globalConfig.SessionTimeoutNoticePeriod);
-
+                
 				if (!userConfig.User.PasswordMustBeChanged)
 				{
 					NotifyAuthenticationStateChanged(Task.FromResult(new AuthenticationState(user)));

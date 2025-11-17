@@ -138,7 +138,6 @@
                     actRole.Users.Add(user);
                     roles[roles.FindIndex(x => x.Name == actRole.Name)] = actRole;
                     AddMode = false;
-                    JwtEventService.PermissionsChanged(user.Dn);
 
                     Log.WriteAudit(
                         Title: $"Roles Settings",

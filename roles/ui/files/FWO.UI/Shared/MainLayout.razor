@@ -21,7 +21,6 @@
 @inject AuthenticationStateProvider authenticationProvider
 @inject ProtectedSessionStorage sessionStorage
 @inject CircuitHandler circuitHandler
-@inject IEventMediator EventMediator
 
 @implements IDisposable
 
@@ -116,10 +115,6 @@
         user = authenticationStateTask!.Result.User;
         DisplayMessageInUiFunction = DisplayMessageInUi;
 
-        JwtEventService.OnPermissionChanged += OnPermissionsChanged;
-        JwtEventService.OnJwtAboutToExpire += OnJwtAboutToExpire;
-        JwtEventService.OnJwtExpired += OnJwtExpired;
-
         alertSubscription = apiConnection.GetSubscription<List<Alert>>(ApiExceptionHandler, OnAlertUpdate, MonitorQueries.subscribeAlertChanges);
 
         UIMessageQueTimer = new()
@@ -130,18 +125,6 @@
             };
 
         UIMessageQueTimer.Elapsed += OnUIMessageTimerTick;
-
-        EventMediator.Subscribe<UserSessionClosedEvent>(nameof(CircuitHandlerService), _ => OnUserSessionClosedEvent(_.EventArgs));
-    }
-
-    private void OnUserSessionClosedEvent(UserSessionClosedEventArgs? e)
-    {
-        if (e == null || string.IsNullOrEmpty(e.UserDn))
-        {
-            return;
-        }
-
-        JwtEventService.RemoveJwtTimers(e.UserDn);
     }
 
     private async Task KeyHandler(KeyboardEventArgs ev)
@@ -158,14 +141,6 @@
         if (userDn == userConfig.User.Dn)
         {
             ShowReloginDialog(userConfig.GetText("permissions_title"), userConfig.GetText("permissions_text"), reloginAbortable: true);
-        }
-    }
-
-    private void OnJwtAboutToExpire(object? sender, string userDn)
-    {
-        if (userDn == userConfig.User.Dn)
-        {
-            ShowReloginDialog(userConfig.GetText("jwt_expiry_title"), userConfig.GetText("jwt_expiry_text"), reloginAbortable: true);
         }
     }
 
@@ -477,10 +452,6 @@
 
 	public void Dispose()
     {
-        JwtEventService.OnPermissionChanged -= OnPermissionsChanged;
-        JwtEventService.OnJwtAboutToExpire -= OnJwtAboutToExpire;
-        JwtEventService.OnJwtExpired -= OnJwtExpired;
-
         if(UIMessageQueTimer is not null)
         {
             UIMessageQueTimer.Stop();
@@ -489,7 +460,5 @@
         }
 
         alertSubscription?.Dispose();
-
-		EventMediator.Unsubscribe<UserSessionClosedEvent>(nameof(CircuitHandlerService));
 	}
 }

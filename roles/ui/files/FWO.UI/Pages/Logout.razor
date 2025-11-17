@@ -27,7 +27,6 @@
         // Clear the jwt and deauthenticate
         await sessionStorage.DeleteAsync("jwt");
         ((AuthStateProvider)AuthService).Deauthenticate();
-        JwtEventService.RemoveJwtTimers(userConfig.User.Dn);
 
         // Write an audit log that the user logged out
         UiUser user = userConfig.User;

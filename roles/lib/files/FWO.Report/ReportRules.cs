@@ -81,7 +81,7 @@ namespace FWO.Report
             TryBuildRuleTree();
         }
 
-        private void TryBuildRuleTree()
+        protected void TryBuildRuleTree()
         {
             int ruleCount = 0;
 

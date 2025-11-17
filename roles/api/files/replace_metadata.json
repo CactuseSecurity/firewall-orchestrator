@@ -8838,6 +8838,18 @@
                   }
                 },
                 {
+                  "name": "rule_metadata",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "mgm_id",
+                      "table": {
+                        "name": "rule_metadata",
+                        "schema": "public"
+                      }
+                    }
+                  }
+                },
+                {
                   "name": "rule_nwobj_resolveds",
                   "using": {
                     "foreign_key_constraint_on": {
@@ -15851,6 +15863,12 @@
               },
               "object_relationships": [
                 {
+                  "name": "management",
+                  "using": {
+                    "foreign_key_constraint_on": "mgm_id"
+                  }
+                },
+                {
                   "name": "uiuser",
                   "using": {
                     "foreign_key_constraint_on": "rule_owner"
@@ -15908,6 +15926,7 @@
                     "check": {},
                     "columns": [
                       "last_change_admin",
+                      "mgm_id",
                       "rule_created",
                       "rule_decert_date",
                       "rule_first_hit",
@@ -15933,6 +15952,7 @@
                   "permission": {
                     "columns": [
                       "last_change_admin",
+                      "mgm_id",
                       "rule_created",
                       "rule_decert_date",
                       "rule_first_hit",
@@ -15958,6 +15978,7 @@
                   "permission": {
                     "columns": [
                       "last_change_admin",
+                      "mgm_id",
                       "rule_created",
                       "rule_decert_date",
                       "rule_first_hit",
@@ -15983,6 +16004,7 @@
                   "permission": {
                     "columns": [
                       "last_change_admin",
+                      "mgm_id",
                       "rule_created",
                       "rule_decert_date",
                       "rule_first_hit",
@@ -16008,6 +16030,7 @@
                   "permission": {
                     "columns": [
                       "last_change_admin",
+                      "mgm_id",
                       "rule_created",
                       "rule_decert_date",
                       "rule_first_hit",
@@ -16033,6 +16056,7 @@
                   "permission": {
                     "columns": [
                       "last_change_admin",
+                      "mgm_id",
                       "rule_created",
                       "rule_decert_date",
                       "rule_first_hit",
@@ -16058,6 +16082,7 @@
                   "permission": {
                     "columns": [
                       "last_change_admin",
+                      "mgm_id",
                       "rule_created",
                       "rule_decert_date",
                       "rule_first_hit",
@@ -16083,6 +16108,7 @@
                   "permission": {
                     "columns": [
                       "last_change_admin",
+                      "mgm_id",
                       "rule_created",
                       "rule_decert_date",
                       "rule_first_hit",
@@ -16108,6 +16134,7 @@
                   "permission": {
                     "columns": [
                       "last_change_admin",
+                      "mgm_id",
                       "rule_created",
                       "rule_decert_date",
                       "rule_first_hit",
@@ -16135,6 +16162,7 @@
                   "permission": {
                     "columns": [
                       "last_change_admin",
+                      "mgm_id",
                       "rule_created",
                       "rule_decert_date",
                       "rule_first_hit",

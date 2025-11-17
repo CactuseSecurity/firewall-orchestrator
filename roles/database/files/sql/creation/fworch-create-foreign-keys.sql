@@ -126,6 +126,8 @@ Alter table "rule_metadata" add constraint "rule_metadata_rule_last_certifier_ui
   foreign key ("rule_last_certifier") references "uiuser" ("uiuser_id") on update restrict on delete cascade;
 Alter table "rule_metadata" add constraint "rule_metadata_rule_owner_uiuser_uiuser_id_f_key"
   foreign key ("rule_owner") references "uiuser" ("uiuser_id") on update restrict on delete cascade;
+ALTER TABLE rule_metadata ADD CONSTRAINT rule_metadata_mgm_id_management_id_fk FOREIGN KEY (mgm_id) REFERENCES management(mgm_id)
+ON update restrict on delete cascade;
 
 Alter table "rule_enforced_on_gateway" add CONSTRAINT fk_rule_enforced_on_gateway_rule_rule_id foreign key ("rule_id") references "rule" ("rule_id") on update restrict on delete cascade;
 Alter table "rule_enforced_on_gateway" add CONSTRAINT fk_rule_enforced_on_gateway_device_dev_id foreign key ("dev_id") references "device" ("dev_id") on update restrict on delete cascade;

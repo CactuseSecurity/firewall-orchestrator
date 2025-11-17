@@ -131,8 +131,8 @@ def create_rule_from_acl_entry(access_list_name: str, entry: AccessListEntry,
         rule_svc_refs=svc_ref,
         rule_action=RuleAction.ACCEPT if entry.action == "permit" else RuleAction.DROP,
         rule_track=RuleTrack.NONE,
-        rule_installon="", #gateway_uid, TODO: commented out for now to avoid duplication issues
-        rule_time="",
+        rule_installon=None, #gateway_uid, TODO: commented out for now to avoid duplication issues
+        rule_time=None,
         rule_name=access_list_name,
         rule_uid=rule_uid,
         rule_custom_fields=None,

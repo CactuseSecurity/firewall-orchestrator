@@ -30,13 +30,11 @@ namespace FWO.Ui.Auth
 
         public override async Task<AuthenticationState> GetAuthenticationStateAsync()
         {
-            //await tokenService.InitializeAsync();
-
             return await Task.FromResult(new AuthenticationState(user));
         }
 
         public async Task<RestResponse<TokenPair>> Authenticate(string username, string password, ApiConnection apiConnection, MiddlewareClient middlewareClient,
-			GlobalConfig globalConfig, UserConfig userConfig, ProtectedSessionStorage sessionStorage, CircuitHandlerService circuitHandler)
+			GlobalConfig globalConfig, UserConfig userConfig, CircuitHandlerService circuitHandler)
 		{
 			// There is no jwt in session storage. Get one from auth module.
 			AuthenticationTokenGetParameters authenticationParameters = new() { Username = username, Password = password };

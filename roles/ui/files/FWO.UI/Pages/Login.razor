@@ -148,7 +148,8 @@
                 {
                     if(jwtLoadRequest.Value?.AccessToken is not null)
                     {
-                        await ((AuthStateProvider)AuthService).Authenticate(jwtLoadRequest.Value.AccessToken, ApiConnection, middlewareClient, globalConfig, userConfig, ((CircuitHandlerService)circuitHandler));
+                        await ((AuthStateProvider)AuthService)
+                            .Authenticate(jwtLoadRequest.Value.AccessToken, ApiConnection, middlewareClient, globalConfig, userConfig, ((CircuitHandlerService)circuitHandler));
 
                         return;
                     }
@@ -206,14 +207,14 @@
 
     private async Task LoginSubmit()
     {
-        if(loginInProgress == false)
+        if(!loginInProgress)
         {
             loginInProgress = true;
 
             try
             {
                 RestResponse<TokenPair> authResponse = await ((AuthStateProvider)AuthService)
-                .Authenticate(Username, Password, ApiConnection, middlewareClient, globalConfig, userConfig, sessionStorage, ((CircuitHandlerService)circuitHandler));
+                    .Authenticate(Username, Password, ApiConnection, middlewareClient, globalConfig, userConfig, ((CircuitHandlerService)circuitHandler));
 
                 if(authResponse.StatusCode == HttpStatusCode.OK)
                 {
@@ -272,7 +273,7 @@
 
     private async Task ChangePassword()
     {
-        if(passwordChangeInProgress == false)
+        if(!passwordChangeInProgress)
         {
             passwordChangeInProgress = true;
             try

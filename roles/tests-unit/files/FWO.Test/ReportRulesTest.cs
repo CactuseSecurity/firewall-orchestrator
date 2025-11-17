@@ -110,7 +110,7 @@ namespace FWO.Test
         }
 
         [Test]
-        public void Test_ContainsRules_Scenarios()
+        public void Test_ContainsRules_ReturnsTrue_WhenRulesExist()
         {
             var rulebaseReport = MockReportRules.CreateRulebaseReport();
 
@@ -409,6 +409,50 @@ namespace FWO.Test
             }
                 }
             );
+
+
+            /*
+            new RulebaseLink
+{
+    GatewayId = 42,
+    IsInitial = true,
+    ToRulebase = rb2,
+    NextRulebaseId = rb2.Id,
+    LinkType = 2  // reguläre Verbindung
+},
+new RulebaseLink
+{
+    GatewayId = 42,
+    ToRulebase = rb1,
+    NextRulebaseId = rb1.Id,
+    FromRulebaseId = rb2.Id,
+    IsSection = true,
+    LinkType = 4  // Abschnitt
+},
+new RulebaseLink
+{
+    GatewayId = 42,
+    ToRulebase = rb3,
+    NextRulebaseId = rb3.Id,
+    FromRulebaseId = rb1.Id,
+    LinkType = 2  // reguläre Verbindung
+}
+            // Daten erweitern
+var rulebaseLinks = new List<RulebaseLink>
+{
+
+};
+
+// RuleTreeBuilder oder ReportRules instanzieren (je nach Kontext)
+
+// RuleTree bauen
+reportRules.TryBuildRuleTree();
+
+// Zugriff auf den RuleTree erfolgt intern über reportRules.RuleTree
+
+
+            */
+
 
             List<ManagementReport> SetupData() => new()
     {

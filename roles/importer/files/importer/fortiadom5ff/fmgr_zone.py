@@ -65,4 +65,4 @@ def find_zones_in_normalized_config(native_zone_list : list, normalized_config_a
                 break
         if not was_zone_found:
             raise FwoNormalizedConfigParseError('Could not find zone ' + nativ_zone + ' in normalized config.')
-    return zone_out_list
+    return sorted(zone_out_list)

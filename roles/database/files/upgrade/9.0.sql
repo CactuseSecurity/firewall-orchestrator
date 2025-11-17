@@ -1677,6 +1677,145 @@ ON CONFLICT (config_key, config_user) DO NOTHING;
 -- ALTER TABLE "rule_to" DROP COLUMN IF EXISTS "rt_last_seen";
 -- ALTER TABLE "rule_service" DROP COLUMN IF EXISTS "rs_last_seen";
 
+
+-- add crosstabulations rules with zone for source and destination
+
+--crosstabulation rule zone for source
+Create table IF NOT EXISTS "rule_from_zone"
+(
+	"rule_id" BIGINT NOT NULL,
+	"zone_id" Integer NOT NULL,
+	"created" BIGINT NOT NULL,
+	"removed" BIGINT,
+	primary key (rule_id, zone_id, created)
+);
+
+--crosstabulation rule zone for destination
+Create table IF NOT EXISTS "rule_to_zone"
+(
+	"rule_id" BIGINT NOT NULL,
+	"zone_id" Integer NOT NULL,
+	"created" BIGINT NOT NULL,
+	"removed" BIGINT,
+	primary key (rule_id, zone_id, created)
+);
+
+--crosstabulation rule zone for destination FKs
+ALTER TABLE "rule_to_zone" 
+DROP CONSTRAINT IF EXISTS fk_rule_to_zone_rule_id_rule_rule_id;
+ALTER TABLE "rule_to_zone"
+DROP CONSTRAINT IF EXISTS fk_rule_to_zone_zone_id_zone_zone_id;
+
+ALTER TABLE "rule_to_zone"
+ADD CONSTRAINT fk_rule_to_zone_rule_id_rule_rule_id FOREIGN KEY ("rule_id") REFERENCES "rule" ("rule_id");
+ALTER TABLE "rule_to_zone"
+ADD CONSTRAINT fk_rule_to_zone_zone_id_zone_zone_id FOREIGN KEY ("zone_id") REFERENCES "zone" ("zone_id");
+
+--crosstabulation rule zone for source FKs
+ALTER TABLE "rule_from_zone" 
+DROP CONSTRAINT IF EXISTS fk_rule_from_zone_rule_id_rule_rule_id;
+ALTER TABLE "rule_from_zone"
+DROP CONSTRAINT IF EXISTS fk_rule_from_zone_zone_id_zone_zone_id;
+
+ALTER TABLE "rule_from_zone"
+ADD CONSTRAINT fk_rule_from_zone_rule_id_rule_rule_id FOREIGN KEY ("rule_id") REFERENCES "rule" ("rule_id");
+ALTER TABLE "rule_from_zone"
+ADD CONSTRAINT fk_rule_from_zone_zone_id_zone_zone_id FOREIGN KEY ("zone_id") REFERENCES "zone" ("zone_id");
+
+
+-- initial fill script for rule_from_zones and rule_to_zones
+DO $$
+DECLARE
+    inserted_source INT := 0;
+    inserted_destination INT := 0;
+    remaining_source INT:= 0;
+    remaining_destination INT:= 0;
+	col_exists_source BOOLEAN;
+    col_exists_destination BOOLEAN;
+	count_from_zone_in_rule_after_update INT:= 0;
+    count_to_zone_in_rule_after_update INT:= 0;
+	
+	
+BEGIN
+	-- Check column rule_from_zone exists
+    SELECT EXISTS (
+        SELECT 1
+        FROM information_schema.columns
+        WHERE table_name='rule'
+          AND column_name='rule_from_zone'
+    ) INTO col_exists_source;
+
+    -- Check column rule_to_zone exists
+    SELECT EXISTS (
+        SELECT 1
+        FROM information_schema.columns
+        WHERE table_name='rule'
+          AND column_name='rule_to_zone'
+    ) INTO col_exists_destination;
+
+    IF col_exists_source AND NOT EXISTS (SELECT 1 FROM rule_from_zone) THEN
+		INSERT INTO rule_from_zone (rule_id, zone_id, created, removed)
+		SELECT rule_id, rule_from_zone, rule_create, removed
+		FROM rule
+		WHERE rule_from_zone IS NOT NULL;					
+		GET DIAGNOSTICS inserted_source = ROW_COUNT;
+		
+		-- Count the existing rule_from_zone and rule_to_zone
+		SELECT COUNT(*) INTO remaining_source
+		FROM rule
+		WHERE rule_from_zone IS NOT NULL;
+		
+    ELSE
+       -- RAISE NOTICE 'Table does not exist or is not empty';
+    END IF;
+	
+	IF col_exists_destination AND NOT EXISTS (SELECT 1 FROM rule_to_zone) THEN
+		INSERT INTO rule_to_zone (rule_id, zone_id, created, removed)
+		SELECT rule_id, rule_to_zone, rule_create, removed
+		FROM rule
+		WHERE rule_to_zone IS NOT NULL;				
+		GET DIAGNOSTICS inserted_destination = ROW_COUNT;
+		
+		-- Count the existing rule_from_zone and rule_to_zone
+		SELECT COUNT(*) INTO remaining_destination
+		FROM rule
+		WHERE rule_to_zone IS NOT NULL;	
+		
+    ELSE
+       -- RAISE NOTICE 'Table does not exist or is not empty';	  
+    END IF;
+				
+	IF (col_exists_source OR col_exists_destination) AND
+		(remaining_source + remaining_destination = inserted_source + inserted_destination) Then
+			UPDATE rule
+			SET rule_from_zone = NULL,
+				rule_to_zone = NULL
+			WHERE rule_from_zone IS NOT NULL
+			OR rule_to_zone IS NOT NULL;			
+	END IF;
+	
+	IF (col_exists_source OR col_exists_destination) Then
+		SELECT COUNT(*) INTO count_from_zone_in_rule_after_update FROM rule WHERE rule_from_zone IS NOT NULL;
+		SELECT COUNT(*) INTO count_to_zone_in_rule_after_update FROM rule WHERE rule_to_zone IS NOT NULL;
+
+         IF count_from_zone_in_rule_after_update > 0 OR count_to_zone_in_rule_after_update > 0 THEN
+            RAISE EXCEPTION 'Cannot drop columns: non-null values remain (from_zone: %, to_zone: %)', count_from_zone_in_rule_after_update, count_to_zone_in_rule_after_update;
+        END IF;
+
+        END IF;
+				
+		--ALTER TABLE rule
+		--DROP CONSTRAINT IF EXISTS rule_rule_from_zone_fkey,
+		--DROP CONSTRAINT IF EXISTS rule_rule_to_zone_fkey;
+		
+		--For dropping columns needed Views to be dropped/replaced where columns are included
+		--ALTER TABLE rule
+		--DROP COLUMN IF EXISTS rule_from_zone,
+		--DROP COLUMN IF EXISTS rule_to_zone;	
+END
+$$;
+
+
 insert into stm_dev_typ (dev_typ_id,dev_typ_name,dev_typ_version,dev_typ_manufacturer,dev_typ_predef_svc,dev_typ_is_multi_mgmt,dev_typ_is_mgmt,is_pure_routing_device)
     VALUES (28,'Cisco Asa','9','Cisco','',false,true,false)
     ON CONFLICT (dev_typ_id) DO NOTHING;

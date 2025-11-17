@@ -1,4 +1,4 @@
-﻿using FWO.Basics;
+using FWO.Basics;
 using FWO.Data;
 using FWO.Config.Api;
 using FWO.Report.Filter;
@@ -36,9 +36,9 @@ namespace FWO.Ui.Display
             return DisplayJsonString("name", name);
         }
 
-        public string DisplaySourceZone(string? sourceZone)
+        public string DisplayRuleSourceZones(NetworkZone[] networkZones)
         {
-            return DisplayJsonString("source zone", sourceZone);
+            return DisplayJsonArray("source zones", ListNetworkZones(networkZones));
         }
 
         public string DisplaySourceNegated(bool sourceNegated)
@@ -51,9 +51,9 @@ namespace FWO.Ui.Display
             return DisplayJsonArray("source", ListNetworkLocations(rule, reportType, true));
         }
 
-        public string DisplayDestinationZone(string? destinationZone)
+        public string DisplayRuleDestinationZones(NetworkZone[] networkZones)
         {
-            return DisplayJsonString("destination zone", destinationZone);
+            return DisplayJsonArray("destination zones", ListNetworkZones(networkZones));
         }
 
         public string DisplayDestinationNegated(bool destinationNegated)
@@ -127,6 +127,16 @@ namespace FWO.Ui.Display
                 return(string.Join(",", displayedServices));
             }
             return "";
+        }
+
+        protected string ListNetworkZones(NetworkZone[] networkZones)
+        {
+            List<string> displayedZones = new List<string>();
+            foreach (NetworkZone networkZone in networkZones)
+            {
+                displayedZones.Add(Quote(networkZone.Name));
+            }
+            return string.Join(",", displayedZones);
         }
     }
 }

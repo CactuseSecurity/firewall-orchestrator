@@ -139,6 +139,8 @@
                     roles[roles.FindIndex(x => x.Name == actRole.Name)] = actRole;
                     AddMode = false;
 
+                    JwtEventService.PermissionsChanged(user.Dn);
+
                     Log.WriteAudit(
                         Title: $"Roles Settings",
                         Text: $"Added User/Group: {user.Name} (DN: {user.Dn}) to Role: {actRole.Name} (DN: {actRole.Dn})",

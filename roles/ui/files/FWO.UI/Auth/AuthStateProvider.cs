@@ -110,12 +110,18 @@ namespace FWO.Ui.Auth
 			}
 			else
 			{
-				Deauthenticate();
+				await Deauthenticate();
 			}
 		}
 
-		public void Deauthenticate()
+        /// <summary>
+        /// Deauthenticate the current user and clear session storage.
+        /// </summary>
+        /// <returns></returns>
+		public async Task Deauthenticate()
 		{
+            await tokenService.ClearTokenPair();
+
 			user = new ClaimsPrincipal(new ClaimsIdentity());
 			NotifyAuthenticationStateChanged(Task.FromResult(new AuthenticationState(user)));
 		}

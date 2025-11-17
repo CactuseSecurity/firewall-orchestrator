@@ -115,6 +115,9 @@
         user = authenticationStateTask!.Result.User;
         DisplayMessageInUiFunction = DisplayMessageInUi;
 
+        JwtEventService.OnPermissionChanged += OnPermissionsChanged;
+        JwtEventService.OnJwtExpired += OnJwtExpired;
+
         alertSubscription = apiConnection.GetSubscription<List<Alert>>(ApiExceptionHandler, OnAlertUpdate, MonitorQueries.subscribeAlertChanges);
 
         UIMessageQueTimer = new()

@@ -8,7 +8,8 @@ namespace FWO.Ui.Services
 {
     public sealed partial class UrlSanitizer : IUrlSanitizer
     {
-        const char PathDelimiter = '/';
+        private const char PathDelimiter = '/';
+        private const string HelpPathPrefix = "/help";
 
 
         public string? Clean(string input)
@@ -24,9 +25,10 @@ namespace FWO.Ui.Services
 
             string decoded = HttpUtility.UrlDecode(normalizedInput);
             decoded = HttpUtility.HtmlDecode(decoded);
-            if (MyRegex().IsMatch(decoded) ||
-                MyRegex1().IsMatch(decoded) ||
-                MyRegex2().IsMatch(decoded)
+            if (ScriptTagRegex().IsMatch(decoded) ||
+                EventHandlerAttributeRegex().IsMatch(decoded) ||
+                JavascriptSchemeRegex().IsMatch(decoded) ||
+                DangerousHtmlTagRegex().IsMatch(decoded)
             ) // e.g. onload=, onclick=
             {
                 BlockingUrlLog(input);
@@ -43,6 +45,16 @@ namespace FWO.Ui.Services
             {
                 BlockingUrlLog(input);
                 return null;
+            }
+
+            if (uri.AbsolutePath.StartsWith(HelpPathPrefix, StringComparison.OrdinalIgnoreCase))
+            {
+                var decodedPathAndQuery = HttpUtility.UrlDecode(uri.PathAndQuery) ?? string.Empty;
+                if (!HelpPathWhitelistRegex().IsMatch(decodedPathAndQuery))
+                {
+                    BlockingUrlLog(input);
+                    return null;
+                }
             }
             // Sanitize path segments
             var sanitizedPath = string.Join(PathDelimiter, uri.Segments
@@ -91,13 +103,19 @@ namespace FWO.Ui.Services
         }
 
         [GeneratedRegex(@"<\s*script\b", RegexOptions.IgnoreCase, "en-US")]
-        private static partial Regex MyRegex();
+        private static partial Regex ScriptTagRegex();
 
         [GeneratedRegex(@"on\w+\s*=", RegexOptions.IgnoreCase, "en-US")]
-        private static partial Regex MyRegex1();
+        private static partial Regex EventHandlerAttributeRegex();
 
         [GeneratedRegex(@"javascript\s*:", RegexOptions.IgnoreCase, "en-US")]
-        private static partial Regex MyRegex2();
+        private static partial Regex JavascriptSchemeRegex();
+
+        [GeneratedRegex(@"<\s*/?\s*(a|img|iframe|svg|object|embed|link|meta|style|body|html|form|input|video|audio)\b", RegexOptions.IgnoreCase, "en-US")]
+        private static partial Regex DangerousHtmlTagRegex();
+
+        [GeneratedRegex(@"^[a-zA-Z0-9/_\-\.\?\&=,:;]*$", RegexOptions.IgnoreCase, "en-US")]
+        private static partial Regex HelpPathWhitelistRegex();
     }
 
 }

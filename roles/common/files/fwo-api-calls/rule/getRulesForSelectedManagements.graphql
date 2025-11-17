@@ -1,0 +1,23 @@
+query getRulesForSelectedManagements($active: Boolean, $mgm_ids: [Int!]) {
+  rule(order_by: { rule_uid: asc }, where: { removed: { _is_null: true } mgm_id: { _in: $mgm_ids }}) {
+    rule_src
+    rule_dst
+    violations: compliance_violations_version_agnostic( where: { removed_date: { _is_null: true } }) {
+      id
+      rule_id
+      rule_uid
+      mgmt_uid
+      found_date
+      removed_date
+      details
+      risk_score
+      policy_id
+      criterion_id
+      criterion: criterion{
+        id
+        name
+        criterion_type
+      }
+    }
+  }
+}

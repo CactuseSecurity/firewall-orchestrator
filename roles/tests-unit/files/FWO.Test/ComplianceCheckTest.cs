@@ -1,9 +1,13 @@
+using FWO.Api.Client;
+using FWO.Api.Client.Queries;
 using FWO.Basics;
 using FWO.Compliance;
 using FWO.Config.Api;
 using FWO.Data;
+using FWO.Logging;
 using FWO.Test.Mocks;
 using NetTools;
+using NSubstitute;
 using NUnit.Framework;
 
 namespace FWO.Test
@@ -18,17 +22,35 @@ namespace FWO.Test
         private List<Rule>[] _ruleChunks = default!;
         private GlobalConfig _globalConfig = default!;
         private UserConfig _userConfig = default!;
+        private MockApiConnection _apiConnection = default!;
+        private MockLogger _logger = default!;
+
+        // Expected tests
+
+        private const string PolicyIdZero = "Compliance Check - No Policy defined. Compliance check not possible.";
+        private const string PolicyNull = "Compliance Check - Policy with id 1 not found.";
+        private const string NoCriteria = "Compliance Check - Policy without criteria. Compliance check not possible";
+        private const string NoViolations = "Compliance Check - Compliance check completed.";
+        // Parameters for test configuration
+
+        private bool _ = true;
 
         [SetUp]
         public void SetUpTest()
         {
+            LocalSettings.ComplianceCheckVerbose = true;
+
+            _apiConnection = new();
+            _logger = new();
             _globalConfig = new SimulatedGlobalConfig { AutoCalculateInternetZone = true, AutoCalculateUndefinedInternalZone = true, TreatDynamicAndDomainObjectsAsInternet = true };
             _userConfig = new UserConfig(_globalConfig, false);
-            _complianceCheck = new ComplianceCheck(_userConfig, new SimulatedApiConnection());
+            _complianceCheck = new ComplianceCheck(_userConfig, _apiConnection, _logger.AsSub());
             _complianceCheck.Policy = CreatePolicy();
             _complianceCheck.NetworkZones = CreateNetworkZones(50);
             _complianceCheck.ComplianceReport = new(new(""), _userConfig, ReportType.ComplianceReport);
-            LocalSettings.ComplianceCheckVerbose = true;
+            
+
+
         }
 
         #endregion
@@ -38,9 +60,22 @@ namespace FWO.Test
         [Test]
         public async Task CheckAll_PolicyIdZero_AbortCheckWithLog()
         {
+            // Act
+
+            await _complianceCheck.CheckAll();
+
+            // Assert
+
+            Assert.That(_globalConfig.ComplianceCheckPolicyId == 0, "Default policy ID should be zero for this test.");
+            Assert.That(_logger.Logmessages.Values.Any(m => m.Contains(PolicyIdZero)), "Expected log message not found.");
+        }
+
+        [Test]
+        public async Task CheckAll_PolicyNull_AbortCheckWithLog()
+        {
             // Arrange
 
-
+            _globalConfig.ComplianceCheckPolicyId = 1;
 
             // Act
 
@@ -48,7 +83,61 @@ namespace FWO.Test
 
             // Assert
 
+            Assert.That(_globalConfig.ComplianceCheckPolicyId != 0, "Default policy ID should not be zero for this test.");
+            Assert.That(_complianceCheck.Policy == null, "Policy should be null for this test.");
+            Assert.That(_logger.Logmessages.Values.Any(m => m.Contains(PolicyNull)), "Expected log message not found.");
         }
+
+        [Test]
+        public async Task CheckAll_NoCriteria_AbortCheckWithLog()
+        {
+            // Arrange
+
+            _globalConfig.ComplianceCheckPolicyId = 1;
+
+            _apiConnection.AsSub()
+                .SendQueryAsync<CompliancePolicy>(Arg.Any<string>(), Arg.Any<object>())
+                .Returns(new CompliancePolicy()); // Policy with no criteria
+
+            // Act
+
+            await _complianceCheck.CheckAll();
+
+            // Assert
+
+            Assert.That(_globalConfig.ComplianceCheckPolicyId != 0, "Default policy ID should not be zero for this test.");
+            Assert.That(_complianceCheck.Policy != null, "Policy should not be null for this test.");
+            Assert.That(_logger.Logmessages.Values.Any(m => m.Contains(NoCriteria)), "Expected log message not found.");
+        }
+
+        [Test]
+        public async Task CheckAll_NoViolations_CompleteWithLog()
+        {
+            // Arrange
+
+            _globalConfig.ComplianceCheckPolicyId = 1;
+
+            _apiConnection.AsSub()
+                .SendQueryAsync<CompliancePolicy>(ComplianceQueries.getPolicyById, Arg.Any<object>())
+                .Returns(CreatePolicy()); // Policy with criteria
+
+            //_apiConnection.AsSub()
+
+
+
+                //_apiConnection.SendQueryAsync<List<ManagementSelect>>(DeviceQueries.getDevicesByManagement);
+
+            // Act
+
+            await _complianceCheck.CheckAll();
+
+            // Assert
+
+            Assert.That(_globalConfig.ComplianceCheckPolicyId != 0, "Default policy ID should not be zero for this test.");
+            Assert.That(_complianceCheck.Policy != null, "Policy should not be null for this test.");
+            Assert.That(_logger.Logmessages.Values.Any(m => m.Contains(NoViolations)), "Unexpected violations.");
+        }
+
 
         #endregion
 

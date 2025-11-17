@@ -8,12 +8,21 @@ namespace FWO.Logging
         public Dictionary<DateTime, string> Logmessages = new();
         protected override void Configure(ILogger sub)
         {
-                        // Info
+            // Info
+
             sub.When(x => x.TryWriteInfo(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<bool>()))
                .Do(ci =>
                {
                     Logmessages[DateTime.Now] = $"{ci.ArgAt<string>(0)} - {ci.ArgAt<string>(1)}";
                });
+
+            // Error
+            sub.When(x => x.TryWriteError(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<bool>()))
+               .Do(ci =>
+               {
+                    Logmessages[DateTime.Now] = $"{ci.ArgAt<string>(0)} - {ci.ArgAt<string>(1)}";
+               });
+
 
         }
     }

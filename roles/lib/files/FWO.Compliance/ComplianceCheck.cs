@@ -328,7 +328,7 @@ namespace FWO.Compliance
         {
             List<IPAddressRange> ranges = [];
 
-            if (networkObject.Type.Name == ObjectType.IPRange )
+            if (networkObject.Type.Name == ObjectType.IPRange || (networkObject.Type.Name == ObjectType.Network && networkObject.IP.Equals(networkObject.IpEnd) == false))
             {
                 if (IPAddress.TryParse(networkObject.IP.StripOffNetmask(), out IPAddress? ipStart) && IPAddress.TryParse(networkObject.IpEnd.StripOffNetmask(), out IPAddress? ipEnd))
                 {
@@ -428,45 +428,6 @@ namespace FWO.Compliance
 
             return ruleIsCompliant;
         }
-
-
-        // private bool CheckMatrixCompliance(Rule rule, List<(NetworkObject networkObject, List<IPAddressRange> ipRanges)> source, List<(NetworkObject networkObject, List<IPAddressRange> ipRanges)> destination, ComplianceCriterion criterion)
-        // {
-            
-        //     bool ruleIsCompliant = true;
-
-        //     List<(NetworkObject networkObject, List<ComplianceNetworkZone>? networkZones)> sourceZones = MapZonesToNetworkObjects(source);
-        //     List<(NetworkObject networkObject, List<ComplianceNetworkZone>? networkZones)> destinationZones = MapZonesToNetworkObjects(destination);
-
-        //     foreach ((NetworkObject networkObject, List<ComplianceNetworkZone>? networkZones) sourceZone in sourceZones)
-        //     {
-        //         foreach (ComplianceNetworkZone sourceNetworkZone in sourceZone.networkZones ?? [])
-        //         {
-        //             foreach ((NetworkObject networkObject, List<ComplianceNetworkZone>? networkZones) destinationZone in destinationZones)
-        //             {
-        //                 foreach (ComplianceNetworkZone destinationNetworkZone in destinationZone.networkZones ?? [])
-        //                 {
-        //                     if (!sourceNetworkZone.CommunicationAllowedTo(destinationNetworkZone))
-        //                     {
-        //                         ComplianceCheckResult complianceCheckResult = new(rule, ComplianceViolationType.MatrixViolation)
-        //                         {
-        //                             Criterion = criterion,
-        //                             Source = sourceZone.networkObject,
-        //                             SourceZone = sourceNetworkZone,
-        //                             Destination = destinationZone.networkObject,
-        //                             DestinationZone = destinationNetworkZone
-        //                         };
-
-        //                         CreateViolation(ComplianceViolationType.MatrixViolation, rule, complianceCheckResult);
-        //                         ruleIsCompliant = false;
-        //                     }
-        //                 }
-        //             }
-        //         }
-        //     }
-
-        //     return ruleIsCompliant;
-        // }
 
         private void CreateViolation(ComplianceViolationType violationType, Rule rule, ComplianceCheckResult complianceCheckResult)
         {
@@ -753,6 +714,11 @@ namespace FWO.Compliance
                 }
                 else if (dataItem.ipRanges.Count > 0)
                 {
+                    if (TryGetAssessabilityIssue(dataItem.networkObject) != null)
+                    {
+                        continue;
+                    }
+
                     networkZones = DetermineZones(dataItem.ipRanges);
                 }
                 

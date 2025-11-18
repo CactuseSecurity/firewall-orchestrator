@@ -25,6 +25,7 @@ namespace FWO.Test
         private UserConfig _userConfig = default!;
         private MockApiConnection _apiConnection = default!;
         private MockLogger _logger = default!;
+        private CompliancePolicy? _policy = null;
 
         // Expected logs
 
@@ -33,11 +34,13 @@ namespace FWO.Test
         private const string NoCriteria = "Compliance Check - Policy without criteria. Compliance check not possible";
         private const string NoRelevantManager = "Compliance Check - No relevant managements found. Compliance check not possible.";
         private const string NoViolations = "Compliance Check - Checked compliance for 5 rules and found 0 non-compliant rules";
-        private const string BasicSetup = "Compliance Check - Checked compliance for 5 rules and found 3 non-compliant rules";
+        private const string BasicSetup = "Compliance Check - Checked compliance for 5 rules and found 4 non-compliant rules";
 
         // Parameters for test configuration
 
         private const string ForbiddenServiceUid = "forbidden-service-uid";
+        private const string ExpectedViolationDetailsAutoCalcTrue = "Matrix violation: source-uid-rule3 (3.0.0.0-4.0.0.0) (Zone: Auto-calculated Internet Zone) -> destination-uid-rule3 (128.0.0.0-168.0.0.0) (Zone: 128-168 Zone)";
+        private const string ExpectedViolationDetailsAutoCalcFalse = "Matrix violation: source-uid-rule3 (3.0.0.0-4.0.0.0) (Zone: Internet/Local) -> destination-uid-rule3 (128.0.0.0-168.0.0.0) (Zone: 128-168 Zone)";
 
         [SetUp]
         public void SetUpTest()
@@ -59,7 +62,7 @@ namespace FWO.Test
             SimulatedUserConfig.DummyTranslate["H5841"] = "Assessability issue";
             
             _complianceCheck = new ComplianceCheck(_userConfig, _apiConnection, _logger.AsSub());
-            _complianceCheck.NetworkZones = CreateNetworkZones(50);
+            _complianceCheck.NetworkZones = CreateNetworkZones(true, true);
             _complianceCheck.ComplianceReport = new(new(""), _userConfig, ReportType.ComplianceReport);
         }
 
@@ -85,9 +88,12 @@ namespace FWO.Test
 
             if (createPolicy)
             {
+                _policy = CreatePolicy();
+                _complianceCheck.Policy = _policy;
+
                 _apiConnection.AsSub()
                     .SendQueryAsync<CompliancePolicy>(ComplianceQueries.getPolicyById, Arg.Any<object>())
-                    .Returns(CreatePolicy()); // Policy with criteria
+                    .Returns(_policy); // Policy with criteria
 
                 _apiConnection.AsSub()
                     .SendQueryAsync<List<ComplianceNetworkZone>>(ComplianceQueries.getNetworkZonesForMatrix, Arg.Any<object>())
@@ -96,6 +102,14 @@ namespace FWO.Test
 
             if (createRules)
             {
+                if (!setupNoViolations)
+                {
+                    ComplianceCriterion? matrix = _complianceCheck.Policy!.Criteria
+                        .FirstOrDefault(c => c.Content.CriterionType == nameof(CriterionType.Matrix))?.Content;
+
+                    _complianceCheck.NetworkZones = CreateNetworkZones(true, true);                
+                }
+
                 _apiConnection.AsSub()
                     .SendQueryAsync<List<Rule>>(RuleQueries.getRulesForSelectedManagements)
                     .Returns(CreateRulesForComplianceCheckTest(setupNoViolations));
@@ -212,10 +226,36 @@ namespace FWO.Test
 
             Assert.That(_globalConfig.ComplianceCheckPolicyId != 0, "Default policy ID should not be zero for this test.");
             Assert.That(_complianceCheck.Policy != null, "Policy should not be null for this test.");
-            Assert.That(_complianceCheck.CurrentViolationsInCheck.Count == 2, "There should be one violation for this test.");
+            Assert.That(_complianceCheck.CurrentViolationsInCheck.Count == 4, "There should be four violations for this test.");
             Assert.That(_logger.Logmessages.Values.Any(m => m.Contains(BasicSetup)), "Unexpected violations.");
+            Assert.That(_complianceCheck.CurrentViolationsInCheck.ElementAt(2).Details == ExpectedViolationDetailsAutoCalcTrue);
         }
 
+        [Test]
+        public async Task CheckAll_BasicSetupWithoutAutoCalcZones_CompleteWithLog()
+        {
+            // Arrange
+
+            _globalConfig.AutoCalculateInternetZone = false;
+            _globalConfig.AutoCalculateUndefinedInternalZone = false;
+            _globalConfig.TreatDynamicAndDomainObjectsAsInternet = false;
+
+            _complianceCheck.NetworkZones = CreateNetworkZones(false, false);
+
+            await SetUpBasic(setupRelevantManagements: true, createPolicy: true, createRules: true);
+
+            // Act
+
+            await _complianceCheck.CheckAll();
+
+            // Assert
+
+            Assert.That(_globalConfig.ComplianceCheckPolicyId != 0, "Default policy ID should not be zero for this test.");
+            Assert.That(_complianceCheck.Policy != null, "Policy should not be null for this test.");
+            Assert.That(_complianceCheck.CurrentViolationsInCheck.Count == 4, "There should be four violations for this test.");
+            Assert.That(_logger.Logmessages.Values.Any(m => m.Contains(BasicSetup)), "Unexpected violations.");
+            Assert.That(_complianceCheck.CurrentViolationsInCheck.ElementAt(2).Details == ExpectedViolationDetailsAutoCalcFalse);
+        }
 
         #endregion
 
@@ -320,7 +360,7 @@ namespace FWO.Test
 
                     for (int j = 0; j < numberOfRulesPerChunk; j++)
                     {
-                        list.Add(CreateRule(baseId + j));
+                        list.Add(CreateSimpleRule(baseId + j));
                     }
 
                     ruleChunks[i] = list;
@@ -335,47 +375,45 @@ namespace FWO.Test
             {
                 return new List<Rule>
                 {
-                    CreateRule(1),
-                    CreateRule(2),
-                    CreateRule(3),
-                    CreateRule(4),
-                    CreateRule(5)
+                    CreateSimpleRule(1),
+                    CreateSimpleRule(2),
+                    CreateSimpleRule(3),
+                    CreateSimpleRule(4),
+                    CreateSimpleRule(5)
                 };
             }
             else
             {
-                Rule ruleNotAssessable = CreateRule(1);
+                Rule ruleNotAssessable = CreateSimpleRule(1);
                 ruleNotAssessable.Froms[0].Object.IP = "0.0.0.0/32";
                 ruleNotAssessable.Froms[0].Object.IpEnd = "255.255.255.255/32";
 
+                Rule ruleMatrixViolation = CreateSimpleRule(2, destinationHigh: true);
 
-                Rule ruleMatrixViolation = CreateRule(2);
-                ruleMatrixViolation.Froms[0].Object.IP = "255.255.255.0/32";
-                ruleMatrixViolation.Froms[0].Object.IpEnd = "255.255.255.254/32";
+                Rule ruleMatrixViolationAutoCalcInternet = CreateSimpleRule(3);
+                ruleMatrixViolationAutoCalcInternet.Froms[0] = new NetworkLocation(
+                    new NetworkUser(),
+                    CreateNetworkObject(3, "source", ObjectType.IPRange) // will be in Internet zone
+                );
 
-                // Update network zone to make sure matrix violation is detected
-                ComplianceNetworkZone networkZone = _complianceCheck.NetworkZones.First();
-                networkZone.Name = "Restricted Zone";
-                networkZone.IPRanges = [(new IPAddressRange(IPAddress.Parse("255.255.255.0"), IPAddress.Parse("255.255.255.254")))];
-
-                Rule ruleForbiddenService = CreateRule(3);
+                Rule ruleForbiddenService = CreateSimpleRule(4);
                 ruleForbiddenService.Services[0].Content.Uid = ForbiddenServiceUid;
 
-                Rule ruleCompliant1 = CreateRule(4);
-                Rule ruleCompliant2 = CreateRule(5);
+
+                Rule ruleCompliant = CreateSimpleRule(5);
 
                 return new List<Rule>
                 {
                     ruleNotAssessable,
                     ruleMatrixViolation,
+                    ruleMatrixViolationAutoCalcInternet,
                     ruleForbiddenService,
-                    ruleCompliant1,
-                    ruleCompliant2
+                    ruleCompliant
                 };
             }
         }
 
-        private Rule CreateRule(int ruleID)
+        private Rule CreateSimpleRule(int ruleID, bool sourceHigh = false, bool destinationHigh = false)
         {
             Rule rule = new Rule
             {
@@ -384,37 +422,46 @@ namespace FWO.Test
                 MgmtId = 1
             };
 
-            List<ServiceWrapper> services = new();
-            List<NetworkLocation> froms = new();
-            List<NetworkLocation> tos = new();
+            NetworkUser user = new();
+            NetworkObject source = CreateNetworkObject(ruleID, "source", ObjectType.IPRange, sourceHigh);
+            NetworkObject destination = CreateNetworkObject(ruleID, "destination", ObjectType.IPRange, destinationHigh);
+            ServiceWrapper service = new();
+            service.Content.Uid = $"service-uid-{ruleID}";
 
-            for (int i = 0; i < 10; i++)
+            rule.Froms = [new(user, source)];
+            rule.Tos = [new(user, destination)];
+            rule.Services = [service];
+
+            return rule;
+        }
+
+        private NetworkObject CreateNetworkObject(int ruleId, string uidPrefix, string objectTypeName, bool? highIpRange = null)
+        {
+            NetworkObject networkObject = new();
+
+            if (highIpRange != null)
             {
-                ServiceWrapper service = new();
-                NetworkUser user = new();
-                NetworkObject networkObject = new();
-                networkObject.IP = "0.0.0.1/32";
-                networkObject.IpEnd = "255.255.254.255/32";
-                networkObject.Name = $"NwObject_Rule{ruleID}_Num{i+1}";
-                NetworkLocation networkLocation = new(user, networkObject);
-
-                if( i % 2 == 0 )
+                if (highIpRange.Value)
                 {
-                    tos.Add(networkLocation);
+                    networkObject.IP = "193.0.0.0/32";
+                    networkObject.IpEnd = "198.0.0.0/32";
                 }
                 else
                 {
-                    froms.Add(networkLocation);
+                    networkObject.IP = "128.0.0.0/32";
+                    networkObject.IpEnd = "168.0.0.0/32";
                 }
-
-                services.Add(service);
+            }
+            else // for setting up objects with IPs that are undefined, but not part of a reserved range
+            {
+                networkObject.IP = "3.0.0.0/32";
+                networkObject.IpEnd = "4.0.0.0/32";
             }
 
-            rule.Froms = froms.ToArray();
-            rule.Tos = tos.ToArray();
-            rule.Services = services.ToArray();
+            networkObject.Name = $"{uidPrefix}-uid-rule{ruleId}";
+            networkObject.Type.Name = objectTypeName;
 
-            return rule;
+            return networkObject;
         }
 
         private CompliancePolicy CreatePolicy()
@@ -431,14 +478,97 @@ namespace FWO.Test
             return policy;
         }
 
-        private List<ComplianceNetworkZone> CreateNetworkZones(int numberOfZones)
+        private List<ComplianceNetworkZone> CreateNetworkZones(bool createInternetZone, bool createUndefinedInternalZone)
         {
-            List<ComplianceNetworkZone> networkZones = new();
-
-            for (int i = 0; i < numberOfZones; i++)
+            List<ComplianceNetworkZone> networkZones = new()
             {
-                ComplianceNetworkZone networkZone = new();
-                networkZones.Add(networkZone);
+                new()
+                {
+                    Id = 1,
+                    CriterionId = 1,
+                    Name = "128-168 Zone",
+                    IdString = "zone_1",
+                    IPRanges =
+                    [
+                        new IPAddressRange(
+                            IPAddress.Parse("128.0.0.0"),
+                            IPAddress.Parse("168.0.0.0")
+                        )
+                    ]
+                },
+                new()
+                {
+                    Id = 2,
+                    CriterionId = 1,
+                    Name = "193-198 Zone",
+                    IdString = "zone_2",
+                    IPRanges =
+                    [
+                        new IPAddressRange(
+                            IPAddress.Parse("193.0.0.0"),
+                            IPAddress.Parse("198.0.0.0")
+                        )
+                    ]
+                }
+            };
+
+            if (createInternetZone)
+            {
+                networkZones.Add(
+                    new()
+                    {
+                        Id = 3,
+                        CriterionId = 1,
+                        Name = "Auto-calculated Internet Zone",
+                        IdString = "AUTO_CALCULATED_ZONE_INTERNET",
+                        IsAutoCalculatedInternetZone = true,
+                        IPRanges =
+                        [
+                            new IPAddressRange(
+                                IPAddress.Parse("0.0.0.0"),
+                                IPAddress.Parse("9.255.255.255")
+                            ),
+                            new IPAddressRange(
+                                IPAddress.Parse("11.0.0.0"),
+                                IPAddress.Parse("127.255.255.255")
+                            ),
+                            new IPAddressRange(
+                                IPAddress.Parse("168.0.0.1"),
+                                IPAddress.Parse("192.255.255.255")
+                            ),
+                            new IPAddressRange(
+                                IPAddress.Parse("198.0.0.1"),
+                                IPAddress.Parse("255.255.255.255")
+                            )
+                        ]
+                    }
+                ); 
+            }
+
+            if (createUndefinedInternalZone)
+            {
+                networkZones.Add(
+                    new()
+                    {
+                        Id = 4,
+                        CriterionId = 1,
+                        Name = "Auto-calculated Undefined-Interal Zone",
+                        IdString = "AUTO_CALCULATED_ZONE_UNDEFINED_INTERNAL",
+                        IsAutoCalculatedUndefinedInternalZone = true,
+                        IPRanges =
+                        [
+                            new IPAddressRange(
+                                IPAddress.Parse("10.0.0.0"),
+                                IPAddress.Parse("10.255.255.255")
+                            )
+                        ]
+                    }
+                ); 
+            }
+
+            foreach (ComplianceNetworkZone zone in networkZones.Where(zone => !zone.IsAutoCalculatedUndefinedInternalZone).ToList())
+            {
+                zone.AllowedCommunicationDestinations = [zone];
             }
 
             return networkZones;

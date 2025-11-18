@@ -32,7 +32,7 @@ namespace FWO.Report
                         RulebaseLink? initialRulebaseLink = device.RulebaseLinks.FirstOrDefault(_ => _.IsInitialRulebase());
                         if (initialRulebaseLink != null) 
                         {
-                            foreach (var rule in managementReport.Rulebases.FirstOrDefault(rb => rb.Id == initialRulebaseLink.NextRulebaseId)?.Rules)
+                            foreach (var rule in managementReport.Rulebases.FirstOrDefault(rb => rb.Id == initialRulebaseLink.NextRulebaseId)?.Rules ?? [])
                             {
 								AppendNatRuleHeadlineHtml(ref report, device.Name);
                                

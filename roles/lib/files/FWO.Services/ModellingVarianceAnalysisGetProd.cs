@@ -74,7 +74,7 @@ namespace FWO.Services
         private void IdentifyModelledRules(Management mgt, List<Rule> rulesByMgt)
         {
             // get all rulebase links for this management
-            List<RulebaseLink> rulebaseLinks = mgt.Devices.Cast<DeviceReport>().SelectMany(d => d.RulebaseLinks.Where(rl => rl.Removed != null)).ToList();
+            List<RulebaseLink> rulebaseLinks = mgt.Devices.SelectMany(d => d.RulebaseLinks.Where(rl => rl.Removed != null)).ToList();
             allModelledRules.Add(mgt.Id, []);
             foreach (var rule in rulesByMgt)
             {

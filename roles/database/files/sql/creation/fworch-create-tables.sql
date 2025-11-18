@@ -198,6 +198,7 @@ Create table "rule_metadata"
 (
 	"rule_metadata_id" BIGSERIAL,
 	"rule_uid" Text NOT NULL,
+	"mgm_id" Integer NOT NULL,
 	"rule_created" Timestamp NOT NULL Default now(),
 	"rule_last_modified" Timestamp NOT NULL Default now(),
 	"rule_first_hit" Timestamp,
@@ -347,6 +348,26 @@ Create table "zone"
 	"zone_name" Varchar NOT NULL,
 	"active" Boolean NOT NULL Default TRUE,
  primary key ("zone_id")
+);
+
+--crosstabulation rule zone for source
+Create table "rule_from_zone"
+(
+	"rule_id" BIGINT NOT NULL,
+	"zone_id" Integer NOT NULL,
+	"created" BIGINT NOT NULL,
+	"removed" BIGINT,
+	primary key (rule_id, zone_id, created)
+);
+
+--crosstabulation rule zone for destination
+Create table "rule_to_zone"
+(
+	"rule_id" BIGINT NOT NULL,
+	"zone_id" Integer NOT NULL,
+	"created" BIGINT NOT NULL,
+	"removed" BIGINT,
+	primary key (rule_id, zone_id, created)
 );
 
 Create table "usr"

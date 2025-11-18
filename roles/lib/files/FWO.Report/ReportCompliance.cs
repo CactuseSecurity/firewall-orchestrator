@@ -36,7 +36,7 @@ namespace FWO.Report
         private readonly int _maxDegreeOfParallelism;
         private readonly SemaphoreSlim _semaphore;
         private readonly NatRuleDisplayHtml _natRuleDisplayHtml;
-        private List<string> _columnsToExport;
+        private List<string> _columnsToExport = [];
         private bool _includeHeaderInExport;
         private char _separator;
         private int _maxCellSize;
@@ -277,7 +277,7 @@ namespace FWO.Report
                     {
                         foreach (var rule in chunk)
                         {
-                            await SetComplianceDataForRule(rule, apiConnection);
+                            SetComplianceDataForRule(rule, apiConnection);
 
                             // Resolve network locations TODO: Move resolving completely to ComplianceCheck or RuleViewData
 
@@ -378,6 +378,10 @@ namespace FWO.Report
 
         private Task<List<Rule>> GatherReportData((List<Rule> processed, List<RuleViewData> viewData)[]? results)
         {
+            if (results == null)
+            {
+                results = [];   
+            }
             RuleViewData.Capacity = results.Sum(r => r.viewData.Count);
             List<Rule> processedRulesFlat = new(results.Sum(r => r.processed.Count));
 
@@ -421,8 +425,8 @@ namespace FWO.Report
 
             return queryVariables;
         }
-
-        protected virtual async Task SetComplianceDataForRule(Rule rule, ApiConnection apiConnection, Func<ComplianceViolation, string>? formatter = null)
+        
+        protected virtual void SetComplianceDataForRule(Rule rule, ApiConnection apiConnection, Func<ComplianceViolation, string>? formatter = null)
         {
             try
             {

@@ -130,10 +130,10 @@ namespace FWO.Data
                 ParentRuleUid = rule.ParentRule?.Uid,
                 LastHit = lastHitFormatted,
                 RuleComment = rule.Comment,
-                RuleSrcZone = rule.SourceZone?.Name,
-                RuleDstZone = rule.DestinationZone?.Name,
+                RuleSrcZone = rule.RuleFromZones?.Length > 0 ? string.Join("|", rule.RuleFromZones.Select(z => z.Content.Name).Order()) : null,
+                RuleDstZone = rule.RuleToZones?.Length > 0 ? string.Join("|", rule.RuleToZones.Select(z => z.Content.Name).Order()) : null,
                 RuleHeadText = rule.SectionHeader
             };
-        }
+        }       
     }
 }

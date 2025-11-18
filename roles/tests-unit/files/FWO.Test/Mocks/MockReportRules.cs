@@ -118,5 +118,10 @@ namespace FWO.Test.Mocks
             return item;
         }
 
+        public void TryBuildMockRuleTree()
+        {
+            base.TryBuildRuleTree();
+        }
+        
     }
 }

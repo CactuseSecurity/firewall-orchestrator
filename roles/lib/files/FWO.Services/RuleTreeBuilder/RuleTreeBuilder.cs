@@ -209,31 +209,34 @@ namespace FWO.Services.RuleTreeBuilder
         {
             List<int> position = nextPosition?.ToList() ?? [];
             if (position.Last() == 0) position.Remove(position.Last());
-            RuleTreeItem item = RuleTree.ElementsFlat.First(x => x.GetPositionString() == string.Join(".", position)) as RuleTreeItem ?? new RuleTreeItem();
+            RuleTreeItem? item = RuleTree.ElementsFlat.FirstOrDefault(x => x.GetPositionString() == string.Join(".", position)) as RuleTreeItem ?? new RuleTreeItem();
 
-            if (item.Data is Rule && (item.Parent as RuleTreeItem ?? new RuleTreeItem()).IsOrderedLayerHeader && nextPosition?.Last() != 0)
+            if(item != null)
             {
-                return item.Parent as RuleTreeItem ?? new RuleTreeItem();
-            }
-            if (item.IsOrderedLayerHeader)
-            {
-                return item;
-            }
-            else if ((item.Parent as RuleTreeItem ?? new RuleTreeItem()).IsSectionHeader)
-            {
-                if (nextPosition?.Last() == 0)
+                if (item.Data is Rule && (item.Parent as RuleTreeItem ?? new RuleTreeItem()).IsOrderedLayerHeader && nextPosition?.Last() != 0)
+                {
+                    return item.Parent as RuleTreeItem ?? new RuleTreeItem();
+                }
+                if (item.IsOrderedLayerHeader)
                 {
                     return item;
                 }
-                return item.Parent?.Parent as RuleTreeItem ?? new RuleTreeItem();
-            }
-            if (item.IsInlineLayerRoot)
-            {
-                return item;
-            }
-            else if ((item.Parent as RuleTreeItem ?? new RuleTreeItem()).IsInlineLayerRoot)
-            {
-                return item.Parent as RuleTreeItem ?? new RuleTreeItem();
+                else if ((item.Parent as RuleTreeItem ?? new RuleTreeItem()).IsSectionHeader)
+                {
+                    if (nextPosition?.Last() == 0)
+                    {
+                        return item;
+                    }
+                    return item.Parent?.Parent as RuleTreeItem ?? new RuleTreeItem();
+                }
+                if (item.IsInlineLayerRoot)
+                {
+                    return item;
+                }
+                else if ((item.Parent as RuleTreeItem ?? new RuleTreeItem()).IsInlineLayerRoot)
+                {
+                    return item.Parent as RuleTreeItem ?? new RuleTreeItem();
+                }
             }
             return new();
         }

@@ -15,17 +15,17 @@
 
   - name: add user dbbackup to group dbbackupusers
     community.postgresql.postgresql_query:
-      dbname: "{{ fworch_db_name }}"
+      login_db: "{{ fworch_db_name }}"
       query: GRANT dbbackupusers TO dbbackup
 
   - name: add user fworchimporter to group configimporters
     community.postgresql.postgresql_query:
-      dbname: "{{ fworch_db_name }}"
+      login_db: "{{ fworch_db_name }}"
       query: GRANT configimporters TO fworchimporter
 
   - name: add user fworch to group fworchadmins
     community.postgresql.postgresql_query:
-      dbname: "{{ fworch_db_name }}"
+      login_db: "{{ fworch_db_name }}"
       query: GRANT fworchadmins TO fworch
 
   become: true

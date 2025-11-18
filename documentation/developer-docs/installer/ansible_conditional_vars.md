@@ -6,7 +6,7 @@ Say you register a variable like this
 
     - name: check if there already is an ldap connection in DB
       community.postgresql.postgresql_query:
-        dbname: fworchdb
+        login_db: fworchdb
         query: SELECT COUNT(*) FROM ldap_connection
       become: yes
       become_user: postgres

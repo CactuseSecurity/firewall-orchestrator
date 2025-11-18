@@ -1,7 +1,7 @@
 - name: adding demo owner data
 
   community.postgresql.postgresql_query:
-    dbname: "{{ fworch_db_name }}"
+    login_db: "{{ fworch_db_name }}"
     query: >
       DO $do$ BEGIN
         INSERT INTO owner (name, dn, group_dn, is_default, tenant_id, recert_interval, app_id_external) 

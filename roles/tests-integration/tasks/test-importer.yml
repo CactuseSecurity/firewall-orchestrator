@@ -2,7 +2,7 @@
 
 - name: find management id for checkpoint test
   community.postgresql.postgresql_query:
-    dbname: fworchdb
+    login_db: fworchdb
     query: SELECT mgm_id FROM management WHERE mgm_name='{{ test_checkpoint_name }}';
   become: true
   become_user: postgres
@@ -10,7 +10,7 @@
 
 - name: find management id for fortigate test
   community.postgresql.postgresql_query:
-    dbname: fworchdb
+    login_db: fworchdb
     query: SELECT mgm_id FROM management WHERE mgm_name='{{ test_fortigate_name }}';
   become: true
   become_user: postgres

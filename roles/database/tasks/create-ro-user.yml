@@ -9,12 +9,12 @@
 
   - name: GRANT ro user
     community.postgresql.postgresql_query:
-      dbname: "{{ fworch_db_name }}"
+      login_db: "{{ fworch_db_name }}"
       query: GRANT CONNECT ON DATABASE {{ fworch_db_name }} TO {{ fwo_db_ro_user }}
 
   - name: GRANT ro user all access to schemata
     community.postgresql.postgresql_query:
-      dbname: "{{ fworch_db_name }}"
+      login_db: "{{ fworch_db_name }}"
       query: |
         GRANT USAGE ON SCHEMA {{ item }} TO {{ fwo_db_ro_user }};
         GRANT SELECT ON ALL TABLES IN SCHEMA {{ item }} TO {{ fwo_db_ro_user }};

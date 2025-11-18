@@ -42,7 +42,7 @@
 
 - name: install upgrades
   community.postgresql.postgresql_script:
-      dbname: "{{ fworch_db_name }}"
+      login_db: "{{ fworch_db_name }}"
       path: "{{ database_install_dir }}/upgrade/{{ item }}.sql"
   loop: "{{ upgrade_files | community.general.version_sort }}"
   become: true

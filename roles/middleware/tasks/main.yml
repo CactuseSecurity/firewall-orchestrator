@@ -170,7 +170,7 @@
 
 - name: insert admin tenant0 to database
   community.postgresql.postgresql_query:
-    dbname: "{{ fworch_db_name }}"
+    login_db: "{{ fworch_db_name }}"
     query: >
       DO $do$ BEGIN IF NOT EXISTS
       (SELECT tenant_id FROM tenant WHERE tenant_name='tenant0')
@@ -183,7 +183,7 @@
 
 - name: add connection for internal ldap with encrypted passwords
   community.postgresql.postgresql_query:
-    dbname: "{{ fworch_db_name }}"
+    login_db: "{{ fworch_db_name }}"
     query: >
       DO $do$ BEGIN 
       PERFORM insertLocalLdapWithEncryptedPasswords ('{{ openldap_server }}', {{ openldap_port }},
@@ -197,7 +197,7 @@
 
 - name: insert admin tenant0 to device mapping - tenant0 can see all devices
   community.postgresql.postgresql_query:
-    dbname: "{{ fworch_db_name }}"
+    login_db: "{{ fworch_db_name }}"
     query: >
       DO $do$ BEGIN IF NOT EXISTS (SELECT * FROM tenant_to_device LEFT JOIN tenant USING (tenant_id) WHERE tenant_name='tenant0')
         THEN INSERT INTO tenant_to_device (tenant_id, device_id) 

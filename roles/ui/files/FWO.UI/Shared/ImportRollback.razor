@@ -188,7 +188,7 @@
             var variablesdeleteLatestConfigOfManagement = new { mgmId = ManagementId };
             ReturnId id = await apiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.ImportQueries.deleteLatestConfigOfManagement, variablesdeleteLatestConfigOfManagement);
         }
-        catch (System.Exception exception)
+        catch (Exception)
         {
             Log.WriteDebug("Delete latest config", $"error while deleting latest config for mangement with ID {ManagementId}");
         }

@@ -6,6 +6,9 @@
 # for this you also need access to pypi.org (either directly or through proxy) 
 # for downloading ansible
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
+
 sudo apt install python3-venv -y
 python3 -m venv installer-venv
 source installer-venv/bin/activate
@@ -14,5 +17,6 @@ then
     pip config set global.proxy $http_proxy
 fi    
 pip config set global.default-timeout 3600
-pip install -r requirements.txt
+pip install -r "${REPO_ROOT}/requirements.txt"
 pip install ansible
+ansible-galaxy collection install -r "${REPO_ROOT}/collections/requirements.yml"

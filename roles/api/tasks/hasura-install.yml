@@ -133,6 +133,7 @@
       syslog-facility: daemon
       tag: "{{ api_container_name }}"
     recreate: true
+    image_name_mismatch: recreate
     env: "{{ hasura_env }}"
     container_default_behavior: no_defaults
     user: "1001:1001" # hasura user and group id

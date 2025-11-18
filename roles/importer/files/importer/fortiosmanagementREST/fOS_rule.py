@@ -1,4 +1,5 @@
 import copy
+from typing import Any
 import jsonpickle # type: ignore
 from fwo_const import list_delimiter, nat_postfix, dummy_ip
 from fwo_base import extend_string_list
@@ -29,19 +30,19 @@ def initializeRulebases(raw_config):
             raw_config.update({scope: {}})    
 
 
-def getAccessPolicy(sid, fm_api_url, raw_config, limit):
+def getAccessPolicy(sid: str, fm_api_url: str, raw_config: dict[str, Any], limit: int):
     fOS_getter.update_config_with_fortiOS_api_call(raw_config['rules'], fm_api_url + "/cmdb/firewall/policy" + "?access_token=" + sid, 'rules', limit=limit)
     if 'rules' not in raw_config or 'rules' not in raw_config['rules']:
         logger = getFwoLogger()
         logger.warning('did not receive any access rules via API')
 
 
-def getNatPolicy(sid, fm_api_url, raw_config, adom_name, device, limit):
+def getNatPolicy(sid: str, fm_api_url: str, raw_config: dict[str, Any], adom_name: str, device: dict[str, Any], limit: int):
     scope = 'global'
     pkg = device['global_rulebase_name']
     if pkg is not None and pkg != '':   # only read global rulebase if it exists
         for nat_type in ['central/dnat', 'central/dnat6', 'firewall/central-snat-map']:
-            fOS_getter.update_config_with_fortinet_api_call(
+            fOS_getter.update_config_with_fortinet_api_call( #TYPING: I don`t know how this happens
                 raw_config['rules_global_nat'], sid, fm_api_url, "/pm/config/" + scope + "/pkg/" + pkg + '/' + nat_type, device['local_rulebase_name'], limit=limit)
 
     scope = 'adom/'+adom_name
@@ -51,9 +52,9 @@ def getNatPolicy(sid, fm_api_url, raw_config, adom_name, device, limit):
             raw_config['rules_adom_nat'], sid, fm_api_url, "/pm/config/" + scope + "/pkg/" + pkg + '/' + nat_type, device['local_rulebase_name'], limit=limit)
 
 
-def normalize_access_rules(full_config, config2import, import_id, mgm_details: Management, jwt=None):
+def normalize_access_rules(full_config: dict[str, Any], config2import: dict[str, Any], import_id: int, mgm_details: Management, jwt: str | None = None):
     logger = getFwoLogger()
-    rules = []
+    rules: list[dict[str, Any]] = []
     rule_number = 0
 
     if 'rules' not in full_config or 'rules' not in full_config['rules']:
@@ -75,8 +76,8 @@ def normalize_access_rules(full_config, config2import, import_id, mgm_details: M
 
     config2import.update({'rules': rules})
 
-def build_base_rule(rule_orig, import_id, mgm_details, rule_number):
-    rule = {
+def build_base_rule(rule_orig: dict[str, Any], import_id: int, mgm_details: Management, rule_number: int) -> dict[str, Any]:
+    rule: dict[str, Any] = {
         'rule_src': '',
         'rule_dst': '',
         'rule_svc': '',
@@ -95,16 +96,16 @@ def build_base_rule(rule_orig, import_id, mgm_details, rule_number):
     }
     return rule
 
-def enrich_rule_with_action_and_status(rule, rule_orig):
+def enrich_rule_with_action_and_status(rule: dict[str, Any], rule_orig: dict[str, Any]):
     rule['rule_action'] = 'Drop' if rule_orig['action'] == 'deny' else 'Accept'
     rule['rule_disabled'] = not (rule_orig.get('status') == 'enable' or rule_orig.get('status') == 1)
     rule['rule_track'] = 'None' if rule_orig.get('logtraffic') == 'disable' else 'Log'
 
-def enrich_rule_with_hitcount(rule, rule_orig):
+def enrich_rule_with_hitcount(rule: dict[str, Any], rule_orig: dict[str, Any]):
     hit = rule_orig.get('_last_hit', 0)
     rule['last_hit'] = None if hit == 0 else time.strftime("%Y-%m-%d", time.localtime(hit))
 
-def enrich_rule_with_addresses(rule, rule_orig):
+def enrich_rule_with_addresses(rule: dict[str, Any], rule_orig: dict[str, Any], config2import: dict[str, Any], import_id: int):
     rule['rule_src'] = join_names(rule_orig.get('srcaddr', []))
     rule['rule_dst'] = join_names(rule_orig.get('dstaddr', []))
     rule['rule_svc'] = join_names(rule_orig.get('service', []))
@@ -119,7 +120,7 @@ def enrich_rule_with_addresses(rule, rule_orig):
 
     append_ipv6(rule, rule_orig)
 
-def append_ipv6(rule, rule_orig):
+def append_ipv6(rule: dict[str, Any], rule_orig: dict[str, Any]):
     rule_src_v6 = [d['name'] for d in rule_orig.get('srcaddr6', [])]
     rule_dst_v6 = [d['name'] for d in rule_orig.get('dstaddr6', [])]
     if rule_src_v6:
@@ -127,30 +128,30 @@ def append_ipv6(rule, rule_orig):
     if rule_dst_v6:
         rule['rule_dst'] = list_delimiter.join(rule['rule_dst'].split(list_delimiter) + rule_dst_v6)
 
-def enrich_rule_with_zones(rule, rule_orig, config2import, import_id):
+def enrich_rule_with_zones(rule: dict[str, Any], rule_orig: dict[str, Any], config2import: dict[str, Any], import_id: int):
     if rule_orig.get('srcintf'):
         rule['rule_from_zone'] = fOS_zone.add_zone_if_missing(config2import, rule_orig['srcintf'][0]['name'], import_id)
     if rule_orig.get('dstintf'):
         rule['rule_to_zone'] = fOS_zone.add_zone_if_missing(config2import, rule_orig['dstintf'][0]['name'], import_id)
 
-def enrich_rule_with_negation(rule, rule_orig):
+def enrich_rule_with_negation(rule: dict[str, Any], rule_orig: dict[str, Any]):
     rule['rule_src_neg'] = rule_orig.get('srcaddr-negate') != 'disable'
     rule['rule_dst_neg'] = rule_orig.get('dstaddr-negate') != 'disable'
     rule['rule_svc_neg'] = rule_orig.get('service-negate') != 'disable'
 
-def enrich_rule_with_refs(rule, lookup_dict, jwt):
+def enrich_rule_with_refs(rule: dict[str, Any], lookup_dict: dict[str, Any], jwt: str | None = None):
     rule['rule_src_refs'] = join_refs(rule['rule_src'], lookup_dict, jwt)
     rule['rule_dst_refs'] = join_refs(rule['rule_dst'], lookup_dict, jwt)
     rule['rule_svc_refs'] = rule['rule_svc']  # For services, name == uid
 
-def join_names(entries):
+def join_names(entries: list[dict[str, Any]]) -> str:
     return list_delimiter.join([d['name'] for d in entries])
 
-def join_refs(entry_str, lookup_dict, jwt):
+def join_refs(entry_str: str, lookup_dict: dict[str, Any], jwt: str | None = None) -> str:
     return list_delimiter.join(resolve_objects(name, lookup_dict=lookup_dict, jwt=jwt) for name in entry_str.split(list_delimiter))
 
 
-def set_service_field_internet_service(rule, config2import, import_id):
+def set_service_field_internet_service(rule: dict[str, Any], config2import: dict[str, Any], import_id: int):
     # check if dummy service "Internet Service" already exists and create if not
     found_internet_service_obj = next((item for item in config2import['service_objects'] if item["svc_name"] == "Internet Service"), None)
     if found_internet_service_obj is None:
@@ -164,14 +165,14 @@ def set_service_field_internet_service(rule, config2import, import_id):
 
 
 # pure nat rules 
-def normalize_nat_rules(full_config, config2import, import_id, jwt=None):
+def normalize_nat_rules(full_config: dict[str, Any], config2import: dict[str, list[Any]], import_id: int, jwt: str | None = None):
     nat_rules = []
     rule_number = 0
 
     for rule_table in rule_nat_scope:
         for localPkgName in full_config['rules_global_nat']:
             for rule_orig in full_config[rule_table][localPkgName]:
-                rule = {'rule_src': '', 'rule_dst': '', 'rule_svc': ''}
+                rule: dict[str, Any] = {'rule_src': '', 'rule_dst': '', 'rule_svc': ''}
                 if rule_orig['nat'] == 1:   # assuming source nat
                     rule.update({ 'control_id': import_id})
                     rule.update({ 'rulebase_name': localPkgName})    # the rulebase_name just has to be a unique string among devices

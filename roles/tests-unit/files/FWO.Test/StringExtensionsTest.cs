@@ -298,6 +298,108 @@ namespace FWO.Test
             Assert.That(result, Is.EqualTo(expected));
             Assert.That(shortened, Is.EqualTo(expectedShortened));
         }
+
+
+        [TestCase("  text  ", "text", true)]
+        [TestCase("text", "text", false)]
+        [TestCase("\t\ntext\r\n", "text", true)]
+        [TestCase("   ", "", true)]           
+        [TestCase("\n\t", "", true)]          
+        [TestCase("text with spaces", "text with spaces", false)] 
+        [TestCase("", "", false)]           
+        public void AllSanitizers_TrimWhitespace(string input, string expectedOutput, bool expectedShortened)
+        {
+            bool shortened;
+
+            // Mandatory Sanitizers
+            shortened = false;
+            Assert.That(input.SanitizeMand(ref shortened), Is.EqualTo(expectedOutput));
+            Assert.That(shortened, Is.EqualTo(expectedShortened));
+
+            shortened = false;
+            Assert.That(input.SanitizeLdapNameMand(ref shortened), Is.EqualTo(expectedOutput));
+            Assert.That(shortened, Is.EqualTo(expectedShortened));
+
+            shortened = false;
+            Assert.That(input.SanitizeLdapPathMand(ref shortened), Is.EqualTo(expectedOutput));
+            Assert.That(shortened, Is.EqualTo(expectedShortened));
+
+            shortened = false;
+            Assert.That(input.SanitizePasswMand(ref shortened), Is.EqualTo(expectedOutput));
+            Assert.That(shortened, Is.EqualTo(expectedShortened));
+
+            shortened = false;
+            Assert.That(input.SanitizeKeyMand(ref shortened), Is.EqualTo(expectedOutput));
+            Assert.That(shortened, Is.EqualTo(expectedShortened));
+
+            shortened = false;
+            Assert.That(input.SanitizeCommentMand(ref shortened), Is.EqualTo(expectedOutput));
+            Assert.That(shortened, Is.EqualTo(expectedShortened));
+
+            shortened = false;
+            Assert.That(input.SanitizeJsonMand(ref shortened), Is.EqualTo(expectedOutput));
+            Assert.That(shortened, Is.EqualTo(expectedShortened));
+
+            bool changed = false;
+            Assert.That(input.SanitizeJsonFieldMand(ref changed), Is.EqualTo(expectedOutput.Replace(" ", "_")));
+            if(input == "text with spaces")
+            {
+                expectedShortened = true;
+                Assert.That(changed, Is.EqualTo(expectedShortened));
+                expectedShortened = false;
+            }
+            
+            shortened = false;
+            Assert.That(input.SanitizeEolMand(ref shortened), Is.EqualTo(expectedOutput));
+            Assert.That(shortened, Is.EqualTo(expectedShortened));
+
+            // Optional Sanitizers
+            shortened = false;
+            Assert.That(input.SanitizeOpt(ref shortened), Is.EqualTo(expectedOutput));
+            Assert.That(shortened, Is.EqualTo(expectedShortened));
+
+            shortened = false;
+            Assert.That(input.SanitizeLdapNameOpt(ref shortened), Is.EqualTo(expectedOutput));
+            Assert.That(shortened, Is.EqualTo(expectedShortened));
+
+            shortened = false;
+            Assert.That(input.SanitizeLdapPathOpt(ref shortened), Is.EqualTo(expectedOutput));
+            Assert.That(shortened, Is.EqualTo(expectedShortened));
+
+            shortened = false;
+            Assert.That(input.SanitizePasswOpt(ref shortened), Is.EqualTo(expectedOutput));
+            Assert.That(shortened, Is.EqualTo(expectedShortened));
+
+            shortened = false;
+            Assert.That(input.SanitizeKeyOpt(ref shortened), Is.EqualTo(expectedOutput));
+            Assert.That(shortened, Is.EqualTo(expectedShortened));
+
+            shortened = false;
+            Assert.That(input.SanitizeCommentOpt(ref shortened), Is.EqualTo(expectedOutput));
+            Assert.That(shortened, Is.EqualTo(expectedShortened));
+        }
+
+        [TestCase(" 192.168.1.1/24 ", "192.168.1.1/24", true)]
+        [TestCase("192.168.1.1/24", "192.168.1.1/24", false)]
+        [TestCase("\t10.0.0.1/8\n", "10.0.0.1/8", true)]
+        [TestCase("   ", "", true)]           // nur Whitespaces
+        [TestCase("\n\t", "", true)]          // nur Steuerzeichen
+        [TestCase("", "", false)]             // leerer String
+        public void CidrSanitizers_TrimWhitespace(string input, string expectedOutput, bool expectedShortened)
+        {
+            bool shortened;
+
+            // Mandatory
+            shortened = false;
+            Assert.That(input.SanitizeCidrMand(ref shortened), Is.EqualTo(expectedOutput));
+            Assert.That(shortened, Is.EqualTo(expectedShortened));
+
+            // Optional
+            shortened = false;
+            Assert.That(input.SanitizeCidrOpt(ref shortened), Is.EqualTo(expectedOutput));
+            Assert.That(shortened, Is.EqualTo(expectedShortened));
+        }
+
         #endregion
 
         #region StringExtensionsLdap
@@ -307,6 +409,11 @@ namespace FWO.Test
         [TestCase("OU=Users,DC=example,DC=com", "")]
         [TestCase("", "")]
         [TestCase(null, "")]
+        [TestCase("OU=Users,CN=Bob", "Bob")]
+        [TestCase("CN=Alice,CN=Bob,OU=Users", "Alice")]
+        [TestCase("CN= John Doe ,OU=Users", " John Doe ")] // evtl. Trim sinnvoll
+        [TestCase("cn=Charlie,OU=Users", "Charlie")]
+        [TestCase("C=Country", "")]
         public void ExtractCommonNameFromDn_Works(string dn, string expected)
         {
             string result = dn.ExtractCommonNameFromDn();
@@ -315,11 +422,18 @@ namespace FWO.Test
         #endregion
 
         #region StringExtensionsIp
+
         // --- StripHtmlTags ---
         [TestCase("<b>bold</b>", "bold")]
         [TestCase("no tags", "no tags")]
         [TestCase("<i>italic</i><br>", "italic")]
         [TestCase("", "")]
+        [TestCase("<i><b>text</b></i>", "text")]
+        [TestCase("<BR/>line<br>", "line")]
+        [TestCase("<b>bold</b><i>italic</i>", "bolditalic")]
+        [TestCase("<b>bold</b><unknown>tag</unknown>", "boldtag")]
+        [TestCase("<I>upper</I>", "upper")] 
+        [TestCase("text &amp; more", "text &amp; more")]
         public void StripHtmlTags_Works(string input, string expected)
         {
             string result = input.StripHtmlTags();
@@ -327,10 +441,15 @@ namespace FWO.Test
         }
 
         // --- StripDangerousHtmlTags ---
-        //[TestCase("<b>bold</b>", "bold")]       //Ok - no closing </    "/" or is it okay?
         [TestCase("<i>italic</i>", "<i>italic</i>")]
         [TestCase("<br>line<br>", "<br>line<br>")]
         [TestCase("<script>alert(1)</script>", "alert(1)")]
+        [TestCase("<b>bold</b>", "<b>bold</b>")] 
+        [TestCase("<i>italic</i>", "<i>italic</i>")] 
+        [TestCase("<script>alert(1)</script>", "alert(1)")]
+        [TestCase("<i><script>evil</script>text</i>", "<i>text</i>")]
+        [TestCase("<BR/>line<br>", "<br>line<br>")] 
+        [TestCase("<b>bold</b><i>italic</i>", "<b>bold</b><i>italic</i>")]
         public void StripDangerousHtmlTags_Works(string input, string expected)
         {
             string result = input.StripDangerousHtmlTags();
@@ -380,6 +499,10 @@ namespace FWO.Test
         [TestCase("a,b,c", ',', 2, true, "c")]
         [TestCase("a,b,c", ',', 3, false, "")]
         [TestCase("single", ',', 0, false, "")]
+        [TestCase(",a,b,", ',', 0, true, "")] 
+        [TestCase(",a,b,", ',', 3, true, "")] 
+        [TestCase(",a,b,", ',', 4, false, "")] 
+        [TestCase("", ',', 0, false, "")] 
         public void TrySplit_ByIndex_Works(string input, char sep, int index, bool expectedResult, string expectedOutput)
         {
             bool result = input.TrySplit(sep, index, out string output);
@@ -399,6 +522,10 @@ namespace FWO.Test
         // --- TryGetNetmask ---
         [TestCase("192.168.1.1/24", true, "/24")]
         [TestCase("10.0.0.1", false, "")]
+        [TestCase("192.168.1.1/0", true, "/0")]  
+        [TestCase("192.168.1.1/33", false, "")]  
+        [TestCase("fe80::1/127", true, "/127")]   
+        [TestCase("fe80::1/129", false, "")]     
         public void TryGetNetmask_Works(string input, bool expectedResult, string expectedNetmask)
         {
             bool result = input.TryGetNetmask(out string netmask);
@@ -410,6 +537,11 @@ namespace FWO.Test
         [TestCase("192.168.1.1", "192.168.1.2", -1)]
         [TestCase("192.168.1.2", "192.168.1.1", 1)]
         [TestCase("192.168.1.1", "192.168.1.1", 0)]
+        [TestCase("fe80::1", "fe80::2", -1)]
+        [TestCase("fe80::2", "fe80::1", 1)]
+        [TestCase("fe80::1", "fe80::1", 0)]
+        [TestCase("192.168.1.1", "fe80::1", -1)]
+        [TestCase("fe80::1", "192.168.1.1", 1)]
         public void CompareIPs_Works(string left, string right, int expected)
         {
             int result = left.Compare(right);
@@ -437,6 +569,8 @@ namespace FWO.Test
         // --- CidrToRange / CidrToRangeString ---
         [TestCase("192.168.1.0/24", "192.168.1.0", "192.168.1.255")]
         [TestCase("::1/128", "::1", "::1")]
+        [TestCase("0.0.0.0/0", "0.0.0.0", "255.255.255.255")]
+        [TestCase("::/0", "::", "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff")]
         public void CidrToRangeString_Works(string cidr, string expectedStart, string expectedEnd)
         {
             var (start, end) = cidr.CidrToRangeString();
@@ -449,18 +583,24 @@ namespace FWO.Test
         }
 
         // --- ReplaceAll ---
-        [Test]
-        public void ReplaceAll_Works()
+        [TestCase("", new string[] { "a", "b" }, "X", "")]
+        [TestCase("aaa", new string[] { "a", "aa" }, "X", "XXX")]
+        [TestCase("abc", new string[0], "X", "abc")]
+        [TestCase("abcabc", new string[] { "a" }, "", "bcbc")]
+        public void ReplaceAll_EdgeCases_Works(string input, string[] values, string replacement, string expected)
         {
-            string input = "abc def ghi";
-            var values = new List<string> { "abc", "ghi" };
-            string result = input.ReplaceAll(values, "X");
-            Assert.That(result, Is.EqualTo("X def X"));
+            string result = input.ReplaceAll(values, replacement);
+            Assert.That(result, Is.EqualTo(expected));
         }
+
 
         // --- ToIPAdressAndSubnetMask ---
         [TestCase("192.168.1.1/24", "192.168.1.1", "24")]
         [TestCase("10.0.0.1", "10.0.0.1", "")]
+        [TestCase("192.168.1.1/32", "192.168.1.1", "32")]
+        [TestCase("fe80::1/128", "fe80::1", "128")]
+        [TestCase("192.168.1.1", "192.168.1.1", "")]
+        [TestCase("fe80::1", "fe80::1", "")]
         public void ToIPAdressAndSubnetMask_Works(string input, string expectedIp, string expectedSubnet)
         {
             var (ip, subnet) = input.ToIPAdressAndSubnetMask();
@@ -473,6 +613,8 @@ namespace FWO.Test
         [TestCase("192.168.1.0/24", "192.168.1.0/24")]
         [TestCase("2001:db8::1", "2001:db8::1/128")]
         [TestCase("2001:db8::/64", "2001:db8::/64")]
+        [TestCase("192.168.1.1/32", "192.168.1.1/32")] 
+        [TestCase("2001:db8::1/128", "2001:db8::1/128")]
         public void IpAsCidr_Works(string input, string expected)
         {
             string result = input.IpAsCidr();

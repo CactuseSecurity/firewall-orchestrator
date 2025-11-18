@@ -37,7 +37,7 @@ namespace FWO.Api.Client.Queries
                 recertifyOwner = GetQueryText("recertification/recertifyOwner.graphql");
                 recertifyRuleDirectly = GetQueryText("recertification/recertifyRuleDirectly.graphql");
                 getOpenRecertsForRule = GetQueryText("recertification/getOpenRecertsForRule.graphql");
-                getOpenRecertsForOwners = GetQueryText("recertification/getOpenRecerts.graphql");
+                getOpenRecertsForOwners = GetQueryText("recertification/getOpenRecertsForOwners.graphql");
                 clearOpenRecerts = GetQueryText("recertification/clearOpenRecerts.graphql");
                 addRecertEntries = GetQueryText("recertification/addRecertEntries.graphql");
                 refreshViewRuleWithOwner = GetQueryText("recertification/refreshViewRuleWithOwner.graphql");
@@ -47,7 +47,11 @@ namespace FWO.Api.Client.Queries
             catch (Exception exception)
             {
                 Log.WriteError("Initialize Api Queries", "Api Recert Queries could not be loaded.", exception);
+#if RELEASE
                 Environment.Exit(-1);
+#else
+                throw;
+#endif
             }
         }
     }

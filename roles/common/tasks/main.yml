@@ -84,6 +84,16 @@
         ssh_key_file: .ssh/id_rsa
       become: true
 
+    - name: ensure ansible remote tmp directory exists
+      file:
+        path: "/tmp/.ansible-{{ fworch_user }}/tmp"
+        state: directory
+        owner: "{{ fworch_user }}"
+        group: "{{ fworch_group }}"
+        mode: "0770"
+        recurse: true
+      become: true
+
     - name: global apache config
       include_tasks: global-apache2-config.yml
       # vars:

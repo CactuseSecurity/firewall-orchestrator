@@ -101,7 +101,7 @@ namespace FWO.DeviceAutoDiscovery
                 RestResponse<FmApiTopLevelHelperDev> deviceResponse = await restClientFM.GetDevicesPerAdom(sessionId, adom.Name);
                 if (deviceResponse != null && deviceResponse.StatusCode == HttpStatusCode.OK && deviceResponse.IsSuccessful)
                 {
-                    adom.DeviceList = deviceResponse.Data?.Result[0].FortiGates;
+                    adom.DeviceList = deviceResponse.Data?.Result[0].FortiGates ?? [];
                 }
             }
             // now get vdoms per device

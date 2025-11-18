@@ -56,7 +56,7 @@
   - name: make sure sorting order of psql client and postgresql server match for databases to be created
     postgresql_query:
       login_user: postgres
-      db: postgres
+      dbname: postgres
       query: "ALTER DATABASE template1 REFRESH COLLATION VERSION"
     when: pg_version|int >= 15
 
@@ -67,7 +67,7 @@
 
   - name: test module postgresql_query functionality (only works with ansible >= 2.8) in case of an error message you may run scripts/install-lastes-ansible.yml
     postgresql_query:
-      db: "{{ fworch_db_name }}"
+      dbname: "{{ fworch_db_name }}"
       query: 'select version()'
     register: test_query
     when: ansible_version.full is version ('2.8', '>=')
@@ -82,7 +82,7 @@
 
   - name: creating {{ fworch_db_name }}-db-model
     community.postgresql.postgresql_script:
-      db: "{{ fworch_db_name }}"
+      dbname: "{{ fworch_db_name }}"
       path: "{{ database_install_dir }}/sql/creation/{{ item }}"
     loop:
       - fworch-create-tables.sql
@@ -96,7 +96,7 @@
 
   - name: add colors to the database
     postgresql_copy:
-      db: "{{ fworch_db_name }}"
+      dbname: "{{ fworch_db_name }}"
       copy_from: "{{ database_install_dir }}/csv/color.csv"
       dst: stm_color
       columns:
@@ -109,7 +109,7 @@
 
   - name: add error messages to the database
     postgresql_copy:
-      db: "{{ fworch_db_name }}"
+      dbname: "{{ fworch_db_name }}"
       copy_from: "{{ database_install_dir }}/csv/error.csv"
       dst: error
       columns:
@@ -124,7 +124,7 @@
 
   - name: add ip protocols to the database
     postgresql_copy:
-      db: "{{ fworch_db_name }}"
+      dbname: "{{ fworch_db_name }}"
       copy_from: "{{ database_install_dir }}/csv/ip-protocol-list.csv"
       dst: stm_ip_proto
       columns:

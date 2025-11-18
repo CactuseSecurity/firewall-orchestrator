@@ -71,7 +71,7 @@
   
 - name: test whether demo data is present
   postgresql_query:
-    db: "{{ fworch_db_name }}"
+    dbname: "{{ fworch_db_name }}"
     query: >
       SELECT * FROM device WHERE dev_name='{{ sample_fortigate_name }}'
   register: demo_data_present

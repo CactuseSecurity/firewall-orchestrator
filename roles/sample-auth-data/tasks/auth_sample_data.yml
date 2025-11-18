@@ -2,7 +2,7 @@
 
   - name: insert tenant tenant1{{ sample_postfix }}
     postgresql_query:
-      db: "{{ fworch_db_name }}"
+      dbname: "{{ fworch_db_name }}"
       query: >
         DO $do$ BEGIN
           IF NOT EXISTS (SELECT tenant_id FROM tenant WHERE tenant_name='tenant1{{ sample_postfix }}') THEN
@@ -13,7 +13,7 @@
 
   - name: add device mapping for tenant tenant1{{ sample_postfix }}
     postgresql_query:
-      db: "{{ fworch_db_name }}"
+      dbname: "{{ fworch_db_name }}"
       query: >
         DO $do$ BEGIN
           IF NOT EXISTS (SELECT * FROM tenant_to_device LEFT JOIN tenant USING (tenant_id) WHERE tenant_name='tenant1{{ sample_postfix }}') THEN 
@@ -24,7 +24,7 @@
 
   - name: add management mapping for tenant tenant1{{ sample_postfix }}
     postgresql_query:
-      db: "{{ fworch_db_name }}"
+      dbname: "{{ fworch_db_name }}"
       query: >
         DO $do$ BEGIN
           IF NOT EXISTS (SELECT * FROM tenant_to_management LEFT JOIN tenant USING (tenant_id) WHERE tenant_name='tenant1{{ sample_postfix }}') THEN 
@@ -39,7 +39,7 @@
 
   - name: insert tenant tenant2{{ sample_postfix }}
     postgresql_query:
-      db: "{{ fworch_db_name }}"
+      dbname: "{{ fworch_db_name }}"
       query: >
         DO $do$ BEGIN
           IF NOT EXISTS (SELECT tenant_id FROM tenant WHERE tenant_name='tenant2{{ sample_postfix }}') THEN
@@ -50,7 +50,7 @@
 
   - name: add device mapping for tenant tenant2{{ sample_postfix }}
     postgresql_query:
-      db: "{{ fworch_db_name }}"
+      dbname: "{{ fworch_db_name }}"
       query: >
         DO $do$ BEGIN 
           IF NOT EXISTS 
@@ -63,7 +63,7 @@
 
   - name: add management mapping for tenant tenant2{{ sample_postfix }}
     postgresql_query:
-      db: "{{ fworch_db_name }}"
+      dbname: "{{ fworch_db_name }}"
       query: >
         DO $do$ BEGIN
           IF NOT EXISTS (SELECT * FROM tenant_to_management LEFT JOIN tenant USING (tenant_id) WHERE tenant_name='tenant2{{ sample_postfix }}') THEN 
@@ -78,7 +78,7 @@
 
   - name: insert demo tenant network data 
     postgresql_query:
-      db: "{{ fworch_db_name }}"
+      dbname: "{{ fworch_db_name }}"
       query: >
         DO $do$ BEGIN
             IF EXISTS (SELECT tenant_id FROM tenant WHERE tenant_name='tenant1_demo') THEN

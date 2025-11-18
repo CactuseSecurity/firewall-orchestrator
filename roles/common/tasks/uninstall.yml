@@ -54,7 +54,7 @@
 
   - name: check if db still exists
     postgresql_query:
-      db: "{{ fworch_db_name }}"
+      dbname: "{{ fworch_db_name }}"
       query: "select exists(SELECT datname FROM pg_catalog.pg_database WHERE lower(datname) = lower('fworchdb'))"
     register: db_exists
 

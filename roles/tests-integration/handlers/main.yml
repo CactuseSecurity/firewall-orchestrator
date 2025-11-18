@@ -9,7 +9,7 @@
 - block:
   - name: delete test checkpoint R8x credentials cascading to deletion of mgmt and gw 
     postgresql_query:
-      db: "{{ fworch_db_name }}"
+      dbname: "{{ fworch_db_name }}"
       query: >
         DO $do$ BEGIN 
         DELETE FROM import_credential WHERE credential_name='{{ test_credential_name }}'; 
@@ -18,7 +18,7 @@
 
   - name: delete tenants tenant1_test and tenant2_test
     postgresql_query:
-      db: "{{ fworch_db_name }}"
+      dbname: "{{ fworch_db_name }}"
       query: >
         DO $do$ BEGIN 
         DELETE FROM tenant WHERE tenant_name='tenant1{{ test_postfix }}' OR tenant_name='tenant2{{ test_postfix }}'; 

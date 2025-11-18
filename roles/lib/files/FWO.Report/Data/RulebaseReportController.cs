@@ -65,7 +65,7 @@ namespace FWO.Report
                         {
                             if (rulebases[i].Rules != null && rulebasesToMerge[i].Rules != null && rulebasesToMerge[i].Rules.Length > 0)
                             {
-                                rulebases[i].Rules = rulebases[i].Rules?.Concat(rulebasesToMerge[i].Rules!).ToArray();
+                                rulebases[i].Rules = rulebases[i].Rules.Concat(rulebasesToMerge[i].Rules!).ToArray();
                                 newObjects = true;
                             }
                         }

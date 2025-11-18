@@ -54,7 +54,124 @@
                                         </Template>
                                     </Column>
                                 }
-                                @if(SelectedReportType.IsComplianceReport())
+                            }
+                            @if(Recertification && RecertificationHistory)
+                            {
+                                // TODO: implement 2nd recert report containing latest recerts
+                                <Column TableItem="Rule" Title="@(userConfig.GetText("recert_comment"))" Field="@(rule => rule.Metadata.Comment)" Sortable="true" Filterable="false" />
+                            }
+
+                            @if(SelectedReportType.IsComplianceReport())
+                            {
+                                <Column TableItem="Rule" Context="rule" Title="Compliance" Field="@(rChange => rChange.Compliance)" Sortable="true" Filterable="true" Hideable="true">
+                                    <Template>
+                                        @((MarkupString)RuleDisplayHtml.DisplayIsCompliant(rule, getActLocation()))
+                                    </Template>
+                                </Column>
+                                <Column TableItem="Rule" Context="rule" Title="Violation Details" Field="@(rChange => rChange.ViolationDetails)" Sortable="true" Filterable="true" Hideable="true">
+                                    <Template>
+                                        @((MarkupString)RuleDisplayHtml.DisplayViolationDetails(rule))
+                                    </Template>
+                                </Column>
+                            }
+
+                            @if (EmptyColumns[1] == false)
+                            {
+                                <Column TableItem="Rule" Title="@(userConfig.GetText("name"))" Field="@(rChange => rChange.Name)" Sortable="true" Filterable="false" Hideable="true" />
+                            }
+                            @if (EmptyColumns[2] == false)
+                            {
+                                <Column TableItem="Rule" Context="rule" Title="@(userConfig.GetText("source_zone"))" Field="@(rChange => rChange.RuleFromZones)" Sortable="true" Filterable="false" Hideable="true">
+                                    <Template>
+                                        @((MarkupString)RuleDisplayHtml.DisplaySourceZones(rule))
+                                    </Template>
+                                </Column>
+                            }
+                            @if (EmptyColumns[3] == false)
+                            {
+                            <Column TableItem="Rule" Context="rule" Title="@(userConfig.GetText("source"))" Field="@(rChange => rChange.Name)" Sortable="true" Filterable="false" Hideable="true">
+                                    <Template>
+                                        @((MarkupString)ruleDisplay.DisplaySource(rule, getActLocation(), SelectedReportType))
+                                    </Template>
+                                </Column>
+                            }
+                            @if (EmptyColumns[4] == false)
+                            {
+                                <Column TableItem="Rule" Context="rule" Title="@(userConfig.GetText("destination_zone"))" Field="@(rChange => rChange.RuleToZones)" Sortable="true" Filterable="false" Hideable="true">
+                                    <Template>
+                                        @((MarkupString)RuleDisplayHtml.DisplayDestinationZones(rule))
+                                    </Template>
+                                </Column>
+                            }
+                            @if (EmptyColumns[5] == false)
+                            {
+                                <Column TableItem="Rule" Context="rule" Title="@(userConfig.GetText("destination"))" Field="@(rChange => rChange.Name)" Sortable="true" Filterable="false" Hideable="true">
+                                    <Template>
+                                        @((MarkupString)ruleDisplay.DisplayDestination(rule, getActLocation(), SelectedReportType))
+                                    </Template>
+                                </Column>
+                            }
+                            @if (EmptyColumns[6] == false)
+                            {
+                                <Column TableItem="Rule" Context="rule" Title="@(userConfig.GetText("services"))" Field="@(rChange => rChange.Name)" Sortable="true" Filterable="false" Hideable="true">
+                                    <Template>
+                                        @((MarkupString)ruleDisplay.DisplayServices(rule, getActLocation(), SelectedReportType))
+                                    </Template>
+                                </Column>
+                            }
+                            @if(SelectedReportType == ReportType.NatRules)
+                            {
+                                    <Column Class="table-active" TableItem="Rule" Context="rule" Title="@(userConfig.GetText("trans_source"))" Field="@(rChange => rChange.Name)" Sortable="true" Filterable="false" Hideable="true">
+                                        <Template>
+                                                @((MarkupString)ruleDisplay.DisplayTranslatedSource(rule, getActLocation()))
+                                        </Template>
+                                    </Column>
+                                    <Column Class="table-active" TableItem="Rule" Context="rule" Title="@(userConfig.GetText("trans_destination"))" Field="@(rChange => rChange.Name)" Sortable="true" Filterable="false" Hideable="true">
+                                        <Template>
+                                            @((MarkupString)ruleDisplay.DisplayTranslatedDestination(rule, getActLocation()))
+                                        </Template>
+                                    </Column>
+                                    <Column Class="table-active" TableItem="Rule" Context="rule" Title="@(userConfig.GetText("trans_services"))" Field="@(rChange => rChange.Name)" Sortable="true" Filterable="false" Hideable="true">
+                                        <Template>
+                                            @((MarkupString)ruleDisplay.DisplayTranslatedService(rule, getActLocation()))
+                                        </Template>
+                                    </Column>
+                            }
+                            @if (EmptyColumns[7] == false && SelectedReportType != ReportType.NatRules)
+                            {
+                                <Column TableItem="Rule" Title="@(userConfig.GetText("action"))" Field="@(rChange => rChange.Action)" Sortable="true" Filterable="false" Hideable="true" />
+                            }
+                            @if (EmptyColumns[8] == false && SelectedReportType != ReportType.NatRules)
+                            {
+                                <Column TableItem="Rule" Title="@(userConfig.GetText("track"))" Field="@(rChange => rChange.Track)" Sortable="true" Filterable="false" Hideable="true" />
+                            }
+                            @if (EmptyColumns[9] == false)
+                            {
+                                <Column TableItem="Rule" Context="rule" Title="@(userConfig.GetText("enabled"))" Field="@(rChange => rChange.Disabled)" Sortable="true" Filterable="false" Hideable="true">
+                                    <Template>
+                                        @((MarkupString)RuleDisplayHtml.DisplayEnabled(rule, getActLocation()))
+                                    </Template>
+                                </Column>
+                            }
+                            @if (EmptyColumns[10] == false)
+                            {
+                                <Column TableItem="Rule" Context="rule" Title="@(userConfig.GetText("enforcing_devices"))" Field="@(rChange => rChange.Name)" Sortable="true" Filterable="false" Hideable="true">
+                                    <Template>
+                                        @((MarkupString)RuleDisplayHtml.DisplayEnforcingGateways(rule, getActLocation(), SelectedReportType))
+                                    </Template>
+                                </Column>
+                            }
+                            @if (EmptyColumns[11] == false)
+                            {
+                                <Column TableItem="Rule" Title="@(userConfig.GetText("uid"))" Field="@(rChange => rChange.Uid)" Sortable="true" Filterable="false" Hideable="true" />
+                            }
+                            @if (EmptyColumns[12] == false)
+                            {
+                                <Column TableItem="Rule" Title="@(userConfig.GetText("comment"))" Field="@(rChange => rChange.Comment)" Sortable="true" Filterable="false" Hideable="true" />
+                            }
+
+                            <DetailTemplate TableItem="Rule">
+                                @if(context.Metadata != null)
                                 {
                                     <Column TableItem="Rule" Context="rule" Title="Compliance" Field="@(rChange => rChange.Compliance)" Sortable="true" Filterable="true" Hideable="true">
                                         <Template>
@@ -234,7 +351,6 @@
     private bool[] EmptyColumns = new bool[ColumnsCount];
 
     private NatRuleDisplayHtml? ruleDisplay;
-    private int previousRulebaseId = -1;
     
     protected override void OnInitialized()
     {

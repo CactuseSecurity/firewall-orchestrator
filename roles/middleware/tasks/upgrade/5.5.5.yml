@@ -1,5 +1,5 @@
 - name: set ldap tenant level to 5
-  postgresql_query:
+  community.postgresql.postgresql_query:
     dbname: "{{ fworch_db_name }}"
     query: >
       DO $do$ BEGIN IF EXISTS

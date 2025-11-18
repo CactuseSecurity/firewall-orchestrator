@@ -160,7 +160,7 @@
   become: true
 
 - name: check if database already exists
-  postgresql_query:
+  community.postgresql.postgresql_query:
     query: SELECT count(*) FROM pg_database WHERE datname='{{ fworch_db_name }}'
     dbname: postgres
   register: db_exists

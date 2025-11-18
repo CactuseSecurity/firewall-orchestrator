@@ -26,7 +26,7 @@
 - block: # demo & test
 
     - name: insert sample fortiOS management
-      postgresql_query:
+      community.postgresql.postgresql_query:
         dbname: "{{ fworch_db_name }}"
         query: >
           DO $do$ BEGIN 
@@ -36,7 +36,7 @@
           END IF; END $do$ 
 
     - name: insert sample fortiOS gateway
-      postgresql_query:
+      community.postgresql.postgresql_query:
         dbname: "{{ fworch_db_name }}"
         query: >
           DO $do$ BEGIN 
@@ -51,7 +51,7 @@
 
 - block: # demo only
     - name: insert demo check point R8x management {{ sample_checkpoint_name }}
-      postgresql_query:
+      community.postgresql.postgresql_query:
         dbname: "{{ fworch_db_name }}"
         query: >
           DO $do$ BEGIN 
@@ -63,7 +63,7 @@
           END $do$ 
 
     - name: insert demo check point R8x gateway {{ sample_checkpoint_name }}
-      postgresql_query:
+      community.postgresql.postgresql_query:
         dbname: "{{ fworch_db_name }}"
         query: >
           DO $do$ BEGIN 
@@ -78,7 +78,7 @@
 
 - block: # testing only
     - name: insert test check point R8x management {{ sample_checkpoint_name }}
-      postgresql_query:
+      community.postgresql.postgresql_query:
         dbname: "{{ fworch_db_name }}"
         query: >
           DO $do$ BEGIN 
@@ -88,7 +88,7 @@
           END IF; END $do$ 
 
     - name: insert test check point R8x gateway {{ sample_checkpoint_name }}
-      postgresql_query:
+      community.postgresql.postgresql_query:
         dbname: "{{ fworch_db_name }}"
         query: >
           DO $do$ BEGIN 

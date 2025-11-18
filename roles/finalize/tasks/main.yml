@@ -70,7 +70,7 @@
   when: "'frontends' in group_names"
   
 - name: test whether demo data is present
-  postgresql_query:
+  community.postgresql.postgresql_query:
     dbname: "{{ fworch_db_name }}"
     query: >
       SELECT * FROM device WHERE dev_name='{{ sample_fortigate_name }}'

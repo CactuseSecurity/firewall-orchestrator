@@ -169,7 +169,7 @@
   when: audit_user is defined and auditor_initial_pwd is defined and installation_mode=='new'
 
 - name: insert admin tenant0 to database
-  postgresql_query:
+  community.postgresql.postgresql_query:
     dbname: "{{ fworch_db_name }}"
     query: >
       DO $do$ BEGIN IF NOT EXISTS
@@ -182,7 +182,7 @@
   when: installation_mode == "new"
 
 - name: add connection for internal ldap with encrypted passwords
-  postgresql_query:
+  community.postgresql.postgresql_query:
     dbname: "{{ fworch_db_name }}"
     query: >
       DO $do$ BEGIN 
@@ -196,7 +196,7 @@
   when: installation_mode == "new"
 
 - name: insert admin tenant0 to device mapping - tenant0 can see all devices
-  postgresql_query:
+  community.postgresql.postgresql_query:
     dbname: "{{ fworch_db_name }}"
     query: >
       DO $do$ BEGIN IF NOT EXISTS (SELECT * FROM tenant_to_device LEFT JOIN tenant USING (tenant_id) WHERE tenant_name='tenant0')

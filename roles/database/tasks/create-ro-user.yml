@@ -8,12 +8,12 @@
       role_attr_flags: LOGIN,NOSUPERUSER,INHERIT,NOCREATEDB,NOCREATEROLE
 
   - name: GRANT ro user
-    postgresql_query:
+    community.postgresql.postgresql_query:
       dbname: "{{ fworch_db_name }}"
       query: GRANT CONNECT ON DATABASE {{ fworch_db_name }} TO {{ fwo_db_ro_user }}
 
   - name: GRANT ro user all access to schemata
-    postgresql_query:
+    community.postgresql.postgresql_query:
       dbname: "{{ fworch_db_name }}"
       query: |
         GRANT USAGE ON SCHEMA {{ item }} TO {{ fwo_db_ro_user }};

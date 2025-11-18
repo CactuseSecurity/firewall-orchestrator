@@ -8,7 +8,7 @@
 
 - block:
   - name: delete test checkpoint R8x credentials cascading to deletion of mgmt and gw 
-    postgresql_query:
+    community.postgresql.postgresql_query:
       dbname: "{{ fworch_db_name }}"
       query: >
         DO $do$ BEGIN 
@@ -17,7 +17,7 @@
     listen: "test importer handler"
 
   - name: delete tenants tenant1_test and tenant2_test
-    postgresql_query:
+    community.postgresql.postgresql_query:
       dbname: "{{ fworch_db_name }}"
       query: >
         DO $do$ BEGIN 

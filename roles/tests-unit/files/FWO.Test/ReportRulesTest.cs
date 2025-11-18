@@ -227,6 +227,8 @@ namespace FWO.Test
         [Test]
         public void Test_MultipleRulebases_InManagementReport()
         {
+            MockReportRules.RulebaseId = 0;
+            MockReportRules.RuleId = 0;
             var rulebase1 = MockReportRules.CreateRulebaseReport("Rulebase1", 2);
             var rulebase2 = MockReportRules.CreateRulebaseReport("Rulebase2", 3);
             var managementReport = new ManagementReport

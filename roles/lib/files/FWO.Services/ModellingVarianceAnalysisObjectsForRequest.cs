@@ -161,7 +161,7 @@ namespace FWO.Services
                 {
                     Field = ElemFieldType.rule.ToString(),
                     RuleUid = rule.Uid,
-                    DeviceId = rule.EnforcingGateways.FirstOrDefault().Content?.Id,
+                    DeviceId = rule.EnforcingGateways.FirstOrDefault()?.Content?.Id,
                     Name = rule.Name
                 }
             ];

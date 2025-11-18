@@ -13,7 +13,7 @@ namespace FWO.Data
 
         public NetworkLocation(NetworkUser user, NetworkObject? networkObject)
         {
-            Object = networkObject;
+            Object = networkObject ?? new();
             User = user;
         }
 

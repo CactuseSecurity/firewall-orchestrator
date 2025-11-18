@@ -66,7 +66,7 @@ namespace FWO.Ui.Services
 
                 Log.WriteDebug("Token Refresh", "Attempting to refresh access token");
 
-                RefreshTokenRequest refreshRequest = new RefreshTokenRequest
+                RefreshTokenRequest refreshRequest = new()
                 {
                     RefreshToken = currentTokenPair.RefreshToken
                 };
@@ -77,7 +77,11 @@ namespace FWO.Ui.Services
                 {
                     await SetTokenPair(response.Data);
 
+                    // Tell api connection to use new jwt as authentication
                     apiConnection.SetAuthHeader(response.Data.AccessToken);
+
+                    // Tell middleware connection to use new jwt as authentication
+                    middlewareClient.SetAuthenticationToken(response.Data.AccessToken);
 
                     Log.WriteInfo("Token Refresh", "Access token refreshed successfully");
 
@@ -126,7 +130,5 @@ namespace FWO.Ui.Services
             currentTokenPair = null;
             await sessionStorage.DeleteAsync(TOKEN_PAIR_KEY);
         }
-
-
     }
 }

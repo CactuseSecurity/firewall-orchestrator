@@ -4,7 +4,7 @@ from fwo_log import getFwoLogger
 from fwo_const import list_delimiter, nat_postfix
 from fOS_zone import add_zone_if_missing
 
-def normalize_nwobjects(full_config: dict[str, Any], config2import: dict[str, Any], import_id: int, nw_obj_types: set[str], jwt: str | None = None, mgm_id: int | None = None):
+def normalize_nwobjects(full_config: dict[str, Any], config2import: dict[str, Any], import_id: int, nw_obj_types: list[str], jwt: str | None = None, mgm_id: int | None = None):
     logger = getFwoLogger()
     nw_objects: list[dict[str, Any]] = []
     full_config['nw_obj_lookup_dict'] = {}

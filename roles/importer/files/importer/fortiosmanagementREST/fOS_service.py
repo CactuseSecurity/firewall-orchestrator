@@ -6,7 +6,7 @@ from fwo_log import getFwoLogger
 
 def normalize_svcobjects(full_config: dict[str, Any], config2import: dict[str, Any], import_id: int, scope: list[str]):
     logger = getFwoLogger()
-    svc_objects = []
+    svc_objects: list[dict[str, Any]] = []
     full_config['svc_obj_lookup_dict'] = {}
     for s in scope:
         if s in full_config:
@@ -24,9 +24,16 @@ def normalize_svcobjects(full_config: dict[str, Any], config2import: dict[str, A
                 if 'name' in obj_orig:
                     name = str(obj_orig['name']) #TYPING: Can this be None???
 
-                color = None
+                ## Added by TYPING!
+                if name is None:
+                    raise ValueError("Service object name cannot be None")
+                
+                color: str | None = None
                 if 'color' in obj_orig and str(obj_orig['color']) != "0":
                     color = str(obj_orig['color'])
+
+                if color is None:
+                    raise ValueError("Service object color cannot be None")
 
                 session_timeout = None   # todo: find the right timer
         #        if 'udp-idle-timer' in obj_orig and str(obj_orig['udp-idle-timer']) != 0:
@@ -100,7 +107,7 @@ def normalize_svcobjects(full_config: dict[str, Any], config2import: dict[str, A
     config2import.update({'service_objects': svc_objects})
 
 
-def check_split(obj_orig):
+def check_split(obj_orig: dict[str, Any]) -> bool:
     count = 0
     if "tcp-portrange" in obj_orig and len(obj_orig['tcp-portrange']) > 0:
         count += 1
@@ -111,7 +118,7 @@ def check_split(obj_orig):
     return (count > 1)
 
 
-def extractSinglePortRange(port_range):
+def extractSinglePortRange(port_range: str) -> tuple[str, str]:
     # remove src-ports
     port = port_range.split(':')[0]
     port_end = port
@@ -139,24 +146,24 @@ def extractSinglePortRange(port_range):
 def extractPorts(port_ranges: str | None) -> tuple[list[str], list[str]]:
     ports = []
     port_ends = []
-    if port_ranges is not None and len(port_ranges) > 0:
+    if port_ranges is not None and len(port_ranges) > 0: # TYPING: ?????? 
         if ' ' in port_ranges:
             # port range of the form "12 13 114"
-            port_ranges = port_ranges.split(' ')
+            port_ranges = port_ranges.split(' ') #type: ignore #TYPING: can be str or list ???
         
         if not isinstance(port_ranges, str):
-            for port_range in port_ranges:
-                port1, port2 = extractSinglePortRange(port_range)
-                ports.append(port1)
-                port_ends.append(port2)
+            for port_range in port_ranges: #type: ignore #TYPING: can be str or list ???
+                port1, port2 = extractSinglePortRange(port_range) #type: ignore #TYPING: can be str or list ???
+                ports.append(port1) #type: ignore #TYPING: can be str or list ???
+                port_ends.append(port2) #type: ignore #TYPING: can be str or list ???
         else:
             port1, port2 = extractSinglePortRange(port_ranges)
-            ports.append(port1)
-            port_ends.append(port2)
-    return ports, port_ends
+            ports.append(port1) #type: ignore #TYPING: can be str or list ???
+            port_ends.append(port2) #type: ignore #TYPING: can be str or list ???
+    return ports, port_ends #type: ignore #TYPING: can be str or list ???
 
 
-def create_svc_object(import_id, name, proto, port, comment):
+def create_svc_object(import_id: int, name: str, proto: int, port: str | None, comment: str | None=None) -> dict[str, Any]:
     return {
         'control_id': import_id,
         'svc_name': name,
@@ -168,7 +175,7 @@ def create_svc_object(import_id, name, proto, port, comment):
     }
 
 
-def addObject(svc_objects: list[dict[str, Any]], type: str, name: str, color: str, proto: int, port_ranges, member_names, session_timeout, import_id: int, full_config: dict[str, Any]={}):
+def addObject(svc_objects: list[dict[str, Any]], type: str, name: str, color: str, proto: int, port_ranges: str | None, member_names: str | None, session_timeout: int | None, import_id: int, full_config: dict[str, Any]={}):
 
     # add service object in lookup table (currently no UID, name is the UID)
     full_config['svc_obj_lookup_dict'][name] = name

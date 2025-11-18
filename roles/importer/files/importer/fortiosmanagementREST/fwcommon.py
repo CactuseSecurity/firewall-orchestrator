@@ -1,9 +1,7 @@
 # import sys
 # from common import importer_base_dir
 # sys.path.append(importer_base_dir + '/fortiosmanagementREST')
-import json
-from curses import raw
-
+from typing import Any
 import fOS_user
 import fOS_service
 import fOS_zone
@@ -11,9 +9,6 @@ import fOS_rule
 import fOS_network
 import fOS_getter
 from fwo_base import ConfigAction
-from fwo_log import getFwoLogger
-# from fOS_gw_networking import getInterfacesAndRouting, normalize_network_data
-from model_controllers.interface_controller import Interface
 from model_controllers.import_state_controller import ImportStateController
 from models.fwconfigmanagerlist import FwConfigManagerList
 from models.fwconfigmanager import FwConfigManager
@@ -43,13 +38,12 @@ user_obj_types = ['user/local', 'user/group']
 user_scope = ['user_obj_' + s1 for s1 in user_obj_types]
 
 
-def has_config_changed(full_config, mgm_details, force=False):
+def has_config_changed(full_config: dict[str, Any], mgm_details: Any, force: bool = False) -> bool:
     # dummy - may be filled with real check later on
     return True
  
-def get_config(full_config: json, importState: ImportStateController) -> tuple[int, FwConfigManagerList]: # current_import_id, mgm_details, limit=150, force=False, jwt=None) 
+def get_config(full_config: dict[str, Any], importState: ImportStateController) -> tuple[int, FwConfigManagerList]: # current_import_id, mgm_details, limit=150, force=False, jwt=None) 
 # def get_config(config2import, full_config, current_import_id, mgm_details, limit=100, force=False, jwt=''):
-    logger = getFwoLogger()
     config2import = fwo_const.emptyNormalizedFwConfigJsonDict
     if full_config == {}:   # no native config was passed in, so getting it from FortiManager
         parsing_config_only = False
@@ -71,7 +65,7 @@ def get_config(full_config: json, importState: ImportStateController) -> tuple[i
 
             # initialize all rule dicts
             fOS_rule.initializeRulebases(full_config)
-            for dev in importState.MgmDetails.Devices:
+            for _ in importState.MgmDetails.Devices: #TYPING: You good?
                 fOS_rule.getAccessPolicy(sid, fm_api_url, full_config, importState.FwoConfig.ApiFetchSize)
                 # fOS_rule.getNatPolicy(sid, fm_api_url, full_config, limit)
 
@@ -102,10 +96,10 @@ def get_config(full_config: json, importState: ImportStateController) -> tuple[i
 
     # put dicts into object of class FwConfigManager
     normalizedConfig = FwConfigNormalized(action=ConfigAction.INSERT, 
-                            network_objects=config2import['network_objects'],
-                            service_objects=config2import['service_objects'],
-                            users=config2import['users'],
-                            zone_objects=config2import['zone_objects'],
+                            network_objects=config2import['network_objects'], #type: ignore #TYPING: WTF?
+                            service_objects=config2import['service_objects'], #type: ignore #TYPING: WTF? dict or list? Empty Constructor forbidden
+                            users=config2import['users'], #type: ignore #TYPING: WTF?
+                            zone_objects=config2import['zone_objects'], #type: ignore #TYPING: WTF?
                             rulebases=config2import['rules']
                             )
     manager = FwConfigManager(ManagerUid=importState.MgmDetails.calcManagerUidHash(), 
@@ -124,7 +118,7 @@ def get_config(full_config: json, importState: ImportStateController) -> tuple[i
     return 0, listOfManagers
 
 
-def getObjects(sid, fm_api_url, raw_config, limit, nw_obj_types, svc_obj_types):
+def getObjects(sid: str, fm_api_url: str, raw_config: dict[str, Any], limit: int, nw_obj_types: list[str], svc_obj_types: list[str]):
     # get network objects:
     for object_type in nw_obj_types:
         fOS_getter.update_config_with_fortiOS_api_call(

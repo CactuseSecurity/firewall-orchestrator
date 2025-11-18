@@ -159,7 +159,7 @@
     bind_pw: "{{ ldap_manager_pwd }}"
   when: installation_mode == "new"
 
-- name: Set {{ audit_user }} password in ldap
+- name: Set audit user password in ldap
   ldap_passwd:
     dn: "uid={{ audit_user }},ou=tenant0,ou=operator,ou=user,{{ openldap_path }}"
     passwd: "{{ auditor_initial_pwd }}"

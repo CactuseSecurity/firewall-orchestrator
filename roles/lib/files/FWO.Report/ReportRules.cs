@@ -453,34 +453,7 @@ namespace FWO.Report
 
                         foreach (var rule in rules)
                         {
-                            report.Append('{');
-                            if (string.IsNullOrEmpty(rule.SectionHeader))
-                            {
-                                report.Append(ruleDisplayJson.DisplayNumber(rule));
-                                report.Append(ruleDisplayJson.DisplayName(rule.Name));
-                                report.Append(ruleDisplayJson.DisplayRuleSourceZones(rule.RuleFromZones
-                                    .Select(zoneWrapper => zoneWrapper.Content).ToArray()));
-                                report.Append(ruleDisplayJson.DisplaySourceNegated(rule.SourceNegated));
-                                report.Append(ruleDisplayJson.DisplaySource(rule, ReportType));
-                                report.Append(ruleDisplayJson.DisplayRuleDestinationZones(rule.RuleToZones
-                                    .Select(zoneWrapper => zoneWrapper.Content).ToArray()));
-                                report.Append(ruleDisplayJson.DisplayDestinationNegated(rule.DestinationNegated));
-                                report.Append(ruleDisplayJson.DisplayDestination(rule, ReportType));
-                                report.Append(ruleDisplayJson.DisplayServiceNegated(rule.ServiceNegated));
-                                report.Append(ruleDisplayJson.DisplayServices(rule, ReportType));
-                                report.Append(ruleDisplayJson.DisplayAction(rule.Action));
-                                report.Append(ruleDisplayJson.DisplayTrack(rule.Track));
-                                report.Append(ruleDisplayJson.DisplayEnabled(rule.Disabled));
-                                report.Append(ruleDisplayJson.DisplayUid(rule.Uid));
-                                report.Append(ruleDisplayJson.DisplayComment(rule.Comment));
-                                report = RuleDisplayBase.RemoveLastChars(report, 1); // remove last chars (comma)
-                            }
-                            else
-                            {
-                                report.AppendLine("\"section header\": \"" + rule.SectionHeader + "\"");
-                            }
-
-                            report.Append("},"); // EO rule
+                            report.Append(ruleDisplayJson.DisplayRuleJsonObject(rule, ReportType));
                         }
 
                         report = RuleDisplayBase.RemoveLastChars(report, 1); // remove last char (comma)

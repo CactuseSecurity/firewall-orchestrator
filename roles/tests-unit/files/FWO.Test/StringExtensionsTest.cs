@@ -447,7 +447,9 @@ namespace FWO.Test
         [TestCase("<i>italic</i>", "<i>italic</i>")]
         [TestCase("<i><script>evil</script>text</i>", "<i>eviltext</i>")]
         [TestCase("<BR/>line<br>", "line<br>")]
-        //[TestCase("<b>bold</b><i>italic</i>", "bold<i>italic</i>")]
+        [TestCase("<b>bold</b><i>italic</i>", "<b>bold</b><i>italic</i>")]
+        [TestCase("<x>fictitious tag</x>", "fictitious tag")]
+        [TestCase("<x>fictitious tag<x>", "fictitious tag")]
         public void StripDangerousHtmlTags_Works(string input, string expected)
         {
             string result = input.StripDangerousHtmlTags();

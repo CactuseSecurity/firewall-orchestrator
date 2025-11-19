@@ -46,48 +46,4 @@ namespace FWO.Report
             return false;
         }
     }
-
-
-    public static class RulebaseUtility
-    {
-        // adding rules fetched in slices
-        public static bool Merge(this RulebaseReport[] rulebases, RulebaseReport[] rulebasesToMerge)
-        {
-            bool newObjects = false;
-
-            for (int i = 0; i < rulebases.Length && i < rulebasesToMerge.Length; i++)
-            {
-                if (rulebases[i].Id == rulebasesToMerge[i].Id)
-                {
-                    try
-                    {
-                        for (int rb = 0; rb < rulebases[i].Rules.Length && rb < rulebasesToMerge[i].Rules.Length; rb++)
-                        {
-                            if (rulebases[i].Rules != null && rulebasesToMerge[i].Rules != null && rulebasesToMerge[i].Rules.Length > 0)
-                            {
-                                rulebases[i].Rules = rulebases[i].Rules.Concat(rulebasesToMerge[i].Rules!).ToArray();
-                                newObjects = true;
-                            }
-                        }
-                        if (rulebases[i].RuleChanges != null && rulebasesToMerge[i].RuleChanges != null && rulebasesToMerge[i].RuleChanges?.Length > 0)
-                        {
-                            rulebases[i].RuleChanges = rulebases[i].RuleChanges!.Concat(rulebasesToMerge[i].RuleChanges!).ToArray();
-                            newObjects = true;
-                        }
-                        if (rulebases[i].RuleStatistics != null && rulebasesToMerge[i].RuleStatistics != null)
-                            rulebases[i].RuleStatistics.ObjectAggregate.ObjectCount += rulebasesToMerge[i].RuleStatistics.ObjectAggregate.ObjectCount; // correct ??
-                    }
-                    catch (NullReferenceException)
-                    {
-                        throw new ArgumentNullException("Rules is null");
-                    }
-                }
-                else
-                {
-                    throw new NotSupportedException("Devices have to be in the same order in oder to merge.");
-                }
-            }
-            return newObjects;
-        }
-    }
 }

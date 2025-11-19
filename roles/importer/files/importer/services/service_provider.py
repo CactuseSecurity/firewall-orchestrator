@@ -14,7 +14,7 @@ class ServiceProvider:
         This class serves as an IOC-container (IOC = inversion of controls) and its purpose is to manage instantiation and lifetime of service classes.
     """
 
-    _instance = None
+    _instance: "ServiceProvider | None" = None
     _services: dict[Services, ServiceProviderEntry] 
     _singletons: dict[Services, Any]
     _import: dict[tuple[int, Services], Any]
@@ -35,7 +35,6 @@ class ServiceProvider:
 
     def register(self, key: Services, constructor: Callable[[], Any], lifetime: Lifetime):
         self._services[key] = ServiceProviderEntry(constructor, lifetime)
-
     
 
     def get_service(self, key: Services, import_id: int = 0, management_id: int = 0) -> Any:

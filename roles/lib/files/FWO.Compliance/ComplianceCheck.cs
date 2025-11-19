@@ -277,9 +277,11 @@ namespace FWO.Compliance
             return Task.FromResult(isAssessable);
         }
 
-        public async Task<bool> CheckRuleCompliance(Rule rule)
+        public async Task<bool> CheckRuleCompliance(Rule rule, IEnumerable<ComplianceCriterion> criteria)
         {
             bool ruleIsCompliant = true;
+
+
 
             if (rule.Action == "accept")
             {
@@ -297,24 +299,32 @@ namespace FWO.Compliance
                     .GetResolvedNetworkLocations(rule.Tos)
                     .Select(to => to.Object)
                     .ToList();
-                
-                foreach (var criterion in (Policy?.Criteria ?? []).Select(c => c.Content))
+
+                try
                 {
-                    switch (criterion.CriterionType)
+                    foreach (var criterion in criteria)
                     {
-                        case nameof(CriterionType.Assessability):
-                            ruleIsCompliant &= CheckAssessability(rule, resolvedSources, resolvedDestinations, criterion).Result;
-                            break;
-                        case nameof(CriterionType.Matrix):
-                            ruleIsCompliant &= await CheckMatrixCompliance(rule, criterion, resolvedSources, resolvedDestinations);
-                            break;
-                        case nameof(CriterionType.ForbiddenService):
-                            ruleIsCompliant &= CheckForForbiddenService(rule, criterion);
-                            break;
-                        default:
-                            break;
-                    }
+                        switch (criterion.CriterionType)
+                        {
+                            case nameof(CriterionType.Assessability):
+                                ruleIsCompliant &= CheckAssessability(rule, resolvedSources, resolvedDestinations, criterion).Result;
+                                break;
+                            case nameof(CriterionType.Matrix):
+                                ruleIsCompliant &= await CheckMatrixCompliance(rule, criterion, resolvedSources, resolvedDestinations);
+                                break;
+                            case nameof(CriterionType.ForbiddenService):
+                                ruleIsCompliant &= CheckForForbiddenService(rule, criterion);
+                                break;
+                            default:
+                                break;
+                        }
+                    }                    
                 }
+                catch (System.Exception e)
+                {
+                    Logger.TryWriteError("Compliance Check", e, true);
+                }
+
             }
 
             return ruleIsCompliant;
@@ -680,9 +690,31 @@ namespace FWO.Compliance
 
             Logger.TryWriteInfo("Compliance Check", $"Checking compliance for {rules.Count} rule.", LocalSettings.ComplianceCheckVerbose);
 
+            if (Policy == null || Policy.Criteria == null)
+            {
+                Logger.TryWriteError("Compliance Check", $"Checking compliance for rules not possible, because criteria could not be loaded.", true);
+                return;
+            }
+
+            if (Policy.Criteria.Count == 0)
+            {
+                Logger.TryWriteError("Compliance Check", $"Checking compliance for rules not possible, because policy does not contain criteria.", true);
+                return;
+            }
+
+            List<ComplianceCriterion> criteria = Policy.Criteria.Select(c => c.Content).ToList();
+
+            if (criteria.Count == 0)
+            {
+                Logger.TryWriteError("Compliance Check", $"Checking compliance for rules not possible, because criteria were malformed.", true);
+                return;
+            }
+
+            Logger.TryWriteInfo("Compliance Check", $"Checking compliance for {Policy.Criteria.Count} criteria.", LocalSettings.ComplianceCheckVerbose);
+
             foreach (Rule rule in rules)
             {
-                bool ruleIsCompliant = await CheckRuleCompliance(rule);
+                bool ruleIsCompliant = await CheckRuleCompliance(rule, criteria);
 
                 if (!ruleIsCompliant)
                 {

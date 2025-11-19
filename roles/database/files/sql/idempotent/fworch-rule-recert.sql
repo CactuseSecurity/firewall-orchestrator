@@ -215,11 +215,6 @@ BEGIN
 				DELETE FROM recertification WHERE owner_id=i_owner_id AND rule_id=r_rule.rule_id AND recert_date IS NULL;
 			END IF;
 		END LOOP;
-
-		-- -- finally, when not super user - recalculate super user recert entries - since these might change with each owner change
-		-- IF NOT b_super_owner AND b_super_owner_exists THEN
-		-- 	PERFORM recert_refresh_one_owner_one_mgm (i_super_owner_id, i_mgm_id, t_requested_next_recert_date);
-		-- END IF;
 	END IF;
 END;
 $$ LANGUAGE plpgsql;

@@ -1984,3 +1984,5 @@ DROP SEQUENCE IF EXISTS public.stm_action_action_id_seq;
 DROP SEQUENCE IF EXISTS public.stm_dev_typ_dev_typ_id_seq;
 DROP SEQUENCE IF EXISTS public.parent_rule_type_id_seq;
 
+-- Clean install läuft sauber durch, mit Serial der stm_colors
+-- upgrade todo (Entscheiden stm_colors serial oder nicht)

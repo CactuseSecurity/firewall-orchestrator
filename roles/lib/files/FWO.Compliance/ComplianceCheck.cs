@@ -136,9 +136,9 @@ namespace FWO.Compliance
                 RulesInCheck = [];
                 CurrentViolationsInCheck.Clear();
 
-                Task loadNetworkZonesTask = LoadNetworkZones();
+                await LoadNetworkZones();
                 RulesInCheck =  await GetRelevantManagementsRules(_managements!.Select(m => m.Id).ToList());
-                await Task.WhenAll(loadNetworkZonesTask);
+
 
                 if (RulesInCheck == null || RulesInCheck.Count == 0)
                 {

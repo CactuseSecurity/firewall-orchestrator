@@ -95,13 +95,7 @@ def get_config(full_config: dict[str, Any], importState: ImportStateController) 
     # fOS_network.remove_nat_ip_entries(config2import)
 
     # put dicts into object of class FwConfigManager
-    normalizedConfig = FwConfigNormalized(action=ConfigAction.INSERT, 
-                            network_objects=config2import['network_objects'], #type: ignore #TYPING: WTF?
-                            service_objects=config2import['service_objects'], #type: ignore #TYPING: WTF? dict or list? Empty Constructor forbidden
-                            users=config2import['users'], #type: ignore #TYPING: WTF?
-                            zone_objects=config2import['zone_objects'], #type: ignore #TYPING: WTF?
-                            rulebases=config2import['rules']
-                            )
+    normalizedConfig = FwConfigNormalized()
     manager = FwConfigManager(ManagerUid=importState.MgmDetails.calcManagerUidHash(), 
                               IsSuperManager=False, 
                               SubManagerIds=[], 

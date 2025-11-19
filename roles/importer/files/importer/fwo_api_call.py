@@ -29,13 +29,13 @@ class FwoApiCall(FwoApi):
         self.query_analyzer = QueryAnalyzer()
 
 
-    def get_mgm_ids(self, query_variables: dict[str, list[Any]]) -> list[dict[str, Any]]: # TODO: confirm return type
+    def get_mgm_ids(self, query_variables: dict[str, list[Any]] = {}) -> list[int]:
         # from 9.0 do not import sub-managers separately
         mgm_query = FwoApi.get_graphql_code([fwo_const.graphql_query_path + "device/getManagementWithSubs.graphql"])
         result = self.call(mgm_query, query_variables=query_variables)
         if 'data' in result and 'management' in result['data']:
-            return result['data']['management']
-        return []   
+            return [id for id in result['data']['management']]
+        return [] 
 
 
     def get_config_value(self, key: str='limit') -> str|None:

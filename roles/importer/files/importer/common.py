@@ -44,7 +44,7 @@ from fwo_config import readConfig
 """
 def import_management(mgmId: int | None = None, ssl_verification: bool | None = None, debug_level_in: int = 0, 
         limit: int = 150, force: bool = False, clearManagementData: bool = False, suppress_cert_warnings_in: bool | None = None,
-        in_file: str | None = None, version: int = 8) -> int:
+        in_file: str | None = None, version: int = 8) -> None:
 
     fwo_signalling.registerSignallingHandlers()
     logger = getFwoLogger(debug_level=debug_level_in)
@@ -106,11 +106,6 @@ def import_management(mgmId: int | None = None, ssl_verification: bool | None = 
             ServiceProvider().dispose_service(Services.UID2ID_MAPPER, importState.ImportId)
         except Exception as e:
             logger.error(f"Error during import completion: {str(e)}")
-
-    if hasattr(importState, 'Stats') and hasattr(importState.Stats, 'ErrorCount'):
-        return importState.Stats.ErrorCount
-    else:
-        return 1
 
 
 def _import_management(service_provider: ServiceProvider, importState: ImportStateController, config_importer: FwConfigImport | None = None,

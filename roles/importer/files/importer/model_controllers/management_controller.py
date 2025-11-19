@@ -8,7 +8,6 @@ from models.gateway import Gateway
 from fwconfig_base import replaceNoneWithEmpty
 from fwo_const import graphql_query_path
 from fwo_api import FwoApi
-from services.service_provider import ServiceProvider, Services
 from fwo_encrypt import decrypt, read_main_key
 from fwo_exceptions import SecretDecryptionFailed, FwoApiFailure
 
@@ -178,11 +177,7 @@ class ManagementController(Management):
         return hashlib.sha256(combination.encode()).hexdigest()
 
 
-    def get_mgm_details(self, api_conn: FwoApi, mgm_id: int, debug_level: int = 0) -> dict[str, Any]:
-
-        service_provider = ServiceProvider()
-        _global_state = service_provider.get_service(Services.GLOBAL_STATE)
-
+    def get_mgm_details(self, api_conn: FwoApi, mgm_id: int) -> dict[str, Any]:
         getMgmDetailsQuery = FwoApi.get_graphql_code([
                     graphql_query_path + "device/getSingleManagementDetails.graphql",
                     graphql_query_path + "device/fragments/managementDetails.graphql",

@@ -1,6 +1,13 @@
 from typing import Callable, Any
+from services.global_state import GlobalState
 from services.enums import Services, Lifetime
 
+
+
+class ServiceProviderEntry:
+    def __init__(self, constructor: Callable[[], Any],  lifetime: Lifetime):
+        self.constructor = constructor
+        self.lifetime = lifetime
 
 class ServiceProvider:
     """
@@ -8,10 +15,12 @@ class ServiceProvider:
     """
 
     _instance = None
-    _services: dict
-    _singletons: dict
-    _import: dict
-    _management: dict
+    _services: dict[Services, ServiceProviderEntry] 
+    _singletons: dict[Services, Any]
+    _import: dict[tuple[int, Services], Any]
+    _management: dict[tuple[int, Services], Any]
+
+    globalStates : dict[tuple[Lifetime, int], GlobalState] = {}
 
 
     def __new__(cls):
@@ -25,11 +34,9 @@ class ServiceProvider:
 
 
     def register(self, key: Services, constructor: Callable[[], Any], lifetime: Lifetime):
-        self._services[key] = {
-            "constructor": constructor,
-            "lifetime": lifetime
-        }
+        self._services[key] = ServiceProviderEntry(constructor, lifetime)
 
+    
 
     def get_service(self, key: Services, import_id: int = 0, management_id: int = 0) -> Any:
         """
@@ -46,27 +53,27 @@ class ServiceProvider:
         if not entry:
             raise ValueError(f"Service '{key}' is not registered.")
         
-        match entry["lifetime"]:
+        match entry.lifetime:
 
             case Lifetime.SINGLETON:
                 if key not in self._singletons:
-                    self._singletons[key] = entry["constructor"]()
+                    self._singletons[key] = entry.constructor()
                 service_instance = self._singletons[key]
 
             case Lifetime.IMPORT:
                 import_specific_key = (import_id, key)
                 if import_specific_key not in self._import:
-                    self._import[import_specific_key] = (entry["constructor"]())
+                    self._import[import_specific_key] = (entry.constructor())
                 service_instance = self._import[import_specific_key]
 
             case Lifetime.MANAGEMENT:
                 management_specific_key = (management_id, key)
                 if management_specific_key not in self._management:
-                    self._management[management_specific_key] = (entry["constructor"]())
+                    self._management[management_specific_key] = (entry.constructor())
                 service_instance = self._management[management_specific_key]
 
             case _:
-                raise ValueError(f"Unsupported lifetime '{entry['lifetime']}' for service '{key}'.")
+                raise ValueError(f"Unsupported lifetime '{entry.lifetime}' for service '{key}'.")
 
         return service_instance
     
@@ -83,7 +90,7 @@ class ServiceProvider:
         if not entry:
             raise ValueError(f"Service '{key}' is not registered.")
 
-        match entry["lifetime"]:
+        match entry.lifetime: 
 
             case Lifetime.SINGLETON:
                 if key in self._singletons:
@@ -98,6 +105,11 @@ class ServiceProvider:
                 management_specific_key = (management_id, key)
                 if management_specific_key in self._management:
                     del self._management[management_specific_key]
+
+            case _:
+                raise ValueError(f"Unsupported lifetime '{entry.lifetime}' for service '{key}'.")
+
+            
 
     def dispose_scope_import(self, import_id: int):
         """

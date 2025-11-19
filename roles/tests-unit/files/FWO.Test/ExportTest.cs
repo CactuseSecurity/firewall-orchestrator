@@ -460,7 +460,7 @@ namespace FWO.Test
             ClassicAssert.AreEqual(expectedJsonResult, jsonExport);
         }
 
-        [Test, Ignore("temporarily disabled for importer-rework")]
+        [Test]
         public void ResolvedRulesGenerateJson()
         {
             Log.WriteInfo("Test Log", "starting resolved rules report json generation");
@@ -468,15 +468,15 @@ namespace FWO.Test
 
             string expectedJsonResult =
             "{\"report type\": \"Rules Report (resolved)\",\"report generation date\": \"Z (UTC)\"," +
-            "\"date of configuration shown\": \"2023-04-20T15:50:04Z (UTC)\",\"device filter\": \"TestMgt [TestDev]\",\"other filters\": \"TestFilter\"," +
+            "\"date of configuration shown\": \"2023-04-20T15:50:04Z (UTC)\",\"device filter\": \"TestMgt [Mock Device 1]\",\"other filters\": \"TestFilter\"," +
             "\"report generator\": \"Firewall Orchestrator - https://fwo.cactus.de/en\",\"data protection level\": \"For internal use only\"," +
-            "\"managements\": [{\"TestMgt\": {\"gateways\": [{\"TestDev\": {" +
-            "\"rules\": [{\"number\": 1,\"name\": \"TestRule1\",\"source zone\": \"srczn\",\"source negated\": false," +
-            "\"source\": [\"TestIp1 (1.2.3.4/32)\",\"TestIp2 (127.0.0.1/32)\"],\"destination zone\": \"dstzn\",\"destination negated\": false," +
+            "\"managements\": [{\"TestMgt\": {\"gateways\": [{\"Mock Device 1\": {" +
+            "\"rules\": [{\"number\": 1,\"name\": \"TestRule1\",\"source zones\": [\"srczn1\",\"srczn2\",\"srczn3\"],\"source negated\": false," +
+            "\"source\": [\"TestIp1 (1.2.3.4/32)\",\"TestIp2 (127.0.0.1/32)\"],\"destination zones\": [\"dstzn1\",\"dstzn2\",\"dstzn3\"],\"destination negated\": false," +
             "\"destination\": [\"TestIpRange (1.2.3.4-1.2.3.5)\"],\"service negated\": false," +
             "\"service\": [\"TestService1 (443/TCP)\"],\"action\": \"accept\",\"tracking\": \"none\",\"disabled\": false,\"rule uid\": \"uid1\",\"comment\": \"comment1\"}," +
-            "{\"number\": 2,\"name\": \"TestRule2\",\"source zone\": \"\",\"source negated\": true," +
-            "\"source\": [\"TestUser1@TestIp1 (1.2.3.4/32)\",\"TestUser1@TestIp2 (127.0.0.1/32)\"],\"destination zone\": \"\",\"destination negated\": true," +
+            "{\"number\": 2,\"name\": \"TestRule2\",\"source zones\": [],\"source negated\": true," +
+            "\"source\": [\"TestUser1@TestIp1 (1.2.3.4/32)\",\"TestUser1@TestIp2 (127.0.0.1/32)\"],\"destination zones\": [],\"destination negated\": true," +
             "\"destination\": [\"TestUser2@TestIpRange (1.2.3.4-1.2.3.5)\"],\"service negated\": true," +
             "\"service\": [\"TestService2 (6666-7777/UDP)\"],\"action\": \"deny\",\"tracking\": \"none\",\"disabled\": false,\"rule uid\": \"uid2:123\",\"comment\": \"comment2\"}]}}]}}]}";
             string jsonExport = RemoveLinebreaks(RemoveGenDate(reportRules.ExportToJson(), false, true));

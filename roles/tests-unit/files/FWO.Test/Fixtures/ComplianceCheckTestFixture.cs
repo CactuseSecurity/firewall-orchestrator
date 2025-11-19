@@ -1,12 +1,104 @@
 using System.Net;
+using FWO.Api.Client.Queries;
 using FWO.Basics;
+using FWO.Compliance;
+using FWO.Config.Api;
 using FWO.Data;
+using FWO.Logging;
+using FWO.Test.Mocks;
 using NetTools;
+using NSubstitute;
 
 namespace FWO.Test.Fixtures
 {
     public class ComplianceCheckTestFixture
     {
+        protected virtual ComplianceCheck ComplianceCheck { get; set; } = default!;
+        protected virtual TimeSpan MaxAcceptableExecutionTime { get; set; } = TimeSpan.FromSeconds(60);
+        protected virtual List<Rule>[] RuleChunks { get; set; } = default!;
+        protected virtual GlobalConfig GlobalConfig { get; set; } = default!;
+        protected virtual UserConfig UserConfig { get; set; } = default!;
+        protected virtual MockApiConnection ApiConnection { get; set; } = default!;
+        protected virtual MockLogger Logger { get; set; } = default!;
+        protected virtual CompliancePolicy? Policy { get; set; } = null;
+
+        private const string ForbiddenServiceUid = "forbidden-service-uid";
+
+        public virtual void SetUpTest()
+        {
+            LocalSettings.ComplianceCheckVerbose = true;
+
+            ApiConnection = new();
+            Logger = new();
+            GlobalConfig = new SimulatedGlobalConfig { AutoCalculateInternetZone = true, AutoCalculateUndefinedInternalZone = true, TreatDynamicAndDomainObjectsAsInternet = true };
+            UserConfig = new UserConfig(GlobalConfig, false);
+
+            SimulatedUserConfig.DummyTranslate["internet_local_zone"] = "Internet/Local";
+            SimulatedUserConfig.DummyTranslate["assess_broadcast"] = "Network objects in source or destination with 255.255.255.255/32";
+            SimulatedUserConfig.DummyTranslate["assess_host_address"] = "Network objects in source or destination with 0.0.0.0/32";
+            SimulatedUserConfig.DummyTranslate["assess_all_ips"] = "Network objects in source or destination with 0.0.0.0/0 or ::/0";
+            SimulatedUserConfig.DummyTranslate["assess_ip_null"] = "Network objects in source or destination without IP";
+            SimulatedUserConfig.DummyTranslate["H5839"] = "Matrix violation";
+            SimulatedUserConfig.DummyTranslate["H5840"] = "Restricted Service";
+            SimulatedUserConfig.DummyTranslate["H5841"] = "Assessability issue";
+            
+            ComplianceCheck = new ComplianceCheck(UserConfig, ApiConnection, Logger.AsSub());
+            ComplianceCheck.NetworkZones = CreateNetworkZones(true, true);
+            ComplianceCheck.ComplianceReport = new(new(""), UserConfig, ReportType.ComplianceReport);
+        }
+
+        protected virtual Task SetUpBasic(bool createEmptyPolicy = false, bool setupRelevantManagements = false, bool createPolicy = false, bool createRules = false, bool setupNoViolations = false)
+        {
+            GlobalConfig.ComplianceCheckPolicyId = 1;
+
+            if (createEmptyPolicy)
+            {
+                ApiConnection.AsSub()
+                    .SendQueryAsync<CompliancePolicy>(ComplianceQueries.getPolicyById, Arg.Any<object>())
+                    .Returns(new CompliancePolicy()); // Policy without criteria                
+            }
+
+            if (setupRelevantManagements)
+            {
+                GlobalConfig.ComplianceCheckRelevantManagements = "1,2,3";
+
+                ApiConnection.AsSub()
+                    .SendQueryAsync<List<Management>>(DeviceQueries.getManagementNames)
+                    .Returns([new Management { Id = 1, Name = "Mgmt1" }]);
+            }
+
+            if (createPolicy)
+            {
+                Policy = CreatePolicy(ForbiddenServiceUid);
+                ComplianceCheck.Policy = Policy;
+
+                ApiConnection.AsSub()
+                    .SendQueryAsync<CompliancePolicy>(ComplianceQueries.getPolicyById, Arg.Any<object>())
+                    .Returns(Policy); // Policy with criteria
+
+                ApiConnection.AsSub()
+                    .SendQueryAsync<List<ComplianceNetworkZone>>(ComplianceQueries.getNetworkZonesForMatrix, Arg.Any<object>())
+                        .Returns(ComplianceCheck.NetworkZones);
+            }
+
+            if (createRules)
+            {
+                if (!setupNoViolations)
+                {
+                    ComplianceCriterion? matrix = ComplianceCheck.Policy!.Criteria
+                        .FirstOrDefault(c => c.Content.CriterionType == nameof(CriterionType.Matrix))?.Content;
+
+                    ComplianceCheck.NetworkZones = CreateNetworkZones(true, true);                
+                }
+
+                ApiConnection.AsSub()
+                    .SendQueryAsync<List<Rule>>(RuleQueries.getRulesForSelectedManagements)
+                    .Returns(CreateRulesForComplianceCheckTest(setupNoViolations, ForbiddenServiceUid));
+            }
+
+            return Task.CompletedTask;
+        }
+
         protected virtual List<Rule>[] BuildFixedRuleChunksParallel(int numberOfChunks, int numberOfRulesPerChunk, int startRuleId = 1, int? maxDegreeOfParallelism = null)
         {
             if (numberOfChunks <= 0) throw new ArgumentOutOfRangeException(nameof(numberOfChunks));

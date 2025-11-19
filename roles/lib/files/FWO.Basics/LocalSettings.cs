@@ -6,7 +6,7 @@ namespace FWO.Basics
     {
         public static bool CSharpUnitTestsVerbose { get; set; } = false;
 
-        public static bool ComplianceCheckVerbose { get; set; } = false;
+        public static bool ComplianceCheckVerbose { get; set; } = true;
 
         /// <summary>
         /// Static constructor to load local settings from a JSON file specified by the

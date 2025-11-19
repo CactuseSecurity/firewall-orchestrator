@@ -6,9 +6,7 @@ using FWO.Basics.Enums;
 using FWO.Config.Api;
 using FWO.Data;
 using FWO.Report;
-using FWO.Services;
 using NetTools;
-using FWO.Data.Report;
 using FWO.Report.Filter.FilterTypes;
 using FWO.Logging;
 using FWO.Ui.Display;
@@ -39,19 +37,14 @@ namespace FWO.Compliance
 
         public ILogger Logger { get; set; } = new Logger();
 
-        /// <summary>
-        /// Filters to create compliance reports.
-        /// </summary>
-        private ReportFilters _reportFilters = new();
+        public List<ComplianceViolation> CurrentViolationsInCheck { get; private set; } = [];
+
+        public List<Rule>? RulesInCheck { get; private set; } = [];
 
         private readonly ApiConnection _apiConnection;
         private readonly UserConfig _userConfig;
 
         private List<Management>? _managements = [];
-        public List<ComplianceViolation> CurrentViolationsInCheck { get; private set; } = [];
-
-        public List<Rule>? RulesInCheck { get; private set; } = [];
-
         private bool _treatDomainAndDynamicObjectsAsInternet = false;
         private bool _autoCalculatedInternetZoneActive = false;
         private int _complianceCheckPolicyId = 0;

@@ -7,7 +7,7 @@ from fwo_log import getFwoLogger
 import fwo_const
 import fwo_globals
 from fwo_const import list_delimiter, default_section_header_text
-from fwo_base import sanitize
+from fwo_base import sanitize, sort_and_join_refs
 from fwo_exceptions import ImportRecursionLimitReached, FwoImporterErrorInconsistencies
 from models.rulebase import Rulebase
 from models.rule import RuleNormalized
@@ -263,17 +263,13 @@ def parse_single_rule(nativeRule, rulebase, layer_name, parent_uid, gateway, pol
     if not('type' in nativeRule and nativeRule['type'] != 'place-holder' and 'rule-number' in nativeRule):  # standard rule, no section header
         return
     # the following objects might come in chunks:
-    sourceObjects = parseRulePart (nativeRule['source'], 'source')
-    rule_src_ref = list_delimiter.join(sourceObjects.keys())
-    rule_src_name = list_delimiter.join(sourceObjects.values())
-
-    destObjects = parseRulePart (nativeRule['destination'], 'destination')
-    rule_dst_ref = list_delimiter.join(destObjects.keys())
-    rule_dst_name = list_delimiter.join(destObjects.values())
-
-    svcObjects = parseRulePart (nativeRule['service'], 'service')
-    rule_svc_ref = list_delimiter.join(svcObjects.keys())
-    rule_svc_name = list_delimiter.join(svcObjects.values())
+    sourceObjects: dict[str, str] = parseRulePart (nativeRule['source'], 'source')
+    rule_src_ref, rule_src_name = sort_and_join_refs(list(sourceObjects.items()))
+    
+    destObjects: dict[str, str] = parseRulePart (nativeRule['destination'], 'destination')
+    rule_dst_ref, rule_dst_name = sort_and_join_refs(list(destObjects.items()))
+    svcObjects: dict[str, str] = parseRulePart (nativeRule['service'], 'service')
+    rule_svc_ref, rule_svc_name = sort_and_join_refs(list(svcObjects.items()))
 
     ruleEnforcedOnGateways = parse_rule_enforced_on_gateway(gateway, policy_structure, native_rule=nativeRule)
     listOfGwUids = sorted({enforceEntry.dev_uid for enforceEntry in ruleEnforcedOnGateways})

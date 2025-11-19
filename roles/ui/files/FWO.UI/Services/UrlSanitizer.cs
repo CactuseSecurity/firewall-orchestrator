@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Text;
 using System.Web;
 using FWO.Basics;
@@ -61,7 +62,7 @@ namespace FWO.Ui.Services
             JavascriptSchemeRegex().IsMatch(decoded) ||
             DangerousHtmlTagRegex().IsMatch(decoded);
 
-        private static bool TryCreateAbsoluteUri(string decoded, out Uri uri) =>
+        private static bool TryCreateAbsoluteUri(string decoded, [NotNullWhen(true)] out Uri? uri) =>
             Uri.TryCreate(decoded, UriKind.Absolute, out uri);
 
         private static bool IsAllowedScheme(Uri uri)

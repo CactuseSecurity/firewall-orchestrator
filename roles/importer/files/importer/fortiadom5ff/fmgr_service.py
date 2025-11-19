@@ -4,6 +4,8 @@ from model_controllers.import_state_controller import ImportStateController
 from fwo_log import getFwoLogger
 from typing import Any
 
+from roles.importer.files.importer.fwo_base import sort_and_join
+
 def normalize_service_objects(native_config, normalized_config_adom, svc_obj_types):
     svc_objects = []
     
@@ -161,6 +163,8 @@ def create_svc_object(name, proto, color, port, comment) -> 'dict[str, Any]':
 
 
 def add_object(svc_objects, type, name, color, proto, port_ranges, member_names, session_timeout):
+    if member_names:
+        member_names = sort_and_join(member_names.split(list_delimiter)) #TODO: sorting should be done earlier on actual list
     if port_ranges is None:
         svc_objects.extend([{'svc_typ': type,
                             'svc_name': name, 

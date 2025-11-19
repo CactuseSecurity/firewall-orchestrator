@@ -34,7 +34,7 @@ class FwoApiCall(FwoApi):
         mgm_query = FwoApi.get_graphql_code([fwo_const.graphql_query_path + "device/getManagementWithSubs.graphql"])
         result = self.call(mgm_query, query_variables=query_variables)
         if 'data' in result and 'management' in result['data']:
-            return [id for id in result['data']['management']]
+            return [mgm['id'] for mgm in result['data']['management']]
         return [] 
 
 

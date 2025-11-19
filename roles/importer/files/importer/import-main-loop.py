@@ -107,6 +107,10 @@ def main_loop(verify_certificates: bool | None = None, suppress_certificate_warn
 
         ## loop through all managements
         for mgm_id in mgm_ids:
+            
+            if mgm_id not in [5]:
+                continue
+
             wait_with_shutdown_check(0)
 
             service_provider = init_service_provider()

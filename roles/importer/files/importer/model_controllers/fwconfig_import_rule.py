@@ -353,7 +353,7 @@ class FwConfigImportRule():
             return {
                 "_and": [
                     {"rule_id": {"_eq": self.uid2id_mapper.get_rule_id(rule_uid, before_update=True)}},
-                    {"zone_id": {"_eq": self.uid2id_mapper.get_zone_object_id(ref_uid, before_update=True)}}
+                    {"zone_id": {"_eq": self.uid2id_mapper.get_zone_object_id(ref_uid, before_update=True)}}# type: ignore # ref_uid is str here TODO: Cleanup ref_uid dict
                 ]
             }
         else:
@@ -494,7 +494,7 @@ class FwConfigImportRule():
         elif ref_type == RefType.SRC_ZONE or ref_type == RefType.DST_ZONE:
             return {
                 "rule_id": self.uid2id_mapper.get_rule_id(rule.rule_uid),
-                "zone_id": self.uid2id_mapper.get_zone_object_id(ref_uid),
+                "zone_id": self.uid2id_mapper.get_zone_object_id(ref_uid), # type: ignore # ref_uid is str here TODO: Cleanup ref_uid dict
                 "created": self.import_details.ImportId,
             }
 
@@ -676,7 +676,7 @@ class FwConfigImportRule():
         else:
             # reduce change number by number of rulebases
             changes = import_result['data']['insert_rule_metadata']['affected_rows']
-            if changes>0:
+            if changes > 0:
                 for rule_metadata_id in import_result['data']['insert_rule_metadata']['returning']:
                     newRuleMetaDataIds.append(rule_metadata_id)
         

@@ -113,7 +113,7 @@ class ImportStateController(ImportState):
                 manager_info=ManagerInfo(),
                 domain_info=DomainInfo()
             )
-            mgmDetails = mgm_controller.get_mgm_details(api_conn, mgmId, debugLevel) 
+            mgmDetails = mgm_controller.get_mgm_details(api_conn, mgmId) 
         except Exception as _:
             logger.error(f"import_management - error while getting fw management details for mgm={str(mgmId)}: {str(traceback.format_exc())}")
             raise

@@ -3,10 +3,7 @@ from fwo_log import getFwoLogger
 import time
 from copy import deepcopy
 
-import cp_rule
-import cp_const, cp_network, cp_service
-import cp_getter
-import cp_gateway
+from checkpointR8x import cp_rule, cp_const, cp_network, cp_service, cp_getter, cp_gateway
 from fwo_exceptions import FwLoginFailed
 from models.fwconfigmanagerlist import FwConfigManagerList, FwConfigManager
 from model_controllers.fwconfigmanagerlist_controller import FwConfigManagerListController
@@ -19,6 +16,7 @@ from model_controllers.fwconfig_normalized_controller import FwConfigNormalizedC
 from fwo_exceptions import ImportInterruption, FwoImporterError
 from models.import_state import ImportState
 from model_controllers.management_controller import ManagementController
+
 
 
 def has_config_changed (full_config: dict[str, Any], importState: ImportState, force: bool = False):

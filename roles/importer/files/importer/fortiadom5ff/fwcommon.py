@@ -4,17 +4,17 @@ from copy import deepcopy
 from model_controllers.import_state_controller import ImportStateController
 from fwo_exceptions import ImportInterruption, FwLoginFailed, FwLogoutFailed
 from fwo_base import write_native_config_to_file
-import fmgr_getter
+from fortiadom5ff import fmgr_getter
 from fwo_log import getFwoLogger
 from model_controllers.fwconfigmanagerlist_controller import FwConfigManagerListController
 from model_controllers.fwconfig_normalized_controller import FwConfigNormalizedController
 from models.fwconfigmanager import FwConfigManager
-from fmgr_network import normalize_network_objects
-from fmgr_service import normalize_service_objects
-from fmgr_rule import normalize_rulebases, get_access_policy, get_nat_policy
-from fmgr_consts import nw_obj_types, svc_obj_types, user_obj_types
+from fortiadom5ff.fmgr_network import normalize_network_objects
+from fortiadom5ff.fmgr_service import normalize_service_objects
+from fortiadom5ff.fmgr_rule import normalize_rulebases, get_access_policy, get_nat_policy
+from fortiadom5ff.fmgr_consts import nw_obj_types, svc_obj_types, user_obj_types
 from fwo_base import ConfigAction
-from fmgr_zone import get_zones, normalize_zones
+from fortiadom5ff.fmgr_zone import get_zones, normalize_zones
 from models.fwconfig_normalized import FwConfigNormalized
 from models.management import Management
 

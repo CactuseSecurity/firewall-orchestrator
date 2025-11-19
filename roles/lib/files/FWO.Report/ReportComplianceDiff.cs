@@ -37,9 +37,9 @@ namespace FWO.Report
             return showRule;
         }
 
-        protected override Task SetComplianceDataForRule(Rule rule, ApiConnection apiConnection, Func<ComplianceViolation, string>? formatter = null)
+        protected override void SetComplianceDataForRule(Rule rule, ApiConnection apiConnection, Func<ComplianceViolation, string>? formatter = null)
         {
-            return base.SetComplianceDataForRule(rule, apiConnection, FormatViolationDetails);
+            base.SetComplianceDataForRule(rule, apiConnection, FormatViolationDetails);
         }
 
 

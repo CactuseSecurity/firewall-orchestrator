@@ -13,11 +13,11 @@
 sample config file /usr/local/orch/etc/secrets/customizingConfig.json
 
 {
-    "gitRepoUrl": "github.domain.de/CMDB-export",
-    "gitusername": "gituser1",
-    "gitpassword": "xxx",
-    "csvAllOwnerFiles": ["all-apps.csv", "all-infra-services.csv"],
-    "csvAppServerFiles": ["app-servers.csv", "com-servers.csv"],
+    "gitRepo": "github.domain.de/CMDB-export",
+    "gitUser": "gituser1",
+    "gitPassword": "xxx",
+    "csvOwnerFilePattern": "NeMo_..._meta.csv",
+    "csvAppServerFilePattern": "NeMo_..._IP.*?.csv",
     "ldapPath": "CN={USERID},OU=Benutzer,DC=DOMAIN,DC=DE"
 }
 '''
@@ -83,7 +83,7 @@ class app_ip:
             {
             "name": self.name,
             "app_id_external": self.app_id_external,
-            "ip_start": str(IPAddress(self.ip_start)),
+            "ip": str(IPAddress(self.ip_start)),
             "ip_end": str(IPAddress(self.ip_end)),
             "type": self.type
             }
@@ -238,7 +238,8 @@ def parse_ip(line, app_id, ip_column_no, app_dict, count_skips):
 
         ip_start = IPAddress(ip_range.first)
         ip_end = IPAddress(ip_range.last)
-        app_server_ip = app_ip(app_id_external=app_id, ip_start=ip_start, ip_end=ip_end, type=ip_type, name=f"{ip_type}_{app_server_ip_str}")
+        ip_obj_name = f"{ip_type}_{app_server_ip_str}".replace('/', '_')
+        app_server_ip = app_ip(app_id_external=app_id, ip_start=ip_start, ip_end=ip_end, type=ip_type, name=ip_obj_name)
         if app_server_ip not in app_dict[app_id].app_servers:
             app_dict[app_id].app_servers.append(app_server_ip)
     else:
@@ -327,8 +328,19 @@ if __name__ == "__main__":
     gitRepoUrl = read_custom_config(args.config, 'gitRepo')
     gitUsername = read_custom_config(args.config, 'gitUser')
     gitPassword = read_custom_config(args.config, 'gitpassword')
-    csvAllOwnerFiles = read_custom_config(args.config, 'csvAllOwnerFiles')
-    csvAppServerFiles = read_custom_config(args.config, 'csvAppServerFiles')
+    csvOwnerFilePattern = read_custom_config(args.config, 'csvOwnerFilePattern')
+    csvAppServerFilePattern = read_custom_config(args.config, 'csvAppServerFilePattern')
+
+
+    if args.import_from_folder:
+        base_dir = args.import_from_folder
+    else:
+        base_dir=repoTargetDir
+
+    if args.debug:
+        debug_level = int(args.debug)
+    else:
+        debug_level = 0
 
 
     if args.import_from_folder:
@@ -361,15 +373,19 @@ if __name__ == "__main__":
     #############################################
     # 2. get app data from CSV files
     app_list = []
-    for csvFile in csvAllOwnerFiles:
-        extract_app_data_from_csv(csvFile, app_list, base_dir=base_dir)
+    re_owner_file_pattern = re.compile(csvOwnerFilePattern)
+    for file_name in os.listdir(repoTargetDir):
+        if re_owner_file_pattern.match(file_name):
+            extract_app_data_from_csv(file_name, app_list, base_dir=base_dir)
 
     app_dict = transform_app_list_to_dict(app_list)
 
-    for csvFile in csvAppServerFiles:
-        if debug_level>0:
-            logger.info(f"importing IP data from file {csvFile} ...")
-        extract_ip_data_from_csv(csvFile, app_dict, base_dir=base_dir)
+    re_app_server_file_pattern = re.compile(csvAppServerFilePattern)
+    for file_name in os.listdir(repoTargetDir):
+        if re_app_server_file_pattern.match(file_name):
+            if debug_level>0:
+                logger.info(f"importing IP data from file {file_name} ...")
+            extract_ip_data_from_csv(file_name, app_dict, base_dir=base_dir)
 
     #############################################    
     # 3. write owners to json file
@@ -392,3 +408,4 @@ if __name__ == "__main__":
         logger.info(f"#ip addresses in total: {str(totalIps)}")
 
     sys.exit(0)
+    

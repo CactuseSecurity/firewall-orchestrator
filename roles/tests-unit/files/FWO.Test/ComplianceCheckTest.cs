@@ -187,6 +187,9 @@ namespace FWO.Test
             int numberOfChunks = 100;
             int numberOfRulesPerChunk = 100;
             int ruleId = 1;
+            await  SetUpBasic(createPolicy: true);
+
+            List<ComplianceCriterion> criteria = Policy!.Criteria.Select(c => c.Content).ToList();
 
             RuleChunks = BuildFixedRuleChunksParallel(numberOfChunks, numberOfRulesPerChunk, ruleId);
 
@@ -197,7 +200,7 @@ namespace FWO.Test
             {
                 foreach (var rule in chunk)
                 {
-                    await ComplianceCheck.CheckRuleCompliance(rule);
+                    await ComplianceCheck.CheckRuleCompliance(rule, criteria);
                 }
             }
             DateTime executionEnd = DateTime.Now;

@@ -25,7 +25,7 @@
       become_user: "{{ fworch_user }}"
       register: csharp_tests
       ignore_errors: false
-      environment: "{{ proxy_env }}"
+      environment: "{{ proxy_env | default({}) | combine({'FW_SKIP_PDF_TEST': 'true'}) }}"
 
     - name: show csharp test results in case of errors
       debug:

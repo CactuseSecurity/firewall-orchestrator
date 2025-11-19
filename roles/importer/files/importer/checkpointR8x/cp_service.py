@@ -1,6 +1,6 @@
 import re
 from typing import Any
-import cp_const
+from checkpointR8x import cp_const
 from fwo_const import list_delimiter
 from fwo_exceptions import FwoImporterErrorInconsistencies
 

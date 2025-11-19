@@ -1,7 +1,7 @@
 from typing import Any
 from fwo_log import getFwoLogger
 import json
-import cp_const
+from checkpointR8x import cp_const
 from fwo_const import list_delimiter
 import fwo_api_call as fwo_api_call
 import ipaddress 

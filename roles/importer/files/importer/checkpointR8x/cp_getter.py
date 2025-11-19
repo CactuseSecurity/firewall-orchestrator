@@ -9,8 +9,7 @@ from typing import Any
 from fwo_exceptions import FwLoginFailed, FwApiError, FwApiResponseDecodingError, FwoImporterError
 from fwo_log import getFwoLogger
 import fwo_globals
-import cp_network
-import cp_const
+from checkpointR8x import cp_const, cp_network
 import fwo_const
 from model_controllers.management_controller import ManagementController
 from services.service_provider import ServiceProvider

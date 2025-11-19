@@ -11,7 +11,7 @@ from fwo_exceptions import FwoImporterErrorInconsistencies
 from models.rulebase import Rulebase
 from models.rule import RuleNormalized
 from models.rule_enforced_on_gateway import RuleEnforcedOnGatewayNormalized
-from roles.importer.files.importer.model_controllers.import_state_controller import ImportStateController
+from model_controllers.import_state_controller import ImportStateController
 
 uid_to_name_map: dict[str, str] = {}
 

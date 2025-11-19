@@ -380,26 +380,23 @@ namespace FWO.Report
                 report.Append(DisplayReportHeaderCsv());
                 report.AppendLine($"\"management-name\",\"device-name\",\"rule-number\",\"rule-name\",\"source-zone\",\"source\",\"destination-zone\",\"destination\",\"service\",\"action\",\"track\",\"rule-enabled\",\"rule-uid\",\"rule-comment\"");
 
-                foreach (var managementReport in ReportData.ManagementData.Where(mgt => !mgt.Ignore && mgt.Devices != null &&
-                        Array.Exists(mgt.Devices, device => device.ContainsRules())))
+                var managementReports = ReportData.ManagementData.Where(mgt => !mgt.Ignore &&
+                                                                  Array.Exists(mgt.Devices, device => device.ContainsRules()));
+                foreach (var managementReport in managementReports)
                 {
                     foreach (var gateway in managementReport.Devices)
                     {
-                        if (gateway.ContainsRules())
+                        if (!gateway.ContainsRules())
                         {
-                            if (gateway.RulebaseLinks != null)
-                            {
-                                RulebaseLink? rbLink = gateway.RulebaseLinks.FirstOrDefault(rbl => rbl.IsInitialRulebase());
-                                if (rbLink != null)
-                                {
-                                    ExportSingleRulebaseToCsv(report, ruleDisplayCsv, managementReport, gateway, rbLink);
-                                }
-                            }
-                        } // gateways
-                    } // managements
-                }
-                string reportStr = report.ToString();
-                return reportStr;
+                            continue;
+                        }
+                        if (gateway.RulebaseLinks.FirstOrDefault(rbl => rbl.IsInitialRulebase()) is { } rbLink)
+                        {
+                            ExportSingleRulebaseToCsv(report, ruleDisplayCsv, managementReport, gateway, rbLink);
+                        }
+                    } // gateways
+                }// managements
+                return report.ToString();
             }
             else
             {

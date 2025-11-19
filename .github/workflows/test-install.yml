@@ -6,9 +6,10 @@ on:
       - main
       - develop
       - importer-rework
-    paths-ignore:
-      - 'documentation/**'
-      - 'design/**'
+    # paths-ignore:
+    #   - 'documentation/**'
+    #   - 'design/**'
+    # do not ignore any paths as this breaks the github actions workflow
 
   pull_request:
     paths-ignore:
@@ -24,7 +25,6 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest]
-        # os: [ubuntu-latest, ubuntu-22.04]
     steps:
       - uses: actions/checkout@v4
 
@@ -44,3 +44,4 @@ jobs:
           dotnet restore
           dotnet build
           dotnet test --filter "Name=HtmlToPdfTest"
+

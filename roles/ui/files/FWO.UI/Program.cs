@@ -4,13 +4,15 @@ using FWO.Config.Api;
 using FWO.Config.File;
 using FWO.Logging;
 using FWO.Middleware.Client;
+using FWO.Services;
+using FWO.Services.EventMediator;
+using FWO.Services.EventMediator.Interfaces;
+using FWO.Services.RuleTreeBuilder;
 using FWO.Ui.Auth;
 using FWO.Ui.Services;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Components.Server.Circuits;
 using RestSharp;
-using FWO.Services.EventMediator.Interfaces;
-using FWO.Services.EventMediator;
 
 
 // Implicitly call static constructor so background lock process is started
@@ -47,6 +49,8 @@ builder.Services.AddScoped<CircuitHandler, CircuitHandlerService>();
 builder.Services.AddScoped<KeyboardInputService, KeyboardInputService>();
 builder.Services.AddScoped<IEventMediator, EventMediator>();
 
+builder.Services.AddTransient<IRuleTreeBuilder, RuleTreeBuilder>();
+
 string ApiUri = ConfigFile.ApiServerUri;
 string MiddlewareUri = ConfigFile.MiddlewareServerUri;
 string ProductVersion = ConfigFile.ProductVersion;
@@ -63,14 +67,14 @@ bool connectionEstablished = createJWTResponse.IsSuccessful;
 int connectionAttemptsCount = 1;
 while (!connectionEstablished)
 {
-	Log.WriteError("Middleware Server Connection",
-	$"Error while authenticating as anonymous user from UI (Attempt {connectionAttemptsCount}), "
-	+ $"Uri: {createJWTResponse.ResponseUri?.AbsoluteUri}, "
-	+ $"HttpStatus: {createJWTResponse.StatusDescription}, "
-	+ $"Error: {createJWTResponse.ErrorMessage}");
-	Thread.Sleep(500 * connectionAttemptsCount++);
-	createJWTResponse = middlewareClient.CreateInitialJWT().Result;
-	connectionEstablished = createJWTResponse.IsSuccessful;
+    Log.WriteError("Middleware Server Connection",
+    $"Error while authenticating as anonymous user from UI (Attempt {connectionAttemptsCount}), "
+    + $"Uri: {createJWTResponse.ResponseUri?.AbsoluteUri}, "
+    + $"HttpStatus: {createJWTResponse.StatusDescription}, "
+    + $"Error: {createJWTResponse.ErrorMessage}");
+    Thread.Sleep(500 * connectionAttemptsCount++);
+    createJWTResponse = middlewareClient.CreateInitialJWT().Result;
+    connectionEstablished = createJWTResponse.IsSuccessful;
 }
 
 string jwt = createJWTResponse.Data ?? throw new NullReferenceException("Received empty jwt.");
@@ -79,6 +83,7 @@ apiConn.SetAuthHeader(jwt);
 // Get all non-confidential configuration settings and add to a global service (for all users)
 GlobalConfig globalConfig = Task.Run(async () => await GlobalConfig.ConstructAsync(jwt, true, true)).Result;
 builder.Services.AddSingleton<GlobalConfig>(_ => globalConfig);
+builder.Services.AddSingleton<IUrlSanitizer, UrlSanitizer>();
 
 // the user's personal config
 builder.Services.AddScoped<UserConfig>(_ => new UserConfig(globalConfig));
@@ -92,6 +97,10 @@ builder.Services.AddBlazorTable();
 
 var app = builder.Build();
 
+// Make ServiceProvider accessible via static reference.
+
+FWO.Services.ServiceProvider.UiServices = app.Services;
+
 //// Configure the HTTP request pipeline.
 #region HTTP Request Pipeline
 
@@ -99,19 +108,30 @@ Log.WriteInfo("Environment", $"{app.Environment.ApplicationName} runs in {app.En
 
 if (app.Environment.IsDevelopment())
 {
-	app.UseDeveloperExceptionPage();
+    app.UseDeveloperExceptionPage();
 }
 else
 {
-	app.UseExceptionHandler("/Error");
-	// The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
-	// app.UseHsts();
+    app.UseExceptionHandler("/Error");
+    // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
+    // app.UseHsts();
 }
 
 // app.UseHttpsRedirection();
 app.UseStaticFiles();
 
 app.UseRouting();
+
+app.UseWhen(
+    ctx => !ctx.Request.Path.StartsWithSegments("/_blazor") &&
+           !ctx.Request.Path.StartsWithSegments("/_framework") &&
+           !ctx.Request.Path.StartsWithSegments("/css") &&
+           !ctx.Request.Path.StartsWithSegments("/js") &&
+           !ctx.Request.Path.StartsWithSegments("/images"),
+    branch =>
+    {
+        branch.UseMiddleware<UrlSanitizerMiddleware>();
+    });
 
 app.UseAuthentication();
 app.UseAuthorization();

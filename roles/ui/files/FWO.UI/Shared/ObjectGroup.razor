@@ -15,7 +15,7 @@
             @if (typeof(InputDataType) == typeof(Rule))
             {
                 Rule rule = (Rule)(Object)Content;
-                @($"{rule.DeviceName} - {userConfig.GetText("rule")} ")
+                @($"{rule.RulebaseName} - {userConfig.GetText("rule")} ")
                 if (rule.Uid != null)
                 {
                     if (rule.Uid.Length > 5)
@@ -161,7 +161,7 @@
                                                 }
                                                 @if (member.DestinationPort != null)
                                                 {
-                                                    <span>∟ @(userConfig.GetText("destination_port")): @DisplayBase.DisplayPort(member.DestinationPort, member.DestinationPortEnd)</span>
+                                                    <span>∟ @(userConfig.GetText("destination_port")): @DisplayBase.DisplayPort(member.DestinationPort, member.DestinationPortEnd, false, member.Protocol.Name)</span>
                                                 }
                                                 <br>
                                             }
@@ -334,6 +334,8 @@
                 break;
         }
 
+        idPref += "0x"; // chapter number is always 0 in RSB
+
         return idPref;
     }
 
@@ -344,10 +346,6 @@
 
     RenderFragment AddLinkToObject(ObjCategory objCategory, long objId, string type, string name, bool highlighted=false)
     {
-        @* if(Tab == RsbTab.usedObj || Tab == RsbTab.unusedObj)
-        {
-            return @<span class="@ReportBase.GetIconClass(objCategory, type)">@name</span>;
-        } *@
         RsbTab targetTab = Tab == RsbTab.all ? RsbTab.all : RsbTab.report;
         string htmlObjRefPrefix = GetIDPrefix(objCategory, targetTab, true);
 

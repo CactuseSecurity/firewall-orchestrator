@@ -1,4 +1,4 @@
-﻿using FWO.Basics;
+using FWO.Basics;
 using FWO.Data;
 using FWO.Config.Api;
 using System.Text;
@@ -29,7 +29,7 @@ namespace FWO.Ui.Display
 
         public string DisplaySourceZoneCsv(Rule rule)
         {
-            return OutputCsv(DisplaySourceZone(rule));
+            return OutputCsv(ListNetworkZones(rule.RuleFromZones.Select(z => z.Content).ToArray()));
         }
 
         public string DisplaySourceCsv(Rule rule, ReportType reportType)
@@ -39,7 +39,7 @@ namespace FWO.Ui.Display
 
         public string DisplayDestinationZoneCsv(Rule rule)
         {
-            return OutputCsv(DisplayDestinationZone(rule));
+            return OutputCsv(ListNetworkZones(rule.RuleToZones.Select(z => z.Content).ToArray()));
         }
 
         public string DisplayDestinationCsv(Rule rule, ReportType reportType)
@@ -80,17 +80,17 @@ namespace FWO.Ui.Display
 
         public new string DisplayName(Rule rule)
         {
-            return (rule.Name != null ? SanitizeComment(rule.Name) : "");
+            return rule.Name != null ? SanitizeComment(rule.Name) : "";
         }
 
         public new string DisplayComment(Rule rule)
         {
-            return (rule.Comment != null ? SanitizeComment(rule.Comment) : "");
+            return rule.Comment != null ? SanitizeComment(rule.Comment) : "";
         }
         
         public string DisplayEnabled(Rule rule)
         {
-            return (rule.Disabled) ? "disabled" : "enabled";
+            return rule.Disabled ? "disabled" : "enabled";
         }
 
         public string DisplaySource(Rule rule, ReportType reportType)
@@ -141,7 +141,7 @@ namespace FWO.Ui.Display
             if (reportType.IsResolvedReport())
             {
                 List<string> displayedLocations = new List<string>();
-                foreach (NetworkLocation networkLocation in GetNetworkLocations(isSource ? rule.Froms : rule.Tos))
+                foreach (NetworkLocation networkLocation in GetResolvedNetworkLocations(isSource ? rule.Froms : rule.Tos))
                 {
                     displayedLocations.Add(DisplayNetworkLocation(networkLocation, reportType).ToString());
                 }
@@ -158,6 +158,16 @@ namespace FWO.Ui.Display
             }
 
             return result.ToString();
+        }
+
+        protected string ListNetworkZones(NetworkZone[] networkZones)
+        {
+            List<string> displayedZones = new List<string>();
+            foreach (NetworkZone networkZone in networkZones)
+            {
+                displayedZones.Add(Quote(networkZone.Name));
+            }
+            return string.Join(",", displayedZones);
         }
     }
 }

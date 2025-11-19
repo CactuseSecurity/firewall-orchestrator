@@ -342,22 +342,33 @@ if __name__ == "__main__":
     else:
         debug_level = 0
 
-    #############################################
-    # 1. get CSV files from github repo
 
-    try:
-        repoUrl = "https://" + gitUsername + ":" + gitPassword + "@" + gitRepoUrl
-        if os.path.exists(repoTargetDir):
-            # If the repository already exists, open it and perform a pull
-            repo = git.Repo(repoTargetDir)
-            origin = repo.remotes.origin
-            origin.pull()
-        else:
-            repo = git.Repo.clone_from(repoUrl, repoTargetDir)
-    except Exception as e:
-        logger.warning("could not clone/pull git repo from " + repoUrl + ", exception: " + str(traceback.format_exc()))
-        logger.warning("trying to read csv files from folder given as parameter...")
-        # sys.exit(1)
+    if args.import_from_folder:
+        base_dir = args.import_from_folder
+    else:
+        base_dir=repoTargetDir
+
+    if args.debug:
+        debug_level = int(args.debug)
+    else:
+        debug_level = 0
+
+        #############################################
+        # 1. get CSV files from github repo
+
+        try:
+            repoUrl = "https://" + gitUsername + ":" + gitPassword + "@" + gitRepoUrl
+            if os.path.exists(repoTargetDir):
+                # If the repository already exists, open it and perform a pull
+                repo = git.Repo(repoTargetDir)
+                origin = repo.remotes.origin
+                origin.pull()
+            else:
+                repo = git.Repo.clone_from(repoUrl, repoTargetDir)
+        except Exception as e:
+            logger.warning("could not clone/pull git repo from " + repoUrl + ", exception: " + str(traceback.format_exc()))
+            logger.warning("trying to read csv files from folder given as parameter...")
+            # sys.exit(1)
 
     #############################################
     # 2. get app data from CSV files

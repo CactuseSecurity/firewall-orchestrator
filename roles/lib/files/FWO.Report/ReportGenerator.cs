@@ -12,12 +12,14 @@ namespace FWO.Report
 {
     public static class ReportGenerator
     {
+        private static ReportBase? _currentReport;
+
         public static async Task<ReportBase?> GenerateFromTemplate(ReportTemplate reportTemplate, ApiConnection apiConnection, UserConfig userConfig, Action<Exception?, string, string, bool> displayMessageInUi, CancellationToken? token = null)
         {
             try
             {
                 ReportBase report = ReportBase.ConstructReport(reportTemplate, userConfig);
-                CancellationToken canToken = token == null ? new () : (CancellationToken)token;
+                CancellationToken canToken = token == null ? new() : (CancellationToken)token;
                 await DoGeneration(report, reportTemplate, apiConnection, userConfig, displayMessageInUi, canToken);
                 return report;
             }
@@ -32,15 +34,15 @@ namespace FWO.Report
         {
             try
             {
-                if(report.ReportType.IsConnectionRelatedReport())
+                if (report.ReportType.IsConnectionRelatedReport())
                 {
                     await GenerateConnectionRelatedReport(report, reportTemplate, apiConnection, userConfig, displayMessageInUi, token);
                 }
-                else if(report.ReportType == ReportType.OwnerRecertification)
+                else if (report.ReportType == ReportType.OwnerRecertification)
                 {
                     await GenerateOwnerReport(report, reportTemplate, apiConnection, token);
                 }
-                else if(report.ReportType == ReportType.Statistics)
+                else if (report.ReportType == ReportType.Statistics)
                 {
                     await GenerateStatisticsReport(report, reportTemplate, apiConnection, token);
                 }
@@ -93,6 +95,7 @@ namespace FWO.Report
 
         private static async Task GenerateConnectionRelatedReport(ReportBase report, ReportTemplate reportTemplate, ApiConnection apiConnection, UserConfig userConfig, Action<Exception?, string, string, bool> displayMessageInUi, CancellationToken token)
         {
+            _currentReport = report;
             ModellingAppRole dummyAppRole = new();
             List<ModellingAppRole> dummyAppRoles = await apiConnection.SendQueryAsync<List<ModellingAppRole>>(ModellingQueries.getDummyAppRole);
             if (dummyAppRoles.Count > 0)
@@ -125,11 +128,11 @@ namespace FWO.Report
             ApiConnection apiConnection, UserConfig userConfig, Action<Exception?, string, string, bool> displayMessageInUi)
         {
             ModellingHandlerBase handlerBase = new(apiConnection, userConfig, new(), false, displayMessageInUi);
-            foreach(var conn in ownerReport.Connections)
+            foreach (var conn in ownerReport.Connections)
             {
                 await handlerBase.ExtractUsedInterface(conn);
             }
-            if(reportType == ReportType.VarianceAnalysis)
+            if (reportType == ReportType.VarianceAnalysis)
             {
                 await PrepareVarianceData(ownerReport, modellingFilter, apiConnection, userConfig, displayMessageInUi);
             }
@@ -152,20 +155,27 @@ namespace FWO.Report
             ownerReport.DifferingAppRoles = result.DifferingAppRoles;
             ownerReport.AppRoleStats = result.AppRoleStats;
             ownerReport.ImplementationState = await varianceAnalysis.GetSuccessfulRequestState();
-            if(modellingFilter.RulesForDeletedConns)
+            if (modellingFilter.RulesForDeletedConns)
             {
                 ownerReport.RulesForDeletedConns = result.DeletedConnRuleDataToReport();
             }
-            if(modellingFilter.AnalyseRemainingRules)
+            if (modellingFilter.AnalyseRemainingRules)
             {
                 ownerReport.UnmodelledRules = result.UnmodelledRuleDataToReport();
                 ownerReport.UnmodelledRules = await ReportAppRules.PrepareAppRulesReport(ownerReport.UnmodelledRules, modellingFilter, apiConnection, ownerReport.Owner.Id);
+            }
+
+            if (_currentReport is ReportVariances reportVariances)
+            {
+                // TODO: TMP-MERGE - fix this
+                // reportVariances.SetDifferenceCounters();
+                reportVariances.ReportData.ElementsCount += reportVariances.MissARCounter + reportVariances.DiffARCounter + reportVariances.MissConnCounter + reportVariances.DiffConnCounter;
             }
         }
 
         private static async Task GenerateStatisticsReport(ReportBase report, ReportTemplate reportTemplate, ApiConnection apiConnection, CancellationToken token)
         {
-            report.ReportData.GlobalStats = new ();
+            report.ReportData.GlobalStats = new();
             await report.Generate(0, apiConnection,
                 rep =>
                 {
@@ -184,15 +194,18 @@ namespace FWO.Report
                 }, token);
         }
 
-        private static void PrepareMetadata(List<ManagementReport> ManagementReports, UserConfig userConfig)
+        private static void PrepareMetadata(List<ManagementReport> managementReports, UserConfig userConfig)
         {
-            foreach (var managementReport in ManagementReports)
+            foreach (var managementReport in managementReports)
             {
                 foreach (var device in managementReport.Devices.Where(d => d.ContainsRules()))
                 {
-                    foreach (var rule in device.Rules!)
+                    if (device.ContainsRules())
                     {
-                        rule.Metadata.UpdateRecertPeriods(userConfig.RecertificationPeriod, userConfig.RecertificationNoticePeriod);
+                        foreach (var rulebaseLink in device.RulebaseLinks)
+                        {
+                            // rule.Metadata.UpdateRecertPeriods(userConfig.RecertificationPeriod, userConfig.RecertificationNoticePeriod);
+                        }
                     }
                 }
             }

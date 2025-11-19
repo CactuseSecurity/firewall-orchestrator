@@ -161,7 +161,7 @@ namespace FWO.Services
                 {
                     Field = ElemFieldType.rule.ToString(),
                     RuleUid = rule.Uid,
-                    DeviceId = rule.DeviceId,
+                    DeviceId = rule.EnforcingGateways.FirstOrDefault()?.Content?.Id,
                     Name = rule.Name
                 }
             ];
@@ -178,7 +178,7 @@ namespace FWO.Services
                 AdditionalInfo = JsonSerializer.Serialize(addInfo),
                 Comments = [new() { Comment = new() { CommentText = ConstructComment(conn) } }]
             };
-            Device? device = mgt.Devices.FirstOrDefault(d => d.Id == rule.DeviceId);
+            Device? device = mgt.Devices.FirstOrDefault(d => d.Id == rule.EnforcingGateways.FirstOrDefault()?.Content?.Id);
             ruleTask.SetDeviceList(device != null ? [device] : []);
             return ruleTask;
         }

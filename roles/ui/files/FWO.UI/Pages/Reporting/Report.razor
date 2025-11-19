@@ -1,5 +1,6 @@
 @using FWO.Data.Modelling
 @using FWO.Report
+@using FWO.Report.Data.ViewData
 @using FWO.Report.Filter
 @using FWO.Report.Filter.FilterTypes
 @using FWO.Report.Filter.Exceptions
@@ -43,7 +44,7 @@
                 <input type="number" min="1" max="5000" step="1" class="form-control form-control-sm" @bind="actReportFilters.UnusedDays" />
             </div>
         }
-        @if(actReportFilters.ReportType.HasTimeFilter())
+        else if(actReportFilters.ReportType != ReportType.AppRules && !actReportFilters.ReportType.IsComplianceReport())
         {
             <div class="p-3">
                 <h5 class="text-left">@(userConfig.GetText("report_time"))</h5>
@@ -53,7 +54,16 @@
                 </div>
             </div>
         }
-        @if(actReportFilters.ReportType.IsDeviceRelatedReport() && actReportFilters.ReportType != ReportType.RecertEventReport)
+
+        @if (actReportFilters.ReportType.IsComplianceReport())
+        {
+            <div class="p-3">
+                <input class="form-check-input" type="checkbox" id="complianceShowAnyRule" checked="@_showAnyRulesInComplianceReport" @onchange="UpdateComplianceShowAnyRules"/>
+                <label class="form-check-label text-white" for="complianceShowAnyRule">@(userConfig.GetText("show_any_match"))</label>
+            </div>
+        }
+
+        @if (actReportFilters.ReportType.IsDeviceRelatedReport() && actReportFilters.ReportType != ReportType.RecertEventReport)
         {
             @if(actReportFilters.ReportType != ReportType.Statistics && actReportFilters.ReportType != ReportType.AppRules)
             {
@@ -110,27 +120,32 @@
             else
             {
                 <div class="card-body">
-                    @if(currentReport != null)
+                @if (currentReport != null)
+                {   
+                    @switch (currentReport.ReportType)
                     {
-                        @switch(currentReport.ReportType)
-                        {
-                            case ReportType.Rules:
-                            case ReportType.ResolvedRules:
-                            case ReportType.ResolvedRulesTech:
-                            case ReportType.Recertification:
-                            case ReportType.UnusedRules:
-                            case ReportType.NatRules:
-                            case ReportType.AppRules:
-                                <RulesReport Managements="currentReport.ReportData.ManagementData" SelectedReportType="actReportFilters.ReportType" RulesPerPage="rulesPerPage"
-                                             @bind-SelectedRules="selectedItemsRuleReportTable" />
-                                break;
+                        case ReportType.Rules:
+                        case ReportType.ResolvedRules:
+                        case ReportType.ResolvedRulesTech:
+                        case ReportType.Recertification:
+                        case ReportType.UnusedRules:
+                        case ReportType.NatRules:
+                        case ReportType.AppRules:
+                            <RulesReport Managements="currentReport.ReportData.ManagementData" SelectedReportType="actReportFilters.ReportType" RulesPerPage="rulesPerPage"
+                                @bind-SelectedRules="selectedItemsRuleReportTable" />
+                            break;
 
-                            case ReportType.Changes:
-                            case ReportType.ResolvedChanges:
-                            case ReportType.ResolvedChangesTech:
-                                <ChangesReport Managements="currentReport.ReportData.ManagementData" SelectedReportType="actReportFilters.ReportType" RulesPerPage="rulesPerPage"
-                                               @bind-SelectedRuleChanges="selectedItemsChangeReportTable" />
-                                break;
+                        case ReportType.ComplianceReport:
+                        case ReportType.ComplianceDiffReport:
+                            <ComplianceReport ReportData="currentReport.ReportData" RulesPerPage="rulesPerPage" @bind-SelectedRules="_selectedItemsComplianceReportTable" @ref="_complianceReport" ShowAnyRule="((ReportCompliance)currentReport).ShowNonImpactRules"/>
+                            break;
+
+                        case ReportType.Changes:
+                        case ReportType.ResolvedChanges:
+                        case ReportType.ResolvedChangesTech:
+                            <ChangesReport Managements="currentReport.ReportData.ManagementData" SelectedReportType="actReportFilters.ReportType" RulesPerPage="rulesPerPage"
+                                @bind-SelectedRuleChanges="selectedItemsChangeReportTable" />
+                            break;
 
                             case ReportType.Statistics:
                                 <StatisticsReport Managements="currentReport.ReportData.ManagementData" GlobalStats="currentReport.ReportData.GlobalStats" />
@@ -170,15 +185,25 @@
             {
                 <small> @(userConfig.GetText("report_duration")) @((reportGenerationDuration / 60.0).ToString("0.00")) @(userConfig.GetText("minutes")).</small>
             }
+        }   
+        @if (currentReport != null && currentReport.ReportType != ReportType.Statistics && currentReport.ReportData.ElementsCount > 0)
+        {
+            <small>@(userConfig.GetText("report_elements")): @currentReport.ReportData.ElementsCount.</small>
         }
+            
+
     </div>
 
     @* ==== RIGHT SIDEBAR ==== *@
-    <RightSidebar @bind-Width="sidebarRightWidth" CurrentReport="currentReport"
-                  @bind-SelectedRules="selectedItemsRuleReportTable"
-                  AllTabVisible="(tenantFilteringAllowed && actReportFilters.SelectedTenant == null)"
-                  SelectedReportType="actReportFilters.ReportType"
-                  LSBTime="actReportFilters.TimeFilter" />
+    @if (_showRightSidebar)
+    {
+        <RightSidebar @bind-Width="sidebarRightWidth" CurrentReport="currentReport"
+                    @bind-SelectedRules="selectedItemsRuleReportTable"
+                    AllTabVisible="(tenantFilteringAllowed && actReportFilters.SelectedTenant == null)"
+                    SelectedReportType="actReportFilters.ReportType"
+                    LSBTime="actReportFilters.TimeFilter" />
+    }
+
 }
 
 @* ==== POPUPS ==== *@
@@ -204,6 +229,7 @@
 
     private List<Rule> selectedItemsRuleReportTable = [];
     private List<RuleChange> selectedItemsChangeReportTable = [];
+    private List<RuleViewData> _selectedItemsComplianceReportTable = [];
 
     private List<ReportType> availableReportTypes { get; set; } = [];
     private ReportFilters actReportFilters = new();
@@ -223,7 +249,7 @@
     private ReportTemplateComponent reportTemplateControl = new();
 
     private ReportBase? currentReport;
-
+    
     private Sidebar? deviceSelectionSidebar;
 
     private string filterFeedbackStart = "";
@@ -244,6 +270,12 @@
     private bool showModellingReports => authenticationStateTask!.Result.User.IsInRole(Roles.Modeller)
         || authenticationStateTask!.Result.User.IsInRole(Roles.Admin)
         || authenticationStateTask!.Result.User.IsInRole(Roles.Auditor);
+
+    private bool _showAnyRulesInComplianceReport = true;
+
+    private bool _showRightSidebar = true;
+
+    private ComplianceReport? _complianceReport;
 
 
     protected override async Task OnInitializedAsync()
@@ -293,17 +325,41 @@
 
     private void ReportTypeChanged(ReportType newReportType)
     {
-        if(injectedAppId != null)
+        try
         {
-            injectedAppId = null;
-            CleanUri();
+            if(injectedAppId != null)
+            {
+                injectedAppId = null;
+                CleanUri();
+            }
+
+            // Hide right sidebar for compliance report.
+
+            if(newReportType.IsComplianceReport())
+            {
+                _showRightSidebar = false;
+                sidebarRightWidth = 0;                
+            }
+            else
+            {
+                _showRightSidebar = true;
+                sidebarRightWidth = GlobalConst.kSidebarRightWidth;
+            }
+
+            actReportFilters.ReportType = newReportType;
+            SetProperRoleForReport();
+            actReportFilters.SetDisplayedTimeSelection();
+            AdjustDeviceSelection();
+            ResetReport();
+            StateHasChanged();
         }
-        actReportFilters.ReportType = newReportType;
-        SetProperRoleForReport();
-        actReportFilters.SetDisplayedTimeSelection();
-        AdjustDeviceSelection();
-        ResetReport();
-        StateHasChanged();
+        catch (Exception e)
+        {
+            Log.TryWriteLog(LogType.Error, "Report Generation", "Error while changing report type: " + e.Message, true);
+            return;
+
+        }
+
     }
 
     public void CleanUri()
@@ -353,6 +409,7 @@
         {
             currentReport.ReportData = new();
         }
+
         reportGenerationDuration = 0;
     }
 
@@ -414,7 +471,7 @@
         processing = false;
 
         await InvokeAsync(StateHasChanged);
-        Log.WriteDebug("Report Generation", $"Generation Time: {reportGenerationDuration} s.");
+        Log.WriteDebug("Report Generation", $"Generation Time: {reportGenerationDuration} s.");        
     }
 
     private async Task ProcessReportGeneration(CancellationToken token)
@@ -464,6 +521,7 @@
         // clear selected rules
         selectedItemsRuleReportTable.Clear();
         selectedItemsChangeReportTable.Clear();
+        _selectedItemsComplianceReportTable.Clear();
 
         // reset report data when switching between reports
         ResetReport();
@@ -485,6 +543,11 @@
                 {
                     DisplayMessageInUi(null, userConfig.GetText("generate_report"), userConfig.GetText("E4003"), true);
                 }
+            }
+
+            if(currentReport is ReportCompliance && _complianceReport != null)
+            {
+                _complianceReport!.UpdateRuleViewData(currentReport.ReportData);
             }
         }
     }
@@ -535,4 +598,44 @@
 #endif
         }
     }
+
+    private List<ReportType> CustomSortReportType(List<ReportType> ListIn)
+    {
+        List<ReportType> ListOut = [];
+        List<ReportType> orderedReportTypeList = new ()
+        {
+            ReportType.Rules, ReportType.ResolvedRules, ReportType.ResolvedRulesTech, ReportType.UnusedRules, ReportType.NatRules,
+            ReportType.Recertification,
+            ReportType.Changes, ReportType.ResolvedChanges, ReportType.ResolvedChangesTech, 
+            ReportType.Statistics,
+            ReportType.Connections,
+            ReportType.AppRules,
+            ReportType.VarianceAnalysis
+        };
+        foreach (var reportType in orderedReportTypeList)
+        {
+            if (ListIn.Contains(reportType))
+            {
+                if(showRuleRelatedReports && reportType.IsDeviceRelatedReport() || showModellingReports && reportType.IsModellingReport())
+                {
+                    ListOut.Add(reportType);
+                }
+                ListIn.Remove(reportType);
+            }
+        }
+        // finally add remaining report types
+        ListOut.AddRange(ListIn);
+        return ListOut;
+    }
+
+    private void UpdateComplianceShowAnyRules(ChangeEventArgs e)
+    {
+        _showAnyRulesInComplianceReport = (bool)e.Value!;
+        if (_complianceReport is ComplianceReport complianceReport)
+        {
+            complianceReport.ShowAnyRule = _showAnyRulesInComplianceReport;
+            complianceReport.UpdateVisibleRules();
+        }
+    }
+
 }

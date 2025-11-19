@@ -21,6 +21,9 @@ namespace FWO.Data
         [JsonProperty("name"), JsonPropertyName("name")]
         public string Name { get; set; } = "";
 
+        [JsonProperty("uid"), JsonPropertyName("uid")]
+        public string? Uid { get; set; } = "";
+
         [JsonProperty("hostname"), JsonPropertyName("hostname")]
         public string Hostname { get; set; } = "";
 
@@ -39,11 +42,14 @@ namespace FWO.Data
         [JsonProperty("cloudTenantId"), JsonPropertyName("cloudTenantId")]
         public string? CloudTenantId { get; set; } = "";
 
-        [JsonProperty("superManager"), JsonPropertyName("superManager")]
+        [JsonProperty("multi_device_manager_id"), JsonPropertyName("multi_device_manager_id")]
         public int? SuperManagerId { get; set; }
 
+        [JsonProperty("is_super_manager"), JsonPropertyName("is_super_manager")]
+        public bool IsSupermanager { get; set; } = false;
+
         [JsonProperty("importerHostname"), JsonPropertyName("importerHostname")]
-        public string ImporterHostname { get; set; } = "";
+        public string? ImporterHostname { get; set; } = "";
 
         [JsonProperty("port"), JsonPropertyName("port")]
         public int Port { get; set; }
@@ -66,6 +72,21 @@ namespace FWO.Data
         [JsonProperty("devices"), JsonPropertyName("devices")]
         public Device[] Devices { get; set; } = [];
 
+        [JsonProperty("rulebases"), JsonPropertyName("rulebases")]
+        public Rulebase[] Rulebases { get; set; } = [];
+
+        [JsonProperty("networkObjects"), JsonPropertyName("networkObjects")]
+        public NetworkObject[] Objects { get; set; } = [];
+
+        [JsonProperty("serviceObjects"), JsonPropertyName("serviceObjects")]
+        public NetworkService[] Services { get; set; } = [];
+
+        [JsonProperty("userObjects"), JsonPropertyName("userObjects")]
+        public NetworkUser[] Users { get; set; } = [];
+
+        [JsonProperty("zoneObjects"), JsonPropertyName("zoneObjects")]
+        public NetworkZone[] Zones { get; set; } = [];
+
         [JsonProperty("deviceType"), JsonPropertyName("deviceType")]
         public DeviceType DeviceType { get; set; } = new();
 
@@ -75,6 +96,14 @@ namespace FWO.Data
         [JsonProperty("extMgtData"), JsonPropertyName("extMgtData")]
         public string? ExtMgtData { get; set; }
 
+        // only relevant for super managers, normal managers do not have rulebases
+        [JsonProperty("rulebase_name"), JsonPropertyName("rulebase_name")]
+        public string? RulebaseName { get; set; }
+
+        // only relevant for super managers, normal managers do not have rulebases
+        [JsonProperty("rulebase_uid"), JsonPropertyName("rulebase_uid")]
+        public string? RulebaseUid { get; set; }
+
         public long? RelevantImportId { get; set; }
         public bool Ignore { get; set; }
         public bool AwaitDevice { get; set; }
@@ -82,12 +111,13 @@ namespace FWO.Data
         public long ActionId { get; set; }
 
         public Management()
-        {}
+        { }
 
         public Management(Management management)
         {
             Id = management.Id;
             Name = management.Name;
+            Uid = management.Uid;
             Hostname = management.Hostname;
             if (management.ImportCredential != null)
                 ImportCredential = new ImportCredential(management.ImportCredential);
@@ -126,15 +156,36 @@ namespace FWO.Data
         {
             return Hostname + ":" + Port;
         }
-        
+
+        public bool Equals(Management management)
+        {
+            return Uid.GenerousCompare(management.Uid) &&
+                   Name.GenerousCompare(management.Name) &&
+                   Hostname.GenerousCompare(management.Hostname) &&
+                   ConfigPath.GenerousCompare(management.ConfigPath) &&
+                   DomainUid.GenerousCompare(management.DomainUid) &&
+                   CloudSubscriptionId.GenerousCompare(management.CloudSubscriptionId) &&
+                   CloudTenantId.GenerousCompare(management.CloudTenantId) &&
+                   SuperManagerId == management.SuperManagerId &&
+                   Port == management.Port;
+        }
+
         public virtual bool Sanitize()
         {
             bool shortened = false;
             Name = Name.SanitizeMand(ref shortened);
+            Uid = Uid.SanitizeOpt(ref shortened);
             Hostname = Hostname.SanitizeMand(ref shortened);
             ConfigPath = ConfigPath.SanitizeOpt(ref shortened);
             DomainUid = DomainUid.SanitizeOpt(ref shortened);
-            ImporterHostname = ImporterHostname.SanitizeMand(ref shortened);
+            if (ImporterHostname != null)
+            {
+                ImporterHostname = ImporterHostname.SanitizeMand(ref shortened);
+            }
+            else
+            {
+                ImporterHostname = "";
+            }
             Comment = Comment.SanitizeCommentOpt(ref shortened);
             CloudSubscriptionId = CloudSubscriptionId.SanitizeOpt(ref shortened);
             CloudTenantId = CloudTenantId.SanitizeOpt(ref shortened);

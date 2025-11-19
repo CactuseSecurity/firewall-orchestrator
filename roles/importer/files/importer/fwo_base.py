@@ -1,10 +1,26 @@
+import hashlib
 import json
-import jsonpickle
-from fwo_data_networking import InterfaceSerializable, RouteSerializable
-import fwo_globals
-from fwo_const import max_objs_per_chunk, csv_delimiter, apostrophe, line_delimiter
-from fwo_log import getFwoLogger, getFwoAlertLogger
 from copy import deepcopy
+import re
+from enum import Enum
+from typing import Any, List, get_type_hints
+import ipaddress
+import traceback
+import time
+
+
+import fwo_globals
+import fwo_config
+import fwo_const
+from fwo_const import csv_delimiter, apostrophe, line_delimiter
+from fwo_enums import ConfFormat, ConfigAction
+from fwo_log import getFwoLogger, getFwoAlertLogger
+from model_controllers.fwconfig_import_ruleorder import RuleOrderService
+from services.service_provider import ServiceProvider
+from services.global_state import GlobalState
+from services.enums import Services, Lifetime
+from services.uid2id_mapper import Uid2IdMapper
+from services.group_flats_mapper import GroupFlatsMapper
 
 
 def split_list(list_in, max_list_length):
@@ -20,76 +36,6 @@ def split_list(list_in, max_list_length):
     return list_of_lists
 
 
-# split the config into chunks of max size "max_objs_per_chunk" to avoid 
-# timeout of import while writing data to import table
-# each object table to import is handled here 
-def split_config(config2import, current_import_id, mgm_id):
-    conf_split_dict_of_lists = {}
-    max_number_of_chunks = 0
-    logger = getFwoLogger()
-
-    object_lists = ["network_objects", "service_objects", "user_objects", "rules", "zone_objects", "interfaces", "routing"]
-
-    for obj_list_name in object_lists:
-        if obj_list_name in config2import:
-
-            if obj_list_name == 'interfaces':
-                if_obj_list = config2import['interfaces']
-                if_obj_list_ser = []
-                for iface in if_obj_list:
-                    if_obj_list_ser.append(InterfaceSerializable(iface))
-                if_dict = json.loads(jsonpickle.encode(if_obj_list_ser, unpicklable=False))
-                config2import['interfaces'] = if_dict
-
-            if obj_list_name == 'routing':
-                route_obj_list = config2import['routing']
-                route_obj_list_ser = []
-                for route in route_obj_list:
-                    route_obj_list_ser.append(RouteSerializable(route))
-                route_dict = json.loads(jsonpickle.encode(route_obj_list_ser, unpicklable=False))
-                config2import['routing'] = route_dict
-                
-            split_list_tmp = split_list(config2import[obj_list_name], max_objs_per_chunk)
-            conf_split_dict_of_lists.update({obj_list_name: split_list_tmp})
-            if len(split_list_tmp)>max_number_of_chunks:
-                max_number_of_chunks = len(split_list_tmp)
-        else:
-            conf_split_dict_of_lists.update({obj_list_name: []})
-    conf_split = []
-    current_chunk = 0
-    while current_chunk<max_number_of_chunks:
-        single_chunk = {}
-        for obj_list_name in object_lists:
-            single_chunk[obj_list_name] = []
-        for obj_list_name in object_lists:
-            if current_chunk<len(conf_split_dict_of_lists[obj_list_name]):
-                single_chunk[obj_list_name] = conf_split_dict_of_lists[obj_list_name][current_chunk]
-
-        conf_split.append(single_chunk)
-        current_chunk += 1
-
-    # now adding meta data around (start_import_flag used as trigger)
-    config_split_with_metadata = []
-    current_chunk_number = 0
-    for conf_chunk in conf_split:
-        config_split_with_metadata.append({
-            "config": conf_chunk,
-            "start_import_flag": False,
-            "importId": int(current_import_id), 
-            "mgmId": int(mgm_id), 
-            "chunk_number": current_chunk_number
-        })
-        current_chunk_number += 1
-    # setting the trigger in the last chunk:
-    if len(config_split_with_metadata)>0:
-        config_split_with_metadata[len(config_split_with_metadata)-1]["start_import_flag"] = True
-    else:
-        logger.warning('got empty config (no chunks at all)')
-    if fwo_globals.debug_level>0 and len(config_split_with_metadata)>0:
-        config_split_with_metadata[len(config_split_with_metadata)-1]["debug_mode"] = True
-    return config_split_with_metadata
-
-
 def csv_add_field(content, no_csv_delimiter=False):
     if (content == None or content == '') and not no_csv_delimiter:  # do not add apostrophes for empty fields
         field_result = csv_delimiter
@@ -103,15 +49,18 @@ def csv_add_field(content, no_csv_delimiter=False):
         if not no_csv_delimiter:
             field_result += csv_delimiter
     return field_result
- 
 
-def sanitize(content):
-    if content == None:
+
+def sanitize(content, lower: bool = False) -> None | str:
+    if content is None:
         return None
     result = str(content)
     result = result.replace(apostrophe,"")  # remove possibly contained apostrophe
     result = result.replace(line_delimiter," ")  # replace possibly contained CR with space
-    return result
+    if lower:
+        return result.lower()
+    else:
+        return result
 
 
 def extend_string_list(list_string, src_dict, key, delimiter, jwt=None, import_id=None):
@@ -141,7 +90,7 @@ def jsonToLogFormat(jsonData):
         jsonString = jsonData
     else:
         jsonString = str(jsonData)
-    
+
     if jsonString[0] == '{' and jsonString[-1] == '}':
         jsonString = jsonString[1:len(jsonString)-1]
     return jsonString
@@ -168,3 +117,349 @@ def set_ssl_verification(ssl_verification_mode):
         if fwo_globals.debug_level>5:
             logger.debug("ssl_verification: [ca]certfile=" + ssl_verification)
     return ssl_verification
+
+
+def stringIsUri(s):
+    return re.match('http://.+', s) or re.match('https://.+', s) or  re.match('file://.+', s)
+
+
+def serializeDictToClass(data: dict, cls):
+    # Unpack the dictionary into keyword arguments
+    return cls(**data)
+
+
+def serializeDictToClassRecursively(data: dict, cls: Any) -> Any:
+    try:
+        init_args = {}
+        type_hints = get_type_hints(cls)
+
+        if type_hints == {}:
+            raise ValueError(f"no type hints found, assuming dict '{str(cls)}")
+
+        for field, field_type in type_hints.items():
+
+            if field in data:
+                value = data[field]
+
+                # Handle list types
+                if hasattr(field_type, '__origin__') and field_type.__origin__ == list:
+                    inner_type = field_type.__args__[0]
+                    if isinstance(value, list):
+                        init_args[field] = [
+                            serializeDictToClassRecursively(item, inner_type) if isinstance(item, dict) else item
+                            for item in value
+                        ]
+                    else:
+                        raise ValueError(f"Expected a list for field '{field}', but got {type(value).__name__}")
+
+                # Handle dictionary (nested objects)
+                elif isinstance(value, dict):
+                    init_args[field] = serializeDictToClassRecursively(value, field_type)
+
+                # Handle Enum types
+                elif isinstance(field_type, type) and issubclass(field_type, Enum):
+                    init_args[field] = field_type[value]
+
+                # Direct assignment for basic types
+                else:
+                    init_args[field] = value
+
+        # Create an instance of the class with the collected arguments
+        return cls(**init_args)
+
+    except (TypeError, ValueError, KeyError) as e:
+        # If an error occurs, return the original dictionary as is
+        return data
+
+
+def oldSerializeDictToClassRecursively(data: dict, cls: Any) -> Any:
+    # Create an empty dictionary to store keyword arguments
+    init_args = {}
+
+    # Get the class's type hints (this is a safer way to access annotations)
+    type_hints = get_type_hints(cls)
+
+    # Iterate over the class fields
+    for field, field_type in type_hints.items():
+        if field in data:
+            if hasattr(field_type, '__origin__') and field_type.__origin__ == list:
+                # Handle list types
+                inner_type = field_type.__args__[0]
+                init_args[field] = [
+                    serializeDictToClassRecursively(item, inner_type) if isinstance(item, dict) else item
+                    for item in data[field]
+                ]
+            elif isinstance(data[field], dict):
+                # Recursively convert nested dictionaries into the appropriate class
+                init_args[field] = serializeDictToClassRecursively(data[field], field_type)
+            else:
+                # Directly assign the value if it's not a dict
+                init_args[field] = data[field]
+
+    # Create an instance of the class with the collected arguments
+    return cls(**init_args)
+
+
+def deserializeClassToDictRecursively(obj: Any, seen=None) -> Any:
+    if seen is None:
+        seen = set()
+
+    # Handle simple immutable types directly (int, float, bool, str) and None
+    if obj is None or isinstance(obj, (int, float, bool, str, ConfFormat, ConfigAction)):
+        return obj
+
+    # Check for circular references
+    if id(obj) in seen:
+        return f"<Circular reference to {obj.__class__.__name__}>"
+
+    seen.add(id(obj))
+
+    if isinstance(obj, list):
+        # If the object is a list, deserialize each item
+        return [deserializeClassToDictRecursively(item, seen) for item in obj]
+    elif isinstance(obj, dict):
+        # If the object is a dictionary, deserialize each key-value pair
+        return {key: deserializeClassToDictRecursively(value, seen) for key, value in obj.items()}
+    elif isinstance(obj, Enum):
+        # If the object is an Enum, convert it to its value
+        return obj.value
+    elif hasattr(obj, '__dict__'):
+        # If the object is a class instance, deserialize its attributes
+        return {
+            key: deserializeClassToDictRecursively(value, seen)
+            for key, value in obj.__dict__.items()
+            if not callable(value) and not key.startswith('__')
+        }
+    else:
+        # For other types, return the value as is
+        return obj
+
+
+def cidrToRange(ip):
+    logger = getFwoLogger()
+
+    if isinstance(ip, str):
+        # dealing with ranges:
+        if '-' in ip:
+            return '-'.split(ip)
+
+        ipVersion = validIPAddress(ip)
+        if ipVersion=='Invalid':
+            logger.warning("error while decoding ip '" + ip + "'")
+            return [ip]
+        elif ipVersion=='IPv4':
+            net = ipaddress.IPv4Network(ip)
+        elif ipVersion=='IPv6':
+            net = ipaddress.IPv6Network(ip)
+        return [str(net.network_address), str(net.broadcast_address)]
+
+    return [ip]
+
+
+def validIPAddress(IP: str) -> str:
+    try:
+        t = type(ipaddress.ip_address(IP))
+        if t is ipaddress.IPv4Address:
+            return "IPv4"
+        elif t is ipaddress.IPv6Address:
+            return "IPv6"
+        else:
+            return 'Invalid'
+    except Exception:
+        try:
+            t = type(ipaddress.ip_network(IP))
+            if t is ipaddress.IPv4Network:
+                return "IPv4"
+            elif t is ipaddress.IPv6Network:
+                return "IPv6"
+            else:
+                return 'Invalid'
+        except Exception:
+            return "Invalid"
+
+
+def validate_ip_address(address):
+    try:
+        # ipaddress.ip_address(address)
+        ipaddress.ip_network(address)
+        return True
+        # print("IP address {} is valid. The object returned is {}".format(address, ip))
+    except ValueError:
+        return False
+        # print("IP address {} is not valid".format(address))
+
+
+def lcs_dp(seq1: list[Any], seq2: list[Any]) -> tuple[list[list[int]], int]:
+    """
+    Compute the length and dynamic programming (DP) table for the longest common subsequence (LCS)
+    between seq1 and seq2. Returns (dp, length) where dp is a 2D table and
+    length = dp[len(seq1)][len(seq2)].
+    """
+    m: int = len(seq1)
+    n: int = len(seq2)
+    dp: list[list[int]] = [[0]*(n+1) for _ in range(m+1)]
+
+    for i in range(m):
+        for j in range(n):
+            if seq1[i] == seq2[j]:
+                dp[i+1][j+1] = dp[i][j] + 1
+            else:
+                dp[i+1][j+1] = max(dp[i+1][j], dp[i][j+1])
+    return dp, dp[m][n]
+
+
+def backtrack_lcs(seq1, seq2, dp) -> list[tuple[int, int]]:
+    """
+    Backtracks the dynamic programming (DP) table to recover one longest common subsequence (LCS) (as a list of (i, j) index pairs).
+    These index pairs indicate positions in seq1 and seq2 that match in the LCS.
+    """
+    lcs_indices: list[tuple[int, int]] = []
+    i: int = len(seq1)
+    j: int = len(seq2)
+    while i > 0 and j > 0:
+        if seq1[i-1] == seq2[j-1]:
+            lcs_indices.append((i-1, j-1))
+            i -= 1
+            j -= 1
+        elif dp[i-1][j] >= dp[i][j-1]:
+            i -= 1
+        else:
+            j -= 1
+    lcs_indices.reverse()
+    return lcs_indices
+
+
+def compute_min_moves(source: list[Any], target: list[Any]) -> dict[str, Any]:
+    """
+    Computes the minimal number of operations required to transform the source list into the target list,
+    where allowed operations are:
+       - pop-and-reinsert a common element (to reposition it)
+       - delete (an element in source not present in target)
+       - insert (an element in target not present in source)
+
+    Returns a dictionary with all gathered data (total_moves, operations, deletions, insertions and moves) where operations is a list of suggested human readable operations.
+    """
+    # Build sets (assume uniqueness for membership checks)
+    target_set: set[Any] = set(target)
+    source_set: set[Any] = set(source)
+
+    # Identify the common elements:
+    S_common: list[Any] = [elem for elem in source if elem in target_set]
+    T_common: list[Any] = [elem for elem in target if elem in source_set]
+
+    # Calculate deletions and insertions:
+    deletions: list[tuple[int, Any]] = [ (i, elem) for i, elem in enumerate(source) if elem not in target_set ]
+    insertions: list[tuple[int, Any]] = [ (j, elem) for j, elem in enumerate(target) if elem not in source_set ]
+
+    # Compute the longest common subsequence (LCS) between S_common and T_common – these are common elements already in correct relative order.
+    lcs_data: tuple[list[list[int]], int] = lcs_dp(S_common, T_common)
+    lcs_indices: list[tuple[int, int]] = backtrack_lcs(S_common, T_common, lcs_data[0])
+
+    # To decide which common elements must be repositioned, mark the indices in S_common which are part of the LCS.
+    in_place: list[bool] = [False] * len(S_common)
+    for i, _ in lcs_indices:
+        in_place[i] = True
+    # Every common element in S_common not in the LCS will need a pop-and-reinsert.
+    reposition_moves: list[tuple[int, Any, int]] = []
+    # To better explain (rough indexing): We traverse the source list and when we get to a common element,
+    # we check if it is “in place”. Note that because S_common is a filtered version of source, we need
+    # to convert back to indices in the original source. We do this by iterating over source and whenever
+    # we encounter an element in target_set, we pop the next value from S_common.
+    s_common_iter: int = 0
+    for orig_index, elem in enumerate(source):
+        if elem in target_set:
+            # This element is one of the common ones.
+            if not in_place[s_common_iter]:
+                # This element is not in the LCS so it will be repositioned.
+                # We will reinsert it to the position where it should appear in target.
+                reposition_moves.append((orig_index, elem, target.index(elem)))
+            s_common_iter += 1
+
+    total_moves: int = (len(deletions)
+                   + len(insertions)
+                   + len(reposition_moves))
+
+    # Build a list of human‐readable operations.
+    operations: list[str] = []
+    for idx, elem in deletions:
+        operations.append(f"Delete element '{elem}' at source index {idx}.")
+    for idx, elem in insertions:
+        operations.append(f"Insert element '{elem}' at target position {idx}.")
+    for idx, elem, target_pos in reposition_moves:
+        operations.append(f"Pop element '{elem}' from source index {idx} and reinsert at target position {target_pos}.")
+
+    return {
+        "moves": total_moves,
+        "operations": operations,
+        "deletions": deletions,
+        "insertions": insertions,
+        "reposition_moves": reposition_moves
+    }
+
+
+def write_native_config_to_file(importState, configNative):
+    from fwo_const import import_tmp_path
+    if importState.DebugLevel>6:
+        logger = getFwoLogger(debug_level=importState.DebugLevel)
+        debug_start_time = int(time.time())
+        try:
+            full_native_config_filename = f"{import_tmp_path}/mgm_id_{str(importState.MgmDetails.Id)}_config_native.json"
+            with open(full_native_config_filename, "w") as json_data:
+                json_data.write(json.dumps(configNative, indent=2))
+        except Exception:
+            logger.error(f"import_management - unspecified error while dumping config to json file: {str(traceback.format_exc())}")
+            raise
+
+        time_write_debug_json = int(time.time()) - debug_start_time
+        logger.debug(f"import_management - writing debug config json files duration {str(time_write_debug_json)}s")
+
+
+def init_service_provider():
+    service_provider = ServiceProvider()
+    service_provider.register(Services.GLOBAL_STATE, lambda: GlobalState(), Lifetime.SINGLETON)
+    service_provider.register(Services.FWO_CONFIG, lambda: fwo_config.readConfig(), Lifetime.SINGLETON)
+    service_provider.register(Services.GROUP_FLATS_MAPPER, lambda: GroupFlatsMapper(), Lifetime.IMPORT)
+    service_provider.register(Services.PREV_GROUP_FLATS_MAPPER, lambda: GroupFlatsMapper(), Lifetime.IMPORT)
+    service_provider.register(Services.UID2ID_MAPPER, lambda: Uid2IdMapper(), Lifetime.IMPORT)
+    service_provider.register(Services.RULE_ORDER_SERVICE, lambda: RuleOrderService(), Lifetime.IMPORT)
+    return service_provider
+
+
+def find_all_diffs(a, b, strict=False, path="root"):
+    diffs = []
+    if isinstance(a, dict):
+        for k in a:
+            if k not in b:
+                diffs.append(f"Key '{k}' missing in second object at {path}")
+            else:
+                res = find_all_diffs(a[k], b[k], strict, f"{path}.{k}")
+                if res:
+                    diffs.extend(res)
+        for k in b:
+            if k not in a:
+                diffs.append(f"Key '{k}' missing in first object at {path}")
+    elif isinstance(a, list):
+        for i, (x, y) in enumerate(zip(a, b)):
+            res = find_all_diffs(x, y, strict, f"{path}[{i}]")
+            if res:
+                diffs.extend(res)
+        if len(a) != len(b):
+            diffs.append(
+                f"list length mismatch at {path}: {len(a)} != {len(b)}")
+    else:
+        if a != b:
+            if not strict and (a is None or a == '') and (b is None
+                                                          or b == ''):
+                return diffs
+            diffs.append(f"Value mismatch at {path}: {a} != {b}")
+    return diffs
+
+
+def sort_and_join(input_list: List[str]) -> str:
+    """ Sorts the input list of strings and joins them using the standard list delimiter. """
+    return fwo_const.list_delimiter.join(sorted(input_list))
+
+def generate_hash_from_dict(input_dict: dict) -> str:
+    """ Generates a consistent hash from a dictionary by serializing it with sorted keys. """
+    dict_string = json.dumps(input_dict, sort_keys=True)
+    return hashlib.sha256(dict_string.encode('utf-8')).hexdigest()

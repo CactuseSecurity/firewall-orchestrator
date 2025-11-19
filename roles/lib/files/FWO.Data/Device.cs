@@ -9,6 +9,9 @@ namespace FWO.Data
         [JsonProperty("id"), JsonPropertyName("id")]
         public int Id { get; set; }
 
+        [JsonProperty("uid"), JsonPropertyName("uid")]
+        public string? Uid { get; set; }
+
         [JsonProperty("name"), JsonPropertyName("name")]
         public string? Name { get; set; }
 
@@ -24,6 +27,9 @@ namespace FWO.Data
         [JsonProperty("global_rulebase_name"), JsonPropertyName("global_rulebase_name")]
         public string? GlobalRulebase { get; set; }
 
+        [JsonProperty("global_rulebase_uid"), JsonPropertyName("global_rulebase_uid")]
+        public string? GlobalRulebaseUid { get; set; }
+
         [JsonProperty("package_name"), JsonPropertyName("package_name")]
         public string? Package { get; set; }
 
@@ -35,6 +41,9 @@ namespace FWO.Data
 
         [JsonProperty("comment"), JsonPropertyName("comment")]
         public string? Comment { get; set; }
+
+        [JsonProperty("rulebase_links"), JsonPropertyName("rulebase_links")]
+        public RulebaseLink[] RulebaseLinks { get; set; } = [];
 
         public bool Selected { get; set; } = false;
         public bool Relevant { get; set; }
@@ -49,6 +58,7 @@ namespace FWO.Data
         {
             Id = device.Id;
             Name = device.Name;
+            Uid = device.Uid;
             DeviceType = new DeviceType(device.DeviceType);
             Management = new Management(device.Management);
             LocalRulebase = device.LocalRulebase;
@@ -63,10 +73,16 @@ namespace FWO.Data
             ActionId = device.ActionId;
         }
 
+        public bool Equals(Device device)
+        {
+            return Name.GenerousCompare(device.Name) && Uid.GenerousCompare(device.Uid);
+        }
+
         public bool Sanitize()
         {
             bool shortened = false;
             Name = Name.SanitizeOpt(ref shortened);
+            Uid = Uid.SanitizeOpt(ref shortened);
             LocalRulebase = LocalRulebase.SanitizeOpt(ref shortened);
             GlobalRulebase = GlobalRulebase.SanitizeOpt(ref shortened);
             Package = Package.SanitizeOpt(ref shortened);

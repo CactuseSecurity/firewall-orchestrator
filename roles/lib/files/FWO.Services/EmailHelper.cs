@@ -7,6 +7,10 @@ using FWO.Mail;
 using FWO.Middleware.Client;
 using Newtonsoft.Json;
 using System.Text.Json.Serialization;
+using Microsoft.AspNetCore.Http;
+using System.Text.RegularExpressions;
+using FWO.Basics;
+using FWO.Logging;
 
 namespace FWO.Services
 {
@@ -206,6 +210,59 @@ namespace FWO.Services
                 return uiuser.Email;
             }
             return "";
+        }
+
+        public static List<string> CollectRecipientsFromConfig(UserConfig userConfig, string configValue)
+        {
+            if (userConfig.UseDummyEmailAddress)
+            {
+                return [userConfig.DummyEmailAddress];
+            }
+            string[] separatingStrings = [",", ";", "|"];
+            return [.. configValue.Split(separatingStrings, StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries)];
+        }
+
+        public static FormFile? CreateAttachment(string? content, string fileFormat, string subject)
+        {
+            if (content != null)
+            {
+                string fileName = ConstructFileName(subject, fileFormat);
+
+                MemoryStream memoryStream;
+                string contentType;
+
+                if (fileFormat == GlobalConst.kPdf)
+                {
+                    memoryStream = new(Convert.FromBase64String(content));
+                    contentType = "application/octet-stream";
+                }
+                else
+                {
+                    memoryStream = new(System.Text.Encoding.UTF8.GetBytes(content));
+                    contentType = $"application/{fileFormat}";
+                }
+
+                return new(memoryStream, 0, memoryStream.Length, "FWO-Report-Attachment", fileName)
+                {
+                    Headers = new HeaderDictionary(),
+                    ContentType = contentType
+                };
+            }
+            return null;
+        }
+
+        private static string ConstructFileName(string input, string fileFormat)
+        {
+            try
+            {
+                Regex regex = new(@"\s", RegexOptions.None, TimeSpan.FromMilliseconds(500));
+                return $"{regex.Replace(input, "")}_{DateTime.Now.ToUniversalTime().ToString("yyyy-MM-ddTHH-mm-ssK")}.{fileFormat}";
+            }
+            catch (RegexMatchTimeoutException)
+            {
+                Log.WriteWarning("Construct File Name", "Timeout when constructing file name. Taking input.");
+                return input;
+            }
         }
     }
 }

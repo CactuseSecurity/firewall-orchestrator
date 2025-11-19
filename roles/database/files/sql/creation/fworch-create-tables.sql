@@ -564,7 +564,7 @@ Create table "stm_action"
 
 Create table "stm_color"
 (
-	"color_id" Integer,
+	"color_id" SERIAL,
 	"color_name" Varchar NOT NULL,
 	"color_rgb" Char(7) NOT NULL,
 	"color_comment" Text,

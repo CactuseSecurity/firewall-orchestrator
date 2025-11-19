@@ -33,7 +33,6 @@ namespace FWO.Report
     {
         private const int ColumnCount = 12;
         protected bool UseAdditionalFilter = false;
-        private bool VarianceMode = false;
 
         private static Dictionary<(int deviceId, int managementId), Rule[]> _rulesCache = new();
 
@@ -81,7 +80,7 @@ namespace FWO.Report
             TryBuildRuleTree();
         }
 
-        private void TryBuildRuleTree()
+        protected void TryBuildRuleTree()
         {
             int ruleCount = 0;
 
@@ -603,9 +602,9 @@ namespace FWO.Report
                     report.AppendLine($"<td>{RuleDisplayHtml.DisplayLastHit(rule.Metadata)}</td>");
                 }
                 report.AppendLine($"<td>{RuleDisplayBase.DisplayName(rule)}</td>");
-                report.AppendLine($"<td>{RuleDisplayBase.DisplaySourceZone(rule)}</td>");
+                report.AppendLine($"<td>{RuleDisplayBase.DisplaySourceZones(rule)}</td>");
                 report.AppendLine($"<td>{ruleDisplayHtml.DisplaySource(rule, OutputLocation.export, ReportType, chapterNumber)}</td>");
-                report.AppendLine($"<td>{RuleDisplayBase.DisplayDestinationZone(rule)}</td>");
+                report.AppendLine($"<td>{RuleDisplayBase.DisplayDestinationZones(rule)}</td>");
                 report.AppendLine($"<td>{ruleDisplayHtml.DisplayDestination(rule, OutputLocation.export, ReportType, chapterNumber)}</td>");
                 report.AppendLine($"<td>{ruleDisplayHtml.DisplayServices(rule, OutputLocation.export, ReportType, chapterNumber)}</td>");
                 report.AppendLine($"<td>{RuleDisplayBase.DisplayAction(rule)}</td>");

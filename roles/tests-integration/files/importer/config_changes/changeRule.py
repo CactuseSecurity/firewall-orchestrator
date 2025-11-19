@@ -9,15 +9,15 @@ import json
 import logging
 
 
-def randomOctet():
+def random_octet():
     return str(random.randrange(0, 256))
 
 
-def randomIp():
-    return randomOctet() + '.' + randomOctet() + '.' + randomOctet() + '.' + randomOctet()
+def random_ip():
+    return random_octet() + '.' + random_octet() + '.' + random_octet() + '.' + random_octet()
 
 
-def randomUid():
+def random_uid():
     s = ''.join(random.choices(string.ascii_lowercase + string.digits, k=32))
     return s[:8] + '-' + s[8:12] + '-' + s[12:16] + '-' + s[16:20] + '-' + s[20:]
 
@@ -76,8 +76,8 @@ actionChosen = actionChoices[random.randrange(0, len(actionChoices))]
 
 if actionChosen == 'changeSrcOrDst':
     if not deleteElement:
-        newUid = randomUid()
-        newIp = randomIp()
+        newUid = random_uid()
+        newIp = random_ip()
 
         # cannot add to any obj, so delete it first
         if anyObj in ruleSide:

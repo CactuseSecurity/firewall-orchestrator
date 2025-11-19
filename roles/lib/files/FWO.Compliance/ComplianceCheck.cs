@@ -38,7 +38,7 @@ namespace FWO.Compliance
 
         public List<ComplianceViolation> CurrentViolationsInCheck { get; private set; } = [];
 
-        public List<Rule>? RulesInCheck { get; private set; } = [];
+        public List<Rule>? RulesInCheck { get; set; } = [];
 
         private readonly ApiConnection _apiConnection;
         private readonly UserConfig _userConfig;
@@ -535,11 +535,9 @@ namespace FWO.Compliance
             {
                 rules = [];
             }
-            else
-            {
-                Logger.TryWriteInfo("Compliance Check", $"Loaded {rules.Count} rules.", LocalSettings.ComplianceCheckVerbose);
-            }
 
+            Logger.TryWriteInfo("Compliance Check", $"Loaded {rules.Count} rules.", LocalSettings.ComplianceCheckVerbose);
+            
             return rules;         
         }
 

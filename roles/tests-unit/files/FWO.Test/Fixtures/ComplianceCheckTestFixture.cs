@@ -91,9 +91,11 @@ namespace FWO.Test.Fixtures
                     ComplianceCheck.NetworkZones = CreateNetworkZones(true, true);                
                 }
 
+                ComplianceCheck.RulesInCheck = CreateRulesForComplianceCheckTest(setupNoViolations, ForbiddenServiceUid);
+
                 ApiConnection.AsSub()
-                    .SendQueryAsync<List<Rule>>(RuleQueries.getRulesForSelectedManagements)
-                    .Returns(CreateRulesForComplianceCheckTest(setupNoViolations, ForbiddenServiceUid));
+                    .SendQueryAsync<List<Rule>>(RuleQueries.getRulesForSelectedManagements, Arg.Any<object?>())
+                    .Returns(ComplianceCheck.RulesInCheck);
             }
 
             return Task.CompletedTask;

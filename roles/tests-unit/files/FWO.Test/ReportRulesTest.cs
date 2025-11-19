@@ -19,7 +19,6 @@ namespace FWO.Test
     [TestFixture]
     internal class ReportRulesTest
     {
-        private MockReportRules _mockReportRules = null!;
         private List<ManagementReport> _managementReports = new();
         private DeviceReport? _deviceReport;
         private DeviceReportController? _deviceReportController;

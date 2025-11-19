@@ -56,7 +56,7 @@ namespace FWO.Report
             // }
         }
 
-        public bool ContainsRules()
+        public new bool ContainsRules()
         {
             return true;
             // if (RbLink?.NextRulebase.Rules.Length>0)

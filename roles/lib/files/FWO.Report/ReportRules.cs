@@ -33,7 +33,6 @@ namespace FWO.Report
     {
         private const int ColumnCount = 12;
         protected bool UseAdditionalFilter = false;
-        private bool VarianceMode = false;
 
         private static Dictionary<(int deviceId, int managementId), Rule[]> _rulesCache = new();
 

@@ -175,7 +175,7 @@
             <label class="col-form-label col-sm-4">@(userConfig.GetText("ruleOwnershipMode")):</label>
             <div class="col-sm-2">
                 <Dropdown ElementType="RuleOwnershipMode" @bind-SelectedElement="configData!.RuleOwnershipMode"
-                        ElementToString="@(o => userConfig.GetText(o.ToString()))" Elements="Enum.GetValues(typeof(RuleOwnershipMode)).Cast<RuleOwnershipMode>()">
+                          ElementToString="@(o => userConfig.GetText(o.ToString()))" Elements="Enum.GetValues(typeof(RuleOwnershipMode)).Cast<RuleOwnershipMode>()">
                     <ElementTemplate Context="opt">
                         @(userConfig.GetText(opt.ToString()))
                     </ElementTemplate>
@@ -186,7 +186,7 @@
         <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5457"))">
             <label class="col-form-label col-sm-3">@(userConfig.GetText("availableModules")):</label>
             <div class="form-group row col-sm-9">
-                @foreach (Module module in Enum.GetValues(typeof(Module)))
+                @foreach(Module module in Enum.GetValues(typeof(Module)))
                 {
                     <div class="form-group col-sm-3">
                         <input id="cbx_@module.ToString()" type="checkbox" @bind="modulesVisibleDict[module]" />
@@ -196,6 +196,27 @@
             </div>
         </div>
     </form>
+    <hr />
+    <div class="form-group row" data-toggle="tooltip" title="Access Token Lifetime(in Hours):">
+        <label class="col-form-label col-sm-4">Access Token Lifetime(in Hours):</label>
+        <div class="col-sm">
+            <input type="number" min="1" max="720" @bind="configData!.AccessTokenLifetimeHours" />
+        </div>
+    </div>
+    <div class="form-group row" data-toggle="tooltip" title="Refresh Token Lifetime(in Days):">
+        <label class="col-form-label col-sm-4">Refresh Token Lifetime(in Days):</label>
+        <div class="col-sm">
+            <input type="number" min="1" max="30" @bind="configData!.RefreshTokenLifetimeDays" />
+        </div>
+    </div>
+    @if(!IsTokenLifetimeValid())
+    {
+        <div class="form-group row">
+            <div class="col-sm-8 offset-sm-4">
+                <span class="text-danger"><span class="@Icons.Warning pe-1"></span>@(userConfig.GetText("U9036"))</span>
+            </div>
+        </div>
+    }
     <hr />
     <AuthorizeView Roles="@Roles.Admin">
         <Authorized>
@@ -211,15 +232,15 @@
 }
 else
 {
-    <Loading/>
+    <Loading />
 }
 
 
 
 @code
 {
-    [CascadingParameter]
-    Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
+        [CascadingParameter]
+        Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
 
     private ConfigData? configData;
     private Language selectedLanguage = new Language();
@@ -254,18 +275,35 @@ else
         }
     }
 
+    private bool IsTokenLifetimeValid()
+    {
+        if(configData == null)
+        {
+            return false;
+        }
+
+        int refreshTokenLifetimeHours = configData.RefreshTokenLifetimeDays * 24;
+        return configData.AccessTokenLifetimeHours <= refreshTokenLifetimeHours;
+    }
+
     private async Task Save()
     {
         try
         {
             if(configData != null)
             {
+                if(!IsTokenLifetimeValid())
+                {
+                    DisplayMessageInUi(null, userConfig.GetText("change_default"), userConfig.GetText("U9036"), true);
+                    return;
+                }
+
                 configData.DefaultLanguage = selectedLanguage.Name;
                 configData.AutoDiscoverStartAt = autoDiscStartDate.Date.Add(autoDiscStartTime.TimeOfDay);
                 availableModules = [];
                 foreach(Module module in modulesVisibleDict.Keys)
                 {
-                    if (modulesVisibleDict[module])
+                    if(modulesVisibleDict[module])
                     {
                         availableModules.Add(module);
                     }
@@ -293,7 +331,7 @@ else
             return;
         }
 
-        if (!e.Success && e.Error is not null )
+        if(!e.Success && e.Error is not null)
         {
             DisplayMessageInUi(e.Error.InternalException, userConfig.GetText("change_default"), e.Error.Message ?? "", true);
             return;

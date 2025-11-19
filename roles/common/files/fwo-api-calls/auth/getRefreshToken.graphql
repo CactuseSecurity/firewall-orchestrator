@@ -1,0 +1,12 @@
+# GraphQL query to retrieve a valid (not revoked) refresh token by its hash
+
+query getRefreshToken($tokenHash: String!, $currentTime: timestamptz!) {
+    refresh_tokens(where: {
+        token_hash: {_eq: $tokenHash},
+        expires_at: {_gt: $currentTime},
+        revoked_at: {_is_null: true}
+    }) {
+        user_id
+        expires_at
+    }
+}

@@ -50,10 +50,10 @@ $$ LANGUAGE plpgsql VOLATILE;
 Alter table "ldap_connection" ADD COLUMN IF NOT EXISTS "ldap_writepath_for_groups" Varchar;
 
 CREATE OR REPLACE FUNCTION insertLocalLdapWithEncryptedPasswords(
-    serverName TEXT, 
+    serverName TEXT,
     port INTEGER,
     userSearchPath TEXT,
-    roleSearchPath TEXT, 
+    roleSearchPath TEXT,
     groupSearchPath TEXT,
     groupWritePath TEXT,
     tenantLevel INTEGER,
@@ -114,7 +114,7 @@ insert into stm_track (track_id,track_name) VALUES (23,'detailed log') ON CONFLI
 insert into stm_track (track_id,track_name) VALUES (24,'extended log') ON CONFLICT DO NOTHING; -- check point R8x
 
 -- 8.8.8
-DO $$ 
+DO $$
 BEGIN
     IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'fwo_ro') THEN
         CREATE ROLE fwo_ro WITH LOGIN NOSUPERUSER INHERIT NOCREATEDB NOCREATEROLE;
@@ -373,19 +373,19 @@ BEGIN
     SELECT INTO i_mgm_id mgm_id FROM import_control WHERE control_id=NEW.import_id;
     -- before importing, delete all old interfaces and routes belonging to the current management:
 
-	-- now re-insert the currently found interfaces: 
+	-- now re-insert the currently found interfaces:
     SELECT INTO i_count COUNT(*) FROM  jsonb_populate_recordset(NULL::gw_interface, NEW.config -> 'interfaces');
     IF i_count>0 THEN
-        DELETE FROM gw_interface WHERE routing_device IN 
+        DELETE FROM gw_interface WHERE routing_device IN
             (SELECT dev_id FROM device LEFT JOIN management ON (device.mgm_id=management.mgm_id) WHERE management.mgm_id=i_mgm_id);
         INSERT INTO gw_interface SELECT * FROM jsonb_populate_recordset(NULL::gw_interface, NEW.config -> 'interfaces');
     END IF;
 
     SELECT INTO i_count COUNT(*) FROM  jsonb_populate_recordset(NULL::gw_route, NEW.config -> 'routing');
     IF i_count>0 THEN
-        DELETE FROM gw_route WHERE routing_device IN 
+        DELETE FROM gw_route WHERE routing_device IN
             (SELECT dev_id FROM device LEFT JOIN management ON (device.mgm_id=management.mgm_id) WHERE management.mgm_id=i_mgm_id);
-        -- now re-insert the currently found routes: 
+        -- now re-insert the currently found routes:
         INSERT INTO gw_route SELECT * FROM jsonb_populate_recordset(NULL::gw_route, NEW.config -> 'routing');
     END IF;
 
@@ -423,7 +423,7 @@ BEGIN
 
     IF NEW.start_import_flag THEN
         -- finally start the stored procedure import
-        PERFORM import_all_main(NEW.import_id, NEW.debug_mode);        
+        PERFORM import_all_main(NEW.import_id, NEW.debug_mode);
     END IF;
     RETURN NEW;
 END;
@@ -452,7 +452,7 @@ ALTER TABLE device ADD COLUMN IF NOT EXISTS "dev_uid" Varchar NOT NULL DEFAULT '
 Alter table stm_action add column if not exists allowed BOOLEAN NOT NULL DEFAULT TRUE;
 UPDATE stm_action SET allowed = FALSE WHERE action_name = 'deny' OR action_name = 'drop' OR action_name = 'reject';
 
-Create table IF NOT EXISTS "rulebase" 
+Create table IF NOT EXISTS "rulebase"
 (
 	"id" SERIAL primary key,
 	"name" Varchar NOT NULL,
@@ -522,7 +522,7 @@ ALTER table "import_control" ADD COLUMN IF NOT EXISTS "is_full_import" BOOLEAN D
 
 -----------------------------------------------
 
-Create Table IF NOT EXISTS "rule_enforced_on_gateway" 
+Create Table IF NOT EXISTS "rule_enforced_on_gateway"
 (
 	"rule_id" Integer NOT NULL,
 	"dev_id" Integer,  --  NULL if rule is available for all gateways of its management
@@ -540,7 +540,7 @@ Alter table "rule_enforced_on_gateway" add CONSTRAINT fk_rule_enforced_on_gatewa
 
 ALTER TABLE "rule_enforced_on_gateway"
     DROP CONSTRAINT IF EXISTS "fk_rule_enforced_on_gateway_created_import_control_control_id" CASCADE;
-Alter table "rule_enforced_on_gateway" add CONSTRAINT fk_rule_enforced_on_gateway_created_import_control_control_id 
+Alter table "rule_enforced_on_gateway" add CONSTRAINT fk_rule_enforced_on_gateway_created_import_control_control_id
 	foreign key ("created") references "import_control" ("control_id") on update restrict on delete cascade;
 
 ALTER TABLE "rule_enforced_on_gateway"
@@ -550,7 +550,7 @@ ALTER TABLE "rule_enforced_on_gateway"
 ALTER TABLE "rule_enforced_on_gateway"
     DROP CONSTRAINT IF EXISTS "fk_rule_enforced_on_gateway_deleted_import_control_control_id" CASCADE;
 
-Alter table "rule_enforced_on_gateway" add CONSTRAINT fk_rule_enforced_on_gateway_removed_import_control_control_id 
+Alter table "rule_enforced_on_gateway" add CONSTRAINT fk_rule_enforced_on_gateway_removed_import_control_control_id
 	foreign key ("removed") references "import_control" ("control_id") on update restrict on delete cascade;
 
 -----------------------------------------------
@@ -561,8 +561,8 @@ RETURNS NUMERIC AS $$
   FROM rule r
   WHERE r.mgm_id = mgmId and active
     AND r.rule_num_numeric > (
-      SELECT rule_num_numeric 
-      FROM rule 
+      SELECT rule_num_numeric
+      FROM rule
       WHERE rule_uid = current_rule_uid AND mgm_id = mgmId AND active
       LIMIT 1
     )
@@ -583,7 +583,7 @@ ALTER TABLE "rule" ADD CONSTRAINT fk_rule_rulebase_id FOREIGN KEY ("rulebase_id"
 -- Alter table "rule" add constraint "rule_metadata_dev_id_rule_uid_f_key"
 --   foreign key ("dev_id", "rule_uid", "rulebase_id") references "rule_metadata" ("dev_id", "rule_uid", "rulebase_id") on update restrict on delete cascade;
 
--- Create table IF NOT EXISTS "rule_hit" 
+-- Create table IF NOT EXISTS "rule_hit"
 -- (
 --     "rule_id" BIGINT NOT NULL,
 --     "rule_uid" VARCHAR NOT NULL,
@@ -596,9 +596,9 @@ ALTER TABLE "rule" ADD CONSTRAINT fk_rule_rulebase_id FOREIGN KEY ("rulebase_id"
 -- Alter table "rule_hit" DROP CONSTRAINT IF EXISTS fk_rule_hit_rule_id;
 -- Alter table "rule_hit" DROP CONSTRAINT IF EXISTS fk_hit_gw_id;
 -- Alter table "rule_hit" DROP CONSTRAINT IF EXISTS fk_hit_metadata_id;
--- Alter table "rule_hit" add CONSTRAINT fk_hit_rule_id foreign key ("rule_id") references "rule" ("rule_id") on update restrict on delete cascade; 
--- Alter table "rule_hit" add CONSTRAINT fk_hit_gw_id foreign key ("gw_id") references "device" ("dev_id") on update restrict on delete cascade; 
--- Alter table "rule_hit" add CONSTRAINT fk_hit_metadata_id foreign key ("metadata_id") references "rule_metadata" ("dev_id") on update restrict on delete cascade; 
+-- Alter table "rule_hit" add CONSTRAINT fk_hit_rule_id foreign key ("rule_id") references "rule" ("rule_id") on update restrict on delete cascade;
+-- Alter table "rule_hit" add CONSTRAINT fk_hit_gw_id foreign key ("gw_id") references "device" ("dev_id") on update restrict on delete cascade;
+-- Alter table "rule_hit" add CONSTRAINT fk_hit_metadata_id foreign key ("metadata_id") references "rule_metadata" ("dev_id") on update restrict on delete cascade;
 
 -----------------------------------------------
 -- METADATA part
@@ -612,7 +612,7 @@ Alter Table "rule_metadata" drop Constraint IF EXISTS "rule_metadata_alt_key";
     --     ALTER TABLE rule_metadata DROP Constraint IF EXISTS "rule_metadata_rule_uid_unique";
     --     ALTER TABLE rule_metadata ADD Constraint "rule_metadata_rule_uid_unique" unique ("rule_uid");
     -- causes error:
-    --     None: FEHLER:  kann Constraint rule_metadata_rule_uid_unique für Tabelle rule_metadata nicht löschen, weil andere Objekte davon abhängen\nDETAIL:  
+    --     None: FEHLER:  kann Constraint rule_metadata_rule_uid_unique für Tabelle rule_metadata nicht löschen, weil andere Objekte davon abhängen\nDETAIL:
     --     Constraint rule_metadata_rule_uid_f_key für Tabelle rule hängt von Index rule_metadata_rule_uid_unique ab\nHINT:  Verwenden Sie DROP ... CASCADE, um die abhängigen Objekte ebenfalls zu löschen.\n"}
 
 ALTER TABLE rule_metadata DROP Constraint IF EXISTS "rule_metadata_rule_uid_unique" CASCADE;
@@ -641,9 +641,9 @@ CREATE OR REPLACE VIEW v_rule_with_rule_owner AS
 	WHERE NOT ow.id IS NULL
 	GROUP BY r.rule_id, ow.id, ow.name, met.rule_last_certified, met.rule_last_certifier;
 
-CREATE OR REPLACE VIEW v_rule_with_src_owner AS 
+CREATE OR REPLACE VIEW v_rule_with_src_owner AS
 	SELECT
-		r.rule_id, ow.id as owner_id, ow.name as owner_name, 
+		r.rule_id, ow.id as owner_id, ow.name as owner_name,
 		CASE
 			WHEN onw.ip = onw.ip_end
 			THEN SPLIT_PART(CAST(onw.ip AS VARCHAR), '/', 1) -- Single IP overlap, removing netmask
@@ -673,9 +673,9 @@ CREATE OR REPLACE VIEW v_rule_with_src_owner AS
 	END
 	GROUP BY r.rule_id, o.obj_ip, o.obj_ip_end, onw.ip, onw.ip_end, ow.id, ow.name, met.rule_last_certified, met.rule_last_certifier;
 
-CREATE OR REPLACE VIEW v_rule_with_dst_owner AS 
-	SELECT 
-		r.rule_id, ow.id as owner_id, ow.name as owner_name, 
+CREATE OR REPLACE VIEW v_rule_with_dst_owner AS
+	SELECT
+		r.rule_id, ow.id as owner_id, ow.name as owner_name,
 		CASE
 			WHEN onw.ip = onw.ip_end
 			THEN SPLIT_PART(CAST(onw.ip AS VARCHAR), '/', 1) -- Single IP overlap, removing netmask
@@ -777,14 +777,14 @@ Alter table "rulebase_link" add CONSTRAINT unique_rulebase_link
 	"to_rulebase_id",
 	"created"
 	);
-    
+
 ALTER TABLE "rulebase_link"
     DROP CONSTRAINT IF EXISTS "fk_rulebase_link_created_import_control_control_id" CASCADE;
-Alter table "rulebase_link" add CONSTRAINT fk_rulebase_link_created_import_control_control_id 
+Alter table "rulebase_link" add CONSTRAINT fk_rulebase_link_created_import_control_control_id
 	foreign key ("created") references "import_control" ("control_id") on update restrict on delete cascade;
 ALTER TABLE "rulebase_link"
     DROP CONSTRAINT IF EXISTS "fk_rulebase_link_removed_import_control_control_id" CASCADE;
-Alter table "rulebase_link" add CONSTRAINT fk_rulebase_link_removed_import_control_control_id 
+Alter table "rulebase_link" add CONSTRAINT fk_rulebase_link_removed_import_control_control_id
 	foreign key ("removed") references "import_control" ("control_id") on update restrict on delete cascade;
 
 insert into stm_link_type (id, name) VALUES (2, 'ordered') ON CONFLICT DO NOTHING;
@@ -828,7 +828,7 @@ AS $function$
         a_target_gateways VARCHAR[];
         v_gw_name VARCHAR;
     BEGIN
-        FOR r_rulebase IN 
+        FOR r_rulebase IN
             SELECT * FROM rulebase
         LOOP
             -- collect all device ids for this rulebase
@@ -837,7 +837,7 @@ AS $function$
                 WHERE to_rulebase_id=r_rulebase.id
             ) INTO a_all_dev_ids_of_rulebase;
 
-            FOR r_rule IN 
+            FOR r_rule IN
                 SELECT rule_installon, rule_id FROM rule
             LOOP
                 -- depending on install_on field:
@@ -845,9 +845,9 @@ AS $function$
                 --     or just add specific gateway entries
                 IF r_rule.rule_installon='Policy Targets' THEN
                     -- need to find out other platforms equivivalent keywords
-                    FOREACH i_dev_id IN ARRAY a_all_dev_ids_of_rulebase 
+                    FOREACH i_dev_id IN ARRAY a_all_dev_ids_of_rulebase
                     LOOP
-                        INSERT INTO rule_enforced_on_gateway (rule_id, dev_id, created) 
+                        INSERT INTO rule_enforced_on_gateway (rule_id, dev_id, created)
                         VALUES (r_rule.rule_id, i_dev_id, (SELECT * FROM get_last_import_id_for_mgmt(r_rulebase.mgm_id)));
                     END LOOP;
                 ELSE
@@ -858,13 +858,13 @@ AS $function$
                     SELECT ARRAY(
                         SELECT string_to_array(r_rule.rule_installon, '|')
                     ) INTO a_target_gateways;
-                    FOREACH v_gw_name IN ARRAY a_target_gateways 
+                    FOREACH v_gw_name IN ARRAY a_target_gateways
                     LOOP
                         -- get dev_id for gw_name
                         SELECT INTO i_dev_id dev_id FROM device WHERE dev_name=v_gw_name;
                         IF FOUND THEN
-                            INSERT INTO rule_enforced_on_gateway (rule_id, dev_id, created) 
-                            VALUES (r_rule.rule_id, i_dev_id, (SELECT * FROM get_last_import_id_for_mgmt(r_rulebase.mgm_id))); 
+                            INSERT INTO rule_enforced_on_gateway (rule_id, dev_id, created)
+                            VALUES (r_rule.rule_id, i_dev_id, (SELECT * FROM get_last_import_id_for_mgmt(r_rulebase.mgm_id)));
                         ELSE
                             -- decide what to do with misses
                         END IF;
@@ -882,7 +882,7 @@ AS $function$
     DECLARE
         r_dev RECORD;
     BEGIN
-        FOR r_dev IN 
+        FOR r_dev IN
             -- TODO: deal with global rulebases here
             SELECT d.dev_id, rb.id as rulebase_id FROM device d LEFT JOIN rulebase rb ON (d.local_rulebase_name=rb.name)
         LOOP
@@ -890,9 +890,9 @@ AS $function$
         END LOOP;
         -- now we can add the "not null" constraint for rule_metadata.rulebase_id
         IF EXISTS (
-            SELECT 1 
+            SELECT 1
             FROM information_schema.columns
-            WHERE table_name = 'rule_metadata' 
+            WHERE table_name = 'rule_metadata'
             AND column_name = 'rulebase_id'
             AND is_nullable = 'YES'
         ) THEN
@@ -913,7 +913,7 @@ AS $function$
         i_rulebase_id INTEGER;
         i_initial_rulebase_id INTEGER;
     BEGIN
-        FOR r_dev IN 
+        FOR r_dev IN
             SELECT * FROM device
         LOOP
             -- find the id of the matching rulebase
@@ -922,7 +922,7 @@ AS $function$
             IF i_rulebase_id IS NOT NULL THEN
                 SELECT INTO r_dev_null * FROM rulebase_link WHERE to_rulebase_id=i_rulebase_id AND gw_id=r_dev.dev_id AND removed IS NULL;
                 IF NOT FOUND THEN
-                    INSERT INTO rulebase_link (gw_id, from_rule_id, to_rulebase_id, created, link_type, is_initial) 
+                    INSERT INTO rulebase_link (gw_id, from_rule_id, to_rulebase_id, created, link_type, is_initial)
                     VALUES (r_dev.dev_id, NULL, i_rulebase_id, (SELECT * FROM get_last_import_id_for_mgmt(r_dev.mgm_id)), 2, True)
                     RETURNING id INTO i_initial_rulebase_id; -- when migrating, there cannot be more than one (the initial) rb per device
                 END IF;
@@ -937,7 +937,7 @@ AS $function$
                     SELECT INTO r_dev_null * FROM rulebase_link WHERE to_rulebase_id=i_rulebase_id AND gw_id=r_dev.dev_id;
                     IF NOT FOUND THEN
                         INSERT INTO rulebase_link (gw_id, from_rule_id, to_rulebase_id, created, link_type, is_initial)
-                        VALUES (r_dev.dev_id, NULL, i_rulebase_id, (SELECT * FROM get_last_import_id_for_mgmt(r_dev.mgm_id)), 2, TRUE); 
+                        VALUES (r_dev.dev_id, NULL, i_rulebase_id, (SELECT * FROM get_last_import_id_for_mgmt(r_dev.mgm_id)), 2, TRUE);
                     END IF;
                 END IF;
             END IF;
@@ -956,15 +956,15 @@ AS $function$
         i_new_rulebase_id INTEGER;
     BEGIN
 
-        FOR r_dev IN 
+        FOR r_dev IN
             SELECT * FROM device
         LOOP
             -- if rulebase does not exist yet: insert it
             SELECT INTO r_dev_null * FROM rulebase WHERE name=r_dev.local_rulebase_name;
             IF NOT FOUND AND r_dev.local_rulebase_name IS NOT NULL THEN
                 -- first create rulebase entries
-                INSERT INTO rulebase (name, uid, mgm_id, is_global, created) 
-                VALUES (r_dev.local_rulebase_name, r_dev.local_rulebase_name, r_dev.mgm_id, FALSE, 1) 
+                INSERT INTO rulebase (name, uid, mgm_id, is_global, created)
+                VALUES (r_dev.local_rulebase_name, r_dev.local_rulebase_name, r_dev.mgm_id, FALSE, 1)
                 RETURNING id INTO i_new_rulebase_id;
                 -- now update references in all rules to the newly created rulebase
                 UPDATE rule SET rulebase_id=i_new_rulebase_id WHERE dev_id=r_dev.dev_id;
@@ -972,8 +972,8 @@ AS $function$
 
             SELECT INTO r_dev_null * FROM rulebase WHERE name=r_dev.global_rulebase_name;
             IF NOT FOUND AND r_dev.global_rulebase_name IS NOT NULL THEN
-                INSERT INTO rulebase (name, uid, mgm_id, is_global, created) 
-                VALUES (r_dev.global_rulebase_name, r_dev.global_rulebase_name, r_dev.mgm_id, TRUE, 1) 
+                INSERT INTO rulebase (name, uid, mgm_id, is_global, created)
+                VALUES (r_dev.global_rulebase_name, r_dev.global_rulebase_name, r_dev.mgm_id, TRUE, 1)
                 RETURNING id INTO i_new_rulebase_id;
                 -- now update references in all rules to the newly created rulebase
                 UPDATE rule SET rulebase_id=i_new_rulebase_id WHERE dev_id=r_dev.dev_id;
@@ -981,9 +981,9 @@ AS $function$
             END IF;
         END LOOP;
 
-        -- now check for remaining rules without rulebase_id 
+        -- now check for remaining rules without rulebase_id
         -- TODO: decide how to deal with this - ONLY DUMMY SOLUTION FOR NOW
-        FOR r_rule IN 
+        FOR r_rule IN
             SELECT * FROM rule WHERE rulebase_id IS NULL
             -- how do we deal with this? we simply pick the smallest rulebase id for now
         LOOP
@@ -993,9 +993,9 @@ AS $function$
 
         -- now we can add the "not null" constraint for rule.rulebase_id
         IF EXISTS (
-            SELECT 1 
+            SELECT 1
             FROM information_schema.columns
-            WHERE table_name = 'rule' 
+            WHERE table_name = 'rule'
             AND column_name = 'rulebase_id'
             AND is_nullable = 'YES'
         ) THEN
@@ -1005,7 +1005,7 @@ AS $function$
     END;
 $function$;
 
--- in this migration, in scenarios where a rulebase is used on more than one gateway, 
+-- in this migration, in scenarios where a rulebase is used on more than one gateway,
 -- only the rules of the first gw get a rulebase_id, the others (copies) will be deleted
 CREATE OR REPLACE FUNCTION migrateToRulebases() RETURNS VOID
     LANGUAGE plpgsql
@@ -1037,7 +1037,7 @@ CREATE OR REPLACE FUNCTION public.get_rulebase_for_owner(rulebase_row rulebase, 
  RETURNS SETOF rule
  LANGUAGE plpgsql
  STABLE
-AS 
+AS
 $function$
     BEGIN
         RETURN QUERY
@@ -1110,7 +1110,7 @@ $$;
 
 -- add new compliance tables
 
-CREATE TABLE IF NOT EXISTS compliance.policy  
+CREATE TABLE IF NOT EXISTS compliance.policy
 (
     id SERIAL PRIMARY KEY,
 	name TEXT,
@@ -1188,60 +1188,60 @@ PRIMARY KEY (network_zone_id, ip_range_start, ip_range_end, created);
 
 -- add FKs
 
-ALTER TABLE compliance.network_zone 
+ALTER TABLE compliance.network_zone
 DROP CONSTRAINT IF EXISTS compliance_criterion_network_zone_foreign_key;
-ALTER TABLE compliance.network_zone 
-ADD CONSTRAINT compliance_criterion_network_zone_foreign_key 
-FOREIGN KEY (criterion_id) REFERENCES compliance.criterion(id) 
+ALTER TABLE compliance.network_zone
+ADD CONSTRAINT compliance_criterion_network_zone_foreign_key
+FOREIGN KEY (criterion_id) REFERENCES compliance.criterion(id)
 ON UPDATE RESTRICT ON DELETE CASCADE;
 
-ALTER TABLE compliance.ip_range 
+ALTER TABLE compliance.ip_range
 DROP CONSTRAINT IF EXISTS compliance_criterion_ip_range_foreign_key;
-ALTER TABLE compliance.ip_range 
-ADD CONSTRAINT compliance_criterion_ip_range_foreign_key 
-FOREIGN KEY (criterion_id) REFERENCES compliance.criterion(id) 
+ALTER TABLE compliance.ip_range
+ADD CONSTRAINT compliance_criterion_ip_range_foreign_key
+FOREIGN KEY (criterion_id) REFERENCES compliance.criterion(id)
 ON UPDATE RESTRICT ON DELETE CASCADE;
 
-ALTER TABLE compliance.network_zone_communication 
+ALTER TABLE compliance.network_zone_communication
 DROP CONSTRAINT IF EXISTS compliance_criterion_network_zone_communication_foreign_key;
-ALTER TABLE compliance.network_zone_communication 
-ADD CONSTRAINT compliance_criterion_network_zone_communication_foreign_key 
-FOREIGN KEY (criterion_id) REFERENCES compliance.criterion(id) 
+ALTER TABLE compliance.network_zone_communication
+ADD CONSTRAINT compliance_criterion_network_zone_communication_foreign_key
+FOREIGN KEY (criterion_id) REFERENCES compliance.criterion(id)
 ON UPDATE RESTRICT ON DELETE CASCADE;
 
-ALTER TABLE compliance.policy_criterion 
+ALTER TABLE compliance.policy_criterion
 DROP CONSTRAINT IF EXISTS compliance_policy_policy_criterion_foreign_key;
-ALTER TABLE compliance.policy_criterion 
-ADD CONSTRAINT compliance_policy_policy_criterion_foreign_key 
-FOREIGN KEY (policy_id) REFERENCES compliance.policy(id) 
+ALTER TABLE compliance.policy_criterion
+ADD CONSTRAINT compliance_policy_policy_criterion_foreign_key
+FOREIGN KEY (policy_id) REFERENCES compliance.policy(id)
 ON UPDATE RESTRICT ON DELETE CASCADE;
 
-ALTER TABLE compliance.policy_criterion 
+ALTER TABLE compliance.policy_criterion
 DROP CONSTRAINT IF EXISTS compliance_criterion_policy_criterion_foreign_key;
-ALTER TABLE compliance.policy_criterion 
-ADD CONSTRAINT compliance_criterion_policy_criterion_foreign_key 
-FOREIGN KEY (criterion_id) REFERENCES compliance.criterion(id) 
+ALTER TABLE compliance.policy_criterion
+ADD CONSTRAINT compliance_criterion_policy_criterion_foreign_key
+FOREIGN KEY (criterion_id) REFERENCES compliance.criterion(id)
 ON UPDATE RESTRICT ON DELETE CASCADE;
 
-ALTER TABLE compliance.violation 
+ALTER TABLE compliance.violation
 DROP CONSTRAINT IF EXISTS compliance_policy_violation_foreign_key;
-ALTER TABLE compliance.violation 
-ADD CONSTRAINT compliance_policy_violation_foreign_key 
-FOREIGN KEY (policy_id) REFERENCES compliance.policy(id) 
+ALTER TABLE compliance.violation
+ADD CONSTRAINT compliance_policy_violation_foreign_key
+FOREIGN KEY (policy_id) REFERENCES compliance.policy(id)
 ON UPDATE RESTRICT ON DELETE CASCADE;
 
-ALTER TABLE compliance.violation 
+ALTER TABLE compliance.violation
 DROP CONSTRAINT IF EXISTS compliance_criterion_violation_foreign_key;
-ALTER TABLE compliance.violation 
-ADD CONSTRAINT compliance_criterion_violation_foreign_key 
-FOREIGN KEY (criterion_id) REFERENCES compliance.criterion(id) 
+ALTER TABLE compliance.violation
+ADD CONSTRAINT compliance_criterion_violation_foreign_key
+FOREIGN KEY (criterion_id) REFERENCES compliance.criterion(id)
 ON UPDATE RESTRICT ON DELETE CASCADE;
 
-ALTER TABLE compliance.violation 
+ALTER TABLE compliance.violation
 DROP CONSTRAINT IF EXISTS compliance_rule_violation_foreign_key;
-ALTER TABLE compliance.violation 
-ADD CONSTRAINT compliance_rule_violation_foreign_key 
-FOREIGN KEY (rule_id) REFERENCES public.rule(rule_id) 
+ALTER TABLE compliance.violation
+ADD CONSTRAINT compliance_rule_violation_foreign_key
+FOREIGN KEY (rule_id) REFERENCES public.rule(rule_id)
 ON UPDATE RESTRICT ON DELETE CASCADE;
 
 -- add report type Compliance
@@ -1259,13 +1259,13 @@ WHERE (removed IS NULL);
 
 -- add config parameter debugConfig if not exists
 
-INSERT INTO config (config_key, config_value, config_user) 
+INSERT INTO config (config_key, config_value, config_user)
 VALUES ('debugConfig', '{"debugLevel":8, "extendedLogComplianceCheck":true, "extendedLogReportGeneration":true, "extendedLogScheduler":true}', 0)
 ON CONFLICT (config_key, config_user) DO NOTHING;
 
 -- add config parameter complianceCheckPolicy if not exists
 
-INSERT INTO config (config_key, config_value, config_user) 
+INSERT INTO config (config_key, config_value, config_user)
 VALUES ('complianceCheckPolicy', '0', 0)
 ON CONFLICT (config_key, config_user) DO NOTHING;
 
@@ -1290,10 +1290,10 @@ ALTER TABLE compliance.violation ADD COLUMN IF NOT EXISTS mgmt_uid TEXT;
 -- );
 
 
--- ALTER TABLE compliance.assessability_issue 
+-- ALTER TABLE compliance.assessability_issue
 -- DROP CONSTRAINT IF EXISTS compliance_assessability_issue_type_foreign_key;
 -- ALTER TABLE compliance.assessability_issue ADD CONSTRAINT compliance_assessability_issue_type_foreign_key FOREIGN KEY (type_id) REFERENCES compliance.assessability_issue_type(type_id) ON UPDATE RESTRICT ON DELETE CASCADE;
--- ALTER TABLE compliance.assessability_issue 
+-- ALTER TABLE compliance.assessability_issue
 -- DROP CONSTRAINT IF EXISTS compliance_assessability_issue_violation_foreign_key;
 -- ALTER TABLE compliance.assessability_issue ADD CONSTRAINT compliance_assessability_issue_violation_foreign_key FOREIGN KEY (violation_id) REFERENCES compliance.violation(id) ON UPDATE RESTRICT ON DELETE CASCADE;
 
@@ -1318,9 +1318,9 @@ END$$;
 
 -- add new report template for compliance: unresolved violations
 
-INSERT INTO "report_template" ("report_filter","report_template_name","report_template_comment","report_template_owner", "report_parameters") 
+INSERT INTO "report_template" ("report_filter","report_template_name","report_template_comment","report_template_owner", "report_parameters")
     VALUES ('action=accept',
-        'Compliance: Unresolved violations','T0108', 0, 
+        'Compliance: Unresolved violations','T0108', 0,
         '{"report_type":31,"device_filter":{"management":[]},
             "time_filter": {
                 "is_shortcut": true,
@@ -1341,9 +1341,9 @@ ON CONFLICT (report_template_name) DO NOTHING;
 
 -- add new report template for compliance: diffs
 
-INSERT INTO "report_template" ("report_filter","report_template_name","report_template_comment","report_template_owner", "report_parameters") 
+INSERT INTO "report_template" ("report_filter","report_template_name","report_template_comment","report_template_owner", "report_parameters")
     VALUES ('action=accept',
-        'Compliance: Diffs','T0109', 0, 
+        'Compliance: Diffs','T0109', 0,
         '{"report_type":32,"device_filter":{"management":[]},
             "time_filter": {
                 "is_shortcut": true,
@@ -1370,13 +1370,13 @@ ON CONFLICT (config_key, config_user) DO NOTHING;
 
 -- add parameter to persist report scheduler configs to config
 
-INSERT INTO config (config_key, config_value, config_user) 
+INSERT INTO config (config_key, config_value, config_user)
 VALUES ('reportSchedulerConfig', '', 0)
 ON CONFLICT (config_key, config_user) DO NOTHING;
 
 -- add parameter to choose order by column of network matrix between name and id
 
-INSERT INTO config (config_key, config_value, config_user) 
+INSERT INTO config (config_key, config_value, config_user)
 VALUES ('complianceCheckSortMatrixByID', 'false', 0)
 ON CONFLICT (config_key, config_user) DO NOTHING;
 
@@ -1401,11 +1401,11 @@ INSERT INTO config (config_key, config_value, config_user) VALUES ('internalZone
 
 -- auto calculate special zone parameters
 
-INSERT INTO config (config_key, config_value, config_user) 
+INSERT INTO config (config_key, config_value, config_user)
 VALUES ('autoCalculateInternetZone', 'true', 0)
 ON CONFLICT (config_key, config_user) DO NOTHING;
 
-INSERT INTO config (config_key, config_value, config_user) 
+INSERT INTO config (config_key, config_value, config_user)
 VALUES ('autoCalculateUndefinedInternalZone', 'true', 0)
 ON CONFLICT (config_key, config_user) DO NOTHING;
 
@@ -1475,7 +1475,7 @@ ON CONFLICT (config_key, config_user) DO NOTHING;
 -- TODO: fill all rulebase_id s and then add not null constraint
 
 
---   TODOs 
+--   TODOs
 
 -- Rename table rulebase_on_gateways to gateway_rulebase to get correct plural gateway_rulebases in hasura
 
@@ -1501,7 +1501,7 @@ ON CONFLICT (config_key, config_user) DO NOTHING;
 --                     rule_last_hit
 --                     rule_uid
 --                     dev_id
---                     # here we do not have any rule details 
+--                     # here we do not have any rule details
 --                 }
 --                 name: dev_name
 --                 rulebase_on_gateways(order_by: {order_no: asc}) {
@@ -1513,7 +1513,7 @@ ON CONFLICT (config_key, config_user) DO NOTHING;
 --                     rules {
 --                         mgm_id: mgm_id
 --                         rule_metadatum {
---                             # here, the rule_metadata is always empty! 
+--                             # here, the rule_metadata is always empty!
 --                             rule_last_hit
 --                         }
 --                         ...ruleOverview
@@ -1535,7 +1535,7 @@ ON CONFLICT (config_key, config_user) DO NOTHING;
 --     - statistics (optional: only count rules per gw which are active on gw)
 
 --  - adjust report tests (add column)
---  import install on information (need to find out, where it is encoded) from 
+--  import install on information (need to find out, where it is encoded) from
 --  - fortimanger - simply add name of current gw?
 --  - fortios - simply add name of current gw?
 --  - others? - simply add name of current gw?
@@ -1578,7 +1578,7 @@ ON CONFLICT (config_key, config_user) DO NOTHING;
 -- disabled in UI:
 --     recertification.razor
 --     in report.razor:
---     - RSB 
+--     - RSB
 --     - TicketCreate Komponente
 
 -- 2024-10-09 planning
@@ -1588,7 +1588,7 @@ ON CONFLICT (config_key, config_user) DO NOTHING;
 --     - instead get current config with every import
 --     - id for gateway needs to be fixated:
 
---     - check point: 
+--     - check point:
 --         - read interface information from show-gateways-and-servers details-level=full
 --         - where to get routing infos?
 --         - optional: also get publish time per policy (push):
@@ -1601,16 +1601,16 @@ ON CONFLICT (config_key, config_user) DO NOTHING;
 --     - goal:
 --         - in device table:
 --             - for CP only save policy-name per gateway (gotten from show-gateways-and-servers
---         - in config file storage: 
+--         - in config file storage:
 --             - store all policies with the management rathen than with the gateway?
 --             - per gateway only store the ordered mapping gw --> policies
 --                 - also allow for mapping a gateway to a policy from the manager's super-manager
 
---     - TODO: set is_super_manager flag = true for MDS 
+--     - TODO: set is_super_manager flag = true for MDS
 
 -- {
 --   "ConfigFormat": "NORMALIZED",
---   "ManagerSet": [ 
+--   "ManagerSet": [
 --     {
 --       "ManagerUid": "6ae3760206b9bfbd2282b5964f6ea07869374f427533c72faa7418c28f7a77f2",
 --       "ManagerName": "schting2",
@@ -1640,7 +1640,7 @@ ON CONFLICT (config_key, config_user) DO NOTHING;
 --                     "second-layer",
 --                     "<super-manager-UID>:<super-manager-final-policy-UID>",
 --                 ]
---                 EnforcedNatPolicyUids: List[str] = []          
+--                 EnforcedNatPolicyUids: List[str] = []
 --           ]
 --         }
 --       ]
@@ -1654,7 +1654,7 @@ ON CONFLICT (config_key, config_user) DO NOTHING;
 -- - get reports working
 -- - valentin: open issues for k01 UI problems
 -- - decide how to implement ordered layer (all must match) vs. e.g. global policies (first match)
--- - allow for also importing native configs from file 
+-- - allow for also importing native configs from file
 
 
 -- TODOs after full importer migration
@@ -1823,6 +1823,15 @@ insert into stm_dev_typ (dev_typ_id,dev_typ_name,dev_typ_version,dev_typ_manufac
 insert into stm_dev_typ (dev_typ_id,dev_typ_name,dev_typ_version,dev_typ_manufacturer,dev_typ_predef_svc,dev_typ_is_multi_mgmt,dev_typ_is_mgmt,is_pure_routing_device)
     VALUES (29,'Cisco Asa on FirePower','9','Cisco','',false,true,false)
     ON CONFLICT (dev_typ_id) DO NOTHING;
+
+CREATE TABLE IF NOT EXISTS refresh_tokens (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER REFERENCES uiuser(uiuser_id) ON DELETE CASCADE,
+    token_hash VARCHAR(88) UNIQUE NOT NULL,
+    expires_at TIMESTAMP WITH TIME ZONE NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    revoked_at TIMESTAMP WITH TIME ZONE NULL
+);
 	
 	
 	

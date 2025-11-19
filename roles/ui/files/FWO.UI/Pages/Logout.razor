@@ -24,10 +24,7 @@
         apiConnection.Dispose();
         middlewareClient.Dispose();
 
-        // Clear the jwt and deauthenticate
-        await sessionStorage.DeleteAsync("jwt");
-        ((AuthStateProvider)AuthService).Deauthenticate();
-        JwtEventService.RemoveJwtTimers(userConfig.User.Dn);
+        await ((AuthStateProvider)AuthService).Deauthenticate();
 
         // Write an audit log that the user logged out
         UiUser user = userConfig.User;

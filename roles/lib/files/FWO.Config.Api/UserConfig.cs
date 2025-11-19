@@ -1,4 +1,4 @@
-﻿using System.Text.RegularExpressions;
+using System.Text.RegularExpressions;
 using FWO.Basics;
 using FWO.Logging;
 using FWO.Config.Api.Data;
@@ -186,7 +186,7 @@ namespace FWO.Config.Api
             Match m = Regex.Match(key, pattern);
             if (m.Success)
             {
-                string msg = GetText(key[..5]);
+                string msg = GetText(m.Value);
                 if (msg != GlobalConst.kUndefinedText)
                 {
                     text = msg;

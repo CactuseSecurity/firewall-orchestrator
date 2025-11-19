@@ -1,0 +1,7 @@
+# GraphQL mutation to store a refresh token in the database
+
+mutation storeRefreshToken($userId: Int!, $tokenHash: String!, $expiresAt: timestamptz!, $createdAt: timestamptz!) {
+  insert_refresh_tokens_one(object: {user_id: $userId, token_hash: $tokenHash, expires_at: $expiresAt, created_at: $createdAt}) {
+    id
+  }
+}

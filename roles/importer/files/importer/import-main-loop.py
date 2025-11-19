@@ -33,7 +33,6 @@ def get_fwo_jwt(importUser: str, importPwd: str, userManagementApi: str) -> str 
         logger.error("import-main-loop - unspecified error during FWO API login - skipping: " + str(traceback.format_exc()))
 
 
-
 def wait_with_shutdown_check(sleep_time: int):
     counter = 0
     logger = getFwoLogger()

@@ -8,7 +8,6 @@ import fOS_zone
 import fOS_rule
 import fOS_network
 import fOS_getter
-from fwo_base import ConfigAction
 from model_controllers.import_state_controller import ImportStateController
 from models.fwconfigmanagerlist import FwConfigManagerList
 from models.fwconfigmanager import FwConfigManager

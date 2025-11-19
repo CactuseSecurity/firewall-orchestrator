@@ -64,17 +64,44 @@
   register: api_cli_check
 
 # only download new version of api cli, when not restoring from backup:
-- name: download {{ api_hasura_version }} hasura cli binary
+- name: Get Hasura release info from GitHub (authenticated)
+  uri:
+    url: "https://api.github.com/repos/hasura/graphql-engine/releases/tags/{{ api_hasura_version }}"
+    method: GET
+    headers:
+      Accept: "application/vnd.github+json"
+    return_content: true
+  register: hasura_release
+  environment: "{{ proxy_env }}"
+  when: not api_cli_check.stat.exists
+
+- name: Extract Hasura CLI asset id for {{ linux_architecture }}
+  set_fact:
+    hasura_cli_asset_id: >-
+      {{
+        hasura_release.json.assets
+        | selectattr('name', 'equalto', 'cli-hasura-linux-' ~ linux_architecture)
+        | map(attribute='id')
+        | list
+        | first
+      }}
+  when: not api_cli_check.stat.exists
+
+- name: download {{ api_hasura_version }} hasura cli binary via authenticated GitHub access
   get_url:
-    url: "https://github.com/hasura/graphql-engine/releases/download/{{ api_hasura_version }}/cli-hasura-linux-{{ linux_architecture }}"
+    url: "https://api.github.com/repos/hasura/graphql-engine/releases/assets/{{ hasura_cli_asset_id }}"
     dest: "{{ api_hasura_cli_bin }}"
+    headers:
+      Accept: "application/octet-stream"
     force: true
     mode: "0755"
     owner: "{{ fworch_user }}"
     group: "{{ fworch_group }}"
   environment: "{{ proxy_env }}"
   become: true
-  when: not api_cli_check.stat.exists
+  when:
+    - not api_cli_check.stat.exists
+    - hasura_cli_asset_id is defined
 
 - name: initialize hasura cli directory
   command: "{{ api_hasura_cli_bin }} init {{ product_name }} --skip-update-check --endpoint http://{{ api_local_listening_ip_address }}:{{ api_port }} --admin-secret {{ api_hasura_admin_secret }}"
@@ -90,7 +117,6 @@
     hasura_env:
       HASURA_GRAPHQL_DATABASE_URL: "postgres://{{ api_user }}:{{ api_user_password }}@{{ fworch_db_host }}:{{ fworch_db_port }}/{{ fworch_db_name }}"
       HASURA_GRAPHQL_ENABLE_CONSOLE: "true"
-      HASURA_GRAPHQL_REQUEST_SIZE_LIMIT: "262144000"
       HASURA_GRAPHQL_ENABLE_TELEMETRY: "false"
       HASURA_GRAPHQL_ADMIN_SECRET: "{{ api_hasura_admin_secret }}"
       HASURA_GRAPHQL_SERVER_HOST: "127.0.0.1"

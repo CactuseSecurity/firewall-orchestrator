@@ -2,7 +2,7 @@ query getMaxImportId {
   import_control_aggregate {
     aggregate {
       max {
-        control_id
+        id: control_id
       }
     }
   }

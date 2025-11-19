@@ -537,8 +537,16 @@ namespace FWO.Compliance
 
         private async Task<List<Rule>> GetRelevantManagementsRules(List<int> managementIds)
         {
-            int maxImportId = await _apiConnection.SendQueryAsync<int>(ImportQueries.getMaxImportId);
+            long? maxImportId = 0;
 
+            Import? import = await _apiConnection.SendQueryAsync<Import>(ImportQueries.getMaxImportId);
+
+            if (import != null && import.ImportAggregate != null && import.ImportAggregate.ImportAggregateMax != null)
+            {
+                maxImportId = import.ImportAggregate.ImportAggregateMax.RelevantImportId ?? 0;
+
+            }
+            
             Dictionary<string, object> queryVariables = new();
             queryVariables[QueryVar.ImportIdStart] = 0;
             queryVariables[QueryVar.ImportIdEnd] = maxImportId;

@@ -1,5 +1,5 @@
-query getRulesForSelectedManagements($active: Boolean, $mgm_ids: [Int!]) {
-  rule(order_by: { rule_uid: asc }, where: { removed: { _is_null: true } mgm_id: { _in: $mgm_ids }}) {
+query getRulesForSelectedManagements($mgmIds: [Int!]) {
+  rule(order_by: { rule_uid: asc }, where: { removed: { _is_null: true } mgm_id: { _in: $mgmIds }}) {
     rule_src
     rule_dst
     violations: compliance_violations_version_agnostic( where: { removed_date: { _is_null: true } }) {

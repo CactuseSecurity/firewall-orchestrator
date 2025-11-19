@@ -29,7 +29,6 @@ namespace FWO.Compliance
         /// </summary>
         public ReportCompliance? ComplianceReport { get; set; } = null;
 
-
         /// <summary>
         /// Network zones to use for matrix compliance check.
         /// </summary>
@@ -80,7 +79,7 @@ namespace FWO.Compliance
         {
             try
             {
-                Logger.TryWriteInfo("Compliance Check", "Starting compliance check.", LocalSettings.ComplianceCheckVerbose);
+                Logger.TryWriteInfo("Compliance Check", "Starting compliance check.", true);
 
                 GlobalConfig? globalConfig = _userConfig.GlobalConfig;
 
@@ -147,7 +146,9 @@ namespace FWO.Compliance
                     return;
                 };
 
-                await CheckRuleComplianceForAllRules(RulesInCheck); 
+                await CheckRuleComplianceForAllRules(RulesInCheck);
+
+                Logger.TryWriteInfo("Compliance Check", "Compliance check completed.", true);
             }
             catch (System.Exception e)
             {
@@ -163,15 +164,15 @@ namespace FWO.Compliance
         {
             try
             {
-                Logger.TryWriteInfo("Compliance Check", "Persisting violations...", LocalSettings.ComplianceCheckVerbose);
+                Logger.TryWriteInfo("Compliance Check", "Persisting violations.", true);
 
                 List<ComplianceViolation> violationsInDb = await _apiConnection.SendQueryAsync<List<ComplianceViolation>>(ComplianceQueries.getViolations);
 
                 // Filter violations by non-valuable rules. If rules are not evaluable their violation status stays datawise the same until they are evaluable again. 
 
-                Task<List<int>> violationsForRemoveTask = GetViolationsForRemove(violationsInDb);
-
                 Logger.TryWriteInfo("Compliance Check", $"Found {violationsInDb.Count} rows in violations db table.", LocalSettings.ComplianceCheckVerbose);
+
+                Task<List<int>> violationsForRemoveTask = GetViolationsForRemove(violationsInDb);
 
                 List<ComplianceViolationBase> violations = await CreateViolationInsertObjects(violationsInDb);
 
@@ -213,6 +214,8 @@ namespace FWO.Compliance
 
                     Logger.TryWriteInfo("Compliance Check", $"Removed {ids.Count} violations.", LocalSettings.ComplianceCheckVerbose && ids.Count > 0);
                 }
+
+                Logger.TryWriteInfo("Compliance Check", "Persisting of violations completed.", true);
             }
             catch (Exception e)
             {
@@ -380,6 +383,8 @@ namespace FWO.Compliance
             return forbiddenCommunicationsOutput;
         }
 
+
+
         private async Task<bool> CheckMatrixCompliance(Rule rule, ComplianceCriterion criterion, List<NetworkObject> resolvedSources, List<NetworkObject> resolvedDestinations)
         {
             Task<List<(NetworkObject networkObject, List<IPAddressRange> ipRanges)>> fromsTask = GetNetworkObjectsWithIpRanges(resolvedSources);
@@ -522,7 +527,9 @@ namespace FWO.Compliance
 
         private async Task<List<Rule>> GetRelevantManagementsRules(List<int> managementIds)
         {
-            List<Rule>? rules = await _apiConnection.SendQueryAsync<List<Rule>>(RuleQueries.getRulesForSelectedManagements);
+            var variables = new { mgmIds = managementIds };
+            Logger.TryWriteInfo("Compliance Check", $"Loading rules for managements: {string.Join(",", managementIds)}.", LocalSettings.ComplianceCheckVerbose);
+            List<Rule>? rules = await _apiConnection.SendQueryAsync<List<Rule>>(RuleQueries.getRulesForSelectedManagements, variables: variables);
 
             if (rules == null)
             {
@@ -530,7 +537,7 @@ namespace FWO.Compliance
             }
             else
             {
-                rules = rules.Where(r => managementIds.Contains(r.MgmtId)).ToList();
+                Logger.TryWriteInfo("Compliance Check", $"Loaded {rules.Count} rules.", LocalSettings.ComplianceCheckVerbose);
             }
 
             return rules;         
@@ -582,7 +589,9 @@ namespace FWO.Compliance
                 int? matrixId = Policy.Criteria.FirstOrDefault(c => c.Content.CriterionType == CriterionType.Matrix.ToString())?.Content.Id;
                 if (matrixId != null)
                 {
+                    Logger.TryWriteInfo("Compliance Check", $"Loading network zones for Matrix {matrixId}.", LocalSettings.ComplianceCheckVerbose);
                     NetworkZones =  await _apiConnection.SendQueryAsync<List<ComplianceNetworkZone>>(ComplianceQueries.getNetworkZonesForMatrix, new { criterionId = matrixId });
+                    Logger.TryWriteInfo("Compliance Check", $"Loaded {NetworkZones.Count} network zones for Matrix {matrixId}.", LocalSettings.ComplianceCheckVerbose);
                 }
             }
         }
@@ -646,8 +655,11 @@ namespace FWO.Compliance
         private Task<List<int>> GetViolationsForRemove(List<ComplianceViolation> existingViolations)
         {
             List<int> violationsForUpdate = [];
+            List<ComplianceViolation> filteredViolations = existingViolations.Where(ev => ev.RemovedDate == null).ToList();
 
-            foreach (ComplianceViolation existingViolation in existingViolations.Where(ev => ev.RemovedDate == null).ToList())
+            Logger.TryWriteInfo("Compliance Check", $"{filteredViolations.Count} violations are candidates for removal.", LocalSettings.ComplianceCheckVerbose);
+
+            foreach (ComplianceViolation existingViolation in filteredViolations)
             {
                 ComplianceViolation? validatedViolation = CurrentViolationsInCheck.FirstOrDefault(v => CreateUniqueViolationKey(v) == CreateUniqueViolationKey(existingViolation));
 
@@ -657,6 +669,7 @@ namespace FWO.Compliance
                 }
             }
 
+            Logger.TryWriteInfo("Compliance Check", $"{violationsForUpdate.Count} violations are validated for removal.", LocalSettings.ComplianceCheckVerbose);
             return Task.FromResult(violationsForUpdate);
         }
         
@@ -667,7 +680,7 @@ namespace FWO.Compliance
             int nonCompliantRules = 0;
             int checkedRules = 0;
 
-            Logger.TryWriteInfo("Compliance Check", $"Checking compliance for every rule.", LocalSettings.ComplianceCheckVerbose);
+            Logger.TryWriteInfo("Compliance Check", $"Checking compliance for {rules.Count} rule.", LocalSettings.ComplianceCheckVerbose);
 
             foreach (Rule rule in rules)
             {

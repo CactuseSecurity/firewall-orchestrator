@@ -277,35 +277,29 @@ namespace FWO.Report
 
         public static int GetRuleCount(ManagementReport mgmReport, RulebaseLink? currentRbLink, RulebaseLink[] rulebaseLinks)
         {
-            if (currentRbLink != null)
+            RulebaseReport? nextRulebase = mgmReport.GetNextRulebase(currentRbLink);
+            if (nextRulebase == null)
             {
-                int ruleCount = 0;
-                if (currentRbLink != null)
+                return 0;
+            }
+            int ruleCount = 0;
+            foreach (var rule in nextRulebase.Rules)
+            {
+                if (!string.IsNullOrEmpty(rule.SectionHeader))
                 {
-                    int nextRulebaseId = currentRbLink.NextRulebaseId;
-                    RulebaseReport? nextRulebase = mgmReport.Rulebases.FirstOrDefault(_ => _.Id == nextRulebaseId);
-                    if (nextRulebase != null)
-                    {
-                        foreach (var rule in nextRulebase.Rules)
-                        {
-                            if (string.IsNullOrEmpty(rule.SectionHeader))
-                            {
-                                RulebaseLink? nextRbLink = rulebaseLinks.FirstOrDefault(_ => _.FromRuleId == rule.Id);
-                                if (nextRbLink != null)
-                                {
-                                    ruleCount += 1 + GetRuleCount(mgmReport, nextRbLink, rulebaseLinks);
-                                }
-                                else
-                                {
-                                    ruleCount++;
-                                }
-                            }
-                        }
-                        return ruleCount;
-                    }
+                    continue;
+                }
+                RulebaseLink? nextRbLink = rulebaseLinks.FirstOrDefault(rbl => rbl.FromRuleId == rule.Id);
+                if (nextRbLink != null)
+                {
+                    ruleCount += 1 + GetRuleCount(mgmReport, nextRbLink, rulebaseLinks);
+                }
+                else
+                {
+                    ruleCount++;
                 }
             }
-            return 0;
+            return ruleCount;
         }
 
         public override string SetDescription()

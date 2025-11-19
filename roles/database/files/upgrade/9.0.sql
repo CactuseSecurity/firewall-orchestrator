@@ -1964,6 +1964,23 @@ BEGIN
         END IF;
 END$$;
 
+-- Set stm* tables hardcoded only - no Serial
+ALTER TABLE stm_link_type ALTER COLUMN id DROP DEFAULT;
+ALTER TABLE stm_track ALTER COLUMN track_id DROP DEFAULT;
+ALTER TABLE stm_obj_typ ALTER COLUMN obj_typ_id DROP DEFAULT;
+ALTER TABLE stm_color ALTER COLUMN color_id DROP DEFAULT;
+ALTER TABLE stm_change_type ALTER COLUMN change_type_id DROP DEFAULT;
+ALTER TABLE stm_action ALTER COLUMN action_id DROP DEFAULT;
+ALTER TABLE stm_dev_typ ALTER COLUMN dev_typ_id DROP DEFAULT;
+ALTER TABLE parent_rule_type ALTER COLUMN id DROP DEFAULT;
 
-
+-- Drop Sequence
+DROP SEQUENCE IF EXISTS public.stm_link_type_id_seq;
+DROP SEQUENCE IF EXISTS public.stm_track_track_id_seq;
+DROP SEQUENCE IF EXISTS public.stm_obj_typ_obj_typ_id_seq;
+DROP SEQUENCE IF EXISTS public.stm_color_color_id_seq;
+DROP SEQUENCE IF EXISTS public.stm_change_type_change_type_id_seq;
+DROP SEQUENCE IF EXISTS public.stm_action_action_id_seq;
+DROP SEQUENCE IF EXISTS public.stm_dev_typ_dev_typ_id_seq;
+DROP SEQUENCE IF EXISTS public.parent_rule_type_id_seq;
 

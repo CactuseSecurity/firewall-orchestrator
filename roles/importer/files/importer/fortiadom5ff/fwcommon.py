@@ -5,7 +5,7 @@ from model_controllers.import_state_controller import ImportStateController
 from fwo_exceptions import ImportInterruption, FwLoginFailed, FwLogoutFailed
 from fwo_base import write_native_config_to_file
 from fortiadom5ff import fmgr_getter
-from fwo_log import getFwoLogger
+from fwo_log import get_fwo_logger
 from model_controllers.fwconfigmanagerlist_controller import FwConfigManagerListController
 from model_controllers.fwconfig_normalized_controller import FwConfigNormalizedController
 from models.fwconfigmanager import FwConfigManager
@@ -19,12 +19,12 @@ from models.fwconfig_normalized import FwConfigNormalized
 from models.management import Management
 
 
-def has_config_changed(full_config: dict[str, Any], mgm_details: Management, force: bool = False):
+def has_config_changed():
     # dummy - may be filled with real check later on
     return True
 
 def get_config(config_in: FwConfigManagerListController, importState: ImportStateController):
-    logger = getFwoLogger()
+    logger = get_fwo_logger()
     
     if config_in.has_empty_config():   # no native config was passed in, so getting it from FW-Manager 
         config_in.native_config.update({'domains': []}) # type: ignore #TYPING: What is this? None or not None this is the question
@@ -125,7 +125,7 @@ def normalize_config(import_state: ImportStateController, native_config: dict[st
             is_global_loop_iteration = True
 
         normalize_single_manager_config(native_conf, native_config_global, normalized_config_adom, normalized_config_global, 
-                                                            import_state, is_global_loop_iteration)
+                                                            is_global_loop_iteration)
 
         normalized_config = FwConfigNormalized(
             action=ConfigAction.INSERT, 
@@ -168,8 +168,7 @@ def rewrite_native_config_obj_type_as_key(native_config: dict[str, Any]):
 
 
 def normalize_single_manager_config(native_config: 'dict[str, Any]', native_config_global: 'dict[str, Any]', normalized_config_adom: dict[str, Any],
-                                    normalized_config_global: dict[str, Any], import_state: ImportStateController,
-                                    is_global_loop_iteration: bool):
+                                    normalized_config_global: dict[str, Any], is_global_loop_iteration: bool):
 
     current_nw_obj_types = deepcopy(nw_obj_types)
     current_svc_obj_types = deepcopy(svc_obj_types)
@@ -181,7 +180,7 @@ def normalize_single_manager_config(native_config: 'dict[str, Any]', native_conf
         current_nw_obj_types = [f"nw_obj_adom/{native_config.get('domain_name','')}_{t}" for t in current_nw_obj_types]
         current_svc_obj_types = [f"svc_obj_adom/{native_config.get('domain_name','')}_{t}" for t in current_svc_obj_types]
 
-    logger = getFwoLogger()
+    logger = get_fwo_logger()
     normalize_zones(native_config, normalized_config_adom, is_global_loop_iteration)
     logger.info("completed normalizing zones for manager: " + native_config.get('domain_name',''))
     normalize_network_objects(native_config, normalized_config_adom, normalized_config_global, 
@@ -306,7 +305,7 @@ def get_objects(sid: str, fm_api_url: str, native_config_domain: dict[str, Any],
     # get one arbitrary device and vdom to get dynamic objects
     # they are equal across all adoms, vdoms, devices
     if arbitrary_vdom_for_updateable_objects is None:
-        logger = getFwoLogger()
+        logger = get_fwo_logger()
         logger.error("arbitrary_vdom_for_updateable_objects is None, cannot get dynamic objects")
         return
     if arbitrary_vdom_for_updateable_objects['adom'] == adom_name:

@@ -7,7 +7,7 @@ from fwo_api import FwoApi
 import fwo_globals
 from fwo_exceptions import FwoImporterError, FwoApiFailedDeleteOldImports
 from fwo_exceptions import ImportInterruption
-from fwo_log import getFwoLogger
+from fwo_log import get_fwo_logger
 from model_controllers.import_state_controller import ImportStateController
 from fwo_base import ConfigAction, find_all_diffs
 from models.fwconfig_normalized import FwConfigNormalized
@@ -100,7 +100,7 @@ class FwConfigImport():
 
 
     def clear_management(self) -> FwConfigManagerListController:
-        logger = getFwoLogger(debug_level=self.import_state.DebugLevel)
+        logger = get_fwo_logger(debug_level=self.import_state.DebugLevel)
         logger.info('this import run will reset the configuration of this management to "empty"')
         configNormalized = FwConfigManagerListController()
         # Reset management
@@ -193,7 +193,7 @@ class FwConfigImport():
 
     # cleanup configs which do not need to be retained according to data retention time
     def deleteOldImports(self) -> None:
-        logger = getFwoLogger()
+        logger = get_fwo_logger()
         mgmId = int(self.import_state.MgmDetails.Id)
         delete_mutation = FwoApi.get_graphql_code([fwo_const.graphql_query_path + "import/deleteOldImports.graphql"])
 
@@ -215,7 +215,7 @@ class FwConfigImport():
 
 
     def write_latest_config(self):
-        logger = getFwoLogger(debug_level=self.import_state.DebugLevel)
+        logger = get_fwo_logger(debug_level=self.import_state.DebugLevel)
         changes = 0
         errorsFound = 0
 
@@ -234,7 +234,7 @@ class FwConfigImport():
         
             errorsFound = self.deleteLatestConfigOfManagement()
             if errorsFound:
-                getFwoLogger().warning(f"error while trying to delete latest config for mgm_id: {self.import_state.ImportId}")
+                get_fwo_logger().warning(f"error while trying to delete latest config for mgm_id: {self.import_state.ImportId}")
             insertMutation = FwoApi.get_graphql_code([fwo_const.graphql_query_path + "import/storeLatestConfig.graphql"])
             try:
                 query_variables: dict[str, Any] = {
@@ -260,11 +260,11 @@ class FwConfigImport():
                 errorsFound = 1
 
             if errorsFound:
-                getFwoLogger().warning(f"error while writing latest config for import_id {self.import_state.ImportId}, mgm_id: {self.import_state.MgmDetails.Id}, mgm_uid: {self.import_state.MgmDetails.Uid}")
+                get_fwo_logger().warning(f"error while writing latest config for import_id {self.import_state.ImportId}, mgm_id: {self.import_state.MgmDetails.Id}, mgm_uid: {self.import_state.MgmDetails.Uid}")
 
         
     def deleteLatestConfigOfManagement(self) -> int:
-        logger = getFwoLogger()
+        logger = get_fwo_logger()
         deleteMutation = FwoApi.get_graphql_code([fwo_const.graphql_query_path + "import/deleteLatestConfigOfManagement.graphql"])
         try:
             query_variables = { 'mgmId': self.import_state.MgmDetails.CurrentMgmId }
@@ -285,7 +285,7 @@ class FwConfigImport():
             return 1
 
     def get_latest_import_id(self) -> int|None:
-        logger = getFwoLogger(debug_level=self.import_state.DebugLevel)
+        logger = get_fwo_logger(debug_level=self.import_state.DebugLevel)
         query = FwoApi.get_graphql_code([fwo_const.graphql_query_path + "import/getLastSuccessImport.graphql"])
         query_variables = { 'mgmId': self.import_state.MgmDetails.Id }
         try:
@@ -303,7 +303,7 @@ class FwConfigImport():
     def get_latest_config(self) -> FwConfigNormalized:
         mgm_id = self.import_state.MgmDetails.CurrentMgmId
         prev_config = FwConfigNormalized()
-        logger = getFwoLogger(debug_level=self.import_state.DebugLevel)
+        logger = get_fwo_logger(debug_level=self.import_state.DebugLevel)
 
         latest_import_id = self.get_latest_import_id()
         if latest_import_id is None:
@@ -330,7 +330,7 @@ class FwConfigImport():
             raise FwoImporterError("error while trying to get the previous config")
 
     def get_latest_config_from_db(self) -> FwConfigNormalized:
-        logger = getFwoLogger(debug_level=self.import_state.DebugLevel)
+        logger = get_fwo_logger(debug_level=self.import_state.DebugLevel)
         params = {
             "mgm-ids": [self.import_state.MgmDetails.CurrentMgmId]
         }
@@ -357,7 +357,7 @@ class FwConfigImport():
             #TODO: interfaces and routing as soon as they are implemented
 
     def consistency_check_db(self):
-        logger = getFwoLogger(debug_level=self.import_state.DebugLevel)
+        logger = get_fwo_logger(debug_level=self.import_state.DebugLevel)
         normalized_config = self.NormalizedConfig
         if normalized_config is None:
             raise FwoImporterError("cannot perform consistency check: NormalizedConfig is None")

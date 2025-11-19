@@ -1,6 +1,6 @@
 from logging import Logger
 from typing import Any
-from fwo_log import getFwoLogger
+from fwo_log import get_fwo_logger
 
 from model_controllers.rulebase_link_controller import RulebaseLinkController
 
@@ -58,7 +58,7 @@ class FwConfigImportGateway:
         required_inserts: list[dict[str, Any]] = []
         required_removes: list[int | None] = []
 
-        logger = getFwoLogger(debug_level=self._global_state.import_state.DebugLevel)
+        logger = get_fwo_logger(debug_level=self._global_state.import_state.DebugLevel)
 
         for gw in self._global_state.normalized_config.gateways:
 
@@ -170,11 +170,11 @@ class FwConfigImportGateway:
 
 
     def update_interface_diffs(self):
-        logger = getFwoLogger(debug_level=self._global_state.import_state.DebugLevel) #type: ignore
+        logger = get_fwo_logger(debug_level=self._global_state.import_state.DebugLevel) #type: ignore
         # TODO: needs to be implemented
 
 
     def update_routing_diffs(self):
-        logger = getFwoLogger(debug_level=self._global_state.import_state.DebugLevel) #type: ignore
+        logger = get_fwo_logger(debug_level=self._global_state.import_state.DebugLevel) #type: ignore
         # TODO: needs to be implemented
 

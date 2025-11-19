@@ -21,7 +21,7 @@ def getAccessPolicy(sessionId: str, api_url: str, config: dict[str, Any], device
 
     return
 
-def normalize_access_rules(full_config: dict[str, Any], config2import: dict[str, Any], import_id: str, mgm_details: dict[str, Any] = {}, jwt: str | None = None) -> None:
+def normalize_access_rules(full_config: dict[str, Any], config2import: dict[str, Any], import_id: str) -> None:
     any_nw_svc: dict[str, Any] = {"svc_uid": "any_svc_placeholder", "svc_name": "Any", "svc_comment": "Placeholder service.", 
     "svc_typ": "simple", "ip_proto": -1, "svc_port": 0, "svc_port_end": 65535, "control_id": import_id}
     any_nw_object: dict[str, Any] = {"obj_uid": "any_obj_placeholder", "obj_name": "Any", "obj_comment": "Placeholder object.",

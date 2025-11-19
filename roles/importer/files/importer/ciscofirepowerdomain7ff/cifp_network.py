@@ -1,7 +1,7 @@
 import random
 from typing import Any
 
-from fwo_log import getFwoLogger
+from fwo_log import get_fwo_logger
 from fwo_const import list_delimiter
 from netaddr import IPAddress
 
@@ -16,34 +16,33 @@ def normalize_nwobjects(full_config: dict[str, Any], config2import: dict[str, An
         nw_objects.append(obj_grp)
     config2import['network_objects'] = nw_objects
 
-def parse_obj_group(orig_grp: dict[str, Any], import_id: str, nw_objects: list[dict[str, Any]], id: str | None = None):
+def parse_obj_group(orig_grp: dict[str, Any], import_id: str, nw_objects: list[dict[str, Any]], group_id: str | None = None):
     refs: list[str] = []
     names: list[str] = []
     if "literals" in orig_grp:
-        if id is None:
-            id = orig_grp["id"] if "id" in orig_grp else str(random.random())
+        if group_id is None:
+            group_id = orig_grp["id"] if "id" in orig_grp else str(random.random())
         for orig_literal in orig_grp["literals"]:
             literal = parse_object(orig_literal, import_id)
-            literal["obj_uid"] += "_" + str(id)
+            literal["obj_uid"] += "_" + str(group_id)
             nw_objects.append(literal)
             names.append(orig_literal["value"])
             refs.append(literal["obj_uid"])
     if "objects" in orig_grp:
         for orig_obj in orig_grp["objects"]:
-            if "type" in orig_obj:
-                if (orig_obj["type"] != "NetworkGroup" and orig_obj["type"] != "Host" and 
-                    orig_obj["type"] != "Network" and orig_obj["type"] != "Range" and
-                    orig_obj["type"] != "FQDN"):
-                    logger = getFwoLogger()
-                    logger.warning("Unknown network object type found: \"" + orig_obj["type"] + "\". Skipping.")             
-                    break
+            if "type" in orig_obj and (orig_obj["type"] != "NetworkGroup" and orig_obj["type"] != "Host" and 
+                orig_obj["type"] != "Network" and orig_obj["type"] != "Range" and
+                orig_obj["type"] != "FQDN"):
+                logger = get_fwo_logger()
+                logger.warning("Unknown network object type found: \"" + orig_obj["type"] + "\". Skipping.")             
+                break
             names.append(orig_obj["name"])
             refs.append(orig_obj["id"])
 
     return list_delimiter.join(refs), list_delimiter.join(names)
 
 def extract_base_object_infos(obj_orig: dict[str, Any], import_id: str) -> dict[str, Any]:
-    logger = getFwoLogger()
+    logger = get_fwo_logger()
     obj: dict[str, Any] = {}
     if "id" in obj_orig:
         obj["obj_uid"] = obj_orig['id']
@@ -63,7 +62,7 @@ def extract_base_object_infos(obj_orig: dict[str, Any], import_id: str) -> dict[
 
 
 def parse_object(obj_orig: dict[str, Any], import_id: str) -> dict[str, Any]:
-    logger = getFwoLogger()
+    logger = get_fwo_logger()
     obj = extract_base_object_infos(obj_orig, import_id)
     if obj_orig["type"] == "Network":  # network
         obj["obj_typ"] = "network"

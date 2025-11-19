@@ -10,12 +10,12 @@ if importer_base_dir not in sys.path:
     sys.path.append(importer_base_dir) # adding absolute path here once
 from fwo_api import FwoApi
 from fwo_api_call import FwoApiCall
-from fwo_log import getFwoLogger
+from fwo_log import get_fwo_logger
 from fwo_const import fw_module_name, import_tmp_path, importer_user_name
 import fwo_globals
 from fwo_base import write_native_config_to_file
 from fwo_exceptions import ShutdownRequested, FwoApiLoginFailed, FwoImporterError, FwLoginFailed, ImportRecursionLimitReached, FwoApiWriteError, FwoImporterErrorInconsistencies, ImportInterruption
-from fwo_base import stringIsUri
+from fwo_base import string_is_uri
 import fwo_file_import
 from model_controllers.import_state_controller import ImportStateController
 from models.gateway import Gateway
@@ -28,7 +28,7 @@ import fwo_signalling
 from services.service_provider import ServiceProvider
 from services.enums import Services
 from model_controllers.fworch_config_controller import FworchConfigController
-from fwo_config import readConfig
+from fwo_config import read_config
 
 
 """  
@@ -47,14 +47,14 @@ def import_management(mgmId: int | None = None, ssl_verification: bool | None = 
         in_file: str | None = None, version: int = 8) -> None:
 
     fwo_signalling.registerSignallingHandlers()
-    logger = getFwoLogger(debug_level=debug_level_in)
+    logger = get_fwo_logger(debug_level=debug_level_in)
     # config_changed_since_last_import = True //TODO: implement change detection
     verify_certs = (ssl_verification is not None)
 
     service_provider = ServiceProvider()
     global_state = service_provider.get_service(Services.GLOBAL_STATE)
 
-    fwoConfig = FworchConfigController.fromJson(readConfig(fwo_config_filename))
+    fwoConfig = FworchConfigController.fromJson(read_config(fwo_config_filename))
 
     # authenticate to get JWT
     try:
@@ -82,16 +82,16 @@ def import_management(mgmId: int | None = None, ssl_verification: bool | None = 
     except (FwLoginFailed) as e:
         importState.delete_import() # delete whole import
         importState.addError("Login to FW manager failed")
-        rollBackExceptionHandler(importState, configImporter=config_importer, exc=e, errorText="")
+        roll_back_exception_handler(importState, configImporter=config_importer, exc=e, errorText="")
     except (ImportRecursionLimitReached) as e:
         importState.delete_import() # delete whole import
         importState.addError("ImportRecursionLimitReached - aborting import")
     except (KeyboardInterrupt, ImportInterruption, ShutdownRequested) as e:
-        rollBackExceptionHandler(importState, configImporter=config_importer, exc=e, errorText="shutdown requested")
+        roll_back_exception_handler(importState, configImporter=config_importer, exc=e, errorText="shutdown requested")
         raise
     except (FwoApiWriteError, FwoImporterError) as e:
         importState.addError(f"FwoApiWriteError or FwoImporterError: {str(e.args)} - aborting import")
-        rollBackExceptionHandler(importState, configImporter=config_importer, exc=e, errorText="")
+        roll_back_exception_handler(importState, configImporter=config_importer, exc=e, errorText="")
     except FwoImporterErrorInconsistencies as e:
         importState.delete_import() # delete whole import
         importState.addError(str(e.args))
@@ -117,7 +117,7 @@ def _import_management(service_provider: ServiceProvider, importState: ImportSta
     if config_importer is None:
         config_importer = FwConfigImport()
 
-    logger = getFwoLogger(debug_level=debug_level_in)
+    logger = get_fwo_logger(debug_level=debug_level_in)
     config_changed_since_last_import = True
 
     if importState.DebugLevel > 8:
@@ -166,11 +166,11 @@ def handle_unexpected_exception(importState: ImportStateController | None = None
     if 'importState' in locals() and importState is not None:
         importState.addError("Unexpected exception in import process - aborting " + traceback.format_exc())
         if 'configImporter' in locals() and config_importer is not None:
-            rollBackExceptionHandler(importState, configImporter=config_importer, exc=e)
+            roll_back_exception_handler(importState, configImporter=config_importer, exc=e)
 
 
-def rollBackExceptionHandler(importState: ImportStateController, configImporter: FwConfigImport | None = None, exc: BaseException | None = None, errorText: str = ""):
-    logger = getFwoLogger()
+def roll_back_exception_handler(importState: ImportStateController, configImporter: FwConfigImport | None = None, exc: BaseException | None = None, errorText: str = ""):
+    logger = get_fwo_logger()
     try:
         if fwo_globals.shutdown_requested:
             logger.warning("Shutdown requested.")
@@ -194,7 +194,7 @@ def get_config_top_level(importState: ImportStateController, in_file: str|None =
     -> tuple[bool, FwConfigManagerListController]:
     config_from_file = FwConfigManagerListController.generate_empty_config()
     if gateways is None: gateways = []
-    if in_file is not None or stringIsUri(importState.MgmDetails.Hostname):
+    if in_file is not None or string_is_uri(importState.MgmDetails.Hostname):
         ### geting config from file ######################
         if in_file is None:
             in_file = importState.MgmDetails.Hostname
@@ -209,7 +209,7 @@ def get_config_top_level(importState: ImportStateController, in_file: str|None =
 
 def import_from_file(importState: ImportStateController, fileName: str = "", gateways: list[Gateway] = []) -> tuple[bool, FwConfigManagerListController]:
 
-    logger = getFwoLogger(debug_level=importState.DebugLevel)
+    logger = get_fwo_logger(debug_level=importState.DebugLevel)
     logger.debug(f"import_management - not getting config from API but from file: {fileName}")
 
     config_changed_since_last_import = True
@@ -222,7 +222,7 @@ def import_from_file(importState: ImportStateController, fileName: str = "", gat
 
 
 def get_config_from_api(importState: ImportStateController, config_in: FwConfigManagerListController) -> tuple[bool, FwConfigManagerListController]:
-    logger = getFwoLogger(debug_level=importState.DebugLevel)
+    logger = get_fwo_logger(debug_level=importState.DebugLevel)
 
     try: # pick product-specific importer:
         pkg_name = get_module_package_name(importState)
@@ -234,7 +234,8 @@ def get_config_from_api(importState: ImportStateController, config_in: FwConfigM
         raise
 
     # check for changes from product-specific FW API, if we are importing from file we assume config changes
-    config_changed_since_last_import = fw_module.has_config_changed(config_in, importState, force=importState.ForceImport)
+    #TODO: implement real change detection
+    config_changed_since_last_import = fw_module.has_config_changed()
     if config_changed_since_last_import:
         logger.info ( "has_config_changed: changes found or forced mode -> go ahead with getting config, Force = " + str(importState.ForceImport))
     else:
@@ -277,7 +278,7 @@ def set_filename(import_state: ImportStateController, file_name: str = ''):
     # set file name in importState
     if file_name == '': 
         # if the host name is an URI, do not connect to an API but simply read the config from this URI
-        if stringIsUri(import_state.MgmDetails.Hostname):
+        if string_is_uri(import_state.MgmDetails.Hostname):
             import_state.setImportFileName(import_state.MgmDetails.Hostname)
     else:
         import_state.setImportFileName(file_name)  

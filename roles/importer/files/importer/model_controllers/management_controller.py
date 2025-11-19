@@ -5,7 +5,7 @@ from typing import Any
 from models.management import Management
 from fwo_exceptions import FwLoginFailed
 from models.gateway import Gateway
-from fwconfig_base import replaceNoneWithEmpty
+from fwconfig_base import replace_none_with_empty
 from fwo_const import graphql_query_path
 from fwo_api import FwoApi
 from fwo_encrypt import decrypt, read_main_key
@@ -169,10 +169,10 @@ class ManagementController(Management):
 
     def calcManagerUidHash(self):
         combination = f"""
-            {replaceNoneWithEmpty(self.Hostname)}
-            {replaceNoneWithEmpty(str(self.Port))}
-            {replaceNoneWithEmpty(self.DomainUid)}
-            {replaceNoneWithEmpty(self.DomainName)}
+            {replace_none_with_empty(self.Hostname)}
+            {replace_none_with_empty(str(self.Port))}
+            {replace_none_with_empty(self.DomainUid)}
+            {replace_none_with_empty(self.DomainName)}
         """
         return hashlib.sha256(combination.encode()).hexdigest()
 

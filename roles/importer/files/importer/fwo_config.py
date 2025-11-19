@@ -1,10 +1,10 @@
 
-from fwo_log import getFwoLogger
+from fwo_log import get_fwo_logger
 import sys, json
 from fwo_const import importer_pwd_file
 
-def readConfig(fwo_config_filename: str = '/etc/fworch/fworch.json') -> dict[str, str | int | None]:
-    logger = getFwoLogger()
+def read_config(fwo_config_filename: str = '/etc/fworch/fworch.json') -> dict[str, str | int | None]:
+    logger = get_fwo_logger()
     try:
         # read fwo config (API URLs)
         with open(fwo_config_filename, "r") as fwo_config:

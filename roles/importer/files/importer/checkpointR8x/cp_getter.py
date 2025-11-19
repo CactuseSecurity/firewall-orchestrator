@@ -7,7 +7,7 @@ from datetime import datetime
 from typing import Any
 
 from fwo_exceptions import FwLoginFailed, FwApiError, FwApiResponseDecodingError, FwoImporterError
-from fwo_log import getFwoLogger
+from fwo_log import get_fwo_logger
 import fwo_globals
 from checkpointR8x import cp_const, cp_network
 import fwo_const
@@ -46,7 +46,7 @@ def cp_api_call(url: str, command: str, json_payload: dict[str, Any], sid: str |
 
 
 def login(mgm_details: ManagementController):
-    logger = getFwoLogger()
+    logger = get_fwo_logger()
     payload = {'user': mgm_details.ImportUser, 'password': mgm_details.Secret}
     domain = mgm_details.getDomainString()
     if domain is not None and domain != '': # type: ignore # TODO: shouldnt be None
@@ -62,7 +62,7 @@ def login(mgm_details: ManagementController):
 
 
 def logout(url: str, sid: str):
-    logger = getFwoLogger()
+    logger = get_fwo_logger()
     if int(fwo_globals.debug_level)>2:
         logger.debug("logout from url " + url)
     response = cp_api_call(url, 'logout', {}, sid)
@@ -70,7 +70,7 @@ def logout(url: str, sid: str):
 
 
 def get_changes(sid: str, api_host: str, api_port: str, fromdate: str) -> int:
-    logger = getFwoLogger()
+    logger = get_fwo_logger()
     
     dt_object = datetime.fromisoformat(fromdate)
     dt_truncated = dt_object.replace(microsecond=0)     # Truncate microseconds
@@ -217,7 +217,7 @@ def add_access_layers_to_current_package(package: dict[str, Any], currentPackage
                 raise FwApiError('access layer in package: ' + package['uid'] + ' is missing name or uid')
 
 def get_global_assignments(api_v_url: str, sid: str, show_params_policy_structure: dict[str, Any]) -> list[Any]:
-    logger = getFwoLogger()
+    logger = get_fwo_logger()
     current=0
     total=current+1
     show_params_policy_structure.update({'offset': current})
@@ -275,7 +275,7 @@ def get_rulebases(api_v_url: str, sid: str | None, show_params_rules: dict[str, 
                   access_type: str = 'access', rulebaseUid: str | None = None, rulebaseName: str | None = None) -> list[str]:
     
     # access_type: access / nat
-    logger = getFwoLogger()
+    logger = get_fwo_logger()
     nativeConfigRulebaseKey = 'rulebases'
     current_rulebase = {}
 
@@ -516,7 +516,7 @@ def assign_placeholder_uids(rulebase: dict[str, Any], section: dict[str, Any], r
     
                             
 def get_nat_rules_from_api_as_dict (api_v_url: str, sid: str, show_params_rules: dict[str, Any], nativeConfigDomain: dict[str, Any]={}):
-    logger = getFwoLogger()
+    logger = get_fwo_logger()
     nat_rules: dict[str, list[Any]] = { "nat_rule_chunks": [] }
     current=0
     total=current+1
@@ -584,9 +584,8 @@ def resolve_ref_from_object_dictionary(uid: str | None, objDict: list[dict[str, 
 # resolving all uid references using the object dictionary
 # dealing with a single chunk
 def resolve_ref_list_from_object_dictionary(rulebase: list[dict[str, Any]] | dict[str, Any], value: str, objDicts: list[dict[str, Any]]=[], nativeConfigDomain: dict[str, Any]={}): # TODO: what is objDict: I think it should be a list of dicts
-    if isinstance(rulebase, dict):
-        if 'objects-dictionary' in rulebase:
-            objDicts = rulebase['objects-dictionary']
+    if isinstance(rulebase, dict) and 'objects-dictionary' in rulebase:
+        objDicts = rulebase['objects-dictionary']
     if isinstance(rulebase, list): # found a list of rules
         for rule in rulebase:
             if value in rule:
@@ -610,8 +609,8 @@ def categorize_value_for_resolve_ref(rule: dict[str, Any], value: str, objDict: 
             rule[value] = value_list # replace ref list with object list
 
 
-def getObjectDetailsFromApi(uid_missing_obj: str, sid: str='', apiurl: str='') ->  dict[str, Any]:
-    logger = getFwoLogger()
+def get_object_details_from_api(uid_missing_obj: str, sid: str='', apiurl: str='') ->  dict[str, Any]:
+    logger = get_fwo_logger()
     if fwo_globals.debug_level>5:
         logger.debug(f"getting {uid_missing_obj} from API")
 

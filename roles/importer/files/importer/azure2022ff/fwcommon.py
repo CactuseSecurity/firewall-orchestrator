@@ -6,16 +6,16 @@ from azure_service import normalize_svcobjects
 from azure_rule import normalize_access_rules
 from azure_network import normalize_nwobjects
 from azure_getter import login, update_config_with_azure_api_call
-from fwo_log import getFwoLogger
+from fwo_log import get_fwo_logger
 from azure_base import azure_api_version_str
 
-def has_config_changed(full_config: dict[str, Any], mgm_details: dict[str, Any], force: bool=False):
+def has_config_changed():
     # dummy - may be filled with real check later on
     return True
 
 
-def get_config(config2import: dict[str, Any], full_config: dict[str, Any], current_import_id: str, mgm_details: dict[str, Any], limit: int=1000, force: bool=False, jwt: str=''):
-    logger = getFwoLogger()
+def get_config(config2import: dict[str, Any], full_config: dict[str, Any], current_import_id: str, mgm_details: dict[str, Any], jwt: str=''):
+    logger = get_fwo_logger()
     if full_config == {}:   # no native config was passed in, so getting it from Azzure
         parsing_config_only = False
     else:
@@ -103,14 +103,17 @@ def get_config(config2import: dict[str, Any], full_config: dict[str, Any], curre
 
 
 def extract_nw_objects(rule: str, config: dict[str, Any]):
+    #TODO: need to extract nw objects from rule and add to config
     pass
 
 
 def extract_svc_objects(rule: str, config: dict[str, Any]):
+    #TODO: need to extract svc objects from rule and add to config
     pass
 
 
 def extract_user_objects(rule: str, config: dict[str, Any]):
+    #TODO: need to extract user objects from rule and add to config
     pass
 
 

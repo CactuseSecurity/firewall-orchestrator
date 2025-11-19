@@ -1,7 +1,7 @@
 from asyncio.log import logger
 import ipaddress
 from typing import Any
-from fwo_log import getFwoLogger
+from fwo_log import get_fwo_logger
 from fwo_const import list_delimiter, nat_postfix
 from fortiadom5ff.fmgr_zone import find_zones_in_normalized_config
 from fwo_exceptions import FwoImporterErrorInconsistencies
@@ -238,7 +238,7 @@ def remove_nat_ip_entries(config2import: dict[str, Any]) -> None:
 
 
 def get_first_ip_of_destination(obj_ref: str, config2import: dict[str, Any]) -> str | None:
-    logger = getFwoLogger()
+    logger = get_fwo_logger()
     if list_delimiter in obj_ref:
         obj_ref = obj_ref.split(list_delimiter)[0]
         # if destination does not contain exactly one ip, raise a warning 

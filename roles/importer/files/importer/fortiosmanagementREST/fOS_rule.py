@@ -7,7 +7,7 @@ from fOS_service import create_svc_object
 from fOS_network import create_network_object, get_first_ip_of_destination
 import fOS_zone, fOS_getter
 #from fOS_gw_networking import get_device_from_package
-from fwo_log import getFwoLogger
+from fwo_log import get_fwo_logger
 from model_controllers.interface_controller import get_ip_of_interface_obj # type: ignore #TYPING: Importing twice???
 from model_controllers.route_controller import get_matching_route_obj, get_ip_of_interface_obj
 from models.management import Management
@@ -24,20 +24,20 @@ rule_nat_scope = ['rules_nat']
 rule_scope = rule_access_scope + rule_nat_scope
 
 
-def initializeRulebases(raw_config: dict[str, Any]):
+def initialize_rulebases(raw_config: dict[str, Any]):
     for scope in rule_scope:
         if scope not in raw_config:
             raw_config.update({scope: {}})    
 
 
-def getAccessPolicy(sid: str, fm_api_url: str, raw_config: dict[str, Any], limit: int):
-    fOS_getter.update_config_with_fortiOS_api_call(raw_config['rules'], fm_api_url + "/cmdb/firewall/policy" + "?access_token=" + sid, 'rules', limit=limit)
+def get_access_policy(sid: str, fm_api_url: str, raw_config: dict[str, Any], limit: int):
+    fOS_getter.update_config_with_fortios_api_call(raw_config['rules'], fm_api_url + "/cmdb/firewall/policy" + "?access_token=" + sid, 'rules', limit=limit)
     if 'rules' not in raw_config or 'rules' not in raw_config['rules']:
-        logger = getFwoLogger()
+        logger = get_fwo_logger()
         logger.warning('did not receive any access rules via API')
 
 
-def getNatPolicy(sid: str, fm_api_url: str, raw_config: dict[str, Any], adom_name: str, device: dict[str, Any], limit: int):
+def get_nat_policy(sid: str, fm_api_url: str, raw_config: dict[str, Any], adom_name: str, device: dict[str, Any], limit: int):
     scope = 'global'
     pkg = device['global_rulebase_name']
     if pkg is not None and pkg != '':   # only read global rulebase if it exists
@@ -53,7 +53,7 @@ def getNatPolicy(sid: str, fm_api_url: str, raw_config: dict[str, Any], adom_nam
 
 
 def normalize_access_rules(full_config: dict[str, Any], config2import: dict[str, Any], import_id: int, mgm_details: Management, jwt: str | None = None):
-    logger = getFwoLogger()
+    logger = get_fwo_logger()
     rules: list[dict[str, Any]] = []
     rule_number = 0
 
@@ -66,7 +66,7 @@ def normalize_access_rules(full_config: dict[str, Any], config2import: dict[str,
         rule = build_base_rule(rule_orig, import_id, mgm_details, rule_number)
         enrich_rule_with_action_and_status(rule, rule_orig)
         enrich_rule_with_hitcount(rule, rule_orig)
-        enrich_rule_with_addresses(rule, rule_orig) # type: ignore #TYPING: Half of the parameters are missing?
+        enrich_rule_with_addresses(rule, rule_orig, config2import, import_id)
         enrich_rule_with_zones(rule, rule_orig, config2import, import_id)
         enrich_rule_with_negation(rule, rule_orig)
         enrich_rule_with_refs(rule, full_config['nw_obj_lookup_dict'], jwt)
@@ -185,8 +185,8 @@ def normalize_nat_rules(full_config: dict[str, Any], config2import: dict[str, li
                     rule.update({ 'rule_action': 'Drop' })  # not used for nat rules
                     rule.update({ 'rule_track': 'None'}) # not used for nat rules
 
-                    rule['rule_src'] = extend_string_list(rule['rule_src'], rule_orig, 'orig-addr', list_delimiter, jwt=jwt, import_id=import_id)
-                    rule['rule_dst'] = extend_string_list(rule['rule_dst'], rule_orig, 'dst-addr', list_delimiter, jwt=jwt, import_id=import_id)
+                    rule['rule_src'] = extend_string_list(rule['rule_src'], rule_orig, 'orig-addr', list_delimiter)
+                    rule['rule_dst'] = extend_string_list(rule['rule_dst'], rule_orig, 'dst-addr', list_delimiter)
                     
                     if rule_orig['protocol']==17:
                         svc_name = 'udp_' + str(rule_orig['orig-port'])
@@ -235,7 +235,7 @@ def normalize_nat_rules(full_config: dict[str, Any], config2import: dict[str, li
                     ############## now adding the xlate rule part ##########################
                     xlate_rule = dict(rule) # copy the original (match) rule
                     xlate_rule.update({'rule_src': '', 'rule_dst': '', 'rule_svc': ''})
-                    xlate_rule['rule_src'] = extend_string_list(xlate_rule['rule_src'], rule_orig, 'orig-addr', list_delimiter, jwt=jwt, import_id=import_id)
+                    xlate_rule['rule_src'] = extend_string_list(xlate_rule['rule_src'], rule_orig, 'orig-addr', list_delimiter)
                     xlate_rule['rule_dst'] = 'Original'
                     
                     if rule_orig['protocol']==17:
@@ -305,9 +305,10 @@ def create_xlate_rule(rule: dict[str, Any]) -> dict[str, Any]:
     return xlate_rule
 
 
-def handle_combined_nat_rule(rule: dict[str, Any], rule_orig: dict[str, Any], config2import: dict[str, Any], nat_rule_number: int, import_id: int, localPkgName: str, dev_id: int) -> dict[str, Any] | None:
+#TODO: unused function
+def handle_combined_nat_rule(rule: dict[str, Any], rule_orig: dict[str, Any], config2import: dict[str, Any], nat_rule_number: int, import_id: int, dev_id: int) -> dict[str, Any] | None:
     # now dealing with VIPs (dst NAT part) of combined rules
-    logger = getFwoLogger()
+    logger = get_fwo_logger()
     xlate_rule = None
 
     # dealing with src NAT part of combined rules

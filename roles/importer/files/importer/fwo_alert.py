@@ -4,7 +4,7 @@ import fwo_const
 import fwo_log
 # TODO delete this file 
 def getFwoAlerter() -> dict[str, str]:
-    logger = fwo_log.getFwoLogger()
+    logger = fwo_log.get_fwo_logger()
     try: 
         with open(fwo_const.fwo_config_filename, "r") as fwo_config:
             fwo_config = json.loads(fwo_config.read())

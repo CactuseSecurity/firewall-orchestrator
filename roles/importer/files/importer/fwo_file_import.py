@@ -4,7 +4,7 @@
 import json, requests
 from typing import Any
 
-from fwo_log import getFwoLogger
+from fwo_log import get_fwo_logger
 import fwo_globals
 from fwo_exceptions import ConfigFileNotFound, FwoImporterError
 from model_controllers.fwconfigmanagerlist_controller import FwConfigManagerListController
@@ -79,7 +79,7 @@ from model_controllers.import_state_controller import ImportStateController
 def read_json_config_from_file(importState: ImportStateController) -> FwConfigManagerListController:
 
     configJson = read_file(importState)
-    logger = getFwoLogger(debug_level=importState.DebugLevel)
+    logger = get_fwo_logger(debug_level=importState.DebugLevel)
 
     # try to convert normalized config from file to config object
     try:
@@ -109,7 +109,7 @@ def detect_legacy_format(configJson: dict[str, Any]) -> ConfFormat:
 
 
 def read_file(importState: ImportStateController) -> dict[str, Any]:
-    logger = getFwoLogger(debug_level=importState.DebugLevel)
+    logger = get_fwo_logger(debug_level=importState.DebugLevel)
     configJson: dict[str, Any] = {}
     if importState.ImportFileName=="":
         return configJson
@@ -151,7 +151,7 @@ def read_file(importState: ImportStateController) -> dict[str, Any]:
 
 
 def handle_error_on_config_file_serialization(importState: ImportStateController, exception: Exception):
-    logger = getFwoLogger(debug_level=importState.DebugLevel)
+    logger = get_fwo_logger(debug_level=importState.DebugLevel)
     importState.appendErrorString(f"Could not understand config file format in file {importState.ImportFileName}")
     importState.increaseErrorCounterByOne()
     importState.api_call.complete_import(importState)

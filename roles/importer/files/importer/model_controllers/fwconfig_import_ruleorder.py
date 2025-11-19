@@ -5,7 +5,7 @@ from models.rule import RuleNormalized
 from models.rulebase import Rulebase
 from services.global_state import GlobalState
 from fwo_exceptions import FwoApiFailure
-from fwo_log import getFwoLogger
+from fwo_log import get_fwo_logger
 
 from services.service_provider import ServiceProvider
 from services.enums import Services
@@ -73,7 +73,7 @@ class RuleOrderService:
 
         # Get logger and global state.
 
-        self._logger = getFwoLogger(debug_level=debug_level)
+        self._logger = get_fwo_logger(debug_level=debug_level)
         self._service_provider = ServiceProvider()
         self._global_state = self._service_provider.get_service(Services.GLOBAL_STATE)
 

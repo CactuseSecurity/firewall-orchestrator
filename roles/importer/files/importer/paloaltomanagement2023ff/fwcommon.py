@@ -7,16 +7,16 @@ from palo_rule import normalize_access_rules
 from palo_network import normalize_nwobjects
 from palo_zone import normalize_zones
 from palo_getter import login, update_config_with_palofw_api_call
-from fwo_log import getFwoLogger
+from fwo_log import get_fwo_logger
 from palo_base import api_version_str
 
-def has_config_changed(full_config, mgm_details, force=False):
+def has_config_changed():
     # dummy - may be filled with real check later on
     return True
 
 
 def get_config(config2import, full_config, current_import_id, mgm_details, limit=1000, force=False, jwt=''):
-    logger = getFwoLogger()
+    logger = get_fwo_logger()
     if full_config == {}:   # no native config was passed in, so getting it from Azzure
         parsing_config_only = False
     else:

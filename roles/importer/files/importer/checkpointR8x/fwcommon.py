@@ -1,5 +1,5 @@
 from typing import Any
-from fwo_log import getFwoLogger
+from fwo_log import get_fwo_logger
 import time
 from copy import deepcopy
 
@@ -39,7 +39,7 @@ def has_config_changed (full_config: dict[str, Any], importState: ImportState, f
 
 def get_config(config_in: FwConfigManagerListController, importState: ImportStateController) -> tuple[int, FwConfigManagerList]:
 
-    logger = getFwoLogger()
+    logger = get_fwo_logger()
     logger.debug ( "starting checkpointR8x/get_config" )
 
     if config_in.has_empty_config():   # no native config was passed in, so getting it from FW-Manager
@@ -112,7 +112,7 @@ def normalize_config(import_state: ImportStateController, config_in: FwConfigMan
         raise FwoImporterError("Did not get a native config to normalize.")
 
     if 'domains' not in config_in.native_config:
-        getFwoLogger().error("No domains found in native config. Cannot normalize config.")
+        get_fwo_logger().error("No domains found in native config. Cannot normalize config.")
         raise FwoImporterError("No domains found in native config. Cannot normalize config.")
 
     # in case of mds, first nativ config domain is global
@@ -161,7 +161,7 @@ def normalize_config(import_state: ImportStateController, config_in: FwConfigMan
 def normalize_single_manager_config(nativeConfig: dict[str, Any], native_config_global: dict[str, Any], normalized_config_dict: dict[str, Any],
                                     normalized_config_global: dict[str, Any], importState: ImportStateController,
                                     parsing_config_only: bool, sid: str, is_global_loop_iteration: bool):
-    logger = getFwoLogger()
+    logger = get_fwo_logger()
     cp_network.normalize_network_objects(nativeConfig, normalized_config_dict, importState.ImportId, mgm_id=importState.MgmDetails.Id)
     logger.info("completed normalizing network objects")
     cp_service.normalize_service_objects(nativeConfig, normalized_config_dict, importState.ImportId)
@@ -252,7 +252,7 @@ def process_devices(
     globalDomain: str | None, globalSid: str | None, cpManagerApiBaseUrl: str, sid: str, nativeConfigDomain: dict[str, Any],
     nativeConfigGlobalDomain: dict[str, Any], importState: ImportStateController
 ) -> None:
-    logger = getFwoLogger()
+    logger = get_fwo_logger()
     for device in managerDetails.Devices:
         deviceConfig: dict[str,Any] = initialize_device_config(device)
         if not deviceConfig:
@@ -302,7 +302,7 @@ def handle_global_rulebase_links(
     if global_policy_structure is None:
         raise FwoImporterError("Global policy structure is None in handle_global_rulebase_links")
 
-    logger = getFwoLogger()
+    logger = get_fwo_logger()
     for globalAssignment in globalAssignments:
         if globalAssignment['dependent-domain']['uid'] == managerDetails.getDomainString():
             for globalPolicy in global_policy_structure:
@@ -378,7 +378,7 @@ def get_rules_params(importState: ImportStateController) -> dict[str, Any]:
 
 
 def handle_nat_rules(device: dict[str, Any], nativeConfigDomain: dict[str, Any], sid: str, importState: ImportStateController):
-    logger = getFwoLogger()
+    logger = get_fwo_logger()
     if 'package_name' in device and device['package_name']:
         show_params_rules: dict[str, Any] = {
             'limit': importState.FwoConfig.ApiFetchSize,
@@ -518,7 +518,7 @@ def remove_predefined_objects_for_domains(object_table: dict[str, Any]) -> None:
 
 
 def get_objects_per_type(obj_type: str, show_params_objs: dict[str, Any], sid: str, cpManagerApiBaseUrl: str) -> dict[str, Any]:
-    logger = getFwoLogger()
+    logger = get_fwo_logger()
     
     if fwo_globals.shutdown_requested:
         raise ImportInterruption("Shutdown requested during object retrieval.")
@@ -555,10 +555,10 @@ def add_special_objects_to_global_domain(object_table: dict[str, Any], obj_type:
     """Appends special objects Original, Any, None and Internet to global domain
     """
     # getting Original (NAT) object (both for networks and services)
-    origObj = cp_getter.getObjectDetailsFromApi(cp_const.original_obj_uid, sid=sid, apiurl=cp_api_url)['chunks'][0]
-    anyObj = cp_getter.getObjectDetailsFromApi(cp_const.any_obj_uid, sid=sid, apiurl=cp_api_url)['chunks'][0]
-    noneObj = cp_getter.getObjectDetailsFromApi(cp_const.none_obj_uid, sid=sid, apiurl=cp_api_url)['chunks'][0]
-    internetObj = cp_getter.getObjectDetailsFromApi(cp_const.internet_obj_uid, sid=sid, apiurl=cp_api_url)['chunks'][0]
+    origObj = cp_getter.get_object_details_from_api(cp_const.original_obj_uid, sid=sid, apiurl=cp_api_url)['chunks'][0]
+    anyObj = cp_getter.get_object_details_from_api(cp_const.any_obj_uid, sid=sid, apiurl=cp_api_url)['chunks'][0]
+    noneObj = cp_getter.get_object_details_from_api(cp_const.none_obj_uid, sid=sid, apiurl=cp_api_url)['chunks'][0]
+    internetObj = cp_getter.get_object_details_from_api(cp_const.internet_obj_uid, sid=sid, apiurl=cp_api_url)['chunks'][0]
 
     if obj_type == 'networks':
         object_table['chunks'].append(origObj)

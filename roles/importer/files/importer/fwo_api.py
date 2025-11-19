@@ -7,7 +7,7 @@ import string
 from typing import Any, MutableMapping
 
 import fwo_globals
-from fwo_log import getFwoLogger
+from fwo_log import get_fwo_logger
 from fwo_const import fwo_api_http_import_timeout
 from fwo_exceptions import FwoApiServiceUnavailable, FwoApiTimeout
 from query_analyzer import QueryAnalyzer
@@ -45,7 +45,7 @@ class FwoApi():
             'x-hasura-role': role 
         }
         full_query: dict[str, Any] = {"query": query, "variables": query_variables}
-        logger = getFwoLogger(debug_level=debug_level)
+        logger = get_fwo_logger(debug_level=debug_level)
         return_object = {}
 
         if analyze_payload:
@@ -143,7 +143,7 @@ class FwoApi():
 
         with requests.Session() as session:
 
-            logger = getFwoLogger()
+            logger = get_fwo_logger()
 
             if fwo_globals.verify_certs is None:
                 session.verify = False
@@ -196,7 +196,7 @@ class FwoApi():
             Error handling for the standard API call.
         """
 
-        logger = getFwoLogger(debug_level=int(fwo_globals.debug_level))
+        logger = get_fwo_logger(debug_level=int(fwo_globals.debug_level))
 
         if int(fwo_globals.debug_level) > 1:
             logger.error(self.showImportApiCallInfo(self.FwoApiUrl, query_payload, headers, typ='error') + ":\n" + str(traceback.format_exc()))
@@ -216,7 +216,7 @@ class FwoApi():
         chunk_number = 1
         total_processed_elements = 0
         return_object = {}
-        logger = getFwoLogger(debug_level=debug_level)
+        logger = get_fwo_logger(debug_level=debug_level)
         logger.info(f"Processing chunked API call ({self.query_info['query_name']})...")
 
         # Separate chunkable variables.
@@ -279,7 +279,7 @@ class FwoApi():
 
 
     def _handle_chunked_calls_response(self, return_object: dict[str, Any], response: dict[str, Any]) -> dict[str, Any]:
-        logger = getFwoLogger(debug_level=int(fwo_globals.debug_level))
+        logger = get_fwo_logger(debug_level=int(fwo_globals.debug_level))
 
         if return_object == {}:
 
@@ -344,7 +344,7 @@ class FwoApi():
             Posts the given payload to the api endpoint. Returns the response as json or None if the response object is None.
         """
 
-        logger = getFwoLogger(debug_level=int(fwo_globals.debug_level))
+        logger = get_fwo_logger(debug_level=int(fwo_globals.debug_level))
 
         if int(fwo_globals.debug_level) > 8:
             logger.debug (self.showImportApiCallInfo(self.FwoApiUrl, query_payload, session.headers, typ='debug', show_query_info=True))
@@ -383,7 +383,7 @@ class FwoApi():
             Tries to show the API call info if the debug level is high enough.
         """
         if int(debug_level) > int(debug_level):
-            logger = getFwoLogger(debug_level=debug_level)
+            logger = get_fwo_logger(debug_level=debug_level)
             logger.debug(self.showImportApiCallInfo(self.FwoApiUrl, full_query, request_headers, typ='debug', show_query_info=True))
 
 
@@ -392,7 +392,7 @@ class FwoApi():
                 Writes an extended log message if the debug level is high enough.
             """
             if int(debug_level) > int(debug_level):
-                logger = getFwoLogger(debug_level=debug_level)
+                logger = get_fwo_logger(debug_level=debug_level)
                 logger.debug(message)
 
 
@@ -431,7 +431,7 @@ class FwoApi():
                 with open(file, "r", encoding="utf-8", errors="ignore") as f:
                     code += "".join(filter(printable_chars.__contains__, f.read())) + " "
             except FileNotFoundError:
-                logger = getFwoLogger()
+                logger = get_fwo_logger()
                 logger.error("fwo_api: file not found: " + file)
                 raise
 

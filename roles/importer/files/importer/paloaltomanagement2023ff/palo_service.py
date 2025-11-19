@@ -1,5 +1,5 @@
 from fwo_const import list_delimiter
-from fwo_log import getFwoLogger
+from fwo_log import get_fwo_logger
 
 
 def normalize_svcobjects(full_config, config2import, import_id):
@@ -84,7 +84,7 @@ def extract_port_for_service(port_string, svc):
             svc["svc_port"] = port_range[0]
             svc["svc_port_end"] = port_range[1]
         else:
-            logger = getFwoLogger()
+            logger = get_fwo_logger()
             logger.warning("found strange port range with more than one hyphen: " + str(port_string))
     else:
         svc["svc_port"] = port_string
@@ -113,7 +113,7 @@ def parse_svc_list(nw_obj_list, import_id, obj_list, id, type='network'):
 
 
 def lookup_svc_obj_uid(obj_name, obj_list, import_id, type='network'):
-    logger = getFwoLogger()
+    logger = get_fwo_logger()
     for o in obj_list:
         if type=='service' and 'svc_name' in o:
             if o['svc_name']==obj_name:

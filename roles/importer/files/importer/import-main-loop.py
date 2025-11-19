@@ -12,7 +12,7 @@ from fwo_api import FwoApi
 from fwo_api_call import FwoApiCall
 from model_controllers.management_controller import ManagementController, DeviceInfo, ConnectionInfo, CredentialInfo, ManagerInfo, DomainInfo
 from common import import_management
-from fwo_log import getFwoLogger #, LogLock
+from fwo_log import get_fwo_logger #, LogLock
 import fwo_globals
 from fwo_const import base_dir, importer_base_dir
 from fwo_exceptions import FwoApiLoginFailed, FwoApiFailedLockImport, FwLoginFailed
@@ -23,7 +23,7 @@ from services.enums import Services
 
 
 def get_fwo_jwt(importUser: str, importPwd: str, userManagementApi: str) -> str | None:
-    logger = getFwoLogger()
+    logger = get_fwo_logger()
     try:
         jwt = FwoApi.login(importUser, importPwd, userManagementApi)
         return jwt
@@ -35,7 +35,7 @@ def get_fwo_jwt(importUser: str, importPwd: str, userManagementApi: str) -> str 
 
 def wait_with_shutdown_check(sleep_time: int):
     counter = 0
-    logger = getFwoLogger()
+    logger = get_fwo_logger()
     while counter < sleep_time:
         if fwo_globals.shutdown_requested:
             logger.info("import-main-loop - shutdown requested. Exiting...")
@@ -57,7 +57,7 @@ def main_loop(verify_certificates: bool | None = None, suppress_certificate_warn
     if suppress_certificate_warnings: urllib3.disable_warnings()
 
     
-    logger = getFwoLogger()
+    logger = get_fwo_logger()
 
     logger.info("importer-main-loop starting ...")
     if importer_base_dir not in sys.path:

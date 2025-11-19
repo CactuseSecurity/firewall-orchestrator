@@ -5,8 +5,8 @@ from copy import deepcopy
 from typing import Any
 
 import fwo_globals
-from fwo_log import getFwoLogger
-from fwo_base import serializeDictToClassRecursively, deserializeClassToDictRecursively
+from fwo_log import get_fwo_logger
+from fwo_base import serialize_dict_to_class_rec, deserialize_class_to_dict_rec
 from fwo_const import import_tmp_path
 
 from model_controllers.import_state_controller import ImportStateController
@@ -24,7 +24,7 @@ class FwConfigManagerListController(FwConfigManagerList):
         return f"{str(self.ManagerSet)})"
 
     def toJson(self):
-        return deserializeClassToDictRecursively(self)
+        return deserialize_class_to_dict_rec(self)
 
     def toJsonString(self, prettyPrint: bool=False):
         jsonDict = self.toJson()
@@ -58,7 +58,7 @@ class FwConfigManagerListController(FwConfigManagerList):
 
 # to be re-written:
     def toJsonLegacy(self):
-        return deserializeClassToDictRecursively(self)
+        return deserialize_class_to_dict_rec(self)
 
 # to be re-written:
     def toJsonStringLegacy(self, prettyPrint: bool=False):
@@ -136,12 +136,12 @@ class FwConfigManagerListController(FwConfigManagerList):
     
     @classmethod
     def FromJson(cls, jsonIn: dict[str, Any]) -> 'FwConfigManagerListController':
-        return serializeDictToClassRecursively(jsonIn, cls)
+        return serialize_dict_to_class_rec(jsonIn, cls)
 
 
     def storeFullNormalizedConfigToFile(self, importState: ImportStateController):
         if fwo_globals.debug_level>5:
-            logger = getFwoLogger()
+            logger = get_fwo_logger()
             debug_start_time = int(time.time())
             try:
                 normalized_config_filename = f"{import_tmp_path}/mgm_id_{str(importState.MgmDetails.Id)}_config_normalized.json"

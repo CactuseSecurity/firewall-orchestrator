@@ -1,5 +1,5 @@
 from asyncio.log import logger
-from fwo_log import getFwoLogger
+from fwo_log import get_fwo_logger
 from netaddr import IPAddress, IPNetwork
 from functools import cmp_to_key
 import traceback
@@ -10,7 +10,7 @@ from model_controllers.interface_controller import getRouteDestination
 
 def normalize_network_data(native_config, normalized_config, mgm_details):
 
-    logger = getFwoLogger()
+    logger = get_fwo_logger()
 
     normalized_config.update({'routing': {}, 'interfaces': {} })
 
@@ -60,7 +60,7 @@ def normalize_network_data(native_config, normalized_config, mgm_details):
 
 def get_matching_route(destination_ip, routing_table):
 
-    logger = getFwoLogger()
+    logger = get_fwo_logger()
 
     def route_matches(ip, destination):
         ip_n = IPNetwork(ip).cidr
@@ -166,7 +166,7 @@ def get_all_dev_names(devices):
 # get network information (currently only used for source nat)
 def getInterfacesAndRouting(sid, fm_api_url, raw_config, adom_name, devices, limit):
 
-    logger = getFwoLogger()
+    logger = get_fwo_logger()
     # strip off vdom names, just deal with the plain device
     device_array = get_all_dev_names(devices)
 
@@ -268,7 +268,7 @@ def getInterfacesAndRouting(sid, fm_api_url, raw_config, adom_name, devices, lim
 
 
 def get_device_from_package(package_name, mgm_details):
-    logger = getFwoLogger()
+    logger = get_fwo_logger()
     for dev in mgm_details['devices']:
         if dev['local_rulebase_name'] == package_name:
             return dev['id']

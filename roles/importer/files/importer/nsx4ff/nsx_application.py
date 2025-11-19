@@ -1,5 +1,5 @@
 from fwo_const import list_delimiter
-from fwo_log import getFwoLogger
+from fwo_log import get_fwo_logger
 
 
 # def normalize_application_objects(full_config, config2import, import_id):

@@ -1,5 +1,5 @@
 from typing import Any
-from fwo_log import getFwoLogger
+from fwo_log import get_fwo_logger
 from netaddr import IPAddress, IPNetwork
 
 from model_controllers.interface_controller import InterfaceSerializable
@@ -26,7 +26,7 @@ class Route:
             self.distance = int(distance)
         ip_version = int(ip_version)
         if ip_version != 4 and ip_version != 6:
-            logger = getFwoLogger()
+            logger = get_fwo_logger()
             logger.error('found route for destination ' + str(self.destination) + ' with invalid ip protocal: ' + str(ip_version))
         else:
             self.ip_version = ip_version
@@ -84,7 +84,7 @@ class RouteSerializable(Route):
             self.ip_version = routeIn.ip_version
 
 
-def getRouteDestination(obj: Route):
+def get_route_destination(obj: Route):
     return obj.destination
 
 
@@ -106,7 +106,7 @@ def getRouteDestination(obj: Route):
 
 def get_matching_route_obj(destination_ip: str, routing_table: list[Route], dev_id: int) -> Route | None:
 
-    logger = getFwoLogger()
+    logger = get_fwo_logger()
 
     if len(routing_table)==0:
         logger.error('found empty routing table for device id ' + str(dev_id))

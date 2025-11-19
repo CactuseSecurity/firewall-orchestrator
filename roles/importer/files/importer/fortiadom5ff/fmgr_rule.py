@@ -7,7 +7,7 @@ from fortiadom5ff.fmgr_network import create_network_object, get_first_ip_of_des
 from fortiadom5ff.fmgr_zone import find_zones_in_normalized_config
 from fortiadom5ff.fmgr_consts import nat_types
 from fortiadom5ff import fmgr_getter
-from fwo_log import getFwoLogger
+from fwo_log import get_fwo_logger
 from model_controllers.route_controller import get_matching_route_obj, get_ip_of_interface_obj
 from fwo_exceptions import FwoDeviceWithoutLocalPackage, FwoImporterErrorInconsistencies
 from models.rule import RuleNormalized, RuleAction, RuleTrack, RuleType
@@ -46,7 +46,7 @@ def normalize_rulebases(
 
 def normalize_rulebases_for_each_link_destination(gateway: dict[str, Any], mgm_uid: str, fetched_rulebase_uids: list[str], native_config: dict[str, Any],
         native_config_global: dict[str, Any], is_global_loop_iteration: bool, normalized_config_adom: dict[str, Any], normalized_config_global: dict[str, Any]):
-    logger = getFwoLogger()
+    logger = get_fwo_logger()
     for rulebase_link in gateway['rulebase_links']:
         if rulebase_link['to_rulebase_uid'] not in fetched_rulebase_uids and rulebase_link['to_rulebase_uid'] != '':
             rulebase_to_parse = find_rulebase_to_parse(native_config['rulebases'], rulebase_link['to_rulebase_uid'])
@@ -81,7 +81,7 @@ def normalize_nat_rulebase(rulebase_link: dict[str, Any], native_config: dict[st
             parse_nat_rulebase(nat_rulebase, nat_type_string, normalized_config_adom, normalized_config_global)
 
 def get_native_nat_rulebase(native_config: dict[str, Any], nat_type_string: str) -> list[dict[str, Any]]:
-    logger = getFwoLogger()
+    logger = get_fwo_logger()
     for nat_rulebase in native_config['nat_rulebases']:
         if nat_type_string == nat_rulebase['type']:
             return nat_rulebase['data']
@@ -618,9 +618,10 @@ def create_xlate_rule(rule: dict[str, Any]) -> dict[str, Any]:
     return xlate_rule
 
 
-def handle_combined_nat_rule(rule: dict[str, Any], rule_orig: dict[str, Any], config2import: dict[str, Any], nat_rule_number: int, import_id: str, localPkgName: str, dev_id: int) -> dict[str, Any] | None:
+#TODO: unused function
+def handle_combined_nat_rule(rule: dict[str, Any], rule_orig: dict[str, Any], config2import: dict[str, Any], nat_rule_number: int, dev_id: int) -> dict[str, Any] | None:
     # now dealing with VIPs (dst NAT part) of combined rules
-    logger = getFwoLogger()
+    logger = get_fwo_logger()
     xlate_rule = None
 
     # dealing with src NAT part of combined rules

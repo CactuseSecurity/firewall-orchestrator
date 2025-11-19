@@ -6,7 +6,7 @@ format used by the firewall orchestrator.
 """
 
 from logging import Logger
-from fwo_log import getFwoLogger
+from fwo_log import get_fwo_logger
 from models.fwconfig_normalized import FwConfigNormalized
 from ciscoasa9.asa_models import Config
 from fwo_enums import ConfigAction
@@ -108,7 +108,7 @@ def normalize_config(config_in: FwConfigManagerListController, import_state: Imp
     Returns:
         Updated config_in with normalized configuration.
     """
-    logger = getFwoLogger()
+    logger = get_fwo_logger()
 
     # Parse the native configuration into structured objects
     native_config: Config = Config.model_validate(config_in.native_config)

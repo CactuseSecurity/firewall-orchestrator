@@ -14,7 +14,7 @@ import time
 from model_controllers.fwconfigmanagerlist_controller import FwConfigManagerListController
 from model_controllers.import_state_controller import ImportStateController
 from models.fwconfigmanagerlist import FwConfigManagerList
-from fwo_log import getFwoLogger
+from fwo_log import get_fwo_logger
 from model_controllers.management_controller import ManagementController
 from ciscoasa9.asa_parser import parse_asa_config
 from fwo_base import write_native_config_to_file
@@ -22,7 +22,7 @@ from ciscoasa9.asa_normalize import normalize_config
 from fwo_exceptions import FwoImporterError
 
 
-def has_config_changed(full_config: FwConfigManagerListController, mgm_details: ManagementController, force: bool=False):
+def has_config_changed():
     # We don't get this info from ASA, so we always return True
     return True
 
@@ -73,7 +73,7 @@ def _get_current_prompt(conn: GenericDriver) -> str:
     try:
         return conn.get_prompt().strip()
     except Exception:
-        logger = getFwoLogger()
+        logger = get_fwo_logger()
         logger.warning("Could not get current prompt")
         return ""
 
@@ -88,7 +88,7 @@ def _ensure_enable_mode(conn: GenericDriver, mgm_details: ManagementController) 
     Raises:
         FwoImporterError: If unable to enter enabled mode.
     """
-    logger = getFwoLogger()
+    logger = get_fwo_logger()
     current_prompt = _get_current_prompt(conn)
     logger.debug(f"Current prompt: {current_prompt}")
     
@@ -130,7 +130,7 @@ def _get_running_config(conn: GenericDriver) -> str:
     Returns:
         Running configuration as string.
     """
-    logger = getFwoLogger()
+    logger = get_fwo_logger()
     
     try:
         conn.send_command("terminal pager 0")
@@ -150,7 +150,7 @@ def _safe_close_connection(conn: Optional[GenericDriver]) -> None:
     Args:
         conn: Connection to close (can be None).
     """
-    logger = getFwoLogger()
+    logger = get_fwo_logger()
     if conn is None:
         return
     
@@ -199,7 +199,7 @@ def _log_retry_attempt(attempt: int, max_retries: int) -> None:
         attempt: Current attempt number (0-indexed).
         max_retries: Maximum number of retries.
     """
-    logger = getFwoLogger()
+    logger = get_fwo_logger()
     
     if attempt > 0:
         backoff_time = 2 ** (attempt + 1)
@@ -242,7 +242,7 @@ def _attempt_connection(mgm_details: ManagementController, is_virtual_asa: bool,
     Raises:
         FwoImporterError: If connection fails and should not retry.
     """
-    logger = getFwoLogger()
+    logger = get_fwo_logger()
     conn = None
     
     try:
@@ -302,14 +302,14 @@ def get_config(config_in: FwConfigManagerListController, import_state: ImportSta
     Returns:
         A tuple containing the status code and the parsed configuration.
     """
-    logger = getFwoLogger()
+    logger = get_fwo_logger()
 
     logger.debug ( "starting checkpointAsa9/get_config" )
 
     _ = import_state.MgmDetails.DeviceTypeName == "Cisco Asa on FirePower"
 
     if config_in.native_config_is_empty: # type: ignore
-        # raw_config = load_config_from_management(import_state.MgmDetails, is_virtual_asa)
+        # for debugging, use: raw_config = load_config_from_management(import_state.MgmDetails, is_virtual_asa)
         raw_config = load_config_from_file("test_asa.conf")
         config2import = parse_asa_config(raw_config)
         config_in.native_config = config2import.model_dump()

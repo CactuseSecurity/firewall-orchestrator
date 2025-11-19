@@ -3,7 +3,7 @@
 # sys.path.append(importer_base_dir + "/nsx4ff")
 import base64
 
-from fwo_log import getFwoLogger
+from fwo_log import get_fwo_logger
 from nsx_service import normalize_svcobjects
 # from nsx_application import normalize_application_objects
 from nsx_rule import normalize_access_rules
@@ -12,13 +12,13 @@ from nsx_network import normalize_nwobjects
 from nsx_getter import update_config_with_nsxdcfw_api_call
 from nsx_base import api_version_str
 
-def has_config_changed(full_config, mgm_details, force=False):
+def has_config_changed():
     # dummy - may be filled with real check later on
     return True
 
 
 def get_config(config2import, full_config, current_import_id, mgm_details, limit=1000, force=False, jwt=''):
-    logger = getFwoLogger()
+    logger = get_fwo_logger()
     if full_config == {}:   # no native config was passed in, so getting it from Azzure
         parsing_config_only = False
     else:

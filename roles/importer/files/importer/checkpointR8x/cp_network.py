@@ -1,5 +1,5 @@
 from typing import Any
-from fwo_log import getFwoLogger
+from fwo_log import get_fwo_logger
 import json
 from checkpointR8x import cp_const
 from fwo_const import list_delimiter
@@ -7,7 +7,7 @@ import fwo_api_call as fwo_api_call
 import ipaddress 
 import fwo_globals
 import fwo_const
-from fwo_base import cidrToRange
+from fwo_base import cidr_to_range
 from services.service_provider import ServiceProvider
 from services.enums import Services
 from fwo_api_call import FwoApiCall, FwoApi
@@ -15,7 +15,7 @@ from fwo_api_call import FwoApiCall, FwoApi
 
 def normalize_network_objects(full_config: dict[str, Any], config2import: dict[str, Any], import_id: int, mgm_id: int=0):
     nw_objects: list[dict[str, Any]] = []
-    logger = getFwoLogger()
+    logger = get_fwo_logger()
     global_domain = initialize_global_domain(full_config['objects'])
     
     for obj_dict in full_config['objects']:
@@ -37,7 +37,7 @@ def normalize_network_objects(full_config: dict[str, Any], config2import: dict[s
     config2import.update({'network_objects': nw_objects})
 
 def set_dummy_ip_for_object_without_ip(nw_obj: dict[str, Any]) -> None:
-    logger = getFwoLogger()
+    logger = get_fwo_logger()
     if nw_obj['obj_typ']!='group' and (nw_obj['obj_ip'] is None or nw_obj['obj_ip'] == ''):
         logger.warning("found object without IP :" + nw_obj['obj_name'] + " (type=" + nw_obj['obj_typ'] + ") - setting dummy IP")
         nw_obj.update({'obj_ip': fwo_const.dummy_ip})
@@ -48,11 +48,11 @@ def initialize_global_domain(objects : list[dict[str, Any]]) -> dict[str, Any]:
     """
 
     if  len(objects) == 0:
-        getFwoLogger().warning("No objects found in full config, cannot initialize global domain")
+        get_fwo_logger().warning("No objects found in full config, cannot initialize global domain")
         return {}
     
     if 'domain_uid' not in objects[0] or 'domain_name' not in objects[0]:
-        getFwoLogger().debug("No domain information found in objects, this seems to be a standalone management")
+        get_fwo_logger().debug("No domain information found in objects, this seems to be a standalone management")
         return {}
     
     global_domain = {'domain': {
@@ -97,7 +97,7 @@ def get_domain_uid(obj: dict[str, Any], global_domain: dict[str, Any]) -> str | 
     
         
 def is_obj_already_collected(nw_objects: list[dict[str, Any]], obj: dict[str, Any]) -> bool:
-    logger = getFwoLogger()
+    logger = get_fwo_logger()
     if 'uid' not in obj:
         logger.warning("found nw_object without uid: " + str(obj))
         return False
@@ -128,9 +128,9 @@ def handle_members(obj: dict[str, Any]) -> tuple[str | None, str | None]:
     return member_refs, member_names
 
 def handle_object_type_and_ip(obj: dict[str, Any], ip_addr: str | None) -> tuple[str, str | None, str | None]:
-    logger = getFwoLogger()
+    logger = get_fwo_logger()
     obj_type = 'undef'
-    ipArray = cidrToRange(ip_addr)
+    ipArray = cidr_to_range(ip_addr)
     first_ip = None
     last_ip = None
     if len(ipArray)==2:

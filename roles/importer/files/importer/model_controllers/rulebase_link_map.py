@@ -1,12 +1,12 @@
 from typing import Any
-from fwo_log import getFwoLogger
+from fwo_log import get_fwo_logger
 from model_controllers.import_state_controller import ImportStateController
 
 class RulebaseLinkMap():
 
 
     def getRulebaseLinks(self, importState: ImportStateController, gwIds: list[int] = []) -> list[dict[str, Any]]:
-        logger = getFwoLogger()
+        logger = get_fwo_logger()
         query_variables = { "gwIds": gwIds}
         rbLinks: list[dict[str, Any]] = []
 

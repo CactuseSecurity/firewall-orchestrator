@@ -1,11 +1,11 @@
 from asyncio.log import logger
-from fwo_log import getFwoLogger
+from fwo_log import get_fwo_logger
 from fwo_const import list_delimiter
 import ipaddress
 
 
 def normalize_nwobjects(full_config, config2import, import_id, jwt=None, mgm_id=None):
-    logger = getFwoLogger()
+    logger = get_fwo_logger()
     nw_objects = []
     nw_tagged_groups = {}
     for obj_orig in full_config["/Objects/Addresses"]:

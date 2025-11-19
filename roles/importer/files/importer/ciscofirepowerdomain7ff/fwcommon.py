@@ -8,16 +8,16 @@ import cifp_service
 import cifp_rule
 import cifp_network
 import cifp_getter
-from fwo_log import getFwoLogger
+from fwo_log import get_fwo_logger
 
 
-def has_config_changed(full_config: dict[str, Any], mgm_details: dict[str, Any], force: bool = False) -> bool:
+def has_config_changed() -> bool:
     # dummy - may be filled with real check later on
     return True
 
 
-def get_config(config2import: dict[str, Any], full_config: dict[str, Any], current_import_id: str, mgm_details: dict[str, Any], limit: int = 1000, force: bool = False, jwt: str = '') -> int:
-    logger = getFwoLogger()
+def get_config(config2import: dict[str, Any], full_config: dict[str, Any], current_import_id: str, mgm_details: dict[str, Any], limit: int = 1000, jwt: str = '') -> int:
+    logger = get_fwo_logger()
     if full_config == {}:   # no native config was passed in, so getting it from Cisco Management
         parsing_config_only = False
     else:
@@ -38,14 +38,14 @@ def get_config(config2import: dict[str, Any], full_config: dict[str, Any], curre
             logger.error(
                 'Configured domain is null or empty.')
             return 1
-        scopes = getScopes(domain, json.loads(domains))
+        scopes = get_scopes(domain, json.loads(domains))
         if len(scopes) == 0:
             logger.error(
                 "Domain \"" + domain + "\" could not be found. \"" + domain + "\" does not appear to be a domain name or a domain UID.")
             return 1
 
-        getDevices(sessionId, cisco_api_url, full_config, limit, scopes, mgm_details["devices"])
-        getObjects(sessionId, cisco_api_url, full_config, limit, scopes)
+        get_devices(sessionId, cisco_api_url, full_config, limit, scopes, mgm_details["devices"])
+        get_objects(sessionId, cisco_api_url, full_config, limit, scopes)
 
         for device in full_config["devices"]:
             cifp_rule.getAccessPolicy(sessionId, cisco_api_url, full_config, device, limit)
@@ -73,13 +73,13 @@ def get_config(config2import: dict[str, Any], full_config: dict[str, Any], curre
     cifp_service.normalize_svcobjects(
         full_config, config2import, current_import_id)
     cifp_rule.normalize_access_rules(
-        full_config, config2import, current_import_id, mgm_details=mgm_details, jwt=jwt)
+        full_config, config2import, current_import_id)
     # cifp_rule.normalize_nat_rules(
     #     full_config, config2import, current_import_id, jwt=jwt)
     # cifp_network.remove_nat_ip_entries(config2import)
     return 0
 
-def getAllAccessRules(sessionId: str, api_url: str, domains: list[dict[str, Any]]) -> list[dict[str, Any]]:
+def get_all_access_rules(sessionId: str, api_url: str, domains: list[dict[str, Any]]) -> list[dict[str, Any]]:
     for domain in domains:
         domain["access_policies"] = cifp_getter.update_config_with_cisco_api_call(sessionId, api_url,
             "fmc_config/v1/domain/" + domain["uuid"] + "/policy/accesspolicies" , parameters={"expanded": True}, limit=1000)
@@ -89,15 +89,15 @@ def getAllAccessRules(sessionId: str, api_url: str, domains: list[dict[str, Any]
             "fmc_config/v1/domain/" + domain["uuid"] + "/policy/accesspolicies/" + access_policy["id"] + "/accessrules", parameters={"expanded": True}, limit=1000)
     return domains
 
-def getScopes(searchDomain: str, domains: list[dict[str, Any]]) -> list[str]:
+def get_scopes(searchDomain: str, domains: list[dict[str, Any]]) -> list[str]:
     scopes: list[str] = []
     for domain in domains:
         if domain == domain["uuid"] or domain["name"].endswith(searchDomain): # TODO: is the check supposed to be searchDomain == domain["uuid"] ?
             scopes.append(domain["uuid"])
     return scopes
 
-def getDevices(sessionId: str, api_url: str, config: dict[str, Any], limit: int, scopes: list[str], devices: list[dict[str, Any]]) -> None:
-    logger = getFwoLogger()
+def get_devices(sessionId: str, api_url: str, config: dict[str, Any], limit: int, scopes: list[str], devices: list[dict[str, Any]]) -> None:
+    logger = get_fwo_logger()
     # get all devices
     for scope in scopes:
         config["devices"] = cifp_getter.update_config_with_cisco_api_call(sessionId, api_url,
@@ -117,7 +117,7 @@ def getDevices(sessionId: str, api_url: str, config: dict[str, Any], limit: int,
             config["devices"].remove(cisco_api_device)
             logger.info("Device \"" + cisco_api_device["name"] + "\" was found but it is not registered in FWO. Ignoring it.")
 
-def getObjects(sessionId: str, api_url: str, config: dict[str, Any], limit: int, scopes: list[str]) -> None:
+def get_objects(sessionId: str, api_url: str, config: dict[str, Any], limit: int, scopes: list[str]) -> None:
     # network objects:
     networkObjects: list[dict[str, Any]] = []
     networkObjectGroups: list[dict[str, Any]] = []

@@ -1,5 +1,5 @@
 from typing import Any
-from fwo_log import getFwoLogger
+from fwo_log import get_fwo_logger
 from fwo_base import ConfFormat
 from models.fwconfig_normalized import FwConfigNormalized
 
@@ -14,7 +14,7 @@ class FwConfigNormalizedController():
 
     @staticmethod
     def convertListToDict(listIn: list[Any], idField: str) -> dict[Any, Any]:
-        logger = getFwoLogger()
+        logger = get_fwo_logger()
         result: dict[Any, Any] = {}
         for item in listIn:
             if idField in item:

@@ -1,6 +1,6 @@
 from palo_service import parse_svc_list
 from palo_network import parse_obj_list
-from fwo_log import getFwoLogger
+from fwo_log import get_fwo_logger
 from fwo_const import list_delimiter
 import hashlib
 import base64
@@ -27,7 +27,7 @@ def make_hashable(o):
 
 def normalize_access_rules(full_config, config2import, import_id, mgm_details={}):
     rules = []
-    logger = getFwoLogger()
+    logger = get_fwo_logger()
 
     nw_obj_names = []
     for o in config2import['network_objects']:

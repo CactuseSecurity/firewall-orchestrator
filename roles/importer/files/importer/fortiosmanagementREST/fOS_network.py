@@ -1,11 +1,11 @@
 import ipaddress
 from typing import Any
-from fwo_log import getFwoLogger
+from fwo_log import get_fwo_logger
 from fwo_const import list_delimiter, nat_postfix
 from fOS_zone import add_zone_if_missing
 
-def normalize_nwobjects(full_config: dict[str, Any], config2import: dict[str, Any], import_id: int, nw_obj_types: list[str], jwt: str | None = None, mgm_id: int | None = None):
-    logger = getFwoLogger()
+def normalize_nwobjects(full_config: dict[str, Any], config2import: dict[str, Any], import_id: int, nw_obj_types: list[str]):
+    logger = get_fwo_logger()
     nw_objects: list[dict[str, Any]] = []
     full_config['nw_obj_lookup_dict'] = {}
     for obj_type in nw_obj_types:
@@ -210,7 +210,7 @@ def remove_nat_ip_entries(config2import: dict[str, Any]):
 
 def get_first_ip_of_destination(obj_ref: str, config2import: dict[str, Any]) -> str | None:
 
-    logger = getFwoLogger()
+    logger = get_fwo_logger()
     if list_delimiter in obj_ref:
         obj_ref = obj_ref.split(list_delimiter)[0]
         # if destination does not contain exactly one ip, raise a warning 

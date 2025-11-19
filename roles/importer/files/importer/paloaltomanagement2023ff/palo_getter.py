@@ -1,6 +1,6 @@
 # library for API get functions
 import base64
-from fwo_log import getFwoLogger
+from fwo_log import get_fwo_logger
 import requests.packages
 import requests
 import xmltodict, json
@@ -10,7 +10,7 @@ import fwo_globals
 
 
 def api_call(url, params = {}, headers = {}, data = {}, key = '', show_progress=False, method='get'):
-    logger = getFwoLogger()
+    logger = get_fwo_logger()
     result_type='xml'
     request_headers = {'Content-Type': 'application/json'}
     for header_key in headers:
@@ -80,7 +80,7 @@ def login(apiuser, apipwd, apihost):
         raise FwLoginFailed("Palo FW login to firewall=" + str(apihost) + " failed") from None
     
     if fwo_globals.debug_level > 2:
-        logger = getFwoLogger()
+        logger = get_fwo_logger()
         logger.debug("Login successful. Received key: " + key)
 
     return key

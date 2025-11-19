@@ -1,6 +1,6 @@
 import traceback
 import fwo_const
-from fwo_log import getFwoLogger
+from fwo_log import get_fwo_logger
 from fwo_api import FwoApi
 from model_controllers.import_state_controller import ImportStateController
 from services.service_provider import ServiceProvider
@@ -22,7 +22,7 @@ class FwConfigImportRollback():
     # TODO: also take super management id into account as second option
 
     def rollbackCurrentImport(self) -> None | int:
-        logger = getFwoLogger()
+        logger = get_fwo_logger()
         rollbackMutation = FwoApi.get_graphql_code([f"{fwo_const.graphql_query_path}import/rollbackImport.graphql"])
         try:
             query_variables = {

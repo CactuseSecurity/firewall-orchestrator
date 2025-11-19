@@ -1,7 +1,7 @@
 
 from typing import Any
 import fwo_const
-from fwo_log import getFwoLogger
+from fwo_log import get_fwo_logger
 from model_controllers.fwconfig_import import FwConfigImport
 from model_controllers.import_state_controller import ImportStateController
 from model_controllers.fwconfigmanagerlist_controller import FwConfigManagerListController
@@ -57,7 +57,7 @@ class FwConfigImportCheckConsistency(FwConfigImport):
             raise FwoImporterErrorInconsistencies("Inconsistencies found in the configuration.")
 
         if self.import_state.DebugLevel >= 1:
-            getFwoLogger().info("Consistency check completed without issues.")
+            get_fwo_logger().info("Consistency check completed without issues.")
 
 
     def checkNetworkObjectConsistency(self, config: FwConfigManagerListController):

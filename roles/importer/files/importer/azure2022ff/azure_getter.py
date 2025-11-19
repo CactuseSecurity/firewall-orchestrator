@@ -1,14 +1,14 @@
 # library for API get functions
 import base64
 from typing import Any
-from fwo_log import getFwoLogger
+from fwo_log import get_fwo_logger
 import requests
 import json
 import fwo_globals
 from fwo_exceptions import FwLoginFailed
 
-def api_call(url: str, params: dict[str, Any] = {}, headers: dict[str, Any] = {}, data: dict[str, Any] | str = {}, azure_jwt: str = '', show_progress: bool = False, method: str = 'get') -> tuple[dict[str, Any], dict[str, Any]]:
-    logger = getFwoLogger()
+def api_call(url: str, params: dict[str, Any] = {}, headers: dict[str, Any] = {}, data: dict[str, Any] | str = {}, azure_jwt: str = '', method: str = 'get') -> tuple[dict[str, Any], dict[str, Any]]:
+    logger = get_fwo_logger()
     request_headers = {}
     if not 'Content-Type' in headers:
         request_headers = {'Content-Type': 'application/json'}
@@ -73,7 +73,7 @@ def login(azure_user: str, azure_password: str, tenant_id: str, client_id: str, 
         raise FwLoginFailed("Azure login ERROR for client_id=" + str(client_id) + " Message: None") from None
     
     if fwo_globals.debug_level > 2:
-        logger = getFwoLogger()
+        logger = get_fwo_logger()
         logger.debug("Login successful. Received JWT: " + body["access_token"])
 
     return body["access_token"]
@@ -88,7 +88,7 @@ def update_config_with_azure_api_call(azure_jwt: str, api_base_url: str, config:
     #while returned_new_data:
         # parameters["offset"] = offset
         # parameters["limit"] = limit
-    result = api_call(api_base_url + api_path, azure_jwt=azure_jwt, params=parameters, data=payload, show_progress=show_progress, method=method)[1]
+    result = api_call(api_base_url + api_path, azure_jwt=azure_jwt, params=parameters, data=payload, method=method)[1]
     returned_new_data = len(result['value'])>0
     if returned_new_data:
         full_result.extend(result["value"])           

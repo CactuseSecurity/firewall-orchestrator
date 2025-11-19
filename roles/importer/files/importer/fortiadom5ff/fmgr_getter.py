@@ -1,5 +1,5 @@
 # library for API get functions
-from fwo_log import getFwoLogger
+from fwo_log import get_fwo_logger
 import requests
 import json
 from typing import Any
@@ -9,7 +9,7 @@ from models.management import Management
 
 
 def api_call(url: str, command: str, json_payload: dict[str, Any], sid: str, show_progress: bool=False, method: str='') -> dict[str, Any]:
-    logger = getFwoLogger()
+    logger = get_fwo_logger()
     request_headers = {'Content-Type': 'application/json'}
     if sid != '':
         json_payload.update({'session': sid})
@@ -71,7 +71,7 @@ def login(user: str, password: str, base_url: str) -> str | None:
 
 
 def logout(v_url: str, sid: str, method: str ='exec'):
-    logger = getFwoLogger()
+    logger = get_fwo_logger()
     payload: dict[str, Any] = {'params': [{}]}
 
     response = api_call(v_url, 'sys/logout', payload, sid, method=method)
@@ -116,7 +116,7 @@ def parse_special_fortinet_api_results(result_name: str, full_result: list[Any])
         if len(full_result)>0 and 'response' in full_result[0] and 'results' in full_result[0]['response']: 
             full_result = full_result[0]['response']['results']
         else:
-            logger = getFwoLogger()
+            logger = get_fwo_logger()
             logger.warning(f"did not get expected results for {result_name} - setting to empty list")
             full_result = []
     return full_result

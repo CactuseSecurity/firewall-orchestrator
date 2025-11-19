@@ -192,7 +192,7 @@ def add_member_names_for_svc_group(idx: int, svc_objects: list[dict[str, Any]]) 
     svc_objects.insert(idx, group)
 
 
-def normalize_service_objects(full_config: dict[str, Any], config2import: dict[str, Any], import_id: int, debug_level: int = 0) -> None:
+def normalize_service_objects(full_config: dict[str, Any], config2import: dict[str, Any], import_id: int) -> None:
     svc_objects: list[dict[str, Any]] = []
     for obj_dict in full_config['objects']:
             collect_svc_objects(obj_dict, svc_objects)

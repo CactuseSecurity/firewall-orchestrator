@@ -3,7 +3,7 @@ import json
 from typing import Any
 import ast
 
-from fwo_log import getFwoLogger
+from fwo_log import get_fwo_logger
 import fwo_globals
 from fwo_const import list_delimiter, default_section_header_text
 from fwo_base import sanitize
@@ -47,7 +47,7 @@ def normalize_rulebases (nativeConfig: dict[str, Any], native_config_global: dic
 def normalize_rulebases_for_each_link_destination(
         gateway: dict[str, Any], fetched_rulebase_uids: list[str], nativeConfig: dict[str, Any], 
         native_config_global: dict[str, Any] | None, is_global_loop_iteration: bool, importState: ImportStateController, normalized_config_dict: dict[str, Any], normalized_config_global: dict[str, Any]):
-    logger = getFwoLogger()
+    logger = get_fwo_logger()
     for rulebase_link in gateway['rulebase_links']:
         if rulebase_link['to_rulebase_uid'] not in fetched_rulebase_uids and rulebase_link['to_rulebase_uid'] != '':
             rulebase_to_parse, is_section, is_placeholder = find_rulebase_to_parse(
@@ -128,7 +128,7 @@ def initialize_normalized_rulebase(rulebase_to_parse: dict[str, Any], mgm_uid: s
     return normalized_rulebase
 
 def parse_rulebase(rulebase_to_parse: dict[str, Any], is_section: bool, is_placeholder: bool, normalized_rulebase: Rulebase, gateway: dict[str, Any], policy_structure: list[dict[str, Any]]):
-    logger = getFwoLogger()
+    logger = get_fwo_logger()
 
     if is_section:
         for rule in rulebase_to_parse['rulebase']:
@@ -144,7 +144,7 @@ def parse_rulebase(rulebase_to_parse: dict[str, Any], is_section: bool, is_place
         parse_rulebase_chunk(rulebase_to_parse, normalized_rulebase, gateway, policy_structure)                    
 
 def parse_rulebase_chunk(rulebase_to_parse: dict[str, Any], normalized_rulebase: Rulebase, gateway: dict[str, Any], policy_structure: list[dict[str, Any]]):
-    logger = getFwoLogger()
+    logger = get_fwo_logger()
     for chunk in rulebase_to_parse['chunks']:
         for rule in chunk['rulebase']:
             if 'rule-number' in rule:
@@ -154,7 +154,7 @@ def parse_rulebase_chunk(rulebase_to_parse: dict[str, Any], normalized_rulebase:
     return
  
 
-def acceptMalformedParts(objects: dict[str, Any] | list[dict[str, Any]], part: str ='') -> dict[str, Any]:
+def accept_malformed_parts(objects: dict[str, Any] | list[dict[str, Any]], part: str ='') -> dict[str, Any]:
     if fwo_globals.debug_level>9:
         logger.debug(f'about to accept malformed rule part ({part}): {str(objects)}')
 
@@ -179,7 +179,7 @@ def acceptMalformedParts(objects: dict[str, Any] | list[dict[str, Any]], part: s
         return {}
 
 
-def parseRulePart (objects: dict[str, Any] | list[dict[str, Any] | None] | None, part: str = 'source') -> dict[str, Any]:
+def parse_rule_part(objects: dict[str, Any] | list[dict[str, Any] | None] | None, part: str = 'source') -> dict[str, Any]:
     addressObjects: dict[str, Any] = {}
 
     if objects is None:
@@ -187,7 +187,7 @@ def parseRulePart (objects: dict[str, Any] | list[dict[str, Any] | None] | None,
         return None # type: ignore #TODO: check if this is ok or should raise an Exception
 
     if 'chunks' in objects:  # for chunks of actions?!
-        addressObjects.update(parseRulePart(objects['chunks'], part=part)) # need to parse chunk first # type: ignore # TODO: This Has to be refactored
+        addressObjects.update(parse_rule_part(objects['chunks'], part=part)) # need to parse chunk first # type: ignore # TODO: This Has to be refactored
 
     if isinstance(objects, dict):
         return _parse_single_address_object(addressObjects, objects, part)
@@ -197,16 +197,16 @@ def parseRulePart (objects: dict[str, Any] | list[dict[str, Any] | None] | None,
             logger.warning(f'found list with a single None obj: {str(objects)}')
             continue
         if 'chunks' in obj:
-            addressObjects.update(parseRulePart(obj['chunks'], part=part)) # need to parse chunk first # type: ignore # TODO: check if this is ok or should raise an Exception
+            addressObjects.update(parse_rule_part(obj['chunks'], part=part)) # need to parse chunk first # type: ignore # TODO: check if this is ok or should raise an Exception
         elif 'objects' in obj:
             for o in obj['objects']:
-                addressObjects.update(parseRulePart(o, part=part)) # need to parse chunk first # type: ignore # TODO: check if this is ok or should raise an Exception
+                addressObjects.update(parse_rule_part(o, part=part)) # need to parse chunk first # type: ignore # TODO: check if this is ok or should raise an Exception
             return addressObjects
         else:
             if 'type' in obj: # found checkpoint object
                 _parse_obj_with_type(obj, addressObjects)
             else:
-                return acceptMalformedParts(objects, part=part) # type: ignore # TODO: check if this is ok or should raise an Exception
+                return accept_malformed_parts(objects, part=part) # type: ignore # TODO: check if this is ok or should raise an Exception
 
     if '' in addressObjects.values():
         logger.warning('found empty name in one rule part (' + part + '): ' + str(addressObjects))
@@ -219,7 +219,7 @@ def _parse_single_address_object(addressObjects: dict[str,Any], objects: dict[st
         addressObjects[objects['uid']] = objects['name']
         return addressObjects
     else:
-        return acceptMalformedParts(objects, part=part)
+        return accept_malformed_parts(objects, part=part)
 
 
 def _parse_obj_with_type(obj: dict[str,Any], addressObjects: dict[str,Any]) -> None:
@@ -244,7 +244,7 @@ def _parse_obj_with_access_role(obj: dict[str,Any], addressObjects: dict[str,Any
             addressObjects[obj['uid']] = obj['name'] + '@' + obj['networks']
     else:  # more than one source
         for nw in obj['networks']:
-            nw_resolved = resolveNwObjUidToName(nw)
+            nw_resolved = resolve_nwobj_uid_to_name(nw)
             if nw_resolved == "":
                 addressObjects[obj['uid']] = obj['name']
             else:
@@ -252,21 +252,21 @@ def _parse_obj_with_access_role(obj: dict[str,Any], addressObjects: dict[str,Any
 
 
 def parse_single_rule(nativeRule: dict[str, Any], rulebase: Rulebase, layer_name: str, parent_uid: str | None, gateway: dict[str, Any], policy_structure: list[dict[str, Any]]):
-    logger = getFwoLogger()
+    logger = get_fwo_logger()
 
     # reference to domain rule layer, filling up basic fields
     if not('type' in nativeRule and nativeRule['type'] != 'place-holder' and 'rule-number' in nativeRule):  # standard rule, no section header
         return
     # the following objects might come in chunks:
-    sourceObjects = parseRulePart (nativeRule['source'], 'source')
+    sourceObjects = parse_rule_part (nativeRule['source'], 'source')
     rule_src_ref = list_delimiter.join(sourceObjects.keys())
     rule_src_name = list_delimiter.join(sourceObjects.values())
 
-    destObjects = parseRulePart (nativeRule['destination'], 'destination')
+    destObjects = parse_rule_part (nativeRule['destination'], 'destination')
     rule_dst_ref = list_delimiter.join(destObjects.keys())
     rule_dst_name = list_delimiter.join(destObjects.values())
 
-    svcObjects = parseRulePart (nativeRule['service'], 'service')
+    svcObjects = parse_rule_part (nativeRule['service'], 'service')
     rule_svc_ref = list_delimiter.join(svcObjects.keys())
     rule_svc_name = list_delimiter.join(svcObjects.values())
 
@@ -276,14 +276,14 @@ def parse_single_rule(nativeRule: dict[str, Any], rulebase: Rulebase, layer_name
 
     rule_track = _parse_track(native_rule=nativeRule)
 
-    actionObjects = parseRulePart (nativeRule['action'], 'action')
+    actionObjects = parse_rule_part (nativeRule['action'], 'action')
     if actionObjects is not None: # type: ignore # TODO: this should be never None
         rule_action = list_delimiter.join(actionObjects.values()) # expecting only a single action
     else:
         rule_action = None
         logger.warning('found rule without action: ' + str(nativeRule))
 
-    timeObjects = parseRulePart (nativeRule['time'], 'time')
+    timeObjects = parse_rule_part (nativeRule['time'], 'time')
     rule_time = list_delimiter.join(timeObjects.values()) if timeObjects else None
 
     # starting with the non-chunk objects
@@ -367,7 +367,7 @@ def _parse_track(native_rule: dict[str, Any]) -> str:
     if isinstance(native_rule['track'],str):
         rule_track = native_rule['track']
     else:
-        trackObjects = parseRulePart(native_rule['track'], 'track')
+        trackObjects = parse_rule_part(native_rule['track'], 'track')
         if trackObjects is None: # type: ignore # TODO: should never be None
             rule_track = 'none'
         else:
@@ -391,7 +391,7 @@ def parse_rule_enforced_on_gateway(gateway: dict[str, Any], policy_structure: li
         raise ValueError('Native rule cannot be empty')
 
     enforce_entries: list[RuleEnforcedOnGatewayNormalized] = []
-    all_target_gw_names_dict = parseRulePart(native_rule['install-on'], 'install-on')
+    all_target_gw_names_dict = parse_rule_part(native_rule['install-on'], 'install-on')
 
     for targetUid in all_target_gw_names_dict:
         targetName = all_target_gw_names_dict[targetUid]
@@ -415,11 +415,11 @@ def find_devices_for_current_policy(gateway: dict[str, Any], policy_structure: l
     return device_uid_list
 
 
-def resolveNwObjUidToName(nw_obj_uid: str) -> str:
+def resolve_nwobj_uid_to_name(nw_obj_uid: str) -> str:
     if nw_obj_uid in uid_to_name_map:
         return uid_to_name_map[nw_obj_uid]
     else:
-        logger = getFwoLogger()
+        logger = get_fwo_logger()
         logger.warning("could not resolve network object with uid " + nw_obj_uid)
         return ""
     

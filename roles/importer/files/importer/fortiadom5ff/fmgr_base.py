@@ -2,7 +2,7 @@ from typing import Any
 from services.service_provider import ServiceProvider
 from services.enums import Services
 from fwo_api_call import FwoApiCall, FwoApi
-from fwo_log import getFwoLogger
+from fwo_log import get_fwo_logger
 
 # def resolve_objects (obj_name_string_list, delimiter, obj_dict, name_key, uid_key, rule_type=None, jwt=None, import_id=None, mgm_id=None):
 #     # guessing ipv4 and adom (to also search global objects)
@@ -52,8 +52,9 @@ from fwo_log import getFwoLogger
 #     return object_tables
 
 
-def set_alerts_for_missing_objects(objects_not_found: list[str], jwt: str, import_id: int, rule_uid: str | None, object_type: str | None, mgm_id: int):
-    logger = getFwoLogger()
+#TODO: unused functions - remove?
+def set_alerts_for_missing_objects(objects_not_found: list[str], import_id: int, rule_uid: str | None, object_type: str | None, mgm_id: int):
+    logger = get_fwo_logger()
     for obj in objects_not_found:
         if obj == 'all' or obj == 'Original':
             continue
@@ -76,7 +77,7 @@ def set_alerts_for_missing_objects(objects_not_found: list[str], jwt: str, impor
 
 
 def lookup_obj_in_tables(el: str, object_tables: list[list[dict[str, Any]]], name_key: str, uid_key: str, ref_list: list[str]) -> bool:
-    logger = getFwoLogger()
+    logger = get_fwo_logger()
     break_flag = False 
     found = False
 

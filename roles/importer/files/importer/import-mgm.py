@@ -2,7 +2,7 @@
 
 import sys
 import traceback
-from fwo_log import getFwoLogger
+from fwo_log import get_fwo_logger
 import argparse
 import urllib3
 from common import importer_base_dir, import_management
@@ -57,7 +57,7 @@ if __name__ == "__main__":
         debug_level_in=args.debug)
     if args.suppress_certificate_warnings:
         urllib3.disable_warnings()
-    logger = getFwoLogger()
+    logger = get_fwo_logger()
 
     try:
         error_count = import_management(

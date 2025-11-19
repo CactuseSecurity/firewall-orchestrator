@@ -3,7 +3,7 @@ from ciscoasa9.asa_models import AccessListEntry,\
     AsaNetworkObject, AsaNetworkObjectGroup, AsaNetworkObjectGroupMember, AsaServiceObject, AsaServiceObjectGroup,\
     ClassMap, DnsInspectParameters, EndpointKind, InspectionAction, Interface,\
     NatRule, PolicyClass, PolicyMap, AsaProtocolGroup
-from fwo_log import getFwoLogger
+from fwo_log import get_fwo_logger
 
 
 def clean_lines(text: str) -> list[str]:
@@ -144,7 +144,7 @@ def _create_network_object_from_parts(
     elif fqdn:
         return AsaNetworkObject(name=name, ip_address="", ip_address_end=None, subnet_mask=None, fqdn=fqdn, description=description)
 
-    logger = getFwoLogger()
+    logger = get_fwo_logger()
     logger.warning(f"Cannot create network object {name}: no valid address information provided. NAT object?")
     return None
 
@@ -273,7 +273,7 @@ def parse_service_object_block(block: list[str]) -> AsaServiceObject | None:
             protocol = msvc.group(1).lower()
 
     if protocol is None or protocol not in ("tcp", "udp", "ip", "icmp", "gre"):
-        logger = getFwoLogger()
+        logger = get_fwo_logger()
         logger.warning(f"Unsupported or missing protocol {protocol} in service object {name}")
         return None  # unsupported protocol
 
@@ -376,7 +376,7 @@ def parse_service_object_group_block(block: list[str]) -> AsaServiceObjectGroup:
         if pm in ("tcp", "udp", "tcp-udp"):
             proto_mode = pm
         else:
-            logger = getFwoLogger()
+            logger = get_fwo_logger()
             logger.warning(f"Unsupported proto_mode '{pm}' in service object group '{name}'")
 
     desc = _find_description(block[1:])

@@ -1,12 +1,12 @@
 from typing import Any
-from fwo_log import getFwoLogger
+from fwo_log import get_fwo_logger
 from netaddr import IPAddress, IPNetwork
 from functools import cmp_to_key
 import traceback
 import fmgr_getter
 import fwo_globals
 from model_controllers.interface_controller import Interface
-from model_controllers.route_controller import Route, getRouteDestination
+from model_controllers.route_controller import Route, get_route_destination
 
 def normalize_network_data(native_config: dict[str, Any], normalized_config: dict[str, Any], mgm_details: dict[str, Any]) -> None:
 
@@ -30,7 +30,7 @@ def normalize_network_data(native_config: dict[str, Any], normalized_config: dic
     #     "maskv6": 48
     # }
 
-    logger = getFwoLogger()
+    logger = get_fwo_logger()
 
     normalized_config.update({'routing': {}, 'interfaces': {} })
 
@@ -59,7 +59,7 @@ def normalize_network_data(native_config: dict[str, Any], normalized_config: dic
                     distance=route['distance'], interface=route['interface'], ip_version=6)
                 normalized_config['routing'].append(normRoute)
 
-        normalized_config['routing'].sort(key=getRouteDestination,reverse=True)
+        normalized_config['routing'].sort(key=get_route_destination,reverse=True)
         
         for interface in native_config['interfaces_per_device/' + full_vdom_name]:
             if 'ipv6' in interface and 'ip6-address' in interface['ipv6'] and interface['ipv6']['ip6-address']!='::/0':
@@ -80,7 +80,7 @@ def normalize_network_data(native_config: dict[str, Any], normalized_config: dic
 
 def get_matching_route(destination_ip: IPAddress, routing_table: list[dict[str, Any]]) -> dict[str, Any] | None:
 
-    logger = getFwoLogger()
+    logger = get_fwo_logger()
 
     def route_matches(ip: IPAddress, destination: str) -> bool:
         ip_n = IPNetwork(ip).cidr
@@ -186,7 +186,7 @@ def get_all_dev_names(devices: list[dict[str, Any]]) -> list[list[Any]]:
 # get network information (currently only used for source nat)
 def getInterfacesAndRouting(sid: str, fm_api_url: str, nativeConfig: list[dict[str, Any]], adom_name: str, devices: list[dict[str, Any]], limit: int) -> None:
                                                         #TYPING: DICT OR LIST??? 
-    logger = getFwoLogger()
+    logger = get_fwo_logger()
     # strip off vdom names, just deal with the plain device
     device_array = get_all_dev_names(devices)
 
@@ -298,7 +298,7 @@ def getInterfacesAndRouting(sid: str, fm_api_url: str, nativeConfig: list[dict[s
 
 
 def get_device_from_package(package_name: str, mgm_details: dict[str, Any]) -> str | None:
-    logger = getFwoLogger()
+    logger = get_fwo_logger()
     for dev in mgm_details['devices']:
         if dev['local_rulebase_name'] == package_name:
             return dev['id']

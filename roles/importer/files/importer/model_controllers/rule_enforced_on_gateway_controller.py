@@ -3,7 +3,7 @@ from typing import Any
 
 import fwo_const
 from model_controllers.import_state_controller import ImportStateController
-from fwo_log import getFwoLogger
+from fwo_log import get_fwo_logger
 from model_controllers.rulebase_link_controller import RulebaseLinkController
 
 
@@ -23,7 +23,7 @@ class RuleEnforcedOnGatewayController:
 
         # Step 3: Check if there are any references to insert
         if not rule_to_gw_refs:
-            logger = getFwoLogger()
+            logger = get_fwo_logger()
             logger.info("No rules to be enforced on gateways.")
             return
 
@@ -76,7 +76,7 @@ class RuleEnforcedOnGatewayController:
             if gw_id is not None:
                 rule_to_gw_refs.append(self.create_rule_to_gateway_reference(rule, gw_id))
             else:
-                logger = getFwoLogger()
+                logger = get_fwo_logger()
                 logger.warning(f"Found a broken reference to a non-existing gateway (uid={gw_uid}). Ignoring.")
 
 
@@ -96,7 +96,7 @@ class RuleEnforcedOnGatewayController:
         """
         Insert the rule-to-gateway references into the database.
         """
-        logger = getFwoLogger()
+        logger = get_fwo_logger()
         try:
             import_results: dict[str,Any] = self.insert_rules_enforced_on_gateway(rule_to_gw_refs)
             if 'errors' in import_results:

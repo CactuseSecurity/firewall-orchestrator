@@ -1,13 +1,13 @@
 # library for API get functions
 from typing import Any
-from fwo_log import getFwoLogger
+from fwo_log import get_fwo_logger
 import requests
 import json
 import fwo_globals
 
 
-def api_call(url: str, show_progress:bool=False) -> dict[str, Any]:
-    logger = getFwoLogger()
+def api_call(url: str) -> dict[str, Any]:
+    logger = get_fwo_logger()
     request_headers = {'Content-Type': 'application/json'}
 
     r = requests.get(url, headers=request_headers, verify=fwo_globals.verify_certs)
@@ -39,10 +39,10 @@ def api_call(url: str, show_progress:bool=False) -> dict[str, Any]:
 #     return url
 
 
-def update_config_with_fortiOS_api_call(config_json: dict[str, Any], api_url: str, result_name: str, show_progress: bool = False, limit: int = 150):
+def update_config_with_fortios_api_call(config_json: dict[str, Any], api_url: str, result_name: str, limit: int = 150):
     limit = int(limit)
     full_result: list[Any] = []
-    result = fortiOS_api_call(api_url)
+    result = fortios_api_call(api_url)
     full_result.extend(result)
     # removing loop for api gets (no limit option in FortiOS API)
     # while returned_new_objects:
@@ -58,7 +58,7 @@ def update_config_with_fortiOS_api_call(config_json: dict[str, Any], api_url: st
         config_json.update({result_name: full_result})
 
 
-def fortiOS_api_call(api_url: str) -> Any:
+def fortios_api_call(api_url: str) -> Any:
     result = api_call(api_url)
     if 'results' in result:
         plain_result = result["results"]

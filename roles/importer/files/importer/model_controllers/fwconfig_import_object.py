@@ -4,7 +4,7 @@ import datetime
 import json
 from typing import Any
 
-from fwo_log import ChangeLogger, getFwoLogger
+from fwo_log import ChangeLogger, get_fwo_logger
 from model_controllers.import_state_controller import ImportStateController
 from model_controllers.fwconfig_normalized_controller import FwConfigNormalized
 from models.networkobject import NetworkObjectForImport
@@ -48,10 +48,10 @@ class FwConfigImportObject():
 
         # Create maps.
         
-        self.NetworkObjectTypeMap = self.GetNetworkObjTypeMap()
-        self.ServiceObjectTypeMap = self.GetServiceObjTypeMap()
-        self.UserObjectTypeMap = self.GetUserObjTypeMap()
-        self.ProtocolMap = self.GetProtocolMap()
+        self.NetworkObjectTypeMap = self.get_network_obj_type_map()
+        self.ServiceObjectTypeMap = self.get_service_obj_type_map()
+        self.UserObjectTypeMap = self.get_user_obj_type_map()
+        self.ProtocolMap = self.get_protocol_map()
 
 
     def updateObjectDiffs(self, prev_config: FwConfigNormalized, prev_global_config: FwConfigNormalized|None, single_manager: FwConfigManager):
@@ -126,7 +126,7 @@ class FwConfigImportObject():
 
         # add newly created objects
         newNwObjIds, newNwSvcIds, newUserIds, new_zone_ids, removedNwObjIds, removedNwSvcIds, _, _ =  \
-            self.updateObjectsViaApi(single_manager, newNwobjUids, newSvcObjUids, newUserUids, new_zone_names, deletedNwobjUids, deletedSvcObjUids, deletedUserUids, deleted_zone_names)
+            self.update_objects_via_api(single_manager, newNwobjUids, newSvcObjUids, newUserUids, new_zone_names, deletedNwobjUids, deletedSvcObjUids, deletedUserUids, deleted_zone_names)
         
         self.uid2id_mapper.add_network_object_mappings(newNwObjIds, is_global=single_manager.IsSuperManager)
         self.uid2id_mapper.add_service_object_mappings(newNwSvcIds, is_global=single_manager.IsSuperManager)
@@ -134,9 +134,9 @@ class FwConfigImportObject():
         self.uid2id_mapper.add_zone_mappings(new_zone_ids, is_global=single_manager.IsSuperManager)
 
         # insert new and updated group memberships
-        self.addGroupMemberships(prev_config, Type.NETWORK_OBJECT)
-        self.addGroupMemberships(prev_config, Type.SERVICE_OBJECT)
-        self.addGroupMemberships(prev_config, Type.USER) 
+        self.add_group_memberships(prev_config, Type.NETWORK_OBJECT)
+        self.add_group_memberships(prev_config, Type.SERVICE_OBJECT)
+        self.add_group_memberships(prev_config, Type.USER) 
 
         # these objects have really been deleted so there should be no refs to them anywhere! verify this
 
@@ -167,7 +167,7 @@ class FwConfigImportObject():
 
         # Write change logs to tables.
         
-        self.addChangelogObjects(newNwObjIds, newNwSvcIds, removedNwObjIds, removedNwSvcIds)
+        self.add_changelog_objs(newNwObjIds, newNwSvcIds, removedNwObjIds, removedNwSvcIds)
 
         # note changes:
         self.import_state.Stats.NetworkObjectAddCount = len(newNwObjIds)
@@ -178,72 +178,72 @@ class FwConfigImportObject():
         self.import_state.Stats.ServiceObjectChangeCount = len(change_logger.changed_service_id_map.items())
 
 
-    def GetNetworkObjTypeMap(self) -> dict[str, int]:
+    def get_network_obj_type_map(self) -> dict[str, int]:
         query = "query getNetworkObjTypeMap { stm_obj_typ { obj_typ_name obj_typ_id } }"
         try:
             result = self.import_state.api_call.call(query=query, query_variables={})
         except Exception as e:
-            logger = getFwoLogger()
+            logger = get_fwo_logger()
             logger.error(f"Error while getting stm_obj_typ: str{e}")
             return {}
         
-        map: dict[str, Any] = {}
-        for nwType in result['data']['stm_obj_typ']:
-            map.update({nwType['obj_typ_name']: nwType['obj_typ_id']})
-        return map
+        nwobj_type_map: dict[str, Any] = {}
+        for nw_type in result['data']['stm_obj_typ']:
+            nwobj_type_map.update({nw_type['obj_typ_name']: nw_type['obj_typ_id']})
+        return nwobj_type_map
 
-    def GetServiceObjTypeMap(self) -> dict[str, int]:
+    def get_service_obj_type_map(self) -> dict[str, int]:
         query = "query getServiceObjTypeMap { stm_svc_typ { svc_typ_name svc_typ_id } }"
         try:
             result = self.import_state.api_call.call(query=query, query_variables={})
         except Exception as e:
-            logger = getFwoLogger()
+            logger = get_fwo_logger()
             logger.error(f"Error while getting stm_svc_typ: {str(e)}")
             return {}
         
-        map: dict[str, Any] = {}
-        for svcType in result['data']['stm_svc_typ']:
-            map.update({svcType['svc_typ_name']: svcType['svc_typ_id']})
-        return map
+        svc_type_map: dict[str, Any] = {}
+        for svc_type in result['data']['stm_svc_typ']:
+            svc_type_map.update({svc_type['svc_typ_name']: svc_type['svc_typ_id']})
+        return svc_type_map
 
-    def GetUserObjTypeMap(self) -> dict[str, int]:
+    def get_user_obj_type_map(self) -> dict[str, int]:
         query = "query getUserObjTypeMap { stm_usr_typ { usr_typ_name usr_typ_id } }"
         try:
             result = self.import_state.api_call.call(query=query, query_variables={})
         except Exception as e:
-            logger = getFwoLogger()
+            logger = get_fwo_logger()
             logger.error(f"Error while getting stm_usr_typ: {str(e)}")
             return {}
         
-        map: dict[str, Any] = {}
-        for usrType in result['data']['stm_usr_typ']:
-            map.update({usrType['usr_typ_name']: usrType['usr_typ_id']})
-        return map
+        user_type_map: dict[str, Any] = {}
+        for usr_type in result['data']['stm_usr_typ']:
+            user_type_map.update({usr_type['usr_typ_name']: usr_type['usr_typ_id']})
+        return user_type_map
 
-    def GetProtocolMap(self) -> dict[str, int]:
+    def get_protocol_map(self) -> dict[str, int]:
         query = "query getIpProtocols { stm_ip_proto { ip_proto_id ip_proto_name } }"
         try:
             result = self.import_state.api_call.call(query=query, query_variables={})
         except Exception as e:
-            logger = getFwoLogger()
+            logger = get_fwo_logger()
             logger.error(f"Error while getting stm_ip_proto: {str(e)}")
             return {}
         
-        map: dict[str, Any] = {}
+        protocol_map: dict[str, Any] = {}
         for proto in result['data']['stm_ip_proto']:
-            map.update({proto['ip_proto_name'].lower(): proto['ip_proto_id']})
-        return map
+            protocol_map.update({proto['ip_proto_name'].lower(): proto['ip_proto_id']})
+        return protocol_map
 
-    def updateObjectsViaApi(self, single_manager: FwConfigManager, newNwObjectUids: list[str], newSvcObjectUids: list[str], newUserUids: list[str], new_zone_names: list[str], removedNwObjectUids: list[str], removedSvcObjectUids: list[str], removedUserUids: list[str], removed_zone_names: list[str]):
+    def update_objects_via_api(self, single_manager: FwConfigManager, newNwObjectUids: list[str], newSvcObjectUids: list[str], newUserUids: list[str], new_zone_names: list[str], removedNwObjectUids: list[str], removedSvcObjectUids: list[str], removedUserUids: list[str], removed_zone_names: list[str]):
         # here we also mark old objects removed before adding the new versions
-        logger = getFwoLogger(debug_level=self.import_state.DebugLevel)
-        newNwObjIds = []
-        newNwSvcIds = []
-        newUserIds = []
+        logger = get_fwo_logger(debug_level=self.import_state.DebugLevel)
+        new_nwobj_ids = []
+        new_nwsvc_ids = []
+        new_user_ids = []
         new_zone_ids = []
-        removedNwObjIds = []
-        removedNwSvcIds = []
-        removedUserIds = []
+        removed_nwobj_ids = []
+        removed_nwsvc_ids = []
+        removed_user_ids = []
         removed_zone_ids = []
         this_managements_id = self.import_state.lookupManagementId(single_manager.ManagerUid)
         if this_managements_id is None:
@@ -252,9 +252,9 @@ class FwConfigImportObject():
         query_variables: dict[str, Any] = {
             'mgmId': this_managements_id,
             'importId': self.import_state.ImportId,
-            'newNwObjects': self.prepareNewNwObjects(newNwObjectUids, this_managements_id),
-            'newSvcObjects': self.prepareNewSvcObjects(newSvcObjectUids, this_managements_id),
-            'newUsers': self.prepareNewUserObjects(newUserUids, this_managements_id),
+            'newNwObjects': self.prepare_new_nwobjs(newNwObjectUids, this_managements_id),
+            'newSvcObjects': self.prepare_new_svcobjs(newSvcObjectUids, this_managements_id),
+            'newUsers': self.prepare_new_userobjs(newUserUids, this_managements_id),
             'newZones': self.prepare_new_zones(new_zone_names, this_managements_id),
             'removedNwObjectUids': removedNwObjectUids,
             'removedSvcObjectUids': removedSvcObjectUids,
@@ -279,56 +279,56 @@ class FwConfigImportObject():
                     int(import_result['data']['update_service']['affected_rows']) + \
                     int(import_result['data']['update_usr']['affected_rows']) +\
                     int(import_result['data']['update_zone']['affected_rows'])
-                newNwObjIds = import_result['data']['insert_object']['returning']
-                newNwSvcIds = import_result['data']['insert_service']['returning']
-                newUserIds = import_result['data']['insert_usr']['returning']
+                new_nwobj_ids = import_result['data']['insert_object']['returning']
+                new_nwsvc_ids = import_result['data']['insert_service']['returning']
+                new_user_ids = import_result['data']['insert_usr']['returning']
                 new_zone_ids = import_result['data']['insert_zone']['returning']
-                removedNwObjIds = import_result['data']['update_object']['returning']
-                removedNwSvcIds = import_result['data']['update_service']['returning']
-                removedUserIds = import_result['data']['update_usr']['returning']
+                removed_nwobj_ids = import_result['data']['update_object']['returning']
+                removed_nwsvc_ids = import_result['data']['update_service']['returning']
+                removed_user_ids = import_result['data']['update_usr']['returning']
                 removed_zone_ids = import_result['data']['update_zone']['returning']
         except Exception:
             # logger.exception(f"failed to update objects: {str(traceback.format_exc())}")
             raise FwoImporterError(f"failed to update objects: {str(traceback.format_exc())}")
-        return newNwObjIds, newNwSvcIds, newUserIds, new_zone_ids, removedNwObjIds, removedNwSvcIds, removedUserIds, removed_zone_ids
+        return new_nwobj_ids, new_nwsvc_ids, new_user_ids, new_zone_ids, removed_nwobj_ids, removed_nwsvc_ids, removed_user_ids, removed_zone_ids
     
 
-    def prepareNewNwObjects(self, newNwobjUids: list[str], mgm_id: int) -> list[dict[str, Any]]:
-        newNwObjs: list[dict[str, Any]] = []
-        for nwobjUid in newNwobjUids:
-            newNwObj = NetworkObjectForImport(nwObject=self.normalized_config.network_objects[nwobjUid],
+    def prepare_new_nwobjs(self, new_nwobj_uids: list[str], mgm_id: int) -> list[dict[str, Any]]:
+        new_nwobjs: list[dict[str, Any]] = []
+        for nwobj_uid in new_nwobj_uids:
+            new_nwobj = NetworkObjectForImport(nwObject=self.normalized_config.network_objects[nwobj_uid],
                                                     mgmId=mgm_id, 
                                                     importId=self.import_state.ImportId, 
-                                                    colorId=self.import_state.lookupColorId(self.normalized_config.network_objects[nwobjUid].obj_color), 
-                                                    typId=self.lookupObjType(self.normalized_config.network_objects[nwobjUid].obj_typ))
-            newNwObjDict = newNwObj.toDict()
-            newNwObjs.append(newNwObjDict)
-        return newNwObjs
+                                                    colorId=self.import_state.lookupColorId(self.normalized_config.network_objects[nwobj_uid].obj_color), 
+                                                    typId=self.lookup_obj_type(self.normalized_config.network_objects[nwobj_uid].obj_typ))
+            new_nwobj_dict = new_nwobj.toDict()
+            new_nwobjs.append(new_nwobj_dict)
+        return new_nwobjs
 
 
-    def prepareNewSvcObjects(self, newSvcobjUids: list[str], mgm_id: int) -> list[dict[str, Any]]:
-        newObjs: list[dict[str, Any]] = []
-        for uid in newSvcobjUids:
-            newObjs.append(ServiceObjectForImport(svcObject=self.normalized_config.service_objects[uid],
+    def prepare_new_svcobjs(self, new_svcobj_uids: list[str], mgm_id: int) -> list[dict[str, Any]]:
+        new_svcs: list[dict[str, Any]] = []
+        for uid in new_svcobj_uids:
+            new_svcs.append(ServiceObjectForImport(svcObject=self.normalized_config.service_objects[uid],
                                         mgmId=mgm_id, 
                                         importId=self.import_state.ImportId, 
                                         colorId=self.import_state.lookupColorId(self.normalized_config.service_objects[uid].svc_color), 
-                                        typId=self.lookupSvcType(self.normalized_config.service_objects[uid].svc_typ),
+                                        typId=self.lookup_svc_type(self.normalized_config.service_objects[uid].svc_typ),
                                         ).toDict())
-        return newObjs
+        return new_svcs
 
-    def prepareNewUserObjects(self, newUserUids: list[str], mgm_id: int) -> list[dict[str, Any]]:
-        newObjs: list[dict[str, Any]] = []
-        for uid in newUserUids:
-            newObjs.append({
+    def prepare_new_userobjs(self, new_user_uids: list[str], mgm_id: int) -> list[dict[str, Any]]:
+        new_users: list[dict[str, Any]] = []
+        for uid in new_user_uids:
+            new_users.append({
                 'user_uid': uid,
                 'mgm_id': mgm_id,
                 'user_create': self.import_state.ImportId,
                 'user_last_seen': self.import_state.ImportId,
-                'usr_typ_id': self.lookupUserType(self.normalized_config.users[uid]['user_typ']),
+                'usr_typ_id': self.lookup_user_type(self.normalized_config.users[uid]['user_typ']),
                 'user_name': self.normalized_config.users[uid]['user_name'],
             })
-        return newObjs
+        return new_users
 
 
     def prepare_new_zones(self, new_zone_names: list[str], mgm_id: int) -> list[dict[str, Any]]:
@@ -343,13 +343,13 @@ class FwConfigImportObject():
         return new_objects
     
  
-    def get_config_objects(self, type: Type, prevConfig: FwConfigNormalized):
+    def get_config_objects(self, type: Type, prev_config: FwConfigNormalized):
         if type == Type.NETWORK_OBJECT:
-            return prevConfig.network_objects, self.normalized_config.network_objects
+            return prev_config.network_objects, self.normalized_config.network_objects
         if type == Type.SERVICE_OBJECT:
-            return prevConfig.service_objects, self.normalized_config.service_objects
+            return prev_config.service_objects, self.normalized_config.service_objects
         if type == Type.USER:
-            return prevConfig.users, self.normalized_config.users
+            return prev_config.users, self.normalized_config.users
 
     def get_id(self, type: Type, uid: str, before_update: bool = False) -> int | None:
         if type == Type.NETWORK_OBJECT:
@@ -451,13 +451,13 @@ class FwConfigImportObject():
         try:
             import_result = self.import_state.api_call.call(import_mutation, query_variables, analyze_payload=True)
             if 'errors' in import_result:
-                logger = getFwoLogger()
+                logger = get_fwo_logger()
                 logger.exception(f"fwo_api:importNwObject - error in removeOutdated{prefix.capitalize()}Memberships: {str(import_result['errors'])}")
             else:
                 changes = int(import_result['data'][f'update_{prefix}']['affected_rows']) + \
                     int(import_result['data'][f'update_{prefix}_flat']['affected_rows'])
         except Exception:
-            logger = getFwoLogger()
+            logger = get_fwo_logger()
             logger.exception(f"failed to remove outdated group memberships for {type}: {str(traceback.format_exc())}")
             errors = 1
 
@@ -499,7 +499,7 @@ class FwConfigImportObject():
             })
 
 
-    def addGroupMemberships(self, prev_config: FwConfigNormalized, obj_type: Type) -> tuple[int, int]:
+    def add_group_memberships(self, prev_config: FwConfigNormalized, obj_type: Type) -> tuple[int, int]:
         """
         This function is used to update group memberships for nwobjs, services or users in the database.
         It adds group memberships and flats for new and updated members.
@@ -526,7 +526,7 @@ class FwConfigImportObject():
 
             group_id = self.get_id(obj_type, uid)
             if group_id is None:
-                logger = getFwoLogger()
+                logger = get_fwo_logger()
                 logger.error(f"failed to add group memberships: no id found for group uid '{uid}'")
                 continue
             self.collect_group_members(group_id, current_config_objects, new_group_members, member_uids, obj_type, prefix, prev_member_uids, prev_config_objects)
@@ -566,7 +566,7 @@ class FwConfigImportObject():
 
 
     def write_member_updates(self, new_group_members: list[dict[str, Any]], new_group_member_flats: list[dict[str, Any]], prefix: str, errors: int) -> tuple[int, int]:
-        logger = getFwoLogger()
+        logger = get_fwo_logger()
         changes = 0
         import_mutation = f"""
             mutation update{prefix.capitalize()}Groups($groups: [{prefix}_insert_input!]!, $groupFlats: [{prefix}_flat_insert_input!]!) {{
@@ -601,34 +601,34 @@ class FwConfigImportObject():
         return errors, changes
 
 
-    def lookupObjType(self, objTypeString: str) -> int:
+    def lookup_obj_type(self, obj_type_str: str) -> int:
         # TODO: might check for miss here as this is a mandatory field!
-        return self.NetworkObjectTypeMap.get(objTypeString, -1)
+        return self.NetworkObjectTypeMap.get(obj_type_str, -1)
 
-    def lookupSvcType(self, svcTypeString: str) -> int:
+    def lookup_svc_type(self, svc_type_str: str) -> int:
         # TODO: might check for miss here as this is a mandatory field!
-        return self.ServiceObjectTypeMap.get(svcTypeString, -1)
+        return self.ServiceObjectTypeMap.get(svc_type_str, -1)
 
-    def lookupUserType(self, userTypeString: str) -> int:
-        return self.UserObjectTypeMap.get(userTypeString, -1)
+    def lookup_user_type(self, user_type_str: str) -> int:
+        return self.UserObjectTypeMap.get(user_type_str, -1)
 
-    def lookupObjIdToUidAndPolicyName(self, objId: int) -> str:
-        return str(objId) # mock
+    def lookup_obj_id_to_uid_and_policy_name(self, obj_id: int) -> str:
+        return str(obj_id) # mock
         # CAST((COALESCE (rule.rule_ruleid, rule.rule_uid) || ', Rulebase: ' || device.local_rulebase_name) AS VARCHAR) AS unique_name,
         # return self.NetworkObjectIdMap.get(objId, None)
 
-    def lookupSvcIdToUidAndPolicyName(self, svcId: int):
-        return str(svcId) # mock
+    def lookup_svc_id_to_uid_and_policy_name(self, svc_id: int):
+        return str(svc_id) # mock
 
-    def lookupProtoNameToId(self, protoString: str | int) -> int | None:
-        if isinstance(protoString, int):
+    def lookup_proto_name_to_id(self, proto_str: str | int) -> int | None:
+        if isinstance(proto_str, int):
             # logger = getFwoLogger()
-            # logger.warning(f"found protocol with an id as name: {str(protoString)}")
-            return protoString  # already an int, do nothing
+            # logger.warning(f"found protocol with an id as name: {str(proto_str)}")
+            return proto_str  # already an int, do nothing
         else:
-            return self.ProtocolMap.get(protoString.lower(), None)
+            return self.ProtocolMap.get(proto_str.lower(), None)
 
-    def prepareChangelogObjects(self, nwObjIdsAdded: list[dict[str, int]], svcObjIdsAdded: list[dict[str, int]], nwObjIdsRemoved: list[dict[str, int]], svcObjIdsRemoved: list[dict[str, int]]) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    def prepare_changelog_objects(self, nw_obj_ids_added: list[dict[str, int]], svc_obj_ids_added: list[dict[str, int]], nw_obj_ids_removed: list[dict[str, int]], svc_obj_ids_removed: list[dict[str, int]]) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
         """
             insert into stm_change_type (change_type_id,change_type_name) VALUES (1,'factory settings');
             insert into stm_change_type (change_type_id,change_type_name) VALUES (2,'initial import');
@@ -647,10 +647,10 @@ class FwConfigImportObject():
         
         # Write changelog for network objects.
 
-        for nw_obj_id in [nw_obj_ids_added_item["obj_id"] for nw_obj_ids_added_item in nwObjIdsAdded]:
+        for nw_obj_id in [nw_obj_ids_added_item["obj_id"] for nw_obj_ids_added_item in nw_obj_ids_added]:
             nwObjs.append(change_logger.create_changelog_import_object("obj", self.import_state, 'I', changeTyp, importTime, nw_obj_id))
 
-        for nw_obj_id in [nw_obj_ids_removed_item["obj_id"] for nw_obj_ids_removed_item in nwObjIdsRemoved]:
+        for nw_obj_id in [nw_obj_ids_removed_item["obj_id"] for nw_obj_ids_removed_item in nw_obj_ids_removed]:
             nwObjs.append(change_logger.create_changelog_import_object("obj", self.import_state, 'D', changeTyp, importTime, nw_obj_id))
 
         for old_nw_obj_id, new_nw_obj_id in change_logger.changed_object_id_map.items():
@@ -658,10 +658,10 @@ class FwConfigImportObject():
 
         # Write changelog for Services.
 
-        for svc_id in [svc_ids_added_item["svc_id"] for svc_ids_added_item in svcObjIdsAdded]:
+        for svc_id in [svc_ids_added_item["svc_id"] for svc_ids_added_item in svc_obj_ids_added]:
             svcObjs.append(change_logger.create_changelog_import_object("svc", self.import_state, 'I', changeTyp, importTime, svc_id))
 
-        for svc_id in [svc_ids_removed_item["svc_id"] for svc_ids_removed_item in svcObjIdsRemoved]:
+        for svc_id in [svc_ids_removed_item["svc_id"] for svc_ids_removed_item in svc_obj_ids_removed]:
             svcObjs.append(change_logger.create_changelog_import_object("svc", self.import_state, 'D', changeTyp, importTime, svc_id))
 
         for old_svc_id, new_svc_id in change_logger.changed_service_id_map.items():
@@ -670,13 +670,12 @@ class FwConfigImportObject():
         return nwObjs, svcObjs
 
 
-    def addChangelogObjects(self, nwObjIdsAdded: list[dict[str, int]], svcObjIdsAdded: list[dict[str, int]], nwObjIdsRemoved: list[dict[str, int]], svcObjIdsRemoved: list[dict[str, int]]):
-        logger = getFwoLogger()
+    def add_changelog_objs(self, nwobj_ids_added: list[dict[str, int]], svc_obj_ids_added: list[dict[str, int]], nw_obj_ids_removed: list[dict[str, int]], svc_obj_ids_removed: list[dict[str, int]]):
+        logger = get_fwo_logger()
         errors = 0
 
-        nwObjsChanged, svcObjsChanged = self.prepareChangelogObjects(nwObjIdsAdded, svcObjIdsAdded, nwObjIdsRemoved, svcObjIdsRemoved)
-
-        changelogMutation = """
+        nwobjs_changed, svcobjs_changed = self.prepare_changelog_objects(nwobj_ids_added, svc_obj_ids_added, nw_obj_ids_removed, svc_obj_ids_removed)
+        changelog_mutation = """
             mutation updateObjChangelogs($nwObjChanges: [changelog_object_insert_input!]!, $svcObjChanges: [changelog_service_insert_input!]!) {
                 insert_changelog_object(objects: $nwObjChanges) {
                     affected_rows
@@ -688,15 +687,15 @@ class FwConfigImportObject():
         """
 
         query_variables = {
-            'nwObjChanges': nwObjsChanged, 
-            'svcObjChanges': svcObjsChanged
+            'nwObjChanges': nwobjs_changed, 
+            'svcObjChanges': svcobjs_changed
         }
 
-        if len(nwObjsChanged) + len(svcObjsChanged)>0:
+        if len(nwobjs_changed) + len(svcobjs_changed)>0:
             try:
-                changelogResult = self.import_state.api_call.call(changelogMutation, query_variables=query_variables, analyze_payload=True)
-                if 'errors' in changelogResult:
-                    logger.exception(f"error while adding changelog entries for objects: {str(changelogResult['errors'])}")
+                changelog_result = self.import_state.api_call.call(changelog_mutation, query_variables=query_variables, analyze_payload=True)
+                if 'errors' in changelog_result:
+                    logger.exception(f"error while adding changelog entries for objects: {str(changelog_result['errors'])}")
                     errors = 1
             except Exception:
                 logger.exception(f"fatal error while adding changelog entries for objects: {str(traceback.format_exc())}")

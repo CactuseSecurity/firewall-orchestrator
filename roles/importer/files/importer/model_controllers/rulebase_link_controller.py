@@ -3,7 +3,7 @@
 from typing import Any
 from models.rulebase_link import RulebaseLink, parse_rulebase_links
 from model_controllers.import_state_controller import ImportStateController
-from fwo_log import getFwoLogger
+from fwo_log import get_fwo_logger
 import fwo_const
 from fwo_api import FwoApi
 
@@ -13,7 +13,7 @@ class RulebaseLinkController():
     rb_links: list[RulebaseLink]
 
     def insert_rulebase_links(self, import_state: ImportStateController, rb_links: list[dict[str, Any]]) -> None:
-        logger = getFwoLogger()
+        logger = get_fwo_logger()
         query_variables = { "rulebaseLinks": rb_links }
         if len(rb_links) == 0:
             return
@@ -28,7 +28,7 @@ class RulebaseLinkController():
 
 
     def remove_rulebase_links(self, import_state: ImportStateController, removed_rb_links_ids: list[int | None]) -> None:
-        logger = getFwoLogger()
+        logger = get_fwo_logger()
         query_variables: dict[str, Any] = { "removedRulebaseLinks": removed_rb_links_ids, "importId": import_state.ImportId }
         if len(removed_rb_links_ids) == 0:
             return
@@ -43,7 +43,7 @@ class RulebaseLinkController():
 
 
     def get_rulebase_links(self, import_state: ImportStateController):
-        logger = getFwoLogger()
+        logger = get_fwo_logger()
         gw_ids = import_state.lookup_all_gateway_ids()
         if len(gw_ids) == 0:
             logger.warning("RulebaseLinkController:get_rulebase_links - no gateway ids found for current management - skipping getting rulebase links")

@@ -1,18 +1,18 @@
 from typing import Any
-from fwo_log import getFwoLogger
+from fwo_log import get_fwo_logger
 import fwo_globals
 from model_controllers.interface_controller import Interface
-from model_controllers.route_controller import Route, getRouteDestination
+from model_controllers.route_controller import Route, get_route_destination
 import json, requests
 from datetime import datetime
 from fwo_exceptions import ConfigFileNotFound
 
-def has_config_changed(full_config: dict[str, Any], mgm_details: dict[str, Any], force: bool=False):
+def has_config_changed():
     # dummy - may be filled with real check later on
     return True
 
 
-def get_config(config2import: dict[str, Any], full_config: dict[str, Any], current_import_id: str, mgm_details: dict[str, Any], limit: int=1000, force: bool=False, jwt: str=''):
+def get_config(config2import: dict[str, Any], current_import_id: str, mgm_details: dict[str, Any], jwt: str=''):
     router_file_url = mgm_details['configPath']
     error_count = 0
     change_count = 0
@@ -20,7 +20,7 @@ def get_config(config2import: dict[str, Any], full_config: dict[str, Any], curre
     error_string = ''
 
     if len(mgm_details['devices'])!=1:
-        logger = getFwoLogger()
+        logger = get_fwo_logger()
         logger.error('expected exactly one device but found: ' + str(mgm_details['devices']))
         exit(1)
     dev_id = mgm_details['devices'][0]['id'] 
@@ -58,7 +58,7 @@ def get_config(config2import: dict[str, Any], full_config: dict[str, Any], curre
         routes.append(Route(dev_id, route['target_gateway'], route['destination'], static=route['static'], interface=route['interface'], metric=route['metric'], distance=route['distance'], ip_version=route['ip_version']))
     cfg['routing'] = routes
 
-    cfg['routing'].sort(key=getRouteDestination,reverse=True)
+    cfg['routing'].sort(key=get_route_destination,reverse=True)
 
     config2import.update({'interfaces': cfg['interfaces'], 'routing': cfg['routing']})
 

@@ -14,7 +14,7 @@ import fwo_config
 import fwo_const
 from fwo_const import csv_delimiter, apostrophe, line_delimiter
 from fwo_enums import ConfFormat, ConfigAction
-from fwo_log import getFwoLogger, getFwoAlertLogger
+from fwo_log import get_fwo_logger, get_fwo_alert_logger
 from model_controllers.fwconfig_import_ruleorder import RuleOrderService
 if TYPE_CHECKING:
     from model_controllers.import_state_controller import ImportStateController
@@ -65,7 +65,7 @@ def sanitize(content: Any, lower: bool = False) -> None | str:
         return result
 
 
-def extend_string_list(list_string: str | None, src_dict: dict[str, list[str]], key: str, delimiter: str, jwt: Any = None, import_id: Any = None) -> str:
+def extend_string_list(list_string: str | None, src_dict: dict[str, list[str]], key: str, delimiter: str) -> str:
     if list_string is None:
         list_string = ''
     if list_string == '':
@@ -85,7 +85,7 @@ def extend_string_list(list_string: str | None, src_dict: dict[str, list[str]], 
     return result
 
 
-def jsonToLogFormat(jsonData: dict[str, Any] | str) -> str:
+def json_to_log_format(jsonData: dict[str, Any] | str) -> str:
     if type(jsonData) is dict:
         jsonString = json.dumps(jsonData)
     elif isinstance(jsonData, str):
@@ -98,18 +98,18 @@ def jsonToLogFormat(jsonData: dict[str, Any] | str) -> str:
     return jsonString
 
 
-def writeAlertToLogFile(jsonData: dict[str, Any]) -> None:
-    logger = getFwoAlertLogger()
+def write_alert_to_log_file(jsonData: dict[str, Any]) -> None:
+    logger = get_fwo_alert_logger()
     jsonDataCopy = deepcopy(jsonData)   # make sure the original alert is not changed
     if type(jsonDataCopy) is dict and 'jsonData' in jsonDataCopy:
         subDict = json.loads(jsonDataCopy.pop('jsonData'))
         jsonDataCopy.update(subDict)
-    alertText = "FWORCHAlert - " + jsonToLogFormat(jsonDataCopy)
+    alertText = "FWORCHAlert - " + json_to_log_format(jsonDataCopy)
     logger.info(alertText)
 
 
 def set_ssl_verification(ssl_verification_mode: str) -> bool | str:
-    logger = getFwoLogger()
+    logger = get_fwo_logger()
     if ssl_verification_mode == '' or ssl_verification_mode == 'off':
         ssl_verification = False
         if fwo_globals.debug_level>5:
@@ -121,16 +121,16 @@ def set_ssl_verification(ssl_verification_mode: str) -> bool | str:
     return ssl_verification
 
 
-def stringIsUri(s: str) -> re.Match[str] | None: # TODO: should return bool?
+def string_is_uri(s: str) -> re.Match[str] | None: # TODO: should return bool?
     return re.match('http://.+', s) or re.match('https://.+', s) or  re.match('file://.+', s) 
 
 
-def serializeDictToClass(data: dict[str, Any], cls: Any) -> Any:
+def serialize_dict_to_class(data: dict[str, Any], cls: Any) -> Any:
     # Unpack the dictionary into keyword arguments
     return cls(**data)
 
 
-def serializeDictToClassRecursively(data: dict[str, list[Any] | Any | Enum], cls: Any) -> Any:
+def serialize_dict_to_class_rec(data: dict[str, list[Any] | Any | Enum], cls: Any) -> Any:
     try:
         init_args = {}
         type_hints = get_type_hints(cls)
@@ -148,14 +148,14 @@ def serializeDictToClassRecursively(data: dict[str, list[Any] | Any | Enum], cls
                     inner_type = field_type.__args__[0]
                     if isinstance(value, list):
                         init_args[field] = [
-                            serializeDictToClassRecursively(item, inner_type) if isinstance(item, dict) else item for item in value # type: ignore
+                            serialize_dict_to_class_rec(item, inner_type) if isinstance(item, dict) else item for item in value # type: ignore
                         ]
                     else:
                         raise ValueError(f"Expected a list for field '{field}', but got {type(value).__name__}")
 
                 # Handle dictionary (nested objects)
                 elif isinstance(value, dict):
-                    init_args[field] = serializeDictToClassRecursively(value, field_type) # type: ignore
+                    init_args[field] = serialize_dict_to_class_rec(value, field_type) # type: ignore
 
                 # Handle Enum types
                 elif isinstance(field_type, type) and issubclass(field_type, Enum):
@@ -173,35 +173,7 @@ def serializeDictToClassRecursively(data: dict[str, list[Any] | Any | Enum], cls
         return data
 
 
-def oldSerializeDictToClassRecursively(data: dict[str, Any], cls: Any) -> Any:
-    # Create an empty dictionary to store keyword arguments
-    init_args = {}
-
-    # Get the class's type hints (this is a safer way to access annotations)
-    type_hints = get_type_hints(cls)
-
-    # Iterate over the class fields
-    for field, field_type in type_hints.items():
-        if field in data:
-            if hasattr(field_type, '__origin__') and field_type.__origin__ == list:
-                # Handle list types
-                inner_type = field_type.__args__[0]
-                init_args[field] = [
-                    serializeDictToClassRecursively(item, inner_type) if isinstance(item, dict) else item # type: ignore
-                    for item in data[field]
-                ]
-            elif isinstance(data[field], dict):
-                # Recursively convert nested dictionaries into the appropriate class
-                init_args[field] = serializeDictToClassRecursively(data[field], field_type)
-            else:
-                # Directly assign the value if it's not a dict
-                init_args[field] = data[field]
-
-    # Create an instance of the class with the collected arguments
-    return cls(**init_args)
-
-
-def deserializeClassToDictRecursively(obj: Any, seen: set[int] | None = None) -> dict[str, Any] | list[Any] | Any | str | int | float | bool | None:
+def deserialize_class_to_dict_rec(obj: Any, seen: set[int] | None = None) -> dict[str, Any] | list[Any] | Any | str | int | float | bool | None:
     if seen is None:
         seen = set()
 
@@ -217,17 +189,17 @@ def deserializeClassToDictRecursively(obj: Any, seen: set[int] | None = None) ->
 
     if isinstance(obj, list):
         # If the object is a list, deserialize each item
-        return [deserializeClassToDictRecursively(item, seen) for item in obj] # type: ignore
+        return [deserialize_class_to_dict_rec(item, seen) for item in obj] # type: ignore
     elif isinstance(obj, dict):
         # If the object is a dictionary, deserialize each key-value pair
-        return {key: deserializeClassToDictRecursively(value, seen) for key, value in obj.items()} # type: ignore
+        return {key: deserialize_class_to_dict_rec(value, seen) for key, value in obj.items()} # type: ignore
     elif isinstance(obj, Enum):
         # If the object is an Enum, convert it to its value
         return obj.value
     elif hasattr(obj, '__dict__'):
         # If the object is a class instance, deserialize its attributes
         return {
-            key: deserializeClassToDictRecursively(value, seen)
+            key: deserialize_class_to_dict_rec(value, seen)
             for key, value in obj.__dict__.items()
             if not callable(value) and not key.startswith('__')
         }
@@ -236,15 +208,15 @@ def deserializeClassToDictRecursively(obj: Any, seen: set[int] | None = None) ->
         return obj
 
 
-def cidrToRange(ip: str | None) -> list[str] | list[None]: # TODO: I have no idea what other than string it could be
-    logger = getFwoLogger()
+def cidr_to_range(ip: str | None) -> list[str] | list[None]: # TODO: I have no idea what other than string it could be
+    logger = get_fwo_logger()
 
     if isinstance(ip, str): # type: ignore
         # dealing with ranges:
         if '-' in ip:
             return '-'.split(ip)
 
-        ipVersion = validIPAddress(ip)
+        ipVersion = valid_ip_address(ip)
         if ipVersion=='Invalid':
             logger.warning("error while decoding ip '" + ip + "'")
             return [ip]
@@ -257,9 +229,9 @@ def cidrToRange(ip: str | None) -> list[str] | list[None]: # TODO: I have no ide
     return [ip]
 
 
-def validIPAddress(IP: str) -> str:
+def valid_ip_address(ip: str) -> str:
     try:
-        t = type(ipaddress.ip_address(IP))
+        t = type(ipaddress.ip_address(ip))
         if t is ipaddress.IPv4Address:
             return "IPv4"
         else:
@@ -390,7 +362,7 @@ def compute_min_moves(source: list[Any], target: list[Any]) -> dict[str, Any]:
 def write_native_config_to_file(importState: 'ImportStateController', configNative: dict[str, Any] | None) -> None:
     from fwo_const import import_tmp_path
     if importState.DebugLevel>6:
-        logger = getFwoLogger(debug_level=importState.DebugLevel)
+        logger = get_fwo_logger(debug_level=importState.DebugLevel)
         debug_start_time = int(time.time())
         try:
             full_native_config_filename = f"{import_tmp_path}/mgm_id_{str(importState.MgmDetails.Id)}_config_native.json"
@@ -407,7 +379,7 @@ def write_native_config_to_file(importState: 'ImportStateController', configNati
 def init_service_provider():
     service_provider = ServiceProvider()
     service_provider.register(Services.GLOBAL_STATE, lambda: GlobalState(), Lifetime.SINGLETON)
-    service_provider.register(Services.FWO_CONFIG, lambda: fwo_config.readConfig(), Lifetime.SINGLETON)
+    service_provider.register(Services.FWO_CONFIG, lambda: fwo_config.read_config(), Lifetime.SINGLETON)
     service_provider.register(Services.GROUP_FLATS_MAPPER, lambda: GroupFlatsMapper(), Lifetime.IMPORT)
     service_provider.register(Services.PREV_GROUP_FLATS_MAPPER, lambda: GroupFlatsMapper(), Lifetime.IMPORT)
     service_provider.register(Services.UID2ID_MAPPER, lambda: Uid2IdMapper(), Lifetime.IMPORT)

@@ -1,4 +1,4 @@
-from fwo_log import getFwoLogger
+from fwo_log import get_fwo_logger
 from typing import Any
 
 from model_controllers.import_state_controller import ImportStateController
@@ -9,12 +9,12 @@ from model_controllers.import_state_controller import ImportStateController
 """
 def normalize_gateways (nativeConfig: dict[str, Any], importState: ImportStateController, normalizedConfig: dict[str, Any]):
     normalizedConfig['gateways'] = []
-    normalize_rulebase_links (nativeConfig, importState, normalizedConfig)
+    normalize_rulebase_links (nativeConfig, normalizedConfig)
     normalize_interfaces (nativeConfig, importState, normalizedConfig)
     normalize_routing (nativeConfig, importState, normalizedConfig)
 
 
-def normalize_rulebase_links (nativeConfig: dict[str, Any], importState: ImportStateController, normalizedConfig: dict[str, Any]):
+def normalize_rulebase_links (nativeConfig: dict[str, Any], normalizedConfig: dict[str, Any]):
     gwRange = range(len(nativeConfig['gateways']))
     for gwId in gwRange:
         gwUid = nativeConfig['gateways'][gwId]['uid']
@@ -34,7 +34,7 @@ def get_normalized_rulebase_link(nativeConfig: dict[str, Any], gwId: int) -> lis
             link['link_type'] = link['type']
             del link['type']
         else:
-            logger = getFwoLogger()
+            logger = get_fwo_logger()
             logger.warning('No type in rulebase link: ' + str(link))
 
         # Remove from_rulebase_uid and from_rule_uid if link_type is initial

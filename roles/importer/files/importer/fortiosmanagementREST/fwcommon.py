@@ -37,7 +37,7 @@ user_obj_types = ['user/local', 'user/group']
 user_scope = ['user_obj_' + s1 for s1 in user_obj_types]
 
 
-def has_config_changed(full_config: dict[str, Any], mgm_details: Any, force: bool = False) -> bool:
+def has_config_changed() -> bool:
     # dummy - may be filled with real check later on
     return True
  
@@ -55,7 +55,7 @@ def get_config(full_config: dict[str, Any], importState: ImportStateController) 
         sid = importState.MgmDetails.Secret
 
         if not parsing_config_only:   # no native config was passed in, so getting it from FortiManager
-            getObjects(sid, fm_api_url, full_config, importState.FwoConfig.ApiFetchSize, nw_obj_types, svc_obj_types)
+            get_objects(sid, fm_api_url, full_config, importState.FwoConfig.ApiFetchSize, nw_obj_types, svc_obj_types)
             # getInterfacesAndRouting(
             #     sid, fm_api_url, full_config, mgm_details['devices'], limit)
 
@@ -63,9 +63,9 @@ def get_config(full_config: dict[str, Any], importState: ImportStateController) 
             fOS_zone.add_zone_if_missing (config2import, 'global', importState.ImportId)
 
             # initialize all rule dicts
-            fOS_rule.initializeRulebases(full_config)
+            fOS_rule.initialize_rulebases(full_config)
             for _ in importState.MgmDetails.Devices: #TYPING: You good?
-                fOS_rule.getAccessPolicy(sid, fm_api_url, full_config, importState.FwoConfig.ApiFetchSize)
+                fOS_rule.get_access_policy(sid, fm_api_url, full_config, importState.FwoConfig.ApiFetchSize)
                 # fOS_rule.getNatPolicy(sid, fm_api_url, full_config, limit)
 
     # now we normalize relevant parts of the raw config and write the results to config2import dict
@@ -82,7 +82,7 @@ def get_config(full_config: dict[str, Any], importState: ImportStateController) 
     fOS_user.normalize_users(
         full_config, config2import, importState.ImportId, user_scope)
     fOS_network.normalize_nwobjects(
-        full_config, config2import, importState.ImportId, nw_obj_scope, jwt=importState.Jwt, mgm_id=importState.ImportId)
+        full_config, config2import, importState.ImportId, nw_obj_scope)
     fOS_service.normalize_svcobjects(
         full_config, config2import, importState.ImportId, svc_obj_scope)
     fOS_zone.add_zone_if_missing (config2import, 'global', importState.ImportId)
@@ -111,19 +111,19 @@ def get_config(full_config: dict[str, Any], importState: ImportStateController) 
     return 0, listOfManagers
 
 
-def getObjects(sid: str, fm_api_url: str, raw_config: dict[str, Any], limit: int, nw_obj_types: list[str], svc_obj_types: list[str]):
+def get_objects(sid: str, fm_api_url: str, raw_config: dict[str, Any], limit: int, nw_obj_types: list[str], svc_obj_types: list[str]):
     # get network objects:
     for object_type in nw_obj_types:
-        fOS_getter.update_config_with_fortiOS_api_call(
+        fOS_getter.update_config_with_fortios_api_call(
             raw_config, fm_api_url + "/cmdb/" + object_type + "?access_token=" + sid, "nw_obj_" + object_type, limit=limit)
 
     # get service objects:
     for object_type in svc_obj_types:
-        fOS_getter.update_config_with_fortiOS_api_call(
+        fOS_getter.update_config_with_fortios_api_call(
             raw_config, fm_api_url + "/cmdb/" + object_type + "?access_token=" + sid, "svc_obj_" + object_type, limit=limit)
 
     # get user objects:
     for object_type in user_obj_types:
-        fOS_getter.update_config_with_fortiOS_api_call(
+        fOS_getter.update_config_with_fortios_api_call(
             raw_config, fm_api_url + "/cmdb/" + object_type + "?access_token=" + sid, "user_obj_" + object_type, limit=limit)
 

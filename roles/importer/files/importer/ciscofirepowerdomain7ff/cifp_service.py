@@ -66,16 +66,16 @@ def parse_port(orig_svc: dict[str, Any], svc: dict[str, Any]) -> None:
             svc["svc_port"] = orig_svc["port"]
             svc["svc_port_end"] = None
 
-def parse_svc_group(orig_svc_grp: dict[str, Any], import_id: str, svc_objects: list[dict[str, Any]], id: str | None = None) -> tuple[str, str]:
+def parse_svc_group(orig_svc_grp: dict[str, Any], import_id: str, svc_objects: list[dict[str, Any]], svcgrp_id: str | None = None) -> tuple[str, str]:
     refs: list[str] = []
     names: list[str] = []
 
     if "literals" in orig_svc_grp:
-        if id is None:
-            id = orig_svc_grp["id"] if "id" in orig_svc_grp else str(random.random())
+        if svcgrp_id is None:
+            svcgrp_id = orig_svc_grp["id"] if "id" in orig_svc_grp else str(random.random())
         for orig_literal in orig_svc_grp["literals"]:
             literal = parse_svc(orig_literal, import_id)
-            literal["svc_uid"] += "_" + str(id)
+            literal["svc_uid"] += "_" + str(svcgrp_id)
             svc_objects.append(literal)
             names.append(literal["svc_name"])
             refs.append(literal["svc_uid"])

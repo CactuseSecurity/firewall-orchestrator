@@ -13,7 +13,7 @@ from models.rule_metadatum import RuleMetadatum
 from models.rulebase import Rulebase, RulebaseForImport
 from model_controllers.import_state_controller import ImportStateController
 from model_controllers.fwconfig_normalized_controller import FwConfigNormalized
-from fwo_log import ChangeLogger, getFwoLogger
+from fwo_log import ChangeLogger, get_fwo_logger
 from datetime import datetime
 from models.rule_from import RuleFrom
 from models.rule_to import RuleTo
@@ -67,7 +67,7 @@ class FwConfigImportRule():
 
     def updateRulebaseDiffs(self, prevConfig: FwConfigNormalized) -> list[int]:
         
-        logger = getFwoLogger(debug_level=self.import_details.DebugLevel)
+        logger = get_fwo_logger(debug_level=self.import_details.DebugLevel)
 
         if self.normalized_config is None:
             raise FwoImporterError("cannot update rulebase diffs: normalized_config is None")
@@ -220,7 +220,7 @@ class FwConfigImportRule():
         Returns:
             int: Number of changes made.
         """
-        logger = getFwoLogger()
+        logger = get_fwo_logger()
         changes = 0
 
         if len(new_hit_information) > 0:
@@ -567,7 +567,7 @@ class FwConfigImportRule():
 
 
     def getRulesByIdWithRefUids(self, ruleIds: list[int]) -> tuple[int, int, list[dict[str, Any]]]: #TODO: change return type to list[Rule] and cast
-        logger = getFwoLogger()
+        logger = get_fwo_logger()
         getRuleUidRefsQuery = FwoApi.get_graphql_code([fwo_const.graphql_query_path + "rule/getRulesByIdWithRefUids.graphql"])
         query_variables = { 'ruleIds': ruleIds }
         
@@ -646,7 +646,7 @@ class FwConfigImportRule():
 
     # adds new rule_metadatum to the database
     def addNewRuleMetadata(self, newRules: list[Rulebase]) -> tuple[int, list[int]]:
-        logger = getFwoLogger()
+        logger = get_fwo_logger()
         changes: int = 0
         newRuleMetaDataIds: list[int] = []
         newRuleIds: list[int] = []
@@ -684,7 +684,7 @@ class FwConfigImportRule():
 
 
     def add_rulebases_without_rules(self, newRules: list[Rulebase]):
-        logger = getFwoLogger()
+        logger = get_fwo_logger()
         changes: int = 0
         newRulebaseIds: list[int] = []
         
@@ -741,7 +741,7 @@ class FwConfigImportRule():
             tuple[int, list[dict]]: A tuple containing the number of changes made and a list of dictionaries,
                 each with 'rule_id' and 'rule_uid' for each newly added rule.
         """
-        logger = getFwoLogger()
+        logger = get_fwo_logger()
         changes: int = 0
         newRuleIds: list[dict[str, Any]] = []
 
@@ -956,7 +956,7 @@ class FwConfigImportRule():
             Updates the db table rule_enforced_on_gateway by creating new entries for a list of rule_ids and setting the old versions of said rules removed.
         """
 
-        logger = getFwoLogger()
+        logger = get_fwo_logger()
 
         id_map: dict[int, int] = {}
 
@@ -1064,55 +1064,55 @@ class FwConfigImportRule():
             
 
     # TODO: limit query to a single rulebase
-    def GetRuleNumMap(self) -> dict[str, dict[str, float]]:
+    def get_rule_num_map(self) -> dict[str, dict[str, float]]:
         query = "query getRuleNumMap($mgmId: Int) { rule(where:{mgm_id:{_eq:$mgmId}}) { rule_uid rulebase_id rule_num_numeric } }"
         try:
             result = self.import_details.api_call.call(query=query, query_variables={"mgmId": self.import_details.MgmDetails.CurrentMgmId})
         except Exception:
-            logger = getFwoLogger()
+            logger = get_fwo_logger()
             logger.error(f'Error while getting rule number map')
             return {}
 
-        map: dict[str, dict[str, float]] = {}
-        for ruleNum in result['data']['rule']:
-            if ruleNum['rulebase_id'] not in map:
-                map.update({ ruleNum['rulebase_id']: {} })  # initialize rulebase
-            map[ruleNum['rulebase_id']].update({ ruleNum['rule_uid']: ruleNum['rule_num_numeric']})
-        return map
+        rule_num_map: dict[str, dict[str, float]] = {}
+        for rule_num in result['data']['rule']:
+            if rule_num['rulebase_id'] not in rule_num_map:
+                rule_num_map.update({ rule_num['rulebase_id']: {} })  # initialize rulebase
+            rule_num_map[rule_num['rulebase_id']].update({ rule_num['rule_uid']: rule_num['rule_num_numeric']})
+        return rule_num_map
 
-    def GetNextRuleNumMap(self) -> dict[str, float]: #TODO: implement!
+    def get_next_rule_num_map(self) -> dict[str, float]: #TODO: implement!
         query = "query getRuleNumMap { rule { rule_uid rule_num_numeric } }"
         try:
             _ = self.import_details.api_call.call(query=query, query_variables={})
         except Exception:
-            logger = getFwoLogger()
+            logger = get_fwo_logger()
             logger.error(f'Error while getting rule number')
             return {}
 
-        map: dict[str, float] = {}
+        rule_num_map: dict[str, float] = {}
         # for ruleNum in result['data']['rule']:
-        #     map.update({ruleNum['rule_uid']: ruleNum['rule_num_numeric']})
-        return map
+        #     rule_num_map.update({ruleNum['rule_uid']: ruleNum['rule_num_numeric']})
+        return rule_num_map
 
-    def GetRuleTypeMap(self) -> dict[str, int]:
+    def get_rule_type_map(self) -> dict[str, int]:
         query = "query getTrackMap { stm_track { track_name track_id } }"
         try:
             result = self.import_details.api_call.call(query=query, query_variables={})
         except Exception:
-            logger = getFwoLogger()
+            logger = get_fwo_logger()
             logger.error(f'Error while getting stm_track')
             return {}
         
-        map: dict[str, int] = {}
+        rule_type_map: dict[str, int] = {}
         for track in result['data']['stm_track']:
-            map.update({track['track_name']: track['track_id']})
-        return map
+            rule_type_map.update({track['track_name']: track['track_id']})
+        return rule_type_map
 
-    def getCurrentRules(self, importId: int, mgmId: int, rulebaseName: str) -> list[list[Any]] | None:
+    def get_current_rules(self, import_id: int, mgm_id: int, rulebase_name: str) -> list[list[Any]] | None:
         query_variables: dict[str, Any] = {
-            "importId": importId,
-            "mgmId": mgmId,
-            "rulebaseName": rulebaseName
+            "importId": import_id,
+            "mgmId": mgm_id,
+            "rulebaseName": rulebase_name
         }
         query = """
             query get_rulebase($importId: bigint!, $mgmId: Int!, $rulebaseName: String!) {
@@ -1128,33 +1128,33 @@ class FwConfigImportRule():
         """
         
         try:
-            queryResult = self.import_details.api_call.call(query, query_variables=query_variables)
+            query_result = self.import_details.api_call.call(query, query_variables=query_variables)
         except Exception:
-            logger = getFwoLogger()
+            logger = get_fwo_logger()
             logger.error(f"error while getting current rulebase: {str(traceback.format_exc())}")
             self.import_details.increaseErrorCounterByOne()
             return
         
         try:
-            ruleList = queryResult['data']['rulebase'][0]['rules']
+            rule_list = query_result['data']['rulebase'][0]['rules']
         except Exception:
-            logger = getFwoLogger()
-            logger.error(f'could not find rules in query result: {queryResult}')
+            logger = get_fwo_logger()
+            logger.error(f'could not find rules in query result: {query_result}')
             self.import_details.increaseErrorCounterByOne()
             return
 
         rules: list[list[Any]] = []
-        for rule in ruleList:
+        for rule in rule_list:
             rules.append([rule['rule']['rule_num'], rule['rule']['rule_num_numeric'], rule['rule']['rule_uid']]) # TODO: change to tuple?
         return rules
 
-    def insertRulebase(self, ruleBaseName: str, isGlobal: bool = False):
+    def insert_rulebase(self, rulebase_name: str, is_global: bool = False):
         # call for each rulebase to add
         query_variables: dict[str, Any] = {
             "rulebase": {
-                "is_global": isGlobal,
+                "is_global": is_global,
                 "mgm_id": self.import_details.MgmDetails.CurrentMgmId,
-                "name": ruleBaseName,
+                "name": rulebase_name,
                 "created": self.import_details.ImportId
             }
         }
@@ -1180,13 +1180,13 @@ class FwConfigImportRule():
         return self.import_details.api_call.call(mutation, query_variables=query_variables)
 
 
-    def importInsertRulebaseOnGateway(self, rulebaseId: int, devId: int, orderNo: int = 0):
+    def import_insert_rulebase_on_gateway(self, rulebase_id: int, dev_id: int, order_num: int = 0):
         query_variables: dict[str, Any] = {
             "rulebase2gateway": [
                 {
-                    "dev_id": devId,
-                    "rulebase_id": rulebaseId,
-                    "order_no": orderNo
+                    "dev_id": dev_id,
+                    "rulebase_id": rulebase_id,
+                    "order_no": order_num
                 }
             ]
         }
@@ -1199,17 +1199,17 @@ class FwConfigImportRule():
         
         return self.import_details.api_call.call(mutation, query_variables=query_variables)
 
-    def _get_list_of_enforced_gateways(self, rule: RuleNormalized, importDetails: ImportStateController) -> list[int] | None:
+    def _get_list_of_enforced_gateways(self, rule: RuleNormalized, import_details: ImportStateController) -> list[int] | None:
         if rule.rule_installon is None:
             return None
         enforced_gw_ids: list[int] = []
-        for gwUid in rule.rule_installon.split(fwo_const.list_delimiter):
-            gwId = importDetails.lookupGatewayId(gwUid)
-            if gwId is None:
-                logger = getFwoLogger()
-                logger.warning(f"could not find gateway id for gateway uid {gwUid} during rule import preparation")
+        for gw_uid in rule.rule_installon.split(fwo_const.list_delimiter):
+            gw_id = import_details.lookupGatewayId(gw_uid)
+            if gw_id is None:
+                logger = get_fwo_logger()
+                logger.warning(f"could not find gateway id for gateway uid {gw_uid} during rule import preparation")
                 continue
-            enforced_gw_ids.append(gwId)
+            enforced_gw_ids.append(gw_id)
         if len(enforced_gw_ids) == 0:
             return None
 
@@ -1267,7 +1267,7 @@ class FwConfigImportRule():
         return rule_for_import
 
     def write_changelog_rules(self, added_rules_ids: list[int], removed_rules_ids: list[int]) -> int:
-        logger = getFwoLogger()
+        logger = get_fwo_logger()
         errors = 0
 
         changelog_rule_insert_objects = self.prepare_changelog_rules_insert_objects(added_rules_ids, removed_rules_ids)

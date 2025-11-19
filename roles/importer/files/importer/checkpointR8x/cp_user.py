@@ -1,10 +1,10 @@
 from typing import Any
-from fwo_log import getFwoLogger
+from fwo_log import get_fwo_logger
 import json
 
 def collect_users_from_rule(rule: dict[str, Any], users: dict[str, Any]): #, objDict):
     if 'rule-number' in rule:  # standard rule
-        logger = getFwoLogger()
+        logger = get_fwo_logger()
         if 'type' in rule and rule['type'] != 'place-holder':
             for src in rule["source"]:
                 # need to get all details for the user first!
@@ -62,16 +62,16 @@ def parse_user_objects_from_rulebase(rulebase: dict[str, Any], users: dict[str, 
     collect_users_from_rulebase(rulebase, users)
     for user_name in users.keys():
         # TODO: get user info via API
-        _ = getUserUidFromCpApi(user_name)
+        _ = get_user_uid_from_cp_api(user_name)
         # finally add the import id
         users[user_name]['control_id'] = import_id
 
 
-def getUserUidFromCpApi (userName: str) -> str:
+def get_user_uid_from_cp_api(userName: str) -> str:
     # show-object with UID
     # dummy implementation returning the name as uid
     return userName
 
 
-def normalizeUsersLegacy() -> None:
+def normalize_users_legacy() -> None:
     raise NotImplementedError

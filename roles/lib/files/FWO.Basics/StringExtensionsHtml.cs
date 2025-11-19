@@ -13,12 +13,12 @@ namespace FWO.Basics
 
         public static string StripDangerousHtmlTags(this string text, RegexOptions options = RegexOptions.None)
         {
-            return Regex.Replace(text, HtmlTagPattern, StripIfDangerousTag, options);
+            return Regex.Replace(text, HtmlTagPattern, StripIfDangerousTag, options, TimeSpan.FromMilliseconds(100));
         }
 
         public static string StripHtmlTags(this string text, RegexOptions options = RegexOptions.None)
         {
-            return Regex.Replace(text, HtmlTagPattern, string.Empty, options);
+            return Regex.Replace(text, HtmlTagPattern, string.Empty, options, TimeSpan.FromMilliseconds(100));
         }
 
         private static string StripIfDangerousTag(Match tagMatch)

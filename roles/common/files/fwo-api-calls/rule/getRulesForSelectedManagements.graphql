@@ -1,7 +1,8 @@
-query getRulesForSelectedManagements($mgmIds: [Int!]) {
-  rule(order_by: { rule_uid: asc }, where: { removed: { _is_null: true } mgm_id: { _in: $mgmIds }}) {
+query getRulesWithCurrentViolationsByChunk($active: Boolean, $import_id_start: bigint, $import_id_end: bigint, $mgm_ids: [Int!]) {
+  rule(order_by: { rule_uid: asc }, where: { removed: { _is_null: true } mgm_id: { _in: $mgm_ids }}) {
     rule_src
     rule_dst
+    ...ruleDetails
     violations: compliance_violations_version_agnostic( where: { removed_date: { _is_null: true } }) {
       id
       rule_id

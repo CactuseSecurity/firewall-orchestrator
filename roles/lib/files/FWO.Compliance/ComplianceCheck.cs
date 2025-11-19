@@ -537,9 +537,16 @@ namespace FWO.Compliance
 
         private async Task<List<Rule>> GetRelevantManagementsRules(List<int> managementIds)
         {
-            var variables = new { mgmIds = managementIds };
+            int maxImportId = await _apiConnection.SendQueryAsync<int>(ImportQueries.getMaxImportId);
+
+            Dictionary<string, object> queryVariables = new();
+            queryVariables[QueryVar.ImportIdStart] = 0;
+            queryVariables[QueryVar.ImportIdEnd] = maxImportId;
+            queryVariables["mgm_ids"] = managementIds;
+
+
             Logger.TryWriteInfo("Compliance Check", $"Loading rules for managements: {string.Join(",", managementIds)}.", LocalSettings.ComplianceCheckVerbose);
-            List<Rule>? rules = await _apiConnection.SendQueryAsync<List<Rule>>(RuleQueries.getRulesForSelectedManagements, variables: variables);
+            List<Rule>? rules = await _apiConnection.SendQueryAsync<List<Rule>>(RuleQueries.getRulesForSelectedManagements, queryVariables);
 
             if (rules == null)
             {

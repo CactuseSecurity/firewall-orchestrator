@@ -3,10 +3,10 @@ import ipaddress
 from time import strftime, localtime
 from typing import Any
 from fwo_const import list_delimiter, nat_postfix, dummy_ip
-from fmgr_network import create_network_object, get_first_ip_of_destination
-from fmgr_zone import find_zones_in_normalized_config
-from fmgr_consts import nat_types
-import fmgr_getter
+from fortiadom5ff.fmgr_network import create_network_object, get_first_ip_of_destination
+from fortiadom5ff.fmgr_zone import find_zones_in_normalized_config
+from fortiadom5ff.fmgr_consts import nat_types
+from fortiadom5ff import fmgr_getter
 from fwo_log import getFwoLogger
 from model_controllers.route_controller import get_matching_route_obj, get_ip_of_interface_obj
 from fwo_exceptions import FwoDeviceWithoutLocalPackage, FwoImporterErrorInconsistencies

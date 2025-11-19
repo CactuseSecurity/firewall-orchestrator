@@ -3,7 +3,7 @@ import ipaddress
 from typing import Any
 from fwo_log import getFwoLogger
 from fwo_const import list_delimiter, nat_postfix
-from fmgr_zone import find_zones_in_normalized_config
+from fortiadom5ff.fmgr_zone import find_zones_in_normalized_config
 from fwo_exceptions import FwoImporterErrorInconsistencies
 
 

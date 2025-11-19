@@ -1,4 +1,4 @@
-import fmgr_getter
+from fortiadom5ff import fmgr_getter
 from fwo_exceptions import FwoNormalizedConfigParseError
 from typing import Any
 

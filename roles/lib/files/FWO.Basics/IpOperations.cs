@@ -3,11 +3,49 @@ using System.Net;
 using NetTools;
 using System;
 using System.Numerics;
+using DnsClient;
 
 namespace FWO.Basics
 {
     public static class IpOperations
     {
+
+        // reuse the client to avoid socket churn; disable client-side cache
+        private static readonly LookupClient ReverseLookupClient = new(new LookupClientOptions
+        {
+            UseCache = false,
+            ContinueOnDnsError = true,
+            ThrowDnsErrors = false
+        });
+
+        public static async Task<IReadOnlyList<string>> DnsReverseLookUpAllAsync(
+            IPAddress address,
+            CancellationToken cancellationToken = default)
+        {
+            // QueryReverseAsync issues a PTR query and returns all answers from the DNS server
+            IDnsQueryResponse response = await ReverseLookupClient.QueryReverseAsync(address, cancellationToken)
+                .ConfigureAwait(false);
+
+            if (response.HasError || response.Answers.Count == 0)
+            {
+                return Array.Empty<string>();
+            }
+
+            return response.Answers
+                .PtrRecords()
+                .Select(ptr => ptr.PtrDomainName.Value.TrimEnd('.')) // drop trailing dot
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToArray();
+        }
+
+        public static async Task<string> DnsReverseLookUpPreferredAsync(IPAddress address)
+        {
+            IReadOnlyList<string> names = await DnsReverseLookUpAllAsync(address);
+            return names.FirstOrDefault(name => !name.StartsWith("lx", StringComparison.OrdinalIgnoreCase))
+                ?? names.FirstOrDefault()
+                ?? string.Empty;
+        }
+
         public static async Task<string> DnsReverseLookUp(IPAddress address)
         {
             try
@@ -142,7 +180,7 @@ namespace FWO.Basics
                 else if (typeof(T) == typeof((IPAddress, IPAddress)))
                 {
                     (IPAddress, IPAddress) ipTuple = (ipAdressStart!, ipAdressEnd!);
-                    ipResult = (T) (object) ipTuple;
+                    ipResult = (T)(object)ipTuple;
                     return true;
                 }
 
@@ -369,19 +407,19 @@ namespace FWO.Basics
             if (source.Begin.ToString().Equals(source.End.ToString()))
             {
                 int sourceMask = source.Begin.AddressFamily == AddressFamily.InterNetwork ? 32 : 128;
-                sourceNetwork.Add(IPNetwork2.Parse(source.ToString(), (byte) sourceMask));
+                sourceNetwork.Add(IPNetwork2.Parse(source.ToString(), (byte)sourceMask));
             }
             else if (IPNetwork2.TryParseRange(source.ToString(), out IEnumerable<IPNetwork2> parsedSourceRange))
             {
                 sourceNetwork.AddRange(parsedSourceRange);
             }
-             
+
             foreach (IPAddressRange range in subtractor)
             {
                 if (range.Begin.ToString().Equals(range.End.ToString()))
                 {
                     int rangeMask = source.Begin.AddressFamily == AddressFamily.InterNetwork ? 32 : 128;
-                    subtractorNetwork.Add(IPNetwork2.Parse(range.ToString(), (byte) rangeMask));
+                    subtractorNetwork.Add(IPNetwork2.Parse(range.ToString(), (byte)rangeMask));
                 }
                 else if (IPNetwork2.TryParseRange(range.ToString(), out IEnumerable<IPNetwork2> parsedSubtractorRange))
                 {
@@ -414,7 +452,7 @@ namespace FWO.Basics
 
             return result;
         }
-        
+
         public static List<IPAddressRange> ToMergedRanges(this IEnumerable<IPNetwork2> networks, bool includeNetworkAndBroadcast = true)
         {
             var list = networks?.ToList() ?? new List<IPNetwork2>();
@@ -424,7 +462,7 @@ namespace FWO.Basics
             var intervals = list.Select(n =>
             {
                 var start = includeNetworkAndBroadcast ? n.Network : n.FirstUsable;
-                var end   = includeNetworkAndBroadcast ? n.Broadcast : n.LastUsable;
+                var end = includeNetworkAndBroadcast ? n.Broadcast : n.LastUsable;
                 return (start, end);
             }).ToList();
 

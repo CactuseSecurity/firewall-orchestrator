@@ -20,9 +20,11 @@ from ciscoasa9.asa_parser import parse_asa_config
 from fwo_base import write_native_config_to_file
 from ciscoasa9.asa_normalize import normalize_config
 from fwo_exceptions import FwoImporterError
+from models.import_state import ImportState
+from models.import_state import ImportState
 
 
-def has_config_changed(_, __, ___):
+def has_config_changed(_: dict[str, Any], __: ImportState, ___: bool = False) -> bool:
     # We don't get this info from ASA, so we always return True
     return True
 

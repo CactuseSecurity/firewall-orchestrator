@@ -36,7 +36,7 @@
         { config_key: { _eq: "treatDynamicAndDomainObjectsAsInternet" } }
         { config_key: { _eq: "showShortColumnsInComplianceReports" } }
         { config_key: { _eq: "complianceCheckElementsPerFetch" } }
-        { config_key: { _eq: "ComplianceCheckAvailableProcessors" } }
+        { config_key: { _eq: "complianceCheckAvailableProcessors" } }
 
       ]
     }

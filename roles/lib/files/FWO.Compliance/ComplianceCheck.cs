@@ -173,7 +173,7 @@ namespace FWO.Compliance
             {
                 Logger.TryWriteInfo("Compliance Check", "Persisting violations.", true);
 
-                List<ComplianceViolation> violationsInDb = await _apiConnection.SendQueryAsync<List<ComplianceViolation>>(ComplianceQueries.getViolations);
+                List<ComplianceViolation> violationsInDb = RulesInCheck!.SelectMany(p => p.Violations).ToList();
 
                 // Filter violations by non-valuable rules. If rules are not evaluable their violation status stays datawise the same until they are evaluable again. 
 
@@ -713,8 +713,6 @@ namespace FWO.Compliance
         {
             List<ComplianceViolationBase> violationsForInsert = [];
 
-            if (ComplianceReport is ReportCompliance complianceReport)
-            {
                 List<ComplianceViolation> currentViolations = violationsInDb
                     .Where(ev => ev.RemovedDate == null)
                     .ToList();
@@ -727,24 +725,30 @@ namespace FWO.Compliance
 
                 Logger.TryWriteInfo("Compliance Check", $"Created {currentViolations.Count} unique keys for current violations.", LocalSettings.ComplianceCheckVerbose);
 
-                violationsForInsert = CurrentViolationsInCheck
-                    .Where(v => !violationKeys.Contains(CreateUniqueViolationKey(v)))
-                    .Select(v => new ComplianceViolationBase
+                for (int i = 0; i < CurrentViolationsInCheck.Count; i++)
+                {
+                    ComplianceViolation violationInCheck = CurrentViolationsInCheck[i];
+                    string violationKey = CreateUniqueViolationKey(violationInCheck);
+
+                    if (!violationKeys.Any(key => key == violationKey))
                     {
-                        RuleId = v.RuleId,
-                        RuleUid = v.RuleUid,
-                        MgmtUid = v.MgmtUid,
-                        Details = v.Details,
-                        FoundDate = v.FoundDate,
-                        RemovedDate = v.RemovedDate,
-                        RiskScore = v.RiskScore,
-                        PolicyId = v.PolicyId,
-                        CriterionId = v.CriterionId
-                    })
-                    .ToList();
+                        violationsForInsert.Add(new ComplianceViolationBase
+                        {
+                            RuleId = violationInCheck.RuleId,
+                            RuleUid = violationInCheck.RuleUid,
+                            MgmtUid = violationInCheck.MgmtUid,
+                            Details = violationInCheck.Details,
+                            FoundDate = violationInCheck.FoundDate,
+                            RemovedDate = violationInCheck.RemovedDate,
+                            RiskScore = violationInCheck.RiskScore,
+                            PolicyId = violationInCheck.PolicyId,
+                            CriterionId = violationInCheck.CriterionId
+                        });
+                    }
+                }
 
                 Logger.TryWriteInfo("Compliance Check", $"Prepared {violationsForInsert.Count} new violations for insert.", LocalSettings.ComplianceCheckVerbose);
-            }
+            
 
             return Task.FromResult(violationsForInsert);
         }

@@ -61,7 +61,7 @@ def login(user: str, password: str, api_host: str, api_port: int) -> tuple[str, 
 def logout(v_url: str, sid: str, method: str = 'exec') -> None:
     return
 
-def update_config_with_cisco_api_call(session_id: str, api_base_url: str, api_path: str, parameters: dict[str, Any] | None = None, payload: dict[str, Any] = {}, show_progress: bool = False, limit: int = 1000, method: str = "get") -> list[dict[str, Any]]:
+def update_config_with_cisco_api_call(session_id: str, api_base_url: str, api_path: str, parameters: dict[str, Any] | None = None, payload: dict[str, Any] = {}, method: str = "get") -> list[dict[str, Any]]:
     offset = 0
     limit = 1000
     if not parameters:

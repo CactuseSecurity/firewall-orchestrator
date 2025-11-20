@@ -17,7 +17,7 @@ def getAccessPolicy(sessionId: str, api_url: str, config: dict[str, Any], device
     domain = device["domain"]
 
     device["rules"] = cifp_getter.update_config_with_cisco_api_call(sessionId, api_url,
-        "fmc_config/v1/domain/" + domain + "/policy/accesspolicies/" + access_policy + "/accessrules", parameters={"expanded": True}, limit=limit)
+        "fmc_config/v1/domain/" + domain + "/policy/accesspolicies/" + access_policy + "/accessrules", parameters={"expanded": True})
 
     return
 

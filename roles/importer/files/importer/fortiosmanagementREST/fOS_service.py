@@ -85,10 +85,7 @@ def normalize_svcobjects(full_config: dict[str, Any], config2import: dict[str, A
                     elif obj_orig['protocol'] == 'IP':
                         add_object(svc_objects, 'simple', name, color, obj_orig['protocol-number'], None, None, None, import_id, full_config=full_config)
                         added_svc_obj += 1
-                    elif obj_orig['protocol'] == 'ICMP':
-                        add_object(svc_objects, 'simple', name, color, 1, None, None, None, import_id, full_config=full_config)
-                        added_svc_obj += 1
-                    elif obj_orig['protocol'] == 'ICMP6':
+                    elif obj_orig['protocol'] == 'ICMP' or obj_orig['protocol'] == 'ICMP6':
                         add_object(svc_objects, 'simple', name, color, 1, None, None, None, import_id, full_config=full_config)
                         added_svc_obj += 1
                     else:

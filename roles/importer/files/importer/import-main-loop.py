@@ -47,7 +47,7 @@ def wait_with_shutdown_check(sleep_time: int):
 
 def main_loop(verify_certificates: bool | None = None, suppress_certificate_warnings: bool | None = None, debug_level: int = 0, clear: bool = False, force: bool = False):
     service_provider = init_service_provider()
-    fwo_config = service_provider.get_service(Services.FWO_CONFIG)
+    fwo_config = service_provider.get_fwo_config()
     fwo_api_base_url = fwo_config['fwo_api_base_url']
     fwo_major_version = fwo_config['fwo_major_version']
     user_management_api_base_url = fwo_config['user_management_api_base_url']
@@ -87,7 +87,7 @@ def main_loop(verify_certificates: bool | None = None, suppress_certificate_warn
         fwo_api = FwoApi(fwo_api_base_url, jwt)
         fwo_api_call = FwoApiCall(fwo_api)
 
-        global_state = service_provider.get_service(Services.GLOBAL_STATE)
+        global_state = service_provider.get_global_state()
         
         urllib3.disable_warnings()  # suppress ssl warnings only
         verify_certificates = fwo_api_call.get_config_value(key='importCheckCertificates')=='True'
@@ -107,10 +107,13 @@ def main_loop(verify_certificates: bool | None = None, suppress_certificate_warn
 
         ## loop through all managements
         for mgm_id in mgm_ids:
+            if mgm_id not in [5, 9]:
+                continue # for testing only, remove later
+
             wait_with_shutdown_check(0)
 
             service_provider = init_service_provider()
-            global_state: GlobalState = service_provider.get_service(Services.GLOBAL_STATE)
+            global_state: GlobalState = service_provider.get_global_state()
             import_state = ImportStateController.initializeImport(mgm_id, fwo_api_uri=fwo_api_base_url, jwt=jwt, debugLevel=debug_level, version=fwo_major_version)
             global_state.import_state = import_state
 

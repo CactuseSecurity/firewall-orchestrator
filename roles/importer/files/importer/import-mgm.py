@@ -9,7 +9,6 @@ from common import importer_base_dir, import_management
 import fwo_globals
 import fwo_config
 from fwo_base import init_service_provider
-from services.enums import Services
 
 
 if importer_base_dir not in sys.path:
@@ -50,7 +49,7 @@ if __name__ == "__main__":
         sys.exit(1)
 
     service_provider = init_service_provider()
-    fwo_config = service_provider.get_service(Services.FWO_CONFIG)
+    fwo_config = service_provider.get_fwo_config()
 
     fwo_globals.set_global_values(verify_certs_in=args.verify_certificates, 
         suppress_cert_warnings_in=args.suppress_certificate_warnings,

@@ -23,7 +23,6 @@ from models.networkobject import NetworkObject
 from models.serviceobject import ServiceObject
 from services.global_state import GlobalState
 from services.group_flats_mapper import GroupFlatsMapper
-from services.enums import Services
 from services.uid2id_mapper import Uid2IdMapper
 from services.service_provider import ServiceProvider
 from fwo_api import FwoApi
@@ -54,16 +53,16 @@ class FwConfigImportRule():
         self._changed_rule_id_map = {}
 
         service_provider = ServiceProvider()
-        self.global_state = service_provider.get_service(Services.GLOBAL_STATE)
+        self.global_state = service_provider.get_global_state()
         if self.global_state.import_state is None:
             raise FwoImporterError("ImportStateController not initialized in GlobalState")
         self.import_details = self.global_state.import_state
         #TODO: why is there a state where this is initialized with normalized_config = None? - see #3154
         self.normalized_config = self.global_state.normalized_config # type: ignore
-        self.uid2id_mapper = service_provider.get_service(Services.UID2ID_MAPPER, self.import_details.ImportId)
-        self.group_flats_mapper = service_provider.get_service(Services.GROUP_FLATS_MAPPER, self.import_details.ImportId)
-        self.prev_group_flats_mapper = service_provider.get_service(Services.PREV_GROUP_FLATS_MAPPER, self.import_details.ImportId)
-        self.rule_order_service = service_provider.get_service(Services.RULE_ORDER_SERVICE, self.import_details.ImportId)
+        self.uid2id_mapper = service_provider.get_uid2id_mapper(self.import_details.ImportId)
+        self.group_flats_mapper = service_provider.get_group_flats_mapper(self.import_details.ImportId)
+        self.prev_group_flats_mapper = service_provider.get_prev_group_flats_mapper(self.import_details.ImportId)
+        self.rule_order_service = service_provider.get_rule_order_service(self.import_details.ImportId)
 
     def updateRulebaseDiffs(self, prevConfig: FwConfigNormalized) -> list[int]:
         

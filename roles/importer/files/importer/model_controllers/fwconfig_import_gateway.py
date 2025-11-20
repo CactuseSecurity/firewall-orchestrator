@@ -8,7 +8,6 @@ from models.gateway import Gateway
 from models.rulebase_link import RulebaseLink, RulebaseLinkUidBased # TODO check if we need RulebaseLinkUidBased as well
 
 from fwo_exceptions import FwoImporterError
-from services.enums import Services
 from services.global_state import GlobalState
 from services.service_provider import ServiceProvider
 
@@ -26,7 +25,7 @@ class FwConfigImportGateway:
 
     def __init__(self):
         service_provider = ServiceProvider()
-        self._global_state = service_provider.get_service(Services.GLOBAL_STATE)
+        self._global_state = service_provider.get_global_state()
         self._rb_link_controller = RulebaseLinkController()
 
 

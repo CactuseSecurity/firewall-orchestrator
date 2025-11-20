@@ -52,7 +52,7 @@ def import_management(mgmId: int | None = None, ssl_verification: bool | None = 
     verify_certs = (ssl_verification is not None)
 
     service_provider = ServiceProvider()
-    global_state = service_provider.get_service(Services.GLOBAL_STATE)
+    global_state = service_provider.get_global_state()
 
     fwoConfig = FworchConfigController.fromJson(read_config(fwo_config_filename))
 

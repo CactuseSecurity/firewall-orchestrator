@@ -17,7 +17,6 @@ from model_controllers.fwconfig_import_gateway import FwConfigImportGateway
 from model_controllers.rule_enforced_on_gateway_controller import RuleEnforcedOnGatewayController
 from services.service_provider import ServiceProvider
 from services.global_state import GlobalState
-from services.enums import Services
 from models.fwconfigmanagerlist import FwConfigManager
 from model_controllers.management_controller import ManagementController, DeviceInfo, ConnectionInfo, CredentialInfo, ManagerInfo, DomainInfo
 from model_controllers.fwconfigmanagerlist_controller import FwConfigManagerListController
@@ -40,7 +39,7 @@ class FwConfigImport():
 
     def __init__(self):
         service_provider = ServiceProvider()
-        self._global_state = service_provider.get_service(Services.GLOBAL_STATE)
+        self._global_state = service_provider.get_global_state()
         if self._global_state.import_state is None:
             raise FwoImporterError("import_state not set in global state")
         self.import_state = self._global_state.import_state
@@ -79,7 +78,7 @@ class FwConfigImport():
 
 
     def import_config(self, service_provider: ServiceProvider, import_state: ImportStateController, manager: FwConfigManager, config: FwConfigNormalized):
-        global_state = service_provider.get_service(Services.GLOBAL_STATE)
+        global_state = service_provider.get_global_state() 
         global_state.normalized_config = config
         if manager.IsSuperManager:
             # store global config as it is needed when importing sub managers which might reference it

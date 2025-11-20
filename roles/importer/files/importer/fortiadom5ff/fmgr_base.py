@@ -60,7 +60,7 @@ def set_alerts_for_missing_objects(objects_not_found: list[str], import_id: int,
             continue
 
         service_provider = ServiceProvider()
-        global_state = service_provider.get_service(Services.GLOBAL_STATE)
+        global_state = service_provider.get_global_state()
 
         api_call = FwoApiCall(FwoApi(ApiUri=global_state.import_state.FwoConfig.FwoApiUri, Jwt=global_state.import_state.Jwt))
 

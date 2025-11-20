@@ -16,7 +16,6 @@ from fwo_exceptions import FwoDuplicateKeyViolation, FwoImporterError
 from services.group_flats_mapper import GroupFlatsMapper
 from services.uid2id_mapper import Uid2IdMapper
 from services.service_provider import ServiceProvider
-from services.enums import Services
 
 class Type(Enum):
     NETWORK_OBJECT = "network_object"
@@ -38,14 +37,20 @@ class FwConfigImportObject():
         # Get state, config and services.
 
         service_provider = ServiceProvider()
-        global_state = service_provider.get_service(Services.GLOBAL_STATE)
+        global_state = service_provider.get_global_state()
+        if global_state.import_state is None:
+            raise FwoImporterError("FwConfigImportObject init failed: global state's import_state is None")
+
         self.import_state = global_state.import_state
+
+        if global_state.normalized_config is None:
+            raise FwoImporterError("FwConfigImportObject init failed: global state's normalized_config is None")
+        
         self.normalized_config = global_state.normalized_config
         self.global_normalized_config = global_state.global_normalized_config
-        self.group_flats_mapper = service_provider.get_service(Services.GROUP_FLATS_MAPPER, self.import_state.ImportId)
-        self.prev_group_flats_mapper = service_provider.get_service(Services.PREV_GROUP_FLATS_MAPPER, self.import_state.ImportId)
-        self.uid2id_mapper = service_provider.get_service(Services.UID2ID_MAPPER, self.import_state.ImportId)
-
+        self.group_flats_mapper = service_provider.get_group_flats_mapper(self.import_state.ImportId)
+        self.prev_group_flats_mapper = service_provider.get_prev_group_flats_mapper(self.import_state.ImportId)
+        self.uid2id_mapper = service_provider.get_uid2id_mapper(self.import_state.ImportId)
         # Create maps.
         
         self.NetworkObjectTypeMap = self.get_network_obj_type_map()

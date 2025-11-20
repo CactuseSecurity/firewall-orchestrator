@@ -10,12 +10,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "importer"))
 
 from model_controllers.fwconfig_import_rule import FwConfigImportRule
 from models.rulebase import Rulebase
-from models.rule import Rule
-from services.enums import Lifetime, Services
 from test.mocking.mock_import_state import MockImportStateController
 from fwo_base import init_service_provider
-from services.service_provider import ServiceProvider
-from services.global_state import GlobalState
 
 class MockFwConfigImportRule(FwConfigImportRule):
     """
@@ -31,7 +27,7 @@ class MockFwConfigImportRule(FwConfigImportRule):
 
         service_provider = init_service_provider()
         self._import_details = MockImportStateController(stub_setCoreData=True)
-        service_provider.get_service(Services.GLOBAL_STATE).import_state = self._import_details
+        service_provider.get_global_state().import_state = self._import_details
 
         self._stub_markRulesRemoved = True
         self._stub_getRules = False

@@ -15,7 +15,6 @@ from models.networkobject import NetworkObject
 from models.gateway import Gateway
 from models.rulebase_link import RulebaseLinkUidBased
 from services.service_provider import ServiceProvider
-from services.enums import Services
 from fwo_exceptions import FwoImporterErrorInconsistencies
 
 
@@ -28,7 +27,7 @@ class FwConfigImportCheckConsistency(FwConfigImport):
     # merges all configs in the set together to prepare for consistency checks
     def __init__(self, import_details: ImportStateController, config_list: FwConfigManagerListController):
         service_provider = ServiceProvider()
-        self._global_state = service_provider.get_service(Services.GLOBAL_STATE)
+        self._global_state = service_provider.get_global_state()
         self.import_state = import_details
 
         self.maps = FwConfigImportObject() # TODO don't use like this (separation of concerns) - see #3154

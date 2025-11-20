@@ -247,7 +247,7 @@ def get_ip_of_obj(obj: dict[str, Any], mgm_id: int | None = None) -> str | None:
     elif not validate_ip_address(ip_addr):
         alert_description = "object is not a valid ip address (" + str(ip_addr) + ")"
         service_provider = ServiceProvider()
-        global_state = service_provider.get_service(Services.GLOBAL_STATE)
+        global_state = service_provider.get_global_state()
         api_call = FwoApiCall(FwoApi(ApiUri=global_state.import_state.FwoConfig.FwoApiUri, Jwt=global_state.import_state.Jwt))
         api_call.create_data_issue(severity=2, obj_name=obj['name'], object_type=obj['type'], description=alert_description, mgm_id=mgm_id) 
         alert_description = "object '" + obj['name'] + "' (type=" + obj['type'] + ") is not a valid ip address (" + str(ip_addr) + ")"

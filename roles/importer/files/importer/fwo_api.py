@@ -12,7 +12,6 @@ from fwo_const import fwo_api_http_import_timeout
 from fwo_exceptions import FwoApiServiceUnavailable, FwoApiTimeout
 from query_analyzer import QueryAnalyzer
 from fwo_exceptions import FwoImporterError, FwoApiLoginFailed
-from services.enums import Services
 from services.service_provider import ServiceProvider
 
 JSON_CONTENT_TYPE = 'application/json'
@@ -138,7 +137,7 @@ class FwoApi():
             FwoImporterError: If request fails or returns error
         """
         service_provider = ServiceProvider()
-        fwo_config = service_provider.get_service(Services.FWO_CONFIG)
+        fwo_config = service_provider.get_fwo_config()
         url = fwo_config['user_management_api_base_url'] + endpoint.lstrip('/')
 
         with requests.Session() as session:

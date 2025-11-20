@@ -1,6 +1,12 @@
-from typing import Callable, Any
-from services.global_state import GlobalState
+from typing import TYPE_CHECKING, Callable, Any
 from services.enums import Services, Lifetime
+
+if TYPE_CHECKING:
+    from model_controllers.fwconfig_import_ruleorder import RuleOrderService
+    from services.uid2id_mapper import Uid2IdMapper
+    from services.group_flats_mapper import GroupFlatsMapper
+    from services.global_state import GlobalState
+    
 
 
 
@@ -14,13 +20,22 @@ class ServiceProvider:
         This class serves as an IOC-container (IOC = inversion of controls) and its purpose is to manage instantiation and lifetime of service classes.
     """
 
+    
+# def init_service_provider():
+#     service_provider = ServiceProvider()
+#     service_provider.register(Services.GLOBAL_STATE, lambda: GlobalState(), Lifetime.SINGLETON)
+#     service_provider.register(Services.FWO_CONFIG, lambda: fwo_config.read_config(), Lifetime.SINGLETON)
+#     service_provider.register(Services.GROUP_FLATS_MAPPER, lambda: GroupFlatsMapper(), Lifetime.IMPORT)
+#     service_provider.register(Services.PREV_GROUP_FLATS_́MAPPER, lambda: GroupFlatsMapper(), Lifetime.IMPORT)
+#     service_provider.register(Services.UID2ID_MAPPER, lambda: Uid2IdMapper(), Lifetime.IMPORT)
+#     service_provider.register(Services.RULE_ORDER_SERVICE, lambda: RuleOrderService(), Lifetime.IMPORT)
+#     return service_provider
+
     _instance: "ServiceProvider | None" = None
     _services: dict[Services, ServiceProviderEntry] 
     _singletons: dict[Services, Any]
     _import: dict[tuple[int, Services], Any]
     _management: dict[tuple[int, Services], Any]
-
-    globalStates : dict[tuple[Lifetime, int], GlobalState] = {}
 
 
     def __new__(cls):
@@ -36,6 +51,41 @@ class ServiceProvider:
     def register(self, key: Services, constructor: Callable[[], Any], lifetime: Lifetime):
         self._services[key] = ServiceProviderEntry(constructor, lifetime)
     
+    def get_global_state(self) -> "GlobalState":
+        return self.get_service(Services.GLOBAL_STATE)
+    
+    def dispose_global_state(self):
+        self.dispose_service(Services.GLOBAL_STATE)
+
+    def get_fwo_config(self) -> dict[str, Any]:
+        return self.get_service(Services.FWO_CONFIG)
+    
+    def dispose_fwo_config(self):
+        self.dispose_service(Services.FWO_CONFIG)
+
+    def get_group_flats_mapper(self, import_id: int = 0) -> "GroupFlatsMapper":
+        return self.get_service(Services.GROUP_FLATS_MAPPER, import_id=import_id)
+
+    def dispose_group_flats_mapper(self, import_id: int = 0):
+        self.dispose_service(Services.GROUP_FLATS_MAPPER, import_id=import_id)
+
+    def get_prev_group_flats_mapper(self, import_id: int = 0) -> "GroupFlatsMapper":
+        return self.get_service(Services.PREV_GROUP_FLATS_MAPPER, import_id=import_id)
+    
+    def dispose_prev_group_flats_mapper(self, import_id: int = 0):
+        self.dispose_service(Services.PREV_GROUP_FLATS_MAPPER, import_id=import_id)
+
+    def get_uid2id_mapper(self, import_id: int = 0) -> "Uid2IdMapper":
+        return self.get_service(Services.UID2ID_MAPPER, import_id=import_id)
+    
+    def dispose_uid2id_mapper(self, import_id: int = 0):
+        self.dispose_service(Services.UID2ID_MAPPER, import_id=import_id)
+
+    def get_rule_order_service(self, import_id: int = 0) -> "RuleOrderService":
+        return self.get_service(Services.RULE_ORDER_SERVICE, import_id=import_id)
+    
+    def dispose_rule_order_service(self, import_id: int = 0):
+        self.dispose_service(Services.RULE_ORDER_SERVICE, import_id=import_id)
 
     def get_service(self, key: Services, import_id: int = 0, management_id: int = 0) -> Any:
         """

@@ -197,8 +197,7 @@ class TestFwoConfigImportConsistency(unittest.TestCase):
         config_importer.import_single_config()
         mock_api = import_state.api_connection
 
-        group_flats_mapper = service_provider.get_service(
-            Services.GROUP_FLATS_MAPPER)
+        group_flats_mapper = service_provider.get_group_flats_mapper()
 
         service_provider.dispose_service(Services.GLOBAL_STATE)
         service_provider.dispose_service(Services.GROUP_FLATS_MAPPER)
@@ -297,8 +296,7 @@ class TestFwoConfigImportConsistency(unittest.TestCase):
         config_importer.import_single_config()
         config_importer.storeLatestConfig()
 
-        group_flats_mapper = service_provider.get_service(
-            Services.GROUP_FLATS_MAPPER)
+        group_flats_mapper = service_provider.get_group_flats_mapper()
 
         service_provider.dispose_service(Services.GLOBAL_STATE)
         service_provider.dispose_service(Services.GROUP_FLATS_MAPPER)
@@ -434,8 +432,7 @@ class TestFwoConfigImportConsistency(unittest.TestCase):
         config_importer.import_single_config()
         config_importer.storeLatestConfig()
 
-        group_flats_mapper = service_provider.get_service(
-            Services.GROUP_FLATS_MAPPER)
+        group_flats_mapper = service_provider.get_group_flats_mapper()
 
         service_provider.dispose_service(Services.GLOBAL_STATE)
         service_provider.dispose_service(Services.GROUP_FLATS_MAPPER)
@@ -565,8 +562,7 @@ class TestFwoConfigImportConsistency(unittest.TestCase):
             config, mock_api, import_id=6)
         config_importer.import_single_config()
         config_importer.storeLatestConfig()
-        group_flats_mapper = service_provider.get_service(
-            Services.GROUP_FLATS_MAPPER)
+        group_flats_mapper = service_provider.get_group_flats_mapper()
         service_provider.dispose_service(Services.GLOBAL_STATE)
         service_provider.dispose_service(Services.GROUP_FLATS_MAPPER)
         service_provider.dispose_service(Services.UID2ID_MAPPER)

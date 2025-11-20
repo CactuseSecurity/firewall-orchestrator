@@ -4,7 +4,6 @@ from fwo_log import get_fwo_logger
 from fwo_api import FwoApi
 from model_controllers.import_state_controller import ImportStateController
 from services.service_provider import ServiceProvider
-from services.enums import Services
 
 # this class is used for rolling back an import
 class FwConfigImportRollback():
@@ -12,7 +11,7 @@ class FwConfigImportRollback():
 
     def __init__(self):
         service_provider = ServiceProvider()
-        global_state = service_provider.get_service(Services.GLOBAL_STATE)
+        global_state = service_provider.get_global_state()
         self.ImportDetails = global_state.import_state
 
         

@@ -357,7 +357,7 @@ def get_rulebases_in_chunks(rulebaseUid: str, show_params_rules: dict[str, Any],
             logger.error("could not find rulebase uid=" + rulebaseUid)
 
             service_provider = ServiceProvider()
-            global_state = service_provider.get_service(Services.GLOBAL_STATE)
+            global_state = service_provider.get_global_state()
             api_call = FwoApiCall(FwoApi(ApiUri=global_state.import_state.FwoConfig.FwoApiUri, Jwt=global_state.import_state.Jwt))
             description = f"failed to get show-access-rulebase  {rulebaseUid}"
             api_call.create_data_issue(severity=2, description=description)

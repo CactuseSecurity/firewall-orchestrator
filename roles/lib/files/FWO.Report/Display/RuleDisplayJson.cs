@@ -1,3 +1,4 @@
+using System.Text;
 using FWO.Basics;
 using FWO.Data;
 using FWO.Config.Api;
@@ -5,100 +6,145 @@ using FWO.Report.Filter;
 
 namespace FWO.Ui.Display
 {
-    public class RuleDisplayJson : RuleDisplayBase
+    public class RuleDisplayJson(UserConfig userConfig) : RuleDisplayBase(userConfig)
     {
-        public RuleDisplayJson(UserConfig userConfig) : base(userConfig)
-        { }
-
-        public string DisplayJsonPlain(string tag, string? value)
+        private string DisplayJsonPlain(string tag, string? value)
         {
             return (value != null ? $"\"{tag}\": {value}," : "");
         }
 
-        public string DisplayJsonString(string tag, string? value)
+        protected string DisplayJsonString(string tag, string? value)
         {
             return (value != null ? $"\"{tag}\": \"{value}\"," : "");
         }
 
-        public string DisplayJsonArray(string tag, string? value)
+        protected string DisplayJsonArray(string tag, string? value)
         {
             return (value != null ? $"\"{tag}\": [{value}]," : "");
         }
 
 
-        public new string DisplayNumber(Rule rule)
+        private new string DisplayNumber(Rule rule)
         {
             return DisplayJsonPlain("number", rule.DisplayOrderNumber.ToString());
         }
 
-        public string DisplayName(string? name)
+        protected string DisplayName(string? name)
         {
             return DisplayJsonString("name", name);
         }
 
-        public string DisplayRuleSourceZones(NetworkZone[] networkZones)
+        protected string DisplayRuleSourceZones(NetworkZone[] networkZones)
         {
             return DisplayJsonArray("source zones", ListNetworkZones(networkZones));
         }
 
-        public string DisplaySourceNegated(bool sourceNegated)
+        protected string DisplaySourceNegated(bool sourceNegated)
         {
             return DisplayJsonPlain("source negated", sourceNegated.ToString().ToLower());
         }
 
-        public string DisplaySource(Rule rule, ReportType reportType)
+        protected string DisplaySource(Rule rule, ReportType reportType)
         {
             return DisplayJsonArray("source", ListNetworkLocations(rule, reportType, true));
         }
 
-        public string DisplayRuleDestinationZones(NetworkZone[] networkZones)
+        protected string DisplayRuleDestinationZones(NetworkZone[] networkZones)
         {
             return DisplayJsonArray("destination zones", ListNetworkZones(networkZones));
         }
 
-        public string DisplayDestinationNegated(bool destinationNegated)
+        protected string DisplayDestinationNegated(bool destinationNegated)
         {
             return DisplayJsonPlain("destination negated", destinationNegated.ToString().ToLower());
         }
 
-        public string DisplayDestination(Rule rule, ReportType reportType)
+        protected string DisplayDestination(Rule rule, ReportType reportType)
         {
             return DisplayJsonArray("destination", ListNetworkLocations(rule, reportType, false));
         }
 
-        public string DisplayServiceNegated(bool serviceNegated)
+        protected string DisplayServiceNegated(bool serviceNegated)
         {
             return DisplayJsonPlain("service negated", serviceNegated.ToString().ToLower());
         }
 
-        public string DisplayServices(Rule rule, ReportType reportType)
+        protected string DisplayServices(Rule rule, ReportType reportType)
         {
             return DisplayJsonArray("service", ListServices(rule, reportType));
         }
 
-        public string DisplayAction(string? action)
+        protected string DisplayAction(string? action)
         {
             return DisplayJsonString("action", action);
         }
 
-        public string DisplayTrack(string? track)
+        protected string DisplayTrack(string? track)
         {
             return DisplayJsonString("tracking", track);
         }
 
-        public string DisplayUid(string? uid)
+        protected string DisplayUid(string? uid)
         {
             return DisplayJsonString("rule uid", uid);
         }
 
-        public string DisplayEnabled(bool disabled)
+        protected string DisplayEnabled(bool disabled)
         {
             return DisplayJsonPlain("disabled", disabled.ToString().ToLower());
         }
 
-        public string DisplayComment(string? comment)
+        protected string DisplayComment(string? comment)
         {
             return DisplayJsonString("comment", comment);
+        }
+
+        /// <summary>
+        /// Builds a string representing a JSON object that includes all properties of the supplied <paramref name="rule"/>.
+        /// The output comprises formatted JSON fields for the rule, structured for reporting use.
+        /// If the rule has a SectionHeader, only the section header field is added; otherwise, all rule details are serialized as individual JSON properties.
+        /// </summary>
+        /// <param name="rule">
+        /// The <see cref="Rule"/> instance whose data will be serialized into a JSON object string.
+        /// </param>
+        /// <param name="reportType">
+        /// The <see cref="ReportType"/> used to control formatting or additional field inclusion within the output JSON.
+        /// </param>
+        /// <returns>
+        /// A string containing a syntactically valid JSON object with the specified rule’s properties and values, intended for direct use as part of a JSON array or document.
+        /// </returns>
+        public string DisplayRuleJsonObject(Rule rule, ReportType reportType)
+        {
+            StringBuilder stringBuilder = new StringBuilder();
+            
+            stringBuilder.Append('{');
+            if (string.IsNullOrEmpty(rule.SectionHeader))
+            {
+                stringBuilder.Append(DisplayNumber(rule));
+                stringBuilder.Append(DisplayName(rule.Name));
+                stringBuilder.Append(DisplayRuleSourceZones(rule.RuleFromZones
+                    .Select(zoneWrapper => zoneWrapper.Content).ToArray()));
+                stringBuilder.Append(DisplaySourceNegated(rule.SourceNegated));
+                stringBuilder.Append(DisplaySource(rule, reportType));
+                stringBuilder.Append(DisplayRuleDestinationZones(rule.RuleToZones
+                    .Select(zoneWrapper => zoneWrapper.Content).ToArray()));
+                stringBuilder.Append(DisplayDestinationNegated(rule.DestinationNegated));
+                stringBuilder.Append(DisplayDestination(rule, reportType));
+                stringBuilder.Append(DisplayServiceNegated(rule.ServiceNegated));
+                stringBuilder.Append(DisplayServices(rule, reportType));
+                stringBuilder.Append(DisplayAction(rule.Action));
+                stringBuilder.Append(DisplayTrack(rule.Track));
+                stringBuilder.Append(DisplayEnabled(rule.Disabled));
+                stringBuilder.Append(DisplayUid(rule.Uid));
+                stringBuilder.Append(DisplayComment(rule.Comment));
+                RemoveLastChars(stringBuilder, 1).ToString();
+            }
+            else
+            {
+                stringBuilder.AppendLine("\"section header\": \"" + rule.SectionHeader + "\"");
+            }
+            stringBuilder.Append("},");
+            return stringBuilder.ToString();
         }
 
         protected string ListNetworkLocations(Rule rule, ReportType reportType, bool isSource)

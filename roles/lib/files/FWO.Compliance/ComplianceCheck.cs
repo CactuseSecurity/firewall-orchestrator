@@ -25,11 +25,6 @@ namespace FWO.Compliance
         public CompliancePolicy? Policy = null;
 
         /// <summary>
-        /// Report object to create diff and to serve as dto.
-        /// </summary>
-        public ReportCompliance? ComplianceReport { get; set; } = null;
-
-        /// <summary>
         /// Network zones to use for matrix compliance check.
         /// </summary>
         public List<ComplianceNetworkZone> NetworkZones { get; set; } = [];

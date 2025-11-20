@@ -251,41 +251,41 @@ def _parse_obj_with_access_role(obj: dict[str,Any], addressObjects: dict[str,Any
                 addressObjects[obj['uid']] = obj['name'] + '@' + nw_resolved
 
 
-def parse_single_rule(nativeRule: dict[str, Any], rulebase: Rulebase, layer_name: str, parent_uid: str | None, gateway: dict[str, Any], policy_structure: list[dict[str, Any]]):
+def parse_single_rule(native_rule: dict[str, Any], rulebase: Rulebase, layer_name: str, parent_uid: str | None, gateway: dict[str, Any], policy_structure: list[dict[str, Any]]):
     logger = get_fwo_logger()
 
     # reference to domain rule layer, filling up basic fields
-    if not('type' in nativeRule and nativeRule['type'] != 'place-holder' and 'rule-number' in nativeRule):  # standard rule, no section header
+    if not('type' in native_rule and native_rule['type'] != 'place-holder' and 'rule-number' in native_rule):  # standard rule, no section header
         return
     # the following objects might come in chunks:
-    sourceObjects: dict[str, str] = parseRulePart (nativeRule['source'], 'source')
-    rule_src_ref, rule_src_name = sort_and_join_refs(list(sourceObjects.items()))
+    source_objects: dict[str, str] = parse_rule_part (native_rule['source'], 'source')
+    rule_src_ref, rule_src_name = sort_and_join_refs(list(source_objects.items()))
     
-    destObjects: dict[str, str] = parseRulePart (nativeRule['destination'], 'destination')
-    rule_dst_ref, rule_dst_name = sort_and_join_refs(list(destObjects.items()))
-    svcObjects: dict[str, str] = parseRulePart (nativeRule['service'], 'service')
-    rule_svc_ref, rule_svc_name = sort_and_join_refs(list(svcObjects.items()))
-    ruleEnforcedOnGateways = parse_rule_enforced_on_gateway(gateway, policy_structure, native_rule=nativeRule)
-    listOfGwUids = sorted({enforceEntry.dev_uid for enforceEntry in ruleEnforcedOnGateways})
-    strListOfGwUids = list_delimiter.join(listOfGwUids) if listOfGwUids else None
+    dst_objects: dict[str, str] = parse_rule_part (native_rule['destination'], 'destination')
+    rule_dst_ref, rule_dst_name = sort_and_join_refs(list(dst_objects.items()))
+    svc_objects: dict[str, str] = parse_rule_part (native_rule['service'], 'service')
+    rule_svc_ref, rule_svc_name = sort_and_join_refs(list(svc_objects.items()))
+    rule_enforced_on_gateways = parse_rule_enforced_on_gateway(gateway, policy_structure, native_rule=native_rule)
+    list_of_gw_uids = sorted({enforceEntry.dev_uid for enforceEntry in rule_enforced_on_gateways})
+    str_list_of_gw_uids = list_delimiter.join(list_of_gw_uids) if list_of_gw_uids else None
 
-    rule_track = _parse_track(native_rule=nativeRule)
+    rule_track = _parse_track(native_rule=native_rule)
 
-    actionObjects = parse_rule_part (nativeRule['action'], 'action')
-    if actionObjects is not None: # type: ignore # TODO: this should be never None
-        rule_action = list_delimiter.join(actionObjects.values()) # expecting only a single action
+    action_objects = parse_rule_part (native_rule['action'], 'action')
+    if action_objects is not None: # type: ignore # TODO: this should be never None
+        rule_action = list_delimiter.join(action_objects.values()) # expecting only a single action
     else:
         rule_action = None
-        logger.warning('found rule without action: ' + str(nativeRule))
+        logger.warning('found rule without action: ' + str(native_rule))
 
-    timeObjects = parse_rule_part (nativeRule['time'], 'time')
-    rule_time = list_delimiter.join(timeObjects.values()) if timeObjects else None
+    time_objects = parse_rule_part (native_rule['time'], 'time')
+    rule_time = list_delimiter.join(time_objects.values()) if time_objects else None
 
     # starting with the non-chunk objects
-    rule_name = nativeRule.get('name', None)
+    rule_name = native_rule.get('name', None)
 
     # new in v8.0.3:
-    rule_custom_fields = nativeRule.get('custom-fields', None)
+    rule_custom_fields = native_rule.get('custom-fields', None)
 
     # we leave out all last_admin info for now
     # if 'meta-info' in nativeRule and 'last-modifier' in nativeRule['meta-info']:
@@ -293,18 +293,18 @@ def parse_single_rule(nativeRule: dict[str, Any], rulebase: Rulebase, layer_name
     # else:
     last_change_admin = None
 
-    parent_rule_uid = _parse_parent_rule_uid(parent_uid, native_rule=nativeRule)
+    parent_rule_uid = _parse_parent_rule_uid(parent_uid, native_rule=native_rule)
 
 
     # new in v5.5.1:
-    rule_type = nativeRule.get('rule_type', 'access')
+    rule_type = native_rule.get('rule_type', 'access')
 
-    comments = nativeRule.get('comments', None)
+    comments = native_rule.get('comments', None)
     if comments == '':
         comments = None
 
-    if 'hits' in nativeRule and 'last-date' in nativeRule['hits'] and 'iso-8601' in nativeRule['hits']['last-date']:
-        last_hit = nativeRule['hits']['last-date']['iso-8601']
+    if 'hits' in native_rule and 'last-date' in native_rule['hits'] and 'iso-8601' in native_rule['hits']['last-date']:
+        last_hit = native_rule['hits']['last-date']['iso-8601']
     else:
         last_hit = None
 
@@ -312,22 +312,22 @@ def parse_single_rule(nativeRule: dict[str, Any], rulebase: Rulebase, layer_name
         "rule_num":         0,
         "rule_num_numeric": 0,
         "rulebase_name":    sanitize(layer_name),
-        "rule_disabled": not bool(nativeRule['enabled']),
-        "rule_src_neg":     bool(nativeRule['source-negate']),
+        "rule_disabled": not bool(native_rule['enabled']),
+        "rule_src_neg":     bool(native_rule['source-negate']),
         "rule_src":         sanitize(rule_src_name),
         "rule_src_refs":    sanitize(rule_src_ref),
-        "rule_dst_neg":     bool(nativeRule['destination-negate']),
+        "rule_dst_neg":     bool(native_rule['destination-negate']),
         "rule_dst":         sanitize(rule_dst_name),
         "rule_dst_refs":    sanitize(rule_dst_ref),
-        "rule_svc_neg":     bool(nativeRule['service-negate']),
+        "rule_svc_neg":     bool(native_rule['service-negate']),
         "rule_svc":         sanitize(rule_svc_name),
         "rule_svc_refs":    sanitize(rule_svc_ref),
         "rule_action":      sanitize(rule_action, lower=True),
         "rule_track":       sanitize(rule_track, lower=True),
-        "rule_installon":   sanitize(strListOfGwUids),
+        "rule_installon":   sanitize(str_list_of_gw_uids),
         "rule_time":        sanitize(rule_time),
         "rule_name":        sanitize(rule_name),
-        "rule_uid":         sanitize(nativeRule['uid']),
+        "rule_uid":         sanitize(native_rule['uid']),
         "rule_custom_fields": sanitize(rule_custom_fields),
         "rule_implied":     False,
         "rule_type":        sanitize(rule_type),
@@ -338,8 +338,6 @@ def parse_single_rule(nativeRule: dict[str, Any], rulebase: Rulebase, layer_name
     if comments is not None:
         rule['rule_comment'] = sanitize(comments)
     rulebase.rules.update({ rule['rule_uid']: RuleNormalized(**rule)})
-
-    return
 
 
 def _parse_parent_rule_uid(parent_uid: str | None, native_rule: dict[str,Any]) -> str | None:

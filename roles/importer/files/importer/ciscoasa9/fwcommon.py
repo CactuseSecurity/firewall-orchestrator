@@ -22,7 +22,7 @@ from ciscoasa9.asa_normalize import normalize_config
 from fwo_exceptions import FwoImporterError
 
 
-def has_config_changed():
+def has_config_changed(_, __, ___):
     # We don't get this info from ASA, so we always return True
     return True
 

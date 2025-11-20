@@ -10,7 +10,7 @@ from palo_getter import login, update_config_with_palofw_api_call
 from fwo_log import get_fwo_logger
 from palo_base import api_version_str
 
-def has_config_changed():
+def has_config_changed(_, __, ___):
     # dummy - may be filled with real check later on
     return True
 

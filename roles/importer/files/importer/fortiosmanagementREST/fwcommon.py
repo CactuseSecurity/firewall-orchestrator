@@ -37,7 +37,7 @@ user_obj_types = ['user/local', 'user/group']
 user_scope = ['user_obj_' + s1 for s1 in user_obj_types]
 
 
-def has_config_changed() -> bool:
+def has_config_changed(_, __, ___) -> bool:
     # dummy - may be filled with real check later on
     return True
  

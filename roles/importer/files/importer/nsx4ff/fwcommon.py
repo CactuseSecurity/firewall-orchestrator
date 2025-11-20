@@ -12,7 +12,7 @@ from nsx_network import normalize_nwobjects
 from nsx_getter import update_config_with_nsxdcfw_api_call
 from nsx_base import api_version_str
 
-def has_config_changed():
+def has_config_changed(_, __, ___):
     # dummy - may be filled with real check later on
     return True
 

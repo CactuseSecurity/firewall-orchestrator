@@ -79,7 +79,7 @@ def login(azure_user: str, azure_password: str, tenant_id: str, client_id: str, 
     return body["access_token"]
 
 
-def update_config_with_azure_api_call(azure_jwt: str, api_base_url: str, config: dict[str, Any], api_path: str, key: str, parameters: dict[str, Any]={}, payload: dict[str, Any]={}, show_progress: bool=False, limit: int=1000, method: str="get") -> None:
+def update_config_with_azure_api_call(azure_jwt: str, api_base_url: str, config: dict[str, Any], api_path: str, key: str, parameters: dict[str, Any]={}, payload: dict[str, Any]={}, method: str="get") -> None:
     _ = 0
     __ = 1000
     returned_new_data = True

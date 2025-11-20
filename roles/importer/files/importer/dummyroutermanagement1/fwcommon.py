@@ -7,7 +7,7 @@ import json, requests
 from datetime import datetime
 from fwo_exceptions import ConfigFileNotFound
 
-def has_config_changed():
+def has_config_changed(_, __, ___):
     # dummy - may be filled with real check later on
     return True
 

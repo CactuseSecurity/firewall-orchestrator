@@ -9,7 +9,7 @@ from azure_getter import login, update_config_with_azure_api_call
 from fwo_log import get_fwo_logger
 from azure_base import azure_api_version_str
 
-def has_config_changed():
+def has_config_changed(_, __, ___):
     # dummy - may be filled with real check later on
     return True
 

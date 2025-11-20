@@ -2,16 +2,78 @@
 
 import sys
 import traceback
+import warnings
 from fwo_log import get_fwo_logger
 import argparse
 import urllib3
 from common import importer_base_dir, import_management
 import fwo_globals
-from fwo_base import init_service_provider
+from fwo_base import init_service_provider, register_global_state
+from fwo_api import FwoApi
+from fwo_api_call import FwoApiCall
+from fwo_exceptions import FwoApiLoginFailed
+from fwo_const import base_dir, importer_base_dir
+from model_controllers.import_state_controller import ImportStateController
 
 
 if importer_base_dir not in sys.path:
     sys.path.append(importer_base_dir)
+
+def get_fwo_jwt(importUser: str, importPwd: str, userManagementApi: str) -> str | None:
+    logger = get_fwo_logger()
+    try:
+        jwt = FwoApi.login(importUser, importPwd, userManagementApi)
+        return jwt
+    except FwoApiLoginFailed as e:
+        logger.error(e.message)
+    except Exception:
+        logger.error("import-main-loop - unspecified error during FWO API login - skipping: " + str(traceback.format_exc()))
+
+
+def main(mgmId: int, file: str | None = None, debugLevel: int = 0, verifyCertificates: bool = False, force: bool = False, limit: int = 150, clearManagementData: bool = False, suppressCertificateWarnings: bool = False):
+    service_provider = init_service_provider()
+    fwo_config = service_provider.get_fwo_config()
+    fwo_api_base_url = fwo_config['fwo_api_base_url']
+    fwo_major_version = fwo_config['fwo_major_version']
+    user_management_api_base_url = fwo_config['user_management_api_base_url']
+    fwo_globals.set_global_values(verifyCertificates, suppressCertificateWarnings, debugLevel)
+    if suppressCertificateWarnings: urllib3.disable_warnings()
+
+    logger = get_fwo_logger()
+
+    logger.info("import-mgm starting ...")
+    if importer_base_dir not in sys.path:
+        sys.path.append(importer_base_dir)
+
+    importer_user_name = 'importer'  # todo: move to config file?
+    importer_pwd_file = base_dir + '/etc/secrets/importer_pwd'
+
+    try:
+            importer_pwd = open(importer_pwd_file).read().replace('\n', '')
+    except Exception:
+        logger.error("import-main-loop - error while reading importer pwd file")
+        raise
+
+    jwt = get_fwo_jwt(importer_user_name, importer_pwd, user_management_api_base_url)
+    # check if login was successful - if not, wait and retry
+    if jwt is None:
+        logger.error("import-mgm - cannot proceed without successful login - exiting")
+        return
+
+    fwo_api = FwoApi(fwo_api_base_url, jwt)
+    fwo_api_call = FwoApiCall(fwo_api)
+
+    urllib3.disable_warnings()  # suppress ssl warnings only
+    verifyCertificates = fwo_api_call.get_config_value(key='importCheckCertificates')=='True'
+    suppressCertificateWarnings = fwo_api_call.get_config_value(key='importSuppressCertificateWarnings')=='True'
+    if not suppressCertificateWarnings:
+        warnings.resetwarnings()
+
+    import_state = ImportStateController.initializeImport(mgmId, jwt, debugLevel, suppressCertificateWarnings, verifyCertificates, force, fwo_major_version, clearManagementData, isFullImport=True)
+    register_global_state(import_state)
+
+    import_management(mgmId, fwo_api_call, verifyCertificates, debugLevel, limit, clearManagementData, suppressCertificateWarnings, file)
+    
 
 if __name__ == "__main__": 
     parser = argparse.ArgumentParser(
@@ -58,22 +120,17 @@ if __name__ == "__main__":
     logger = get_fwo_logger()
 
     try:
-        error_count = import_management(
-            mgmId=args.mgmId, 
-            in_file=args.in_file, 
-            debug_level_in=args.debug, 
-            ssl_verification=args.verify_certificates,
-            force=args.force, 
-            limit=args.limit, 
-            clearManagementData=args.clear, 
-            suppress_cert_warnings_in=args.suppress_certificate_warnings,
-            version=fwo_config['fwo_major_version']
+        main(
+            int(args.mgmId), 
+            args.in_file, 
+            int(args.debug), 
+            args.verify_certificates,
+            args.force, 
+            int(args.limit), 
+            args.clear, 
+            args.suppress_certificate_warnings,
         )
-    except SystemExit:
-        error_count = 0
-        raise
     except Exception:
         logger.error("import-mgm - error while importing mgmId=" + str(args.mgmId) + ": " + str(traceback.format_exc()))
-        error_count = 1
 
-    sys.exit(error_count)
+    sys.exit()

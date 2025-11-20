@@ -7,7 +7,7 @@ from socket import gethostname
 from fwo_const import importer_base_dir
 from pathlib import Path
 
-from model_controllers.fworch_config_controller import FworchConfigController
+from fwo_const import importer_base_dir
 if importer_base_dir not in sys.path:
     sys.path.append(importer_base_dir) # adding absolute path here once
 from fwo_api_call import FwoApiCall
@@ -41,23 +41,20 @@ from services.enums import Services
 
     expects service_provider to be initialized
 """
-def import_management(mgmId: int, api_call: FwoApiCall, ssl_verification: bool = False, debug_level_in: int = 0, 
-        limit: int = 150, clearManagementData: bool = False, suppress_cert_warnings_in: bool | None = None,
-        in_file: str | None = None) -> None:
+def import_management(mgmId: int, apiCall: FwoApiCall, sslVerification: bool, debugLevel: int, 
+        limit: int, clearManagementData: bool, suppressCertWarnings: bool,
+        file: str | None = None) -> None:
 
     fwo_signalling.registerSignallingHandlers()
-    logger = get_fwo_logger(debug_level=debug_level_in)
+    logger = get_fwo_logger(debug_level=debugLevel)
     service_provider = ServiceProvider()
     importState = service_provider.get_global_state().import_state
-    fwoConfig = FworchConfigController.fromJson(readConfig(fwo_config_filename))
     config_importer = FwConfigImport()
 
 
 
     try:
-        _import_management(mgmId=mgmId, ssl_verification=ssl_verification, debug_level_in=debug_level_in,
-            limit=limit, clearManagementData=clearManagementData,
-            suppress_cert_warnings_in=suppress_cert_warnings_in, in_file=in_file)
+        _import_management(mgmId, sslVerification,file, debugLevel, limit, clearManagementData, suppressCertWarnings)
 
     except (FwLoginFailed) as e:
         importState.delete_import() # delete whole import
@@ -82,26 +79,26 @@ def import_management(mgmId: int, api_call: FwoApiCall, ssl_verification: bool =
         handle_unexpected_exception(importState=importState, config_importer=config_importer, e=e)
     finally:
         try:
-            api_call.complete_import(importState)
+            apiCall.complete_import(importState)
             ServiceProvider().dispose_service(Services.UID2ID_MAPPER, importState.ImportId)
         except Exception as e:
             logger.error(f"Error during import completion: {str(e)}")
 
 
-def _import_management(mgmId: int, ssl_verification: bool, in_file: str | None, debug_level_in: int,
-        limit: int, clearManagementData: bool, suppress_cert_warnings_in: bool) -> None:
+def _import_management(mgmId: int, sslVerification: bool, file: str | None, debugLevel: int,
+        limit: int, clearManagementData: bool, suppressCertWarnings: bool) -> None:
 
     config_normalized : FwConfigManagerListController
 
 
-    logger = get_fwo_logger(debug_level=debug_level_in)
+    logger = get_fwo_logger(debugLevel)
     config_changed_since_last_import = True
     service_provider = ServiceProvider()
     importState = service_provider.get_global_state().import_state
     config_importer = FwConfigImport()
     if importState.DebugLevel > 8:
-        logger.debug(f"import_management - ssl_verification: {ssl_verification}")
-        logger.debug(f"import_management - suppress_cert_warnings_in: {suppress_cert_warnings_in}")
+        logger.debug(f"import_management - ssl_verification: {sslVerification}")
+        logger.debug(f"import_management - suppress_cert_warnings_in: {suppressCertWarnings}")
         logger.debug(f"import_management - limit: {limit}")
 
     if importState.MgmDetails.ImportDisabled and not importState.ForceImport:
@@ -123,7 +120,7 @@ def _import_management(mgmId: int, ssl_verification: bool, in_file: str | None, 
         config_normalized = config_importer.clear_management()
     else:
         # get config
-        config_changed_since_last_import, config_normalized = get_config_top_level(importState, in_file, gateways)
+        config_changed_since_last_import, config_normalized = get_config_top_level(importState, file, gateways)
 
         # write normalized config to file
         config_normalized.storeFullNormalizedConfigToFile(importState)

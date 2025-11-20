@@ -371,7 +371,7 @@ class FwConfigImportRule():
         ref_uids: dict[RefType, list[tuple[str, str | None]] | list[str]] = { ref_type: [] for ref_type in RefType }
 
         if rule is None:
-            raise FwoImporterError("cannot get outdated refs to remove: rule is None")
+            return {}
 
         if not remove_all:
             ref_uids = self.get_rule_refs(rule)

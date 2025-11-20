@@ -337,18 +337,18 @@ class FwoApiCall(FwoApi):
             importState.Stats.ErrorAlreadyLogged = True
 
 
-    def get_last_complete_import(self, query_vars: dict[str, Any], debug_level: int = 0) -> tuple[int, str]:
+    def get_last_complete_import(self, queryVars: dict[str, Any]) -> tuple[int, str]:
         mgm_query = FwoApi.get_graphql_code([fwo_const.graphql_query_path + "import/getLastCompleteImport.graphql"])
-        lastFullImportDate: str = ""
-        lastFullImportId: int = 0
+        last_full_import_date: str = ""
+        last_full_import_id: int = 0
         try:
-            pastDetails = self.call(mgm_query, query_variables=query_vars)
+            pastDetails = self.call(mgm_query, query_variables=queryVars)
             if len(pastDetails['data']['import_control'])>0:
-                lastFullImportDate = pastDetails['data']['import_control'][0]['start_time']
-                lastFullImportId = pastDetails['data']['import_control'][0]['control_id']
+                last_full_import_date = pastDetails['data']['import_control'][0]['start_time']
+                last_full_import_id = pastDetails['data']['import_control'][0]['control_id']
         except Exception as _:
             logger = get_fwo_logger()
-            logger.error(f"error while getting past import details for mgm {str(query_vars)}: {str(traceback.format_exc())}")
+            logger.error(f"error while getting past import details for mgm {str(queryVars)}: {str(traceback.format_exc())}")
             raise
 
-        return lastFullImportId, lastFullImportDate
+        return last_full_import_id, last_full_import_date

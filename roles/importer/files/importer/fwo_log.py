@@ -79,7 +79,7 @@ class LogLock:
 #         LogLock.semaphore.release()
 
 
-def get_fwo_logger(debug_level: int = 0):
+def get_fwo_logger(debug_level: int = 0) -> logging.Logger:
     if int(debug_level) >= 1:
         log_level = logging.DEBUG
     else:

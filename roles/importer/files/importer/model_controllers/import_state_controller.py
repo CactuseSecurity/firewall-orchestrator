@@ -84,15 +84,13 @@ class ImportStateController(ImportState):
 
 
     @classmethod
-    def initializeImport(cls, mgmId: int | None, fwo_api_uri: str, jwt: str,
-                         debugLevel: int = 0, suppressCertWarnings: bool = False, 
-                         sslVerification: bool = False, force: bool = False, version: int = 8,
-                         isClearingImport: bool = False, isFullImport: bool = False, isInitialImport: bool = False,
+    def initializeImport(cls, mgmId: int, jwt: str,
+                         debugLevel: int, suppressCertWarnings: bool, 
+                         sslVerification: bool, force: bool, version: int,
+                         isClearingImport: bool, isFullImport: bool,
                          ):
 
         logger = get_fwo_logger()
-        if mgmId is None:
-            raise ValueError("parameter mgm_id is mandatory")
 
         fwoConfig = FworchConfigController.fromJson(read_config(fwo_config_filename))
 
@@ -105,27 +103,21 @@ class ImportStateController(ImportState):
 
         try: # get mgm_details (fw-type, port, ip, user credentials):
             mgm_controller = ManagementController(
-                mgm_id=int(mgmId), uid='', devices={}, #type: ignore # TODO: why int cast here?
-                device_info=DeviceInfo(),
-                connection_info=ConnectionInfo(),
-                importer_hostname='',
-                credential_info=CredentialInfo(),
-                manager_info=ManagerInfo(),
-                domain_info=DomainInfo()
+                mgmId, '', {}, DeviceInfo(), ConnectionInfo(), '', CredentialInfo(), ManagerInfo(), DomainInfo()
             )
             mgmDetails = mgm_controller.get_mgm_details(api_conn, mgmId) 
         except Exception as _:
-            logger.error(f"import_management - error while getting fw management details for mgm={str(mgmId)}: {str(traceback.format_exc())}")
+            logger.error(f"import_management - error while getting fw management details for mgm={mgmId}: {str(traceback.format_exc())}")
             raise
 
         try: # get last import data
-            _, last_import_date = api_call.get_last_complete_import({"mgmId": int(mgmId)}, debug_level=0)
+            _, last_import_date = api_call.get_last_complete_import({"mgmId": mgmId})
         except Exception:
-            logger.error("import_management - error while getting last import data for mgm=" + str(mgmId) )
+            logger.error(f"import_management - error while getting last import data for mgm={mgmId}")
             raise
 
         result = cls (
-            debugLevel = int(debugLevel),
+            debugLevel = debugLevel,
             configChangedSinceLastImport = True,
             fwoConfig = fwoConfig,
             mgmDetails = mgmDetails,
@@ -157,7 +149,7 @@ class ImportStateController(ImportState):
             if day_string:
                 self.DataRetentionDays = int(day_string)
             self.LastFullImportId, self.lastFullImportDate = \
-                api_call.get_last_complete_import({"mgmId": int(self.MgmDetails.Id)}, self.DebugLevel) 
+                api_call.get_last_complete_import({"mgmId": int(self.MgmDetails.Id)}) 
         except Exception:
             logger.error(f"import_management - error while getting past import details for mgm={str(self.MgmDetails.Id)}: {str(traceback.format_exc())}")
             raise

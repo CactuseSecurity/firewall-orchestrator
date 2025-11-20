@@ -237,9 +237,12 @@ def rule_parse_tracking_info(native_rule):
         return RuleTrack.NONE
 
 def rule_parse_service(native_rule):
+    """
+    Parses services to ordered (!) name list and reference list.
+    """
     rule_svc_list = []
     rule_svc_refs_list = []
-    for svc in native_rule.get('service', []):
+    for svc in sorted(native_rule.get('service', [])):
         rule_svc_list.append(svc)
         rule_svc_refs_list.append(svc)
     if rule_svc_list == [] and 'internet-service-name' in native_rule and len(native_rule['internet-service-name']) > 0:
@@ -252,6 +255,9 @@ def rule_parse_service(native_rule):
     return rule_svc_list, rule_svc_refs_list
 
 def rule_parse_addresses(native_rule, target, normalized_config_adom, normalized_config_global, is_nat):
+    """
+    Parses addresses to ordered (!) name list and reference list for source or destination addresses.
+    """
     if target not in ['src', 'dst']:
         raise FwoImporterErrorInconsistencies(f"target '{target}' must either be src or dst.")
     addr_list = []
@@ -264,31 +270,34 @@ def rule_parse_addresses(native_rule, target, normalized_config_adom, normalized
     return addr_list, addr_ref_list
 
 def build_addr_list(native_rule, is_v4, target, normalized_config_adom, normalized_config_global, addr_list, addr_ref_list):
+    """
+    Builds ordered (!) address list and address reference list for source or destination addresses.
+    """
     if is_v4 and target == 'src':
-        for addr in native_rule.get('srcaddr', []) + native_rule.get('internet-service-src-name', []):
+        for addr in sorted(native_rule.get('srcaddr', [])) + sorted(native_rule.get('internet-service-src-name', [])):
             addr_list.append(addr)
             addr_ref_list.append(find_addr_ref(addr, is_v4, normalized_config_adom, normalized_config_global))
     elif not is_v4 and target == 'src':
-        for addr in native_rule.get('srcaddr6', []):
+        for addr in sorted(native_rule.get('srcaddr6', [])):
             addr_list.append(addr)
             addr_ref_list.append(find_addr_ref(addr, is_v4, normalized_config_adom, normalized_config_global))
     elif is_v4 and target == 'dst':
-        for addr in native_rule.get('dstaddr', []) + native_rule.get('internet-service-name', []):
+        for addr in sorted(native_rule.get('dstaddr', [])) + sorted(native_rule.get('internet-service-name', [])):
             addr_list.append(addr)
             addr_ref_list.append(find_addr_ref(addr, is_v4, normalized_config_adom, normalized_config_global))
     else:
-        for addr in native_rule.get('dstaddr6', []):
+        for addr in sorted(native_rule.get('dstaddr6', [])):
             addr_list.append(addr)
             addr_ref_list.append(find_addr_ref(addr, is_v4, normalized_config_adom, normalized_config_global))
 
 def build_nat_addr_list(native_rule, target, normalized_config_adom, normalized_config_global, addr_list, addr_ref_list):
     # so far only ip v4 expected
     if target == 'src':
-        for addr in native_rule.get('orig-addr', []):
+        for addr in sorted(native_rule.get('orig-addr', [])):
             addr_list.append(addr)
             addr_ref_list.append(find_addr_ref(addr, True, normalized_config_adom, normalized_config_global))
     if target == 'dst':
-        for addr in native_rule.get('dst-addr', []):
+        for addr in sorted(native_rule.get('dst-addr', [])):
             addr_list.append(addr)
             addr_ref_list.append(find_addr_ref(addr, True, normalized_config_adom, normalized_config_global))
 

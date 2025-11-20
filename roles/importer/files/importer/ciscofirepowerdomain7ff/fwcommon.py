@@ -11,7 +11,7 @@ import cifp_getter
 from fwo_log import get_fwo_logger
 
 
-def has_config_changed() -> bool:
+def has_config_changed(_, __, ___) -> bool:
     # dummy - may be filled with real check later on
     return True
 

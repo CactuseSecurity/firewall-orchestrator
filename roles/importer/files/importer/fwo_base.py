@@ -231,12 +231,21 @@ def cidr_to_range(ip: str | None) -> list[str] | list[None]: # TODO: I have no i
 
 def valid_ip_address(ip: str) -> str:
     try:
-        t = type(ipaddress.ip_address(ip))
-        if t is ipaddress.IPv4Address:
+        # Try as network first (handles CIDR notation)
+        network = ipaddress.ip_network(ip, strict=False)
+        if network.version == 4:
             return "IPv4"
         else:
             return "IPv6"
-    except Exception:
+    except ValueError:
+        try:
+            # Try as individual address
+            addr = ipaddress.ip_address(ip)
+            if addr.version == 4:
+                return "IPv4"
+            else:
+                return "IPv6"
+        except ValueError:
             return "Invalid"
 
 

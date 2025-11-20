@@ -19,7 +19,7 @@ from models.fwconfig_normalized import FwConfigNormalized
 from models.management import Management
 
 
-def has_config_changed():
+def has_config_changed(_, __, ___):
     # dummy - may be filled with real check later on
     return True
 
@@ -78,7 +78,10 @@ def get_config(config_in: FwConfigManagerListController, importState: ImportStat
 
         write_native_config_to_file(importState, config_in.native_config)
 
-    normalized_managers = normalize_config(importState, config_in.native_config) # type: ignore #TYPING: None or not None this is the question
+    if not config_in.native_config:
+        raise ImportError("native config missing")
+
+    normalized_managers = normalize_config(config_in.native_config)
     logger.info("completed getting config")
     return 0, normalized_managers
 
@@ -103,7 +106,7 @@ def get_arbitrary_vdom(adom_device_vdom_structure: dict[str, dict[str, dict[str,
                 return {'adom': adom, 'device': device, 'vdom': vdom}
 
 
-def normalize_config(import_state: ImportStateController, native_config: dict[str,Any]) -> FwConfigManagerListController:
+def normalize_config(native_config: dict[str,Any]) -> FwConfigManagerListController:
 
     manager_list = FwConfigManagerListController()
 

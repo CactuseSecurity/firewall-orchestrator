@@ -17,9 +17,7 @@ import fwo_globals
 from fwo_const import base_dir, importer_base_dir
 from fwo_exceptions import FwoApiLoginFailed, FwoApiFailedLockImport, FwLoginFailed
 from model_controllers.import_state_controller import ImportStateController
-from fwo_base import init_service_provider
-from services.global_state import GlobalState
-from services.enums import Services
+from fwo_base import init_service_provider, register_global_state
 
 
 def get_fwo_jwt(importUser: str, importPwd: str, userManagementApi: str) -> str | None:
@@ -86,8 +84,6 @@ def main_loop(verify_certificates: bool | None = None, suppress_certificate_warn
 
         fwo_api = FwoApi(fwo_api_base_url, jwt)
         fwo_api_call = FwoApiCall(fwo_api)
-
-        global_state = service_provider.get_global_state()
         
         urllib3.disable_warnings()  # suppress ssl warnings only
         verify_certificates = fwo_api_call.get_config_value(key='importCheckCertificates')=='True'
@@ -111,11 +107,9 @@ def main_loop(verify_certificates: bool | None = None, suppress_certificate_warn
                 continue # for testing only, remove later
 
             wait_with_shutdown_check(0)
-
-            service_provider = init_service_provider()
-            global_state: GlobalState = service_provider.get_global_state()
-            import_state = ImportStateController.initializeImport(mgm_id, fwo_api_uri=fwo_api_base_url, jwt=jwt, debugLevel=debug_level, version=fwo_major_version)
-            global_state.import_state = import_state
+            import_state = ImportStateController.initializeImport(mgm_id, fwo_api_uri=fwo_api_base_url, force=force, jwt=jwt, debugLevel=debug_level, version=fwo_major_version)
+            
+            register_global_state(import_state)
 
             try:
                 mgm_controller = ManagementController(
@@ -140,8 +134,8 @@ def main_loop(verify_certificates: bool | None = None, suppress_certificate_warn
             logger.debug(f"import-main-loop: starting import of mgm_id={import_state.MgmDetails.Id}")
 
             try:
-                import_management(mgmId=import_state.MgmDetails.Id, debug_level_in=debug_level, version=import_state.ImportVersion,
-                    clearManagementData=clear, force=force, limit=int(api_fetch_limit))
+                import_management(mgmId=import_state.MgmDetails.Id, api_call=fwo_api_call, ssl_verification=verify_certificates, debug_level_in=debug_level,
+                    clearManagementData=clear, limit=int(api_fetch_limit))
             except (FwoApiFailedLockImport, FwLoginFailed):
                 logger.info(f"import-main-loop - minor error while importing mgm_id={str(import_state.MgmDetails.Id)}, {str(traceback.format_exc())}") 
                 continue # minor errors for a single mgm, go to next one

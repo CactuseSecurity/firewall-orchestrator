@@ -4,17 +4,18 @@ import sys
 import time
 from socket import gethostname
 
-from fwo_const import importer_base_dir, fwo_config_filename
+from fwo_const import importer_base_dir
 from pathlib import Path
+
+from model_controllers.fworch_config_controller import FworchConfigController
 if importer_base_dir not in sys.path:
     sys.path.append(importer_base_dir) # adding absolute path here once
-from fwo_api import FwoApi
 from fwo_api_call import FwoApiCall
 from fwo_log import get_fwo_logger
-from fwo_const import fw_module_name, import_tmp_path, importer_user_name
+from fwo_const import fw_module_name, import_tmp_path
 import fwo_globals
 from fwo_base import write_native_config_to_file
-from fwo_exceptions import ShutdownRequested, FwoApiLoginFailed, FwoImporterError, FwLoginFailed, ImportRecursionLimitReached, FwoApiWriteError, FwoImporterErrorInconsistencies, ImportInterruption
+from fwo_exceptions import ShutdownRequested, FwoImporterError, FwLoginFailed, ImportRecursionLimitReached, FwoApiWriteError, FwoImporterErrorInconsistencies, ImportInterruption
 from fwo_base import string_is_uri
 import fwo_file_import
 from model_controllers.import_state_controller import ImportStateController
@@ -27,8 +28,6 @@ from model_controllers.rollback import FwConfigImportRollback
 import fwo_signalling
 from services.service_provider import ServiceProvider
 from services.enums import Services
-from model_controllers.fworch_config_controller import FworchConfigController
-from fwo_config import read_config
 
 
 """  
@@ -42,40 +41,21 @@ from fwo_config import read_config
 
     expects service_provider to be initialized
 """
-def import_management(mgmId: int | None = None, ssl_verification: bool | None = None, debug_level_in: int = 0, 
-        limit: int = 150, force: bool = False, clearManagementData: bool = False, suppress_cert_warnings_in: bool | None = None,
-        in_file: str | None = None, version: int = 8) -> None:
+def import_management(mgmId: int, api_call: FwoApiCall, ssl_verification: bool = False, debug_level_in: int = 0, 
+        limit: int = 150, clearManagementData: bool = False, suppress_cert_warnings_in: bool | None = None,
+        in_file: str | None = None) -> None:
 
     fwo_signalling.registerSignallingHandlers()
     logger = get_fwo_logger(debug_level=debug_level_in)
-    # config_changed_since_last_import = True //TODO: implement change detection
-    verify_certs = (ssl_verification is not None)
-
     service_provider = ServiceProvider()
-    global_state = service_provider.get_global_state()
-
-    fwoConfig = FworchConfigController.fromJson(read_config(fwo_config_filename))
-
-    # authenticate to get JWT
-    try:
-        jwt = FwoApi.login(importer_user_name, fwoConfig.ImporterPassword, fwoConfig.FwoUserMgmtApiUri)
-        api_call = FwoApiCall(FwoApi(ApiUri=fwoConfig.FwoApiUri, Jwt=jwt))
-    except FwoApiLoginFailed as e:
-        logger.error(e.message)
-        raise
-    except Exception as e:
-        logger.error(f"Unexpected error during login: {str(e)}")
-        raise
-    importState = ImportStateController.initializeImport(mgmId, fwo_api_uri=fwoConfig.FwoApiUri, jwt=jwt, 
-                                            debugLevel=debug_level_in, force=force, version=version, 
-                                            isClearingImport=clearManagementData, isFullImport=False, sslVerification=verify_certs)
-    global_state.import_state = importState
-
+    importState = service_provider.get_global_state().import_state
+    fwoConfig = FworchConfigController.fromJson(readConfig(fwo_config_filename))
     config_importer = FwConfigImport()
 
+
+
     try:
-        _import_management(service_provider=service_provider, importState=importState, config_importer=config_importer,
-                           mgmId=mgmId, ssl_verification=ssl_verification, debug_level_in=debug_level_in,
+        _import_management(mgmId=mgmId, ssl_verification=ssl_verification, debug_level_in=debug_level_in,
             limit=limit, clearManagementData=clearManagementData,
             suppress_cert_warnings_in=suppress_cert_warnings_in, in_file=in_file)
 
@@ -108,18 +88,17 @@ def import_management(mgmId: int | None = None, ssl_verification: bool | None = 
             logger.error(f"Error during import completion: {str(e)}")
 
 
-def _import_management(service_provider: ServiceProvider, importState: ImportStateController, config_importer: FwConfigImport | None = None,
-        mgmId: int | None = None, ssl_verification: bool | None = None, debug_level_in: int =0,
-        limit: int =150, clearManagementData: bool = False, suppress_cert_warnings_in: bool | None = None, in_file: str | None = None) -> None:
+def _import_management(mgmId: int, ssl_verification: bool, in_file: str | None, debug_level_in: int,
+        limit: int, clearManagementData: bool, suppress_cert_warnings_in: bool) -> None:
 
     config_normalized : FwConfigManagerListController
 
-    if config_importer is None:
-        config_importer = FwConfigImport()
 
     logger = get_fwo_logger(debug_level=debug_level_in)
     config_changed_since_last_import = True
-
+    service_provider = ServiceProvider()
+    importState = service_provider.get_global_state().import_state
+    config_importer = FwConfigImport()
     if importState.DebugLevel > 8:
         logger.debug(f"import_management - ssl_verification: {ssl_verification}")
         logger.debug(f"import_management - suppress_cert_warnings_in: {suppress_cert_warnings_in}")

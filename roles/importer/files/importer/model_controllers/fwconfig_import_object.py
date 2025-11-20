@@ -26,7 +26,7 @@ class Type(Enum):
 class FwConfigImportObject():
 
     import_state: ImportStateController
-    normalized_config: FwConfigNormalized
+    normalized_config: FwConfigNormalized | None = None
     global_normalized_config: FwConfigNormalized | None = None
     group_flats_mapper: GroupFlatsMapper
     prev_group_flats_mapper: GroupFlatsMapper
@@ -38,14 +38,7 @@ class FwConfigImportObject():
 
         service_provider = ServiceProvider()
         global_state = service_provider.get_global_state()
-        if global_state.import_state is None:
-            raise FwoImporterError("FwConfigImportObject init failed: global state's import_state is None")
-
         self.import_state = global_state.import_state
-
-        if global_state.normalized_config is None:
-            raise FwoImporterError("FwConfigImportObject init failed: global state's normalized_config is None")
-        
         self.normalized_config = global_state.normalized_config
         self.global_normalized_config = global_state.global_normalized_config
         self.group_flats_mapper = service_provider.get_group_flats_mapper(self.import_state.ImportId)

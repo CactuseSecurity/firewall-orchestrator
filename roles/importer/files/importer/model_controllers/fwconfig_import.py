@@ -40,8 +40,6 @@ class FwConfigImport():
     def __init__(self):
         service_provider = ServiceProvider()
         self._global_state = service_provider.get_global_state()
-        if self._global_state.import_state is None:
-            raise FwoImporterError("import_state not set in global state")
         self.import_state = self._global_state.import_state
 
         self.NormalizedConfig = self._global_state.normalized_config
@@ -78,7 +76,7 @@ class FwConfigImport():
 
 
     def import_config(self, service_provider: ServiceProvider, import_state: ImportStateController, manager: FwConfigManager, config: FwConfigNormalized):
-        global_state = service_provider.get_global_state() 
+        global_state = service_provider.get_global_state()
         global_state.normalized_config = config
         if manager.IsSuperManager:
             # store global config as it is needed when importing sub managers which might reference it

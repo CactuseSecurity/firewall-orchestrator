@@ -385,15 +385,18 @@ def write_native_config_to_file(importState: 'ImportStateController', configNati
         logger.debug(f"import_management - writing debug config json files duration {str(time_write_debug_json)}s")
 
 
-def init_service_provider():
+def init_service_provider() -> ServiceProvider:
     service_provider = ServiceProvider()
-    service_provider.register(Services.GLOBAL_STATE, lambda: GlobalState(), Lifetime.SINGLETON)
     service_provider.register(Services.FWO_CONFIG, lambda: fwo_config.read_config(), Lifetime.SINGLETON)
     service_provider.register(Services.GROUP_FLATS_MAPPER, lambda: GroupFlatsMapper(), Lifetime.IMPORT)
     service_provider.register(Services.PREV_GROUP_FLATS_MAPPER, lambda: GroupFlatsMapper(), Lifetime.IMPORT)
     service_provider.register(Services.UID2ID_MAPPER, lambda: Uid2IdMapper(), Lifetime.IMPORT)
     service_provider.register(Services.RULE_ORDER_SERVICE, lambda: RuleOrderService(), Lifetime.IMPORT)
     return service_provider
+
+def register_global_state(import_state: 'ImportStateController') -> None:
+    service_provider = ServiceProvider()
+    service_provider.register(Services.GLOBAL_STATE, lambda: GlobalState(import_state), Lifetime.SINGLETON)
 
 
 def find_all_diffs(a: Any, b: Any, strict: bool = False, path: str = "root") -> list[str]:

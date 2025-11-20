@@ -7,7 +7,6 @@ import argparse
 import urllib3
 from common import importer_base_dir, import_management
 import fwo_globals
-import fwo_config
 from fwo_base import init_service_provider
 
 

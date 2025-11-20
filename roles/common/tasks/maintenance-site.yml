@@ -16,8 +16,8 @@
 
   - name: copy maintenance web site image
     copy:
-      src: men-at-work.jpg
-      dest: "/var/www/html/men-at-work.jpg"
+      src: men-at-work.png
+      dest: "/var/www/html/men-at-work.png"
       mode: "0644"
 
   - name: enable apache2 required modules

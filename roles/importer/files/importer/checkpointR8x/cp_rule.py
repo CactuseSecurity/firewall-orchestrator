@@ -6,8 +6,8 @@ import ast
 from fwo_log import get_fwo_logger
 import fwo_globals
 from fwo_const import list_delimiter, default_section_header_text
-from fwo_base import sanitize
-from fwo_exceptions import FwoImporterErrorInconsistencies
+from fwo_base import sanitize, sort_and_join_refs
+from fwo_exceptions import ImportRecursionLimitReached, FwoImporterErrorInconsistencies
 from models.rulebase import Rulebase
 from models.rule import RuleNormalized
 from models.rule_enforced_on_gateway import RuleEnforcedOnGatewayNormalized
@@ -122,7 +122,7 @@ def concatenat_sections_across_chunks(rulebase_to_parse: dict[str, Any], section
 
                     
 def initialize_normalized_rulebase(rulebase_to_parse: dict[str, Any], mgm_uid: str) -> Rulebase:
-    rulebaseName = rulebase_to_parse['name']
+    rulebaseName = rulebase_to_parse.get('name', default_section_header_text)
     rulebaseUid = rulebase_to_parse['uid']
     normalized_rulebase = Rulebase(uid=rulebaseUid, name=rulebaseName, mgm_uid=mgm_uid, rules={})
     return normalized_rulebase
@@ -258,18 +258,13 @@ def parse_single_rule(nativeRule: dict[str, Any], rulebase: Rulebase, layer_name
     if not('type' in nativeRule and nativeRule['type'] != 'place-holder' and 'rule-number' in nativeRule):  # standard rule, no section header
         return
     # the following objects might come in chunks:
-    sourceObjects = parse_rule_part (nativeRule['source'], 'source')
-    rule_src_ref = list_delimiter.join(sourceObjects.keys())
-    rule_src_name = list_delimiter.join(sourceObjects.values())
-
-    destObjects = parse_rule_part (nativeRule['destination'], 'destination')
-    rule_dst_ref = list_delimiter.join(destObjects.keys())
-    rule_dst_name = list_delimiter.join(destObjects.values())
-
-    svcObjects = parse_rule_part (nativeRule['service'], 'service')
-    rule_svc_ref = list_delimiter.join(svcObjects.keys())
-    rule_svc_name = list_delimiter.join(svcObjects.values())
-
+    sourceObjects: dict[str, str] = parseRulePart (nativeRule['source'], 'source')
+    rule_src_ref, rule_src_name = sort_and_join_refs(list(sourceObjects.items()))
+    
+    destObjects: dict[str, str] = parseRulePart (nativeRule['destination'], 'destination')
+    rule_dst_ref, rule_dst_name = sort_and_join_refs(list(destObjects.items()))
+    svcObjects: dict[str, str] = parseRulePart (nativeRule['service'], 'service')
+    rule_svc_ref, rule_svc_name = sort_and_join_refs(list(svcObjects.items()))
     ruleEnforcedOnGateways = parse_rule_enforced_on_gateway(gateway, policy_structure, native_rule=nativeRule)
     listOfGwUids = sorted({enforceEntry.dev_uid for enforceEntry in ruleEnforcedOnGateways})
     strListOfGwUids = list_delimiter.join(listOfGwUids) if listOfGwUids else None

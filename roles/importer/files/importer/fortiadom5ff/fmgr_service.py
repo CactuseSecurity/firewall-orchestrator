@@ -1,6 +1,7 @@
 import re
-from fwo_const import list_delimiter
 from typing import Any
+from fwo_const import list_delimiter
+from fwo_base import sort_and_join
 
 def normalize_service_objects(native_config: dict[str, Any], normalized_config_adom: dict[str, Any], svc_obj_types: list[str]) -> None:
     svc_objects: list[dict[str, Any]] = []
@@ -162,6 +163,8 @@ def create_svc_object(name: str, proto: int, color: str, port: Any, comment: str
 
 
 def add_object(svc_objects: list[dict[str, Any]], type: str, name: str, color: str, proto: int, port_ranges: list[str] | None, member_names: str | None, session_timeout: Any) -> None:
+    if member_names:
+        member_names = sort_and_join(member_names.split(list_delimiter)) #TODO: sorting should be done earlier on actual list
     if port_ranges is None:
         svc_objects.extend([{'svc_typ': type,
                             'svc_name': name,

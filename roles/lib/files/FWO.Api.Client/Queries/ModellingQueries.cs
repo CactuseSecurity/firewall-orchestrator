@@ -180,6 +180,7 @@ namespace FWO.Api.Client.Queries
                 removeAllServiceGroupsFromConnection = GetQueryText("modelling/removeAllServiceGroupsFromConnection.graphql");
                 getConnectionIdsForService = GetQueryText("modelling/getConnectionIdsForService.graphql");
                 getConnectionIdsForServiceGroup = GetQueryText("modelling/getConnectionIdsForServiceGroup.graphql");
+                updateConnectionDecommission = GetQueryText("modelling/updateConnectionDecommission.graphql");
 
                 getSelectedConnections = connectionDetailsFragment + GetQueryText("modelling/getSelectedConnections.graphql");
                 addSelectedConnection = GetQueryText("modelling/addSelectedConnection.graphql");
@@ -229,7 +230,11 @@ namespace FWO.Api.Client.Queries
             catch (Exception exception)
             {
                 Log.WriteError("Initialize ModellingQueries", "Api ModellingQueries could not be loaded.", exception);
+#if RELEASE
                 Environment.Exit(-1);
+#else
+                throw;
+#endif
             }
         }
     }

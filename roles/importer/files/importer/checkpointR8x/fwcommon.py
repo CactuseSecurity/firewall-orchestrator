@@ -57,6 +57,7 @@ def get_config(config_in: FwConfigManagerListController, importState: ImportStat
         if config_in.native_config is None:
             raise FwoImporterError("native_config is None in get_config")
 
+        # IMPORTANT: cp api is expected to preserve order of refs in group objects (unlike refs in rules, which are sorted later)
         result_get_objects = get_objects(config_in.native_config, importState)
         if result_get_objects>0:
             raise FwLoginFailed( "checkpointR8x/get_config/error while gettings objects")

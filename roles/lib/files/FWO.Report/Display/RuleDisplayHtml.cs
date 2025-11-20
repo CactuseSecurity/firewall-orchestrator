@@ -126,7 +126,7 @@ namespace FWO.Ui.Display
             string gwLink = ReportDevicesBase.GetReportDevicesLinkAddress(location, mgmtId, ObjCatString.NwObj, chapterNumber, gateway.Id, reportType);
 
             return DisplayGateway(gateway, reportType, reportType.IsResolvedReport() ? null :
-                ReportBase.ConstructLink(ReportBase.GetIconClass(ObjCategory.nsrv, "Gateway"), gateway.Name, style, gwLink)).ToString();
+                ReportBase.ConstructLink(ReportBase.GetIconClass(ObjCategory.nsrv, "Gateway"), gateway.Name ?? string.Empty, style, gwLink)).ToString();
         }
 
         private string DisplaySourceOrDestination(Rule rule, int chapterNumber, OutputLocation location, ReportType reportType, string style, bool isSource, bool overwriteIsResolvedReport = false)

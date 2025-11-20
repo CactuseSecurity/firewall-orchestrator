@@ -419,6 +419,15 @@ def sort_and_join(input_list: list[str]) -> str:
     """ Sorts the input list of strings and joins them using the standard list delimiter. """
     return fwo_const.list_delimiter.join(sorted(input_list))
 
+def sort_and_join_refs(input_list: list[tuple[str, str]]) -> tuple[str, str]:
+    """ Sorts the input list of (uid, name) tuples and joins uids and names separately using the standard list delimiter. """
+    sorted_list = sorted(input_list, key=lambda x: x[1])  # sort by name
+    uids = [item[0] for item in sorted_list]
+    names = [item[1] for item in sorted_list]
+    joined_uids = fwo_const.list_delimiter.join(uids)
+    joined_names = fwo_const.list_delimiter.join(names)
+    return joined_uids, joined_names
+
 def generate_hash_from_dict(input_dict: dict[Any, Any]) -> str:
     """ Generates a consistent hash from a dictionary by serializing it with sorted keys. """
     dict_string = json.dumps(input_dict, sort_keys=True)

@@ -12,7 +12,7 @@ from model_controllers.import_state_controller import ImportStateController
 from models.fwconfigmanagerlist import FwConfigManagerList
 from models.fwconfigmanager import FwConfigManager
 from models.fwconfig_normalized import FwConfigNormalized
-
+from models.import_state import ImportState
 import fwo_const
 
 
@@ -37,7 +37,7 @@ user_obj_types = ['user/local', 'user/group']
 user_scope = ['user_obj_' + s1 for s1 in user_obj_types]
 
 
-def has_config_changed(_, __, ___) -> bool:
+def has_config_changed(_: dict[str, Any], __: ImportState, ___: bool = False) -> bool:
     # dummy - may be filled with real check later on
     return True
  

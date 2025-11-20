@@ -8,8 +8,9 @@ from azure_network import normalize_nwobjects
 from azure_getter import login, update_config_with_azure_api_call
 from fwo_log import get_fwo_logger
 from azure_base import azure_api_version_str
+from models.import_state import ImportState
 
-def has_config_changed(_, __, ___):
+def has_config_changed(_: dict[str, Any], __: ImportState, ___: bool = False) -> bool:
     # dummy - may be filled with real check later on
     return True
 

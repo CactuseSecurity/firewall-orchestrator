@@ -49,7 +49,7 @@ def get_config(config2import: dict[str, Any], full_config: dict[str, Any], curre
         get_objects(sessionId, cisco_api_url, full_config, limit, scopes)
 
         for device in full_config["devices"]:
-            cifp_rule.getAccessPolicy(sessionId, cisco_api_url, full_config, device, limit)
+            cifp_rule.get_access_policy(sessionId, cisco_api_url, device)
             ##cifp_rule.getNatPolicy(sessionId, cisco_api_url, full_config, domain, device, limit) TODO
 
         try:  # logout

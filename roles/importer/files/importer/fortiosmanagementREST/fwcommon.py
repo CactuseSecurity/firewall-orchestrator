@@ -14,6 +14,7 @@ from models.fwconfigmanager import FwConfigManager
 from models.fwconfig_normalized import FwConfigNormalized
 
 import fwo_const
+from models.import_state import ImportState
 
 
 nw_obj_types = ['firewall/address', 'firewall/address6', 'firewall/addrgrp',
@@ -37,7 +38,7 @@ user_obj_types = ['user/local', 'user/group']
 user_scope = ['user_obj_' + s1 for s1 in user_obj_types]
 
 
-def has_config_changed() -> bool:
+def has_config_changed(full_config: dict[str, Any], importState: ImportState, force: bool = False) -> bool:
     # dummy - may be filled with real check later on
     return True
  

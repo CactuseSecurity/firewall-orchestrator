@@ -6,8 +6,9 @@ from model_controllers.route_controller import Route, get_route_destination
 import json, requests
 from datetime import datetime
 from fwo_exceptions import ConfigFileNotFound
+from models.import_state import ImportState
 
-def has_config_changed():
+def has_config_changed(full_config: dict[str, Any], importState: ImportState, force: bool = False) -> bool:
     # dummy - may be filled with real check later on
     return True
 

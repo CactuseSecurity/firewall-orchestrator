@@ -1,6 +1,7 @@
 # import sys
 # from common import importer_base_dir
 # sys.path.append(importer_base_dir + "/paloaltomanagement2023ff")
+from typing import Any
 from palo_service import normalize_svcobjects
 from palo_application import normalize_application_objects
 from palo_rule import normalize_access_rules
@@ -9,8 +10,9 @@ from palo_zone import normalize_zones
 from palo_getter import login, update_config_with_palofw_api_call
 from fwo_log import get_fwo_logger
 from palo_base import api_version_str
+from models.import_state import ImportState
 
-def has_config_changed():
+def has_config_changed(full_config: dict[str, Any], importState: ImportState, force: bool = False) -> bool:
     # dummy - may be filled with real check later on
     return True
 

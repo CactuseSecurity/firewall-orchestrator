@@ -19,22 +19,22 @@ from model_controllers.management_controller import ManagementController
 
 
 
-def has_config_changed (full_config: dict[str, Any], importState: ImportState, force: bool = False):
+def has_config_changed (full_config: dict[str, Any], importState: ImportState, force: bool = False) -> bool:
 
     if full_config != {}:   # a config was passed in (read from file), so we assume that an import has to be done (simulating changes here)
-        return 1
+        return True
 
     session_id: str = cp_getter.login(importState.MgmDetails)
 
     if importState.LastSuccessfulImport==None or importState.LastSuccessfulImport=='' or force:
         # if no last import time found or given or if force flag is set, do full import
-        result = 1
+        result = True
     else: # otherwise search for any changes since last import
         result = (cp_getter.get_changes(session_id, importState.MgmDetails.Hostname, str(importState.MgmDetails.Port),importState.LastSuccessfulImport) != 0)
 
     cp_getter.logout(importState.MgmDetails.buildFwApiString(), session_id)
 
-    return result
+    return result > 0
 
 
 def get_config(config_in: FwConfigManagerListController, importState: ImportStateController) -> tuple[int, FwConfigManagerList]:

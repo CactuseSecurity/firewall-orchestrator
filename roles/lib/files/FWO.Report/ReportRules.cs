@@ -372,16 +372,22 @@ namespace FWO.Report
         }
         public override string ExportToCsv()
         {
-            if (ReportType.IsResolvedReport())
+            if (!ReportType.IsResolvedReport())
+            {
+                throw new NotImplementedException();
+            }
+            else
             {
                 StringBuilder report = new();
                 RuleDisplayCsv ruleDisplayCsv = new(userConfig);
 
                 report.Append(DisplayReportHeaderCsv());
-                report.AppendLine($"\"management-name\",\"device-name\",\"rule-number\",\"rule-name\",\"source-zone\",\"source\",\"destination-zone\",\"destination\",\"service\",\"action\",\"track\",\"rule-enabled\",\"rule-uid\",\"rule-comment\"");
+                report.AppendLine(
+                    $"\"management-name\",\"device-name\",\"rule-number\",\"rule-name\",\"source-zone\",\"source\",\"destination-zone\",\"destination\",\"service\",\"action\",\"track\",\"rule-enabled\",\"rule-uid\",\"rule-comment\"");
 
                 var managementReports = ReportData.ManagementData.Where(mgt => !mgt.Ignore &&
-                                                                  Array.Exists(mgt.Devices, device => device.ContainsRules()));
+                                                                               Array.Exists(mgt.Devices,
+                                                                                   device => device.ContainsRules()));
                 foreach (var managementReport in managementReports)
                 {
                     foreach (var gateway in managementReport.Devices)
@@ -390,17 +396,15 @@ namespace FWO.Report
                         {
                             continue;
                         }
+
                         if (gateway.RulebaseLinks.FirstOrDefault(rbl => rbl.IsInitialRulebase()) is { } rbLink)
                         {
                             ExportSingleRulebaseToCsv(report, ruleDisplayCsv, managementReport, gateway, rbLink);
                         }
                     } // gateways
-                }// managements
+                } // managements
+
                 return report.ToString();
-            }
-            else
-            {
-                throw new NotImplementedException();
             }
         }
 

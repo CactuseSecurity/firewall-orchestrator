@@ -559,3 +559,12 @@ hotfix release
   - apache config (information leakage)
   - listeners (hasura, postgres)
   - log santisation
+# 8.9.1 - 02.10.2025 MAIN
+- owner-recertification
+
+# 8.9.2 - 17.10.2025 MAIN
+- add ownerLifeCycleState 
+- add manageable ownerLifeCycleState menu
+
+# 8.9.3 - 05.11.2025 MAIN
+- hotfix missing permissions for app data import in certain constellations

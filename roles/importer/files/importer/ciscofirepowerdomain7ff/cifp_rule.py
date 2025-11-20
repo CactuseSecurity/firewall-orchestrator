@@ -12,14 +12,12 @@ rule_access_scope = rule_access_scope_v6 + rule_access_scope_v4
 rule_nat_scope = ['rules_global_nat', 'rules_adom_nat']
 rule_scope = rule_access_scope + rule_nat_scope
 
-def getAccessPolicy(sessionId: str, api_url: str, config: dict[str, Any], device: dict[str, Any], limit: int) -> None:
+def get_access_policy(session_id: str, api_url: str, device: dict[str, Any]) -> None:
     access_policy = device["accessPolicy"]["id"]
     domain = device["domain"]
 
-    device["rules"] = cifp_getter.update_config_with_cisco_api_call(sessionId, api_url,
+    device["rules"] = cifp_getter.update_config_with_cisco_api_call(session_id, api_url,
         "fmc_config/v1/domain/" + domain + "/policy/accesspolicies/" + access_policy + "/accessrules", parameters={"expanded": True})
-
-    return
 
 def normalize_access_rules(full_config: dict[str, Any], config2import: dict[str, Any], import_id: str) -> None:
     any_nw_svc: dict[str, Any] = {"svc_uid": "any_svc_placeholder", "svc_name": "Any", "svc_comment": "Placeholder service.", 

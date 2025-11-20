@@ -376,36 +376,32 @@ namespace FWO.Report
             {
                 throw new NotImplementedException();
             }
-            else
+            StringBuilder report = new();
+            RuleDisplayCsv ruleDisplayCsv = new(userConfig);
+
+            report.Append(DisplayReportHeaderCsv());
+            report.AppendLine(
+                $"\"management-name\",\"device-name\",\"rule-number\",\"rule-name\",\"source-zone\",\"source\",\"destination-zone\",\"destination\",\"service\",\"action\",\"track\",\"rule-enabled\",\"rule-uid\",\"rule-comment\"");
+
+            var managementReports = ReportData.ManagementData.Where(mgt => !mgt.Ignore &&
+                                                                           Array.Exists(mgt.Devices,
+                                                                               device => device.ContainsRules()));
+            foreach (var managementReport in managementReports)
             {
-                StringBuilder report = new();
-                RuleDisplayCsv ruleDisplayCsv = new(userConfig);
-
-                report.Append(DisplayReportHeaderCsv());
-                report.AppendLine(
-                    $"\"management-name\",\"device-name\",\"rule-number\",\"rule-name\",\"source-zone\",\"source\",\"destination-zone\",\"destination\",\"service\",\"action\",\"track\",\"rule-enabled\",\"rule-uid\",\"rule-comment\"");
-
-                var managementReports = ReportData.ManagementData.Where(mgt => !mgt.Ignore &&
-                                                                               Array.Exists(mgt.Devices,
-                                                                                   device => device.ContainsRules()));
-                foreach (var managementReport in managementReports)
+                foreach (var gateway in managementReport.Devices)
                 {
-                    foreach (var gateway in managementReport.Devices)
+                    if (!gateway.ContainsRules())
                     {
-                        if (!gateway.ContainsRules())
-                        {
-                            continue;
-                        }
+                        continue;
+                    }
 
-                        if (gateway.RulebaseLinks.FirstOrDefault(rbl => rbl.IsInitialRulebase()) is { } rbLink)
-                        {
-                            ExportSingleRulebaseToCsv(report, ruleDisplayCsv, managementReport, gateway, rbLink);
-                        }
-                    } // gateways
-                } // managements
-
-                return report.ToString();
-            }
+                    if (gateway.RulebaseLinks.FirstOrDefault(rbl => rbl.IsInitialRulebase()) is { } rbLink)
+                    {
+                        ExportSingleRulebaseToCsv(report, ruleDisplayCsv, managementReport, gateway, rbLink);
+                    }
+                } // gateways
+            } // managements
+            return report.ToString();
         }
 
         public override string ExportToJson()

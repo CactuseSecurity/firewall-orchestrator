@@ -91,9 +91,11 @@ namespace FWO.Compliance
                 _complianceCheckPolicyId = globalConfig.ComplianceCheckPolicyId;
                 _autoCalculatedInternetZoneActive = globalConfig.AutoCalculateInternetZone; 
                 _treatDomainAndDynamicObjectsAsInternet = globalConfig.TreatDynamicAndDomainObjectsAsInternet;
-                _elementsPerFetch = 5; // TODO: config value
-                _maxDegreeOfParallelism = 6; // TODO: config value
-                _semaphore = new SemaphoreSlim(_maxDegreeOfParallelism);
+                _elementsPerFetch = globalConfig.ComplianceCheckElementsPerFetch; 
+                _maxDegreeOfParallelism = globalConfig.ComplianceCheckAvailableProcessors;
+                _semaphore = new SemaphoreSlim(_maxDegreeOfParallelism < Environment.ProcessorCount ? _maxDegreeOfParallelism : Environment.ProcessorCount);
+
+                Logger.TryWriteInfo("Compliance Check", $"Parallelizing config: {_elementsPerFetch} elements per fetch and {_maxDegreeOfParallelism} processors.", LocalSettings.ComplianceCheckVerbose);
 
                 if (_complianceCheckPolicyId == 0)
                 {

@@ -2,7 +2,6 @@
 # from common import importer_base_dir
 # sys.path.append(importer_base_dir + "/nsx4ff")
 import base64
-from typing import Any
 
 from fwo_log import get_fwo_logger
 from nsx_service import normalize_svcobjects
@@ -12,9 +11,8 @@ from nsx_network import normalize_nwobjects
 # from nsx_zone import normalize_zones
 from nsx_getter import update_config_with_nsxdcfw_api_call
 from nsx_base import api_version_str
-from roles.importer.files.importer.models.import_state import ImportState
 
-def has_config_changed(full_config: dict[str, Any], importState: ImportState, force: bool = False) -> bool:
+def has_config_changed():
     # dummy - may be filled with real check later on
     return True
 

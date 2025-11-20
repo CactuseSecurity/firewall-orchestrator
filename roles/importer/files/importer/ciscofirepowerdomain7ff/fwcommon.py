@@ -9,10 +9,9 @@ import cifp_rule
 import cifp_network
 import cifp_getter
 from fwo_log import get_fwo_logger
-from models.import_state import ImportState
 
 
-def has_config_changed(full_config: dict[str, Any], importState: ImportState, force: bool = False) -> bool:
+def has_config_changed() -> bool:
     # dummy - may be filled with real check later on
     return True
 

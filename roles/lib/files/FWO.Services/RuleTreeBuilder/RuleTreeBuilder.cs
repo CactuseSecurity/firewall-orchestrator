@@ -1,4 +1,3 @@
-using FWO.Basics;
 using FWO.Data;
 using FWO.Data.Report;
 
@@ -10,22 +9,26 @@ namespace FWO.Services.RuleTreeBuilder
         /// The root item for the tree structure.
         /// </summary>
         public RuleTreeItem RuleTree { get; set; } = new();
+        
         /// <summary>
         /// A Queue to process rulebases by rulebase links.
         /// </summary>
         public Queue<(RulebaseLink link, RulebaseReport rulebase)> RuleTreeBuilderQueue { get; set; } = new();
+        
         /// <summary>
         /// The number of order numbers that were created during the process.
         /// </summary>
         public int CreatedOrderNumbersCount { get; set; } = 0;
+        
         /// <summary>
         /// A counter to easily create the order position (/order number) for the ordered layers on the top level.
         /// </summary>
         public int OrderedLayerCount { get; set; } = 0;
+        
         /// <summary>
         /// All of the processed rules.
         /// </summary>
-        private List<Rule> _allRules = new();
+        private readonly List<Rule> _allRules = [];
 
         public RuleTreeBuilder()
         {
@@ -37,16 +40,14 @@ namespace FWO.Services.RuleTreeBuilder
         /// </summary>
         public List<Rule> BuildRuleTree()
         {
-            List<int> lastPosition = new();
+            List<int>? lastPosition = [];
 
             // Start outer loop.
-
             while (RuleTreeBuilderQueue.TryDequeue(out (RulebaseLink link, RulebaseReport rulebase) currentQueueItem))
             {
                 lastPosition = HandleRulebaseLinkQueueItem(currentQueueItem, lastPosition);
 
                 // For concatenations: Set the returned last order number to the number of the last visited rule of the source rulebase if it differs from it.
-
                 if (RuleTreeBuilderQueue.TryPeek(out (RulebaseLink link, RulebaseReport rulebase) nextQueueItem) && nextQueueItem.link.LinkType == 4)
                 {
                     Rule? lastVisitedRuleOfNextRulebase = _allRules.LastOrDefault(rule => rule.RulebaseId == nextQueueItem.link.FromRulebaseId);
@@ -55,10 +56,7 @@ namespace FWO.Services.RuleTreeBuilder
                     {
                         string input = lastVisitedRuleOfNextRulebase.DisplayOrderNumberString;
                         string result = input.Contains('|') ? input.Substring(0, input.IndexOf('|')) : input;
-                        lastPosition = result
-                                                                .Split('.')
-                                                                .Select(int.Parse)
-                                                                .ToList();
+                        lastPosition = [.. result.Split('.').Select(int.Parse)];
                     }
                 }
             }
@@ -69,25 +67,20 @@ namespace FWO.Services.RuleTreeBuilder
         /// <summary>
         /// Recursive method that processes a rulebase link and the target rulebase to create ordernumbers and the integrate the rules in the rule tree.
         /// </summary>
-        private List<int> HandleRulebaseLinkQueueItem((RulebaseLink link, RulebaseReport rulebase) currentQueueItem, List<int>? lastPosition)
+        private List<int>? HandleRulebaseLinkQueueItem((RulebaseLink link, RulebaseReport rulebase) currentQueueItem, List<int>? lastPosition)
         {
-            List<int>? nextPosition = null;
-            RuleTreeItem? nextParent = null;
-
             // Get next link and rulebase if they exist.
-
             (RulebaseLink link, RulebaseReport rulebase)? nextQueueItem = TryPeekNextQueueItem();
 
             // Prepare creation of order numbers.
 
-            (nextPosition, nextParent, lastPosition) = PrepareOrderNumberCreation(currentQueueItem, lastPosition, nextQueueItem);
+            (List<int>? nextPosition, RuleTreeItem? nextParent, lastPosition) = PrepareOrderNumberCreation(currentQueueItem, lastPosition, nextQueueItem);
 
             // Create order number.
-                List<Rule> currentRules = currentQueueItem.rulebase.Rules.ToList();
+            List<Rule> currentRules = [.. currentQueueItem.rulebase.Rules];
             foreach (Rule currentRule in currentRules)
             {
-                // Make clone if rule was alreade processed.
-
+                // Make clone if rule was already processed.
                 Rule rule = currentRule;
 
                 if (_allRules.Contains(currentRule))
@@ -108,18 +101,15 @@ namespace FWO.Services.RuleTreeBuilder
                 RuleTreeItem treeItem = nextParent?.AddItem(addToChildren: true, addToFlatList: true, setLastAddedItem: true) ?? new RuleTreeItem();
                 treeItem.Data = rule;
                 RuleTree.ElementsFlat.Add(treeItem);
-                treeItem.Position = nextPosition.ToList();
+                treeItem.Position = [.. nextPosition];
                 rule.DisplayOrderNumberString = string.Join(".", treeItem.Position);
                 treeItem.IsRule = true;
 
-
                 treeItem.Identifier = $"Rule (ID/UID): {rule.Id}/{rule.Uid}";
-
 
                 RuleTree.LastAddedItem = treeItem;
 
                 // Update order number, visited rules and last position.
-
                 CreatedOrderNumbersCount++;
                 rule.OrderNumber = CreatedOrderNumbersCount;
                 _allRules.Add(rule);
@@ -143,41 +133,29 @@ namespace FWO.Services.RuleTreeBuilder
 
             return lastPosition ?? [];
         }
-
+        
         /// <summary>
         /// Creates the queue that is used to create the rule tree.
         /// </summary>
         public Queue<(RulebaseLink, RulebaseReport)>? BuildRulebaseLinkQueue(RulebaseLink[] links, RulebaseReport[] rulebases)
         {
             // Abort if their are no rulebase links or rulebases
-
-            if (links.Count() == 0 || rulebases.Count() == 0)
+            if (links.Length == 0 || rulebases.Length == 0)
             {
                 return null;
             }
 
             Queue<(RulebaseLink, RulebaseReport)> queue = new();
-
             Dictionary<int, RulebaseReport> rulebaseMap = rulebases.ToDictionary(r => r.Id);
 
             // Make copy of link list, to be able to remove links without changing the original collection.
-
-            List<RulebaseLink> remainingLinks = links.ToList();
+            List<RulebaseLink> remainingLinks = [.. links];
 
             // Start with initial link.
-
-            RulebaseLink? current = remainingLinks.FirstOrDefault(l => l.IsInitial);
-
-            if (current == null)
-            {
-                throw new InvalidOperationException("No initial RulebaseLink found.");
-            }
-
-
+            RulebaseLink? current = remainingLinks.FirstOrDefault(l => l.IsInitial) ?? throw new InvalidOperationException("No initial RulebaseLink found.");
             while (current != null)
             {
                 // Get target rulebase to current link and enqueue its rules and the link.
-
                 if (!rulebaseMap.TryGetValue(current.NextRulebaseId, out RulebaseReport? report))
                 {
                     throw new KeyNotFoundException($"No report found with ID {current.NextRulebaseId}");
@@ -187,34 +165,25 @@ namespace FWO.Services.RuleTreeBuilder
 
                 if (report != null)
                 {
-
                     rulebase.Id = report.Id;
                     rulebase.Name = report.Name;
                     rulebase.RuleChanges = report.RuleChanges;
                     rulebase.RuleStatistics = report.RuleStatistics;
-                    rulebase.Rules = report.Rules.ToArray();
+                    rulebase.Rules = [.. report.Rules];
                 }
 
                 queue.Enqueue((current, rulebase));
                 remainingLinks.Remove(current);
 
                 // Get next link.
-
-                List<RulebaseLink>? candidates = remainingLinks
+                List<RulebaseLink>? candidates = [.. remainingLinks
                                                     .Where(l => l.FromRulebaseId == current.NextRulebaseId)
-                                                    .OrderByDescending(l => l.FromRuleId.HasValue)
-                                                    .ToList();
+                                                    .OrderByDescending(l => l.FromRuleId.HasValue)];
 
                 current = candidates.FirstOrDefault();
-
-                if (current == null)
-                {
-                    current = remainingLinks.FirstOrDefault();
-                }
+                current ??= remainingLinks.FirstOrDefault();
             }
-
             RuleTreeBuilderQueue = queue;
-
             return queue;
         }
 
@@ -236,17 +205,17 @@ namespace FWO.Services.RuleTreeBuilder
         /// <summary>
         /// Returns the item that should be used for the section rule tree item in creation.
         /// </summary>
-        private RuleTreeItem GetSectionParent(List<int>? nextPosition = null)
+        private RuleTreeItem GetSectionParent(List<int> nextPosition)
         {
             List<int> position = nextPosition?.ToList() ?? [];
             if (position.Last() == 0) position.Remove(position.Last());
-            RuleTreeItem item = RuleTree.ElementsFlat.First(x => x.GetPositionString() == string.Join(".", position)) as RuleTreeItem ?? new RuleTreeItem();
+            RuleTreeItem item = RuleTree.ElementsFlat.FirstOrDefault(x => x.GetPositionString() == string.Join(".", position)) as RuleTreeItem ?? new RuleTreeItem();
 
             if (item.Data is Rule && (item.Parent as RuleTreeItem ?? new RuleTreeItem()).IsOrderedLayerHeader && nextPosition?.Last() != 0)
             {
                 return item.Parent as RuleTreeItem ?? new RuleTreeItem();
             }
-            else if (item.IsOrderedLayerHeader)
+            if (item.IsOrderedLayerHeader)
             {
                 return item;
             }
@@ -258,7 +227,7 @@ namespace FWO.Services.RuleTreeBuilder
                 }
                 return item.Parent?.Parent as RuleTreeItem ?? new RuleTreeItem();
             }
-            else if ((item as RuleTreeItem).IsInlineLayerRoot)
+            if (item.IsInlineLayerRoot)
             {
                 return item;
             }
@@ -266,10 +235,7 @@ namespace FWO.Services.RuleTreeBuilder
             {
                 return item.Parent as RuleTreeItem ?? new RuleTreeItem();
             }
-            else
-            {
-                return new();
-            }
+            return new();
         }
 
         private (List<int>?, RuleTreeItem?, List<int>?) PrepareOrderNumberCreation((RulebaseLink link, RulebaseReport rulebase) currentQueueItem, List<int>? lastPosition,  (RulebaseLink link, RulebaseReport rulebase)? nextQueueItem)

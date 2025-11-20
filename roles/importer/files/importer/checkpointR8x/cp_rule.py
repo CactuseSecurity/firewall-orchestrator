@@ -258,12 +258,12 @@ def parse_single_rule(nativeRule: dict[str, Any], rulebase: Rulebase, layer_name
     if not('type' in nativeRule and nativeRule['type'] != 'place-holder' and 'rule-number' in nativeRule):  # standard rule, no section header
         return
     # the following objects might come in chunks:
-    sourceObjects: dict[str, str] = parseRulePart (nativeRule['source'], 'source')
+    sourceObjects: dict[str, str] = parseRulePart(nativeRule['source'], 'source')
     rule_src_ref, rule_src_name = sort_and_join_refs(list(sourceObjects.items()))
     
-    destObjects: dict[str, str] = parseRulePart (nativeRule['destination'], 'destination')
+    destObjects: dict[str, str] = parseRulePart(nativeRule['destination'], 'destination')
     rule_dst_ref, rule_dst_name = sort_and_join_refs(list(destObjects.items()))
-    svcObjects: dict[str, str] = parseRulePart (nativeRule['service'], 'service')
+    svcObjects: dict[str, str] = parseRulePart(nativeRule['service'], 'service')
     rule_svc_ref, rule_svc_name = sort_and_join_refs(list(svcObjects.items()))
     ruleEnforcedOnGateways = parse_rule_enforced_on_gateway(gateway, policy_structure, native_rule=nativeRule)
     listOfGwUids = sorted({enforceEntry.dev_uid for enforceEntry in ruleEnforcedOnGateways})

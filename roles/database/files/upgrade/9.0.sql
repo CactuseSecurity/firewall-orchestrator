@@ -1832,6 +1832,20 @@ insert into stm_dev_typ (dev_typ_id,dev_typ_name,dev_typ_version,dev_typ_manufac
 insert into stm_dev_typ (dev_typ_id,dev_typ_name,dev_typ_version,dev_typ_manufacturer,dev_typ_predef_svc,dev_typ_is_multi_mgmt,dev_typ_is_mgmt,is_pure_routing_device)
     VALUES (29,'Cisco Asa on FirePower','9','Cisco','',false,true,false)
     ON CONFLICT (dev_typ_id) DO NOTHING;
+
+
+DROP MATERIALIZED VIEW IF EXISTS view_rule_with_owner;
+CREATE MATERIALIZED VIEW view_rule_with_owner AS
+	SELECT DISTINCT ar.rule_id, ar.owner_id, ar.owner_name, ar.matches, ar.recert_interval, ar.rule_last_certified, ar.rule_last_certifier,
+	r.rule_num_numeric, r.track_id, r.action_id, r.rule_from_zone, r.rule_to_zone, r.mgm_id, r.rule_uid,
+	r.rule_action, r.rule_name, r.rule_comment, r.rule_track, r.rule_src_neg, r.rule_dst_neg, r.rule_svc_neg,
+	r.rule_head_text, r.rule_disabled, r.access_rule, r.xlate_rule, r.nat_rule
+	FROM ( SELECT DISTINCT * FROM v_rule_with_rule_owner AS rul UNION SELECT DISTINCT * FROM v_rule_with_ip_owner AS ips) AS ar
+	LEFT JOIN rule AS r USING (rule_id)
+	GROUP BY ar.rule_id, ar.owner_id, ar.owner_name, ar.matches, ar.recert_interval, ar.rule_last_certified, ar.rule_last_certifier,
+		r.rule_num_numeric, r.track_id, r.action_id, r.rule_from_zone, r.rule_to_zone, r.mgm_id, r.rule_uid,
+		r.rule_action, r.rule_name, r.rule_comment, r.rule_track, r.rule_src_neg, r.rule_dst_neg, r.rule_svc_neg,
+		r.rule_head_text, r.rule_disabled, r.access_rule, r.xlate_rule, r.nat_rule;
 	
 	
 	

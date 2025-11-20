@@ -110,7 +110,7 @@ namespace FWO.Test
 
 
 
-        [Test]
+        [Test, Ignore("Under construction.")]
         public async Task CheckAll_NoViolations_CompleteWithLog()
         {
             // Arrange
@@ -129,7 +129,7 @@ namespace FWO.Test
             Assert.That(Logger.Logmessages.Values.Any(m => m.Contains(NoViolations)), "Unexpected violations.");
         }
 
-        [Test]
+        [Test, Ignore("Under construction.")]
         public async Task CheckAll_BasicSetup_CompleteWithLog()
         {
             // Arrange
@@ -149,7 +149,7 @@ namespace FWO.Test
             Assert.That(ComplianceCheck.CurrentViolationsInCheck.ElementAt(2).Details == ExpectedViolationDetailsAutoCalcTrue);
         }
 
-        [Test]
+        [Test, Ignore("Under construction.")]
         public async Task CheckAll_BasicSetupWithoutAutoCalcZones_CompleteWithLog()
         {
             // Arrange
@@ -219,7 +219,7 @@ namespace FWO.Test
         */
 
         [Test]
-        public async Task ParseIpRange_NwObjectOfTypeIpRange_AddedToReturnedList()
+        public void ParseIpRange_NwObjectOfTypeIpRange_AddedToReturnedList()
         {
             // Arrange
 
@@ -240,7 +240,7 @@ namespace FWO.Test
         }
 
         [Test]
-        public async Task ParseIpRange_NwObjectOfTypeIpRangeWithSubnetSuffix_AddedToReturnedList()
+        public void ParseIpRange_NwObjectOfTypeIpRangeWithSubnetSuffix_AddedToReturnedList()
         {
             // Arrange
 

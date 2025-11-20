@@ -44,7 +44,6 @@ namespace FWO.Test.Fixtures
             
             ComplianceCheck = new ComplianceCheck(UserConfig, ApiConnection, Logger.AsSub());
             ComplianceCheck.NetworkZones = CreateNetworkZones(true, true);
-            ComplianceCheck.ComplianceReport = new(new(""), UserConfig, ReportType.ComplianceReport);
         }
 
         protected virtual Task SetUpBasic(bool createEmptyPolicy = false, bool setupRelevantManagements = false, bool createPolicy = false, bool createRules = false, bool setupNoViolations = false)

@@ -1,5 +1,19 @@
-query getRulesWithCurrentViolationsByChunk($active: Boolean, $import_id_start: bigint, $import_id_end: bigint, $mgm_ids: [Int!]) {
-  rule(order_by: { rule_uid: asc }, where: { removed: { _is_null: true } mgm_id: { _in: $mgm_ids }}) {
+query getRulesForSelectedManagementsByChunk(
+  $limit: Int
+  $offset: Int
+  $active: Boolean
+  $import_id_start: bigint
+  $import_id_end: bigint
+  $from_date: timestamptz
+  $to_date: timestamptz
+  $mgm_ids: [Int!]
+) {
+  rule(
+    limit: $limit
+    offset: $offset
+    order_by: { rule_uid: asc }
+    where: { removed: { _is_null: true } mgm_id: { _in: $mgm_ids }}
+  ){
     rule_src
     rule_dst
     ...ruleDetails

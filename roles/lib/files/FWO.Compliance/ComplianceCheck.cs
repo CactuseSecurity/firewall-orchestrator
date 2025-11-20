@@ -25,11 +25,6 @@ namespace FWO.Compliance
         public CompliancePolicy? Policy = null;
 
         /// <summary>
-        /// Report object to create diff and to serve as dto.
-        /// </summary>
-        public ReportCompliance? ComplianceReport { get; set; } = null;
-
-        /// <summary>
         /// Network zones to use for matrix compliance check.
         /// </summary>
         public List<ComplianceNetworkZone> NetworkZones { get; set; } = [];
@@ -47,6 +42,9 @@ namespace FWO.Compliance
         private bool _treatDomainAndDynamicObjectsAsInternet = false;
         private bool _autoCalculatedInternetZoneActive = false;
         private int _complianceCheckPolicyId = 0;
+        private int _elementsPerFetch;
+        private int _maxDegreeOfParallelism;
+        private SemaphoreSlim _semaphore = default!;
 
         #endregion
 
@@ -69,6 +67,7 @@ namespace FWO.Compliance
             {
                 Logger.TryWriteInfo("Compliance Check", "Global config not found.", _userConfig.GlobalConfig == null);
             }
+
         }
 
         /// <summary>
@@ -92,6 +91,11 @@ namespace FWO.Compliance
                 _complianceCheckPolicyId = globalConfig.ComplianceCheckPolicyId;
                 _autoCalculatedInternetZoneActive = globalConfig.AutoCalculateInternetZone; 
                 _treatDomainAndDynamicObjectsAsInternet = globalConfig.TreatDynamicAndDomainObjectsAsInternet;
+                _elementsPerFetch = globalConfig.ComplianceCheckElementsPerFetch; 
+                _maxDegreeOfParallelism = globalConfig.ComplianceCheckAvailableProcessors;
+                _semaphore = new SemaphoreSlim(_maxDegreeOfParallelism < Environment.ProcessorCount ? _maxDegreeOfParallelism : Environment.ProcessorCount);
+
+                Logger.TryWriteInfo("Compliance Check", $"Parallelizing config: {_elementsPerFetch} elements per fetch and {_maxDegreeOfParallelism} processors.", LocalSettings.ComplianceCheckVerbose);
 
                 if (_complianceCheckPolicyId == 0)
                 {
@@ -166,7 +170,7 @@ namespace FWO.Compliance
             {
                 Logger.TryWriteInfo("Compliance Check", "Persisting violations.", true);
 
-                List<ComplianceViolation> violationsInDb = await _apiConnection.SendQueryAsync<List<ComplianceViolation>>(ComplianceQueries.getViolations);
+                List<ComplianceViolation> violationsInDb = RulesInCheck!.SelectMany(p => p.Violations).ToList();
 
                 // Filter violations by non-valuable rules. If rules are not evaluable their violation status stays datawise the same until they are evaluable again. 
 
@@ -538,6 +542,7 @@ namespace FWO.Compliance
         private async Task<List<Rule>> GetRelevantManagementsRules(List<int> managementIds)
         {
             long? maxImportId = 0;
+            
 
             Import? import = await _apiConnection.SendQueryAsync<Import>(ImportQueries.getMaxImportId);
 
@@ -547,14 +552,27 @@ namespace FWO.Compliance
 
             }
             
-            Dictionary<string, object> queryVariables = new();
-            queryVariables[QueryVar.ImportIdStart] = 0;
-            queryVariables[QueryVar.ImportIdEnd] = maxImportId;
-            queryVariables["mgm_ids"] = managementIds;
+            AggregateCount? result = await _apiConnection.SendQueryAsync<AggregateCount>(RuleQueries.countRules);
+            int rulesCount = result?.Aggregate?.Count ?? 0;
 
+            Logger.TryWriteInfo("Compliance Check", $"Loading {rulesCount} rules chunks of {_elementsPerFetch} for managements: {string.Join(",", managementIds)}.", LocalSettings.ComplianceCheckVerbose);
 
-            Logger.TryWriteInfo("Compliance Check", $"Loading rules for managements: {string.Join(",", managementIds)}.", LocalSettings.ComplianceCheckVerbose);
-            List<Rule>? rules = await _apiConnection.SendQueryAsync<List<Rule>>(RuleQueries.getRulesForSelectedManagements, queryVariables);
+            CancellationToken ct = new();
+
+            List<Rule>[]? chunks = await GetDataParallelized<Rule>(rulesCount, _elementsPerFetch, _apiConnection, ct, RuleQueries.getRulesForSelectedManagements);
+
+            if (chunks == null)
+            {
+                Logger.TryWriteInfo("Compliance Check", $"Chunks could not be loaded from the database.", LocalSettings.ComplianceCheckVerbose);
+                return [];
+            }
+            //List<Rule>? rules = await _apiConnection.SendQueryAsync<List<Rule>>(RuleQueries.getRulesForSelectedManagements, queryVariables);
+
+            Logger.TryWriteInfo("Compliance Check", $"Attempted to load {chunks.Count()} chunks of rules.", LocalSettings.ComplianceCheckVerbose);
+            
+            List<Rule>? rules = chunks
+                .SelectMany(l => l)
+                .ToList();
 
             if (rules == null)
             {
@@ -562,8 +580,77 @@ namespace FWO.Compliance
             }
 
             Logger.TryWriteInfo("Compliance Check", $"Loaded {rules.Count} rules.", LocalSettings.ComplianceCheckVerbose);
-            
             return rules;         
+        }
+
+        public async Task<List<T>[]?> GetDataParallelized<T>(int rulesCount, int elementsPerFetch, ApiConnection apiConnection, CancellationToken ct, string query)
+        {
+            List<Task<List<T>>> tasks = new();
+            List<Dictionary<string, object>> queryVariablesList = new();
+
+            // Create query variables for fetching rules
+
+            for (int offset = 0; offset < rulesCount; offset += elementsPerFetch)
+            {
+                queryVariablesList.Add(CreateQueryVariables(offset, elementsPerFetch, query));
+            }
+
+            // Start fetching tasks
+
+            foreach (Dictionary<string, object> queryVariables in queryVariablesList)
+            {
+                await _semaphore.WaitAsync(ct);
+
+                var task = Task.Run(async () =>
+                {
+                    try
+                    {
+                        return await apiConnection.SendQueryAsync<List<T>>(query, queryVariables);
+                    }
+                    finally
+                    {
+                        _semaphore.Release();
+                    }
+                }, ct);
+
+                tasks.Add(task);
+            }
+
+            // Wait for all tasks to complete and return fetched rules in chunks
+
+            return await Task.WhenAll(tasks);
+        }
+
+        protected virtual Dictionary<string, object> CreateQueryVariables(int offset, int limit, string query, List<int>? relevanteManagementIDs = null)
+        {
+            Dictionary<string, object> queryVariables = new();
+
+            if (query.Contains(QueryVar.ImportIdStart))
+            {
+                queryVariables[QueryVar.ImportIdStart] = int.MaxValue;
+            }
+
+            if (query.Contains(QueryVar.ImportIdEnd))
+            {
+                queryVariables[QueryVar.ImportIdEnd] = int.MaxValue;
+            }
+
+            if (query.Contains(QueryVar.Offset))
+            {
+                queryVariables[QueryVar.Offset] = offset;
+            }
+
+            if (query.Contains(QueryVar.Limit))
+            {
+                queryVariables[QueryVar.Limit] = limit;
+            }
+
+            if (query.Contains("mgm_ids"))
+            {
+                queryVariables["mgm_ids"] = _managements != null ? _managements.Select(m => m.Id).ToList() : [];
+            }
+
+            return queryVariables;
         }
 
         private bool CheckForForbiddenService(Rule rule, ComplianceCriterion criterion)
@@ -623,8 +710,6 @@ namespace FWO.Compliance
         {
             List<ComplianceViolationBase> violationsForInsert = [];
 
-            if (ComplianceReport is ReportCompliance complianceReport)
-            {
                 List<ComplianceViolation> currentViolations = violationsInDb
                     .Where(ev => ev.RemovedDate == null)
                     .ToList();
@@ -637,24 +722,30 @@ namespace FWO.Compliance
 
                 Logger.TryWriteInfo("Compliance Check", $"Created {currentViolations.Count} unique keys for current violations.", LocalSettings.ComplianceCheckVerbose);
 
-                violationsForInsert = CurrentViolationsInCheck
-                    .Where(v => !violationKeys.Contains(CreateUniqueViolationKey(v)))
-                    .Select(v => new ComplianceViolationBase
+                for (int i = 0; i < CurrentViolationsInCheck.Count; i++)
+                {
+                    ComplianceViolation violationInCheck = CurrentViolationsInCheck[i];
+                    string violationKey = CreateUniqueViolationKey(violationInCheck);
+
+                    if (!violationKeys.Any(key => key == violationKey))
                     {
-                        RuleId = v.RuleId,
-                        RuleUid = v.RuleUid,
-                        MgmtUid = v.MgmtUid,
-                        Details = v.Details,
-                        FoundDate = v.FoundDate,
-                        RemovedDate = v.RemovedDate,
-                        RiskScore = v.RiskScore,
-                        PolicyId = v.PolicyId,
-                        CriterionId = v.CriterionId
-                    })
-                    .ToList();
+                        violationsForInsert.Add(new ComplianceViolationBase
+                        {
+                            RuleId = violationInCheck.RuleId,
+                            RuleUid = violationInCheck.RuleUid,
+                            MgmtUid = violationInCheck.MgmtUid,
+                            Details = violationInCheck.Details,
+                            FoundDate = violationInCheck.FoundDate,
+                            RemovedDate = violationInCheck.RemovedDate,
+                            RiskScore = violationInCheck.RiskScore,
+                            PolicyId = violationInCheck.PolicyId,
+                            CriterionId = violationInCheck.CriterionId
+                        });
+                    }
+                }
 
                 Logger.TryWriteInfo("Compliance Check", $"Prepared {violationsForInsert.Count} new violations for insert.", LocalSettings.ComplianceCheckVerbose);
-            }
+            
 
             return Task.FromResult(violationsForInsert);
         }

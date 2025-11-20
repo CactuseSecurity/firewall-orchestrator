@@ -18100,6 +18100,7 @@
                     "columns": [
                       "created",
                       "from_rule_id",
+                      "removed",
                       "is_global",
                       "is_initial",
                       "is_section",

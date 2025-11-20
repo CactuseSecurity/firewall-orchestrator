@@ -72,7 +72,7 @@ BEGIN
     FROM 
         view_rule_with_owner V
         LEFT JOIN rule R USING (rule_id)
-        LEFT JOIN rule_metadata M ON (R.rule_uid = M.rule_uid)
+        LEFT JOIN rule_metadata M ON (R.rule_uid = M.rule_uid AND R.mgm_id = M.mgm_id)
         LEFT JOIN owner O ON (
             CASE WHEN b_super_owner THEN O.is_default ELSE V.owner_id = O.id END
         )
@@ -161,7 +161,7 @@ BEGIN
 					b_never_recertified := TRUE;
 					SELECT INTO t_rule_created rule_metadata.rule_created
 						FROM rule
-						LEFT JOIN rule_metadata ON (rule.rule_uid=rule_metadata.rule_uid)
+						LEFT JOIN rule_metadata ON (rule.rule_uid=rule_metadata.rule_uid AND rule.mgm_id = rule_metadata.mgm_id)
 						WHERE rule_id=r_rule.rule_id;
 				END IF;
 
@@ -196,7 +196,7 @@ BEGIN
 							i_owner_id AS owner_id
 						FROM view_rule_with_owner 
 						LEFT JOIN rule USING (rule_id)
-						LEFT JOIN rule_metadata ON (rule.rule_uid=rule_metadata.rule_uid)
+						LEFT JOIN rule_metadata ON (rule.rule_uid=rule_metadata.rule_uid AND rule.mgm_id = rule_metadata.mgm_id)
 						WHERE view_rule_with_owner.rule_id=r_rule.rule_id AND view_rule_with_owner.owner_id IS NULL;
 				ELSE
 					INSERT INTO recertification (rule_metadata_id, next_recert_date, rule_id, ip_match, owner_id)
@@ -207,7 +207,7 @@ BEGIN
 							i_owner_id AS owner_id
 						FROM view_rule_with_owner 
 						LEFT JOIN rule USING (rule_id)
-						LEFT JOIN rule_metadata ON (rule.rule_uid=rule_metadata.rule_uid)
+						LEFT JOIN rule_metadata ON (rule.rule_uid=rule_metadata.rule_uid AND rule.mgm_id = rule_metadata.mgm_id)
 						WHERE view_rule_with_owner.rule_id=r_rule.rule_id AND view_rule_with_owner.owner_id=i_owner_id;
 				END IF;
 			ELSE
@@ -282,7 +282,7 @@ BEGIN
 		FROM 
 			view_rule_with_owner V 
 			LEFT JOIN rule R USING (rule_id)			
-			LEFT JOIN rule_metadata M ON (R.rule_uid=M.rule_uid)
+			LEFT JOIN rule_metadata M ON (R.rule_uid=M.rule_uid AND R.mgm_id = M.mgm_id)
 			LEFT JOIN owner O ON (O.id=0)
 			LEFT JOIN import_control I ON (R.rule_create=I.control_id)
 			LEFT JOIN recertification C ON (M.rule_metadata_id=C.rule_metadata_id)
@@ -310,7 +310,7 @@ BEGIN
 		FROM 
 			view_rule_with_owner V 
 			LEFT JOIN rule R USING (rule_id)			
-			LEFT JOIN rule_metadata M ON (R.rule_uid=M.rule_uid)
+			LEFT JOIN rule_metadata M ON (R.rule_uid=M.rule_uid AND R.mgm_id = M.mgm_id)
 			LEFT JOIN owner O ON (V.owner_id=O.id)
 			LEFT JOIN import_control I ON (R.rule_create=I.control_id)
 			LEFT JOIN recertification C ON (M.rule_metadata_id=C.rule_metadata_id)

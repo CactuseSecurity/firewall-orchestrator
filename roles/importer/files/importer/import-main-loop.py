@@ -12,7 +12,7 @@ from fwo_api import FwoApi
 from fwo_api_call import FwoApiCall
 from model_controllers.management_controller import ManagementController, DeviceInfo, ConnectionInfo, CredentialInfo, ManagerInfo, DomainInfo
 from common import import_management
-from fwo_log import get_fwo_logger #, LogLock
+from fwo_log import get_fwo_logger
 import fwo_globals
 from fwo_const import base_dir, importer_base_dir
 from fwo_exceptions import FwoApiLoginFailed, FwoApiFailedLockImport, FwLoginFailed
@@ -146,6 +146,9 @@ def main_loop(verify_certificates: bool | None = None, suppress_certificate_warn
                 logger.error(f"import-main-loop - unspecific error while importing mgm_id={str(import_state.MgmDetails.Id)}, {str(traceback.format_exc())}")
         if clear:
             break
+
+        logger.debug(f"import-main-loop: sleeping for {sleep_timer} seconds until next import cycle")
+        wait_with_shutdown_check(sleep_timer)
 
 
 

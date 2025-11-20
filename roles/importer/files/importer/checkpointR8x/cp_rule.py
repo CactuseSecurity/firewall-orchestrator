@@ -122,7 +122,7 @@ def concatenat_sections_across_chunks(rulebase_to_parse, section):
 
                     
 def initialize_normalized_rulebase(rulebase_to_parse, mgm_uid):
-    rulebaseName = rulebase_to_parse['name']
+    rulebaseName = rulebase_to_parse.get('name', default_section_header_text)
     rulebaseUid = rulebase_to_parse['uid']
     normalized_rulebase = Rulebase(uid=rulebaseUid, name=rulebaseName, mgm_uid=mgm_uid, rules={})
     return normalized_rulebase

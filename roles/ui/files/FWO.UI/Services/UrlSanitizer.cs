@@ -23,24 +23,29 @@ namespace FWO.Ui.Services
 
             string decoded = DecodeInput(input);
             if (ContainsDisallowedPatterns(decoded))
+            {
                 return BlockAndReturnNull(input);
-
+            }
             if (!TryCreateAbsoluteUri(decoded, out var uri))
+            {
                 return BlockAndReturnNull(input);
-
+            }
             if (!IsAllowedScheme(uri))
+            {
                 return BlockAndReturnNull(input);
-
+            }
             if (!IsHelpPathAllowed(uri))
+            {
                 return BlockAndReturnNull(input);
-
+            }
             var sanitizedPath = SanitizePath(uri);
             var sanitizedQuery = SanitizeQuery(uri);
             var sanitizedUrl = BuildSanitizedUrl(uri, sanitizedPath, sanitizedQuery);
 
             if (sanitizedUrl.Length > 2048)
+            {
                 return BlockAndReturnNull(input);
-
+            }
             return sanitizedUrl;
         }
 
@@ -110,7 +115,11 @@ namespace FWO.Ui.Services
                 sanitizedQuery.Append(HttpUtility.UrlEncode(key));
                 sanitizedQuery.Append('=');
 
-                var value = queryParams[key]?.Replace("<", "").Replace(">", "");
+                var value = queryParams[key];
+                if (value != null)
+                {
+                    value = QueryTagRegex().Replace(value, string.Empty);
+                }
                 sanitizedQuery.Append(HttpUtility.UrlEncode(value));
             }
 
@@ -148,6 +157,9 @@ namespace FWO.Ui.Services
 
         [GeneratedRegex(@"^[a-zA-Z0-9/_\-\.\?\&=,:;]*$", RegexOptions.IgnoreCase, "en-US")]
         private static partial Regex HelpPathWhitelistRegex();
+
+        [GeneratedRegex(@"<[^>]*>", RegexOptions.IgnoreCase, "en-US")]
+        private static partial Regex QueryTagRegex();
     }
 
 }

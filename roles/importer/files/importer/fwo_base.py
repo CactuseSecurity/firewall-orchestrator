@@ -1,6 +1,5 @@
 import hashlib
 import json
-from copy import deepcopy
 import re
 from enum import Enum
 from typing import TYPE_CHECKING, Any, get_type_hints
@@ -8,13 +7,11 @@ import ipaddress
 import traceback
 import time
 
-
-import fwo_globals
 import fwo_config
 import fwo_const
 from fwo_const import csv_delimiter, apostrophe, line_delimiter
 from fwo_enums import ConfFormat, ConfigAction
-from fwo_log import get_fwo_logger, get_fwo_alert_logger
+from fwo_log import get_fwo_logger
 from model_controllers.fwconfig_import_ruleorder import RuleOrderService
 if TYPE_CHECKING:
     from model_controllers.import_state_controller import ImportStateController
@@ -23,34 +20,6 @@ from services.global_state import GlobalState
 from services.enums import Services, Lifetime
 from services.uid2id_mapper import Uid2IdMapper
 from services.group_flats_mapper import GroupFlatsMapper
-
-
-def split_list(list_in: list[Any], max_list_length: int) -> list[list[Any]]:
-    if len(list_in)<max_list_length:
-        return [list_in]
-    else:
-        list_of_lists: list[list[Any]] = []
-        i=0
-        while i<len(list_in):
-            last_element_in_chunk = min(len(list_in), i+max_list_length)
-            list_of_lists.append(list_in[i:last_element_in_chunk])
-            i += max_list_length
-    return list_of_lists
-
-
-def csv_add_field(content: Any, no_csv_delimiter: bool = False) -> str:
-    if (content == None or content == '') and not no_csv_delimiter:  # do not add apostrophes for empty fields
-        field_result = csv_delimiter
-    else:
-        # add apostrophes at beginning and end and remove any ocurrence of them within the string
-        if (isinstance(content, str)):
-            escaped_field = content.replace(apostrophe,"")
-            field_result = apostrophe + escaped_field + apostrophe
-        else:   # leave non-string values as is
-            field_result = str(content)
-        if not no_csv_delimiter:
-            field_result += csv_delimiter
-    return field_result
 
 
 def sanitize(content: Any, lower: bool = False) -> None | str:
@@ -84,53 +53,10 @@ def extend_string_list(list_string: str | None, src_dict: dict[str, list[str]], 
 #            fwo_api.create_data_issue(fwo_api_base_url, jwt, import_id, key)
     return result
 
-
-def json_to_log_format(jsonData: dict[str, Any] | str) -> str:
-    if type(jsonData) is dict:
-        jsonString = json.dumps(jsonData)
-    elif isinstance(jsonData, str):
-        jsonString = jsonData
-    else:
-        jsonString = str(jsonData)
-
-    if jsonString[0] == '{' and jsonString[-1] == '}':
-        jsonString = jsonString[1:len(jsonString)-1]
-    return jsonString
-
-
-def write_alert_to_log_file(jsonData: dict[str, Any]) -> None:
-    logger = get_fwo_alert_logger()
-    jsonDataCopy = deepcopy(jsonData)   # make sure the original alert is not changed
-    if type(jsonDataCopy) is dict and 'jsonData' in jsonDataCopy:
-        subDict = json.loads(jsonDataCopy.pop('jsonData'))
-        jsonDataCopy.update(subDict)
-    alertText = "FWORCHAlert - " + json_to_log_format(jsonDataCopy)
-    logger.info(alertText)
-
-
-def set_ssl_verification(ssl_verification_mode: str) -> bool | str:
-    logger = get_fwo_logger()
-    if ssl_verification_mode == '' or ssl_verification_mode == 'off':
-        ssl_verification = False
-        if fwo_globals.debug_level>5:
-            logger.debug("ssl_verification: False")
-    else:
-        ssl_verification = ssl_verification_mode
-        if fwo_globals.debug_level>5:
-            logger.debug("ssl_verification: [ca]certfile=" + ssl_verification)
-    return ssl_verification
-
-
 def string_is_uri(s: str) -> re.Match[str] | None: # TODO: should return bool?
     return re.match('http://.+', s) or re.match('https://.+', s) or  re.match('file://.+', s) 
 
-
-def serialize_dict_to_class(data: dict[str, Any], cls: Any) -> Any:
-    # Unpack the dictionary into keyword arguments
-    return cls(**data)
-
-
-def serialize_dict_to_class_rec(data: dict[str, list[Any] | Any | Enum], cls: Any) -> Any:
+def serialize_dict_to_class_rec(data: dict[str, list[Any] | Any | Enum], cls: Any) -> Any: #TYPING: using model is forbidden?
     try:
         init_args = {}
         type_hints = get_type_hints(cls)
@@ -173,7 +99,7 @@ def serialize_dict_to_class_rec(data: dict[str, list[Any] | Any | Enum], cls: An
         return data
 
 
-def deserialize_class_to_dict_rec(obj: Any, seen: set[int] | None = None) -> dict[str, Any] | list[Any] | Any | str | int | float | bool | None:
+def deserialize_class_to_dict_rec(obj: Any, seen: set[int] | None = None) -> dict[str, Any] | list[Any] | Any | str | int | float | bool | None: #TYPING: using model is forbidden?
     if seen is None:
         seen = set()
 
@@ -247,17 +173,6 @@ def valid_ip_address(ip: str) -> str:
                 return "IPv6"
         except ValueError:
             return "Invalid"
-
-
-def validate_ip_address(address: str) -> bool:
-    try:
-        # ipaddress.ip_address(address)
-        ipaddress.ip_network(address)
-        return True
-        # print("IP address {} is valid. The object returned is {}".format(address, ip))
-    except ValueError:
-        return False
-        # print("IP address {} is not valid".format(address))
 
 
 def lcs_dp(seq1: list[Any], seq2: list[Any]) -> tuple[list[list[int]], int]:

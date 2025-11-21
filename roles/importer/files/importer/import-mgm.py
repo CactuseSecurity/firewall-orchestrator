@@ -3,7 +3,7 @@
 import sys
 import traceback
 import warnings
-from fwo_log import get_fwo_logger
+from fwo_log import FWOLogger, get_fwo_logger
 import argparse
 import urllib3
 from common import importer_base_dir, import_management
@@ -30,6 +30,8 @@ def get_fwo_jwt(import_user: str, import_pwd: str, user_management_api: str) -> 
 
 
 def main(mgm_id: int, file: str | None = None, debug_level: int = 0, verify_certificates: bool = False, force: bool = False, limit: int = 150, clear_management_data: bool = False, suppress_certificate_warnings: bool = False):
+    print("debug level set to " + str(debug_level))
+    FWOLogger(debug_level)
     service_provider = init_service_provider()
     fwo_config = service_provider.get_fwo_config()
     fwo_api_base_url = fwo_config['fwo_api_base_url']
@@ -37,9 +39,7 @@ def main(mgm_id: int, file: str | None = None, debug_level: int = 0, verify_cert
     user_management_api_base_url = fwo_config['user_management_api_base_url']
     if suppress_certificate_warnings: urllib3.disable_warnings()
 
-    logger = get_fwo_logger()
-
-    logger.info("import-mgm starting ...")
+    FWOLogger.info("import-mgm starting ...")
     if importer_base_dir not in sys.path:
         sys.path.append(importer_base_dir)
 
@@ -49,13 +49,13 @@ def main(mgm_id: int, file: str | None = None, debug_level: int = 0, verify_cert
     try:
             importer_pwd = open(importer_pwd_file).read().replace('\n', '')
     except Exception:
-        logger.error("import-main-loop - error while reading importer pwd file")
+        FWOLogger.error("error while reading importer pwd file")
         raise
 
     jwt = get_fwo_jwt(importer_user_name, importer_pwd, user_management_api_base_url)
     # check if login was successful - if not, wait and retry
     if jwt is None:
-        logger.error("import-mgm - cannot proceed without successful login - exiting")
+        FWOLogger.error("cannot proceed without successful login - exiting")
         return
 
     fwo_api = FwoApi(fwo_api_base_url, jwt)

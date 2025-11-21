@@ -106,10 +106,11 @@ namespace FWO.Test
         [TestCase("https://server1/test/reporting/filter/?lang=aaaabbbb%22/%3E%3Ca%20href=%22aaaa%22%3EMalicious%20URL%3C/a%3E%3Cimg%20src=%22")]
         [TestCase("<a href=\"https://attacker.invalid\">Malicious</a>")]
         [TestCase("<img src=\"x\" onerror=\"alert('xss')\" />")]
+        [TestCase("https://server1//help/reporting/ filter/?lang=aaaabbbb%22/%3E%3Ca%20href=%22aaaa %22%3EMalicious%20URL%3C/a%3E%3Cim")]
         public void Clean_RejectsHtmlTags(string input)
         {
             var result = _sut.Clean(input);
-            Assert.That(result, Is.Null, "Inputs containing HTML tags must be rejected.");
+            Assert.That(result, Is.Null, "Inputs containing HTML tags are rejected for security reasons.");
         }
 
         [TestCase("file:///etc/passwd")]

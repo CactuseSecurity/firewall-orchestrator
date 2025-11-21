@@ -16,7 +16,6 @@ from models.fwconfig_normalized import FwConfigNormalized
 
 if TYPE_CHECKING:
     from model_controllers.import_state_controller import ImportStateController
-    from model_controllers.import_statistics_controller import ImportStatisticsController
 
 # NOTE: we cannot import ImportState(Controller) here due to circular refs
 
@@ -131,23 +130,31 @@ class FwoApiCall(FwoApi):
         return changes_in_import
 
 
-    def unlock_import(self, import_id: int, mgm_id: int, import_stats: 'ImportStatisticsController') -> int:
-        error_during_import_unlock = 0
-        query_variables: dict[str, Any] = {"stopTime": datetime.datetime.now().isoformat(), "importId": import_id,
-                        "success": import_stats.ErrorCount == 0, "anyChangesFound": import_stats.getTotalChangeNumber() > 0, 
-                        "ruleChangesFound": import_stats.getRuleChangeNumber() > 0, "changeNumber": import_stats.getRuleChangeNumber()}
+    def unlock_import(self, import_state: 'ImportStateController'):
+        logger = get_fwo_logger()
+        import_id = import_state.ImportId
+        mgm_id = import_state.MgmDetails.Id
+        import_stats = import_state.Stats
+        
+        try:    
+            query_variables: dict[str, Any] = {
+                "stopTime": datetime.datetime.now().isoformat(), 
+                "importId": import_id,
+                "success": import_stats.ErrorCount == 0, 
+                "anyChangesFound": import_stats.getTotalChangeNumber() > 0, 
+                "ruleChangesFound": import_stats.getRuleChangeNumber() > 0, 
+                "changeNumber": import_stats.getRuleChangeNumber()
+            }
 
-        unlock_mutation = FwoApi.get_graphql_code([fwo_const.graphql_query_path + "import/updateImportStopTime.graphql"])
+            unlock_mutation = FwoApi.get_graphql_code([fwo_const.graphql_query_path + "import/updateImportStopTime.graphql"])
 
-        try:
             unlock_result = self.call(unlock_mutation, query_variables=query_variables)
             if 'errors' in unlock_result:
                 raise FwoApiFailedLockImport(unlock_result['errors'])
             _ = unlock_result['data']['update_import_control']['affected_rows']
-        except Exception as _:
-            FWOLogger.exception("failed to unlock import for management id " + str(mgm_id))
-            error_during_import_unlock = 1
-        return error_during_import_unlock
+        except Exception as e:
+            FWOLogger.exception("failed to unlock import for management id " + str(mgm_id) + ": " + str(e))
+            import_state.increaseErrorCounterByOne()
 
 
     #   currently temporarily only working with single chunk
@@ -301,11 +308,7 @@ class FwoApiCall(FwoApi):
             FWOLogger.error('error while trying to log import attempt')
             importState.increaseErrorCounterByOne()
 
-        try: # finalize import by unlocking it
-            importState.increaseErrorCounter(self.unlock_import(importState.ImportId, importState.MgmDetails.Id, importState.Stats))
-        except Exception:
-            FWOLogger.error("import_management - unspecified error while unlocking import: " + str(traceback.format_exc()))
-            importState.increaseErrorCounterByOne()
+        self.unlock_import(importState)
 
         import_result = "import_management: import no. " + str(importState.ImportId) + \
                 " for management " + importState.MgmDetails.Name + ' (id=' + str(importState.MgmDetails.Id) + ")" + \

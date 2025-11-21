@@ -7,6 +7,7 @@ from fwo_config import readConfig
 from model_controllers.import_state_controller import ImportStateController
 from copy import deepcopy
 from fwo_exceptions import FwoImporterErrorInconsistencies
+from fwo_base import sort_and_join_refs
 
 
 def normalize_network_objects(native_config, normalized_config_adom, normalized_config_global, nw_obj_types):
@@ -60,9 +61,12 @@ def normalize_network_object(obj_orig, nw_objects, normalized_config_adom, norma
     elif 'ip6' in obj_orig: # ipv6 object
         normalize_network_object_ipv6(obj_orig, obj)
     elif 'member' in obj_orig: # addrgrp4, TODO for addrgrp6 change obj_typ to 'group_v6' and adjust obj_member_refs
+        member_name_list: list[str] = obj_orig['member']
+        member_ref_list: list[str] = get_obj_member_refs_list(obj_orig, native_config_objects, current_obj_type)
+        sorted_member_refs, sorted_member_names = sort_and_join_refs(list(zip(member_ref_list, member_name_list)))
         obj.update({ 'obj_typ': 'group' })
-        obj.update({ 'obj_member_names' : list_delimiter.join(obj_orig['member']) })
-        obj.update({ 'obj_member_refs' : list_delimiter.join(get_obj_member_refs_list(obj_orig, native_config_objects, current_obj_type))})
+        obj.update({ 'obj_member_names' : sorted_member_names })
+        obj.update({ 'obj_member_refs' : sorted_member_refs })
     elif 'startip' in obj_orig: # ippool object
         obj.update({ 'obj_typ': 'ip_range' })
         obj.update({ 'obj_ip': obj_orig['startip'] })

@@ -69,7 +69,14 @@
             {
                 <ReportTenantSelection SelectedTenant="actReportFilters.SelectedTenant" SelectedTenantChanged="TenantViewChanged" TenantFilteringAllowed="tenantFilteringAllowed" />
             }
-            <DeviceSelection @bind-DeviceFilter="actReportFilters.DeviceFilter" @bind-CollapseAll="actReportFilters.CollapseDevices" @bind-SelectAll="actReportFilters.SelectAll" />
+            @if(actReportFilters.ReportType == ReportType.Recertification)
+            {
+                <ManagementSelection @bind-DeviceFilter="actReportFilters.DeviceFilter" />
+            }
+            else
+            {
+                <DeviceSelection @bind-DeviceFilter="actReportFilters.DeviceFilter" @bind-CollapseAll="actReportFilters.CollapseDevices" @bind-SelectAll="actReportFilters.SelectAll" />
+            }
         }
     </Sidebar>
 
@@ -249,10 +256,8 @@
     private ReportTemplateComponent reportTemplateControl = new();
 
     private ReportBase? currentReport;
-
-    private FWO.Ui.Shared.TabSet rsbTabset;
+    
     private Sidebar? deviceSelectionSidebar;
-    private FWO.Ui.Shared.AnchorNavToRSB anchorNavToRSB;
 
     private string filterFeedbackStart = "";
     private string filterFeedbackError = "";

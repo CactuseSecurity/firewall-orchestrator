@@ -18,6 +18,8 @@ namespace FWO.Api.Client
 
         private string prevRole = "";
 
+#pragma warning disable CS8618 // C# does not notice that the constructor initializes these properties
+
         private void Initialize(string ApiServerUri)
         {
             // Save Server URI
@@ -40,7 +42,7 @@ namespace FWO.Api.Client
             // 1 hour timeout
             graphQlClient.HttpClient.Timeout = new TimeSpan(1, 0, 0);
         }
-        
+
         public GraphQlApiConnection(string ApiServerUri, string jwt)
         {
             Initialize(ApiServerUri);
@@ -51,6 +53,7 @@ namespace FWO.Api.Client
         {
             Initialize(ApiServerUri);
         }
+#pragma warning restore CS8618
 
         public override void SetAuthHeader(string jwt)
         {
@@ -132,7 +135,7 @@ namespace FWO.Api.Client
             try
             {
                 Log.WriteDebug("API call", $"Sending API call {operationName} in role {GetActRole()}: {query.Substring(0, Math.Min(query.Length, 70)).Replace(Environment.NewLine, "")}... " +
-                    ( variables != null ? $"with variables: {JsonSerializer.Serialize(variables).Substring(0, Math.Min(JsonSerializer.Serialize(variables).Length, 50)).Replace(Environment.NewLine, "")}..." : "" ));
+                    (variables != null ? $"with variables: {JsonSerializer.Serialize(variables).Substring(0, Math.Min(JsonSerializer.Serialize(variables).Length, 50)).Replace(Environment.NewLine, "")}..." : ""));
                 GraphQLResponse<dynamic> response = await graphQlClient.SendQueryAsync<dynamic>(query, variables, operationName);
                 // Log.WriteDebug("API call", "API response received.");
 
@@ -171,7 +174,7 @@ namespace FWO.Api.Client
                     else
                     {
                         JObject data = (JObject)response.Data;
-                        JProperty prop = (JProperty)( data.First ?? throw new Exception($"Could not retrieve unique result attribute from Json.\nJson: {response.Data}") );
+                        JProperty prop = (JProperty)(data.First ?? throw new Exception($"Could not retrieve unique result attribute from Json.\nJson: {response.Data}"));
                         JToken result = prop.Value;
                         QueryResponseType returnValue = result.ToObject<QueryResponseType>() ??
                             throw new Exception($"Could not convert result from Json to {typeof(QueryResponseType)}.\nJson: {response.Data}");
@@ -182,7 +185,7 @@ namespace FWO.Api.Client
 
             catch (Exception exception)
             {
-                Log.WriteError("API Connection", $"Error while sending query to GraphQL API. Query: {( query != null ? query : "" )}, variables: {( variables != null ? JsonSerializer.Serialize(variables) : "" )}", exception);
+                Log.WriteError("API Connection", $"Error while sending query to GraphQL API. Query: {(query != null ? query : "")}, variables: {(variables != null ? JsonSerializer.Serialize(variables) : "")}", exception);
                 throw;
             }
         }

@@ -87,7 +87,7 @@
         <div class="form-group row mt-4" data-toggle="tooltip" title="@(userConfig.PureLine("H9055"))">
             <label class="col-form-label col-sm-4">@userConfig.GetText("import_app_server"):</label>
             <div class="row col-sm-6">
-                <CSVFileUpload SupportedFileFormats=".csv" AuthorizedRoles="@Roles.Admin"></CSVFileUpload>
+                <ImportFileUpload SupportedFileFormats=".csv" AuthorizedRoles="@Roles.Admin" UploadCase="FileUploadCase.ImportAppServerFromCSV"/>
             </div>
         </div>
         <hr />
@@ -457,7 +457,7 @@ else
                 </Collapse>
             </div>
         }
-       @if(CSVImportErrors is not null && CSVImportErrors.Count > 0)
+        @if(CSVImportErrors is not null && CSVImportErrors.Count > 0)
         {
             <div class="mt-1">
                 <Collapse StartToggled="false" Style="danger" Title="@(userConfig.GetText("errors"))">

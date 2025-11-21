@@ -13,7 +13,10 @@ namespace FWO.Data.Report
         [JsonProperty("name"), JsonPropertyName("name")]
         public string? Name { get; set; }
 
-        [JsonProperty("devices"), JsonPropertyName("devices")]
+        [JsonProperty("uid"), JsonPropertyName("uid")]
+        public string Uid { get; set; } = "";
+
+		[JsonProperty("devices"), JsonPropertyName("devices")]
         public List<DeviceSelect> Devices { get; set; } = [];
 
         public ElementReference? UiReference { get; set; }

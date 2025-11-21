@@ -18,67 +18,71 @@ namespace FWO.Api.Client.Queries
         public static readonly string getReportFilteredNetworkServiceDetails;
         public static readonly string getReportFilteredUserDetails;
 
-        static ObjectQueries() 
+        static ObjectQueries()
         {
             try
             {
                 networkObjectDetailsFragment =
-                    File.ReadAllText(QueryPath + "networkObject/fragments/networkObjectDetails.graphql");
-                    
+                    GetQueryText("networkObject/fragments/networkObjectDetails.graphql");
+
                 networkObjectDetailsForVarianceFragment =
-                    File.ReadAllText(QueryPath + "networkObject/fragments/networkObjectDetailsForVariance.graphql");
+                    GetQueryText("networkObject/fragments/networkObjectDetailsForVariance.graphql");
 
                 getNetworkObjectDetails =
                     networkObjectDetailsFragment +
-                    File.ReadAllText(QueryPath + "networkObject/getNetworkObjectDetails.graphql");
+                    GetQueryText("networkObject/getNetworkObjectDetails.graphql");
 
                 getNetworkObjectsForManagement =
                     networkObjectDetailsForVarianceFragment +
-                    File.ReadAllText(QueryPath + "networkObject/getNetworkObjectsForManagement.graphql");
+                    GetQueryText("networkObject/getNetworkObjectsForManagement.graphql");
 
                 networkServiceDetailsFragment =
-                    File.ReadAllText(QueryPath + "networkService/fragments/networkServiceDetails.graphql");
+                    GetQueryText("networkService/fragments/networkServiceDetails.graphql");
 
                 getNetworkServiceDetails =
                     networkServiceDetailsFragment +
-                    File.ReadAllText(QueryPath + "networkService/getNetworkServiceDetails.graphql");
+                    GetQueryText("networkService/getNetworkServiceDetails.graphql");
 
-                userDetailsFragment = File.ReadAllText(QueryPath + "user/fragments/userDetails.graphql");
+                userDetailsFragment = GetQueryText("user/fragments/userDetails.graphql");
 
                 getUserDetails =
                     userDetailsFragment +
-                    File.ReadAllText(QueryPath + "user/getUserDetails.graphql");
+                    GetQueryText("user/getUserDetails.graphql");
 
                 // used for right side bar objects
                 getAllObjectDetails =
                     userDetailsFragment +
                     networkServiceDetailsFragment +
                     networkObjectDetailsFragment +
-                    File.ReadAllText(QueryPath + "allObjects/getAllObjectDetails.graphql");
+                    GetQueryText("allObjects/getAllObjectDetails.graphql");
 
                 // for rule export and RSB obj filtering per report
-                getReportFilteredObjectDetails = 
+                getReportFilteredObjectDetails =
                     userDetailsFragment +
                     networkServiceDetailsFragment +
                     networkObjectDetailsFragment +
-                    File.ReadAllText(QueryPath + "report/getReportFilteredObjectDetails.graphql");
+                    GetQueryText("report/getReportFilteredObjectDetails.graphql");
 
                 getReportFilteredNetworkObjectDetails =
                     networkObjectDetailsFragment +
-                    File.ReadAllText(QueryPath + "report/getReportFilteredNetworkObjectDetails.graphql");
+                    GetQueryText("report/getReportFilteredNetworkObjectDetails.graphql");
 
                 getReportFilteredNetworkServiceDetails =
                     networkServiceDetailsFragment +
-                    File.ReadAllText(QueryPath + "report/getReportFilteredNetworkServiceDetails.graphql");
+                    GetQueryText("report/getReportFilteredNetworkServiceDetails.graphql");
 
                 getReportFilteredUserDetails =
                     userDetailsFragment +
-                    File.ReadAllText(QueryPath + "report/getReportFilteredUserDetails.graphql");
+                    GetQueryText("report/getReportFilteredUserDetails.graphql");
             }
             catch (Exception exception)
             {
-                Log.WriteError("Initialize Api Queries", "Api Object Queries could not be loaded." , exception);
+                Log.WriteError("Initialize Api Queries", "Api Object Queries could not be loaded.", exception);
+#if RELEASE
                 Environment.Exit(-1);
+#else
+                throw;
+#endif
             }
         }
     }

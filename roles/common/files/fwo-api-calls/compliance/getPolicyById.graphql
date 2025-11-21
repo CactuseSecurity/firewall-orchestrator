@@ -1,0 +1,16 @@
+query getPolicyById($id: Int!) {
+  compliance_policy_by_pk(id: $id) {
+    id
+    name
+    created_date
+    disabled
+    criteria: policy_criterions(where: { removed: { _is_null: true } }) {
+      criterion: criterion {
+        content
+        criterion_type
+        id
+        name
+      }
+    }
+  }
+}

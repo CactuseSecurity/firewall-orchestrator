@@ -1,0 +1,87 @@
+mutation updateNetworkZone (
+  $networkZoneId: bigint!
+  $name: String!
+  $description: String!
+  $superNetworkZoneId: bigint
+  $addIpRanges: [compliance_ip_range_insert_input!]!
+  $deleteIpRangesExp: [compliance_ip_range_bool_exp!]!
+  $addZoneCommunication: [compliance_network_zone_communication_insert_input!]!
+  $deleteZoneCommunicationExp: [compliance_network_zone_communication_bool_exp!]!
+  $addSubZonesExp: [compliance_network_zone_bool_exp!]!
+  $deleteSubZonesExp: [compliance_network_zone_bool_exp!]!
+  $removed: timestamptz
+  $isAutoCalculatedInternetZone: Boolean) 
+{   
+  update_compliance_network_zone (
+    where: {id: {_eq: $networkZoneId}}
+    _set: {
+      name: $name,
+      description: $description,
+      super_network_zone_id: $superNetworkZoneId,
+      is_auto_calculated_internet_zone: $isAutoCalculatedInternetZone
+    }
+  ) {
+    affected_rows
+  }
+
+  update_compliance_ip_range (
+    where: {
+      network_zone_id: {_eq: $networkZoneId},
+      _or: $deleteIpRangesExp
+      removed: {_is_null: true}
+    }
+    _set: {
+      removed: $removed
+    }
+  ) {
+    affected_rows
+  }
+  
+  insert_compliance_ip_range (
+    objects: $addIpRanges
+  ) {
+    affected_rows
+  }
+  
+  update_compliance_network_zone_communication (
+    where: {
+      _or: $deleteZoneCommunicationExp
+      removed: {_is_null: true}
+    },
+    _set: {
+      removed: $removed
+    }
+  ) {
+    affected_rows
+  }
+
+  insert_compliance_network_zone_communication (
+    objects: $addZoneCommunication
+  ) {
+    affected_rows
+  }
+  
+  update_compliance_network_zone_many (
+    updates: [
+      {
+        where: {
+          _or: $deleteSubZonesExp
+          removed: {_is_null: true}
+          }
+        _set: {
+          super_network_zone_id: null
+        } 
+      },
+      {
+        where: {
+          _or: $addSubZonesExp
+        }
+        _set: {
+          super_network_zone_id: $networkZoneId
+        }
+      }
+    ]
+  ) {
+    affected_rows
+  }
+}

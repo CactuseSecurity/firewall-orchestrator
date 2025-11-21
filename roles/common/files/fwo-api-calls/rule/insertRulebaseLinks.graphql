@@ -1,0 +1,11 @@
+mutation importInsertRulebaseOnGateway($rulebaseLinks: [rulebase_link_insert_input!]!) {
+    insert_rulebase_link(
+        objects: $rulebaseLinks
+        on_conflict: {
+            constraint: unique_rulebase_link
+            update_columns: []
+        }
+    ) {
+        affected_rows
+    }
+}

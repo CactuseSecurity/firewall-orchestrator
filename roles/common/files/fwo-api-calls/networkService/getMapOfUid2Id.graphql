@@ -1,0 +1,13 @@
+query getMapOfUid2Id($uids: [String!], $mgmId: Int!) {
+  service(where: {
+    svc_uid: {_in: $uids}, 
+    _or: [
+      {mgm_id: {_eq: $mgmId}},
+      {management: {multi_device_manager_id: {_eq: $mgmId}}}
+    ],
+    removed: {_is_null: true}
+    }) {
+    svc_id
+    svc_uid
+  }
+}

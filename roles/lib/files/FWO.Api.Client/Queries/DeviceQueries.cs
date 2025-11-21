@@ -11,14 +11,17 @@ namespace FWO.Api.Client.Queries
         public static readonly string getDeviceTypeDetails;
         public static readonly string newManagement;
         public static readonly string updateManagement;
+        public static readonly string updateManagementUid;
+        public static readonly string updateManagementUids;
         public static readonly string changeManagementState;
         public static readonly string deleteManagement;
         public static readonly string getDeviceDetails;
         public static readonly string newDevice;
+        public static readonly string getGatewayId;
         public static readonly string updateDevice;
+        public static readonly string updateGatewayUid;
         public static readonly string changeDeviceState;
         public static readonly string deleteDevice;
-        public static readonly string deleteImport;
         public static readonly string getCredentials;
         public static readonly string getCredentialsWithoutSecrets;
         public static readonly string newCredential;
@@ -30,45 +33,53 @@ namespace FWO.Api.Client.Queries
         {
             try
             {
-                getDevicesByManagement = File.ReadAllText(QueryPath + "device/getDevicesByManagement.graphql");
-                getManagementNames = File.ReadAllText(QueryPath + "device/getManagementNames.graphql");
-                getManagementsDetails = File.ReadAllText(QueryPath + "device/getManagementsDetails.graphql") + " " 
-                                        + File.ReadAllText(QueryPath + "device/fragments/managementDetails.graphql") + " "
-                                        + File.ReadAllText(QueryPath + "device/fragments/deviceTypeDetails.graphql") + " "
-                                        + File.ReadAllText(QueryPath + "device/fragments/importCredentials.graphql");
-                getManagementDetailsWithoutSecrets = File.ReadAllText(QueryPath + "device/getManagementDetailsWithoutSecrets.graphql") + " " 
-                                        + File.ReadAllText(QueryPath + "device/fragments/managementDetailsWithoutSecrets.graphql") + " "
-                                        + File.ReadAllText(QueryPath + "device/fragments/deviceTypeDetails.graphql") + " "
-                                        + File.ReadAllText(QueryPath + "device/fragments/importCredentialsWithoutSecrets.graphql");
-                getDeviceTypeDetails = File.ReadAllText(QueryPath + "device/getDeviceTypeDetails.graphql") + " "
-                                        + File.ReadAllText(QueryPath + "device/fragments/deviceTypeDetails.graphql");
-                newManagement = File.ReadAllText(QueryPath + "device/newManagement.graphql");
-                updateManagement = File.ReadAllText(QueryPath + "device/updateManagement.graphql");
-                changeManagementState = File.ReadAllText(QueryPath + "device/changeManagementState.graphql");
-                deleteManagement = File.ReadAllText(QueryPath + "device/deleteManagement.graphql");
-                getDeviceDetails = File.ReadAllText(QueryPath + "device/getDeviceDetails.graphql") + " " 
-                                    + File.ReadAllText(QueryPath + "device/fragments/deviceDetails.graphql") + " "
-                                    + File.ReadAllText(QueryPath + "device/fragments/deviceTypeDetails.graphql");
+                getDevicesByManagement = GetQueryText("device/getDevicesByManagement.graphql");
+                getManagementNames = GetQueryText("device/getManagementNames.graphql");
+                getManagementsDetails = GetQueryText("device/getManagementsDetails.graphql")
+                                        + GetQueryText("device/fragments/subManagements.graphql")
+                                        + GetQueryText("device/fragments/managementDetails.graphql")
+                                        + GetQueryText("device/fragments/deviceTypeDetails.graphql")
+                                        + GetQueryText("device/fragments/importCredentials.graphql");
+                getManagementDetailsWithoutSecrets = GetQueryText("device/getManagementDetailsWithoutSecrets.graphql")
+                                        + GetQueryText("device/fragments/managementDetailsWithoutSecrets.graphql")
+                                        + GetQueryText("device/fragments/deviceTypeDetails.graphql")
+                                        + GetQueryText("device/fragments/importCredentialsWithoutSecrets.graphql");
+                getDeviceTypeDetails = GetQueryText("device/getDeviceTypeDetails.graphql")
+                                        + GetQueryText("device/fragments/deviceTypeDetails.graphql");
+                newManagement = GetQueryText("device/newManagement.graphql");
+                updateManagement = GetQueryText("device/updateManagement.graphql");
+                updateManagementUid = GetQueryText("device/updateManagementUid.graphql");
+                updateManagementUids = GetQueryText("device/updateManagementUids.graphql");
+                changeManagementState = GetQueryText("device/changeManagementState.graphql");
+                deleteManagement = GetQueryText("device/deleteManagement.graphql");
+                getDeviceDetails = GetQueryText("device/getDeviceDetails.graphql")
+                                    + GetQueryText("device/fragments/deviceDetails.graphql")
+                                    + GetQueryText("device/fragments/deviceTypeDetails.graphql");
 
-                newDevice = File.ReadAllText(QueryPath + "device/newDevice.graphql");
-                updateDevice = File.ReadAllText(QueryPath + "device/updateDevice.graphql");
-                changeDeviceState = File.ReadAllText(QueryPath + "device/changeDeviceState.graphql");
-                deleteDevice = File.ReadAllText(QueryPath + "device/deleteDevice.graphql");
-                deleteImport = File.ReadAllText(QueryPath + "device/deleteImport.graphql");
+                newDevice = GetQueryText("device/newDevice.graphql");
+                updateDevice = GetQueryText("device/updateDevice.graphql");
+                updateGatewayUid = GetQueryText("device/updateGatewayUid.graphql");
+                getGatewayId = GetQueryText("device/getGatewayId.graphql");
+                changeDeviceState = GetQueryText("device/changeDeviceState.graphql");
+                deleteDevice = GetQueryText("device/deleteDevice.graphql");
 
-                getCredentials = File.ReadAllText(QueryPath + "device/getCredentials.graphql") + " " 
-                                    + File.ReadAllText(QueryPath + "device/fragments/importCredentials.graphql");
-                getCredentialsWithoutSecrets = File.ReadAllText(QueryPath + "device/getCredentialsWithoutSecrets.graphql") + " " 
-                                    + File.ReadAllText(QueryPath + "device/fragments/importCredentialsWithoutSecrets.graphql");
-                newCredential = File.ReadAllText(QueryPath + "device/newCredential.graphql");
-                updateCredential = File.ReadAllText(QueryPath + "device/updateCredential.graphql");
-                deleteCredential = File.ReadAllText(QueryPath + "device/deleteCredential.graphql");
-                getMgmtNumberUsingCred = File.ReadAllText(QueryPath + "device/getMgmtNumberUsingCred.graphql");
+                getCredentials = GetQueryText("device/getCredentials.graphql")
+                                    + GetQueryText("device/fragments/importCredentials.graphql");
+                getCredentialsWithoutSecrets = GetQueryText("device/getCredentialsWithoutSecrets.graphql")
+                                    + GetQueryText("device/fragments/importCredentialsWithoutSecrets.graphql");
+                newCredential = GetQueryText("device/newCredential.graphql");
+                updateCredential = GetQueryText("device/updateCredential.graphql");
+                deleteCredential = GetQueryText("device/deleteCredential.graphql");
+                getMgmtNumberUsingCred = GetQueryText("device/getMgmtNumberUsingCred.graphql");
             }
             catch (Exception exception)
             {
                 Log.WriteError("Initialize DeviceQueries", "Api DeviceQueries could not be loaded.", exception);
+#if RELEASE
                 Environment.Exit(-1);
+#else
+                throw;
+#endif
             }
         }
     }

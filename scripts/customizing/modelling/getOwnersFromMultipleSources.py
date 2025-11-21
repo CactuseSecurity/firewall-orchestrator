@@ -4,7 +4,7 @@
 
 # dependencies: 
 #   a) package python3-git must be installed
-#   b) requires the following config items in /usr/local/orch/etc/secrets/customizingConfig.json
+#   b) requires the following config items in /usr/local/fworch/etc/secrets/customizingConfig.json
 #       Tufin RLM
 #           username
 #           password
@@ -39,7 +39,7 @@ baseDir = "/usr/local/fworch/"
 baseDirEtc = baseDir + "etc/"
 repoTargetDir = baseDirEtc + "cmdb-repo"
 defaultConfigFileName = baseDirEtc + "secrets/customizingConfig.json"
-defaultRlmImportFileName = baseDir + "scripts/customizing/modelling/getOwnersFromTufinRlm.json"
+defaultRlmImportFileName = baseDirEtc + "getOwnersFromTufinRlm.json"
 importSourceString = "tufinRlm"
 
 # TUFIN settings:
@@ -81,7 +81,7 @@ def readConfig(configFilename, keyToGet):
             customConfig = json.loads(customConfigFH.read())
         return customConfig[keyToGet]
 
-    except:
+    except Exception:
         logger.error("could not read key '" + keyToGet + "' from config file " + configFilename + ", Exception: " + str(traceback.format_exc()))
         sys.exit(1)
 
@@ -300,7 +300,7 @@ if __name__ == "__main__":
             with open(csvFile, newline='') as csvFile:
                 reader = csv.reader(csvFile)
                 dfAllApps += list(reader)[1:]# Skip headers in first line
-        except:
+        except Exception:
             logger.error("error while trying to read csv file '" + csvFile + "', exception: " + str(traceback.format_exc()))
             sys.exit(1)
 
@@ -339,17 +339,17 @@ if __name__ == "__main__":
         try:
             with open(rlmApiUrl, "r") as ownerDumpFH:
                 ownerData = json.loads(ownerDumpFH.read())
-        except:
+        except Exception:
             logger.error("error while trying to read owners from config file '" + rlmApiUrl + "', exception: " + str(traceback.format_exc()))
             sys.exit(1)
     else:
-        # get App List directly from RLM via API
+        # get app list directly from RLM via API
         try:
             oauthToken = rlmLogin(rlmUsername, rlmPassword, rlmApiUrl + api_url_path_rlm_login)
             # logger.debug("token for RLM: " + oauthToken)
             rlmOwnerData = rlmGetOwners(oauthToken, rlmApiUrl + api_url_path_rlm_apps, float(rlmVersion))
 
-        except:
+        except Exception:
             logger.error("error while getting owner data from RLM API: " + str(traceback.format_exc()))
             sys.exit(1)
 

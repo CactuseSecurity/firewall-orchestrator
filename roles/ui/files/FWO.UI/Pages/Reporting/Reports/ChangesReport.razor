@@ -17,7 +17,7 @@
                 {
                     <Collapse Title="@device.Name" Style="@("secondary")" StartToggled="true">
                         <Table SelectedItems="SelectedRuleChanges"
-                               RowClickAction="@(async rule => { rule.DeviceName = device.Name ?? ""; if (!SelectedRuleChanges.Remove(rule)) SelectedRuleChanges.Add(rule); await SelectedRuleChangesChanged.InvokeAsync(SelectedRuleChanges); })"
+                               RowClickAction="@(async rule => { rule.RulebaseName = device.Name ?? ""; if (!SelectedRuleChanges.Remove(rule)) SelectedRuleChanges.Add(rule); await SelectedRuleChangesChanged.InvokeAsync(SelectedRuleChanges); })"
                                style="font-size:small" TableClass="table table-bordered table-sm th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="RuleChange" Items="device.RuleChanges" ShowSearchBar="false"
                                PageSize="RulesPerPage" ColumnReorder="true">
 

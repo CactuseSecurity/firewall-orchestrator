@@ -28,6 +28,8 @@ namespace FWO.Report.Filter.FilterTypes
 
         public ModellingFilter ModellingFilter { get; set; } = new();
 
+        public ComplianceFilter ComplianceFilter { get; set; } = new();
+
         public string DisplayedTimeSelection = "";
 
         private UserConfig? userConfig;
@@ -48,13 +50,13 @@ namespace FWO.Report.Filter.FilterTypes
         public void SyncFiltersFromTemplate(ReportTemplate template)
         {
             ReportType = (ReportType)template.ReportParams.ReportType;
-            if(template.ReportParams.DeviceFilter != null && template.ReportParams.DeviceFilter.Managements.Count > 0)
+            if (template.ReportParams.DeviceFilter != null && template.ReportParams.DeviceFilter.Managements.Count > 0)
             {
                 DeviceFilter.SynchronizeDevFilter(template.ReportParams.DeviceFilter);
             }
             SelectAll = !DeviceFilter.IsAnyDeviceFilterSet();
 
-            if(template.ReportParams.TimeFilter != null)
+            if (template.ReportParams.TimeFilter != null)
             {
                 TimeFilter = template.ReportParams.TimeFilter;
             }
@@ -62,6 +64,7 @@ namespace FWO.Report.Filter.FilterTypes
             RecertFilter = new(template.ReportParams.RecertFilter);
             UnusedDays = template.ReportParams.UnusedFilter.UnusedForDays;
             ModellingFilter = template.ReportParams.ModellingFilter;
+            ComplianceFilter = new(template.ReportParams.ComplianceFilter);
         }
 
         public ReportParams ToReportParams()
@@ -70,12 +73,13 @@ namespace FWO.Report.Filter.FilterTypes
             {
                 TimeFilter = SavedTimeFilter,
                 RecertFilter = new RecertFilter(RecertFilter),
-                UnusedFilter = new UnusedFilter() 
+                UnusedFilter = new UnusedFilter()
                 {
-                    UnusedForDays = UnusedDays, 
+                    UnusedForDays = UnusedDays,
                     CreationTolerance = userConfig?.CreationTolerance ?? 0
                 },
-                ModellingFilter = new ModellingFilter(ModellingFilter)
+                ModellingFilter = new ModellingFilter(ModellingFilter),
+                ComplianceFilter = new ComplianceFilter(ComplianceFilter)
             };
             if (ReportType != ReportType.Statistics)
             {

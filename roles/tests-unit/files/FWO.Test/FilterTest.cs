@@ -26,7 +26,7 @@ namespace FWO.Test
             };
             t.ReportParams.ReportType = (int)ReportType.Rules;
             DynGraphqlQuery query = Compiler.Compile(t);
-            
+
             ClassicAssert.AreEqual(0, query.QueryVariables.Count);
         }
 
@@ -87,7 +87,7 @@ namespace FWO.Test
             };
             t.ReportParams.ReportType = (int)ReportType.Rules;
             DynGraphqlQuery query = Compiler.Compile(t);
-            
+
             ClassicAssert.AreEqual(3, query.QueryVariables.Count);
             ClassicAssert.AreEqual("%cactus%", query.QueryVariables["src0"]);
             ClassicAssert.AreEqual("%cactus%", query.QueryVariables["dst1"]);
@@ -104,7 +104,7 @@ namespace FWO.Test
             };
             t.ReportParams.ReportType = (int)ReportType.Rules;
             DynGraphqlQuery query = Compiler.Compile(t);
-            
+
             ClassicAssert.AreEqual(1, query.QueryVariables.Count);
             ClassicAssert.AreEqual("cactus", query.QueryVariables["fullTextFilter0"]);
         }
@@ -117,7 +117,7 @@ namespace FWO.Test
             {
                 Filter = "(text==cactus)"
             };
-            t.ReportParams.ReportType = (int) ReportType.Rules;
+            t.ReportParams.ReportType = (int)ReportType.Rules;
             DynGraphqlQuery query = Compiler.Compile(t);
 
             ClassicAssert.AreEqual(1, query.QueryVariables.Count);
@@ -134,7 +134,7 @@ namespace FWO.Test
             };
             t.ReportParams.ReportType = (int)ReportType.Rules;
             DynGraphqlQuery query = Compiler.Compile(t);
-            
+
             ClassicAssert.AreEqual(3, query.QueryVariables.Count);
             ClassicAssert.AreEqual("%checkpoint_demo%", query.QueryVariables["gwName0"]);
             ClassicAssert.AreEqual("%fortigate_demo%", query.QueryVariables["gwName1"]);
@@ -151,7 +151,7 @@ namespace FWO.Test
                 {
                     Filter = "(gateway=\"checkpoint_demo\" or gateway = \"fortigate_demo\") & dst =="
                 };
-                t.ReportParams.ReportType = (int) ReportType.Rules;
+                t.ReportParams.ReportType = (int)ReportType.Rules;
                 Compiler.Compile(t);
                 Assert.Fail("Exception should have been thrown");
             }
@@ -169,12 +169,12 @@ namespace FWO.Test
             {
                 Filter = "disabled == true"
             };
-            t.ReportParams.ReportType = (int) ReportType.Rules;
+            t.ReportParams.ReportType = (int)ReportType.Rules;
             DynGraphqlQuery query = Compiler.Compile(t);
 
             ClassicAssert.AreEqual(1, query.QueryVariables.Count);
             ClassicAssert.AreEqual("true", query.QueryVariables["disabled0"]);
-       }
+        }
 
         [Test]
         [Parallelizable]
@@ -207,7 +207,7 @@ namespace FWO.Test
             ClassicAssert.AreEqual(true, query.QueryVariables.ContainsKey("refdate1"));
             ClassicAssert.AreEqual(true, query.QueryVariables.ContainsKey("ownerWhere"));
             ClassicAssert.AreEqual("1000", query.QueryVariables["dport0"]);
-            ClassicAssert.AreEqual("_and: [{rule_head_text: {_is_null: true}}, {_or: [{}]}, { rule_metadatum: { recertifications: { next_recert_date: { _lte: $refdate1 } } } }, {_not: {rule_services: { service: { svcgrp_flats: { serviceBySvcgrpFlatMemberId: { svc_port: {_lte: $dport0}, svc_port_end: {_gte: $dport0 } } } } }}}] ", query.RuleWhereStatement);
+            ClassicAssert.AreEqual("_and: [{rule_head_text: {_is_null: true}}, { rule_metadatum: { recertifications: { next_recert_date: { _lte: $refdate1 } } } }, {_not: {rule_services: { service: { svcgrp_flats: { serviceBySvcgrpFlatMemberId: { svc_port: {_lte: $dport0}, svc_port_end: {_gte: $dport0 } } } } }}}] ", query.RuleWhereStatement);
         }
 
         [Test]

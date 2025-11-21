@@ -1,0 +1,53 @@
+fragment natRuleOverview on rule {
+  ...ruleOverview
+  translate: ruleByXlateRule {
+    rule_src
+    rule_src_refs
+    rule_src_neg
+    rule_dst
+    rule_dst_refs
+    rule_dst_neg
+    rule_svc
+    rule_svc_refs
+    rule_svc_neg
+    rule_froms(where: {
+      rf_create: { _lte: $import_id_end }
+      _or: [
+        { removed: { _is_null: true } }
+        { removed: { _gt: $import_id_start } }
+      ]
+    }, order_by: { object: { obj_name: asc } }) {
+      usr {
+        ...userOverview
+      }
+      object {
+        ...networkObjectOverview
+      }
+    }
+    rule_tos(where: {
+      rt_create: { _lte: $import_id_end }
+      _or: [
+        { removed: { _is_null: true } }
+        { removed: { _gt: $import_id_start } }
+      ]
+    }, order_by: { object: { obj_name: asc } }) {
+      usr {
+        ...userOverview
+      }
+      object {
+        ...networkObjectOverview
+      }
+    }
+    rule_services(where: {
+      rs_create: { _lte: $import_id_end }
+      _or: [
+        { removed: { _is_null: true } }
+        { removed: { _gt: $import_id_start } }
+      ]
+    }, order_by: { service: { svc_name: asc } }) {
+      service {
+        ...networkServiceOverview
+      }
+    }
+  }
+}

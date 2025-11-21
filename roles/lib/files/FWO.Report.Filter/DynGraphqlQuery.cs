@@ -21,7 +21,28 @@ namespace FWO.Report.Filter
         public string UserObjWhereStatement { get; set; } = "";
         public string ConnectionWhereStatement { get; set; } = "";
         public string OwnerWhereStatement { get; set; } = "";
-        public string OpenRulesTable { get; set; } = "rules(";
+        public string OpenRuleBaseTable { get; set; } = $@" rulebase_links {{
+                                linkType: stm_link_type  {{
+                                    name
+                                    id
+                                }}
+                                link_type
+                                is_initial
+                                is_global
+                                is_section
+                                gw_id
+                                from_rule_id
+                                from_rulebase_id
+                                to_rulebase_id
+                                created
+                                removed
+                            }}
+                        }}
+                        rulebases {{
+                            name
+                            uid
+                            id ";
+        public string OpenRulesTable { get; set; } = $@" rules (";
         public string OpenChangeLogRulesTable { get; set; } = "changelog_rules(";
         public List<string> QueryParameters { get; set; } =
         [
@@ -35,18 +56,19 @@ namespace FWO.Report.Filter
 
         public ReportType ReportType { get; set; } = ReportType.Rules;
         public FwoOwner? SelectedOwner { get; set; }
-
         public const string fullTimeFormat = "yyyy-MM-dd HH:mm:ss";
         public const string dateFormat = "yyyy-MM-dd";
+        public const int layerRecursionLevel = 2;
 
         const string mgmtWhereString = $@"where: {{ hide_in_gui: {{_eq: false }}
                                         mgm_id: {{_in: $mgmId }}
                                         stm_dev_typ: {{dev_typ_is_multi_mgmt: {{_eq: false}} is_pure_routing_device: {{_eq: false}} }}
                                         }} order_by: {{ mgm_name: asc }}";
 
-        const string devWhereString = $@"where: {{ hide_in_gui: {{_eq: false }},
-                                        stm_dev_typ: {{is_pure_routing_device:{{_eq:false}} }}
-                                        }} order_by: {{ dev_name: asc }}";
+        const string devWhereStringStart = $@"where: {{ hide_in_gui: {{_eq: false }},
+                                        stm_dev_typ: {{is_pure_routing_device:{{_eq:false}} }}";
+        const string devWhereStringEnd = $@"}} order_by: {{ dev_name: asc }}";
+        const string devWhereStringDefault = devWhereStringStart + devWhereStringEnd;
 
         const string limitOffsetString = $@"limit: $limit 
                                         offset: $offset ";
@@ -56,7 +78,7 @@ namespace FWO.Report.Filter
         {
             DynGraphqlQuery query = new(filter.Filter);
             ConstructWhereStatements(query, filter, ast);
-            if (( (ReportType)filter.ReportParams.ReportType ).IsResolvedReport() || (ReportType)filter.ReportParams.ReportType == ReportType.AppRules)
+            if (((ReportType)filter.ReportParams.ReportType).IsResolvedReport() || (ReportType)filter.ReportParams.ReportType == ReportType.AppRules)
             {
                 filter.Detailed = true;
             }
@@ -89,6 +111,7 @@ namespace FWO.Report.Filter
 
             // now we convert the ast into a graphql query:
             ast?.Extract(ref query, (ReportType)filter.ReportParams.ReportType);
+            // TODO: remove rule dev filtering for rework 
 
             query.RuleWhereStatement += "}] ";
             query.ConnectionWhereStatement += "}] ";
@@ -113,7 +136,7 @@ namespace FWO.Report.Filter
                         usrs_aggregate(where: {{ {query.UserObjWhereStatement} }}) {{ aggregate {{ count }} }}
                         rules_aggregate(where: {{ {query.RuleWhereStatement} }}) {{ aggregate {{ count }} }}
                         unusedRules_Count: rules_aggregate(where: {{ {unusedRulesWhereStatement}}}) {{ aggregate {{ count }} }}
-                        devices({devWhereString})
+                        devices( {{ devWhereStringDefault }} )
                         {{
                             name: dev_name
                             id: dev_id
@@ -122,6 +145,7 @@ namespace FWO.Report.Filter
                         }}
                     }}
                 }}";
+            //TODO: show number of rulebase links per gateway ?
         }
 
         private static string ConstructRulesQuery(DynGraphqlQuery query, string paramString, ReportTemplate filter)
@@ -133,11 +157,14 @@ namespace FWO.Report.Filter
                     management({mgmtWhereString}) 
                     {{
                         id: mgm_id
+                        uid: mgm_uid
                         name: mgm_name
-                        devices ({devWhereString}) 
+                        devices ({GetDevWhereFilter(filter.ReportParams.DeviceFilter)})
                         {{
                             id: dev_id
                             name: dev_name
+                            uid: dev_uid
+                            {query.OpenRuleBaseTable}
                             {query.OpenRulesTable}
                                 {limitOffsetString}
                                 where: {{ access_rule: {{_eq: true}} {query.RuleWhereStatement} }} 
@@ -162,10 +189,11 @@ namespace FWO.Report.Filter
                     {{
                         id: mgm_id
                         name: mgm_name
-                        devices({devWhereString}) 
+                        devices({devWhereStringDefault}) 
                         {{
                             id: dev_id
                             name: dev_name
+                            {query.OpenRuleBaseTable}
                             {query.OpenRulesTable}
                                 where: {{ 
                                     rule_metadatum: {{ recertifications_aggregate: {{ count: {{ filter: {{ _and: [{{owner: $ownerWhere}}, {{recert_date: {{_is_null: true}}}}, {{next_recert_date: {{_lte: $refdate1}}}}]}}, predicate: {{_gt: 0}}}}}}}}
@@ -186,6 +214,8 @@ namespace FWO.Report.Filter
 
         private static string ConstructChangesQuery(DynGraphqlQuery query, string paramString, ReportTemplate filter)
         {
+            // was:                             devices ({devWhereString})                           
+
             return $@"
                     {(filter.Detailed ? RuleQueries.ruleDetailsForChangeReportFragments : RuleQueries.ruleOverviewForChangeReportFragments)}
                     query changeReport({paramString}) 
@@ -198,7 +228,7 @@ namespace FWO.Report.Filter
                         {{
                             id: mgm_id
                             name: mgm_name
-                            devices ({devWhereString})                           
+                            devices
                             {{
                                 id: dev_id
                                 name: dev_name
@@ -219,11 +249,11 @@ namespace FWO.Report.Filter
                                     change_action
                                     old: ruleByOldRuleId {{
                                     mgm_id: mgm_id
-                                    ...{( filter.Detailed ? "ruleDetailsChangesOld" : "ruleOverviewChangesOld" )}
+                                    ...{(filter.Detailed ? "ruleDetailsChangesOld" : "ruleOverviewChangesOld")}
                                     }}
                                     new: rule {{
                                     mgm_id: mgm_id
-                                    ...{( filter.Detailed ? "ruleDetailsChangesNew" : "ruleOverviewChangesNew" )}
+                                    ...{(filter.Detailed ? "ruleDetailsChangesNew" : "ruleOverviewChangesNew")}
                                     }}
                                 }}
                             }}
@@ -241,10 +271,11 @@ namespace FWO.Report.Filter
                     {{
                         id: mgm_id
                         name: mgm_name
-                        devices ({devWhereString}) 
+                        devices ({devWhereStringDefault}) 
                         {{
                             id: dev_id
                             name: dev_name
+                            {query.OpenRuleBaseTable}
                             {query.OpenRulesTable}
                                 {limitOffsetString}
                                 where: {{  nat_rule: {{_eq: true}}, ruleByXlateRule: {{}} {query.RuleWhereStatement} }} 
@@ -291,7 +322,7 @@ namespace FWO.Report.Filter
             switch ((ReportType)filter.ReportParams.ReportType)
             {
                 case ReportType.Statistics:
-                    query.FullQuery = Queries.compact(ConstructStatisticsQuery(query, paramString));
+                    query.FullQuery = Queries.Compact(ConstructStatisticsQuery(query, paramString));
                     break;
 
                 case ReportType.Rules:
@@ -299,32 +330,34 @@ namespace FWO.Report.Filter
                 case ReportType.ResolvedRulesTech:
                 case ReportType.UnusedRules:
                 case ReportType.AppRules:
+                case ReportType.ComplianceReport:
+                case ReportType.ComplianceDiffReport:
                 case ReportType.RecertEventReport:
-                    query.FullQuery = Queries.compact(ConstructRulesQuery(query, paramString, filter));
+                    query.FullQuery = Queries.Compact(ConstructRulesQuery(query, paramString, filter));
                     break;
 
                 case ReportType.Recertification:
-                    query.FullQuery = Queries.compact(ConstructRecertQuery(query, paramString));
+                    query.FullQuery = Queries.Compact(ConstructRecertQuery(query, paramString));
                     break;
 
                 case ReportType.Changes:
                 case ReportType.ResolvedChanges:
                 case ReportType.ResolvedChangesTech:
-                    query.FullQuery = Queries.compact(ConstructChangesQuery(query, paramString, filter));
+                    query.FullQuery = Queries.Compact(ConstructChangesQuery(query, paramString, filter));
                     break;
 
                 case ReportType.NatRules:
-                    query.FullQuery = Queries.compact(ConstructNatRulesQuery(query, paramString, filter));
+                    query.FullQuery = Queries.Compact(ConstructNatRulesQuery(query, paramString, filter));
                     break;
 
                 case ReportType.Connections:
                 case ReportType.VarianceAnalysis:
                 case ReportType.RecertificationEvent:
-                    query.FullQuery = Queries.compact(ConstructConnectionsQuery(query, paramString));
+                    query.FullQuery = Queries.Compact(ConstructConnectionsQuery(query, paramString));
                     break;
 
                 case ReportType.OwnerRecertification:
-                    query.FullQuery = Queries.compact(ConstructOwnerRecertQuery(query, paramString));
+                    query.FullQuery = Queries.Compact(ConstructOwnerRecertQuery(query, paramString));
                     break;
             }
         }
@@ -383,28 +416,44 @@ namespace FWO.Report.Filter
 
         private static void SetDeviceFilter(ref DynGraphqlQuery query, DeviceFilter? deviceFilter)
         {
-            bool first = true;
             if (deviceFilter != null)
             {
                 query.RelevantManagementIds = deviceFilter.GetSelectedManagements();
-                query.RuleWhereStatement += "{_or: [{";
-                foreach (ManagementSelect mgmt in deviceFilter.Managements)
+            }
+        }
+
+        private static string GetDevWhereFilter(DeviceFilter deviceFilter)
+        {
+            if (deviceFilter == null || deviceFilter.Managements == null)
+            {
+                return devWhereStringStart + devWhereStringEnd;
+            }
+
+            string devWhereStatement = devWhereStringStart;
+            bool first = true;
+
+            devWhereStatement += "_or: [{";
+
+            foreach (ManagementSelect mgmt in deviceFilter.Managements)
+            {
+                if (mgmt.Devices == null) continue; 
+
+                foreach (DeviceSelect dev in mgmt.Devices)
                 {
-                    foreach (DeviceSelect dev in mgmt.Devices)
+                    if (dev.Selected)
                     {
-                        if (dev.Selected)
+                        if (!first)
                         {
-                            if (!first)
-                            {
-                                query.RuleWhereStatement += "}, {";
-                            }
-                            query.RuleWhereStatement += $" device: {{dev_id: {{_eq:{dev.Id}}} }}";
-                            first = false;
+                            devWhereStatement += "}, {";
                         }
+                        first = false;
+                        devWhereStatement += $@" dev_id: {{_eq:{dev.Id} }} ";
                     }
                 }
-                query.RuleWhereStatement += "}]}, ";
             }
+            devWhereStatement += "}] ";
+            devWhereStatement += devWhereStringEnd;
+            return devWhereStatement;
         }
 
 
@@ -422,21 +471,23 @@ namespace FWO.Report.Filter
                     case ReportType.NatRules:
                     case ReportType.UnusedRules:
                     case ReportType.AppRules:
+                    case ReportType.ComplianceReport:
+                    case ReportType.ComplianceDiffReport:
                     case ReportType.RecertEventReport:
                         query.QueryParameters.Add("$import_id_start: bigint ");
                         query.QueryParameters.Add("$import_id_end: bigint ");
                         query.RuleWhereStatement +=
-                            $"import_control: {{ control_id: {{_lte: $import_id_end }} }}, " +
-                            $"importControlByRuleLastSeen: {{ control_id: {{_gte: $import_id_start }} }}";
+                            $"rule_create: {{_lte: $import_id_end}}" +
+                            $"_or: [{{removed: {{_gt: $import_id_start}} }}, {{removed: {{_is_null: true}} }}]";
                         query.NwObjWhereStatement +=
-                            $"import_control: {{ control_id: {{_lte: $import_id_end }} }}, " +
-                            $"importControlByObjLastSeen: {{ control_id: {{_gte: $import_id_start }} }}";
+                            $"obj_create: {{_lte: $import_id_end }}" +
+                            $"_or: [{{removed: {{_gt: $import_id_start}} }}, {{removed: {{_is_null: true}} }}]";
                         query.SvcObjWhereStatement +=
-                            $"import_control: {{ control_id: {{_lte: $import_id_end }} }}, " +
-                            $"importControlBySvcLastSeen: {{ control_id: {{_gte: $import_id_start }} }}";
+                            $"svc_create: {{_lte: $import_id_end }}" +
+                            $"_or: [{{removed: {{_gt: $import_id_start}} }}, {{removed: {{_is_null: true}} }}]";
                         query.UserObjWhereStatement +=
-                            $"import_control: {{ control_id: {{_lte: $import_id_end }} }}, " +
-                            $"importControlByUserLastSeen: {{ control_id: {{_gte: $import_id_start }} }}";
+                            $"user_create: {{_lte: $import_id_end }}" +
+                            $"_or: [{{removed: {{_gt: $import_id_start}} }}, {{removed: {{_is_null: true}} }}]";
                         query.ReportTimeString = timeFilter.IsShortcut ?
                             DateTime.Now.ToString(fullTimeFormat) : timeFilter.ReportTime.ToString(fullTimeFormat);
                         break;
@@ -568,7 +619,7 @@ namespace FWO.Report.Filter
             if (modellingFilter != null)
             {
                 query.QueryParameters.Add("$selectedOwners: [Int!]");
-                query.QueryVariables["selectedOwners"] = new List<int> (modellingFilter.SelectedOwners.Select(o => o.Id)).ToArray();
+                query.QueryVariables["selectedOwners"] = new List<int>(modellingFilter.SelectedOwners.Select(o => o.Id)).ToArray();
                 query.OwnerWhereStatement += $@"{{ id: {{ _in: $selectedOwners }} }}";
 
                 if (modellingFilter.RecertActivated)
@@ -589,7 +640,14 @@ namespace FWO.Report.Filter
             if (modellingFilter != null)
             {
                 // currently overruling tenant filter!!
-                query.OpenRulesTable = $"rules: get_rules_for_owner(args: {{ownerid: {modellingFilter.SelectedOwner.Id}}}, ";
+                query.OpenRuleBaseTable = $@"
+                                        rulebase_links(order_by: {{order_no: asc}}) {{
+                                            rulebase_id
+                                            order_no
+                                            rulebase {{
+                                                id
+                                                name ";
+                query.OpenRulesTable = $@" rules: get_rules_for_owner(args: {{ownerid: {modellingFilter.SelectedOwner.Id} }}, ";
                 query.SelectedOwner = modellingFilter.SelectedOwner;
             }
         }

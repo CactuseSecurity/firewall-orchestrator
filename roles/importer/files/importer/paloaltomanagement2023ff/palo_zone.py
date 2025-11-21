@@ -8,7 +8,6 @@ def normalize_zones(full_config, config2import, import_id):
     for zone_orig in full_config["/Network/Zones"]:
         zones.append({
             "zone_name":  zone_orig["@name"],
-            "zone_uid":   zone_orig["@name"],
             "control_id": import_id
         })
     

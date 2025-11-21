@@ -409,6 +409,114 @@ namespace FWO.Config.Api.Data
         [JsonProperty("resolveNetworkAreas"), JsonPropertyName("resolveNetworkAreas")]
         public bool ResolveNetworkAreas { get; set; } = false;
 
+        [JsonProperty("complianceCheckSleepTime"), JsonPropertyName("complianceCheckSleepTime")]
+        public int ComplianceCheckSleepTime { get; set; } = 0;
+
+        [JsonProperty("complianceCheckStartAt"), JsonPropertyName("complianceCheckStartAt")]
+        public DateTime ComplianceCheckStartAt { get; set; } = DateTime.Now;
+
+        [JsonProperty("complianceCheckPolicy"), JsonPropertyName("complianceCheckPolicy")]
+        public int ComplianceCheckPolicyId { get; set; } = 0;
+
+        [JsonProperty("complianceCheckMailRecipients"), JsonPropertyName("complianceCheckMailRecipients")]
+        public string ComplianceCheckMailRecipients { get; set; } = "";
+
+        [JsonProperty("complianceCheckMailSubject"), JsonPropertyName("complianceCheckMailSubject")]
+        public string ComplianceCheckMailSubject { get; set; } = "";
+
+        [JsonProperty("complianceCheckMailBody"), JsonPropertyName("complianceCheckMailBody")]
+        public string ComplianceCheckMailBody { get; set; } = "";
+
+        [JsonProperty("complianceMatrixAllowNetworkZones"), JsonPropertyName("complianceMatrixAllowNetworkZones")]
+        public bool ComplianceMatrixAllowNetworkZones { get; set; } = false;
+
+        [JsonProperty("complianceCheckScheduledDiffReportsIntervals"), JsonPropertyName("complianceCheckScheduledDiffReportsIntervals")]
+        public string ComplianceCheckScheduledDiffReportsIntervals { get; set; } = "";
+
+        [JsonProperty("complianceCheckInternetZoneObject"), JsonPropertyName("complianceCheckInternetZoneObject")]
+        public string ComplianceCheckInternetZoneObject { get; set; } = "";
+
+        [JsonProperty("complianceCheckMaxPrintedViolations"), JsonPropertyName("complianceCheckMaxPrintedViolations")]
+        public int ComplianceCheckMaxPrintedViolations { get; set; } = 0;
+        
+        [JsonProperty("complianceCheckSortMatrixByID"), JsonPropertyName("complianceCheckSortMatrixByID")]
+        public bool ComplianceCheckSortMatrixByID { get; set; } = false;
+
+        [JsonProperty("complianceCheckRelevantManagements"), JsonPropertyName("complianceCheckRelevantManagements")]
+        public string ComplianceCheckRelevantManagements { get; set; } = "";
+        
+        [JsonProperty("reportSchedulerConfig"), JsonPropertyName("reportSchedulerConfig")]
+        public string ReportSchedulerConfig { get; set; } = "";
+
+        [JsonProperty("debugConfig"), JsonPropertyName("debugConfig")]
+        public string DebugConfig { get; set; } = "";
+
+        [JsonProperty("autoCalculateInternetZone"), JsonPropertyName("autoCalculateInternetZone")]
+        public bool AutoCalculateInternetZone { get; set; } = true;
+
+        [JsonProperty("autoCalculateUndefinedInternalZone"), JsonPropertyName("autoCalculateUndefinedInternalZone")]
+        public bool AutoCalculateUndefinedInternalZone { get; set; } = true;
+
+        [JsonProperty("internalZoneRange_10_0_0_0_8"), JsonPropertyName("internalZoneRange_10_0_0_0_8")]
+        public bool InternalZoneRange_10_0_0_0_8 { get; set; } = true;
+
+        [JsonProperty("internalZoneRange_172_16_0_0_12"), JsonPropertyName("internalZoneRange_172_16_0_0_12")]
+        public bool InternalZoneRange_172_16_0_0_12 { get; set; } = true;
+
+        [JsonProperty("internalZoneRange_192_168_0_0_16"), JsonPropertyName("internalZoneRange_192_168_0_0_16")]
+        public bool InternalZoneRange_192_168_0_0_16 { get; set; } = true;
+
+        [JsonProperty("internalZoneRange_0_0_0_0_8"), JsonPropertyName("internalZoneRange_0_0_0_0_8")]
+        public bool InternalZoneRange_0_0_0_0_8 { get; set; } = true;
+
+        [JsonProperty("internalZoneRange_127_0_0_0_8"), JsonPropertyName("internalZoneRange_127_0_0_0_8")]
+        public bool InternalZoneRange_127_0_0_0_8 { get; set; } = true;
+
+        [JsonProperty("internalZoneRange_169_254_0_0_16"), JsonPropertyName("internalZoneRange_169_254_0_0_16")]
+        public bool InternalZoneRange_169_254_0_0_16 { get; set; } = true;
+
+        [JsonProperty("internalZoneRange_224_0_0_0_4"), JsonPropertyName("internalZoneRange_224_0_0_0_4")]
+        public bool InternalZoneRange_224_0_0_0_4 { get; set; } = true;
+
+        [JsonProperty("internalZoneRange_240_0_0_0_4"), JsonPropertyName("internalZoneRange_240_0_0_0_4")]
+        public bool InternalZoneRange_240_0_0_0_4 { get; set; } = true;
+
+        [JsonProperty("internalZoneRange_255_255_255_255_32"), JsonPropertyName("internalZoneRange_255_255_255_255_32")]
+        public bool InternalZoneRange_255_255_255_255_32 { get; set; } = true;
+
+        [JsonProperty("internalZoneRange_192_0_2_0_24"), JsonPropertyName("internalZoneRange_192_0_2_0_24")]
+        public bool InternalZoneRange_192_0_2_0_24 { get; set; } = true;
+
+        [JsonProperty("internalZoneRange_198_51_100_0_24"), JsonPropertyName("internalZoneRange_198_51_100_0_24")]
+        public bool InternalZoneRange_198_51_100_0_24 { get; set; } = true;
+
+        [JsonProperty("internalZoneRange_203_0_113_0_24"), JsonPropertyName("internalZoneRange_203_0_113_0_24")]
+        public bool InternalZoneRange_203_0_113_0_24 { get; set; } = true;
+
+        [JsonProperty("internalZoneRange_100_64_0_0_10"), JsonPropertyName("internalZoneRange_100_64_0_0_10")]
+        public bool InternalZoneRange_100_64_0_0_10 { get; set; } = true;
+
+        [JsonProperty("internalZoneRange_192_0_0_0_24"), JsonPropertyName("internalZoneRange_192_0_0_0_24")]
+        public bool InternalZoneRange_192_0_0_0_24 { get; set; } = true;
+
+        [JsonProperty("internalZoneRange_192_88_99_0_24"), JsonPropertyName("internalZoneRange_192_88_99_0_24")]
+        public bool InternalZoneRange_192_88_99_0_24 { get; set; } = true;
+
+        [JsonProperty("internalZoneRange_198_18_0_0_15"), JsonPropertyName("internalZoneRange_198_18_0_0_15")]
+        public bool InternalZoneRange_198_18_0_0_15 { get; set; } = true;
+
+        [JsonProperty("autoCalculatedZonesAtTheEnd"), JsonPropertyName("autoCalculatedZonesAtTheEnd")]
+        public bool AutoCalculatedZonesAtTheEnd { get; set; } = true;
+
+        [JsonProperty("treatDynamicAndDomainObjectsAsInternet"), JsonPropertyName("treatDynamicAndDomainObjectsAsInternet")]
+        public bool TreatDynamicAndDomainObjectsAsInternet { get; set; } = true;
+
+        [JsonProperty("showShortColumnsInComplianceReports"), JsonPropertyName("showShortColumnsInComplianceReports")]
+        public bool ShowShortColumnsInComplianceReports { get; set; } = true;
+        
+        [JsonProperty("importedMatrixReadOnly"), JsonPropertyName("importedMatrixReadOnly")]
+        public bool ImportedMatrixReadOnly { get; set; } = true;
+
         public ConfigData(bool editable = false)
         {
             Editable = editable;

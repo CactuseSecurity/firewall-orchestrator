@@ -141,7 +141,7 @@ namespace FWO.Middleware.Server
                     }
                 }
                 string? importSource = importedApps.FirstOrDefault()?.ImportSource;
-                if(importSource != null)
+                if (importSource != null)
                 {
                     foreach (var existingApp in existingApps.Where(x => x.ImportSource == importSource && x.Active))
                     {
@@ -211,7 +211,7 @@ namespace FWO.Middleware.Server
             ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<ReturnIdWrapper>(OwnerQueries.newOwner, variables)).ReturnIds;
             if (returnIds != null)
             {
-                if(incomingApp.MainUser != null && incomingApp.MainUser != "")
+                if (incomingApp.MainUser != null && incomingApp.MainUser != "")
                 {
                     await UpdateRoles(incomingApp.MainUser);
                 }
@@ -265,7 +265,7 @@ namespace FWO.Middleware.Server
                 recertActive = existingApp.RecertActive
             };
             await apiConnection.SendQueryAsync<ReturnIdWrapper>(OwnerQueries.updateOwner, Variables);
-            if(incomingApp.MainUser != null && incomingApp.MainUser != "")
+            if (incomingApp.MainUser != null && incomingApp.MainUser != "")
             {
                 await UpdateRoles(incomingApp.MainUser);
             }
@@ -297,8 +297,8 @@ namespace FWO.Middleware.Server
             {
                 return globalConfig.OwnerLdapGroupNames.Replace(Placeholder.ExternalAppId, extAppIdString);
             }
-            
-            if (globalConfig.OwnerLdapGroupNames.Contains(Placeholder.AppPrefix) && 
+
+            if (globalConfig.OwnerLdapGroupNames.Contains(Placeholder.AppPrefix) &&
                 globalConfig.OwnerLdapGroupNames.Contains(Placeholder.AppId))
             {
                 string[] parts = extAppIdString.Split(GlobalConst.kAppIdSeparator);
@@ -333,7 +333,7 @@ namespace FWO.Middleware.Server
                 foreach (string memberDn in await ldap.GetGroupMembers(userGroupDn))
                 {
                     UiUser? uiUser = await ConvertLdapToUiUser(memberDn);
-                    if(uiUser != null)
+                    if (uiUser != null)
                     {
                         await UiUserHandler.UpsertUiUser(apiConnection, uiUser, false);
                     }
@@ -356,13 +356,13 @@ namespace FWO.Middleware.Server
                         // add data from ldap entry to uiUser
                         return new()
                         {
-                            LdapConnection = new UiLdapConnection(){ Id = ldap.Id },
+                            LdapConnection = new UiLdapConnection() { Id = ldap.Id },
                             Dn = ldapUser.Dn,
                             Name = Ldap.GetName(ldapUser),
                             Firstname = Ldap.GetFirstName(ldapUser),
                             Lastname = Ldap.GetLastName(ldapUser),
                             Email = Ldap.GetEmail(ldapUser),
-                            Tenant = await DeriveTenantFromLdap(ldap, ldapUser)							
+                            Tenant = await DeriveTenantFromLdap(ldap, ldapUser)
                         };
                     }
                 }
@@ -534,11 +534,11 @@ namespace FWO.Middleware.Server
         {
             try
             {
-                if(incomingAppServer.IpEnd == "")
+                if (incomingAppServer.IpEnd == "")
                 {
                     incomingAppServer.IpEnd = incomingAppServer.Ip;
                 }
-                if(globalConfig.DnsLookup)
+                if (globalConfig.DnsLookup)
                 {
                     incomingAppServer.Name = await BuildAppServerName(incomingAppServer);
                 }
@@ -614,9 +614,9 @@ namespace FWO.Middleware.Server
                     customType = 0
                 };
                 ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<ReturnIdWrapper>(ModellingQueries.newAppServer, Variables)).ReturnIds;
-                if(returnIds != null && returnIds.Length > 0)
+                if (returnIds != null && returnIds.Length > 0)
                 {
-                    ModellingAppServer newModAppServer = new(incomingAppServer.ToModellingAppServer()){ Id = returnIds[0].NewIdLong, ImportSource = impSource, AppId = appID};
+                    ModellingAppServer newModAppServer = new(incomingAppServer.ToModellingAppServer()) { Id = returnIds[0].NewIdLong, ImportSource = impSource, AppId = appID };
                     await ModellingHandlerBase.LogChange(ModellingTypes.ChangeType.Insert, ModellingTypes.ModObjectType.AppServer, newModAppServer.Id,
                         $"New App Server: {newModAppServer.Display()}", apiConnection, userConfig, newModAppServer.AppId, DefaultInit.DoNothing, null, newModAppServer.ImportSource);
                     await AppServerHelper.DeactivateOtherSources(apiConnection, userConfig, newModAppServer);
@@ -729,7 +729,7 @@ namespace FWO.Middleware.Server
             }
             return true;
         }
-        
+
         private async Task AddLogEntry(int severity, string level, string description)
         {
             try

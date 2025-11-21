@@ -1,0 +1,34 @@
+fragment subManagements on management {
+  subManagers: managementByMultiDeviceManagerId {
+    id: mgm_id
+    name: mgm_name
+    uid: mgm_uid
+    hostname: ssh_hostname
+    port: ssh_port
+    deviceType: stm_dev_typ {
+      ...deviceTypeDetails
+    }
+    configPath: config_path
+    domainUid: domain_uid
+    importDisabled: do_not_import
+    hideInUi: hide_in_gui
+    extMgtData: ext_mgm_data
+    creationDate: mgm_create
+    updateDate: mgm_update
+    devices {
+      id: dev_id
+      name: dev_name
+      uid: dev_uid
+      importDisabled: do_not_import
+      local_rulebase_name: local_rulebase_name
+    }
+    importerHostname: importer_hostname
+    import_credential {
+      ...ImportCredentialDetails
+    }
+    isSuperManager: is_super_manager
+    subManagers: managementByMultiDeviceManagerId {
+      mgm_id
+    }
+  }
+}

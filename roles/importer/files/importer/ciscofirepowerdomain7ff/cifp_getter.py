@@ -1,12 +1,11 @@
 # library for API get functions
 import base64
-from typing import Dict
 from fwo_log import getFwoLogger
 import requests.packages
 import requests
 import json
 import fwo_globals
-from fwo_exception import FwLoginFailed
+from fwo_exceptions import FwLoginFailed
 
 auth_token = ""
 
@@ -65,18 +64,9 @@ def login(user, password, api_host, api_port):
         logger.debug("Login successful. Received auth token: " + headers["X-auth-access-token"])
     return headers.get("X-auth-access-token"), headers.get("DOMAINS")
 
-# TODO Is there an logout?
+# TODO Is there a logout?
 def logout(v_url, sid, method='exec'):
     return
-    # logger = getFwoLogger()
-    # payload = {"params": [{}]}
-
-    # response = api_call(v_url, 'sys/logout', payload, sid, method=method)
-    # if "result" in response and "status" in response["result"][0] and "code" in response["result"][0]["status"] and response["result"][0]["status"]["code"] == 0:
-    #     logger.debug("successfully logged out")
-    # else:
-    #     raise Exception("cifp_getter ERROR: did not get status code 0 when logging out, " +
-    #                     "api call: url: " + str(v_url) + ",  + payload: " + str(payload))
 
 def update_config_with_cisco_api_call(session_id, api_base_url, api_path, parameters={}, payload={}, show_progress=False, limit: int=1000, method="get"):
     offset = 0

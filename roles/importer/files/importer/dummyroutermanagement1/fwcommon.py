@@ -1,15 +1,12 @@
-import sys
-from common import importer_base_dir, complete_import
-from fwo_exception import ConfigFileNotFound
-
-sys.path.append(importer_base_dir + '/dummyrouter')
+from common import complete_import
 from curses import raw
 from fwo_log import getFwoLogger
 import fwo_globals
-from fwo_data_networking import Interface, Route, getRouteDestination
+from model_controllers.interface_controller import Interface
+from model_controllers.route_controller import Route
 import json, requests, requests.packages
 from datetime import datetime
-import jsonpickle
+from fwo_exceptions import ConfigFileNotFound
 
 def has_config_changed(_, __, force=False):
     return True
@@ -41,7 +38,7 @@ def get_config(config2import, _, current_import_id, mgm_details, limit=100, forc
         error_count += 1
         error_count = complete_import(current_import_id, error_string, start_time, mgm_details, change_count, error_count, jwt)
         raise ConfigFileNotFound(error_string) from None
-    except:
+    except Exception:
         error_string = "Could not read config file " + router_file_url
         error_count += 1
         error_count = complete_import(current_import_id, error_string, start_time, mgm_details, change_count, error_count, jwt)

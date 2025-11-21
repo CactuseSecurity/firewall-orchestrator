@@ -1,0 +1,15 @@
+mutation updateCriterionMetadata(
+	$id: Int!
+	$importSource: String
+	$comment: String
+  ) {
+  update_compliance_criterion_by_pk(
+    pk_columns: { id: $id },
+    _set: {
+	  comment: $comment
+	  import_source: $importSource
+	}
+  ) {
+    id
+  }
+}

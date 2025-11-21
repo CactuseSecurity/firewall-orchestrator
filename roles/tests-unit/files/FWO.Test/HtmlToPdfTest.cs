@@ -21,16 +21,15 @@ namespace FWO.Test
             ClassicAssert.IsTrue(isValidHtml);
 
             string? sudoUser = Environment.GetEnvironmentVariable("SUDO_USER");
+            bool isGitHubActions = sudoUser is not null && sudoUser.Equals("runner", StringComparison.OrdinalIgnoreCase);
 
-            bool isGitHubActions = sudoUser is not null && sudoUser.Equals("runner");
-
-            if(isGitHubActions)
+            if (ShouldSkipPdfTest(isGitHubActions, out string skipReason))
             {
-                Log.WriteInfo("Test Log", $"PDF Test skipping: Test is running on Github actions.");
-                return;
+                Log.WriteInfo("Test Log", skipReason);
+                Assert.Ignore(skipReason);
             }
 
-            if(File.Exists(GlobalConst.TestPDFFilePath))
+            if (File.Exists(GlobalConst.TestPDFFilePath))
                 File.Delete(GlobalConst.TestPDFFilePath);
 
             OperatingSystem? os = Environment.OSVersion;
@@ -41,7 +40,7 @@ namespace FWO.Test
             Platform platform = Platform.Unknown;
             const SupportedBrowser wantedBrowser = SupportedBrowser.Chrome;
 
-            switch(os.Platform)
+            switch (os.Platform)
             {
                 case PlatformID.Win32NT:
                     platform = Platform.Win32;
@@ -58,28 +57,22 @@ namespace FWO.Test
 
             IEnumerable<InstalledBrowser>? allInstalledBrowsers = browserFetcher.GetInstalledBrowsers().Where(_ => _.Browser == wantedBrowser);
 
-            if(allInstalledBrowsers is null || !allInstalledBrowsers.Any())
+            if (allInstalledBrowsers is null || !allInstalledBrowsers.Any())
             {
-                if(os.Platform == PlatformID.Win32NT)
-                {
-                    Log.WriteInfo("Browser", $"Browser not found for Windows! Trying to download...");
-                    await browserFetcher.DownloadAsync();
-                    allInstalledBrowsers = browserFetcher.GetInstalledBrowsers().Where(_ => _.Browser == wantedBrowser);
-                }
-                else
-                {
-                    throw new Exception($"Found no installed {wantedBrowser} instances!");
-                }
-            }            
+                // this should only happen for testing on local systems where no suitable browser is installed
+                Log.WriteInfo("Browser", $"Browser not found for current system - trying to download...");
+                await browserFetcher.DownloadAsync();
+                allInstalledBrowsers = browserFetcher.GetInstalledBrowsers().Where(_ => _.Browser == wantedBrowser);
+            }
 
-            foreach(InstalledBrowser instBrowser in allInstalledBrowsers)
+            foreach (InstalledBrowser instBrowser in allInstalledBrowsers)
             {
                 Log.WriteInfo("Test Log", $"Found installed {instBrowser.Browser}({instBrowser.BuildId}) at: {instBrowser.GetExecutablePath()}");
             }
 
             string? newestBuildId = allInstalledBrowsers.Max(_ => _.BuildId);
 
-            if(string.IsNullOrWhiteSpace(newestBuildId))
+            if (string.IsNullOrWhiteSpace(newestBuildId))
             {
                 Log.WriteAlert("Test Log", $"Invalid build ID!");
                 return;
@@ -87,7 +80,7 @@ namespace FWO.Test
 
             InstalledBrowser? latestInstalledBrowser = allInstalledBrowsers.Single(_ => _.BuildId == newestBuildId);
 
-            if(latestInstalledBrowser is null)
+            if (latestInstalledBrowser is null)
             {
                 Log.WriteAlert("Test Log", $"Found no installed {wantedBrowser} instances with a valid build ID!");
                 return;
@@ -107,11 +100,11 @@ namespace FWO.Test
                     Args = isGitHubActions ? ["--database=/tmp", "--no-sandbox"] : []
                 });
             }
-            catch(Exception)
+            catch (Exception)
             {
                 Log.WriteAlert("Test Log", $"Couldn't start {wantedBrowser} instance!");
                 throw new Exception($"Couldn't start {wantedBrowser} instance!");
-            }            
+            }
 
             await TryCreatePDF(browser, PuppeteerSharp.Media.PaperFormat.A0);
             await TryCreatePDF(browser, PuppeteerSharp.Media.PaperFormat.A1);
@@ -131,7 +124,7 @@ namespace FWO.Test
                 await browser.CloseAsync();
                 browser.Dispose();
             }
-            catch(Exception)
+            catch (Exception)
             {
                 throw new Exception("Couldn't close browser instance!");
             }
@@ -152,7 +145,7 @@ namespace FWO.Test
 
         private async Task TryCreatePDF(IBrowser browser, PuppeteerSharp.Media.PaperFormat paperFormat)
         {
-            if(browser.IsClosed || !browser.IsConnected || browser.Process == null)
+            if (browser.IsClosed || !browser.IsConnected || browser.Process == null)
             {
                 Log.WriteAlert("Test Log", $"Browser: {browser.GetVersionAsync()} is not started or closed due to errors!");
                 return;
@@ -173,7 +166,7 @@ namespace FWO.Test
                 FileAssert.Exists(GlobalConst.TestPDFFilePath);
                 ClassicAssert.AreEqual(new FileInfo(GlobalConst.TestPDFFilePath).Length, pdfData.Length);
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 Log.WriteAlert("Test Log", $"{ex.Message}");
                 return;
@@ -183,10 +176,40 @@ namespace FWO.Test
         [OneTimeTearDown]
         public void OnFinished()
         {
-            if(File.Exists(GlobalConst.TestPDFFilePath))
+            if (File.Exists(GlobalConst.TestPDFFilePath))
             {
                 File.Delete(GlobalConst.TestPDFFilePath);
             }
+        }
+
+        private static bool ShouldSkipPdfTest(bool isGitHubActions, out string reason)
+        {
+            if (isGitHubActions)
+            {
+                reason = "PDF Test skipping: Test is running on Github actions.";
+                return true;
+            }
+
+            string? skipEnv = Environment.GetEnvironmentVariable("FW_SKIP_PDF_TEST");
+            if (!string.IsNullOrWhiteSpace(skipEnv) && IsTruthy(skipEnv))
+            {
+                reason = "PDF Test skipping: FW_SKIP_PDF_TEST requested skip.";
+                return true;
+            }
+
+            reason = string.Empty;
+            return false;
+        }
+
+        private static bool IsTruthy(string? value)
+        {
+            if (value is null)
+                return false;
+
+            return value.Equals("1", StringComparison.OrdinalIgnoreCase)
+                || value.Equals("true", StringComparison.OrdinalIgnoreCase)
+                || value.Equals("yes", StringComparison.OrdinalIgnoreCase)
+                || value.Equals("on", StringComparison.OrdinalIgnoreCase);
         }
     }
 }

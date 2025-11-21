@@ -1,6 +1,8 @@
-﻿using NUnit.Framework;
-using NUnit.Framework.Legacy;
+﻿using System;
 using System.Globalization;
+using System.IO;
+using NUnit.Framework;
+using NUnit.Framework.Legacy;
 
 
 namespace FWO.Test
@@ -15,6 +17,7 @@ namespace FWO.Test
         {
             SetGermanCultureOnAllUnitTest();
             SetGermanTimeZoneOnAllUnitTest();
+            SetQueryBasePath();
         }
 
         [OneTimeTearDown]
@@ -33,6 +36,21 @@ namespace FWO.Test
         public void SetGermanTimeZoneOnAllUnitTest()
         {
             fakeLocalTimeZone = new FakeLocalTimeZone(TimeZoneInfo.FindSystemTimeZoneById("Europe/Berlin")){};
+        }
+
+        private void SetQueryBasePath()
+        {
+            if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("FWO_BASE_DIR")))
+            {
+                return;
+            }
+
+            string baseDir = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "..", "..", "common", "files"));
+            string queryDir = Path.Combine(baseDir, "fwo-api-calls");
+            if (Directory.Exists(queryDir))
+            {
+                Environment.SetEnvironmentVariable("FWO_BASE_DIR", baseDir);
+            }
         }
     }
 }

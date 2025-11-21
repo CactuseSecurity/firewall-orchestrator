@@ -1,0 +1,6 @@
+query getChangesPerImport($importId: bigint!) {
+    changelog_object_aggregate(where: {control_id: {_eq: $importId}}) { aggregate { count } }
+    changelog_service_aggregate(where: {control_id: {_eq: $importId}}) { aggregate { count } }
+    changelog_user_aggregate(where: {control_id: {_eq: $importId}}) { aggregate { count } }
+    changelog_rule_aggregate(where: {control_id: {_eq: $importId}}) { aggregate { count } }
+}

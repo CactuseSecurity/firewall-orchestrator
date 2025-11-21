@@ -1,4 +1,4 @@
-﻿using FWO.Basics;
+using FWO.Basics;
 using FWO.Data;
 using FWO.Config.Api;
 using FWO.Report.Filter;
@@ -41,9 +41,9 @@ namespace FWO.Ui.Display
         {
             switch (ruleChange.ChangeAction)
             {
-                case 'D': return OutputCsv(DisplaySourceZone(ruleChange.OldRule));
-                case 'I': return OutputCsv(DisplaySourceZone(ruleChange.NewRule));
-                case 'C': return OutputCsv(DisplayDiff(DisplaySourceZone(ruleChange.OldRule), DisplaySourceZone(ruleChange.NewRule)));
+                case 'D': return OutputCsv(ListNetworkZones(ruleChange.OldRule.RuleFromZones.Select(z => z.Content).ToArray()));
+                case 'I': return OutputCsv(ListNetworkZones(ruleChange.NewRule.RuleFromZones.Select(z => z.Content).ToArray()));
+                case 'C': return OutputCsv(DisplayDiff(ListNetworkZones(ruleChange.OldRule.RuleFromZones.Select(z => z.Content).ToArray()), ListNetworkZones(ruleChange.NewRule.RuleFromZones.Select(z => z.Content).ToArray())));
                 default: return ",";
             }
         }
@@ -63,9 +63,9 @@ namespace FWO.Ui.Display
         {
             switch (ruleChange.ChangeAction)
             {
-                case 'D': return OutputCsv(DisplayDestinationZone(ruleChange.OldRule));
-                case 'I': return OutputCsv(DisplayDestinationZone(ruleChange.NewRule));
-                case 'C': return OutputCsv(DisplayDiff(DisplayDestinationZone(ruleChange.OldRule), DisplayDestinationZone(ruleChange.NewRule)));
+                case 'D': return OutputCsv(ListNetworkZones(ruleChange.OldRule.RuleToZones.Select(z => z.Content).ToArray()));
+                case 'I': return OutputCsv(ListNetworkZones(ruleChange.NewRule.RuleToZones.Select(z => z.Content).ToArray()));
+                case 'C': return OutputCsv(DisplayDiff(ListNetworkZones(ruleChange.OldRule.RuleToZones.Select(z => z.Content).ToArray()), ListNetworkZones(ruleChange.NewRule.RuleToZones.Select(z => z.Content).ToArray())));
                 default: return ",";
             }
         }

@@ -1,11 +1,11 @@
-import sys
-from common import importer_base_dir
-sys.path.append(importer_base_dir + '/fortiosmanagementREST')
+# import sys
+# from common import importer_base_dir
+# sys.path.append(importer_base_dir + '/fortiosmanagementREST')
 from curses import raw
 from fwo_log import getFwoLogger
 from fwo_const import list_delimiter, fwo_config_filename
 from fwo_config import readConfig
-from fwo_api import setAlert, create_data_issue
+from fwo_api_call import setAlert, create_data_issue
 
 
 # TODO: deal with objects with identical names (e.g. all ipv4 & all ipv6)

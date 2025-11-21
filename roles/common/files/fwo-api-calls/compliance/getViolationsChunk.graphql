@@ -1,0 +1,12 @@
+query getViolationsChunk($limit: Int, $offset: Int, $active: Boolean) {
+    compliance_violation(limit: $limit, offset: $offset, order_by: { id: asc }) {
+        id
+        criterion_id
+        details
+        found_date
+        policy_id
+        removed_date
+        risk_score
+        rule_id
+    }
+}

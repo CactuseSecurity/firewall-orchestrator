@@ -1,0 +1,6 @@
+mutation updateLasthits($hit_info: [rule_metadata_updates!]!) {
+  update_rule_metadata_many(updates: $hit_info) {
+    affected_rows
+    returning { rule_uid }
+  }
+}

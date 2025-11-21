@@ -1,0 +1,20 @@
+query getNetworkObjectsForManagement (
+  $mgmId: Int
+  $objTypeIds: [Int!]
+  $active: Boolean
+  $import_id_start: bigint
+  $import_id_end: bigint
+){
+  object(where: {
+    mgm_id: { _eq: $mgmId }
+    active: {_eq: true}
+    obj_typ_id: {_in: $objTypeIds}
+    obj_create: {_lte: $import_id_end}
+    _or: [
+      {removed: {_is_null: true}}
+      {removed: {_gt: $import_id_start}}
+    ]
+  }) {   
+    ...networkObjectDetails
+  }
+}

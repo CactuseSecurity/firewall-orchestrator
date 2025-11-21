@@ -138,7 +138,6 @@
                 editableConfig.EmailUser = actEmailConnection.User ?? "";
                 editableConfig.EmailPassword = actEmailConnection.Password != null ? AesEnc.TryEncrypt(actEmailConnection.Password) : "";
                 editableConfig.EmailSenderAddress = actEmailConnection.SenderEmailAddress ?? "";
-
                 await globalConfig.WriteToDatabase(editableConfig, apiConnection);
                 DisplayMessageInUi(null, userConfig.GetText("change_default"), userConfig.GetText("U5301"), false);
             }

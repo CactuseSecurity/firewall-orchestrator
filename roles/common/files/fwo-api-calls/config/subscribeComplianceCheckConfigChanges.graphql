@@ -1,0 +1,47 @@
+﻿subscription subscribeComplianceCheckConfigChanges {
+  config(
+    where: {
+      _or: [
+        { config_key: { _eq: "importCheckCertificates" } }
+        { config_key: { _eq: "importSuppressCertificateWarnings" } }
+        { config_key: { _eq: "complianceCheckInternetZoneObject" } }
+        { config_key: { _eq: "complianceCheckMailBody" } }
+        { config_key: { _eq: "complianceCheckMailRecipients" } }
+        { config_key: { _eq: "complianceCheckMailSubject" } }
+        { config_key: { _eq: "complianceCheckMaxPrintedViolations" } }
+        { config_key: { _eq: "complianceCheckPolicy" } }
+        { config_key: { _eq: "complianceCheckRelevantManagements" } }
+        { config_key: { _eq: "complianceCheckScheduledDiffReports" } }
+        { config_key: { _eq: "complianceCheckSleepTime" } }
+        { config_key: { _eq: "complianceCheckStartAt" } }
+        { config_key: { _eq: "autoCalculateInternetZone" } }
+        { config_key: { _eq: "autoCalculateUndefinedInternalZone" } }
+        { config_key: { _eq: "internalZoneRange_10_0_0_0_8" } }
+        { config_key: { _eq: "internalZoneRange_172_16_0_0_12" } }
+        { config_key: { _eq: "internalZoneRange_192_168_0_0_16" } }
+        { config_key: { _eq: "internalZoneRange_0_0_0_0_8" } }
+        { config_key: { _eq: "internalZoneRange_127_0_0_0_8" } }
+        { config_key: { _eq: "internalZoneRange_169_254_0_0_16" } }
+        { config_key: { _eq: "internalZoneRange_224_0_0_0_4" } }
+        { config_key: { _eq: "internalZoneRange_240_0_0_0_4" } }
+        { config_key: { _eq: "internalZoneRange_255_255_255_255_32" } }
+        { config_key: { _eq: "internalZoneRange_192_0_2_0_24" } }
+        { config_key: { _eq: "internalZoneRange_198_51_100_0_24" } }
+        { config_key: { _eq: "internalZoneRange_203_0_113_0_24" } }
+        { config_key: { _eq: "internalZoneRange_100_64_0_0_10" } }
+        { config_key: { _eq: "internalZoneRange_192_0_0_0_24" } }
+        { config_key: { _eq: "internalZoneRange_192_88_99_0_24" } }
+        { config_key: { _eq: "internalZoneRange_198_18_0_0_15" } }
+        { config_key: { _eq: "autoCalculatedZonesAtTheEnd" } }
+        { config_key: { _eq: "treatDynamicAndDomainObjectsAsInternet" } }
+        { config_key: { _eq: "showShortColumnsInComplianceReports" } }
+
+
+      ]
+    }
+    limit: 33
+  ) {
+    config_key
+    config_value
+  }
+}

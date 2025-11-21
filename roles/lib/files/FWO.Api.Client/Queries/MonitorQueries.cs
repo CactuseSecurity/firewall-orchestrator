@@ -29,36 +29,40 @@ namespace FWO.Api.Client.Queries
         {
             try
             {
-                addLogEntry = File.ReadAllText(QueryPath + "monitor/addLogEntry.graphql");
-                getLogEntrys = File.ReadAllText(QueryPath + "monitor/getLogEntrys.graphql");
+                addLogEntry = GetQueryText("monitor/addLogEntry.graphql");
+                getLogEntrys = GetQueryText("monitor/getLogEntrys.graphql");
 
-                addUiLogEntry = File.ReadAllText(QueryPath + "monitor/addUiLogEntry.graphql");
-                getUiLogEntrys = File.ReadAllText(QueryPath + "monitor/getUiLogEntrys.graphql");
-                getAllUiLogEntrys = File.ReadAllText(QueryPath + "monitor/getAllUiLogEntrys.graphql");
+                addUiLogEntry = GetQueryText("monitor/addUiLogEntry.graphql");
+                getUiLogEntrys = GetQueryText("monitor/getUiLogEntrys.graphql");
+                getAllUiLogEntrys = GetQueryText("monitor/getAllUiLogEntrys.graphql");
 
-                getImportLogEntrys = File.ReadAllText(QueryPath + "monitor/getImportLogEntrys.graphql");
+                getImportLogEntrys = GetQueryText("monitor/getImportLogEntrys.graphql");
 
-                addAlert = File.ReadAllText(QueryPath + "monitor/addAlert.graphql");
-                getOpenAlerts = File.ReadAllText(QueryPath + "monitor/getOpenAlerts.graphql");
-                getAlerts = File.ReadAllText(QueryPath + "monitor/getAlerts.graphql");
-                getAlertById = File.ReadAllText(QueryPath + "monitor/getAlertById.graphql");
-                acknowledgeAlert = File.ReadAllText(QueryPath + "monitor/acknowledgeAlert.graphql");
-                subscribeAlertChanges = File.ReadAllText(QueryPath + "monitor/subscribeAlertChanges.graphql");
+                addAlert = GetQueryText("monitor/addAlert.graphql");
+                getOpenAlerts = GetQueryText("monitor/getOpenAlerts.graphql");
+                getAlerts = GetQueryText("monitor/getAlerts.graphql");
+                getAlertById = GetQueryText("monitor/getAlertById.graphql");
+                acknowledgeAlert = GetQueryText("monitor/acknowledgeAlert.graphql");
+                subscribeAlertChanges = GetQueryText("monitor/subscribeAlertChanges.graphql");
 
-                getImportStatus = File.ReadAllText(QueryPath + "monitor/getImportStatus.graphql");
+                getImportStatus = GetQueryText("monitor/getImportStatus.graphql");
 
-                addAutodiscoveryLogEntry = File.ReadAllText(QueryPath + "monitor/addAutodiscoveryLogEntry.graphql");
-                getAutodiscoveryLogEntrys = File.ReadAllText(QueryPath + "monitor/getAutodiscoveryLogEntrys.graphql");
-                getDailyCheckLogEntrys = File.ReadAllText(QueryPath + "monitor/getDailyCheckLogEntrys.graphql");
-                addDataImportLogEntry = File.ReadAllText(QueryPath + "monitor/addDataImportLogEntry.graphql");
-                getDataImportLogEntrys = File.ReadAllText(QueryPath + "monitor/getDataImportLogEntrys.graphql");
+                addAutodiscoveryLogEntry = GetQueryText("monitor/addAutodiscoveryLogEntry.graphql");
+                getAutodiscoveryLogEntrys = GetQueryText("monitor/getAutodiscoveryLogEntrys.graphql");
+                getDailyCheckLogEntrys = GetQueryText("monitor/getDailyCheckLogEntrys.graphql");
+                addDataImportLogEntry = GetQueryText("monitor/addDataImportLogEntry.graphql");
+                getDataImportLogEntrys = GetQueryText("monitor/getDataImportLogEntrys.graphql");
 
-                getOwnerTickets = RequestQueries.ticketOverviewFragment + File.ReadAllText(QueryPath + "monitor/getOwnerTickets.graphql");
+                getOwnerTickets = RequestQueries.ticketOverviewFragment + GetQueryText("monitor/getOwnerTickets.graphql");
             }
             catch (Exception exception)
             {
                 Log.WriteError("Initialize MonitorQueries", "Api MonitorQueries could not be loaded.", exception);
+#if RELEASE
                 Environment.Exit(-1);
+#else
+                throw;
+#endif
             }
         }
     }

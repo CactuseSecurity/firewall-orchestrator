@@ -18,7 +18,7 @@ namespace FWO.Data
         ImportBrokenObjectReferences = 16,
         MalformedIpAddress = 17,
         RecursionLimitReached = 18,
-        
+
         Autodiscovery = 21,
         AutoDiscoveryErrorUnspecific = 22,
 
@@ -31,8 +31,10 @@ namespace FWO.Data
         ImportChangeNotify = 51,
 
         ExternalRequest = 61,
-        
-        VarianceAnalysis = 71
+
+        VarianceAnalysis = 71,
+
+        ComplianceCheck = 81
     }
 
     public class Alert

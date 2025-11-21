@@ -1,0 +1,80 @@
+fragment ruleDetails on rule {
+  rule_id
+  rule_uid
+  mgm_id
+  dev_id
+  rule_action
+  rulebase_id
+  section_header: rule_head_text
+  rule_comment
+  rule_track
+  rule_disabled
+  rule_from_zones {
+      zone {
+        zone_name
+		zone_id
+      }
+    }
+  active
+  rule_create
+  rule_last_seen
+  rule_src_neg
+  rule_dst_neg
+  rule_svc_neg
+  rule_num_numeric
+  rule_name
+  rule_installon
+  rule_custom_fields
+  access_rule
+  nat_rule
+  xlate_rule
+  rule_froms(where: {
+    active: { _eq: $active }
+    rf_create: { _lte: $import_id_end }
+    _or: [
+      { removed: { _is_null: true } }
+      { removed: { _gt: $import_id_start } }
+    ]
+  }, order_by:{ object: { obj_name: asc } }) {
+    usr {
+      ...userDetails
+    }
+    object {
+      ...networkObjectDetails
+    }
+  }
+  rule_to_zones {
+    zone {
+      zone_name
+      zone_id
+    }
+  }
+  rule_tos(where: {
+    active: { _eq: $active }
+    rt_create: { _lte: $import_id_end }
+    _or: [
+      { removed: { _is_null: true } }
+      { removed: { _gt: $import_id_start } }
+    ]
+  }, order_by:{ object: { obj_name: asc } }) {
+    usr {
+      ...userDetails
+    }
+    object {
+      ...networkObjectDetails
+    }
+  }
+  rule_svc
+  rule_services(where: {
+    active: { _eq: $active }
+    rs_create: { _lte: $import_id_end }
+    _or: [
+      { removed: { _is_null: true } }
+      { removed: { _gt: $import_id_start } }
+    ]
+  }, order_by:{ service: { svc_name: asc } }) {
+    service {
+      ...networkServiceDetails
+    }
+  }
+}

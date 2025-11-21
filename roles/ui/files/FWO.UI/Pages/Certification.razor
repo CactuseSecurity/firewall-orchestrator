@@ -24,7 +24,7 @@
     <div class="btn-group sticky-marker p-3 w-100">
         @if (processing == false)
         {
-            <button type="button" class="btn btn-sm btn-primary" @onclick="() => GenerateRecertificationReport()">@(userConfig.GetText("load_rules"))</button>
+            <button type="button" class="btn btn-sm btn-primary" @onclick="GenerateRecertificationReport">@userConfig.GetText("load_rules")</button>
         }
         else
         {
@@ -60,13 +60,13 @@
                 }
                 else if (selectedOwner != null)
                 {
-                    <input type="text" class="form-control form-control-sm" readonly @bind="selectedOwner.Name" />
+                    <input type="text" class="form-control form-control-sm" readonly value="selectedOwner.Name" />
                 }
             </NotAuthorized>
         </AuthorizeView>
     </div>
 
-    <DeviceSelection Environment="GlobalConst.kCertification" @bind-DeviceFilter="deviceFilter" @bind-CollapseAll="collapseDevices"></DeviceSelection>
+    <ManagementSelection @bind-DeviceFilter="deviceFilter" />
 </Sidebar>
 
 @* ==== MAIN MIDDLE SECTION ==== *@
@@ -151,7 +151,6 @@
     private List<FwoOwner> collectedOwnerships = [];
     private DeviceFilter deviceFilter = new ();
     private List<Rule> selectedRules = [];
-    private bool collapseDevices = false;
 
     private ReportBase? currentReport;
     private ReportTemplate reportParams = new ();
@@ -176,11 +175,6 @@
 
             deviceFilter.Managements = await apiConnection.SendQueryAsync<List<ManagementSelect>>(DeviceQueries.getDevicesByManagement);
             await InvokeAsync(StateHasChanged);
-            if (deviceFilter.NumberMgmtDev() > userConfig.MinCollapseAllDevices)
-            {
-                collapseDevices = true;
-                await InvokeAsync(StateHasChanged);
-            }
             recertLookAheadDays = Convert.ToInt32(userConfig.RecertificationDisplayPeriod);
         }
         catch (Exception exception)
@@ -269,17 +263,17 @@
 
     private ReportParams prepareReportParams()
     {
-        List<int> ownerList = [];
+        List<int> selectedOwnerIdList = [];
         if (selectedOwner != null)
         {
-            ownerList.Add(selectedOwner.Id);
+            selectedOwnerIdList.Add(selectedOwner.Id);
         }
 
         return new ((int) ReportType.Recertification, deviceFilter)
         {
             RecertFilter = new()
             {
-                RecertOwnerList = ownerList,
+                RecertOwnerList = selectedOwnerIdList,
                 RecertShowAnyMatch = true,
                 RecertificationDisplayPeriod = recertLookAheadDays
             }
@@ -291,15 +285,12 @@
         rulesFound = false;
         foreach (var management in managementsReport)
         {
-            foreach (var device in management.Devices)
+            foreach (var rb in management.Rulebases)
             {
-                if (device.ContainsRules())
+                foreach (var rule in rb.Rules)
                 {
                     rulesFound = true;
-                    foreach (var rule in device.Rules!)
-                    {
-                        rule.Metadata.UpdateRecertPeriods(userConfig.RecertificationPeriod, userConfig.RecertificationNoticePeriod);
-                    }
+                    rule.Metadata.UpdateRecertPeriods(userConfig.RecertificationPeriod, userConfig.RecertificationNoticePeriod);
                 }
             }
         }
@@ -360,12 +351,14 @@
 
         foreach (var management in managementsReport)
         {
-            foreach (var device in management.Devices.Where(d => d.Rules != null))
+            foreach (var rb in management.Rulebases)
             {
-                foreach (var rule in device.Rules!.Where(r => r.Metadata.Recert || r.Metadata.ToBeRemoved))
+                foreach (var rule in rb.Rules)
                 {
-                    rule.DeviceId = device.Id;
-                    Certifications.Add(rule);
+                    if(rule.Metadata.Recert || rule.Metadata.ToBeRemoved)
+                    {
+                           Certifications.Add(rule);
+                    }
                 }
             }
         }
@@ -379,7 +372,7 @@
 
         if (Certifications.Count > 0)
         {
-			RecertHandler recertHandler = new(apiConnection, userConfig);
+            RecertHandler recertHandler = new(apiConnection, userConfig);
             foreach(var certRule in Certifications)
             {
                 if(await recertHandler.RecertifySingleRule(certRule, selectedOwner, actComment))
@@ -393,16 +386,15 @@
                         decerts++;
                         if(await checkAllDecertified(certRule))
                         {
-                            if(!deleteList.ContainsKey(certRule.DeviceId))
+                            if(!deleteList.ContainsKey(certRule.RulebaseId))
                             {
-                                deleteList.Add(certRule.DeviceId, new List<string>());
+                                deleteList.Add(certRule.RulebaseId, new List<string>());
                             }
-                            deleteList[certRule.DeviceId].Add(certRule.Uid ?? "");
+                            deleteList[certRule.RulebaseId].Add(certRule.Uid ?? "");
                         }
                     }
                 }
             }
-            // refresh view ?
         }
         string txt = userConfig.GetText("recerts_executed") + recerts.ToString() + ", " +
                         userConfig.GetText("decerts_executed") + decerts.ToString();

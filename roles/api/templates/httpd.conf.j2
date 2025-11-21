@@ -4,15 +4,25 @@
 #	DocumentRoot stays empty, only proxying
 	Timeout {{ apache_fwo_api_timeout }}
 
-    ProxyRequests On
     <Proxy *>
-        Order deny,allow
-        Allow from all
+        Require all granted
     </Proxy>
+
+	# <Location "/api">
+    #     LimitRequestBody 250M
+    # </Location>
+
+	# set buffer to 128KB
+	ProxyIOBufferSize 131072
+	
+	Timeout 3600
+	ProxyTimeout 3600
 
 	# terminate https incoming calls and proxy to http
 	ProxyPass /api http://{{ api_local_listening_ip_address }}:{{ api_port }}/
-	# websocket protocol is needed for subscriptions
+	ProxyPassReverse /api http://{{ api_local_listening_ip_address }}:{{ api_port }}/
+
+    # WebSocket support for GraphQL subscriptions
 	RewriteEngine on
 	RewriteCond %{HTTP:Upgrade} websocket [NC]
 	RewriteCond %{HTTP:Connection} upgrade [NC]
@@ -21,6 +31,7 @@
 	ErrorLog /var/log/{{ webserver_package_name }}/error.log
 	TransferLog /var/log/{{ webserver_package_name }}/access.log
 	CustomLog /var/log/{{ webserver_package_name }}/ssl_request_log "%t %h %{SSL_PROTOCOL}x %{SSL_CIPHER}x \"%r\" %b"
+
 	SSLEngine on
 	SSLCipherSuite RSA:!EXP:!NULL:+HIGH:+MEDIUM:-LOW 
 	SSLCertificateFile /etc/{{ webserver_package_name }}/ssl/server.crt

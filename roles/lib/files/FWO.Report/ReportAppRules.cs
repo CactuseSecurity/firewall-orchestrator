@@ -8,6 +8,8 @@ using FWO.Config.Api;
 using NetTools;
 using System.Net;
 using FWO.Basics;
+using FWO.FwLogic;
+using Org.BouncyCastle.Asn1.Misc;
 
 namespace FWO.Report
 {
@@ -40,6 +42,7 @@ namespace FWO.Report
             }
             return gotAllObjects;
         }
+        
 
         public static async Task<List<ManagementReport>> PrepareAppRulesReport(List<ManagementReport> managementData, ModellingFilter modellingFilter, ApiConnection apiConnection, int? ownerId)
         {
@@ -47,12 +50,12 @@ namespace FWO.Report
             List<ManagementReport> relevantData = [];
             foreach(var mgt in managementData)
             {
-                ManagementReport relevantMgt = new(){ Name = mgt.Name, Id = mgt.Id, Import = mgt.Import };
-                foreach(var dev in mgt.Devices)
+                ManagementReport relevantMgt = new() { Name = mgt.Name, Id = mgt.Id, Import = mgt.Import };
+                foreach (DeviceReportController dev in mgt.Devices.Cast<DeviceReportController>())
                 {
                     PrepareDevice(dev, modellingFilter, relevantMgt, ownerIps);
                 }
-                if(relevantMgt.Devices.Length > 0)
+                if (relevantMgt.Devices.Length > 0)
                 {
                     relevantMgt.ReportedRuleIds = [.. relevantMgt.ReportedRuleIds.Distinct()];
                     relevantData.Add(relevantMgt);
@@ -61,22 +64,24 @@ namespace FWO.Report
             return relevantData;
         }
 
-        private static void PrepareDevice(DeviceReport dev, ModellingFilter modellingFilter, ManagementReport relevantMgt, List<IPAddressRange> ownerIps)
+         private static void PrepareDevice(DeviceReport dev, ModellingFilter modellingFilter, ManagementReport relevantMgt, List<IPAddressRange> ownerIps)
         {
             DeviceReport relevantDevice = new(){ Name = dev.Name, Id = dev.Id };
-            if(dev.Rules != null)
+            List<Rule> deviceRules = dev.GetRuleList();
+            if (deviceRules != null)
             {
-                relevantDevice.Rules = [];
-                foreach(var rule in dev.Rules)
+                // relevantDevice.Rules = [];
+                foreach (var rule in deviceRules)
                 {
                     PrepareRule(rule, modellingFilter, relevantMgt, relevantDevice, ownerIps);
                 }
-                if(relevantDevice.Rules.Length > 0)
+                if (relevantDevice.GetNumerOfRules() > 0)
                 {
                     relevantMgt.Devices = [.. relevantMgt.Devices, relevantDevice];
                 }
             }
         }
+
 
         private static void PrepareRule(Rule rule, ModellingFilter modellingFilter, ManagementReport relevantMgt, DeviceReport relevantDevice, List<IPAddressRange> ownerIps)
         {
@@ -102,7 +107,7 @@ namespace FWO.Report
                     rule.DisregardedFroms = [.. disregardedFroms];
                     rule.DisregardedTos = [.. disregardedTos];
                     rule.ShowDisregarded = modellingFilter.ShowFullRules;
-                    relevantDevice.Rules = [.. relevantDevice.Rules!, rule];
+                    relevantDevice.AddRule(rule);
                     relevantMgt.ReportedRuleIds.Add(rule.Id);
                 }
             }
@@ -120,11 +125,11 @@ namespace FWO.Report
         {
             List<NetworkLocation> relevantObjects = [];
             List<NetworkLocation> disregardedObjects = [];
-            foreach(var obj in objList)
+            foreach (var obj in objList)
             {
-                if(obj.Object.IsAnyObject())
+                if (obj.Object.IsAnyObject())
                 {
-                    if(modellingFilter.ShowAnyMatch)
+                    if (modellingFilter.ShowAnyMatch)
                     {
                         relevantObjects.Add(obj);
                     }
@@ -169,7 +174,7 @@ namespace FWO.Report
 
         private static bool CheckObj(NetworkObject obj, bool negated, List<IPAddressRange> ownerIps)
         {
-            foreach(var ownerIpRange in ownerIps)
+            foreach (var ownerIpRange in ownerIps)
             {
                 if(obj.IP == null)
                 {
@@ -199,12 +204,16 @@ namespace FWO.Report
         {
             mgt.RelevantObjectIds = [];
             mgt.HighlightedObjectIds = [];
-            foreach(var dev in mgt.Devices.Where(d => d.Rules != null))
+            foreach (EnforcingDevice dev in mgt.Devices.Cast<EnforcingDevice>())
             {
-                foreach(var rule in dev.Rules!)
+                List<Rule> allDeviceRules = dev.GetRuleListForDevice();
+                if (allDeviceRules.Count() > 0)
                 {
-                    PrepareObjects(rule.Froms, rule.SourceNegated, rule.DisregardedFroms, mgt, ownerIps);
-                    PrepareObjects(rule.Tos, rule.DestinationNegated, rule.DisregardedTos, mgt, ownerIps);
+                    foreach (var rule in allDeviceRules)
+                    {
+                        PrepareObjects(rule.Froms, rule.SourceNegated, rule.DisregardedFroms, mgt, ownerIps);
+                        PrepareObjects(rule.Tos, rule.DestinationNegated, rule.DisregardedTos, mgt, ownerIps);
+                    }
                 }
             }
             mgt.RelevantObjectIds = [.. mgt.RelevantObjectIds.Distinct()];
@@ -236,10 +245,10 @@ namespace FWO.Report
 
         private static void PrepareRsbOutput(ManagementReport mgt)
         {
-            foreach(var obj in mgt.ReportObjects)
+            foreach (var obj in mgt.ReportObjects)
             {
                 obj.Highlighted = mgt.HighlightedObjectIds.Contains(obj.Id) || obj.IsAnyObject();
-                if(obj.Type.Name == ObjectType.Group)
+                if (obj.Type.Name == ObjectType.Group)
                 {
                     foreach(var grpobj in obj.ObjectGroupFlats.Select(g => g.Object).Where(g => g != null))
                     {

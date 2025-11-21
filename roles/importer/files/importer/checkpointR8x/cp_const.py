@@ -17,26 +17,39 @@ internet_obj_uid = 'f99b1488-7510-11e2-8668-87656188709b'
 original_obj_uid = "85c0f50f-6d8a-4528-88ab-5fb11d8fe16c"
 # used for nat only (both svc and nw obj)
 
-nw_obj_table_names = [
+local_nw_obj_table_names = [
     'hosts', 'networks', 'groups', 'address-ranges', 'multicast-address-ranges', 'groups-with-exclusion',
     'gateways-and-servers', 'simple-gateways',
-    'dns-domains', 'updatable-objects-repository-content',
-    'interoperable-devices', 'security-zones', 'Global', 'access-roles', 'updatable-objects'
+    'dns-domains', 
+    'interoperable-devices', 'security-zones', 
+    'access-roles',
+    'CpmiVoipSipDomain', 'CpmiVoipMgcpDomain', 'gsn_handover_group'
 ]
+
+# the global objects need to be fetched only once per super manager
+global_nw_obj_table_names = [ 'updatable-objects', 'dynamic-objects' ]
+
+nw_obj_table_names = local_nw_obj_table_names + global_nw_obj_table_names
 
 # simple as in: no groups
 simple_svc_obj_types = ['services-tcp', 'services-udp', 'services-dce-rpc', 'services-rpc', 'services-other',
-                        'services-icmp', 'services-icmp6', 'services-sctp', 'services-gtp', 'Global']
-group_svc_obj_types = ['service-groups', 'application-site-categories', 'application-sites']
+                        'services-icmp', 'services-icmp6', 'services-sctp', 'services-gtp']
 
-svc_obj_table_names = group_svc_obj_types + simple_svc_obj_types + [ 'CpmiAnyObject' ]
-# usr_obj_table_names : do not exist yet - not fetchable via API
+local_group_svc_obj_types = ['service-groups']
+global_group_svc_obj_types = ['application-site-categories', 'application-sites']
+group_svc_obj_types = local_group_svc_obj_types + global_group_svc_obj_types
 
-simple_user_obj_types = ['users']
+local_svc_obj_table_names = local_group_svc_obj_types + simple_svc_obj_types #+ [ 'CpmiAnyObject' ]
+global_svc_obj_table_names = global_group_svc_obj_types + [ 'CpmiAnyObject' ]
+svc_obj_table_names = local_svc_obj_table_names + global_svc_obj_table_names
 
-api_obj_types = nw_obj_table_names + svc_obj_table_names + simple_user_obj_types # all obj table names to look at during import
+local_api_obj_types = local_nw_obj_table_names + local_svc_obj_table_names # all obj table names to look at during import
+global_api_obj_types = global_nw_obj_table_names + global_svc_obj_table_names # all global obj table names to look at during import
+api_obj_types = nw_obj_table_names + svc_obj_table_names # all obj table names to look at during import
 
-obj_types_full_fetch_needed = ['groups', 'groups-with-exclusion', 'updatable-objects', 'gateways-and-servers', 'services-other'] + group_svc_obj_types
+types_to_remove_globals_from = ['service-groups']
+
+obj_types_full_fetch_needed = ['access-roles', 'groups', 'groups-with-exclusion', 'updatable-objects', 'gateways-and-servers', 'services-other'] + group_svc_obj_types
 
 cp_specific_object_types = [    # used for fetching enrichment data via "get object" separately (no specific API call)
     'simple-gateway', 'simple-cluster', 'CpmiVsClusterNetobj', 'CpmiVsxClusterNetobj', 'CpmiVsxClusterMember', 'CpmiVsNetobj',

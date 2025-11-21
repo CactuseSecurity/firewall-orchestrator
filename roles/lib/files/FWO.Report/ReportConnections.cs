@@ -28,6 +28,11 @@ namespace FWO.Report
             List<ModellingConnection> conns = await apiConnection.SendQueryAsync<List<ModellingConnection>>(Query.FullQuery, Query.QueryVariables);
             ReportData reportData = new() { OwnerData = [new() { Connections = conns }] };
             await callback(reportData);
+
+            foreach (var owner in ReportData.OwnerData)
+            {
+                ReportData.ElementsCount += owner.Connections.Count;
+            }
         }
 
         public override string SetDescription()

@@ -58,7 +58,13 @@ namespace FWO.Middleware.Server
                 {
                     using LdapConnection connection = await Connect();
                     // Authenticate as search user
-                    await TryBind(connection, SearchUser, AesEnc.Decrypt(SearchUserPwd, AesEnc.GetMainKey()));
+                    string mainKey = AesEnc.GetMainKey();
+                    if (!AesEnc.TryDecrypt(SearchUserPwd, mainKey, out string decryptedSearchUserPwd))
+                    {
+                        Log.WriteError($"LDAP decrypt {Address}:{Port}", "Failed to decrypt LDAP search user password.");
+                        return userMemberships;
+                    }
+                    await TryBind(connection, SearchUser, decryptedSearchUserPwd);
 
                     // Search for Ldap roles / groups in given directory          
                     int searchScope = LdapConnection.ScopeSub; // TODO: Correct search scope?

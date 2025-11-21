@@ -1,11 +1,12 @@
-import sys
-from common import importer_base_dir
-sys.path.append(importer_base_dir + '/ciscofirepowerdomain7ff')
+import json
+
+# import sys
+# from common import importer_base_dir
+# sys.path.append(importer_base_dir + '/ciscofirepowerdomain7ff')
 import cifp_service
 import cifp_rule
 import cifp_network
 import cifp_getter
-import json
 from fwo_log import getFwoLogger
 
 
@@ -51,7 +52,7 @@ def get_config(config2import, full_config, current_import_id, mgm_details, limit
 
         try:  # logout
             cifp_getter.logout(cisco_api_url, sessionId)
-        except:
+        except Exception:
             logger.warning(
                 "logout exception probably due to timeout - irrelevant, so ignoring it")
 

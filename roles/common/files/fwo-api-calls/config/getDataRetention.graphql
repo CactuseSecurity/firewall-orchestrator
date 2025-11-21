@@ -1,0 +1,5 @@
+query getDataRetention {
+    config(where: {config_key: {_eq: "dataRetentionTime"}, config_user: {_eq: 0}}) {
+        retentionInDays: config_value
+    }
+}

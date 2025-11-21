@@ -165,7 +165,7 @@ def add_ip_obj(ip_list, obj_list, import_id):
             ipaddress.ip_network(ip)
             # valid ip
             ip_obj['obj_ip'] = ip
-        except:
+        except Exception:
             # no valid ip - asusming Tag
             ip_obj['obj_ip'] = '0.0.0.0/0'
             ip = '0.0.0.0/0'

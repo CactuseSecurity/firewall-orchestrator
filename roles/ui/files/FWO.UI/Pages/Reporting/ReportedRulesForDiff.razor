@@ -12,6 +12,11 @@
 
         <Column TableItem="Rule" Context="rule" Title="@(userConfig.GetText("management"))" Field="@(r => r.ManagementName)" Sortable="false" Filterable="false" Hideable="true" />
         <Column TableItem="Rule" Context="rule" Title="@(userConfig.GetText("gateway"))" Field="@(r => r.DeviceName)" Sortable="false" Filterable="false" Hideable="true" />
+        <Column TableItem="Rule" Context="rule" Title="@(userConfig.GetText("source_zone"))" Field="@(r => r.RuleFromZones)" Sortable="true" Filterable="false" Hideable="true">
+            <Template>
+                @((MarkupString)RuleDisplayHtml.DisplaySourceZones(rule))
+            </Template>
+        </Column>
         <Column TableItem="Rule" Context="rule" Title="@(userConfig.GetText("source"))" Field="@(r => r.Name)" Sortable="true" Filterable="false" Hideable="true">
             <Template>
                 @((MarkupString)ruleDiffDisplay.DisplaySourceDiff(rule, OutputLocation.report, ReportType.VarianceAnalysis))
@@ -20,6 +25,11 @@
         <Column TableItem="Rule" Context="rule" Title="@(userConfig.GetText("services"))" Field="@(r => r.Name)" Sortable="true" Filterable="false" Hideable="true">
             <Template>
                 @((MarkupString)ruleDiffDisplay.DisplayServiceDiff(rule, OutputLocation.report, ReportType.VarianceAnalysis))
+            </Template>
+        </Column>
+        <Column TableItem="Rule" Context="rule" Title="@(userConfig.GetText("destination_zone"))" Field="@(r => r.RuleToZones)" Sortable="true" Filterable="false" Hideable="true">
+            <Template>
+                @((MarkupString)RuleDisplayHtml.DisplayDestinationZones(rule))
             </Template>
         </Column>
         <Column TableItem="Rule" Context="rule" Title="@(userConfig.GetText("destination"))" Field="@(r => r.Name)" Sortable="true" Filterable="false" Hideable="true">
@@ -42,8 +52,8 @@
             <Detail Title="@(userConfig.GetText("action"))" Data="@context.Action?.ToString()" />
             <Detail Title="@(userConfig.GetText("track"))" Data="@context.Track?.ToString()" />
             <Detail Title="@(userConfig.GetText("comment"))" Data="@context.Comment?.ToString()" />
-            <Detail Title="@(userConfig.GetText("source_zone"))" Data="@context.SourceZone?.Name" />
-            <Detail Title="@(userConfig.GetText("destination_zone"))" Data="@context.DestinationZone?.Name" />
+            @* <Detail Title="@(userConfig.GetText("source_zone"))" Data="@context.SourceZone?.Name" /> *@
+            @* <Detail Title="@(userConfig.GetText("destination_zone"))" Data="@context.DestinationZone?.Name" /> *@
             <Detail Title="@(userConfig.GetText("enabled"))" Data="@((!context.Disabled).ToString())" />
             @if(context.Metadata != null)
             {

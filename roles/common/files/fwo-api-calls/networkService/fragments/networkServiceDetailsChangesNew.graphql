@@ -1,0 +1,71 @@
+fragment networkServiceDetailsChangesNew on service {
+  svc_id
+  svc_name
+  svc_uid
+  svc_port
+  svc_port_end
+  svc_source_port
+  svc_source_port_end
+  svc_code
+  svc_timeout
+  svc_typ_id
+  active
+  svc_create
+  svc_create_time: import_control {
+    time: start_time
+  }
+  svc_last_seen
+  service_type: stm_svc_typ {
+    name: svc_typ_name
+  }
+  svc_comment
+  svc_color_id
+  ip_proto_id
+  protocol_name: stm_ip_proto {
+    id: ip_proto_id
+    name: ip_proto_name
+  }
+  svc_member_names
+  svc_member_refs
+  svcgrps(where: {
+    active: { _eq: $active }
+    import_created: { _lte: $import_id_new }
+    _or: [
+      {removed: {_is_null: true}}
+      {removed: {_gt: $import_id_new}}
+    ]
+  } order_by: { svcgrp_member_id: asc }) {
+    id: svcgrp_member_id
+    byId: serviceBySvcgrpMemberId {
+      svc_id
+      svc_name
+      service_type: stm_svc_typ {
+        name: svc_typ_name
+      }
+    }
+  }
+  svcgrp_flats(where: {
+    active: { _eq: $active }
+    import_created: { _lte: $import_id_new }
+    _or: [
+      {removed: {_is_null: true}}
+      {removed: {_gt: $import_id_new}}
+    ]
+  } order_by: { svcgrp_flat_member_id: asc }) {
+    flat_id: svcgrp_flat_id
+    byFlatId: serviceBySvcgrpFlatMemberId {
+      svc_id
+      svc_name
+      svc_port
+      svc_port_end
+	  ip_proto_id
+      protocol_name: stm_ip_proto {
+        id: ip_proto_id
+        name: ip_proto_name
+      }
+      service_type: stm_svc_typ {
+        name: svc_typ_name
+      }
+    }
+  }
+}

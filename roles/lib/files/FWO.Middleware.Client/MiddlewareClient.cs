@@ -233,6 +233,20 @@ namespace FWO.Middleware.Client
             return await restClient.ExecuteAsync<string>(request);
         }
 
+        public async Task<RestResponse<string>> GetComplianceReport(ComplianceReportParameters parameters)
+        {
+            RestRequest request = new ("Compliance/Report", Method.Post);
+            request.AddJsonBody(parameters);
+            return await restClient.ExecuteAsync<string>(request);
+        }
+
+        public async Task<RestResponse<string>> ImportCompianceMatrix(ComplianceImportMatrixParameters parameters)
+        {
+            RestRequest request = new("Compliance/ImportMatrix", Method.Post);
+            request.AddJsonBody(parameters);
+            return await restClient.ExecuteAsync<string>(request);
+        }
+
         protected virtual void Dispose(bool disposing)
         {
             if (disposed) return;

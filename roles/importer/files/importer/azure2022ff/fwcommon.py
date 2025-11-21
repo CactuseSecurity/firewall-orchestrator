@@ -1,6 +1,6 @@
-import sys
-from common import importer_base_dir
-sys.path.append(importer_base_dir + '/azure2022ff')
+# import sys
+# from common import importer_base_dir
+# sys.path.append(importer_base_dir + '/azure2022ff')
 from azure_service import normalize_svcobjects
 from azure_rule import normalize_access_rules
 from azure_network import normalize_nwobjects

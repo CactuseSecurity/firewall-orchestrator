@@ -1,0 +1,6 @@
+query getConfigItemsByUser($user: Int) {
+  config(where: {config_user: {_eq: $user}}) {
+    config_key
+    config_value
+  }
+}

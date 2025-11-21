@@ -1,0 +1,6 @@
+﻿query getManagementDetails($mgmId: Int!)
+{
+  management(where: {mgm_id: {_eq: $mgmId}}){
+    ...ManagementDetails
+  }
+}

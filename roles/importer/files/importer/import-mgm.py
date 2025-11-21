@@ -1,12 +1,19 @@
-#!/usr/bin/python3
-import sys, traceback
+#!/usr/bin/env python3
+
+import sys
+import traceback
 from fwo_log import getFwoLogger
 import argparse
-import requests, requests.packages
+import urllib3
 from common import importer_base_dir, import_management
-import fwo_globals, fwo_config
-sys.path.append(importer_base_dir)
+import fwo_globals
+import fwo_config
+from fwo_base import init_service_provider
+from services.enums import Services
 
+
+if importer_base_dir not in sys.path:
+    sys.path.append(importer_base_dir)
 
 if __name__ == "__main__": 
     parser = argparse.ArgumentParser(
@@ -42,22 +49,32 @@ if __name__ == "__main__":
         parser.print_help(sys.stderr)
         sys.exit(1)
 
-    fwo_config = fwo_config.readConfig()
-    fwo_globals.setGlobalValues(verify_certs_in=args.verify_certificates, 
+    service_provider = init_service_provider()
+    fwo_config = service_provider.get_service(Services.FWO_CONFIG)
+
+    fwo_globals.set_global_values(verify_certs_in=args.verify_certificates, 
         suppress_cert_warnings_in=args.suppress_certificate_warnings,
         debug_level_in=args.debug)
     if args.suppress_certificate_warnings:
-        requests.packages.urllib3.disable_warnings()
+        urllib3.disable_warnings()
     logger = getFwoLogger()
 
     try:
         error_count = import_management(
-            mgmId=args.mgmId, in_file=args.in_file, debug_level_in=args.debug, ssl_verification=args.verify_certificates,
-            force=args.force, limit=args.limit, clearManagementData=args.clear, suppress_cert_warnings_in=args.suppress_certificate_warnings)
+            mgmId=args.mgmId, 
+            in_file=args.in_file, 
+            debug_level_in=args.debug, 
+            ssl_verification=args.verify_certificates,
+            force=args.force, 
+            limit=args.limit, 
+            clearManagementData=args.clear, 
+            suppress_cert_warnings_in=args.suppress_certificate_warnings,
+            version=fwo_config['fwo_major_version']
+        )
     except SystemExit:
-        logger.error("import-mgm - error while importing mgmId=" + str(args.mgmId)  + ": " + str(traceback.format_exc()))
-        error_count = 1
-    except:
+        error_count = 0
+        raise
+    except Exception:
         logger.error("import-mgm - error while importing mgmId=" + str(args.mgmId) + ": " + str(traceback.format_exc()))
         error_count = 1
 

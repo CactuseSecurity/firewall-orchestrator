@@ -145,17 +145,8 @@ if __name__ == "__main__":
             reader = csv.reader(csvFile)
             subnetAr += list(reader)
     except:
-        logger.error("error while trying to read csv file '" + csvFile + "', exception: " + str(traceback.format_exc()))
+        logger.error("error while trying to read csv file '" + subnetDataFilename + "', exception: " + str(traceback.format_exc()))
         sys.exit(1)
-
-    # try:
-    #     with open(subnetDataFilename, 'r') as file:
-    #         csv_reader = csv.DictReader(file)
-    #         for row in csv_reader:
-    #             subnetAr.append(row)
-    # except:
-    #     logger.error("error while trying to read subnet csv file '" + subnetDataFilename + "', exception: " + str(traceback.format_exc()))
-    #     sys.exit(1)
 
     normSubnetData = { "subnets": {}, "zones": {}, "areas": {} }
     snId = 0

@@ -72,7 +72,6 @@ def getLogger(debug_level_in=0):
         llevel = logging.INFO
 
     logger = logging.getLogger('import-fworch-app-data')
-    # logHandler = logging.StreamHandler(stream=stdout)
     logformat = "%(asctime)s [%(levelname)-5.5s] [%(filename)-10.10s:%(funcName)-10.10s:%(lineno)4d] %(message)s"
     logging.basicConfig(format=logformat, datefmt="%Y-%m-%dT%H:%M:%S%z", level=llevel)
     logger.setLevel(llevel)

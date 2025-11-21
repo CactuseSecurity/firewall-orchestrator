@@ -15,12 +15,9 @@ from pathlib import Path
 from copy import deepcopy
 from scripts.customizing.fwo_custom_lib.app_data_models import Owner, Appip
 from scripts.customizing.fwo_custom_lib.read_app_data_csv import extract_app_data_from_csv, extract_ip_data_from_csv
-from scripts.customizing.fwo_custom_lib.app_data_helpers import (
-    read_custom_config,
-    get_logger,
-    transform_owner_dict_to_list,
-    transform_app_list_to_dict,
-)
+from scripts.customizing.fwo_custom_lib.basic_helpers import read_custom_config, get_logger
+from scripts.customizing.fwo_custom_lib.app_data_basics import transform_owner_dict_to_list, transform_app_list_to_dict
+
 
 __version__ = "2025-11-20-01"
 # "2025-03-24-01" adding support for getting already modelled functions
@@ -40,9 +37,12 @@ cmdb_repo_target_dir = base_dir_etc + "cmdb-repo"
 default_config_file_name = base_dir_etc + "customizingConfig.json"
 
 # template parameters
+
+# adjust the following!
 iiq_app_name = "AD - EXAMPLEDE"
-org_id_placeholder = "{orgid}"
 user_prefix = "USR"
+
+org_id_placeholder = "{orgid}"
 user_id_placeholder = f"{user_prefix}-Kennung"
 iiq_user_id_placeholder = f"{{{user_id_placeholder} des technischen Users IIQ}}"
 boit_user_id_placeholder = f"{{{user_id_placeholder} des BO-IT}}"
@@ -124,7 +124,7 @@ def is_valid_ipv4_address(address):
     return True
 
 
-def get_owners_from_csv_files(csv_owner_file_pattern, csv_app_server_file_pattern, repo_target_dir, ldap_path, logger, debug_level, base_dir=None):
+def get_owners_from_csv_files(csv_owner_file_pattern, csv_app_server_file_pattern, repo_target_dir, ldap_path, logger, debug_level):
     app_list = []
     re_owner_file_pattern = re.compile(csv_owner_file_pattern)
     for file_name in os.listdir(repo_target_dir):
@@ -271,7 +271,7 @@ def write_group_creation_stats(response, app_text, stats, debug):
         print(".", end="", flush=True)
 
 
-def app_functions_exist_in_iiq(app_prefix, app_id, iiq_hostname, iiq_user, iiq_password, stats, stage='', debug=0):
+def app_functions_exist_in_iiq(app_prefix, app_id, iiq_hostname, iiq_user, iiq_password, stage='', debug=0):
     if debug>2:
         logger.debug(f"start getting roles for app {app_id} ... ")
 
@@ -338,7 +338,7 @@ def request_all_roles(owner_dict, tisos, tiso_orgids):
 
         app_prefix, app_id = name.split("-")
         # get existing (already modelled) functions for this app to find out, what still needs to be changed in iiq
-        if not app_functions_exist_in_iiq(app_prefix, app_id, iiq_hostname, iiq_user, iiq_password, stats, stage=stage, debug=debug):
+        if not app_functions_exist_in_iiq(app_prefix, app_id, iiq_hostname, iiq_user, iiq_password, stage=stage, debug=debug):
             request_iiq_group_creation(app_prefix, app_id, org_id, tiso, name, iiq_hostname, iiq_user, iiq_password, stats, stage=stage, debug=debug, run_workflow=args.run_workflow)
         
         # if first parameter is set, only handle the first "first" applications, otherwise handle all

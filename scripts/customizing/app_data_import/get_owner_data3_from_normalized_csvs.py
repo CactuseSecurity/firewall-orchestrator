@@ -39,12 +39,8 @@ import re
 import urllib3
 from ..fwo_custom_lib.app_data_models import Owner, Appip
 from ..fwo_custom_lib.read_app_data_csv import extract_app_data_from_csv, extract_ip_data_from_csv
-from ..fwo_custom_lib.app_data_helpers import (
-    read_custom_config,
-    get_logger,
-    transform_owner_dict_to_list,
-    transform_app_list_to_dict,
-)
+from ..fwo_custom_lib.basic_helpers import read_custom_config, get_logger
+from ..fwo_custom_lib.app_data_basics import transform_owner_dict_to_list, transform_app_list_to_dict
 
 
 base_dir = "/usr/local/fworch/"

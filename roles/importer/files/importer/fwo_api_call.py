@@ -131,7 +131,6 @@ class FwoApiCall(FwoApi):
 
 
     def unlock_import(self, import_state: 'ImportStateController'):
-        logger = get_fwo_logger()
         import_id = import_state.ImportId
         mgm_id = import_state.MgmDetails.Id
         import_stats = import_state.Stats

@@ -32,7 +32,7 @@ class FwoApi():
         self.query_analyzer = QueryAnalyzer()
 
 
-    def call(self, query: str, query_variables: dict[str, list[Any] | Any] = {}, debug_level: int = 0, analyze_payload: bool = False) -> dict[str, Any]:
+    def call(self, query: str, query_variables: dict[str, list[Any] | Any] = {}, analyze_payload: bool = False) -> dict[str, Any]:
         """
             The standard FWO API call.
         """

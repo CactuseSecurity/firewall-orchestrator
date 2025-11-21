@@ -68,7 +68,7 @@ DECLARE
     t_encryptedReadPwd TEXT;
     t_encryptedWritePwd TEXT;
 BEGIN
-    IF NOT EXISTS (SELECT * FROM ldap_connection WHERE ldap_server = serverName)
+	IF (SELECT 1 FROM ldap_connection WHERE ldap_server = serverName LIMIT 1) IS NULL 
     THEN
         SELECT INTO t_key * FROM getMainKey();
         SELECT INTO t_encryptedReadPwd * FROM encryptText(searchUserPwd, t_key);
@@ -100,7 +100,7 @@ insert into config (config_key, config_value, config_user) VALUES ('resolveNetwo
 ALTER TABLE modelling.connection ADD COLUMN IF NOT EXISTS requested_on_fw boolean default false;
 ALTER TABLE modelling.connection ADD COLUMN IF NOT EXISTS removed boolean default false;
 ALTER TABLE modelling.connection ADD COLUMN IF NOT EXISTS removal_date timestamp;
-UPDATE modelling.connection SET requested_on_fw=true WHERE requested_on_fw=false;
+UPDATE modelling.connection SET requested_on_fw=true WHERE NOT requested_on_fw;
 
 -- 8.8.4
 insert into stm_action (action_id,action_name) VALUES (30,'ask') ON CONFLICT DO NOTHING; -- cp
@@ -462,8 +462,6 @@ Create table IF NOT EXISTS "rulebase"
 	"created" BIGINT,
 	"removed" BIGINT
 );
-
--- ALTER TABLE "rulebase" ADD COLUMN IF NOT EXISTS "uid" Varchar NOT NULL;
 
 ALTER TABLE "rulebase" DROP CONSTRAINT IF EXISTS "fk_rulebase_mgm_id" CASCADE;
 Alter table "rulebase" add CONSTRAINT fk_rulebase_mgm_id foreign key ("mgm_id") references "management" ("mgm_id") on update restrict on delete cascade;
@@ -1034,31 +1032,42 @@ Alter Table "rule" ADD Constraint "rule_unique_mgm_id_rule_uid_rule_create_xlate
 
 -- rewrite get_rulebase_for_owner to work with rulebase instead of device
 CREATE OR REPLACE FUNCTION public.get_rulebase_for_owner(rulebase_row rulebase, ownerid integer)
- RETURNS SETOF rule
- LANGUAGE plpgsql
- STABLE
-AS 
-$function$
-    BEGIN
-        RETURN QUERY
-        SELECT r.* FROM rule r
-            LEFT JOIN rule_from rf ON (r.rule_id=rf.rule_id)
-            LEFT JOIN objgrp_flat rf_of ON (rf.obj_id=rf_of.objgrp_flat_id)
-            LEFT JOIN object rf_o ON (rf_of.objgrp_flat_member_id=rf_o.obj_id)
-            LEFT JOIN owner_network ON
-            (ip_ranges_overlap(rf_o.obj_ip, rf_o.obj_ip_end, ip, ip_end, rf.negated != r.rule_src_neg))
-        WHERE r.rulebase_id = rulebase_row.id AND owner_id = ownerid AND rule_head_text IS NULL
+RETURNS SETOF rule
+LANGUAGE plpgsql
+STABLE
+AS $function$
+BEGIN
+    RETURN QUERY
+    SELECT *
+    FROM (
+        WITH src_rules AS (
+            SELECT r.*, rf_o.obj_ip, rf_o.obj_ip_end, rf.negated
+            FROM rule r
+            LEFT JOIN rule_from rf ON r.rule_id = rf.rule_id
+            LEFT JOIN objgrp_flat rf_of ON rf.obj_id = rf_of.objgrp_flat_id
+            LEFT JOIN object rf_o ON rf_of.objgrp_flat_member_id = rf_o.obj_id
+            WHERE r.rulebase_id = rulebase_row.id AND owner_id = ownerid AND rule_head_text IS NULL
+        ),
+        dst_rules AS (
+            SELECT r.*, rt_o.obj_ip, rt_o.obj_ip_end, rt.negated
+            FROM rule r
+            LEFT JOIN rule_to rt ON r.rule_id = rt.rule_id
+            LEFT JOIN objgrp_flat rt_of ON rt.obj_id = rt_of.objgrp_flat_id
+            LEFT JOIN object rt_o ON rt_of.objgrp_flat_member_id = rt_o.obj_id
+            WHERE r.rulebase_id = rulebase_row.id AND owner_id = ownerid AND rule_head_text IS NULL
+        )
+        SELECT s.*
+        FROM src_rules s
+        LEFT JOIN owner_network ON ip_ranges_overlap(s.obj_ip, s.obj_ip_end, ip, ip_end, s.negated != s.rule_src_neg)
         UNION
-        SELECT r.* FROM rule r
-            LEFT JOIN rule_to rt ON (r.rule_id=rt.rule_id)
-            LEFT JOIN objgrp_flat rt_of ON (rt.obj_id=rt_of.objgrp_flat_id)
-            LEFT JOIN object rt_o ON (rt_of.objgrp_flat_member_id=rt_o.obj_id)
-            LEFT JOIN owner_network ON
-            (ip_ranges_overlap(rt_o.obj_ip, rt_o.obj_ip_end, ip, ip_end, rt.negated != r.rule_dst_neg))
-        WHERE r.rulebase_id = rulebase_row.id AND owner_id = ownerid AND rule_head_text IS NULL
-        ORDER BY rule_name;
-    END;
+        SELECT d.*
+        FROM dst_rules d
+        LEFT JOIN owner_network ON ip_ranges_overlap(d.obj_ip, d.obj_ip_end, ip, ip_end, d.negated != d.rule_dst_neg)
+    ) AS combined
+    ORDER BY rule_name ASC;
+END;
 $function$;
+
 
 -- drop only after migration
 
@@ -1434,7 +1443,7 @@ VALUES ('showShortColumnsInComplianceReports', 'true', 0)
 ON CONFLICT (config_key, config_user) DO NOTHING;
 
 -- set deprecated field rule_num to 0 for all rules to avoid inconsistencies
-UPDATE rule SET rule_num = 0;
+UPDATE rule SET rule_num = 0 WHERE rule_num <> 0;;
 
 -- add config value to make imported matrices editable
 
@@ -1823,6 +1832,20 @@ insert into stm_dev_typ (dev_typ_id,dev_typ_name,dev_typ_version,dev_typ_manufac
 insert into stm_dev_typ (dev_typ_id,dev_typ_name,dev_typ_version,dev_typ_manufacturer,dev_typ_predef_svc,dev_typ_is_multi_mgmt,dev_typ_is_mgmt,is_pure_routing_device)
     VALUES (29,'Cisco Asa on FirePower','9','Cisco','',false,true,false)
     ON CONFLICT (dev_typ_id) DO NOTHING;
+
+
+DROP MATERIALIZED VIEW IF EXISTS view_rule_with_owner;
+CREATE MATERIALIZED VIEW view_rule_with_owner AS
+	SELECT DISTINCT ar.rule_id, ar.owner_id, ar.owner_name, ar.matches, ar.recert_interval, ar.rule_last_certified, ar.rule_last_certifier,
+	r.rule_num_numeric, r.track_id, r.action_id, r.rule_from_zone, r.rule_to_zone, r.mgm_id, r.rule_uid,
+	r.rule_action, r.rule_name, r.rule_comment, r.rule_track, r.rule_src_neg, r.rule_dst_neg, r.rule_svc_neg,
+	r.rule_head_text, r.rule_disabled, r.access_rule, r.xlate_rule, r.nat_rule
+	FROM ( SELECT DISTINCT * FROM v_rule_with_rule_owner AS rul UNION SELECT DISTINCT * FROM v_rule_with_ip_owner AS ips) AS ar
+	LEFT JOIN rule AS r USING (rule_id)
+	GROUP BY ar.rule_id, ar.owner_id, ar.owner_name, ar.matches, ar.recert_interval, ar.rule_last_certified, ar.rule_last_certifier,
+		r.rule_num_numeric, r.track_id, r.action_id, r.rule_from_zone, r.rule_to_zone, r.mgm_id, r.rule_uid,
+		r.rule_action, r.rule_name, r.rule_comment, r.rule_track, r.rule_src_neg, r.rule_dst_neg, r.rule_svc_neg,
+		r.rule_head_text, r.rule_disabled, r.access_rule, r.xlate_rule, r.nat_rule;
 	
 	
 	

@@ -19,7 +19,4 @@ mutation recertify(
     ) {
       affected_rows
     }
-  ) {
-    affected_rows
-  }
 }

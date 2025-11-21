@@ -50,7 +50,7 @@ namespace FWO.Data
 
         public bool RecertOverdue { get; set; } = false;
         public bool RecertUpcoming { get; set; } = false;
-        public long LastRecertId { get; set; } = 0;
+        public long? LastRecertId { get; set; }
 
         public FwoOwner()
         { }

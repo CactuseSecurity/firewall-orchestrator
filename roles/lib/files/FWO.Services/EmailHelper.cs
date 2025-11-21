@@ -120,7 +120,7 @@ namespace FWO.Services
                     if (owner is null)
                         break;
 
-                    List<string> ownerGroupAdresses = await GetAddressesFromGroup(owner?.GroupDn);
+                    List<string> ownerGroupAdresses = await GetAddressesFromGroup(owner.GroupDn);
 
                     if (ownerGroupAdresses.Count == 0)
                     {

@@ -41,9 +41,6 @@ namespace FWO.Data
         [JsonProperty("recert_history"), JsonPropertyName("recert_history")]
         public List<Recertification> RecertHistory { get; set; } = [];
 
-        [JsonProperty("dev_id"), JsonPropertyName("dev_id")]
-        public int DeviceId { get; set; }
-
         [JsonProperty("rule_uid"), JsonPropertyName("rule_uid")]
         public string? Uid { get; set; } = "";
 

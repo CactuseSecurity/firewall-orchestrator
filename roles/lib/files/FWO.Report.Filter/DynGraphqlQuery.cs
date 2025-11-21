@@ -21,7 +21,28 @@ namespace FWO.Report.Filter
         public string UserObjWhereStatement { get; set; } = "";
         public string ConnectionWhereStatement { get; set; } = "";
         public string OwnerWhereStatement { get; set; } = "";
-        public string OpenRulesTable { get; set; } = "rules(";
+        public string OpenRuleBaseTable { get; set; } = $@" rulebase_links {{
+                                linkType: stm_link_type  {{
+                                    name
+                                    id
+                                }}
+                                link_type
+                                is_initial
+                                is_global
+                                is_section
+                                gw_id
+                                from_rule_id
+                                from_rulebase_id
+                                to_rulebase_id
+                                created
+                                removed
+                            }}
+                        }}
+                        rulebases {{
+                            name
+                            uid
+                            id ";
+        public string OpenRulesTable { get; set; } = $@" rules (";
         public string OpenChangeLogRulesTable { get; set; } = "changelog_rules(";
         public List<string> QueryParameters { get; set; } =
         [
@@ -138,33 +159,13 @@ namespace FWO.Report.Filter
                         id: mgm_id
                         uid: mgm_uid
                         name: mgm_name
-                        devices ({GetDevWhereFilter(ref query, filter.ReportParams.DeviceFilter)})
+                        devices ({GetDevWhereFilter(filter.ReportParams.DeviceFilter)})
                         {{
                             id: dev_id
                             name: dev_name
                             uid: dev_uid
-                            rulebase_links {{
-                                linkType: stm_link_type  {{
-                                    name
-                                    id
-                                }}
-                                link_type
-                                is_initial
-                                is_global
-                                is_section
-                                gw_id
-                                from_rule_id
-                                from_rulebase_id
-                                to_rulebase_id
-                                created
-                                removed
-                            }}
-                        }}
-                        rulebases {{
-                            name
-                            uid
-                            id
-                            rules (
+                            {query.OpenRuleBaseTable}
+                            {query.OpenRulesTable}
                                 {limitOffsetString}
                                 where: {{ access_rule: {{_eq: true}} {query.RuleWhereStatement} }} 
                                 order_by: {{ rule_num_numeric: asc }} )
@@ -192,6 +193,7 @@ namespace FWO.Report.Filter
                         {{
                             id: dev_id
                             name: dev_name
+                            {query.OpenRuleBaseTable}
                             {query.OpenRulesTable}
                                 where: {{ 
                                     rule_metadatum: {{ recertifications_aggregate: {{ count: {{ filter: {{ _and: [{{owner: $ownerWhere}}, {{recert_date: {{_is_null: true}}}}, {{next_recert_date: {{_lte: $refdate1}}}}]}}, predicate: {{_gt: 0}}}}}}}}
@@ -273,6 +275,7 @@ namespace FWO.Report.Filter
                         {{
                             id: dev_id
                             name: dev_name
+                            {query.OpenRuleBaseTable}
                             {query.OpenRulesTable}
                                 {limitOffsetString}
                                 where: {{  nat_rule: {{_eq: true}}, ruleByXlateRule: {{}} {query.RuleWhereStatement} }} 
@@ -410,6 +413,7 @@ namespace FWO.Report.Filter
         {
             query.RuleWhereStatement += $" {{ rule_metadatum: {{ recertifications: {{ owner_recert_id: {{_eq: {modellingFilter.OwnerRecertId} }}, recertified: {{ _eq: true }} }} }} }}";
         }
+
         private static void SetDeviceFilter(ref DynGraphqlQuery query, DeviceFilter? deviceFilter)
         {
             if (deviceFilter != null)
@@ -417,7 +421,8 @@ namespace FWO.Report.Filter
                 query.RelevantManagementIds = deviceFilter.GetSelectedManagements();
             }
         }
-        private static string GetDevWhereFilter(ref DynGraphqlQuery query, DeviceFilter? deviceFilter)
+
+        private static string GetDevWhereFilter(DeviceFilter deviceFilter)
         {
             if (deviceFilter == null || deviceFilter.Managements == null)
             {
@@ -635,15 +640,14 @@ namespace FWO.Report.Filter
             if (modellingFilter != null)
             {
                 // currently overruling tenant filter!!
-                // query.OpenRulesTable = $"rules: get_rules_for_owner(args: {{ownerid: {modellingFilter.SelectedOwner.Id} }}, ";
-                query.OpenRulesTable = $@"
+                query.OpenRuleBaseTable = $@"
                                         rulebase_links(order_by: {{order_no: asc}}) {{
                                             rulebase_id
                                             order_no
                                             rulebase {{
                                                 id
-                                                name
-                                                rules: get_rules_for_owner(args: {{ownerid: {modellingFilter.SelectedOwner.Id} }}, ";
+                                                name ";
+                query.OpenRulesTable = $@" rules: get_rules_for_owner(args: {{ownerid: {modellingFilter.SelectedOwner.Id} }}, ";
                 query.SelectedOwner = modellingFilter.SelectedOwner;
             }
         }

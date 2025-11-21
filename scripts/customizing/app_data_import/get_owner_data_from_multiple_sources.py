@@ -20,7 +20,7 @@
 from asyncio.log import logger
 import traceback
 from textwrap import indent
-import requests.packages
+import urllib3
 import requests
 import json
 import sys
@@ -264,10 +264,10 @@ if __name__ == "__main__":
     ownersById = {}
 
     if args.suppress_certificate_warnings:
-        requests.packages.urllib3.disable_warnings()
+        urllib3.disable_warnings()
 
     logger = getLogger(debug_level_in=2)
-
+    rlmOwnerData = { "owners": [] }
     # read config
     rlmUsername = readConfig(args.config, 'username')
     rlmPassword = readConfig(args.config, 'password')
@@ -296,8 +296,8 @@ if __name__ == "__main__":
         csvFile = repoTargetDir + '/' + csvFile # add directory to csv files
 
         try:
-            with open(csvFile, newline='') as csvFile:
-                reader = csv.reader(csvFile)
+            with open(csvFile, newline='') as csvFileHandle:
+                reader = csv.reader(csvFileHandle)
                 dfAllApps += list(reader)[1:]# Skip headers in first line
         except:
             logger.error("error while trying to read csv file '" + csvFile + "', exception: " + str(traceback.format_exc()))

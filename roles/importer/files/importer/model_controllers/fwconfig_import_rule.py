@@ -13,7 +13,7 @@ from models.rule_metadatum import RuleMetadatum
 from models.rulebase import Rulebase, RulebaseForImport
 from model_controllers.import_state_controller import ImportStateController
 from model_controllers.fwconfig_normalized_controller import FwConfigNormalized
-from fwo_log import ChangeLogger, get_fwo_logger
+from fwo_log import ChangeLogger, FWOLogger
 from datetime import datetime
 from models.rule_from import RuleFrom
 from models.rule_to import RuleTo
@@ -54,8 +54,6 @@ class FwConfigImportRule():
 
         service_provider = ServiceProvider()
         self.global_state = service_provider.get_global_state()
-        if self.global_state.import_state is None:
-            raise FwoImporterError("ImportStateController not initialized in GlobalState")
         self.import_details = self.global_state.import_state
         #TODO: why is there a state where this is initialized with normalized_config = None? - see #3154
         self.normalized_config = self.global_state.normalized_config # type: ignore
@@ -65,9 +63,6 @@ class FwConfigImportRule():
         self.rule_order_service = service_provider.get_rule_order_service(self.import_details.ImportId)
 
     def updateRulebaseDiffs(self, prevConfig: FwConfigNormalized) -> list[int]:
-        
-        logger = get_fwo_logger(debug_level=self.import_details.DebugLevel)
-
         if self.normalized_config is None:
             raise FwoImporterError("cannot update rulebase diffs: normalized_config is None")
 
@@ -78,7 +73,7 @@ class FwConfigImportRule():
         current_rulebase_uids: list[str] = []
         new_hit_information: list[dict[str, Any]] = []
 
-        rule_order_diffs: dict[str, dict[str, list[str]]] = self.rule_order_service.update_rule_order_diffs(self.import_details.DebugLevel)
+        rule_order_diffs: dict[str, dict[str, list[str]]] = self.rule_order_service.update_rule_order_diffs()
 
         # collect rulebase UIDs of previous config
         for rulebase in prevConfig.rulebases:
@@ -91,14 +86,14 @@ class FwConfigImportRule():
         for rulebase_uid in previous_rulebase_uids:
             current_rulebase = self.normalized_config.get_rulebase_or_none(rulebase_uid)
             if current_rulebase is None:
-                logger.info(f"current rulebase has been deleted: {rulebase_uid}")
+                FWOLogger.info(f"current rulebase has been deleted: {rulebase_uid}")
                 continue
             if rulebase_uid in current_rulebase_uids:
                 # deal with policies contained both in this and previous config
                 previous_rulebase = prevConfig.get_rulebase(rulebase_uid)
                 ruleUidsInBoth.update({ rulebase_uid: list(current_rulebase.rules.keys() & previous_rulebase.rules.keys()) })
             else:
-                logger.info(f"previous rulebase has been deleted: {current_rulebase.name} (id:{rulebase_uid})")
+                FWOLogger.info(f"previous rulebase has been deleted: {current_rulebase.name} (id:{rulebase_uid})")
 
         # find changed rules
         for rulebase_uid in ruleUidsInBoth:
@@ -219,7 +214,6 @@ class FwConfigImportRule():
         Returns:
             int: Number of changes made.
         """
-        logger = get_fwo_logger()
         changes = 0
 
         if len(new_hit_information) > 0:
@@ -227,9 +221,9 @@ class FwConfigImportRule():
             query_variables = { 'hit_info': new_hit_information  }
 
             try:
-                import_result = self.import_details.api_call.call(update_last_hit_mutation, query_variables=query_variables, debug_level=self.import_details.DebugLevel, analyze_payload=True)
+                import_result = self.import_details.api_call.call(update_last_hit_mutation, query_variables=query_variables, analyze_payload=True)
                 if 'errors' in import_result:
-                    logger.exception(f"fwo_api:importNwObject - error in addNewRuleMetadata: {str(import_result['errors'])}")
+                    FWOLogger.exception(f"fwo_api:importNwObject - error in addNewRuleMetadata: {str(import_result['errors'])}")
                     return 0
                     # do not count last hit changes as changes here
             except Exception:
@@ -566,19 +560,19 @@ class FwConfigImportRule():
 
 
     def getRulesByIdWithRefUids(self, ruleIds: list[int]) -> tuple[int, int, list[dict[str, Any]]]: #TODO: change return type to list[Rule] and cast
-        logger = get_fwo_logger()
         getRuleUidRefsQuery = FwoApi.get_graphql_code([fwo_const.graphql_query_path + "rule/getRulesByIdWithRefUids.graphql"])
         query_variables = { 'ruleIds': ruleIds }
         
         try:
             import_result = self.import_details.api_call.call(getRuleUidRefsQuery, query_variables=query_variables)
             if 'errors' in import_result:
-                logger.exception(f"fwconfig_import_rule:getRulesByIdWithRefUids - error in addNewRules: {str(import_result['errors'])}")
+                
+                FWOLogger.exception(f"fwconfig_import_rule:getRulesByIdWithRefUids - error in addNewRules: {str(import_result['errors'])}")
                 return 1, 0, []
             else:
                 return 0, 0, import_result['data']['rule']
         except Exception:
-            logger.exception(f"failed to get rules from API: {str(traceback.format_exc())}")
+            FWOLogger.exception(f"failed to get rules from API: {str(traceback.format_exc())}")
             raise
 
 
@@ -645,7 +639,6 @@ class FwConfigImportRule():
 
     # adds new rule_metadatum to the database
     def addNewRuleMetadata(self, newRules: list[Rulebase]) -> tuple[int, list[int]]:
-        logger = get_fwo_logger()
         changes: int = 0
         newRuleMetaDataIds: list[int] = []
         newRuleIds: list[int] = []
@@ -663,11 +656,10 @@ class FwConfigImportRule():
         addNewRuleMetadata: list[dict[str, Any]] = self.PrepareNewRuleMetadata(newRules)
         query_variables = { 'ruleMetadata': addNewRuleMetadata }
         
-        if fwo_globals.debug_level>9:
-            logger.debug(json.dumps(query_variables))    # just for debugging purposes
+        FWOLogger.debug(json.dumps(query_variables), 10)    # just for debugging purposes
 
         try:
-            import_result = self.import_details.api_call.call(addNewRuleMetadataMutation, query_variables=query_variables, debug_level=self.import_details.DebugLevel, analyze_payload=True)
+            import_result = self.import_details.api_call.call(addNewRuleMetadataMutation, query_variables=query_variables, analyze_payload=True)
         except Exception:
             raise FwoApiWriteError(f"failed to write new RulesMetadata: {str(traceback.format_exc())}")
         if 'errors' in import_result:
@@ -683,7 +675,6 @@ class FwConfigImportRule():
 
 
     def add_rulebases_without_rules(self, newRules: list[Rulebase]):
-        logger = get_fwo_logger()
         changes: int = 0
         newRulebaseIds: list[int] = []
         
@@ -711,10 +702,10 @@ class FwConfigImportRule():
         try:
             import_result = self.import_details.api_call.call(addRulebasesWithoutRulesMutation, query_variables=query_variables)
         except Exception:
-            logger.exception(f"fwo_api:importRules - error in addNewRules: {str(traceback.format_exc())}")
+            FWOLogger.exception(f"fwo_api:importRules - error in addNewRules: {str(traceback.format_exc())}")
             raise FwoApiWriteError(f"failed to write new rulebases: {str(traceback.format_exc())}")
         if 'errors' in import_result:
-            logger.exception(f"fwo_api:importRules - error in addNewRules: {str(import_result['errors'])}")
+            FWOLogger.exception(f"fwo_api:importRules - error in addNewRules: {str(import_result['errors'])}")
             raise FwoApiWriteError(f"failed to write new rulebases: {str(import_result['errors'])}")
         else:
             # reduce change number by number of rulebases
@@ -740,7 +731,6 @@ class FwConfigImportRule():
             tuple[int, list[dict]]: A tuple containing the number of changes made and a list of dictionaries,
                 each with 'rule_id' and 'rule_uid' for each newly added rule.
         """
-        logger = get_fwo_logger()
         changes: int = 0
         newRuleIds: list[dict[str, Any]] = []
 
@@ -756,12 +746,12 @@ class FwConfigImportRule():
             if len(new_rules)>0:
                 query_variables = { 'rules': [rule.model_dump() for rule in new_rules] }
                 try:
-                    import_result = self.import_details.api_call.call(upsertRulebaseWithRules, query_variables=query_variables, debug_level=self.import_details.DebugLevel, analyze_payload=True)
+                    import_result = self.import_details.api_call.call(upsertRulebaseWithRules, query_variables=query_variables, analyze_payload=True)
                 except Exception:
-                    logger.exception(f"fwo_api:addRulesWithinRulebases - error in addRulesWithinRulebases: {str(traceback.format_exc())}")
+                    FWOLogger.exception(f"fwo_api:addRulesWithinRulebases - error in addRulesWithinRulebases: {str(traceback.format_exc())}")
                     raise FwoApiWriteError(f"failed to write rules of rulebase {rulebase.uid}: {str(traceback.format_exc())}")
                 if 'errors' in import_result:
-                    logger.exception(f"fwo_api:addRulesWithinRulebases - error in addRulesWithinRulebases: {str(import_result['errors'])}")
+                    FWOLogger.exception(f"fwo_api:addRulesWithinRulebases - error in addRulesWithinRulebases: {str(import_result['errors'])}")
                     raise FwoApiWriteError(f"failed to write rules of rulebase {rulebase.uid}: {str(import_result['errors'])}")
                 else:
                     changes += import_result['data']['insert_rule']['affected_rows']
@@ -955,8 +945,6 @@ class FwConfigImportRule():
             Updates the db table rule_enforced_on_gateway by creating new entries for a list of rule_ids and setting the old versions of said rules removed.
         """
 
-        logger = get_fwo_logger()
-
         id_map: dict[int, int] = {}
 
         for insert_rules_return_entry in insert_rules_return:
@@ -1006,7 +994,7 @@ class FwConfigImportRule():
             set_rule_enforced_on_gateway_entries_removed_result =  self.import_details.api_call.call(set_rule_enforced_on_gateway_entries_removed_mutation, set_rule_enforced_on_gateway_entries_removed_variables, self.import_details.DebugLevel)
 
             if 'errors' in set_rule_enforced_on_gateway_entries_removed_result:
-                logger.exception(f"fwo_api:update_rule_enforced_on_gateway_after_move - error while updating moved rules refs: {str(set_rule_enforced_on_gateway_entries_removed_result['errors'])}")
+                FWOLogger.exception(f"fwo_api:update_rule_enforced_on_gateway_after_move - error while updating moved rules refs: {str(set_rule_enforced_on_gateway_entries_removed_result['errors'])}")
                 return 1, 0, []
 
             insert_rule_enforced_on_gateway_entries_variables: dict[str, Any] = {
@@ -1023,14 +1011,14 @@ class FwConfigImportRule():
             insert_rule_enforced_on_gateway_entries_result =  self.import_details.api_call.call(insert_rule_enforced_on_gateway_entries_mutation, insert_rule_enforced_on_gateway_entries_variables, self.import_details.DebugLevel)
 
             if 'errors' in insert_rule_enforced_on_gateway_entries_result:
-                logger.exception(f"fwo_api:update_rule_enforced_on_gateway_after_move - error while updating moved rules refs: {str(insert_rule_enforced_on_gateway_entries_result['errors'])}")
+                FWOLogger.exception(f"fwo_api:update_rule_enforced_on_gateway_after_move - error while updating moved rules refs: {str(insert_rule_enforced_on_gateway_entries_result['errors'])}")
                 return 1, 0, []
             
             return 0, 0, []
 
 
         except Exception:
-            logger.exception(f"failed to move rules: {str(traceback.format_exc())}")
+            FWOLogger.exception(f"failed to move rules: {str(traceback.format_exc())}")
             return 1, 0, []
         
     def verify_rules_moved(self, changed_rule_uids: dict[str, list[str]]) -> tuple[int, int, list[str]]:
@@ -1068,8 +1056,7 @@ class FwConfigImportRule():
         try:
             result = self.import_details.api_call.call(query=query, query_variables={"mgmId": self.import_details.MgmDetails.CurrentMgmId})
         except Exception:
-            logger = get_fwo_logger()
-            logger.error(f'Error while getting rule number map')
+            FWOLogger.error(f'Error while getting rule number map')
             return {}
 
         rule_num_map: dict[str, dict[str, float]] = {}
@@ -1084,8 +1071,7 @@ class FwConfigImportRule():
         try:
             _ = self.import_details.api_call.call(query=query, query_variables={})
         except Exception:
-            logger = get_fwo_logger()
-            logger.error(f'Error while getting rule number')
+            FWOLogger.error(f'Error while getting rule number')
             return {}
 
         rule_num_map: dict[str, float] = {}
@@ -1098,8 +1084,8 @@ class FwConfigImportRule():
         try:
             result = self.import_details.api_call.call(query=query, query_variables={})
         except Exception:
-            logger = get_fwo_logger()
-            logger.error(f'Error while getting stm_track')
+            
+            FWOLogger.error(f'Error while getting stm_track')
             return {}
         
         rule_type_map: dict[str, int] = {}
@@ -1129,16 +1115,14 @@ class FwConfigImportRule():
         try:
             query_result = self.import_details.api_call.call(query, query_variables=query_variables)
         except Exception:
-            logger = get_fwo_logger()
-            logger.error(f"error while getting current rulebase: {str(traceback.format_exc())}")
+            FWOLogger.error(f"error while getting current rulebase: {str(traceback.format_exc())}")
             self.import_details.increaseErrorCounterByOne()
             return
         
         try:
             rule_list = query_result['data']['rulebase'][0]['rules']
         except Exception:
-            logger = get_fwo_logger()
-            logger.error(f'could not find rules in query result: {query_result}')
+            FWOLogger.error(f'could not find rules in query result: {query_result}')
             self.import_details.increaseErrorCounterByOne()
             return
 
@@ -1205,8 +1189,7 @@ class FwConfigImportRule():
         for gw_uid in rule.rule_installon.split(fwo_const.list_delimiter):
             gw_id = import_details.lookupGatewayId(gw_uid)
             if gw_id is None:
-                logger = get_fwo_logger()
-                logger.warning(f"could not find gateway id for gateway uid {gw_uid} during rule import preparation")
+                FWOLogger.warning(f"could not find gateway id for gateway uid {gw_uid} during rule import preparation")
                 continue
             enforced_gw_ids.append(gw_id)
         if len(enforced_gw_ids) == 0:
@@ -1266,7 +1249,6 @@ class FwConfigImportRule():
         return rule_for_import
 
     def write_changelog_rules(self, added_rules_ids: list[int], removed_rules_ids: list[int]) -> int:
-        logger = get_fwo_logger()
         errors = 0
 
         changelog_rule_insert_objects = self.prepare_changelog_rules_insert_objects(added_rules_ids, removed_rules_ids)
@@ -1281,10 +1263,10 @@ class FwConfigImportRule():
             try:
                 updateChanglogRules_result = self.import_details.api_call.call(updateChanglogRules, query_variables=query_variables, analyze_payload=True)
                 if 'errors' in updateChanglogRules_result:
-                    logger.exception(f"error while adding changelog entries for objects: {str(updateChanglogRules_result['errors'])}")
+                    FWOLogger.exception(f"error while adding changelog entries for objects: {str(updateChanglogRules_result['errors'])}")
                     errors = 1
             except Exception:
-                logger.exception(f"fatal error while adding changelog entries for objects: {str(traceback.format_exc())}")
+                FWOLogger.exception(f"fatal error while adding changelog entries for objects: {str(traceback.format_exc())}")
                 errors = 1
         
         return errors

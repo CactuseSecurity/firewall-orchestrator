@@ -88,7 +88,6 @@ class FWOLogger():
         return cls.instance
     
     def __init__(self, debug_level: int = 0):
-        print("debug level set toriercecri " + str(debug_level))
         self.logger = get_fwo_logger(debug_level)
         self.debug_level = debug_level
 
@@ -106,27 +105,32 @@ class FWOLogger():
     def debug(msg: str, needed_level: int = 1):
         log = FWOLogger.instance.get_logger()
         if FWOLogger.instance.debug_level >= needed_level:
-            log.debug(msg)
+            # Find the caller's frame to show correct file/function/line info
+            log.debug(msg, stacklevel=2)
 
     @staticmethod
     def error(msg: str):
         logger = FWOLogger.instance.get_logger()
-        logger.error(msg)
+        logger.error(msg, stacklevel=2)
 
     @staticmethod
     def info(msg: str):
         logger = FWOLogger.instance.get_logger()
-        logger.info(msg)
+        logger.info(msg, stacklevel=2)
     
     @staticmethod
     def warning(msg: str):
         logger = FWOLogger.instance.get_logger()
-        logger.warning(msg)
+        logger.warning(msg, stacklevel=2)
 
     @staticmethod
     def exception(msg: str, exc_info: Any = None):
         logger = FWOLogger.instance.get_logger()
-        logger.exception(msg, exc_info=exc_info)
+        logger.exception(msg, exc_info=exc_info, stacklevel=2)
+
+    @staticmethod
+    def is_debug_level(level: int) -> bool:
+        return FWOLogger.instance.debug_level >= level
 
 def get_fwo_logger(debug_level: int = 0) -> logging.Logger:
     if int(debug_level) >= 1:

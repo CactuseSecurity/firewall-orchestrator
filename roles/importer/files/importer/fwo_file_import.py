@@ -4,7 +4,7 @@
 import json, requests
 from typing import Any
 
-from fwo_log import get_fwo_logger
+from fwo_log import FWOLogger
 import fwo_globals
 from fwo_exceptions import ConfigFileNotFound, FwoImporterError
 from model_controllers.fwconfigmanagerlist_controller import FwConfigManagerListController
@@ -79,18 +79,17 @@ from model_controllers.import_state_controller import ImportStateController
 def read_json_config_from_file(importState: ImportStateController) -> FwConfigManagerListController:
 
     configJson = read_file(importState)
-    logger = get_fwo_logger(debug_level=importState.DebugLevel)
 
     # try to convert normalized config from file to config object
     try:
         managerList = FwConfigManagerListController(**configJson)
         if len(managerList.ManagerSet)==0:
-            logger.warning(f'read a config file without manager sets from {importState.ImportFileName}, trying native config')
+            FWOLogger.warning(f'read a config file without manager sets from {importState.ImportFileName}, trying native config')
             managerList.native_config = configJson
             managerList.ConfigFormat = detect_legacy_format(configJson)
         return managerList
     except Exception: # legacy stuff from here
-        logger.info(f"could not serialize config {str(traceback.format_exc())}")
+        FWOLogger.info(f"could not serialize config {str(traceback.format_exc())}")
         raise FwoImporterError(f"could not serialize config {importState.ImportFileName} - trying legacy formats")
 
 
@@ -109,7 +108,6 @@ def detect_legacy_format(configJson: dict[str, Any]) -> ConfFormat:
 
 
 def read_file(importState: ImportStateController) -> dict[str, Any]:
-    logger = get_fwo_logger(debug_level=importState.DebugLevel)
     configJson: dict[str, Any] = {}
     if importState.ImportFileName=="":
         return configJson
@@ -143,7 +141,7 @@ def read_file(importState: ImportStateController) -> dict[str, Any]:
     except Exception: 
         importState.appendErrorString(f"Could not read config file {importState.ImportFileName}")
         importState.increaseErrorCounterByOne()
-        logger.error("unspecified error while reading config file: " + str(traceback.format_exc()))
+        FWOLogger.error("unspecified error while reading config file: " + str(traceback.format_exc()))
         importState.api_call.complete_import(importState)
         raise ConfigFileNotFound(f"unspecified error while reading config file {importState.ImportFileName}")
 
@@ -151,11 +149,10 @@ def read_file(importState: ImportStateController) -> dict[str, Any]:
 
 
 def handle_error_on_config_file_serialization(importState: ImportStateController, exception: Exception):
-    logger = get_fwo_logger(debug_level=importState.DebugLevel)
     importState.appendErrorString(f"Could not understand config file format in file {importState.ImportFileName}")
     importState.increaseErrorCounterByOne()
     importState.api_call.complete_import(importState)
-    logger.error(f"unspecified error while trying to serialize config file {importState.ImportFileName}: {str(traceback.format_exc())}")
+    FWOLogger.error(f"unspecified error while trying to serialize config file {importState.ImportFileName}: {str(traceback.format_exc())}")
     raise FwoImporterError from exception
 
 

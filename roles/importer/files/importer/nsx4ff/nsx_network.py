@@ -1,23 +1,22 @@
 from asyncio.log import logger
-from fwo_log import get_fwo_logger
+from fwo_log import FWOLogger
 from fwo_const import list_delimiter
 import ipaddress
 import os.path
 
 
 def normalize_nwobjects(full_config, config2import, import_id, jwt=None, mgm_id=None, domain="default"):
-    logger = get_fwo_logger()
     nw_objects = []
     nw_tagged_groups = {}
     # for obj_orig in full_config["/Objects/Addresses"]:
     #     nw_objects.append(parse_object(obj_orig, import_id, config2import, nw_objects))
     #     if 'tag' in obj_orig and 'member' in obj_orig['tag']:
-    #         logger.info("found simple network object with tags: " + obj_orig['@name'])
+    #         FWOLogger.info("found simple network object with tags: " + obj_orig['@name'])
     #         for t in obj_orig['tag']['member']:
     #             collect_tag_information(nw_tagged_groups, "#"+t, obj_orig['@name'])
 
     # for tag in nw_tagged_groups:
-    #     logger.info("handling nw_tagged_group: " + tag + " with members: " + list_delimiter.join(nw_tagged_groups[tag]))
+    #     FWOLogger.info("handling nw_tagged_group: " + tag + " with members: " + list_delimiter.join(nw_tagged_groups[tag]))
     #     obj = {}
     #     obj["obj_name"] = tag
     #     obj["obj_uid"] = tag
@@ -30,7 +29,7 @@ def normalize_nwobjects(full_config, config2import, import_id, jwt=None, mgm_id=
     #     nw_objects.append(obj)
 
     for obj_grp_orig in full_config["/infra/domains/{domain}/groups".format(domain=domain)]:
-        # logger.info("found network group: " + obj_grp_orig['name'])
+        # FWOLogger.info("found network group: " + obj_grp_orig['name'])
         obj_grp = extract_base_object_infos(obj_grp_orig, import_id, config2import, nw_objects)
 
         if 'resource_type' in obj_grp_orig:
@@ -44,9 +43,9 @@ def normalize_nwobjects(full_config, config2import, import_id, jwt=None, mgm_id=
             obj_grp["obj_member_names"] = list_delimiter.join(members)
         nw_objects.append(obj_grp)
         if 'tag' in obj_grp_orig and 'member' in obj_grp_orig['tag']:
-            logger.info("found network group with tags: " + obj_grp_orig['@name'])
+            FWOLogger.info("found network group with tags: " + obj_grp_orig['@name'])
             for t in obj_grp_orig['tag']['member']:
-                logger.info("    found tag " + t)
+                FWOLogger.info("    found tag " + t)
                 collect_tag_information(nw_tagged_groups, t, obj_grp_orig['@name'])
     
     config2import['network_objects'] = nw_objects
@@ -118,16 +117,16 @@ def lookup_obj_uid(obj_uid, obj_list, import_id, type='network'):
             if o['svc_uid']==obj_uid:
                 return o['svc_name']
         else:
-            logger.warning("could not find object uid in object " + str(o))
+            FWOLogger.warning("could not find object uid in object " + str(o))
 
     # could not find existing obj in obj list, so creating new one
     if type=='network':
         refs, names = add_ip_obj([obj_uid], obj_list, import_id)
         return refs ## assuming only one object here
     elif type=='service':
-        logger.warning("could not find service object " + str(obj_uid))
+        FWOLogger.warning("could not find service object " + str(obj_uid))
     else:
-        logger.warning("unknown object type '" + type + "' for object " + str(obj_uid))
+        FWOLogger.warning("unknown object type '" + type + "' for object " + str(obj_uid))
     return None
 
 
@@ -140,16 +139,16 @@ def lookup_obj_name(obj_name, obj_list, import_id, type='network'):
             if o['svc_uid']==obj_name:
                 return o['svc_name']
         else:
-            logger.warning("could not find object name in object " + str(o))
+            FWOLogger.warning("could not find object name in object " + str(o))
 
     # could not find existing obj in obj list, so creating new one
     if type=='network':
         refs, names = add_ip_obj([obj_name], obj_list, import_id)
         return refs ## assuming only one object here
     elif type=='service':
-        logger.warning("could not find service object " + str(obj_name))
+        FWOLogger.warning("could not find service object " + str(obj_name))
     else:
-        logger.warning("unknown object type '" + type + "' for object " + str(obj_name))
+        FWOLogger.warning("unknown object type '" + type + "' for object " + str(obj_name))
     return None
 
 

@@ -1,5 +1,5 @@
 from fwo_const import list_delimiter
-from fwo_log import get_fwo_logger
+from fwo_log import FWOLogger
 import os.path
 
 
@@ -92,8 +92,7 @@ def extract_port_for_service(port_string, svc):
             svc['svc_port'] = port_range[0]
             svc['svc_port_end'] = port_range[1]
         else:
-            logger = get_fwo_logger()
-            logger.warning('found strange port range with more than one hyphen: ' + str(port_string))
+            FWOLogger.warning('found strange port range with more than one hyphen: ' + str(port_string))
     else:
         svc['svc_port'] = port_string
 
@@ -123,26 +122,24 @@ def parse_svc_list(svc_list, import_id, obj_list, id, type='network'):
 
 
 def lookup_svc_obj_name(obj_name, obj_list, import_id, type='network'):
-    logger = get_fwo_logger()
     for o in obj_list:
         if type=='service' and 'svc_name' in o:
             if o['svc_name']==obj_name:
                 return o['svc_uid']
         else:
-            logger.warning('could not find object name in object ' + str(o))
+            FWOLogger.warning('could not find object name in object ' + str(o))
 
     # could not find existing obj in obj list, so creating new one
     return add_svc_obj(obj_name, obj_list, import_id)
 
 
 def lookup_svc_obj_uid(obj_name, obj_list, import_id, type='network'):
-    logger = get_fwo_logger()
     for o in obj_list:
         if type=='service' and 'svc_name' in o:
             if o['svc_name']==obj_name:
                 return o['svc_uid']
         else:
-            logger.warning('could not find object name in object ' + str(o))
+            FWOLogger.warning('could not find object name in object ' + str(o))
 
     # could not find existing obj in obj list, so creating new one
     return add_svc_obj(obj_name, obj_list, import_id)
@@ -157,6 +154,5 @@ def add_svc_obj(svc_in, svc_list, import_id):
 
     if svc_obj not in svc_list:
         # svc_list.append(svc_obj)
-        logger = get_fwo_logger()
-        logger.warning('found undefined service: ' + str(svc_obj))
+        FWOLogger.warning('found undefined service: ' + str(svc_obj))
     return svc_obj['svc_name']

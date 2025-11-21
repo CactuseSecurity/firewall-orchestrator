@@ -1,4 +1,4 @@
-from fwo_log import get_fwo_logger
+from fwo_log import FWOLogger
 from typing import Any
 
 from model_controllers.import_state_controller import ImportStateController
@@ -34,8 +34,7 @@ def get_normalized_rulebase_link(nativeConfig: dict[str, Any], gwId: int) -> lis
             link['link_type'] = link['type']
             del link['type']
         else:
-            logger = get_fwo_logger()
-            logger.warning('No type in rulebase link: ' + str(link))
+            FWOLogger.warning('No type in rulebase link: ' + str(link))
 
         # Remove from_rulebase_uid and from_rule_uid if link_type is initial
         if link['link_type'] == 'initial':

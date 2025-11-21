@@ -1,5 +1,5 @@
 from typing import Any
-from fwo_log import get_fwo_logger
+from fwo_log import FWOLogger
 import time
 from copy import deepcopy
 
@@ -39,8 +39,7 @@ def has_config_changed(full_config: dict[str, Any], import_state: ImportState, f
 
 def get_config(config_in: FwConfigManagerListController, importState: ImportStateController) -> tuple[int, FwConfigManagerList]:
 
-    logger = get_fwo_logger()
-    logger.debug ( "starting checkpointR8x/get_config" )
+    FWOLogger.debug ( "starting checkpointR8x/get_config" )
 
     if config_in.has_empty_config():   # no native config was passed in, so getting it from FW-Manager
         parsing_config_only = False
@@ -52,7 +51,7 @@ def get_config(config_in: FwConfigManagerListController, importState: ImportStat
         initialize_native_config(config_in, importState)
 
         start_time_temp = int(time.time())
-        logger.debug ( "checkpointR8x/get_config/getting objects ...")
+        FWOLogger.debug ( "checkpointR8x/get_config/getting objects ...")
 
         if config_in.native_config is None:
             raise FwoImporterError("native_config is None in get_config")
@@ -61,22 +60,22 @@ def get_config(config_in: FwConfigManagerListController, importState: ImportStat
         result_get_objects = get_objects(config_in.native_config, importState)
         if result_get_objects>0:
             raise FwLoginFailed( "checkpointR8x/get_config/error while gettings objects")
-        logger.debug ( "checkpointR8x/get_config/fetched objects in " + str(int(time.time()) - start_time_temp) + "s")
+        FWOLogger.debug ( "checkpointR8x/get_config/fetched objects in " + str(int(time.time()) - start_time_temp) + "s")
 
         start_time_temp = int(time.time())
-        logger.debug ( "checkpointR8x/get_config/getting rules ...")
+        FWOLogger.debug ( "checkpointR8x/get_config/getting rules ...")
         result_get_rules = get_rules (config_in.native_config, importState)
         if result_get_rules>0:
             raise FwLoginFailed( "checkpointR8x/get_config/error while gettings rules")
-        logger.debug ( "checkpointR8x/get_config/fetched rules in " + str(int(time.time()) - start_time_temp) + "s")
+        FWOLogger.debug ( "checkpointR8x/get_config/fetched rules in " + str(int(time.time()) - start_time_temp) + "s")
 
         duration = int(time.time()) - starttime
-        logger.debug ( "checkpointR8x/get_config - fetch duration: " + str(duration) + "s" )
+        FWOLogger.debug ( "checkpointR8x/get_config - fetch duration: " + str(duration) + "s" )
 
     if config_in.contains_only_native():
         sid: str = cp_getter.login(importState.MgmDetails)
         normalizedConfig = normalize_config(importState, config_in, parsing_config_only, sid)
-        logger.info("completed getting config")
+        FWOLogger.info("completed getting config")
         return 0, normalizedConfig
     else:
         # we already have a native config (from file import) 
@@ -113,7 +112,7 @@ def normalize_config(import_state: ImportStateController, config_in: FwConfigMan
         raise FwoImporterError("Did not get a native config to normalize.")
 
     if 'domains' not in config_in.native_config:
-        get_fwo_logger().error("No domains found in native config. Cannot normalize config.")
+        FWOLogger.error("No domains found in native config. Cannot normalize config.")
         raise FwoImporterError("No domains found in native config. Cannot normalize config.")
 
     # in case of mds, first nativ config domain is global
@@ -162,16 +161,15 @@ def normalize_config(import_state: ImportStateController, config_in: FwConfigMan
 def normalize_single_manager_config(nativeConfig: dict[str, Any], native_config_global: dict[str, Any], normalized_config_dict: dict[str, Any],
                                     normalized_config_global: dict[str, Any], importState: ImportStateController,
                                     parsing_config_only: bool, sid: str, is_global_loop_iteration: bool):
-    logger = get_fwo_logger()
     cp_network.normalize_network_objects(nativeConfig, normalized_config_dict, importState.ImportId, mgm_id=importState.MgmDetails.Id)
-    logger.info("completed normalizing network objects")
+    FWOLogger.info("completed normalizing network objects")
     cp_service.normalize_service_objects(nativeConfig, normalized_config_dict, importState.ImportId)
-    logger.info("completed normalizing service objects")
+    FWOLogger.info("completed normalizing service objects")
     cp_gateway.normalize_gateways(nativeConfig, importState, normalized_config_dict)
     cp_rule.normalize_rulebases(nativeConfig, native_config_global, importState, normalized_config_dict, normalized_config_global, is_global_loop_iteration)
     if not parsing_config_only: # get config from cp fw mgr
         cp_getter.logout(importState.MgmDetails.buildFwApiString(), sid)
-    logger.info("completed normalizing rulebases")
+    FWOLogger.info("completed normalizing rulebases")
     
 
 def get_rules(nativeConfig: dict[str, Any], importState: ImportStateController) -> int:
@@ -253,7 +251,6 @@ def process_devices(
     globalDomain: str | None, globalSid: str | None, cpManagerApiBaseUrl: str, sid: str, nativeConfigDomain: dict[str, Any],
     nativeConfigGlobalDomain: dict[str, Any], importState: ImportStateController
 ) -> None:
-    logger = get_fwo_logger()
     for device in managerDetails.Devices:
         deviceConfig: dict[str,Any] = initialize_device_config(device)
         if not deviceConfig:
@@ -261,7 +258,7 @@ def process_devices(
 
         orderedLayerUids: list[str] = get_ordered_layer_uids(policy_structure, deviceConfig, managerDetails.getDomainString())
         if not orderedLayerUids:
-            logger.warning(f"No ordered layers found for device: {deviceConfig['name']}")
+            FWOLogger.warning(f"No ordered layers found for device: {deviceConfig['name']}")
             nativeConfigDomain['gateways'].append(deviceConfig)
             continue
 
@@ -303,14 +300,13 @@ def handle_global_rulebase_links(
     if global_policy_structure is None:
         raise FwoImporterError("Global policy structure is None in handle_global_rulebase_links")
 
-    logger = get_fwo_logger()
     for globalAssignment in globalAssignments:
         if globalAssignment['dependent-domain']['uid'] == managerDetails.getDomainString():
             for globalPolicy in global_policy_structure:
                 if globalPolicy['name'] == globalAssignment['global-access-policy']:
                     global_ordered_layer_uids = get_ordered_layer_uids([globalPolicy], deviceConfig, globalDomain)
                     if not global_ordered_layer_uids:
-                        logger.warning(f"No access layer for global policy: {globalPolicy['name']}")
+                        FWOLogger.warning(f"No access layer for global policy: {globalPolicy['name']}")
                         break
 
                     global_ordered_layer_count = len(global_ordered_layer_uids)
@@ -379,7 +375,6 @@ def get_rules_params(importState: ImportStateController) -> dict[str, Any]:
 
 
 def handle_nat_rules(device: dict[str, Any], nativeConfigDomain: dict[str, Any], sid: str, importState: ImportStateController):
-    logger = get_fwo_logger()
     if 'package_name' in device and device['package_name']:
         show_params_rules: dict[str, Any] = {
             'limit': importState.FwoConfig.ApiFetchSize,
@@ -387,8 +382,7 @@ def handle_nat_rules(device: dict[str, Any], nativeConfigDomain: dict[str, Any],
             'details-level': 'standard',
             'package': device['package_name']
         }
-        if importState.DebugLevel > 3:
-            logger.debug(f"Getting NAT rules for package: {device['package_name']}")
+        FWOLogger.debug(f"Getting NAT rules for package: {device['package_name']}", 4)
         nat_rules = cp_getter.get_nat_rules_from_api_as_dict(
             importState.MgmDetails.buildFwApiString(), sid, show_params_rules,
             nativeConfigDomain=nativeConfigDomain
@@ -519,8 +513,6 @@ def remove_predefined_objects_for_domains(object_table: dict[str, Any]) -> None:
 
 
 def get_objects_per_type(obj_type: str, show_params_objs: dict[str, Any], sid: str, cpManagerApiBaseUrl: str) -> dict[str, Any]:
-    logger = get_fwo_logger()
-    
     if fwo_globals.shutdown_requested:
         raise ImportInterruption("Shutdown requested during object retrieval.")
     if obj_type in cp_const.obj_types_full_fetch_needed:
@@ -531,8 +523,7 @@ def get_objects_per_type(obj_type: str, show_params_objs: dict[str, Any], sid: s
     current=0
     total=current+1
     show_cmd = 'show-' + obj_type    
-    if fwo_globals.debug_level>5:
-        logger.debug ( "obj_type: "+ obj_type )
+    FWOLogger.debug ( "obj_type: "+ obj_type, 6)
 
     while (current<total) :
         show_params_objs['offset']=current
@@ -544,8 +535,7 @@ def get_objects_per_type(obj_type: str, show_params_objs: dict[str, Any], sid: s
         if 'total' in objects  and 'to' in objects:
             total=objects['total']
             current=objects['to']
-            if fwo_globals.debug_level>5:
-                logger.debug ( obj_type +" current:"+ str(current) + " of a total " + str(total) )
+            FWOLogger.debug ( obj_type +" current:"+ str(current) + " of a total " + str(total), 6)
         else :
             current = total
 

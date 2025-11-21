@@ -6,12 +6,12 @@ It manages both explicit network objects/groups and implicit network objects cre
 inline ACL or group definitions.
 """
 
-from logging import Logger
 from netaddr import IPAddress, IPNetwork
 from ciscoasa9.asa_models import AsaNetworkObject, AsaNetworkObjectGroup, AsaNetworkObjectGroupMember, EndpointKind, Names
 from models.networkobject import NetworkObject
 import fwo_const
 import fwo_base
+from importer.fwo_log import FWOLogger
 
 
 def create_network_host(name: str, ip_address: str, comment: str | None, ip_version: int) -> NetworkObject:
@@ -191,8 +191,7 @@ def normalize_network_objects(network_objects_list: list[AsaNetworkObject]) -> d
 
 
 def normalize_network_object_groups(object_groups: list[AsaNetworkObjectGroup], 
-                                   network_objects: dict[str, NetworkObject], 
-                                   logger: Logger) -> dict[str, NetworkObject]:
+                                   network_objects: dict[str, NetworkObject]) -> dict[str, NetworkObject]:
     """Normalize network object groups from ASA configuration.
 
     Args:
@@ -215,7 +214,7 @@ def normalize_network_object_groups(object_groups: list[AsaNetworkObjectGroup],
                 member_refs.append(network_obj.obj_uid)
 
             except ValueError as e:
-                logger.warning(f"Error processing member in network object group '{group.name}': {e}")
+                FWOLogger.warning(f"Error processing member in network object group '{group.name}': {e}")
 
         group_obj = create_network_group_object(group.name, member_refs, group.description)
         network_objects[group.name] = group_obj

@@ -1,5 +1,4 @@
-from asyncio.log import logger
-from fwo_log import get_fwo_logger
+from fwo_log import FWOLogger
 from netaddr import IPAddress, IPNetwork
 from functools import cmp_to_key
 import traceback
@@ -10,16 +9,14 @@ from model_controllers.interface_controller import getRouteDestination
 
 def normalize_network_data(native_config, normalized_config, mgm_details):
 
-    logger = get_fwo_logger()
-
     normalized_config.update({'routing': {}, 'interfaces': {} })
 
     for dev_id, plain_dev_name, plain_vdom_name, full_vdom_name in get_all_dev_names(mgm_details['devices']):
         normalized_config.update({'routing': [], 'interfaces': []})
 
         if 'routing-table-ipv4/' + full_vdom_name not in native_config:
-            logger.warning('could not find routing data routing-table-ipv4/' + full_vdom_name)
-            logger.warning('native configs contains the following keys ' + str(native_config.keys()))
+            FWOLogger.warning('could not find routing data routing-table-ipv4/' + full_vdom_name)
+            FWOLogger.warning('native configs contains the following keys ' + str(native_config.keys()))
             normalized_config['networking'][full_vdom_name]['routingv4'] = []
         else:
             for route in native_config['routing-table-ipv4/' + full_vdom_name]:
@@ -28,9 +25,9 @@ def normalize_network_data(native_config, normalized_config, mgm_details):
                 normalized_config['routing'].append(normRoute)
 
         if 'routing-table-ipv6/' + full_vdom_name not in native_config:
-            logger.warning('could not find routing data routing-table-ipv6/' + full_vdom_name)
+            FWOLogger.warning('could not find routing data routing-table-ipv6/' + full_vdom_name)
             if fwo_globals.debug_level>5:
-                logger.warning('native configs contains the following keys ' + str(native_config.keys()))
+                FWOLogger.warning('native configs contains the following keys ' + str(native_config.keys()))
             normalized_config['networking'][full_vdom_name]['routingv6'] = []
         else:
             for route in native_config['routing-table-ipv6/' + full_vdom_name]:
@@ -55,12 +52,10 @@ def normalize_network_data(native_config, normalized_config, mgm_details):
 
     #devices_without_default_route = get_devices_without_default_route(normalized_config)
     #if len(devices_without_default_route)>0:
-    #    logger.warning('found devices without default route')
+    #    FWOLogger.warning('found devices without default route')
 
 
 def get_matching_route(destination_ip, routing_table):
-
-    logger = get_fwo_logger()
 
     def route_matches(ip, destination):
         ip_n = IPNetwork(ip).cidr
@@ -69,14 +64,14 @@ def get_matching_route(destination_ip, routing_table):
 
 
     if len(routing_table)==0:
-        logger.error('src nat behind interface: encountered empty routing table')
+        FWOLogger.error('src nat behind interface: encountered empty routing table')
         return None
 
     for route in routing_table:
         if route_matches(destination_ip, route['destination']):
             return route 
 
-    logger.warning('src nat behind interface: found no matching route in routing table - no default route?!')
+    FWOLogger.warning('src nat behind interface: found no matching route in routing table - no default route?!')
     return None
 
 
@@ -166,12 +161,11 @@ def get_all_dev_names(devices):
 # get network information (currently only used for source nat)
 def getInterfacesAndRouting(sid, fm_api_url, raw_config, adom_name, devices, limit):
 
-    logger = get_fwo_logger()
     # strip off vdom names, just deal with the plain device
     device_array = get_all_dev_names(devices)
 
     for dev_id, plain_dev_name, plain_vdom_name, full_vdom_name in device_array:
-        logger.info("dev_name: " + plain_dev_name + ", full vdom_name: " + full_vdom_name)
+        FWOLogger.info("dev_name: " + plain_dev_name + ", full vdom_name: " + full_vdom_name)
 
         # getting interfaces of device
         all_interfaces_payload = {
@@ -236,7 +230,7 @@ def getInterfacesAndRouting(sid, fm_api_url, raw_config, adom_name, devices, lim
                 raw_config, sid, fm_api_url, "/pm/config/device/" + plain_dev_name + "/global/system/interface",
                 "interfaces_per_device/" + full_vdom_name, payload=all_interfaces_payload, limit=limit, method="get")
         except Exception:
-            logger.warning("error while getting interfaces of device " + plain_vdom_name + ", vdom=" + plain_vdom_name + ", ignoring, traceback: " + str(traceback.format_exc()))
+            FWOLogger.warning("error while getting interfaces of device " + plain_vdom_name + ", vdom=" + plain_vdom_name + ", ignoring, traceback: " + str(traceback.format_exc()))
 
         # now getting routing information
         for ip_version in ["ipv4", "ipv6"]:
@@ -257,10 +251,10 @@ def getInterfacesAndRouting(sid, fm_api_url, raw_config, adom_name, devices, lim
                     if len(routing_helper)>0 and 'response' in routing_helper[0] and 'results' in routing_helper[0]['response']:
                         routing_table = routing_helper[0]['response']['results']
                     else:
-                        logger.warning("got empty " + ip_version + " routing table from device " + full_vdom_name + ", ignoring")
+                        FWOLogger.warning("got empty " + ip_version + " routing table from device " + full_vdom_name + ", ignoring")
                         routing_table = []
             except Exception:
-                logger.warning("could not get routing table for device " + full_vdom_name + ", ignoring") # exception " + str(traceback.format_exc()))
+                FWOLogger.warning("could not get routing table for device " + full_vdom_name + ", ignoring") # exception " + str(traceback.format_exc()))
                 routing_table = []
 
             # now storing the routing table:
@@ -268,9 +262,8 @@ def getInterfacesAndRouting(sid, fm_api_url, raw_config, adom_name, devices, lim
 
 
 def get_device_from_package(package_name, mgm_details):
-    logger = get_fwo_logger()
     for dev in mgm_details['devices']:
         if dev['local_rulebase_name'] == package_name:
             return dev['id']
-    logger.debug('get_device_from_package - could not find device for package "' + package_name +  '"')
+    FWOLogger.debug('get_device_from_package - could not find device for package "' + package_name +  '"')
     return None

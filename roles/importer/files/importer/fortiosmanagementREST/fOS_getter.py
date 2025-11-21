@@ -1,13 +1,12 @@
 # library for API get functions
 from typing import Any
-from fwo_log import get_fwo_logger
+from fwo_log import FWOLogger
 import requests
 import json
 import fwo_globals
 
 
 def api_call(url: str) -> dict[str, Any]:
-    logger = get_fwo_logger()
     request_headers = {'Content-Type': 'application/json'}
 
     r = requests.get(url, headers=request_headers, verify=fwo_globals.verify_certs)
@@ -17,9 +16,8 @@ def api_call(url: str) -> dict[str, Any]:
         raise Exception("error while sending api_call to url '" + str(url) + "' with headers: '" + json.dumps(request_headers, indent=2) + ', results=' + json.dumps(r.json()['results'], indent=2))
     if 'status' not in result_json:
         # trying to ignore empty results as valid
-        pass # logger.warning('received empty result')
-    if fwo_globals.debug_level>2:
-        logger.debug("api_call to url '" + str(url) + "' with headers: '" + json.dumps(request_headers, indent=2))
+        pass # FWOLogger.warning('received empty result')
+    FWOLogger.debug("api_call to url '" + str(url) + "' with headers: '" + json.dumps(request_headers, indent=2), 3)
     return result_json
 
 

@@ -8,7 +8,7 @@ import cifp_service
 import cifp_rule
 import cifp_network
 import cifp_getter
-from fwo_log import get_fwo_logger
+from fwo_log import FWOLogger
 from models.import_state import ImportState
 
 
@@ -18,7 +18,6 @@ def has_config_changed(_: dict[str, Any], __: ImportState, ___: bool = False) ->
 
 
 def get_config(config2import: dict[str, Any], full_config: dict[str, Any], current_import_id: str, mgm_details: dict[str, Any], limit: int = 1000, jwt: str = '') -> int:
-    logger = get_fwo_logger()
     if full_config == {}:   # no native config was passed in, so getting it from Cisco Management
         parsing_config_only = False
     else:
@@ -32,16 +31,16 @@ def get_config(config2import: dict[str, Any], full_config: dict[str, Any], curre
                                 mgm_details['hostname'], mgm_details['port'])
         domain = mgm_details["configPath"]
         if sessionId == "":
-            logger.error(
+            FWOLogger.error(
                 'Did not succeed in logging in to Cisco Firepower API, no sid returned.')
             return 1
         if domain is None or domain == "":
-            logger.error(
+            FWOLogger.error(
                 'Configured domain is null or empty.')
             return 1
         scopes = get_scopes(domain, json.loads(domains))
         if len(scopes) == 0:
-            logger.error(
+            FWOLogger.error(
                 "Domain \"" + domain + "\" could not be found. \"" + domain + "\" does not appear to be a domain name or a domain UID.")
             return 1
 
@@ -55,7 +54,7 @@ def get_config(config2import: dict[str, Any], full_config: dict[str, Any], curre
         try:  # logout
             cifp_getter.logout(cisco_api_url, sessionId)
         except Exception:
-            logger.warning(
+            FWOLogger.warning(
                 "logout exception probably due to timeout - irrelevant, so ignoring it")
 
     # now we normalize relevant parts of the raw config and write the results to config2import dict
@@ -98,7 +97,6 @@ def get_scopes(searchDomain: str, domains: list[dict[str, Any]]) -> list[str]:
     return scopes
 
 def get_devices(sessionId: str, api_url: str, config: dict[str, Any], limit: int, scopes: list[str], devices: list[dict[str, Any]]) -> None:
-    logger = get_fwo_logger()
     # get all devices
     for scope in scopes:
         config["devices"] = cifp_getter.update_config_with_cisco_api_call(sessionId, api_url,
@@ -116,7 +114,7 @@ def get_devices(sessionId: str, api_url: str, config: dict[str, Any], limit: int
         # remove device if not in fwo api
         if found == False:
             config["devices"].remove(cisco_api_device)
-            logger.info("Device \"" + cisco_api_device["name"] + "\" was found but it is not registered in FWO. Ignoring it.")
+            FWOLogger.info("Device \"" + cisco_api_device["name"] + "\" was found but it is not registered in FWO. Ignoring it.")
 
 def get_objects(sessionId: str, api_url: str, config: dict[str, Any], limit: int, scopes: list[str]) -> None:
     # network objects:

@@ -5,7 +5,7 @@ from models.rule import RuleNormalized
 from models.rulebase import Rulebase
 from services.global_state import GlobalState
 from fwo_exceptions import FwoApiFailure
-from fwo_log import get_fwo_logger
+from fwo_log import FWOLogger
 
 from services.service_provider import ServiceProvider
 from services.enums import Services
@@ -40,7 +40,7 @@ class RuleOrderService:
 
 
     def __init__(self):
-        self._initialize(1, set_configs=False)
+        self._initialize(set_configs=False)
 
 
     @property
@@ -48,12 +48,12 @@ class RuleOrderService:
         return self._target_rules_flat
     
 
-    def update_rule_order_diffs(self, debug_level: int) -> dict[str, dict[str, list[str]]]:
+    def update_rule_order_diffs(self) -> dict[str, dict[str, list[str]]]:
         """
             Determines diffs that are relevant for the rule order and updates rule_num_numeric in the corresponding rules in normalized config.
         """
 
-        self._initialize(debug_level)
+        self._initialize()
         self._calculate_necessary_transformations()
         self._update_rule_num_numerics()
 
@@ -65,7 +65,7 @@ class RuleOrderService:
         }
     
 
-    def _initialize(self, debug_level: int, set_configs: bool = True) -> None:
+    def _initialize(self, set_configs: bool = True) -> None:
         """
             Prepares rule order service to calculate rule order diffs and update rule num numerics. 
             Expects previous config object and normalized config object in global state.
@@ -73,7 +73,6 @@ class RuleOrderService:
 
         # Get logger and global state.
 
-        self._logger = get_fwo_logger(debug_level=debug_level)
         self._service_provider = ServiceProvider()
         self._global_state = self._service_provider.get_service(Services.GLOBAL_STATE)
 

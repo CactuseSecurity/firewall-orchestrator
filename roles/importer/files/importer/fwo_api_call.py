@@ -314,7 +314,7 @@ class FwoApiCall(FwoApi):
                 ", rule change count: " + str(importState.Stats.getRuleChangeNumber()) + \
                 ", duration: " + str(int(time.time()) - importState.StartTime) + "s" 
         import_result += ", ERRORS: " + importState.getErrorString() if importState.Stats.ErrorCount > 0 else ""
-        if importState.Stats.getChangeDetails() != {} and importState.DebugLevel>3 and len(importState.getErrors()) == 0:
+        if importState.Stats.getChangeDetails() != {} and FWOLogger.is_debug_level(4) and len(importState.getErrors()) == 0:
             import_result += ", change details: " + str(importState.Stats.getChangeDetails())
         if importState.Stats.ErrorCount>0:
             self.create_data_issue(importId=importState.ImportId, severity=1, description=importState.getErrorString())

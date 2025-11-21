@@ -1,6 +1,6 @@
 from logging import Logger
 from typing import TYPE_CHECKING, Any
-from fwo_log import get_fwo_logger
+from fwo_log import FWOLogger
 if TYPE_CHECKING:
     from model_controllers.import_state_controller import ImportStateController
 from fwo_exceptions import FwoImporterError
@@ -70,8 +70,6 @@ class Uid2IdMapper:
         """
         global_state = ServiceProvider().get_service(Services.GLOBAL_STATE)
         self.import_state = global_state.import_state
-        self.logger = get_fwo_logger()
-
         self.nwobj_uid2id = Uid2IdMap()
         self.svc_uid2id = Uid2IdMap()
         self.user_uid2id = Uid2IdMap()
@@ -96,7 +94,7 @@ class Uid2IdMapper:
         Args:
             message (str): The debug message to log.
         """
-        self.logger.debug(message)
+        FWOLogger.debug(message)
 
     def get_network_object_id(self, uid: str, before_update: bool = False, local_only: bool = False) -> int:
         """

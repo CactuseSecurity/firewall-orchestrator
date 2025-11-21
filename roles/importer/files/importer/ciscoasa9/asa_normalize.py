@@ -6,7 +6,7 @@ format used by the firewall orchestrator.
 """
 
 from logging import Logger
-from fwo_log import get_fwo_logger
+from fwo_log import FWOLogger
 from models.fwconfig_normalized import FwConfigNormalized
 from ciscoasa9.asa_models import Config
 from fwo_enums import ConfigAction
@@ -34,7 +34,7 @@ from ciscoasa9.asa_service import (
 
 
 
-def normalize_all_network_objects(native_config: Config, logger: Logger) -> dict[str, NetworkObject]:
+def normalize_all_network_objects(native_config: Config) -> dict[str, NetworkObject]:
     """
     Normalize all network objects from the native ASA configuration.
 
@@ -57,7 +57,7 @@ def normalize_all_network_objects(native_config: Config, logger: Logger) -> dict
     network_objects.update(normalize_network_objects(native_config.objects))
 
     # Add network object groups
-    normalize_network_object_groups(native_config.object_groups, network_objects, logger)
+    normalize_network_object_groups(native_config.object_groups, network_objects)
 
     return network_objects
 
@@ -108,21 +108,20 @@ def normalize_config(config_in: FwConfigManagerListController, import_state: Imp
     Returns:
         Updated config_in with normalized configuration.
     """
-    logger = get_fwo_logger()
 
     # Parse the native configuration into structured objects
     native_config: Config = Config.model_validate(config_in.native_config)
 
     # Step 1: Normalize network objects (names, objects, object-groups)
-    logger.debug("Normalizing network objects...")
-    network_objects = normalize_all_network_objects(native_config, logger)
+    FWOLogger.debug("Normalizing network objects...")
+    network_objects = normalize_all_network_objects(native_config)
 
     # Step 2: Normalize service objects (service objects with ports/protocols)
-    logger.debug("Normalizing service objects...")
+    FWOLogger.debug("Normalizing service objects...")
     service_objects = normalize_all_service_objects(native_config)
 
     # Step 3: Build rulebases from access lists (this will create additional objects as needed)
-    logger.debug("Building rulebases from access lists...")
+    FWOLogger.debug("Building rulebases from access lists...")
     rulebases = build_rulebases_from_access_lists(
         native_config.access_lists,
         import_state.MgmDetails.Uid,
@@ -155,7 +154,7 @@ def normalize_config(config_in: FwConfigManagerListController, import_state: Imp
             ))
 
     # Step 5: Create gateway object representing the ASA device
-    logger.debug("Creating gateway object...")
+    FWOLogger.debug("Creating gateway object...")
     gateway = Gateway(
         Uid=native_config.hostname,
         Name=native_config.hostname,
@@ -169,7 +168,7 @@ def normalize_config(config_in: FwConfigManagerListController, import_state: Imp
     )
 
     # Step 6: Construct the normalized configuration
-    logger.debug("Constructing normalized configuration...")
+    FWOLogger.debug("Constructing normalized configuration...")
     normalized_config = FwConfigNormalized(
         action=ConfigAction.INSERT,
         network_objects=network_objects,

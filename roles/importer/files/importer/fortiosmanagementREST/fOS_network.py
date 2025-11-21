@@ -1,11 +1,10 @@
 import ipaddress
 from typing import Any
-from fwo_log import get_fwo_logger
+from fwo_log import FWOLogger
 from fwo_const import list_delimiter, nat_postfix
 from fOS_zone import add_zone_if_missing
 
 def normalize_nwobjects(full_config: dict[str, Any], config2import: dict[str, Any], import_id: int, nw_obj_types: list[str]):
-    logger = get_fwo_logger()
     nw_objects: list[dict[str, Any]] = []
     full_config['nw_obj_lookup_dict'] = {}
     for obj_type in nw_obj_types:
@@ -21,7 +20,7 @@ def normalize_nwobjects(full_config: dict[str, Any], config2import: dict[str, An
                         obj_orig['subnet'] = obj_orig['subnet'].split(' ')
                         obj_orig['subnet'][1] = 32
                     if isinstance(obj_orig['subnet'], str):
-                        logger.warning("found dirty subnet ip for " + obj_orig['name'] + ": " + obj_orig['subnet'])
+                        FWOLogger.warning("found dirty subnet ip for " + obj_orig['name'] + ": " + obj_orig['subnet'])
                         ipa = '0.0.0.0/0'
                         obj.update({ 'obj_typ': 'network' })
                         obj.update({ 'obj_ip': ipa })
@@ -55,7 +54,7 @@ def normalize_nwobjects(full_config: dict[str, Any], config2import: dict[str, An
                     obj.update({ 'obj_typ': 'host' })
                     nat_obj: dict[str, Any] = {}
                     if 'extip' not in obj_orig or len(obj_orig['extip'])==0:
-                        logger.error("vip (extip): found empty extip field for " + obj_orig['name'])
+                        FWOLogger.error("vip (extip): found empty extip field for " + obj_orig['name'])
                     else:
                         set_ip_in_obj(obj, obj_orig['extip'])   # resolving nat range if there is one
                         nat_obj: dict[str, Any] = {}
@@ -67,10 +66,10 @@ def normalize_nwobjects(full_config: dict[str, Any], config2import: dict[str, An
 
                     # now dealing with the nat ip obj (mappedip)
                     if 'mappedip' not in obj_orig or len(obj_orig['mappedip'])==0:
-                        logger.warning("vip (extip): found empty mappedip field for " + obj_orig['name'])
+                        FWOLogger.warning("vip (extip): found empty mappedip field for " + obj_orig['name'])
                     else:
                         if len(obj_orig['mappedip'])>1:
-                            logger.warning("vip (extip): found more than one mappedip, just using the first one for " + obj_orig['name'])
+                            FWOLogger.warning("vip (extip): found more than one mappedip, just using the first one for " + obj_orig['name'])
                         nat_ip = obj_orig['mappedip'][0]['range']
                         set_ip_in_obj(nat_obj, nat_ip) #TYPING: nat_obj is possibly unbounded herer
                         obj.update({ 'obj_nat_ip': nat_obj['obj_ip'] }) # save nat ip in vip obj
@@ -210,14 +209,13 @@ def remove_nat_ip_entries(config2import: dict[str, Any]):
 
 def get_first_ip_of_destination(obj_ref: str, config2import: dict[str, Any]) -> str | None:
 
-    logger = get_fwo_logger()
     if list_delimiter in obj_ref:
         obj_ref = obj_ref.split(list_delimiter)[0]
         # if destination does not contain exactly one ip, raise a warning 
-        logger.info('src nat behind interface: more than one NAT IP - just using the first one for routing decision for obj_ref ' + obj_ref)
+        FWOLogger.info('src nat behind interface: more than one NAT IP - just using the first one for routing decision for obj_ref ' + obj_ref)
 
     for obj in config2import['network_objects']:
         if 'obj_uid' in obj and obj['obj_uid']==obj_ref:
             return obj['obj_ip']
-    logger.warning('src nat behind interface: found no IP info for destination object ' + obj_ref)
+    FWOLogger.warning('src nat behind interface: found no IP info for destination object ' + obj_ref)
     return None

@@ -3,7 +3,7 @@ from typing import Any
 
 import fwo_const
 from model_controllers.import_state_controller import ImportStateController
-from fwo_log import get_fwo_logger
+from fwo_log import FWOLogger
 from model_controllers.rulebase_link_controller import RulebaseLinkController
 
 
@@ -23,8 +23,7 @@ class RuleEnforcedOnGatewayController:
 
         # Step 3: Check if there are any references to insert
         if not rule_to_gw_refs:
-            logger = get_fwo_logger()
-            logger.info("No rules to be enforced on gateways.")
+            FWOLogger.info("No rules to be enforced on gateways.")
             return
 
         # Step 4: Insert the references into the database
@@ -76,8 +75,7 @@ class RuleEnforcedOnGatewayController:
             if gw_id is not None:
                 rule_to_gw_refs.append(self.create_rule_to_gateway_reference(rule, gw_id))
             else:
-                logger = get_fwo_logger()
-                logger.warning(f"Found a broken reference to a non-existing gateway (uid={gw_uid}). Ignoring.")
+                FWOLogger.warning(f"Found a broken reference to a non-existing gateway (uid={gw_uid}). Ignoring.")
 
 
     def create_rule_to_gateway_reference(self, rule: dict[str, Any], gw_id: int) -> dict[str, Any]:
@@ -96,18 +94,17 @@ class RuleEnforcedOnGatewayController:
         """
         Insert the rule-to-gateway references into the database.
         """
-        logger = get_fwo_logger()
         try:
             import_results: dict[str,Any] = self.insert_rules_enforced_on_gateway(rule_to_gw_refs)
             if 'errors' in import_results:
-                logger.exception(f"Error in add_new_rule_enforced_on_gateway_refs: {str(import_results['errors'])}")
+                FWOLogger.exception(f"Error in add_new_rule_enforced_on_gateway_refs: {str(import_results['errors'])}")
                 self.import_details.increaseErrorCounter(1)
                 self.import_details.appendErrorString(f"Error in add_new_rule_enforced_on_gateway_refs: {str(import_results['errors'])}")
             else:
                 changes = import_results['data']['insert_rule_enforced_on_gateway'].get('affected_rows', 1)
                 self.import_details.Stats.rule_enforce_change_count += changes
         except Exception:
-            logger.exception(f"Failed to write new rules: {str(format_exc())}")
+            FWOLogger.exception(f"Failed to write new rules: {str(format_exc())}")
             self.import_details.increaseErrorCounterByOne()
             self.import_details.appendErrorString(f"Failed to write new rules: {str(format_exc())}")
             raise

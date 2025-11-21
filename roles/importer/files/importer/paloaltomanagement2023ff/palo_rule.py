@@ -1,6 +1,6 @@
 from palo_service import parse_svc_list
 from palo_network import parse_obj_list
-from fwo_log import get_fwo_logger
+from fwo_log import FWOLogger
 from fwo_const import list_delimiter
 import hashlib
 import base64
@@ -27,8 +27,6 @@ def make_hashable(o):
 
 def normalize_access_rules(full_config, config2import, import_id, mgm_details={}):
     rules = []
-    logger = get_fwo_logger()
-
     nw_obj_names = []
     for o in config2import['network_objects']:
         nw_obj_names.append(o["obj_name"])
@@ -73,7 +71,7 @@ def normalize_access_rules(full_config, config2import, import_id, mgm_details={}
                         elif rule_orig['action']=='reset-client':
                             rule['rule_action'] = 'reject'
                         else:
-                            logger.warning("found undefined action:" + str(rule_orig))
+                            FWOLogger.warning("found undefined action:" + str(rule_orig))
                     else:   # NAT rules
                         rule['rule_action'] = "accept"
                         rule['rule_type'] = 'nat'
@@ -94,7 +92,7 @@ def normalize_access_rules(full_config, config2import, import_id, mgm_details={}
                         elif rule_orig['log-start']=='no':
                             rule['rule_track'] = 'None'
                         else:
-                            logger.warning ("found undefined track:" + str(rule_orig))
+                            FWOLogger.warning ("found undefined track:" + str(rule_orig))
                             rule['rule_track'] = 'None'
                     else:
                         rule['rule_track'] = 'None'
@@ -106,7 +104,7 @@ def normalize_access_rules(full_config, config2import, import_id, mgm_details={}
                             source_objects = [rule_orig["source"]]
                         rule['rule_src_refs'], rule["rule_src"] = parse_obj_list(source_objects, import_id, config2import['network_objects'], rule["rule_uid"])
                     else:
-                        logger.warning("found undefined source in rule: " + str(rule_orig))
+                        FWOLogger.warning("found undefined source in rule: " + str(rule_orig))
 
                     if "destination" in rule_orig:
                         if 'member' in rule_orig["destination"]:
@@ -115,7 +113,7 @@ def normalize_access_rules(full_config, config2import, import_id, mgm_details={}
                             destination_objects = [rule_orig["destination"]]
                         rule['rule_dst_refs'], rule["rule_dst"] = parse_obj_list(destination_objects, import_id, config2import['network_objects'], rule["rule_uid"])
                     else:
-                        logger.warning("found undefined destination in rule: " + str(rule_orig))
+                        FWOLogger.warning("found undefined destination in rule: " + str(rule_orig))
 
                     services = []
                     if "service" in rule_orig:

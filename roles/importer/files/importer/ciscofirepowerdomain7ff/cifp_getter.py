@@ -1,7 +1,7 @@
 # library for API get functions
 import base64
 from typing import Any
-from fwo_log import get_fwo_logger
+from fwo_log import FWOLogger
 import requests
 import json
 import fwo_globals
@@ -10,7 +10,6 @@ from fwo_exceptions import FwLoginFailed
 auth_token = ""
 
 def api_call(url: str, params: dict[str, Any] = {}, headers: dict[str, Any] = {}, json_payload: dict[str, Any] = {}, auth_token: str = '', method: str = 'get') -> tuple[dict[str, Any], dict[str, Any]]:
-    logger = get_fwo_logger()
     request_headers = {'Content-Type': 'application/json'}
     for header_key in headers:
         request_headers[header_key] = headers[header_key]
@@ -31,13 +30,12 @@ def api_call(url: str, params: dict[str, Any] = {}, headers: dict[str, Any] = {}
     else:
         body_json: dict[str, Any] = {}
 
-    if fwo_globals.debug_level > 2:
-        if 'pass' in json.dumps(json_payload):
-            logger.debug("api_call containing credential information to url '" +
-                         str(url) + " - not logging query")
-        else:
-            logger.debug("api_call to url '" + str(url) + "' with payload '" + json.dumps(
-                json_payload, indent=2) + "' and  headers: '" + json.dumps(request_headers, indent=2))
+    if 'pass' in json.dumps(json_payload):
+        FWOLogger.debug("api_call containing credential information to url '" +
+                        str(url) + " - not logging query", 3)
+    else:
+        FWOLogger.debug("api_call to url '" + str(url) + "' with payload '" + json.dumps(
+            json_payload, indent=2) + "' and  headers: '" + json.dumps(request_headers, indent=2), 3)
 
     return dict(response.headers), body_json
 
@@ -52,9 +50,7 @@ def login(user: str, password: str, api_host: str, api_port: int) -> tuple[str, 
     if access_token is None:   # leaving out payload as it contains pwd
         raise FwLoginFailed(
             "Cisco Firepower login ERROR: host=" + str(api_host) + ":" + str(api_port)) from None
-    if fwo_globals.debug_level > 2:
-        logger = get_fwo_logger()
-        logger.debug("Login successful. Received auth token: " + headers["X-auth-access-token"])
+    FWOLogger.debug("Login successful. Received auth token: " + headers["X-auth-access-token"], 3)
     return access_token, headers.get("DOMAINS") or ""
 
 # TODO Is there a logout?

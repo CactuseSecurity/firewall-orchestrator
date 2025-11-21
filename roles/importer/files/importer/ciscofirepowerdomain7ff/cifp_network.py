@@ -1,7 +1,7 @@
 import random
 from typing import Any
 
-from fwo_log import get_fwo_logger
+from fwo_log import FWOLogger
 from fwo_const import list_delimiter
 from netaddr import IPAddress
 
@@ -33,8 +33,7 @@ def parse_obj_group(orig_grp: dict[str, Any], import_id: str, nw_objects: list[d
             if "type" in orig_obj and (orig_obj["type"] != "NetworkGroup" and orig_obj["type"] != "Host" and 
                 orig_obj["type"] != "Network" and orig_obj["type"] != "Range" and
                 orig_obj["type"] != "FQDN"):
-                logger = get_fwo_logger()
-                logger.warning("Unknown network object type found: \"" + orig_obj["type"] + "\". Skipping.")             
+                FWOLogger.warning("Unknown network object type found: \"" + orig_obj["type"] + "\". Skipping.")             
                 break
             names.append(orig_obj["name"])
             refs.append(orig_obj["id"])
@@ -42,7 +41,6 @@ def parse_obj_group(orig_grp: dict[str, Any], import_id: str, nw_objects: list[d
     return list_delimiter.join(refs), list_delimiter.join(names)
 
 def extract_base_object_infos(obj_orig: dict[str, Any], import_id: str) -> dict[str, Any]:
-    logger = get_fwo_logger()
     obj: dict[str, Any] = {}
     if "id" in obj_orig:
         obj["obj_uid"] = obj_orig['id']
@@ -56,13 +54,12 @@ def extract_base_object_infos(obj_orig: dict[str, Any], import_id: str) -> dict[
         obj["obj_comment"] = obj_orig["description"] 
     if 'color' in obj_orig:
         # TODO Do colors exist?
-        logger.debug("colors exist :)")
+        FWOLogger.debug("colors exist :)")
     obj['control_id'] = import_id
     return obj
 
 
 def parse_object(obj_orig: dict[str, Any], import_id: str) -> dict[str, Any]:
-    logger = get_fwo_logger()
     obj = extract_base_object_infos(obj_orig, import_id)
     if obj_orig["type"] == "Network":  # network
         obj["obj_typ"] = "network"
@@ -73,7 +70,7 @@ def parse_object(obj_orig: dict[str, Any], import_id: str) -> dict[str, Any]:
             else: # not real cidr (netmask after /)
                 obj['obj_ip'] = cidr[0] + "/" + str(IPAddress(cidr[1]).netmask_bits())
         else:
-            logger.warning("missing value field in object - skipping: " + str(obj_orig))  
+            FWOLogger.warning("missing value field in object - skipping: " + str(obj_orig))  
             obj['obj_ip'] = "0.0.0.0"        
     elif obj_orig["type"] == "Host": # host
         obj["obj_typ"] = "host"
@@ -86,7 +83,7 @@ def parse_object(obj_orig: dict[str, Any], import_id: str) -> dict[str, Any]:
                 if obj_orig["value"].find("/") == -1: 
                     obj["obj_ip"] += "/32"
         else:
-            logger.warning("missing value field in object - skipping: " + str(obj_orig))  
+            FWOLogger.warning("missing value field in object - skipping: " + str(obj_orig))  
             obj['obj_ip'] = "0.0.0.0/0"        
     elif obj_orig["type"] == "Range": # ip range
         obj['obj_typ'] = 'ip_range'

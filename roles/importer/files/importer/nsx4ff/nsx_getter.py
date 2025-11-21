@@ -1,6 +1,6 @@
 # library for API get functions
 import base64
-from fwo_log import get_fwo_logger
+from fwo_log import FWOLogger
 import requests.packages
 import requests
 import xmltodict, json
@@ -9,7 +9,6 @@ from fwo_exceptions import FwLoginFailed
 
 
 def api_call(url, params = {}, headers = {}, data = {}, credentials = '', show_progress=False, method='get'):
-    logger = get_fwo_logger()
     result_type='json'
     request_headers = {'Content-Type': 'application/json'}
     for header_key in headers:
@@ -72,7 +71,7 @@ def api_call(url, params = {}, headers = {}, data = {}, credentials = '', show_p
     
 #     if fwo_globals.debug_level > 2:
 #         logger = getFwoLogger()
-#         logger.debug("Login successful. Received key: " + key)
+#         FWOLogger.debug("Login successful. Received key: " + key)
 
 #     return key
 

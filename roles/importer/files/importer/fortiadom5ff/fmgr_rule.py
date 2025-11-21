@@ -7,7 +7,7 @@ from fortiadom5ff.fmgr_network import create_network_object, get_first_ip_of_des
 from fortiadom5ff.fmgr_zone import find_zones_in_normalized_config
 from fortiadom5ff.fmgr_consts import nat_types
 from fortiadom5ff import fmgr_getter
-from fwo_log import get_fwo_logger
+from fwo_log import FWOLogger
 from model_controllers.route_controller import get_matching_route_obj, get_ip_of_interface_obj
 from fwo_exceptions import FwoDeviceWithoutLocalPackage, FwoImporterErrorInconsistencies
 from models.rule import RuleNormalized, RuleAction, RuleTrack, RuleType
@@ -46,7 +46,6 @@ def normalize_rulebases(
 
 def normalize_rulebases_for_each_link_destination(gateway: dict[str, Any], mgm_uid: str, fetched_rulebase_uids: list[str], native_config: dict[str, Any],
         native_config_global: dict[str, Any], is_global_loop_iteration: bool, normalized_config_adom: dict[str, Any], normalized_config_global: dict[str, Any]):
-    logger = get_fwo_logger()
     for rulebase_link in gateway['rulebase_links']:
         if rulebase_link['to_rulebase_uid'] not in fetched_rulebase_uids and rulebase_link['to_rulebase_uid'] != '':
             rulebase_to_parse = find_rulebase_to_parse(native_config['rulebases'], rulebase_link['to_rulebase_uid'])
@@ -58,7 +57,7 @@ def normalize_rulebases_for_each_link_destination(gateway: dict[str, Any], mgm_u
                     )
                 found_rulebase_in_global = True
             if rulebase_to_parse == {}:
-                logger.warning('found to_rulebase link without rulebase in nativeConfig: ' + str(rulebase_link))
+                FWOLogger.warning('found to_rulebase link without rulebase in nativeConfig: ' + str(rulebase_link))
                 continue
 
             normalized_rulebase = initialize_normalized_rulebase(rulebase_to_parse, mgm_uid)
@@ -81,11 +80,10 @@ def normalize_nat_rulebase(rulebase_link: dict[str, Any], native_config: dict[st
             parse_nat_rulebase(nat_rulebase, nat_type_string, normalized_config_adom, normalized_config_global)
 
 def get_native_nat_rulebase(native_config: dict[str, Any], nat_type_string: str) -> list[dict[str, Any]]:
-    logger = get_fwo_logger()
     for nat_rulebase in native_config['nat_rulebases']:
         if nat_type_string == nat_rulebase['type']:
             return nat_rulebase['data']
-    logger.warning('no nat data for '+ nat_type_string)
+    FWOLogger.warning('no nat data for '+ nat_type_string)
     return []
 
 def find_rulebase_to_parse(rulebase_list: list[dict[str, Any]], rulebase_uid: str) -> dict[str, Any]:
@@ -630,12 +628,11 @@ def create_xlate_rule(rule: dict[str, Any]) -> dict[str, Any]:
 #TODO: unused function
 def handle_combined_nat_rule(rule: dict[str, Any], rule_orig: dict[str, Any], config2import: dict[str, Any], nat_rule_number: int, dev_id: int) -> dict[str, Any] | None:
     # now dealing with VIPs (dst NAT part) of combined rules
-    logger = get_fwo_logger()
     xlate_rule = None
 
     # dealing with src NAT part of combined rules
     if "nat" in rule_orig and rule_orig["nat"]==1:
-        logger.debug("found mixed Access/NAT rule no. " + str(nat_rule_number))
+        FWOLogger.debug("found mixed Access/NAT rule no. " + str(nat_rule_number))
         nat_rule_number += 1
         xlate_rule = create_xlate_rule(rule)
         if 'ippool' in rule_orig:
@@ -644,21 +641,21 @@ def handle_combined_nat_rule(rule: dict[str, Any], rule_orig: dict[str, Any], co
                 destination_ip = get_first_ip_of_destination(rule['rule_dst_refs'], config2import) # get an ip of destination
                 hideInterface: str | None = 'undefined_interface'
                 if destination_ip is None:
-                    logger.warning('src nat behind interface: found no valid destination ip in rule with UID ' + rule['rule_uid'])
+                    FWOLogger.warning('src nat behind interface: found no valid destination ip in rule with UID ' + rule['rule_uid'])
                 else:
                     # matching_route = get_matching_route_obj(destination_ip, config2import['networking'][device_name]['routingv4'])
                     matching_route = get_matching_route_obj(destination_ip, config2import['routing'], dev_id)
                     if matching_route is None:
-                        logger.warning('src nat behind interface: found no matching route in rule with UID '
+                        FWOLogger.warning('src nat behind interface: found no matching route in rule with UID '
                             + rule['rule_uid'] + ', dest_ip: ' + destination_ip)
                     else:
                         destination_interface_ip = get_ip_of_interface_obj(matching_route.interface, dev_id, config2import['interfaces'])
                         interface_name: str | None = matching_route.interface
                         hideInterface=interface_name
                         if hideInterface is None:
-                            logger.warning('src nat behind interface: found route with undefined interface ') #+ str(jsonpickle.dumps(matching_route, unpicklable=True)))
+                            FWOLogger.warning('src nat behind interface: found route with undefined interface ') #+ str(jsonpickle.dumps(matching_route, unpicklable=True)))
                         if destination_interface_ip is None:
-                            logger.warning('src nat behind interface: found no matching interface IP in rule with UID '
+                            FWOLogger.warning('src nat behind interface: found no matching interface IP in rule with UID '
                             + rule['rule_uid'] + ', dest_ip: ' + destination_ip)
         
                 # add dummy object "outbound-interface"
@@ -671,7 +668,7 @@ def handle_combined_nat_rule(rule: dict[str, Any], rule_orig: dict[str, Any], co
                         HideNatIp = str(destination_interface_ip) + '/32'
                     else:
                         HideNatIp = dummy_ip
-                        logger.warning('found invalid HideNatIP ' + str(destination_interface_ip))
+                        FWOLogger.warning('found invalid HideNatIP ' + str(destination_interface_ip))
                     obj = create_network_object(obj_name, 'host', HideNatIp, HideNatIp, obj_name, 'black', obj_comment, 'global')
                     if obj not in config2import['network_objects']:
                         config2import['network_objects'].append(obj)
@@ -682,22 +679,22 @@ def handle_combined_nat_rule(rule: dict[str, Any], rule_orig: dict[str, Any], co
                 poolNameArray = rule_orig['poolname']
                 if len(poolNameArray)>0:
                     if len(poolNameArray)>1:
-                        logger.warning("found more than one ippool - ignoring all but first pool")
+                        FWOLogger.warning("found more than one ippool - ignoring all but first pool")
                     poolName = poolNameArray[0]
                     xlate_rule['rule_src'] = poolName
                     xlate_rule['rule_src_refs'] =  poolName
                 else:
-                    logger.warning("found ippool rule without ippool: " + rule['rule_uid'])
+                    FWOLogger.warning("found ippool rule without ippool: " + rule['rule_uid'])
             else:
-                logger.warning("found ippool rule with unexpected ippool value: " + rule_orig['ippool'])
+                FWOLogger.warning("found ippool rule with unexpected ippool value: " + rule_orig['ippool'])
         
         if 'natip' in rule_orig and rule_orig['natip']!=["0.0.0.0","0.0.0.0"]:
-            logger.warning("found explicit natip rule - ignoring for now: " + rule['rule_uid'])
+            FWOLogger.warning("found explicit natip rule - ignoring for now: " + rule['rule_uid'])
             # need example for interpretation of config
 
     # todo: find out how match-vip=1 influences natting (only set in a few vip-nat rules)
     # if "match-vip" in rule_orig and rule_orig["match-vip"]==1:
-    #     logger.warning("found VIP destination Access/NAT rule (but not parsing yet); no. " + str(vip_nat_rule_number))
+    #     FWOLogger.warning("found VIP destination Access/NAT rule (but not parsing yet); no. " + str(vip_nat_rule_number))
     #     vip_nat_rule_number += 1
 
     # deal with vip natting: check for each (dst) nw obj if it contains "obj_nat_ip"

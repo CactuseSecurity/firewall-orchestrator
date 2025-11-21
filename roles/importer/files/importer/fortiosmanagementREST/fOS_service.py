@@ -1,11 +1,10 @@
 import re
 from typing import Any
 from fwo_const import list_delimiter
-from fwo_log import get_fwo_logger
+from fwo_log import FWOLogger
 
 
 def normalize_svcobjects(full_config: dict[str, Any], config2import: dict[str, Any], import_id: int, scope: list[str]):
-    logger = get_fwo_logger()
     svc_objects: list[dict[str, Any]] = []
     full_config['svc_obj_lookup_dict'] = {}
     for s in scope:
@@ -89,7 +88,7 @@ def normalize_svcobjects(full_config: dict[str, Any], config2import: dict[str, A
                         add_object(svc_objects, 'simple', name, color, 1, None, None, None, import_id, full_config=full_config)
                         added_svc_obj += 1
                     else:
-                        logger.warning("Unknown service protocol found: " + obj_orig['name'] +', proto: ' + obj_orig['protocol'])
+                        FWOLogger.warning("Unknown service protocol found: " + obj_orig['name'] +', proto: ' + obj_orig['protocol'])
                 elif type == 'group':
                     add_object(svc_objects, type, name, color, 0, None, member_names, session_timeout, import_id, full_config=full_config)
                 else:

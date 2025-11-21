@@ -8,7 +8,7 @@ from palo_rule import normalize_access_rules
 from palo_network import normalize_nwobjects
 from palo_zone import normalize_zones
 from palo_getter import login, update_config_with_palofw_api_call
-from fwo_log import get_fwo_logger
+from fwo_log import FWOLogger
 from palo_base import api_version_str
 from models.import_state import ImportState
 
@@ -19,7 +19,6 @@ def has_config_changed(_: dict[str, Any], __: ImportState, ___: bool = False) ->
 
 
 def get_config(config2import, full_config, current_import_id, mgm_details, limit=1000, force=False, jwt=''):
-    logger = get_fwo_logger()
     if full_config == {}:   # no native config was passed in, so getting it from Azzure
         parsing_config_only = False
     else:
@@ -43,7 +42,7 @@ def get_config(config2import, full_config, current_import_id, mgm_details, limit
         # login
         key = login(apiuser, apipwd, apihost)
         if key == None or key == "":
-            logger.error('Did not succeed in logging in to Palo API, no key returned.')
+            FWOLogger.error('Did not succeed in logging in to Palo API, no key returned.')
             return 1
 
         ## get objects:

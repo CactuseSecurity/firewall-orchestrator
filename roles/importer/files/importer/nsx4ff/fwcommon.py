@@ -4,7 +4,7 @@
 import base64
 from typing import Any
 
-from fwo_log import get_fwo_logger
+from fwo_log import FWOLogger
 from nsx_service import normalize_svcobjects
 # from nsx_application import normalize_application_objects
 from nsx_rule import normalize_access_rules
@@ -21,7 +21,6 @@ def has_config_changed(_: dict[str, Any], __: ImportState, ___: bool = False) ->
 
 
 def get_config(config2import, full_config, current_import_id, mgm_details, limit=1000, force=False, jwt=''):
-    logger = get_fwo_logger()
     if full_config == {}:   # no native config was passed in, so getting it from Azzure
         parsing_config_only = False
     else:

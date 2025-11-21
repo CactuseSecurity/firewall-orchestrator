@@ -1,5 +1,5 @@
 from typing import Any
-from fwo_log import get_fwo_logger
+from fwo_log import FWOLogger
 import fwo_globals
 from model_controllers.interface_controller import Interface
 from model_controllers.route_controller import Route, get_route_destination
@@ -22,8 +22,7 @@ def get_config(config2import: dict[str, Any], current_import_id: str, mgm_detail
     error_string = ''
 
     if len(mgm_details['devices'])!=1:
-        logger = get_fwo_logger()
-        logger.error('expected exactly one device but found: ' + str(mgm_details['devices']))
+        FWOLogger.error('expected exactly one device but found: ' + str(mgm_details['devices']))
         exit(1)
     dev_id = mgm_details['devices'][0]['id'] 
     

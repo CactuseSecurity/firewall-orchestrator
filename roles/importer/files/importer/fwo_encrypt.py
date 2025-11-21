@@ -3,7 +3,7 @@ import traceback
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from cryptography.hazmat.primitives import padding
-from fwo_log import get_fwo_logger
+from fwo_log import FWOLogger
 from fwo_const import mainKeyFile
 
 # can be used for decrypting text encrypted with C# (mw-server)
@@ -33,12 +33,11 @@ def decrypt_aes_ciphertext(base64_encrypted_text: str, passphrase: str) -> str:
 
 # wrapper for trying the different decryption methods
 def decrypt(encrypted_data: str, passphrase: str) -> str:
-    logger = get_fwo_logger()
     try:
         decrypted = decrypt_aes_ciphertext(encrypted_data, passphrase)
         return decrypted
     except Exception:
-        logger.warning("Unspecified error while decrypting with AES: " + str(traceback.format_exc()))
+        FWOLogger.warning("Unspecified error while decrypting with AES: " + str(traceback.format_exc()))
         return encrypted_data
 
 

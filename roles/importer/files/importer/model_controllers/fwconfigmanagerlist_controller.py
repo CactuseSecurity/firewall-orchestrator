@@ -5,7 +5,7 @@ from copy import deepcopy
 from typing import Any
 
 import fwo_globals
-from fwo_log import get_fwo_logger
+from fwo_log import FWOLogger
 from fwo_base import serialize_dict_to_class_rec, deserialize_class_to_dict_rec
 from fwo_const import import_tmp_path
 
@@ -141,7 +141,6 @@ class FwConfigManagerListController(FwConfigManagerList):
 
     def storeFullNormalizedConfigToFile(self, importState: ImportStateController):
         if fwo_globals.debug_level>5:
-            logger = get_fwo_logger()
             debug_start_time = int(time.time())
             try:
                 normalized_config_filename = f"{import_tmp_path}/mgm_id_{str(importState.MgmDetails.Id)}_config_normalized.json"
@@ -152,12 +151,12 @@ class FwConfigManagerListController(FwConfigManagerList):
                 with open(normalized_config_filename, "w") as json_data:
                     json_data.write(config_copy_without_native.toJsonString(prettyPrint=True))
                 time_write_debug_json = int(time.time()) - debug_start_time
-                logger.debug(f"storeFullNormalizedConfigToFile - writing normalized config json files duration {str(time_write_debug_json)}s")
+                FWOLogger.debug(f"storeFullNormalizedConfigToFile - writing normalized config json files duration {str(time_write_debug_json)}s")
                 
                 return normalized_config_filename
             
             except Exception:
-                logger.error(f"import_management - unspecified error while dumping normalized config to json file: {str(traceback.format_exc())}")
+                FWOLogger.error(f"import_management - unspecified error while dumping normalized config to json file: {str(traceback.format_exc())}")
                 raise
     
 

@@ -7,11 +7,11 @@ import string
 from typing import Any, MutableMapping
 
 import fwo_globals
-from fwo_log import get_fwo_logger
 from fwo_const import fwo_api_http_import_timeout
 from fwo_exceptions import FwoApiServiceUnavailable, FwoApiTimeout
 from query_analyzer import QueryAnalyzer
 from fwo_exceptions import FwoImporterError, FwoApiLoginFailed
+from fwo_log import FWOLogger
 from services.service_provider import ServiceProvider
 
 JSON_CONTENT_TYPE = 'application/json'
@@ -44,7 +44,6 @@ class FwoApi():
             'x-hasura-role': role 
         }
         full_query: dict[str, Any] = {"query": query, "variables": query_variables}
-        logger = get_fwo_logger(debug_level=debug_level)
         return_object = {}
 
         if analyze_payload:
@@ -60,18 +59,18 @@ class FwoApi():
 
                 if analyze_payload and self.query_info["chunking_info"]["needs_chunking"]:
                     started = time.time()
-                    return_object: dict[str, Any] = self._call_chunked(session, query, query_variables, fwo_globals.debug_level)
+                    return_object: dict[str, Any] = self._call_chunked(session, query, query_variables)
                     elapsed_time = time.time() - started
                     affected_rows = 0
                     if 'data' in return_object.keys() and 'affected_rows' in return_object['data'].keys():
                         # If the return object contains data, we can log the affected rows.
                         affected_rows = sum(obj["affected_rows"] for obj in return_object["data"].values())
-                    logger.debug(f"Chunked API call ({self.query_info['query_name']}) processed in {elapsed_time:.4f} s. Affected rows: {affected_rows}.")
+                    FWOLogger.debug(f"Chunked API call ({self.query_info['query_name']}) processed in {elapsed_time:.4f} s. Affected rows: {affected_rows}.")
                     self.query_info = {}
                 else:
                     return_object: dict[str, Any] = self._post_query(session, full_query)
 
-                self._try_show_api_call_info(full_query, request_headers, fwo_globals.debug_level)
+                self._try_show_api_call_info(full_query, request_headers)
 
                 return return_object
 
@@ -79,16 +78,16 @@ class FwoApi():
             self._handle_request_exception(e, full_query, request_headers)
         except FwoImporterError as e:
             # Handle FwoImporterError specifically, logging it and re-raising.
-            logger.error(f"FwoImporterError during API call: {str(e)}")
+            FWOLogger.error(f"FwoImporterError during API call: {str(e)}")
             raise
         except Exception as e:
             # Catch all other exceptions and log them.
-            logger.error(f"Unexpected error during API call: {str(e)}")
-            logger.debug(pformat(self.query_info))
+            FWOLogger.error(f"Unexpected error during API call: {str(e)}")
+            FWOLogger.debug(pformat(self.query_info))
             try:
-                logger.debug(pformat(return_object))
+                FWOLogger.debug(pformat(return_object))
             except NameError:
-                logger.error(f"Unexpected error during API call: {str(e)}")
+                FWOLogger.error(f"Unexpected error during API call: {str(e)}")
                 raise FwoImporterError(f"return_object not defined. Error during API call: {str(e)}")
             raise FwoImporterError(f"Unexpected error during API call: {str(e)}")
         return return_object
@@ -141,9 +140,6 @@ class FwoApi():
         url = fwo_config['user_management_api_base_url'] + endpoint.lstrip('/')
 
         with requests.Session() as session:
-
-            logger = get_fwo_logger()
-
             if fwo_globals.verify_certs is None:
                 session.verify = False
             else: 
@@ -187,7 +183,7 @@ class FwoApi():
                     return response.text
                     
             except requests.exceptions.RequestException as e:
-                logger.error(f"Middleware API request failed: {str(e)}")
+                FWOLogger.error(f"Middleware API request failed: {str(e)}")
                 raise FwoImporterError(f"Middleware API request failed: {str(e)}")
     
     def _handle_request_exception(self, exception: requests.exceptions.RequestException, query_payload: dict[str, Any], headers: dict[str, Any]) -> None:
@@ -195,10 +191,8 @@ class FwoApi():
             Error handling for the standard API call.
         """
 
-        logger = get_fwo_logger(debug_level=int(fwo_globals.debug_level))
-
         if int(fwo_globals.debug_level) > 1:
-            logger.error(self.showImportApiCallInfo(self.FwoApiUrl, query_payload, headers, typ='error') + ":\n" + str(traceback.format_exc()))
+            FWOLogger.error(self.showImportApiCallInfo(self.FwoApiUrl, query_payload, headers, typ='error') + ":\n" + str(traceback.format_exc()))
         if hasattr(exception, 'response') and exception.response is not None:
             if exception.response.status_code == 503:
                 raise FwoApiServiceUnavailable("FWO API HTTP error 503 (FWO API died?)")
@@ -207,7 +201,7 @@ class FwoApi():
         raise exception
 
 
-    def _call_chunked(self, session: requests.Session, query: str, query_variables: dict[str, list[Any]] = {}, debug_level: int = 0) -> dict[str, Any]:
+    def _call_chunked(self, session: requests.Session, query: str, query_variables: dict[str, list[Any]] = {}) -> dict[str, Any]:
         """
             Splits a defined query variable into chunks and posts the queries chunk by chunk.
         """
@@ -215,8 +209,7 @@ class FwoApi():
         chunk_number = 1
         total_processed_elements = 0
         return_object = {}
-        logger = get_fwo_logger(debug_level=debug_level)
-        logger.info(f"Processing chunked API call ({self.query_info['query_name']})...")
+        FWOLogger.info(f"Processing chunked API call ({self.query_info['query_name']})...")
 
         # Separate chunkable variables.
 
@@ -234,20 +227,17 @@ class FwoApi():
 
             self.query_info["chunking_info"]["adjusted_chunk_size"] = self.query_analyzer.get_adjusted_chunk_size(chunkable_variables)
 
-            if debug_level > 8:
-                logger.debug(f"Chunk {chunk_number}:  Chunk size adjusted\n{self.query_info['chunking_info']['adjusted_chunk_size']}")
+            FWOLogger.debug(f"Chunk {chunk_number}:  Chunk size adjusted\n{self.query_info['chunking_info']['adjusted_chunk_size']}", 9)
 
             total_chunk_elements = self._update_query_variables_by_chunk(query_variables, chunkable_variables)
 
-            if debug_level > 8:
-                logger.debug(f"Chunk {chunk_number}:  Query variables updated\n{pformat(query_variables)}")
+            FWOLogger.debug(f"Chunk {chunk_number}:  Query variables updated\n{pformat(query_variables)}", 9)
 
             # Post query.
 
             response = self._post_query(session, {"query": query, "variables": query_variables})
 
-            if debug_level > 8:
-                logger.debug(f"Chunk {chunk_number}:  Query posted")
+            FWOLogger.debug(f"Chunk {chunk_number}:  Query posted", 9)
 
             # Gather and merge returning data.
 
@@ -256,7 +246,7 @@ class FwoApi():
             # Log current state of the process and increment variables.
 
             total_processed_elements += total_chunk_elements
-            logger.debug(f"Chunk {chunk_number}: {total_processed_elements}/{self.query_info['chunking_info']['total_elements']} processed elements.")
+            FWOLogger.debug(f"Chunk {chunk_number}: {total_processed_elements}/{self.query_info['chunking_info']['total_elements']} processed elements.")
             chunk_number += 1
 
         return return_object
@@ -278,17 +268,15 @@ class FwoApi():
 
 
     def _handle_chunked_calls_response(self, return_object: dict[str, Any], response: dict[str, Any]) -> dict[str, Any]:
-        logger = get_fwo_logger(debug_level=int(fwo_globals.debug_level))
-
         if return_object == {}:
 
-            self._try_write_extended_log(debug_level=9, message=f"Return object is empty, initializing with response data: {pformat(response)}")
+            self._try_write_extended_log(message=f"Return object is empty, initializing with response data: {pformat(response)}")
 
             return response
         
         if 'errors' in response:
             error_txt = f"encountered error while handling chunked call: {str(response['errors'])}"
-            logger.error(error_txt)
+            FWOLogger.error(error_txt)
             raise FwoImporterError(error_txt)
         
         for new_return_object_type, new_return_object in response["data"].items():
@@ -296,12 +284,12 @@ class FwoApi():
                 self._handle_chunked_calls_response_with_return_data(return_object, new_return_object_type, new_return_object)
             else:
                 if 'affected_rows' not in new_return_object:
-                    logger.warning(f"no data found: {return_object} not found in return_object['data'].")
+                    FWOLogger.warning(f"no data found: {return_object} not found in return_object['data'].")
                 else:
                     if new_return_object["affected_rows"] == 0:
-                        logger.warning(f"no data found: {new_return_object} not found in return_object['data'].")
+                        FWOLogger.warning(f"no data found: {new_return_object} not found in return_object['data'].")
 
-        self._try_write_extended_log(debug_level=9, message=f"Returning object after handling chunked calls response: {pformat(return_object)}")
+        self._try_write_extended_log(message=f"Returning object after handling chunked calls response: {pformat(return_object)}")
 
         return return_object
 
@@ -311,14 +299,14 @@ class FwoApi():
         total_affected_rows = 0
         returning_data: list[dict[str, Any]] = []
 
-        self._try_write_extended_log(debug_level=9, message=f"Handling chunked calls response for type '{new_return_object_type}' with data: {pformat(new_return_object)}")
+        self._try_write_extended_log(message=f"Handling chunked calls response for type '{new_return_object_type}' with data: {pformat(new_return_object)}")
             
         if not isinstance(return_object["data"].get(new_return_object_type), dict):
             return_object["data"][new_return_object_type] = {}
             return_object["data"][new_return_object_type]["affected_rows"] = 0
             return_object["data"][new_return_object_type]["returning"] = []
 
-            self._try_write_extended_log(debug_level=9, message=f"Initialized return_object['data']['{new_return_object_type}'] as an empty dict: {pformat(return_object['data'][new_return_object_type])}")
+            self._try_write_extended_log(message=f"Initialized return_object['data']['{new_return_object_type}'] as an empty dict: {pformat(return_object['data'][new_return_object_type])}")
 
         # If the return object is a list we need to sum the affected rows and accumuluate the returning data, else we can set the values directly.
 
@@ -333,7 +321,7 @@ class FwoApi():
 
         if "returning" in return_object["data"][new_return_object_type].keys() and len(returning_data) > 0:
 
-            self._try_write_extended_log(debug_level=9, message=f"Extending return_object['data']['{new_return_object_type}']['returning'] with new data: {pformat(returning_data)}")
+            self._try_write_extended_log(message=f"Extending return_object['data']['{new_return_object_type}']['returning'] with new data: {pformat(returning_data)}")
 
             return_object["data"][new_return_object_type]["returning"].extend(returning_data)
 
@@ -343,15 +331,11 @@ class FwoApi():
             Posts the given payload to the api endpoint. Returns the response as json or None if the response object is None.
         """
 
-        logger = get_fwo_logger(debug_level=int(fwo_globals.debug_level))
-
-        if int(fwo_globals.debug_level) > 8:
-            logger.debug (self.showImportApiCallInfo(self.FwoApiUrl, query_payload, session.headers, typ='debug', show_query_info=True))
+        FWOLogger.debug(self.showImportApiCallInfo(self.FwoApiUrl, query_payload, session.headers, typ='debug', show_query_info=True), 9)
 
         r = session.post(self.FwoApiUrl, data=json.dumps(query_payload), timeout=int(fwo_api_http_import_timeout))
         
-        if int(fwo_globals.debug_level) > 9:
-            logger.debug ("API response: " + pformat(r.json(), indent=2))
+        FWOLogger.debug ("API response: " + pformat(r.json(), indent=2), 10)
 
         r.raise_for_status()
 
@@ -377,22 +361,18 @@ class FwoApi():
         result += "\n and  headers: \n" + header_string
         return result
 
-    def _try_show_api_call_info(self, full_query: dict[str, Any], request_headers: dict[str, Any], debug_level: int) -> None:
+    def _try_show_api_call_info(self, full_query: dict[str, Any], request_headers: dict[str, Any]) -> None:
         """
             Tries to show the API call info if the debug level is high enough.
         """
-        if int(debug_level) > int(debug_level):
-            logger = get_fwo_logger(debug_level=debug_level)
-            logger.debug(self.showImportApiCallInfo(self.FwoApiUrl, full_query, request_headers, typ='debug', show_query_info=True))
+        FWOLogger.debug(self.showImportApiCallInfo(self.FwoApiUrl, full_query, request_headers, typ='debug', show_query_info=True), 9)
 
 
-    def _try_write_extended_log(self, debug_level: int, message: str) -> None:
+    def _try_write_extended_log(self, message: str) -> None:
             """
                 Writes an extended log message if the debug level is high enough.
             """
-            if int(debug_level) > int(debug_level):
-                logger = get_fwo_logger(debug_level=debug_level)
-                logger.debug(message)
+            FWOLogger.debug(message, 10)
 
 
     def showImportApiCallInfo(self, api_url: str, query: dict[str, Any], headers: dict[str, Any] | MutableMapping[str, str | bytes], typ: str ='debug', show_query_info: bool = False):
@@ -429,8 +409,7 @@ class FwoApi():
                 with open(file, "r", encoding="utf-8", errors="ignore") as f:
                     code += "".join(filter(printable_chars.__contains__, f.read())) + " "
             except FileNotFoundError:
-                logger = get_fwo_logger()
-                logger.error("fwo_api: file not found: " + file)
+                FWOLogger.error("fwo_api: file not found: " + file)
                 raise
 
         return code.replace('\n', ' ').replace('\r', ' ')

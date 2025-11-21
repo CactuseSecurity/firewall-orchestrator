@@ -5,7 +5,7 @@ if TYPE_CHECKING:
     from models.fwconfig_normalized import FwConfigNormalized
     from model_controllers.import_state_controller import ImportStateController
 import fwo_const
-from fwo_log import get_fwo_logger
+from fwo_log import FWOLogger
 from services.service_provider import ServiceProvider
 from services.enums import Services
 
@@ -25,7 +25,6 @@ class GroupFlatsMapper:
     def __init__(self):
         global_state = ServiceProvider().get_service(Services.GLOBAL_STATE)
         self.import_state = global_state.import_state
-        self.logger = get_fwo_logger()
         self.network_object_flats = {}
         self.service_object_flats = {}
         self.user_flats = {}
@@ -38,7 +37,7 @@ class GroupFlatsMapper:
         Args:
             message (str): The error message to log.
         """
-        self.logger.error(message)
+        FWOLogger.error(message)
         self.import_state.appendErrorString(message)
         self.import_state.increaseErrorCounterByOne()
     

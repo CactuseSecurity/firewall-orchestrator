@@ -41,7 +41,7 @@ from services.enums import Services
 
     expects service_provider to be initialized
 """
-def import_management(mgm_id: int, api_call: FwoApiCall, ssl_verification: bool, debug_level: int, 
+def import_management(mgm_id: int, api_call: FwoApiCall, ssl_verification: bool, 
         limit: int, clear_management_data: bool, suppress_cert_warnings: bool,
         file: str | None = None) -> None:
 
@@ -53,7 +53,7 @@ def import_management(mgm_id: int, api_call: FwoApiCall, ssl_verification: bool,
 
 
     try:
-        _import_management(mgm_id, ssl_verification,file, debug_level, limit, clear_management_data, suppress_cert_warnings)
+        _import_management(mgm_id, ssl_verification,file , limit, clear_management_data, suppress_cert_warnings)
 
     except (FwLoginFailed) as e:
         importState.delete_import() # delete whole import
@@ -84,7 +84,7 @@ def import_management(mgm_id: int, api_call: FwoApiCall, ssl_verification: bool,
             FWOLogger.error(f"Error during import completion: {str(e)}")
 
 
-def _import_management(mgm_id: int, ssl_verification: bool, file: str | None, debug_level: int,
+def _import_management(mgm_id: int, ssl_verification: bool, file: str | None,
         limit: int, clear_management_data: bool, suppress_cert_warnings: bool) -> None:
 
     config_normalized : FwConfigManagerListController

@@ -1,5 +1,5 @@
 from asyncio.log import logger
-from fwo_log import get_fwo_logger
+from fwo_log import FWOLogger
 from fwo_const import list_delimiter
 
 

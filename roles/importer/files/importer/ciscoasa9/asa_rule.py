@@ -11,7 +11,7 @@ from models.rulebase import Rulebase
 from ciscoasa9.asa_models import AccessList, AccessListEntry, AsaProtocolGroup, EndpointKind
 from ciscoasa9.asa_service import create_service_for_acl_entry, create_any_protocol_service
 from ciscoasa9.asa_network import get_network_rule_endpoint
-from fwo_log import get_fwo_logger
+from fwo_log import FWOLogger
 import fwo_base
 from models.networkobject import NetworkObject
 from models.serviceobject import ServiceObject
@@ -27,7 +27,6 @@ def create_service_for_protocol_group_entry(protocol_group_name: str, protocol_g
     Returns:
         Service reference string
     """
-    logger = get_fwo_logger()
     allowed_protocols = []
     for pg in protocol_groups:
         if pg.name == protocol_group_name:
@@ -42,7 +41,7 @@ def create_service_for_protocol_group_entry(protocol_group_name: str, protocol_g
         return fwo_base.sort_and_join(svc_refs)
     else:
         # Fallback if protocol group not found
-        logger.warning(f"Protocol group '{protocol_group_name}' not found. Defaulting to tcp/udp/icmp any.")
+        FWOLogger.warning(f"Protocol group '{protocol_group_name}' not found. Defaulting to tcp/udp/icmp any.")
         svc_refs = []
         for proto in ("tcp", "udp", "icmp"):
             svc_refs.append(create_any_protocol_service(proto, service_objects))
@@ -186,8 +185,7 @@ def build_rulebases_from_access_lists(access_lists: list[AccessList], mgm_uid: s
                 gateway_uid
             )
             if rule.rule_uid is None:
-                logger = get_fwo_logger()
-                logger.error(f"Failed to create rule UID for ACL entry: {entry}")
+                FWOLogger.error(f"Failed to create rule UID for ACL entry: {entry}")
                 raise ValueError("Rule UID generation failed.")
             rules[rule.rule_uid] = rule
 

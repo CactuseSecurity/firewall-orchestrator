@@ -9,12 +9,12 @@ import time
 
 import fwo_config
 import fwo_const
-from fwo_const import csv_delimiter, apostrophe, line_delimiter
+from fwo_const import apostrophe, line_delimiter
 from fwo_enums import ConfFormat, ConfigAction
-from fwo_log import get_fwo_logger
 from model_controllers.fwconfig_import_ruleorder import RuleOrderService
 if TYPE_CHECKING:
     from model_controllers.import_state_controller import ImportStateController
+from fwo_log import FWOLogger
 from services.service_provider import ServiceProvider
 from services.global_state import GlobalState
 from services.enums import Services, Lifetime
@@ -135,8 +135,6 @@ def deserialize_class_to_dict_rec(obj: Any, seen: set[int] | None = None) -> dic
 
 
 def cidr_to_range(ip: str | None) -> list[str] | list[None]: # TODO: I have no idea what other than string it could be
-    logger = get_fwo_logger()
-
     if isinstance(ip, str): # type: ignore
         # dealing with ranges:
         if '-' in ip:
@@ -144,7 +142,7 @@ def cidr_to_range(ip: str | None) -> list[str] | list[None]: # TODO: I have no i
 
         ipVersion = valid_ip_address(ip)
         if ipVersion=='Invalid':
-            logger.warning("error while decoding ip '" + ip + "'")
+            FWOLogger.warning("error while decoding ip '" + ip + "'")
             return [ip]
         elif ipVersion=='IPv4':
             net = ipaddress.IPv4Network(ip)
@@ -285,19 +283,18 @@ def compute_min_moves(source: list[Any], target: list[Any]) -> dict[str, Any]:
 
 def write_native_config_to_file(importState: 'ImportStateController', configNative: dict[str, Any] | None) -> None:
     from fwo_const import import_tmp_path
-    if importState.DebugLevel>6:
-        logger = get_fwo_logger(debug_level=importState.DebugLevel)
+    if FWOLogger.is_debug_level(7):
         debug_start_time = int(time.time())
         try:
             full_native_config_filename = f"{import_tmp_path}/mgm_id_{str(importState.MgmDetails.Id)}_config_native.json"
             with open(full_native_config_filename, "w") as json_data:
                 json_data.write(json.dumps(configNative, indent=2))
         except Exception:
-            logger.error(f"import_management - unspecified error while dumping config to json file: {str(traceback.format_exc())}")
+            FWOLogger.error(f"import_management - unspecified error while dumping config to json file: {str(traceback.format_exc())}")
             raise
 
         time_write_debug_json = int(time.time()) - debug_start_time
-        logger.debug(f"import_management - writing debug config json files duration {str(time_write_debug_json)}s")
+        FWOLogger.debug(f"import_management - writing debug config json files duration {str(time_write_debug_json)}s")
 
 
 def init_service_provider() -> ServiceProvider:

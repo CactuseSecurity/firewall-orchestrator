@@ -4,7 +4,7 @@ import datetime
 import json
 from typing import Any
 
-from fwo_log import ChangeLogger, get_fwo_logger
+from fwo_log import ChangeLogger, FWOLogger
 from model_controllers.import_state_controller import ImportStateController
 from model_controllers.fwconfig_normalized_controller import FwConfigNormalized
 from models.networkobject import NetworkObjectForImport
@@ -181,8 +181,7 @@ class FwConfigImportObject():
         try:
             result = self.import_state.api_call.call(query=query, query_variables={})
         except Exception as e:
-            logger = get_fwo_logger()
-            logger.error(f"Error while getting stm_obj_typ: str{e}")
+            FWOLogger.error(f"Error while getting stm_obj_typ: str{e}")
             return {}
         
         nwobj_type_map: dict[str, Any] = {}
@@ -195,8 +194,7 @@ class FwConfigImportObject():
         try:
             result = self.import_state.api_call.call(query=query, query_variables={})
         except Exception as e:
-            logger = get_fwo_logger()
-            logger.error(f"Error while getting stm_svc_typ: {str(e)}")
+            FWOLogger.error(f"Error while getting stm_svc_typ: {str(e)}")
             return {}
         
         svc_type_map: dict[str, Any] = {}
@@ -209,8 +207,7 @@ class FwConfigImportObject():
         try:
             result = self.import_state.api_call.call(query=query, query_variables={})
         except Exception as e:
-            logger = get_fwo_logger()
-            logger.error(f"Error while getting stm_usr_typ: {str(e)}")
+            FWOLogger.error(f"Error while getting stm_usr_typ: {str(e)}")
             return {}
         
         user_type_map: dict[str, Any] = {}
@@ -223,8 +220,7 @@ class FwConfigImportObject():
         try:
             result = self.import_state.api_call.call(query=query, query_variables={})
         except Exception as e:
-            logger = get_fwo_logger()
-            logger.error(f"Error while getting stm_ip_proto: {str(e)}")
+            FWOLogger.error(f"Error while getting stm_ip_proto: {str(e)}")
             return {}
         
         protocol_map: dict[str, Any] = {}
@@ -234,7 +230,6 @@ class FwConfigImportObject():
 
     def update_objects_via_api(self, single_manager: FwConfigManager, newNwObjectUids: list[str], newSvcObjectUids: list[str], newUserUids: list[str], new_zone_names: list[str], removedNwObjectUids: list[str], removedSvcObjectUids: list[str], removedUserUids: list[str], removed_zone_names: list[str]):
         # here we also mark old objects removed before adding the new versions
-        logger = get_fwo_logger(debug_level=self.import_state.DebugLevel)
         new_nwobj_ids = []
         new_nwsvc_ids = []
         new_user_ids = []
@@ -260,13 +255,12 @@ class FwConfigImportObject():
             'removedZoneUids': removed_zone_names
         }
 
-        if self.import_state.DebugLevel>8:
-            logger.debug(f"fwo_api:importNwObject - import_mutation: {import_mutation}")
-            # Save the query variables to a file for debugging purposes.
+        FWOLogger.debug(f"fwo_api:importNwObject - import_mutation: {import_mutation}", 9)
+        if FWOLogger.is_debug_level(9):
             json.dump(query_variables, open(f"/usr/local/fworch/tmp/import/mgm_id_{self.import_state.MgmDetails.Id}_query_variables.json", "w"), indent=4)
 
         try:
-            import_result = self.import_state.api_call.call(import_mutation, query_variables=query_variables, debug_level=self.import_state.DebugLevel, analyze_payload=True)
+            import_result = self.import_state.api_call.call(import_mutation, query_variables=query_variables, analyze_payload=True)
             if 'errors' in import_result:
                 raise FwoImporterError(f"failed to update objects in updateObjectsViaApi: {str(import_result['errors'])}")
             else:
@@ -286,7 +280,7 @@ class FwConfigImportObject():
                 removed_user_ids = import_result['data']['update_usr']['returning']
                 removed_zone_ids = import_result['data']['update_zone']['returning']
         except Exception:
-            # logger.exception(f"failed to update objects: {str(traceback.format_exc())}")
+            # FWOLogger.exception(f"failed to update objects: {str(traceback.format_exc())}")
             raise FwoImporterError(f"failed to update objects: {str(traceback.format_exc())}")
         return new_nwobj_ids, new_nwsvc_ids, new_user_ids, new_zone_ids, removed_nwobj_ids, removed_nwsvc_ids, removed_user_ids, removed_zone_ids
     
@@ -449,14 +443,12 @@ class FwConfigImportObject():
         try:
             import_result = self.import_state.api_call.call(import_mutation, query_variables, analyze_payload=True)
             if 'errors' in import_result:
-                logger = get_fwo_logger()
-                logger.exception(f"fwo_api:importNwObject - error in removeOutdated{prefix.capitalize()}Memberships: {str(import_result['errors'])}")
+                FWOLogger.exception(f"fwo_api:importNwObject - error in removeOutdated{prefix.capitalize()}Memberships: {str(import_result['errors'])}")
             else:
                 changes = int(import_result['data'][f'update_{prefix}']['affected_rows']) + \
                     int(import_result['data'][f'update_{prefix}_flat']['affected_rows'])
         except Exception:
-            logger = get_fwo_logger()
-            logger.exception(f"failed to remove outdated group memberships for {type}: {str(traceback.format_exc())}")
+            FWOLogger.exception(f"failed to remove outdated group memberships for {type}: {str(traceback.format_exc())}")
             errors = 1
 
         return errors, changes
@@ -524,8 +516,7 @@ class FwConfigImportObject():
 
             group_id = self.get_id(obj_type, uid)
             if group_id is None:
-                logger = get_fwo_logger()
-                logger.error(f"failed to add group memberships: no id found for group uid '{uid}'")
+                FWOLogger.error(f"failed to add group memberships: no id found for group uid '{uid}'")
                 continue
             self.collect_group_members(group_id, current_config_objects, new_group_members, member_uids, obj_type, prefix, prev_member_uids, prev_config_objects)
             flat_member_uids = self.get_flats(obj_type, uid)
@@ -564,7 +555,6 @@ class FwConfigImportObject():
 
 
     def write_member_updates(self, new_group_members: list[dict[str, Any]], new_group_member_flats: list[dict[str, Any]], prefix: str, errors: int) -> tuple[int, int]:
-        logger = get_fwo_logger()
         changes = 0
         import_mutation = f"""
             mutation update{prefix.capitalize()}Groups($groups: [{prefix}_insert_input!]!, $groupFlats: [{prefix}_flat_insert_input!]!) {{
@@ -583,7 +573,7 @@ class FwConfigImportObject():
         try:
             import_result = self.import_state.api_call.call(import_mutation, query_variables=query_variables, analyze_payload=True)
             if 'errors' in import_result:
-                logger.exception(f"fwo_api:addGroupMemberships: {str(import_result['errors'])}")
+                FWOLogger.exception(f"fwo_api:addGroupMemberships: {str(import_result['errors'])}")
                 errors = 1
                 if 'duplicate' in import_result['errors']:
                     raise FwoDuplicateKeyViolation(str(import_result['errors']))
@@ -593,7 +583,7 @@ class FwConfigImportObject():
                 changes = int(import_result['data'][f'insert_{prefix}']['affected_rows']) + \
                     int(import_result['data'][f'insert_{prefix}_flat']['affected_rows'])
         except Exception:
-            logger.exception(f"failed to write new objects: {str(traceback.format_exc())}")
+            FWOLogger.exception(f"failed to write new objects: {str(traceback.format_exc())}")
             raise
         
         return errors, changes
@@ -621,7 +611,7 @@ class FwConfigImportObject():
     def lookup_proto_name_to_id(self, proto_str: str | int) -> int | None:
         if isinstance(proto_str, int):
             # logger = getFwoLogger()
-            # logger.warning(f"found protocol with an id as name: {str(proto_str)}")
+            # FWOLogger.warning(f"found protocol with an id as name: {str(proto_str)}")
             return proto_str  # already an int, do nothing
         else:
             return self.ProtocolMap.get(proto_str.lower(), None)
@@ -669,7 +659,6 @@ class FwConfigImportObject():
 
 
     def add_changelog_objs(self, nwobj_ids_added: list[dict[str, int]], svc_obj_ids_added: list[dict[str, int]], nw_obj_ids_removed: list[dict[str, int]], svc_obj_ids_removed: list[dict[str, int]]):
-        logger = get_fwo_logger()
         errors = 0
 
         nwobjs_changed, svcobjs_changed = self.prepare_changelog_objects(nwobj_ids_added, svc_obj_ids_added, nw_obj_ids_removed, svc_obj_ids_removed)
@@ -693,10 +682,10 @@ class FwConfigImportObject():
             try:
                 changelog_result = self.import_state.api_call.call(changelog_mutation, query_variables=query_variables, analyze_payload=True)
                 if 'errors' in changelog_result:
-                    logger.exception(f"error while adding changelog entries for objects: {str(changelog_result['errors'])}")
+                    FWOLogger.exception(f"error while adding changelog entries for objects: {str(changelog_result['errors'])}")
                     errors = 1
             except Exception:
-                logger.exception(f"fatal error while adding changelog entries for objects: {str(traceback.format_exc())}")
+                FWOLogger.exception(f"fatal error while adding changelog entries for objects: {str(traceback.format_exc())}")
                 errors = 1
         
         return errors

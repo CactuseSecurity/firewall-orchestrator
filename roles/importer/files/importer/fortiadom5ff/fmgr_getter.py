@@ -1,5 +1,5 @@
 # library for API get functions
-from fwo_log import get_fwo_logger
+from fwo_log import FWOLogger
 import requests
 import json
 from typing import Any
@@ -9,7 +9,6 @@ from models.management import Management
 
 
 def api_call(url: str, command: str, json_payload: dict[str, Any], sid: str, show_progress: bool=False, method: str='') -> dict[str, Any]:
-    logger = get_fwo_logger()
     request_headers = {'Content-Type': 'application/json'}
     if sid != '':
         json_payload.update({'session': sid})
@@ -45,13 +44,12 @@ def api_call(url: str, command: str, json_payload: dict[str, Any], sid: str, sho
             raise FwApiCallFailed(exception_text)
     if 'status' not in result_json['result'][0] or 'code' not in result_json['result'][0]['status'] or result_json['result'][0]['status']['code'] != 0:
         # trying to ignore empty results as valid
-        pass # logger.warning('received empty result')
-    if fwo_globals.debug_level>2:
-        if 'pass' in json.dumps(json_payload):
-            logger.debug('api_call containing credential information to url ' + str(url) + ' - not logging query')
-        else:
-            logger.debug('api_call to url ' + str(url) + ' with payload ' + json.dumps(
-                json_payload, indent=2) + ' and  headers: ' + json.dumps(request_headers, indent=2))
+        pass # FWOLogger.warning('received empty result')
+    if 'pass' in json.dumps(json_payload):
+        FWOLogger.debug('api_call containing credential information to url ' + str(url) + ' - not logging query', 3)
+    else:
+        FWOLogger.debug('api_call to url ' + str(url) + ' with payload ' + json.dumps(
+            json_payload, indent=2) + ' and  headers: ' + json.dumps(request_headers, indent=2), 3)
 
     return result_json
 
@@ -71,12 +69,11 @@ def login(user: str, password: str, base_url: str) -> str | None:
 
 
 def logout(v_url: str, sid: str, method: str ='exec'):
-    logger = get_fwo_logger()
     payload: dict[str, Any] = {'params': [{}]}
 
     response = api_call(v_url, 'sys/logout', payload, sid, method=method)
     if 'result' in response and 'status' in response['result'][0] and 'code' in response['result'][0]['status'] and response['result'][0]['status']['code'] == 0:
-        logger.debug('successfully logged out')
+        FWOLogger.debug('successfully logged out')
     else:
         raise FwLogoutFailed( 'fmgr_getter ERROR: did not get status code 0 when logging out, ' + 
                             'api call: url: ' + str(v_url) + ',  + payload: ' + str(payload))
@@ -116,8 +113,7 @@ def parse_special_fortinet_api_results(result_name: str, full_result: list[Any])
         if len(full_result)>0 and 'response' in full_result[0] and 'results' in full_result[0]['response']: 
             full_result = full_result[0]['response']['results']
         else:
-            logger = get_fwo_logger()
-            logger.warning(f"did not get expected results for {result_name} - setting to empty list")
+            FWOLogger.warning(f"did not get expected results for {result_name} - setting to empty list")
             full_result = []
     return full_result
 

@@ -1,10 +1,8 @@
-from asyncio.log import logger
 import json
 from typing import Any
 import ast
 
-from fwo_log import get_fwo_logger
-import fwo_globals
+from fwo_log import FWOLogger
 from fwo_const import list_delimiter, default_section_header_text
 from fwo_base import sanitize, sort_and_join_refs
 from fwo_exceptions import FwoImporterErrorInconsistencies
@@ -47,7 +45,6 @@ def normalize_rulebases (nativeConfig: dict[str, Any], native_config_global: dic
 def normalize_rulebases_for_each_link_destination(
         gateway: dict[str, Any], fetched_rulebase_uids: list[str], nativeConfig: dict[str, Any], 
         native_config_global: dict[str, Any] | None, is_global_loop_iteration: bool, importState: ImportStateController, normalized_config_dict: dict[str, Any], normalized_config_global: dict[str, Any]):
-    logger = get_fwo_logger()
     for rulebase_link in gateway['rulebase_links']:
         if rulebase_link['to_rulebase_uid'] not in fetched_rulebase_uids and rulebase_link['to_rulebase_uid'] != '':
             rulebase_to_parse, is_section, is_placeholder = find_rulebase_to_parse(
@@ -60,7 +57,7 @@ def normalize_rulebases_for_each_link_destination(
                     )
                 found_rulebase_in_global = True
             if rulebase_to_parse == {}:
-                logger.warning('found to_rulebase link without rulebase in nativeConfig: ' + str(rulebase_link))
+                FWOLogger.warning('found to_rulebase link without rulebase in nativeConfig: ' + str(rulebase_link))
                 continue
             normalized_rulebase = initialize_normalized_rulebase(rulebase_to_parse, importState.MgmDetails.Uid)
             parse_rulebase(rulebase_to_parse, is_section, is_placeholder, normalized_rulebase, gateway, nativeConfig['policies'])
@@ -128,15 +125,12 @@ def initialize_normalized_rulebase(rulebase_to_parse: dict[str, Any], mgm_uid: s
     return normalized_rulebase
 
 def parse_rulebase(rulebase_to_parse: dict[str, Any], is_section: bool, is_placeholder: bool, normalized_rulebase: Rulebase, gateway: dict[str, Any], policy_structure: list[dict[str, Any]]):
-    logger = get_fwo_logger()
-
     if is_section:
         for rule in rulebase_to_parse['rulebase']:
             # delte_v sind import_id, parent_uid, config2import wirklich egal? Dann können wir diese argumente löschen - NAT ACHTUNG
             parse_single_rule(rule, normalized_rulebase, normalized_rulebase.uid, None, gateway, policy_structure)
 
-        if fwo_globals.debug_level>3:
-            logger.debug("parsed rulebase " + normalized_rulebase.uid)
+            FWOLogger.debug("parsed rulebase " + normalized_rulebase.uid, 4)
         return
     elif is_placeholder:
         parse_single_rule(rulebase_to_parse, normalized_rulebase, normalized_rulebase.uid, None, gateway, policy_structure)
@@ -144,19 +138,17 @@ def parse_rulebase(rulebase_to_parse: dict[str, Any], is_section: bool, is_place
         parse_rulebase_chunk(rulebase_to_parse, normalized_rulebase, gateway, policy_structure)                    
 
 def parse_rulebase_chunk(rulebase_to_parse: dict[str, Any], normalized_rulebase: Rulebase, gateway: dict[str, Any], policy_structure: list[dict[str, Any]]):
-    logger = get_fwo_logger()
     for chunk in rulebase_to_parse['chunks']:
         for rule in chunk['rulebase']:
             if 'rule-number' in rule:
                 parse_single_rule(rule, normalized_rulebase, normalized_rulebase.uid, None, gateway, policy_structure)
             else:
-                logger.debug("found unparsable rulebase: " + str(rulebase_to_parse))
+                FWOLogger.debug("found unparsable rulebase: " + str(rulebase_to_parse))
     return
  
 
 def accept_malformed_parts(objects: dict[str, Any] | list[dict[str, Any]], part: str ='') -> dict[str, Any]:
-    if fwo_globals.debug_level>9:
-        logger.debug(f'about to accept malformed rule part ({part}): {str(objects)}')
+    FWOLogger.debug(f'about to accept malformed rule part ({part}): {str(objects)}')
 
     # if we are dealing with a list with one element, resolve the list
     if isinstance(objects, list) and len(objects)==1:
@@ -172,10 +164,10 @@ def accept_malformed_parts(objects: dict[str, Any] | list[dict[str, Any]], part:
         elif part == 'track':
             return { 'track': objects.get('type', {}).get('name', None) }
         else:
-            logger.warning(f'found no uid or name in rule part ({part}): {str(objects)}')
+            FWOLogger.warning(f'found no uid or name in rule part ({part}): {str(objects)}')
             return {}
     else:
-        logger.warning(f'objects is not a dictionary: {str(objects)}')
+        FWOLogger.warning(f'objects is not a dictionary: {str(objects)}')
         return {}
 
 
@@ -183,7 +175,7 @@ def parse_rule_part(objects: dict[str, Any] | list[dict[str, Any] | None] | None
     addressObjects: dict[str, Any] = {}
 
     if objects is None:
-        logger.debug(f"rule part {part} is None: {str(objects)}, which is normal for track field in inline layer guards")
+        FWOLogger.debug(f"rule part {part} is None: {str(objects)}, which is normal for track field in inline layer guards")
         return None # type: ignore #TODO: check if this is ok or should raise an Exception
 
     if 'chunks' in objects:  # for chunks of actions?!
@@ -194,7 +186,7 @@ def parse_rule_part(objects: dict[str, Any] | list[dict[str, Any] | None] | None
     # assuming list of objects
     for obj in objects:
         if obj is None:
-            logger.warning(f'found list with a single None obj: {str(objects)}')
+            FWOLogger.warning(f'found list with a single None obj: {str(objects)}')
             continue
         if 'chunks' in obj:
             addressObjects.update(parse_rule_part(obj['chunks'], part=part)) # need to parse chunk first # type: ignore # TODO: check if this is ok or should raise an Exception
@@ -209,7 +201,7 @@ def parse_rule_part(objects: dict[str, Any] | list[dict[str, Any] | None] | None
                 return accept_malformed_parts(objects, part=part) # type: ignore # TODO: check if this is ok or should raise an Exception
 
     if '' in addressObjects.values():
-        logger.warning('found empty name in one rule part (' + part + '): ' + str(addressObjects))
+        FWOLogger.warning('found empty name in one rule part (' + part + '): ' + str(addressObjects))
 
     return addressObjects
 
@@ -252,7 +244,6 @@ def _parse_obj_with_access_role(obj: dict[str,Any], addressObjects: dict[str,Any
 
 
 def parse_single_rule(native_rule: dict[str, Any], rulebase: Rulebase, layer_name: str, parent_uid: str | None, gateway: dict[str, Any], policy_structure: list[dict[str, Any]]):
-    logger = get_fwo_logger()
 
     # reference to domain rule layer, filling up basic fields
     if not('type' in native_rule and native_rule['type'] != 'place-holder' and 'rule-number' in native_rule):  # standard rule, no section header
@@ -276,7 +267,7 @@ def parse_single_rule(native_rule: dict[str, Any], rulebase: Rulebase, layer_nam
         rule_action = list_delimiter.join(action_objects.values()) # expecting only a single action
     else:
         rule_action = None
-        logger.warning('found rule without action: ' + str(native_rule))
+        FWOLogger.warning('found rule without action: ' + str(native_rule))
 
     time_objects = parse_rule_part (native_rule['time'], 'time')
     rule_time = list_delimiter.join(time_objects.values()) if time_objects else None
@@ -344,7 +335,7 @@ def _parse_parent_rule_uid(parent_uid: str | None, native_rule: dict[str,Any]) -
 
     # new in v5.1.17:
     if 'parent_rule_uid' in native_rule:
-        logger.debug(
+        FWOLogger.debug(
             'found rule (uid=' + native_rule['uid'] + ') with parent_rule_uid set: ' + native_rule['parent_rule_uid'])
         parent_rule_uid = native_rule['parent_rule_uid']
     else:
@@ -412,8 +403,7 @@ def resolve_nwobj_uid_to_name(nw_obj_uid: str) -> str:
     if nw_obj_uid in uid_to_name_map:
         return uid_to_name_map[nw_obj_uid]
     else:
-        logger = get_fwo_logger()
-        logger.warning("could not resolve network object with uid " + nw_obj_uid)
+        FWOLogger.warning("could not resolve network object with uid " + nw_obj_uid)
         return ""
     
 
@@ -452,7 +442,7 @@ def insert_section_header_rule(target_rulebase: Rulebase, section_name: str, lay
 #                     rule_num = parse_nat_rulebase(rules_chunk, target_rulebase, layer_name, import_id, rule_num,
 #                                                        section_header_uids, parent_uid, config2import, debug_level=debug_level, recursion_level=recursion_level+1)
 #             else:
-#                 logger.warning(
+#                 FWOLogger.warning(
 #                     "parse_rule: found no rulebase in chunk:\n" + json.dumps(chunk, indent=2))
 #     else:
 #         if 'rulebase' in src_rulebase:
@@ -489,7 +479,7 @@ def insert_section_header_rule(target_rulebase: Rulebase, section_name: str, lay
 #                     rule_num = parseNatRulebase(rules_chunk, target_rulebase, layer_name, import_id, rule_num,
 #                                                        section_header_uids, parent_uid, config2import, debug_level=debug_level, recursion_level=recursion_level+1)
 #             else:
-#                 logger.warning(
+#                 FWOLogger.warning(
 #                     "parse_rule: found no rulebase in chunk:\n" + json.dumps(chunk, indent=2))
 #     else:
 #         if 'rulebase' in src_rulebase:

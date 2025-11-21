@@ -1,10 +1,9 @@
 from typing import Any
-from fwo_log import get_fwo_logger
+from fwo_log import FWOLogger
 import json
 
 def collect_users_from_rule(rule: dict[str, Any], users: dict[str, Any]): #, objDict):
     if 'rule-number' in rule:  # standard rule
-        logger = get_fwo_logger()
         if 'type' in rule and rule['type'] != 'place-holder':
             for src in rule["source"]:
                 # need to get all details for the user first!
@@ -37,7 +36,7 @@ def collect_users_from_rule(rule: dict[str, Any], users: dict[str, Any]): #, obj
                         users.update({user_name: {'user_uid': user_uid, 'user_typ': user_typ,
                                      'user_comment': user_comment, 'user_color': user_color}})
                 else:
-                    logger.warning("found src user without type field: " + json.dumps(src))
+                    FWOLogger.warning("found src user without type field: " + json.dumps(src))
                     if 'name' in src and 'uid' in src:
                         users.update({src["name"]: {'user_uid': src["uid"], 'user_typ': 'simple'}})
 

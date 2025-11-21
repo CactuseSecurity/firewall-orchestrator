@@ -6,7 +6,7 @@ from azure_service import normalize_svcobjects
 from azure_rule import normalize_access_rules
 from azure_network import normalize_nwobjects
 from azure_getter import login, update_config_with_azure_api_call
-from fwo_log import get_fwo_logger
+from fwo_log import FWOLogger
 from azure_base import azure_api_version_str
 from models.import_state import ImportState
 
@@ -16,7 +16,6 @@ def has_config_changed(_: dict[str, Any], __: ImportState, ___: bool = False) ->
 
 
 def get_config(config2import: dict[str, Any], full_config: dict[str, Any], current_import_id: str, mgm_details: dict[str, Any], jwt: str=''):
-    logger = get_fwo_logger()
     if full_config == {}:   # no native config was passed in, so getting it from Azzure
         parsing_config_only = False
     else:
@@ -44,7 +43,7 @@ def get_config(config2import: dict[str, Any], full_config: dict[str, Any], curre
         # login
         azure_jwt = login(azure_user, azure_password, azure_tenant_id, azure_client_id, azure_client_secret)
         if azure_jwt is None or azure_jwt == "":
-            logger.error('Did not succeed in logging in to Azure API, no jwt returned.')
+            FWOLogger.error('Did not succeed in logging in to Azure API, no jwt returned.')
             return 1
 
         # get objects:
@@ -136,4 +135,4 @@ def extract_user_objects(rule: str, config: dict[str, Any]):
 #         # remove device if not in fwo api
 #         if found == False:
 #             config["devices"].remove(cisco_api_device)
-#             logger.info("Device \"" + cisco_api_device["name"] + "\" was found but it is not registered in FWO. Ignoring it.")
+#             FWOLogger.info("Device \"" + cisco_api_device["name"] + "\" was found but it is not registered in FWO. Ignoring it.")

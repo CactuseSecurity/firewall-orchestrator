@@ -3,7 +3,7 @@
 import sys
 import traceback
 import warnings
-from fwo_log import FWOLogger, get_fwo_logger
+from fwo_log import FWOLogger
 import argparse
 import urllib3
 from common import importer_base_dir, import_management
@@ -19,19 +19,21 @@ if importer_base_dir not in sys.path:
     sys.path.append(importer_base_dir)
 
 def get_fwo_jwt(import_user: str, import_pwd: str, user_management_api: str) -> str | None:
-    logger = get_fwo_logger()
     try:
         jwt = FwoApi.login(import_user, import_pwd, user_management_api)
         return jwt
     except FwoApiLoginFailed as e:
-        logger.error(e.message)
+        FWOLogger.error(e.message)
     except Exception:
-        logger.error("import-main-loop - unspecified error during FWO API login - skipping: " + str(traceback.format_exc()))
+        FWOLogger.error("import-main-loop - unspecified error during FWO API login - skipping: " + str(traceback.format_exc()))
 
 
 def main(mgm_id: int, file: str | None = None, debug_level: int = 0, verify_certificates: bool = False, force: bool = False, limit: int = 150, clear_management_data: bool = False, suppress_certificate_warnings: bool = False):
     print("debug level set to " + str(debug_level))
     FWOLogger(debug_level)
+
+    FWOLogger.debug("test")
+
     service_provider = init_service_provider()
     fwo_config = service_provider.get_fwo_config()
     fwo_api_base_url = fwo_config['fwo_api_base_url']
@@ -67,10 +69,10 @@ def main(mgm_id: int, file: str | None = None, debug_level: int = 0, verify_cert
     if not suppress_certificate_warnings:
         warnings.resetwarnings()
 
-    import_state = ImportStateController.initializeImport(mgm_id, jwt, debug_level, suppress_certificate_warnings, verify_certificates, force, fwo_major_version, clear_management_data, isFullImport=True)
+    import_state = ImportStateController.initializeImport(mgm_id, jwt, suppress_certificate_warnings, verify_certificates, force, fwo_major_version, clear_management_data, isFullImport=True)
     register_global_state(import_state)
 
-    import_management(mgm_id, fwo_api_call, verify_certificates, debug_level, limit, clear_management_data, suppress_certificate_warnings, file)
+    import_management(mgm_id, fwo_api_call, verify_certificates, limit, clear_management_data, suppress_certificate_warnings, file)
     
 
 if __name__ == "__main__": 
@@ -116,7 +118,6 @@ if __name__ == "__main__":
             args.suppress_certificate_warnings,
         )
     except Exception:
-        logger = get_fwo_logger()
-        logger.error("import-mgm - error while importing mgmId=" + str(args.mgmId) + ": " + str(traceback.format_exc()))
+        FWOLogger.error("import-mgm - error while importing mgmId=" + str(args.mgmId) + ": " + str(traceback.format_exc()))
 
     sys.exit()

@@ -88,7 +88,9 @@ class FWOLogger():
         return cls.instance
     
     def __init__(self, debug_level: int = 0):
+        print("debug level set toriercecri " + str(debug_level))
         self.logger = get_fwo_logger(debug_level)
+        self.debug_level = debug_level
 
     def get_logger(self) -> logging.Logger:
         return self.logger
@@ -102,14 +104,29 @@ class FWOLogger():
 
     @staticmethod
     def debug(msg: str, needed_level: int = 1):
-        log = FWOLogger().get_logger()
-        if FWOLogger().debug_level >= needed_level:
+        log = FWOLogger.instance.get_logger()
+        if FWOLogger.instance.debug_level >= needed_level:
             log.debug(msg)
 
     @staticmethod
     def error(msg: str):
-        logger = FWOLogger().get_logger()
+        logger = FWOLogger.instance.get_logger()
         logger.error(msg)
+
+    @staticmethod
+    def info(msg: str):
+        logger = FWOLogger.instance.get_logger()
+        logger.info(msg)
+    
+    @staticmethod
+    def warning(msg: str):
+        logger = FWOLogger.instance.get_logger()
+        logger.warning(msg)
+
+    @staticmethod
+    def exception(msg: str, exc_info: Any = None):
+        logger = FWOLogger.instance.get_logger()
+        logger.exception(msg, exc_info=exc_info)
 
 def get_fwo_logger(debug_level: int = 0) -> logging.Logger:
     if int(debug_level) >= 1:

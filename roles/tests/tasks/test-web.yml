@@ -1,5 +1,9 @@
 # this playbook contains web server availabitlity tests
 
+- name: disable tls certificate validation for web tests
+  ansible.builtin.set_fact:
+    web_validate_certs: false
+
 - name: test middleware web server availability
   uri:
     url: "{{ middleware_uri }}/swagger/"
@@ -7,7 +11,7 @@
     headers:
       Content-Type: html/text
     body:
-    validate_certs: false
+    validate_certs: "{{ web_validate_certs }}"  # NOSONAR - self-signed certs in tests
     return_content: true
   register: web_call_result
   changed_when: false
@@ -29,7 +33,7 @@
     headers:
       Content-Type: html/text
     body:
-    validate_certs: false
+    validate_certs: "{{ web_validate_certs }}"  # NOSONAR - self-signed certs in tests
     return_content: true
   register: web_call_result
   changed_when: false
@@ -51,7 +55,7 @@
     headers:
       Content-Type: html/text
     body:
-    validate_certs: false
+    validate_certs: "{{ web_validate_certs }}"  # NOSONAR - self-signed certs in tests
     return_content: true
   register: web_call_result
   changed_when: false

@@ -3,7 +3,7 @@
 		{
 			"path": "."
 		},
-        { "path": "roles/tests-unit/files/FWO.Test" },
+        { "path": "roles/tests/files/FWO.Test" },
 		{
 			"path": "roles"
 		}

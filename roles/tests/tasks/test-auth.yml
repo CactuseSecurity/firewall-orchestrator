@@ -8,6 +8,10 @@
       delay: 10
       timeout: 25
 
+- name: disable tls certificate validation for middleware auth tests
+  ansible.builtin.set_fact:
+      middleware_validate_certs: false
+
 - name: middleware test get jwt valid creds
   ansible.builtin.uri:
       url: "https://{{ middleware_hostname }}:{{ middleware_web_listener_port }}/api/AuthenticationToken/Get/"
@@ -18,7 +22,7 @@
           Username: "user1{{ test_postfix }}"
           Password: "{{ test_user1_pw }}"
       body_format: json
-      validate_certs: false
+      validate_certs: "{{ middleware_validate_certs }}"  # NOSONAR - self-signed certs in tests
       return_content: true
   register: sample_jwt
   changed_when: false
@@ -102,7 +106,7 @@
           Username: "user1{{ test_postfix }}"
           Password: "wrong-pwd"
       body_format: json
-      validate_certs: false
+      validate_certs: "{{ middleware_validate_certs }}"  # NOSONAR - self-signed certs in tests
       return_content: true
   register: sample_jwt
   changed_when: false

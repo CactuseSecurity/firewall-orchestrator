@@ -1,0 +1,15 @@
+- name: run unit tests
+  tags:
+    - test
+    - unittests
+  include_tasks: unit.yml
+  when:
+    - (run_unit_tests | default(true)) | bool
+
+- name: run integration tests
+  tags:
+    - test
+    - integrationtests
+  include_tasks: integration.yml
+  when:
+    - (run_integration_tests | default(true)) | bool

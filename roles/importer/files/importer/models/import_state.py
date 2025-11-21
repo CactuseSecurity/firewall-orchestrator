@@ -13,7 +13,7 @@ class ImportState():
     MgmDetails: ManagementController
     ImportId: int
     ImportFileName: str
-    ForceImport: str
+    ForceImport: bool
     ImportVersion: int
     DataRetentionDays: int
     DaysSinceLastFullImport: int

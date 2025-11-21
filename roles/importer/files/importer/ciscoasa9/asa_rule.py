@@ -5,18 +5,19 @@ It processes ACL entries and converts them into normalized rules with proper
 service, source, and destination references.
 """
 
-from typing import List, Dict
 from netaddr import IPNetwork
 from models.rule import RuleNormalized, RuleAction, RuleTrack, RuleType
 from models.rulebase import Rulebase
-from ciscoasa9.asa_models import AccessList, AccessListEntry, AsaProtocolGroup
+from ciscoasa9.asa_models import AccessList, AccessListEntry, AsaProtocolGroup, EndpointKind
 from ciscoasa9.asa_service import create_service_for_acl_entry, create_any_protocol_service
 from ciscoasa9.asa_network import get_network_rule_endpoint
-from fwo_log import getFwoLogger
+from fwo_log import FWOLogger
 import fwo_base
+from models.networkobject import NetworkObject
+from models.serviceobject import ServiceObject
 
 
-def create_service_for_protocol_group_entry(protocol_group_name: str, protocol_groups: List[AsaProtocolGroup], service_objects: Dict) -> str:
+def create_service_for_protocol_group_entry(protocol_group_name: str, protocol_groups: list[AsaProtocolGroup], service_objects: dict[str, ServiceObject]) -> str:
     """Resolve service reference for a protocol group.
 
     Args:
@@ -26,7 +27,6 @@ def create_service_for_protocol_group_entry(protocol_group_name: str, protocol_g
     Returns:
         Service reference string
     """
-    logger = getFwoLogger()
     allowed_protocols = []
     for pg in protocol_groups:
         if pg.name == protocol_group_name:
@@ -34,21 +34,21 @@ def create_service_for_protocol_group_entry(protocol_group_name: str, protocol_g
             break
 
     if allowed_protocols:
-        svc_refs = []
+        svc_refs: list[str] = []
         for proto in allowed_protocols:
             svc_ref = create_any_protocol_service(proto, service_objects)
             svc_refs.append(svc_ref)
         return fwo_base.sort_and_join(svc_refs)
     else:
         # Fallback if protocol group not found
-        logger.warning(f"Protocol group '{protocol_group_name}' not found. Defaulting to tcp/udp/icmp any.")
+        FWOLogger.warning(f"Protocol group '{protocol_group_name}' not found. Defaulting to tcp/udp/icmp any.")
         svc_refs = []
         for proto in ("tcp", "udp", "icmp"):
             svc_refs.append(create_any_protocol_service(proto, service_objects))
         return fwo_base.sort_and_join(svc_refs)
 
 
-def resolve_service_reference_for_rule(entry: AccessListEntry, protocol_groups: List[AsaProtocolGroup], service_objects: Dict) -> str:
+def resolve_service_reference_for_rule(entry: AccessListEntry, protocol_groups: list[AsaProtocolGroup], service_objects: dict[str, ServiceObject]) -> str:
     """Resolve service reference for a rule entry.
 
     Args:
@@ -67,7 +67,7 @@ def resolve_service_reference_for_rule(entry: AccessListEntry, protocol_groups: 
         return create_service_for_acl_entry(entry, service_objects)
 
 
-def resolve_network_reference_for_rule(endpoint, network_objects: Dict) -> str:
+def resolve_network_reference_for_rule(endpoint: EndpointKind, network_objects: dict[str, NetworkObject]) -> str:
     """Resolve network reference for a rule endpoint.
 
     Args:
@@ -88,8 +88,8 @@ def resolve_network_reference_for_rule(endpoint, network_objects: Dict) -> str:
 
 
 def create_rule_from_acl_entry(access_list_name: str, entry: AccessListEntry, 
-                              protocol_groups: List[AsaProtocolGroup], 
-                              network_objects: Dict, service_objects: Dict,
+                              protocol_groups: list[AsaProtocolGroup], 
+                              network_objects: dict[str, NetworkObject], service_objects: dict[str, ServiceObject],
                               gateway_uid: str) -> RuleNormalized:
     """Create a normalized rule from an ACL entry.
 
@@ -150,10 +150,10 @@ def create_rule_from_acl_entry(access_list_name: str, entry: AccessListEntry,
     return rule
 
 
-def build_rulebases_from_access_lists(access_lists: List[AccessList], mgm_uid: str, 
-                                     protocol_groups: List[AsaProtocolGroup],
-                                     network_objects: Dict, service_objects: Dict,
-                                     gateway_uid: str) -> List[Rulebase]:
+def build_rulebases_from_access_lists(access_lists: list[AccessList], mgm_uid: str, 
+                                     protocol_groups: list[AsaProtocolGroup],
+                                     network_objects: dict[str, NetworkObject], service_objects: dict[str, ServiceObject],
+                                     gateway_uid: str) -> list[Rulebase]:
     """Build rulebases from ASA access lists.
 
     Each access list becomes a separate rulebase containing normalized rules.
@@ -170,10 +170,10 @@ def build_rulebases_from_access_lists(access_lists: List[AccessList], mgm_uid: s
     Returns:
         List of normalized rulebases
     """
-    rulebases = []
+    rulebases: list[Rulebase] = []
 
     for access_list in access_lists:
-        rules = {}
+        rules: dict[str, RuleNormalized] = {}
 
         for entry in access_list.entries:
             rule = create_rule_from_acl_entry(
@@ -184,6 +184,9 @@ def build_rulebases_from_access_lists(access_lists: List[AccessList], mgm_uid: s
                 service_objects,
                 gateway_uid
             )
+            if rule.rule_uid is None:
+                FWOLogger.error(f"Failed to create rule UID for ACL entry: {entry}")
+                raise ValueError("Rule UID generation failed.")
             rules[rule.rule_uid] = rule
 
         # Create rulebase for this access list

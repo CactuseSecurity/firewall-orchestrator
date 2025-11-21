@@ -1,5 +1,4 @@
 from pydantic import BaseModel
-from models.caseinsensitiveenum import CaseInsensitiveEnum
 
 # Create table "rule_metadata"
 # (

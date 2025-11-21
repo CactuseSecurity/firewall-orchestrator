@@ -1,24 +1,18 @@
 import json
-import jsonpickle
 import time
 import traceback
 from copy import deepcopy
+from typing import Any
 
 import fwo_globals
-from fwo_log import getFwoLogger
-from fwo_exceptions import FwoImporterError
-from model_controllers.interface_controller import InterfaceSerializable
-from model_controllers.route_controller import RouteSerializable
-from fwo_base import split_list, serializeDictToClassRecursively, deserializeClassToDictRecursively
-from fwo_const import max_objs_per_chunk, import_tmp_path
+from fwo_log import FWOLogger
+from fwo_base import serialize_dict_to_class_rec, deserialize_class_to_dict_rec
+from fwo_const import import_tmp_path
 
 from model_controllers.import_state_controller import ImportStateController
-from model_controllers.management_controller import Management
-from models.fwconfig_normalized import FwConfig, FwConfigNormalized
 from models.fwconfigmanagerlist import FwConfigManagerList
 from models.fwconfigmanager import FwConfigManager
 from model_controllers.fwconfig_controller import FwoEncoder
-from model_controllers.management_controller import ManagementController
 from fwo_base import ConfFormat
 
 """
@@ -30,9 +24,9 @@ class FwConfigManagerListController(FwConfigManagerList):
         return f"{str(self.ManagerSet)})"
 
     def toJson(self):
-        return deserializeClassToDictRecursively(self)
+        return deserialize_class_to_dict_rec(self)
 
-    def toJsonString(self, prettyPrint=False):
+    def toJsonString(self, prettyPrint: bool=False):
         jsonDict = self.toJson()
         if prettyPrint:
             return json.dumps(jsonDict, indent=2, cls=FwoEncoder)
@@ -44,7 +38,7 @@ class FwConfigManagerListController(FwConfigManagerList):
             self.ManagerSet.extend(conf2.ManagerSet)
 
     @staticmethod
-    def generate_empty_config(is_super_manager=False):
+    def generate_empty_config(is_super_manager: bool=False):
         """
         Generates an empty FwConfigManagerListController with a single empty FwConfigManager.
         """
@@ -64,10 +58,10 @@ class FwConfigManagerListController(FwConfigManagerList):
 
 # to be re-written:
     def toJsonLegacy(self):
-        return deserializeClassToDictRecursively(self)
+        return deserialize_class_to_dict_rec(self)
 
 # to be re-written:
-    def toJsonStringLegacy(self, prettyPrint=False):
+    def toJsonStringLegacy(self, prettyPrint: bool=False):
         jsonDict = self.toJson()
         if prettyPrint:
             return json.dumps(jsonDict, indent=2, cls=FwoEncoder)
@@ -75,11 +69,11 @@ class FwConfigManagerListController(FwConfigManagerList):
             return json.dumps(jsonDict, cls=FwoEncoder)
 
 
-    def get_all_zone_names(self, mgr_uid):
+    def get_all_zone_names(self, mgr_uid: str) -> set[str]:
         """
         Returns a list of all zone UIDs in the configuration.
         """
-        all_zone_names = []
+        all_zone_names: list[str] = []
         for mgr in self.ManagerSet:
             if mgr.IsSuperManager or mgr.ManagerUid==mgr_uid:
                 for single_config in mgr.Configs:
@@ -87,11 +81,11 @@ class FwConfigManagerListController(FwConfigManagerList):
         return set(all_zone_names)
     
 
-    def get_all_network_object_uids(self, mgr_uid):
+    def get_all_network_object_uids(self, mgr_uid: str) -> set[str]:
         """
         Returns a list of all network objects in the configuration.
         """
-        all_network_objects = []
+        all_network_objects: list[str] = []
         for mgr in self.ManagerSet:
             if mgr.IsSuperManager or mgr.ManagerUid==mgr_uid:
                 for single_config in mgr.Configs:
@@ -99,11 +93,11 @@ class FwConfigManagerListController(FwConfigManagerList):
         return set(all_network_objects)
     
 
-    def get_all_service_object_uids(self, mgr_uid):
+    def get_all_service_object_uids(self, mgr_uid: str) -> set[str]:
         """
         Returns a list of all service objects in the configuration.
         """
-        all_service_objects = []
+        all_service_objects: list[str] = []
         for mgr in self.ManagerSet:
             if mgr.IsSuperManager or mgr.ManagerUid==mgr_uid:
                 for single_config in mgr.Configs:
@@ -111,11 +105,11 @@ class FwConfigManagerListController(FwConfigManagerList):
         return set(all_service_objects)
     
 
-    def get_all_user_object_uids(self, mgr_uid):
+    def get_all_user_object_uids(self, mgr_uid: str) -> set[str]:
         """
         Returns a list of all user objects in the configuration.
         """
-        all_user_objects = []
+        all_user_objects: list[str] = []
         for mgr in self.ManagerSet:
             if mgr.IsSuperManager or mgr.ManagerUid==mgr_uid:
                 for single_config in mgr.Configs:
@@ -123,7 +117,7 @@ class FwConfigManagerListController(FwConfigManagerList):
         return set(all_user_objects)
     
 
-    def addManager(self, manager):
+    def addManager(self, manager: FwConfigManager):
         self.ManagerSet.append(manager)
 
     def getFirstManager(self):
@@ -141,13 +135,12 @@ class FwConfigManagerListController(FwConfigManagerList):
         return rb_name
     
     @classmethod
-    def FromJson(cls, jsonIn):
-        return serializeDictToClassRecursively(jsonIn, cls)
+    def FromJson(cls, jsonIn: dict[str, Any]) -> 'FwConfigManagerListController':
+        return serialize_dict_to_class_rec(jsonIn, cls)
 
 
     def storeFullNormalizedConfigToFile(self, importState: ImportStateController):
         if fwo_globals.debug_level>5:
-            logger = getFwoLogger()
             debug_start_time = int(time.time())
             try:
                 normalized_config_filename = f"{import_tmp_path}/mgm_id_{str(importState.MgmDetails.Id)}_config_normalized.json"
@@ -158,12 +151,12 @@ class FwConfigManagerListController(FwConfigManagerList):
                 with open(normalized_config_filename, "w") as json_data:
                     json_data.write(config_copy_without_native.toJsonString(prettyPrint=True))
                 time_write_debug_json = int(time.time()) - debug_start_time
-                logger.debug(f"storeFullNormalizedConfigToFile - writing normalized config json files duration {str(time_write_debug_json)}s")
+                FWOLogger.debug(f"storeFullNormalizedConfigToFile - writing normalized config json files duration {str(time_write_debug_json)}s")
                 
                 return normalized_config_filename
             
             except Exception:
-                logger.error(f"import_management - unspecified error while dumping normalized config to json file: {str(traceback.format_exc())}")
+                FWOLogger.error(f"import_management - unspecified error while dumping normalized config to json file: {str(traceback.format_exc())}")
                 raise
     
 

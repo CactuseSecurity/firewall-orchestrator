@@ -1,29 +1,23 @@
 # library for API get functions
-import re
-from fwo_log import getFwoLogger
-import requests.packages
+from typing import Any
+from fwo_log import FWOLogger
 import requests
 import json
 import fwo_globals
-from fwo_exceptions import FwLoginFailed
 
 
-def api_call(url, show_progress=False):
-    logger = getFwoLogger()
+def api_call(url: str) -> dict[str, Any]:
     request_headers = {'Content-Type': 'application/json'}
 
     r = requests.get(url, headers=request_headers, verify=fwo_globals.verify_certs)
-    if r is None:
-        exception_text = "error while sending api_call to url '" + str(url) + "' with headers: '" + json.dumps(request_headers, indent=2)
-        raise Exception(exception_text)
+    #TYPING: check for non 200 responses
     result_json = r.json()
     if 'results' not in result_json:
         raise Exception("error while sending api_call to url '" + str(url) + "' with headers: '" + json.dumps(request_headers, indent=2) + ', results=' + json.dumps(r.json()['results'], indent=2))
     if 'status' not in result_json:
         # trying to ignore empty results as valid
-        pass # logger.warning('received empty result')
-    if fwo_globals.debug_level>2:
-        logger.debug("api_call to url '" + str(url) + "' with headers: '" + json.dumps(request_headers, indent=2))
+        pass # FWOLogger.warning('received empty result')
+    FWOLogger.debug("api_call to url '" + str(url) + "' with headers: '" + json.dumps(request_headers, indent=2), 3)
     return result_json
 
 
@@ -43,12 +37,10 @@ def api_call(url, show_progress=False):
 #     return url
 
 
-def update_config_with_fortiOS_api_call(config_json, api_url, result_name, show_progress=False, limit=150):
-    offset = 0
+def update_config_with_fortios_api_call(config_json: dict[str, Any], api_url: str, result_name: str, limit: int = 150):
     limit = int(limit)
-    returned_new_objects = True
-    full_result = []
-    result = fortiOS_api_call(api_url)
+    full_result: list[Any] = []
+    result = fortios_api_call(api_url)
     full_result.extend(result)
     # removing loop for api gets (no limit option in FortiOS API)
     # while returned_new_objects:
@@ -64,10 +56,10 @@ def update_config_with_fortiOS_api_call(config_json, api_url, result_name, show_
         config_json.update({result_name: full_result})
 
 
-def fortiOS_api_call(api_url):
+def fortios_api_call(api_url: str) -> Any:
     result = api_call(api_url)
     if 'results' in result:
         plain_result = result["results"]
     else:
-        plain_result = {}
+        plain_result: dict[str, Any] = {}
     return plain_result

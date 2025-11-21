@@ -1,20 +1,21 @@
 # import sys
 # from common import importer_base_dir
 # sys.path.append(importer_base_dir + '/azure2022ff')
+from typing import Any
 from azure_service import normalize_svcobjects
 from azure_rule import normalize_access_rules
 from azure_network import normalize_nwobjects
 from azure_getter import login, update_config_with_azure_api_call
-from fwo_log import getFwoLogger
+from fwo_log import FWOLogger
 from azure_base import azure_api_version_str
+from models.import_state import ImportState
 
-def has_config_changed(full_config, mgm_details, force=False):
+def has_config_changed(_: dict[str, Any], __: ImportState, ___: bool = False) -> bool:
     # dummy - may be filled with real check later on
     return True
 
 
-def get_config(config2import, full_config, current_import_id, mgm_details, limit=1000, force=False, jwt=''):
-    logger = getFwoLogger()
+def get_config(config2import: dict[str, Any], full_config: dict[str, Any], current_import_id: str, mgm_details: dict[str, Any], jwt: str=''):
     if full_config == {}:   # no native config was passed in, so getting it from Azzure
         parsing_config_only = False
     else:
@@ -41,8 +42,8 @@ def get_config(config2import, full_config, current_import_id, mgm_details, limit
         
         # login
         azure_jwt = login(azure_user, azure_password, azure_tenant_id, azure_client_id, azure_client_secret)
-        if azure_jwt == None or azure_jwt == "":
-            logger.error('Did not succeed in logging in to Azure API, no jwt returned.')
+        if azure_jwt is None or azure_jwt == "":
+            FWOLogger.error('Did not succeed in logging in to Azure API, no jwt returned.')
             return 1
 
         # get objects:
@@ -87,9 +88,9 @@ def get_config(config2import, full_config, current_import_id, mgm_details, limit
     normalize_nwobjects(full_config, config2import, current_import_id, jwt=jwt, mgm_id=mgm_details['id'])
     normalize_svcobjects(full_config, config2import, current_import_id)
 
-    any_nw_svc = {"svc_uid": "any_svc_placeholder", "svc_name": "Any", "svc_comment": "Placeholder service.", 
+    any_nw_svc: dict[str, Any] = {"svc_uid": "any_svc_placeholder", "svc_name": "Any", "svc_comment": "Placeholder service.",
     "svc_typ": "simple", "ip_proto": -1, "svc_port": 0, "svc_port_end": 65535, "control_id": current_import_id}
-    any_nw_object = {"obj_uid": "any_obj_placeholder", "obj_name": "Any", "obj_comment": "Placeholder object.",
+    any_nw_object: dict[str, Any] = {"obj_uid": "any_obj_placeholder", "obj_name": "Any", "obj_comment": "Placeholder object.",
     "obj_typ": "network", "obj_ip": "0.0.0.0/0", "control_id": current_import_id}
     config2import["service_objects"].append(any_nw_svc)
     config2import["network_objects"].append(any_nw_object)
@@ -101,15 +102,18 @@ def get_config(config2import, full_config, current_import_id, mgm_details, limit
     return 0
 
 
-def extract_nw_objects(rule, config):
+def extract_nw_objects(rule: str, config: dict[str, Any]):
+    #TODO: need to extract nw objects from rule and add to config
     pass
 
 
-def extract_svc_objects(rule, config):
+def extract_svc_objects(rule: str, config: dict[str, Any]):
+    #TODO: need to extract svc objects from rule and add to config
     pass
 
 
-def extract_user_objects(rule, config):
+def extract_user_objects(rule: str, config: dict[str, Any]):
+    #TODO: need to extract user objects from rule and add to config
     pass
 
 
@@ -131,4 +135,4 @@ def extract_user_objects(rule, config):
 #         # remove device if not in fwo api
 #         if found == False:
 #             config["devices"].remove(cisco_api_device)
-#             logger.info("Device \"" + cisco_api_device["name"] + "\" was found but it is not registered in FWO. Ignoring it.")
+#             FWOLogger.info("Device \"" + cisco_api_device["name"] + "\" was found but it is not registered in FWO. Ignoring it.")

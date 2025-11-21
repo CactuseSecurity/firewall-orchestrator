@@ -2,9 +2,8 @@ from enum import Enum
 import traceback
 from difflib import ndiff
 import json
-from typing import List, Optional
+from typing import Generator, Any
 
-import fwo_globals
 import fwo_const
 import fwo_api_call as fwo_api_call
 from fwo_exceptions import FwoApiWriteError, FwoImporterError
@@ -13,15 +12,16 @@ from models.rule_metadatum import RuleMetadatum
 from models.rulebase import Rulebase, RulebaseForImport
 from model_controllers.import_state_controller import ImportStateController
 from model_controllers.fwconfig_normalized_controller import FwConfigNormalized
-from fwo_log import ChangeLogger, getFwoLogger
+from fwo_log import ChangeLogger, FWOLogger
 from datetime import datetime
 from models.rule_from import RuleFrom
 from models.rule_to import RuleTo
 from models.rule_service import RuleService
 from models.rule import RuleNormalized
+from models.networkobject import NetworkObject
+from models.serviceobject import ServiceObject
 from services.global_state import GlobalState
 from services.group_flats_mapper import GroupFlatsMapper
-from services.enums import Services
 from services.uid2id_mapper import Uid2IdMapper
 from services.service_provider import ServiceProvider
 from fwo_api import FwoApi
@@ -40,10 +40,10 @@ class RefType(Enum):
 # this class is used for importing rules and rule refs into the FWO API
 class FwConfigImportRule():
 
-    _changed_rule_id_map: dict
+    _changed_rule_id_map: dict[int, int]
     global_state: GlobalState
     import_details: ImportStateController
-    normalized_config: FwConfigNormalized
+    normalized_config: FwConfigNormalized | None = None
     uid2id_mapper: Uid2IdMapper
     group_flats_mapper: GroupFlatsMapper
     prev_group_flats_mapper: GroupFlatsMapper
@@ -52,21 +52,16 @@ class FwConfigImportRule():
         self._changed_rule_id_map = {}
 
         service_provider = ServiceProvider()
-        self.global_state = service_provider.get_service(Services.GLOBAL_STATE)
-        if self.global_state.import_state is None:
-            raise FwoImporterError("ImportStateController not initialized in GlobalState")
+        self.global_state = service_provider.get_global_state()
         self.import_details = self.global_state.import_state
         #TODO: why is there a state where this is initialized with normalized_config = None? - see #3154
         self.normalized_config = self.global_state.normalized_config # type: ignore
-        self.uid2id_mapper = service_provider.get_service(Services.UID2ID_MAPPER, self.import_details.ImportId)
-        self.group_flats_mapper = service_provider.get_service(Services.GROUP_FLATS_MAPPER, self.import_details.ImportId)
-        self.prev_group_flats_mapper = service_provider.get_service(Services.PREV_GROUP_FLATS_MAPPER, self.import_details.ImportId)
-        self.rule_order_service = service_provider.get_service(Services.RULE_ORDER_SERVICE, self.import_details.ImportId)
+        self.uid2id_mapper = service_provider.get_uid2id_mapper(self.import_details.ImportId)
+        self.group_flats_mapper = service_provider.get_group_flats_mapper(self.import_details.ImportId)
+        self.prev_group_flats_mapper = service_provider.get_prev_group_flats_mapper(self.import_details.ImportId)
+        self.rule_order_service = service_provider.get_rule_order_service(self.import_details.ImportId)
 
-    def updateRulebaseDiffs(self, prevConfig: FwConfigNormalized):
-        
-        logger = getFwoLogger(debug_level=self.import_details.DebugLevel)
-
+    def updateRulebaseDiffs(self, prevConfig: FwConfigNormalized) -> list[int]:
         if self.normalized_config is None:
             raise FwoImporterError("cannot update rulebase diffs: normalized_config is None")
 
@@ -75,9 +70,9 @@ class FwConfigImportRule():
         ruleUidsInBoth: dict[str, list[str]] = {}
         previous_rulebase_uids: list[str] = []
         current_rulebase_uids: list[str] = []
-        new_hit_information = []
+        new_hit_information: list[dict[str, Any]] = []
 
-        rule_order_diffs: dict[str, dict[str, list[str]]] = self.rule_order_service.update_rule_order_diffs(self.import_details.DebugLevel)
+        rule_order_diffs: dict[str, dict[str, list[str]]] = self.rule_order_service.update_rule_order_diffs()
 
         # collect rulebase UIDs of previous config
         for rulebase in prevConfig.rulebases:
@@ -88,15 +83,16 @@ class FwConfigImportRule():
             current_rulebase_uids.append(rulebase.uid)
 
         for rulebase_uid in previous_rulebase_uids:
-            current_rulebase = self.normalized_config.get_rulebase(rulebase_uid)
+            current_rulebase = self.normalized_config.get_rulebase_or_none(rulebase_uid)
             if current_rulebase is None:
-                continue # rulebase has been deleted
+                FWOLogger.info(f"current rulebase has been deleted: {rulebase_uid}")
+                continue
             if rulebase_uid in current_rulebase_uids:
                 # deal with policies contained both in this and previous config
                 previous_rulebase = prevConfig.get_rulebase(rulebase_uid)
-                ruleUidsInBoth.update({ rulebase_uid: list(current_rulebase.rules.keys() & previous_rulebase.rules.keys()) }) # type: ignore
+                ruleUidsInBoth.update({ rulebase_uid: list(current_rulebase.rules.keys() & previous_rulebase.rules.keys()) })
             else:
-                logger.info(f"previous rulebase has been deleted: {current_rulebase.name} (id:{rulebase_uid})")
+                FWOLogger.info(f"previous rulebase has been deleted: {current_rulebase.name} (id:{rulebase_uid})")
 
         # find changed rules
         for rulebase_uid in ruleUidsInBoth:
@@ -117,8 +113,8 @@ class FwConfigImportRule():
         newRulebases = self.getRules(rule_order_diffs["new_rule_uids"])
 
         # update rule_metadata before adding rules
-        num_added_metadata_rules, new_rule_metadata_ids = self.addNewRuleMetadata(newRulebases)
-        _ = self.update_rule_metadata_last_hit(new_hit_information)
+        _, _ = self.addNewRuleMetadata(newRulebases)
+        self.update_rule_metadata_last_hit(new_hit_information)
 
         # # now update the database with all rule diffs
         self.uid2id_mapper.update_rule_mapping()
@@ -127,10 +123,10 @@ class FwConfigImportRule():
         num_changed_rules, old_rule_ids, updated_rule_ids = self.create_new_rule_version(changedRuleUids)
 
         self.uid2id_mapper.add_rule_mappings(new_rule_ids + updated_rule_ids)
-        num_new_refs = self.add_new_refs(prevConfig)
+        _ = self.add_new_refs(prevConfig)
 
         num_deleted_rules, removed_rule_ids = self.mark_rules_removed(rule_order_diffs["deleted_rule_uids"])
-        num_removed_refs = self.remove_outdated_refs(prevConfig)
+        self.remove_outdated_refs(prevConfig)
 
         _, num_moved_rules, _ = self.verify_rules_moved(changedRuleUids)
 
@@ -161,7 +157,7 @@ class FwConfigImportRule():
 
     
 
-    def _collect_uncaught_moves(self, movedRuleUids, changedRuleUids):
+    def _collect_uncaught_moves(self, movedRuleUids: dict[str, list[str]], changedRuleUids: dict[str, list[str]]):
         for rulebaseId in movedRuleUids:
             for ruleUid in movedRuleUids[rulebaseId]:
                 if ruleUid not in changedRuleUids.get(rulebaseId, []):
@@ -169,7 +165,7 @@ class FwConfigImportRule():
                         changedRuleUids[rulebaseId] = []
                     changedRuleUids[rulebaseId].append(ruleUid)
 
-    def collect_all_hit_information(self, prev_config: FwConfigNormalized, new_hit_information: list[dict]):
+    def collect_all_hit_information(self, prev_config: FwConfigNormalized, new_hit_information: list[dict[str, Any]]):
         """
         Consolidated hit information collection for ALL rules that need hit updates.
 
@@ -177,9 +173,9 @@ class FwConfigImportRule():
             prev_config: Previous configuration for comparison
             new_hit_information: List to append hit update information to
         """
-        processed_rules = set()
+        processed_rules: set[str] = set()
 
-        def add_hit_update(new_hit_information: list[dict], rule: RuleNormalized):
+        def add_hit_update(new_hit_information: list[dict[str, Any]], rule: RuleNormalized):
             """Add a hit information update entry for a rule."""
             new_hit_information.append({ 
                 "where": { "rule_uid": { "_eq": rule.rule_uid }, "mgm_id": { "_eq": self.import_details.MgmDetails.CurrentMgmId } },
@@ -187,8 +183,11 @@ class FwConfigImportRule():
             })
 
         # check all rulebases in current config
+        if self.normalized_config is None:
+            raise FwoImporterError("cannot collect hit information: normalized_config is None")
+        
         for current_rulebase in self.normalized_config.rulebases:
-            previous_rulebase = prev_config.get_rulebase(current_rulebase.uid)
+            previous_rulebase = prev_config.get_rulebase_or_none(current_rulebase.uid)
 
             for rule_uid in current_rulebase.rules:
                 current_rule = current_rulebase.rules[rule_uid]
@@ -203,56 +202,43 @@ class FwConfigImportRule():
                     add_hit_update(new_hit_information, current_rule)
                     processed_rules.add(rule_uid)
 
-    def update_rule_metadata_last_hit(self, new_hit_information: list[dict]) -> int:
+    def update_rule_metadata_last_hit(self, new_hit_information: list[dict[str, Any]]):
         """
         Updates rule_metadata.rule_last_hit for all rules with hit information changes.
         This method executes the actual database updates for hit information.
 
         Args:
             new_hit_information (list[dict]): The hit information to update.
-
-        Returns:
-            int: Number of changes made.
         """
-        logger = getFwoLogger()
-        changes = 0
 
         if len(new_hit_information) > 0:
             update_last_hit_mutation = FwoApi.get_graphql_code([fwo_const.graphql_query_path + "rule_metadata/updateLastHits.graphql"])
             query_variables = { 'hit_info': new_hit_information  }
 
             try:
-                import_result = self.import_details.api_call.call(update_last_hit_mutation, query_variables=query_variables, debug_level=self.import_details.DebugLevel, analyze_payload=True)
+                import_result = self.import_details.api_call.call(update_last_hit_mutation, query_variables=query_variables, analyze_payload=True)
                 if 'errors' in import_result:
-                    logger.exception(f"fwo_api:importNwObject - error in addNewRuleMetadata: {str(import_result['errors'])}")
-                    return 0
+                    FWOLogger.exception(f"fwo_api:importNwObject - error in addNewRuleMetadata: {str(import_result['errors'])}")
                     # do not count last hit changes as changes here
             except Exception:
                 raise FwoApiWriteError(f"failed to update RuleMetadata last hit info: {str(traceback.format_exc())}")
 
-        return changes
-
     @staticmethod
-    def collect_changed_rules(rule_uid, current_rulebase, previous_rulebase, rulebase_id, changed_rule_uids):
+    def collect_changed_rules(rule_uid: str, current_rulebase: Rulebase, previous_rulebase: Rulebase, rulebase_id: str, changed_rule_uids: dict[str, list[str]]):
         if current_rulebase.rules[rule_uid] != previous_rulebase.rules[rule_uid]:
             changed_rule_uids[rulebase_id].append(rule_uid)
 
 
     @staticmethod
-    def preserve_rule_num_numeric(current_rulebase, previous_rulebase, rule_uid):
+    def preserve_rule_num_numeric(current_rulebase: Rulebase, previous_rulebase: Rulebase, rule_uid: str):
         if current_rulebase.rules[rule_uid].rule_num_numeric == 0:
             current_rulebase.rules[rule_uid].rule_num_numeric = previous_rulebase.rules[rule_uid].rule_num_numeric
-    
 
-    def get_members(self, type, refs) -> list[str]:
-        if type == type.NETWORK_OBJECT:
-            return [member.split(fwo_const.user_delimiter)[0] for member in refs.split(fwo_const.list_delimiter) if member] if refs else []
-        return refs.split(fwo_const.list_delimiter) if refs else []
 
-    def get_rule_refs(self, rule, is_prev=False) -> dict[RefType, list[str]]:
-        froms = []
-        tos = []
-        users = []
+    def get_rule_refs(self, rule: RuleNormalized, is_prev: bool = False) -> dict[RefType, list[tuple[str, str | None]] | list[str]]:
+        froms: list[tuple[str, str | None]] = []
+        tos: list[tuple[str, str | None]] = []
+        users: list[str] = []
         nwobj_resolveds = []
         svc_resolveds = []
         user_resolveds = []
@@ -292,23 +278,28 @@ class FwConfigImportRule():
             RefType.DST_ZONE: to_zones
         }
 
-    def get_ref_objs(self, ref_type, ref_uid, prev_config: FwConfigNormalized):
+    def get_ref_objs(self, ref_type: RefType, ref_uid: tuple[str, str | None] | str , prev_config: FwConfigNormalized) -> tuple[tuple[None | NetworkObject, None | Any], tuple[None | NetworkObject , None | Any]] | tuple[None | NetworkObject | ServiceObject, None | Any]: #TODO Any is user type but there is no user Type
+        
+        if self.normalized_config is None:
+            raise FwoImporterError("cannot get ref objs: normalized_config is None")
+        
         if ref_type == RefType.SRC or ref_type == RefType.DST:
             nwobj_uid, user_uid = ref_uid
+            
             return (prev_config.network_objects.get(nwobj_uid, None), prev_config.users.get(user_uid, None) if user_uid else None), \
                      (self.normalized_config.network_objects.get(nwobj_uid, None), self.normalized_config.users.get(user_uid, None) if user_uid else None)
         elif ref_type == RefType.NWOBJ_RESOLVED:
-            return prev_config.network_objects.get(ref_uid, None), self.normalized_config.network_objects.get(ref_uid, None)
+            return prev_config.network_objects.get(ref_uid, None), self.normalized_config.network_objects.get(ref_uid, None) # type: ignore #TODO: change ref_uid to str only
         elif ref_type == RefType.SVC or ref_type == RefType.SVC_RESOLVED:
-            return prev_config.service_objects.get(ref_uid, None), self.normalized_config.service_objects.get(ref_uid, None)
+            return prev_config.service_objects.get(ref_uid, None), self.normalized_config.service_objects.get(ref_uid, None) # type: ignore
         elif ref_type == RefType.USER_RESOLVED:
-            return prev_config.users.get(ref_uid, None), self.normalized_config.users.get(ref_uid, None)
+            return prev_config.users.get(ref_uid, None), self.normalized_config.users.get(ref_uid, None) # type: ignore
         elif ref_type == RefType.SRC_ZONE or ref_type == RefType.DST_ZONE:
-            return prev_config.zone_objects.get(ref_uid, None), self.normalized_config.zone_objects.get(ref_uid, None)
+            return prev_config.zone_objects.get(ref_uid, None), self.normalized_config.zone_objects.get(ref_uid, None) # type: ignore
         else:
             raise FwoImporterError(f"unknown ref type: {ref_type}")
     
-    def get_ref_remove_statement(self, ref_type, rule_uid, ref_uid):
+    def get_ref_remove_statement(self, ref_type: RefType, rule_uid: str, ref_uid: tuple[str, str | None] | str) -> dict[str, Any]:
         if ref_type == RefType.SRC or ref_type == RefType.DST:
             nwobj_uid, user_uid = ref_uid
             statement = {
@@ -326,35 +317,35 @@ class FwConfigImportRule():
             return {
                 "_and": [
                     {"rule_id": {"_eq": self.uid2id_mapper.get_rule_id(rule_uid, before_update=True)}},
-                    {"svc_id": {"_eq": self.uid2id_mapper.get_service_object_id(ref_uid, before_update=True)}}
+                    {"svc_id": {"_eq": self.uid2id_mapper.get_service_object_id(ref_uid, before_update=True)}} # type: ignore # ref_uid is str here
                 ]
             }
         elif ref_type == RefType.NWOBJ_RESOLVED:
             return {
                 "_and": [
                     {"rule_id": {"_eq": self.uid2id_mapper.get_rule_id(rule_uid, before_update=True)}},
-                    {"obj_id": {"_eq": self.uid2id_mapper.get_network_object_id(ref_uid, before_update=True)}}
+                    {"obj_id": {"_eq": self.uid2id_mapper.get_network_object_id(ref_uid, before_update=True)}} # type: ignore # ref_uid is str here
                 ]
             }
         elif ref_type == RefType.USER_RESOLVED:
             return {
                 "_and": [
                     {"rule_id": {"_eq": self.uid2id_mapper.get_rule_id(rule_uid, before_update=True)}},
-                    {"user_id": {"_eq": self.uid2id_mapper.get_user_id(ref_uid, before_update=True)}}
+                    {"user_id": {"_eq": self.uid2id_mapper.get_user_id(ref_uid, before_update=True)}} # type: ignore # ref_uid is str here
                 ]
             }
         elif ref_type == RefType.SRC_ZONE or ref_type == RefType.DST_ZONE:
             return {
                 "_and": [
                     {"rule_id": {"_eq": self.uid2id_mapper.get_rule_id(rule_uid, before_update=True)}},
-                    {"zone_id": {"_eq": self.uid2id_mapper.get_zone_object_id(ref_uid, before_update=True)}}
+                    {"zone_id": {"_eq": self.uid2id_mapper.get_zone_object_id(ref_uid, before_update=True)}}# type: ignore # ref_uid is str here TODO: Cleanup ref_uid dict
                 ]
             }
         else:
             raise FwoImporterError(f"unknown ref type: {ref_type}")
 
 
-    def get_outdated_refs_to_remove(self, prev_rule: RuleNormalized, rule: RuleNormalized|None, prev_config, remove_all):
+    def get_outdated_refs_to_remove(self, prev_rule: RuleNormalized, rule: RuleNormalized | None, prev_config: FwConfigNormalized, remove_all: bool) -> dict[RefType, list[dict[str, Any]]]:
         """
         Get the references that need to be removed for a rule based on comparison with the previous rule.
         Args:
@@ -363,11 +354,15 @@ class FwConfigImportRule():
             prev_config (FwConfigNormalized): The previous configuration containing the rules.
             remove_all (bool): If True, all references will be removed. If False, it will check for changes in references that need to be removed.
         """
-        ref_uids = { ref_type: [] for ref_type in RefType }
+        ref_uids: dict[RefType, list[tuple[str, str | None]] | list[str]] = { ref_type: [] for ref_type in RefType }
+
+        if rule is None:
+            return {}
+
         if not remove_all:
             ref_uids = self.get_rule_refs(rule)
         prev_ref_uids = self.get_rule_refs(prev_rule, is_prev=True)
-        refs_to_remove = {}
+        refs_to_remove: dict[RefType, list[dict[str, Any]]] = {}
         for ref_type in RefType:
             refs_to_remove[ref_type] = []
             for prev_ref_uid in prev_ref_uids[ref_type]:
@@ -376,13 +371,19 @@ class FwConfigImportRule():
                     if prev_ref_obj == ref_obj:
                         continue # ref not removed or changed
                 # ref removed or changed
+                if prev_rule.rule_uid is None:
+                    raise FwoImporterError(f"previous reference UID is None: {prev_ref_uid} in rule {prev_rule.rule_uid}")
                 refs_to_remove[ref_type].append(self.get_ref_remove_statement(ref_type, prev_rule.rule_uid, prev_ref_uid))
         return refs_to_remove
 
     def remove_outdated_refs(self, prev_config: FwConfigNormalized):
-        all_refs_to_remove = {ref_type: [] for ref_type in RefType}
+        all_refs_to_remove: dict[RefType, list[dict[str, Any]]] = {ref_type: [] for ref_type in RefType}
         for prev_rulebase in prev_config.rulebases:
-            rules = next((rb.rules for rb in self.normalized_config.rulebases if rb.uid == prev_rulebase.uid), {})
+            if self.normalized_config is None:
+                raise FwoImporterError("cannot remove outdated refs: normalized_config is None")
+            rules = next((rb.rules for rb in self.normalized_config.rulebases if rb.uid == prev_rulebase.uid), None)
+            if rules is None:
+                continue
             for prev_rule in prev_rulebase.rules.values():
                 uid = prev_rule.rule_uid
                 if uid is None:
@@ -393,11 +394,11 @@ class FwConfigImportRule():
                     all_refs_to_remove[ref_type].extend(ref_statements)
 
         if not any(all_refs_to_remove.values()):
-            return 0
+            return
         
         import_mutation = FwoApi.get_graphql_code([fwo_const.graphql_query_path + "rule/updateRuleRefs.graphql"])
         
-        query_variables = {
+        query_variables: dict[str, Any] = {
             'importId': self.import_details.ImportId,
             'ruleFroms': all_refs_to_remove[RefType.SRC],
             'ruleTos': all_refs_to_remove[RefType.DST],
@@ -411,28 +412,30 @@ class FwConfigImportRule():
 
         try:
             import_result = self.import_details.api_call.call(import_mutation, query_variables=query_variables, analyze_payload=True)
+            if "errors" in import_result:
+                FWOLogger.error(f"failed to remove outdated rule references: {str(import_result['errors'])}")
+                raise FwoApiWriteError(f"failed to remove outdated rule references: {str(import_result['errors'])}")
+            _ = sum((import_result['data'][f"update_{ref_type.value}"].get('affected_rows', 0) for ref_type in RefType))
         except Exception:
             raise FwoApiWriteError(f"failed to remove outdated rule references: {str(traceback.format_exc())}")
-        if 'errors' in import_result:
-            raise FwoApiWriteError(f"failed to remove outdated rule references: {str(import_result['errors'])}")
-        else:
-            return sum((import_result['data'][f"update_{ref_type.value}"].get('affected_rows', 0) for ref_type in RefType))
+    
 
-    def get_ref_add_statement(self, ref_type, rule, ref_uid):
+    def get_ref_add_statement(self, ref_type: RefType, rule: RuleNormalized, ref_uid: tuple[str, str | None] | str) -> dict[str, Any]:
+
+        if rule.rule_uid is None:
+            raise FwoImporterError(f"rule UID is None: {rule} in rulebase during get_ref_add_statement") # should not happen
+
         if ref_type == RefType.SRC:
             nwobj_uid, user_uid = ref_uid
-            obj_id = self.uid2id_mapper.get_network_object_id(nwobj_uid)
-            if obj_id is None:
-                self.import_details.Stats.addError(f"Network object {nwobj_uid} not found for rule {rule.rule_uid}")
-                raise FwoImporterError(f"Network object {nwobj_uid} not found for rule {rule.rule_uid}")
+            _ = self.uid2id_mapper.get_network_object_id(nwobj_uid) # check if nwobj exists
             new_ref_dict = RuleFrom(
-                rule_id=self.uid2id_mapper.get_rule_id(rule.rule_uid),
+                rule_id=self.uid2id_mapper.get_rule_id(rule.rule_uid), 
                 obj_id=self.uid2id_mapper.get_network_object_id(nwobj_uid),
                 user_id=self.uid2id_mapper.get_user_id(user_uid) if user_uid else None,
                 rf_create=self.import_details.ImportId,
                 rf_last_seen=self.import_details.ImportId, #TODO: to be removed in the future
                 negated=rule.rule_src_neg
-            ).dict()
+            ).model_dump()
             return new_ref_dict
         elif ref_type == RefType.DST:
             nwobj_uid, user_uid = ref_uid
@@ -443,46 +446,46 @@ class FwConfigImportRule():
                 rt_create=self.import_details.ImportId,
                 rt_last_seen=self.import_details.ImportId, #TODO: to be removed in the future
                 negated=rule.rule_dst_neg
-            ).dict()
+            ).model_dump()
             return new_ref_dict
         elif ref_type == RefType.SVC:
             new_ref_dict = RuleService(
                 rule_id=self.uid2id_mapper.get_rule_id(rule.rule_uid),
-                svc_id=self.uid2id_mapper.get_service_object_id(ref_uid),
+                svc_id=self.uid2id_mapper.get_service_object_id(ref_uid), # type: ignore # ref_uid is str here TODO: Cleanup ref_uid dict
                 rs_create=self.import_details.ImportId,
                 rs_last_seen=self.import_details.ImportId, #TODO: to be removed in the future
-            ).dict()
+            ).model_dump()
             return new_ref_dict
         elif ref_type == RefType.NWOBJ_RESOLVED:
             return {
                 "mgm_id": self.import_details.MgmDetails.CurrentMgmId,
                 "rule_id": self.uid2id_mapper.get_rule_id(rule.rule_uid),
-                "obj_id": self.uid2id_mapper.get_network_object_id(ref_uid),
+                "obj_id": self.uid2id_mapper.get_network_object_id(ref_uid), # type: ignore # ref_uid is str here TODO: Cleanup ref_uid dict
                 "created": self.import_details.ImportId,
             }
         elif ref_type == RefType.SVC_RESOLVED:
             return {
                 "mgm_id": self.import_details.MgmDetails.CurrentMgmId,
                 "rule_id": self.uid2id_mapper.get_rule_id(rule.rule_uid),
-                "svc_id": self.uid2id_mapper.get_service_object_id(ref_uid),
+                "svc_id": self.uid2id_mapper.get_service_object_id(ref_uid), # type: ignore # ref_uid is str here TODO: Cleanup ref_uid dict
                 "created": self.import_details.ImportId,
             }
         elif ref_type == RefType.USER_RESOLVED:
             return {
                 "mgm_id": self.import_details.MgmDetails.CurrentMgmId,
                 "rule_id": self.uid2id_mapper.get_rule_id(rule.rule_uid),
-                "user_id": self.uid2id_mapper.get_user_id(ref_uid),
+                "user_id": self.uid2id_mapper.get_user_id(ref_uid), # type: ignore # ref_uid is str here TODO: Cleanup ref_uid dict
                 "created": self.import_details.ImportId,
             }
         elif ref_type == RefType.SRC_ZONE or ref_type == RefType.DST_ZONE:
             return {
                 "rule_id": self.uid2id_mapper.get_rule_id(rule.rule_uid),
-                "zone_id": self.uid2id_mapper.get_zone_object_id(ref_uid),
+                "zone_id": self.uid2id_mapper.get_zone_object_id(ref_uid), # type: ignore # ref_uid is str here TODO: Cleanup ref_uid dict
                 "created": self.import_details.ImportId,
             }
 
 
-    def get_new_refs_to_add(self, rule, prev_rule, prev_config, add_all):
+    def get_new_refs_to_add(self, rule: RuleNormalized, prev_rule: RuleNormalized | None, prev_config: FwConfigNormalized, add_all: bool) -> dict[RefType, list[dict[str, Any]]]:
         """
         Get the references that need to be added for a rule based on comparison with the previous rule.
         Args:
@@ -491,11 +494,11 @@ class FwConfigImportRule():
             prev_config (FwConfigNormalized): The previous configuration containing the rules.
             add_all (bool): If True, all references will be added. If False, it will check for changes in references that need to be added.
         """
-        prev_ref_uids = { ref_type: [] for ref_type in RefType }
-        if not add_all:
+        prev_ref_uids: dict[RefType, list[tuple[str, str | None]] | list[str]] = { ref_type: [] for ref_type in RefType }
+        if not add_all and prev_rule is not None:
             prev_ref_uids = self.get_rule_refs(prev_rule, is_prev=True)
         ref_uids = self.get_rule_refs(rule)
-        refs_to_add = {}
+        refs_to_add: dict[RefType, list[dict[str, Any]]] = {}
         for ref_type in RefType:
             refs_to_add[ref_type] = []
             for ref_uid in ref_uids[ref_type]:
@@ -508,9 +511,13 @@ class FwConfigImportRule():
         return refs_to_add
 
     def add_new_refs(self, prev_config: FwConfigNormalized):
-        all_refs_to_add = {ref_type: [] for ref_type in RefType}
+        all_refs_to_add: dict[RefType, list[dict[str, Any]]] = {ref_type: [] for ref_type in RefType}
+        if self.normalized_config is None:
+            raise FwoImporterError("cannot add new refs: normalized_config is None")
         for rulebase in self.normalized_config.rulebases:
-            prev_rules = next((rb.rules for rb in prev_config.rulebases if rb.uid == rulebase.uid), {})
+            prev_rules = next((rb.rules for rb in prev_config.rulebases if rb.uid == rulebase.uid), None)
+            if prev_rules is None:
+                continue
             for rule in rulebase.rules.values():
                 uid = rule.rule_uid
                 if uid is None:
@@ -545,27 +552,30 @@ class FwConfigImportRule():
             return sum((import_result['data'][f"insert_{ref_type.value}"].get('affected_rows', 0) for ref_type in RefType))
 
 
-    def getRulesByIdWithRefUids(self, ruleIds: list[int]) -> tuple[int, int, list[Rule]]:
-        logger = getFwoLogger()
-        rulesToBeReferenced = []
+    def getRulesByIdWithRefUids(self, ruleIds: list[int]) -> list[Rule]: #TODO: change return type to list[Rule] and cast
         getRuleUidRefsQuery = FwoApi.get_graphql_code([fwo_const.graphql_query_path + "rule/getRulesByIdWithRefUids.graphql"])
         query_variables = { 'ruleIds': ruleIds }
         
         try:
             import_result = self.import_details.api_call.call(getRuleUidRefsQuery, query_variables=query_variables)
             if 'errors' in import_result:
-                logger.exception(f"fwconfig_import_rule:getRulesByIdWithRefUids - error in addNewRules: {str(import_result['errors'])}")
-                return 1, 0, rulesToBeReferenced
+                
+                FWOLogger.exception(f"fwconfig_import_rule:getRulesByIdWithRefUids - error in addNewRules: {str(import_result['errors'])}")
+                return []
             else:
-                return 0, 0, import_result['data']['rule']
+                return import_result['data']['rule']
         except Exception:
-            logger.exception(f"failed to get rules from API: {str(traceback.format_exc())}")
+            FWOLogger.exception(f"failed to get rules from API: {str(traceback.format_exc())}")
             raise
 
 
-    def getRules(self, ruleUids) -> list[Rulebase]:
+    def getRules(self, ruleUids: dict[str, list[str]]) -> list[Rulebase]:
         #TODO: seems unnecessary, as the rulebases should already have been created this way in the normalized config
-        rulebases = []
+        rulebases: list[Rulebase] = []
+
+        if self.normalized_config is None:
+            raise FwoImporterError("cannot get rules: normalized_config is None")
+        
         for rb in self.normalized_config.rulebases:
             if rb.uid in ruleUids:
                 filtered_rules = {uid: rule for uid, rule in rb.rules.items() if uid in ruleUids[rb.uid]}
@@ -583,13 +593,13 @@ class FwConfigImportRule():
     # assuming input of form:
     # {'rule-uid1': {'rule_num': 17', ... }, 'rule-uid2': {'rule_num': 8, ...}, ... }
     @staticmethod
-    def ruleDictToOrderedListOfRuleUids(rules):
+    def ruleDictToOrderedListOfRuleUids(rules: dict[str, dict[str, Any]]) -> list[str]:
         return sorted(rules, key=lambda x: rules[x]['rule_num'])
 
     @staticmethod
-    def listDiff(oldRules, newRules):
+    def listDiff(oldRules: list[str], newRules: list[str]) -> list[tuple[str, str]]:
         diff = list(ndiff(oldRules, newRules))
-        changes = []
+        changes: list[tuple[str, str]] = []
 
         for change in diff:
             if change.startswith("- "):
@@ -601,7 +611,7 @@ class FwConfigImportRule():
         
         return changes
 
-    def _find_following_rules(self, ruleUid, previousRulebase, rulebaseId):
+    def _find_following_rules(self, ruleUid: str, previousRulebase: dict[str, int], rulebaseId: str) -> Generator[str, None, None]:
         """
         Helper method to find the next rule in self that has an existing rule number.
         
@@ -610,9 +620,9 @@ class FwConfigImportRule():
         :return: Generator yielding rule IDs that appear after `current_rule_id` in self.new_rules.
         """
         found = False
+        if self.normalized_config is None:
+            raise FwoImporterError("cannot find following rules: normalized_config is None")
         current_rulebase = self.normalized_config.get_rulebase(rulebaseId)
-        if current_rulebase is None:
-            raise FwoImporterError(f"rulebase with id {rulebaseId} not found in current config")
         for currentUid in current_rulebase.rules:
             if currentUid == ruleUid:
                 found = True
@@ -621,12 +631,11 @@ class FwConfigImportRule():
 
 
     # adds new rule_metadatum to the database
-    def addNewRuleMetadata(self, newRules: list[Rulebase]):
-        logger = getFwoLogger()
-        changes = 0
-        newRuleMetaDataIds = []
-        newRuleIds = []
-        
+    def addNewRuleMetadata(self, newRules: list[Rulebase]) -> tuple[int, list[int]]:
+        changes: int = 0
+        newRuleMetaDataIds: list[int] = []
+        newRuleIds: list[int] = []
+
         addNewRuleMetadataMutation = """mutation upsertRuleMetadata($ruleMetadata: [rule_metadata_insert_input!]!) {
              insert_rule_metadata(objects: $ruleMetadata, on_conflict: {constraint: rule_metadata_rule_uid_unique, update_columns: [rule_last_modified]}) {
                 affected_rows
@@ -637,14 +646,13 @@ class FwConfigImportRule():
         }
         """
 
-        addNewRuleMetadata: list[dict] = self.PrepareNewRuleMetadata(newRules)
+        addNewRuleMetadata: list[dict[str, Any]] = self.PrepareNewRuleMetadata(newRules)
         query_variables = { 'ruleMetadata': addNewRuleMetadata }
         
-        if fwo_globals.debug_level>9:
-            logger.debug(json.dumps(query_variables))    # just for debugging purposes
+        FWOLogger.debug(json.dumps(query_variables), 10)    # just for debugging purposes
 
         try:
-            import_result = self.import_details.api_call.call(addNewRuleMetadataMutation, query_variables=query_variables, debug_level=self.import_details.DebugLevel, analyze_payload=True)
+            import_result = self.import_details.api_call.call(addNewRuleMetadataMutation, query_variables=query_variables, analyze_payload=True)
         except Exception:
             raise FwoApiWriteError(f"failed to write new RulesMetadata: {str(traceback.format_exc())}")
         if 'errors' in import_result:
@@ -652,7 +660,7 @@ class FwConfigImportRule():
         else:
             # reduce change number by number of rulebases
             changes = import_result['data']['insert_rule_metadata']['affected_rows']
-            if changes>0:
+            if changes > 0:
                 for rule_metadata_id in import_result['data']['insert_rule_metadata']['returning']:
                     newRuleMetaDataIds.append(rule_metadata_id)
         
@@ -660,9 +668,8 @@ class FwConfigImportRule():
 
 
     def add_rulebases_without_rules(self, newRules: list[Rulebase]):
-        logger = getFwoLogger()
-        changes = 0
-        newRulebaseIds = []
+        changes: int = 0
+        newRulebaseIds: list[int] = []
         
         addRulebasesWithoutRulesMutation = """mutation upsertRulebaseWithoutRules($rulebases: [rulebase_insert_input!]!) {
                 insert_rulebase(
@@ -688,10 +695,10 @@ class FwConfigImportRule():
         try:
             import_result = self.import_details.api_call.call(addRulebasesWithoutRulesMutation, query_variables=query_variables)
         except Exception:
-            logger.exception(f"fwo_api:importRules - error in addNewRules: {str(traceback.format_exc())}")
+            FWOLogger.exception(f"fwo_api:importRules - error in addNewRules: {str(traceback.format_exc())}")
             raise FwoApiWriteError(f"failed to write new rulebases: {str(traceback.format_exc())}")
         if 'errors' in import_result:
-            logger.exception(f"fwo_api:importRules - error in addNewRules: {str(import_result['errors'])}")
+            FWOLogger.exception(f"fwo_api:importRules - error in addNewRules: {str(import_result['errors'])}")
             raise FwoApiWriteError(f"failed to write new rulebases: {str(import_result['errors'])}")
         else:
             # reduce change number by number of rulebases
@@ -706,20 +713,19 @@ class FwConfigImportRule():
     # as we cannot add the rules for all rulebases in one go (using a constraint from the rule table), 
     # we need to add them per rulebase separately
     #TODO: separation because of constraint still needed?
-    def add_rules_within_rulebases(self, rulebases: List[Rulebase]) -> tuple[int, list[dict]]:
+    def add_rules_within_rulebases(self, rulebases: list[Rulebase]) -> tuple[int, list[dict[str, Any]]]:
         """
         Adds rules within the given rulebases to the database.
 
         Args:
-            rulebases (List[Rulebase]): List of Rulebase objects containing rules to be added
+            rulebases (list[Rulebase]): List of Rulebase objects containing rules to be added
 
         Returns:
             tuple[int, list[dict]]: A tuple containing the number of changes made and a list of dictionaries,
                 each with 'rule_id' and 'rule_uid' for each newly added rule.
         """
-        logger = getFwoLogger()
-        changes = 0
-        newRuleIds = []
+        changes: int = 0
+        newRuleIds: list[dict[str, Any]] = []
 
         upsertRulebaseWithRules = """mutation upsertRules($rules: [rule_insert_input!]!) {
                 insert_rule(
@@ -733,12 +739,12 @@ class FwConfigImportRule():
             if len(new_rules)>0:
                 query_variables = { 'rules': [rule.model_dump() for rule in new_rules] }
                 try:
-                    import_result = self.import_details.api_call.call(upsertRulebaseWithRules, query_variables=query_variables, debug_level=self.import_details.DebugLevel, analyze_payload=True)
+                    import_result = self.import_details.api_call.call(upsertRulebaseWithRules, query_variables=query_variables, analyze_payload=True)
                 except Exception:
-                    logger.exception(f"fwo_api:addRulesWithinRulebases - error in addRulesWithinRulebases: {str(traceback.format_exc())}")
+                    FWOLogger.exception(f"fwo_api:addRulesWithinRulebases - error in addRulesWithinRulebases: {str(traceback.format_exc())}")
                     raise FwoApiWriteError(f"failed to write rules of rulebase {rulebase.uid}: {str(traceback.format_exc())}")
                 if 'errors' in import_result:
-                    logger.exception(f"fwo_api:addRulesWithinRulebases - error in addRulesWithinRulebases: {str(import_result['errors'])}")
+                    FWOLogger.exception(f"fwo_api:addRulesWithinRulebases - error in addRulesWithinRulebases: {str(import_result['errors'])}")
                     raise FwoApiWriteError(f"failed to write rules of rulebase {rulebase.uid}: {str(import_result['errors'])}")
                 else:
                     changes += import_result['data']['insert_rule']['affected_rows']
@@ -747,16 +753,16 @@ class FwConfigImportRule():
 
     # adds only new rules to the database
     # unchanged or deleted rules are not touched here
-    def add_new_rules(self, rulebases: list[Rulebase]) -> tuple[int, list[dict]]:
+    def add_new_rules(self, rulebases: list[Rulebase]) -> tuple[int, list[dict[str, Any]]]:
         #TODO: currently brute-forcing all rulebases and rules and depending on constraints to avoid duplicates. seems inefficient.
-        changes1, newRulebaseIds = self.add_rulebases_without_rules(rulebases)
+        changes1, _ = self.add_rulebases_without_rules(rulebases)
         changes2, newRuleIds = self.add_rules_within_rulebases(rulebases)
 
         return changes1 + changes2, newRuleIds
 
 
-    def PrepareNewRuleMetadata(self, newRules: list[Rulebase]) -> list[dict]:
-        newRuleMetadata: list[dict] = []
+    def PrepareNewRuleMetadata(self, newRules: list[Rulebase]) -> list[dict[str, Any]]:
+        newRuleMetadata: list[dict[str, Any]] = []
 
         now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         for rulebase in newRules:
@@ -790,9 +796,8 @@ class FwConfigImportRule():
         return newRulesForImport    
 
     def mark_rules_removed(self, removedRuleUids: dict[str, list[str]]) -> tuple[int, list[int]]:
-        logger = getFwoLogger()
         changes = 0
-        collectedRemovedRuleIds = []
+        collectedRemovedRuleIds: list[int] = []
 
         # TODO: make sure not to mark new (changed) rules as removed (order of calls!)
         
@@ -807,7 +812,7 @@ class FwConfigImportRule():
                         }
                     }
                 """
-                query_variables = {  'importId': self.import_details.ImportId,
+                query_variables: dict[str, Any] = {  'importId': self.import_details.ImportId,
                                     'mgmId': self.import_details.MgmDetails.CurrentMgmId,
                                     'uids': list(removedRuleUids[rbName]) }
                 
@@ -825,7 +830,7 @@ class FwConfigImportRule():
         return changes, collectedRemovedRuleIds
 
 
-    def create_new_rule_version(self, rule_uids: dict[str, list[str]]) -> tuple[int, list[int], list[dict]]:
+    def create_new_rule_version(self, rule_uids: dict[str, list[str]]) -> tuple[int, list[int],  list[dict[str, Any]]]:
         """
         Creates new versions of rules specified in rule_uids by inserting new rule entries and marking the old ones as removed.
 
@@ -835,7 +840,6 @@ class FwConfigImportRule():
         Returns:
             tuple[int, list[int], list[dict]]: A tuple containing the number of changes made, a list of old rule IDs that were changed, and a list of newly inserted rule entries.
         """
-        logger = getFwoLogger()
         self._changed_rule_id_map = {}
 
         if len(rule_uids) == 0:
@@ -895,7 +899,7 @@ class FwConfigImportRule():
 
                 import_rules.extend(import_rules_of_rulebase)
 
-        create_new_rule_version_variables = {
+        create_new_rule_version_variables: dict[str, Any] = {
             "objects": [rule.model_dump() for rule in import_rules],
             "uids": [rule.rule_uid for rule in import_rules],
             "mgmId": self.import_details.MgmDetails.CurrentMgmId,
@@ -910,8 +914,8 @@ class FwConfigImportRule():
             raise FwoApiWriteError(f"failed to create new rule versions: {str(create_new_rule_version_result['errors'])}")
         else:
             changes = int(create_new_rule_version_result['data']['update_rule']['affected_rows'])
-            update_rules_return = create_new_rule_version_result['data']['update_rule']['returning']
-            insert_rules_return = create_new_rule_version_result['data']['insert_rule']['returning']
+            update_rules_return: list[dict[str, Any]] = create_new_rule_version_result['data']['update_rule']['returning']
+            insert_rules_return: list[dict[str, Any]] = create_new_rule_version_result['data']['insert_rule']['returning']
 
             self._changed_rule_id_map = {
                 update_item['rule_id']: next(
@@ -923,20 +927,18 @@ class FwConfigImportRule():
             }
 
 
-            collected_changed_rule_ids = list(self._changed_rule_id_map.keys()) or []
+            collected_changed_rule_ids: list[int] = list(self._changed_rule_id_map.keys()) or []
 
 
         return changes, collected_changed_rule_ids, insert_rules_return
 
 
-    def update_rule_enforced_on_gateway_after_move(self, insert_rules_return, update_rules_return):
+    def update_rule_enforced_on_gateway_after_move(self, insert_rules_return: list[dict[str, Any]], update_rules_return: list[dict[str, Any]]) -> tuple[int, int, list[str]]:
         """
             Updates the db table rule_enforced_on_gateway by creating new entries for a list of rule_ids and setting the old versions of said rules removed.
         """
 
-        logger = getFwoLogger()
-
-        id_map = {}
+        id_map: dict[int, int] = {}
 
         for insert_rules_return_entry in insert_rules_return:
             id_map[
@@ -966,7 +968,7 @@ class FwConfigImportRule():
             }
         """
 
-        set_rule_enforced_on_gateway_entries_removed_variables = {
+        set_rule_enforced_on_gateway_entries_removed_variables: dict[str, Any] = {
             "rule_ids": list(id_map.values()),
             "importId": self.import_details.ImportId,
         }
@@ -982,13 +984,13 @@ class FwConfigImportRule():
         """
 
         try:
-            set_rule_enforced_on_gateway_entries_removed_result =  self.import_details.api_call.call(set_rule_enforced_on_gateway_entries_removed_mutation, set_rule_enforced_on_gateway_entries_removed_variables, self.import_details.DebugLevel)
+            set_rule_enforced_on_gateway_entries_removed_result =  self.import_details.api_call.call(set_rule_enforced_on_gateway_entries_removed_mutation, set_rule_enforced_on_gateway_entries_removed_variables)
 
             if 'errors' in set_rule_enforced_on_gateway_entries_removed_result:
-                logger.exception(f"fwo_api:update_rule_enforced_on_gateway_after_move - error while updating moved rules refs: {str(set_rule_enforced_on_gateway_entries_removed_result['errors'])}")
+                FWOLogger.exception(f"fwo_api:update_rule_enforced_on_gateway_after_move - error while updating moved rules refs: {str(set_rule_enforced_on_gateway_entries_removed_result['errors'])}")
                 return 1, 0, []
-            
-            insert_rule_enforced_on_gateway_entries_variables = {
+
+            insert_rule_enforced_on_gateway_entries_variables: dict[str, Any] = {
                 "new_entries": [
                     {
                         "rule_id": new_id,
@@ -999,24 +1001,24 @@ class FwConfigImportRule():
                 ]
             }
 
-            insert_rule_enforced_on_gateway_entries_result =  self.import_details.api_call.call(insert_rule_enforced_on_gateway_entries_mutation, insert_rule_enforced_on_gateway_entries_variables, self.import_details.DebugLevel)
+            insert_rule_enforced_on_gateway_entries_result =  self.import_details.api_call.call(insert_rule_enforced_on_gateway_entries_mutation, insert_rule_enforced_on_gateway_entries_variables)
 
             if 'errors' in insert_rule_enforced_on_gateway_entries_result:
-                logger.exception(f"fwo_api:update_rule_enforced_on_gateway_after_move - error while updating moved rules refs: {str(insert_rule_enforced_on_gateway_entries_result['errors'])}")
+                FWOLogger.exception(f"fwo_api:update_rule_enforced_on_gateway_after_move - error while updating moved rules refs: {str(insert_rule_enforced_on_gateway_entries_result['errors'])}")
                 return 1, 0, []
             
             return 0, 0, []
 
 
         except Exception:
-            logger.exception(f"failed to move rules: {str(traceback.format_exc())}")
+            FWOLogger.exception(f"failed to move rules: {str(traceback.format_exc())}")
             return 1, 0, []
         
     def verify_rules_moved(self, changed_rule_uids: dict[str, list[str]]) -> tuple[int, int, list[str]]:
         error_count_move = 0 
         number_of_moved_rules = 0
 
-        moved_rule_uids = []
+        moved_rule_uids: list[str] = []
 
         changed_rule_uids_flat = [
             uid 
@@ -1026,7 +1028,7 @@ class FwConfigImportRule():
 
         rule_order_service_moved_rule_uids_flat = [
             rule_uid 
-            for rule_uids in self.rule_order_service._moved_rule_uids.values()
+            for rule_uids in self.rule_order_service._moved_rule_uids.values() # type: ignore #TODO: access to protected member
             for rule_uid in rule_uids
         ]
 
@@ -1042,55 +1044,53 @@ class FwConfigImportRule():
             
 
     # TODO: limit query to a single rulebase
-    def GetRuleNumMap(self):
+    def get_rule_num_map(self) -> dict[str, dict[str, float]]:
         query = "query getRuleNumMap($mgmId: Int) { rule(where:{mgm_id:{_eq:$mgmId}}) { rule_uid rulebase_id rule_num_numeric } }"
         try:
             result = self.import_details.api_call.call(query=query, query_variables={"mgmId": self.import_details.MgmDetails.CurrentMgmId})
         except Exception:
-            logger = getFwoLogger()
-            logger.error(f'Error while getting rule number map')
+            FWOLogger.error(f'Error while getting rule number map')
             return {}
-        
-        map = {}
-        for ruleNum in result['data']['rule']:
-            if ruleNum['rulebase_id'] not in map:
-                map.update({ ruleNum['rulebase_id']: {} })  # initialize rulebase
-            map[ruleNum['rulebase_id']].update({ ruleNum['rule_uid']: ruleNum['rule_num_numeric']})
-        return map
 
-    def GetNextRuleNumMap(self):    # TODO: implement!
+        rule_num_map: dict[str, dict[str, float]] = {}
+        for rule_num in result['data']['rule']:
+            if rule_num['rulebase_id'] not in rule_num_map:
+                rule_num_map.update({ rule_num['rulebase_id']: {} })  # initialize rulebase
+            rule_num_map[rule_num['rulebase_id']].update({ rule_num['rule_uid']: rule_num['rule_num_numeric']})
+        return rule_num_map
+
+    def get_next_rule_num_map(self) -> dict[str, float]: #TODO: implement!
         query = "query getRuleNumMap { rule { rule_uid rule_num_numeric } }"
         try:
-            result = self.import_details.api_call.call(query=query, query_variables={})
+            _ = self.import_details.api_call.call(query=query, query_variables={})
         except Exception:
-            logger = getFwoLogger()
-            logger.error(f'Error while getting rule number')
+            FWOLogger.error(f'Error while getting rule number')
             return {}
-        
-        map = {}
-        # for ruleNum in result['data']['rule']:
-        #     map.update({ruleNum['rule_uid']: ruleNum['rule_num_numeric']})
-        return map
 
-    def GetRuleTypeMap(self):
+        rule_num_map: dict[str, float] = {}
+        # for ruleNum in result['data']['rule']:
+        #     rule_num_map.update({ruleNum['rule_uid']: ruleNum['rule_num_numeric']})
+        return rule_num_map
+
+    def get_rule_type_map(self) -> dict[str, int]:
         query = "query getTrackMap { stm_track { track_name track_id } }"
         try:
             result = self.import_details.api_call.call(query=query, query_variables={})
         except Exception:
-            logger = getFwoLogger()
-            logger.error(f'Error while getting stm_track')
+            
+            FWOLogger.error(f'Error while getting stm_track')
             return {}
         
-        map = {}
+        rule_type_map: dict[str, int] = {}
         for track in result['data']['stm_track']:
-            map.update({track['track_name']: track['track_id']})
-        return map
+            rule_type_map.update({track['track_name']: track['track_id']})
+        return rule_type_map
 
-    def getCurrentRules(self, importId, mgmId, rulebaseName):
-        query_variables = {
-            "importId": importId,
-            "mgmId": mgmId,
-            "rulebaseName": rulebaseName
+    def get_current_rules(self, import_id: int, mgm_id: int, rulebase_name: str) -> list[list[Any]] | None:
+        query_variables: dict[str, Any] = {
+            "importId": import_id,
+            "mgmId": mgm_id,
+            "rulebaseName": rulebase_name
         }
         query = """
             query get_rulebase($importId: bigint!, $mgmId: Int!, $rulebaseName: String!) {
@@ -1106,33 +1106,31 @@ class FwConfigImportRule():
         """
         
         try:
-            queryResult = self.import_details.api_call.call(query, query_variables=query_variables)
+            query_result = self.import_details.api_call.call(query, query_variables=query_variables)
         except Exception:
-            logger = getFwoLogger()
-            logger.error(f"error while getting current rulebase: {str(traceback.format_exc())}")
+            FWOLogger.error(f"error while getting current rulebase: {str(traceback.format_exc())}")
             self.import_details.increaseErrorCounterByOne()
             return
         
         try:
-            ruleList = queryResult['data']['rulebase'][0]['rules']
+            rule_list = query_result['data']['rulebase'][0]['rules']
         except Exception:
-            logger = getFwoLogger()
-            logger.error(f'could not find rules in query result: {queryResult}')
+            FWOLogger.error(f'could not find rules in query result: {query_result}')
             self.import_details.increaseErrorCounterByOne()
             return
-        
-        rules = []
-        for rule in ruleList:
-            rules.append([rule['rule']['rule_num'], rule['rule']['rule_num_numeric'], rule['rule']['rule_uid']])
+
+        rules: list[list[Any]] = []
+        for rule in rule_list:
+            rules.append([rule['rule']['rule_num'], rule['rule']['rule_num_numeric'], rule['rule']['rule_uid']]) # TODO: change to tuple?
         return rules
-    
-    def insertRulebase(self, ruleBaseName, isGlobal=False):
+
+    def insert_rulebase(self, rulebase_name: str, is_global: bool = False):
         # call for each rulebase to add
-        query_variables = {
+        query_variables: dict[str, Any] = {
             "rulebase": {
-                "is_global": isGlobal,
+                "is_global": is_global,
                 "mgm_id": self.import_details.MgmDetails.CurrentMgmId,
-                "name": ruleBaseName,
+                "name": rulebase_name,
                 "created": self.import_details.ImportId
             }
         }
@@ -1158,13 +1156,13 @@ class FwConfigImportRule():
         return self.import_details.api_call.call(mutation, query_variables=query_variables)
 
 
-    def importInsertRulebaseOnGateway(self, rulebaseId, devId, orderNo=0):
-        query_variables = {
+    def import_insert_rulebase_on_gateway(self, rulebase_id: int, dev_id: int, order_num: int = 0):
+        query_variables: dict[str, Any] = {
             "rulebase2gateway": [
                 {
-                    "dev_id": devId,
-                    "rulebase_id": rulebaseId,
-                    "order_no": orderNo
+                    "dev_id": dev_id,
+                    "rulebase_id": rulebase_id,
+                    "order_no": order_num
                 }
             ]
         }
@@ -1177,27 +1175,24 @@ class FwConfigImportRule():
         
         return self.import_details.api_call.call(mutation, query_variables=query_variables)
 
-    def _get_list_of_enforced_gateways(self, rule: RuleNormalized, importDetails: ImportStateController) -> Optional[List[int]]:
+    def _get_list_of_enforced_gateways(self, rule: RuleNormalized, import_details: ImportStateController) -> list[int] | None:
         if rule.rule_installon is None:
             return None
-        enforced_gw_ids = []
-        for gwUid in rule.rule_installon.split(fwo_const.list_delimiter):
-            gwId = importDetails.lookupGatewayId(gwUid)
-            if gwId is None:
-                logger = getFwoLogger()
-                logger.warning(f"could not find gateway id for gateway uid {gwUid} during rule import preparation")
+        enforced_gw_ids: list[int] = []
+        for gw_uid in rule.rule_installon.split(fwo_const.list_delimiter):
+            gw_id = import_details.lookupGatewayId(gw_uid)
+            if gw_id is None:
+                FWOLogger.warning(f"could not find gateway id for gateway uid {gw_uid} during rule import preparation")
                 continue
-            enforced_gw_ids.append(gwId)
+            enforced_gw_ids.append(gw_id)
         if len(enforced_gw_ids) == 0:
             return None
 
         return enforced_gw_ids
 
-    def prepare_rules_for_import(self, rules: list[RuleNormalized], rulebase_uid: str) -> List[Rule]:
+    def prepare_rules_for_import(self, rules: list[RuleNormalized], rulebase_uid: str) -> list[Rule]:
         # get rulebase_id for rulebaseUid
         rulebase_id = self.import_details.lookupRulebaseId(rulebase_uid)
-        if rulebase_id is None:
-            raise FwoApiWriteError(f"could not find rulebase id for rulebase uid {rulebase_uid} during rule import preparation")
 
         prepared_rules = [
             self.prepare_single_rule_for_import(rule, self.import_details, rulebase_id)
@@ -1246,9 +1241,7 @@ class FwConfigImportRule():
 
         return rule_for_import
 
-    def write_changelog_rules(self, added_rules_ids, removed_rules_ids):
-        logger = getFwoLogger()
-        errors = 0
+    def write_changelog_rules(self, added_rules_ids: list[int], removed_rules_ids: list[int]):
 
         changelog_rule_insert_objects = self.prepare_changelog_rules_insert_objects(added_rules_ids, removed_rules_ids)
 
@@ -1262,22 +1255,18 @@ class FwConfigImportRule():
             try:
                 updateChanglogRules_result = self.import_details.api_call.call(updateChanglogRules, query_variables=query_variables, analyze_payload=True)
                 if 'errors' in updateChanglogRules_result:
-                    logger.exception(f"error while adding changelog entries for objects: {str(updateChanglogRules_result['errors'])}")
-                    errors = 1
+                    FWOLogger.exception(f"error while adding changelog entries for objects: {str(updateChanglogRules_result['errors'])}")
             except Exception:
-                logger.exception(f"fatal error while adding changelog entries for objects: {str(traceback.format_exc())}")
-                errors = 1
-        
-        return errors
+                FWOLogger.exception(f"fatal error while adding changelog entries for objects: {str(traceback.format_exc())}")
 
 
-    def prepare_changelog_rules_insert_objects(self, added_rules_ids, removed_rules_ids):
+    def prepare_changelog_rules_insert_objects(self, added_rules_ids: list[int], removed_rules_ids: list[int]) -> list[dict[str, Any]]:
         """
             Creates two lists of insert arguments for the changelog_rules db table, one for new rules, one for deleted.
         """
 
         change_logger = ChangeLogger()
-        changelog_rule_insert_objects = []
+        changelog_rule_insert_objects: list[dict[str, Any]] = []
         importTime = datetime.now().isoformat()
         changeTyp = 3
 

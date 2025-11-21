@@ -1,7 +1,8 @@
+from typing import Any
 from fwo_const import list_delimiter
 
-def normalize_users(full_config, config2import, import_id, user_scope):
-    users = []
+def normalize_users(full_config: dict[str, Any], config2import: dict[str, Any], import_id: int, user_scope: list[str]):
+    users: list[dict[str, Any]] = []
     for scope in user_scope:
         if scope in full_config:
             for user_orig in full_config[scope]:

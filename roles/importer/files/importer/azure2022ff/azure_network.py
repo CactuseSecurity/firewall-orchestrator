@@ -1,11 +1,11 @@
-from asyncio.log import logger
-from fwo_log import getFwoLogger
+from typing import Any
+from netaddr import IPAddress
 from fwo_const import list_delimiter
 import ipaddress
 
 
-def normalize_nwobjects(full_config, config2import, import_id, jwt=None, mgm_id=None):
-    nw_objects = []
+def normalize_nwobjects(full_config: dict[str, Any], config2import: dict[str, Any], import_id: str, jwt: str | None = None, mgm_id: str | None = None) -> None:
+    nw_objects: list[dict[str, Any]] = []
     for obj_orig in full_config["networkObjects"]:
         nw_objects.append(parse_object(obj_orig, import_id, config2import, nw_objects))
     for obj_grp_orig in full_config["networkObjectGroups"]:
@@ -16,8 +16,8 @@ def normalize_nwobjects(full_config, config2import, import_id, jwt=None, mgm_id=
     config2import['network_objects'] = nw_objects
 
 
-def extract_base_object_infos(obj_orig, import_id, config2import, nw_objects):
-    obj = {}
+def extract_base_object_infos(obj_orig: dict[str, Any], import_id: str, config2import: dict[str, Any], nw_objects: list[dict[str, Any]]) -> dict[str, Any]:
+    obj: dict[str, Any] = {}
 
     if "type" in obj_orig:
         obj["obj_name"] = obj_orig["name"]
@@ -30,9 +30,9 @@ def extract_base_object_infos(obj_orig, import_id, config2import, nw_objects):
     return obj
 
 
-def parse_obj_group(orig_grp, import_id, nw_objects, config2import, id = None):
-    refs = []
-    names = []
+def parse_obj_group(orig_grp: dict[str, Any], import_id: str, nw_objects: list[dict[str, Any]], config2import: dict[str, Any], id: str | None = None) -> tuple[str, str]:
+    refs: list[str] = []
+    names: list[str] = []
     if "properties" in orig_grp:
         if 'ipAddresses' in orig_grp['properties']:
             for ip in orig_grp['properties']['ipAddresses']:
@@ -43,14 +43,14 @@ def parse_obj_group(orig_grp, import_id, nw_objects, config2import, id = None):
     return list_delimiter.join(refs), list_delimiter.join(names)
 
 
-def parse_obj_list(ip_list, import_id, config, id):
-    refs = []
-    names = []
+def parse_obj_list(ip_list: list[str], import_id: str, config: dict[str, Any], id: str | None = None) -> tuple[str, str]:
+    refs: list[str] = []
+    names: list[str] = []
     for ip in ip_list:
         # TODO: lookup ip in network_objects and re-use
-        ip_obj = {}
+        ip_obj: dict[str, Any] = {}
         ip_obj['obj_name'] = ip
-        ip_obj['obj_uid'] = ip_obj['obj_name'] + "_" + id
+        ip_obj['obj_uid'] = ip_obj['obj_name'] + "_" + (id if id is not None else "")
         try:
             ipaddress.ip_network(ip)
             # valid ip
@@ -73,13 +73,13 @@ def parse_obj_list(ip_list, import_id, config, id):
         
         ip_obj['control_id'] = import_id
 
-        config.append(ip_obj)
+        config.append(ip_obj) # type: ignore # TODO: config is dict[str, Any], not list
         refs.append(ip_obj['obj_uid'])
         names.append(ip_obj['obj_name'])
     return list_delimiter.join(refs), list_delimiter.join(names)
 
 
-def parse_object(obj_orig, import_id, config2import, nw_objects):
+def parse_object(obj_orig: dict[str, Any], import_id: str, config2import: dict[str, Any], nw_objects: list[dict[str, Any]]) -> dict[str, Any]:
     obj = extract_base_object_infos(obj_orig, import_id, config2import, nw_objects)
     if obj_orig["type"] == "network":  # network
         obj["obj_typ"] = "network"
@@ -113,7 +113,7 @@ def parse_object(obj_orig, import_id, config2import, nw_objects):
     return obj
 
 
-def add_network_object(config2import, ip=None):
+def add_network_object(config2import: dict[str, Any], ip: str | None = None) -> dict[str, Any]:
     if "-" in str(ip):
         type = 'ip_range'
     else:

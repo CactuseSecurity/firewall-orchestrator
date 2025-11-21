@@ -1,21 +1,17 @@
-from asyncio.log import logger
 import ipaddress
-from fwo_log import getFwoLogger
+from typing import Any
+from fwo_log import FWOLogger
 from fwo_const import list_delimiter, nat_postfix
 from fOS_zone import add_zone_if_missing
-from fwo_config import readConfig
-from fwo_const import fwo_config_filename
-from fwo_api_call import setAlert, create_data_issue
 
-def normalize_nwobjects(full_config, config2import, import_id, nw_obj_types, jwt=None, mgm_id=None):
-    logger = getFwoLogger()
-    nw_objects = []
+def normalize_nwobjects(full_config: dict[str, Any], config2import: dict[str, Any], import_id: int, nw_obj_types: list[str]):
+    nw_objects: list[dict[str, Any]] = []
     full_config['nw_obj_lookup_dict'] = {}
     for obj_type in nw_obj_types:
         if obj_type in full_config:
             for obj_orig in full_config[obj_type]:
                 obj_zone = 'global'
-                obj = {}
+                obj: dict[str, Any] = {}
                 ipa = "<undefined>"
                 obj.update({'obj_name': obj_orig['name']})
                 if 'subnet' in obj_orig: # ipv4 object
@@ -24,7 +20,7 @@ def normalize_nwobjects(full_config, config2import, import_id, nw_obj_types, jwt
                         obj_orig['subnet'] = obj_orig['subnet'].split(' ')
                         obj_orig['subnet'][1] = 32
                     if isinstance(obj_orig['subnet'], str):
-                        logger.warning("found dirty subnet ip for " + obj_orig['name'] + ": " + obj_orig['subnet'])
+                        FWOLogger.warning("found dirty subnet ip for " + obj_orig['name'] + ": " + obj_orig['subnet'])
                         ipa = '0.0.0.0/0'
                         obj.update({ 'obj_typ': 'network' })
                         obj.update({ 'obj_ip': ipa })
@@ -56,11 +52,12 @@ def normalize_nwobjects(full_config, config2import, import_id, nw_obj_types, jwt
                     obj.update({ 'obj_ip_end': obj_orig['end-ip'] })
                 elif 'extip' in obj_orig: # vip object, simplifying to a single ip
                     obj.update({ 'obj_typ': 'host' })
+                    nat_obj: dict[str, Any] = {}
                     if 'extip' not in obj_orig or len(obj_orig['extip'])==0:
-                        logger.error("vip (extip): found empty extip field for " + obj_orig['name'])
+                        FWOLogger.error("vip (extip): found empty extip field for " + obj_orig['name'])
                     else:
                         set_ip_in_obj(obj, obj_orig['extip'])   # resolving nat range if there is one
-                        nat_obj = {}
+                        nat_obj: dict[str, Any] = {}
                         nat_obj.update({'obj_typ': 'host' })
                         nat_obj.update({'obj_color': 'black'})
                         nat_obj.update({'obj_comment': 'FWO-auto-generated nat object for VIP'})
@@ -69,12 +66,12 @@ def normalize_nwobjects(full_config, config2import, import_id, nw_obj_types, jwt
 
                     # now dealing with the nat ip obj (mappedip)
                     if 'mappedip' not in obj_orig or len(obj_orig['mappedip'])==0:
-                        logger.warning("vip (extip): found empty mappedip field for " + obj_orig['name'])
+                        FWOLogger.warning("vip (extip): found empty mappedip field for " + obj_orig['name'])
                     else:
                         if len(obj_orig['mappedip'])>1:
-                            logger.warning("vip (extip): found more than one mappedip, just using the first one for " + obj_orig['name'])
+                            FWOLogger.warning("vip (extip): found more than one mappedip, just using the first one for " + obj_orig['name'])
                         nat_ip = obj_orig['mappedip'][0]['range']
-                        set_ip_in_obj(nat_obj, nat_ip)
+                        set_ip_in_obj(nat_obj, nat_ip) #TYPING: nat_obj is possibly unbounded herer
                         obj.update({ 'obj_nat_ip': nat_obj['obj_ip'] }) # save nat ip in vip obj
                         if 'obj_ip_end' in nat_obj: # this nat obj is a range - include the end ip in name and uid as well to avoid akey conflicts
                             obj.update({ 'obj_nat_ip_end': nat_obj['obj_ip_end'] }) # save nat ip in vip obj
@@ -118,7 +115,7 @@ def normalize_nwobjects(full_config, config2import, import_id, nw_obj_types, jwt
     # finally add "Original" network object for natting
     original_obj_name = 'Original'
     original_obj_uid = 'Original'
-    orig_obj = create_network_object(import_id=import_id, name=original_obj_name, type='network', ip='0.0.0.0/0',\
+    orig_obj: dict[str, Any] = create_network_object(import_id=import_id, name=original_obj_name, type='network', ip='0.0.0.0/0',\
         uid=original_obj_uid, zone='global', color='black', comment='"original" network object created by FWO importer for NAT purposes')
     full_config['nw_obj_lookup_dict'][original_obj_name] = original_obj_uid
     nw_objects.append(orig_obj)
@@ -127,7 +124,7 @@ def normalize_nwobjects(full_config, config2import, import_id, nw_obj_types, jwt
     config2import.update({'network_objects': nw_objects})
 
 
-def set_ip_in_obj(nw_obj, ip): # add start and end ip in nw_obj if it is a range, otherwise do nothing
+def set_ip_in_obj(nw_obj: dict[str, Any], ip: str): # add start and end ip in nw_obj if it is a range, otherwise do nothing
     if '-' in ip: # dealing with range
         ip_start, ip_end = ip.split('-')
         nw_obj.update({'obj_ip': ip_start })
@@ -138,7 +135,7 @@ def set_ip_in_obj(nw_obj, ip): # add start and end ip in nw_obj if it is a range
 
 
 # for members of groups, the name of the member obj needs to be fetched separately (starting from API v1.?)
-def resolve_nw_uid_to_name(uid, nw_objects):
+def resolve_nw_uid_to_name(uid: str, nw_objects: list[dict[str, Any]]) -> str:
     # return name of nw_objects element where obj_uid = uid
     for obj in nw_objects:
         if obj['obj_uid'] == uid:
@@ -146,17 +143,17 @@ def resolve_nw_uid_to_name(uid, nw_objects):
     return 'ERROR: uid "' + uid + '" not found'
 
 
-def resolve_nw_groups(nw_objects):
+def resolve_nw_groups(nw_objects: list[dict[str, Any]]):
     # add uids (if possible)
 
     # build helper dict with idx = name
-    helper_dict = {}
+    helper_dict: dict[str, str] = {}
     for obj in nw_objects:
         helper_dict[obj['obj_name']] = obj['obj_uid']
 
     for obj in nw_objects:
         if obj['obj_typ'] == 'group':
-            member_ref_ar = []
+            member_ref_ar: list[str] = []
             for member_name in obj['obj_member_names'].split(list_delimiter):
                 member_ref_ar.append(helper_dict[member_name])
             obj['obj_member_refs'] = list_delimiter.join(member_ref_ar)
@@ -179,7 +176,7 @@ def resolve_nw_groups(nw_objects):
 #     nw_objects.insert(idx, group)
 
 
-def create_network_object(import_id, name, type, ip, uid, color, comment, zone):
+def create_network_object(import_id: int, name: str, type: str, ip: str, uid: str, color: str, comment: str, zone: str) -> dict[str, Any]:
     # if zone is None or zone == '':
     #     zone = 'global'
     return {
@@ -195,7 +192,7 @@ def create_network_object(import_id, name, type, ip, uid, color, comment, zone):
 
 
 # TODO: reduce commplexity if possible
-def get_nw_obj(nat_obj_name, nwobjects):
+def get_nw_obj(nat_obj_name: str, nwobjects: list[dict[str, Any]]) -> dict[str, Any] | None:
     for obj in nwobjects:
         if 'obj_name' in obj and obj['obj_name']==nat_obj_name:
             return obj
@@ -204,22 +201,21 @@ def get_nw_obj(nat_obj_name, nwobjects):
 
 # this removes all obj_nat_ip entries from all network objects
 # these were used during import but might cause issues if imported into db
-def remove_nat_ip_entries(config2import):
+def remove_nat_ip_entries(config2import: dict[str, Any]):
     for obj in config2import['network_objects']:
         if 'obj_nat_ip' in obj:
             obj.pop('obj_nat_ip')
 
 
-def get_first_ip_of_destination(obj_ref, config2import):
+def get_first_ip_of_destination(obj_ref: str, config2import: dict[str, Any]) -> str | None:
 
-    logger = getFwoLogger()
     if list_delimiter in obj_ref:
         obj_ref = obj_ref.split(list_delimiter)[0]
         # if destination does not contain exactly one ip, raise a warning 
-        logger.info('src nat behind interface: more than one NAT IP - just using the first one for routing decision for obj_ref ' + obj_ref)
+        FWOLogger.info('src nat behind interface: more than one NAT IP - just using the first one for routing decision for obj_ref ' + obj_ref)
 
     for obj in config2import['network_objects']:
         if 'obj_uid' in obj and obj['obj_uid']==obj_ref:
             return obj['obj_ip']
-    logger.warning('src nat behind interface: found no IP info for destination object ' + obj_ref)
+    FWOLogger.warning('src nat behind interface: found no IP info for destination object ' + obj_ref)
     return None

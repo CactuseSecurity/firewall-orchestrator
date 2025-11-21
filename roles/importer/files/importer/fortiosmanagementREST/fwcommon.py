@@ -1,24 +1,18 @@
 # import sys
 # from common import importer_base_dir
 # sys.path.append(importer_base_dir + '/fortiosmanagementREST')
-import json
-from curses import raw
-
+from typing import Any
 import fOS_user
 import fOS_service
 import fOS_zone
 import fOS_rule
 import fOS_network
 import fOS_getter
-from fwo_base import ConfigAction
-from fwo_log import getFwoLogger
-# from fOS_gw_networking import getInterfacesAndRouting, normalize_network_data
-from model_controllers.interface_controller import Interface
 from model_controllers.import_state_controller import ImportStateController
 from models.fwconfigmanagerlist import FwConfigManagerList
 from models.fwconfigmanager import FwConfigManager
 from models.fwconfig_normalized import FwConfigNormalized
-
+from models.import_state import ImportState
 import fwo_const
 
 
@@ -43,13 +37,12 @@ user_obj_types = ['user/local', 'user/group']
 user_scope = ['user_obj_' + s1 for s1 in user_obj_types]
 
 
-def has_config_changed(full_config, mgm_details, force=False):
+def has_config_changed(_: dict[str, Any], __: ImportState, ___: bool = False) -> bool:
     # dummy - may be filled with real check later on
     return True
  
-def get_config(full_config: json, importState: ImportStateController) -> tuple[int, FwConfigManagerList]: # current_import_id, mgm_details, limit=150, force=False, jwt=None) 
+def get_config(full_config: dict[str, Any], importState: ImportStateController) -> tuple[int, FwConfigManagerList]: # current_import_id, mgm_details, limit=150, force=False, jwt=None) 
 # def get_config(config2import, full_config, current_import_id, mgm_details, limit=100, force=False, jwt=''):
-    logger = getFwoLogger()
     config2import = fwo_const.emptyNormalizedFwConfigJsonDict
     if full_config == {}:   # no native config was passed in, so getting it from FortiManager
         parsing_config_only = False
@@ -62,7 +55,7 @@ def get_config(full_config: json, importState: ImportStateController) -> tuple[i
         sid = importState.MgmDetails.Secret
 
         if not parsing_config_only:   # no native config was passed in, so getting it from FortiManager
-            getObjects(sid, fm_api_url, full_config, importState.FwoConfig.ApiFetchSize, nw_obj_types, svc_obj_types)
+            get_objects(sid, fm_api_url, full_config, importState.FwoConfig.ApiFetchSize, nw_obj_types, svc_obj_types)
             # getInterfacesAndRouting(
             #     sid, fm_api_url, full_config, mgm_details['devices'], limit)
 
@@ -70,9 +63,9 @@ def get_config(full_config: json, importState: ImportStateController) -> tuple[i
             fOS_zone.add_zone_if_missing (config2import, 'global', importState.ImportId)
 
             # initialize all rule dicts
-            fOS_rule.initializeRulebases(full_config)
-            for dev in importState.MgmDetails.Devices:
-                fOS_rule.getAccessPolicy(sid, fm_api_url, full_config, importState.FwoConfig.ApiFetchSize)
+            fOS_rule.initialize_rulebases(full_config)
+            for _ in importState.MgmDetails.Devices: #TYPING: You good?
+                fOS_rule.get_access_policy(sid, fm_api_url, full_config, importState.FwoConfig.ApiFetchSize)
                 # fOS_rule.getNatPolicy(sid, fm_api_url, full_config, limit)
 
     # now we normalize relevant parts of the raw config and write the results to config2import dict
@@ -89,7 +82,7 @@ def get_config(full_config: json, importState: ImportStateController) -> tuple[i
     fOS_user.normalize_users(
         full_config, config2import, importState.ImportId, user_scope)
     fOS_network.normalize_nwobjects(
-        full_config, config2import, importState.ImportId, nw_obj_scope, jwt=importState.Jwt, mgm_id=importState.ImportId)
+        full_config, config2import, importState.ImportId, nw_obj_scope)
     fOS_service.normalize_svcobjects(
         full_config, config2import, importState.ImportId, svc_obj_scope)
     fOS_zone.add_zone_if_missing (config2import, 'global', importState.ImportId)
@@ -101,13 +94,7 @@ def get_config(full_config: json, importState: ImportStateController) -> tuple[i
     # fOS_network.remove_nat_ip_entries(config2import)
 
     # put dicts into object of class FwConfigManager
-    normalizedConfig = FwConfigNormalized(action=ConfigAction.INSERT, 
-                            network_objects=config2import['network_objects'],
-                            service_objects=config2import['service_objects'],
-                            users=config2import['users'],
-                            zone_objects=config2import['zone_objects'],
-                            rulebases=config2import['rules']
-                            )
+    normalizedConfig = FwConfigNormalized()
     manager = FwConfigManager(ManagerUid=importState.MgmDetails.calcManagerUidHash(), 
                               IsSuperManager=False, 
                               SubManagerIds=[], 
@@ -124,19 +111,19 @@ def get_config(full_config: json, importState: ImportStateController) -> tuple[i
     return 0, listOfManagers
 
 
-def getObjects(sid, fm_api_url, raw_config, limit, nw_obj_types, svc_obj_types):
+def get_objects(sid: str, fm_api_url: str, raw_config: dict[str, Any], limit: int, nw_obj_types: list[str], svc_obj_types: list[str]):
     # get network objects:
     for object_type in nw_obj_types:
-        fOS_getter.update_config_with_fortiOS_api_call(
+        fOS_getter.update_config_with_fortios_api_call(
             raw_config, fm_api_url + "/cmdb/" + object_type + "?access_token=" + sid, "nw_obj_" + object_type, limit=limit)
 
     # get service objects:
     for object_type in svc_obj_types:
-        fOS_getter.update_config_with_fortiOS_api_call(
+        fOS_getter.update_config_with_fortios_api_call(
             raw_config, fm_api_url + "/cmdb/" + object_type + "?access_token=" + sid, "svc_obj_" + object_type, limit=limit)
 
     # get user objects:
     for object_type in user_obj_types:
-        fOS_getter.update_config_with_fortiOS_api_call(
+        fOS_getter.update_config_with_fortios_api_call(
             raw_config, fm_api_url + "/cmdb/" + object_type + "?access_token=" + sid, "user_obj_" + object_type, limit=limit)
 

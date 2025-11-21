@@ -1,5 +1,4 @@
 # library for API get functions
-from asyncio.log import logger
 import json
 import requests
 import time
@@ -7,30 +6,27 @@ from datetime import datetime
 from typing import Any
 
 from fwo_exceptions import FwLoginFailed, FwApiError, FwApiResponseDecodingError, FwoImporterError
-from fwo_log import getFwoLogger
+from fwo_log import FWOLogger
 import fwo_globals
-import cp_network
-import cp_const
+from checkpointR8x import cp_const, cp_network
 import fwo_const
 from model_controllers.management_controller import ManagementController
 from services.service_provider import ServiceProvider
-from services.enums import Services
 from fwo_api_call import FwoApiCall, FwoApi
 
-def cp_api_call(url, command, json_payload, sid, show_progress=False):
+def cp_api_call(url: str, command: str, json_payload: dict[str, Any], sid: str | None, show_progress: bool=False):
     url += command
     request_headers = {'Content-Type' : 'application/json'}
-    if sid != '': # only not set for login
+    if sid: # only not set for login
         request_headers.update({'X-chkp-sid' : sid})
 
-    if fwo_globals.debug_level>8:
-        logger.debug(f"api call '{command}'")
-        if fwo_globals.debug_level>9 and command!='login':    # do not log passwords
-                logger.debug("json_payload: " + str(json_payload) )
+    FWOLogger.debug(f"api call '{command}'", 9)
+    if command!='login':    # do not log passwords
+        FWOLogger.debug("json_payload: " + str(json_payload), 10)
 
     try:
          r = requests.post(url, json=json_payload, headers=request_headers, verify=fwo_globals.verify_certs)
-    except requests.exceptions.RequestException as e:
+    except requests.exceptions.RequestException as _:
         if 'password' in json.dumps(json_payload):
             exception_text = "\nerror while sending api_call containing credential information to url '" + str(url)
         else:
@@ -47,14 +43,12 @@ def cp_api_call(url, command, json_payload, sid, show_progress=False):
 
 
 def login(mgm_details: ManagementController):
-    logger = getFwoLogger()
     payload = {'user': mgm_details.ImportUser, 'password': mgm_details.Secret}
     domain = mgm_details.getDomainString()
-    if domain is not None and domain != '':
+    if domain is not None and domain != '': # type: ignore # TODO: shouldnt be None
         payload.update({'domain': domain})
     base_url = mgm_details.buildFwApiString()
-    if int(fwo_globals.debug_level)>2:
-        logger.debug(f"login - login to url {base_url} with user {mgm_details.ImportUser}")
+    FWOLogger.debug(f"login - login to url {base_url} with user {mgm_details.ImportUser}", 3)
     response = cp_api_call(base_url, 'login', payload, '')
     if "sid" not in response:
         exception_text = f"getter ERROR: did not receive a sid, api call: {base_url}"
@@ -62,27 +56,26 @@ def login(mgm_details: ManagementController):
     return response["sid"]
 
 
-def logout(url, sid):
-    logger = getFwoLogger()
-    if int(fwo_globals.debug_level)>2:
-        logger.debug("logout from url " + url)
+
+def logout(url: str, sid: str):
+
+    FWOLogger.debug("logout from url " + url, 3)
     response = cp_api_call(url, 'logout', {}, sid)
     return response
 
 
-def get_changes(sid,api_host,api_port,fromdate):
-    logger = getFwoLogger()
+def get_changes(sid: str, api_host: str, api_port: str, fromdate: str) -> int:
     
     dt_object = datetime.fromisoformat(fromdate)
     dt_truncated = dt_object.replace(microsecond=0)     # Truncate microseconds
     fromdate = dt_truncated.isoformat()
 
     payload = {'from-date' : fromdate, 'details-level' : 'uid'}
-    logger.debug ("payload: " + json.dumps(payload))
+    FWOLogger.debug ("payload: " + json.dumps(payload))
     base_url = 'https://' + api_host + ':' + str(api_port) + '/web_api/'
     task_id = cp_api_call(base_url, 'show-changes', payload, sid)
 
-    logger.debug ("task_id: " + json.dumps(task_id))
+    FWOLogger.debug ("task_id: " + json.dumps(task_id))
     sleeptime = 1
     status = 'in progress'
     while (status == 'in progress'):
@@ -90,35 +83,34 @@ def get_changes(sid,api_host,api_port,fromdate):
         tasks = cp_api_call(base_url, 'show-task', task_id, sid)
         if 'tasks' in tasks:
             for task in tasks['tasks']:
-                if fwo_globals.debug_level>5:
-                    logger.debug ("task: " + json.dumps(task))
+                FWOLogger.debug ("task: " + json.dumps(task), 6)
                 if 'status' in task:
                     status = task['status']
                     if 'succeeded' in status:
                         for detail in task['task-details']:
                             if detail['changes']:
-                                logger.debug ("status: " + status + " -> changes found")
+                                FWOLogger.debug ("status: " + status + " -> changes found")
                                 return 1
                             else:
-                                logger.debug ("status: " + status + " -> but no changes found")
+                                FWOLogger.debug ("status: " + status + " -> but no changes found")
                     elif status == 'failed':
-                        logger.debug ("show-changes - status: failed -> no changes found")
+                        FWOLogger.debug ("show-changes - status: failed -> no changes found")
                     elif status == 'in progress':
-                        logger.debug ("status: in progress")
+                        FWOLogger.debug ("status: in progress")
                     else:
-                        logger.error ("unknown status: " + status)
+                        FWOLogger.error ("unknown status: " + status)
                         return -1
                 else:
-                    logger.error ("no status in task")
+                    FWOLogger.error ("no status in task")
                     return -1
         sleeptime += 2
         if sleeptime > 40:
-            logger.error ("task took too long, aborting")
+            FWOLogger.error ("task took too long, aborting")
             return -1
     return 0
 
 
-def get_policy_structure(api_v_url, sid, show_params_policy_structure, managerDetails, policy_structure = None):
+def get_policy_structure(api_v_url: str, sid: str, show_params_policy_structure: dict[str, Any], managerDetails: ManagementController, policy_structure: list[dict[str, Any]] | None = None) -> int:
 
     if policy_structure is None:
         policy_structure = []
@@ -142,7 +134,7 @@ def get_policy_structure(api_v_url, sid, show_params_policy_structure, managerDe
 
     return 0
 
-def get_show_packages_via_api(api_v_url, sid, show_params_policy_structure):
+def get_show_packages_via_api(api_v_url: str, sid: str, show_params_policy_structure: dict[str, Any]) -> tuple[dict[str, Any], int, int]:
     try:
         packages = cp_api_call(api_v_url, 'show-packages', show_params_policy_structure, sid)
     except Exception:
@@ -151,13 +143,13 @@ def get_show_packages_via_api(api_v_url, sid, show_params_policy_structure):
     if 'total' in packages:
         total = packages['total']
     else:
-        logger.error('packages do not contain total field')
-        logger.warning('sid: ' + sid)
-        logger.warning('api_v_url: ' + api_v_url)
+        FWOLogger.error('packages do not contain total field')
+        FWOLogger.warning('sid: ' + sid)
+        FWOLogger.warning('api_v_url: ' + api_v_url)
         for key, value in show_params_policy_structure.items():
-            logger.warning('show_params_policy_structure ' + key + ': ' + str(value))
+            FWOLogger.warning('show_params_policy_structure ' + key + ': ' + str(value))
         for key, value in packages.items():
-            logger.warning('packages ' + key + ': ' + str(value))
+            FWOLogger.warning('packages ' + key + ': ' + str(value))
         raise FwApiError('packages do not contain total field')
     
     if total == 0:
@@ -169,13 +161,13 @@ def get_show_packages_via_api(api_v_url, sid, show_params_policy_structure):
             raise FwApiError('packages do not contain to field')
     return packages, current, total
 
-def parse_package(package, managerDetails):
+def parse_package(package: dict[str, Any], managerDetails: ManagementController) -> tuple[dict[str, Any], bool]:
     alreadyFetchedPackage = False
     currentPackage = {}
     if 'installation-targets' in package and package['installation-targets'] == 'all':
         if not alreadyFetchedPackage:
             
-            currentPackage = { 'name': package['name'],
+            currentPackage: dict[str, Any] = { 'name': package['name'],
                                 'uid': package['uid'],
                                 'targets': [{'name': 'all', 'uid': 'all'}],
                                 'access-layers': []}
@@ -195,10 +187,10 @@ def parse_package(package, managerDetails):
                 currentPackage['targets'].append({ 'name': installationTarget['target-name'],
                                                     'uid': installationTarget['target-uid']})
             else:
-                logger.warning ( 'installation target in package: ' + package['uid'] + ' is missing name or uid')
+                FWOLogger.warning ( 'installation target in package: ' + package['uid'] + ' is missing name or uid')
     return currentPackage, alreadyFetchedPackage
 
-def is_valid_installation_target(installationTarget, managerDetails):
+def is_valid_installation_target(installationTarget: dict[str, Any], managerDetails: ManagementController) -> bool:
     """ensures that target is defined as gateway in database"""
     if 'target-name' in installationTarget and 'target-uid' in installationTarget:
         for device in managerDetails.Devices:
@@ -206,7 +198,7 @@ def is_valid_installation_target(installationTarget, managerDetails):
                 return True
     return False
 
-def add_access_layers_to_current_package(package, currentPackage):
+def add_access_layers_to_current_package(package: dict[str, Any], currentPackage: dict[str, Any]) -> None:
 
     if 'access-layers' in package:
         for accessLayer in package['access-layers']:
@@ -217,29 +209,28 @@ def add_access_layers_to_current_package(package, currentPackage):
             else:
                 raise FwApiError('access layer in package: ' + package['uid'] + ' is missing name or uid')
 
-def get_global_assignments(api_v_url, sid, show_params_policy_structure) -> list[Any]:
-    logger = getFwoLogger()
+def get_global_assignments(api_v_url: str, sid: str, show_params_policy_structure: dict[str, Any]) -> list[Any]:
     current=0
     total=current+1
     show_params_policy_structure.update({'offset': current})
-    global_assignments = []
+    global_assignments: list[dict[str, Any]] = []
 
     while (current<total):
         try:
             assignments = cp_api_call(api_v_url, 'show-global-assignments', show_params_policy_structure, sid)
         except Exception:
-            logger.error("could not return 'show-global-assignments'")
+            FWOLogger.error("could not return 'show-global-assignments'")
             raise FwoImporterError( 'could not return "show-global-assignments"')
 
         if 'total' in assignments:
             total=assignments['total']
         else:
-            logger.warning ( 'sid: ' + sid)
-            logger.warning ( 'api_v_url: ' + api_v_url)
+            FWOLogger.warning ( 'sid: ' + sid)
+            FWOLogger.warning ( 'api_v_url: ' + api_v_url)
             for key, value in show_params_policy_structure.items():
-                logger.warning('show_params_policy_structure ' + key + ': ' + str(value))
+                FWOLogger.warning('show_params_policy_structure ' + key + ': ' + str(value))
             for key, value in assignments.items():
-                logger.warning('global assignments ' + key + ': ' + str(value))
+                FWOLogger.warning('global assignments ' + key + ': ' + str(value))
             raise FwoImporterError( 'global assignments do not contain "total" field')
         
         if total==0:
@@ -254,7 +245,7 @@ def get_global_assignments(api_v_url, sid, show_params_policy_structure) -> list
         for assignment in assignments['objects']:
             if 'type' not in assignment and assignment['type'] != 'global-assignment':
                 raise FwoImporterError ('global assignment with unexpected type')
-            global_assignment = {
+            global_assignment: dict[str, Any] = {
                 'uid': assignment['uid'],
                 'global-domain': {
                     'uid': assignment['global-domain']['uid'],
@@ -271,10 +262,11 @@ def get_global_assignments(api_v_url, sid, show_params_policy_structure) -> list
     return global_assignments
                         
 
-def get_rulebases(api_v_url, sid, show_params_rules, nativeConfigDomain, deviceConfig, policy_rulebases_uid_list, is_global=False, access_type='access', rulebaseUid=None, rulebaseName=None):
+def get_rulebases(api_v_url: str, sid: str | None, show_params_rules: dict[str, Any], nativeConfigDomain: dict[str, Any] | None,
+                  deviceConfig: dict[str, Any] | None, policy_rulebases_uid_list: list[str], is_global: bool = False,
+                  access_type: str = 'access', rulebaseUid: str | None = None, rulebaseName: str | None = None) -> list[str]:
     
     # access_type: access / nat
-    logger = getFwoLogger()
     nativeConfigRulebaseKey = 'rulebases'
     current_rulebase = {}
 
@@ -288,7 +280,7 @@ def get_rulebases(api_v_url, sid, show_params_rules, nativeConfigDomain, deviceC
     elif access_type == 'nat':
         nativeConfigRulebaseKey = 'nat_rulebases'
     else:
-        logger.error('access_type is neither "access" nor "nat", but ' + access_type)
+        FWOLogger.error('access_type is neither "access" nor "nat", but ' + access_type)
 
     # get uid of rulebase
     if rulebaseUid is not None:
@@ -296,11 +288,11 @@ def get_rulebases(api_v_url, sid, show_params_rules, nativeConfigDomain, deviceC
     elif rulebaseName is not None:
         rulebaseUid = get_uid_of_rulebase(rulebaseName, api_v_url, access_type, sid)
     else:
-        logger.error('must provide either rulebaseUid or rulebaseName')
-    policy_rulebases_uid_list.append(rulebaseUid)
+        FWOLogger.error('must provide either rulebaseUid or rulebaseName')
+    policy_rulebases_uid_list.append(rulebaseUid) #type: ignore # TODO: get_uid_of_rulebase can return None but in theory should not
     
     # search all rulebases in nativeConfigDomain and import if rulebase is not already fetched
-    fetchedRulebaseList = []
+    fetchedRulebaseList: list[str] = []
     for fetchedRulebase in nativeConfigDomain[nativeConfigRulebaseKey]:
         fetchedRulebaseList.append(fetchedRulebase['uid'])
         if fetchedRulebase['uid'] == rulebaseUid:
@@ -309,7 +301,7 @@ def get_rulebases(api_v_url, sid, show_params_rules, nativeConfigDomain, deviceC
 
     # get rulebase in chunks
     if rulebaseUid not in fetchedRulebaseList:
-        current_rulebase = get_rulebases_in_chunks(rulebaseUid, show_params_rules, api_v_url, access_type, sid, nativeConfigDomain)
+        current_rulebase = get_rulebases_in_chunks(rulebaseUid, show_params_rules, api_v_url, access_type, sid, nativeConfigDomain) #type: ignore # TODO: rulebaseUid can be None but in theory should not
         nativeConfigDomain[nativeConfigRulebaseKey].append(current_rulebase)
 
     # use recursion to get inline layers
@@ -319,9 +311,9 @@ def get_rulebases(api_v_url, sid, show_params_rules, nativeConfigDomain, deviceC
     return policy_rulebases_uid_list
 
 
-def get_uid_of_rulebase(rulebaseName, api_v_url, access_type, sid):
+def get_uid_of_rulebase(rulebaseName: str, api_v_url: str, access_type: str, sid: str | None) -> str | None: # TODO: what happens if rulebaseUid None? Error?
     rulebaseUid = None
-    get_rulebase_uid_params = {
+    get_rulebase_uid_params: dict[str, Any] = {
         'name': rulebaseName,
         'limit': 1,
         'use-object-dictionary': False,
@@ -332,14 +324,14 @@ def get_uid_of_rulebase(rulebaseName, api_v_url, access_type, sid):
         rulebaseForUid = cp_api_call(api_v_url, 'show-' + access_type + '-rulebase', get_rulebase_uid_params, sid)
         rulebaseUid = rulebaseForUid['uid']
     except Exception:
-        logger.error("could not find uid for rulebase name=" + rulebaseName)
+        FWOLogger.error("could not find uid for rulebase name=" + rulebaseName)
 
     return rulebaseUid
 
 
-def get_rulebases_in_chunks(rulebaseUid, show_params_rules, api_v_url, access_type, sid, nativeConfigDomain):
+def get_rulebases_in_chunks(rulebaseUid: str, show_params_rules: dict[str, Any], api_v_url: str, access_type: str, sid: str, nativeConfigDomain: dict[str, Any]) -> dict[str, Any]:
 
-    current_rulebase = {'uid': rulebaseUid, 'name': '', 'chunks': []}
+    current_rulebase: dict[str, Any] = {'uid': rulebaseUid, 'name': '', 'chunks': []}
     show_params_rules.update({'uid': rulebaseUid})
     current=0
     total=current+1
@@ -353,10 +345,10 @@ def get_rulebases_in_chunks(rulebaseUid, show_params_rules, api_v_url, access_ty
             if current_rulebase['name'] == '' and 'name' in rulebase:
                 current_rulebase.update({'name': rulebase['name']})
         except Exception:
-            logger.error("could not find rulebase uid=" + rulebaseUid)
+            FWOLogger.error("could not find rulebase uid=" + rulebaseUid)
 
             service_provider = ServiceProvider()
-            global_state = service_provider.get_service(Services.GLOBAL_STATE)
+            global_state = service_provider.get_global_state()
             api_call = FwoApiCall(FwoApi(ApiUri=global_state.import_state.FwoConfig.FwoApiUri, Jwt=global_state.import_state.Jwt))
             description = f"failed to get show-access-rulebase  {rulebaseUid}"
             api_call.create_data_issue(severity=2, description=description)
@@ -369,9 +361,9 @@ def get_rulebases_in_chunks(rulebaseUid, show_params_rules, api_v_url, access_ty
 
     return current_rulebase
 
-def resolve_checkpoint_uids_via_object_dict(rulebase, nativeConfigDomain,
-                                            current_rulebase,
-                                            rulebaseUid, show_params_rules):
+def resolve_checkpoint_uids_via_object_dict(rulebase: dict[str, Any], nativeConfigDomain: dict[str, Any],
+                                            current_rulebase: dict[str, Any],
+                                            rulebaseUid: str, show_params_rules: dict[str, Any]) -> None:
     """
     Checkpoint stores some rulefields as uids, function translates them to names
     """
@@ -383,22 +375,22 @@ def resolve_checkpoint_uids_via_object_dict(rulebase, nativeConfigDomain,
         current_rulebase['chunks'].append(rulebase)
     except Exception:
         
-        logger.error("error while getting a field of layer "
+        FWOLogger.error("error while getting a field of layer "
                      + rulebaseUid + ", params: " + str(show_params_rules))
         
 
-def control_while_loop_in_get_rulebases_in_chunks(current_rulebase, rulebase, sid, api_v_url, show_params_rules):
+def control_while_loop_in_get_rulebases_in_chunks(current_rulebase: dict[str, Any], rulebase: dict[str, Any], sid: str, api_v_url: str, show_params_rules: dict[str, Any]) -> tuple[int, int]:
     total=0
     if 'total' in rulebase:
         total=rulebase['total']
     else:
-        logger.error ( "rulebase does not contain total field, get_rulebase_chunk_from_api found garbled json " + str(current_rulebase))
-        logger.warning ( "sid: " + sid)
-        logger.warning ( "api_v_url: " + api_v_url)
+        FWOLogger.error ( "rulebase does not contain total field, get_rulebase_chunk_from_api found garbled json " + str(current_rulebase))
+        FWOLogger.warning ( "sid: " + sid)
+        FWOLogger.warning ( "api_v_url: " + api_v_url)
         for key, value in show_params_rules.items():
-            logger.warning("show_params_rules " + key + ": " + str(value))
+            FWOLogger.warning("show_params_rules " + key + ": " + str(value))
         for key, value in rulebase.items():
-            logger.warning("rulebase " + key + ": " + str(value))
+            FWOLogger.warning("rulebase " + key + ": " + str(value))
     
     if total==0:
         current=0
@@ -410,7 +402,7 @@ def control_while_loop_in_get_rulebases_in_chunks(current_rulebase, rulebase, si
     return total, current
 
 
-def get_inline_layers_recursively(current_rulebase, deviceConfig, nativeConfigDomain, api_v_url, sid, show_params_rules, is_global, policy_rulebases_uid_list):
+def get_inline_layers_recursively(current_rulebase: dict[str, Any], deviceConfig: dict[str, Any], nativeConfigDomain: dict[str, Any], api_v_url: str, sid: str | None, show_params_rules: dict[str, Any], is_global: bool, policy_rulebases_uid_list: list[str]) -> list[str]:
     """Takes current_rulebase, splits sections into sub-rulebases and searches for layerguards to fetch
     """
     current_rulebase_uid = current_rulebase['uid']
@@ -445,7 +437,7 @@ def get_inline_layers_recursively(current_rulebase, deviceConfig, nativeConfigDo
     return policy_rulebases_uid_list
 
 
-def section_traversal_and_links(section, current_rulebase_uid, deviceConfig, is_global):
+def section_traversal_and_links(section: dict[str, Any], current_rulebase_uid: str, deviceConfig: dict[str, Any], is_global: bool) -> tuple[dict[str, Any], str]:
     """If section is actually rule, fake it to be section and link sections as self-contained rulebases
     """
 
@@ -481,8 +473,7 @@ def section_traversal_and_links(section, current_rulebase_uid, deviceConfig, is_
     return section, current_rulebase_uid
 
 
-def get_placeholder_in_rulebase(rulebase):
-
+def get_placeholder_in_rulebase(rulebase: dict[str, Any]) -> tuple[str | None, str | None]:
     placeholder_rule_uid = None
     placeholder_rulebase_uid = None
     for rulebase_chunk in rulebase['chunks']:
@@ -492,7 +483,7 @@ def get_placeholder_in_rulebase(rulebase):
 
                 # if no section is used, use dummy section
                 if section['type'] != 'access-section':
-                    section = {
+                    section: dict[str, Any] = {
                         'type': 'access-section',
                         'rulebase': [section]
                         }
@@ -504,7 +495,7 @@ def get_placeholder_in_rulebase(rulebase):
 
     return placeholder_rule_uid, placeholder_rulebase_uid
 
-def assign_placeholder_uids(rulebase, section, rule, placeholder_rule_uid, placeholder_rulebase_uid):
+def assign_placeholder_uids(rulebase: dict[str, Any], section: dict[str, Any], rule: dict[str, Any], placeholder_rule_uid: str | None, placeholder_rulebase_uid: str | None) -> tuple[str | None, str | None]:
     if rule['type'] == 'place-holder':
         placeholder_rule_uid = rule['uid']
         if 'uid' in section:
@@ -514,14 +505,13 @@ def assign_placeholder_uids(rulebase, section, rule, placeholder_rule_uid, place
     return placeholder_rule_uid, placeholder_rulebase_uid
     
                             
-def get_nat_rules_from_api_as_dict (api_v_url, sid, show_params_rules, nativeConfigDomain={}):
-    logger = getFwoLogger()
-    nat_rules = { "nat_rule_chunks": [] }
+def get_nat_rules_from_api_as_dict (api_v_url: str, sid: str, show_params_rules: dict[str, Any], nativeConfigDomain: dict[str, Any]={}):
+    nat_rules: dict[str, list[Any]] = { "nat_rule_chunks": [] }
     current=0
     total=current+1
     while (current<total) :
         show_params_rules['offset']=current
-        logger.debug ("params: " + str(show_params_rules))
+        FWOLogger.debug ("params: " + str(show_params_rules))
         rulebase = cp_api_call(api_v_url, 'show-nat-rulebase', show_params_rules, sid)
 
         for ruleField in ['original-source', 'original-destination', 'original-service', 'translated-source',
@@ -532,7 +522,7 @@ def get_nat_rules_from_api_as_dict (api_v_url, sid, show_params_rules, nativeCon
         if 'total' in rulebase:
             total=rulebase['total']
         else:
-            logger.error ( "get_nat_rules_from_api - rulebase does not contain total field, get_rulebase_chunk_from_api found garbled json " 
+            FWOLogger.error ( "get_nat_rules_from_api - rulebase does not contain total field, get_rulebase_chunk_from_api found garbled json " 
                 + str(nat_rules))
         if total==0:
             current=0
@@ -544,14 +534,14 @@ def get_nat_rules_from_api_as_dict (api_v_url, sid, show_params_rules, nativeCon
     return nat_rules
 
 
-def find_element_by_uid(array, uid):
+def find_element_by_uid(array: list[dict[str, Any]], uid: str | None) -> dict[str, Any] | None:
     for el in array:
         if 'uid' in el and el['uid']==uid:
             return el
     return None
 
 
-def resolve_ref_from_object_dictionary(uid, objDict, native_config_domain={}, field_name=None):
+def resolve_ref_from_object_dictionary(uid: str | None, objDict: list[dict[str, Any]], native_config_domain: dict[str, Any]={}, field_name: str | None=None) -> dict[str, Any] | None:
 
     matched_obj = find_element_by_uid(objDict, uid)
         
@@ -562,13 +552,13 @@ def resolve_ref_from_object_dictionary(uid, objDict, native_config_domain={}, fi
                 field_name = 'unknown'
             if uid is None:
                 uid = 'unknown'
-            logger.warning(f"object of type {field_name} with uid {uid} not found in object dictionary")
+            FWOLogger.warning(f"object of type {field_name} with uid {uid} not found in object dictionary")
         return None
     else:
         # there are some objects (at least CpmiVoipSipDomain) which are not API-gettable with show-objects (only with show-object "UID")
         # these must be added to the (network) objects tables
         if matched_obj['type'] in ['CpmiVoipSipDomain', 'CpmiVoipMgcpDomain', 'gsn_handover_group']:
-            logger.info(f"adding {matched_obj['type']} '{matched_obj['name']}' object manually, because it is not retrieved by show objects API command")
+            FWOLogger.info(f"adding {matched_obj['type']} '{matched_obj['name']}' object manually, because it is not retrieved by show objects API command")
             color = matched_obj.get('color', 'black')
             native_config_domain['objects'].append({ 
                 "type": matched_obj['type'], "chunks": [ {
@@ -582,21 +572,21 @@ def resolve_ref_from_object_dictionary(uid, objDict, native_config_domain={}, fi
 
 # resolving all uid references using the object dictionary
 # dealing with a single chunk
-def resolve_ref_list_from_object_dictionary(rulebase, value, objDict={}, nativeConfigDomain={}):
-    if 'objects-dictionary' in rulebase:
-        objDict = rulebase['objects-dictionary']
+def resolve_ref_list_from_object_dictionary(rulebase: list[dict[str, Any]] | dict[str, Any], value: str, objDicts: list[dict[str, Any]]=[], nativeConfigDomain: dict[str, Any]={}): # TODO: what is objDict: I think it should be a list of dicts
+    if isinstance(rulebase, dict) and 'objects-dictionary' in rulebase:
+        objDicts = rulebase['objects-dictionary']
     if isinstance(rulebase, list): # found a list of rules
         for rule in rulebase:
             if value in rule:
-                categorize_value_for_resolve_ref(rule, value, objDict, nativeConfigDomain)
+                categorize_value_for_resolve_ref(rule, value, objDicts, nativeConfigDomain)
             if 'rulebase' in rule:
-                resolve_ref_list_from_object_dictionary(rule['rulebase'], value, objDict=objDict, nativeConfigDomain=nativeConfigDomain)
+                resolve_ref_list_from_object_dictionary(rule['rulebase'], value, objDicts=objDicts, nativeConfigDomain=nativeConfigDomain)
     elif 'rulebase' in rulebase:
-        resolve_ref_list_from_object_dictionary(rulebase['rulebase'], value, objDict=objDict, nativeConfigDomain=nativeConfigDomain)
+        resolve_ref_list_from_object_dictionary(rulebase['rulebase'], value, objDicts=objDicts, nativeConfigDomain=nativeConfigDomain)
 
 
-def categorize_value_for_resolve_ref(rule, value, objDict, nativeConfigDomain):
-    value_list = []
+def categorize_value_for_resolve_ref(rule: dict[str, Any], value: str, objDict: list[dict[str, Any]], nativeConfigDomain: dict[str, Any]):
+    value_list: list[Any] = []
     if isinstance(rule[value], str): # assuming single uid
         rule[value] = resolve_ref_from_object_dictionary(rule[value], objDict, native_config_domain=nativeConfigDomain, field_name=value)
     else:
@@ -608,10 +598,8 @@ def categorize_value_for_resolve_ref(rule, value, objDict, nativeConfigDomain):
             rule[value] = value_list # replace ref list with object list
 
 
-def getObjectDetailsFromApi(uid_missing_obj, sid='', apiurl='') ->  dict[str, Any]:
-    logger = getFwoLogger()
-    if fwo_globals.debug_level>5:
-        logger.debug(f"getting {uid_missing_obj} from API")
+def get_object_details_from_api(uid_missing_obj: str, sid: str='', apiurl: str='') ->  dict[str, Any]:
+    FWOLogger.debug(f"getting {uid_missing_obj} from API", 6)
 
     show_params_host = {'details-level':'full','uid':uid_missing_obj}   # need to get the full object here
     try:
@@ -675,10 +663,10 @@ def getObjectDetailsFromApi(uid_missing_obj, sid='', apiurl='') ->  dict[str, An
         elif obj['type'] in cp_const.api_obj_types:    # standard objects with proper ip
             return obj
         else:
-            logger.warning ( "missing nw obj of unexpected type '" + obj['type'] + "': " + uid_missing_obj )
+            FWOLogger.warning ( "missing nw obj of unexpected type '" + obj['type'] + "': " + uid_missing_obj )
     else:
         if 'code' in obj:
-            logger.warning("broken ref in CP DB uid=" + uid_missing_obj + ": " + obj['code'])
+            FWOLogger.warning("broken ref in CP DB uid=" + uid_missing_obj + ": " + obj['code'])
         else:
-            logger.warning("broken ref in CP DB uid=" + uid_missing_obj)
+            FWOLogger.warning("broken ref in CP DB uid=" + uid_missing_obj)
     return {}

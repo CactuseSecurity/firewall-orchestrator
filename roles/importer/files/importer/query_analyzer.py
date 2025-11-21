@@ -2,12 +2,12 @@ try:
     # GraphQL-core v3+
     from graphql import parse, print_ast, visit
     from graphql.language import Visitor
-    from graphql.language.ast import DocumentNode as Document, VariableDefinitionNode as VariableDefinition, OperationDefinitionNode as OperationDefinition
+    from graphql.language.ast import DocumentNode as Document, VariableDefinitionNode as VariableDefinition, OperationDefinitionNode as OperationDefinition # type: ignore
 except ImportError:
     # GraphQL-core v2
     from graphql import parse, print_ast, visit
     from graphql.language.visitor import Visitor
-    from graphql.language.ast import Document, VariableDefinition, OperationDefinition
+    from graphql.language.ast import Document, VariableDefinition, OperationDefinition # type: ignore
 
 from typing import Any
 
@@ -31,9 +31,9 @@ class QueryAnalyzer(Visitor):
         return self._variable_definitions
     
     @property
-    def ast(self) -> Document|None:
+    def ast(self) -> Document|None: # type: ignore
         """Returns the AST."""
-        return self._ast
+        return self._ast # type: ignore
     
     @property
     def query_string(self) -> str:
@@ -43,11 +43,6 @@ class QueryAnalyzer(Visitor):
     @property
     def query_variables(self) -> dict[str, Any]:
         """Returns the provided query variables."""
-        return self._query_variables
-    
-    @property
-    def query_variables(self) -> dict[str, Any]:
-        """Returns a dictionary that provides all information about the query and the provided query variables."""
         return self._query_variables
 
 
@@ -73,7 +68,7 @@ class QueryAnalyzer(Visitor):
         
         # Apply visitor pattern (calls enter_* methods)
 
-        visit(self._ast, self)
+        visit(self._ast, self) # type: ignore
 
         # Analyze necessity of chunking and parameters that are necessary for the chunking process.
 
@@ -88,7 +83,7 @@ class QueryAnalyzer(Visitor):
         return self._query_info
     
 
-    def get_adjusted_chunk_size(self, lists_in_query_variable: dict):
+    def get_adjusted_chunk_size(self, lists_in_query_variable: dict[str, Any]) -> int:
         """
             Gets an adjusted chunk size.
         """
@@ -103,38 +98,38 @@ class QueryAnalyzer(Visitor):
         ) or 1
     
 
-    def enter_OperationDefinition(self, node: OperationDefinition, *_):
+    def enter_OperationDefinition(self, node: OperationDefinition, *_): # type: ignore
+        """
+            Called by visit function for each variable definition in the AST.
+        """
+ 
+        self.enter_operation_definition(node) # type: ignore
+
+
+    def enter_VariableDefinition(self, node: VariableDefinition, *_): # type: ignore
+        """
+            Called by visit function for each variable definition in the AST.
+        """
+ 
+        self.enter_variable_definition(node) # type: ignore
+
+
+    def enter_operation_definition(self, node: OperationDefinition, *_): # type: ignore
         """
             Called by visit function for each variable definition in the AST.
         """
 
-        self.enter_operation_definition(node)
+        self._query_info["query_type"] = node.operation # type: ignore
+        self._query_info["query_name"] = node.name.value if node.name else "" # type: ignore
 
 
-    def enter_VariableDefinition(self, node: VariableDefinition, *_):
+    def enter_variable_definition(self, node: VariableDefinition, *_): # type: ignore
         """
             Called by visit function for each variable definition in the AST.
         """
 
-        self.enter_variable_definition(node)
-
-
-    def enter_operation_definition(self, node: OperationDefinition, *_):
-        """
-            Called by visit function for each variable definition in the AST.
-        """
-
-        self._query_info["query_type"] = node.operation
-        self._query_info["query_name"] = node.name.value if node.name else ""
-
-
-    def enter_variable_definition(self, node: VariableDefinition, *_):
-        """
-            Called by visit function for each variable definition in the AST.
-        """
-
-        var_name = node.variable.name.value
-        type_str = print_ast(node.type)
+        var_name = node.variable.name.value # type: ignore
+        type_str = print_ast(node.type) # type: ignore
         
         # Store information about the variable definitions.
 
@@ -155,13 +150,14 @@ class QueryAnalyzer(Visitor):
             self._variable_definitions[var_name]["provided_value"] = self._query_variables[var_name]
 
 
-    def _get_chunking_info(self, query_variables: dict):
+    def _get_chunking_info(self, query_variables: dict[str, Any] | None) -> tuple[bool, int, int, list[str]]:
 
         # Get all query variables of type list.
+        query_vars = query_variables or {}
 
-        lists_in_query_variable = {
+        lists_in_query_variable: dict[str, Any] = {
             chunkable_variable_name: list_object 
-            for chunkable_variable_name, list_object in query_variables.items() 
+            for chunkable_variable_name, list_object in query_vars.items() 
             if isinstance(list_object, list)
         }
 

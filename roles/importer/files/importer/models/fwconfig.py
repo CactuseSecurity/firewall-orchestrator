@@ -1,3 +1,4 @@
+from typing import Any
 from pydantic import BaseModel
 from fwo_base import ConfFormat
 
@@ -8,4 +9,4 @@ from fwo_base import ConfFormat
 """
 class FwConfig(BaseModel):
     ConfigFormat: ConfFormat
-    FwConf: dict
+    FwConf: dict[str, Any] = {}

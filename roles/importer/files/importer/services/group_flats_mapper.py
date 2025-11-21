@@ -3,10 +3,9 @@ from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from models.fwconfig_normalized import FwConfigNormalized
-
+    from model_controllers.import_state_controller import ImportStateController
 import fwo_const
-from fwo_log import getFwoLogger
-from model_controllers.import_state_controller import ImportStateController
+from fwo_log import FWOLogger
 from services.service_provider import ServiceProvider
 from services.enums import Services
 
@@ -19,14 +18,13 @@ class GroupFlatsMapper:
     This class is responsible for mapping group objects to their fully resolved members.
     """
 
-    import_state: ImportStateController
+    import_state: 'ImportStateController'
     normalized_config: FwConfigNormalized|None = None
     global_normalized_config: FwConfigNormalized|None = None
 
     def __init__(self):
         global_state = ServiceProvider().get_service(Services.GLOBAL_STATE)
         self.import_state = global_state.import_state
-        self.logger = getFwoLogger()
         self.network_object_flats = {}
         self.service_object_flats = {}
         self.user_flats = {}
@@ -39,7 +37,7 @@ class GroupFlatsMapper:
         Args:
             message (str): The error message to log.
         """
-        self.logger.error(message)
+        FWOLogger.error(message)
         self.import_state.appendErrorString(message)
         self.import_state.increaseErrorCounterByOne()
     

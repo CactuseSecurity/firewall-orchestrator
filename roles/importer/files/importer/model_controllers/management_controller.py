@@ -1,13 +1,13 @@
 import hashlib
 from dataclasses import dataclass
+from typing import Any
 
 from models.management import Management
 from fwo_exceptions import FwLoginFailed
 from models.gateway import Gateway
-from fwconfig_base import replaceNoneWithEmpty
+from fwconfig_base import replace_none_with_empty
 from fwo_const import graphql_query_path
 from fwo_api import FwoApi
-from services.service_provider import ServiceProvider, Services
 from fwo_encrypt import decrypt, read_main_key
 from fwo_exceptions import SecretDecryptionFailed, FwoApiFailure
 
@@ -41,7 +41,7 @@ class DomainInfo:
     domain_uid: str = ''
 
 class ManagementController(Management):
-    def __init__(self, mgm_id: int, uid: str, devices: dict, device_info: DeviceInfo,
+    def __init__(self, mgm_id: int, uid: str, devices: list[dict[str, Any]], device_info: DeviceInfo,
                  connection_info: ConnectionInfo, importer_hostname: str, credential_info: CredentialInfo,
                  manager_info: ManagerInfo, domain_info: DomainInfo, 
                  import_disabled: bool = False):
@@ -83,7 +83,7 @@ class ManagementController(Management):
         self.DomainUid = domain_info.domain_uid
 
     @classmethod
-    def fromJson(cls, json_dict: dict):
+    def fromJson(cls, json_dict: dict[str, Any]) -> "ManagementController":
         device_info = DeviceInfo(
             name=json_dict['name'],
             type_name=json_dict['deviceType']['name'],
@@ -152,16 +152,16 @@ class ManagementController(Management):
             raise FwLoginFailed(f"Unsupported device type: {self.DeviceTypeName}")
 
 
-    def getDomainString(self):
-        return self.DomainUid if self.DomainUid != None else self.DomainName
+    def getDomainString(self) -> str:
+        return self.DomainUid if self.DomainUid != None else self.DomainName # type: ignore #TODO: check if None check is needed if yes, change type
 
 
     @classmethod
     def buildGatewayList(cls, mgmDetails: "ManagementController") -> list['Gateway']:
-        devs = []
+        devs: list['Gateway'] = []
         for dev in mgmDetails.Devices:
             # check if gateway import is enabled
-            if 'do_not_import' in dev and dev['do_not_import']: # TODO: get this key from the device
+            if 'do_not_import' in dev and dev['do_not_import']:
                 continue
             devs.append(Gateway(Name = dev['name'], Uid = f"{dev['name']}/{mgmDetails.calcManagerUidHash()}"))
         return devs
@@ -169,19 +169,15 @@ class ManagementController(Management):
 
     def calcManagerUidHash(self):
         combination = f"""
-            {replaceNoneWithEmpty(self.Hostname)}
-            {replaceNoneWithEmpty(self.Port)}
-            {replaceNoneWithEmpty(self.DomainUid)}
-            {replaceNoneWithEmpty(self.DomainName)}
+            {replace_none_with_empty(self.Hostname)}
+            {replace_none_with_empty(str(self.Port))}
+            {replace_none_with_empty(self.DomainUid)}
+            {replace_none_with_empty(self.DomainName)}
         """
         return hashlib.sha256(combination.encode()).hexdigest()
 
 
-    def get_mgm_details(self, api_conn, mgm_id, debug_level=0):
-
-        service_provider = ServiceProvider()
-        _global_state = service_provider.get_service(Services.GLOBAL_STATE)
-
+    def get_mgm_details(self, api_conn: FwoApi, mgm_id: int) -> dict[str, Any]:
         getMgmDetailsQuery = FwoApi.get_graphql_code([
                     graphql_query_path + "device/getSingleManagementDetails.graphql",
                     graphql_query_path + "device/fragments/managementDetails.graphql",
@@ -190,7 +186,7 @@ class ManagementController(Management):
                     graphql_query_path + "device/fragments/importCredentials.graphql"])
 
         api_call_result = api_conn.call(getMgmDetailsQuery, query_variables={'mgmId': mgm_id })
-        if api_call_result is None or 'data' not in api_call_result or 'management' not in api_call_result['data'] or len(api_call_result['data']['management'])<1:
+        if api_call_result is None or 'data' not in api_call_result or 'management' not in api_call_result['data'] or len(api_call_result['data']['management'])<1: #type: ignore #TODO: check if api_call_result can be None
             raise FwoApiFailure('did not succeed in getting management details from FWO API')
 
         if not '://' in api_call_result['data']['management'][0]['hostname']:

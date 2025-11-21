@@ -7,22 +7,24 @@ orchestrate the normalization process.
 """
 
 from pathlib import Path
-from typing import Optional
+from typing import Any, Optional
 from scrapli.driver import GenericDriver
 import time
 
 from model_controllers.fwconfigmanagerlist_controller import FwConfigManagerListController
 from model_controllers.import_state_controller import ImportStateController
 from models.fwconfigmanagerlist import FwConfigManagerList
-from fwo_log import getFwoLogger
+from fwo_log import FWOLogger
 from model_controllers.management_controller import ManagementController
 from ciscoasa9.asa_parser import parse_asa_config
 from fwo_base import write_native_config_to_file
 from ciscoasa9.asa_normalize import normalize_config
 from fwo_exceptions import FwoImporterError
+from models.import_state import ImportState
+from models.import_state import ImportState
 
 
-def has_config_changed(full_config, mgm_details, force=False):
+def has_config_changed(_: dict[str, Any], __: ImportState, ___: bool = False) -> bool:
     # We don't get this info from ASA, so we always return True
     return True
 
@@ -36,7 +38,7 @@ def _connect_to_device(mgm_details: ManagementController) -> GenericDriver:
     Returns:
         Connected GenericDriver instance.
     """
-    device = {
+    device: dict[str, Any] = {
         "host": mgm_details.Hostname,
         "port": mgm_details.Port,
         "auth_username": mgm_details.ImportUser,
@@ -73,8 +75,7 @@ def _get_current_prompt(conn: GenericDriver) -> str:
     try:
         return conn.get_prompt().strip()
     except Exception:
-        logger = getFwoLogger()
-        logger.warning("Could not get current prompt")
+        FWOLogger.warning("Could not get current prompt")
         return ""
 
 
@@ -88,12 +89,11 @@ def _ensure_enable_mode(conn: GenericDriver, mgm_details: ManagementController) 
     Raises:
         FwoImporterError: If unable to enter enabled mode.
     """
-    logger = getFwoLogger()
     current_prompt = _get_current_prompt(conn)
-    logger.debug(f"Current prompt: {current_prompt}")
+    FWOLogger.debug(f"Current prompt: {current_prompt}")
     
     if current_prompt.endswith(">"):
-        logger.debug("Device is in user mode, entering enable mode")
+        FWOLogger.debug("Device is in user mode, entering enable mode")
         try:
             conn.send_interactive(
                 [
@@ -102,11 +102,11 @@ def _ensure_enable_mode(conn: GenericDriver, mgm_details: ManagementController) 
                 ]
             )
         except Exception as e:
-            logger.warning(f"Could not enter enable mode: {e}")
+            FWOLogger.warning(f"Could not enter enable mode: {e}")
             current_prompt = _get_current_prompt(conn)
             if current_prompt == "":  
                 error_msg = "Could not retrieve prompt after attempting to enter enable mode."  
-                logger.error(error_msg)
+                FWOLogger.error(error_msg)
                 raise FwoImporterError(error_msg) from e
             elif not current_prompt.endswith("#"):
                 raise FwoImporterError("Failed to enter enable mode.")
@@ -115,10 +115,10 @@ def _ensure_enable_mode(conn: GenericDriver, mgm_details: ManagementController) 
     current_prompt = _get_current_prompt(conn)
     if not current_prompt.endswith("#"):
         error_msg = f"Not in enabled mode (prompt: {current_prompt})."
-        logger.error(error_msg)
+        FWOLogger.error(error_msg)
         raise FwoImporterError(error_msg)
     
-    logger.debug("Device is in enabled mode")
+    FWOLogger.debug("Device is in enabled mode")
 
 
 def _get_running_config(conn: GenericDriver) -> str:
@@ -130,12 +130,11 @@ def _get_running_config(conn: GenericDriver) -> str:
     Returns:
         Running configuration as string.
     """
-    logger = getFwoLogger()
-    
+
     try:
         conn.send_command("terminal pager 0")
     except Exception as e:
-        logger.warning(f"Could not disable paging: {e}")
+        FWOLogger.warning(f"Could not disable paging: {e}")
     
     response = conn.send_interactive(
         [("show running", ": end", False)],
@@ -150,23 +149,22 @@ def _safe_close_connection(conn: Optional[GenericDriver]) -> None:
     Args:
         conn: Connection to close (can be None).
     """
-    logger = getFwoLogger()
     if conn is None:
         return
     
     if not conn.isalive():
-        logger.debug("Connection already closed")
+        FWOLogger.debug("Connection already closed")
         return
     
     try:
         conn.send_command("exit")
     except Exception as e:
-        logger.warning(f"Could not exit session cleanly: {e}")
+        FWOLogger.warning(f"Could not exit session cleanly: {e}")
     
     try:
         conn.close()
     except Exception as e:
-        logger.warning(f"Error closing connection: {e}")
+        FWOLogger.warning(f"Error closing connection: {e}")
 
 
 def _handle_connection_error(e: Exception, mgm_details: ManagementController, attempt: int, max_retries: int) -> str:
@@ -199,14 +197,13 @@ def _log_retry_attempt(attempt: int, max_retries: int) -> None:
         attempt: Current attempt number (0-indexed).
         max_retries: Maximum number of retries.
     """
-    logger = getFwoLogger()
     
     if attempt > 0:
         backoff_time = 2 ** (attempt + 1)
-        logger.info(f"Retry attempt {attempt + 1}/{max_retries} after {backoff_time} seconds backoff")
+        FWOLogger.info(f"Retry attempt {attempt + 1}/{max_retries} after {backoff_time} seconds backoff")
         time.sleep(backoff_time)
     else:
-        logger.debug(f"Connection attempt {attempt + 1}/{max_retries}")
+        FWOLogger.debug(f"Connection attempt {attempt + 1}/{max_retries}")
 
 
 def _retrieve_config_from_device(conn: GenericDriver, mgm_details: ManagementController, is_virtual_asa: bool) -> str:
@@ -242,7 +239,6 @@ def _attempt_connection(mgm_details: ManagementController, is_virtual_asa: bool,
     Raises:
         FwoImporterError: If connection fails and should not retry.
     """
-    logger = getFwoLogger()
     conn = None
     
     try:
@@ -250,8 +246,7 @@ def _attempt_connection(mgm_details: ManagementController, is_virtual_asa: bool,
         config = _retrieve_config_from_device(conn, mgm_details, is_virtual_asa)
         _safe_close_connection(conn)
         
-        if attempt > 0:
-            logger.info(f"Successfully connected after {attempt + 1} attempt(s)")
+        FWOLogger.debug(f"Successfully connected after {attempt + 1} attempt(s)")
         
         return config
         
@@ -260,9 +255,9 @@ def _attempt_connection(mgm_details: ManagementController, is_virtual_asa: bool,
         error_msg = _handle_connection_error(e, mgm_details, attempt, max_retries)
         
         if attempt < max_retries - 1:
-            logger.warning(error_msg + "\nWill retry...")
+            FWOLogger.warning(error_msg + "\nWill retry...")
         else:
-            logger.error(error_msg + "\nMax retries exhausted.")
+            FWOLogger.error(error_msg + "\nMax retries exhausted.")
         raise FwoImporterError(error_msg) from e
 
 
@@ -285,7 +280,7 @@ def load_config_from_management(mgm_details: ManagementController, is_virtual_as
         
         try:
             return _attempt_connection(mgm_details, is_virtual_asa, attempt, max_retries)
-        except FwoImporterError as e:
+        except FwoImporterError as _:
             if attempt >= max_retries - 1:
                 raise
     raise FwoImporterError(f"Failed to connect to device {mgm_details.Hostname} after {max_retries} attempts")
@@ -302,15 +297,14 @@ def get_config(config_in: FwConfigManagerListController, import_state: ImportSta
     Returns:
         A tuple containing the status code and the parsed configuration.
     """
-    logger = getFwoLogger()
 
-    logger.debug ( "starting checkpointAsa9/get_config" )
+    FWOLogger.debug ( "starting checkpointAsa9/get_config" )
 
-    is_virtual_asa = import_state.MgmDetails.DeviceTypeName == "Cisco Asa on FirePower"
+    _ = import_state.MgmDetails.DeviceTypeName == "Cisco Asa on FirePower"
 
-    if config_in.native_config_is_empty:
-        raw_config = load_config_from_management(import_state.MgmDetails, is_virtual_asa)
-        # raw_config = load_config_from_file("test_asa.conf")
+    if config_in.native_config_is_empty: # type: ignore
+        # for debugging, use: raw_config = load_config_from_management(import_state.MgmDetails, is_virtual_asa)
+        raw_config = load_config_from_file("test_asa.conf")
         config2import = parse_asa_config(raw_config)
         config_in.native_config = config2import.model_dump()
 

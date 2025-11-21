@@ -4,6 +4,6 @@
 """
 class FworchConfig():
     FwoApiUri: str
-    FwoUserMgmtApiUri: str
+    FwoUserMgmtApiUri: str | None
     ApiFetchSize: int
-    ImporterPassword: str
+    ImporterPassword: str | None

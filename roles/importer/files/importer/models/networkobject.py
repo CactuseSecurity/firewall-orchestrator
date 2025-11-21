@@ -1,3 +1,4 @@
+from typing import Any
 from pydantic import BaseModel, field_validator, field_serializer
 from netaddr import IPNetwork, AddrFormatError
 
@@ -14,7 +15,7 @@ class NetworkObject(BaseModel):
 
 
     @field_validator('obj_ip', 'obj_ip_end', mode='before')
-    def convert_strings_to_ip_objects(cls, value, info):
+    def convert_strings_to_ip_objects(cls, value: object, info: Any) -> IPNetwork | None:
         """
         Convert string values to IPNetwork objects, treating 'None' or empty as None.
         """
@@ -33,7 +34,7 @@ class NetworkObject(BaseModel):
             raise ValueError(f"Invalid {info.field_name} network format: {value}") from e
 
     @field_serializer('obj_ip', 'obj_ip_end')
-    def serialize_ipnetwork(self, value: IPNetwork | None, _info):
+    def serialize_ipnetwork(self, value: IPNetwork | None, _info: Any) -> str | None:
         """
         Serialize IPNetwork objects to strings, keeping None as None.
         """
@@ -73,8 +74,8 @@ class NetworkObjectForImport():
         self.obj_last_seen = importId
         self.obj_typ_id = typId
 
-    def toDict (self):
-        result = {
+    def toDict (self) -> dict[str, Any]:
+        result: dict[str, Any] = {
             'obj_uid': self.obj_uid,
             'obj_name': self.obj_name,
             'obj_color_id': self.obj_color_id,

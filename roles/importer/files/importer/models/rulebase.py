@@ -1,4 +1,4 @@
-from models.rule import RuleNormalized, Rule
+from models.rule import Rule, RuleNormalized
 from pydantic import BaseModel
 
 # Rulebase is the model for a rulebase (containing no DB IDs)

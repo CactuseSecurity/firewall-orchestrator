@@ -1,6 +1,5 @@
-from fwo_log import getFwoLogger
-from model_controllers.import_state_controller import ImportStateController
-from models.gateway import Gateway
+from typing import Any
+from fwo_log import FWOLogger
 from fwo_base import ConfFormat
 from models.fwconfig_normalized import FwConfigNormalized
 
@@ -14,40 +13,39 @@ class FwConfigNormalizedController():
         self.NormalizedConfig = fwConfig
 
     @staticmethod
-    def convertListToDict(listIn: list, idField: str) -> dict:
-        logger = getFwoLogger()
-        result = {}
+    def convertListToDict(listIn: list[Any], idField: str) -> dict[Any, Any]:
+        result: dict[Any, Any] = {}
         for item in listIn:
             if idField in item:
                 key = item[idField]
                 result[key] = item
             else:
-                logger.error(f"dict {str(item)} does not contain id field {idField}")
+                FWOLogger.error(f"dict {str(item)} does not contain id field {idField}")
         return result # { listIn[idField]: listIn for listIn in listIn }
 
     def __str__(self):
-        return f"{self.action}({str(self.network_objects)})"
+        return f"{self.action}({str(self.network_objects)})" # TODO self.action not defined? # type: ignore
 
     @staticmethod
-    def deleteControlIdFromDictList(dictListInOut: dict):
+    def deleteControlIdFromDictList(dictListInOut: dict[Any, Any] | list[Any]) -> dict[Any, Any] | list[Any]:
         if isinstance(dictListInOut, list): 
-            deleteListDictElements(dictListInOut, ['control_id'])
+            deleteListDictElements(dictListInOut, ['control_id']) # TODO deleteListDictElements not defined
         elif isinstance(dictListInOut, dict): 
-            deleteDictElements(dictListInOut, ['control_id'])
+            deleteDictElements(dictListInOut, ['control_id']) # TODO deleteListDictElements not defined
         return dictListInOut
     
     def split(self):
         return [self]   # for now not implemented
 
     @staticmethod
-    def join(configList):
-        resultingConfig = FwConfigNormalized()
+    def join(configList: list[FwConfigNormalized]):
+        resultingConfig = FwConfigNormalized() 
         for conf in configList:
-            resultingConfig.addElements(conf)
+            resultingConfig.addElements(conf) # TODO addElements not defined
         return resultingConfig
 
-    def addElements(self, config):
-        self.network_objects += config.Networks
+    def addElements(self, config: FwConfigNormalized):
+        self.network_objects += config.Networks # TODO: all members are not defined
         self.service_objects += config.Services
         self.users += config.Users
         self.zone_objects += config.Zones

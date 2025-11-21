@@ -1,4 +1,7 @@
-name_to_port = {
+from typing import Any
+
+
+name_to_port: dict[str, dict[str, Any]] = {
   "aol": {
     "port": 5190,
     "protocols": ["TCP"],

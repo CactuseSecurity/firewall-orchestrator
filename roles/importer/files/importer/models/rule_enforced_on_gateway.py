@@ -1,5 +1,5 @@
+from typing import Any
 from pydantic import BaseModel
-from model_controllers.import_state_controller import ImportStateController
 
 
 # the model for a connection between a rule and a gateway
@@ -23,7 +23,7 @@ class RuleEnforcedOnGateway(BaseModel):
         self.removed=removed
     
 
-    def to_dict(self):
+    def to_dict(self) -> dict[str, Any]:
         return {
             "rule_id": self.rule_id,
             "dev_id": self.dev_id,

@@ -6,15 +6,15 @@ It manages both explicit network objects/groups and implicit network objects cre
 inline ACL or group definitions.
 """
 
-from typing import Dict, List, Optional
 from netaddr import IPAddress, IPNetwork
 from ciscoasa9.asa_models import AsaNetworkObject, AsaNetworkObjectGroup, AsaNetworkObjectGroupMember, EndpointKind, Names
 from models.networkobject import NetworkObject
 import fwo_const
 import fwo_base
+from importer.fwo_log import FWOLogger
 
 
-def create_network_host(name: str, ip_address: str, comment: Optional[str], ip_version: int) -> NetworkObject:
+def create_network_host(name: str, ip_address: str, comment: str | None, ip_version: int) -> NetworkObject:
     """Create a normalized host network object.
 
     Args:
@@ -41,7 +41,7 @@ def create_network_host(name: str, ip_address: str, comment: Optional[str], ip_v
     )
 
 
-def create_network_subnet(name: str, ip_address: str, subnet_mask: Optional[str], comment: Optional[str], ip_version: int) -> NetworkObject:
+def create_network_subnet(name: str, ip_address: str, subnet_mask: str | None, comment: str | None, ip_version: int) -> NetworkObject:
     """Create a normalized network object.
 
     Args:
@@ -77,7 +77,7 @@ def create_network_subnet(name: str, ip_address: str, subnet_mask: Optional[str]
     )
 
 
-def create_network_range(name: str, ip_start: str, ip_end: str, comment: Optional[str]) -> NetworkObject:
+def create_network_range(name: str, ip_start: str, ip_end: str, comment: str | None) -> NetworkObject:
     """Create a normalized range network object.
 
     Args:
@@ -100,7 +100,7 @@ def create_network_range(name: str, ip_start: str, ip_end: str, comment: Optiona
     )
 
 
-def create_network_group_object(name: str, member_refs: List[str], comment: Optional[str] = None) -> NetworkObject:
+def create_network_group_object(name: str, member_refs: list[str], comment: str | None = None) -> NetworkObject:
     """Create a network group object.
 
     Args:
@@ -141,7 +141,7 @@ def create_any_network_object() -> NetworkObject:
     )
 
 
-def normalize_names(names: List[Names]) -> Dict[str, NetworkObject]:
+def normalize_names(names: list[Names]) -> dict[str, NetworkObject]:
     """Normalize 'names' entries (simple IP-to-name mappings).
 
     Args:
@@ -150,7 +150,7 @@ def normalize_names(names: List[Names]) -> Dict[str, NetworkObject]:
     Returns:
         Dictionary of normalized network objects keyed by obj_uid
     """
-    network_objects = {}
+    network_objects: dict[str, NetworkObject] = {}
 
     for name in names:
         obj = create_network_host(name.name, name.ip_address, name.description, ip_version=4)
@@ -159,7 +159,7 @@ def normalize_names(names: List[Names]) -> Dict[str, NetworkObject]:
     return network_objects
 
 
-def normalize_network_objects(network_objects_list: List[AsaNetworkObject]) -> Dict[str, NetworkObject]:
+def normalize_network_objects(network_objects_list: list[AsaNetworkObject]) -> dict[str, NetworkObject]:
     """Normalize network objects from ASA configuration.
 
     Args:
@@ -168,7 +168,7 @@ def normalize_network_objects(network_objects_list: List[AsaNetworkObject]) -> D
     Returns:
         Dictionary of normalized network objects keyed by obj_uid
     """
-    network_objects = {}
+    network_objects: dict[str, NetworkObject] = {}
 
     for obj in network_objects_list:
         if obj.fqdn is not None:
@@ -190,9 +190,8 @@ def normalize_network_objects(network_objects_list: List[AsaNetworkObject]) -> D
     return network_objects
 
 
-def normalize_network_object_groups(object_groups: List[AsaNetworkObjectGroup], 
-                                   network_objects: Dict[str, NetworkObject], 
-                                   logger) -> Dict[str, NetworkObject]:
+def normalize_network_object_groups(object_groups: list[AsaNetworkObjectGroup], 
+                                   network_objects: dict[str, NetworkObject]) -> dict[str, NetworkObject]:
     """Normalize network object groups from ASA configuration.
 
     Args:
@@ -204,7 +203,7 @@ def normalize_network_object_groups(object_groups: List[AsaNetworkObjectGroup],
         Updated network objects dictionary including groups
     """
     for group in object_groups:
-        member_refs = []
+        member_refs: list[str] = []
 
         for member in group.objects:
             try:
@@ -215,7 +214,7 @@ def normalize_network_object_groups(object_groups: List[AsaNetworkObjectGroup],
                 member_refs.append(network_obj.obj_uid)
 
             except ValueError as e:
-                logger.warning(f"Error processing member in network object group '{group.name}': {e}")
+                FWOLogger.warning(f"Error processing member in network object group '{group.name}': {e}")
 
         group_obj = create_network_group_object(group.name, member_refs, group.description)
         network_objects[group.name] = group_obj
@@ -223,7 +222,7 @@ def normalize_network_object_groups(object_groups: List[AsaNetworkObjectGroup],
     return network_objects
 
 
-def _get_network_group_member_host(member: AsaNetworkObjectGroupMember) -> NetworkObject:
+def get_network_group_member_host(member: AsaNetworkObjectGroupMember) -> NetworkObject:
     """Create a host network object for a network object group member.
 
     Args:
@@ -274,7 +273,7 @@ def create_network_group_member(ref: str, member: AsaNetworkObjectGroupMember) -
         raise ValueError(f"Unsupported member kind '{member.kind}' in network object group.")
 
 
-def get_network_group_member(member: AsaNetworkObjectGroupMember, network_objects: Dict[str, NetworkObject]) -> NetworkObject:
+def get_network_group_member(member: AsaNetworkObjectGroupMember, network_objects: dict[str, NetworkObject]) -> NetworkObject:
     """Get network object for a network object group member reference. If it does not exist, create it.
 
     Args:
@@ -295,7 +294,7 @@ def get_network_group_member(member: AsaNetworkObjectGroupMember, network_object
     return network_object
 
 
-def get_network_rule_endpoint(endpoint: EndpointKind, network_objects: Dict[str, NetworkObject]) -> NetworkObject:
+def get_network_rule_endpoint(endpoint: EndpointKind, network_objects: dict[str, NetworkObject]) -> NetworkObject:
     """Get network object for a rule endpoint. If it does not exist, create it.
 
     Args:

@@ -1,11 +1,11 @@
 import re
+from typing import Any
 from fwo_const import list_delimiter
-from fwo_log import getFwoLogger
+from fwo_log import FWOLogger
 
 
-def normalize_svcobjects(full_config, config2import, import_id, scope):
-    logger = getFwoLogger()
-    svc_objects = []
+def normalize_svcobjects(full_config: dict[str, Any], config2import: dict[str, Any], import_id: int, scope: list[str]):
+    svc_objects: list[dict[str, Any]] = []
     full_config['svc_obj_lookup_dict'] = {}
     for s in scope:
         if s in full_config:
@@ -19,19 +19,25 @@ def normalize_svcobjects(full_config, config2import, import_id, scope):
                 else:
                     type = 'simple'
 
-                name = None
+                name = None 
                 if 'name' in obj_orig:
-                    name = str(obj_orig['name'])
+                    name = str(obj_orig['name']) #TYPING: Can this be None???
 
-                color = None
+                ## Added by TYPING!
+                if name is None:
+                    raise ValueError("Service object name cannot be None")
+                
+                color: str | None = None
                 if 'color' in obj_orig and str(obj_orig['color']) != "0":
                     color = str(obj_orig['color'])
+
+                if color is None:
+                    raise ValueError("Service object color cannot be None")
 
                 session_timeout = None   # todo: find the right timer
         #        if 'udp-idle-timer' in obj_orig and str(obj_orig['udp-idle-timer']) != 0:
         #            session_timeout = str(obj_orig['udp-idle-timer'])
 
-                proto = 0
                 range_names = ''
                 if 'protocol' in obj_orig:
                     added_svc_obj = 0
@@ -51,46 +57,43 @@ def normalize_svcobjects(full_config, config2import, import_id, scope):
                             if split:
                                 tcpname += "_tcp"
                                 range_names += tcpname + list_delimiter
-                            addObject(svc_objects, type, tcpname, color, 6, obj_orig['tcp-portrange'], None, session_timeout, import_id, full_config=full_config)
+                            add_object(svc_objects, type, tcpname, color, 6, obj_orig['tcp-portrange'], None, session_timeout, import_id, full_config=full_config)
                             added_svc_obj += 1
                         if "udp-portrange" in obj_orig and len(obj_orig['udp-portrange']) > 0:
                             udpname = name
                             if split:
                                 udpname += "_udp"
                                 range_names += udpname + list_delimiter
-                            addObject(svc_objects, type, udpname, color, 17, obj_orig['udp-portrange'], None, session_timeout, import_id, full_config=full_config)
+                            add_object(svc_objects, type, udpname, color, 17, obj_orig['udp-portrange'], None, session_timeout, import_id, full_config=full_config)
                             added_svc_obj += 1
                         if "sctp-portrange" in obj_orig and len(obj_orig['sctp-portrange']) > 0:
                             sctpname = name
                             if split:
                                 sctpname += "_sctp"
                                 range_names += sctpname + list_delimiter
-                            addObject(svc_objects, type, sctpname, color, 132, obj_orig['sctp-portrange'], None, session_timeout, import_id, full_config=full_config)
+                            add_object(svc_objects, type, sctpname, color, 132, obj_orig['sctp-portrange'], None, session_timeout, import_id, full_config=full_config)
                             added_svc_obj += 1
                         if split:
                             range_names = range_names[:-1]
                             # TODO: collect group members
-                            addObject(svc_objects, 'group', name, color, 0, None, range_names, session_timeout, import_id, full_config=full_config)
+                            add_object(svc_objects, 'group', name, color, 0, None, range_names, session_timeout, import_id, full_config=full_config)
                             added_svc_obj += 1
                         if added_svc_obj==0: # assuming RPC service which here has no properties at all
-                            addObject(svc_objects, 'rpc', name, color, 0, None, None, None, import_id, full_config=full_config)
+                            add_object(svc_objects, 'rpc', name, color, 0, None, None, None, import_id, full_config=full_config)
                             added_svc_obj += 1
                     elif obj_orig['protocol'] == 'IP':
-                        addObject(svc_objects, 'simple', name, color, obj_orig['protocol-number'], None, None, None, import_id, full_config=full_config)
+                        add_object(svc_objects, 'simple', name, color, obj_orig['protocol-number'], None, None, None, import_id, full_config=full_config)
                         added_svc_obj += 1
-                    elif obj_orig['protocol'] == 'ICMP':
-                        addObject(svc_objects, 'simple', name, color, 1, None, None, None, import_id, full_config=full_config)
-                        added_svc_obj += 1
-                    elif obj_orig['protocol'] == 'ICMP6':
-                        addObject(svc_objects, 'simple', name, color, 1, None, None, None, import_id, full_config=full_config)
+                    elif obj_orig['protocol'] == 'ICMP' or obj_orig['protocol'] == 'ICMP6':
+                        add_object(svc_objects, 'simple', name, color, 1, None, None, None, import_id, full_config=full_config)
                         added_svc_obj += 1
                     else:
-                        logger.warning("Unknown service protocol found: " + obj_orig['name'] +', proto: ' + obj_orig['protocol'])
+                        FWOLogger.warning("Unknown service protocol found: " + obj_orig['name'] +', proto: ' + obj_orig['protocol'])
                 elif type == 'group':
-                    addObject(svc_objects, type, name, color, 0, None, member_names, session_timeout, import_id, full_config=full_config)
+                    add_object(svc_objects, type, name, color, 0, None, member_names, session_timeout, import_id, full_config=full_config)
                 else:
                     # application/list
-                    addObject(svc_objects, type, name, color, 0, None, None, session_timeout, import_id, full_config=full_config)
+                    add_object(svc_objects, type, name, color, 0, None, None, session_timeout, import_id, full_config=full_config)
 
     # finally add "Original" service object for natting
     original_obj_name = 'Original'
@@ -100,7 +103,7 @@ def normalize_svcobjects(full_config, config2import, import_id, scope):
     config2import.update({'service_objects': svc_objects})
 
 
-def check_split(obj_orig):
+def check_split(obj_orig: dict[str, Any]) -> bool:
     count = 0
     if "tcp-portrange" in obj_orig and len(obj_orig['tcp-portrange']) > 0:
         count += 1
@@ -111,7 +114,7 @@ def check_split(obj_orig):
     return (count > 1)
 
 
-def extractSinglePortRange(port_range):
+def extract_single_port_range(port_range: str) -> tuple[str, str]:
     # remove src-ports
     port = port_range.split(':')[0]
     port_end = port
@@ -136,27 +139,27 @@ def extractSinglePortRange(port_range):
     return port, port_end
 
 
-def extractPorts(port_ranges):
+def extract_ports(port_ranges: str | None) -> tuple[list[str], list[str]]:
     ports = []
     port_ends = []
-    if port_ranges is not None and len(port_ranges) > 0:
+    if port_ranges is not None and len(port_ranges) > 0: # TYPING: ?????? 
         if ' ' in port_ranges:
             # port range of the form "12 13 114"
-            port_ranges = port_ranges.split(' ')
+            port_ranges = port_ranges.split(' ') #type: ignore #TYPING: can be str or list ???
         
         if not isinstance(port_ranges, str):
-            for port_range in port_ranges:
-                port1, port2 = extractSinglePortRange(port_range)
-                ports.append(port1)
-                port_ends.append(port2)
+            for port_range in port_ranges: #type: ignore #TYPING: can be str or list ???
+                port1, port2 = extract_single_port_range(port_range) #type: ignore #TYPING: can be str or list ???
+                ports.append(port1) #type: ignore #TYPING: can be str or list ???
+                port_ends.append(port2) #type: ignore #TYPING: can be str or list ???
         else:
-            port1, port2 = extractSinglePortRange(port_ranges)
-            ports.append(port1)
-            port_ends.append(port2)
-    return ports, port_ends
+            port1, port2 = extract_single_port_range(port_ranges)
+            ports.append(port1) #type: ignore #TYPING: can be str or list ???
+            port_ends.append(port2) #type: ignore #TYPING: can be str or list ???
+    return ports, port_ends #type: ignore #TYPING: can be str or list ???
 
 
-def create_svc_object(import_id, name, proto, port, comment):
+def create_svc_object(import_id: int, name: str, proto: int, port: str | None, comment: str | None=None) -> dict[str, Any]:
     return {
         'control_id': import_id,
         'svc_name': name,
@@ -168,7 +171,7 @@ def create_svc_object(import_id, name, proto, port, comment):
     }
 
 
-def addObject(svc_objects, type, name, color, proto, port_ranges, member_names, session_timeout, import_id, full_config={}):
+def add_object(svc_objects: list[dict[str, Any]], type: str, name: str, color: str, proto: int, port_ranges: str | None, member_names: str | None, session_timeout: int | None, import_id: int, full_config: dict[str, Any]={}):
 
     # add service object in lookup table (currently no UID, name is the UID)
     full_config['svc_obj_lookup_dict'][name] = name
@@ -183,7 +186,7 @@ def addObject(svc_objects, type, name, color, proto, port_ranges, member_names, 
 
     if port_ranges is not None:
         range_names = ''
-        ports, port_ends = extractPorts(port_ranges)
+        ports, port_ends = extract_ports(port_ranges)
         split = (len(ports) > 1)
         for index, port in enumerate(ports):
             port_end = port_ends[index]
@@ -195,7 +198,7 @@ def addObject(svc_objects, type, name, color, proto, port_ranges, member_names, 
                     port_range_local = port + '-' + port_end
                 else:
                     port_range_local = port
-                addObject(svc_objects, 'simple', full_name, color, proto, port_range_local, None, None, import_id, full_config)
+                add_object(svc_objects, 'simple', full_name, color, proto, port_range_local, None, None, import_id, full_config)
 
             svc_obj['svc_port'] = port
             svc_obj['svc_port_end'] = port_end

@@ -1,5 +1,4 @@
 from test.mocking.mock_config import MockFwConfigNormalizedBuilder
-from fwo_globals import set_global_values
 from model_controllers.fwconfigmanagerlist_controller import FwConfigManagerListController
 from models.fwconfigmanager import FwConfigManager
 from test.mocking.mock_import_state import MockImportStateController
@@ -16,7 +15,6 @@ def main(
     manager_name="sting-mgmt",
     domain_uid="domain uid",
     domain_name="domain name",
-    debug_level=8,
 ):
     mock_config_builder = MockFwConfigNormalizedBuilder()
     mock_config, _ = mock_config_builder.build_config(
@@ -31,7 +29,6 @@ def main(
     )
 
     fw_mock_import_state = MockImportStateController(stub_setCoreData=True)
-    set_global_values(debug_level_in=debug_level)
 
     fw_config_manager_list_controller = FwConfigManagerListController()
     fw_config_manager = FwConfigManager(

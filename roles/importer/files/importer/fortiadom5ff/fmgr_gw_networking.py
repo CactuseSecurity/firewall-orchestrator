@@ -1,14 +1,14 @@
-from asyncio.log import logger
-from fwo_log import getFwoLogger
+from typing import Any
+from fwo_log import FWOLogger
 from netaddr import IPAddress, IPNetwork
 from functools import cmp_to_key
 import traceback
 import fmgr_getter
 import fwo_globals
 from model_controllers.interface_controller import Interface
-from model_controllers.route_controller import Route, getRouteDestination
+from model_controllers.route_controller import Route, get_route_destination
 
-def normalize_network_data(native_config, normalized_config, mgm_details):
+def normalize_network_data(native_config: dict[str, Any], normalized_config: dict[str, Any], mgm_details: dict[str, Any]) -> None:
 
     # currently only a single IP (v4+v6) per interface ;-)
     #
@@ -30,16 +30,15 @@ def normalize_network_data(native_config, normalized_config, mgm_details):
     #     "maskv6": 48
     # }
 
-    logger = getFwoLogger()
 
     normalized_config.update({'routing': {}, 'interfaces': {} })
 
-    for dev_id, plain_dev_name, plain_vdom_name, full_vdom_name in get_all_dev_names(mgm_details['devices']):
+    for dev_id, _, _, full_vdom_name in get_all_dev_names(mgm_details['devices']):
         normalized_config.update({'routing': [], 'interfaces': []})
 
         if 'routing-table-ipv4/' + full_vdom_name not in native_config:
-            logger.warning('could not find routing data routing-table-ipv4/' + full_vdom_name)
-            logger.warning('native configs contains the following keys ' + str(native_config.keys()))
+            FWOLogger.warning('could not find routing data routing-table-ipv4/' + full_vdom_name)
+            FWOLogger.warning('native configs contains the following keys ' + str(native_config.keys()))
             normalized_config['networking'][full_vdom_name]['routingv4'] = []
         else:
             for route in native_config['routing-table-ipv4/' + full_vdom_name]:
@@ -48,9 +47,9 @@ def normalize_network_data(native_config, normalized_config, mgm_details):
                 normalized_config['routing'].append(normRoute)
 
         if 'routing-table-ipv6/' + full_vdom_name not in native_config:
-            logger.warning('could not find routing data routing-table-ipv6/' + full_vdom_name)
+            FWOLogger.warning('could not find routing data routing-table-ipv6/' + full_vdom_name)
             if fwo_globals.debug_level>5:
-                logger.warning('native configs contains the following keys ' + str(native_config.keys()))
+                FWOLogger.warning('native configs contains the following keys ' + str(native_config.keys()))
             normalized_config['networking'][full_vdom_name]['routingv6'] = []
         else:
             for route in native_config['routing-table-ipv6/' + full_vdom_name]:
@@ -59,7 +58,7 @@ def normalize_network_data(native_config, normalized_config, mgm_details):
                     distance=route['distance'], interface=route['interface'], ip_version=6)
                 normalized_config['routing'].append(normRoute)
 
-        normalized_config['routing'].sort(key=getRouteDestination,reverse=True)
+        normalized_config['routing'].sort(key=get_route_destination,reverse=True)
         
         for interface in native_config['interfaces_per_device/' + full_vdom_name]:
             if 'ipv6' in interface and 'ip6-address' in interface['ipv6'] and interface['ipv6']['ip6-address']!='::/0':
@@ -75,32 +74,30 @@ def normalize_network_data(native_config, normalized_config, mgm_details):
 
     #devices_without_default_route = get_devices_without_default_route(normalized_config)
     #if len(devices_without_default_route)>0:
-    #    logger.warning('found devices without default route')
+    #    FWOLogger.warning('found devices without default route')
 
 
-def get_matching_route(destination_ip, routing_table):
+def get_matching_route(destination_ip: IPAddress, routing_table: list[dict[str, Any]]) -> dict[str, Any] | None:
 
-    logger = getFwoLogger()
-
-    def route_matches(ip, destination):
+    def route_matches(ip: IPAddress, destination: str) -> bool:
         ip_n = IPNetwork(ip).cidr
         dest_n = IPNetwork(destination).cidr
         return ip_n in dest_n or dest_n in ip_n
 
 
     if len(routing_table)==0:
-        logger.error('src nat behind interface: encountered empty routing table')
+        FWOLogger.error('src nat behind interface: encountered empty routing table')
         return None
 
     for route in routing_table:
         if route_matches(destination_ip, route['destination']):
             return route 
 
-    logger.warning('src nat behind interface: found no matching route in routing table - no default route?!')
+    FWOLogger.warning('src nat behind interface: found no matching route in routing table - no default route?!')
     return None
 
 
-def get_ip_of_interface(interface, interface_list=[]):
+def get_ip_of_interface(interface: str, interface_list: list[dict[str, Any]] = []) -> str | None:
 
     interface_details = next((sub for sub in interface_list if sub['name'] == interface), None)
 
@@ -110,9 +107,9 @@ def get_ip_of_interface(interface, interface_list=[]):
         return None
 
 
-def sort_reverse(ar_in, key):
+def sort_reverse(ar_in: list[dict[str, Any]], key: str) -> list[dict[str, Any]]:
 
-    def comp(left, right):
+    def comp(left: dict[str, Any], right: dict[str, Any]) -> int:
         l_submask = int(left[key].split("/")[1])
         r_submask = int(right[key].split("/")[1])
         return l_submask - r_submask
@@ -121,7 +118,7 @@ def sort_reverse(ar_in, key):
 
 
 # strip off last part of a string separated by separator
-def strip_off_last_part(string_in, separator='_'):
+def strip_off_last_part(string_in: str, separator: str = '_') -> str:
     string_out = string_in
     if separator in string_in:  # strip off final _xxx part
         str_ar = string_in.split(separator)
@@ -130,7 +127,7 @@ def strip_off_last_part(string_in, separator='_'):
     return string_out
 
 
-def get_last_part(string_in, separator='_'):
+def get_last_part(string_in: str, separator: str = '_') -> str:
     string_out = ''
     if separator in string_in:  # strip off _vdom_name
         str_ar = string_in.split(separator)
@@ -138,8 +135,8 @@ def get_last_part(string_in, separator='_'):
     return string_out
 
 
-def get_plain_device_names_without_vdoms(devices):
-    device_array = []
+def get_plain_device_names_without_vdoms(devices: list[dict[str, Any]]) -> list[str]:
+    device_array: list[str] = []
     for dev in devices:
         dev_name = strip_off_last_part(dev["name"])
         if dev_name not in device_array:
@@ -149,9 +146,9 @@ def get_plain_device_names_without_vdoms(devices):
 
 # only getting one vdom as currently assuming routing to be
 # the same for all vdoms on a device
-def get_device_names_plus_one_vdom(devices):
-    device_array = []
-    device_array_with_vdom = []
+def get_device_names_plus_one_vdom(devices: list[dict[str, Any]]) -> list[list[str]]:
+    device_array: list[str] = []
+    device_array_with_vdom: list[list[str]] = []
     for dev in devices:
         dev_name = strip_off_last_part(dev["name"])
         vdom_name = get_last_part(dev["name"])
@@ -162,8 +159,8 @@ def get_device_names_plus_one_vdom(devices):
 
 
 # getting devices and their vdom names
-def get_device_plus_full_vdom_names(devices):
-    device_array_with_vdom = []
+def get_device_plus_full_vdom_names(devices: list[dict[str, Any]]) -> list[list[str]]:
+    device_array_with_vdom: list[list[str]] = []
     for dev in devices:
         dev_name = strip_off_last_part(dev["name"])
         vdom_name = dev["name"]
@@ -172,8 +169,8 @@ def get_device_plus_full_vdom_names(devices):
 
 
 # getting devices and their vdom names
-def get_all_dev_names(devices):
-    device_array_with_vdom = []
+def get_all_dev_names(devices: list[dict[str, Any]]) -> list[list[Any]]:
+    device_array_with_vdom: list[list[Any]] = []
     for dev in devices:
         dev_id = dev["id"]
         dev_name = strip_off_last_part(dev["name"])
@@ -184,17 +181,16 @@ def get_all_dev_names(devices):
 
 
 # get network information (currently only used for source nat)
-def getInterfacesAndRouting(sid, fm_api_url, nativeConfig, adom_name, devices, limit):
-
-    logger = getFwoLogger()
+def getInterfacesAndRouting(sid: str, fm_api_url: str, nativeConfig: list[dict[str, Any]], adom_name: str, devices: list[dict[str, Any]], limit: int) -> None:
+                                                        #TYPING: DICT OR LIST??? 
     # strip off vdom names, just deal with the plain device
     device_array = get_all_dev_names(devices)
 
-    for dev_id, plain_dev_name, plain_vdom_name, full_vdom_name in device_array:
-        logger.info("dev_name: " + plain_dev_name + ", full vdom_name: " + full_vdom_name)
+    for _, plain_dev_name, plain_vdom_name, full_vdom_name in device_array:
+        FWOLogger.info("dev_name: " + plain_dev_name + ", full vdom_name: " + full_vdom_name)
 
         # getting interfaces of device
-        all_interfaces_payload = {
+        all_interfaces_payload: dict[str, Any] = {
             "id": 1,
             "params": [
                 {
@@ -266,17 +262,17 @@ def getInterfacesAndRouting(sid, fm_api_url, nativeConfig, adom_name, devices, l
                 nativeConfig, sid, fm_api_url, "/pm/config/device/" + plain_dev_name + "/global/system/interface",
                 "interfaces_per_device/" + full_vdom_name, payload=all_interfaces_payload, limit=limit, method="get")
         except Exception:
-            logger.warning("error while getting interfaces of device " + plain_vdom_name + ", vdom=" + plain_vdom_name + ", ignoring, traceback: " + str(traceback.format_exc()))
+            FWOLogger.warning("error while getting interfaces of device " + plain_vdom_name + ", vdom=" + plain_vdom_name + ", ignoring, traceback: " + str(traceback.format_exc()))
 
         # now getting routing information
         for ip_version in ["ipv4", "ipv6"]:
-            payload = { "params": [ { "data": {
+            payload: dict[str, Any] = { "params": [ { "data": {
                             "target": ["adom/" + adom_name + "/device/" + plain_dev_name],
                             "action": "get",
                             "resource": "/api/v2/monitor/router/" + ip_version + "/select?&vdom="+ plain_vdom_name } } ] }
             try:    # get routing table per vdom
-                routing_helper = {}
-                routing_table = []
+                routing_helper: list[Any] = []
+                routing_table: list[Any] = []
                 fmgr_getter.update_config_with_fortinet_api_call(
                     routing_helper, sid, fm_api_url, "/sys/proxy/json",
                     "routing-table-" + ip_version + '/' + full_vdom_name,
@@ -287,20 +283,19 @@ def getInterfacesAndRouting(sid, fm_api_url, nativeConfig, adom_name, devices, l
                     if len(routing_helper)>0 and 'response' in routing_helper[0] and 'results' in routing_helper[0]['response']:
                         routing_table = routing_helper[0]['response']['results']
                     else:
-                        logger.warning("got empty " + ip_version + " routing table from device " + full_vdom_name + ", ignoring")
+                        FWOLogger.warning("got empty " + ip_version + " routing table from device " + full_vdom_name + ", ignoring")
                         routing_table = []
             except Exception:
-                logger.warning("could not get routing table for device " + full_vdom_name + ", ignoring") # exception " + str(traceback.format_exc()))
+                FWOLogger.warning("could not get routing table for device " + full_vdom_name + ", ignoring") # exception " + str(traceback.format_exc()))
                 routing_table = []
 
             # now storing the routing table:
-            nativeConfig.update({"routing-table-" + ip_version + '/' + full_vdom_name: routing_table})
+            nativeConfig.update({"routing-table-" + ip_version + '/' + full_vdom_name: routing_table}) #type: ignore #TYPING: dict or list??? broo
 
 
-def get_device_from_package(package_name, mgm_details):
-    logger = getFwoLogger()
+def get_device_from_package(package_name: str, mgm_details: dict[str, Any]) -> str | None:
     for dev in mgm_details['devices']:
         if dev['local_rulebase_name'] == package_name:
             return dev['id']
-    logger.debug('get_device_from_package - could not find device for package "' + package_name +  '"')
+    FWOLogger.debug('get_device_from_package - could not find device for package "' + package_name +  '"')
     return None

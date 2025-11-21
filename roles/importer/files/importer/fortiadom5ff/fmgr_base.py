@@ -1,9 +1,7 @@
+from typing import Any
 from services.service_provider import ServiceProvider
-from services.enums import Services
 from fwo_api_call import FwoApiCall, FwoApi
-from fwo_config import readConfig
-from fwo_const import fwo_config_filename
-from fwo_log import getFwoLogger
+from fwo_log import FWOLogger
 
 # def resolve_objects (obj_name_string_list, delimiter, obj_dict, name_key, uid_key, rule_type=None, jwt=None, import_id=None, mgm_id=None):
 #     # guessing ipv4 and adom (to also search global objects)
@@ -19,7 +17,7 @@ from fwo_log import getFwoLogger
 #     if rule_type is not None:
 #         for el in obj_name_string_list.split(delimiter):
 #             if obj_type != 'network':
-#                 logger.warning(f"resolve_raw_objects for obj_type '{obj_type}' not implemented yet")
+#                 FWOLogger.warning(f"resolve_raw_objects for obj_type '{obj_type}' not implemented yet")
 #                 continue
 
 #             if not lookup_obj_in_tables(el, object_tables, name_key, uid_key, ref_list):
@@ -53,32 +51,29 @@ from fwo_log import getFwoLogger
 #     return object_tables
 
 
-def set_alerts_for_missing_objects(objects_not_found, jwt, import_id, rule_uid, object_type, mgm_id):
-    logger = getFwoLogger()
-    fwo_config = readConfig(fwo_config_filename)
+#TODO: unused functions - remove?
+def set_alerts_for_missing_objects(objects_not_found: list[str], import_id: int, rule_uid: str | None, object_type: str | None, mgm_id: int):
     for obj in objects_not_found:
         if obj == 'all' or obj == 'Original':
             continue
 
         service_provider = ServiceProvider()
-        global_state = service_provider.get_service(Services.GLOBAL_STATE)
+        global_state = service_provider.get_global_state()
 
         api_call = FwoApiCall(FwoApi(ApiUri=global_state.import_state.FwoConfig.FwoApiUri, Jwt=global_state.import_state.Jwt))
 
-        if not api_call.create_data_issue(import_id=import_id, obj_name=obj, severity=1, 
-                                    rule_uid=rule_uid, mgm_id=mgm_id, object_type=object_type):
-            logger.warning("resolve_raw_objects: encountered error while trying to log an import data issue using create_data_issue")
+        api_call.create_data_issue(importId=import_id, obj_name=obj, severity=1, 
+                                    rule_uid=rule_uid, mgm_id=mgm_id, object_type=object_type)
 
         desc = "found a broken network object reference '" + obj + "' "
         if object_type is not None:
             desc +=  "(type=" + object_type + ") "
         desc += "in rule with UID '" + str(rule_uid) + "'"
         api_call.set_alert(import_id=import_id, title="object reference error", mgm_id=mgm_id, severity=1, 
-                    description=desc, source='import', alertCode=16)
+                    description=desc, source='import', alert_code=16)
 
 
-def lookup_obj_in_tables(el, object_tables, name_key, uid_key, ref_list):
-    logger = getFwoLogger()
+def lookup_obj_in_tables(el: str, object_tables: list[list[dict[str, Any]]], name_key: str, uid_key: str, ref_list: list[str]) -> bool:
     break_flag = False 
     found = False
 
@@ -94,7 +89,7 @@ def lookup_obj_in_tables(el, object_tables, name_key, uid_key, ref_list):
                 elif 'q_origin_key' in obj:
                     ref_list.append('q_origin_key_' + str(obj['q_origin_key']))
                 else:
-                    logger.error('found object without expected uid')
+                    FWOLogger.error('found object without expected uid')
                 break_flag = True
                 found = True
                 break

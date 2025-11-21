@@ -55,6 +55,8 @@ class FwConfigImportObject():
     def updateObjectDiffs(self, prev_config: FwConfigNormalized, prev_global_config: FwConfigNormalized|None, single_manager: FwConfigManager):
 
         change_logger = ChangeLogger()
+        if self.normalized_config is None:
+            raise FwoImporterError("no normalized config available in FwConfigImportObject.updateObjectDiffs")
         # calculate network object diffs
         # here we are handling the previous config as a dict for a while
         # previousNwObjects = prevConfig.network_objects
@@ -286,6 +288,8 @@ class FwConfigImportObject():
     
 
     def prepare_new_nwobjs(self, new_nwobj_uids: list[str], mgm_id: int) -> list[dict[str, Any]]:
+        if self.normalized_config is None:
+            raise FwoImporterError("no normalized config available in FwConfigImportObject.prepare_new_nwobjs")
         new_nwobjs: list[dict[str, Any]] = []
         for nwobj_uid in new_nwobj_uids:
             new_nwobj = NetworkObjectForImport(nwObject=self.normalized_config.network_objects[nwobj_uid],
@@ -299,6 +303,8 @@ class FwConfigImportObject():
 
 
     def prepare_new_svcobjs(self, new_svcobj_uids: list[str], mgm_id: int) -> list[dict[str, Any]]:
+        if self.normalized_config is None:
+            raise FwoImporterError("no normalized config available in FwConfigImportObject.prepare_new_svcobjs")
         new_svcs: list[dict[str, Any]] = []
         for uid in new_svcobj_uids:
             new_svcs.append(ServiceObjectForImport(svcObject=self.normalized_config.service_objects[uid],
@@ -310,6 +316,8 @@ class FwConfigImportObject():
         return new_svcs
 
     def prepare_new_userobjs(self, new_user_uids: list[str], mgm_id: int) -> list[dict[str, Any]]:
+        if self.normalized_config is None:
+            raise FwoImporterError("no normalized config available in FwConfigImportObject.prepare_new_userobjs")
         new_users: list[dict[str, Any]] = []
         for uid in new_user_uids:
             new_users.append({
@@ -324,6 +332,8 @@ class FwConfigImportObject():
 
 
     def prepare_new_zones(self, new_zone_names: list[str], mgm_id: int) -> list[dict[str, Any]]:
+        if self.normalized_config is None:
+            raise FwoImporterError("no normalized config available in FwConfigImportObject.prepare_new_zones")
         new_objects: list[dict[str, Any]] = []
         for uid in new_zone_names:
             new_objects.append({
@@ -336,6 +346,8 @@ class FwConfigImportObject():
     
  
     def get_config_objects(self, type: Type, prev_config: FwConfigNormalized):
+        if self.normalized_config is None:
+            raise FwoImporterError("no normalized config available in FwConfigImportObject.get_config_objects")
         if type == Type.NETWORK_OBJECT:
             return prev_config.network_objects, self.normalized_config.network_objects
         if type == Type.SERVICE_OBJECT:
@@ -401,8 +413,6 @@ class FwConfigImportObject():
 
 
     def remove_outdated_memberships(self, prev_config: FwConfigNormalized, type: Type):
-        errors = 0
-        changes = 0
         removed_members: list[dict[str, Any]] = []
         removed_flats: list[dict[str, Any]] = []
 
@@ -413,7 +423,7 @@ class FwConfigImportObject():
             self.find_removed_objects(current_config_objects, prev_config_objects, removed_members, removed_flats, prefix, uid, type)
         # remove outdated group memberships
         if len(removed_members) == 0:
-            return errors, changes
+            return
 
         import_mutation = f"""
             mutation removeOutdated{prefix.capitalize()}Memberships($importId: bigint!, $removedMembers: [{prefix}_bool_exp!]!, $removedFlats: [{prefix}_flat_bool_exp!]!) {{
@@ -445,14 +455,11 @@ class FwConfigImportObject():
             if 'errors' in import_result:
                 FWOLogger.exception(f"fwo_api:importNwObject - error in removeOutdated{prefix.capitalize()}Memberships: {str(import_result['errors'])}")
             else:
-                changes = int(import_result['data'][f'update_{prefix}']['affected_rows']) + \
+                _ = int(import_result['data'][f'update_{prefix}']['affected_rows']) + \
                     int(import_result['data'][f'update_{prefix}_flat']['affected_rows'])
         except Exception:
             FWOLogger.exception(f"failed to remove outdated group memberships for {type}: {str(traceback.format_exc())}")
-            errors = 1
-
-        return errors, changes
-    
+            
 
     def find_removed_objects(self, current_config_objects: dict[str, Any], prev_config_objects: dict[str, Any], removed_members: list[dict[str, Any]], removed_flats: list[dict[str, Any]],
                              prefix: str, uid: str, type: Type) -> None:
@@ -489,14 +496,13 @@ class FwConfigImportObject():
             })
 
 
-    def add_group_memberships(self, prev_config: FwConfigNormalized, obj_type: Type) -> tuple[int, int]:
+    def add_group_memberships(self, prev_config: FwConfigNormalized, obj_type: Type):
         """
         This function is used to update group memberships for nwobjs, services or users in the database.
         It adds group memberships and flats for new and updated members.
         Args:
             prev_config (FwConfigNormalized): The previous normalized config.
         """
-        errors = 0
         new_group_members: list[dict[str, Any]] = []
         new_group_member_flats: list[dict[str, Any]] = []
         prev_config_objects, current_config_objects = self.get_config_objects(obj_type, prev_config)
@@ -523,9 +529,9 @@ class FwConfigImportObject():
             self.collect_flat_group_members(group_id, current_config_objects, new_group_member_flats, flat_member_uids, obj_type, prefix, prev_flat_member_uids, prev_config_objects)
 
         if len(new_group_members)==0:
-            return errors, 0
-        
-        return self.write_member_updates(new_group_members, new_group_member_flats, prefix, errors)
+            return
+             
+        self.write_member_updates(new_group_members, new_group_member_flats, prefix)
 
 
     def collect_flat_group_members(self, group_id: int, current_config_objects: dict[str, Any], new_group_member_flats: list[dict[str, Any]], flat_member_uids: list[str], obj_type: Type, prefix: str, prev_flat_member_uids: list[str], prev_config_objects: dict[str, Any]):
@@ -554,8 +560,7 @@ class FwConfigImportObject():
             })
 
 
-    def write_member_updates(self, new_group_members: list[dict[str, Any]], new_group_member_flats: list[dict[str, Any]], prefix: str, errors: int) -> tuple[int, int]:
-        changes = 0
+    def write_member_updates(self, new_group_members: list[dict[str, Any]], new_group_member_flats: list[dict[str, Any]], prefix: str):
         import_mutation = f"""
             mutation update{prefix.capitalize()}Groups($groups: [{prefix}_insert_input!]!, $groupFlats: [{prefix}_flat_insert_input!]!) {{
                 insert_{prefix}(objects: $groups) {{
@@ -574,19 +579,16 @@ class FwConfigImportObject():
             import_result = self.import_state.api_call.call(import_mutation, query_variables=query_variables, analyze_payload=True)
             if 'errors' in import_result:
                 FWOLogger.exception(f"fwo_api:addGroupMemberships: {str(import_result['errors'])}")
-                errors = 1
                 if 'duplicate' in import_result['errors']:
                     raise FwoDuplicateKeyViolation(str(import_result['errors']))
                 else:
                     raise FwoImporterError(str(import_result['errors']))
             else:
-                changes = int(import_result['data'][f'insert_{prefix}']['affected_rows']) + \
+                _ = int(import_result['data'][f'insert_{prefix}']['affected_rows']) + \
                     int(import_result['data'][f'insert_{prefix}_flat']['affected_rows'])
         except Exception:
             FWOLogger.exception(f"failed to write new objects: {str(traceback.format_exc())}")
             raise
-        
-        return errors, changes
 
 
     def lookup_obj_type(self, obj_type_str: str) -> int:
@@ -659,8 +661,6 @@ class FwConfigImportObject():
 
 
     def add_changelog_objs(self, nwobj_ids_added: list[dict[str, int]], svc_obj_ids_added: list[dict[str, int]], nw_obj_ids_removed: list[dict[str, int]], svc_obj_ids_removed: list[dict[str, int]]):
-        errors = 0
-
         nwobjs_changed, svcobjs_changed = self.prepare_changelog_objects(nwobj_ids_added, svc_obj_ids_added, nw_obj_ids_removed, svc_obj_ids_removed)
         changelog_mutation = """
             mutation updateObjChangelogs($nwObjChanges: [changelog_object_insert_input!]!, $svcObjChanges: [changelog_service_insert_input!]!) {
@@ -683,9 +683,5 @@ class FwConfigImportObject():
                 changelog_result = self.import_state.api_call.call(changelog_mutation, query_variables=query_variables, analyze_payload=True)
                 if 'errors' in changelog_result:
                     FWOLogger.exception(f"error while adding changelog entries for objects: {str(changelog_result['errors'])}")
-                    errors = 1
             except Exception:
                 FWOLogger.exception(f"fatal error while adding changelog entries for objects: {str(traceback.format_exc())}")
-                errors = 1
-        
-        return errors

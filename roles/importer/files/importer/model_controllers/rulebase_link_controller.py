@@ -72,6 +72,8 @@ class RulebaseLinkController():
                 self.rulbase_to_gateway_map[rulebase_id].append(gw_id)
         
 
-    def get_gw_ids_for_rulebase_id(self, rulebase_id: int) -> list[int]:
+    def get_gw_ids_for_rulebase_id(self, rulebase_id: int | None) -> list[int]:
+        if rulebase_id is None:
+            return []
         return self.rulbase_to_gateway_map.get(rulebase_id, [])
     

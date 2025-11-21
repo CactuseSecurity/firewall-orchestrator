@@ -4,7 +4,6 @@ from difflib import ndiff
 import json
 from typing import Generator, Any
 
-import fwo_globals
 import fwo_const
 import fwo_api_call as fwo_api_call
 from fwo_exceptions import FwoApiWriteError, FwoImporterError
@@ -115,7 +114,7 @@ class FwConfigImportRule():
 
         # update rule_metadata before adding rules
         _, _ = self.addNewRuleMetadata(newRulebases)
-        _ = self.update_rule_metadata_last_hit(new_hit_information)
+        self.update_rule_metadata_last_hit(new_hit_information)
 
         # # now update the database with all rule diffs
         self.uid2id_mapper.update_rule_mapping()
@@ -127,7 +126,7 @@ class FwConfigImportRule():
         _ = self.add_new_refs(prevConfig)
 
         num_deleted_rules, removed_rule_ids = self.mark_rules_removed(rule_order_diffs["deleted_rule_uids"])
-        _ = self.remove_outdated_refs(prevConfig)
+        self.remove_outdated_refs(prevConfig)
 
         _, num_moved_rules, _ = self.verify_rules_moved(changedRuleUids)
 
@@ -203,18 +202,14 @@ class FwConfigImportRule():
                     add_hit_update(new_hit_information, current_rule)
                     processed_rules.add(rule_uid)
 
-    def update_rule_metadata_last_hit(self, new_hit_information: list[dict[str, Any]]) -> int:
+    def update_rule_metadata_last_hit(self, new_hit_information: list[dict[str, Any]]):
         """
         Updates rule_metadata.rule_last_hit for all rules with hit information changes.
         This method executes the actual database updates for hit information.
 
         Args:
             new_hit_information (list[dict]): The hit information to update.
-
-        Returns:
-            int: Number of changes made.
         """
-        changes = 0
 
         if len(new_hit_information) > 0:
             update_last_hit_mutation = FwoApi.get_graphql_code([fwo_const.graphql_query_path + "rule_metadata/updateLastHits.graphql"])
@@ -224,12 +219,9 @@ class FwConfigImportRule():
                 import_result = self.import_details.api_call.call(update_last_hit_mutation, query_variables=query_variables, analyze_payload=True)
                 if 'errors' in import_result:
                     FWOLogger.exception(f"fwo_api:importNwObject - error in addNewRuleMetadata: {str(import_result['errors'])}")
-                    return 0
                     # do not count last hit changes as changes here
             except Exception:
                 raise FwoApiWriteError(f"failed to update RuleMetadata last hit info: {str(traceback.format_exc())}")
-
-        return changes
 
     @staticmethod
     def collect_changed_rules(rule_uid: str, current_rulebase: Rulebase, previous_rulebase: Rulebase, rulebase_id: str, changed_rule_uids: dict[str, list[str]]):
@@ -402,7 +394,7 @@ class FwConfigImportRule():
                     all_refs_to_remove[ref_type].extend(ref_statements)
 
         if not any(all_refs_to_remove.values()):
-            return 0
+            return
         
         import_mutation = FwoApi.get_graphql_code([fwo_const.graphql_query_path + "rule/updateRuleRefs.graphql"])
         
@@ -420,12 +412,13 @@ class FwConfigImportRule():
 
         try:
             import_result = self.import_details.api_call.call(import_mutation, query_variables=query_variables, analyze_payload=True)
+            if "errors" in import_result:
+                FWOLogger.error(f"failed to remove outdated rule references: {str(import_result['errors'])}")
+                raise FwoApiWriteError(f"failed to remove outdated rule references: {str(import_result['errors'])}")
+            _ = sum((import_result['data'][f"update_{ref_type.value}"].get('affected_rows', 0) for ref_type in RefType))
         except Exception:
             raise FwoApiWriteError(f"failed to remove outdated rule references: {str(traceback.format_exc())}")
-        if 'errors' in import_result:
-            raise FwoApiWriteError(f"failed to remove outdated rule references: {str(import_result['errors'])}")
-        else:
-            return sum((import_result['data'][f"update_{ref_type.value}"].get('affected_rows', 0) for ref_type in RefType))
+    
 
     def get_ref_add_statement(self, ref_type: RefType, rule: RuleNormalized, ref_uid: tuple[str, str | None] | str) -> dict[str, Any]:
 
@@ -559,7 +552,7 @@ class FwConfigImportRule():
             return sum((import_result['data'][f"insert_{ref_type.value}"].get('affected_rows', 0) for ref_type in RefType))
 
 
-    def getRulesByIdWithRefUids(self, ruleIds: list[int]) -> tuple[int, int, list[dict[str, Any]]]: #TODO: change return type to list[Rule] and cast
+    def getRulesByIdWithRefUids(self, ruleIds: list[int]) -> list[Rule]: #TODO: change return type to list[Rule] and cast
         getRuleUidRefsQuery = FwoApi.get_graphql_code([fwo_const.graphql_query_path + "rule/getRulesByIdWithRefUids.graphql"])
         query_variables = { 'ruleIds': ruleIds }
         
@@ -568,9 +561,9 @@ class FwConfigImportRule():
             if 'errors' in import_result:
                 
                 FWOLogger.exception(f"fwconfig_import_rule:getRulesByIdWithRefUids - error in addNewRules: {str(import_result['errors'])}")
-                return 1, 0, []
+                return []
             else:
-                return 0, 0, import_result['data']['rule']
+                return import_result['data']['rule']
         except Exception:
             FWOLogger.exception(f"failed to get rules from API: {str(traceback.format_exc())}")
             raise
@@ -991,7 +984,7 @@ class FwConfigImportRule():
         """
 
         try:
-            set_rule_enforced_on_gateway_entries_removed_result =  self.import_details.api_call.call(set_rule_enforced_on_gateway_entries_removed_mutation, set_rule_enforced_on_gateway_entries_removed_variables, self.import_details.DebugLevel)
+            set_rule_enforced_on_gateway_entries_removed_result =  self.import_details.api_call.call(set_rule_enforced_on_gateway_entries_removed_mutation, set_rule_enforced_on_gateway_entries_removed_variables)
 
             if 'errors' in set_rule_enforced_on_gateway_entries_removed_result:
                 FWOLogger.exception(f"fwo_api:update_rule_enforced_on_gateway_after_move - error while updating moved rules refs: {str(set_rule_enforced_on_gateway_entries_removed_result['errors'])}")
@@ -1008,7 +1001,7 @@ class FwConfigImportRule():
                 ]
             }
 
-            insert_rule_enforced_on_gateway_entries_result =  self.import_details.api_call.call(insert_rule_enforced_on_gateway_entries_mutation, insert_rule_enforced_on_gateway_entries_variables, self.import_details.DebugLevel)
+            insert_rule_enforced_on_gateway_entries_result =  self.import_details.api_call.call(insert_rule_enforced_on_gateway_entries_mutation, insert_rule_enforced_on_gateway_entries_variables)
 
             if 'errors' in insert_rule_enforced_on_gateway_entries_result:
                 FWOLogger.exception(f"fwo_api:update_rule_enforced_on_gateway_after_move - error while updating moved rules refs: {str(insert_rule_enforced_on_gateway_entries_result['errors'])}")
@@ -1035,7 +1028,7 @@ class FwConfigImportRule():
 
         rule_order_service_moved_rule_uids_flat = [
             rule_uid 
-            for rule_uids in self.rule_order_service._moved_rule_uids.values()
+            for rule_uids in self.rule_order_service._moved_rule_uids.values() # type: ignore #TODO: access to protected member
             for rule_uid in rule_uids
         ]
 
@@ -1248,8 +1241,7 @@ class FwConfigImportRule():
 
         return rule_for_import
 
-    def write_changelog_rules(self, added_rules_ids: list[int], removed_rules_ids: list[int]) -> int:
-        errors = 0
+    def write_changelog_rules(self, added_rules_ids: list[int], removed_rules_ids: list[int]):
 
         changelog_rule_insert_objects = self.prepare_changelog_rules_insert_objects(added_rules_ids, removed_rules_ids)
 
@@ -1264,12 +1256,8 @@ class FwConfigImportRule():
                 updateChanglogRules_result = self.import_details.api_call.call(updateChanglogRules, query_variables=query_variables, analyze_payload=True)
                 if 'errors' in updateChanglogRules_result:
                     FWOLogger.exception(f"error while adding changelog entries for objects: {str(updateChanglogRules_result['errors'])}")
-                    errors = 1
             except Exception:
                 FWOLogger.exception(f"fatal error while adding changelog entries for objects: {str(traceback.format_exc())}")
-                errors = 1
-        
-        return errors
 
 
     def prepare_changelog_rules_insert_objects(self, added_rules_ids: list[int], removed_rules_ids: list[int]) -> list[dict[str, Any]]:

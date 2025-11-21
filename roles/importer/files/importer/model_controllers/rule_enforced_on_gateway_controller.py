@@ -5,13 +5,14 @@ import fwo_const
 from model_controllers.import_state_controller import ImportStateController
 from fwo_log import FWOLogger
 from model_controllers.rulebase_link_controller import RulebaseLinkController
+from models.rule import Rule
 
 
 class RuleEnforcedOnGatewayController:
     def __init__(self, import_state: ImportStateController):
         self.import_details: ImportStateController = import_state
 
-    def add_new_rule_enforced_on_gateway_refs(self, new_rules: list[dict[str, Any]], import_state: ImportStateController):
+    def add_new_rule_enforced_on_gateway_refs(self, new_rules: list[Rule], import_state: ImportStateController):
         """
         Main function to add new rule-to-gateway references.
         """
@@ -37,40 +38,39 @@ class RuleEnforcedOnGatewayController:
         rb_link_controller.set_map_of_all_enforcing_gateway_ids_for_rulebase_id(import_state)
         return rb_link_controller
 
-    def prepare_rule_to_gateway_references(self, new_rules: list[dict[str, Any]], rb_link_controller: RulebaseLinkController) -> list[dict[str, Any]]:
+    def prepare_rule_to_gateway_references(self, new_rules: list[Rule], rb_link_controller: RulebaseLinkController) -> list[dict[str, Any]]:
         """
         Prepare the list of rule-to-gateway references based on the rules and their 'install on' settings.
         """
         rule_to_gw_refs: list[dict[str, Any]] = []
         for rule in new_rules:
-            if 'rule_installon' in rule: # TODO rule should not be a dict
-                if rule['rule_installon'] is None: # TODO rule should not be a dict
-                    self.handle_rule_without_installon(rule, rb_link_controller, rule_to_gw_refs)
-                else:
-                    self.handle_rule_with_installon(rule, rule_to_gw_refs)
+            if rule.rule_installon is None:
+                self.handle_rule_without_installon(rule, rb_link_controller, rule_to_gw_refs)
+            else:
+                self.handle_rule_with_installon(rule, rule_to_gw_refs)
         return rule_to_gw_refs
 
 
     def handle_rule_without_installon(self, 
-                                      rule: dict[str, Any], # TODO rule should not be a dict
+                                      rule: Rule, 
                                       rb_link_controller: RulebaseLinkController, 
                                       rule_to_gw_refs: list[dict[str, Any]]
                                     ) -> None:
         """
         Handle rules with no 'install on' setting by linking them to all gateways for the rulebase.
         """
-        for gw_id in rb_link_controller.get_gw_ids_for_rulebase_id(rule['rulebase_id']):
+        for gw_id in rb_link_controller.get_gw_ids_for_rulebase_id(rule.rulebase_id):
             rule_to_gw_refs.append(self.create_rule_to_gateway_reference(rule, gw_id))
 
 
     def handle_rule_with_installon(self, 
-                                   rule: dict[str, Any], # TODO rule should not be a dict
+                                   rule: Rule, 
                                    rule_to_gw_refs: list[dict[str, Any]]
                                    ) -> None:
         """
         Handle rules with 'install on' settings by linking them to specific gateways.
         """
-        for gw_uid in rule['rule_installon'].split(fwo_const.list_delimiter):
+        for gw_uid in rule.rule_installon.split(fwo_const.list_delimiter) if rule.rule_installon else []:
             gw_id = self.import_details.lookupGatewayId(gw_uid)
             if gw_id is not None:
                 rule_to_gw_refs.append(self.create_rule_to_gateway_reference(rule, gw_id))
@@ -78,12 +78,12 @@ class RuleEnforcedOnGatewayController:
                 FWOLogger.warning(f"Found a broken reference to a non-existing gateway (uid={gw_uid}). Ignoring.")
 
 
-    def create_rule_to_gateway_reference(self, rule: dict[str, Any], gw_id: int) -> dict[str, Any]:
+    def create_rule_to_gateway_reference(self, rule: Rule, gw_id: int) -> dict[str, Any]:
         """
         Create a dictionary representing a rule-to-gateway reference.
         """
         return {
-            'rule_id': rule['rule_id'],
+            'rule_id': rule.rule_uid, #TODO: rule_id does not exist
             'dev_id': gw_id,
             'created': self.import_details.ImportId,
             'removed': None

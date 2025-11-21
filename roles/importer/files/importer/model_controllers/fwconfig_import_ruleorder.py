@@ -5,7 +5,6 @@ from models.rule import RuleNormalized
 from models.rulebase import Rulebase
 from services.global_state import GlobalState
 from fwo_exceptions import FwoApiFailure
-from fwo_log import FWOLogger
 
 from services.service_provider import ServiceProvider
 from services.enums import Services

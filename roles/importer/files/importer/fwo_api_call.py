@@ -22,8 +22,8 @@ if TYPE_CHECKING:
 class FwoApiCall(FwoApi):
 
     def __init__(self, api: FwoApi):
-        self.FwoApiUrl = api.FwoApiUrl
-        self.FwoJwt = api.FwoJwt
+        self.fwo_api_url = api.fwo_api_url
+        self.fwo_jwt = api.fwo_jwt
         self.query_info = {}
         self.query_analyzer = QueryAnalyzer()
 

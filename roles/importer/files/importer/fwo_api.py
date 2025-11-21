@@ -19,15 +19,15 @@ JSON_CONTENT_TYPE = 'application/json'
 # this class is used for making calls to the FWO API (will supersede fwo_api.py)
 class FwoApi():
     
-    FwoApiUrl: str
-    FwoJwt: str
+    fwo_api_url: str
+    fwo_jwt: str
     query_info: dict[str, Any]
     query_analyzer: QueryAnalyzer
 
 
     def __init__(self, ApiUri: str, Jwt: str):
-        self.FwoApiUrl = ApiUri
-        self.FwoJwt = Jwt
+        self.fwo_api_url = ApiUri
+        self.fwo_jwt = Jwt
         self.query_info = {}
         self.query_analyzer = QueryAnalyzer()
 
@@ -40,7 +40,7 @@ class FwoApi():
         role = 'importer'
         request_headers = { 
             'Content-Type': JSON_CONTENT_TYPE, 
-            'Authorization': f'Bearer {self.FwoJwt}', 
+            'Authorization': f'Bearer {self.fwo_jwt}', 
             'x-hasura-role': role 
         }
         full_query: dict[str, Any] = {"query": query, "variables": query_variables}
@@ -146,7 +146,7 @@ class FwoApi():
                 session.verify = fwo_globals.verify_certs
 
             session.headers = {
-                'Authorization': f"Bearer {self.FwoJwt}",
+                'Authorization': f"Bearer {self.fwo_jwt}",
                 'Content-Type': JSON_CONTENT_TYPE
             }
 
@@ -192,7 +192,7 @@ class FwoApi():
         """
 
         if int(fwo_globals.debug_level) > 1:
-            FWOLogger.error(self.showImportApiCallInfo(self.FwoApiUrl, query_payload, headers, typ='error') + ":\n" + str(traceback.format_exc()))
+            FWOLogger.error(self.showImportApiCallInfo(self.fwo_api_url, query_payload, headers, typ='error') + ":\n" + str(traceback.format_exc()))
         if hasattr(exception, 'response') and exception.response is not None:
             if exception.response.status_code == 503:
                 raise FwoApiServiceUnavailable("FWO API HTTP error 503 (FWO API died?)")
@@ -331,9 +331,9 @@ class FwoApi():
             Posts the given payload to the api endpoint. Returns the response as json or None if the response object is None.
         """
 
-        FWOLogger.debug(self.showImportApiCallInfo(self.FwoApiUrl, query_payload, session.headers, typ='debug', show_query_info=True), 9)
+        FWOLogger.debug(self.showImportApiCallInfo(self.fwo_api_url, query_payload, session.headers, typ='debug', show_query_info=True), 9)
 
-        r = session.post(self.FwoApiUrl, data=json.dumps(query_payload), timeout=int(fwo_api_http_import_timeout))
+        r = session.post(self.fwo_api_url, data=json.dumps(query_payload), timeout=int(fwo_api_http_import_timeout))
         
         FWOLogger.debug ("API response: " + pformat(r.json(), indent=2), 10)
 
@@ -365,7 +365,7 @@ class FwoApi():
         """
             Tries to show the API call info if the debug level is high enough.
         """
-        FWOLogger.debug(self.showImportApiCallInfo(self.FwoApiUrl, full_query, request_headers, typ='debug', show_query_info=True), 9)
+        FWOLogger.debug(self.showImportApiCallInfo(self.fwo_api_url, full_query, request_headers, typ='debug', show_query_info=True), 9)
 
 
     def _try_write_extended_log(self, message: str) -> None:
@@ -385,7 +385,7 @@ class FwoApi():
             result = "error while sending api_call to url "
         else:
             result = "successful FWO API call to url "        
-        result += str(self.FwoApiUrl) + " with payload \n"
+        result += str(self.fwo_api_url) + " with payload \n"
         if query_size < max_query_size_to_display:
             result += query_string 
         else:

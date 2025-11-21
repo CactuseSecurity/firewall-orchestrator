@@ -45,7 +45,7 @@ def import_management(mgm_id: int, api_call: FwoApiCall, ssl_verification: bool,
         limit: int, clear_management_data: bool, suppress_cert_warnings: bool,
         file: str | None = None) -> None:
 
-    fwo_signalling.registerSignallingHandlers()
+    fwo_signalling.register_signalling_handlers()
     service_provider = ServiceProvider()
     importState = service_provider.get_global_state().import_state
     config_importer = FwConfigImport()
@@ -109,7 +109,7 @@ def _import_management(mgm_id: int, ssl_verification: bool, file: str | None,
     Path(import_tmp_path).mkdir(parents=True, exist_ok=True)  # make sure tmp path exists
     gateways = ManagementController.buildGatewayList(import_state.MgmDetails)
 
-    import_state.ImportId = import_state.api_call.setImportLock(import_state.MgmDetails, import_state.IsFullImport, import_state.IsInitialImport, fwo_globals.debug_level)
+    import_state.ImportId = import_state.api_call.set_import_lock(import_state.MgmDetails, import_state.IsFullImport, import_state.IsInitialImport, fwo_globals.debug_level)
     FWOLogger.info(f"starting import of management {import_state.MgmDetails.Name} ({str(mgm_id)}), import_id={str(import_state.ImportId)}")
 
     if clear_management_data:

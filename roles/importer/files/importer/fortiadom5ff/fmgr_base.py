@@ -62,16 +62,15 @@ def set_alerts_for_missing_objects(objects_not_found: list[str], import_id: int,
 
         api_call = FwoApiCall(FwoApi(ApiUri=global_state.import_state.FwoConfig.FwoApiUri, Jwt=global_state.import_state.Jwt))
 
-        if not api_call.create_data_issue(importId=import_id, obj_name=obj, severity=1, 
-                                    rule_uid=rule_uid, mgm_id=mgm_id, object_type=object_type):
-            FWOLogger.warning("resolve_raw_objects: encountered error while trying to log an import data issue using create_data_issue")
+        api_call.create_data_issue(importId=import_id, obj_name=obj, severity=1, 
+                                    rule_uid=rule_uid, mgm_id=mgm_id, object_type=object_type)
 
         desc = "found a broken network object reference '" + obj + "' "
         if object_type is not None:
             desc +=  "(type=" + object_type + ") "
         desc += "in rule with UID '" + str(rule_uid) + "'"
         api_call.set_alert(import_id=import_id, title="object reference error", mgm_id=mgm_id, severity=1, 
-                    description=desc, source='import', alertCode=16)
+                    description=desc, source='import', alert_code=16)
 
 
 def lookup_obj_in_tables(el: str, object_tables: list[list[dict[str, Any]]], name_key: str, uid_key: str, ref_list: list[str]) -> bool:

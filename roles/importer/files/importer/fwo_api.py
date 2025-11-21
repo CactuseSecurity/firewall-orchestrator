@@ -192,7 +192,7 @@ class FwoApi():
         """
 
         if int(fwo_globals.debug_level) > 1:
-            FWOLogger.error(self.showImportApiCallInfo(self.fwo_api_url, query_payload, headers, typ='error') + ":\n" + str(traceback.format_exc()))
+            FWOLogger.error(self.show_import_api_call_info(self.fwo_api_url, query_payload, headers, typ='error') + ":\n" + str(traceback.format_exc()))
         if hasattr(exception, 'response') and exception.response is not None:
             if exception.response.status_code == 503:
                 raise FwoApiServiceUnavailable("FWO API HTTP error 503 (FWO API died?)")
@@ -331,7 +331,7 @@ class FwoApi():
             Posts the given payload to the api endpoint. Returns the response as json or None if the response object is None.
         """
 
-        FWOLogger.debug(self.showImportApiCallInfo(self.fwo_api_url, query_payload, session.headers, typ='debug', show_query_info=True), 9)
+        FWOLogger.debug(self.show_import_api_call_info(self.fwo_api_url, query_payload, session.headers, typ='debug', show_query_info=True), 9)
 
         r = session.post(self.fwo_api_url, data=json.dumps(query_payload), timeout=int(fwo_api_http_import_timeout))
         
@@ -365,7 +365,7 @@ class FwoApi():
         """
             Tries to show the API call info if the debug level is high enough.
         """
-        FWOLogger.debug(self.showImportApiCallInfo(self.fwo_api_url, full_query, request_headers, typ='debug', show_query_info=True), 9)
+        FWOLogger.debug(self.show_import_api_call_info(self.fwo_api_url, full_query, request_headers, typ='debug', show_query_info=True), 9)
 
 
     def _try_write_extended_log(self, message: str) -> None:
@@ -375,7 +375,7 @@ class FwoApi():
             FWOLogger.debug(message, 10)
 
 
-    def showImportApiCallInfo(self, api_url: str, query: dict[str, Any], headers: dict[str, Any] | MutableMapping[str, str | bytes], typ: str ='debug', show_query_info: bool = False):
+    def show_import_api_call_info(self, api_url: str, query: dict[str, Any], headers: dict[str, Any] | MutableMapping[str, str | bytes], typ: str ='debug', show_query_info: bool = False):
         max_query_size_to_display = 1000
         query_string = json.dumps(query, indent=2)
         header_string = json.dumps(dict(headers), indent=2)

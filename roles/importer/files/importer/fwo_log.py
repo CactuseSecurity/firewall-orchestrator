@@ -79,6 +79,38 @@ class LogLock:
 #         LogLock.semaphore.release()
 
 
+class FWOLogger():
+    logger: logging.Logger
+    debug_level: int
+    def __new__(cls, debug_level: int = 0):
+        if not hasattr(cls, 'instance'):
+            cls.instance = super(FWOLogger, cls).__new__(cls)
+        return cls.instance
+    
+    def __init__(self, debug_level: int = 0):
+        self.logger = get_fwo_logger(debug_level)
+
+    def get_logger(self) -> logging.Logger:
+        return self.logger
+    
+    def set_debug_level(self, debug_level: int):
+        if int(debug_level) >= 1:
+            log_level = logging.DEBUG
+        else:
+            log_level = logging.INFO
+        self.logger.setLevel(log_level)
+
+    @staticmethod
+    def debug(msg: str, needed_level: int = 1):
+        log = FWOLogger().get_logger()
+        if FWOLogger().debug_level >= needed_level:
+            log.debug(msg)
+
+    @staticmethod
+    def error(msg: str):
+        logger = FWOLogger().get_logger()
+        logger.error(msg)
+
 def get_fwo_logger(debug_level: int = 0) -> logging.Logger:
     if int(debug_level) >= 1:
         log_level = logging.DEBUG

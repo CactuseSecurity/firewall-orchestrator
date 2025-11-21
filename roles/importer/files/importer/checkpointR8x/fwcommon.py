@@ -56,6 +56,7 @@ def get_config(config_in: FwConfigManagerListController, importState: ImportStat
         start_time_temp = int(time.time())
         logger.debug ( "checkpointR8x/get_config/getting objects ...")
 
+        # IMPORTANT: cp api is expected to preserve order of refs in group objects (unlike refs in rules, which are sorted later)
         result_get_objects = get_objects(config_in.native_config, importState)
         if result_get_objects>0:
             raise FwLoginFailed( "checkpointR8x/get_config/error while gettings objects")

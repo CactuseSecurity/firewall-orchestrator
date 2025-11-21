@@ -197,11 +197,11 @@ def import_from_file(import_state: ImportStateController, file_name: str = "") -
     return config_changed_since_last_import, configFromFile
 
 
-def get_config_from_api(importState: ImportStateController, config_in: FwConfigManagerListController) -> tuple[bool, FwConfigManagerListController]:
-    logger = get_fwo_logger(debug_level=importState.DebugLevel)
+def get_config_from_api(import_state: ImportStateController, config_in: FwConfigManagerListController) -> tuple[bool, FwConfigManagerListController]:
+    logger = get_fwo_logger(debug_level=import_state.DebugLevel)
 
     try: # pick product-specific importer:
-        pkg_name = get_module_package_name(importState)
+        pkg_name = get_module_package_name(import_state)
         if f"{importer_base_dir}/{pkg_name}" not in sys.path:
             sys.path.append(f"{importer_base_dir}/{pkg_name}")
         fw_module = importlib.import_module("." + fw_module_name, pkg_name)
@@ -211,25 +211,25 @@ def get_config_from_api(importState: ImportStateController, config_in: FwConfigM
 
     # check for changes from product-specific FW API, if we are importing from file we assume config changes
     #TODO: implement real change detection
-    config_changed_since_last_import = fw_module.has_config_changed(config_in, importState, importState.ForceImport)
+    config_changed_since_last_import = fw_module.has_config_changed(config_in, import_state, import_state.ForceImport)
     if config_changed_since_last_import:
-        logger.info ( "has_config_changed: changes found or forced mode -> go ahead with getting config, Force = " + str(importState.ForceImport))
+        logger.info ( "has_config_changed: changes found or forced mode -> go ahead with getting config, Force = " + str(import_state.ForceImport))
     else:
         logger.info ( "has_config_changed: no new changes found")
 
-    if config_changed_since_last_import or importState.ForceImport:
+    if config_changed_since_last_import or import_state.ForceImport:
         # get config from product-specific FW API
-        _, native_config = fw_module.get_config(config_in, importState)
+        _, native_config = fw_module.get_config(config_in, import_state)
     else:
-        native_config = FwConfigManagerListController.generate_empty_config(importState.MgmDetails.IsSuperManager)
+        native_config = FwConfigManagerListController.generate_empty_config(import_state.MgmDetails.IsSuperManager)
 
     if config_in.native_config is None:
         raise FwoImporterError("import_management: get_config returned no config")
     
-    write_native_config_to_file(importState, config_in.native_config)
+    write_native_config_to_file(import_state, config_in.native_config)
 
     logger.debug("import_management: get_config completed (including normalization), duration: " 
-                 + str(int(time.time()) - importState.StartTime) + "s") 
+                 + str(int(time.time()) - import_state.StartTime) + "s") 
 
     return config_changed_since_last_import, native_config
 

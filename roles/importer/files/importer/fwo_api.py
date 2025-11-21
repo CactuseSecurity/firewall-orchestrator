@@ -401,7 +401,6 @@ class FwoApi():
         header_string = json.dumps(dict(headers), indent=2)
         api_url = json.dumps(api_url, indent=2)
         query_size = len(query_string)
-
         if typ=='error':
             result = "error while sending api_call to url "
         else:

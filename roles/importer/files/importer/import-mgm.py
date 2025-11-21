@@ -7,7 +7,6 @@ from fwo_log import get_fwo_logger
 import argparse
 import urllib3
 from common import importer_base_dir, import_management
-import fwo_globals
 from fwo_base import init_service_provider, register_global_state
 from fwo_api import FwoApi
 from fwo_api_call import FwoApiCall
@@ -19,10 +18,10 @@ from model_controllers.import_state_controller import ImportStateController
 if importer_base_dir not in sys.path:
     sys.path.append(importer_base_dir)
 
-def get_fwo_jwt(importUser: str, importPwd: str, userManagementApi: str) -> str | None:
+def get_fwo_jwt(import_user: str, import_pwd: str, user_management_api: str) -> str | None:
     logger = get_fwo_logger()
     try:
-        jwt = FwoApi.login(importUser, importPwd, userManagementApi)
+        jwt = FwoApi.login(import_user, import_pwd, user_management_api)
         return jwt
     except FwoApiLoginFailed as e:
         logger.error(e.message)
@@ -30,14 +29,13 @@ def get_fwo_jwt(importUser: str, importPwd: str, userManagementApi: str) -> str 
         logger.error("import-main-loop - unspecified error during FWO API login - skipping: " + str(traceback.format_exc()))
 
 
-def main(mgmId: int, file: str | None = None, debugLevel: int = 0, verifyCertificates: bool = False, force: bool = False, limit: int = 150, clearManagementData: bool = False, suppressCertificateWarnings: bool = False):
+def main(mgm_id: int, file: str | None = None, debug_level: int = 0, verify_certificates: bool = False, force: bool = False, limit: int = 150, clear_management_data: bool = False, suppress_certificate_warnings: bool = False):
     service_provider = init_service_provider()
     fwo_config = service_provider.get_fwo_config()
     fwo_api_base_url = fwo_config['fwo_api_base_url']
     fwo_major_version = fwo_config['fwo_major_version']
     user_management_api_base_url = fwo_config['user_management_api_base_url']
-    fwo_globals.set_global_values(verifyCertificates, suppressCertificateWarnings, debugLevel)
-    if suppressCertificateWarnings: urllib3.disable_warnings()
+    if suppress_certificate_warnings: urllib3.disable_warnings()
 
     logger = get_fwo_logger()
 
@@ -64,15 +62,15 @@ def main(mgmId: int, file: str | None = None, debugLevel: int = 0, verifyCertifi
     fwo_api_call = FwoApiCall(fwo_api)
 
     urllib3.disable_warnings()  # suppress ssl warnings only
-    verifyCertificates = fwo_api_call.get_config_value(key='importCheckCertificates')=='True'
-    suppressCertificateWarnings = fwo_api_call.get_config_value(key='importSuppressCertificateWarnings')=='True'
-    if not suppressCertificateWarnings:
+    verify_certificates = fwo_api_call.get_config_value(key='importCheckCertificates')=='True'
+    suppress_certificate_warnings = fwo_api_call.get_config_value(key='importSuppressCertificateWarnings')=='True'
+    if not suppress_certificate_warnings:
         warnings.resetwarnings()
 
-    import_state = ImportStateController.initializeImport(mgmId, jwt, debugLevel, suppressCertificateWarnings, verifyCertificates, force, fwo_major_version, clearManagementData, isFullImport=True)
+    import_state = ImportStateController.initializeImport(mgm_id, jwt, debug_level, suppress_certificate_warnings, verify_certificates, force, fwo_major_version, clear_management_data, isFullImport=True)
     register_global_state(import_state)
 
-    import_management(mgmId, fwo_api_call, verifyCertificates, debugLevel, limit, clearManagementData, suppressCertificateWarnings, file)
+    import_management(mgm_id, fwo_api_call, verify_certificates, debug_level, limit, clear_management_data, suppress_certificate_warnings, file)
     
 
 if __name__ == "__main__": 
@@ -105,23 +103,10 @@ if __name__ == "__main__":
                         help='if set, the config will not be fetched from firewall but read from json config (native or normalized) file specified here; may also be an url.')
 
     args = parser.parse_args()
-    if len(sys.argv) == 1:
-        parser.print_help(sys.stderr)
-        sys.exit(1)
-
-    service_provider = init_service_provider()
-    fwo_config = service_provider.get_fwo_config()
-
-    fwo_globals.set_global_values(verify_certs_in=args.verify_certificates, 
-        suppress_cert_warnings_in=args.suppress_certificate_warnings,
-        debug_level_in=args.debug)
-    if args.suppress_certificate_warnings:
-        urllib3.disable_warnings()
-    logger = get_fwo_logger()
 
     try:
         main(
-            int(args.mgmId), 
+            int(args.mgmId), #TYPING: this should be snake case
             args.in_file, 
             int(args.debug), 
             args.verify_certificates,
@@ -131,6 +116,7 @@ if __name__ == "__main__":
             args.suppress_certificate_warnings,
         )
     except Exception:
+        logger = get_fwo_logger()
         logger.error("import-mgm - error while importing mgmId=" + str(args.mgmId) + ": " + str(traceback.format_exc()))
 
     sys.exit()

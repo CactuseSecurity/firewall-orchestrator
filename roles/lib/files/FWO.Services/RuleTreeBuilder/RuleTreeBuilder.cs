@@ -207,9 +207,12 @@ namespace FWO.Services.RuleTreeBuilder
         /// </summary>
         private RuleTreeItem GetSectionParent(List<int> nextPosition)
         {
-            List<int> position = nextPosition?.ToList() ?? [];
-            if (position.Last() == 0) position.Remove(position.Last());
-            RuleTreeItem item = RuleTree.ElementsFlat.FirstOrDefault(x => x.GetPositionString() == string.Join(".", position)) as RuleTreeItem ?? new RuleTreeItem();
+            List<int> position = nextPosition.ToList();
+            if (position.Last() == 0)
+            {
+                position.Remove(position.Last());
+            }
+            RuleTreeItem item = RuleTree.ElementsFlat.FirstOrDefault(x => NormalizePosition(x.GetPositionString()) == NormalizePosition(position)) as RuleTreeItem ?? new RuleTreeItem();
 
             if (item.Data is Rule && (item.Parent as RuleTreeItem ?? new RuleTreeItem()).IsOrderedLayerHeader && nextPosition?.Last() != 0)
             {
@@ -308,6 +311,30 @@ namespace FWO.Services.RuleTreeBuilder
             }
 
             return nextPosition;
+        }
+        
+        private string NormalizePosition(IEnumerable<string> parts)
+        {
+            var partsArray = parts.ToArray();
+            int lastNonZeroIndex = partsArray.Length - 1;
+            
+            while (lastNonZeroIndex > 0 && partsArray[lastNonZeroIndex] == "0")
+                lastNonZeroIndex--;
+            return string.Join(".", partsArray.Take(lastNonZeroIndex + 1));
+        }
+        private string NormalizePosition(IEnumerable<int> parts)
+        {
+            var partsArray = parts.ToArray();
+            int lastNonZeroIndex = partsArray.Length - 1;
+            
+            while (lastNonZeroIndex > 0 && partsArray[lastNonZeroIndex] == 0)
+                lastNonZeroIndex--;
+            return string.Join(".", partsArray.Take(lastNonZeroIndex + 1));
+        }
+
+        private string NormalizePosition(string position)
+        {
+            return NormalizePosition(position.Split('.'));
         }
     }
 }

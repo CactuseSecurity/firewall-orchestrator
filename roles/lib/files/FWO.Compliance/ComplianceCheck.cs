@@ -146,7 +146,6 @@ namespace FWO.Compliance
                 _treatDomainAndDynamicObjectsAsInternet = globalConfig.TreatDynamicAndDomainObjectsAsInternet;
                 _elementsPerFetch = globalConfig.ComplianceCheckElementsPerFetch; 
                 _maxDegreeOfParallelism = globalConfig.ComplianceCheckAvailableProcessors;
-                _semaphore = new SemaphoreSlim(_maxDegreeOfParallelism < Environment.ProcessorCount ? _maxDegreeOfParallelism : Environment.ProcessorCount);
                 _writeToDatabase = writeToDatabase;
 
                 Logger.TryWriteInfo("Compliance Check", $"Parallelizing config: {_elementsPerFetch} elements per fetch and {_maxDegreeOfParallelism} processors.", LocalSettings.ComplianceCheckVerbose);

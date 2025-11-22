@@ -1451,6 +1451,16 @@ INSERT INTO config (config_key, config_value, config_user)
 VALUES ('importedMatrixReadOnly', 'true', 0)
 ON CONFLICT (config_key, config_user) DO NOTHING;
 
+-- add config values to make parralelization in compliance check configurable
+
+INSERT INTO config (config_key, config_value, config_user) 
+VALUES ('complianceCheckElementsPerFetch', '500', 0)
+ON CONFLICT (config_key, config_user) DO NOTHING;
+
+INSERT INTO config (config_key, config_value, config_user) 
+VALUES ('complianceCheckAvailableProcessors', '4', 0)
+ON CONFLICT (config_key, config_user) DO NOTHING;
+
 -- adding labels (simple version without mapping tables and without foreign keys)
 
 -- CREATE TABLE label (

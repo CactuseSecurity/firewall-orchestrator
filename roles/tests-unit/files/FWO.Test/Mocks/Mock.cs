@@ -13,4 +13,6 @@ public abstract class Mock<T> where T : class
     protected abstract void Configure(T sub);
 
     public static implicit operator T(Mock<T> mock) => mock.Sub;
+
+    public T AsSub() => Sub;
 }

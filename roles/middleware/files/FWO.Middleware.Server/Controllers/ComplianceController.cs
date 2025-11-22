@@ -8,6 +8,7 @@ using FWO.Logging;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Text.Json;
+using FWO.Report;
 
 namespace FWO.Middleware.Server.Controllers
 {
@@ -55,10 +56,15 @@ namespace FWO.Middleware.Server.Controllers
                 GlobalConfig GlobalConfig = await GlobalConfig.ConstructAsync(apiConnection, true);
                 UserConfig userConfig = new(GlobalConfig, apiConnection, new(){ Language = GlobalConst.kEnglish });
 
-                ComplianceCheck complianceCheck = new(userConfig, apiConnection);
-                await complianceCheck.CheckAll();
+                // ComplianceCheck complianceCheck = new(userConfig, apiConnection);
+                // await complianceCheck.CheckAll();
 
-                return complianceCheck.ComplianceReport!.ExportToCsv();
+                // TODO: Fix Controller Export : generate report for export
+
+                // ReportCompliance reportCompliance = new(complianceCheck, userConfig, parameters.OutputLocation, parameters.Devices, parameters.Managements);
+                // return reportCompliance.ExportToCsv();
+
+                return "This feature is currently unavailable.";
             }
             catch (Exception exception)
             {

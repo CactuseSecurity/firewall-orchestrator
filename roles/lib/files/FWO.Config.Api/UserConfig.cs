@@ -48,12 +48,16 @@ namespace FWO.Config.Api
         }
 
         // Warning: only for Texts, ConfigItems contain Default content, correct ConfigItems are only in this.globalConfig
-        public UserConfig(GlobalConfig globalConfig) : base()
+        public UserConfig(GlobalConfig globalConfig, bool registerOnChangeHandler = true) : base()
         {
             User = new UiUser();
             Translate = globalConfig.LangDict[globalConfig.DefaultLanguage];
             this.globalConfig = globalConfig;
-            globalConfig.OnChange += OnGlobalConfigChange;
+
+            if (registerOnChangeHandler)
+            {
+                globalConfig.OnChange += OnGlobalConfigChange;
+            }
         }
 
         public UserConfig() : base()

@@ -84,10 +84,6 @@ namespace FWO.Compliance
         /// </summary>
         private int _maxDegreeOfParallelism;
         /// <summary>
-        /// Managing threads.
-        /// </summary>
-        private SemaphoreSlim _semaphore = default!;
-        /// <summary>
         /// Limit of threads that may be used for the compliance check.
         /// </summary>
         private bool _writeToDatabase = true;
@@ -373,22 +369,7 @@ namespace FWO.Compliance
                             default:
                                 break;
                         }
-                    }
-
-                    if (_writeToDatabase)
-                    {
-                        // Get violations that have to be removed.
-
-                        // Remove violations.
-
-                        // Get violations, that have to be added.
-
-                        // Add violations.
-
-
-
-
-                    }                    
+                    }                  
                 }
                 catch (System.Exception e)
                 {

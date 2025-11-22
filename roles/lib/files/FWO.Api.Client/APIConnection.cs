@@ -1,4 +1,6 @@
-﻿using FWO.Basics;
+﻿using DnsClient.Internal;
+using FWO.Basics;
+using FWO.Logging;
 
 namespace FWO.Api.Client
 {
@@ -7,6 +9,8 @@ namespace FWO.Api.Client
         private bool disposed = false;
 
         public event EventHandler<string>? OnAuthHeaderChanged;
+
+        public Basics.Interfaces.ILogger Logger = new Logger();
 
         protected List<ApiSubscription> subscriptions = [];
 
@@ -46,11 +50,14 @@ namespace FWO.Api.Client
 
             List<Task<List<T>>> tasks = new();
 
+            int chunkNumber = 0;
+
             for (int offset = 0; offset < elementsCount; offset += elementsPerFetch)
             {
+                chunkNumber++;
                 var queryVariables = CreateQueryVariables(offset, elementsPerFetch, query, managementIds);
 
-                tasks.Add(FetchChunkAsync(query, queryVariables, semaphore, postProcessAsync));
+                tasks.Add(FetchChunkAsync(query, queryVariables, semaphore, chunkNumber, postProcessAsync));
             }
 
             return await Task.WhenAll(tasks);
@@ -59,6 +66,7 @@ namespace FWO.Api.Client
                 string query,
                 Dictionary<string, object> queryVariables,
                 SemaphoreSlim semaphore,
+                int chunkNumber,
                 Func<List<T>, Task<List<T>>>? postProcessAsync)
             {
                 await semaphore.WaitAsync();
@@ -68,7 +76,9 @@ namespace FWO.Api.Client
 
                     if (postProcessAsync != null)
                     {
+                        Logger.TryWriteInfo("Api Connection", $"Processing chunk {chunkNumber}.", LocalSettings.ComplianceCheckVerbose);
                         data = await postProcessAsync(data);
+                        Logger.TryWriteInfo("Api Connection", $"Processed chunk {chunkNumber}.", LocalSettings.ComplianceCheckVerbose);
                     }
 
                     return data;

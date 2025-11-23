@@ -842,7 +842,7 @@ namespace FWO.Compliance
                 },
                 async (violation, token) =>
                 {
-                    if (!CurrentViolationsInCheck.Contains(violation))
+                    if (!CurrentViolationsInCheck.Any(cv => CreateUniqueViolationKey(cv)  == CreateUniqueViolationKey(violation)))
                     {
                         _violationsToRemove.Add(violation);
                     }
@@ -865,7 +865,7 @@ namespace FWO.Compliance
                 },
                 async (violation, token) =>
                 {
-                    if (!ruleFromDb.SelectMany(rule => rule.Violations).Contains(violation))
+                    if (!ruleFromDb.SelectMany(rule => rule.Violations).Any(rdb => CreateUniqueViolationKey(rdb) == CreateUniqueViolationKey(violation)))
                     {
 
                         ComplianceViolationBase violationBase = ComplianceViolationBase.CreateBase(violation);

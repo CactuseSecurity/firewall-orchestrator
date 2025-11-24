@@ -11,6 +11,7 @@ using FWO.Ui.Display;
 using FWO.Data.Extensions;
 using System.Net;
 using System.Collections.Concurrent;
+using FWO.Services;
 
 namespace FWO.Compliance
 {
@@ -97,6 +98,7 @@ namespace FWO.Compliance
         /// </summary>
         private ConcurrentBag<ComplianceViolation> _currentViolations = new();
 
+        private ParallelProcessor _parallelProcessor;
 
         #endregion
 
@@ -117,6 +119,8 @@ namespace FWO.Compliance
             {
                 Logger = logger;
             }
+            
+            _parallelProcessor = new(apiConnection, Logger);
 
             if (_userConfig.GlobalConfig == null)
             {
@@ -253,7 +257,7 @@ namespace FWO.Compliance
 
             // Retrieve rules and check current compliance for every rule.
 
-            List<Rule>[]? chunks = await _apiConnection.SendParallelizedQueriesAsync<Rule>(rulesCount, _maxDegreeOfParallelism, _elementsPerFetch, RuleQueries.getRulesForSelectedManagements, CalculateCompliance, managementIds);
+            List<Rule>[]? chunks = await _parallelProcessor.SendParallelizedQueriesAsync<Rule>(rulesCount, _maxDegreeOfParallelism, _elementsPerFetch, RuleQueries.getRulesForSelectedManagements, CalculateCompliance, managementIds);
             
             if (chunks == null)
             {
@@ -803,7 +807,7 @@ namespace FWO.Compliance
             return key;
         }
         
-        private async Task<List<Rule>> CalculateCompliance(List<Rule>? rulesToCheck = null)
+        public async Task<List<Rule>> CalculateCompliance(List<Rule>? rulesToCheck = null)
         {
             List<Rule> rules = rulesToCheck ?? RulesInCheck ?? [];
 

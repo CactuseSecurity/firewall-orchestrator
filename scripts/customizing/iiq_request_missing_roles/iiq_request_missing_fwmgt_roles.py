@@ -86,7 +86,7 @@ def remove_apps_without_ip_addresses(owner_dict, debug_level=0):
         if not has_ip:
             apps_to_remove.append(app_key)
     for app_key in apps_to_remove:
-        if debug_level>0:
+        if debug_level>5:
             logger.info(f"removing app {app_key} as it has no valid IP address assigned")
         del owner_dict[app_key]
 

@@ -92,7 +92,7 @@ def read_ip_data_from_csv(csv_filename, logger):
 
             ip_data = list(reader)  # Read remaining rows
     except Exception as e:
-        logger.error("error while trying to read csv file '" + csv_filename + "', exception: " + str(traceback.format_exc()))
+        logger.error("error while trying to read csv file '%s', exception: %s", csv_filename, e)
         sys.exit(1)
 
     return ip_data, app_id_column_no, ip_column_no

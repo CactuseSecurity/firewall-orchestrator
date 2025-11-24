@@ -7,5 +7,7 @@
     "iiqPassword": "iiq-user-pwd",
     "cmdbGitRepoUrl": "xxx",
     "csvOwnerFilePattern": "NeMo_..._meta.csv",
-    "csvAppServerFilePattern": "NeMo_..._IP.*?.csv"
+    "csvAppServerFilePattern": "NeMo_..._IP.*?.csv",
+    "iiqAppName": "AD EXAMPLEDE",
+    "userPrefix": "USR"
 }

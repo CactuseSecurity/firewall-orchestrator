@@ -15,19 +15,6 @@ __version__ = "2025-11-20-01"
 #   a) package python3-git must be installed
 #   b) requires the following config items in /usr/local/orch/etc/secrets/customizingConfig.json (or given config file):
 
-'''
-sample config file /usr/local/orch/etc/secrets/customizingConfig.json
-
-{
-    "gitRepo": "github.domain.de/CMDB-export",
-    "gitUser": "gituser1",
-    "gitPassword": "xxx",
-    "csvOwnerFilePattern": "NeMo_..._meta.csv",
-    "csvAppServerFilePattern": "NeMo_..._IP.*?.csv",
-    "ldapPath": "CN={USERID},OU=Benutzer,DC=DOMAIN,DC=DE"
-}
-''' 
-
 import traceback
 import json
 import sys
@@ -54,7 +41,17 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description='Read configuration from FW management via API calls')
     parser.add_argument('-c', '--config', default=default_config_file_name,
-                        help='Filename of custom config file for modelling imports')
+                        help='Filename of custom config file for modelling imports, default file='+default_config_file_name+',\
+                        sample config file content: \
+                        { \
+                            "ldapPath": "dc=example,dc=de", \
+                            "gitRepo": "github.example.de/cmdb/app-export", \
+                            "gitUsername": "git-user-1", \
+                            "gitPassword": "gituser-1-pwd", \
+                            "csvOwnerFilePattern": "NeMo_???_meta.csv", \
+                            "csvAppServerFilePattern": "NeMo_???_IP_.*?.csv" \
+                        } \
+                        ')
     parser.add_argument('-s', "--suppress_certificate_warnings", action='store_true', default = True,
                         help = "suppress certificate warnings")
     parser.add_argument('-f', "--import_from_folder", 
@@ -75,7 +72,7 @@ if __name__ == "__main__":
     ldap_path = read_custom_config(args.config, 'ldapPath', logger)
     git_repo_url_without_protocol = read_custom_config(args.config, 'gitRepo', logger)
     git_username = read_custom_config(args.config, 'gitUser', logger)
-    git_password = read_custom_config(args.config, 'gitpassword', logger)
+    git_password = read_custom_config(args.config, 'gitPassword', logger)
     csv_owner_file_pattern = read_custom_config(args.config, 'csvOwnerFilePattern', logger)
     csv_app_server_file_pattern = read_custom_config(args.config, 'csvAppServerFilePattern', logger)
 

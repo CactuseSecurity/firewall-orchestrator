@@ -36,77 +36,213 @@ base_dir_etc = csv_file_base_dir + "etc/"
 cmdb_repo_target_dir = base_dir_etc + "cmdb-repo"
 default_config_file_name = base_dir_etc + "customizingConfig.json"
 
-# template parameters
 
-# adjust the following!
-iiq_app_name = "AD - EXAMPLEDE"
-user_prefix = "USR"
+class IIQClient:
+    def __init__(self, hostname, user, password, app_name, user_prefix, stage='', debug=0, logger=None):
+        self.hostname = hostname
+        self.user = user
+        self.password = password
+        self.app_name = app_name
+        self.user_prefix = user_prefix
+        self.stage = stage
+        self.debug = debug
+        self.logger = logger or get_logger()
+        self.uri_path_start = "/zentralefunktionen/identityiq"
+        self._init_placeholders()
+        self.request_body_template = self._build_request_body_template()
 
-org_id_placeholder = "{orgid}"
-user_id_placeholder = f"{user_prefix}-Kennung"
-iiq_user_id_placeholder = f"{{{user_id_placeholder} des technischen Users IIQ}}"
-boit_user_id_placeholder = f"{{{user_id_placeholder} des BO-IT}}"
-iiq_role_business_type = "Geschäftsfunktion"
-iiq_role_workplace_type = "Arbeitsplatzfunktion"
-iiq_role_technical_type = "Technische Funktion"
-iiq_app_name_origin_placeholder = "{Anwendungsname laut Alfabet-ORIGIN}"
-iiq_app_name_placeholder = "{Anwendungsname laut Alfabet}"
-iiq_app_name_upper_placeholder = "{Anwendungsname laut Alfabet-UPPER}"
-iiq_uri_path_start = "/zentralefunktionen/identityiq"
+    def _init_placeholders(self):
+        self.org_id_placeholder = "{orgid}"
+        user_id_placeholder = f"{self.user_prefix}-Kennung"
+        self.user_id_placeholder = f"{{{user_id_placeholder} des technischen Users IIQ}}"
+        self.boit_user_id_placeholder = f"{{{self.user_id_placeholder} des BO-IT}}"
+        self.role_business_type = "Geschäftsfunktion"
+        self.role_workplace_type = "Arbeitsplatzfunktion"
+        self.role_technical_type = "Technische Funktion"
+        self.app_name_origin_placeholder = "{Anwendungsname laut Alfabet-ORIGIN}"
+        self.app_name_placeholder = "{Anwendungsname laut Alfabet}"
+        self.app_name_upper_placeholder = "{Anwendungsname laut Alfabet-UPPER}"
 
-### templates
-iiq_request_body_template = {
-    "requesterName": iiq_user_id_placeholder,
-    "requesterComment": "Anlegen von Rollen für Zugriff auf NeMo (Modellierung Kommunikationsprofil, Beantragung und Rezertifizierung von Firewall-Regeln)",
-    "source": "FWO",
-    "objectModelList": [],
-    "connectMapList": [],
-    "startWorkflow": False
-}
-
-iiq_request_body_template["objectModelList"].extend(
-[
-        {
-            "objectType": iiq_role_workplace_type,
-            "afType": "rva",
-            "afNameSuffix": "fw_rulemgt_{Anwendungsname laut Alfabet}",
-            "afOrgId": org_id_placeholder,
-            "afDesc": f"Die {iiq_role_workplace_type} ist erforderlich zur Beantragung, Änderung und Rezertifizierung von Firewall Regeln für die Anwendung {iiq_app_name_origin_placeholder} in der Firewall Orchestrierung Anwendungen auf der PROD Umgebung. Berechtigte können in FWO Anträge für die Anlage, Änderung, Löschung und Rezertifizierung von Firewall Regeln für die Anwendung stellen.",
-            "afDescription": f"Die {iiq_role_workplace_type} ist erforderlich zur Beantragung, Änderung und Rezertifizierung von Firewall Regeln für die Anwendung {iiq_app_name_origin_placeholder} in der Firewall Orchestrierung Anwendungen auf der PROD Umgebung. Berechtigte können in FWO Anträge für die Anlage, Änderung, Löschung und Rezertifizierung von Firewall Regeln für die Anwendung stellen.",
-            "afCtlAuf": "B",
-            "afAnsprechpartnerName": boit_user_id_placeholder,
-            "afNibaEu": user_prefix
-        },
-        {
-            "objectType": iiq_role_business_type,
-            "gfType": "rvg",
-            "gfNameSuffix": f"fw_rulemgt_{iiq_app_name_placeholder}",
-            "gfOrgId": org_id_placeholder,
-            "gfDesc": f"Die {iiq_role_business_type} ist erforderlich zur Beantragung, Änderung und Rezertifizierung von Firewall Regeln für die Anwendung {iiq_app_name_origin_placeholder} in der Firewall Orchestrierung Anwendungen auf der PROD Umgebung. Berechtigte können in FWO Anträge für die Anlage, Änderung, Löschung und Rezertifizierung von Firewall Regeln für die Anwendung stellen.",
-            "gfDescription": f"Die {iiq_role_business_type} ist erforderlich zur Beantragung, Änderung und Rezertifizierung von Firewall Regeln für die Anwendung {iiq_app_name_origin_placeholder} in der Firewall Orchestrierung Anwendungen auf der PROD Umgebung. Berechtigte können in FWO Anträge für die Anlage, Änderung, Löschung und Rezertifizierung von Firewall Regeln für die Anwendung stellen.",
-            "gfAnsprechpartnerName": boit_user_id_placeholder
-        },
-        {
-            "objectType": iiq_role_technical_type,
-            "tfApplicationName": iiq_app_name,
-            "tfAdType": "Anwendungsgruppe anlegen",
-            "tfOrgId": org_id_placeholder,
-            "tfDesc": f"Die Berechtigung ist erforderlich zur Beantragung, Änderung und Rezertifizierung von Firewall Regeln für die Anwendung {iiq_app_name_origin_placeholder} in der Firewall Orchestrierung Anwendungen auf der PROD Umgebung. Berechtigte können in FWO Anträge für die Anlage, Änderung, Löschung und Rezertifizierung von Firewall Regeln für die Anwendung stellen.",
-            "tfApplicationDescription": iiq_app_name_origin_placeholder,
-            "tfName": f"A_{iiq_app_name_upper_placeholder}_FW_RULEMGT",
-            "tfAnsprechpartnerName": boit_user_id_placeholder,
-            "tfKkz": "K",
-            "tfAlfabetId": iiq_app_name_origin_placeholder
+    def _build_request_body_template(self):
+        request_body_template = {
+            "requesterName": self.user_id_placeholder,
+            "requesterComment": "Anlegen von Rollen für Zugriff auf NeMo (Modellierung Kommunikationsprofil, Beantragung und Rezertifizierung von Firewall-Regeln)",
+            "source": "FWO",
+            "objectModelList": [],
+            "connectMapList": [],
+            "startWorkflow": False
         }
-    ]
-)
 
-iiq_request_body_template["connectMapList"].extend([
-        { "objectType": iiq_role_workplace_type, "objectIndex": 0, "connectIndex": 1 },
-        { "objectType": iiq_role_business_type, "objectIndex": 1, "connectIndex": 2 }
-    ])
+        request_body_template["objectModelList"].extend(
+        [
+                {
+                    "objectType": self.role_workplace_type,
+                    "afType": "rva",
+                    "afNameSuffix": "fw_rulemgt_{Anwendungsname laut Alfabet}",
+                    "afOrgId": self.org_id_placeholder,
+                    "afDesc": f"Die {self.role_workplace_type} ist erforderlich zur Beantragung, Änderung und Rezertifizierung von Firewall Regeln für die Anwendung {self.app_name_origin_placeholder} in der Firewall Orchestrierung Anwendungen auf der PROD Umgebung. Berechtigte können in FWO Anträge für die Anlage, Änderung, Löschung und Rezertifizierung von Firewall Regeln für die Anwendung stellen.",
+                    "afDescription": f"Die {self.role_workplace_type} ist erforderlich zur Beantragung, Änderung und Rezertifizierung von Firewall Regeln für die Anwendung {self.app_name_origin_placeholder} in der Firewall Orchestrierung Anwendungen auf der PROD Umgebung. Berechtigte können in FWO Anträge für die Anlage, Änderung, Löschung und Rezertifizierung von Firewall Regeln für die Anwendung stellen.",
+                    "afCtlAuf": "B",
+                    "afAnsprechpartnerName": self.boit_user_id_placeholder,
+                    "afNibaEu": self.user_prefix
+                },
+                {
+                    "objectType": self.role_business_type,
+                    "gfType": "rvg",
+                    "gfNameSuffix": f"fw_rulemgt_{self.app_name_placeholder}",
+                    "gfOrgId": self.org_id_placeholder,
+                    "gfDesc": f"Die {self.role_business_type} ist erforderlich zur Beantragung, Änderung und Rezertifizierung von Firewall Regeln für die Anwendung {self.app_name_origin_placeholder} in der Firewall Orchestrierung Anwendungen auf der PROD Umgebung. Berechtigte können in FWO Anträge für die Anlage, Änderung, Löschung und Rezertifizierung von Firewall Regeln für die Anwendung stellen.",
+                    "gfDescription": f"Die {self.role_business_type} ist erforderlich zur Beantragung, Änderung und Rezertifizierung von Firewall Regeln für die Anwendung {self.app_name_origin_placeholder} in der Firewall Orchestrierung Anwendungen auf der PROD Umgebung. Berechtigte können in FWO Anträge für die Anlage, Änderung, Löschung und Rezertifizierung von Firewall Regeln für die Anwendung stellen.",
+                    "gfAnsprechpartnerName": self.boit_user_id_placeholder
+                },
+                {
+                    "objectType": self.role_technical_type,
+                    "tfApplicationName": self.app_name,
+                    "tfAdType": "Anwendungsgruppe anlegen",
+                    "tfOrgId": self.org_id_placeholder,
+                    "tfDesc": f"Die Berechtigung ist erforderlich zur Beantragung, Änderung und Rezertifizierung von Firewall Regeln für die Anwendung {self.app_name_origin_placeholder} in der Firewall Orchestrierung Anwendungen auf der PROD Umgebung. Berechtigte können in FWO Anträge für die Anlage, Änderung, Löschung und Rezertifizierung von Firewall Regeln für die Anwendung stellen.",
+                    "tfApplicationDescription": self.app_name_origin_placeholder,
+                    "tfName": f"A_{self.app_name_upper_placeholder}_FW_RULEMGT",
+                    "tfAnsprechpartnerName": self.boit_user_id_placeholder,
+                    "tfKkz": "K",
+                    "tfAlfabetId": self.app_name_origin_placeholder
+                }
+            ]
+        )
 
-iiq_request_body_template["connectMapList"].append( { "objectType": iiq_role_business_type, "objectIndex": 1, "connectName": "A_TUFIN_REQUEST", "tfApplicationName": iiq_app_name } )
+        request_body_template["connectMapList"].extend([
+                { "objectType": self.role_workplace_type, "objectIndex": 0, "connectIndex": 1 },
+                { "objectType": self.role_business_type, "objectIndex": 1, "connectIndex": 2 }
+            ])
+
+        request_body_template["connectMapList"].append( { "objectType": self.role_business_type, "objectIndex": 1, "connectName": "A_TUFIN_REQUEST", "tfApplicationName": self.app_name } )
+        return request_body_template
+
+    def send(self, body='{}', method='POST', url_path='', url_parameter='', debug=None):
+        headers = {'Content-Type': 'application/json'}
+        url = "https://" + self.hostname + url_path + url_parameter
+        debug_level = self.debug if debug is None else debug
+
+        if debug_level>7:
+            print('url: ' + url)
+            print('method: ' + method)
+            print('iiq_user: ' + self.user)
+            print('headers: ' + str(headers))
+            print('body: ' + str(body))
+            print('------------------------------------')
+
+        if method=='POST':
+            response = requests.post(url, data=body, auth=(self.user, self.password), headers=headers, verify=False)
+        elif method=='GET':
+            response = requests.get(url, auth=(self.user, self.password), headers=headers, verify=False)
+        else:
+            self.logger.error(f"unsupported method {method} in send")
+            sys.exit(1)
+
+        return response
+
+    def get_org_id(self, tiso, debug=None):
+        debug_level = self.debug if debug is None else debug
+        url_path = self.uri_path_start + self.stage + "/scim/v1/Users"
+        url_parameter= "?filter=userName%20eq%20%22" + tiso + "%22&attributes=urn:ietf:params:scim:schemas:sailpoint:1.0:User:parent_org_id"
+        org_id = None
+        response = self.send(method='GET', url_path= url_path, url_parameter=url_parameter, debug=debug_level)
+
+        if response.ok:
+            resp = json.loads(response.text)
+            try:
+                org_id = resp['Resources'][0]['urn:ietf:params:scim:schemas:sailpoint:1.0:User']['parent_org_id']
+            except KeyError:
+                org_id = None
+        else:
+            self.logger.warning(f"did not get an OrgId for TISO {tiso}, response code: {str(response.status_code)}")
+
+        return org_id
+
+    def request_group_creation(self, app_prefix, app_id, org_id, tiso, name, stats, debug=None, run_workflow=False):
+        debug_level = self.debug if debug is None else debug
+        iiq_req_body_local = deepcopy(self.request_body_template)
+
+        iiq_req_body_local["requesterName"] = iiq_req_body_local["requesterName"].replace(self.user_id_placeholder, self.user)
+        for object_model in iiq_req_body_local["objectModelList"]:
+            for key in object_model:
+                if type(object_model[key]) is str:
+                    object_model[key] = object_model[key].replace(self.app_name_placeholder, app_prefix.lower() + "_" + app_id)
+                    object_model[key] = object_model[key].replace(self.app_name_upper_placeholder, app_prefix + "_" + app_id)
+                    object_model[key] = object_model[key].replace(self.app_name_origin_placeholder, name)
+                    object_model[key] = object_model[key].replace(self.boit_user_id_placeholder, tiso)
+                    object_model[key] = object_model[key].replace(self.user_id_placeholder, self.user)
+                    object_model[key] = object_model[key].replace(self.org_id_placeholder, org_id)
+
+        app_text = f"{app_prefix}_{app_id}"
+
+        if run_workflow:   # in test environment we do not want any real WF to start
+            iiq_req_body_local['startWorkflow'] = True
+            if debug_level>2:
+                self.logger.debug(f"run_workflow={str(run_workflow)}, actually stating workflow")
+        else:
+            if debug_level>2:
+                self.logger.debug(f"run_workflow={str(run_workflow)}, only simulating")
+
+        iiq_req_json = json.dumps(iiq_req_body_local, ensure_ascii=False).encode('utf-8')
+
+        response = self.send(body=str(iiq_req_json),
+            url_path= self.uri_path_start + self.stage + "/workflow/v1/ModellingGeneral/createRequest",
+            debug=debug_level)
+
+        if not response.ok:
+            print("ERROR: " + str(response.text))
+            update_stats(stats, "apps_with_request_errors", app_text)
+            return
+
+        write_group_creation_stats(response, app_text, stats, debug_level)
+
+    def app_functions_exist_in_iiq(self, app_prefix, app_id, stats, debug=None):
+        debug_level = self.debug if debug is None else debug
+        if debug_level>2:
+            self.logger.debug(f"start getting roles for app {app_id} ... ")
+
+        match_string1 = f'\"_fw_rulemgt_{app_prefix.lower()}_{app_id}\"'    # v1
+        match_string2 = f'\"_fw_rulemgmt_{app_prefix.lower()}{app_id}\"'    # v2
+
+        match_found = self._check_for_app_pattern_in_iiq_roles(app_prefix, app_id, match_string1, stats, debug_level) \
+               or \
+               self._check_for_app_pattern_in_iiq_roles(app_prefix, app_id, match_string2, stats, debug_level)
+
+        if debug_level>2 and match_found:
+            self.logger.debug(f"found existing roles for app {app_id}. Filter strings {match_string1} or {match_string2} matched.")
+        if debug_level>1 and not match_found:
+            self.logger.debug(f"found no existing roles for app {app_id}. Filter strings: {match_string1} and {match_string2}")
+            
+        return match_found
+
+    def _check_for_app_pattern_in_iiq_roles(self, app_prefix, app_id, match_string, stats, debug):
+        url_path = self.uri_path_start + self.stage + "/scim/v1/Roles"
+        url_parameter = f"?filter=urn:ietf:params:scim:schemas:sailpoint:1.0:Role:displayableName co {match_string} and urn:ietf:params:scim:schemas:sailpoint:1.0:Role:type.name eq \"business\""
+        response = self.send(
+            method='GET',
+            url_path=url_path,
+            url_parameter=url_parameter, debug=debug)
+        result = {}
+        if response.ok:
+            response_json = json.loads(response.text)
+            if 'totalResults' in response_json:
+                if response_json['totalResults']>0 and 'Resources' in response_json:
+                    result = f"A_{app_prefix}_{app_id}_FW_RULEMGT"
+                    if debug>4:
+                        self.logger.debug(f"found existing roles for app {app_id}: {str(response_json['Resources'])}. filter string: {match_string}")
+                elif debug>4:
+                    self.logger.debug(f"found no existing roles for app {app_id}. filter string: {match_string}")
+        else:
+            self.logger.debug(f"error while getting roles for app {app_id}. filter string: {match_string}, status_code: {str(response.status_code)}")
+
+        if result == {}:
+            return False
+
+        if debug>2:
+            self.logger.debug(f"roles for app {app_prefix}-{app_id} already exist - skipping role request creation")
+        update_stats(stats, "existing_technical_functions", result)
+        return True
 
 
 def is_valid_ipv4_address(address):
@@ -168,89 +304,6 @@ def get_git_repo(git_repo_url, git_username, git_password, repo_target_dir):
     else:
         git.Repo.clone_from(repo_url, repo_target_dir)
 
-
-def send_iiq(iiq_hostname, iiq_user, iiq_passwd, body='{}', method='POST', url_path='', url_parameter='', debug=0):
-    headers = {'Content-Type': 'application/json'}
-
-    url = "https://" + iiq_hostname + url_path + url_parameter
-
-    if debug>7:
-        print('url: ' + url)
-        print('method: ' + method)
-        print('iiq_user: ' + iiq_user)
-        print('headers: ' + str(headers))
-        print('body: ' + str(body))
-        print('------------------------------------')
-
-    if method=='POST':
-        response = requests.post(url, data=body, auth=(iiq_user, iiq_passwd), headers=headers, verify=False)
-    elif method=='GET':
-        response = requests.get(url, auth=(iiq_user, iiq_passwd), headers=headers, verify=False)
-    else:
-        logger.error(f"unsupported method {method} in send_iiq")
-        sys.exit(1)
-
-    return response
-
-
-def get_org_id(tiso, iiq_hostname, iiq_user, iiq_passwd, stage='', debug=0):
-    url_path = iiq_uri_path_start + stage + "/scim/v1/Users"
-    url_parameter= "?filter=userName%20eq%20%22" + tiso + "%22&attributes=urn:ietf:params:scim:schemas:sailpoint:1.0:User:parent_org_id"
-    org_id = None
-    response = send_iiq(iiq_hostname, iiq_user, iiq_passwd, method='GET', url_path= url_path, url_parameter=url_parameter, debug=debug)
-
-    if response.ok:
-        resp = json.loads(response.text)
-        try:
-            org_id = resp['Resources'][0]['urn:ietf:params:scim:schemas:sailpoint:1.0:User']['parent_org_id']
-        except KeyError:
-            org_id = None
-    else:
-        logger.warning(f"did not get an OrgId for TISO {tiso}, response code: {str(response.status_code)}")
-
-    return org_id
-
-
-def request_iiq_group_creation(app_prefix, app_id, org_id, tiso, name, iiq_hostname, iiq_user, iiq_password, stats, stage='', debug=0, run_workflow=False):
-    # replacing all parameters in template
-    iiq_req_body_local = deepcopy(iiq_request_body_template)
-
-    iiq_req_body_local["requesterName"] = iiq_req_body_local["requesterName"].replace(iiq_user_id_placeholder, iiq_user)
-    for object_model in iiq_req_body_local["objectModelList"]:
-        for key in object_model:
-            if type(object_model[key]) is str:
-                object_model[key] = object_model[key].replace(iiq_app_name_placeholder, app_prefix.lower() + "_" + app_id)
-                object_model[key] = object_model[key].replace(iiq_app_name_upper_placeholder, app_prefix + "_" + app_id)
-                object_model[key] = object_model[key].replace(iiq_app_name_origin_placeholder, name)
-                object_model[key] = object_model[key].replace(boit_user_id_placeholder, tiso)
-                object_model[key] = object_model[key].replace(iiq_user_id_placeholder, iiq_user)
-                object_model[key] = object_model[key].replace(org_id_placeholder, org_id)
-
-    app_text = f"{app_prefix}_{app_id}"
-
-    if run_workflow:   # in test environment we do not want any real WF to start
-        iiq_req_body_local['startWorkflow'] = True
-        if debug>2:
-            logger.debug(f"run_workflow={str(run_workflow)}, actually stating workflow")
-    else:
-        if debug>2:
-            logger.debug(f"run_workflow={str(run_workflow)}, only simulating")
-
-    iiq_req_json = json.dumps(iiq_req_body_local, ensure_ascii=False).encode('utf-8')
-
-    # send request
-    response = send_iiq(iiq_hostname, iiq_user, iiq_password, body=str(iiq_req_json), 
-        url_path= iiq_uri_path_start + stage + "/workflow/v1/ModellingGeneral/createRequest",
-        debug=debug)
-
-    if not response.ok:
-        print("ERROR: " + str(response.text))
-        update_stats(stats, "apps_with_request_errors", app_text)
-        return
-
-    write_group_creation_stats(response, app_text, stats, debug)
-
-
 def write_group_creation_stats(response, app_text, stats, debug):
     if "Validierung der Auftragsdaten erfolgreich" in response.text:
         if "Workflow wurde nicht gestartet." in response.text:
@@ -271,60 +324,12 @@ def write_group_creation_stats(response, app_text, stats, debug):
         print(".", end="", flush=True)
 
 
-def app_functions_exist_in_iiq(app_prefix, app_id, iiq_hostname, iiq_user, iiq_password, stage='', debug=0):
-    if debug>2:
-        logger.debug(f"start getting roles for app {app_id} ... ")
-
-    match_string1 = f'"_fw_rulemgt_{app_prefix.lower()}_{app_id}"'    # v1
-    match_string2 = f'"_fw_rulemgmt_{app_prefix.lower()}{app_id}"'    # v2
-
-    match_found = check_for_app_pattern_in_iiq_roles(app_prefix, app_id, match_string1, iiq_hostname, iiq_user, iiq_password, stage, debug) \
-           or \
-           check_for_app_pattern_in_iiq_roles(app_prefix, app_id, match_string2, iiq_hostname, iiq_user, iiq_password, stage, debug)
-
-    if debug>2 and match_found:
-        logger.debug(f"found existing roles for app {app_id}. Filter strings {match_string1} or {match_string2} matched.")
-    if debug>1 and not match_found:
-        logger.debug(f"found no existing roles for app {app_id}. Filter strings: {match_string1} and {match_string2}")
-        
-    return match_found
-
-
-def check_for_app_pattern_in_iiq_roles(app_prefix, app_id, match_string, iiq_hostname, iiq_user, iiq_password, stage, debug):
-    url_path = iiq_uri_path_start + stage + "/scim/v1/Roles"
-    url_parameter = f"?filter=urn:ietf:params:scim:schemas:sailpoint:1.0:Role:displayableName co {match_string} and urn:ietf:params:scim:schemas:sailpoint:1.0:Role:type.name eq \"business\""
-    response = send_iiq(iiq_hostname, iiq_user, iiq_password,
-        method='GET',
-        url_path=url_path,
-        url_parameter=url_parameter, debug=debug)
-    result = {}
-    if response.ok:
-        response_json = json.loads(response.text)
-        if 'totalResults' in response_json:
-            if response_json['totalResults']>0 and 'Resources' in response_json:
-                result = f"A_{app_prefix}_{app_id}_FW_RULEMGT"
-                if debug>4:
-                    logger.debug(f"found existing roles for app {app_id}: {str(response_json['Resources'])}. filter string: {match_string}")
-            elif debug>4:
-                logger.debug(f"found no existing roles for app {app_id}. filter string: {match_string}")
-    else:
-        logger.debug(f"error while getting roles for app {app_id}. filter string: {match_string}, status_code: {str(response.status_code)}")
-
-    if result == {}:
-        return False
-
-    if debug>2:
-        logger.debug(f"roles for app {app_prefix}-{app_id} already exist - skipping role request creation")
-    update_stats(stats, "existing_technical_functions", result)
-    return True
-
-
 def update_stats(stats, fieldname, field_value):
     stats[fieldname].append(field_value)
     stats[f"{fieldname}_count"] = stats[f"{fieldname}_count"] + 1
 
 
-def request_all_roles(owner_dict, tisos, tiso_orgids):
+def request_all_roles(owner_dict, tisos, tiso_orgids, iiq_client, stats, first, run_workflow):
     counter = 0
     # create new groups
     logger.info("creating new groups in iiq")
@@ -338,31 +343,33 @@ def request_all_roles(owner_dict, tisos, tiso_orgids):
 
         app_prefix, app_id = name.split("-")
         # get existing (already modelled) functions for this app to find out, what still needs to be changed in iiq
-        if not app_functions_exist_in_iiq(app_prefix, app_id, iiq_hostname, iiq_user, iiq_password, stage=stage, debug=debug):
-            request_iiq_group_creation(app_prefix, app_id, org_id, tiso, name, iiq_hostname, iiq_user, iiq_password, stats, stage=stage, debug=debug, run_workflow=args.run_workflow)
+        if not iiq_client.app_functions_exist_in_iiq(app_prefix, app_id, stats):
+            iiq_client.request_group_creation(app_prefix, app_id, org_id, tiso, name, stats, run_workflow=run_workflow)
         
         # if first parameter is set, only handle the first "first" applications, otherwise handle all
         if first > 0 and counter >= first: 
             break
 
 
-def get_tisos_orgids(tisos, iiq_hostname, iiq_user, iiq_password, stage='test', debug=0, exit_after_dump=False):
-    if debug>0:
+def get_tisos_orgids(tisos, iiq_client, exit_after_dump=False):
+    tiso_orgids = {}
+    if iiq_client.debug>0:
         logger.info("getting tiso orgids from iiq")
     for tiso in set(tisos.values()):
-        org_id = get_org_id(tiso, iiq_hostname, iiq_user, iiq_password, stage=stage, debug=debug)
+        org_id = iiq_client.get_org_id(tiso)
         if org_id is not None:
             tiso_orgids[tiso] = org_id 
     if len(tiso_orgids.keys())==0:
         logger.error("could not resolve a single TISO OrgId, quitting ")
         sys.exit(1)
-    elif debug>2:
+    elif iiq_client.debug>2:
         print(tiso_orgids)
 
     if exit_after_dump:
         for tiso_user_id in tiso_orgids:
             print(f"{tiso_user_id},{tiso_orgids[tiso_user_id]}")
         sys.exit(0)
+    return tiso_orgids
 
 
 def init_statistics():
@@ -397,10 +404,13 @@ if __name__ == "__main__":
                             "iiqHostname": "stest.api.example.de",} \
                             "iiqUsername": "iiq-user-id", \
                             "iiqPassword": "iiq-user-pwd", \
-                            "cmdbGitRepoUrl": "github.example.de/cmdb/app-export", \
-                            "cmdbGitUsername": "git-user-1", \
-                            "cmdbGitPassword": "gituser-1-pwd", \
-                            "csvFilePatterns": ["NeMo_???_meta.csv", "NeMo_???_IP.*?.csv"] \
+                            "gitRepo": "github.example.de/cmdb/app-export", \
+                            "gitName": "git-user-1", \
+                            "gitPassword": "gituser-1-pwd", \
+                            "csvOwnerFilePattern": "NeMo_???_meta.csv", \
+                            "csvAppServerFilePattern": "NeMo_???_IP_.*?.csv", \
+                            "iiqAppName": "AD EXAMPLEDE", \
+                            "userPrefix": "USR" \
                         } \
                         ')
     parser.add_argument('-s', "--suppress_certificate_warnings", action='store_true', default = True,
@@ -434,8 +444,6 @@ if __name__ == "__main__":
     if args.suppress_certificate_warnings:
         urllib3.disable_warnings()
 
-    tiso_orgids = {}
-
     if debug>3:
         logger.debug(f"using config file {args.config}")
 
@@ -444,6 +452,11 @@ if __name__ == "__main__":
     iiq_user = read_custom_config(args.config, 'iiqUsername', logger)
     iiq_password = read_custom_config(args.config, 'iiqPassword', logger)
     cmdb_exports = []
+    
+    # get/set template parameters
+    iiq_app_name =  read_custom_config(args.config, 'iiqAppName', logger)
+    user_prefix =  read_custom_config(args.config, 'userPrefix', logger)
+    iiq_client = IIQClient(iiq_hostname, iiq_user, iiq_password, iiq_app_name, user_prefix, stage=stage, debug=debug, logger=logger)
 
     if args.import_from_folder:
         csv_file_base_dir = args.import_from_folder
@@ -458,14 +471,14 @@ if __name__ == "__main__":
         logger.info("getting owners from file")
     owners, tisos = get_owners_from_csv_files(csv_owner_file_pattern, csv_app_server_file_pattern, csv_file_base_dir, ldap_path, logger, debug)
     
-    get_tisos_orgids(tisos, iiq_hostname, iiq_user, iiq_password, stage=stage, debug=debug, exit_after_dump=args.just_dump_tiso_org_ids)
+    tiso_orgids = get_tisos_orgids(tisos, iiq_client, exit_after_dump=args.just_dump_tiso_org_ids)
 
     # collect all app ids
     owner_dict = [key.split("|")[0] for key in owners.keys()]
 
     stats = init_statistics()
 
-    request_all_roles(owner_dict, tisos, tiso_orgids)
+    request_all_roles(owner_dict, tisos, tiso_orgids, iiq_client, stats, first, args.run_workflow)
 
     if debug>0:
         print ("Stats: " + json.dumps(stats, indent=3))

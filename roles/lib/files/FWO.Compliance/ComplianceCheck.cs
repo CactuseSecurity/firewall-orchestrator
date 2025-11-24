@@ -97,7 +97,9 @@ namespace FWO.Compliance
         /// Collection that is suitable for parallel processing and receives and holds violations as a result of the current check.
         /// </summary>
         private ConcurrentBag<ComplianceViolation> _currentViolations = new();
-
+        /// <summary>
+        /// Multi-threading helper.
+        /// </summary>
         private ParallelProcessor _parallelProcessor;
 
         #endregion
@@ -459,8 +461,6 @@ namespace FWO.Compliance
         {
             bool ruleIsCompliant = true;
 
-
-
             if (rule.Action == "accept")
             {
                 // Resolve network locations
@@ -518,11 +518,6 @@ namespace FWO.Compliance
                 {
                     ranges.Add(new IPAddressRange(ipStart, ipEnd));
                 }
-                else
-                {
-                    
-                }
-                
             }
             else if (networkObject.Type.Name != ObjectType.Group && networkObject.ObjectGroupFlats.Length > 0)
             {
@@ -851,19 +846,6 @@ namespace FWO.Compliance
             }
 
             Logger.TryWriteInfo("Compliance Check", $"Checked compliance for {checkedRules} rules and found {nonCompliantRules} non-compliant rules. Total violations: {_currentViolations.Count}.", LocalSettings.ComplianceCheckVerbose);
-            return await Task.FromResult(rules);
-        }
-
-        private async Task<List<Rule>> WriteToDatabase(List<Rule>? rulesToCheck = null)
-        {
-            List<Rule> rules = rulesToCheck ?? RulesInCheck ?? [];
-
-            Logger.TryWriteInfo("Compliance Check", $"Writing violations to the database.", LocalSettings.ComplianceCheckVerbose);
-
-
-
-            Logger.TryWriteInfo("Compliance Check", $"Writing process complete.", LocalSettings.ComplianceCheckVerbose);
-            
             return await Task.FromResult(rules);
         }
 

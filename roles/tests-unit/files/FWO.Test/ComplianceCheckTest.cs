@@ -235,9 +235,6 @@ namespace FWO.Test
         #endregion
 
         #region Tests - ParseIpRange
-        /*
-            This region is thought to be temporary. In the long run all data generation should be done by the test framework.
-        */
 
         [Test]
         public void ParseIpRange_NwObjectOfTypeIpRange_AddedToReturnedList()

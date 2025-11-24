@@ -49,9 +49,9 @@ namespace FWO.Services
 
                     if (postProcessAsync != null)
                     {
-                        logger.TryWriteInfo("Api Connection", $"Processing chunk {chunkNumber}.", LocalSettings.ComplianceCheckVerbose);
+                        logger.TryWriteInfo("Parallel Processing", $"Processing chunk {chunkNumber}.", LocalSettings.ComplianceCheckVerbose);
                         data = await postProcessAsync(data);
-                        logger.TryWriteInfo("Api Connection", $"Processed chunk {chunkNumber}.", LocalSettings.ComplianceCheckVerbose);
+                        logger.TryWriteInfo("Parallel Processing", $"Processed chunk {chunkNumber}.", LocalSettings.ComplianceCheckVerbose);
                     }
 
                     return data;
@@ -61,8 +61,6 @@ namespace FWO.Services
                     semaphore.Release();
                 }
             }
-
-
 
         protected virtual Dictionary<string, object> CreateQueryVariables(int offset, int limit, string query, List<int>? relevantManagementIDs = null)
         {

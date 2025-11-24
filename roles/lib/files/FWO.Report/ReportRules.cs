@@ -301,8 +301,6 @@ namespace FWO.Report
             }
             return ruleCount;
         }
-            return 0;
-        }
 
         public override string SetDescription()
         {

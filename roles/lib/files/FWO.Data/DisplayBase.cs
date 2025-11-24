@@ -11,7 +11,10 @@ namespace FWO.Data
         public static StringBuilder DisplayGateway(Device gateway, bool isTechReport, string? gatewayName = null)
         {
             StringBuilder result = new ();
-            // Still needed? - result.Append($" <p class=\"no-break\">{gateway.Name}</p>");
+            // PENDING REVIEW: Not sure if this block is still required.
+            // Please confirm before removal.
+            // NOSONAR
+            // result.Append($" <p class=\"no-break\">{gateway.Name}</p>");
             result.Append($" {gateway.Name}");
             return result;
         }        

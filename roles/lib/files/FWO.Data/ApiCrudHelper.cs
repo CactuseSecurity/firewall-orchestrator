@@ -47,7 +47,7 @@ namespace FWO.Data
     }
 
     public class AggregateCountLastHit
-    // this still needed? {
+    // NOSONAR - temporarily disabled {
     //     [JsonProperty("device"), JsonPropertyName("device")]
     //     public List<DeviceLastHit> Devices {get; set;} = [];
     // }

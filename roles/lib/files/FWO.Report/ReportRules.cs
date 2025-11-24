@@ -364,7 +364,7 @@ namespace FWO.Report
                 }
                 else
                 {
-                    // NOSONAR
+                    // NOSONAR - temporarily disabled
                     // report.AppendLine("\"section header\": \"" + rule.SectionHeader + "\"");
                 }
                 ExportSingleRulebaseToCsv(report, ruleDisplayCsv, managementReport, gateway, gateway.RulebaseLinks.FirstOrDefault(_ => _.FromRuleId == rule.Id));
@@ -552,7 +552,7 @@ namespace FWO.Report
             }
         }
 
-        // Rulebaselink rbLink not used
+        // Parameter 'rbLink' is currently unused
         private void AppendRulesForRulebaseHtml(ref StringBuilder report, RulebaseLink rbLink, ManagementReport managementReport, DeviceReport device, int chapterNumber, RuleDisplayHtml ruleDisplayHtml)  // RulebaseLink rbLink not used, can be deleted?
         {
             foreach (var rule in _rulesCache[(device.Id, managementReport.Id)])

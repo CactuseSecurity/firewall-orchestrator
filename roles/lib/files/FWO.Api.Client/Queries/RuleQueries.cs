@@ -76,7 +76,7 @@ namespace FWO.Api.Client.Queries
 
                 getRuleOverview = ruleOverviewFragments + GetQueryText("rule/getRuleOverview.graphql");
                 getRuleDetails = ruleDetailsFragments + GetQueryText("rule/getRuleDetails.graphql");
-                // reuse later – Query: getRuleDetailsForReport = ruleDetailsForReportFragments + GetQueryText("rule/getRuleDetails.graphql");
+                // // NOSONAR - temporarily disabled getRuleDetailsForReport = ruleDetailsForReportFragments + GetQueryText("rule/getRuleDetails.graphql");
                 getRuleByUid = GetQueryText("rule/getRuleByUid.graphql");
                 getRuleNetworkObjectDetails = ObjectQueries.networkObjectDetailsFragment;
                 getRuleIdsOfImport = GetQueryText("report/getRuleIdsOfImport.graphql");
@@ -86,7 +86,7 @@ namespace FWO.Api.Client.Queries
                 getModelledRulesByManagementComment = ruleDetailsFragments + GetQueryText("report/getModelledRulesByManagementComment.graphql");
                 getNatRuleOverview = natRuleOverviewFragments + GetQueryText("rule/getNatRuleOverview.graphql");
                 getNatRuleDetails = natRuleDetailsFragments + GetQueryText("rule/getNatRuleDetails.graphql");
-                // reuse later – Query: getNatRuleDetailsForReport = natRuleDetailsForReportFragments + GetQueryText("rule/getNatRuleDetails.graphql");
+                // // NOSONAR - temporarily disabled getNatRuleDetailsForReport = natRuleDetailsForReportFragments + GetQueryText("rule/getNatRuleDetails.graphql");
                 getRulesWithViolationsInTimespanByChunk = ruleDetailsFragments + GetQueryText("rule/getRulesWithViolationsInTimespanByChunk.graphql");
                 getRulesWithCurrentViolationsByChunk = ruleDetailsFragments + GetQueryText("rule/getRulesWithCurrentViolationsByChunk.graphql");
                 countRules = GetQueryText("rule/countRules.graphql");

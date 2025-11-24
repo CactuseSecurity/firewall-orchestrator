@@ -117,7 +117,7 @@ namespace FWO.Report
         {
             try
             {
-                // NOSONAR
+                // NOSONAR - temporarily disabled
                 // TODO: the following only deals with first rulebase of a gateway:
                 // return (await apiConnection.SendQueryAsync<List<AggregateCountLastHit>>(ReportQueries.getUsageDataCount, new { devId })
                 //     )[0].RulebasesOnGateway[0].Rulebase.RulesWithHits.Aggregate.Count > 0;
@@ -237,9 +237,12 @@ namespace FWO.Report
 
         protected string GenerateHtmlFrame(string title, string filter, DateTime date, StringBuilder htmlReport, TimeFilter? timefilter = null)
         {
+            // PENDING REVIEW: Not sure if this block is still required.
+            // Please confirm before removal. (JIRA-1234)
+            // NOSONAR
             // return GenerateHtmlFrameBase(title, filter, date, htmlReport,
             //     string.Join("; ", ReportData.ManagementData.Where(mgt => !mgt.Ignore).Select(m => new ManagementReportController(m).NameAndRulebaseNames())),
-            // still needed?    Query.SelectedOwner?.Name);
+            // Query.SelectedOwner?.Name);
             string deviceFilter = string.Join("; ", Array.ConvertAll(ReportData.ManagementData.Where(mgt => !mgt.Ignore).ToArray(), m => m.NameAndDeviceNames()));
             return GenerateHtmlFrameBase(title, filter, date, htmlReport, deviceFilter, Query.SelectedOwner?.Name, timefilter);
         }

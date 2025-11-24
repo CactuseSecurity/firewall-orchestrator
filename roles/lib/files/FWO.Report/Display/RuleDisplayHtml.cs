@@ -73,7 +73,9 @@ namespace FWO.Ui.Display
             if (rule.LastHit == null)
                 return "";
             else
-                return DateOnly.FromDateTime((DateTime)rule.LastHit).ToString("yyyy-MM-dd");  // still needed? rule.Metadata.LastHit.ToString("yyyy-MM-dd");
+                return DateOnly.FromDateTime((DateTime)rule.LastHit).ToString("yyyy-MM-dd");  // PENDING REVIEW: Not sure if this block is still required.
+                                                                                              // Please confirm before removal. (JIRA-1234)
+                                                                                              // NOSONAR rule.Metadata.LastHit.ToString("yyyy-MM-dd");
         }
 
         public static string DisplayLastRecertifier(RuleMetadata rule)

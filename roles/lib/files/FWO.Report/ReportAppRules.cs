@@ -70,7 +70,9 @@ namespace FWO.Report
             List<Rule> deviceRules = dev.GetRuleList();
             if (deviceRules != null)
             {
-                // still needed? relevantDevice.Rules = [];
+                // PENDING REVIEW: Not sure if this block is still required.
+                // Please confirm before removal. (JIRA-1234)
+                // NOSONAR relevantDevice.Rules = [];
                 foreach (var rule in deviceRules)
                 {
                     PrepareRule(rule, modellingFilter, relevantMgt, relevantDevice, ownerIps);

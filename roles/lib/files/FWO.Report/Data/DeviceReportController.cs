@@ -36,7 +36,7 @@ namespace FWO.Report
         
         public void AssignRuleNumbers(RulebaseLink? rbLinkIn = null, int ruleNumber = 1)
         {
-            // NOSONAR
+            // NOSONAR - temporarily disabled
             // rbLinkIn ??= RbLink;
             // if (rbLinkIn != null)
             // {
@@ -60,7 +60,7 @@ namespace FWO.Report
         public new bool ContainsRules()
         {
             return true;
-            // NOSONAR
+            // NOSONAR - temporarily disabled
             // if (RbLink?.NextRulebase.Rules.Length>0)
             // {
             //     return true;

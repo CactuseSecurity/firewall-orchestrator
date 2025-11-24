@@ -125,7 +125,8 @@ namespace FWO.Services.RuleTreeBuilder
 
                     // Update current and next queue items in case this loop continues after handling an inline layer.
 
-                    currentQueueItem = nextQueueItem.Value;     //Sonar thinks useless assignment
+                    // NOSONAR - false positive 
+                    currentQueueItem = nextQueueItem.Value;     // Sonar wants to - "Remove this useless assignment to local variable 'currentQueueItem'".
 
                     nextQueueItem = TryPeekNextQueueItem();
                 }

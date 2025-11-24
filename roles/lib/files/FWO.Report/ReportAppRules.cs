@@ -71,7 +71,7 @@ namespace FWO.Report
             if (deviceRules != null)
             {
                 // PENDING REVIEW: Not sure if this block is still required.
-                // Please confirm before removal. (JIRA-1234)
+                // Please confirm before removal.
                 // NOSONAR relevantDevice.Rules = [];
                 foreach (var rule in deviceRules)
                 {

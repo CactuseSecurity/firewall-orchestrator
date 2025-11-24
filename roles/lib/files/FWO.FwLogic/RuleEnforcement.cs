@@ -10,7 +10,7 @@ namespace FWO.FwLogic
     public class EnforcingDevice : DeviceReport
     {
         // PENDING REVIEW: Not sure if this block is still required.
-        // Please confirm before removal. (JIRA-1234)
+        // Please confirm before removal.
         // NOSONAR
         // public EnforcingDevice(string name, string uid, string type, string version)
         //     : base(name, uid, type, type, version)

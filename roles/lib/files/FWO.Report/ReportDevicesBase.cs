@@ -238,7 +238,7 @@ namespace FWO.Report
         protected string GenerateHtmlFrame(string title, string filter, DateTime date, StringBuilder htmlReport, TimeFilter? timefilter = null)
         {
             // PENDING REVIEW: Not sure if this block is still required.
-            // Please confirm before removal. (JIRA-1234)
+            // Please confirm before removal.
             // NOSONAR
             // return GenerateHtmlFrameBase(title, filter, date, htmlReport,
             //     string.Join("; ", ReportData.ManagementData.Where(mgt => !mgt.Ignore).Select(m => new ManagementReportController(m).NameAndRulebaseNames())),

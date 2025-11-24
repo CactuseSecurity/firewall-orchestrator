@@ -74,7 +74,7 @@ namespace FWO.Ui.Display
                 return "";
             else
                 return DateOnly.FromDateTime((DateTime)rule.LastHit).ToString("yyyy-MM-dd");  // PENDING REVIEW: Not sure if this block is still required.
-                                                                                              // Please confirm before removal. (JIRA-1234)
+                                                                                              // Please confirm before removal.
                                                                                               // NOSONAR rule.Metadata.LastHit.ToString("yyyy-MM-dd");
         }
 

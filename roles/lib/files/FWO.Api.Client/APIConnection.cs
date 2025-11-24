@@ -29,12 +29,6 @@ namespace FWO.Api.Client
 
         public abstract void SwitchBack();
 
-        private static SemaphoreSlim CreateSemaphore(int parallelismLevel)
-        {
-            SemaphoreSlim semaphore = new SemaphoreSlim(parallelismLevel);
-            return semaphore;
-        }
-
         public abstract Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null);
 
         public virtual async Task<List<T>[]> SendParallelizedQueriesAsync<T>(

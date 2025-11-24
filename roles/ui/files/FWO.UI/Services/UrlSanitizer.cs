@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Text;
 using System.Web;
 using FWO.Basics;
@@ -8,7 +9,8 @@ namespace FWO.Ui.Services
 {
     public sealed partial class UrlSanitizer : IUrlSanitizer
     {
-        const char PathDelimiter = '/';
+        private const char PathDelimiter = '/';
+        private const string HelpPathPrefix = "/help";
 
 
         public string? Clean(string input)
@@ -19,70 +21,32 @@ namespace FWO.Ui.Services
                 return null;
             }
 
-            // Trim + Unicode normalize
-            string normalizedInput = input.Trim().Normalize(NormalizationForm.FormC);
-
-            string decoded = HttpUtility.UrlDecode(normalizedInput);
-            decoded = HttpUtility.HtmlDecode(decoded);
-            if (MyRegex().IsMatch(decoded) ||
-                MyRegex1().IsMatch(decoded) ||
-                MyRegex2().IsMatch(decoded)
-            ) // e.g. onload=, onclick=
+            string decoded = DecodeInput(input);
+            if (ContainsDisallowedPatterns(decoded))
             {
-                BlockingUrlLog(input);
-                return null;
+                return BlockAndReturnNull(input);
             }
-            if (!Uri.TryCreate(decoded, UriKind.Absolute, out var uri))
+            if (!TryCreateAbsoluteUri(decoded, out var uri))
             {
-                BlockingUrlLog(input);
-                return null;
+                return BlockAndReturnNull(input);
             }
-
-            var scheme = uri.Scheme.ToLowerInvariant();
-            if (scheme is not ("http" or "https"))
+            if (!IsAllowedScheme(uri))
             {
-                BlockingUrlLog(input);
-                return null;
+                return BlockAndReturnNull(input);
             }
-            // Sanitize path segments
-            var sanitizedPath = string.Join(PathDelimiter, uri.Segments
-                .Select(s => HttpUtility.UrlEncode(
-                    HttpUtility.UrlDecode(s.TrimEnd('/'))
-                ))
-            );
-            if (!sanitizedPath.StartsWith(PathDelimiter.ToString()))
-                sanitizedPath = PathDelimiter + sanitizedPath;
-
-            // Parse and sanitize query parameters (everything after '?')
-            var queryParams = HttpUtility.ParseQueryString(uri.Query);
-            var sanitizedQuery = new StringBuilder();
-            foreach (string key in queryParams)
+            if (!IsHelpPathAllowed(uri))
             {
-                if (key == null) continue;
-
-                if (sanitizedQuery.Length > 0)
-                    sanitizedQuery.Append('&');
-
-                sanitizedQuery.Append(HttpUtility.UrlEncode(key));
-                sanitizedQuery.Append('=');
-                var value = queryParams[key]?.Replace("<", "").Replace(">", "");
-                sanitizedQuery.Append(HttpUtility.UrlEncode(value));
+                return BlockAndReturnNull(input);
             }
+            var sanitizedPath = SanitizePath(uri);
+            var sanitizedQuery = SanitizeQuery(uri);
+            var sanitizedUrl = BuildSanitizedUrl(uri, sanitizedPath, sanitizedQuery);
 
-            // Rebuild URL
-            var builder = new UriBuilder(uri)
+            if (sanitizedUrl.Length > 2048)
             {
-                Path = sanitizedPath,
-                Fragment = string.Empty,
-                Query = sanitizedQuery.ToString()
-            };
-
-            if (builder.Uri.AbsoluteUri.Length > 2048)
-            {
-                BlockingUrlLog(input);
-                return null;
+                return BlockAndReturnNull(input);
             }
-            return builder.Uri.AbsoluteUri;
+            return sanitizedUrl;
         }
 
         private static void BlockingUrlLog(string url)
@@ -90,14 +54,112 @@ namespace FWO.Ui.Services
             Log.WriteWarning("Sanitizer", $"Blocked unsafe URL: {url.SanitizeMand()}");
         }
 
+        private static string DecodeInput(string input)
+        {
+            var normalizedInput = input.Trim().Normalize(NormalizationForm.FormC);
+            var decoded = HttpUtility.UrlDecode(normalizedInput);
+            return HttpUtility.HtmlDecode(decoded) ?? string.Empty;
+        }
+
+        private static bool ContainsDisallowedPatterns(string decoded) =>
+            ScriptTagRegex().IsMatch(decoded) ||
+            EventHandlerAttributeRegex().IsMatch(decoded) ||
+            JavascriptSchemeRegex().IsMatch(decoded) ||
+            DangerousHtmlTagRegex().IsMatch(decoded);
+
+        private static bool TryCreateAbsoluteUri(string decoded, [NotNullWhen(true)] out Uri? uri) =>
+            Uri.TryCreate(decoded, UriKind.Absolute, out uri);
+
+        private static bool IsAllowedScheme(Uri uri)
+        {
+            var scheme = uri.Scheme.ToLowerInvariant();
+            return scheme is "http" or "https";
+        }
+
+        private static bool IsHelpPathAllowed(Uri uri)
+        {
+            if (!uri.AbsolutePath.StartsWith(HelpPathPrefix, StringComparison.OrdinalIgnoreCase))
+                return true;
+
+            var decodedPathAndQuery = HttpUtility.UrlDecode(uri.PathAndQuery) ?? string.Empty;
+            return HelpPathWhitelistRegex().IsMatch(decodedPathAndQuery);
+        }
+
+        private static string SanitizePath(Uri uri)
+        {
+            var sanitizedPath = string.Join(PathDelimiter, uri.Segments
+                .Select(s => HttpUtility.UrlEncode(
+                    HttpUtility.UrlDecode(s.TrimEnd('/'))
+                )));
+            if (!sanitizedPath.StartsWith(PathDelimiter.ToString()))
+            {
+                sanitizedPath = PathDelimiter + sanitizedPath;
+            }
+
+            return sanitizedPath;
+        }
+
+        private static string SanitizeQuery(Uri uri)
+        {
+            var queryParams = HttpUtility.ParseQueryString(uri.Query);
+            var sanitizedQuery = new StringBuilder();
+
+            foreach (string key in queryParams)
+            {
+                if (key == null)
+                    continue;
+
+                if (sanitizedQuery.Length > 0)
+                    sanitizedQuery.Append('&');
+
+                sanitizedQuery.Append(HttpUtility.UrlEncode(key));
+                sanitizedQuery.Append('=');
+
+                var value = queryParams[key];
+                if (value != null)
+                {
+                    value = QueryTagRegex().Replace(value, string.Empty);
+                }
+                sanitizedQuery.Append(HttpUtility.UrlEncode(value));
+            }
+
+            return sanitizedQuery.ToString();
+        }
+
+        private static string BuildSanitizedUrl(Uri uri, string sanitizedPath, string sanitizedQuery)
+        {
+            var builder = new UriBuilder(uri)
+            {
+                Path = sanitizedPath,
+                Fragment = string.Empty,
+                Query = sanitizedQuery
+            };
+            return builder.Uri.AbsoluteUri;
+        }
+
+        private static string? BlockAndReturnNull(string rawInput)
+        {
+            BlockingUrlLog(rawInput);
+            return null;
+        }
+
         [GeneratedRegex(@"<\s*script\b", RegexOptions.IgnoreCase, "en-US")]
-        private static partial Regex MyRegex();
+        private static partial Regex ScriptTagRegex();
 
         [GeneratedRegex(@"on\w+\s*=", RegexOptions.IgnoreCase, "en-US")]
-        private static partial Regex MyRegex1();
+        private static partial Regex EventHandlerAttributeRegex();
 
         [GeneratedRegex(@"javascript\s*:", RegexOptions.IgnoreCase, "en-US")]
-        private static partial Regex MyRegex2();
+        private static partial Regex JavascriptSchemeRegex();
+
+        [GeneratedRegex(@"<\s*/?\s*(a|img|iframe|svg|object|embed|link|meta|style|body|html|form|input|video|audio)\b", RegexOptions.IgnoreCase, "en-US")]
+        private static partial Regex DangerousHtmlTagRegex();
+
+        [GeneratedRegex(@"^[a-zA-Z0-9/_\-\.\?\&=,:;]*$", RegexOptions.IgnoreCase, "en-US")]
+        private static partial Regex HelpPathWhitelistRegex();
+
+        [GeneratedRegex(@"<[^>]*>", RegexOptions.IgnoreCase, "en-US")]
+        private static partial Regex QueryTagRegex();
     }
 
 }

@@ -94,7 +94,7 @@ namespace FWO.Services.RuleTreeBuilder
 
                 // Update order number.
 
-                nextPosition[nextPosition.Count() - 1] = nextPosition.Last() + 1;
+                nextPosition[nextPosition.Count - 1] = nextPosition.Last() + 1;
 
                 // Get and update tree item that holds currentRule as data.
 
@@ -125,7 +125,7 @@ namespace FWO.Services.RuleTreeBuilder
 
                     // Update current and next queue items in case this loop continues after handling an inline layer.
 
-                    currentQueueItem = nextQueueItem.Value;
+                    currentQueueItem = nextQueueItem.Value;     //Sonar thinks useless assignment
 
                     nextQueueItem = TryPeekNextQueueItem();
                 }

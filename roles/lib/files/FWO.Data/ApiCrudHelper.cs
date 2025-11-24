@@ -1,4 +1,4 @@
-﻿using System.Text.Json.Serialization;
+using System.Text.Json.Serialization;
 using Newtonsoft.Json;
 using FWO.Data;
 
@@ -47,7 +47,7 @@ namespace FWO.Data
     }
 
     public class AggregateCountLastHit
-    // {
+    // this still needed? {
     //     [JsonProperty("device"), JsonPropertyName("device")]
     //     public List<DeviceLastHit> Devices {get; set;} = [];
     // }

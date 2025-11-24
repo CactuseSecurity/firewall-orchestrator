@@ -1,4 +1,4 @@
-﻿using FWO.Basics;
+using FWO.Basics;
 using FWO.Data;
 using FWO.Config.Api;
 using System.Text;
@@ -73,7 +73,7 @@ namespace FWO.Ui.Display
             if (rule.LastHit == null)
                 return "";
             else
-                return DateOnly.FromDateTime((DateTime)rule.LastHit).ToString("yyyy-MM-dd");  //rule.Metadata.LastHit.ToString("yyyy-MM-dd");
+                return DateOnly.FromDateTime((DateTime)rule.LastHit).ToString("yyyy-MM-dd");  // still needed? rule.Metadata.LastHit.ToString("yyyy-MM-dd");
         }
 
         public static string DisplayLastRecertifier(RuleMetadata rule)

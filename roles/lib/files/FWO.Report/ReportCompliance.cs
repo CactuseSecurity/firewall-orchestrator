@@ -1,17 +1,18 @@
+using FWO.Api.Client;
+using FWO.Api.Client.Queries;
 using FWO.Basics;
-using System.Text;
-using FWO.Report.Filter;
 using FWO.Config.Api;
 using FWO.Data;
-using FWO.Api.Client;
-using FWO.Data.Report;
-using FWO.Api.Client.Queries;
-using System.Reflection;
-using System.Text.Json;
 using FWO.Data.Middleware;
+using FWO.Data.Report;
 using FWO.Logging;
 using FWO.Report.Data.ViewData;
+using FWO.Report.Filter;
 using FWO.Ui.Display;
+using System.Collections.Generic;
+using System.Reflection;
+using System.Text;
+using System.Text.Json;
 
 namespace FWO.Report
 {
@@ -41,7 +42,7 @@ namespace FWO.Report
         private char _separator;
         private int _maxCellSize;
         private readonly int _maxPrintedViolations;
-        private List<int> _relevanteManagementIDs = new();
+        private readonly List<int> _relevanteManagementIDs = new();
         private readonly GlobalConfig _globalConfig;
 
         #endregion

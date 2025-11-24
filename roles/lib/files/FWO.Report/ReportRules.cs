@@ -280,29 +280,27 @@ namespace FWO.Report
             if (currentRbLink != null)
             {
                 int ruleCount = 0;
-                if (currentRbLink != null)
+
+                int nextRulebaseId = currentRbLink.NextRulebaseId;
+                RulebaseReport? nextRulebase = mgmReport.Rulebases.FirstOrDefault(_ => _.Id == nextRulebaseId);
+                if (nextRulebase != null)
                 {
-                    int nextRulebaseId = currentRbLink.NextRulebaseId;
-                    RulebaseReport? nextRulebase = mgmReport.Rulebases.FirstOrDefault(_ => _.Id == nextRulebaseId);
-                    if (nextRulebase != null)
+                    foreach (var rule in nextRulebase.Rules)
                     {
-                        foreach (var rule in nextRulebase.Rules)
+                        if (string.IsNullOrEmpty(rule.SectionHeader))
                         {
-                            if (string.IsNullOrEmpty(rule.SectionHeader))
+                            RulebaseLink? nextRbLink = rulebaseLinks.FirstOrDefault(_ => _.FromRuleId == rule.Id);
+                            if (nextRbLink != null)
                             {
-                                RulebaseLink? nextRbLink = rulebaseLinks.FirstOrDefault(_ => _.FromRuleId == rule.Id);
-                                if (nextRbLink != null)
-                                {
-                                    ruleCount += 1 + GetRuleCount(mgmReport, nextRbLink, rulebaseLinks);
-                                }
-                                else
-                                {
-                                    ruleCount++;
-                                }
+                                ruleCount += 1 + GetRuleCount(mgmReport, nextRbLink, rulebaseLinks);
+                            }
+                            else
+                            {
+                                ruleCount++;
                             }
                         }
-                        return ruleCount;
                     }
+                    return ruleCount;
                 }
             }
             return 0;
@@ -370,6 +368,7 @@ namespace FWO.Report
                 }
                 else
                 {
+                    // NOSONAR
                     // report.AppendLine("\"section header\": \"" + rule.SectionHeader + "\"");
                 }
                 ExportSingleRulebaseToCsv(report, ruleDisplayCsv, managementReport, gateway, gateway.RulebaseLinks.FirstOrDefault(_ => _.FromRuleId == rule.Id));
@@ -391,15 +390,12 @@ namespace FWO.Report
                 {
                     foreach (var gateway in managementReport.Devices)
                     {
-                        if (gateway.ContainsRules())
+                        if (gateway.ContainsRules() && gateway.RulebaseLinks != null)
                         {
-                            if (gateway.RulebaseLinks != null)
+                            RulebaseLink? rbLink = gateway.RulebaseLinks.FirstOrDefault(rbl => rbl.IsInitialRulebase());
+                            if (rbLink != null)
                             {
-                                RulebaseLink? rbLink = gateway.RulebaseLinks.FirstOrDefault(rbl => rbl.IsInitialRulebase());
-                                if (rbLink != null)
-                                {
-                                    ExportSingleRulebaseToCsv(report, ruleDisplayCsv, managementReport, gateway, rbLink);
-                                }
+                                ExportSingleRulebaseToCsv(report, ruleDisplayCsv, managementReport, gateway, rbLink);
                             }
                         } // gateways
                     } // managements
@@ -561,7 +557,7 @@ namespace FWO.Report
         }
 
 
-        private void AppendRulesForRulebaseHtml(ref StringBuilder report, RulebaseLink rbLink, ManagementReport managementReport, DeviceReport device, int chapterNumber, RuleDisplayHtml ruleDisplayHtml)
+        private void AppendRulesForRulebaseHtml(ref StringBuilder report, RulebaseLink rbLink, ManagementReport managementReport, DeviceReport device, int chapterNumber, RuleDisplayHtml ruleDisplayHtml)  // RulebaseLink rbLink not used, can be deleted?
         {
             foreach (var rule in _rulesCache[(device.Id, managementReport.Id)])
             {

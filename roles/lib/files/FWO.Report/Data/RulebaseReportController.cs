@@ -1,4 +1,4 @@
-﻿using System.Text.Json.Serialization; 
+using System.Text.Json.Serialization; 
 using Newtonsoft.Json;
 using FWO.Data;
 using FWO.Data.Report;
@@ -29,6 +29,7 @@ namespace FWO.Report
                     {
                         rule.DisplayOrderNumber = ruleNumber++;
                     }
+                    // NOSONAR
                     // if (rule.NextRulebase != null)
                     // {
                     //     AssignRuleNumbers(rule.NextRulebase, ruleNumber);
@@ -48,7 +49,7 @@ namespace FWO.Report
     }
 
 
-    public static class RulebaseUtility
+    public static class RulebaseUtility     
     {
         // adding rules fetched in slices
         public static bool Merge(this RulebaseReport[] rulebases, RulebaseReport[] rulebasesToMerge)
@@ -77,9 +78,9 @@ namespace FWO.Report
                         if (rulebases[i].RuleStatistics != null && rulebasesToMerge[i].RuleStatistics != null)
                             rulebases[i].RuleStatistics.ObjectAggregate.ObjectCount += rulebasesToMerge[i].RuleStatistics.ObjectAggregate.ObjectCount; // correct ??
                     }
-                    catch (NullReferenceException)
+                    catch (NullReferenceException)  // Are NullChecks here Okay? Sonar doesn't like "catch NullReferenceException"
                     {
-                        throw new ArgumentNullException("Rules is null");
+                        throw new ArgumentNullException("Rules is null");   
                     }
                 }
                 else

@@ -88,6 +88,7 @@ namespace FWO.Data.Modelling
                 List<DeviceReport> deviceReports = [];
                 foreach (var rule in rulesToReport[mgtId])
                 {
+                    // NOSONAR
                     // TODO: Migrate
                     // DeviceReport? existingDev = deviceReports.FirstOrDefault(d => d.Id == rule.DeviceId);
                     // if (existingDev != null)

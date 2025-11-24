@@ -1,3 +1,4 @@
+using FWO.Basics;
 using FWO.Data;
 using FWO.Data.Report;
 
@@ -205,40 +206,33 @@ namespace FWO.Services.RuleTreeBuilder
         /// <summary>
         /// Returns the item that should be used for the section rule tree item in creation.
         /// </summary>
-        private RuleTreeItem GetSectionParent(List<int> nextPosition)
+        private RuleTreeItem GetSectionParent(IEnumerable<int> nextPosition)
         {
-            List<int> position = nextPosition.ToList();
-            if (position.Last() == 0)
+            List<int> changedCopy = nextPosition.ToList();
+            List<int> unchangedCopy = changedCopy.ToList();
+            if (changedCopy.Last() == 0)
             {
-                position.Remove(position.Last());
+                changedCopy.Remove(changedCopy.Last());
             }
-            RuleTreeItem item = RuleTree.ElementsFlat.FirstOrDefault(x => NormalizePosition(x.GetPositionString()) == NormalizePosition(position)) as RuleTreeItem ?? new RuleTreeItem();
+            RuleTreeItem item = RuleTree.ElementsFlat.FirstOrDefault(x => CompareTreeItemPosition(x,changedCopy)) as RuleTreeItem ?? new RuleTreeItem();
 
-            if (item.Data is Rule && (item.Parent as RuleTreeItem ?? new RuleTreeItem()).IsOrderedLayerHeader && nextPosition?.Last() != 0)
+            if (item.Data is Rule && (item.Parent as RuleTreeItem ?? new RuleTreeItem()).IsOrderedLayerHeader && unchangedCopy.Last() != 0)
             {
                 return item.Parent as RuleTreeItem ?? new RuleTreeItem();
             }
-            if (item.IsOrderedLayerHeader)
+            if (item.IsOrderedLayerHeader || item.IsInlineLayerRoot)
             {
                 return item;
             }
-            else if ((item.Parent as RuleTreeItem ?? new RuleTreeItem()).IsSectionHeader)
+            if ((item.Parent as RuleTreeItem ?? new RuleTreeItem()).IsSectionHeader)
             {
-                if (nextPosition?.Last() == 0)
+                if (unchangedCopy.Last() == 0)
                 {
                     return item;
                 }
                 return item.Parent?.Parent as RuleTreeItem ?? new RuleTreeItem();
             }
-            if (item.IsInlineLayerRoot)
-            {
-                return item;
-            }
-            else if ((item.Parent as RuleTreeItem ?? new RuleTreeItem()).IsInlineLayerRoot)
-            {
-                return item.Parent as RuleTreeItem ?? new RuleTreeItem();
-            }
-            return new();
+            return new RuleTreeItem();
         }
 
         private (List<int>?, RuleTreeItem?, List<int>?) PrepareOrderNumberCreation((RulebaseLink link, RulebaseReport rulebase) currentQueueItem, List<int>? lastPosition,  (RulebaseLink link, RulebaseReport rulebase)? nextQueueItem)
@@ -313,7 +307,8 @@ namespace FWO.Services.RuleTreeBuilder
             return nextPosition;
         }
         
-        private string NormalizePosition(IEnumerable<string> parts)
+        #region NormalizePosition
+        private static string NormalizePosition(IEnumerable<string> parts)
         {
             var partsArray = parts.ToArray();
             int lastNonZeroIndex = partsArray.Length - 1;
@@ -322,7 +317,7 @@ namespace FWO.Services.RuleTreeBuilder
                 lastNonZeroIndex--;
             return string.Join(".", partsArray.Take(lastNonZeroIndex + 1));
         }
-        private string NormalizePosition(IEnumerable<int> parts)
+        private static string NormalizePosition(IEnumerable<int> parts)
         {
             var partsArray = parts.ToArray();
             int lastNonZeroIndex = partsArray.Length - 1;
@@ -331,10 +326,15 @@ namespace FWO.Services.RuleTreeBuilder
                 lastNonZeroIndex--;
             return string.Join(".", partsArray.Take(lastNonZeroIndex + 1));
         }
-
-        private string NormalizePosition(string position)
+        private static string NormalizePosition(string position)
         {
             return NormalizePosition(position.Split('.'));
+        }
+        #endregion
+
+        protected static bool CompareTreeItemPosition(ITreeItem<Rule> treeItem, List<int> list)
+        {
+            return NormalizePosition(treeItem.GetPositionString()) == NormalizePosition(list);
         }
     }
 }

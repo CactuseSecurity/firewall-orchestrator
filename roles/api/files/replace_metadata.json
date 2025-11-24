@@ -15839,7 +15839,6 @@
                       "removed",
                       "rf_create",
                       "rf_last_seen",
-                      "removed",
                       "rule_from_id",
                       "rule_id",
                       "user_id"
@@ -15924,7 +15923,6 @@
                       "removed",
                       "rf_create",
                       "rf_last_seen",
-                      "removed",
                       "rule_from_id",
                       "rule_id",
                       "user_id",
@@ -15940,13 +15938,6 @@
                           "rule": {
                             "mgm_id": {
                               "_in": "x-hasura-visible-managements"
-                            }
-                          }
-                        },
-                        {
-                          "rule": {
-                            "dev_id": {
-                              "_in": "x-hasura-visible-devices"
                             }
                           }
                         },
@@ -15970,7 +15961,6 @@
                       "removed",
                       "rf_create",
                       "rf_last_seen",
-                      "removed",
                       "rule_from_id",
                       "rule_id",
                       "user_id"
@@ -15984,13 +15974,6 @@
                           "rule": {
                             "mgm_id": {
                               "_in": "x-hasura-visible-managements"
-                            }
-                          }
-                        },
-                        {
-                          "rule": {
-                            "dev_id": {
-                              "_in": "x-hasura-visible-devices"
                             }
                           }
                         },
@@ -16012,7 +15995,6 @@
                       "removed",
                       "rf_create",
                       "rf_last_seen",
-                      "removed",
                       "rule_from_id",
                       "rule_id",
                       "user_id",
@@ -16028,13 +16010,6 @@
                           "rule": {
                             "mgm_id": {
                               "_in": "x-hasura-visible-managements"
-                            }
-                          }
-                        },
-                        {
-                          "rule": {
-                            "dev_id": {
-                              "_in": "x-hasura-visible-devices"
                             }
                           }
                         },
@@ -16056,7 +16031,6 @@
                       "removed",
                       "rf_create",
                       "rf_last_seen",
-                      "removed",
                       "rule_from_id",
                       "rule_id",
                       "user_id",
@@ -17296,7 +17270,6 @@
                       "removed",
                       "rt_create",
                       "rt_last_seen",
-                      "removed",
                       "rule_id",
                       "rule_to_id",
                       "user_id"
@@ -17317,7 +17290,6 @@
                       "removed",
                       "rt_create",
                       "rt_last_seen",
-                      "removed",
                       "rule_id",
                       "rule_to_id",
                       "user_id"
@@ -17380,7 +17352,6 @@
                       "removed",
                       "rt_create",
                       "rt_last_seen",
-                      "removed",
                       "rule_id",
                       "rule_to_id",
                       "user_id"
@@ -17394,13 +17365,6 @@
                           "rule": {
                             "mgm_id": {
                               "_in": "x-hasura-visible-managements"
-                            }
-                          }
-                        },
-                        {
-                          "rule": {
-                            "dev_id": {
-                              "_in": "x-hasura-visible-devices"
                             }
                           }
                         },
@@ -17424,7 +17388,6 @@
                       "removed",
                       "rt_create",
                       "rt_last_seen",
-                      "removed",
                       "rule_id",
                       "rule_to_id",
                       "user_id"
@@ -17438,13 +17401,6 @@
                           "rule": {
                             "mgm_id": {
                               "_in": "x-hasura-visible-managements"
-                            }
-                          }
-                        },
-                        {
-                          "rule": {
-                            "dev_id": {
-                              "_in": "x-hasura-visible-devices"
                             }
                           }
                         },
@@ -17468,7 +17424,6 @@
                       "removed",
                       "rt_create",
                       "rt_last_seen",
-                      "removed",
                       "rule_id",
                       "rule_to_id",
                       "user_id"
@@ -17482,13 +17437,6 @@
                           "rule": {
                             "mgm_id": {
                               "_in": "x-hasura-visible-managements"
-                            }
-                          }
-                        },
-                        {
-                          "rule": {
-                            "dev_id": {
-                              "_in": "x-hasura-visible-devices"
                             }
                           }
                         },
@@ -17512,7 +17460,6 @@
                       "removed",
                       "rt_create",
                       "rt_last_seen",
-                      "removed",
                       "rule_id",
                       "rule_to_id",
                       "user_id"

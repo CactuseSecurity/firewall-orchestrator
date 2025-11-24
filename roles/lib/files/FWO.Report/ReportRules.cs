@@ -554,7 +554,7 @@ namespace FWO.Report
             }
         }
 
-
+        // Rulebaselink rbLink not used
         private void AppendRulesForRulebaseHtml(ref StringBuilder report, RulebaseLink rbLink, ManagementReport managementReport, DeviceReport device, int chapterNumber, RuleDisplayHtml ruleDisplayHtml)  // RulebaseLink rbLink not used, can be deleted?
         {
             foreach (var rule in _rulesCache[(device.Id, managementReport.Id)])

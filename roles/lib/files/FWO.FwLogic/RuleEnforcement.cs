@@ -7,19 +7,6 @@ using FWO.Data.Report;
 
 namespace FWO.FwLogic
 {
-    public class RuleEnforcement
-    {
-        private readonly ApiConnection apiConnection;
-        private readonly Management superManagement;
-
-        public RuleEnforcement(Management mgm, ApiConnection apiConn)
-        {
-            superManagement = mgm;
-            apiConnection = apiConn;
-        }
-
-    }
-
     public class EnforcingDevice : DeviceReport
     {
         // still needed? public EnforcingDevice(string name, string uid, string type, string version)

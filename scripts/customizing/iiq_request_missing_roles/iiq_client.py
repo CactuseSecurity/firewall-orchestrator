@@ -100,7 +100,7 @@ class IIQClient:
             print('------------------------------------')
 
         if method=='POST':
-            response = requests.post(url, data=body, auth=(self.user, self.password), headers=headers, verify=False)
+            response = requests.post(url, json=body, auth=(self.user, self.password), headers=headers, verify=False)
         elif method=='GET':
             response = requests.get(url, auth=(self.user, self.password), headers=headers, verify=False)
         else:
@@ -154,7 +154,9 @@ class IIQClient:
 
         iiq_req_json = json.dumps(iiq_req_body_local, ensure_ascii=False).encode('utf-8')
 
-        response = self.send(body=str(iiq_req_json),
+        iiq_req_json = iiq_req_body_local
+
+        response = self.send(body=iiq_req_json,
             url_path= self.uri_path_start + self.stage + "/workflow/v1/ModellingGeneral/createRequest",
             debug=debug_level)
 

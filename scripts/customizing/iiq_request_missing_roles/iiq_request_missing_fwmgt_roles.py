@@ -66,8 +66,29 @@ def get_owners_from_csv_files(csv_owner_file_pattern, csv_app_server_file_patter
             if debug_level>0:
                 logger.info(f"importing IP data from file {file_name} ...")
             extract_ip_data_from_csv(file_name, owner_dict, Appip, logger, debug_level, base_dir=repo_target_dir)
+
+    # now only choose those owners which have at least one app server with a non-empty IP assigned
+    remove_apps_without_ip_addresses(owner_dict, debug_level)
+
     tisos = get_tisos_from_owner_dict(owner_dict)
     return owner_dict, tisos
+
+
+def remove_apps_without_ip_addresses(owner_dict, debug_level=0):
+    apps_to_remove = []
+    for app_key in owner_dict:
+        owner = owner_dict[app_key]
+        has_ip = False
+        for app_server in owner.app_servers:
+            if app_server.ip_start is not None and is_valid_ipv4_address(str(app_server.ip_start)):
+                has_ip = True
+                break
+        if not has_ip:
+            apps_to_remove.append(app_key)
+    for app_key in apps_to_remove:
+        if debug_level>0:
+            logger.info(f"removing app {app_key} as it has no valid IP address assigned")
+        del owner_dict[app_key]
 
 
 def get_tisos_from_owner_dict(app_dict):
@@ -75,8 +96,10 @@ def get_tisos_from_owner_dict(app_dict):
     for app_id in app_dict:
         owner = app_dict[app_id]
         if owner.main_user is not None and owner.main_user != "":
-            tiso = owner.main_user.replace("CN=", "")
-            tisos[f"{owner.name}"] = tiso
+            tiso = owner.main_user.replace("CN=", "")   # remove possible CN= prefix
+            if "," in tiso:
+                tiso = tiso.split(",")[0]   # take only the user name part before any comma
+            tisos[f"{app_id}"] = tiso
         else:
             logger.warning(f"owner {owner.name} has no main user, cannot get TISO")
     return tisos
@@ -99,18 +122,18 @@ def request_all_roles(owner_dict, tisos, tiso_orgids, iiq_client, stats, first, 
     counter = 0
     # create new groups
     logger.info("creating new groups in iiq")
-    for name in owner_dict:
+    for app_id_with_prefix in owner_dict:
         counter += 1
-        tiso = tisos.get(name)
+        tiso = tisos.get(app_id_with_prefix)
         org_id = tiso_orgids.get(tiso)
         if org_id is None:
-            logger.warning("did not find an OrgId for owner " + name + ", skipping group creation")
+            logger.warning("did not find an OrgId for owner " + app_id_with_prefix + ", skipping group creation")
             continue
 
-        app_prefix, app_id = name.split("-")
+        app_prefix, app_id = app_id_with_prefix.split("-")
         # get existing (already modelled) functions for this app to find out, what still needs to be changed in iiq
         if not iiq_client.app_functions_exist_in_iiq(app_prefix, app_id, stats):
-            iiq_client.request_group_creation(app_prefix, app_id, org_id, tiso, name, stats, run_workflow=run_workflow)
+            iiq_client.request_group_creation(app_prefix, app_id, org_id, tiso, owner_dict[app_id_with_prefix].name, stats, run_workflow=run_workflow)
         
         # if first parameter is set, only handle the first "first" applications, otherwise handle all
         if first > 0 and counter >= first: 
@@ -240,11 +263,11 @@ if __name__ == "__main__":
     tiso_orgids = get_tisos_orgids(tisos, iiq_client, exit_after_dump=args.just_dump_tiso_org_ids)
 
     # collect all app ids
-    owner_dict = [key.split("|")[0] for key in owners.keys()]
+    # owner_dict = [key.split("|")[0] for key in owners.keys()]
 
     stats = init_statistics()
 
-    request_all_roles(owner_dict, tisos, tiso_orgids, iiq_client, stats, first, args.run_workflow)
+    request_all_roles(owners, tisos, tiso_orgids, iiq_client, stats, first, args.run_workflow)
 
     if debug>0:
         print ("Stats: " + json.dumps(stats, indent=3))

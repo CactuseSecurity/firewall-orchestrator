@@ -7,13 +7,13 @@ from netaddr import IPAddress
 
 class Owner:
     def __init__(self, name, app_id_external, main_user, recert_period_days, import_source):
-        self.name = name
-        self.app_id_external = app_id_external
-        self.main_user = main_user
-        self.modellers = []
-        self.import_source = import_source
-        self.recert_period_days = recert_period_days
-        self.app_servers = []
+        self.name: str = name
+        self.app_id_external: str = app_id_external
+        self.main_user: str = main_user
+        self.modellers: list[str] = []
+        self.import_source: str = import_source
+        self.recert_period_days: int = recert_period_days
+        self.app_servers: list[Appip] = []
 
     def to_json(self):
         return (
@@ -30,11 +30,11 @@ class Owner:
 
 class Appip:
     def __init__(self, app_id_external: str, ip_start: IPAddress, ip_end: IPAddress, type: str, name: str):
-        self.name = name
-        self.app_id_external = app_id_external
+        self.name: str = name
+        self.app_id_external: str = app_id_external
         self.ip_start = ip_start
         self.ip_end = ip_end
-        self.type = type
+        self.type: str = type
 
     def to_json(self):
         return (

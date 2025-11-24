@@ -1,6 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
+    <PackageReference Include="IPAddressRange" Version="6.3.0" />
     <ProjectReference Include="..\FWO.Basics\FWO.Basics.csproj" />
   </ItemGroup>
 

@@ -237,12 +237,6 @@ namespace FWO.Report
 
         protected string GenerateHtmlFrame(string title, string filter, DateTime date, StringBuilder htmlReport, TimeFilter? timefilter = null)
         {
-            // PENDING REVIEW: Not sure if this block is still required.
-            // Please confirm before removal.
-            // NOSONAR
-            // return GenerateHtmlFrameBase(title, filter, date, htmlReport,
-            //     string.Join("; ", ReportData.ManagementData.Where(mgt => !mgt.Ignore).Select(m => new ManagementReportController(m).NameAndRulebaseNames())),
-            // Query.SelectedOwner?.Name);
             string deviceFilter = string.Join("; ", Array.ConvertAll(ReportData.ManagementData.Where(mgt => !mgt.Ignore).ToArray(), m => m.NameAndDeviceNames()));
             return GenerateHtmlFrameBase(title, filter, date, htmlReport, deviceFilter, Query.SelectedOwner?.Name, timefilter);
         }

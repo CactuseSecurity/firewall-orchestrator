@@ -326,6 +326,7 @@ namespace FWO.Report
             if (rbLink == null)
             {
                 return report.ToString();
+                //NOSONAR
                 // from develop:
                 // foreach (var dev in mgt.Devices.Where(d => d.Rules != null && d.Rules.Length > 0))
                 // {
@@ -364,8 +365,7 @@ namespace FWO.Report
                 }
                 else
                 {
-                    // NOSONAR - temporarily disabled
-                    // report.AppendLine("\"section header\": \"" + rule.SectionHeader + "\"");
+                    //NOSONAR - temporarily disabled //report.AppendLine("\"section header\": \"" + rule.SectionHeader + "\"");
                 }
                 ExportSingleRulebaseToCsv(report, ruleDisplayCsv, managementReport, gateway, gateway.RulebaseLinks.FirstOrDefault(_ => _.FromRuleId == rule.Id));
             } // rules 

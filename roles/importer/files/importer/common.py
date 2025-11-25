@@ -107,7 +107,7 @@ def _import_management(mgm_id: int, ssl_verification: bool, file: str | None,
         return
     
     Path(IMPORT_TMP_PATH).mkdir(parents=True, exist_ok=True)  # make sure tmp path exists
-    gateways = ManagementController.buildGatewayList(import_state.MgmDetails)
+    gateways = ManagementController.build_gateway_list(import_state.MgmDetails)
 
     import_state.ImportId = import_state.api_call.set_import_lock(import_state.MgmDetails, import_state.IsFullImport, import_state.IsInitialImport)
     FWOLogger.info(f"starting import of management {import_state.MgmDetails.Name} ({str(mgm_id)}), import_id={str(import_state.ImportId)}")

@@ -93,7 +93,7 @@ class FwoApiCall(FwoApi):
         except Exception:
             FWOLogger.error("import_management - failed to get import lock for management id " + str(mgm_id))
             if import_id == -1:
-                self.create_data_issue(mgm_id=int(mgm_id), severity=1, 
+                self.create_data_issue(mgm_id=mgm_id, severity=1, 
                     description="failed to get import lock for management id " + str(mgm_id))
                 self.set_alert(import_id=import_id, title="import error", mgm_id=mgm_id, severity=1, \
                     description="fwo_api: failed to get import lock", source='import', alert_code=15, mgm_details=mgm_details)
@@ -189,7 +189,7 @@ class FwoApiCall(FwoApi):
         return self.call(error_query, query_variables=query_variables)['data']['import_control']
 
 
-    def create_data_issue(self, importId: int | None = None, obj_name: str | None = None, mgm_id: int | None = None, dev_id: int | None = None, severity: int = 1,
+    def create_data_issue(self, obj_name: str | None = None, mgm_id: int | None = None, dev_id: int | None = None, severity: int = 1,
             rule_uid: str | None = None, object_type: str | None = None, description: str | None = None, source: str = 'import') -> None:
         if obj_name=='all' or obj_name=='Original': 
             return # ignore resolve errors for enriched objects that are not in the native config
@@ -319,7 +319,7 @@ class FwoApiCall(FwoApi):
         if import_state.Stats.getChangeDetails() != {} and FWOLogger.is_debug_level(4) and len(import_state.getErrors()) == 0:
             import_result += ", change details: " + str(import_state.Stats.getChangeDetails())
         if import_state.Stats.ErrorCount>0:
-            self.create_data_issue(importId=import_state.ImportId, severity=1, description=import_state.getErrorString())
+            self.create_data_issue(severity=1, description=import_state.getErrorString())
             self.set_alert(import_id=import_state.ImportId, title="import error", mgm_id=import_state.MgmDetails.Id, severity=2, \
                 description=str(import_state.getErrorString()), source='import', alert_code=14, mgm_details=import_state.MgmDetails)
         if not import_state.Stats.ErrorAlreadyLogged:

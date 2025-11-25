@@ -133,7 +133,7 @@ class FwConfigImport():
                     domain_info=DomainInfo()
                 )
                 mgm_details_raw = mgm_controller.get_mgm_details(fwo_api, subManagerId)
-                mgm_details = ManagementController.fromJson(mgm_details_raw)
+                mgm_details = ManagementController.from_json(mgm_details_raw)
                 configNormalized.addManager(
                     manager=FwConfigManager(
                         ManagerUid=ManagementController.calcManagerUidHash(mgm_details_raw), #type: ignore # TODO: check: should be mgm_details
@@ -202,7 +202,7 @@ class FwConfigImport():
             fwo_api = FwoApi(self.import_state.FwoConfig.FwoApiUri, self.import_state.Jwt)
             fwo_api_call = FwoApiCall(fwo_api)
             FWOLogger.error(f"error while trying to delete old imports for mgm {str(self.import_state.MgmDetails.Id)}")
-            fwo_api_call.create_data_issue(mgm_id=int(self.import_state.MgmDetails.Id), severity=1, 
+            fwo_api_call.create_data_issue(mgm_id=self.import_state.MgmDetails.Id, severity=1, 
                  description="failed to get import lock for management id " + str(mgmId))
             fwo_api_call.set_alert(import_id=self.import_state.ImportId, title="import error", mgm_id=mgmId, severity=1, \
                  description="fwo_api: failed to get import lock", source='import', alert_code=15, mgm_details=self.import_state.MgmDetails)

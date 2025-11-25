@@ -34,7 +34,7 @@ class ImportStateController(ImportState):
         self.VerifyCerts = verifyCerts
         self.ConfigChangedSinceLastImport = configChangedSinceLastImport
         self.FwoConfig = fwoConfig
-        self.MgmDetails = ManagementController.fromJson(mgmDetails)
+        self.MgmDetails = ManagementController.from_json(mgmDetails)
         self.ImportId = -1
         self.Jwt = jwt
         self.ImportFileName = ""

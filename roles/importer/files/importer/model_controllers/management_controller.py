@@ -83,7 +83,7 @@ class ManagementController(Management):
         self.DomainUid = domain_info.domain_uid
 
     @classmethod
-    def fromJson(cls, json_dict: dict[str, Any]) -> "ManagementController":
+    def from_json(cls, json_dict: dict[str, Any]) -> "ManagementController":
         device_info = DeviceInfo(
             name=json_dict['name'],
             type_name=json_dict['deviceType']['name'],
@@ -105,7 +105,7 @@ class ManagementController(Management):
         manager_info = ManagerInfo(
             is_super_manager=json_dict["isSuperManager"],
             sub_manager_ids=[subManager["id"] for subManager in json_dict["subManagers"]],
-            sub_managers=[cls.fromJson(subManager) for subManager in json_dict["subManagers"]]
+            sub_managers=[cls.from_json(subManager) for subManager in json_dict["subManagers"]]
         )
         
         domain_info = DomainInfo(
@@ -126,7 +126,6 @@ class ManagementController(Management):
             import_disabled=json_dict['importDisabled']
         )
 
-    # ...existing code...
 
     def __str__(self):
         return f"{self.Hostname}({self.Id})"
@@ -157,7 +156,7 @@ class ManagementController(Management):
 
 
     @classmethod
-    def buildGatewayList(cls, mgmDetails: "ManagementController") -> list['Gateway']:
+    def build_gateway_list(cls, mgmDetails: "ManagementController") -> list['Gateway']:
         devs: list['Gateway'] = []
         for dev in mgmDetails.Devices:
             # check if gateway import is enabled
@@ -178,14 +177,14 @@ class ManagementController(Management):
 
 
     def get_mgm_details(self, api_conn: FwoApi, mgm_id: int) -> dict[str, Any]:
-        getMgmDetailsQuery = FwoApi.get_graphql_code([
+        get_mgm_details_query = FwoApi.get_graphql_code([
                     GRAPHQL_QUERY_PATH + "device/getSingleManagementDetails.graphql",
                     GRAPHQL_QUERY_PATH + "device/fragments/managementDetails.graphql",
                     GRAPHQL_QUERY_PATH + "device/fragments/subManagements.graphql",
                     GRAPHQL_QUERY_PATH + "device/fragments/deviceTypeDetails.graphql",
                     GRAPHQL_QUERY_PATH + "device/fragments/importCredentials.graphql"])
 
-        api_call_result = api_conn.call(getMgmDetailsQuery, query_variables={'mgmId': mgm_id })
+        api_call_result = api_conn.call(get_mgm_details_query, query_variables={'mgmId': mgm_id })
         if api_call_result is None or 'data' not in api_call_result or 'management' not in api_call_result['data'] or len(api_call_result['data']['management'])<1: #type: ignore #TODO: check if api_call_result can be None
             raise FwoApiFailure('did not succeed in getting management details from FWO API')
 
@@ -194,17 +193,17 @@ class ManagementController(Management):
             # decrypt secret read from API
             try:
                 secret = api_call_result['data']['management'][0]['import_credential']['secret']
-                decryptedSecret = decrypt(secret, read_main_key())
+                decrypted_secret = decrypt(secret, read_main_key())
             except ():
                 raise SecretDecryptionFailed
-            api_call_result['data']['management'][0]['import_credential']['secret'] = decryptedSecret
+            api_call_result['data']['management'][0]['import_credential']['secret'] = decrypted_secret
             if 'subManagers' in api_call_result['data']['management'][0]:
-                for subMgm in api_call_result['data']['management'][0]['subManagers']:
+                for sub_mgm in api_call_result['data']['management'][0]['subManagers']:
                     try:
-                        secret = subMgm['import_credential']['secret']
-                        decryptedSecret = decrypt(secret, read_main_key())
+                        secret = sub_mgm['import_credential']['secret']
+                        decrypted_secret = decrypt(secret, read_main_key())
                     except ():
                         raise SecretDecryptionFailed
-                    subMgm['import_credential']['secret'] = decryptedSecret
+                    sub_mgm['import_credential']['secret'] = decrypted_secret
         return api_call_result['data']['management'][0]
 

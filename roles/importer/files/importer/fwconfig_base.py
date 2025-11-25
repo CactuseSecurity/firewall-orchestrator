@@ -12,7 +12,7 @@ class FwoEncoder(json.JSONEncoder):
         return json.JSONEncoder.default(self, obj)
 
 
-def replace_none_with_empty(s: str | None) -> str:
+def replace_none_with_empty(s: str | None) -> str: #TYPING: make a utils file and move there
     if s is None or s == '':
         return '<EMPTY>'
     else:

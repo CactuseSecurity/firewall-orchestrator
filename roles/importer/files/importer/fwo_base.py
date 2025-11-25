@@ -227,19 +227,19 @@ def compute_min_moves(source: list[Any], target: list[Any]) -> dict[str, Any]:
     source_set: set[Any] = set(source)
 
     # Identify the common elements:
-    S_common: list[Any] = [elem for elem in source if elem in target_set]
-    T_common: list[Any] = [elem for elem in target if elem in source_set]
+    s_common: list[Any] = [elem for elem in source if elem in target_set]
+    t_common: list[Any] = [elem for elem in target if elem in source_set]
 
     # Calculate deletions and insertions:
     deletions: list[tuple[int, Any]] = [ (i, elem) for i, elem in enumerate(source) if elem not in target_set ]
     insertions: list[tuple[int, Any]] = [ (j, elem) for j, elem in enumerate(target) if elem not in source_set ]
 
     # Compute the longest common subsequence (LCS) between S_common and T_common – these are common elements already in correct relative order.
-    lcs_data: tuple[list[list[int]], int] = lcs_dp(S_common, T_common)
-    lcs_indices: list[tuple[int, int]] = backtrack_lcs(S_common, T_common, lcs_data[0])
+    lcs_data: tuple[list[list[int]], int] = lcs_dp(s_common, t_common)
+    lcs_indices: list[tuple[int, int]] = backtrack_lcs(s_common, t_common, lcs_data[0])
 
     # To decide which common elements must be repositioned, mark the indices in S_common which are part of the LCS.
-    in_place: list[bool] = [False] * len(S_common)
+    in_place: list[bool] = [False] * len(s_common)
     for i, _ in lcs_indices:
         in_place[i] = True
     # Every common element in S_common not in the LCS will need a pop-and-reinsert.
@@ -280,14 +280,14 @@ def compute_min_moves(source: list[Any], target: list[Any]) -> dict[str, Any]:
     }
 
 
-def write_native_config_to_file(importState: 'ImportStateController', configNative: dict[str, Any] | None) -> None:
+def write_native_config_to_file(import_state: 'ImportStateController', config_native: dict[str, Any] | None) -> None:
     from fwo_const import IMPORT_TMP_PATH
     if FWOLogger.is_debug_level(7):
         debug_start_time = int(time.time())
         try:
-            full_native_config_filename = f"{IMPORT_TMP_PATH}/mgm_id_{str(importState.MgmDetails.Id)}_config_native.json"
+            full_native_config_filename = f"{IMPORT_TMP_PATH}/mgm_id_{str(import_state.MgmDetails.Id)}_config_native.json"
             with open(full_native_config_filename, "w") as json_data:
-                json_data.write(json.dumps(configNative, indent=2))
+                json_data.write(json.dumps(config_native, indent=2))
         except Exception:
             FWOLogger.error(f"import_management - unspecified error while dumping config to json file: {str(traceback.format_exc())}")
             raise

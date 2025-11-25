@@ -285,7 +285,7 @@ def write_native_config_to_file(import_state: 'ImportStateController', config_na
     if FWOLogger.is_debug_level(7):
         debug_start_time = int(time.time())
         try:
-            full_native_config_filename = f"{IMPORT_TMP_PATH}/mgm_id_{str(import_state.mgm_details.Id)}_config_native.json"
+            full_native_config_filename = f"{IMPORT_TMP_PATH}/mgm_id_{str(import_state.mgm_details.id)}_config_native.json"
             with open(full_native_config_filename, "w") as json_data:
                 json_data.write(json.dumps(config_native, indent=2))
         except Exception:

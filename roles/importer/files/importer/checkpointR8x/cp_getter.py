@@ -43,12 +43,12 @@ def cp_api_call(url: str, command: str, json_payload: dict[str, Any], sid: str |
 
 
 def login(mgm_details: ManagementController):
-    payload = {'user': mgm_details.ImportUser, 'password': mgm_details.Secret}
+    payload = {'user': mgm_details.import_user, 'password': mgm_details.secret}
     domain = mgm_details.getDomainString()
     if domain is not None and domain != '': # type: ignore # TODO: shouldnt be None
         payload.update({'domain': domain})
     base_url = mgm_details.buildFwApiString()
-    FWOLogger.debug(f"login - login to url {base_url} with user {mgm_details.ImportUser}", 3)
+    FWOLogger.debug(f"login - login to url {base_url} with user {mgm_details.import_user}", 3)
     response = cp_api_call(base_url, 'login', payload, '')
     if "sid" not in response:
         exception_text = f"getter ERROR: did not receive a sid, api call: {base_url}"
@@ -193,7 +193,7 @@ def parse_package(package: dict[str, Any], managerDetails: ManagementController)
 def is_valid_installation_target(installationTarget: dict[str, Any], managerDetails: ManagementController) -> bool:
     """ensures that target is defined as gateway in database"""
     if 'target-name' in installationTarget and 'target-uid' in installationTarget:
-        for device in managerDetails.Devices:
+        for device in managerDetails.devices:
             if device['name'] == installationTarget['target-name'] and device['uid'] == installationTarget['target-uid']:
                 return True
     return False

@@ -134,8 +134,8 @@ def fortinet_api_call(sid: str, api_base_url: str, api_path: str, payload: dict[
 def get_devices_from_manager(adom_mgm_details: Management, sid: str, fm_api_url: str) -> dict[str, Any]:
     device_vdom_dict: dict[str, dict[str, str]] = {}
 
-    device_results = fortinet_api_call(sid, fm_api_url, '/dvmdb/adom/' + adom_mgm_details.DomainName + '/device')
-    for mgm_details_device in adom_mgm_details.Devices:
+    device_results = fortinet_api_call(sid, fm_api_url, '/dvmdb/adom/' + adom_mgm_details.domain_name + '/device')
+    for mgm_details_device in adom_mgm_details.devices:
         if not mgm_details_device['importDisabled']:
             found_fmgr_device = False
             for fmgr_device in device_results:

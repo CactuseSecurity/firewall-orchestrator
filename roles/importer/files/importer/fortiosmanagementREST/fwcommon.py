@@ -51,8 +51,8 @@ def get_config(full_config: dict[str, Any], importState: ImportStateController) 
 
     # fmgr API login
     if not parsing_config_only:   # no native config was passed in, so getting it from FortiManager
-        fm_api_url = f'https://{importState.mgm_details.Hostname}:{str(importState.mgm_details.Port)}/api/v2'
-        sid = importState.mgm_details.Secret
+        fm_api_url = f'https://{importState.mgm_details.hostname}:{str(importState.mgm_details.port)}/api/v2'
+        sid = importState.mgm_details.secret
 
         if not parsing_config_only:   # no native config was passed in, so getting it from FortiManager
             get_objects(sid, fm_api_url, full_config, importState.fwo_config.api_fetch_size, nw_obj_types, svc_obj_types)
@@ -64,7 +64,7 @@ def get_config(full_config: dict[str, Any], importState: ImportStateController) 
 
             # initialize all rule dicts
             fOS_rule.initialize_rulebases(full_config)
-            for _ in importState.mgm_details.Devices: #TYPING: You good?
+            for _ in importState.mgm_details.devices: #TYPING: You good?
                 fOS_rule.get_access_policy(sid, fm_api_url, full_config, importState.fwo_config.api_fetch_size)
                 # fOS_rule.getNatPolicy(sid, fm_api_url, full_config, limit)
 

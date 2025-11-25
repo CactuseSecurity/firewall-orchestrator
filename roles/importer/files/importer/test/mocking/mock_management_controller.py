@@ -8,6 +8,6 @@ class MockManagementController(ManagementController):
             Initializes without calling base init.
         """
 
-        self.Id = 3
-        self.Name = "Mock Management"
-        self.IsSuperManager = is_super_manager
+        self.id = 3
+        self.name = "Mock Management"
+        self.is_super_manager = is_super_manager

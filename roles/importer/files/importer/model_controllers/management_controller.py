@@ -46,41 +46,41 @@ class ManagementController(Management):
                  manager_info: ManagerInfo, domain_info: DomainInfo, 
                  import_disabled: bool = False):
         
-        self.Id = mgm_id
-        self.Uid = uid
-        self.Devices = devices
-        self.ImportDisabled = import_disabled
+        self.id = mgm_id
+        self.uid = uid
+        self.devices = devices
+        self.import_disabled = import_disabled
         
         # Device info
-        self.Name = device_info.name
-        self.DeviceTypeName = device_info.type_name
-        self.DeviceTypeVersion = device_info.type_version
+        self.name = device_info.name
+        self.device_type_name = device_info.type_name
+        self.device_type_version = device_info.type_version
         
         # Connection info
-        self.Hostname = connection_info.hostname
-        self.Port = connection_info.port
+        self.hostname = connection_info.hostname
+        self.port = connection_info.port
 
         # Importer Host info
-        self.ImporterHostname = importer_hostname
+        self.importer_hostname = importer_hostname
 
         # Credential info
-        self.ImportUser = credential_info.import_user
-        self.Secret = credential_info.secret
+        self.import_user = credential_info.import_user
+        self.secret = credential_info.secret
         self.cloud_client_id = credential_info.cloud_client_id
         self.cloud_client_secret = credential_info.cloud_client_secret
 
         # Manager info
-        self.IsSuperManager = manager_info.is_super_manager
-        self.SubManagerIds = manager_info.sub_manager_ids or []
-        self.SubManagers = manager_info.sub_managers or []
+        self.is_super_manager = manager_info.is_super_manager
+        self.sub_manager_ids = manager_info.sub_manager_ids or []
+        self.sub_managers = manager_info.sub_managers or []
 
         # Current Sub-Manager info for multi-management imports
-        self.CurrentMgmId = mgm_id
-        self.CurrentMgmIsSuperManager = manager_info.is_super_manager
+        self.current_mgm_id = mgm_id
+        self.current_mgm_is_super_manager = manager_info.is_super_manager
         
         # Domain info
-        self.DomainName = domain_info.domain_name
-        self.DomainUid = domain_info.domain_uid
+        self.domain_name = domain_info.domain_name
+        self.domain_uid = domain_info.domain_uid
 
     @classmethod
     def from_json(cls, json_dict: dict[str, Any]) -> "ManagementController":
@@ -128,37 +128,37 @@ class ManagementController(Management):
 
 
     def __str__(self):
-        return f"{self.Hostname}({self.Id})"
+        return f"{self.hostname}({self.id})"
     
 
     # TODO: fix device type URIs
     def buildFwApiString(self):
-        if self.DeviceTypeName == 'Check Point':
-            return f"https://{self.Hostname}:{str(self.Port)}/web_api/"
-        elif self.DeviceTypeName == 'CiscoFMC':
-            return f"https://{self.Hostname}:{str(self.Port)}/api/fmc_platform/v1/"
-        elif self.DeviceTypeName == 'Fortinet':
-            return f"https://{self.Hostname}:{str(self.Port)}/api/v2/"
-        elif self.DeviceTypeName == 'FortiAdom':
-            return f"https://{self.Hostname}:{str(self.Port)}/jsonrpc"
-        elif self.DeviceTypeName == 'FortiManager':
-            return f"https://{self.Hostname}:{str(self.Port)}/jsonrpc"
-        elif self.DeviceTypeName == 'PaloAlto':
-            return f"https://{self.Hostname}:{str(self.Port)}/restapi/v10.0/"
-        elif self.DeviceTypeName == 'PaloAltoLegacy':
-            return f"https://{self.Hostname}:{str(self.Port)}/restapi/v10.0/"
+        if self.device_type_name == 'Check Point':
+            return f"https://{self.hostname}:{str(self.port)}/web_api/"
+        elif self.device_type_name == 'CiscoFMC':
+            return f"https://{self.hostname}:{str(self.port)}/api/fmc_platform/v1/"
+        elif self.device_type_name == 'Fortinet':
+            return f"https://{self.hostname}:{str(self.port)}/api/v2/"
+        elif self.device_type_name == 'FortiAdom':
+            return f"https://{self.hostname}:{str(self.port)}/jsonrpc"
+        elif self.device_type_name == 'FortiManager':
+            return f"https://{self.hostname}:{str(self.port)}/jsonrpc"
+        elif self.device_type_name == 'PaloAlto':
+            return f"https://{self.hostname}:{str(self.port)}/restapi/v10.0/"
+        elif self.device_type_name == 'PaloAltoLegacy':
+            return f"https://{self.hostname}:{str(self.port)}/restapi/v10.0/"
         else:
-            raise FwLoginFailed(f"Unsupported device type: {self.DeviceTypeName}")
+            raise FwLoginFailed(f"Unsupported device type: {self.device_type_name}")
 
 
     def getDomainString(self) -> str:
-        return self.DomainUid if self.DomainUid != None else self.DomainName # type: ignore #TODO: check if None check is needed if yes, change type
+        return self.domain_uid if self.domain_uid != None else self.domain_name # type: ignore #TODO: check if None check is needed if yes, change type
 
 
     @classmethod
     def build_gateway_list(cls, mgmDetails: "ManagementController") -> list['Gateway']:
         devs: list['Gateway'] = []
-        for dev in mgmDetails.Devices:
+        for dev in mgmDetails.devices:
             # check if gateway import is enabled
             if 'do_not_import' in dev and dev['do_not_import']:
                 continue
@@ -168,10 +168,10 @@ class ManagementController(Management):
 
     def calc_manager_uid_hash(self):
         combination = f"""
-            {replace_none_with_empty(self.Hostname)}
-            {replace_none_with_empty(str(self.Port))}
-            {replace_none_with_empty(self.DomainUid)}
-            {replace_none_with_empty(self.DomainName)}
+            {replace_none_with_empty(self.hostname)}
+            {replace_none_with_empty(str(self.port))}
+            {replace_none_with_empty(self.domain_uid)}
+            {replace_none_with_empty(self.domain_name)}
         """
         return hashlib.sha256(combination.encode()).hexdigest()
 

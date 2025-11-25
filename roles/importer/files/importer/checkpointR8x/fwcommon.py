@@ -30,7 +30,7 @@ def has_config_changed(full_config: dict[str, Any], import_state: ImportState, f
         # if no last import time found or given or if force flag is set, do full import
         result = True
     else: # otherwise search for any changes since last import
-        result = (cp_getter.get_changes(session_id, import_state.mgm_details.Hostname, str(import_state.mgm_details.Port),import_state.last_successful_import) != 0)
+        result = (cp_getter.get_changes(session_id, import_state.mgm_details.hostname, str(import_state.mgm_details.port),import_state.last_successful_import) != 0)
 
     cp_getter.logout(import_state.mgm_details.buildFwApiString(), session_id)
 
@@ -93,11 +93,11 @@ def initialize_native_config(config_in: FwConfigManagerListController, importSta
     config_in.native_config.update({'domains': []})
     for managerDetails in manager_details_list:
         config_in.native_config['domains'].append({
-            'domain_name': managerDetails.DomainName,
-            'domain_uid': managerDetails.DomainUid,
-            'is-super-manager': managerDetails.IsSuperManager,
-            'management_name': managerDetails.Name,
-            'management_uid': managerDetails.Uid,
+            'domain_name': managerDetails.domain_name,
+            'domain_uid': managerDetails.domain_uid,
+            'is-super-manager': managerDetails.is_super_manager,
+            'management_name': managerDetails.name,
+            'management_uid': managerDetails.uid,
             'objects': [],
             'rulebases': [],
             'nat_rulebases': [],
@@ -161,7 +161,7 @@ def normalize_config(import_state: ImportStateController, config_in: FwConfigMan
 def normalize_single_manager_config(native_config: dict[str, Any], native_config_global: dict[str, Any], normalized_config_dict: dict[str, Any],
                                     normalized_config_global: dict[str, Any], import_state: ImportStateController,
                                     parsing_config_only: bool, sid: str, is_global_loop_iteration: bool):
-    cp_network.normalize_network_objects(native_config, normalized_config_dict, import_state.import_id, mgm_id=import_state.mgm_details.Id)
+    cp_network.normalize_network_objects(native_config, normalized_config_dict, import_state.import_id, mgm_id=import_state.mgm_details.id)
     FWOLogger.info("completed normalizing network objects")
     cp_service.normalize_service_objects(native_config, normalized_config_dict, import_state.import_id)
     FWOLogger.info("completed normalizing service objects")
@@ -187,7 +187,7 @@ def get_rules(nativeConfig: dict[str, Any], importState: ImportStateController) 
     for managerDetails in manager_details_list:
         cpManagerApiBaseUrl = importState.mgm_details.buildFwApiString()
 
-        if managerDetails.IsSuperManager:
+        if managerDetails.is_super_manager:
             globalAssignments, global_policy_structure, globalDomain, globalSid = handle_super_manager(
                 managerDetails, cpManagerApiBaseUrl, show_params_policy_structure
             )
@@ -214,8 +214,8 @@ def create_ordered_manager_list(importState: ImportStateController) -> list[Mana
     creates list of manager details, supermanager is first
     """
     manager_details_list: list[ManagementController] = [deepcopy(importState.mgm_details)]
-    if importState.mgm_details.IsSuperManager:
-        for subManager in importState.mgm_details.SubManagers:
+    if importState.mgm_details.is_super_manager:
+        for subManager in importState.mgm_details.sub_managers:
             manager_details_list.append(deepcopy(subManager)) # type: ignore TODO: why we are adding submanagers as ManagementController?
     return manager_details_list
 
@@ -236,7 +236,7 @@ def handle_super_manager(managerDetails: ManagementController, cpManagerApiBaseU
             global_domain = global_assignments[0]['global-domain']['uid']
 
             # policy structure is fetched from global domain
-            managerDetails.DomainUid = global_domain
+            managerDetails.domain_uid = global_domain
             global_sid: str = cp_getter.login(managerDetails)
             cp_getter.get_policy_structure(
                 cpManagerApiBaseUrl, global_sid, show_params_policy_structure, managerDetails, policy_structure=global_policy_structure
@@ -251,7 +251,7 @@ def process_devices(
     globalDomain: str | None, globalSid: str | None, cpManagerApiBaseUrl: str, sid: str, nativeConfigDomain: dict[str, Any],
     nativeConfigGlobalDomain: dict[str, Any], importState: ImportStateController
 ) -> None:
-    for device in managerDetails.Devices:
+    for device in managerDetails.devices:
         deviceConfig: dict[str,Any] = initialize_device_config(device)
         if not deviceConfig:
             continue
@@ -263,7 +263,7 @@ def process_devices(
             continue
 
         global_ordered_layer_count = 0
-        if importState.mgm_details.IsSuperManager:
+        if importState.mgm_details.is_super_manager:
             global_ordered_layer_count = handle_global_rulebase_links(
                 managerDetails, importState, deviceConfig, globalAssignments, global_policy_structure, globalDomain,
                 globalSid, orderedLayerUids, nativeConfigGlobalDomain, cpManagerApiBaseUrl
@@ -460,26 +460,26 @@ def get_objects(native_config_dict: dict[str,Any], importState: ImportStateContr
     # loop over sub-managers in case of mds
     manager_index = 0
     for manager_details in manager_details_list:
-        if manager_details.ImportDisabled and not importState.force_import:
+        if manager_details.import_disabled and not importState.force_import:
             continue
 
         is_stand_alone_manager = (len(manager_details_list) == 1)
-        if manager_details.IsSuperManager or is_stand_alone_manager:
+        if manager_details.is_super_manager or is_stand_alone_manager:
             obj_type_array = cp_const.api_obj_types
         else:
             obj_type_array = cp_const.local_api_obj_types
 
-        if manager_details.IsSuperManager:
+        if manager_details.is_super_manager:
             # for super managers we need to get both the global domain data and the Check Point Data (perdefined objects)
 
             # Check Point Data (perdefined objects)
-            manager_details.DomainName = '' 
-            manager_details.DomainUid = '' # Check Point Data 
+            manager_details.domain_name = '' 
+            manager_details.domain_uid = '' # Check Point Data 
             get_objects_per_domain(manager_details, native_config_dict['domains'][0], obj_type_array, show_params_objs, is_stand_alone_manager=is_stand_alone_manager)
             
             # global domain containing the manually added global objects
-            manager_details.DomainName = 'Global' 
-            manager_details.DomainUid = 'Global'  
+            manager_details.domain_name = 'Global' 
+            manager_details.domain_uid = 'Global'  
             get_objects_per_domain(manager_details, native_config_dict['domains'][0], obj_type_array, show_params_objs, is_stand_alone_manager=is_stand_alone_manager)
         else:
             get_objects_per_domain(manager_details, native_config_dict['domains'][manager_index], obj_type_array, show_params_objs, is_stand_alone_manager=is_stand_alone_manager)
@@ -494,7 +494,7 @@ def get_objects_per_domain(manager_details: ManagementController, native_domain:
     for obj_type in obj_type_array:
         object_table = get_objects_per_type(obj_type, show_params_objs, sid, cp_url)
         add_special_objects_to_global_domain(object_table, obj_type, sid, cp_api_url=cp_url)
-        if not is_stand_alone_manager and not manager_details.IsSuperManager:
+        if not is_stand_alone_manager and not manager_details.is_super_manager:
             remove_predefined_objects_for_domains(object_table)
         native_domain['objects'].append(object_table)
 

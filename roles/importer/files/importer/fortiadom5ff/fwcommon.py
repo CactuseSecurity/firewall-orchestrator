@@ -48,7 +48,7 @@ def get_config(config_in: FwConfigManagerListController, importState: ImportStat
         get_zones(sid, fm_api_url, native_config_global, '', limit)
 
         for adom in adom_list:
-            adom_name = adom.DomainName
+            adom_name = adom.domain_name
             native_config_adom = initialize_native_config_domain(adom)
             config_in.native_config['domains'].append(native_config_adom) # type: ignore #TYPING: None or not None this is the question
 
@@ -61,7 +61,7 @@ def get_config(config_in: FwConfigManagerListController, importState: ImportStat
             #getInterfacesAndRouting(
             #    sid, fm_api_url, nativeConfig, adom_name, adom.Devices, limit)
 
-            for mgm_details_device in adom.Devices:
+            for mgm_details_device in adom.devices:
                 device_config = initialize_device_config(mgm_details_device)
                 native_config_adom['gateways'].append(device_config)
                 get_access_policy(
@@ -87,11 +87,11 @@ def get_config(config_in: FwConfigManagerListController, importState: ImportStat
 
 def initialize_native_config_domain(mgm_details: Management) -> dict[str, Any]:
     return {
-        'domain_name': mgm_details.DomainName,
-        'domain_uid': mgm_details.DomainUid,
-        'is-super-manager': mgm_details.IsSuperManager,
-        'management_name': mgm_details.Name,
-        'management_uid': mgm_details.Uid,
+        'domain_name': mgm_details.domain_name,
+        'domain_uid': mgm_details.domain_uid,
+        'is-super-manager': mgm_details.is_super_manager,
+        'management_name': mgm_details.name,
+        'management_uid': mgm_details.uid,
         'objects': [],
         'rulebases': [],
         'nat_rulebases': [],
@@ -199,18 +199,18 @@ def normalize_single_manager_config(native_config: 'dict[str, Any]', native_conf
 
 def build_adom_list(importState : ImportStateController) -> list[Management]:
     adom_list: list[Management] = []
-    if importState.mgm_details.IsSuperManager:
-        for subManager in importState.mgm_details.SubManagers:
+    if importState.mgm_details.is_super_manager:
+        for subManager in importState.mgm_details.sub_managers:
             adom_list.append(deepcopy(subManager))
     return adom_list
 
 def build_adom_device_vdom_structure(adom_list: list[Management], sid: str, fm_api_url: str) -> dict[str, dict[str, dict[str, Any]]]:
     adom_device_vdom_structure: dict[str, dict[str, dict[str, Any]]] = {}
     for adom in adom_list:
-        adom_device_vdom_structure.update({adom.DomainName: {}})
-        if len(adom.Devices) > 0:
+        adom_device_vdom_structure.update({adom.domain_name: {}})
+        if len(adom.devices) > 0:
             device_vdom_dict = fmgr_getter.get_devices_from_manager(adom, sid, fm_api_url)
-            adom_device_vdom_structure[adom.DomainName].update(device_vdom_dict)
+            adom_device_vdom_structure[adom.domain_name].update(device_vdom_dict)
     return adom_device_vdom_structure
 
 def add_policy_package_to_vdoms(adom_device_vdom_structure: dict[str, dict[str, dict[str, str]]], sid: str, fm_api_url: str) -> dict[str, dict[str, dict[str, Any]]]:
@@ -275,9 +275,9 @@ def initialize_device_config(mgm_details_device: dict[str, Any]) -> dict[str, An
 
 def get_sid(importState: ImportStateController):
     fm_api_url = 'https://' + \
-        importState.mgm_details.Hostname + ':' + \
-        str(importState.mgm_details.Port) + '/jsonrpc'
-    sid = fmgr_getter.login(importState.mgm_details.ImportUser, importState.mgm_details.Secret, fm_api_url)
+        importState.mgm_details.hostname + ':' + \
+        str(importState.mgm_details.port) + '/jsonrpc'
+    sid = fmgr_getter.login(importState.mgm_details.import_user, importState.mgm_details.secret, fm_api_url)
     if sid is None:
         raise FwLoginFailed('did not succeed in logging in to FortiManager API, no sid returned')
     return sid

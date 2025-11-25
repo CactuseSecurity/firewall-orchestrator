@@ -401,7 +401,7 @@ class FwConfigImportCheckConsistency(FwConfigImport):
 
         # check consistency of links
         for mgr in config.ManagerSet:
-            if self.import_state.mgm_details.ImportDisabled:
+            if self.import_state.mgm_details.import_disabled:
                 continue
             for single_config in mgr.configs:        
                 # now check rblinks for all gateways
@@ -422,7 +422,7 @@ class FwConfigImportCheckConsistency(FwConfigImport):
         all_rulebase_uids: set[str] = set()
         all_rule_uids: set[str] = set()
         for mgr in config.ManagerSet:
-            if self.import_state.mgm_details.ImportDisabled:
+            if self.import_state.mgm_details.import_disabled:
                 continue
             for single_config in mgr.configs:        
                 # collect rulebase UIDs

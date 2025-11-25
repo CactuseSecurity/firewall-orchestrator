@@ -39,10 +39,10 @@ def _connect_to_device(mgm_details: ManagementController) -> GenericDriver:
         Connected GenericDriver instance.
     """
     device: dict[str, Any] = {
-        "host": mgm_details.Hostname,
-        "port": mgm_details.Port,
-        "auth_username": mgm_details.ImportUser,
-        "auth_password": mgm_details.Secret,
+        "host": mgm_details.hostname,
+        "port": mgm_details.port,
+        "auth_username": mgm_details.import_user,
+        "auth_password": mgm_details.secret,
         "auth_strict_key": False,
         "transport_options": {"open_cmd": ["-o", "KexAlgorithms=+diffie-hellman-group14-sha1"]},
     }
@@ -179,7 +179,7 @@ def _handle_connection_error(e: Exception, mgm_details: ManagementController, at
     Returns:
         Formatted error message.
     """
-    error_msg = f"Error connecting to device {mgm_details.Hostname} (attempt {attempt + 1}/{max_retries}): {e}"
+    error_msg = f"Error connecting to device {mgm_details.hostname} (attempt {attempt + 1}/{max_retries}): {e}"
     
     error_str = str(e).lower()
     if "password" in error_str or "enable" in error_str:
@@ -283,7 +283,7 @@ def load_config_from_management(mgm_details: ManagementController, is_virtual_as
         except FwoImporterError as _:
             if attempt >= max_retries - 1:
                 raise
-    raise FwoImporterError(f"Failed to connect to device {mgm_details.Hostname} after {max_retries} attempts")
+    raise FwoImporterError(f"Failed to connect to device {mgm_details.hostname} after {max_retries} attempts")
 
 
 def get_config(config_in: FwConfigManagerListController, import_state: ImportStateController) -> tuple[int, FwConfigManagerList]:
@@ -300,7 +300,7 @@ def get_config(config_in: FwConfigManagerListController, import_state: ImportSta
 
     FWOLogger.debug ( "starting checkpointAsa9/get_config" )
 
-    _ = import_state.mgm_details.DeviceTypeName == "Cisco Asa on FirePower"
+    _ = import_state.mgm_details.device_type_name == "Cisco Asa on FirePower"
 
     if config_in.native_config_is_empty: # type: ignore
         # for debugging, use: raw_config = load_config_from_management(import_state.MgmDetails, is_virtual_asa)

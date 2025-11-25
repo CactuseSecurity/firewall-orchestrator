@@ -59,7 +59,7 @@ def normalize_rulebases_for_each_link_destination(
             if rulebase_to_parse == {}:
                 FWOLogger.warning('found to_rulebase link without rulebase in nativeConfig: ' + str(rulebase_link))
                 continue
-            normalized_rulebase = initialize_normalized_rulebase(rulebase_to_parse, importState.mgm_details.Uid)
+            normalized_rulebase = initialize_normalized_rulebase(rulebase_to_parse, importState.mgm_details.uid)
             parse_rulebase(rulebase_to_parse, is_section, is_placeholder, normalized_rulebase, gateway, nativeConfig['policies'])
             fetched_rulebase_uids.append(rulebase_link['to_rulebase_uid'])
 

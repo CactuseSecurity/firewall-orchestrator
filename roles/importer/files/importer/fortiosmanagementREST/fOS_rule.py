@@ -85,7 +85,7 @@ def build_base_rule(rule_orig: dict[str, Any], import_id: int, mgm_details: Mana
         'rule_uid': rule_orig['uuid'],
         'rule_num': rule_number,
         'rule_name': rule_orig.get('name'),
-        'rule_installon': mgm_details.Devices[0]['name'] if mgm_details.Devices else None,
+        'rule_installon': mgm_details.devices[0]['name'] if mgm_details.devices else None,
         'rule_implied': False,
         'rule_time': None,
         'rule_type': 'access',

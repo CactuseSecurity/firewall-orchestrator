@@ -120,9 +120,9 @@ class ImportStateController(ImportState):
             if day_string:
                 self.data_retention_days = int(day_string)
             self.last_full_import_id, self.lastFullImportDate = \
-                api_call.get_last_complete_import({"mgmId": int(self.mgm_details.Id)}) 
+                api_call.get_last_complete_import({"mgmId": int(self.mgm_details.id)}) 
         except Exception:
-            FWOLogger.error(f"import_management - error while getting past import details for mgm={str(self.mgm_details.Id)}: {str(traceback.format_exc())}")
+            FWOLogger.error(f"import_management - error while getting past import details for mgm={str(self.mgm_details.id)}: {str(traceback.format_exc())}")
             raise
 
         if self.lastFullImportDate != "":
@@ -224,7 +224,7 @@ class ImportStateController(ImportState):
         # TODO: maps need to be updated directly after data changes
         query = """query getRulebaseMap($mgmId: Int) { rulebase(where:{mgm_id: {_eq: $mgmId}, removed:{_is_null:true }}) { id uid } }"""
         try:
-            result = api_call.call(query=query, query_variables= {"mgmId": self.mgm_details.CurrentMgmId})
+            result = api_call.call(query=query, query_variables= {"mgmId": self.mgm_details.current_mgm_id})
         except Exception:
             FWOLogger.error("Error while getting rulebases")
             self.rulebase_map = {}
@@ -236,7 +236,7 @@ class ImportStateController(ImportState):
             m.update({rulebase['uid']: rbid})
         self.rulebase_map = m
 
-        FWOLogger.debug(f"updated rulebase map for mgm_id {self.mgm_details.CurrentMgmId} with {len(self.rulebase_map)} entries")
+        FWOLogger.debug(f"updated rulebase map for mgm_id {self.mgm_details.current_mgm_id} with {len(self.rulebase_map)} entries")
 
     # limited to the current mgm_id
     # creats a dict with key = rule.uid and value = rule.id 
@@ -244,7 +244,7 @@ class ImportStateController(ImportState):
     def set_rule_map(self, api_call: FwoApi) -> None:
         query = """query getRuleMap($mgmId: Int) { rule(where:{mgm_id: {_eq: $mgmId}, removed:{_is_null:true }}) { rule_id rule_uid } }"""
         try:
-            result = api_call.call(query=query, query_variables= {"mgmId": self.mgm_details.Id})
+            result = api_call.call(query=query, query_variables= {"mgmId": self.mgm_details.id})
         except Exception:
             FWOLogger.error("Error while getting rules")
             self.rule_map = {}
@@ -298,7 +298,7 @@ class ImportStateController(ImportState):
             }
         """
         try:
-            result = api_call.call(query=query, query_variables= {"mgmId": self.mgm_details.Id})
+            result = api_call.call(query=query, query_variables= {"mgmId": self.mgm_details.id})
         except Exception:
             FWOLogger.error("Error while getting managements")
             self.ManagementMap: dict[str, int] = {}
@@ -340,7 +340,7 @@ class ImportStateController(ImportState):
         return self.link_types.get(linkUid, -1)
 
     def lookupGatewayId(self, gwUid: str) -> int | None:
-        mgm_id = self.mgm_details.CurrentMgmId
+        mgm_id = self.mgm_details.current_mgm_id
         gws_for_mgm = self.gateway_map.get(mgm_id, {})
         gw_id = gws_for_mgm.get(gwUid, None)
         if gw_id is None:
@@ -349,7 +349,7 @@ class ImportStateController(ImportState):
         return gw_id
     
     def lookup_all_gateway_ids(self) -> list[int]:
-        mgm_id = self.mgm_details.CurrentMgmId
+        mgm_id = self.mgm_details.current_mgm_id
         gws_for_mgm = self.gateway_map.get(mgm_id, {})
         gw_ids = list(gws_for_mgm.values())
         return gw_ids

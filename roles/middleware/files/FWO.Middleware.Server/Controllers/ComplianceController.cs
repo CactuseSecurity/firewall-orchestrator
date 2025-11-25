@@ -8,6 +8,7 @@ using FWO.Logging;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Text.Json;
+using FWO.Report;
 
 namespace FWO.Middleware.Server.Controllers
 {
@@ -52,13 +53,19 @@ namespace FWO.Middleware.Server.Controllers
         {
             try
             {
-                GlobalConfig GlobalConfig = await GlobalConfig.ConstructAsync(apiConnection, true);
-                UserConfig userConfig = new(GlobalConfig, apiConnection, new(){ Language = GlobalConst.kEnglish });
+                GlobalConfig globalConfig = await GlobalConfig.ConstructAsync(apiConnection, true);
+                UserConfig userConfig = new(globalConfig, apiConnection, new(){ Language = GlobalConst.kEnglish });
 
                 ComplianceCheck complianceCheck = new(userConfig, apiConnection);
                 await complianceCheck.CheckAll();
 
-                return complianceCheck.ComplianceReport!.ExportToCsv();
+                ReportCompliance reportCompliance = new(new(""), userConfig, ReportType.ComplianceReport);
+                await reportCompliance.GetManagementAndDevices(apiConnection);
+                List<Management> relevantManagements =  ComplianceCheck.GetRelevantManagements(globalConfig, reportCompliance.Managements!);
+                reportCompliance.Managements = relevantManagements;
+                await reportCompliance.GetViewDataFromRules(complianceCheck.RulesInCheck!);
+                string reportString = reportCompliance.ExportToCsv();
+                return reportString;
             }
             catch (Exception exception)
             {

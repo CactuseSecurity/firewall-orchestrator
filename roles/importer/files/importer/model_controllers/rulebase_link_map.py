@@ -21,7 +21,6 @@ class RulebaseLinkMap():
         
         links = importState.api_call.call(query, query_variables=query_variables)
         if 'errors' in links:
-            importState.Stats.addError(f"fwo_api:getRulebaseLinks - error while getting rulebaseLinks: {str(links['errors'])}")
             FWOLogger.exception(f"fwo_api:getRulebaseLinks - error while getting rulebaseLinks: {str(links['errors'])}")
             return rbLinks
 

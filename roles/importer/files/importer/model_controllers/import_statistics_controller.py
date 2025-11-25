@@ -82,3 +82,47 @@ class ImportStatisticsController():
             result['rulebase_add_count'] = self.statistics.rulebase_add_count
         if self.statistics.rulebase_delete_count > 0:
             result['rulebase_delete_count'] = self.statistics.rulebase_delete_count
+
+    def set_network_object_add_count(self, count: int):
+        self.statistics.network_object_add_count = count
+
+    def set_network_object_delete_count(self, count: int):
+        self.statistics.network_object_delete_count = count
+
+    def set_network_object_change_count(self, count: int):
+        self.statistics.network_object_change_count = count
+
+    def set_service_object_add_count(self, count: int):
+        self.statistics.service_object_add_count = count
+
+    def set_service_object_delete_count(self, count: int):
+        self.statistics.service_object_delete_count = count
+
+    def set_service_object_change_count(self, count: int):
+        self.statistics.service_object_change_count = count
+
+    def increment_rule_add_count(self, increment: int = 1):
+        self.statistics.rule_add_count += increment
+
+    def increment_rule_delete_count(self, increment: int = 1):
+        self.statistics.rule_delete_count += increment
+
+    def increment_rule_change_count(self, increment: int = 1):
+        self.statistics.rule_change_count += increment
+
+    def increment_rule_move_count(self, increment: int = 1):
+        self.statistics.rule_move_count += increment
+
+    def increment_rule_enforce_change_count(self, increment: int = 1):
+        self.statistics.rule_enforce_change_count += increment
+
+    def increment_rulebase_link_add_count(self, increment: int = 1):
+        self.statistics.rulebase_link_add_count += increment
+
+    def increment_rulebase_link_delete_count(self, increment: int = 1):
+        self.statistics.rulebase_link_delete_count += increment
+
+    def increment_rulebase_link_change_count(self, increment: int = 1):
+        self.statistics.rulebase_link_change_count += increment
+
+    

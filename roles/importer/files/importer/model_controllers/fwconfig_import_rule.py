@@ -133,10 +133,10 @@ class FwConfigImportRule():
         new_rule_ids = [rule['rule_id'] for rule in new_rule_ids]  # extract rule_ids from the returned list of dicts
         self.write_changelog_rules(new_rule_ids, removed_rule_ids)
 
-        self.import_details.Stats.RuleAddCount += num_added_rules
-        self.import_details.Stats.RuleDeleteCount += num_deleted_rules
-        self.import_details.Stats.RuleMoveCount += num_moved_rules
-        self.import_details.Stats.RuleChangeCount += num_changed_rules
+        self.import_details.stats.increment_rule_add_count(num_added_rules)
+        self.import_details.stats.increment_rule_delete_count(num_deleted_rules)
+        self.import_details.stats.increment_rule_move_count(num_moved_rules)
+        self.import_details.stats.increment_rule_change_count(num_changed_rules)
         
         for removed_rules_by_rulebase in removed_rule_ids:
             old_rule_ids.append(removed_rules_by_rulebase)

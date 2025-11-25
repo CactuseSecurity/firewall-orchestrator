@@ -29,7 +29,7 @@ class ImportStateController(ImportState):
 
     def __init__(self, configChangedSinceLastImport: bool, fwoConfig: FworchConfigController, mgmDetails: dict[str, Any], jwt: str, force: bool, 
                  version: int, isFullImport: bool = False, isInitialImport: bool = False, isClearingImport: bool = False, verifyCerts: bool = False, LastSuccessfulImport: str | None = None):
-        self.Stats = ImportStatisticsController()
+        self.stats = ImportStatisticsController()
         self.StartTime = int(time.time())
         self.VerifyCerts = verifyCerts
         self.ConfigChangedSinceLastImport = configChangedSinceLastImport

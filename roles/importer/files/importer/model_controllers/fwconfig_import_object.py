@@ -170,12 +170,12 @@ class FwConfigImportObject():
         self.add_changelog_objs(newNwObjIds, newNwSvcIds, removedNwObjIds, removedNwSvcIds)
 
         # note changes:
-        self.import_state.Stats.NetworkObjectAddCount = len(newNwObjIds)
-        self.import_state.Stats.NetworkObjectDeleteCount = len(removedNwObjIds)
-        self.import_state.Stats.NetworkObjectChangeCount = len(change_logger.changed_object_id_map.items())
-        self.import_state.Stats.ServiceObjectAddCount = len(newNwSvcIds)
-        self.import_state.Stats.ServiceObjectDeleteCount = len(removedNwSvcIds)
-        self.import_state.Stats.ServiceObjectChangeCount = len(change_logger.changed_service_id_map.items())
+        self.import_state.stats.set_network_object_add_count(len(newNwObjIds))
+        self.import_state.stats.set_network_object_delete_count(len(removedNwObjIds))
+        self.import_state.stats.set_network_object_change_count(len(change_logger.changed_object_id_map.items()))
+        self.import_state.stats.set_service_object_add_count(len(newNwSvcIds))
+        self.import_state.stats.set_service_object_delete_count(len(removedNwSvcIds))
+        self.import_state.stats.set_service_object_change_count(len(change_logger.changed_service_id_map.items()))
 
 
     def get_network_obj_type_map(self) -> dict[str, int]:

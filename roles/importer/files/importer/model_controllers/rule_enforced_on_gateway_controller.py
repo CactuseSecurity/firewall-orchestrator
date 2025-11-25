@@ -98,15 +98,11 @@ class RuleEnforcedOnGatewayController:
             import_results: dict[str,Any] = self.insert_rules_enforced_on_gateway(rule_to_gw_refs)
             if 'errors' in import_results:
                 FWOLogger.exception(f"Error in add_new_rule_enforced_on_gateway_refs: {str(import_results['errors'])}")
-                self.import_details.increaseErrorCounter(1)
-                self.import_details.appendErrorString(f"Error in add_new_rule_enforced_on_gateway_refs: {str(import_results['errors'])}")
             else:
                 changes = import_results['data']['insert_rule_enforced_on_gateway'].get('affected_rows', 1)
-                self.import_details.Stats.rule_enforce_change_count += changes
+                self.import_details.stats.increment_rule_enforce_change_count(changes)
         except Exception:
             FWOLogger.exception(f"Failed to write new rules: {str(format_exc())}")
-            self.import_details.increaseErrorCounterByOne()
-            self.import_details.appendErrorString(f"Failed to write new rules: {str(format_exc())}")
             raise
 
 

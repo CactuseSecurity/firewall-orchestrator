@@ -4,7 +4,7 @@ from model_controllers.management_controller import ManagementController
 
 """Used for storing state during import process per management"""
 class ImportState():
-    Stats: ImportStatisticsController = ImportStatisticsController()
+    stats: ImportStatisticsController = ImportStatisticsController()
     StartTime: int
     DebugLevel: int
     VerifyCerts: bool = False

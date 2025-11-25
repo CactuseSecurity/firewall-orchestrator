@@ -348,6 +348,8 @@ namespace FWO.Report
                     }
                 }
 
+                rule.Compliance = ruleCompliance;
+
                 RuleViewData ruleViewData = new RuleViewData(rule, _natRuleDisplayHtml, OutputLocation.report, ShowRule(rule), _devices ?? [], Managements, ruleCompliance);
                 RuleViewData.Add(ruleViewData);
             }

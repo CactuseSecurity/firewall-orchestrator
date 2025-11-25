@@ -64,8 +64,8 @@ namespace FWO.Middleware.Server.Controllers
                 List<Management> relevantManagements =  ComplianceCheck.GetRelevantManagements(globalConfig, reportCompliance.Managements!);
                 reportCompliance.Managements = relevantManagements;
                 await reportCompliance.GetViewDataFromRules(complianceCheck.RulesInCheck!);
-
-                return reportCompliance.ExportToCsv();
+                string reportString = reportCompliance.ExportToCsv();
+                return reportString;
             }
             catch (Exception exception)
             {

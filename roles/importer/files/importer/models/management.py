@@ -1,7 +1,7 @@
 from typing import Any
-from pydantic import Field
+from pydantic import BaseModel, ConfigDict, Field
 
-class Management():
+class Management(BaseModel):
     id: int = Field(description="Unique identifier for the (super-)management", alias="Id")
     name: str = Field(description="Name of the management", alias="Name")
     uid: str = Field(description="Unique identifier string of the management", alias="Uid")
@@ -21,3 +21,17 @@ class Management():
     domain_name: str = Field(alias='configPath', default='', description="Domain name")
     domain_uid: str = Field(alias='domainUid', default='', description="Domain UID")
     sub_managers: list['Management'] = Field(default=[], alias='subManager', description="List of sub-manager entities")
+
+    model_config = ConfigDict(populate_by_name=True)
+
+    # Override model_dump (returns a dictionary)
+    def model_dump(self, **kwargs: Any) -> dict[str, Any]:
+        # Set by_alias to True if not explicitly provided
+        kwargs.setdefault('by_alias', True)
+        return super().model_dump(**kwargs)
+
+    # Override model_dump_json (returns a JSON string)
+    def model_dump_json(self, **kwargs: Any) -> str:
+        # Set by_alias to True if not explicitly provided
+        kwargs.setdefault('by_alias', True)
+        return super().model_dump_json(**kwargs)

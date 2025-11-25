@@ -11,11 +11,7 @@ namespace FWO.Data
         public static StringBuilder DisplayGateway(Device gateway, bool isTechReport, string? gatewayName = null)
         {
             StringBuilder result = new ();
-            // PENDING REVIEW: Not sure if this block is still required.
-            // Please confirm before removal.
-            // NOSONAR
-            // result.Append($" <p class=\"no-break\">{gateway.Name}</p>");
-            result.Append($" {gateway.Name}");
+            result.Append($" <p class=\"no-break\">{gateway.Name}</p>");
             return result;
         }        
         public static StringBuilder DisplayService(NetworkService service, bool isTechReport, string? serviceName = null)

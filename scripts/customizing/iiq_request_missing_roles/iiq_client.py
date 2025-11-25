@@ -16,6 +16,8 @@ class IIQClient:
         self.debug = debug
         self.logger = logger or get_logger()
         self.uri_path_start = "/zentralefunktionen/identityiq"
+        self.uri_path_end_users = "/scim/v1/Users"
+        self.uri_path_end_roles = "/scim/v1/Roles"
         self._init_placeholders()
         self.request_body_template = self._build_request_body_template()
 
@@ -30,6 +32,7 @@ class IIQClient:
         self.app_name_origin_placeholder = "{Anwendungsname laut Alfabet-ORIGIN}"
         self.app_name_placeholder = "{Anwendungsname laut Alfabet}"
         self.app_name_upper_placeholder = "{Anwendungsname laut Alfabet-UPPER}"
+        self.role_name_suffix_prefix = "fw_rulemgmt_"
 
     def _build_request_body_template(self):
         request_body_template = {
@@ -46,7 +49,7 @@ class IIQClient:
                 {
                     "objectType": self.role_workplace_type,
                     "afType": "rva",
-                    "afNameSuffix": "fw_rulemgt_{Anwendungsname laut Alfabet}",
+                    "afNameSuffix": f"{self.role_name_suffix_prefix}{self.app_name_placeholder}",
                     "afOrgId": self.org_id_placeholder,
                     "afDesc": f"Die {self.role_workplace_type} ist erforderlich zur Beantragung, Änderung und Rezertifizierung von Firewall Regeln für die Anwendung {self.app_name_origin_placeholder} in der Firewall Orchestrierung Anwendungen auf der PROD Umgebung. Berechtigte können in FWO Anträge für die Anlage, Änderung, Löschung und Rezertifizierung von Firewall Regeln für die Anwendung stellen.",
                     "afDescription": f"Die {self.role_workplace_type} ist erforderlich zur Beantragung, Änderung und Rezertifizierung von Firewall Regeln für die Anwendung {self.app_name_origin_placeholder} in der Firewall Orchestrierung Anwendungen auf der PROD Umgebung. Berechtigte können in FWO Anträge für die Anlage, Änderung, Löschung und Rezertifizierung von Firewall Regeln für die Anwendung stellen.",
@@ -57,7 +60,7 @@ class IIQClient:
                 {
                     "objectType": self.role_business_type,
                     "gfType": "rvg",
-                    "gfNameSuffix": f"fw_rulemgt_{self.app_name_placeholder}",
+                    "gfNameSuffix": f"{self.role_name_suffix_prefix}{self.app_name_placeholder}",
                     "gfOrgId": self.org_id_placeholder,
                     "gfDesc": f"Die {self.role_business_type} ist erforderlich zur Beantragung, Änderung und Rezertifizierung von Firewall Regeln für die Anwendung {self.app_name_origin_placeholder} in der Firewall Orchestrierung Anwendungen auf der PROD Umgebung. Berechtigte können in FWO Anträge für die Anlage, Änderung, Löschung und Rezertifizierung von Firewall Regeln für die Anwendung stellen.",
                     "gfDescription": f"Die {self.role_business_type} ist erforderlich zur Beantragung, Änderung und Rezertifizierung von Firewall Regeln für die Anwendung {self.app_name_origin_placeholder} in der Firewall Orchestrierung Anwendungen auf der PROD Umgebung. Berechtigte können in FWO Anträge für die Anlage, Änderung, Löschung und Rezertifizierung von Firewall Regeln für die Anwendung stellen.",
@@ -86,7 +89,7 @@ class IIQClient:
         request_body_template["connectMapList"].append( { "objectType": self.role_business_type, "objectIndex": 1, "connectName": "A_TUFIN_REQUEST", "tfApplicationName": self.app_name } )
         return request_body_template
 
-    def send(self, body='{}', method='POST', url_path='', url_parameter='', debug=None):
+    def send(self, body: str = '{}', method='POST', url_path='', url_parameter='', debug=None):
         headers = {'Content-Type': 'application/json'}
         url = "https://" + self.hostname + url_path + url_parameter
         debug_level = self.debug if debug is None else debug
@@ -111,8 +114,8 @@ class IIQClient:
 
     def get_org_id(self, tiso, debug=None):
         debug_level = self.debug if debug is None else debug
-        url_path = self.uri_path_start + self.stage + "/scim/v1/Users"
-        url_parameter= "?filter=userName%20eq%20%22" + tiso + "%22&attributes=urn:ietf:params:scim:schemas:sailpoint:1.0:User:parent_org_id"
+        url_path = self.uri_path_start + self.stage + self.uri_path_end_users
+        url_parameter= f"?filter=userName%20eq%20%22{tiso}%22&attributes=urn:ietf:params:scim:schemas:sailpoint:1.0:User:parent_org_id"
         org_id = None
         response = self.send(method='GET', url_path= url_path, url_parameter=url_parameter, debug=debug_level)
 
@@ -152,11 +155,7 @@ class IIQClient:
             if debug_level>2:
                 self.logger.debug(f"run_workflow={str(run_workflow)}, only simulating")
 
-        iiq_req_json = json.dumps(iiq_req_body_local, ensure_ascii=False).encode('utf-8')
-
-        iiq_req_json = iiq_req_body_local
-
-        response = self.send(body=iiq_req_json,
+        response = self.send(body=json.dumps(iiq_req_body_local, ensure_ascii=False),
             url_path= self.uri_path_start + self.stage + "/workflow/v1/ModellingGeneral/createRequest",
             debug=debug_level)
 
@@ -187,7 +186,7 @@ class IIQClient:
         return match_found
 
     def _check_for_app_pattern_in_iiq_roles(self, app_prefix, app_id, match_string, stats, debug):
-        url_path = self.uri_path_start + self.stage + "/scim/v1/Roles"
+        url_path = self.uri_path_start + self.stage + self.uri_path_end_roles
         url_parameter = f"?filter=urn:ietf:params:scim:schemas:sailpoint:1.0:Role:displayableName co {match_string} and urn:ietf:params:scim:schemas:sailpoint:1.0:Role:type.name eq \"business\""
         response = self.send(
             method='GET',

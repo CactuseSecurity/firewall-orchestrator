@@ -2,7 +2,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any
 
 from models.networkobject import NetworkObject
-from roles.importer.files.importer.models.serviceobject import ServiceObject
+from models.serviceobject import ServiceObject
 
 if TYPE_CHECKING:
     from models.fwconfig_normalized import FwConfigNormalized

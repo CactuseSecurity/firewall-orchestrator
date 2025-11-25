@@ -46,41 +46,22 @@ class ManagementController(Management):
                  manager_info: ManagerInfo, domain_info: DomainInfo, 
                  import_disabled: bool = False):
         
-        self.id = mgm_id
-        self.uid = uid
-        self.devices = devices
-        self.import_disabled = import_disabled
-        
-        # Device info
-        self.name = device_info.name
-        self.device_type_name = device_info.type_name
-        self.device_type_version = device_info.type_version
-        
-        # Connection info
-        self.hostname = connection_info.hostname
-        self.port = connection_info.port
-
-        # Importer Host info
-        self.importer_hostname = importer_hostname
-
-        # Credential info
-        self.import_user = credential_info.import_user
-        self.secret = credential_info.secret
-        self.cloud_client_id = credential_info.cloud_client_id
-        self.cloud_client_secret = credential_info.cloud_client_secret
-
-        # Manager info
-        self.is_super_manager = manager_info.is_super_manager
-        self.sub_manager_ids = manager_info.sub_manager_ids or []
-        self.sub_managers = manager_info.sub_managers or []
-
-        # Current Sub-Manager info for multi-management imports
-        self.current_mgm_id = mgm_id
-        self.current_mgm_is_super_manager = manager_info.is_super_manager
-        
-        # Domain info
-        self.domain_name = domain_info.domain_name
-        self.domain_uid = domain_info.domain_uid
+        super().__init__(id=mgm_id, uid=uid, devices=devices, import_disabled=import_disabled,
+                         name=device_info.name, device_type_name=device_info.type_name,
+                         device_type_version=device_info.type_version,
+                         hostname=connection_info.hostname, port=connection_info.port,
+                         importer_hostname=importer_hostname,
+                         import_user=credential_info.import_user, secret=credential_info.secret,
+                         is_super_manager=manager_info.is_super_manager,
+                         sub_manager_ids=manager_info.sub_manager_ids or [],
+                         sub_managers=manager_info.sub_managers or [],
+                         current_mgm_id=mgm_id,
+                         current_mgm_is_super_manager=manager_info.is_super_manager,
+                         domain_name=domain_info.domain_name,
+                         domain_uid=domain_info.domain_uid,
+                         cloud_client_id=credential_info.cloud_client_id,
+                         cloud_client_secret=credential_info.cloud_client_secret
+                         )
 
     @classmethod
     def from_json(cls, json_dict: dict[str, Any]) -> "ManagementController":

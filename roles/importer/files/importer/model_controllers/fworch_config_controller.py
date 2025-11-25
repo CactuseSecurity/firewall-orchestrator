@@ -6,7 +6,6 @@ from models.fworch_config import FworchConfig
     as read from the global config file including FWO URI
 """
 class FworchConfigController(FworchConfig):
-
     def __init__(self, fwo_api_url: str | None, fwo_user_mgmt_api_uri: str | None, importer_pwd: str | None , api_fetch_size: int = 500):
         if fwo_api_url is not None:
             self.fwo_api_url = fwo_api_url

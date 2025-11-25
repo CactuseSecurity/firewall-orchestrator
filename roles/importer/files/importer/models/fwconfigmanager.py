@@ -1,4 +1,5 @@
-from pydantic import BaseModel, Field
+from typing import Any
+from pydantic import BaseModel, ConfigDict, Field
 from models.fwconfig_normalized import FwConfigNormalized
 
 class FwConfigManager(BaseModel):
@@ -10,7 +11,13 @@ class FwConfigManager(BaseModel):
     sub_manager_ids: list[int] = Field(default=[], description="List of sub-manager IDs", alias="SubManagerIds")
     configs: list[FwConfigNormalized] = Field(default=[], description="List of normalized firewall configurations", alias="Configs")
 
-    model_config = {
-        "arbitrary_types_allowed": True
-    } 
-    
+    model_config = ConfigDict(populate_by_name=True)
+
+
+    def model_dump(self, **kwargs: Any) -> dict[str, Any]:
+        kwargs.setdefault('by_alias', True)
+        return super().model_dump(**kwargs)
+
+    def model_dump_json(self, **kwargs: Any) -> str:
+        kwargs.setdefault('by_alias', True)
+        return super().model_dump_json(**kwargs)

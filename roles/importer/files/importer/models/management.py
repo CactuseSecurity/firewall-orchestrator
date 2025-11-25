@@ -21,6 +21,9 @@ class Management(BaseModel):
     domain_name: str = Field(alias='configPath', default='', description="Domain name")
     domain_uid: str = Field(alias='domainUid', default='', description="Domain UID")
     sub_managers: list['Management'] = Field(default=[], alias='subManager', description="List of sub-manager entities")
+    cloud_client_id: str | None = Field(description="Cloud client ID for authentication", alias="CloudClientId", default=None)
+    cloud_client_secret: str | None = Field(description="Cloud client secret for authentication", alias="CloudClientSecret", default=None)
+
 
     model_config = ConfigDict(populate_by_name=True)
 

@@ -40,7 +40,7 @@ def main(
     )
     fw_config_manager.configs.append(mock_config)
     fw_config_manager_list_controller.ManagerSet.append(fw_config_manager)
-    file_path = fw_config_manager_list_controller.storeFullNormalizedConfigToFile(fw_mock_import_state)
+    file_path = fw_config_manager_list_controller.store_full_normalized_config_to_file(fw_mock_import_state)
 
     print(f"MockConfig: File saved to '{file_path}'")
 

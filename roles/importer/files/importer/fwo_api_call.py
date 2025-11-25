@@ -6,7 +6,6 @@ import time
 from typing import TYPE_CHECKING, Any
 
 import fwo_const
-import fwo_globals
 from fwo_log import FWOLogger
 from fwo_api import FwoApi
 from fwo_exceptions import FwoApiFailedLockImport

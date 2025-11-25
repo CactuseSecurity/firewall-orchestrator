@@ -66,8 +66,8 @@ class ManagementController(Management):
         # Credential info
         self.ImportUser = credential_info.import_user
         self.Secret = credential_info.secret
-        self.CloudClientId = credential_info.cloud_client_id
-        self.CloudClientSecret = credential_info.cloud_client_secret
+        self.cloud_client_id = credential_info.cloud_client_id
+        self.cloud_client_secret = credential_info.cloud_client_secret
 
         # Manager info
         self.IsSuperManager = manager_info.is_super_manager

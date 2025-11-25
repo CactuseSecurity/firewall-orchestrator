@@ -51,48 +51,48 @@ class FwConfigImportObject():
         self.protocol_map = self.get_protocol_map()
 
 
-    def updateObjectDiffs(self, prev_config: FwConfigNormalized, prev_global_config: FwConfigNormalized|None, single_manager: FwConfigManager):
+    def update_object_diffs(self, prev_config: FwConfigNormalized, prev_global_config: FwConfigNormalized|None, single_manager: FwConfigManager):
 
         change_logger = ChangeLogger()
         if self.normalized_config is None:
-            raise FwoImporterError("no normalized config available in FwConfigImportObject.updateObjectDiffs")
+            raise FwoImporterError("no normalized config available in FwConfigImportObject.update_object_diffs")
         # calculate network object diffs
         # here we are handling the previous config as a dict for a while
         # previousNwObjects = prevConfig.network_objects
-        deletedNwobjUids: list[str] = list(prev_config.network_objects.keys() - self.normalized_config.network_objects.keys())
-        newNwobjUids: list[str] = list(self.normalized_config.network_objects.keys() - prev_config.network_objects.keys())
-        nwobjUidsInBoth: list[str] = list(self.normalized_config.network_objects.keys() & prev_config.network_objects.keys())
+        deleted_nw_obj_uids: list[str] = list(prev_config.network_objects.keys() - self.normalized_config.network_objects.keys())
+        new_nw_obj_uids: list[str] = list(self.normalized_config.network_objects.keys() - prev_config.network_objects.keys())
+        nw_obj_uids_in_both: list[str] = list(self.normalized_config.network_objects.keys() & prev_config.network_objects.keys())
 
         # For correct changelog and stats.
         changed_nw_objs: list[str] = []
         changed_svcs: list[str] = []
 
         # decide if it is prudent to mix changed, deleted and added rules here:
-        for nwObjUid in nwobjUidsInBoth:
-            if self.normalized_config.network_objects[nwObjUid] != prev_config.network_objects[nwObjUid]:
-                newNwobjUids.append(nwObjUid)
-                deletedNwobjUids.append(nwObjUid)
-                changed_nw_objs.append(nwObjUid)
+        for nw_obj_uid in nw_obj_uids_in_both:
+            if self.normalized_config.network_objects[nw_obj_uid] != prev_config.network_objects[nw_obj_uid]:
+                new_nw_obj_uids.append(nw_obj_uid)
+                deleted_nw_obj_uids.append(nw_obj_uid)
+                changed_nw_objs.append(nw_obj_uid)
 
         # calculate service object diffs
-        deletedSvcObjUids: list[str] = list(prev_config.service_objects.keys() - self.normalized_config.service_objects.keys())
-        newSvcObjUids: list[str] = list(self.normalized_config.service_objects.keys() - prev_config.service_objects.keys())
-        svcObjUidsInBoth: list[str] = list(self.normalized_config.service_objects.keys() & prev_config.service_objects.keys())
+        deleted_svc_obj_uids: list[str] = list(prev_config.service_objects.keys() - self.normalized_config.service_objects.keys())
+        new_svc_obj_uids: list[str] = list(self.normalized_config.service_objects.keys() - prev_config.service_objects.keys())
+        svc_obj_uids_in_both: list[str] = list(self.normalized_config.service_objects.keys() & prev_config.service_objects.keys())
 
-        for nwSvcUid in svcObjUidsInBoth:
-            if self.normalized_config.service_objects[nwSvcUid] != prev_config.service_objects[nwSvcUid]:
-                newSvcObjUids.append(nwSvcUid)
-                deletedSvcObjUids.append(nwSvcUid)
-                changed_svcs.append(nwSvcUid)
+        for svc_obj_uid in svc_obj_uids_in_both:
+            if self.normalized_config.service_objects[svc_obj_uid] != prev_config.service_objects[svc_obj_uid]:
+                new_svc_obj_uids.append(svc_obj_uid)
+                deleted_svc_obj_uids.append(svc_obj_uid)
+                changed_svcs.append(svc_obj_uid)
         
         # calculate user diffs
-        deletedUserUids: list[str] = list(prev_config.users.keys() - self.normalized_config.users.keys())
-        newUserUids: list[str] = list(self.normalized_config.users.keys() - prev_config.users.keys())
-        userUidsInBoth: list[str] = list(self.normalized_config.users.keys() & prev_config.users.keys())
-        for userUid in userUidsInBoth:
-            if self.normalized_config.users[userUid] != prev_config.users[userUid]:
-                newUserUids.append(userUid)
-                deletedUserUids.append(userUid)
+        deleted_user_uids: list[str] = list(prev_config.users.keys() - self.normalized_config.users.keys())
+        new_user_uids: list[str] = list(self.normalized_config.users.keys() - prev_config.users.keys())
+        user_uids_in_both: list[str] = list(self.normalized_config.users.keys() & prev_config.users.keys())
+        for user_uid in user_uids_in_both:
+            if self.normalized_config.users[user_uid] != prev_config.users[user_uid]:
+                new_user_uids.append(user_uid)
+                deleted_user_uids.append(user_uid)
 
         # initial mapping of object uids to ids. needs to be updated, if more objects are created in the db after this point
         #TODO: only fetch objects needed later. Esp for !isFullImport. but: newNwObjIds not enough!
@@ -124,12 +124,12 @@ class FwConfigImportObject():
                 changed_zones.append(zone_name)
 
         # add newly created objects
-        newNwObjIds, newNwSvcIds, newUserIds, new_zone_ids, removedNwObjIds, removedNwSvcIds, _, _ =  \
-            self.update_objects_via_api(single_manager, newNwobjUids, newSvcObjUids, newUserUids, new_zone_names, deletedNwobjUids, deletedSvcObjUids, deletedUserUids, deleted_zone_names)
+        new_nw_obj_ids, new_svc_obj_ids, new_user_ids, new_zone_ids, removed_nw_obj_ids, removed_svc_obj_ids, _, _ =  \
+            self.update_objects_via_api(single_manager, new_nw_obj_uids, new_svc_obj_uids, new_user_uids, new_zone_names, deleted_nw_obj_uids, deleted_svc_obj_uids, deleted_user_uids, deleted_zone_names)
         
-        self.uid2id_mapper.add_network_object_mappings(newNwObjIds, is_global=single_manager.is_super_manager)
-        self.uid2id_mapper.add_service_object_mappings(newNwSvcIds, is_global=single_manager.is_super_manager)
-        self.uid2id_mapper.add_user_mappings(newUserIds, is_global=single_manager.is_super_manager)
+        self.uid2id_mapper.add_network_object_mappings(new_nw_obj_ids, is_global=single_manager.is_super_manager)
+        self.uid2id_mapper.add_service_object_mappings(new_svc_obj_ids, is_global=single_manager.is_super_manager)
+        self.uid2id_mapper.add_user_mappings(new_user_ids, is_global=single_manager.is_super_manager)
         self.uid2id_mapper.add_zone_mappings(new_zone_ids, is_global=single_manager.is_super_manager)
 
         # insert new and updated group memberships
@@ -143,37 +143,37 @@ class FwConfigImportObject():
         # TODO: write changelog for zones
         # Get Changed Ids.
 
-        change_logger.create_change_id_maps(self.uid2id_mapper, changed_nw_objs, changed_svcs, removedNwObjIds, removedNwSvcIds)
+        change_logger.create_change_id_maps(self.uid2id_mapper, changed_nw_objs, changed_svcs, removed_nw_obj_ids, removed_svc_obj_ids)
 
         # Seperate changes from adds and removes for changelog and stats.
 
-        newNwObjIds = [newNwObjId
-            for newNwObjId in newNwObjIds
-            if newNwObjId['obj_id'] not in list(change_logger.changed_object_id_map.values())       
+        new_nw_obj_ids = [new_nw_obj_id
+            for new_nw_obj_id in new_nw_obj_ids
+            if new_nw_obj_id['obj_id'] not in list(change_logger.changed_object_id_map.values())       
         ]
-        removedNwObjIds = [removedNwObjId
-            for removedNwObjId in removedNwObjIds
-            if removedNwObjId['obj_id'] not in list(change_logger.changed_object_id_map.keys())       
+        removed_nw_obj_ids = [removed_nw_obj_id
+            for removed_nw_obj_id in removed_nw_obj_ids
+            if removed_nw_obj_id['obj_id'] not in list(change_logger.changed_object_id_map.keys())       
         ]
-        newNwSvcIds = [newNwSvcId
-            for newNwSvcId in newNwSvcIds
-            if newNwSvcId['svc_id'] not in list(change_logger.changed_service_id_map.values())       
+        new_svc_obj_ids = [new_svc_obj_id
+            for new_svc_obj_id in new_svc_obj_ids
+            if new_svc_obj_id['svc_id'] not in list(change_logger.changed_service_id_map.values())       
         ]
-        removedNwSvcIds = [removedNwSvcId
-            for removedNwSvcId in removedNwSvcIds
-            if removedNwSvcId['svc_id'] not in list(change_logger.changed_service_id_map.keys())       
+        removed_svc_obj_ids = [removed_svc_obj_id
+            for removed_svc_obj_id in removed_svc_obj_ids
+            if removed_svc_obj_id['svc_id'] not in list(change_logger.changed_service_id_map.keys())       
         ]
 
         # Write change logs to tables.
         
-        self.add_changelog_objs(newNwObjIds, newNwSvcIds, removedNwObjIds, removedNwSvcIds)
+        self.add_changelog_objs(new_nw_obj_ids, new_svc_obj_ids, removed_nw_obj_ids, removed_svc_obj_ids)
 
         # note changes:
-        self.import_state.stats.set_network_object_add_count(len(newNwObjIds))
-        self.import_state.stats.set_network_object_delete_count(len(removedNwObjIds))
+        self.import_state.stats.set_network_object_add_count(len(new_nw_obj_ids))
+        self.import_state.stats.set_network_object_delete_count(len(removed_nw_obj_ids))
         self.import_state.stats.set_network_object_change_count(len(change_logger.changed_object_id_map.items()))
-        self.import_state.stats.set_service_object_add_count(len(newNwSvcIds))
-        self.import_state.stats.set_service_object_delete_count(len(removedNwSvcIds))
+        self.import_state.stats.set_service_object_add_count(len(new_svc_obj_ids))
+        self.import_state.stats.set_service_object_delete_count(len(removed_svc_obj_ids))
         self.import_state.stats.set_service_object_change_count(len(change_logger.changed_service_id_map.items()))
 
 

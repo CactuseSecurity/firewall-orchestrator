@@ -114,18 +114,18 @@ def _import_management(mgm_id: int, ssl_verification: bool, file: str | None,
         config_changed_since_last_import, config_normalized = get_config_top_level(import_state, file, gateways)
 
         # write normalized config to file
-        config_normalized.storeFullNormalizedConfigToFile(import_state)
+        config_normalized.store_full_normalized_config_to_file(import_state)
         FWOLogger.debug("import_management - getting config total duration " + str(int(time.time()) - import_state.start_time) + "s")
 
     # check config consistency and import it
     if config_changed_since_last_import or import_state.force_import:
-        FwConfigImportCheckConsistency(import_state, config_normalized).checkConfigConsistency(config_normalized)
+        FwConfigImportCheckConsistency(import_state, config_normalized).check_config_consistency(config_normalized)
         config_importer.import_management_set(import_state, service_provider, config_normalized)
 
     # delete data that has passed the retention time
     # TODO: replace by deletion of old data with removed date > retention?
     if not clear_management_data and import_state.data_retention_days<import_state.days_since_last_full_import:
-        config_importer.deleteOldImports() # delete all imports of the current management before the last but one full import
+        config_importer.delete_old_imports() # delete all imports of the current management before the last but one full import
 
 
 
@@ -147,7 +147,7 @@ def roll_back_exception_handler(import_state: ImportStateController, config_impo
             else:
                 FWOLogger.error(f"Exception: no exception provided")
         if 'configImporter' in locals() and config_importer is not None:
-            FwConfigImportRollback().rollbackCurrentImport()
+            FwConfigImportRollback().rollback_current_import()
         else:
             FWOLogger.info("No configImporter found, skipping rollback.")
         import_state.delete_import() # delete whole import

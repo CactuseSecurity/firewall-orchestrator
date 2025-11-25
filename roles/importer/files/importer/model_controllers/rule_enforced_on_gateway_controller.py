@@ -5,14 +5,13 @@ import fwo_const
 from model_controllers.import_state_controller import ImportStateController
 from fwo_log import FWOLogger
 from model_controllers.rulebase_link_controller import RulebaseLinkController
-from models.rule import Rule
 
 
 class RuleEnforcedOnGatewayController:
     def __init__(self, import_state: ImportStateController):
         self.import_details: ImportStateController = import_state
 
-    def add_new_rule_enforced_on_gateway_refs(self, new_rules: list[Rule], import_state: ImportStateController):
+    def add_new_rule_enforced_on_gateway_refs(self, new_rules: list[dict[str, Any]], import_state: ImportStateController):
         """
         Main function to add new rule-to-gateway references.
         """

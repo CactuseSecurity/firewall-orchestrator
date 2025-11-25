@@ -98,7 +98,7 @@ def _ensure_enable_mode(conn: GenericDriver, mgm_details: ManagementController) 
             conn.send_interactive(
                 [
                     ("enable", "Password", False),
-                    (mgm_details.CloudClientSecret, "#", True)
+                    (mgm_details.cloud_client_secret, "#", True)
                 ]
             )
         except Exception as e:

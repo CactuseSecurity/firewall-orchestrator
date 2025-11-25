@@ -189,7 +189,7 @@ class MockFwConfigImportRule(FwConfigImportRule):
         return changes, collectedRemovedRuleIds
 
 
-    def getRules(self, ruleUids: list[str]) -> list[Rulebase]:
+    def get_rules(self, ruleUids: list[str]) -> list[Rulebase]:
         """
             Simulates returning rules by UID. Delegates to base if not stubbed.
 
@@ -203,12 +203,12 @@ class MockFwConfigImportRule(FwConfigImportRule):
         rulebases: list[Rulebase] = []
 
         if not self.stub_getRules:
-            rulebases = super().getRules(ruleUids)
+            rulebases = super().get_rules(ruleUids)
 
         return rulebases
 
 
-    def addNewRuleMetadata(self, newRules: list[Rulebase]) -> tuple[int, list[int]]:
+    def add_new_rule_metadata(self, newRules: list[Rulebase]) -> tuple[int, list[int]]:
         """
             Simulates adding metadata for new rules. Delegates to base if not stubbed.
 
@@ -223,7 +223,7 @@ class MockFwConfigImportRule(FwConfigImportRule):
         newRuleIds: list[int] = []
 
         if not self.stub_addNewRuleMetadata:
-            changes, newRuleIds = super().addNewRuleMetadata(newRules)
+            changes, newRuleIds = super().add_new_rule_metadata(newRules)
 
         return changes, newRuleIds
 

@@ -5,9 +5,9 @@ from model_controllers.import_state_controller import ImportStateController
 class RulebaseLinkMap():
 
 
-    def getRulebaseLinks(self, importState: ImportStateController, gwIds: list[int] = []) -> list[dict[str, Any]]:
-        query_variables = { "gwIds": gwIds}
-        rbLinks: list[dict[str, Any]] = []
+    def get_rulebase_links(self, import_state: ImportStateController, gw_ids: list[int] = []) -> list[dict[str, Any]]:
+        query_variables = { "gwIds": gw_ids}
+        rb_links: list[dict[str, Any]] = []
 
         query = """
             query getRulebaseLinks($gwIds: [Int!]) {
@@ -19,17 +19,17 @@ class RulebaseLinkMap():
                 }
             }"""
         
-        links = importState.api_call.call(query, query_variables=query_variables)
+        links = import_state.api_call.call(query, query_variables=query_variables)
         if 'errors' in links:
             FWOLogger.exception(f"fwo_api:getRulebaseLinks - error while getting rulebaseLinks: {str(links['errors'])}")
-            return rbLinks
+            return rb_links
 
-        rbLinks = links['data']['rulebase_link']
-        return rbLinks
+        rb_links = links['data']['rulebase_link']
+        return rb_links
     
     
     # TODO: implement SetMapOfAllEnforcingGatewayIdsForRulebaseId
 
-    def GetGwIdsForRulebaseId(self, rulebaseId: int, importState: ImportStateController) -> list[int]:
-        return importState.RulbaseToGatewayMap.get(rulebaseId, [])
+    def get_gw_ids_for_rulebase_id(self, rulebase_id: int, import_state: ImportStateController) -> list[int]:
+        return import_state.RulbaseToGatewayMap.get(rulebase_id, [])
     

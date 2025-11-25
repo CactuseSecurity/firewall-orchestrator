@@ -82,7 +82,7 @@ class TestUpdateRulebaseDiffs(unittest.TestCase):
         
         # Act
 
-        self._fwconfig_import_rule.updateRulebaseDiffs(self._previous_config)
+        self._fwconfig_import_rule.update_rulebase_diffs(self._previous_config)
 
         # Assert
 
@@ -126,7 +126,7 @@ class TestUpdateRulebaseDiffs(unittest.TestCase):
 
         # Act
 
-        self._fwconfig_import_rule.updateRulebaseDiffs(self._previous_config)
+        self._fwconfig_import_rule.update_rulebase_diffs(self._previous_config)
 
         # Assert
 
@@ -160,7 +160,7 @@ class TestUpdateRulebaseDiffs(unittest.TestCase):
 
         # Act
 
-        self._fwconfig_import_rule.updateRulebaseDiffs(self._previous_config)
+        self._fwconfig_import_rule.update_rulebase_diffs(self._previous_config)
 
         # Assert
 
@@ -198,7 +198,7 @@ class TestUpdateRulebaseDiffs(unittest.TestCase):
 
         # Act
 
-        self._fwconfig_import_rule.updateRulebaseDiffs(self._previous_config)
+        self._fwconfig_import_rule.update_rulebase_diffs(self._previous_config)
 
         # Assert
 
@@ -246,7 +246,7 @@ class TestUpdateRulebaseDiffs(unittest.TestCase):
 
             # Act
 
-            self._fwconfig_import_rule.updateRulebaseDiffs(self._previous_config)
+            self._fwconfig_import_rule.update_rulebase_diffs(self._previous_config)
 
             # Assert
 

@@ -23,15 +23,15 @@ class FwConfigManagerListController(FwConfigManagerList):
     def __str__(self):
         return f"{str(self.ManagerSet)})"
 
-    def toJson(self):
+    def to_json(self):
         return deserialize_class_to_dict_rec(self)
 
-    def toJsonString(self, prettyPrint: bool=False):
-        jsonDict = self.toJson()
-        if prettyPrint:
-            return json.dumps(jsonDict, indent=2, cls=FwoEncoder)
+    def to_json_string(self, pretty_print: bool=False):
+        json_dict = self.to_json()
+        if pretty_print:
+            return json.dumps(json_dict, indent=2, cls=FwoEncoder)
         else:
-            return json.dumps(jsonDict)
+            return json.dumps(json_dict)
         
     def mergeConfigs(self, conf2: 'FwConfigManagerListController'):
         if self.ConfigFormat==conf2.ConfigFormat:
@@ -52,21 +52,21 @@ class FwConfigManagerListController(FwConfigManagerList):
                                         domain_uid="",
                                         manager_name=""
                                         )
-        empty_config.addManager(empty_manager)
+        empty_config.add_manager(empty_manager)
         empty_config.native_config = {}
         return empty_config
 
 # to be re-written:
-    def toJsonLegacy(self):
+    def to_json_legacy(self):
         return deserialize_class_to_dict_rec(self)
 
 # to be re-written:
-    def toJsonStringLegacy(self, prettyPrint: bool=False):
-        jsonDict = self.toJson()
-        if prettyPrint:
-            return json.dumps(jsonDict, indent=2, cls=FwoEncoder)
+    def to_json_string_legacy(self, pretty_print: bool=False):
+        json_dict = self.to_json()
+        if pretty_print:
+            return json.dumps(json_dict, indent=2, cls=FwoEncoder)
         else:
-            return json.dumps(jsonDict, cls=FwoEncoder)
+            return json.dumps(json_dict, cls=FwoEncoder)
 
 
     def get_all_zone_names(self, mgr_uid: str) -> set[str]:
@@ -117,39 +117,39 @@ class FwConfigManagerListController(FwConfigManagerList):
         return set(all_user_objects)
     
 
-    def addManager(self, manager: FwConfigManager):
+    def add_manager(self, manager: FwConfigManager):
         self.ManagerSet.append(manager)
 
-    def getFirstManager(self):
+    def get_first_manager(self):
         if len(self.ManagerSet)>0:
             return self.ManagerSet[0]
         else:
             return None
 
     @staticmethod
-    def getDevUidFromRulebaseName(rb_name: str) -> str:
+    def get_device_uid_from_rulebase_name(rb_name: str) -> str:
         return rb_name
 
     @staticmethod
-    def getPolicyUidFromRulebaseName(rb_name: str) -> str:
+    def get_policy_uid_from_rulebase_name(rb_name: str) -> str:
         return rb_name
     
     @classmethod
-    def FromJson(cls, jsonIn: dict[str, Any]) -> 'FwConfigManagerListController':
-        return serialize_dict_to_class_rec(jsonIn, cls)
+    def from_json(cls, json_in: dict[str, Any]) -> 'FwConfigManagerListController':
+        return serialize_dict_to_class_rec(json_in, cls)
 
 
-    def storeFullNormalizedConfigToFile(self, importState: ImportStateController):
+    def store_full_normalized_config_to_file(self, import_state: ImportStateController):
         if fwo_globals.debug_level>5:
             debug_start_time = int(time.time())
             try:
-                normalized_config_filename = f"{IMPORT_TMP_PATH}/mgm_id_{str(importState.mgm_details.Id)}_config_normalized.json"
+                normalized_config_filename = f"{IMPORT_TMP_PATH}/mgm_id_{str(import_state.mgm_details.Id)}_config_normalized.json"
 
                 config_copy_without_native= deepcopy(self)
                 config_copy_without_native.native_config = {}
 
                 with open(normalized_config_filename, "w") as json_data:
-                    json_data.write(config_copy_without_native.toJsonString(prettyPrint=True))
+                    json_data.write(config_copy_without_native.to_json_string(pretty_print=True))
                 time_write_debug_json = int(time.time()) - debug_start_time
                 FWOLogger.debug(f"storeFullNormalizedConfigToFile - writing normalized config json files duration {str(time_write_debug_json)}s")
                 

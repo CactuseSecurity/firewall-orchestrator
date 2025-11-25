@@ -31,56 +31,56 @@ class Route:
             self.ip_version = ip_version
 
 
-    def isDefaultRoute(self):
-        return self.isDefaultRouteV4() or self.isDefaultRouteV6()
+    def is_default_route(self):
+        return self.is_default_route_v4() or self.is_default_route_v6()
 
 
-    def isDefaultRouteV4(self):
+    def is_default_route_v4(self):
         return self.ip_version == 4 and self.destination == IPNetwork('0.0.0.0/0')
 
 
-    def isDefaultRouteV6(self):
+    def is_default_route_v6(self):
         return self.ip_version==6 and self.destination == IPNetwork('::/0')
 
 
-    def routeMatches(self, destination: str, dev_id: int) -> bool:
+    def route_matches(self, destination: str, dev_id: int) -> bool:
         ip_n = IPNetwork(self.destination).cidr
         dest_n = IPNetwork(destination).cidr
         return dev_id == self.routing_device and (ip_n in dest_n or dest_n in ip_n)
     
-    def getRouteDestination(self):
+    def get_route_destination(self):
         return self.destination
 
 
 
 class RouteSerializable(Route):
-    def __init__(self, routeIn: dict[str, Any] | Route):
-        if type(routeIn) is dict:
-            self.routing_device = routeIn['routing_device']
-            self.interface = routeIn['interface']
-            self.target_gateway = str(routeIn['target_gateway'])
-            self.destination = str(routeIn['destination'])
-            if routeIn['source'] is None:
+    def __init__(self, route_in: dict[str, Any] | Route):
+        if type(route_in) is dict:
+            self.routing_device = route_in['routing_device']
+            self.interface = route_in['interface']
+            self.target_gateway = str(route_in['target_gateway'])
+            self.destination = str(route_in['destination'])
+            if route_in['source'] is None:
                 self.source = None
             else:
-                self.source = str(routeIn['source'])
-            self.static = routeIn['static']
-            self.metric = routeIn['metric']
-            self.distance = routeIn['distance']
-            self.ip_version = routeIn['ip_version']
-        elif isinstance(routeIn, Route):
-            self.routing_device = routeIn.routing_device
-            self.interface = routeIn.interface
-            self.target_gateway = str(routeIn.target_gateway)
-            self.destination = str(routeIn.destination)
-            if routeIn.source is None:
+                self.source = str(route_in['source'])
+            self.static = route_in['static']
+            self.metric = route_in['metric']
+            self.distance = route_in['distance']
+            self.ip_version = route_in['ip_version']
+        elif isinstance(route_in, Route):
+            self.routing_device = route_in.routing_device
+            self.interface = route_in.interface
+            self.target_gateway = str(route_in.target_gateway)
+            self.destination = str(route_in.destination)
+            if route_in.source is None:
                 self.source = None
             else:
-                self.source = str(routeIn.source)
-            self.static = routeIn.static
-            self.metric = routeIn.metric
-            self.distance = routeIn.distance
-            self.ip_version = routeIn.ip_version
+                self.source = str(route_in.source)
+            self.static = route_in.static
+            self.metric = route_in.metric
+            self.distance = route_in.distance
+            self.ip_version = route_in.ip_version
 
 
 def get_route_destination(obj: Route):
@@ -111,7 +111,7 @@ def get_matching_route_obj(destination_ip: str, routing_table: list[Route], dev_
 
     # assuiming routing table to be in sorted state already
     for route in routing_table:
-        if route.routeMatches(destination_ip, dev_id):
+        if route.route_matches(destination_ip, dev_id):
             return route
 
     FWOLogger.warning('src nat behind interface: found no matching route in routing table - no default route?!')

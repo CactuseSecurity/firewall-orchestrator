@@ -159,7 +159,7 @@ class ImportStateController(ImportState):
 
         # the following maps will be empty when starting first import of a management
         self.SetRulebaseMap(api_call)
-        self.SetRuleMap(api_call)
+        self.set_rule_map(api_call)
 
     def SetActionMap(self, api_call: FwoApiCall):
         query = "query getActionMap { stm_action { action_name action_id allowed } }"
@@ -241,7 +241,7 @@ class ImportStateController(ImportState):
     # limited to the current mgm_id
     # creats a dict with key = rule.uid and value = rule.id 
     # should be called sparsely, as there might be a lot of rules for a mgmt
-    def SetRuleMap(self, api_call: FwoApi) -> None:
+    def set_rule_map(self, api_call: FwoApi) -> None:
         query = """query getRuleMap($mgmId: Int) { rule(where:{mgm_id: {_eq: $mgmId}, removed:{_is_null:true }}) { rule_id rule_uid } }"""
         try:
             result = api_call.call(query=query, query_variables= {"mgmId": self.mgm_details.Id})

@@ -131,9 +131,9 @@ def normalize_config(native_config: dict[str,Any]) -> FwConfigManagerListControl
 
         normalized_config = FwConfigNormalized(
             action=ConfigAction.INSERT, 
-            network_objects=FwConfigNormalizedController.convertListToDict(normalized_config_adom.get('network_objects', []), 'obj_uid'),
-            service_objects=FwConfigNormalizedController.convertListToDict(normalized_config_adom.get('service_objects', []), 'svc_uid'),
-            zone_objects=FwConfigNormalizedController.convertListToDict(normalized_config_adom.get('zone_objects', []), 'zone_name'),
+            network_objects=FwConfigNormalizedController.convert_list_to_dict(normalized_config_adom.get('network_objects', []), 'obj_uid'),
+            service_objects=FwConfigNormalizedController.convert_list_to_dict(normalized_config_adom.get('service_objects', []), 'svc_uid'),
+            zone_objects=FwConfigNormalizedController.convert_list_to_dict(normalized_config_adom.get('zone_objects', []), 'zone_name'),
             rulebases=normalized_config_adom.get('policies', []),
             gateways=normalized_config_adom.get('gateways', [])
         )
@@ -148,7 +148,7 @@ def normalize_config(native_config: dict[str,Any]) -> FwConfigManagerListControl
                                     sub_manager_ids=[], 
                                     configs=[normalized_config])
 
-        manager_list.addManager(manager)
+        manager_list.add_manager(manager)
 
     return manager_list
 

@@ -40,12 +40,12 @@ class FwConfigImportCheckConsistency(FwConfigImport):
 
 
     # pre-flight checks
-    def checkConfigConsistency(self, config: FwConfigManagerListController):
-        self.checkColorConsistency(config, fix=True)
-        self.checkNetworkObjectConsistency(config)
-        self.checkServiceObjectConsistency(config)
-        self.checkUserObjectConsistency(config)
-        self.checkZoneObjectConsistency(config)
+    def check_config_consistency(self, config: FwConfigManagerListController):
+        self.check_color_consistency(config, fix=True)
+        self.check_network_object_consistency(config)
+        self.check_service_object_consistency(config)
+        self.check_user_object_consistency(config)
+        self.check_zone_object_consistency(config)
         self.check_rulebase_consistency(config)
         self.check_gateway_consistency(config)
         self.check_rulebase_link_consistency(config)
@@ -56,7 +56,7 @@ class FwConfigImportCheckConsistency(FwConfigImport):
         FWOLogger.debug("Consistency check completed without issues.")
 
 
-    def checkNetworkObjectConsistency(self, config: FwConfigManagerListController):
+    def check_network_object_consistency(self, config: FwConfigManagerListController):
         # check if all uid refs are valid
         global_objects: set[str] = set()
         single_config: FwConfigNormalized
@@ -127,7 +127,7 @@ class FwConfigImportCheckConsistency(FwConfigImport):
             self.issues.update({'non-group network object with undefined IP addresse(s)': list(nonGroupNwObjWithMissingIps)})
 
 
-    def checkServiceObjectConsistency(self, config: FwConfigManagerListController):
+    def check_service_object_consistency(self, config: FwConfigManagerListController):
         # check if all uid refs are valid
         global_objects: set[str] = set()
 
@@ -183,7 +183,7 @@ class FwConfigImportCheckConsistency(FwConfigImport):
         return all_used_obj_refs
 
 
-    def checkUserObjectConsistency(self, config: FwConfigManagerListController):
+    def check_user_object_consistency(self, config: FwConfigManagerListController):
         global_objects: set[str] = set()
         # add all user refs from all rules
         for mgr in sorted(config.ManagerSet, key=lambda m: not getattr(m, 'IsSuperManager', False)):
@@ -235,7 +235,7 @@ class FwConfigImportCheckConsistency(FwConfigImport):
         return userRefs
 
     
-    def checkZoneObjectConsistency(self, config: FwConfigManagerListController):
+    def check_zone_object_consistency(self, config: FwConfigManagerListController):
 
         global_objects: set[str] = set()
         for mgr in sorted(config.ManagerSet, key=lambda m: not getattr(m, 'IsSuperManager', False)):
@@ -271,7 +271,7 @@ class FwConfigImportCheckConsistency(FwConfigImport):
 
     # check if all color refs are valid (in the DB)
     # fix=True means that missing color refs will be replaced by the default color (black)
-    def checkColorConsistency(self, config: FwConfigManagerListController, fix: bool = True):
+    def check_color_consistency(self, config: FwConfigManagerListController, fix: bool = True):
         self.import_state.SetColorRefMap(self.import_state.api_call)
         
         # collect all colors

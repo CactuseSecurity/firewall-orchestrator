@@ -25,7 +25,7 @@ namespace FWO.Data.Report
         { }
     // NOSONAR - temporarily disabled
     //     public RulebaseReport(RulebaseReport rulebase)
-    //     {
+    //     { 
     //         Id = rulebase.Id;
     //         Name = rulebase.Name;
     //         RuleChanges = rulebase.RuleChanges;

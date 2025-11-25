@@ -26,7 +26,7 @@ class GroupFlatsMapper:
     global_normalized_config: FwConfigNormalized|None = None
 
     def __init__(self):
-        global_state = ServiceProvider().get_service(Services.GLOBAL_STATE)
+        global_state = ServiceProvider().get_global_state()
         self.import_state = global_state.import_state
         self.network_object_flats: dict[str, set[str]] = {}
         self.service_object_flats: dict[str, set[str]] = {}

@@ -38,8 +38,6 @@ class GroupFlatsMapper:
             message (str): The error message to log.
         """
         FWOLogger.error(message)
-        self.import_state.appendErrorString(message)
-        self.import_state.increaseErrorCounterByOne()
     
     def init_config(self, normalized_config: FwConfigNormalized, global_normalized_config: FwConfigNormalized|None = None):
         self.normalized_config = normalized_config

@@ -51,8 +51,7 @@ class FwConfigImportCheckConsistency(FwConfigImport):
         self.check_rulebase_link_consistency(config)
 
         if len(self.issues)>0:
-            self.import_state.addError("Inconsistencies found in the configuration: " + str(self.issues))
-            raise FwoImporterErrorInconsistencies("Inconsistencies found in the configuration.")
+            raise FwoImporterErrorInconsistencies("Inconsistencies found in the configuration: " + str(self.issues))
 
         FWOLogger.debug("Consistency check completed without issues.")
 

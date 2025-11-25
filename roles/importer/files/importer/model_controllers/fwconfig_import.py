@@ -165,13 +165,11 @@ class FwConfigImport():
         self._fw_config_import_object.updateObjectDiffs(prev_config, prev_global_config, single_manager)
 
         if fwo_globals.shutdown_requested:
-            # self.ImportDetails.addError("shutdown requested, aborting import")
             raise ImportInterruption("Shutdown requested during updateObjectDiffs.")
 
         newRuleIds = self._fw_config_import_rule.updateRulebaseDiffs(prev_config)
 
         if fwo_globals.shutdown_requested:
-            # self.ImportDetails.addError("shutdown requested, aborting import")
             raise ImportInterruption("Shutdown requested during updateRulebaseDiffs.")
 
         self.import_state.SetRuleMap(self.import_state.api_call) # update all rule entries (from currently running import for rulebase_links)

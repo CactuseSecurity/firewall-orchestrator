@@ -38,7 +38,6 @@ class FwConfigImportGateway:
         # self.updateRuleEnforcedOnGatewayDiffs(prevConfig)
         self.update_interface_diffs()
         self.update_routing_diffs()
-        # self.ImportDetails.Stats.addError('simulate error')
 
 
     def update_rulebase_link_diffs(self) -> tuple[list[dict[str, Any]], list[int | None]]:

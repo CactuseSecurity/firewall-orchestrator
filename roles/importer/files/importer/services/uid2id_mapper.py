@@ -84,8 +84,6 @@ class Uid2IdMapper:
             message (str): The error message to log.
         """
         self.logger.error(message)
-        self.import_state.appendErrorString(message)
-        self.import_state.increaseErrorCounterByOne()
 
     def log_debug(self, message: str):
         """

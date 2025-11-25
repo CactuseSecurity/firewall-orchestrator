@@ -209,30 +209,39 @@ namespace FWO.Services.RuleTreeBuilder
         private RuleTreeItem GetSectionParent(IEnumerable<int> nextPosition)
         {
             List<int> changedCopy = nextPosition.ToList();
-            List<int> unchangedCopy = changedCopy.ToList();
+            bool isLastPositionZero = false;
             if (changedCopy.Last() == 0)
             {
                 changedCopy.Remove(changedCopy.Last());
+                isLastPositionZero = true;
             }
             //RuleTreeItem item = RuleTree.ElementsFlat.FirstOrDefault(x => NormalizePosition(x.GetPositionString()) == NormalizePosition(changedCopy)) as RuleTreeItem ?? new RuleTreeItem();
             RuleTreeItem item = RuleTree.ElementsFlat.FirstOrDefault(x => x.GetPositionString() == string.Join(".", changedCopy)) as RuleTreeItem ?? new RuleTreeItem();
-
-
-            if (item.Data is Rule && (item.Parent as RuleTreeItem ?? new RuleTreeItem()).IsOrderedLayerHeader && unchangedCopy.Last() != 0)
+        
+            RuleTreeItem parent = item.Parent as RuleTreeItem ?? new RuleTreeItem();
+            if (item.Data is not null && parent.IsOrderedLayerHeader && !isLastPositionZero)
             {
-                return item.Parent as RuleTreeItem ?? new RuleTreeItem();
+                return parent;
             }
-            if (item.IsOrderedLayerHeader || item.IsInlineLayerRoot)
+            if (item.IsOrderedLayerHeader)
             {
                 return item;
             }
-            if ((item.Parent as RuleTreeItem ?? new RuleTreeItem()).IsSectionHeader)
+            if (parent.IsSectionHeader)
             {
-                if (unchangedCopy.Last() == 0)
+                if (isLastPositionZero)
                 {
                     return item;
                 }
                 return item.Parent?.Parent as RuleTreeItem ?? new RuleTreeItem();
+            }
+            if (item.IsInlineLayerRoot)
+            {
+                return item;
+            }
+            if (parent.IsInlineLayerRoot)
+            {
+                return item.Parent as RuleTreeItem ?? new RuleTreeItem();
             }
             return new RuleTreeItem();
         }

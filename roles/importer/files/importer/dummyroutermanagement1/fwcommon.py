@@ -16,8 +16,6 @@ def has_config_changed(_: dict[str, Any], __: ImportState, ___: bool = False) ->
 
 def get_config(config2import: dict[str, Any], current_import_id: str, mgm_details: dict[str, Any], jwt: str=''):
     router_file_url = mgm_details['configPath']
-    error_count = 0
-    change_count = 0
     start_time=datetime.now()
     error_string = ''
 
@@ -36,13 +34,11 @@ def get_config(config2import: dict[str, Any], current_import_id: str, mgm_detail
 
     except requests.exceptions.RequestException as e:
         error_string = "got HTTP status code" + str(e.response.status_code if e.response else None) + " while trying to read config file from URL " + router_file_url
-        error_count += 1
-        error_count = complete_import(current_import_id, error_string, start_time, mgm_details, change_count, error_count, jwt) # type: ignore # TODO: function does not exist
+        complete_import(current_import_id, error_string, start_time, mgm_details, 0, 0, jwt) # type: ignore # TODO: function does not exist
         raise ConfigFileNotFound(error_string) from None
     except Exception:
         error_string = "Could not read config file " + router_file_url
-        error_count += 1
-        error_count = complete_import(current_import_id, error_string, start_time, mgm_details, change_count, error_count, jwt) # type: ignore # TODO: function does not exist
+        complete_import(current_import_id, error_string, start_time, mgm_details, 0, 0, jwt) # type: ignore # TODO: function does not exist
         raise ConfigFileNotFound(error_string) from None
 
     # deserialize network info from json into objects

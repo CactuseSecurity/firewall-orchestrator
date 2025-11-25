@@ -127,7 +127,7 @@ class FwoApiCall(FwoApi):
         return changes_in_import
 
 
-    def unlock_import(self, import_state: 'ImportStateController'):
+    def unlock_import(self, import_state: 'ImportStateController', success: bool = True):
         import_id = import_state.ImportId
         mgm_id = import_state.MgmDetails.Id
         import_stats = import_state.Stats
@@ -136,7 +136,7 @@ class FwoApiCall(FwoApi):
             query_variables: dict[str, Any] = {
                 "stopTime": datetime.datetime.now().isoformat(), 
                 "importId": import_id,
-                "success": import_stats.ErrorCount == 0, 
+                "success": success,
                 "anyChangesFound": import_stats.getTotalChangeNumber() > 0, 
                 "ruleChangesFound": import_stats.getRuleChangeNumber() > 0, 
                 "changeNumber": import_stats.getRuleChangeNumber()
@@ -292,39 +292,37 @@ class FwoApiCall(FwoApi):
             query_variables.update({"alertCode": alertCode})
 
 
-    def complete_import(self, import_state: 'ImportStateController'):
-        
-        if fwo_globals.shutdown_requested:
-            import_state.Stats.addError("shutdown requested, aborting import")
-
+    def complete_import(self, import_state: 'ImportStateController', exception: BaseException | None = None):
         if not import_state.responsible_for_importing:
             return
-        
-        success = (import_state.Stats.ErrorCount==0)
+
         try:
-            self.log_import_attempt(import_state.MgmDetails.Id, successful=success)
+            self.log_import_attempt(import_state.MgmDetails.Id, successful=exception is None)
         except Exception:
             FWOLogger.error('error while trying to log import attempt')
-            import_state.increaseErrorCounterByOne()
 
-        self.unlock_import(import_state)
+        self.unlock_import(import_state, success=exception is None)
+
+        exception_message: str | None = getattr(exception, "message", None) if exception is not None and hasattr(exception, 'message') else str(exception) if exception is not None else None
 
         import_result = "import_management: import no. " + str(import_state.ImportId) + \
                 " for management " + import_state.MgmDetails.Name + ' (id=' + str(import_state.MgmDetails.Id) + ")" + \
-                str(" threw errors," if import_state.Stats.ErrorCount>0 else " successful,") + \
+                str(" threw errors," if exception is not None else " successful,") + \
                 " total change count: " + str(import_state.Stats.getTotalChangeNumber()) + \
                 ", rule change count: " + str(import_state.Stats.getRuleChangeNumber()) + \
                 ", duration: " + str(int(time.time()) - import_state.StartTime) + "s" 
-        import_result += ", ERRORS: " + import_state.get_error_string() if import_state.Stats.ErrorCount > 0 else ""
-        if import_state.Stats.getChangeDetails() != {} and FWOLogger.is_debug_level(4) and len(import_state.getErrors()) == 0:
+        import_result += ", ERRORS: " + exception_message if exception_message is not None else ""
+        
+        if import_state.Stats.getChangeDetails() != {} and FWOLogger.is_debug_level(4) and exception is None:
             import_result += ", change details: " + str(import_state.Stats.getChangeDetails())
-        if import_state.Stats.ErrorCount>0:
-            self.create_data_issue(severity=1, description=import_state.get_error_string())
+        
+        if exception is not None:
+            self.create_data_issue(severity=1, description=exception_message)
             self.set_alert(import_id=import_state.ImportId, title="import error", mgm_id=import_state.MgmDetails.Id, severity=2, \
-                description=str(import_state.get_error_string()), source='import', alert_code=14, mgm_details=import_state.MgmDetails)
-        if not import_state.Stats.ErrorAlreadyLogged:
-            FWOLogger.info(import_result.encode().decode("unicode_escape"))
-            import_state.Stats.ErrorAlreadyLogged = True
+                description=exception_message, source='import', alert_code=14, mgm_details=import_state.MgmDetails)
+        
+        FWOLogger.info(import_result.encode().decode("unicode_escape"))
+            
 
 
     def get_last_complete_import(self, queryVars: dict[str, Any]) -> tuple[int, str]:

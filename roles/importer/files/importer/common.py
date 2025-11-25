@@ -49,36 +49,31 @@ def import_management(mgm_id: int, api_call: FwoApiCall, ssl_verification: bool,
     service_provider = ServiceProvider()
     importState = service_provider.get_global_state().import_state
     config_importer = FwConfigImport()
-
-
+    exception: BaseException | None = None
 
     try:
         _import_management(mgm_id, ssl_verification,file , limit, clear_management_data, suppress_cert_warnings)
-
     except (FwLoginFailed) as e:
+        exception = e
         importState.delete_import() # delete whole import
-        importState.addError("Login to FW manager failed")
         roll_back_exception_handler(importState, config_importer=config_importer, exc=e, error_text="")
-    except (ImportRecursionLimitReached) as e:
+    except (ImportRecursionLimitReached, FwoImporterErrorInconsistencies) as e:
         importState.delete_import() # delete whole import
-        importState.addError("ImportRecursionLimitReached - aborting import")
+        exception = e
     except (KeyboardInterrupt, ImportInterruption, ShutdownRequested) as e:
         roll_back_exception_handler(importState, config_importer=config_importer, exc=e, error_text="shutdown requested")
         raise
     except (FwoApiWriteError, FwoImporterError) as e:
-        importState.addError(f"FwoApiWriteError or FwoImporterError: {str(e.args)} - aborting import")
+        exception = e
         roll_back_exception_handler(importState, config_importer=config_importer, exc=e, error_text="")
-    except FwoImporterErrorInconsistencies as e:
-        importState.delete_import() # delete whole import
-        importState.addError(str(e.args))
-    except ValueError:
-        importState.addError("ValueError - aborting import")
+    except ValueError as e:
         raise
     except Exception as e:
+        exception = e
         handle_unexpected_exception(import_state=importState, config_importer=config_importer, e=e)
     finally:
         try:
-            api_call.complete_import(importState)
+            api_call.complete_import(importState, exception)
             ServiceProvider().dispose_service(Services.UID2ID_MAPPER, importState.ImportId)
         except Exception as e:
             FWOLogger.error(f"Error during import completion: {str(e)}")
@@ -136,7 +131,6 @@ def _import_management(mgm_id: int, ssl_verification: bool, file: str | None,
 
 def handle_unexpected_exception(import_state: ImportStateController | None = None, config_importer: FwConfigImport | None = None, e: Exception | None = None):
     if 'importState' in locals() and import_state is not None:
-        import_state.addError("Unexpected exception in import process - aborting " + traceback.format_exc())
         if 'configImporter' in locals() and config_importer is not None:
             roll_back_exception_handler(import_state, config_importer=config_importer, exc=e)
 

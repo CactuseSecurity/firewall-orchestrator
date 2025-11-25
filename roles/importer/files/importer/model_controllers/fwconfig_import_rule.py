@@ -128,7 +128,7 @@ class FwConfigImportRule():
         num_deleted_rules, removed_rule_ids = self.mark_rules_removed(rule_order_diffs["deleted_rule_uids"])
         self.remove_outdated_refs(prevConfig)
 
-        _, num_moved_rules, _ = self.verify_rules_moved(changedRuleUids)
+        num_moved_rules, _ = self.verify_rules_moved(changedRuleUids)
 
         new_rule_ids = [rule['rule_id'] for rule in new_rule_ids]  # extract rule_ids from the returned list of dicts
         self.write_changelog_rules(new_rule_ids, removed_rule_ids)
@@ -1014,8 +1014,7 @@ class FwConfigImportRule():
             FWOLogger.exception(f"failed to move rules: {str(traceback.format_exc())}")
             return 1, 0, []
         
-    def verify_rules_moved(self, changed_rule_uids: dict[str, list[str]]) -> tuple[int, int, list[str]]:
-        error_count_move = 0 
+    def verify_rules_moved(self, changed_rule_uids: dict[str, list[str]]) -> tuple[int, list[str]]:
         number_of_moved_rules = 0
 
         moved_rule_uids: list[str] = []
@@ -1036,10 +1035,8 @@ class FwConfigImportRule():
             if rule_uid in changed_rule_uids_flat:
                 moved_rule_uids.append(rule_uid)
                 number_of_moved_rules += 1
-            else:
-                error_count_move += 1
 
-        return error_count_move, number_of_moved_rules, moved_rule_uids
+        return number_of_moved_rules, moved_rule_uids
             
             
 
@@ -1109,14 +1106,12 @@ class FwConfigImportRule():
             query_result = self.import_details.api_call.call(query, query_variables=query_variables)
         except Exception:
             FWOLogger.error(f"error while getting current rulebase: {str(traceback.format_exc())}")
-            self.import_details.increaseErrorCounterByOne()
             return
         
         try:
             rule_list = query_result['data']['rulebase'][0]['rules']
         except Exception:
             FWOLogger.error(f'could not find rules in query result: {query_result}')
-            self.import_details.increaseErrorCounterByOne()
             return
 
         rules: list[list[Any]] = []

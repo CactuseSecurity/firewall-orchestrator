@@ -125,30 +125,25 @@ def read_file(import_state: ImportStateController) -> dict[str, Any]:
                 filename = import_state.import_file_name
             with open(filename, 'r') as json_file:
                 config_json = json.load(json_file)
-    except requests.exceptions.RequestException:
+    except requests.exceptions.RequestException as e:
         try:
             r # check if response "r" is defined # type: ignore TODO: This practice is suspicious at best
-            import_state.appendErrorString(f'got HTTP status code{str(r.status_code)} while trying to read config file from URL {import_state.import_file_name}') # type: ignore
+            FWOLogger.error(f'got HTTP status code{str(r.status_code)} while trying to read config file from URL {import_state.import_file_name}') # type: ignore
         except NameError:
-            import_state.appendErrorString(f'got error while trying to read config file from URL {import_state.import_file_name}')
-        import_state.increaseErrorCounterByOne()
+            FWOLogger.error(f'got error while trying to read config file from URL {import_state.import_file_name}')
 
-        import_state.api_call.complete_import(import_state)
-        raise ConfigFileNotFound(import_state.get_error_string()) from None
-    except Exception: 
-        import_state.appendErrorString(f"Could not read config file {import_state.import_file_name}")
-        import_state.increaseErrorCounterByOne()
+        import_state.api_call.complete_import(import_state, e)
+        raise ConfigFileNotFound(str(e)) from None
+    except Exception as e: 
         FWOLogger.error("unspecified error while reading config file: " + str(traceback.format_exc()))
-        import_state.api_call.complete_import(import_state)
+        import_state.api_call.complete_import(import_state, e)
         raise ConfigFileNotFound(f"unspecified error while reading config file {import_state.import_file_name}")
 
     return config_json
 
 
 def handle_error_on_config_file_serialization(importState: ImportStateController, exception: Exception):
-    importState.appendErrorString(f"Could not understand config file format in file {importState.import_file_name}")
-    importState.increaseErrorCounterByOne()
-    importState.api_call.complete_import(importState)
+    importState.api_call.complete_import(importState, exception)
     FWOLogger.error(f"unspecified error while trying to serialize config file {importState.import_file_name}: {str(traceback.format_exc())}")
     raise FwoImporterError from exception
 

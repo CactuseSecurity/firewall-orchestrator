@@ -1,52 +1,23 @@
 from models.import_statistics import ImportStatistics
 
-class ImportStatisticsController(ImportStatistics):
-
-    def __init__(self):
-        self.ErrorCount = 0
-        self.ErrorDetails = []
-        self.NetworkObjectAddCount = 0
-        self.NetworkObjectDeleteCount = 0
-        self.NetworkObjectChangeCount = 0
-        self.ServiceObjectAddCount = 0
-        self.ServiceObjectDeleteCount = 0
-        self.ServiceObjectChangeCount = 0
-        self.UserObjectAddCount = 0
-        self.UserObjectDeleteCount = 0
-        self.UserObjectChangeCount = 0
-        self.ZoneObjectAddCount = 0
-        self.ZoneObjectDeleteCount = 0
-        self.ZoneObjectChangeCount = 0
-        self.RuleAddCount = 0
-        self.RuleDeleteCount = 0
-        self.RuleChangeCount = 0
-        self.RuleMoveCount = 0
-        self.RulebaseAddCount = 0
-        self.rule_enforce_change_count = 0
-        self.rulebase_add_count = 0
-        self.rulebase_change_count = 0
-        self.rulebase_delete_count = 0
-        self.rulebase_link_add_count = 0
-        self.rulebase_link_change_count = 0
-        self.rulebase_link_delete_count = 0
-        self.ErrorAlreadyLogged = False
-
+class ImportStatisticsController():
+    def __init__(self, statistics: ImportStatistics | None = None):
+        self.statistics = statistics if statistics is not None else ImportStatistics()
     
-    def addError(self, error: str):
-        self.ErrorCount += 1
-        self.ErrorDetails.append(error)
 
     def getTotalChangeNumber(self):
-        return self.NetworkObjectAddCount + self.NetworkObjectDeleteCount + self.NetworkObjectChangeCount + \
-            self.ServiceObjectAddCount + self.ServiceObjectDeleteCount + self.ServiceObjectChangeCount + \
-            self.UserObjectAddCount + self.UserObjectDeleteCount + self.UserObjectChangeCount + \
-            self.ZoneObjectAddCount + self.ZoneObjectDeleteCount + self.ZoneObjectChangeCount + \
-            self.RuleAddCount + self.RuleDeleteCount + self.RuleChangeCount + \
-            self.rule_enforce_change_count + self.rulebase_add_count + self.rulebase_change_count + self.rulebase_delete_count
+        return self.statistics.network_object_add_count + self.statistics.network_object_delete_count + self.statistics.network_object_change_count + \
+            self.statistics.service_object_add_count + self.statistics.service_object_delete_count + self.statistics.service_object_change_count + \
+            self.statistics.user_object_add_count + self.statistics.user_object_delete_count + self.statistics.user_object_change_count + \
+            self.statistics.zone_object_add_count + self.statistics.zone_object_delete_count + self.statistics.zone_object_change_count + \
+            self.statistics.rule_add_count + self.statistics.rule_delete_count + self.statistics.rule_change_count + \
+            self.statistics.rule_enforce_change_count + self.statistics.rulebase_add_count + self.statistics.rulebase_change_count + self.statistics.rulebase_delete_count
+    
 
     def getRuleChangeNumber(self):
-        return self.RuleAddCount + self.RuleDeleteCount + self.RuleChangeCount + \
-            self.rule_enforce_change_count + self.rulebase_add_count + self.rulebase_change_count + self.rulebase_delete_count
+        return self.statistics.rule_add_count + self.statistics.rule_delete_count + self.statistics.rule_change_count + \
+            self.statistics.rule_enforce_change_count + self.statistics.rulebase_add_count + self.statistics.rulebase_change_count + self.statistics.rulebase_delete_count
+
 
     def getChangeDetails(self):
         result: dict[str, int] = {}
@@ -59,55 +30,55 @@ class ImportStatisticsController(ImportStatistics):
 
 
     def collect_nw_obj_change_details(self, result: dict[str, int]):
-        if self.NetworkObjectAddCount > 0:
-            result['NetworkObjectAddCount'] = self.NetworkObjectAddCount
-        if self.NetworkObjectDeleteCount > 0:
-            result['NetworkObjectDeleteCount'] = self.NetworkObjectDeleteCount
-        if self.NetworkObjectChangeCount > 0:
-            result['NetworkObjectChangeCount'] = self.NetworkObjectChangeCount
+        if self.statistics.network_object_add_count > 0:
+            result['NetworkObjectAddCount'] = self.statistics.network_object_add_count
+        if self.statistics.network_object_delete_count > 0:
+            result['NetworkObjectDeleteCount'] = self.statistics.network_object_delete_count
+        if self.statistics.network_object_change_count > 0:
+            result['NetworkObjectChangeCount'] = self.statistics.network_object_change_count
 
 
     def collect_svc_obj_change_details(self, result: dict[str, int]):
-        if self.ServiceObjectAddCount > 0:
-            result['ServiceObjectAddCount'] = self.ServiceObjectAddCount
-        if self.ServiceObjectDeleteCount > 0:
-            result['ServiceObjectDeleteCount'] = self.ServiceObjectDeleteCount
-        if self.ServiceObjectChangeCount > 0:
-            result['ServiceObjectChangeCount'] = self.ServiceObjectChangeCount
-
-
+        if self.statistics.service_object_add_count > 0:
+            result['ServiceObjectAddCount'] = self.statistics.service_object_add_count
+        if self.statistics.service_object_delete_count > 0:
+            result['ServiceObjectDeleteCount'] = self.statistics.service_object_delete_count
+        if self.statistics.service_object_change_count > 0:
+            result['ServiceObjectChangeCount'] = self.statistics.service_object_change_count
+    
+    
     def collect_usr_obj_change_details(self, result: dict[str, int]):
-        if self.UserObjectAddCount > 0:
-            result['UserObjectAddCount'] = self.UserObjectAddCount
-        if self.UserObjectDeleteCount > 0:
-            result['UserObjectDeleteCount'] = self.UserObjectDeleteCount
-        if self.UserObjectChangeCount > 0:
-            result['UserObjectChangeCount'] = self.UserObjectChangeCount
+        if self.statistics.user_object_add_count > 0:
+            result['UserObjectAddCount'] = self.statistics.user_object_add_count
+        if self.statistics.user_object_delete_count > 0:
+            result['UserObjectDeleteCount'] = self.statistics.user_object_delete_count
+        if self.statistics.user_object_change_count > 0:
+            result['UserObjectChangeCount'] = self.statistics.user_object_change_count
 
 
     def collect_zone_obj_change_details(self, result: dict[str, int]):
-        if self.ZoneObjectAddCount > 0:
-            result['ZoneObjectAddCount'] = self.ZoneObjectAddCount
-        if self.ZoneObjectDeleteCount > 0:
-            result['ZoneObjectDeleteCount'] = self.ZoneObjectDeleteCount
-        if self.ZoneObjectChangeCount > 0:
-            result['ZoneObjectChangeCount'] = self.ZoneObjectChangeCount
-
-
+        if self.statistics.zone_object_add_count > 0:
+            result['ZoneObjectAddCount'] = self.statistics.zone_object_add_count
+        if self.statistics.zone_object_delete_count > 0:
+            result['ZoneObjectDeleteCount'] = self.statistics.zone_object_delete_count
+        if self.statistics.zone_object_change_count > 0:
+            result['ZoneObjectChangeCount'] = self.statistics.zone_object_change_count
+    
+    
     def collect_rule_change_details(self, result: dict[str, int]):
-        if self.RuleAddCount > 0:
-            result['RuleAddCount'] = self.RuleAddCount
-        if self.RuleDeleteCount > 0:
-            result['RuleDeleteCount'] = self.RuleDeleteCount
-        if self.RuleChangeCount > 0:
-            result['RuleChangeCount'] = self.RuleChangeCount
-        if self.RuleMoveCount > 0:
-            result['RuleMoveCount'] = self.RuleMoveCount    
-        if self.rule_enforce_change_count > 0:
-            result['rule_enforce_change_count'] = self.rule_enforce_change_count    
-        if self.rulebase_change_count > 0:
-            result['rulebase_change_count'] = self.rulebase_change_count
-        if self.rulebase_add_count > 0:
-            result['rulebase_add_count'] = self.rulebase_add_count
-        if self.rulebase_delete_count > 0:
-            result['rulebase_delete_count'] = self.rulebase_delete_count
+        if self.statistics.rule_add_count > 0:
+            result['RuleAddCount'] = self.statistics.rule_add_count
+        if self.statistics.rule_delete_count > 0:
+            result['RuleDeleteCount'] = self.statistics.rule_delete_count
+        if self.statistics.rule_change_count > 0:
+            result['RuleChangeCount'] = self.statistics.rule_change_count
+        if self.statistics.rule_move_count > 0:
+            result['RuleMoveCount'] = self.statistics.rule_move_count    
+        if self.statistics.rule_enforce_change_count > 0:
+            result['rule_enforce_change_count'] = self.statistics.rule_enforce_change_count    
+        if self.statistics.rulebase_change_count > 0:
+            result['rulebase_change_count'] = self.statistics.rulebase_change_count
+        if self.statistics.rulebase_add_count > 0:
+            result['rulebase_add_count'] = self.statistics.rulebase_add_count
+        if self.statistics.rulebase_delete_count > 0:
+            result['rulebase_delete_count'] = self.statistics.rulebase_delete_count

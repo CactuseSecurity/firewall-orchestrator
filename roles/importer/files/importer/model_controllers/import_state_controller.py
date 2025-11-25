@@ -58,29 +58,6 @@ class ImportStateController(ImportState):
     def setImportId(self, importId: int):
         self.ImportId = importId
 
-    def increaseErrorCounter(self, errorNo: int):
-        self.Stats.ErrorCount = self.Stats.ErrorCount + errorNo
-
-    def increaseErrorCounterByOne(self):
-        self.increaseErrorCounter(1)
-
-    def appendErrorString(self, errorStr: str):
-        self.Stats.ErrorDetails.append(errorStr)
-
-    def getErrors(self):
-        return self.Stats.ErrorDetails
-
-    def get_error_string(self):
-        return str(self.Stats.ErrorDetails)
-
-    def addError(self, error: str, log: bool = False):
-        self.increaseErrorCounterByOne()
-        self.appendErrorString(str(error))
-        if log and not self.Stats.ErrorAlreadyLogged:
-            FWOLogger.error(str(error))
-            # self.Stats.ErrorAlreadyLogged = True
-
-
     @classmethod
     def initializeImport(cls, mgmId: int, jwt: str,
                          suppressCertWarnings: bool, 

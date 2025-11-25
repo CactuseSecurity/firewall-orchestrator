@@ -112,7 +112,7 @@ class FWOLogger():
     def error(msg: str):
         logger = FWOLogger.instance.get_logger()
         logger.error(msg, stacklevel=2)
-
+        
     @staticmethod
     def info(msg: str):
         logger = FWOLogger.instance.get_logger()

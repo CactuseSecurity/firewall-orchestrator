@@ -56,15 +56,14 @@ namespace FWO.Middleware.Server.Controllers
                 GlobalConfig GlobalConfig = await GlobalConfig.ConstructAsync(apiConnection, true);
                 UserConfig userConfig = new(GlobalConfig, apiConnection, new(){ Language = GlobalConst.kEnglish });
 
-                // ComplianceCheck complianceCheck = new(userConfig, apiConnection);
-                // await complianceCheck.CheckAll();
+                ComplianceCheck complianceCheck = new(userConfig, apiConnection);
+                await complianceCheck.CheckAll();
 
-                // TODO: Fix Controller Export : generate report for export
+                ReportCompliance reportCompliance = new(new(""), userConfig, ReportType.ComplianceReport);
+                await reportCompliance.GetManagementAndDevices(apiConnection);
+                await reportCompliance.GetViewDataFromRules(complianceCheck.RulesInCheck!);
 
-                // ReportCompliance reportCompliance = new(complianceCheck, userConfig, parameters.OutputLocation, parameters.Devices, parameters.Managements);
-                // return reportCompliance.ExportToCsv();
-
-                return "This feature is currently unavailable.";
+                return reportCompliance.ExportToCsv();
             }
             catch (Exception exception)
             {

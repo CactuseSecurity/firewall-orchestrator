@@ -49,8 +49,7 @@ def import_management(mgm_id: int, api_call: FwoApiCall, ssl_verification: bool,
     service_provider = ServiceProvider()
     importState = service_provider.get_global_state().import_state
     config_importer = FwConfigImport()
-
-
+    
 
     try:
         _import_management(mgm_id, ssl_verification,file , limit, clear_management_data, suppress_cert_warnings)

@@ -275,21 +275,21 @@ class FwoApiCall(FwoApi):
             FWOLogger.error(f"failed to create alert entry: {json.dumps(query_variables)}; exception: {str(e)}")
             raise
 
-    def _set_alert_build_query_vars(self, query_variables: dict[str, Any], dev_id: int | None, user_id: int | None, mgm_id: int | None, refAlert: str | None, title: str | None, description: str | None, alertCode: int | None):
+    def _set_alert_build_query_vars(self, query_variables: dict[str, Any], dev_id: int | None, user_id: int | None, mgm_id: int | None, ref_alert: str | None, title: str | None, description: str | None, alert_code: int | None):
         if dev_id is not None:
             query_variables.update({"devId": dev_id})
         if user_id is not None:
             query_variables.update({"userId": user_id})
         if mgm_id is not None:
             query_variables.update({"mgmId": mgm_id})
-        if refAlert is not None:
-            query_variables.update({"refAlert": refAlert})
+        if ref_alert is not None:
+            query_variables.update({"refAlert": ref_alert})
         if title is not None:
             query_variables.update({"title": title})
         if description is not None:
             query_variables.update({"description": description})
-        if alertCode is not None:
-            query_variables.update({"alertCode": alertCode})
+        if alert_code is not None:
+            query_variables.update({"alertCode": alert_code})
 
 
     def complete_import(self, import_state: 'ImportStateController'):

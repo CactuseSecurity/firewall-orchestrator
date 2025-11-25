@@ -53,6 +53,11 @@ namespace FWO.Compliance
         public List<Rule>? RulesInCheck { get; set; } = [];
 
         /// <summary>
+        /// Managements that are the subjects of the check.
+        /// </summary>
+        public List<Management>? Managements { get; set; } = [];
+
+        /// <summary>
         /// Access to API.
         /// </summary>
         private readonly ApiConnection _apiConnection;
@@ -61,10 +66,6 @@ namespace FWO.Compliance
         /// </summary>
         private readonly UserConfig _userConfig;
 
-        /// <summary>
-        /// Managements that are the subjects of the check.
-        /// </summary>
-        private List<Management>? _managements = [];
         /// <summary>
         /// Parameter for treating domain and dynamic network objects during the check a part of the auto-calculated internet zone.
         /// </summary>
@@ -177,10 +178,10 @@ namespace FWO.Compliance
                     return;
                 }
 
-                _managements  = await _apiConnection.SendQueryAsync<List<Management>>(DeviceQueries.getManagementNames);
-                _managements = GetRelevantManagements(globalConfig, _managements);
+                Managements  = await _apiConnection.SendQueryAsync<List<Management>>(DeviceQueries.getManagementNames);
+                Managements = GetRelevantManagements(globalConfig, Managements);
 
-                if (_managements == null || _managements.Count == 0)
+                if (Managements == null || Managements.Count == 0)
                 {
                     Logger.TryWriteInfo("Compliance Check", "No relevant managements found. Compliance check not possible.", true);
                     return;
@@ -213,7 +214,7 @@ namespace FWO.Compliance
 
                 // Perform check.
 
-                RulesInCheck =  await PerformCheckAsync(_managements!.Select(m => m.Id).ToList());
+                RulesInCheck =  await PerformCheckAsync(Managements!.Select(m => m.Id).ToList());
 
                 if (RulesInCheck == null || RulesInCheck.Count == 0)
                 {
@@ -632,7 +633,7 @@ namespace FWO.Compliance
             {
                 RuleId = (int)rule.Id,
                 RuleUid = rule.Uid ?? "",
-                MgmtUid = _managements?.FirstOrDefault(m => m.Id == rule.MgmtId)?.Uid ?? "",
+                MgmtUid = Managements?.FirstOrDefault(m => m.Id == rule.MgmtId)?.Uid ?? "",
                 PolicyId = Policy?.Id ?? 0,
                 CriterionId = complianceCheckResult.Criterion!.Id
             };

@@ -545,15 +545,14 @@ namespace FWO.Report
 
                 if (nextRbLink != null)
                 {
-                    AppendRulesForRulebaseHtml(ref report, nextRbLink, managementReport, device, chapterNumber, ruleDisplayHtml);
+                    AppendRulesForRulebaseHtml(ref report, managementReport, device, chapterNumber, ruleDisplayHtml);
                 }
                 report.AppendLine("</table>");
                 report.AppendLine("<hr>");
             }
         }
 
-        // Parameter 'rbLink' is currently unused
-        private void AppendRulesForRulebaseHtml(ref StringBuilder report, RulebaseLink rbLink, ManagementReport managementReport, DeviceReport device, int chapterNumber, RuleDisplayHtml ruleDisplayHtml)  // RulebaseLink rbLink not used, can be deleted?
+        private void AppendRulesForRulebaseHtml(ref StringBuilder report, ManagementReport managementReport, DeviceReport device, int chapterNumber, RuleDisplayHtml ruleDisplayHtml)
         {
             foreach (var rule in _rulesCache[(device.Id, managementReport.Id)])
             {

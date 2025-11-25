@@ -37,7 +37,7 @@ class ImportStateController(ImportState):
         self.MgmDetails = ManagementController.from_json(mgmDetails)
         self.ImportId = -1
         self.Jwt = jwt
-        self.ImportFileName = ""
+        self.import_file_name = ""
         self.ForceImport = force
         self.ImportVersion = int(version)
         self.IsFullImport = isFullImport
@@ -53,7 +53,7 @@ class ImportStateController(ImportState):
         return f"{str(self.MgmDetails)}(import_id={self.ImportId})"
     
     def setImportFileName(self, importFileName: str):
-        self.ImportFileName = importFileName
+        self.import_file_name = importFileName
 
     def setImportId(self, importId: int):
         self.ImportId = importId
@@ -70,7 +70,7 @@ class ImportStateController(ImportState):
     def getErrors(self):
         return self.Stats.ErrorDetails
 
-    def getErrorString(self):
+    def get_error_string(self):
         return str(self.Stats.ErrorDetails)
 
     def addError(self, error: str, log: bool = False):

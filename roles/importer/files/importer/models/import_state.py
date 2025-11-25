@@ -12,7 +12,7 @@ class ImportState():
     FwoConfig: FworchConfigController
     MgmDetails: ManagementController
     ImportId: int
-    ImportFileName: str
+    import_file_name: str
     ForceImport: bool
     ImportVersion: int
     DataRetentionDays: int

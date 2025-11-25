@@ -158,36 +158,6 @@ def get_fwo_logger(debug_level: int = 0) -> logging.Logger:
     return logger
 
 
-def get_fwo_alert_logger(debug_level: int = 0):
-    debug_level = int(debug_level) # TODO: Check why str is passed sometimes or why the int cast is needed
-    if debug_level >= 1:
-        llevel = logging.DEBUG
-    else:
-        llevel = logging.INFO
-
-    logger = logging.getLogger() # use root logger
-    # log_handler = LogHandler(stream=sys.stdout)
-    # log_filter = LogFilter()
-
-    logformat = "%(asctime)s %(message)s"
-    # log_handler.setLevel(llevel)
-    # log_handler.addFilter(log_filter)
-    # handlers = [log_handler]
-
-    # logging.basicConfig(format=logformat, datefmt="", handlers=handlers, level=llevel)
-    logging.basicConfig(format=logformat, datefmt="", level=llevel)
-    logger.setLevel(llevel)
-
-    # set log level for noisy requests/connectionpool module to WARNING: 
-    connection_log = logging.getLogger("urllib3.connectionpool")
-    connection_log.setLevel(logging.WARNING)
-    connection_log.propagate = True
-    
-    if debug_level>8:
-        logger.debug ("debug_level=" + str(debug_level) )
-    return logger
-
-
 class ChangeLogger:
     """
          A singleton service that holds data and provides logic to compute changelog data for network objects, services and rules.

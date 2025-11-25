@@ -315,13 +315,13 @@ class FwoApiCall(FwoApi):
                 " total change count: " + str(import_state.Stats.getTotalChangeNumber()) + \
                 ", rule change count: " + str(import_state.Stats.getRuleChangeNumber()) + \
                 ", duration: " + str(int(time.time()) - import_state.StartTime) + "s" 
-        import_result += ", ERRORS: " + import_state.getErrorString() if import_state.Stats.ErrorCount > 0 else ""
+        import_result += ", ERRORS: " + import_state.get_error_string() if import_state.Stats.ErrorCount > 0 else ""
         if import_state.Stats.getChangeDetails() != {} and FWOLogger.is_debug_level(4) and len(import_state.getErrors()) == 0:
             import_result += ", change details: " + str(import_state.Stats.getChangeDetails())
         if import_state.Stats.ErrorCount>0:
-            self.create_data_issue(severity=1, description=import_state.getErrorString())
+            self.create_data_issue(severity=1, description=import_state.get_error_string())
             self.set_alert(import_id=import_state.ImportId, title="import error", mgm_id=import_state.MgmDetails.Id, severity=2, \
-                description=str(import_state.getErrorString()), source='import', alert_code=14, mgm_details=import_state.MgmDetails)
+                description=str(import_state.get_error_string()), source='import', alert_code=14, mgm_details=import_state.MgmDetails)
         if not import_state.Stats.ErrorAlreadyLogged:
             FWOLogger.info(import_result.encode().decode("unicode_escape"))
             import_state.Stats.ErrorAlreadyLogged = True

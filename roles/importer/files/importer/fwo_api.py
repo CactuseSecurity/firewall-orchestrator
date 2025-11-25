@@ -191,8 +191,7 @@ class FwoApi():
             Error handling for the standard API call.
         """
 
-        if int(fwo_globals.debug_level) > 1:
-            FWOLogger.error(self.show_import_api_call_info(self.fwo_api_url, query_payload, headers, typ='error') + ":\n" + str(traceback.format_exc()))
+        FWOLogger.debug(self.show_import_api_call_info(self.fwo_api_url, query_payload, headers, typ='error') + ":\n" + str(traceback.format_exc()), 2)
         if hasattr(exception, 'response') and exception.response is not None:
             if exception.response.status_code == 503:
                 raise FwoApiServiceUnavailable("FWO API HTTP error 503 (FWO API died?)")

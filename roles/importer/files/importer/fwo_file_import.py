@@ -75,84 +75,81 @@ from model_controllers.import_state_controller import ImportStateController
 """
 
 
-################# MAIN FUNC #########################
-def read_json_config_from_file(importState: ImportStateController) -> FwConfigManagerListController:
+def read_json_config_from_file(import_state: ImportStateController) -> FwConfigManagerListController:
 
-    configJson = read_file(importState)
+    config_json = read_file(import_state)
 
     # try to convert normalized config from file to config object
     try:
-        managerList = FwConfigManagerListController(**configJson)
-        if len(managerList.ManagerSet)==0:
-            FWOLogger.warning(f'read a config file without manager sets from {importState.ImportFileName}, trying native config')
-            managerList.native_config = configJson
-            managerList.ConfigFormat = detect_legacy_format(configJson)
-        return managerList
+        manager_list = FwConfigManagerListController(**config_json)
+        if len(manager_list.ManagerSet)==0:
+            FWOLogger.warning(f'read a config file without manager sets from {import_state.import_file_name}, trying native config')
+            manager_list.native_config = config_json
+            manager_list.ConfigFormat = detect_legacy_format(config_json)
+        return manager_list
     except Exception: # legacy stuff from here
         FWOLogger.info(f"could not serialize config {str(traceback.format_exc())}")
-        raise FwoImporterError(f"could not serialize config {importState.ImportFileName} - trying legacy formats")
+        raise FwoImporterError(f"could not serialize config {import_state.import_file_name} - trying legacy formats")
 
 
-########### HELPERS ##################
-
-def detect_legacy_format(configJson: dict[str, Any]) -> ConfFormat:
+def detect_legacy_format(config_json: dict[str, Any]) -> ConfFormat:
 
     result = ConfFormat.NORMALIZED_LEGACY
 
-    if 'object_tables' in configJson:
+    if 'object_tables' in config_json:
         result = ConfFormat.CHECKPOINT_LEGACY
-    elif 'domains' in configJson:
+    elif 'domains' in config_json:
         result = ConfFormat.FORTIMANAGER
 
     return result
 
 
-def read_file(importState: ImportStateController) -> dict[str, Any]:
-    configJson: dict[str, Any] = {}
-    if importState.ImportFileName=="":
-        return configJson
+def read_file(import_state: ImportStateController) -> dict[str, Any]:
+    config_json: dict[str, Any] = {}
+    if import_state.import_file_name=="":
+        return config_json
     try:
-        if importState.ImportFileName.startswith('http://') or importState.ImportFileName.startswith('https://'):   # get conf file via http(s)
+        if import_state.import_file_name.startswith('http://') or import_state.import_file_name.startswith('https://'):   # get conf file via http(s)
             session = requests.Session()
             session.headers = { 'Content-Type': 'application/json' }
             session.verify=fwo_globals.verify_certs
-            r = session.get(importState.ImportFileName, )
+            r = session.get(import_state.import_file_name, )
             if r.ok:
                 return json.loads(r.text)
             else:
                 r.raise_for_status()
         else:   # reading from local file
-            if importState.ImportFileName.startswith('file://'):   # remove file uri identifier
-                filename = importState.ImportFileName[7:]
+            if import_state.import_file_name.startswith('file://'):   # remove file uri identifier
+                filename = import_state.import_file_name[7:]
             else:
-                filename = importState.ImportFileName
+                filename = import_state.import_file_name
             with open(filename, 'r') as json_file:
-                configJson = json.load(json_file)
+                config_json = json.load(json_file)
     except requests.exceptions.RequestException:
         try:
             r # check if response "r" is defined # type: ignore TODO: This practice is suspicious at best
-            importState.appendErrorString(f'got HTTP status code{str(r.status_code)} while trying to read config file from URL {importState.ImportFileName}') # type: ignore
+            import_state.appendErrorString(f'got HTTP status code{str(r.status_code)} while trying to read config file from URL {import_state.import_file_name}') # type: ignore
         except NameError:
-            importState.appendErrorString(f'got error while trying to read config file from URL {importState.ImportFileName}')
-        importState.increaseErrorCounterByOne()
+            import_state.appendErrorString(f'got error while trying to read config file from URL {import_state.import_file_name}')
+        import_state.increaseErrorCounterByOne()
 
-        importState.api_call.complete_import(importState)
-        raise ConfigFileNotFound(importState.getErrorString()) from None
+        import_state.api_call.complete_import(import_state)
+        raise ConfigFileNotFound(import_state.get_error_string()) from None
     except Exception: 
-        importState.appendErrorString(f"Could not read config file {importState.ImportFileName}")
-        importState.increaseErrorCounterByOne()
+        import_state.appendErrorString(f"Could not read config file {import_state.import_file_name}")
+        import_state.increaseErrorCounterByOne()
         FWOLogger.error("unspecified error while reading config file: " + str(traceback.format_exc()))
-        importState.api_call.complete_import(importState)
-        raise ConfigFileNotFound(f"unspecified error while reading config file {importState.ImportFileName}")
+        import_state.api_call.complete_import(import_state)
+        raise ConfigFileNotFound(f"unspecified error while reading config file {import_state.import_file_name}")
 
-    return configJson
+    return config_json
 
 
 def handle_error_on_config_file_serialization(importState: ImportStateController, exception: Exception):
-    importState.appendErrorString(f"Could not understand config file format in file {importState.ImportFileName}")
+    importState.appendErrorString(f"Could not understand config file format in file {importState.import_file_name}")
     importState.increaseErrorCounterByOne()
     importState.api_call.complete_import(importState)
-    FWOLogger.error(f"unspecified error while trying to serialize config file {importState.ImportFileName}: {str(traceback.format_exc())}")
+    FWOLogger.error(f"unspecified error while trying to serialize config file {importState.import_file_name}: {str(traceback.format_exc())}")
     raise FwoImporterError from exception
 
 

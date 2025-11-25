@@ -3,7 +3,7 @@ from typing import Any
 import fwo_globals
 from fwo_exceptions import ShutdownRequested
 
-def handle_shutdown_signal(signum: int, frame: Any):
+def handle_shutdown_signal(_: int, __: Any):
     fwo_globals.shutdown_requested = True
     raise ShutdownRequested
 

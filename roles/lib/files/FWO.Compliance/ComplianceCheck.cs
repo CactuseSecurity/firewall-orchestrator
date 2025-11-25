@@ -587,8 +587,8 @@ namespace FWO.Compliance
 
         private async Task<bool> CheckMatrixCompliance(Rule rule, ComplianceCriterion criterion, List<NetworkObject> resolvedSources, List<NetworkObject> resolvedDestinations)
         {
-            Task<List<(NetworkObject networkObject, List<IPAddressRange> ipRanges)>> fromsTask = GetNetworkObjectsWithIpRanges(resolvedSources);
-            Task<List<(NetworkObject networkObject, List<IPAddressRange> ipRanges)>> tosTask = GetNetworkObjectsWithIpRanges(resolvedDestinations);
+            Task<List<(NetworkObject networkObject, List<IPAddressRange> ipRanges)>> fromsTask = GetNetworkObjectsWithIpRanges(resolvedSources, negated: rule.SourceNegated);
+            Task<List<(NetworkObject networkObject, List<IPAddressRange> ipRanges)>> tosTask = GetNetworkObjectsWithIpRanges(resolvedDestinations, negated: rule.DestinationNegated);
 
             await Task.WhenAll(fromsTask, tosTask);
 
@@ -750,13 +750,21 @@ namespace FWO.Compliance
             return ruleIsCompliant;
         }
         
-        private static Task<List<(NetworkObject networkObject, List<IPAddressRange> ipRanges)>> GetNetworkObjectsWithIpRanges(List<NetworkObject> networkObjects)
+        private static Task<List<(NetworkObject networkObject, List<IPAddressRange> ipRanges)>> GetNetworkObjectsWithIpRanges(List<NetworkObject> networkObjects, string? fullRangeString = "0.0.0.0/0", bool negated = false)
         {
             List<(NetworkObject networkObject, List<IPAddressRange> ipRanges)> networkObjectsWithIpRange = [];
 
             foreach (NetworkObject networkObject in networkObjects)
             {
-                networkObjectsWithIpRange.Add((networkObject, ParseIpRange(networkObject)));
+                List<IPAddressRange> ranges = ParseIpRange(networkObject);
+
+                if (negated)
+                {
+                    IPAddressRange fullRange = IPAddressRange.Parse(fullRangeString);
+                    ranges = fullRange.Subtract(ranges);
+                }
+
+                networkObjectsWithIpRange.Add((networkObject, ranges));
             }
 
             return Task.FromResult(networkObjectsWithIpRange);

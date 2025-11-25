@@ -51,21 +51,21 @@ def get_config(full_config: dict[str, Any], importState: ImportStateController) 
 
     # fmgr API login
     if not parsing_config_only:   # no native config was passed in, so getting it from FortiManager
-        fm_api_url = f'https://{importState.MgmDetails.Hostname}:{str(importState.MgmDetails.Port)}/api/v2'
-        sid = importState.MgmDetails.Secret
+        fm_api_url = f'https://{importState.mgm_details.Hostname}:{str(importState.mgm_details.Port)}/api/v2'
+        sid = importState.mgm_details.Secret
 
         if not parsing_config_only:   # no native config was passed in, so getting it from FortiManager
-            get_objects(sid, fm_api_url, full_config, importState.FwoConfig.ApiFetchSize, nw_obj_types, svc_obj_types)
+            get_objects(sid, fm_api_url, full_config, importState.fwo_config.api_fetch_size, nw_obj_types, svc_obj_types)
             # getInterfacesAndRouting(
             #     sid, fm_api_url, full_config, mgm_details['devices'], limit)
 
             # adding global zone first:
-            fOS_zone.add_zone_if_missing (config2import, 'global', importState.ImportId)
+            fOS_zone.add_zone_if_missing (config2import, 'global', importState.import_id)
 
             # initialize all rule dicts
             fOS_rule.initialize_rulebases(full_config)
-            for _ in importState.MgmDetails.Devices: #TYPING: You good?
-                fOS_rule.get_access_policy(sid, fm_api_url, full_config, importState.FwoConfig.ApiFetchSize)
+            for _ in importState.mgm_details.Devices: #TYPING: You good?
+                fOS_rule.get_access_policy(sid, fm_api_url, full_config, importState.fwo_config.api_fetch_size)
                 # fOS_rule.getNatPolicy(sid, fm_api_url, full_config, limit)
 
     # now we normalize relevant parts of the raw config and write the results to config2import dict
@@ -80,28 +80,28 @@ def get_config(full_config: dict[str, Any], importState: ImportStateController) 
     # normalize_network_data(full_config, config2import, mgm_details)
 
     fOS_user.normalize_users(
-        full_config, config2import, importState.ImportId, user_scope)
+        full_config, config2import, importState.import_id, user_scope)
     fOS_network.normalize_nwobjects(
-        full_config, config2import, importState.ImportId, nw_obj_scope)
+        full_config, config2import, importState.import_id, nw_obj_scope)
     fOS_service.normalize_svcobjects(
-        full_config, config2import, importState.ImportId, svc_obj_scope)
-    fOS_zone.add_zone_if_missing (config2import, 'global', importState.ImportId)
+        full_config, config2import, importState.import_id, svc_obj_scope)
+    fOS_zone.add_zone_if_missing (config2import, 'global', importState.import_id)
 
     fOS_rule.normalize_access_rules(
-        full_config, config2import, importState.ImportId, mgm_details=importState.MgmDetails, jwt=importState.Jwt)
+        full_config, config2import, importState.import_id, mgm_details=importState.mgm_details, jwt=importState.Jwt)
     # fOS_rule.normalize_nat_rules(
     #     full_config, config2import, current_import_id, jwt=jwt)
     # fOS_network.remove_nat_ip_entries(config2import)
 
     # put dicts into object of class FwConfigManager
     normalizedConfig = FwConfigNormalized()
-    manager = FwConfigManager(ManagerUid=importState.MgmDetails.calc_manager_uid_hash(), 
-                              IsSuperManager=False, 
-                              SubManagerIds=[], 
-                              Configs=[normalizedConfig],
-                              ManagerName="",
-                              DomainName="",
-                              DomainUid=""
+    manager = FwConfigManager(manager_uid=importState.mgm_details.calc_manager_uid_hash(), 
+                              is_super_manager=False, 
+                              sub_manager_ids=[], 
+                              configs=[normalizedConfig],
+                              manager_name="",
+                              domain_name="",
+                              domain_uid=""
                             )
 
     listOfManagers = FwConfigManagerList()

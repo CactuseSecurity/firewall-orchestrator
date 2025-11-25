@@ -300,7 +300,7 @@ def get_config(config_in: FwConfigManagerListController, import_state: ImportSta
 
     FWOLogger.debug ( "starting checkpointAsa9/get_config" )
 
-    _ = import_state.MgmDetails.DeviceTypeName == "Cisco Asa on FirePower"
+    _ = import_state.mgm_details.DeviceTypeName == "Cisco Asa on FirePower"
 
     if config_in.native_config_is_empty: # type: ignore
         # for debugging, use: raw_config = load_config_from_management(import_state.MgmDetails, is_virtual_asa)

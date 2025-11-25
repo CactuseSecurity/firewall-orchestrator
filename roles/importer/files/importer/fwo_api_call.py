@@ -128,8 +128,8 @@ class FwoApiCall(FwoApi):
 
 
     def unlock_import(self, import_state: 'ImportStateController', success: bool = True):
-        import_id = import_state.ImportId
-        mgm_id = import_state.MgmDetails.Id
+        import_id = import_state.import_id
+        mgm_id = import_state.mgm_details.Id
         import_stats = import_state.stats
         
         try:    
@@ -137,9 +137,9 @@ class FwoApiCall(FwoApi):
                 "stopTime": datetime.datetime.now().isoformat(), 
                 "importId": import_id,
                 "success": success,
-                "anyChangesFound": import_stats.getTotalChangeNumber() > 0, 
-                "ruleChangesFound": import_stats.getRuleChangeNumber() > 0, 
-                "changeNumber": import_stats.getRuleChangeNumber()
+                "anyChangesFound": import_stats.get_total_change_number() > 0, 
+                "ruleChangesFound": import_stats.get_rule_change_number() > 0, 
+                "changeNumber": import_stats.get_rule_change_number()
             }
 
             unlock_mutation = FwoApi.get_graphql_code([fwo_const.GRAPHQL_QUERY_PATH + "import/updateImportStopTime.graphql"])
@@ -159,8 +159,8 @@ class FwoApiCall(FwoApi):
         try:
             query_vars: dict[str, Any] = {
                 'debug_mode': FWOLogger.is_debug_level(1),
-                'mgmId': import_state.MgmDetails.Id,
-                'importId': import_state.ImportId,
+                'mgmId': import_state.mgm_details.Id,
+                'importId': import_state.import_id,
                 'config': config,
                 'start_import_flag': startImport,
             }
@@ -168,11 +168,11 @@ class FwoApiCall(FwoApi):
             # note: this will not detect errors in triggered stored procedure run
             if 'errors' in import_result:
                 FWOLogger.exception("fwo_api:import_json_config - error while writing importable config for mgm id " +
-                                str(import_state.MgmDetails.Id) + ": " + str(import_result['errors']))
+                                str(import_state.mgm_details.Id) + ": " + str(import_result['errors']))
             else:
                 _ = import_result['data']['insert_import_config']['affected_rows']
         except Exception:
-            FWOLogger.exception(f"failed to write normalized config for mgm id {str(import_state.MgmDetails.Id)}: {str(traceback.format_exc())}")
+            FWOLogger.exception(f"failed to write normalized config for mgm id {str(import_state.mgm_details.Id)}: {str(traceback.format_exc())}")
 
 
     def delete_json_config_in_import_table(self, query_variables: dict[str, Any]):
@@ -297,7 +297,7 @@ class FwoApiCall(FwoApi):
             return
 
         try:
-            self.log_import_attempt(import_state.MgmDetails.Id, successful=exception is None)
+            self.log_import_attempt(import_state.mgm_details.Id, successful=exception is None)
         except Exception:
             FWOLogger.error('error while trying to log import attempt')
 
@@ -305,21 +305,21 @@ class FwoApiCall(FwoApi):
 
         exception_message: str | None = getattr(exception, "message", None) if exception is not None and hasattr(exception, 'message') else str(exception) if exception is not None else None
 
-        import_result = "import_management: import no. " + str(import_state.ImportId) + \
-                " for management " + import_state.MgmDetails.Name + ' (id=' + str(import_state.MgmDetails.Id) + ")" + \
+        import_result = "import_management: import no. " + str(import_state.import_id) + \
+                " for management " + import_state.mgm_details.Name + ' (id=' + str(import_state.mgm_details.Id) + ")" + \
                 str(" threw errors," if exception is not None else " successful,") + \
-                " total change count: " + str(import_state.stats.getTotalChangeNumber()) + \
-                ", rule change count: " + str(import_state.stats.getRuleChangeNumber()) + \
-                ", duration: " + str(int(time.time()) - import_state.StartTime) + "s" 
+                " total change count: " + str(import_state.stats.get_total_change_number()) + \
+                ", rule change count: " + str(import_state.stats.get_rule_change_number()) + \
+                ", duration: " + str(int(time.time()) - import_state.start_time) + "s" 
         import_result += ", ERRORS: " + exception_message if exception_message is not None else ""
         
-        if import_state.stats.getChangeDetails() != {} and FWOLogger.is_debug_level(4) and exception is None:
-            import_result += ", change details: " + str(import_state.stats.getChangeDetails())
+        if import_state.stats.get_change_details() != {} and FWOLogger.is_debug_level(4) and exception is None:
+            import_result += ", change details: " + str(import_state.stats.get_change_details())
         
         if exception is not None:
             self.create_data_issue(severity=1, description=exception_message)
-            self.set_alert(import_id=import_state.ImportId, title="import error", mgm_id=import_state.MgmDetails.Id, severity=2, \
-                description=exception_message, source='import', alert_code=14, mgm_details=import_state.MgmDetails)
+            self.set_alert(import_id=import_state.import_id, title="import error", mgm_id=import_state.mgm_details.Id, severity=2, \
+                description=exception_message, source='import', alert_code=14, mgm_details=import_state.mgm_details)
         
         FWOLogger.info(import_result.encode().decode("unicode_escape"))
             

@@ -56,10 +56,10 @@ class FwConfigImportRule():
         self.import_details = self.global_state.import_state
         #TODO: why is there a state where this is initialized with normalized_config = None? - see #3154
         self.normalized_config = self.global_state.normalized_config # type: ignore
-        self.uid2id_mapper = service_provider.get_uid2id_mapper(self.import_details.ImportId)
-        self.group_flats_mapper = service_provider.get_group_flats_mapper(self.import_details.ImportId)
-        self.prev_group_flats_mapper = service_provider.get_prev_group_flats_mapper(self.import_details.ImportId)
-        self.rule_order_service = service_provider.get_rule_order_service(self.import_details.ImportId)
+        self.uid2id_mapper = service_provider.get_uid2id_mapper(self.import_details.import_id)
+        self.group_flats_mapper = service_provider.get_group_flats_mapper(self.import_details.import_id)
+        self.prev_group_flats_mapper = service_provider.get_prev_group_flats_mapper(self.import_details.import_id)
+        self.rule_order_service = service_provider.get_rule_order_service(self.import_details.import_id)
 
     def updateRulebaseDiffs(self, prevConfig: FwConfigNormalized) -> list[int]:
         if self.normalized_config is None:
@@ -151,7 +151,7 @@ class FwConfigImportRule():
     def _create_removed_rules_map(self, removed_rule_ids: list[int]):
         removed_rule_ids_set = set(removed_rule_ids)
         for rule_id in removed_rule_ids_set:
-            rule_uid = next((k for k, v in self.import_details.RuleMap.items() if v == rule_id), None)
+            rule_uid = next((k for k, v in self.import_details.rule_map.items() if v == rule_id), None)
             if rule_uid:
                 self.import_details.removed_rules_map[rule_uid] = rule_id
 
@@ -178,7 +178,7 @@ class FwConfigImportRule():
         def add_hit_update(new_hit_information: list[dict[str, Any]], rule: RuleNormalized):
             """Add a hit information update entry for a rule."""
             new_hit_information.append({ 
-                "where": { "rule_uid": { "_eq": rule.rule_uid }, "mgm_id": { "_eq": self.import_details.MgmDetails.CurrentMgmId } },
+                "where": { "rule_uid": { "_eq": rule.rule_uid }, "mgm_id": { "_eq": self.import_details.mgm_details.CurrentMgmId } },
                 "_set": { "rule_last_hit": rule.last_hit }
             })
 
@@ -399,7 +399,7 @@ class FwConfigImportRule():
         import_mutation = FwoApi.get_graphql_code([fwo_const.GRAPHQL_QUERY_PATH + "rule/updateRuleRefs.graphql"])
         
         query_variables: dict[str, Any] = {
-            'importId': self.import_details.ImportId,
+            'importId': self.import_details.import_id,
             'ruleFroms': all_refs_to_remove[RefType.SRC],
             'ruleTos': all_refs_to_remove[RefType.DST],
             'ruleServices': all_refs_to_remove[RefType.SVC],
@@ -432,8 +432,8 @@ class FwConfigImportRule():
                 rule_id=self.uid2id_mapper.get_rule_id(rule.rule_uid), 
                 obj_id=self.uid2id_mapper.get_network_object_id(nwobj_uid),
                 user_id=self.uid2id_mapper.get_user_id(user_uid) if user_uid else None,
-                rf_create=self.import_details.ImportId,
-                rf_last_seen=self.import_details.ImportId, #TODO: to be removed in the future
+                rf_create=self.import_details.import_id,
+                rf_last_seen=self.import_details.import_id, #TODO: to be removed in the future
                 negated=rule.rule_src_neg
             ).model_dump()
             return new_ref_dict
@@ -443,8 +443,8 @@ class FwConfigImportRule():
                 rule_id=self.uid2id_mapper.get_rule_id(rule.rule_uid),
                 obj_id=self.uid2id_mapper.get_network_object_id(nwobj_uid),
                 user_id=self.uid2id_mapper.get_user_id(user_uid) if user_uid else None,
-                rt_create=self.import_details.ImportId,
-                rt_last_seen=self.import_details.ImportId, #TODO: to be removed in the future
+                rt_create=self.import_details.import_id,
+                rt_last_seen=self.import_details.import_id, #TODO: to be removed in the future
                 negated=rule.rule_dst_neg
             ).model_dump()
             return new_ref_dict
@@ -452,36 +452,36 @@ class FwConfigImportRule():
             new_ref_dict = RuleService(
                 rule_id=self.uid2id_mapper.get_rule_id(rule.rule_uid),
                 svc_id=self.uid2id_mapper.get_service_object_id(ref_uid), # type: ignore # ref_uid is str here TODO: Cleanup ref_uid dict
-                rs_create=self.import_details.ImportId,
-                rs_last_seen=self.import_details.ImportId, #TODO: to be removed in the future
+                rs_create=self.import_details.import_id,
+                rs_last_seen=self.import_details.import_id, #TODO: to be removed in the future
             ).model_dump()
             return new_ref_dict
         elif ref_type == RefType.NWOBJ_RESOLVED:
             return {
-                "mgm_id": self.import_details.MgmDetails.CurrentMgmId,
+                "mgm_id": self.import_details.mgm_details.CurrentMgmId,
                 "rule_id": self.uid2id_mapper.get_rule_id(rule.rule_uid),
                 "obj_id": self.uid2id_mapper.get_network_object_id(ref_uid), # type: ignore # ref_uid is str here TODO: Cleanup ref_uid dict
-                "created": self.import_details.ImportId,
+                "created": self.import_details.import_id,
             }
         elif ref_type == RefType.SVC_RESOLVED:
             return {
-                "mgm_id": self.import_details.MgmDetails.CurrentMgmId,
+                "mgm_id": self.import_details.mgm_details.CurrentMgmId,
                 "rule_id": self.uid2id_mapper.get_rule_id(rule.rule_uid),
                 "svc_id": self.uid2id_mapper.get_service_object_id(ref_uid), # type: ignore # ref_uid is str here TODO: Cleanup ref_uid dict
-                "created": self.import_details.ImportId,
+                "created": self.import_details.import_id,
             }
         elif ref_type == RefType.USER_RESOLVED:
             return {
-                "mgm_id": self.import_details.MgmDetails.CurrentMgmId,
+                "mgm_id": self.import_details.mgm_details.CurrentMgmId,
                 "rule_id": self.uid2id_mapper.get_rule_id(rule.rule_uid),
                 "user_id": self.uid2id_mapper.get_user_id(ref_uid), # type: ignore # ref_uid is str here TODO: Cleanup ref_uid dict
-                "created": self.import_details.ImportId,
+                "created": self.import_details.import_id,
             }
         elif ref_type == RefType.SRC_ZONE or ref_type == RefType.DST_ZONE:
             return {
                 "rule_id": self.uid2id_mapper.get_rule_id(rule.rule_uid),
                 "zone_id": self.uid2id_mapper.get_zone_object_id(ref_uid), # type: ignore # ref_uid is str here TODO: Cleanup ref_uid dict
-                "created": self.import_details.ImportId,
+                "created": self.import_details.import_id,
             }
 
 
@@ -769,7 +769,7 @@ class FwConfigImportRule():
             for rule_uid, rule in rulebase.rules.items():
                 rm4import = RuleMetadatum(
                     rule_uid=rule_uid,
-                    mgm_id=self.import_details.MgmDetails.CurrentMgmId,
+                    mgm_id=self.import_details.mgm_details.CurrentMgmId,
                     rule_last_modified=now,
                     rule_created=now,
                     rule_last_hit=rule.last_hit,
@@ -785,10 +785,10 @@ class FwConfigImportRule():
         for rulebase in newRulebases:
             rb4import = RulebaseForImport(
                 name=rulebase.name,
-                mgm_id=self.import_details.MgmDetails.CurrentMgmId,
+                mgm_id=self.import_details.mgm_details.CurrentMgmId,
                 uid=rulebase.uid,
-                is_global=self.import_details.MgmDetails.CurrentMgmIsSuperManager,
-                created=self.import_details.ImportId,
+                is_global=self.import_details.mgm_details.CurrentMgmIsSuperManager,
+                created=self.import_details.import_id,
             )
             newRulesForImport.append(rb4import)
         # TODO: see where to get real UIDs (both for rulebase and manager)
@@ -812,8 +812,8 @@ class FwConfigImportRule():
                         }
                     }
                 """
-                query_variables: dict[str, Any] = {  'importId': self.import_details.ImportId,
-                                    'mgmId': self.import_details.MgmDetails.CurrentMgmId,
+                query_variables: dict[str, Any] = {  'importId': self.import_details.import_id,
+                                    'mgmId': self.import_details.mgm_details.CurrentMgmId,
                                     'uids': list(removedRuleUids[rbName]) }
                 
                 try:
@@ -902,8 +902,8 @@ class FwConfigImportRule():
         create_new_rule_version_variables: dict[str, Any] = {
             "objects": [rule.model_dump() for rule in import_rules],
             "uids": [rule.rule_uid for rule in import_rules],
-            "mgmId": self.import_details.MgmDetails.CurrentMgmId,
-            "importId": self.import_details.ImportId
+            "mgmId": self.import_details.mgm_details.CurrentMgmId,
+            "importId": self.import_details.import_id
         }
         
         try:
@@ -970,7 +970,7 @@ class FwConfigImportRule():
 
         set_rule_enforced_on_gateway_entries_removed_variables: dict[str, Any] = {
             "rule_ids": list(id_map.values()),
-            "importId": self.import_details.ImportId,
+            "importId": self.import_details.import_id,
         }
 
         insert_rule_enforced_on_gateway_entries_mutation = """
@@ -995,7 +995,7 @@ class FwConfigImportRule():
                     {
                         "rule_id": new_id,
                         "dev_id": next(entry for entry in  set_rule_enforced_on_gateway_entries_removed_result["data"]["update_rule_enforced_on_gateway"]["returning"] if entry["rule_id"] == id_map[new_id])["dev_id"],
-                        "created": self.import_details.ImportId,
+                        "created": self.import_details.import_id,
                     }
                     for new_id in id_map.keys()
                 ]
@@ -1044,7 +1044,7 @@ class FwConfigImportRule():
     def get_rule_num_map(self) -> dict[str, dict[str, float]]:
         query = "query getRuleNumMap($mgmId: Int) { rule(where:{mgm_id:{_eq:$mgmId}}) { rule_uid rulebase_id rule_num_numeric } }"
         try:
-            result = self.import_details.api_call.call(query=query, query_variables={"mgmId": self.import_details.MgmDetails.CurrentMgmId})
+            result = self.import_details.api_call.call(query=query, query_variables={"mgmId": self.import_details.mgm_details.CurrentMgmId})
         except Exception:
             FWOLogger.error(f'Error while getting rule number map')
             return {}
@@ -1124,9 +1124,9 @@ class FwConfigImportRule():
         query_variables: dict[str, Any] = {
             "rulebase": {
                 "is_global": is_global,
-                "mgm_id": self.import_details.MgmDetails.CurrentMgmId,
+                "mgm_id": self.import_details.mgm_details.CurrentMgmId,
                 "name": rulebase_name,
-                "created": self.import_details.ImportId
+                "created": self.import_details.import_id
             }
         }
 
@@ -1197,7 +1197,7 @@ class FwConfigImportRule():
     
     def prepare_single_rule_for_import(self, rule: RuleNormalized, importDetails: ImportStateController, rulebase_id: int) -> Rule:
         rule_for_import = Rule(
-            mgm_id=importDetails.MgmDetails.CurrentMgmId,
+            mgm_id=importDetails.mgm_details.CurrentMgmId,
             rule_num=rule.rule_num,
             rule_disabled=rule.rule_disabled,
             rule_src_neg=rule.rule_src_neg,
@@ -1224,8 +1224,8 @@ class FwConfigImportRule():
             nat_rule=False,
             is_global=False,
             rulebase_id=rulebase_id,
-            rule_create=importDetails.ImportId,
-            rule_last_seen=importDetails.ImportId,
+            rule_create=importDetails.import_id,
+            rule_last_seen=importDetails.import_id,
             rule_num_numeric=rule.rule_num_numeric,
             action_id = importDetails.lookupAction(rule.rule_action),
             track_id = importDetails.lookupTrack(rule.rule_track),
@@ -1265,7 +1265,7 @@ class FwConfigImportRule():
         importTime = datetime.now().isoformat()
         changeTyp = 3
 
-        if self.import_details.IsFullImport or self.import_details.IsClearingImport:
+        if self.import_details.is_full_import or self.import_details.IsClearingImport:
             changeTyp = 2   # TODO: Somehow all imports are treated as im operation.
 
         for rule_id in added_rules_ids:

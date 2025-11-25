@@ -2,13 +2,13 @@ from pydantic import BaseModel
 from models.fwconfig_normalized import FwConfigNormalized
 
 class FwConfigManager(BaseModel):
-    ManagerUid: str
-    ManagerName: str
-    IsSuperManager: bool = False
-    DomainUid: str
-    DomainName: str
-    SubManagerIds: list[int] = []
-    Configs: list[FwConfigNormalized] = []
+    manager_uid: str
+    manager_name: str
+    is_super_manager: bool = False
+    domain_uid: str
+    domain_name: str
+    sub_manager_ids: list[int] = []
+    configs: list[FwConfigNormalized] = []
 
 
     model_config = {

@@ -124,7 +124,7 @@ class FwConfigImportGateway:
                                     is_global=link.is_global,
                                     is_section = link.is_section,
                                     from_rulebase_id=from_rulebase_id,
-                                    created=self._global_state.import_state.ImportId).toDict())
+                                    created=self._global_state.import_state.import_id).toDict())
             
             FWOLogger.debug(f"link {link} was added", 9)
 

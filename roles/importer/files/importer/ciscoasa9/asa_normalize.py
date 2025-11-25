@@ -124,7 +124,7 @@ def normalize_config(config_in: FwConfigManagerListController, import_state: Imp
     FWOLogger.debug("Building rulebases from access lists...")
     rulebases = build_rulebases_from_access_lists(
         native_config.access_lists,
-        import_state.MgmDetails.Uid,
+        import_state.mgm_details.Uid,
         protocol_groups=native_config.protocol_groups,
         network_objects=network_objects,
         service_objects=service_objects,
@@ -179,7 +179,7 @@ def normalize_config(config_in: FwConfigManagerListController, import_state: Imp
     )
 
     # Update the configuration input with normalized data
-    config_in.ManagerSet[0].Configs = [normalized_config]
-    config_in.ManagerSet[0].ManagerUid = import_state.MgmDetails.Uid
+    config_in.ManagerSet[0].configs = [normalized_config]
+    config_in.ManagerSet[0].manager_uid = import_state.mgm_details.Uid
 
     return config_in

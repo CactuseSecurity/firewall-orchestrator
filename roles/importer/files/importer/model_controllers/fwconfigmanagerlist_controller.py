@@ -44,13 +44,13 @@ class FwConfigManagerListController(FwConfigManagerList):
         """
         empty_config = FwConfigManagerListController()
         empty_config.ConfigFormat = ConfFormat.NORMALIZED
-        empty_manager = FwConfigManager(ManagerUid="",
-                                        IsSuperManager=is_super_manager,
-                                        SubManagerIds=[],
-                                        Configs=[],
-                                        DomainName="",
-                                        DomainUid="",
-                                        ManagerName=""
+        empty_manager = FwConfigManager(manager_uid="",
+                                        is_super_manager=is_super_manager,
+                                        sub_manager_ids=[],
+                                        configs=[],
+                                        domain_name="",
+                                        domain_uid="",
+                                        manager_name=""
                                         )
         empty_config.addManager(empty_manager)
         empty_config.native_config = {}
@@ -75,8 +75,8 @@ class FwConfigManagerListController(FwConfigManagerList):
         """
         all_zone_names: list[str] = []
         for mgr in self.ManagerSet:
-            if mgr.IsSuperManager or mgr.ManagerUid==mgr_uid:
-                for single_config in mgr.Configs:
+            if mgr.is_super_manager or mgr.manager_uid==mgr_uid:
+                for single_config in mgr.configs:
                     all_zone_names.extend(single_config.zone_objects.keys())
         return set(all_zone_names)
     
@@ -87,8 +87,8 @@ class FwConfigManagerListController(FwConfigManagerList):
         """
         all_network_objects: list[str] = []
         for mgr in self.ManagerSet:
-            if mgr.IsSuperManager or mgr.ManagerUid==mgr_uid:
-                for single_config in mgr.Configs:
+            if mgr.is_super_manager or mgr.manager_uid==mgr_uid:
+                for single_config in mgr.configs:
                     all_network_objects.extend(single_config.network_objects.keys())
         return set(all_network_objects)
     
@@ -99,8 +99,8 @@ class FwConfigManagerListController(FwConfigManagerList):
         """
         all_service_objects: list[str] = []
         for mgr in self.ManagerSet:
-            if mgr.IsSuperManager or mgr.ManagerUid==mgr_uid:
-                for single_config in mgr.Configs:
+            if mgr.is_super_manager or mgr.manager_uid==mgr_uid:
+                for single_config in mgr.configs:
                     all_service_objects.extend(single_config.service_objects.keys())
         return set(all_service_objects)
     
@@ -111,8 +111,8 @@ class FwConfigManagerListController(FwConfigManagerList):
         """
         all_user_objects: list[str] = []
         for mgr in self.ManagerSet:
-            if mgr.IsSuperManager or mgr.ManagerUid==mgr_uid:
-                for single_config in mgr.Configs:
+            if mgr.is_super_manager or mgr.manager_uid==mgr_uid:
+                for single_config in mgr.configs:
                     all_user_objects.extend(single_config.users.keys())
         return set(all_user_objects)
     
@@ -143,7 +143,7 @@ class FwConfigManagerListController(FwConfigManagerList):
         if fwo_globals.debug_level>5:
             debug_start_time = int(time.time())
             try:
-                normalized_config_filename = f"{IMPORT_TMP_PATH}/mgm_id_{str(importState.MgmDetails.Id)}_config_normalized.json"
+                normalized_config_filename = f"{IMPORT_TMP_PATH}/mgm_id_{str(importState.mgm_details.Id)}_config_normalized.json"
 
                 config_copy_without_native= deepcopy(self)
                 config_copy_without_native.native_config = {}
@@ -171,7 +171,7 @@ class FwConfigManagerListController(FwConfigManagerList):
     def contains_only_native(self) -> bool:
         return self.is_native() and (
             len(self.ManagerSet)==0 or
-            len(self.ManagerSet)==1 and len(self.ManagerSet[0].Configs)==0
+            len(self.ManagerSet)==1 and len(self.ManagerSet[0].configs)==0
         ) 
 
 
@@ -180,7 +180,7 @@ class FwConfigManagerListController(FwConfigManagerList):
 
 
     def normalized_config_is_empty(self) -> bool:
-        return len(self.ManagerSet)==1 and len(self.ManagerSet[0].Configs)==0
+        return len(self.ManagerSet)==1 and len(self.ManagerSet[0].configs)==0
 
 
     def is_normalized(self) -> bool:

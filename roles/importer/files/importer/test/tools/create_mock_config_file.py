@@ -32,13 +32,13 @@ def main(
 
     fw_config_manager_list_controller = FwConfigManagerListController()
     fw_config_manager = FwConfigManager(
-        ManagerUid=manager_uid,
-        ManagerName=manager_name,
-        DomainUid=domain_uid,
-        DomainName=domain_name
+        manager_uid=manager_uid,
+        manager_name=manager_name,
+        domain_uid=domain_uid,
+        domain_name=domain_name
 
     )
-    fw_config_manager.Configs.append(mock_config)
+    fw_config_manager.configs.append(mock_config)
     fw_config_manager_list_controller.ManagerSet.append(fw_config_manager)
     file_path = fw_config_manager_list_controller.storeFullNormalizedConfigToFile(fw_mock_import_state)
 

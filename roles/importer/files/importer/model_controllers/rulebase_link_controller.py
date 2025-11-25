@@ -26,7 +26,7 @@ class RulebaseLinkController():
 
 
     def remove_rulebase_links(self, import_state: ImportStateController, removed_rb_links_ids: list[int | None]) -> None:
-        query_variables: dict[str, Any] = { "removedRulebaseLinks": removed_rb_links_ids, "importId": import_state.ImportId }
+        query_variables: dict[str, Any] = { "removedRulebaseLinks": removed_rb_links_ids, "importId": import_state.import_id }
         if len(removed_rb_links_ids) == 0:
             return
         mutation = FwoApi.get_graphql_code([f"{fwo_const.GRAPHQL_QUERY_PATH}rule/removeRulebaseLinks.graphql"])      

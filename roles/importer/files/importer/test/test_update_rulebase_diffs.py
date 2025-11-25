@@ -57,7 +57,7 @@ class TestUpdateRulebaseDiffs(unittest.TestCase):
 
         self._fwconfig_import_rule = MockFwConfigImportRule()
         self._import_id += 1
-        self._fwconfig_import_rule.import_details.ImportId = self._import_id
+        self._fwconfig_import_rule.import_details.import_id = self._import_id
         self._fwconfig_import_rule.normalized_config = self._global_state.normalized_config
         self._import_state = self._fwconfig_import_rule.import_details
         self._normalized_config = self._fwconfig_import_rule.normalized_config

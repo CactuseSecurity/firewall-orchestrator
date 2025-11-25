@@ -266,7 +266,7 @@ class Uid2IdMapper:
             variables = {'uids': uids}
         else:
             # If no UIDs are provided, fetch all UIDs for the Management
-            variables = {'mgmId': self.import_state.MgmDetails.CurrentMgmId}
+            variables = {'mgmId': self.import_state.mgm_details.CurrentMgmId}
         try:
             response = self.import_state.api_connection.call(query, variables)
             if 'errors' in response:
@@ -294,7 +294,7 @@ class Uid2IdMapper:
             variables = {'uids': uids}
         else:
             # If no UIDs are provided, fetch all UIDs for the Management
-            variables = {'mgmId': self.import_state.MgmDetails.CurrentMgmId}
+            variables = {'mgmId': self.import_state.mgm_details.CurrentMgmId}
         try:
             response = self.import_state.api_connection.call(query, variables)
             if 'errors' in response:
@@ -322,7 +322,7 @@ class Uid2IdMapper:
             variables = {'uids': uids}
         else:
             # If no UIDs are provided, fetch all UIDs for the Management
-            variables = {'mgmId': self.import_state.MgmDetails.CurrentMgmId}
+            variables = {'mgmId': self.import_state.mgm_details.CurrentMgmId}
         try:
             response = self.import_state.api_connection.call(query, variables)
             if 'errors' in response:
@@ -350,7 +350,7 @@ class Uid2IdMapper:
             variables = {'names': names}
         else:
             # If no names are provided, fetch all zones for the Management
-            variables = {'mgmId': self.import_state.MgmDetails.CurrentMgmId}
+            variables = {'mgmId': self.import_state.mgm_details.CurrentMgmId}
         try:
             response = self.import_state.api_connection.call(query, variables)
             if 'errors' in response:
@@ -378,7 +378,7 @@ class Uid2IdMapper:
             variables = {'uids': uids}
         else:
             # If no UIDs are provided, fetch all UIDs for the Management
-            variables = {'mgmId': self.import_state.MgmDetails.CurrentMgmId}
+            variables = {'mgmId': self.import_state.mgm_details.CurrentMgmId}
         try:
             response = self.import_state.api_connection.call(query, variables)
             if 'errors' in response:

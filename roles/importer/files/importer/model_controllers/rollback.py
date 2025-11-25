@@ -24,18 +24,18 @@ class FwConfigImportRollback():
         rollbackMutation = FwoApi.get_graphql_code([f"{fwo_const.GRAPHQL_QUERY_PATH}import/rollbackImport.graphql"])
         try:
             query_variables = {
-                'importId': self.ImportDetails.ImportId
+                'importId': self.ImportDetails.import_id
             }
             rollbackResult = self.ImportDetails.api_call.call(rollbackMutation, query_variables=query_variables)
             if 'errors' in rollbackResult:
                 FWOLogger.exception("error while trying to roll back current import for mgm id " +
-                                str(self.ImportDetails.MgmDetails.Id) + ": " + str(rollbackResult['errors']))
+                                str(self.ImportDetails.mgm_details.Id) + ": " + str(rollbackResult['errors']))
                 return 1 # error
             else:
-                FWOLogger.info("import " + str(self.ImportDetails.ImportId) + " has been rolled back successfully")
+                FWOLogger.info("import " + str(self.ImportDetails.import_id) + " has been rolled back successfully")
 
         except Exception:
-            FWOLogger.exception(f"failed to rollback current importfor mgm id {str(self.ImportDetails.MgmDetails.Id)}: {str(traceback.format_exc())}")
+            FWOLogger.exception(f"failed to rollback current importfor mgm id {str(self.ImportDetails.mgm_details.Id)}: {str(traceback.format_exc())}")
             return 1 # error
         
         return 0

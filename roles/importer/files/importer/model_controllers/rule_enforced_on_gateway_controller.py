@@ -85,7 +85,7 @@ class RuleEnforcedOnGatewayController:
         return {
             'rule_id': rule['rule_id'], #TODO: rule_id does not exist
             'dev_id': gw_id,
-            'created': self.import_details.ImportId,
+            'created': self.import_details.import_id,
             'removed': None
         }
     

@@ -222,9 +222,9 @@ class ChangeLogger:
         rule_changelog_object: dict[str, Any] =  {
             f"new_{type}_id": new_rule_id,
             f"old_{type}_id": old_rule_id,
-            "control_id": self._import_state.ImportId,
+            "control_id": self._import_state.import_id,
             "change_action": change_action,
-            "mgm_id": self._import_state.MgmDetails.Id,
+            "mgm_id": self._import_state.mgm_details.Id,
             "change_type_id": changeTyp,
             "change_time": importTime,
             "unique_name": uniqueName,

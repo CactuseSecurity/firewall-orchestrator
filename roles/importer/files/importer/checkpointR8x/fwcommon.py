@@ -24,15 +24,15 @@ def has_config_changed(full_config: dict[str, Any], import_state: ImportState, f
     if full_config != {}:   # a config was passed in (read from file), so we assume that an import has to be done (simulating changes here)
         return True
 
-    session_id: str = cp_getter.login(import_state.MgmDetails)
+    session_id: str = cp_getter.login(import_state.mgm_details)
 
-    if import_state.LastSuccessfulImport is None or import_state.LastSuccessfulImport == '' or force:
+    if import_state.last_successful_import is None or import_state.last_successful_import == '' or force:
         # if no last import time found or given or if force flag is set, do full import
         result = True
     else: # otherwise search for any changes since last import
-        result = (cp_getter.get_changes(session_id, import_state.MgmDetails.Hostname, str(import_state.MgmDetails.Port),import_state.LastSuccessfulImport) != 0)
+        result = (cp_getter.get_changes(session_id, import_state.mgm_details.Hostname, str(import_state.mgm_details.Port),import_state.last_successful_import) != 0)
 
-    cp_getter.logout(import_state.MgmDetails.buildFwApiString(), session_id)
+    cp_getter.logout(import_state.mgm_details.buildFwApiString(), session_id)
 
     return result > 0
 
@@ -73,7 +73,7 @@ def get_config(config_in: FwConfigManagerListController, importState: ImportStat
         FWOLogger.debug ( "checkpointR8x/get_config - fetch duration: " + str(duration) + "s" )
 
     if config_in.contains_only_native():
-        sid: str = cp_getter.login(importState.MgmDetails)
+        sid: str = cp_getter.login(importState.mgm_details)
         normalizedConfig = normalize_config(importState, config_in, parsing_config_only, sid)
         FWOLogger.info("completed getting config")
         return 0, normalizedConfig
@@ -145,13 +145,13 @@ def normalize_config(import_state: ImportStateController, config_in: FwConfigMan
             rulebases=native_and_normalized_config_dict['normalized']['policies'],
             gateways=native_and_normalized_config_dict['normalized']['gateways']
         )
-        manager = FwConfigManager(  ManagerName=native_and_normalized_config_dict['native']['management_name'],
-            ManagerUid=native_and_normalized_config_dict['native']['management_uid'],
-            IsSuperManager=native_and_normalized_config_dict['native']['is-super-manager'],
-            SubManagerIds=[], 
-            DomainName=native_and_normalized_config_dict['native']['domain_name'],
-            DomainUid=native_and_normalized_config_dict['native']['domain_uid'],
-            Configs=[normalized_config]
+        manager = FwConfigManager(  manager_name=native_and_normalized_config_dict['native']['management_name'],
+            manager_uid=native_and_normalized_config_dict['native']['management_uid'],
+            is_super_manager=native_and_normalized_config_dict['native']['is-super-manager'],
+            sub_manager_ids=[], 
+            domain_name=native_and_normalized_config_dict['native']['domain_name'],
+            domain_uid=native_and_normalized_config_dict['native']['domain_uid'],
+            configs=[normalized_config]
         )
         config_in.ManagerSet.append(manager)
 
@@ -161,14 +161,14 @@ def normalize_config(import_state: ImportStateController, config_in: FwConfigMan
 def normalize_single_manager_config(native_config: dict[str, Any], native_config_global: dict[str, Any], normalized_config_dict: dict[str, Any],
                                     normalized_config_global: dict[str, Any], import_state: ImportStateController,
                                     parsing_config_only: bool, sid: str, is_global_loop_iteration: bool):
-    cp_network.normalize_network_objects(native_config, normalized_config_dict, import_state.ImportId, mgm_id=import_state.MgmDetails.Id)
+    cp_network.normalize_network_objects(native_config, normalized_config_dict, import_state.import_id, mgm_id=import_state.mgm_details.Id)
     FWOLogger.info("completed normalizing network objects")
-    cp_service.normalize_service_objects(native_config, normalized_config_dict, import_state.ImportId)
+    cp_service.normalize_service_objects(native_config, normalized_config_dict, import_state.import_id)
     FWOLogger.info("completed normalizing service objects")
     cp_gateway.normalize_gateways(native_config, import_state, normalized_config_dict)
     cp_rule.normalize_rulebases(native_config, native_config_global, import_state, normalized_config_dict, normalized_config_global, is_global_loop_iteration)
     if not parsing_config_only: # get config from cp fw mgr
-        cp_getter.logout(import_state.MgmDetails.buildFwApiString(), sid)
+        cp_getter.logout(import_state.mgm_details.buildFwApiString(), sid)
     FWOLogger.info("completed normalizing rulebases")
     
 
@@ -177,7 +177,7 @@ def get_rules(nativeConfig: dict[str, Any], importState: ImportStateController) 
     Main function to get rules. Divided into smaller sub-tasks for better readability and maintainability.
     """
     show_params_policy_structure: dict[str, Any] = {
-        'limit': importState.FwoConfig.ApiFetchSize,
+        'limit': importState.fwo_config.api_fetch_size,
         'details-level': 'full'
     }
 
@@ -185,7 +185,7 @@ def get_rules(nativeConfig: dict[str, Any], importState: ImportStateController) 
     manager_details_list = create_ordered_manager_list(importState)
     manager_index = 0
     for managerDetails in manager_details_list:
-        cpManagerApiBaseUrl = importState.MgmDetails.buildFwApiString()
+        cpManagerApiBaseUrl = importState.mgm_details.buildFwApiString()
 
         if managerDetails.IsSuperManager:
             globalAssignments, global_policy_structure, globalDomain, globalSid = handle_super_manager(
@@ -213,9 +213,9 @@ def create_ordered_manager_list(importState: ImportStateController) -> list[Mana
     """
     creates list of manager details, supermanager is first
     """
-    manager_details_list: list[ManagementController] = [deepcopy(importState.MgmDetails)]
-    if importState.MgmDetails.IsSuperManager:
-        for subManager in importState.MgmDetails.SubManagers:
+    manager_details_list: list[ManagementController] = [deepcopy(importState.mgm_details)]
+    if importState.mgm_details.IsSuperManager:
+        for subManager in importState.mgm_details.SubManagers:
             manager_details_list.append(deepcopy(subManager)) # type: ignore TODO: why we are adding submanagers as ManagementController?
     return manager_details_list
 
@@ -263,7 +263,7 @@ def process_devices(
             continue
 
         global_ordered_layer_count = 0
-        if importState.MgmDetails.IsSuperManager:
+        if importState.mgm_details.IsSuperManager:
             global_ordered_layer_count = handle_global_rulebase_links(
                 managerDetails, importState, deviceConfig, globalAssignments, global_policy_structure, globalDomain,
                 globalSid, orderedLayerUids, nativeConfigGlobalDomain, cpManagerApiBaseUrl
@@ -367,7 +367,7 @@ def define_initial_rulebase(deviceConfig: dict[str, Any], orderedLayerUids: list
 
 def get_rules_params(importState: ImportStateController) -> dict[str, Any]:
     return {
-        'limit': importState.FwoConfig.ApiFetchSize,
+        'limit': importState.fwo_config.api_fetch_size,
         'use-object-dictionary': cp_const.use_object_dictionary,
         'details-level': 'standard',
         'show-hits': cp_const.with_hits
@@ -377,14 +377,14 @@ def get_rules_params(importState: ImportStateController) -> dict[str, Any]:
 def handle_nat_rules(device: dict[str, Any], nativeConfigDomain: dict[str, Any], sid: str, importState: ImportStateController):
     if 'package_name' in device and device['package_name']:
         show_params_rules: dict[str, Any] = {
-            'limit': importState.FwoConfig.ApiFetchSize,
+            'limit': importState.fwo_config.api_fetch_size,
             'use-object-dictionary': cp_const.use_object_dictionary,
             'details-level': 'standard',
             'package': device['package_name']
         }
         FWOLogger.debug(f"Getting NAT rules for package: {device['package_name']}", 4)
         nat_rules = cp_getter.get_nat_rules_from_api_as_dict(
-            importState.MgmDetails.buildFwApiString(), sid, show_params_rules,
+            importState.mgm_details.buildFwApiString(), sid, show_params_rules,
             nativeConfigDomain=nativeConfigDomain
         )
         if nat_rules:
@@ -454,13 +454,13 @@ def append_access_layer_uid(policy: dict[str, Any], domain: str | None, orderedL
     
 
 def get_objects(native_config_dict: dict[str,Any], importState: ImportStateController) -> int:
-    show_params_objs = {'limit': importState.FwoConfig.ApiFetchSize}
+    show_params_objs = {'limit': importState.fwo_config.api_fetch_size}
     manager_details_list = create_ordered_manager_list(importState)
             
     # loop over sub-managers in case of mds
     manager_index = 0
     for manager_details in manager_details_list:
-        if manager_details.ImportDisabled and not importState.ForceImport:
+        if manager_details.ImportDisabled and not importState.force_import:
             continue
 
         is_stand_alone_manager = (len(manager_details_list) == 1)

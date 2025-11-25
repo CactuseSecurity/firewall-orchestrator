@@ -31,12 +31,12 @@ class FwConfigImportCheckConsistency(FwConfigImport):
 
         self.maps = FwConfigImportObject() # TODO don't use like this (separation of concerns) - see #3154
         for mgr in config_list.ManagerSet:
-            for cfg in mgr.Configs:
+            for cfg in mgr.configs:
                 import_worker = FwConfigImport()
                 self.config.merge(cfg)
-                self.maps.NetworkObjectTypeMap.update(import_worker.fwconfig_import_object.NetworkObjectTypeMap)
-                self.maps.ServiceObjectTypeMap.update(import_worker.fwconfig_import_object.ServiceObjectTypeMap)
-                self.maps.UserObjectTypeMap.update(import_worker.fwconfig_import_object.UserObjectTypeMap)
+                self.maps.network_object_type_map.update(import_worker.fwconfig_import_object.network_object_type_map)
+                self.maps.service_object_type_map.update(import_worker.fwconfig_import_object.service_object_type_map)
+                self.maps.user_object_type_map.update(import_worker.fwconfig_import_object.user_object_type_map)
 
 
     # pre-flight checks
@@ -63,17 +63,17 @@ class FwConfigImportCheckConsistency(FwConfigImport):
 
         # add all new obj refs from all rules
         for mgr in sorted(config.ManagerSet, key=lambda m: not getattr(m, 'IsSuperManager', False)):
-            if mgr.IsSuperManager:
-                global_objects = config.get_all_network_object_uids(mgr.ManagerUid)
+            if mgr.is_super_manager:
+                global_objects = config.get_all_network_object_uids(mgr.manager_uid)
             all_used_obj_refs: list[str] = []
-            for single_config in mgr.Configs:
+            for single_config in mgr.configs:
                 for rb in single_config.rulebases:
                     all_used_obj_refs += self._collect_all_used_objects_from_rules(rb)
                 
                 all_used_obj_refs += self._collect_all_used_objects_from_groups(single_config)
 
             # now make list unique and get all refs not contained in network_objects
-            unresolvable_nw_obj_refs = set(all_used_obj_refs) - config.get_all_network_object_uids(mgr.ManagerUid) - global_objects
+            unresolvable_nw_obj_refs = set(all_used_obj_refs) - config.get_all_network_object_uids(mgr.manager_uid) - global_objects
             if len(unresolvable_nw_obj_refs)>0:
                 self.issues.update({'unresolvableNwObRefs': list(unresolvable_nw_obj_refs)})
 
@@ -84,10 +84,10 @@ class FwConfigImportCheckConsistency(FwConfigImport):
     def _check_network_object_types_exist(self, mgr: FwConfigManager):
         allUsedObjTypes: set[str] = set()
 
-        for single_config in mgr.Configs:            
+        for single_config in mgr.configs:            
             for objId in single_config.network_objects:
                 allUsedObjTypes.add(single_config.network_objects[objId].obj_typ)
-            missingNwObjTypes = allUsedObjTypes - self.maps.NetworkObjectTypeMap.keys()
+            missingNwObjTypes = allUsedObjTypes - self.maps.network_object_type_map.keys()
             if len(missingNwObjTypes)>0:
                 self.issues.update({'unresolvableNwObjTypes': list(missingNwObjTypes)})
 
@@ -116,7 +116,7 @@ class FwConfigImportCheckConsistency(FwConfigImport):
     def _check_objects_with_missing_ips(self, single_config: FwConfigManager):
         # check if there are any objects with obj_typ<>group and empty ip addresses (breaking constraint)
         nonGroupNwObjWithMissingIps: list[NetworkObject] = []
-        for conf in single_config.Configs:
+        for conf in single_config.configs:
             for objId in conf.network_objects:
                 if conf.network_objects[objId].obj_typ!='group':
                     ip1 = conf.network_objects[objId].obj_ip
@@ -132,12 +132,12 @@ class FwConfigImportCheckConsistency(FwConfigImport):
         global_objects: set[str] = set()
 
         for mgr in sorted(config.ManagerSet, key=lambda m: not getattr(m, 'IsSuperManager', False)):
-            if len(mgr.Configs)==0:
+            if len(mgr.configs)==0:
                 continue
-            if mgr.IsSuperManager:
-                global_objects = config.get_all_service_object_uids(mgr.ManagerUid)
+            if mgr.is_super_manager:
+                global_objects = config.get_all_service_object_uids(mgr.manager_uid)
             all_used_obj_refs: set[str] = set()
-            for single_config in mgr.Configs:
+            for single_config in mgr.configs:
                 all_used_obj_refs |= self._collect_service_object_refs_from_rules(single_config)
                 all_used_obj_refs |= self._collect_all_service_object_refs_from_groups(single_config)
                 self._check_service_object_types_exist(single_config)
@@ -145,7 +145,7 @@ class FwConfigImportCheckConsistency(FwConfigImport):
                 all_used_obj_refs = set(all_used_obj_refs)
                 # and get all refs not contained in serivce_objects
 
-            unresolvableObRefs = all_used_obj_refs - config.get_all_service_object_uids(mgr.ManagerUid) - global_objects
+            unresolvableObRefs = all_used_obj_refs - config.get_all_service_object_uids(mgr.manager_uid) - global_objects
             if len(unresolvableObRefs)>0:
                 self.issues.update({'unresolvableSvcObRefs': list(unresolvableObRefs)})
 
@@ -156,7 +156,7 @@ class FwConfigImportCheckConsistency(FwConfigImport):
         all_used_obj_types: set[str] = set()
         for obj_id in single_config.service_objects:
             all_used_obj_types.add(single_config.service_objects[obj_id].svc_typ)
-        missing_obj_types = list(all_used_obj_types) - self.maps.ServiceObjectTypeMap.keys()
+        missing_obj_types = list(all_used_obj_types) - self.maps.service_object_type_map.keys()
         if len(missing_obj_types)>0:
             self.issues.update({'unresolvableSvcObjTypes': list(missing_obj_types)})
 
@@ -188,15 +188,15 @@ class FwConfigImportCheckConsistency(FwConfigImport):
         # add all user refs from all rules
         for mgr in sorted(config.ManagerSet, key=lambda m: not getattr(m, 'IsSuperManager', False)):
             all_used_obj_refs: list[str] = []
-            if mgr.IsSuperManager:
-                global_objects = config.get_all_user_object_uids(mgr.ManagerUid)
-            for single_config in mgr.Configs:
+            if mgr.is_super_manager:
+                global_objects = config.get_all_user_object_uids(mgr.manager_uid)
+            for single_config in mgr.configs:
                 all_used_obj_refs += self._collect_users_from_rules(single_config)
                 self._collect_users_from_groups(single_config, all_used_obj_refs)
                 self._check_user_types_exist(single_config)
 
             # now make list unique and get all refs not contained in users
-            unresolvable_obj_refs = set(all_used_obj_refs) - config.get_all_user_object_uids(mgr.ManagerUid) - global_objects
+            unresolvable_obj_refs = set(all_used_obj_refs) - config.get_all_user_object_uids(mgr.manager_uid) - global_objects
             if len(unresolvable_obj_refs)>0:
                 self.issues.update({'unresolvableUserObjRefs': list(unresolvable_obj_refs)})
 
@@ -220,7 +220,7 @@ class FwConfigImportCheckConsistency(FwConfigImport):
         allUsedObjTypes: set[str] = set()
         for objId in single_config.users:
             allUsedObjTypes.add(single_config.users[objId].user_typ)  # make list unique
-        missingObjTypes = list(set(allUsedObjTypes)) - self.maps.UserObjectTypeMap.keys() #TODO: why list(set())?
+        missingObjTypes = list(set(allUsedObjTypes)) - self.maps.user_object_type_map.keys() #TODO: why list(set())?
         if len(missingObjTypes)>0:
             self.issues.update({'unresolvableUserObjTypes': list(missingObjTypes)})
 
@@ -239,19 +239,19 @@ class FwConfigImportCheckConsistency(FwConfigImport):
 
         global_objects: set[str] = set()
         for mgr in sorted(config.ManagerSet, key=lambda m: not getattr(m, 'IsSuperManager', False)):
-            if len(mgr.Configs)==0:
+            if len(mgr.configs)==0:
                 continue
-            if mgr.IsSuperManager:
-                global_objects = config.get_all_zone_names(mgr.ManagerUid)
+            if mgr.is_super_manager:
+                global_objects = config.get_all_zone_names(mgr.manager_uid)
 
             all_used_obj_refs: set[str] = set()
-            for single_config in mgr.Configs:
+            for single_config in mgr.configs:
                 all_used_obj_refs |= self._collect_zone_refs_from_rules(single_config)
                 # now make list unique 
                 all_used_obj_refs = set(all_used_obj_refs)
 
             # and get all refs not contained in zone_objects
-            unresolvable_object_refs = all_used_obj_refs - config.get_all_zone_names(mgr.ManagerUid) - global_objects
+            unresolvable_object_refs = all_used_obj_refs - config.get_all_zone_names(mgr.manager_uid) - global_objects
             if len(unresolvable_object_refs)>0:
                 self.issues.update({'unresolvableZoneObRefs': list(unresolvable_object_refs)})
 
@@ -277,7 +277,7 @@ class FwConfigImportCheckConsistency(FwConfigImport):
         # collect all colors
 
         for mgr in config.ManagerSet:
-            for single_config in mgr.Configs:
+            for single_config in mgr.configs:
 
                 allUsedNwObjColorRefSet, allUsedSvcColorRefSet, allUsedUserColorRefSet = \
                     self._collect_all_used_colors(single_config)
@@ -367,7 +367,7 @@ class FwConfigImportCheckConsistency(FwConfigImport):
         all_used_action_refs: list[str] = []
 
         for mgr in config.ManagerSet:
-            for single_config in mgr.Configs:
+            for single_config in mgr.configs:
                 track_refs, action_refs = self._extract_rule_track_n_action_refs(single_config.rulebases)
                 all_used_track_refs.extend(track_refs)
                 all_used_action_refs.extend(action_refs)
@@ -375,11 +375,11 @@ class FwConfigImportCheckConsistency(FwConfigImport):
                 all_used_track_refs = list(set(all_used_track_refs))
                 all_used_action_refs = list(set(all_used_action_refs))
 
-                unresolvable_tracks = all_used_track_refs - self.import_state.Tracks.keys()
+                unresolvable_tracks = all_used_track_refs - self.import_state.tracks.keys()
                 if unresolvable_tracks:
                     self.issues.update({'unresolvableRuleTracks': list(unresolvable_tracks)})
 
-                unresolvable_actions = all_used_action_refs - self.import_state.Actions.keys()
+                unresolvable_actions = all_used_action_refs - self.import_state.actions.keys()
                 if unresolvable_actions:
                     self.issues.update({'unresolvableRuleActions': list(unresolvable_actions)})
 
@@ -401,9 +401,9 @@ class FwConfigImportCheckConsistency(FwConfigImport):
 
         # check consistency of links
         for mgr in config.ManagerSet:
-            if self.import_state.MgmDetails.ImportDisabled:
+            if self.import_state.mgm_details.ImportDisabled:
                 continue
-            for single_config in mgr.Configs:        
+            for single_config in mgr.configs:        
                 # now check rblinks for all gateways
                 for gw in single_config.gateways:
                     self._check_rulebase_links_for_gateway(gw, broken_rulebase_links, all_rule_uids, all_rulebase_uids)
@@ -422,9 +422,9 @@ class FwConfigImportCheckConsistency(FwConfigImport):
         all_rulebase_uids: set[str] = set()
         all_rule_uids: set[str] = set()
         for mgr in config.ManagerSet:
-            if self.import_state.MgmDetails.ImportDisabled:
+            if self.import_state.mgm_details.ImportDisabled:
                 continue
-            for single_config in mgr.Configs:        
+            for single_config in mgr.configs:        
                 # collect rulebase UIDs
                 for rb in single_config.rulebases:
                     all_rulebase_uids.add(rb.uid)

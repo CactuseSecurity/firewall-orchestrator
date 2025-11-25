@@ -33,9 +33,9 @@ def get_config(config_in: FwConfigManagerListController, importState: ImportStat
 
     if not parsing_config_only: # no native config was passed in, so getting it from FortiManager
         sid = get_sid(importState)
-        limit = importState.FwoConfig.ApiFetchSize
-        fm_api_url = importState.MgmDetails.buildFwApiString()
-        native_config_global = initialize_native_config_domain(importState.MgmDetails)
+        limit = importState.fwo_config.api_fetch_size
+        fm_api_url = importState.mgm_details.buildFwApiString()
+        native_config_global = initialize_native_config_domain(importState.mgm_details)
         config_in.native_config['domains'].append(native_config_global) # type: ignore #TYPING: None or not None this is the question
         adom_list = build_adom_list(importState)
         adom_device_vdom_structure = build_adom_device_vdom_structure(adom_list, sid, fm_api_url)
@@ -140,13 +140,13 @@ def normalize_config(native_config: dict[str,Any]) -> FwConfigManagerListControl
 
         # TODO: identify the correct manager
 
-        manager = FwConfigManager(ManagerUid=native_conf.get('management_uid',''),
-                                    ManagerName=native_conf.get('management_name', ''),
-                                    IsSuperManager=native_conf.get('is-super-manager', False),
-                                    DomainName=native_conf.get('domain_name', ''),
-                                    DomainUid=native_conf.get('domain_uid', ''),
-                                    SubManagerIds=[], 
-                                    Configs=[normalized_config])
+        manager = FwConfigManager(manager_uid=native_conf.get('management_uid',''),
+                                    manager_name=native_conf.get('management_name', ''),
+                                    is_super_manager=native_conf.get('is-super-manager', False),
+                                    domain_name=native_conf.get('domain_name', ''),
+                                    domain_uid=native_conf.get('domain_uid', ''),
+                                    sub_manager_ids=[], 
+                                    configs=[normalized_config])
 
         manager_list.addManager(manager)
 
@@ -199,8 +199,8 @@ def normalize_single_manager_config(native_config: 'dict[str, Any]', native_conf
 
 def build_adom_list(importState : ImportStateController) -> list[Management]:
     adom_list: list[Management] = []
-    if importState.MgmDetails.IsSuperManager:
-        for subManager in importState.MgmDetails.SubManagers:
+    if importState.mgm_details.IsSuperManager:
+        for subManager in importState.mgm_details.SubManagers:
             adom_list.append(deepcopy(subManager))
     return adom_list
 
@@ -275,9 +275,9 @@ def initialize_device_config(mgm_details_device: dict[str, Any]) -> dict[str, An
 
 def get_sid(importState: ImportStateController):
     fm_api_url = 'https://' + \
-        importState.MgmDetails.Hostname + ':' + \
-        str(importState.MgmDetails.Port) + '/jsonrpc'
-    sid = fmgr_getter.login(importState.MgmDetails.ImportUser, importState.MgmDetails.Secret, fm_api_url)
+        importState.mgm_details.Hostname + ':' + \
+        str(importState.mgm_details.Port) + '/jsonrpc'
+    sid = fmgr_getter.login(importState.mgm_details.ImportUser, importState.mgm_details.Secret, fm_api_url)
     if sid is None:
         raise FwLoginFailed('did not succeed in logging in to FortiManager API, no sid returned')
     return sid

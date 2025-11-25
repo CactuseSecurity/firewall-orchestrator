@@ -245,6 +245,8 @@ namespace FWO.Test
             }
             else
             {
+                var temp1 = _controlTree!.ToJson();
+                var temp2 = _ruleTreeBuilder.RuleTree.ToJson();
                 Assert.That(_ruleTreeBuilder.RuleTree.ToJson(), Is.EqualTo(_controlTree!.ToJson()));
             }
         }

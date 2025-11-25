@@ -214,7 +214,9 @@ namespace FWO.Services.RuleTreeBuilder
             {
                 changedCopy.Remove(changedCopy.Last());
             }
-            RuleTreeItem item = RuleTree.ElementsFlat.FirstOrDefault(x => CompareTreeItemPosition(x,changedCopy)) as RuleTreeItem ?? new RuleTreeItem();
+            //RuleTreeItem item = RuleTree.ElementsFlat.FirstOrDefault(x => NormalizePosition(x.GetPositionString()) == NormalizePosition(changedCopy)) as RuleTreeItem ?? new RuleTreeItem();
+            RuleTreeItem item = RuleTree.ElementsFlat.FirstOrDefault(x => x.GetPositionString() == string.Join(".", changedCopy)) as RuleTreeItem ?? new RuleTreeItem();
+
 
             if (item.Data is Rule && (item.Parent as RuleTreeItem ?? new RuleTreeItem()).IsOrderedLayerHeader && unchangedCopy.Last() != 0)
             {

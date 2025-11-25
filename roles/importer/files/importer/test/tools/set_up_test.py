@@ -1,6 +1,6 @@
 import copy
 
-from fwo_const import rule_num_numeric_steps
+from fwo_const import RULE_NUM_NUMERIC_STEPS
 
 from models.fwconfig_normalized import FwConfigNormalized
 from models.rulebase_link import RulebaseLink, RulebaseLinkUidBased
@@ -145,7 +145,7 @@ def update_rule_num_numerics(config):
     for rulebase in config.rulebases:
         new_num_numeric = 0
         for rule in rulebase.rules.values():
-            new_num_numeric += rule_num_numeric_steps
+            new_num_numeric += RULE_NUM_NUMERIC_STEPS
             rule.rule_num_numeric = new_num_numeric
 
 

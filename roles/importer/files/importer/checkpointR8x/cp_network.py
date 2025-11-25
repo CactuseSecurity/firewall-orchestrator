@@ -2,7 +2,7 @@ from typing import Any
 from fwo_log import FWOLogger
 import json
 from checkpointR8x import cp_const
-from fwo_const import list_delimiter
+from fwo_const import LIST_DELIMITER
 import fwo_api_call as fwo_api_call
 import ipaddress 
 import fwo_globals
@@ -37,8 +37,8 @@ def normalize_network_objects(full_config: dict[str, Any], config2import: dict[s
 def set_dummy_ip_for_object_without_ip(nw_obj: dict[str, Any]) -> None:
     if nw_obj['obj_typ']!='group' and (nw_obj['obj_ip'] is None or nw_obj['obj_ip'] == ''):
         FWOLogger.warning("found object without IP :" + nw_obj['obj_name'] + " (type=" + nw_obj['obj_typ'] + ") - setting dummy IP")
-        nw_obj.update({'obj_ip': fwo_const.dummy_ip})
-        nw_obj.update({'obj_ip_end': fwo_const.dummy_ip})
+        nw_obj.update({'obj_ip': fwo_const.DUMMY_IP})
+        nw_obj.update({'obj_ip_end': fwo_const.DUMMY_IP})
 
 def initialize_global_domain(objects : list[dict[str, Any]]) -> dict[str, Any]:
     """Returns CP Global Domain for MDS and standalone domain otherwise
@@ -117,7 +117,7 @@ def handle_members(obj: dict[str, Any]) -> tuple[str | None, str | None]:
         member_refs = ''
         member_names = ''
         for member in obj['members']:
-            member_refs += member + list_delimiter
+            member_refs += member + LIST_DELIMITER
         member_refs = member_refs[:-1]
         if obj['members'] == '':
             obj['members'] = None
@@ -200,10 +200,10 @@ def add_member_names_for_nw_group(idx: int, nw_objects: list[dict[str, Any]]) ->
         group['obj_member_refs'] = None
     else:
         member_names = ''
-        obj_member_refs = group['obj_member_refs'].split(list_delimiter)
+        obj_member_refs = group['obj_member_refs'].split(LIST_DELIMITER)
         for ref in obj_member_refs:
             member_name = resolve_nw_uid_to_name(ref, nw_objects)
-            member_names += member_name + list_delimiter
+            member_names += member_name + LIST_DELIMITER
         group['obj_member_names'] = member_names[:-1]
     nw_objects.insert(idx, group)
 
@@ -246,7 +246,7 @@ def get_ip_of_obj(obj: dict[str, Any], mgm_id: int | None = None) -> str | None:
         api_call.create_data_issue(severity=2, obj_name=obj['name'], object_type=obj['type'], description=alert_description, mgm_id=mgm_id) 
         alert_description = "object '" + obj['name'] + "' (type=" + obj['type'] + ") is not a valid ip address (" + str(ip_addr) + ")"
         api_call.set_alert(title="import error", severity=2, description=alert_description, source='import', alert_code=17, mgm_id=mgm_id)
-        ip_addr = fwo_const.dummy_ip  # setting syntactically correct dummy ip
+        ip_addr = fwo_const.DUMMY_IP  # setting syntactically correct dummy ip
     return ip_addr
 
 

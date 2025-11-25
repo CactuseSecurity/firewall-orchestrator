@@ -11,7 +11,7 @@ except ImportError:
 
 from typing import Any
 
-from fwo_const import api_call_chunk_size
+from fwo_const import API_CALL_CHUNK_SIZE
 
 
 class QueryAnalyzer(Visitor):
@@ -88,7 +88,7 @@ class QueryAnalyzer(Visitor):
             Gets an adjusted chunk size.
         """
         
-        return int(api_call_chunk_size / 
+        return int(API_CALL_CHUNK_SIZE / 
                     len(
                         [
                         list_object for list_object in lists_in_query_variable.values() 
@@ -173,7 +173,7 @@ class QueryAnalyzer(Visitor):
 
         # If the number of all elements is lower than the configured threshold, there is no need for chunking.
 
-        if list_elements_length < api_call_chunk_size:
+        if list_elements_length < API_CALL_CHUNK_SIZE:
             return False, 0, 0, []
         
         # If there are more than one chunkable variable, the chunk_size has to be adjusted accordingly.

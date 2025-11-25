@@ -1,7 +1,7 @@
 from nsx_service import parse_svc_list
 from nsx_network import parse_obj_list
 from fwo_log import FWOLogger
-from fwo_const import list_delimiter
+from fwo_const import LIST_DELIMITER
 import hashlib
 import base64
 import os.path

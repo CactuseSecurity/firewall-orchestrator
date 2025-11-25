@@ -30,7 +30,7 @@ class FwoApiCall(FwoApi):
 
     def get_mgm_ids(self, query_variables: dict[str, list[Any]] = {}) -> list[int]:
         # from 9.0 do not import sub-managers separately
-        mgm_query = FwoApi.get_graphql_code([fwo_const.graphql_query_path + "device/getManagementWithSubs.graphql"])
+        mgm_query = FwoApi.get_graphql_code([fwo_const.GRAPHQL_QUERY_PATH + "device/getManagementWithSubs.graphql"])
         result = self.call(mgm_query, query_variables=query_variables)
         if 'data' in result and 'management' in result['data']:
             return [mgm['id'] for mgm in result['data']['management']]
@@ -39,7 +39,7 @@ class FwoApiCall(FwoApi):
 
     def get_config_value(self, key: str='limit') -> str | None:
         query_variables: dict[str, str] = {'key': key}
-        cfg_query = FwoApi.get_graphql_code([fwo_const.graphql_query_path + "config/getConfigValue.graphql"])
+        cfg_query = FwoApi.get_graphql_code([fwo_const.GRAPHQL_QUERY_PATH + "config/getConfigValue.graphql"])
         
         try:
             result = self.call(cfg_query, query_variables=query_variables)
@@ -56,7 +56,7 @@ class FwoApiCall(FwoApi):
 
     def get_config_values(self, keyFilter:str='limit') -> dict[str, str] | None:
         query_variables: dict[str, str] = {'keyFilter': keyFilter+"%"}
-        config_query = FwoApi.get_graphql_code([fwo_const.graphql_query_path + "config/getConfigValuesByKeyFilter.graphql"])
+        config_query = FwoApi.get_graphql_code([fwo_const.GRAPHQL_QUERY_PATH + "config/getConfigValuesByKeyFilter.graphql"])
         
         try:
             result = self.call(config_query, query_variables=query_variables)
@@ -76,15 +76,15 @@ class FwoApiCall(FwoApi):
     def log_import_attempt(self, mgm_id: int, successful: bool = False):
         now = datetime.datetime.now().isoformat()
         query_variables: dict[str, Any] = { "mgmId": mgm_id, "timeStamp": now, "success": successful }
-        mgm_mutation = FwoApi.get_graphql_code([fwo_const.graphql_query_path + "import/updateManagementLastImportAttempt.graphql"])
+        mgm_mutation = FwoApi.get_graphql_code([fwo_const.GRAPHQL_QUERY_PATH + "import/updateManagementLastImportAttempt.graphql"])
         return self.call(mgm_mutation, query_variables=query_variables)
 
 
-    def set_import_lock(self, mgm_details: ManagementController, is_full_import: int = False, is_initial_import: int = False, debug_level: int = 0) -> int:
+    def set_import_lock(self, mgm_details: ManagementController, is_full_import: int = False, is_initial_import: int = False) -> int:
         import_id = -1
         mgm_id = mgm_details.Id
         try: # set import lock
-            lock_mutation = FwoApi.get_graphql_code([fwo_const.graphql_query_path + "import/addImport.graphql"])
+            lock_mutation = FwoApi.get_graphql_code([fwo_const.GRAPHQL_QUERY_PATH + "import/addImport.graphql"])
             lock_result = self.call(lock_mutation, 
                             query_variables={"mgmId": mgm_id, "isFullImport": is_full_import, "isInitialImport": is_initial_import })
             if lock_result['data']['insert_import_control']['returning'][0]['control_id']:
@@ -103,7 +103,7 @@ class FwoApiCall(FwoApi):
 
 
     def count_rule_changes_per_import(self, import_id: int):
-        change_count_query = FwoApi.get_graphql_code([fwo_const.graphql_query_path + "import/getRuleChangesPerImport.graphql"])
+        change_count_query = FwoApi.get_graphql_code([fwo_const.GRAPHQL_QUERY_PATH + "import/getRuleChangesPerImport.graphql"])
         try:
             count_result = self.call(change_count_query, query_variables={'importId': import_id})
             rule_changes_in_import = int(count_result['data']['changelog_rule_aggregate']['aggregate']['count'])
@@ -114,7 +114,7 @@ class FwoApiCall(FwoApi):
 
 
     def count_any_changes_per_import(self, import_id: int):
-        change_count_query = FwoApi.get_graphql_code([fwo_const.graphql_query_path + "import/getChangesPerImport.graphql"])
+        change_count_query = FwoApi.get_graphql_code([fwo_const.GRAPHQL_QUERY_PATH + "import/getChangesPerImport.graphql"])
         try:
             count_result = self.call(change_count_query, query_variables={'importId': import_id})
             changes_in_import = int(count_result['data']['changelog_object_aggregate']['aggregate']['count']) + \
@@ -142,7 +142,7 @@ class FwoApiCall(FwoApi):
                 "changeNumber": import_stats.getRuleChangeNumber()
             }
 
-            unlock_mutation = FwoApi.get_graphql_code([fwo_const.graphql_query_path + "import/updateImportStopTime.graphql"])
+            unlock_mutation = FwoApi.get_graphql_code([fwo_const.GRAPHQL_QUERY_PATH + "import/updateImportStopTime.graphql"])
 
             unlock_result = self.call(unlock_mutation, query_variables=query_variables)
             if 'errors' in unlock_result:
@@ -154,12 +154,11 @@ class FwoApiCall(FwoApi):
 
     #   currently temporarily only working with single chunk
     def import_json_config(self, import_state: 'ImportStateController', config: FwConfigNormalized, startImport: bool = True):
-        import_mutation = FwoApi.get_graphql_code([fwo_const.graphql_query_path + "import/addImportConfig.graphql"])
+        import_mutation = FwoApi.get_graphql_code([fwo_const.GRAPHQL_QUERY_PATH + "import/addImportConfig.graphql"])
 
         try:
-            debug_mode = (fwo_globals.debug_level>0)
             query_vars: dict[str, Any] = {
-                'debug_mode': debug_mode,
+                'debug_mode': FWOLogger.is_debug_level(1),
                 'mgmId': import_state.MgmDetails.Id,
                 'importId': import_state.ImportId,
                 'config': config,
@@ -177,7 +176,7 @@ class FwoApiCall(FwoApi):
 
 
     def delete_json_config_in_import_table(self, query_variables: dict[str, Any]):
-        delete_mutation = FwoApi.get_graphql_code([fwo_const.graphql_query_path + "import/deleteImportConfig.graphql"])
+        delete_mutation = FwoApi.get_graphql_code([fwo_const.GRAPHQL_QUERY_PATH + "import/deleteImportConfig.graphql"])
         try:
             delete_result = self.call(delete_mutation, query_variables=query_variables)
             _ = delete_result['data']['delete_import_config']['affected_rows']
@@ -195,7 +194,7 @@ class FwoApiCall(FwoApi):
         if obj_name=='all' or obj_name=='Original': 
             return # ignore resolve errors for enriched objects that are not in the native config
         
-        create_data_issue_mutation = FwoApi.get_graphql_code([fwo_const.graphql_query_path + "monitor/addLogEntry.graphql"])
+        create_data_issue_mutation = FwoApi.get_graphql_code([fwo_const.GRAPHQL_QUERY_PATH + "monitor/addLogEntry.graphql"])
         
         query_variables: dict[str, Any] = {"source": source, "severity": severity }
 
@@ -237,9 +236,9 @@ class FwoApiCall(FwoApi):
             mgm_details: ManagementController | None = None
         ):
 
-        add_alert_mutation = FwoApi.get_graphql_code([fwo_const.graphql_query_path + "monitor/addAlert.graphql"])
-        get_alert_query = FwoApi.get_graphql_code([fwo_const.graphql_query_path + "monitor/getAlertByManagement.graphql"])
-        ack_alert_mutation = FwoApi.get_graphql_code([fwo_const.graphql_query_path + "monitor/updateAlert.graphql"])
+        add_alert_mutation = FwoApi.get_graphql_code([fwo_const.GRAPHQL_QUERY_PATH + "monitor/addAlert.graphql"])
+        get_alert_query = FwoApi.get_graphql_code([fwo_const.GRAPHQL_QUERY_PATH + "monitor/getAlertByManagement.graphql"])
+        ack_alert_mutation = FwoApi.get_graphql_code([fwo_const.GRAPHQL_QUERY_PATH + "monitor/updateAlert.graphql"])
 
         query_variables = {"source": source }
 
@@ -329,7 +328,7 @@ class FwoApiCall(FwoApi):
 
 
     def get_last_complete_import(self, queryVars: dict[str, Any]) -> tuple[int, str]:
-        mgm_query = FwoApi.get_graphql_code([fwo_const.graphql_query_path + "import/getLastCompleteImport.graphql"])
+        mgm_query = FwoApi.get_graphql_code([fwo_const.GRAPHQL_QUERY_PATH + "import/getLastCompleteImport.graphql"])
         last_full_import_date: str = ""
         last_full_import_id: int = 0
         try:

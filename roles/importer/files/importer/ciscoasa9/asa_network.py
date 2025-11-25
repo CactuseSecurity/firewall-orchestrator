@@ -36,7 +36,7 @@ def create_network_host(name: str, ip_address: str, comment: str | None, ip_vers
         obj_typ="host",
         obj_ip=obj_ip,
         obj_ip_end=obj_ip,
-        obj_color=fwo_const.defaultColor,
+        obj_color=fwo_const.DEFAULT_COLOR,
         obj_comment=comment
     )
 
@@ -72,7 +72,7 @@ def create_network_subnet(name: str, ip_address: str, subnet_mask: str | None, c
         obj_typ="network",
         obj_ip=ip_start,
         obj_ip_end=ip_end,
-        obj_color=fwo_const.defaultColor,
+        obj_color=fwo_const.DEFAULT_COLOR,
         obj_comment=comment
     )
 
@@ -95,7 +95,7 @@ def create_network_range(name: str, ip_start: str, ip_end: str, comment: str | N
         obj_typ="ip_range",
         obj_ip=IPNetwork(f"{ip_start}/32"),
         obj_ip_end=IPNetwork(f"{ip_end}/32"),
-        obj_color=fwo_const.defaultColor,
+        obj_color=fwo_const.DEFAULT_COLOR,
         obj_comment=comment
     )
 
@@ -117,7 +117,7 @@ def create_network_group_object(name: str, member_refs: list[str], comment: str 
         obj_typ="group",
         obj_member_names=fwo_base.sort_and_join(member_refs),
         obj_member_refs=fwo_base.sort_and_join(member_refs),
-        obj_color=fwo_const.defaultColor,
+        obj_color=fwo_const.DEFAULT_COLOR,
         obj_comment=comment
     )
 
@@ -136,7 +136,7 @@ def create_any_network_object() -> NetworkObject:
         obj_member_refs="",
         obj_ip=IPNetwork("0.0.0.0/32"),
         obj_ip_end=IPNetwork("255.255.255.255/32"),
-        obj_color=fwo_const.defaultColor,
+        obj_color=fwo_const.DEFAULT_COLOR,
         obj_comment="network object created during import"
     )
 

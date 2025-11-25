@@ -1,4 +1,4 @@
-from fwo_const import list_delimiter
+from fwo_const import LIST_DELIMITER
 from fwo_log import FWOLogger
 
 

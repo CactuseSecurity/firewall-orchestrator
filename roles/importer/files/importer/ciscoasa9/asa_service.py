@@ -31,7 +31,7 @@ def create_service_object(name: str, port: int, port_end: int, protocol: str, co
         svc_name=name,
         svc_port=port,
         svc_port_end=port_end,
-        svc_color=fwo_const.defaultColor,
+        svc_color=fwo_const.DEFAULT_COLOR,
         svc_typ="simple",
         ip_proto=protocol_map.get(protocol, 0),
         svc_comment=comment
@@ -52,7 +52,7 @@ def create_protocol_service_object(name: str, protocol: str, comment: str | None
     return ServiceObject(
         svc_uid=name,
         svc_name=name,
-        svc_color=fwo_const.defaultColor,
+        svc_color=fwo_const.DEFAULT_COLOR,
         svc_typ="simple",
         ip_proto=protocol_map.get(protocol, 0),
         svc_comment=comment
@@ -76,7 +76,7 @@ def create_service_group_object(name: str, member_refs: list[str], comment: str 
         svc_typ="group",
         svc_member_names=fwo_base.sort_and_join(member_refs),
         svc_member_refs=fwo_base.sort_and_join(member_refs),
-        svc_color=fwo_const.defaultColor,
+        svc_color=fwo_const.DEFAULT_COLOR,
         svc_comment=comment
     )
 
@@ -135,7 +135,7 @@ def create_protocol_any_service_objects() -> dict[str, ServiceObject]:
             svc_name=obj_name,
             svc_port=0,
             svc_port_end=65535,
-            svc_color=fwo_const.defaultColor,
+            svc_color=fwo_const.DEFAULT_COLOR,
             svc_typ="simple",
             ip_proto=protocol_map.get(proto, 0),
             svc_comment=f"any {proto}"
@@ -218,7 +218,7 @@ def create_any_protocol_service(proto: str, service_objects: dict[str, ServiceOb
             svc_name=obj_name,
             svc_port=port_range[0],
             svc_port_end=port_range[1],
-            svc_color=fwo_const.defaultColor,
+            svc_color=fwo_const.DEFAULT_COLOR,
             svc_typ="simple",
             ip_proto=protocol_map.get(proto, 0),
             svc_comment=f"any {proto}"
@@ -280,7 +280,7 @@ def create_service_for_protocol_entry(entry: AccessListEntry, service_objects: d
         service_objects["ANY"] = ServiceObject(
             svc_uid="ANY",
             svc_name="ANY",
-            svc_color=fwo_const.defaultColor,
+            svc_color=fwo_const.DEFAULT_COLOR,
             svc_typ="group",
             svc_member_names=reference_string,
             svc_member_refs=reference_string,

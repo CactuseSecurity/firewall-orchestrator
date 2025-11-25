@@ -1,7 +1,7 @@
 
 from fwo_log import FWOLogger
 import sys, json
-from fwo_const import importer_pwd_file
+from fwo_const import IMPORTER_PWD_FILE
 
 def read_config(fwo_config_filename: str = '/etc/fworch/fworch.json') -> dict[str, str | int | None]:
     try:
@@ -14,7 +14,7 @@ def read_config(fwo_config_filename: str = '/etc/fworch/fworch.json') -> dict[st
         fwo_major_version = int(fwo_version.split('.')[0])
 
         # read importer password from file
-        with open(importer_pwd_file, 'r') as file:
+        with open(IMPORTER_PWD_FILE, 'r') as file:
             importerPwd = file.read().replace('\n', '')
 
     except KeyError as e:

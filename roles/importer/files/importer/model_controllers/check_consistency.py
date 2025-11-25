@@ -101,15 +101,15 @@ class FwConfigImportCheckConsistency(FwConfigImport):
             if single_config.network_objects[obj_id].obj_typ=='group':
                 obj_member_refs = single_config.network_objects[obj_id].obj_member_refs
                 if obj_member_refs is not None and len(obj_member_refs)>0:
-                    all_used_obj_refs += obj_member_refs.split(fwo_const.list_delimiter)
+                    all_used_obj_refs += obj_member_refs.split(fwo_const.LIST_DELIMITER)
         return all_used_obj_refs
     
 
     def _collect_all_used_objects_from_rules(self, rb: Rulebase) -> list[str]:
         all_used_obj_refs: list[str] = []
         for rule_id in rb.rules:
-            all_used_obj_refs += rb.rules[rule_id].rule_src_refs.split(fwo_const.list_delimiter)
-            all_used_obj_refs += rb.rules[rule_id].rule_dst_refs.split(fwo_const.list_delimiter)
+            all_used_obj_refs += rb.rules[rule_id].rule_src_refs.split(fwo_const.LIST_DELIMITER)
+            all_used_obj_refs += rb.rules[rule_id].rule_dst_refs.split(fwo_const.LIST_DELIMITER)
         
         return all_used_obj_refs
 
@@ -171,7 +171,7 @@ class FwConfigImportCheckConsistency(FwConfigImport):
                     member_refs = single_config.service_objects[objId].svc_member_refs
                     if member_refs is None or len(member_refs) == 0:
                         continue
-                    all_used_obj_refs |= set(member_refs.split(fwo_const.list_delimiter))
+                    all_used_obj_refs |= set(member_refs.split(fwo_const.LIST_DELIMITER))
         return all_used_obj_refs
 
 
@@ -180,7 +180,7 @@ class FwConfigImportCheckConsistency(FwConfigImport):
         all_used_obj_refs: set[str] = set()
         for rb in single_config.rulebases:
             for ruleId in rb.rules:
-                all_used_obj_refs |= set(rb.rules[ruleId].rule_svc_refs.split(fwo_const.list_delimiter))
+                all_used_obj_refs |= set(rb.rules[ruleId].rule_svc_refs.split(fwo_const.LIST_DELIMITER))
         return all_used_obj_refs
 
 
@@ -206,9 +206,9 @@ class FwConfigImportCheckConsistency(FwConfigImport):
         all_used_obj_refs: list[str] = []
         for rb in single_config.rulebases:
             for ruleId in rb.rules:
-                if fwo_const.user_delimiter in rb.rules[ruleId].rule_src_refs:
-                    all_used_obj_refs += self._collectUsersFromRule(rb.rules[ruleId].rule_src_refs.split(fwo_const.list_delimiter))
-                    all_used_obj_refs += self._collectUsersFromRule(rb.rules[ruleId].rule_dst_refs.split(fwo_const.list_delimiter))
+                if fwo_const.USER_DELIMITER in rb.rules[ruleId].rule_src_refs:
+                    all_used_obj_refs += self._collectUsersFromRule(rb.rules[ruleId].rule_src_refs.split(fwo_const.LIST_DELIMITER))
+                    all_used_obj_refs += self._collectUsersFromRule(rb.rules[ruleId].rule_dst_refs.split(fwo_const.LIST_DELIMITER))
         return all_used_obj_refs
 
 
@@ -230,7 +230,7 @@ class FwConfigImportCheckConsistency(FwConfigImport):
     def _collectUsersFromRule(listOfElements: list[str]) -> list[str]:
         userRefs: list[str] = []
         for el in listOfElements:
-            splitResult = el.split(fwo_const.user_delimiter)
+            splitResult = el.split(fwo_const.USER_DELIMITER)
             if len(splitResult)==2:
                 userRefs.append(splitResult[0])
         return userRefs
@@ -264,9 +264,9 @@ class FwConfigImportCheckConsistency(FwConfigImport):
             for rule_id in rb.rules:
                 rule = rb.rules[rule_id]
                 if rule.rule_src_zone is not None:
-                    all_used_zones_refs.update(rule.rule_src_zone.split(fwo_const.list_delimiter))
+                    all_used_zones_refs.update(rule.rule_src_zone.split(fwo_const.LIST_DELIMITER))
                 if rule.rule_dst_zone is not None:
-                    all_used_zones_refs.update(rule.rule_dst_zone.split(fwo_const.list_delimiter))
+                    all_used_zones_refs.update(rule.rule_dst_zone.split(fwo_const.LIST_DELIMITER))
         return all_used_zones_refs
 
 
@@ -342,15 +342,15 @@ class FwConfigImportCheckConsistency(FwConfigImport):
         # Replace unresolvable network object colors
         for obj in config.network_objects.values():
             if obj.obj_color in unresolvable_nw_obj_colors:
-                obj.obj_color = fwo_const.defaultColor
+                obj.obj_color = fwo_const.DEFAULT_COLOR
         # Replace unresolvable service object colors
         for obj in config.service_objects.values():
             if obj.svc_color in unresolvable_svc_colors:
-                obj.svc_color = fwo_const.defaultColor
+                obj.svc_color = fwo_const.DEFAULT_COLOR
         # Replace unresolvable user object colors
         for obj in config.users.values():
             if obj.user_color in unresolvable_user_colors:
-                obj.user_color = fwo_const.defaultColor
+                obj.user_color = fwo_const.DEFAULT_COLOR
 
 
     @staticmethod

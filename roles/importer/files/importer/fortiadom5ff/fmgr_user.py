@@ -1,5 +1,5 @@
 from typing import Any
-from fwo_const import list_delimiter
+from fwo_const import LIST_DELIMITER
 
 #TODO: unused function
 def normalize_users(full_config: dict[str, list[dict[str, Any]]], config2import: dict[str, list[dict[str, Any]]], user_scope: list[str]) -> None:
@@ -23,7 +23,7 @@ def _parse_user(user_orig: dict[str, Any]) -> dict[str, Any]:
         svc_type = 'group'
         member_names = ''
         for member in user_orig['member']:
-            member_names += member + list_delimiter
+            member_names += member + LIST_DELIMITER
         member_names = member_names[:-1]
     if 'name' in user_orig:
         name = str(user_orig['name'])

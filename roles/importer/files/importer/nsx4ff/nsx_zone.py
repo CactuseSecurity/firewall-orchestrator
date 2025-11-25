@@ -1,6 +1,6 @@
 from asyncio.log import logger
 from fwo_log import FWOLogger
-from fwo_const import list_delimiter
+from fwo_const import LIST_DELIMITER
 
 
 def normalize_zones(full_config, config2import, import_id):

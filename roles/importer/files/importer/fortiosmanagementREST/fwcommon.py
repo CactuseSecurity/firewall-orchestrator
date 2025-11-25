@@ -43,7 +43,7 @@ def has_config_changed(_: dict[str, Any], __: ImportState, ___: bool = False) ->
  
 def get_config(full_config: dict[str, Any], importState: ImportStateController) -> tuple[int, FwConfigManagerList]: # current_import_id, mgm_details, limit=150, force=False, jwt=None) 
 # def get_config(config2import, full_config, current_import_id, mgm_details, limit=100, force=False, jwt=''):
-    config2import = fwo_const.emptyNormalizedFwConfigJsonDict
+    config2import = fwo_const.EMPTY_NORMALIZED_FW_CONFIG_JSON_DICT
     if full_config == {}:   # no native config was passed in, so getting it from FortiManager
         parsing_config_only = False
     else:

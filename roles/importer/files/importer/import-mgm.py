@@ -6,17 +6,17 @@ import warnings
 from fwo_log import FWOLogger
 import argparse
 import urllib3
-from common import importer_base_dir, import_management
+from common import IMPORTER_BASE_DIR, import_management
 from fwo_base import init_service_provider, register_global_state
 from fwo_api import FwoApi
 from fwo_api_call import FwoApiCall
 from fwo_exceptions import FwoApiLoginFailed
-from fwo_const import base_dir, importer_base_dir
+from fwo_const import BASE_DIR, IMPORTER_BASE_DIR
 from model_controllers.import_state_controller import ImportStateController
 
 
-if importer_base_dir not in sys.path:
-    sys.path.append(importer_base_dir)
+if IMPORTER_BASE_DIR not in sys.path:
+    sys.path.append(IMPORTER_BASE_DIR)
 
 def get_fwo_jwt(import_user: str, import_pwd: str, user_management_api: str) -> str | None:
     try:
@@ -42,11 +42,11 @@ def main(mgm_id: int, file: str | None = None, debug_level: int = 0, verify_cert
     if suppress_certificate_warnings: urllib3.disable_warnings()
 
     FWOLogger.info("import-mgm starting ...")
-    if importer_base_dir not in sys.path:
-        sys.path.append(importer_base_dir)
+    if IMPORTER_BASE_DIR not in sys.path:
+        sys.path.append(IMPORTER_BASE_DIR)
 
     importer_user_name = 'importer'  # todo: move to config file?
-    importer_pwd_file = base_dir + '/etc/secrets/importer_pwd'
+    importer_pwd_file = BASE_DIR + '/etc/secrets/importer_pwd'
 
     try:
             importer_pwd = open(importer_pwd_file).read().replace('\n', '')

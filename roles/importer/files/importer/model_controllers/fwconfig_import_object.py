@@ -243,7 +243,7 @@ class FwConfigImportObject():
         this_managements_id = self.import_state.lookupManagementId(single_manager.ManagerUid)
         if this_managements_id is None:
             raise FwoImporterError(f"failed to update objects in updateObjectsViaApi: no management id found for manager uid '{single_manager.ManagerUid}'")
-        import_mutation = FwoApi.get_graphql_code(file_list=[fwo_const.graphql_query_path + "allObjects/upsertObjects.graphql"])
+        import_mutation = FwoApi.get_graphql_code(file_list=[fwo_const.GRAPHQL_QUERY_PATH + "allObjects/upsertObjects.graphql"])
         query_variables: dict[str, Any] = {
             'mgmId': this_managements_id,
             'importId': self.import_state.ImportId,
@@ -387,8 +387,8 @@ class FwConfigImportObject():
 
     def get_members(self, type: Type, refs: str | None) -> list[str]:
         if type == Type.NETWORK_OBJECT:
-            return [member.split(fwo_const.user_delimiter)[0] for member in refs.split(fwo_const.list_delimiter) if member] if refs else []
-        return refs.split(fwo_const.list_delimiter) if refs else []
+            return [member.split(fwo_const.USER_DELIMITER)[0] for member in refs.split(fwo_const.LIST_DELIMITER) if member] if refs else []
+        return refs.split(fwo_const.LIST_DELIMITER) if refs else []
 
     def get_flats(self, type: Type, uid: str) -> list[str]:
         if type == Type.NETWORK_OBJECT:

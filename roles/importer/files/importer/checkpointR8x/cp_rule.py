@@ -3,7 +3,7 @@ from typing import Any
 import ast
 
 from fwo_log import FWOLogger
-from fwo_const import list_delimiter, default_section_header_text
+from fwo_const import LIST_DELIMITER, DEFAULT_SECTION_HEADER_TEXT
 from fwo_base import sanitize, sort_and_join_refs
 from fwo_exceptions import FwoImporterErrorInconsistencies
 from models.rulebase import Rulebase
@@ -119,7 +119,7 @@ def concatenat_sections_across_chunks(rulebase_to_parse: dict[str, Any], section
 
                     
 def initialize_normalized_rulebase(rulebase_to_parse: dict[str, Any], mgm_uid: str) -> Rulebase:
-    rulebaseName = rulebase_to_parse.get('name', default_section_header_text)
+    rulebaseName = rulebase_to_parse.get('name', DEFAULT_SECTION_HEADER_TEXT)
     rulebaseUid = rulebase_to_parse['uid']
     normalized_rulebase = Rulebase(uid=rulebaseUid, name=rulebaseName, mgm_uid=mgm_uid, rules={})
     return normalized_rulebase
@@ -258,19 +258,19 @@ def parse_single_rule(native_rule: dict[str, Any], rulebase: Rulebase, layer_nam
     rule_svc_ref, rule_svc_name = sort_and_join_refs(list(svc_objects.items()))
     rule_enforced_on_gateways = parse_rule_enforced_on_gateway(gateway, policy_structure, native_rule=native_rule)
     list_of_gw_uids = sorted({enforceEntry.dev_uid for enforceEntry in rule_enforced_on_gateways})
-    str_list_of_gw_uids = list_delimiter.join(list_of_gw_uids) if list_of_gw_uids else None
+    str_list_of_gw_uids = LIST_DELIMITER.join(list_of_gw_uids) if list_of_gw_uids else None
 
     rule_track = _parse_track(native_rule=native_rule)
 
     action_objects = parse_rule_part (native_rule['action'], 'action')
     if action_objects is not None: # type: ignore # TODO: this should be never None
-        rule_action = list_delimiter.join(action_objects.values()) # expecting only a single action
+        rule_action = LIST_DELIMITER.join(action_objects.values()) # expecting only a single action
     else:
         rule_action = None
         FWOLogger.warning('found rule without action: ' + str(native_rule))
 
     time_objects = parse_rule_part (native_rule['time'], 'time')
-    rule_time = list_delimiter.join(time_objects.values()) if time_objects else None
+    rule_time = LIST_DELIMITER.join(time_objects.values()) if time_objects else None
 
     # starting with the non-chunk objects
     rule_name = native_rule.get('name', None)
@@ -355,7 +355,7 @@ def _parse_track(native_rule: dict[str, Any]) -> str:
         if trackObjects is None: # type: ignore # TODO: should never be None
             rule_track = 'none'
         else:
-            rule_track = list_delimiter.join(trackObjects.values())
+            rule_track = LIST_DELIMITER.join(trackObjects.values())
     return rule_track
 
 
@@ -411,7 +411,7 @@ def resolve_nwobj_uid_to_name(nw_obj_uid: str) -> str:
 def check_and_add_section_header(src_rulebase: dict[str, Any], target_rulebase: Rulebase, layer_name: str, import_id: str, section_header_uids: set[str], parent_uid: str):
     # if current rulebase starts a new section, add section header, but only if it does not exist yet (can happen by chunking a section)
     if 'type' in src_rulebase and src_rulebase['type'] == 'access-section' and 'uid' in src_rulebase: # and not src_rulebase['uid'] in section_header_uids:
-        section_name = default_section_header_text
+        section_name = DEFAULT_SECTION_HEADER_TEXT
         if 'name' in src_rulebase:
             section_name = src_rulebase['name']
         if 'parent_rule_uid' in src_rulebase:

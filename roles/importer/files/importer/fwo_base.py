@@ -9,7 +9,6 @@ import time
 
 import fwo_config
 import fwo_const
-from fwo_const import apostrophe, line_delimiter
 from fwo_enums import ConfFormat, ConfigAction
 from model_controllers.fwconfig_import_ruleorder import RuleOrderService
 if TYPE_CHECKING:
@@ -26,8 +25,8 @@ def sanitize(content: Any, lower: bool = False) -> None | str:
     if content is None:
         return None
     result = str(content)
-    result = result.replace(apostrophe,"")  # remove possibly contained apostrophe
-    result = result.replace(line_delimiter," ")  # replace possibly contained CR with space
+    result = result.replace("\"","")  # remove possibly contained apostrophe
+    result = result.replace("\n"," ")  # replace possibly contained CR with space
     if lower:
         return result.lower()
     else:
@@ -282,11 +281,11 @@ def compute_min_moves(source: list[Any], target: list[Any]) -> dict[str, Any]:
 
 
 def write_native_config_to_file(importState: 'ImportStateController', configNative: dict[str, Any] | None) -> None:
-    from fwo_const import import_tmp_path
+    from fwo_const import IMPORT_TMP_PATH
     if FWOLogger.is_debug_level(7):
         debug_start_time = int(time.time())
         try:
-            full_native_config_filename = f"{import_tmp_path}/mgm_id_{str(importState.MgmDetails.Id)}_config_native.json"
+            full_native_config_filename = f"{IMPORT_TMP_PATH}/mgm_id_{str(importState.MgmDetails.Id)}_config_native.json"
             with open(full_native_config_filename, "w") as json_data:
                 json_data.write(json.dumps(configNative, indent=2))
         except Exception:
@@ -341,15 +340,15 @@ def find_all_diffs(a: Any, b: Any, strict: bool = False, path: str = "root") -> 
 
 def sort_and_join(input_list: list[str]) -> str:
     """ Sorts the input list of strings and joins them using the standard list delimiter. """
-    return fwo_const.list_delimiter.join(sorted(input_list))
+    return fwo_const.LIST_DELIMITER.join(sorted(input_list))
 
 def sort_and_join_refs(input_list: list[tuple[str, str]]) -> tuple[str, str]:
     """ Sorts the input list of (uid, name) tuples and joins uids and names separately using the standard list delimiter. """
     sorted_list = sorted(input_list, key=lambda x: x[1])  # sort by name
     uids = [item[0] for item in sorted_list]
     names = [item[1] for item in sorted_list]
-    joined_uids = fwo_const.list_delimiter.join(uids)
-    joined_names = fwo_const.list_delimiter.join(names)
+    joined_uids = fwo_const.LIST_DELIMITER.join(uids)
+    joined_names = fwo_const.LIST_DELIMITER.join(names)
     return joined_uids, joined_names
 
 def generate_hash_from_dict(input_dict: dict[Any, Any]) -> str:

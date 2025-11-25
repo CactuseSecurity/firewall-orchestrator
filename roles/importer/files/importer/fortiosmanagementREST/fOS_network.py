@@ -1,7 +1,7 @@
 import ipaddress
 from typing import Any
 from fwo_log import FWOLogger
-from fwo_const import list_delimiter, nat_postfix
+from fwo_const import LIST_DELIMITER, NAT_POSTFIX
 from fOS_zone import add_zone_if_missing
 
 def normalize_nwobjects(full_config: dict[str, Any], config2import: dict[str, Any], import_id: int, nw_obj_types: list[str]):
@@ -40,8 +40,8 @@ def normalize_nwobjects(full_config: dict[str, Any], config2import: dict[str, An
                     obj.update({ 'obj_ip': ipa.with_prefixlen })
                 elif 'member' in obj_orig: # addrgrp4 / addrgrp6
                     obj.update({ 'obj_typ': 'group' })
-                    obj.update({ 'obj_member_names' : list_delimiter.join([d['name'] for d in obj_orig['member']]) })
-                    obj.update({ 'obj_member_refs' : list_delimiter.join([d['name'] for d in obj_orig['member']]) })
+                    obj.update({ 'obj_member_names' : LIST_DELIMITER.join([d['name'] for d in obj_orig['member']]) })
+                    obj.update({ 'obj_member_refs' : LIST_DELIMITER.join([d['name'] for d in obj_orig['member']]) })
                 elif 'startip' in obj_orig: # ippool object
                     obj.update({ 'obj_typ': 'ip_range' })
                     obj.update({ 'obj_ip': obj_orig['startip'] })
@@ -75,9 +75,9 @@ def normalize_nwobjects(full_config: dict[str, Any], config2import: dict[str, An
                         obj.update({ 'obj_nat_ip': nat_obj['obj_ip'] }) # save nat ip in vip obj
                         if 'obj_ip_end' in nat_obj: # this nat obj is a range - include the end ip in name and uid as well to avoid akey conflicts
                             obj.update({ 'obj_nat_ip_end': nat_obj['obj_ip_end'] }) # save nat ip in vip obj
-                            nat_obj.update({'obj_name': nat_obj['obj_ip'] + '-' + nat_obj['obj_ip_end'] + nat_postfix})
+                            nat_obj.update({'obj_name': nat_obj['obj_ip'] + '-' + nat_obj['obj_ip_end'] + NAT_POSTFIX})
                         else:
-                            nat_obj.update({'obj_name': str(nat_obj['obj_ip']) + nat_postfix})
+                            nat_obj.update({'obj_name': str(nat_obj['obj_ip']) + NAT_POSTFIX})
                         nat_obj.update({'obj_uid': nat_obj['obj_name']})                    
                         ###### range handling
 
@@ -154,9 +154,9 @@ def resolve_nw_groups(nw_objects: list[dict[str, Any]]):
     for obj in nw_objects:
         if obj['obj_typ'] == 'group':
             member_ref_ar: list[str] = []
-            for member_name in obj['obj_member_names'].split(list_delimiter):
+            for member_name in obj['obj_member_names'].split(LIST_DELIMITER):
                 member_ref_ar.append(helper_dict[member_name])
-            obj['obj_member_refs'] = list_delimiter.join(member_ref_ar)
+            obj['obj_member_refs'] = LIST_DELIMITER.join(member_ref_ar)
 
 
 # def add_member_names_for_nw_group(idx, nw_objects):
@@ -209,8 +209,8 @@ def remove_nat_ip_entries(config2import: dict[str, Any]):
 
 def get_first_ip_of_destination(obj_ref: str, config2import: dict[str, Any]) -> str | None:
 
-    if list_delimiter in obj_ref:
-        obj_ref = obj_ref.split(list_delimiter)[0]
+    if LIST_DELIMITER in obj_ref:
+        obj_ref = obj_ref.split(LIST_DELIMITER)[0]
         # if destination does not contain exactly one ip, raise a warning 
         FWOLogger.info('src nat behind interface: more than one NAT IP - just using the first one for routing decision for obj_ref ' + obj_ref)
 

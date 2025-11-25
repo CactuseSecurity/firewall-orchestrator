@@ -4,7 +4,7 @@ from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from cryptography.hazmat.primitives import padding
 from fwo_log import FWOLogger
-from fwo_const import mainKeyFile
+from fwo_const import MAIN_KEY_FILE
 
 # can be used for decrypting text encrypted with C# (mw-server)
 def decrypt_aes_ciphertext(base64_encrypted_text: str, passphrase: str) -> str:
@@ -41,7 +41,7 @@ def decrypt(encrypted_data: str, passphrase: str) -> str:
         return encrypted_data
 
 
-def read_main_key(filePath: str = mainKeyFile) -> str:
+def read_main_key(filePath: str = MAIN_KEY_FILE) -> str:
     with open(filePath, "r") as keyfile:
         mainKey = keyfile.read().rstrip(' \n')
     return mainKey

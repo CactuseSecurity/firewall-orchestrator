@@ -1,5 +1,5 @@
 from typing import Any
-from fwo_const import rule_num_numeric_steps
+from fwo_const import RULE_NUM_NUMERIC_STEPS
 
 from models.rule import RuleNormalized
 from models.rulebase import Rulebase
@@ -186,7 +186,7 @@ class RuleOrderService:
                 current_rule_num_numeric = 0
                 for rule_uid in rule_uids:
                     _, changed_rule = self._get_index_and_rule_object_from_flat_list(self._target_rules_flat, rule_uid)
-                    current_rule_num_numeric += rule_num_numeric_steps
+                    current_rule_num_numeric += RULE_NUM_NUMERIC_STEPS
                     changed_rule.rule_num_numeric = current_rule_num_numeric
 
 
@@ -215,10 +215,10 @@ class RuleOrderService:
             if min_num_numeric_rule:
                 changed_rule.rule_num_numeric = min_num_numeric_rule.rule_num_numeric / 2 or 1
             else:
-                changed_rule.rule_num_numeric = rule_num_numeric_steps
+                changed_rule.rule_num_numeric = RULE_NUM_NUMERIC_STEPS
 
         elif not next_rule_uid:
-            changed_rule.rule_num_numeric = rule_num_numeric_steps
+            changed_rule.rule_num_numeric = RULE_NUM_NUMERIC_STEPS
 
             max_num_numeric_rule = max((r for r in changed_and_unchanged_rules), key=lambda x: x.rule_num_numeric, default=None)
 
@@ -231,7 +231,7 @@ class RuleOrderService:
             if next_rules_rule_num_numeric > 0:
                 changed_rule.rule_num_numeric = (previous_rule_num_numeric + next_rules_rule_num_numeric) / 2
             else:
-                changed_rule.rule_num_numeric = previous_rule_num_numeric + rule_num_numeric_steps
+                changed_rule.rule_num_numeric = previous_rule_num_numeric + RULE_NUM_NUMERIC_STEPS
 
 
     def _update_rule_on_consecutive_insert(self, rule_uid: str, rulebase_uid: str) -> None:
@@ -268,7 +268,7 @@ class RuleOrderService:
                 break
 
         if next_rule_num_numeric == 0:
-            next_rule_num_numeric = prev_rule_num_numeric + rule_num_numeric_steps
+            next_rule_num_numeric = prev_rule_num_numeric + RULE_NUM_NUMERIC_STEPS
             rule.rule_num_numeric = next_rule_num_numeric
             return 
         

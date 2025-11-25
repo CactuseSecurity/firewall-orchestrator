@@ -1,6 +1,6 @@
 import re
 from typing import Any
-from fwo_const import list_delimiter
+from fwo_const import LIST_DELIMITER
 from fwo_base import sort_and_join
 
 def normalize_service_objects(native_config: dict[str, Any], normalized_config_adom: dict[str, Any], svc_obj_types: list[str]) -> None:
@@ -27,7 +27,7 @@ def normalize_service_object(obj_orig: dict[str, Any], svc_objects: list[dict[st
     if 'member' in obj_orig:
         svc_type = 'group'
         for member in obj_orig['member']:
-            member_names += member + list_delimiter
+            member_names += member + LIST_DELIMITER
         member_names = member_names[:-1]
     else:
         svc_type = 'simple'
@@ -82,21 +82,21 @@ def parse_standard_protocols_with_ports(obj_orig: dict[str, Any], svc_objects: l
         tcpname = name
         if split:
             tcpname += "_tcp"
-            range_names += tcpname + list_delimiter
+            range_names += tcpname + LIST_DELIMITER
         add_object(svc_objects, svc_type, tcpname, color, 6, obj_orig['tcp-portrange'], None, session_timeout)
         added_svc_obj += 1
     if "udp-portrange" in obj_orig and len(obj_orig['udp-portrange']) > 0:
         udpname = name
         if split:
             udpname += "_udp"
-            range_names += udpname + list_delimiter
+            range_names += udpname + LIST_DELIMITER
         add_object(svc_objects, svc_type, udpname, color, 17, obj_orig['udp-portrange'], None, session_timeout)
         added_svc_obj += 1
     if "sctp-portrange" in obj_orig and len(obj_orig['sctp-portrange']) > 0:
         sctpname = name
         if split:
             sctpname += "_sctp"
-            range_names += sctpname + list_delimiter
+            range_names += sctpname + LIST_DELIMITER
         add_object(svc_objects, svc_type, sctpname, color, 132, obj_orig['sctp-portrange'], None, session_timeout)
         added_svc_obj += 1
     if split:
@@ -164,7 +164,7 @@ def create_svc_object(name: str, proto: int, color: str, port: Any, comment: str
 
 def add_object(svc_objects: list[dict[str, Any]], type: str, name: str, color: str, proto: int, port_ranges: list[str] | None, member_names: str | None, session_timeout: Any) -> None:
     if member_names:
-        member_names = sort_and_join(member_names.split(list_delimiter)) #TODO: sorting should be done earlier on actual list
+        member_names = sort_and_join(member_names.split(LIST_DELIMITER)) #TODO: sorting should be done earlier on actual list
     if port_ranges is None:
         svc_objects.extend([{'svc_typ': type,
                             'svc_name': name,
@@ -188,7 +188,7 @@ def add_object(svc_objects: list[dict[str, Any]], type: str, name: str, color: s
             full_name = name
             if split:
                 full_name += '_' + str(port)
-                range_names += full_name + list_delimiter
+                range_names += full_name + LIST_DELIMITER
             svc_objects.extend([{'svc_typ': type,
                                 'svc_name': full_name, 
                                 'svc_color': color,

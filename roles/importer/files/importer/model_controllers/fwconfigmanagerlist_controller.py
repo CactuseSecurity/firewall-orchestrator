@@ -7,7 +7,7 @@ from typing import Any
 import fwo_globals
 from fwo_log import FWOLogger
 from fwo_base import serialize_dict_to_class_rec, deserialize_class_to_dict_rec
-from fwo_const import import_tmp_path
+from fwo_const import IMPORT_TMP_PATH
 
 from model_controllers.import_state_controller import ImportStateController
 from models.fwconfigmanagerlist import FwConfigManagerList
@@ -143,7 +143,7 @@ class FwConfigManagerListController(FwConfigManagerList):
         if fwo_globals.debug_level>5:
             debug_start_time = int(time.time())
             try:
-                normalized_config_filename = f"{import_tmp_path}/mgm_id_{str(importState.MgmDetails.Id)}_config_normalized.json"
+                normalized_config_filename = f"{IMPORT_TMP_PATH}/mgm_id_{str(importState.MgmDetails.Id)}_config_normalized.json"
 
                 config_copy_without_native= deepcopy(self)
                 config_copy_without_native.native_config = {}

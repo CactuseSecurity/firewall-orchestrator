@@ -12,7 +12,7 @@ from fwo_api import FwoApi
 from fwo_api_call import FwoApiCall
 from fwo_log import FWOLogger
 from fwo_config import read_config
-from fwo_const import fwo_config_filename, graphql_query_path
+from fwo_const import FWO_CONFIG_FILENAME, GRAPHQL_QUERY_PATH
 from fwo_exceptions import FwoImporterError
 from models.import_state import ImportState
 from model_controllers.fworch_config_controller import FworchConfigController
@@ -88,7 +88,7 @@ class ImportStateController(ImportState):
                          isClearingImport: bool, isFullImport: bool,
                          ):
 
-        fwoConfig = FworchConfigController.fromJson(read_config(fwo_config_filename))
+        fwoConfig = FworchConfigController.fromJson(read_config(FWO_CONFIG_FILENAME))
 
         api_conn = FwoApi(ApiUri=fwoConfig.FwoApiUri, Jwt=jwt)
         api_call = FwoApiCall(api_conn)
@@ -224,7 +224,7 @@ class ImportStateController(ImportState):
         self.LinkTypes = link_map
 
     def SetColorRefMap(self, api_call: FwoApiCall):
-        get_colors_query = FwoApi.get_graphql_code([graphql_query_path + "stmTables/getColors.graphql"])
+        get_colors_query = FwoApi.get_graphql_code([GRAPHQL_QUERY_PATH + "stmTables/getColors.graphql"])
 
         try:
             result = api_call.call(query=get_colors_query, query_variables={})

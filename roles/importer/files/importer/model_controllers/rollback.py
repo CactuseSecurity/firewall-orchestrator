@@ -21,7 +21,7 @@ class FwConfigImportRollback():
     # TODO: also take super management id into account as second option
 
     def rollbackCurrentImport(self) -> None | int:
-        rollbackMutation = FwoApi.get_graphql_code([f"{fwo_const.graphql_query_path}import/rollbackImport.graphql"])
+        rollbackMutation = FwoApi.get_graphql_code([f"{fwo_const.GRAPHQL_QUERY_PATH}import/rollbackImport.graphql"])
         try:
             query_variables = {
                 'importId': self.ImportDetails.ImportId

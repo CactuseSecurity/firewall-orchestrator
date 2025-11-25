@@ -1,6 +1,6 @@
 import re
 from typing import Any
-from fwo_const import list_delimiter
+from fwo_const import LIST_DELIMITER
 from fwo_log import FWOLogger
 
 
@@ -14,7 +14,7 @@ def normalize_svcobjects(full_config: dict[str, Any], config2import: dict[str, A
                 if 'member' in obj_orig:
                     type = 'group'
                     for member in obj_orig['member']:
-                        member_names += member['name'] + list_delimiter
+                        member_names += member['name'] + LIST_DELIMITER
                     member_names = member_names[:-1]
                 else:
                     type = 'simple'
@@ -56,21 +56,21 @@ def normalize_svcobjects(full_config: dict[str, Any], config2import: dict[str, A
                             tcpname = name
                             if split:
                                 tcpname += "_tcp"
-                                range_names += tcpname + list_delimiter
+                                range_names += tcpname + LIST_DELIMITER
                             add_object(svc_objects, type, tcpname, color, 6, obj_orig['tcp-portrange'], None, session_timeout, import_id, full_config=full_config)
                             added_svc_obj += 1
                         if "udp-portrange" in obj_orig and len(obj_orig['udp-portrange']) > 0:
                             udpname = name
                             if split:
                                 udpname += "_udp"
-                                range_names += udpname + list_delimiter
+                                range_names += udpname + LIST_DELIMITER
                             add_object(svc_objects, type, udpname, color, 17, obj_orig['udp-portrange'], None, session_timeout, import_id, full_config=full_config)
                             added_svc_obj += 1
                         if "sctp-portrange" in obj_orig and len(obj_orig['sctp-portrange']) > 0:
                             sctpname = name
                             if split:
                                 sctpname += "_sctp"
-                                range_names += sctpname + list_delimiter
+                                range_names += sctpname + LIST_DELIMITER
                             add_object(svc_objects, type, sctpname, color, 132, obj_orig['sctp-portrange'], None, session_timeout, import_id, full_config=full_config)
                             added_svc_obj += 1
                         if split:
@@ -193,7 +193,7 @@ def add_object(svc_objects: list[dict[str, Any]], type: str, name: str, color: s
             full_name = name
             if split:
                 full_name += '_' + str(port)
-                range_names += full_name + list_delimiter
+                range_names += full_name + LIST_DELIMITER
                 if port_end != port:
                     port_range_local = port + '-' + port_end
                 else:

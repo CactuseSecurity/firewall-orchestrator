@@ -7,7 +7,7 @@ import string
 from typing import Any, MutableMapping
 
 import fwo_globals
-from fwo_const import fwo_api_http_import_timeout
+from fwo_const import FWO_API_HTTP_IMPORT_TIMEOUT
 from fwo_exceptions import FwoApiServiceUnavailable, FwoApiTimeout
 from query_analyzer import QueryAnalyzer
 from fwo_exceptions import FwoImporterError, FwoApiLoginFailed
@@ -53,7 +53,7 @@ class FwoApi():
             with requests.Session() as session:
                 if fwo_globals.verify_certs is None:    # only for first FWO API call (getting info on cert verification)
                     session.verify = False
-                else: 
+                else:
                     session.verify = fwo_globals.verify_certs
                 session.headers.update(request_headers)
 
@@ -152,15 +152,15 @@ class FwoApi():
 
             try:
                 if method.upper() == 'GET':
-                    response = session.get(url, json=params, timeout=int(fwo_api_http_import_timeout))
+                    response = session.get(url, json=params, timeout=int(FWO_API_HTTP_IMPORT_TIMEOUT))
                 elif method.upper() == 'POST':
-                    response = session.post(url, json=params, timeout=int(fwo_api_http_import_timeout))
+                    response = session.post(url, json=params, timeout=int(FWO_API_HTTP_IMPORT_TIMEOUT))
                 elif method.upper() == 'PUT':
-                    response = session.put(url, json=params, timeout=int(fwo_api_http_import_timeout))
+                    response = session.put(url, json=params, timeout=int(FWO_API_HTTP_IMPORT_TIMEOUT))
                 elif method.upper() == 'DELETE':
-                    response = session.delete(url, json=params, timeout=int(fwo_api_http_import_timeout))
+                    response = session.delete(url, json=params, timeout=int(FWO_API_HTTP_IMPORT_TIMEOUT))
                 elif method.upper() == 'PATCH':
-                    response = session.patch(url, json=params, timeout=int(fwo_api_http_import_timeout))
+                    response = session.patch(url, json=params, timeout=int(FWO_API_HTTP_IMPORT_TIMEOUT))
                 else:
                     raise FwoImporterError(f"Unsupported HTTP method: {method}")
                     
@@ -197,7 +197,7 @@ class FwoApi():
             if exception.response.status_code == 503:
                 raise FwoApiServiceUnavailable("FWO API HTTP error 503 (FWO API died?)")
             elif exception.response.status_code == 502:
-                raise FwoApiTimeout(f"FWO API HTTP error 502 (might have reached timeout of {int(fwo_api_http_import_timeout)/60} minutes)")
+                raise FwoApiTimeout(f"FWO API HTTP error 502 (might have reached timeout of {int(FWO_API_HTTP_IMPORT_TIMEOUT)/60} minutes)")
         raise exception
 
 
@@ -333,7 +333,7 @@ class FwoApi():
 
         FWOLogger.debug(self.show_import_api_call_info(self.fwo_api_url, query_payload, session.headers, typ='debug', show_query_info=True), 9)
 
-        r = session.post(self.fwo_api_url, data=json.dumps(query_payload), timeout=int(fwo_api_http_import_timeout))
+        r = session.post(self.fwo_api_url, data=json.dumps(query_payload), timeout=int(FWO_API_HTTP_IMPORT_TIMEOUT))
         
         FWOLogger.debug ("API response: " + pformat(r.json(), indent=2), 10)
 

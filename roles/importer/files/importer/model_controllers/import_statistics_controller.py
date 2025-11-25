@@ -30,6 +30,7 @@ class ImportStatisticsController(ImportStatistics):
         self.rulebase_link_change_count = 0
         self.rulebase_link_delete_count = 0
         self.ErrorAlreadyLogged = False
+
     
     def addError(self, error: str):
         self.ErrorCount += 1

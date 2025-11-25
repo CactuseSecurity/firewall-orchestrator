@@ -2,7 +2,7 @@ import random
 from typing import Any
 
 from fwo_log import FWOLogger
-from fwo_const import list_delimiter
+from fwo_const import LIST_DELIMITER
 from netaddr import IPAddress
 
 def normalize_nwobjects(full_config: dict[str, Any], config2import: dict[str, Any], import_id: str, jwt: str | None = None, mgm_id: str | None = None):
@@ -38,7 +38,7 @@ def parse_obj_group(orig_grp: dict[str, Any], import_id: str, nw_objects: list[d
             names.append(orig_obj["name"])
             refs.append(orig_obj["id"])
 
-    return list_delimiter.join(refs), list_delimiter.join(names)
+    return LIST_DELIMITER.join(refs), LIST_DELIMITER.join(names)
 
 def extract_base_object_infos(obj_orig: dict[str, Any], import_id: str) -> dict[str, Any]:
     obj: dict[str, Any] = {}

@@ -124,7 +124,7 @@ def normalize_config(import_state: ImportStateController, config_in: FwConfigMan
         is_global_loop_iteration = True
     
     for native_conf in config_in.native_config['domains']:
-        normalized_config_dict = deepcopy(fwo_const.emptyNormalizedFwConfigJsonDict)
+        normalized_config_dict = deepcopy(fwo_const.EMPTY_NORMALIZED_FW_CONFIG_JSON_DICT)
         normalize_single_manager_config(
             native_conf, native_config_global, normalized_config_dict, normalized_config_global,
             import_state, parsing_config_only, sid, is_global_loop_iteration
@@ -158,17 +158,17 @@ def normalize_config(import_state: ImportStateController, config_in: FwConfigMan
     return config_in
 
 
-def normalize_single_manager_config(nativeConfig: dict[str, Any], native_config_global: dict[str, Any], normalized_config_dict: dict[str, Any],
-                                    normalized_config_global: dict[str, Any], importState: ImportStateController,
+def normalize_single_manager_config(native_config: dict[str, Any], native_config_global: dict[str, Any], normalized_config_dict: dict[str, Any],
+                                    normalized_config_global: dict[str, Any], import_state: ImportStateController,
                                     parsing_config_only: bool, sid: str, is_global_loop_iteration: bool):
-    cp_network.normalize_network_objects(nativeConfig, normalized_config_dict, importState.ImportId, mgm_id=importState.MgmDetails.Id)
+    cp_network.normalize_network_objects(native_config, normalized_config_dict, import_state.ImportId, mgm_id=import_state.MgmDetails.Id)
     FWOLogger.info("completed normalizing network objects")
-    cp_service.normalize_service_objects(nativeConfig, normalized_config_dict, importState.ImportId)
+    cp_service.normalize_service_objects(native_config, normalized_config_dict, import_state.ImportId)
     FWOLogger.info("completed normalizing service objects")
-    cp_gateway.normalize_gateways(nativeConfig, importState, normalized_config_dict)
-    cp_rule.normalize_rulebases(nativeConfig, native_config_global, importState, normalized_config_dict, normalized_config_global, is_global_loop_iteration)
+    cp_gateway.normalize_gateways(native_config, import_state, normalized_config_dict)
+    cp_rule.normalize_rulebases(native_config, native_config_global, import_state, normalized_config_dict, normalized_config_global, is_global_loop_iteration)
     if not parsing_config_only: # get config from cp fw mgr
-        cp_getter.logout(importState.MgmDetails.buildFwApiString(), sid)
+        cp_getter.logout(import_state.MgmDetails.buildFwApiString(), sid)
     FWOLogger.info("completed normalizing rulebases")
     
 

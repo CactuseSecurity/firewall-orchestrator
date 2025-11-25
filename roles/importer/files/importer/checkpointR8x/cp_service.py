@@ -1,7 +1,7 @@
 import re
 from typing import Any
 from checkpointR8x import cp_const
-from fwo_const import list_delimiter
+from fwo_const import LIST_DELIMITER
 from fwo_exceptions import FwoImporterErrorInconsistencies
 
 
@@ -74,9 +74,9 @@ def _get_member_references(obj: dict[str, Any]) -> str | None:
     member_refs = ''
     for member in obj['members']:
         if isinstance(member, str):
-            member_refs += member + list_delimiter
+            member_refs += member + LIST_DELIMITER
         elif isinstance(member, dict) and 'uid' in member and isinstance(member['uid'], str):
-            member_refs += member['uid'] + list_delimiter
+            member_refs += member['uid'] + LIST_DELIMITER
     return member_refs[:-1] if member_refs else None
 
 
@@ -183,10 +183,10 @@ def add_member_names_for_svc_group(idx: int, svc_objects: list[dict[str, Any]]) 
     group = svc_objects.pop(idx)
 
     if 'svc_member_refs' in group and group['svc_member_refs'] is not None:
-        svc_member_refs = group['svc_member_refs'].split(list_delimiter)
+        svc_member_refs = group['svc_member_refs'].split(LIST_DELIMITER)
         for ref in svc_member_refs:
             member_name = resolve_svc_uid_to_name(ref, svc_objects)
-            member_names += member_name + list_delimiter
+            member_names += member_name + LIST_DELIMITER
         group['svc_member_names'] = member_names[:-1]
 
     svc_objects.insert(idx, group)

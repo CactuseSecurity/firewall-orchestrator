@@ -2,7 +2,7 @@ import copy
 import ipaddress
 from time import strftime, localtime
 from typing import Any
-from fwo_const import list_delimiter, nat_postfix, dummy_ip
+from fwo_const import LIST_DELIMITER, NAT_POSTFIX, DUMMY_IP
 from fortiadom5ff.fmgr_network import create_network_object, get_first_ip_of_destination
 from fortiadom5ff.fmgr_zone import find_zones_in_normalized_config
 from fortiadom5ff.fmgr_consts import nat_types
@@ -128,14 +128,14 @@ def add_implicit_deny_rule(normalized_config_adom: dict[str, Any], normalized_co
         rule_num_numeric=0,
         rule_disabled=False,
         rule_src_neg=False,
-        rule_src=list_delimiter.join(rule_src_list),
-        rule_src_refs=list_delimiter.join(rule_src_refs_list),
+        rule_src=LIST_DELIMITER.join(rule_src_list),
+        rule_src_refs=LIST_DELIMITER.join(rule_src_refs_list),
         rule_dst_neg=False,
-        rule_dst=list_delimiter.join(rule_dst_list),
-        rule_dst_refs=list_delimiter.join(rule_dst_refs_list),
+        rule_dst=LIST_DELIMITER.join(rule_dst_list),
+        rule_dst_refs=LIST_DELIMITER.join(rule_dst_refs_list),
         rule_svc_neg=False,
-        rule_svc=list_delimiter.join(rule_svc_list),
-        rule_svc_refs=list_delimiter.join(rule_svc_refs_list),
+        rule_svc=LIST_DELIMITER.join(rule_svc_list),
+        rule_svc_refs=LIST_DELIMITER.join(rule_svc_refs_list),
         rule_action=RuleAction.DROP,
         rule_track=RuleTrack.NONE,     # I guess this could also have different values
         rule_installon=None,
@@ -149,8 +149,8 @@ def add_implicit_deny_rule(normalized_config_adom: dict[str, Any], normalized_co
         parent_rule_uid=None,
         last_hit=None,
         rule_comment=None,
-        rule_src_zone=list_delimiter.join(rule_src_zones),
-        rule_dst_zone=list_delimiter.join(rule_dst_zones),
+        rule_src_zone=LIST_DELIMITER.join(rule_src_zones),
+        rule_dst_zone=LIST_DELIMITER.join(rule_dst_zones),
         rule_head_text=None
     )
 
@@ -190,14 +190,14 @@ def parse_single_rule(normalized_config_adom: dict[str, Any], normalized_config_
         rule_num_numeric=0,
         rule_disabled=rule_disabled,
         rule_src_neg=rule_src_neg,
-        rule_src=list_delimiter.join(rule_src_list),
-        rule_src_refs=list_delimiter.join(rule_src_refs_list),
+        rule_src=LIST_DELIMITER.join(rule_src_list),
+        rule_src_refs=LIST_DELIMITER.join(rule_src_refs_list),
         rule_dst_neg=rule_dst_neg,
-        rule_dst=list_delimiter.join(rule_dst_list),
-        rule_dst_refs=list_delimiter.join(rule_dst_refs_list),
+        rule_dst=LIST_DELIMITER.join(rule_dst_list),
+        rule_dst_refs=LIST_DELIMITER.join(rule_dst_refs_list),
         rule_svc_neg=rule_svc_neg,
-        rule_svc=list_delimiter.join(rule_svc_list),
-        rule_svc_refs=list_delimiter.join(rule_svc_refs_list),
+        rule_svc=LIST_DELIMITER.join(rule_svc_list),
+        rule_svc_refs=LIST_DELIMITER.join(rule_svc_refs_list),
         rule_action=rule_action,
         rule_track=rule_track,
         rule_installon=rule_installon,
@@ -211,8 +211,8 @@ def parse_single_rule(normalized_config_adom: dict[str, Any], normalized_config_
         parent_rule_uid=None,
         last_hit=last_hit,
         rule_comment=native_rule.get('comments'),
-        rule_src_zone=list_delimiter.join(rule_src_zones),
-        rule_dst_zone=list_delimiter.join(rule_dst_zones),
+        rule_src_zone=LIST_DELIMITER.join(rule_src_zones),
+        rule_dst_zone=LIST_DELIMITER.join(rule_dst_zones),
         rule_head_text=None
     )
     if rule_normalized.rule_uid is None:
@@ -333,7 +333,7 @@ def rule_parse_negation_flags(native_rule: dict[str, Any]) -> tuple[bool, bool, 
 def rule_parse_installon(native_rule: dict[str, Any]) -> str|None:
     rule_installon = None
     if 'scope_member' in native_rule and native_rule['scope_member']:
-        rule_installon = list_delimiter.join(sorted({vdom['name'] + '_' + vdom['vdom'] for vdom in native_rule['scope_member']}))
+        rule_installon = LIST_DELIMITER.join(sorted({vdom['name'] + '_' + vdom['vdom'] for vdom in native_rule['scope_member']}))
     return rule_installon
 
 def rule_parse_last_hit(native_rule: dict[str, Any]) -> str|None:
@@ -667,7 +667,7 @@ def handle_combined_nat_rule(rule: dict[str, Any], rule_orig: dict[str, Any], co
                     elif destination_interface_ip is not None and type(ipaddress.ip_address(str(destination_interface_ip))) is ipaddress.IPv4Address:
                         HideNatIp = str(destination_interface_ip) + '/32'
                     else:
-                        HideNatIp = dummy_ip
+                        HideNatIp = DUMMY_IP
                         FWOLogger.warning('found invalid HideNatIP ' + str(destination_interface_ip))
                     obj = create_network_object(obj_name, 'host', HideNatIp, HideNatIp, obj_name, 'black', obj_comment, 'global')
                     if obj not in config2import['network_objects']:
@@ -698,7 +698,7 @@ def handle_combined_nat_rule(rule: dict[str, Any], rule_orig: dict[str, Any], co
     #     vip_nat_rule_number += 1
 
     # deal with vip natting: check for each (dst) nw obj if it contains "obj_nat_ip"
-    rule_dst_list = rule['rule_dst'].split(list_delimiter)
+    rule_dst_list = rule['rule_dst'].split(LIST_DELIMITER)
     nat_object_list = extract_nat_objects(rule_dst_list, config2import['network_objects'])
 
     if len(nat_object_list)>0:
@@ -708,16 +708,16 @@ def handle_combined_nat_rule(rule: dict[str, Any], rule_orig: dict[str, Any], co
         xlate_dst_refs: list[str] = []
         for nat_obj in nat_object_list:
             if 'obj_ip_end' in nat_obj: # this nat obj is a range - include the end ip in name and uid as well to avoid akey conflicts
-                xlate_dst.append(nat_obj['obj_nat_ip'] + '-' + nat_obj['obj_ip_end'] + nat_postfix)
+                xlate_dst.append(nat_obj['obj_nat_ip'] + '-' + nat_obj['obj_ip_end'] + NAT_POSTFIX)
                 nat_ref = nat_obj['obj_nat_ip']
                 if 'obj_nat_ip_end' in nat_obj:
-                    nat_ref += '-' + nat_obj['obj_nat_ip_end'] + nat_postfix
+                    nat_ref += '-' + nat_obj['obj_nat_ip_end'] + NAT_POSTFIX
                 xlate_dst_refs.append(nat_ref)
             else:
-                xlate_dst.append(nat_obj['obj_nat_ip'] + nat_postfix)
-                xlate_dst_refs.append(nat_obj['obj_nat_ip']  + nat_postfix)
-        xlate_rule['rule_dst'] = list_delimiter.join(xlate_dst)
-        xlate_rule['rule_dst_refs'] = list_delimiter.join(xlate_dst_refs)
+                xlate_dst.append(nat_obj['obj_nat_ip'] + NAT_POSTFIX)
+                xlate_dst_refs.append(nat_obj['obj_nat_ip']  + NAT_POSTFIX)
+        xlate_rule['rule_dst'] = LIST_DELIMITER.join(xlate_dst)
+        xlate_rule['rule_dst_refs'] = LIST_DELIMITER.join(xlate_dst_refs)
     # else: (no nat object found) no dnatting involved, dst stays "Original"
 
     return xlate_rule
@@ -746,12 +746,12 @@ def add_users_to_rule(rule_orig: dict[str, Any], rule: dict[str, Any]) -> None:
 def add_users(users: list[str], rule: dict[str, Any]) -> None:
     for user in users:
         rule_src_with_users: list[str] = []
-        for src in rule['rule_src'].split(list_delimiter):
+        for src in rule['rule_src'].split(LIST_DELIMITER):
             rule_src_with_users.append(user + '@' + src)
-        rule['rule_src'] = list_delimiter.join(rule_src_with_users)
+        rule['rule_src'] = LIST_DELIMITER.join(rule_src_with_users)
 
         # here user ref is the user name itself
         rule_src_refs_with_users: list[str] = []
-        for src in rule['rule_src_refs'].split(list_delimiter):
+        for src in rule['rule_src_refs'].split(LIST_DELIMITER):
             rule_src_refs_with_users.append(user + '@' + src)
-        rule['rule_src_refs'] = list_delimiter.join(rule_src_refs_with_users)
+        rule['rule_src_refs'] = LIST_DELIMITER.join(rule_src_refs_with_users)

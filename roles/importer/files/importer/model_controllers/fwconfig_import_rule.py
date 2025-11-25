@@ -212,7 +212,7 @@ class FwConfigImportRule():
         """
 
         if len(new_hit_information) > 0:
-            update_last_hit_mutation = FwoApi.get_graphql_code([fwo_const.graphql_query_path + "rule_metadata/updateLastHits.graphql"])
+            update_last_hit_mutation = FwoApi.get_graphql_code([fwo_const.GRAPHQL_QUERY_PATH + "rule_metadata/updateLastHits.graphql"])
             query_variables = { 'hit_info': new_hit_information  }
 
             try:
@@ -244,19 +244,19 @@ class FwConfigImportRule():
         user_resolveds = []
         from_zones = []
         to_zones = []
-        for src_ref in rule.rule_src_refs.split(fwo_const.list_delimiter):
+        for src_ref in rule.rule_src_refs.split(fwo_const.LIST_DELIMITER):
             user_ref = None
-            if fwo_const.user_delimiter in src_ref:
-                src_ref, user_ref = src_ref.split(fwo_const.user_delimiter)
+            if fwo_const.USER_DELIMITER in src_ref:
+                src_ref, user_ref = src_ref.split(fwo_const.USER_DELIMITER)
                 users.append(user_ref)
             froms.append((src_ref, user_ref))
-        for dst_ref in rule.rule_dst_refs.split(fwo_const.list_delimiter):
+        for dst_ref in rule.rule_dst_refs.split(fwo_const.LIST_DELIMITER):
             user_ref = None
-            if fwo_const.user_delimiter in dst_ref:
-                dst_ref, user_ref = dst_ref.split(fwo_const.user_delimiter)
+            if fwo_const.USER_DELIMITER in dst_ref:
+                dst_ref, user_ref = dst_ref.split(fwo_const.USER_DELIMITER)
                 users.append(user_ref)
             tos.append((dst_ref, user_ref))
-        svcs = rule.rule_svc_refs.split(fwo_const.list_delimiter)
+        svcs = rule.rule_svc_refs.split(fwo_const.LIST_DELIMITER)
         if is_prev:
             nwobj_resolveds = self.prev_group_flats_mapper.get_network_object_flats([ref[0] for ref in froms + tos])
             svc_resolveds = self.prev_group_flats_mapper.get_service_object_flats(svcs)
@@ -265,8 +265,8 @@ class FwConfigImportRule():
             nwobj_resolveds = self.group_flats_mapper.get_network_object_flats([ref[0] for ref in froms + tos])
             svc_resolveds = self.group_flats_mapper.get_service_object_flats(svcs)
             user_resolveds = self.group_flats_mapper.get_user_flats(users)
-        from_zones = rule.rule_src_zone.split(fwo_const.list_delimiter) if rule.rule_src_zone else []
-        to_zones = rule.rule_dst_zone.split(fwo_const.list_delimiter) if rule.rule_dst_zone else []
+        from_zones = rule.rule_src_zone.split(fwo_const.LIST_DELIMITER) if rule.rule_src_zone else []
+        to_zones = rule.rule_dst_zone.split(fwo_const.LIST_DELIMITER) if rule.rule_dst_zone else []
         return {
             RefType.SRC: froms,
             RefType.DST: tos,
@@ -396,7 +396,7 @@ class FwConfigImportRule():
         if not any(all_refs_to_remove.values()):
             return
         
-        import_mutation = FwoApi.get_graphql_code([fwo_const.graphql_query_path + "rule/updateRuleRefs.graphql"])
+        import_mutation = FwoApi.get_graphql_code([fwo_const.GRAPHQL_QUERY_PATH + "rule/updateRuleRefs.graphql"])
         
         query_variables: dict[str, Any] = {
             'importId': self.import_details.ImportId,
@@ -530,7 +530,7 @@ class FwConfigImportRule():
         if not any(all_refs_to_add.values()):
             return 0
         
-        import_mutation = FwoApi.get_graphql_code([fwo_const.graphql_query_path + "rule/insertRuleRefs.graphql"])
+        import_mutation = FwoApi.get_graphql_code([fwo_const.GRAPHQL_QUERY_PATH + "rule/insertRuleRefs.graphql"])
         query_variables = {
             'ruleFroms': all_refs_to_add[RefType.SRC],
             'ruleTos': all_refs_to_add[RefType.DST],
@@ -553,7 +553,7 @@ class FwConfigImportRule():
 
 
     def getRulesByIdWithRefUids(self, ruleIds: list[int]) -> list[Rule]: #TODO: change return type to list[Rule] and cast
-        getRuleUidRefsQuery = FwoApi.get_graphql_code([fwo_const.graphql_query_path + "rule/getRulesByIdWithRefUids.graphql"])
+        getRuleUidRefsQuery = FwoApi.get_graphql_code([fwo_const.GRAPHQL_QUERY_PATH + "rule/getRulesByIdWithRefUids.graphql"])
         query_variables = { 'ruleIds': ruleIds }
         
         try:
@@ -1179,7 +1179,7 @@ class FwConfigImportRule():
         if rule.rule_installon is None:
             return None
         enforced_gw_ids: list[int] = []
-        for gw_uid in rule.rule_installon.split(fwo_const.list_delimiter):
+        for gw_uid in rule.rule_installon.split(fwo_const.LIST_DELIMITER):
             gw_id = import_details.lookupGatewayId(gw_uid)
             if gw_id is None:
                 FWOLogger.warning(f"could not find gateway id for gateway uid {gw_uid} during rule import preparation")
@@ -1245,7 +1245,7 @@ class FwConfigImportRule():
 
         changelog_rule_insert_objects = self.prepare_changelog_rules_insert_objects(added_rules_ids, removed_rules_ids)
 
-        updateChanglogRules = FwoApi.get_graphql_code([fwo_const.graphql_query_path + "rule/updateChanglogRules.graphql"])
+        updateChanglogRules = FwoApi.get_graphql_code([fwo_const.GRAPHQL_QUERY_PATH + "rule/updateChanglogRules.graphql"])
 
         query_variables = {
             'rule_changes': changelog_rule_insert_objects

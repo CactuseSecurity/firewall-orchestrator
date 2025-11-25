@@ -16,7 +16,7 @@ class RulebaseLinkController():
         query_variables = { "rulebaseLinks": rb_links }
         if len(rb_links) == 0:
             return
-        mutation = FwoApi.get_graphql_code([f"{fwo_const.graphql_query_path}rule/insertRulebaseLinks.graphql"])      
+        mutation = FwoApi.get_graphql_code([f"{fwo_const.GRAPHQL_QUERY_PATH}rule/insertRulebaseLinks.graphql"])      
         add_result = import_state.api_call.call(mutation, query_variables=query_variables)
         if 'errors' in add_result:
             import_state.Stats.addError(f"fwo_api:insertRulebaseLinks - error while inserting: {str(add_result['errors'])}")
@@ -30,7 +30,7 @@ class RulebaseLinkController():
         query_variables: dict[str, Any] = { "removedRulebaseLinks": removed_rb_links_ids, "importId": import_state.ImportId }
         if len(removed_rb_links_ids) == 0:
             return
-        mutation = FwoApi.get_graphql_code([f"{fwo_const.graphql_query_path}rule/removeRulebaseLinks.graphql"])      
+        mutation = FwoApi.get_graphql_code([f"{fwo_const.GRAPHQL_QUERY_PATH}rule/removeRulebaseLinks.graphql"])      
         add_result = import_state.api_call.call(mutation, query_variables=query_variables)
         if 'errors' in add_result:
             import_state.Stats.addError(f"fwo_api:removeRulebaseLinks - error while removing: {str(add_result['errors'])}")
@@ -49,7 +49,7 @@ class RulebaseLinkController():
         # we always need to provide gwIds since rulebase_links may be duplicate across different gateways
         query_variables = { "gwIds": gw_ids}
 
-        query = FwoApi.get_graphql_code(file_list=[f"{fwo_const.graphql_query_path}rule/getRulebaseLinks.graphql"])
+        query = FwoApi.get_graphql_code(file_list=[f"{fwo_const.GRAPHQL_QUERY_PATH}rule/getRulebaseLinks.graphql"])
         links = import_state.api_call.call(query, query_variables=query_variables)
         if 'errors' in links:
             import_state.Stats.addError(f"fwo_api:getRulebaseLinks - error while getting rulebaseLinks: {str(links['errors'])}")

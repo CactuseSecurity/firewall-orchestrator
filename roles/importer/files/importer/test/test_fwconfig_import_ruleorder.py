@@ -6,7 +6,7 @@ from model_controllers.fwconfig_import_ruleorder import RuleOrderService
 from test.mocking.mock_fwconfig_import_rule import MockFwConfigImportRule
 from test.mocking.mock_config import MockFwConfigNormalizedBuilder
 from test.tools.set_up_test import remove_rule_from_rulebase, insert_rule_in_config, move_rule_in_config, update_rule_map_and_rulebase_map, update_rule_num_numerics
-from fwo_const import rule_num_numeric_steps
+from fwo_const import RULE_NUM_NUMERIC_STEPS
 import fwo_local_settings
 from fwo_base import init_service_provider
 
@@ -95,7 +95,7 @@ class TestFwConfigImportRuleOrder(unittest.TestCase):
             # Assert
             for rulebase in self._normalized_config.rulebases:
                 for index, rule_uid in enumerate(rulebase.rules):
-                    expected_rule_num_numeric = (index + 1) * rule_num_numeric_steps
+                    expected_rule_num_numeric = (index + 1) * RULE_NUM_NUMERIC_STEPS
                     actual_rule_num_numeric = rulebase.rules[rule_uid].rule_num_numeric
                     self.assertTrue(actual_rule_num_numeric == expected_rule_num_numeric, f"Rule UID: {rule_uid}, actual rule_num_numeric: {actual_rule_num_numeric}, expected: {expected_rule_num_numeric}")
 
@@ -118,8 +118,8 @@ class TestFwConfigImportRuleOrder(unittest.TestCase):
 
         # # Assert
 
-        self.assertTrue(self._get_rule(0, inserted_rule_uid).rule_num_numeric == rule_num_numeric_steps, f"Inserted rule_num_numeric is {self._normalized_config.rulebases[0].rules[inserted_rule_uid].rule_num_numeric}, expected {rule_num_numeric_steps}")
-        self.assertTrue(self._get_rule(0, moved_rule_uid).rule_num_numeric == rule_num_numeric_steps / 2, f"Moved rule_num_numeric is {self._normalized_config.rulebases[0].rules[moved_rule_uid].rule_num_numeric}, expected {rule_num_numeric_steps / 2}")
+        self.assertTrue(self._get_rule(0, inserted_rule_uid).rule_num_numeric == RULE_NUM_NUMERIC_STEPS, f"Inserted rule_num_numeric is {self._normalized_config.rulebases[0].rules[inserted_rule_uid].rule_num_numeric}, expected {RULE_NUM_NUMERIC_STEPS}")
+        self.assertTrue(self._get_rule(0, moved_rule_uid).rule_num_numeric == RULE_NUM_NUMERIC_STEPS / 2, f"Moved rule_num_numeric is {self._normalized_config.rulebases[0].rules[moved_rule_uid].rule_num_numeric}, expected {RULE_NUM_NUMERIC_STEPS / 2}")
 
 
     def test_initialize_on_consecutive_insertions(self):
@@ -150,17 +150,17 @@ class TestFwConfigImportRuleOrder(unittest.TestCase):
 
         # Assert
 
-        self.assertTrue(self._get_rule(0, rule_1_1_uid).rule_num_numeric == rule_num_numeric_steps / 2, f"Rule 1.1 rule_num_numeric: {self._get_rule(0, rule_1_1_uid).rule_num_numeric}, expected {rule_num_numeric_steps / 2}")
-        self.assertTrue(self._get_rule(0, rule_1_2_uid).rule_num_numeric == 3 * rule_num_numeric_steps / 4, f"Rule 1.2 rule_num_numeric: {self._get_rule(0, rule_1_2_uid).rule_num_numeric}, expected {3 * rule_num_numeric_steps / 4}")
-        self.assertTrue(self._get_rule(0, rule_1_3_uid).rule_num_numeric == 7 * rule_num_numeric_steps / 8, f"Rule 1.3 rule_num_numeric: {self._get_rule(0, rule_1_3_uid).rule_num_numeric}, expected {7 * rule_num_numeric_steps / 8}")
+        self.assertTrue(self._get_rule(0, rule_1_1_uid).rule_num_numeric == RULE_NUM_NUMERIC_STEPS / 2, f"Rule 1.1 rule_num_numeric: {self._get_rule(0, rule_1_1_uid).rule_num_numeric}, expected {RULE_NUM_NUMERIC_STEPS / 2}")
+        self.assertTrue(self._get_rule(0, rule_1_2_uid).rule_num_numeric == 3 * RULE_NUM_NUMERIC_STEPS / 4, f"Rule 1.2 rule_num_numeric: {self._get_rule(0, rule_1_2_uid).rule_num_numeric}, expected {3 * RULE_NUM_NUMERIC_STEPS / 4}")
+        self.assertTrue(self._get_rule(0, rule_1_3_uid).rule_num_numeric == 7 * RULE_NUM_NUMERIC_STEPS / 8, f"Rule 1.3 rule_num_numeric: {self._get_rule(0, rule_1_3_uid).rule_num_numeric}, expected {7 * RULE_NUM_NUMERIC_STEPS / 8}")
 
-        self.assertTrue(self._get_rule(0, rule_1_6_uid).rule_num_numeric == 5 * rule_num_numeric_steps / 2, f"Rule 1.6 rule_num_numeric: {self._get_rule(0, rule_1_6_uid).rule_num_numeric}, expected {5 * rule_num_numeric_steps / 2}")
-        self.assertTrue(self._get_rule(0, rule_1_7_uid).rule_num_numeric == 11 * rule_num_numeric_steps / 4, f"Rule 1.7 rule_num_numeric: {self._get_rule(0, rule_1_7_uid).rule_num_numeric}, expected {11 * rule_num_numeric_steps / 4}")
-        self.assertTrue(self._get_rule(0, rule_1_8_uid).rule_num_numeric == 23 * rule_num_numeric_steps / 8, f"Rule 1.8 rule_num_numeric: {self._get_rule(0, rule_1_8_uid).rule_num_numeric}, expected {23 * rule_num_numeric_steps / 8}")
+        self.assertTrue(self._get_rule(0, rule_1_6_uid).rule_num_numeric == 5 * RULE_NUM_NUMERIC_STEPS / 2, f"Rule 1.6 rule_num_numeric: {self._get_rule(0, rule_1_6_uid).rule_num_numeric}, expected {5 * RULE_NUM_NUMERIC_STEPS / 2}")
+        self.assertTrue(self._get_rule(0, rule_1_7_uid).rule_num_numeric == 11 * RULE_NUM_NUMERIC_STEPS / 4, f"Rule 1.7 rule_num_numeric: {self._get_rule(0, rule_1_7_uid).rule_num_numeric}, expected {11 * RULE_NUM_NUMERIC_STEPS / 4}")
+        self.assertTrue(self._get_rule(0, rule_1_8_uid).rule_num_numeric == 23 * RULE_NUM_NUMERIC_STEPS / 8, f"Rule 1.8 rule_num_numeric: {self._get_rule(0, rule_1_8_uid).rule_num_numeric}, expected {23 * RULE_NUM_NUMERIC_STEPS / 8}")
 
-        self.assertTrue(self._get_rule(0, rule_1_17_uid).rule_num_numeric == 11 * rule_num_numeric_steps, f"Rule 1.17 rule_num_numeric: {self._get_rule(0, rule_1_17_uid).rule_num_numeric}, expected {11 * rule_num_numeric_steps}")
-        self.assertTrue(self._get_rule(0, rule_1_18_uid).rule_num_numeric == 12 * rule_num_numeric_steps, f"Rule 1.18 rule_num_numeric: {self._get_rule(0, rule_1_18_uid).rule_num_numeric}, expected {12 * rule_num_numeric_steps}")
-        self.assertTrue(self._get_rule(0, rule_1_19_uid).rule_num_numeric == 13 * rule_num_numeric_steps, f"Rule 1.19 rule_num_numeric: {self._get_rule(0, rule_1_19_uid).rule_num_numeric}, expected {13 * rule_num_numeric_steps}")
+        self.assertTrue(self._get_rule(0, rule_1_17_uid).rule_num_numeric == 11 * RULE_NUM_NUMERIC_STEPS, f"Rule 1.17 rule_num_numeric: {self._get_rule(0, rule_1_17_uid).rule_num_numeric}, expected {11 * RULE_NUM_NUMERIC_STEPS}")
+        self.assertTrue(self._get_rule(0, rule_1_18_uid).rule_num_numeric == 12 * RULE_NUM_NUMERIC_STEPS, f"Rule 1.18 rule_num_numeric: {self._get_rule(0, rule_1_18_uid).rule_num_numeric}, expected {12 * RULE_NUM_NUMERIC_STEPS}")
+        self.assertTrue(self._get_rule(0, rule_1_19_uid).rule_num_numeric == 13 * RULE_NUM_NUMERIC_STEPS, f"Rule 1.19 rule_num_numeric: {self._get_rule(0, rule_1_19_uid).rule_num_numeric}, expected {13 * RULE_NUM_NUMERIC_STEPS}")
 
    
     def test_initialize_on_move_across_rulebases(self):
@@ -181,7 +181,7 @@ class TestFwConfigImportRuleOrder(unittest.TestCase):
 
         # Assert
 
-        self.assertTrue(self._get_rule(1, deleted_rule.rule_uid).rule_num_numeric == rule_num_numeric_steps / 2, f"Moved rule_num_numeric is {self._normalized_config.rulebases[1].rules[deleted_rule.rule_uid].rule_num_numeric}, expected {rule_num_numeric_steps / 2}")
+        self.assertTrue(self._get_rule(1, deleted_rule.rule_uid).rule_num_numeric == RULE_NUM_NUMERIC_STEPS / 2, f"Moved rule_num_numeric is {self._normalized_config.rulebases[1].rules[deleted_rule.rule_uid].rule_num_numeric}, expected {RULE_NUM_NUMERIC_STEPS / 2}")
 
 
     def test_update_rulebase_diffs_on_moves_to_beginning_middle_and_end_of_rulebase(self):
@@ -201,9 +201,9 @@ class TestFwConfigImportRuleOrder(unittest.TestCase):
 
         # Assert
 
-        self.assertTrue(self._get_rule(0, beginning_rule_uid).rule_num_numeric == rule_num_numeric_steps / 2, f"Beginning moved rule_num_numeric is {self._normalized_config.rulebases[0].rules[beginning_rule_uid].rule_num_numeric}, expected {rule_num_numeric_steps / 2}")
+        self.assertTrue(self._get_rule(0, beginning_rule_uid).rule_num_numeric == RULE_NUM_NUMERIC_STEPS / 2, f"Beginning moved rule_num_numeric is {self._normalized_config.rulebases[0].rules[beginning_rule_uid].rule_num_numeric}, expected {RULE_NUM_NUMERIC_STEPS / 2}")
         self.assertTrue(self._get_rule(0, middle_rule_uid).rule_num_numeric == 4608, f"Middle moved rule_num_numeric is {self._normalized_config.rulebases[0].rules[middle_rule_uid].rule_num_numeric}, expected 4608")
-        self.assertTrue(self._get_rule(0, end_rule_uid).rule_num_numeric == 11 * rule_num_numeric_steps, f"End moved rule_num_numeric is {self._normalized_config.rulebases[0].rules[end_rule_uid].rule_num_numeric}, expected {11 * rule_num_numeric_steps}")
+        self.assertTrue(self._get_rule(0, end_rule_uid).rule_num_numeric == 11 * RULE_NUM_NUMERIC_STEPS, f"End moved rule_num_numeric is {self._normalized_config.rulebases[0].rules[end_rule_uid].rule_num_numeric}, expected {11 * RULE_NUM_NUMERIC_STEPS}")
 
 
     def _get_rule(self, rulebase_index: int, rule_uid: str) -> RuleNormalized:

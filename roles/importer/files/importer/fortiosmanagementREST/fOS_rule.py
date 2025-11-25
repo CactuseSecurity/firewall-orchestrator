@@ -1,7 +1,7 @@
 import copy
 from typing import Any
 import jsonpickle # type: ignore
-from fwo_const import list_delimiter, nat_postfix, dummy_ip
+from fwo_const import LIST_DELIMITER, NAT_POSTFIX, DUMMY_IP
 from fwo_base import extend_string_list
 from fOS_service import create_svc_object
 from fOS_network import create_network_object, get_first_ip_of_destination
@@ -122,9 +122,9 @@ def append_ipv6(rule: dict[str, Any], rule_orig: dict[str, Any]):
     rule_src_v6 = [d['name'] for d in rule_orig.get('srcaddr6', [])]
     rule_dst_v6 = [d['name'] for d in rule_orig.get('dstaddr6', [])]
     if rule_src_v6:
-        rule['rule_src'] = list_delimiter.join(rule['rule_src'].split(list_delimiter) + rule_src_v6)
+        rule['rule_src'] = LIST_DELIMITER.join(rule['rule_src'].split(LIST_DELIMITER) + rule_src_v6)
     if rule_dst_v6:
-        rule['rule_dst'] = list_delimiter.join(rule['rule_dst'].split(list_delimiter) + rule_dst_v6)
+        rule['rule_dst'] = LIST_DELIMITER.join(rule['rule_dst'].split(LIST_DELIMITER) + rule_dst_v6)
 
 def enrich_rule_with_zones(rule: dict[str, Any], rule_orig: dict[str, Any], config2import: dict[str, Any], import_id: int):
     if rule_orig.get('srcintf'):
@@ -143,10 +143,10 @@ def enrich_rule_with_refs(rule: dict[str, Any], lookup_dict: dict[str, Any], jwt
     rule['rule_svc_refs'] = rule['rule_svc']  # For services, name == uid
 
 def join_names(entries: list[dict[str, Any]]) -> str:
-    return list_delimiter.join([d['name'] for d in entries])
+    return LIST_DELIMITER.join([d['name'] for d in entries])
 
 def join_refs(entry_str: str, lookup_dict: dict[str, Any], jwt: str | None = None) -> str:
-    return list_delimiter.join(resolve_objects(name, lookup_dict=lookup_dict, jwt=jwt) for name in entry_str.split(list_delimiter))
+    return LIST_DELIMITER.join(resolve_objects(name, lookup_dict=lookup_dict, jwt=jwt) for name in entry_str.split(LIST_DELIMITER))
 
 
 def set_service_field_internet_service(rule: dict[str, Any], config2import: dict[str, Any], import_id: int):
@@ -183,8 +183,8 @@ def normalize_nat_rules(full_config: dict[str, Any], config2import: dict[str, li
                     rule.update({ 'rule_action': 'Drop' })  # not used for nat rules
                     rule.update({ 'rule_track': 'None'}) # not used for nat rules
 
-                    rule['rule_src'] = extend_string_list(rule['rule_src'], rule_orig, 'orig-addr', list_delimiter)
-                    rule['rule_dst'] = extend_string_list(rule['rule_dst'], rule_orig, 'dst-addr', list_delimiter)
+                    rule['rule_src'] = extend_string_list(rule['rule_src'], rule_orig, 'orig-addr', LIST_DELIMITER)
+                    rule['rule_dst'] = extend_string_list(rule['rule_dst'], rule_orig, 'dst-addr', LIST_DELIMITER)
                     
                     if rule_orig['protocol']==17:
                         svc_name = 'udp_' + str(rule_orig['orig-port'])
@@ -211,9 +211,9 @@ def normalize_nat_rules(full_config: dict[str, Any], config2import: dict[str, li
                     rule.update({ 'rule_src_neg': False})
                     rule.update({ 'rule_dst_neg': False})
                     rule.update({ 'rule_svc_neg': False})
-                    rule.update({ 'rule_src_refs': resolve_raw_objects(rule['rule_src'], list_delimiter, full_config, 'name', 'uuid', rule_type=rule_table) }, #type: ignore #TYPING: ???? 
+                    rule.update({ 'rule_src_refs': resolve_raw_objects(rule['rule_src'], LIST_DELIMITER, full_config, 'name', 'uuid', rule_type=rule_table) }, #type: ignore #TYPING: ???? 
                         jwt=jwt, import_id=import_id, rule_uid=rule_orig['uuid'], object_type='network object')
-                    rule.update({ 'rule_dst_refs': resolve_raw_objects(rule['rule_dst'], list_delimiter, full_config, 'name', 'uuid', rule_type=rule_table) }, #type: ignore #TYPING: ????
+                    rule.update({ 'rule_dst_refs': resolve_raw_objects(rule['rule_dst'], LIST_DELIMITER, full_config, 'name', 'uuid', rule_type=rule_table) }, #type: ignore #TYPING: ????
                         jwt=jwt, import_id=import_id, rule_uid=rule_orig['uuid'], object_type='network object')
                     # services do not have uids, so using name instead
                     rule.update({ 'rule_svc_refs': rule['rule_svc'] })
@@ -233,7 +233,7 @@ def normalize_nat_rules(full_config: dict[str, Any], config2import: dict[str, li
                     ############## now adding the xlate rule part ##########################
                     xlate_rule = dict(rule) # copy the original (match) rule
                     xlate_rule.update({'rule_src': '', 'rule_dst': '', 'rule_svc': ''})
-                    xlate_rule['rule_src'] = extend_string_list(xlate_rule['rule_src'], rule_orig, 'orig-addr', list_delimiter)
+                    xlate_rule['rule_src'] = extend_string_list(xlate_rule['rule_src'], rule_orig, 'orig-addr', LIST_DELIMITER)
                     xlate_rule['rule_dst'] = 'Original'
                     
                     if rule_orig['protocol']==17:
@@ -247,8 +247,8 @@ def normalize_nat_rules(full_config: dict[str, Any], config2import: dict[str, li
                     config2import['service_objects'].append(create_svc_object(import_id=import_id, name=svc_name, proto=rule_orig['protocol'], port=rule_orig['nat-port'], comment='service created by FWO importer for NAT purposes'))
                     xlate_rule['rule_svc'] = svc_name
 
-                    xlate_rule.update({ 'rule_src_refs': resolve_objects(xlate_rule['rule_src'], list_delimiter, full_config, 'name', 'uuid', rule_type=rule_table, jwt=jwt, import_id=import_id ) })   #type: ignore #TYPING: ????
-                    xlate_rule.update({ 'rule_dst_refs': resolve_objects(xlate_rule['rule_dst'], list_delimiter, full_config, 'name', 'uuid', rule_type=rule_table, jwt=jwt, import_id=import_id ) })   #type: ignore #TYPING: ????
+                    xlate_rule.update({ 'rule_src_refs': resolve_objects(xlate_rule['rule_src'], LIST_DELIMITER, full_config, 'name', 'uuid', rule_type=rule_table, jwt=jwt, import_id=import_id ) })   #type: ignore #TYPING: ????
+                    xlate_rule.update({ 'rule_dst_refs': resolve_objects(xlate_rule['rule_dst'], LIST_DELIMITER, full_config, 'name', 'uuid', rule_type=rule_table, jwt=jwt, import_id=import_id ) })   #type: ignore #TYPING: ????
                     xlate_rule.update({ 'rule_svc_refs': xlate_rule['rule_svc'] })  # services do not have uids, so using name instead
 
                     xlate_rule.update({ 'rule_type': 'xlate' })
@@ -346,7 +346,7 @@ def handle_combined_nat_rule(rule: dict[str, Any], rule_orig: dict[str, Any], co
                     elif type(ipaddress.ip_address(str(destination_interface_ip))) is ipaddress.IPv4Address:
                         HideNatIp = str(destination_interface_ip) + '/32'
                     else:
-                        HideNatIp = dummy_ip
+                        HideNatIp = DUMMY_IP
                         FWOLogger.warning('found invalid HideNatIP ' + str(destination_interface_ip))
                     obj = create_network_object(import_id, obj_name, 'host', HideNatIp, obj_name, 'black', obj_comment, 'global')
                     if obj not in config2import['network_objects']:
@@ -377,7 +377,7 @@ def handle_combined_nat_rule(rule: dict[str, Any], rule_orig: dict[str, Any], co
     #     vip_nat_rule_number += 1
 
     # deal with vip natting: check for each (dst) nw obj if it contains "obj_nat_ip"
-    rule_dst_list = rule['rule_dst'].split(list_delimiter)
+    rule_dst_list = rule['rule_dst'].split(LIST_DELIMITER)
     nat_object_list = extract_nat_objects(rule_dst_list, config2import['network_objects'])
 
     if len(nat_object_list)>0:
@@ -387,16 +387,16 @@ def handle_combined_nat_rule(rule: dict[str, Any], rule_orig: dict[str, Any], co
         xlate_dst_refs: list[str] = []
         for nat_obj in nat_object_list:
             if 'obj_ip_end' in nat_obj: # this nat obj is a range - include the end ip in name and uid as well to avoid akey conflicts
-                xlate_dst.append(nat_obj['obj_nat_ip'] + '-' + nat_obj['obj_ip_end'] + nat_postfix)
+                xlate_dst.append(nat_obj['obj_nat_ip'] + '-' + nat_obj['obj_ip_end'] + NAT_POSTFIX)
                 nat_ref = nat_obj['obj_nat_ip']
                 if 'obj_nat_ip_end' in nat_obj:
-                    nat_ref += '-' + nat_obj['obj_nat_ip_end'] + nat_postfix
+                    nat_ref += '-' + nat_obj['obj_nat_ip_end'] + NAT_POSTFIX
                 xlate_dst_refs.append(nat_ref)
             else:
-                xlate_dst.append(nat_obj['obj_nat_ip'] + nat_postfix)
-                xlate_dst_refs.append(nat_obj['obj_nat_ip']  + nat_postfix)
-        xlate_rule['rule_dst'] = list_delimiter.join(xlate_dst)
-        xlate_rule['rule_dst_refs'] = list_delimiter.join(xlate_dst_refs)
+                xlate_dst.append(nat_obj['obj_nat_ip'] + NAT_POSTFIX)
+                xlate_dst_refs.append(nat_obj['obj_nat_ip']  + NAT_POSTFIX)
+        xlate_rule['rule_dst'] = LIST_DELIMITER.join(xlate_dst)
+        xlate_rule['rule_dst_refs'] = LIST_DELIMITER.join(xlate_dst_refs)
     # else: (no nat object found) no dnatting involved, dst stays "Original"
 
     return xlate_rule
@@ -455,12 +455,12 @@ def add_users_to_rule(rule_orig: dict[str, Any], rule: dict[str, Any]) -> None:
 def add_users(users: list[str], rule: dict[str, Any]) -> None:
     for user in users:
         rule_src_with_users: list[str] = []
-        for src in rule['rule_src'].split(list_delimiter):
+        for src in rule['rule_src'].split(LIST_DELIMITER):
             rule_src_with_users.append(user + '@' + src)
-        rule['rule_src'] = list_delimiter.join(rule_src_with_users)
+        rule['rule_src'] = LIST_DELIMITER.join(rule_src_with_users)
 
         # here user ref is the user name itself
         rule_src_refs_with_users: list[str] = []
-        for src in rule['rule_src_refs'].split(list_delimiter):
+        for src in rule['rule_src_refs'].split(LIST_DELIMITER):
             rule_src_refs_with_users.append(user + '@' + src)
-        rule['rule_src_refs'] = list_delimiter.join(rule_src_refs_with_users)
+        rule['rule_src_refs'] = LIST_DELIMITER.join(rule_src_refs_with_users)

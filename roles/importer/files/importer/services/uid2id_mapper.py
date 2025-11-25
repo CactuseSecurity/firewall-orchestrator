@@ -259,7 +259,7 @@ class Uid2IdMapper:
         Args:
             uids (list[str]): A list of UIDs to update the mapping for. If None, all UIDs for the Management will be fetched.
         """
-        query = FwoApi.get_graphql_code([fwo_const.graphql_query_path + "networkObject/getMapOfUid2Id.graphql"])
+        query = FwoApi.get_graphql_code([fwo_const.GRAPHQL_QUERY_PATH + "networkObject/getMapOfUid2Id.graphql"])
 
         if uids is not None:
             if len(uids) == 0:
@@ -288,7 +288,7 @@ class Uid2IdMapper:
         Args:
             uids (list[str]): A list of UIDs to update the mapping for. If None, all UIDs for the Management will be fetched.
         """
-        query = FwoApi.get_graphql_code([fwo_const.graphql_query_path + "networkService/getMapOfUid2Id.graphql"])
+        query = FwoApi.get_graphql_code([fwo_const.GRAPHQL_QUERY_PATH + "networkService/getMapOfUid2Id.graphql"])
         if uids is not None:
             if len(uids) == 0:
                 self.log_debug("Service object mapping updated for 0 objects")
@@ -316,7 +316,7 @@ class Uid2IdMapper:
         Args:
             uids (list[str]): A list of UIDs to update the mapping for. If None, all UIDs for the Management will be fetched.
         """
-        query = FwoApi.get_graphql_code([fwo_const.graphql_query_path + "user/getMapOfUid2Id.graphql"])
+        query = FwoApi.get_graphql_code([fwo_const.GRAPHQL_QUERY_PATH + "user/getMapOfUid2Id.graphql"])
         if uids is not None:
             if len(uids) == 0:
                 self.log_debug("User mapping updated for 0 objects")
@@ -344,7 +344,7 @@ class Uid2IdMapper:
         Args:
             names (list[str]): A list of zone names to update the mapping for. If None, all zones for the Management will be fetched.
         """
-        query = FwoApi.get_graphql_code([fwo_const.graphql_query_path + "zone/getMapOfName2Id.graphql"])
+        query = FwoApi.get_graphql_code([fwo_const.GRAPHQL_QUERY_PATH + "zone/getMapOfName2Id.graphql"])
         if names is not None:
             if len(names) == 0:
                 self.log_debug("Zone mapping updated for 0 objects")
@@ -372,7 +372,7 @@ class Uid2IdMapper:
         Args:
             uids (list[str]): A list of UIDs to update the mapping for. If None, all UIDs for the Management will be fetched.
         """
-        query = FwoApi.get_graphql_code([fwo_const.graphql_query_path + "rule/getMapOfUid2Id.graphql"])
+        query = FwoApi.get_graphql_code([fwo_const.GRAPHQL_QUERY_PATH + "rule/getMapOfUid2Id.graphql"])
         if uids is not None:
             if len(uids) == 0:
                 self.log_debug("Rule mapping updated for 0 objects")

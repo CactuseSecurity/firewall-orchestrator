@@ -1,6 +1,6 @@
 from asyncio.log import logger
 from fwo_log import FWOLogger
-from fwo_const import list_delimiter
+from fwo_const import LIST_DELIMITER
 import ipaddress
 
 
@@ -15,7 +15,7 @@ def normalize_nwobjects(full_config, config2import, import_id, jwt=None, mgm_id=
                 collect_tag_information(nw_tagged_groups, "#"+t, obj_orig['@name'])
 
     for tag in nw_tagged_groups:
-        FWOLogger.info("handling nw_tagged_group: " + tag + " with members: " + list_delimiter.join(nw_tagged_groups[tag]))
+        FWOLogger.info("handling nw_tagged_group: " + tag + " with members: " + LIST_DELIMITER.join(nw_tagged_groups[tag]))
         obj = {}
         obj["obj_name"] = tag
         obj["obj_uid"] = tag
@@ -23,8 +23,8 @@ def normalize_nwobjects(full_config, config2import, import_id, jwt=None, mgm_id=
         obj['control_id'] = import_id
         obj['obj_typ'] = 'group'
         members = nw_tagged_groups[tag] # parse_dynamic_object_group(obj_grp_orig, nw_tagged_groups)
-        obj['obj_members'] = list_delimiter.join(members)
-        obj['obj_member_refs'] = list_delimiter.join(members)
+        obj['obj_members'] = LIST_DELIMITER.join(members)
+        obj['obj_member_refs'] = LIST_DELIMITER.join(members)
         nw_objects.append(obj)
 
     for obj_grp_orig in full_config["/Objects/AddressGroups"]:
@@ -35,8 +35,8 @@ def normalize_nwobjects(full_config, config2import, import_id, jwt=None, mgm_id=
             obj_grp["obj_member_refs"], obj_grp["obj_member_names"] = parse_static_obj_group(obj_grp_orig, import_id, nw_objects, config2import)
         if 'dynamic' in obj_grp_orig and 'filter' in obj_grp_orig['dynamic']:
             members = parse_dynamic_object_group(obj_grp_orig, nw_tagged_groups)
-            obj_grp["obj_member_refs"] = list_delimiter.join(members)
-            obj_grp["obj_member_names"] = list_delimiter.join(members)
+            obj_grp["obj_member_refs"] = LIST_DELIMITER.join(members)
+            obj_grp["obj_member_names"] = LIST_DELIMITER.join(members)
         nw_objects.append(obj_grp)
         if 'tag' in obj_grp_orig and 'member' in obj_grp_orig['tag']:
             FWOLogger.info("found network group with tags: " + obj_grp_orig['@name'])
@@ -96,7 +96,7 @@ def parse_static_obj_group(orig_grp, import_id, nw_objects, config2import, id = 
         for m in orig_grp['static']['member']:
             names.append(m)
             refs.append(m)
-    return list_delimiter.join(refs), list_delimiter.join(names)
+    return LIST_DELIMITER.join(refs), LIST_DELIMITER.join(names)
 
 
 def parse_obj_list(nw_obj_list, import_id, obj_list, id, type='network'):
@@ -105,7 +105,7 @@ def parse_obj_list(nw_obj_list, import_id, obj_list, id, type='network'):
     for obj_name in nw_obj_list:
         names.append(obj_name)
         refs.append(lookup_obj_uid(obj_name, obj_list, import_id, type=type))
-    return list_delimiter.join(refs), list_delimiter.join(names)
+    return LIST_DELIMITER.join(refs), LIST_DELIMITER.join(names)
 
 
 def lookup_obj_uid(obj_name, obj_list, import_id, type='network'):
@@ -164,7 +164,7 @@ def add_ip_obj(ip_list, obj_list, import_id):
         obj_list.append(ip_obj)
         refs.append(ip_obj['obj_uid'])
         names.append(ip_obj['obj_name'])
-    return list_delimiter.join(refs), list_delimiter.join(names)
+    return LIST_DELIMITER.join(refs), LIST_DELIMITER.join(names)
 
 
 def collect_tag_information(tagged_groups, tag, obj_name):

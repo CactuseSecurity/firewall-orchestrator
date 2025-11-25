@@ -4,15 +4,15 @@ import sys
 import time
 from socket import gethostname
 
-from fwo_const import importer_base_dir
+from fwo_const import IMPORTER_BASE_DIR
 from pathlib import Path
 
-from fwo_const import importer_base_dir
+from fwo_const import IMPORTER_BASE_DIR
 from fwo_log import FWOLogger
-if importer_base_dir not in sys.path:
-    sys.path.append(importer_base_dir) # adding absolute path here once
+if IMPORTER_BASE_DIR not in sys.path:
+    sys.path.append(IMPORTER_BASE_DIR) # adding absolute path here once
 from fwo_api_call import FwoApiCall
-from fwo_const import fw_module_name, import_tmp_path
+from fwo_const import FW_MODULE_NAME, IMPORT_TMP_PATH
 import fwo_globals
 from fwo_base import write_native_config_to_file
 from fwo_exceptions import ShutdownRequested, FwoImporterError, FwLoginFailed, ImportRecursionLimitReached, FwoApiWriteError, FwoImporterErrorInconsistencies, ImportInterruption
@@ -106,10 +106,10 @@ def _import_management(mgm_id: int, ssl_verification: bool, file: str | None,
         import_state.responsible_for_importing = False
         return
     
-    Path(import_tmp_path).mkdir(parents=True, exist_ok=True)  # make sure tmp path exists
+    Path(IMPORT_TMP_PATH).mkdir(parents=True, exist_ok=True)  # make sure tmp path exists
     gateways = ManagementController.buildGatewayList(import_state.MgmDetails)
 
-    import_state.ImportId = import_state.api_call.set_import_lock(import_state.MgmDetails, import_state.IsFullImport, import_state.IsInitialImport, fwo_globals.debug_level)
+    import_state.ImportId = import_state.api_call.set_import_lock(import_state.MgmDetails, import_state.IsFullImport, import_state.IsInitialImport)
     FWOLogger.info(f"starting import of management {import_state.MgmDetails.Name} ({str(mgm_id)}), import_id={str(import_state.ImportId)}")
 
     if clear_management_data:
@@ -194,9 +194,9 @@ def import_from_file(import_state: ImportStateController, file_name: str = "") -
 def get_config_from_api(import_state: ImportStateController, config_in: FwConfigManagerListController) -> tuple[bool, FwConfigManagerListController]:
     try: # pick product-specific importer:
         pkg_name = get_module_package_name(import_state)
-        if f"{importer_base_dir}/{pkg_name}" not in sys.path:
-            sys.path.append(f"{importer_base_dir}/{pkg_name}")
-        fw_module = importlib.import_module("." + fw_module_name, pkg_name)
+        if f"{IMPORTER_BASE_DIR}/{pkg_name}" not in sys.path:
+            sys.path.append(f"{IMPORTER_BASE_DIR}/{pkg_name}")
+        fw_module = importlib.import_module("." + FW_MODULE_NAME, pkg_name)
     except Exception:
         FWOLogger.exception("import_management - error while loading product specific fwcommon module", traceback.format_exc())        
         raise

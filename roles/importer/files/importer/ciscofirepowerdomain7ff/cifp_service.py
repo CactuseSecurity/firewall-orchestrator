@@ -1,6 +1,6 @@
 import random
 from typing import Any
-from fwo_const import list_delimiter
+from fwo_const import LIST_DELIMITER
 
 
 def normalize_svcobjects(full_config: dict[str, Any], config2import: dict[str, Any], import_id: str) -> None:
@@ -83,5 +83,5 @@ def parse_svc_group(orig_svc_grp: dict[str, Any], import_id: str, svc_objects: l
         for svc_orig in orig_svc_grp["objects"]:
             refs.append(svc_orig["id"])
             names.append(svc_orig["name"])
-    return list_delimiter.join(refs), list_delimiter.join(names)
+    return LIST_DELIMITER.join(refs), LIST_DELIMITER.join(names)
  

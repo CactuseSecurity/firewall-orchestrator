@@ -6,7 +6,7 @@ from models.management import Management
 from fwo_exceptions import FwLoginFailed
 from models.gateway import Gateway
 from fwconfig_base import replace_none_with_empty
-from fwo_const import graphql_query_path
+from fwo_const import GRAPHQL_QUERY_PATH
 from fwo_api import FwoApi
 from fwo_encrypt import decrypt, read_main_key
 from fwo_exceptions import SecretDecryptionFailed, FwoApiFailure
@@ -179,11 +179,11 @@ class ManagementController(Management):
 
     def get_mgm_details(self, api_conn: FwoApi, mgm_id: int) -> dict[str, Any]:
         getMgmDetailsQuery = FwoApi.get_graphql_code([
-                    graphql_query_path + "device/getSingleManagementDetails.graphql",
-                    graphql_query_path + "device/fragments/managementDetails.graphql",
-                    graphql_query_path + "device/fragments/subManagements.graphql",
-                    graphql_query_path + "device/fragments/deviceTypeDetails.graphql",
-                    graphql_query_path + "device/fragments/importCredentials.graphql"])
+                    GRAPHQL_QUERY_PATH + "device/getSingleManagementDetails.graphql",
+                    GRAPHQL_QUERY_PATH + "device/fragments/managementDetails.graphql",
+                    GRAPHQL_QUERY_PATH + "device/fragments/subManagements.graphql",
+                    GRAPHQL_QUERY_PATH + "device/fragments/deviceTypeDetails.graphql",
+                    GRAPHQL_QUERY_PATH + "device/fragments/importCredentials.graphql"])
 
         api_call_result = api_conn.call(getMgmDetailsQuery, query_variables={'mgmId': mgm_id })
         if api_call_result is None or 'data' not in api_call_result or 'management' not in api_call_result['data'] or len(api_call_result['data']['management'])<1: #type: ignore #TODO: check if api_call_result can be None

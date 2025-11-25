@@ -81,9 +81,9 @@ class GroupFlatsMapper:
         members: set = {groupUid}
         if nwobj.obj_member_refs is None or nwobj.obj_member_refs == '':
             return members
-        for memberUid in nwobj.obj_member_refs.split(fwo_const.list_delimiter):
-            if fwo_const.user_delimiter in memberUid:
-                memberUid = memberUid.split(fwo_const.user_delimiter)[0]  # remove user delimiter if present
+        for memberUid in nwobj.obj_member_refs.split(fwo_const.LIST_DELIMITER):
+            if fwo_const.USER_DELIMITER in memberUid:
+                memberUid = memberUid.split(fwo_const.USER_DELIMITER)[0]  # remove user delimiter if present
             flatMembers = self.flat_nwobj_members_recursive(memberUid, recursionLevel + 1)
             if flatMembers is None:
                 continue
@@ -133,7 +133,7 @@ class GroupFlatsMapper:
         members: set = {groupUid}
         if svcobj.svc_member_refs is None or svcobj.svc_member_refs == '':
             return members
-        for memberUid in svcobj.svc_member_refs.split(fwo_const.list_delimiter):
+        for memberUid in svcobj.svc_member_refs.split(fwo_const.LIST_DELIMITER):
             flatMembers = self.flat_svcobj_members_recursive(memberUid, recursionLevel + 1)
             if flatMembers is None:
                 continue
@@ -185,7 +185,7 @@ class GroupFlatsMapper:
         members: set = {groupUid}
         if "user_member_refs" not in user or user['user_member_refs'] is None or user['user_member_refs'] == '':
             return members
-        for memberUid in user['user_member_refs'].split(fwo_const.list_delimiter): #TODO: adjust when/if users are refactored into objects
+        for memberUid in user['user_member_refs'].split(fwo_const.LIST_DELIMITER): #TODO: adjust when/if users are refactored into objects
             flatMembers = self.flat_user_members_recursive(memberUid, recursionLevel + 1)
             if flatMembers is None:
                 continue

@@ -1,4 +1,4 @@
-from fwo_const import list_delimiter
+from fwo_const import LIST_DELIMITER
 from fwo_log import FWOLogger
 
 
@@ -23,7 +23,7 @@ def parse_svc_group(orig_grp,config2import):
         for m in orig_grp['static']['member']:
             names.append(m)
             refs.append(m)
-    return list_delimiter.join(refs), list_delimiter.join(names)
+    return LIST_DELIMITER.join(refs), LIST_DELIMITER.join(names)
 
     
 def extract_base_svc_infos(svc_orig, import_id):
@@ -64,8 +64,8 @@ def parse_svc(svc_orig, import_id,config2import):
                     hlp_svc = create_helper_service(p, proto_string, svc["svc_name"], import_id)
                     add_service(hlp_svc, config2import)
                     members.append(hlp_svc['svc_uid'])
-                svc["svc_members"] = list_delimiter.join(members)                
-                svc["svc_member_refs"] = list_delimiter.join(members)                
+                svc["svc_members"] = LIST_DELIMITER.join(members)                
+                svc["svc_member_refs"] = LIST_DELIMITER.join(members)                
             else:   # just a single port (range)
                 extract_port_for_service(port_string, svc)
     return svc
@@ -108,7 +108,7 @@ def parse_svc_list(nw_obj_list, import_id, obj_list, id, type='network'):
     for obj_name in nw_obj_list:
         names.append(obj_name)
         refs.append(lookup_svc_obj_uid(obj_name, obj_list, import_id, type=type))
-    return list_delimiter.join(refs), list_delimiter.join(names)
+    return LIST_DELIMITER.join(refs), LIST_DELIMITER.join(names)
 
 
 def lookup_svc_obj_uid(obj_name, obj_list, import_id, type='network'):

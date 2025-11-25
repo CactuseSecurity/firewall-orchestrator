@@ -14,15 +14,15 @@ from model_controllers.management_controller import ManagementController, Device
 from common import import_management
 from fwo_log import FWOLogger
 import fwo_globals
-from fwo_const import base_dir, importer_base_dir
+from fwo_const import BASE_DIR, IMPORTER_BASE_DIR
 from fwo_exceptions import FwoApiLoginFailed, FwoApiFailedLockImport, FwLoginFailed
 from model_controllers.import_state_controller import ImportStateController
 from fwo_base import init_service_provider, register_global_state
 
 
-def get_fwo_jwt(importUser: str, importPwd: str, userManagementApi: str) -> str | None:
+def get_fwo_jwt(import_user: str, import_pwd: str, user_management_api: str) -> str | None:
     try:
-        jwt = FwoApi.login(importUser, importPwd, userManagementApi)
+        jwt = FwoApi.login(import_user, import_pwd, user_management_api)
         return jwt
     except FwoApiLoginFailed as e:
         FWOLogger.error(e.message)
@@ -40,22 +40,21 @@ def wait_with_shutdown_check(sleep_time: int):
         counter += 1
 
 
-
-def main_loop(debugLevel: int, verifyCertificates: bool | None = None, suppressCertificateWarnings: bool | None = None, clear: bool = False, force: bool = False, isFullImport: bool = False):
-    FWOLogger(debugLevel)
+def main_loop(debug_level: int, verify_certificates: bool | None = None, suppress_certificate_warnings: bool | None = None, clear: bool = False, force: bool = False, is_full_import: bool = False):
+    FWOLogger(debug_level)
     service_provider = init_service_provider()
     fwo_config = service_provider.get_fwo_config()
     fwo_api_base_url = fwo_config['fwo_api_base_url']
     fwo_major_version = fwo_config['fwo_major_version']
     user_management_api_base_url = fwo_config['user_management_api_base_url']
-    fwo_globals.set_global_values(verifyCertificates, suppressCertificateWarnings)
-    if suppressCertificateWarnings: urllib3.disable_warnings()
+    fwo_globals.set_global_values(verify_certificates, suppress_certificate_warnings)
+    if suppress_certificate_warnings: urllib3.disable_warnings()
 
     FWOLogger.info("importer-main-loop starting ...")
-    if importer_base_dir not in sys.path:
-        sys.path.append(importer_base_dir)
+    if IMPORTER_BASE_DIR not in sys.path:
+        sys.path.append(IMPORTER_BASE_DIR)
     importer_user_name = 'importer'  # todo: move to config file?
-    importer_pwd_file = base_dir + '/etc/secrets/importer_pwd'
+    importer_pwd_file = BASE_DIR + '/etc/secrets/importer_pwd'
 
     # setting defaults (only as fallback if config defaults cannot be fetched via API):
     api_fetch_limit: int = 150
@@ -80,9 +79,9 @@ def main_loop(debugLevel: int, verifyCertificates: bool | None = None, suppressC
         fwo_api_call = FwoApiCall(fwo_api)
         
         urllib3.disable_warnings()  # suppress ssl warnings only
-        verifyCertificates = fwo_api_call.get_config_value(key='importCheckCertificates')=='True'
-        suppressCertificateWarnings = fwo_api_call.get_config_value(key='importSuppressCertificateWarnings')=='True'
-        if not suppressCertificateWarnings:
+        verify_certificates = fwo_api_call.get_config_value(key='importCheckCertificates')=='True'
+        suppress_certificate_warnings = fwo_api_call.get_config_value(key='importSuppressCertificateWarnings')=='True'
+        if not suppress_certificate_warnings:
             warnings.resetwarnings()
 
         try:
@@ -101,7 +100,7 @@ def main_loop(debugLevel: int, verifyCertificates: bool | None = None, suppressC
                 continue # for testing only, remove later
 
             wait_with_shutdown_check(0)
-            import_state = ImportStateController.initializeImport(mgm_id, jwt, suppressCertificateWarnings, verifyCertificates, force, fwo_major_version, clear, isFullImport)
+            import_state = ImportStateController.initializeImport(mgm_id, jwt, suppress_certificate_warnings, verify_certificates, force, fwo_major_version, clear, is_full_import)
             
             register_global_state(import_state)
 
@@ -122,7 +121,7 @@ def main_loop(debugLevel: int, verifyCertificates: bool | None = None, suppressC
             FWOLogger.debug(f"import-main-loop: starting import of mgm_id={mgm_id}")
 
             try:
-                import_management(mgm_id, fwo_api_call, verifyCertificates, api_fetch_limit, clear, suppressCertificateWarnings)
+                import_management(mgm_id, fwo_api_call, verify_certificates, api_fetch_limit, clear, suppress_certificate_warnings)
             except (FwoApiFailedLockImport, FwLoginFailed):
                 FWOLogger.info(f"import-main-loop - minor error while importing mgm_id={mgm_id}, {str(traceback.format_exc())}") 
                 continue # minor errors for a single mgm, go to next one
@@ -153,9 +152,9 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     main_loop(
-        debugLevel=int(args.debug),
-        verifyCertificates=args.verify_certificates, 
-        suppressCertificateWarnings=args.suppress_certificate_warnings,
+        debug_level=int(args.debug),
+        verify_certificates=args.verify_certificates, 
+        suppress_certificate_warnings=args.suppress_certificate_warnings,
         clear=args.clear,
         force=args.force
     )

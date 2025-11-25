@@ -190,7 +190,7 @@ class FwConfigImport():
     # cleanup configs which do not need to be retained according to data retention time
     def deleteOldImports(self) -> None:
         mgmId = int(self.import_state.MgmDetails.Id)
-        delete_mutation = FwoApi.get_graphql_code([fwo_const.graphql_query_path + "import/deleteOldImports.graphql"])
+        delete_mutation = FwoApi.get_graphql_code([fwo_const.GRAPHQL_QUERY_PATH + "import/deleteOldImports.graphql"])
 
         try:
             deleteResult = self.import_state.api_call.call(delete_mutation, query_variables={"mgmId": mgmId, "is_full_import": self.import_state.IsFullImport })
@@ -229,7 +229,7 @@ class FwConfigImport():
             errorsFound = self.deleteLatestConfigOfManagement()
             if errorsFound:
                 FWOLogger.warning(f"error while trying to delete latest config for mgm_id: {self.import_state.ImportId}")
-            insertMutation = FwoApi.get_graphql_code([fwo_const.graphql_query_path + "import/storeLatestConfig.graphql"])
+            insertMutation = FwoApi.get_graphql_code([fwo_const.GRAPHQL_QUERY_PATH + "import/storeLatestConfig.graphql"])
             try:
                 query_variables: dict[str, Any] = {
                     'mgmId': self.import_state.MgmDetails.CurrentMgmId,
@@ -258,7 +258,7 @@ class FwConfigImport():
 
         
     def deleteLatestConfigOfManagement(self) -> int:
-        deleteMutation = FwoApi.get_graphql_code([fwo_const.graphql_query_path + "import/deleteLatestConfigOfManagement.graphql"])
+        deleteMutation = FwoApi.get_graphql_code([fwo_const.GRAPHQL_QUERY_PATH + "import/deleteLatestConfigOfManagement.graphql"])
         try:
             query_variables = { 'mgmId': self.import_state.MgmDetails.CurrentMgmId }
             import_result = self.import_state.api_call.call(deleteMutation, query_variables=query_variables)
@@ -278,7 +278,7 @@ class FwConfigImport():
             return 1
 
     def get_latest_import_id(self) -> int|None:
-        query = FwoApi.get_graphql_code([fwo_const.graphql_query_path + "import/getLastSuccessImport.graphql"])
+        query = FwoApi.get_graphql_code([fwo_const.GRAPHQL_QUERY_PATH + "import/getLastSuccessImport.graphql"])
         query_variables = { 'mgmId': self.import_state.MgmDetails.Id }
         try:
             query_result = self.import_state.api_connection.call(query, query_variables=query_variables)
@@ -301,7 +301,7 @@ class FwConfigImport():
             FWOLogger.info(f"first import - no existing import was found for mgm id {mgm_id}") #TODO: change msg
             return prev_config
 
-        query = FwoApi.get_graphql_code([fwo_const.graphql_query_path + "import/getLatestConfig.graphql"])
+        query = FwoApi.get_graphql_code([fwo_const.GRAPHQL_QUERY_PATH + "import/getLatestConfig.graphql"])
         query_variables = { 'mgmId': mgm_id }
         try:
             query_result = self.import_state.api_connection.call(query, query_variables=query_variables)

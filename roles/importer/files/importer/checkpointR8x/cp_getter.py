@@ -619,7 +619,7 @@ def get_object_details_from_api(uid_missing_obj: str, sid: str='', apiurl: str='
                     "objects": [ {
                     'uid': obj['uid'], 'name': obj['name'], 'color': color,
                     'comments': 'any nw object checkpoint (hard coded)',
-                    'type': 'network', 'ipv4-address': fwo_const.any_ip_ipv4,
+                    'type': 'network', 'ipv4-address': fwo_const.ANY_IP_IPV4,
                     'domain': obj['domain']
                     } ] } ] }
             elif (obj['name'] == 'None'): # None service or network object
@@ -641,7 +641,7 @@ def get_object_details_from_api(uid_missing_obj: str, sid: str='', apiurl: str='
             return {"type": "hosts", "chunks": [ {
                 "objects": [ {
                 'uid': obj['uid'], 'name': obj['name'], 'color': color,
-                'comments': obj['comments'], 'type': 'host', 'ipv4-address': fwo_const.any_ip_ipv4,
+                'comments': obj['comments'], 'type': 'host', 'ipv4-address': fwo_const.ANY_IP_IPV4,
                 'domain': obj['domain']
                 } ] } ] }
         elif (obj['type'] in [ 'updatable-object', 'CpmiVoipSipDomain', 'CpmiVoipMgcpDomain', 'gsn_handover_group' ]):
@@ -655,7 +655,7 @@ def get_object_details_from_api(uid_missing_obj: str, sid: str='', apiurl: str='
             return {"type": "hosts", "chunks": [ {
                 "objects": [ {
                 'uid': obj['uid'], 'name': obj['name'], 'color': color,
-                'comments': obj['comments'], 'type': 'network', 'ipv4-address': fwo_const.any_ip_ipv4,
+                'comments': obj['comments'], 'type': 'network', 'ipv4-address': fwo_const.ANY_IP_IPV4,
                 'domain': obj['domain']
                 } ] } ] }
         elif (obj['type'] == 'access-role'):

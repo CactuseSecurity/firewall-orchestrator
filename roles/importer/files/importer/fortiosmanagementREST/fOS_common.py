@@ -2,14 +2,14 @@
 # from common import importer_base_dir
 # sys.path.append(importer_base_dir + '/fortiosmanagementREST')
 from fwo_log import FWOLogger
-from fwo_const import list_delimiter, fwo_config_filename
+from fwo_const import LIST_DELIMITER, FWO_CONFIG_FILENAME
 from fwo_config import read_config
 from fwo_api_call import setAlert, create_data_issue #type: ignore #TYPING: Importing a Class method
 
 
 # TODO: deal with objects with identical names (e.g. all ipv4 & all ipv6)
-def resolve_objects (obj_name_string_list: str, lookup_dict: dict[str, str]={}, delimiter: str=list_delimiter, jwt: str | None = None, import_id: int | None= None, mgm_id: int | None = None):
-    fwo_config = read_config(fwo_config_filename)
+def resolve_objects (obj_name_string_list: str, lookup_dict: dict[str, str]={}, delimiter: str=LIST_DELIMITER, jwt: str | None = None, import_id: int | None= None, mgm_id: int | None = None):
+    fwo_config = read_config(FWO_CONFIG_FILENAME)
 
     ref_list: list[str] = []
     objects_not_found: list[str] = []

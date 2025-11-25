@@ -1,6 +1,6 @@
 from typing import Any
 from netaddr import IPAddress
-from fwo_const import list_delimiter
+from fwo_const import LIST_DELIMITER
 import ipaddress
 
 
@@ -40,7 +40,7 @@ def parse_obj_group(orig_grp: dict[str, Any], import_id: str, nw_objects: list[d
                 names.append(new_obj['obj_name'])
                 refs.append(new_obj['obj_uid'])
                 nw_objects.append(new_obj)
-    return list_delimiter.join(refs), list_delimiter.join(names)
+    return LIST_DELIMITER.join(refs), LIST_DELIMITER.join(names)
 
 
 def parse_obj_list(ip_list: list[str], import_id: str, config: dict[str, Any], id: str | None = None) -> tuple[str, str]:
@@ -76,7 +76,7 @@ def parse_obj_list(ip_list: list[str], import_id: str, config: dict[str, Any], i
         config.append(ip_obj) # type: ignore # TODO: config is dict[str, Any], not list
         refs.append(ip_obj['obj_uid'])
         names.append(ip_obj['obj_name'])
-    return list_delimiter.join(refs), list_delimiter.join(names)
+    return LIST_DELIMITER.join(refs), LIST_DELIMITER.join(names)
 
 
 def parse_object(obj_orig: dict[str, Any], import_id: str, config2import: dict[str, Any], nw_objects: list[dict[str, Any]]) -> dict[str, Any]:

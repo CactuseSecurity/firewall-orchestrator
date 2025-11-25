@@ -118,7 +118,7 @@ def normalize_config(native_config: dict[str,Any]) -> FwConfigManagerListControl
     normalized_config_global = {}
 
     for native_conf in native_config['domains']:
-        normalized_config_adom = deepcopy(fwo_const.emptyNormalizedFwConfigJsonDict)
+        normalized_config_adom = deepcopy(fwo_const.EMPTY_NORMALIZED_FW_CONFIG_JSON_DICT)
         is_global_loop_iteration = False
 
         if native_conf['is-super-manager']:

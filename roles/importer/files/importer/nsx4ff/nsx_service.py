@@ -1,4 +1,4 @@
-from fwo_const import list_delimiter
+from fwo_const import LIST_DELIMITER
 from fwo_log import FWOLogger
 import os.path
 
@@ -24,7 +24,7 @@ def parse_svc_group(orig_grp,config2import):
         for m in orig_grp['static']['member']:
             names.append(m)
             refs.append(m)
-    return list_delimiter.join(refs), list_delimiter.join(names)
+    return LIST_DELIMITER.join(refs), LIST_DELIMITER.join(names)
 
     
 def extract_base_svc_infos(svc_orig, import_id):
@@ -118,7 +118,7 @@ def parse_svc_list(svc_list, import_id, obj_list, id, type='network'):
         names.append(obj_name_base)
         refs.append(obj_name)
         #refs.append(lookup_svc_obj_uid(obj_name_base, obj_list, import_id, type=type))
-    return list_delimiter.join(refs), list_delimiter.join(names)
+    return LIST_DELIMITER.join(refs), LIST_DELIMITER.join(names)
 
 
 def lookup_svc_obj_name(obj_name, obj_list, import_id, type='network'):

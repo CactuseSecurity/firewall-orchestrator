@@ -1,19 +1,20 @@
 #!/usr/bin/python3
 # revision history:
-__version__ = "2025-11-20-01"
+__version__ = "2025-11-25-01"
 
-# 2025-11-20-01, initial version
+# 2025-11-25-01, initial version
+# breaking change: /usr/local/fworch needs to be in the python path
+# just add "export PYTHONPATH="$PYTHONPATH:/usr/local/fworch/"" to /etc/environment
 
 # reads the main app data from multiple csv files contained in a git repo
 # users will reside in external ldap groups with standardized names
 # only the main responsible person per app is taken from the csv files
-# this does not use Tufin RLM any longer as a source
 # here app servers will only have ip addresses (no names)
 
 
 # dependencies: 
 #   a) package python3-git must be installed
-#   b) requires the following config items in /usr/local/orch/etc/secrets/customizingConfig.json (or given config file):
+#   b) requires the config items listed in the aprser help to be present in config file /usr/local/orch/etc/secrets/customizingConfig.json
 
 import traceback
 import json
@@ -24,10 +25,10 @@ from pathlib import Path
 import git  # apt install python3-git # or: pip install git
 import re
 import urllib3
-from ..fwo_custom_lib.app_data_models import Owner, Appip
-from ..fwo_custom_lib.read_app_data_csv import extract_app_data_from_csv, extract_ip_data_from_csv
-from ..fwo_custom_lib.basic_helpers import read_custom_config, get_logger
-from ..fwo_custom_lib.app_data_basics import transform_owner_dict_to_list, transform_app_list_to_dict
+from scripts.customizing.fwo_custom_lib.app_data_models import Owner, Appip
+from scripts.customizing.fwo_custom_lib.read_app_data_csv import extract_app_data_from_csv, extract_ip_data_from_csv
+from scripts.customizing.fwo_custom_lib.basic_helpers import read_custom_config, get_logger
+from scripts.customizing.fwo_custom_lib.app_data_basics import transform_owner_dict_to_list, transform_app_list_to_dict
 
 
 base_dir = "/usr/local/fworch/"

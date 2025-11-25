@@ -162,11 +162,11 @@ class ManagementController(Management):
             # check if gateway import is enabled
             if 'do_not_import' in dev and dev['do_not_import']:
                 continue
-            devs.append(Gateway(Name = dev['name'], Uid = f"{dev['name']}/{mgmDetails.calcManagerUidHash()}"))
+            devs.append(Gateway(Name = dev['name'], Uid = f"{dev['name']}/{mgmDetails.calc_manager_uid_hash()}"))
         return devs
 
 
-    def calcManagerUidHash(self):
+    def calc_manager_uid_hash(self):
         combination = f"""
             {replace_none_with_empty(self.Hostname)}
             {replace_none_with_empty(str(self.Port))}

@@ -102,7 +102,7 @@ class FwConfigImport():
         # Reset management
         configNormalized.addManager(
             manager=FwConfigManager(
-                ManagerUid=self.import_state.MgmDetails.calcManagerUidHash(),
+                ManagerUid=self.import_state.MgmDetails.calc_manager_uid_hash(),
                 ManagerName=self.import_state.MgmDetails.Name,
                 IsSuperManager=self.import_state.MgmDetails.IsSuperManager,
                 SubManagerIds=self.import_state.MgmDetails.SubManagerIds,
@@ -121,10 +121,10 @@ class FwConfigImport():
             #     FWOLogger.error(str(e))
             #     raise             
             # Reset submanagement
-            for subManagerId in self.import_state.MgmDetails.SubManagerIds:
+            for sub_manager_id in self.import_state.MgmDetails.SubManagerIds:
                 # Fetch sub management details
                 mgm_controller = ManagementController(
-                    mgm_id=int(subManagerId), uid='', devices=[],
+                    mgm_id=int(sub_manager_id), uid='', devices=[],
                     device_info=DeviceInfo(),
                     connection_info=ConnectionInfo(),
                     importer_hostname='',
@@ -132,11 +132,11 @@ class FwConfigImport():
                     manager_info=ManagerInfo(),
                     domain_info=DomainInfo()
                 )
-                mgm_details_raw = mgm_controller.get_mgm_details(fwo_api, subManagerId)
+                mgm_details_raw = mgm_controller.get_mgm_details(fwo_api, sub_manager_id)
                 mgm_details = ManagementController.from_json(mgm_details_raw)
                 configNormalized.addManager(
                     manager=FwConfigManager(
-                        ManagerUid=ManagementController.calcManagerUidHash(mgm_details_raw), #type: ignore # TODO: check: should be mgm_details
+                        ManagerUid=ManagementController.calc_manager_uid_hash(mgm_details_raw), #type: ignore # TODO: check: should be mgm_details
                         ManagerName=mgm_details.Name,
                         IsSuperManager=mgm_details.IsSuperManager,
                         SubManagerIds=mgm_details.SubManagerIds,
@@ -195,9 +195,9 @@ class FwConfigImport():
         try:
             deleteResult = self.import_state.api_call.call(delete_mutation, query_variables={"mgmId": mgmId, "is_full_import": self.import_state.IsFullImport })
             if deleteResult['data']['delete_import_control']['returning']['control_id']:
-                importsDeleted = len(deleteResult['data']['delete_import_control']['returning']['control_id'])
-                if importsDeleted>0:
-                    FWOLogger.info(f"deleted {str(importsDeleted)} imports which passed the retention time of {ImportStateController.DataRetentionDays} days")
+                imports_deleted = len(deleteResult['data']['delete_import_control']['returning']['control_id'])
+                if imports_deleted>0:
+                    FWOLogger.info(f"deleted {str(imports_deleted)} imports which passed the retention time of {ImportStateController.DataRetentionDays} days")
         except Exception:
             fwo_api = FwoApi(self.import_state.FwoConfig.FwoApiUri, self.import_state.Jwt)
             fwo_api_call = FwoApiCall(fwo_api)

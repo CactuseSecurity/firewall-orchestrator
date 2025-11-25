@@ -95,7 +95,7 @@ def get_config(full_config: dict[str, Any], importState: ImportStateController) 
 
     # put dicts into object of class FwConfigManager
     normalizedConfig = FwConfigNormalized()
-    manager = FwConfigManager(ManagerUid=importState.MgmDetails.calcManagerUidHash(), 
+    manager = FwConfigManager(ManagerUid=importState.MgmDetails.calc_manager_uid_hash(), 
                               IsSuperManager=False, 
                               SubManagerIds=[], 
                               Configs=[normalizedConfig],

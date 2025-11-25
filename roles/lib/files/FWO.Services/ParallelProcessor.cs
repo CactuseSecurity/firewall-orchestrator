@@ -13,7 +13,8 @@ namespace FWO.Services
             int elementsPerFetch,
             string query,
             Func<List<T>, Task<List<T>>>? postProcessAsync = null,
-            List<int>? managementIds = null
+            List<int>? managementIds = null,
+            long? importId = 0
 
         )
         {
@@ -26,7 +27,7 @@ namespace FWO.Services
             for (int offset = 0; offset < elementsCount; offset += elementsPerFetch)
             {
                 chunkNumber++;
-                var queryVariables = CreateQueryVariables(offset, elementsPerFetch, query, managementIds);
+                var queryVariables = CreateQueryVariables(offset, elementsPerFetch, query, managementIds, importId);
 
                 tasks.Add(FetchChunkAsync(query, queryVariables, semaphore, chunkNumber, postProcessAsync));
             }
@@ -62,18 +63,18 @@ namespace FWO.Services
                 }
             }
 
-        protected virtual Dictionary<string, object> CreateQueryVariables(int offset, int limit, string query, List<int>? relevantManagementIDs = null)
+        protected virtual Dictionary<string, object> CreateQueryVariables(int offset, int limit, string query, List<int>? relevantManagementIDs = null, long? importId = null)
         {
             Dictionary<string, object> queryVariables = new();
 
             if (query.Contains(QueryVar.ImportIdStart))
             {
-                queryVariables[QueryVar.ImportIdStart] = int.MaxValue;
+                queryVariables[QueryVar.ImportIdStart] = 0;
             }
 
             if (query.Contains(QueryVar.ImportIdEnd))
             {
-                queryVariables[QueryVar.ImportIdEnd] = int.MaxValue;
+                queryVariables[QueryVar.ImportIdEnd] = importId ?? int.MaxValue;
             }
 
             if (query.Contains(QueryVar.Offset))

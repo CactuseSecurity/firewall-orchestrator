@@ -88,19 +88,19 @@ namespace FWO.Compliance
         /// <summary>
         /// Collection that is suitable for parallel processing and receives and holds insert arguments for newly found violations.
         /// </summary>
-        private ConcurrentBag<ComplianceViolationBase> _violationsToAdd = new();
+        private readonly ConcurrentBag<ComplianceViolationBase> _violationsToAdd = new();
         /// <summary>
         /// Collection that is suitable for parallel processing and receives and holds remove arguments for deprecated violations.
         /// </summary>
-        private ConcurrentBag<ComplianceViolation> _violationsToRemove = new();
+        private readonly ConcurrentBag<ComplianceViolation> _violationsToRemove = new();
         /// <summary>
         /// Collection that is suitable for parallel processing and receives and holds violations as a result of the current check.
         /// </summary>
-        private ConcurrentBag<ComplianceViolation> _currentViolations = new();
+        private readonly ConcurrentBag<ComplianceViolation> _currentViolations = new();
         /// <summary>
         /// Multi-threading helper.
         /// </summary>
-        private ParallelProcessor _parallelProcessor;
+        private readonly ParallelProcessor _parallelProcessor;
 
         #endregion
 
@@ -259,7 +259,7 @@ namespace FWO.Compliance
 
             // Retrieve rules and check current compliance for every rule.
 
-            List<Rule>[]? chunks = await _parallelProcessor.SendParallelizedQueriesAsync<Rule>(rulesCount, _maxDegreeOfParallelism, _elementsPerFetch, RuleQueries.getRulesForSelectedManagements, CalculateCompliance, managementIds);
+            List<Rule>[]? chunks = await _parallelProcessor.SendParallelizedQueriesAsync<Rule>(rulesCount, _maxDegreeOfParallelism, _elementsPerFetch, RuleQueries.getRulesForSelectedManagements, CalculateCompliance, managementIds, maxImportId);
             
             if (chunks == null)
             {
@@ -270,13 +270,8 @@ namespace FWO.Compliance
             Logger.TryWriteInfo("Compliance Check", $"Attempted to load {chunks.Count()} chunks of rules.", LocalSettings.ComplianceCheckVerbose);
             
             List<Rule>? rules = chunks
-                .SelectMany(l => l)
+                .SelectMany(rule => rule)
                 .ToList();
-
-            if (rules == null)
-            {
-                rules = [];
-            }
 
             Logger.TryWriteInfo("Compliance Check", $"Loaded {rules.Count} rules.", LocalSettings.ComplianceCheckVerbose);
 
@@ -529,13 +524,10 @@ namespace FWO.Compliance
                     }
                 }
             }
-            else
+            else if (networkObject.IP != null)
             {
-                if (networkObject.IP != null)
-                {
-                    // CIDR notation or single (host) IP can be parsed directly
-                    ranges.Add(IPAddressRange.Parse(networkObject.IP));
-                }
+                // CIDR notation or single (host) IP can be parsed directly
+                ranges.Add(IPAddressRange.Parse(networkObject.IP));
             }
 
             return ranges;
@@ -601,16 +593,16 @@ namespace FWO.Compliance
 
             bool ruleIsCompliant = true;
 
-            List<(NetworkObject networkObject, List<ComplianceNetworkZone>? networkZones)> sourceZones = MapZonesToNetworkObjects(fromsTask.Result);
-            List<(NetworkObject networkObject, List<ComplianceNetworkZone>? networkZones)> destinationZones = MapZonesToNetworkObjects(tosTask.Result);
+            List<(NetworkObject networkObject, List<ComplianceNetworkZone> networkZones)> sourceZones = MapZonesToNetworkObjects(fromsTask.Result);
+            List<(NetworkObject networkObject, List<ComplianceNetworkZone> networkZones)> destinationZones = MapZonesToNetworkObjects(tosTask.Result);
 
-            foreach ((NetworkObject networkObject, List<ComplianceNetworkZone>? networkZones) sourceZone in sourceZones)
+            foreach ((NetworkObject networkObject, List<ComplianceNetworkZone> networkZones) sourceZone in sourceZones)
             {
-                foreach (ComplianceNetworkZone sourceNetworkZone in sourceZone.networkZones ?? [])
+                foreach (ComplianceNetworkZone sourceNetworkZone in sourceZone.networkZones)
                 {
-                    foreach ((NetworkObject networkObject, List<ComplianceNetworkZone>? networkZones) destinationZone in destinationZones)
+                    foreach ((NetworkObject networkObject, List<ComplianceNetworkZone> networkZones) destinationZone in destinationZones)
                     {
-                        foreach (ComplianceNetworkZone destinationNetworkZone in destinationZone.networkZones ?? [])
+                        foreach (ComplianceNetworkZone destinationNetworkZone in destinationZone.networkZones)
                         {
                             if (!sourceNetworkZone.CommunicationAllowedTo(destinationNetworkZone))
                             {
@@ -849,25 +841,21 @@ namespace FWO.Compliance
             return await Task.FromResult(rules);
         }
 
-        private List<(NetworkObject networkObject, List<ComplianceNetworkZone>? networkZones)> MapZonesToNetworkObjects(List<(NetworkObject networkObject, List<IPAddressRange> ipRanges)> inputData)
+        private List<(NetworkObject networkObject, List<ComplianceNetworkZone> networkZones)> MapZonesToNetworkObjects(List<(NetworkObject networkObject, List<IPAddressRange> ipRanges)> inputData)
         {
-            List<(NetworkObject networkObject, List<ComplianceNetworkZone>? networkZones)> map = [];
+            List<(NetworkObject networkObject, List<ComplianceNetworkZone> networkZones)> map = [];
 
             foreach ((NetworkObject networkObject, List<IPAddressRange> ipRanges) dataItem in inputData)
             {
-                List<ComplianceNetworkZone>? networkZones = null;
+                List<ComplianceNetworkZone> networkZones = [];
 
                 if (_autoCalculatedInternetZoneActive && _treatDomainAndDynamicObjectsAsInternet && (dataItem.networkObject.Type.Name == "dynamic_net_obj" || dataItem.networkObject.Type.Name == "domain"))
                 {
                     List<ComplianceNetworkZone> complianceNetworkZones = NetworkZones.Where(zone => zone.IsAutoCalculatedInternetZone).ToList();
 
-                    if (complianceNetworkZones.Count > 0)
+                    foreach (ComplianceNetworkZone zone in complianceNetworkZones)
                     {
-                        networkZones = [];
-                        foreach (ComplianceNetworkZone zone in complianceNetworkZones)
-                        {
-                            networkZones.Add(zone);
-                        }
+                        networkZones.Add(zone);
                     }
                 }
                 else if (dataItem.ipRanges.Count > 0)

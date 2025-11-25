@@ -196,7 +196,7 @@ def get_config_from_api(import_state: ImportStateController, config_in: FwConfig
         pkg_name = get_module_package_name(import_state)
         if f"{IMPORTER_BASE_DIR}/{pkg_name}" not in sys.path:
             sys.path.append(f"{IMPORTER_BASE_DIR}/{pkg_name}")
-        fw_module:  = importlib.import_module("." + FW_MODULE_NAME, pkg_name)
+        fw_module = importlib.import_module("." + FW_MODULE_NAME, pkg_name)
     except Exception:
         FWOLogger.exception("import_management - error while loading product specific fwcommon module", traceback.format_exc())        
         raise

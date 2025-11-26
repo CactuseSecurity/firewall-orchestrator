@@ -24,16 +24,16 @@ sample config file /usr/local/orch/etc/secrets/customizingConfig.json
 
 from asyncio.log import logger
 import traceback
-import requests.packages
+import urllib3
 import requests
 import json
 import sys
 import argparse
-import logging
 import os
 from pathlib import Path
 import git  # apt install python3-git # or: pip install git
 import csv
+from scripts.customizing.fwo_custom_lib.basic_helpers import read_custom_config, get_logger
 
 
 baseDir = "/usr/local/fworch/"
@@ -41,17 +41,6 @@ baseDirEtc = baseDir + "etc/"
 repoTargetDir = baseDirEtc + "cmdb-repo"
 defaultConfigFileName = baseDirEtc + "secrets/customizingConfig.json"
 importSourceString = "tufinRlm" # change this to "cmdb-csv-export"? or will this break anything?
-
-
-def readConfig(configFilename, keyToGet):
-    try:
-        with open(configFilename, "r") as customConfigFH:
-            customConfig = json.loads(customConfigFH.read())
-        return customConfig[keyToGet]
-
-    except Exception:
-        logger.error("could not read key '" + keyToGet + "' from config file " + configFilename + ", Exception: " + str(traceback.format_exc()))
-        sys.exit(1)
 
 
 def buildDN(userId, ldapPath):
@@ -62,28 +51,6 @@ def buildDN(userId, ldapPath):
         else:
             logger.error("could not find {USERID} parameter in ldapPath " + ldapPath)
     return dn
-
-
-def getLogger(debug_level_in=0):
-    debug_level=int(debug_level_in)
-    if debug_level>=1:
-        llevel = logging.DEBUG
-    else:
-        llevel = logging.INFO
-
-    logger = logging.getLogger('import-fworch-app-data')
-    logformat = "%(asctime)s [%(levelname)-5.5s] [%(filename)-10.10s:%(funcName)-10.10s:%(lineno)4d] %(message)s"
-    logging.basicConfig(format=logformat, datefmt="%Y-%m-%dT%H:%M:%S%z", level=llevel)
-    logger.setLevel(llevel)
-
-    #set log level for noisy requests/connectionpool module to WARNING:
-    connection_log = logging.getLogger("urllib3.connectionpool")
-    connection_log.setLevel(logging.WARNING)
-    connection_log.propagate = True
-
-    if debug_level>8:
-        logger.debug ("debug_level=" + str(debug_level) )
-    return logger
 
 
 # adds data from csv file to appData
@@ -105,15 +72,15 @@ def extractAppDataFromCsvFile(csvFile: str, appData: dict, containsIp: bool):
         appServerIpColumn = None
 
     appDataFromCsv = []
-    csvFile = repoTargetDir + '/' + csvFile # add directory to csv files
+    csvFileName = repoTargetDir + '/' + csvFile # add directory to csv files
 
     # read csv file:
     try:
-        with open(csvFile, newline='') as csvFile:
-            reader = csv.reader(csvFile)
+        with open(csvFileName, newline='') as csvFileHandle:
+            reader = csv.reader(csvFileHandle)
             appDataFromCsv += list(reader)[1:]# Skip headers in first line
     except Exception:
-        logger.error("error while trying to read csv file '" + csvFile + "', exception: " + str(traceback.format_exc()))
+        logger.error("error while trying to read csv file '" + csvFileName + "', exception: " + str(traceback.format_exc()))
         sys.exit(1)
 
     countSkips = 0
@@ -157,7 +124,7 @@ def extractAppDataFromCsvFile(csvFile: str, appData: dict, containsIp: bool):
         else:
             logger.info(f'ignoring line from csv file: {appId} - inconclusive appId')
             countSkips += 1
-    logger.info(f"{str(csvFile.name)}: #total lines {str(len(appDataFromCsv))}, skipped: {str(countSkips)}")
+    logger.info(f"{str(csvFileName)}: #total lines {str(len(appDataFromCsv))}, skipped: {str(countSkips)}")
 
 
 if __name__ == "__main__":
@@ -173,17 +140,17 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     if args.suppress_certificate_warnings:
-        requests.packages.urllib3.disable_warnings()
+        urllib3.disable_warnings()
 
-    logger = getLogger(debug_level_in=2)
+    logger = get_logger(debug_level_in=2)
 
     # read config
-    ldapPath = readConfig(args.config, 'ldapPath')
-    gitRepoUrl = readConfig(args.config, 'ipamGitRepo')
-    gitUsername = readConfig(args.config, 'ipamGitUser')
-    gitPassword = readConfig(args.config, 'gitpassword')
-    csvAllOwnerFiles = readConfig(args.config, 'csvAllOwnerFiles')
-    csvAppServerFiles = readConfig(args.config, 'csvAppServerFiles')
+    ldapPath = read_custom_config(args.config, 'ldapPath', logger=logger)
+    gitRepoUrl = read_custom_config(args.config, 'ipamGitRepo', logger=logger)
+    gitUsername = read_custom_config(args.config, 'ipamGitUser', logger=logger)
+    gitPassword = read_custom_config(args.config, 'gitpassword', logger=logger)
+    csvAllOwnerFiles = read_custom_config(args.config, 'csvAllOwnerFiles', logger=logger)
+    csvAppServerFiles = read_custom_config(args.config, 'csvAppServerFiles', logger=logger)
 
     #############################################
     # 1. get CSV files from github repo

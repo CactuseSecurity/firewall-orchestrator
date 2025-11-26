@@ -33,6 +33,7 @@ import socket
 from pathlib import Path
 import git  # apt install python3-git # or: pip install git
 import csv
+from scripts.customizing.fwo_custom_lib.basic_helpers import read_custom_config, get_logger
 
 
 baseDir = "/usr/local/fworch/"
@@ -74,16 +75,6 @@ class ApiServiceUnavailable(Exception):
             self.message = message
             super().__init__(self.message)
 
-
-def readConfig(configFilename, keyToGet):
-    try:
-        with open(configFilename, "r") as customConfigFH:
-            customConfig = json.loads(customConfigFH.read())
-        return customConfig[keyToGet]
-
-    except:
-        logger.error("could not read key '" + keyToGet + "' from config file " + configFilename + ", Exception: " + str(traceback.format_exc()))
-        sys.exit(1)
 
 # read owners from json file on disk which where imported from RLM
 def getExistingOwnerIds(ownersIn):
@@ -183,28 +174,6 @@ def extractSocketInfo(asset, services):
     return sockets
 
 
-def getLogger(debug_level_in=0):
-    debug_level=int(debug_level_in)
-    if debug_level>=1:
-        llevel = logging.DEBUG
-    else:
-        llevel = logging.INFO
-
-    logger = logging.getLogger('import-fworch-app-data')
-    logformat = "%(asctime)s [%(levelname)-5.5s] [%(filename)-10.10s:%(funcName)-10.10s:%(lineno)4d] %(message)s"
-    logging.basicConfig(format=logformat, datefmt="%Y-%m-%dT%H:%M:%S%z", level=llevel)
-    logger.setLevel(llevel)
-
-    #set log level for noisy requests/connectionpool module to WARNING:
-    connection_log = logging.getLogger("urllib3.connectionpool")
-    connection_log.setLevel(logging.WARNING)
-    connection_log.propagate = True
-
-    if debug_level>8:
-        logger.debug ("debug_level=" + str(debug_level) )
-    return logger
-
-
 def rlmLogin(user, password, api_url):
     payload = { "username": user, "password": password, "client_id": "securechange", "client_secret": "123", "grant_type": "password" }
 
@@ -266,18 +235,18 @@ if __name__ == "__main__":
     if args.suppress_certificate_warnings:
         urllib3.disable_warnings()
 
-    logger = getLogger(debug_level_in=2)
+    logger = get_logger(debug_level_in=2)
     rlmOwnerData = { "owners": [] }
     # read config
-    rlmUsername = readConfig(args.config, 'username')
-    rlmPassword = readConfig(args.config, 'password')
-    rlmApiUrl = readConfig(args.config, 'apiBaseUri')
-    ldapPath = readConfig(args.config, 'ldapPath')
-    gitRepoUrl = readConfig(args.config, 'ipamGitRepo')
-    gitUsername = readConfig(args.config, 'ipamGitUser')
-    gitPassword = readConfig(args.config, 'gitpassword')
-    rlmVersion = readConfig(args.config, 'rlmVersion')
-    csvFiles = readConfig(args.config, 'csvFiles')
+    rlmUsername = read_custom_config(args.config, 'username', logger=logger)
+    rlmPassword = read_custom_config(args.config, 'password', logger=logger)
+    rlmApiUrl = read_custom_config(args.config, 'apiBaseUri', logger=logger)
+    ldapPath = read_custom_config(args.config, 'ldapPath', logger=logger)
+    gitRepoUrl = read_custom_config(args.config, 'ipamGitRepo', logger=logger)
+    gitUsername = read_custom_config(args.config, 'ipamGitUser', logger=logger)
+    gitPassword = read_custom_config(args.config, 'gitpassword', logger=logger)
+    rlmVersion = read_custom_config(args.config, 'rlmVersion', logger=logger)
+    csvFiles = read_custom_config(args.config, 'csvFiles', logger=logger)
 
     ######################################################
     # 1. get all owners

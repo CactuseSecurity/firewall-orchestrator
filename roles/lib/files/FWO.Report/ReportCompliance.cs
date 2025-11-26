@@ -24,7 +24,7 @@ namespace FWO.Report
         public List<RuleViewData> RuleViewData = [];
         public List<ComplianceViolation> Violations { get; set; } = [];
         public bool ShowNonImpactRules { get; set; }
-        public List<Management> Managements  { get; set; }
+        public List<Management> Managements { get; set; } = [];
         protected virtual string InternalQuery => RuleQueries.getRulesWithCurrentViolationsByChunk;
         protected DebugConfig DebugConfig;
 
@@ -320,7 +320,7 @@ namespace FWO.Report
             }
         }
 
-        public async Task GetViewDataFromRules(List<Rule> rules)
+        public void GetViewDataFromRules(List<Rule> rules)
         {
             RuleViewData.Clear();
 

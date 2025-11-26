@@ -344,10 +344,14 @@ namespace FWO.Services.RuleTreeBuilder
 
         protected static bool CompareTreeItemPosition(ITreeItem<Rule> treeItem, List<int> list)
         {
-            var treeItemString = NormalizePosition(treeItem.GetPositionString());
-            var listString = NormalizePosition(list);
-            Logging.Log.WriteInfo("Comparing Position", $"Tree Item Position: {treeItemString} | Listing Position: {listString}");
-            return treeItemString == listString;
+            string treeItemString = NormalizePosition(treeItem.GetPositionString());
+            string listString = NormalizePosition(list);
+            bool comparisonResult = treeItemString == listString;
+            if (!comparisonResult)
+            {
+                Logging.Log.WriteDebug("Comparing Position", $"Tree Item Position: {treeItemString} | Listing Position: {listString}");
+            }
+            return comparisonResult;
         }
     }
 }

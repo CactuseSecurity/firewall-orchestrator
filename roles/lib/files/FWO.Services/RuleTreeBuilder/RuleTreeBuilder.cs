@@ -289,12 +289,7 @@ namespace FWO.Services.RuleTreeBuilder
         private List<int> UpdateNextPosition(List<int> nextPosition, RuleTreeItem? nextParent)
         {
             
-            if (nextParent?.GetPositionString() == OrderedLayerCount.ToString() && nextParent.Children.Count == 0) 
-            {
-                nextPosition.Add(0);
-            }
-
-            if (nextPosition.Count == 0)
+            if (nextParent!= null && nextParent.GetPositionString() == OrderedLayerCount.ToString() && nextParent.Children.Count == 0 || nextPosition.Count == 0) 
             {
                 nextPosition.Add(0);
             }

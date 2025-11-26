@@ -30,10 +30,11 @@ __version__ = "2025-11-20-01"
 # "2025-10-28-01" fixing wrong match string resulting in unneccessary attempt to create already existing roles, leading to false positive errors in statistics
 # "2025-11-20-01" rework
 
-csv_file_base_dir = "/usr/local/fworch/"
+fwo_base_dir = "/usr/local/fworch/"
+fwo_tmp_dir = fwo_base_dir + "tmp/iiq_request_missing_fwmgt_roles/"
 log_dir="/var/log/fworch/iiq_request_missing_fwmgt_roles"
-base_dir_etc = csv_file_base_dir + "etc/"
-cmdb_repo_target_dir = base_dir_etc + "cmdb-repo"
+base_dir_etc = fwo_base_dir + "etc/"
+cmdb_repo_target_dir = fwo_tmp_dir + "cmdb-repo"
 default_config_file_name = base_dir_etc + "customizingConfig.json"
 
 

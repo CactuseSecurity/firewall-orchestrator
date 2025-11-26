@@ -284,13 +284,13 @@ namespace FWO.Compliance
 
             // Create diffs and fill argument bags.
 
-            await PostProcessRulesAsync(rules);
+            PostProcessRulesAsync(rules);
 
 
             return rules;         
         }
 
-        public async Task PostProcessRulesAsync(List<Rule> ruleFromDb)
+        public void PostProcessRulesAsync(List<Rule> ruleFromDb)
         {
             CancellationToken ct = new();
 

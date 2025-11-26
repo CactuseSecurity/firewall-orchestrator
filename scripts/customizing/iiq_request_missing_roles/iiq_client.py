@@ -6,6 +6,8 @@ from scripts.customizing.fwo_custom_lib.basic_helpers import get_logger
 
 
 class IIQClient:
+
+
     def __init__(self, hostname, user, password, app_name, user_prefix, stage='', debug=0, logger=None):
         self.hostname = hostname
         self.user = user
@@ -20,6 +22,7 @@ class IIQClient:
         self.uri_path_end_roles = "/scim/v1/Roles"
         self._init_placeholders()
         self.request_body_template = self._build_request_body_template()
+
 
     def _init_placeholders(self):
         self.org_id_placeholder = "{orgid}"
@@ -49,7 +52,7 @@ class IIQClient:
         }
 
         request_body_template["objectModelList"].extend(
-        [
+            [
                 {
                     "objectType": self.role_workplace_type,
                     "afType": "rva",
@@ -85,13 +88,16 @@ class IIQClient:
             ]
         )
 
-        request_body_template["connectMapList"].extend([
+        request_body_template["connectMapList"].extend(
+            [
                 { "objectType": self.role_workplace_type, "objectIndex": 0, "connectIndex": 1 },
                 { "objectType": self.role_business_type, "objectIndex": 1, "connectIndex": 2 }
-            ])
+            ]
+        )
 
         request_body_template["connectMapList"].append( { "objectType": self.role_business_type, "objectIndex": 1, "connectName": "A_TUFIN_REQUEST", "tfApplicationName": self.app_name } )
         return request_body_template
+
 
     def send(self, body: dict|None=None, method='POST', url_path='', url_parameter='', debug=None):
         if body is None:
@@ -118,6 +124,7 @@ class IIQClient:
 
         return response
 
+
     def get_org_id(self, tiso, debug=None):
         debug_level = self.debug if debug is None else debug
         url_path = self.uri_path_start + self.stage + self.uri_path_end_users
@@ -135,6 +142,7 @@ class IIQClient:
             self.logger.warning(f"did not get an OrgId for TISO {tiso}, response code: {str(response.status_code)}")
 
         return org_id
+
 
     def request_group_creation(self, app_prefix, app_id, org_id, tiso, name, stats, debug=None, run_workflow=False):
         debug_level = self.debug if debug is None else debug
@@ -157,7 +165,7 @@ class IIQClient:
         if run_workflow:   # in test environment we do not want any real WF to start
             iiq_req_body_local['startWorkflow'] = True
             if debug_level>2:
-                self.logger.debug(f"run_workflow={str(run_workflow)}, actually stating workflow")
+                self.logger.debug(f"run_workflow={str(run_workflow)}, actually starting workflow")
         else:
             if debug_level>2:
                 self.logger.debug(f"run_workflow={str(run_workflow)}, only simulating")
@@ -172,6 +180,7 @@ class IIQClient:
             return
 
         self._write_group_creation_stats(response, app_text, stats, debug_level)
+
 
     def app_functions_exist_in_iiq(self, app_prefix, app_id, stats, debug=None):
         debug_level = self.debug if debug is None else debug
@@ -191,6 +200,7 @@ class IIQClient:
             self.logger.debug(f"found no existing roles for app {app_id}. Filter strings: {match_string1} and {match_string2}")
             
         return match_found
+
 
     def _check_for_app_pattern_in_iiq_roles(self, app_prefix, app_id, match_string, stats, debug):
         url_path = self.uri_path_start + self.stage + self.uri_path_end_roles
@@ -220,6 +230,7 @@ class IIQClient:
         self.update_stats(stats, "existing_technical_functions", result)
         return True
 
+
     def _write_group_creation_stats(self, response, app_text, stats, debug):
         if "Validierung der Auftragsdaten erfolgreich" in response.text:
             if "Workflow wurde nicht gestartet." in response.text:
@@ -238,6 +249,7 @@ class IIQClient:
             print ("full iiq response text: " + response.text)
         if debug>7:
             print(".", end="", flush=True)
+
 
     def update_stats(self, stats, fieldname, field_value):
         stats[fieldname].append(field_value)

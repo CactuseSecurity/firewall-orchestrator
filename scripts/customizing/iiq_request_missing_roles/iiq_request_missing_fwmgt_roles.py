@@ -30,7 +30,8 @@ __version__ = "2025-11-20-01"
 # "2025-10-28-01" fixing wrong match string resulting in unneccessary attempt to create already existing roles, leading to false positive errors in statistics
 # "2025-11-20-01" rework
 
-csv_file_base_dir = "/usr/local/fwo-iiq/"
+csv_file_base_dir = "/usr/local/fworch/"
+log_dir="/var/log/fworch/iiq_request_missing_fwmgt_roles"
 base_dir_etc = csv_file_base_dir + "etc/"
 cmdb_repo_target_dir = base_dir_etc + "cmdb-repo"
 default_config_file_name = base_dir_etc + "customizingConfig.json"
@@ -177,8 +178,7 @@ def init_statistics():
         stats.update({ field: [], f"{field}_count": 0 })
     return stats
 
-def write_stats_to_file(stats):
-    log_dir = f"{csv_file_base_dir}/log"
+def write_stats_to_file(stats, log_dir):
     os.makedirs(log_dir, exist_ok=True)
     # Get current date as YYYY-MM-DD
     date_str = datetime.now().strftime("%Y-%m-%d")
@@ -280,6 +280,6 @@ if __name__ == "__main__":
     if debug>0:
         print ("Stats: " + json.dumps(stats, indent=3))
     
-    write_stats_to_file(stats)
+    write_stats_to_file(stats, log_dir)
 
     sys.exit(0)

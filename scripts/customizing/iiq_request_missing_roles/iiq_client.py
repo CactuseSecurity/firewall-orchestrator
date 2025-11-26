@@ -109,9 +109,9 @@ class IIQClient:
             print('------------------------------------')
 
         if method=='POST':
-            response = requests.post(url, json=body, auth=(self.user, self.password), headers=headers, verify=False)
+            response = requests.post(url, json=body, auth=(self.user, self.password), headers=headers, verify=True)
         elif method=='GET':
-            response = requests.get(url, auth=(self.user, self.password), headers=headers, verify=False)
+            response = requests.get(url, auth=(self.user, self.password), headers=headers, verify=True)
         else:
             self.logger.error(f"unsupported method {method} in send")
             sys.exit(1)

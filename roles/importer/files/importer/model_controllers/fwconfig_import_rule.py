@@ -515,9 +515,8 @@ class FwConfigImportRule():
         if self.normalized_config is None:
             raise FwoImporterError("cannot add new refs: normalized_config is None")
         for rulebase in self.normalized_config.rulebases:
-            prev_rules = next((rb.rules for rb in prev_config.rulebases if rb.uid == rulebase.uid), None)
-            if prev_rules is None:
-                continue
+            prev_rules:  dict[str, RuleNormalized] = {}
+            prev_rules = next((rb.rules for rb in prev_config.rulebases if rb.uid == rulebase.uid), prev_rules)
             for rule in rulebase.rules.values():
                 uid = rule.rule_uid
                 if uid is None:

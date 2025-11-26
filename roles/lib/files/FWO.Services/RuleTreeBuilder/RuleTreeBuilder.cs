@@ -90,7 +90,7 @@ namespace FWO.Services.RuleTreeBuilder
 
                 // Update next position.
 
-                nextPosition = UpdateNextPosition(nextPosition, nextParent, lastPosition);
+                nextPosition = UpdateNextPosition(nextPosition, nextParent);
 
                 // Update order number.
 
@@ -286,9 +286,10 @@ namespace FWO.Services.RuleTreeBuilder
             return(nextPosition, nextParent, lastPosition);
         }
 
-        private List<int> UpdateNextPosition(List<int> nextPosition, RuleTreeItem? nextParent, List<int> lastPosition)
+        private List<int> UpdateNextPosition(List<int> nextPosition, RuleTreeItem? nextParent)
         {
-            if (nextParent?.GetPositionString() == OrderedLayerCount.ToString() && nextParent.Children.Count == 0)
+            
+            if (nextParent?.GetPositionString() == OrderedLayerCount.ToString() && nextParent.Children.Count == 0) 
             {
                 nextPosition.Add(0);
             }

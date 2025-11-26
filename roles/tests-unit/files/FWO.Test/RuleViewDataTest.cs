@@ -38,5 +38,24 @@ namespace FWO.Test
 
             Assert.That("Change123".Equals(result));
         }
+
+        [Test]
+        public void GetFromCustomField_Example_ReturnsCorrectValue()
+        {
+            RuleViewData rvd = new RuleViewData();
+            Rule rule = new Rule
+            {
+                CustomFields = "{'AdoIT': \"Infr-AdoIT:X\", 'Datum-Regelpruefung': 'dd.mm.yyyy'}"
+            };
+
+            string resultDatumRegelpruefung = rvd.GetFromCustomField(rule, ["field-2", "Datum-Regelpruefung"]);
+            string resultAdoItId = rvd.GetFromCustomField(rule, ["field-3", "AdoIT"]);
+
+            Assert.That("dd.mm.yyyy".Equals(resultDatumRegelpruefung));
+            Assert.That("Infr-AdoIT:X".Equals(resultAdoItId));
+        }
+
+        
+
     }
 }

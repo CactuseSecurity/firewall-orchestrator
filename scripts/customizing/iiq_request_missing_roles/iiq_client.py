@@ -32,7 +32,11 @@ class IIQClient:
         self.app_name_origin_placeholder = "{Anwendungsname laut Alfabet-ORIGIN}"
         self.app_name_placeholder = "{Anwendungsname laut Alfabet}"
         self.app_name_upper_placeholder = "{Anwendungsname laut Alfabet-UPPER}"
-        self.role_name_suffix_prefix = "fw_rulemgmt_"
+        self.app_id_placeholder = "{AppID}"
+        self.role_name_suffix_prefix = "fw_rulemgt_"
+        # this is not accepted by IIQ: self.role_name_suffix_prefix = "fw_rulemgmt_"
+        # response: Der AF-Name rva_02268_fw_rulemgmt_app_5014 ist für die Quelle FWO nicht erlaubt.","Workflow wurde nicht gestartet."],"status":"ERROR"
+
 
     def _build_request_body_template(self):
         request_body_template = {
@@ -76,7 +80,7 @@ class IIQClient:
                     "tfName": f"A_{self.app_name_upper_placeholder}_FW_RULEMGT",
                     "tfAnsprechpartnerName": self.boit_user_id_placeholder,
                     "tfKkz": "K",
-                    "tfAlfabetId": self.app_name_origin_placeholder
+                    "tfAlfabetId": self.app_id_placeholder
                 }
             ]
         )
@@ -89,7 +93,9 @@ class IIQClient:
         request_body_template["connectMapList"].append( { "objectType": self.role_business_type, "objectIndex": 1, "connectName": "A_TUFIN_REQUEST", "tfApplicationName": self.app_name } )
         return request_body_template
 
-    def send(self, body: str = '{}', method='POST', url_path='', url_parameter='', debug=None):
+    def send(self, body: dict|None=None, method='POST', url_path='', url_parameter='', debug=None):
+        if body is None:
+            body = {}
         headers = {'Content-Type': 'application/json'}
         url = "https://" + self.hostname + url_path + url_parameter
         debug_level = self.debug if debug is None else debug
@@ -144,6 +150,7 @@ class IIQClient:
                     object_model[key] = object_model[key].replace(self.boit_user_id_placeholder, tiso)
                     object_model[key] = object_model[key].replace(self.user_id_placeholder, self.user)
                     object_model[key] = object_model[key].replace(self.org_id_placeholder, org_id)
+                    object_model[key] = object_model[key].replace(self.app_id_placeholder, app_prefix + "-" + app_id)
 
         app_text = f"{app_prefix}_{app_id}"
 
@@ -155,7 +162,7 @@ class IIQClient:
             if debug_level>2:
                 self.logger.debug(f"run_workflow={str(run_workflow)}, only simulating")
 
-        response = self.send(body=json.dumps(iiq_req_body_local, ensure_ascii=False),
+        response = self.send(body=iiq_req_body_local,
             url_path= self.uri_path_start + self.stage + "/workflow/v1/ModellingGeneral/createRequest",
             debug=debug_level)
 

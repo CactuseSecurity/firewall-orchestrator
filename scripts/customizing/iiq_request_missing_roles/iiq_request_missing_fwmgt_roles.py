@@ -118,11 +118,13 @@ def get_git_repo(git_repo_url, git_username, git_password, repo_target_dir):
     else:
         git.Repo.clone_from(repo_url, repo_target_dir)
 
-def request_all_roles(owner_dict, tisos, tiso_orgids, iiq_client, stats, first, run_workflow):
+def request_all_roles(owner_dict, tisos, tiso_orgids, iiq_client, stats, first, run_workflow, debug=0):
     counter = 0
     # create new groups
     logger.info("creating new groups in iiq")
     for app_id_with_prefix in owner_dict:
+        if debug>5:
+            logger.info(f"checking app {app_id_with_prefix}")
         counter += 1
         tiso = tisos.get(app_id_with_prefix)
         org_id = tiso_orgids.get(tiso)
@@ -132,9 +134,15 @@ def request_all_roles(owner_dict, tisos, tiso_orgids, iiq_client, stats, first, 
 
         app_prefix, app_id = app_id_with_prefix.split("-")
         # get existing (already modelled) functions for this app to find out, what still needs to be changed in iiq
-        if not iiq_client.app_functions_exist_in_iiq(app_prefix, app_id, stats):
-            iiq_client.request_group_creation(app_prefix, app_id, org_id, tiso, owner_dict[app_id_with_prefix].name, stats, run_workflow=run_workflow)
-        
+        if iiq_client.app_functions_exist_in_iiq(app_prefix, app_id, stats):
+            if debug>5:
+                logger.info(f"not requesting groups for {app_id_with_prefix} - they already exist")
+            continue
+
+        if debug>5:
+            logger.info(f"requesting groups for {app_id_with_prefix}")
+        iiq_client.request_group_creation(app_prefix, app_id, org_id, tiso, owner_dict[app_id_with_prefix].name, stats, run_workflow=run_workflow)
+
         # if first parameter is set, only handle the first "first" applications, otherwise handle all
         if first > 0 and counter >= first: 
             break
@@ -267,7 +275,7 @@ if __name__ == "__main__":
 
     stats = init_statistics()
 
-    request_all_roles(owners, tisos, tiso_orgids, iiq_client, stats, first, args.run_workflow)
+    request_all_roles(owners, tisos, tiso_orgids, iiq_client, stats, first, args.run_workflow, debug=debug)
 
     if debug>0:
         print ("Stats: " + json.dumps(stats, indent=3))

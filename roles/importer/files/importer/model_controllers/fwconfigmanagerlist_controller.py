@@ -140,7 +140,7 @@ class FwConfigManagerListController(FwConfigManagerList):
 
 
     def store_full_normalized_config_to_file(self, import_state: ImportStateController):
-        if fwo_globals.debug_level>5:
+        if FWOLogger.debug_level>5:
             debug_start_time = int(time.time())
             try:
                 normalized_config_filename = f"{IMPORT_TMP_PATH}/mgm_id_{str(import_state.mgm_details.id)}_config_normalized.json"

@@ -34,7 +34,6 @@ class MockImportStateController(ImportStateController):
 
         self._stub_setCoreData = stub_setCoreData
 
-        self.debug_level = 0
         self.stats = ImportStatisticsController()
         self.call_log = []
         self.stub_responses = {}

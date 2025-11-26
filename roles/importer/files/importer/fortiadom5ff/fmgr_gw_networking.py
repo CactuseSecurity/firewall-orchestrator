@@ -48,7 +48,7 @@ def normalize_network_data(native_config: dict[str, Any], normalized_config: dic
 
         if 'routing-table-ipv6/' + full_vdom_name not in native_config:
             FWOLogger.warning('could not find routing data routing-table-ipv6/' + full_vdom_name)
-            if fwo_globals.debug_level>5:
+            if FWOLogger.is_debug_level(6):
                 FWOLogger.warning('native configs contains the following keys ' + str(native_config.keys()))
             normalized_config['networking'][full_vdom_name]['routingv6'] = []
         else:

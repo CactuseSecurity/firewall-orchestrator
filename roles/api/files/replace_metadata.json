@@ -4946,21 +4946,6 @@
                   }
                 },
                 {
-                  "name": "rules_with_owner",
-                  "using": {
-                    "manual_configuration": {
-                      "column_mapping": {
-                        "dev_id": "dev_id"
-                      },
-                      "insertion_order": null,
-                      "remote_table": {
-                        "name": "view_rule_with_owner",
-                        "schema": "public"
-                      }
-                    }
-                  }
-                },
-                {
                   "name": "tenant_to_devices",
                   "using": {
                     "foreign_key_constraint_on": {
@@ -9055,8 +9040,10 @@
                       "domain_uid",
                       "ext_mgm_data",
                       "hide_in_gui",
+                      "is_super_manager",
                       "mgm_id",
                       "mgm_name",
+                      "mgm_uid",
                       "multi_device_manager_id"
                     ],
                     "filter": {
@@ -9151,6 +9138,7 @@
                       "domain_uid",
                       "ext_mgm_data",
                       "hide_in_gui",
+                      "is_super_manager",
                       "mgm_id",
                       "mgm_name",
                       "mgm_uid",
@@ -9248,6 +9236,7 @@
                       "domain_uid",
                       "ext_mgm_data",
                       "hide_in_gui",
+                      "is_super_manager",
                       "mgm_id",
                       "mgm_name",
                       "mgm_uid",
@@ -9271,6 +9260,7 @@
                       "domain_uid",
                       "ext_mgm_data",
                       "hide_in_gui",
+                      "is_super_manager",
                       "mgm_id",
                       "mgm_name",
                       "mgm_uid",
@@ -9289,29 +9279,33 @@
                   "permission": {
                     "columns": [
                       "clearing_import_ran",
+                      "do_not_import",
+                      "force_initial_import",
+                      "hide_in_gui",
+                      "is_super_manager",
+                      "last_import_attempt_successful",
                       "cloud_subscription_id",
                       "cloud_tenant_id",
                       "config_path",
-                      "debug_level",
-                      "dev_typ_id",
-                      "do_not_import",
                       "domain_uid",
                       "ext_mgm_data",
-                      "force_initial_import",
-                      "hide_in_gui",
-                      "import_credential_id",
                       "importer_hostname",
-                      "last_import_attempt",
-                      "last_import_attempt_successful",
                       "last_import_md5_complete_config",
-                      "mgm_comment",
-                      "mgm_create",
-                      "mgm_id",
                       "mgm_name",
-                      "mgm_update",
-                      "multi_device_manager_id",
+                      "mgm_uid",
+                      "rulebase_name",
+                      "rulebase_uid",
                       "ssh_hostname",
-                      "ssh_port"
+                      "debug_level",
+                      "dev_typ_id",
+                      "import_credential_id",
+                      "mgm_id",
+                      "multi_device_manager_id",
+                      "ssh_port",
+                      "mgm_comment",
+                      "last_import_attempt",
+                      "mgm_create",
+                      "mgm_update"
                     ],
                     "filter": {
                       "mgm_id": {
@@ -9330,10 +9324,13 @@
                       "do_not_import",
                       "ext_mgm_data",
                       "hide_in_gui",
+                      "is_super_manager",
                       "mgm_id",
                       "mgm_name",
                       "mgm_uid",
-                      "multi_device_manager_id"
+                      "multi_device_manager_id",
+                      "rulebase_name",
+                      "rulebase_uid"
                     ],
                     "filter": {
                       "mgm_id": {
@@ -9353,8 +9350,10 @@
                       "domain_uid",
                       "ext_mgm_data",
                       "hide_in_gui",
+                      "is_super_manager",
                       "mgm_id",
                       "mgm_name",
+                      "mgm_uid",
                       "multi_device_manager_id"
                     ],
                     "filter": {},
@@ -9370,6 +9369,7 @@
                       "domain_uid",
                       "ext_mgm_data",
                       "hide_in_gui",
+                      "is_super_manager",
                       "mgm_id",
                       "mgm_name",
                       "mgm_uid",
@@ -9393,6 +9393,7 @@
                       "domain_uid",
                       "ext_mgm_data",
                       "hide_in_gui",
+                      "is_super_manager",
                       "mgm_id",
                       "mgm_name",
                       "mgm_uid",
@@ -14920,7 +14921,6 @@
                       "rule_create",
                       "rule_id",
                       "rule_last_seen",
-                      "removed",
                       "xlate_rule",
                       "access_rule",
                       "active",
@@ -14957,7 +14957,6 @@
                       "rule_svc",
                       "rule_svc_refs",
                       "rule_track",
-                      "rulebase_id",
                       "rule_uid"
                     ],
                     "computed_fields": [
@@ -14976,7 +14975,6 @@
                       "rule_create",
                       "rule_id",
                       "rule_last_seen",
-                      "removed",
                       "xlate_rule",
                       "access_rule",
                       "active",
@@ -15013,7 +15011,6 @@
                       "rule_svc",
                       "rule_svc_refs",
                       "rule_track",
-                      "rulebase_id",
                       "rule_uid"
                     ],
                     "computed_fields": [
@@ -15140,7 +15137,6 @@
                       "rule_create",
                       "rule_id",
                       "rule_last_seen",
-                      "removed",
                       "xlate_rule",
                       "access_rule",
                       "active",
@@ -15190,11 +15186,6 @@
                           }
                         },
                         {
-                          "dev_id": {
-                            "_in": "x-hasura-visible-devices"
-                          }
-                        },
-                        {
                           "rule_relevant_for_tenant": {
                             "_eq": "true"
                           }
@@ -15208,12 +15199,6 @@
                   "role": "recertifier",
                   "permission": {
                     "columns": [
-                      "parent_rule_id",
-                      "rule_create",
-                      "rule_id",
-                      "rule_last_seen",
-                      "removed",
-                      "xlate_rule",
                       "access_rule",
                       "action_id",
                       "active",
@@ -15268,11 +15253,6 @@
                           }
                         },
                         {
-                          "dev_id": {
-                            "_in": "x-hasura-visible-devices"
-                          }
-                        },
-                        {
                           "rule_relevant_for_tenant": {
                             "_eq": "true"
                           }
@@ -15291,7 +15271,6 @@
                       "rule_create",
                       "rule_id",
                       "rule_last_seen",
-                      "removed",
                       "xlate_rule",
                       "access_rule",
                       "active",
@@ -15341,11 +15320,6 @@
                           }
                         },
                         {
-                          "dev_id": {
-                            "_in": "x-hasura-visible-devices"
-                          }
-                        },
-                        {
                           "rule_relevant_for_tenant": {
                             "_eq": "true"
                           }
@@ -15364,7 +15338,6 @@
                       "rule_create",
                       "rule_id",
                       "rule_last_seen",
-                      "removed",
                       "xlate_rule",
                       "access_rule",
                       "active",
@@ -15866,7 +15839,6 @@
                       "removed",
                       "rf_create",
                       "rf_last_seen",
-                      "removed",
                       "rule_from_id",
                       "rule_id",
                       "user_id"
@@ -15951,7 +15923,6 @@
                       "removed",
                       "rf_create",
                       "rf_last_seen",
-                      "removed",
                       "rule_from_id",
                       "rule_id",
                       "user_id",
@@ -15967,13 +15938,6 @@
                           "rule": {
                             "mgm_id": {
                               "_in": "x-hasura-visible-managements"
-                            }
-                          }
-                        },
-                        {
-                          "rule": {
-                            "dev_id": {
-                              "_in": "x-hasura-visible-devices"
                             }
                           }
                         },
@@ -15997,7 +15961,6 @@
                       "removed",
                       "rf_create",
                       "rf_last_seen",
-                      "removed",
                       "rule_from_id",
                       "rule_id",
                       "user_id"
@@ -16011,13 +15974,6 @@
                           "rule": {
                             "mgm_id": {
                               "_in": "x-hasura-visible-managements"
-                            }
-                          }
-                        },
-                        {
-                          "rule": {
-                            "dev_id": {
-                              "_in": "x-hasura-visible-devices"
                             }
                           }
                         },
@@ -16039,7 +15995,6 @@
                       "removed",
                       "rf_create",
                       "rf_last_seen",
-                      "removed",
                       "rule_from_id",
                       "rule_id",
                       "user_id",
@@ -16055,13 +16010,6 @@
                           "rule": {
                             "mgm_id": {
                               "_in": "x-hasura-visible-managements"
-                            }
-                          }
-                        },
-                        {
-                          "rule": {
-                            "dev_id": {
-                              "_in": "x-hasura-visible-devices"
                             }
                           }
                         },
@@ -16083,7 +16031,6 @@
                       "removed",
                       "rf_create",
                       "rf_last_seen",
-                      "removed",
                       "rule_from_id",
                       "rule_id",
                       "user_id",
@@ -17323,7 +17270,6 @@
                       "removed",
                       "rt_create",
                       "rt_last_seen",
-                      "removed",
                       "rule_id",
                       "rule_to_id",
                       "user_id"
@@ -17344,7 +17290,6 @@
                       "removed",
                       "rt_create",
                       "rt_last_seen",
-                      "removed",
                       "rule_id",
                       "rule_to_id",
                       "user_id"
@@ -17407,7 +17352,6 @@
                       "removed",
                       "rt_create",
                       "rt_last_seen",
-                      "removed",
                       "rule_id",
                       "rule_to_id",
                       "user_id"
@@ -17421,13 +17365,6 @@
                           "rule": {
                             "mgm_id": {
                               "_in": "x-hasura-visible-managements"
-                            }
-                          }
-                        },
-                        {
-                          "rule": {
-                            "dev_id": {
-                              "_in": "x-hasura-visible-devices"
                             }
                           }
                         },
@@ -17451,7 +17388,6 @@
                       "removed",
                       "rt_create",
                       "rt_last_seen",
-                      "removed",
                       "rule_id",
                       "rule_to_id",
                       "user_id"
@@ -17465,13 +17401,6 @@
                           "rule": {
                             "mgm_id": {
                               "_in": "x-hasura-visible-managements"
-                            }
-                          }
-                        },
-                        {
-                          "rule": {
-                            "dev_id": {
-                              "_in": "x-hasura-visible-devices"
                             }
                           }
                         },
@@ -17495,7 +17424,6 @@
                       "removed",
                       "rt_create",
                       "rt_last_seen",
-                      "removed",
                       "rule_id",
                       "rule_to_id",
                       "user_id"
@@ -17509,13 +17437,6 @@
                           "rule": {
                             "mgm_id": {
                               "_in": "x-hasura-visible-managements"
-                            }
-                          }
-                        },
-                        {
-                          "rule": {
-                            "dev_id": {
-                              "_in": "x-hasura-visible-devices"
                             }
                           }
                         },
@@ -17539,7 +17460,6 @@
                       "removed",
                       "rt_create",
                       "rt_last_seen",
-                      "removed",
                       "rule_id",
                       "rule_to_id",
                       "user_id"
@@ -17889,6 +17809,22 @@
                   "comment": ""
                 },
                 {
+                  "role": "recertifier",
+                  "permission": {
+                    "columns": [
+                      "created",
+                      "removed",
+                      "is_global",
+                      "name",
+                      "uid",
+                      "id",
+                      "mgm_id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
                   "role": "reporter",
                   "permission": {
                     "columns": [
@@ -18029,7 +17965,6 @@
                   "permission": {
                     "columns": [
                       "created",
-                      "removed",
                       "from_rule_id",
                       "removed",
                       "is_global",
@@ -18071,7 +18006,6 @@
                   "permission": {
                     "columns": [
                       "created",
-                      "removed",
                       "from_rule_id",
                       "removed",
                       "is_global",
@@ -18092,8 +18026,28 @@
                   "permission": {
                     "columns": [
                       "created",
-                      "removed",
                       "from_rule_id",
+                      "removed",
+                      "is_global",
+                      "is_initial",
+                      "is_section",
+                      "from_rulebase_id",
+                      "gw_id",
+                      "id",
+                      "link_type",
+                      "to_rulebase_id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "recertifier",
+                  "permission": {
+                    "columns": [
+                      "created",
+                      "from_rule_id",
+                      "removed",
                       "is_global",
                       "is_initial",
                       "is_section",
@@ -18112,7 +18066,6 @@
                   "permission": {
                     "columns": [
                       "created",
-                      "removed",
                       "from_rule_id",
                       "removed",
                       "is_global",
@@ -18133,7 +18086,6 @@
                   "permission": {
                     "columns": [
                       "created",
-                      "removed",
                       "from_rule_id",
                       "removed",
                       "is_global",
@@ -24011,21 +23963,6 @@
               },
               "object_relationships": [
                 {
-                  "name": "device",
-                  "using": {
-                    "manual_configuration": {
-                      "column_mapping": {
-                        "dev_id": "dev_id"
-                      },
-                      "insertion_order": null,
-                      "remote_table": {
-                        "name": "device",
-                        "schema": "public"
-                      }
-                    }
-                  }
-                },
-                {
                   "name": "dst_zone",
                   "using": {
                     "manual_configuration": {
@@ -24119,7 +24056,6 @@
                       "owner_name",
                       "rule_name",
                       "action_id",
-                      "dev_id",
                       "mgm_id",
                       "owner_id",
                       "recert_interval",
@@ -24136,11 +24072,7 @@
                       "rule_uid",
                       "rule_last_certified"
                     ],
-                    "filter": {
-                      "dev_id": {
-                        "_in": "x-hasura-visible-devices"
-                      }
-                    },
+                    "filter": {},
                     "allow_aggregations": true
                   }
                 },
@@ -24159,7 +24091,6 @@
                       "owner_name",
                       "rule_name",
                       "action_id",
-                      "dev_id",
                       "mgm_id",
                       "owner_id",
                       "recert_interval",
@@ -24181,11 +24112,6 @@
                         {
                           "mgm_id": {
                             "_in": "x-hasura-visible-managements"
-                          }
-                        },
-                        {
-                          "dev_id": {
-                            "_in": "x-hasura-visible-devices"
                           }
                         }
                       ]
@@ -24208,7 +24134,6 @@
                       "owner_name",
                       "rule_name",
                       "action_id",
-                      "dev_id",
                       "mgm_id",
                       "owner_id",
                       "recert_interval",
@@ -24231,11 +24156,6 @@
                           "mgm_id": {
                             "_in": "x-hasura-visible-managements"
                           }
-                        },
-                        {
-                          "dev_id": {
-                            "_in": "x-hasura-visible-devices"
-                          }
                         }
                       ]
                     },
@@ -24257,7 +24177,6 @@
                       "owner_name",
                       "rule_name",
                       "action_id",
-                      "dev_id",
                       "mgm_id",
                       "owner_id",
                       "recert_interval",

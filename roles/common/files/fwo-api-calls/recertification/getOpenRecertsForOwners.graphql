@@ -13,5 +13,6 @@ query getOpenRecertsForOwners($ownerId: Int!, $mgmId: Int!) {
     next_recert_date
     recert_date
     comment
+	owner_recert_id
   }
 }

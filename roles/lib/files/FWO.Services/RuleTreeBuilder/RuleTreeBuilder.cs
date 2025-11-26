@@ -215,7 +215,7 @@ namespace FWO.Services.RuleTreeBuilder
                 changedCopy.Remove(changedCopy.Last());
                 isLastPositionZero = true;
             }
-            RuleTreeItem item = RuleTree.ElementsFlat.FirstOrDefault(x => NormalizePosition(x.GetPositionString()) == NormalizePosition(changedCopy)) as RuleTreeItem ?? new RuleTreeItem();
+            RuleTreeItem item = RuleTree.ElementsFlat.FirstOrDefault(x => CompareTreeItemPosition(x, changedCopy)) as RuleTreeItem ?? new RuleTreeItem();
         
             RuleTreeItem parent = item.Parent as RuleTreeItem ?? new RuleTreeItem();
             if (item.Data is not null && parent.IsOrderedLayerHeader && !isLastPositionZero)
@@ -344,7 +344,10 @@ namespace FWO.Services.RuleTreeBuilder
 
         protected static bool CompareTreeItemPosition(ITreeItem<Rule> treeItem, List<int> list)
         {
-            return NormalizePosition(treeItem.GetPositionString()) == NormalizePosition(list);
+            var treeItemString = NormalizePosition(treeItem.GetPositionString());
+            var listString = NormalizePosition(list);
+            Logging.Log.WriteInfo("Comparing Position", $"Tree Item Position: {treeItemString} | Listing Position: {listString}");
+            return treeItemString == listString;
         }
     }
 }

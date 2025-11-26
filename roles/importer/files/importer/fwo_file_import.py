@@ -81,7 +81,7 @@ def read_json_config_from_file(import_state: ImportStateController) -> FwConfigM
 
     # try to convert normalized config from file to config object
     try:
-        manager_list = FwConfigManagerListController(**config_json)
+        manager_list = FwConfigManagerListController(**config_json) #TYPING: use model load
         if len(manager_list.ManagerSet)==0:
             FWOLogger.warning(f'read a config file without manager sets from {import_state.import_file_name}, trying native config')
             manager_list.native_config = config_json

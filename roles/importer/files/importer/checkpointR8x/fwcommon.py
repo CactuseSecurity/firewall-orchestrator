@@ -184,22 +184,22 @@ def get_rules(nativeConfig: dict[str, Any], importState: ImportStateController) 
     globalAssignments, global_policy_structure, globalDomain, globalSid = None, None, None, None
     manager_details_list = create_ordered_manager_list(importState)
     manager_index = 0
-    for managerDetails in manager_details_list:
+    for manager_details in manager_details_list:
         cpManagerApiBaseUrl = importState.mgm_details.buildFwApiString()
 
-        if managerDetails.is_super_manager:
+        if manager_details.is_super_manager:
             globalAssignments, global_policy_structure, globalDomain, globalSid = handle_super_manager(
-                managerDetails, cpManagerApiBaseUrl, show_params_policy_structure
+                manager_details, cpManagerApiBaseUrl, show_params_policy_structure
             )
 
-        sid: str = cp_getter.login(managerDetails)
+        sid: str = cp_getter.login(manager_details)
         policy_structure: list[dict[str, Any]] = []
         cp_getter.get_policy_structure(
-            cpManagerApiBaseUrl, sid, show_params_policy_structure, managerDetails, policy_structure=policy_structure
+            cpManagerApiBaseUrl, sid, show_params_policy_structure, manager_details, policy_structure=policy_structure
         )
 
         process_devices(
-            managerDetails, policy_structure, globalAssignments, global_policy_structure,
+            manager_details, policy_structure, globalAssignments, global_policy_structure,
             globalDomain, globalSid, cpManagerApiBaseUrl, sid, nativeConfig['domains'][manager_index], # globalSid should not be None but is when the first manager is not supermanager 
             nativeConfig['domains'][0], importState
         )
@@ -215,18 +215,18 @@ def create_ordered_manager_list(importState: ImportStateController) -> list[Mana
     """
     manager_details_list: list[ManagementController] = [deepcopy(importState.mgm_details)]
     if importState.mgm_details.is_super_manager:
-        for subManager in importState.mgm_details.sub_managers:
-            manager_details_list.append(deepcopy(subManager)) # type: ignore TODO: why we are adding submanagers as ManagementController?
+        for sub_manager in importState.mgm_details.sub_managers:
+            manager_details_list.append(deepcopy(sub_manager)) # type: ignore TODO: why we are adding submanagers as ManagementController?
     return manager_details_list
 
 
-def handle_super_manager(managerDetails: ManagementController, cpManagerApiBaseUrl: str, show_params_policy_structure: dict[str, Any]) -> tuple[list[Any], None, Any | None, str]:
+def handle_super_manager(managerDetails: ManagementController, cp_manager_api_base_url: str, show_params_policy_structure: dict[str, Any]) -> tuple[list[Any], None, Any | None, str]:
 
     # global assignments are fetched from mds domain
     mdsSid: str = cp_getter.login(managerDetails)
     global_policy_structure = None
     global_domain = None
-    global_assignments = cp_getter.get_global_assignments(cpManagerApiBaseUrl, mdsSid, show_params_policy_structure)
+    global_assignments = cp_getter.get_global_assignments(cp_manager_api_base_url, mdsSid, show_params_policy_structure)
     global_sid = ""
     # import global policies if at least one global assignment exists
 
@@ -239,7 +239,7 @@ def handle_super_manager(managerDetails: ManagementController, cpManagerApiBaseU
             managerDetails.domain_uid = global_domain
             global_sid: str = cp_getter.login(managerDetails)
             cp_getter.get_policy_structure(
-                cpManagerApiBaseUrl, global_sid, show_params_policy_structure, managerDetails, policy_structure=global_policy_structure
+                cp_manager_api_base_url, global_sid, show_params_policy_structure, managerDetails, policy_structure=global_policy_structure
             )
         else:
             raise FwoImporterError(f"Unexpected global assignments: {str(global_assignments)}")

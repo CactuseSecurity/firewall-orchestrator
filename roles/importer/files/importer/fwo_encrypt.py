@@ -41,7 +41,7 @@ def decrypt(encrypted_data: str, passphrase: str) -> str:
         return encrypted_data
 
 
-def read_main_key(filePath: str = MAIN_KEY_FILE) -> str:
-    with open(filePath, "r") as keyfile:
-        mainKey = keyfile.read().rstrip(' \n')
-    return mainKey
+def read_main_key(file_path: str = MAIN_KEY_FILE) -> str:
+    with open(file_path, "r") as keyfile:
+        main_key = keyfile.read().rstrip(' \n')
+    return main_key

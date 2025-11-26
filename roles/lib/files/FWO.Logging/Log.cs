@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using FWO.Basics;
+using FWO.Basics.Interfaces;
 
 namespace FWO.Logging
 {

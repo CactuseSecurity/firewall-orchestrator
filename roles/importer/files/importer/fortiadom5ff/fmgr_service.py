@@ -1,10 +1,8 @@
 import re
 from fwo_const import list_delimiter
-from model_controllers.import_state_controller import ImportStateController
-from fwo_log import getFwoLogger
 from typing import Any
 
-from roles.importer.files.importer.fwo_base import sort_and_join
+from fwo_base import sort_and_join
 
 def normalize_service_objects(native_config, normalized_config_adom, svc_obj_types):
     svc_objects = []

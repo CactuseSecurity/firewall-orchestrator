@@ -1,4 +1,4 @@
-﻿using FWO.Logging;
+using FWO.Logging;
 
 namespace FWO.Api.Client.Queries
 {
@@ -129,7 +129,6 @@ namespace FWO.Api.Client.Queries
                 getAreas = areaDetailsFragment + GetQueryText("modelling/getAreas.graphql");
                 newArea = GetQueryText("modelling/newArea.graphql");
                 setNwGroupDeletedState = GetQueryText("modelling/setNwGroupDeletedState.graphql");
-                // setAreaDeletedState = GetQueryText("modelling/setAreaDeletedState.graphql");
                 newAreaIpData = GetQueryText("modelling/newAreaIpData.graphql");
                 getConnectionIdsForNwGroup = GetQueryText("modelling/getConnectionIdsForNwGroup.graphql");
                 getConnectionsForNwGroup = connectionDetailsFragment + GetQueryText("modelling/getConnectionsForNwGroup.graphql");
@@ -199,7 +198,6 @@ namespace FWO.Api.Client.Queries
                 newAppRole = GetQueryText("modelling/newAppRole.graphql");
                 updateAppRole = GetQueryText("modelling/updateAppRole.graphql");
                 deleteNwGroup = GetQueryText("modelling/deleteNwGroup.graphql");
-                // getAppServerForAppRole = appServerDetailsFragment + GetQueryText("modelling/getAppServerForAppRole.graphql");
                 addNwObjectToNwGroup = GetQueryText("modelling/addNwObjectToNwGroup.graphql");
                 removeNwObjectFromNwGroup = GetQueryText("modelling/removeNwObjectFromNwGroup.graphql");
                 updateNwObjectInNwGroup = GetQueryText("modelling/updateNwObjectInNwGroup.graphql");

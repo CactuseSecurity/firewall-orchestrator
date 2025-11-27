@@ -326,6 +326,7 @@ namespace FWO.Report
             if (rbLink == null)
             {
                 return report.ToString();
+                //NOSONAR
                 // from develop:
                 // foreach (var dev in mgt.Devices.Where(d => d.Rules != null && d.Rules.Length > 0))
                 // {
@@ -364,7 +365,7 @@ namespace FWO.Report
                 }
                 else
                 {
-                    // report.AppendLine("\"section header\": \"" + rule.SectionHeader + "\"");
+                    //NOSONAR - temporarily disabled //report.AppendLine("\"section header\": \"" + rule.SectionHeader + "\"");
                 }
                 ExportSingleRulebaseToCsv(report, ruleDisplayCsv, managementReport, gateway, gateway.RulebaseLinks.FirstOrDefault(_ => _.FromRuleId == rule.Id));
             } // rules 
@@ -544,15 +545,14 @@ namespace FWO.Report
 
                 if (nextRbLink != null)
                 {
-                    AppendRulesForRulebaseHtml(ref report, nextRbLink, managementReport, device, chapterNumber, ruleDisplayHtml);
+                    AppendRulesForRulebaseHtml(ref report, managementReport, device, chapterNumber, ruleDisplayHtml);
                 }
                 report.AppendLine("</table>");
                 report.AppendLine("<hr>");
             }
         }
 
-
-        private void AppendRulesForRulebaseHtml(ref StringBuilder report, RulebaseLink rbLink, ManagementReport managementReport, DeviceReport device, int chapterNumber, RuleDisplayHtml ruleDisplayHtml)
+        private void AppendRulesForRulebaseHtml(ref StringBuilder report, ManagementReport managementReport, DeviceReport device, int chapterNumber, RuleDisplayHtml ruleDisplayHtml)
         {
             foreach (var rule in _rulesCache[(device.Id, managementReport.Id)])
             {

@@ -1,4 +1,4 @@
-﻿using System.Text.Json.Serialization; 
+using System.Text.Json.Serialization; 
 using Newtonsoft.Json;
 using FWO.Data;
 
@@ -23,9 +23,9 @@ namespace FWO.Data.Report
 
         public RulebaseReport()
         { }
-
+    // NOSONAR - temporarily disabled
     //     public RulebaseReport(RulebaseReport rulebase)
-    //     {
+    //     { 
     //         Id = rulebase.Id;
     //         Name = rulebase.Name;
     //         RuleChanges = rulebase.RuleChanges;

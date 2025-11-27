@@ -2,44 +2,78 @@ from typing import Any
 from fwo_log import FWOLogger
 import json
 
-def collect_users_from_rule(rule: dict[str, Any], users: dict[str, Any]): #, objDict):
+
+def extract_access_role_user(src: dict[str, Any]) -> tuple[str, str, str, str | None, str | None]:
+    """Extract user data from access-role type source object."""
+    user_name = src['name']
+    user_uid = src['uid']
+    user_typ = 'group'
+    user_comment = src.get('comments', None)
+    user_color = src.get('color', None)
+    if 'users' in src:
+        user_typ = 'simple'
+    return user_name, user_uid, user_typ, user_comment, user_color
+
+
+def extract_legacy_user_at_location(src: dict[str, Any]) -> tuple[str, str | None, str, str | None, str | None]:
+    """Extract user data from LegacyUserAtLocation type source object."""
+    user_str = src["name"]
+    user_ar = user_str.split('@')
+    user_name = user_ar[0]
+    user_uid = src.get('userGroup', None)
+    user_typ = 'group'
+    user_comment = src.get('comments', None)
+    user_color = src.get('color', None)
+    return user_name, user_uid, user_typ, user_comment, user_color
+
+
+def normalize_user_data(user_comment: str | None, user_color: str | None) -> tuple[str | None, str]:
+    """Normalize user comment and color values."""
+    if user_comment == '':
+        user_comment = None
+    if user_color is None:
+        user_color = 'black'
+    return user_comment, user_color
+
+
+def process_typed_source_object(src: dict[str, Any], users: dict[str, Any]) -> None:
+    """Process a source object that has a type field."""
+    if src['type'] == 'access-role':
+        user_name, user_uid, user_typ, user_comment, user_color = extract_access_role_user(src)
+    elif src['type'] == 'LegacyUserAtLocation':
+        user_name, user_uid, user_typ, user_comment, user_color = extract_legacy_user_at_location(src)
+    else:
+        return
+    
+    user_comment, user_color = normalize_user_data(user_comment, user_color)
+    
+    users.update({user_name: {'user_uid': user_uid, 'user_typ': user_typ,
+                             'user_comment': user_comment, 'user_color': user_color}})
+
+
+def process_untyped_source_object(src: dict[str, Any], users: dict[str, Any]) -> None:
+    """Process a source object that lacks a type field."""
+    FWOLogger.warning("found src user without type field: " + json.dumps(src))
+    if 'name' in src and 'uid' in src:
+        users.update({src["name"]: {'user_uid': src["uid"], 'user_typ': 'simple'}})
+
+
+def process_standard_rule(rule: dict[str, Any], users: dict[str, Any]) -> None:
+    """Process a standard rule to extract user information."""
+    if 'type' not in rule or rule['type'] == 'place-holder':
+        return
+    
+    for src in rule["source"]:
+        if 'type' in src:
+            process_typed_source_object(src, users)
+        else:
+            process_untyped_source_object(src, users)
+
+
+def collect_users_from_rule(rule: dict[str, Any], users: dict[str, Any]) -> None:
+    """Collect user information from a single rule."""
     if 'rule-number' in rule:  # standard rule
-        if 'type' in rule and rule['type'] != 'place-holder':
-            for src in rule["source"]:
-                # need to get all details for the user first!
-                if 'type' in src:
-                    if src['type'] == 'access-role' or src['type'] == 'LegacyUserAtLocation':
-                        if src['type'] == 'access-role':
-                            user_name = src['name']
-                            user_uid = src['uid']
-                            user_typ = 'group'
-                            user_comment = src.get('comments', None)
-                            user_color = src.get('color', None)
-                            if 'users' in src:
-                                user_typ = 'simple'
-                        elif src['type'] == 'LegacyUserAtLocation':
-                            user_str = src["name"]
-                            user_ar = user_str.split('@')
-                            user_name = user_ar[0]
-                            user_uid = src.get('userGroup', None)
-                            user_typ = 'group'
-                            user_comment = src.get('comments', None)
-                            user_color = src.get('color', None)
-                        else:
-                            break
-                        if user_comment == '':
-                            user_comment = None
-
-                        if user_color is None:
-                            user_color = 'black'
-
-                        users.update({user_name: {'user_uid': user_uid, 'user_typ': user_typ,
-                                     'user_comment': user_comment, 'user_color': user_color}})
-                else:
-                    FWOLogger.warning("found src user without type field: " + json.dumps(src))
-                    if 'name' in src and 'uid' in src:
-                        users.update({src["name"]: {'user_uid': src["uid"], 'user_typ': 'simple'}})
-
+        process_standard_rule(rule, users)
     else:  # section
         collect_users_from_rulebase(rule["rulebase"], users)
 
@@ -66,10 +100,10 @@ def parse_user_objects_from_rulebase(rulebase: dict[str, Any], users: dict[str, 
         users[user_name]['control_id'] = import_id
 
 
-def get_user_uid_from_cp_api(userName: str) -> str:
+def get_user_uid_from_cp_api(user_name: str) -> str:
     # show-object with UID
     # dummy implementation returning the name as uid
-    return userName
+    return user_name
 
 
 def normalize_users_legacy() -> None:

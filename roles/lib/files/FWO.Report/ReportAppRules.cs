@@ -70,7 +70,6 @@ namespace FWO.Report
             List<Rule> deviceRules = dev.GetRuleList();
             if (deviceRules != null)
             {
-                // relevantDevice.Rules = [];
                 foreach (var rule in deviceRules)
                 {
                     PrepareRule(rule, modellingFilter, relevantMgt, relevantDevice, ownerIps);
@@ -207,7 +206,7 @@ namespace FWO.Report
             foreach (EnforcingDevice dev in mgt.Devices.Cast<EnforcingDevice>())
             {
                 List<Rule> allDeviceRules = dev.GetRuleListForDevice();
-                if (allDeviceRules.Count() > 0)
+                if (allDeviceRules.Count > 0)
                 {
                     foreach (var rule in allDeviceRules)
                     {

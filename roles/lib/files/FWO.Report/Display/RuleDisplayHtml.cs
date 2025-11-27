@@ -1,4 +1,4 @@
-﻿using FWO.Basics;
+using FWO.Basics;
 using FWO.Data;
 using FWO.Config.Api;
 using System.Text;
@@ -50,37 +50,37 @@ namespace FWO.Ui.Display
             return $"<tr><td class=\"bg-gray\" colspan=\"{ColumnCount}\"><b>{rule.SectionHeader}</b></td></tr>";
         }
 
-        public static string DisplayNextRecert(RuleMetadata rule)
+        public static string DisplayNextRecert(RuleMetadata ruleMetadata)
         {
             int count = 0;
-            return string.Join("", Array.ConvertAll<Recertification, string>(rule.RuleRecertification.ToArray(), recert => GetNextRecertDateString(CountString(rule.RuleRecertification.Count > 1, ++count), recert).ToString()));
+            return string.Join("", Array.ConvertAll<Recertification, string>(ruleMetadata.RuleRecertification.ToArray(), recert => GetNextRecertDateString(CountString(ruleMetadata.RuleRecertification.Count > 1, ++count), recert).ToString()));
         }
 
-        public static string DisplayOwner(RuleMetadata rule)
+        public static string DisplayOwner(RuleMetadata ruleMetadata)
         {
             int count = 0;
-            return string.Join("", Array.ConvertAll<Recertification, string>(rule.RuleRecertification.ToArray(), recert => GetOwnerDisplayString(CountString(rule.RuleRecertification.Count > 1, ++count), recert).ToString()));
+            return string.Join("", Array.ConvertAll<Recertification, string>(ruleMetadata.RuleRecertification.ToArray(), recert => GetOwnerDisplayString(CountString(ruleMetadata.RuleRecertification.Count > 1, ++count), recert).ToString()));
         }
 
-        public static string DisplayRecertIpMatches(RuleMetadata rule)
+        public static string DisplayRecertIpMatches(RuleMetadata ruleMetadata)
         {
             int count = 0;
-            return string.Join("", Array.ConvertAll<Recertification, string>(rule.RuleRecertification.ToArray(), recert => GetIpMatchDisplayString(CountString(rule.RuleRecertification.Count > 1, ++count), recert).ToString()));
+            return string.Join("", Array.ConvertAll<Recertification, string>(ruleMetadata.RuleRecertification.ToArray(), recert => GetIpMatchDisplayString(CountString(ruleMetadata.RuleRecertification.Count > 1, ++count), recert).ToString()));
         }
 
-        public static string DisplayLastHit(RuleMetadata rule)
+        public static string DisplayLastHit(RuleMetadata ruleMetadata)
         {
-            if (rule.LastHit == null)
+            if (ruleMetadata.LastHit == null)
                 return "";
             else
-                return DateOnly.FromDateTime((DateTime)rule.LastHit).ToString("yyyy-MM-dd");  //rule.Metadata.LastHit.ToString("yyyy-MM-dd");
+                return DateOnly.FromDateTime((DateTime)ruleMetadata.LastHit).ToString("yyyy-MM-dd");
         }
 
-        public static string DisplayLastRecertifier(RuleMetadata rule)
+        public static string DisplayLastRecertifier(RuleMetadata ruleMetadata)
         {
             int count = 0;
-            return string.Join("", Array.ConvertAll<Recertification, string>(rule.RuleRecertification.ToArray(),
-                recert => GetLastRecertifierDisplayString(CountString(rule.RuleRecertification.Count > 1, ++count), recert).ToString()));
+            return string.Join("", Array.ConvertAll<Recertification, string>(ruleMetadata.RuleRecertification.ToArray(),
+                recert => GetLastRecertifierDisplayString(CountString(ruleMetadata.RuleRecertification.Count > 1, ++count), recert).ToString()));
         }
 
         protected static string NetworkLocationToHtml(NetworkLocation networkLocation, int mgmtId, int chapterNumber, OutputLocation location, string style, ReportType reportType)

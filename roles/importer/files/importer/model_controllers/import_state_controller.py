@@ -67,7 +67,7 @@ class ImportStateController(ImportState):
 
         fwoConfig = FworchConfigController.from_json(read_config(FWO_CONFIG_FILENAME))
 
-        api_conn = FwoApi(ApiUri=fwoConfig.fwo_api_url, Jwt=jwt)
+        api_conn = FwoApi(api_uri=fwoConfig.fwo_api_url, jwt=jwt)
         api_call = FwoApiCall(api_conn)
         # set global https connection values
         fwo_globals.set_global_values(suppress_cert_warnings_in=suppressCertWarnings, verify_certs_in=sslVerification)
@@ -114,7 +114,7 @@ class ImportStateController(ImportState):
 
 
     def getPastImportInfos(self):        
-        api_call = FwoApiCall(FwoApi(ApiUri=self.fwo_config.fwo_api_url, Jwt=self.Jwt))
+        api_call = FwoApiCall(FwoApi(api_uri=self.fwo_config.fwo_api_url, jwt=self.Jwt))
         try: # get past import details (LastFullImport, ...):
             day_string = api_call.get_config_value(key='dataRetentionTime')
             if day_string:
@@ -149,7 +149,7 @@ class ImportStateController(ImportState):
 
 
     def setCoreData(self):
-        api_call = FwoApiCall(FwoApi(ApiUri=self.fwo_config.fwo_api_url, Jwt=self.Jwt))
+        api_call = FwoApiCall(FwoApi(api_uri=self.fwo_config.fwo_api_url, jwt=self.Jwt))
         self.SetTrackMap(api_call)
         self.SetActionMap(api_call)
         self.SetLinkTypeMap(api_call)

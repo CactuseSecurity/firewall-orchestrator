@@ -25,9 +25,9 @@ class FwoApi():
     query_analyzer: QueryAnalyzer
 
 
-    def __init__(self, ApiUri: str, Jwt: str):
-        self.fwo_api_url = ApiUri
-        self.fwo_jwt = Jwt
+    def __init__(self, api_uri: str, jwt: str):
+        self.fwo_api_url = api_uri
+        self.fwo_jwt = jwt
         self.query_info = {}
         self.query_analyzer = QueryAnalyzer()
 
@@ -102,7 +102,7 @@ class FwoApi():
         with requests.Session() as session:
             if fwo_globals.verify_certs is None:    # only for first FWO API call (getting info on cert verification)
                 session.verify = False
-            else: 
+            else:
                 session.verify = fwo_globals.verify_certs
             session.headers = {'Content-Type': JSON_CONTENT_TYPE}
 
@@ -415,7 +415,7 @@ class FwoApi():
 
 
     @staticmethod
-    def _read_clean_text_from_file(filePath: str) -> str:
+    def _read_clean_text_from_file(file_path: str) -> str:
         printable_chars = set(string.printable)
-        with open(filePath, "r", encoding="utf-8", errors="ignore") as f:
+        with open(file_path, "r", encoding="utf-8", errors="ignore") as f:
             return "".join(filter(printable_chars.__contains__, f.read()))

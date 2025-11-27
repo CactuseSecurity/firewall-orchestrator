@@ -291,12 +291,12 @@ class FwConfigImportObject():
             raise FwoImporterError("no normalized config available in FwConfigImportObject.prepare_new_nwobjs")
         new_nwobjs: list[dict[str, Any]] = []
         for nwobj_uid in new_nwobj_uids:
-            new_nwobj = NetworkObjectForImport(nwObject=self.normalized_config.network_objects[nwobj_uid],
-                                                    mgmId=mgm_id, 
-                                                    importId=self.import_state.import_id, 
-                                                    colorId=self.import_state.lookupColorId(self.normalized_config.network_objects[nwobj_uid].obj_color), 
-                                                    typId=self.lookup_obj_type(self.normalized_config.network_objects[nwobj_uid].obj_typ))
-            new_nwobj_dict = new_nwobj.toDict()
+            new_nwobj = NetworkObjectForImport(nw_object=self.normalized_config.network_objects[nwobj_uid],
+                                                    mgm_id=mgm_id, 
+                                                    import_id=self.import_state.import_id, 
+                                                    color_id=self.import_state.lookupColorId(self.normalized_config.network_objects[nwobj_uid].obj_color), 
+                                                    typ_id=self.lookup_obj_type(self.normalized_config.network_objects[nwobj_uid].obj_typ))
+            new_nwobj_dict = new_nwobj.to_dict()
             new_nwobjs.append(new_nwobj_dict)
         return new_nwobjs
 

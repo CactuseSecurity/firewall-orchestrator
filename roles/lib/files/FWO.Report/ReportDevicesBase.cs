@@ -117,10 +117,10 @@ namespace FWO.Report
         {
             try
             {
-                // NOSONAR - temporarily disabled
+                /* NOSONAR - temporarily disabled
                 // TODO: the following only deals with first rulebase of a gateway:
                 // return (await apiConnection.SendQueryAsync<List<AggregateCountLastHit>>(ReportQueries.getUsageDataCount, new { devId })
-                //     )[0].RulebasesOnGateway[0].Rulebase.RulesWithHits.Aggregate.Count > 0;
+                //     )[0].RulebasesOnGateway[0].Rulebase.RulesWithHits.Aggregate.Count > 0;*/
                 return false;   // TODO: implement and remove pragma warning disable once done
             }
             catch (Exception)

@@ -8,7 +8,7 @@ from fwo_exceptions import FwLoginFailed, FwoUnknownDeviceForManager, FwApiCallF
 from models.management import Management
 
 
-def api_call(url: str, command: str, json_payload: dict[str, Any], sid: str, show_progress: bool=False, method: str='') -> dict[str, Any]:
+def api_call(url: str, command: str, json_payload: dict[str, Any], sid: str, method: str='') -> dict[str, Any]:
     request_headers = {'Content-Type': 'application/json'}
     if sid != '':
         json_payload.update({'session': sid})
@@ -20,31 +20,15 @@ def api_call(url: str, command: str, json_payload: dict[str, Any], sid: str, sho
     json_payload.update({'method': method})
 
     r = requests.post(url, data=json.dumps(json_payload), headers=request_headers, verify=fwo_globals.verify_certs)
-    try:
-        r # type: ignore #TYPING: This is always defined and does nothing
-    except Exception as _:
-        if 'pass' in json.dumps(json_payload):
-            exception_text = f'error while sending api_call containing credential information to url {str(url)}'
-        else:
-            exception_text = f'error while sending api_call to url {str(url)} with payload {json.dumps(json_payload, indent=2)} and  headers: {json.dumps(request_headers, indent=2)}'
-        raise FwApiCallFailed(exception_text)
     result_json = r.json()
-    if 'result' not in result_json or len(result_json['result'])<1:
+    if 'result' not in result_json or len(result_json['result']) == 0:
         if 'pass' in json.dumps(json_payload):
             raise FwApiCallFailed(f'error while sending api_call containing credential information to url {str(url)}')
         else:
-            if 'status' in result_json['result'][0]:
-                result_status = r.json()['result'][0]['status']
-                exception_text = f'error while sending api_call to url {str(url)} with payload {json.dumps(json_payload, indent=2)}  and  headers: '
-                exception_text += f'{json.dumps(request_headers, indent=2)}, result={json.dumps(result_status, indent=2)}'
-            else:
-                result_data = r.json()['result'][0]
-                exception_text = f'error while sending api_call to url {str(url)} with payload {json.dumps(json_payload, indent=2)}'
-                exception_text += f' and  headers: {json.dumps(request_headers, indent=2)}, result={json.dumps(result_data, indent=2)}'
-            raise FwApiCallFailed(exception_text)
-    if 'status' not in result_json['result'][0] or 'code' not in result_json['result'][0]['status'] or result_json['result'][0]['status']['code'] != 0:
-        # trying to ignore empty results as valid
-        pass # FWOLogger.warning('received empty result')
+            result_data = r.json()['result'][0]['status'] if 'status' in r.json()['result'][0] else r.json()['result'][0]
+            exception_text = f'error while sending api_call to url {str(url)} with payload {json.dumps(json_payload, indent=2)}'
+            exception_text += f' and  headers: {json.dumps(request_headers, indent=2)}, result={json.dumps(result_data, indent=2)}'
+        raise FwApiCallFailed(exception_text)
     if 'pass' in json.dumps(json_payload):
         FWOLogger.debug('api_call containing credential information to url ' + str(url) + ' - not logging query', 3)
     else:

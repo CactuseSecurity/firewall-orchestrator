@@ -284,13 +284,13 @@ namespace FWO.Compliance
 
             // Create diffs and fill argument bags.
 
-            await PostProcessRulesAsync(rules);
+            PostProcessRulesAsync(rules);
 
 
             return rules;         
         }
 
-        public async Task PostProcessRulesAsync(List<Rule> ruleFromDb)
+        public void PostProcessRulesAsync(List<Rule> ruleFromDb)
         {
             CancellationToken ct = new();
 
@@ -300,14 +300,14 @@ namespace FWO.Compliance
 
             _violationsToRemove.Clear();
 
-            await Parallel.ForEachAsync(
+            Parallel.ForEach(
                 ruleFromDb.SelectMany(rule => rule.Violations),
                 new ParallelOptions
                 {
                     MaxDegreeOfParallelism = _maxDegreeOfParallelism,
                     CancellationToken = ct
                 },
-                async (violation, token) =>
+                (violation, token) =>
                 {
                     if (!CurrentViolationsInCheck.Any(cv => CreateUniqueViolationKey(cv)  == CreateUniqueViolationKey(violation)))
                     {
@@ -323,14 +323,14 @@ namespace FWO.Compliance
 
             _violationsToAdd.Clear();
 
-            await Parallel.ForEachAsync(
+            Parallel.ForEach(
                 CurrentViolationsInCheck,
                 new ParallelOptions
                 {
                     MaxDegreeOfParallelism = _maxDegreeOfParallelism,
                     CancellationToken = ct
                 },
-                async (violation, token) =>
+                (violation, token) =>
                 {
                     if (!ruleFromDb.SelectMany(rule => rule.Violations).Any(rdb => CreateUniqueViolationKey(rdb) == CreateUniqueViolationKey(violation)))
                     {

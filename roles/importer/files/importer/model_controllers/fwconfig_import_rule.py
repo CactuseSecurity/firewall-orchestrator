@@ -1045,7 +1045,7 @@ class FwConfigImportRule():
         try:
             result = self.import_details.api_call.call(query=query, query_variables={"mgmId": self.import_details.mgm_details.current_mgm_id})
         except Exception:
-            FWOLogger.error(f'Error while getting rule number map')
+            FWOLogger.error('Error while getting rule number map')
             return {}
 
         rule_num_map: dict[str, dict[str, float]] = {}
@@ -1060,7 +1060,7 @@ class FwConfigImportRule():
         try:
             _ = self.import_details.api_call.call(query=query, query_variables={})
         except Exception:
-            FWOLogger.error(f'Error while getting rule number')
+            FWOLogger.error('Error while getting rule number')
             return {}
 
         rule_num_map: dict[str, float] = {}
@@ -1074,7 +1074,7 @@ class FwConfigImportRule():
             result = self.import_details.api_call.call(query=query, query_variables={})
         except Exception:
             
-            FWOLogger.error(f'Error while getting stm_track')
+            FWOLogger.error('Error while getting stm_track')
             return {}
         
         rule_type_map: dict[str, int] = {}

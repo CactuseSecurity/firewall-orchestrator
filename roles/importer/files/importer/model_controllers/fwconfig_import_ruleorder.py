@@ -13,6 +13,9 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from models.fwconfig_normalized import FwConfigNormalized
 
+# Constants
+CONFIG_OBJECTS_NOT_INITIALIZED_ERROR = "Config objects in global state not correctly initialized — expected non-None values."
+
 class RuleOrderService:
     """
         A singleton service that holds data and provides logic to compute rule order values.
@@ -79,7 +82,7 @@ class RuleOrderService:
 
         if set_configs: # make premature initialization via __init__ possible
             if not self._global_state.normalized_config or not self._global_state.previous_config:
-                raise ValueError("Config objects in global state not correctly initialized — expected non-None values.")
+                raise ValueError(CONFIG_OBJECTS_NOT_INITIALIZED_ERROR)
 
             # Instantiate objects for next steps.
 
@@ -97,7 +100,7 @@ class RuleOrderService:
     def _calculate_necessary_transformations(self):
 
         if self._normalized_config is None or self._previous_config is None:
-            raise ValueError("Config objects in global state not correctly initialized — expected non-None values.") 
+            raise ValueError(CONFIG_OBJECTS_NOT_INITIALIZED_ERROR) 
 
         # Parse rules from config to flat lists.
         
@@ -195,7 +198,7 @@ class RuleOrderService:
         previous_rule_num_numeric = 0.0
 
         if self._normalized_config is None or self._previous_config is None:
-            raise ValueError("Config objects in global state not correctly initialized — expected non-None values.")
+            raise ValueError(CONFIG_OBJECTS_NOT_INITIALIZED_ERROR)
         target_rulebase = next((rulebase for rulebase in self._normalized_config.rulebases if rulebase.uid == target_rulebase_uid), None)
         unchanged_target_rulebase = next((rulebase for rulebase in self._previous_config.rulebases if rulebase.uid == target_rulebase_uid), None)
 
@@ -242,7 +245,7 @@ class RuleOrderService:
         next_rule_num_numeric = 0
 
         if self._normalized_config is None:
-            raise ValueError("Config objects in global state not correctly initialized — expected non-None values.")
+            raise ValueError(CONFIG_OBJECTS_NOT_INITIALIZED_ERROR)
         target_rulebase = next(rulebase for rulebase in self._normalized_config.rulebases if rulebase.uid == rulebase_uid)
 
         while prev_rule_num_numeric == 0:

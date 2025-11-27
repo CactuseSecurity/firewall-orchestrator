@@ -53,19 +53,19 @@ class FwoApiCall(FwoApi):
         return None
 
 
-    def get_config_values(self, keyFilter:str='limit') -> dict[str, str] | None:
-        query_variables: dict[str, str] = {'keyFilter': keyFilter+"%"}
+    def get_config_values(self, key_filter:str='limit') -> dict[str, str] | None:
+        query_variables: dict[str, str] = {'keyFilter': key_filter+"%"}
         config_query = FwoApi.get_graphql_code([fwo_const.GRAPHQL_QUERY_PATH + "config/getConfigValuesByKeyFilter.graphql"])
         
         try:
             result = self.call(config_query, query_variables=query_variables)
         except Exception:
-            FWOLogger.error("fwo_api: failed to get config values for key filter " + keyFilter)
+            FWOLogger.error("fwo_api: failed to get config values for key filter " + key_filter)
             return None
 
         if 'data' in result and 'config' in result['data']:
-            resultArray = result['data']['config']
-            dict1 = {v['config_key']: v['config_value'] for _,v in enumerate(resultArray)}
+            result_array = result['data']['config']
+            dict1 = {v['config_key']: v['config_value'] for _,v in enumerate(result_array)}
             return dict1
         else:
             return None
@@ -152,7 +152,7 @@ class FwoApiCall(FwoApi):
 
 
     #   currently temporarily only working with single chunk
-    def import_json_config(self, import_state: 'ImportStateController', config: FwConfigNormalized, startImport: bool = True):
+    def import_json_config(self, import_state: 'ImportStateController', config: FwConfigNormalized, start_import: bool = True):
         import_mutation = FwoApi.get_graphql_code([fwo_const.GRAPHQL_QUERY_PATH + "import/addImportConfig.graphql"])
 
         try:
@@ -161,7 +161,7 @@ class FwoApiCall(FwoApi):
                 'mgmId': import_state.mgm_details.mgm_id,
                 'importId': import_state.import_id,
                 'config': config,
-                'start_import_flag': startImport,
+                'start_import_flag': start_import,
             }
             import_result = self.call(import_mutation, query_variables=query_vars)
             # note: this will not detect errors in triggered stored procedure run
@@ -302,7 +302,11 @@ class FwoApiCall(FwoApi):
 
         self.unlock_import(import_state, success=exception is None)
 
-        exception_message: str | None = getattr(exception, "message", None) if exception is not None and hasattr(exception, 'message') else str(exception) if exception is not None else None
+        exception_message: str | None = None
+        if exception is not None and hasattr(exception, "message"):
+            exception_message = getattr(exception, "message", None)
+        else:
+            exception_message = str(exception)
 
         import_result = "import_management: import no. " + str(import_state.import_id) + \
                 " for management " + import_state.mgm_details.name + ' (id=' + str(import_state.mgm_details.mgm_id) + ")" + \
@@ -324,17 +328,17 @@ class FwoApiCall(FwoApi):
             
 
 
-    def get_last_complete_import(self, queryVars: dict[str, Any]) -> tuple[int, str]:
+    def get_last_complete_import(self, query_vars: dict[str, Any]) -> tuple[int, str]:
         mgm_query = FwoApi.get_graphql_code([fwo_const.GRAPHQL_QUERY_PATH + "import/getLastCompleteImport.graphql"])
         last_full_import_date: str = ""
         last_full_import_id: int = 0
         try:
-            pastDetails = self.call(mgm_query, query_variables=queryVars)
-            if len(pastDetails['data']['import_control'])>0:
-                last_full_import_date = pastDetails['data']['import_control'][0]['start_time']
-                last_full_import_id = pastDetails['data']['import_control'][0]['control_id']
+            past_details = self.call(mgm_query, query_variables=query_vars)
+            if len(past_details['data']['import_control'])>0:
+                last_full_import_date = past_details['data']['import_control'][0]['start_time']
+                last_full_import_id = past_details['data']['import_control'][0]['control_id']
         except Exception as _:
-            FWOLogger.error(f"error while getting past import details for mgm {str(queryVars)}: {str(traceback.format_exc())}")
+            FWOLogger.error(f"error while getting past import details for mgm {str(query_vars)}: {str(traceback.format_exc())}")
             raise
 
         return last_full_import_id, last_full_import_date

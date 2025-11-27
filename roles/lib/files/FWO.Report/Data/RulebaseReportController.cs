@@ -29,11 +29,11 @@ namespace FWO.Report
                     {
                         rule.DisplayOrderNumber = ruleNumber++;
                     }
-                    // NOSONAR
+                    /* NOSONAR
                     // if (rule.NextRulebase != null)
                     // {
                     //     AssignRuleNumbers(rule.NextRulebase, ruleNumber);
-                    // }
+                    // }*/
                 }
             }
         }

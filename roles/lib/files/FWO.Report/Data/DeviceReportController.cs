@@ -36,7 +36,7 @@ namespace FWO.Report
         
         public void AssignRuleNumbers(RulebaseLink? rbLinkIn = null, int ruleNumber = 1)
         {
-            // NOSONAR - temporarily disabled
+            /* NOSONAR - temporarily disabled
             // rbLinkIn ??= RbLink;
             // if (rbLinkIn != null)
             // {
@@ -54,18 +54,18 @@ namespace FWO.Report
             //             }
             //         }
             //     }
-            // }
+            // }*/
         }
 
         public new bool ContainsRules()
         {
             return true;
-            // NOSONAR - temporarily disabled
+            /* NOSONAR - temporarily disabled
             // if (RbLink?.NextRulebase.Rules.Length>0)
             // {
             //     return true;
             // }
-            // return false;
+            // return false;*/
         }
         public int? GetInitialRulebaseId(ManagementReport managementReport)
         {

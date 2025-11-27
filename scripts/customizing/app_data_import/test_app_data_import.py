@@ -8,9 +8,11 @@ from pathlib import Path
 # Make module directory importable
 MODULE_DIR = Path(__file__).resolve().parent
 sys.path.insert(0, str(MODULE_DIR))
+# Also add shared library folder for imports when running via test discovery
+sys.path.insert(0, str(MODULE_DIR.parent / "fwo_custom_lib"))
 
-from app_data_models import Owner, Appip  # noqa: E402
-from read_app_data_csv import (  # noqa: E402
+from scripts.customizing.fwo_custom_lib.app_data_models import Owner, Appip  # noqa: E402
+from scripts.customizing.fwo_custom_lib.read_app_data_csv import (  # noqa: E402
     extract_app_data_from_csv,
     extract_ip_data_from_csv,
 )
@@ -68,7 +70,7 @@ class AppDataImportTests(unittest.TestCase):
             extract_ip_data_from_csv(
                 "ips.csv",
                 app_dict,
-                app_ip,
+                Appip,
                 self.logger,
                 self.debug_level,
                 base_dir=tmpdir,

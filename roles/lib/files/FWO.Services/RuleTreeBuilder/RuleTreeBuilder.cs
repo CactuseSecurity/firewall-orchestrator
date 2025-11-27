@@ -94,7 +94,7 @@ namespace FWO.Services.RuleTreeBuilder
 
                 // Update order number.
 
-                nextPosition[nextPosition.Count() - 1] = nextPosition.Last() + 1;
+                nextPosition[nextPosition.Count - 1] = nextPosition.Last() + 1;
 
                 // Get and update tree item that holds currentRule as data.
 

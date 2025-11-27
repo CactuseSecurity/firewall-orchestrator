@@ -1,4 +1,4 @@
-﻿using FWO.Api.Client;
+using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 using FWO.Data;
 using FWO.Logging;
@@ -36,7 +36,7 @@ namespace FWO.DeviceAutoDiscovery
                 Log.WriteDebug(Autodiscovery, $"discovering FortiManager adoms, vdoms, devices");
                 FortiManagerClient restClientFM = new(SuperManagement);
                 RestResponse<SessionAuthInfo> sessionResponse = await restClientFM.AuthenticateUser(SuperManagement.ImportCredential.ImportUser, SuperManagement.ImportCredential.Secret);
-                if (sessionResponse.StatusCode == HttpStatusCode.OK && sessionResponse.IsSuccessful && !string.IsNullOrEmpty(sessionResponse?.Data?.SessionId))
+                if (sessionResponse.StatusCode == HttpStatusCode.OK && sessionResponse.IsSuccessful && !string.IsNullOrEmpty(sessionResponse.Data?.SessionId))
                 {
                     return await DiscoverySession(discoveredDevices);
                 }

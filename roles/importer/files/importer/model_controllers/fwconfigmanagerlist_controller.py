@@ -143,7 +143,7 @@ class FwConfigManagerListController(FwConfigManagerList):
         if FWOLogger.is_debug_level(6):
             debug_start_time = int(time.time())
             try:
-                normalized_config_filename = f"{IMPORT_TMP_PATH}/mgm_id_{str(import_state.mgm_details.id)}_config_normalized.json"
+                normalized_config_filename = f"{IMPORT_TMP_PATH}/mgm_id_{str(import_state.mgm_details.mgm_id)}_config_normalized.json"
 
                 config_copy_without_native= deepcopy(self)
                 config_copy_without_native.native_config = {}

@@ -162,7 +162,7 @@ def normalize_config(import_state: ImportStateController, config_in: FwConfigMan
 def normalize_single_manager_config(native_config: dict[str, Any], native_config_global: dict[str, Any], normalized_config_dict: dict[str, Any],
                                     normalized_config_global: dict[str, Any], import_state: ImportStateController,
                                     parsing_config_only: bool, sid: str, is_global_loop_iteration: bool):
-    cp_network.normalize_network_objects(native_config, normalized_config_dict, import_state.import_id, mgm_id=import_state.mgm_details.id)
+    cp_network.normalize_network_objects(native_config, normalized_config_dict, import_state.import_id, mgm_id=import_state.mgm_details.mgm_id)
     FWOLogger.info("completed normalizing network objects")
     cp_service.normalize_service_objects(native_config, normalized_config_dict, import_state.import_id)
     FWOLogger.info("completed normalizing service objects")

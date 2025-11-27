@@ -29,9 +29,9 @@ class FwConfigImportRollback():
             rollback_result = self.import_state.api_call.call(rollback_mutation, query_variables=query_variables)
             if 'errors' in rollback_result:
                 FWOLogger.exception("error while trying to roll back current import for mgm id " +
-                                str(self.import_state.mgm_details.id) + ": " + str(rollback_result['errors']))
+                                str(self.import_state.mgm_details.mgm_id) + ": " + str(rollback_result['errors']))
             else:
                 FWOLogger.info("import " + str(self.import_state.import_id) + " has been rolled back successfully")
 
         except Exception:
-            FWOLogger.exception(f"failed to rollback current importfor mgm id {str(self.import_state.mgm_details.id)}: {str(traceback.format_exc())}")
+            FWOLogger.exception(f"failed to rollback current importfor mgm id {str(self.import_state.mgm_details.mgm_id)}: {str(traceback.format_exc())}")

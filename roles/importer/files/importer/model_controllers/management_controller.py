@@ -46,7 +46,7 @@ class ManagementController(Management):
                  manager_info: ManagerInfo, domain_info: DomainInfo, 
                  import_disabled: bool = False):
         
-        super().__init__(id=mgm_id, uid=uid, devices=devices, import_disabled=import_disabled,
+        super().__init__(mgm_id=mgm_id, uid=uid, devices=devices, import_disabled=import_disabled,
                          name=device_info.name, device_type_name=device_info.type_name,
                          device_type_version=device_info.type_version,
                          hostname=connection_info.hostname, port=connection_info.port,
@@ -109,7 +109,7 @@ class ManagementController(Management):
 
 
     def __str__(self):
-        return f"{self.hostname}({self.id})"
+        return f"{self.hostname}({self.mgm_id})"
     
 
     # TODO: fix device type URIs

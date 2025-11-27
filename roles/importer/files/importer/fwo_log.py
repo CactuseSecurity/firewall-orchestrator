@@ -224,7 +224,7 @@ class ChangeLogger:
             f"old_{type}_id": old_rule_id,
             "control_id": self._import_state.import_id,
             "change_action": change_action,
-            "mgm_id": self._import_state.mgm_details.id,
+            "mgm_id": self._import_state.mgm_details.mgm_id,
             "change_type_id": changeTyp,
             "change_time": importTime,
             "unique_name": uniqueName,

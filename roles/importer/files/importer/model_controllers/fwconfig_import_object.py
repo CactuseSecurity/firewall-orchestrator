@@ -258,7 +258,7 @@ class FwConfigImportObject():
 
         FWOLogger.debug(f"fwo_api:importNwObject - import_mutation: {import_mutation}", 9)
         if FWOLogger.is_debug_level(9):
-            json.dump(query_variables, open(f"/usr/local/fworch/tmp/import/mgm_id_{self.import_state.mgm_details.id}_query_variables.json", "w"), indent=4)
+            json.dump(query_variables, open(f"/usr/local/fworch/tmp/import/mgm_id_{self.import_state.mgm_details.mgm_id}_query_variables.json", "w"), indent=4)
 
         try:
             import_result = self.import_state.api_call.call(import_mutation, query_variables=query_variables, analyze_payload=True)

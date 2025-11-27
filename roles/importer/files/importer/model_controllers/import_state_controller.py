@@ -120,9 +120,9 @@ class ImportStateController(ImportState):
             if day_string:
                 self.data_retention_days = int(day_string)
             self.last_full_import_id, self.lastFullImportDate = \
-                api_call.get_last_complete_import({"mgmId": int(self.mgm_details.id)}) 
+                api_call.get_last_complete_import({"mgmId": int(self.mgm_details.mgm_id)}) 
         except Exception:
-            FWOLogger.error(f"import_management - error while getting past import details for mgm={str(self.mgm_details.id)}: {str(traceback.format_exc())}")
+            FWOLogger.error(f"import_management - error while getting past import details for mgm={str(self.mgm_details.mgm_id)}: {str(traceback.format_exc())}")
             raise
 
         if self.lastFullImportDate != "":
@@ -244,7 +244,7 @@ class ImportStateController(ImportState):
     def set_rule_map(self, api_call: FwoApi) -> None:
         query = """query getRuleMap($mgmId: Int) { rule(where:{mgm_id: {_eq: $mgmId}, removed:{_is_null:true }}) { rule_id rule_uid } }"""
         try:
-            result = api_call.call(query=query, query_variables= {"mgmId": self.mgm_details.id})
+            result = api_call.call(query=query, query_variables= {"mgmId": self.mgm_details.mgm_id})
         except Exception:
             FWOLogger.error("Error while getting rules")
             self.rule_map = {}
@@ -298,7 +298,7 @@ class ImportStateController(ImportState):
             }
         """
         try:
-            result = api_call.call(query=query, query_variables= {"mgmId": self.mgm_details.id})
+            result = api_call.call(query=query, query_variables= {"mgmId": self.mgm_details.mgm_id})
         except Exception:
             FWOLogger.error("Error while getting managements")
             self.ManagementMap: dict[str, int] = {}

@@ -1,4 +1,4 @@
-﻿using System.Text.Json;
+using System.Text.Json;
 using FWO.Basics;
 using FWO.Data;
 using FWO.Api.Client;
@@ -9,11 +9,6 @@ namespace FWO.FwLogic
 {
     public class EnforcingDevice : DeviceReport
     {
-        // public EnforcingDevice(string name, string uid, string type, string version)
-        //     : base(name, uid, type, type, version)
-        // {
-        // }
-
         public override string ToString()
         {
             return $"{Name} ({Uid})";
@@ -51,7 +46,7 @@ namespace FWO.FwLogic
             {
                 // get all devices that have a link to this rulebase
                 DeviceReport dev = new() { Id = rulebaseLink.GatewayId, Name = "" };
-                if (devReportList.FirstOrDefault(device => device.Id == dev.Id) != null)
+                if (!devReportList.Any(device => device.Id == dev.Id))
                 {
                     devReportList.Add(dev);
                 }

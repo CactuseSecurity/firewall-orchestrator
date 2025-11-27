@@ -205,7 +205,8 @@ namespace FWO.Report
                         foreach (var rulebaseLink in device.RulebaseLinks)
                         {
                             /* NOSONAR - temporarily disabled
-                            // rule.Metadata.UpdateRecertPeriods(userConfig.RecertificationPeriod, userConfig.RecertificationNoticePeriod);*/
+                            // rule.Metadata.UpdateRecertPeriods(userConfig.RecertificationPeriod, userConfig.RecertificationNoticePeriod); NOSONAR
+                            */
                         }
                     }
                 }

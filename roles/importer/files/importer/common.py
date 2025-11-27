@@ -145,7 +145,7 @@ def roll_back_exception_handler(import_state: ImportStateController, config_impo
             if exc is not None:
                 FWOLogger.error(f"Exception: {type(exc).__name__}")
             else:
-                FWOLogger.error(f"Exception: no exception provided")
+                FWOLogger.error("Exception: no exception provided")
         if 'configImporter' in locals() and config_importer is not None:
             FwConfigImportRollback().rollback_current_import()
         else:

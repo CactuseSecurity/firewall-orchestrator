@@ -69,7 +69,7 @@ def get_config(config2import: dict[str, Any], full_config: dict[str, Any], curre
     # cifp_user.normalize_users(
     #     full_config, config2import, current_import_id, user_scope)
     cifp_network.normalize_nwobjects(
-        full_config, config2import, current_import_id, jwt=jwt, mgm_id=mgm_details['id'])
+        full_config, config2import, current_import_id)
     cifp_service.normalize_svcobjects(
         full_config, config2import, current_import_id)
     cifp_rule.normalize_access_rules(
@@ -82,11 +82,11 @@ def get_config(config2import: dict[str, Any], full_config: dict[str, Any], curre
 def get_all_access_rules(sessionId: str, api_url: str, domains: list[dict[str, Any]]) -> list[dict[str, Any]]:
     for domain in domains:
         domain["access_policies"] = cifp_getter.update_config_with_cisco_api_call(sessionId, api_url,
-            "fmc_config/v1/domain/" + domain["uuid"] + "/policy/accesspolicies" , parameters={"expanded": True}, limit=1000)
+            "fmc_config/v1/domain/" + domain["uuid"] + "/policy/accesspolicies" , parameters={"expanded": True})
 
         for access_policy in domain["access_policies"]:
             access_policy["rules"] = cifp_getter.update_config_with_cisco_api_call(sessionId, api_url,
-            "fmc_config/v1/domain/" + domain["uuid"] + "/policy/accesspolicies/" + access_policy["id"] + "/accessrules", parameters={"expanded": True}, limit=1000)
+            "fmc_config/v1/domain/" + domain["uuid"] + "/policy/accesspolicies/" + access_policy["id"] + "/accessrules", parameters={"expanded": True})
     return domains
 
 def get_scopes(searchDomain: str, domains: list[dict[str, Any]]) -> list[str]:
@@ -100,7 +100,7 @@ def get_devices(sessionId: str, api_url: str, config: dict[str, Any], limit: int
     # get all devices
     for scope in scopes:
         config["devices"] = cifp_getter.update_config_with_cisco_api_call(sessionId, api_url,
-         "fmc_config/v1/domain/" + scope + "/devices/devicerecords", parameters={"expanded": True}, limit=limit)
+         "fmc_config/v1/domain/" + scope + "/devices/devicerecords", parameters={"expanded": True})
         for device in config["devices"]:
             if not "domain" in device:
                 device["domain"] = scope
@@ -133,20 +133,20 @@ def get_objects(sessionId: str, api_url: str, config: dict[str, Any], limit: int
         # get network objects (groups):
         # for object_type in nw_obj_types:
         networkObjects.extend(cifp_getter.update_config_with_cisco_api_call(sessionId, api_url,
-         "fmc_config/v1/domain/" + scope + "/object/networkaddresses", parameters={"expanded": True}, limit=limit))
+         "fmc_config/v1/domain/" + scope + "/object/networkaddresses", parameters={"expanded": True}))
         networkObjectGroups.extend(cifp_getter.update_config_with_cisco_api_call(sessionId, api_url,
-         "fmc_config/v1/domain/" + scope + "/object/networkgroups", parameters={"expanded": True}, limit=limit))
+         "fmc_config/v1/domain/" + scope + "/object/networkgroups", parameters={"expanded": True}))
         # get service objects:
         # for object_type in svc_obj_types:
         serviceObjects.extend(cifp_getter.update_config_with_cisco_api_call(sessionId, api_url,
-            "fmc_config/v1/domain/" + scope + "/object/ports", parameters={"expanded": True}, limit=limit))
+            "fmc_config/v1/domain/" + scope + "/object/ports", parameters={"expanded": True}))
         serviceObjectGroups.extend(cifp_getter.update_config_with_cisco_api_call(sessionId, api_url,
-            "fmc_config/v1/domain/" + scope + "/object/portobjectgroups", parameters={"expanded": True}, limit=limit))
+            "fmc_config/v1/domain/" + scope + "/object/portobjectgroups", parameters={"expanded": True}))
         # get user objects:
         userObjects.extend(cifp_getter.update_config_with_cisco_api_call(sessionId, api_url,
-            "fmc_config/v1/domain/" + scope + "/object/realmusers", parameters={"expanded": True}, limit=limit))
+            "fmc_config/v1/domain/" + scope + "/object/realmusers", parameters={"expanded": True}))
         userObjectGroups.extend(cifp_getter.update_config_with_cisco_api_call(sessionId, api_url,
-            "fmc_config/v1/domain/" + scope + "/object/realmusergroups", parameters={"expanded": True}, limit=limit))
+            "fmc_config/v1/domain/" + scope + "/object/realmusergroups", parameters={"expanded": True}))
         
     
     # network objects:

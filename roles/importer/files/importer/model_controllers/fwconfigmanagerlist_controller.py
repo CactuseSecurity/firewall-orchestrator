@@ -5,7 +5,7 @@ from copy import deepcopy
 from typing import Any
 
 from fwo_log import FWOLogger
-from fwo_base import serialize_dict_to_class_rec, deserialize_class_to_dict_rec
+from fwo_base import serialize_dict_to_class_rec
 from fwo_const import IMPORT_TMP_PATH
 
 from model_controllers.import_state_controller import ImportStateController

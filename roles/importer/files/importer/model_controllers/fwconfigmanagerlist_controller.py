@@ -4,7 +4,6 @@ import traceback
 from copy import deepcopy
 from typing import Any
 
-import fwo_globals
 from fwo_log import FWOLogger
 from fwo_base import serialize_dict_to_class_rec, deserialize_class_to_dict_rec
 from fwo_const import IMPORT_TMP_PATH
@@ -23,11 +22,8 @@ class FwConfigManagerListController(FwConfigManagerList):
     def __str__(self):
         return f"{str(self.ManagerSet)})"
 
-    def to_json(self):
-        return deserialize_class_to_dict_rec(self)
-
     def to_json_string(self, pretty_print: bool=False):
-        json_dict = self.to_json()
+        json_dict = self.model_dump(by_alias=True)
         if pretty_print:
             return json.dumps(json_dict, indent=2, cls=FwoEncoder)
         else:
@@ -55,19 +51,6 @@ class FwConfigManagerListController(FwConfigManagerList):
         empty_config.add_manager(empty_manager)
         empty_config.native_config = {}
         return empty_config
-
-# to be re-written:
-    def to_json_legacy(self):
-        return deserialize_class_to_dict_rec(self)
-
-# to be re-written:
-    def to_json_string_legacy(self, pretty_print: bool=False):
-        json_dict = self.to_json()
-        if pretty_print:
-            return json.dumps(json_dict, indent=2, cls=FwoEncoder)
-        else:
-            return json.dumps(json_dict, cls=FwoEncoder)
-
 
     def get_all_zone_names(self, mgr_uid: str) -> set[str]:
         """

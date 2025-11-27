@@ -19,12 +19,12 @@ namespace FWO.Services.RuleTreeBuilder
         /// <summary>
         /// The number of order numbers that were created during the process.
         /// </summary>
-        public int CreatedOrderNumbersCount { get; set; } = 0;
+        public int CreatedOrderNumbersCount { get; set; }
         
         /// <summary>
         /// A counter to easily create the order position (/order number) for the ordered layers on the top level.
         /// </summary>
-        public int OrderedLayerCount { get; set; } = 0;
+        public int OrderedLayerCount { get; set; }
         
         /// <summary>
         /// All of the processed rules.
@@ -41,7 +41,7 @@ namespace FWO.Services.RuleTreeBuilder
         /// </summary>
         public List<Rule> BuildRuleTree()
         {
-            List<int>? lastPosition = [];
+            List<int> lastPosition = [];
 
             // Start outer loop.
             while (RuleTreeBuilderQueue.TryDequeue(out (RulebaseLink link, RulebaseReport rulebase) currentQueueItem))
@@ -68,14 +68,14 @@ namespace FWO.Services.RuleTreeBuilder
         /// <summary>
         /// Recursive method that processes a rulebase link and the target rulebase to create ordernumbers and the integrate the rules in the rule tree.
         /// </summary>
-        private List<int>? HandleRulebaseLinkQueueItem((RulebaseLink link, RulebaseReport rulebase) currentQueueItem, List<int>? lastPosition)
+        private List<int> HandleRulebaseLinkQueueItem((RulebaseLink link, RulebaseReport rulebase) currentQueueItem, List<int> lastPosition)
         {
             // Get next link and rulebase if they exist.
             (RulebaseLink link, RulebaseReport rulebase)? nextQueueItem = TryPeekNextQueueItem();
 
             // Prepare creation of order numbers.
 
-            (List<int>? nextPosition, RuleTreeItem? nextParent, lastPosition) = PrepareOrderNumberCreation(currentQueueItem, lastPosition, nextQueueItem);
+            (List<int> nextPosition, RuleTreeItem? nextParent, lastPosition) = PrepareOrderNumberCreation(currentQueueItem, lastPosition, nextQueueItem);
 
             // Create order number.
             List<Rule> currentRules = [.. currentQueueItem.rulebase.Rules];
@@ -91,7 +91,7 @@ namespace FWO.Services.RuleTreeBuilder
 
                 // Update next position.
 
-                nextPosition = UpdateNextPosition(nextPosition, nextParent, lastPosition);
+                nextPosition = UpdateNextPosition(nextPosition, nextParent);
 
                 // Update order number.
 
@@ -130,7 +130,7 @@ namespace FWO.Services.RuleTreeBuilder
                 }
             }
 
-            return lastPosition ?? [];
+            return lastPosition;
         }
         
         /// <summary>
@@ -161,15 +161,12 @@ namespace FWO.Services.RuleTreeBuilder
                 }
 
                 RulebaseReport rulebase = new();
-
-                if (report != null)
-                {
-                    rulebase.Id = report.Id;
-                    rulebase.Name = report.Name;
-                    rulebase.RuleChanges = report.RuleChanges;
-                    rulebase.RuleStatistics = report.RuleStatistics;
-                    rulebase.Rules = [.. report.Rules];
-                }
+                
+                rulebase.Id = report.Id;
+                rulebase.Name = report.Name;
+                rulebase.RuleChanges = report.RuleChanges;
+                rulebase.RuleStatistics = report.RuleStatistics;
+                rulebase.Rules = [.. report.Rules];
 
                 queue.Enqueue((current, rulebase));
                 remainingLinks.Remove(current);
@@ -243,16 +240,16 @@ namespace FWO.Services.RuleTreeBuilder
             return new RuleTreeItem();
         }
 
-        private (List<int>?, RuleTreeItem?, List<int>?) PrepareOrderNumberCreation((RulebaseLink link, RulebaseReport rulebase) currentQueueItem, List<int>? lastPosition,  (RulebaseLink link, RulebaseReport rulebase)? nextQueueItem)
+        private (List<int>, RuleTreeItem?, List<int>) PrepareOrderNumberCreation((RulebaseLink link, RulebaseReport rulebase) currentQueueItem, List<int> lastPosition,  (RulebaseLink link, RulebaseReport rulebase)? nextQueueItem)
         {
-            List<int>? nextPosition = null;
+            List<int> nextPosition = [];
             RuleTreeItem? nextParent = null;
-            if (currentQueueItem.link.LinkType == 2 && !currentQueueItem.link.IsGlobal)
+            if (currentQueueItem.link is { LinkType: 2, IsGlobal: false })
             {
                 // Create position root and header item for new ordered layer
 
                 OrderedLayerCount++;
-                nextPosition = new List<int> { OrderedLayerCount };
+                nextPosition = [OrderedLayerCount];
                 nextParent = RuleTree.AddItem(header: currentQueueItem.rulebase.Name ?? "", position: nextPosition.ToList(), addToChildren: true, addToFlatList: true, setLastAddedItem: true);
                 nextParent.IsOrderedLayerHeader = true;
                 lastPosition = nextPosition;
@@ -269,7 +266,7 @@ namespace FWO.Services.RuleTreeBuilder
 
                 // Create header item for section.
 
-                nextParent = nextParent.AddItem(header: currentQueueItem.rulebase.Name ?? "", position: nextPosition?.ToList(), addToChildren: true, addToFlatList: true, setLastAddedItem: true);
+                nextParent = nextParent.AddItem(header: currentQueueItem.rulebase.Name ?? "", position: nextPosition.ToList(), addToChildren: true, addToFlatList: true, setLastAddedItem: true);
                 nextParent.IsSectionHeader = true;
             }
             else if (currentQueueItem.link.LinkType == 3)
@@ -277,7 +274,7 @@ namespace FWO.Services.RuleTreeBuilder
                 nextParent = RuleTree.LastAddedItem as RuleTreeItem;
                 if(nextParent !=null)
                     nextParent.IsInlineLayerRoot = true;
-                nextPosition = lastPosition?.ToList()?? [];
+                nextPosition = lastPosition.ToList();
                 nextPosition.Add(0);
                 lastPosition = nextPosition;
 
@@ -296,18 +293,10 @@ namespace FWO.Services.RuleTreeBuilder
             return(nextPosition, nextParent, lastPosition);
         }
 
-        private List<int> UpdateNextPosition(List<int>? nextPosition, RuleTreeItem? nextParent, List<int>? lastPosition)
+        private List<int> UpdateNextPosition(List<int> nextPosition, RuleTreeItem? nextParent)
         {
-            if (nextPosition == null)
-            {
-                nextPosition = lastPosition?.ToList() ?? [];
-            }
-            else if (nextParent?.GetPositionString() == OrderedLayerCount.ToString() && nextParent?.Children.Count == 0)
-            {
-                nextPosition.Add(0);
-            }
-
-            if (nextPosition.Count == 0)
+            
+            if (nextParent!= null && nextParent.GetPositionString() == OrderedLayerCount.ToString() && nextParent.Children.Count == 0 || nextPosition.Count == 0) 
             {
                 nextPosition.Add(0);
             }

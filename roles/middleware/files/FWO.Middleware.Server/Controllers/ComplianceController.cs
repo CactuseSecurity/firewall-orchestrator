@@ -63,7 +63,7 @@ namespace FWO.Middleware.Server.Controllers
                 await reportCompliance.GetManagementAndDevices(apiConnection);
                 List<Management> relevantManagements =  ComplianceCheck.GetRelevantManagements(globalConfig, reportCompliance.Managements!);
                 reportCompliance.Managements = relevantManagements;
-                await reportCompliance.GetViewDataFromRules(complianceCheck.RulesInCheck!);
+                reportCompliance.GetViewDataFromRules(complianceCheck.RulesInCheck!);
                 string reportString = reportCompliance.ExportToCsv();
                 return reportString;
             }

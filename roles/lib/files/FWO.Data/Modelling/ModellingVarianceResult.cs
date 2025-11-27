@@ -88,7 +88,7 @@ namespace FWO.Data.Modelling
                 List<DeviceReport> deviceReports = [];
                 foreach (var rule in rulesToReport[mgtId])
                 {
-                    // NOSONAR - temporarily disabled
+                    /* NOSONAR - temporarily disabled
                     // TODO: Migrate
                     // DeviceReport? existingDev = deviceReports.FirstOrDefault(d => d.Id == rule.DeviceId);
                     // if (existingDev != null)
@@ -99,7 +99,7 @@ namespace FWO.Data.Modelling
                     // {
                     //     string devName = mgt == null ? "" : mgt.Devices.FirstOrDefault(d => d.Id == rule.DeviceId)?.Name ?? "";
                     //     deviceReports.Add(new() { Id = rule.DeviceId, Name = devName, Rules = [rule] });
-                    // }
+                    // } */
                 }
                 managementReport.Devices = [.. deviceReports];
                 managementReports.Add(managementReport);

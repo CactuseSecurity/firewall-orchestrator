@@ -46,7 +46,7 @@ namespace FWO.DeviceAutoDiscovery
 
                     string errorTxtCatch = $"{SuperManagement.Name}";
                     string errorTxt = $"error while logging in to {SuperManagement.Name}: {sessionResponse.ErrorMessage} ";
-                    if (string.IsNullOrEmpty(sessionResponse?.Data?.SessionId))
+                    if (string.IsNullOrEmpty(sessionResponse.Data?.SessionId))
                     {
                         errorTxt += $"could not authenticate to {SuperManagement.Name} - got empty session ID";
                     }                                            

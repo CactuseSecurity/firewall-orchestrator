@@ -1,4 +1,4 @@
-﻿using FWO.Api.Client;
+using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 using FWO.Basics;
 using FWO.Data;
@@ -13,6 +13,7 @@ namespace FWO.DeviceAutoDiscovery
     {
         private readonly string Autodiscovery = "Autodiscovery";
         private readonly string CheckpointHost = "checkpoint-host";
+        private readonly string CheckpointClusterMember = "cluster-member";
 
         public AutoDiscoveryCpMds(Management mgm, ApiConnection apiConn) : base(mgm, apiConn) { }
 
@@ -182,7 +183,7 @@ namespace FWO.DeviceAutoDiscovery
             // add devices to currentManagement
             foreach (CpDevice cpDev in devList)
             {
-                if (cpDev.CpDevType != CheckpointHost)   // leave out the management host
+                if (cpDev.CpDevType != CheckpointHost && cpDev.CpDevType != CheckpointClusterMember)   // leave out the management host  "cluster-member" and cluster members "cluster-member"
                 {
                     Device dev = new()
                     {

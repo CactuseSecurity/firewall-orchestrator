@@ -25,7 +25,7 @@ namespace FWO.Report
         public List<RuleViewData> RuleViewData = [];
         public List<ComplianceViolation> Violations { get; set; } = [];
         public bool ShowNonImpactRules { get; set; }
-        public List<Management> Managements { get; set; } = [];
+        public List<Management> Managements  { get; set; } = [];
         protected virtual string InternalQuery => RuleQueries.getRulesWithCurrentViolationsByChunk;
         protected DebugConfig DebugConfig;
 
@@ -51,6 +51,8 @@ namespace FWO.Report
 
         public ReportCompliance(DynGraphqlQuery query, UserConfig userConfig, ReportType reportType) : base(query, userConfig, reportType)
         {
+            // Getting config values.
+
             if (userConfig.GlobalConfig != null)
             {
                 _globalConfig = userConfig.GlobalConfig;
@@ -354,6 +356,7 @@ namespace FWO.Report
                 RuleViewData ruleViewData = new RuleViewData(rule, _natRuleDisplayHtml, OutputLocation.report, ShowRule(rule), _devices ?? [], Managements, ruleCompliance);
                 RuleViewData.Add(ruleViewData);
             }
+
         }
 
 

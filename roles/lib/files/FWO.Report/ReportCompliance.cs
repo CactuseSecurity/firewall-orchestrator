@@ -357,7 +357,6 @@ namespace FWO.Report
                 RuleViewData.Add(ruleViewData);
             }
 
-            return Task.CompletedTask;
         }
 
 

@@ -18,12 +18,18 @@ namespace FWO.Services
                 return false;
             }
 
-            return (!option.NwRegardIp || nwObject1.IP == nwObject2.IP && nwObject1.IpEnd == nwObject2.IpEnd)
-                && (!option.NwRegardName || nwObject1.Name == nwObject2.Name);
+            return (!option.NwRegardIp || (string.Equals(nwObject1.IP, nwObject2.IP, StringComparison.Ordinal)
+                    && string.Equals(nwObject1.IpEnd, nwObject2.IpEnd, StringComparison.Ordinal)))
+                && (!option.NwRegardName || string.Equals(nwObject1.Name, nwObject2.Name, StringComparison.Ordinal));
         }
 
-        public int GetHashCode(NetworkObject nwObject)
+        public int GetHashCode(NetworkObject? nwObject)
         {
+            if (nwObject is null)
+            {
+                return 0;
+            }
+
             return (option.NwRegardIp ? HashCode.Combine(nwObject.IP, nwObject.IpEnd) : 0)
                 ^ (option.NwRegardName ? HashCode.Combine(nwObject.Name) : 0);
         }
@@ -47,29 +53,34 @@ namespace FWO.Services
 
             if(option.NwSeparateGroupAnalysis)
             {
-                return !option.NwRegardGroupName || nwObjectGrp1.Name == nwObjectGrp2.Name;
+                return !option.NwRegardGroupName || string.Equals(nwObjectGrp1.Name, nwObjectGrp2.Name, StringComparison.Ordinal);
             }
 
-            List<NetworkObject> objectList1 = [.. nwObjectGrp1.ObjectGroupFlats.Where(o => o.Object != null && o.Object?.Type.Name != ObjectType.Group).ToList().ConvertAll(g => g.Object)];
-            List<NetworkObject> objectList2 = [.. nwObjectGrp2.ObjectGroupFlats.Where(o => o.Object != null && o.Object?.Type.Name != ObjectType.Group).ToList().ConvertAll(g => g.Object)];
+            List<NetworkObject> objectList1 = [.. nwObjectGrp1.ObjectGroupFlats.Where(o => o.Object != null && !string.Equals(o.Object?.Type.Name, ObjectType.Group, StringComparison.Ordinal)).ToList().ConvertAll(g => g.Object)];
+            List<NetworkObject> objectList2 = [.. nwObjectGrp2.ObjectGroupFlats.Where(o => o.Object != null && !string.Equals(o.Object?.Type.Name, ObjectType.Group, StringComparison.Ordinal)).ToList().ConvertAll(g => g.Object)];
 
             if (objectList1.Count != objectList2.Count
-                || (option.NwRegardGroupName && nwObjectGrp1.Name != nwObjectGrp2.Name))
+                || (option.NwRegardGroupName && !string.Equals(nwObjectGrp1.Name, nwObjectGrp2.Name, StringComparison.Ordinal)))
             {
                 return false;
             }
 
-            return objectList1.Except(objectList2, networkObjectComparer).ToList().Count == 0 
-                && objectList2.Except(objectList1, networkObjectComparer).ToList().Count == 0;
+            return !objectList1.Except(objectList2, networkObjectComparer).Any()
+                && !objectList2.Except(objectList1, networkObjectComparer).Any();
         }
 
-        public int GetHashCode(NetworkObject nwObject)
+        public int GetHashCode(NetworkObject? nwObject)
         {
+            if (nwObject is null)
+            {
+                return 0;
+            }
+
             int hashCode = 0;
             
             if(!option.NwSeparateGroupAnalysis)
             {
-                foreach(var obj in nwObject.ObjectGroupFlats.Where(o => o.Object?.Type.Name != ObjectType.Group).Select(o => o.Object).ToList())
+                foreach(var obj in nwObject.ObjectGroupFlats.Where(o => !string.Equals(o.Object?.Type.Name, ObjectType.Group, StringComparison.Ordinal)).Select(o => o.Object).ToList())
                 {
                     hashCode ^= obj != null ? networkObjectComparer.GetHashCode(obj) : 0;
                 }

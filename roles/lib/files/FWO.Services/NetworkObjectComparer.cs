@@ -56,8 +56,14 @@ namespace FWO.Services
                 return !option.NwRegardGroupName || string.Equals(nwObjectGrp1.Name, nwObjectGrp2.Name, StringComparison.Ordinal);
             }
 
-            List<NetworkObject> objectList1 = [.. nwObjectGrp1.ObjectGroupFlats.Where(o => o.Object != null && !string.Equals(o.Object?.Type.Name, ObjectType.Group, StringComparison.Ordinal)).ToList().ConvertAll(g => g.Object)];
-            List<NetworkObject> objectList2 = [.. nwObjectGrp2.ObjectGroupFlats.Where(o => o.Object != null && !string.Equals(o.Object?.Type.Name, ObjectType.Group, StringComparison.Ordinal)).ToList().ConvertAll(g => g.Object)];
+            List<NetworkObject> objectList1 = nwObjectGrp1.ObjectGroupFlats
+                .Where(o => o.Object != null && !string.Equals(o.Object.Type.Name, ObjectType.Group, StringComparison.Ordinal))
+                .Select(o => o.Object!)
+                .ToList();
+            List<NetworkObject> objectList2 = nwObjectGrp2.ObjectGroupFlats
+                .Where(o => o.Object != null && !string.Equals(o.Object.Type.Name, ObjectType.Group, StringComparison.Ordinal))
+                .Select(o => o.Object!)
+                .ToList();
 
             if (objectList1.Count != objectList2.Count
                 || (option.NwRegardGroupName && !string.Equals(nwObjectGrp1.Name, nwObjectGrp2.Name, StringComparison.Ordinal)))
@@ -80,9 +86,9 @@ namespace FWO.Services
             
             if(!option.NwSeparateGroupAnalysis)
             {
-                foreach(var obj in nwObject.ObjectGroupFlats.Where(o => !string.Equals(o.Object?.Type.Name, ObjectType.Group, StringComparison.Ordinal)).Select(o => o.Object).ToList())
+                foreach(var obj in nwObject.ObjectGroupFlats.Where(o => o.Object != null && !string.Equals(o.Object.Type.Name, ObjectType.Group, StringComparison.Ordinal)).Select(o => o.Object!))
                 {
-                    hashCode ^= obj != null ? networkObjectComparer.GetHashCode(obj) : 0;
+                    hashCode ^= networkObjectComparer.GetHashCode(obj);
                 }
             }
             return hashCode ^ (option.NwRegardGroupName ? 

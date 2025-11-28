@@ -3,12 +3,14 @@ import unittest
 
 from models.rule import RuleNormalized
 from model_controllers.fwconfig_import_ruleorder import RuleOrderService
+from fwo_log import FWOLogger
+from test.mocking.mock_import_state import MockImportStateController
 from test.mocking.mock_fwconfig_import_rule import MockFwConfigImportRule
 from test.mocking.mock_config import MockFwConfigNormalizedBuilder
 from test.tools.set_up_test import remove_rule_from_rulebase, insert_rule_in_config, move_rule_in_config, update_rule_map_and_rulebase_map, update_rule_num_numerics
 from fwo_const import RULE_NUM_NUMERIC_STEPS
 import fwo_local_settings
-from fwo_base import init_service_provider
+from fwo_base import init_service_provider, register_global_state
 
 from services.service_provider import ServiceProvider
 from services.enums import Services
@@ -21,9 +23,10 @@ class TestFwConfigImportRuleOrder(unittest.TestCase):
         """
             Gets invoked one time before running any tests.
         """
-
+        FWOLogger(2)
         init_service_provider()
         cls._service_provider = ServiceProvider()
+        register_global_state(MockImportStateController(import_id=1, stub_setCoreData=True))
         cls._global_state = cls._service_provider.get_service(Services.GLOBAL_STATE)
         cls._debug_level: int = 1
 
@@ -90,7 +93,7 @@ class TestFwConfigImportRuleOrder(unittest.TestCase):
 
             # Act
 
-            self._rule_order_service.update_rule_order_diffs(self._debug_level)
+            self._rule_order_service.update_rule_order_diffs()
 
             # Assert
             for rulebase in self._normalized_config.rulebases:
@@ -114,7 +117,7 @@ class TestFwConfigImportRuleOrder(unittest.TestCase):
 
         # Act
 
-        self._rule_order_service.update_rule_order_diffs(self._debug_level)
+        self._rule_order_service.update_rule_order_diffs()
 
         # # Assert
 
@@ -146,7 +149,7 @@ class TestFwConfigImportRuleOrder(unittest.TestCase):
 
         # Act
 
-        self._rule_order_service.update_rule_order_diffs(self._debug_level)
+        self._rule_order_service.update_rule_order_diffs()
 
         # Assert
 
@@ -177,7 +180,7 @@ class TestFwConfigImportRuleOrder(unittest.TestCase):
 
         # Act
 
-        self._rule_order_service.update_rule_order_diffs(self._debug_level)
+        self._rule_order_service.update_rule_order_diffs()
 
         # Assert
 
@@ -197,7 +200,7 @@ class TestFwConfigImportRuleOrder(unittest.TestCase):
 
         # Act
 
-        self._rule_order_service.update_rule_order_diffs(self._debug_level)
+        self._rule_order_service.update_rule_order_diffs()
 
         # Assert
 

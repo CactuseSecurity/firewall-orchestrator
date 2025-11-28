@@ -3,11 +3,12 @@ import unittest
 
 from models.fwconfig_normalized import FwConfigNormalized
 
+from fwo_log import FWOLogger
 from test.mocking.mock_import_state import MockImportStateController
 from test.mocking.mock_config import MockFwConfigNormalizedBuilder
 from test.mocking.mock_fwconfig_import_rule import MockFwConfigImportRule
 from test.tools.set_up_test import remove_rule_from_rulebase, insert_rule_in_config, move_rule_in_config, update_rule_map_and_rulebase_map, update_rule_num_numerics
-from fwo_base import init_service_provider
+from fwo_base import init_service_provider, register_global_state
 from services.service_provider import ServiceProvider
 from services.enums import Services
 
@@ -29,8 +30,10 @@ class TestUpdateRulebaseDiffs(unittest.TestCase):
             Gets invoked once before running any test of this class.
         """
         
+        FWOLogger(2)
         cls._config_builder = MockFwConfigNormalizedBuilder()
         init_service_provider()
+        register_global_state(MockImportStateController(import_id=1, stub_setCoreData=True))
         cls._service_provider = ServiceProvider()
         cls._global_state = cls._service_provider.get_service(Services.GLOBAL_STATE)
         cls._import_id = 0

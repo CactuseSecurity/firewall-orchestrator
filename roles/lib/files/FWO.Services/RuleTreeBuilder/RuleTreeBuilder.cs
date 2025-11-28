@@ -1,3 +1,4 @@
+using FWO.Basics;
 using FWO.Data;
 using FWO.Data.Report;
 
@@ -200,23 +201,29 @@ namespace FWO.Services.RuleTreeBuilder
         /// <summary>
         /// Returns the item that should be used for the section rule tree item in creation.
         /// </summary>
-        private RuleTreeItem GetSectionParent(List<int> nextPosition)
+        private RuleTreeItem GetSectionParent(IEnumerable<int> nextPosition)
         {
-            List<int> position = nextPosition.ToList();
-            if (position.Last() == 0) position.Remove(position.Last());
-            RuleTreeItem item = RuleTree.ElementsFlat.FirstOrDefault(x => x.GetPositionString() == string.Join(".", position)) as RuleTreeItem ?? new RuleTreeItem();
-
-            if (item.Data is Rule && (item.Parent as RuleTreeItem ?? new RuleTreeItem()).IsOrderedLayerHeader && nextPosition?.Last() != 0)
+            List<int> changedCopy = nextPosition.ToList();
+            bool isLastPositionZero = false;
+            if (changedCopy.Last() == 0)
             {
-                return item.Parent as RuleTreeItem ?? new RuleTreeItem();
+                changedCopy.Remove(changedCopy.Last());
+                isLastPositionZero = true;
+            }
+            RuleTreeItem item = RuleTree.ElementsFlat.FirstOrDefault(x => CompareTreeItemPosition(x, changedCopy)) as RuleTreeItem ?? new RuleTreeItem();
+        
+            RuleTreeItem parent = item.Parent as RuleTreeItem ?? new RuleTreeItem();
+            if (item.Data is not null && parent.IsOrderedLayerHeader && !isLastPositionZero)
+            {
+                return parent;
             }
             if (item.IsOrderedLayerHeader)
             {
                 return item;
             }
-            if ((item.Parent as RuleTreeItem ?? new RuleTreeItem()).IsSectionHeader)
+            if (parent.IsSectionHeader)
             {
-                if (nextPosition?.Last() == 0)
+                if (isLastPositionZero)
                 {
                     return item;
                 }
@@ -226,11 +233,11 @@ namespace FWO.Services.RuleTreeBuilder
             {
                 return item;
             }
-            else if ((item.Parent as RuleTreeItem ?? new RuleTreeItem()).IsInlineLayerRoot)
+            if (parent.IsInlineLayerRoot)
             {
                 return item.Parent as RuleTreeItem ?? new RuleTreeItem();
             }
-            return new();
+            return new RuleTreeItem();
         }
 
         private (List<int>, RuleTreeItem?, List<int>) PrepareOrderNumberCreation((RulebaseLink link, RulebaseReport rulebase) currentQueueItem, List<int> lastPosition,  (RulebaseLink link, RulebaseReport rulebase)? nextQueueItem)
@@ -295,6 +302,43 @@ namespace FWO.Services.RuleTreeBuilder
             }
 
             return nextPosition;
+        }
+        
+        #region NormalizePosition
+        private static string NormalizePosition(IEnumerable<string> parts)
+        {
+            var partsArray = parts.ToArray();
+            int lastNonZeroIndex = partsArray.Length - 1;
+            
+            while (lastNonZeroIndex > 0 && partsArray[lastNonZeroIndex] == "0")
+                lastNonZeroIndex--;
+            return string.Join(".", partsArray.Take(lastNonZeroIndex + 1));
+        }
+        private static string NormalizePosition(IEnumerable<int> parts)
+        {
+            var partsArray = parts.ToArray();
+            int lastNonZeroIndex = partsArray.Length - 1;
+            
+            while (lastNonZeroIndex > 0 && partsArray[lastNonZeroIndex] == 0)
+                lastNonZeroIndex--;
+            return string.Join(".", partsArray.Take(lastNonZeroIndex + 1));
+        }
+        private static string NormalizePosition(string position)
+        {
+            return NormalizePosition(position.Split('.'));
+        }
+        #endregion
+
+        protected static bool CompareTreeItemPosition(ITreeItem<Rule> treeItem, List<int> list)
+        {
+            string treeItemString = NormalizePosition(treeItem.GetPositionString());
+            string listString = NormalizePosition(list);
+            bool comparisonResult = treeItemString == listString;
+            if (!comparisonResult)
+            {
+                Logging.Log.WriteDebug("Comparing Position", $"Tree Item Position: {treeItemString} | Listing Position: {listString}");
+            }
+            return comparisonResult;
         }
     }
 }

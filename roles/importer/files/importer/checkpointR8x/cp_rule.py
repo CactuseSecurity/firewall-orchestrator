@@ -142,7 +142,7 @@ def parse_rulebase_chunk(rulebase_to_parse: dict[str, Any], normalized_rulebase:
             if 'rule-number' in rule:
                 parse_single_rule(rule, normalized_rulebase, normalized_rulebase.uid, None, gateway, policy_structure)
             else:
-                FWOLogger.debug("found unparsable rulebase: " + str(rulebase_to_parse))
+                FWOLogger.debug("found unparsable rulebase: " + str(rulebase_to_parse), 9)
  
 
 def accept_malformed_parts(objects: dict[str, Any] | list[dict[str, Any]], part: str ='') -> dict[str, Any]:

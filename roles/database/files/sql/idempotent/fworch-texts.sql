@@ -3473,6 +3473,10 @@ INSERT INTO txt VALUES ('E5292', 'German',  'Dn oder Gruppe muss gef&uuml;llt se
 INSERT INTO txt VALUES ('E5292', 'English', 'Dn or group has to be filled');
 INSERT INTO txt VALUES ('E5293', 'German',  'Lifecycle Status konnte nicht gespeichert werden');
 INSERT INTO txt VALUES ('E5293', 'English', 'Owner Lifecycle State could not be saved');
+INSERT INTO txt VALUES ('E5294', 'German',  'Fehler beim Einloggen in');
+INSERT INTO txt VALUES ('E5294', 'English', 'error while logging in to');
+INSERT INTO txt VALUES ('E5295', 'German',  'Authentifizierungsfehler');
+INSERT INTO txt VALUES ('E5295', 'English', 'Authentication Error');
 
 INSERT INTO txt VALUES ('E5301', 'German',  'Konfiguration konnte nicht gelesen oder verarbeitet werden.');
 INSERT INTO txt VALUES ('E5301', 'English', 'Error reading or processing Config.');

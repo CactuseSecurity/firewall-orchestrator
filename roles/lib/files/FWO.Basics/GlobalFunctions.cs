@@ -2,7 +2,7 @@
 namespace FWO.Basics
 {
 
-    public class GlobalFunc
+    public static class GlobalFunc
     {
         public static string ShowBool(bool boolVal)
         {

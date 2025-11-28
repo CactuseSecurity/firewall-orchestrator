@@ -96,9 +96,6 @@ def main_loop(debug_level: int, verify_certificates: bool | None = None, suppres
 
         ## loop through all managements
         for mgm_id in mgm_ids:
-            if mgm_id not in [5, 9]:
-                continue # for testing only, remove later
-
             wait_with_shutdown_check(0)
             import_state = ImportStateController.initializeImport(mgm_id, jwt, suppress_certificate_warnings, verify_certificates, force, fwo_major_version, clear, is_full_import)
             

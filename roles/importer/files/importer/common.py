@@ -195,7 +195,7 @@ def get_module(import_state: ImportStateController) -> FwCommon:
         case 'fortiadom5ff':
             from fortiadom5ff.fwcommon import FortiAdom5ffCommon
             fw_module = FortiAdom5ffCommon()
-        case 'checkpointr8x':
+        case 'checkpointR8x':
             from checkpointR8x.fwcommon import CheckpointR8xCommon
             fw_module = CheckpointR8xCommon()
         case _:

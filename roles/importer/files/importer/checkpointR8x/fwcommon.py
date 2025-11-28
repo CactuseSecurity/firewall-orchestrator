@@ -15,7 +15,7 @@ import fwo_globals
 from model_controllers.fwconfig_normalized_controller import FwConfigNormalizedController
 from fwo_exceptions import ImportInterruption, FwoImporterError
 from model_controllers.management_controller import ManagementController
-from roles.importer.files.importer.models.fw_common import FwCommon
+from models.fw_common import FwCommon
 
 
 class CheckpointR8xCommon(FwCommon):

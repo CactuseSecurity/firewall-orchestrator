@@ -62,6 +62,8 @@ class MockImportStateController(ImportStateController):
         self.service_id_map = {}
         self.network_object_id_map = {}
         self.user_id_map = {}
+        self.rule_map = {}
+        self.rulebase_map = {}
 
         self.removed_rules_map = {}
 

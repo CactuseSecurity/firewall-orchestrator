@@ -17,14 +17,14 @@ from fwo_base import ConfigAction
 from fortiadom5ff.fmgr_zone import get_zones, normalize_zones
 from models.fwconfig_normalized import FwConfigNormalized
 from models.management import Management
-from models.import_state import ImportState
+from models.fw_common import FwCommon
 
 
-def has_config_changed(_: dict[str, Any], __: ImportState, ___: bool = False) -> bool:
-    # dummy - may be filled with real check later on
-    return True
+class FortiAdom5ffCommon(FwCommon):
+    def get_config(self, config_in: FwConfigManagerListController, import_state: ImportStateController) -> tuple[int, FwConfigManagerListController]:
+        return get_config(config_in, import_state)
 
-def get_config(config_in: FwConfigManagerListController, importState: ImportStateController):
+def get_config(config_in: FwConfigManagerListController, importState: ImportStateController) -> tuple[int, FwConfigManagerListController]:
     if config_in.has_empty_config():   # no native config was passed in, so getting it from FW-Manager 
         config_in.native_config.update({'domains': []}) # type: ignore #TYPING: What is this? None or not None this is the question
         parsing_config_only = False

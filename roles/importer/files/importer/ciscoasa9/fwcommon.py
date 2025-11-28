@@ -13,20 +13,20 @@ import time
 
 from model_controllers.fwconfigmanagerlist_controller import FwConfigManagerListController
 from model_controllers.import_state_controller import ImportStateController
-from models.fwconfigmanagerlist import FwConfigManagerList
 from fwo_log import FWOLogger
 from model_controllers.management_controller import ManagementController
 from ciscoasa9.asa_parser import parse_asa_config
 from fwo_base import write_native_config_to_file
 from ciscoasa9.asa_normalize import normalize_config
 from fwo_exceptions import FwoImporterError
-from models.import_state import ImportState
-from models.import_state import ImportState
+
+from models.fw_common import FwCommon
 
 
-def has_config_changed(_: dict[str, Any], __: ImportState, ___: bool = False) -> bool:
-    # We don't get this info from ASA, so we always return True
-    return True
+
+class CiscoAsa9Common(FwCommon):
+    def get_config(self, config_in: FwConfigManagerListController, import_state: ImportStateController) -> tuple[int, FwConfigManagerListController]:
+        return get_config(config_in, import_state)
 
 
 def _connect_to_device(mgm_details: ManagementController) -> GenericDriver:
@@ -286,7 +286,7 @@ def load_config_from_management(mgm_details: ManagementController, is_virtual_as
     raise FwoImporterError(f"Failed to connect to device {mgm_details.hostname} after {max_retries} attempts")
 
 
-def get_config(config_in: FwConfigManagerListController, import_state: ImportStateController) -> tuple[int, FwConfigManagerList]:
+def get_config(config_in: FwConfigManagerListController, import_state: ImportStateController) -> tuple[int, FwConfigManagerListController]:
     """
     Retrieve and parse the ASA configuration.
 

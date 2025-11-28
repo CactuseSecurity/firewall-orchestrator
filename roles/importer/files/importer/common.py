@@ -1,4 +1,3 @@
-import importlib
 import traceback
 import sys
 import time
@@ -9,10 +8,11 @@ from pathlib import Path
 
 from fwo_const import IMPORTER_BASE_DIR
 from fwo_log import FWOLogger
+from models.fw_common import FwCommon
 if IMPORTER_BASE_DIR not in sys.path:
     sys.path.append(IMPORTER_BASE_DIR) # adding absolute path here once
 from fwo_api_call import FwoApiCall
-from fwo_const import FW_MODULE_NAME, IMPORT_TMP_PATH
+from fwo_const import IMPORT_TMP_PATH
 import fwo_globals
 from fwo_base import write_native_config_to_file
 from fwo_exceptions import ShutdownRequested, FwoImporterError, FwLoginFailed, ImportRecursionLimitReached, FwoApiWriteError, FwoImporterErrorInconsistencies, ImportInterruption
@@ -185,12 +185,28 @@ def import_from_file(import_state: ImportStateController, file_name: str = "") -
     return config_changed_since_last_import, configFromFile
 
 
+def get_module(import_state: ImportStateController) -> FwCommon:
+    # pick product-specific importer:
+    pkg_name = get_module_package_name(import_state)
+    match pkg_name:
+        case 'ciscoasa9':
+            from ciscoasa9.fwcommon import CiscoAsa9Common
+            fw_module = CiscoAsa9Common()
+        case 'fortiadom5ff':
+            from fortiadom5ff.fwcommon import FortiAdom5ffCommon
+            fw_module = FortiAdom5ffCommon()
+        case 'checkpointr8x':
+            from checkpointR8x.fwcommon import CheckpointR8xCommon
+            fw_module = CheckpointR8xCommon()
+        case _:
+            raise FwoImporterError(f"import_management - no fwcommon module found for package name {pkg_name}")
+
+    return fw_module
+
+
 def get_config_from_api(import_state: ImportStateController, config_in: FwConfigManagerListController) -> tuple[bool, FwConfigManagerListController]:
     try: # pick product-specific importer:
-        pkg_name = get_module_package_name(import_state)
-        if f"{IMPORTER_BASE_DIR}/{pkg_name}" not in sys.path:
-            sys.path.append(f"{IMPORTER_BASE_DIR}/{pkg_name}")
-        fw_module = importlib.import_module("." + FW_MODULE_NAME, pkg_name)
+        fw_module = get_module(import_state)
     except Exception:
         FWOLogger.exception("import_management - error while loading product specific fwcommon module", traceback.format_exc())        
         raise

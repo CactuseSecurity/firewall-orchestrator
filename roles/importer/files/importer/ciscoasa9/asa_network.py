@@ -11,7 +11,7 @@ from ciscoasa9.asa_models import AsaNetworkObject, AsaNetworkObjectGroup, AsaNet
 from models.networkobject import NetworkObject
 import fwo_const
 import fwo_base
-from importer.fwo_log import FWOLogger
+from fwo_log import FWOLogger
 
 
 def create_network_host(name: str, ip_address: str, comment: str | None, ip_version: int) -> NetworkObject:

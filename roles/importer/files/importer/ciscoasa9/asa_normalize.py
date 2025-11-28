@@ -5,7 +5,6 @@ orchestrating the conversion from native ASA format to the normalized
 format used by the firewall orchestrator.
 """
 
-from logging import Logger
 from fwo_log import FWOLogger
 from models.fwconfig_normalized import FwConfigNormalized
 from ciscoasa9.asa_models import Config

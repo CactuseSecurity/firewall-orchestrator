@@ -34,7 +34,7 @@ class FwConfigManagerListController(FwConfigManagerList):
             self.ManagerSet.extend(conf2.ManagerSet)
 
     @staticmethod
-    def generate_empty_config(is_super_manager: bool=False):
+    def generate_empty_config(is_super_manager: bool=False) -> 'FwConfigManagerListController':
         """
         Generates an empty FwConfigManagerListController with a single empty FwConfigManager.
         """

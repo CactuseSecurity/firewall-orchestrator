@@ -5,7 +5,7 @@ from copy import deepcopy
 
 from checkpointR8x import cp_rule, cp_const, cp_network, cp_service, cp_getter, cp_gateway
 from fwo_exceptions import FwLoginFailed
-from models.fwconfigmanagerlist import FwConfigManagerList, FwConfigManager
+from models.fwconfigmanagerlist import FwConfigManager
 from model_controllers.fwconfigmanagerlist_controller import FwConfigManagerListController
 from models.fwconfig_normalized import FwConfigNormalized
 from model_controllers.import_state_controller import ImportStateController
@@ -14,30 +14,32 @@ import fwo_const
 import fwo_globals
 from model_controllers.fwconfig_normalized_controller import FwConfigNormalizedController
 from fwo_exceptions import ImportInterruption, FwoImporterError
-from models.import_state import ImportState
 from model_controllers.management_controller import ManagementController
+from roles.importer.files.importer.models.fw_common import FwCommon
 
 
+class CheckpointR8xCommon(FwCommon):
+    def has_config_changed(self, full_config: FwConfigManagerListController, import_state: ImportStateController, force: bool = False) -> bool:
+        if full_config:   # a config was passed in (read from file), so we assume that an import has to be done (simulating changes here)
+            return True
 
-def has_config_changed(full_config: dict[str, Any], import_state: ImportState, force: bool = False) -> bool:
+        session_id: str = cp_getter.login(import_state.mgm_details)
 
-    if full_config != {}:   # a config was passed in (read from file), so we assume that an import has to be done (simulating changes here)
-        return True
+        if import_state.last_successful_import is None or import_state.last_successful_import == '' or force:
+            # if no last import time found or given or if force flag is set, do full import
+            result = True
+        else: # otherwise search for any changes since last import
+            result = (cp_getter.get_changes(session_id, import_state.mgm_details.hostname, str(import_state.mgm_details.port),import_state.last_successful_import) != 0)
 
-    session_id: str = cp_getter.login(import_state.mgm_details)
+        cp_getter.logout(import_state.mgm_details.buildFwApiString(), session_id)
 
-    if import_state.last_successful_import is None or import_state.last_successful_import == '' or force:
-        # if no last import time found or given or if force flag is set, do full import
-        result = True
-    else: # otherwise search for any changes since last import
-        result = (cp_getter.get_changes(session_id, import_state.mgm_details.hostname, str(import_state.mgm_details.port),import_state.last_successful_import) != 0)
-
-    cp_getter.logout(import_state.mgm_details.buildFwApiString(), session_id)
-
-    return result > 0
+        return result > 0
+    
+    def get_config(self, config_in: FwConfigManagerListController, import_state: ImportStateController) -> tuple[int, FwConfigManagerListController]:
+        return get_config(config_in, import_state)
 
 
-def get_config(config_in: FwConfigManagerListController, import_state: ImportStateController) -> tuple[int, FwConfigManagerList]:
+def get_config(config_in: FwConfigManagerListController, import_state: ImportStateController) -> tuple[int, FwConfigManagerListController]:
 
     FWOLogger.debug ( "starting checkpointR8x/get_config" )
 

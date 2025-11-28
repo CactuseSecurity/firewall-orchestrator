@@ -1,4 +1,4 @@
-﻿using System.Text.Json.Serialization; 
+using System.Text.Json.Serialization; 
 using Newtonsoft.Json;
 using FWO.Data;
 using FWO.Data.Report;
@@ -29,10 +29,11 @@ namespace FWO.Report
                     {
                         rule.DisplayOrderNumber = ruleNumber++;
                     }
+                    /* NOSONAR
                     // if (rule.NextRulebase != null)
                     // {
                     //     AssignRuleNumbers(rule.NextRulebase, ruleNumber);
-                    // }
+                    // }*/
                 }
             }
         }
@@ -48,7 +49,7 @@ namespace FWO.Report
     }
 
 
-    public static class RulebaseUtility
+    public static class RulebaseUtility     
     {
         // adding rules fetched in slices
         public static bool Merge(this RulebaseReport[] rulebases, RulebaseReport[] rulebasesToMerge)

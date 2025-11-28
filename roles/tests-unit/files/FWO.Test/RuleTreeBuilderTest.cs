@@ -251,6 +251,43 @@ namespace FWO.Test
 
         #endregion
 
+        #region GetSectionParent
+
+        [Test]
+        public void CompareTreeItemPosition_Succeeds()
+        {
+            RuleTreeItem item =   MockReportRules.CreateRuleTreeItem(1, 0, [1, 1]);
+            List<int> positionList = [1,1];
+            Assert.That(MockRuleTreeBuilder.CompareTreeItemPosition(item,positionList));
+        }
+        
+        [Test]
+        public void CompareTreeItemPosition_TrailingZeros_Succeeds()
+        {
+            RuleTreeItem item =   MockReportRules.CreateRuleTreeItem(1, 0, [1, 1, 0, 0]);
+            List<int> positionList = [1,1];
+            Assert.That(MockRuleTreeBuilder.CompareTreeItemPosition(item,positionList));
+        }
+        
+        [Test]
+        public void CompareTreeItemPosition_TrailingZeros_Fails()
+        {
+            RuleTreeItem item =   MockReportRules.CreateRuleTreeItem(1, 0, [2, 1, 0, 0]);
+            List<int> positionList = [1,1];
+            Assert.That(!MockRuleTreeBuilder.CompareTreeItemPosition(item,positionList));
+        }
+        
+        [Test]
+        public void CompareTreeItemPosition_Fails()
+        {
+            RuleTreeItem item =   MockReportRules.CreateRuleTreeItem(1, 0, [2, 1]);
+            List<int> positionList = [1,1];
+            Assert.That(!MockRuleTreeBuilder.CompareTreeItemPosition(item,positionList));
+        }
+        
+        #endregion
+        
+        
         private void SetUpMockReportRulesBasic(bool buildControlTree)
         {
             if (buildControlTree)

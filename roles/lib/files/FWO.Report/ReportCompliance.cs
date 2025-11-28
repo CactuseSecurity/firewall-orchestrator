@@ -1,17 +1,18 @@
+using FWO.Api.Client;
+using FWO.Api.Client.Queries;
 using FWO.Basics;
-using System.Text;
-using FWO.Report.Filter;
 using FWO.Config.Api;
 using FWO.Data;
-using FWO.Api.Client;
-using FWO.Data.Report;
-using FWO.Api.Client.Queries;
-using System.Reflection;
-using System.Text.Json;
 using FWO.Data.Middleware;
+using FWO.Data.Report;
 using FWO.Logging;
 using FWO.Report.Data.ViewData;
+using FWO.Report.Filter;
 using FWO.Ui.Display;
+using System.Collections.Generic;
+using System.Reflection;
+using System.Text;
+using System.Text.Json;
 
 namespace FWO.Report
 {
@@ -24,7 +25,7 @@ namespace FWO.Report
         public List<RuleViewData> RuleViewData = [];
         public List<ComplianceViolation> Violations { get; set; } = [];
         public bool ShowNonImpactRules { get; set; }
-        public List<Management>? Managements  { get; set; }
+        public List<Management> Managements { get; set; } = [];
         protected virtual string InternalQuery => RuleQueries.getRulesWithCurrentViolationsByChunk;
         protected DebugConfig DebugConfig;
 
@@ -41,7 +42,7 @@ namespace FWO.Report
         private char _separator;
         private int _maxCellSize;
         private readonly int _maxPrintedViolations;
-        private List<int> _relevanteManagementIDs = new();
+        private readonly List<int> _relevanteManagementIDs = new();
         private readonly GlobalConfig _globalConfig;
 
         #endregion
@@ -59,7 +60,7 @@ namespace FWO.Report
                 _globalConfig = new();
             }
 
-            _maxDegreeOfParallelism = Environment.ProcessorCount;
+            _maxDegreeOfParallelism = _globalConfig.ComplianceCheckAvailableProcessors > Environment.ProcessorCount ? Environment.ProcessorCount : _globalConfig.ComplianceCheckAvailableProcessors;
             _semaphore = new SemaphoreSlim(_maxDegreeOfParallelism);
             _natRuleDisplayHtml = new NatRuleDisplayHtml(userConfig);
 
@@ -110,24 +111,7 @@ namespace FWO.Report
         {
             // Get management and device info for resolving names.
 
-            List<Management>? managements = await apiConnection.SendQueryAsync<List<Management>>(DeviceQueries.getManagementNames);
-
-            Log.TryWriteLog(LogType.Debug, "Compliance Report", $"Fetched info for {managements?.Count() ?? 0} managements.", DebugConfig.ExtendedLogReportGeneration);
-
-            if (managements != null)
-            {
-                Managements = managements;
-
-                _devices = new();
-
-                foreach (var management in Managements)
-                {
-                    if (management.Devices != null && management.Devices.Length > 0)
-                    {
-                        _devices.AddRange(management.Devices);
-                    }
-                }
-            }
+            await GetManagementAndDevices(apiConnection);
 
             // Get amount of rules to fetch.
 
@@ -287,7 +271,7 @@ namespace FWO.Report
                             // Add empty groups because display method does not get them
 
                             await GatherEmptyGroups(networkLocations, resolvedNetworkLocations);
-                            RuleViewData ruleViewData = new RuleViewData(rule, _natRuleDisplayHtml, OutputLocation.report, ShowRule(rule), _devices ?? [], Managements ?? [], rule.Compliance);
+                            RuleViewData ruleViewData = new RuleViewData(rule, _natRuleDisplayHtml, OutputLocation.report, ShowRule(rule), _devices ?? [], Managements, rule.Compliance);
                             localViewData.Add(ruleViewData);
                         }
 
@@ -311,6 +295,65 @@ namespace FWO.Report
             (List<Rule> processed, List<RuleViewData> viewData)[]? results = await Task.WhenAll(tasks);
 
             return await GatherReportData(results);
+        }
+
+        public async Task GetManagementAndDevices(ApiConnection apiConnection)
+        {
+            // Get management and device info for resolving names.
+
+            List<Management>? managements = await apiConnection.SendQueryAsync<List<Management>>(DeviceQueries.getManagementNames);
+
+            Log.TryWriteLog(LogType.Debug, "Compliance Report", $"Fetched info for {managements?.Count() ?? 0} managements.", DebugConfig.ExtendedLogReportGeneration);
+
+            if (managements != null)
+            {
+                Managements = managements;
+
+                _devices = new();
+
+                foreach (var management in Managements)
+                {
+                    if (management.Devices != null && management.Devices.Length > 0)
+                    {
+                        _devices.AddRange(management.Devices);
+                    }
+                }
+            }
+        }
+
+        public void GetViewDataFromRules(List<Rule> rules)
+        {
+            RuleViewData.Clear();
+
+            for (int i = 0; i < rules.Count; i++)
+            {
+                Rule rule = rules.ElementAt(i);
+
+                ComplianceViolationType ruleCompliance = ComplianceViolationType.None;
+
+                if (rule.Violations.Count > 0)
+                {
+                    if (rule.Violations.Any(violation => violation.Type == ComplianceViolationType.NotAssessable))
+                    {
+                        ruleCompliance = ComplianceViolationType.NotAssessable;
+                    }
+                    else if (rule.Violations.Count == 1)
+                    {
+                        // TODO: implement
+
+                        ruleCompliance = ComplianceViolationType.MultipleViolations;
+                    }
+                    else
+                    {
+                        ruleCompliance = ComplianceViolationType.MultipleViolations;
+                    }
+                }
+
+                rule.Compliance = ruleCompliance;
+
+                RuleViewData ruleViewData = new RuleViewData(rule, _natRuleDisplayHtml, OutputLocation.report, ShowRule(rule), _devices ?? [], Managements, ruleCompliance);
+                RuleViewData.Add(ruleViewData);
+            }
         }
 
 

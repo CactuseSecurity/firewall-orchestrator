@@ -103,7 +103,7 @@
         if (sourceIpRange != null && destinationIpRange != null)
         {
             displayOutput = true;
-            ComplianceCheck complianceCheck = new ComplianceCheck(userConfig, null);
+            ComplianceCheck complianceCheck = new ComplianceCheck(userConfig, new GraphQlApiConnection(""));
             forbiddenCommunicationsOutput = complianceCheck.CheckIpRangeInputCompliance(sourceIpRange, destinationIpRange, networkZoneService.NetworkZones);
             compliant = forbiddenCommunicationsOutput.Count == 0;
         }

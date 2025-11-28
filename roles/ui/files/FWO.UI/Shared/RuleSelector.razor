@@ -9,7 +9,7 @@
             @foreach(var rule in SelectedRules)
             {
                 <div class="row">
-                    <div class="col-sm-3 border bg-transparent">@Devices.FirstOrDefault(d => d.Id == rule.Metadata.DeviceId)?.Name</div>
+                    @* <div class="col-sm-3 border bg-transparent">@Devices.FirstOrDefault(d => d.Id == rule.Metadata.DeviceId)?.Name</div> *@
                     <div class="col-sm-7 border bg-transparent">@rule.Metadata.Uid</div>
                 </div>
             }
@@ -19,21 +19,21 @@
             <EditList ElementType="Rule" Elements="SelectedRules.ToArray()" ElementsToAdd="RulesToAdd" ElementsToDelete="RulesToDelete" StdLayout="false">
                 <Display>
                     <div class="row">
-                        <div class="col-sm-3 border bg-transparent">@Devices.FirstOrDefault(d => d.Id == context.Metadata.DeviceId)?.Name</div>
+                        @* <div class="col-sm-3 border bg-transparent">@Devices.FirstOrDefault(d => d.Id == context.Metadata.DeviceId)?.Name</div> *@
                         <div class="col-sm-9 border bg-transparent">@context.Metadata.Uid</div>
                     </div>
                 </Display>
             </EditList>
             <div class="col-sm-12 mt-1">
                 <div class="form-group row me-auto">
-                    <div class="col-sm-3">
+                    @* <div class="col-sm-3">
                         <Dropdown ElementType="Device" ElementToString="@(d => d.Name)"
                             SelectedElement="actDevice" SelectedElementChanged="DeviceChanged" Elements="Devices">
                             <ElementTemplate Context="dev">
                                 @dev.Name
                             </ElementTemplate>
                         </Dropdown>
-                    </div>
+                    </div> *@
                     <div class="col-sm-7">
                         <Dropdown ElementType="Rule" ElementToString="@(r => r.Uid)" @bind-SelectedElement="actRule" Elements="allRulesOfDevice">
                             <ElementTemplate Context="rule">
@@ -78,26 +78,28 @@
     private Device actDevice = new();
     private List<Rule> allRulesOfDevice = [];
     private Rule actRule = new();
-
-
+    
+    //Remove this pragma as you rework the method
+#pragma warning disable CS1998
     protected override async Task OnInitializedAsync()
     {
         try
         {
-            Devices = await apiConnection.SendQueryAsync<List<Device>>(DeviceQueries.getDeviceDetails);
+            // Devices = await apiConnection.SendQueryAsync<List<Device>>(DeviceQueries.getDeviceDetails);
             // Devices = await apiConnection.SendQueryAsync<List<Device>>(AuthQueries.getVisibleDeviceIdsPerTenant, new { tenantId = userConfig.User.Tenant?.Id }, "getVisibleDeviceIdsPerTenant");
-            if(Devices.Count > 0)
+            @* if(Devices.Count > 0)
             {
                 await DeviceChanged(Devices[0]);
-            }
+            } *@           
         }
         catch (Exception exception)
         {
             DisplayMessageInUi(exception, userConfig.GetText("fetch_data"), "", true);
         }
     }
-
-    private async Task DeviceChanged(Device newDevice)
+#pragma warning restore CS1998
+    
+    @* private async Task DeviceChanged(Device newDevice)
     {
         try
         {
@@ -126,7 +128,7 @@
                     import_id_start = importId,
                     import_id_end   = importId
                 };
-                allRulesOfDevice = await apiConnection.SendQueryAsync<List<Rule>>(FWO.Api.Client.Queries.RuleQueries.getRuleUidsOfDevice, RuleVariables);
+                // allRulesOfDevice = await apiConnection.SendQueryAsync<List<Rule>>(RuleQueries.getRuleUidsOfDevice, RuleVariables);
             }
             actRule = allRulesOfDevice.FirstOrDefault() ?? new();
         }
@@ -134,10 +136,11 @@
         {
             DisplayMessageInUi(exception, userConfig.GetText("fetch_data"), "", true);
         }
-    }
+    } *@
 
     private void AddRule()
     {
         RulesToAdd.Add(actRule);
     }    
 }
+@* ReSharper restore CSharpWarnings::CS1998 *@

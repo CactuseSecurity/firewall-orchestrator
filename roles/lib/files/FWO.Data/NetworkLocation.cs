@@ -22,8 +22,8 @@ namespace FWO.Data
             if (obj is NetworkLocation)
             {
                 NetworkLocation secondNetworkLocation = (obj as NetworkLocation)!;
-                if (this.User != null && secondNetworkLocation.User != null
-                && this.User?.Name.CompareTo(secondNetworkLocation.User?.Name) != 0)
+                if (this.User?.Name != null && secondNetworkLocation.User?.Name != null
+                && this.User.Name.CompareTo(secondNetworkLocation.User.Name) != 0)
                 {
                     return this.User!.Name.CompareTo(secondNetworkLocation.User!.Name);
                 }

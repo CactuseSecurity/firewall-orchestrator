@@ -1,7 +1,8 @@
-using System.Text.Json.Serialization; 
-using Newtonsoft.Json;
 using FWO.Data;
 using FWO.Data.Report;
+using Newtonsoft.Json;
+using System.Diagnostics.CodeAnalysis;
+using System.Text.Json.Serialization; 
 
 namespace FWO.Report
 {
@@ -19,6 +20,10 @@ namespace FWO.Report
             RuleStatistics = rulebase.RuleStatistics;
         }
 
+        [SuppressMessage(
+            "SonarAnalyzer.CSharp",
+            "S125", // commented-out code
+            Justification = "Legacy code temporarily disabled; may be reused in future;")]
         public void AssignRuleNumbers(Rulebase? rb = null, int ruleNumber = 1)
         {
             if (rb != null)
@@ -29,11 +34,11 @@ namespace FWO.Report
                     {
                         rule.DisplayOrderNumber = ruleNumber++;
                     }
-                    /* NOSONAR
+                    
                     // if (rule.NextRulebase != null)
                     // {
                     //     AssignRuleNumbers(rule.NextRulebase, ruleNumber);
-                    // }*/
+                    // }
                 }
             }
         }

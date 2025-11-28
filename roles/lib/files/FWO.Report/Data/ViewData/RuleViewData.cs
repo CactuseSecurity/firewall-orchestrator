@@ -32,10 +32,11 @@ namespace FWO.Report.Data.ViewData
 
         public Rule? DataObject { get; set; }
         public bool Show { get; set; } = true;
+        public ILogger Logger  {get; set; } = new Logger();
 
         public RuleViewData()
         {
-            
+
         }
 
         public RuleViewData(Rule rule, NatRuleDisplayHtml natRuleDisplayHtml, OutputLocation outputLocation, bool show, List<Device>? devices = null, List<Management>? managements = null, ComplianceViolationType? complianceViolationType = null)
@@ -94,13 +95,13 @@ namespace FWO.Report.Data.ViewData
                         }
                     }
                 }
+
                 return displayString;
             }
-            catch (JsonException)
+            catch (JsonException e)
             {
-                // If custom fields are not valid JSON, just return empty string.
-
-                return "";
+                Logger.TryWriteError("RuleViewData", $"Error while resolving rule '{rule.Uid}': {e.Message}", true);
+                return $"Error while resolving custom fields. Raw Data: {rule.CustomFields}";
             }
         }
 

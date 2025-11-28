@@ -19,18 +19,7 @@ class ServiceProvider:
     """
         This class serves as an IOC-container (IOC = inversion of controls) and its purpose is to manage instantiation and lifetime of service classes.
     """
-
     
-# def init_service_provider():
-#     service_provider = ServiceProvider()
-#     service_provider.register(Services.GLOBAL_STATE, lambda: GlobalState(), Lifetime.SINGLETON)
-#     service_provider.register(Services.FWO_CONFIG, lambda: fwo_config.read_config(), Lifetime.SINGLETON)
-#     service_provider.register(Services.GROUP_FLATS_MAPPER, lambda: GroupFlatsMapper(), Lifetime.IMPORT)
-#     service_provider.register(Services.PREV_GROUP_FLATS_́MAPPER, lambda: GroupFlatsMapper(), Lifetime.IMPORT)
-#     service_provider.register(Services.UID2ID_MAPPER, lambda: Uid2IdMapper(), Lifetime.IMPORT)
-#     service_provider.register(Services.RULE_ORDER_SERVICE, lambda: RuleOrderService(), Lifetime.IMPORT)
-#     return service_provider
-
     _instance: "ServiceProvider | None" = None
     _services: dict[Services, ServiceProviderEntry] 
     _singletons: dict[Services, Any]

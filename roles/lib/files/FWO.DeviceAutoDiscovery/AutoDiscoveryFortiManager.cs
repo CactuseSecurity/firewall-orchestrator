@@ -43,7 +43,6 @@ namespace FWO.DeviceAutoDiscovery
                 }
                 else
                 {
-
                     string errorTxtCatch = $"{SuperManagement.Name}";
                     string errorTxt = $"error while logging in to {SuperManagement.Name}: {sessionResponse.ErrorMessage} ";
                     if (string.IsNullOrEmpty(sessionResponse.Data?.SessionId))

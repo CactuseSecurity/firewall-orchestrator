@@ -303,6 +303,9 @@ bugfix release:
 - add manageable ownerLifeCycleState menu
 - fix two modelling ui glitches
 
+# 8.9.3 - 05.11.2025 DEVELOP
+- hotfix missing permissions for app data import in certain constellations
+
 # 9.0 - 30.06.2025 DEVELOP
 - rule to gateway mapping 1:n
 - add report output for rule to gw mapping
@@ -328,4 +331,3 @@ make sure to place your venv outside the repo, e.g. into /home/user/dev/venv
     source installer-venv/bin/activate
     pip install -r path-to-repo/roles/importer/files/importer/requirements.txt
 - also reducing db listener to localhost
-

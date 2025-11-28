@@ -33,10 +33,13 @@ namespace FWO.Data.Report
         }
 
         public DeviceReport()
-        { }
+        {
+            RulebaseLinks = [];
+        }
 
         public DeviceReport(DeviceReport device)
         {
+            RulebaseLinks = [];
             // TODO: implement this method to return a list of rules associated with the device
         }
 

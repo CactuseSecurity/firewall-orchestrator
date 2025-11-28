@@ -68,7 +68,7 @@ DECLARE
     t_encryptedReadPwd TEXT;
     t_encryptedWritePwd TEXT;
 BEGIN
-    IF NOT EXISTS (SELECT * FROM ldap_connection WHERE ldap_server = serverName)
+	IF (SELECT 1 FROM ldap_connection WHERE ldap_server = serverName LIMIT 1) IS NULL 
     THEN
         SELECT INTO t_key * FROM getMainKey();
         SELECT INTO t_encryptedReadPwd * FROM encryptText(searchUserPwd, t_key);
@@ -100,7 +100,7 @@ insert into config (config_key, config_value, config_user) VALUES ('resolveNetwo
 ALTER TABLE modelling.connection ADD COLUMN IF NOT EXISTS requested_on_fw boolean default false;
 ALTER TABLE modelling.connection ADD COLUMN IF NOT EXISTS removed boolean default false;
 ALTER TABLE modelling.connection ADD COLUMN IF NOT EXISTS removal_date timestamp;
-UPDATE modelling.connection SET requested_on_fw=true WHERE requested_on_fw=false;
+UPDATE modelling.connection SET requested_on_fw=true WHERE NOT requested_on_fw;
 
 -- 8.8.4
 insert into stm_action (action_id,action_name) VALUES (30,'ask') ON CONFLICT DO NOTHING; -- cp
@@ -462,8 +462,6 @@ Create table IF NOT EXISTS "rulebase"
 	"created" BIGINT,
 	"removed" BIGINT
 );
-
--- ALTER TABLE "rulebase" ADD COLUMN IF NOT EXISTS "uid" Varchar NOT NULL;
 
 ALTER TABLE "rulebase" DROP CONSTRAINT IF EXISTS "fk_rulebase_mgm_id" CASCADE;
 Alter table "rulebase" add CONSTRAINT fk_rulebase_mgm_id foreign key ("mgm_id") references "management" ("mgm_id") on update restrict on delete cascade;
@@ -1034,31 +1032,42 @@ Alter Table "rule" ADD Constraint "rule_unique_mgm_id_rule_uid_rule_create_xlate
 
 -- rewrite get_rulebase_for_owner to work with rulebase instead of device
 CREATE OR REPLACE FUNCTION public.get_rulebase_for_owner(rulebase_row rulebase, ownerid integer)
- RETURNS SETOF rule
- LANGUAGE plpgsql
- STABLE
-AS 
-$function$
-    BEGIN
-        RETURN QUERY
-        SELECT r.* FROM rule r
-            LEFT JOIN rule_from rf ON (r.rule_id=rf.rule_id)
-            LEFT JOIN objgrp_flat rf_of ON (rf.obj_id=rf_of.objgrp_flat_id)
-            LEFT JOIN object rf_o ON (rf_of.objgrp_flat_member_id=rf_o.obj_id)
-            LEFT JOIN owner_network ON
-            (ip_ranges_overlap(rf_o.obj_ip, rf_o.obj_ip_end, ip, ip_end, rf.negated != r.rule_src_neg))
-        WHERE r.rulebase_id = rulebase_row.id AND owner_id = ownerid AND rule_head_text IS NULL
+RETURNS SETOF rule
+LANGUAGE plpgsql
+STABLE
+AS $function$
+BEGIN
+    RETURN QUERY
+    SELECT *
+    FROM (
+        WITH src_rules AS (
+            SELECT r.*, rf_o.obj_ip, rf_o.obj_ip_end, rf.negated
+            FROM rule r
+            LEFT JOIN rule_from rf ON r.rule_id = rf.rule_id
+            LEFT JOIN objgrp_flat rf_of ON rf.obj_id = rf_of.objgrp_flat_id
+            LEFT JOIN object rf_o ON rf_of.objgrp_flat_member_id = rf_o.obj_id
+            WHERE r.rulebase_id = rulebase_row.id AND owner_id = ownerid AND rule_head_text IS NULL
+        ),
+        dst_rules AS (
+            SELECT r.*, rt_o.obj_ip, rt_o.obj_ip_end, rt.negated
+            FROM rule r
+            LEFT JOIN rule_to rt ON r.rule_id = rt.rule_id
+            LEFT JOIN objgrp_flat rt_of ON rt.obj_id = rt_of.objgrp_flat_id
+            LEFT JOIN object rt_o ON rt_of.objgrp_flat_member_id = rt_o.obj_id
+            WHERE r.rulebase_id = rulebase_row.id AND owner_id = ownerid AND rule_head_text IS NULL
+        )
+        SELECT s.*
+        FROM src_rules s
+        LEFT JOIN owner_network ON ip_ranges_overlap(s.obj_ip, s.obj_ip_end, ip, ip_end, s.negated != s.rule_src_neg)
         UNION
-        SELECT r.* FROM rule r
-            LEFT JOIN rule_to rt ON (r.rule_id=rt.rule_id)
-            LEFT JOIN objgrp_flat rt_of ON (rt.obj_id=rt_of.objgrp_flat_id)
-            LEFT JOIN object rt_o ON (rt_of.objgrp_flat_member_id=rt_o.obj_id)
-            LEFT JOIN owner_network ON
-            (ip_ranges_overlap(rt_o.obj_ip, rt_o.obj_ip_end, ip, ip_end, rt.negated != r.rule_dst_neg))
-        WHERE r.rulebase_id = rulebase_row.id AND owner_id = ownerid AND rule_head_text IS NULL
-        ORDER BY rule_name;
-    END;
+        SELECT d.*
+        FROM dst_rules d
+        LEFT JOIN owner_network ON ip_ranges_overlap(d.obj_ip, d.obj_ip_end, ip, ip_end, d.negated != d.rule_dst_neg)
+    ) AS combined
+    ORDER BY rule_name ASC;
+END;
 $function$;
+
 
 -- drop only after migration
 
@@ -1434,12 +1443,22 @@ VALUES ('showShortColumnsInComplianceReports', 'true', 0)
 ON CONFLICT (config_key, config_user) DO NOTHING;
 
 -- set deprecated field rule_num to 0 for all rules to avoid inconsistencies
-UPDATE rule SET rule_num = 0;
+UPDATE rule SET rule_num = 0 WHERE rule_num <> 0;;
 
 -- add config value to make imported matrices editable
 
 INSERT INTO config (config_key, config_value, config_user) 
 VALUES ('importedMatrixReadOnly', 'true', 0)
+ON CONFLICT (config_key, config_user) DO NOTHING;
+
+-- add config values to make parralelization in compliance check configurable
+
+INSERT INTO config (config_key, config_value, config_user) 
+VALUES ('complianceCheckElementsPerFetch', '500', 0)
+ON CONFLICT (config_key, config_user) DO NOTHING;
+
+INSERT INTO config (config_key, config_value, config_user) 
+VALUES ('complianceCheckAvailableProcessors', '4', 0)
 ON CONFLICT (config_key, config_user) DO NOTHING;
 
 -- adding labels (simple version without mapping tables and without foreign keys)
@@ -1677,6 +1696,145 @@ ON CONFLICT (config_key, config_user) DO NOTHING;
 -- ALTER TABLE "rule_to" DROP COLUMN IF EXISTS "rt_last_seen";
 -- ALTER TABLE "rule_service" DROP COLUMN IF EXISTS "rs_last_seen";
 
+
+-- add crosstabulations rules with zone for source and destination
+
+--crosstabulation rule zone for source
+Create table IF NOT EXISTS "rule_from_zone"
+(
+	"rule_id" BIGINT NOT NULL,
+	"zone_id" Integer NOT NULL,
+	"created" BIGINT NOT NULL,
+	"removed" BIGINT,
+	primary key (rule_id, zone_id, created)
+);
+
+--crosstabulation rule zone for destination
+Create table IF NOT EXISTS "rule_to_zone"
+(
+	"rule_id" BIGINT NOT NULL,
+	"zone_id" Integer NOT NULL,
+	"created" BIGINT NOT NULL,
+	"removed" BIGINT,
+	primary key (rule_id, zone_id, created)
+);
+
+--crosstabulation rule zone for destination FKs
+ALTER TABLE "rule_to_zone" 
+DROP CONSTRAINT IF EXISTS fk_rule_to_zone_rule_id_rule_rule_id;
+ALTER TABLE "rule_to_zone"
+DROP CONSTRAINT IF EXISTS fk_rule_to_zone_zone_id_zone_zone_id;
+
+ALTER TABLE "rule_to_zone"
+ADD CONSTRAINT fk_rule_to_zone_rule_id_rule_rule_id FOREIGN KEY ("rule_id") REFERENCES "rule" ("rule_id");
+ALTER TABLE "rule_to_zone"
+ADD CONSTRAINT fk_rule_to_zone_zone_id_zone_zone_id FOREIGN KEY ("zone_id") REFERENCES "zone" ("zone_id");
+
+--crosstabulation rule zone for source FKs
+ALTER TABLE "rule_from_zone" 
+DROP CONSTRAINT IF EXISTS fk_rule_from_zone_rule_id_rule_rule_id;
+ALTER TABLE "rule_from_zone"
+DROP CONSTRAINT IF EXISTS fk_rule_from_zone_zone_id_zone_zone_id;
+
+ALTER TABLE "rule_from_zone"
+ADD CONSTRAINT fk_rule_from_zone_rule_id_rule_rule_id FOREIGN KEY ("rule_id") REFERENCES "rule" ("rule_id");
+ALTER TABLE "rule_from_zone"
+ADD CONSTRAINT fk_rule_from_zone_zone_id_zone_zone_id FOREIGN KEY ("zone_id") REFERENCES "zone" ("zone_id");
+
+
+-- initial fill script for rule_from_zones and rule_to_zones
+DO $$
+DECLARE
+    inserted_source INT := 0;
+    inserted_destination INT := 0;
+    remaining_source INT:= 0;
+    remaining_destination INT:= 0;
+	col_exists_source BOOLEAN;
+    col_exists_destination BOOLEAN;
+	count_from_zone_in_rule_after_update INT:= 0;
+    count_to_zone_in_rule_after_update INT:= 0;
+	
+	
+BEGIN
+	-- Check column rule_from_zone exists
+    SELECT EXISTS (
+        SELECT 1
+        FROM information_schema.columns
+        WHERE table_name='rule'
+          AND column_name='rule_from_zone'
+    ) INTO col_exists_source;
+
+    -- Check column rule_to_zone exists
+    SELECT EXISTS (
+        SELECT 1
+        FROM information_schema.columns
+        WHERE table_name='rule'
+          AND column_name='rule_to_zone'
+    ) INTO col_exists_destination;
+
+    IF col_exists_source AND NOT EXISTS (SELECT 1 FROM rule_from_zone) THEN
+		INSERT INTO rule_from_zone (rule_id, zone_id, created, removed)
+		SELECT rule_id, rule_from_zone, rule_create, removed
+		FROM rule
+		WHERE rule_from_zone IS NOT NULL;					
+		GET DIAGNOSTICS inserted_source = ROW_COUNT;
+		
+		-- Count the existing rule_from_zone and rule_to_zone
+		SELECT COUNT(*) INTO remaining_source
+		FROM rule
+		WHERE rule_from_zone IS NOT NULL;
+		
+    ELSE
+       -- RAISE NOTICE 'Table does not exist or is not empty';
+    END IF;
+	
+	IF col_exists_destination AND NOT EXISTS (SELECT 1 FROM rule_to_zone) THEN
+		INSERT INTO rule_to_zone (rule_id, zone_id, created, removed)
+		SELECT rule_id, rule_to_zone, rule_create, removed
+		FROM rule
+		WHERE rule_to_zone IS NOT NULL;				
+		GET DIAGNOSTICS inserted_destination = ROW_COUNT;
+		
+		-- Count the existing rule_from_zone and rule_to_zone
+		SELECT COUNT(*) INTO remaining_destination
+		FROM rule
+		WHERE rule_to_zone IS NOT NULL;	
+		
+    ELSE
+       -- RAISE NOTICE 'Table does not exist or is not empty';	  
+    END IF;
+				
+	IF (col_exists_source OR col_exists_destination) AND
+		(remaining_source + remaining_destination = inserted_source + inserted_destination) Then
+			UPDATE rule
+			SET rule_from_zone = NULL,
+				rule_to_zone = NULL
+			WHERE rule_from_zone IS NOT NULL
+			OR rule_to_zone IS NOT NULL;			
+	END IF;
+	
+	IF (col_exists_source OR col_exists_destination) Then
+		SELECT COUNT(*) INTO count_from_zone_in_rule_after_update FROM rule WHERE rule_from_zone IS NOT NULL;
+		SELECT COUNT(*) INTO count_to_zone_in_rule_after_update FROM rule WHERE rule_to_zone IS NOT NULL;
+
+         IF count_from_zone_in_rule_after_update > 0 OR count_to_zone_in_rule_after_update > 0 THEN
+            RAISE EXCEPTION 'Cannot drop columns: non-null values remain (from_zone: %, to_zone: %)', count_from_zone_in_rule_after_update, count_to_zone_in_rule_after_update;
+        END IF;
+
+        END IF;
+				
+		--ALTER TABLE rule
+		--DROP CONSTRAINT IF EXISTS rule_rule_from_zone_fkey,
+		--DROP CONSTRAINT IF EXISTS rule_rule_to_zone_fkey;
+		
+		--For dropping columns needed Views to be dropped/replaced where columns are included
+		--ALTER TABLE rule
+		--DROP COLUMN IF EXISTS rule_from_zone,
+		--DROP COLUMN IF EXISTS rule_to_zone;	
+END
+$$;
+
+
 insert into stm_dev_typ (dev_typ_id,dev_typ_name,dev_typ_version,dev_typ_manufacturer,dev_typ_predef_svc,dev_typ_is_multi_mgmt,dev_typ_is_mgmt,is_pure_routing_device)
     VALUES (28,'Cisco Asa','9','Cisco','',false,true,false)
     ON CONFLICT (dev_typ_id) DO NOTHING;
@@ -1684,3 +1842,175 @@ insert into stm_dev_typ (dev_typ_id,dev_typ_name,dev_typ_version,dev_typ_manufac
 insert into stm_dev_typ (dev_typ_id,dev_typ_name,dev_typ_version,dev_typ_manufacturer,dev_typ_predef_svc,dev_typ_is_multi_mgmt,dev_typ_is_mgmt,is_pure_routing_device)
     VALUES (29,'Cisco Asa on FirePower','9','Cisco','',false,true,false)
     ON CONFLICT (dev_typ_id) DO NOTHING;
+
+
+DROP MATERIALIZED VIEW IF EXISTS view_rule_with_owner;
+CREATE MATERIALIZED VIEW view_rule_with_owner AS
+	SELECT DISTINCT ar.rule_id, ar.owner_id, ar.owner_name, ar.matches, ar.recert_interval, ar.rule_last_certified, ar.rule_last_certifier,
+	r.rule_num_numeric, r.track_id, r.action_id, r.rule_from_zone, r.rule_to_zone, r.mgm_id, r.rule_uid,
+	r.rule_action, r.rule_name, r.rule_comment, r.rule_track, r.rule_src_neg, r.rule_dst_neg, r.rule_svc_neg,
+	r.rule_head_text, r.rule_disabled, r.access_rule, r.xlate_rule, r.nat_rule
+	FROM ( SELECT DISTINCT * FROM v_rule_with_rule_owner AS rul UNION SELECT DISTINCT * FROM v_rule_with_ip_owner AS ips) AS ar
+	LEFT JOIN rule AS r USING (rule_id)
+	GROUP BY ar.rule_id, ar.owner_id, ar.owner_name, ar.matches, ar.recert_interval, ar.rule_last_certified, ar.rule_last_certifier,
+		r.rule_num_numeric, r.track_id, r.action_id, r.rule_from_zone, r.rule_to_zone, r.mgm_id, r.rule_uid,
+		r.rule_action, r.rule_name, r.rule_comment, r.rule_track, r.rule_src_neg, r.rule_dst_neg, r.rule_svc_neg,
+		r.rule_head_text, r.rule_disabled, r.access_rule, r.xlate_rule, r.nat_rule;
+	
+	
+	
+-- rule_metadata add mgm_id + fk, drop constraint
+ALTER TABLE rule_metadata ADD COLUMN IF NOT EXISTS mgm_id Integer;
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 
+        FROM pg_constraint
+        WHERE conname = 'rule_metadata_mgm_id_management_id_fk'
+    ) THEN
+        ALTER TABLE rule_metadata
+        ADD CONSTRAINT rule_metadata_mgm_id_management_id_fk
+        FOREIGN KEY (mgm_id) REFERENCES management(mgm_id)
+        ON UPDATE RESTRICT ON DELETE CASCADE;
+    END IF;
+END$$;
+
+
+
+DO $$
+DECLARE
+    rec RECORD;
+    v_do_not_import_true_count INT;
+    v_do_not_import_false_count INT;
+	missing_uids TEXT;
+	too_many_mgm_ids_on_uid_and_no_resolve TEXT;
+	all_errors_with_no_resolve TEXT := '';
+
+BEGIN
+--Check rule_metadata has entries in rule
+    SELECT string_agg(rm.rule_uid::text, ', ')
+    INTO missing_uids
+    FROM rule_metadata rm
+    LEFT JOIN rule r ON rm.rule_uid = r.rule_uid
+    WHERE r.rule_uid IS NULL;
+
+    IF missing_uids IS NOT NULL THEN
+        RAISE EXCEPTION 'Missing rule(s): %', missing_uids;
+    END IF;
+	
+	
+    -- Constraints droppen
+    ALTER TABLE rule DROP CONSTRAINT IF EXISTS rule_metadatum;
+    ALTER TABLE rule DROP CONSTRAINT IF EXISTS rule_rule_metadata_rule_uid_f_key;
+    ALTER TABLE rule_metadata DROP CONSTRAINT IF EXISTS rule_metadata_rule_uid_unique;
+
+-- Start loop for rule_uid und mgm_id import/transfer
+    FOR rec IN
+        SELECT 
+            rm.rule_uid,
+            COUNT(DISTINCT r.mgm_id) AS mgm_count
+        FROM rule_metadata rm
+        JOIN rule r ON rm.rule_uid = r.rule_uid
+        GROUP BY rm.rule_uid
+        HAVING COUNT(DISTINCT r.mgm_id) >= 1
+    LOOP
+        -- Case 1: exactly one mgm_id gefunden
+        IF rec.mgm_count = 1 THEN
+            --
+            UPDATE rule_metadata rm
+            SET mgm_id = r.mgm_id
+            FROM rule r
+            WHERE rm.rule_uid = r.rule_uid
+              AND rm.mgm_id IS NULL
+              AND rm.rule_uid = rec.rule_uid;
+
+        -- Case 2: found more then two mgm_id found
+        ELSIF rec.mgm_count >= 2 THEN
+            -- Count flag "do_not_import" for rule_uid 
+            SELECT 
+			COUNT(*) FILTER (WHERE m.do_not_import IS TRUE),
+			COUNT(*) FILTER (WHERE m.do_not_import IS FALSE)
+			INTO v_do_not_import_true_count, v_do_not_import_false_count
+			FROM rule r
+			JOIN management m ON r.mgm_id = m.mgm_id
+			WHERE r.rule_uid = rec.rule_uid;
+
+            -- check if there is just 1 "do_not_import" = false
+			IF v_do_not_import_false_count = 1 THEN
+				UPDATE rule_metadata rm
+					SET mgm_id = r.mgm_id
+					FROM rule r
+					JOIN management m ON r.mgm_id = m.mgm_id
+					WHERE rm.rule_uid = r.rule_uid
+					AND m.do_not_import IS FALSE
+					AND rm.rule_uid = rec.rule_uid
+					AND rm.mgm_id IS NULL;
+					
+			-- Warning: Not used mgm_ids where do_not_import=true
+			RAISE NOTICE 'rule_uid % has % additional mgm_id(s) marked do_not_import=true: %', 
+			rec.rule_uid, v_do_not_import_true_count,
+				(SELECT string_agg(format('mgm_id=%s', r.mgm_id), ', ')
+					FROM rule r
+					JOIN management m ON r.mgm_id = m.mgm_id
+					WHERE r.rule_uid = rec.rule_uid
+					AND m.do_not_import IS TRUE);
+					
+			ELSE
+				-- No resolve
+				SELECT string_agg(
+                       format('rule_uid=%s → mgm_id=%s (do_not_import=%s)', 
+                              r.rule_uid, r.mgm_id, m.do_not_import),
+                       E'\n'
+					)
+				INTO too_many_mgm_ids_on_uid_and_no_resolve
+				FROM rule r
+				JOIN management m ON r.mgm_id = m.mgm_id
+				WHERE r.rule_uid = rec.rule_uid;	
+
+				all_errors_with_no_resolve := all_errors_with_no_resolve || format(
+                    E'\n\nrule_uid %s has ambiguous mgm_id assignments:\n%s',
+                    rec.rule_uid,
+                    too_many_mgm_ids_on_uid_and_no_resolve
+                );
+				
+            END IF;                   
+        END IF;
+    END LOOP;
+	
+	    IF all_errors_with_no_resolve <> '' THEN
+			RAISE EXCEPTION 'Ambiguous mgm_id assignments detected:%s', all_errors_with_no_resolve;
+		END IF;
+	
+	-- redo constraints
+	    ALTER TABLE rule_metadata ALTER COLUMN mgm_id SET NOT NULL;
+        ALTER TABLE rule_metadata ADD CONSTRAINT rule_metadata_rule_uid_unique UNIQUE(rule_uid);
+        ALTER TABLE rule ADD CONSTRAINT rule_rule_metadata_rule_uid_f_key 
+            FOREIGN KEY (rule_uid) REFERENCES rule_metadata (rule_uid);
+			
+			-- set Unique constraint to (mgm_id + rule_uid)
+        IF NOT EXISTS (
+            SELECT 1
+            FROM pg_constraint
+            WHERE conname = 'rule_metadata_mgm_id_rule_uid_unique'
+        ) THEN
+            ALTER TABLE rule_metadata ADD CONSTRAINT rule_metadata_mgm_id_rule_uid_unique UNIQUE (mgm_id, rule_uid);			
+        END IF;
+END$$;
+
+-- Set stm* tables hardcoded only - no Serial - stm_color filled via csv
+ALTER TABLE stm_link_type ALTER COLUMN id DROP DEFAULT;
+ALTER TABLE stm_track ALTER COLUMN track_id DROP DEFAULT;
+ALTER TABLE stm_obj_typ ALTER COLUMN obj_typ_id DROP DEFAULT;
+ALTER TABLE stm_change_type ALTER COLUMN change_type_id DROP DEFAULT;
+ALTER TABLE stm_action ALTER COLUMN action_id DROP DEFAULT;
+ALTER TABLE stm_dev_typ ALTER COLUMN dev_typ_id DROP DEFAULT;
+ALTER TABLE parent_rule_type ALTER COLUMN id DROP DEFAULT;
+
+-- Drop Sequence
+DROP SEQUENCE IF EXISTS public.stm_link_type_id_seq;
+DROP SEQUENCE IF EXISTS public.stm_track_track_id_seq;
+DROP SEQUENCE IF EXISTS public.stm_obj_typ_obj_typ_id_seq;
+DROP SEQUENCE IF EXISTS public.stm_change_type_change_type_id_seq;
+DROP SEQUENCE IF EXISTS public.stm_action_action_id_seq;
+DROP SEQUENCE IF EXISTS public.stm_dev_typ_dev_typ_id_seq;
+DROP SEQUENCE IF EXISTS public.parent_rule_type_id_seq;

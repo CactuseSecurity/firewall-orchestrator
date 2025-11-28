@@ -120,11 +120,15 @@ fragment ruleFragment on rule {
     rule_last_hit
   }
   rule_comment
-  src_zone: zone {
-    zone_name
+  rule_from_zones {
+    zone {
+      zone_name
+    }
   }
-  dst_zone: zoneByRuleToZone {
-    zone_name
+  rule_to_zones {
+    zone {
+      zone_name
+    }
   }
   section_header: rule_head_text
 }

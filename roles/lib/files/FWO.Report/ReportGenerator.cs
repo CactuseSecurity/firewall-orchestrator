@@ -1,4 +1,4 @@
-﻿using FWO.Api.Client;
+using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 using FWO.Basics;
 using FWO.Config.Api;
@@ -204,7 +204,9 @@ namespace FWO.Report
                     {
                         foreach (var rulebaseLink in device.RulebaseLinks)
                         {
-                            // rule.Metadata.UpdateRecertPeriods(userConfig.RecertificationPeriod, userConfig.RecertificationNoticePeriod);
+                            /* NOSONAR - temporarily disabled
+                            // rule.Metadata.UpdateRecertPeriods(userConfig.RecertificationPeriod, userConfig.RecertificationNoticePeriod); NOSONAR
+                            */
                         }
                     }
                 }

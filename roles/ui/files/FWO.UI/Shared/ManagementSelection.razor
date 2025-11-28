@@ -25,7 +25,7 @@
                     <div class="form-check mb-1">
                         <input class="form-check-input" type="checkbox" id="@management.Id" @bind="management.Selected"
                             @ref="management.UiReference" @oninput="async () => await ToggleSelectManagement(management)" />
-                        <label class="form-check-label text-white">@management.Name</label>
+                        <label class="form-check-label text-white" for="@management.Id">@management.Name</label>
                     </div>
                 }
             }

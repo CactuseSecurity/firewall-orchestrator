@@ -1,7 +1,8 @@
-﻿using System.Text.Json.Serialization; 
-using Newtonsoft.Json;
 using FWO.Data;
 using FWO.Data.Report;
+using Newtonsoft.Json;
+using System.Diagnostics.CodeAnalysis;
+using System.Text.Json.Serialization; 
 
 namespace FWO.Report
 {
@@ -19,6 +20,10 @@ namespace FWO.Report
             RuleStatistics = rulebase.RuleStatistics;
         }
 
+        [SuppressMessage(
+            "SonarAnalyzer.CSharp",
+            "S125", // commented-out code
+            Justification = "Legacy code temporarily disabled; may be reused in future;")]
         public void AssignRuleNumbers(Rulebase? rb = null, int ruleNumber = 1)
         {
             if (rb != null)
@@ -29,6 +34,7 @@ namespace FWO.Report
                     {
                         rule.DisplayOrderNumber = ruleNumber++;
                     }
+                    
                     // if (rule.NextRulebase != null)
                     // {
                     //     AssignRuleNumbers(rule.NextRulebase, ruleNumber);
@@ -48,7 +54,7 @@ namespace FWO.Report
     }
 
 
-    public static class RulebaseUtility
+    public static class RulebaseUtility     
     {
         // adding rules fetched in slices
         public static bool Merge(this RulebaseReport[] rulebases, RulebaseReport[] rulebasesToMerge)
@@ -57,35 +63,29 @@ namespace FWO.Report
 
             for (int i = 0; i < rulebases.Length && i < rulebasesToMerge.Length; i++)
             {
-                if (rulebases[i].Id == rulebasesToMerge[i].Id)
-                {
-                    try
-                    {
-                        for (int rb = 0; rb < rulebases[i].Rules.Length && rb < rulebasesToMerge[i].Rules.Length; rb++)
-                        {
-                            if (rulebases[i].Rules != null && rulebasesToMerge[i].Rules != null && rulebasesToMerge[i].Rules.Length > 0)
-                            {
-                                rulebases[i].Rules = rulebases[i].Rules.Concat(rulebasesToMerge[i].Rules!).ToArray();
-                                newObjects = true;
-                            }
-                        }
-                        if (rulebases[i].RuleChanges != null && rulebasesToMerge[i].RuleChanges != null && rulebasesToMerge[i].RuleChanges?.Length > 0)
-                        {
-                            rulebases[i].RuleChanges = rulebases[i].RuleChanges!.Concat(rulebasesToMerge[i].RuleChanges!).ToArray();
-                            newObjects = true;
-                        }
-                        if (rulebases[i].RuleStatistics != null && rulebasesToMerge[i].RuleStatistics != null)
-                            rulebases[i].RuleStatistics.ObjectAggregate.ObjectCount += rulebasesToMerge[i].RuleStatistics.ObjectAggregate.ObjectCount; // correct ??
-                    }
-                    catch (NullReferenceException)
-                    {
-                        throw new ArgumentNullException("Rules is null");
-                    }
-                }
-                else
+                if (rulebases[i].Id != rulebasesToMerge[i].Id)
                 {
                     throw new NotSupportedException("Devices have to be in the same order in oder to merge.");
                 }
+                for (int rb = 0; rb < rulebases[i].Rules.Length && rb < rulebasesToMerge[i].Rules.Length; rb++)
+                {
+                    if (rulebasesToMerge[i].Rules.Length > 0)
+                    {
+                        rulebases[i].Rules = rulebases[i].Rules.Concat(rulebasesToMerge[i].Rules).ToArray();
+                        newObjects = true;
+                    }
+                }
+
+                if (rulebasesToMerge[i].RuleChanges?.Length > 0)
+                {
+                    rulebases[i].RuleChanges = rulebases[i].RuleChanges
+                        ?.Concat(rulebasesToMerge[i].RuleChanges ?? []).ToArray();
+                    newObjects = true;
+                }
+
+                rulebases[i].RuleStatistics.ObjectAggregate.ObjectCount +=
+                    rulebasesToMerge[i].RuleStatistics.ObjectAggregate.ObjectCount; 
+                
             }
             return newObjects;
         }

@@ -1,5 +1,6 @@
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
+using FWO.Config.Api;
 using FWO.Data;
 using FWO.Logging;
 using MailKit.Security;
@@ -42,9 +43,15 @@ namespace FWO.DeviceAutoDiscovery
                 }
                 else
                 {
-                    string errorTxt = $"error while logging in to Forti Manager: {sessionResponse.ErrorMessage} could not authenticate to Forti manager - got empty session ID";
+
+                    string errorTxtCatch = $"{SuperManagement.Name}";
+                    string errorTxt = $"error while logging in to {SuperManagement.Name}: {sessionResponse.ErrorMessage} ";
+                    if (string.IsNullOrEmpty(sessionResponse?.Data?.SessionId))
+                    {
+                        errorTxt += $"could not authenticate to {SuperManagement.Name} - got empty session ID";
+                    }                                            
                     Log.WriteWarning(Autodiscovery, errorTxt);
-                    throw new AuthenticationException(errorTxt);
+                    throw new AuthenticationException(errorTxtCatch);
                 }
             }
             return discoveredDevices;

@@ -151,11 +151,14 @@ namespace FWO.DeviceAutoDiscovery
             }
             else
             {
-                string errorTxt = $"error while logging in to CP Manager: {sessionResponse.ErrorMessage} ";
-                if (sessionResponse?.Data?.SessionId == "")
-                    errorTxt += "could not authenticate to CP manager - got empty session ID";
+                string errorTxtCatch = $"{SuperManagement.Name}";
+                string errorTxt = $"error while logging in to {SuperManagement.Name}: {sessionResponse.ErrorMessage} ";
+                if (string.IsNullOrEmpty(sessionResponse?.Data?.SessionId))
+                {
+                    errorTxt += $"could not authenticate to {SuperManagement.Name} - got empty session ID";
+                }
                 Log.WriteWarning(Autodiscovery, errorTxt);
-                throw new AuthenticationException(errorTxt);
+                throw new AuthenticationException(errorTxtCatch);
             }
             return sessionId;
         }

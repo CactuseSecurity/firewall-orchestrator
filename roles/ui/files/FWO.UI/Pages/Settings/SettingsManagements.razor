@@ -2,6 +2,7 @@
 @using FWO.Middleware.Client
 @using System.Text.Json.Serialization
 @using Newtonsoft.Json
+@using System.Security.Authentication
 
 
 @page "/settings/managements"
@@ -578,7 +579,16 @@
         catch (Exception exception)
         {
             workInProgress = false;
-            DisplayMessageInUi(exception, userConfig.GetText("autodiscovery"), "", true);
+
+            if (exception is MailKit.Security.AuthenticationException)
+            {
+                string message = userConfig.GetText("E5294");
+                DisplayMessageInUi(exception, userConfig.GetText("E5295"), message, true);
+            }
+            else
+            {
+                DisplayMessageInUi(exception, userConfig.GetText("autodiscovery"), "", true);
+            }
             await AddAutoDiscoverLogEntry(1, userConfig.GetText("manual_autodiscovery"), userConfig.GetText("ran_into_exception") + exception.Message, superManagement.Id);
         }
     }

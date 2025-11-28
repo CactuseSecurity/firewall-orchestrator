@@ -1,7 +1,8 @@
-using System.Text.Json.Serialization;
-using Newtonsoft.Json;
-using FWO.Data.Report;
 using FWO.Data;
+using FWO.Data.Report;
+using Newtonsoft.Json;
+using System.Diagnostics.CodeAnalysis;
+using System.Text.Json.Serialization;
 
 namespace FWO.Report
 {
@@ -33,10 +34,13 @@ namespace FWO.Report
             };
             return controller;
         }
-        
+
+        [SuppressMessage(
+            "SonarAnalyzer.CSharp",
+            "S125", // commented-out code
+            Justification = "Legacy code temporarily disabled; may be reused in future;")]
         public void AssignRuleNumbers(RulebaseLink? rbLinkIn = null, int ruleNumber = 1)
         {
-            /* NOSONAR - temporarily disabled
             // rbLinkIn ??= RbLink;
             // if (rbLinkIn != null)
             // {
@@ -54,18 +58,21 @@ namespace FWO.Report
             //             }
             //         }
             //     }
-            // }*/
+            // }
         }
 
+        [SuppressMessage(
+            "SonarAnalyzer.CSharp",
+            "S125", // commented-out code
+            Justification = "Legacy code temporarily disabled; may be reused in future;")]
         public new bool ContainsRules()
         {
             return true;
-            /* NOSONAR - temporarily disabled
             // if (RbLink?.NextRulebase.Rules.Length>0)
             // {
             //     return true;
             // }
-            // return false;*/
+            // return false;
         }
         public int? GetInitialRulebaseId(ManagementReport managementReport)
         {

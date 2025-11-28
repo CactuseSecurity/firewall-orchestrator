@@ -82,7 +82,7 @@ class LogLock:
 class FWOLogger():
     logger: logging.Logger
     debug_level: int
-    def __new__(cls, debug_level: int = 0):
+    def __new__(cls, _: int = 0):
         if not hasattr(cls, 'instance'):
             cls.instance = super(FWOLogger, cls).__new__(cls)
         return cls.instance

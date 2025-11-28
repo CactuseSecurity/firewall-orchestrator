@@ -323,7 +323,7 @@ namespace FWO.Report
             }
         }
 
-        public Task GetViewDataFromRules(List<Rule> rules)
+        public void GetViewDataFromRules(List<Rule> rules)
         {
             RuleViewData.Clear();
 

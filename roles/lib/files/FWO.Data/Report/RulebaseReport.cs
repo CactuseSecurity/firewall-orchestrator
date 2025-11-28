@@ -23,7 +23,7 @@ namespace FWO.Data.Report
 
         public RulebaseReport()
         { }
-    // NOSONAR - temporarily disabled
+    /* NOSONAR - temporarily disabled
     //     public RulebaseReport(RulebaseReport rulebase)
     //     { 
     //         Id = rulebase.Id;
@@ -101,6 +101,6 @@ namespace FWO.Data.Report
     //             }
     //         }
     //         return newObjects;
-    //     }
+    //     }*/
     }
 }

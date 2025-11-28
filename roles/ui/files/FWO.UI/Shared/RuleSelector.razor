@@ -78,8 +78,9 @@
     private Device actDevice = new();
     private List<Rule> allRulesOfDevice = [];
     private Rule actRule = new();
-
-
+    
+    //Remove this pragma as you rework the method
+#pragma warning disable CS1998
     protected override async Task OnInitializedAsync()
     {
         try
@@ -96,7 +97,8 @@
             DisplayMessageInUi(exception, userConfig.GetText("fetch_data"), "", true);
         }
     }
-
+#pragma warning restore CS1998
+    
     @* private async Task DeviceChanged(Device newDevice)
     {
         try
@@ -141,3 +143,4 @@
         RulesToAdd.Add(actRule);
     }    
 }
+@* ReSharper restore CSharpWarnings::CS1998 *@

@@ -42,9 +42,7 @@ namespace FWO.DeviceAutoDiscovery
                 }
                 else
                 {
-                    string errorTxt = $"error while logging in to Forti Manager: {sessionResponse.ErrorMessage} ";
-                    if (sessionResponse?.Data?.SessionId == "")
-                        errorTxt += "could not authenticate to Forti manager - got empty session ID";
+                    string errorTxt = $"error while logging in to Forti Manager: {sessionResponse.ErrorMessage} could not authenticate to Forti manager - got empty session ID";
                     Log.WriteWarning(Autodiscovery, errorTxt);
                     throw new AuthenticationException(errorTxt);
                 }

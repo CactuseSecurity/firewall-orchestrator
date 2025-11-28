@@ -1,4 +1,5 @@
 using FWO.Data.Report;
+using System.Diagnostics.CodeAnalysis;
 
 namespace FWO.Data.Modelling
 {
@@ -78,6 +79,10 @@ namespace FWO.Data.Modelling
             return MgtDataToReport(DeletedModelsRules);
         }
 
+        [SuppressMessage(
+            "SonarAnalyzer.CSharp",
+            "S125", // "Commented-out code" rule
+            Justification = "Legacy code for future migration; may be reused; TODO: Migrate commented-out code")]
         private List<ManagementReport> MgtDataToReport(Dictionary<int, List<Rule>> rulesToReport)
         {
             List<ManagementReport> managementReports = [];
@@ -88,18 +93,17 @@ namespace FWO.Data.Modelling
                 List<DeviceReport> deviceReports = [];
                 foreach (var rule in rulesToReport[mgtId])
                 {
-                    /* NOSONAR - temporarily disabled
-                    // TODO: Migrate
-                    // DeviceReport? existingDev = deviceReports.FirstOrDefault(d => d.Id == rule.DeviceId);
-                    // if (existingDev != null)
-                    // {
-                    //     existingDev.Rules = existingDev.Rules?.Append(rule).ToArray();
-                    // }
+
+                    // DeviceReport? existingDev = deviceReports.FirstOrDefault(d => d.Id == rule.DeviceId); 
+                    // if(existingDev != null) 
+                    // { 
+                    //     existingDev.Rules = existingDev.Rules?.Append(rule).ToArray(); 
+                    // } 
                     // else
                     // {
                     //     string devName = mgt == null ? "" : mgt.Devices.FirstOrDefault(d => d.Id == rule.DeviceId)?.Name ?? "";
                     //     deviceReports.Add(new() { Id = rule.DeviceId, Name = devName, Rules = [rule] });
-                    // } */
+                    // } 
                 }
                 managementReport.Devices = [.. deviceReports];
                 managementReports.Add(managementReport);

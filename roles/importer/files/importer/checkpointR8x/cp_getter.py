@@ -335,6 +335,8 @@ def get_rulebases(api_v_url: str, sid: str | None, show_params_rules: dict[str, 
         FWOLogger.error('access_type is neither "access" nor "nat", but ' + access_type)
 
     # get uid of rulebase
+    if rulebase_uid is not None:
+        pass
     if rulebase_name is not None:
         rulebase_uid = get_uid_of_rulebase(rulebase_name, api_v_url, access_type, sid)
     else:

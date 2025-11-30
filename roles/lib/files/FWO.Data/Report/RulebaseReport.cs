@@ -1,9 +1,14 @@
-﻿using System.Text.Json.Serialization; 
-using Newtonsoft.Json;
 using FWO.Data;
+using Newtonsoft.Json;
+using System.Diagnostics.CodeAnalysis;
+using System.Text.Json.Serialization; 
 
 namespace FWO.Data.Report
 {
+    [SuppressMessage(
+        "SonarAnalyzer.CSharp",
+        "S125", // commented-out code
+        Justification = "Legacy code temporarily disabled; may be reused in future;")]
     public class RulebaseReport
     {
         [JsonProperty("id"), JsonPropertyName("id")]
@@ -23,9 +28,8 @@ namespace FWO.Data.Report
 
         public RulebaseReport()
         { }
-
     //     public RulebaseReport(RulebaseReport rulebase)
-    //     {
+    //     { 
     //         Id = rulebase.Id;
     //         Name = rulebase.Name;
     //         RuleChanges = rulebase.RuleChanges;

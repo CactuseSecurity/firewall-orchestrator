@@ -1451,6 +1451,16 @@ INSERT INTO config (config_key, config_value, config_user)
 VALUES ('importedMatrixReadOnly', 'true', 0)
 ON CONFLICT (config_key, config_user) DO NOTHING;
 
+-- add config values to make parralelization in compliance check configurable
+
+INSERT INTO config (config_key, config_value, config_user) 
+VALUES ('complianceCheckElementsPerFetch', '500', 0)
+ON CONFLICT (config_key, config_user) DO NOTHING;
+
+INSERT INTO config (config_key, config_value, config_user) 
+VALUES ('complianceCheckAvailableProcessors', '4', 0)
+ON CONFLICT (config_key, config_user) DO NOTHING;
+
 -- adding labels (simple version without mapping tables and without foreign keys)
 
 -- CREATE TABLE label (
@@ -1987,6 +1997,20 @@ BEGIN
         END IF;
 END$$;
 
+-- Set stm* tables hardcoded only - no Serial - stm_color filled via csv
+ALTER TABLE stm_link_type ALTER COLUMN id DROP DEFAULT;
+ALTER TABLE stm_track ALTER COLUMN track_id DROP DEFAULT;
+ALTER TABLE stm_obj_typ ALTER COLUMN obj_typ_id DROP DEFAULT;
+ALTER TABLE stm_change_type ALTER COLUMN change_type_id DROP DEFAULT;
+ALTER TABLE stm_action ALTER COLUMN action_id DROP DEFAULT;
+ALTER TABLE stm_dev_typ ALTER COLUMN dev_typ_id DROP DEFAULT;
+ALTER TABLE parent_rule_type ALTER COLUMN id DROP DEFAULT;
 
-
-
+-- Drop Sequence
+DROP SEQUENCE IF EXISTS public.stm_link_type_id_seq;
+DROP SEQUENCE IF EXISTS public.stm_track_track_id_seq;
+DROP SEQUENCE IF EXISTS public.stm_obj_typ_obj_typ_id_seq;
+DROP SEQUENCE IF EXISTS public.stm_change_type_change_type_id_seq;
+DROP SEQUENCE IF EXISTS public.stm_action_action_id_seq;
+DROP SEQUENCE IF EXISTS public.stm_dev_typ_dev_typ_id_seq;
+DROP SEQUENCE IF EXISTS public.parent_rule_type_id_seq;

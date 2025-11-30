@@ -114,6 +114,16 @@ namespace FWO.Data.Report
             }
         }
 
+        public RulebaseReport? GetNextRulebase(RulebaseLink? currentRbLink)
+        {
+            if (currentRbLink == null)
+            {
+                return null;
+            }
+            return Rulebases
+                .FirstOrDefault(rb => rb.Id == currentRbLink.NextRulebaseId);
+        }
+        
     }
     public static class ManagementUtility
     {

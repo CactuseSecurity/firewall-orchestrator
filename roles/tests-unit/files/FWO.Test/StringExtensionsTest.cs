@@ -40,7 +40,7 @@ namespace FWO.Test
 
         [SetUp]
         public void Initialize()
-        {}
+        { }
 
         [Test]
         public void TestSanitizer()
@@ -49,7 +49,7 @@ namespace FWO.Test
             string? nullString = null;
             ClassicAssert.AreEqual(null, nullString.SanitizeOpt(ref shortened));
             ClassicAssert.AreEqual(false, shortened);
-            ClassicAssert.AreEqual(OkText, OkText.SanitizeOpt( ref shortened));
+            ClassicAssert.AreEqual(OkText, OkText.SanitizeOpt(ref shortened));
             ClassicAssert.AreEqual(false, shortened);
             ClassicAssert.AreEqual(OkText, OkText.SanitizeMand(ref shortened));
             ClassicAssert.AreEqual(false, shortened);
@@ -303,10 +303,10 @@ namespace FWO.Test
         [TestCase("  text  ", "text", true)]
         [TestCase("text", "text", false)]
         [TestCase("\t\ntext\r\n", "text", true)]
-        [TestCase("   ", "", true)]           
-        [TestCase("\n\t", "", true)]          
-        [TestCase("text with spaces", "text with spaces", false)] 
-        [TestCase("", "", false)]           
+        [TestCase("   ", "", true)]
+        [TestCase("\n\t", "", true)]
+        [TestCase("text with spaces", "text with spaces", false)]
+        [TestCase("", "", false)]
         public void AllSanitizers_TrimWhitespace(string input, string expectedOutput, bool expectedShortened)
         {
             bool shortened;
@@ -342,13 +342,13 @@ namespace FWO.Test
 
             bool changed = false;
             Assert.That(input.SanitizeJsonFieldMand(ref changed), Is.EqualTo(expectedOutput.Replace(" ", "_")));
-            if(input == "text with spaces")
+            if (input == "text with spaces")
             {
                 expectedShortened = true;
                 Assert.That(changed, Is.EqualTo(expectedShortened));
                 expectedShortened = false;
             }
-            
+
             shortened = false;
             Assert.That(input.SanitizeEolMand(ref shortened), Is.EqualTo(expectedOutput));
             Assert.That(shortened, Is.EqualTo(expectedShortened));
@@ -432,7 +432,7 @@ namespace FWO.Test
         [TestCase("<BR/>line<br>", "line")]
         [TestCase("<b>bold</b><i>italic</i>", "bolditalic")]
         [TestCase("<b>bold</b><unknown>tag</unknown>", "boldtag")]
-        [TestCase("<I>upper</I>", "upper")] 
+        [TestCase("<I>upper</I>", "upper")]
         [TestCase("text &amp; more", "text &amp; more")]
         public void StripHtmlTags_Works(string input, string expected)
         {
@@ -441,14 +441,15 @@ namespace FWO.Test
         }
 
         // --- StripDangerousHtmlTags ---
-        [TestCase("<i>italic</i>", "<i>italic</i>")]
         [TestCase("<br>line<br>", "<br>line<br>")]
         [TestCase("<script>alert(1)</script>", "alert(1)")]
-        //[TestCase("<b>bold</b>", "bold")] 
-        [TestCase("<i>italic</i>", "<i>italic</i>")] 
+        [TestCase("<b>bold</b>", "<b>bold</b>")]
+        [TestCase("<i>italic</i>", "<i>italic</i>")]
         [TestCase("<i><script>evil</script>text</i>", "<i>eviltext</i>")]
-        [TestCase("<BR/>line<br>", "line<br>")] 
-        //[TestCase("<b>bold</b><i>italic</i>", "bold<i>italic</i>")]
+        [TestCase("<BR/>line<br>", "line<br>")]
+        [TestCase("<b>bold</b><i>italic</i>", "<b>bold</b><i>italic</i>")]
+        [TestCase("<x>fictitious tag</x>", "fictitious tag")]
+        [TestCase("<x>fictitious tag<x>", "fictitious tag")]
         public void StripDangerousHtmlTags_Works(string input, string expected)
         {
             string result = input.StripDangerousHtmlTags();
@@ -498,10 +499,10 @@ namespace FWO.Test
         [TestCase("a,b,c", ',', 2, true, "c")]
         [TestCase("a,b,c", ',', 3, false, "")]
         [TestCase("single", ',', 0, false, "")]
-        [TestCase(",a,b,", ',', 0, true, "")] 
-        [TestCase(",a,b,", ',', 3, true, "")] 
-        [TestCase(",a,b,", ',', 4, false, "")] 
-        [TestCase("", ',', 0, false, "")] 
+        [TestCase(",a,b,", ',', 0, true, "")]
+        [TestCase(",a,b,", ',', 3, true, "")]
+        [TestCase(",a,b,", ',', 4, false, "")]
+        [TestCase("", ',', 0, false, "")]
         public void TrySplit_ByIndex_Works(string input, char sep, int index, bool expectedResult, string expectedOutput)
         {
             bool result = input.TrySplit(sep, index, out string output);
@@ -521,9 +522,9 @@ namespace FWO.Test
         // --- TryGetNetmask ---
         [TestCase("192.168.1.1/24", true, "/24")]
         [TestCase("10.0.0.1", false, "")]
-        [TestCase("192.168.1.1/0", true, "/0")]  
+        [TestCase("192.168.1.1/0", true, "/0")]
         //[TestCase("192.168.1.1/33", false, "")]  
-        [TestCase("fe80::1/127", true, "/127")]   
+        [TestCase("fe80::1/127", true, "/127")]
         //[TestCase("fe80::1/129", false, "")]     
         public void TryGetNetmask_Works(string input, bool expectedResult, string expectedNetmask)
         {
@@ -612,7 +613,7 @@ namespace FWO.Test
         [TestCase("192.168.1.0/24", "192.168.1.0/24")]
         [TestCase("2001:db8::1", "2001:db8::1/128")]
         [TestCase("2001:db8::/64", "2001:db8::/64")]
-        [TestCase("192.168.1.1/32", "192.168.1.1/32")] 
+        [TestCase("192.168.1.1/32", "192.168.1.1/32")]
         [TestCase("2001:db8::1/128", "2001:db8::1/128")]
         public void IpAsCidr_Works(string input, string expected)
         {

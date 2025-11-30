@@ -9,9 +9,6 @@ namespace FWO.Basics
 {
     public static partial class StringExtensions
     {
-        private const string HtmlTagPattern = "<.*?>";
-        private static readonly string[] AllowedTags = ["br?", "i", "hr"];
-
 
         public static int Compare(this string left, string right)
         {
@@ -141,23 +138,6 @@ namespace FWO.Basics
             return ip;
         }
 
-        private static string BuildDangerousHtmlTagPattern()
-        {
-            string allowedTags = string.Join('|', AllowedTags);
-            return $"<(?!:{allowedTags}).*?(?<!{allowedTags})>";
-        }
-
-        public static string StripHtmlTags(this string text, RegexOptions options = RegexOptions.None)
-        {
-            return Regex.Replace(text, HtmlTagPattern, string.Empty, options);
-        }
-
-        public static string StripDangerousHtmlTags(this string text, RegexOptions options = RegexOptions.None)
-        {
-            string pattern = BuildDangerousHtmlTagPattern();
-            return Regex.Replace(text, pattern, string.Empty, options);
-        }
-
         public static bool IsIPv4(this string ipAddress)
         {
             if (IPAddress.TryParse(ipAddress, out IPAddress? addr))
@@ -185,14 +165,14 @@ namespace FWO.Basics
         }
 
         public static string IpAsCidr(this string ip)
-		{
-			return IPAddressRange.Parse(ip).ToCidrString();
-		}
+        {
+            return IPAddressRange.Parse(ip).ToCidrString();
+        }
 
         public static string ToComparableIpString(this string ip)
-		{
-			return ip.IpAsCidr().PadLeft(43, '0'); // max length of an IPv6 CIDR string is 43 chars
-		}
+        {
+            return ip.IpAsCidr().PadLeft(43, '0'); // max length of an IPv6 CIDR string is 43 chars
+        }
 
         public static (string start, string end) CidrToRangeString(this string cidr)
         {
@@ -245,7 +225,7 @@ namespace FWO.Basics
                 : uint.MaxValue << (32 - prefixLength);
 
             uint startIp = ipAddress & mask;
-            uint endIp   = startIp   | ~mask;
+            uint endIp = startIp | ~mask;
 
             return (new IPAddress([.. BitConverter.GetBytes(startIp).Reverse()]),
                     new IPAddress([.. BitConverter.GetBytes(endIp).Reverse()]));

@@ -388,36 +388,68 @@ namespace FWO.Services
             return false;
         }
 
+        /// <summary>
+        /// Checks if a common service contains only network areas in the specified direction.
+        /// </summary>
+        /// <param name="direction">The direction to check (Source or Destination).</param>
+        /// <param name="selectedAppRoles">The app roles to be added to the direction.</param>
+        /// <returns>True if only network areas exist.</returns>
         public bool ComSvcContainsOnlyNetworkAreasInDirection(Direction direction, List<ModellingAppRole> selectedAppRoles)
         {
             return ComSvcContainsOnlyNetworkAreasInDirectionInternal(direction, [], selectedAppRoles);
         }
 
+        /// <summary>
+        /// Checks if a common service contains only network areas in the specified direction.
+        /// </summary>
+        /// <param name="direction">The direction to check (Source or Destination).</param>
+        /// <param name="selectedNetworkAreas">The network areas to be added to the direction.</param>
+        /// <returns>True if only network areas exist.</returns>
         public bool ComSvcContainsOnlyNetworkAreasInDirection(Direction direction, List<ModellingNetworkArea> selectedNetworkAreas)
         {
             return ComSvcContainsOnlyNetworkAreasInDirectionInternal(direction, selectedNetworkAreas, []);
         }
 
+        /// <summary>
+        /// Internal method that validates whether only network areas (without app roles) exist in the specified direction of a common service.
+        /// Combines existing areas/roles from the connection with items to add, removes items marked for deletion, and checks if the result contains both types.
+        /// </summary>
+        /// <param name="direction">The direction to check (Source or Destination).</param>
+        /// <param name="initialAreas">Network areas to be considered in addition to existing ones.</param>
+        /// <param name="initialRoles">App roles to be considered in addition to existing ones.</param>
+        /// <returns>True if only network areas exist.</returns>
         private bool ComSvcContainsOnlyNetworkAreasInDirectionInternal(Direction direction, IEnumerable<ModellingNetworkArea> initialAreas, IEnumerable<ModellingAppRole> initialRoles)
         {
             List<ModellingNetworkArea> areas = [.. initialAreas];
             List<ModellingAppRole> roles = [.. initialRoles];
 
-            if(direction == Direction.Source)
+            if (direction == Direction.Source)
             {
                 areas.AddRange([.. ModellingNetworkAreaWrapper.Resolve(ActConn.SourceAreas)]);
                 areas.AddRange(SrcAreasToAdd);
 
+                HashSet<long> srcAreasToDeleteIds = [.. SrcAreasToDelete.Select(d => d.Id)];
+                areas.RemoveAll(a => srcAreasToDeleteIds.Contains(a.Id));
+
                 roles.AddRange([.. ModellingAppRoleWrapper.Resolve(ActConn.SourceAppRoles)]);
                 roles.AddRange(SrcAppRolesToAdd);
+
+                HashSet<long> srcAppRolesToDeleteIds = [.. SrcAppRolesToDelete.Select(d => d.Id)];
+                roles.RemoveAll(r => srcAppRolesToDeleteIds.Contains(r.Id));
             }
-            else if(direction == Direction.Destination)
+            else if (direction == Direction.Destination)
             {
                 areas.AddRange([.. ModellingNetworkAreaWrapper.Resolve(ActConn.DestinationAreas)]);
                 areas.AddRange(DstAreasToAdd);
 
+                HashSet<long> dstAreasToDeleteIds = [.. DstAreasToDelete.Select(d => d.Id)];
+                areas.RemoveAll(a => dstAreasToDeleteIds.Contains(a.Id));
+
                 roles.AddRange([.. ModellingAppRoleWrapper.Resolve(ActConn.DestinationAppRoles)]);
                 roles.AddRange(DstAppRolesToAdd);
+
+                HashSet<long> dstAppRolesToDeleteIds = [.. DstAppRolesToDelete.Select(d => d.Id)];
+                roles.RemoveAll(r => dstAppRolesToDeleteIds.Contains(r.Id));
             }
             else
             {

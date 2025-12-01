@@ -1,4 +1,4 @@
-﻿using FWO.Api.Client;
+using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 using FWO.Data;
 using FWO.Data.Report;
@@ -16,7 +16,7 @@ namespace FWO.Report
     {
         private readonly DebugConfig _debugConfig;
 
-        public ReportDevicesBase(DynGraphqlQuery query, UserConfig UserConfig, ReportType reportType) : base(query, UserConfig, reportType)
+        protected ReportDevicesBase(DynGraphqlQuery query, UserConfig UserConfig, ReportType reportType) : base(query, UserConfig, reportType)
         {
             if (userConfig.GlobalConfig is GlobalConfig globalConfig && !string.IsNullOrEmpty(globalConfig.DebugConfig))
             {
@@ -117,10 +117,12 @@ namespace FWO.Report
         {
             try
             {
+                /* NOSONAR - temporarily disabled
                 // TODO: the following only deals with first rulebase of a gateway:
                 // return (await apiConnection.SendQueryAsync<List<AggregateCountLastHit>>(ReportQueries.getUsageDataCount, new { devId })
-                //     )[0].RulebasesOnGateway[0].Rulebase.RulesWithHits.Aggregate.Count > 0;
-                return false;   // TODO: implement and remove pragma warning disable once done
+                //     ) NOSONAR[0].RulebasesOnGateway[0].Rulebase.RulesWithHits.Aggregate.Count > 0; NOSONAR
+                */
+                return false;   // TODO : implement and remove pragma warning disable once done
             }
             catch (Exception)
             {
@@ -236,9 +238,6 @@ namespace FWO.Report
 
         protected string GenerateHtmlFrame(string title, string filter, DateTime date, StringBuilder htmlReport, TimeFilter? timefilter = null)
         {
-            // return GenerateHtmlFrameBase(title, filter, date, htmlReport,
-            //     string.Join("; ", ReportData.ManagementData.Where(mgt => !mgt.Ignore).Select(m => new ManagementReportController(m).NameAndRulebaseNames())),
-            //     Query.SelectedOwner?.Name);
             string deviceFilter = string.Join("; ", Array.ConvertAll(ReportData.ManagementData.Where(mgt => !mgt.Ignore).ToArray(), m => m.NameAndDeviceNames()));
             return GenerateHtmlFrameBase(title, filter, date, htmlReport, deviceFilter, Query.SelectedOwner?.Name, timefilter);
         }

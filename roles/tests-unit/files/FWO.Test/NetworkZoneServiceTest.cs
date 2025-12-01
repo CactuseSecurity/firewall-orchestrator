@@ -10,6 +10,7 @@ using FWO.Api.Client.Queries;
 using FWO.Config.Api;
 using System.Reflection;
 using FWO.Test.Tools.CustomAssert;
+using FWO.Test.Mocks;
 
 namespace FWO.Test
 {

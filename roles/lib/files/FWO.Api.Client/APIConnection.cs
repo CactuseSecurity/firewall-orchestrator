@@ -1,10 +1,14 @@
-﻿namespace FWO.Api.Client
+﻿using FWO.Logging;
+
+namespace FWO.Api.Client
 {
     public abstract class ApiConnection : IDisposable
     {
         private bool disposed = false;
 
         public event EventHandler<string>? OnAuthHeaderChanged;
+
+        public Basics.Interfaces.ILogger Logger = new Logger();
 
         protected List<ApiSubscription> subscriptions = [];
 

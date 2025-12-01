@@ -427,21 +427,29 @@ namespace FWO.Services
             {
                 areas.AddRange([.. ModellingNetworkAreaWrapper.Resolve(ActConn.SourceAreas)]);
                 areas.AddRange(SrcAreasToAdd);
-                areas.RemoveAll(a => SrcAreasToDelete.Any(d => d.Id == a.Id));
+
+                HashSet<long> srcAreasToDeleteIds = [.. SrcAreasToDelete.Select(d => d.Id)];
+                areas.RemoveAll(a => srcAreasToDeleteIds.Contains(a.Id));
 
                 roles.AddRange([.. ModellingAppRoleWrapper.Resolve(ActConn.SourceAppRoles)]);
                 roles.AddRange(SrcAppRolesToAdd);
-                roles.RemoveAll(r => SrcAppRolesToDelete.Any(d => d.Id == r.Id));
+
+                HashSet<long> srcAppRolesToDeleteIds = [.. SrcAppRolesToDelete.Select(d => d.Id)];
+                roles.RemoveAll(r => srcAppRolesToDeleteIds.Contains(r.Id));
             }
             else if(direction == Direction.Destination)
             {
                 areas.AddRange([.. ModellingNetworkAreaWrapper.Resolve(ActConn.DestinationAreas)]);
                 areas.AddRange(DstAreasToAdd);
-                areas.RemoveAll(a => DstAreasToDelete.Any(d => d.Id == a.Id));
+
+                HashSet<long> dstAreasToDeleteIds = [.. DstAreasToDelete.Select(d => d.Id)];
+                areas.RemoveAll(a => dstAreasToDeleteIds.Contains(a.Id));
 
                 roles.AddRange([.. ModellingAppRoleWrapper.Resolve(ActConn.DestinationAppRoles)]);
                 roles.AddRange(DstAppRolesToAdd);
-                roles.RemoveAll(r => DstAppRolesToDelete.Any(d => d.Id == r.Id));
+                
+                HashSet<long> dstAppRolesToDeleteIds = [.. DstAppRolesToDelete.Select(d => d.Id)];
+                roles.RemoveAll(r => dstAppRolesToDeleteIds.Contains(r.Id));
             }
             else
             {

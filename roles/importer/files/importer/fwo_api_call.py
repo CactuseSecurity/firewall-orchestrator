@@ -1,7 +1,7 @@
 # library for all FWORCH API calls in importer module
 import traceback
 import json
-import datetime
+from datetime import datetime, timezone
 import time
 
 import fwo_const
@@ -72,33 +72,10 @@ class FwoApiCall(FwoApi):
 
     # this mgm field is used by mw dailycheck scheduler
     def log_import_attempt(self, mgm_id, successful=False):
-        now = datetime.datetime.now().isoformat()
+        now = datetime.now(timezone.utc).isoformat()
         query_variables = { "mgmId": mgm_id, "timeStamp": now, "success": successful }
         mgm_mutation = FwoApi.get_graphql_code([fwo_const.graphql_query_path + "import/updateManagementLastImportAttempt.graphql"])
         return self.call(mgm_mutation, query_variables=query_variables)
-
-
-    def setImportLock(self, mgm_details: Management, is_full_import: int = False, is_initial_import: int = False, debug_level: int = 0) -> int:
-        logger = getFwoLogger(debug_level=debug_level)
-        import_id = -1
-        mgm_id = mgm_details.Id
-        try: # set import lock
-            lock_mutation = FwoApi.get_graphql_code([fwo_const.graphql_query_path + "import/addImport.graphql"])
-            lock_result = self.call(lock_mutation, 
-                            query_variables={"mgmId": mgm_id, "isFullImport": is_full_import, "isInitialImport": is_initial_import })
-            if lock_result['data']['insert_import_control']['returning'][0]['control_id']:
-                import_id = lock_result['data']['insert_import_control']['returning'][0]['control_id']
-            return import_id
-        except Exception:
-            logger.error("import_management - failed to get import lock for management id " + str(mgm_id))
-            if import_id == -1:
-                self.create_data_issue(mgm_id=int(mgm_id), severity=1, 
-                    description="failed to get import lock for management id " + str(mgm_id))
-                self.set_alert(import_id=import_id, title="import error", mgm_id=str(mgm_id), severity=1, \
-                    description="fwo_api: failed to get import lock", source='import', alertCode=15, mgm_details=mgm_details)
-                raise FwoApiFailedLockImport("fwo_api: failed to get import lock for management id " + str(mgm_id)) from None
-            else:
-                return import_id
 
 
     def count_rule_changes_per_import(self, import_id):
@@ -128,10 +105,33 @@ class FwoApiCall(FwoApi):
         return changes_in_import
 
 
+    def lock_import(self, mgm_details: Management, is_full_import: int = False, is_initial_import: int = False, debug_level: int = 0) -> int:
+        logger = getFwoLogger(debug_level=debug_level)
+        import_id = -1
+        mgm_id = mgm_details.Id
+        try: # set import lock
+            lock_mutation = FwoApi.get_graphql_code([fwo_const.graphql_query_path + "import/addImport.graphql"])
+            lock_result = self.call(lock_mutation, 
+                            query_variables={"mgmId": mgm_id, "isFullImport": is_full_import, "isInitialImport": is_initial_import })
+            if lock_result['data']['insert_import_control']['returning'][0]['control_id']:
+                import_id = lock_result['data']['insert_import_control']['returning'][0]['control_id']
+            return import_id
+        except Exception:
+            logger.error("import_management - failed to get import lock for management id " + str(mgm_id))
+            if import_id == -1:
+                self.create_data_issue(mgm_id=int(mgm_id), severity=1, 
+                    description="failed to get import lock for management id " + str(mgm_id))
+                self.set_alert(import_id=import_id, title="import error", mgm_id=str(mgm_id), severity=1, \
+                    description="fwo_api: failed to get import lock", source='import', alertCode=15, mgm_details=mgm_details)
+                raise FwoApiFailedLockImport("fwo_api: failed to get import lock for management id " + str(mgm_id)) from None
+            else:
+                return import_id
+
+
     def unlock_import(self, import_id: int, mgm_id: int, import_stats: ImportStatisticsController) -> int:
         logger = getFwoLogger()
         error_during_import_unlock = 0
-        query_variables = {"stopTime": datetime.datetime.now().isoformat(), "importId": import_id,
+        query_variables = {"stopTime": datetime.now(timezone.utc).isoformat(), "importId": import_id,
                         "success": import_stats.ErrorCount == 0, "anyChangesFound": import_stats.getTotalChangeNumber() > 0, 
                         "ruleChangesFound": import_stats.getRuleChangeNumber() > 0, "changeNumber": import_stats.getRuleChangeNumber()}
 
@@ -265,7 +265,7 @@ class FwoApiCall(FwoApi):
                 return False
             for alert in existingUnacknowledgedAlerts['data']['alert']:
                 if 'alert_id' in alert:
-                    now = datetime.datetime.now().isoformat()
+                    now = datetime.now(timezone.utc).isoformat()
                     query_variables = { "userId": 0, "alertId": alert['alert_id'], "ackTimeStamp": now }
                     updateResult = self.call(ackAlert_mutation, query_variables=query_variables)
         except Exception as e:

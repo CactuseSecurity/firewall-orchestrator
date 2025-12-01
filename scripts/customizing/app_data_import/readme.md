@@ -1,19 +1,51 @@
 
-# Customizing Script for Importing Application Data from Tufin RLM
+# Customizing Script for Importing Application Data into FWO
+
+## Importing from normalized CSV files
+
+We provide a customizing script `get_owner_data_from_normalized_csvs.py` that reads owner/application data and related IPs from normalized CSV exports and converts them into the JSON format expected by the App Data Import.
+
+### Preparation
+
+#### Files
+
+Copy the configuration file `customizingConfig.json` from the `$FWORCH/scripts/customizing/modelling` directory to the `/etc/fworch/secrets` directory and ensure only the fworch user can read it (`chmod 600`).
+
+#### FWO Configuration 
+
+##### Custom config file
+
+Adjust `/etc/fworch/secrets/customizingConfig.json` as follows:
+
+- `gitRepo`, `gitUser`, `gitPassword`: Git repository URL (without protocol), user, and password that host the CSV exports.
+- `csvOwnerFilePattern`: regex for owner/app metadata files (e.g., `NeMo_..._meta.csv`).
+- `csvAppServerFilePattern`: regex for server/IP files (e.g., `NeMo_..._IP.*?.csv`).
+- `ldapPath`: DN template containing `{USERID}` to expand main users.
+
+You can bypass Git and read from a local folder by providing `--import_from_folder` when running the script.
+
+#### Settings via UI
+
+In the FWORCH Web UI, go to Settings - Further Settings - Modelling and enter the full path to the script (leave out the extension) in "Path and Name of App data import", e.g.:
+`/usr/local/fworch/scripts/customizing/app-data-import/get_owner_data_from_normalized_csvs`
+
+Then click "Add". You can configure multiple import sources the same way.
+
+## Importing from Tufin RLM
 
 We provide a customizing script that fetches all owner/application data via the Tufin RLM API and converts the data into the expected normalized json format for the App Data Import.
 Additionally we provide a script to convert Network Object data (Areas) from a .csv-File to the json format expected by the 
 Subnet Data Import.
 
-## Preparation
+### Preparation
 
-### Files
+#### Files
 
 In order to protect your credentials, copy the configuration file customizingConfig.json from the $FWORCH/scripts/customizing/modelling directory to the /etc/fworch/secrets directory and make sure only the fworch user has access (0x600).
 
-### FWO Configuration 
+#### FWO Configuration 
 
-#### Custom config file
+##### Custom config file
 
 Adjust the settings in the config file /etc/fworch/secrets/customizingConfig.json as follows:
 

@@ -7,5 +7,6 @@ roles/importer/venv/
 ansible_venv/
 *.todo
 **/.venv/
-
+**/__pycache__/
+**/*.pyc
 .vscode/launch.json

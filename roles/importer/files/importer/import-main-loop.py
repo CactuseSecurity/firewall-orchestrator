@@ -40,7 +40,7 @@ def wait_with_shutdown_check(sleep_time: int):
         counter += 1
 
 
-def main_loop(debug_level: int, verify_certificates: bool | None = None, suppress_certificate_warnings: bool | None = None, clear: bool = False, force: bool = False, is_full_import: bool = False):
+def main(debug_level: int, verify_certificates: bool | None = None, suppress_certificate_warnings: bool | None = None, clear: bool = False, force: bool = False, is_full_import: bool = False):
     FWOLogger(debug_level)
     service_provider = init_service_provider()
     fwo_config = service_provider.get_fwo_config()
@@ -124,10 +124,12 @@ def main_loop(debug_level: int, verify_certificates: bool | None = None, suppres
                 continue # minor errors for a single mgm, go to next one
             except Exception: # all other exceptions are logged here
                 FWOLogger.error(f"import-main-loop - unspecific error while importing mgm_id={mgm_id}, {str(traceback.format_exc())}")
+
+
         if clear:
             break
 
-        FWOLogger.debug(f"import-main-loop: sleeping for {sleep_timer} seconds until next import cycle")
+        FWOLogger.info(f"import-main-loop: sleeping for {sleep_timer} seconds until next import cycle")
         wait_with_shutdown_check(sleep_timer)
 
 
@@ -148,7 +150,7 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
-    main_loop(
+    main(
         debug_level=int(args.debug),
         verify_certificates=args.verify_certificates, 
         suppress_certificate_warnings=args.suppress_certificate_warnings,

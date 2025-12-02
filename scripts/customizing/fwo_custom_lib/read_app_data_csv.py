@@ -49,13 +49,14 @@ def parse_app_line(line, app_name_column, app_id_column, app_owner_tiso_column, 
         app_main_user = line[app_owner_tiso_column]
         main_user_dn = build_dn(app_main_user, ldap_path, logger)
         kwita = line[app_owner_kwita_column]
-        if kwita is None or kwita == '' or kwita.lower() == 'nein':
+        if kwita is None or kwita == '' or kwita.lower() == 'false':
             recert_period_days = 365
         else:
             recert_period_days = 182
         if main_user_dn == '' and debug_level > 0:
             logger.warning('adding app without main user: ' + app_id)
-        app_list.append(owner_cls(app_id_external=app_id, name=app_name, main_user=main_user_dn, recert_period_days=recert_period_days, import_source=import_source_string))
+        app_list.append(owner_cls(app_id_external=app_id, name=app_name, main_user=main_user_dn, 
+                                  recert_period_days=recert_period_days, days_until_first_recert=recert_period_days, recert_active=False, import_source=import_source_string))
     else:
         if debug_level > 1:
             logger.info(f'ignoring line from csv file: {app_id} - inconclusive appId')

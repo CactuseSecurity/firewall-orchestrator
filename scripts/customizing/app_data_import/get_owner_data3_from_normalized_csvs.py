@@ -114,7 +114,6 @@ if __name__ == "__main__":
     #############################################
     # 2. get app list with activated recertification
 
-    base_dir = recert_repo_target_dir
     recert_repo_url = f"https://{git_username}:{git_password}@{recert_active_repo_url}" 
     try:
         if os.path.exists(recert_repo_target_dir):

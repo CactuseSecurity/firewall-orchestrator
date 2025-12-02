@@ -2,10 +2,8 @@ import json
 import time
 import traceback
 from copy import deepcopy
-from typing import Any
 
 from fwo_log import FWOLogger
-from fwo_base import serialize_dict_to_class_rec
 from fwo_const import IMPORT_TMP_PATH
 
 from model_controllers.import_state_controller import ImportStateController
@@ -116,11 +114,6 @@ class FwConfigManagerListController(FwConfigManagerList):
     @staticmethod
     def get_policy_uid_from_rulebase_name(rb_name: str) -> str:
         return rb_name
-    
-    @classmethod
-    def from_json(cls, json_in: dict[str, Any]) -> 'FwConfigManagerListController':
-        return serialize_dict_to_class_rec(json_in, cls)
-
 
     def store_full_normalized_config_to_file(self, import_state: ImportStateController):
         if FWOLogger.is_debug_level(6):

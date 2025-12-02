@@ -15,7 +15,7 @@ def read_config(fwo_config_filename: str = '/etc/fworch/fworch.json') -> dict[st
 
         # read importer password from file
         with open(IMPORTER_PWD_FILE, 'r') as file:
-            importerPwd = file.read().replace('\n', '')
+            importer_pwd = file.read().replace('\n', '')
 
     except KeyError as e:
         FWOLogger.error("config key not found in "+ fwo_config_filename + ": " + e.args[0])
@@ -30,6 +30,6 @@ def read_config(fwo_config_filename: str = '/etc/fworch/fworch.json') -> dict[st
         "fwo_major_version": fwo_major_version, 
         "user_management_api_base_url": user_management_api_base_url, 
         "fwo_api_base_url": fwo_api_base_url,
-        "importerPassword": importerPwd
+        "importerPassword": importer_pwd
     }
     return config

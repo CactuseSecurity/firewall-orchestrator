@@ -183,7 +183,7 @@ class FwoApiCall(FwoApi):
             FWOLogger.exception("failed to delete config without changes")
 
 
-    def get_error_string_from_imp_control(self, _: 'ImportStateController', query_variables: dict[str, Any]) -> list[dict[str, Any]]: # TODO: confirm return type
+    def get_error_string_from_imp_control(self, _: 'ImportStateController', query_variables: dict[str, Any]) -> list[dict[str, Any]]: # TYPING: confirm return type
         error_query = "query getErrors($importId:bigint) { import_control(where:{control_id:{_eq:$importId}}) { import_errors } }"
         return self.call(error_query, query_variables=query_variables)['data']['import_control']
 

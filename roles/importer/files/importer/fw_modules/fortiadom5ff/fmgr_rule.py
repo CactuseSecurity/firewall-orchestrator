@@ -638,8 +638,6 @@ def extract_nat_objects(nwobj_list: list[str], all_nwobjects: list[dict[str, str
                 if 'obj_nat_ip' in obj2:
                     nat_obj_list.append(obj2)
                 break
-        # if obj in all_nwobjects and 'obj_nat_ip' in all_nwobjects[obj]:
-        #     nat_obj_list.append(obj)
     return nat_obj_list
 
 

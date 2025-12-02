@@ -285,23 +285,24 @@ def get_sid(importState: ImportStateController):
 
 def get_objects(sid: str, fm_api_url: str, native_config_domain: dict[str, Any], native_config_global: dict[str, Any], adom_name: str, limit: int, nw_obj_types: list[str], svc_obj_types: list[str], adom_scope: str, arbitrary_vdom_for_updateable_objects: dict[str, Any] | None):
     # get those objects that exist globally and on adom level
+    api_base_path = f"/pm/config/{adom_scope}/obj/"
 
     # get network objects:
     for object_type in nw_obj_types:
         fmgr_getter.update_config_with_fortinet_api_call(
-            native_config_domain['objects'], sid, fm_api_url, "/pm/config/"+adom_scope+"/obj/" + object_type, "nw_obj_" + adom_scope + "_" + object_type, limit=limit)
+            native_config_domain['objects'], sid, fm_api_url, api_base_path + object_type, "nw_obj_" + adom_scope + "_" + object_type, limit=limit)
 
     # get service objects:
     # service/custom is an undocumented API call!
     for object_type in svc_obj_types:
         fmgr_getter.update_config_with_fortinet_api_call(
-            native_config_domain['objects'], sid, fm_api_url, "/pm/config/"+adom_scope+"/obj/" + object_type, "svc_obj_" + adom_scope + "_" + object_type, limit=limit)
+            native_config_domain['objects'], sid, fm_api_url, api_base_path + object_type, "svc_obj_" + adom_scope + "_" + object_type, limit=limit)
 
     # user: /pm/config/global/obj/user/local, /pm/config/global/obj/user/group
     # get user objects:
     for object_type in user_obj_types:
         fmgr_getter.update_config_with_fortinet_api_call(
-            native_config_domain['objects'], sid, fm_api_url, "/pm/config/"+adom_scope+"/obj/" + object_type, "user_obj_" + adom_scope + "_" + object_type, limit=limit)
+            native_config_domain['objects'], sid, fm_api_url, api_base_path + object_type, "user_obj_" + adom_scope + "_" + object_type, limit=limit)
             
     # get one arbitrary device and vdom to get dynamic objects
     # they are equal across all adoms, vdoms, devices

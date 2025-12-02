@@ -299,11 +299,11 @@ def get_config(config_in: FwConfigManagerListController, import_state: ImportSta
 
     FWOLogger.debug ( "starting checkpointAsa9/get_config" )
 
-    _ = import_state.mgm_details.device_type_name == "Cisco Asa on FirePower"
+    is_virtual_asa = import_state.mgm_details.device_type_name == "Cisco Asa on FirePower"
 
-    if config_in.native_config_is_empty: # type: ignore
-        # for debugging, use: raw_config = load_config_from_management(import_state.MgmDetails, is_virtual_asa)
-        raw_config = load_config_from_file("test_asa.conf")
+    if config_in.native_config_is_empty:
+        # for debugging, use: raw_config = load_config_from_file("test_asa.conf")
+        raw_config = load_config_from_management(import_state.mgm_details, is_virtual_asa)
         config2import = parse_asa_config(raw_config)
         config_in.native_config = config2import.model_dump()
 
@@ -316,6 +316,6 @@ def get_config(config_in: FwConfigManagerListController, import_state: ImportSta
 
 def load_config_from_file(filename: str) -> str:
     """Load ASA configuration from a file."""
-    path = Path("roles", "importer", "files", "importer", "ciscoasa9", filename)
+    path = Path("roles", "importer", "files", "importer", "fw_modules", "ciscoasa9", filename)
     with open(path, "r") as f:
         return f.read()

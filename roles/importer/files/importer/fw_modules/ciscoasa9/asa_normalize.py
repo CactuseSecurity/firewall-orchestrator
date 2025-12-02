@@ -126,8 +126,7 @@ def normalize_config(config_in: FwConfigManagerListController, import_state: Imp
         import_state.mgm_details.uid,
         protocol_groups=native_config.protocol_groups,
         network_objects=network_objects,
-        service_objects=service_objects,
-        gateway_uid=native_config.hostname
+        service_objects=service_objects
     )
 
     # Step 4: Create rulebase links (ordered chain of rulebases)

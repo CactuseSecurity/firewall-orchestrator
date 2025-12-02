@@ -63,7 +63,11 @@ def parse_app_line(line, app_name_column, app_id_column, app_owner_tiso_column, 
     return count_skips
 
 
-def extract_app_data_from_csv(csv_file: str, app_list: list, ldap_path, import_source_string, owner_cls, logger, debug_level, base_dir): 
+def extract_app_data_from_csv(csv_file: str, app_list: list, ldap_path, import_source_string, owner_cls, logger, debug_level, 
+                              base_dir='.', recert_active_app_list=None): 
+
+    if recert_active_app_list is None:
+        recert_active_app_list = []
 
     apps_from_csv = []
     csv_file_path = base_dir + '/' + csv_file  # add directory to csv files
@@ -76,6 +80,15 @@ def extract_app_data_from_csv(csv_file: str, app_list: list, ldap_path, import_s
         count_skips = parse_app_line(line, app_name_column, app_id_column, app_owner_tiso_column, app_owner_kwita_column, app_list, count_skips, ldap_path, import_source_string, owner_cls, logger, debug_level)
     if debug_level > 0:
         logger.info(f"{str(csv_file_path)}: #total lines {str(len(apps_from_csv))}, skipped: {str(count_skips)}")
+
+    if len(recert_active_app_list) > 0:
+        # activate recertification for apps in recert_active_app_list
+        for app in app_list:
+            if app.app_id_external in recert_active_app_list:
+                app.recert_active = True
+                app.days_until_first_recert = app.recert_period_days    # settings initial recertification to standard period of days
+            else:
+                app.recert_active = False
 
 
 def read_ip_data_from_csv(csv_filename, logger):

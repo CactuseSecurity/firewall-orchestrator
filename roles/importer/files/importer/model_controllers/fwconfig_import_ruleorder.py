@@ -216,7 +216,7 @@ class RuleOrderService:
             min_num_numeric_rule = min((r for r in changed_and_unchanged_rules  if r.rule_num_numeric != 0), key=lambda x: x.rule_num_numeric, default=None)
             
             if min_num_numeric_rule:
-                changed_rule.rule_num_numeric = min_num_numeric_rule.rule_num_numeric / 2 or 1
+                changed_rule.rule_num_numeric = max(min_num_numeric_rule.rule_num_numeric / 2, 1)
             else:
                 changed_rule.rule_num_numeric = RULE_NUM_NUMERIC_STEPS
 

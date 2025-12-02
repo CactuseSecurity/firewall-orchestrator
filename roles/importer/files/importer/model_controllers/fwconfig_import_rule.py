@@ -375,8 +375,8 @@ class FwConfigImportRule():
                     raise FwoImporterError(f"previous reference UID is None: {prev_ref_uid} in rule {prev_rule.rule_uid}")
                 refs_to_remove[ref_type].append(self.get_ref_remove_statement(ref_type, prev_rule.rule_uid, prev_ref_uid))
         return refs_to_remove
-
-    def remove_outdated_refs(self, prev_config: FwConfigNormalized):
+    
+    def get_refs_to_remove(self, prev_config: FwConfigNormalized) -> dict[RefType, list[dict[str, Any]]]:
         all_refs_to_remove: dict[RefType, list[dict[str, Any]]] = {ref_type: [] for ref_type in RefType}
         for prev_rulebase in prev_config.rulebases:
             if self.normalized_config is None:
@@ -392,6 +392,10 @@ class FwConfigImportRule():
                 rule_refs_to_remove = self.get_outdated_refs_to_remove(prev_rule, rules.get(uid, None), prev_config, rule_removed_or_changed)
                 for ref_type, ref_statements in rule_refs_to_remove.items():
                     all_refs_to_remove[ref_type].extend(ref_statements)
+        return all_refs_to_remove
+
+    def remove_outdated_refs(self, prev_config: FwConfigNormalized):
+        all_refs_to_remove = self.get_refs_to_remove(prev_config)
 
         if not any(all_refs_to_remove.values()):
             return

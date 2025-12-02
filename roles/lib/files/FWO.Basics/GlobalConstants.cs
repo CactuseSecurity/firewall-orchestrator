@@ -37,7 +37,7 @@ namespace FWO.Basics
         public const string kImportAppData = "importAppData";
         public const string kAdjustAppServerNames = "adjustAppServerNames";
         public const string kImportAreaSubnetData = "importAreaSubnetData";
-		public const string kImportZoneMatrixData = "importZoneMatrixData";
+        public const string kImportZoneMatrixData = "importZoneMatrixData";
         public const string kVarianceAnalysis = "varianceAnalysis";
         public const string kManual = "manual";
         public const string kCSV_ = "CSV_";
@@ -53,7 +53,7 @@ namespace FWO.Basics
         public const string kModellerGroup = "ModellerGroup_";
         public const string kLdapGroupPattern = kModellerGroup + Placeholder.AppId;
         public const string kImportChangeNotify = "importChangeNotify";
-		public const string kExternalRequest = "externalRequest";
+        public const string kExternalRequest = "externalRequest";
         public const string kComplianceCheck = "complianceCheck";
         public const string kLdapInternalPostfix = "dc=" + kFwoProdName + ",dc=internal";
         public const int kLdapInternalId = 1;
@@ -163,5 +163,10 @@ namespace FWO.Basics
         public const string TICKET_SUBJECT = "@@TICKET_SUBJECT@@";
         public const string TYPE = "@@TYPE@@";
         public const string USER_NAME = "@@USER_NAME@@";
+    }
+    public struct HtmlAsset
+    {
+        public const string HtmlArrowExpanded = "&#9660;";
+        public const string HtmlArrowCollapsed = "&#9654;";
     }
 }

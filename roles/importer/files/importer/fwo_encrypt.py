@@ -9,10 +9,10 @@ from fwo_const import MAIN_KEY_FILE
 # can be used for decrypting text encrypted with C# (mw-server)
 def decrypt_aes_ciphertext(base64_encrypted_text: str, passphrase: str) -> str:
     encrypted_data = base64.b64decode(base64_encrypted_text)
-    ivLength = 16 # IV length for AES is 16 bytes
+    iv_length = 16 # IV length for AES is 16 bytes
 
     # Extract IV from the encrypted data
-    iv = encrypted_data[:ivLength]  
+    iv = encrypted_data[:iv_length]  
 
     # Initialize AES cipher with provided passphrase and IV
     backend = default_backend()
@@ -20,7 +20,7 @@ def decrypt_aes_ciphertext(base64_encrypted_text: str, passphrase: str) -> str:
     decryptor = cipher.decryptor()
 
     # Decrypt the ciphertext
-    decrypted_data = decryptor.update(encrypted_data[ivLength:]) + decryptor.finalize()
+    decrypted_data = decryptor.update(encrypted_data[iv_length:]) + decryptor.finalize()
 
     # Remove padding
     unpadder = padding.PKCS7(algorithms.AES.block_size).unpadder() #TODO: Check if block_size is correct #type: ignore

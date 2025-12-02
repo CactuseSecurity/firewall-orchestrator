@@ -47,7 +47,7 @@ def import_management(mgm_id: int, api_call: FwoApiCall, ssl_verification: bool,
 
     fwo_signalling.register_signalling_handlers()
     service_provider = ServiceProvider()
-    importState = service_provider.get_global_state().import_state
+    import_state = service_provider.get_global_state().import_state
     config_importer = FwConfigImport()
     exception: BaseException | None = None
 
@@ -55,26 +55,26 @@ def import_management(mgm_id: int, api_call: FwoApiCall, ssl_verification: bool,
         _import_management(mgm_id, ssl_verification,file , limit, clear_management_data, suppress_cert_warnings)
     except (FwLoginFailed) as e:
         exception = e
-        importState.delete_import() # delete whole import
-        roll_back_exception_handler(importState, config_importer=config_importer, exc=e, error_text="")
+        import_state.delete_import() # delete whole import
+        roll_back_exception_handler(import_state, config_importer=config_importer, exc=e, error_text="")
     except (ImportRecursionLimitReached, FwoImporterErrorInconsistencies) as e:
-        importState.delete_import() # delete whole import
+        import_state.delete_import() # delete whole import
         exception = e
     except (KeyboardInterrupt, ImportInterruption, ShutdownRequested) as e:
-        roll_back_exception_handler(importState, config_importer=config_importer, exc=e, error_text="shutdown requested")
+        roll_back_exception_handler(import_state, config_importer=config_importer, exc=e, error_text="shutdown requested")
         raise
     except (FwoApiWriteError, FwoImporterError) as e:
         exception = e
-        roll_back_exception_handler(importState, config_importer=config_importer, exc=e, error_text="")
+        roll_back_exception_handler(import_state, config_importer=config_importer, exc=e, error_text="")
     except ValueError as e:
         raise
     except Exception as e:
         exception = e
-        handle_unexpected_exception(import_state=importState, config_importer=config_importer, e=e)
+        handle_unexpected_exception(import_state=import_state, config_importer=config_importer, e=e)
     finally:
         try:
-            api_call.complete_import(importState, exception)
-            ServiceProvider().dispose_service(Services.UID2ID_MAPPER, importState.import_id)
+            api_call.complete_import(import_state, exception)
+            ServiceProvider().dispose_service(Services.UID2ID_MAPPER, import_state.import_id)
         except Exception as e:
             FWOLogger.error(f"Error during import completion: {str(e)}")
 
@@ -180,9 +180,9 @@ def import_from_file(import_state: ImportStateController, file_name: str = "") -
     
     set_filename(import_state, file_name=file_name)
 
-    configFromFile = fwo_file_import.read_json_config_from_file(import_state)
+    config_from_file = fwo_file_import.read_json_config_from_file(import_state)
 
-    return config_changed_since_last_import, configFromFile
+    return config_changed_since_last_import, config_from_file
 
 
 def get_module(import_state: ImportStateController) -> FwCommon:

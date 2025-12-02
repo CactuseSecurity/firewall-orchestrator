@@ -2,7 +2,7 @@ import hashlib
 import json
 import re
 from enum import Enum
-from typing import TYPE_CHECKING, Any, get_type_hints
+from typing import TYPE_CHECKING, Any
 import ipaddress
 import traceback
 import time
@@ -55,48 +55,6 @@ def extend_string_list(list_string: str | None, src_dict: dict[str, list[str]], 
 def string_is_uri(s: str) -> re.Match[str] | None: # TODO: should return bool?
     return re.match('http://.+', s) or re.match('https://.+', s) or  re.match('file://.+', s) 
 
-def serialize_dict_to_class_rec(data: dict[str, list[Any] | Any | Enum], cls: Any) -> Any: #TYPING: using model is forbidden?
-    try:
-        init_args = {}
-        type_hints = get_type_hints(cls)
-
-        if type_hints == {}:
-            raise ValueError(f"no type hints found, assuming dict '{str(cls)}")
-
-        for field, field_type in type_hints.items():
-
-            if field in data:
-                value = data[field]
-
-                # Handle list types
-                if hasattr(field_type, '__origin__') and field_type.__origin__ == list:
-                    inner_type = field_type.__args__[0]
-                    if isinstance(value, list):
-                        init_args[field] = [
-                            serialize_dict_to_class_rec(item, inner_type) if isinstance(item, dict) else item for item in value # type: ignore
-                        ]
-                    else:
-                        raise ValueError(f"Expected a list for field '{field}', but got {type(value).__name__}")
-
-                # Handle dictionary (nested objects)
-                elif isinstance(value, dict):
-                    init_args[field] = serialize_dict_to_class_rec(value, field_type) # type: ignore
-
-                # Handle Enum types
-                elif isinstance(field_type, type) and issubclass(field_type, Enum):
-                    init_args[field] = field_type[value] # type: ignore
-
-                # Direct assignment for basic types
-                else:
-                    init_args[field] = value
-
-        # Create an instance of the class with the collected arguments
-        return cls(**init_args)
-
-    except (TypeError, ValueError, KeyError) as _:
-        # If an error occurs, return the original dictionary as is
-        return data
-
 
 def deserialize_class_to_dict_rec(obj: Any, seen: set[int] | None = None) -> dict[str, Any] | list[Any] | Any | str | int | float | bool | None: #TYPING: using model is forbidden?
     if seen is None:
@@ -139,13 +97,13 @@ def cidr_to_range(ip: str | None) -> list[str] | list[None]: # TODO: I have no i
         if '-' in ip:
             return '-'.split(ip)
 
-        ipVersion = valid_ip_address(ip)
-        if ipVersion=='Invalid':
+        ip_version = valid_ip_address(ip)
+        if ip_version=='Invalid':
             FWOLogger.warning("error while decoding ip '" + ip + "'")
             return [ip]
-        elif ipVersion=='IPv4':
+        elif ip_version=='IPv4':
             net = ipaddress.IPv4Network(ip)
-        elif ipVersion=='IPv6':
+        elif ip_version=='IPv6':
             net = ipaddress.IPv6Network(ip)
         return [str(net.network_address), str(net.broadcast_address)] # type: ignore
 
@@ -310,32 +268,44 @@ def register_global_state(import_state: 'ImportStateController') -> None:
     service_provider.register(Services.GLOBAL_STATE, lambda: GlobalState(import_state), Lifetime.SINGLETON)
 
 
-def find_all_diffs(a: Any, b: Any, strict: bool = False, path: str = "root") -> list[str]:
+def _diff_dicts(a: dict[Any, Any], b: dict[Any, Any], strict: bool, path: str) -> list[str]:
     diffs: list[str] = []
-    if isinstance(a, dict):
-        for k in a: # type: ignore
-            if k not in b:
-                diffs.append(f"Key '{k}' missing in second object at {path}")
-            else:
-                res = find_all_diffs(a[k], b[k], strict, f"{path}.{k}")
-                if res:
-                    diffs.extend(res)
-        for k in b:
-            if k not in a:
-                diffs.append(f"Key '{k}' missing in first object at {path}")
-    elif isinstance(a, list):
-        for i, (x, y) in enumerate(zip(a, b)): # type: ignore
-            res = find_all_diffs(x, y, strict, f"{path}[{i}]")
-            if res:
-                diffs.extend(res)
-        if len(a) != len(b): # type: ignore
-            diffs.append(f"list length mismatch at {path}: {len(a)} != {len(b)}") # type: ignore
-    else:
-        if a != b:
-            if not strict and (a is None or a == '') and (b is None or b == ''):
-                return diffs
-            diffs.append(f"Value mismatch at {path}: {a} != {b}")
+    for k in a:
+        if k not in b:
+            diffs.append(f"Key '{k}' missing in second object at {path}")
+        else:
+            diffs.extend(find_all_diffs(a[k], b[k], strict, f"{path}.{k}"))
+    for k in b:
+        if k not in a:
+            diffs.append(f"Key '{k}' missing in first object at {path}")
     return diffs
+
+
+def _diff_lists(a: list[Any], b: list[Any], strict: bool, path: str) -> list[str]:
+    diffs: list[str] = []
+    for i, (x, y) in enumerate(zip(a, b)):
+        diffs.extend(find_all_diffs(x, y, strict, f"{path}[{i}]"))
+    if len(a) != len(b):
+        diffs.append(f"list length mismatch at {path}: {len(a)} != {len(b)}")
+    return diffs
+
+
+def _diff_scalars(a: Any, b: Any, strict: bool, path: str) -> list[str]:
+    diffs: list[str] = []
+    if a != b:
+        if not strict and (a is None or a == '') and (b is None or b == ''):
+            return diffs
+        diffs.append(f"Value mismatch at {path}: {a} != {b}")
+    return diffs
+
+
+def find_all_diffs(a: Any, b: Any, strict: bool = False, path: str = "root") -> list[str]:
+    if isinstance(a, dict) and isinstance(b, dict):
+        return _diff_dicts(a, b, strict, path) # type: ignore
+    elif isinstance(a, list) and isinstance(b, list):
+        return _diff_lists(a, b, strict, path) # type: ignore
+    else:
+        return _diff_scalars(a, b, strict, path)
 
 
 def sort_and_join(input_list: list[str]) -> str:

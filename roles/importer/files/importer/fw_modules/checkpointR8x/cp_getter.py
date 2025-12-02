@@ -335,10 +335,11 @@ def get_rulebases(api_v_url: str, sid: str | None, show_params_rules: dict[str, 
         FWOLogger.error('access_type is neither "access" nor "nat", but ' + access_type)
 
     # get uid of rulebase
-    if rulebase_uid is None and rulebase_name is not None:
-        rulebase_uid = get_uid_of_rulebase(rulebase_name, api_v_url, access_type, sid)
-    else:
-        FWOLogger.error('must provide either rulebaseUid or rulebaseName')
+    if rulebase_uid is None:
+        if rulebase_name is not None:
+            rulebase_uid = get_uid_of_rulebase(rulebase_name, api_v_url, access_type, sid)
+        else:
+            FWOLogger.error('must provide either rulebaseUid or rulebaseName')
     policy_rulebases_uid_list.append(rulebase_uid) #type: ignore # TODO: get_uid_of_rulebase can return None but in theory should not
     
     # search all rulebases in nativeConfigDomain and import if rulebase is not already fetched

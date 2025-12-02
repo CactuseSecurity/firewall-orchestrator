@@ -182,13 +182,12 @@ class ChangeLogger:
         return cls._instance
 
 
-    def create_change_id_maps(self, uid2id_mapper: "Uid2IdMapper", changed_nw_objs: list[str], changed_svcs: list[str], removedNwObjIds: list[dict[str, Any]], removedNwSvcIds: list[dict[str, Any]]):
-                                                                                                                        #TODO: removedNwObjUids?               #TODO: removedNwObjUids?
+    def create_change_id_maps(self, uid2id_mapper: "Uid2IdMapper", changed_nw_objs: list[str], changed_svcs: list[str], removed_nw_objs: list[dict[str, Any]], removed_nw_svcs: list[dict[str, Any]]):
         self._uid2id_mapper = uid2id_mapper
 
         self.changed_object_id_map = {
             next(removedNwObjId['obj_id']
-                for removedNwObjId in removedNwObjIds
+                for removedNwObjId in removed_nw_objs
                 if removedNwObjId['obj_uid'] == old_item
             ): self._uid2id_mapper.get_network_object_id(old_item) 
             for old_item in changed_nw_objs
@@ -196,16 +195,16 @@ class ChangeLogger:
 
         self.changed_service_id_map = {
             next(removedNwSvcId['svc_id']
-                for removedNwSvcId in removedNwSvcIds
+                for removedNwSvcId in removed_nw_svcs
                 if removedNwSvcId['svc_uid'] == old_item
             ): self._uid2id_mapper.get_service_object_id(old_item)
             for old_item in changed_svcs
         }
 
 
-    def create_changelog_import_object(self, type: str, import_state: "ImportStateController", change_action: str, changeTyp: Literal[2, 3], importTime: str, rule_id: int, rule_id_alternative: int = 0) -> dict[str, Any]:
+    def create_changelog_import_object(self, type: str, import_state: "ImportStateController", change_action: str, change_typ: Literal[2, 3], import_time: str, rule_id: int, rule_id_alternative: int = 0) -> dict[str, Any]:
         
-        uniqueName = self._get_changelog_import_object_unique_name(rule_id)
+        unique_name = self._get_changelog_import_object_unique_name(rule_id)
         old_rule_id = None
         new_rule_id = None
         self._import_state = import_state
@@ -225,9 +224,9 @@ class ChangeLogger:
             "control_id": self._import_state.import_id,
             "change_action": change_action,
             "mgm_id": self._import_state.mgm_details.mgm_id,
-            "change_type_id": changeTyp,
-            "change_time": importTime,
-            "unique_name": uniqueName,
+            "change_type_id": change_typ,
+            "change_time": import_time,
+            "unique_name": unique_name,
         }
 
         return rule_changelog_object

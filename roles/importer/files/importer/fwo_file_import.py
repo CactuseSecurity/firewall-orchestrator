@@ -142,9 +142,9 @@ def read_file(import_state: ImportStateController) -> dict[str, Any]:
     return config_json
 
 
-def handle_error_on_config_file_serialization(importState: ImportStateController, exception: Exception):
-    importState.api_call.complete_import(importState, exception)
-    FWOLogger.error(f"unspecified error while trying to serialize config file {importState.import_file_name}: {str(traceback.format_exc())}")
+def handle_error_on_config_file_serialization(import_state: ImportStateController, exception: Exception):
+    import_state.api_call.complete_import(import_state, exception)
+    FWOLogger.error(f"unspecified error while trying to serialize config file {import_state.import_file_name}: {str(traceback.format_exc())}")
     raise FwoImporterError from exception
 
 

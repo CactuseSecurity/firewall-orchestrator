@@ -513,7 +513,7 @@ namespace FWO.Config.Api.Data
 
         [JsonProperty("showShortColumnsInComplianceReports"), JsonPropertyName("showShortColumnsInComplianceReports")]
         public bool ShowShortColumnsInComplianceReports { get; set; } = true;
-        
+
         [JsonProperty("importedMatrixReadOnly"), JsonPropertyName("importedMatrixReadOnly")]
         public bool ImportedMatrixReadOnly { get; set; } = true;
 
@@ -522,6 +522,12 @@ namespace FWO.Config.Api.Data
         
         [JsonProperty("refreshTokenLifetimeDays"), JsonPropertyName("refreshTokenLifetimeDays")]
         public int RefreshTokenLifetimeDays { get; set; } = 7;
+        [JsonProperty("complianceCheckElementsPerFetch"), JsonPropertyName("complianceCheckElementsPerFetch")]
+        public int ComplianceCheckElementsPerFetch { get; set; } = 500;
+
+        [JsonProperty("complianceCheckAvailableProcessors"), JsonPropertyName("complianceCheckAvailableProcessors")]
+        public int ComplianceCheckAvailableProcessors { get; set; } = 4;
+
 
         public ConfigData(bool editable = false)
         {

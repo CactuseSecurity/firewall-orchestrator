@@ -35,11 +35,12 @@
         { config_key: { _eq: "autoCalculatedZonesAtTheEnd" } }
         { config_key: { _eq: "treatDynamicAndDomainObjectsAsInternet" } }
         { config_key: { _eq: "showShortColumnsInComplianceReports" } }
-
+        { config_key: { _eq: "complianceCheckElementsPerFetch" } }
+        { config_key: { _eq: "complianceCheckAvailableProcessors" } }
 
       ]
     }
-    limit: 33
+    limit: 35
   ) {
     config_key
     config_value

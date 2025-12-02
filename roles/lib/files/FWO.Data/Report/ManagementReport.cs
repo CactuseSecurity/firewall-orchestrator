@@ -88,7 +88,9 @@ namespace FWO.Data.Report
         public bool[] Detailed = [false, false, false]; // nobj, nsrv, user
 
         public ManagementReport()
-        { }
+        {
+            Uid = string.Empty;
+        }
 
 
         public string NameAndDeviceNames(string separator = ", ")
@@ -112,6 +114,16 @@ namespace FWO.Data.Report
             }
         }
 
+        public RulebaseReport? GetNextRulebase(RulebaseLink? currentRbLink)
+        {
+            if (currentRbLink == null)
+            {
+                return null;
+            }
+            return Rulebases
+                .FirstOrDefault(rb => rb.Id == currentRbLink.NextRulebaseId);
+        }
+        
     }
     public static class ManagementUtility
     {

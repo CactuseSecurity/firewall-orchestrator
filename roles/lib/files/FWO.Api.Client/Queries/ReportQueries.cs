@@ -65,7 +65,6 @@ namespace FWO.Api.Client.Queries
                 addGeneratedReport = GetQueryText("report/addGeneratedReport.graphql");
                 getUsageDataCount = GetQueryText("report/getUsageDataCount.graphql");
                 // note: currently we only check for rule changes, but this should be extended to other changes in the future
-                // getImportsToNotify = GetQueryText("report/getImportsToNotifyForAnyChanges.phql");
                 getImportsToNotify = GetQueryText("report/getImportsToNotifyForRuleChanges.graphql");
                 setImportsNotified = GetQueryText("report/setImportsNotified.graphql");
                 getManagementForNormalizedConfig = GetQueryText("report/getManagementForNormalizedConfig.graphql");
@@ -74,7 +73,11 @@ namespace FWO.Api.Client.Queries
             catch (Exception exception)
             {
                 Log.WriteError("Initialize Api Queries", "Api ReportQueries could not be loaded.", exception);
+#if RELEASE
                 Environment.Exit(-1);
+#else
+                throw;
+#endif
             }
         }
     }

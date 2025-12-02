@@ -190,13 +190,13 @@ def get_module(import_state: ImportStateController) -> FwCommon:
     pkg_name = get_module_package_name(import_state)
     match pkg_name:
         case 'ciscoasa9':
-            from ciscoasa9.fwcommon import CiscoAsa9Common
+            from fw_modules.ciscoasa9.fwcommon import CiscoAsa9Common
             fw_module = CiscoAsa9Common()
         case 'fortiadom5ff':
-            from fortiadom5ff.fwcommon import FortiAdom5ffCommon
+            from fw_modules.fortiadom5ff.fwcommon import FortiAdom5ffCommon
             fw_module = FortiAdom5ffCommon()
         case 'checkpointR8x':
-            from checkpointR8x.fwcommon import CheckpointR8xCommon
+            from fw_modules.checkpointR8x.fwcommon import CheckpointR8xCommon
             fw_module = CheckpointR8xCommon()
         case _:
             raise FwoImporterError(f"import_management - no fwcommon module found for package name {pkg_name}")

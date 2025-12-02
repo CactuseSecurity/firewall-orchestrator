@@ -562,3 +562,7 @@ hotfix release
 
 # 8.9.3 - 05.11.2025 MAIN
 - hotfix missing permissions for app data import in certain constellations
+
+## 8.9.4 - 09.12.2025 DEVELOP
+- bugfix release: common service connection not editable
+- new custom scripts for iiq and cmdb import

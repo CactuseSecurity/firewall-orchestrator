@@ -32,14 +32,13 @@ def main(mgm_id: int, file: str | None = None, debug_level: int = 0, verify_cert
     print("debug level set to " + str(debug_level))
     FWOLogger(debug_level)
 
-    FWOLogger.debug("test")
-
     service_provider = init_service_provider()
     fwo_config = service_provider.get_fwo_config()
     fwo_api_base_url = fwo_config['fwo_api_base_url']
     fwo_major_version = fwo_config['fwo_major_version']
     user_management_api_base_url = fwo_config['user_management_api_base_url']
-    if suppress_certificate_warnings: urllib3.disable_warnings()
+    if suppress_certificate_warnings:
+        urllib3.disable_warnings()
 
     FWOLogger.info("import-mgm starting ...")
     if IMPORTER_BASE_DIR not in sys.path:

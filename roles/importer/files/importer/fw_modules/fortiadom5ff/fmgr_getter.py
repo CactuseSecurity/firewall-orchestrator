@@ -69,12 +69,12 @@ def update_config_with_fortinet_api_call(config_json: list[dict[str, Any]], sid:
     returned_new_objects = True
     full_result: list[Any] = []
     while returned_new_objects:
-        range = [offset, limit]
+        range_ = [offset, limit]
         if payload == {}:
-            payload = {'params': [{'range': range}]}
+            payload = {'params': [{'range': range_}]}
         else:
             if 'params' in payload and len(payload['params'])>0:
-                payload['params'][0].update({'range': range})
+                payload['params'][0].update({'range': range_})
         
         # adding options
         if len(options)>0:

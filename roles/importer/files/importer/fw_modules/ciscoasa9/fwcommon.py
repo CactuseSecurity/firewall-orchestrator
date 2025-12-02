@@ -297,7 +297,7 @@ def get_config(config_in: FwConfigManagerListController, import_state: ImportSta
         A tuple containing the status code and the parsed configuration.
     """
 
-    FWOLogger.debug ( "starting checkpointAsa9/get_config" )
+    FWOLogger.debug("starting ciscoAsa9/get_config" )
 
     is_virtual_asa = import_state.mgm_details.device_type_name == "Cisco Asa on FirePower"
 

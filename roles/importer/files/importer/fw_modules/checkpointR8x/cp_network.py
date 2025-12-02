@@ -2,10 +2,9 @@ from typing import Any
 from fwo_log import FWOLogger
 import json
 from fw_modules.checkpointR8x import cp_const
-from fwo_const import LIST_DELIMITER
+from fwo_const import ANY_IP_END, ANY_IP_START, LIST_DELIMITER
 import fwo_api_call as fwo_api_call
 import ipaddress 
-import fwo_globals
 import fwo_const
 from fwo_base import cidr_to_range
 from services.service_provider import ServiceProvider
@@ -139,8 +138,8 @@ def handle_object_type_and_ip(obj: dict[str, Any], ip_addr: str | None) -> tuple
         obj_type = obj['type']
 
     if obj_type == 'updatable-object':
-        first_ip = '0.0.0.0/32'
-        last_ip = '255.255.255.255/32'
+        first_ip = ANY_IP_START
+        last_ip = ANY_IP_END
         obj_type = 'dynamic_net_obj'
         
     if obj_type in ['group-with-exclusion', 'security-zone', 'dynamic-object']:
@@ -149,12 +148,12 @@ def handle_object_type_and_ip(obj: dict[str, Any], ip_addr: str | None) -> tuple
 
     if obj_type == 'dns-domain':
         obj_type = 'domain'
-        first_ip = '0.0.0.0/32'
-        last_ip = '255.255.255.255/32'
+        first_ip = ANY_IP_START
+        last_ip = ANY_IP_END
 
     if obj_type == 'security-zone':
-        first_ip = '0.0.0.0/32'
-        last_ip = '255.255.255.255/32'
+        first_ip = ANY_IP_START
+        last_ip = ANY_IP_END
         obj_type = 'network'
 
     if obj_type in ['address-range', 'multicast-address-range']:
@@ -194,8 +193,6 @@ def resolve_nw_uid_to_name(uid: str, nw_objects: list[dict[str, Any]]) -> str:
 def add_member_names_for_nw_group(idx: int, nw_objects: list[dict[str, Any]]) -> None:
     group = nw_objects.pop(idx)
     if group['obj_member_refs'] == '' or group['obj_member_refs'] is None:
-        #member_names = None
-        #obj_member_refs = None
         group['obj_member_names'] = None
         group['obj_member_refs'] = None
     else:

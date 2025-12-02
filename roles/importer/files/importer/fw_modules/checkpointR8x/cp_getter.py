@@ -448,7 +448,7 @@ def control_while_loop_in_get_rulebases_in_chunks(current_rulebase: dict[str, An
         if 'to' in rulebase:
             current=rulebase['to']
         else:
-            raise Exception ( "get_nat_rules_from_api - rulebase does not contain to field, get_rulebase_chunk_from_api found garbled json " + str(rulebase))
+            raise FwoImporterError("get_nat_rules_from_api - rulebase does not contain to field, get_rulebase_chunk_from_api found garbled json " + str(rulebase))
     return total, current
 
 

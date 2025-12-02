@@ -89,8 +89,7 @@ def resolve_network_reference_for_rule(endpoint: EndpointKind, network_objects: 
 
 def create_rule_from_acl_entry(access_list_name: str, entry: AccessListEntry, 
                               protocol_groups: list[AsaProtocolGroup], 
-                              network_objects: dict[str, NetworkObject], service_objects: dict[str, ServiceObject],
-                              gateway_uid: str) -> RuleNormalized:
+                              network_objects: dict[str, NetworkObject], service_objects: dict[str, ServiceObject]) -> RuleNormalized:
     """Create a normalized rule from an ACL entry.
 
     Args:
@@ -100,7 +99,6 @@ def create_rule_from_acl_entry(access_list_name: str, entry: AccessListEntry,
         protocol_groups: List of protocol groups for resolving references
         network_objects: Dictionary of network objects to update if needed
         service_objects: Dictionary of service objects to update if needed
-        gateway_uid: UID of the gateway object representing the ASA device
 
     Returns:
         Normalized rule object
@@ -181,8 +179,7 @@ def build_rulebases_from_access_lists(access_lists: list[AccessList], mgm_uid: s
                 entry, 
                 protocol_groups, 
                 network_objects, 
-                service_objects,
-                gateway_uid
+                service_objects
             )
             if rule.rule_uid is None:
                 FWOLogger.error(f"Failed to create rule UID for ACL entry: {entry}")

@@ -196,8 +196,6 @@ def resolve_nw_uid_to_name(uid: str, nw_objects: list[dict[str, Any]]) -> str:
 def add_member_names_for_nw_group(idx: int, nw_objects: list[dict[str, Any]]) -> None:
     group = nw_objects.pop(idx)
     if group['obj_member_refs'] == '' or group['obj_member_refs'] == None:
-        #member_names = None
-        #obj_member_refs = None
         group['obj_member_names'] = None
         group['obj_member_refs'] = None
     else:
@@ -211,8 +209,6 @@ def add_member_names_for_nw_group(idx: int, nw_objects: list[dict[str, Any]]) ->
 
 
 def create_network_object(name: str, type: str, ip: str, ip_end: str | None, uid: str, color: str, comment: str | None, zone: str | None) -> dict[str, Any]:
-    # if zone is None or zone == '':
-    #     zone = 'global'
     return {
         'obj_name': name,
         'obj_typ': type,

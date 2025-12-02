@@ -49,13 +49,14 @@ def parse_app_line(line, app_name_column, app_id_column, app_owner_tiso_column, 
         app_main_user = line[app_owner_tiso_column]
         main_user_dn = build_dn(app_main_user, ldap_path, logger)
         kwita = line[app_owner_kwita_column]
-        if kwita is None or kwita == '' or kwita.lower() == 'nein':
+        if kwita is None or kwita == '' or kwita.lower() == 'false':
             recert_period_days = 365
         else:
             recert_period_days = 182
         if main_user_dn == '' and debug_level > 0:
             logger.warning('adding app without main user: ' + app_id)
-        app_list.append(owner_cls(app_id_external=app_id, name=app_name, main_user=main_user_dn, recert_period_days=recert_period_days, import_source=import_source_string))
+        app_list.append(owner_cls(app_id_external=app_id, name=app_name, main_user=main_user_dn, 
+                                  recert_period_days=recert_period_days, days_until_first_recert=recert_period_days, recert_active=False, import_source=import_source_string))
     else:
         if debug_level > 1:
             logger.info(f'ignoring line from csv file: {app_id} - inconclusive appId')
@@ -63,7 +64,11 @@ def parse_app_line(line, app_name_column, app_id_column, app_owner_tiso_column, 
     return count_skips
 
 
-def extract_app_data_from_csv(csv_file: str, app_list: list, ldap_path, import_source_string, owner_cls, logger, debug_level, base_dir): 
+def extract_app_data_from_csv(csv_file: str, app_list: list, ldap_path, import_source_string, owner_cls, logger, debug_level, 
+                              base_dir='.', recert_active_app_list=None): 
+
+    if recert_active_app_list is None:
+        recert_active_app_list = []
 
     apps_from_csv = []
     csv_file_path = base_dir + '/' + csv_file  # add directory to csv files
@@ -76,6 +81,15 @@ def extract_app_data_from_csv(csv_file: str, app_list: list, ldap_path, import_s
         count_skips = parse_app_line(line, app_name_column, app_id_column, app_owner_tiso_column, app_owner_kwita_column, app_list, count_skips, ldap_path, import_source_string, owner_cls, logger, debug_level)
     if debug_level > 0:
         logger.info(f"{str(csv_file_path)}: #total lines {str(len(apps_from_csv))}, skipped: {str(count_skips)}")
+
+    if len(recert_active_app_list) > 0:
+        # activate recertification for apps in recert_active_app_list
+        for app in app_list:
+            if app.app_id_external in recert_active_app_list:
+                app.recert_active = True
+                app.days_until_first_recert = app.recert_period_days    # settings initial recertification to standard period of days
+            else:
+                app.recert_active = False
 
 
 def read_ip_data_from_csv(csv_filename, logger):

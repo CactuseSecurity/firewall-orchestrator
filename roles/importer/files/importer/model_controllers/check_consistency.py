@@ -82,14 +82,14 @@ class FwConfigImportCheckConsistency(FwConfigImport):
 
 
     def _check_network_object_types_exist(self, mgr: FwConfigManager):
-        allUsedObjTypes: set[str] = set()
+        all_used_obj_types: set[str] = set()
 
         for single_config in mgr.configs:            
-            for objId in single_config.network_objects:
-                allUsedObjTypes.add(single_config.network_objects[objId].obj_typ)
-            missingNwObjTypes = allUsedObjTypes - self.maps.network_object_type_map.keys()
-            if len(missingNwObjTypes)>0:
-                self.issues.update({'unresolvableNwObjTypes': list(missingNwObjTypes)})
+            for obj_id in single_config.network_objects:
+                all_used_obj_types.add(single_config.network_objects[obj_id].obj_typ)
+            missing_nw_obj_types = all_used_obj_types - self.maps.network_object_type_map.keys()
+            if len(missing_nw_obj_types)>0:
+                self.issues.update({'unresolvableNwObjTypes': list(missing_nw_obj_types)})
 
 
     @staticmethod

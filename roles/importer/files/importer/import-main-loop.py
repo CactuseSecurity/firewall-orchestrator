@@ -110,7 +110,6 @@ def main_loop(importer_pwd_file: str, importer_user_name: str, user_management_a
 
     ## loop through all managements
     for mgm_id in mgm_ids:
-        pass
         import_single_management(mgm_id, fwo_api_call, verify_certificates, api_fetch_limit, clear, suppress_certificate_warnings, jwt, force, fwo_major_version, sleep_timer, is_full_import, fwo_api)
 
 

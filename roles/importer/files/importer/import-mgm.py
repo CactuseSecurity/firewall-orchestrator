@@ -28,12 +28,13 @@ def get_fwo_jwt(import_user: str, import_pwd: str, user_management_api: str) -> 
         FWOLogger.error("import-main-loop - unspecified error during FWO API login - skipping: " + str(traceback.format_exc()))
 
 
-def main(mgm_id: int, file: str | None = None, debug_level: int = 0, verify_certificates: bool = False, force: bool = False, limit: int = 150, clear_management_data: bool = False, suppress_certificate_warnings: bool = False):
+def main(mgm_id: int, file: str | None = None, debug_level: int = 0, verify_certificates_default: bool = False, force: bool = False, limit: int = 150, clear_management_data: bool = False, suppress_certificate_warnings: bool = False):
     print("debug level set to " + str(debug_level))
     FWOLogger(debug_level)
 
     service_provider = init_service_provider()
     fwo_config = service_provider.get_fwo_config()
+    verify_certificates = verify_certificates_default
     fwo_api_base_url = fwo_config['fwo_api_base_url']
     fwo_major_version = fwo_config['fwo_major_version']
     user_management_api_base_url = fwo_config['user_management_api_base_url']

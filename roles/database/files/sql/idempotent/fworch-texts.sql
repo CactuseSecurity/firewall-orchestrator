@@ -237,8 +237,8 @@ INSERT INTO txt VALUES ('AllOwnerResponsibles', 'German',	'Eigent&uuml;mer alle 
 INSERT INTO txt VALUES ('AllOwnerResponsibles', 'English',	'Owner all responsibles');
 INSERT INTO txt VALUES ('OwnerGroupOnly',       'German',	'nur Eigent&uuml;mergruppe');
 INSERT INTO txt VALUES ('OwnerGroupOnly',       'English',	'Owner Group only');
-INSERT INTO txt VALUES ('FallbackToMainResponsibleIfOwnerGroupEmpty', 'German',	'Hauptverantworlicher wenn Eigent&uuml;mergruppe nicht spezifiziert');
-INSERT INTO txt VALUES ('FallbackToMainResponsibleIfOwnerGroupEmpty', 'English',	'Owner Main Responsible if Owner Group not specified');
+INSERT INTO txt VALUES ('FallbackToMainResponsibleIfOwnerGroupEmpty', 'German',	'Hauptverantworlicher wenn Eigent&uuml;mergruppe nicht spezifiziert oder leer');
+INSERT INTO txt VALUES ('FallbackToMainResponsibleIfOwnerGroupEmpty', 'English',	'Owner Main Responsible if Owner Group not specified or empty');
 INSERT INTO txt VALUES ('Requester', 		    'German',	'Antragsteller');
 INSERT INTO txt VALUES ('Requester', 	        'English',	'Requester');
 INSERT INTO txt VALUES ('Approver', 		    'German',	'Genehmiger');
@@ -3473,6 +3473,10 @@ INSERT INTO txt VALUES ('E5292', 'German',  'Dn oder Gruppe muss gef&uuml;llt se
 INSERT INTO txt VALUES ('E5292', 'English', 'Dn or group has to be filled');
 INSERT INTO txt VALUES ('E5293', 'German',  'Lifecycle Status konnte nicht gespeichert werden');
 INSERT INTO txt VALUES ('E5293', 'English', 'Owner Lifecycle State could not be saved');
+INSERT INTO txt VALUES ('E5294', 'German',  'Fehler beim Einloggen in');
+INSERT INTO txt VALUES ('E5294', 'English', 'error while logging in to');
+INSERT INTO txt VALUES ('E5295', 'German',  'Authentifizierungsfehler');
+INSERT INTO txt VALUES ('E5295', 'English', 'Authentication Error');
 
 INSERT INTO txt VALUES ('E5301', 'German',  'Konfiguration konnte nicht gelesen oder verarbeitet werden.');
 INSERT INTO txt VALUES ('E5301', 'English', 'Error reading or processing Config.');

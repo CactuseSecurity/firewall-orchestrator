@@ -1,5 +1,6 @@
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
+using FWO.Config.Api;
 using FWO.Data;
 using FWO.Logging;
 using MailKit.Security;
@@ -39,6 +40,17 @@ namespace FWO.DeviceAutoDiscovery
                 if (sessionResponse.StatusCode == HttpStatusCode.OK && sessionResponse.IsSuccessful && !string.IsNullOrEmpty(sessionResponse.Data?.SessionId))
                 {
                     return await DiscoverySession(discoveredDevices);
+                }
+                else
+                {
+                    string errorTxtCatch = $"{SuperManagement.Name}";
+                    string errorTxt = $"error while logging in to {SuperManagement.Name}: {sessionResponse.ErrorMessage} ";
+                    if (string.IsNullOrEmpty(sessionResponse.Data?.SessionId))
+                    {
+                        errorTxt += $"could not authenticate to {SuperManagement.Name} - got empty session ID";
+                    }                                            
+                    Log.WriteWarning(Autodiscovery, errorTxt);
+                    throw new AuthenticationException(errorTxtCatch);
                 }
             }
             return discoveredDevices;

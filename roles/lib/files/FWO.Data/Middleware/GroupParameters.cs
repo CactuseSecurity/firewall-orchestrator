@@ -30,4 +30,9 @@
         public string UserDn { get; set; } = "";
         public string GroupDn { get; set; } = "";
     }
+
+    public class GroupMemberGetParameters
+    {
+        public string GroupDn { get; set; } = "";
+    }
 }

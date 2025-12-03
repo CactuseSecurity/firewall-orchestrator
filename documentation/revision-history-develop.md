@@ -306,6 +306,10 @@ bugfix release:
 # 8.9.3 - 05.11.2025 DEVELOP
 - hotfix missing permissions for app data import in certain constellations
 
+## 8.9.4 - 09.12.2025 DEVELOP
+- bugfix release: common service connection not editable
+- new custom scripts for iiq and cmdb import
+
 # 9.0 - 30.06.2025 DEVELOP
 - rule to gateway mapping 1:n
 - add report output for rule to gw mapping

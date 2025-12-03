@@ -1,19 +1,18 @@
 import traceback
 import fwo_const
-from fwo_log import getFwoLogger
+from fwo_log import FWOLogger
 from fwo_api import FwoApi
 from model_controllers.import_state_controller import ImportStateController
 from services.service_provider import ServiceProvider
-from services.enums import Services
 
 # this class is used for rolling back an import
 class FwConfigImportRollback():
-    ImportDetails: ImportStateController
+    import_state: ImportStateController
 
     def __init__(self):
         service_provider = ServiceProvider()
-        global_state = service_provider.get_service(Services.GLOBAL_STATE)
-        self.ImportDetails = global_state.import_state
+        global_state = service_provider.get_global_state()
+        self.import_state = global_state.import_state
 
         
     # this function deletes all new entries added in this import
@@ -21,23 +20,18 @@ class FwConfigImportRollback():
     # also deletes latest_config for this management
     # TODO: also take super management id into account as second option
 
-    def rollbackCurrentImport(self) -> None:
-        logger = getFwoLogger()
-        rollbackMutation = FwoApi.get_graphql_code([f"{fwo_const.graphql_query_path}import/rollbackImport.graphql"])
+    def rollback_current_import(self):
+        rollback_mutation = FwoApi.get_graphql_code([f"{fwo_const.GRAPHQL_QUERY_PATH}import/rollbackImport.graphql"])
         try:
             query_variables = {
-                'importId': self.ImportDetails.ImportId
+                'importId': self.import_state.import_id
             }
-            rollbackResult = self.ImportDetails.api_call.call(rollbackMutation, query_variables=query_variables)
-            if 'errors' in rollbackResult:
-                logger.exception("error while trying to roll back current import for mgm id " +
-                                str(self.ImportDetails.MgmDetails.Id) + ": " + str(rollbackResult['errors']))
-                return 1 # error
+            rollback_result = self.import_state.api_call.call(rollback_mutation, query_variables=query_variables)
+            if 'errors' in rollback_result:
+                FWOLogger.exception("error while trying to roll back current import for mgm id " +
+                                str(self.import_state.mgm_details.mgm_id) + ": " + str(rollback_result['errors']))
             else:
-                logger.info("import " + str(self.ImportDetails.ImportId) + " has been rolled back successfully")
+                FWOLogger.info("import " + str(self.import_state.import_id) + " has been rolled back successfully")
 
         except Exception:
-            logger.exception(f"failed to rollback current importfor mgm id {str(self.ImportDetails.MgmDetails.Id)}: {str(traceback.format_exc())}")
-            return 1 # error
-        
-        return 0
+            FWOLogger.exception(f"failed to rollback current importfor mgm id {str(self.import_state.mgm_details.mgm_id)}: {str(traceback.format_exc())}")

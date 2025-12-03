@@ -735,7 +735,7 @@ class MockFwoApi(FwoApi):
             user_id = rule_from["user_id"]
             if user_id is not None:
                 user_uid = self.get_user_uid(user_id)
-                member_string_db += fwo_const.user_delimiter + user_uid
+                member_string_db += fwo_const.USER_DELIMITER + user_uid
             
             rule_froms_db[uid].add(member_string_db)
         return rule_froms_db
@@ -755,7 +755,7 @@ class MockFwoApi(FwoApi):
             user_id = rule_to["user_id"]
             if user_id is not None:
                 user_uid = self.get_user_uid(user_id)
-                member_string_db += fwo_const.user_delimiter + user_uid
+                member_string_db += fwo_const.USER_DELIMITER + user_uid
             
             rule_tos_db[uid].add(member_string_db)
         return rule_tos_db

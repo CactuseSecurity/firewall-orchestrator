@@ -3,17 +3,15 @@ from typing import Any
 
 import fwo_const
 from model_controllers.import_state_controller import ImportStateController
-from models.rule_enforced_on_gateway import RuleEnforcedOnGateway
-from fwo_log import getFwoLogger
+from fwo_log import FWOLogger
 from model_controllers.rulebase_link_controller import RulebaseLinkController
-from models.rule import Rule
 
 
 class RuleEnforcedOnGatewayController:
     def __init__(self, import_state: ImportStateController):
         self.import_details: ImportStateController = import_state
 
-    def add_new_rule_enforced_on_gateway_refs(self, new_rules, import_state):
+    def add_new_rule_enforced_on_gateway_refs(self, new_rules: list[dict[str, Any]], import_state: ImportStateController):
         """
         Main function to add new rule-to-gateway references.
         """
@@ -25,14 +23,13 @@ class RuleEnforcedOnGatewayController:
 
         # Step 3: Check if there are any references to insert
         if not rule_to_gw_refs:
-            logger = getFwoLogger()
-            logger.info("No rules to be enforced on gateways.")
+            FWOLogger.info("No rules to be enforced on gateways.")
             return
 
         # Step 4: Insert the references into the database
         self.insert_rule_to_gateway_references(rule_to_gw_refs)
 
-    def initialize_rulebase_link_controller(self, import_state):
+    def initialize_rulebase_link_controller(self, import_state: ImportStateController) -> RulebaseLinkController:
         """
         Initialize the RulebaseLinkController and set the map of enforcing gateways.
         """
@@ -40,22 +37,21 @@ class RuleEnforcedOnGatewayController:
         rb_link_controller.set_map_of_all_enforcing_gateway_ids_for_rulebase_id(import_state)
         return rb_link_controller
 
-    def prepare_rule_to_gateway_references(self, new_rules, rb_link_controller):
+    def prepare_rule_to_gateway_references(self, new_rules: list[dict[str, Any]], rb_link_controller: RulebaseLinkController) -> list[dict[str, Any]]:
         """
         Prepare the list of rule-to-gateway references based on the rules and their 'install on' settings.
         """
-        rule_to_gw_refs = []
+        rule_to_gw_refs: list[dict[str, Any]] = []
         for rule in new_rules:
-            if 'rule_installon' in rule:
-                if rule['rule_installon'] is None:
-                    self.handle_rule_without_installon(rule, rb_link_controller, rule_to_gw_refs)
-                else:
-                    self.handle_rule_with_installon(rule, rule_to_gw_refs)
+            if rule['rule_installon'] is None:
+                self.handle_rule_without_installon(rule, rb_link_controller, rule_to_gw_refs)
+            else:
+                self.handle_rule_with_installon(rule, rule_to_gw_refs)
         return rule_to_gw_refs
 
 
     def handle_rule_without_installon(self, 
-                                      rule: dict, 
+                                      rule: dict[str, Any],
                                       rb_link_controller: RulebaseLinkController, 
                                       rule_to_gw_refs: list[dict[str, Any]]
                                     ) -> None:
@@ -67,55 +63,49 @@ class RuleEnforcedOnGatewayController:
 
 
     def handle_rule_with_installon(self, 
-                                   rule: dict, 
+                                   rule: dict[str, Any], 
                                    rule_to_gw_refs: list[dict[str, Any]]
                                    ) -> None:
         """
         Handle rules with 'install on' settings by linking them to specific gateways.
         """
-        for gw_uid in rule['rule_installon'].split(fwo_const.list_delimiter):
+        for gw_uid in rule['rule_installon'].split(fwo_const.LIST_DELIMITER) if rule['rule_installon'] else []:
             gw_id = self.import_details.lookupGatewayId(gw_uid)
             if gw_id is not None:
                 rule_to_gw_refs.append(self.create_rule_to_gateway_reference(rule, gw_id))
             else:
-                logger = getFwoLogger()
-                logger.warning(f"Found a broken reference to a non-existing gateway (uid={gw_uid}). Ignoring.")
+                FWOLogger.warning(f"Found a broken reference to a non-existing gateway (uid={gw_uid}). Ignoring.")
 
 
-    def create_rule_to_gateway_reference(self, rule, gw_id) -> dict[str, Any]:
+    def create_rule_to_gateway_reference(self, rule: dict[str, Any], gw_id: int) -> dict[str, Any]:
         """
         Create a dictionary representing a rule-to-gateway reference.
         """
         return {
-            'rule_id': rule['rule_id'],
+            'rule_id': rule['rule_id'], #TODO: rule_id does not exist
             'dev_id': gw_id,
-            'created': self.import_details.ImportId,
+            'created': self.import_details.import_id,
             'removed': None
         }
     
 
-    def insert_rule_to_gateway_references(self, rule_to_gw_refs):
+    def insert_rule_to_gateway_references(self, rule_to_gw_refs: list[dict[str, Any]]) -> None:
         """
         Insert the rule-to-gateway references into the database.
         """
-        logger = getFwoLogger()
         try:
             import_results: dict[str,Any] = self.insert_rules_enforced_on_gateway(rule_to_gw_refs)
             if 'errors' in import_results:
-                logger.exception(f"Error in add_new_rule_enforced_on_gateway_refs: {str(import_results['errors'])}")
-                self.import_details.increaseErrorCounter(1)
-                self.import_details.appendErrorString(f"Error in add_new_rule_enforced_on_gateway_refs: {str(import_results['errors'])}")
+                FWOLogger.exception(f"Error in add_new_rule_enforced_on_gateway_refs: {str(import_results['errors'])}")
             else:
                 changes = import_results['data']['insert_rule_enforced_on_gateway'].get('affected_rows', 1)
-                self.import_details.Stats.rule_enforce_change_count += changes
+                self.import_details.stats.increment_rule_enforce_change_count(changes)
         except Exception:
-            logger.exception(f"Failed to write new rules: {str(format_exc())}")
-            self.import_details.increaseErrorCounterByOne()
-            self.import_details.appendErrorString(f"Failed to write new rules: {str(format_exc())}")
+            FWOLogger.exception(f"Failed to write new rules: {str(format_exc())}")
             raise
 
 
-    def insert_rules_enforced_on_gateway(self, enforcements: list[dict]) -> dict[str, Any]:
+    def insert_rules_enforced_on_gateway(self, enforcements: list[dict[str, Any]]) -> dict[str, Any]:
         """
         Insert rules enforced on gateways into the database.
         """

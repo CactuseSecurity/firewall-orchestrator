@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Any
 from pydantic import BaseModel
 
 from fwo_base import ConfigAction, ConfFormat
@@ -49,8 +49,8 @@ class FwConfigNormalized(FwConfig):
     action: ConfigAction = ConfigAction.INSERT
     network_objects: dict[str, NetworkObject] = {}
     service_objects: dict[str, ServiceObject] = {}
-    users: dict = {}
-    zone_objects: dict = {}
+    users: dict[str, Any] = {}
+    zone_objects: dict[str, Any] = {}
     rulebases: list[Rulebase] = []
     gateways: list[Gateway] = []
     ConfigFormat: ConfFormat = ConfFormat.NORMALIZED_LEGACY
@@ -61,7 +61,19 @@ class FwConfigNormalized(FwConfig):
     }
 
 
-    def get_rulebase(self, rulebaseUid: str) -> Optional[Rulebase]:
+    def get_rulebase(self, rulebaseUid: str) -> Rulebase:
+        """
+        get the policy with a specific uid  
+        :param policyUid: The UID of the relevant policy.
+        :return: Returns the policy with a specific uid, otherwise returns None.
+        """
+        rulebase = self.get_rulebase_or_none(rulebaseUid)
+        if rulebase is not None:
+            return rulebase
+
+        raise KeyError(f"Rulebase with UID {rulebaseUid} not found.")
+
+    def get_rulebase_or_none(self, rulebaseUid: str) -> Rulebase | None:
         """
         get the policy with a specific uid  
         :param policyUid: The UID of the relevant policy.

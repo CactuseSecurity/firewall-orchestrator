@@ -23,3 +23,10 @@ SyslogIdentifier={{ product_name }}-api
 User={{ fworch_user }}
 [Install]
 WantedBy=default.target
+
+# Explanation of SuccessExitStatus:
+# extra exit codes that systemd should treat as “success” instead of failure:
+#   0 normal success.
+# 137 process exited due to signal 9 (128+9), i.e., killed/SIGKILL (common when a container is stopped forcefully).
+# 143 process exited due to signal 15 (128+15), i.e., SIGTERM (the normal stop path).
+# Now a clean container stop (SIGTERM) or a forced stop (SIGKILL) does not leave the unit in a failed state.

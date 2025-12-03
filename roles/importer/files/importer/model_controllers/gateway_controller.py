@@ -6,13 +6,13 @@ class GatewayController(Gateway):
         self.Gateway = gw
      
     @staticmethod
-    def replaceNoneWithEmpty(s):
+    def replaceNoneWithEmpty(s: str | None) -> str:
         if s is None or s == '':
             return '<EMPTY>'
         else:
             return str(s)
 
-    def __eq__(self, other):
+    def __eq__(self, other: object) -> bool:
         if isinstance(other, Gateway):
             return (
                 self.Name == other.Name and

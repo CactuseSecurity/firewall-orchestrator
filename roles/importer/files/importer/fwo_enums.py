@@ -22,7 +22,7 @@ class ConfFormat(Enum):
     CISCOFIREPOWER_LEGACY = 'CISCOFIREPOWER_LEGACY'
 
     @staticmethod
-    def IsLegacyConfigFormat(confFormatString):
-        return ConfFormat(confFormatString) in [ConfFormat.NORMALIZED_LEGACY, ConfFormat.CHECKPOINT_LEGACY, 
+    def IsLegacyConfigFormat(conf_format_string: str) -> bool:
+        return ConfFormat(conf_format_string) in [ConfFormat.NORMALIZED_LEGACY, ConfFormat.CHECKPOINT_LEGACY, 
                                     ConfFormat.CISCOFIREPOWER_LEGACY, ConfFormat.FORTINET_LEGACY, 
                                     ConfFormat.PALOALTO_LEGACY]

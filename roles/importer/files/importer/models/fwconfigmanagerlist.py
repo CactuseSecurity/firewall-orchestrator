@@ -12,7 +12,7 @@ class FwConfigManagerList(BaseModel):
 
     ConfigFormat: ConfFormat = ConfFormat.NORMALIZED
     ManagerSet: list[FwConfigManager] = []
-    native_config: dict[str,Any] = {} # native config as dict, if available
+    native_config: dict[str,Any] | None = {} # native config as dict, if available # TODO: change inital value to None?
 
     model_config = {
         "arbitrary_types_allowed": True

@@ -16,7 +16,7 @@ class LogLock:
     def handle_log_lock():
         # Initialize values
         lock_file_path = "/var/fworch/lock/importer_api_log.lock"
-        log_owned_by_external = False
+        log_owned = False
         stopwatch = time.time()
 
         while True:
@@ -26,35 +26,37 @@ class LogLock:
                     file.seek(0)
                     # Read the file content
                     lock_file_content = file.read().strip()
-                    # Forcefully release lock after timeout
-                    if log_owned_by_external and time.time() - stopwatch > 10:
-                        file.write("FORCEFULLY RELEASED\n")
-                        stopwatch = -1
-                        LogLock.semaphore.release()
-                        log_owned_by_external = False
-                    # GRANTED - lock was granted by us
-                    elif lock_file_content.endswith("GRANTED"):
-                        # Request lock if it is not already requested by us
-                        # (in case of restart with log already granted)
-                        if not log_owned_by_external:
-                            LogLock.semaphore.acquire()
-                            stopwatch = time.time()
-                            log_owned_by_external = True
-                    # REQUESTED - lock was requested by log swap process
-                    elif lock_file_content.endswith("REQUESTED"):
-                        # only request lock if it is not already requested by us
-                        if not log_owned_by_external:
-                            LogLock.semaphore.acquire()
-                            stopwatch = time.time()
-                            log_owned_by_external = True
-                            file.write("GRANTED\n")
-                    # RELEASED - lock was released by log swap process
-                    elif lock_file_content.endswith("RELEASED"):
-                        # only release lock if it was formerly requested by us
-                        if log_owned_by_external:
+
+
+                    if log_owned:
+                        # Forcefully release lock after timeout
+                        if time.time() - stopwatch > 10:
+                            file.write("FORCEFULLY RELEASED\n")
                             stopwatch = -1
                             LogLock.semaphore.release()
-                            log_owned_by_external = False
+                            log_owned = False
+
+                        elif lock_file_content.endswith("RELEASED"):
+                            # RELEASED - lock was released by log swap process
+                            # only release lock if it was formerly requested by us
+                            stopwatch = -1
+                            LogLock.semaphore.release()
+                            log_owned = False
+
+                    else: # not log_owned
+                        if lock_file_content.endswith("GRANTED"):
+                            # Request lock if it is not already requested by us
+                            # (in case of restart with log already granted)
+                            LogLock.semaphore.acquire()
+                            stopwatch = time.time()
+                            log_owned = True
+                        
+                        elif lock_file_content.endswith("REQUESTED"):
+                            # REQUESTED - lock was requested by log swap process
+                            LogLock.semaphore.acquire()
+                            stopwatch = time.time()
+                            log_owned = True
+                            file.write("GRANTED\n")
             except Exception as _:
                 pass
             # Wait a second
@@ -82,7 +84,7 @@ class LogLock:
 class FWOLogger():
     logger: logging.Logger
     debug_level: int
-    def __new__(cls, _: int = 0):
+    def __new__(cls, debug_level: int = 0):
         if not hasattr(cls, 'instance'):
             cls.instance = super(FWOLogger, cls).__new__(cls)
         return cls.instance
@@ -139,15 +141,8 @@ def get_fwo_logger(debug_level: int = 0) -> logging.Logger:
         log_level = logging.INFO
 
     logger = logging.getLogger()
-    #log_handler = LogHandler(stream=sys.stdout)
-    #log_filter = LogFilter()
-
     log_format = "%(asctime)s [%(levelname)-5.5s] [%(filename)-25.25s:%(funcName)-25.25s:%(lineno)4d] %(message)s"
-    #log_handler.setLevel(log_level)
-    #log_handler.addFilter(log_filter)
-    #handlers = [log_handler]
     
-    #logging.basicConfig(format=log_format, datefmt="%Y-%m-%dT%H:%M:%S%z", handlers=handlers, level=log_level)
     logging.basicConfig(format=log_format, datefmt="%Y-%m-%dT%H:%M:%S%z", level=log_level)
     logger.setLevel(log_level)
 

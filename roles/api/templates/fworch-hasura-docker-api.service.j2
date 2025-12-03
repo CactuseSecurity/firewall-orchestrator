@@ -8,6 +8,7 @@ After=network.target remote-fs.target nss-lookup.target docker.service
 {%- endif %}
 [Service]
 Restart=on-failure
+SuccessExitStatus=0 137 143
 WorkingDirectory={{ fworch_home }}
 ExecStart=/bin/bash -c '\
   if /usr/bin/docker inspect -f "{% raw %}{{.State.Running}}{% endraw %}" {{ api_container_name }} 2>/dev/null | grep -q true; then \

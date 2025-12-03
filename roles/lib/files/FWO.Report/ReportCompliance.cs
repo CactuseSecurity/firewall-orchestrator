@@ -610,6 +610,14 @@ namespace FWO.Report
             throw new NotImplementedException();
         }
 
+        private async Task<bool> DeleteAllViolations(ApiConnection apiConnection)
+        {
+            string query = "Magical query string";
+            await apiConnection.SendQueryAsync<string>(query);
+            bool deleteSuccess = false;
+            return deleteSuccess;
+        }
+        
         #endregion
     }
 }

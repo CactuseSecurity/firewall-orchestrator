@@ -522,6 +522,9 @@ namespace FWO.Config.Api.Data
 
         [JsonProperty("complianceCheckAvailableProcessors"), JsonPropertyName("complianceCheckAvailableProcessors")]
         public int ComplianceCheckAvailableProcessors { get; set; } = 4;
+        
+        [JsonProperty("complianceDoInitialCheck"), JsonPropertyName("complianceDoInitialCheck")]
+        public bool ComplianceDoInitialCheck {get; set;} = false;
 
 
         public ConfigData(bool editable = false)

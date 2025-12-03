@@ -234,6 +234,12 @@
                     <input id="lbl_treat_dynamic_and_domain_objects_as_internet" type="checkbox" @bind="configData!.TreatDynamicAndDomainObjectsAsInternet" />            
                 </div>
             </div>
+            <div class="form-group row">
+                <label class="col-form-label col-sm-4">Do Initial Check Unlocalized</label>
+                <div class="col-sm-7">
+                    <input type="checkbox" @bind="configData!.ComplianceDoInitialCheck" />
+                </div>
+            </div>
         }
     <hr />
     <AuthorizeView Roles="@Roles.Admin">

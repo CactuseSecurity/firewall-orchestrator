@@ -80,6 +80,11 @@ while (!connectionEstablished)
     connectionEstablished = createJWTResponse.IsSuccessful;
 }
 
+if (string.IsNullOrEmpty(createJWTResponse.Content))
+{
+    throw new ArgumentException("JWT response content is null or empty.");
+}
+
 TokenPair tokenPair = System.Text.Json.JsonSerializer.Deserialize<TokenPair>(createJWTResponse.Content) ?? throw new ArgumentException("failed to deserialize token pair");
 
 string jwt = tokenPair.AccessToken ?? throw new ArgumentException("Received empty jwt.");

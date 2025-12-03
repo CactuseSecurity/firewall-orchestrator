@@ -127,6 +127,7 @@ if __name__ == "__main__":
         logger.warning("could not clone/pull git repo from " + recert_repo_url + ", exception: " + str(traceback.format_exc()))
 
     recert_activation_file = f"{recert_repo_target_dir}/{recert_active_file_name}"
+    recert_active_app_list = []
     try:
         with open(recert_activation_file, "r") as f:
             recert_active_app_list = f.read().splitlines()

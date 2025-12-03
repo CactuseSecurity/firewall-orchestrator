@@ -9,7 +9,12 @@ After=network.target remote-fs.target nss-lookup.target docker.service
 [Service]
 Restart=on-failure
 WorkingDirectory={{ fworch_home }}
-ExecStart=/usr/bin/docker start -a {{ api_container_name }}
+ExecStart=/bin/bash -c '\
+  if /usr/bin/docker inspect -f "{% raw %}{{.State.Running}}{% endraw %}" {{ api_container_name }} 2>/dev/null | grep -q true; then \
+    exec /usr/bin/docker attach {{ api_container_name }}; \
+  fi; \
+  exec /usr/bin/docker start -a {{ api_container_name }} \
+'
 ExecStop=/usr/bin/docker stop -t 2 {{ api_container_name }}
 StandardOutput=journal
 StandardError=journal

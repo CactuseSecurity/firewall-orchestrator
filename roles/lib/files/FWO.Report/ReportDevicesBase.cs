@@ -1,14 +1,16 @@
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
-using FWO.Data;
-using FWO.Data.Report;
-using FWO.Report.Filter;
 using FWO.Basics;
 using FWO.Config.Api;
-using System.Text;
+using FWO.Data;
 using FWO.Data.Middleware;
-using System.Text.Json;
+using FWO.Data.Report;
 using FWO.Logging;
+using FWO.Report.Filter;
+using FWO.Ui.Display;
+using Newtonsoft.Json;
+using System.Text;
+using System.Text.Json;
 
 namespace FWO.Report
 {
@@ -20,7 +22,7 @@ namespace FWO.Report
         {
             if (userConfig.GlobalConfig is GlobalConfig globalConfig && !string.IsNullOrEmpty(globalConfig.DebugConfig))
             {
-                _debugConfig = JsonSerializer.Deserialize<DebugConfig>(globalConfig.DebugConfig) ?? new();
+                _debugConfig = System.Text.Json.JsonSerializer.Deserialize<DebugConfig>(globalConfig.DebugConfig) ?? new();
             }
             else
             {
@@ -211,6 +213,44 @@ namespace FWO.Report
             report.AppendLine($"\"report generator\": \"Firewall Orchestrator - https://fwo.cactus.de/en\",");
             report.AppendLine($"\"data protection level\": \"For internal use only\",");
             return $"{report}";
+        }
+
+        protected string ExportToJson<T>(Func<DeviceReport, bool> hasItems, Func<DeviceReport, ManagementReport, IEnumerable<T>> getItems, Func<T, string> renderItem, string itemsPropertyName)
+        {
+            StringBuilder report = new("{");
+            report.Append(DisplayReportHeaderJson());
+            report.AppendLine("\"managements\": [");
+
+            foreach (var management in ReportData.ManagementData.Where(m => !m.Ignore && m.Devices != null && m.Devices.Any(hasItems)))
+            {
+                report.AppendLine($"{{\"{management.Name}\": {{");
+                report.AppendLine("\"gateways\": [");
+
+                foreach (var gateway in management.Devices.Where(hasItems))
+                {
+                    report.Append($"{{\"{gateway.Name}\": {{\n\"{itemsPropertyName}\": [");
+
+                    foreach (var item in getItems(gateway, management))
+                    {
+                        report.Append(renderItem(item));
+                    }
+
+                    report = RuleDisplayBase.RemoveLastChars(report, 1); // remove last comma
+                    report.Append("]}},");
+                }
+
+                report = RuleDisplayBase.RemoveLastChars(report, 1);
+                report.Append("]}},");
+            }
+
+            report = RuleDisplayBase.RemoveLastChars(report, 1);
+            report.Append("]}");
+
+            dynamic? json = JsonConvert.DeserializeObject(report.ToString());
+            return JsonConvert.SerializeObject(json, new JsonSerializerSettings
+            {
+                Formatting = Formatting.Indented
+            });
         }
 
         public string DisplayReportHeaderCsv()

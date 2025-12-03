@@ -1,11 +1,12 @@
 import copy
 import unittest
 
-from fwo_base import init_service_provider
+from fwo_base import init_service_provider, register_global_state
 
 from models.fwconfig_normalized import FwConfigNormalized
 
 from models.rulebase import Rulebase
+from fwo_log import FWOLogger
 from services.service_provider import ServiceProvider
 
 from test.mocking.mock_import_state import MockImportStateController
@@ -30,7 +31,9 @@ class TestUpdateRulebaseLinkDiffs(unittest.TestCase):
             Gets invoked once before running any test of this class.
         """
 
+        FWOLogger(2)
         cls._service_provider = init_service_provider() 
+        register_global_state(MockImportStateController(import_id=1, stub_setCoreData=True))
         cls._config_builder = MockFwConfigNormalizedBuilder()
 
 

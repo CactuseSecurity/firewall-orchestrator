@@ -34,22 +34,21 @@ class MockImportStateController(ImportStateController):
 
         self._stub_setCoreData = stub_setCoreData
 
-        self.DebugLevel = 0
-        self.Stats = ImportStatisticsController()
+        self.stats = ImportStatisticsController()
         self.call_log = []
         self.stub_responses = {}
-        self.ImportVersion = 9
-        self.MgmDetails = MockManagementController()
+        self.import_version = 9
+        self.mgm_details = MockManagementController()
         self.api_connection = MockFwoApi()
-        self.FwoConfig = FworchConfigController(
-            fwoApiUri='',
-            fwoUserMgmtApiUri='',
-            importerPwd='',
-            apiFetchSize=500
+        self.fwo_config = FworchConfigController(
+            fwo_api_url='',
+            fwo_user_mgmt_api_uri='',
+            importer_pwd='',
+            api_fetch_size=500
         )
         self.Jwt = None
-        self.ImportId = import_id
-        self.IsFullImport = True
+        self.import_id = import_id
+        self.is_full_import = True
         self.setCoreData()
 
         self.track_id_map = {
@@ -63,6 +62,8 @@ class MockImportStateController(ImportStateController):
         self.service_id_map = {}
         self.network_object_id_map = {}
         self.user_id_map = {}
+        self.rule_map = {}
+        self.rulebase_map = {}
 
         self.removed_rules_map = {}
 

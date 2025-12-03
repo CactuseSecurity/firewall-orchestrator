@@ -5,7 +5,7 @@ from models.rulebase import Rulebase
 
 class FwoEncoder(json.JSONEncoder):
 
-    def default(self, obj):
+    def default(self, obj: object) -> object:
 
         if isinstance(obj, ConfigAction) or isinstance(obj, ConfFormat):
             return obj.name

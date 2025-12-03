@@ -1,5 +1,4 @@
 from test.mocking.mock_config import MockFwConfigNormalizedBuilder
-from fwo_globals import set_global_values
 from model_controllers.fwconfigmanagerlist_controller import FwConfigManagerListController
 from models.fwconfigmanager import FwConfigManager
 from test.mocking.mock_import_state import MockImportStateController
@@ -16,7 +15,6 @@ def main(
     manager_name="sting-mgmt",
     domain_uid="domain uid",
     domain_name="domain name",
-    debug_level=8,
 ):
     mock_config_builder = MockFwConfigNormalizedBuilder()
     mock_config, _ = mock_config_builder.build_config(
@@ -31,19 +29,18 @@ def main(
     )
 
     fw_mock_import_state = MockImportStateController(stub_setCoreData=True)
-    set_global_values(debug_level_in=debug_level)
 
     fw_config_manager_list_controller = FwConfigManagerListController()
     fw_config_manager = FwConfigManager(
-        ManagerUid=manager_uid,
-        ManagerName=manager_name,
-        DomainUid=domain_uid,
-        DomainName=domain_name
+        manager_uid=manager_uid,
+        manager_name=manager_name,
+        domain_uid=domain_uid,
+        domain_name=domain_name
 
     )
-    fw_config_manager.Configs.append(mock_config)
+    fw_config_manager.configs.append(mock_config)
     fw_config_manager_list_controller.ManagerSet.append(fw_config_manager)
-    file_path = fw_config_manager_list_controller.storeFullNormalizedConfigToFile(fw_mock_import_state)
+    file_path = fw_config_manager_list_controller.store_full_normalized_config_to_file(fw_mock_import_state)
 
     print(f"MockConfig: File saved to '{file_path}'")
 

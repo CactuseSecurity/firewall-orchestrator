@@ -232,9 +232,9 @@
     [Parameter]
     public List<ManagementReport> Managements { get; set; } = new ();
 
-    private Dictionary<string, Dictionary<string, List<Rule>>> deviceDictRuleInlines = new();
-    private Dictionary<string, Rule[]> deviceTopLevelRules = new();
-    private HashSet<string> deviceDictProcessed = new();
+    private readonly Dictionary<string, Dictionary<string, List<Rule>>> deviceDictRuleInlines = new();
+    private readonly Dictionary<string, Rule[]> deviceTopLevelRules = new();
+    private readonly HashSet<string> deviceDictProcessed = new();
 
     private ITable<Rule>? reportTable;
     private const int ColumnsCount = 13;
@@ -353,7 +353,7 @@
             stack.Add((r, dictRuleInlines[r.DisplayOrderNumberString]));
         }
 
-        // speichern
+        // save results
         deviceDictRuleInlines[deviceKey] = dictRuleInlines;
         deviceTopLevelRules[deviceKey] = topLevel.ToArray();
         deviceDictProcessed.Add(deviceKey);
@@ -370,11 +370,11 @@
 
         if (!dictRuleInlines.ContainsKey(rule.DisplayOrderNumberString)
             || dictRuleInlines[rule.DisplayOrderNumberString].Count == 0)
-            return $"<span style=\"visibility:hidden;\">{HtmlAsset.HtmlArrowCollapsed}</span>";
+            return $"<span style=\"visibility:hidden;\">{Icons.HtmlArrowCollapsed}</span>";
 
         bool isExpanded = dictRuleInlines[rule.DisplayOrderNumberString]
                             .All(c => topLevelRules.Contains(c));
 
-        return isExpanded ? HtmlAsset.HtmlArrowExpanded : HtmlAsset.HtmlArrowCollapsed;
+        return isExpanded ? Icons.HtmlArrowExpanded : Icons.HtmlArrowCollapsed;
     }
 }

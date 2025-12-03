@@ -7,28 +7,28 @@ from model_controllers.import_state_controller import ImportStateController
 """
     normalize all gateway details
 """
-def normalize_gateways (nativeConfig: dict[str, Any], importState: ImportStateController, normalizedConfig: dict[str, Any]):
-    normalizedConfig['gateways'] = []
-    normalize_rulebase_links (nativeConfig, normalizedConfig)
-    normalize_interfaces (nativeConfig, importState, normalizedConfig)
-    normalize_routing (nativeConfig, importState, normalizedConfig)
+def normalize_gateways (native_config: dict[str, Any], import_state: ImportStateController, normalized_config: dict[str, Any]):
+    normalized_config['gateways'] = []
+    normalize_rulebase_links (native_config, normalized_config)
+    normalize_interfaces (native_config, import_state, normalized_config)
+    normalize_routing (native_config, import_state, normalized_config)
 
 
-def normalize_rulebase_links (nativeConfig: dict[str, Any], normalizedConfig: dict[str, Any]):
-    gwRange = range(len(nativeConfig['gateways']))
-    for gwId in gwRange:
-        gwUid = nativeConfig['gateways'][gwId]['uid']
-        if not gw_in_normalized_config(normalizedConfig, gwUid):
-            gwNormalized = create_normalized_gateway(nativeConfig, gwId)
-            normalizedConfig['gateways'].append(gwNormalized)
-        for gwNormalized in normalizedConfig['gateways']:
-            if gwNormalized['Uid'] == gwUid:
-                gwNormalized['RulebaseLinks'] = get_normalized_rulebase_link(nativeConfig, gwId)
+def normalize_rulebase_links (native_config: dict[str, Any], normalized_config: dict[str, Any]):
+    gw_range = range(len(native_config['gateways']))
+    for gw_id in gw_range:
+        gw_uid = native_config['gateways'][gw_id]['uid']
+        if not gw_in_normalized_config(normalized_config, gw_uid):
+            gw_normalized = create_normalized_gateway(native_config, gw_id)
+            normalized_config['gateways'].append(gw_normalized)
+        for gw_normalized in normalized_config['gateways']:
+            if gw_normalized['Uid'] == gw_uid:
+                gw_normalized['RulebaseLinks'] = get_normalized_rulebase_link(native_config, gw_id)
                 break
 
 
-def get_normalized_rulebase_link(nativeConfig: dict[str, Any], gwId: int) -> list[dict[str, Any]]:
-    links = nativeConfig.get('gateways', {})[gwId].get('rulebase_links')
+def get_normalized_rulebase_link(native_config: dict[str, Any], gw_id: int) -> list[dict[str, Any]]:
+    links = native_config.get('gateways', {})[gw_id].get('rulebase_links')
     for link in links:
         if 'type' in link:
             link['link_type'] = link['type']
@@ -45,28 +45,28 @@ def get_normalized_rulebase_link(nativeConfig: dict[str, Any], gwId: int) -> lis
     return links
 
 
-def create_normalized_gateway(nativeConfig: dict[str, Any], gwId: int) -> dict[str, Any]:
+def create_normalized_gateway(native_config: dict[str, Any], gw_id: int) -> dict[str, Any]:
     gw: dict[str, Any] = {}
-    gw['Uid'] = nativeConfig['gateways'][gwId]['uid']
-    gw['Name'] = nativeConfig['gateways'][gwId]['name']
+    gw['Uid'] = native_config['gateways'][gw_id]['uid']
+    gw['Name'] = native_config['gateways'][gw_id]['name']
     gw['Interfaces'] = []
     gw['Routing'] = []
     gw['RulebaseLinks'] = []
     return gw
             
 
-def normalize_interfaces (nativeConfig: dict[str, Any], importState: ImportStateController, normalizedConfig: dict[str, Any]):
+def normalize_interfaces (native_config: dict[str, Any], import_state: ImportStateController, normalized_config: dict[str, Any]):
     # TODO: Implement this
     pass
 
 
-def normalize_routing (nativeConfig: dict[str, Any], importState: ImportStateController, normalizedConfig: dict[str, Any]):
+def normalize_routing (native_config: dict[str, Any], import_state: ImportStateController, normalized_config: dict[str, Any]):
     # TODO: Implement this
     pass
 
 
-def gw_in_normalized_config(normalizedConfig: dict[str, Any], gwUid: str) -> bool:
-    for gw in normalizedConfig['gateways']:
-        if gw['Uid'] == gwUid:
+def gw_in_normalized_config(normalized_config: dict[str, Any], gw_uid: str) -> bool:
+    for gw in normalized_config['gateways']:
+        if gw['Uid'] == gw_uid:
             return True
     return False

@@ -2,13 +2,11 @@ import copy
 import ipaddress
 from time import strftime, localtime
 from typing import Any
-from fwo_const import LIST_DELIMITER, NAT_POSTFIX, DUMMY_IP
-from fw_modules.fortiadom5ff.fmgr_network import create_network_object, get_first_ip_of_destination
+from fwo_const import LIST_DELIMITER
 from fw_modules.fortiadom5ff.fmgr_zone import find_zones_in_normalized_config
 from fw_modules.fortiadom5ff.fmgr_consts import nat_types
 from fw_modules.fortiadom5ff import fmgr_getter
 from fwo_log import FWOLogger
-from model_controllers.route_controller import get_matching_route_obj, get_ip_of_interface_obj
 from fwo_exceptions import FwoDeviceWithoutLocalPackage, FwoImporterErrorInconsistencies
 from models.rule import RuleNormalized, RuleAction, RuleTrack, RuleType
 from models.rulebase import Rulebase
@@ -96,9 +94,9 @@ def initialize_normalized_rulebase(rulebase_to_parse: dict[str, Any], mgm_uid: s
     """
     we use 'type' as uid/name since a rulebase may have a v4 and a v6 part
     """
-    rulebaseName = rulebase_to_parse['type']
-    rulebaseUid = rulebase_to_parse['type']
-    normalized_rulebase = Rulebase(uid=rulebaseUid, name=rulebaseName, mgm_uid=mgm_uid, rules={})
+    rulebase_name = rulebase_to_parse['type']
+    rulebase_uid = rulebase_to_parse['type']
+    normalized_rulebase = Rulebase(uid=rulebase_uid, name=rulebase_name, mgm_uid=mgm_uid, rules={})
     return normalized_rulebase
 
 def parse_rulebase(normalized_config_adom: dict[str, Any], normalized_config_global: dict[str, Any], rulebase_to_parse: dict[str, Any], normalized_rulebase: Rulebase, found_rulebase_in_global: bool):

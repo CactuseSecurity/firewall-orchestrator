@@ -124,14 +124,14 @@ def handle_members(obj: dict[str, Any]) -> tuple[str | None, str | None]:
 
 def handle_object_type_and_ip(obj: dict[str, Any], ip_addr: str | None) -> tuple[str, str | None, str | None]:
     obj_type = 'undef'
-    ipArray = cidr_to_range(ip_addr)
+    ip_array = cidr_to_range(ip_addr)
     first_ip = None
     last_ip = None
-    if len(ipArray)==2:
-        first_ip = ipArray[0]
-        last_ip  = ipArray[1]
-    elif len(ipArray)==1:
-        first_ip = ipArray[0]
+    if len(ip_array)==2:
+        first_ip = ip_array[0]
+        last_ip  = ip_array[1]
+    elif len(ip_array)==1:
+        first_ip = ip_array[0]
         last_ip  = None
 
     if 'type' in obj:

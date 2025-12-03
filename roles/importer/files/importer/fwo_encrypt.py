@@ -28,7 +28,7 @@ def decrypt_aes_ciphertext(base64_encrypted_text: str, passphrase: str) -> str:
         unpadded_data = unpadder.update(decrypted_data) + unpadder.finalize()
         return unpadded_data.decode('utf-8')  # Assuming plaintext is UTF-8 encoded
     except ValueError as e:
-        raise Exception ('AES decryption failed:', e)
+        raise ValueError('AES decryption failed:', e)
 
 
 # wrapper for trying the different decryption methods

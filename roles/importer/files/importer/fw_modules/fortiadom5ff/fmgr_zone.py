@@ -41,7 +41,7 @@ def statically_add_missing_global_zones(fetched_zones: list[str]) -> None:
 
 def fetch_dynamic_mapping(mapping: dict[str, Any], fetched_zones: list[str]) -> None:
     for dyn_mapping in mapping['dynamic_mapping']:
-        if 'name' in dyn_mapping and not dyn_mapping['name'] in fetched_zones:
+        if 'name' in dyn_mapping and dyn_mapping['name'] not in fetched_zones:
             fetched_zones.append(dyn_mapping['name'])
         if 'local-intf' in dyn_mapping:
             for local_interface in dyn_mapping['local-intf']:
@@ -50,7 +50,7 @@ def fetch_dynamic_mapping(mapping: dict[str, Any], fetched_zones: list[str]) -> 
 
 def fetch_platform_mapping(mapping: dict[str, Any], fetched_zones: list[str]) -> None:
     for dyn_mapping in mapping['platform_mapping']:
-        if 'intf-zone' in dyn_mapping and not dyn_mapping['intf-zone'] in fetched_zones:
+        if 'intf-zone' in dyn_mapping and dyn_mapping['intf-zone'] not in fetched_zones:
             fetched_zones.append(dyn_mapping['intf-zone'])
 
 def find_zones_in_normalized_config(native_zone_list: list[str], normalized_config_adom: dict[str, Any], normalized_config_global: dict[str, Any]) -> list[str]:

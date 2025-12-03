@@ -63,24 +63,6 @@ class LogLock:
             time.sleep(1)
 
 
-# Used to accquire lock before log processing
-# class LogFilter(logging.Filter):
-#     def filter(self, record):
-#         # Acquire lock
-#         LogLock.semaphore.acquire()
-#         # Return True to allow the log record to be processed
-#         return True
-
-
-# Used to release lock after log processing
-# class LogHandler(logging.StreamHandler):
-#     def emit(self, record):
-#         # Call the parent class's emit method to perform the actual logging
-#         super().emit(record)
-#         # Release lock
-#         LogLock.semaphore.release()
-
-
 class FWOLogger():
     logger: logging.Logger
     debug_level: int

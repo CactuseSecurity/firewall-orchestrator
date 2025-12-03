@@ -24,7 +24,7 @@ class FortiAdom5ffCommon(FwCommon):
     def get_config(self, config_in: FwConfigManagerListController, import_state: ImportStateController) -> tuple[int, FwConfigManagerListController]:
         return get_config(config_in, import_state)
 
-def get_config(config_in: FwConfigManagerListController, importState: ImportStateController) -> tuple[int, FwConfigManagerListController]:
+def get_config(config_in: FwConfigManagerListController, import_state: ImportStateController) -> tuple[int, FwConfigManagerListController]:
     if config_in.has_empty_config():   # no native config was passed in, so getting it from FW-Manager 
         config_in.native_config.update({'domains': []}) # type: ignore #TYPING: What is this? None or not None this is the question
         parsing_config_only = False
@@ -32,12 +32,12 @@ def get_config(config_in: FwConfigManagerListController, importState: ImportStat
         parsing_config_only = True
 
     if not parsing_config_only: # no native config was passed in, so getting it from FortiManager
-        sid = get_sid(importState)
-        limit = importState.fwo_config.api_fetch_size
-        fm_api_url = importState.mgm_details.buildFwApiString()
-        native_config_global = initialize_native_config_domain(importState.mgm_details)
+        sid = get_sid(import_state)
+        limit = import_state.fwo_config.api_fetch_size
+        fm_api_url = import_state.mgm_details.buildFwApiString()
+        native_config_global = initialize_native_config_domain(import_state.mgm_details)
         config_in.native_config['domains'].append(native_config_global) # type: ignore #TYPING: None or not None this is the question
-        adom_list = build_adom_list(importState)
+        adom_list = build_adom_list(import_state)
         adom_device_vdom_structure = build_adom_device_vdom_structure(adom_list, sid, fm_api_url)
         # delete_v: das geht schief für unschöne adoms
         arbitrary_vdom_for_updateable_objects = get_arbitrary_vdom(adom_device_vdom_structure)
@@ -75,7 +75,7 @@ def get_config(config_in: FwConfigManagerListController, importState: ImportStat
         except Exception:
             raise FwLogoutFailed("logout exception probably due to timeout - irrelevant, so ignoring it")
 
-        write_native_config_to_file(importState, config_in.native_config)
+        write_native_config_to_file(import_state, config_in.native_config)
 
     if not config_in.native_config:
         raise ImportError("native config missing")
@@ -197,11 +197,11 @@ def normalize_single_manager_config(native_config: 'dict[str, Any]', native_conf
     normalize_gateways(native_config, normalized_config_adom)
     
 
-def build_adom_list(importState : ImportStateController) -> list[Management]:
+def build_adom_list(import_state : ImportStateController) -> list[Management]:
     adom_list: list[Management] = []
-    if importState.mgm_details.is_super_manager:
-        for subManager in importState.mgm_details.sub_managers:
-            adom_list.append(deepcopy(subManager))
+    if import_state.mgm_details.is_super_manager:
+        for sub_manager in import_state.mgm_details.sub_managers:
+            adom_list.append(deepcopy(sub_manager))
     return adom_list
 
 def build_adom_device_vdom_structure(adom_list: list[Management], sid: str, fm_api_url: str) -> dict[str, dict[str, dict[str, Any]]]:
@@ -273,11 +273,11 @@ def initialize_device_config(mgm_details_device: dict[str, Any]) -> dict[str, An
                      'rulebase_links': []}
     return device_config
 
-def get_sid(importState: ImportStateController):
+def get_sid(import_state: ImportStateController):
     fm_api_url = 'https://' + \
-        importState.mgm_details.hostname + ':' + \
-        str(importState.mgm_details.port) + '/jsonrpc'
-    sid = fmgr_getter.login(importState.mgm_details.import_user, importState.mgm_details.secret, fm_api_url)
+        import_state.mgm_details.hostname + ':' + \
+        str(import_state.mgm_details.port) + '/jsonrpc'
+    sid = fmgr_getter.login(import_state.mgm_details.import_user, import_state.mgm_details.secret, fm_api_url)
     if sid is None:
         raise FwLoginFailed('did not succeed in logging in to FortiManager API, no sid returned')
     return sid

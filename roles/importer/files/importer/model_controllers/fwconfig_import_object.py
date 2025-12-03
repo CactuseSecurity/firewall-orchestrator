@@ -228,8 +228,8 @@ class FwConfigImportObject():
         for proto in result['data']['stm_ip_proto']:
             protocol_map.update({proto['ip_proto_name'].lower(): proto['ip_proto_id']})
         return protocol_map
-
-    def update_objects_via_api(self, single_manager: FwConfigManager, newNwObjectUids: list[str], newSvcObjectUids: list[str], newUserUids: list[str], new_zone_names: list[str], removedNwObjectUids: list[str], removedSvcObjectUids: list[str], removedUserUids: list[str], removed_zone_names: list[str]):
+    
+    def update_objects_via_api(self, single_manager: FwConfigManager, new_nw_object_uids: list[str], new_svc_obj_uids: list[str], new_user_uids: list[str], new_zone_names: list[str], removed_nw_object_uids: list[str], removed_svc_object_uids: list[str], removed_user_uids: list[str], removed_zone_names: list[str]):
         # here we also mark old objects removed before adding the new versions
         new_nwobj_ids = []
         new_nwsvc_ids = []
@@ -246,13 +246,13 @@ class FwConfigImportObject():
         query_variables: dict[str, Any] = {
             'mgmId': this_managements_id,
             'importId': self.import_state.import_id,
-            'newNwObjects': self.prepare_new_nwobjs(newNwObjectUids, this_managements_id),
-            'newSvcObjects': self.prepare_new_svcobjs(newSvcObjectUids, this_managements_id),
-            'newUsers': self.prepare_new_userobjs(newUserUids, this_managements_id),
+            'newNwObjects': self.prepare_new_nwobjs(new_nw_object_uids, this_managements_id),
+            'newSvcObjects': self.prepare_new_svcobjs(new_svc_obj_uids, this_managements_id),
+            'newUsers': self.prepare_new_userobjs(new_user_uids, this_managements_id),
             'newZones': self.prepare_new_zones(new_zone_names, this_managements_id),
-            'removedNwObjectUids': removedNwObjectUids,
-            'removedSvcObjectUids': removedSvcObjectUids,
-            'removedUserUids': removedUserUids,
+            'removedNwObjectUids': removed_nw_object_uids,
+            'removedSvcObjectUids': removed_svc_object_uids,
+            'removedUserUids': removed_user_uids,
             'removedZoneUids': removed_zone_names
         }
 
@@ -611,8 +611,6 @@ class FwConfigImportObject():
 
     def lookup_proto_name_to_id(self, proto_str: str | int) -> int | None:
         if isinstance(proto_str, int):
-            # logger = getFwoLogger()
-            # FWOLogger.warning(f"found protocol with an id as name: {str(proto_str)}")
             return proto_str  # already an int, do nothing
         else:
             return self.protocol_map.get(proto_str.lower(), None)
@@ -625,38 +623,38 @@ class FwConfigImportObject():
         """
         # TODO: deal with object changes where we need old and new obj id
 
-        nwObjs: list[dict[str, Any]] = []
-        svcObjs: list[dict[str, Any]] = []
-        importTime = datetime.datetime.now().isoformat()
-        changeTyp = 3  # standard
+        nw_objs: list[dict[str, Any]] = []
+        svc_objs: list[dict[str, Any]] = []
+        import_time = datetime.datetime.now().isoformat()
+        change_typ = 3  # standard
         change_logger = ChangeLogger()
 
         if self.import_state.is_full_import or self.import_state.IsClearingImport:
-            changeTyp = 2   # to be ignored in change reports
+            change_typ = 2   # to be ignored in change reports
         
         # Write changelog for network objects.
 
         for nw_obj_id in [nw_obj_ids_added_item["obj_id"] for nw_obj_ids_added_item in nw_obj_ids_added]:
-            nwObjs.append(change_logger.create_changelog_import_object("obj", self.import_state, 'I', changeTyp, importTime, nw_obj_id))
+            nw_objs.append(change_logger.create_changelog_import_object("obj", self.import_state, 'I', change_typ, import_time, nw_obj_id))
 
         for nw_obj_id in [nw_obj_ids_removed_item["obj_id"] for nw_obj_ids_removed_item in nw_obj_ids_removed]:
-            nwObjs.append(change_logger.create_changelog_import_object("obj", self.import_state, 'D', changeTyp, importTime, nw_obj_id))
+            nw_objs.append(change_logger.create_changelog_import_object("obj", self.import_state, 'D', change_typ, import_time, nw_obj_id))
 
         for old_nw_obj_id, new_nw_obj_id in change_logger.changed_object_id_map.items():
-            nwObjs.append(change_logger.create_changelog_import_object("obj", self.import_state, 'C', changeTyp, importTime, new_nw_obj_id, old_nw_obj_id))
+            nw_objs.append(change_logger.create_changelog_import_object("obj", self.import_state, 'C', change_typ, import_time, new_nw_obj_id, old_nw_obj_id))
 
         # Write changelog for Services.
 
         for svc_id in [svc_ids_added_item["svc_id"] for svc_ids_added_item in svc_obj_ids_added]:
-            svcObjs.append(change_logger.create_changelog_import_object("svc", self.import_state, 'I', changeTyp, importTime, svc_id))
+            svc_objs.append(change_logger.create_changelog_import_object("svc", self.import_state, 'I', change_typ, import_time, svc_id))
 
         for svc_id in [svc_ids_removed_item["svc_id"] for svc_ids_removed_item in svc_obj_ids_removed]:
-            svcObjs.append(change_logger.create_changelog_import_object("svc", self.import_state, 'D', changeTyp, importTime, svc_id))
+            svc_objs.append(change_logger.create_changelog_import_object("svc", self.import_state, 'D', change_typ, import_time, svc_id))
 
         for old_svc_id, new_svc_id in change_logger.changed_service_id_map.items():
-            svcObjs.append(change_logger.create_changelog_import_object("svc", self.import_state, 'C', changeTyp, importTime, new_svc_id, old_svc_id))
+            svc_objs.append(change_logger.create_changelog_import_object("svc", self.import_state, 'C', change_typ, import_time, new_svc_id, old_svc_id))
 
-        return nwObjs, svcObjs
+        return nw_objs, svc_objs
 
 
     def add_changelog_objs(self, nwobj_ids_added: list[dict[str, int]], svc_obj_ids_added: list[dict[str, int]], nw_obj_ids_removed: list[dict[str, int]], svc_obj_ids_removed: list[dict[str, int]]):

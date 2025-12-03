@@ -164,9 +164,4 @@ namespace FWO.Basics
         public const string TYPE = "@@TYPE@@";
         public const string USER_NAME = "@@USER_NAME@@";
     }
-    public struct HtmlAsset
-    {
-        public const string HtmlArrowExpanded = "&#9660;";
-        public const string HtmlArrowCollapsed = "&#9654;";
-    }
 }

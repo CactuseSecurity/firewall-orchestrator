@@ -116,24 +116,28 @@
 # Pick the Stable channel (some users accidentally use 'stable', so be flexible)
 - name: select Stable channel
   set_fact:
-    cft_stable: "{{ chrome_versions_parsed.channels.Stable | default(chrome_versions_parsed.channels.stable) }}"
+      chrome_for_testing_stable: "{{ chrome_versions_parsed.channels.Stable | default(chrome_versions_parsed.channels.stable) }}"  # Chrome for Testing feed
+
+# Base path for all Chrome installs
+- name: set chrome root dir
+  set_fact:
+      chrome_root_dir: "/usr/local/fworch/bin/Chrome"
 
 # Extract downloads + version from Stable
 - name: parse latest stable versions for chrome #and headless shell
   set_fact:
-    chrome_root_dir: "/usr/local/fworch/bin/Chrome"
-    stable_chrome_versions: "{{ cft_stable.downloads }}"
-    chrome_dest: "{{ chrome_root_dir }}/Linux-{{ cft_stable.version }}"
+      stable_chrome_versions: "{{ chrome_for_testing_stable.downloads }}"
+      chrome_dest: "{{ chrome_root_dir }}/Linux-{{ chrome_for_testing_stable.version }}"
 
 # (Optional) sanity checks to fail early with a clear message
 - name: validate parsed data
   assert:
-    that:
-      - chrome_versions_parsed is mapping
-      - cft_stable is mapping
-      - cft_stable.version is defined
-      - cft_stable.downloads is defined
-    fail_msg: "Failed to parse Chrome for Testing JSON or locate the Stable channel."
+      that:
+          - chrome_versions_parsed is mapping
+          - chrome_for_testing_stable is mapping
+          - chrome_for_testing_stable.version is defined
+          - chrome_for_testing_stable.downloads is defined
+      fail_msg: "Failed to parse Chrome for Testing JSON or locate the Stable channel."
 
 - block:
     - name: ensure chrome root directory exists

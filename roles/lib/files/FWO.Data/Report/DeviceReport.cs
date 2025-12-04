@@ -26,10 +26,27 @@ namespace FWO.Data.Report
         [JsonProperty("unusedRules_Count"), JsonPropertyName("unusedRules_Count")]
         public ObjectStatistics UnusedRulesStatistics { get; set; } = new();
 
+
+        private List<Rule> Rules = [];
+
+
+        public void SetRulesForDev(List<Rule> rulesToReport)
+        {
+            Rules = rulesToReport;
+        }
+
+        public List<Rule> GetRuleListForDevice()
+        {
+            var activeRulebaseLinks = RulebaseLinks
+                .Where(link => link.GatewayId == Id && link.Removed != null)
+                .ToList();
+
+            return [.. Rules.Where(rule => activeRulebaseLinks.Any(link => link.NextRulebaseId == rule.RulebaseId))];
+        }
+
         public List<Rule> GetRuleList()
         {
-            // TODO: implement this method to return a list of rules associated with the device // MERGE
-            return new List<Rule>();
+            return Rules;
         }
 
         public DeviceReport()
@@ -37,35 +54,21 @@ namespace FWO.Data.Report
             RulebaseLinks = [];
         }
 
-        public DeviceReport(DeviceReport device)
+        public int? GetInitialRulebaseId(ManagementReport managementReport)
         {
-            RulebaseLinks = [];
-            // TODO: implement this method to return a list of rules associated with the device
+            return RulebaseLinks.FirstOrDefault(_ => _.IsInitialRulebase())?.NextRulebaseId;
         }
 
         public void AddRule(Rule rule)
         {
-            // TODO: implement this method to add a rule to the device
-        }
-        public int GetNumerOfRules()
-        {
-            // foreach (Rule rule in Rules)
-            // {
-            //     if (string.IsNullOrEmpty(rule.SectionHeader)) // Not a section header
-            //     {
-            //         rule.DisplayOrderNumber = ruleNumber++;
-            //     }
-            // }
-            return 0;
-            // TODO: implement this method to return the numer of rules for this device
+            Rules.Add(rule);
         }
 
-        public bool ContainsRules()
+        public int GetNumberOfRules()
         {
-            return true;
-            // merge:            // return Rules != null && Rules.Count() > 0;
+            return Rules.Count;
         }
-
+        
         /// <summary>
         /// Conforms <see cref="DeviceReport"/> internal data to be valid for further usage.
         /// </summary>

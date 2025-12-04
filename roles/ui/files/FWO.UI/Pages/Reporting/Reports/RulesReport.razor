@@ -4,11 +4,10 @@
 
 @inject UserConfig userConfig
 
-@foreach (var management in Managements.Select(mgt => new ManagementReportController(mgt)))
+@foreach (var management in Managements)
 {
     @if (management.ContainsRules())
     {
-        management.AssignRuleNumbers();
         <Collapse Title="@management.Name" Style="@("primary")" StartToggled="false">
             @if(Recertification || SelectedReportType == ReportType.Recertification)
             {
@@ -26,7 +25,7 @@
             }
             else
             {
-                @foreach (var device in management.Devices.Select(dev => DeviceReportController.FromDeviceReport(dev)))
+                @foreach (var device in management.Devices)
                 {
                     @if (device.ContainsRules() && ruleDisplay != null)
                     {

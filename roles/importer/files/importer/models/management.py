@@ -1,22 +1,25 @@
-from pydantic import Field
+from typing import Any
+from pydantic import BaseModel
 
-class Management():
-    Id: int = Field(description="Unique identifier for the (super-)management")
-    Name: str = Field(description="Name of the management")
-    Uid: str = Field(description="Unique identifier string of the management")
-    IsSuperManager: bool = Field(description="Indicates if the management is a super manager")
-    Hostname: str = Field(description="Hostname of the management server")
-    ImportDisabled: bool = Field(description="Indicates if import is disabled for the management")
-    Devices: dict = Field(description="Dictionary of devices managed by this entity")
-    ImporterHostname: str = Field(description="Hostname of the machine running the importer")
-    DeviceTypeName: str = Field(description="Name of the device type")
-    DeviceTypeVersion: str = Field(description="Version of the device type")
-    Port: int = Field(description="Port used for management communication")
-    ImportUser: str = Field(description="Username used for import operations")
-    Secret: str = Field(description="Secret or password for import operations")
-    SubManagerIds: list[int] = Field(default=[], description="List of sub-manager IDs")
-    CurrentMgmId: int = Field(description="Tracks the current management in multi-management imports")
-    CurrentMgmIsSuperManager: bool = Field(description="Indicates if the current management is a super manager")
-    DomainName: str = Field(alias='configPath', default='', description="Domain name")
-    DomainUid: str = Field(alias='domainUid', default='', description="Domain UID")
-    SubManagers: list['Management'] = Field(default=[], alias='subManager', description="List of sub-manager entities")
+class Management(BaseModel):
+    mgm_id: int
+    name: str
+    uid: str
+    is_super_manager: bool
+    hostname: str
+    import_disabled: bool
+    devices: list[dict[str, Any]]
+    importer_hostname: str
+    device_type_name: str
+    device_type_version: str
+    port: int
+    import_user: str
+    secret: str
+    sub_manager_ids: list[int]
+    current_mgm_id: int
+    current_mgm_is_super_manager: bool
+    domain_name: str
+    domain_uid: str
+    sub_managers: list['Management']
+    cloud_client_id: str | None = None
+    cloud_client_secret: str | None = None

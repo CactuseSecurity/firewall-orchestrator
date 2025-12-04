@@ -3,11 +3,12 @@ import unittest
 
 from models.fwconfig_normalized import FwConfigNormalized
 
+from fwo_log import FWOLogger
 from test.mocking.mock_import_state import MockImportStateController
 from test.mocking.mock_config import MockFwConfigNormalizedBuilder
 from test.mocking.mock_fwconfig_import_rule import MockFwConfigImportRule
 from test.tools.set_up_test import remove_rule_from_rulebase, insert_rule_in_config, move_rule_in_config, update_rule_map_and_rulebase_map, update_rule_num_numerics
-from fwo_base import init_service_provider
+from fwo_base import init_service_provider, register_global_state
 from services.service_provider import ServiceProvider
 from services.enums import Services
 
@@ -29,8 +30,10 @@ class TestUpdateRulebaseDiffs(unittest.TestCase):
             Gets invoked once before running any test of this class.
         """
         
+        FWOLogger(2)
         cls._config_builder = MockFwConfigNormalizedBuilder()
         init_service_provider()
+        register_global_state(MockImportStateController(import_id=1, stub_setCoreData=True))
         cls._service_provider = ServiceProvider()
         cls._global_state = cls._service_provider.get_service(Services.GLOBAL_STATE)
         cls._import_id = 0
@@ -57,7 +60,7 @@ class TestUpdateRulebaseDiffs(unittest.TestCase):
 
         self._fwconfig_import_rule = MockFwConfigImportRule()
         self._import_id += 1
-        self._fwconfig_import_rule.import_details.ImportId = self._import_id
+        self._fwconfig_import_rule.import_details.import_id = self._import_id
         self._fwconfig_import_rule.normalized_config = self._global_state.normalized_config
         self._import_state = self._fwconfig_import_rule.import_details
         self._normalized_config = self._fwconfig_import_rule.normalized_config
@@ -82,7 +85,7 @@ class TestUpdateRulebaseDiffs(unittest.TestCase):
         
         # Act
 
-        self._fwconfig_import_rule.updateRulebaseDiffs(self._previous_config)
+        self._fwconfig_import_rule.update_rulebase_diffs(self._previous_config)
 
         # Assert
 
@@ -96,10 +99,10 @@ class TestUpdateRulebaseDiffs(unittest.TestCase):
         self.assertEqual(rule_uids, sorted_rulebase_rules_uids) 
 
         # Insert, delete and move recognized in ImportDetails
-        self.assertEqual(self._import_state.Stats.RuleAddCount, 1)
-        self.assertEqual(self._import_state.Stats.RuleDeleteCount, 1)
-        self.assertEqual(self._import_state.Stats.RuleChangeCount, 1)
-        self.assertEqual(self._import_state.Stats.RuleMoveCount, 1)
+        self.assertEqual(self._import_state.stats.statistics.rule_add_count, 1)
+        self.assertEqual(self._import_state.stats.statistics.rule_delete_count, 1)
+        self.assertEqual(self._import_state.stats.statistics.rule_change_count, 1)
+        self.assertEqual(self._import_state.stats.statistics.rule_move_count, 1)
 
 
     def test_update_rulebase_diffs_on_consecutive_insertions(self):
@@ -126,7 +129,7 @@ class TestUpdateRulebaseDiffs(unittest.TestCase):
 
         # Act
 
-        self._fwconfig_import_rule.updateRulebaseDiffs(self._previous_config)
+        self._fwconfig_import_rule.update_rulebase_diffs(self._previous_config)
 
         # Assert
 
@@ -140,10 +143,10 @@ class TestUpdateRulebaseDiffs(unittest.TestCase):
         self.assertEqual(rule_uids, sorted_rulebase_rules_uids) 
 
         # Insertions recognized in ImportDetails
-        self.assertEqual(self._import_state.Stats.RuleAddCount, 9)
-        self.assertEqual(self._import_state.Stats.RuleDeleteCount, 0)
-        self.assertEqual(self._import_state.Stats.RuleChangeCount, 0)
-        self.assertEqual(self._import_state.Stats.RuleMoveCount, 0)
+        self.assertEqual(self._import_state.stats.statistics.rule_add_count, 9)
+        self.assertEqual(self._import_state.stats.statistics.rule_delete_count, 0)
+        self.assertEqual(self._import_state.stats.statistics.rule_change_count, 0)
+        self.assertEqual(self._import_state.stats.statistics.rule_move_count, 0)
 
 
     def test_update_rulebase_diffs_on_move_across_rulebases(self):
@@ -160,7 +163,7 @@ class TestUpdateRulebaseDiffs(unittest.TestCase):
 
         # Act
 
-        self._fwconfig_import_rule.updateRulebaseDiffs(self._previous_config)
+        self._fwconfig_import_rule.update_rulebase_diffs(self._previous_config)
 
         # Assert
 
@@ -179,11 +182,11 @@ class TestUpdateRulebaseDiffs(unittest.TestCase):
         self.assertEqual(target_rulebase_uids, sorted_target_rulebase_rules_uids) 
 
         # Move across rulebases recognized in ImportDetails
-        self.assertEqual(self._import_state.Stats.RuleAddCount, 0)
-        self.assertEqual(self._import_state.Stats.RuleDeleteCount, 0)
-        self.assertEqual(self._import_state.Stats.RuleChangeCount, 1)
-        self.assertEqual(self._import_state.Stats.RuleMoveCount, 1)
-
+        self.assertEqual(self._import_state.stats.statistics.rule_add_count, 0)
+        self.assertEqual(self._import_state.stats.statistics.rule_delete_count, 0)
+        self.assertEqual(self._import_state.stats.statistics.rule_change_count, 1)
+        self.assertEqual(self._import_state.stats.statistics.rule_move_count, 1)
+    
 
     def test_update_rulebase_diffs_on_moves_to_beginning_middle_and_end_of_rulebase(self):
 
@@ -198,7 +201,7 @@ class TestUpdateRulebaseDiffs(unittest.TestCase):
 
         # Act
 
-        self._fwconfig_import_rule.updateRulebaseDiffs(self._previous_config)
+        self._fwconfig_import_rule.update_rulebase_diffs(self._previous_config)
 
         # Assert
 
@@ -212,10 +215,10 @@ class TestUpdateRulebaseDiffs(unittest.TestCase):
         self.assertEqual(rule_uids, sorted_rulebase_rules_uids) 
 
         # Move to beginning, middle and end recognized in ImportDetails
-        self.assertEqual(self._import_state.Stats.RuleAddCount, 0)
-        self.assertEqual(self._import_state.Stats.RuleDeleteCount, 0)
-        self.assertEqual(self._import_state.Stats.RuleChangeCount, 3)
-        self.assertEqual(self._import_state.Stats.RuleMoveCount, 3)
+        self.assertEqual(self._import_state.stats.statistics.rule_add_count, 0)
+        self.assertEqual(self._import_state.stats.statistics.rule_delete_count, 0)
+        self.assertEqual(self._import_state.stats.statistics.rule_change_count, 3)
+        self.assertEqual(self._import_state.stats.statistics.rule_move_count, 3)
 
 
     def test_update_rulebase_diffs_on_delete_section_header(self):
@@ -246,7 +249,7 @@ class TestUpdateRulebaseDiffs(unittest.TestCase):
 
             # Act
 
-            self._fwconfig_import_rule.updateRulebaseDiffs(self._previous_config)
+            self._fwconfig_import_rule.update_rulebase_diffs(self._previous_config)
 
             # Assert
 
@@ -262,9 +265,9 @@ class TestUpdateRulebaseDiffs(unittest.TestCase):
             self.assertEqual(rule_uids, sorted_rules_uids) 
 
             # Move to beginning, middle and end recognized in ImportDetails
-            self.assertEqual(self._import_state.Stats.RuleAddCount, 0)
-            self.assertEqual(self._import_state.Stats.RuleDeleteCount, 0)
-            self.assertEqual(self._import_state.Stats.RuleChangeCount, 5)
-            self.assertEqual(self._import_state.Stats.RuleMoveCount, 5)
+            self.assertEqual(self._import_state.stats.statistics.rule_add_count, 0)
+            self.assertEqual(self._import_state.stats.statistics.rule_delete_count, 0)
+            self.assertEqual(self._import_state.stats.statistics.rule_change_count, 5)
+            self.assertEqual(self._import_state.stats.statistics.rule_move_count, 5)
 
         

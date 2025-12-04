@@ -4,27 +4,27 @@ from model_controllers.management_controller import ManagementController
 
 """Used for storing state during import process per management"""
 class ImportState():
-    Stats: ImportStatisticsController = ImportStatisticsController()
-    StartTime: int
-    DebugLevel: int
-    VerifyCerts: bool = False
-    ConfigChangedSinceLastImport: bool
-    FwoConfig: FworchConfigController
-    MgmDetails: ManagementController
-    ImportId: int
-    ImportFileName: str
-    ForceImport: str
-    ImportVersion: int
-    DataRetentionDays: int
-    DaysSinceLastFullImport: int
-    LastFullImportId: int
-    LastSuccessfulImport: str|None = None
-    IsFullImport: bool
-    IsInitialImport: bool = False
-    Actions: dict[str, int]
-    Tracks: dict[str, int]
-    LinkTypes: dict[str, int]
-    GatewayMap: dict[int, dict[str, int]] # mgm_id -> ( key = gateway.uid and value = gateway.id )
-    RulebaseMap: dict[str, int]
-    RuleMap: dict[str, int]
+    stats: ImportStatisticsController = ImportStatisticsController()
+    start_time: int
+    debug_level: int
+    verify_certs: bool = False
+    config_changed_since_last_import: bool
+    fwo_config: FworchConfigController
+    mgm_details: ManagementController
+    import_id: int
+    import_file_name: str
+    force_import: bool
+    import_version: int
+    data_retention_days: int
+    days_since_last_full_import: int
+    last_full_import_id: int
+    last_successful_import: str | None = None
+    is_full_import: bool
+    is_initial_import: bool = False
+    actions: dict[str, int]
+    tracks: dict[str, int]
+    link_types: dict[str, int]
+    gateway_map: dict[int, dict[str, int]] # mgm_id -> ( key = gateway.uid and value = gateway.id )
+    rulebase_map: dict[str, int]
+    rule_map: dict[str, int]
     responsible_for_importing: bool = True

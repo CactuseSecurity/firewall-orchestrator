@@ -31,17 +31,18 @@
                     {
                         <Collapse Title="@device.Name" Style="@("secondary")" StartToggled="true">
                             <Table SelectedItems="SelectedRules"
-                                RowClickAction="@(async rule => { rule.DeviceName = device.Name ?? ""; if (!SelectedRules.Remove(rule)) SelectedRules.Add(rule); await SelectedRulesChanged.InvokeAsync(SelectedRules); })"
-                                style="font-size:small" TableClass="table table-bordered table-sm th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="Rule" 
-                                Items="ReportRules.GetAllRulesOfGateway(device, management)" ShowSearchBar="false"
+                                   RowClickAction="@(async rule => {rule.DeviceName = device.Name ?? ""; if (!SelectedRules.Remove(rule)) SelectedRules.Add(rule); await SelectedRulesChanged.InvokeAsync(SelectedRules);})"
+                                style="font-size:small" TableClass="table table-bordered table-sm th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="Rule"
+                                   Items="CreateDictWithInlineRules(management,device)" ShowSearchBar="false"
                                 PageSize="RulesPerPage" ColumnReorder="true" TableRowClass="@(rule => getTableRowClasses(rule))"
                                 @ref="reportTable">
-
                                 @if (EmptyColumns[0] == false)
                                 {
                                     <Column TableItem="Rule" Context="rule" Title="@(userConfig.GetText("number"))" DefaultSortColumn="true" Field="@(rChange => rChange.OrderNumber)" Sortable="true" Filterable="false" Hideable="true">
                                         <Template>
-                                            @((MarkupString) RuleDisplayHtml.DisplayNumber(rule))
+                                            <span style="cursor:pointer; white-space:nowrap;" @onclick="() => OnNumberIconClickToggle(rule, device)">
+                                                @((MarkupString)GetToggleArrow(rule, device))@((MarkupString)RuleDisplayHtml.DisplayNumber(rule))
+                                            </span>
                                         </Template>
                                     </Column>
                                 }
@@ -184,13 +185,13 @@
                                 }
                             </DetailTemplate>
 
-                            <CustomRow TableItem="Rule" IsActiveForItem="(rule => !String.IsNullOrEmpty(rule.SectionHeader))">
+                             <CustomRow TableItem="Rule" IsActiveForItem="(rule => !String.IsNullOrEmpty(rule.SectionHeader))">
                                 <tr>
                                     <td class="bg-light" colspan="@(reportTable?.Columns.Count + 1)">
                                         <div class="font-weight-bold">@(context.SectionHeader)</div>
                                     </td>
                                 </tr>
-                            </CustomRow>
+                            </CustomRow> 
                             <Pager ShowPageNumber="true" ShowTotalCount="true" />
                         </Table>
                     </Collapse>
@@ -205,7 +206,7 @@
 {
     [Parameter]
     public bool Recertification { get; set; } = false;
-    
+
     [Parameter]
     public bool ReadonlyMode { get; set; } = false;
 
@@ -230,12 +231,16 @@
     [Parameter]
     public List<ManagementReport> Managements { get; set; } = new ();
 
+    private readonly Dictionary<string, Dictionary<string, List<Rule>>> deviceDictRuleInlines = new();
+    private readonly Dictionary<string, Rule[]> deviceTopLevelRules = new();
+    private readonly HashSet<string> deviceDictProcessed = new();
+
     private ITable<Rule>? reportTable;
     private const int ColumnsCount = 13;
     private bool[] EmptyColumns = new bool[ColumnsCount];
 
     private NatRuleDisplayHtml? ruleDisplay;
-    
+
     protected override void OnInitialized()
     {
         ruleDisplay = new NatRuleDisplayHtml(userConfig);
@@ -266,5 +271,109 @@
         string username = new DistName(recert.UserDn).UserName;
         return $"{userConfig.GetText(recert.Recertified ? "recertified_by" : "decertified_by")} {username} " +
             $"{userConfig.GetText("as_owner")} {recert.FwoOwner?.Name} {userConfig.GetText("comment")}: {recert.Comment}";
+    }
+
+
+    private string GetDeviceKey(DeviceReportController device)
+    => device.Name ?? device.GetHashCode().ToString();
+
+    private void OnNumberIconClickToggle(Rule rule, DeviceReportController device)
+    {
+        string key = GetDeviceKey(device);
+        var dictRuleInlines = deviceDictRuleInlines[key];
+        var topLevelRules = deviceTopLevelRules[key];
+
+        if (!dictRuleInlines.ContainsKey(rule.DisplayOrderNumberString))
+            return;
+
+        var children = dictRuleInlines[rule.DisplayOrderNumberString];
+        bool isExpanded = children.All(c => topLevelRules.Contains(c));
+
+        if (!isExpanded)
+        {
+            // expand
+            deviceTopLevelRules[key] = topLevelRules.Concat(children).ToArray();
+        }
+        else
+        {
+            // collapse recursive all inlines
+            deviceTopLevelRules[key] = topLevelRules.Except(GetAllInlineRecursive(children, dictRuleInlines)).ToArray();
+        }
+    }
+
+    private IEnumerable<Rule> GetAllInlineRecursive(IEnumerable<Rule> rules, Dictionary<string, List<Rule>> dictRuleInlines)
+    {
+        foreach (var r in rules)
+        {
+            yield return r;
+
+            if (dictRuleInlines.TryGetValue(r.DisplayOrderNumberString, out var children) && children.Count > 0)
+            {
+                foreach (var c in GetAllInlineRecursive(children, dictRuleInlines))
+                    yield return c;
+            }
+        }
+    }
+
+    private Rule[] CreateDictWithInlineRules(ManagementReportController management, DeviceReportController deviceReportController)
+    {
+        string deviceKey = GetDeviceKey(deviceReportController);
+        if (deviceDictProcessed.Contains(deviceKey))
+            return deviceTopLevelRules[deviceKey];
+
+        Rule[] rules = ReportRules.GetAllRulesOfGateway(deviceReportController, management);
+        var dictRuleInlines = new Dictionary<string, List<Rule>>();
+        var topLevel = new List<Rule>();
+        var stack = new List<(Rule parent, List<Rule> children)>();
+
+        foreach (var r in rules)
+        {
+            var segs = r.DisplayOrderNumberString.Split('.');
+
+            while (stack.Count > 0)
+            {
+                var parentSegs = stack.Last().parent.DisplayOrderNumberString.Split('.');
+                if (segs.Length <= parentSegs.Length || !segs.Take(parentSegs.Length).SequenceEqual(parentSegs))
+                    stack.RemoveAt(stack.Count - 1);
+                else
+                    break;
+            }
+
+            if (stack.Count > 0)
+            {
+                stack.Last().children.Add(r);
+            }
+            else
+            {
+                topLevel.Add(r);
+            }
+
+            dictRuleInlines[r.DisplayOrderNumberString] = new List<Rule>();
+            stack.Add((r, dictRuleInlines[r.DisplayOrderNumberString]));
+        }
+
+        // save results
+        deviceDictRuleInlines[deviceKey] = dictRuleInlines;
+        deviceTopLevelRules[deviceKey] = topLevel.ToArray();
+        deviceDictProcessed.Add(deviceKey);
+
+        return deviceTopLevelRules[deviceKey];
+    }    
+
+    private string GetToggleArrow(Rule rule, DeviceReportController device)
+    {
+        string key = GetDeviceKey(device);
+
+        var dictRuleInlines = deviceDictRuleInlines[key];
+        var topLevelRules = deviceTopLevelRules[key];
+
+        if (!dictRuleInlines.ContainsKey(rule.DisplayOrderNumberString)
+            || dictRuleInlines[rule.DisplayOrderNumberString].Count == 0)
+            return $"<span style=\"visibility:hidden;\">{Icons.HtmlArrowCollapsed}</span>";
+
+        bool isExpanded = dictRuleInlines[rule.DisplayOrderNumberString]
+                            .All(c => topLevelRules.Contains(c));
+
+        return isExpanded ? Icons.HtmlArrowExpanded : Icons.HtmlArrowCollapsed;
     }
 }

@@ -1,24 +1,15 @@
 import json
-import jsonpickle
 import time
 import traceback
 from copy import deepcopy
 
-import fwo_globals
-from fwo_log import getFwoLogger
-from fwo_exceptions import FwoImporterError
-from model_controllers.interface_controller import InterfaceSerializable
-from model_controllers.route_controller import RouteSerializable
-from fwo_base import split_list, serializeDictToClassRecursively, deserializeClassToDictRecursively
-from fwo_const import max_objs_per_chunk, import_tmp_path
+from fwo_log import FWOLogger
+from fwo_const import IMPORT_TMP_PATH
 
 from model_controllers.import_state_controller import ImportStateController
-from model_controllers.management_controller import Management
-from models.fwconfig_normalized import FwConfig, FwConfigNormalized
 from models.fwconfigmanagerlist import FwConfigManagerList
 from models.fwconfigmanager import FwConfigManager
 from model_controllers.fwconfig_controller import FwoEncoder
-from model_controllers.management_controller import ManagementController
 from fwo_base import ConfFormat
 
 """
@@ -29,141 +20,119 @@ class FwConfigManagerListController(FwConfigManagerList):
     def __str__(self):
         return f"{str(self.ManagerSet)})"
 
-    def toJson(self):
-        return deserializeClassToDictRecursively(self)
-
-    def toJsonString(self, prettyPrint=False):
-        jsonDict = self.toJson()
-        if prettyPrint:
-            return json.dumps(jsonDict, indent=2, cls=FwoEncoder)
+    def to_json_string(self, pretty_print: bool=False):
+        json_dict = self.model_dump(by_alias=True)
+        if pretty_print:
+            return json.dumps(json_dict, indent=2, cls=FwoEncoder)
         else:
-            return json.dumps(jsonDict)
+            return json.dumps(json_dict)
         
     def mergeConfigs(self, conf2: 'FwConfigManagerListController'):
         if self.ConfigFormat==conf2.ConfigFormat:
             self.ManagerSet.extend(conf2.ManagerSet)
 
     @staticmethod
-    def generate_empty_config(is_super_manager=False):
+    def generate_empty_config(is_super_manager: bool=False) -> 'FwConfigManagerListController':
         """
         Generates an empty FwConfigManagerListController with a single empty FwConfigManager.
         """
         empty_config = FwConfigManagerListController()
         empty_config.ConfigFormat = ConfFormat.NORMALIZED
-        empty_manager = FwConfigManager(ManagerUid="",
-                                        IsSuperManager=is_super_manager,
-                                        SubManagerIds=[],
-                                        Configs=[],
-                                        DomainName="",
-                                        DomainUid="",
-                                        ManagerName=""
+        empty_manager = FwConfigManager(manager_uid="",
+                                        is_super_manager=is_super_manager,
+                                        sub_manager_ids=[],
+                                        configs=[],
+                                        domain_name="",
+                                        domain_uid="",
+                                        manager_name=""
                                         )
-        empty_config.addManager(empty_manager)
+        empty_config.add_manager(empty_manager)
         empty_config.native_config = {}
         return empty_config
 
-# to be re-written:
-    def toJsonLegacy(self):
-        return deserializeClassToDictRecursively(self)
-
-# to be re-written:
-    def toJsonStringLegacy(self, prettyPrint=False):
-        jsonDict = self.toJson()
-        if prettyPrint:
-            return json.dumps(jsonDict, indent=2, cls=FwoEncoder)
-        else:
-            return json.dumps(jsonDict, cls=FwoEncoder)
-
-
-    def get_all_zone_names(self, mgr_uid):
+    def get_all_zone_names(self, mgr_uid: str) -> set[str]:
         """
         Returns a list of all zone UIDs in the configuration.
         """
-        all_zone_names = []
+        all_zone_names: list[str] = []
         for mgr in self.ManagerSet:
-            if mgr.IsSuperManager or mgr.ManagerUid==mgr_uid:
-                for single_config in mgr.Configs:
+            if mgr.is_super_manager or mgr.manager_uid==mgr_uid:
+                for single_config in mgr.configs:
                     all_zone_names.extend(single_config.zone_objects.keys())
         return set(all_zone_names)
     
 
-    def get_all_network_object_uids(self, mgr_uid):
+    def get_all_network_object_uids(self, mgr_uid: str) -> set[str]:
         """
         Returns a list of all network objects in the configuration.
         """
-        all_network_objects = []
+        all_network_objects: list[str] = []
         for mgr in self.ManagerSet:
-            if mgr.IsSuperManager or mgr.ManagerUid==mgr_uid:
-                for single_config in mgr.Configs:
+            if mgr.is_super_manager or mgr.manager_uid==mgr_uid:
+                for single_config in mgr.configs:
                     all_network_objects.extend(single_config.network_objects.keys())
         return set(all_network_objects)
     
 
-    def get_all_service_object_uids(self, mgr_uid):
+    def get_all_service_object_uids(self, mgr_uid: str) -> set[str]:
         """
         Returns a list of all service objects in the configuration.
         """
-        all_service_objects = []
+        all_service_objects: list[str] = []
         for mgr in self.ManagerSet:
-            if mgr.IsSuperManager or mgr.ManagerUid==mgr_uid:
-                for single_config in mgr.Configs:
+            if mgr.is_super_manager or mgr.manager_uid==mgr_uid:
+                for single_config in mgr.configs:
                     all_service_objects.extend(single_config.service_objects.keys())
         return set(all_service_objects)
     
 
-    def get_all_user_object_uids(self, mgr_uid):
+    def get_all_user_object_uids(self, mgr_uid: str) -> set[str]:
         """
         Returns a list of all user objects in the configuration.
         """
-        all_user_objects = []
+        all_user_objects: list[str] = []
         for mgr in self.ManagerSet:
-            if mgr.IsSuperManager or mgr.ManagerUid==mgr_uid:
-                for single_config in mgr.Configs:
+            if mgr.is_super_manager or mgr.manager_uid==mgr_uid:
+                for single_config in mgr.configs:
                     all_user_objects.extend(single_config.users.keys())
         return set(all_user_objects)
     
 
-    def addManager(self, manager):
+    def add_manager(self, manager: FwConfigManager):
         self.ManagerSet.append(manager)
 
-    def getFirstManager(self):
+    def get_first_manager(self):
         if len(self.ManagerSet)>0:
             return self.ManagerSet[0]
         else:
             return None
 
     @staticmethod
-    def getDevUidFromRulebaseName(rb_name: str) -> str:
+    def get_device_uid_from_rulebase_name(rb_name: str) -> str:
         return rb_name
 
     @staticmethod
-    def getPolicyUidFromRulebaseName(rb_name: str) -> str:
+    def get_policy_uid_from_rulebase_name(rb_name: str) -> str:
         return rb_name
-    
-    @classmethod
-    def FromJson(cls, jsonIn):
-        return serializeDictToClassRecursively(jsonIn, cls)
 
-
-    def storeFullNormalizedConfigToFile(self, importState: ImportStateController):
-        if fwo_globals.debug_level>5:
-            logger = getFwoLogger()
+    def store_full_normalized_config_to_file(self, import_state: ImportStateController):
+        if FWOLogger.is_debug_level(6):
             debug_start_time = int(time.time())
             try:
-                normalized_config_filename = f"{import_tmp_path}/mgm_id_{str(importState.MgmDetails.Id)}_config_normalized.json"
+                normalized_config_filename = f"{IMPORT_TMP_PATH}/mgm_id_{str(import_state.mgm_details.mgm_id)}_config_normalized.json"
 
                 config_copy_without_native= deepcopy(self)
                 config_copy_without_native.native_config = {}
 
                 with open(normalized_config_filename, "w") as json_data:
-                    json_data.write(config_copy_without_native.toJsonString(prettyPrint=True))
+                    json_data.write(config_copy_without_native.to_json_string(pretty_print=True))
                 time_write_debug_json = int(time.time()) - debug_start_time
-                logger.debug(f"storeFullNormalizedConfigToFile - writing normalized config json files duration {str(time_write_debug_json)}s")
+                FWOLogger.debug(f"storeFullNormalizedConfigToFile - writing normalized config json files duration {str(time_write_debug_json)}s")
                 
                 return normalized_config_filename
             
             except Exception:
-                logger.error(f"import_management - unspecified error while dumping normalized config to json file: {str(traceback.format_exc())}")
+                FWOLogger.error(f"import_management - unspecified error while dumping normalized config to json file: {str(traceback.format_exc())}")
                 raise
     
 
@@ -178,7 +147,7 @@ class FwConfigManagerListController(FwConfigManagerList):
     def contains_only_native(self) -> bool:
         return self.is_native() and (
             len(self.ManagerSet)==0 or
-            len(self.ManagerSet)==1 and len(self.ManagerSet[0].Configs)==0
+            len(self.ManagerSet)==1 and len(self.ManagerSet[0].configs)==0
         ) 
 
 
@@ -187,7 +156,7 @@ class FwConfigManagerListController(FwConfigManagerList):
 
 
     def normalized_config_is_empty(self) -> bool:
-        return len(self.ManagerSet)==1 and len(self.ManagerSet[0].Configs)==0
+        return len(self.ManagerSet)==1 and len(self.ManagerSet[0].configs)==0
 
 
     def is_normalized(self) -> bool:

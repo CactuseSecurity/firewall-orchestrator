@@ -230,12 +230,16 @@ namespace FWO.Report
                 {
                     report.Append($"{{\"{gateway.Name}\": {{\n\"{itemsPropertyName}\": [");
 
-                    foreach (var item in getItems(gateway, management))
+                    var items = getItems(gateway, management).ToList();
+                    if (items.Any())
                     {
-                        report.Append(renderItem(item));
+                        foreach (var item in items)
+                        {
+                            report.Append(renderItem(item));
+                        }
+                        report = RuleDisplayBase.RemoveLastChars(report, 1); // remove last comma
                     }
 
-                    report = RuleDisplayBase.RemoveLastChars(report, 1); // remove last comma
                     report.Append("]}},");
                 }
 

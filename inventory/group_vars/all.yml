@@ -1,5 +1,5 @@
 ### general settings
-product_version: "8.9.2"
+product_version: "8.9.4"
 ansible_user: "{{ lookup('env', 'USER') }}"
 ansible_become_method: sudo
 ansible_python_interpreter: /usr/bin/python3
@@ -59,6 +59,7 @@ debian_testing_version: "12"
   # should actually be 13 but microsoft does not yet provide https://packages.microsoft.com/config/debian/13
 debian_testing_release_name: trixie
 arch: x86_64
+linux_architecture: amd64
 redhat_major_version: "8"
 redhat_arch: "{{ redhat_major_version }}-{{ arch }}"
 

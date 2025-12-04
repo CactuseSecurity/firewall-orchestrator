@@ -10,4 +10,13 @@
     "files.associations": {
         "launch.template.json": "jsonc"
     },
+    "python.testing.unittestEnabled": true,
+    "python.testing.pytestEnabled": false,
+    "python.testing.unittestArgs": [
+        "-v",
+        "-s",
+        "scripts/customizing/app_data_import",
+        "-p",
+        "test_*.py"
+    ]
 }

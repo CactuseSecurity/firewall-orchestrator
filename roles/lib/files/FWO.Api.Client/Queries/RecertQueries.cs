@@ -12,7 +12,7 @@ namespace FWO.Api.Client.Queries
         public static readonly string recertifyOwner;
         public static readonly string recertifyRuleDirectly;
         public static readonly string getOpenRecertsForRule;
-        public static readonly string getOpenRecerts;
+        public static readonly string getOpenRecertsForOwners;
         public static readonly string clearOpenRecerts;
         public static readonly string addRecertEntries;
         public static readonly string refreshViewRuleWithOwner;
@@ -36,7 +36,7 @@ namespace FWO.Api.Client.Queries
                 recertifyOwner = File.ReadAllText(QueryPath + "recertification/recertifyOwner.graphql");
                 recertifyRuleDirectly = File.ReadAllText(QueryPath + "recertification/recertifyRuleDirectly.graphql");
                 getOpenRecertsForRule = File.ReadAllText(QueryPath + "recertification/getOpenRecertsForRule.graphql");
-                getOpenRecerts = File.ReadAllText(QueryPath + "recertification/getOpenRecerts.graphql");
+                getOpenRecertsForOwners = File.ReadAllText(QueryPath + "recertification/getOpenRecertsForOwners.graphql");
                 clearOpenRecerts = File.ReadAllText(QueryPath + "recertification/clearOpenRecerts.graphql");
                 addRecertEntries = File.ReadAllText(QueryPath + "recertification/addRecertEntries.graphql");
                 refreshViewRuleWithOwner = File.ReadAllText(QueryPath + "recertification/refreshViewRuleWithOwner.graphql");

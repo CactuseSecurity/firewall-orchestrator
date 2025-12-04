@@ -552,3 +552,17 @@ hotfix release
   - fixing services-other ip proto import
 - improved quality control with stricter automated checks
 - various fixes in modelling module
+
+# 8.9.1 - 02.10.2025 MAIN
+- owner-recertification
+
+# 8.9.2 - 17.10.2025 MAIN
+- add ownerLifeCycleState 
+- add manageable ownerLifeCycleState menu
+
+# 8.9.3 - 05.11.2025 MAIN
+- hotfix missing permissions for app data import in certain constellations
+
+## 8.9.4 - 09.12.2025 DEVELOP
+- bugfix release: common service connection not editable
+- new custom scripts for iiq and cmdb import

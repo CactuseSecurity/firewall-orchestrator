@@ -1,17 +1,13 @@
-from fwo_log import getFwoLogger
-from models.rulebase_link import RulebaseLink
+from typing import Any
+from fwo_log import FWOLogger
 from model_controllers.import_state_controller import ImportStateController
-from models.import_state import ImportState
-from model_controllers.import_statistics_controller import ImportStatisticsController
-from fwo_api_call import FwoApiCall
 
 class RulebaseLinkMap():
 
 
-    def getRulebaseLinks(self, importState: ImportStateController, gwIds: list[int] = []):
-        logger = getFwoLogger()
-        query_variables = { "gwIds": gwIds}
-        rbLinks = []
+    def get_rulebase_links(self, import_state: ImportStateController, gw_ids: list[int] = []) -> list[dict[str, Any]]:
+        query_variables = { "gwIds": gw_ids}
+        rb_links: list[dict[str, Any]] = []
 
         query = """
             query getRulebaseLinks($gwIds: [Int!]) {
@@ -23,18 +19,17 @@ class RulebaseLinkMap():
                 }
             }"""
         
-        links = importState.api_call.call(query, query_variables=query_variables)
+        links = import_state.api_call.call(query, query_variables=query_variables)
         if 'errors' in links:
-            importState.Stats.addError(f"fwo_api:getRulebaseLinks - error while getting rulebaseLinks: {str(links['errors'])}")
-            logger.exception(f"fwo_api:getRulebaseLinks - error while getting rulebaseLinks: {str(links['errors'])}")
-            return rbLinks
+            FWOLogger.exception(f"fwo_api:getRulebaseLinks - error while getting rulebaseLinks: {str(links['errors'])}")
+            return rb_links
 
-        rbLinks = links['data']['rulebase_link']
-        return rbLinks
+        rb_links = links['data']['rulebase_link']
+        return rb_links
     
     
     # TODO: implement SetMapOfAllEnforcingGatewayIdsForRulebaseId
 
-    def GetGwIdsForRulebaseId(self, rulebaseId, importState: ImportStateController):
-        return importState.RulbaseToGatewayMap.get(rulebaseId, [])
+    def get_gw_ids_for_rulebase_id(self, rulebase_id: int, import_state: ImportStateController) -> list[int]:
+        return import_state.RulbaseToGatewayMap.get(rulebase_id, [])
     

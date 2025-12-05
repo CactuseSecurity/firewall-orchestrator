@@ -1,16 +1,13 @@
 """
     read config from file and convert to non-legacy format (in case of legacy input)
 """
-from typing import Any, get_type_hints
-from enum import Enum
-import json, requests, requests.packages
+import json, requests
+from typing import Any
 
-from fwo_log import getFwoLogger
+from fwo_log import FWOLogger
 import fwo_globals
 from fwo_exceptions import ConfigFileNotFound, FwoImporterError
-from models.fwconfigmanagerlist import FwConfigManagerList
 from model_controllers.fwconfigmanagerlist_controller import FwConfigManagerListController
-from models.fwconfig import FwConfig
 from fwconfig_base import ConfFormat
 
 import traceback
@@ -78,135 +75,74 @@ from model_controllers.import_state_controller import ImportStateController
 """
 
 
-################# MAIN FUNC #########################
-def read_json_config_from_file(importState: ImportStateController) -> FwConfigManagerListController:
+def read_json_config_from_file(import_state: ImportStateController) -> FwConfigManagerListController:
 
-    configJson = read_file(importState)
-    logger = getFwoLogger(debug_level=importState.DebugLevel)
+    config_json = read_file(import_state)
 
     # try to convert normalized config from file to config object
     try:
-        managerList = FwConfigManagerListController(**configJson)
-        if len(managerList.ManagerSet)==0:
-            logger.warning(f'read a config file without manager sets from {importState.ImportFileName}, trying native config')
-            managerList.native_config = configJson
-            managerList.ConfigFormat = detect_legacy_format(configJson)
-        return managerList
+        manager_list = FwConfigManagerListController(**config_json) #TYPING: use model load
+        if len(manager_list.ManagerSet)==0:
+            FWOLogger.warning(f'read a config file without manager sets from {import_state.import_file_name}, trying native config')
+            manager_list.native_config = config_json
+            manager_list.ConfigFormat = detect_legacy_format(config_json)
+        return manager_list
     except Exception: # legacy stuff from here
-        logger.info(f"could not serialize config {str(traceback.format_exc())}")
-        raise FwoImporterError(f"could not serialize config {importState.ImportFileName} - trying legacy formats")
+        FWOLogger.info(f"could not serialize config {str(traceback.format_exc())}")
+        raise FwoImporterError(f"could not serialize config {import_state.import_file_name} - trying legacy formats")
 
 
-########### HELPERS ##################
-
-def detect_legacy_format(configJson) -> ConfFormat:
+def detect_legacy_format(config_json: dict[str, Any]) -> ConfFormat:
 
     result = ConfFormat.NORMALIZED_LEGACY
 
-    if 'object_tables' in configJson:
+    if 'object_tables' in config_json:
         result = ConfFormat.CHECKPOINT_LEGACY
-    elif 'domains' in configJson:
+    elif 'domains' in config_json:
         result = ConfFormat.FORTIMANAGER
 
     return result
 
 
-def read_file(importState: ImportStateController) -> dict:
-    logger = getFwoLogger(debug_level=importState.DebugLevel)
-    configJson = {}
-    if importState.ImportFileName=="":
-        return configJson
+def read_file(import_state: ImportStateController) -> dict[str, Any]:
+    config_json: dict[str, Any] = {}
+    if import_state.import_file_name=="":
+        return config_json
     try:
-        if importState.ImportFileName.startswith('http://') or importState.ImportFileName.startswith('https://'):   # get conf file via http(s)
+        if import_state.import_file_name.startswith('http://') or import_state.import_file_name.startswith('https://'):   # get conf file via http(s)
             session = requests.Session()
             session.headers = { 'Content-Type': 'application/json' }
             session.verify=fwo_globals.verify_certs
-            r = session.get(importState.ImportFileName, )
+            r = session.get(import_state.import_file_name, )
             if r.ok:
                 return json.loads(r.text)
             else:
                 r.raise_for_status()
         else:   # reading from local file
-            if importState.ImportFileName.startswith('file://'):   # remove file uri identifier
-                filename = importState.ImportFileName[7:]
+            if import_state.import_file_name.startswith('file://'):   # remove file uri identifier
+                filename = import_state.import_file_name[7:]
             else:
-                filename = importState.ImportFileName
+                filename = import_state.import_file_name
             with open(filename, 'r') as json_file:
-                configJson = json.load(json_file)
-    except requests.exceptions.RequestException:
+                config_json = json.load(json_file)
+    except requests.exceptions.RequestException as e:
         try:
-            r # check if response "r" is defined
-            importState.appendErrorString(f'got HTTP status code{str(r.status_code)} while trying to read config file from URL {importState.ImportFileName}')
+            r # check if response "r" is defined # type: ignore TODO: This practice is suspicious at best
+            FWOLogger.error(f'got HTTP status code{str(r.status_code)} while trying to read config file from URL {import_state.import_file_name}') # type: ignore
         except NameError:
-            importState.appendErrorString(f'got error while trying to read config file from URL {importState.ImportFileName}')
-        importState.increaseErrorCounterByOne()
+            FWOLogger.error(f'got error while trying to read config file from URL {import_state.import_file_name}')
 
-        importState.api_call.complete_import(importState)
-        raise ConfigFileNotFound(importState.getErrorString()) from None
-    except Exception: 
-        importState.appendErrorString(f"Could not read config file {importState.ImportFileName}")
-        importState.increaseErrorCounterByOne()
-        logger.error("unspecified error while reading config file: " + str(traceback.format_exc()))
-        importState.api_call.complete_import(importState)
-        raise ConfigFileNotFound(f"unspecified error while reading config file {importState.ImportFileName}")
+        import_state.api_call.complete_import(import_state, e)
+        raise ConfigFileNotFound(str(e)) from None
+    except Exception as e: 
+        FWOLogger.error("unspecified error while reading config file: " + str(traceback.format_exc()))
+        import_state.api_call.complete_import(import_state, e)
+        raise ConfigFileNotFound(f"unspecified error while reading config file {import_state.import_file_name}")
 
-    return configJson
+    return config_json
 
 
-def handle_error_on_config_file_serialization(importState: ImportStateController, exception: Exception):
-    logger = getFwoLogger(debug_level=importState.DebugLevel)
-    importState.appendErrorString(f"Could not understand config file format in file {importState.ImportFileName}")
-    importState.increaseErrorCounterByOne()
-    importState.api_call.complete_import(importState)
-    logger.error(f"unspecified error while trying to serialize config file {importState.ImportFileName}: {str(traceback.format_exc())}")
+def handle_error_on_config_file_serialization(import_state: ImportStateController, exception: Exception):
+    import_state.api_call.complete_import(import_state, exception)
+    FWOLogger.error(f"unspecified error while trying to serialize config file {import_state.import_file_name}: {str(traceback.format_exc())}")
     raise FwoImporterError from exception
-
-
-# def serialize_dict_to_class_recursively(data: dict, cls: Any) -> Any:
-#     try:
-#         init_args = {}
-#         type_hints = get_type_hints(cls)
-
-#         if type_hints == {}:
-#             raise ValueError(f"no type hints found, assuming dict '{str(cls)}")
-
-#         for field, field_type in type_hints.items():
-
-#             if field not in data:
-#                 continue
-
-#             value = data[field]
-
-#             # Handle list types
-#             if hasattr(field_type, '__origin__') and field_type.__origin__ == list:
-#                 inner_type = field_type.__args__[0]
-#                 if isinstance(value, list):
-#                     init_args[field] = [
-#                         serialize_dict_to_class_recursively(item, inner_type) if isinstance(item, dict) else item
-#                         for item in value
-#                     ]
-#                 else:
-#                     raise ValueError(f"Expected a list for field '{field}', but got {type(value).__name__}")
-
-#             # Handle dictionary (nested objects)
-#             elif isinstance(value, dict):
-#                 init_args[field] = serialize_dict_to_class_recursively(value, field_type)
-
-#             # Handle Enum types
-#             elif isinstance(field_type, type) and issubclass(field_type, Enum):
-#                 init_args[field] = field_type[value]
-
-#             # Direct assignment for basic types
-#             else:
-#                 init_args[field] = value
-
-#         # Create an instance of the class with the collected arguments
-#         return cls(**init_args)
-
-#     except (TypeError, ValueError, KeyError) as e:
-#         # If an error occurs, return the original dictionary as is
-#         return data
-
-#     except Exception:
-#         raise
-

@@ -85,7 +85,7 @@ def reset_importer_with_new_config(
 
 def get_nwobj_member_mapping(config):
     return {
-        obj.obj_uid: set(obj.obj_member_refs.split(fwo_const.list_delimiter))
+        obj.obj_uid: set(obj.obj_member_refs.split(fwo_const.LIST_DELIMITER))
         for obj in config.network_objects.values()
         if obj.obj_typ == "group" and obj.obj_member_refs
     }
@@ -93,7 +93,7 @@ def get_nwobj_member_mapping(config):
 
 def get_svc_member_mapping(config):
     return {
-        svc.svc_uid: set(svc.svc_member_refs.split(fwo_const.list_delimiter))
+        svc.svc_uid: set(svc.svc_member_refs.split(fwo_const.LIST_DELIMITER))
         for svc in config.service_objects.values()
         if svc.svc_typ == "group" and svc.svc_member_refs
     }
@@ -117,7 +117,7 @@ def get_svc_flat_member_mapping(config, group_flats_mapper):
 
 def get_rule_from_mapping(config):
     return {
-        rule.rule_uid: set(rule.rule_src_refs.split(fwo_const.list_delimiter))
+        rule.rule_uid: set(rule.rule_src_refs.split(fwo_const.LIST_DELIMITER))
         for rulebase in config.rulebases
         for rule in rulebase.rules.values()
     }
@@ -125,7 +125,7 @@ def get_rule_from_mapping(config):
 
 def get_rule_svc_mapping(config):
     return {
-        rule.rule_uid: set(rule.rule_svc_refs.split(fwo_const.list_delimiter))
+        rule.rule_uid: set(rule.rule_svc_refs.split(fwo_const.LIST_DELIMITER))
         for rulebase in config.rulebases
         for rule in rulebase.rules.values()
     }
@@ -136,9 +136,9 @@ def get_rule_nwobj_resolved_mapping(config, group_flats_mapper):
         rule.rule_uid:
         set(
             group_flats_mapper.get_network_object_flats([
-                ref.split(fwo_const.user_delimiter)[0]
-                for ref in rule.rule_src_refs.split(fwo_const.list_delimiter) +
-                rule.rule_dst_refs.split(fwo_const.list_delimiter)
+                ref.split(fwo_const.USER_DELIMITER)[0]
+                for ref in rule.rule_src_refs.split(fwo_const.LIST_DELIMITER) +
+                rule.rule_dst_refs.split(fwo_const.LIST_DELIMITER)
             ]))
         for rulebase in config.rulebases
         for rule in rulebase.rules.values()
@@ -150,7 +150,7 @@ def get_rule_svc_resolved_mapping(config, group_flats_mapper):
         rule.rule_uid:
         set(
             group_flats_mapper.get_service_object_flats(
-                rule.rule_svc_refs.split(fwo_const.list_delimiter)))
+                rule.rule_svc_refs.split(fwo_const.LIST_DELIMITER)))
         for rulebase in config.rulebases
         for rule in rulebase.rules.values()
     }
@@ -197,8 +197,7 @@ class TestFwoConfigImportConsistency(unittest.TestCase):
         config_importer.import_single_config()
         mock_api = import_state.api_connection
 
-        group_flats_mapper = service_provider.get_service(
-            Services.GROUP_FLATS_MAPPER)
+        group_flats_mapper = service_provider.get_group_flats_mapper()
 
         service_provider.dispose_service(Services.GLOBAL_STATE)
         service_provider.dispose_service(Services.GROUP_FLATS_MAPPER)
@@ -297,8 +296,7 @@ class TestFwoConfigImportConsistency(unittest.TestCase):
         config_importer.import_single_config()
         config_importer.storeLatestConfig()
 
-        group_flats_mapper = service_provider.get_service(
-            Services.GROUP_FLATS_MAPPER)
+        group_flats_mapper = service_provider.get_group_flats_mapper()
 
         service_provider.dispose_service(Services.GLOBAL_STATE)
         service_provider.dispose_service(Services.GROUP_FLATS_MAPPER)
@@ -434,8 +432,7 @@ class TestFwoConfigImportConsistency(unittest.TestCase):
         config_importer.import_single_config()
         config_importer.storeLatestConfig()
 
-        group_flats_mapper = service_provider.get_service(
-            Services.GROUP_FLATS_MAPPER)
+        group_flats_mapper = service_provider.get_group_flats_mapper()
 
         service_provider.dispose_service(Services.GLOBAL_STATE)
         service_provider.dispose_service(Services.GROUP_FLATS_MAPPER)
@@ -565,8 +562,7 @@ class TestFwoConfigImportConsistency(unittest.TestCase):
             config, mock_api, import_id=6)
         config_importer.import_single_config()
         config_importer.storeLatestConfig()
-        group_flats_mapper = service_provider.get_service(
-            Services.GROUP_FLATS_MAPPER)
+        group_flats_mapper = service_provider.get_group_flats_mapper()
         service_provider.dispose_service(Services.GLOBAL_STATE)
         service_provider.dispose_service(Services.GROUP_FLATS_MAPPER)
         service_provider.dispose_service(Services.UID2ID_MAPPER)

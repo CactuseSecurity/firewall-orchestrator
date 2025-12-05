@@ -1,12 +1,14 @@
 from __future__ import annotations
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
+
+from models.networkobject import NetworkObject
+from models.serviceobject import ServiceObject
 
 if TYPE_CHECKING:
     from models.fwconfig_normalized import FwConfigNormalized
-
+    from model_controllers.import_state_controller import ImportStateController
 import fwo_const
-from fwo_log import getFwoLogger
-from model_controllers.import_state_controller import ImportStateController
+from fwo_log import FWOLogger
 from services.service_provider import ServiceProvider
 from services.enums import Services
 
@@ -19,31 +21,28 @@ class GroupFlatsMapper:
     This class is responsible for mapping group objects to their fully resolved members.
     """
 
-    import_state: ImportStateController
+    import_state: 'ImportStateController'
     normalized_config: FwConfigNormalized|None = None
     global_normalized_config: FwConfigNormalized|None = None
 
     def __init__(self):
-        global_state = ServiceProvider().get_service(Services.GLOBAL_STATE)
+        global_state = ServiceProvider().get_global_state()
         self.import_state = global_state.import_state
-        self.logger = getFwoLogger()
-        self.network_object_flats = {}
-        self.service_object_flats = {}
-        self.user_flats = {}
+        self.network_object_flats: dict[str, set[str]] = {}
+        self.service_object_flats: dict[str, set[str]] = {}
+        self.user_flats: dict[str, set[str]] = {}
 
 
-    def log_error(self, message: str):
+    def log_error(self, message: str) -> None:
         """
         Log an error message.
         
         Args:
             message (str): The error message to log.
         """
-        self.logger.error(message)
-        self.import_state.appendErrorString(message)
-        self.import_state.increaseErrorCounterByOne()
+        FWOLogger.error(message)
     
-    def init_config(self, normalized_config: FwConfigNormalized, global_normalized_config: FwConfigNormalized|None = None):
+    def init_config(self, normalized_config: FwConfigNormalized, global_normalized_config: FwConfigNormalized|None = None) -> None:
         self.normalized_config = normalized_config
         self.global_normalized_config = global_normalized_config
         self.network_object_flats = {}
@@ -63,38 +62,38 @@ class GroupFlatsMapper:
         if self.normalized_config is None:
             self.log_error(f"{CONFIG_NOT_SET_MESSAGE} - networks")
             return []
-        all_members = set()
+        all_members: set[str] = set()
         for uid in uids:
             members = self.flat_nwobj_members_recursive(uid)
             if members is not None:
                 all_members.update(members)
         return list(all_members)
     
-    def flat_nwobj_members_recursive(self, groupUid: str, recursionLevel: int = 0):
-        if recursionLevel > MAX_RECURSION_LEVEL:
-            self.logger.warning(f"recursion level exceeded for group {groupUid}")
+    def flat_nwobj_members_recursive(self, group_uid: str, recursion_level: int = 0) -> set[str] | None:
+        if recursion_level > MAX_RECURSION_LEVEL:
+            FWOLogger.warning(f"recursion level exceeded for group {group_uid}")
             return None
-        if groupUid in self.network_object_flats:
-            return self.network_object_flats[groupUid]
-        nwobj = self.get_nwobj(groupUid)
+        if group_uid in self.network_object_flats:
+            return self.network_object_flats[group_uid]
+        nwobj = self.get_nwobj(group_uid)
         if nwobj is None:
-            self.log_error(f"object with uid {groupUid} not found in network objects of config")
+            self.log_error(f"object with uid {group_uid} not found in network objects of config")
             return None
-        members: set = {groupUid}
+        members: set[str] = {group_uid}
         if nwobj.obj_member_refs is None or nwobj.obj_member_refs == '':
             return members
-        for memberUid in nwobj.obj_member_refs.split(fwo_const.list_delimiter):
-            if fwo_const.user_delimiter in memberUid:
-                memberUid = memberUid.split(fwo_const.user_delimiter)[0]  # remove user delimiter if present
-            flatMembers = self.flat_nwobj_members_recursive(memberUid, recursionLevel + 1)
-            if flatMembers is None:
+        for member_uid in nwobj.obj_member_refs.split(fwo_const.LIST_DELIMITER):
+            if fwo_const.USER_DELIMITER in member_uid:
+                member_uid = member_uid.split(fwo_const.USER_DELIMITER)[0]  # remove user delimiter if present
+            flat_members = self.flat_nwobj_members_recursive(member_uid, recursion_level + 1)
+            if flat_members is None:
                 continue
-            members.update(flatMembers)
-        self.network_object_flats[groupUid] = members
+            members.update(flat_members)
+        self.network_object_flats[group_uid] = members
         return members
 
 
-    def get_nwobj(self, group_uid):
+    def get_nwobj(self, group_uid: str) -> NetworkObject | None:
         if not self.normalized_config:
             return None
         nwobj = self.normalized_config.network_objects.get(group_uid, None)
@@ -115,36 +114,36 @@ class GroupFlatsMapper:
         if self.normalized_config is None:
             self.log_error(f"{CONFIG_NOT_SET_MESSAGE} - services")
             return []
-        all_members = set()
+        all_members: set[str] = set()
         for uid in uids:
             members = self.flat_svcobj_members_recursive(uid)
             if members is not None:
                 all_members.update(members)
         return list(all_members)
 
-    def flat_svcobj_members_recursive(self, groupUid: str, recursionLevel: int = 0):
-        if recursionLevel > MAX_RECURSION_LEVEL:
-            self.logger.warning(f"recursion level exceeded for group {groupUid}")
+    def flat_svcobj_members_recursive(self, group_uid: str, recursion_level: int = 0) -> set[str] | None:
+        if recursion_level > MAX_RECURSION_LEVEL:
+            FWOLogger.warning(f"recursion level exceeded for group {group_uid}")
             return None
-        if groupUid in self.service_object_flats:
-            return self.service_object_flats[groupUid]
-        svcobj = self.get_svcobj(groupUid)
+        if group_uid in self.service_object_flats:
+            return self.service_object_flats[group_uid]
+        svcobj = self.get_svcobj(group_uid)
         if svcobj is None:
-            self.log_error(f"object with uid {groupUid} not found in service objects of config")
+            self.log_error(f"object with uid {group_uid} not found in service objects of config")
             return None
-        members: set = {groupUid}
+        members: set[str] = {group_uid}
         if svcobj.svc_member_refs is None or svcobj.svc_member_refs == '':
             return members
-        for memberUid in svcobj.svc_member_refs.split(fwo_const.list_delimiter):
-            flatMembers = self.flat_svcobj_members_recursive(memberUid, recursionLevel + 1)
-            if flatMembers is None:
+        for member_uid in svcobj.svc_member_refs.split(fwo_const.LIST_DELIMITER):
+            flat_members = self.flat_svcobj_members_recursive(member_uid, recursion_level + 1)
+            if flat_members is None:
                 continue
-            members.update(flatMembers)
-        self.service_object_flats[groupUid] = members
+            members.update(flat_members)
+        self.service_object_flats[group_uid] = members
         return members
     
 
-    def get_svcobj(self, group_uid):
+    def get_svcobj(self, group_uid: str) -> ServiceObject | None:
         if not self.normalized_config:
             return None
         svcobj = self.normalized_config.service_objects.get(group_uid, None)
@@ -166,37 +165,37 @@ class GroupFlatsMapper:
         if self.normalized_config is None:
             self.log_error(f"{CONFIG_NOT_SET_MESSAGE} - users")
             return []
-        all_members = set()
+        all_members: set[str] = set()
         for uid in uids:
             members = self.flat_user_members_recursive(uid)
             if members is not None:
                 all_members.update(members)
         return list(all_members)
     
-    def flat_user_members_recursive(self, groupUid: str, recursionLevel: int = 0):
-        if recursionLevel > MAX_RECURSION_LEVEL:
-            self.logger.warning(f"recursion level exceeded for group {groupUid}")
+    def flat_user_members_recursive(self, group_uid: str, recursion_level: int = 0) -> set[str] | None:
+        if recursion_level > MAX_RECURSION_LEVEL:
+            FWOLogger.warning(f"recursion level exceeded for group {group_uid}")
             return None
-        if groupUid in self.user_flats:
-            return self.user_flats[groupUid]
+        if group_uid in self.user_flats:
+            return self.user_flats[group_uid]
 
-        user = self.get_user(groupUid)
+        user = self.get_user(group_uid)
         if user is None:
-            self.log_error(f"object with uid {groupUid} not found in users of config")
+            self.log_error(f"object with uid {group_uid} not found in users of config")
             return None
-        members: set = {groupUid}
+        members: set[str] = {group_uid}
         if "user_member_refs" not in user or user['user_member_refs'] is None or user['user_member_refs'] == '':
             return members
-        for memberUid in user['user_member_refs'].split(fwo_const.list_delimiter): #TODO: adjust when/if users are refactored into objects
-            flatMembers = self.flat_user_members_recursive(memberUid, recursionLevel + 1)
-            if flatMembers is None:
+        for member_uid in user['user_member_refs'].split(fwo_const.LIST_DELIMITER): #TODO: adjust when/if users are refactored into objects
+            flat_members = self.flat_user_members_recursive(member_uid, recursion_level + 1)
+            if flat_members is None:
                 continue
-            members.update(flatMembers)
-        self.user_flats[groupUid] = members
+            members.update(flat_members)
+        self.user_flats[group_uid] = members
         return members
 
 
-    def get_user(self, group_uid):
+    def get_user(self, group_uid: str) -> Any | None:
         if not self.normalized_config:
             return None
         user = self.normalized_config.users.get(group_uid, None)

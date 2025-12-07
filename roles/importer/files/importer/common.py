@@ -120,7 +120,7 @@ def _import_management(mgm_id: int, ssl_verification: bool, file: str | None,
     # check config consistency and import it
     if config_changed_since_last_import or import_state.force_import:
         FwConfigImportCheckConsistency(import_state, config_normalized).check_config_consistency(config_normalized)
-        config_importer.import_management_set(import_state, service_provider, config_normalized)
+        config_importer.import_management_set(service_provider, config_normalized)
 
     # delete data that has passed the retention time
     # TODO: replace by deletion of old data with removed date > retention?
@@ -257,6 +257,6 @@ def set_filename(import_state: ImportStateController, file_name: str = ''):
     if file_name == '': 
         # if the host name is an URI, do not connect to an API but simply read the config from this URI
         if string_is_uri(import_state.mgm_details.hostname):
-            import_state.setImportFileName(import_state.mgm_details.hostname)
+            import_state.set_import_file_name(import_state.mgm_details.hostname)
     else:
-        import_state.setImportFileName(file_name)  
+        import_state.set_import_file_name(file_name)  

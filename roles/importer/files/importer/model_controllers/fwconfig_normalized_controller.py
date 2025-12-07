@@ -39,10 +39,10 @@ class FwConfigNormalizedController():
 
     @staticmethod
     def join(config_list: list[FwConfigNormalized]):
-        resultingConfig = FwConfigNormalized() 
+        resulting_config = FwConfigNormalized() 
         for conf in config_list:
-            resultingConfig.add_elements(conf) # TODO addElements not defined
-        return resultingConfig
+            resulting_config.add_elements(conf) # TODO addElements not defined
+        return resulting_config
 
     def add_elements(self, config: FwConfigNormalized):
         self.network_objects += config.Networks # TODO: all members are not defined

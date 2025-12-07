@@ -13,7 +13,7 @@ class RulebaseLinkUidBased(BaseModel):
     is_section: bool
 
 
-    def toDict(self) -> dict[str, object|str|bool|None]:
+    def to_dict(self) -> dict[str, object|str|bool|None]:
         return {
             "from_rule_uid": self.from_rule_uid,
             "from_rulebase_uid": self.from_rulebase_uid,
@@ -43,7 +43,7 @@ class RulebaseLink(BaseModel):
                 populate_by_name = True
 
 
-    def toDict(self) -> dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "gw_id": self.gw_id,
             "from_rule_id": self.from_rule_id,

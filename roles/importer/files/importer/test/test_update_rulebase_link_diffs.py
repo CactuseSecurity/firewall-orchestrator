@@ -72,8 +72,8 @@ class TestUpdateRulebaseLinkDiffs(unittest.TestCase):
         self._config_builder.add_cp_section_header(gateway, last_rulebase.uid, new_rulebase.uid, last_rulebase_last_rule_uid)
         
         update_rule_map_and_rulebase_map(self._normalized_config, self._import_state)
-        to_rulebase_id = self._import_state.lookupRulebaseId(new_rulebase.uid)
-        from_rulebase_id = self._import_state.lookupRulebaseId(last_rulebase.uid)
+        to_rulebase_id = self._import_state.lookup_rulebase_id(new_rulebase.uid)
+        from_rulebase_id = self._import_state.lookup_rulebase_id(last_rulebase.uid)
         update_rb_links(gateway.RulebaseLinks, 1, self._fwconfig_import_gateway)
 
         # Act
@@ -102,8 +102,8 @@ class TestUpdateRulebaseLinkDiffs(unittest.TestCase):
         self._config_builder.add_cp_section_header(gateway, last_rulebase.uid, new_rulebase.uid, last_rulebase_last_rule_uid)
 
         update_rule_map_and_rulebase_map(self._normalized_config, self._import_state)
-        to_rulebase_id = self._import_state.lookupRulebaseId(new_rulebase.uid)
-        from_rulebase_id = self._import_state.lookupRulebaseId(last_rulebase.uid)
+        to_rulebase_id = self._import_state.lookup_rulebase_id(new_rulebase.uid)
+        from_rulebase_id = self._import_state.lookup_rulebase_id(last_rulebase.uid)
         update_rb_links(gateway.RulebaseLinks, 1, self._fwconfig_import_gateway)
 
         # Act

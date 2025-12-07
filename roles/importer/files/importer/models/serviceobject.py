@@ -36,25 +36,25 @@ class ServiceObjectForImport():
     svc_typ_id: int
 
 
-    def __init__(self, svcObject: ServiceObject, mgmId: int, importId: int, colorId: int, typId: int):
-        self.svc_uid = svcObject.svc_uid
-        self.svc_name = svcObject.svc_name
-        self.svc_port = svcObject.svc_port
-        self.svc_port_end = svcObject.svc_port_end
-        self.svc_color_id = colorId
-        self.svc_typ_id = typId
-        self.ip_proto_id = svcObject.ip_proto
-        self.svc_member_refs = svcObject.svc_member_refs
-        self.svc_member_names = svcObject.svc_member_names
-        self.svc_comment = svcObject.svc_comment
-        self.svc_timeout = svcObject.svc_timeout
-        self.svc_rpcnr = svcObject.rpc_nr
-        self.mgm_id = mgmId
-        self.svc_create = importId
-        self.svc_last_seen = importId
+    def __init__(self, svc_object: ServiceObject, mgm_id: int, import_id: int, color_id: int, typ_id: int):
+        self.svc_uid = svc_object.svc_uid
+        self.svc_name = svc_object.svc_name
+        self.svc_port = svc_object.svc_port
+        self.svc_port_end = svc_object.svc_port_end
+        self.svc_color_id = color_id
+        self.svc_typ_id = typ_id
+        self.ip_proto_id = svc_object.ip_proto
+        self.svc_member_refs = svc_object.svc_member_refs
+        self.svc_member_names = svc_object.svc_member_names
+        self.svc_comment = svc_object.svc_comment
+        self.svc_timeout = svc_object.svc_timeout
+        self.svc_rpcnr = svc_object.rpc_nr
+        self.mgm_id = mgm_id
+        self.svc_create = import_id
+        self.svc_last_seen = import_id
 
 
-    def toDict(self) -> dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return  {
             'svc_uid': self.svc_uid,
             'svc_name': self.svc_name,
@@ -72,6 +72,3 @@ class ServiceObjectForImport():
             'svc_timeout': self.svc_timeout,
             'mgm_id': self.mgm_id
         }
-
-    # def toJson (self):
-    #     return json.dumps(self.toDict())

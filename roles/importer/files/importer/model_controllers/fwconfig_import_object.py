@@ -239,7 +239,7 @@ class FwConfigImportObject():
         removed_nwsvc_ids = []
         removed_user_ids = []
         removed_zone_ids = []
-        this_managements_id = self.import_state.lookupManagementId(single_manager.manager_uid)
+        this_managements_id = self.import_state.lookup_management_id(single_manager.manager_uid)
         if this_managements_id is None:
             raise FwoImporterError(f"failed to update objects in updateObjectsViaApi: no management id found for manager uid '{single_manager.manager_uid}'")
         import_mutation = FwoApi.get_graphql_code(file_list=[fwo_const.GRAPHQL_QUERY_PATH + "allObjects/upsertObjects.graphql"])
@@ -306,12 +306,12 @@ class FwConfigImportObject():
             raise FwoImporterError("no normalized config available in FwConfigImportObject.prepare_new_svcobjs")
         new_svcs: list[dict[str, Any]] = []
         for uid in new_svcobj_uids:
-            new_svcs.append(ServiceObjectForImport(svcObject=self.normalized_config.service_objects[uid],
-                                        mgmId=mgm_id, 
-                                        importId=self.import_state.import_id, 
-                                        colorId=self.import_state.lookupColorId(self.normalized_config.service_objects[uid].svc_color), 
-                                        typId=self.lookup_svc_type(self.normalized_config.service_objects[uid].svc_typ),
-                                        ).toDict())
+            new_svcs.append(ServiceObjectForImport(svc_object=self.normalized_config.service_objects[uid],
+                                        mgm_id=mgm_id, 
+                                        import_id=self.import_state.import_id, 
+                                        color_id=self.import_state.lookupColorId(self.normalized_config.service_objects[uid].svc_color), 
+                                        typ_id=self.lookup_svc_type(self.normalized_config.service_objects[uid].svc_typ),
+                                        ).to_dict())
         return new_svcs
 
     def prepare_new_userobjs(self, new_user_uids: list[str], mgm_id: int) -> list[dict[str, Any]]:

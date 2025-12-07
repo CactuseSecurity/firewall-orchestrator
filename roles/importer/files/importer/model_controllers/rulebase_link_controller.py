@@ -1,5 +1,3 @@
-# from pydantic import BaseModel
-
 from typing import Any
 from models.rulebase_link import RulebaseLink, parse_rulebase_links
 from model_controllers.import_state_controller import ImportStateController
@@ -57,8 +55,8 @@ class RulebaseLinkController():
 
 
     # add an entry for all rulebase to gateway pairs that are conained in the rulebase_links table
-    def set_map_of_all_enforcing_gateway_ids_for_rulebase_id(self, importState: ImportStateController):
-        self.get_rulebase_links(importState)
+    def set_map_of_all_enforcing_gateway_ids_for_rulebase_id(self, import_state: ImportStateController):
+        self.get_rulebase_links(import_state)
 
         for link in self.rb_links:
             rulebase_id = link.to_rulebase_id

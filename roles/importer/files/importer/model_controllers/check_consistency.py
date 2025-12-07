@@ -272,7 +272,7 @@ class FwConfigImportCheckConsistency(FwConfigImport):
     # check if all color refs are valid (in the DB)
     # fix=True means that missing color refs will be replaced by the default color (black)
     def check_color_consistency(self, config: FwConfigManagerListController, fix: bool = True):
-        self.import_state.SetColorRefMap(self.import_state.api_call)
+        self.import_state.set_color_ref_map(self.import_state.api_call)
         
         # collect all colors
 
@@ -444,7 +444,7 @@ class FwConfigImportCheckConsistency(FwConfigImport):
 
     @staticmethod
     def _add_issue(broken_rulebase_links: list[dict[str, Any]], rbl: RulebaseLinkUidBased, gw: Gateway, error_txt: str):
-            rbl_dict = rbl.toDict()
+            rbl_dict = rbl.to_dict()
             rbl_dict.update({'error': error_txt})
             rbl_dict.update({'gw': f'{gw.Name} ({gw.Uid})'})
             if rbl_dict not in broken_rulebase_links:

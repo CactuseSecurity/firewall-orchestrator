@@ -710,7 +710,7 @@ class FwConfigImportRule():
                 for rulebase in import_result['data']['insert_rulebase']['returning']:
                     new_rulebase_ids.append(rulebase['id'])
             # finally, add the new rulebases to the map for next step (adding rulebase with rules)
-            self.import_details.SetRulebaseMap(self.import_details.api_call) 
+            self.import_details.set_rulebase_map(self.import_details.api_call) 
             return changes, new_rulebase_ids
         
     # as we cannot add the rules for all rulebases in one go (using a constraint from the rule table), 
@@ -805,9 +805,9 @@ class FwConfigImportRule():
         # TODO: make sure not to mark new (changed) rules as removed (order of calls!)
         
         for rb_name in removed_rule_uids:
-            removedRuleIds = [] # return values
+            removed_rule_ids = []
             if len(removed_rule_uids[rb_name])>0:   # if nothing to remove, skip this
-                removeMutation = """
+                remove_mutation = """
                     mutation markRulesRemoved($importId: bigint!, $mgmId: Int!, $uids: [String!]!) {
                         update_rule(where: {removed: { _is_null: true }, rule_uid: {_in: $uids}, mgm_id: {_eq: $mgmId}}, _set: {removed: $importId, active:false}) {
                             affected_rows
@@ -820,15 +820,15 @@ class FwConfigImportRule():
                                     'uids': list(removed_rule_uids[rb_name]) }
                 
                 try:
-                    removeResult = self.import_details.api_call.call(removeMutation, query_variables=query_variables)
+                    remove_result = self.import_details.api_call.call(remove_mutation, query_variables=query_variables)
                 except Exception:
                     raise FwoApiWriteError(f"failed to remove rules: {str(traceback.format_exc())}")
-                if 'errors' in removeResult:
-                    raise FwoApiWriteError(f"failed to remove rules: {str(removeResult['errors'])}")
+                if 'errors' in remove_result:
+                    raise FwoApiWriteError(f"failed to remove rules: {str(remove_result['errors'])}")
                 else:
-                    changes = int(removeResult['data']['update_rule']['affected_rows'])
-                    removedRuleIds = removeResult['data']['update_rule']['returning']
-                    collected_removed_rule_ids += [item['rule_id'] for item in removedRuleIds]
+                    changes = int(remove_result['data']['update_rule']['affected_rows'])
+                    removed_rule_ids = remove_result['data']['update_rule']['returning']
+                    collected_removed_rule_ids += [item['rule_id'] for item in removed_rule_ids]
 
         return changes, collected_removed_rule_ids
 
@@ -890,7 +890,7 @@ class FwConfigImportRule():
 
         import_rules: list[Rule] = []
 
-        for rulebase_uid in list(rule_uids.keys()):
+        for rulebase_uid in rule_uids.keys():
                 
                 changed_rule_of_rulebase: list[RuleNormalized] = [
                     rule_with_changes 
@@ -1178,7 +1178,7 @@ class FwConfigImportRule():
             return None
         enforced_gw_ids: list[int] = []
         for gw_uid in rule.rule_installon.split(fwo_const.LIST_DELIMITER):
-            gw_id = import_details.lookupGatewayId(gw_uid)
+            gw_id = import_details.lookup_gateway_id(gw_uid)
             if gw_id is None:
                 FWOLogger.warning(f"could not find gateway id for gateway uid {gw_uid} during rule import preparation")
                 continue
@@ -1190,7 +1190,7 @@ class FwConfigImportRule():
 
     def prepare_rules_for_import(self, rules: list[RuleNormalized], rulebase_uid: str) -> list[Rule]:
         # get rulebase_id for rulebaseUid
-        rulebase_id = self.import_details.lookupRulebaseId(rulebase_uid)
+        rulebase_id = self.import_details.lookup_rulebase_id(rulebase_uid)
 
         prepared_rules = [
             self.prepare_single_rule_for_import(rule, self.import_details, rulebase_id)
@@ -1198,9 +1198,9 @@ class FwConfigImportRule():
         ]
         return prepared_rules
     
-    def prepare_single_rule_for_import(self, rule: RuleNormalized, importDetails: ImportStateController, rulebase_id: int) -> Rule:
+    def prepare_single_rule_for_import(self, rule: RuleNormalized, import_details: ImportStateController, rulebase_id: int) -> Rule:
         rule_for_import = Rule(
-            mgm_id=importDetails.mgm_details.current_mgm_id,
+            mgm_id=import_details.mgm_details.current_mgm_id,
             rule_num=rule.rule_num,
             rule_disabled=rule.rule_disabled,
             rule_src_neg=rule.rule_src_neg,
@@ -1227,11 +1227,11 @@ class FwConfigImportRule():
             nat_rule=False,
             is_global=False,
             rulebase_id=rulebase_id,
-            rule_create=importDetails.import_id,
-            rule_last_seen=importDetails.import_id,
+            rule_create=import_details.import_id,
+            rule_last_seen=import_details.import_id,
             rule_num_numeric=rule.rule_num_numeric,
-            action_id = importDetails.lookupAction(rule.rule_action),
-            track_id = importDetails.lookupTrack(rule.rule_track),
+            action_id = import_details.lookup_action(rule.rule_action),
+            track_id = import_details.lookup_track(rule.rule_track),
             rule_head_text=rule.rule_head_text,
             rule_installon=rule.rule_installon,
             last_change_admin=None #TODO: get id from rule.last_change_admin
@@ -1243,7 +1243,7 @@ class FwConfigImportRule():
 
         changelog_rule_insert_objects = self.prepare_changelog_rules_insert_objects(added_rules_ids, removed_rules_ids)
 
-        updateChanglogRules = FwoApi.get_graphql_code([fwo_const.GRAPHQL_QUERY_PATH + "rule/updateChanglogRules.graphql"])
+        update_changelog_rules = FwoApi.get_graphql_code([fwo_const.GRAPHQL_QUERY_PATH + "rule/updateChanglogRules.graphql"])
 
         query_variables = {
             'rule_changes': changelog_rule_insert_objects
@@ -1251,9 +1251,9 @@ class FwConfigImportRule():
 
         if len(changelog_rule_insert_objects) > 0:
             try:
-                updateChanglogRules_result = self.import_details.api_call.call(updateChanglogRules, query_variables=query_variables, analyze_payload=True)
-                if 'errors' in updateChanglogRules_result:
-                    FWOLogger.exception(f"error while adding changelog entries for objects: {str(updateChanglogRules_result['errors'])}")
+                update_changelog_rules_result = self.import_details.api_call.call(update_changelog_rules, query_variables=query_variables, analyze_payload=True)
+                if 'errors' in update_changelog_rules_result:
+                    FWOLogger.exception(f"error while adding changelog entries for objects: {str(update_changelog_rules_result['errors'])}")
             except Exception:
                 FWOLogger.exception(f"fatal error while adding changelog entries for objects: {str(traceback.format_exc())}")
 
@@ -1265,20 +1265,20 @@ class FwConfigImportRule():
 
         change_logger = ChangeLogger()
         changelog_rule_insert_objects: list[dict[str, Any]] = []
-        importTime = datetime.now().isoformat()
-        changeTyp = 3
+        import_time = datetime.now().isoformat()
+        change_typ = 3
 
         if self.import_details.is_full_import or self.import_details.IsClearingImport:
-            changeTyp = 2   # TODO: Somehow all imports are treated as im operation.
+            change_typ = 2   # TODO: Somehow all imports are treated as im operation.
 
         for rule_id in added_rules_ids:
-            changelog_rule_insert_objects.append(change_logger.create_changelog_import_object("rule", self.import_details, 'I', changeTyp, importTime, rule_id))
+            changelog_rule_insert_objects.append(change_logger.create_changelog_import_object("rule", self.import_details, 'I', change_typ, import_time, rule_id))
 
         for rule_id in removed_rules_ids:
-            changelog_rule_insert_objects.append(change_logger.create_changelog_import_object("rule", self.import_details, 'D', changeTyp, importTime, rule_id))
+            changelog_rule_insert_objects.append(change_logger.create_changelog_import_object("rule", self.import_details, 'D', change_typ, import_time, rule_id))
 
         for old_rule_id, new_rule_id in self._changed_rule_id_map.items():
-            changelog_rule_insert_objects.append(change_logger.create_changelog_import_object("rule", self.import_details, 'C', changeTyp, importTime, new_rule_id, old_rule_id))
+            changelog_rule_insert_objects.append(change_logger.create_changelog_import_object("rule", self.import_details, 'C', change_typ, import_time, new_rule_id, old_rule_id))
 
         return changelog_rule_insert_objects
 

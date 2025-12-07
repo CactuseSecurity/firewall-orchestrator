@@ -86,23 +86,6 @@ class RouteSerializable(Route):
 def get_route_destination(obj: Route):
     return obj.destination
 
-
-# def test_if_default_route_exists_obj(routing_table):
-#     default_route_v4 = list(filter(lambda default_route: default_route.destination == IPNetwork('0.0.0.0/0'), routing_table))
-#     default_route_v6 =  list(filter(lambda default_route: default_route.destination == IPNetwork('::/0'), routing_table))
-#     if default_route_v4 == [] and default_route_v6 == []:
-#         return False
-#     else:
-#         return True
-
-
-# def get_devices_without_default_route(routing_table):
-#     dev_ids = vars(routing_table)
-#     default_route_v4 = list(filter(lambda default_route: default_route.destination == IPNetwork('0.0.0.0/0'), routing_table))
-#     default_route_v6 =  list(filter(lambda default_route: default_route.destination == IPNetwork('::/0'), routing_table))
-#     return default_route_v4.append(default_route_v6)
-
-
 def get_matching_route_obj(destination_ip: str, routing_table: list[Route], dev_id: int) -> Route | None:
 
     if len(routing_table)==0:

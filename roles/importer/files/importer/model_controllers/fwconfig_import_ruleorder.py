@@ -223,7 +223,7 @@ class RuleOrderService:
         elif not next_rule_uid:
             changed_rule.rule_num_numeric = RULE_NUM_NUMERIC_STEPS
 
-            max_num_numeric_rule = max((r for r in changed_and_unchanged_rules), key=lambda x: x.rule_num_numeric, default=None)
+            max_num_numeric_rule = max(changed_and_unchanged_rules, key=lambda x: x.rule_num_numeric, default=None)
 
             if max_num_numeric_rule:
                 changed_rule.rule_num_numeric += max_num_numeric_rule.rule_num_numeric
@@ -435,7 +435,7 @@ class RuleOrderService:
     def _max_num_numeric_rule(self, target_rulebase: Rulebase):
         """Return the rule with the maximum rule_num_numeric, or None if empty."""
         return max(
-            (r for r in target_rulebase.rules.values()),
+            target_rulebase.rules.values(),
             key=lambda x: x.rule_num_numeric,
             default=None
         )

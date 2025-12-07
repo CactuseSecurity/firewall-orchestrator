@@ -137,13 +137,13 @@ class ManagementController(Management):
 
 
     @classmethod
-    def build_gateway_list(cls, mgmDetails: "ManagementController") -> list['Gateway']:
+    def build_gateway_list(cls, mgm_details: "ManagementController") -> list['Gateway']:
         devs: list['Gateway'] = []
-        for dev in mgmDetails.devices:
+        for dev in mgm_details.devices:
             # check if gateway import is enabled
             if 'do_not_import' in dev and dev['do_not_import']:
                 continue
-            devs.append(Gateway(Name = dev['name'], Uid = f"{dev['name']}/{mgmDetails.calc_manager_uid_hash()}"))
+            devs.append(Gateway(Name = dev['name'], Uid = f"{dev['name']}/{mgm_details.calc_manager_uid_hash()}"))
         return devs
 
 
@@ -169,7 +169,7 @@ class ManagementController(Management):
         if api_call_result is None or 'data' not in api_call_result or 'management' not in api_call_result['data'] or len(api_call_result['data']['management'])<1: #type: ignore #TODO: check if api_call_result can be None
             raise FwoApiFailure('did not succeed in getting management details from FWO API')
 
-        if not '://' in api_call_result['data']['management'][0]['hostname']:
+        if '://' not in api_call_result['data']['management'][0]['hostname']:
             # only decrypt if we have a real management and are not fetching the config from an URL
             # decrypt secret read from API
             try:

@@ -267,7 +267,6 @@ def parse_service_object_block(block: list[str]) -> AsaServiceObject | None:
             prange = (mrange.group(2), mrange.group(3))
         elif micmp:
             protocol = "icmp"
-            #TODO: handle ICMP type/code if needed
         elif msvc:
             protocol = msvc.group(1).lower()
 

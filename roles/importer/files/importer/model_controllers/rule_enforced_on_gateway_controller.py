@@ -69,8 +69,13 @@ class RuleEnforcedOnGatewayController:
         """
         Handle rules with 'install on' settings by linking them to specific gateways.
         """
-        for gw_uid in rule['rule_installon'].split(fwo_const.LIST_DELIMITER) if rule['rule_installon'] else []:
-            gw_id = self.import_details.lookupGatewayId(gw_uid)
+
+        rule_installon: str | None = rule['rule_installon']
+        if rule_installon is None:
+            return
+        
+        for gw_uid in rule_installon.split(fwo_const.LIST_DELIMITER):
+            gw_id = self.import_details.lookup_gateway_id(gw_uid)
             if gw_id is not None:
                 rule_to_gw_refs.append(self.create_rule_to_gateway_reference(rule, gw_id))
             else:

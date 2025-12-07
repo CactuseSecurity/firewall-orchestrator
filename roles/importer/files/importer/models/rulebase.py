@@ -9,6 +9,14 @@ class Rulebase(BaseModel):
     is_global: bool = False
     rules: dict[str, RuleNormalized] = {}
 
+    def to_json(self) -> dict[str, object]:
+        return {
+            "uid": self.uid,
+            "name": self.name,
+            "mgm_uid": self.mgm_uid,
+            "is_global": self.is_global,
+            "rules": { uid: rule.model_dump() for uid, rule in self.rules.items() }
+        }
 
 # RulebaseForImport is the model for a rule to be imported into the DB (containing IDs)
 """

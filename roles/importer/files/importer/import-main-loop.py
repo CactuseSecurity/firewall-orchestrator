@@ -45,7 +45,7 @@ def import_single_management(mgm_id: int, fwo_api_call: FwoApiCall, verify_certi
                             clear: bool, suppress_certificate_warnings: bool, jwt: str, force: bool, fwo_major_version: int,
                             sleep_timer: int, is_full_import: bool, fwo_api: FwoApi):
     wait_with_shutdown_check(0)
-    import_state = ImportStateController.initializeImport(mgm_id, jwt, suppress_certificate_warnings, verify_certificates, force, fwo_major_version, clear, is_full_import)
+    import_state = ImportStateController.initialize_import(mgm_id, jwt, suppress_certificate_warnings, verify_certificates, force, fwo_major_version, clear, is_full_import)
     
     register_global_state(import_state)
 

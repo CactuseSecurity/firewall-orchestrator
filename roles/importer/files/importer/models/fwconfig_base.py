@@ -5,13 +5,14 @@ from models.rulebase import Rulebase
 
 class FwoEncoder(json.JSONEncoder):
 
-    def default(self, obj: object) -> object:
+    
+    def default(self, o: object) -> object:
 
-        if isinstance(obj, ConfigAction) or isinstance(obj, ConfFormat):
-            return obj.name
+        if isinstance(o, ConfigAction) or isinstance(o, ConfFormat):
+            return o.name
         
-        if isinstance(obj, Rulebase):
-            return obj.toJson()
+        if isinstance(o, Rulebase):
+            return o.to_json()
         
-        return json.JSONEncoder.default(self, obj)
+        return json.JSONEncoder.default(self, o)
 

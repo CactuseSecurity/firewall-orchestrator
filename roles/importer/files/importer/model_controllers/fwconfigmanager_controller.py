@@ -20,12 +20,12 @@ class FwConfigManagerController(FwConfigManager):
         self.configs = configs
     
     @classmethod
-    def fromJson(cls, jsonDict: dict[str, Any]) -> 'FwConfigManagerController':
-        manager_uid: str = jsonDict['manager_uid']
-        manager_name: str = jsonDict['mgm_name']
-        is_global: bool = jsonDict['is_global']
-        dependant_manager_uids: list[str] = jsonDict['dependant_manager_uids']
-        configs: list[FwConfigNormalized] = jsonDict['configs']
+    def fromJson(cls, json_dict: dict[str, Any]) -> 'FwConfigManagerController':
+        manager_uid: str = json_dict['manager_uid']
+        manager_name: str = json_dict['mgm_name']
+        is_global: bool = json_dict['is_global']
+        dependant_manager_uids: list[str] = json_dict['dependant_manager_uids']
+        configs: list[FwConfigNormalized] = json_dict['configs']
         return cls(manager_uid, manager_name, is_global, dependant_manager_uids, configs)
 
     def __str__(self):

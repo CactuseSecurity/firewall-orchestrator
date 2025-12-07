@@ -32,20 +32,20 @@ class InterfaceSerializable(Interface):
     state_up : bool
     ip_version : int
     #TYPING: check if these types are correct
-    def __init__(self, ifaceIn: dict[Any, Any] | Interface):
-        if type(ifaceIn) is dict:
-            self.name = ifaceIn['name']
-            self.routing_device = ifaceIn['routing_device']
-            self.ip = str(ifaceIn['ip'])
-            self.netmask_bits = ifaceIn['netmask_bits']
-            self.state_up = ifaceIn['state_up']
-            self.ip_version = ifaceIn['ip_version']
-        elif isinstance(ifaceIn, Interface):
-            self.name = ifaceIn.name
-            self.routing_device = ifaceIn.routing_device
-            self.ip = str(ifaceIn.ip)
-            self.netmask_bits = ifaceIn.netmask_bits
-            self.state_up = ifaceIn.state_up
-            self.ip_version = ifaceIn.ip_version
+    def __init__(self, iface_in: dict[Any, Any] | Interface):
+        if type(iface_in) is dict:
+            self.name = iface_in['name']
+            self.routing_device = iface_in['routing_device']
+            self.ip = str(iface_in['ip'])
+            self.netmask_bits = iface_in['netmask_bits']
+            self.state_up = iface_in['state_up']
+            self.ip_version = iface_in['ip_version']
+        elif isinstance(iface_in, Interface):
+            self.name = iface_in.name
+            self.routing_device = iface_in.routing_device
+            self.ip = str(iface_in.ip)
+            self.netmask_bits = iface_in.netmask_bits
+            self.state_up = iface_in.state_up
+            self.ip_version = iface_in.ip_version
 
 

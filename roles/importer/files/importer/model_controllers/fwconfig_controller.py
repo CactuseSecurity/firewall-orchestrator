@@ -11,7 +11,7 @@ class FwoEncoder(json.JSONEncoder):
             return obj.name
         
         if isinstance(obj, Rulebase):
-            return obj.toJson() # type: ignore
+            return obj.to_json() # type: ignore
 
         if isinstance(obj, IPNetwork):
             return str(obj)

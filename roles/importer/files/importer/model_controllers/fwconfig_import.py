@@ -51,19 +51,19 @@ class FwConfigImport():
         
     def import_single_config(self, single_manager: FwConfigManager):
         # current implementation restriction: assuming we always get the full config (only inserts) from API
-        mgm_id = self.import_state.lookupManagementId(single_manager.manager_uid)
+        mgm_id = self.import_state.lookup_management_id(single_manager.manager_uid)
         if mgm_id is None:
             raise FwoImporterError(f"could not find manager id in DB for UID {single_manager.manager_uid}")
-        previousConfig = self.get_latest_config_from_db()
-        self._global_state.previous_config = previousConfig
+        previous_config = self.get_latest_config_from_db()
+        self._global_state.previous_config = previous_config
         if single_manager.is_super_manager:
-            self._global_state.previous_global_config = previousConfig
+            self._global_state.previous_global_config = previous_config
 
         # calculate differences and write them to the database via API
-        self.update_diffs(previousConfig, self._global_state.previous_global_config, single_manager)
+        self.update_diffs(previous_config, self._global_state.previous_global_config, single_manager)
 
 
-    def import_management_set(self, import_state: ImportStateController, service_provider: ServiceProvider, mgr_set: FwConfigManagerListController):
+    def import_management_set(self, service_provider: ServiceProvider, mgr_set: FwConfigManagerListController):
         for manager in sorted(mgr_set.ManagerSet, key=lambda m: not getattr(m, 'IsSuperManager', False)):
             """
             the following loop is a preparation for future functionality
@@ -72,16 +72,16 @@ class FwConfigImport():
             currently we always only have one config per manager
             """
             for config in manager.configs:
-                self.import_config(service_provider, import_state, manager, config)
+                self.import_config(service_provider, manager, config)
 
 
-    def import_config(self, service_provider: ServiceProvider, import_state: ImportStateController, manager: FwConfigManager, config: FwConfigNormalized):
+    def import_config(self, service_provider: ServiceProvider, manager: FwConfigManager, config: FwConfigNormalized):
         global_state = service_provider.get_global_state()
         global_state.normalized_config = config
         if manager.is_super_manager:
             # store global config as it is needed when importing sub managers which might reference it
             global_state.global_normalized_config = config
-        mgm_id = self.import_state.lookupManagementId(manager.manager_uid)
+        mgm_id = self.import_state.lookup_management_id(manager.manager_uid)
         if mgm_id is None:
             raise FwoImporterError(f"could not find manager id in DB for UID {manager.manager_uid}")
         #TODO: clean separation between values relevant for all managers and those only relevant for specific managers - see #3646

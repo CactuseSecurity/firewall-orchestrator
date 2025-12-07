@@ -194,10 +194,10 @@ def lookup_ids_for_rulebase_link(import_state: MockImportStateController, from_r
     to_rulebase_id = None
 
     if from_rule_uid != "":
-        from_rule_id = import_state.lookupRule(from_rule_uid)
+        from_rule_id = import_state.lookup_rule(from_rule_uid)
     if from_rulebase_uid != "":
-        from_rulebase_id = import_state.lookupRulebaseId(from_rulebase_uid)
+        from_rulebase_id = import_state.lookup_rulebase_id(from_rulebase_uid)
     if to_rulebase_uid != "":
-        to_rulebase_id = import_state.lookupRulebaseId(to_rulebase_uid)
+        to_rulebase_id = import_state.lookup_rulebase_id(to_rulebase_uid)
 
     return from_rule_id, from_rulebase_id, to_rulebase_id

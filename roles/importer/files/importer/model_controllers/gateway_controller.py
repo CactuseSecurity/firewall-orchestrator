@@ -6,7 +6,7 @@ class GatewayController(Gateway):
         self.Gateway = gw
      
     @staticmethod
-    def replaceNoneWithEmpty(s: str | None) -> str:
+    def replace_none_with_empty(s: str | None) -> str:
         if s is None or s == '':
             return '<EMPTY>'
         else:

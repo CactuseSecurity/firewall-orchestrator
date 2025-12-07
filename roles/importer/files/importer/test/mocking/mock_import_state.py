@@ -49,7 +49,7 @@ class MockImportStateController(ImportStateController):
         self.Jwt = None
         self.import_id = import_id
         self.is_full_import = True
-        self.setCoreData()
+        self.set_core_data()
 
         self.track_id_map = {
             "ordered": 2,
@@ -81,12 +81,12 @@ class MockImportStateController(ImportStateController):
         self._stub_setCoreData = value 
 
 
-    def setCoreData(self):
+    def set_core_data(self):
 
         if self._stub_setCoreData:
             return
         else:
-            super().setCoreData()
+            super().set_core_data()
 
 
     def call(self, *args, **kwargs):
@@ -109,7 +109,7 @@ class MockImportStateController(ImportStateController):
         track_id=0,
         track_name="Dummy Track",
     )
-    def lookupTrack(self, trackStr):
+    def lookup_track(self, trackStr):
         if trackStr not in self.track_id_map:
             self.track_id_map[trackStr] = len(self.track_id_map) + 1
         return self.track_id_map[trackStr]
@@ -125,7 +125,7 @@ class MockImportStateController(ImportStateController):
         action_name="Dummy Action",
         allowed=True
     )
-    def lookupAction(self, actionStr):
+    def lookup_action(self, actionStr):
         if actionStr not in self.action_id_map:
             self.action_id_map[actionStr] = len(self.action_id_map) + 1
         return self.action_id_map[actionStr]
@@ -136,7 +136,7 @@ class MockImportStateController(ImportStateController):
                 return action_name
         return None
     
-    def lookupLinkType(self, linkUid):
+    def lookup_link_type(self, linkUid):
         if linkUid not in self.track_id_map:
             self.track_id_map[linkUid] = len(self.track_id_map) + 1
         return self.track_id_map[linkUid]
@@ -147,7 +147,7 @@ class MockImportStateController(ImportStateController):
                 return linkUid
         return None
     
-    def lookupGatewayId(self, gwUid):
+    def lookup_gateway_id(self, gwUid):
         if gwUid not in self.network_object_id_map:
             self.network_object_id_map[gwUid] = len(self.network_object_id_map) + 1
         return self.network_object_id_map[gwUid]

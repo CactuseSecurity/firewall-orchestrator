@@ -69,7 +69,7 @@ def main(mgm_id: int, file: str | None = None, debug_level: int = 0, verify_cert
     if not suppress_certificate_warnings:
         warnings.resetwarnings()
 
-    import_state = ImportStateController.initializeImport(mgm_id, jwt, suppress_certificate_warnings, verify_certificates, force, fwo_major_version, clear_management_data, isFullImport=True)
+    import_state = ImportStateController.initialize_import(mgm_id, jwt, suppress_certificate_warnings, verify_certificates, force, fwo_major_version, clear_management_data, is_full_import=True)
     register_global_state(import_state)
 
     import_management(mgm_id, fwo_api_call, verify_certificates, limit, clear_management_data, suppress_certificate_warnings, file)

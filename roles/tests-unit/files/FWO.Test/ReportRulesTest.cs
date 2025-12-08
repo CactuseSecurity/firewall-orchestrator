@@ -334,8 +334,8 @@ namespace FWO.Test
         {
             var count = ReportRules.GetRuleCount(
                 _managementReport!,
-                _deviceReport!.RulebaseLinks.First(l => l.IsInitialRulebase()),
-                _deviceReport!.RulebaseLinks.ToArray()
+                _deviceReport!.RulebaseLinks.First(l => l.IsInitial),
+                [.. _deviceReport!.RulebaseLinks]
             );
 
             ClassicAssert.AreEqual(6, count);

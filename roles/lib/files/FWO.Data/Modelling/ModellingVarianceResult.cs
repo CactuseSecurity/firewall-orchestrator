@@ -108,7 +108,7 @@ namespace FWO.Data.Modelling
             DeviceReport? devReport = DeviceRules[mgtId]?.FirstOrDefault(d => d.Id == device.Id);
             if(devReport != null)
             {
-                return [.. rulesToReport.Where(r => devReport.RulebaseLinks.Any(rb => rb.FromRuleId == r.Id))];
+                return [.. rulesToReport.Where(devReport.IsLinked)];
             }
             return [];
         }

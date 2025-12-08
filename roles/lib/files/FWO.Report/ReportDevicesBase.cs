@@ -160,7 +160,7 @@ namespace FWO.Report
 
             if (dev.RulebaseLinks.Length > 0)
             {
-                int? nextRulebaseId = dev.RulebaseLinks.FirstOrDefault(_ => _.IsInitialRulebase())?.NextRulebaseId;
+                int? nextRulebaseId = dev.RulebaseLinks.FirstOrDefault(_ => _.IsInitial)?.NextRulebaseId;
                 if (nextRulebaseId != null)
                 {
                     Log.TryWriteLog(LogType.Info, "Device Report", "Found initial rulebase", _debugConfig.ExtendedLogReportGeneration);

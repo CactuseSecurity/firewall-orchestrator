@@ -310,7 +310,7 @@ namespace FWO.Report
                 foreach (var device in mgt.Devices.Where(dev => dev.ContainsRules()).Select(d => d.RulebaseLinks))
                 {
                     deviceCounter++;
-                    ruleCounter += GetRuleCount(mgt, device.FirstOrDefault(_ => _.IsInitialRulebase()), device);
+                    ruleCounter += GetRuleCount(mgt, device.FirstOrDefault(_ => _.IsInitial), device);
                 }
             }
             return $"{managementCounter} {userConfig.GetText("managements")}, {deviceCounter} {userConfig.GetText("gateways")}, {ruleCounter} {userConfig.GetText("rules")}";
@@ -391,7 +391,7 @@ namespace FWO.Report
                         continue;
                     }
 
-                    if (gateway.RulebaseLinks.FirstOrDefault(rbl => rbl.IsInitialRulebase()) is { } rbLink)
+                    if (gateway.RulebaseLinks.FirstOrDefault(rbl => rbl.IsInitial) is { } rbLink)
                     {
                         ExportSingleRulebaseToCsv(report, ruleDisplayCsv, managementReport, gateway, rbLink);
                     }
@@ -500,7 +500,7 @@ namespace FWO.Report
                 report.AppendLine("<table>");
                 AppendRuleHeadlineHtml(ref report);
 
-                RulebaseLink? nextRbLink = device.RulebaseLinks.FirstOrDefault(_ => _.IsInitialRulebase());
+                RulebaseLink? nextRbLink = device.RulebaseLinks.FirstOrDefault(_ => _.IsInitial);
 
                 if (nextRbLink != null)
                 {

@@ -35,12 +35,15 @@ namespace FWO.Data.Report
             Rules = rulesToReport;
         }
 
+        public bool IsLinked(Rule rule)
+        {
+            List<RulebaseLink> activeRulebaseLinks = [.. RulebaseLinks.Where(link => link.GatewayId == Id && link.Removed == null)];
+            return activeRulebaseLinks.Any(link => link.NextRulebaseId == rule.RulebaseId);
+        }
+
         public List<Rule> GetRuleListForDevice()
         {
-            var activeRulebaseLinks = RulebaseLinks
-                .Where(link => link.GatewayId == Id && link.Removed != null)
-                .ToList();
-
+            List<RulebaseLink> activeRulebaseLinks = [.. RulebaseLinks.Where(link => link.GatewayId == Id && link.Removed == null)];
             return [.. Rules.Where(rule => activeRulebaseLinks.Any(link => link.NextRulebaseId == rule.RulebaseId))];
         }
 
@@ -56,7 +59,7 @@ namespace FWO.Data.Report
 
         public int? GetInitialRulebaseId(ManagementReport managementReport)
         {
-            return RulebaseLinks.FirstOrDefault(_ => _.IsInitialRulebase())?.NextRulebaseId;
+            return RulebaseLinks.FirstOrDefault(_ => _.IsInitial)?.NextRulebaseId;
         }
 
         public void AddRule(Rule rule)

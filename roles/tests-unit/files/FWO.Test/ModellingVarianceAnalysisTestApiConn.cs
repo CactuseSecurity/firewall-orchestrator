@@ -46,7 +46,8 @@ namespace FWO.Test
             Id = 3,
             Name = "NonModelledRule",
             Comment = "XXX3",
-            Froms = [ new(new(), NwObj1) ]
+            Froms = [ new(new(), NwObj1) ],
+            RulebaseId = 3
         };
         static readonly Rule Rule4 = new()
         {
@@ -99,7 +100,7 @@ namespace FWO.Test
         static readonly DeviceReport DevRep1 = new()
         {
             Id = 1,
-            RulebaseLinks = [ new() { FromRuleId = 3 } ]
+            RulebaseLinks = [ new() { GatewayId = 1, NextRulebaseId = 3 } ]
         };
 
         public override async Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null)

@@ -3,7 +3,6 @@ using FWO.Data.Middleware;
 using FWO.Logging;
 using FWO.Middleware.Client;
 using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage;
-using Microsoft.AspNetCore.Identity.Data;
 using System.IdentityModel.Tokens.Jwt;
 
 namespace FWO.Ui.Services
@@ -11,24 +10,18 @@ namespace FWO.Ui.Services
     /// <summary>
     /// Manages token pairs (access + refresh tokens) for the current user session.
     /// </summary>
-    public class TokenService : ITokenRefreshService
+    public class TokenService(MiddlewareClient middlewareClient, ApiConnection apiConnection, ProtectedSessionStorage sessionStorage)
     {
         private TokenPair? currentTokenPair;
-        private readonly ProtectedSessionStorage sessionStorage;
         private readonly JwtSecurityTokenHandler jwtHandler = new();
         private readonly SemaphoreSlim refreshSemaphore = new(1, 1);
-        private readonly MiddlewareClient middlewareClient;
-        private readonly ApiConnection apiConnection;
         private const string TOKEN_PAIR_KEY = "token_pair";
 
-        public TokenService(MiddlewareClient middlewareClient, ApiConnection apiConnection, ProtectedSessionStorage sessionStorage)
-        {
-            this.middlewareClient = middlewareClient;
-            this.apiConnection = apiConnection;
-            this.sessionStorage = sessionStorage;
-        }
-
-        public async Task InitializeAsync()
+        /// <summary>
+        /// Initializes the token service and tries loading any existing token pair from session storage.
+        /// </summary>
+        /// <returns></returns>
+        public async Task Initialize()
         {
             ProtectedBrowserStorageResult<TokenPair> result = await sessionStorage.GetAsync<TokenPair>(TOKEN_PAIR_KEY);
 
@@ -38,13 +31,22 @@ namespace FWO.Ui.Services
             }
         }
 
+        /// <summary>
+        /// Sets the current token pair and stores it in session storage.
+        /// </summary>
+        /// <param name="tokenPair">The <see cref="TokenPair"/> object to set and persist.</param>
+        /// <returns>A task that represents the asynchronous operation.</returns>
         public async Task SetTokenPair(TokenPair tokenPair)
         {
             currentTokenPair = tokenPair;
             await sessionStorage.SetAsync(TOKEN_PAIR_KEY, tokenPair);
         }
 
-        public async Task<bool> RefreshAccessTokenAsync()
+        /// <summary>
+        /// Refreshes the access token using the refresh token
+        /// </summary>
+        /// <returns></returns>
+        public async Task<bool> RefreshAccessToken()
         {
             await refreshSemaphore.WaitAsync();
 
@@ -57,7 +59,7 @@ namespace FWO.Ui.Services
 
                 if (currentTokenPair?.RefreshToken == null)
                 {
-                    await InitializeAsync();
+                    await Initialize();
 
                     if (currentTokenPair?.RefreshToken == null)
                     {
@@ -106,6 +108,10 @@ namespace FWO.Ui.Services
             }
         }
 
+        /// <summary>
+        /// Checks if the current access token is expired or about to expire within the next minute.
+        /// </summary>
+        /// <returns></returns>
         public bool IsAccessTokenExpired()
         {
             if (string.IsNullOrEmpty(currentTokenPair?.AccessToken))
@@ -126,6 +132,10 @@ namespace FWO.Ui.Services
             }
         }
 
+        /// <summary>
+        /// Revokes the current refresh token and clears the stored token pair.
+        /// </summary>
+        /// <returns></returns>
         public async Task RevokeTokens()
         {
             if (currentTokenPair is null)

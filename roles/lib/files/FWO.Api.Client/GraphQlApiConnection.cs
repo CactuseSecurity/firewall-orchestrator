@@ -14,7 +14,6 @@ namespace FWO.Api.Client
         // Server URL
         public string ApiServerUri { get; private set; } = "";
 
-        private ITokenRefreshService? tokenRefreshService;
         private GraphQLHttpClient graphQlClient = null!;
 
         private string prevRole = "";
@@ -42,15 +41,7 @@ namespace FWO.Api.Client
 
             // 1 hour timeout
             graphQlClient.HttpClient.Timeout = new TimeSpan(1, 0, 0);
-        }
-
-        /// <summary>
-        /// Sets the token refresh service for automatic token renewal.
-        /// </summary>
-        public void SetTokenRefreshService(ITokenRefreshService? service)
-        {
-            tokenRefreshService = service;
-        }
+        }        
 
         public GraphQlApiConnection(string ApiServerUri, string jwt)
         {
@@ -143,8 +134,6 @@ namespace FWO.Api.Client
         {
             try
             {
-                await EnsureValidTokenAsync();
-
                 Log.WriteDebug("API call", $"Sending API call {operationName} in role {GetActRole()}: {query.Substring(0, Math.Min(query.Length, 70)).Replace(Environment.NewLine, "")}... " +
                     (variables != null ? $"with variables: {JsonSerializer.Serialize(variables).Substring(0, Math.Min(JsonSerializer.Serialize(variables).Length, 50)).Replace(Environment.NewLine, "")}..." : ""));
                 GraphQLResponse<dynamic> response = await graphQlClient.SendQueryAsync<dynamic>(query, variables, operationName);
@@ -217,28 +206,6 @@ namespace FWO.Api.Client
                 Log.WriteError("API Connection", "Error while creating subscription to GraphQL API.", exception);
                 throw;
             }
-        }
-
-        private async Task<bool> EnsureValidTokenAsync(bool forceRefresh = false)
-        {
-            if(tokenRefreshService == null)
-                return true;
-
-            if(forceRefresh || tokenRefreshService.IsAccessTokenExpired())
-            {
-                Log.WriteDebug("Token Check", "Access token expired or expiring soon, refreshing...");
-                bool refreshed = await tokenRefreshService.RefreshAccessTokenAsync();
-
-                if(!refreshed)
-                {
-                    Log.WriteError("Token Check", "Failed to refresh expired token");
-                    return false;
-                }
-
-                Log.WriteDebug("Token Check", "Token refreshed successfully");
-            }
-
-            return true;
         }
 
         protected override void Dispose(bool disposing)

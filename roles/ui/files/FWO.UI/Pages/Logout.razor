@@ -20,11 +20,11 @@
 {
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
+        await ((AuthStateProvider)AuthService).Deauthenticate();
+
         // Dispose unmanaged ressources
         apiConnection.Dispose();
         middlewareClient.Dispose();
-
-        await ((AuthStateProvider)AuthService).Deauthenticate();
 
         // Write an audit log that the user logged out
         UiUser user = userConfig.User;

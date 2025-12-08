@@ -59,7 +59,7 @@ namespace FWO.Middleware.Server
 
                 if (string.IsNullOrEmpty(lifetimeKeyDBName))
                 {
-                    throw new Exception("Lifetime key DB name is null or empty");
+                    throw new ArgumentException("Lifetime key DB name is null or empty");
                 }
 
                 List<ConfExpirationTime> resultList = await apiConn.SendQueryAsync<List<ConfExpirationTime>>(ConfigQueries.getConfigItemByKey, new { key = lifetimeKeyDBName });
@@ -67,6 +67,21 @@ namespace FWO.Middleware.Server
                 if (resultList.Count > 0)
                 {
                     return resultList[0].ExpirationValue;
+                }
+                else
+                {
+                    ConfigData defaultConfigValue = new();
+
+                    //if no value is set in DB, take the default from config file and if that is not set, take the hardcoded constant
+                    switch (lifetimeKey)
+                    {
+                        case nameof(ConfigData.AccessTokenLifetimeHours):
+                            return (defaultConfigValue.AccessTokenLifetimeHours > 0) ? defaultConfigValue.AccessTokenLifetimeHours : expirationTime;
+                        case nameof(ConfigData.RefreshTokenLifetimeDays):
+                            return (defaultConfigValue.RefreshTokenLifetimeDays > 0) ? defaultConfigValue.RefreshTokenLifetimeDays : expirationTime;
+                        default:
+                            break;
+                    }
                 }
             }
             catch (Exception exeption)

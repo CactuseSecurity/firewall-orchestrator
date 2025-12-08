@@ -10,7 +10,7 @@ namespace FWO.Ui.Services
     /// <summary>
     /// Manages token pairs (access + refresh tokens) for the current user session.
     /// </summary>
-    public class TokenService(MiddlewareClient middlewareClient, ApiConnection apiConnection, ProtectedSessionStorage sessionStorage)
+    public class TokenService(MiddlewareClient middlewareClient, ProtectedSessionStorage sessionStorage)
     {
         private TokenPair? currentTokenPair;
         private readonly JwtSecurityTokenHandler jwtHandler = new();
@@ -18,10 +18,10 @@ namespace FWO.Ui.Services
         private const string TOKEN_PAIR_KEY = "token_pair";
 
         /// <summary>
-        /// Initializes the token service and tries loading any existing token pair from session storage.
+        /// Initializes the TokenService by trying to load any existing token pair from session storage.
         /// </summary>
         /// <returns></returns>
-        public async Task Initialize()
+        private async Task Initialize()
         {
             ProtectedBrowserStorageResult<TokenPair> result = await sessionStorage.GetAsync<TokenPair>(TOKEN_PAIR_KEY);
 
@@ -43,78 +43,14 @@ namespace FWO.Ui.Services
         }
 
         /// <summary>
-        /// Refreshes the access token using the refresh token
-        /// </summary>
-        /// <returns></returns>
-        public async Task<bool> RefreshAccessToken()
-        {
-            await refreshSemaphore.WaitAsync();
-
-            try
-            {
-                if (!IsAccessTokenExpired())
-                {
-                    return true;
-                }
-
-                if (currentTokenPair?.RefreshToken == null)
-                {
-                    await Initialize();
-
-                    if (currentTokenPair?.RefreshToken == null)
-                    {
-                        return false;
-                    }
-                }
-
-                Log.WriteDebug("Token Refresh", "Attempting to refresh access token");
-
-                RefreshTokenRequest refreshRequest = new()
-                {
-                    RefreshToken = currentTokenPair.RefreshToken
-                };
-
-                RestSharp.RestResponse<TokenPair> response = await middlewareClient.RefreshToken(refreshRequest);
-
-                if (response.IsSuccessful && response.Data != null)
-                {
-                    await SetTokenPair(response.Data);
-
-                    // Tell api connection to use new jwt as authentication
-                    apiConnection.SetAuthHeader(response.Data.AccessToken);
-
-                    // Tell middleware connection to use new jwt as authentication
-                    middlewareClient.SetAuthenticationToken(response.Data.AccessToken);
-
-                    Log.WriteInfo("Token Refresh", "Access token refreshed successfully");
-
-                    return true;
-                }
-                else
-                {
-                    Log.WriteError("Token Refresh", $"Failed to refresh token: {response.ErrorMessage}");
-                    return false;
-                }
-            }
-            catch (Exception ex)
-            {
-                Log.WriteError("Token Refresh", "Exception during token refresh", ex);
-
-                return false;
-            }
-            finally
-            {
-                refreshSemaphore.Release();
-            }
-        }
-
-        /// <summary>
         /// Checks if the current access token is expired or about to expire within the next minute.
         /// </summary>
         /// <returns></returns>
-        public bool IsAccessTokenExpired()
+        public async Task<bool> IsAccessTokenExpired()
         {
-            if (string.IsNullOrEmpty(currentTokenPair?.AccessToken))
+            await Initialize();
+
+            if (currentTokenPair is null || string.IsNullOrEmpty(currentTokenPair?.AccessToken))
             {
                 return true;
             }
@@ -138,6 +74,8 @@ namespace FWO.Ui.Services
         /// <returns></returns>
         public async Task RevokeTokens()
         {
+            await Initialize();
+
             if (currentTokenPair is null)
             {
                 return;

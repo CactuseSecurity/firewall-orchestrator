@@ -484,6 +484,22 @@ namespace FWO.Test
         }
 
         [Test]
+        public void ResolvedRulesGenerateJsonWithoutRules()
+        {
+            Log.WriteInfo("Test Log", "starting resolved rules report json generation");
+            ReportRules reportRules = ConstructReportRulesWithoutRules(true, query, userConfig, ReportType.ResolvedRules);
+
+            string expectedJsonResult =
+            "{\"report type\": \"Rules Report (resolved)\",\"report generation date\": \"Z (UTC)\"," +
+            "\"date of configuration shown\": \"2023-04-20T15:50:04Z (UTC)\",\"device filter\": \"TestMgt [Mock Device 1]\",\"other filters\": \"TestFilter\"," +
+            "\"report generator\": \"Firewall Orchestrator - https://fwo.cactus.de/en\",\"data protection level\": \"For internal use only\"," +
+            "\"managements\": [{\"TestMgt\": {\"gateways\": [{\"Mock Device 1\": {" +
+            "\"rules\": []}}]}}]}";
+            string jsonExport = RemoveLinebreaks(RemoveGenDate(reportRules.ExportToJson(), false, true));
+            ClassicAssert.AreEqual(expectedJsonResult, jsonExport);
+        }
+
+        [Test]
         public void ResolvedRulesTechGenerateJson()
         {
             Log.WriteInfo("Test Log", "starting resolved rules report tech json generation");
@@ -834,6 +850,39 @@ namespace FWO.Test
 
             reportRules.TryBuildMockRuleTree();
             
+            return reportRules;
+        }
+
+        private static ReportRules ConstructReportRulesWithoutRules(bool resolved, DynGraphqlQuery query, UserConfig userConfig, ReportType reportType)
+        {
+            RulebaseReport[] rulebases = [
+                MockReportRules.CreateRulebaseReport(numberOfRules: 0)
+            ];
+            RulebaseLink[] rulebaseLinks = [
+                new() {IsInitial = true,NextRulebaseId = rulebases[0].Id}
+            ];
+
+            MockReportRules reportRules = new MockReportRules(query, userConfig, reportType);
+
+            var managementData = reportRules.ReportData.ManagementData.First();
+
+            managementData.Rulebases = rulebases;
+            managementData.Devices.First().RulebaseLinks = rulebaseLinks;
+
+            Rule[] rules =
+            [
+            ];
+
+            managementData.Rulebases.First().Rules = rules;
+            managementData.Name = "TestMgt";
+            managementData.ReportObjects = [TestIp1, TestIp2, TestIpRange];
+            managementData.ReportServices = [TestService1, TestService2];
+            managementData.ReportUsers = [TestUser1, TestUser2];
+
+            reportRules.ReportData.ManagementData = [managementData];
+
+            reportRules.TryBuildMockRuleTree();
+
             return reportRules;
         }
 

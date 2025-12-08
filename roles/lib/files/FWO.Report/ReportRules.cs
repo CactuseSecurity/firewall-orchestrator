@@ -425,50 +425,15 @@ namespace FWO.Report
 
         private string ExportResolvedRulesToJson()
         {
-            StringBuilder report = new("{");
-            report.Append(DisplayReportHeaderJson());
-            report.AppendLine("\"managements\": [");
             RuleDisplayJson ruleDisplayJson = new(userConfig);
             TryBuildRuleTree();
-            foreach (var managementReport in ReportData.ManagementData.Where(mgt => !mgt.Ignore && mgt.Devices != null &&
-                    Array.Exists(mgt.Devices, device => device.ContainsRules())))
-            {
-                report.AppendLine($"{{\"{managementReport.Name}\": {{");
-                report.AppendLine($"\"gateways\": [");
-                foreach (var gateway in managementReport.Devices)
-                {
-                    if (gateway.ContainsRules())
-                    {
-                        report.Append($"{{\"{gateway.Name}\": {{\n\"rules\": [");
-                        
-                        var rules = _rulesCache[(gateway.Id, managementReport.Id)];
 
-                        foreach (var rule in rules)
-                        {
-                            report.Append(ruleDisplayJson.DisplayRuleJsonObject(rule, ReportType));
-                        }
-
-                        report = RuleDisplayBase.RemoveLastChars(report, 1); // remove last char (comma)
-                        report.Append(']'); // EO rules
-                        report.Append('}'); // EO gateway internal
-                        report.Append("},"); // EO gateway external
-                    }
-                } // gateways
-                report = RuleDisplayBase.RemoveLastChars(report, 1); // remove last char (comma)
-                report.Append(']'); // EO gateways
-                report.Append('}'); // EO management internal
-                report.Append("},"); // EO management external
-            } // managements
-            report = RuleDisplayBase.RemoveLastChars(report, 1); // remove last char (comma)
-            report.Append(']'); // EO managements
-            report.Append('}'); // EO top
-
-            dynamic? json = JsonConvert.DeserializeObject(report.ToString());
-            JsonSerializerSettings settings = new()
-            {
-                Formatting = Formatting.Indented
-            };
-            return JsonConvert.SerializeObject(json, settings);
+            return ExportToJson(
+                hasItems: dev => dev.ContainsRules(),
+                getItems: (dev, mgmt) => _rulesCache[(dev.Id, mgmt.Id)],
+                renderItem: rule => ruleDisplayJson.DisplayRuleJsonObject(rule, ReportType),
+                itemsPropertyName: "rules"
+            );            
         }
 
         public override string ExportToHtml()

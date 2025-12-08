@@ -36,7 +36,7 @@ def get_config(config_in: FwConfigManagerListController, importState: ImportStat
         limit = importState.fwo_config.api_fetch_size
         fm_api_url = importState.mgm_details.buildFwApiString()
         native_config_global = initialize_native_config_domain(importState.mgm_details)
-        config_in.native_config['domains'].append(native_config_global) # type: ignore #TYPING: None or not None this is the question
+        config_in.native_config['domains'].append(native_config_global)
         adom_list = build_adom_list(importState)
         adom_device_vdom_structure = build_adom_device_vdom_structure(adom_list, sid, fm_api_url)
         # delete_v: das geht schief für unschöne adoms
@@ -50,7 +50,7 @@ def get_config(config_in: FwConfigManagerListController, importState: ImportStat
         for adom in adom_list:
             adom_name = adom.domain_name
             native_config_adom = initialize_native_config_domain(adom)
-            config_in.native_config['domains'].append(native_config_adom) # type: ignore #TYPING: None or not None this is the question
+            config_in.native_config['domains'].append(native_config_adom)
 
             adom_scope = 'adom/'+adom_name
             get_objects(sid, fm_api_url, native_config_adom, native_config_global, adom_name, limit, nw_obj_types, svc_obj_types, adom_scope, arbitrary_vdom_for_updateable_objects)

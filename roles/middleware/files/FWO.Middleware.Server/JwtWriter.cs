@@ -1,4 +1,5 @@
 using FWO.Basics;
+using FWO.Config.Api.Data;
 using FWO.Data;
 using FWO.Logging;
 using Microsoft.IdentityModel.JsonWebTokens;
@@ -41,7 +42,7 @@ namespace FWO.Middleware.Server
 
 			UiUserHandler uiUserHandler = new (CreateJWTMiddlewareServer());
 			// if lifetime was speciefied use it, otherwise use standard lifetime
-			int jwtMinutesValid = (int)(lifetime?.TotalMinutes ?? await uiUserHandler.GetExpirationTime());
+			int jwtMinutesValid = (int)(lifetime?.TotalMinutes ?? await uiUserHandler.GetExpirationTime(nameof(ConfigData.AccessTokenLifetimeHours)));
 
 			ClaimsIdentity subject;
 			if (user != null)

@@ -120,7 +120,7 @@ namespace FWO.Ui.Auth
         /// <returns></returns>
 		public async Task Deauthenticate()
 		{
-            await tokenService.ClearTokenPair();
+            await tokenService.RevokeTokens();
 
 			user = new ClaimsPrincipal(new ClaimsIdentity());
 			NotifyAuthenticationStateChanged(Task.FromResult(new AuthenticationState(user)));

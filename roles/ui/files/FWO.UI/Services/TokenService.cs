@@ -1,9 +1,10 @@
 using FWO.Api.Client;
 using FWO.Data.Middleware;
-using FWO.Middleware.Client;
 using FWO.Logging;
-using System.IdentityModel.Tokens.Jwt;
+using FWO.Middleware.Client;
 using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage;
+using Microsoft.AspNetCore.Identity.Data;
+using System.IdentityModel.Tokens.Jwt;
 
 namespace FWO.Ui.Services
 {
@@ -31,7 +32,7 @@ namespace FWO.Ui.Services
         {
             ProtectedBrowserStorageResult<TokenPair> result = await sessionStorage.GetAsync<TokenPair>(TOKEN_PAIR_KEY);
 
-            if(result.Success && result.Value != null)
+            if (result.Success && result.Value != null)
             {
                 currentTokenPair = result.Value;
             }
@@ -49,16 +50,16 @@ namespace FWO.Ui.Services
 
             try
             {
-                if(!IsAccessTokenExpired())
+                if (!IsAccessTokenExpired())
                 {
                     return true;
                 }
 
-                if(currentTokenPair?.RefreshToken == null)
+                if (currentTokenPair?.RefreshToken == null)
                 {
                     await InitializeAsync();
 
-                    if(currentTokenPair?.RefreshToken == null)
+                    if (currentTokenPair?.RefreshToken == null)
                     {
                         return false;
                     }
@@ -73,7 +74,7 @@ namespace FWO.Ui.Services
 
                 RestSharp.RestResponse<TokenPair> response = await middlewareClient.RefreshToken(refreshRequest);
 
-                if(response.IsSuccessful && response.Data != null)
+                if (response.IsSuccessful && response.Data != null)
                 {
                     await SetTokenPair(response.Data);
 
@@ -93,7 +94,7 @@ namespace FWO.Ui.Services
                     return false;
                 }
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 Log.WriteError("Token Refresh", "Exception during token refresh", ex);
 
@@ -107,7 +108,7 @@ namespace FWO.Ui.Services
 
         public bool IsAccessTokenExpired()
         {
-            if(string.IsNullOrEmpty(currentTokenPair?.AccessToken))
+            if (string.IsNullOrEmpty(currentTokenPair?.AccessToken))
             {
                 return true;
             }
@@ -118,17 +119,29 @@ namespace FWO.Ui.Services
 
                 return token.ValidTo <= DateTime.UtcNow.AddMinutes(1);
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 Log.WriteWarning("Token Check", $"Failed to read JWT: {ex.Message}");
                 return true;
             }
         }
 
-        public async Task ClearTokenPair()
+        public async Task RevokeTokens()
         {
-            currentTokenPair = null;
+            if (currentTokenPair is null)
+            {
+                return;
+            }
+
+            RefreshTokenRequest revokeTokenRequest = new()
+            {
+                RefreshToken = currentTokenPair.RefreshToken
+            };
+
+            await middlewareClient.RevokeRefreshToken(revokeTokenRequest);
             await sessionStorage.DeleteAsync(TOKEN_PAIR_KEY);
+
+            currentTokenPair = null;
         }
     }
 }

@@ -1,6 +1,7 @@
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 using FWO.Basics;
+using FWO.Config.Api.Data;
 using FWO.Data;
 using FWO.Data.Middleware;
 using FWO.Logging;
@@ -8,8 +9,8 @@ using Microsoft.AspNetCore.Mvc;
 using Novell.Directory.Ldap;
 using System.Data;
 using System.Security.Authentication;
-using System.Text;
 using System.Security.Cryptography;
+using System.Text;
 
 namespace FWO.Middleware.Server.Controllers
 {
@@ -206,6 +207,43 @@ namespace FWO.Middleware.Server.Controllers
                 return Ok(newTokens);
             }
             catch(Exception ex)
+            {
+                Log.WriteError("Token Refresh", "Failed to refresh token", ex);
+                return BadRequest(ex.Message);
+            }
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="request"></param>
+        /// <returns></returns>
+        [HttpPost("Revoke")]
+        public async Task<ActionResult> RevokeToken([FromBody] RefreshTokenRequest request)
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(request.RefreshToken))
+                {
+                    return BadRequest("Refresh token is required");
+                }
+
+                AuthManager authManager = new(jwtWriter, ldaps, apiConnection);
+
+                RefreshTokenInfo? tokenInfo = await authManager.ValidateRefreshToken(request.RefreshToken);
+
+                if (tokenInfo == null)
+                {
+                    return Unauthorized("Invalid or expired refresh token");
+                }
+
+                await authManager.RevokeRefreshToken(request.RefreshToken);
+
+                Log.WriteInfo("Token Refresh", $"Successfully revoked refresh token");
+
+                return Ok();
+            }
+            catch (Exception ex)
             {
                 Log.WriteError("Token Refresh", "Failed to refresh token", ex);
                 return BadRequest(ex.Message);
@@ -605,11 +643,12 @@ namespace FWO.Middleware.Server.Controllers
         {
             UiUserHandler uiUserHandler = new(jwtWriter.CreateJWTMiddlewareServer());
 
-            TimeSpan accessLifetime = accessTokenLifetime ?? TimeSpan.FromMinutes(await uiUserHandler.GetExpirationTime());
+            TimeSpan accessLifetime = accessTokenLifetime ?? TimeSpan.FromHours(await uiUserHandler.GetExpirationTime(nameof(ConfigData.AccessTokenLifetimeHours)));
             string accessToken = await jwtWriter.CreateJWT(user, accessLifetime);
 
             string refreshToken = JwtWriter.GenerateRefreshToken();
-            DateTime refreshExpiry = DateTime.UtcNow.AddDays(7);
+            int refreshTokenLifetimeDays = await uiUserHandler.GetExpirationTime(nameof(ConfigData.RefreshTokenLifetimeDays));
+            DateTime refreshExpiry = DateTime.UtcNow.AddDays(refreshTokenLifetimeDays);
 
             await StoreRefreshToken(user?.DbId ?? 0, refreshToken, refreshExpiry);
 

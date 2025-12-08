@@ -7,7 +7,7 @@ from fwo_base import write_native_config_to_file
 from fw_modules.fortiadom5ff import fmgr_getter
 from fwo_log import FWOLogger
 from model_controllers.fwconfigmanagerlist_controller import FwConfigManagerListController
-from model_controllers.fwconfig_normalized_controller import FwConfigNormalizedController
+from utils.conversion_utils import convert_list_to_dict
 from models.fwconfigmanager import FwConfigManager
 from fw_modules.fortiadom5ff.fmgr_network import normalize_network_objects
 from fw_modules.fortiadom5ff.fmgr_service import normalize_service_objects
@@ -131,9 +131,9 @@ def normalize_config(native_config: dict[str,Any]) -> FwConfigManagerListControl
 
         normalized_config = FwConfigNormalized(
             action=ConfigAction.INSERT, 
-            network_objects=FwConfigNormalizedController.convert_list_to_dict(normalized_config_adom.get('network_objects', []), 'obj_uid'),
-            service_objects=FwConfigNormalizedController.convert_list_to_dict(normalized_config_adom.get('service_objects', []), 'svc_uid'),
-            zone_objects=FwConfigNormalizedController.convert_list_to_dict(normalized_config_adom.get('zone_objects', []), 'zone_name'),
+            network_objects=convert_list_to_dict(normalized_config_adom.get('network_objects', []), 'obj_uid'),
+            service_objects=convert_list_to_dict(normalized_config_adom.get('service_objects', []), 'svc_uid'),
+            zone_objects=convert_list_to_dict(normalized_config_adom.get('zone_objects', []), 'zone_name'),
             rulebases=normalized_config_adom.get('policies', []),
             gateways=normalized_config_adom.get('gateways', [])
         )

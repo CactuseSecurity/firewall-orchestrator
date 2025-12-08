@@ -11,7 +11,7 @@ from models.rule import Rule
 from models.rule_metadatum import RuleMetadatum
 from models.rulebase import Rulebase, RulebaseForImport
 from model_controllers.import_state_controller import ImportStateController
-from model_controllers.fwconfig_normalized_controller import FwConfigNormalized
+from models.fwconfig_normalized import FwConfigNormalized
 from fwo_log import ChangeLogger, FWOLogger
 from datetime import datetime
 from models.rule_from import RuleFrom

@@ -4,11 +4,9 @@ from fwo_log import FWOLogger
 from model_controllers.fwconfig_import import FwConfigImport
 from model_controllers.import_state_controller import ImportStateController
 from model_controllers.fwconfigmanagerlist_controller import FwConfigManagerListController
-from model_controllers.fwconfig_normalized_controller import FwConfigNormalizedController
 from model_controllers.fwconfigmanager_controller import FwConfigManager
 from model_controllers.fwconfig_import_object import FwConfigImportObject
 from models.fwconfig_normalized import FwConfigNormalized
-from fwo_base import ConfFormat
 from models.rulebase import Rulebase
 from models.networkobject import NetworkObject
 from models.gateway import Gateway
@@ -21,7 +19,7 @@ from fwo_exceptions import FwoImporterErrorInconsistencies
 class FwConfigImportCheckConsistency(FwConfigImport):
     issues: dict[str, Any] = {}
     maps: FwConfigImportObject # = FwConfigImportObject()
-    config: FwConfigNormalizedController = FwConfigNormalizedController(ConfFormat.NORMALIZED, FwConfigNormalized())
+    config: FwConfigNormalized = FwConfigNormalized()
 
     # merges all configs in the set together to prepare for consistency checks
     def __init__(self, import_details: ImportStateController, config_list: FwConfigManagerListController):

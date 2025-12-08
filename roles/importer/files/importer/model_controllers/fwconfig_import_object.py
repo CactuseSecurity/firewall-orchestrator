@@ -6,7 +6,7 @@ from typing import Any
 
 from fwo_log import ChangeLogger, FWOLogger
 from model_controllers.import_state_controller import ImportStateController
-from model_controllers.fwconfig_normalized_controller import FwConfigNormalized
+from models.fwconfig_normalized import FwConfigNormalized
 from models.networkobject import NetworkObjectForImport
 from models.fwconfigmanager import FwConfigManager
 from models.serviceobject import ServiceObjectForImport

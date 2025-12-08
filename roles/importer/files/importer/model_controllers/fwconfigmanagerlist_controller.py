@@ -9,7 +9,7 @@ from fwo_const import IMPORT_TMP_PATH
 from model_controllers.import_state_controller import ImportStateController
 from models.fwconfigmanagerlist import FwConfigManagerList
 from models.fwconfigmanager import FwConfigManager
-from model_controllers.fwconfig_controller import FwoEncoder
+from roles.importer.files.importer.model_controllers.fwconfig_json_encoder import FwConfigJsonEncoder
 from fwo_base import ConfFormat
 
 """
@@ -23,7 +23,7 @@ class FwConfigManagerListController(FwConfigManagerList):
     def to_json_string(self, pretty_print: bool=False):
         json_dict = self.model_dump(by_alias=True)
         if pretty_print:
-            return json.dumps(json_dict, indent=2, cls=FwoEncoder)
+            return json.dumps(json_dict, indent=2, cls=FwConfigJsonEncoder)
         else:
             return json.dumps(json_dict)
         

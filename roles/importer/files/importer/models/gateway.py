@@ -1,3 +1,4 @@
+from typing import Any
 from pydantic import BaseModel
 from models.rulebase_link import RulebaseLinkUidBased
 
@@ -15,8 +16,8 @@ Gateway
 class Gateway(BaseModel):
     Uid: str|None = None
     Name: str|None = None
-    Routing: list[dict] = []
-    Interfaces: list[dict]  = []
+    Routing: list[dict[str, Any]] = []
+    Interfaces: list[dict[str, Any]]  = []
     RulebaseLinks: list[RulebaseLinkUidBased] = []
     GlobalPolicyUid: str|None = None
     EnforcedPolicyUids: list[str]|None = []

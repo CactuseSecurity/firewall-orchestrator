@@ -10,12 +10,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "importer"))
 
 from model_controllers.fwconfig_import_rule import FwConfigImportRule
 from models.rulebase import Rulebase
-from models.rule import Rule
-from services.enums import Lifetime, Services
 from test.mocking.mock_import_state import MockImportStateController
 from fwo_base import init_service_provider
-from services.service_provider import ServiceProvider
-from services.global_state import GlobalState
 
 class MockFwConfigImportRule(FwConfigImportRule):
     """
@@ -31,7 +27,7 @@ class MockFwConfigImportRule(FwConfigImportRule):
 
         service_provider = init_service_provider()
         self._import_details = MockImportStateController(stub_setCoreData=True)
-        service_provider.get_service(Services.GLOBAL_STATE).import_state = self._import_details
+        service_provider.get_global_state().import_state = self._import_details
 
         self._stub_markRulesRemoved = True
         self._stub_getRules = False
@@ -193,7 +189,7 @@ class MockFwConfigImportRule(FwConfigImportRule):
         return changes, collectedRemovedRuleIds
 
 
-    def getRules(self, ruleUids: list[str]) -> list[Rulebase]:
+    def get_rules(self, ruleUids: list[str]) -> list[Rulebase]:
         """
             Simulates returning rules by UID. Delegates to base if not stubbed.
 
@@ -207,12 +203,12 @@ class MockFwConfigImportRule(FwConfigImportRule):
         rulebases: list[Rulebase] = []
 
         if not self.stub_getRules:
-            rulebases = super().getRules(ruleUids)
+            rulebases = super().get_rules(ruleUids)
 
         return rulebases
 
 
-    def addNewRuleMetadata(self, newRules: list[Rulebase]) -> tuple[int, list[int]]:
+    def add_new_rule_metadata(self, newRules: list[Rulebase]) -> tuple[int, list[int]]:
         """
             Simulates adding metadata for new rules. Delegates to base if not stubbed.
 
@@ -227,7 +223,7 @@ class MockFwConfigImportRule(FwConfigImportRule):
         newRuleIds: list[int] = []
 
         if not self.stub_addNewRuleMetadata:
-            changes, newRuleIds = super().addNewRuleMetadata(newRules)
+            changes, newRuleIds = super().add_new_rule_metadata(newRules)
 
         return changes, newRuleIds
 

@@ -1,10 +1,9 @@
 
-from fwo_log import getFwoLogger
+from fwo_log import FWOLogger
 import sys, json
-from fwo_const import importer_pwd_file
+from fwo_const import IMPORTER_PWD_FILE
 
-def readConfig(fwo_config_filename='/etc/fworch/fworch.json'):
-    logger = getFwoLogger()
+def read_config(fwo_config_filename: str = '/etc/fworch/fworch.json') -> dict[str, str | int | None]:
     try:
         # read fwo config (API URLs)
         with open(fwo_config_filename, "r") as fwo_config:
@@ -15,22 +14,22 @@ def readConfig(fwo_config_filename='/etc/fworch/fworch.json'):
         fwo_major_version = int(fwo_version.split('.')[0])
 
         # read importer password from file
-        with open(importer_pwd_file, 'r') as file:
-            importerPwd = file.read().replace('\n', '')
+        with open(IMPORTER_PWD_FILE, 'r') as file:
+            importer_pwd = file.read().replace('\n', '')
 
     except KeyError as e:
-        logger.error("config key not found in "+ fwo_config_filename + ": " + e.args[0])
+        FWOLogger.error("config key not found in "+ fwo_config_filename + ": " + e.args[0])
         sys.exit(1)
     except FileNotFoundError as e:
-        logger.error("config file not found or unable to access: "+ fwo_config_filename)
+        FWOLogger.error("config file not found or unable to access: "+ fwo_config_filename)
         sys.exit(1)
     except Exception:
-        logger.error("unspecified error occurred while trying to read config file: "+ fwo_config_filename)
+        FWOLogger.error("unspecified error occurred while trying to read config file: "+ fwo_config_filename)
         sys.exit(1)
-    config = {
+    config: dict[str, str | int | None] = {
         "fwo_major_version": fwo_major_version, 
         "user_management_api_base_url": user_management_api_base_url, 
         "fwo_api_base_url": fwo_api_base_url,
-        "importerPassword": importerPwd
+        "importerPassword": importer_pwd
     }
     return config

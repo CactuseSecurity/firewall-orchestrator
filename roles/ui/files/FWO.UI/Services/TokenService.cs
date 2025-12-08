@@ -50,7 +50,7 @@ namespace FWO.Ui.Services
         {
             await Initialize();
 
-            if (currentTokenPair is null || string.IsNullOrEmpty(currentTokenPair?.AccessToken))
+            if (currentTokenPair is null || string.IsNullOrEmpty(currentTokenPair.AccessToken))
             {
                 return true;
             }

@@ -21,6 +21,7 @@ class ImportState():
     data_retention_days: int
     days_since_last_full_import: int
     last_full_import_id: int
+    last_full_import_date: str | None = None
     last_successful_import: str | None = None
     is_full_import: bool
     is_initial_import: bool = False

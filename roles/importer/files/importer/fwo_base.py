@@ -239,7 +239,7 @@ def compute_min_moves(source: list[Any], target: list[Any]) -> dict[str, Any]:
     }
 
 
-def write_native_config_to_file(import_state: ImportState, config_native: dict[str, Any] | None) -> None:
+def write_native_config_to_file(import_state: 'ImportState', config_native: dict[str, Any] | None) -> None:
     from fwo_const import IMPORT_TMP_PATH
     if FWOLogger.is_debug_level(7):
         debug_start_time = int(time.time())

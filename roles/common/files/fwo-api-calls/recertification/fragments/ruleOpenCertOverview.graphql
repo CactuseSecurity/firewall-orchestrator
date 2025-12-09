@@ -16,11 +16,8 @@ fragment ruleOpenCertOverview on rule {
     rule_first_hit
     rule_last_hit
     rule_last_modified
-    rule_last_certified
-    rule_last_certifier_dn
-    rule_to_be_removed
-    rule_decert_date
-    rule_recertification_comment
+    created_import { start_time }
+    last_modified_import { start_time }
     recertification: recertifications (where: { owner: $ownerWhere, recert_date: {_is_null: true}, next_recert_date: {_lte: $refdate1}}, order_by: { owner: { name: asc }}) {
       recert_date
       recertified

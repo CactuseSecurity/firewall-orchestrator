@@ -127,10 +127,10 @@ Alter table "rule_from" add  foreign key ("user_id") references "usr" ("user_id"
 
 -- Alter table "rule_metadata" add constraint "rule_metadata_device_dev_id_f_key"
 --     foreign key ("dev_id") references "device" ("dev_id") on update restrict on delete cascade;
-Alter table "rule_metadata" add constraint "rule_metadata_rule_last_certifier_uiuser_uiuser_id_f_key"
-  foreign key ("rule_last_certifier") references "uiuser" ("uiuser_id") on update restrict on delete cascade;
-Alter table "rule_metadata" add constraint "rule_metadata_rule_owner_uiuser_uiuser_id_f_key"
-  foreign key ("rule_owner") references "uiuser" ("uiuser_id") on update restrict on delete cascade;
+Alter table "rule_metadata" add constraint "rule_metadata_rule_created_import_control_control_id_f_key"
+  foreign key ("rule_created") references "import_control" ("control_id") on update restrict on delete restrict;
+Alter table "rule_metadata" add constraint "rule_metadata_rule_last_modified_import_control_control_id_f_key"
+  foreign key ("rule_last_modified") references "import_control" ("control_id") on update restrict on delete restrict;
 ALTER TABLE rule_metadata ADD CONSTRAINT rule_metadata_mgm_id_management_id_fk FOREIGN KEY (mgm_id) REFERENCES management(mgm_id)
 ON update restrict on delete cascade;
 

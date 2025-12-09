@@ -206,7 +206,7 @@
                 <Detail Title="@(userConfig.GetText("first_hit"))" Data="@context.DataObject.Metadata?.FirstHit?.ToString()" />
                 <Detail Title="@(userConfig.GetText("last_hit"))" Data="@context.DataObject.Metadata?.LastHit?.ToString()" />
                 <Detail Title="@(userConfig.GetText("last_certify_date"))" Data="@context.DataObject.Metadata?.LastCertified?.ToString()" />
-                <Detail Title="@(userConfig.GetText("last_recertifier"))" Data="@context.DataObject.Metadata?.LastCertifierDn?.ToString()" />
+                <Detail Title="@(userConfig.GetText("last_recertifier"))" Data="@context.DataObject.Metadata?.LastCertifierName?.ToString()" />
                 <Detail Title="@(userConfig.GetText("decert_date"))" Data="@context.DataObject.Metadata?.DecertificationDate?.ToString()" />
                 <Detail Title="@(userConfig.GetText("recert_comment"))" Data="@context.DataObject.Metadata?.Comment?.ToString()" />
                 <Detail Title="@(userConfig.GetText("recert_history"))" Data="@(context.DataObject.Metadata?.RecertHistory.Count > 0 ? ":" : "")" />

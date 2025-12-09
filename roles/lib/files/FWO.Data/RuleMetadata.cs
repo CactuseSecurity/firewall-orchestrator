@@ -1,5 +1,8 @@
+using System.Linq;
 using System.Text.Json.Serialization;
 using Newtonsoft.Json;
+using NewtonsoftJsonIgnore = Newtonsoft.Json.JsonIgnoreAttribute;
+using SystemTextJsonIgnore = System.Text.Json.Serialization.JsonIgnoreAttribute;
 
 namespace FWO.Data
 {
@@ -9,31 +12,22 @@ namespace FWO.Data
         public long Id { get; set; }
 
         [JsonProperty("rule_created"), JsonPropertyName("rule_created")]
-        public DateTime? Created { get; set; }
+        public long? CreatedImportId { get; set; }
+
+        [JsonProperty("created_import"), JsonPropertyName("created_import")]
+        public ImportControl? CreatedImport { get; set; }
 
         [JsonProperty("rule_last_modified"), JsonPropertyName("rule_last_modified")]
-        public DateTime? LastModified { get; set; }
+        public long? LastModifiedImportId { get; set; }
+
+        [JsonProperty("last_modified_import"), JsonPropertyName("last_modified_import")]
+        public ImportControl? LastModifiedImport { get; set; }
 
         [JsonProperty("rule_first_hit"), JsonPropertyName("rule_first_hit")]
         public DateTime? FirstHit { get; set; }
 
         [JsonProperty("rule_last_hit"), JsonPropertyName("rule_last_hit")]
         public DateTime? LastHit { get; set; }
-
-        [JsonProperty("rule_last_certified"), JsonPropertyName("rule_last_certified")]
-        public DateTime? LastCertified { get; set; }
-
-        [JsonProperty("rule_last_certifier_dn"), JsonPropertyName("rule_last_certifier_dn")]
-        public string LastCertifierDn { get; set; } = "";
-
-        [JsonProperty("rule_to_be_removed"), JsonPropertyName("rule_to_be_removed")]
-        public bool ToBeRemoved { get; set; }
-
-        [JsonProperty("rule_decert_date"), JsonPropertyName("rule_decert_date")]
-        public DateTime? DecertificationDate { get; set; }
-
-        [JsonProperty("rule_recertification_comment"), JsonPropertyName("rule_recertification_comment")]
-        public string Comment { get; set; } = "";
 
         [JsonProperty("recertification"), JsonPropertyName("recertification")]
         public List<Recertification> RuleRecertification { get; set; } = [];
@@ -47,6 +41,26 @@ namespace FWO.Data
         [JsonProperty("rules"), JsonPropertyName("rules")]
         public Rule[] Rules { get; set; } = [];
 
+        [SystemTextJsonIgnore, NewtonsoftJsonIgnore]
+        public DateTime? Created => CreatedImport?.StartTime;
+
+        [SystemTextJsonIgnore, NewtonsoftJsonIgnore]
+        public DateTime? LastModified => LastModifiedImport?.StartTime;
+
+        [SystemTextJsonIgnore, NewtonsoftJsonIgnore]
+        public string Comment => RecertHistory.OrderByDescending(r => r.RecertDate).FirstOrDefault()?.Comment ?? "";
+
+        [SystemTextJsonIgnore, NewtonsoftJsonIgnore]
+        public DateTime? LastCertified => RecertHistory.Where(r => r.Recertified)
+            .OrderByDescending(r => r.RecertDate).FirstOrDefault()?.RecertDate;
+
+        [SystemTextJsonIgnore, NewtonsoftJsonIgnore]
+        public DateTime? DecertificationDate => RecertHistory.Where(r => !r.Recertified)
+            .OrderByDescending(r => r.RecertDate).FirstOrDefault()?.RecertDate;
+
+        [SystemTextJsonIgnore, NewtonsoftJsonIgnore]
+        public bool ToBeRemoved { get; set; }
+
         public DateTime NextRecert { get; set; }
 
         public string LastCertifierName { get; set; } = "";
@@ -57,20 +71,15 @@ namespace FWO.Data
 
         public void UpdateRecertPeriods(int recertificationPeriod, int recertificationNoticePeriod)
         {
-            LastCertifierName = string.IsNullOrEmpty(LastCertifierDn) ? "-" : new DistName(LastCertifierDn).UserName;
+            Recertification? latestRecert = RecertHistory.OrderByDescending(r => r.RecertDate).FirstOrDefault();
+            LastCertifierName = latestRecert?.UserDn != null ? new DistName(latestRecert.UserDn).UserName : "-";
 
-            if (LastCertified != null)
-            {
-                NextRecert = ((DateTime)LastCertified).AddDays(recertificationPeriod);
-            }
-            else if (Created != null)
-            {
-                NextRecert = ((DateTime)Created).AddDays(recertificationPeriod);
-            }
-            else
-            {
-                NextRecert = DateTime.Now;
-            }
+            DateTime? nextRecertFromData = RuleRecertification.Where(r => r.NextRecertDate != null)
+                .Select(r => r.NextRecertDate)
+                .OrderBy(d => d)
+                .FirstOrDefault();
+
+            NextRecert = nextRecertFromData ?? DateTime.Now;
 
             if (NextRecert <= DateTime.Now)
             {

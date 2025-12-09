@@ -41,6 +41,7 @@ def main(
     suppress_certificate_warnings: bool = False,
 ):
     FWOLogger(debug_level)
+    FWOLogger.debug("debug level set to " + str(debug_level))
 
     service_provider = init_service_provider()
     fwo_config = service_provider.get_fwo_config()

@@ -45,7 +45,7 @@ def cp_api_call(url: str, command: str, json_payload: dict[str, Any], sid: str |
             )
         raise FwApiError(exception_text)
     if show_progress:
-        pass
+        print(".", end="", flush=True)
 
     try:
         json_response = r.json()
@@ -394,7 +394,6 @@ def get_rulebases(
         is_global,
         policy_rulebases_uid_list,
     )
-
 
 
 def get_uid_of_rulebase(

@@ -1,3 +1,4 @@
+import json
 import re
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -38,6 +39,7 @@ from fw_modules.ciscoasa9.asa_parser_functions import (
     parse_service_object_block,
     parse_service_object_group_block,
 )
+from fwo_log import FWOLogger
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -245,7 +247,7 @@ def _handle_access_list_entry(match: re.Match[str], line: str, lines: list[str],
         entry = parse_access_list_entry(line, state.protocol_groups, state.svc_objects, state.svc_obj_groups)
         state.access_lists_map.setdefault(entry.acl_name, []).append(entry)
     except Exception:
-        pass
+        FWOLogger.warning(f"Failed to parse access-list entry: {line}")
     return i + 1
 
 
@@ -384,3 +386,4 @@ if __name__ == "__main__":
     config = parse_asa_config(text)
 
     # You can dump the entire parsed config as JSON
+    FWOLogger.debug(json.dumps(config.model_dump(exclude_none=True)["names"], indent=2))

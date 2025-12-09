@@ -9,6 +9,6 @@ class RuleTo(BaseModel):
     obj_id: int
     rt_create: int
     rt_last_seen: int
-    removed: int|None = None
-    user_id: int|None = None
+    removed: int | None = None
+    user_id: int | None = None
     negated: bool = False

@@ -7,8 +7,8 @@ namespace FWO.Test.DataGenerators
     /// </summary>
     public class TokenTestDataBuilder
     {
-        private string username = "testuser";
-        private string password = "testpassword";
+        private string? username;
+        private string? password;
         private string? targetUserName;
         private TimeSpan? lifetime;
 
@@ -46,14 +46,29 @@ namespace FWO.Test.DataGenerators
         }
 
         public AuthenticationTokenGetForUserParameters BuildGetForUserParameters(
-            string adminUser = "admin",
-            string adminPass = "adminpassword")
+            string? adminUser = null,
+            string? adminPass = null)
         {
+            if ((adminUser ?? username) is null)
+            {
+                throw new InvalidOperationException("AdminUsername must not be null.");
+            }
+
+            if ((adminPass ?? password) is null)
+            {
+                throw new InvalidOperationException("AdminPassword must not be null.");
+            }
+
+            if ((targetUserName ?? username) is null)
+            { 
+                throw new InvalidOperationException("TargetUserName must not be null.");
+            }
+
             return new AuthenticationTokenGetForUserParameters
             {
-                AdminUsername = adminUser,
-                AdminPassword = adminPass,
-                TargetUserName = targetUserName ?? username,
+                AdminUsername = adminUser ?? username!,
+                AdminPassword = adminPass ?? password!,
+                TargetUserName = targetUserName ?? username!,
                 Lifetime = lifetime ?? TimeSpan.FromHours(24)
             };
         }

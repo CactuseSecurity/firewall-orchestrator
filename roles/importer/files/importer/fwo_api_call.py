@@ -71,7 +71,7 @@ class FwoApiCall(FwoApi):
         return None
 
     # this mgm field is used by mw dailycheck scheduler
-    def log_import_attempt(self, mgm_id: int, successful: bool = False):
+    def log_import_attempt(self, mgm_id: int, successful: bool):
         now = datetime.datetime.now().isoformat()
         query_variables: dict[str, Any] = {"mgmId": mgm_id, "timeStamp": now, "success": successful}
         mgm_mutation = FwoApi.get_graphql_code(
@@ -79,9 +79,7 @@ class FwoApiCall(FwoApi):
         )
         return self.call(mgm_mutation, query_variables=query_variables)
 
-    def set_import_lock(
-        self, mgm_details: ManagementController, is_full_import: int = False, is_initial_import: int = False
-    ) -> int:
+    def set_import_lock(self, mgm_details: ManagementController, is_full_import: int, is_initial_import: int) -> int:
         import_id = -1
         mgm_id = mgm_details.mgm_id
         try:  # set import lock
@@ -143,7 +141,7 @@ class FwoApiCall(FwoApi):
             changes_in_import = 0
         return changes_in_import
 
-    def unlock_import(self, import_state: "ImportState", success: bool = True):
+    def unlock_import(self, import_state: "ImportState", success: bool):
         import_id = import_state.import_id
         mgm_id = import_state.mgm_details.mgm_id
         import_stats = import_state.stats
@@ -170,7 +168,7 @@ class FwoApiCall(FwoApi):
             FWOLogger.exception("failed to unlock import for management id " + str(mgm_id) + ": " + str(e))
 
     #   currently temporarily only working with single chunk
-    def import_json_config(self, import_state: "ImportState", config: FwConfigNormalized, start_import: bool = True):
+    def import_json_config(self, import_state: "ImportState", config: FwConfigNormalized, start_import: bool):
         import_mutation = FwoApi.get_graphql_code([fwo_const.GRAPHQL_QUERY_PATH + "import/addImportConfig.graphql"])
 
         try:

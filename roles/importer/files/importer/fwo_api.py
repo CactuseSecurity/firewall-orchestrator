@@ -31,7 +31,10 @@ class FwoApi:
         self.query_analyzer = QueryAnalyzer()
 
     def call(
-        self, query: str, query_variables: dict[str, list[Any] | Any] | None = None, analyze_payload: bool = False
+        self,
+        query: str,
+        query_variables: dict[str, list[Any] | Any] | None = None,
+        analyze_payload: bool = False,  # noqa: FBT002
     ) -> dict[str, Any]:
         """
         The standard FWO API call.
@@ -121,7 +124,7 @@ class FwoApi:
                     "fwo_api: error during login to url: " + str(user_management_api_base_url) + " with user " + user
                 ) from None
 
-            if response.status_code == 200:
+            if response.status_code == 200:  # noqa: PLR2004
                 return response.text
             error_txt = (
                 "fwo_api: ERROR: did not receive a JWT during login"
@@ -176,11 +179,11 @@ class FwoApi:
                     raise FwoImporterError(f"Unsupported HTTP method: {method}")
 
                 # Check for HTTP errors
-                if response.status_code == 401:
+                if response.status_code == 401:  # noqa: PLR2004
                     raise FwoApiLoginFailed(f"Authentication failed for endpoint: {endpoint}")
-                if response.status_code == 503:
+                if response.status_code == 503:  # noqa: PLR2004
                     raise FwoApiServiceUnavailable("FWO Middleware API HTTP error 503 (middleware died?)")
-                if response.status_code == 502:
+                if response.status_code == 502:  # noqa: PLR2004
                     raise FwoApiTimeout("FWO Middleware API HTTP error 502 (might have reached timeout)")
 
                 response.raise_for_status()
@@ -209,9 +212,9 @@ class FwoApi:
             2,
         )
         if hasattr(exception, "response") and exception.response is not None:
-            if exception.response.status_code == 503:
+            if exception.response.status_code == 503:  # noqa: PLR2004
                 raise FwoApiServiceUnavailable("FWO API HTTP error 503 (FWO API died?)")
-            if exception.response.status_code == 502:
+            if exception.response.status_code == 502:  # noqa: PLR2004
                 raise FwoApiTimeout(
                     f"FWO API HTTP error 502 (might have reached timeout of {int(FWO_API_HTTP_IMPORT_TIMEOUT) / 60} minutes)"
                 )
@@ -377,13 +380,13 @@ class FwoApi:
 
         return r.json()
 
-    def show_api_call_info(self, url: str, query: dict[str, Any], headers: dict[str, Any], type: str = "debug"):
+    def show_api_call_info(self, url: str, query: dict[str, Any], headers: dict[str, Any], typ: str = "debug"):
         max_query_size_to_display = 1000
         query_string = json.dumps(query, indent=2)
         header_string = json.dumps(headers, indent=2)
         query_size = len(query_string)
 
-        result = "error while sending api_call to url " if type == "error" else "successful FWO API call to url "
+        result = "error while sending api_call to url " if typ == "error" else "successful FWO API call to url "
         result += str(url) + " with payload \n"
         if query_size < max_query_size_to_display:
             result += query_string
@@ -422,7 +425,7 @@ class FwoApi:
         query: dict[str, Any],
         headers: dict[str, Any] | MutableMapping[str, str | bytes],
         typ: str = "debug",
-        show_query_info: bool = False,
+        show_query_info: bool = False,  # noqa: FBT002
     ):
         max_query_size_to_display = 1000
         query_string = json.dumps(query, indent=2)

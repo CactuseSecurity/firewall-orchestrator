@@ -76,7 +76,17 @@ ignore = [
     "PLR0913",
     "PT009", # TODO: Disable assertTrue
     "PLR0915",
-    "EM102"
+    "EM102",
+    "FBT001",
+    "BLE001",
+    "DTZ005",
+    "TRY301",
+    "D417",
+    "PLR0912",
+    "B904",
+    "PTH123",
+    "PLR0911",
+    
 ]
 
 # Allow fix for all enabled rules (when `--fix`) is provided.

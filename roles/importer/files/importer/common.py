@@ -4,6 +4,9 @@ import traceback
 from pathlib import Path
 from socket import gethostname
 
+from fw_modules.checkpointR8x.fwcommon import CheckpointR8xCommon
+from fw_modules.ciscoasa9.fwcommon import CiscoAsa9Common
+from fw_modules.fortiadom5ff.fwcommon import FortiAdom5ffCommon
 from fwo_const import IMPORTER_BASE_DIR
 from fwo_log import FWOLogger
 from model_controllers.fwconfig_import_rollback import FwConfigImportRollback
@@ -166,9 +169,13 @@ def handle_unexpected_exception(
     config_importer: FwConfigImport | None = None,
     e: Exception | None = None,
 ):
-    if "importState" in locals() and import_state is not None:
-        if "configImporter" in locals() and config_importer is not None:
-            roll_back_exception_handler(import_state, config_importer=config_importer, exc=e)
+    if (
+        "importState" in locals()
+        and import_state is not None
+        and "configImporter" in locals()
+        and config_importer is not None
+    ):
+        roll_back_exception_handler(import_state, config_importer=config_importer, exc=e)
 
 
 def roll_back_exception_handler(
@@ -235,16 +242,10 @@ def get_module(import_state: ImportState) -> FwCommon:
     pkg_name = get_module_package_name(import_state)
     match pkg_name:
         case "ciscoasa9":
-            from fw_modules.ciscoasa9.fwcommon import CiscoAsa9Common
-
             fw_module = CiscoAsa9Common()
         case "fortiadom5ff":
-            from fw_modules.fortiadom5ff.fwcommon import FortiAdom5ffCommon
-
             fw_module = FortiAdom5ffCommon()
         case "checkpointR8x":
-            from fw_modules.checkpointR8x.fwcommon import CheckpointR8xCommon
-
             fw_module = CheckpointR8xCommon()
         case _:
             raise FwoImporterError(f"import_management - no fwcommon module found for package name {pkg_name}")

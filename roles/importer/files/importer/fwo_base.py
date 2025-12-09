@@ -23,7 +23,7 @@ from services.service_provider import ServiceProvider
 from services.uid2id_mapper import Uid2IdMapper
 
 
-def sanitize(content: Any, lower: bool = False) -> None | str:
+def sanitize(content: Any, lower: bool = False) -> None | str:  # noqa: FBT002
     if content is None:
         return None
     result = str(content)
@@ -39,14 +39,12 @@ def extend_string_list(list_string: str | None, src_dict: dict[str, list[str]], 
         list_string = ""
     if list_string == "":
         result = delimiter.join(src_dict[key]) if key in src_dict else ""
-    #            fwo_api.create_data_issue(fwo_api_base_url, jwt, import_id, key)
     elif key in src_dict:
         old_list = list_string.split(delimiter)
         combined_list = old_list + src_dict[key]
         result = delimiter.join(combined_list)
     else:
         result = list_string
-    #            fwo_api.create_data_issue(fwo_api_base_url, jwt, import_id, key)
     return result
 
 

@@ -1,8 +1,22 @@
 import re
-from fw_modules.ciscoasa9.asa_models import AccessListEntry,\
-    AsaNetworkObject, AsaNetworkObjectGroup, AsaNetworkObjectGroupMember, AsaServiceObject, AsaServiceObjectGroup,\
-    ClassMap, DnsInspectParameters, EndpointKind, InspectionAction, Interface,\
-    NatRule, PolicyClass, PolicyMap, AsaProtocolGroup
+
+from fw_modules.ciscoasa9.asa_models import (
+    AccessListEntry,
+    AsaNetworkObject,
+    AsaNetworkObjectGroup,
+    AsaNetworkObjectGroupMember,
+    AsaProtocolGroup,
+    AsaServiceObject,
+    AsaServiceObjectGroup,
+    ClassMap,
+    DnsInspectParameters,
+    EndpointKind,
+    InspectionAction,
+    Interface,
+    NatRule,
+    PolicyClass,
+    PolicyMap,
+)
 from fwo_log import FWOLogger
 
 
@@ -15,6 +29,7 @@ def clean_lines(text: str) -> list[str]:
             continue
         lines.append(line)
     return lines
+
 
 def consume_block(lines: list[str], start_idx: int) -> tuple[list[str], int]:
     """
@@ -36,6 +51,7 @@ def consume_block(lines: list[str], start_idx: int) -> tuple[list[str], int]:
         # another directive starts; end this block
         break
     return block, i
+
 
 def parse_endpoint(tokens: list[str]) -> tuple[EndpointKind, int]:
     """
@@ -60,8 +76,11 @@ def parse_endpoint(tokens: list[str]) -> tuple[EndpointKind, int]:
     if t0 == "object-group" and len(tokens) >= 2:
         return EndpointKind(kind="object-group", value=tokens[1]), 2
     # subnet notation: ip + mask
-    if len(tokens) >= 2 and re.fullmatch(r"\d{1,3}(?:\.\d{1,3}){3}", tokens[0]) and \
-       re.fullmatch(r"\d{1,3}(?:\.\d{1,3}){3}", tokens[1]):
+    if (
+        len(tokens) >= 2
+        and re.fullmatch(r"\d{1,3}(?:\.\d{1,3}){3}", tokens[0])
+        and re.fullmatch(r"\d{1,3}(?:\.\d{1,3}){3}", tokens[1])
+    ):
         return EndpointKind(kind="subnet", value=tokens[0], mask=tokens[1]), 2
     # fallback
     return EndpointKind(kind="any", value="any"), 1
@@ -81,7 +100,7 @@ def _find_line_with_prefix(block: list[str], prefix: str, only_first: bool = Fal
             if only_first:
                 v = s.split()[1]
             else:
-                v = s[len(prefix):].strip()
+                v = s[len(prefix) :].strip()
             block.remove(b)
     return v
 
@@ -120,8 +139,14 @@ def parse_interface_block(block: list[str]) -> Interface:
     nameif = nameif or if_name
 
     return Interface(
-        name=if_name, nameif=nameif, bridge_group=br, security_level=sec,
-        ip_address=ip, subnet_mask=mask, additional_settings=blocks, description=desc
+        name=if_name,
+        nameif=nameif,
+        bridge_group=br,
+        security_level=sec,
+        ip_address=ip,
+        subnet_mask=mask,
+        additional_settings=blocks,
+        description=desc,
     )
 
 
@@ -132,17 +157,30 @@ def _create_network_object_from_parts(
     mask: str | None,
     ip_range: tuple[str, str] | None,
     fqdn: str | None,
-    description: str | None
-) -> AsaNetworkObject|None:
+    description: str | None,
+) -> AsaNetworkObject | None:
     """Helper to create AsaNetworkObject from parts."""
     if host and not subnet:
-        return AsaNetworkObject(name=name, ip_address=host, ip_address_end=None, subnet_mask=None, fqdn=None, description=description)
-    elif subnet:
-        return AsaNetworkObject(name=name, ip_address=subnet, ip_address_end=None, subnet_mask=mask, fqdn=None, description=description)
-    elif ip_range:
-        return AsaNetworkObject(name=name, ip_address=ip_range[0], ip_address_end=ip_range[1], subnet_mask=None, fqdn=None, description=description)
-    elif fqdn:
-        return AsaNetworkObject(name=name, ip_address="", ip_address_end=None, subnet_mask=None, fqdn=fqdn, description=description)
+        return AsaNetworkObject(
+            name=name, ip_address=host, ip_address_end=None, subnet_mask=None, fqdn=None, description=description
+        )
+    if subnet:
+        return AsaNetworkObject(
+            name=name, ip_address=subnet, ip_address_end=None, subnet_mask=mask, fqdn=None, description=description
+        )
+    if ip_range:
+        return AsaNetworkObject(
+            name=name,
+            ip_address=ip_range[0],
+            ip_address_end=ip_range[1],
+            subnet_mask=None,
+            fqdn=None,
+            description=description,
+        )
+    if fqdn:
+        return AsaNetworkObject(
+            name=name, ip_address="", ip_address_end=None, subnet_mask=None, fqdn=fqdn, description=description
+        )
 
     FWOLogger.warning(f"Cannot create network object {name}: no valid address information provided. NAT object?")
     return None
@@ -161,11 +199,11 @@ def parse_network_object_block(block: list[str]) -> tuple[AsaNetworkObject | Non
 
     for b in block[1:]:
         s = b.strip()
-        mhost = re.match(r"^host\s+(\S+)$", s, re.I)
-        msub = re.match(r"^subnet\s+(\S+)\s+(\S+)$", s, re.I)
-        mrange = re.match(r"^range\s+(\S+)\s+(\S+)$", s, re.I)
-        mfqdn = re.match(r"^fqdn\s+v4\s+(\S+)$", s, re.I)
-        mnat  = re.match(r"^nat\s+\(([^,]+),([^)]+)\)\s+(dynamic|static)\s+(\S+)$", s, re.I)
+        mhost = re.match(r"^host\s+(\S+)$", s, re.IGNORECASE)
+        msub = re.match(r"^subnet\s+(\S+)\s+(\S+)$", s, re.IGNORECASE)
+        mrange = re.match(r"^range\s+(\S+)\s+(\S+)$", s, re.IGNORECASE)
+        mfqdn = re.match(r"^fqdn\s+v4\s+(\S+)$", s, re.IGNORECASE)
+        mnat = re.match(r"^nat\s+\(([^,]+),([^)]+)\)\s+(dynamic|static)\s+(\S+)$", s, re.IGNORECASE)
 
         if mhost:
             host = mhost.group(1)
@@ -178,8 +216,8 @@ def parse_network_object_block(block: list[str]) -> tuple[AsaNetworkObject | Non
         elif mnat:
             src_if = mnat.group(1).strip()
             dst_if = mnat.group(2).strip()
-            ntype  = mnat.group(3).lower()
-            tobj   = mnat.group(4).lower()
+            ntype = mnat.group(3).lower()
+            tobj = mnat.group(4).lower()
             if ntype == "dynamic":
                 nat_type = "dynamic"
             elif ntype == "static":
@@ -187,8 +225,11 @@ def parse_network_object_block(block: list[str]) -> tuple[AsaNetworkObject | Non
             else:
                 raise ValueError(f"Unsupported NAT type in line: {s}")
             pending_nat = NatRule(
-                object_name=obj_name, src_if=src_if, dst_if=dst_if,
-                nat_type=nat_type, translated_object=(None if tobj == "interface" else tobj)
+                object_name=obj_name,
+                src_if=src_if,
+                dst_if=dst_if,
+                nat_type=nat_type,
+                translated_object=(None if tobj == "interface" else tobj),
             )
 
     # Create network object if we have host/subnet/fqdn
@@ -201,7 +242,7 @@ def parse_network_object_block(block: list[str]) -> tuple[AsaNetworkObject | Non
         fqdn=fqdn,
         description=desc,
     )
-    
+
     return net_obj, pending_nat
 
 
@@ -213,13 +254,13 @@ def parse_network_object_group_block(block: list[str]) -> AsaNetworkObjectGroup:
 
     for b in block[1:]:
         s = b.strip()
-        mobj  = re.match(r"^network-object\s+object\s+(\S+)$", s, re.I)
-        mhost = re.match(r"^network-object\s+host\s+(\d+\.\d+\.\d+\.\d+)$", s, re.I)
-        mhostv6 = re.match(r"^network-object\s+host\s+(\S+)$", s, re.I)  # e.g. 2001:db8:abcd::1
-        msub  = re.match(r"^network-object\s+(\d+\.\d+\.\d+\.\d+)\s+(\d+\.\d+\.\d+\.\d+)$", s, re.I)
-        msubv6 = re.match(r"^network-object\s+(\S+)$", s, re.I) # e.g. 2001:db8:abcd::/40 or 2001::/12
-        mgroup = re.match(r"^group-object\s+(\S+)$", s, re.I)
-        
+        mobj = re.match(r"^network-object\s+object\s+(\S+)$", s, re.IGNORECASE)
+        mhost = re.match(r"^network-object\s+host\s+(\d+\.\d+\.\d+\.\d+)$", s, re.IGNORECASE)
+        mhostv6 = re.match(r"^network-object\s+host\s+(\S+)$", s, re.IGNORECASE)  # e.g. 2001:db8:abcd::1
+        msub = re.match(r"^network-object\s+(\d+\.\d+\.\d+\.\d+)\s+(\d+\.\d+\.\d+\.\d+)$", s, re.IGNORECASE)
+        msubv6 = re.match(r"^network-object\s+(\S+)$", s, re.IGNORECASE)  # e.g. 2001:db8:abcd::/40 or 2001::/12
+        mgroup = re.match(r"^group-object\s+(\S+)$", s, re.IGNORECASE)
+
         if mobj:
             ref = mobj.group(1)
             members.append(AsaNetworkObjectGroupMember(kind="object", value=ref))
@@ -254,10 +295,10 @@ def parse_service_object_block(block: list[str]) -> AsaServiceObject | None:
     for b in block[1:]:
         s = b.strip()
         # e.g., "service tcp destination eq 1234"
-        meq = re.match(r"^service\s+(tcp|udp|ip)\s+destination\s+eq\s+(\S+)$", s, re.I)
-        mrange = re.match(r"^service\s+(tcp|udp|ip)\s+destination\s+range\s+(\S+)\s+(\S+)$", s, re.I)
-        micmp = re.match(r"^service\s+icmp.*$", s, re.I)
-        msvc = re.match(r"^service\s+(\S+)$", s, re.I)
+        meq = re.match(r"^service\s+(tcp|udp|ip)\s+destination\s+eq\s+(\S+)$", s, re.IGNORECASE)
+        mrange = re.match(r"^service\s+(tcp|udp|ip)\s+destination\s+range\s+(\S+)\s+(\S+)$", s, re.IGNORECASE)
+        micmp = re.match(r"^service\s+icmp.*$", s, re.IGNORECASE)
+        msvc = re.match(r"^service\s+(\S+)$", s, re.IGNORECASE)
 
         if meq:
             protocol = meq.group(1).lower()
@@ -278,8 +319,7 @@ def parse_service_object_block(block: list[str]) -> AsaServiceObject | None:
 
 
 def _convert_ports_to_dicts(
-    ports_eq: list[tuple[str, str]], 
-    ports_range: list[tuple[str, tuple[str, str]]]
+    ports_eq: list[tuple[str, str]], ports_range: list[tuple[str, tuple[str, str]]]
 ) -> tuple[dict[str, list[str]], dict[str, list[tuple[str, str]]]]:
     """
     Convert port lists to dictionaries grouped by protocol.
@@ -299,15 +339,18 @@ def _convert_ports_to_dicts(
 
     return ports_eq_dict, ports_range_dict
 
-def _consume_port_objects(service_group_block: list[str], proto_mode: str) -> tuple[list[tuple[str, str]], list[tuple[str, tuple[str, str]]]]:
+
+def _consume_port_objects(
+    service_group_block: list[str], proto_mode: str
+) -> tuple[list[tuple[str, str]], list[tuple[str, tuple[str, str]]]]:
     """Helper to consume port-object lines from a service object group block."""
     ports_eq: list[tuple[str, str]] = []
     ports_range: list[tuple[str, tuple[str, str]]] = []
 
     for b in list(service_group_block):
         s = b.strip()
-        mport_eq = re.match(r"^port-object\s+eq\s+(\S+)$", s, re.I)
-        mport_range = re.match(r"^port-object\s+range\s+(\d+)\s+(\d+)$", s, re.I)
+        mport_eq = re.match(r"^port-object\s+eq\s+(\S+)$", s, re.IGNORECASE)
+        mport_range = re.match(r"^port-object\s+range\s+(\d+)\s+(\d+)$", s, re.IGNORECASE)
 
         if mport_eq:
             ports_eq.append((proto_mode, mport_eq.group(1)))
@@ -319,17 +362,24 @@ def _consume_port_objects(service_group_block: list[str], proto_mode: str) -> tu
 
     return ports_eq, ports_range
 
-def _consume_service_definitions(service_group_block: list[str]) -> tuple[list[tuple[str, str]], list[tuple[str, tuple[str, str]]], list[str]]:
+
+def _consume_service_definitions(
+    service_group_block: list[str],
+) -> tuple[list[tuple[str, str]], list[tuple[str, tuple[str, str]]], list[str]]:
     """Helper to consume service-object definitions from a service object group block."""
     ports_eq: list[tuple[str, str]] = []
     ports_range: list[tuple[str, tuple[str, str]]] = []
-    protocols: list[str] = [] # list of fully enabled protocols
+    protocols: list[str] = []  # list of fully enabled protocols
 
     for b in list(service_group_block):
         s = b.strip()
-        mproto = re.match(r"^service-object\s+(tcp|udp|icmp|tcp-udp)$", s, re.I)
-        msvc_eq = re.match(r"^service-object\s+(tcp|udp|icmp|tcp-udp)\s+(?:destination\s+)?eq\s+(\S+)$", s, re.I)
-        msvc_range = re.match(r"^service-object\s+(tcp|udp|icmp|tcp-udp)\s+(?:destination\s+)?range\s+(\S+)\s+(\S+)$", s, re.I)
+        mproto = re.match(r"^service-object\s+(tcp|udp|icmp|tcp-udp)$", s, re.IGNORECASE)
+        msvc_eq = re.match(
+            r"^service-object\s+(tcp|udp|icmp|tcp-udp)\s+(?:destination\s+)?eq\s+(\S+)$", s, re.IGNORECASE
+        )
+        msvc_range = re.match(
+            r"^service-object\s+(tcp|udp|icmp|tcp-udp)\s+(?:destination\s+)?range\s+(\S+)\s+(\S+)$", s, re.IGNORECASE
+        )
         if mproto:
             protocols.append(mproto.group(1).lower())
         elif msvc_eq:
@@ -342,14 +392,15 @@ def _consume_service_definitions(service_group_block: list[str]) -> tuple[list[t
 
     return ports_eq, ports_range, protocols
 
+
 def _consume_service_references(service_group_block: list[str]) -> list[str]:
     """Helper to consume service-object and group-object lines from a service object group block."""
     nested_refs: list[str] = []
 
     for b in service_group_block:
         s = b.strip()
-        mobj = re.match(r"^service-object\s+object\s+(\S+)$", s, re.I)
-        mgrp = re.match(r"^group-object\s+(\S+)$", s, re.I)
+        mobj = re.match(r"^service-object\s+object\s+(\S+)$", s, re.IGNORECASE)
+        mgrp = re.match(r"^group-object\s+(\S+)$", s, re.IGNORECASE)
 
         if mobj:
             nested_refs.append(mobj.group(1))
@@ -360,6 +411,7 @@ def _consume_service_references(service_group_block: list[str]) -> list[str]:
         service_group_block.remove(b)
 
     return nested_refs
+
 
 def parse_service_object_group_block(block: list[str]) -> AsaServiceObjectGroup:
     """Parse an object-group service block."""
@@ -398,7 +450,7 @@ def parse_service_object_group_block(block: list[str]) -> AsaServiceObjectGroup:
         ports_range=ports_range_dict,
         nested_refs=nested_refs,
         protocols=protocols,
-        description=desc
+        description=desc,
     )
 
 
@@ -409,9 +461,9 @@ def parse_class_map_block(block: list[str]) -> ClassMap:
 
     for b in block[1:]:
         s = b.strip()
-        mm = re.match(r"^match\s", s, re.I)
+        mm = re.match(r"^match\s", s, re.IGNORECASE)
         if mm:
-            matches.append(s[mm.end():].strip())
+            matches.append(s[mm.end() :].strip())
 
     return ClassMap(name=name, matches=matches)
 
@@ -425,9 +477,9 @@ def _parse_dns_parameters_block(block: list[str], start_idx: int) -> tuple[DnsIn
     k = start_idx + 1
     while k < len(block) and block[k].startswith("  "):  # double indent
         t = block[k].strip()
-        m1 = re.match(r"^message-length\s+maximum\s+client\s+(auto|\d+)$", t, re.I)
-        m2 = re.match(r"^message-length\s+maximum\s+(\d+)$", t, re.I)
-        m3 = re.match(r"^no\s+tcp-inspection$", t, re.I)
+        m1 = re.match(r"^message-length\s+maximum\s+client\s+(auto|\d+)$", t, re.IGNORECASE)
+        m2 = re.match(r"^message-length\s+maximum\s+(\d+)$", t, re.IGNORECASE)
+        m3 = re.match(r"^no\s+tcp-inspection$", t, re.IGNORECASE)
 
         if m1:
             v = m1.group(1).lower()
@@ -466,7 +518,7 @@ def _parse_policy_class_block(block: list[str], start_idx: int) -> tuple[PolicyC
         return None, start_idx + 1
 
     header = block[start_idx].strip()
-    mc = re.match(r"^class\s+(\S+)$", header, re.I)
+    mc = re.match(r"^class\s+(\S+)$", header, re.IGNORECASE)
     if not mc:
         return None, start_idx + 1
 
@@ -476,13 +528,10 @@ def _parse_policy_class_block(block: list[str], start_idx: int) -> tuple[PolicyC
     # collect lines under this class (1 indent)
     while idx < len(block) and block[idx].startswith(" "):
         t = block[idx].strip()
-        mi = re.match(r"^inspect\s+(\S+)(?:\s+(\S+))?$", t, re.I)
+        mi = re.match(r"^inspect\s+(\S+)(?:\s+(\S+))?$", t, re.IGNORECASE)
         if mi:
             inspections.append(
-                InspectionAction(
-                    protocol=mi.group(1).lower(),
-                    policy_map=(mi.group(2) if mi.group(2) else None)
-                )
+                InspectionAction(protocol=mi.group(1).lower(), policy_map=(mi.group(2) if mi.group(2) else None))
             )
         # ignore other class-level lines for now
         idx += 1
@@ -504,7 +553,12 @@ def parse_policy_map_block(block: list[str], pm_name: str) -> PolicyMap:
     return pm
 
 
-def _parse_access_list_entry_protocol(parts: list[str], protocol_groups: list[AsaProtocolGroup], svc_objects: list[AsaServiceObject], svc_obj_groups: list[AsaServiceObjectGroup]) -> tuple[EndpointKind, list[str]]:
+def _parse_access_list_entry_protocol(
+    parts: list[str],
+    protocol_groups: list[AsaProtocolGroup],
+    svc_objects: list[AsaServiceObject],
+    svc_obj_groups: list[AsaServiceObjectGroup],
+) -> tuple[EndpointKind, list[str]]:
     """
     Parse the protocol part of an access-list entry.
     Returns (protocol EndpointKind, remaining tokens list[str]).
@@ -563,7 +617,12 @@ def _parse_access_list_entry_dest_port(tokens: list[str], protocol: EndpointKind
     return dst_port, tokens
 
 
-def parse_access_list_entry(line: str, protocol_groups: list[AsaProtocolGroup], svc_objects: list[AsaServiceObject], svc_obj_groups: list[AsaServiceObjectGroup]) -> AccessListEntry:
+def parse_access_list_entry(
+    line: str,
+    protocol_groups: list[AsaProtocolGroup],
+    svc_objects: list[AsaServiceObject],
+    svc_obj_groups: list[AsaServiceObjectGroup],
+) -> AccessListEntry:
     """
     Parse an access-list entry line and return an AccessListEntry object.
     Handles various formats as specified in the requirements.
@@ -591,7 +650,7 @@ def parse_access_list_entry(line: str, protocol_groups: list[AsaProtocolGroup], 
     inactive = "inactive" in tokens
 
     # Ensure action is either 'permit' or 'deny' for type safety
-    action_literal = 'permit' if action == 'permit' else 'deny'
+    action_literal = "permit" if action == "permit" else "deny"
 
     return AccessListEntry(
         acl_name=acl_name,
@@ -600,8 +659,9 @@ def parse_access_list_entry(line: str, protocol_groups: list[AsaProtocolGroup], 
         src=src,
         dst=dst,
         dst_port=dst_port,
-        inactive=inactive
+        inactive=inactive,
     )
+
 
 def parse_protocol_object_group_block(block: list[str]) -> AsaProtocolGroup:
     """Parse an object-group protocol block."""
@@ -611,16 +671,12 @@ def parse_protocol_object_group_block(block: list[str]) -> AsaProtocolGroup:
 
     for b in block[1:]:
         s = b.strip()
-        mproto = re.match(r"^protocol-object\s+(\S+)$", s, re.I)
-        
+        mproto = re.match(r"^protocol-object\s+(\S+)$", s, re.IGNORECASE)
+
         if mproto:
             protocols.append(mproto.group(1))
 
-    return AsaProtocolGroup(
-        name=name,
-        protocols=protocols,
-        description=desc
-    )
+    return AsaProtocolGroup(name=name, protocols=protocols, description=desc)
 
 
 def parse_icmp_object_group_block(block: list[str]) -> AsaServiceObjectGroup:
@@ -630,10 +686,10 @@ def parse_icmp_object_group_block(block: list[str]) -> AsaServiceObjectGroup:
     objects: list[str] = []
     for b in block[1:]:
         s = b.strip()
-        mobj = re.match(r"^icmp-object\s+(\S+)$", s, re.I)
+        mobj = re.match(r"^icmp-object\s+(\S+)$", s, re.IGNORECASE)
         if mobj:
             objects.append(mobj.group(1))
-    
+
     return AsaServiceObjectGroup(
         name=grp_name,
         proto_mode=None,
@@ -641,5 +697,5 @@ def parse_icmp_object_group_block(block: list[str]) -> AsaServiceObjectGroup:
         ports_range={},
         nested_refs=[],
         protocols=[],
-        description=desc
+        description=desc,
     )

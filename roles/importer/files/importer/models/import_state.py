@@ -1,12 +1,15 @@
 import time
-from model_controllers.import_statistics_controller import ImportStatisticsController
-from model_controllers.fworch_config_controller import FworchConfigController
-from model_controllers.management_controller import ManagementController
-from fwo_log import FWOLogger
+
 from fwo_exceptions import FwoImporterError
+from fwo_log import FWOLogger
+from model_controllers.fworch_config_controller import FworchConfigController
+from model_controllers.import_statistics_controller import ImportStatisticsController
+from model_controllers.management_controller import ManagementController
 
 """Used for storing state during import process per management"""
-class ImportState():
+
+
+class ImportState:
     stats: ImportStatisticsController = ImportStatisticsController()
     start_time: int = int(time.time())
     debug_level: int
@@ -28,7 +31,7 @@ class ImportState():
     actions: dict[str, int]
     tracks: dict[str, int]
     link_types: dict[str, int]
-    gateway_map: dict[int, dict[str, int]] # mgm_id -> ( key = gateway.uid and value = gateway.id )
+    gateway_map: dict[int, dict[str, int]]  # mgm_id -> ( key = gateway.uid and value = gateway.id )
     rulebase_map: dict[str, int]
     rule_map: dict[str, int]
     responsible_for_importing: bool = True
@@ -38,7 +41,6 @@ class ImportState():
     is_clearing_import: bool = False
     removed_rules_map: dict[str, int] = {}  # rule_id -> rule dict
     data_retention_days: int = 30  # Default data retention days
-
 
     def lookup_rule(self, rule_uid: str) -> int | None:
         return self.rule_map.get(rule_uid, None)
@@ -72,10 +74,14 @@ class ImportState():
         gws_for_mgm = self.gateway_map.get(mgm_id, {})
         gw_id = gws_for_mgm.get(gw_uid, None)
         if gw_id is None:
-            FWOLogger.error(f"fwo_api:import_latest_config - no gateway id found for current mgm id '{mgm_id}' and gateway uid '{gw_uid}' in {len(gws_for_mgm)} known gateways for this mgm")
-            raise FwoImporterError(f"fwo_api:import_latest_config - no gateway id found for current mgm id '{mgm_id}' and gateway uid '{gw_uid}' in {len(gws_for_mgm)} known gateways for this mgm")
+            FWOLogger.error(
+                f"fwo_api:import_latest_config - no gateway id found for current mgm id '{mgm_id}' and gateway uid '{gw_uid}' in {len(gws_for_mgm)} known gateways for this mgm"
+            )
+            raise FwoImporterError(
+                f"fwo_api:import_latest_config - no gateway id found for current mgm id '{mgm_id}' and gateway uid '{gw_uid}' in {len(gws_for_mgm)} known gateways for this mgm"
+            )
         return gw_id
-    
+
     def lookup_all_gateway_ids(self) -> list[int]:
         mgm_id = self.mgm_details.current_mgm_id
         gws_for_mgm = self.gateway_map.get(mgm_id, {})
@@ -86,7 +92,6 @@ class ImportState():
         if not self.management_map.get(mgm_uid, None):
             FWOLogger.error(f"fwo_api:import_latest_config - no mgm id found for current manager uid '{mgm_uid}'")
         return self.management_map.get(mgm_uid, None)
-
 
     def lookupColorId(self, color_str: str) -> int:
         return self.color_map.get(color_str, 1)  # 1 = forground color black

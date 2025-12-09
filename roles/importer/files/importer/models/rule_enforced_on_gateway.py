@@ -1,42 +1,34 @@
 from typing import Any
+
 from pydantic import BaseModel
 
 
 # the model for a connection between a rule and a gateway
 # each rule has to be linked to the gateway the rule is enforced on
-# this is e.g. used for the "install on" feature in Check Point  
+# this is e.g. used for the "install on" feature in Check Point
 class RuleEnforcedOnGateway(BaseModel):
     # "rule_id" Integer NOT NULL,
-	# "dev_id" Integer,  --  NULL if rule is available for all gateways of its management
-	# "created" BIGINT,
-	# "removed" BIGINT
+    # "dev_id" Integer,  --  NULL if rule is available for all gateways of its management
+    # "created" BIGINT,
+    # "removed" BIGINT
     rule_id: int
     dev_id: int
-    created: int|None
-    removed: int|None 
+    created: int | None
+    removed: int | None
 
-
-    def __init__(self, rule_id: int, dev_id: int, created: int|None = None, removed: int|None = None) -> None:
-        self.rule_id=rule_id
-        self.dev_id=dev_id
-        self.created=created
-        self.removed=removed
-    
+    def __init__(self, rule_id: int, dev_id: int, created: int | None = None, removed: int | None = None) -> None:
+        self.rule_id = rule_id
+        self.dev_id = dev_id
+        self.created = created
+        self.removed = removed
 
     def to_dict(self) -> dict[str, Any]:
-        return {
-            "rule_id": self.rule_id,
-            "dev_id": self.dev_id,
-            "created": self.created,
-            "removed": self.removed
-        }
+        return {"rule_id": self.rule_id, "dev_id": self.dev_id, "created": self.created, "removed": self.removed}
+
 
 # normalized config without db ids
 class RuleEnforcedOnGatewayNormalized(BaseModel):
     rule_uid: str
     dev_uid: str
 
-
-    model_config = {
-        "arbitrary_types_allowed": True
-    }
+    model_config = {"arbitrary_types_allowed": True}

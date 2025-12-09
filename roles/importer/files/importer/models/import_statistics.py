@@ -22,4 +22,3 @@ class ImportStatistics:
     rulebase_link_add_count: int = 0
     rulebase_link_change_count: int = 0
     rulebase_link_delete_count: int = 0
-    

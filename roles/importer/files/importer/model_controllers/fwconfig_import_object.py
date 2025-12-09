@@ -40,9 +40,9 @@ class FwConfigImportObject():
         self.import_state = global_state.import_state
         self.normalized_config = global_state.normalized_config
         self.global_normalized_config = global_state.global_normalized_config
-        self.group_flats_mapper = service_provider.get_group_flats_mapper(self.import_state.import_id)
-        self.prev_group_flats_mapper = service_provider.get_prev_group_flats_mapper(self.import_state.import_id)
-        self.uid2id_mapper = service_provider.get_uid2id_mapper(self.import_state.import_id)
+        self.group_flats_mapper = service_provider.get_group_flats_mapper(self.import_state.state.import_id)
+        self.prev_group_flats_mapper = service_provider.get_prev_group_flats_mapper(self.import_state.state.import_id)
+        self.uid2id_mapper = service_provider.get_uid2id_mapper(self.import_state.state.import_id)
         
         # Create maps.
         self.network_object_type_map = self.get_network_obj_type_map()
@@ -169,12 +169,12 @@ class FwConfigImportObject():
         self.add_changelog_objs(new_nw_obj_ids, new_svc_obj_ids, removed_nw_obj_ids, removed_svc_obj_ids)
 
         # note changes:
-        self.import_state.stats.set_network_object_add_count(len(new_nw_obj_ids))
-        self.import_state.stats.set_network_object_delete_count(len(removed_nw_obj_ids))
-        self.import_state.stats.set_network_object_change_count(len(change_logger.changed_object_id_map.items()))
-        self.import_state.stats.set_service_object_add_count(len(new_svc_obj_ids))
-        self.import_state.stats.set_service_object_delete_count(len(removed_svc_obj_ids))
-        self.import_state.stats.set_service_object_change_count(len(change_logger.changed_service_id_map.items()))
+        self.import_state.state.stats.set_network_object_add_count(len(new_nw_obj_ids))
+        self.import_state.state.stats.set_network_object_delete_count(len(removed_nw_obj_ids))
+        self.import_state.state.stats.set_network_object_change_count(len(change_logger.changed_object_id_map.items()))
+        self.import_state.state.stats.set_service_object_add_count(len(new_svc_obj_ids))
+        self.import_state.state.stats.set_service_object_delete_count(len(removed_svc_obj_ids))
+        self.import_state.state.stats.set_service_object_change_count(len(change_logger.changed_service_id_map.items()))
 
 
     def get_network_obj_type_map(self) -> dict[str, int]:
@@ -239,13 +239,13 @@ class FwConfigImportObject():
         removed_nwsvc_ids = []
         removed_user_ids = []
         removed_zone_ids = []
-        this_managements_id = self.import_state.lookup_management_id(single_manager.manager_uid)
+        this_managements_id = self.import_state.state.lookup_management_id(single_manager.manager_uid)
         if this_managements_id is None:
             raise FwoImporterError(f"failed to update objects in updateObjectsViaApi: no management id found for manager uid '{single_manager.manager_uid}'")
         import_mutation = FwoApi.get_graphql_code(file_list=[fwo_const.GRAPHQL_QUERY_PATH + "allObjects/upsertObjects.graphql"])
         query_variables: dict[str, Any] = {
             'mgmId': this_managements_id,
-            'importId': self.import_state.import_id,
+            'importId': self.import_state.state.import_id,
             'newNwObjects': self.prepare_new_nwobjs(new_nw_object_uids, this_managements_id),
             'newSvcObjects': self.prepare_new_svcobjs(new_svc_obj_uids, this_managements_id),
             'newUsers': self.prepare_new_userobjs(new_user_uids, this_managements_id),
@@ -258,7 +258,7 @@ class FwConfigImportObject():
 
         FWOLogger.debug(f"fwo_api:importNwObject - import_mutation: {import_mutation}", 9)
         if FWOLogger.is_debug_level(9):
-            json.dump(query_variables, open(f"/usr/local/fworch/tmp/import/mgm_id_{self.import_state.mgm_details.mgm_id}_query_variables.json", "w"), indent=4)
+            json.dump(query_variables, open(f"/usr/local/fworch/tmp/import/mgm_id_{self.import_state.state.mgm_details.mgm_id}_query_variables.json", "w"), indent=4)
 
         try:
             import_result = self.import_state.api_call.call(import_mutation, query_variables=query_variables, analyze_payload=True)
@@ -293,8 +293,8 @@ class FwConfigImportObject():
         for nwobj_uid in new_nwobj_uids:
             new_nwobj = NetworkObjectForImport(nw_object=self.normalized_config.network_objects[nwobj_uid],
                                                     mgm_id=mgm_id, 
-                                                    import_id=self.import_state.import_id, 
-                                                    color_id=self.import_state.lookupColorId(self.normalized_config.network_objects[nwobj_uid].obj_color), 
+                                                    import_id=self.import_state.state.import_id, 
+                                                    color_id=self.import_state.state.lookupColorId(self.normalized_config.network_objects[nwobj_uid].obj_color), 
                                                     typ_id=self.lookup_obj_type(self.normalized_config.network_objects[nwobj_uid].obj_typ))
             new_nwobj_dict = new_nwobj.to_dict()
             new_nwobjs.append(new_nwobj_dict)
@@ -308,8 +308,8 @@ class FwConfigImportObject():
         for uid in new_svcobj_uids:
             new_svcs.append(ServiceObjectForImport(svc_object=self.normalized_config.service_objects[uid],
                                         mgm_id=mgm_id, 
-                                        import_id=self.import_state.import_id, 
-                                        color_id=self.import_state.lookupColorId(self.normalized_config.service_objects[uid].svc_color), 
+                                        import_id=self.import_state.state.import_id, 
+                                        color_id=self.import_state.state.lookupColorId(self.normalized_config.service_objects[uid].svc_color), 
                                         typ_id=self.lookup_svc_type(self.normalized_config.service_objects[uid].svc_typ),
                                         ).to_dict())
         return new_svcs
@@ -322,8 +322,8 @@ class FwConfigImportObject():
             new_users.append({
                 'user_uid': uid,
                 'mgm_id': mgm_id,
-                'user_create': self.import_state.import_id,
-                'user_last_seen': self.import_state.import_id,
+                'user_create': self.import_state.state.import_id,
+                'user_last_seen': self.import_state.state.import_id,
                 'usr_typ_id': self.lookup_user_type(self.normalized_config.users[uid]['user_typ']),
                 'user_name': self.normalized_config.users[uid]['user_name'],
             })
@@ -337,8 +337,8 @@ class FwConfigImportObject():
         for uid in new_zone_names:
             new_objects.append({
                 'mgm_id': mgm_id,
-                'zone_create': self.import_state.import_id,
-                'zone_last_seen': self.import_state.import_id,
+                'zone_create': self.import_state.state.import_id,
+                'zone_last_seen': self.import_state.state.import_id,
                 'zone_name': self.normalized_config.zone_objects[uid]['zone_name'],
             })
         return new_objects
@@ -445,7 +445,7 @@ class FwConfigImportObject():
             }}
             """
         query_variables: dict[str, Any] = {
-            'importId': self.import_state.import_id,
+            'importId': self.import_state.state.import_id,
             'removedMembers': removed_members,
             'removedFlats': removed_flats
         }
@@ -541,8 +541,8 @@ class FwConfigImportObject():
             new_group_member_flats.append({
                 f"{prefix}_flat_id": group_id,
                 f"{prefix}_flat_member_id": flat_member_id,
-                "import_created": self.import_state.import_id,
-                "import_last_seen": self.import_state.import_id # to be removed in the future
+                "import_created": self.import_state.state.import_id,
+                "import_last_seen": self.import_state.state.import_id # to be removed in the future
             })
 
 
@@ -554,8 +554,8 @@ class FwConfigImportObject():
             new_group_members.append({
                 f"{prefix}_id": group_id,
                 f"{prefix}_member_id": member_id,
-                "import_created": self.import_state.import_id,
-                "import_last_seen": self.import_state.import_id # to be removed in the future
+                "import_created": self.import_state.state.import_id,
+                "import_last_seen": self.import_state.state.import_id # to be removed in the future
             })
 
 
@@ -629,7 +629,7 @@ class FwConfigImportObject():
         change_typ = 3  # standard
         change_logger = ChangeLogger()
 
-        if self.import_state.is_full_import or self.import_state.IsClearingImport:
+        if self.import_state.state.is_full_import or self.import_state.state.is_clearing_import:
             change_typ = 2   # to be ignored in change reports
         
         # Write changelog for network objects.

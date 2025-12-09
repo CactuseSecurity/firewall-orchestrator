@@ -31,10 +31,10 @@ class FwConfigImportGateway:
     def update_gateway_diffs(self):
 
         # add gateway details:
-        self._rb_link_controller.get_rulebase_links(self._global_state.import_state)
+        self._rb_link_controller.get_rulebase_links(self._global_state.import_state.state, self._global_state.import_state.api_call)
         required_inserts, required_removes = self.update_rulebase_link_diffs()
-        self._rb_link_controller.insert_rulebase_links(self._global_state.import_state, required_inserts)
-        self._rb_link_controller.remove_rulebase_links(self._global_state.import_state, required_removes)       
+        self._rb_link_controller.insert_rulebase_links(self._global_state.import_state.api_call, self._global_state.import_state.state.stats, required_inserts)
+        self._rb_link_controller.remove_rulebase_links(self._global_state.import_state.api_call, self._global_state.import_state.state.stats, self._global_state.import_state.state.import_id, required_removes)       
         # self.updateRuleEnforcedOnGatewayDiffs(prevConfig)
         self.update_interface_diffs()
         self.update_routing_diffs()
@@ -60,7 +60,7 @@ class FwConfigImportGateway:
             FWOLogger.debug(f"gateway {str(gw)} NOT found in previous config", 9)
             if gw.Uid is None:
                 raise FwoImporterError("found gateway with Uid = None")
-            gw_id = self._global_state.import_state.lookup_gateway_id(gw.Uid)
+            gw_id = self._global_state.import_state.state.lookup_gateway_id(gw.Uid)
             if gw_id is None:
                 FWOLogger.warning(f"did not find a gwId for UID {gw.Uid}")
 
@@ -97,18 +97,17 @@ class FwConfigImportGateway:
 
         # If rule changed we need the id of the old version, since the rulebase links still have the old fks (for updates)
 
-        from_rule_id = self._global_state.import_state.removed_rules_map.get(link.from_rule_uid, None) if link.from_rule_uid is not None else None
+        from_rule_id = self._global_state.import_state.state.removed_rules_map.get(link.from_rule_uid, None) if link.from_rule_uid is not None else None
 
         # If rule is unchanged or new id can be fetched from RuleMap, because it has been updated already
         if not from_rule_id or is_insert:
-            from_rule_id = self._global_state.import_state.lookup_rule(link.from_rule_uid) if link.from_rule_uid is not None else None
-
+            from_rule_id = self._global_state.import_state.state.lookup_rule(link.from_rule_uid) if link.from_rule_uid is not None else None
         if link.from_rulebase_uid is None or link.from_rulebase_uid == '':
             from_rulebase_id = None
         else:
-            from_rulebase_id = self._global_state.import_state.lookup_rulebase_id(link.from_rulebase_uid)
-        to_rulebase_id = self._global_state.import_state.lookup_rulebase_id(link.to_rulebase_uid)
-        link_type_id = self._global_state.import_state.lookup_link_type(link.link_type)
+            from_rulebase_id = self._global_state.import_state.state.lookup_rulebase_id(link.from_rulebase_uid)
+        to_rulebase_id = self._global_state.import_state.state.lookup_rulebase_id(link.to_rulebase_uid)
+        link_type_id = self._global_state.import_state.state.lookup_link_type(link.link_type)
         if type(link_type_id) is not int:
             FWOLogger.warning(f"did not find a link_type_id for link_type {link.link_type}")
 
@@ -124,7 +123,7 @@ class FwConfigImportGateway:
                                     is_global=link.is_global,
                                     is_section = link.is_section,
                                     from_rulebase_id=from_rulebase_id,
-                                    created=self._global_state.import_state.import_id).to_dict())
+                                    created=self._global_state.import_state.state.import_id).to_dict())
             
             FWOLogger.debug(f"link {link} was added", 9)
 

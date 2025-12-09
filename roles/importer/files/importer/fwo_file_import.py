@@ -11,7 +11,8 @@ from model_controllers.fwconfigmanagerlist_controller import FwConfigManagerList
 from fwconfig_base import ConfFormat
 
 import traceback
-from model_controllers.import_state_controller import ImportStateController
+from fwo_api_call import FwoApiCall
+from models.import_state import ImportState
 
 """
     supported input formats:
@@ -75,9 +76,9 @@ from model_controllers.import_state_controller import ImportStateController
 """
 
 
-def read_json_config_from_file(import_state: ImportStateController) -> FwConfigManagerListController:
+def read_json_config_from_file(fwo_api_call: FwoApiCall, import_state: ImportState) -> FwConfigManagerListController:
 
-    config_json = read_file(import_state)
+    config_json = read_file(fwo_api_call, import_state)
 
     # try to convert normalized config from file to config object
     try:
@@ -103,8 +104,8 @@ def detect_legacy_format(config_json: dict[str, Any]) -> ConfFormat:
 
     return result
 
-
-def read_file(import_state: ImportStateController) -> dict[str, Any]:
+    
+def read_file(fwo_api_call: FwoApiCall, import_state: ImportState) -> dict[str, Any]:
     config_json: dict[str, Any] = {}
     if import_state.import_file_name=="":
         return config_json
@@ -132,17 +133,13 @@ def read_file(import_state: ImportStateController) -> dict[str, Any]:
         except NameError:
             FWOLogger.error(f'got error while trying to read config file from URL {import_state.import_file_name}')
 
-        import_state.api_call.complete_import(import_state, e)
+        fwo_api_call.complete_import(import_state, e)
         raise ConfigFileNotFound(str(e)) from None
     except Exception as e: 
         FWOLogger.error("unspecified error while reading config file: " + str(traceback.format_exc()))
-        import_state.api_call.complete_import(import_state, e)
+        fwo_api_call.complete_import(import_state, e)
         raise ConfigFileNotFound(f"unspecified error while reading config file {import_state.import_file_name}")
 
     return config_json
 
 
-def handle_error_on_config_file_serialization(import_state: ImportStateController, exception: Exception):
-    import_state.api_call.complete_import(import_state, exception)
-    FWOLogger.error(f"unspecified error while trying to serialize config file {import_state.import_file_name}: {str(traceback.format_exc())}")
-    raise FwoImporterError from exception

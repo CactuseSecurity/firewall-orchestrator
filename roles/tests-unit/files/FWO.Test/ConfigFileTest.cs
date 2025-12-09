@@ -1,4 +1,4 @@
-﻿using FWO.Config.File;
+using FWO.Config.File;
 using FWO.Logging;
 using Microsoft.IdentityModel.Tokens;
 using NUnit.Framework;
@@ -14,7 +14,7 @@ using Assert = NUnit.Framework.Assert;
 namespace FWO.Test
 {
     [TestFixture]
-    [Parallelizable]
+    [Order(3)]
     internal class ConfigFileTest
     {
         private const string configFileTestPath = "config_file.test";

@@ -5,6 +5,7 @@ using FWO.Data.Middleware;
 using FWO.Logging;
 using System.IdentityModel.Tokens.Jwt;
 using FWO.Test.DataGenerators;
+using Microsoft.Extensions.Configuration;
 
 namespace FWO.Test
 {
@@ -12,7 +13,7 @@ namespace FWO.Test
     /// Integration tests for JWT authentication and refresh token functionality.
     /// Tests the complete authentication flow including token generation, refresh, and revocation.
     /// </summary>
-    [TestFixture, Ignore("disabled because of problems")]
+    [TestFixture]
     [Order(2)]
     internal class AuthenticationTokenIntegrationTest
     {
@@ -31,12 +32,11 @@ namespace FWO.Test
         {
             Log.WriteInfo("Test Setup", "Initializing JWT integration test environment");
 
-            // Initialize default test credentials for regular user (not targetuser needed)
+            // Initialize test credentials
             defaultCredentialsBuilder = new TokenTestDataBuilder()
                 .WithUsername("testuser")
                 .WithPassword("testpassword");
 
-            // Initialize admin test credentials (for admin operations)
             adminCredentialsBuilder = new TokenTestDataBuilder()
                 .WithTargetUser("targetuser")
                 .WithUsername("admin")
@@ -46,7 +46,7 @@ namespace FWO.Test
                 .WithWebHostBuilder(builder =>
                 {
                     builder.ConfigureServices(services => { });
-                });
+                    });
 
             client = factory.CreateClient();
             tokenHandler = new JwtSecurityTokenHandler();

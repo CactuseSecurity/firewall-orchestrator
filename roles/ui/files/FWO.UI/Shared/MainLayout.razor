@@ -21,6 +21,7 @@
 @inject AuthenticationStateProvider authenticationProvider
 @inject ProtectedSessionStorage sessionStorage
 @inject CircuitHandler circuitHandler
+@inject TokenService tokenService
 
 @implements IDisposable
 
@@ -110,13 +111,19 @@
 
     private Timer? UIMessageQueTimer;
 
-    protected override void OnInitialized()
+    private string? LastLocation;
+
+    protected override async Task OnInitializedAsync()
     {
         user = authenticationStateTask!.Result.User;
         DisplayMessageInUiFunction = DisplayMessageInUi;
 
+        await CheckAndRefreshTokenAsync();
+
         JwtEventService.OnPermissionChanged += OnPermissionsChanged;
         JwtEventService.OnJwtExpired += OnJwtExpired;
+
+        NavigationManager.LocationChanged += OnLocationChanged;
 
         alertSubscription = apiConnection.GetSubscription<List<Alert>>(ApiExceptionHandler, OnAlertUpdate, MonitorQueries.subscribeAlertChanges);
 
@@ -128,6 +135,56 @@
         };
 
         UIMessageQueTimer.Elapsed += OnUIMessageTimerTick;
+    }
+
+    private async void OnLocationChanged(object? sender, LocationChangedEventArgs e)
+    {
+        if (LastLocation != e.Location)
+        {
+            LastLocation = e.Location;
+
+            await CheckAndRefreshTokenAsync();
+        }
+    }
+
+    private async Task CheckAndRefreshTokenAsync()
+    {
+        try
+        {
+            if (await tokenService.IsAccessTokenExpired())
+            {
+                Log.WriteDebug("Token Check", "Access token expired, attempting refresh...");
+
+                bool refreshed = await tokenService.RefreshAccessTokenAsync();
+
+                if (refreshed)
+                {                    
+                    string? newAccessToken = await tokenService.GetAccessTokenAsync();
+
+                    if (!string.IsNullOrEmpty(newAccessToken))
+                    {
+                        apiConnection.SetAuthHeader(newAccessToken);
+                        middlewareClient.SetAuthenticationToken(newAccessToken);
+                        userConfig.User.Jwt = newAccessToken;
+                    }
+                }
+                else
+                {
+                    await InvokeAsync(() =>
+                    {
+                        ShowReloginDialog(
+                            userConfig.GetText("jwt_expired_title"),
+                            userConfig.GetText("jwt_expired_text"),
+                            reloginAbortable: false
+                        );
+                    });
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Log.WriteError("Token Check", "Error during token check/refresh", ex);
+        }
     }
 
     private async Task KeyHandler(KeyboardEventArgs ev)

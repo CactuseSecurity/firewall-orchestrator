@@ -3,6 +3,7 @@ using FWO.Data.Middleware;
 using FWO.Logging;
 using FWO.Middleware.Client;
 using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage;
+using RestSharp;
 using System.IdentityModel.Tokens.Jwt;
 
 namespace FWO.Ui.Services
@@ -16,6 +17,7 @@ namespace FWO.Ui.Services
         private readonly JwtSecurityTokenHandler jwtHandler = new();
         private readonly SemaphoreSlim refreshSemaphore = new(1, 1);
         private const string TOKEN_PAIR_KEY = "token_pair";
+        private bool isInitialized = false;
 
         /// <summary>
         /// Initializes the TokenService by trying to load any existing token pair from session storage.
@@ -23,12 +25,16 @@ namespace FWO.Ui.Services
         /// <returns></returns>
         private async Task Initialize()
         {
+            if (isInitialized) return;
+
             ProtectedBrowserStorageResult<TokenPair> result = await sessionStorage.GetAsync<TokenPair>(TOKEN_PAIR_KEY);
 
             if (result.Success && result.Value != null)
             {
                 currentTokenPair = result.Value;
             }
+
+            isInitialized = true;
         }
 
         /// <summary>
@@ -40,6 +46,16 @@ namespace FWO.Ui.Services
         {
             currentTokenPair = tokenPair;
             await sessionStorage.SetAsync(TOKEN_PAIR_KEY, tokenPair);
+        }
+
+        /// <summary>
+        /// Gets the current access token.
+        /// </summary>
+        /// <returns>The access token or null if not available.</returns>
+        public async Task<string?> GetAccessTokenAsync()
+        {
+            await Initialize();
+            return currentTokenPair?.AccessToken;
         }
 
         /// <summary>
@@ -69,6 +85,63 @@ namespace FWO.Ui.Services
         }
 
         /// <summary>
+        /// Refreshes the access token using the current refresh token.
+        /// </summary>
+        /// <returns>True if refresh was successful, false otherwise.</returns>
+        public async Task<bool> RefreshAccessTokenAsync()
+        {
+            await Initialize();
+
+            if (currentTokenPair is null || string.IsNullOrEmpty(currentTokenPair.RefreshToken))
+            {
+                Log.WriteWarning("Token Refresh", "No refresh token available");
+                return false;
+            }
+
+            await refreshSemaphore.WaitAsync();
+
+            try
+            {
+                if (!await IsAccessTokenExpired())
+                {
+                    return true;
+                }
+
+                RefreshTokenRequest refreshRequest = new()
+                {
+                    RefreshToken = currentTokenPair.RefreshToken
+                };
+
+                RestResponse<TokenPair> response = await middlewareClient.RefreshToken(refreshRequest);
+
+                if (response.IsSuccessful && response.Data != null)
+                {
+                    await SetTokenPair(response.Data);
+
+                    Log.WriteInfo("Token Refresh", "Successfully refreshed access token");
+
+                    return true;
+                }
+                else
+                {
+                    Log.WriteWarning("Token Refresh", $"Failed to refresh token: {response.ErrorMessage ?? response.Content}");
+
+                    return false;
+                }
+            }
+            catch (Exception ex)
+            {
+                Log.WriteError("Token Refresh", "Error refreshing access token", ex);
+
+                return false;
+            }
+            finally
+            {
+                refreshSemaphore.Release();
+            }
+        }
+
+        /// <summary>
         /// Revokes the current refresh token and clears the stored token pair.
         /// </summary>
         /// <returns></returns>
@@ -90,6 +163,7 @@ namespace FWO.Ui.Services
             await sessionStorage.DeleteAsync(TOKEN_PAIR_KEY);
 
             currentTokenPair = null;
+            isInitialized = false;
         }
     }
 }

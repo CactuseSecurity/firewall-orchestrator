@@ -10,7 +10,6 @@ if TYPE_CHECKING:
 import fwo_const
 from fwo_log import FWOLogger
 from services.service_provider import ServiceProvider
-from services.enums import Services
 
 
 MAX_RECURSION_LEVEL = 20

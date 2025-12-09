@@ -299,17 +299,17 @@ def get_config(config_in: FwConfigManagerListController, import_state: ImportSta
 
     FWOLogger.debug("starting ciscoAsa9/get_config" )
 
-    is_virtual_asa = import_state.mgm_details.device_type_name == "Cisco Asa on FirePower"
+    is_virtual_asa = import_state.state.mgm_details.device_type_name == "Cisco Asa on FirePower"
 
     if config_in.native_config_is_empty():
         # for debugging, use: raw_config = load_config_from_file("test_asa.conf")
-        raw_config = load_config_from_management(import_state.mgm_details, is_virtual_asa)
+        raw_config = load_config_from_management(import_state.state.mgm_details, is_virtual_asa)
         config2import = parse_asa_config(raw_config)
         config_in.native_config = config2import.model_dump()
 
-    write_native_config_to_file(import_state, config_in.native_config)
+    write_native_config_to_file(import_state.state, config_in.native_config)
 
-    normalize_config(config_in, import_state)
+    normalize_config(config_in, import_state.state)
 
     return 0, config_in
 

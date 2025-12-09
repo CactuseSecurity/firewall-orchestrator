@@ -1,42 +1,44 @@
 from typing import Any
 from models.rulebase_link import RulebaseLink, parse_rulebase_links
-from model_controllers.import_state_controller import ImportStateController
 from fwo_log import FWOLogger
 import fwo_const
 from fwo_api import FwoApi
+from fwo_api_call import FwoApiCall
+from model_controllers.import_statistics_controller import ImportStatisticsController
+from models.import_state import ImportState
 
-class RulebaseLinkController():
+class RulebaseLinkController:
 
     rulbase_to_gateway_map: dict[int, list[int]] = {}
     rb_links: list[RulebaseLink]
 
-    def insert_rulebase_links(self, import_state: ImportStateController, rb_links: list[dict[str, Any]]) -> None:
+    def insert_rulebase_links(self, fwo_api_call: FwoApiCall, stats: ImportStatisticsController, rb_links: list[dict[str, Any]]) -> None:
         query_variables = { "rulebaseLinks": rb_links }
         if len(rb_links) == 0:
             return
         mutation = FwoApi.get_graphql_code([f"{fwo_const.GRAPHQL_QUERY_PATH}rule/insertRulebaseLinks.graphql"])      
-        add_result = import_state.api_call.call(mutation, query_variables=query_variables)
+        add_result = fwo_api_call.call(mutation, query_variables=query_variables)
         if 'errors' in add_result:
             FWOLogger.exception(f"fwo_api:insertRulebaseLinks - error while inserting: {str(add_result['errors'])}")
         else:
             changes = add_result['data']['insert_rulebase_link']['affected_rows']
-            import_state.stats.increment_rulebase_link_add_count(changes)
+            stats.increment_rulebase_link_add_count(changes)
 
 
-    def remove_rulebase_links(self, import_state: ImportStateController, removed_rb_links_ids: list[int | None]) -> None:
-        query_variables: dict[str, Any] = { "removedRulebaseLinks": removed_rb_links_ids, "importId": import_state.import_id }
+    def remove_rulebase_links(self, fwo_api_call: FwoApiCall, stats: ImportStatisticsController, import_id: int, removed_rb_links_ids: list[int | None]) -> None:
+        query_variables: dict[str, Any] = { "removedRulebaseLinks": removed_rb_links_ids, "importId": import_id }
         if len(removed_rb_links_ids) == 0:
             return
         mutation = FwoApi.get_graphql_code([f"{fwo_const.GRAPHQL_QUERY_PATH}rule/removeRulebaseLinks.graphql"])      
-        add_result = import_state.api_call.call(mutation, query_variables=query_variables)
+        add_result = fwo_api_call.call(mutation, query_variables=query_variables)
         if 'errors' in add_result:
             FWOLogger.exception(f"fwo_api:removeRulebaseLinks - error while removing: {str(add_result['errors'])}")
         else:
             changes = add_result['data']['update_rulebase_link']['affected_rows']
-            import_state.stats.increment_rulebase_link_delete_count(changes)
+            stats.increment_rulebase_link_delete_count(changes)
 
 
-    def get_rulebase_links(self, import_state: ImportStateController):
+    def get_rulebase_links(self, import_state: ImportState, fwo_api_call: FwoApiCall) -> None:
         gw_ids = import_state.lookup_all_gateway_ids()
         if len(gw_ids) == 0:
             FWOLogger.warning("RulebaseLinkController:get_rulebase_links - no gateway ids found for current management - skipping getting rulebase links")
@@ -46,7 +48,7 @@ class RulebaseLinkController():
         query_variables = { "gwIds": gw_ids}
 
         query = FwoApi.get_graphql_code(file_list=[f"{fwo_const.GRAPHQL_QUERY_PATH}rule/getRulebaseLinks.graphql"])
-        links = import_state.api_call.call(query, query_variables=query_variables)
+        links = fwo_api_call.call(query, query_variables=query_variables)
         if 'errors' in links:
             FWOLogger.exception(f"fwo_api:getRulebaseLinks - error while getting rulebaseLinks: {str(links['errors'])}")
         else:
@@ -55,8 +57,8 @@ class RulebaseLinkController():
 
 
     # add an entry for all rulebase to gateway pairs that are conained in the rulebase_links table
-    def set_map_of_all_enforcing_gateway_ids_for_rulebase_id(self, import_state: ImportStateController):
-        self.get_rulebase_links(import_state)
+    def set_map_of_all_enforcing_gateway_ids_for_rulebase_id(self, import_state: ImportState, fwo_api_call: FwoApiCall):
+        self.get_rulebase_links(import_state, fwo_api_call)
 
         for link in self.rb_links:
             rulebase_id = link.to_rulebase_id

@@ -1,6 +1,5 @@
 from typing import Any
 from services.service_provider import ServiceProvider
-from fwo_api_call import FwoApiCall, FwoApi
 from fwo_log import FWOLogger
 
 #TODO: unused functions - remove?
@@ -12,7 +11,7 @@ def set_alerts_for_missing_objects(objects_not_found: list[str], import_id: int,
         service_provider = ServiceProvider()
         global_state = service_provider.get_global_state()
 
-        api_call = FwoApiCall(FwoApi(api_uri=global_state.import_state.fwo_config.fwo_api_url, jwt=global_state.import_state.Jwt))
+        api_call = global_state.import_state.api_call
 
         api_call.create_data_issue(obj_name=obj, severity=1, 
                                     rule_uid=rule_uid, mgm_id=mgm_id, object_type=object_type)

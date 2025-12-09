@@ -7,7 +7,8 @@ from fwo_base import write_native_config_to_file
 from fw_modules.fortiadom5ff import fmgr_getter
 from fwo_log import FWOLogger
 from model_controllers.fwconfigmanagerlist_controller import FwConfigManagerListController
-from model_controllers.fwconfig_normalized_controller import FwConfigNormalizedController
+from roles.importer.files.importer.models.import_state import ImportState
+from utils.conversion_utils import convert_list_to_dict
 from models.fwconfigmanager import FwConfigManager
 from fw_modules.fortiadom5ff.fmgr_network import normalize_network_objects
 from fw_modules.fortiadom5ff.fmgr_service import normalize_service_objects
@@ -32,12 +33,12 @@ def get_config(config_in: FwConfigManagerListController, import_state: ImportSta
         parsing_config_only = True
 
     if not parsing_config_only: # no native config was passed in, so getting it from FortiManager
-        sid = get_sid(import_state)
-        limit = import_state.fwo_config.api_fetch_size
-        fm_api_url = import_state.mgm_details.buildFwApiString()
-        native_config_global = initialize_native_config_domain(import_state.mgm_details)
+        sid = get_sid(import_state.state)
+        limit = import_state.state.fwo_config.api_fetch_size
+        fm_api_url = import_state.state.mgm_details.buildFwApiString()
+        native_config_global = initialize_native_config_domain(import_state.state.mgm_details)
         config_in.native_config['domains'].append(native_config_global) # type: ignore #TYPING: None or not None this is the question
-        adom_list = build_adom_list(import_state)
+        adom_list = build_adom_list(import_state.state)
         adom_device_vdom_structure = build_adom_device_vdom_structure(adom_list, sid, fm_api_url)
         # delete_v: das geht schief für unschöne adoms
         arbitrary_vdom_for_updateable_objects = get_arbitrary_vdom(adom_device_vdom_structure)
@@ -75,7 +76,7 @@ def get_config(config_in: FwConfigManagerListController, import_state: ImportSta
         except Exception:
             raise FwLogoutFailed("logout exception probably due to timeout - irrelevant, so ignoring it")
 
-        write_native_config_to_file(import_state, config_in.native_config)
+        write_native_config_to_file(import_state.state, config_in.native_config)
 
     if not config_in.native_config:
         raise ImportError("native config missing")
@@ -131,9 +132,9 @@ def normalize_config(native_config: dict[str,Any]) -> FwConfigManagerListControl
 
         normalized_config = FwConfigNormalized(
             action=ConfigAction.INSERT, 
-            network_objects=FwConfigNormalizedController.convert_list_to_dict(normalized_config_adom.get('network_objects', []), 'obj_uid'),
-            service_objects=FwConfigNormalizedController.convert_list_to_dict(normalized_config_adom.get('service_objects', []), 'svc_uid'),
-            zone_objects=FwConfigNormalizedController.convert_list_to_dict(normalized_config_adom.get('zone_objects', []), 'zone_name'),
+            network_objects=convert_list_to_dict(normalized_config_adom.get('network_objects', []), 'obj_uid'),
+            service_objects=convert_list_to_dict(normalized_config_adom.get('service_objects', []), 'svc_uid'),
+            zone_objects=convert_list_to_dict(normalized_config_adom.get('zone_objects', []), 'zone_name'),
             rulebases=normalized_config_adom.get('policies', []),
             gateways=normalized_config_adom.get('gateways', [])
         )
@@ -197,7 +198,7 @@ def normalize_single_manager_config(native_config: 'dict[str, Any]', native_conf
     normalize_gateways(native_config, normalized_config_adom)
     
 
-def build_adom_list(import_state : ImportStateController) -> list[Management]:
+def build_adom_list(import_state: ImportState) -> list[Management]:
     adom_list: list[Management] = []
     if import_state.mgm_details.is_super_manager:
         for sub_manager in import_state.mgm_details.sub_managers:
@@ -273,7 +274,7 @@ def initialize_device_config(mgm_details_device: dict[str, Any]) -> dict[str, An
                      'rulebase_links': []}
     return device_config
 
-def get_sid(import_state: ImportStateController):
+def get_sid(import_state: ImportState):
     fm_api_url = 'https://' + \
         import_state.mgm_details.hostname + ':' + \
         str(import_state.mgm_details.port) + '/jsonrpc'

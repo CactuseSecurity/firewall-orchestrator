@@ -12,7 +12,6 @@ from fw_modules.checkpointR8x import cp_const, cp_network
 import fwo_const
 from model_controllers.management_controller import ManagementController
 from services.service_provider import ServiceProvider
-from fwo_api_call import FwoApiCall, FwoApi
 
 # Constants for status values
 STATUS_IN_PROGRESS = 'in progress'
@@ -400,9 +399,8 @@ def get_rulebases_in_chunks(rulebase_uid: str, show_params_rules: dict[str, Any]
 
             service_provider = ServiceProvider()
             global_state = service_provider.get_global_state()
-            api_call = FwoApiCall(FwoApi(api_uri=global_state.import_state.fwo_config.fwo_api_url, jwt=global_state.import_state.Jwt))
             description = f"failed to get show-access-rulebase  {rulebase_uid}"
-            api_call.create_data_issue(severity=2, description=description)
+            global_state.import_state.api_call.create_data_issue(severity=2, description=description)
             raise FwApiError('')
 
         resolve_checkpoint_uids_via_object_dict(rulebase, native_config_domain,

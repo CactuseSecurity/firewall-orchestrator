@@ -4,11 +4,9 @@ from fwo_log import FWOLogger
 from model_controllers.fwconfig_import import FwConfigImport
 from model_controllers.import_state_controller import ImportStateController
 from model_controllers.fwconfigmanagerlist_controller import FwConfigManagerListController
-from model_controllers.fwconfig_normalized_controller import FwConfigNormalizedController
 from model_controllers.fwconfigmanager_controller import FwConfigManager
 from model_controllers.fwconfig_import_object import FwConfigImportObject
 from models.fwconfig_normalized import FwConfigNormalized
-from fwo_base import ConfFormat
 from models.rulebase import Rulebase
 from models.networkobject import NetworkObject
 from models.gateway import Gateway
@@ -21,7 +19,7 @@ from fwo_exceptions import FwoImporterErrorInconsistencies
 class FwConfigImportCheckConsistency(FwConfigImport):
     issues: dict[str, Any] = {}
     maps: FwConfigImportObject # = FwConfigImportObject()
-    config: FwConfigNormalizedController = FwConfigNormalizedController(ConfFormat.NORMALIZED, FwConfigNormalized())
+    config: FwConfigNormalized = FwConfigNormalized()
 
     # merges all configs in the set together to prepare for consistency checks
     def __init__(self, import_details: ImportStateController, config_list: FwConfigManagerListController):
@@ -272,7 +270,7 @@ class FwConfigImportCheckConsistency(FwConfigImport):
     # check if all color refs are valid (in the DB)
     # fix=True means that missing color refs will be replaced by the default color (black)
     def check_color_consistency(self, config: FwConfigManagerListController, fix: bool = True):
-        self.import_state.set_color_ref_map(self.import_state.api_call)
+        self.import_state.set_color_ref_map()
         
         # collect all colors
 
@@ -317,19 +315,19 @@ class FwConfigImportCheckConsistency(FwConfigImport):
         unresolvable_user_colors: list[str] = []
         # check all nwobj color refs
         for color_string in all_used_nw_obj_color_ref_set:
-            color_id = self.import_state.lookupColorId(color_string)
+            color_id = self.import_state.state.lookupColorId(color_string)
             if color_id is None: # type: ignore # TODO: lookupColorId cant return None
                 unresolvable_nw_obj_colors.append(color_string)
 
         # check all nwobj color refs
         for color_string in all_used_svc_color_ref_set:
-            color_id = self.import_state.lookupColorId(color_string)
+            color_id = self.import_state.state.lookupColorId(color_string)
             if color_id is None:    # type: ignore # TODO: lookupColorId cant return None
                 unresolvable_svc_colors.append(color_string)
 
         # check all user color refs
         for color_string in all_used_user_color_ref_set:
-            color_id = self.import_state.lookupColorId(color_string)
+            color_id = self.import_state.state.lookupColorId(color_string)
             if color_id is None:   # type: ignore # TODO: lookupColorId cant return None
                 unresolvable_user_colors.append(color_string)
         
@@ -375,11 +373,11 @@ class FwConfigImportCheckConsistency(FwConfigImport):
                 all_used_track_refs = list(set(all_used_track_refs))
                 all_used_action_refs = list(set(all_used_action_refs))
 
-                unresolvable_tracks = all_used_track_refs - self.import_state.tracks.keys()
+                unresolvable_tracks = all_used_track_refs - self.import_state.state.tracks.keys()
                 if unresolvable_tracks:
                     self.issues.update({'unresolvableRuleTracks': list(unresolvable_tracks)})
 
-                unresolvable_actions = all_used_action_refs - self.import_state.actions.keys()
+                unresolvable_actions = all_used_action_refs - self.import_state.state.actions.keys()
                 if unresolvable_actions:
                     self.issues.update({'unresolvableRuleActions': list(unresolvable_actions)})
 
@@ -401,7 +399,7 @@ class FwConfigImportCheckConsistency(FwConfigImport):
 
         # check consistency of links
         for mgr in config.ManagerSet:
-            if self.import_state.mgm_details.import_disabled:
+            if self.import_state.state.mgm_details.import_disabled:
                 continue
             for single_config in mgr.configs:        
                 # now check rblinks for all gateways
@@ -422,7 +420,7 @@ class FwConfigImportCheckConsistency(FwConfigImport):
         all_rulebase_uids: set[str] = set()
         all_rule_uids: set[str] = set()
         for mgr in config.ManagerSet:
-            if self.import_state.mgm_details.import_disabled:
+            if self.import_state.state.mgm_details.import_disabled:
                 continue
             for single_config in mgr.configs:        
                 # collect rulebase UIDs

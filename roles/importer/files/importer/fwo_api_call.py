@@ -12,6 +12,7 @@ from fwo_exceptions import FwoApiFailedLockImport
 from query_analyzer import QueryAnalyzer
 from model_controllers.management_controller import ManagementController
 from models.fwconfig_normalized import FwConfigNormalized
+from roles.importer.files.importer.models.import_state import ImportState
 
 if TYPE_CHECKING:
     from model_controllers.import_state_controller import ImportStateController
@@ -126,7 +127,7 @@ class FwoApiCall(FwoApi):
         return changes_in_import
 
 
-    def unlock_import(self, import_state: 'ImportStateController', success: bool = True):
+    def unlock_import(self, import_state: 'ImportState', success: bool = True):
         import_id = import_state.import_id
         mgm_id = import_state.mgm_details.mgm_id
         import_stats = import_state.stats
@@ -152,7 +153,7 @@ class FwoApiCall(FwoApi):
 
 
     #   currently temporarily only working with single chunk
-    def import_json_config(self, import_state: 'ImportStateController', config: FwConfigNormalized, start_import: bool = True):
+    def import_json_config(self, import_state: 'ImportState', config: FwConfigNormalized, start_import: bool = True):
         import_mutation = FwoApi.get_graphql_code([fwo_const.GRAPHQL_QUERY_PATH + "import/addImportConfig.graphql"])
 
         try:
@@ -291,7 +292,7 @@ class FwoApiCall(FwoApi):
             query_variables.update({"alertCode": alert_code})
 
 
-    def complete_import(self, import_state: 'ImportStateController', exception: BaseException | None = None):
+    def complete_import(self, import_state: 'ImportState', exception: BaseException | None = None):
         if not import_state.responsible_for_importing:
             return
 

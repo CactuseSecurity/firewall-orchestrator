@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from importer.services.uid2id_mapper import Uid2IdMapper
-    from importer.model_controllers.import_state_controller import ImportStateController
+    from models.import_state import ImportState
 from typing import Any, Literal
 
 
@@ -143,7 +143,7 @@ class ChangeLogger:
     _instance = None
     changed_nwobj_id_map: dict[int, int]
     changed_svc_id_map: dict[int, int]
-    _import_state = None
+    _import_state: ImportState | None = None
     _uid2id_mapper: "Uid2IdMapper | None" = None
 
     def __new__(cls):
@@ -179,7 +179,7 @@ class ChangeLogger:
         }
 
 
-    def create_changelog_import_object(self, type: str, import_state: "ImportStateController", change_action: str, change_typ: Literal[2, 3], import_time: str, rule_id: int, rule_id_alternative: int = 0) -> dict[str, Any]:
+    def create_changelog_import_object(self, type: str, import_state: "ImportState", change_action: str, change_typ: Literal[2, 3], import_time: str, rule_id: int, rule_id_alternative: int = 0) -> dict[str, Any]:
         
         unique_name = self._get_changelog_import_object_unique_name(rule_id)
         old_rule_id = None

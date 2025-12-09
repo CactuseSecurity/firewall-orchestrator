@@ -15,7 +15,6 @@ from fw_modules.ciscoasa9.asa_rule import build_rulebases_from_access_lists
 from models.networkobject import NetworkObject
 from models.serviceobject import ServiceObject
 from model_controllers.fwconfigmanagerlist_controller import FwConfigManagerListController
-from model_controllers.import_state_controller import ImportStateController
 
 # Import the new modular functions
 from fw_modules.ciscoasa9.asa_network import (
@@ -28,6 +27,7 @@ from fw_modules.ciscoasa9.asa_service import (
     create_protocol_any_service_objects,
     normalize_service_object_groups
 )
+from roles.importer.files.importer.models.import_state import ImportState
 
 
 
@@ -87,8 +87,8 @@ def normalize_all_service_objects(native_config: Config) -> dict[str, ServiceObj
 
     return service_objects
 
-
-def normalize_config(config_in: FwConfigManagerListController, import_state: ImportStateController) -> FwConfigManagerListController:
+    
+def normalize_config(config_in: FwConfigManagerListController, import_state: ImportState) -> FwConfigManagerListController:
     """
     Normalize the ASA configuration into a structured format for the database.
 

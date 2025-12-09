@@ -6,10 +6,10 @@ from copy import deepcopy
 from fwo_log import FWOLogger
 from fwo_const import IMPORT_TMP_PATH
 
-from model_controllers.import_state_controller import ImportStateController
 from models.fwconfigmanagerlist import FwConfigManagerList
 from models.fwconfigmanager import FwConfigManager
-from model_controllers.fwconfig_controller import FwoEncoder
+from models.import_state import ImportState
+from utils.fwconfig_json_encoder import FwConfigJsonEncoder
 from fwo_base import ConfFormat
 
 """
@@ -23,7 +23,7 @@ class FwConfigManagerListController(FwConfigManagerList):
     def to_json_string(self, pretty_print: bool=False):
         json_dict = self.model_dump(by_alias=True)
         if pretty_print:
-            return json.dumps(json_dict, indent=2, cls=FwoEncoder)
+            return json.dumps(json_dict, indent=2, cls=FwConfigJsonEncoder)
         else:
             return json.dumps(json_dict)
         
@@ -115,7 +115,7 @@ class FwConfigManagerListController(FwConfigManagerList):
     def get_policy_uid_from_rulebase_name(rb_name: str) -> str:
         return rb_name
 
-    def store_full_normalized_config_to_file(self, import_state: ImportStateController):
+    def store_full_normalized_config_to_file(self, import_state: ImportState):
         if FWOLogger.is_debug_level(6):
             debug_start_time = int(time.time())
             try:

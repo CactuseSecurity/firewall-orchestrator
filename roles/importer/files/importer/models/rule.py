@@ -1,6 +1,5 @@
 from pydantic import BaseModel
 from models.caseinsensitiveenum import CaseInsensitiveEnum
-from fwo_const import LIST_DELIMITER
 
 
 class RuleType(CaseInsensitiveEnum):

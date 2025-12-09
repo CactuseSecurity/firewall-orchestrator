@@ -635,24 +635,24 @@ class FwConfigImportObject():
         # Write changelog for network objects.
 
         for nw_obj_id in [nw_obj_ids_added_item["obj_id"] for nw_obj_ids_added_item in nw_obj_ids_added]:
-            nw_objs.append(change_logger.create_changelog_import_object("obj", self.import_state, 'I', change_typ, import_time, nw_obj_id))
+            nw_objs.append(change_logger.create_changelog_import_object("obj", self.import_state.state, 'I', change_typ, import_time, nw_obj_id))
 
         for nw_obj_id in [nw_obj_ids_removed_item["obj_id"] for nw_obj_ids_removed_item in nw_obj_ids_removed]:
-            nw_objs.append(change_logger.create_changelog_import_object("obj", self.import_state, 'D', change_typ, import_time, nw_obj_id))
+            nw_objs.append(change_logger.create_changelog_import_object("obj", self.import_state.state, 'D', change_typ, import_time, nw_obj_id))
 
         for old_nw_obj_id, new_nw_obj_id in change_logger.changed_object_id_map.items():
-            nw_objs.append(change_logger.create_changelog_import_object("obj", self.import_state, 'C', change_typ, import_time, new_nw_obj_id, old_nw_obj_id))
+            nw_objs.append(change_logger.create_changelog_import_object("obj", self.import_state.state, 'C', change_typ, import_time, new_nw_obj_id, old_nw_obj_id))
 
         # Write changelog for Services.
 
         for svc_id in [svc_ids_added_item["svc_id"] for svc_ids_added_item in svc_obj_ids_added]:
-            svc_objs.append(change_logger.create_changelog_import_object("svc", self.import_state, 'I', change_typ, import_time, svc_id))
+            svc_objs.append(change_logger.create_changelog_import_object("svc", self.import_state.state, 'I', change_typ, import_time, svc_id))
 
         for svc_id in [svc_ids_removed_item["svc_id"] for svc_ids_removed_item in svc_obj_ids_removed]:
-            svc_objs.append(change_logger.create_changelog_import_object("svc", self.import_state, 'D', change_typ, import_time, svc_id))
+            svc_objs.append(change_logger.create_changelog_import_object("svc", self.import_state.state, 'D', change_typ, import_time, svc_id))
 
         for old_svc_id, new_svc_id in change_logger.changed_service_id_map.items():
-            svc_objs.append(change_logger.create_changelog_import_object("svc", self.import_state, 'C', change_typ, import_time, new_svc_id, old_svc_id))
+            svc_objs.append(change_logger.create_changelog_import_object("svc", self.import_state.state, 'C', change_typ, import_time, new_svc_id, old_svc_id))
 
         return nw_objs, svc_objs
 

@@ -1275,13 +1275,13 @@ class FwConfigImportRule():
             change_typ = 2   # TODO: Somehow all imports are treated as im operation.
 
         for rule_id in added_rules_ids:
-            changelog_rule_insert_objects.append(change_logger.create_changelog_import_object("rule", self.import_details, 'I', change_typ, import_time, rule_id))
+            changelog_rule_insert_objects.append(change_logger.create_changelog_import_object("rule", self.import_details.state, 'I', change_typ, import_time, rule_id))
 
         for rule_id in removed_rules_ids:
-            changelog_rule_insert_objects.append(change_logger.create_changelog_import_object("rule", self.import_details, 'D', change_typ, import_time, rule_id))
+            changelog_rule_insert_objects.append(change_logger.create_changelog_import_object("rule", self.import_details.state, 'D', change_typ, import_time, rule_id))
 
         for old_rule_id, new_rule_id in self._changed_rule_id_map.items():
-            changelog_rule_insert_objects.append(change_logger.create_changelog_import_object("rule", self.import_details, 'C', change_typ, import_time, new_rule_id, old_rule_id))
+            changelog_rule_insert_objects.append(change_logger.create_changelog_import_object("rule", self.import_details.state, 'C', change_typ, import_time, new_rule_id, old_rule_id))
 
         return changelog_rule_insert_objects
 

@@ -122,7 +122,7 @@ namespace FWO.Compliance
             {
                 Logger = logger;
             }
-            
+
             _parallelProcessor = new(apiConnection, Logger);
 
             if (_userConfig.GlobalConfig == null)
@@ -157,9 +157,9 @@ namespace FWO.Compliance
                 }
 
                 _complianceCheckPolicyId = globalConfig.ComplianceCheckPolicyId;
-                _autoCalculatedInternetZoneActive = globalConfig.AutoCalculateInternetZone; 
+                _autoCalculatedInternetZoneActive = globalConfig.AutoCalculateInternetZone;
                 _treatDomainAndDynamicObjectsAsInternet = globalConfig.TreatDynamicAndDomainObjectsAsInternet;
-                _elementsPerFetch = globalConfig.ComplianceCheckElementsPerFetch; 
+                _elementsPerFetch = globalConfig.ComplianceCheckElementsPerFetch;
                 _maxDegreeOfParallelism = globalConfig.ComplianceCheckAvailableProcessors;
 
                 Logger.TryWriteInfo("Compliance Check", $"Parallelizing config: {_elementsPerFetch} elements per fetch and {_maxDegreeOfParallelism} processors.", LocalSettings.ComplianceCheckVerbose);
@@ -178,7 +178,7 @@ namespace FWO.Compliance
                     return;
                 }
 
-                Managements  = await _apiConnection.SendQueryAsync<List<Management>>(DeviceQueries.getManagementNames);
+                Managements = await _apiConnection.SendQueryAsync<List<Management>>(DeviceQueries.getManagementNames);
                 Managements = GetRelevantManagements(globalConfig, Managements);
 
                 if (Managements == null || Managements.Count == 0)
@@ -196,7 +196,7 @@ namespace FWO.Compliance
                     Logger.TryWriteInfo("Compliance Check", $"Policy without criteria. Compliance check not possible.", LocalSettings.ComplianceCheckVerbose);
                     return;
                 }
-                
+
                 foreach (var criterion in Policy.Criteria)
                 {
                     Logger.TryWriteInfo("Compliance Check", $"Criterion: {criterion.Content.Name} ({criterion.Content.CriterionType}).", LocalSettings.ComplianceCheckVerbose);
@@ -214,13 +214,14 @@ namespace FWO.Compliance
 
                 // Perform check.
 
-                RulesInCheck =  await PerformCheckAsync(Managements!.Select(m => m.Id).ToList());
+                RulesInCheck = await PerformCheckAsync(Managements!.Select(m => m.Id).ToList());
 
                 if (RulesInCheck == null || RulesInCheck.Count == 0)
                 {
                     Logger.TryWriteInfo("Compliance Check", "No relevant rules found. Compliance check not possible.", true);
                     return;
-                };
+                }
+                ;
 
                 Logger.TryWriteInfo("Compliance Check", "Compliance check completed.", true);
             }
@@ -228,7 +229,7 @@ namespace FWO.Compliance
             {
                 Logger.TryWriteError("Compliance Check", e, true);
             }
-            
+
         }
 
         /// <summary>
@@ -241,7 +242,7 @@ namespace FWO.Compliance
             // Getting max import id for query vars.
 
             long? maxImportId = 0;
-            
+
 
             Import? import = await _apiConnection.SendQueryAsync<Import>(ImportQueries.getMaxImportId);
 
@@ -250,26 +251,26 @@ namespace FWO.Compliance
                 maxImportId = import.ImportAggregate.ImportAggregateMax.RelevantImportId ?? 0;
 
             }
-            
+
             // Getting total number oc rules, for calculating chunks.
 
-            AggregateCount? result = await _apiConnection.SendQueryAsync<AggregateCount>(RuleQueries.countRules);
-            int rulesCount = result?.Aggregate?.Count ?? 0;
+            AggregateCount? result = await _apiConnection.SendQueryAsync<AggregateCount>(RuleQueries.countActiveRules);
+            int activeRulesCount = result?.Aggregate?.Count ?? 0;
 
-            Logger.TryWriteInfo("Compliance Check", $"Loading {rulesCount} rules in chunks of {_elementsPerFetch} for managements: {string.Join(",", managementIds)}.", LocalSettings.ComplianceCheckVerbose);
+            Logger.TryWriteInfo("Compliance Check", $"Loading {activeRulesCount} active rules in chunks of {_elementsPerFetch} for managements: {string.Join(",", managementIds)}.", LocalSettings.ComplianceCheckVerbose);
 
             // Retrieve rules and check current compliance for every rule.
 
-            List<Rule>[]? chunks = await _parallelProcessor.SendParallelizedQueriesAsync<Rule>(rulesCount, _maxDegreeOfParallelism, _elementsPerFetch, RuleQueries.getRulesForSelectedManagements, CalculateCompliance, managementIds, maxImportId);
-            
+            List<Rule>[]? chunks = await _parallelProcessor.SendParallelizedQueriesAsync<Rule>(activeRulesCount, _maxDegreeOfParallelism, _elementsPerFetch, RuleQueries.getRulesForSelectedManagements, CalculateCompliance, managementIds, maxImportId);
+
             if (chunks == null)
             {
                 Logger.TryWriteInfo("Compliance Check", $"Chunks could not be loaded from the database.", LocalSettings.ComplianceCheckVerbose);
                 return [];
             }
 
-            Logger.TryWriteInfo("Compliance Check", $"Attempted to load {chunks.Count()} chunks of rules.", LocalSettings.ComplianceCheckVerbose);
-            
+            Logger.TryWriteInfo("Compliance Check", $"Attempted to load {chunks.Length} chunks of rules.", LocalSettings.ComplianceCheckVerbose);
+
             List<Rule>? rules = chunks
                 .SelectMany(rule => rule)
                 .ToList();
@@ -284,13 +285,12 @@ namespace FWO.Compliance
 
             // Create diffs and fill argument bags.
 
-            PostProcessRulesAsync(rules);
+            await PostProcessRulesAsync(rules);
 
-
-            return rules;         
+            return rules;
         }
 
-        public void PostProcessRulesAsync(List<Rule> ruleFromDb)
+        public async Task PostProcessRulesAsync(List<Rule> ruleFromDb)
         {
             CancellationToken ct = new();
 
@@ -300,16 +300,16 @@ namespace FWO.Compliance
 
             _violationsToRemove.Clear();
 
-            Parallel.ForEach(
+            await Parallel.ForEachAsync(
                 ruleFromDb.SelectMany(rule => rule.Violations),
                 new ParallelOptions
                 {
                     MaxDegreeOfParallelism = _maxDegreeOfParallelism,
                     CancellationToken = ct
                 },
-                (violation, token) =>
+                async (violation, token) =>
                 {
-                    if (!CurrentViolationsInCheck.Any(cv => CreateUniqueViolationKey(cv)  == CreateUniqueViolationKey(violation)))
+                    if (!CurrentViolationsInCheck.Any(cv => CreateUniqueViolationKey(cv) == CreateUniqueViolationKey(violation)))
                     {
                         _violationsToRemove.Add(violation);
                     }
@@ -323,14 +323,14 @@ namespace FWO.Compliance
 
             _violationsToAdd.Clear();
 
-            Parallel.ForEach(
+            await Parallel.ForEachAsync(
                 CurrentViolationsInCheck,
                 new ParallelOptions
                 {
                     MaxDegreeOfParallelism = _maxDegreeOfParallelism,
                     CancellationToken = ct
                 },
-                (violation, token) =>
+                async (violation, token) =>
                 {
                     if (!ruleFromDb.SelectMany(rule => rule.Violations).Any(rdb => CreateUniqueViolationKey(rdb) == CreateUniqueViolationKey(violation)))
                     {
@@ -357,7 +357,7 @@ namespace FWO.Compliance
                 }
                 else
                 {
-                    List<ComplianceViolationBase>  violations =_violationsToAdd.Cast<ComplianceViolationBase>().ToList();;
+                    List<ComplianceViolationBase> violations = _violationsToAdd.Cast<ComplianceViolationBase>().ToList(); ;
                     object variablesAdd = new
                     {
                         violations
@@ -492,7 +492,7 @@ namespace FWO.Compliance
                             default:
                                 break;
                         }
-                    }                  
+                    }
                 }
                 catch (System.Exception e)
                 {
@@ -574,7 +574,7 @@ namespace FWO.Compliance
                         .ToList();
 
                     filteredManagements = managements.Where(m => relevantManagementIDs.Contains(m.Id)).ToList();
-                    
+
                 }
                 catch (Exception e)
                 {
@@ -749,7 +749,7 @@ namespace FWO.Compliance
 
             return ruleIsCompliant;
         }
-        
+
         private static Task<List<(NetworkObject networkObject, List<IPAddressRange> ipRanges)>> GetNetworkObjectsWithIpRanges(List<NetworkObject> networkObjects)
         {
             List<(NetworkObject networkObject, List<IPAddressRange> ipRanges)> networkObjectsWithIpRange = [];
@@ -772,7 +772,7 @@ namespace FWO.Compliance
                 if (matrixId != null)
                 {
                     Logger.TryWriteInfo("Compliance Check", $"Loading network zones for Matrix {matrixId}.", LocalSettings.ComplianceCheckVerbose);
-                    NetworkZones =  await _apiConnection.SendQueryAsync<List<ComplianceNetworkZone>>(ComplianceQueries.getNetworkZonesForMatrix, new { criterionId = matrixId });
+                    NetworkZones = await _apiConnection.SendQueryAsync<List<ComplianceNetworkZone>>(ComplianceQueries.getNetworkZonesForMatrix, new { criterionId = matrixId });
                     Logger.TryWriteInfo("Compliance Check", $"Loaded {NetworkZones.Count} network zones for Matrix {matrixId}.", LocalSettings.ComplianceCheckVerbose);
                 }
             }
@@ -794,7 +794,7 @@ namespace FWO.Compliance
 
             return key;
         }
-        
+
         public async Task<List<Rule>> CalculateCompliance(List<Rule>? rulesToCheck = null)
         {
             List<Rule> rules = rulesToCheck ?? RulesInCheck ?? [];
@@ -868,7 +868,7 @@ namespace FWO.Compliance
 
                     networkZones = DetermineZones(dataItem.ipRanges);
                 }
-                
+
                 map.Add((dataItem.networkObject, networkZones));
             }
 

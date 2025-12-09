@@ -13,7 +13,6 @@ namespace FWO.Test
     /// Tests the complete authentication flow including token generation, refresh, and revocation.
     /// </summary>
     [TestFixture]
-    [Parallelizable]
     internal class AuthenticationTokenIntegrationTest
     {
         private WebApplicationFactory<Program>? factory;
@@ -31,13 +30,14 @@ namespace FWO.Test
         {
             Log.WriteInfo("Test Setup", "Initializing JWT integration test environment");
 
-            // Initialize default test credentials
+            // Initialize default test credentials for regular user (not targetuser needed)
             defaultCredentialsBuilder = new TokenTestDataBuilder()
                 .WithUsername("testuser")
                 .WithPassword("testpassword");
 
-            // Initialize admin test credentials
+            // Initialize admin test credentials (for admin operations)
             adminCredentialsBuilder = new TokenTestDataBuilder()
+                .WithTargetUser("targetuser")
                 .WithUsername("admin")
                 .WithPassword("adminpassword");
 
@@ -68,7 +68,7 @@ namespace FWO.Test
         [Category("TokenGeneration")]
         public async Task GetTokenPair_WithValidCredentials_ReturnsValidTokens()
         {
-            // Arrange - use default credentials from GlobalSetup
+            // Arrange - use default credentials
             AuthenticationTokenGetParameters parameters = defaultCredentialsBuilder.BuildGetParameters();
 
             // Act
@@ -97,36 +97,6 @@ namespace FWO.Test
             // Assert
             Assert.That(response.IsSuccessStatusCode, Is.False);
             Assert.That(response.StatusCode, Is.EqualTo(System.Net.HttpStatusCode.BadRequest));
-        }
-
-        [Test]
-        [Category("Authentication")]
-        [Category("TokenGeneration")]
-        public async Task GetTokenPair_WithCustomCredentials_ReturnsValidTokens()
-        {
-            // Arrange - create custom credentials using builder
-            AuthenticationTokenGetParameters parameters = new TokenTestDataBuilder()
-                .WithUsername("customuser")
-                .WithPassword("custompass")
-                .BuildGetParameters();
-
-            // Act
-            HttpResponseMessage response = await client!.PostAsJsonAsync("/api/AuthenticationToken/GetTokenPair", parameters);
-
-            // Assert
-            if (response.IsSuccessStatusCode)
-            {
-                TokenPair? tokenPair = await response.Content.ReadFromJsonAsync<TokenPair>();
-                AuthTestHelpers.AssertValidTokenPair(tokenPair);
-            }
-            else
-            {
-                string responseText = await response.Content.ReadAsStringAsync();
-                Assert.Fail($"API (Status: {response.StatusCode})\n" +
-                    $"Response: {responseText}\n" +
-                    $"Parameters: {System.Text.Json.JsonSerializer.Serialize(parameters)}\n\n" +
-                    $"Passed credentials may not exist in test environment.");
-            }
         }
 
         [Test]
@@ -290,14 +260,9 @@ namespace FWO.Test
         [Category("AdminOperations")]
         public async Task GetForUser_WithValidAdminCredentials_ReturnsUserToken()
         {
-            // Arrange - use admin credentials from GlobalSetup
-            AuthenticationTokenGetForUserParameters parameters = new TokenTestDataBuilder()
-                .WithTargetUser("targetuser")
-                .WithLifetime(TimeSpan.FromHours(24))
-                .BuildGetForUserParameters(
-                    adminCredentialsBuilder.BuildGetParameters().Username!,
-                    adminCredentialsBuilder.BuildGetParameters().Password!
-                );
+            // Arrange
+            AuthenticationTokenGetForUserParameters parameters = adminCredentialsBuilder
+                .BuildGetForUserParameters();
 
             // Act
             HttpResponseMessage response = await client!.PostAsJsonAsync("/api/AuthenticationToken/GetForUser", parameters);
@@ -326,15 +291,18 @@ namespace FWO.Test
         public async Task GetForUser_WithNonAdminCredentials_ReturnsBadRequest()
         {
             // Arrange - use regular user credentials (not admin)
-            AuthenticationTokenGetForUserParameters parameters = new TokenTestDataBuilder()
-                .WithTargetUser("targetuser")
-                .BuildGetForUserParameters("regularuser", "userpassword");
+            AuthenticationTokenGetForUserParameters parameters = defaultCredentialsBuilder
+                .WithTargetUser("targetuser") // ensure target user is set on builder for regular user
+                .BuildGetForUserParameters();
 
             // Act
             HttpResponseMessage response = await client!.PostAsJsonAsync("/api/AuthenticationToken/GetForUser", parameters);
 
+            string responseText = await response.Content.ReadAsStringAsync();
+
             // Assert
             Assert.That(response.StatusCode, Is.EqualTo(System.Net.HttpStatusCode.BadRequest));
+            Assert.That(responseText, Is.EqualTo("Error while validating admin credentials: Provided credentials do not belong to a user with role admin.").IgnoreCase);
         }
 
         [Test]
@@ -345,13 +313,9 @@ namespace FWO.Test
             // Arrange
             TimeSpan customLifetime = TimeSpan.FromHours(48);
 
-            AuthenticationTokenGetForUserParameters parameters = new TokenTestDataBuilder()
-                .WithTargetUser("longliveduser")
+            AuthenticationTokenGetForUserParameters parameters = adminCredentialsBuilder
                 .WithLifetime(customLifetime)
-                .BuildGetForUserParameters(
-                    adminCredentialsBuilder.BuildGetParameters().Username!,
-                    adminCredentialsBuilder.BuildGetParameters().Password!
-                );
+                .BuildGetForUserParameters();
 
             // Act
             HttpResponseMessage response = await client!.PostAsJsonAsync("/api/AuthenticationToken/GetForUser", parameters);

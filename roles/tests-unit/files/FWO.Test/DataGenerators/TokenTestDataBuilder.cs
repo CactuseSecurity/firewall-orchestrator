@@ -7,32 +7,32 @@ namespace FWO.Test.DataGenerators
     /// </summary>
     public class TokenTestDataBuilder
     {
-        private string? username;
-        private string? password;
-        private string? targetUserName;
-        private TimeSpan? lifetime;
+        public string? Username { get; private set; }
+        public string? Password { get; private set; }
+        private string? TargetUserName { get; set; }
+        public TimeSpan? Lifetime { get; private set; }
 
         public TokenTestDataBuilder WithUsername(string user)
         {
-            username = user;
+            Username = user;
             return this;
         }
 
         public TokenTestDataBuilder WithPassword(string pass)
         {
-            password = pass;
+            Password = pass;
             return this;
         }
 
         public TokenTestDataBuilder WithTargetUser(string target)
         {
-            targetUserName = target;
+            TargetUserName = target;
             return this;
         }
 
         public TokenTestDataBuilder WithLifetime(TimeSpan time)
         {
-            lifetime = time;
+            Lifetime = time;
             return this;
         }
 
@@ -40,36 +40,19 @@ namespace FWO.Test.DataGenerators
         {
             return new AuthenticationTokenGetParameters
             {
-                Username = username,
-                Password = password
+                Username = Username,
+                Password = Password
             };
         }
 
-        public AuthenticationTokenGetForUserParameters BuildGetForUserParameters(
-            string? adminUser = null,
-            string? adminPass = null)
+        public AuthenticationTokenGetForUserParameters BuildGetForUserParameters()
         {
-            if ((adminUser ?? username) is null)
-            {
-                throw new InvalidOperationException("AdminUsername must not be null.");
-            }
-
-            if ((adminPass ?? password) is null)
-            {
-                throw new InvalidOperationException("AdminPassword must not be null.");
-            }
-
-            if ((targetUserName ?? username) is null)
-            { 
-                throw new InvalidOperationException("TargetUserName must not be null.");
-            }
-
             return new AuthenticationTokenGetForUserParameters
             {
-                AdminUsername = adminUser ?? username!,
-                AdminPassword = adminPass ?? password!,
-                TargetUserName = targetUserName ?? username!,
-                Lifetime = lifetime ?? TimeSpan.FromHours(24)
+                AdminUsername = Username!,
+                AdminPassword = Password!,
+                TargetUserName = TargetUserName!,
+                Lifetime = Lifetime ?? TimeSpan.FromHours(24)
             };
         }
     }

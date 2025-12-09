@@ -11,13 +11,26 @@ namespace FWO.Ui.Services
     /// <summary>
     /// Manages token pairs (access + refresh tokens) for the current user session.
     /// </summary>
-    public class TokenService(MiddlewareClient middlewareClient, ProtectedSessionStorage sessionStorage)
+    public class TokenService
     {
+        private readonly MiddlewareClient middlewareClient;
+        private readonly ISessionStorage sessionStorage;
         private TokenPair? currentTokenPair;
         private readonly JwtSecurityTokenHandler jwtHandler = new();
         private readonly SemaphoreSlim refreshSemaphore = new(1, 1);
         private const string TOKEN_PAIR_KEY = "token_pair";
         private bool isInitialized = false;
+
+        /// <summary>
+        /// Initializes a new instance of the TokenService class.
+        /// </summary>
+        /// <param name="middlewareClient">The middleware client for token operations.</param>
+        /// <param name="sessionStorage">The session storage for persisting tokens.</param>
+        public TokenService(MiddlewareClient middlewareClient, ISessionStorage sessionStorage)
+        {
+            this.middlewareClient = middlewareClient;
+            this.sessionStorage = sessionStorage;
+        }
 
         /// <summary>
         /// Initializes the TokenService by trying to load any existing token pair from session storage.
@@ -46,6 +59,7 @@ namespace FWO.Ui.Services
         {
             currentTokenPair = tokenPair;
             await sessionStorage.SetAsync(TOKEN_PAIR_KEY, tokenPair);
+            isInitialized = true;
         }
 
         /// <summary>

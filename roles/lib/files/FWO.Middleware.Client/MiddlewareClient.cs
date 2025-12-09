@@ -259,7 +259,7 @@ namespace FWO.Middleware.Client
         /// </summary>
         /// <param name="parameters"></param>
         /// <returns></returns>
-        public async Task<RestResponse<TokenPair>> RefreshToken(RefreshTokenRequest parameters)
+        public virtual async Task<RestResponse<TokenPair>> RefreshToken(RefreshTokenRequest parameters)
         {
             RestRequest request = new("AuthenticationToken/Refresh", Method.Post);
             request.AddJsonBody(parameters);
@@ -271,7 +271,7 @@ namespace FWO.Middleware.Client
         /// </summary>
         /// <param name="parameters"></param>
         /// <returns></returns>
-        public async Task<RestResponse> RevokeRefreshToken(RefreshTokenRequest parameters)
+        public virtual async Task<RestResponse> RevokeRefreshToken(RefreshTokenRequest parameters)
         {
             RestRequest request = new("AuthenticationToken/Revoke", Method.Post);
             request.AddJsonBody(parameters);

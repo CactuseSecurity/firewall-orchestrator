@@ -1,4 +1,3 @@
-using FWO.Api.Client;
 using FWO.Data.Middleware;
 using FWO.Logging;
 using FWO.Middleware.Client;

@@ -175,3 +175,8 @@ app.UseAuthorization();
 app.MapControllers();
 
 app.Run();
+
+/// <summary>
+/// Entry point for the FWO Middleware Server application to make it accessible for testing
+/// </summary>
+public partial class Program { }

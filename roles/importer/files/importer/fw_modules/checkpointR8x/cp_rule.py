@@ -9,7 +9,7 @@ from fwo_exceptions import FwoImporterErrorInconsistencies
 from models.rulebase import Rulebase
 from models.rule import RuleNormalized
 from models.rule_enforced_on_gateway import RuleEnforcedOnGatewayNormalized
-from model_controllers.import_state_controller import ImportStateController
+from models.import_state import ImportState
 
 uid_to_name_map: dict[str, str] = {}
 
@@ -21,7 +21,7 @@ uid_to_name_map: dict[str, str] = {}
     - migrate section headers from rule to ordering element 
     ...
 """
-def normalize_rulebases (native_config: dict[str, Any], native_config_global: dict[str, Any] | None, import_state: ImportStateController, normalized_config_dict: dict[str, Any], 
+def normalize_rulebases (native_config: dict[str, Any], native_config_global: dict[str, Any] | None, import_state: ImportState, normalized_config_dict: dict[str, Any], 
                          normalized_config_global: dict[str, Any] | None, is_global_loop_iteration: bool):
     
     normalized_config_dict['policies'] = []
@@ -44,7 +44,7 @@ def normalize_rulebases (native_config: dict[str, Any], native_config_global: di
 
 def normalize_rulebases_for_each_link_destination(
         gateway: dict[str, Any], fetched_rulebase_uids: list[str], native_config: dict[str, Any], 
-        native_config_global: dict[str, Any] | None, is_global_loop_iteration: bool, import_state: ImportStateController, normalized_config_dict: dict[str, Any], normalized_config_global: dict[str, Any]):
+        native_config_global: dict[str, Any] | None, is_global_loop_iteration: bool, import_state: ImportState, normalized_config_dict: dict[str, Any], normalized_config_global: dict[str, Any]):
     for rulebase_link in gateway['rulebase_links']:
         if rulebase_link['to_rulebase_uid'] not in fetched_rulebase_uids and rulebase_link['to_rulebase_uid'] != '':
             rulebase_to_parse, is_section, is_placeholder = find_rulebase_to_parse(

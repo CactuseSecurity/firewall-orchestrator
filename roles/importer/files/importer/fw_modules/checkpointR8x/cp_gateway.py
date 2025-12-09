@@ -1,13 +1,13 @@
 from fwo_log import FWOLogger
 from typing import Any
 
-from model_controllers.import_state_controller import ImportStateController
+from models.import_state import ImportState
 
 
 """
     normalize all gateway details
 """
-def normalize_gateways (native_config: dict[str, Any], import_state: ImportStateController, normalized_config: dict[str, Any]):
+def normalize_gateways (native_config: dict[str, Any], import_state: ImportState, normalized_config: dict[str, Any]):
     normalized_config['gateways'] = []
     normalize_rulebase_links (native_config, normalized_config)
     normalize_interfaces (native_config, import_state, normalized_config)
@@ -55,12 +55,12 @@ def create_normalized_gateway(native_config: dict[str, Any], gw_id: int) -> dict
     return gw
             
 
-def normalize_interfaces (native_config: dict[str, Any], import_state: ImportStateController, normalized_config: dict[str, Any]):
+def normalize_interfaces (native_config: dict[str, Any], import_state: ImportState, normalized_config: dict[str, Any]):
     # TODO: Implement this
     pass
 
 
-def normalize_routing (native_config: dict[str, Any], import_state: ImportStateController, normalized_config: dict[str, Any]):
+def normalize_routing (native_config: dict[str, Any], import_state: ImportState, normalized_config: dict[str, Any]):
     # TODO: Implement this
     pass
 

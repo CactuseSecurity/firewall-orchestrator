@@ -1,4 +1,4 @@
-﻿using FWO.Logging;
+using FWO.Logging;
 using NUnit.Framework;
 using NUnit.Framework.Legacy;
 using System;
@@ -7,7 +7,7 @@ using System.Reflection;
 namespace FWO.Test
 {
     [TestFixture]
-    [Parallelizable]
+    [Order(3)]
     public class LockTest
     {
         private string lockFilePath = $"/var/fworch/lock/{Assembly.GetEntryAssembly()?.GetName().Name}_log.lock";
@@ -122,7 +122,7 @@ namespace FWO.Test
 			{
 				try
 				{
-                    await action();
+                    Assert.DoesNotThrowAsync(async () => { await action(); });
 					success = true;
 				}
 				catch (IOException)

@@ -14,7 +14,7 @@ namespace FWO.Test
     /// Unit tests for TokenService using custom mock implementations.
     /// </summary>
     [TestFixture]
-    [Parallelizable]
+    [Order(1)]
     public class TokenServiceTest
     {
         private MockMiddlewareClient? mockMiddlewareClient;

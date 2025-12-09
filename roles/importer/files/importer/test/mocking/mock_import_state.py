@@ -15,7 +15,7 @@ except ModuleNotFoundError:
 def make_hashable(obj):
     if isinstance(obj, dict):
         return tuple(sorted((k, make_hashable(v)) for k, v in obj.items()))
-    if isinstance(obj, (list, set)) or isinstance(obj, tuple):
+    if isinstance(obj, (list, set, tuple)):
         return tuple(make_hashable(i) for i in obj)
     return obj
 

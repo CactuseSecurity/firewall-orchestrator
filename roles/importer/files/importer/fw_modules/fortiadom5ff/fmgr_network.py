@@ -73,9 +73,8 @@ def get_obj_member_refs_list(
 def exclude_object_types_in_member_ref_search(obj_type: str, current_obj_type: str) -> bool:
     # TODO expand for all kinds of missmatches in group and member
     skip_member_ref_loop = False
-    if current_obj_type.endswith("firewall/addrgrp"):
-        if obj_type.endswith("firewall/ippool"):
-            skip_member_ref_loop = True
+    if current_obj_type.endswith("firewall/addrgrp") and obj_type.endswith("firewall/ippool"):
+        skip_member_ref_loop = True
     return skip_member_ref_loop
 
 
@@ -96,7 +95,7 @@ def normalize_network_object(
     elif "member" in obj_orig:  # addrgrp4, TODO for addrgrp6 change obj_typ to 'group_v6' and adjust obj_member_refs
         member_name_list: list[str] = obj_orig["member"]
         member_ref_list: list[str] = get_obj_member_refs_list(obj_orig, native_config_objects, current_obj_type)
-        sorted_member_refs, sorted_member_names = sort_and_join_refs(list(zip(member_ref_list, member_name_list)))
+        sorted_member_refs, sorted_member_names = sort_and_join_refs(list(zip(member_ref_list, member_name_list, strict=False)))
         obj.update({"obj_typ": "group"})
         obj.update({"obj_member_names": sorted_member_names})
         obj.update({"obj_member_refs": sorted_member_refs})
@@ -246,7 +245,7 @@ def resolve_nw_uid_to_name(uid: str, nw_objects: list[dict[str, Any]]) -> str:
 
 def add_member_names_for_nw_group(idx: int, nw_objects: list[dict[str, Any]]) -> None:
     group = nw_objects.pop(idx)
-    if group["obj_member_refs"] == "" or group["obj_member_refs"] == None:
+    if group["obj_member_refs"] == "" or group["obj_member_refs"] is None:
         group["obj_member_names"] = None
         group["obj_member_refs"] = None
     else:

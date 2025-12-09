@@ -13,10 +13,9 @@ from model_controllers.management_controller import ManagementController
 from models.fwconfig_normalized import FwConfigNormalized
 from query_analyzer import QueryAnalyzer
 
-from roles.importer.files.importer.models.import_state import ImportState
-
 if TYPE_CHECKING:
     from model_controllers.import_state_controller import ImportStateController
+    from models.import_state import ImportState
 
 # NOTE: we cannot import ImportState(Controller) here due to circular refs
 
@@ -28,8 +27,10 @@ class FwoApiCall(FwoApi):
         self.query_info = {}
         self.query_analyzer = QueryAnalyzer()
 
-    def get_mgm_ids(self, query_variables: dict[str, list[Any]] = {}) -> list[int]:
+    def get_mgm_ids(self, query_variables: dict[str, list[Any]] | None = None) -> list[int]:
         # from 9.0 do not import sub-managers separately
+        if query_variables is None:
+            query_variables = {}
         mgm_query = FwoApi.get_graphql_code([fwo_const.GRAPHQL_QUERY_PATH + "device/getManagementWithSubs.graphql"])
         result = self.call(mgm_query, query_variables=query_variables)
         if "data" in result and "management" in result["data"]:
@@ -66,8 +67,7 @@ class FwoApiCall(FwoApi):
 
         if "data" in result and "config" in result["data"]:
             result_array = result["data"]["config"]
-            dict1 = {v["config_key"]: v["config_value"] for _, v in enumerate(result_array)}
-            return dict1
+            return {v["config_key"]: v["config_value"] for _, v in enumerate(result_array)}
         return None
 
     # this mgm field is used by mw dailycheck scheduler
@@ -224,7 +224,7 @@ class FwoApiCall(FwoApi):
         description: str | None = None,
         source: str = "import",
     ) -> None:
-        if obj_name == "all" or obj_name == "Original":
+        if obj_name in {"all", "Original"}:
             return  # ignore resolve errors for enriched objects that are not in the native config
 
         create_data_issue_mutation = FwoApi.get_graphql_code(

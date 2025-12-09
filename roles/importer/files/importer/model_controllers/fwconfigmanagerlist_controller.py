@@ -136,6 +136,7 @@ class FwConfigManagerListController(FwConfigManagerList):
                     f"import_management - unspecified error while dumping normalized config to json file: {traceback.format_exc()!s}"
                 )
                 raise
+        return None
 
     def is_native(self) -> bool:
         return self.native_config is not None

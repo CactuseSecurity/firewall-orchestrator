@@ -29,12 +29,13 @@ def find_first_diff(a, b, path="root"):
 
 
 def _find_first_diff_in_list(a, b, path="root"):
-    for i, (x, y) in enumerate(zip(a, b)):
+    for i, (x, y) in enumerate(zip(a, b, strict=False)):
         res = find_first_diff(x, y, f"{path}[{i}]")
         if res:
             return res
     if len(a) != len(b):
         return f"list length mismatch at {path}: {len(a)} != {len(b)}"
+    return None
 
 
 def _find_first_diff_in_dict(a, b, path="root"):
@@ -47,6 +48,7 @@ def _find_first_diff_in_dict(a, b, path="root"):
     for k in b:
         if k not in a:
             return f"Key '{k}' missing in first object at {path}"
+    return None
 
 
 def reset_importer_with_new_config(config, mock_api, import_id=0) -> tuple[FwConfigImport, MockImportStateController]:

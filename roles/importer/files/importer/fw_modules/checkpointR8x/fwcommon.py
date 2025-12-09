@@ -14,9 +14,8 @@ from model_controllers.management_controller import ManagementController
 from models.fw_common import FwCommon
 from models.fwconfig_normalized import FwConfigNormalized
 from models.fwconfigmanagerlist import FwConfigManager
+from models.import_state import ImportState
 from utils.conversion_utils import convert_list_to_dict
-
-from roles.importer.files.importer.models.import_state import ImportState
 
 
 class CheckpointR8xCommon(FwCommon):

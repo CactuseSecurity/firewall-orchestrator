@@ -45,7 +45,7 @@ def cp_api_call(url: str, command: str, json_payload: dict[str, Any], sid: str |
             )
         raise FwApiError(exception_text)
     if show_progress:
-        print(".", end="", flush=True)
+        pass
 
     try:
         json_response = r.json()
@@ -70,8 +70,7 @@ def login(mgm_details: ManagementController):
 
 def logout(url: str, sid: str):
     FWOLogger.debug("logout from url " + url, 3)
-    response = cp_api_call(url, "logout", {}, sid)
-    return response
+    return cp_api_call(url, "logout", {}, sid)
 
 
 def process_single_task(task: dict[str, Any]) -> tuple[str, int]:
@@ -385,7 +384,7 @@ def get_rulebases(
         native_config_domain[native_config_rulebase_key].append(current_rulebase)
 
     # use recursion to get inline layers
-    policy_rulebases_uid_list = get_inline_layers_recursively(
+    return get_inline_layers_recursively(
         current_rulebase,
         device_config,
         native_config_domain,
@@ -396,7 +395,6 @@ def get_rulebases(
         policy_rulebases_uid_list,
     )
 
-    return policy_rulebases_uid_list
 
 
 def get_uid_of_rulebase(
@@ -627,16 +625,15 @@ def assign_placeholder_uids(
 ) -> tuple[str | None, str | None]:
     if rule["type"] == "place-holder":
         placeholder_rule_uid = rule["uid"]
-        if "uid" in section:
-            placeholder_rulebase_uid = section["uid"]
-        else:
-            placeholder_rulebase_uid = rulebase["uid"]
+        placeholder_rulebase_uid = section["uid"] if "uid" in section else rulebase["uid"]
     return placeholder_rule_uid, placeholder_rulebase_uid
 
 
 def get_nat_rules_from_api_as_dict(
-    api_v_url: str, sid: str, show_params_rules: dict[str, Any], native_config_domain: dict[str, Any] = {}
+    api_v_url: str, sid: str, show_params_rules: dict[str, Any], native_config_domain: dict[str, Any] | None = None
 ):
+    if native_config_domain is None:
+        native_config_domain = {}
     nat_rules: dict[str, list[Any]] = {"nat_rule_chunks": []}
     current = 0
     total = current + 1
@@ -689,9 +686,11 @@ def find_element_by_uid(array: list[dict[str, Any]], uid: str | None) -> dict[st
 def resolve_ref_from_object_dictionary(
     uid: str | None,
     obj_dict: list[dict[str, Any]],
-    native_config_domain: dict[str, Any] = {},
+    native_config_domain: dict[str, Any] | None = None,
     field_name: str | None = None,
 ) -> dict[str, Any] | None:
+    if native_config_domain is None:
+        native_config_domain = {}
     matched_obj = find_element_by_uid(obj_dict, uid)
 
     if matched_obj is None:  # object not in dict - need to fetch it from API
@@ -737,9 +736,13 @@ def resolve_ref_from_object_dictionary(
 def resolve_ref_list_from_object_dictionary(
     rulebase: list[dict[str, Any]] | dict[str, Any],
     value: str,
-    obj_dicts: list[dict[str, Any]] = [],
-    native_config_domain: dict[str, Any] = {},
+    obj_dicts: list[dict[str, Any]] | None = None,
+    native_config_domain: dict[str, Any] | None = None,
 ):  # TODO: what is objDict: I think it should be a list of dicts
+    if native_config_domain is None:
+        native_config_domain = {}
+    if obj_dicts is None:
+        obj_dicts = []
     if isinstance(rulebase, dict) and "objects-dictionary" in rulebase:
         obj_dicts = rulebase["objects-dictionary"]
     if isinstance(rulebase, list):  # found a list of rules

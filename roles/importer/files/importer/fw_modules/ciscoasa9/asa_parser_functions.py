@@ -97,10 +97,7 @@ def _find_line_with_prefix(block: list[str], prefix: str, only_first: bool = Fal
     for b in list(block):
         s = b.strip()
         if s.startswith(prefix):
-            if only_first:
-                v = s.split()[1]
-            else:
-                v = s[len(prefix) :].strip()
+            v = s.split()[1] if only_first else s[len(prefix):].strip()
             block.remove(b)
     return v
 

@@ -431,6 +431,7 @@ class FwConfigImportObject:
             return prev_config.service_objects, self.normalized_config.service_objects
         if type == Type.USER:
             return prev_config.users, self.normalized_config.users
+        return None
 
     def get_id(self, type: Type, uid: str, before_update: bool = False) -> int | None:
         if type == Type.NETWORK_OBJECT:
@@ -453,6 +454,7 @@ class FwConfigImportObject:
             return obj.svc_typ == "group"
         if type == Type.USER:
             return obj.get("user_typ", None) == "group"
+        return None
 
     def get_refs(self, type: Type, obj: Any) -> str | None:
         if type == Type.NETWORK_OBJECT:
@@ -498,7 +500,7 @@ class FwConfigImportObject:
         prev_config_objects, current_config_objects = self.get_config_objects(type, prev_config)
         prefix = self.get_prefix(type)
 
-        for uid in prev_config_objects.keys():
+        for uid in prev_config_objects:
             self.find_removed_objects(
                 current_config_objects, prev_config_objects, removed_members, removed_flats, prefix, uid, type
             )
@@ -609,7 +611,7 @@ class FwConfigImportObject:
         new_group_member_flats: list[dict[str, Any]] = []
         prev_config_objects, current_config_objects = self.get_config_objects(obj_type, prev_config)
         prefix = self.get_prefix(obj_type)
-        for uid in current_config_objects.keys():
+        for uid in current_config_objects:
             if not self.is_group(obj_type, current_config_objects[uid]):
                 continue
             member_uids = self.get_members(obj_type, self.get_refs(obj_type, current_config_objects[uid]))

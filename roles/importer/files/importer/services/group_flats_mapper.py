@@ -2,12 +2,11 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
-from models.networkobject import NetworkObject
-from models.serviceobject import ServiceObject
-
 if TYPE_CHECKING:
     from model_controllers.import_state_controller import ImportStateController
     from models.fwconfig_normalized import FwConfigNormalized
+    from models.networkobject import NetworkObject
+    from models.serviceobject import ServiceObject
 import fwo_const
 from fwo_log import FWOLogger
 from services.service_provider import ServiceProvider

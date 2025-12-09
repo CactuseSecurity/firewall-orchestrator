@@ -1,4 +1,4 @@
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import fwo_const
 from fwo_exceptions import FwoImporterErrorInconsistencies
@@ -10,10 +10,12 @@ from model_controllers.fwconfigmanagerlist_controller import FwConfigManagerList
 from model_controllers.import_state_controller import ImportStateController
 from models.fwconfig_normalized import FwConfigNormalized
 from models.gateway import Gateway
-from models.networkobject import NetworkObject
 from models.rulebase import Rulebase
 from models.rulebase_link import RulebaseLinkUidBased
 from services.service_provider import ServiceProvider
+
+if TYPE_CHECKING:
+    from models.networkobject import NetworkObject
 
 
 # this class is used for importing a config into the FWO API
@@ -116,7 +118,7 @@ class FwConfigImportCheckConsistency(FwConfigImport):
                 if conf.network_objects[obj_id].obj_typ != "group":
                     ip1 = conf.network_objects[obj_id].obj_ip
                     ip2 = conf.network_objects[obj_id].obj_ip_end
-                    if ip1 == None or ip2 == None:
+                    if ip1 is None or ip2 is None:
                         non_group_nw_obj_with_missing_ips.append(conf.network_objects[obj_id])
         if len(non_group_nw_obj_with_missing_ips) > 0:
             self.issues.update(

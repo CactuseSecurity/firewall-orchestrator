@@ -21,8 +21,7 @@ if IMPORTER_BASE_DIR not in sys.path:
 
 def get_fwo_jwt(import_user: str, import_pwd: str, user_management_api: str) -> str | None:
     try:
-        jwt = FwoApi.login(import_user, import_pwd, user_management_api)
-        return jwt
+        return FwoApi.login(import_user, import_pwd, user_management_api)
     except FwoApiLoginFailed as e:
         FWOLogger.error(e.message)
     except Exception:
@@ -41,7 +40,6 @@ def main(
     clear_management_data: bool = False,
     suppress_certificate_warnings: bool = False,
 ):
-    print("debug level set to " + str(debug_level))
     FWOLogger(debug_level)
 
     service_provider = init_service_provider()

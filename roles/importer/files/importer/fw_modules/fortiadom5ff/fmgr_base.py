@@ -9,7 +9,7 @@ def set_alerts_for_missing_objects(
     objects_not_found: list[str], import_id: int, rule_uid: str | None, object_type: str | None, mgm_id: int
 ):
     for obj in objects_not_found:
-        if obj == "all" or obj == "Original":
+        if obj in {"all", "Original"}:
             continue
 
         service_provider = ServiceProvider()

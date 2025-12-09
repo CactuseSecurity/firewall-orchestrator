@@ -6,6 +6,8 @@ from socket import gethostname
 
 from fwo_const import IMPORTER_BASE_DIR
 from fwo_log import FWOLogger
+from model_controllers.fwconfig_import_rollback import FwConfigImportRollback
+from model_controllers.management_controller import ManagementController
 from models.fw_common import FwCommon
 from models.import_state import ImportState
 
@@ -30,14 +32,11 @@ from model_controllers.check_consistency import FwConfigImportCheckConsistency
 from model_controllers.fwconfig_import import FwConfigImport
 from model_controllers.fwconfigmanagerlist_controller import FwConfigManagerListController
 from model_controllers.import_state_controller import ImportStateController
-from model_controllers.management_controller import ManagementController
 from models.gateway import Gateway
 from services.enums import Services
 from services.service_provider import ServiceProvider
 
-from roles.importer.files.importer.model_controllers.fwconfig_import_rollback import FwConfigImportRollback
-
-"""  
+"""
     import_management: import a single management (if no import for it is running)
     if mgmId is that of a super management, it will import all submanagements as well
     lock mgmt for import via FWORCH API call, generating new import_id

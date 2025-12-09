@@ -58,7 +58,7 @@ global_group_svc_obj_types = ["application-site-categories", "application-sites"
 group_svc_obj_types = local_group_svc_obj_types + global_group_svc_obj_types
 
 local_svc_obj_table_names = local_group_svc_obj_types + simple_svc_obj_types  # + [ 'CpmiAnyObject' ]
-global_svc_obj_table_names = global_group_svc_obj_types + ["CpmiAnyObject"]
+global_svc_obj_table_names = [*global_group_svc_obj_types, "CpmiAnyObject"]
 svc_obj_table_names = local_svc_obj_table_names + global_svc_obj_table_names
 
 local_api_obj_types = (
@@ -71,14 +71,7 @@ api_obj_types = nw_obj_table_names + svc_obj_table_names  # all obj table names 
 
 types_to_remove_globals_from = ["service-groups"]
 
-obj_types_full_fetch_needed = [
-    "access-roles",
-    "groups",
-    "groups-with-exclusion",
-    "updatable-objects",
-    "gateways-and-servers",
-    "services-other",
-] + group_svc_obj_types
+obj_types_full_fetch_needed = ["access-roles", "groups", "groups-with-exclusion", "updatable-objects", "gateways-and-servers", "services-other", *group_svc_obj_types]
 
 cp_specific_object_types = [  # used for fetching enrichment data via "get object" separately (no specific API call)
     "simple-gateway",

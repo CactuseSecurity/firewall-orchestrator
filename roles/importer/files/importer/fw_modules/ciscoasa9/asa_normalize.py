@@ -21,11 +21,10 @@ from fwo_log import FWOLogger
 from model_controllers.fwconfigmanagerlist_controller import FwConfigManagerListController
 from models.fwconfig_normalized import FwConfigNormalized
 from models.gateway import Gateway
+from models.import_state import ImportState
 from models.networkobject import NetworkObject
 from models.rulebase_link import RulebaseLinkUidBased
 from models.serviceobject import ServiceObject
-
-from roles.importer.files.importer.models.import_state import ImportState
 
 
 def normalize_all_network_objects(native_config: Config) -> dict[str, NetworkObject]:

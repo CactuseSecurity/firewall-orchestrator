@@ -10,6 +10,4 @@ class Voice(BaseModel):
 
 
 voice = Voice(name="Filiz", language_code="tr-TR")
-print(voice.language_code)
 # > tr-TR
-print(voice.model_dump(by_alias=True))

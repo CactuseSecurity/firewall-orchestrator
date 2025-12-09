@@ -12,32 +12,6 @@ class TestNormalizeAccessRules(unittest.TestCase):
         global list_delimiter
         list_delimiter = ","
 
-        full_config = {
-            "rules": {
-                "rules": [
-                    {
-                        "policyid": 1,
-                        "uuid": "abc-123",
-                        "action": "accept",
-                        "status": "enable",
-                        "logtraffic": "utm",
-                        "_last_hit": 1722796800,  # 2024-08-05
-                        "srcaddr": [{"name": "src1"}],
-                        "dstaddr": [{"name": "dst1"}],
-                        "service": [{"name": "svc1"}],
-                        "srcaddr6": [],
-                        "dstaddr6": [],
-                        "srcintf": [{"name": "if1"}],
-                        "dstintf": [{"name": "if2"}],
-                        "srcaddr-negate": "disable",
-                        "dstaddr-negate": "disable",
-                        "service-negate": "disable",
-                        "comments": "some comment",
-                    }
-                ]
-            },
-            "nw_obj_lookup_dict": {},
-        }
         config2import = {}
         mgm_details = MagicMock()
         mgm_details.Devices = [{"name": "firewall1"}]

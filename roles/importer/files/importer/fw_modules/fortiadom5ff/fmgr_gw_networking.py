@@ -121,7 +121,9 @@ def get_matching_route(destination_ip: IPAddress, routing_table: list[dict[str, 
     return None
 
 
-def get_ip_of_interface(interface: str, interface_list: list[dict[str, Any]] = []) -> str | None:
+def get_ip_of_interface(interface: str, interface_list: list[dict[str, Any]] | None = None) -> str | None:
+    if interface_list is None:
+        interface_list = []
     interface_details = next((sub for sub in interface_list if sub["name"] == interface), None)
 
     if interface_details is not None and "ipv4" in interface_details:

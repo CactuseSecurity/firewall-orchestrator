@@ -129,7 +129,7 @@ class MockFwConfigNormalizedBuilder:
 
             new_rulebase = self.add_rulebase(config, mock_mgm_uid)
 
-            for i in range(number_of_rules):
+            for _i in range(number_of_rules):
                 # Add a new rule to the rulebase.
 
                 new_rule = self.add_rule(config, new_rulebase.uid)
@@ -369,7 +369,7 @@ class MockFwConfigNormalizedBuilder:
 
         # Add remaining links.
 
-        for index, rulebase in enumerate(config.rulebases):
+        for index, _rulebase in enumerate(config.rulebases):
             # Skip first rulebase.
 
             if index == 0:
@@ -427,7 +427,7 @@ class MockFwConfigNormalizedBuilder:
         config.service_objects[new_service_object.svc_uid] = new_service_object
         return new_service_object
 
-    def add_rule(self, config: FwConfigNormalized, rulebase_uid: str, rule_dict: dict = {}) -> RuleNormalized:
+    def add_rule(self, config: FwConfigNormalized, rulebase_uid: str, rule_dict: dict | None = None) -> RuleNormalized:
         """
         Adds a new rule to the rulebase identified by the given UID.
 
@@ -438,6 +438,8 @@ class MockFwConfigNormalizedBuilder:
             Rule: The newly created rule.
 
         """
+        if rule_dict is None:
+            rule_dict = {}
         rulebase = next(rb for rb in config.rulebases if rb.uid == rulebase_uid)
 
         src_objs, dst_objs, svc_objs = [], [], []

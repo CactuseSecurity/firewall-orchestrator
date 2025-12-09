@@ -1,7 +1,6 @@
-import json
 import re
-from collections.abc import Callable
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from fw_modules.ciscoasa9.asa_models import (
     AccessGroupBinding,
@@ -39,6 +38,9 @@ from fw_modules.ciscoasa9.asa_parser_functions import (
     parse_service_object_block,
     parse_service_object_group_block,
 )
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
 
 
 def parse_asa_config(raw_config: str) -> Config:
@@ -242,8 +244,8 @@ def _handle_access_list_entry(match: re.Match[str], line: str, lines: list[str],
     try:
         entry = parse_access_list_entry(line, state.protocol_groups, state.svc_objects, state.svc_obj_groups)
         state.access_lists_map.setdefault(entry.acl_name, []).append(entry)
-    except Exception as e:
-        print(f"Warning: Failed to parse access-list line: {line}. Error: {e}")
+    except Exception:
+        pass
     return i + 1
 
 
@@ -382,4 +384,3 @@ if __name__ == "__main__":
     config = parse_asa_config(text)
 
     # You can dump the entire parsed config as JSON
-    print(json.dumps(config.model_dump(exclude_none=True)["names"], indent=2))

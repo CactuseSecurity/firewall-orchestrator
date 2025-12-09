@@ -67,7 +67,4 @@ def normalize_routing(native_config: dict[str, Any], import_state: ImportState, 
 
 
 def gw_in_normalized_config(normalized_config: dict[str, Any], gw_uid: str) -> bool:
-    for gw in normalized_config["gateways"]:
-        if gw["Uid"] == gw_uid:
-            return True
-    return False
+    return any(gw["Uid"] == gw_uid for gw in normalized_config["gateways"])

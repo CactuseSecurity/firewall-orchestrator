@@ -135,14 +135,14 @@ class ManagementController(Management):
             return f"https://{self.hostname}:{self.port!s}/api/fmc_platform/v1/"
         if self.device_type_name == "Fortinet":
             return f"https://{self.hostname}:{self.port!s}/api/v2/"
-        if self.device_type_name == "FortiAdom" or self.device_type_name == "FortiManager":
+        if self.device_type_name in {"FortiAdom", "FortiManager"}:
             return f"https://{self.hostname}:{self.port!s}/jsonrpc"
-        if self.device_type_name == "PaloAlto" or self.device_type_name == "PaloAltoLegacy":
+        if self.device_type_name in {"PaloAlto", "PaloAltoLegacy"}:
             return f"https://{self.hostname}:{self.port!s}/restapi/v10.0/"
         raise FwLoginFailed(f"Unsupported device type: {self.device_type_name}")
 
     def getDomainString(self) -> str:
-        return self.domain_uid if self.domain_uid != None else self.domain_name  # type: ignore #TODO: check if None check is needed if yes, change type
+        return self.domain_uid if self.domain_uid is not None else self.domain_name  # type: ignore #TODO: check if None check is needed if yes, change type
 
     @classmethod
     def build_gateway_list(cls, mgm_details: "ManagementController") -> list["Gateway"]:

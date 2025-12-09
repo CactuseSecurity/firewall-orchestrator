@@ -128,7 +128,7 @@ def create_rule_from_acl_entry(
     dst_ref = resolve_network_reference_for_rule(entry.dst, network_objects)
 
     # Create normalized rule
-    rule = RuleNormalized(
+    return RuleNormalized(
         rule_num=0,
         rule_num_numeric=0,  # will be set later
         rule_disabled=entry.inactive,
@@ -159,7 +159,6 @@ def create_rule_from_acl_entry(
         rule_head_text=None,
     )
 
-    return rule
 
 
 def build_rulebases_from_access_lists(

@@ -126,8 +126,7 @@ def initialize_normalized_rulebase(rulebase_to_parse: dict[str, Any], mgm_uid: s
     """
     rulebase_name = rulebase_to_parse["type"]
     rulebase_uid = rulebase_to_parse["type"]
-    normalized_rulebase = Rulebase(uid=rulebase_uid, name=rulebase_name, mgm_uid=mgm_uid, rules={})
-    return normalized_rulebase
+    return Rulebase(uid=rulebase_uid, name=rulebase_name, mgm_uid=mgm_uid, rules={})
 
 
 def parse_rulebase(
@@ -448,7 +447,7 @@ def rule_parse_installon(native_rule: dict[str, Any]) -> str | None:
 
 def rule_parse_last_hit(native_rule: dict[str, Any]) -> str | None:
     last_hit = native_rule.get("_last_hit")
-    if last_hit != None:
+    if last_hit is not None:
         last_hit = strftime("%Y-%m-%d %H:%M:%S", localtime(last_hit))
     return last_hit
 
@@ -569,10 +568,9 @@ def get_and_link_local_rulebase(
             rulebase_type_prefix + "_v6_" + local_pkg_name,
             limit=limit,
         )
-    previous_rulebase = link_rulebase(
+    return link_rulebase(
         link_list, native_config_adom["rulebases"], local_pkg_name, rulebase_type_prefix, previous_rulebase, False
     )
-    return previous_rulebase
 
 
 def find_packages(
@@ -596,10 +594,7 @@ def find_packages(
 
 
 def is_rulebase_already_fetched(rulebases: list[dict[str, Any]], type: str) -> bool:
-    for rulebase in rulebases:
-        if rulebase["type"] == type:
-            return True
-    return False
+    return any(rulebase["type"] == type for rulebase in rulebases)
 
 
 def link_rulebase(
@@ -643,10 +638,7 @@ def has_rulebase_data(
 ) -> bool:
     """Adds name and uid to rulebase and removes empty global rulebases"""
     has_data = False
-    if version == "v4":
-        is_v4 = True
-    else:
-        is_v4 = False
+    is_v4 = version == "v4"
     for rulebase in rulebases:
         if rulebase["type"] == full_pkg_name:
             rulebase.update(

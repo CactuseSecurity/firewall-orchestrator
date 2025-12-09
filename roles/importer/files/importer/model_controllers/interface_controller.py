@@ -19,7 +19,7 @@ class Interface:
             self.netmask_bits = netmask_bits
         self.state_up = bool(state_up)
         ip_version = int(ip_version)
-        if ip_version != 4 and ip_version != 6:
+        if ip_version not in {4, 6}:
             FWOLogger.error("interface " + self.name + " with invalid ip protocal: " + str(ip_version))
         else:
             self.ip_version = ip_version

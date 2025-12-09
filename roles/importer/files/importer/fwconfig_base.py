@@ -5,7 +5,7 @@ from fwo_enums import ConfFormat, ConfigAction
 
 class FwoEncoder(json.JSONEncoder):
     def default(self, obj: object) -> object:  # type: ignore
-        if isinstance(obj, ConfigAction) or isinstance(obj, ConfFormat):
+        if isinstance(obj, (ConfigAction, ConfFormat)):
             return obj.name
 
         return json.JSONEncoder.default(self, obj)

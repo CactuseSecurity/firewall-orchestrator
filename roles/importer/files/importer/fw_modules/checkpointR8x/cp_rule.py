@@ -18,7 +18,7 @@ uid_to_name_map: dict[str, str] = {}
     - single rulebase used on more than one gw
     - global policies enforced on more than one gws
     - inline layers (CP)
-    - migrate section headers from rule to ordering element 
+    - migrate section headers from rule to ordering element
     ...
 """
 
@@ -154,8 +154,7 @@ def concatenat_sections_across_chunks(rulebase_to_parse: dict[str, Any], section
 def initialize_normalized_rulebase(rulebase_to_parse: dict[str, Any], mgm_uid: str) -> Rulebase:
     rulebase_name = rulebase_to_parse.get("name", DEFAULT_SECTION_HEADER_TEXT)
     rulebase_uid = rulebase_to_parse["uid"]
-    normalized_rulebase = Rulebase(uid=rulebase_uid, name=rulebase_name, mgm_uid=mgm_uid, rules={})
-    return normalized_rulebase
+    return Rulebase(uid=rulebase_uid, name=rulebase_name, mgm_uid=mgm_uid, rules={})
 
 
 def parse_rulebase(

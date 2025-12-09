@@ -66,14 +66,12 @@ class TestFwConfigImportRuleOrder(unittest.TestCase):
                 self._print_rule_num_numerics()
 
     def _print_rule_num_numerics(self):
-        print("\nPrevious Config Rule Num Numerics:")
         for rb in self._previous_config.rulebases:
-            for rule in rb.rules.values():
-                print(f"Rule UID: {rule.rule_uid}, rule_num_numeric: {rule.rule_num_numeric}")
-        print("\nNormalized Config Rule Num Numerics:")
+            for _rule in rb.rules.values():
+                pass
         for rb in self._normalized_config.rulebases:
-            for rule in rb.rules.values():
-                print(f"Rule UID: {rule.rule_uid}, rule_num_numeric: {rule.rule_num_numeric}")
+            for _rule in rb.rules.values():
+                pass
 
     def test_initialize_on_initial_import(self):
         # Arrange
@@ -257,6 +255,5 @@ class TestFwConfigImportRuleOrder(unittest.TestCase):
         Helper method to get a rule from the normalized config.
         """
         rulebase = self._normalized_config.rulebases[rulebase_index]
-        rule = rulebase.rules.get(rule_uid, None)
+        return rulebase.rules.get(rule_uid, None)
 
-        return rule

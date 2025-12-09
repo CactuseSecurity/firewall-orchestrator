@@ -29,8 +29,7 @@ from model_controllers.management_controller import (
 
 def get_fwo_jwt(import_user: str, import_pwd: str, user_management_api: str) -> str | None:
     try:
-        jwt = FwoApi.login(import_user, import_pwd, user_management_api)
-        return jwt
+        return FwoApi.login(import_user, import_pwd, user_management_api)
     except FwoApiLoginFailed as e:
         FWOLogger.error(e.message)
     except Exception:

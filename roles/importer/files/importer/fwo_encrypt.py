@@ -36,8 +36,7 @@ def decrypt_aes_ciphertext(base64_encrypted_text: str, passphrase: str) -> str:
 # wrapper for trying the different decryption methods
 def decrypt(encrypted_data: str, passphrase: str) -> str:
     try:
-        decrypted = decrypt_aes_ciphertext(encrypted_data, passphrase)
-        return decrypted
+        return decrypt_aes_ciphertext(encrypted_data, passphrase)
     except Exception:
         FWOLogger.warning("Unspecified error while decrypting with AES: " + str(traceback.format_exc()))
         return encrypted_data
@@ -45,5 +44,4 @@ def decrypt(encrypted_data: str, passphrase: str) -> str:
 
 def read_main_key(file_path: str = MAIN_KEY_FILE) -> str:
     with open(file_path) as keyfile:
-        main_key = keyfile.read().rstrip(" \n")
-    return main_key
+        return keyfile.read().rstrip(" \n")

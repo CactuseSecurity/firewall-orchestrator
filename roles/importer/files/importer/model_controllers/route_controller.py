@@ -35,7 +35,7 @@ class Route:
         if distance is not None:
             self.distance = int(distance)
         ip_version = int(ip_version)
-        if ip_version != 4 and ip_version != 6:
+        if ip_version not in {4, 6}:
             FWOLogger.error(
                 "found route for destination " + str(self.destination) + " with invalid ip protocal: " + str(ip_version)
             )

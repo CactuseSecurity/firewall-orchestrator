@@ -299,7 +299,7 @@ def create_service_for_protocol_entry(entry: AccessListEntry, service_objects: d
 
     if entry.protocol.value == "ip":
         svc_refs: list[str] = []
-        for proto in protocol_map.keys():
+        for proto in protocol_map:
             svc_refs.append(create_any_protocol_service(proto, service_objects))
 
         reference_string = fwo_base.sort_and_join(svc_refs)

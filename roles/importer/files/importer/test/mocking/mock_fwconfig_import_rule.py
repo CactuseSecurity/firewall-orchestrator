@@ -4,6 +4,7 @@ from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from models.fwconfig_normalized import FwConfigNormalized
+    from models.rulebase import Rulebase
 
 import sys
 from pathlib import Path
@@ -12,7 +13,6 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "importer"))
 
 from fwo_base import init_service_provider
 from model_controllers.fwconfig_import_rule import FwConfigImportRule
-from models.rulebase import Rulebase
 from test.mocking.mock_import_state import MockImportStateController
 
 
@@ -284,7 +284,7 @@ class MockFwConfigImportRule(FwConfigImportRule):
                 changes += len(rulebase_rule_uids)
                 collected_rule_ids = list(range(1, len(rulebase_rule_uids) + 1))
                 for counter in range(len(rulebase_rule_uids)):
-                    insert_rule_return = dict()
+                    insert_rule_return = {}
                     insert_rule_return["rule_uid"] = rulebase_rule_uids[counter]
                     insert_rule_return["rule_id"] = changes + counter + 1
                     insert_rules_return.append(insert_rule_return)

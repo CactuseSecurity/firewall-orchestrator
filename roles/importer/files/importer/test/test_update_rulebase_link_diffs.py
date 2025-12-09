@@ -159,7 +159,7 @@ class TestUpdateRulebaseLinkDiffs(unittest.TestCase):
         # Arrange
 
         from_rulebase = self._normalized_config.rulebases[-1]
-        from_rule = list(from_rulebase.rules.values())[0]
+        from_rule = next(iter(from_rulebase.rules.values()))
 
         added_rulebase = self._config_builder.add_rulebase(self._normalized_config, self._mgm_uid)
         self._config_builder.add_rule(self._normalized_config, added_rulebase.uid)
@@ -193,14 +193,14 @@ class TestUpdateRulebaseLinkDiffs(unittest.TestCase):
             f"expected last rulebase link to point to new rulebase id {to_rulebase_id}, got {new_links[0]['to_rulebase_id']}",
         )
         self.assertTrue(
-            new_links[0]["is_section"] == False, "expected last rulebase link to have is_section false, got true"
+            not new_links[0]["is_section"], "expected last rulebase link to have is_section false, got true"
         )
 
     def test_delete_inline_layer(self):
         # Arrange
 
         from_rulebase = self._previous_config.rulebases[-1]
-        from_rule = list(from_rulebase.rules.values())[0]
+        from_rule = next(iter(from_rulebase.rules.values()))
 
         added_rulebase = self._config_builder.add_rulebase(self._previous_config, self._mgm_uid)
         self._config_builder.add_rule(self._previous_config, added_rulebase.uid)
@@ -209,7 +209,7 @@ class TestUpdateRulebaseLinkDiffs(unittest.TestCase):
         self._config_builder.add_inline_layer(gateway, from_rulebase.uid, from_rule.rule_uid, added_rulebase.uid)
 
         update_rule_map_and_rulebase_map(self._previous_config, self._import_state)
-        from_rule_id, from_rulebase_id, to_rulebase_id = lookup_ids_for_rulebase_link(
+        _from_rule_id, _from_rulebase_id, _to_rulebase_id = lookup_ids_for_rulebase_link(
             self._import_state, from_rule.rule_uid, from_rulebase.uid, added_rulebase.uid
         )
         update_rb_links(gateway.RulebaseLinks, 1, self._fwconfig_import_gateway)
@@ -227,10 +227,10 @@ class TestUpdateRulebaseLinkDiffs(unittest.TestCase):
         # Arrange
 
         from_rulebase_previous = self._previous_config.rulebases[-1]
-        from_rule_previous = list(from_rulebase_previous.rules.values())[0]
+        from_rule_previous = next(iter(from_rulebase_previous.rules.values()))
 
         from_rulebase_normalized = self._normalized_config.rulebases[0]
-        from_rule_normalized = list(from_rulebase_normalized.rules.values())[0]
+        from_rule_normalized = next(iter(from_rulebase_normalized.rules.values()))
 
         added_rulebase = self._config_builder.add_rulebase(self._previous_config, self._mgm_uid)
         self._config_builder.add_rule(self._previous_config, added_rulebase.uid)
@@ -272,7 +272,7 @@ class TestUpdateRulebaseLinkDiffs(unittest.TestCase):
             f"expected last rulebase link to point to new rulebase id {to_rulebase_id}, got {new_links[0]['to_rulebase_id']}",
         )
         self.assertTrue(
-            new_links[0]["is_section"] == False, "expected last rulebase link to have is_section false, got true"
+            not new_links[0]["is_section"], "expected last rulebase link to have is_section false, got true"
         )
         self.assertTrue(len(deleted_links_ids) == 1, f"expected {1} new rulebase link, got {len(deleted_links_ids)}")
         self.assertTrue(deleted_links_ids[0] == self._fwconfig_import_gateway._rb_link_controller.rb_links[-1].id)

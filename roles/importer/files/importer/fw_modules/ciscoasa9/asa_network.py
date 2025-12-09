@@ -34,10 +34,7 @@ def create_network_host(name: str, ip_address: str, comment: str | None, ip_vers
         Normalized NetworkObject instance
 
     """
-    if ip_version == 6:
-        obj_ip = IPNetwork(f"{ip_address}/128", version=6)
-    else:
-        obj_ip = IPNetwork(f"{ip_address}/32")
+    obj_ip = IPNetwork(f"{ip_address}/128", version=6) if ip_version == 6 else IPNetwork(f"{ip_address}/32")
     return NetworkObject(
         obj_uid=name,
         obj_name=name,

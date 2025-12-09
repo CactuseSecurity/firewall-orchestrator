@@ -180,7 +180,7 @@ class RuleOrderService:
                     raise FwoApiFailure(message="RuleOrderService: Unexpected rule_uid.")
 
     def _set_initial_rule_num_numerics(self):
-        for _, rule_uids in self._inserts_and_moves.items():
+        for rule_uids in self._inserts_and_moves.values():
             current_rule_num_numeric = 0
             for rule_uid in rule_uids:
                 _, changed_rule = self._get_index_and_rule_object_from_flat_list(self._target_rules_flat, rule_uid)
@@ -305,7 +305,7 @@ class RuleOrderService:
         if not uids_and_rules:
             return ([], [])
 
-        uids, rules = zip(*uids_and_rules)
+        uids, rules = zip(*uids_and_rules, strict=False)
         return (list(uids), list(rules))
 
     def _is_part_of_consecutive_insert(self, rule_uid: str):
@@ -335,6 +335,7 @@ class RuleOrderService:
 
         if next_rule_uid and self._is_rule_uid_in_return_object(next_rule_uid, self._new_rule_uids):
             return True
+        return None
 
     def _get_adjacent_list_element(self, lst: list[str], index: int) -> tuple[str | None, str | None]:
         if not lst or index < 0 or index >= len(lst):

@@ -85,8 +85,7 @@ class ImportState:
     def lookup_all_gateway_ids(self) -> list[int]:
         mgm_id = self.mgm_details.current_mgm_id
         gws_for_mgm = self.gateway_map.get(mgm_id, {})
-        gw_ids = list(gws_for_mgm.values())
-        return gw_ids
+        return list(gws_for_mgm.values())
 
     def lookup_management_id(self, mgm_uid: str) -> int | None:
         if not self.management_map.get(mgm_uid, None):

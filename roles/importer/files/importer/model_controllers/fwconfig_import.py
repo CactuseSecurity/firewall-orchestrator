@@ -332,10 +332,9 @@ class FwConfigImport:
                 )
             if len(query_result["data"]["latest_config"]) > 0:  # do we have a prev config?
                 if query_result["data"]["latest_config"][0]["import_id"] == latest_import_id:
-                    prev_config = FwConfigNormalized.model_validate_json(
+                    return FwConfigNormalized.model_validate_json(
                         query_result["data"]["latest_config"][0]["config"]
                     )
-                    return prev_config
                 FWOLogger.warning(
                     f"fwo_api:import_latest_config - latest config for mgm id {mgm_id} did not match last import id {latest_import_id}"
                 )
@@ -351,8 +350,7 @@ class FwConfigImport:
         params = {"mgm-ids": [self.import_state.state.mgm_details.current_mgm_id]}
         result = self.import_state.api_connection.call_endpoint("POST", "api/NormalizedConfig/Get", params=params)
         try:
-            latest_config = FwConfigNormalized.model_validate(result)
-            return latest_config
+            return FwConfigNormalized.model_validate(result)
         except Exception:
             FWOLogger.exception(
                 f"failed to get latest normalized config from db for mgm id {self.import_state.state.mgm_details.mgm_id!s}: {traceback.format_exc()!s}"

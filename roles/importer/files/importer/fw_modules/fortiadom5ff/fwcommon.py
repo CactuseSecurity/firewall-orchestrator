@@ -16,10 +16,9 @@ from model_controllers.import_state_controller import ImportStateController
 from models.fw_common import FwCommon
 from models.fwconfig_normalized import FwConfigNormalized
 from models.fwconfigmanager import FwConfigManager
+from models.import_state import ImportState
 from models.management import Management
 from utils.conversion_utils import convert_list_to_dict
-
-from roles.importer.files.importer.models.import_state import ImportState
 
 
 class FortiAdom5ffCommon(FwCommon):
@@ -151,6 +150,7 @@ def get_arbitrary_vdom(adom_device_vdom_structure: dict[str, dict[str, dict[str,
         for device in adom_device_vdom_structure[adom]:
             for vdom in adom_device_vdom_structure[adom][device]:
                 return {"adom": adom, "device": device, "vdom": vdom}
+    return None
 
 
 def normalize_config(native_config: dict[str, Any]) -> FwConfigManagerListController:
@@ -500,8 +500,8 @@ def normalize_links(rulebase_links: list[dict[str, Any]]) -> list[dict[str, Any]
 
         # Remove from_rulebase_uid and from_rule_uid if link_type is initial
         if link["link_type"] == "initial":
-            if link["from_rulebase_uid"] != None:
+            if link["from_rulebase_uid"] is not None:
                 link["from_rulebase_uid"] = None
-            if link["from_rule_uid"] != None:
+            if link["from_rule_uid"] is not None:
                 link["from_rule_uid"] = None
     return rulebase_links

@@ -122,7 +122,7 @@ class QueryAnalyzer(Visitor):
 
         # Store information about the variable definitions.
 
-        if "query_args" not in self._query_info.keys():
+        if "query_args" not in self._query_info:
             self._query_info["query_args"] = {}
 
         self._query_info["query_args"][var_name] = type_str

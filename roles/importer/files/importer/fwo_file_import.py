@@ -18,7 +18,7 @@ from models.import_state import ImportState
 """
     supported input formats:
 
-    1) legacy normalized old: 
+    1) legacy normalized old:
 
     {
         "network_objects": [x,y],
@@ -52,12 +52,12 @@ from models.import_state import ImportState
     these will we wrapped with the following:
 
     TODO: need to detect native format from file
-    
+
     {
         "ConfigFormat": "<NATIVE_FORMAT>_LEGACY",
         "config": configJson
     }
-        
+
     output formats:
 
     a) NORMALIZED:
@@ -72,7 +72,7 @@ from models.import_state import ImportState
                 {
                 "objects": [
     }
-    
+
 
 """
 

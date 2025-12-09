@@ -38,10 +38,7 @@ def extend_string_list(list_string: str | None, src_dict: dict[str, list[str]], 
     if list_string is None:
         list_string = ""
     if list_string == "":
-        if key in src_dict:
-            result = delimiter.join(src_dict[key])
-        else:
-            result = ""
+        result = delimiter.join(src_dict[key]) if key in src_dict else ""
     #            fwo_api.create_data_issue(fwo_api_base_url, jwt, import_id, key)
     elif key in src_dict:
         old_list = list_string.split(delimiter)
@@ -287,7 +284,7 @@ def _diff_dicts(a: dict[Any, Any], b: dict[Any, Any], strict: bool, path: str) -
 
 def _diff_lists(a: list[Any], b: list[Any], strict: bool, path: str) -> list[str]:
     diffs: list[str] = []
-    for i, (x, y) in enumerate(zip(a, b)):
+    for i, (x, y) in enumerate(zip(a, b, strict=False)):
         diffs.extend(find_all_diffs(x, y, strict, f"{path}[{i}]"))
     if len(a) != len(b):
         diffs.append(f"list length mismatch at {path}: {len(a)} != {len(b)}")

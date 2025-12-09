@@ -131,10 +131,7 @@ class ImportStateController:
             now = datetime.now(UTC)
 
             # Normalize pastDate too (convert to UTC if it had a tz)
-            if past_date.tzinfo is None:
-                past_date = past_date.replace(tzinfo=UTC)
-            else:
-                past_date = past_date.astimezone(UTC)
+            past_date = past_date.replace(tzinfo=UTC) if past_date.tzinfo is None else past_date.astimezone(UTC)
 
             difference = now - past_date
 

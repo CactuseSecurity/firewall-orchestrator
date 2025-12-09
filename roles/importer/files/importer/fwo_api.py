@@ -31,11 +31,13 @@ class FwoApi:
         self.query_analyzer = QueryAnalyzer()
 
     def call(
-        self, query: str, query_variables: dict[str, list[Any] | Any] = {}, analyze_payload: bool = False
+        self, query: str, query_variables: dict[str, list[Any] | Any] | None = None, analyze_payload: bool = False
     ) -> dict[str, Any]:
         """
         The standard FWO API call.
         """
+        if query_variables is None:
+            query_variables = {}
         role = "importer"
         request_headers = {
             "Content-Type": JSON_CONTENT_TYPE,
@@ -61,7 +63,7 @@ class FwoApi:
                     return_object: dict[str, Any] = self._call_chunked(session, query, query_variables)
                     elapsed_time = time.time() - started
                     affected_rows = 0
-                    if "data" in return_object.keys() and "affected_rows" in return_object["data"].keys():
+                    if "data" in return_object and "affected_rows" in return_object["data"]:
                         # If the return object contains data, we can log the affected rows.
                         affected_rows = sum(obj["affected_rows"] for obj in return_object["data"].values())
                     FWOLogger.debug(
@@ -185,8 +187,7 @@ class FwoApi:
 
                 # Try to parse JSON response
                 try:
-                    result = response.json()
-                    return result
+                    return response.json()
                 except ValueError:
                     # If response is not JSON, return the text content
                     return response.text
@@ -217,11 +218,13 @@ class FwoApi:
         raise exception
 
     def _call_chunked(
-        self, session: requests.Session, query: str, query_variables: dict[str, list[Any]] = {}
+        self, session: requests.Session, query: str, query_variables: dict[str, list[Any]] | None = None
     ) -> dict[str, Any]:
         """
         Splits a defined query variable into chunks and posts the queries chunk by chunk.
         """
+        if query_variables is None:
+            query_variables = {}
         chunk_number = 1
         total_processed_elements = 0
         return_object = {}
@@ -348,7 +351,7 @@ class FwoApi:
 
         return_object["data"][new_return_object_type]["affected_rows"] += total_affected_rows
 
-        if "returning" in return_object["data"][new_return_object_type].keys() and len(returning_data) > 0:
+        if "returning" in return_object["data"][new_return_object_type] and len(returning_data) > 0:
             self._try_write_extended_log(
                 message=f"Extending return_object['data']['{new_return_object_type}']['returning'] with new data: {pformat(returning_data)}"
             )
@@ -380,10 +383,7 @@ class FwoApi:
         header_string = json.dumps(headers, indent=2)
         query_size = len(query_string)
 
-        if type == "error":
-            result = "error while sending api_call to url "
-        else:
-            result = "successful FWO API call to url "
+        result = "error while sending api_call to url " if type == "error" else "successful FWO API call to url "
         result += str(url) + " with payload \n"
         if query_size < max_query_size_to_display:
             result += query_string
@@ -429,10 +429,7 @@ class FwoApi:
         header_string = json.dumps(dict(headers), indent=2)
         api_url = json.dumps(api_url, indent=2)
         query_size = len(query_string)
-        if typ == "error":
-            result = "error while sending api_call to url "
-        else:
-            result = "successful FWO API call to url "
+        result = "error while sending api_call to url " if typ == "error" else "successful FWO API call to url "
         result += str(self.fwo_api_url) + " with payload \n"
         if query_size < max_query_size_to_display:
             result += query_string

@@ -15,8 +15,8 @@ def _load_from_env():
             with open(path, encoding="utf-8") as f:
                 data = json.load(f)
             python_unit_tests_verbose = bool(data.get("test.unittests.python.verbose", False))
-        except Exception as e:
-            print(f"Reading local settings from {path} failed ({e}). Using defaults.")
+        except Exception:
+            pass
 
 
 _load_from_env()

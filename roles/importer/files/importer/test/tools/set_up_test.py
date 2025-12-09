@@ -47,7 +47,7 @@ def reorder_rulebase_rules_dict(config: FwConfigNormalized, rulebase_uid, rule_u
 
 
 def remove_rule_from_rulebase(
-    config: FwConfigNormalized, rulebase_uid: str, rule_uid: str, uid_sequence: list[str] = None
+    config: FwConfigNormalized, rulebase_uid: str, rule_uid: str, uid_sequence: list[str] | None = None
 ):
     """
     Imitates the deletion of a rule in the config dict.

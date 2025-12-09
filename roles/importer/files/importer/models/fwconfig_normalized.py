@@ -41,7 +41,7 @@ class FwConfig(BaseModel):
 
     }
 
-    write methods to 
+    write methods to
         a) split a config into < X MB chunks
         b) combine configs to a single config
 

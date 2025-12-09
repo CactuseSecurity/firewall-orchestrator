@@ -31,10 +31,7 @@ class FworchConfigController(FworchConfig):
     def from_json(cls, json_dict: dict[str, Any]) -> "FworchConfigController":
         fwo_api_uri = json_dict["fwo_api_base_url"]
         fwo_user_mgmt_api_uri = json_dict["user_management_api_base_url"]
-        if "importerPassword" in json_dict:
-            fwo_importer_pwd = json_dict["importerPassword"]
-        else:
-            fwo_importer_pwd = None
+        fwo_importer_pwd = json_dict.get("importerPassword")
 
         return cls(fwo_api_uri, fwo_user_mgmt_api_uri, fwo_importer_pwd)
 

@@ -2,7 +2,6 @@ import ipaddress
 import json
 from typing import Any
 
-import fwo_api_call as fwo_api_call
 import fwo_const
 from fw_modules.checkpointR8x import cp_const
 from fwo_base import cidr_to_range
@@ -57,9 +56,8 @@ def initialize_global_domain(objects: list[dict[str, Any]]) -> dict[str, Any]:
         FWOLogger.debug("No domain information found in objects, this seems to be a standalone management")
         return {}
 
-    global_domain = {"domain": {"uid": objects[0]["domain_uid"], "name": objects[0]["domain_name"]}}
+    return {"domain": {"uid": objects[0]["domain_uid"], "name": objects[0]["domain_name"]}}
 
-    return global_domain
 
 
 def collect_nw_objects(
@@ -199,10 +197,7 @@ def get_comment_and_color_of_obj(obj: dict[str, Any]) -> str | None:
     """
     Returns comment and sets missing color to black
     """
-    if "comments" not in obj or obj["comments"] == "":
-        comments = None
-    else:
-        comments = obj["comments"]
+    comments = None if "comments" not in obj or obj["comments"] == "" else obj["comments"]
     if "color" not in obj or obj["color"] == "" or obj["color"] == "none":
         obj["color"] = "black"
     return comments
@@ -295,3 +290,4 @@ def make_host(ip_in: str) -> str | None:
         return f"{ip_in}/32"
     if isinstance(ip_obj, ipaddress.IPv6Address):  # TODO: check if just else is sufficient # type: ignore
         return f"{ip_in}/128"
+    return None

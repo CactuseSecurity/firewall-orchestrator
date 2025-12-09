@@ -96,11 +96,15 @@ def update_config_with_fortinet_api_call(
     api_base_url: str,
     api_path: str,
     result_name: str,
-    payload: dict[str, Any] = {},
-    options: list[Any] = [],
+    payload: dict[str, Any] | None = None,
+    options: list[Any] | None = None,
     limit: int = 150,
     method: str = "get",
 ):
+    if options is None:
+        options = []
+    if payload is None:
+        payload = {}
     offset = 0
     limit = int(limit)
     returned_new_objects = True
@@ -139,8 +143,10 @@ def parse_special_fortinet_api_results(result_name: str, full_result: list[Any])
 
 
 def fortinet_api_call(
-    sid: str, api_base_url: str, api_path: str, payload: dict[str, Any] = {}, method: str = "get"
+    sid: str, api_base_url: str, api_path: str, payload: dict[str, Any] | None = None, method: str = "get"
 ) -> list[Any]:
+    if payload is None:
+        payload = {}
     if payload == {}:
         payload = {"params": [{}]}
     api_result = api_call(api_base_url, api_path, payload, sid, method=method)
@@ -193,10 +199,6 @@ def parse_device_and_vdom(
 
 
 def get_policy_packages_from_manager(sid: str, fm_api_url: str, adom: str = "") -> list[Any]:
-    if adom == "":
-        url = "/pm/pkg/global"
-    else:
-        url = "/pm/pkg/adom/" + adom
-    policy_packages_result = fortinet_api_call(sid, fm_api_url, url)
+    url = "/pm/pkg/global" if adom == "" else "/pm/pkg/adom/" + adom
+    return fortinet_api_call(sid, fm_api_url, url)
 
-    return policy_packages_result

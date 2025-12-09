@@ -317,7 +317,7 @@ class MockFwoApi(FwoApi):
             "usergrp_flat",
         ]:  # using pair of reference ids as primary key
             obj[TABLE_IDENTIFIERS.get(table, f"{table}_id")] = pk
-        if any("create" in key for key in obj.keys()):
+        if any("create" in key for key in obj):
             obj["removed"] = None
             obj["active"] = True
         if table == "rulebase":
@@ -346,7 +346,7 @@ class MockFwoApi(FwoApi):
         set_arg = next((a for a in sel.arguments if a.name.value == "_set"), None)
         if where_arg and set_arg:
             # pprint.pprint(object_to_dict(where_arg))
-            for pk, row in self.tables.get(table, {}).items():
+            for row in self.tables.get(table, {}).values():
                 if self._row_matches_where(row, where_arg, variables):
                     self._update_row(row, set_arg, variables)
                     returning.append(row)
@@ -424,6 +424,7 @@ class MockFwoApi(FwoApi):
                 return False
         else:
             return self._check_flat_field(row, variables, key, value)
+        return None
 
     def _check_where_field_or(self, row, variables, value):
         if isinstance(value, ListValueNode):
@@ -435,6 +436,7 @@ class MockFwoApi(FwoApi):
                 raise ValueError(f"Expected list for '_or' variable '{value.name.value}', got {type(or_values)}.")
             if not self._row_matches_where_bool_exp(row, or_values):
                 return False
+        return None
 
     def _check_flat_field(self, row, variables, key, value):
         if key not in row:
@@ -453,6 +455,7 @@ class MockFwoApi(FwoApi):
             if op == "_neq":
                 return row.get(key) != op_val
             raise ValueError(f"Unsupported operator '{op}' in where clause.")
+        return None
 
     def _row_matches_where_bool_exp(self, row, or_values):
         """

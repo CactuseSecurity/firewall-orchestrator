@@ -4,10 +4,11 @@ import time
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from models.import_state import ImportState
 
     from importer.services.uid2id_mapper import Uid2IdMapper
 from typing import Any, Literal
+
+from models.import_state import ImportState
 
 
 class LogLock:
@@ -68,7 +69,7 @@ class FWOLogger:
 
     def __new__(cls, debug_level: int = 0):
         if not hasattr(cls, "instance"):
-            cls.instance = super(FWOLogger, cls).__new__(cls)
+            cls.instance = super().__new__(cls)
         return cls.instance
 
     def __init__(self, debug_level: int = 0):
@@ -79,10 +80,7 @@ class FWOLogger:
         return self.logger
 
     def set_debug_level(self, debug_level: int):
-        if int(debug_level) >= 1:
-            log_level = logging.DEBUG
-        else:
-            log_level = logging.INFO
+        log_level = logging.DEBUG if int(debug_level) >= 1 else logging.INFO
         self.logger.setLevel(log_level)
 
     @staticmethod
@@ -118,10 +116,7 @@ class FWOLogger:
 
 
 def get_fwo_logger(debug_level: int = 0) -> logging.Logger:
-    if int(debug_level) >= 1:
-        log_level = logging.DEBUG
-    else:
-        log_level = logging.INFO
+    log_level = logging.DEBUG if int(debug_level) >= 1 else logging.INFO
 
     logger = logging.getLogger()
     log_format = "%(asctime)s [%(levelname)-5.5s] [%(filename)-25.25s:%(funcName)-25.25s:%(lineno)4d] %(message)s"
@@ -153,7 +148,7 @@ class ChangeLogger:
         If the constructor is called when there is already an instance returns that instance instead. That way there will only be one instance of this type throudgh the whole runtime.
         """
         if cls._instance is None:
-            cls._instance = super(ChangeLogger, cls).__new__(cls)
+            cls._instance = super().__new__(cls)
             cls.changed_nwobj_id_map = {}
             cls.changed_svc_id_map = {}
         return cls._instance

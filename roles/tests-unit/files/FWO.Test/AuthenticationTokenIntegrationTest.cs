@@ -45,8 +45,8 @@ namespace FWO.Test
             factory = new WebApplicationFactory<Program>()
                 .WithWebHostBuilder(builder =>
                 {
-                    builder.ConfigureServices(services => { });
-                    });
+                   
+                });
 
             client = factory.CreateClient();
             tokenHandler = new JwtSecurityTokenHandler();

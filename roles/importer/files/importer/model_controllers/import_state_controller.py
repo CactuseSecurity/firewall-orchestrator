@@ -98,16 +98,16 @@ class ImportStateController:
         fwo_api = FwoApi(fwo_config.fwo_api_url, jwt)
 
         result = cls(state, fwo_api)
-        result.getPastImportInfos()
+        result.get_past_import_infos()
         result.set_core_data()
 
-        if type(result) is str:  # type: ignore # TODO: This should never happen
+        if type(result) is str:  # type: ignore # TODO: This should never happen  # noqa: PGH003
             FWOLogger.error("error while getting import state")
             raise FwoImporterError("error while getting import state")
 
         return result
 
-    def getPastImportInfos(self):
+    def get_past_import_infos(self):
         try:  # get past import details (LastFullImport, ...):
             day_string = self.api_call.get_config_value(key="dataRetentionTime")
             if day_string:

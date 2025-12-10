@@ -4,7 +4,12 @@ from typing import Any
 
 import fwo_globals
 import requests
-from fwo_exceptions import FwApiCallFailed, FwLoginFailed, FwLogoutFailed, FwoUnknownDeviceForManager
+from fwo_exceptions import (
+    FwApiCallFailedError,
+    FwLoginFailedError,
+    FwLogoutFailedError,
+    FwoUnknownDeviceForManagerError,
+)
 from fwo_log import FWOLogger
 from models.management import Management
 
@@ -24,7 +29,7 @@ def api_call(url: str, command: str, json_payload: dict[str, Any], sid: str, met
     result_json = r.json()
     if "result" not in result_json or len(result_json["result"]) == 0:
         if "pass" in json.dumps(json_payload):
-            raise FwApiCallFailed(f"error while sending api_call containing credential information to url {url!s}")
+            raise FwApiCallFailedError(f"error while sending api_call containing credential information to url {url!s}")
         result_data = r.json()["result"][0]["status"] if "status" in r.json()["result"][0] else r.json()["result"][0]
         exception_text = (
             f"error while sending api_call to url {url!s} with payload {json.dumps(json_payload, indent=2)}"
@@ -32,7 +37,7 @@ def api_call(url: str, command: str, json_payload: dict[str, Any], sid: str, met
         exception_text += (
             f" and  headers: {json.dumps(request_headers, indent=2)}, result={json.dumps(result_data, indent=2)}"
         )
-        raise FwApiCallFailed(exception_text)
+        raise FwApiCallFailedError(exception_text)
     if "pass" in json.dumps(json_payload):
         FWOLogger.debug("api_call containing credential information to url " + str(url) + " - not logging query", 3)
     else:
@@ -66,9 +71,9 @@ def login(user: str, password: str, base_url: str) -> str | None:
     try:
         response = api_call(base_url, "sys/login/user", payload, "", method="exec")
     except Exception:
-        raise FwLoginFailed("FortiManager login ERROR: url=" + base_url) from None
+        raise FwLoginFailedError("FortiManager login ERROR: url=" + base_url) from None
     if "session" not in response:  # leaving out payload as it contains pwd
-        raise FwLoginFailed("FortiManager login ERROR (no sid): url=" + base_url) from None
+        raise FwLoginFailedError("FortiManager login ERROR (no sid): url=" + base_url) from None
     return response["session"]
 
 
@@ -84,7 +89,7 @@ def logout(v_url: str, sid: str, method: str = "exec"):
     ):
         FWOLogger.debug("successfully logged out")
     else:
-        raise FwLogoutFailed(
+        raise FwLogoutFailedError(
             "fmgr_getter ERROR: did not get status code 0 when logging out, "
             "api call: url: " + str(v_url) + ",  + payload: " + str(payload)
         )
@@ -119,7 +124,6 @@ def update_config_with_fortinet_api_call(
         # adding options
         if len(options) > 0:
             payload["params"][0].update({"option": options})
-            # payload['params'][0].update({'filter': options})
 
         result = fortinet_api_call(sid, api_base_url, api_path, payload=payload, method=method)
         full_result.extend(result)
@@ -174,7 +178,7 @@ def get_devices_from_manager(adom_mgm_details: Management, sid: str, fm_api_url:
                     fmgr_device, mgm_details_device, device_vdom_dict, found_fmgr_device
                 )
             if not found_fmgr_device:
-                raise FwoUnknownDeviceForManager(
+                raise FwoUnknownDeviceForManagerError(
                     "Could not find " + mgm_details_device["name"] + " in Fortimanager Config"
                 ) from None
 
@@ -201,4 +205,3 @@ def parse_device_and_vdom(
 def get_policy_packages_from_manager(sid: str, fm_api_url: str, adom: str = "") -> list[Any]:
     url = "/pm/pkg/global" if adom == "" else "/pm/pkg/adom/" + adom
     return fortinet_api_call(sid, fm_api_url, url)
-

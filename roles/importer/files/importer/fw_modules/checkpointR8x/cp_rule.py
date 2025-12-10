@@ -4,7 +4,7 @@ from typing import Any
 
 from fwo_base import sanitize, sort_and_join_refs
 from fwo_const import DEFAULT_SECTION_HEADER_TEXT, LIST_DELIMITER
-from fwo_exceptions import FwoImporterErrorInconsistencies
+from fwo_exceptions import FwoImporterErrorInconsistenciesError
 from fwo_log import FWOLogger
 from models.import_state import ImportState
 from models.rule import RuleNormalized
@@ -39,8 +39,9 @@ def normalize_rulebases(
 
     fetched_rulebase_uids: list[str] = []
     if normalized_config_global is not None and normalized_config_global != {}:
-        for normalized_rulebase_global in normalized_config_global["policies"]:
-            fetched_rulebase_uids.append(normalized_rulebase_global.uid)
+        fetched_rulebase_uids.extend(
+            [normalized_rulebase_global.uid for normalized_rulebase_global in normalized_config_global["policies"]]
+        )
     for gateway in native_config["gateways"]:
         normalize_rulebases_for_each_link_destination(
             gateway,
@@ -50,10 +51,8 @@ def normalize_rulebases(
             is_global_loop_iteration,
             import_state,
             normalized_config_dict,
-            normalized_config_global,
-        )  # type: ignore # TODO: check if normalized_config_global can be None, I am pretty sure it cannot be None here
-
-    # TODO: parse nat rulebase here
+            normalized_config_global,  # type: ignore # TODO: check if normalized_config_global can be None, I am pretty sure it cannot be None here  # noqa: PGH003
+        )  # TODO: parse nat rulebase here
 
 
 def normalize_rulebases_for_each_link_destination(
@@ -143,11 +142,11 @@ def concatenat_sections_across_chunks(rulebase_to_parse: dict[str, Any], section
                     rulebase_to_parse["rulebase"].append(rule)
                 rulebase_to_parse["to"] = section["to"]
             else:
-                raise FwoImporterErrorInconsistencies("Inconsistent naming in Checkpoint Chunks.")
+                raise FwoImporterErrorInconsistenciesError("Inconsistent naming in Checkpoint Chunks.")
         else:
-            raise FwoImporterErrorInconsistencies("Inconsistent numbering in Checkpoint Chunks.")
+            raise FwoImporterErrorInconsistenciesError("Inconsistent numbering in Checkpoint Chunks.")
     else:
-        raise FwoImporterErrorInconsistencies("Broken format in Checkpoint Chunks.")
+        raise FwoImporterErrorInconsistenciesError("Broken format in Checkpoint Chunks.")
     return rulebase_to_parse
 
 
@@ -224,12 +223,12 @@ def parse_rule_part(
         FWOLogger.debug(
             f"rule part {part} is None: {objects!s}, which is normal for track field in inline layer guards"
         )
-        return None  # type: ignore #TODO: check if this is ok or should raise an Exception
+        return None  # type: ignore  # noqa: PGH003#TODO: check if this is ok or should raise an Exception
 
     if "chunks" in objects:  # for chunks of actions?!
         address_objects.update(
-            parse_rule_part(objects["chunks"], part=part)
-        )  # need to parse chunk first # type: ignore # TODO: This Has to be refactored
+            parse_rule_part(objects["chunks"], part=part)  # type: ignore  # noqa: PGH003 # TODO: This Has to be refactored
+        )  # need to parse chunk first
 
     if isinstance(objects, dict):
         return _parse_single_address_object(address_objects, objects, part)
@@ -241,17 +240,17 @@ def parse_rule_part(
         if "chunks" in obj:
             address_objects.update(
                 parse_rule_part(obj["chunks"], part=part)
-            )  # need to parse chunk first # type: ignore # TODO: check if this is ok or should raise an Exception
+            )  # need to parse chunk first # TODO: check if this is ok or should raise an Exception
         elif "objects" in obj:
             for o in obj["objects"]:
                 address_objects.update(
                     parse_rule_part(o, part=part)
-                )  # need to parse chunk first # type: ignore # TODO: check if this is ok or should raise an Exception
+                )  # need to parse chunk first # TODO: check if this is ok or should raise an Exception
             return address_objects
         elif "type" in obj:  # found checkpoint object
             _parse_obj_with_type(obj, address_objects)
         else:
-            return accept_malformed_parts(objects, part=part)  # type: ignore # TODO: check if this is ok or should raise an Exception
+            return accept_malformed_parts(objects, part=part)  # type: ignore # TODO: check if this is ok or should raise an Exception # noqa: PGH003
 
     if "" in address_objects.values():
         FWOLogger.warning("found empty name in one rule part (" + part + "): " + str(address_objects))
@@ -322,7 +321,7 @@ def parse_single_rule(
     rule_track = _parse_track(native_rule=native_rule)
 
     action_objects = parse_rule_part(native_rule["action"], "action")
-    if action_objects is not None:  # type: ignore # TODO: this should be never None
+    if action_objects is not None:  # type: ignore # TODO: this should be never None # noqa: PGH003
         rule_action = LIST_DELIMITER.join(action_objects.values())  # expecting only a single action
     else:
         rule_action = None
@@ -410,10 +409,7 @@ def _parse_track(native_rule: dict[str, Any]) -> str:
         rule_track = native_rule["track"]
     else:
         track_objects = parse_rule_part(native_rule["track"], "track")
-        if track_objects is None:  # type: ignore # TODO: should never be None
-            rule_track = "none"
-        else:
-            rule_track = LIST_DELIMITER.join(track_objects.values())
+        rule_track = "none" if track_objects is None else LIST_DELIMITER.join(track_objects.values())  # type: ignore[union-attr] # TODO: should never be None
     return rule_track
 
 
@@ -457,8 +453,7 @@ def find_devices_for_current_policy(gateway: dict[str, Any], policy_structure: l
     for policy in policy_structure:
         for target in policy["targets"]:
             if target["uid"] == gateway["uid"]:
-                for device in policy["targets"]:
-                    device_uid_list.append(device["uid"])
+                device_uid_list.extend([device["uid"] for device in policy["targets"]])
     return device_uid_list
 
 
@@ -493,13 +488,13 @@ def check_and_add_section_header(
 
 
 def insert_section_header_rule(
-    target_rulebase: Rulebase,
-    section_name: str,
-    layer_name: str,
-    import_id: str,
-    src_rulebase_uid: str,
-    section_header_uids: set[str],
-    parent_uid: str,
+    _target_rulebase: Rulebase,
+    _section_name: str,
+    _layer_name: str,
+    _import_id: str,
+    _src_rulebase_uid: str,
+    _section_header_uids: set[str],
+    _parent_uid: str,
 ):
     # TODO: re-implement
     return

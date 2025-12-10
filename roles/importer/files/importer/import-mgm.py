@@ -1,6 +1,4 @@
-#!/usr/bin/env python3
-
-import argparse
+import argparse  # noqa: N999
 import sys
 import traceback
 import warnings
@@ -10,8 +8,8 @@ from common import IMPORTER_BASE_DIR, import_management
 from fwo_api import FwoApi
 from fwo_api_call import FwoApiCall
 from fwo_base import init_service_provider, register_global_state
-from fwo_const import BASE_DIR, IMPORTER_BASE_DIR
-from fwo_exceptions import FwoApiLoginFailed
+from fwo_const import BASE_DIR
+from fwo_exceptions import FwoApiLoginFailedError
 from fwo_log import FWOLogger
 from model_controllers.import_state_controller import ImportStateController
 
@@ -22,7 +20,7 @@ if IMPORTER_BASE_DIR not in sys.path:
 def get_fwo_jwt(import_user: str, import_pwd: str, user_management_api: str) -> str | None:
     try:
         return FwoApi.login(import_user, import_pwd, user_management_api)
-    except FwoApiLoginFailed as e:
+    except FwoApiLoginFailedError as e:
         FWOLogger.error(e.message)
     except Exception:
         FWOLogger.error(
@@ -60,7 +58,7 @@ def main(
     importer_pwd_file = BASE_DIR + "/etc/secrets/importer_pwd"
 
     try:
-        importer_pwd = open(importer_pwd_file).read().replace("\n", "")
+        importer_pwd = open(importer_pwd_file).read().replace("\n", "")  # noqa: SIM115
     except Exception:
         FWOLogger.error("error while reading importer pwd file")
         raise

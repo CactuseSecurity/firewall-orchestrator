@@ -2,13 +2,13 @@ try:
     # GraphQL-core v3+
     from graphql import parse, print_ast, visit
     from graphql.language import Visitor
-    from graphql.language.ast import DocumentNode as Document  # type: ignore
+    from graphql.language.ast import DocumentNode as Document  # type: ignore  # noqa: PGH003
     from graphql.language.ast import OperationDefinitionNode as OperationDefinition
     from graphql.language.ast import VariableDefinitionNode as VariableDefinition
 except ImportError:
     # GraphQL-core v2
     from graphql import parse, print_ast, visit
-    from graphql.language.ast import Document, OperationDefinition, VariableDefinition  # type: ignore
+    from graphql.language.ast import Document, OperationDefinition, VariableDefinition  # type: ignore  # noqa: PGH003
     from graphql.language.visitor import Visitor
 
 from typing import Any
@@ -33,9 +33,9 @@ class QueryAnalyzer(Visitor):
         return self._variable_definitions
 
     @property
-    def ast(self) -> Document | None:  # type: ignore
+    def ast(self) -> Document | None:  # type: ignore  # noqa: PGH003
         """Returns the AST."""
-        return self._ast  # type: ignore
+        return self._ast  # type: ignore  # noqa: PGH003
 
     @property
     def query_string(self) -> str:
@@ -66,7 +66,7 @@ class QueryAnalyzer(Visitor):
 
         # Apply visitor pattern (calls enter_* methods)
 
-        visit(self._ast, self)  # type: ignore
+        visit(self._ast, self)  # type: ignore  # noqa: PGH003
 
         # Analyze necessity of chunking and parameters that are necessary for the chunking process.
 
@@ -94,31 +94,31 @@ class QueryAnalyzer(Visitor):
             or 1
         )
 
-    def enter_OperationDefinition(self, node: OperationDefinition, *_):  # type: ignore
+    def enter_operation_definition_call(self, node: OperationDefinition, *_):  # type: ignore  # noqa: PGH003
         """
         Called by visit function for each variable definition in the AST.
         """
-        self.enter_operation_definition(node)  # type: ignore
+        self.enter_operation_definition(node)  # type: ignore  # noqa: PGH003
 
-    def enter_VariableDefinition(self, node: VariableDefinition, *_):  # type: ignore
+    def enter_variable_definition_call(self, node: VariableDefinition, *_):  # type: ignore  # noqa: PGH003
         """
         Called by visit function for each variable definition in the AST.
         """
-        self.enter_variable_definition(node)  # type: ignore
+        self.enter_variable_definition(node)  # type: ignore  # noqa: PGH003
 
-    def enter_operation_definition(self, node: OperationDefinition, *_):  # type: ignore
+    def enter_operation_definition(self, node: OperationDefinition, *_):  # type: ignore  # noqa: PGH003
         """
         Called by visit function for each variable definition in the AST.
         """
-        self._query_info["query_type"] = node.operation  # type: ignore
-        self._query_info["query_name"] = node.name.value if node.name else ""  # type: ignore
+        self._query_info["query_type"] = node.operation  # type: ignore  # noqa: PGH003
+        self._query_info["query_name"] = node.name.value if node.name else ""  # type: ignore  # noqa: PGH003
 
-    def enter_variable_definition(self, node: VariableDefinition, *_):  # type: ignore
+    def enter_variable_definition(self, node: VariableDefinition, *_):  # type: ignore  # noqa: PGH003
         """
         Called by visit function for each variable definition in the AST.
         """
-        var_name = node.variable.name.value  # type: ignore
-        type_str = print_ast(node.type)  # type: ignore
+        var_name = node.variable.name.value  # type: ignore  # noqa: PGH003
+        type_str = print_ast(node.type)  # type: ignore  # noqa: PGH003
 
         # Store information about the variable definitions.
 

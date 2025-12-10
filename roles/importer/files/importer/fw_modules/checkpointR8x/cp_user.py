@@ -96,17 +96,17 @@ def collect_users_from_rulebase(rulebase: dict[str, Any], users: dict[str, Any])
                     collect_users_from_rule(rule, users)
     else:
         for rule in rulebase:
-            collect_users_from_rule(rule, users)  # type: ignore #TODO refactor this
+            collect_users_from_rule(rule, users)  # type: ignore #TODO: refactor this # noqa: PGH003
 
 
 # the following is only used within new python-only importer:
 def parse_user_objects_from_rulebase(rulebase: dict[str, Any], users: dict[str, Any], import_id: str) -> None:
     collect_users_from_rulebase(rulebase, users)
-    for user_name in users:
+    for user_name, user_info in users.items():
         # TODO: get user info via API
         _ = get_user_uid_from_cp_api(user_name)
         # finally add the import id
-        users[user_name]["control_id"] = import_id
+        user_info["control_id"] = import_id
 
 
 def get_user_uid_from_cp_api(user_name: str) -> str:

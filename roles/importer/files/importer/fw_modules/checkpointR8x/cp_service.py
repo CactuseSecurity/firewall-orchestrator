@@ -3,7 +3,7 @@ from typing import Any
 
 from fw_modules.checkpointR8x import cp_const
 from fwo_const import LIST_DELIMITER
-from fwo_exceptions import FwoImporterErrorInconsistencies
+from fwo_exceptions import FwoImporterErrorInconsistenciesError
 
 
 # collect_svcobjects writes svc info into global users dict
@@ -179,7 +179,7 @@ def resolve_svc_uid_to_name(uid: str, svc_objects: list[dict[str, Any]]) -> str:
     for obj in svc_objects:
         if obj["svc_uid"] == uid:
             return obj["svc_name"]
-    raise FwoImporterErrorInconsistencies("Service object member uid " + uid + " not found")
+    raise FwoImporterErrorInconsistenciesError("Service object member uid " + uid + " not found")
 
 
 def add_member_names_for_svc_group(idx: int, svc_objects: list[dict[str, Any]]) -> None:

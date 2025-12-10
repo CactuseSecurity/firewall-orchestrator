@@ -14,7 +14,7 @@ class FwConfigManager(BaseModel):
     domain_uid: str = Field(description="Domain UID")
     domain_name: str = Field(description="Domain name")
     sub_manager_ids: list[int] = Field(default=[], description="List of sub-manager IDs")
-    configs: list[FwConfigNormalized] = Field(default=[], description="List of normalized firewall configurations")
+    configs: list[FwConfigNormalized] = Field(description="List of normalized firewall configurations")
 
     def model_dump(self, **kwargs: Any) -> dict[str, Any]:
         kwargs.setdefault("by_alias", True)

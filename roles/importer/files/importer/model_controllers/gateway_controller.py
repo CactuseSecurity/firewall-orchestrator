@@ -1,7 +1,7 @@
 from models.gateway import Gateway
 
 
-class GatewayController(Gateway):
+class GatewayController(Gateway):  # noqa: PLW1641
     def __init__(self, gw: Gateway):
         self.Gateway = gw
 

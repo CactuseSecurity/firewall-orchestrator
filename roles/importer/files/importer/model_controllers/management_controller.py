@@ -6,7 +6,7 @@ from fwconfig_base import replace_none_with_empty
 from fwo_api import FwoApi
 from fwo_const import GRAPHQL_QUERY_PATH
 from fwo_encrypt import decrypt, read_main_key
-from fwo_exceptions import FwLoginFailed, FwoApiFailure, SecretDecryptionFailed
+from fwo_exceptions import FwLoginFailedError, FwoApiFailureError, SecretDecryptionFailedError
 from models.gateway import Gateway
 from models.management import Management
 
@@ -128,7 +128,7 @@ class ManagementController(Management):
         return f"{self.hostname}({self.mgm_id})"
 
     # TODO: fix device type URIs
-    def buildFwApiString(self):
+    def build_fw_api_string(self):
         if self.device_type_name == "Check Point":
             return f"https://{self.hostname}:{self.port!s}/web_api/"
         if self.device_type_name == "CiscoFMC":
@@ -139,10 +139,10 @@ class ManagementController(Management):
             return f"https://{self.hostname}:{self.port!s}/jsonrpc"
         if self.device_type_name in {"PaloAlto", "PaloAltoLegacy"}:
             return f"https://{self.hostname}:{self.port!s}/restapi/v10.0/"
-        raise FwLoginFailed(f"Unsupported device type: {self.device_type_name}")
+        raise FwLoginFailedError(f"Unsupported device type: {self.device_type_name}")
 
-    def getDomainString(self) -> str:
-        return self.domain_uid if self.domain_uid is not None else self.domain_name  # type: ignore #TODO: check if None check is needed if yes, change type
+    def get_domain_string(self) -> str:
+        return self.domain_uid if self.domain_uid is not None else self.domain_name  # type: ignore #TODO: check if None check is needed if yes, change type  # noqa: PGH003
 
     @classmethod
     def build_gateway_list(cls, mgm_details: "ManagementController") -> list["Gateway"]:
@@ -176,12 +176,11 @@ class ManagementController(Management):
 
         api_call_result = api_conn.call(get_mgm_details_query, query_variables={"mgmId": mgm_id})
         if (
-            api_call_result is None
-            or "data" not in api_call_result
+            "data" not in api_call_result
             or "management" not in api_call_result["data"]
             or len(api_call_result["data"]["management"]) < 1
-        ):  # type: ignore #TODO: check if api_call_result can be None
-            raise FwoApiFailure("did not succeed in getting management details from FWO API")
+        ):
+            raise FwoApiFailureError("did not succeed in getting management details from FWO API")
 
         if "://" not in api_call_result["data"]["management"][0]["hostname"]:
             # only decrypt if we have a real management and are not fetching the config from an URL
@@ -189,15 +188,15 @@ class ManagementController(Management):
             try:
                 secret = api_call_result["data"]["management"][0]["import_credential"]["secret"]
                 decrypted_secret = decrypt(secret, read_main_key())
-            except ():
-                raise SecretDecryptionFailed
+            except Exception:
+                raise SecretDecryptionFailedError
             api_call_result["data"]["management"][0]["import_credential"]["secret"] = decrypted_secret
             if "subManagers" in api_call_result["data"]["management"][0]:
                 for sub_mgm in api_call_result["data"]["management"][0]["subManagers"]:
                     try:
                         secret = sub_mgm["import_credential"]["secret"]
                         decrypted_secret = decrypt(secret, read_main_key())
-                    except ():
-                        raise SecretDecryptionFailed
+                    except Exception:
+                        raise SecretDecryptionFailedError
                     sub_mgm["import_credential"]["secret"] = decrypted_secret
         return api_call_result["data"]["management"][0]

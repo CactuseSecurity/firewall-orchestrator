@@ -27,7 +27,7 @@ class FwConfigManagerListController(FwConfigManagerList):
             return json.dumps(json_dict, indent=2, cls=FwConfigJsonEncoder)
         return json.dumps(json_dict)
 
-    def mergeConfigs(self, conf2: "FwConfigManagerListController"):
+    def merge_configs(self, conf2: "FwConfigManagerListController"):
         if self.ConfigFormat == conf2.ConfigFormat:
             self.ManagerSet.extend(conf2.ManagerSet)
 
@@ -159,7 +159,7 @@ class FwConfigManagerListController(FwConfigManagerList):
         return not self.is_native()
 
     def is_legacy(self) -> bool:
-        return self.ConfigFormat == ConfFormat.IsLegacyConfigFormat
+        return self.ConfigFormat == ConfFormat.is_legacy_config_format
 
     def has_empty_config(self) -> bool:
         return self.native_config_is_empty() and self.normalized_config_is_empty()

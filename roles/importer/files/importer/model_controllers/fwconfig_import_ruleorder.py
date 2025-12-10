@@ -1,7 +1,7 @@
 from typing import TYPE_CHECKING, Any
 
 from fwo_const import RULE_NUM_NUMERIC_STEPS
-from fwo_exceptions import FwoApiFailure
+from fwo_exceptions import FwoApiFailureError
 from models.rule import RuleNormalized
 from models.rulebase import Rulebase
 from services.enums import Services
@@ -105,7 +105,7 @@ class RuleOrderService:
 
         # Compute necessary mutations.
 
-        from fwo_base import compute_min_moves  # lazy import to avoid circular import conflict
+        from fwo_base import compute_min_moves  # lazy import to avoid circular import conflict  # noqa: PLC0415
 
         self._min_moves = compute_min_moves(
             self._source_rule_uids, self._target_rule_uids
@@ -177,7 +177,7 @@ class RuleOrderService:
                 # Raise if unexpected rule uid.
 
                 else:
-                    raise FwoApiFailure(message="RuleOrderService: Unexpected rule_uid.")
+                    raise FwoApiFailureError(message="RuleOrderService: Unexpected rule_uid.")
 
     def _set_initial_rule_num_numerics(self):
         for rule_uids in self._inserts_and_moves.values():
@@ -234,10 +234,10 @@ class RuleOrderService:
 
         else:
             previous_rule_num_numeric = self._get_relevant_rule_num_numeric(
-                prev_rule_uid, self._target_rules_flat, False, target_rulebase
+                prev_rule_uid, ascending=False, target_rulebase=target_rulebase
             )
             next_rules_rule_num_numeric = self._get_relevant_rule_num_numeric(
-                next_rule_uid, self._target_rules_flat, True, target_rulebase
+                next_rule_uid, ascending=True, target_rulebase=target_rulebase
             )
             if next_rules_rule_num_numeric > 0:
                 changed_rule.rule_num_numeric = (previous_rule_num_numeric + next_rules_rule_num_numeric) / 2
@@ -265,7 +265,7 @@ class RuleOrderService:
                 ).rules.keys()
             ):
                 prev_rule_num_numeric = self._get_relevant_rule_num_numeric(
-                    prev_rule_uid, self._target_rules_flat, False, target_rulebase
+                    prev_rule_uid, ascending=False, target_rulebase=target_rulebase
                 )
                 _index -= 1
             else:
@@ -282,7 +282,7 @@ class RuleOrderService:
                 ).rules.keys()
             ):
                 next_rule_num_numeric = self._get_relevant_rule_num_numeric(
-                    next_rule_uid, self._target_rules_flat, True, target_rulebase
+                    next_rule_uid, ascending=True, target_rulebase=target_rulebase
                 )
                 _index += 1
             else:
@@ -321,7 +321,7 @@ class RuleOrderService:
         for rulebase in self._new_rule_uids.values():
             number_of_rule_uids += len(rulebase)
 
-        if number_of_rule_uids < 2:
+        if number_of_rule_uids < 2:  # noqa: PLR2004
             return False
 
         # Evaluate adjacent rule_uids
@@ -351,7 +351,6 @@ class RuleOrderService:
     def _get_relevant_rule_num_numeric(
         self,
         rule_uid: str,
-        flat_list: list[RuleNormalized] | None,  # TODO flat_list should not be needed here
         ascending: bool,
         target_rulebase: Rulebase,
     ) -> float:
@@ -403,7 +402,7 @@ class RuleOrderService:
         - Otherwise, align with the maximum rule in the target (and update changed_rule)
         """
         if next_uid:
-            return float(self._get_relevant_rule_num_numeric(next_uid, None, True, target_rulebase))
+            return float(self._get_relevant_rule_num_numeric(next_uid, ascending=True, target_rulebase=target_rulebase))
 
         max_rule = self._max_num_numeric_rule(target_rulebase)
         if max_rule:
@@ -423,18 +422,16 @@ class RuleOrderService:
         - Otherwise, halve the minimum > 0 (or fall back to a step value)
         """
         if prev_uid:
-            return float(self._get_relevant_rule_num_numeric(prev_uid, None, False, target_rulebase))
+            return float(
+                self._get_relevant_rule_num_numeric(prev_uid, ascending=False, target_rulebase=target_rulebase)
+            )
 
         min_rule = self._min_nonzero_num_numeric_rule(target_rulebase)
         if min_rule:
-            # Halve the min value or use 1 – whichever is larger (as intended in original)
+            # Halve the min value or use 1 - whichever is larger (as intended in original)
             half = min_rule.rule_num_numeric / 2.0
             changed_rule.rule_num_numeric = max(half, 1)
             return float(changed_rule.rule_num_numeric)
-
-        # Fallback if there are no >0 values
-        # step = getattr(self, "rule_num_numeric_steps", 1)
-        # changed_rule.rule_num_numeric = step
         return 0
 
     def _max_num_numeric_rule(self, target_rulebase: Rulebase):

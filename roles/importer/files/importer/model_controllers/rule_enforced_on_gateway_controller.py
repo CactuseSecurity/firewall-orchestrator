@@ -24,9 +24,7 @@ class RuleEnforcedOnGatewayController:
         rb_link_controller = self.initialize_rulebase_link_controller(import_state, fwo_api_call)
 
         # Step 2: Prepare rule-to-gateway references
-        rule_to_gw_refs = self.prepare_rule_to_gateway_references(
-            import_state, fwo_api_call, new_rules, rb_link_controller
-        )
+        rule_to_gw_refs = self.prepare_rule_to_gateway_references(import_state, new_rules, rb_link_controller)
 
         # Step 3: Check if there are any references to insert
         if not rule_to_gw_refs:
@@ -49,7 +47,6 @@ class RuleEnforcedOnGatewayController:
     def prepare_rule_to_gateway_references(
         self,
         import_state: ImportState,
-        fwo_api_call: FwoApiCall,
         new_rules: list[dict[str, Any]],
         rb_link_controller: RulebaseLinkController,
     ) -> list[dict[str, Any]]:
@@ -61,7 +58,7 @@ class RuleEnforcedOnGatewayController:
             if rule["rule_installon"] is None:
                 self.handle_rule_without_installon(import_state, rule, rb_link_controller, rule_to_gw_refs)
             else:
-                self.handle_rule_with_installon(import_state, fwo_api_call, rule, rule_to_gw_refs)
+                self.handle_rule_with_installon(import_state, rule, rule_to_gw_refs)
         return rule_to_gw_refs
 
     def handle_rule_without_installon(
@@ -74,13 +71,16 @@ class RuleEnforcedOnGatewayController:
         """
         Handle rules with no 'install on' setting by linking them to all gateways for the rulebase.
         """
-        for gw_id in rb_link_controller.get_gw_ids_for_rulebase_id(rule["rulebase_id"]):
-            rule_to_gw_refs.append(self.create_rule_to_gateway_reference(import_state, rule, gw_id))
+        rule_to_gw_refs.extend(
+            [
+                self.create_rule_to_gateway_reference(import_state, rule, gw_id)
+                for gw_id in rb_link_controller.get_gw_ids_for_rulebase_id(rule["rulebase_id"])
+            ]
+        )
 
     def handle_rule_with_installon(
         self,
         import_state: ImportState,
-        fwo_api_call: FwoApiCall,
         rule: dict[str, Any],
         rule_to_gw_refs: list[dict[str, Any]],
     ) -> None:

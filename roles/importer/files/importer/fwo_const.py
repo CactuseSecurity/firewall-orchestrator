@@ -18,12 +18,12 @@ IMPORTER_USER_NAME = "importer"  # TODO: move to config file?
 FWO_CONFIG_FILENAME = BASE_DIR + "/etc/fworch.json"
 MAIN_KEY_FILE = BASE_DIR + "/etc/secrets/main_key"
 IMPORTER_PWD_FILE = BASE_DIR + "/etc/secrets/importer_pwd"
-IMPORT_TMP_PATH = BASE_DIR + "/tmp/import"
+IMPORT_TMP_PATH = BASE_DIR + "/tmp/import"  # noqa: S108
 DEFAULT_SECTION_HEADER_TEXT = "section without name"
 GRAPHQL_QUERY_PATH = BASE_DIR + "/fwo-api-calls/"
 
 # possible ConfigFormat values: normalized|checkpoint|fortimanager|fortioOS|azure|ciscoFirePower
-# legacy: barracuda|junos|netscreen
+# info legacy : barracuda|junos|netscreen
 
 # how many objects (network, services, rules, ...) should be sent to the FWO API in one go?
 # should be between 500 and 2.000 in production (results in a max obj number of max. 5 x this value - nwobj/svc/rules/...)

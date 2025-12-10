@@ -16,7 +16,8 @@ class NetworkObject(BaseModel):
     obj_comment: str | None = None
 
     @field_validator("obj_ip", "obj_ip_end", mode="before")
-    def convert_strings_to_ip_objects(self, value: object, info: Any) -> IPNetwork | None:
+    @classmethod
+    def convert_strings_to_ip_objects(cls, value: object, info: Any) -> IPNetwork | None:
         """
         Convert string values to IPNetwork objects, treating 'None' or empty as None.
         """

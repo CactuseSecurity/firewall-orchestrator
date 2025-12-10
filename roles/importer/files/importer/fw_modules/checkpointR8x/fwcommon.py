@@ -6,7 +6,7 @@ import fwo_const
 import fwo_globals
 from fw_modules.checkpointR8x import cp_const, cp_gateway, cp_getter, cp_network, cp_rule, cp_service
 from fwo_base import ConfigAction
-from fwo_exceptions import FwLoginFailed, FwoImporterError, ImportInterruption
+from fwo_exceptions import FwLoginFailedError, FwoImporterError, ImportInterruptionError
 from fwo_log import FWOLogger
 from model_controllers.fwconfigmanagerlist_controller import FwConfigManagerListController
 from model_controllers.import_state_controller import ImportStateController
@@ -56,10 +56,9 @@ def get_config(
 ) -> tuple[int, FwConfigManagerListController]:
     FWOLogger.debug("starting checkpointR8x/get_config")
 
-    if config_in.has_empty_config():  # no native config was passed in, so getting it from FW-Manager
-        parsing_config_only = False
-    else:
-        parsing_config_only = True
+    parsing_config_only = (
+        not config_in.has_empty_config()
+    )  # no native config was passed in, so getting it from FW-Manager
 
     if not parsing_config_only:  # get config from cp fw mgr
         starttime = int(time.time())
@@ -74,14 +73,14 @@ def get_config(
         # IMPORTANT: cp api is expected to preserve order of refs in group objects (unlike refs in rules, which are sorted later)
         result_get_objects = get_objects(config_in.native_config, import_state.state)
         if result_get_objects > 0:
-            raise FwLoginFailed("checkpointR8x/get_config/error while gettings objects")
+            raise FwLoginFailedError("checkpointR8x/get_config/error while gettings objects")
         FWOLogger.debug("checkpointR8x/get_config/fetched objects in " + str(int(time.time()) - start_time_temp) + "s")
 
         start_time_temp = int(time.time())
         FWOLogger.debug("checkpointR8x/get_config/getting rules ...")
         result_get_rules = get_rules(config_in.native_config, import_state.state)
         if result_get_rules > 0:
-            raise FwLoginFailed("checkpointR8x/get_config/error while gettings rules")
+            raise FwLoginFailedError("checkpointR8x/get_config/error while gettings rules")
         FWOLogger.debug("checkpointR8x/get_config/fetched rules in " + str(int(time.time()) - start_time_temp) + "s")
 
         duration = int(time.time()) - starttime
@@ -214,7 +213,7 @@ def normalize_single_manager_config(
         is_global_loop_iteration,
     )
     if not parsing_config_only:  # get config from cp fw mgr
-        cp_getter.logout(import_state.mgm_details.buildFwApiString(), sid)
+        cp_getter.logout(import_state.mgm_details.build_fw_api_string(), sid)
     FWOLogger.info("completed normalizing rulebases")
 
 
@@ -229,9 +228,8 @@ def get_rules(native_config: dict[str, Any], import_state: ImportState) -> int:
 
     global_assignments, global_policy_structure, global_domain, global_sid = None, None, None, None
     manager_details_list = create_ordered_manager_list(import_state)
-    manager_index = 0
-    for manager_details in manager_details_list:
-        cp_manager_api_base_url = import_state.mgm_details.buildFwApiString()
+    for manager_index, manager_details in enumerate(manager_details_list):
+        cp_manager_api_base_url = import_state.mgm_details.build_fw_api_string()
 
         if manager_details.is_super_manager:
             global_assignments, global_policy_structure, global_domain, global_sid = handle_super_manager(
@@ -264,7 +262,6 @@ def get_rules(native_config: dict[str, Any], import_state: ImportState) -> int:
             import_state,
         )
         native_config["domains"][manager_index].update({"policies": policy_structure})
-        manager_index += 1
 
     return 0
 
@@ -275,8 +272,7 @@ def create_ordered_manager_list(import_state: ImportState) -> list[ManagementCon
     """
     manager_details_list: list[ManagementController] = [deepcopy(import_state.mgm_details)]
     if import_state.mgm_details.is_super_manager:
-        for sub_manager in import_state.mgm_details.sub_managers:
-            manager_details_list.append(deepcopy(sub_manager))  # type: ignore TODO: why we are adding submanagers as ManagementController?
+        manager_details_list.extend([deepcopy(sub_manager) for sub_manager in import_state.mgm_details.sub_managers])  # type: ignore TODO: why we are adding submanagers as ManagementController?
     return manager_details_list
 
 
@@ -332,7 +328,7 @@ def process_devices(
             continue
 
         ordered_layer_uids: list[str] = get_ordered_layer_uids(
-            policy_structure, device_config, manager_details.getDomainString()
+            policy_structure, device_config, manager_details.get_domain_string()
         )
         if not ordered_layer_uids:
             FWOLogger.warning(f"No ordered layers found for device: {device_config['name']}")
@@ -354,7 +350,7 @@ def process_devices(
                 cp_manager_api_base_url,
             )
         else:
-            define_initial_rulebase(device_config, ordered_layer_uids, False)
+            define_initial_rulebase(device_config, ordered_layer_uids, is_global=False)
 
         add_ordered_layers_to_native_config(
             ordered_layer_uids,
@@ -363,8 +359,8 @@ def process_devices(
             sid,
             native_config_domain,
             device_config,
-            False,
-            global_ordered_layer_count,
+            is_global=False,
+            global_ordered_layer_count=global_ordered_layer_count,
         )
 
         handle_nat_rules(device, native_config_domain, sid, import_state)
@@ -401,7 +397,7 @@ def handle_global_rulebase_links(
         raise FwoImporterError("Global policy structure is None in handle_global_rulebase_links")
 
     for global_assignment in global_assignments:
-        if global_assignment["dependent-domain"]["uid"] != manager_details.getDomainString():
+        if global_assignment["dependent-domain"]["uid"] != manager_details.get_domain_string():
             continue
         for global_policy in global_policy_structure:
             if global_policy["name"] == global_assignment["global-access-policy"]:
@@ -418,8 +414,8 @@ def handle_global_rulebase_links(
                     global_sid,
                     native_config_global_domain,
                     device_config,
-                    True,
-                    global_ordered_layer_count,
+                    is_global=True,
+                    global_ordered_layer_count=global_ordered_layer_count,
                 )
                 define_global_rulebase_link(
                     device_config,
@@ -444,7 +440,7 @@ def define_global_rulebase_link(
     """
     Links initial and placeholder rule for global rulebases
     """
-    define_initial_rulebase(device_config, global_ordered_layer_uids, True)
+    define_initial_rulebase(device_config, global_ordered_layer_uids, is_global=True)
 
     # parse global rulebases, find place-holders and link local rulebases
     placeholder_link_index = 0
@@ -508,7 +504,7 @@ def handle_nat_rules(device: dict[str, Any], native_config_domain: dict[str, Any
         }
         FWOLogger.debug(f"Getting NAT rules for package: {device['package_name']}", 4)
         nat_rules = cp_getter.get_nat_rules_from_api_as_dict(
-            import_state.mgm_details.buildFwApiString(),
+            import_state.mgm_details.build_fw_api_string(),
             sid,
             show_params_rules,
             native_config_domain=native_config_domain,
@@ -534,9 +530,8 @@ def add_ordered_layers_to_native_config(
     """
     Fetches ordered layers and links them
     """
-    ordered_layer_index = 0
     policy_rulebases_uid_list = []
-    for ordered_layer_uid in ordered_layer_uids:
+    for ordered_layer_index, ordered_layer_uid in enumerate(ordered_layer_uids):
         show_params_rules.update({"uid": ordered_layer_uid})
 
         policy_rulebases_uid_list = cp_getter.get_rulebases(
@@ -553,21 +548,20 @@ def add_ordered_layers_to_native_config(
 
         # link to next ordered layer
         # in case of mds: domain ordered layers are linked once there is no global ordered layer counterpart
-        if is_global or ordered_layer_index >= global_ordered_layer_count - 1:
-            if ordered_layer_index < len(ordered_layer_uids) - 1:
-                device_config["rulebase_links"].append(
-                    {
-                        "from_rulebase_uid": ordered_layer_uid,
-                        "from_rule_uid": None,
-                        "to_rulebase_uid": ordered_layer_uids[ordered_layer_index + 1],
-                        "type": "ordered",
-                        "is_global": is_global,
-                        "is_initial": False,
-                        "is_section": False,
-                    }
-                )
-
-        ordered_layer_index += 1
+        if (is_global or ordered_layer_index >= global_ordered_layer_count - 1) and (
+            ordered_layer_index < len(ordered_layer_uids) - 1
+        ):
+            device_config["rulebase_links"].append(
+                {
+                    "from_rulebase_uid": ordered_layer_uid,
+                    "from_rule_uid": None,
+                    "to_rulebase_uid": ordered_layer_uids[ordered_layer_index + 1],
+                    "type": "ordered",
+                    "is_global": is_global,
+                    "is_initial": False,
+                    "is_section": False,
+                }
+            )
 
     return policy_rulebases_uid_list
 
@@ -591,9 +585,13 @@ def get_ordered_layer_uids(
 
 
 def append_access_layer_uid(policy: dict[str, Any], domain: str | None, ordered_layer_uids: list[str]) -> None:
-    for access_layer in policy["access-layers"]:
-        if access_layer["domain"] == domain or domain == "":
-            ordered_layer_uids.append(access_layer["uid"])
+    ordered_layer_uids.extend(
+        [
+            access_layer["uid"]
+            for access_layer in policy["access-layers"]
+            if access_layer["domain"] == domain or domain == ""
+        ]
+    )
 
 
 def get_objects(native_config_dict: dict[str, Any], import_state: ImportState) -> int:
@@ -657,7 +655,7 @@ def get_objects_per_domain(
     is_stand_alone_manager: bool = True,
 ) -> None:
     sid = cp_getter.login(manager_details)
-    cp_url = manager_details.buildFwApiString()
+    cp_url = manager_details.build_fw_api_string()
     for obj_type in obj_type_array:
         object_table = get_objects_per_type(obj_type, show_params_objs, sid, cp_url)
         add_special_objects_to_global_domain(object_table, obj_type, sid, cp_api_url=cp_url)
@@ -686,7 +684,7 @@ def get_objects_per_type(
     obj_type: str, show_params_objs: dict[str, Any], sid: str, cp_manager_api_base_url: str
 ) -> dict[str, Any]:
     if fwo_globals.shutdown_requested:
-        raise ImportInterruption("Shutdown requested during object retrieval.")
+        raise ImportInterruptionError("Shutdown requested during object retrieval.")
     if obj_type in cp_const.obj_types_full_fetch_needed:
         show_params_objs.update({"details-level": cp_const.details_level_group_objects})
     else:
@@ -701,7 +699,7 @@ def get_objects_per_type(
         show_params_objs["offset"] = current
         objects = cp_getter.cp_api_call(cp_manager_api_base_url, show_cmd, show_params_objs, sid)
         if fwo_globals.shutdown_requested:
-            raise ImportInterruption("Shutdown requested during object retrieval.")
+            raise ImportInterruptionError("Shutdown requested during object retrieval.")
 
         object_table["chunks"].append(objects)
         if "total" in objects and "to" in objects:

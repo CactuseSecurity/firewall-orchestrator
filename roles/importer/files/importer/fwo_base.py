@@ -9,6 +9,7 @@ from typing import TYPE_CHECKING, Any
 
 import fwo_config
 import fwo_const
+from fwo_const import IMPORT_TMP_PATH
 from fwo_enums import ConfFormat, ConfigAction
 from model_controllers.fwconfig_import_ruleorder import RuleOrderService
 
@@ -23,7 +24,7 @@ from services.service_provider import ServiceProvider
 from services.uid2id_mapper import Uid2IdMapper
 
 
-def sanitize(content: Any, lower: bool = False) -> None | str:  # noqa: FBT002
+def sanitize(content: Any, lower: bool = False) -> None | str:
     if content is None:
         return None
     result = str(content)
@@ -70,10 +71,10 @@ def deserialize_class_to_dict_rec(
 
     if isinstance(obj, list):
         # If the object is a list, deserialize each item
-        return [deserialize_class_to_dict_rec(item, seen) for item in obj]  # type: ignore
+        return [deserialize_class_to_dict_rec(item, seen) for item in obj]  # type: ignore  # noqa: PGH003
     if isinstance(obj, dict):
         # If the object is a dictionary, deserialize each key-value pair
-        return {key: deserialize_class_to_dict_rec(value, seen) for key, value in obj.items()}  # type: ignore
+        return {key: deserialize_class_to_dict_rec(value, seen) for key, value in obj.items()}  # type: ignore  # noqa: PGH003
     if isinstance(obj, Enum):
         # If the object is an Enum, convert it to its value
         return obj.value
@@ -89,7 +90,7 @@ def deserialize_class_to_dict_rec(
 
 
 def cidr_to_range(ip: str | None) -> list[str] | list[None]:  # TODO: I have no idea what other than string it could be
-    if isinstance(ip, str):  # type: ignore
+    if isinstance(ip, str):
         # dealing with ranges:
         if "-" in ip:
             return "-".split(ip)
@@ -102,7 +103,7 @@ def cidr_to_range(ip: str | None) -> list[str] | list[None]:  # TODO: I have no 
             net = ipaddress.IPv4Network(ip)
         elif ip_version == "IPv6":
             net = ipaddress.IPv6Network(ip)
-        return [str(net.network_address), str(net.broadcast_address)]  # type: ignore
+        return [str(net.network_address), str(net.broadcast_address)]  # type: ignore  # noqa: PGH003
 
     return [ip]
 
@@ -111,14 +112,14 @@ def valid_ip_address(ip: str) -> str:
     try:
         # Try as network first (handles CIDR notation)
         network = ipaddress.ip_network(ip, strict=False)
-        if network.version == 4:
+        if network.version == 4:  # noqa: PLR2004
             return "IPv4"
         return "IPv6"
     except ValueError:
         try:
             # Try as individual address
             addr = ipaddress.ip_address(ip)
-            if addr.version == 4:
+            if addr.version == 4:  # noqa: PLR2004
                 return "IPv4"
             return "IPv6"
         except ValueError:
@@ -187,7 +188,7 @@ def compute_min_moves(source: list[Any], target: list[Any]) -> dict[str, Any]:
     deletions: list[tuple[int, Any]] = [(i, elem) for i, elem in enumerate(source) if elem not in target_set]
     insertions: list[tuple[int, Any]] = [(j, elem) for j, elem in enumerate(target) if elem not in source_set]
 
-    # Compute the longest common subsequence (LCS) between S_common and T_common – these are common elements already in correct relative order.
+    # Compute the longest common subsequence (LCS) between S_common and T_common - these are common elements already in correct relative order.
     lcs_data: tuple[list[list[int]], int] = lcs_dp(s_common, t_common)
     lcs_indices: list[tuple[int, int]] = backtrack_lcs(s_common, t_common, lcs_data[0])
 
@@ -213,7 +214,7 @@ def compute_min_moves(source: list[Any], target: list[Any]) -> dict[str, Any]:
 
     total_moves: int = len(deletions) + len(insertions) + len(reposition_moves)
 
-    # Build a list of human‐readable operations.
+    # Build a list of human-readable operations.
     operations: list[str] = []
     for idx, elem in deletions:
         operations.append(f"Delete element '{elem}' at source index {idx}.")
@@ -232,8 +233,6 @@ def compute_min_moves(source: list[Any], target: list[Any]) -> dict[str, Any]:
 
 
 def write_native_config_to_file(import_state: "ImportState", config_native: dict[str, Any] | None) -> None:
-    from fwo_const import IMPORT_TMP_PATH
-
     if FWOLogger.is_debug_level(7):
         debug_start_time = int(time.time())
         try:
@@ -269,14 +268,12 @@ def register_global_state(import_state: "ImportStateController") -> None:
 
 def _diff_dicts(a: dict[Any, Any], b: dict[Any, Any], strict: bool, path: str) -> list[str]:
     diffs: list[str] = []
-    for k in a:
+    for k, v in a.items():
         if k not in b:
             diffs.append(f"Key '{k}' missing in second object at {path}")
         else:
-            diffs.extend(find_all_diffs(a[k], b[k], strict, f"{path}.{k}"))
-    for k in b:
-        if k not in a:
-            diffs.append(f"Key '{k}' missing in first object at {path}")
+            diffs.extend(find_all_diffs(v, b[k], strict, f"{path}.{k}"))
+    diffs.extend([f"Key '{k}' missing in first object at {path}" for k in b if k not in a])
     return diffs
 
 
@@ -300,9 +297,9 @@ def _diff_scalars(a: Any, b: Any, strict: bool, path: str) -> list[str]:
 
 def find_all_diffs(a: Any, b: Any, strict: bool = False, path: str = "root") -> list[str]:
     if isinstance(a, dict) and isinstance(b, dict):
-        return _diff_dicts(a, b, strict, path)  # type: ignore
+        return _diff_dicts(a, b, strict, path)  # type: ignore  # noqa: PGH003
     if isinstance(a, list) and isinstance(b, list):
-        return _diff_lists(a, b, strict, path)  # type: ignore
+        return _diff_lists(a, b, strict, path)  # type: ignore  # noqa: PGH003
     return _diff_scalars(a, b, strict, path)
 
 

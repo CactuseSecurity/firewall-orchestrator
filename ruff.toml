@@ -33,6 +33,7 @@ exclude = [
             "__init__.py",
             "scripts",
             "roles/tests-integration",
+            "roles/importer/files/importer/test"
         ]
 
 [lint]
@@ -86,7 +87,10 @@ ignore = [
     "B904",
     "PTH123",
     "PLR0911",
-    
+    "TRY300",
+    "FBT002",
+    "S113",
+    "S104",
 ]
 
 # Allow fix for all enabled rules (when `--fix`) is provided.

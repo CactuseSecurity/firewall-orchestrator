@@ -9,10 +9,10 @@ def read_config(fwo_config_filename: str = "/etc/fworch/fworch.json") -> dict[st
     try:
         # read fwo config (API URLs)
         with open(fwo_config_filename) as fwo_config:
-            fwo_config = json.loads(fwo_config.read())
-        user_management_api_base_url = fwo_config["middleware_uri"]
-        fwo_api_base_url = fwo_config["api_uri"]
-        fwo_version = fwo_config["product_version"]
+            fwo_config_json = json.loads(fwo_config.read())
+        user_management_api_base_url = fwo_config_json["middleware_uri"]
+        fwo_api_base_url = fwo_config_json["api_uri"]
+        fwo_version = fwo_config_json["product_version"]
         fwo_major_version = int(fwo_version.split(".")[0])
 
         # read importer password from file

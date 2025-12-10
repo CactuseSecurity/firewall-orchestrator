@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, Any
 
 import fwo_const
 from fwo_api import FwoApi
-from fwo_exceptions import FwoApiFailedLockImport
+from fwo_exceptions import FwoApiFailedLockImportError
 from fwo_log import FWOLogger
 from model_controllers.management_controller import ManagementController
 from models.fwconfig_normalized import FwConfigNormalized
@@ -107,7 +107,7 @@ class FwoApiCall(FwoApi):
                     alert_code=15,
                     mgm_details=mgm_details,
                 )
-                raise FwoApiFailedLockImport(
+                raise FwoApiFailedLockImportError(
                     "fwo_api: failed to get import lock for management id " + str(mgm_id)
                 ) from None
             return import_id
@@ -162,7 +162,7 @@ class FwoApiCall(FwoApi):
 
             unlock_result = self.call(unlock_mutation, query_variables=query_variables)
             if "errors" in unlock_result:
-                raise FwoApiFailedLockImport(unlock_result["errors"])
+                raise FwoApiFailedLockImportError(unlock_result["errors"])
             _ = unlock_result["data"]["update_import_control"]["affected_rows"]
         except Exception as e:
             FWOLogger.exception("failed to unlock import for management id " + str(mgm_id) + ": " + str(e))

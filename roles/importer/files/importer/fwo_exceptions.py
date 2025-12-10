@@ -1,7 +1,7 @@
 rollback_string = "Operation interrupted. Rollback required."
 
 
-class FwLoginFailed(Exception):
+class FwLoginFailedError(Exception):
     """Raised when login to FW management failed"""
 
     def __init__(self, message: str = "Login to FW management failed"):
@@ -9,7 +9,7 @@ class FwLoginFailed(Exception):
         super().__init__(self.message)
 
 
-class FwApiCallFailed(Exception):
+class FwApiCallFailedError(Exception):
     """Raised when FW management API call failed"""
 
     def __init__(self, message: str = "An API call to the FW management failed"):
@@ -17,7 +17,7 @@ class FwApiCallFailed(Exception):
         super().__init__(self.message)
 
 
-class FwLogoutFailed(Exception):
+class FwLogoutFailedError(Exception):
     """Raised when logout from FW management failed"""
 
     def __init__(self, message: str = "Logout from FW management failed"):
@@ -41,7 +41,7 @@ class FwoNormalizedConfigParseError(Exception):
         super().__init__(self.message)
 
 
-class SecretDecryptionFailed(Exception):
+class SecretDecryptionFailedError(Exception):
     """Raised when the attempt to decrypt a secret with the given key fails"""
 
     def __init__(self, message: str = "Could not decrypt an API secret with given key"):
@@ -49,7 +49,7 @@ class SecretDecryptionFailed(Exception):
         super().__init__(self.message)
 
 
-class FwoApiLoginFailed(Exception):
+class FwoApiLoginFailedError(Exception):
     """Raised when login to FWO API fails"""
 
     def __init__(self, message: str = "Login to FWO API failed"):
@@ -57,7 +57,7 @@ class FwoApiLoginFailed(Exception):
         super().__init__(self.message)
 
 
-class FwoApiFailedLockImport(Exception):
+class FwoApiFailedLockImportError(Exception):
     """Raised when unable to lock import (import running?)"""
 
     def __init__(self, message: str = "Locking import failed - already running?"):
@@ -65,7 +65,7 @@ class FwoApiFailedLockImport(Exception):
         super().__init__(self.message)
 
 
-class FwoApiFailedUnLockImport(Exception):
+class FwoApiFailedUnLockImportError(Exception):
     """Raised when unable to remove import lock"""
 
     def __init__(self, message: str = "Unlocking import failed"):
@@ -81,7 +81,7 @@ class FwoApiWriteError(Exception):
         super().__init__(self.message)
 
 
-class FwoApiFailure(Exception):
+class FwoApiFailureError(Exception):
     """Raised for any other FwoApi call exceptions"""
 
     def __init__(self, message: str = "There was an unclassified error while executing an FWO API call"):
@@ -89,7 +89,7 @@ class FwoApiFailure(Exception):
         super().__init__(self.message)
 
 
-class FwoApiTimeout(Exception):
+class FwoApiTimeoutError(Exception):
     """Raised for 502 http error with proxy due to timeout"""
 
     def __init__(
@@ -100,7 +100,7 @@ class FwoApiTimeout(Exception):
         super().__init__(self.message)
 
 
-class FwoApiServiceUnavailable(Exception):
+class FwoApiServiceUnavailableError(Exception):
     """Raised for 503 http error Serice unavailable"""
 
     def __init__(self, message: str = "FWO API Hasura container died"):
@@ -108,7 +108,7 @@ class FwoApiServiceUnavailable(Exception):
         super().__init__(self.message)
 
 
-class ConfigFileNotFound(Exception):
+class ConfigFileNotFoundError(Exception):
     """can only happen when specifying config file with -i switch"""
 
     def __init__(self, message: str = "Could not read config file"):
@@ -116,7 +116,7 @@ class ConfigFileNotFound(Exception):
         super().__init__(self.message)
 
 
-class ImportRecursionLimitReached(Exception):
+class ImportRecursionLimitReachedError(Exception):
     """Raised when recursion of function inimport process reaches max allowed recursion limit"""
 
     def __init__(self, message: str = "Max recursion level reached - aborting"):
@@ -124,7 +124,7 @@ class ImportRecursionLimitReached(Exception):
         super().__init__(self.message)
 
 
-class ImportInterruption(Exception):
+class ImportInterruptionError(Exception):
     """Custom exception to signal an interrupted call requiring rollback."""
 
     def __init__(self, message: str = rollback_string):
@@ -138,14 +138,14 @@ class FwoImporterError(Exception):
         super().__init__(message)
 
 
-class FwoImporterErrorInconsistencies(Exception):
+class FwoImporterErrorInconsistenciesError(Exception):
     """Custom exception to signal a failed import attempt."""
 
     def __init__(self, message: str = rollback_string):
         super().__init__(message)
 
 
-class RollbackNecessary(Exception):
+class RollbackNecessaryError(Exception):
     """Custom exception to signal a failed import attempt which needs a rollback."""
 
     def __init__(self, message: str = "Rollback required."):
@@ -173,33 +173,33 @@ class FwApiResponseDecodingError(Exception):
         super().__init__(message)
 
 
-class FwoApiFailedDeleteOldImports(Exception):
+class FwoApiFailedDeleteOldImportsError(Exception):
     """Custom exception to signal a failure during deletion of old import data."""
 
     def __init__(self, message: str = "Error while trying to remove old import data."):
         super().__init__(message)
 
 
-class FwoDuplicateKeyViolation(Exception):
+class FwoDuplicateKeyViolationError(Exception):
     """Custom exception to signal a duplicate key violation during import."""
 
     def __init__(self, message: str = "Error while trying to add data with duplicate keys"):
         super().__init__(message)
 
 
-class FwoUnknownDeviceForManager(Exception):
+class FwoUnknownDeviceForManagerError(Exception):
     """Custom exception to signal an unknown device during import."""
 
     def __init__(self, message: str = "Could not find device in manager config"):
         super().__init__(message)
 
 
-class FwoDeviceWithoutLocalPackage(Exception):
+class FwoDeviceWithoutLocalPackageError(Exception):
     """Custom exception to signal a device without local package."""
 
     def __init__(self, message: str = "Could not local package for device in manager config"):
         super().__init__(message)
 
 
-class ShutdownRequested(Exception):
+class ShutdownRequestedError(Exception):
     pass

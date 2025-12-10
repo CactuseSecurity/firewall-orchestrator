@@ -40,12 +40,12 @@ def consume_block(lines: list[str], start_idx: int) -> tuple[list[str], int]:
     block = [lines[start_idx]]
     i = start_idx + 1
     while i < len(lines):
-        l = lines[i]
-        if l.strip() == "!":
+        line = lines[i]
+        if line.strip() == "!":
             i += 1
             break
-        if l.startswith(" "):  # continuation/indented
-            block.append(l)
+        if line.startswith(" "):  # continuation/indented
+            block.append(line)
             i += 1
             continue
         # another directive starts; end this block
@@ -69,15 +69,15 @@ def parse_endpoint(tokens: list[str]) -> tuple[EndpointKind, int]:
     t0 = tokens[0]
     if t0 == "any":
         return EndpointKind(kind="any", value="any"), 1
-    if t0 == "host" and len(tokens) >= 2:
+    if t0 == "host" and len(tokens) >= 2:  # noqa: PLR2004
         return EndpointKind(kind="host", value=tokens[1]), 2
-    if t0 == "object" and len(tokens) >= 2:
+    if t0 == "object" and len(tokens) >= 2:  # noqa: PLR2004
         return EndpointKind(kind="object", value=tokens[1]), 2
-    if t0 == "object-group" and len(tokens) >= 2:
+    if t0 == "object-group" and len(tokens) >= 2:  # noqa: PLR2004
         return EndpointKind(kind="object-group", value=tokens[1]), 2
     # subnet notation: ip + mask
     if (
-        len(tokens) >= 2
+        len(tokens) >= 2  # noqa: PLR2004
         and re.fullmatch(r"\d{1,3}(?:\.\d{1,3}){3}", tokens[0])
         and re.fullmatch(r"\d{1,3}(?:\.\d{1,3}){3}", tokens[1])
     ):
@@ -97,7 +97,7 @@ def _find_line_with_prefix(block: list[str], prefix: str, only_first: bool = Fal
     for b in list(block):
         s = b.strip()
         if s.startswith(prefix):
-            v = s.split()[1] if only_first else s[len(prefix):].strip()
+            v = s.split()[1] if only_first else s[len(prefix) :].strip()
             block.remove(b)
     return v
 
@@ -110,8 +110,8 @@ def _parse_interface_block_find_ip_address(block: list[str], prefix: str) -> tup
         s = b.strip()
         if s.startswith(prefix):
             parts = s.split()
-            if len(parts) >= 4:
-                is_valid_ip = parts[2].count(".") == 3 and parts[3].count(".") == 3
+            if len(parts) >= 4:  # noqa: PLR2004
+                is_valid_ip = parts[2].count(".") == 3 and parts[3].count(".") == 3  # noqa: PLR2004
                 if is_valid_ip:
                     ip, mask = parts[2], parts[3]
                     block.remove(b)
@@ -124,9 +124,9 @@ def parse_interface_block(block: list[str]) -> Interface:
     blocks = list(block)[1:]
 
     # Extract values and remove consumed lines from blocks
-    nameif = _find_line_with_prefix(blocks, "nameif ", True)
-    br = _find_line_with_prefix(blocks, "bridge-group ", True)
-    sec = _find_line_with_prefix(blocks, "security-level ", True)
+    nameif = _find_line_with_prefix(blocks, "nameif ", only_first=True)
+    br = _find_line_with_prefix(blocks, "bridge-group ", only_first=True)
+    sec = _find_line_with_prefix(blocks, "security-level ", only_first=True)
     sec = int(sec) if sec is not None else 0
     ip, mask = _parse_interface_block_find_ip_address(blocks, "ip address ")
     desc = _find_line_with_prefix(blocks, "description ")
@@ -417,7 +417,7 @@ def parse_service_object_group_block(block: list[str]) -> AsaServiceObjectGroup:
 
     # Optional global protocol set for all defined ports/ranges
     proto_mode = None
-    if len(hdr) >= 4:
+    if len(hdr) >= 4:  # noqa: PLR2004
         pm = hdr[3].lower()
         if pm in ("tcp", "udp", "tcp-udp"):
             proto_mode = pm
@@ -592,16 +592,16 @@ def _parse_access_list_entry_dest_port(tokens: list[str], protocol: EndpointKind
     Returns (dst_port EndpointKind, remaining tokens list[str]).
     """
     dst_port = EndpointKind(kind="any", value="any")  # Default value
-    if len(tokens) >= 2 and tokens[0] == "eq":
+    if len(tokens) >= 2 and tokens[0] == "eq":  # noqa: PLR2004
         dst_port = EndpointKind(kind="eq", value=tokens[1])
         tokens = tokens[2:]
-    elif len(tokens) >= 3 and tokens[0] == "range":
+    elif len(tokens) >= 3 and tokens[0] == "range":  # noqa: PLR2004
         dst_port = EndpointKind(kind="range", value=f"{tokens[1]} {tokens[2]}")
         tokens = tokens[3:]
-    elif len(tokens) >= 2 and tokens[0] == "object-group":
+    elif len(tokens) >= 2 and tokens[0] == "object-group":  # noqa: PLR2004
         dst_port = EndpointKind(kind="service-group", value=tokens[1])
         tokens = tokens[2:]
-    elif len(tokens) >= 2 and tokens[0] == "object":
+    elif len(tokens) >= 2 and tokens[0] == "object":  # noqa: PLR2004
         dst_port = EndpointKind(kind="service", value=tokens[1])
         tokens = tokens[2:]
 

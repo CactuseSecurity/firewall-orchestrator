@@ -7,7 +7,7 @@ from fw_modules.fortiadom5ff import fmgr_getter
 from fw_modules.fortiadom5ff.fmgr_consts import nat_types
 from fw_modules.fortiadom5ff.fmgr_zone import find_zones_in_normalized_config
 from fwo_const import LIST_DELIMITER
-from fwo_exceptions import FwoDeviceWithoutLocalPackage, FwoImporterErrorInconsistencies
+from fwo_exceptions import FwoDeviceWithoutLocalPackageError, FwoImporterErrorInconsistenciesError
 from fwo_log import FWOLogger
 from models.rule import RuleAction, RuleNormalized, RuleTrack, RuleType
 from models.rulebase import Rulebase
@@ -34,8 +34,10 @@ def normalize_rulebases(
     normalized_config_adom["policies"] = []
     fetched_rulebase_uids: list[str] = []
     if normalized_config_global != {}:
-        for normalized_rulebase_global in normalized_config_global.get("policies", []):
-            fetched_rulebase_uids.append(normalized_rulebase_global.uid)
+        fetched_rulebase_uids = [
+            normalized_rulebase_global.uid
+            for normalized_rulebase_global in normalized_config_global.get("policies", [])
+        ]
     for gateway in native_config["gateways"]:
         normalize_rulebases_for_each_link_destination(
             gateway,
@@ -89,7 +91,7 @@ def normalize_rulebases_for_each_link_destination(
                 normalized_config_adom["policies"].append(normalized_rulebase)
 
         # normalizing nat rulebases is work in progress
-        # normalize_nat_rulebase(rulebase_link, native_config, normalized_config_adom, normalized_config_global)
+        # normalize_nat_rulebase(rulebase_link, native_config, normalized_config_adom, normalized_config_global)  # noqa: ERA001
 
 
 def normalize_nat_rulebase(
@@ -157,10 +159,10 @@ def add_implicit_deny_rule(
     }
 
     rule_src_list, rule_src_refs_list = rule_parse_addresses(
-        deny_rule, "src", normalized_config_adom, normalized_config_global, False
+        deny_rule, "src", normalized_config_adom, normalized_config_global, is_nat=False
     )
     rule_dst_list, rule_dst_refs_list = rule_parse_addresses(
-        deny_rule, "dst", normalized_config_adom, normalized_config_global, False
+        deny_rule, "dst", normalized_config_adom, normalized_config_global, is_nat=False
     )
     rule_svc_list, rule_svc_refs_list = rule_parse_service(deny_rule)
     rule_src_zones = find_zones_in_normalized_config(
@@ -202,7 +204,7 @@ def add_implicit_deny_rule(
     )
 
     if rule_normalized.rule_uid is None:
-        raise FwoImporterErrorInconsistencies("rule_normalized.rule_uid is None when adding implicit deny rule")
+        raise FwoImporterErrorInconsistenciesError("rule_normalized.rule_uid is None when adding implicit deny rule")
     rulebase.rules[rule_normalized.rule_uid] = rule_normalized
 
 
@@ -223,10 +225,10 @@ def parse_single_rule(
     rule_track = rule_parse_tracking_info(native_rule)
 
     rule_src_list, rule_src_refs_list = rule_parse_addresses(
-        native_rule, "src", normalized_config_adom, normalized_config_global, False
+        native_rule, "src", normalized_config_adom, normalized_config_global, is_nat=False
     )
     rule_dst_list, rule_dst_refs_list = rule_parse_addresses(
-        native_rule, "dst", normalized_config_adom, normalized_config_global, False
+        native_rule, "dst", normalized_config_adom, normalized_config_global, is_nat=False
     )
 
     rule_svc_list, rule_svc_refs_list = rule_parse_service(native_rule)
@@ -275,7 +277,7 @@ def parse_single_rule(
         rule_head_text=None,
     )
     if rule_normalized.rule_uid is None:
-        raise FwoImporterErrorInconsistencies("rule_normalized.rule_uid is None when parsing single rule")
+        raise FwoImporterErrorInconsistenciesError("rule_normalized.rule_uid is None when parsing single rule")
 
     # Add the rule to the rulebase
     rulebase.rules[rule_normalized.rule_uid] = rule_normalized
@@ -332,15 +334,15 @@ def rule_parse_addresses(
     Parses addresses to ordered (!) name list and reference list for source or destination addresses.
     """
     if target not in ["src", "dst"]:
-        raise FwoImporterErrorInconsistencies(f"target '{target}' must either be src or dst.")
+        raise FwoImporterErrorInconsistenciesError(f"target '{target}' must either be src or dst.")
     addr_list: list[str] = []
     addr_ref_list: list[str] = []
     if not is_nat:
         build_addr_list(
-            native_rule, True, target, normalized_config_adom, normalized_config_global, addr_list, addr_ref_list
+            native_rule, target, normalized_config_adom, normalized_config_global, addr_list, addr_ref_list, is_v4=True
         )
         build_addr_list(
-            native_rule, False, target, normalized_config_adom, normalized_config_global, addr_list, addr_ref_list
+            native_rule, target, normalized_config_adom, normalized_config_global, addr_list, addr_ref_list, is_v4=False
         )
     else:
         build_nat_addr_list(
@@ -351,12 +353,12 @@ def rule_parse_addresses(
 
 def build_addr_list(
     native_rule: dict[str, Any],
-    is_v4: bool,
     target: str,
     normalized_config_adom: dict[str, Any],
     normalized_config_global: dict[str, Any],
     addr_list: list[str],
     addr_ref_list: list[str],
+    is_v4: bool,
 ) -> None:
     """
     Builds ordered (!) address list and address reference list for source or destination addresses.
@@ -391,21 +393,34 @@ def build_nat_addr_list(
     if target == "src":
         for addr in sorted(native_rule.get("orig-addr", [])):
             addr_list.append(addr)
-            addr_ref_list.append(find_addr_ref(addr, True, normalized_config_adom, normalized_config_global))
+            addr_ref_list.append(
+                find_addr_ref(
+                    addr,
+                    is_v4=True,
+                    normalized_config_adom=normalized_config_adom,
+                    normalized_config_global=normalized_config_global,
+                )
+            )
     if target == "dst":
         for addr in sorted(native_rule.get("dst-addr", [])):
             addr_list.append(addr)
-            addr_ref_list.append(find_addr_ref(addr, True, normalized_config_adom, normalized_config_global))
+            addr_ref_list.append(
+                find_addr_ref(
+                    addr,
+                    is_v4=True,
+                    normalized_config_adom=normalized_config_adom,
+                    normalized_config_global=normalized_config_global,
+                )
+            )
 
 
 def find_addr_ref(
     addr: str, is_v4: bool, normalized_config_adom: dict[str, Any], normalized_config_global: dict[str, Any]
 ) -> str:
     for nw_obj in normalized_config_adom["network_objects"] + normalized_config_global.get("network_objects", []):
-        if addr == nw_obj["obj_name"]:
-            if (is_v4 and ip_type(nw_obj) == 4) or (not is_v4 and ip_type(nw_obj) == 6):
-                return nw_obj["obj_uid"]
-    raise FwoImporterErrorInconsistencies(f"No ref found for '{addr}'.")
+        if addr == nw_obj["obj_name"] and ((is_v4 and ip_type(nw_obj) == 4) or (not is_v4 and ip_type(nw_obj) == 6)):  # noqa: PLR2004
+            return nw_obj["obj_uid"]
+    raise FwoImporterErrorInconsistenciesError(f"No ref found for '{addr}'.")
 
 
 def ip_type(nw_obj: dict[str, Any]) -> int:
@@ -532,7 +547,12 @@ def get_and_link_global_rulebase(
                 limit=limit,
             )
         previous_rulebase = link_rulebase(
-            link_list, native_config_global["rulebases"], global_pkg_name, rulebase_type_prefix, previous_rulebase, True
+            link_list,
+            native_config_global["rulebases"],
+            global_pkg_name,
+            rulebase_type_prefix,
+            previous_rulebase,
+            is_global=True,
         )
     return previous_rulebase
 
@@ -569,7 +589,12 @@ def get_and_link_local_rulebase(
             limit=limit,
         )
     return link_rulebase(
-        link_list, native_config_adom["rulebases"], local_pkg_name, rulebase_type_prefix, previous_rulebase, False
+        link_list,
+        native_config_adom["rulebases"],
+        local_pkg_name,
+        rulebase_type_prefix,
+        previous_rulebase,
+        is_global=False,
     )
 
 
@@ -588,13 +613,13 @@ def find_packages(
                         vdom
                     ]["global"]
                 return "", ""
-    raise FwoDeviceWithoutLocalPackage(
+    raise FwoDeviceWithoutLocalPackageError(
         "Could not find local package for " + mgm_details_device["name"] + " in Fortimanager Config"
     ) from None
 
 
-def is_rulebase_already_fetched(rulebases: list[dict[str, Any]], type: str) -> bool:
-    return any(rulebase["type"] == type for rulebase in rulebases)
+def is_rulebase_already_fetched(rulebases: list[dict[str, Any]], typ: str) -> bool:
+    return any(rulebase["type"] == typ for rulebase in rulebases)
 
 
 def link_rulebase(
@@ -625,7 +650,6 @@ def build_link(previous_rulebase: str | None, full_pkg_name: str, is_global: boo
         "from_rulebase_uid": previous_rulebase,
         "from_rule_uid": None,
         "to_rulebase_uid": full_pkg_name,
-        # 'type': 'concatenated',
         "type": "ordered",
         "is_global": is_global,
         "is_initial": is_initial,
@@ -696,10 +720,10 @@ def get_nat_policy(
 
 
 def parse_nat_rulebase(
-    nat_rulebase: list[dict[str, Any]],
-    nat_type_string: str,
-    normalized_config_adom: dict[str, Any],
-    normalized_config_global: dict[str, Any],
+    _nat_rulebase: list[dict[str, Any]],
+    _nat_type_string: str,
+    _normalized_config_adom: dict[str, Any],
+    _normalized_config_global: dict[str, Any],
 ) -> None:
     # this function is not called until it is ready
     return
@@ -847,7 +871,7 @@ def create_xlate_rule(rule: dict[str, Any]) -> dict[str, Any]:
 def handle_combined_nat_rule(
     rule: dict[str, Any], rule_orig: dict[str, Any], config2import: dict[str, Any], nat_rule_number: int, dev_id: int
 ) -> dict[str, Any] | None:
-    # TODO see fOS_rule for reference implementation
+    # TODO: see fOS_rule for reference implementation
     raise NotImplementedError("handle_combined_nat_rule is not implemented yet")
 
 
@@ -871,13 +895,10 @@ def add_users_to_rule(rule_orig: dict[str, Any], rule: dict[str, Any]) -> None:
 
 def add_users(users: list[str], rule: dict[str, Any]) -> None:
     for user in users:
-        rule_src_with_users: list[str] = []
-        for src in rule["rule_src"].split(LIST_DELIMITER):
-            rule_src_with_users.append(user + "@" + src)
+        rule_src_with_users = [user + "@" + src for src in rule["rule_src"].split(LIST_DELIMITER)]
+
         rule["rule_src"] = LIST_DELIMITER.join(rule_src_with_users)
 
         # here user ref is the user name itself
-        rule_src_refs_with_users: list[str] = []
-        for src in rule["rule_src_refs"].split(LIST_DELIMITER):
-            rule_src_refs_with_users.append(user + "@" + src)
+        rule_src_refs_with_users = [user + "@" + src for src in rule["rule_src_refs"].split(LIST_DELIMITER)]
         rule["rule_src_refs"] = LIST_DELIMITER.join(rule_src_refs_with_users)

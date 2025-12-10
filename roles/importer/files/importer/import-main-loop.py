@@ -1,4 +1,4 @@
-# main importer loop in python (also able to run distributed)
+# main importer loop in python (also able to run distributed)  # noqa: N999
 # run import loop every x seconds (adjust sleep time per management depending on the change frequency )
 
 import argparse
@@ -14,7 +14,7 @@ from fwo_api import FwoApi
 from fwo_api_call import FwoApiCall
 from fwo_base import init_service_provider, register_global_state
 from fwo_const import BASE_DIR, IMPORTER_BASE_DIR
-from fwo_exceptions import FwLoginFailed, FwoApiFailedLockImport, FwoApiLoginFailed
+from fwo_exceptions import FwLoginFailedError, FwoApiFailedLockImportError, FwoApiLoginFailedError
 from fwo_log import FWOLogger
 from model_controllers.import_state_controller import ImportStateController
 from model_controllers.management_controller import (
@@ -30,7 +30,7 @@ from model_controllers.management_controller import (
 def get_fwo_jwt(import_user: str, import_pwd: str, user_management_api: str) -> str | None:
     try:
         return FwoApi.login(import_user, import_pwd, user_management_api)
-    except FwoApiLoginFailed as e:
+    except FwoApiLoginFailedError as e:
         FWOLogger.error(e.message)
     except Exception:
         FWOLogger.error(
@@ -94,7 +94,7 @@ def import_single_management(
         import_management(
             mgm_id, fwo_api_call, verify_certificates, api_fetch_limit, clear, suppress_certificate_warnings
         )
-    except (FwoApiFailedLockImport, FwLoginFailed):
+    except (FwoApiFailedLockImportError, FwLoginFailedError):
         FWOLogger.info(f"import-main-loop - minor error while importing mgm_id={mgm_id}, {traceback.format_exc()!s}")
         return  # minor errors for a single mgm, go to next one
     except Exception:  # all other exceptions are logged here
@@ -118,7 +118,8 @@ def main_loop(
     wait_with_shutdown_check(0)
 
     try:
-        importer_pwd = open(importer_pwd_file).read().replace("\n", "")
+        with open(importer_pwd_file) as f:
+            importer_pwd = f.read().replace("\n", "")
     except Exception:
         FWOLogger.error("import-main-loop - error while reading importer pwd file")
         raise

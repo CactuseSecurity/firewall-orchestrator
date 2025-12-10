@@ -8,7 +8,7 @@ import fwo_const
 import fwo_globals
 import requests
 from fw_modules.checkpointR8x import cp_const, cp_network
-from fwo_exceptions import FwApiError, FwApiResponseDecodingError, FwLoginFailed, FwoImporterError
+from fwo_exceptions import FwApiError, FwApiResponseDecodingError, FwLoginFailedError, FwoImporterError
 from fwo_log import FWOLogger
 from model_controllers.management_controller import ManagementController
 from services.service_provider import ServiceProvider
@@ -45,7 +45,7 @@ def cp_api_call(url: str, command: str, json_payload: dict[str, Any], sid: str |
             )
         raise FwApiError(exception_text)
     if show_progress:
-        print(".", end="", flush=True)
+        print(".", end="", flush=True)  # noqa: T201
 
     try:
         json_response = r.json()
@@ -56,15 +56,15 @@ def cp_api_call(url: str, command: str, json_payload: dict[str, Any], sid: str |
 
 def login(mgm_details: ManagementController):
     payload = {"user": mgm_details.import_user, "password": mgm_details.secret}
-    domain = mgm_details.getDomainString()
-    if domain is not None and domain != "":  # type: ignore # TODO: shouldnt be None
+    domain = mgm_details.get_domain_string()
+    if domain != "":
         payload.update({"domain": domain})
-    base_url = mgm_details.buildFwApiString()
+    base_url = mgm_details.build_fw_api_string()
     FWOLogger.debug(f"login - login to url {base_url} with user {mgm_details.import_user}", 3)
     response = cp_api_call(base_url, "login", payload, "")
     if "sid" not in response:
         exception_text = f"getter ERROR: did not receive a sid, api call: {base_url}"
-        raise FwLoginFailed(exception_text)
+        raise FwLoginFailedError(exception_text)
     return response["sid"]
 
 
@@ -115,7 +115,7 @@ def process_changes_task(base_url: str, task_id: dict[str, Any], sid: str) -> in
                 return result
 
         sleeptime += 2
-        if sleeptime > 40:
+        if sleeptime > 40:  # noqa: PLR2004
             FWOLogger.error("task took too long, aborting")
             return -1
 
@@ -189,7 +189,7 @@ def get_show_packages_via_api(
     else:
         FWOLogger.error("packages do not contain total field")
         FWOLogger.warning("sid: " + sid)
-        FWOLogger.warning("api_v_url: " + api_v_url)
+        FWOLogger.warning("api_v_url:  " + api_v_url)
         for key, value in show_params_policy_structure.items():
             FWOLogger.warning("show_params_policy_structure " + key + ": " + str(value))
         for key, value in packages.items():
@@ -344,7 +344,7 @@ def get_rulebases(
     rulebase_uid: str | None = None,
     rulebase_name: str | None = None,
 ) -> list[str]:
-    # access_type: access / nat
+    # i access_type : access / nat
     native_config_rulebase_key = "rulebases"
     current_rulebase = {}
 
@@ -366,7 +366,7 @@ def get_rulebases(
             rulebase_uid = get_uid_of_rulebase(rulebase_name, api_v_url, access_type, sid)
         else:
             FWOLogger.error("must provide either rulebaseUid or rulebaseName")
-    policy_rulebases_uid_list.append(rulebase_uid)  # type: ignore # TODO: get_uid_of_rulebase can return None but in theory should not
+    policy_rulebases_uid_list.append(rulebase_uid)  # type: ignore # TODO: get_uid_of_rulebase can return None but in theory should not  # noqa: PGH003
 
     # search all rulebases in nativeConfigDomain and import if rulebase is not already fetched
     fetched_rulebase_list: list[str] = []
@@ -379,8 +379,13 @@ def get_rulebases(
     # get rulebase in chunks
     if rulebase_uid not in fetched_rulebase_list:
         current_rulebase = get_rulebases_in_chunks(
-            rulebase_uid, show_params_rules, api_v_url, access_type, sid, native_config_domain
-        )  # type: ignore # TODO: rulebaseUid can be None but in theory should not
+            rulebase_uid,  # type: ignore  # noqa: PGH003
+            show_params_rules,
+            api_v_url,
+            access_type,
+            sid,  # type: ignore  # noqa: PGH003
+            native_config_domain,  # type: ignore #TODO: check if None check is needed if yes, change type  # noqa: PGH003
+        )  # type: ignore # TODO: rulebaseUid can be None but in theory should not  # noqa: PGH003
         native_config_domain[native_config_rulebase_key].append(current_rulebase)
 
     # use recursion to get inline layers
@@ -488,7 +493,7 @@ def control_while_loop_in_get_rulebases_in_chunks(
             "rulebase does not contain total field, get_rulebase_chunk_from_api found garbled json "
             + str(current_rulebase)
         )
-        FWOLogger.warning("sid: " + sid)
+        FWOLogger.warning("sid:  " + sid)
         FWOLogger.warning("api_v_url: " + api_v_url)
         for key, value in show_params_rules.items():
             FWOLogger.warning("show_params_rules " + key + ": " + str(value))
@@ -525,11 +530,11 @@ def get_inline_layers_recursively(
         # search in case of access rulebase only
         if "rulebase" in rulebase_chunk:
             for section in rulebase_chunk["rulebase"]:
-                section, current_rulebase_uid = section_traversal_and_links(
+                section_link, current_rulebase_uid = section_traversal_and_links(
                     section, current_rulebase_uid, device_config, is_global
                 )
 
-                for rule in section["rulebase"]:
+                for rule in section_link["rulebase"]:
                     if "inline-layer" in rule:
                         # add link to inline layer for current device
                         device_config["rulebase_links"].append(
@@ -604,10 +609,11 @@ def get_placeholder_in_rulebase(rulebase: dict[str, Any]) -> tuple[str | None, s
         if "rulebase" in rulebase_chunk:
             for section in rulebase_chunk["rulebase"]:
                 # if no section is used, use dummy section
+                section_link = section
                 if section["type"] != "access-section":
-                    section: dict[str, Any] = {"type": "access-section", "rulebase": [section]}
+                    section_link: dict[str, Any] = {"type": "access-section", "rulebase": [section]}
 
-                for rule in section["rulebase"]:
+                for rule in section_link["rulebase"]:
                     placeholder_rule_uid, placeholder_rulebase_uid = assign_placeholder_uids(
                         rulebase, section, rule, placeholder_rule_uid, placeholder_rulebase_uid
                     )
@@ -747,7 +753,7 @@ def resolve_ref_list_from_object_dictionary(
     if isinstance(rulebase, list):  # found a list of rules
         for rule in rulebase:
             if value in rule:
-                categorize_value_for_resolve_ref(rule, value, obj_dicts, native_config_domain)
+                categorize_value_for_resolve_ref(rule, value, obj_dicts, native_config_domain)  # type: ignore  # noqa: PGH003
             if "rulebase" in rule:
                 resolve_ref_list_from_object_dictionary(
                     rule["rulebase"], value, obj_dicts=obj_dicts, native_config_domain=native_config_domain
@@ -771,12 +777,15 @@ def categorize_value_for_resolve_ref(
             rule[value]["type"], obj_dict, native_config_domain=native_config_domain, field_name=value
         )
     else:  # assuming list of rules
-        for id in rule[value]:
-            value_list.append(
+        value_list.extend(
+            [
                 resolve_ref_from_object_dictionary(
-                    id, obj_dict, native_config_domain=native_config_domain, field_name=value
+                    rule_id, obj_dict, native_config_domain=native_config_domain, field_name=value
                 )
-            )
+                for rule_id in rule[value]
+            ]
+        )
+
         rule[value] = value_list  # replace ref list with object list
 
 

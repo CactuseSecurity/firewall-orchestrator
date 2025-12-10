@@ -18,7 +18,7 @@ class ServiceProviderEntry:
 
 class ServiceProvider:
     """
-    This class serves as an IOC-container (IOC = inversion of controls) and its purpose is to manage instantiation and lifetime of service classes.
+    Class serves as an IOC-container (IOC = inversion of controls) and its purpose is to manage instantiation and lifetime of service classes.
     """
 
     _instance: "ServiceProvider | None" = None
@@ -30,9 +30,9 @@ class ServiceProvider:
     def __new__(cls):
         if cls._instance is None:
             cls._instance = super().__new__(cls)
-            cls._instance._services = {}
-            cls._instance._singletons = {}
-            cls._instance._import = {}
+            cls._instance._services = {}  # noqa: SLF001
+            cls._instance._singletons = {}  # noqa: SLF001
+            cls._instance._import = {}  # noqa: SLF001
 
         return cls._instance
 

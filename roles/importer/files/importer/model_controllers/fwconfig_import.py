@@ -6,7 +6,7 @@ import fwo_globals
 from fwo_api import FwoApi
 from fwo_api_call import FwoApiCall
 from fwo_base import ConfigAction, find_all_diffs
-from fwo_exceptions import FwoApiFailedDeleteOldImports, FwoImporterError, ImportInterruption
+from fwo_exceptions import FwoApiFailedDeleteOldImportsError, FwoImporterError, ImportInterruptionError
 from fwo_log import FWOLogger
 from model_controllers.fwconfig_import_gateway import FwConfigImportGateway
 from model_controllers.fwconfig_import_object import FwConfigImportObject
@@ -113,7 +113,7 @@ class FwConfigImport:
         if len(self.import_state.state.mgm_details.sub_manager_ids) > 0:
             # Read config
             fwo_api = self.import_state.api_connection
-            _ = FwoApiCall(fwo_api)  # TODO why not used ??
+            _ = FwoApiCall(fwo_api)  # TODO: why not used ??
             # # Authenticate to get JWT
             # try:
             #     jwt = fwo_api.login(importer_user_name, fwoConfig.ImporterPassword, fwoConfig.FwoUserMgmtApiUri)
@@ -138,7 +138,7 @@ class FwConfigImport:
                 mgm_details = ManagementController.from_json(mgm_details_raw)
                 config_normalized.add_manager(
                     manager=FwConfigManager(
-                        manager_uid=ManagementController.calc_manager_uid_hash(mgm_details_raw),  # type: ignore # TODO: check: should be mgm_details
+                        manager_uid=ManagementController.calc_manager_uid_hash(mgm_details_raw),  # type: ignore # TODO: check: should be mgm_details   # noqa: PGH003
                         manager_name=mgm_details.name,
                         is_super_manager=mgm_details.is_super_manager,
                         sub_manager_ids=mgm_details.sub_manager_ids,
@@ -173,12 +173,12 @@ class FwConfigImport:
         self._fw_config_import_object.update_object_diffs(prev_config, prev_global_config, single_manager)
 
         if fwo_globals.shutdown_requested:
-            raise ImportInterruption("Shutdown requested during updateObjectDiffs.")
+            raise ImportInterruptionError("Shutdown requested during updateObjectDiffs.")
 
         new_rule_ids = self._fw_config_import_rule.update_rulebase_diffs(prev_config)
 
         if fwo_globals.shutdown_requested:
-            raise ImportInterruption("Shutdown requested during updateRulebaseDiffs.")
+            raise ImportInterruptionError("Shutdown requested during updateRulebaseDiffs.")
 
         self.import_state.set_rule_map()  # update all rule entries (from currently running import for rulebase_links)
         self._fw_config_import_gateway.update_gateway_diffs()
@@ -226,10 +226,10 @@ class FwConfigImport:
                 alert_code=15,
                 mgm_details=self.import_state.state.mgm_details,
             )
-            raise FwoApiFailedDeleteOldImports(f"management id: {mgm_id}") from None
+            raise FwoApiFailedDeleteOldImportsError(f"management id: {mgm_id}") from None
 
     def write_latest_config(self):
-        if self.import_state.state.import_version > 8:
+        if self.import_state.state.import_version > 8:  # noqa: PLR2004
             if self.normalized_config is None:
                 raise FwoImporterError("cannot write latest config: NormalizedConfig is None")
             # convert FwConfigImport to FwConfigNormalized
@@ -332,9 +332,7 @@ class FwConfigImport:
                 )
             if len(query_result["data"]["latest_config"]) > 0:  # do we have a prev config?
                 if query_result["data"]["latest_config"][0]["import_id"] == latest_import_id:
-                    return FwConfigNormalized.model_validate_json(
-                        query_result["data"]["latest_config"][0]["config"]
-                    )
+                    return FwConfigNormalized.model_validate_json(query_result["data"]["latest_config"][0]["config"])
                 FWOLogger.warning(
                     f"fwo_api:import_latest_config - latest config for mgm id {mgm_id} did not match last import id {latest_import_id}"
                 )
@@ -364,7 +362,7 @@ class FwConfigImport:
             raise FwoImporterError(
                 "found gateway without UID while sorting gateways for consistency check - this should not happen"
             )
-        config.gateways.sort(key=lambda gw: gw.Uid)  # type: ignore
+        config.gateways.sort(key=lambda gw: gw.Uid)  # type: ignore   # noqa: PGH003
         for gw in config.gateways:
             gw.RulebaseLinks.sort(key=lambda rbl: f"{rbl.from_rulebase_uid}-{rbl.from_rule_uid}-{rbl.to_rulebase_uid}")
             if gw.EnforcedPolicyUids is not None:

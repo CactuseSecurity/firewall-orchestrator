@@ -4,7 +4,7 @@ from typing import Any
 from fw_modules.fortiadom5ff.fmgr_zone import find_zones_in_normalized_config
 from fwo_base import sort_and_join_refs
 from fwo_const import LIST_DELIMITER, NAT_POSTFIX
-from fwo_exceptions import FwoImporterErrorInconsistencies
+from fwo_exceptions import FwoImporterErrorInconsistenciesError
 from fwo_log import FWOLogger
 
 
@@ -39,7 +39,7 @@ def normalize_network_objects(
         nw_objects.append(
             create_network_object(
                 name=original_obj_name,
-                type="network",
+                typ="network",
                 ip="0.0.0.0",
                 ip_end="255.255.255.255",
                 uid=original_obj_uid,
@@ -62,16 +62,16 @@ def get_obj_member_refs_list(
                 continue
             for potential_member in native_config_objects[obj_type]["data"]:
                 if potential_member["name"] == member_name:
-                    obj_member_refs_list.append(potential_member.get("uuid", potential_member["name"]))
+                    obj_member_refs_list.append(potential_member.get("uuid", potential_member["name"]))  # noqa: PERF401
     if len(obj_member_refs_list) != len(obj_orig["member"]):
-        raise FwoImporterErrorInconsistencies(
+        raise FwoImporterErrorInconsistenciesError(
             f"Member inconsistent for object {obj_orig['name']}, found members={obj_orig['member']!s} and member_refs={obj_member_refs_list!s}"
         )
     return obj_member_refs_list
 
 
 def exclude_object_types_in_member_ref_search(obj_type: str, current_obj_type: str) -> bool:
-    # TODO expand for all kinds of missmatches in group and member
+    # TODO: expand for all kinds of missmatches in group and member
     skip_member_ref_loop = False
     if current_obj_type.endswith("firewall/addrgrp") and obj_type.endswith("firewall/ippool"):
         skip_member_ref_loop = True
@@ -95,7 +95,9 @@ def normalize_network_object(
     elif "member" in obj_orig:  # addrgrp4, TODO for addrgrp6 change obj_typ to 'group_v6' and adjust obj_member_refs
         member_name_list: list[str] = obj_orig["member"]
         member_ref_list: list[str] = get_obj_member_refs_list(obj_orig, native_config_objects, current_obj_type)
-        sorted_member_refs, sorted_member_names = sort_and_join_refs(list(zip(member_ref_list, member_name_list, strict=False)))
+        sorted_member_refs, sorted_member_names = sort_and_join_refs(
+            list(zip(member_ref_list, member_name_list, strict=False))
+        )
         obj.update({"obj_typ": "group"})
         obj.update({"obj_member_names": sorted_member_names})
         obj.update({"obj_member_refs": sorted_member_refs})
@@ -126,8 +128,6 @@ def normalize_network_object(
     # TODO: deal with all other colors (will be currently ignored)
     # we would need a list of fortinet color codes, maybe:
     # https://community.fortinet.com/t5/Support-Forum/Object-color-codes-for-CLI/td-p/249479
-    # if 'color' in obj_orig and obj_orig['color']==0:
-    #    obj.update({'obj_color': 'black'})
     obj.update({"obj_color": "black"})
 
     obj.update(
@@ -192,7 +192,6 @@ def normalize_vip_object(obj_orig: dict[str, Any], obj: dict[str, Any], nw_objec
         ):  # and obj_orig['associated-interface'][0] != 'any':
             obj_zone = obj_orig["associated-interface"][0]
         nat_obj.update({"obj_zone": obj_zone})
-        # nat_obj.update({'control_id': import_state.ImportId})
         if (
             nat_obj not in nw_objects
         ):  # rare case when a destination nat is down for two different orig ips to the same dest ip
@@ -259,11 +258,11 @@ def add_member_names_for_nw_group(idx: int, nw_objects: list[dict[str, Any]]) ->
 
 
 def create_network_object(
-    name: str, type: str, ip: str, ip_end: str | None, uid: str, color: str, comment: str | None, zone: str | None
+    name: str, typ: str, ip: str, ip_end: str | None, uid: str, color: str, comment: str | None, zone: str | None
 ) -> dict[str, Any]:
     return {
         "obj_name": name,
-        "obj_typ": type,
+        "obj_typ": typ,
         "obj_ip": ip,
         "obj_ip_end": ip_end,
         "obj_uid": uid,

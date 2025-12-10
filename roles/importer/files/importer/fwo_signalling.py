@@ -2,12 +2,12 @@ import signal
 from typing import Any
 
 import fwo_globals
-from fwo_exceptions import ShutdownRequested
+from fwo_exceptions import ShutdownRequestedError
 
 
 def handle_shutdown_signal(_: int, __: Any):
     fwo_globals.shutdown_requested = True
-    raise ShutdownRequested
+    raise ShutdownRequestedError
 
 
 def register_signalling_handlers():

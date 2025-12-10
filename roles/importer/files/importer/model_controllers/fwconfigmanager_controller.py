@@ -8,9 +8,9 @@ class FwConfigManagerController(FwConfigManager):
     manager_uid: str
     manager_name: str
     is_global: bool = False
-    dependant_manager_uids: list[str] = []
-    configs: list[FwConfigNormalized] = []
-    model_config: dict[str, Any] = {"arbitrary_types_allowed": True}
+    dependant_manager_uids: list[str]
+    configs: list[FwConfigNormalized]
+    model_config: dict[str, Any]
 
     def __init__(
         self,
@@ -25,9 +25,10 @@ class FwConfigManagerController(FwConfigManager):
         self.is_global = is_global
         self.dependant_manager_uids = dependant_manager_uids
         self.configs = configs
+        self.model_config = {"arbitrary_types_allowed": True}
 
     @classmethod
-    def fromJson(cls, json_dict: dict[str, Any]) -> "FwConfigManagerController":
+    def from_json(cls, json_dict: dict[str, Any]) -> "FwConfigManagerController":
         manager_uid: str = json_dict["manager_uid"]
         manager_name: str = json_dict["mgm_name"]
         is_global: bool = json_dict["is_global"]

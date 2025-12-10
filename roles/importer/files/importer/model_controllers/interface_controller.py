@@ -13,7 +13,7 @@ class Interface:
         self.name = str(name)
         self.ip = IPAddress(ip)
         netmask_bits = int(netmask_bits)
-        if netmask_bits < 0 or netmask_bits > 128:
+        if netmask_bits < 0 or netmask_bits > 128:  # noqa: PLR2004
             FWOLogger.error("interface " + self.name + " with invalid bitmask: " + str(netmask_bits))
         else:
             self.netmask_bits = netmask_bits

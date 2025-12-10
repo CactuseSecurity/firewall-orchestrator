@@ -6,7 +6,7 @@ from model_controllers.import_state_controller import ImportStateController
 
 class FwCommon(ABC):
     def has_config_changed(
-        self, full_config: FwConfigManagerListController, import_state: ImportStateController, force: bool = False
+        self, _full_config: FwConfigManagerListController, _import_state: ImportStateController, _force: bool = False
     ) -> bool:
         return True
 

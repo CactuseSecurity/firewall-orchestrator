@@ -193,7 +193,7 @@ def create_svc_object(name: str, proto: int, color: str, port: Any, comment: str
 
 def add_object(
     svc_objects: list[dict[str, Any]],
-    type: str,
+    typ: str,
     name: str,
     color: str,
     proto: int,
@@ -209,7 +209,7 @@ def add_object(
         svc_objects.extend(
             [
                 {
-                    "svc_typ": type,
+                    "svc_typ": typ,
                     "svc_name": name,
                     "svc_color": color,
                     "svc_uid": name,  # ?
@@ -237,7 +237,7 @@ def add_object(
             svc_objects.extend(
                 [
                     {
-                        "svc_typ": type,
+                        "svc_typ": typ,
                         "svc_name": full_name,
                         "svc_color": color,
                         "svc_uid": full_name,  # ?

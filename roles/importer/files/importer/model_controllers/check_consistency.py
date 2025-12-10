@@ -1,7 +1,7 @@
 from typing import TYPE_CHECKING, Any
 
 import fwo_const
-from fwo_exceptions import FwoImporterErrorInconsistencies
+from fwo_exceptions import FwoImporterErrorInconsistenciesError
 from fwo_log import FWOLogger
 from model_controllers.fwconfig_import import FwConfigImport
 from model_controllers.fwconfig_import_object import FwConfigImportObject
@@ -20,7 +20,7 @@ if TYPE_CHECKING:
 
 # this class is used for importing a config into the FWO API
 class FwConfigImportCheckConsistency(FwConfigImport):
-    issues: dict[str, Any] = {}
+    issues: dict[str, Any]
     maps: FwConfigImportObject  # = FwConfigImportObject()
     config: FwConfigNormalized = FwConfigNormalized()
 
@@ -29,8 +29,9 @@ class FwConfigImportCheckConsistency(FwConfigImport):
         service_provider = ServiceProvider()
         self._global_state = service_provider.get_global_state()
         self.import_state = import_details
+        self.issues = {}
 
-        self.maps = FwConfigImportObject()  # TODO don't use like this (separation of concerns) - see #3154
+        self.maps = FwConfigImportObject()  # TODO: don't use like this (separation of concerns) - see #3154
         for mgr in config_list.ManagerSet:
             for cfg in mgr.configs:
                 import_worker = FwConfigImport()
@@ -51,7 +52,9 @@ class FwConfigImportCheckConsistency(FwConfigImport):
         self.check_rulebase_link_consistency(config)
 
         if len(self.issues) > 0:
-            raise FwoImporterErrorInconsistencies("Inconsistencies found in the configuration: " + str(self.issues))
+            raise FwoImporterErrorInconsistenciesError(
+                "Inconsistencies found in the configuration: " + str(self.issues)
+            )
 
         FWOLogger.debug("Consistency check completed without issues.")
 
@@ -162,12 +165,14 @@ class FwConfigImportCheckConsistency(FwConfigImport):
     def _collect_all_service_object_refs_from_groups(single_config: FwConfigNormalized) -> set[str]:
         all_used_obj_refs: set[str] = set()
         for obj_id in single_config.service_objects:
-            if single_config.service_objects[obj_id].svc_typ == "group":
-                if single_config.service_objects[obj_id].svc_member_refs is not None:
-                    member_refs = single_config.service_objects[obj_id].svc_member_refs
-                    if member_refs is None or len(member_refs) == 0:
-                        continue
-                    all_used_obj_refs |= set(member_refs.split(fwo_const.LIST_DELIMITER))
+            if (
+                single_config.service_objects[obj_id].svc_typ == "group"
+                and single_config.service_objects[obj_id].svc_member_refs is not None
+            ):
+                member_refs = single_config.service_objects[obj_id].svc_member_refs
+                if member_refs is None or len(member_refs) == 0:
+                    continue
+                all_used_obj_refs |= set(member_refs.split(fwo_const.LIST_DELIMITER))
         return all_used_obj_refs
 
     @staticmethod
@@ -202,15 +207,15 @@ class FwConfigImportCheckConsistency(FwConfigImport):
         for rb in single_config.rulebases:
             for rule_id in rb.rules:
                 if fwo_const.USER_DELIMITER in rb.rules[rule_id].rule_src_refs:
-                    all_used_obj_refs += self._collectUsersFromRule(
+                    all_used_obj_refs += self._collect_users_from_rule(
                         rb.rules[rule_id].rule_src_refs.split(fwo_const.LIST_DELIMITER)
                     )
-                    all_used_obj_refs += self._collectUsersFromRule(
+                    all_used_obj_refs += self._collect_users_from_rule(
                         rb.rules[rule_id].rule_dst_refs.split(fwo_const.LIST_DELIMITER)
                     )
         return all_used_obj_refs
 
-    def _collect_users_from_groups(self, single_config: FwConfigNormalized, all_used_obj_refs: list[str]):
+    def _collect_users_from_groups(self, _single_config: FwConfigNormalized, _all_used_obj_refs: list[str]):
         return
 
     def _check_user_types_exist(self, single_config: FwConfigNormalized):
@@ -225,11 +230,11 @@ class FwConfigImportCheckConsistency(FwConfigImport):
             self.issues.update({"unresolvableUserObjTypes": list(missing_obj_types)})
 
     @staticmethod
-    def _collectUsersFromRule(list_of_elements: list[str]) -> list[str]:
+    def _collect_users_from_rule(list_of_elements: list[str]) -> list[str]:
         user_refs: list[str] = []
         for el in list_of_elements:
             split_result = el.split(fwo_const.USER_DELIMITER)
-            if len(split_result) == 2:
+            if len(split_result) == 2:  # noqa: PLR2004
                 user_refs.append(split_result[0])
         return user_refs
 
@@ -309,10 +314,10 @@ class FwConfigImportCheckConsistency(FwConfigImport):
         all_used_user_color_ref_set: set[str] = set()
 
         for uid in single_config.network_objects:
-            if single_config.network_objects[uid].obj_color is not None:  # type: ignore #TODO: obj_color cant be None
+            if single_config.network_objects[uid].obj_color is not None:  # type: ignore #TODO: obj_color cant be None  # noqa: PGH003
                 all_used_nw_obj_color_ref_set.add(single_config.network_objects[uid].obj_color)
         for uid in single_config.service_objects:
-            if single_config.service_objects[uid].svc_color is not None:  # type: ignore #TODO: svc_color cant be None
+            if single_config.service_objects[uid].svc_color is not None:  # type: ignore #TODO: svc_color cant be None  # noqa: PGH003
                 all_used_svc_color_ref_set.add(single_config.service_objects[uid].svc_color)
         for uid in single_config.users:
             if single_config.users[uid].user_color is not None:
@@ -331,20 +336,20 @@ class FwConfigImportCheckConsistency(FwConfigImport):
         unresolvable_user_colors: list[str] = []
         # check all nwobj color refs
         for color_string in all_used_nw_obj_color_ref_set:
-            color_id = self.import_state.state.lookupColorId(color_string)
-            if color_id is None:  # type: ignore # TODO: lookupColorId cant return None
+            color_id = self.import_state.state.lookup_color_id(color_string)
+            if color_id is None:  # type: ignore # TODO: lookupColorId cant return None  # noqa: PGH003
                 unresolvable_nw_obj_colors.append(color_string)
 
         # check all nwobj color refs
         for color_string in all_used_svc_color_ref_set:
-            color_id = self.import_state.state.lookupColorId(color_string)
-            if color_id is None:  # type: ignore # TODO: lookupColorId cant return None
+            color_id = self.import_state.state.lookup_color_id(color_string)
+            if color_id is None:  # type: ignore # TODO: lookupColorId cant return None  # noqa: PGH003
                 unresolvable_svc_colors.append(color_string)
 
         # check all user color refs
         for color_string in all_used_user_color_ref_set:
-            color_id = self.import_state.state.lookupColorId(color_string)
-            if color_id is None:  # type: ignore # TODO: lookupColorId cant return None
+            color_id = self.import_state.state.lookup_color_id(color_string)
+            if color_id is None:  # type: ignore # TODO: lookupColorId cant return None  # noqa: PGH003
                 unresolvable_user_colors.append(color_string)
 
         return unresolvable_nw_obj_colors, unresolvable_svc_colors, unresolvable_user_colors
@@ -465,11 +470,7 @@ class FwConfigImportCheckConsistency(FwConfigImport):
             and rbl.from_rulebase_uid not in all_rulebase_uids
         ):
             self._add_issue(broken_rulebase_links, rbl, gw, "from_rulebase_uid broken")
-        if (
-            rbl.to_rulebase_uid is not None
-            and rbl.to_rulebase_uid != ""
-            and rbl.to_rulebase_uid not in all_rulebase_uids
-        ):  # type: ignore # TODO: to_rulebase_uid cant be None
+        if rbl.to_rulebase_uid != "" and rbl.to_rulebase_uid not in all_rulebase_uids:
             self._add_issue(broken_rulebase_links, rbl, gw, "to_rulebase_uid broken")
         if rbl.from_rule_uid is not None and rbl.from_rule_uid != "" and rbl.from_rule_uid not in all_rule_uids:
             self._add_issue(broken_rulebase_links, rbl, gw, "from_rule_uid broken")

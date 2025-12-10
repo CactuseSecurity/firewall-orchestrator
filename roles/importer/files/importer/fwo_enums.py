@@ -24,7 +24,7 @@ class ConfFormat(Enum):
     CISCOFIREPOWER_LEGACY = "CISCOFIREPOWER_LEGACY"
 
     @staticmethod
-    def IsLegacyConfigFormat(conf_format_string: str) -> bool:
+    def is_legacy_config_format(conf_format_string: str) -> bool:
         return ConfFormat(conf_format_string) in [
             ConfFormat.NORMALIZED_LEGACY,
             ConfFormat.CHECKPOINT_LEGACY,

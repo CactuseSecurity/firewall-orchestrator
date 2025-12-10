@@ -23,13 +23,13 @@ from fwo_api_call import FwoApiCall
 from fwo_base import string_is_uri, write_native_config_to_file
 from fwo_const import IMPORT_TMP_PATH
 from fwo_exceptions import (
-    FwLoginFailed,
+    FwLoginFailedError,
     FwoApiWriteError,
     FwoImporterError,
-    FwoImporterErrorInconsistencies,
-    ImportInterruption,
-    ImportRecursionLimitReached,
-    ShutdownRequested,
+    FwoImporterErrorInconsistenciesError,
+    ImportInterruptionError,
+    ImportRecursionLimitReachedError,
+    ShutdownRequestedError,
 )
 from model_controllers.check_consistency import FwConfigImportCheckConsistency
 from model_controllers.fwconfig_import import FwConfigImport
@@ -69,14 +69,14 @@ def import_management(
 
     try:
         _import_management(mgm_id, ssl_verification, file, limit, clear_management_data, suppress_cert_warnings)
-    except FwLoginFailed as e:
+    except FwLoginFailedError as e:
         exception = e
         import_state.delete_import()  # delete whole import
         roll_back_exception_handler(import_state, config_importer=config_importer, exc=e, error_text="")
-    except (ImportRecursionLimitReached, FwoImporterErrorInconsistencies) as e:
+    except (ImportRecursionLimitReachedError, FwoImporterErrorInconsistenciesError) as e:
         import_state.delete_import()  # delete whole import
         exception = e
-    except (KeyboardInterrupt, ImportInterruption, ShutdownRequested) as e:
+    except (KeyboardInterrupt, ImportInterruptionError, ShutdownRequestedError) as e:
         roll_back_exception_handler(
             import_state, config_importer=config_importer, exc=e, error_text="shutdown requested"
         )

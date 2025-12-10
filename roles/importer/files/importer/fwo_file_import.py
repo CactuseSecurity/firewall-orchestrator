@@ -10,7 +10,7 @@ import fwo_globals
 import requests
 from fwconfig_base import ConfFormat
 from fwo_api_call import FwoApiCall
-from fwo_exceptions import ConfigFileNotFound, FwoImporterError
+from fwo_exceptions import ConfigFileNotFoundError, FwoImporterError
 from fwo_log import FWOLogger
 from model_controllers.fwconfigmanagerlist_controller import FwConfigManagerListController
 from models.import_state import ImportState
@@ -108,6 +108,7 @@ def detect_legacy_format(config_json: dict[str, Any]) -> ConfFormat:
 
 def read_file(fwo_api_call: FwoApiCall, import_state: ImportState) -> dict[str, Any]:
     config_json: dict[str, Any] = {}
+    r = None
     if import_state.import_file_name == "":
         return config_json
     try:
@@ -131,19 +132,18 @@ def read_file(fwo_api_call: FwoApiCall, import_state: ImportState) -> dict[str, 
             with open(filename) as json_file:
                 config_json = json.load(json_file)
     except requests.exceptions.RequestException as e:
-        try:
-            r  # check if response "r" is defined # type: ignore TODO: This practice is suspicious at best
+        if r is not None:
             FWOLogger.error(
                 f"got HTTP status code{r.status_code!s} while trying to read config file from URL {import_state.import_file_name}"
-            )  # type: ignore
-        except NameError:
+            )
+        else:
             FWOLogger.error(f"got error while trying to read config file from URL {import_state.import_file_name}")
 
         fwo_api_call.complete_import(import_state, e)
-        raise ConfigFileNotFound(str(e)) from None
+        raise ConfigFileNotFoundError(str(e)) from None
     except Exception as e:
         FWOLogger.error("unspecified error while reading config file: " + str(traceback.format_exc()))
         fwo_api_call.complete_import(import_state, e)
-        raise ConfigFileNotFound(f"unspecified error while reading config file {import_state.import_file_name}")
+        raise ConfigFileNotFoundError(f"unspecified error while reading config file {import_state.import_file_name}")
 
     return config_json

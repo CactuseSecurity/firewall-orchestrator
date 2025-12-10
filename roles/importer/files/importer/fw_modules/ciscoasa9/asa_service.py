@@ -298,9 +298,7 @@ def create_service_for_protocol_entry(entry: AccessListEntry, service_objects: d
         return create_service_for_protocol_entry_with_single_protocol(entry, service_objects)
 
     if entry.protocol.value == "ip":
-        svc_refs: list[str] = []
-        for proto in protocol_map:
-            svc_refs.append(create_any_protocol_service(proto, service_objects))
+        svc_refs = [create_any_protocol_service(proto, service_objects) for proto in protocol_map]
 
         reference_string = fwo_base.sort_and_join(svc_refs)
         # create a service group for all protocols
@@ -341,9 +339,7 @@ def create_service_for_acl_entry(entry: AccessListEntry, service_objects: dict[s
         return entry.protocol.value
 
     # Default to all common protocols
-    svc_refs: list[str] = []
-    for proto in ("tcp", "udp", "icmp"):
-        svc_refs.append(create_any_protocol_service(proto, service_objects))
+    svc_refs = [create_any_protocol_service(proto, service_objects) for proto in ("tcp", "udp", "icmp")]
     return fwo_base.sort_and_join(svc_refs)
 
 
@@ -418,8 +414,8 @@ def process_single_protocol_range_ports(
 ) -> list[str]:
     """Process port ranges for single protocol groups."""
     obj_names: list[str] = []
-    for range in ranges:
-        obj_name = create_service_for_port_range(range, protocol, service_objects)
+    for obj_range in ranges:
+        obj_name = create_service_for_port_range(obj_range, protocol, service_objects)
         obj_names.append(obj_name)
     return obj_names
 

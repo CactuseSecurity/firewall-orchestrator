@@ -34,7 +34,7 @@ def create_network_host(name: str, ip_address: str, comment: str | None, ip_vers
         Normalized NetworkObject instance
 
     """
-    obj_ip = IPNetwork(f"{ip_address}/128", version=6) if ip_version == 6 else IPNetwork(f"{ip_address}/32")
+    obj_ip = IPNetwork(f"{ip_address}/128", version=6) if ip_version == 6 else IPNetwork(f"{ip_address}/32")  # noqa: PLR2004
     return NetworkObject(
         obj_uid=name,
         obj_name=name,
@@ -63,7 +63,7 @@ def create_network_subnet(
         Normalized NetworkObject instance
 
     """
-    if ip_version == 6:
+    if ip_version == 6:  # noqa: PLR2004
         # ip_address is expected to be in CIDR notation for IPv6
         network = IPNetwork(ip_address, version=6)
         ip_start = IPNetwork(f"{IPAddress(network.first)}/128", version=6)

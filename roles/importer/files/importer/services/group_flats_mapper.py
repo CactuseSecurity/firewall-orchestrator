@@ -17,7 +17,7 @@ CONFIG_NOT_SET_MESSAGE = "normalized config is not set"
 
 class GroupFlatsMapper:
     """
-    This class is responsible for mapping group objects to their fully resolved members.
+    Class is responsible for mapping group objects to their fully resolved members.
     """
 
     import_state: ImportStateController
@@ -85,9 +85,8 @@ class GroupFlatsMapper:
         members: set[str] = {group_uid}
         if nwobj.obj_member_refs is None or nwobj.obj_member_refs == "":
             return members
-        for member_uid in nwobj.obj_member_refs.split(fwo_const.LIST_DELIMITER):
-            if fwo_const.USER_DELIMITER in member_uid:
-                member_uid = member_uid.split(fwo_const.USER_DELIMITER)[0]  # remove user delimiter if present
+        for refs in nwobj.obj_member_refs.split(fwo_const.LIST_DELIMITER):
+            member_uid = refs.split(fwo_const.USER_DELIMITER)[0] if fwo_const.USER_DELIMITER in refs else refs
             flat_members = self.flat_nwobj_members_recursive(member_uid, recursion_level + 1)
             if flat_members is None:
                 continue

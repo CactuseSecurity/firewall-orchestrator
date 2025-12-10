@@ -141,17 +141,17 @@ def normalize_config(
             )
         )
         # Link subsequent rulebases in order
-        for idx in range(1, len(rulebases)):
-            rulebase_links.append(
-                RulebaseLinkUidBased(
-                    from_rulebase_uid=rulebases[idx - 1].uid,
-                    to_rulebase_uid=rulebases[idx].uid,
-                    link_type="ordered",
-                    is_initial=False,
-                    is_global=False,
-                    is_section=False,
-                )
+        [
+            RulebaseLinkUidBased(
+                from_rulebase_uid=rulebases[idx - 1].uid,
+                to_rulebase_uid=rulebases[idx].uid,
+                link_type="ordered",
+                is_initial=False,
+                is_global=False,
+                is_section=False,
             )
+            for idx in range(1, len(rulebases))
+        ]
 
     # Step 5: Create gateway object representing the ASA device
     FWOLogger.debug("Creating gateway object...")

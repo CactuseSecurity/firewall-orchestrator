@@ -4,7 +4,7 @@ from fwo_exceptions import FwoImporterError
 from fwo_log import FWOLogger
 from model_controllers.rulebase_link_controller import RulebaseLinkController
 from models.gateway import Gateway
-from models.rulebase_link import (  # TODO check if we need RulebaseLinkUidBased as well
+from models.rulebase_link import (  # TODO: check if we need RulebaseLinkUidBased as well
     RulebaseLink,
     RulebaseLinkUidBased,
 )
@@ -90,7 +90,7 @@ class FwConfigImportGateway:
         for link in normalized_gateway.RulebaseLinks:
             if previous_gateway:
                 rulebase_links = previous_gateway.RulebaseLinks
-            self._try_add_single_link(arg_list, link, rulebase_links, gw_id, True)
+            self._try_add_single_link(arg_list, link, rulebase_links, gw_id, is_insert=True)
 
     def _create_remove_args(
         self, normalized_gateway: Gateway, previous_gateway: Gateway, gw_id: int | None, arg_list: list[int | None]
@@ -98,7 +98,9 @@ class FwConfigImportGateway:
         removed_rulebase_links: list[dict[str, Any]] = []
 
         for link in previous_gateway.RulebaseLinks:
-            self._try_add_single_link(removed_rulebase_links, link, normalized_gateway.RulebaseLinks, gw_id, False)
+            self._try_add_single_link(
+                removed_rulebase_links, link, normalized_gateway.RulebaseLinks, gw_id, is_insert=False
+            )
         for link in removed_rulebase_links:
             link_in_db = self._try_get_id_based_link(link, self._rb_link_controller.rb_links)
             if link_in_db:

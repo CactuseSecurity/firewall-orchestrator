@@ -9,7 +9,7 @@ from typing import Any
 import fwo_globals
 import requests
 from fwo_const import FWO_API_HTTP_IMPORT_TIMEOUT
-from fwo_exceptions import FwoApiLoginFailed, FwoApiServiceUnavailable, FwoApiTimeout, FwoImporterError
+from fwo_exceptions import FwoApiLoginFailedError, FwoApiServiceUnavailableError, FwoApiTimeoutError, FwoImporterError
 from fwo_log import FWOLogger
 from query_analyzer import QueryAnalyzer
 from services.service_provider import ServiceProvider
@@ -34,7 +34,7 @@ class FwoApi:
         self,
         query: str,
         query_variables: dict[str, list[Any] | Any] | None = None,
-        analyze_payload: bool = False,  # noqa: FBT002
+        analyze_payload: bool = False,
     ) -> dict[str, Any]:
         """
         The standard FWO API call.
@@ -108,7 +108,7 @@ class FwoApi:
         payload: dict[str, str | None] = {"Username": user, "Password": password}
 
         if user_management_api_base_url is None:
-            raise FwoApiLoginFailed("fwo_api: user_management_api_base_url is None during login")
+            raise FwoApiLoginFailedError("fwo_api: user_management_api_base_url is None during login")
 
         with requests.Session() as session:
             if fwo_globals.verify_certs is None:  # only for first FWO API call (getting info on cert verification)
@@ -120,7 +120,7 @@ class FwoApi:
             try:
                 response = session.post(user_management_api_base_url + method, data=json.dumps(payload))
             except requests.exceptions.RequestException:
-                raise FwoApiLoginFailed(
+                raise FwoApiLoginFailedError(
                     "fwo_api: error during login to url: " + str(user_management_api_base_url) + " with user " + user
                 ) from None
 
@@ -133,7 +133,7 @@ class FwoApi:
                 + ", ssl_verification: "
                 + str(fwo_globals.verify_certs)
             )
-            raise FwoApiLoginFailed(error_txt)
+            raise FwoApiLoginFailedError(error_txt)
 
     def call_endpoint(self, method: str, endpoint: str, params: Any = None) -> Any:
         """
@@ -180,11 +180,11 @@ class FwoApi:
 
                 # Check for HTTP errors
                 if response.status_code == 401:  # noqa: PLR2004
-                    raise FwoApiLoginFailed(f"Authentication failed for endpoint: {endpoint}")
+                    raise FwoApiLoginFailedError(f"Authentication failed for endpoint: {endpoint}")
                 if response.status_code == 503:  # noqa: PLR2004
-                    raise FwoApiServiceUnavailable("FWO Middleware API HTTP error 503 (middleware died?)")
+                    raise FwoApiServiceUnavailableError("FWO Middleware API HTTP error 503 (middleware died?)")
                 if response.status_code == 502:  # noqa: PLR2004
-                    raise FwoApiTimeout("FWO Middleware API HTTP error 502 (might have reached timeout)")
+                    raise FwoApiTimeoutError("FWO Middleware API HTTP error 502 (might have reached timeout)")
 
                 response.raise_for_status()
 
@@ -213,9 +213,9 @@ class FwoApi:
         )
         if hasattr(exception, "response") and exception.response is not None:
             if exception.response.status_code == 503:  # noqa: PLR2004
-                raise FwoApiServiceUnavailable("FWO API HTTP error 503 (FWO API died?)")
+                raise FwoApiServiceUnavailableError("FWO API HTTP error 503 (FWO API died?)")
             if exception.response.status_code == 502:  # noqa: PLR2004
-                raise FwoApiTimeout(
+                raise FwoApiTimeoutError(
                     f"FWO API HTTP error 502 (might have reached timeout of {int(FWO_API_HTTP_IMPORT_TIMEOUT) / 60} minutes)"
                 )
         raise exception
@@ -425,7 +425,7 @@ class FwoApi:
         query: dict[str, Any],
         headers: dict[str, Any] | MutableMapping[str, str | bytes],
         typ: str = "debug",
-        show_query_info: bool = False,  # noqa: FBT002
+        show_query_info: bool = False,
     ):
         max_query_size_to_display = 1000
         query_string = json.dumps(query, indent=2)

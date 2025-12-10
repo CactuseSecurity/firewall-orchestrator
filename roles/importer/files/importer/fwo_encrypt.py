@@ -25,7 +25,9 @@ def decrypt_aes_ciphertext(base64_encrypted_text: str, passphrase: str) -> str:
     decrypted_data = decryptor.update(encrypted_data[iv_length:]) + decryptor.finalize()
 
     # Remove padding
-    unpadder = padding.PKCS7(algorithms.AES.block_size).unpadder()  # TODO: Check if block_size is correct #type: ignore
+    unpadder = padding.PKCS7(
+        algorithms.AES.block_size  # type: ignore  # noqa: PGH003
+    ).unpadder()  # TODO: Check if block_size is correct
     try:
         unpadded_data = unpadder.update(decrypted_data) + unpadder.finalize()
         return unpadded_data.decode("utf-8")  # Assuming plaintext is UTF-8 encoded

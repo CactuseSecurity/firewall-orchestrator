@@ -41,15 +41,12 @@ def normalize_zones(
             if mapping["platform_mapping"] is not None:
                 fetch_platform_mapping(mapping, fetched_zones)
 
-    for zone in fetched_zones:
-        zones.append({"zone_name": zone})
+    zones = [{"zone_name": zone} for zone in fetched_zones]
     normalized_config_adom.update({"zone_objects": zones})
 
 
 def statically_add_missing_global_zones(fetched_zones: list[str]) -> None:
-    for zone in ["any", "sslvpn_tun_intf", "virtual-wan-link"]:
-        fetched_zones.append(zone)
-
+    fetched_zones.extend(["any", "sslvpn_tun_intf", "virtual-wan-link"])
     # double check, if these zones cannot be parsed from api results
 
 

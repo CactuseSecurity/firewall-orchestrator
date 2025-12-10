@@ -46,10 +46,10 @@ class Route:
         return self.is_default_route_v4() or self.is_default_route_v6()
 
     def is_default_route_v4(self):
-        return self.ip_version == 4 and self.destination == IPNetwork("0.0.0.0/0")
+        return self.ip_version == 4 and self.destination == IPNetwork("0.0.0.0/0")  # noqa: PLR2004
 
     def is_default_route_v6(self):
-        return self.ip_version == 6 and self.destination == IPNetwork("::/0")
+        return self.ip_version == 6 and self.destination == IPNetwork("::/0")  # noqa: PLR2004
 
     def route_matches(self, destination: str, dev_id: int) -> bool:
         ip_n = IPNetwork(self.destination).cidr

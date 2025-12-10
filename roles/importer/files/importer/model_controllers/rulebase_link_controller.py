@@ -10,8 +10,11 @@ from models.rulebase_link import RulebaseLink, parse_rulebase_links
 
 
 class RulebaseLinkController:
-    rulbase_to_gateway_map: dict[int, list[int]] = {}
+    rulbase_to_gateway_map: dict[int, list[int]]
     rb_links: list[RulebaseLink]
+
+    def __init__(self) -> None:
+        self.rulbase_to_gateway_map = {}
 
     def insert_rulebase_links(
         self, fwo_api_call: FwoApiCall, stats: ImportStatisticsController, rb_links: list[dict[str, Any]]

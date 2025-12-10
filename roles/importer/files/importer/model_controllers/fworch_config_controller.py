@@ -36,7 +36,7 @@ class FworchConfigController(FworchConfig):
         return cls(fwo_api_uri, fwo_user_mgmt_api_uri, fwo_importer_pwd)
 
     def __str__(self):
-        return f"{self.fwo_api_url}, {self.fwo_user_mgmt_api_uri}, {self.api_fetch_size}"  # type: ignore
+        return f"{self.fwo_api_url}, {self.fwo_user_mgmt_api_uri}, {self.api_fetch_size}"
 
     def set_importer_pwd(self, importer_password: str | None):
         self.importer_password = importer_password

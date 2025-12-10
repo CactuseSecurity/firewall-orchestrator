@@ -59,7 +59,6 @@ def initialize_global_domain(objects: list[dict[str, Any]]) -> dict[str, Any]:
     return {"domain": {"uid": objects[0]["domain_uid"], "name": objects[0]["domain_name"]}}
 
 
-
 def collect_nw_objects(
     object_table: dict[str, Any], nw_objects: list[dict[str, Any]], global_domain: dict[str, Any], mgm_id: int = 0
 ) -> None:
@@ -145,7 +144,7 @@ def handle_object_type_and_ip(obj: dict[str, Any], ip_addr: str | None) -> tuple
     ip_array = cidr_to_range(ip_addr)
     first_ip = None
     last_ip = None
-    if len(ip_array) == 2:
+    if len(ip_array) == 2:  # noqa: PLR2004
         first_ip = ip_array[0]
         last_ip = ip_array[1]
     elif len(ip_array) == 1:
@@ -288,6 +287,8 @@ def make_host(ip_in: str) -> str | None:
     # If it's a valid address, append the appropriate CIDR notation
     if isinstance(ip_obj, ipaddress.IPv4Address):
         return f"{ip_in}/32"
-    if isinstance(ip_obj, ipaddress.IPv6Address):  # TODO: check if just else is sufficient # type: ignore
+    if isinstance(
+        ip_obj, ipaddress.IPv6Address
+    ):  # TODO: check if just else is sufficient # type: ignore  # noqa: PGH003
         return f"{ip_in}/128"
     return None

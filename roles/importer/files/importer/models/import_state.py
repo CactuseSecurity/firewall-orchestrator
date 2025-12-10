@@ -10,8 +10,6 @@ from model_controllers.management_controller import ManagementController
 
 
 class ImportState:
-    stats: ImportStatisticsController = ImportStatisticsController()
-    start_time: int = int(time.time())
     debug_level: int
     verify_certs: bool = False
     config_changed_since_last_import: bool
@@ -28,19 +26,23 @@ class ImportState:
     last_successful_import: str | None = None
     is_full_import: bool
     is_initial_import: bool = False
-    actions: dict[str, int]
-    tracks: dict[str, int]
-    link_types: dict[str, int]
-    gateway_map: dict[int, dict[str, int]]  # mgm_id -> ( key = gateway.uid and value = gateway.id )
-    rulebase_map: dict[str, int]
-    rule_map: dict[str, int]
     responsible_for_importing: bool = True
-    management_map: dict[str, int]  # maps management uid to management id
-    color_map: dict[str, int] = {}
-    rulebase_to_gateway_map: dict[int, list[int]] = {}
     is_clearing_import: bool = False
-    removed_rules_map: dict[str, int] = {}  # rule_id -> rule dict
-    data_retention_days: int = 30  # Default data retention days
+
+    def __init__(self) -> None:
+        self.stats: ImportStatisticsController = ImportStatisticsController()
+        self.start_time: int = int(time.time())
+        self.actions: dict[str, int] = {}
+        self.tracks: dict[str, int] = {}
+        self.link_types: dict[str, int] = {}
+        self.gateway_map: dict[int, dict[str, int]] = {}
+        self.rulebase_map: dict[str, int] = {}
+        self.rule_map: dict[str, int] = {}
+        self.management_map: dict[str, int] = {}
+        self.color_map: dict[str, int] = {}
+        self.rulebase_to_gateway_map: dict[int, list[int]] = {}
+        self.removed_rules_map: dict[str, int] = {}
+        self.data_retention_days: int = 30
 
     def lookup_rule(self, rule_uid: str) -> int | None:
         return self.rule_map.get(rule_uid, None)
@@ -92,5 +94,5 @@ class ImportState:
             FWOLogger.error(f"fwo_api:import_latest_config - no mgm id found for current manager uid '{mgm_uid}'")
         return self.management_map.get(mgm_uid, None)
 
-    def lookupColorId(self, color_str: str) -> int:
+    def lookup_color_id(self, color_str: str) -> int:
         return self.color_map.get(color_str, 1)  # 1 = forground color black

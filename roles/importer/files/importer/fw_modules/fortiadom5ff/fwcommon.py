@@ -9,7 +9,7 @@ from fw_modules.fortiadom5ff.fmgr_rule import get_access_policy, get_nat_policy,
 from fw_modules.fortiadom5ff.fmgr_service import normalize_service_objects
 from fw_modules.fortiadom5ff.fmgr_zone import get_zones, normalize_zones
 from fwo_base import ConfigAction, write_native_config_to_file
-from fwo_exceptions import FwLoginFailed, FwLogoutFailed, ImportInterruption
+from fwo_exceptions import FwLoginFailedError, FwLogoutFailedError, ImportInterruptionError
 from fwo_log import FWOLogger
 from model_controllers.fwconfigmanagerlist_controller import FwConfigManagerListController
 from model_controllers.import_state_controller import ImportStateController
@@ -32,7 +32,7 @@ def get_config(
     config_in: FwConfigManagerListController, import_state: ImportStateController
 ) -> tuple[int, FwConfigManagerListController]:
     if config_in.has_empty_config():  # no native config was passed in, so getting it from FW-Manager
-        config_in.native_config.update({"domains": []})  # type: ignore #TYPING: What is this? None or not None this is the question
+        config_in.native_config.update({"domains": []})  # type: ignore #TYPING: What is this? None or not None this is the question  # noqa: PGH003
         parsing_config_only = False
     else:
         parsing_config_only = True
@@ -40,9 +40,9 @@ def get_config(
     if not parsing_config_only:  # no native config was passed in, so getting it from FortiManager
         sid = get_sid(import_state.state)
         limit = import_state.state.fwo_config.api_fetch_size
-        fm_api_url = import_state.state.mgm_details.buildFwApiString()
+        fm_api_url = import_state.state.mgm_details.build_fw_api_string()
         native_config_global = initialize_native_config_domain(import_state.state.mgm_details)
-        config_in.native_config["domains"].append(native_config_global)  # type: ignore #TYPING: None or not None this is the question
+        config_in.native_config["domains"].append(native_config_global)  # type: ignore #TYPING: None or not None this is the question  # noqa: PGH003
         adom_list = build_adom_list(import_state.state)
         adom_device_vdom_structure = build_adom_device_vdom_structure(adom_list, sid, fm_api_url)
         # delete_v: das geht schief für unschöne adoms
@@ -69,7 +69,7 @@ def get_config(
         for adom in adom_list:
             adom_name = adom.domain_name
             native_config_adom = initialize_native_config_domain(adom)
-            config_in.native_config["domains"].append(native_config_adom)  # type: ignore #TYPING: None or not None this is the question
+            config_in.native_config["domains"].append(native_config_adom)  # type: ignore #TYPING: None or not None this is the question  # noqa: PGH003
 
             adom_scope = "adom/" + adom_name
             get_objects(
@@ -118,7 +118,7 @@ def get_config(
         try:  # logout of fortimanager API
             fmgr_getter.logout(fm_api_url, sid)
         except Exception:
-            raise FwLogoutFailed("logout exception probably due to timeout - irrelevant, so ignoring it")
+            raise FwLogoutFailedError("logout exception probably due to timeout - irrelevant, so ignoring it")
 
         write_native_config_to_file(import_state.state, config_in.native_config)
 
@@ -146,7 +146,7 @@ def initialize_native_config_domain(mgm_details: Management) -> dict[str, Any]:
 
 
 def get_arbitrary_vdom(adom_device_vdom_structure: dict[str, dict[str, dict[str, Any]]]) -> dict[str, str] | None:
-    for adom in adom_device_vdom_structure:
+    for adom in adom_device_vdom_structure:  # noqa: PLC0206
         for device in adom_device_vdom_structure[adom]:
             for vdom in adom_device_vdom_structure[adom][device]:
                 return {"adom": adom, "device": device, "vdom": vdom}
@@ -157,7 +157,7 @@ def normalize_config(native_config: dict[str, Any]) -> FwConfigManagerListContro
     manager_list = FwConfigManagerListController()
 
     if "domains" not in native_config:
-        raise ImportInterruption("No domains found in native config. Cannot normalize config.")
+        raise ImportInterruptionError("No domains found in native config. Cannot normalize config.")
 
     rewrite_native_config_obj_type_as_key(native_config)  # for easier accessability of objects in normalization process
 
@@ -265,8 +265,7 @@ def normalize_single_manager_config(
 def build_adom_list(import_state: ImportState) -> list[Management]:
     adom_list: list[Management] = []
     if import_state.mgm_details.is_super_manager:
-        for sub_manager in import_state.mgm_details.sub_managers:
-            adom_list.append(deepcopy(sub_manager))
+        adom_list = [deepcopy(sub_manager) for sub_manager in import_state.mgm_details.sub_managers]
     return adom_list
 
 
@@ -327,7 +326,7 @@ def add_global_policy_package_to_vdom(
         elif global_assignment["assign_excluded"] == 1 and global_assignment["specify_assign_pkg_list"] == 1:
             assign_case_exclude(adom_device_vdom_policy_package_structure, adom, global_assignment)
         else:
-            raise ImportInterruption("Broken global assign format.")
+            raise ImportInterruptionError("Broken global assign format.")
 
 
 def assign_case_all(
@@ -348,7 +347,7 @@ def assign_case_include(
     for device in adom_device_vdom_policy_package_structure[adom]:
         for vdom in adom_device_vdom_policy_package_structure[adom][device]:
             match_assign_and_vdom_policy_package(
-                global_assignment, adom_device_vdom_policy_package_structure[adom][device][vdom], True
+                global_assignment, adom_device_vdom_policy_package_structure[adom][device][vdom], is_include=True
             )
 
 
@@ -360,7 +359,7 @@ def assign_case_exclude(
     for device in adom_device_vdom_policy_package_structure[adom]:
         for vdom in adom_device_vdom_policy_package_structure[adom][device]:
             match_assign_and_vdom_policy_package(
-                global_assignment, adom_device_vdom_policy_package_structure[adom][device][vdom], False
+                global_assignment, adom_device_vdom_policy_package_structure[adom][device][vdom], is_include=False
             )
 
 
@@ -388,7 +387,7 @@ def get_sid(import_state: ImportState):
     fm_api_url = "https://" + import_state.mgm_details.hostname + ":" + str(import_state.mgm_details.port) + "/jsonrpc"
     sid = fmgr_getter.login(import_state.mgm_details.import_user, import_state.mgm_details.secret, fm_api_url)
     if sid is None:
-        raise FwLoginFailed("did not succeed in logging in to FortiManager API, no sid returned")
+        raise FwLoginFailedError("did not succeed in logging in to FortiManager API, no sid returned")
     return sid
 
 
@@ -485,12 +484,12 @@ def normalize_gateways(native_config: dict[str, Any], normalized_config_adom: di
 
 
 def normalize_interfaces() -> list[Any]:
-    # TODO
+    # TODO: Implement interface normalization
     return []
 
 
 def normalize_routing() -> list[Any]:
-    # TODO
+    # TODO: Implement routing normalization
     return []
 
 

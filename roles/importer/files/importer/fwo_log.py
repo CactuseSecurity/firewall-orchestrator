@@ -4,11 +4,11 @@ import time
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
+    from models.import_state import ImportState
 
     from importer.services.uid2id_mapper import Uid2IdMapper
-from typing import Any, Literal
 
-from models.import_state import ImportState
+from typing import Any, Literal
 
 
 class LogLock:
@@ -31,7 +31,7 @@ class LogLock:
 
                     if log_owned:
                         # Forcefully release lock after timeout
-                        if time.time() - stopwatch > 10:
+                        if time.time() - stopwatch > 10:  # noqa: PLR2004
                             file.write("FORCEFULLY RELEASED\n")
                             stopwatch = -1
                             LogLock.semaphore.release()
@@ -57,7 +57,7 @@ class LogLock:
                         stopwatch = time.time()
                         log_owned = True
                         file.write("GRANTED\n")
-            except Exception as _:
+            except Exception as _:  # noqa: S110
                 pass
             # Wait a second
             time.sleep(1)
@@ -67,14 +67,14 @@ class FWOLogger:
     logger: logging.Logger
     debug_level: int
 
-    def __new__(cls, debug_level: int = 0):
+    def __new__(cls, _debug_level: int = 0):
         if not hasattr(cls, "instance"):
             cls.instance = super().__new__(cls)
         return cls.instance
 
-    def __init__(self, debug_level: int = 0):
-        self.logger = get_fwo_logger(debug_level)
-        self.debug_level = debug_level
+    def __init__(self, _debug_level: int = 0):
+        self.logger = get_fwo_logger(_debug_level)
+        self.debug_level = _debug_level
 
     def get_logger(self) -> logging.Logger:
         return self.logger
@@ -139,7 +139,7 @@ class ChangeLogger:
     _instance = None
     changed_nwobj_id_map: dict[int, int]
     changed_svc_id_map: dict[int, int]
-    _import_state: ImportState | None = None
+    _import_state: "ImportState | None" = None
     _uid2id_mapper: "Uid2IdMapper | None" = None
 
     def __new__(cls):
@@ -179,7 +179,7 @@ class ChangeLogger:
 
     def create_changelog_import_object(
         self,
-        type: str,
+        typ: str,
         import_state: "ImportState",
         change_action: str,
         change_typ: Literal[2, 3],
@@ -202,8 +202,8 @@ class ChangeLogger:
             old_rule_id = rule_id
 
         rule_changelog_object: dict[str, Any] = {
-            f"new_{type}_id": new_rule_id,
-            f"old_{type}_id": old_rule_id,
+            f"new_{typ}_id": new_rule_id,
+            f"old_{typ}_id": old_rule_id,
             "control_id": self._import_state.import_id,
             "change_action": change_action,
             "mgm_id": self._import_state.mgm_details.mgm_id,

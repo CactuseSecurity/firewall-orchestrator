@@ -4,11 +4,10 @@
 
 @inject UserConfig userConfig
 
-@foreach (var management in Managements.Select(mgt => new ManagementReportController(mgt)))
+@foreach (var management in Managements)
 {
     @if (management.ContainsRules())
     {
-        management.AssignRuleNumbers();
         <Collapse Title="@management.Name" Style="@("primary")" StartToggled="false">
             @if(Recertification || SelectedReportType == ReportType.Recertification)
             {
@@ -26,7 +25,7 @@
             }
             else
             {
-                @foreach (var device in management.Devices.Select(dev => DeviceReportController.FromDeviceReport(dev)))
+                @foreach (var device in management.Devices)
                 {
                     @if (device.ContainsRules() && ruleDisplay != null)
                     {
@@ -275,10 +274,10 @@
     }
 
 
-    private string GetDeviceKey(DeviceReportController device)
+    private string GetDeviceKey(DeviceReport device)
     => device.Name ?? device.GetHashCode().ToString();
 
-    private void OnNumberIconClickToggle(Rule rule, DeviceReportController device)
+    private void OnNumberIconClickToggle(Rule rule, DeviceReport device)
     {
         string key = GetDeviceKey(device);
         var dictRuleInlines = deviceDictRuleInlines[key];
@@ -316,13 +315,13 @@
         }
     }
 
-    private Rule[] CreateDictWithInlineRules(ManagementReportController management, DeviceReportController deviceReportController)
+    private Rule[] CreateDictWithInlineRules(ManagementReport management, DeviceReport deviceReport)
     {
-        string deviceKey = GetDeviceKey(deviceReportController);
+        string deviceKey = GetDeviceKey(deviceReport);
         if (deviceDictProcessed.Contains(deviceKey))
             return deviceTopLevelRules[deviceKey];
 
-        Rule[] rules = ReportRules.GetAllRulesOfGateway(deviceReportController, management);
+        Rule[] rules = ReportRules.GetAllRulesOfGateway(deviceReport, management);
         var dictRuleInlines = new Dictionary<string, List<Rule>>();
         var topLevel = new List<Rule>();
         var stack = new List<(Rule parent, List<Rule> children)>();
@@ -361,7 +360,7 @@
         return deviceTopLevelRules[deviceKey];
     }    
 
-    private string GetToggleArrow(Rule rule, DeviceReportController device)
+    private string GetToggleArrow(Rule rule, DeviceReport device)
     {
         string key = GetDeviceKey(device);
 

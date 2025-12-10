@@ -74,11 +74,15 @@ def normalize_network_object(obj_orig: dict[str, Any], nw_objects: list[dict[str
         obj.update({ 'obj_ip_end': obj_orig['end-ip'] })
     elif 'extip' in obj_orig: # vip object, simplifying to a single ip
         normalize_vip_object(obj_orig, obj, nw_objects)
-    elif 'wildcard-fqdn' in obj_orig:
+    elif 'wildcard-fqdn' in obj_orig or 'fqdn' in obj_orig: # domain or wildcard-domain
         obj.update({ 'obj_typ': 'domain' }) 
         obj.update({ 'obj_ip': ANY_IP_START})
         obj.update({ 'obj_ip_end': ANY_IP_END})
-    else: # 'fqdn' in obj_orig: # "fully qualified domain name address" // other unknown types
+    elif 'q_origin_key' in obj_orig:
+        obj.update({ 'obj_typ': 'dynamic_net_obj' }) 
+        obj.update({ 'obj_ip': ANY_IP_START})
+        obj.update({ 'obj_ip_end': ANY_IP_END})
+    else: # unknown types
         obj.update({ 'obj_typ': 'network' })
         obj.update({ 'obj_ip': ANY_IP_START})
         obj.update({ 'obj_ip_end': ANY_IP_END})

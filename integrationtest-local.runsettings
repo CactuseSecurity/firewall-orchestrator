@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RunSettings>
+	<RunConfiguration>
+		<EnvironmentVariables>
+			<APPLICATION_URL>http://localhost:8881</APPLICATION_URL>
+			<ASPNETCORE_ENVIRONMENT>LOCALTEST</ASPNETCORE_ENVIRONMENT>
+		</EnvironmentVariables>
+	</RunConfiguration>
+</RunSettings>

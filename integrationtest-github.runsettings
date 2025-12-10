@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RunSettings>
+  <RunConfiguration>
+    <EnvironmentVariables>
+      <SUDO_USER>runner</SUDO_USER>
+      <CI>true</CI>
+    </EnvironmentVariables>
+  </RunConfiguration>
+</RunSettings>

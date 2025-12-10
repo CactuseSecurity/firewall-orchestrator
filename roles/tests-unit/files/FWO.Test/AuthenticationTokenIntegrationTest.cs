@@ -6,6 +6,12 @@ using FWO.Logging;
 using System.IdentityModel.Tokens.Jwt;
 using FWO.Test.DataGenerators;
 using Microsoft.Extensions.Configuration;
+using FWO.Config.File;
+using Microsoft.AspNetCore.Hosting;
+using System.Diagnostics;
+using Microsoft.Extensions.DependencyInjection;
+using System.Threading.Tasks;
+using FWO.Basics;
 
 namespace FWO.Test
 {
@@ -28,9 +34,12 @@ namespace FWO.Test
         #region Setup and Teardown
 
         [OneTimeSetUp]
-        public void GlobalSetup()
+        public async Task GlobalSetup()
         {
-            Log.WriteInfo("Test Setup", "Initializing JWT integration test environment");
+            bool isLocalTest = IsLocalTestEnvironment();
+            bool isGitHubActions = IsRunningInGitHubActions();
+            
+            Log.WriteInfo("Test Setup", $"Initializing JWT integration test environment (Local: {isLocalTest}, GitHub Actions: {isGitHubActions})");
 
             // Initialize test credentials
             defaultCredentialsBuilder = new TokenTestDataBuilder()
@@ -42,13 +51,37 @@ namespace FWO.Test
                 .WithUsername("admin")
                 .WithPassword("adminpassword");
 
-            factory = new WebApplicationFactory<Program>()
-                .WithWebHostBuilder(builder =>
-                {
-                   
-                });
+            if (isLocalTest)
+            {
+                // Spin up local test server using WebApplicationFactory
+                Log.WriteInfo("Test Setup", "Creating WebApplicationFactory for local testing");
+                factory = new WebApplicationFactory<Program>()
+                    .WithWebHostBuilder(builder =>
+                    {
+                        builder.ConfigureAppConfiguration((context, config) =>
+                        {
+                            var testConfig = new Dictionary<string, string?>
+                            {
+                                { "Environment", GlobalConst.ASPNETCORE_ENVIRONMENT_LOCALTEST },
+                                { "Logging:LogLevel:Default", "Debug" }
+                            };
+                            config.AddInMemoryCollection(testConfig);
+                        });
+                    });
 
-            client = factory.CreateClient();
+                client = factory.CreateClient();
+            }
+            else
+            {
+                string baseUrl = ConfigFile.MiddlewareServerNativeUri;
+                Log.WriteInfo("Test Setup", $"Connecting to external middleware server at: {baseUrl}");
+                
+                client = new HttpClient
+                {
+                    BaseAddress = new Uri(baseUrl)
+                };
+            }
+
             tokenHandler = new JwtSecurityTokenHandler();
         }
 
@@ -62,9 +95,33 @@ namespace FWO.Test
 
         #endregion
 
+        #region Environment Detection
+
+        private static bool IsLocalTestEnvironment()
+        {
+            string? aspnetcoreEnv = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT");
+            return aspnetcoreEnv?.Equals(GlobalConst.ASPNETCORE_ENVIRONMENT_LOCALTEST, StringComparison.OrdinalIgnoreCase) == true;
+        }
+
+        private static bool IsRunningInGitHubActions()
+        {
+            string? sudoUser = Environment.GetEnvironmentVariable("SUDO_USER");
+            string? ci = Environment.GetEnvironmentVariable("CI");
+
+            if (string.IsNullOrEmpty(sudoUser) || string.IsNullOrEmpty(ci))
+            {
+                return false;
+            }
+
+            return sudoUser.Equals("runner", StringComparison.OrdinalIgnoreCase) &&
+                ci.Equals("true", StringComparison.OrdinalIgnoreCase);
+        }
+
+        #endregion
+
         #region Token Generation Tests
 
-        [Test, Ignore("temporarily disabled for jwt rework")]
+        [Test]
         [Category("Authentication")]
         [Category("TokenGeneration")]
         public async Task GetTokenPair_WithValidCredentials_ReturnsValidTokens()
@@ -119,7 +176,7 @@ namespace FWO.Test
 
         #region Token Refresh Tests
 
-        [Test, Ignore("temporarily disabled for jwt rework")]
+        [Test]
         [Category("Authentication")]
         [Category("TokenRefresh")]
         public async Task RefreshToken_WithValidToken_ReturnsNewTokenPair()
@@ -170,7 +227,7 @@ namespace FWO.Test
             Assert.That(response.StatusCode, Is.EqualTo(System.Net.HttpStatusCode.BadRequest));
         }
 
-        [Test, Ignore("temporarily disabled for jwt rework")]
+        [Test]
         [Category("Authentication")]
         [Category("TokenRefresh")]
         [Category("Security")]
@@ -195,7 +252,7 @@ namespace FWO.Test
 
         #region Token Revocation Tests
 
-        [Test, Ignore("temporarily disabled for jwt rework")]
+        [Test]
         [Category("Authentication")]
         [Category("TokenRevocation")]
         [Category("Security")]
@@ -233,7 +290,7 @@ namespace FWO.Test
             Assert.That(response.StatusCode, Is.EqualTo(System.Net.HttpStatusCode.Unauthorized));
         }
 
-        [Test, Ignore("temporarily disabled for jwt rework")]
+        [Test]
         [Category("Authentication")]
         [Category("TokenRevocation")]
         public async Task RevokeToken_AlreadyRevoked_ReturnsUnauthorized()
@@ -285,7 +342,7 @@ namespace FWO.Test
             }
         }
 
-        [Test, Ignore("temporarily disabled for jwt rework")]
+        [Test]
         [Category("Authentication")]
         [Category("AdminOperations")]
         [Category("Security")]
@@ -345,7 +402,7 @@ namespace FWO.Test
 
         #region Token Expiration Tests
 
-        [Test, Ignore("temporarily disabled for jwt rework")]
+        [Test]
         [Category("Authentication")]
         [Category("TokenExpiration")]
         public async Task TokenPair_ExpirationDates_AreSetCorrectly()

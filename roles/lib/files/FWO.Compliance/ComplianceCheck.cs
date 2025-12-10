@@ -140,7 +140,7 @@ namespace FWO.Compliance
         /// Full compliance check to be called by scheduler.
         /// </summary>
         /// <returns></returns>
-        public async Task CheckAll()
+        public async Task CheckAll(bool isInitial = false)
         {
             try
             {
@@ -214,7 +214,7 @@ namespace FWO.Compliance
 
                 // Perform check.
 
-                RulesInCheck =  await PerformCheckAsync(Managements!.Select(m => m.Id).ToList());
+                RulesInCheck =  await PerformCheckAsync(Managements!.Select(m => m.Id).ToList(), isInitial);
 
                 if (RulesInCheck == null || RulesInCheck.Count == 0)
                 {
@@ -235,8 +235,9 @@ namespace FWO.Compliance
         /// Retrieves rules with violations from db, calculate current violations, fills argument collections as diffs.
         /// </summary>
         /// <param name="managementIds"></param>
+        /// <param name="isInitial"></param>
         /// <returns></returns>
-        public async Task<List<Rule>> PerformCheckAsync(List<int> managementIds)
+        public async Task<List<Rule>> PerformCheckAsync(List<int> managementIds, bool isInitial = false)
         {
             // Getting max import id for query vars.
 
@@ -284,13 +285,13 @@ namespace FWO.Compliance
 
             // Create diffs and fill argument bags.
 
-            PostProcessRulesAsync(rules);
+            PostProcessRulesAsync(rules, isInitial);
 
 
             return rules;         
         }
 
-        public void PostProcessRulesAsync(List<Rule> ruleFromDb)
+        public void PostProcessRulesAsync(List<Rule> ruleFromDb, bool isInitial=false)
         {
             CancellationToken ct = new();
 
@@ -334,7 +335,7 @@ namespace FWO.Compliance
                 {
                     if (!ruleFromDb.SelectMany(rule => rule.Violations).Any(rdb => CreateUniqueViolationKey(rdb) == CreateUniqueViolationKey(violation)))
                     {
-                        ComplianceViolationBase violationBase = ComplianceViolationBase.CreateBase(violation);
+                        ComplianceViolationBase violationBase = ComplianceViolationBase.CreateBase(violation, isInitial);
                         _violationsToAdd.Add(violationBase);
                     }
                 });
@@ -357,7 +358,7 @@ namespace FWO.Compliance
                 }
                 else
                 {
-                    List<ComplianceViolationBase>  violations =_violationsToAdd.Cast<ComplianceViolationBase>().ToList();;
+                    List<ComplianceViolationBase>  violations =_violationsToAdd.ToList();
                     object variablesAdd = new
                     {
                         violations

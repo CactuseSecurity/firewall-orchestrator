@@ -73,6 +73,29 @@ namespace FWO.Middleware.Server.Controllers
             }
             return "";
         }
+        
+        /// <summary>
+        /// Initial Compliance Check
+        /// </summary>
+        /// <returns></returns>
+        [HttpGet("InitialComplianceCheck")]
+        [Authorize]
+        public async Task<bool> InitialComplianceCheck()
+        {
+            try
+            {
+                GlobalConfig globalConfig = await GlobalConfig.ConstructAsync(apiConnection, true);
+                UserConfig userConfig = new(globalConfig, apiConnection, new() { Language = GlobalConst.kEnglish });
+                ComplianceCheck complianceCheck = new(userConfig, apiConnection);
+                await complianceCheck.CheckAll(true);
+                await complianceCheck.PersistDataAsync();
+                return true;
+            }
+            catch (Exception)
+            {
+                return false;
+            }
+        }
 
         private static string ConvertOutput(List<(Rule, (ComplianceNetworkZone, ComplianceNetworkZone))> forbiddenCommunicationsOutput)
         {

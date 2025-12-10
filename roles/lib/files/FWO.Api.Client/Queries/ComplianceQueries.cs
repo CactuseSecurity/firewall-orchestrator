@@ -34,6 +34,8 @@ namespace FWO.Api.Client.Queries
         public static readonly string addCritToPolicy;
         public static readonly string removeCritFromPolicy;
         public static readonly string getPolicyIdsForCrit;
+        
+        public static readonly string deleteAllViolations;
 
         static ComplianceQueries()
         {
@@ -70,6 +72,8 @@ namespace FWO.Api.Client.Queries
                 getViolationsChunk = GetQueryText("compliance/getViolationsChunk.graphql");
                 getViolationsByRuleID = GetQueryText("compliance/getViolationsByRuleID.graphql");
                 getViolationsByRuleUid = GetQueryText("compliance/getViolationsByRuleUid.graphql");
+                
+                deleteAllViolations =  GetQueryText("compliance/deleteAllViolations.graphql");
             }
             catch (Exception exception)
             {

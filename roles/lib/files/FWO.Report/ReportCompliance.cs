@@ -27,6 +27,7 @@ namespace FWO.Report
         public bool ShowNonImpactRules { get; set; }
         public List<Management> Managements  { get; set; } = [];
         protected virtual string InternalQuery => RuleQueries.getRulesWithCurrentViolationsByChunk;
+        private static string DeleteAllQuery => ComplianceQueries.deleteAllViolations;
         protected DebugConfig DebugConfig;
 
         #endregion
@@ -613,12 +614,31 @@ namespace FWO.Report
             throw new NotImplementedException();
         }
 
+        /// <summary>
+        /// Sends a query to delete all violations using the specified API connection.
+        /// </summary>
+        /// <param name="apiConnection">The API connection used to send the delete query.</param>
+        /// <returns>
+        /// A task that represents the asynchronous operation. The task result is a boolean 
+        /// indicating whether all violations were successfully deleted.
+        /// </returns>
         private async Task<bool> DeleteAllViolations(ApiConnection apiConnection)
         {
-            string query = "Magical query string";
+            string query = DeleteAllQuery;
             await apiConnection.SendQueryAsync<string>(query);
             bool deleteSuccess = false;
             return deleteSuccess;
+        }
+
+        private async Task InitialCheck(ApiConnection apiConnection)
+        {
+            bool cleanupSuccess = await DeleteAllViolations(apiConnection);
+            if (!cleanupSuccess)
+            {
+                //early exit in case cleanup somehow failed
+                return;
+            }
+            // How to navigate from ReportCompliance.cs to ComplianceCheck.cs cleanly
         }
         
         #endregion

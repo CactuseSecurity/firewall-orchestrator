@@ -34,7 +34,7 @@ namespace FWO.Test
 
             // Initialize test credentials
             defaultCredentialsBuilder = new TokenTestDataBuilder()
-                .WithUsername("testuser123")
+                .WithUsername("testuser")
                 .WithPassword("testpassword");
 
             adminCredentialsBuilder = new TokenTestDataBuilder()

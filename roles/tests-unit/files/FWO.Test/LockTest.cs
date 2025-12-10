@@ -122,8 +122,8 @@ namespace FWO.Test
 			{
 				try
 				{
-                    Assert.DoesNotThrowAsync(async () => { await action(); });
-					success = true;
+                    await action();
+                    success = true;
 				}
 				catch (IOException)
 				{

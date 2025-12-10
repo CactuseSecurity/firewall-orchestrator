@@ -13,7 +13,7 @@
     - sample_tenants
     - sample_operators
     - sample_groups
-    - tree_sample_operators
+    - integration_test_user
   become: true
 
 # only add roles and groups when not testing to avoid resudue from tests

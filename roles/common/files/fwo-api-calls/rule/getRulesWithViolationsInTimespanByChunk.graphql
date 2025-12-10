@@ -19,7 +19,7 @@ query getRulesWithViolationsInTimespanByChunk(
     ...ruleDetails
 
     violations: compliance_violations_version_agnostic(
-      where: { found_date:   { _gte: $from_date, _lt: $to_date } }
+      where: { found_date:   { _gte: $from_date, _lt: $to_date } is_initial: { _eq: true}}
     ) {
       id
       rule_id

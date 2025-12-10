@@ -1,12 +1,14 @@
 @page "/settings/compliance"
 @attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
 
+@using FWO.Middleware.Client
 @using FWO.Services.EventMediator.Events
 @using FWO.Services.EventMediator.Interfaces
 @using FWO.Ui.Data
 
 @implements IDisposable
-@inject ApiConnection apiConnection
+@inject MiddlewareClient MiddlewareClient
+@inject ApiConnection ApiConnection
 @inject GlobalConfig globalConfig
 @inject UserConfig userConfig
 @inject IEventMediator EventMediator
@@ -235,11 +237,12 @@
                 </div>
             </div>
             <div class="form-group row">
-                <label class="col-form-label col-sm-4">Do Initial Check Unlocalized</label>
+                <label class="col-form-label col-sm-4">Do Initial Check |Unlocalized|</label>
                 <div class="col-sm-7">
-                    <input type="checkbox" @bind="configData!.ComplianceDoInitialCheck" />
+                    <button class="btn btn-primary" @onclick="InitialCheck">Run check</button>
                 </div>
             </div>
+            
         }
     <hr />
     <AuthorizeView Roles="@Roles.Admin">
@@ -294,6 +297,8 @@ else
     private ErrorBaseModel? ImportError;
 	private string ImportMessage = "";
 	private bool ImportSuccess = false;
+    
+    private static string DeleteAllQuery => ComplianceQueries.deleteAllViolations;
 
     protected override async Task OnInitializedAsync()
     {
@@ -301,7 +306,7 @@ else
         {
             configData = await globalConfig.GetEditableConfig();
             complianceCheckStartDate = complianceCheckStartTime = configData.ComplianceCheckStartAt;
-            policies = await apiConnection.SendQueryAsync<List<CompliancePolicy>>(ComplianceQueries.getPolicies);
+            policies = await ApiConnection.SendQueryAsync<List<CompliancePolicy>>(ComplianceQueries.getPolicies);
             if(configData.ComplianceCheckPolicyId > 0)
             {
                 actPolicy = policies.FirstOrDefault(p => p.Id == configData.ComplianceCheckPolicyId);
@@ -354,7 +359,7 @@ else
             {
                 configData.ComplianceCheckStartAt = complianceCheckStartDate.Date.Add(complianceCheckStartTime.TimeOfDay);
                 configData.ComplianceCheckPolicyId = actPolicy?.Id ?? 0;
-                await globalConfig.WriteToDatabase(configData, apiConnection);
+                await globalConfig.WriteToDatabase(configData, ApiConnection);
                 DisplayMessageInUi(null, userConfig.GetText("change_default"), userConfig.GetText("U5301"), false);
             }
             else
@@ -366,6 +371,34 @@ else
         {
             DisplayMessageInUi(exception, userConfig.GetText("change_default"), "", true);
         }
+    }
+
+    /// <summary>
+    /// Sends a query to delete all violations using the specified API connection.
+    /// </summary>
+    /// <param name="apiConnection">The API connection used to send the delete query.</param>
+    /// <returns>
+    /// A task that represents the asynchronous operation. The task result is a boolean 
+    /// indicating whether all violations were successfully deleted.
+    /// </returns>
+    private async Task<bool> DeleteAllViolations(ApiConnection apiConnection)
+    {
+        string query = DeleteAllQuery;
+        await apiConnection.SendQueryAsync<DeleteAllViolationsResult>(query);
+        bool deleteSuccess = false;
+        return deleteSuccess;
+    }
+
+    private async Task InitialCheck()
+    {
+        bool cleanupSuccess = await DeleteAllViolations(ApiConnection);
+        // if (!cleanupSuccess)
+        // {
+        //     // early exit in case cleanup somehow failed
+        //     return;
+        // }
+
+        await MiddlewareClient.RunInitialComplianceCheck();
     }
 
 	/// <summary>

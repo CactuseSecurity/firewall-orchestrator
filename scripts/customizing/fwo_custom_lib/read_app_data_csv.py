@@ -6,6 +6,16 @@ from netaddr import IPAddress, IPNetwork
 
 
 DEFAULT_VALID_APP_ID_PREFIXES = ['app-', 'com-']
+DEFAULT_OWNER_HEADER_PATTERNS = {
+    "name": r'.*?:\s*Name',
+    "app_id": r'.*?:\s*Alfabet-ID$',
+    "owner_tiso": r'.*?:\s*TISO',
+    "owner_kwita": r'.*?:\s*kwITA'
+}
+DEFAULT_IP_HEADER_PATTERNS = {
+    "app_id": r'.*?:\s*Alfabet-ID$',
+    "ip": r'.*?:\s*IP'
+}
 
 
 def build_dn(user_id, ldap_path, logger):
@@ -18,16 +28,17 @@ def build_dn(user_id, ldap_path, logger):
     return dn
 
 
-def read_app_data_from_csv(csv_file_name: str, logger):
+def read_app_data_from_csv(csv_file_name: str, logger, column_patterns=None):
     try:
+        header_patterns = {**DEFAULT_OWNER_HEADER_PATTERNS, **(column_patterns or {})}
         with open(csv_file_name, newline='') as csv_file_handle:
             reader = csv.reader(csv_file_handle)
             headers = next(reader)  # Get header row first
 
-            name_pattern = re.compile(r'.*?:\s*Name')
-            app_id_pattern = re.compile(r'.*?:\s*Alfabet-ID$')
-            owner_tiso_pattern = re.compile(r'.*?:\s*TISO')
-            owner_kwita_pattern = re.compile(r'.*?:\s*kwITA')
+            name_pattern = re.compile(header_patterns["name"])
+            app_id_pattern = re.compile(header_patterns["app_id"])
+            owner_tiso_pattern = re.compile(header_patterns["owner_tiso"])
+            owner_kwita_pattern = re.compile(header_patterns["owner_kwita"])
 
             app_name_column = next(i for i, h in enumerate(headers) if name_pattern.match(h))
             app_id_column = next(i for i, h in enumerate(headers) if app_id_pattern.match(h))
@@ -65,7 +76,7 @@ def parse_app_line(line, app_name_column, app_id_column, app_owner_tiso_column, 
 
 
 def extract_app_data_from_csv(csv_file: str, app_list: list, ldap_path, import_source_string, owner_cls, logger, debug_level, 
-                              base_dir='.', recert_active_app_list=None): 
+                              base_dir='.', recert_active_app_list=None, column_patterns=None): 
 
     if recert_active_app_list is None:
         recert_active_app_list = []
@@ -73,7 +84,7 @@ def extract_app_data_from_csv(csv_file: str, app_list: list, ldap_path, import_s
     apps_from_csv = []
     csv_file_path = base_dir + '/' + csv_file  # add directory to csv files
 
-    apps_from_csv, app_name_column, app_id_column, app_owner_tiso_column, app_owner_kwita_column = read_app_data_from_csv(csv_file_path, logger)
+    apps_from_csv, app_name_column, app_id_column, app_owner_tiso_column, app_owner_kwita_column = read_app_data_from_csv(csv_file_path, logger, column_patterns)
 
     count_skips = 0
     # append all owners from CSV
@@ -92,14 +103,15 @@ def extract_app_data_from_csv(csv_file: str, app_list: list, ldap_path, import_s
                 app.recert_active = False
 
 
-def read_ip_data_from_csv(csv_filename, logger):
+def read_ip_data_from_csv(csv_filename, logger, column_patterns=None):
     try:
+        header_patterns = {**DEFAULT_IP_HEADER_PATTERNS, **(column_patterns or {})}
         with open(csv_filename, newline='', encoding='utf-8') as csv_file:
             reader = csv.reader(csv_file)
             headers = next(reader)  # Get header row first
 
-            app_id_pattern = re.compile(r'.*?:\s*Alfabet-ID$')
-            ip_pattern = re.compile(r'.*?:\s*IP')
+            app_id_pattern = re.compile(header_patterns["app_id"])
+            ip_pattern = re.compile(header_patterns["ip"])
 
             app_id_column_no = next(i for i, h in enumerate(headers) if app_id_pattern.match(h))
             ip_column_no = next(i for i, h in enumerate(headers) if ip_pattern.match(h))
@@ -161,7 +173,7 @@ def parse_single_ip_line(line, app_id_column_no, ip_column_no, app_dict, valid_a
     return count_skips
 
 
-def extract_ip_data_from_csv(csv_filename: str, app_dict, app_ip_cls, logger, debug_level, base_dir, valid_app_id_prefixes=None): 
+def extract_ip_data_from_csv(csv_filename: str, app_dict, app_ip_cls, logger, debug_level, base_dir, valid_app_id_prefixes=None, column_patterns=None): 
 
     if valid_app_id_prefixes is None:
         valid_app_id_prefixes = DEFAULT_VALID_APP_ID_PREFIXES
@@ -169,7 +181,7 @@ def extract_ip_data_from_csv(csv_filename: str, app_dict, app_ip_cls, logger, de
     ip_data = []
     csv_file_path = base_dir + '/' + csv_filename  # add directory to csv files
 
-    ip_data, app_id_column_no, ip_column_no = read_ip_data_from_csv(csv_file_path, logger)
+    ip_data, app_id_column_no, ip_column_no = read_ip_data_from_csv(csv_file_path, logger, column_patterns)
 
     count_skips = 0
     for line in ip_data:

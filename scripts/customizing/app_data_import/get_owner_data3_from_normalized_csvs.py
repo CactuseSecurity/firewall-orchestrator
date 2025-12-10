@@ -29,7 +29,7 @@ import re
 import urllib3
 from scripts.customizing.fwo_custom_lib.app_data_models import Owner, Appip
 from scripts.customizing.fwo_custom_lib.read_app_data_csv import extract_app_data_from_csv, extract_ip_data_from_csv
-from scripts.customizing.fwo_custom_lib.basic_helpers import read_custom_config, get_logger
+from scripts.customizing.fwo_custom_lib.basic_helpers import read_custom_config, read_custom_config_with_default, get_logger
 from scripts.customizing.fwo_custom_lib.app_data_basics import transform_owner_dict_to_list, transform_app_list_to_dict
 
 
@@ -83,6 +83,15 @@ if __name__ == "__main__":
     csv_app_server_file_pattern = read_custom_config(args.config, 'csvAppServerFilePattern', logger)
     recert_active_repo_url = read_custom_config(args.config, 'gitRepoOwnersWithActiveRecert', logger)
     recert_active_file_name = read_custom_config(args.config, 'gitFileOwnersWithActiveRecert', logger)
+    owner_header_patterns = read_custom_config_with_default(args.config, 'csvOwnerColumnPatterns', {}, logger)
+    ip_header_patterns = read_custom_config_with_default(args.config, 'csvIpColumnPatterns', {}, logger)
+
+    if not isinstance(owner_header_patterns, dict):
+        logger.warning("csvOwnerColumnPatterns must be a JSON object mapping column names to regex patterns; using defaults instead")
+        owner_header_patterns = {}
+    if not isinstance(ip_header_patterns, dict):
+        logger.warning("csvIpColumnPatterns must be a JSON object mapping column names to regex patterns; using defaults instead")
+        ip_header_patterns = {}
 
     if args.debug:
         debug_level = int(args.debug)
@@ -127,6 +136,7 @@ if __name__ == "__main__":
         logger.warning("could not clone/pull git repo from " + recert_repo_url + ", exception: " + str(traceback.format_exc()))
 
     recert_activation_file = f"{recert_repo_target_dir}/{recert_active_file_name}"
+    recert_active_app_list = []
     try:
         with open(recert_activation_file, "r") as f:
             recert_active_app_list = f.read().splitlines()
@@ -140,7 +150,7 @@ if __name__ == "__main__":
     for file_name in os.listdir(app_data_repo_target_dir):
         if re_owner_file_pattern.match(file_name):
             extract_app_data_from_csv(file_name, app_list, ldap_path, import_source_string, Owner, logger, debug_level, 
-                                      base_dir=base_dir, recert_active_app_list=recert_active_app_list)
+                                      base_dir=base_dir, recert_active_app_list=recert_active_app_list, column_patterns=owner_header_patterns)
 
     app_dict = transform_app_list_to_dict(app_list)
 
@@ -149,7 +159,7 @@ if __name__ == "__main__":
         if re_app_server_file_pattern.match(file_name):
             if debug_level>0:
                 logger.info(f"importing IP data from file {file_name} ...")
-            extract_ip_data_from_csv(file_name, app_dict, Appip, logger, debug_level, base_dir=base_dir)
+            extract_ip_data_from_csv(file_name, app_dict, Appip, logger, debug_level, base_dir=base_dir, column_patterns=ip_header_patterns)
 
     #############################################    
     # 4. write owners to json file

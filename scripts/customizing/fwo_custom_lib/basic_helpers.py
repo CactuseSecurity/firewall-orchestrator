@@ -20,6 +20,17 @@ def read_custom_config(config_filename, key_to_get, logger):
         sys.exit(1)
 
 
+def read_custom_config_with_default(config_filename, key_to_get, default_value, logger):
+    try:
+        with open(config_filename, "r") as custom_config_fh:
+            custom_config = json.loads(custom_config_fh.read())
+        return custom_config.get(key_to_get, default_value)
+
+    except Exception:
+        logger.error("could not read key '" + key_to_get + "' from config file " + config_filename + ", Exception: " + str(traceback.format_exc()))
+        sys.exit(1)
+
+
 def get_logger(debug_level_in=0):
     debug_level = int(debug_level_in)
     if debug_level >= 1:

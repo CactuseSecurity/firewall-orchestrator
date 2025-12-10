@@ -13,7 +13,7 @@ from datetime import datetime
 from pathlib import Path
 from scripts.customizing.fwo_custom_lib.app_data_models import Owner, Appip
 from scripts.customizing.fwo_custom_lib.read_app_data_csv import extract_app_data_from_csv, extract_ip_data_from_csv
-from scripts.customizing.fwo_custom_lib.basic_helpers import read_custom_config, get_logger
+from scripts.customizing.fwo_custom_lib.basic_helpers import read_custom_config, read_custom_config_with_default, get_logger
 from scripts.customizing.fwo_custom_lib.app_data_basics import transform_app_list_to_dict
 from scripts.customizing.iiq_request_missing_roles.iiq_client import IIQClient
 
@@ -53,12 +53,12 @@ def is_valid_ipv4_address(address):
     return True
 
 
-def get_owners_from_csv_files(csv_owner_file_pattern, csv_app_server_file_pattern, repo_target_dir, ldap_path, logger, debug_level):
+def get_owners_from_csv_files(csv_owner_file_pattern, csv_app_server_file_pattern, repo_target_dir, ldap_path, logger, debug_level, owner_header_patterns=None, ip_header_patterns=None):
     app_list = []
     re_owner_file_pattern = re.compile(csv_owner_file_pattern)
     for file_name in os.listdir(repo_target_dir):
         if re_owner_file_pattern.match(file_name):
-            extract_app_data_from_csv(file_name, app_list, ldap_path, "import-source-dummy", Owner, logger, debug_level, base_dir=repo_target_dir)
+            extract_app_data_from_csv(file_name, app_list, ldap_path, "import-source-dummy", Owner, logger, debug_level, base_dir=repo_target_dir, column_patterns=owner_header_patterns)
 
     owner_dict = transform_app_list_to_dict(app_list)
 
@@ -67,7 +67,7 @@ def get_owners_from_csv_files(csv_owner_file_pattern, csv_app_server_file_patter
         if re_app_server_file_pattern.match(file_name):
             if debug_level>0:
                 logger.info(f"importing IP data from file {file_name} ...")
-            extract_ip_data_from_csv(file_name, owner_dict, Appip, logger, debug_level, base_dir=repo_target_dir)
+            extract_ip_data_from_csv(file_name, owner_dict, Appip, logger, debug_level, base_dir=repo_target_dir, column_patterns=ip_header_patterns)
 
     # now only choose those owners which have at least one app server with a non-empty IP assigned
     remove_apps_without_ip_addresses(owner_dict, debug_level)
@@ -231,6 +231,8 @@ if __name__ == "__main__":
 
     csv_owner_file_pattern = read_custom_config(args.config, 'csvOwnerFilePattern', logger)
     csv_app_server_file_pattern = read_custom_config(args.config, 'csvAppServerFilePattern', logger)
+    owner_header_patterns = read_custom_config_with_default(args.config, 'csvOwnerColumnPatterns', {}, logger)
+    ip_header_patterns = read_custom_config_with_default(args.config, 'csvIpColumnPatterns', {}, logger)
 
     debug = int(args.debug)
 
@@ -267,7 +269,13 @@ if __name__ == "__main__":
 
     if debug>0:
         logger.info("getting owners from file")
-    owners, tisos = get_owners_from_csv_files(csv_owner_file_pattern, csv_app_server_file_pattern, csv_file_base_dir, ldap_path, logger, debug)
+    if not isinstance(owner_header_patterns, dict):
+        logger.warning("csvOwnerColumnPatterns must be a JSON object mapping column names to regex patterns; using defaults instead")
+        owner_header_patterns = {}
+    if not isinstance(ip_header_patterns, dict):
+        logger.warning("csvIpColumnPatterns must be a JSON object mapping column names to regex patterns; using defaults instead")
+        ip_header_patterns = {}
+    owners, tisos = get_owners_from_csv_files(csv_owner_file_pattern, csv_app_server_file_pattern, csv_file_base_dir, ldap_path, logger, debug, owner_header_patterns=owner_header_patterns, ip_header_patterns=ip_header_patterns)
     
     tiso_orgids = get_tisos_orgids(tisos, iiq_client, exit_after_dump=args.just_dump_tiso_org_ids)
 

@@ -10,7 +10,7 @@ class FwConfigManagerController(FwConfigManager):
     is_global: bool = False
     dependant_manager_uids: list[str]
     configs: list[FwConfigNormalized]
-    model_config: dict[str, Any]
+    model_config = {"arbitrary_types_allowed": True}  # noqa: RUF012
 
     def __init__(
         self,
@@ -25,7 +25,6 @@ class FwConfigManagerController(FwConfigManager):
         self.is_global = is_global
         self.dependant_manager_uids = dependant_manager_uids
         self.configs = configs
-        self.model_config = {"arbitrary_types_allowed": True}
 
     @classmethod
     def from_json(cls, json_dict: dict[str, Any]) -> "FwConfigManagerController":

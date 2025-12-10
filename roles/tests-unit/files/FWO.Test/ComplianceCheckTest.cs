@@ -9,6 +9,8 @@ using FWO.Test.Mocks;
 using NetTools;
 using NSubstitute;
 using NUnit.Framework;
+using System.Collections.Concurrent;
+using System.Reflection;
 
 namespace FWO.Test
 {
@@ -284,6 +286,80 @@ namespace FWO.Test
                 .GetValue(removeQuery.Variables) as IEnumerable<int>;
             Assert.That(removedIds, Is.Not.Null);
             Assert.That(removedIds!.Single(), Is.EqualTo(obsoleteViolationDb.Id));
+        }
+
+        [Test]
+        public async Task PostProcessRulesAsync_ParallelPathProducesSameDiff()
+        {
+            // Arrange
+
+            const int policyId = 77;
+            const int criterionId = 5;
+            const string mgmtUid = "mgmt-parallel";
+
+            List<Rule> rulesFromDb = new();
+            List<ComplianceViolation> currentViolations = new();
+
+            for (int i = 0; i < 200; i++)
+            {
+                Rule rule = CreateSimpleRule(i + 1);
+                rule.Uid = $"rule-{i + 1}";
+
+                if (i % 2 == 0)
+                {
+                    ComplianceViolation violation = new()
+                    {
+                        Id = 1000 + i,
+                        RuleId = (int)rule.Id,
+                        RuleUid = rule.Uid ?? "",
+                        MgmtUid = mgmtUid,
+                        PolicyId = policyId,
+                        CriterionId = criterionId,
+                        Details = $"db-only-{i}"
+                    };
+                    rule.Violations.Add(violation);
+                }
+
+                rulesFromDb.Add(rule);
+            }
+
+            for (int i = 0; i < 200; i++)
+            {
+                if (i % 3 == 0)
+                {
+                    currentViolations.Add(new ComplianceViolation
+                    {
+                        RuleId = i + 1,
+                        RuleUid = $"rule-{i + 1}",
+                        MgmtUid = mgmtUid,
+                        PolicyId = policyId,
+                        CriterionId = criterionId,
+                        Details = $"current-only-{i}"
+                    });
+                }
+            }
+
+            ComplianceCheck.CurrentViolationsInCheck.Clear();
+            ComplianceCheck.CurrentViolationsInCheck.AddRange(currentViolations);
+
+            // Act
+
+            await ComplianceCheck.PostProcessRulesAsync(rulesFromDb);
+
+            // Assert
+
+            int expectedRemovals = rulesFromDb.Sum(r => r.Violations.Count); // every db violation is absent from current
+            int expectedAdds = currentViolations.Count; // every current violation is absent from db
+
+            ConcurrentBag<ComplianceViolationBase> adds = (ConcurrentBag<ComplianceViolationBase>)typeof(ComplianceCheck)
+                .GetField("_violationsToAdd", BindingFlags.NonPublic | BindingFlags.Instance)!
+                .GetValue(ComplianceCheck)!;
+            ConcurrentBag<ComplianceViolation> removes = (ConcurrentBag<ComplianceViolation>)typeof(ComplianceCheck)
+                .GetField("_violationsToRemove", BindingFlags.NonPublic | BindingFlags.Instance)!
+                .GetValue(ComplianceCheck)!;
+
+            Assert.That(adds.Count, Is.EqualTo(expectedAdds));
+            Assert.That(removes.Count, Is.EqualTo(expectedRemovals));
         }
 
         #endregion

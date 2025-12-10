@@ -301,6 +301,10 @@ namespace FWO.Compliance
                 .ToList();
             HashSet<string> currentKeySet = currentViolationsWithKeys.Select(v => v.Key).ToHashSet(StringComparer.Ordinal);
             HashSet<string> dbKeySet = dbViolationsWithKeys.Select(v => v.Key).ToHashSet(StringComparer.Ordinal);
+            ParallelOptions parallelOptions = new()
+            {
+                MaxDegreeOfParallelism = Math.Max(1, _maxDegreeOfParallelism)
+            };
 
             // Get remove args.
 
@@ -308,13 +312,16 @@ namespace FWO.Compliance
 
             _violationsToRemove.Clear();
 
-            foreach ((ComplianceViolation violation, string key) in dbViolationsWithKeys)
-            {
-                if (!currentKeySet.Contains(key))
+            Parallel.ForEach(
+                dbViolationsWithKeys,
+                parallelOptions,
+                pair =>
                 {
-                    _violationsToRemove.Add(violation);
-                }
-            }
+                    if (!currentKeySet.Contains(pair.Key))
+                    {
+                        _violationsToRemove.Add(pair.Violation);
+                    }
+                });
 
             Logger.TryWriteInfo("Compliance Check", $"Got {_violationsToRemove.Count} violations to remove.", LocalSettings.ComplianceCheckVerbose);
 
@@ -324,14 +331,17 @@ namespace FWO.Compliance
 
             _violationsToAdd.Clear();
 
-            foreach ((ComplianceViolation violation, string key) in currentViolationsWithKeys)
-            {
-                if (!dbKeySet.Contains(key))
+            Parallel.ForEach(
+                currentViolationsWithKeys,
+                parallelOptions,
+                pair =>
                 {
-                    ComplianceViolationBase violationBase = ComplianceViolationBase.CreateBase(violation);
-                    _violationsToAdd.Add(violationBase);
-                }
-            }
+                    if (!dbKeySet.Contains(pair.Key))
+                    {
+                        ComplianceViolationBase violationBase = ComplianceViolationBase.CreateBase(pair.Violation);
+                        _violationsToAdd.Add(violationBase);
+                    }
+                });
 
             Logger.TryWriteInfo("Compliance Check", $"Got {_violationsToAdd.Count} violations to insert.", LocalSettings.ComplianceCheckVerbose);
 

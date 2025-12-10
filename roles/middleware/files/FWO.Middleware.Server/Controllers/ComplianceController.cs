@@ -79,7 +79,7 @@ namespace FWO.Middleware.Server.Controllers
         /// </summary>
         /// <returns></returns>
         [HttpGet("InitialComplianceCheck")]
-        [Authorize]
+        [Authorize(Roles = $"{Roles.Admin}")]
         public async Task<bool> InitialComplianceCheck()
         {
             try

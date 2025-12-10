@@ -98,6 +98,11 @@ namespace FWO.Data.Report
             return $"{Name} [{string.Join(separator, Array.ConvertAll(Devices, device => device.Name))}]";
         }
 
+        public string NameAndRulebaseNames(string separator = ", ")
+        {
+            return $"{Name} [{string.Join(separator, Array.ConvertAll(Devices, device => device.Name))}]";
+        }
+
         /// <summary>
         /// Conforms <see cref="ManagementReport"/> internal data to be valid for further usage.
         /// </summary>

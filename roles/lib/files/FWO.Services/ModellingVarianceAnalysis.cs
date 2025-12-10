@@ -43,6 +43,8 @@ namespace FWO.Services
         private List<ModellingConnection> DeletedConns = [];
         private List<ModellingNetworkArea> AllAreas = [];
 
+        private readonly Dictionary<int, List<DeviceReport>> DeviceRules = [];
+
         public ModellingAppZone? PlannedAppZoneDbUpdate { get; set; } = default;
 
         public async Task AnalyseConnsForStatus(List<ModellingConnection> connections)
@@ -111,6 +113,7 @@ namespace FWO.Services
                     await GetRulesForDeletedConns([.. connections.Where(c => c.IsDocumentationOnly())]);
                 }
             }
+            varianceResult.DeviceRules = DeviceRules;
             return varianceResult;
         }
 

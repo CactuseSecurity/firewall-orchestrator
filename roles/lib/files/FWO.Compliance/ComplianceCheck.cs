@@ -290,9 +290,17 @@ namespace FWO.Compliance
             return rules;
         }
 
-        public async Task PostProcessRulesAsync(List<Rule> ruleFromDb)
+        public Task PostProcessRulesAsync(List<Rule> ruleFromDb)
         {
-            CancellationToken ct = new();
+            List<(ComplianceViolation Violation, string Key)> dbViolationsWithKeys = ruleFromDb
+                .SelectMany(rule => rule.Violations)
+                .Select(violation => (violation, CreateUniqueViolationKey(violation)))
+                .ToList();
+            List<(ComplianceViolation Violation, string Key)> currentViolationsWithKeys = CurrentViolationsInCheck
+                .Select(violation => (violation, CreateUniqueViolationKey(violation)))
+                .ToList();
+            HashSet<string> currentKeySet = currentViolationsWithKeys.Select(v => v.Key).ToHashSet(StringComparer.Ordinal);
+            HashSet<string> dbKeySet = dbViolationsWithKeys.Select(v => v.Key).ToHashSet(StringComparer.Ordinal);
 
             // Get remove args.
 
@@ -300,20 +308,13 @@ namespace FWO.Compliance
 
             _violationsToRemove.Clear();
 
-            await Parallel.ForEachAsync(
-                ruleFromDb.SelectMany(rule => rule.Violations),
-                new ParallelOptions
+            foreach ((ComplianceViolation violation, string key) in dbViolationsWithKeys)
+            {
+                if (!currentKeySet.Contains(key))
                 {
-                    MaxDegreeOfParallelism = _maxDegreeOfParallelism,
-                    CancellationToken = ct
-                },
-                async (violation, token) =>
-                {
-                    if (!CurrentViolationsInCheck.Any(cv => CreateUniqueViolationKey(cv) == CreateUniqueViolationKey(violation)))
-                    {
-                        _violationsToRemove.Add(violation);
-                    }
-                });
+                    _violationsToRemove.Add(violation);
+                }
+            }
 
             Logger.TryWriteInfo("Compliance Check", $"Got {_violationsToRemove.Count} violations to remove.", LocalSettings.ComplianceCheckVerbose);
 
@@ -323,23 +324,18 @@ namespace FWO.Compliance
 
             _violationsToAdd.Clear();
 
-            await Parallel.ForEachAsync(
-                CurrentViolationsInCheck,
-                new ParallelOptions
+            foreach ((ComplianceViolation violation, string key) in currentViolationsWithKeys)
+            {
+                if (!dbKeySet.Contains(key))
                 {
-                    MaxDegreeOfParallelism = _maxDegreeOfParallelism,
-                    CancellationToken = ct
-                },
-                async (violation, token) =>
-                {
-                    if (!ruleFromDb.SelectMany(rule => rule.Violations).Any(rdb => CreateUniqueViolationKey(rdb) == CreateUniqueViolationKey(violation)))
-                    {
-                        ComplianceViolationBase violationBase = ComplianceViolationBase.CreateBase(violation);
-                        _violationsToAdd.Add(violationBase);
-                    }
-                });
+                    ComplianceViolationBase violationBase = ComplianceViolationBase.CreateBase(violation);
+                    _violationsToAdd.Add(violationBase);
+                }
+            }
 
             Logger.TryWriteInfo("Compliance Check", $"Got {_violationsToAdd.Count} violations to insert.", LocalSettings.ComplianceCheckVerbose);
+
+            return Task.CompletedTask;
         }
 
         /// <summary>

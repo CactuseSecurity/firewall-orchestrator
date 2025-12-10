@@ -198,6 +198,96 @@ namespace FWO.Test
 
         #endregion
 
+        #region Tests - PostProcessRulesAsync
+
+        [Test]
+        public async Task PostProcessRulesAsync_DiffsAddAndRemoveCorrectly()
+        {
+            // Arrange
+
+            const int policyId = 99;
+            const int criterionId = 7;
+            const string mgmtUid = "mgmt-1";
+
+            Rule dbRuleKeep = CreateSimpleRule(1);
+            dbRuleKeep.Uid = "rule-1";
+            ComplianceViolation keepViolationDb = new()
+            {
+                Id = 10,
+                RuleId = (int)dbRuleKeep.Id,
+                RuleUid = dbRuleKeep.Uid ?? "",
+                MgmtUid = mgmtUid,
+                PolicyId = policyId,
+                CriterionId = criterionId,
+                Details = "keep"
+            };
+            dbRuleKeep.Violations.Add(keepViolationDb);
+
+            Rule dbRuleObsolete = CreateSimpleRule(2);
+            dbRuleObsolete.Uid = "rule-2";
+            ComplianceViolation obsoleteViolationDb = new()
+            {
+                Id = 11,
+                RuleId = (int)dbRuleObsolete.Id,
+                RuleUid = dbRuleObsolete.Uid ?? "",
+                MgmtUid = mgmtUid,
+                PolicyId = policyId,
+                CriterionId = criterionId,
+                Details = "obsolete"
+            };
+            dbRuleObsolete.Violations.Add(obsoleteViolationDb);
+
+            ComplianceCheck.CurrentViolationsInCheck.Clear();
+            ComplianceCheck.CurrentViolationsInCheck.Add(new ComplianceViolation
+            {
+                RuleId = keepViolationDb.RuleId,
+                RuleUid = keepViolationDb.RuleUid,
+                MgmtUid = keepViolationDb.MgmtUid,
+                PolicyId = keepViolationDb.PolicyId,
+                CriterionId = keepViolationDb.CriterionId,
+                Details = keepViolationDb.Details
+            });
+            ComplianceCheck.CurrentViolationsInCheck.Add(new ComplianceViolation
+            {
+                RuleId = 3,
+                RuleUid = "rule-3",
+                MgmtUid = mgmtUid,
+                PolicyId = policyId,
+                CriterionId = criterionId,
+                Details = "new"
+            });
+
+            // Act
+
+            await ComplianceCheck.PostProcessRulesAsync([dbRuleKeep, dbRuleObsolete]);
+            await ComplianceCheck.PersistDataAsync();
+
+            // Assert
+
+            Assert.That(ApiConnection.SentQueries.Count, Is.EqualTo(2), "Should send add and remove mutations.");
+
+            (string Query, object Variables) addQuery = ApiConnection.SentQueries[0];
+            Assert.That(addQuery.Query, Is.EqualTo(ComplianceQueries.addViolations));
+            IEnumerable<ComplianceViolationBase>? addedViolations = addQuery.Variables
+                .GetType()
+                .GetProperty("violations")?
+                .GetValue(addQuery.Variables) as IEnumerable<ComplianceViolationBase>;
+            Assert.That(addedViolations, Is.Not.Null);
+            Assert.That(addedViolations!.Count(), Is.EqualTo(1));
+            Assert.That(addedViolations!.First().Details, Is.EqualTo("new"));
+
+            (string Query, object Variables) removeQuery = ApiConnection.SentQueries[1];
+            Assert.That(removeQuery.Query, Is.EqualTo(ComplianceQueries.removeViolations));
+            IEnumerable<int>? removedIds = removeQuery.Variables
+                .GetType()
+                .GetProperty("ids")?
+                .GetValue(removeQuery.Variables) as IEnumerable<int>;
+            Assert.That(removedIds, Is.Not.Null);
+            Assert.That(removedIds!.Single(), Is.EqualTo(obsoleteViolationDb.Id));
+        }
+
+        #endregion
+
         #region Tests - CheckRuleCompliance
 
         [Test]
@@ -208,7 +298,7 @@ namespace FWO.Test
             int numberOfChunks = 100;
             int numberOfRulesPerChunk = 100;
             int ruleId = 1;
-            await  SetUpBasic(createPolicy: true);
+            await SetUpBasic(createPolicy: true);
 
             List<ComplianceCriterion> criteria = Policy!.Criteria.Select(c => c.Content).ToList();
 

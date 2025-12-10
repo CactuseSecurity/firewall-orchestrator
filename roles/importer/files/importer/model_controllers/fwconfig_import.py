@@ -114,12 +114,7 @@ class FwConfigImport:
             # Read config
             fwo_api = self.import_state.api_connection
             _ = FwoApiCall(fwo_api)  # TODO: why not used ??
-            # # Authenticate to get JWT
-            # try:
-            #     jwt = fwo_api.login(importer_user_name, fwoConfig.ImporterPassword, fwoConfig.FwoUserMgmtApiUri)
-            # except Exception as e:
-            #     FWOLogger.error(str(e))
-            #     raise
+
             # Reset submanagement
             for sub_manager_id in self.import_state.state.mgm_details.sub_manager_ids:
                 # Fetch sub management details
@@ -385,4 +380,3 @@ class FwConfigImport:
             )
             FWOLogger.debug(f"all {len(all_diffs)} differences:\n\t" + "\n\t".join(all_diffs))
             # TODO: long-term this should raise an error:
-            # raise FwoImporterError("the database state created by this import is not consistent to the normalized config")

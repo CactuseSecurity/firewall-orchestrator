@@ -228,13 +228,10 @@ def add_member_names_for_nw_group(idx: int, nw_objects: list[dict[str, Any]]) ->
 
 def validate_ip_address(address: str) -> bool:
     try:
-        # ipaddress.ip_address(address)
         ipaddress.ip_network(address)
         return True
-        # print("IP address {} is valid. The object returned is {}".format(address, ip))
     except ValueError:
         return False
-        # print("IP address {} is not valid".format(address))
 
 
 def get_ip_of_obj(obj: dict[str, Any], mgm_id: int | None = None) -> str | None:

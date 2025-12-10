@@ -40,7 +40,6 @@ class FwConfigImportGateway:
             self._global_state.import_state.state.import_id,
             required_removes,
         )
-        # self.updateRuleEnforcedOnGatewayDiffs(prevConfig)
         self.update_interface_diffs()
         self.update_routing_diffs()
 

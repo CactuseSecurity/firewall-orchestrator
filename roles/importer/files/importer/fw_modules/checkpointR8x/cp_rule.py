@@ -337,9 +337,6 @@ def parse_single_rule(
     rule_custom_fields = native_rule.get("custom-fields")
 
     # we leave out all last_admin info for now
-    # if 'meta-info' in nativeRule and 'last-modifier' in nativeRule['meta-info']:
-    #     last_change_admin = nativeRule['meta-info']['last-modifier']
-    # else:
     last_change_admin = None
 
     parent_rule_uid = _parse_parent_rule_uid(parent_uid, native_rule=native_rule)
@@ -472,17 +469,6 @@ def check_and_add_section_header(
     import_id: str,
     section_header_uids: set[str],
 ):
-    # if current rulebase starts a new section, add section header, but only if it does not exist yet (can happen by chunking a section)
-    # if 'type' in src_rulebase and src_rulebase['type'] == 'access-section' and 'uid' in src_rulebase: # and not src_rulebase['uid'] in section_header_uids:
-    #     section_name = DEFAULT_SECTION_HEADER_TEXT
-    #     if 'name' in src_rulebase:
-    #         section_name = src_rulebase['name']
-    #     if 'parent_rule_uid' in src_rulebase:
-    #         parent_uid = src_rulebase['parent_rule_uid']
-    #     else:
-    #         parent_uid = ""
-    #     insert_section_header_rule(target_rulebase, section_name, layer_name, import_id, src_rulebase['uid'], section_header_uids, parent_uid)
-    #     parent_uid = src_rulebase['uid']
     # TODO: re-implement
     raise NotImplementedError("check_and_add_section_header is not implemented yet.")
 

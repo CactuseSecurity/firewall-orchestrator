@@ -1890,9 +1890,9 @@ DECLARE
     rec RECORD;
     v_do_not_import_true_count INT;
     v_do_not_import_false_count INT;
-	missing_uids TEXT;
-	too_many_mgm_ids_on_uid_and_no_resolve TEXT;
-	all_errors_with_no_resolve TEXT := '';
+    missing_uids TEXT;
+    too_many_mgm_ids_on_uid_and_no_resolve TEXT;
+    all_errors_with_no_resolve TEXT := '';
 
 BEGIN
 --Check rule_metadata has entries in rule
@@ -1903,10 +1903,16 @@ BEGIN
     WHERE r.rule_uid IS NULL;
 
     IF missing_uids IS NOT NULL THEN
-        RAISE EXCEPTION 'Missing rule(s): %', missing_uids;
+        RAISE NOTICE 'Missing rule(s): %', missing_uids;
+        DELETE FROM rule_metadata
+            WHERE rule_uid IN (
+                SELECT rm.rule_uid
+                FROM rule_metadata rm
+                LEFT JOIN rule r ON rm.rule_uid = r.rule_uid
+                WHERE r.rule_uid IS NULL
+        );
     END IF;
-	
-	
+
     -- Constraints droppen
     ALTER TABLE rule DROP CONSTRAINT IF EXISTS rule_metadatum;
     ALTER TABLE rule DROP CONSTRAINT IF EXISTS rule_rule_metadata_rule_uid_f_key;

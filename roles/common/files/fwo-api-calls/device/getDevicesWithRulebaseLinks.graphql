@@ -1,0 +1,14 @@
+﻿query getDevicesWithRulebaseLinks($mgmId: Int!)
+{
+  devices (where: {
+    mgm_id: { _eq:$mgmId }
+    hide_in_gui: { _eq: false }
+    stm_dev_typ: { is_pure_routing_device: { _eq: false } }
+  })
+  {
+    id: dev_id
+    rulebase_links (where: {removed:{_is_null:true} }) {
+      from_rule_id
+    }
+  }
+}

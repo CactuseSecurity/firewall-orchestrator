@@ -56,6 +56,10 @@ namespace FWO.Basics
         public const string Refresh = "bi bi-arrow-clockwise";
         public const string Undo = "bi bi-arrow-counterclockwise";
 
+        //Actions Html
+        public const string HtmlArrowExpanded = "&#9660;";
+        public const string HtmlArrowCollapsed = "&#9654;";
+
         // Object types: General
         public const string Ldap = "bi bi-journal-bookmark-fill";
         public const string Management = "bi bi-inbox-fill";

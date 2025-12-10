@@ -1,5 +1,5 @@
+from typing import Any
 from pydantic import BaseModel
-import json
 
 
 class ServiceObject(BaseModel):
@@ -54,7 +54,7 @@ class ServiceObjectForImport():
         self.svc_last_seen = importId
 
 
-    def toDict (self):
+    def toDict(self) -> dict[str, Any]:
         return  {
             'svc_uid': self.svc_uid,
             'svc_name': self.svc_name,

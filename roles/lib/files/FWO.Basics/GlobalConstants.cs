@@ -37,7 +37,7 @@ namespace FWO.Basics
         public const string kImportAppData = "importAppData";
         public const string kAdjustAppServerNames = "adjustAppServerNames";
         public const string kImportAreaSubnetData = "importAreaSubnetData";
-		public const string kImportZoneMatrixData = "importZoneMatrixData";
+        public const string kImportZoneMatrixData = "importZoneMatrixData";
         public const string kVarianceAnalysis = "varianceAnalysis";
         public const string kManual = "manual";
         public const string kCSV_ = "CSV_";
@@ -53,7 +53,7 @@ namespace FWO.Basics
         public const string kModellerGroup = "ModellerGroup_";
         public const string kLdapGroupPattern = kModellerGroup + Placeholder.AppId;
         public const string kImportChangeNotify = "importChangeNotify";
-		public const string kExternalRequest = "externalRequest";
+        public const string kExternalRequest = "externalRequest";
         public const string kComplianceCheck = "complianceCheck";
         public const string kLdapInternalPostfix = "dc=" + kFwoProdName + ",dc=internal";
         public const int kLdapInternalId = 1;

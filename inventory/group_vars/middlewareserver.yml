@@ -25,6 +25,9 @@ sample_role_purpose: demo
 sample_user1_pw: cactus1
 sample_user2_pw: cactus2
 
+# Integration test user configuration
+integration_test_pw: testpassword
+
 # use static jwt generation test key if set to yes
 # only for testing, not for production environment
 testkeys: no

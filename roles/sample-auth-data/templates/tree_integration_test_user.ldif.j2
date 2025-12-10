@@ -1,0 +1,13 @@
+# Integration test user for automated testing
+
+dn: uid=integration_test_user{{ sample_postfix }},ou=tenant0,ou=operator,ou=user,{{ openldap_path }}
+changetype: {{ ldif_changetype }}
+{% if ldif_changetype != 'delete' -%}
+objectClass: top
+objectclass: inetorgperson
+cn: integration_test_user{{ sample_postfix }}
+givenName: Integration
+sn: TestUser
+mail: integration-test@example.com
+userPassword: {{ integration_test_user_pw }}
+{%- endif %}

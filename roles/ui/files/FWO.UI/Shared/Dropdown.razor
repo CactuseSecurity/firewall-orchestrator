@@ -4,7 +4,6 @@
 @typeparam ElementType
 
 @inject DomEventService eventService
-@inject IJSRuntime? jsRuntime
 @implements IDisposable
 
 <div id="@($"dropdown-{Id}")" class="input-group @(Small ? "input-group-sm" : "")">
@@ -50,6 +49,11 @@
 
 @code
 {
+    #nullable enable
+
+    [Inject]
+    private IJSRuntime? jsRuntime { get; set; }
+
     private int xPositionDropdown;
     private int yPositionDropdown;
     private bool JsDisposed { get; set; }

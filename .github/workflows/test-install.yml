@@ -26,9 +26,9 @@ jobs:
       matrix:
         os: [ubuntu-latest]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
-      - uses: actions/setup-dotnet@v4
+      - uses: actions/setup-dotnet@v5
         with:
           dotnet-version: '8.0.x'
 
@@ -38,10 +38,18 @@ jobs:
           ansible-playbook -e force_install=true site.yml -K
 
       - name: Running in GitHub actions requires testing puppeteer pdf creation separately
-        if: ${{ env.RUNNING_ON_GITHUB_ACTIONS }} == 'true'
+        if: ${{ env.RUNNING_ON_GITHUB_ACTIONS == 'true' }}
         run: |
           cd /home/runner/work/firewall-orchestrator/firewall-orchestrator/roles/tests-unit/files/FWO.Test
           dotnet restore
           dotnet build
           dotnet test --filter "Name=HtmlToPdfTest"
 
+
+  style-check:
+    name: Style Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: astral-sh/ruff-action@v3

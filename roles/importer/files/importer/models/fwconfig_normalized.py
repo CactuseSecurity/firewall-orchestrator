@@ -1,15 +1,16 @@
 from typing import Any
-from pydantic import BaseModel
 
-from fwo_base import ConfigAction, ConfFormat
-from models.rulebase import Rulebase
-from models.networkobject import NetworkObject
-from models.serviceobject import ServiceObject
+from fwo_base import ConfFormat, ConfigAction
 from models.gateway import Gateway
+from models.networkobject import NetworkObject
+from models.rulebase import Rulebase
+from models.serviceobject import ServiceObject
+from pydantic import BaseModel
 
 
 class FwConfig(BaseModel):
     ConfigFormat: ConfFormat = ConfFormat.NORMALIZED
+
 
 """
     the normalized configuraton of a firewall management to import
@@ -40,11 +41,13 @@ class FwConfig(BaseModel):
 
     }
 
-    write methods to 
+    write methods to
         a) split a config into < X MB chunks
         b) combine configs to a single config
 
 """
+
+
 class FwConfigNormalized(FwConfig):
     action: ConfigAction = ConfigAction.INSERT
     network_objects: dict[str, NetworkObject] = {}
@@ -55,15 +58,11 @@ class FwConfigNormalized(FwConfig):
     gateways: list[Gateway] = []
     ConfigFormat: ConfFormat = ConfFormat.NORMALIZED_LEGACY
 
-
-    model_config = {
-        "arbitrary_types_allowed": True
-    }
-
+    model_config = {"arbitrary_types_allowed": True}
 
     def get_rulebase(self, rulebase_uid: str) -> Rulebase:
         """
-        get the policy with a specific uid  
+        Get the policy with a specific uid
         :param policyUid: The UID of the relevant policy.
         :return: Returns the policy with a specific uid, otherwise returns None.
         """
@@ -75,7 +74,7 @@ class FwConfigNormalized(FwConfig):
 
     def get_rulebase_or_none(self, rulebase_uid: str) -> Rulebase | None:
         """
-        get the policy with a specific uid  
+        Get the policy with a specific uid
         :param policyUid: The UID of the relevant policy.
         :return: Returns the policy with a specific uid, otherwise returns None.
         """
@@ -83,9 +82,8 @@ class FwConfigNormalized(FwConfig):
             if rb.uid == rulebase_uid:
                 return rb
         return None
-    
 
-    def merge(self, other: 'FwConfigNormalized'):
+    def merge(self, other: "FwConfigNormalized"):
         """
         Merges the given config into this config.
         """

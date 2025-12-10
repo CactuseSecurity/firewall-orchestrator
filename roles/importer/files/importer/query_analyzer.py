@@ -94,13 +94,13 @@ class QueryAnalyzer(Visitor):
             or 1
         )
 
-    def enter_operation_definition_call(self, node: OperationDefinition, *_):  # type: ignore  # noqa: PGH003
+    def enter_OperationDefinition(self, node: OperationDefinition, *_):  # type: ignore  # noqa: N802, PGH003
         """
         Called by visit function for each variable definition in the AST.
         """
         self.enter_operation_definition(node)  # type: ignore  # noqa: PGH003
 
-    def enter_variable_definition_call(self, node: VariableDefinition, *_):  # type: ignore  # noqa: PGH003
+    def enter_VariableDefinition(self, node: VariableDefinition, *_):  # type: ignore  # noqa: N802, PGH003
         """
         Called by visit function for each variable definition in the AST.
         """

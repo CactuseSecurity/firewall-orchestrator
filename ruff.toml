@@ -91,7 +91,8 @@ ignore = [
     "FBT002",
     "S113",
     "S104",
-    "D203"
+    "D203",
+    "S101",
 ]
 
 # Allow fix for all enabled rules (when `--fix`) is provided.

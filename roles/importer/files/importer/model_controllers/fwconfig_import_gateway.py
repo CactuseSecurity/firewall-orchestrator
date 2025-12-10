@@ -25,6 +25,12 @@ class FwConfigImportGateway:
         self._global_state = service_provider.get_global_state()
         self._rb_link_controller = RulebaseLinkController()
 
+    def get_rb_link_controller(self) -> RulebaseLinkController:
+        return self._rb_link_controller
+
+    def get_global_state(self) -> GlobalState:
+        return self._global_state
+
     def update_gateway_diffs(self):
         # add gateway details:
         self._rb_link_controller.get_rulebase_links(

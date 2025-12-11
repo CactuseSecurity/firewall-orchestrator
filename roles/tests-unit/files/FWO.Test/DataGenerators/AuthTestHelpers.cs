@@ -11,18 +11,6 @@ namespace FWO.Test.DataGenerators
     public static class AuthTestHelpers
     {
         /// <summary>
-        /// Creates valid test credentials for default test user
-        /// </summary>
-        public static AuthenticationTokenGetParameters CreateValidCredentials()
-        {
-            return new AuthenticationTokenGetParameters
-            {
-                Username = "testuser",
-                Password = "testpassword"
-            };
-        }
-
-        /// <summary>
         /// Creates invalid test credentials
         /// </summary>
         public static AuthenticationTokenGetParameters CreateInvalidCredentials()
@@ -120,18 +108,6 @@ namespace FWO.Test.DataGenerators
 
             Assert.That(refreshLifetime, Is.GreaterThan(accessLifetime),
                 "Refresh token should have longer lifetime than access token");
-        }
-
-        /// <summary>
-        /// Validates that token pair is valid (helper combining multiple assertions)
-        /// </summary>
-        public static bool IsValidTokenPair(TokenPair? tokenPair)
-        {
-            return tokenPair != null &&
-                   !string.IsNullOrEmpty(tokenPair.AccessToken) &&
-                   !string.IsNullOrEmpty(tokenPair.RefreshToken) &&
-                   tokenPair.AccessTokenExpires > DateTime.UtcNow &&
-                   tokenPair.RefreshTokenExpires > DateTime.UtcNow;
         }
     }
 }

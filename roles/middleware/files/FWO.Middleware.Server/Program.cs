@@ -11,8 +11,7 @@ using System.Diagnostics;
 using System.Reflection;
 
 // Implicitly call static constructor so background lock process is started
-// (static constructor is only called after class is used in any way)
-Log.WriteInfo("Startup", "Starting FWO Middleware Server...");
+// (static constructor is only called after class is used in any way).Log.WriteInfo("Startup", "Starting FWO Middleware Server...");
 
 object changesLock = new(); // LOCK
 

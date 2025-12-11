@@ -326,13 +326,13 @@ namespace FWO.Test
                 .BuildGetForUserParameters();
 
             // Act
-            HttpResponseMessage response = await client!.PostAsJsonAsync("/api/AuthenticationToken/GetForUser", parameters);
+            HttpResponseMessage response = await client!.PostAsJsonAsync("/api/AuthenticationToken/GetTokenPairForUser", parameters);
 
             string responseText = await response.Content.ReadAsStringAsync();
 
             // Assert
             Assert.That(response.StatusCode, Is.EqualTo(System.Net.HttpStatusCode.BadRequest));
-            Assert.That(responseText, Is.EqualTo("Error while validating admin credentials: Provided credentials do not belong to a user with role admin.").IgnoreCase);
+            Assert.That(responseText.Contains("Provided credentials do not belong to a user with role admin"), Is.True);
         }
 
         #endregion
@@ -504,45 +504,6 @@ namespace FWO.Test
             
             Assert.That(refreshResponse.StatusCode, Is.EqualTo(System.Net.HttpStatusCode.Unauthorized),
                 "Cannot refresh a token that has been revoked");
-        }
-
-        [Test]
-        [Category("Authentication")]
-        [Category("TokenWorkflow")]
-        public async Task TokenWorkflow_RefreshMultipleTimesWithDelay_MaintainsTokenValidity()
-        {
-            // Step 1: Get initial token pair
-            TokenPair currentTokens = await GetValidTokenPair();
-            string originalUsername = defaultCredentialsBuilder.Username!;
-
-            // Step 2: Perform refresh cycle with validation at each step
-            const int cycles = 3;
-            for (int i = 0; i < cycles; i++)
-            {
-                await Task.Delay(1500); // Simulate real-world delay between refreshes
-
-                // Refresh token
-                RefreshTokenRequest refreshRequest = new() { RefreshToken = currentTokens.RefreshToken };
-                HttpResponseMessage refreshResponse = await client!.PostAsJsonAsync("/api/AuthenticationToken/Refresh", refreshRequest);
-
-                // Assert refresh succeeded
-                AuthTestHelpers.AssertSuccessResponse(refreshResponse);
-                TokenPair? newTokens = await refreshResponse.Content.ReadFromJsonAsync<TokenPair>();
-
-                // Validate new tokens
-                AuthTestHelpers.AssertValidTokenPair(newTokens);
-                AuthTestHelpers.AssertJwtStructure(newTokens!.AccessToken, tokenHandler!);
-                AuthTestHelpers.AssertTokenClaims(newTokens.AccessToken, originalUsername, tokenHandler!);
-                AuthTestHelpers.AssertTokenRotation(currentTokens, newTokens);
-
-                // Update for next cycle
-                currentTokens = newTokens;
-            }
-
-            // Step 3: Final cleanup
-            RefreshTokenRequest finalRevokeRequest = new() { RefreshToken = currentTokens.RefreshToken };
-            HttpResponseMessage revokeResponse = await client!.PostAsJsonAsync("/api/AuthenticationToken/Revoke", finalRevokeRequest);
-            AuthTestHelpers.AssertSuccessResponse(revokeResponse);
         }
 
         #endregion

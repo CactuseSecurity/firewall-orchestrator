@@ -44,6 +44,7 @@ namespace FWO.Middleware.Server.Controllers
         /// </remarks>
         /// <param name="parameters">Credentials</param>
         /// <returns>Jwt, if credentials are vaild.</returns>
+        [Obsolete("This endpoint is deprecated. Use GetTokenPair instead for better security with refresh tokens.")]
         [HttpPost("Get")]
         public async Task<ActionResult<string>> GetAsync([FromBody] AuthenticationTokenGetParameters parameters)
         {

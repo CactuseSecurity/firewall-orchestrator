@@ -17,19 +17,53 @@
     <br><br>
 
     <h4>@userConfig.GetText("jwt_corr_login")</h4>
-<br>
-<pre>
+    <p><strong>Note:</strong> This endpoint returns both an access token and a refresh token for enhanced security.</p>
+    <br>
+    <pre>
 curl --request POST \
-    --url https://localhost:8888/api/AuthenticationToken/Get/ \
+    --url https://localhost:8888/api/AuthenticationToken/GetTokenPair/ \
     --header 'content-type: application/json' \
     --data '{"Username": "user1_demo", "Password": "cactus1"}'
-</pre>
+    </pre>
+    
+    <h5>Response:</h5>
+    <pre>
+{
+  "accessToken": "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "refreshToken": "a7f3c8b9e2d1...",
+  "accessTokenExpires": "2025-12-11T14:30:00Z",
+  "refreshTokenExpires": "2026-01-10T12:00:00Z"
+}
+    </pre>
+
+    <h4>@userConfig.GetText("token_refresh")</h4>
+    <p>Use the refresh token to obtain a new access token without re-entering credentials:</p>
+    <br>
+    <pre>
+curl --request POST \
+    --url https://localhost:8888/api/AuthenticationToken/Refresh/ \
+    --header 'content-type: application/json' \
+    --data '{"RefreshToken": "a7f3c8b9e2d1..."}'
+    </pre>
+
+    <h4>@userConfig.GetText("token_revoke")</h4>
+    <p>Revoke a refresh token (e.g., on logout):</p>
+    <br>
+    <pre>
+curl --request POST \
+    --url https://localhost:8888/api/AuthenticationToken/Revoke/ \
+    --header 'content-type: application/json' \
+    --header 'Authorization: Bearer YOUR_ACCESS_TOKEN' \
+    --data '{"RefreshToken": "a7f3c8b9e2d1..."}'
+    </pre>
 
     <h4>@userConfig.GetText("err_incorr_login")</h4>
-<br>
-<pre>
+    <br>
+    <pre>
 curl --request POST \
-    --url https://localhost:8888/api/AuthenticationToken/Get/ \
+    --url https://localhost:8888/api/AuthenticationToken/GetTokenPair/ \
     --header 'content-type: application/json' \
     --data '{"Username": "user1_demo", "Password": "wrong-pwd"}'
-</pre>
+    </pre>
+
+</div>

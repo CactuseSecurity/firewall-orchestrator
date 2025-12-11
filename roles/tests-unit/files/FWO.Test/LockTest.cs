@@ -7,7 +7,6 @@ using System.Reflection;
 namespace FWO.Test
 {
     [TestFixture]
-    [Order(4)]
     public class LockTest
     {
         private string lockFilePath = $"/var/fworch/lock/{Assembly.GetEntryAssembly()?.GetName().Name}_log.lock";

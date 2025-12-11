@@ -20,7 +20,6 @@ namespace FWO.Test
     /// Tests the complete authentication flow including token generation, refresh, and revocation.
     /// </summary>
     [TestFixture]
-    [Order(2)]
     internal class AuthenticationTokenIntegrationTest
     {
         private WebApplicationFactory<Program>? factory;

@@ -64,7 +64,7 @@ namespace FWO.Test.DataGenerators
             Assert.That(parts.Length, Is.EqualTo(3), "JWT should have 3 parts (header.payload.signature)");
 
             // Validate it's a parseable JWT
-            var token = tokenHandler.ReadJwtToken(jwt);
+            JwtSecurityToken token = tokenHandler.ReadJwtToken(jwt);
             Assert.That(token, Is.Not.Null, "JWT should be parseable");
             Assert.That(token.Claims, Is.Not.Empty, "JWT should contain claims");
         }
@@ -74,10 +74,10 @@ namespace FWO.Test.DataGenerators
         /// </summary>
         public static void AssertTokenClaims(string jwt, string expectedUsername, JwtSecurityTokenHandler tokenHandler)
         {
-            var token = tokenHandler.ReadJwtToken(jwt);
+            JwtSecurityToken token = tokenHandler.ReadJwtToken(jwt);
 
             // Check for required claims
-            var nameClaim = token.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Name || c.Type == "unique_name");
+            Claim? nameClaim = token.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Name || c.Type == "unique_name");
             Assert.That(nameClaim, Is.Not.Null, "JWT should contain name claim");
 
             if (!string.IsNullOrEmpty(expectedUsername))
@@ -86,10 +86,10 @@ namespace FWO.Test.DataGenerators
             }
 
             // Check for Hasura claims (specific to your implementation)
-            var hasuraRolesClaim = token.Claims.FirstOrDefault(c => c.Type == "x-hasura-allowed-roles");
+            Claim? hasuraRolesClaim = token.Claims.FirstOrDefault(c => c.Type == "x-hasura-allowed-roles");
             Assert.That(hasuraRolesClaim, Is.Not.Null, "JWT should contain hasura roles claim");
 
-            var defaultRoleClaim = token.Claims.FirstOrDefault(c => c.Type == "x-hasura-default-role");
+            Claim? defaultRoleClaim = token.Claims.FirstOrDefault(c => c.Type == "x-hasura-default-role");
             Assert.That(defaultRoleClaim, Is.Not.Null, "JWT should contain default role claim");
         }
 
@@ -115,8 +115,8 @@ namespace FWO.Test.DataGenerators
                 "Refresh token should expire after access token");
 
             // Refresh token should have longer lifetime than access token
-            var accessLifetime = tokens.AccessTokenExpires - DateTime.UtcNow;
-            var refreshLifetime = tokens.RefreshTokenExpires - DateTime.UtcNow;
+            TimeSpan accessLifetime = tokens.AccessTokenExpires - DateTime.UtcNow;
+            TimeSpan refreshLifetime = tokens.RefreshTokenExpires - DateTime.UtcNow;
 
             Assert.That(refreshLifetime, Is.GreaterThan(accessLifetime),
                 "Refresh token should have longer lifetime than access token");

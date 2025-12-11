@@ -29,7 +29,7 @@ namespace FWO.Test
 
         // Test credentials - configured once in GlobalSetup
         private TokenTestDataBuilder defaultCredentialsBuilder = null!;
-        private TokenTestDataBuilder adminCredentialsBuilder = null!;
+        //private TokenTestDataBuilder adminCredentialsBuilder = null!; // For future admin tests
 
         #region Setup and Teardown
 
@@ -41,15 +41,16 @@ namespace FWO.Test
             
             Log.WriteInfo("Test Setup", $"Initializing JWT integration test environment (Local: {isLocalTest}, GitHub Actions: {isGitHubActions})");
 
-            // Initialize test credentials
+            // Initialize test credential
             defaultCredentialsBuilder = new TokenTestDataBuilder()
-                .WithUsername("testuser")
+                .WithUsername("integration_user_jwt_refresh_test")
                 .WithPassword("testpassword");
 
-            adminCredentialsBuilder = new TokenTestDataBuilder()
-                .WithTargetUser("admin")
-                .WithUsername("admin")
-                .WithPassword("adminpassword");
+            //For tests with admin credentials needed (maybe in the future)
+            //adminCredentialsBuilder = new TokenTestDataBuilder()
+            //    .WithTargetUser("admin")
+            //    .WithUsername("admin")
+            //    .WithPassword("adminpassword");
 
             if (isLocalTest)
             {
@@ -321,7 +322,7 @@ namespace FWO.Test
         {
             // Arrange - use regular user credentials (not admin)
             AuthenticationTokenGetForUserParameters parameters = defaultCredentialsBuilder
-                .WithTargetUser(adminCredentialsBuilder.TargetUserName!) // ensure target user is set on builder for regular user
+                .WithTargetUser(defaultCredentialsBuilder.Username!)
                 .BuildGetForUserParameters();
 
             // Act
@@ -331,7 +332,7 @@ namespace FWO.Test
 
             // Assert
             Assert.That(response.StatusCode, Is.EqualTo(System.Net.HttpStatusCode.BadRequest));
-            Assert.That(responseText, Is.EqualTo("Error while validating admin credentials: A0002 Invalid credentials").IgnoreCase);
+            Assert.That(responseText, Is.EqualTo("Error while validating admin credentials: Provided credentials do not belong to a user with role admin.").IgnoreCase);
         }
 
         #endregion

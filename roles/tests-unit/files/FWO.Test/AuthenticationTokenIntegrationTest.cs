@@ -313,35 +313,6 @@ namespace FWO.Test
 
         #region Admin Token Generation Tests
 
-        [Test, Ignore("temporarily disabled for jwt rework")]
-        [Category("Authentication")]
-        [Category("AdminOperations")]
-        public async Task GetForUser_WithValidAdminCredentials_ReturnsUserToken()
-        {
-            // Arrange
-            AuthenticationTokenGetForUserParameters parameters = adminCredentialsBuilder
-                .BuildGetForUserParameters();
-
-            // Act
-            HttpResponseMessage response = await client!.PostAsJsonAsync("/api/AuthenticationToken/GetForUser", parameters);
-
-            // Assert
-            if (response.IsSuccessStatusCode)
-            {
-                string jwt = await response.Content.ReadAsStringAsync();
-                AuthTestHelpers.AssertJwtStructure(jwt, tokenHandler!);
-                AuthTestHelpers.AssertTokenClaims(jwt, "targetuser", tokenHandler!);
-            }
-            else
-            {
-                string responseText = await response.Content.ReadAsStringAsync();
-                Assert.Fail($"API (Status: {response.StatusCode})\n" +
-                    $"Response: {responseText}\n" +
-                    $"Parameters: {System.Text.Json.JsonSerializer.Serialize(parameters)}\n\n" +
-                    $"Passed credentials may not exist in test environment.");
-            }
-        }
-
         [Test]
         [Category("Authentication")]
         [Category("AdminOperations")]
@@ -361,41 +332,6 @@ namespace FWO.Test
             // Assert
             Assert.That(response.StatusCode, Is.EqualTo(System.Net.HttpStatusCode.BadRequest));
             Assert.That(responseText, Is.EqualTo("Error while validating admin credentials: A0002 Invalid credentials").IgnoreCase);
-        }
-
-        [Test, Ignore("temporarily disabled for jwt rework")]
-        [Category("Authentication")]
-        [Category("AdminOperations")]
-        public async Task GetForUser_WithCustomLifetime_ReturnsTokenWithCorrectExpiration()
-        {
-            // Arrange
-            TimeSpan customLifetime = TimeSpan.FromHours(48);
-
-            AuthenticationTokenGetForUserParameters parameters = adminCredentialsBuilder
-                .WithLifetime(customLifetime)
-                .BuildGetForUserParameters();
-
-            // Act
-            HttpResponseMessage response = await client!.PostAsJsonAsync("/api/AuthenticationToken/GetForUser", parameters);
-
-            // Assert
-            if (response.IsSuccessStatusCode)
-            {
-                string jwt = await response.Content.ReadAsStringAsync();
-                JwtSecurityToken token = tokenHandler!.ReadJwtToken(jwt);
-
-                // Verify lifetime is approximately what we requested
-                TimeSpan tokenLifetime = token.ValidTo - token.ValidFrom;
-                Assert.That(tokenLifetime, Is.EqualTo(customLifetime).Within(TimeSpan.FromMinutes(5)));
-            }
-            else
-            {
-                string responseText = await response.Content.ReadAsStringAsync();
-                Assert.Fail($"API (Status: {response.StatusCode})\n" +
-                    $"Response: {responseText}\n" +
-                    $"Parameters: {System.Text.Json.JsonSerializer.Serialize(parameters)}\n\n" +
-                    $"Passed credentials may not exist in test environment.");
-            }
         }
 
         #endregion

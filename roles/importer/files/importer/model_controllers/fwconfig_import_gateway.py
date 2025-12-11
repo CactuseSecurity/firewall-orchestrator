@@ -63,9 +63,8 @@ class FwConfigImportGateway:
                 (p_gw for p_gw in self._global_state.previous_config.gateways if gw.Uid == p_gw.Uid), None
             )
 
-            if (
-                gw in self._global_state.previous_config.gateways
-            ):  # this check finds all changes in gateway (including rulebase link changes)
+            if gw in self._global_state.previous_config.gateways:
+                # this check finds all changes in gateway (including rulebase link changes)
                 # gateway found with exactly same properties in previous config
                 continue
 

@@ -158,6 +158,7 @@ def parse_single_ip_line(line, app_id_column_no, ip_column_no, app_dict, valid_a
 
     app_id: str = line[app_id_column_no]
     app_id_prefix = app_id.split('-')[0].lower() + '-'
+    # TODO: deal with apps without prefix'
 
     if len(valid_app_id_prefixes) == 0 or app_id_prefix in valid_app_id_prefixes:
         if app_id in app_dict.keys():

@@ -103,6 +103,7 @@ if __name__ == "__main__":
 
     if args.import_from_folder:
         base_dir = args.import_from_folder
+        app_data_repo_target_dir = args.import_from_folder
     else:
         base_dir=app_data_repo_target_dir
         app_data_repo_url = "https://" + git_username + ":" + git_password + "@" + git_repo_url_without_protocol
@@ -123,6 +124,8 @@ if __name__ == "__main__":
     #############################################
     # 2. get app list with activated recertification
 
+    recert_active_app_list = []
+
     recert_repo_url = f"https://{git_username}:{git_password}@{recert_active_repo_url}" 
     try:
         if os.path.exists(recert_repo_target_dir):
@@ -132,16 +135,13 @@ if __name__ == "__main__":
             origin.pull()
         else:
             repo = git.Repo.clone_from(recert_repo_url, recert_repo_target_dir)
-    except Exception as e:
-        logger.warning("could not clone/pull git repo from " + recert_repo_url + ", exception: " + str(traceback.format_exc()))
 
-    recert_activation_file = f"{recert_repo_target_dir}/{recert_active_file_name}"
-    recert_active_app_list = []
-    try:
+        recert_activation_file = f"{recert_repo_target_dir}/{recert_active_file_name}"
         with open(recert_activation_file, "r") as f:
             recert_active_app_list = f.read().splitlines()
+
     except Exception as e:
-        logger.warning(f"could not read {recert_activation_file}, exception: {str(traceback.format_exc())}")
+        logger.warning("could not clone/pull/read git repo from " + recert_repo_url + ", exception: " + str(traceback.format_exc()))
 
     #############################################
     # 3. get app data from CSV files

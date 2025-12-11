@@ -26,14 +26,13 @@ namespace FWO.Test
         private HttpClient? client;
         private JwtSecurityTokenHandler? tokenHandler;
 
-        // Test credentials - configured once in GlobalSetup
         private TokenTestDataBuilder defaultCredentialsBuilder = null!;
         //private TokenTestDataBuilder adminCredentialsBuilder = null!; // For future admin tests
 
         #region Setup and Teardown
 
         [OneTimeSetUp]
-        public async Task GlobalSetup()
+        public void GlobalSetup()
         {
             bool isLocalTest = IsLocalTestEnvironment();
             bool isGitHubActions = IsRunningInGitHubActions();

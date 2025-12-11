@@ -545,3 +545,8 @@ div.modal-body > div.table-responsive > table.sticky-header thead {
 div.modal-body > * > div.table-responsive > table.sticky-header thead {
     top: calc(var(--bs-custom-modal-margin-top) + 1em - 1px);
 }
+
+.small-helpage {
+    color: #2FA5ED;
+    font-weight: bold;
+}

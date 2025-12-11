@@ -2952,6 +2952,18 @@ INSERT INTO txt VALUES ('import_app_server',    'German',   'App Server importie
 INSERT INTO txt VALUES ('import_app_server',    'English',  'Import app servers');
 INSERT INTO txt VALUES ('import_matrix',   		'German', 	'Matrix-Import');
 INSERT INTO txt VALUES ('import_matrix',   		'English', 	'Matrix Import');
+INSERT INTO txt VALUES ('token_refresh',   		'German', 	'Token erneuern');
+INSERT INTO txt VALUES ('token_refresh',   		'English', 	'Refresh Token');
+INSERT INTO txt VALUES ('token_revoke',   		'German', 	'Token zur&uuml;ckziehen');
+INSERT INTO txt VALUES ('token_revoke',   		'English', 	'Revoke Token');
+INSERT INTO txt VALUES ('response',             'German', 	'Antwort');
+INSERT INTO txt VALUES ('response',             'English',  'Response');
+INSERT INTO txt VALUES ('missing_refresh_token','German',   'Fehlender Refresh Token');
+INSERT INTO txt VALUES ('missing_refresh_token','English',  'Missing Refresh Token');
+INSERT INTO txt VALUES ('invalid_refresh_token','German',   'Ung&uuml;ltiger oder abgelaufener Refresh Token');
+INSERT INTO txt VALUES ('invalid_refresh_token','English',  'Invalid or Expired Refresh Token');
+INSERT INTO txt VALUES ('token_revoke_success', 'German',   'Token erfolgreich zurückgezogen');
+INSERT INTO txt VALUES ('token_revoke_success', 'English',  'Successful Token Revocation');
 
 -- user messages
 INSERT INTO txt VALUES ('U0001', 'German',  'Eingabetext wurde um nicht erlaubte Zeichen gek&uuml;rzt');

@@ -2962,7 +2962,7 @@ INSERT INTO txt VALUES ('missing_refresh_token','German',   'Fehlender Refresh T
 INSERT INTO txt VALUES ('missing_refresh_token','English',  'Missing Refresh Token');
 INSERT INTO txt VALUES ('invalid_refresh_token','German',   'Ung&uuml;ltiger oder abgelaufener Refresh Token');
 INSERT INTO txt VALUES ('invalid_refresh_token','English',  'Invalid or Expired Refresh Token');
-INSERT INTO txt VALUES ('token_revoke_success', 'German',   'Token erfolgreich zurückgezogen');
+INSERT INTO txt VALUES ('token_revoke_success', 'German',   'Token erfolgreich zur&uuml;ckgezogen');
 INSERT INTO txt VALUES ('token_revoke_success', 'English',  'Successful Token Revocation');
 
 -- user messages

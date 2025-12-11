@@ -10,7 +10,7 @@
 
 - name: middleware test get jwt valid creds
   ansible.builtin.uri:
-      url: "https://{{ middleware_hostname }}:{{ middleware_web_listener_port }}/api/AuthenticationToken/Get/"
+      url: "https://{{ middleware_hostname }}:{{ middleware_web_listener_port }}/api/AuthenticationToken/GetTokenPair/"
       method: POST
       headers:
           Content-Type: application/json
@@ -94,7 +94,7 @@
 # --- negative test: wrong credentials ---
 - name: middleware test get jwt wrong creds
   ansible.builtin.uri:
-      url: "https://{{ middleware_hostname }}:{{ middleware_web_listener_port }}/api/AuthenticationToken/Get/"
+      url: "https://{{ middleware_hostname }}:{{ middleware_web_listener_port }}/api/AuthenticationToken/GetTokenPair/"
       method: POST
       headers:
           Content-Type: application/json

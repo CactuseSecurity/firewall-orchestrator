@@ -44,13 +44,9 @@
 
 - ansible.builtin.debug: { var: jwt_header_b64 }
 
-# Pad base64 string before decoding to avoid Incorrect padding error
+# Decode + parse (jwt_header_b64 is already padded from above)
 - set_fact:
-    jwt_header_b64_padded: "{{ jwt_header_b64 + '=' * ((4 - jwt_header_b64 | length % 4) % 4) }}"
-
-# Then decode + parse
-- set_fact:
-    jwt_header: "{{ jwt_header_b64_padded | b64decode | from_json }}"
+    jwt_header: "{{ jwt_header_b64 | b64decode | from_json }}"
 
 - ansible.builtin.debug: { var: jwt_header }
 

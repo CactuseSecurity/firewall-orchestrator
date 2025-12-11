@@ -47,7 +47,7 @@ namespace FWO.Test
                 .WithPassword("testpassword");
 
             adminCredentialsBuilder = new TokenTestDataBuilder()
-                .WithTargetUser("targetuser")
+                .WithTargetUser("admin")
                 .WithUsername("admin")
                 .WithPassword("adminpassword");
 
@@ -350,7 +350,7 @@ namespace FWO.Test
         {
             // Arrange - use regular user credentials (not admin)
             AuthenticationTokenGetForUserParameters parameters = defaultCredentialsBuilder
-                .WithTargetUser("targetuser") // ensure target user is set on builder for regular user
+                .WithTargetUser(adminCredentialsBuilder.TargetUserName!) // ensure target user is set on builder for regular user
                 .BuildGetForUserParameters();
 
             // Act
@@ -360,7 +360,7 @@ namespace FWO.Test
 
             // Assert
             Assert.That(response.StatusCode, Is.EqualTo(System.Net.HttpStatusCode.BadRequest));
-            Assert.That(responseText, Is.EqualTo("Error while validating admin credentials: Provided credentials do not belong to a user with role admin.").IgnoreCase);
+            Assert.That(responseText, Is.EqualTo("Error while validating admin credentials: A0002 Invalid credentials").IgnoreCase);
         }
 
         [Test, Ignore("temporarily disabled for jwt rework")]

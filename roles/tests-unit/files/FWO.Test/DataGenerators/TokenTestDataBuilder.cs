@@ -9,7 +9,7 @@ namespace FWO.Test.DataGenerators
     {
         public string? Username { get; private set; }
         public string? Password { get; private set; }
-        private string? TargetUserName { get; set; }
+        public string? TargetUserName { get; private set; }
         public TimeSpan? Lifetime { get; private set; }
 
         public TokenTestDataBuilder WithUsername(string user)

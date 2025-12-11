@@ -1,0 +1,5 @@
+
+dn: cn=reporter,ou=role,{{ openldap_path }}
+changetype: modify
+add: uniquemember
+uniquemember: cn=integration_test_user_jwt_refresh,ou=tenant0{{ sample_postfix }},ou=operator,ou=user,{{ openldap_path }}

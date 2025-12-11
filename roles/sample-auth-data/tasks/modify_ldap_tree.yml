@@ -13,6 +13,7 @@
     - sample_tenants
     - sample_operators
     - sample_groups
+    - integration_testuser_jwt
   become: true
 
 # only add roles and groups when not testing to avoid resudue from tests
@@ -21,5 +22,6 @@
   loop:
     - roles_for_sample_operators
     - groups_for_sample_operators
+    - roles_for_integration_testuser
   become: true
   when: sample_role_purpose is not match('test')

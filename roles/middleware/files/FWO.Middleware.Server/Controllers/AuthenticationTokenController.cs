@@ -37,104 +37,15 @@ namespace FWO.Middleware.Server.Controllers
         }
 
         /// <summary>
-        /// Generates an authentication token (jwt) given valid credentials.  
+        /// Generates a new access and refresh token pair for a user based on the provided authentication parameters.
         /// </summary>
-        /// <remarks>
-        /// Username (required)&#xA;
-        /// Password (required)
-        /// </remarks>
-        /// <param name="parameters">Credentials</param>
-        /// <returns>Jwt, if credentials are vaild.</returns>
-        [Obsolete("This endpoint is deprecated. Use GetTokenPair instead for better security with refresh tokens.")]
-        [HttpPost("Get")]
-        public async Task<ActionResult<string>> GetAsync([FromBody] AuthenticationTokenGetParameters parameters)
-        {
-            try
-            {
-                UiUser? user = null;
-
-                if (parameters != null)
-                {
-                    string? username = parameters.Username;
-                    string? password = parameters.Password;
-
-                    // Create User from given parameters / If user does not provide login data => anonymous login
-                    if (username != null && password != null)
-                        user = new UiUser { Name = username, Password = password };
-                }
-
-                AuthManager authManager = new(jwtWriter, ldaps, apiConnection);
-
-                // Authenticate user
-                string jwt = await authManager.AuthorizeUserAsync(user, validatePassword: true);
-
-                return Ok(jwt);
-            }
-            catch (Exception e)
-            {
-                return BadRequest(e.Message);
-            }
-        }
-
-        /// <summary>
-        /// Generates an authentication token (jwt) for the specified user given valid admin credentials.  
-        /// </summary>
-        /// <remarks>
-        /// AdminUsername (required) - Example: "admin" &#xA;
-        /// AdminPassword (required) - Example: "password" &#xA;
-        /// Lifetime (optional) - Example: "365.12:02:00" ("days.hours:minutes:seconds") &#xA;
-        /// TargetUserDn OR TargetUserName (required) - Example: "uid=demo_user,ou=tenant0,ou=operator,ou=user,dc=fworch,dc=internal" OR "demo_user" 
-        /// </remarks>
-        /// <param name="parameters">Admin Credentials, Lifetime, User</param>
-        /// <returns>User jwt, if credentials are vaild.</returns>
-        [Obsolete("This endpoint is deprecated. Use GetTokenPairForUser instead for better security with refresh tokens.")]
-        [HttpPost("GetForUser")]
-        public async Task<ActionResult<string>> GetAsyncForUser([FromBody] AuthenticationTokenGetForUserParameters parameters)
-        {
-            try
-            {
-                string adminUsername = parameters.AdminUsername;
-                string adminPassword = parameters.AdminPassword;
-                TimeSpan lifetime = parameters.Lifetime;
-                string targetUserName = parameters.TargetUserName;
-                string targetUserDn = parameters.TargetUserDn;
-
-                AuthManager authManager = new(jwtWriter, ldaps, apiConnection);
-                UiUser adminUser = new() { Name = adminUsername, Password = adminPassword };
-                // Check if admin valids are valid
-                try
-                {
-                    await authManager.AuthorizeUserAsync(adminUser, validatePassword: true);
-                    if (!adminUser.Roles.Contains(Roles.Admin))
-                    {
-                        throw new AuthenticationException("Provided credentials do not belong to a user with role admin.");
-                    }
-                }
-                catch (Exception e)
-                {
-                    throw new AuthenticationException("Error while validating admin credentials: " + e.Message);
-                }
-                // Check if username is valid and generate jwt
-                try
-                {
-                    UiUser targetUser = new() { Name = targetUserName, Dn = targetUserDn };
-                    string jwt = await authManager.AuthorizeUserAsync(targetUser, validatePassword: false, lifetime);
-                    return Ok(jwt);
-                }
-                catch (Exception e)
-                {
-                    throw new AuthenticationException("Error while validating user credentials (user name): " + e.Message);
-                }
-            }
-            catch (Exception e)
-            {
-                return BadRequest(e.Message);
-            }
-        }
-
-        /// <summary>
-        /// Generates authentication tokens (access + refresh) given valid credentials.
-        /// </summary>
+        /// <remarks>This endpoint is typically used during user login to obtain tokens for subsequent
+        /// authenticated requests. The access token is stored in the database as a hash for security purposes. Ensure
+        /// that the credentials provided are valid to receive a token pair.</remarks>
+        /// <param name="parameters">The authentication parameters containing the user's credentials. Must include a valid username and password.
+        /// Cannot be null.</param>
+        /// <returns>An <see cref="ActionResult{TokenPair}"/> containing the generated access and refresh tokens if
+        /// authentication is successful; otherwise, a bad request result with an error message.</returns>
         [HttpPost("GetTokenPair")]
         public async Task<ActionResult<TokenPair>> GetTokenPairAsync([FromBody] AuthenticationTokenGetParameters parameters)
         {
@@ -179,7 +90,6 @@ namespace FWO.Middleware.Server.Controllers
         /// operation succeeds; otherwise, a bad request result with an error message.</returns>
         /// <exception cref="AuthenticationException">Thrown if the provided administrator credentials do not correspond to a user with the admin role.</exception>
         [HttpPost("GetTokenPairForUser")]
-        [Authorize(Roles = $"{Roles.Admin}")]
         public async Task<ActionResult<TokenPair>> GetTokenPairForUser([FromBody] AuthenticationTokenGetForUserParameters parameters)
         {
             try

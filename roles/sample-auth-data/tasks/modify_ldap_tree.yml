@@ -7,21 +7,56 @@
     - ../templates/tree_*.j2
   become: true
 
-- name: add tree
+- name: check if integration user exists
+  command: "ldapsearch -H {{ openldap_url }} -D {{ openldap_superuser_dn }} -y {{ ldap_manager_pwd_file }} -x -b 'uid=integration_user_jwt_refresh_test,ou=tenant0,ou=operator,ou=user,{{ openldap_path }}' '(objectClass=*)'"
+  register: user_exists
+  failed_when: false
+  changed_when: false
+  become: true
+
+- name: add or modify tree entries
   command: "ldapmodify -H {{ openldap_url }} -D {{ openldap_superuser_dn }} -y {{ ldap_manager_pwd_file }} -x -f {{ middleware_ldif_dir }}/tree_{{ item }}.ldif"
   loop:
     - sample_tenants
     - sample_operators
     - sample_groups
     - integration_testuser_jwt
+  register: ldap_result
+  failed_when: 
+    - ldap_result.rc != 0
+    - "'Already exists' not in ldap_result.stderr"
+  changed_when: ldap_result.rc == 0
   become: true
 
-# only add roles and groups when not testing to avoid resudue from tests
-- name: add tree
+- name: add or modify tree entries (conditional)
   command: "ldapmodify -H {{ openldap_url }} -D {{ openldap_superuser_dn }} -y {{ ldap_manager_pwd_file }} -x -f {{ middleware_ldif_dir }}/tree_{{ item }}.ldif"
   loop:
     - roles_for_sample_operators
     - groups_for_sample_operators
     - roles_for_integration_testuser
+  register: ldap_result
+  failed_when: 
+    - ldap_result.rc != 0
+    - "'Already exists' not in ldap_result.stderr"
+  changed_when: ldap_result.rc == 0
   become: true
   when: sample_role_purpose is not match('test')
+
+# - name: add tree
+#   command: "ldapmodify -H {{ openldap_url }} -D {{ openldap_superuser_dn }} -y {{ ldap_manager_pwd_file }} -x -f {{ middleware_ldif_dir }}/tree_{{ item }}.ldif"
+#   loop:
+#     - sample_tenants
+#     - sample_operators
+#     - sample_groups
+#     - integration_testuser_jwt
+#   become: true
+
+# only add roles and groups when not testing to avoid resudue from tests
+# - name: add tree
+#   command: "ldapmodify -H {{ openldap_url }} -D {{ openldap_superuser_dn }} -y {{ ldap_manager_pwd_file }} -x -f {{ middleware_ldif_dir }}/tree_{{ item }}.ldif"
+#   loop:
+#     - roles_for_sample_operators
+#     - groups_for_sample_operators
+#     - roles_for_integration_testuser
+#   become: true
+#   when: sample_role_purpose is not match('test')

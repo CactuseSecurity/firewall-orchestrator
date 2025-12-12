@@ -30,20 +30,21 @@
 - name: Extract JWT header and payload
   set_fact:
     jwt_header: "{{ (sample_jwt.json.AccessToken.split('.')[0] | b64decode | from_json) }}"
+    jwt_payload: "{{ (sample_jwt.json.AccessToken.split('.')[1] | b64decode | from_json) }}"
 
-- ansible.builtin.debug:
-      var: jwt_header
+- ansible.builtin.debug: { var: jwt_header }
+- ansible.builtin.debug: { var: jwt_payload }
 
-# --- JWT header decode (base64url -> json) ---
-- name: extract raw jwt header and payload segments
-  ansible.builtin.set_fact:
-      encoded_jwt: "{{ sample_jwt.json.AccessToken }}"
+# # --- JWT header decode (base64url -> json) ---
+# - name: extract raw jwt header and payload segments
+#   ansible.builtin.set_fact:
+#       encoded_jwt: "{{ sample_jwt.json.AccessToken }}"
 
-- ansible.builtin.set_fact:
-      decoded_jwt: "{{ encoded_jwt | b64decode }}"
+# - ansible.builtin.set_fact:
+#       decoded_jwt: "{{ encoded_jwt | b64decode }}"
 
-- ansible.builtin.debug: { var: encoded_jwt }
-- ansible.builtin.debug: { var: decoded_jwt }
+# - ansible.builtin.debug: { var: encoded_jwt }
+# - ansible.builtin.debug: { var: decoded_jwt }
 
 - name: pick header 'typ'
   ansible.builtin.set_fact:

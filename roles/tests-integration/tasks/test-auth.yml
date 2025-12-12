@@ -29,7 +29,7 @@
 
 - name: Extract JWT header and payload
   set_fact:
-    jwt_header: "{{ (sample_jwt.json.AccessToken.split('.') | b64decode | from_json) }}"
+    jwt_header: "{{ (sample_jwt.json.AccessToken.split('.')[0] | b64decode | from_json) }}"
 
 - ansible.builtin.debug:
       var: jwt_header

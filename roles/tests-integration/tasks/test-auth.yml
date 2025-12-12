@@ -33,6 +33,9 @@
       jwt_header_raw: "{{ sample_jwt.content.split('.')[0] }}"
       jwt_payload_raw: "{{ sample_jwt.content.split('.')[1] }}"
 
+- ansible.builtin.debug: { var: jwt_header_raw }
+- ansible.builtin.debug: { var: jwt_payload_raw }
+
 # pad and translate base64url for header
 - name: normalize/pad base64url header
   ansible.builtin.set_fact:

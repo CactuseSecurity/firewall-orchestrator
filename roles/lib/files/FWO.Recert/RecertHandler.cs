@@ -9,7 +9,10 @@ namespace FWO.Recert
     {
         public async Task InitOwnerRecert(FwoOwner owner)
         {
-            await RecertifyOwner(owner, "Initial Owner Recert", true);
+            if((await apiConnection.SendQueryAsync<List<OwnerRecertification>>(RecertQueries.getInitialOwnerRecert, new{ownerId = owner.Id})).Count == 0)
+            {
+                await RecertifyOwner(owner, "Initial Owner Recert", true);
+            }
         }
 
         public async Task<FwoOwner> RecertifyOwnerWithRules(FwoOwner owner, List<Rule> rules, string? comment, bool initialRecert = false)

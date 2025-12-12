@@ -33,6 +33,7 @@
     jwt_payload_raw: "{{ sample_jwt.json.AccessToken.split('.')[1] }}"
 
 - ansible.builtin.debug: { var: jwt_header }
+- ansible.builtin.debug: { var: jwt_payload_raw }
 
 - name: pick header 'typ'
   ansible.builtin.set_fact:

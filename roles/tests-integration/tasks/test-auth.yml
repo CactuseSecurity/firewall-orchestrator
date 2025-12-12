@@ -30,20 +30,9 @@
 - name: Extract JWT header and payload
   set_fact:
     jwt_header: "{{ (sample_jwt.json.AccessToken.split('.')[0] | b64decode | from_json) }}"
+    jwt_payload_raw: "{{ sample_jwt.json.AccessToken.split('.')[1] }}"
 
 - ansible.builtin.debug: { var: jwt_header }
-#- ansible.builtin.debug: { var: jwt_payload }
-
-# # --- JWT header decode (base64url -> json) ---
-# - name: extract raw jwt header and payload segments
-#   ansible.builtin.set_fact:
-#       encoded_jwt: "{{ sample_jwt.json.AccessToken }}"
-
-# - ansible.builtin.set_fact:
-#       decoded_jwt: "{{ encoded_jwt | b64decode }}"
-
-# - ansible.builtin.debug: { var: encoded_jwt }
-# - ansible.builtin.debug: { var: decoded_jwt }
 
 - name: pick header 'typ'
   ansible.builtin.set_fact:
@@ -55,6 +44,14 @@
   ansible.builtin.debug:
       msg: "ERROR unexpected jwt test result (jwt_type does not match 'JWT'): {{ jwt_type }}"
   when: "jwt_type is not match('JWT')"
+
+- name: Add padding to payload for base64 decoding
+  set_fact:
+    jwt_payload_padded: "{{ jwt_payload_raw }}{{ '=' * ((4 - (jwt_payload_raw | length) % 4) % 4) }}"
+
+- name: Decode JWT payload
+  set_fact:
+    jwt_payload: "{{ (jwt_payload_padded | b64decode | from_json) }}"
 
 - name: show jwt decoded payload
   ansible.builtin.debug:

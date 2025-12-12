@@ -27,6 +27,13 @@
 - ansible.builtin.debug:
       var: sample_jwt
 
+- name: Extract JWT header and payload
+  set_fact:
+    jwt_header: "{{ (sample_jwt.json.AccessToken.split('.') | b64decode | from_json) }}"
+
+- ansible.builtin.debug:
+      var: jwt_header
+
 # --- JWT header decode (base64url -> json) ---
 - name: extract raw jwt header and payload segments
   ansible.builtin.set_fact:

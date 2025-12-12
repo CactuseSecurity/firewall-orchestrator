@@ -7,11 +7,22 @@
     - ../templates/tree_*.j2
   become: true
 
-- name: check if integration user exists
-  command: "ldapsearch -H {{ openldap_url }} -D {{ openldap_superuser_dn }} -y {{ ldap_manager_pwd_file }} -x -b 'uid=integration_user_jwt_refresh_test,ou=tenant0,ou=operator,ou=user,{{ openldap_path }}' '(objectClass=*)'"
-  register: user_exists
-  failed_when: false
-  changed_when: false
+# - name: check if integration user exists
+#   command: "ldapsearch -H {{ openldap_url }} -D {{ openldap_superuser_dn }} -y {{ ldap_manager_pwd_file }} -x -b 'uid=integration_user_jwt_refresh_test,ou=tenant0,ou=operator,ou=user,{{ openldap_path }}' '(objectClass=*)'"
+#   register: user_exists
+#   failed_when: false
+#   changed_when: false
+#   become: true
+
+- name: add or modify tree entries
+  command: "ldapmodify -H {{ openldap_url }} -D {{ openldap_superuser_dn }} -y {{ ldap_manager_pwd_file }} -x -f {{ middleware_ldif_dir }}/tree_{{ item }}.ldif"
+  loop:
+    - integration_testuser_jwt
+  register: ldap_result
+  failed_when: 
+    - ldap_result.rc != 0
+    - "'Already exists' not in ldap_result.stderr"
+  changed_when: ldap_result.rc == 0
   become: true
 
 # - name: add or modify tree entries
@@ -48,7 +59,7 @@
     - sample_tenants
     - sample_operators
     - sample_groups
-    - integration_testuser_jwt
+#    - integration_testuser_jwt
   become: true
 
 #only add roles and groups when not testing to avoid resudue from tests

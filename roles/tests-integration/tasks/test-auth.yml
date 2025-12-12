@@ -30,8 +30,8 @@
 # --- JWT header decode (base64url -> json) ---
 - name: extract raw jwt header and payload segments
   ansible.builtin.set_fact:
-      jwt_header_raw: "{{ sample_jwt.content.split('.')[0] }}"
-      jwt_payload_raw: "{{ sample_jwt.content.split('.')[1] }}"
+      jwt_header_raw: "{{ sample_jwt.json.AccessToken }}"
+      jwt_payload_raw: "{{ sample_jwt.json.AccessToken }}"
 
 - ansible.builtin.debug: { var: jwt_header_raw }
 - ansible.builtin.debug: { var: jwt_payload_raw }

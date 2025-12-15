@@ -464,6 +464,7 @@ else
     private RecertCheckParams actRecCheckParams = new();
     private bool recertCalcInProgress = false;
     private bool ManageLifeCyclesMode = false;
+    private bool RecertActiveBefore = false;
 
     private List<NwObjectElement> actIpAddresses = [];
     private List<NwObjectElement> ipsToAdd = [];
@@ -643,6 +644,7 @@ else
         try
         {
             actOwner = owner;
+            RecertActiveBefore = actOwner.RecertActive;
             selectedTenant = tenants.FirstOrDefault(x => x.Id == actOwner.TenantId);
             selectedOwnerLifeCycleState = ownerLifeCycleStates.FirstOrDefault(x => x.Id == actOwner.OwnerLifeCycleStateId);
             actRecCheckParams = (actOwner.RecertCheckParamString != null ? System.Text.Json.JsonSerializer.Deserialize<RecertCheckParams>(actOwner.RecertCheckParamString) ?? new RecertCheckParams() : new RecertCheckParams());
@@ -698,6 +700,11 @@ else
                 AnalyseSampleOwners();
                 EditOwnerMode = false;
                 AddOwnerMode = false;
+            }
+            if(actOwner.RecertActive && !RecertActiveBefore)
+            {
+                RecertHandler recertHandler = new(apiConnection, userConfig);
+                await recertHandler.InitOwnerRecert(actOwner);
             }
         }
         catch (Exception exception)

@@ -94,7 +94,7 @@
   become: false
   environment: "{{ proxy_env }}"
 
-- name: get last known good versions (GitHub API raw)
+- name: get last known good versions (github api raw)
   uri:
       url: https://api.github.com/repos/GoogleChromeLabs/chrome-for-testing/contents/data/last-known-good-versions-with-downloads.json?ref=main
       headers:
@@ -105,48 +105,19 @@
   become: false
   environment: "{{ proxy_env }}"
 
-- name: fallback - get last known good versions (raw.githubusercontent.com)
-  uri:
-      url: https://raw.githubusercontent.com/GoogleChromeLabs/chrome-for-testing/main/data/last-known-good-versions-with-downloads.json
-      return_content: true
-      headers:
-          Accept: application/json
-  register: chrome_versions_fallback
-  failed_when: false
-  become: false
-  environment: "{{ proxy_env }}"
-
-- name: load bundled chrome metadata when network is blocked
-  set_fact:
-      chrome_versions_local_content: "{{ lookup('file', chrome_versions_local_path | default(role_path + '/files/chrome/last-known-good-versions-with-downloads.json'), errors='ignore') }}"
-  when:
-      - chrome_versions_primary.status | default(-1) != 200
-      - chrome_versions_github_api.status | default(-1) != 200
-      - chrome_versions_fallback.status | default(-1) != 200
-
-- name: pick chrome metadata source (primary -> fallback -> bundled)
+- name: pick chrome metadata source (primary -> github api)
   set_fact:
       chrome_versions: >-
           {{
             chrome_versions_primary
             if (chrome_versions_primary.status | default(-1)) == 200 else
-            (
-              chrome_versions_github_api
-              if (chrome_versions_github_api.status | default(-1)) == 200 else
-              (
-                chrome_versions_fallback
-                if (chrome_versions_fallback.status | default(-1)) == 200 else
-                {'content': chrome_versions_local_content}
-              )
-            )
+            chrome_versions_github_api
           }}
 
 - name: fail when no chrome metadata available
   fail:
-      msg: >-
-          Could not fetch Chrome for Testing version metadata.
-          Allow proxy access, or set chrome_versions_local_path to a reachable JSON file.
-  when: chrome_versions.content is not defined or (chrome_versions.content | string | trim | length) == 0
+      msg: "Could not fetch Chrome for Testing version metadata via primary URL or GitHub API."
+  when: chrome_versions.status | default(-1) != 200
 
 # Parse once, regardless of Content-Type
 - name: normalize/parse JSON response

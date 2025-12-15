@@ -603,29 +603,29 @@ namespace FWO.Compliance
             List<(NetworkObject networkObject, List<ComplianceNetworkZone> networkZones)> sourceZones = MapZonesToNetworkObjects(fromsTask.Result);
             List<(NetworkObject networkObject, List<ComplianceNetworkZone> networkZones)> destinationZones = MapZonesToNetworkObjects(tosTask.Result);
 
-            foreach ((NetworkObject networkObject, List<ComplianceNetworkZone> networkZones) sourceZone in sourceZones)
-            {
-                foreach (ComplianceNetworkZone sourceNetworkZone in sourceZone.networkZones)
-                {
-                    foreach ((NetworkObject networkObject, List<ComplianceNetworkZone> networkZones) destinationZone in destinationZones)
-                    {
-                        foreach (ComplianceNetworkZone destinationNetworkZone in destinationZone.networkZones)
-                        {
-                            if (!sourceNetworkZone.CommunicationAllowedTo(destinationNetworkZone))
-                            {
-                                ComplianceCheckResult complianceCheckResult = new(rule, ComplianceViolationType.MatrixViolation)
-                                {
-                                    Criterion = criterion,
-                                    Source = sourceZone.networkObject,
-                                    SourceZone = sourceNetworkZone,
-                                    Destination = destinationZone.networkObject,
-                                    DestinationZone = destinationNetworkZone
-                                };
+            Dictionary<ComplianceNetworkZone, List<NetworkObject>> sourceObjectsByZone = MapObjectsByZone(sourceZones);
+            Dictionary<ComplianceNetworkZone, List<NetworkObject>> destinationObjectsByZone = MapObjectsByZone(destinationZones);
 
-                                CreateViolation(ComplianceViolationType.MatrixViolation, rule, complianceCheckResult);
-                                ruleIsCompliant = false;
-                            }
-                        }
+            foreach ((ComplianceNetworkZone sourceZone, List<NetworkObject> sourceObjects) in sourceObjectsByZone)
+            {
+                foreach ((ComplianceNetworkZone destinationZone, List<NetworkObject> destinationObjects) in destinationObjectsByZone)
+                {
+                    if (!sourceZone.CommunicationAllowedTo(destinationZone))
+                    {
+                        ruleIsCompliant = false;
+                        string sourceObjectsString = string.Join(", ", sourceObjects.Select(GetNwObjectString).Distinct());
+                        string destinationObjectsString = string.Join(", ", destinationObjects.Select(GetNwObjectString).Distinct());
+
+                        string details = $"{_userConfig.GetText("H5839")}: {sourceZone.Name} ({sourceObjectsString}) -> {destinationZone.Name} ({destinationObjectsString})";
+
+                        ComplianceCheckResult complianceCheckResult = new(rule, ComplianceViolationType.MatrixViolation)
+                        {
+                            Criterion = criterion,
+                            SourceZone = sourceZone,
+                            DestinationZone = destinationZone
+                        };
+
+                        CreateViolation(ComplianceViolationType.MatrixViolation, rule, complianceCheckResult, details);
                     }
                 }
             }
@@ -633,7 +633,7 @@ namespace FWO.Compliance
             return ruleIsCompliant;
         }
 
-        private void CreateViolation(ComplianceViolationType violationType, Rule rule, ComplianceCheckResult complianceCheckResult)
+        private void CreateViolation(ComplianceViolationType violationType, Rule rule, ComplianceCheckResult complianceCheckResult, string? detailsOverride = null)
         {
             ComplianceViolation violation = new()
             {
@@ -648,7 +648,11 @@ namespace FWO.Compliance
             {
                 case ComplianceViolationType.MatrixViolation:
 
-                    if (complianceCheckResult.Source is NetworkObject s && complianceCheckResult.Destination is NetworkObject d)
+                    if (!string.IsNullOrEmpty(detailsOverride))
+                    {
+                        violation.Details = detailsOverride;
+                    }
+                    else if (complianceCheckResult.Source is NetworkObject s && complianceCheckResult.Destination is NetworkObject d)
                     {
                         string sourceString = GetNwObjectString(s);
                         string destinationString = GetNwObjectString(d);
@@ -876,6 +880,32 @@ namespace FWO.Compliance
                 }
 
                 map.Add((dataItem.networkObject, networkZones));
+            }
+
+            return map;
+        }
+
+        private Dictionary<ComplianceNetworkZone, List<NetworkObject>> MapObjectsByZone(List<(NetworkObject networkObject, List<ComplianceNetworkZone> networkZones)> objectsWithZones)
+        {
+            Dictionary<ComplianceNetworkZone, List<NetworkObject>> map = new();
+
+            foreach ((NetworkObject networkObject, List<ComplianceNetworkZone> networkZones) item in objectsWithZones)
+            {
+                if (item.networkZones == null || item.networkZones.Count == 0)
+                {
+                    continue;
+                }
+
+                foreach (ComplianceNetworkZone zone in item.networkZones)
+                {
+                    if (!map.TryGetValue(zone, out List<NetworkObject>? objectsInZone))
+                    {
+                        objectsInZone = [];
+                        map.Add(zone, objectsInZone);
+                    }
+
+                    objectsInZone.Add(item.networkObject);
+                }
             }
 
             return map;

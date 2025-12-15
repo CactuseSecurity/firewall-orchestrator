@@ -31,8 +31,8 @@ namespace FWO.Test
 
         // Parameters for test configuration
 
-        private const string ExpectedViolationDetailsAutoCalcTrue = "Matrix violation: source-uid-rule3 (3.0.0.0-4.0.0.0) (Zone: Auto-calculated Internet Zone) -> destination-uid-rule3 (128.0.0.0-168.0.0.0) (Zone: 128-168 Zone)";
-        private const string ExpectedViolationDetailsAutoCalcFalse = "Matrix violation: source-uid-rule3 (3.0.0.0-4.0.0.0) (Zone: Internet/Local) -> destination-uid-rule3 (128.0.0.0-168.0.0.0) (Zone: 128-168 Zone)";
+        private const string ExpectedViolationDetailsAutoCalcTrue = "Matrix violation: Auto-calculated Internet Zone (source-uid-rule3 (3.0.0.0-4.0.0.0)) -> 128-168 Zone (destination-uid-rule3 (128.0.0.0-168.0.0.0))";
+        private const string ExpectedViolationDetailsAutoCalcFalse = "Matrix violation: Internet/Local (source-uid-rule3 (3.0.0.0-4.0.0.0)) -> 128-168 Zone (destination-uid-rule3 (128.0.0.0-168.0.0.0))";
 
         [SetUp]
         public override void SetUpTest()

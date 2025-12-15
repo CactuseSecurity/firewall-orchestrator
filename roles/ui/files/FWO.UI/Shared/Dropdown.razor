@@ -49,10 +49,8 @@
 
 @code
 {
-    #nullable enable
-
     [Inject]
-    private IJSRuntime? jsRuntime { get; set; }
+    private IJSRuntime jsRuntime { get; set; } = default!;
 
     private int xPositionDropdown;
     private int yPositionDropdown;
@@ -169,7 +167,7 @@
         }
 
         // Toggle on resize of Window / scroll outside of dropdown (to avoid positional problems)
-        if (!eventService.Initialized && jsRuntime != null)
+        if (!eventService.Initialized)
         {
             await eventService.Initialize(jsRuntime);
         }
@@ -189,7 +187,7 @@
     {
         try
         {
-            if(jsRuntime == null || JsDisposed)
+            if(JsDisposed)
             {
                 throw new ObjectDisposedException(nameof(jsRuntime));                
             }
@@ -223,7 +221,7 @@
     {
         try
         {
-            if (jsRuntime != null && !await jsRuntime.InvokeAsync<bool>("isChild", elementId, $"dropdown-{Id}") &&
+            if (!JsDisposed && !await jsRuntime.InvokeAsync<bool>("isChild", elementId, $"dropdown-{Id}") &&
                 !await jsRuntime.InvokeAsync<bool>("isChild", elementId, $"dropdown-menu-{Id}"))
             {
                 Toggled = true;
@@ -335,10 +333,6 @@
             eventService.OnGlobalClick -= OnGlobalClick;
         }
 
-        if (jsRuntime is not null)
-        {
-            jsRuntime = null;
-            JsDisposed = true;
-        }
+        JsDisposed = true;
     }
 }

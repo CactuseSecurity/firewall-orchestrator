@@ -85,24 +85,68 @@
   environment: "{{ proxy_env }}"
 
 # get google chrome for pdf generation
-- block:
-      - name: get last known good versions (primary)
-        uri:
-            url: https://googlechromelabs.github.io/chrome-for-testing/last-known-good-versions-with-downloads.json
-            return_content: true
-        register: chrome_versions
-        become: false
-
-  rescue:
-      - name: fallback - get last known good versions (raw.githubusercontent.com)
-        uri:
-            url: https://raw.githubusercontent.com/GoogleChromeLabs/chrome-for-testing/main/data/last-known-good-versions-with-downloads.json
-            return_content: true
-            headers:
-                Accept: application/json
-        register: chrome_versions
-        become: false
+- name: get last known good versions (primary)
+  uri:
+      url: https://googlechromelabs.github.io/chrome-for-testing/last-known-good-versions-with-downloads.json
+      return_content: true
+  register: chrome_versions_primary
+  failed_when: false
+  become: false
   environment: "{{ proxy_env }}"
+
+- name: get last known good versions (GitHub API raw)
+  uri:
+      url: https://api.github.com/repos/GoogleChromeLabs/chrome-for-testing/contents/data/last-known-good-versions-with-downloads.json?ref=main
+      headers:
+          Accept: application/vnd.github.v3.raw
+      return_content: true
+  register: chrome_versions_github_api
+  failed_when: false
+  become: false
+  environment: "{{ proxy_env }}"
+
+- name: fallback - get last known good versions (raw.githubusercontent.com)
+  uri:
+      url: https://raw.githubusercontent.com/GoogleChromeLabs/chrome-for-testing/main/data/last-known-good-versions-with-downloads.json
+      return_content: true
+      headers:
+          Accept: application/json
+  register: chrome_versions_fallback
+  failed_when: false
+  become: false
+  environment: "{{ proxy_env }}"
+
+- name: load bundled chrome metadata when network is blocked
+  set_fact:
+      chrome_versions_local_content: "{{ lookup('file', chrome_versions_local_path | default(role_path + '/files/chrome/last-known-good-versions-with-downloads.json'), errors='ignore') }}"
+  when:
+      - chrome_versions_primary.status | default(-1) != 200
+      - chrome_versions_github_api.status | default(-1) != 200
+      - chrome_versions_fallback.status | default(-1) != 200
+
+- name: pick chrome metadata source (primary -> fallback -> bundled)
+  set_fact:
+      chrome_versions: >-
+          {{
+            chrome_versions_primary
+            if (chrome_versions_primary.status | default(-1)) == 200 else
+            (
+              chrome_versions_github_api
+              if (chrome_versions_github_api.status | default(-1)) == 200 else
+              (
+                chrome_versions_fallback
+                if (chrome_versions_fallback.status | default(-1)) == 200 else
+                {'content': chrome_versions_local_content}
+              )
+            )
+          }}
+
+- name: fail when no chrome metadata available
+  fail:
+      msg: >-
+          Could not fetch Chrome for Testing version metadata.
+          Allow proxy access, or set chrome_versions_local_path to a reachable JSON file.
+  when: chrome_versions.content is not defined or (chrome_versions.content | string | trim | length) == 0
 
 # Parse once, regardless of Content-Type
 - name: normalize/parse JSON response

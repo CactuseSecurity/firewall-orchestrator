@@ -102,6 +102,7 @@
                 Accept: application/json
         register: chrome_versions
         become: false
+  environment: "{{ proxy_env }}"
 
 # Parse once, regardless of Content-Type
 - name: normalize/parse JSON response

@@ -17,6 +17,7 @@ namespace FWO.Api.Client.Queries
         public static readonly string addRecertEntries;
         public static readonly string refreshViewRuleWithOwner;
         public static readonly string getOwnerRecerts;
+        public static readonly string getInitialOwnerRecert;
         public static readonly string updateRecertReportId;
 
 
@@ -41,6 +42,7 @@ namespace FWO.Api.Client.Queries
                 addRecertEntries = File.ReadAllText(QueryPath + "recertification/addRecertEntries.graphql");
                 refreshViewRuleWithOwner = File.ReadAllText(QueryPath + "recertification/refreshViewRuleWithOwner.graphql");
                 getOwnerRecerts = File.ReadAllText(QueryPath + "recertification/getOwnerRecerts.graphql");
+                getInitialOwnerRecert = File.ReadAllText(QueryPath + "recertification/getInitialOwnerRecert.graphql");
                 updateRecertReportId = File.ReadAllText(QueryPath + "recertification/updateRecertReportId.graphql");
             }
             catch (Exception exception)

@@ -220,7 +220,7 @@
             AnalyseRemainingRules = userConfig.ModRecertExpectAllModelled,
             RulesForDeletedConns = true
         };
-        VarianceResult = await varianceAnalysis.AnalyseRulesVsModelledConnections(AppHandler!.Connections, modellingFilter, true, true);
+        VarianceResult = await varianceAnalysis.AnalyseRulesVsModelledConnections(ModelledConnections, modellingFilter, true, true);
         RulesFromDeletedConns = [];
         foreach(var mgt in VarianceResult.DeletedModelsRules.Keys)
         {

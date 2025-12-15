@@ -957,7 +957,7 @@ namespace FWO.Services
             if(appRole != null)
             {
                 actAppRole = appRole;
-                DeleteAllowed = !await CheckAppRoleIsInUse();
+                DeleteAllowed = ! await CheckAppRoleIsInUse();
                 Message = DeleteAllowed ? userConfig.GetText("U9002") + actAppRole.Name + "?" : userConfig.GetText("E9009") + actAppRole.Name;
                 DeleteAppRoleMode = true;
             }
@@ -967,15 +967,12 @@ namespace FWO.Services
         {
             try
             {
-                if (SrcAppRolesToAdd.FirstOrDefault(s => s.Id == actAppRole.Id) == null && DstAppRolesToAdd.FirstOrDefault(s => s.Id == actAppRole.Id) == null)
+                if (SrcAppRolesToAdd.Any(s => s.Id == actAppRole.Id) || DstAppRolesToAdd.Any(s => s.Id == actAppRole.Id))
                 {
-                    FoundConnectionsForAppRole = [.. ModellingConnectionWrapper.Resolve(await apiConnection.SendQueryAsync<List<ModellingConnectionWrapper>>(ModellingQueries.getConnectionIdsForNwGroup, new { id = actAppRole.Id }))];
-                    if(FoundConnectionsForAppRole.Where(c => !c.Removed).ToList().Count == 0)
-                    {
-                        return false;
-                    }
+                    return true;
                 }
-                return true;
+                FoundConnectionsForAppRole = [.. ModellingConnectionWrapper.Resolve(await apiConnection.SendQueryAsync<List<ModellingConnectionWrapper>>(ModellingQueries.getConnectionIdsForNwGroup, new { id = actAppRole.Id }))];
+                return FoundConnectionsForAppRole.Any(c => !c.Removed);
             }
             catch(Exception exception)
             {

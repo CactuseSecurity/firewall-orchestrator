@@ -4,6 +4,7 @@
 @typeparam ElementType
 
 @inject DomEventService eventService
+@inject IJSRuntime? jsRuntime
 @implements IDisposable
 
 <div id="@($"dropdown-{Id}")" class="input-group @(Small ? "input-group-sm" : "")">
@@ -49,9 +50,6 @@
 
 @code
 {
-    [Inject]
-    private IJSRuntime jsRuntime { get; set; } = default!;
-
     private int xPositionDropdown;
     private int yPositionDropdown;
     private bool JsDisposed { get; set; }
@@ -167,7 +165,7 @@
         }
 
         // Toggle on resize of Window / scroll outside of dropdown (to avoid positional problems)
-        if (!eventService.Initialized)
+        if (!eventService.Initialized && jsRuntime != null)
         {
             await eventService.Initialize(jsRuntime);
         }
@@ -187,7 +185,7 @@
     {
         try
         {
-            if(JsDisposed)
+            if(jsRuntime == null || JsDisposed)
             {
                 throw new ObjectDisposedException(nameof(jsRuntime));                
             }
@@ -221,7 +219,7 @@
     {
         try
         {
-            if (!JsDisposed && !await jsRuntime.InvokeAsync<bool>("isChild", elementId, $"dropdown-{Id}") &&
+            if (jsRuntime != null && !await jsRuntime.InvokeAsync<bool>("isChild", elementId, $"dropdown-{Id}") &&
                 !await jsRuntime.InvokeAsync<bool>("isChild", elementId, $"dropdown-menu-{Id}"))
             {
                 Toggled = true;
@@ -333,6 +331,10 @@
             eventService.OnGlobalClick -= OnGlobalClick;
         }
 
-        JsDisposed = true;
+        if (jsRuntime is not null)
+        {
+            jsRuntime = null;
+            JsDisposed = true;
+        }
     }
 }

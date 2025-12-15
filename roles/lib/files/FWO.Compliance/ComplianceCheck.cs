@@ -296,11 +296,14 @@ namespace FWO.Compliance
                 .SelectMany(rule => rule.Violations)
                 .Select(violation => (violation, CreateUniqueViolationKey(violation)))
                 .ToList();
+
             List<(ComplianceViolation Violation, string Key)> currentViolationsWithKeys = CurrentViolationsInCheck
                 .Select(violation => (violation, CreateUniqueViolationKey(violation)))
                 .ToList();
+
             HashSet<string> currentKeySet = currentViolationsWithKeys.Select(v => v.Key).ToHashSet(StringComparer.Ordinal);
             HashSet<string> dbKeySet = dbViolationsWithKeys.Select(v => v.Key).ToHashSet(StringComparer.Ordinal);
+            
             ParallelOptions parallelOptions = new()
             {
                 MaxDegreeOfParallelism = Math.Max(1, _maxDegreeOfParallelism)

@@ -49,7 +49,7 @@ namespace FWO.Data
                 SvcName = networkService.Name,
                 SvcPort = networkService.DestinationPort,
                 SvcPortEnd = networkService.DestinationPortEnd,
-                SvcColor = networkService.Color.Name,
+                SvcColor = networkService.Color?.Name ?? "",
                 SvcType = networkService.Type.Name,
                 IpProtocol = networkService.ProtoId,
                 SvcMemberRefs = networkService.MemberRefs,

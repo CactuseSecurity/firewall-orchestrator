@@ -628,21 +628,6 @@ Alter table "rule" DROP constraint IF EXISTS "rule_rule_metadata_rule_uid_f_key"
 Alter table "rule" add constraint "rule_rule_metadata_rule_uid_f_key"
   foreign key ("rule_uid") references "rule_metadata" ("rule_uid") on update restrict on delete cascade;
 
-
--- DROP MATERIALIZED VIEW IF EXISTS view_rule_with_owner;
-
--- CREATE MATERIALIZED VIEW view_rule_with_owner AS
--- 	SELECT DISTINCT ar.rule_id, ar.owner_id, ar.owner_name, ar.matches, ar.recert_interval, ar.rule_last_certified, 
--- 	r.rule_num_numeric, r.track_id, r.action_id, r.rule_from_zone, r.rule_to_zone, r.mgm_id, r.rule_uid,
--- 	r.rule_action, r.rule_name, r.rule_comment, r.rule_track, r.rule_src_neg, r.rule_dst_neg, r.rule_svc_neg,
--- 	r.rule_head_text, r.rule_disabled, r.access_rule, r.xlate_rule, r.nat_rule
--- 	FROM ( SELECT DISTINCT * FROM v_rule_with_rule_owner AS rul UNION SELECT DISTINCT * FROM v_rule_with_ip_owner AS ips) AS ar
--- 	LEFT JOIN rule AS r USING (rule_id)
--- 	GROUP BY ar.rule_id, ar.owner_id, ar.owner_name, ar.matches, ar.recert_interval, ar.rule_last_certified, 
--- 		r.rule_num_numeric, r.track_id, r.action_id, r.rule_from_zone, r.rule_to_zone, r.mgm_id, r.rule_uid,
--- 		r.rule_action, r.rule_name, r.rule_comment, r.rule_track, r.rule_src_neg, r.rule_dst_neg, r.rule_svc_neg,
--- 		r.rule_head_text, r.rule_disabled, r.access_rule, r.xlate_rule, r.nat_rule;
-	
 -- rule_metadata add mgm_id + fk, drop constraint
 ALTER TABLE rule_metadata ADD COLUMN IF NOT EXISTS mgm_id Integer;
 DO $$

@@ -57,13 +57,13 @@ namespace FWO.Data
         public int? ColorId { get; set; }
 
         [JsonProperty("stm_color"), JsonPropertyName("stm_color")]
-        public Color Color { get; set; } = new();
+        public Color? Color { get; set; }
 
         [JsonProperty("ip_proto_id"), JsonPropertyName("ip_proto_id")]
         public int? ProtoId { get; set; }
 
         [JsonProperty("protocol_name"), JsonPropertyName("protocol_name")]
-        public NetworkProtocol Protocol { get; set; } = new();
+        public NetworkProtocol? Protocol { get; set; }
 
         [JsonProperty("svc_member_names"), JsonPropertyName("svc_member_names")]
         public string MemberNames { get; set; } = "";

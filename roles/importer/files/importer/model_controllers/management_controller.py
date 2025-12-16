@@ -113,7 +113,7 @@ class ManagementController(Management):
     
 
     # TODO: fix device type URIs
-    def buildFwApiString(self):
+    def buildFwApiString(self) -> str:
         if self.device_type_name == 'Check Point':
             return f"https://{self.hostname}:{str(self.port)}/web_api/"
         elif self.device_type_name == 'CiscoFMC':

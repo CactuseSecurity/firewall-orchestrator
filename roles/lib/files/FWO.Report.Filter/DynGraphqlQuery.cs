@@ -640,11 +640,8 @@ namespace FWO.Report.Filter
             if (modellingFilter != null)
             {
                 // currently overruling tenant filter!!
-                query.OpenRuleBaseTable = $@"
-                                        rulebase_links(order_by: {{order_no: asc}}) {{
-                                            rulebase_id
-                                            order_no
-                                            rulebase {{
+                query.OpenRuleBaseTable = $@" }}
+                                              rulebases {{
                                                 id
                                                 name ";
                 query.OpenRulesTable = $@" rules: get_rules_for_owner(args: {{ownerid: {modellingFilter.SelectedOwner.Id} }}, ";

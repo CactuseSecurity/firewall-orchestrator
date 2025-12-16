@@ -15,6 +15,6 @@ query getNetworkObjectsForManagement (
       {removed: {_gt: $import_id_start}}
     ]
   }) {   
-    ...networkObjectDetails
+    ...networkObjectDetailsForVariance
   }
 }

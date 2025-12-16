@@ -77,29 +77,31 @@ If you use authentication:
 
 Note that the following domains must be reachable through the proxy:
 
-    cactus.de (only for downloading test data, not needed if run with "--skip-tags test")
     ubuntu.com
     canonical.com
     github.com
+    api.github.com
     githubusercontent.com
     docker.com
     cloudflare.docker.com
     docker.io
+    auth.docker.io
     hasura.io
+    releases.hasura.io
     postgresql.org
     microsoft.com     
     nuget.org
+    api.nuget.org
     googlechromelabs.github.io
     storage.googleapis.com
     pypi.org
-    pythonhosted.org (and sub-domains)
+    pythonhosted.org
+    files.pythonhosted.org
     snapcraft.io
+    api.snapcraft.io
     snapcraftcontent.com (and sub-domains)
-
-NB: for vscode-debugging, you also need access to
-
-    visualstudio.com
-
+    visualstudio.com (for vscode-debugging only)
+    cactus.de (and sub-domains, only for downloading test data, not needed if run with "--skip-tags test")
 
 #### Pyhton proxy config
 

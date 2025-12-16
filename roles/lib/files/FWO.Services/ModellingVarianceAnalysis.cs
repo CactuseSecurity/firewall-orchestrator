@@ -30,7 +30,7 @@ namespace FWO.Services
         private List<WfReqTask> DeleteAccessTaskList = [];
         private List<WfReqTask> DeleteObjectTasksList = [];
         private int taskNumber = 0;
-        private List<WfReqElement> elements = [];
+        private List<WfReqElement> ReqElements = [];
 
         private ModellingVarianceResult varianceResult = new();
 
@@ -136,13 +136,13 @@ namespace FWO.Services
                 await AnalyseAppZone(mgt);
                 foreach (var conn in connections.Where(c => !c.IsRequested && !c.IsDocumentationOnly()).OrderBy(c => c.Id))
                 {
-                    elements = [];
+                    ReqElements = [];
                     AnalyseNetworkAreasForRequest(conn);
                     AnalyseAppRolesForRequest(conn, mgt);
                     AnalyseAppServersForRequest(conn);
                     AnalyseServiceGroupsForRequest(conn, mgt);
                     AnalyseServicesForRequest(conn);
-                    if (elements.Count > 0)
+                    if (ReqElements.Count > 0)
                     {
                         AnalyseConnectionForRequest(mgt, conn);
                     }

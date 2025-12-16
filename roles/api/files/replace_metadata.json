@@ -22162,18 +22162,6 @@
                   }
                 },
                 {
-                  "name": "ruleMetadataByRuleOwner",
-                  "using": {
-                    "foreign_key_constraint_on": {
-                      "column": "rule_owner",
-                      "table": {
-                        "name": "rule_metadata",
-                        "schema": "public"
-                      }
-                    }
-                  }
-                },
-                {
                   "name": "rules",
                   "using": {
                     "foreign_key_constraint_on": {

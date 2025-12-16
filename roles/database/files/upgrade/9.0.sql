@@ -2178,9 +2178,9 @@ CREATE OR REPLACE VIEW v_rule_with_dst_owner AS
 CREATE OR REPLACE VIEW v_rule_with_ip_owner AS
 	SELECT DISTINCT	uno.rule_id, uno.owner_id, uno.owner_name,
 		string_agg(DISTINCT match_in || ':' || matching_ip::VARCHAR, '; ' order by match_in || ':' || matching_ip::VARCHAR desc) as matches,
-		uno.recert_interval, uno.rule_last_certified, uno.rule_last_certifier
+		uno.recert_interval, uno.rule_last_certified
 	FROM ( SELECT DISTINCT * FROM v_rule_with_src_owner AS src UNION SELECT DISTINCT * FROM v_rule_with_dst_owner AS dst) AS uno
-	GROUP BY uno.rule_id, uno.owner_id, uno.owner_name, uno.recert_interval, uno.rule_last_certified, uno.rule_last_certifier;
+	GROUP BY uno.rule_id, uno.owner_id, uno.owner_name, uno.recert_interval, uno.rule_last_certified;
 
 CREATE MATERIALIZED VIEW view_rule_with_owner AS
 	SELECT DISTINCT ar.rule_id, ar.owner_id, ar.owner_name, ar.matches, ar.recert_interval,

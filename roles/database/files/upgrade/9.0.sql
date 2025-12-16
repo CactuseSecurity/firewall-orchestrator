@@ -783,8 +783,8 @@ UPDATE rule_metadata m SET
 FROM rule r
 WHERE r.rule_uid = m.rule_uid;
 
-UPDATE rule_metadata SET rule_created_new = COALESCE(rule_created_new, 0);
-UPDATE rule_metadata SET rule_last_modified_new = COALESCE(rule_last_modified_new, rule_created_new);
+UPDATE rule_metadata SET rule_created_new = COALESCE(rule_created_new, 0) WHERE TRUE;
+UPDATE rule_metadata SET rule_last_modified_new = COALESCE(rule_last_modified_new, rule_created_new) WHERE TRUE;
 
 ALTER TABLE IF EXISTS rule_metadata DROP COLUMN IF EXISTS rule_created;
 ALTER TABLE IF EXISTS rule_metadata DROP COLUMN IF EXISTS rule_last_modified;

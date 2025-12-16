@@ -22174,18 +22174,6 @@
                   }
                 },
                 {
-                  "name": "rule_metadata",
-                  "using": {
-                    "foreign_key_constraint_on": {
-                      "column": "rule_last_certifier",
-                      "table": {
-                        "name": "rule_metadata",
-                        "schema": "public"
-                      }
-                    }
-                  }
-                },
-                {
                   "name": "rules",
                   "using": {
                     "foreign_key_constraint_on": {
@@ -23980,7 +23968,6 @@
                       "owner_id",
                       "recert_interval",
                       "rule_from_zone",
-                      "rule_last_certifier",
                       "rule_to_zone",
                       "track_id",
                       "rule_num_numeric",
@@ -24015,7 +24002,6 @@
                       "owner_id",
                       "recert_interval",
                       "rule_from_zone",
-                      "rule_last_certifier",
                       "rule_to_zone",
                       "track_id",
                       "rule_num_numeric",
@@ -24058,7 +24044,6 @@
                       "owner_id",
                       "recert_interval",
                       "rule_from_zone",
-                      "rule_last_certifier",
                       "rule_to_zone",
                       "track_id",
                       "rule_num_numeric",
@@ -24101,7 +24086,6 @@
                       "owner_id",
                       "recert_interval",
                       "rule_from_zone",
-                      "rule_last_certifier",
                       "rule_to_zone",
                       "track_id",
                       "rule_num_numeric",

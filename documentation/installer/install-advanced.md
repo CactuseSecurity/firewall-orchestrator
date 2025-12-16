@@ -100,9 +100,17 @@ Note that the following domains must be reachable through the proxy:
     snapcraft.io
     api.snapcraft.io
     snapcraftcontent.com (and sub-domains)
-    visualstudio.com (for vscode-debugging only)
     cactus.de (and sub-domains, only for downloading test data, not needed if run with "--skip-tags test")
 
+#### For vscode-debugging only - most are needed for downloading extensions
+    visualstudio.com
+    vsassets.io (and subdomains)
+    digicert.com (and subdomains)
+    dot.net (and subdomains) 
+    windows.net (and subdomains)
+    applicationinsights.azure.com (and subdomains)
+    exp-tas.com (and subdomains)
+    
 #### Pyhton proxy config
 
 Remember if your server resides behind a proxy that you will have to set the proxy for pip as follows before installing ansible:

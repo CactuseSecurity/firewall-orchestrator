@@ -1,8 +1,7 @@
 from typing import Any
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel
 
 class Management(BaseModel):
-    model_config = ConfigDict(arbitrary_types_allowed=True)
     mgm_id: int
     name: str
     uid: str
@@ -24,6 +23,3 @@ class Management(BaseModel):
     sub_managers: list['Management']
     cloud_client_id: str | None = None
     cloud_client_secret: str | None = None
-
-# Resolve forward reference to self (`sub_managers`) for pydantic v2
-Management.model_rebuild()  # type: ignore[attr-defined]

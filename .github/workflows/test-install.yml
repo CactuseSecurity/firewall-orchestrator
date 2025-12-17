@@ -54,6 +54,8 @@ jobs:
 
       - uses: astral-sh/ruff-action@57714a7c8a2e59f32539362ba31877a1957dded1
 
+      - uses: jakebailey/pyright-action@6cabc0f01c4994be48fd45cd9dbacdd6e1ee6e5e
+
       - run: ruff check
       
       - run: ruff format --exit-non-zero-on-format

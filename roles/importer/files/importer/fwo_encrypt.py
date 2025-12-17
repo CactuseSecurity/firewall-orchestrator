@@ -9,7 +9,7 @@ from fwo_log import FWOLogger
 
 
 # can be used for decrypting text encrypted with C# (mw-server)
-def decrypt_aes_ciphertext(base64_encrypted_text, passphrase: str) -> str:
+def decrypt_aes_ciphertext(base64_encrypted_text: str, passphrase: str) -> str:
     encrypted_data = base64.b64decode(base64_encrypted_text)
     iv_length = 16  # IV length for AES is 16 bytes
 

@@ -9,8 +9,15 @@ exclude = [
     ".venv",
     "venv",
     "scripts",
-    "roles/importer/files/importer/test",
+    "roles/importer/files/importer",
 ]
+
+ignore = [
+    "./scripts",
+]
+
+
+typeCheckingMode = "strict"
 
 
 [tool.ruff]

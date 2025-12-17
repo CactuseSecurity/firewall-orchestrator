@@ -53,3 +53,7 @@ jobs:
       - uses: actions/checkout@v6
 
       - uses: astral-sh/ruff-action@57714a7c8a2e59f32539362ba31877a1957dded1
+
+      - run: ruff check
+      
+      - run: ruff format --exit-non-zero-on-format

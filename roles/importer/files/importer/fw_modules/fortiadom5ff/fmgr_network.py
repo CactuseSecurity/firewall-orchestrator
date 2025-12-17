@@ -39,7 +39,7 @@ def normalize_network_objects(
         nw_objects.append(
             create_network_object(
                 name=original_obj_name,
-                type="network",
+                obj_type="network",
                 ip=ANY_IP_START,
                 ip_end=ANY_IP_END,
                 uid=original_obj_uid,
@@ -262,11 +262,11 @@ def add_member_names_for_nw_group(idx: int, nw_objects: list[dict[str, Any]]) ->
 
 
 def create_network_object(
-    name: str, typ: str, ip: str, ip_end: str | None, uid: str, color: str, comment: str | None, zone: str | None
+    name: str, obj_type: str, ip: str, ip_end: str | None, uid: str, color: str, comment: str | None, zone: str | None
 ) -> dict[str, Any]:
     return {
         "obj_name": name,
-        "obj_typ": typ,
+        "obj_typ": obj_type,
         "obj_ip": ip,
         "obj_ip_end": ip_end,
         "obj_uid": uid,

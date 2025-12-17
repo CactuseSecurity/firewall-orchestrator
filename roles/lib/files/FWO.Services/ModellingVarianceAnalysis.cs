@@ -199,15 +199,19 @@ namespace FWO.Services
                 foreach(var mgt in RelevantManagements)
                 {
                     await CollectGroupObjects(mgt.Id);
-                    ModellingAppZone? prodAppZone = (ModellingAppZone?)ResolveProdAppRole(modelledAppZone, mgt);
-                    if(prodAppZone == null)
+                    ModellingAppRole? prodAppRole = ResolveProdAppRole(modelledAppZone, mgt);
+                    if(prodAppRole == null)
                     {
                         MgtsWithVariance.Add(new(){ ManagementName = mgt.Name });
                     }
-                    else if(!appZoneComparer.Equals(prodAppZone, modelledAppZone))
+                    else
                     {
-                        prodAppZone.ManagementName = mgt.Name;
-                        MgtsWithVariance.Add(prodAppZone);
+                        ModellingAppZone prodAppZone = new(prodAppRole);
+                        if(!appZoneComparer.Equals(prodAppZone, modelledAppZone))
+                        {
+                            prodAppZone.ManagementName = mgt.Name;
+                            MgtsWithVariance.Add(prodAppZone);
+                        }
                     }
                 }
                 return (true, MgtsWithVariance);

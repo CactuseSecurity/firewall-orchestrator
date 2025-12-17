@@ -55,6 +55,7 @@ class TestFwConfigImportRuleOrder(unittest.TestCase):
         update_rule_num_numerics(self._previous_config)
         update_rule_map_and_rulebase_map(self._previous_config, self._import_state)
 
+
     def tearDown(self):
         """
         Gets invoked one time per test method after running it.

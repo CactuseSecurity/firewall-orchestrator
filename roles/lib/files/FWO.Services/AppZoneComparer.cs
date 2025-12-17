@@ -13,7 +13,7 @@ namespace FWO.Services
                 return true;
             }
 
-            if (appZone1 is null || appZone2 is null || appZone1.Name != appZone2.Name || appZone1.AppServers.Count != appZone2.AppServers.Count)
+            if (appZone1 is null || appZone2 is null || appZone1.IdString != appZone2.IdString || appZone1.AppServers.Count != appZone2.AppServers.Count)
             {
                 return false;
             }

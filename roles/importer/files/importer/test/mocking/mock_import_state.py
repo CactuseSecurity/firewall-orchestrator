@@ -37,8 +37,30 @@ class MockImportStateController(ImportStateController):
 
 
         self.state = ImportState()
+        self.call_log = []
+        self.stub_responses = {}
+        self.import_version = 9
+        self.state.import_id = import_id
+        self.state.fwo_config = FworchConfigController(
+            fwo_api_url="", fwo_user_mgmt_api_uri="", importer_pwd="", api_fetch_size=500
+        )
+
+        self.state.mgm_details = MockManagementController()
         self.api_connection = MockFwoApi()
         self.api_call = FwoApiCall(self.api_connection)
+        self.set_core_data()
+
+        self.track_id_map = {"ordered": 2, "inline": 3, "concatenated": 4, "domain": 5}
+
+        self.action_id_map = {}
+        self.service_id_map = {}
+        self.network_object_id_map = {}
+        self.user_id_map = {}
+        self.rule_map = {}
+        self.rulebase_map = {}
+
+        self.removed_rules_map = {}
+        
 
     @property
     def stub_setCoreData(self) -> bool:

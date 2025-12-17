@@ -41,7 +41,7 @@ class CheckpointR8xCommon(FwCommon):
 
 def get_config(config_in: FwConfigManagerListController, import_state: ImportStateController) -> tuple[int, FwConfigManagerListController]:
 
-    FWOLogger.debug ( "starting checkpointR8x/get_config" )
+    FWOLogger.debug( "starting checkpointR8x/get_config" )
 
     if config_in.has_empty_config():   # no native config was passed in, so getting it from FW-Manager
         parsing_config_only = False
@@ -53,7 +53,7 @@ def get_config(config_in: FwConfigManagerListController, import_state: ImportSta
         initialize_native_config(config_in, import_state)
 
         start_time_temp = int(time.time())
-        FWOLogger.debug ( "checkpointR8x/get_config/getting objects ...")
+        FWOLogger.debug( "checkpointR8x/get_config/getting objects ...")
 
         if config_in.native_config is None:
             raise FwoImporterError("native_config is None in get_config")
@@ -62,17 +62,17 @@ def get_config(config_in: FwConfigManagerListController, import_state: ImportSta
         result_get_objects = get_objects(config_in.native_config, import_state)
         if result_get_objects>0:
             raise FwLoginFailed( "checkpointR8x/get_config/error while gettings objects")
-        FWOLogger.debug ( "checkpointR8x/get_config/fetched objects in " + str(int(time.time()) - start_time_temp) + "s")
+        FWOLogger.debug( "checkpointR8x/get_config/fetched objects in " + str(int(time.time()) - start_time_temp) + "s")
 
         start_time_temp = int(time.time())
-        FWOLogger.debug ( "checkpointR8x/get_config/getting rules ...")
-        result_get_rules = get_rules (config_in.native_config, import_state)
+        FWOLogger.debug( "checkpointR8x/get_config/getting rules ...")
+        result_get_rules = get_rules(config_in.native_config, import_state)
         if result_get_rules>0:
             raise FwLoginFailed( "checkpointR8x/get_config/error while gettings rules")
-        FWOLogger.debug ( "checkpointR8x/get_config/fetched rules in " + str(int(time.time()) - start_time_temp) + "s")
+        FWOLogger.debug( "checkpointR8x/get_config/fetched rules in " + str(int(time.time()) - start_time_temp) + "s")
 
         duration = int(time.time()) - starttime
-        FWOLogger.debug ( "checkpointR8x/get_config - fetch duration: " + str(duration) + "s" )
+        FWOLogger.debug( "checkpointR8x/get_config - fetch duration: " + str(duration) + "s" )
 
     if config_in.contains_only_native():
         sid: str = cp_getter.login(import_state.mgm_details)
@@ -255,12 +255,12 @@ def process_devices(
     native_config_global_domain: dict[str, Any], import_state: ImportStateController
 ) -> None:
     for device in manager_details.devices:
-        device_config: dict[str,Any] = initialize_device_config(device)
+        device_config = initialize_device_config(device)
         if not device_config:
             continue
 
-        ordered_layer_uids: list[str] = get_ordered_layer_uids(policy_structure, device_config, manager_details.getDomainString())
-        if not ordered_layer_uids:
+        ordered_layer_uids, policy_name = get_ordered_layer_uids(policy_structure, device_config, manager_details.getDomainString())
+        if not ordered_layer_uids or policy_name is None:
             FWOLogger.warning(f"No ordered layers found for device: {device_config['name']}")
             native_config_domain['gateways'].append(device_config)
             continue
@@ -278,7 +278,7 @@ def process_devices(
             get_rules_params(import_state), cp_manager_api_base_url, sid,
             native_config_domain, device_config, False, global_ordered_layer_count)
         
-        handle_nat_rules(device, native_config_domain, sid, import_state)
+        handle_nat_rules(policy_name, native_config_domain, sid, import_state)
 
         native_config_domain['gateways'].append(device_config)
 
@@ -308,7 +308,8 @@ def handle_global_rulebase_links(
             continue
         for global_policy in global_policy_structure:
             if global_policy['name'] == global_assignment['global-access-policy']:
-                global_ordered_layer_uids = get_ordered_layer_uids([global_policy], device_config, global_domain)
+                # no global NAT, so global_policy_name not used
+                global_ordered_layer_uids, _global_policy_name = get_ordered_layer_uids([global_policy], device_config, global_domain)
                 if not global_ordered_layer_uids:
                     FWOLogger.warning(f"No access layer for global policy: {global_policy['name']}")
                     break
@@ -378,23 +379,21 @@ def get_rules_params(import_state: ImportStateController) -> dict[str, Any]:
     }
 
 
-def handle_nat_rules(device: dict[str, Any], native_config_domain: dict[str, Any], sid: str, import_state: ImportStateController):
-    if 'package_name' in device and device['package_name']:
-        show_params_rules: dict[str, Any] = {
-            'limit': import_state.fwo_config.api_fetch_size,
-            'use-object-dictionary': cp_const.use_object_dictionary,
-            'details-level': 'standard',
-            'package': device['package_name']
-        }
-        FWOLogger.debug(f"Getting NAT rules for package: {device['package_name']}", 4)
-        nat_rules = cp_getter.get_nat_rules_from_api_as_dict(
-            import_state.mgm_details.buildFwApiString(), sid, show_params_rules,
-            native_config_domain=native_config_domain
-        )
-        if nat_rules:
-            native_config_domain['nat_rulebases'].append(nat_rules)
-        else:
-            native_config_domain['nat_rulebases'].append({"nat_rule_chunks": []})
+def handle_nat_rules(policy_name: str, native_config_domain: dict[str, Any], sid: str, import_state: ImportStateController):
+        
+    show_params_rules: dict[str, Any] = {
+        'limit': import_state.fwo_config.api_fetch_size,
+        'use-object-dictionary': cp_const.use_object_dictionary,
+        'details-level': 'standard',
+        'package': policy_name
+    }
+    FWOLogger.debug(f"Getting NAT rules for package: {policy_name}", 4)
+    nat_rules = cp_getter.get_nat_rules_from_api_as_dict(
+        import_state.mgm_details.buildFwApiString(), sid, show_params_rules,
+        native_config_domain=native_config_domain
+    )
+    if nat_rules:
+        native_config_domain['nat_rulebases'].append(nat_rules)
     else:
         native_config_domain['nat_rulebases'].append({"nat_rule_chunks": []})
 
@@ -435,20 +434,30 @@ def add_ordered_layers_to_native_config(ordered_layer_uids: list[str], show_para
     return policy_rulebases_uid_list
 
 
-def get_ordered_layer_uids(policy_structure: list[dict[str, Any]], device_config: dict[str, Any], domain: str | None) -> list[str]:
+def get_ordered_layer_uids(policy_structure: list[dict[str, Any]], device_config: dict[str, Any], domain: str | None) -> tuple[list[str], str | None]:
     """Get UIDs of ordered layers for policy of device
     """
 
     ordered_layer_uids: list[str] = []
+    policy_name: str | None = None
+    failsafe_multiple_policies_per_device = False
     for policy in policy_structure:
         found_target_in_policy = False
         for target in policy['targets']:
             if target['uid'] == device_config['uid'] or target['uid'] == 'all':
-                found_target_in_policy = True
+                found_target_in_policy = True                
+                check_if_multiple_policies_per_device(failsafe_multiple_policies_per_device, device_config['uid'])
+                failsafe_multiple_policies_per_device = True
         if found_target_in_policy:
             append_access_layer_uid(policy, domain, ordered_layer_uids)
+            policy_name = policy['name']
 
-    return ordered_layer_uids
+    return ordered_layer_uids, policy_name
+
+
+def check_if_multiple_policies_per_device(failsafe_multiple_policies_per_device: bool, device_config_uid: str):
+    if failsafe_multiple_policies_per_device:
+        raise FwoImporterError('multiple policies for device ' + device_config_uid)
 
 
 def append_access_layer_uid(policy: dict[str, Any], domain: str | None, ordered_layer_uids: list[str]) -> None:

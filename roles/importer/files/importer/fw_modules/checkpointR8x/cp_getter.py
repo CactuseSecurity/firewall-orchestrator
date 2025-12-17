@@ -308,15 +308,19 @@ def get_global_assignments(api_v_url: str, sid: str, show_params_policy_structur
         
         # parse global assignments
         for assignment in assignments['objects']:
-            global_assignment = parse_global_assignment(assignment)
-            global_assignments.append(global_assignment)
+            if "global-access-policy" in assignment:
+                global_assignment = parse_global_assignment(assignment)
+                global_assignments.append(global_assignment)
 
     return global_assignments
                         
 
-def get_rulebases(api_v_url: str, sid: str | None, show_params_rules: dict[str, Any], native_config_domain: dict[str, Any] | None,
-                  device_config: dict[str, Any] | None, policy_rulebases_uid_list: list[str], is_global: bool = False,
-                  access_type: str = 'access', rulebase_uid: str | None = None, rulebase_name: str | None = None) -> list[str]:
+def get_rulebases(api_v_url: str, sid: str | None, show_params_rules: dict[str, Any],
+                  native_config_domain: dict[str, Any] | None,
+                  device_config: dict[str, Any] | None,
+                  policy_rulebases_uid_list: list[str], is_global: bool = False,
+                  access_type: str = 'access', rulebase_uid: str | None = None,
+                  rulebase_name: str | None = None) -> list[str]:
     
     # access_type: access / nat
     native_config_rulebase_key = 'rulebases'

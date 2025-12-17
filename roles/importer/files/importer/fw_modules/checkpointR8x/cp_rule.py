@@ -2,6 +2,7 @@ import json
 from typing import Any
 import ast
 
+from fw_modules.checkpointR8x import cp_const
 from fwo_log import FWOLogger
 from fwo_const import LIST_DELIMITER, DEFAULT_SECTION_HEADER_TEXT
 from fwo_base import sanitize, sort_and_join_refs
@@ -402,7 +403,7 @@ def resolve_nwobj_uid_to_name(nw_obj_uid: str) -> str:
     else:
         FWOLogger.warning("could not resolve network object with uid " + nw_obj_uid)
         return ""
-    
+
 def check_and_add_section_header(src_rulebase: dict[str, Any], target_rulebase: Rulebase, layer_name: str, import_id: str, section_header_uids: set[str]):
     # if current rulebase starts a new section, add section header, but only if it does not exist yet (can happen by chunking a section)
     # if 'type' in src_rulebase and src_rulebase['type'] == 'access-section' and 'uid' in src_rulebase: # and not src_rulebase['uid'] in section_header_uids:

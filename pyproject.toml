@@ -9,12 +9,15 @@ exclude = [
     ".venv",
     "venv",
     "scripts",
-    "roles/importer/files/importer",
+    "roles/importer/files/importer/test",
 ]
 
 ignore = [
     "./scripts",
 ]
+
+reportMissingImports = "error"
+reportMissingTypeStubs = true
 
 
 typeCheckingMode = "strict"

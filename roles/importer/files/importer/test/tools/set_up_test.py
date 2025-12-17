@@ -110,17 +110,17 @@ def move_rule_in_config(config: FwConfigNormalized, rulebase_uid, source_positio
 
 
 def update_rule_map_and_rulebase_map(config, import_state: MockImportStateController):
-    import_state.rulebase_map = {}
-    import_state.rule_map = {}
+    import_state.state.rulebase_map = {}
+    import_state.state.rule_map = {}
 
     rulebase_id = 1
     rule_id = 1
 
     for rulebase in config.rulebases:
-        import_state.rulebase_map[rulebase.uid] = rulebase_id
+        import_state.state.rulebase_map[rulebase.uid] = rulebase_id
         rulebase_id += 1
         for rule in rulebase.rules.values():
-            import_state.rule_map[rule.rule_uid] = rule_id
+            import_state.state.rule_map[rule.rule_uid] = rule_id
             rule_id += 1
 
 

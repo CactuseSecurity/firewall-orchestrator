@@ -141,10 +141,10 @@ class TestUpdateRulebaseDiffs(unittest.TestCase):
         self.assertEqual(rule_uids, sorted_rulebase_rules_uids)
 
         # Insertions recognized in ImportDetails
-        self.assertEqual(self._import_state.stats.statistics.rule_add_count, 9)
-        self.assertEqual(self._import_state.stats.statistics.rule_delete_count, 0)
-        self.assertEqual(self._import_state.stats.statistics.rule_change_count, 0)
-        self.assertEqual(self._import_state.stats.statistics.rule_move_count, 0)
+        self.assertEqual(self._import_state.state.stats.statistics.rule_add_count, 9)
+        self.assertEqual(self._import_state.state.stats.statistics.rule_delete_count, 0)
+        self.assertEqual(self._import_state.state.stats.statistics.rule_change_count, 0)
+        self.assertEqual(self._import_state.state.stats.statistics.rule_move_count, 0)
 
     def test_update_rulebase_diffs_on_move_across_rulebases(self):
         # Arrange
@@ -182,10 +182,10 @@ class TestUpdateRulebaseDiffs(unittest.TestCase):
         self.assertEqual(target_rulebase_uids, sorted_target_rulebase_rules_uids)
 
         # Move across rulebases recognized in ImportDetails
-        self.assertEqual(self._import_state.stats.statistics.rule_add_count, 0)
-        self.assertEqual(self._import_state.stats.statistics.rule_delete_count, 0)
-        self.assertEqual(self._import_state.stats.statistics.rule_change_count, 1)
-        self.assertEqual(self._import_state.stats.statistics.rule_move_count, 1)
+        self.assertEqual(self._import_state.state.stats.statistics.rule_add_count, 0)
+        self.assertEqual(self._import_state.state.stats.statistics.rule_delete_count, 0)
+        self.assertEqual(self._import_state.state.stats.statistics.rule_change_count, 1)
+        self.assertEqual(self._import_state.state.stats.statistics.rule_move_count, 1)
 
     def test_update_rulebase_diffs_on_moves_to_beginning_middle_and_end_of_rulebase(self):
         # Arrange
@@ -217,10 +217,10 @@ class TestUpdateRulebaseDiffs(unittest.TestCase):
         self.assertEqual(rule_uids, sorted_rulebase_rules_uids)
 
         # Move to beginning, middle and end recognized in ImportDetails
-        self.assertEqual(self._import_state.stats.statistics.rule_add_count, 0)
-        self.assertEqual(self._import_state.stats.statistics.rule_delete_count, 0)
-        self.assertEqual(self._import_state.stats.statistics.rule_change_count, 3)
-        self.assertEqual(self._import_state.stats.statistics.rule_move_count, 3)
+        self.assertEqual(self._import_state.state.stats.statistics.rule_add_count, 0)
+        self.assertEqual(self._import_state.state.stats.statistics.rule_delete_count, 0)
+        self.assertEqual(self._import_state.state.stats.statistics.rule_change_count, 3)
+        self.assertEqual(self._import_state.state.stats.statistics.rule_move_count, 3)
 
     def test_update_rulebase_diffs_on_delete_section_header(self):
         # Arrange
@@ -267,7 +267,7 @@ class TestUpdateRulebaseDiffs(unittest.TestCase):
         self.assertEqual(rule_uids, sorted_rules_uids)
 
         # Move to beginning, middle and end recognized in ImportDetails
-        self.assertEqual(self._import_state.stats.statistics.rule_add_count, 0)
-        self.assertEqual(self._import_state.stats.statistics.rule_delete_count, 0)
-        self.assertEqual(self._import_state.stats.statistics.rule_change_count, 5)
-        self.assertEqual(self._import_state.stats.statistics.rule_move_count, 5)
+        self.assertEqual(self._import_state.state.stats.statistics.rule_add_count, 0)
+        self.assertEqual(self._import_state.state.stats.statistics.rule_delete_count, 0)
+        self.assertEqual(self._import_state.state.stats.statistics.rule_change_count, 5)
+        self.assertEqual(self._import_state.state.stats.statistics.rule_move_count, 5)

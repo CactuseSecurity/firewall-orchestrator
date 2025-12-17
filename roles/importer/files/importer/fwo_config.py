@@ -5,7 +5,7 @@ from fwo_const import IMPORTER_PWD_FILE
 from fwo_log import FWOLogger
 
 
-def read_config(fwo_config_filename: str = "/etc/fworch/fworch.json") -> dict[str, str | int | None]:
+def read_config(fwo_config_filename="/etc/fworch/fworch.json") -> dict[str, str | int | None]:
     try:
         # read fwo config (API URLs)
         with open(fwo_config_filename) as fwo_config:

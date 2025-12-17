@@ -160,7 +160,6 @@ def create_rule_from_acl_entry(
     )
 
 
-
 def build_rulebases_from_access_lists(
     access_lists: list[AccessList],
     mgm_uid: str,

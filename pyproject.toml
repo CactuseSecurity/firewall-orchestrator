@@ -16,6 +16,9 @@ ignore = [
     "./scripts",
 ]
 
+venvPath = "."
+venv = ".venv"
+
 typeCheckingMode = "strict"
 reportMissingImports = false
 reportMissingTypeStubs = true

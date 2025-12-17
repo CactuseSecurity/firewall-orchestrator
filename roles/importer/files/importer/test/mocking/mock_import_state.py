@@ -1,7 +1,9 @@
+from fwo_api_call import FwoApiCall
 from model_controllers.fworch_config_controller import FworchConfigController
 from model_controllers.import_state_controller import ImportStateController
 from model_controllers.import_statistics_controller import ImportStatisticsController
 from models.action import Action
+from models.import_state import ImportState
 from models.track import Track
 
 from .mock_fwo_api_oo import MockFwoApi
@@ -33,30 +35,10 @@ class MockImportStateController(ImportStateController):
         """
         self._stub_setCoreData = stub_setCoreData
 
-        self.stats = ImportStatisticsController()
-        self.call_log = []
-        self.stub_responses = {}
-        self.import_version = 9
-        self.mgm_details = MockManagementController()
+
+        self.state = ImportState()
         self.api_connection = MockFwoApi()
-        self.fwo_config = FworchConfigController(
-            fwo_api_url="", fwo_user_mgmt_api_uri="", importer_pwd="", api_fetch_size=500
-        )
-        self.Jwt = None
-        self.import_id = import_id
-        self.is_full_import = True
-        self.set_core_data()
-
-        self.track_id_map = {"ordered": 2, "inline": 3, "concatenated": 4, "domain": 5}
-
-        self.action_id_map = {}
-        self.service_id_map = {}
-        self.network_object_id_map = {}
-        self.user_id_map = {}
-        self.rule_map = {}
-        self.rulebase_map = {}
-
-        self.removed_rules_map = {}
+        self.api_call = FwoApiCall(self.api_connection)
 
     @property
     def stub_setCoreData(self) -> bool:

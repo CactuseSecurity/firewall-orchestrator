@@ -156,13 +156,13 @@ def update_rb_links(rulebase_links: list[RulebaseLinkUidBased], gateway_id, fwco
             RulebaseLink(
                 id=link_id,
                 gw_id=gateway_id,
-                from_rule_id=fwconfig_import_gateway._global_state.import_state.lookupRule(link.from_rule_uid),
-                from_rulebase_id=fwconfig_import_gateway._global_state.import_state.lookupRulebaseId(
+                from_rule_id=fwconfig_import_gateway._global_state.import_state.state.lookup_rule(link.from_rule_uid),
+                from_rulebase_id=fwconfig_import_gateway._global_state.import_state.state.lookup_rulebase_id(
                     link.from_rulebase_uid
                 )
                 if link.from_rulebase_uid
                 else None,
-                to_rulebase_id=fwconfig_import_gateway._global_state.import_state.lookupRulebaseId(
+                to_rulebase_id=fwconfig_import_gateway._global_state.import_state.state.lookup_rulebase_id(
                     link.to_rulebase_uid
                 ),
                 link_type=link_type,
@@ -187,10 +187,10 @@ def lookup_ids_for_rulebase_link(
     to_rulebase_id = None
 
     if from_rule_uid != "":
-        from_rule_id = import_state.lookup_rule(from_rule_uid)
+        from_rule_id = import_state.state.lookup_rule(from_rule_uid)
     if from_rulebase_uid != "":
-        from_rulebase_id = import_state.lookup_rulebase_id(from_rulebase_uid)
+        from_rulebase_id = import_state.state.lookup_rulebase_id(from_rulebase_uid)
     if to_rulebase_uid != "":
-        to_rulebase_id = import_state.lookup_rulebase_id(to_rulebase_uid)
+        to_rulebase_id = import_state.state.lookup_rulebase_id(to_rulebase_uid)
 
     return from_rule_id, from_rulebase_id, to_rulebase_id

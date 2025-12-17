@@ -16,7 +16,6 @@ ignore = [
     "./scripts",
 ]
 
-reportMissingImports = "error"
 reportMissingTypeStubs = true
 
 

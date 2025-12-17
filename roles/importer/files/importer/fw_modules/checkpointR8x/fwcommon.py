@@ -259,8 +259,8 @@ def process_devices(
         if not device_config:
             continue
 
-        ordered_layer_uids, policy_name = get_ordered_layer_uids(policy_structure, device_config, manager_details.getDomainString())
-        if not ordered_layer_uids or policy_name is None:
+        ordered_layer_uids, policy_dict = get_ordered_layer_uids(policy_structure, device_config, manager_details.getDomainString())
+        if not ordered_layer_uids or not policy_dict:
             FWOLogger.warning(f"No ordered layers found for device: {device_config['name']}")
             native_config_domain['gateways'].append(device_config)
             continue
@@ -278,7 +278,9 @@ def process_devices(
             get_rules_params(import_state), cp_manager_api_base_url, sid,
             native_config_domain, device_config, False, global_ordered_layer_count)
         
-        handle_nat_rules(policy_name, native_config_domain, sid, import_state)
+        fetched_nat_rulebases: list[str] = []
+        fetched_but_empty_nat_rulebases: list[str] = []
+        handle_nat_rules(policy_dict, device_config, native_config_domain, sid, import_state, fetched_nat_rulebases, fetched_but_empty_nat_rulebases)
 
         native_config_domain['gateways'].append(device_config)
 
@@ -308,8 +310,8 @@ def handle_global_rulebase_links(
             continue
         for global_policy in global_policy_structure:
             if global_policy['name'] == global_assignment['global-access-policy']:
-                # no global NAT, so global_policy_name not used
-                global_ordered_layer_uids, _global_policy_name = get_ordered_layer_uids([global_policy], device_config, global_domain)
+                # no global NAT, so global_policy_dict not used
+                global_ordered_layer_uids, _global_policy_dict = get_ordered_layer_uids([global_policy], device_config, global_domain)
                 if not global_ordered_layer_uids:
                     FWOLogger.warning(f"No access layer for global policy: {global_policy['name']}")
                     break
@@ -379,23 +381,37 @@ def get_rules_params(import_state: ImportStateController) -> dict[str, Any]:
     }
 
 
-def handle_nat_rules(policy_name: str, native_config_domain: dict[str, Any], sid: str, import_state: ImportStateController):
+def handle_nat_rules(policy_dict: dict[str, Any], device_config: dict[str, Any], native_config_domain: dict[str, Any], sid: str, import_state: ImportStateController, fetched_nat_rulebases: list[str], fetched_but_empty_nat_rulebases: list[str]):
         
-    show_params_rules: dict[str, Any] = {
-        'limit': import_state.fwo_config.api_fetch_size,
-        'use-object-dictionary': cp_const.use_object_dictionary,
-        'details-level': 'standard',
-        'package': policy_name
-    }
-    FWOLogger.debug(f"Getting NAT rules for package: {policy_name}", 4)
-    nat_rules = cp_getter.get_nat_rules_from_api_as_dict(
-        import_state.mgm_details.buildFwApiString(), sid, show_params_rules,
-        native_config_domain=native_config_domain
-    )
-    if nat_rules:
-        native_config_domain['nat_rulebases'].append(nat_rules)
-    else:
-        native_config_domain['nat_rulebases'].append({"nat_rule_chunks": []})
+    if policy_dict["uid"] not in fetched_nat_rulebases + fetched_but_empty_nat_rulebases:
+        show_params_rules: dict[str, Any] = {
+            'limit': import_state.fwo_config.api_fetch_size,
+            'use-object-dictionary': cp_const.use_object_dictionary,
+            'details-level': 'standard',
+            'package': policy_dict
+        }
+        FWOLogger.debug(f"Getting NAT rules for package: {policy_dict['name']}", 4)
+        nat_rules = cp_getter.get_nat_rules_from_api_as_dict(
+            policy_dict,
+            import_state.mgm_details.buildFwApiString(), sid, show_params_rules,
+            native_config_domain=native_config_domain
+        )
+        if nat_rules["chunks"]:
+            native_config_domain['nat_rulebases'].append(nat_rules)
+            fetched_nat_rulebases.append(policy_dict["uid"])
+        else:
+            fetched_but_empty_nat_rulebases.append(policy_dict["uid"])
+
+    if policy_dict["uid"] in fetched_nat_rulebases:
+        device_config['rulebase_links'].append({
+                        'from_rulebase_uid': policy_dict["uid"],
+                        'from_rule_uid': None,
+                        'to_rulebase_uid': policy_dict["uid"] + "_nat",
+                        'type': 'nat',
+                        'is_global': False,
+                        'is_initial': False,
+                        'is_section': False
+                    })
 
 
 def add_ordered_layers_to_native_config(ordered_layer_uids: list[str], show_params_rules: dict[str, Any],
@@ -434,12 +450,12 @@ def add_ordered_layers_to_native_config(ordered_layer_uids: list[str], show_para
     return policy_rulebases_uid_list
 
 
-def get_ordered_layer_uids(policy_structure: list[dict[str, Any]], device_config: dict[str, Any], domain: str | None) -> tuple[list[str], str | None]:
+def get_ordered_layer_uids(policy_structure: list[dict[str, Any]], device_config: dict[str, Any], domain: str | None) -> tuple[list[str], dict[str, Any]]:
     """Get UIDs of ordered layers for policy of device
     """
 
     ordered_layer_uids: list[str] = []
-    policy_name: str | None = None
+    policy_dict: dict[str, str] = {}
     failsafe_multiple_policies_per_device = False
     for policy in policy_structure:
         found_target_in_policy = False
@@ -450,9 +466,9 @@ def get_ordered_layer_uids(policy_structure: list[dict[str, Any]], device_config
                 failsafe_multiple_policies_per_device = True
         if found_target_in_policy:
             append_access_layer_uid(policy, domain, ordered_layer_uids)
-            policy_name = policy['name']
+            policy_dict = policy
 
-    return ordered_layer_uids, policy_name
+    return ordered_layer_uids, policy_dict
 
 
 def check_if_multiple_policies_per_device(failsafe_multiple_policies_per_device: bool, device_config_uid: str):

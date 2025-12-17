@@ -560,8 +560,11 @@ def assign_placeholder_uids(rulebase: dict[str, Any], section: dict[str, Any], r
     return placeholder_rule_uid, placeholder_rulebase_uid
     
                             
-def get_nat_rules_from_api_as_dict (api_v_url: str, sid: str, show_params_rules: dict[str, Any], native_config_domain: dict[str, Any]={}):
-    nat_rules: dict[str, list[Any]] = { "nat_rule_chunks": [] }
+def get_nat_rules_from_api_as_dict(policy_dict: dict[str, Any], api_v_url: str, sid: str, show_params_rules: dict[str, Any], native_config_domain: dict[str, Any]={}) -> dict[str, Any]:
+    """Gets NAT rulebases, uid and name are augmented with _nat for uniquenes of rulebase_links"""
+    nat_rules: dict[str, Any] = { "uid":  policy_dict['uid'] + "_nat",
+                                 "name": policy_dict['name'] + "_nat",
+                                 "chunks": []}
     current=0
     total=current+1
     while (current<total) :
@@ -573,7 +576,7 @@ def get_nat_rules_from_api_as_dict (api_v_url: str, sid: str, show_params_rules:
                           'translated-destination', 'translated-service', 'action', 'track', 'install-on', 'time']:
             resolve_ref_list_from_object_dictionary(rulebase, rule_field, native_config_domain=native_config_domain)
 
-        nat_rules['nat_rule_chunks'].append(rulebase)
+        nat_rules['chunks'].append(rulebase)
         if 'total' in rulebase:
             total=rulebase['total']
         else:

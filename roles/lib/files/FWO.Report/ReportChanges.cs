@@ -50,8 +50,12 @@ namespace FWO.Report
                 List<long> importIdLastBeforeRange = [management.RelevantImportId ?? -1];
                 List<long> importIdsInRange = [.. managementsWithImportIds.Where(m => m.Id == management.Id).SelectMany(m => m.ImportControls).Select(ic => ic.ControlId)];
                 List<long> relevantImportIds = [.. importIdLastBeforeRange, .. importIdsInRange];
-                SetMgtQueryVars(management.Id, relevantImportIds[0], relevantImportIds[1]);
-                ManagementReport managementReport = (await apiConnection.SendQueryAsync<List<ManagementReport>>(Query.FullQuery, Query.QueryVariables)).First();
+
+                SetMgtQueryVars(management.Id, relevantImportIds[0+1], relevantImportIds[relevantImportIds.Count-1]);
+                // -1 nur wenn nur ein importId vorhanden ist
+                // sonst wird keine änderung angezeigt
+                // Noch wird nicht richtig gefiltert, aber richtig, dass wir erster nach dem relevanten Zeitpunkt und letztem vergleichen?
+                ManagementReport managementReport = (await apiConnection.SendQueryAsync<List<ManagementReport>>(Query.FullQuery, Query.QueryVariables)).First(); //HIER DATEN!!!!
                 queriesNeeded += 1;
                 ReportData.ManagementData.Add(managementReport);
                 managementImportIds.Add(management.Id, relevantImportIds);
@@ -76,9 +80,7 @@ namespace FWO.Report
                         ct.ThrowIfCancellationRequested();
                     }
 
-                    (bool anyContinue, int queries) = await ProcessManagementsForAdditionalChanges(
-                        apiConnection, managementImportIds, i, elementsPerFetch);
-
+                    (bool anyContinue, int queries) = await ProcessManagementsForAdditionalChanges(apiConnection, managementImportIds, i, elementsPerFetch);
                     queriesNeeded += queries;
                     continueFetching = anyContinue;
 
@@ -97,21 +99,22 @@ namespace FWO.Report
 
             foreach (var management in ReportData.ManagementData)
             {
-                if (managementImportIds[management.Id].Count <= i)
-                    continue;
+                if (managementImportIds.ContainsKey(management.Id) && managementImportIds[management.Id].Count > i) // Null check
+                {
+                    long importIdOld = managementImportIds[management.Id][i - 1];
+                    long importIdNew = managementImportIds[management.Id][i];
+                    SetMgtQueryVars(management.Id, importIdOld, importIdNew);
 
-                long importIdOld = managementImportIds[management.Id][i - 1];
-                long importIdNew = managementImportIds[management.Id][i];
-                SetMgtQueryVars(management.Id, importIdOld, importIdNew);
+                    ManagementReport newData = (await apiConnection.SendQueryAsync<List<ManagementReport>>(Query.FullQuery, Query.QueryVariables)).First(); // Error
+                    (bool newObjects, Dictionary<string, int> maxAddedCounts) = management.Merge(newData);
+                    queries++;
 
-                ManagementReport newData = (await apiConnection.SendQueryAsync<List<ManagementReport>>(Query.FullQuery, Query.QueryVariables)).First();
-                (bool newObjects, Dictionary<string, int> maxAddedCounts) = management.Merge(newData);
-                queries++;
-
-                if (newObjects && maxAddedCounts.Values.Any(v => v >= elementsPerFetch))
-                    anyContinue = true;
+                    if (newObjects && maxAddedCounts.Values.Any(v => v >= elementsPerFetch))
+                    { 
+                        anyContinue = true; 
+                    }
+                }
             }
-
             return (anyContinue, queries);
         }
 

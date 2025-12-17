@@ -1,14 +1,15 @@
-using NUnit.Framework;
-using NUnit.Framework.Legacy;
-using FWO.Logging;
-using FWO.Report;
-using FWO.Report.Filter;
 using FWO.Basics;
 using FWO.Config.Api;
 using FWO.Data;
 using FWO.Data.Modelling;
 using FWO.Data.Report;
+using FWO.Logging;
+using FWO.Report;
+using FWO.Report.Filter;
 using FWO.Test.Mocks;
+using FWO.Ui.Pages.Reporting;
+using NUnit.Framework;
+using NUnit.Framework.Legacy;
 
 
 namespace FWO.Test
@@ -349,7 +350,7 @@ namespace FWO.Test
             ClassicAssert.AreEqual(expectedCsvResult, RemoveLinebreaks(RemoveGenDate(reportRules.ExportToCsv())));
         }
 
-        [Test, Ignore("temporarily disabled for importer-rework")]
+        [Test]
         public void ResolvedChangesGenerateCsv()
         {
             Log.WriteInfo("Test Log", "starting changes report resolved csv generation");
@@ -365,10 +366,10 @@ namespace FWO.Test
             "# report generator: Firewall Orchestrator - https://fwo.cactus.de/en" +
             "# data protection level: For internal use only#" +
             "\"management-name\",\"device-name\",\"change-time\",\"change-type\",\"rule-name\",\"source-zone\",\"source\",\"destination-zone\",\"destination\",\"service\",\"action\",\"track\",\"rule-enabled\",\"rule-uid\",\"rule-comment\"" +
-            "\"TestMgt\",\"TestDev\",\"05.04.2023 12:00:00\",\"Rule added\",\"TestRule1\",\"srczn\",\"TestIp1 (1.2.3.4/32),TestIp2 (127.0.0.1/32)\"," +
-            "\"dstzn\",\"TestIpRange (1.2.3.4-1.2.3.5)\",\"TestService1 (443/TCP)\",\"accept\",\"none\",\"enabled\",\"uid1\",\"comment1\"" +
-            "\"TestMgt\",\"TestDev\",\"05.04.2023 12:00:00\",\"Rule modified\",\"TestRule1\",\"srczn\",\"TestIp2 (127.0.0.1/32) deleted: TestIp1 (1.2.3.4/32) added: TestIp1Changed (2.3.4.5)\"," +
-            "\"dstzn\",\"TestIpRange (1.2.3.4-1.2.3.5) added: TestIpNew (10.0.6.0/24)\"," +
+            "\"TestMgt\",\"TestDev\",\"05.04.2023 12:00:00\",\"Rule added\",\"TestRule1\",\"\"srczn1\",\"srczn2\",\"srczn3\"\",\"TestIp1 (1.2.3.4/32),TestIp2 (127.0.0.1/32)\"," +
+            "\"\"dstzn1\",\"dstzn2\",\"dstzn3\"\",\"TestIpRange (1.2.3.4-1.2.3.5)\",\"TestService1 (443/TCP)\",\"accept\",\"none\",\"enabled\",\"uid1\",\"comment1\"" +
+            "\"TestMgt\",\"TestDev\",\"05.04.2023 12:00:00\",\"Rule modified\",\"TestRule1\",\"\"srczn1\",\"srczn2\",\"srczn3\"\",\"TestIp2 (127.0.0.1/32) deleted: TestIp1 (1.2.3.4/32) added: TestIp1Changed (2.3.4.5)\"," +
+            "\"\"dstzn1\",\"dstzn2\",\"dstzn3\"\",\"TestIpRange (1.2.3.4-1.2.3.5) added: TestIpNew (10.0.6.0/24)\"," +
             "\" deleted: TestService1 (443/TCP) added: not(TestService1 (443/TCP))\",\"accept\",\"none\",\"enabled\",\" deleted: uid1\",\" deleted: comment1 added: new comment\"" +
             "\"TestMgt\",\"TestDev\",\"05.04.2023 12:00:00\",\"Rule modified\",\"TestRule2\",\"\",\"not(TestUser1@TestIp1 (1.2.3.4/32),TestUser1@TestIp2 (127.0.0.1/32))\"," +
             "\"\",\" deleted: not(TestUser2@TestIpRange (1.2.3.4-1.2.3.5)) added: TestUser2@TestIpRange (1.2.3.4-1.2.3.5)\"," +
@@ -378,7 +379,7 @@ namespace FWO.Test
             ClassicAssert.AreEqual(expectedCsvResult, RemoveLinebreaks(RemoveGenDate(reportChanges.ExportToCsv())));
         }
 
-        [Test, Ignore("temporarily disabled for importer-rework")]
+        [Test]
         public void ResolvedChangesTechGenerateCsv()
         {
             Log.WriteInfo("Test Log", "starting changes report tech csv generation");
@@ -394,8 +395,8 @@ namespace FWO.Test
             "# report generator: Firewall Orchestrator - https://fwo.cactus.de/en" +
             "# data protection level: For internal use only#" +
             "\"management-name\",\"device-name\",\"change-time\",\"change-type\",\"rule-name\",\"source-zone\",\"source\",\"destination-zone\",\"destination\",\"service\",\"action\",\"track\",\"rule-enabled\",\"rule-uid\",\"rule-comment\"" +
-            "\"TestMgt\",\"TestDev\",\"05.04.2023 12:00:00\",\"Rule added\",\"TestRule1\",\"srczn\",\"1.2.3.4/32,127.0.0.1/32\",\"dstzn\",\"1.2.3.4-1.2.3.5\",\"443/TCP\",\"accept\",\"none\",\"enabled\",\"uid1\",\"comment1\"" +
-            "\"TestMgt\",\"TestDev\",\"05.04.2023 12:00:00\",\"Rule modified\",\"TestRule1\",\"srczn\",\"127.0.0.1/32 deleted: 1.2.3.4/32 added: 2.3.4.5\",\"dstzn\",\"1.2.3.4-1.2.3.5 added: 10.0.6.0/24\",\" deleted: 443/TCP added: not(443/TCP)\",\"accept\",\"none\",\"enabled\",\" deleted: uid1\",\" deleted: comment1 added: new comment\"" +
+            "\"TestMgt\",\"TestDev\",\"05.04.2023 12:00:00\",\"Rule added\",\"TestRule1\",\"\"srczn1\",\"srczn2\",\"srczn3\"\",\"1.2.3.4/32,127.0.0.1/32\",\"\"dstzn1\",\"dstzn2\",\"dstzn3\"\",\"1.2.3.4-1.2.3.5\",\"443/TCP\",\"accept\",\"none\",\"enabled\",\"uid1\",\"comment1\"" +
+            "\"TestMgt\",\"TestDev\",\"05.04.2023 12:00:00\",\"Rule modified\",\"TestRule1\",\"\"srczn1\",\"srczn2\",\"srczn3\"\",\"127.0.0.1/32 deleted: 1.2.3.4/32 added: 2.3.4.5\",\"\"dstzn1\",\"dstzn2\",\"dstzn3\"\",\"1.2.3.4-1.2.3.5 added: 10.0.6.0/24\",\" deleted: 443/TCP added: not(443/TCP)\",\"accept\",\"none\",\"enabled\",\" deleted: uid1\",\" deleted: comment1 added: new comment\"" +
             "\"TestMgt\",\"TestDev\",\"05.04.2023 12:00:00\",\"Rule modified\",\"TestRule2\",\"\",\"not(TestUser1@1.2.3.4/32,TestUser1@127.0.0.1/32)\",\"\",\" deleted: not(TestUser2@1.2.3.4-1.2.3.5) added: TestUser2@1.2.3.4-1.2.3.5\",\" deleted: not(6666-7777/UDP) added: 6666-7777/UDP\",\"deny\",\"none\",\" deleted: enabled added: disabled\",\"uid2:123\",\"comment2\"" +
             "\"TestMgt\",\"TestDev\",\"05.04.2023 12:00:00\",\"Rule deleted\",\"TestRule2\",\"\",\"not(TestUser1@1.2.3.4/32,TestUser1@127.0.0.1/32)\",\"\",\"not(TestUser2@1.2.3.4-1.2.3.5)\",\"not(6666-7777/UDP)\",\"deny\",\"none\",\"enabled\",\"uid2:123\",\"comment2\"";
             ClassicAssert.AreEqual(expectedCsvResult, RemoveLinebreaks(RemoveGenDate(reportChanges.ExportToCsv())));
@@ -522,7 +523,7 @@ namespace FWO.Test
             ClassicAssert.AreEqual(expectedJsonResult, exportJson);
         }
 
-        [Test, Ignore("temporarily disabled for importer-rework")]
+        [Test]
         public void ChangesGenerateJson()
         {
             Log.WriteInfo("Test Log", "starting changes report json generation");
@@ -532,15 +533,15 @@ namespace FWO.Test
             };
 
             string expectedJsonResult =
-            "[{\"id\": 0,\"name\": \"TestMgt\"," +
-            "\"devices\": [{\"id\": 0,\"name\": \"TestDev\"," +
-            "\"rulebase_links\": [],\"rules\": null," +
+            "[{\"id\": 0,\"uid\": \"\",\"name\": \"TestMgt\"," +
+            "\"devices\": [{\"uid\": \"\",\"id\": 0,\"name\": \"TestDev\"," + 
+            "\"rulebase_links\": []," +
             "\"changelog_rules\": [{\"import\": {\"time\": \"2023-04-05T12:00:00\"},\"change_action\": \"I\"," +
             "\"old\": {\"rule_id\": 0,\"rule_uid\": \"\",\"mgm_id\": 0,\"rule_num_numeric\": 0,\"rule_name\": \"\",\"rule_comment\": \"\",\"rule_disabled\": false," +
-            "\"rule_services\": [],\"rule_svc_neg\": false,\"rule_svc\": \"\",\"rule_src_neg\": false,\"rule_src\": \"\",\"src_zone\": {\"zone_id\": 0,\"zone_name\": \"\"},\"rule_froms\": [],\"rule_dst_neg\": false,\"rule_dst\": \"\",\"dst_zone\": {\"zone_id\": 0,\"zone_name\": \"\"},\"rule_tos\": [],\"rule_action\": \"\",\"rule_track\": \"\",\"section_header\": \"\"," +
-            "\"rule_metadatum\": {\"rule_metadata_id\": 0,\"rule_created\": null,\"rule_last_modified\": null,\"rule_first_hit\": null,\"rule_last_hit\": null,\"rule_last_certified\": null,\"rule_last_certifier_dn\": \"\",\"rule_to_be_removed\": false,\"rule_decert_date\": null,\"rule_recertification_comment\": \"\",\"recertification\": [],\"recert_history\": [],\"rule_uid\": \"\",\"NextRecert\": \"0001-01-01T00:00:00\",\"LastCertifierName\": \"\",\"Recert\": false,\"Style\": \"\"}," +
+            "\"rule_services\": [],\"rule_svc_neg\": false,\"rule_svc\": \"\",\"rule_svc_refs\": \"\",\"rule_src_neg\": false,\"rule_src\": \"\",\"rule_src_refs\": \"\",\"rule_from_zones\": [],\"rule_froms\": [],\"rule_dst_neg\": false,\"rule_dst\": \"\",\"rule_dst_refs\": \"\",\"rule_to_zones\": [],\"rule_tos\": [],\"rule_action\": \"\",\"rule_track\": \"\",\"section_header\": \"\"," +
+            "\"rule_metadatum\": {\"rule_metadata_id\": 0,\"rule_created\": null,\"rule_last_modified\": null,\"rule_first_hit\": null,\"rule_last_hit\": null,\"rule_last_certified\": null,\"rule_last_certifier_dn\": \"\",\"rule_to_be_removed\": false,\"rule_decert_date\": null,\"rule_recertification_comment\": \"\",\"recertification\": [],\"recert_history\": [],\"rule_uid\": \"\",\"rules\": [],\"NextRecert\": \"0001-01-01T00:00:00\",\"LastCertifierName\": \"\",\"Recert\": false,\"Style\": \"\"}," +
             "\"translate\": {\"rule_svc_neg\": false,\"rule_svc\": \"\",\"rule_services\": [],\"rule_src_neg\": false,\"rule_src\": \"\",\"rule_froms\": [],\"rule_dst_neg\": false,\"rule_dst\": \"\",\"rule_tos\": []}," +
-            "\"owner_name\": \"\",\"owner_id\": null,\"matches\": \"\",\"dev_id\": 0,\"rule_custom_fields\": \"\",\"DisplayOrderNumber\": 0,\"Certified\": false,\"DeviceName\": \"\",\"DisregardedFroms\": [],\"DisregardedTos\": [],\"DisregardedServices\": [],\"ShowDisregarded\": false},\"new\": {\"rule_id\": 0,\"rule_uid\": \"uid1\",\"mgm_id\": 0,\"rule_num_numeric\": 0,\"rule_name\": \"TestRule1\",\"rule_comment\": \"comment1\",\"rule_disabled\": false," +
+            "\"owner_name\": \"\",\"owner_id\": null,\"matches\": \"\",\"rule_custom_fields\": \"\",\"rule_implied\": false,\"nat_rule\": false,\"rulebase_id\": 0,\"rule_num\": 0,\"rule_enforced_on_gateways\": [],\"rule_installon\": null,\"rule_time\": null,\"violations\": [],\"rulebase\": {\"id\": 0,\"name\":\"\",\"uid\":\"\"                                     \"dev_id\": 0,\"rule_custom_fields\": \"\",\"DisplayOrderNumber\": 0,\"Certified\": false,\"DeviceName\": \"\",\"DisregardedFroms\": [],\"DisregardedTos\": [],\"DisregardedServices\": [],\"ShowDisregarded\": false},\"new\": {\"rule_id\": 0,\"rule_uid\": \"uid1\",\"mgm_id\": 0,\"rule_num_numeric\": 0,\"rule_name\": \"TestRule1\",\"rule_comment\": \"comment1\",\"rule_disabled\": false," +
             "\"rule_services\": [{\"service\": {\"svc_id\": 1,\"svc_name\": \"TestService1\",\"svc_uid\": \"\",\"svc_port\": 443,\"svc_port_end\": 443,\"svc_source_port\": null,\"svc_source_port_end\": null,\"svc_code\": \"\",\"svc_timeout\": null,\"svc_typ_id\": null,\"active\": false,\"svc_create\": 0,\"svc_create_time\": {\"time\": \"0001-01-01T00:00:00\"},\"svc_last_seen\": 0,\"service_type\": {\"name\": \"\"},\"svc_comment\": \"\",\"svc_color_id\": null,\"ip_proto_id\": null,\"protocol_name\": {\"id\": 6,\"name\": \"TCP\"},\"svc_member_names\": \"\",\"svc_member_refs\": \"\",\"svcgrps\": [],\"svcgrp_flats\": []}}]," +
             "\"rule_svc_neg\": false,\"rule_svc\": \"\",\"rule_src_neg\": false,\"rule_src\": \"\",\"src_zone\": {\"zone_id\": 0,\"zone_name\": \"srczn\"}," +
             "\"rule_froms\": [{\"object\": {\"obj_id\": 1,\"obj_name\": \"TestIp1\",\"obj_ip\": \"1.2.3.4/32\",\"obj_ip_end\": \"1.2.3.4/32\",\"obj_uid\": \"\",\"zone\": {\"zone_id\": 0,\"zone_name\": \"\"},\"active\": false,\"obj_create\": 0,\"obj_create_time\": {\"time\": \"0001-01-01T00:00:00\"},\"obj_last_seen\": 0,\"type\": {\"name\": \"network\"},\"obj_comment\": \"\",\"obj_member_names\": \"\",\"obj_member_refs\": \"\",\"objgrps\": [],\"objgrp_flats\": []}," +
@@ -616,7 +617,7 @@ namespace FWO.Test
             ClassicAssert.AreEqual(expectedJsonResult, RemoveLinebreaks(RemoveGenDate(reportChanges.ExportToJson(), false, true)));
         }
 
-        [Test, Ignore("temporarily disabled for importer-rework")]
+        [Test]
         public void ResolvedChangesGenerateJson()
         {
             Log.WriteInfo("Test Log", "starting resolved changes report json generation");
@@ -629,20 +630,20 @@ namespace FWO.Test
             "{\"report type\": \"Changes Report (resolved)\",\"report generation date\": \"Z (UTC)\",\"device filter\": \"TestMgt [TestDev]\",\"other filters\": \"TestFilter\",\"report generator\": \"Firewall Orchestrator - https://fwo.cactus.de/en\",\"data protection level\": \"For internal use only\"," +
             "\"managements\": [{\"TestMgt\": {\"gateways\": [{\"TestDev\": {\"rule changes\": [" +
             "{\"change time\": \"05.04.2023 12:00:00\",\"change action\": \"Rule added\",\"name\": \"TestRule1\"," +
-            "\"source zone\": \"srczn\",\"source negated\": false,\"source\": [\"TestIp1 (1.2.3.4/32)\",\"TestIp2 (127.0.0.1/32)\"]," +
-            "\"destination zone\": \"dstzn\",\"destination negated\": false,\"destination\": [\"TestIpRange (1.2.3.4-1.2.3.5)\"]," +
+            "\"source zones\": [\"srczn1\",\"srczn2\",\"srczn3\"],\"source negated\": false,\"source\": [\"TestIp1 (1.2.3.4/32)\",\"TestIp2 (127.0.0.1/32)\"]," +
+            "\"destination zones\": [\"dstzn1\",\"dstzn2\",\"dstzn3\"],\"destination negated\": false,\"destination\": [\"TestIpRange (1.2.3.4-1.2.3.5)\"]," +
             "\"service negated\": false,\"service\": [\"TestService1 (443/TCP)\"],\"action\": \"accept\",\"tracking\": \"none\",\"disabled\": false,\"rule uid\": \"uid1\",\"comment\": \"comment1\"}," +
             "{\"change time\": \"05.04.2023 12:00:00\",\"change action\": \"Rule modified\",\"name\": \"TestRule1\"," +
-            "\"source zone\": \"srczn\",\"source negated\": false,\"source\": [\"TestIp2 (127.0.0.1/32)\",\"deleted: TestIp1 (1.2.3.4/32)\",\"added: TestIp1Changed (2.3.4.5)\"]," +
-            "\"destination zone\": \"dstzn\",\"destination negated\": false,\"destination\": [\"TestIpRange (1.2.3.4-1.2.3.5)\",\"added: TestIpNew (10.0.6.0/24)\"]," +
+            "\"source zones\": [\"srczn1\",\"srczn2\",\"srczn3\"],\"source negated\": false,\"source\": [\"TestIp2 (127.0.0.1/32)\",\"deleted: TestIp1 (1.2.3.4/32)\",\"added: TestIp1Changed (2.3.4.5)\"]," +
+            "\"destination zones\": [\"dstzn1\",\"dstzn2\",\"dstzn3\"],\"destination negated\": false,\"destination\": [\"TestIpRange (1.2.3.4-1.2.3.5)\",\"added: TestIpNew (10.0.6.0/24)\"]," +
             "\"service negated\": \"deleted: false, added: true\",\"service\": [\"TestService1 (443/TCP)\"],\"action\": \"accept\",\"tracking\": \"none\",\"disabled\": false,\"rule uid\": \"deleted: uid1\",\"comment\": \"deleted: comment1, added: new comment\"}," +
             "{\"change time\": \"05.04.2023 12:00:00\",\"change action\": \"Rule modified\",\"name\": \"TestRule2\"," +
-            "\"source zone\": \"\",\"source negated\": true,\"source\": [\"TestUser1@TestIp1 (1.2.3.4/32)\",\"TestUser1@TestIp2 (127.0.0.1/32)\"]," +
-            "\"destination zone\": \"\",\"destination negated\": \"deleted: true, added: false\",\"destination\": [\"TestUser2@TestIpRange (1.2.3.4-1.2.3.5)\"]," +
+            "\"source zones\": [],\"source negated\": true,\"source\": [\"TestUser1@TestIp1 (1.2.3.4/32)\",\"TestUser1@TestIp2 (127.0.0.1/32)\"]," +
+            "\"destination zones\": [],\"destination negated\": \"deleted: true, added: false\",\"destination\": [\"TestUser2@TestIpRange (1.2.3.4-1.2.3.5)\"]," +
             "\"service negated\": \"deleted: true, added: false\",\"service\": [\"TestService2 (6666-7777/UDP)\"],\"action\": \"deny\",\"tracking\": \"none\",\"disabled\": \"deleted: false, added: true\",\"rule uid\": \"uid2:123\",\"comment\": \"comment2\"}," +
             "{\"change time\": \"05.04.2023 12:00:00\",\"change action\": \"Rule deleted\",\"name\": \"TestRule2\"," +
-            "\"source zone\": \"\",\"source negated\": true,\"source\": [\"TestUser1@TestIp1 (1.2.3.4/32)\",\"TestUser1@TestIp2 (127.0.0.1/32)\"]," +
-            "\"destination zone\": \"\",\"destination negated\": true,\"destination\": [\"TestUser2@TestIpRange (1.2.3.4-1.2.3.5)\"]," +
+            "\"source zones\": [],\"source negated\": true,\"source\": [\"TestUser1@TestIp1 (1.2.3.4/32)\",\"TestUser1@TestIp2 (127.0.0.1/32)\"]," +
+            "\"destination zones\": [],\"destination negated\": true,\"destination\": [\"TestUser2@TestIpRange (1.2.3.4-1.2.3.5)\"]," +
             "\"service negated\": true,\"service\": [\"TestService2 (6666-7777/UDP)\"],\"action\": \"deny\",\"tracking\": \"none\",\"disabled\": false,\"rule uid\": \"uid2:123\",\"comment\": \"comment2\"}]}}]}}]}";
             // Log.WriteInfo("Test Log", removeLinebreaks((removeGenDate(reportChanges.ExportToJson(), false, true))));
             ClassicAssert.AreEqual(expectedJsonResult, RemoveLinebreaks(RemoveGenDate(reportChanges.ExportToJson(), false, true)));

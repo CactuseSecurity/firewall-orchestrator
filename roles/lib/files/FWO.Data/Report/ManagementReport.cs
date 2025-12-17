@@ -20,12 +20,14 @@ namespace FWO.Data.Report
         [JsonProperty("rulebases"), JsonPropertyName("rulebases")]
         public RulebaseReport[] Rulebases { get; set; } = [];
 
+        [JsonProperty("changelog_rules"), JsonPropertyName("changelog_rules")]
+        public RuleChange[]? RuleChanges { get; set; }
+
         [JsonProperty("import"), JsonPropertyName("import")]
         public Import Import { get; set; } = new();
 
         [JsonProperty("import_controls"), JsonPropertyName("import_controls")]
         public List<ImportControl> ImportControls { get; set; } = [];
-
         public long? RelevantImportId { get; set; }
 
         [JsonProperty("is_super_manager"), JsonPropertyName("is_super_manager")]

@@ -29,7 +29,7 @@ namespace FWO.Services
             {
                 hashCode ^= appSrv != null ? appServerComparer.GetHashCode(appSrv) : 0;
             }
-            return hashCode ^ HashCode.Combine(appZone.Name);
+            return hashCode ^ HashCode.Combine(appZone.IdString);
         }
     }
 }

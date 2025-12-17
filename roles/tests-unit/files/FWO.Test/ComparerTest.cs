@@ -40,11 +40,11 @@ namespace FWO.Test
         static readonly NetworkObject NwGrp5 = new() { Name = "NwGrp1", ObjectGroupFlats = [ new GroupFlat<NetworkObject>(){ Object = NwObj3 }]};
         static readonly NetworkObject NwGrp6 = new() { Name = "NwGrp1", ObjectGroupFlats = [ new GroupFlat<NetworkObject>(){ Object = NwObj1 }, new GroupFlat<NetworkObject>(){ Object = NwObj3 }]};
         
-        static readonly ModellingAppZone AppZone1 = new() { Name = "AZ1", AppServers = [] };
-        static readonly ModellingAppZone AppZone2 = new() { Name = "AZ2", AppServers = [new(){ Content = AppSrv1}] };
-        static readonly ModellingAppZone AppZone3 = new() { Name = "AZ3", AppServers = [new(){ Content = AppSrv1}, new(){ Content = AppSrv2}] };
-        static readonly ModellingAppZone AppZone4 = new() { Name = "AZ3", AppServers = [new(){ Content = AppSrv1}] };
-        static readonly ModellingAppZone AppZone5 = new() { Name = "AZ3", AppServers = [new(){ Content = AppSrv1}], Comment = "comment", AppId = 3 };
+        static readonly ModellingAppZone AppZone1 = new() { IdString = "AZ1", AppServers = [] };
+        static readonly ModellingAppZone AppZone2 = new() { IdString = "AZ2", AppServers = [new(){ Content = AppSrv1}] };
+        static readonly ModellingAppZone AppZone3 = new() { IdString = "AZ3", AppServers = [new(){ Content = AppSrv1}, new(){ Content = AppSrv2}] };
+        static readonly ModellingAppZone AppZone4 = new() { IdString = "AZ3", AppServers = [new(){ Content = AppSrv1}] };
+        static readonly ModellingAppZone AppZone5 = new() { IdString = "AZ3", AppServers = [new(){ Content = AppSrv1}], Comment = "comment", AppId = 3 };
 
         static readonly NetworkService Svc1 = new() { Name = "Svc1", DestinationPort = 1234, DestinationPortEnd = 1235, ProtoId = 6, Protocol = new() { Id = 6, Name = "TCP"} };
         static readonly NetworkService Svc2 = new() { Name = "Svc2", DestinationPort = 1234, DestinationPortEnd = 1235, Protocol = new() { Id = 6, Name = "TCP"} };

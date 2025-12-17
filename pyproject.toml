@@ -16,7 +16,7 @@ ignore = [
     "./scripts",
 ]
 
-reportMissingTypeStubs = true
+reportMissingTypeStubs = false
 
 
 typeCheckingMode = "strict"

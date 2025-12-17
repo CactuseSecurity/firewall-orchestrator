@@ -16,11 +16,10 @@ ignore = [
     "./scripts",
 ]
 
-
+typeCheckingMode = "strict"
 reportMissingImports = false
+reportMissingTypeStubs = true
 
-
-typeCheckingMode = "standard"
 
 
 [tool.ruff]

@@ -1,10 +1,12 @@
 from enum import Enum
 
+
 class Lifetime(Enum):
     SINGLETON = "singleton"
     TRANSIENT = "transient"
     IMPORT = "import"
-    MANAGEMENT = "management" # only holds data with a scope valid for a single sub-management
+    MANAGEMENT = "management"  # only holds data with a scope valid for a single sub-management
+
 
 class Services(Enum):
     UID2ID_MAPPER = "uid2id_mapper"
@@ -14,4 +16,3 @@ class Services(Enum):
     FW_CONFIG_IMPORT_GATEWAY = "fwconfig_import_gateway"
     FWO_CONFIG = "fwo_config"
     RULE_ORDER_SERVICE = "rule_order_service"
-

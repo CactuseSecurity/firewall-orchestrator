@@ -1,7 +1,7 @@
 import uuid
 
-class UidManager:
 
+class UidManager:
     def __init__(self):
         self.used_uids = []
 
@@ -11,9 +11,8 @@ class UidManager:
 
         while need_new_uid:
             new_uid = str(uuid.uuid4())
-            if not new_uid in self.used_uids:
+            if new_uid not in self.used_uids:
                 self.used_uids.append(new_uid)
                 need_new_uid = False
 
         return new_uid
-    

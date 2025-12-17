@@ -1,5 +1,6 @@
 from enum import Enum
 
+
 class CaseInsensitiveEnum(str, Enum):
     @classmethod
     def _missing_(cls, value: object) -> object | None:

@@ -1,4 +1,4 @@
-name: do test install
+name: Checks
 
 on:
   push:
@@ -46,8 +46,8 @@ jobs:
           dotnet test --filter "Name=HtmlToPdfTest"
 
 
-  style-check:
-    name: Style Check
+  python-code-check:
+    name: Python Code Check
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6

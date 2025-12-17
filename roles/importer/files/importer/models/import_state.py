@@ -64,12 +64,20 @@ class ImportState:
     def lookup_rulebase_id(self, rulebase_uid: str) -> int:
         rulebase_id = self.rulebase_map.get(rulebase_uid, None)
         if rulebase_id is None:
-            FWOLogger.error(f"Rulebase {rulebase_uid} not found in {len(self.rulebase_map)} known rulebases")
-            raise FwoImporterError(f"Rulebase {rulebase_uid} not found in {len(self.rulebase_map)} known rulebases")
+            FWOLogger.error(
+                f"Rulebase {rulebase_uid} not found in {len(self.rulebase_map)} known rulebases"
+            )
+            raise FwoImporterError(
+                f"Rulebase {rulebase_uid} not found in {len(self.rulebase_map)} known rulebases"
+            )
         return rulebase_id
 
     def lookup_link_type(self, link_uid: str) -> int:
-        return self.link_types.get(link_uid, -1)
+        link_type_id = self.link_types.get(link_uid, None)
+        if not link_type_id:
+            FWOLogger.error(f"Link type {link_uid} not found")
+            raise FwoImporterError(f"Link type {link_uid} not found")
+        return link_type_id
 
     def lookup_gateway_id(self, gw_uid: str) -> int | None:
         mgm_id = self.mgm_details.current_mgm_id
@@ -91,7 +99,9 @@ class ImportState:
 
     def lookup_management_id(self, mgm_uid: str) -> int | None:
         if not self.management_map.get(mgm_uid, None):
-            FWOLogger.error(f"fwo_api:import_latest_config - no mgm id found for current manager uid '{mgm_uid}'")
+            FWOLogger.error(
+                f"fwo_api:import_latest_config - no mgm id found for current manager uid '{mgm_uid}'"
+            )
         return self.management_map.get(mgm_uid, None)
 
     def lookup_color_id(self, color_str: str) -> int:

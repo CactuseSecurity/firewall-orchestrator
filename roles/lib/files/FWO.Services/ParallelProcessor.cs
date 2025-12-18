@@ -22,9 +22,6 @@ namespace FWO.Services
         /// The method throttles concurrency via a semaphore and optionally post-processes each chunk.
         /// </summary>
         /// <typeparam name="T">Element type of each chunk in the result set.</typeparam>
-        /// <param name="elementsCount">Total number of elements that should be retrieved.</param>
-        /// <param name="parallelismLevel">Maximum number of simultaneous chunk requests.</param>
-        /// <param name="elementsPerFetch">Number of elements to request per chunk.</param>
         /// <param name="query">GraphQL query to execute.</param>
         /// <param name="postProcessAsync">Optional callback invoked for each chunk before returning.</param>
         /// <param name="managementIds">Management identifiers passed to the GraphQL query when required.</param>

@@ -1,6 +1,7 @@
 from typing import Any
-from pydantic import BaseModel
+
 from models.rulebase_link import RulebaseLinkUidBased
+from pydantic import BaseModel
 
 """
 Gateway
@@ -13,14 +14,16 @@ Gateway
     }
 }
 """
+
+
 class Gateway(BaseModel):
-    Uid: str|None = None
-    Name: str|None = None
+    Uid: str | None = None
+    Name: str | None = None
     Routing: list[dict[str, Any]] = []
-    Interfaces: list[dict[str, Any]]  = []
+    Interfaces: list[dict[str, Any]] = []
     RulebaseLinks: list[RulebaseLinkUidBased] = []
-    GlobalPolicyUid: str|None = None
-    EnforcedPolicyUids: list[str]|None = []
-    EnforcedNatPolicyUids: list[str]|None = []
+    GlobalPolicyUid: str | None = None
+    EnforcedPolicyUids: list[str] | None = []
+    EnforcedNatPolicyUids: list[str] | None = []
     ImportDisabled: bool = False
     ShowInUI: bool = True

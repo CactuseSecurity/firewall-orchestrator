@@ -92,6 +92,10 @@ namespace FWO.Middleware.Server
 
         private bool IsCheckTime(FwoOwner owner)
         {
+            if (!owner.RecertActive)
+            {
+                return false;
+            }
             RecertCheckParams checkParams = (owner.RecertCheckParamString != null && owner.RecertCheckParamString != "" ?
                 System.Text.Json.JsonSerializer.Deserialize<RecertCheckParams>(owner.RecertCheckParamString) :
                 globCheckParams) ?? throw new ArgumentException("Config Parameters not set.");
@@ -206,7 +210,7 @@ namespace FWO.Middleware.Server
 
                 foreach (var management in reportData.ManagementData)
                 {
-                    foreach(var rulebase in management.Rulebases)
+                    foreach (var rulebase in management.Rulebases)
                     {
                         foreach (var rule in rulebase.Rules)
                         {

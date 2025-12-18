@@ -1,6 +1,6 @@
-from test.mocking.mock_config import MockFwConfigNormalizedBuilder
 from model_controllers.fwconfigmanagerlist_controller import FwConfigManagerListController
 from models.fwconfigmanager import FwConfigManager
+from test.mocking.mock_config import MockFwConfigNormalizedBuilder
 from test.mocking.mock_import_state import MockImportStateController
 
 
@@ -32,11 +32,7 @@ def main(
 
     fw_config_manager_list_controller = FwConfigManagerListController()
     fw_config_manager = FwConfigManager(
-        manager_uid=manager_uid,
-        manager_name=manager_name,
-        domain_uid=domain_uid,
-        domain_name=domain_name
-
+        manager_uid=manager_uid, manager_name=manager_name, domain_uid=domain_uid, domain_name=domain_name
     )
     fw_config_manager.configs.append(mock_config)
     fw_config_manager_list_controller.ManagerSet.append(fw_config_manager)
@@ -44,6 +40,6 @@ def main(
 
     print(f"MockConfig: File saved to '{file_path}'")
 
+
 if __name__ == "__main__":
     main()
-

@@ -142,6 +142,8 @@ namespace FWO.Compliance
         /// <returns>Task that completes when the asynchronous compliance evaluation finished.</returns>
         public async Task CheckAll()
         {
+            DateTime startTime = DateTime.UtcNow;
+
             try
             {
                 // Gathering necessary parameters for compliance check.
@@ -222,10 +224,16 @@ namespace FWO.Compliance
                     return;
                 }
 
+                TimeSpan elapsed = DateTime.UtcNow - startTime;
+
+                Logger.TryWriteInfo("Compliance Check", $"Compliance check evaluated {RulesInCheck.Count} rules in {elapsed.TotalSeconds} seconds.", true);
                 Logger.TryWriteInfo("Compliance Check", "Compliance check completed.", true);
+                 
             }
             catch (Exception e)
             {
+                TimeSpan elapsed = DateTime.UtcNow - startTime;
+                Logger.TryWriteInfo("Compliance Check", $"Compliance check failed after {elapsed.TotalSeconds} seconds.", true);
                 Logger.TryWriteError("Compliance Check", e, true);
             }
 

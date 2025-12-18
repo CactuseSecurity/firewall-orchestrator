@@ -12,6 +12,6 @@ ExecStart={{ middleware_server_start_dir }}/bin/{{ dotnet_mode }}/net{{ dotnet_v
 Restart=on-failure
 SyslogIdentifier={{ middleware_server_syslog_id }}
 User={{ fworch_user }}
-Environment=
+Environment="PYTHONPATH={{ fworch_home }}"
 [Install]
 WantedBy=multi-user.target

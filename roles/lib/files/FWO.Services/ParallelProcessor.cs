@@ -6,6 +6,17 @@ namespace FWO.Services
 {
     public class ParallelProcessor(ApiConnection apiConnection, ILogger logger)
     {
+        private int _elementsCount = 0;
+        private int _elementsPerFetch = 0;
+        private int _parallelismLevel = 0;
+
+        public void SetUp(int elementsCount, int parallelismLevel, int elementsPerFetch)
+        {
+            _elementsCount = elementsCount;
+            _parallelismLevel = parallelismLevel;
+            _elementsPerFetch = elementsPerFetch;
+        }
+
         /// <summary>
         /// Executes a GraphQL query in multiple chunks while respecting a configurable parallelism level.
         /// The method throttles concurrency via a semaphore and optionally post-processes each chunk.
@@ -21,28 +32,25 @@ namespace FWO.Services
         /// <param name="cancellationToken">Token used to cancel the work, if necessary.</param>
         /// <returns>All chunk results ordered by their chunk number.</returns>
         public virtual async Task<List<T>[]> SendParallelizedQueriesAsync<T>(
-            int elementsCount,
-            int parallelismLevel,
-            int elementsPerFetch,
             string query,
             Func<List<T>, Task<List<T>>>? postProcessAsync = null,
             List<int>? managementIds = null,
             long? importId = 0,
             CancellationToken cancellationToken = default)
         {
-            if (elementsCount < 0)
+            if (_elementsCount < 0)
             {
-                throw new ArgumentOutOfRangeException(nameof(elementsCount), "Number of elements cannot be negative.");
+                throw new ArgumentOutOfRangeException(nameof(_elementsCount), "Number of elements cannot be negative.");
             }
 
-            if (parallelismLevel <= 0)
+            if (_parallelismLevel <= 0)
             {
-                throw new ArgumentOutOfRangeException(nameof(parallelismLevel), "Parallelism level must be at least 1.");
+                throw new ArgumentOutOfRangeException(nameof(_parallelismLevel), "Parallelism level must be at least 1.");
             }
 
-            if (elementsPerFetch <= 0)
+            if (_elementsPerFetch <= 0)
             {
-                throw new ArgumentOutOfRangeException(nameof(elementsPerFetch), "Chunk size must be at least 1.");
+                throw new ArgumentOutOfRangeException(nameof(_elementsPerFetch), "Chunk size must be at least 1.");
             }
 
             if (string.IsNullOrWhiteSpace(query))
@@ -50,23 +58,23 @@ namespace FWO.Services
                 throw new ArgumentException("GraphQL query must be provided.", nameof(query));
             }
 
-            if (elementsCount == 0)
+            if (_elementsCount == 0)
             {
                 return Array.Empty<List<T>>();
             }
 
-            using SemaphoreSlim semaphore = new(parallelismLevel, parallelismLevel);
-            int chunkCount = (int)Math.Ceiling(elementsCount / (double)elementsPerFetch);
+            using SemaphoreSlim semaphore = new(_parallelismLevel, _parallelismLevel);
+            int chunkCount = (int)Math.Ceiling(_elementsCount / (double)_elementsPerFetch);
             List<Task<List<T>>> tasks = new(chunkCount);
             int chunkNumber = 0;
 
-            for (int offset = 0; offset < elementsCount; offset += elementsPerFetch)
+            for (int offset = 0; offset < _elementsCount; offset += _elementsPerFetch)
             {
                 chunkNumber++;
 
                 // Prepare the GraphQL variables for the batch and queue its execution.
 
-                var queryVariables = CreateQueryVariables(offset, elementsPerFetch, query, managementIds, importId);
+                var queryVariables = CreateQueryVariables(offset, _elementsPerFetch, query, managementIds, importId);
                 tasks.Add(FetchChunkAsync(query, queryVariables, semaphore, chunkNumber, postProcessAsync, cancellationToken));
             }
 

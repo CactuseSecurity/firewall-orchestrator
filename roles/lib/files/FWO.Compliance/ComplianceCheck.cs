@@ -268,7 +268,9 @@ namespace FWO.Compliance
 
             // Retrieve rules and check current compliance for every rule.
 
-            List<Rule>[]? chunks = await _parallelProcessor.SendParallelizedQueriesAsync<Rule>(activeRulesCount, _maxDegreeOfParallelism, _elementsPerFetch, RuleQueries.getRulesForSelectedManagements, CalculateCompliance, managementIds, maxImportId);
+            _parallelProcessor.SetUp(activeRulesCount, _maxDegreeOfParallelism, _elementsPerFetch);
+
+            List<Rule>[]? chunks = await _parallelProcessor.SendParallelizedQueriesAsync<Rule>(RuleQueries.getRulesForSelectedManagements, CalculateCompliance, managementIds, maxImportId);
 
             if (chunks == null)
             {

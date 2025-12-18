@@ -58,7 +58,7 @@
         @if (actReportFilters.ReportType.IsComplianceReport())
         {
             <div class="p-3">
-                <input class="form-check-input" type="checkbox" id="complianceShowAnyRule" checked="@_showAnyRulesInComplianceReport" @onchange="UpdateComplianceShowAnyRules"/>
+                <input class="form-check-input" type="checkbox" id="complianceShowAnyRule" checked="@_showAnyRulesInComplianceReport" @onchange="ToggleShowAnyRule"/>
                 <label class="form-check-label text-white" for="complianceShowAnyRule">@(userConfig.GetText("show_any_match"))</label>
             </div>
         }
@@ -69,7 +69,14 @@
             {
                 <ReportTenantSelection SelectedTenant="actReportFilters.SelectedTenant" SelectedTenantChanged="TenantViewChanged" TenantFilteringAllowed="tenantFilteringAllowed" />
             }
-            <DeviceSelection @bind-DeviceFilter="actReportFilters.DeviceFilter" @bind-CollapseAll="actReportFilters.CollapseDevices" @bind-SelectAll="actReportFilters.SelectAll" />
+            @if(actReportFilters.ReportType == ReportType.Recertification)
+            {
+                <ManagementSelection @bind-DeviceFilter="actReportFilters.DeviceFilter" />
+            }
+            else
+            {
+                <DeviceSelection @bind-DeviceFilter="actReportFilters.DeviceFilter" @bind-CollapseAll="actReportFilters.CollapseDevices" @bind-SelectAll="actReportFilters.SelectAll" />
+            }
         }
     </Sidebar>
 
@@ -137,7 +144,7 @@
 
                         case ReportType.ComplianceReport:
                         case ReportType.ComplianceDiffReport:
-                            <ComplianceReport ReportData="currentReport.ReportData" RulesPerPage="rulesPerPage" @bind-SelectedRules="_selectedItemsComplianceReportTable" @ref="_complianceReport" ShowAnyRule="((ReportCompliance)currentReport).ShowNonImpactRules"/>
+                            <ComplianceReport ReportData="currentReport.ReportData" RulesPerPage="rulesPerPage" @bind-SelectedRules="_selectedItemsComplianceReportTable" @ref="_complianceReport" ShowAnyRule="_showAnyRulesInComplianceReport"/>
                             break;
 
                         case ReportType.Changes:
@@ -249,10 +256,8 @@
     private ReportTemplateComponent reportTemplateControl = new();
 
     private ReportBase? currentReport;
-
-    private FWO.Ui.Shared.TabSet rsbTabset;
+    
     private Sidebar? deviceSelectionSidebar;
-    private FWO.Ui.Shared.AnchorNavToRSB anchorNavToRSB;
 
     private string filterFeedbackStart = "";
     private string filterFeedbackError = "";
@@ -549,7 +554,8 @@
 
             if(currentReport is ReportCompliance && _complianceReport != null)
             {
-                _complianceReport!.UpdateRuleViewData(currentReport.ReportData);
+                _complianceReport.UpdateRuleViewData(currentReport.ReportData);
+                _showAnyRulesInComplianceReport = ((ReportCompliance)currentReport).ShowNonImpactRules;
             }
         }
     }
@@ -629,15 +635,9 @@
         ListOut.AddRange(ListIn);
         return ListOut;
     }
-
-    private void UpdateComplianceShowAnyRules(ChangeEventArgs e)
+    
+    private void ToggleShowAnyRule(ChangeEventArgs e)
     {
         _showAnyRulesInComplianceReport = (bool)e.Value!;
-        if (_complianceReport is ComplianceReport complianceReport)
-        {
-            complianceReport.ShowAnyRule = _showAnyRulesInComplianceReport;
-            complianceReport.UpdateVisibleRules();
-        }
     }
-
 }

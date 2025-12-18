@@ -29,6 +29,8 @@ namespace FWO.Data.Modelling
         public Dictionary<int, List<ModellingAppRole>> MissingAppRoles { get; set; } = [];
         public Dictionary<int, List<ModellingAppRole>> DifferingAppRoles { get; set; } = [];
         public AppRoleStats AppRoleStats { get; set; } = new();
+        public Dictionary<int, List<DeviceReport>> DeviceRules { get; set; } = [];
+
 
         public List<ManagementReport> UnModelledRulesReport { get; set; } = [];
 
@@ -84,26 +86,31 @@ namespace FWO.Data.Modelling
             foreach (var mgtId in rulesToReport.Keys.Where(m => rulesToReport[m].Count > 0))
             {
                 Management? mgt = Managements.FirstOrDefault(m => m.Id == mgtId);
-                ManagementReport managementReport = new() { Id = mgtId, Name = mgt?.Name ?? "" };
-                List<DeviceReport> deviceReports = [];
-                foreach (var rule in rulesToReport[mgtId])
+                if(mgt != null)
                 {
-                    // TODO: Migrate
-                    // DeviceReport? existingDev = deviceReports.FirstOrDefault(d => d.Id == rule.DeviceId);
-                    // if (existingDev != null)
-                    // {
-                    //     existingDev.Rules = existingDev.Rules?.Append(rule).ToArray();
-                    // }
-                    // else
-                    // {
-                    //     string devName = mgt == null ? "" : mgt.Devices.FirstOrDefault(d => d.Id == rule.DeviceId)?.Name ?? "";
-                    //     deviceReports.Add(new() { Id = rule.DeviceId, Name = devName, Rules = [rule] });
-                    // }
+                    ManagementReport managementReport = new() { Id = mgtId, Name = mgt.Name ?? "" };
+                    List<DeviceReport> deviceReports = [];
+                    foreach(var dev in mgt.Devices)
+                    {
+                        DeviceReport devReport = new() { Id = dev.Id, Name = dev.Name };
+                        devReport.SetRulesForDev(FilterRulesForDev(rulesToReport[mgtId], mgtId, dev));
+                        deviceReports.Add(devReport);
+                    }
+                    managementReport.Devices = [.. deviceReports];
+                    managementReports.Add(managementReport);
                 }
-                managementReport.Devices = [.. deviceReports];
-                managementReports.Add(managementReport);
             }
             return managementReports;
+        }
+
+        public List<Rule> FilterRulesForDev(List<Rule> rulesToReport, int mgtId, Device device)
+        {
+            DeviceReport? devReport = DeviceRules[mgtId]?.FirstOrDefault(d => d.Id == device.Id);
+            if(devReport != null)
+            {
+                return [.. rulesToReport.Where(devReport.IsLinked)];
+            }
+            return [];
         }
     }
 }

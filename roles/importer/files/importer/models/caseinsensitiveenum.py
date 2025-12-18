@@ -1,8 +1,9 @@
 from enum import Enum
 
+
 class CaseInsensitiveEnum(str, Enum):
     @classmethod
-    def _missing_(cls, value):
+    def _missing_(cls, value: object) -> object | None:
         if isinstance(value, str):
             s = value.strip()
             for member in cls:

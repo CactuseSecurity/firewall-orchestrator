@@ -1,5 +1,6 @@
-from models.rule import RuleNormalized, Rule
+from models.rule import Rule, RuleNormalized
 from pydantic import BaseModel
+
 
 # Rulebase is the model for a rulebase (containing no DB IDs)
 class Rulebase(BaseModel):
@@ -8,6 +9,15 @@ class Rulebase(BaseModel):
     mgm_uid: str
     is_global: bool = False
     rules: dict[str, RuleNormalized] = {}
+
+    def to_json(self) -> dict[str, object]:
+        return {
+            "uid": self.uid,
+            "name": self.name,
+            "mgm_uid": self.mgm_uid,
+            "is_global": self.is_global,
+            "rules": {uid: rule.model_dump() for uid, rule in self.rules.items()},
+        }
 
 
 # RulebaseForImport is the model for a rule to be imported into the DB (containing IDs)
@@ -22,12 +32,14 @@ class Rulebase(BaseModel):
 	# "created" BIGINT,
 	# "removed" BIGINT
 """
+
+
 class RulebaseForImport(BaseModel):
-    id: int|None = None
+    id: int | None = None
     name: str
     uid: str
     mgm_id: int
     is_global: bool = False
     created: int
-    removed: int|None = None
+    removed: int | None = None
     rules: list[Rule] = []

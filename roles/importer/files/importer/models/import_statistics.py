@@ -1,24 +1,24 @@
 class ImportStatistics:
-    ErrorCount: int
-    ErrorDetails: list[str]
-    NetworkObjectAddCount: int
-    NetworkObjectDeleteCount: int
-    NetworkObjectChangeCount: int
-    ServiceObjectAddCount: int
-    ServiceObjectDeleteCount: int
-    ServiceObjectChangeCount: int
-    UserObjectAddCount: int
-    UserObjectDeleteCount: int
-    UserObjectChangeCount: int
-    ZoneObjectAddCount: int
-    ZoneObjectDeleteCount: int
-    ZoneObjectChangeCount: int
-    RuleAddCount: int
-    RuleDeleteCount: int
-    RuleChangeCount: int
-    RuleMoveCount: int  # when a rule is moved within the same rulebase
-    rulebase_add_count: int
-    rulebase_change_count: int
-    rulebase_delete_count: int
-    rule_enforce_change_count: int
-    
+    network_object_add_count: int = 0
+    network_object_delete_count: int = 0
+    network_object_change_count: int = 0
+    service_object_add_count: int = 0
+    service_object_delete_count: int = 0
+    service_object_change_count: int = 0
+    user_object_add_count: int = 0
+    user_object_delete_count: int = 0
+    user_object_change_count: int = 0
+    zone_object_add_count: int = 0
+    zone_object_delete_count: int = 0
+    zone_object_change_count: int = 0
+    rule_add_count: int = 0
+    rule_delete_count: int = 0
+    rule_change_count: int = 0
+    rule_move_count: int = 0  # when a rule is moved within the same rulebase
+    rulebase_add_count: int = 0
+    rulebase_change_count: int = 0
+    rulebase_delete_count: int = 0
+    rule_enforce_change_count: int = 0
+    rulebase_link_add_count: int = 0
+    rulebase_link_change_count: int = 0
+    rulebase_link_delete_count: int = 0

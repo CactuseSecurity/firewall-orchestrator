@@ -1,37 +1,35 @@
 from __future__ import annotations
+
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from models.fwconfig_normalized import FwConfigNormalized 
+    from models.fwconfig_normalized import FwConfigNormalized
+    from models.rulebase import Rulebase
 
 import sys
 from pathlib import Path
+
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "importer"))
 
-from model_controllers.fwconfig_import_rule import FwConfigImportRule
-from models.rulebase import Rulebase
-from models.rule import Rule
-from services.enums import Lifetime, Services
-from test.mocking.mock_import_state import MockImportStateController
 from fwo_base import init_service_provider
-from services.service_provider import ServiceProvider
-from services.global_state import GlobalState
+from model_controllers.fwconfig_import_rule import FwConfigImportRule
+from test.mocking.mock_import_state import MockImportStateController
+
 
 class MockFwConfigImportRule(FwConfigImportRule):
     """
-        A mock subclass of FwConfigImportRule for testing.
+    A mock subclass of FwConfigImportRule for testing.
 
-        This class allows selective stubbing of internal methods to control behavior during tests.
+    This class allows selective stubbing of internal methods to control behavior during tests.
     """
 
     def __init__(self):
         """
-            Initializes the mock import rule controller with stubs enabled by default. 
+        Initializes the mock import rule controller with stubs enabled by default.
         """
-
         service_provider = init_service_provider()
         self._import_details = MockImportStateController(stub_setCoreData=True)
-        service_provider.get_service(Services.GLOBAL_STATE).import_state = self._import_details
+        service_provider.get_global_state().import_state = self._import_details
 
         self._stub_markRulesRemoved = True
         self._stub_getRules = False
@@ -50,11 +48,10 @@ class MockFwConfigImportRule(FwConfigImportRule):
     @property
     def import_details(self) -> MockImportStateController:
         """
-            Returns the mock import state controller.
+        Returns the mock import state controller.
         """
-
         return self._import_details
-    
+
     @import_details.setter
     def import_details(self, value: MockImportStateController):
         self._import_details = value
@@ -62,9 +59,8 @@ class MockFwConfigImportRule(FwConfigImportRule):
     @property
     def stub_markRulesRemoved(self) -> bool:
         """
-            Indicates whether to stub markRulesRemoved.
+        Indicates whether to stub markRulesRemoved.
         """
-
         return self._stub_markRulesRemoved
 
     @stub_markRulesRemoved.setter
@@ -74,9 +70,8 @@ class MockFwConfigImportRule(FwConfigImportRule):
     @property
     def stub_getRules(self) -> bool:
         """
-            Indicates whether to stub getRules.
+        Indicates whether to stub getRules.
         """
-
         return self._stub_getRules
 
     @stub_getRules.setter
@@ -86,9 +81,8 @@ class MockFwConfigImportRule(FwConfigImportRule):
     @property
     def stub_addNewRuleMetadata(self) -> bool:
         """
-            Indicates whether to stub addNewRuleMetadata.
+        Indicates whether to stub addNewRuleMetadata.
         """
-
         return self._stub_addNewRuleMetadata
 
     @stub_addNewRuleMetadata.setter
@@ -98,9 +92,8 @@ class MockFwConfigImportRule(FwConfigImportRule):
     @property
     def stub_addNewRules(self) -> bool:
         """
-            Indicates whether to stub addNewRules.
+        Indicates whether to stub addNewRules.
         """
-
         return self._stub_addNewRules
 
     @stub_addNewRules.setter
@@ -110,9 +103,8 @@ class MockFwConfigImportRule(FwConfigImportRule):
     @property
     def stub_moveRules(self) -> bool:
         """
-            Indicates whether to stub moveRules.
+        Indicates whether to stub moveRules.
         """
-
         return self._stub_moveRules
 
     @stub_moveRules.setter
@@ -122,9 +114,8 @@ class MockFwConfigImportRule(FwConfigImportRule):
     @property
     def stub_create_new_rule_version(self) -> bool:
         """
-            Indicates whether to stub create_new_rule_version.
+        Indicates whether to stub create_new_rule_version.
         """
-
         return self._stub_create_new_rule_version
 
     @stub_create_new_rule_version.setter
@@ -134,9 +125,8 @@ class MockFwConfigImportRule(FwConfigImportRule):
     @property
     def stub_add_new_refs(self) -> bool:
         """
-            Indicates whether to stub add_new_refs.
+        Indicates whether to stub add_new_refs.
         """
-
         return self._stub_add_new_refs
 
     @stub_add_new_refs.setter
@@ -146,9 +136,8 @@ class MockFwConfigImportRule(FwConfigImportRule):
     @property
     def stub_remove_outdated_refs(self) -> bool:
         """
-            Indicates whether to stub remove_outdated_refs.
+        Indicates whether to stub remove_outdated_refs.
         """
-
         return self._stub_remove_outdated_refs
 
     @stub_remove_outdated_refs.setter
@@ -158,11 +147,10 @@ class MockFwConfigImportRule(FwConfigImportRule):
     @property
     def stub_write_changelog_rules(self) -> bool:
         """
-            Indicates whether to stub write_changelog_rules.
+        Indicates whether to stub write_changelog_rules.
         """
-
         return self._stub_write_changelog_rules
-    
+
     @stub_write_changelog_rules.setter
     def stub_write_changelog_rules(self, value: bool):
         self._stub_write_changelog_rules = value
@@ -171,19 +159,19 @@ class MockFwConfigImportRule(FwConfigImportRule):
 
     def mark_rules_removed(self, removedRuleUids: dict[str, list[str]]) -> tuple[int, list[int]]:
         """
-            Simulates marking rules as removed. Can delegate to the base class if not stubbed.
+        Simulates marking rules as removed. Can delegate to the base class if not stubbed.
 
-            Args:
-                removedRuleUids (dict): A dict mapping rulebase identifiers to lists of rule UIDs.
-                changedRuleUids (dict): A dict mapping rulebase identifiers to lists of rule UIDs.
+        Args:
+            removedRuleUids (dict): A dict mapping rulebase identifiers to lists of rule UIDs.
+            changedRuleUids (dict): A dict mapping rulebase identifiers to lists of rule UIDs.
 
-            Returns:
-                tuple: (changes, collectedRemovedRuleIds)
+        Returns:
+            tuple: (changes, collectedRemovedRuleIds)
+
         """
-        
         changes = 0
         collectedRemovedRuleIds = []
-        for rulebase in removedRuleUids.keys():
+        for rulebase in removedRuleUids:
             changes += len(removedRuleUids[rulebase])
             collectedRemovedRuleIds.extend(removedRuleUids[rulebase])
 
@@ -192,57 +180,54 @@ class MockFwConfigImportRule(FwConfigImportRule):
 
         return changes, collectedRemovedRuleIds
 
-
-    def getRules(self, ruleUids: list[str]) -> list[Rulebase]:
+    def get_rules(self, ruleUids: list[str]) -> list[Rulebase]:
         """
-            Simulates returning rules by UID. Delegates to base if not stubbed.
+        Simulates returning rules by UID. Delegates to base if not stubbed.
 
-            Args:
-                ruleUids (list): list of rule UIDs to fetch.
+        Args:
+            ruleUids (list): list of rule UIDs to fetch.
 
-            Returns:
-                list: list of Rulebase instances containing the rules.
+        Returns:
+            list: list of Rulebase instances containing the rules.
+
         """
-
         rulebases: list[Rulebase] = []
 
         if not self.stub_getRules:
-            rulebases = super().getRules(ruleUids)
+            rulebases = super().get_rules(ruleUids)
 
         return rulebases
 
-
-    def addNewRuleMetadata(self, newRules: list[Rulebase]) -> tuple[int, list[int]]:
+    def add_new_rule_metadata(self, newRules: list[Rulebase]) -> tuple[int, list[int]]:
         """
-            Simulates adding metadata for new rules. Delegates to base if not stubbed.
+        Simulates adding metadata for new rules. Delegates to base if not stubbed.
 
-            Args:
-                newRules (list): list of Rulebase objects with new rules.
+        Args:
+            newRules (list): list of Rulebase objects with new rules.
 
-            Returns:
-                tuple: (changes, newRuleIds)
+        Returns:
+            tuple: (changes, newRuleIds)
+
         """
-
         changes = 0
         newRuleIds: list[int] = []
 
         if not self.stub_addNewRuleMetadata:
-            changes, newRuleIds = super().addNewRuleMetadata(newRules)
+            changes, newRuleIds = super().add_new_rule_metadata(newRules)
 
         return changes, newRuleIds
 
-
     def add_new_rules(self, rulebases: list[Rulebase]) -> tuple[int, list[dict]]:
         """
-            Simulates adding new rules to db and returning their ids. Delegates to base if not stubbed.
+        Simulates adding new rules to db and returning their ids. Delegates to base if not stubbed.
 
-            Args:
-                newRules (list): list of Rulebase objects with new rules.
+        Args:
+            newRules (list): list of Rulebase objects with new rules.
 
-            Returns:
-                tuple: (changes, newRuleIds)
+        Returns:
+            tuple: (changes, newRuleIds)
+
         """
-
         changes = 0
         newRuleIds = []
 
@@ -256,21 +241,21 @@ class MockFwConfigImportRule(FwConfigImportRule):
 
         return changes, newRuleIds
 
-
     def moveRules(self, moved_rule_uids: dict[str, list[str]]) -> tuple[int, list[int]]:
         """
-            Simulates moving rules to a new location.  Delegates to base if not stubbed.
+        Simulates moving rules to a new location.  Delegates to base if not stubbed.
 
-            Args:
-                moved_rule_uids (dict): Mapping from rulebase to list of rule UIDs to move.
-            Returns:
-                tuple: (changes, moved_rule_ids)
+        Args:
+            moved_rule_uids (dict): Mapping from rulebase to list of rule UIDs to move.
+
+        Returns:
+            tuple: (changes, moved_rule_ids)
+
         """
-
         changes = 0
         moved_rule_ids: list[int] = []
 
-        for rulebase in moved_rule_uids.keys():
+        for rulebase in moved_rule_uids:
             for _ in moved_rule_uids[rulebase]:
                 changes += 1
                 moved_rule_ids.append(changes)
@@ -279,83 +264,81 @@ class MockFwConfigImportRule(FwConfigImportRule):
             changes, moved_rule_ids = super().moveRules(moved_rule_uids)
 
         return changes, moved_rule_ids
-    
+
     def create_new_rule_version(self, rule_uids):
         """
-            Simulates creating a new version of a rule. Delegates to base if not stubbed.
+        Simulates creating a new version of a rule. Delegates to base if not stubbed.
 
-            Args:
-                rule_uid (str): The UID of the rule to version.
+        Args:
+            rule_uid (str): The UID of the rule to version.
+
         """
-
         changes = 0
         collected_rule_ids: list[int] = []
         insert_rules_return: list[dict] = []
 
-        
         if not self.stub_create_new_rule_version:
             changes, collected_rule_ids, insert_rules_return = super().create_new_rule_version(rule_uids)
         else:
             for rulebase_rule_uids in rule_uids.values():
                 changes += len(rulebase_rule_uids)
                 collected_rule_ids = list(range(1, len(rulebase_rule_uids) + 1))
-                for counter in range(0, len(rulebase_rule_uids)):
-                    insert_rule_return = dict()
+                for counter in range(len(rulebase_rule_uids)):
+                    insert_rule_return = {}
                     insert_rule_return["rule_uid"] = rulebase_rule_uids[counter]
                     insert_rule_return["rule_id"] = changes + counter + 1
                     insert_rules_return.append(insert_rule_return)
 
         return changes, collected_rule_ids, insert_rules_return
-    
+
     def add_new_refs(self, prev_config: FwConfigNormalized) -> int:
         """
-            Simulates adding new references for rules. Delegates to base if not stubbed.
+        Simulates adding new references for rules. Delegates to base if not stubbed.
 
-            Args:
-                rule_uids (list): List of rule UIDs to add references for.
+        Args:
+            rule_uids (list): List of rule UIDs to add references for.
 
-            Returns:
-                int: (changes)
+        Returns:
+            int: (changes)
+
         """
-
         changes = 0
 
         if not self.stub_add_new_refs:
             changes = super().add_new_refs(prev_config)
 
         return changes
-    
+
     def remove_outdated_refs(self, prev_config: FwConfigNormalized) -> int:
         """
-            Simulates removing outdated references for rules. Delegates to base if not stubbed.
+        Simulates removing outdated references for rules. Delegates to base if not stubbed.
 
-            Args:
-                prev_config (FwConfigNormalized): The previous configuration.
+        Args:
+            prev_config (FwConfigNormalized): The previous configuration.
 
-            Returns:
-                int: (changes)
+        Returns:
+            int: (changes)
+
         """
-
         changes = 0
 
         if not self.stub_remove_outdated_refs:
             changes = super().remove_outdated_refs(prev_config)
 
         return changes
-    
+
     def write_changelog_rules(self, added_rules_ids, removed_rules_ids):
         """
-            Simulates writing a changelog entry for rules. Delegates to base if not stubbed.
+        Simulates writing a changelog entry for rules. Delegates to base if not stubbed.
 
-            Args:
-                added_rules_ids (list): List of added rule IDs.
-                removed_rules_ids (list): List of removed rule IDs.
+        Args:
+            added_rules_ids (list): List of added rule IDs.
+            removed_rules_ids (list): List of removed rule IDs.
+
         """
-
         errors = 0
 
         if not self.stub_write_changelog_rules:
             errors = super().write_changelog_rules(added_rules_ids, removed_rules_ids)
-        
-        return errors
 
+        return errors

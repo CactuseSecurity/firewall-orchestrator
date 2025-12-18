@@ -1,4 +1,4 @@
-﻿using FWO.Data;
+using FWO.Data;
 using FWO.Logging;
 using FWO.Config.Api;
 using FWO.Report;
@@ -42,9 +42,9 @@ namespace FWO.Ui.Display
         {
             switch (ruleChange.ChangeAction)
             {
-                case 'D': return OutputHtmlDeleted(DisplaySourceZone(ruleChange.OldRule));
-                case 'I': return OutputHtmlAdded(DisplaySourceZone(ruleChange.NewRule));
-                case 'C': return DisplayDiff(DisplaySourceZone(ruleChange.OldRule), DisplaySourceZone(ruleChange.NewRule));
+                case 'D': return OutputHtmlDeleted(DisplaySourceZones(ruleChange.OldRule));
+                case 'I': return OutputHtmlAdded(DisplaySourceZones(ruleChange.NewRule));
+                case 'C': return DisplayDiff(DisplaySourceZones(ruleChange.OldRule), DisplaySourceZones(ruleChange.NewRule));
                 default: ThrowErrorUnknowChangeAction(ruleChange.ChangeAction); return "";
             }
         }
@@ -66,9 +66,9 @@ namespace FWO.Ui.Display
         {
             switch (ruleChange.ChangeAction)
             {
-                case 'D': return OutputHtmlDeleted(DisplayDestinationZone(ruleChange.OldRule));
-                case 'I': return OutputHtmlAdded(DisplayDestinationZone(ruleChange.NewRule));
-                case 'C': return DisplayDiff(DisplayDestinationZone(ruleChange.OldRule), DisplayDestinationZone(ruleChange.NewRule));
+                case 'D': return OutputHtmlDeleted(DisplayDestinationZones(ruleChange.OldRule));
+                case 'I': return OutputHtmlAdded(DisplayDestinationZones(ruleChange.NewRule));
+                case 'C': return DisplayDiff(DisplayDestinationZones(ruleChange.OldRule), DisplayDestinationZones(ruleChange.NewRule));
                 default: ThrowErrorUnknowChangeAction(ruleChange.ChangeAction); return "";
             }
         }

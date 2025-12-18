@@ -21,13 +21,12 @@ namespace FWO.Test
             ClassicAssert.IsTrue(isValidHtml);
 
             string? sudoUser = Environment.GetEnvironmentVariable("SUDO_USER");
+            bool isGitHubActions = sudoUser is not null && sudoUser.Equals("runner", StringComparison.OrdinalIgnoreCase);
 
-            bool isGitHubActions = sudoUser is not null && sudoUser.Equals("runner");
-
-            if (isGitHubActions)
+            if (ShouldSkipPdfTest(isGitHubActions, out string skipReason))
             {
-                Log.WriteInfo("Test Log", $"PDF Test skipping: Test is running on Github actions.");
-                return;
+                Log.WriteInfo("Test Log", skipReason);
+                Assert.Ignore(skipReason);
             }
 
             if (File.Exists(GlobalConst.TestPDFFilePath))
@@ -181,6 +180,36 @@ namespace FWO.Test
             {
                 File.Delete(GlobalConst.TestPDFFilePath);
             }
+        }
+
+        private static bool ShouldSkipPdfTest(bool isGitHubActions, out string reason)
+        {
+            if (isGitHubActions)
+            {
+                reason = "PDF Test skipping: Test is running on Github actions.";
+                return true;
+            }
+
+            string? skipEnv = Environment.GetEnvironmentVariable("FW_SKIP_PDF_TEST");
+            if (!string.IsNullOrWhiteSpace(skipEnv) && IsTruthy(skipEnv))
+            {
+                reason = "PDF Test skipping: FW_SKIP_PDF_TEST requested skip.";
+                return true;
+            }
+
+            reason = string.Empty;
+            return false;
+        }
+
+        private static bool IsTruthy(string? value)
+        {
+            if (value is null)
+                return false;
+
+            return value.Equals("1", StringComparison.OrdinalIgnoreCase)
+                || value.Equals("true", StringComparison.OrdinalIgnoreCase)
+                || value.Equals("yes", StringComparison.OrdinalIgnoreCase)
+                || value.Equals("on", StringComparison.OrdinalIgnoreCase);
         }
     }
 }

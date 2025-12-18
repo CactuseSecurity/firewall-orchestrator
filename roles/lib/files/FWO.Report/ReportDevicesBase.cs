@@ -1,14 +1,16 @@
 ﻿using FWO.Api.Client;
 using FWO.Api.Client.Queries;
-using FWO.Data;
-using FWO.Data.Report;
-using FWO.Report.Filter;
 using FWO.Basics;
 using FWO.Config.Api;
-using System.Text;
+using FWO.Data;
 using FWO.Data.Middleware;
-using System.Text.Json;
+using FWO.Data.Report;
 using FWO.Logging;
+using FWO.Report.Filter;
+using FWO.Ui.Display;
+using Newtonsoft.Json;
+using System.Text;
+using System.Text.Json;
 
 namespace FWO.Report
 {
@@ -16,11 +18,11 @@ namespace FWO.Report
     {
         private readonly DebugConfig _debugConfig;
 
-        public ReportDevicesBase(DynGraphqlQuery query, UserConfig UserConfig, ReportType reportType) : base(query, UserConfig, reportType)
+        protected ReportDevicesBase(DynGraphqlQuery query, UserConfig UserConfig, ReportType reportType) : base(query, UserConfig, reportType)
         {
             if (userConfig.GlobalConfig is GlobalConfig globalConfig && !string.IsNullOrEmpty(globalConfig.DebugConfig))
             {
-                _debugConfig = JsonSerializer.Deserialize<DebugConfig>(globalConfig.DebugConfig) ?? new();
+                _debugConfig = System.Text.Json.JsonSerializer.Deserialize<DebugConfig>(globalConfig.DebugConfig) ?? new();
             }
             else
             {
@@ -111,14 +113,18 @@ namespace FWO.Report
             return (unsupportedList, reducedDeviceFilter);
         }
 
+#pragma warning disable CS1998 // Async method lacks 'await' operators and will run synchronously
         private static async Task<bool> UsageDataAvailable(ApiConnection apiConnection, int devId)
+#pragma warning restore CS1998 // Async method lacks 'await' operators and will run synchronously
         {
             try
             {
+                /* NOSONAR - temporarily disabled
                 // TODO: the following only deals with first rulebase of a gateway:
                 // return (await apiConnection.SendQueryAsync<List<AggregateCountLastHit>>(ReportQueries.getUsageDataCount, new { devId })
-                //     )[0].RulebasesOnGateway[0].Rulebase.RulesWithHits.Aggregate.Count > 0;
-                return false;   // TODO: implement
+                //     ) NOSONAR[0].RulebasesOnGateway[0].Rulebase.RulesWithHits.Aggregate.Count > 0; NOSONAR
+                */
+                return false;   // TODO : implement and remove pragma warning disable once done
             }
             catch (Exception)
             {
@@ -154,7 +160,7 @@ namespace FWO.Report
 
             if (dev.RulebaseLinks.Length > 0)
             {
-                int? nextRulebaseId = dev.RulebaseLinks.FirstOrDefault(_ => _.IsInitialRulebase())?.NextRulebaseId;
+                int? nextRulebaseId = dev.RulebaseLinks.FirstOrDefault(_ => _.IsInitial)?.NextRulebaseId;
                 if (nextRulebaseId != null)
                 {
                     Log.TryWriteLog(LogType.Info, "Device Report", "Found initial rulebase", _debugConfig.ExtendedLogReportGeneration);
@@ -202,11 +208,53 @@ namespace FWO.Report
             {
                 report.AppendLine($"\"date of configuration shown\": \"{DateTime.Parse(Query.ReportTimeString).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssK")} (UTC)\",");
             }
-            report.AppendLine($"# device filter: {string.Join(" ", ReportData.ManagementData.Where(mgt => !mgt.Ignore).Cast<ManagementReportController>().Select(m => m.NameAndRulebaseNames(" ")))}");
+            report.AppendLine($"\"device filter\": \"{string.Join(" ", ReportData.ManagementData.Where(mgt => !mgt.Ignore).Select(m => m.NameAndRulebaseNames(" ")))}\",");
             report.AppendLine($"\"other filters\": \"{Query.RawFilter}\",");
             report.AppendLine($"\"report generator\": \"Firewall Orchestrator - https://fwo.cactus.de/en\",");
             report.AppendLine($"\"data protection level\": \"For internal use only\",");
             return $"{report}";
+        }
+
+        protected string ExportToJson<T>(Func<DeviceReport, bool> hasItems, Func<DeviceReport, ManagementReport, IEnumerable<T>> getItems, Func<T, string> renderItem, string itemsPropertyName)
+        {
+            StringBuilder report = new("{");
+            report.Append(DisplayReportHeaderJson());
+            report.AppendLine("\"managements\": [");
+
+            foreach (var management in ReportData.ManagementData.Where(m => !m.Ignore && m.Devices != null && m.Devices.Any(hasItems)))
+            {
+                report.AppendLine($"{{\"{management.Name}\": {{");
+                report.AppendLine("\"gateways\": [");
+
+                foreach (var gateway in management.Devices.Where(hasItems))
+                {
+                    report.Append($"{{\"{gateway.Name}\": {{\n\"{itemsPropertyName}\": [");
+
+                    var items = getItems(gateway, management).ToList();
+                    if (items.Any())
+                    {
+                        foreach (var item in items)
+                        {
+                            report.Append(renderItem(item));
+                        }
+                        report = RuleDisplayBase.RemoveLastChars(report, 1); // remove last comma
+                    }
+
+                    report.Append("]}},");
+                }
+
+                report = RuleDisplayBase.RemoveLastChars(report, 1);
+                report.Append("]}},");
+            }
+
+            report = RuleDisplayBase.RemoveLastChars(report, 1);
+            report.Append("]}");
+
+            dynamic? json = JsonConvert.DeserializeObject(report.ToString());
+            return JsonConvert.SerializeObject(json, new JsonSerializerSettings
+            {
+                Formatting = Formatting.Indented
+            });
         }
 
         public string DisplayReportHeaderCsv()
@@ -218,7 +266,7 @@ namespace FWO.Report
             {
                 report.AppendLine($"# date of configuration shown: {DateTime.Parse(Query.ReportTimeString).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssK")} (UTC)");
             }
-            report.AppendLine($"# device filter: {string.Join(" ", ReportData.ManagementData.Where(mgt => !mgt.Ignore).Cast<ManagementReportController>().Select(m => m.NameAndRulebaseNames(" ")))}");
+            report.AppendLine($"# device filter: {string.Join(" ", ReportData.ManagementData.Where(mgt => !mgt.Ignore).Select(m => m.NameAndRulebaseNames(" ")))}");
             report.AppendLine($"# other filters: {Query.RawFilter}");
             report.AppendLine($"# report generator: Firewall Orchestrator - https://fwo.cactus.de/en");
             report.AppendLine($"# data protection level: For internal use only");
@@ -234,13 +282,8 @@ namespace FWO.Report
 
         protected string GenerateHtmlFrame(string title, string filter, DateTime date, StringBuilder htmlReport, TimeFilter? timefilter = null)
         {
-            // return GenerateHtmlFrameBase(title, filter, date, htmlReport,
-            //     string.Join("; ", ReportData.ManagementData.Where(mgt => !mgt.Ignore).Select(m => new ManagementReportController(m).NameAndRulebaseNames())),
-            //     Query.SelectedOwner?.Name);
             string deviceFilter = string.Join("; ", Array.ConvertAll(ReportData.ManagementData.Where(mgt => !mgt.Ignore).ToArray(), m => m.NameAndDeviceNames()));
             return GenerateHtmlFrameBase(title, filter, date, htmlReport, deviceFilter, Query.SelectedOwner?.Name, timefilter);
         }
-
-
     }
 }

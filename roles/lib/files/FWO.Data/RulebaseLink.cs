@@ -46,12 +46,5 @@ namespace FWO.Data
 
         [JsonProperty("removed"), JsonPropertyName("removed")]
         public long? Removed;
-
-        public bool IsInitialRulebase()
-        {
-            return IsInitial;
-        }
-
     }
-
 }

@@ -1,16 +1,28 @@
-from graphql import ArgumentNode, BooleanValueNode, IntValueNode, ListValueNode, ObjectFieldNode, ObjectValueNode, OperationDefinitionNode, StringValueNode, VariableNode, parse, OperationType
-from models.networkobject import NetworkObject
-from models.rulebase import Rulebase
-from models.serviceobject import ServiceObject
-from models.rule import RuleNormalized
 import fwo_const
 from fwo_api import FwoApi
+from graphql import (
+    ArgumentNode,
+    BooleanValueNode,
+    IntValueNode,
+    ListValueNode,
+    ObjectValueNode,
+    OperationDefinitionNode,
+    OperationType,
+    StringValueNode,
+    VariableNode,
+    parse,
+)
+from models.networkobject import NetworkObject
+from models.rule import RuleNormalized
+from models.rulebase import Rulebase
+from models.serviceobject import ServiceObject
+
 from .mock_config import MockFwConfigNormalizedBuilder
 
-CHECK_POINT = 'Check Point'
-PALO_ALTO = 'Palo Alto'
-FORTINET_FORTIOS_GATEWAY = 'Fortinet FortiOS Gateway'
-FORTIOS_MANAGEMENT = 'FortiOS Management'
+CHECK_POINT = "Check Point"
+PALO_ALTO = "Palo Alto"
+FORTINET_FORTIOS_GATEWAY = "Fortinet FortiOS Gateway"
+FORTIOS_MANAGEMENT = "FortiOS Management"
 
 TABLE_IDENTIFIERS = {
     "stm_change_type": "change_type_id",
@@ -31,106 +43,161 @@ STM_TABLES = {
     "stm_change_type": [
         {"change_type_id": 1, "change_type_name": "factory settings"},
         {"change_type_id": 2, "change_type_name": "initial import"},
-        {"change_type_id": 3, "change_type_name": "in operation"}
+        {"change_type_id": 3, "change_type_name": "in operation"},
     ],
-    "stm_usr_typ": [
-        {"usr_typ_id": 1, "usr_typ_name": "group"},
-        {"usr_typ_id": 2, "usr_typ_name": "simple"}
-    ],
+    "stm_usr_typ": [{"usr_typ_id": 1, "usr_typ_name": "group"}, {"usr_typ_id": 2, "usr_typ_name": "simple"}],
     "stm_svc_typ": [
         {"svc_typ_id": 1, "svc_typ_name": "simple", "svc_typ_comment": "standard services"},
         {"svc_typ_id": 2, "svc_typ_name": "group", "svc_typ_comment": "groups of services"},
-        {"svc_typ_id": 3, "svc_typ_name": "rpc", "svc_typ_comment": "special services, here: RPC"}
+        {"svc_typ_id": 3, "svc_typ_name": "rpc", "svc_typ_comment": "special services, here: RPC"},
     ],
     "stm_obj_typ": [
-        {"obj_typ_id": i, "obj_typ_name": name} for i, name in enumerate([
-            'network', 'group', 'host', 'machines_range', 'dynamic_net_obj',
-            'sofaware_profiles_security_level', 'gateway', 'cluster_member',
-            'gateway_cluster', 'domain', 'group_with_exclusion', 'ip_range',
-            'uas_collection', 'sofaware_gateway', 'voip_gk', 'gsn_handover_group',
-            'voip_sip', 'simple-gateway', 'external-gateway', 'voip',
-            'access-role'
-        ], start=1)
+        {"obj_typ_id": i, "obj_typ_name": name}
+        for i, name in enumerate(
+            [
+                "network",
+                "group",
+                "host",
+                "machines_range",
+                "dynamic_net_obj",
+                "sofaware_profiles_security_level",
+                "gateway",
+                "cluster_member",
+                "gateway_cluster",
+                "domain",
+                "group_with_exclusion",
+                "ip_range",
+                "uas_collection",
+                "sofaware_gateway",
+                "voip_gk",
+                "gsn_handover_group",
+                "voip_sip",
+                "simple-gateway",
+                "external-gateway",
+                "voip",
+                "access-role",
+            ],
+            start=1,
+        )
     ],
     "stm_action": [
-        {"action_id": i, "action_name": name, "allowed": allowed} for i, (name, allowed) in enumerate([
-            ('accept', True), ('drop', False), ('deny', False), ('access', True),
-            ('client encrypt', True), ('client auth', True), ('reject', False),
-            ('encrypt', True), ('user auth', True), ('session auth', True),
-            ('permit', True), ('permit webauth', True), ('redirect', True),
-            ('map', True), ('permit auth', True), ('tunnel l2tp', True),
-            ('tunnel vpn-group', True), ('tunnel vpn', True),
-            ('actionlocalredirect', True), ('inner layer', True),
-            # NAT actions
-            ('NAT src', False), ('NAT src, dst', False), 
-            ('NAT src, dst, svc', False), ('NAT dst', False),
-            ('NAT dst, svc', False), ('NAT svc', False),
-            ('NAT src, svc', False), ('NAT', False),
-            ('inform', True)
-        ], start=1)
+        {"action_id": i, "action_name": name, "allowed": allowed}
+        for i, (name, allowed) in enumerate(
+            [
+                ("accept", True),
+                ("drop", False),
+                ("deny", False),
+                ("access", True),
+                ("client encrypt", True),
+                ("client auth", True),
+                ("reject", False),
+                ("encrypt", True),
+                ("user auth", True),
+                ("session auth", True),
+                ("permit", True),
+                ("permit webauth", True),
+                ("redirect", True),
+                ("map", True),
+                ("permit auth", True),
+                ("tunnel l2tp", True),
+                ("tunnel vpn-group", True),
+                ("tunnel vpn", True),
+                ("actionlocalredirect", True),
+                ("inner layer", True),
+                # NAT actions
+                ("NAT src", False),
+                ("NAT src, dst", False),
+                ("NAT src, dst, svc", False),
+                ("NAT dst", False),
+                ("NAT dst, svc", False),
+                ("NAT svc", False),
+                ("NAT src, svc", False),
+                ("NAT", False),
+                ("inform", True),
+            ],
+            start=1,
+        )
     ],
     "stm_track": [
-        {"track_id": i, "track_name": name} for i, name in enumerate([
-            'log', 'none', 'alert', 'userdefined', 'mail', 'account',
-            'userdefined 1', 'userdefined 2', 'userdefined 3', 'snmptrap',
-            # junos
-            'log count', 'count', 'log alert', 'log alert count',
-            'log alert count alarm', 'log count alarm', 'count alarm',
-            # fortinet
-            'all', 'all start', 'utm', 'network log',
-            'utm start', 'detailed log'
-        ], start=1)
+        {"track_id": i, "track_name": name}
+        for i, name in enumerate(
+            [
+                "log",
+                "none",
+                "alert",
+                "userdefined",
+                "mail",
+                "account",
+                "userdefined 1",
+                "userdefined 2",
+                "userdefined 3",
+                "snmptrap",
+                # junos
+                "log count",
+                "count",
+                "log alert",
+                "log alert count",
+                "log alert count alarm",
+                "log count alarm",
+                "count alarm",
+                # fortinet
+                "all",
+                "all start",
+                "utm",
+                "network log",
+                "utm start",
+                "detailed log",
+            ],
+            start=1,
+        )
     ],
     "stm_dev_typ": [
-        {"dev_typ_id": i, "dev_typ_name": name, "dev_typ_version": version,
-         "dev_typ_manufacturer": manufacturer, "dev_typ_predef_svc": predef_svc,
-         "dev_typ_is_mgmt": is_mgmt, "dev_typ_is_multi_mgmt": is_multi_mgmt,
-         "is_pure_routing_device": is_pure_routing_device}
-        for i, (name, version, manufacturer, predef_svc, is_mgmt, is_multi_mgmt, is_pure_routing_device) in enumerate([
-            ('Netscreen', '5.x-6.x', 'Netscreen', '', True, False, False),
-            ('FortiGateStandalone', '5ff', 'Fortinet', '', True, False, False),
-            ('Barracuda Firewall Control Center', 'Vx', 'phion', '', True, False, False),
-            ('phion netfence', '3.x', 'phion', '', False, False, False),
-            ('Check Point R5x-R7x', '', CHECK_POINT, '', True, False, False),
-            ('JUNOS', '10-21', 'Juniper',
-             'any;0;0;65535;;junos-predefined-service;simple;', True, False, False),
-            ('Check Point R8x', '', CHECK_POINT, '', True, False, False),
-            ('FortiGate', '5ff', 'Fortinet', '', False, False, False),
-            ('FortiADOM', '5ff', 'Fortinet', '', True, False, False),
-            ('FortiManager', '5ff', 'Fortinet', '', True, True, False),
-            ('Check Point MDS R8x', '', CHECK_POINT, '', True, True, False),
-            ('Cisco Firepower Management Center', '7ff', 'Cisco', '', True, True, False),
-            ('Cisco Firepower Domain', '7ff', 'Cisco', '', False, True, False),
-            ('Cisco Firepower Gateway', '7ff', 'Cisco', '', False, False, False),
-            ('DummyRouter Management', '1', 'DummyRouter', '', False, True, True),
-            ('DummyRouter Gateway', '1', 'DummyRouter', '', False, False, True),
-            ('Azure', '2022ff', 'Microsoft', '', False, True, False),
-            ('Azure Firewall', '2022ff', 'Microsoft', '', False, False, False),
-            ('Palo Alto Firewall', '2023ff', PALO_ALTO, '', False, True, False),
-            ('Palo Alto Panorama', '2023ff', PALO_ALTO, '', True, True, False),
-            ('Palo Alto Management', '2023ff', PALO_ALTO,
-             '', False, True, False),
-            (FORTIOS_MANAGEMENT, 'REST', 'Fortinet',
-             '', False, True, False),
-            (FORTINET_FORTIOS_GATEWAY, 'REST',
-             'Fortinet', '', False, False, False),
-            ('NSX DFW Gateway','REST','VMWare','',
-             False,False,False),
-            ('NSX','REST','VMWare','',
-             False,True,False),
-            (FORTIOS_MANAGEMENT,'REST','Fortinet','',
-             False,True,False),
-            (FORTINET_FORTIOS_GATEWAY,'REST','Fortinet','',
-             False,False,False),
-            ('NSX DFW Gateway','REST','VMWare','',
-             False,False,False),
-            ('NSX','REST','VMWare','',
-             False,True,False),
-            (FORTIOS_MANAGEMENT,'REST','Fortinet','',
-             False,True,False),
-            (FORTINET_FORTIOS_GATEWAY,'REST','Fortinet','',
-             False,False,False)
-        ], start=1)
+        {
+            "dev_typ_id": i,
+            "dev_typ_name": name,
+            "dev_typ_version": version,
+            "dev_typ_manufacturer": manufacturer,
+            "dev_typ_predef_svc": predef_svc,
+            "dev_typ_is_mgmt": is_mgmt,
+            "dev_typ_is_multi_mgmt": is_multi_mgmt,
+            "is_pure_routing_device": is_pure_routing_device,
+        }
+        for i, (name, version, manufacturer, predef_svc, is_mgmt, is_multi_mgmt, is_pure_routing_device) in enumerate(
+            [
+                ("Netscreen", "5.x-6.x", "Netscreen", "", True, False, False),
+                ("FortiGateStandalone", "5ff", "Fortinet", "", True, False, False),
+                ("Barracuda Firewall Control Center", "Vx", "phion", "", True, False, False),
+                ("phion netfence", "3.x", "phion", "", False, False, False),
+                ("Check Point R5x-R7x", "", CHECK_POINT, "", True, False, False),
+                ("JUNOS", "10-21", "Juniper", "any;0;0;65535;;junos-predefined-service;simple;", True, False, False),
+                ("Check Point R8x", "", CHECK_POINT, "", True, False, False),
+                ("FortiGate", "5ff", "Fortinet", "", False, False, False),
+                ("FortiADOM", "5ff", "Fortinet", "", True, False, False),
+                ("FortiManager", "5ff", "Fortinet", "", True, True, False),
+                ("Check Point MDS R8x", "", CHECK_POINT, "", True, True, False),
+                ("Cisco Firepower Management Center", "7ff", "Cisco", "", True, True, False),
+                ("Cisco Firepower Domain", "7ff", "Cisco", "", False, True, False),
+                ("Cisco Firepower Gateway", "7ff", "Cisco", "", False, False, False),
+                ("DummyRouter Management", "1", "DummyRouter", "", False, True, True),
+                ("DummyRouter Gateway", "1", "DummyRouter", "", False, False, True),
+                ("Azure", "2022ff", "Microsoft", "", False, True, False),
+                ("Azure Firewall", "2022ff", "Microsoft", "", False, False, False),
+                ("Palo Alto Firewall", "2023ff", PALO_ALTO, "", False, True, False),
+                ("Palo Alto Panorama", "2023ff", PALO_ALTO, "", True, True, False),
+                ("Palo Alto Management", "2023ff", PALO_ALTO, "", False, True, False),
+                (FORTIOS_MANAGEMENT, "REST", "Fortinet", "", False, True, False),
+                (FORTINET_FORTIOS_GATEWAY, "REST", "Fortinet", "", False, False, False),
+                ("NSX DFW Gateway", "REST", "VMWare", "", False, False, False),
+                ("NSX", "REST", "VMWare", "", False, True, False),
+                (FORTIOS_MANAGEMENT, "REST", "Fortinet", "", False, True, False),
+                (FORTINET_FORTIOS_GATEWAY, "REST", "Fortinet", "", False, False, False),
+                ("NSX DFW Gateway", "REST", "VMWare", "", False, False, False),
+                ("NSX", "REST", "VMWare", "", False, True, False),
+                (FORTIOS_MANAGEMENT, "REST", "Fortinet", "", False, True, False),
+                (FORTINET_FORTIOS_GATEWAY, "REST", "Fortinet", "", False, False, False),
+            ],
+            start=1,
+        )
     ],
     "stm_color": [
         {"color_id": 0, "color_name": "black"},
@@ -153,6 +220,7 @@ INSERT_UNIQUE_PK_CONSTRAINTS = {
     "usergrp_flat": ["usergrp_flat_id", "usergrp_flat_member_id"],
 }
 
+
 def object_to_dict(obj, max_depth=10):
     """
     Converts an object to a dictionary, recursively converting nested objects.
@@ -160,19 +228,20 @@ def object_to_dict(obj, max_depth=10):
     if max_depth < 0:
         return str(obj)  # Avoid infinite recursion
     obj_dict = {}
-    obj_dict['type'] = type(obj).__name__
-    if hasattr(obj, 'name'):
-        name = obj.name.value if hasattr(obj.name, 'value') else obj.name
-        obj_dict['name'] = name
-    if hasattr(obj, 'value'):
-        obj_dict['value'] = object_to_dict(obj.value, max_depth - 1)
-    elif hasattr(obj, 'fields'):
-        obj_dict['fields'] = [object_to_dict(field, max_depth - 1) for field in obj.fields]
-    elif hasattr(obj, 'arguments'):
-        obj_dict['arguments'] = [object_to_dict(arg, max_depth - 1) for arg in obj.arguments]
-    elif hasattr(obj, 'values'):
-        obj_dict['values'] = [object_to_dict(value, max_depth - 1) for value in obj.values]
+    obj_dict["type"] = type(obj).__name__
+    if hasattr(obj, "name"):
+        name = obj.name.value if hasattr(obj.name, "value") else obj.name
+        obj_dict["name"] = name
+    if hasattr(obj, "value"):
+        obj_dict["value"] = object_to_dict(obj.value, max_depth - 1)
+    elif hasattr(obj, "fields"):
+        obj_dict["fields"] = [object_to_dict(field, max_depth - 1) for field in obj.fields]
+    elif hasattr(obj, "arguments"):
+        obj_dict["arguments"] = [object_to_dict(arg, max_depth - 1) for arg in obj.arguments]
+    elif hasattr(obj, "values"):
+        obj_dict["values"] = [object_to_dict(value, max_depth - 1) for value in obj.values]
     return obj_dict
+
 
 class MockFwoApi(FwoApi):
     """
@@ -192,16 +261,15 @@ class MockFwoApi(FwoApi):
         op_def = next((d for d in ast.definitions if hasattr(d, "operation")), None)
         if op_def is None:
             raise NotImplementedError("No operation definition found in query.")
-        
+
         if not isinstance(op_def, OperationDefinitionNode):
             raise NotImplementedError("Only operation definitions supported in mock.")
-        
+
         if op_def.operation == OperationType.MUTATION:
             return self._handle_mutation(op_def, query_variables)
-        elif op_def.operation == OperationType.QUERY:
+        if op_def.operation == OperationType.QUERY:
             return self._handle_query(op_def, query_variables)
-        else:
-            raise NotImplementedError("Only query and mutation supported in mock.")
+        raise NotImplementedError("Only query and mutation supported in mock.")
 
     def _handle_mutation(self, op_def, variables):
         result = {"data": {}}
@@ -216,56 +284,61 @@ class MockFwoApi(FwoApi):
                 self._handle_delete(sel, variables, result, field)
         return result
 
-
     def _handle_insert(self, sel, variables, result, field):
-        table = field[len("insert_"):]
+        table = field[len("insert_") :]
         # Find the argument name for objects
         try:
             arg_name = next((a.value.name.value for a in sel.arguments if a.name.value == "objects"), None)
             objects = variables.get(arg_name, [])
         except AttributeError:
-            objects = [{
-                field.name.value: variables.get(field.value.name.value, None) for field in sel.arguments[0].value.fields
-            }]
+            objects = [
+                {
+                    field.name.value: variables.get(field.value.name.value, None)
+                    for field in sel.arguments[0].value.fields
+                }
+            ]
         if table not in self.tables:
             self.tables[table] = {}
         returning = []
         for obj in objects:
             if self._handle_object(table, obj, returning):
                 continue  # skip due to unique constraint
-        result["data"][field] = {
-            "affected_rows": len(objects),
-            "returning": returning
-        }
-
+        result["data"][field] = {"affected_rows": len(objects), "returning": returning}
 
     def _handle_object(self, table, obj, returning):
         pk = len(self.tables[table]) + 1
         obj = dict(obj)  # copy
-        if table not in ["objgrp", "svcgrp", "usergrp", "objgrp_flat", "svcgrp_flat", "usergrp_flat"]: # using pair of reference ids as primary key
+        if table not in [
+            "objgrp",
+            "svcgrp",
+            "usergrp",
+            "objgrp_flat",
+            "svcgrp_flat",
+            "usergrp_flat",
+        ]:  # using pair of reference ids as primary key
             obj[TABLE_IDENTIFIERS.get(table, f"{table}_id")] = pk
-        if any(("create" in key for key in obj.keys())):
+        if any("create" in key for key in obj):
             obj["removed"] = None
             obj["active"] = True
         if table == "rulebase":
             obj.pop("rules", None)  # remove rules from rulebase insert. why are they even there?
-            if any((row["mgm_id"] == obj["mgm_id"] and 
-                    row["uid"] == obj["uid"] for row in self.tables.get("rulebase", {}).values())):
+            if any(
+                row["mgm_id"] == obj["mgm_id"] and row["uid"] == obj["uid"]
+                for row in self.tables.get("rulebase", {}).values()
+            ):
                 return True  # mock on_conflict unique_rulebase_mgm_id_uid constraint
         if table in INSERT_UNIQUE_PK_CONSTRAINTS:
             # Check for unique constraints
             unique_keys = INSERT_UNIQUE_PK_CONSTRAINTS[table]
-            if any(all(row.get(key) == obj.get(key) for key in unique_keys)
-                    for row in self.tables[table].values()):
+            if any(all(row.get(key) == obj.get(key) for key in unique_keys) for row in self.tables[table].values()):
                 raise ValueError(f"Unique constraint violation for {table} with keys {unique_keys}.")
         self.tables[table][pk] = obj
         returning.append(obj)
 
         return False  # not skipped
-    
 
     def _handle_update(self, sel, variables, result, field):
-        table = field[len("update_"):]
+        table = field[len("update_") :]
         returning = []
         affected = 0
         # Find argument names for where and _set
@@ -273,19 +346,15 @@ class MockFwoApi(FwoApi):
         set_arg = next((a for a in sel.arguments if a.name.value == "_set"), None)
         if where_arg and set_arg:
             # pprint.pprint(object_to_dict(where_arg))
-            for pk, row in self.tables.get(table, {}).items():
+            for row in self.tables.get(table, {}).values():
                 if self._row_matches_where(row, where_arg, variables):
                     self._update_row(row, set_arg, variables)
                     returning.append(row)
                     affected += 1
-        result["data"][field] = {
-            "affected_rows": affected,
-            "returning": returning
-        }
-
+        result["data"][field] = {"affected_rows": affected, "returning": returning}
 
     def _handle_delete(self, sel, variables, result, field):
-        table = field[len("delete_"):]
+        table = field[len("delete_") :]
         returning = []
         affected = 0
         # Find argument name for where
@@ -299,31 +368,25 @@ class MockFwoApi(FwoApi):
                     affected += 1
             for pk in to_delete:
                 del self.tables[table][pk]
-        result["data"][field] = {
-            "affected_rows": affected,
-            "returning": returning
-        }
-
+        result["data"][field] = {"affected_rows": affected, "returning": returning}
 
     def _get_value_from_node(self, value_node, variables):
         """Resolve a value from an AST node, using variables if needed."""
         if isinstance(value_node, VariableNode):
             return variables.get(value_node.name.value)
-        elif isinstance(value_node, StringValueNode):
+        if isinstance(value_node, StringValueNode):
             return value_node.value
-        elif isinstance(value_node, IntValueNode):
+        if isinstance(value_node, IntValueNode):
             return int(value_node.value)
-        elif isinstance(value_node, BooleanValueNode):
+        if isinstance(value_node, BooleanValueNode):
             return value_node.value
-        elif isinstance(value_node, ListValueNode):
+        if isinstance(value_node, ListValueNode):
             return [self._get_value_from_node(v, variables) for v in value_node.values]
-        elif isinstance(value_node, ObjectValueNode):
+        if isinstance(value_node, ObjectValueNode):
             return {f.name.value: self._get_value_from_node(f.value, variables) for f in value_node.fields}
-        else:
-            if hasattr(value_node, "value"):
-                return value_node.value
-            raise ValueError("Unsupported AST node type: {}".format(type(value_node)))
-
+        if hasattr(value_node, "value"):
+            return value_node.value
+        raise ValueError(f"Unsupported AST node type: {type(value_node)}")
 
     def _row_matches_where(self, row, where_node: ArgumentNode, variables):
         """
@@ -346,8 +409,7 @@ class MockFwoApi(FwoApi):
             return self._check_where_field(row, variables, key, value)
 
         return True
-    
-    
+
     def _check_where_field(self, row, variables, key, value):
         if key == "_and":
             if not isinstance(value, ListValueNode):
@@ -362,11 +424,11 @@ class MockFwoApi(FwoApi):
                 return False
         else:
             return self._check_flat_field(row, variables, key, value)
-                
+        return None
 
     def _check_where_field_or(self, row, variables, value):
         if isinstance(value, ListValueNode):
-            if not any(self._row_matches_where(row, v, variables) for v in value.values): # type: ignore
+            if not any(self._row_matches_where(row, v, variables) for v in value.values):  # type: ignore
                 return False
         elif isinstance(value, VariableNode):
             or_values = variables.get(value.name.value, [])
@@ -374,10 +436,9 @@ class MockFwoApi(FwoApi):
                 raise ValueError(f"Expected list for '_or' variable '{value.name.value}', got {type(or_values)}.")
             if not self._row_matches_where_bool_exp(row, or_values):
                 return False
-
+        return None
 
     def _check_flat_field(self, row, variables, key, value):
-
         if key not in row:
             raise ValueError(f"Field '{key}' not present in row (possible reference or invalid field).")
         if not isinstance(value, ObjectValueNode):
@@ -387,32 +448,30 @@ class MockFwoApi(FwoApi):
             op_val = self._get_value_from_node(op_field.value, variables)
             if op == "_eq":
                 return row.get(key) == op_val
-            elif op == "_in":
+            if op == "_in":
                 return row.get(key) in op_val
-            elif op == "_is_null":
+            if op == "_is_null":
                 return op_val or row.get(key) is None
-            elif op == "_neq":
+            if op == "_neq":
                 return row.get(key) != op_val
-            else:
-                raise ValueError(f"Unsupported operator '{op}' in where clause.")
-                
+            raise ValueError(f"Unsupported operator '{op}' in where clause.")
+        return None
 
     def _row_matches_where_bool_exp(self, row, or_values):
         """
         Checks if a row matches any of the boolean expressions in or_values.
         """
-        for v in or_values: # v = {'_and': [{'field1: {'_eq': 'value1'}}, {'field2': {'_eq': 'value2'}}]}
-            fields = v['_and'] # [{'field1': {'_eq': 'value1'}}, {'field2': {'_eq': 'value2'}}]
-            for field in fields: # {'field1': {'_eq': 'value1'}}
-                field_name, value = next(iter(field.items())) 
-                key, value = next(iter(value.items())) 
+        for v in or_values:  # v = {'_and': [{'field1: {'_eq': 'value1'}}, {'field2': {'_eq': 'value2'}}]}
+            fields = v["_and"]  # [{'field1': {'_eq': 'value1'}}, {'field2': {'_eq': 'value2'}}]
+            for field in fields:  # {'field1': {'_eq': 'value1'}}
+                field_name, value = next(iter(field.items()))
+                key, value = next(iter(value.items()))
                 if key == "_eq":
                     if row.get(field_name) != value:
                         return False
                 else:
                     raise ValueError(f"Unsupported operator '{key}' in where clause.")
         return True
-
 
     def _update_row(self, row, set_node: ArgumentNode, variables):
         """
@@ -429,18 +488,21 @@ class MockFwoApi(FwoApi):
                 raise ValueError(f"Field '{key}' not present in row (invalid field).")
             # Update the row with the new value
             row[key] = value
-    
+
     def _get_returning_fields(self, sel):
         """
         Extracts the returning fields mapping from the selection set.
         Returns a dict: {requested_field: actual_field}
         """
-        for subsel in getattr(sel, "selection_set", []).selections if hasattr(sel, "selection_set") and sel.selection_set else []:
+        for subsel in (
+            getattr(sel, "selection_set", []).selections if hasattr(sel, "selection_set") and sel.selection_set else []
+        ):
             if subsel.name.value == "returning":
                 # If aliasing is used, subsel.alias.value is the requested field, subsel.name.value is the actual field
                 return {
                     (f.alias.value if f.alias else f.name.value): f.name.value
-                    for f in getattr(subsel, "selection_set", []).selections if hasattr(subsel, "selection_set") and subsel.selection_set
+                    for f in getattr(subsel, "selection_set", []).selections
+                    if hasattr(subsel, "selection_set") and subsel.selection_set
                 }
         return None  # None means return full row
 
@@ -473,29 +535,28 @@ class MockFwoApi(FwoApi):
 
         for table_name, rows in self.tables.items():
             for row in rows.values():
-                if row.get('active', True) is False:
+                if row.get("active", True) is False:
                     continue
                 self._process_row(row, import_id, mgm_uid, import_state, config, table_name)
 
         return config
-    
 
     def _process_row(self, row, import_id, mgm_uid, import_state, config, table_name):
         if table_name == "object":
             # create new dict without the primary key
             obj = self.obj_dict_from_row(row, import_id, import_state)
             if obj:
-                config.network_objects[row['obj_uid']] = NetworkObject.parse_obj(obj)
+                config.network_objects[row["obj_uid"]] = NetworkObject.parse_obj(obj)
         elif table_name == "service":
             # create new dict without the primary key
             svc = self.service_dict_from_row(row, import_id, import_state)
             if svc:
-                config.service_objects[row['svc_uid']] = ServiceObject.parse_obj(svc)
+                config.service_objects[row["svc_uid"]] = ServiceObject.parse_obj(svc)
         elif table_name == "usr":
             # create new dict without the primary key
             user = self.user_dict_from_row(row, import_id)
             if user:
-                config.users[row['user_uid']] = user
+                config.users[row["user_uid"]] = user
         elif table_name == "rulebase":
             # create new dict without the primary key
             self._try_add_rulebase(config, row, import_id, mgm_uid)
@@ -503,93 +564,101 @@ class MockFwoApi(FwoApi):
             # create new dict without the primary key
             rule = self.rule_dict_from_row(row, import_id, mgm_uid)
             # find the rulebase by uid
-            rulebase = next((rb for rb in config.rulebases if next((rb_db["uid"] for rb_db in self.tables.get("rulebase", {}).values() if rb_db["id"] == row['rulebase_id']), None) == rb.uid), None)
+            rulebase = next(
+                (
+                    rb
+                    for rb in config.rulebases
+                    if next(
+                        (
+                            rb_db["uid"]
+                            for rb_db in self.tables.get("rulebase", {}).values()
+                            if rb_db["id"] == row["rulebase_id"]
+                        ),
+                        None,
+                    )
+                    == rb.uid
+                ),
+                None,
+            )
             if rulebase and rule:
-                rulebase.rules[row['rule_uid']] = RuleNormalized.parse_obj(rule)
-
+                rulebase.rules[row["rule_uid"]] = RuleNormalized.parse_obj(rule)
 
     def _try_add_rulebase(self, config, row, import_id, mgm_uid):
         rulebase = self.rulebase_dict_from_row(row, import_id, mgm_uid)
         if rulebase:
             config.rulebases.append(Rulebase.parse_obj(rulebase))
 
-
     def obj_dict_from_row(self, row, import_id, import_state):
-        if row['obj_create'] > import_id or row.get('removed') and row['removed'] <= import_id:
+        if row["obj_create"] > import_id or (row.get("removed") and row["removed"] <= import_id):
             return None
         obj_dict = {}
         for key, value in row.items():
-            if key == 'obj_id':
+            if key == "obj_id":
                 continue
-            if key == 'obj_color_id':
-                obj_dict['obj_color'] = import_state.lookupColorStr(value)
-            elif key == 'obj_typ_id':
-                obj_dict['obj_typ'] = self.tables['stm_obj_typ'].get(value, {}).get('obj_typ_name', 'unknown')
+            if key == "obj_color_id":
+                obj_dict["obj_color"] = import_state.lookupColorStr(value)
+            elif key == "obj_typ_id":
+                obj_dict["obj_typ"] = self.tables["stm_obj_typ"].get(value, {}).get("obj_typ_name", "unknown")
             else:
                 obj_dict[key] = value
         return obj_dict
-    
 
     def service_dict_from_row(self, row, import_id, import_state):
-        if row['svc_create'] > import_id or row.get('removed') and row['removed'] <= import_id:
+        if row["svc_create"] > import_id or (row.get("removed") and row["removed"] <= import_id):
             return None
         svc_dict = {}
         for key, value in row.items():
-            if key == 'svc_id':
+            if key == "svc_id":
                 continue
-            if key == 'svc_color_id':
-                svc_dict['svc_color'] = import_state.lookupColorStr(value)
-            elif key == 'svc_typ_id':
-                svc_dict['svc_typ'] = self.tables['stm_svc_typ'].get(value, {}).get('svc_typ_name', 'unknown')
-            elif key == 'ip_proto_id':
-                svc_dict['ip_proto'] = row['ip_proto_id']
+            if key == "svc_color_id":
+                svc_dict["svc_color"] = import_state.lookupColorStr(value)
+            elif key == "svc_typ_id":
+                svc_dict["svc_typ"] = self.tables["stm_svc_typ"].get(value, {}).get("svc_typ_name", "unknown")
+            elif key == "ip_proto_id":
+                svc_dict["ip_proto"] = row["ip_proto_id"]
             else:
                 svc_dict[key] = value
         return svc_dict
-    
 
     def user_dict_from_row(self, row, import_id):
-        if row['user_create'] > import_id or row.get('removed') and row['removed'] <= import_id:
+        if row["user_create"] > import_id or (row.get("removed") and row["removed"] <= import_id):
             return None
         usr_dict = {}
         for key, value in row.items():
-            if key in ['user_id', 'mgm_id', 'user_create', 'user_last_seen', 'active', 'removed']:
+            if key in ["user_id", "mgm_id", "user_create", "user_last_seen", "active", "removed"]:
                 continue
-            elif key == 'usr_typ_id':
-                usr_dict['user_typ'] = self.tables['stm_usr_typ'].get(value, {}).get('usr_typ_name', 'unknown')
+            if key == "usr_typ_id":
+                usr_dict["user_typ"] = self.tables["stm_usr_typ"].get(value, {}).get("usr_typ_name", "unknown")
             elif value is None:
                 continue
             else:
                 usr_dict[key] = value
         return usr_dict
-    
 
     def rulebase_dict_from_row(self, row, import_id, mgm_uid):
-        if row.get('created') and row['created'] > import_id or row.get('removed') and row['removed'] <= import_id:
+        if (row.get("created") and row["created"] > import_id) or (row.get("removed") and row["removed"] <= import_id):
             return None
         rb_dict = {}
         for key, value in row.items():
-            if key == 'id':
+            if key == "id":
                 continue
-            if key == 'mgm_id':
-                rb_dict['mgm_uid'] = mgm_uid
+            if key == "mgm_id":
+                rb_dict["mgm_uid"] = mgm_uid
             rb_dict[key] = value
-        rb_dict['rules'] = {}
+        rb_dict["rules"] = {}
         return rb_dict
-    
 
     def rule_dict_from_row(self, row, import_id, mgm_uid):
-        if row['rule_create'] > import_id or row.get('removed') and row['removed'] <= import_id:
+        if row["rule_create"] > import_id or (row.get("removed") and row["removed"] <= import_id):
             return None
         rule_dict = {}
         for key, value in row.items():
-            if key == 'rule_id':
+            if key == "rule_id":
                 continue
-            if key == 'mgm_id':
-                rule_dict['mgm_uid'] = mgm_uid
+            if key == "mgm_id":
+                rule_dict["mgm_uid"] = mgm_uid
             rule_dict[key] = value
         return rule_dict
-
 
     def get_table(self, table_name):
         """
@@ -605,7 +674,7 @@ class MockFwoApi(FwoApi):
         if nwobj_uid is None:
             raise KeyError(f"Network object ID {obj_id} not found in database.")
         return nwobj_uid
-    
+
     def get_svc_uid(self, svc_id):
         """
         Returns the UID of a service object by its ID.
@@ -614,7 +683,7 @@ class MockFwoApi(FwoApi):
         if svc_uid is None:
             raise KeyError(f"Service ID {svc_id} not found in database.")
         return svc_uid
-    
+
     def get_user_uid(self, user_id):
         """
         Returns the UID of a user by its ID.
@@ -623,7 +692,7 @@ class MockFwoApi(FwoApi):
         if user_uid is None:
             raise KeyError(f"User ID {user_id} not found in database.")
         return user_uid
-    
+
     def get_rule_uid(self, rule_id):
         """
         Returns the UID of a rule by its ID.
@@ -660,7 +729,7 @@ class MockFwoApi(FwoApi):
             member_uid_db = self.get_svc_uid(member_id)
             member_uids_db[uid].add(member_uid_db)
         return member_uids_db
-    
+
     def get_user_member_mappings(self):
         member_uids_db = {}
         for usergrp in self.get_table("usergrp").values():
@@ -674,7 +743,7 @@ class MockFwoApi(FwoApi):
             member_uid_db = self.get_user_uid(member_id)
             member_uids_db[uid].add(member_uid_db)
         return member_uids_db
-    
+
     def get_nwobj_flat_member_mappings(self):
         flat_member_uids_db = {}
         for objgrp_flat in self.get_table("objgrp_flat").values():
@@ -689,7 +758,7 @@ class MockFwoApi(FwoApi):
             flat_member_uids_db[uid].add(member_uid_db)
 
         return flat_member_uids_db
-    
+
     def get_svc_flat_member_mappings(self):
         flat_member_uids_db = {}
         for svcgrp_flat in self.get_table("svcgrp_flat").values():
@@ -704,7 +773,7 @@ class MockFwoApi(FwoApi):
             flat_member_uids_db[uid].add(member_uid_db)
 
         return flat_member_uids_db
-    
+
     def get_user_flat_member_mappings(self):
         flat_member_uids_db = {}
         for usergrp_flat in self.get_table("usergrp_flat").values():
@@ -719,7 +788,7 @@ class MockFwoApi(FwoApi):
             flat_member_uids_db[uid].add(member_uid_db)
 
         return flat_member_uids_db
-    
+
     def get_rule_from_mappings(self):
         rule_froms_db = {}
         for rule_from in self.get_table("rule_from").values():
@@ -735,11 +804,11 @@ class MockFwoApi(FwoApi):
             user_id = rule_from["user_id"]
             if user_id is not None:
                 user_uid = self.get_user_uid(user_id)
-                member_string_db += fwo_const.user_delimiter + user_uid
-            
+                member_string_db += fwo_const.USER_DELIMITER + user_uid
+
             rule_froms_db[uid].add(member_string_db)
         return rule_froms_db
-    
+
     def get_rule_to_mappings(self):
         rule_tos_db = {}
         for rule_to in self.get_table("rule_to").values():
@@ -755,11 +824,11 @@ class MockFwoApi(FwoApi):
             user_id = rule_to["user_id"]
             if user_id is not None:
                 user_uid = self.get_user_uid(user_id)
-                member_string_db += fwo_const.user_delimiter + user_uid
-            
+                member_string_db += fwo_const.USER_DELIMITER + user_uid
+
             rule_tos_db[uid].add(member_string_db)
         return rule_tos_db
-    
+
     def get_rule_svc_mappings(self):
         rule_svcs_db = {}
         for rule_svc in self.get_table("rule_service").values():
@@ -773,7 +842,7 @@ class MockFwoApi(FwoApi):
             svc_uid = self.get_svc_uid(svc_id)
             rule_svcs_db[uid].add(svc_uid)
         return rule_svcs_db
-    
+
     def get_rule_nwobj_resolved_mappings(self):
         rule_nwobj_resolved_db = {}
         for rule_nwobj in self.get_table("rule_nwobj_resolved").values():
@@ -787,7 +856,7 @@ class MockFwoApi(FwoApi):
             obj_uid = self.get_nwobj_uid(obj_id)
             rule_nwobj_resolved_db[uid].add(obj_uid)
         return rule_nwobj_resolved_db
-    
+
     def get_rule_svc_resolved_mappings(self):
         rule_svc_resolved_db = {}
         for rule_svc_resolved in self.get_table("rule_svc_resolved").values():
@@ -801,12 +870,12 @@ class MockFwoApi(FwoApi):
             svc_uid = self.get_svc_uid(svc_id)
             rule_svc_resolved_db[uid].add(svc_uid)
         return rule_svc_resolved_db
-    
+
     def store_latest_config(self, config, import_state):
         """
         Stores the latest configuration in the mock database.
         """
-        if not "latest_config" in self.tables:
+        if "latest_config" not in self.tables:
             self.tables["latest_config"] = {}
         import_id = import_state.ImportId
         mgm_id = import_state.MgmDetails.Id

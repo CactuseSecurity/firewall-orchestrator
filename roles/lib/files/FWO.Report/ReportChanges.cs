@@ -273,63 +273,36 @@ namespace FWO.Report
 
         private string ExportResolvedChangesToJson()
         {
-            StringBuilder report = new("{");
-            report.Append(DisplayReportHeaderJson());
-            report.AppendLine("\"managements\": [");
             RuleChangeDisplayJson ruleChangeDisplayJson = new(userConfig);
-            foreach (var management in ReportData.ManagementData.Where(mgt => !mgt.Ignore && mgt.Devices != null &&
-                    Array.Exists(mgt.Devices, device => device.RuleChanges != null && device.RuleChanges.Length > 0)))
-            {
-                report.AppendLine($"{{\"{management.Name}\": {{");
-                report.AppendLine($"\"gateways\": [");
-                foreach (var gateway in management.Devices)
-                {
-                    if (gateway.RuleChanges != null && gateway.RuleChanges.Length > 0)
-                    {
-                        report.Append($"{{\"{gateway.Name}\": {{\n\"rule changes\": [");
-                        foreach (var ruleChange in gateway.RuleChanges)
-                        {
-                            report.Append('{');
-                            report.Append(ruleChangeDisplayJson.DisplayChangeTime(ruleChange));
-                            report.Append(ruleChangeDisplayJson.DisplayChangeAction(ruleChange));
-                            report.Append(ruleChangeDisplayJson.DisplayName(ruleChange));
-                            report.Append(ruleChangeDisplayJson.DisplaySourceZone(ruleChange));
-                            report.Append(ruleChangeDisplayJson.DisplaySourceNegated(ruleChange));
-                            report.Append(ruleChangeDisplayJson.DisplaySource(ruleChange, ReportType));
-                            report.Append(ruleChangeDisplayJson.DisplayDestinationZone(ruleChange));
-                            report.Append(ruleChangeDisplayJson.DisplayDestinationNegated(ruleChange));
-                            report.Append(ruleChangeDisplayJson.DisplayDestination(ruleChange, ReportType));
-                            report.Append(ruleChangeDisplayJson.DisplayServiceNegated(ruleChange));
-                            report.Append(ruleChangeDisplayJson.DisplayServices(ruleChange, ReportType));
-                            report.Append(ruleChangeDisplayJson.DisplayAction(ruleChange));
-                            report.Append(ruleChangeDisplayJson.DisplayTrack(ruleChange));
-                            report.Append(ruleChangeDisplayJson.DisplayEnabled(ruleChange));
-                            report.Append(ruleChangeDisplayJson.DisplayUid(ruleChange));
-                            report.Append(ruleChangeDisplayJson.DisplayComment(ruleChange));
-                            report = RuleDisplayBase.RemoveLastChars(report, 1); // remove last chars (comma)
-                            report.Append("},");  // EO ruleChange
-                        } // rules
-                        report = RuleDisplayBase.RemoveLastChars(report, 1); // remove last char (comma)
-                        report.Append(']'); // EO rules
-                        report.Append('}'); // EO gateway internal
-                        report.Append("},"); // EO gateway external
-                    }
-                } // gateways
-                report = RuleDisplayBase.RemoveLastChars(report, 1); // remove last char (comma)
-                report.Append(']'); // EO gateways
-                report.Append('}'); // EO management internal
-                report.Append("},"); // EO management external
-            } // managements
-            report = RuleDisplayBase.RemoveLastChars(report, 1); // remove last char (comma)
-            report.Append(']'); // EO managements
-            report.Append('}'); // EO top
 
-            dynamic? json = JsonConvert.DeserializeObject(report.ToString());
-            JsonSerializerSettings settings = new()
-            {
-                Formatting = Formatting.Indented
-            };
-            return JsonConvert.SerializeObject(json, settings);
+            return ExportToJson(
+                hasItems: dev => dev.RuleChanges != null && dev.RuleChanges.Length > 0,
+                getItems: (dev, mgmt) => dev.RuleChanges!,
+                renderItem: ruleChange =>
+                {
+                    var sb = new StringBuilder("{");
+                    sb.Append(ruleChangeDisplayJson.DisplayChangeTime(ruleChange));
+                    sb.Append(ruleChangeDisplayJson.DisplayChangeAction(ruleChange));
+                    sb.Append(ruleChangeDisplayJson.DisplayName(ruleChange));
+                    sb.Append(ruleChangeDisplayJson.DisplaySourceZones(ruleChange));
+                    sb.Append(ruleChangeDisplayJson.DisplaySourceNegated(ruleChange));
+                    sb.Append(ruleChangeDisplayJson.DisplaySource(ruleChange, ReportType));
+                    sb.Append(ruleChangeDisplayJson.DisplayDestinationZones(ruleChange));
+                    sb.Append(ruleChangeDisplayJson.DisplayDestinationNegated(ruleChange));
+                    sb.Append(ruleChangeDisplayJson.DisplayDestination(ruleChange, ReportType));
+                    sb.Append(ruleChangeDisplayJson.DisplayServiceNegated(ruleChange));
+                    sb.Append(ruleChangeDisplayJson.DisplayServices(ruleChange, ReportType));
+                    sb.Append(ruleChangeDisplayJson.DisplayAction(ruleChange));
+                    sb.Append(ruleChangeDisplayJson.DisplayTrack(ruleChange));
+                    sb.Append(ruleChangeDisplayJson.DisplayEnabled(ruleChange));
+                    sb.Append(ruleChangeDisplayJson.DisplayUid(ruleChange));
+                    sb.Append(ruleChangeDisplayJson.DisplayComment(ruleChange));
+                    RuleDisplayBase.RemoveLastChars(sb, 1);
+                    sb.Append("},");
+                    return sb.ToString();
+                },
+                itemsPropertyName: "rule changes"
+            );
         }
     }
 }

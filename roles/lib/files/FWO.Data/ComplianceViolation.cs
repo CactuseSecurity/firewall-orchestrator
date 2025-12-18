@@ -87,6 +87,24 @@ namespace FWO.Data
         public int CriterionId { get; set; }
         [JsonProperty("criterion"), JsonPropertyName("criterion")]
         public ComplianceCriterion? Criterion { get; set; }
+
+        public static ComplianceViolationBase CreateBase(ComplianceViolation violation )
+        {
+            return new()
+            {
+                RuleId = violation.RuleId,
+                RuleUid = violation.RuleUid,
+                MgmtUid = violation.MgmtUid,
+                FoundDate = violation.FoundDate,
+                RemovedDate = violation.RemovedDate,
+                Details = violation.Details,
+                RiskScore = violation.RiskScore,
+                PolicyId = violation.PolicyId,
+                CriterionId = violation.CriterionId,
+                Criterion = violation.Criterion
+            };
+            
+        }
     }
 }
 

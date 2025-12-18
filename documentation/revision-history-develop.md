@@ -303,6 +303,16 @@ bugfix release:
 - add manageable ownerLifeCycleState menu
 - fix two modelling ui glitches
 
+# 8.9.3 - 05.11.2025 DEVELOP
+- hotfix missing permissions for app data import in certain constellations
+
+## 8.9.4 - 09.12.2025 DEVELOP
+- bugfix release: common service connection not editable
+- new custom scripts for iiq and cmdb import
+
+## 8.9.5 - 10.12.2025 DEVELOP
+- bugfix release: modelling - change planning showed duplicate NA elements for rule delete requests
+
 # 9.0 - 30.06.2025 DEVELOP
 - rule to gateway mapping 1:n
 - add report output for rule to gw mapping
@@ -328,4 +338,3 @@ make sure to place your venv outside the repo, e.g. into /home/user/dev/venv
     source installer-venv/bin/activate
     pip install -r path-to-repo/roles/importer/files/importer/requirements.txt
 - also reducing db listener to localhost
-

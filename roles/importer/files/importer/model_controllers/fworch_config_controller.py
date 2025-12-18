@@ -1,36 +1,42 @@
+from typing import Any
+
 from models.fworch_config import FworchConfig
 
 """
     the configuraton of a firewall orchestrator itself
     as read from the global config file including FWO URI
 """
-class FworchConfigController(FworchConfig):
 
-    def __init__(self, fwoApiUri, fwoUserMgmtApiUri, importerPwd, apiFetchSize=500):
-        if fwoApiUri is not None:
-            self.FwoApiUri = fwoApiUri
+
+class FworchConfigController(FworchConfig):
+    def __init__(
+        self,
+        fwo_api_url: str | None,
+        fwo_user_mgmt_api_uri: str | None,
+        importer_pwd: str | None,
+        api_fetch_size: int = 500,
+    ):
+        if fwo_api_url is not None:
+            self.fwo_api_url = fwo_api_url
         else:
-            self.FwoApiUFwoUserMgmtApiri = None
-        if fwoUserMgmtApiUri is not None:
-            self.FwoUserMgmtApiUri = fwoUserMgmtApiUri
+            self.fwo_api_fwo_user_mgmt_api_uri = None
+        if fwo_user_mgmt_api_uri is not None:
+            self.fwo_user_mgmt_api_uri = fwo_user_mgmt_api_uri
         else:
-            self.FwoUserMgmtApiUri = None
-        self.ImporterPassword = importerPwd
-        self.ApiFetchSize = apiFetchSize
+            self.fwo_user_mgmt_api_uri = None
+        self.importer_password = importer_pwd
+        self.api_fetch_size = api_fetch_size
 
     @classmethod
-    def fromJson(cls, json_dict):
-        fwoApiUri = json_dict['fwo_api_base_url']
-        fwoUserMgmtApiUri = json_dict['user_management_api_base_url']
-        if 'importerPassword' in json_dict:
-            fwoImporterPwd = json_dict['importerPassword']
-        else:
-            fwoImporterPwd = None
-        
-        return cls(fwoApiUri, fwoUserMgmtApiUri, fwoImporterPwd)
+    def from_json(cls, json_dict: dict[str, Any]) -> "FworchConfigController":
+        fwo_api_uri = json_dict["fwo_api_base_url"]
+        fwo_user_mgmt_api_uri = json_dict["user_management_api_base_url"]
+        fwo_importer_pwd = json_dict.get("importerPassword")
+
+        return cls(fwo_api_uri, fwo_user_mgmt_api_uri, fwo_importer_pwd)
 
     def __str__(self):
-        return f"{self.FwoApiUri}, {self.FwoUserMgmtApi}, {self.ApiFetchSize}"
+        return f"{self.fwo_api_url}, {self.fwo_user_mgmt_api_uri}, {self.api_fetch_size}"
 
-    def setImporterPwd(self, importerPassword):
-        self.ImporterPassword = importerPassword        
+    def set_importer_pwd(self, importer_password: str | None):
+        self.importer_password = importer_password

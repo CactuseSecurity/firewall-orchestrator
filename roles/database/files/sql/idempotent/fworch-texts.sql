@@ -237,8 +237,8 @@ INSERT INTO txt VALUES ('AllOwnerResponsibles', 'German',	'Eigent&uuml;mer alle 
 INSERT INTO txt VALUES ('AllOwnerResponsibles', 'English',	'Owner all responsibles');
 INSERT INTO txt VALUES ('OwnerGroupOnly',       'German',	'nur Eigent&uuml;mergruppe');
 INSERT INTO txt VALUES ('OwnerGroupOnly',       'English',	'Owner Group only');
-INSERT INTO txt VALUES ('FallbackToMainResponsibleIfOwnerGroupEmpty', 'German',	'Hauptverantworlicher wenn Eigent&uuml;mergruppe nicht spezifiziert');
-INSERT INTO txt VALUES ('FallbackToMainResponsibleIfOwnerGroupEmpty', 'English',	'Owner Main Responsible if Owner Group not specified');
+INSERT INTO txt VALUES ('FallbackToMainResponsibleIfOwnerGroupEmpty', 'German',	'Hauptverantworlicher wenn Eigent&uuml;mergruppe nicht spezifiziert oder leer');
+INSERT INTO txt VALUES ('FallbackToMainResponsibleIfOwnerGroupEmpty', 'English',	'Owner Main Responsible if Owner Group not specified or empty');
 INSERT INTO txt VALUES ('Requester', 		    'German',	'Antragsteller');
 INSERT INTO txt VALUES ('Requester', 	        'English',	'Requester');
 INSERT INTO txt VALUES ('Approver', 		    'German',	'Genehmiger');
@@ -562,6 +562,8 @@ INSERT INTO txt VALUES ('check_times', 			'German',	'Pr&uuml;fung Datumswerte');
 INSERT INTO txt VALUES ('check_times', 			'English',	'Check time values');
 INSERT INTO txt VALUES ('select_device',		'German', 	'Device(s) ausw&auml;hlen');
 INSERT INTO txt VALUES ('select_device',		'English', 	'Select device(s)');
+INSERT INTO txt VALUES ('select_management',	'German', 	'Management(s) ausw&auml;hlen');
+INSERT INTO txt VALUES ('select_management',	'English', 	'Select management(s)');
 INSERT INTO txt VALUES ('tenant_vis_devices',   'German', 	'Mandanten-Firewalls');
 INSERT INTO txt VALUES ('tenant_vis_devices',	'English', 	'Tenant firewalls');
 INSERT INTO txt VALUES ('edit_vis_devices',		'German', 	'Devices f&uuml;r Mandant');
@@ -1276,6 +1278,8 @@ INSERT INTO txt VALUES ('edit_interface', 	    'German',	'Schnittstelle bearbeit
 INSERT INTO txt VALUES ('edit_interface', 	    'English',	'Edit Interface');
 INSERT INTO txt VALUES ('delete_interface', 	'German',	'Schnittstelle l&ouml;schen');
 INSERT INTO txt VALUES ('delete_interface', 	'English',	'Delete Interface');
+INSERT INTO txt VALUES ('propose_alternative', 	'German',	'Alternative vorschlagen');
+INSERT INTO txt VALUES ('propose_alternative', 	'English',	'Propose alternative');
 INSERT INTO txt VALUES ('insert_forbidden', 	'German',	'Einf&uuml;gen verboten');
 INSERT INTO txt VALUES ('insert_forbidden', 	'English',	'Insert forbidden');
 INSERT INTO txt VALUES ('func_reason', 	        'German',	'Fachliche Begr&uuml;ndung');
@@ -1519,7 +1523,6 @@ INSERT INTO txt VALUES ('ext_task_template_ph', 'English',	'Template text for ea
         "name": "Expert mode?",
         "selection": "Nein"
     }');
-
 
 INSERT INTO txt VALUES ('area', 	            'German',	'Area');
 INSERT INTO txt VALUES ('area', 	            'English',	'Area');
@@ -1767,6 +1770,12 @@ INSERT INTO txt VALUES ('error_message',        'German',   'Fehlermeldung');
 INSERT INTO txt VALUES ('error_message',        'English',  'Error message');
 INSERT INTO txt VALUES ('variance_analysis', 	'German', 	'Soll-Ist-Abgleich');
 INSERT INTO txt VALUES ('variance_analysis',    'English', 	'Variance Analysis');
+INSERT INTO txt VALUES ('app_zone',      		'German',   'App Zone');
+INSERT INTO txt VALUES ('app_zone',      		'English',  'App Zone');
+INSERT INTO txt VALUES ('az_differing_on', 		'German', 	'Implementierte App Zone differiert auf');
+INSERT INTO txt VALUES ('az_differing_on',    	'English', 	'Implemented App Zone differing on');
+INSERT INTO txt VALUES ('no_modelled_az', 		'German', 	'Keine App Zone modelliert');
+INSERT INTO txt VALUES ('no_modelled_az',    	'English', 	'No App Zone modelled');
 INSERT INTO txt VALUES ('mod_state',            'German', 	'Mod Status');
 INSERT INTO txt VALUES ('mod_state',            'English', 	'Mod State');
 INSERT INTO txt VALUES ('impl_state',           'German', 	'Impl Status');
@@ -2217,6 +2226,10 @@ INSERT INTO txt VALUES ('autoDiscoverStartAt',  'German', 	'Autodiscover-Start')
 INSERT INTO txt VALUES ('autoDiscoverStartAt',  'English', 	'Auto-discovery start at');
 INSERT INTO txt VALUES ('recertificationPeriod','German', 	'Rezertifizierungsintervall (in Tagen)');
 INSERT INTO txt VALUES ('recertificationPeriod','English',  'Recertification Period (in days)');
+INSERT INTO txt VALUES ('initialRecertificationPeriod','German','Initiales Rezertifizierungsintervall (in Tagen)');
+INSERT INTO txt VALUES ('initialRecertificationPeriod','English','Initial Recertification Period (in days)');
+INSERT INTO txt VALUES ('initialRecertifier','German', 		'Initialer Rezertifizierer');
+INSERT INTO txt VALUES ('initialRecertifier','English',  	'Initial Recertifier');
 INSERT INTO txt VALUES ('recertificationNoticePeriod','German','Rezertifizierungserinnerungsintervall (in Tagen)');
 INSERT INTO txt VALUES ('recertificationNoticePeriod','English','Recertification Notice Period (in days)');
 INSERT INTO txt VALUES ('recertificationDisplayPeriod','German','Rezertifizierungsanzeigeintervall (in Tagen)');
@@ -2441,9 +2454,9 @@ INSERT INTO txt VALUES ('assign_state_to',      'German',   'Status zuordnen zu:
 INSERT INTO txt VALUES ('assign_state_to',      'English',  'Assign state to: ');
 INSERT INTO txt VALUES ('select_action',        'German',   'Aktion ausw&auml;hlen');
 INSERT INTO txt VALUES ('select_action',        'English',  'Select action');
-INSERT INTO txt VALUES ('manage_owner_lc_state','German',   'Produktions-Lifecylce-Status ändern');
+INSERT INTO txt VALUES ('manage_owner_lc_state','German',   'Produktions-Lifecylce-Status &auml;ndern');
 INSERT INTO txt VALUES ('manage_owner_lc_state','English',  'Manage production lifecycle states');
-INSERT INTO txt VALUES ('add_owner_lc_state',   'German',   'Lifecycle Status hinzufügen');
+INSERT INTO txt VALUES ('add_owner_lc_state',   'German',   'Lifecycle Status hinzuf&uuml;gen');
 INSERT INTO txt VALUES ('add_owner_lc_state',   'English',  'Add Owner Lifecycle State');
 INSERT INTO txt VALUES ('owner_lc_states',      'German',   'Produktions-Status');
 INSERT INTO txt VALUES ('owner_lc_states',      'English',  'Production Lifecycle States');
@@ -3469,6 +3482,10 @@ INSERT INTO txt VALUES ('E5292', 'German',  'Dn oder Gruppe muss gef&uuml;llt se
 INSERT INTO txt VALUES ('E5292', 'English', 'Dn or group has to be filled');
 INSERT INTO txt VALUES ('E5293', 'German',  'Lifecycle Status konnte nicht gespeichert werden');
 INSERT INTO txt VALUES ('E5293', 'English', 'Owner Lifecycle State could not be saved');
+INSERT INTO txt VALUES ('E5294', 'German',  'Fehler beim Einloggen in');
+INSERT INTO txt VALUES ('E5294', 'English', 'error while logging in to');
+INSERT INTO txt VALUES ('E5295', 'German',  'Authentifizierungsfehler');
+INSERT INTO txt VALUES ('E5295', 'English', 'Authentication Error');
 
 INSERT INTO txt VALUES ('E5301', 'German',  'Konfiguration konnte nicht gelesen oder verarbeitet werden.');
 INSERT INTO txt VALUES ('E5301', 'English', 'Error reading or processing Config.');
@@ -5142,8 +5159,16 @@ INSERT INTO txt VALUES ('H5415', 'German',  'Datenaufbewahrungszeit (in Tagen): 
 INSERT INTO txt VALUES ('H5415', 'English', 'Data retention time (in days): Defines how long the data is kept in the database (currently not supported).');
 INSERT INTO txt VALUES ('H5416', 'German',  '&Auml;nderungsbenachrichtigung via Email:');
 INSERT INTO txt VALUES ('H5416', 'English', 'Change notification via email:');
-INSERT INTO txt VALUES ('H5417', 'German',  'Rezertifizierungsintervall (in Tagen): Maximale Zeit, nach der eine Regel rezertifiziert werden soll. Bei Rezertifizierungsmodus "Eigent&uuml;mer und Regeln": Default-Wert, wenn im Eigent&uuml;mer kein Wert gesetzt ist.');
-INSERT INTO txt VALUES ('H5417', 'English', 'Recertification Period (in days): Maximum time, after when a rule should be recertified. In case of Recertification Mode "Owners And Rules": Default period if no value set in owner.');
+INSERT INTO txt VALUES ('H5417', 'German',  'Rezertifizierungsintervall (in Tagen): Maximale Zeit, nach der ein Eigent&uuml;mer bzw. eine Regel rezertifiziert werden soll. 
+	Bei Rezertifizierungsmodus "Eigent&uuml;mer und Regeln": Default-Wert f&uuml;r alle Eigent&uuml;mer, f&uuml;r die kein Wert gesetzt ist.
+');
+INSERT INTO txt VALUES ('H5417', 'English', 'Recertification Period (in days): Maximum time, after when an owner resp. a rule should be recertified.
+	In case of Recertification Mode "Owners And Rules": Default period for all owners where no value set.
+');
+INSERT INTO txt VALUES ('H5417a', 'German',  'Initiales Rezertifizierungsintervall (in Tagen): Maximale Zeit, nach der ein Eigent&uuml;mer bzw. eine Regel das erste Mal rezertifiziert werden muss.');
+INSERT INTO txt VALUES ('H5417a', 'English', 'Initial Recertification Period (in days): Maximum time, after when an owner resp. a rule has to be recertified the first time.');
+INSERT INTO txt VALUES ('H5417b', 'German',  'Initialer Rezertifizierer: Name, der als Rezertifizierer bei der automatischen initialen Rezertifizierung eingetragen werden soll.');
+INSERT INTO txt VALUES ('H5417b', 'English', 'Initial Recertifier: Name displayed as recertifier on automatic initial recertification.');
 INSERT INTO txt VALUES ('H5418', 'German',  'Rezertifizierungserinnerungsintervall (in Tagen): Zeit vor dem F&auml;lligkeitsdatum, ab der eine Regel als f&auml;llig hervorgehoben werden soll.');
 INSERT INTO txt VALUES ('H5418', 'English', 'Recertification Notice Period (in days): Time before the due date when the rule should be marked as upcoming recertification.');
 INSERT INTO txt VALUES ('H5419', 'German',  'Rezertifizierungsanzeigeintervall (in Tagen): Vorausschauintervall f&uuml;r f&auml;llige Rezertifizierungen.');
@@ -5836,11 +5861,11 @@ INSERT INTO txt VALUES ('H5662', 'English', 'Body of decommission emails: Text o
 ');
 INSERT INTO txt VALUES ('H5663', 'German',  'Alle Regeln modelliert erwarten: Alle dem Eigent&uuml;mer zugeordneten Regeln m&uuml;ssen modelliert sein.');
 INSERT INTO txt VALUES ('H5663', 'English', 'Expect all rules as modelled: All rules associated to the owner have to be modelled.');
-INSERT INTO txt VALUES ('H5664', 'German',  'Produktionsstatus: Gibt an, in welchem Lifecycle Status sich der Eigentümer befindet.');
+INSERT INTO txt VALUES ('H5664', 'German',  'Produktionsstatus: Gibt an, in welchem Lifecycle Status sich der Eigent&uuml;mer befindet.');
 INSERT INTO txt VALUES ('H5664', 'English', 'Production state: The Owner Lifecycle State assigned to the owner.');
 INSERT INTO txt VALUES ('H5665', 'German',  'Name: Name des Produktionsstatus');
 INSERT INTO txt VALUES ('H5665', 'English', 'Name: Owner Lifecycle State name');
-INSERT INTO txt VALUES ('H5666', 'German',  'In diesem Kapitel können die Produktions-Status von Eigent&uuml;mern eingesehen, erstellt, bearbeitet und gelöscht werden. Produktions-Status definieren den aktuellen Zustand eines Eigent&uuml;mers (z. B. Geplant, Im Betrieb, Auslaufend).');
+INSERT INTO txt VALUES ('H5666', 'German',  'In diesem Kapitel k&ouml;nnen die Produktions-Status von Eigent&uuml;mern eingesehen, erstellt, bearbeitet und gel&ouml;scht werden. Produktions-Status definieren den aktuellen Zustand eines Eigent&uuml;mers (z. B. Geplant, Im Betrieb, Auslaufend).');
 INSERT INTO txt VALUES ('H5666', 'English', 'In this chapter, Production Lifecycle States of owners can be viewed, created, edited, and deleted. Production Lifecycle States define the current status of an owner (e.g., Planned, In Production, End of Life).');
 
 INSERT INTO txt VALUES ('H5701', 'German',  'Die in der Datenbank hinterlegten sprachabh&auml;ngigen Texte k&ouml;nnen individuell &uuml;berschrieben werden.
@@ -5951,6 +5976,10 @@ INSERT INTO txt VALUES ('H5841', 'German',  'Auswertbarkeitsproblem');
 INSERT INTO txt VALUES ('H5841', 'English', 'Assessability issue');
 INSERT INTO txt VALUES ('H5842', 'German',  'Wenn aktiviert, können importierte Matrizen weder gelöscht noch editiert werden.');
 INSERT INTO txt VALUES ('H5842', 'English', 'When enabled, imported matrices cannot be deleted or edited.');
+INSERT INTO txt VALUES ('H5843', 'German',  'Anzahl der Elemente die pro Anfrage geladen werden sollen.');
+INSERT INTO txt VALUES ('H5843', 'English', 'Amount of elements that should be retrieved with each fetch operation.');
+INSERT INTO txt VALUES ('H5844', 'German',  'Anzahl der Prozessoren die für Parallelisierungsoperationen zur Verfügung stehen.');
+INSERT INTO txt VALUES ('H5844', 'English', 'Amount of processors that should be used for parallelized operations.');
 
 
 INSERT INTO txt VALUES ('H6001', 'German',  'Firewall Orchestrator verf&uuml;gt &uuml;ber zwei APIs:

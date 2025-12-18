@@ -1,4 +1,4 @@
-﻿using FWO.Logging;
+using FWO.Logging;
 
 namespace FWO.Api.Client.Queries
 {
@@ -28,8 +28,10 @@ namespace FWO.Api.Client.Queries
         // public static readonly string getNatRuleDetailsForReport;
 
         public static readonly string countRules;
+        public static readonly string countActiveRules;
         public static readonly string getRulesWithViolationsInTimespanByChunk;
         public static readonly string getRulesWithCurrentViolationsByChunk;
+        public static readonly string getRulesForSelectedManagements;
 
 
         static RuleQueries()
@@ -76,25 +78,29 @@ namespace FWO.Api.Client.Queries
 
                 getRuleOverview = ruleOverviewFragments + GetQueryText("rule/getRuleOverview.graphql");
                 getRuleDetails = ruleDetailsFragments + GetQueryText("rule/getRuleDetails.graphql");
-                // getRuleDetailsForReport = ruleDetailsForReportFragments + GetQueryText("rule/getRuleDetails.graphql");
                 getRuleByUid = GetQueryText("rule/getRuleByUid.graphql");
                 getRuleNetworkObjectDetails = ObjectQueries.networkObjectDetailsFragment;
                 getRuleIdsOfImport = GetQueryText("report/getRuleIdsOfImport.graphql");
                 getRuleUidsOfDevice = GetQueryText("report/getRuleUidsOfDevice.graphql");
                 getRulesByManagement = ruleDetailsFragments + GetQueryText("report/getRulesByManagement.graphql");
-                getModelledRulesByManagementName = ruleDetailsFragments + GetQueryText("report/getModelledRulesByManagementName.graphql");
-                getModelledRulesByManagementComment = ruleDetailsFragments + GetQueryText("report/getModelledRulesByManagementComment.graphql");
+                getModelledRulesByManagementName = ruleDetailsForReportFragments + GetQueryText("report/getModelledRulesByManagementName.graphql");
+                getModelledRulesByManagementComment = ruleDetailsForReportFragments + GetQueryText("report/getModelledRulesByManagementComment.graphql");
                 getNatRuleOverview = natRuleOverviewFragments + GetQueryText("rule/getNatRuleOverview.graphql");
                 getNatRuleDetails = natRuleDetailsFragments + GetQueryText("rule/getNatRuleDetails.graphql");
-                // getNatRuleDetailsForReport = natRuleDetailsForReportFragments + GetQueryText("rule/getNatRuleDetails.graphql");
                 getRulesWithViolationsInTimespanByChunk = ruleDetailsFragments + GetQueryText("rule/getRulesWithViolationsInTimespanByChunk.graphql");
                 getRulesWithCurrentViolationsByChunk = ruleDetailsFragments + GetQueryText("rule/getRulesWithCurrentViolationsByChunk.graphql");
+                getRulesForSelectedManagements = ruleDetailsFragments + GetQueryText("rule/getRulesForSelectedManagements.graphql");
                 countRules = GetQueryText("rule/countRules.graphql");
+                countActiveRules = GetQueryText("rule/countActiveRules.graphql");
             }
             catch (Exception exception)
             {
                 Log.WriteError("Initialize Api Queries", "Api Rule Queries could not be loaded.", exception);
+#if RELEASE
                 Environment.Exit(-1);
+#else
+                throw;
+#endif
             }
         }
     }

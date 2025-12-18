@@ -47,8 +47,8 @@ namespace FWO.Data
         [JsonProperty("rule_src_refs"), JsonPropertyName("rule_src_refs")]
         public string SourceRefs { get; set; } = "";
 
-        [JsonProperty("src_zone"), JsonPropertyName("src_zone")]
-        public NetworkZone? SourceZone { get; set; } = new();
+        [JsonProperty("rule_from_zones"), JsonPropertyName("rule_from_zones")]
+        public ZoneWrapper[] RuleFromZones { get; set; } = [];
 
         [JsonProperty("rule_froms"), JsonPropertyName("rule_froms")]
         public NetworkLocation[] Froms { get; set; } = [];
@@ -62,8 +62,8 @@ namespace FWO.Data
         [JsonProperty("rule_dst_refs"), JsonPropertyName("rule_dst_refs")]
         public string DestinationRefs { get; set; } = "";
 
-        [JsonProperty("dst_zone"), JsonPropertyName("dst_zone")]
-        public NetworkZone? DestinationZone { get; set; } = new();
+        [JsonProperty("rule_to_zones"), JsonPropertyName("rule_to_zones")]
+        public ZoneWrapper[] RuleToZones { get; set; } = [];
 
         [JsonProperty("rule_tos"), JsonPropertyName("rule_tos")]
         public NetworkLocation[] Tos { get; set; } = [];
@@ -168,11 +168,13 @@ namespace FWO.Data
             Service = rule.Service;
             SourceNegated = rule.SourceNegated;
             Source = rule.Source;
-            SourceZone = rule.SourceZone;
+            SourceRefs = rule.SourceRefs;
+            RuleFromZones = rule.RuleFromZones;
             Froms = rule.Froms;
             DestinationNegated = rule.DestinationNegated;
             Destination = rule.Destination;
-            DestinationZone = rule.DestinationZone;
+            DestinationRefs = rule.DestinationRefs;
+            RuleToZones = rule.RuleToZones;
             Tos = rule.Tos;
             Action = rule.Action;
             Track = rule.Track;
@@ -183,10 +185,23 @@ namespace FWO.Data
             OwnerId = rule.OwnerId;
             IpMatch = rule.IpMatch;
             CustomFields = rule.CustomFields;
+            Implied = rule.Implied;
+            NatRule = rule.NatRule;
+            RulebaseId = rule.RulebaseId;
+            RuleOrderNumber = rule.RuleOrderNumber;
+            EnforcingGateways = rule.EnforcingGateways;
+            InstallOn = rule.InstallOn;
+            Time = rule.Time;
+            Violations = rule.Violations;
+            Rulebase = rule.Rulebase;
+            LastChangeAdmin = rule.LastChangeAdmin;
+            ParentRule = rule.ParentRule;
+            DisplayOrderNumberString = rule.DisplayOrderNumberString;
             DisplayOrderNumber = rule.DisplayOrderNumber;
             Certified = rule.Certified;
             ManagementName = rule.ManagementName;
             DeviceName = rule.DeviceName;
+            RulebaseName = rule.RulebaseName;
             DisregardedFroms = rule.DisregardedFroms;
             DisregardedTos = rule.DisregardedTos;
             DisregardedServices = rule.DisregardedServices;

@@ -8,7 +8,6 @@ using FWO.Config.Api;
 using NetTools;
 using System.Net;
 using FWO.Basics;
-using FWO.FwLogic;
 using Org.BouncyCastle.Asn1.Misc;
 
 namespace FWO.Report
@@ -51,7 +50,7 @@ namespace FWO.Report
             foreach(var mgt in managementData)
             {
                 ManagementReport relevantMgt = new() { Name = mgt.Name, Id = mgt.Id, Import = mgt.Import };
-                foreach (DeviceReportController dev in mgt.Devices.Cast<DeviceReportController>())
+                foreach (var dev in mgt.Devices)
                 {
                     PrepareDevice(dev, modellingFilter, relevantMgt, ownerIps);
                 }
@@ -64,24 +63,22 @@ namespace FWO.Report
             return relevantData;
         }
 
-         private static void PrepareDevice(DeviceReport dev, ModellingFilter modellingFilter, ManagementReport relevantMgt, List<IPAddressRange> ownerIps)
+        private static void PrepareDevice(DeviceReport dev, ModellingFilter modellingFilter, ManagementReport relevantMgt, List<IPAddressRange> ownerIps)
         {
             DeviceReport relevantDevice = new(){ Name = dev.Name, Id = dev.Id };
             List<Rule> deviceRules = dev.GetRuleList();
             if (deviceRules != null)
             {
-                // relevantDevice.Rules = [];
                 foreach (var rule in deviceRules)
                 {
                     PrepareRule(rule, modellingFilter, relevantMgt, relevantDevice, ownerIps);
                 }
-                if (relevantDevice.GetNumerOfRules() > 0)
+                if (relevantDevice.GetNumberOfRules() > 0)
                 {
                     relevantMgt.Devices = [.. relevantMgt.Devices, relevantDevice];
                 }
             }
         }
-
 
         private static void PrepareRule(Rule rule, ModellingFilter modellingFilter, ManagementReport relevantMgt, DeviceReport relevantDevice, List<IPAddressRange> ownerIps)
         {
@@ -204,10 +201,10 @@ namespace FWO.Report
         {
             mgt.RelevantObjectIds = [];
             mgt.HighlightedObjectIds = [];
-            foreach (EnforcingDevice dev in mgt.Devices.Cast<EnforcingDevice>())
+            foreach (var dev in mgt.Devices)
             {
                 List<Rule> allDeviceRules = dev.GetRuleListForDevice();
-                if (allDeviceRules.Count() > 0)
+                if (allDeviceRules.Count > 0)
                 {
                     foreach (var rule in allDeviceRules)
                     {

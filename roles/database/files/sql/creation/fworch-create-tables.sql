@@ -198,6 +198,7 @@ Create table "rule_metadata"
 (
 	"rule_metadata_id" BIGSERIAL,
 	"rule_uid" Text NOT NULL,
+	"mgm_id" Integer NOT NULL,
 	"rule_created" Timestamp NOT NULL Default now(),
 	"rule_last_modified" Timestamp NOT NULL Default now(),
 	"rule_first_hit" Timestamp,
@@ -347,6 +348,26 @@ Create table "zone"
 	"zone_name" Varchar NOT NULL,
 	"active" Boolean NOT NULL Default TRUE,
  primary key ("zone_id")
+);
+
+--crosstabulation rule zone for source
+Create table "rule_from_zone"
+(
+	"rule_id" BIGINT NOT NULL,
+	"zone_id" Integer NOT NULL,
+	"created" BIGINT NOT NULL,
+	"removed" BIGINT,
+	primary key (rule_id, zone_id, created)
+);
+
+--crosstabulation rule zone for destination
+Create table "rule_to_zone"
+(
+	"rule_id" BIGINT NOT NULL,
+	"zone_id" Integer NOT NULL,
+	"created" BIGINT NOT NULL,
+	"removed" BIGINT,
+	primary key (rule_id, zone_id, created)
 );
 
 Create table "usr"
@@ -522,20 +543,20 @@ Create table "tenant_network"
 
 Create table "parent_rule_type"
 (
-	"id" smallserial NOT NULL,
+	"id" smallint NOT NULL,
 	"name" Varchar NOT NULL,
  primary key ("id")
 );
 
 Create table IF NOT EXISTS "stm_link_type"
 (
-	"id" SERIAL primary key,
+	"id" Integer primary key,
 	"name" Varchar NOT NULL
 );
 
 Create table "stm_action"
 (
-	"action_id" SERIAL,
+	"action_id" Integer,
 	"action_name" Varchar NOT NULL,
 	"allowed" BOOLEAN NOT NULL DEFAULT TRUE,
  primary key ("action_id")
@@ -552,7 +573,7 @@ Create table "stm_color"
 
 Create table "stm_dev_typ"
 (
-	"dev_typ_id" SERIAL,
+	"dev_typ_id" Integer,
 	"dev_typ_manufacturer" Varchar,
 	"dev_typ_name" Varchar NOT NULL,
 	"dev_typ_version" Varchar NOT NULL,
@@ -570,7 +591,7 @@ Create table "stm_dev_typ"
 
 Create table "stm_obj_typ"
 (
-	"obj_typ_id" SERIAL,
+	"obj_typ_id" Integer,
 	"obj_typ_name" Varchar NOT NULL,
 	"obj_typ_comment" Text,
  primary key ("obj_typ_id")
@@ -578,7 +599,7 @@ Create table "stm_obj_typ"
 
 Create table "stm_track"
 (
-	"track_id" SERIAL,
+	"track_id" Integer,
 	"track_name" Varchar NOT NULL,
  primary key ("track_id")
 );
@@ -958,7 +979,7 @@ Create table "changelog_rule"
 
 Create table "stm_change_type"
 (
-	"change_type_id" SERIAL,
+	"change_type_id" Integer,
 	"change_type_name" Varchar,
  primary key ("change_type_id")
 );

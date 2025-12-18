@@ -114,6 +114,12 @@ namespace FWO.Config.Api.Data
         [JsonProperty("recertificationPeriod"), JsonPropertyName("recertificationPeriod")]
         public int RecertificationPeriod { get; set; } = 365;
 
+        [JsonProperty("initialRecertificationPeriod"), JsonPropertyName("initialRecertificationPeriod")]
+        public int InitialRecertificationPeriod { get; set; } = 365;
+
+        [JsonProperty("initialRecertifier"), JsonPropertyName("initialRecertifier")]
+        public string InitialRecertifier { get; set; } = "";
+
         [JsonProperty("recertificationNoticePeriod"), JsonPropertyName("recertificationNoticePeriod")]
         public int RecertificationNoticePeriod { get; set; } = 30;
 
@@ -513,9 +519,16 @@ namespace FWO.Config.Api.Data
 
         [JsonProperty("showShortColumnsInComplianceReports"), JsonPropertyName("showShortColumnsInComplianceReports")]
         public bool ShowShortColumnsInComplianceReports { get; set; } = true;
-        
+
         [JsonProperty("importedMatrixReadOnly"), JsonPropertyName("importedMatrixReadOnly")]
         public bool ImportedMatrixReadOnly { get; set; } = true;
+
+        [JsonProperty("complianceCheckElementsPerFetch"), JsonPropertyName("complianceCheckElementsPerFetch")]
+        public int ComplianceCheckElementsPerFetch { get; set; } = 500;
+
+        [JsonProperty("complianceCheckAvailableProcessors"), JsonPropertyName("complianceCheckAvailableProcessors")]
+        public int ComplianceCheckAvailableProcessors { get; set; } = 4;
+
 
         public ConfigData(bool editable = false)
         {

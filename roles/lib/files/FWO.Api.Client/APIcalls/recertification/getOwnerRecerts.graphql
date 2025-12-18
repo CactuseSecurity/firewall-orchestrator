@@ -1,5 +1,5 @@
 query getOwnerRecerts ($ownerId: Int!) {
-  owner_recertification (where: {owner_id: {_eq: $ownerId}} order_by: { recert_date: desc }){
+  owner_recertification (where: {owner_id: {_eq: $ownerId}, recertified: {_eq: true}} order_by: { recert_date: desc }){
     id
     owner_id
     user_dn

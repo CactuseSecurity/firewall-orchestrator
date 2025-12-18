@@ -1,0 +1,12 @@
+query getInitialOwnerRecert ($ownerId: Int!) {
+  owner_recertification (where: {owner_id: {_eq: $ownerId}, recertified: {_eq: false}}){
+    id
+    owner_id
+    user_dn
+    recertified
+    recert_date
+    comment
+    next_recert_date
+    report_id
+  }
+}

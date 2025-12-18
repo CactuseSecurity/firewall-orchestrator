@@ -18,5 +18,9 @@
         "scripts/customizing/app_data_import",
         "-p",
         "test_*.py"
-    ]
+    ],
+    "sonarlint.connectedMode.project": {
+        "connectionId": "cactusesecurity",
+        "projectKey": "CactuseSecurity_firewall-orchestrator"
+    }
 }

@@ -144,10 +144,18 @@ namespace FWO.Ui.Services
         }
 
         [GeneratedRegex(@"<\s*script\b", RegexOptions.IgnoreCase, "en-US")]
-
         private static partial Regex ScriptTagRegex();
 
         [GeneratedRegex(@"on\w+\s*=", RegexOptions.IgnoreCase, "en-US")]
+        private static partial Regex EventHandlerAttributeRegex();
+
+        [GeneratedRegex(@"javascript\s*:", RegexOptions.IgnoreCase, "en-US")]
+        private static partial Regex JavascriptSchemeRegex();
+
+        [GeneratedRegex(@"<\s*/?\s*(a|img|iframe|svg|object|embed|link|meta|style|body|html|form|input|video|audio)\b", RegexOptions.IgnoreCase, "en-US")]
+        private static partial Regex DangerousHtmlTagRegex();
+
+        [GeneratedRegex(@"^[a-zA-Z0-9/_\-\.\?\&=,:;]*$", RegexOptions.IgnoreCase, "en-US")]
         private static partial Regex HelpPathWhitelistRegex();
 
         [GeneratedRegex(@"<[^>]*>", RegexOptions.IgnoreCase, "en-US")]

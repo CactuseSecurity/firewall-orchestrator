@@ -16,7 +16,7 @@ namespace FWO.Services
                 return false;
             }
 
-            return (appRole1.Name == appRole2.Name);
+            return appRole1.Name == appRole2.Name;
         }
 
         public int GetHashCode(ModellingAppRole appRole)

@@ -1524,7 +1524,6 @@ INSERT INTO txt VALUES ('ext_task_template_ph', 'English',	'Template text for ea
         "selection": "Nein"
     }');
 
-
 INSERT INTO txt VALUES ('area', 	            'German',	'Area');
 INSERT INTO txt VALUES ('area', 	            'English',	'Area');
 INSERT INTO txt VALUES ('interface', 	        'German',	'Schnittstelle');
@@ -1771,6 +1770,12 @@ INSERT INTO txt VALUES ('error_message',        'German',   'Fehlermeldung');
 INSERT INTO txt VALUES ('error_message',        'English',  'Error message');
 INSERT INTO txt VALUES ('variance_analysis', 	'German', 	'Soll-Ist-Abgleich');
 INSERT INTO txt VALUES ('variance_analysis',    'English', 	'Variance Analysis');
+INSERT INTO txt VALUES ('app_zone',      		'German',   'App Zone');
+INSERT INTO txt VALUES ('app_zone',      		'English',  'App Zone');
+INSERT INTO txt VALUES ('az_differing_on', 		'German', 	'Implementierte App Zone differiert auf');
+INSERT INTO txt VALUES ('az_differing_on',    	'English', 	'Implemented App Zone differing on');
+INSERT INTO txt VALUES ('no_modelled_az', 		'German', 	'Keine App Zone modelliert');
+INSERT INTO txt VALUES ('no_modelled_az',    	'English', 	'No App Zone modelled');
 INSERT INTO txt VALUES ('mod_state',            'German', 	'Mod Status');
 INSERT INTO txt VALUES ('mod_state',            'English', 	'Mod State');
 INSERT INTO txt VALUES ('impl_state',           'German', 	'Impl Status');

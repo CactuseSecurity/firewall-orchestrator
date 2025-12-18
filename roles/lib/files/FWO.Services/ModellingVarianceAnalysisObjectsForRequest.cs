@@ -242,7 +242,7 @@ namespace FWO.Services
             });
         }
 
-        private async Task AnalyseAppZone(Management mgt)
+        private async Task AnalyseAppZoneForRequest(Management mgt)
         {
             if (!userConfig.CreateAppZones)
             {

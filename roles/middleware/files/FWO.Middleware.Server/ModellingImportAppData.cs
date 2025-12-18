@@ -67,8 +67,20 @@ namespace FWO.Middleware.Server
         /// <summary>
         /// Recertification interval
         /// </summary>
-        [JsonProperty("recert_interval"), JsonPropertyName("recert_interval")]
+        [JsonProperty("recert_period_days"), JsonPropertyName("recert_period_days")]
         public int? RecertInterval { get; set; }
+
+        /// <summary>
+        /// First Recertification interval (currently not regarded)
+        /// </summary>
+        [JsonProperty("days_until_first_recert"), JsonPropertyName("days_until_first_recert")]
+        public int? FirstRecertInterval { get; set; }
+
+        /// <summary>
+        /// Recertification active
+        /// </summary>
+        [JsonProperty("recert_active"), JsonPropertyName("recert_active")]
+        public bool RecertActive { get; set; } = false;
 
         /// <summary>
         /// App Servers of App

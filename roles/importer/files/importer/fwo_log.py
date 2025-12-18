@@ -1,11 +1,13 @@
 import logging
-import time
 import threading
+import time
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
+    from models.import_state import ImportState
+
     from importer.services.uid2id_mapper import Uid2IdMapper
-    from importer.model_controllers.import_state_controller import ImportStateController
+
 from typing import Any, Literal
 
 
@@ -16,7 +18,7 @@ class LogLock:
     def handle_log_lock():
         # Initialize values
         lock_file_path = "/var/fworch/lock/importer_api_log.lock"
-        log_owned_by_external = False
+        log_owned = False
         stopwatch = time.time()
 
         while True:
@@ -26,79 +28,59 @@ class LogLock:
                     file.seek(0)
                     # Read the file content
                     lock_file_content = file.read().strip()
-                    # Forcefully release lock after timeout
-                    if log_owned_by_external and time.time() - stopwatch > 10:
-                        file.write("FORCEFULLY RELEASED\n")
-                        stopwatch = -1
-                        LogLock.semaphore.release()
-                        log_owned_by_external = False
-                    # GRANTED - lock was granted by us
+
+                    if log_owned:
+                        # Forcefully release lock after timeout
+                        if time.time() - stopwatch > 10:  # noqa: PLR2004
+                            file.write("FORCEFULLY RELEASED\n")
+                            stopwatch = -1
+                            LogLock.semaphore.release()
+                            log_owned = False
+
+                        elif lock_file_content.endswith("RELEASED"):
+                            # RELEASED - lock was released by log swap process
+                            # only release lock if it was formerly requested by us
+                            stopwatch = -1
+                            LogLock.semaphore.release()
+                            log_owned = False
+
                     elif lock_file_content.endswith("GRANTED"):
                         # Request lock if it is not already requested by us
                         # (in case of restart with log already granted)
-                        if not log_owned_by_external:
-                            LogLock.semaphore.acquire()
-                            stopwatch = time.time()
-                            log_owned_by_external = True
-                    # REQUESTED - lock was requested by log swap process
+                        LogLock.semaphore.acquire()
+                        stopwatch = time.time()
+                        log_owned = True
+
                     elif lock_file_content.endswith("REQUESTED"):
-                        # only request lock if it is not already requested by us
-                        if not log_owned_by_external:
-                            LogLock.semaphore.acquire()
-                            stopwatch = time.time()
-                            log_owned_by_external = True
-                            file.write("GRANTED\n")
-                    # RELEASED - lock was released by log swap process
-                    elif lock_file_content.endswith("RELEASED"):
-                        # only release lock if it was formerly requested by us
-                        if log_owned_by_external:
-                            stopwatch = -1
-                            LogLock.semaphore.release()
-                            log_owned_by_external = False
-            except Exception as _:
+                        # REQUESTED - lock was requested by log swap process
+                        LogLock.semaphore.acquire()
+                        stopwatch = time.time()
+                        log_owned = True
+                        file.write("GRANTED\n")
+            except Exception as _:  # noqa: S110
                 pass
             # Wait a second
             time.sleep(1)
 
 
-# Used to accquire lock before log processing
-# class LogFilter(logging.Filter):
-#     def filter(self, record):
-#         # Acquire lock
-#         LogLock.semaphore.acquire()
-#         # Return True to allow the log record to be processed
-#         return True
-
-
-# Used to release lock after log processing
-# class LogHandler(logging.StreamHandler):
-#     def emit(self, record):
-#         # Call the parent class's emit method to perform the actual logging
-#         super().emit(record)
-#         # Release lock
-#         LogLock.semaphore.release()
-
-
-class FWOLogger():
+class FWOLogger:
     logger: logging.Logger
     debug_level: int
-    def __new__(cls, _: int = 0):
-        if not hasattr(cls, 'instance'):
-            cls.instance = super(FWOLogger, cls).__new__(cls)
+
+    def __new__(cls, _debug_level: int = 0):
+        if not hasattr(cls, "instance"):
+            cls.instance = super().__new__(cls)
         return cls.instance
-    
-    def __init__(self, debug_level: int = 0):
-        self.logger = get_fwo_logger(debug_level)
-        self.debug_level = debug_level
+
+    def __init__(self, _debug_level: int = 0):
+        self.logger = get_fwo_logger(_debug_level)
+        self.debug_level = _debug_level
 
     def get_logger(self) -> logging.Logger:
         return self.logger
-    
+
     def set_debug_level(self, debug_level: int):
-        if int(debug_level) >= 1:
-            log_level = logging.DEBUG
-        else:
-            log_level = logging.INFO
+        log_level = logging.DEBUG if int(debug_level) >= 1 else logging.INFO
         self.logger.setLevel(log_level)
 
     @staticmethod
@@ -112,12 +94,12 @@ class FWOLogger():
     def error(msg: str):
         logger = FWOLogger.instance.get_logger()
         logger.error(msg, stacklevel=2)
-        
+
     @staticmethod
     def info(msg: str):
         logger = FWOLogger.instance.get_logger()
         logger.info(msg, stacklevel=2)
-    
+
     @staticmethod
     def warning(msg: str):
         logger = FWOLogger.instance.get_logger()
@@ -132,22 +114,13 @@ class FWOLogger():
     def is_debug_level(level: int) -> bool:
         return FWOLogger.instance.debug_level >= level
 
+
 def get_fwo_logger(debug_level: int = 0) -> logging.Logger:
-    if int(debug_level) >= 1:
-        log_level = logging.DEBUG
-    else:
-        log_level = logging.INFO
+    log_level = logging.DEBUG if int(debug_level) >= 1 else logging.INFO
 
     logger = logging.getLogger()
-    #log_handler = LogHandler(stream=sys.stdout)
-    #log_filter = LogFilter()
-
     log_format = "%(asctime)s [%(levelname)-5.5s] [%(filename)-25.25s:%(funcName)-25.25s:%(lineno)4d] %(message)s"
-    #log_handler.setLevel(log_level)
-    #log_handler.addFilter(log_filter)
-    #handlers = [log_handler]
-    
-    #logging.basicConfig(format=log_format, datefmt="%Y-%m-%dT%H:%M:%S%z", handlers=handlers, level=log_level)
+
     logging.basicConfig(format=log_format, datefmt="%Y-%m-%dT%H:%M:%S%z", level=log_level)
     logger.setLevel(log_level)
 
@@ -160,67 +133,77 @@ def get_fwo_logger(debug_level: int = 0) -> logging.Logger:
 
 class ChangeLogger:
     """
-         A singleton service that holds data and provides logic to compute changelog data for network objects, services and rules.
+    A singleton service that holds data and provides logic to compute changelog data for network objects, services and rules.
     """
 
     _instance = None
     changed_nwobj_id_map: dict[int, int]
     changed_svc_id_map: dict[int, int]
-    _import_state = None
+    _import_state: "ImportState | None" = None
     _uid2id_mapper: "Uid2IdMapper | None" = None
 
     def __new__(cls):
         """
-            Singleton pattern: Creates instance and sets defaults if constructed first time and sets that object to a protected class variable. 
-            If the constructor is called when there is already an instance returns that instance instead. That way there will only be one instance of this type throudgh the whole runtime.
+        Singleton pattern: Creates instance and sets defaults if constructed first time and sets that object to a protected class variable.
+        If the constructor is called when there is already an instance returns that instance instead. That way there will only be one instance of this type throudgh the whole runtime.
         """
-
         if cls._instance is None:
-            cls._instance = super(ChangeLogger, cls).__new__(cls)
+            cls._instance = super().__new__(cls)
             cls.changed_nwobj_id_map = {}
             cls.changed_svc_id_map = {}
         return cls._instance
 
-
-    def create_change_id_maps(self, uid2id_mapper: "Uid2IdMapper", changed_nw_objs: list[str], changed_svcs: list[str], removed_nw_objs: list[dict[str, Any]], removed_nw_svcs: list[dict[str, Any]]):
+    def create_change_id_maps(
+        self,
+        uid2id_mapper: "Uid2IdMapper",
+        changed_nw_objs: list[str],
+        changed_svcs: list[str],
+        removed_nw_objs: list[dict[str, Any]],
+        removed_nw_svcs: list[dict[str, Any]],
+    ):
         self._uid2id_mapper = uid2id_mapper
 
         self.changed_object_id_map = {
-            next(removedNwObjId['obj_id']
-                for removedNwObjId in removed_nw_objs
-                if removedNwObjId['obj_uid'] == old_item
-            ): self._uid2id_mapper.get_network_object_id(old_item) 
+            next(
+                removedNwObjId["obj_id"] for removedNwObjId in removed_nw_objs if removedNwObjId["obj_uid"] == old_item
+            ): self._uid2id_mapper.get_network_object_id(old_item)
             for old_item in changed_nw_objs
         }
 
         self.changed_service_id_map = {
-            next(removedNwSvcId['svc_id']
-                for removedNwSvcId in removed_nw_svcs
-                if removedNwSvcId['svc_uid'] == old_item
+            next(
+                removedNwSvcId["svc_id"] for removedNwSvcId in removed_nw_svcs if removedNwSvcId["svc_uid"] == old_item
             ): self._uid2id_mapper.get_service_object_id(old_item)
             for old_item in changed_svcs
         }
 
-
-    def create_changelog_import_object(self, type: str, import_state: "ImportStateController", change_action: str, change_typ: Literal[2, 3], import_time: str, rule_id: int, rule_id_alternative: int = 0) -> dict[str, Any]:
-        
+    def create_changelog_import_object(
+        self,
+        typ: str,
+        import_state: "ImportState",
+        change_action: str,
+        change_typ: Literal[2, 3],
+        import_time: str,
+        rule_id: int,
+        rule_id_alternative: int = 0,
+    ) -> dict[str, Any]:
         unique_name = self._get_changelog_import_object_unique_name(rule_id)
         old_rule_id = None
         new_rule_id = None
         self._import_state = import_state
 
-        if change_action in ['I', 'C']:
+        if change_action in ["I", "C"]:
             new_rule_id = rule_id
-        
-        if change_action == 'C':
+
+        if change_action == "C":
             old_rule_id = rule_id_alternative
 
-        if change_action == 'D':
+        if change_action == "D":
             old_rule_id = rule_id
 
-        rule_changelog_object: dict[str, Any] =  {
-            f"new_{type}_id": new_rule_id,
-            f"old_{type}_id": old_rule_id,
+        rule_changelog_object: dict[str, Any] = {
+            f"new_{typ}_id": new_rule_id,
+            f"old_{typ}_id": old_rule_id,
             "control_id": self._import_state.import_id,
             "change_action": change_action,
             "mgm_id": self._import_state.mgm_details.mgm_id,
@@ -230,8 +213,6 @@ class ChangeLogger:
         }
 
         return rule_changelog_object
-    
 
     def _get_changelog_import_object_unique_name(self, changelog_entity_id: int) -> str:
-        return  str(changelog_entity_id)
-    
+        return str(changelog_entity_id)

@@ -1,15 +1,16 @@
 from typing import Any
-from pydantic import BaseModel
 
-from fwo_base import ConfigAction, ConfFormat
-from models.rulebase import Rulebase
-from models.networkobject import NetworkObject
-from models.serviceobject import ServiceObject
+from fwo_base import ConfFormat, ConfigAction
 from models.gateway import Gateway
+from models.networkobject import NetworkObject
+from models.rulebase import Rulebase
+from models.serviceobject import ServiceObject
+from pydantic import BaseModel
 
 
 class FwConfig(BaseModel):
     ConfigFormat: ConfFormat = ConfFormat.NORMALIZED
+
 
 """
     the normalized configuraton of a firewall management to import
@@ -40,11 +41,13 @@ class FwConfig(BaseModel):
 
     }
 
-    write methods to 
+    write methods to
         a) split a config into < X MB chunks
         b) combine configs to a single config
 
 """
+
+
 class FwConfigNormalized(FwConfig):
     action: ConfigAction = ConfigAction.INSERT
     network_objects: dict[str, NetworkObject] = {}
@@ -55,31 +58,39 @@ class FwConfigNormalized(FwConfig):
     gateways: list[Gateway] = []
     ConfigFormat: ConfFormat = ConfFormat.NORMALIZED_LEGACY
 
+    model_config = {"arbitrary_types_allowed": True}
 
-    model_config = {
-        "arbitrary_types_allowed": True
-    }
-
-
-    def get_rulebase(self, rulebaseUid: str) -> Rulebase:
+    def get_rulebase(self, rulebase_uid: str) -> Rulebase:
         """
-        get the policy with a specific uid  
+        Get the policy with a specific uid
         :param policyUid: The UID of the relevant policy.
         :return: Returns the policy with a specific uid, otherwise returns None.
         """
-        rulebase = self.get_rulebase_or_none(rulebaseUid)
+        rulebase = self.get_rulebase_or_none(rulebase_uid)
         if rulebase is not None:
             return rulebase
 
-        raise KeyError(f"Rulebase with UID {rulebaseUid} not found.")
+        raise KeyError(f"Rulebase with UID {rulebase_uid} not found.")
 
-    def get_rulebase_or_none(self, rulebaseUid: str) -> Rulebase | None:
+    def get_rulebase_or_none(self, rulebase_uid: str) -> Rulebase | None:
         """
-        get the policy with a specific uid  
+        Get the policy with a specific uid
         :param policyUid: The UID of the relevant policy.
         :return: Returns the policy with a specific uid, otherwise returns None.
         """
         for rb in self.rulebases:
-            if rb.uid == rulebaseUid:
+            if rb.uid == rulebase_uid:
                 return rb
         return None
+
+    def merge(self, other: "FwConfigNormalized"):
+        """
+        Merges the given config into this config.
+        """
+        self.action = other.action
+        self.network_objects.update(other.network_objects)
+        self.service_objects.update(other.service_objects)
+        self.users.update(other.users)
+        self.zone_objects.update(other.zone_objects)
+        self.rulebases.extend(other.rulebases)
+        self.gateways.extend(other.gateways)

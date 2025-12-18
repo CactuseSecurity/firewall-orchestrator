@@ -50,3 +50,37 @@ optional arguments:
                         if set, the config will not be fetched from firewall but read from normalized json config file specified here; may also be an url.
 user@test:~$ 
 ```
+
+
+### Lint Setup
+
+ruff und pre-commit sind in den requirements
+
+```
+pip install -r .\roles\importer\files\importer\requirements.txt
+```
+
+```
+pre-commit install
+```
+
+### Usage
+
+Ruff lint check
+
+```
+ruff check
+```
+
+Ruff lint check and auto fix
+
+```
+ruff check --fix
+```
+
+  
+Ruff format ( only needed for VS, but also run pre-commit) 
+
+```
+ruff format
+```

@@ -7,9 +7,17 @@ namespace FWO.Recert
 {
     public class RecertHandler(ApiConnection apiConnection, UserConfig userConfig)
     {
-        public async Task<FwoOwner> RecertifyOwnerWithRules(FwoOwner owner, List<Rule> rules, string? comment)
+        public async Task InitOwnerRecert(FwoOwner owner)
         {
-            FwoOwner recertifiedOwner = await RecertifyOwner(owner, comment);
+            if((await apiConnection.SendQueryAsync<List<OwnerRecertification>>(RecertQueries.getInitialOwnerRecert, new{ownerId = owner.Id})).Count == 0)
+            {
+                await RecertifyOwner(owner, "Initial Owner Recert", true);
+            }
+        }
+
+        public async Task<FwoOwner> RecertifyOwnerWithRules(FwoOwner owner, List<Rule> rules, string? comment, bool initialRecert = false)
+        {
+            FwoOwner recertifiedOwner = await RecertifyOwner(owner, comment, initialRecert);
             foreach (var rule in rules)
             {
                 await RecertifySingleRuleFromOwner(rule, recertifiedOwner, comment);
@@ -37,17 +45,16 @@ namespace FWO.Recert
             return recertOk;
         }
 
-        private async Task<FwoOwner> RecertifyOwner(FwoOwner owner, string? comment = "")
+        private async Task<FwoOwner> RecertifyOwner(FwoOwner owner, string? comment = "", bool initialRecert = false)
         {
             FwoOwner recertifiedOwner = new(owner);
             DateTime recertDate = DateTime.Now;
-            int recertInterval = owner.RecertInterval != null ? (int)owner.RecertInterval : userConfig.RecertificationPeriod;
-            DateTime? nextRecertDate = recertInterval > 0 ? recertDate.AddDays((double)recertInterval) : (DateTime?)null;
+            DateTime? nextRecertDate = CalcNextRecertDate(owner, recertDate, initialRecert);
             var recertVariables = new
             {
                 ownerId = owner.Id,
-                userDn = userConfig.User.Dn,
-                recertified = true,
+                userDn = initialRecert ? userConfig.InitialRecertifier : userConfig.User.Dn,
+                recertified = !initialRecert,
                 recertDate = recertDate,
                 nextRecertDate = nextRecertDate,
                 comment = comment
@@ -57,12 +64,19 @@ namespace FWO.Recert
             {
                 recertifiedOwner.LastRecertId = returnIds[0].NewIdLong;
                 recertifiedOwner.LastRecertified = recertDate;
-                recertifiedOwner.LastRecertifierId = userConfig.User.DbId;
-                recertifiedOwner.LastRecertifierDn = userConfig.User.Dn;
+                recertifiedOwner.LastRecertifierId = initialRecert ? null : userConfig.User.DbId;
+                recertifiedOwner.LastRecertifierDn = initialRecert ? userConfig.InitialRecertifier : userConfig.User.Dn;
                 recertifiedOwner.NextRecertDate = nextRecertDate;
                 await UpdateRecertifiedOwner(recertifiedOwner);
             }
             return recertifiedOwner;
+        }
+
+        private DateTime? CalcNextRecertDate(FwoOwner owner, DateTime recertDate, bool initial)
+        {
+            int nextRegularCertInterval = owner.RecertInterval ?? userConfig.RecertificationPeriod;
+            int recertInterval = initial ? Math.Min(userConfig.InitialRecertificationPeriod, nextRegularCertInterval) : nextRegularCertInterval;
+            return recertInterval > 0 ? recertDate.AddDays(recertInterval) : null;
         }
 
         private async Task UpdateRecertifiedOwner(FwoOwner owner)

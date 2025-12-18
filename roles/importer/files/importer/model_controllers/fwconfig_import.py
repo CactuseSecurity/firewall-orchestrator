@@ -357,7 +357,7 @@ class FwConfigImport:
             raise FwoImporterError(
                 "found gateway without UID while sorting gateways for consistency check - this should not happen"
             )
-        config.gateways.sort(key=lambda gw: gw.Uid)  # type: ignore   # noqa: PGH003
+        config.gateways.sort(key=lambda gw: gw.Uid or "")
         for gw in config.gateways:
             gw.RulebaseLinks.sort(key=lambda rbl: f"{rbl.from_rulebase_uid}-{rbl.from_rule_uid}-{rbl.to_rulebase_uid}")
             if gw.EnforcedPolicyUids is not None:

@@ -1,5 +1,7 @@
 from typing import Any
+
 from pydantic import BaseModel
+
 
 class Management(BaseModel):
     mgm_id: int
@@ -20,6 +22,6 @@ class Management(BaseModel):
     current_mgm_is_super_manager: bool
     domain_name: str
     domain_uid: str
-    sub_managers: list['Management']
+    sub_managers: list["Management"]
     cloud_client_id: str | None = None
     cloud_client_secret: str | None = None

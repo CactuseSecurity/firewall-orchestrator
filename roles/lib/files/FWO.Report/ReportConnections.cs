@@ -256,7 +256,7 @@ namespace FWO.Report
                     report.AppendLine($"<td>{svc.Number}</td>");
                     report.AppendLine($"<td>{svc.Id}</td>");
                     report.AppendLine($"<td><a name={ObjCatString.Svc}{chapterNumber}x{svc.Id}>{svc.Name}</a></td>");
-                    report.AppendLine($"<td>{svc.Protocol.Name}</td>");
+                    report.AppendLine($"<td>{svc.Protocol?.Name}</td>");
                     report.AppendLine($"<td>{svc.DestinationPort}</td>");
                     report.AppendLine(svc.MemberNamesAsHtml());
                 }

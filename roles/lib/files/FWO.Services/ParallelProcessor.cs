@@ -35,21 +35,6 @@ namespace FWO.Services
             long? importId = 0,
             CancellationToken cancellationToken = default)
         {
-            if (_elementsCount < 0)
-            {
-                throw new ArgumentOutOfRangeException(nameof(_elementsCount), "Number of elements cannot be negative.");
-            }
-
-            if (_parallelismLevel <= 0)
-            {
-                throw new ArgumentOutOfRangeException(nameof(_parallelismLevel), "Parallelism level must be at least 1.");
-            }
-
-            if (_elementsPerFetch <= 0)
-            {
-                throw new ArgumentOutOfRangeException(nameof(_elementsPerFetch), "Chunk size must be at least 1.");
-            }
-
             if (string.IsNullOrWhiteSpace(query))
             {
                 throw new ArgumentException("GraphQL query must be provided.", nameof(query));

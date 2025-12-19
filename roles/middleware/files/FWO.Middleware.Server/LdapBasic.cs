@@ -594,7 +594,7 @@ namespace FWO.Middleware.Server
         /// <returns>true if user added</returns>
         public async Task<bool> AddUserToEntry(string userDn, string entry)
         {
-            Log.WriteInfo("Add User to Entry", $"Trying to add User: \"{userDn}\" to Entry: \"{entry}\"");
+            Log.WriteDebug("Add User to Entry", $"Trying to add User: \"{userDn}\" to Entry: \"{entry}\"");
             return await ModifyUserInEntry(userDn, entry, LdapModification.Add);
         }
 

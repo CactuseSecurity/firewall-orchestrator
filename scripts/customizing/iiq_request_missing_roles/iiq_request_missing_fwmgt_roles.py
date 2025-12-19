@@ -1,7 +1,6 @@
 #!/usr/bin/python3
 
 import argparse
-import logging
 import json
 import os
 import re
@@ -82,13 +81,13 @@ def get_owners_from_csv_files(
             extract_ip_data_from_csv(file_name, owner_dict, Appip, logger, debug_level, base_dir=repo_target_dir, column_patterns=ip_header_patterns)
 
     # now only choose those owners which have at least one app server with a non-empty IP assigned
-    remove_apps_without_ip_addresses(owner_dict, debug_level)
+    remove_apps_without_ip_addresses(owner_dict)
 
     tisos: dict[str, str] = get_tisos_from_owner_dict(owner_dict)
     return owner_dict, tisos
 
 
-def remove_apps_without_ip_addresses(owner_dict: dict[str, Owner], debug_level: int = 0) -> None:
+def remove_apps_without_ip_addresses(owner_dict: dict[str, Owner]) -> None:
     apps_to_remove: list[str] = []
     app_key: str
     for app_key in owner_dict:
@@ -142,7 +141,6 @@ def request_all_roles(
     stats: dict[str, Any],
     first: int,
     run_workflow: bool,
-    debug: int = 0,
 ) -> None:
     counter: int = 0
     # create new groups
@@ -312,7 +310,7 @@ if __name__ == "__main__":
 
     stats: dict[str, Any] = init_statistics()
 
-    request_all_roles(owners, tisos, tiso_orgids, iiq_client, stats, first, args.run_workflow, debug=debug)
+    request_all_roles(owners, tisos, tiso_orgids, iiq_client, stats, first, args.run_workflow)
 
     if debug>0:
         print("Stats: " + json.dumps(stats, indent=3))

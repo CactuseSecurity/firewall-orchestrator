@@ -1,6 +1,7 @@
 [tool.pyright]
 include = [
     "roles/importer/files/importer",
+    "scripts"
 ]
 exclude = [
     "**/node_modules",

@@ -6,6 +6,7 @@ using FWO.Data;
 using FWO.Data.Middleware;
 using FWO.Data.Modelling;
 using FWO.Logging;
+using FWO.Recert;
 using FWO.Services;
 using Novell.Directory.Ldap;
 using System.Data;
@@ -169,18 +170,30 @@ namespace FWO.Middleware.Server
             try
             {
                 string userGroupDn;
+                int appId;
                 FwoOwner? existingApp = existingApps.FirstOrDefault(x => x.ExtAppId == incomingApp.ExtAppId);
 
                 if (existingApp == null)
                 {
-                    userGroupDn = await NewApp(incomingApp);
+                    (userGroupDn, appId) = await NewApp(incomingApp);
                 }
                 else
                 {
+                    appId = existingApp.Id;
                     userGroupDn = await UpdateApp(incomingApp, existingApp);
                 }
                 // in order to store email addresses of users in the group in UiUser for email notification:
                 await AddAllGroupMembersToUiUser(userGroupDn);
+                if(userConfig.RecertificationMode == RecertificationMode.OwnersAndRules && 
+                    incomingApp.RecertActive && (existingApp == null || !existingApp.RecertActive))
+                {
+                    RecertHandler recertHandler = new(apiConnection, userConfig);
+                    await recertHandler.InitOwnerRecert(new()
+                    {
+                        Id = appId,
+                        RecertInterval = incomingApp.RecertInterval
+                    });
+                }
             }
             catch (Exception exc)
             {
@@ -192,10 +205,10 @@ namespace FWO.Middleware.Server
             return true;
         }
 
-        private async Task<string> NewApp(ModellingImportAppData incomingApp)
+        private async Task<(string, int)> NewApp(ModellingImportAppData incomingApp)
         {
             string userGroupDn = globalConfig.ManageOwnerLdapGroups ? await CreateUserGroup(incomingApp) : GetGroupDn(incomingApp.ExtAppId);
-
+            int appId = 0;
             var variables = new
             {
                 name = incomingApp.Name,
@@ -215,13 +228,13 @@ namespace FWO.Middleware.Server
                 {
                     await UpdateRoles(incomingApp.MainUser);
                 }
-                int appId = returnIds[0].NewId;
+                appId = returnIds[0].NewId;
                 foreach (var appServer in incomingApp.AppServers)
                 {
                     await NewAppServer(appServer, appId, incomingApp.ImportSource);
                 }
             }
-            return userGroupDn;
+            return (userGroupDn, appId);
         }
 
         private async Task<string> UpdateApp(ModellingImportAppData incomingApp, FwoOwner existingApp)
@@ -262,7 +275,7 @@ namespace FWO.Middleware.Server
                 criticality = incomingApp.Criticality,
                 recertInterval = incomingApp.RecertInterval ?? globalConfig.RecertificationPeriod,
                 commSvcPossible = existingApp.CommSvcPossible,
-                recertActive = existingApp.RecertActive
+                recertActive = incomingApp.RecertActive || existingApp.RecertActive
             };
             await apiConnection.SendQueryAsync<ReturnIdWrapper>(OwnerQueries.updateOwner, Variables);
             if (incomingApp.MainUser != null && incomingApp.MainUser != "")

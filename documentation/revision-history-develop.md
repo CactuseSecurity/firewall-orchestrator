@@ -310,6 +310,9 @@ bugfix release:
 - bugfix release: common service connection not editable
 - new custom scripts for iiq and cmdb import
 
+## 8.9.5 - 10.12.2025 DEVELOP
+- bugfix release: modelling - change planning showed duplicate NA elements for rule delete requests
+
 # 9.0 - 30.06.2025 DEVELOP
 - rule to gateway mapping 1:n
 - add report output for rule to gw mapping

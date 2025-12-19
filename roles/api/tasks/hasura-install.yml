@@ -232,3 +232,15 @@
     http_proxy: ""
     https_proxy: ""
   # do not use http proxy for metadata import
+
+- name: clear hasura service failed state
+  command: "systemctl reset-failed {{ api_service_name }}"
+  become: true
+
+- name: ensure hasura systemd service is running
+  systemd:
+    name: "{{ api_service_name }}"
+    state: started
+    enabled: true
+    daemon_reload: true
+  become: true

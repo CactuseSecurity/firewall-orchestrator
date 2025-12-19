@@ -1,18 +1,11 @@
-using AngleSharp.Css;
 using FWO.Basics;
-using FWO.Config.Api;
 using FWO.Data;
 using FWO.Data.Report;
 using FWO.Report;
-using FWO.Services.RuleTreeBuilder;
 using FWO.Test.Mocks;
-using FWO.Ui.Pages.Reporting;
-using Microsoft.AspNetCore.Routing;
-using Moq;
 using NUnit.Framework;
 using NUnit.Framework.Legacy;
 using System.Reflection;
-using System.Text;
 
 namespace FWO.Test
 {
@@ -21,7 +14,6 @@ namespace FWO.Test
     {
         private List<ManagementReport> _managementReports = new();
         private DeviceReport? _deviceReport;
-        private DeviceReportController? _deviceReportController;
         private ManagementReport? _managementReport;
 
         private RulebaseReport? _rb1;
@@ -112,8 +104,6 @@ namespace FWO.Test
             typeof(ReportRules)
                 .GetField("_rulesCache", BindingFlags.NonPublic | BindingFlags.Static)!
                 .SetValue(null, new Dictionary<(int, int), Rule[]> { [(_deviceReport.Id, _managementReport.Id)] = _rules });
-
-            _deviceReportController = DeviceReportController.FromDeviceReport(_deviceReport);
         }
 
         [TearDown]
@@ -201,7 +191,7 @@ namespace FWO.Test
                 .GetField("_rulesCache", BindingFlags.NonPublic | BindingFlags.Static)!
                 .SetValue(null, new Dictionary<(int, int), Rule[]>());
 
-            var result = ReportRules.GetAllRulesOfGateway(DeviceReportController.FromDeviceReport(device), management);
+            var result = ReportRules.GetAllRulesOfGateway(device, management);
 
             Assert.That(result, Is.Empty);
         }
@@ -270,7 +260,7 @@ namespace FWO.Test
                 .GetField("_rulesCache", BindingFlags.NonPublic | BindingFlags.Static)!
                 .SetValue(null, new Dictionary<(int, int), Rule[]> { [(device.Id, management.Id)] = rules });
 
-            var result = ReportRules.GetAllRulesOfGateway(DeviceReportController.FromDeviceReport(device), management);
+            var result = ReportRules.GetAllRulesOfGateway(device, management);
 
             Assert.That(result, Has.Length.EqualTo(1));
             Assert.That(result[0].Id, Is.EqualTo(1));
@@ -280,8 +270,8 @@ namespace FWO.Test
         public void Test_GetRulesByDeviceAndRulebase_WithThreeLinks_InitialSecond_ReturnsCorrectOrder()
         {
             // ACT ------------------------------------------------------------------
-            var initialRules = ReportRules.GetInitialRulesOfGateway(_deviceReportController!, _managementReport!);
-            var retrievedAllRules = ReportRules.GetAllRulesOfGateway(_deviceReportController!, _managementReport!);
+            var initialRules = ReportRules.GetInitialRulesOfGateway(_deviceReport!, _managementReport!);
+            var retrievedAllRules = ReportRules.GetAllRulesOfGateway(_deviceReport!, _managementReport!);
 
             // ASSERT ---------------------------------------------------------------
 
@@ -319,7 +309,7 @@ namespace FWO.Test
         public void Test_GetInitialRulesOfGateway_ReturnsEmpty_WhenNoInitialRulebase()
         {
             var management = new ManagementReport();
-            var device = new DeviceReportController(DeviceReportController.FromDeviceReport(MockReportRules.CreateDeviceReport()));
+            var device = MockReportRules.CreateDeviceReport();
 
             device.GetInitialRulebaseId(management);
 
@@ -344,8 +334,8 @@ namespace FWO.Test
         {
             var count = ReportRules.GetRuleCount(
                 _managementReport!,
-                _deviceReport!.RulebaseLinks.First(l => l.IsInitialRulebase()),
-                _deviceReport!.RulebaseLinks.ToArray()
+                _deviceReport!.RulebaseLinks.First(l => l.IsInitial),
+                [.. _deviceReport!.RulebaseLinks]
             );
 
             ClassicAssert.AreEqual(6, count);

@@ -40,6 +40,7 @@ repo_target_dir: str = base_dir_etc + "cmdb-repo"
 default_config_file_name: str = base_dir_etc + "secrets/customizingConfig.json"
 default_rlm_import_file_name: str = base_dir_etc + "getOwnersFromTufinRlm.json"
 import_source_string: str = "tufinRlm"
+git_any: Any = git
 
 # TUFIN settings:
 api_url_path_rlm_login: str = "apps/public/rlm/oauth/token"
@@ -281,11 +282,11 @@ if __name__ == "__main__":
     repo_url: str = "https://" + git_username + ":" + git_password + "@" + git_repo_url
     if Path(repo_target_dir).exists():
         # If the repository already exists, open it and perform a pull
-        repo: git.Repo = git.Repo(repo_target_dir)
-        origin: git.Remote = repo.remotes.origin
+        repo: Any = git_any.Repo(repo_target_dir)
+        origin: Any = repo.remotes.origin
         origin.pull()
     else:
-        repo = git.Repo.clone_from(repo_url, repo_target_dir)
+        repo = git_any.Repo.clone_from(repo_url, repo_target_dir)
 
     df_all_apps: list[list[str]] = []
     csv_file: str

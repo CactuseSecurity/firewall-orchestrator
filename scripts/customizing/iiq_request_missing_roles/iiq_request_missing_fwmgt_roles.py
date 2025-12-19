@@ -43,6 +43,7 @@ base_dir_etc: str = fwo_base_dir + "etc/"
 cmdb_repo_target_dir: str = fwo_tmp_dir + "cmdb-repo"
 default_config_file_name: str = base_dir_etc + "customizingConfig.json"
 IPV4_DOT_COUNT: int = 3
+git_any: Any = git
 
 
 def is_valid_ipv4_address(address: str) -> bool:
@@ -146,12 +147,12 @@ def get_git_repo(git_repo_url: str, git_username: str, git_password: str, repo_t
 
     if Path(repo_target_dir).exists():
         # If the repository already exists, open it and perform a pull
-        repo: git.Repo = git.Repo(repo_target_dir)
-        origin: git.Remote = repo.remotes.origin
+        repo: Any = git_any.Repo(repo_target_dir)
+        origin: Any = repo.remotes.origin
         # for DEBUG: do not pull
         origin.pull()
     else:
-        git.Repo.clone_from(repo_url, repo_target_dir)
+        git_any.Repo.clone_from(repo_url, repo_target_dir)
 
 
 def request_all_roles(

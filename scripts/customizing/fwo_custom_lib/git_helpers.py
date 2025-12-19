@@ -1,5 +1,6 @@
 import logging
 from pathlib import Path
+from typing import Any
 
 import git
 
@@ -11,18 +12,19 @@ def update_git_repo(
     branch: str | None = None,
 ) -> bool:
     try:
+        git_any: Any = git
         if Path(git_repo_target_dir).exists():
             # If the repository already exists, open it and perform a pull
-            repo: git.Repo = git.Repo(git_repo_target_dir)
+            repo: Any = git_any.Repo(git_repo_target_dir)
             if branch:
                 repo.git.checkout(branch)
-            origin: git.Remote = repo.remotes.origin
+            origin: Any = repo.remotes.origin
             origin.pull()
         # clone the repo initially
         elif branch:
-            repo = git.Repo.clone_from(repo_url, git_repo_target_dir, branch=branch)
+            repo = git_any.Repo.clone_from(repo_url, git_repo_target_dir, branch=branch)
         else:
-            repo = git.Repo.clone_from(repo_url, git_repo_target_dir)
+            repo = git_any.Repo.clone_from(repo_url, git_repo_target_dir)
         return True
     except Exception:
         logger.exception("could not clone/pull git repo from %s", repo_url)

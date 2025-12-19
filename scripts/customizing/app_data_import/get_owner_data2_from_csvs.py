@@ -41,6 +41,7 @@ base_dir_etc: str = base_dir + "etc/"
 repo_target_dir: str = base_dir_etc + "cmdb-repo"
 default_config_file_name: str = base_dir_etc + "secrets/customizingConfig.json"
 import_source_string: str = "tufinRlm"  # change this to "cmdb-csv-export"? or will this break anything?
+git_any: Any = git
 
 
 def build_dn(user_id: str, ldap_path: str) -> str:
@@ -192,11 +193,11 @@ if __name__ == "__main__":
     repo_url: str = "https://" + git_username + ":" + git_password + "@" + git_repo_url
     if Path(repo_target_dir).exists():
         # If the repository already exists, open it and perform a pull
-        repo: git.Repo = git.Repo(repo_target_dir)
-        origin: git.Remote = repo.remotes.origin
+        repo: Any = git_any.Repo(repo_target_dir)
+        origin: Any = repo.remotes.origin
         origin.pull()
     else:
-        repo = git.Repo.clone_from(repo_url, repo_target_dir)
+        repo = git_any.Repo.clone_from(repo_url, repo_target_dir)
 
     #############################################
     # 2. get app data from CSV files

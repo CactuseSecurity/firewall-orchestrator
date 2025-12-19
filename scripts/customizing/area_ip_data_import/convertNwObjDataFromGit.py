@@ -19,6 +19,7 @@ from scripts.customizing.fwo_custom_lib.basic_helpers import get_logger, read_cu
 default_config_filename: str = "/usr/local/fworch/etc/secrets/customizingConfig.json"
 ipam_git_repo_target_dir: str = "/usr/local/fworch/etc/ipamRepo"
 SUBNET_NAME_PARTS_MIN_COUNT: int = 3
+git_any: Any = git
 
 
 def get_network_borders(ip_addr: str) -> tuple[str, str, str]:
@@ -112,14 +113,14 @@ if __name__ == "__main__":
         # get ipam repo
         if Path(ipam_git_repo_target_dir).exists():
             # If the repository already exists, open it and perform a pull
-            repo: git.Repo = git.Repo(ipam_git_repo_target_dir)
-            origin: git.Remote = repo.remotes.origin
+            repo: Any = git_any.Repo(ipam_git_repo_target_dir)
+            origin: Any = repo.remotes.origin
             origin.pull()
         else:
             repo_url: str = (
                 "https://" + ipam_git_user + ":" + urllib.parse.quote(ipam_git_password, safe="") + "@" + ipam_git_repo
             )
-            repo = git.Repo.clone_from(repo_url, ipam_git_repo_target_dir)
+            repo = git_any.Repo.clone_from(repo_url, ipam_git_repo_target_dir)
     except Exception:
         logger.exception("error while trying to access git repo %s", ipam_git_repo)
         sys.exit(1)

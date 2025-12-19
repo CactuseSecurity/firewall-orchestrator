@@ -10,6 +10,7 @@ exclude = [
     ".venv",
     "venv",
     "roles/importer/files/importer/test",
+    "roles/api/files/scripts/",
 ]
 
 venvPath = "."

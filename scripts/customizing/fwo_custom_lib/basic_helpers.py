@@ -22,7 +22,7 @@ class FWOLogger(logging.Logger):
         logging.getLogger().setLevel(log_level)
 
     def is_debug_level(self, min_debug: int) -> bool:
-        return self.debug_level > min_debug
+        return self.debug_level >= min_debug
 
     def debug_if(self, min_debug: int, msg: str, *args: Any, **kwargs: Any) -> None:
         if self.is_debug_level(min_debug):
@@ -37,7 +37,7 @@ class FWOLogger(logging.Logger):
             self.warning(msg, *args, **kwargs)
 
 
-def read_custom_config(config_filename: str, key_to_get: str, logger: logging.Logger) -> Any:
+def read_custom_config(config_filename: str, key_to_get: str, logger: FWOLogger) -> Any:
     try:
         with open(config_filename, "r", encoding="utf-8") as custom_config_fh:
             custom_config: dict[str, Any] = json.loads(custom_config_fh.read())
@@ -52,7 +52,7 @@ def read_custom_config_with_default(
     config_filename: str,
     key_to_get: str,
     default_value: Any,
-    logger: logging.Logger,
+    logger: FWOLogger,
 ) -> Any:
     try:
         with open(config_filename, "r", encoding="utf-8") as custom_config_fh:

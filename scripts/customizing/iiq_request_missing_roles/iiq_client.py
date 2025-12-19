@@ -5,7 +5,7 @@ from copy import deepcopy
 from typing import Any
 
 import requests
-from scripts.customizing.fwo_custom_lib.basic_helpers import get_logger
+from scripts.customizing.fwo_custom_lib.basic_helpers import get_logger, FWOLogger
 
 
 class IIQClient:
@@ -20,7 +20,7 @@ class IIQClient:
         user_prefix: str,
         stage: str = '',
         debug: int = 0,
-        logger: logging.Logger | None = None,
+        logger: FWOLogger | None = None,
     ) -> None:
         self.hostname: str = hostname
         self.user: str = user
@@ -29,7 +29,8 @@ class IIQClient:
         self.user_prefix: str = user_prefix
         self.stage: str = stage
         self.debug: int = debug
-        self.logger: logging.Logger = logger or get_logger()
+        self.logger: FWOLogger = logger or get_logger(self.debug)
+        self.logger.configure_debug_level(self.debug)
         self.uri_path_start: str = "/zentralefunktionen/identityiq"
         self.uri_path_end_users: str = "/scim/v1/Users"
         self.uri_path_end_roles: str = "/scim/v1/Roles"
@@ -126,7 +127,7 @@ class IIQClient:
         url: str = "https://" + self.hostname + url_path + url_parameter
         debug_level: int = self.debug if debug is None else debug
 
-        if debug_level>7:
+        if self.logger.is_debug_level(7):
             print('url: ' + url)
             print('method: ' + method)
             print('iiq_user: ' + self.user)
@@ -196,11 +197,9 @@ class IIQClient:
 
         if run_workflow:   # in test environment we do not want any real WF to start
             iiq_req_body_local['startWorkflow'] = True
-            if debug_level>2:
-                self.logger.debug(f"run_workflow={str(run_workflow)}, actually starting workflow")
+            self.logger.debug_if(2, f"run_workflow={str(run_workflow)}, actually starting workflow")
         else:
-            if debug_level>2:
-                self.logger.debug(f"run_workflow={str(run_workflow)}, only simulating")
+            self.logger.debug_if(2, f"run_workflow={str(run_workflow)}, only simulating")
 
         response: requests.Response = self.send(body=iiq_req_body_local,
             url_path= self.uri_path_start + self.stage + "/workflow/v1/ModellingGeneral/createRequest",
@@ -222,8 +221,7 @@ class IIQClient:
         debug: int | None = None,
     ) -> bool:
         debug_level: int = self.debug if debug is None else debug
-        if debug_level>2:
-            self.logger.debug(f"start getting roles for app {app_id} ... ")
+        self.logger.debug_if(2, f"start getting roles for app {app_id} ... ")
 
         match_string1: str = f'\"_fw_rulemgt_{app_prefix.lower()}_{app_id}\"'    # v1
         match_string2: str = f'\"_fw_rulemgmt_{app_prefix.lower()}{app_id}\"'    # v2
@@ -232,10 +230,10 @@ class IIQClient:
                or \
                self._check_for_app_pattern_in_iiq_roles(app_prefix, app_id, match_string2, stats, debug_level)
 
-        if debug_level>2 and match_found:
-            self.logger.debug(f"found existing roles for app {app_id}. Filter strings {match_string1} or {match_string2} matched.")
-        if debug_level>1 and not match_found:
-            self.logger.debug(f"found no existing roles for app {app_id}. Filter strings: {match_string1} and {match_string2}")
+        if match_found:
+            self.logger.debug_if(2, f"found existing roles for app {app_id}. Filter strings {match_string1} or {match_string2} matched.")
+        else:
+            self.logger.debug_if(1, f"found no existing roles for app {app_id}. Filter strings: {match_string1} and {match_string2}")
             
         return match_found
 
@@ -260,18 +258,16 @@ class IIQClient:
             if 'totalResults' in response_json:
                 if response_json['totalResults']>0 and 'Resources' in response_json:
                     result = f"A_{app_prefix}_{app_id}_FW_RULEMGT"
-                    if debug>4:
-                        self.logger.debug(f"found existing roles for app {app_id}: {str(response_json['Resources'])}. filter string: {match_string}")
-                elif debug>4:
-                    self.logger.debug(f"found no existing roles for app {app_id}. filter string: {match_string}")
+                    self.logger.debug_if(4, f"found existing roles for app {app_id}: {str(response_json['Resources'])}. filter string: {match_string}")
+                else:
+                    self.logger.debug_if(4, f"found no existing roles for app {app_id}. filter string: {match_string}")
         else:
             self.logger.debug(f"error while getting roles for app {app_id}. filter string: {match_string}, status_code: {str(response.status_code)}")
 
         if result == "":
             return False
 
-        if debug>2:
-            self.logger.debug(f"roles for app {app_prefix}-{app_id} already exist - skipping role request creation")
+        self.logger.debug_if(2, f"roles for app {app_prefix}-{app_id} already exist - skipping role request creation")
         self.update_stats(stats, "existing_technical_functions", result)
         return True
 
@@ -296,9 +292,9 @@ class IIQClient:
             print("unknown result: " + str(response.text))
             self.update_stats(stats, "apps_with_unexpected_request_errors", app_text)
 
-        if debug>6:
+        if self.logger.is_debug_level(6):
             print ("full iiq response text: " + response.text)
-        if debug>7:
+        if self.logger.is_debug_level(7):
             print(".", end="", flush=True)
 
 

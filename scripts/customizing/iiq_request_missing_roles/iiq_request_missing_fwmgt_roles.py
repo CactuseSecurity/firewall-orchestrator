@@ -187,8 +187,8 @@ def get_tisos_orgids(tisos: dict[str, str], iiq_client: IIQClient, exit_after_du
     if len(tiso_orgids.keys())==0:
         logger.error("could not resolve a single TISO OrgId, quitting ")
         sys.exit(1)
-    elif iiq_client.debug>2:
-        print(tiso_orgids)
+    else:
+        logger.debug_if(2, "tiso_orgids=%s", tiso_orgids)
 
     if exit_after_dump:
         for tiso_user_id in tiso_orgids:

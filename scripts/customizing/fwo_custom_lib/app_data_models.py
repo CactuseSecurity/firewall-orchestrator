@@ -3,23 +3,31 @@ __version__ = "2025-11-20-01"
 # 2025-11-20-01, initial version
 
 from netaddr import IPAddress
+from typing import Any
 
 
 class Owner:
-    def __init__(self, name, app_id_external, main_user, 
-                 recert_period_days, days_until_first_recert, recert_active=False, 
-                 import_source="defaultSource"):
+    def __init__(
+        self,
+        name: str,
+        app_id_external: str,
+        main_user: str,
+        recert_period_days: int,
+        days_until_first_recert: int,
+        recert_active: bool = False,
+        import_source: str = "defaultSource",
+    ) -> None:
         self.name: str = name
         self.app_id_external: str = app_id_external
         self.main_user: str = main_user
         self.modellers: list[str] = []
         self.import_source: str = import_source
-        self.app_servers: list[Appip] = []
+        self.app_servers: list["Appip"] = []
         self.recert_active: bool = recert_active
         self.recert_period_days: int = recert_period_days
         self.days_until_first_recert: int = days_until_first_recert
 
-    def to_json(self):
+    def to_json(self) -> dict[str, Any]:
         return (
             {
                 "name": self.name,
@@ -35,14 +43,21 @@ class Owner:
 
 
 class Appip:
-    def __init__(self, app_id_external: str, ip_start: IPAddress, ip_end: IPAddress, type: str, name: str):
+    def __init__(
+        self,
+        app_id_external: str,
+        ip_start: IPAddress,
+        ip_end: IPAddress,
+        type: str,
+        name: str,
+    ) -> None:
         self.name: str = name
         self.app_id_external: str = app_id_external
-        self.ip_start = ip_start
-        self.ip_end = ip_end
+        self.ip_start: IPAddress = ip_start
+        self.ip_end: IPAddress = ip_end
         self.type: str = type
 
-    def to_json(self):
+    def to_json(self) -> dict[str, Any]:
         return (
             {
             "name": self.name,

@@ -1,22 +1,36 @@
 # library for FWORCH API calls
 from asyncio.log import logger
-import requests.packages
-import requests
-import json
 import argparse
 import getpass
-import argparse
+import json
 import sys
+from typing import Any
+
+import requests
+import requests.packages
 
 
-def call(url, jwt, query, query_variables="", role="reporter", show_progress=False, method=''):
-    request_headers = { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + jwt, 'x-hasura-role': role }
-    full_query = {"query": query, "variables": query_variables}
+def call(
+    url: str,
+    jwt: str,
+    query: str,
+    query_variables: dict[str, Any] | str = "",
+    role: str = "reporter",
+    show_progress: bool = False,
+    method: str = "",
+) -> dict[str, Any] | None:
+    request_headers: dict[str, str] = {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + jwt,
+        'x-hasura-role': role,
+    }
+    full_query: dict[str, Any] = {"query": query, "variables": query_variables}
 
     with requests.Session() as session:
         session.verify = False
         session.headers = request_headers
 
+        r: requests.Response | None = None
         try:
             r = session.post(url, data=json.dumps(full_query), timeout=600)
             r.raise_for_status()
@@ -32,8 +46,8 @@ def call(url, jwt, query, query_variables="", role="reporter", show_progress=Fal
             return None
 
 
-def login(user, password, user_management_api_base_url, method='api/AuthenticationToken/Get'):
-    payload = {"Username": user, "Password": password}
+def login(user: str, password: str, user_management_api_base_url: str, method: str = 'api/AuthenticationToken/Get') -> str:
+    payload: dict[str, str] = {"Username": user, "Password": password}
 
     with requests.Session() as session:
         session.verify = False
@@ -50,12 +64,14 @@ def login(user, password, user_management_api_base_url, method='api/Authenticati
             raise Exception("fwo_api login ERROR: did not receive a JWT during login to api_url: " + str(user_management_api_base_url))
 
 
-def get_config_value(fwo_api_base_url, jwt, key='limit'):
-    query_variables = {'key': key}
-    config_query = "query getConf($key: String) {  config(where: {config_key: {_eq: $key}}) { config_value } }"
-    result = call(fwo_api_base_url, jwt, config_query, query_variables=query_variables, role='importer')
+def get_config_value(fwo_api_base_url: str, jwt: str, key: str = 'limit') -> str | None:
+    query_variables: dict[str, str] = {'key': key}
+    config_query: str = "query getConf($key: String) {  config(where: {config_key: {_eq: $key}}) { config_value } }"
+    result: dict[str, Any] | None = call(fwo_api_base_url, jwt, config_query, query_variables=query_variables, role='importer')
+    if result is None:
+        return None
     if 'data' in result and 'config' in result['data']:
-        first_result = result['data']['config'][0]
+        first_result: dict[str, Any] = result['data']['config'][0]
         if 'config_value' in first_result:
             return first_result['config_value']
         else:
@@ -64,28 +80,37 @@ def get_config_value(fwo_api_base_url, jwt, key='limit'):
         return None
 
 
-def get_config_values(fwo_api_base_url, jwt, keyFilter='limit'):
-    query_variables = {'keyFilter': keyFilter+"%"}
-    config_query = "query getConf($keyFilter: String) { config(where: {config_key: {_ilike: $keyFilter}}) { config_key config_value } }"
-    result = call(fwo_api_base_url, jwt, config_query, query_variables=query_variables, role='importer')
+def get_config_values(fwo_api_base_url: str, jwt: str, keyFilter: str = 'limit') -> dict[str, Any] | None:
+    query_variables: dict[str, str] = {'keyFilter': keyFilter + "%"}
+    config_query: str = "query getConf($keyFilter: String) { config(where: {config_key: {_ilike: $keyFilter}}) { config_key config_value } }"
+    result: dict[str, Any] | None = call(fwo_api_base_url, jwt, config_query, query_variables=query_variables, role='importer')
+    if result is None:
+        return None
     if 'data' in result and 'config' in result['data']:
-        resultArray = result['data']['config']
-        dict1 = {v['config_key']: v['config_value'] for k,v in enumerate(resultArray)}
+        resultArray: list[dict[str, Any]] = result['data']['config']
+        dict1: dict[str, Any] = {v['config_key']: v['config_value'] for v in resultArray}
         return dict1
     else:
         return None
 
 
-def readJsonFile(filename):
+def readJsonFile(filename: str) -> dict[str, Any]:
     try: 
-        with open(filename, "r") as jsonFH:
-            jsonDict = json.loads(jsonFH.read())
+        with open(filename, "r", encoding="utf-8") as jsonFH:
+            jsonDict: dict[str, Any] = json.loads(jsonFH.read())
     except Exception:
         raise Exception("readJsonFile ERROR: while reading file: " + filename)
     return jsonDict
 
 
-def setCustomTxtValues(fwo_api_base_url, jwt, query_variables={}, keyFilter='limit'):
+def setCustomTxtValues(
+    fwo_api_base_url: str,
+    jwt: str,
+    query_variables: dict[str, Any] | None = None,
+    keyFilter: str = 'limit',
+) -> int | str:
+    if query_variables is None:
+        query_variables = {}
     customTxt_mutation = """
         mutation upsertCustomText($id: String!, $language: String!, $txt: String!) {
             insert_customtxt(
@@ -105,14 +130,23 @@ def setCustomTxtValues(fwo_api_base_url, jwt, query_variables={}, keyFilter='lim
             }
         }
     """
-    result = call(fwo_api_base_url, jwt, customTxt_mutation, query_variables=query_variables, role='admin')
+    result: dict[str, Any] | None = call(fwo_api_base_url, jwt, customTxt_mutation, query_variables=query_variables, role='admin')
+    if result is None:
+        return -1
     if result['data']['insert_customtxt']['returning'][0]['id']:
         return result['data']['insert_customtxt']['returning'][0]['id']
     else:
         return -1
         
         
-def setModellingServiceValues(fwo_api_base_url, jwt, query_variables={}, keyFilter='limit'):
+def setModellingServiceValues(
+    fwo_api_base_url: str,
+    jwt: str,
+    query_variables: dict[str, Any] | None = None,
+    keyFilter: str = 'limit',
+) -> int | str:
+    if query_variables is None:
+        query_variables = {}
     modellingService_mutation = """
         mutation upsertService(
             $name: String
@@ -154,14 +188,23 @@ def setModellingServiceValues(fwo_api_base_url, jwt, query_variables={}, keyFilt
     #   }
     # }
 
-    result = call(fwo_api_base_url, jwt, modellingService_mutation, query_variables=query_variables, role='admin')
+    result: dict[str, Any] | None = call(fwo_api_base_url, jwt, modellingService_mutation, query_variables=query_variables, role='admin')
+    if result is None:
+        return -1
     if result['data']['insert_modelling_service']['returning'][0]['id']:
         return result['data']['insert_modelling_service']['returning'][0]['id']
     else:
         return -1
 
 
-def setConfigValues(fwo_api_base_url, jwt, query_variables={}, keyFilter='limit'):
+def setConfigValues(
+    fwo_api_base_url: str,
+    jwt: str,
+    query_variables: dict[str, Any] | None = None,
+    keyFilter: str = 'limit',
+) -> int | str:
+    if query_variables is None:
+        query_variables = {}
     config_mutation = """
         mutation upsertConfigItem($config_key: String!, $config_value: String!, $config_user: Int!) {
             insert_config(
@@ -181,16 +224,18 @@ def setConfigValues(fwo_api_base_url, jwt, query_variables={}, keyFilter='limit'
             }
         }
     """
-    result = call(fwo_api_base_url, jwt, config_mutation, query_variables=query_variables, role='admin')
+    result: dict[str, Any] | None = call(fwo_api_base_url, jwt, config_mutation, query_variables=query_variables, role='admin')
+    if result is None:
+        return -1
     if result['data']['insert_config']['returning'][0]['id']:
         return result['data']['insert_config']['returning'][0]['id']
     else:
         return -1
     
 
-def getCredentials():
-    username = input("Enter your username: ")
-    password = getpass.getpass("Enter your password: ")
+def getCredentials() -> tuple[str, str]:
+    username: str = input("Enter your username: ")
+    password: str = getpass.getpass("Enter your password: ")
     return username, password
 
 
@@ -201,36 +246,40 @@ if __name__ == '__main__':
     parser.add_argument('-c', '--customSettingsFile', required=True,
                         help='Filename of custom settings file for firewall orchstrator (mandatory parameter)')
 
-    args = parser.parse_args()
+    args: argparse.Namespace = parser.parse_args()
 
     if len(sys.argv) == 1:
         parser.print_help(sys.stderr)
         sys.exit(1)
 
-    settingsFile = args.customSettingsFile
-    fwo_config_filename = '/etc/fworch/fworch.json'
+    settingsFile: str = args.customSettingsFile
+    fwo_config_filename: str = '/etc/fworch/fworch.json'
     requests.packages.urllib3.disable_warnings()
 
-    fwo_config = readJsonFile(fwo_config_filename)
-    user_management_api_base_url = fwo_config['middleware_uri']
-    fwo_api_base_url = fwo_config['api_uri']
+    fwo_config: dict[str, Any] = readJsonFile(fwo_config_filename)
+    user_management_api_base_url: str = fwo_config['middleware_uri']
+    fwo_api_base_url: str = fwo_config['api_uri']
 
 
     # read credentials interactively
     print("Enter credentials of a user with admin role:")
+    username: str
+    password: str
     username, password = getCredentials()
 
     # login with the credentials to get JWT
-    jwt = login(username, password, user_management_api_base_url, method='api/AuthenticationToken/Get')
+    jwt: str = login(username, password, user_management_api_base_url, method='api/AuthenticationToken/Get')
 
     # read settings to write to API from file
-    settings = readJsonFile(settingsFile)
+    settings: dict[str, Any] = readJsonFile(settingsFile)
 
     # write settings to FWO API using the JWT
     # overwrites existing values making this script idempotent
 
+    t: str
     for t in settings:
         if t=='config':
+            obj: dict[str, Any]
             for obj in settings[t]:
                 setConfigValues(fwo_api_base_url, jwt, query_variables=obj)
                 # issue in config: area ids will vary - do we re-write this using the area name?

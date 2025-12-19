@@ -19,6 +19,7 @@ __version__ = "2025-12-19-01"
 #   b) requires the config items listed in the aprser help to be present in config file /usr/local/orch/etc/secrets/customizingConfig.json
 
 import argparse
+import logging
 import os
 import re
 import urllib3
@@ -29,12 +30,12 @@ from scripts.customizing.fwo_custom_lib.app_data_basics import transform_app_lis
 from scripts.customizing.fwo_custom_lib.git_helpers import update_git_repo, read_file_from_git_repo
 
 
-base_dir = "/usr/local/fworch/"
-base_dir_etc = base_dir + "etc/"
-app_data_repo_target_dir = base_dir_etc + "cmdb-repo"
-recert_repo_target_dir = base_dir_etc + "recert-repo"
-default_config_file_name = base_dir_etc + "secrets/customizingConfig.json"
-import_source_string = "tufinRlm"
+base_dir: str = "/usr/local/fworch/"
+base_dir_etc: str = base_dir + "etc/"
+app_data_repo_target_dir: str = base_dir_etc + "cmdb-repo"
+recert_repo_target_dir: str = base_dir_etc + "recert-repo"
+default_config_file_name: str = base_dir_etc + "secrets/customizingConfig.json"
+import_source_string: str = "tufinRlm"
 
 
 if __name__ == "__main__":
@@ -63,24 +64,24 @@ if __name__ == "__main__":
     parser.add_argument('-d', "--debug", default = 0, 
                         help = "debug level, default=0")
 
-    args = parser.parse_args()
+    args: argparse.Namespace = parser.parse_args()
 
     if args.suppress_certificate_warnings:
         urllib3.disable_warnings()
 
-    logger = get_logger(debug_level_in=2)
+    logger: logging.Logger = get_logger(debug_level_in=2)
 
     # read config
-    ldap_path = read_custom_config(args.config, 'ldapPath', logger)
-    git_repo_url_without_protocol = read_custom_config(args.config, 'gitRepo', logger)
-    git_username = read_custom_config(args.config, 'gitUser', logger)
-    git_password = read_custom_config(args.config, 'gitPassword', logger)
-    csv_owner_file_pattern = read_custom_config(args.config, 'csvOwnerFilePattern', logger)
-    csv_app_server_file_pattern = read_custom_config(args.config, 'csvAppServerFilePattern', logger)
-    recert_active_repo_url = read_custom_config_with_default(args.config, 'gitRepoOwnersWithActiveRecert', None, logger)
-    recert_active_file_name = read_custom_config_with_default(args.config, 'gitFileOwnersWithActiveRecert', None, logger)
-    owner_header_patterns = read_custom_config_with_default(args.config, 'csvOwnerColumnPatterns', {}, logger)
-    ip_header_patterns = read_custom_config_with_default(args.config, 'csvIpColumnPatterns', {}, logger)
+    ldap_path: str = read_custom_config(args.config, 'ldapPath', logger)
+    git_repo_url_without_protocol: str = read_custom_config(args.config, 'gitRepo', logger)
+    git_username: str = read_custom_config(args.config, 'gitUser', logger)
+    git_password: str = read_custom_config(args.config, 'gitPassword', logger)
+    csv_owner_file_pattern: str = read_custom_config(args.config, 'csvOwnerFilePattern', logger)
+    csv_app_server_file_pattern: str = read_custom_config(args.config, 'csvAppServerFilePattern', logger)
+    recert_active_repo_url: str | None = read_custom_config_with_default(args.config, 'gitRepoOwnersWithActiveRecert', None, logger)
+    recert_active_file_name: str | None = read_custom_config_with_default(args.config, 'gitFileOwnersWithActiveRecert', None, logger)
+    owner_header_patterns: dict[str, str] = read_custom_config_with_default(args.config, 'csvOwnerColumnPatterns', {}, logger)
+    ip_header_patterns: dict[str, str] = read_custom_config_with_default(args.config, 'csvIpColumnPatterns', {}, logger)
 
     if not isinstance(owner_header_patterns, dict):
         logger.warning("csvOwnerColumnPatterns must be a JSON object mapping column names to regex patterns; using defaults instead")
@@ -90,21 +91,22 @@ if __name__ == "__main__":
         ip_header_patterns = {}
 
     if args.debug:
-        debug_level = int(args.debug)
+        debug_level: int = int(args.debug)
     else:
         debug_level = 0
 
     #############################################
     # 1. get CSV files from github repo
 
-    if args.import_from_folder:
-        base_dir = args.import_from_folder
-        app_data_repo_target_dir = args.import_from_folder
+    import_from_folder: str | None = args.import_from_folder
+    if import_from_folder:
+        base_dir = import_from_folder
+        app_data_repo_target_dir = import_from_folder
     else:
-        base_dir=app_data_repo_target_dir
-        app_data_repo_url = "https://" + git_username + ":" + git_password + "@" + git_repo_url_without_protocol
+        base_dir = app_data_repo_target_dir
+        app_data_repo_url: str = "https://" + git_username + ":" + git_password + "@" + git_repo_url_without_protocol
 
-        repo_updated = update_git_repo(app_data_repo_url, app_data_repo_target_dir, logger)
+        repo_updated: bool = update_git_repo(app_data_repo_url, app_data_repo_target_dir, logger)
         if not repo_updated:
             logger.warning("trying to read csv files from folder given as parameter...")
 
@@ -112,31 +114,32 @@ if __name__ == "__main__":
     # 2. get app list with activated recertification
 
     if recert_active_repo_url and recert_active_file_name:
-        recert_repo_url = f"https://{git_username}:{git_password}@{recert_active_repo_url}" 
-        recert_activation_data = read_file_from_git_repo(
+        recert_repo_url: str = f"https://{git_username}:{git_password}@{recert_active_repo_url}" 
+        recert_activation_data: str | None = read_file_from_git_repo(
             recert_repo_url,
             recert_repo_target_dir,
             recert_active_file_name,
             logger,
         )
-        recert_active_app_list = recert_activation_data.splitlines() if recert_activation_data else []
+        recert_active_app_list: list[str] = recert_activation_data.splitlines() if recert_activation_data else []
         logger.info(f"found {len(recert_active_app_list)} apps with active recertification")
     else:
-        recert_active_app_list = []
+        recert_active_app_list: list[str] = []
         logger.info("no recertification activation source configured; skipping activation of recertification import")
 
     #############################################
     # 3. get app data from CSV files
-    app_list = []
-    re_owner_file_pattern = re.compile(csv_owner_file_pattern)
+    app_list: list[Owner] = []
+    re_owner_file_pattern: re.Pattern[str] = re.compile(csv_owner_file_pattern)
+    file_name: str
     for file_name in os.listdir(app_data_repo_target_dir):
         if re_owner_file_pattern.match(file_name):
             extract_app_data_from_csv(file_name, app_list, ldap_path, import_source_string, Owner, logger, debug_level, 
                                       base_dir=base_dir, recert_active_app_list=recert_active_app_list, column_patterns=owner_header_patterns)
 
-    app_dict = transform_app_list_to_dict(app_list)
+    app_dict: dict[str, Owner] = transform_app_list_to_dict(app_list)
 
-    re_app_server_file_pattern = re.compile(csv_app_server_file_pattern)
+    re_app_server_file_pattern: re.Pattern[str] = re.compile(csv_app_server_file_pattern)
     for file_name in os.listdir(app_data_repo_target_dir):
         if re_app_server_file_pattern.match(file_name):
             if debug_level>0:
@@ -151,11 +154,12 @@ if __name__ == "__main__":
     # 5. Some statistics
     if debug_level>0:
         logger.info(f"total #apps: {str(len(app_dict))}")
-        apps_with_ip = 0
+        apps_with_ip: int = 0
+        app_id: str
         for app_id in app_dict:
             apps_with_ip += 1 if len(app_dict[app_id].app_servers) > 0 else 0
         logger.info(f"#apps with ip addresses: {str(apps_with_ip)}")
-        total_ips = 0
+        total_ips: int = 0
         for app_id in app_dict:
             total_ips += len(app_dict[app_id].app_servers)
         logger.info(f"#ip addresses in total: {str(total_ips)}")

@@ -1,48 +1,61 @@
-import sys
 import json
-import requests
+import logging
+import sys
 from copy import deepcopy
+from typing import Any
+
+import requests
 from scripts.customizing.fwo_custom_lib.basic_helpers import get_logger
 
 
 class IIQClient:
 
 
-    def __init__(self, hostname, user, password, app_name, user_prefix, stage='', debug=0, logger=None):
-        self.hostname = hostname
-        self.user = user
-        self.password = password
-        self.app_name = app_name
-        self.user_prefix = user_prefix
-        self.stage = stage
-        self.debug = debug
-        self.logger = logger or get_logger()
-        self.uri_path_start = "/zentralefunktionen/identityiq"
-        self.uri_path_end_users = "/scim/v1/Users"
-        self.uri_path_end_roles = "/scim/v1/Roles"
+    def __init__(
+        self,
+        hostname: str,
+        user: str,
+        password: str,
+        app_name: str,
+        user_prefix: str,
+        stage: str = '',
+        debug: int = 0,
+        logger: logging.Logger | None = None,
+    ) -> None:
+        self.hostname: str = hostname
+        self.user: str = user
+        self.password: str = password
+        self.app_name: str = app_name
+        self.user_prefix: str = user_prefix
+        self.stage: str = stage
+        self.debug: int = debug
+        self.logger: logging.Logger = logger or get_logger()
+        self.uri_path_start: str = "/zentralefunktionen/identityiq"
+        self.uri_path_end_users: str = "/scim/v1/Users"
+        self.uri_path_end_roles: str = "/scim/v1/Roles"
         self._init_placeholders()
-        self.request_body_template = self._build_request_body_template()
+        self.request_body_template: dict[str, Any] = self._build_request_body_template()
 
 
-    def _init_placeholders(self):
-        self.org_id_placeholder = "{orgid}"
-        user_id_placeholder = f"{self.user_prefix}-Kennung"
-        self.user_id_placeholder = f"{{{user_id_placeholder} des technischen Users IIQ}}"
-        self.boit_user_id_placeholder = f"{{{self.user_id_placeholder} des BO-IT}}"
-        self.role_business_type = "Geschäftsfunktion"
-        self.role_workplace_type = "Arbeitsplatzfunktion"
-        self.role_technical_type = "Technische Funktion"
-        self.app_name_origin_placeholder = "{Anwendungsname laut Alfabet-ORIGIN}"
-        self.app_name_placeholder = "{Anwendungsname laut Alfabet}"
-        self.app_name_upper_placeholder = "{Anwendungsname laut Alfabet-UPPER}"
-        self.app_id_placeholder = "{AppID}"
-        self.role_name_suffix_prefix = "fw_rulemgt_"
+    def _init_placeholders(self) -> None:
+        self.org_id_placeholder: str = "{orgid}"
+        user_id_placeholder: str = f"{self.user_prefix}-Kennung"
+        self.user_id_placeholder: str = f"{{{user_id_placeholder} des technischen Users IIQ}}"
+        self.boit_user_id_placeholder: str = f"{{{self.user_id_placeholder} des BO-IT}}"
+        self.role_business_type: str = "Geschäftsfunktion"
+        self.role_workplace_type: str = "Arbeitsplatzfunktion"
+        self.role_technical_type: str = "Technische Funktion"
+        self.app_name_origin_placeholder: str = "{Anwendungsname laut Alfabet-ORIGIN}"
+        self.app_name_placeholder: str = "{Anwendungsname laut Alfabet}"
+        self.app_name_upper_placeholder: str = "{Anwendungsname laut Alfabet-UPPER}"
+        self.app_id_placeholder: str = "{AppID}"
+        self.role_name_suffix_prefix: str = "fw_rulemgt_"
         # this is not accepted by IIQ: self.role_name_suffix_prefix = "fw_rulemgmt_"
         # response: Der AF-Name rva_02268_fw_rulemgmt_app_5014 ist für die Quelle FWO nicht erlaubt.","Workflow wurde nicht gestartet."],"status":"ERROR"
 
 
-    def _build_request_body_template(self):
-        request_body_template = {
+    def _build_request_body_template(self) -> dict[str, Any]:
+        request_body_template: dict[str, Any] = {
             "requesterName": self.user_id_placeholder,
             "requesterComment": "Anlegen von Rollen für Zugriff auf NeMo (Modellierung Kommunikationsprofil, Beantragung und Rezertifizierung von Firewall-Regeln)",
             "source": "FWO",
@@ -99,12 +112,19 @@ class IIQClient:
         return request_body_template
 
 
-    def send(self, body: dict|None=None, method='POST', url_path='', url_parameter='', debug=None):
+    def send(
+        self,
+        body: dict[str, Any] | None = None,
+        method: str = 'POST',
+        url_path: str = '',
+        url_parameter: str = '',
+        debug: int | None = None,
+    ) -> requests.Response:
         if body is None:
             body = {}
-        headers = {'Content-Type': 'application/json'}
-        url = "https://" + self.hostname + url_path + url_parameter
-        debug_level = self.debug if debug is None else debug
+        headers: dict[str, str] = {'Content-Type': 'application/json'}
+        url: str = "https://" + self.hostname + url_path + url_parameter
+        debug_level: int = self.debug if debug is None else debug
 
         if debug_level>7:
             print('url: ' + url)
@@ -115,7 +135,7 @@ class IIQClient:
             print('------------------------------------')
 
         if method=='POST':
-            response = requests.post(url, json=body, auth=(self.user, self.password), headers=headers, verify=True)
+            response: requests.Response = requests.post(url, json=body, auth=(self.user, self.password), headers=headers, verify=True)
         elif method=='GET':
             response = requests.get(url, auth=(self.user, self.password), headers=headers, verify=True)
         else:
@@ -125,15 +145,15 @@ class IIQClient:
         return response
 
 
-    def get_org_id(self, tiso, debug=None):
-        debug_level = self.debug if debug is None else debug
-        url_path = self.uri_path_start + self.stage + self.uri_path_end_users
-        url_parameter= f"?filter=userName%20eq%20%22{tiso}%22&attributes=urn:ietf:params:scim:schemas:sailpoint:1.0:User:parent_org_id"
-        org_id = None
+    def get_org_id(self, tiso: str, debug: int | None = None) -> str | None:
+        debug_level: int = self.debug if debug is None else debug
+        url_path: str = self.uri_path_start + self.stage + self.uri_path_end_users
+        url_parameter: str = f"?filter=userName%20eq%20%22{tiso}%22&attributes=urn:ietf:params:scim:schemas:sailpoint:1.0:User:parent_org_id"
+        org_id: str | None = None
         response = self.send(method='GET', url_path= url_path, url_parameter=url_parameter, debug=debug_level)
 
         if response.ok:
-            resp = json.loads(response.text)
+            resp: dict[str, Any] = json.loads(response.text)
             try:
                 org_id = resp['Resources'][0]['urn:ietf:params:scim:schemas:sailpoint:1.0:User']['parent_org_id']
             except KeyError:
@@ -144,12 +164,24 @@ class IIQClient:
         return org_id
 
 
-    def request_group_creation(self, app_prefix, app_id, org_id, tiso, name, stats, debug=None, run_workflow=False):
-        debug_level = self.debug if debug is None else debug
-        iiq_req_body_local = deepcopy(self.request_body_template)
+    def request_group_creation(
+        self,
+        app_prefix: str,
+        app_id: str,
+        org_id: str,
+        tiso: str,
+        name: str,
+        stats: dict[str, Any],
+        debug: int | None = None,
+        run_workflow: bool = False,
+    ) -> None:
+        debug_level: int = self.debug if debug is None else debug
+        iiq_req_body_local: dict[str, Any] = deepcopy(self.request_body_template)
 
         iiq_req_body_local["requesterName"] = iiq_req_body_local["requesterName"].replace(self.user_id_placeholder, self.user)
+        object_model: dict[str, Any]
         for object_model in iiq_req_body_local["objectModelList"]:
+            key: str
             for key in object_model:
                 if type(object_model[key]) is str:
                     object_model[key] = object_model[key].replace(self.app_name_placeholder, app_prefix.lower() + "_" + app_id)
@@ -160,7 +192,7 @@ class IIQClient:
                     object_model[key] = object_model[key].replace(self.org_id_placeholder, org_id)
                     object_model[key] = object_model[key].replace(self.app_id_placeholder, app_prefix + "-" + app_id)
 
-        app_text = f"{app_prefix}_{app_id}"
+        app_text: str = f"{app_prefix}_{app_id}"
 
         if run_workflow:   # in test environment we do not want any real WF to start
             iiq_req_body_local['startWorkflow'] = True
@@ -170,7 +202,7 @@ class IIQClient:
             if debug_level>2:
                 self.logger.debug(f"run_workflow={str(run_workflow)}, only simulating")
 
-        response = self.send(body=iiq_req_body_local,
+        response: requests.Response = self.send(body=iiq_req_body_local,
             url_path= self.uri_path_start + self.stage + "/workflow/v1/ModellingGeneral/createRequest",
             debug=debug_level)
 
@@ -182,13 +214,19 @@ class IIQClient:
         self._write_group_creation_stats(response, app_text, stats, debug_level)
 
 
-    def app_functions_exist_in_iiq(self, app_prefix, app_id, stats, debug=None):
-        debug_level = self.debug if debug is None else debug
+    def app_functions_exist_in_iiq(
+        self,
+        app_prefix: str,
+        app_id: str,
+        stats: dict[str, Any],
+        debug: int | None = None,
+    ) -> bool:
+        debug_level: int = self.debug if debug is None else debug
         if debug_level>2:
             self.logger.debug(f"start getting roles for app {app_id} ... ")
 
-        match_string1 = f'\"_fw_rulemgt_{app_prefix.lower()}_{app_id}\"'    # v1
-        match_string2 = f'\"_fw_rulemgmt_{app_prefix.lower()}{app_id}\"'    # v2
+        match_string1: str = f'\"_fw_rulemgt_{app_prefix.lower()}_{app_id}\"'    # v1
+        match_string2: str = f'\"_fw_rulemgmt_{app_prefix.lower()}{app_id}\"'    # v2
 
         match_found = self._check_for_app_pattern_in_iiq_roles(app_prefix, app_id, match_string1, stats, debug_level) \
                or \
@@ -202,16 +240,23 @@ class IIQClient:
         return match_found
 
 
-    def _check_for_app_pattern_in_iiq_roles(self, app_prefix, app_id, match_string, stats, debug):
-        url_path = self.uri_path_start + self.stage + self.uri_path_end_roles
-        url_parameter = f"?filter=urn:ietf:params:scim:schemas:sailpoint:1.0:Role:displayableName co {match_string} and urn:ietf:params:scim:schemas:sailpoint:1.0:Role:type.name eq \"business\""
+    def _check_for_app_pattern_in_iiq_roles(
+        self,
+        app_prefix: str,
+        app_id: str,
+        match_string: str,
+        stats: dict[str, Any],
+        debug: int,
+    ) -> bool:
+        url_path: str = self.uri_path_start + self.stage + self.uri_path_end_roles
+        url_parameter: str = f"?filter=urn:ietf:params:scim:schemas:sailpoint:1.0:Role:displayableName co {match_string} and urn:ietf:params:scim:schemas:sailpoint:1.0:Role:type.name eq \"business\""
         response = self.send(
             method='GET',
             url_path=url_path,
             url_parameter=url_parameter, debug=debug)
-        result = {}
+        result: str | dict[str, Any] = {}
         if response.ok:
-            response_json = json.loads(response.text)
+            response_json: dict[str, Any] = json.loads(response.text)
             if 'totalResults' in response_json:
                 if response_json['totalResults']>0 and 'Resources' in response_json:
                     result = f"A_{app_prefix}_{app_id}_FW_RULEMGT"
@@ -231,7 +276,13 @@ class IIQClient:
         return True
 
 
-    def _write_group_creation_stats(self, response, app_text, stats, debug):
+    def _write_group_creation_stats(
+        self,
+        response: requests.Response,
+        app_text: str,
+        stats: dict[str, Any],
+        debug: int,
+    ) -> None:
         if "Validierung der Auftragsdaten erfolgreich" in response.text:
             if "Workflow wurde nicht gestartet." in response.text:
                 self.update_stats(stats, "apps_request_simulated", app_text)
@@ -251,6 +302,6 @@ class IIQClient:
             print(".", end="", flush=True)
 
 
-    def update_stats(self, stats, fieldname, field_value):
+    def update_stats(self, stats: dict[str, Any], fieldname: str, field_value: str) -> None:
         stats[fieldname].append(field_value)
         stats[f"{fieldname}_count"] = stats[f"{fieldname}_count"] + 1

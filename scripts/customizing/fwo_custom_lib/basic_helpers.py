@@ -7,12 +7,13 @@ import json
 import logging
 import sys
 import traceback
+from typing import Any
 
 
-def read_custom_config(config_filename, key_to_get, logger):
+def read_custom_config(config_filename: str, key_to_get: str, logger: logging.Logger) -> Any:
     try:
-        with open(config_filename, "r") as custom_config_fh:
-            custom_config = json.loads(custom_config_fh.read())
+        with open(config_filename, "r", encoding="utf-8") as custom_config_fh:
+            custom_config: dict[str, Any] = json.loads(custom_config_fh.read())
         return custom_config[key_to_get]
 
     except Exception:
@@ -20,10 +21,15 @@ def read_custom_config(config_filename, key_to_get, logger):
         sys.exit(1)
 
 
-def read_custom_config_with_default(config_filename, key_to_get, default_value, logger):
+def read_custom_config_with_default(
+    config_filename: str,
+    key_to_get: str,
+    default_value: Any,
+    logger: logging.Logger,
+) -> Any:
     try:
-        with open(config_filename, "r") as custom_config_fh:
-            custom_config = json.loads(custom_config_fh.read())
+        with open(config_filename, "r", encoding="utf-8") as custom_config_fh:
+            custom_config: dict[str, Any] = json.loads(custom_config_fh.read())
         return custom_config.get(key_to_get, default_value)
 
     except Exception:
@@ -31,19 +37,19 @@ def read_custom_config_with_default(config_filename, key_to_get, default_value, 
         sys.exit(1)
 
 
-def get_logger(debug_level_in=0):
-    debug_level = int(debug_level_in)
+def get_logger(debug_level_in: int = 0) -> logging.Logger:
+    debug_level: int = int(debug_level_in)
     if debug_level >= 1:
         log_level = logging.DEBUG
     else:
         log_level = logging.INFO
 
-    logger = logging.getLogger('import-fworch-app-data')
+    logger: logging.Logger = logging.getLogger('import-fworch-app-data')
     logformat = "%(asctime)s [%(levelname)-5.5s] [%(filename)-10.10s:%(funcName)-10.10s:%(lineno)4d] %(message)s"
     logging.basicConfig(format=logformat, datefmt="%Y-%m-%dT%H:%M:%S%z", level=log_level)
     logger.setLevel(log_level)
 
-    connection_log = logging.getLogger("urllib3.connectionpool")
+    connection_log: logging.Logger = logging.getLogger("urllib3.connectionpool")
     connection_log.setLevel(logging.WARNING)
     connection_log.propagate = True
 

@@ -11,6 +11,10 @@ exclude = [
     "venv",
     "roles/importer/files/importer/test",
     "roles/api/files/scripts",
+    "scripts/acquire_lock.py",
+    "scripts/gh-search.py",
+    "scripts/json_pretty_print.py",
+    "scripts/release_lock.py"    
 ]
 
 venvPath = "."
@@ -54,7 +58,11 @@ exclude = [
     "__init__.py",
     "roles/tests-integration",
     "roles/importer/files/importer/test",
-    "roles/api/files/scripts"
+    "roles/api/files/scripts",
+    "scripts/acquire_lock.py",
+    "scripts/gh-search.py",
+    "scripts/json_pretty_print.py",
+    "scripts/release_lock.py"
 ]
 
 [tool.ruff.lint]

@@ -299,39 +299,113 @@ class FwConfigImportRule:
             RefType.DST_ZONE: to_zones,
         }
 
-    def get_ref_objs(
-        self, ref_type: RefType, ref_uid: tuple[str, str | None] | str, prev_config: FwConfigNormalized
-    ) -> (
-        tuple[tuple[None | NetworkObject, None | Any], tuple[None | NetworkObject, None | Any]]
-        | tuple[None | NetworkObject | ServiceObject, None | Any]
-    ):  # TODO: Any is user type but there is no user Type
-        if self.normalized_config is None:
-            raise FwoImporterError("cannot get ref objs: normalized_config is None")
+    def lookup_network_object(self, uid: str, previous: bool = False) -> NetworkObject:
+        config = self.global_state.previous_config if previous else self.normalized_config
+        global_config = (
+            self.global_state.previous_global_config if previous else self.global_state.global_normalized_config
+        )
+        config_type = "previous" if previous else "current"
+        if config is None:
+            raise FwoImporterError(f"cannot lookup network object: {config_type} config is None")
+        nwobj = config.network_objects.get(uid, None)
+        if nwobj is None:
+            # try lookup in global config
+            if global_config is None:
+                raise FwoImporterError(f"network object not found in {config_type} config: {uid}")
+            nwobj = global_config.network_objects.get(uid, None)
+            if nwobj is None:
+                raise FwoImporterError(
+                    f"network object not found in {config_type} config and {config_type} global config: {uid}"
+                )
+        return nwobj
 
+    def lookup_service_object(self, uid: str, previous: bool = False) -> ServiceObject:
+        config = self.global_state.previous_config if previous else self.normalized_config
+        global_config = (
+            self.global_state.previous_global_config if previous else self.global_state.global_normalized_config
+        )
+        config_type = "previous" if previous else "current"
+        if config is None:
+            raise FwoImporterError(f"cannot lookup service object: {config_type} config is None")
+        prev_svcobj = config.service_objects.get(uid, None)
+        if prev_svcobj is None:
+            # try lookup in global config
+            if global_config is None:
+                raise FwoImporterError(f"service object not found in {config_type} config: {uid}")
+            prev_svcobj = global_config.service_objects.get(uid, None)
+            if prev_svcobj is None:
+                raise FwoImporterError(
+                    f"service object not found in {config_type} config and {config_type} global config: {uid}"
+                )
+        return prev_svcobj
+
+    def lookup_user(self, uid: str, previous: bool = False) -> dict[str, Any]:
+        config = self.global_state.previous_config if previous else self.normalized_config
+        global_config = (
+            self.global_state.previous_global_config if previous else self.global_state.global_normalized_config
+        )
+        config_type = "previous" if previous else "current"
+        if config is None:
+            raise FwoImporterError(f"cannot lookup user: {config_type} config is None")
+        prev_user = config.users.get(uid, None)
+        if prev_user is None:
+            # try lookup in global config
+            if global_config is None:
+                raise FwoImporterError(f"user not found in {config_type} config: {uid}")
+            prev_user = global_config.users.get(uid, None)
+            if prev_user is None:
+                raise FwoImporterError(f"user not found in {config_type} config and {config_type} global config: {uid}")
+        return prev_user
+
+    def lookup_zone(self, uid: str, previous: bool = False) -> dict[str, Any]:
+        config = self.global_state.previous_config if previous else self.normalized_config
+        global_config = (
+            self.global_state.previous_global_config if previous else self.global_state.global_normalized_config
+        )
+        config_type = "previous" if previous else "current"
+        if config is None:
+            raise FwoImporterError(f"cannot lookup zone: {config_type} config is None")
+        prev_zone = config.zone_objects.get(uid, None)
+        if prev_zone is None:
+            # try lookup in global config
+            if global_config is None:
+                raise FwoImporterError(f"zone not found in {config_type} config: {uid}")
+            prev_zone = global_config.zone_objects.get(uid, None)
+            if prev_zone is None:
+                raise FwoImporterError(f"zone not found in {config_type} config and {config_type} global config: {uid}")
+        return prev_zone
+
+    def get_ref_objs(
+        self, ref_type: RefType, ref_uid: tuple[str, str | None] | str
+    ) -> tuple[
+        tuple[NetworkObject, None | dict[str, Any]] | NetworkObject | ServiceObject | dict[str, Any],
+        tuple[NetworkObject, None | dict[str, Any]] | NetworkObject | ServiceObject | dict[str, Any],
+    ]:
         if ref_type in (RefType.SRC, RefType.DST):
             nwobj_uid, user_uid = ref_uid
 
             return (
-                prev_config.network_objects.get(nwobj_uid, None),
-                prev_config.users.get(user_uid, None) if user_uid else None,
+                self.lookup_network_object(nwobj_uid, previous=True),
+                self.lookup_user(user_uid, previous=True) if user_uid else None,
             ), (
-                self.normalized_config.network_objects.get(nwobj_uid, None),
-                self.normalized_config.users.get(user_uid, None) if user_uid else None,
+                self.lookup_network_object(nwobj_uid, previous=False),
+                self.lookup_user(user_uid, previous=False) if user_uid else None,
             )
+        if not isinstance(ref_uid, str):
+            raise TypeError(f"ref_uid must be str, not {type(ref_uid).__name__}")
         if ref_type == RefType.NWOBJ_RESOLVED:
-            return prev_config.network_objects.get(ref_uid, None), self.normalized_config.network_objects.get(  # type: ignore  # noqa: PGH003
-                ref_uid,  # type: ignore  # noqa: PGH003
-                None,  # type: ignore  # noqa: PGH003
-            )  # type: ignore #TODO: change ref_uid to str only  # noqa: PGH003
+            return self.lookup_network_object(ref_uid, previous=True), self.lookup_network_object(
+                ref_uid, previous=False
+            )
         if ref_type in (RefType.SVC, RefType.SVC_RESOLVED):
-            return prev_config.service_objects.get(ref_uid, None), self.normalized_config.service_objects.get(  # type: ignore  # noqa: PGH003
-                ref_uid,  # type: ignore  # noqa: PGH003
-                None,  # type: ignore  # noqa: PGH003
+            return self.lookup_service_object(ref_uid, previous=True), self.lookup_service_object(
+                ref_uid, previous=False
             )
         if ref_type == RefType.USER_RESOLVED:
-            return prev_config.users.get(ref_uid, None), self.normalized_config.users.get(ref_uid, None)  # type: ignore # noqa: PGH003
+            return self.lookup_user(ref_uid, previous=True), self.lookup_user(ref_uid, previous=False)
         if ref_type in (RefType.SRC_ZONE, RefType.DST_ZONE):
-            return prev_config.zone_objects.get(ref_uid, None), self.normalized_config.zone_objects.get(ref_uid, None)  # type: ignore  # noqa: PGH003
+            return self.lookup_zone(ref_uid, previous=True), self.lookup_zone(ref_uid, previous=False)
+
         raise FwoImporterError(f"unknown ref type: {ref_type}")
 
     def get_ref_remove_statement(
@@ -383,7 +457,7 @@ class FwConfigImportRule:
         raise FwoImporterError(f"unknown ref type: {ref_type}")
 
     def get_outdated_refs_to_remove(
-        self, prev_rule: RuleNormalized, rule: RuleNormalized | None, prev_config: FwConfigNormalized, remove_all: bool
+        self, prev_rule: RuleNormalized, rule: RuleNormalized | None, remove_all: bool
     ) -> dict[RefType, list[dict[str, Any]]]:
         """
         Get the references that need to be removed for a rule based on comparison with the previous rule.
@@ -408,7 +482,7 @@ class FwConfigImportRule:
             refs_to_remove[ref_type] = []
             for prev_ref_uid in prev_ref_uids[ref_type]:
                 if prev_ref_uid in ref_uids[ref_type]:
-                    prev_ref_obj, ref_obj = self.get_ref_objs(ref_type, prev_ref_uid, prev_config)
+                    prev_ref_obj, ref_obj = self.get_ref_objs(ref_type, prev_ref_uid)
                     if prev_ref_obj == ref_obj:
                         continue  # ref not removed or changed
                 # ref removed or changed
@@ -437,7 +511,7 @@ class FwConfigImportRule:
                     uid not in rules or prev_rule != rules[uid]
                 )  # rule removed or changed -> all refs need to be removed
                 rule_refs_to_remove = self.get_outdated_refs_to_remove(
-                    prev_rule, rules.get(uid, None), prev_config, rule_removed_or_changed
+                    prev_rule, rules.get(uid, None), rule_removed_or_changed
                 )
                 for ref_type, ref_statements in rule_refs_to_remove.items():
                     all_refs_to_remove[ref_type].extend(ref_statements)
@@ -543,7 +617,7 @@ class FwConfigImportRule:
         return None
 
     def get_new_refs_to_add(
-        self, rule: RuleNormalized, prev_rule: RuleNormalized | None, prev_config: FwConfigNormalized, add_all: bool
+        self, rule: RuleNormalized, prev_rule: RuleNormalized | None, add_all: bool
     ) -> dict[RefType, list[dict[str, Any]]]:
         """
         Get the references that need to be added for a rule based on comparison with the previous rule.
@@ -564,7 +638,7 @@ class FwConfigImportRule:
             refs_to_add[ref_type] = []
             for ref_uid in ref_uids[ref_type]:
                 if ref_uid in prev_ref_uids[ref_type]:
-                    prev_ref_obj, ref_obj = self.get_ref_objs(ref_type, ref_uid, prev_config)
+                    prev_ref_obj, ref_obj = self.get_ref_objs(ref_type, ref_uid)
                     if prev_ref_obj == ref_obj:
                         continue  # ref not added or changed
                 # ref added or changed
@@ -585,9 +659,7 @@ class FwConfigImportRule:
                 rule_added_or_changed = (
                     uid not in prev_rules or rule != prev_rules[uid]
                 )  # rule added or changed -> all refs need to be added
-                rule_refs_to_add = self.get_new_refs_to_add(
-                    rule, prev_rules.get(uid, None), prev_config, rule_added_or_changed
-                )
+                rule_refs_to_add = self.get_new_refs_to_add(rule, prev_rules.get(uid, None), rule_added_or_changed)
                 for ref_type, ref_statements in rule_refs_to_add.items():
                     all_refs_to_add[ref_type].extend(ref_statements)
 

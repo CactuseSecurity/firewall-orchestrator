@@ -254,7 +254,7 @@ class IIQClient:
             method='GET',
             url_path=url_path,
             url_parameter=url_parameter, debug=debug)
-        result: str | dict[str, Any] = {}
+        result: str = ""
         if response.ok:
             response_json: dict[str, Any] = json.loads(response.text)
             if 'totalResults' in response_json:
@@ -267,7 +267,7 @@ class IIQClient:
         else:
             self.logger.debug(f"error while getting roles for app {app_id}. filter string: {match_string}, status_code: {str(response.status_code)}")
 
-        if result == {}:
+        if result == "":
             return False
 
         if debug>2:

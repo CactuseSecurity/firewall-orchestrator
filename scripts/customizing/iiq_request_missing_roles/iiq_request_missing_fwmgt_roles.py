@@ -16,7 +16,7 @@ from typing import Any
 import git  # apt install python3-git # or: pip install git
 from scripts.customizing.fwo_custom_lib.app_data_models import Owner, Appip
 from scripts.customizing.fwo_custom_lib.read_app_data_csv import extract_app_data_from_csv, extract_ip_data_from_csv
-from scripts.customizing.fwo_custom_lib.basic_helpers import read_custom_config, read_custom_config_with_default, get_logger
+from scripts.customizing.fwo_custom_lib.basic_helpers import read_custom_config, read_custom_config_with_default, get_logger, FWOLogger
 from scripts.customizing.fwo_custom_lib.app_data_basics import transform_app_list_to_dict
 from scripts.customizing.iiq_request_missing_roles.iiq_client import IIQClient
 
@@ -61,7 +61,7 @@ def get_owners_from_csv_files(
     csv_app_server_file_pattern: str,
     repo_target_dir: str,
     ldap_path: str,
-    logger: logging.Logger,
+    logger: FWOLogger,
     debug_level: int,
     owner_header_patterns: dict[str, str] | None = None,
     ip_header_patterns: dict[str, str] | None = None,
@@ -78,8 +78,7 @@ def get_owners_from_csv_files(
     re_app_server_file_pattern: re.Pattern[str] = re.compile(csv_app_server_file_pattern)
     for file_name in os.listdir(repo_target_dir):
         if re_app_server_file_pattern.match(file_name):
-            if debug_level>0:
-                logger.info(f"importing IP data from file {file_name} ...")
+            logger.info_if(0, f"importing IP data from file {file_name} ...")
             extract_ip_data_from_csv(file_name, owner_dict, Appip, logger, debug_level, base_dir=repo_target_dir, column_patterns=ip_header_patterns)
 
     # now only choose those owners which have at least one app server with a non-empty IP assigned
@@ -103,8 +102,7 @@ def remove_apps_without_ip_addresses(owner_dict: dict[str, Owner], debug_level: 
         if not has_ip:
             apps_to_remove.append(app_key)
     for app_key in apps_to_remove:
-        if debug_level>5:
-            logger.info(f"removing app {app_key} as it has no valid IP address assigned")
+        logger.info_if(5, f"removing app {app_key} as it has no valid IP address assigned")
         del owner_dict[app_key]
 
 
@@ -151,10 +149,12 @@ def request_all_roles(
     logger.info("creating new groups in iiq")
     app_id_with_prefix: str
     for app_id_with_prefix in owner_dict:
-        if debug>5:
-            logger.info(f"checking app {app_id_with_prefix}")
+        logger.info_if(5, f"checking app {app_id_with_prefix}")
         counter += 1
         tiso: str | None = tisos.get(app_id_with_prefix)
+        if tiso is None:
+            logger.warning("did not find a TISO for owner " + app_id_with_prefix + ", skipping group creation")
+            continue
         org_id: str | None = tiso_orgids.get(tiso) if tiso else None
         if org_id is None:
             logger.warning("did not find an OrgId for owner " + app_id_with_prefix + ", skipping group creation")
@@ -165,12 +165,10 @@ def request_all_roles(
         app_prefix, app_id = app_id_with_prefix.split("-")
         # get existing (already modelled) functions for this app to find out, what still needs to be changed in iiq
         if iiq_client.app_functions_exist_in_iiq(app_prefix, app_id, stats):
-            if debug>5:
-                logger.info(f"not requesting groups for {app_id_with_prefix} - they already exist")
+            logger.info_if(5, f"not requesting groups for {app_id_with_prefix} - they already exist")
             continue
 
-        if debug>5:
-            logger.info(f"requesting groups for {app_id_with_prefix}")
+        logger.info_if(5, f"requesting groups for {app_id_with_prefix}")
         iiq_client.request_group_creation(app_prefix, app_id, org_id, tiso, owner_dict[app_id_with_prefix].name, stats, run_workflow=run_workflow)
 
         # if first parameter is set, only handle the first "first" applications, otherwise handle all
@@ -180,8 +178,7 @@ def request_all_roles(
 
 def get_tisos_orgids(tisos: dict[str, str], iiq_client: IIQClient, exit_after_dump: bool = False) -> dict[str, str]:
     tiso_orgids: dict[str, str] = {}
-    if iiq_client.debug>0:
-        logger.info("getting tiso orgids from iiq")
+    logger.info_if(0, "getting tiso orgids from iiq")
     tiso: str
     for tiso in set(tisos.values()):
         org_id: str | None = iiq_client.get_org_id(tiso)
@@ -221,7 +218,7 @@ if __name__ == "__main__":
     ALLOWED_STAGE_VALUES: set[str] = {"prod", "test"}
     ALLOWED_RUN_VALUES: set[bool] = {True, False}
 
-    logger: logging.Logger = get_logger()
+    logger: FWOLogger = get_logger()
 
     parser = argparse.ArgumentParser(
         description='Read configuration from FW management via API calls')
@@ -265,6 +262,7 @@ if __name__ == "__main__":
     ip_header_patterns: dict[str, str] = read_custom_config_with_default(args.config, 'csvIpColumnPatterns', {}, logger)
 
     debug: int = int(args.debug)
+    logger.configure_debug_level(debug)
 
     if args.stage == 'prod':
         stage: str = ''  # the production instance does not need any extra strings
@@ -274,8 +272,7 @@ if __name__ == "__main__":
     if args.suppress_certificate_warnings:
         urllib3.disable_warnings()
 
-    if debug>3:
-        logger.debug(f"using config file {args.config}")
+    logger.debug_if(3, f"using config file {args.config}")
 
     ldap_path: str = read_custom_config(args.config, 'ldapPath', logger)
     iiq_hostname: str = read_custom_config(args.config, 'iiqHostname', logger)
@@ -297,8 +294,7 @@ if __name__ == "__main__":
         csv_file_base_dir = cmdb_repo_target_dir
         get_git_repo(git_repo_url, git_username, git_password, cmdb_repo_target_dir)
 
-    if debug>0:
-        logger.info("getting owners from file")
+    logger.info_if(0, "getting owners from file")
     if not isinstance(owner_header_patterns, dict):
         logger.warning("csvOwnerColumnPatterns must be a JSON object mapping column names to regex patterns; using defaults instead")
         owner_header_patterns = {}
@@ -319,7 +315,7 @@ if __name__ == "__main__":
     request_all_roles(owners, tisos, tiso_orgids, iiq_client, stats, first, args.run_workflow, debug=debug)
 
     if debug>0:
-        print ("Stats: " + json.dumps(stats, indent=3))
+        print("Stats: " + json.dumps(stats, indent=3))
     
     write_stats_to_file(stats, log_dir)
 

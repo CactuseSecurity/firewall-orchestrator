@@ -158,7 +158,7 @@
             "name": "py-import-mgm",
             "type": "debugpy",
             "request": "launch",
-            "program": "${workspaceFolder}/roles/importer/files/importer/import-mgm.py",
+            "program": "${workspaceFolder}/roles/importer/files/importer/import_mgm.py",
             "console": "integratedTerminal",
             "env": {
                 "PYTHONPATH": "${PYTHONPATH}:${workspaceRoot}"

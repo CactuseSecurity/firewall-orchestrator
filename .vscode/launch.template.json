@@ -415,10 +415,10 @@
         //     ]
         // },
         {
-            "name": "py-import-main-loop",
+            "name": "py-import_main_loop",
             "type": "debugpy",
             "request": "launch",
-            "program": "${workspaceFolder}/roles/importer/files/importer/import-main-loop.py",
+            "program": "${workspaceFolder}/roles/importer/files/importer/import_main_loop.py",
             "console": "integratedTerminal",
             "env": {
                 "PYTHONPATH": "${PYTHONPATH}:${workspaceRoot}"

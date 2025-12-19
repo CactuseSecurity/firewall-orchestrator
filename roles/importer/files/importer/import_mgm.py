@@ -25,7 +25,7 @@ def get_fwo_jwt(import_user: str, import_pwd: str, user_management_api: str) -> 
         FWOLogger.error(e.message)
     except Exception:
         FWOLogger.error(
-            "import-main-loop - unspecified error during FWO API login - skipping: " + str(traceback.format_exc())
+            "import_main_loop - unspecified error during FWO API login - skipping: " + str(traceback.format_exc())
         )
 
 

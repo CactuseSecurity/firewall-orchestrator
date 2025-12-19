@@ -136,7 +136,9 @@ if __name__ == "__main__":
         else:
             repo = git.Repo.clone_from(recert_repo_url, recert_repo_target_dir)
 
-        recert_activation_file = f"{recert_repo_target_dir}/{recert_active_file_name}"
+    recert_activation_file = f"{recert_repo_target_dir}/{recert_active_file_name}"
+    recert_active_app_list = []
+    try:
         with open(recert_activation_file, "r") as f:
             recert_active_app_list = f.read().splitlines()
 

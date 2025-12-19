@@ -6,7 +6,6 @@ class MockRulebase:
     is_global = False
     rules = {}
 
-
     def to_dict(self):
         return {
             "id": self.id,
@@ -14,6 +13,5 @@ class MockRulebase:
             "name": self.name,
             "mgm_uid": self.mgm_uid,
             "is_global": self.is_global,
-            "rules": self.rules
+            "rules": self.rules,
         }
-    

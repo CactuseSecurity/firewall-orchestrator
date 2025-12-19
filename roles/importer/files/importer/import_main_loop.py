@@ -10,7 +10,7 @@ import warnings
 
 import fwo_globals
 import urllib3
-from common import import_management
+from common import import_management  # type: ignore[import-not-found]
 from fwo_api import FwoApi
 from fwo_api_call import FwoApiCall
 from fwo_base import init_service_provider, register_global_state

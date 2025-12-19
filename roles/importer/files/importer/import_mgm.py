@@ -1,11 +1,11 @@
-#!/usr/bin/env python3
+#!/usr/local/fworch/importer_venv/bin/python3
 import argparse
 import sys
 import traceback
 import warnings
 
 import urllib3
-from common import import_management
+from common import import_management  # type: ignore[import-not-found]
 from fwo_api import FwoApi
 from fwo_api_call import FwoApiCall
 from fwo_base import init_service_provider, register_global_state

@@ -10,7 +10,7 @@ exclude = [
     ".venv",
     "venv",
     "roles/importer/files/importer/test",
-    "roles/api/files/scripts/",
+    "roles/api/files/scripts",
 ]
 
 venvPath = "."
@@ -53,7 +53,8 @@ exclude = [
     "venv",
     "__init__.py",
     "roles/tests-integration",
-    "roles/importer/files/importer/test"
+    "roles/importer/files/importer/test",
+    "roles/api/files/scripts"
 ]
 
 [tool.ruff.lint]

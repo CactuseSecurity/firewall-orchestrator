@@ -327,17 +327,17 @@ class FwConfigImportRule:
         config_type = "previous" if previous else "current"
         if config is None:
             raise FwoImporterError(f"cannot lookup service object: {config_type} config is None")
-        prev_svcobj = config.service_objects.get(uid, None)
-        if prev_svcobj is None:
+        svcobj = config.service_objects.get(uid, None)
+        if svcobj is None:
             # try lookup in global config
             if global_config is None:
                 raise FwoImporterError(f"service object not found in {config_type} config: {uid}")
-            prev_svcobj = global_config.service_objects.get(uid, None)
-            if prev_svcobj is None:
+            svcobj = global_config.service_objects.get(uid, None)
+            if svcobj is None:
                 raise FwoImporterError(
                     f"service object not found in {config_type} config and {config_type} global config: {uid}"
                 )
-        return prev_svcobj
+        return svcobj
 
     def lookup_user(self, uid: str, previous: bool = False) -> dict[str, Any]:
         config = self.global_state.previous_config if previous else self.normalized_config
@@ -347,15 +347,15 @@ class FwConfigImportRule:
         config_type = "previous" if previous else "current"
         if config is None:
             raise FwoImporterError(f"cannot lookup user: {config_type} config is None")
-        prev_user = config.users.get(uid, None)
-        if prev_user is None:
+        user = config.users.get(uid, None)
+        if user is None:
             # try lookup in global config
             if global_config is None:
                 raise FwoImporterError(f"user not found in {config_type} config: {uid}")
-            prev_user = global_config.users.get(uid, None)
-            if prev_user is None:
+            user = global_config.users.get(uid, None)
+            if user is None:
                 raise FwoImporterError(f"user not found in {config_type} config and {config_type} global config: {uid}")
-        return prev_user
+        return user
 
     def lookup_zone(self, uid: str, previous: bool = False) -> dict[str, Any]:
         config = self.global_state.previous_config if previous else self.normalized_config
@@ -365,15 +365,15 @@ class FwConfigImportRule:
         config_type = "previous" if previous else "current"
         if config is None:
             raise FwoImporterError(f"cannot lookup zone: {config_type} config is None")
-        prev_zone = config.zone_objects.get(uid, None)
-        if prev_zone is None:
+        zone = config.zone_objects.get(uid, None)
+        if zone is None:
             # try lookup in global config
             if global_config is None:
                 raise FwoImporterError(f"zone not found in {config_type} config: {uid}")
-            prev_zone = global_config.zone_objects.get(uid, None)
-            if prev_zone is None:
+            zone = global_config.zone_objects.get(uid, None)
+            if zone is None:
                 raise FwoImporterError(f"zone not found in {config_type} config and {config_type} global config: {uid}")
-        return prev_zone
+        return zone
 
     def get_ref_objs(
         self, ref_type: RefType, ref_uid: tuple[str, str | None] | str
@@ -382,6 +382,10 @@ class FwConfigImportRule:
         tuple[NetworkObject, None | dict[str, Any]] | NetworkObject | ServiceObject | dict[str, Any],
     ]:
         if ref_type in (RefType.SRC, RefType.DST):
+            if not isinstance(ref_uid, tuple) or len(ref_uid) != 2:  # noqa: PLR2004
+                raise TypeError(
+                    f"ref_uid for {ref_type.name} must be a tuple of length 2, not {type(ref_uid).__name__}"
+                )
             nwobj_uid, user_uid = ref_uid
 
             return (

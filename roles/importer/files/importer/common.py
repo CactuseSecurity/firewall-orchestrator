@@ -265,7 +265,7 @@ def get_config_from_api(
         raise
 
     # check for changes from product-specific FW API, if we are importing from file we assume config changes
-    # TODO: implement real change detection
+    # open issue: implement real change detection
     config_changed_since_last_import = fw_module.has_config_changed(
         config_in, import_state, import_state.state.force_import
     )

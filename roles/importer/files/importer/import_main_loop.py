@@ -1,4 +1,5 @@
-# main importer loop in python (also able to run distributed)  # noqa: N999
+#!/usr/bin/env python3
+# main importer loop in python (also able to run distributed)
 # run import loop every x seconds (adjust sleep time per management depending on the change frequency )
 
 import argparse
@@ -191,7 +192,7 @@ def main(
     FWOLogger.info("importer-main-loop starting ...")
     if IMPORTER_BASE_DIR not in sys.path:
         sys.path.append(IMPORTER_BASE_DIR)
-    importer_user_name = "importer"  # TODO: move to config file?
+    importer_user_name = "importer"  # move to config file?
     importer_pwd_file = BASE_DIR + "/etc/secrets/importer_pwd"
 
     # setting defaults (only as fallback if config defaults cannot be fetched via API):

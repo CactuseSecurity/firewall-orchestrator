@@ -1,10 +1,10 @@
 import json
 import traceback
-from collections.abc import Generator
+from collections.abc import Callable, Generator
 from datetime import datetime
 from difflib import ndiff
 from enum import Enum
-from typing import Any
+from typing import Any, TypeVar
 
 import fwo_const
 from fwo_api import FwoApi
@@ -299,116 +299,82 @@ class FwConfigImportRule:
             RefType.DST_ZONE: to_zones,
         }
 
-    def lookup_network_object(self, uid: str, previous: bool = False) -> NetworkObject:
+    T = TypeVar("T")
+
+    def _lookup_object(
+        self,
+        uid: str,
+        previous: bool,
+        config_accessor: Callable[[FwConfigNormalized], dict[str, T]],
+        object_type_name: str,
+    ) -> T:
+        """Generic object lookup from config with fallback to global config."""
         config = self.global_state.previous_config if previous else self.normalized_config
         global_config = (
             self.global_state.previous_global_config if previous else self.global_state.global_normalized_config
         )
         config_type = "previous" if previous else "current"
+
         if config is None:
-            raise FwoImporterError(f"cannot lookup network object: {config_type} config is None")
-        nwobj = config.network_objects.get(uid, None)
-        if nwobj is None:
+            raise FwoImporterError(f"cannot lookup {object_type_name}: {config_type} config is None")
+
+        obj = config_accessor(config).get(uid, None)
+        if obj is None:
             # try lookup in global config
             if global_config is None:
-                raise FwoImporterError(f"network object not found in {config_type} config: {uid}")
-            nwobj = global_config.network_objects.get(uid, None)
-            if nwobj is None:
+                raise FwoImporterError(f"{object_type_name} not found in {config_type} config: {uid}")
+            obj = config_accessor(global_config).get(uid, None)
+            if obj is None:
                 raise FwoImporterError(
-                    f"network object not found in {config_type} config and {config_type} global config: {uid}"
+                    f"{object_type_name} not found in {config_type} config and {config_type} global config: {uid}"
                 )
-        return nwobj
+        return obj
+
+    def lookup_network_object(self, uid: str, previous: bool = False) -> NetworkObject:
+        return self._lookup_object(uid, previous, lambda cfg: cfg.network_objects, "network object")
 
     def lookup_service_object(self, uid: str, previous: bool = False) -> ServiceObject:
-        config = self.global_state.previous_config if previous else self.normalized_config
-        global_config = (
-            self.global_state.previous_global_config if previous else self.global_state.global_normalized_config
-        )
-        config_type = "previous" if previous else "current"
-        if config is None:
-            raise FwoImporterError(f"cannot lookup service object: {config_type} config is None")
-        svcobj = config.service_objects.get(uid, None)
-        if svcobj is None:
-            # try lookup in global config
-            if global_config is None:
-                raise FwoImporterError(f"service object not found in {config_type} config: {uid}")
-            svcobj = global_config.service_objects.get(uid, None)
-            if svcobj is None:
-                raise FwoImporterError(
-                    f"service object not found in {config_type} config and {config_type} global config: {uid}"
-                )
-        return svcobj
+        return self._lookup_object(uid, previous, lambda cfg: cfg.service_objects, "service object")
 
     def lookup_user(self, uid: str, previous: bool = False) -> dict[str, Any]:
-        config = self.global_state.previous_config if previous else self.normalized_config
-        global_config = (
-            self.global_state.previous_global_config if previous else self.global_state.global_normalized_config
-        )
-        config_type = "previous" if previous else "current"
-        if config is None:
-            raise FwoImporterError(f"cannot lookup user: {config_type} config is None")
-        user = config.users.get(uid, None)
-        if user is None:
-            # try lookup in global config
-            if global_config is None:
-                raise FwoImporterError(f"user not found in {config_type} config: {uid}")
-            user = global_config.users.get(uid, None)
-            if user is None:
-                raise FwoImporterError(f"user not found in {config_type} config and {config_type} global config: {uid}")
-        return user
+        return self._lookup_object(uid, previous, lambda cfg: cfg.users, "user")
 
     def lookup_zone(self, uid: str, previous: bool = False) -> dict[str, Any]:
-        config = self.global_state.previous_config if previous else self.normalized_config
-        global_config = (
-            self.global_state.previous_global_config if previous else self.global_state.global_normalized_config
-        )
-        config_type = "previous" if previous else "current"
-        if config is None:
-            raise FwoImporterError(f"cannot lookup zone: {config_type} config is None")
-        zone = config.zone_objects.get(uid, None)
-        if zone is None:
-            # try lookup in global config
-            if global_config is None:
-                raise FwoImporterError(f"zone not found in {config_type} config: {uid}")
-            zone = global_config.zone_objects.get(uid, None)
-            if zone is None:
-                raise FwoImporterError(f"zone not found in {config_type} config and {config_type} global config: {uid}")
-        return zone
+        return self._lookup_object(uid, previous, lambda cfg: cfg.zone_objects, "zone")
 
-    def get_ref_objs(
-        self, ref_type: RefType, ref_uid: tuple[str, str | None] | str
-    ) -> tuple[
-        tuple[NetworkObject, None | dict[str, Any]] | NetworkObject | ServiceObject | dict[str, Any],
-        tuple[NetworkObject, None | dict[str, Any]] | NetworkObject | ServiceObject | dict[str, Any],
-    ]:
+    def is_ref_unchanged(self, ref_type: RefType, ref_uid: tuple[str, str | None] | str) -> bool:
+        """
+        Check if a reference object is unchanged between previous and current config.
+
+        Returns True if the object is the same in both configs, False if it changed.
+        """
         if ref_type in (RefType.SRC, RefType.DST):
             if not isinstance(ref_uid, tuple) or len(ref_uid) != 2:  # noqa: PLR2004
                 raise TypeError(
                     f"ref_uid for {ref_type.name} must be a tuple of length 2, not {type(ref_uid).__name__}"
                 )
             nwobj_uid, user_uid = ref_uid
+            prev_nwobj = self.lookup_network_object(nwobj_uid, previous=True)
+            curr_nwobj = self.lookup_network_object(nwobj_uid, previous=False)
+            prev_user = self.lookup_user(user_uid, previous=True) if user_uid else None
+            curr_user = self.lookup_user(user_uid, previous=False) if user_uid else None
+            return (prev_nwobj, prev_user) == (curr_nwobj, curr_user)
 
-            return (
-                self.lookup_network_object(nwobj_uid, previous=True),
-                self.lookup_user(user_uid, previous=True) if user_uid else None,
-            ), (
-                self.lookup_network_object(nwobj_uid, previous=False),
-                self.lookup_user(user_uid, previous=False) if user_uid else None,
-            )
         if not isinstance(ref_uid, str):
             raise TypeError(f"ref_uid must be str, not {type(ref_uid).__name__}")
+
         if ref_type == RefType.NWOBJ_RESOLVED:
-            return self.lookup_network_object(ref_uid, previous=True), self.lookup_network_object(
+            return self.lookup_network_object(ref_uid, previous=True) == self.lookup_network_object(
                 ref_uid, previous=False
             )
         if ref_type in (RefType.SVC, RefType.SVC_RESOLVED):
-            return self.lookup_service_object(ref_uid, previous=True), self.lookup_service_object(
+            return self.lookup_service_object(ref_uid, previous=True) == self.lookup_service_object(
                 ref_uid, previous=False
             )
         if ref_type == RefType.USER_RESOLVED:
-            return self.lookup_user(ref_uid, previous=True), self.lookup_user(ref_uid, previous=False)
+            return self.lookup_user(ref_uid, previous=True) == self.lookup_user(ref_uid, previous=False)
         if ref_type in (RefType.SRC_ZONE, RefType.DST_ZONE):
-            return self.lookup_zone(ref_uid, previous=True), self.lookup_zone(ref_uid, previous=False)
+            return self.lookup_zone(ref_uid, previous=True) == self.lookup_zone(ref_uid, previous=False)
 
         raise FwoImporterError(f"unknown ref type: {ref_type}")
 
@@ -485,10 +451,8 @@ class FwConfigImportRule:
         for ref_type in RefType:
             refs_to_remove[ref_type] = []
             for prev_ref_uid in prev_ref_uids[ref_type]:
-                if prev_ref_uid in ref_uids[ref_type]:
-                    prev_ref_obj, ref_obj = self.get_ref_objs(ref_type, prev_ref_uid)
-                    if prev_ref_obj == ref_obj:
-                        continue  # ref not removed or changed
+                if prev_ref_uid in ref_uids[ref_type] and self.is_ref_unchanged(ref_type, prev_ref_uid):
+                    continue  # ref not removed or changed
                 # ref removed or changed
                 if prev_rule.rule_uid is None:
                     raise FwoImporterError(
@@ -641,10 +605,8 @@ class FwConfigImportRule:
         for ref_type in RefType:
             refs_to_add[ref_type] = []
             for ref_uid in ref_uids[ref_type]:
-                if ref_uid in prev_ref_uids[ref_type]:
-                    prev_ref_obj, ref_obj = self.get_ref_objs(ref_type, ref_uid)
-                    if prev_ref_obj == ref_obj:
-                        continue  # ref not added or changed
+                if ref_uid in prev_ref_uids[ref_type] and self.is_ref_unchanged(ref_type, ref_uid):
+                    continue  # ref not added or changed
                 # ref added or changed
                 refs_to_add[ref_type].append(self.get_ref_add_statement(ref_type, rule, ref_uid))
         return refs_to_add

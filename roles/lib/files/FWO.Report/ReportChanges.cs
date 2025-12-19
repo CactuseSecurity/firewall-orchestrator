@@ -51,11 +51,9 @@ namespace FWO.Report
                 List<long> importIdsInRange = [.. managementsWithImportIds.Where(m => m.Id == management.Id).SelectMany(m => m.ImportControls).Select(ic => ic.ControlId)];
                 List<long> relevantImportIds = [.. importIdLastBeforeRange, .. importIdsInRange];
 
-                SetMgtQueryVars(management.Id, relevantImportIds[0+1], relevantImportIds[relevantImportIds.Count-1]);
-                // -1 nur wenn nur ein importId vorhanden ist
-                // sonst wird keine änderung angezeigt
-                // Noch wird nicht richtig gefiltert, aber richtig, dass wir erster nach dem relevanten Zeitpunkt und letztem vergleichen?
-                ManagementReport managementReport = (await apiConnection.SendQueryAsync<List<ManagementReport>>(Query.FullQuery, Query.QueryVariables)).First(); //HIER DATEN!!!!
+                SetMgtQueryVars(management.Id, relevantImportIds[0], relevantImportIds[1]);
+                ManagementReport managementReport = (await apiConnection.SendQueryAsync<List<ManagementReport>>(Query.FullQuery, Query.QueryVariables)).First();
+
                 queriesNeeded += 1;
                 ReportData.ManagementData.Add(managementReport);
                 managementImportIds.Add(management.Id, relevantImportIds);

@@ -241,7 +241,7 @@ namespace FWO.Report.Filter
                                                 {{_and: [{{change_action:{{_eq:""D""}}}}, {{ruleByOldRuleId: {{access_rule:{{_eq:true}}}}}}]}},
                                                 {{_and: [{{change_action:{{_eq:""C""}}}}, {{rule: {{access_rule:{{_eq:true}}}}}}, {{ruleByOldRuleId: {{access_rule:{{_eq:true}}}}}}]}}
                                             ]                                        
-                                            
+                                            {query.RuleWhereStatement} 
                                     }}
                                     order_by: {{ control_id: asc }}
                                 ) 
@@ -260,103 +260,7 @@ namespace FWO.Report.Filter
                 }}";
             return test;
         }
-        /*
-        private static string ConstructChangesQuery(DynGraphqlQuery query, string paramString, ReportTemplate filter)
-        {
-            // was:                             devices ({devWhereString})                           
-            string test = $@"
-                    {(filter.Detailed ? RuleQueries.ruleDetailsForChangeReportFragments : RuleQueries.ruleOverviewForChangeReportFragments)}
-                    query changeReport({paramString}) 
-                    {{
-                        management(where: {{
-                            hide_in_gui: {{_eq: false }}
-                            stm_dev_typ: {{dev_typ_is_multi_mgmt: {{_eq: false}} is_pure_routing_device: {{_eq: false}} }}
-                            mgm_id: {{_in: $mgmId }}
-                        }} order_by: {{mgm_name: asc}}) 
-                        {{
-                            id: mgm_id
-                            name: mgm_name                            
-
-                            changelog_rules: {query.OpenChangeLogRulesTable}
-                                    {limitOffsetString} 
-                                    where: {{ 
-                                        _or:[
-                                                {{_and: [{{change_action:{{_eq:""I""}}}}, {{rule: {{access_rule:{{_eq:true}}}}}}]}}, 
-                                                {{_and: [{{change_action:{{_eq:""D""}}}}, {{ruleByOldRuleId: {{access_rule:{{_eq:true}}}}}}]}},
-                                                {{_and: [{{change_action:{{_eq:""C""}}}}, {{rule: {{access_rule:{{_eq:true}}}}}}, {{ruleByOldRuleId: {{access_rule:{{_eq:true}}}}}}]}}
-                                            ]                                        
-                                        {query.RuleWhereStatement} 
-                                    }}
-                                    order_by: {{ control_id: asc }}
-                                ) 
-                                {{
-                                    import: import_control {{ time: stop_time }}
-                                    change_action
-                                    old: ruleByOldRuleId {{
-                                    mgm_id: mgm_id
-                                    ...{(filter.Detailed ? "ruleDetailsChangesOld" : "ruleOverviewChangesOld")}
-                                    }}
-                                    new: rule {{
-                                    mgm_id: mgm_id
-                                    ...{(filter.Detailed ? "ruleDetailsChangesNew" : "ruleOverviewChangesNew")}
-                                    }}
-                                }}
-
-                        }}
-                }}";
-            return test;
-        }
-        */
-
-        /* Läuft soweit
-        // was:                             devices ({devWhereString})
-        string test = $@"
-                query changeReport{{
-                    management(where: {{
-                            hide_in_gui: {{_eq: false }}
-                            stm_dev_typ: {{dev_typ_is_multi_mgmt: {{_eq: false}}, is_pure_routing_device: {{_eq: false}} }}
-                            mgm_id: {{_in: 5 }}
-                        }} order_by: {{mgm_name: asc}})
-                    {{
-                        id: mgm_id
-                        name: mgm_name
-        		                import_controls {{
-                      control_id
-                      start_time
-                      stop_time
-                      successful_import
-                      import_errors
-		                }}
-                        changelog_rules: changelog_rules(
-                                    where: {{ 
-                                        _or:[
-                                                {{_and: [{{change_action:{{_eq:""I""}}}}, {{rule: {{access_rule:{{_eq:true}}}}}}]}}, 
-                                                {{_and: [{{change_action:{{_eq:""D""}}}}, {{ruleByOldRuleId: {{access_rule:{{_eq:true}}}}}}]}},
-                                                {{_and: [{{change_action:{{_eq:""C""}}}}, {{rule: {{access_rule:{{_eq:true}}}}}}, {{ruleByOldRuleId: {{access_rule:{{_eq:true}}}}}}]}}
-                                            ]                                        
-
-                                    }}
-                                    order_by: {{ control_id: asc }}
-                                ) 
-                            {{
-                            import: import_control {{ time: stop_time }}
-                            change_action
-                            old: ruleByOldRuleId {{
-                                ...ruleDetails
-
-                            }}
-                            new: rule {{
-                                ...ruleDetails
-                            }}
-                        }}
-                    }}
-                }}";
-            return test;
-
-            */
-
-
-
+        
         private static string ConstructNatRulesQuery(DynGraphqlQuery query, string paramString, ReportTemplate filter)
         {
             return $@"

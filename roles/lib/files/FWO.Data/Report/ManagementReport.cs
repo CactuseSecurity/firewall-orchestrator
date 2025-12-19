@@ -238,6 +238,13 @@ namespace FWO.Data.Report
                 }
             }
 
+            if (managementReport.RuleChanges != null && managementReportToMerge.RuleChanges != null && managementReportToMerge.RuleChanges.Length > 0)
+            {
+                managementReport.RuleChanges = [.. managementReport.RuleChanges, .. managementReportToMerge.RuleChanges];
+                newObjects = true;
+                maxAddedCounts["RuleChanges"] = managementReportToMerge.RuleChanges.Length;
+            }
+
             return (newObjects, maxAddedCounts);
         }
     }

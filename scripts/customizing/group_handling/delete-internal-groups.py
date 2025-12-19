@@ -1,40 +1,36 @@
 #!/usr/bin/python3
-# -*- coding: utf-8 -*-
 # This script deletes internal groups in FWO
 import argparse
 import logging
-import json
 import sys
+from argparse import ArgumentParser
 from enum import Enum
-import urllib3
 from typing import Any
 
-from argparse import ArgumentParser
+import urllib3
 from requests import Session, exceptions
 
-default_api_url: str = 'https://localhost:8888/api/'
+default_api_url: str = "https://localhost:8888/api/"
+HTTP_OK: int = 200
 
 
 class HttpCommand(Enum):
-    GET = 'get'
-    POST = 'post'
-    PUT = 'put'
-    DELETE = 'delete'
+    GET = "get"
+    POST = "post"
+    PUT = "put"
+    DELETE = "delete"
 
 
 def fwo_rest_api_call(
     api_url: str,
     jwt: str,
     endpoint_name: str,
-    command: str = 'get',
+    command: str = "get",
     payload: dict[str, Any] | None = None,
 ) -> Any:
     if payload is None:
         payload = {}
-    headers: dict[str, str] = {
-        'Authorization': 'Bearer ' + jwt,
-        'Content-Type': 'application/json'
-    }
+    headers: dict[str, str] = {"Authorization": "Bearer " + jwt, "Content-Type": "application/json"}
 
     with Session() as session:
         session.verify = False
@@ -42,17 +38,16 @@ def fwo_rest_api_call(
         urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
         response = http_method(api_url + endpoint_name, json=payload, headers=headers)
 
-        if response.status_code == 200:
+        if response.status_code == HTTP_OK:
             return response.json()
-        else:
-            logger.error(f"API call failed with status code {response.status_code}: {response.text}")
-            sys.exit(1)
+        logger.error("API call failed with status code %s: %s", response.status_code, response.text)
+        sys.exit(1)
 
 
 # get JWT token from FWO REST API
 def get_jwt_token(user: str, password: str, api_url: str = default_api_url) -> str:
-    payload: dict[str, str] = { "Username": user, "Password": password }
-    headers: dict[str, str] = {'content-type': 'application/json'}
+    payload: dict[str, str] = {"Username": user, "Password": password}
+    headers: dict[str, str] = {"content-type": "application/json"}
 
     endpoint: str = api_url + "AuthenticationToken/Get"
 
@@ -62,22 +57,27 @@ def get_jwt_token(user: str, password: str, api_url: str = default_api_url) -> s
             urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
             response = session.post(endpoint, json=payload, headers=headers)
         except exceptions.RequestException:
-            logger.error(f"api: error during login to url: {endpoint} with user {user}")
+            logger.exception("api: error during login to url: %s with user %s", endpoint, user)
             sys.exit(1)
 
-        if response.text is not None and response.status_code==200:
+        if response.status_code == HTTP_OK:
             return response.text
-        else:
-            logger.error(f"FWO api: ERROR: did not receive JWT, endpoint: {endpoint}, status code: {str(response)}")
-            sys.exit(1)
+        logger.error(
+            "FWO api: ERROR: did not receive JWT, endpoint: %s, status code: %s",
+            endpoint,
+            response,
+        )
+        sys.exit(1)
 
 
 def get_matching_groups(jwt: str, group_pattern: str, api_url: str | None = None) -> list[dict[str, Any]]:
     # Get all groups
+    if api_url is None:
+        api_url = default_api_url
     groups: list[dict[str, Any]] = fwo_rest_api_call(api_url, jwt, "Group", HttpCommand.GET.value)
 
     # Filter groups
-    return [group for group in groups if group_pattern in group['GroupDn']]
+    return [group for group in groups if group_pattern in group["GroupDn"]]
 
 
 def delete_groups_from_roles(groups_to_delete: list[str], roles: list[str] | None = None) -> None:
@@ -91,34 +91,31 @@ def delete_groups_from_roles(groups_to_delete: list[str], roles: list[str] | Non
         group: str
         for group in groups_to_delete:
             delete_response = fwo_rest_api_call(
-                args.api_url, jwt, "Role/User", HttpCommand.DELETE.value, payload={"Role": role, "UserDn": group})        
+                args.api_url, jwt, "Role/User", HttpCommand.DELETE.value, payload={"Role": role, "UserDn": group}
+            )
             if not delete_response:
                 error_counter += 1
-                logger.warning(f"Failed to delete group {group} from role {role}")
-            else: 
+                logger.warning("Failed to delete group %s from role %s", group, role)
+            else:
                 from_role_delete_counter += 1
-    print(f"Deleted {from_role_delete_counter} groups from roles. Errors: {error_counter}")
 
 
 def extract_common_names(group_dns_to_delete: list[dict[str, Any]]) -> list[str]:
-    common_names: list[str] = []
-    group: dict[str, Any]
-    for group in group_dns_to_delete:
-        common_names.append(group['GroupDn'].split(',')[0].split('=')[1])
-    return common_names
+    return [group["GroupDn"].split(",")[0].split("=")[1] for group in group_dns_to_delete]
 
 
 if __name__ == "__main__":
-    parser = ArgumentParser(description='Delete internal groups from FWO')
-    parser.add_argument('-u', '--user', required=True, help='Username for FWO API')
-    parser.add_argument('-p', '--password', required=True, help='Password for FWO API')
-    parser.add_argument('-a', '--api_url', default='https://', help='Base URL for FWO API (default: https://localhost:8888/api/)')
-    parser.add_argument('-g', '--group_name', required=True, help='name of group to delete')
+    parser = ArgumentParser(description="Delete internal groups from FWO")
+    parser.add_argument("-u", "--user", required=True, help="Username for FWO API")
+    parser.add_argument("-p", "--password", required=True, help="Password for FWO API")
+    parser.add_argument(
+        "-a", "--api_url", default="https://", help="Base URL for FWO API (default: https://localhost:8888/api/)"
+    )
+    parser.add_argument("-g", "--group_name", required=True, help="name of group to delete")
 
     args: argparse.Namespace = parser.parse_args()
 
     logger: logging.Logger = logging.getLogger(__name__)
-
 
     try:
         jwt: str = get_jwt_token(args.user, args.password, args.api_url)
@@ -131,12 +128,9 @@ if __name__ == "__main__":
             if fwo_rest_api_call(args.api_url, jwt, "Group", HttpCommand.DELETE.value, payload={"GroupName": group}):
                 group_delete_counter += 1
             else:
-                logger.warning(f"Failed to delete group {group}")
+                logger.warning("Failed to delete group %s", group)
 
-        print(f"Deleted {group_delete_counter} out of {len(group_common_names_to_delete)} groups.")
-
-    except Exception as e:
-        print(f"An unexpected error occurred: {str(e)}")
+    except Exception:
         sys.exit(1)
     else:
-        sys.exit(0) 
+        sys.exit(0)

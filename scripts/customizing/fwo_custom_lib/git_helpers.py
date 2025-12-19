@@ -1,6 +1,6 @@
 import logging
-import os
-import traceback
+from pathlib import Path
+
 import git
 
 
@@ -11,20 +11,21 @@ def update_git_repo(
     branch: str | None = None,
 ) -> bool:
     try:
-        if os.path.exists(git_repo_target_dir):
+        if Path(git_repo_target_dir).exists():
             # If the repository already exists, open it and perform a pull
             repo: git.Repo = git.Repo(git_repo_target_dir)
             if branch:
                 repo.git.checkout(branch)
             origin: git.Remote = repo.remotes.origin
             origin.pull()
+        # clone the repo initially
+        elif branch:
+            repo = git.Repo.clone_from(repo_url, git_repo_target_dir, branch=branch)
         else:
-            # clone the repo initially
-            clone_kwargs = {"branch": branch} if branch else {}
-            repo = git.Repo.clone_from(repo_url, git_repo_target_dir, **clone_kwargs)
+            repo = git.Repo.clone_from(repo_url, git_repo_target_dir)
         return True
     except Exception:
-        logger.warning("could not clone/pull git repo from " + repo_url + ", exception: " + str(traceback.format_exc()))
+        logger.exception("could not clone/pull git repo from %s", repo_url)
         return False
 
 
@@ -41,12 +42,12 @@ def read_file_from_git_repo(
     repo_updated = update_git_repo(repo_url, git_repo_target_dir, logger, branch=branch)
     if repo_updated:
         try:
-            with open(absolute_target_file_name, "r", encoding="utf-8") as f:
+            with open(absolute_target_file_name, encoding="utf-8") as f:
                 file_as_text = f.read()
         except Exception:
-            logger.warning(f"could not read file {absolute_target_file_name}, exception: " + str(traceback.format_exc()))
+            logger.exception("could not read file %s", absolute_target_file_name)
 
     if not file_as_text:
-        logger.info("no data loaded from file " + absolute_target_file_name)
+        logger.info("no data loaded from file %s", absolute_target_file_name)
 
     return file_as_text

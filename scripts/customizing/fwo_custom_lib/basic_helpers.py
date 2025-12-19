@@ -6,8 +6,9 @@ __version__ = "2025-11-20-01"
 import json
 import logging
 import sys
-import traceback
 from typing import Any
+
+DEBUG_LEVEL_VERBOSE: int = 8
 
 
 class FWOLogger(logging.Logger):
@@ -39,12 +40,12 @@ class FWOLogger(logging.Logger):
 
 def read_custom_config(config_filename: str, key_to_get: str, logger: FWOLogger) -> Any:
     try:
-        with open(config_filename, "r", encoding="utf-8") as custom_config_fh:
+        with open(config_filename, encoding="utf-8") as custom_config_fh:
             custom_config: dict[str, Any] = json.loads(custom_config_fh.read())
         return custom_config[key_to_get]
 
     except Exception:
-        logger.error("could not read key '" + key_to_get + "' from config file " + config_filename + ", Exception: " + str(traceback.format_exc()))
+        logger.exception("could not read key %s from config file %s", key_to_get, config_filename)
         sys.exit(1)
 
 
@@ -55,12 +56,12 @@ def read_custom_config_with_default(
     logger: FWOLogger,
 ) -> Any:
     try:
-        with open(config_filename, "r", encoding="utf-8") as custom_config_fh:
+        with open(config_filename, encoding="utf-8") as custom_config_fh:
             custom_config: dict[str, Any] = json.loads(custom_config_fh.read())
         return custom_config.get(key_to_get, default_value)
 
     except Exception:
-        logger.error("could not read key '" + key_to_get + "' from config file " + config_filename + ", Exception: " + str(traceback.format_exc()))
+        logger.exception("could not read key %s from config file %s", key_to_get, config_filename)
         sys.exit(1)
 
 
@@ -69,10 +70,10 @@ def get_logger(debug_level_in: int = 0) -> FWOLogger:
     log_level = logging.DEBUG if debug_level >= 1 else logging.INFO
 
     logging.setLoggerClass(FWOLogger)
-    logger = logging.getLogger('import-fworch-app-data')
+    logger = logging.getLogger("import-fworch-app-data")
     if not isinstance(logger, FWOLogger):
-        logger = FWOLogger('import-fworch-app-data')
-        logging.Logger.manager.loggerDict['import-fworch-app-data'] = logger
+        logger = FWOLogger("import-fworch-app-data")
+        logging.Logger.manager.loggerDict["import-fworch-app-data"] = logger
     logformat = "%(asctime)s [%(levelname)-5.5s] [%(filename)-10.10s:%(funcName)-10.10s:%(lineno)4d] %(message)s"
     logging.basicConfig(format=logformat, datefmt="%Y-%m-%dT%H:%M:%S%z", level=log_level)
     logger.configure_debug_level(debug_level)
@@ -81,6 +82,6 @@ def get_logger(debug_level_in: int = 0) -> FWOLogger:
     connection_log.setLevel(logging.WARNING)
     connection_log.propagate = True
 
-    if debug_level > 8:
-        logger.debug("debug_level=" + str(debug_level))
+    if debug_level > DEBUG_LEVEL_VERBOSE:
+        logger.debug("debug_level=%s", debug_level)
     return logger

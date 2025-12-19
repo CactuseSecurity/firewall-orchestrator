@@ -8,12 +8,7 @@ exclude = [
     ".git",
     ".venv",
     "venv",
-    "scripts",
     "roles/importer/files/importer/test",
-]
-
-ignore = [
-    "./scripts",
 ]
 
 venvPath = "."
@@ -22,8 +17,6 @@ venv = ".venv"
 typeCheckingMode = "strict"
 reportMissingImports = false
 reportMissingTypeStubs = true
-
-
 
 [tool.ruff]
 line-length = 120
@@ -57,7 +50,6 @@ exclude = [
     "site-packages",
     "venv",
     "__init__.py",
-    "scripts",
     "roles/tests-integration",
     "roles/importer/files/importer/test"
 ]
@@ -81,5 +73,3 @@ quote-style = "double"
 indent-style = "space"
 skip-magic-trailing-comma = false
 line-ending = "auto"
-
-

@@ -1,5 +1,4 @@
 # library for FWORCH API calls
-from asyncio.log import logger
 import argparse
 import getpass
 import json
@@ -7,7 +6,13 @@ import sys
 from typing import Any
 
 import requests
-import requests.packages
+import urllib3
+
+HTTP_OK: int = 200
+
+
+class CustomizingError(Exception):
+    """Raised for errors when calling the FWO API from customizing scripts."""
 
 
 def call(
@@ -18,86 +23,84 @@ def call(
     role: str = "reporter",
 ) -> dict[str, Any] | None:
     request_headers: dict[str, str] = {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer ' + jwt,
-        'x-hasura-role': role,
+        "Content-Type": "application/json",
+        "Authorization": "Bearer " + jwt,
+        "x-hasura-role": role,
     }
     full_query: dict[str, Any] = {"query": query, "variables": query_variables}
 
     with requests.Session() as session:
         session.verify = False
-        session.headers = request_headers
+        session.headers.update(request_headers)
 
-        r: requests.Response | None = None
         try:
-            r = session.post(url, data=json.dumps(full_query), timeout=600)
-            r.raise_for_status()
-        except requests.exceptions.RequestException:
-            if r != None:
-                if r.status_code != 200:
-                    raise Exception("fwo_api call ERROR: got error code: " + str(r.status_code))
-            else:
-                raise Exception("fwo_api call ERROR: got no result from FWO API call")
-        if r != None:
-            return r.json()
-        else:
-            return None
+            response = session.post(url, data=json.dumps(full_query), timeout=600)
+            response.raise_for_status()
+        except requests.exceptions.RequestException as exc:
+            if exc.response is not None and exc.response.status_code != HTTP_OK:
+                raise CustomizingError("fwo_api call ERROR: got error code: " + str(exc.response.status_code)) from exc
+            raise CustomizingError("fwo_api call ERROR: got no result from FWO API call") from exc
+        return response.json()
 
 
-def login(user: str, password: str, user_management_api_base_url: str, method: str = 'api/AuthenticationToken/Get') -> str:
+def login(
+    user: str, password: str, user_management_api_base_url: str, method: str = "api/AuthenticationToken/Get"
+) -> str:
     payload: dict[str, str] = {"Username": user, "Password": password}
 
     with requests.Session() as session:
         session.verify = False
-        session.headers = {'Content-Type': 'application/json'}
+        session.headers = {"Content-Type": "application/json"}
 
         try:
             response = session.post(user_management_api_base_url + method, data=json.dumps(payload))
         except requests.exceptions.RequestException:
-            raise Exception("fwo_api login ERROR: no valid response from: " + str(user_management_api_base_url))
+            raise CustomizingError("fwo_api login ERROR: no valid response from: " + str(user_management_api_base_url))
 
-        if response.text is not None and response.status_code==200:
-            return response.text    # the JWT
-        else:
-            raise Exception("fwo_api login ERROR: did not receive a JWT during login to api_url: " + str(user_management_api_base_url))
+        if response.status_code == HTTP_OK:
+            return response.text  # the JWT
+        raise CustomizingError(
+            "fwo_api login ERROR: did not receive a JWT during login to api_url: " + str(user_management_api_base_url)
+        )
 
 
-def get_config_value(fwo_api_base_url: str, jwt: str, key: str = 'limit') -> str | None:
-    query_variables: dict[str, str] = {'key': key}
+def get_config_value(fwo_api_base_url: str, jwt: str, key: str = "limit") -> str | None:
+    query_variables: dict[str, str] = {"key": key}
     config_query: str = "query getConf($key: String) {  config(where: {config_key: {_eq: $key}}) { config_value } }"
-    result: dict[str, Any] | None = call(fwo_api_base_url, jwt, config_query, query_variables=query_variables, role='importer')
+    result: dict[str, Any] | None = call(
+        fwo_api_base_url, jwt, config_query, query_variables=query_variables, role="importer"
+    )
     if result is None:
         return None
-    if 'data' in result and 'config' in result['data']:
-        first_result: dict[str, Any] = result['data']['config'][0]
-        if 'config_value' in first_result:
-            return first_result['config_value']
-        else:
-            return None
-    else:
+    if "data" in result and "config" in result["data"]:
+        first_result: dict[str, Any] = result["data"]["config"][0]
+        if "config_value" in first_result:
+            return first_result["config_value"]
         return None
+    return None
 
 
-def get_config_values(fwo_api_base_url: str, jwt: str, key_filter: str = 'limit') -> dict[str, Any] | None:
-    query_variables: dict[str, str] = {'keyFilter': key_filter + "%"}
+def get_config_values(fwo_api_base_url: str, jwt: str, key_filter: str = "limit") -> dict[str, Any] | None:
+    query_variables: dict[str, str] = {"keyFilter": key_filter + "%"}
     config_query: str = "query getConf($keyFilter: String) { config(where: {config_key: {_ilike: $keyFilter}}) { config_key config_value } }"
-    result: dict[str, Any] | None = call(fwo_api_base_url, jwt, config_query, query_variables=query_variables, role='importer')
+    result: dict[str, Any] | None = call(
+        fwo_api_base_url, jwt, config_query, query_variables=query_variables, role="importer"
+    )
     if result is None:
         return None
-    if 'data' in result and 'config' in result['data']:
-        result_array: list[dict[str, Any]] = result['data']['config']
-        config_values: dict[str, Any] = {v['config_key']: v['config_value'] for v in result_array}
+    if "data" in result and "config" in result["data"]:
+        result_array: list[dict[str, Any]] = result["data"]["config"]
+        config_values: dict[str, Any] = {v["config_key"]: v["config_value"] for v in result_array}
         return config_values
-    else:
-        return None
+    return None
 
 
 def read_json_file(filename: str) -> dict[str, Any]:
-    try: 
-        with open(filename, "r", encoding="utf-8") as json_fh:
+    try:
+        with open(filename, encoding="utf-8") as json_fh:
             json_dict: dict[str, Any] = json.loads(json_fh.read())
     except Exception:
-        raise Exception("read_json_file ERROR: while reading file: " + filename)
+        raise CustomizingError("read_json_file ERROR: while reading file: " + filename)
     return json_dict
 
 
@@ -127,15 +130,16 @@ def set_custom_txt_values(
             }
         }
     """
-    result: dict[str, Any] | None = call(fwo_api_base_url, jwt, custom_txt_mutation, query_variables=query_variables, role='admin')
+    result: dict[str, Any] | None = call(
+        fwo_api_base_url, jwt, custom_txt_mutation, query_variables=query_variables, role="admin"
+    )
     if result is None:
         return -1
-    if result['data']['insert_customtxt']['returning'][0]['id']:
-        return result['data']['insert_customtxt']['returning'][0]['id']
-    else:
-        return -1
-        
-        
+    if result["data"]["insert_customtxt"]["returning"][0]["id"]:
+        return result["data"]["insert_customtxt"]["returning"][0]["id"]
+    return -1
+
+
 def set_modelling_service_values(
     fwo_api_base_url: str,
     jwt: str,
@@ -173,24 +177,14 @@ def set_modelling_service_values(
         }
     """
 
-    # export your modelling services using the following query:
-    # query getGlobalModServices {
-    #   modelling_service(where: {is_global: {_eq: true}}) {
-    #     port
-    #     port_end
-    #     proto_id
-    #     name
-    #     is_global
-    #   }
-    # }
-
-    result: dict[str, Any] | None = call(fwo_api_base_url, jwt, modelling_service_mutation, query_variables=query_variables, role='admin')
+    result: dict[str, Any] | None = call(
+        fwo_api_base_url, jwt, modelling_service_mutation, query_variables=query_variables, role="admin"
+    )
     if result is None:
         return -1
-    if result['data']['insert_modelling_service']['returning'][0]['id']:
-        return result['data']['insert_modelling_service']['returning'][0]['id']
-    else:
-        return -1
+    if result["data"]["insert_modelling_service"]["returning"][0]["id"]:
+        return result["data"]["insert_modelling_service"]["returning"][0]["id"]
+    return -1
 
 
 def set_config_values(
@@ -219,14 +213,15 @@ def set_config_values(
             }
         }
     """
-    result: dict[str, Any] | None = call(fwo_api_base_url, jwt, config_mutation, query_variables=query_variables, role='admin')
+    result: dict[str, Any] | None = call(
+        fwo_api_base_url, jwt, config_mutation, query_variables=query_variables, role="admin"
+    )
     if result is None:
         return -1
-    if result['data']['insert_config']['returning'][0]['id']:
-        return result['data']['insert_config']['returning'][0]['id']
-    else:
-        return -1
-    
+    if result["data"]["insert_config"]["returning"][0]["id"]:
+        return result["data"]["insert_config"]["returning"][0]["id"]
+    return -1
+
 
 def get_credentials() -> tuple[str, str]:
     username: str = input("Enter your username: ")
@@ -234,16 +229,15 @@ def get_credentials() -> tuple[str, str]:
     return username, password
 
 
-if __name__ == '__main__':
-    parser = argparse.ArgumentParser(
-        description='Writing custom settings via API to firewall orchestrator')
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Writing custom settings via API to firewall orchestrator")
 
     parser.add_argument(
-        '-c',
-        '--customSettingsFile',
-        dest='custom_settings_file',
+        "-c",
+        "--customSettingsFile",
+        dest="custom_settings_file",
         required=True,
-        help='Filename of custom settings file for firewall orchstrator (mandatory parameter)',
+        help="Filename of custom settings file for firewall orchstrator (mandatory parameter)",
     )
 
     args: argparse.Namespace = parser.parse_args()
@@ -253,22 +247,20 @@ if __name__ == '__main__':
         sys.exit(1)
 
     settings_file: str = args.custom_settings_file
-    fwo_config_filename: str = '/etc/fworch/fworch.json'
-    requests.packages.urllib3.disable_warnings()
+    fwo_config_filename: str = "/etc/fworch/fworch.json"
+    urllib3.disable_warnings()
 
     fwo_config: dict[str, Any] = read_json_file(fwo_config_filename)
-    user_management_api_base_url: str = fwo_config['middleware_uri']
-    fwo_api_base_url: str = fwo_config['api_uri']
-
+    user_management_api_base_url: str = fwo_config["middleware_uri"]
+    fwo_api_base_url: str = fwo_config["api_uri"]
 
     # read credentials interactively
-    print("Enter credentials of a user with admin role:")
     username: str
     password: str
     username, password = get_credentials()
 
     # login with the credentials to get JWT
-    jwt: str = login(username, password, user_management_api_base_url, method='api/AuthenticationToken/Get')
+    jwt: str = login(username, password, user_management_api_base_url, method="api/AuthenticationToken/Get")
 
     # read settings to write to API from file
     settings: dict[str, Any] = read_json_file(settings_file)
@@ -276,24 +268,14 @@ if __name__ == '__main__':
     # write settings to FWO API using the JWT
     # overwrites existing values making this script idempotent
 
-    t: str
-    for t in settings:
-        if t=='config':
+    for key, values in settings.items():
+        if key == "config":
             obj: dict[str, Any]
-            for obj in settings[t]:
+            for obj in values:
                 set_config_values(fwo_api_base_url, jwt, query_variables=obj)
-                # issue in config: area ids will vary - do we re-write this using the area name?
-                    # {
-                    #     "config_key": "modCommonAreas",
-                    #     "config_value": "[{\"area_id\":88,\"use_in_src\":true,\"use_in_dst\":false},{\"area_id\":43,\"use_in_src\":true,\"use_in_dst\":true}]",
-                    #     "config_user": 0
-                    # },
-        elif t=='customtxt':
-            for obj in settings[t]:
+        elif key == "customtxt":
+            for obj in values:
                 set_custom_txt_values(fwo_api_base_url, jwt, query_variables=obj)
-
-        elif t=='modelling_service':
-            for obj in settings[t]:
+        elif key == "modelling_service":
+            for obj in values:
                 set_modelling_service_values(fwo_api_base_url, jwt, query_variables=obj)
-
-        # if t=='local appserver':  # here again we have the (app) id issue - might be able to circumvent this by using objects as references

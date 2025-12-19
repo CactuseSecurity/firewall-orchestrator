@@ -1,5 +1,4 @@
 import logging
-import os
 import sys
 import tempfile
 import unittest
@@ -11,8 +10,8 @@ sys.path.insert(0, str(MODULE_DIR))
 # Also add shared library folder for imports when running via test discovery
 sys.path.insert(0, str(MODULE_DIR.parent / "fwo_custom_lib"))
 
-from scripts.customizing.fwo_custom_lib.app_data_models import Owner, Appip  # noqa: E402
-from scripts.customizing.fwo_custom_lib.read_app_data_csv import (  # noqa: E402
+from scripts.customizing.fwo_custom_lib.app_data_models import Appip, Owner
+from scripts.customizing.fwo_custom_lib.read_app_data_csv import (
     extract_app_data_from_csv,
     extract_ip_data_from_csv,
 )
@@ -28,12 +27,9 @@ class AppDataImportTests(unittest.TestCase):
 
     def test_extract_app_data_from_csv_builds_owner(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
-            owner_csv_path: str = os.path.join(tmpdir, "owners.csv")
+            owner_csv_path: Path = Path(tmpdir) / "owners.csv"
             with open(owner_csv_path, "w", encoding="utf-8") as fh:
-                fh.write(
-                    "col: Name,col: Alfabet-ID,bogus: TISO,bogus: kwITA\n"
-                    "My App,APP-001,user1,false\n"
-                )
+                fh.write("col: Name,col: Alfabet-ID,bogus: TISO,bogus: kwITA\nMy App,APP-001,user1,false\n")
 
             app_list: list[Owner] = []
             extract_app_data_from_csv(
@@ -57,12 +53,9 @@ class AppDataImportTests(unittest.TestCase):
 
     def test_extract_ip_data_from_csv_adds_app_server(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
-            ip_csv_path: str = os.path.join(tmpdir, "ips.csv")
+            ip_csv_path: Path = Path(tmpdir) / "ips.csv"
             with open(ip_csv_path, "w", encoding="utf-8") as fh:
-                fh.write(
-                    "col: Alfabet-ID,col: IP\n"
-                    "APP-001,10.0.0.1\n"
-                )
+                fh.write("col: Alfabet-ID,col: IP\nAPP-001,10.0.0.1\n")
 
             owner: Owner = Owner("My App", "APP-001", "CN=user1", 365, 365, import_source=self.import_source)
             app_dict: dict[str, Owner] = {"APP-001": owner}
@@ -86,7 +79,7 @@ class AppDataImportTests(unittest.TestCase):
 
     def test_extract_app_data_from_csv_allows_custom_header_patterns(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
-            owner_csv_path: str = os.path.join(tmpdir, "owners.csv")
+            owner_csv_path: Path = Path(tmpdir) / "owners.csv"
             with open(owner_csv_path, "w", encoding="utf-8") as fh:
                 fh.write(
                     "Application Name,Application Identifier,Main Owner,Recert Active\n"
@@ -120,12 +113,9 @@ class AppDataImportTests(unittest.TestCase):
 
     def test_extract_ip_data_from_csv_allows_custom_header_patterns(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
-            ip_csv_path: str = os.path.join(tmpdir, "ips.csv")
+            ip_csv_path: Path = Path(tmpdir) / "ips.csv"
             with open(ip_csv_path, "w", encoding="utf-8") as fh:
-                fh.write(
-                    "Identifier,IP Address\n"
-                    "APP-003,10.0.0.0/30\n"
-                )
+                fh.write("Identifier,IP Address\nAPP-003,10.0.0.0/30\n")
 
             owner: Owner = Owner("My App", "APP-003", "CN=user1", 365, 365, import_source=self.import_source)
             app_dict: dict[str, Owner] = {"APP-003": owner}

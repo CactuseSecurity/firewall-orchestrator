@@ -103,11 +103,11 @@ if __name__ == "__main__":
 
     # read config
     subnet_data_filename: str = (
-        ipam_git_repo_target_dir + "/" + read_custom_config(args.config, "subnetData", logger=logger)[0]
+        ipam_git_repo_target_dir + "/" + read_custom_config(args.config, "subnetData", logger=logger)
     )
-    ipam_git_repo: str = read_custom_config(args.config, "ipamGitRepo", logger=logger)[0]
-    ipam_git_user: str = read_custom_config(args.config, "ipamGitUser", logger=logger)[0]
-    ipam_git_password: str = read_custom_config(args.config, "ipamGitPassword", logger=logger)[0]
+    ipam_git_repo: str = read_custom_config(args.config, "ipamGitRepo", logger=logger)
+    ipam_git_user: str = read_custom_config(args.config, "ipamGitUser", logger=logger)
+    ipam_git_password: str = read_custom_config(args.config, "ipamGitPassword", logger=logger)
 
     try:
         # get ipam repo

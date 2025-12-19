@@ -43,7 +43,7 @@ defaultConfigFileName = baseDirEtc + "secrets/customizingConfig.json"
 importSourceString = "tufinRlm" # change this to "cmdb-csv-export"? or will this break anything?
 
 
-def buildDN(userId, ldapPath):
+def build_dn(userId, ldapPath):
     dn = ""
     if len(userId)>0:
         if '{USERID}' in ldapPath:
@@ -56,7 +56,7 @@ def buildDN(userId, ldapPath):
 # adds data from csv file to appData
 # order of files in important: we only import apps which are included in files 3 and 4 (which only contain active apps)
 # so first import files 3 and 4, then import files 1 and 2^
-def extractAppDataFromCsvFile(csvFile: str, appData: dict, containsIp: bool): 
+def extract_app_data_from_csv_file(csvFile: str, appData: dict, containsIp: bool): 
 
     if containsIp:
         appNameColumn = 0
@@ -90,8 +90,8 @@ def extractAppDataFromCsvFile(csvFile: str, appData: dict, containsIp: bool):
         if appId.lower().startswith('app-') or appId.lower().startswith('com-'):
             appName = line[appNameColumn]
             appMainUser = line[appOwnerTISOColumn]
-            mainUserDn = buildDN(appMainUser, ldapPath)
-            bisoDn = buildDN(line[appOwnerBISOColumn], ldapPath)
+            mainUserDn = build_dn(appMainUser, ldapPath)
+            bisoDn = build_dn(line[appOwnerBISOColumn], ldapPath)
             if mainUserDn=='':
                 logger.warning('adding app without main user: ' + appId)
             if appId not in appData.keys() and not containsIp:
@@ -167,9 +167,9 @@ if __name__ == "__main__":
     # 2. get app data from CSV files
     appData = {}
     for csvFile in csvAllOwnerFiles:
-        extractAppDataFromCsvFile(csvFile, appData, False)
+        extract_app_data_from_csv_file(csvFile, appData, False)
     for csvFile in csvAppServerFiles:
-        extractAppDataFromCsvFile(csvFile, appData, True)
+        extract_app_data_from_csv_file(csvFile, appData, True)
 
     owner_data = { "owners": [] } 
 

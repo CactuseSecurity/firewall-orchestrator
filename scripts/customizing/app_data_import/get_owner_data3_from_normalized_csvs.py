@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 # revision history:
-__version__ = "2025-12-02-01"
+__version__ = "2025-12-19-01"
 
 # breaking change: /usr/local/fworch needs to be in the python path
 # just add "export PYTHONPATH="$PYTHONPATH:/usr/local/fworch/"" to /etc/environment
@@ -18,19 +18,15 @@ __version__ = "2025-12-02-01"
 #   a) package python3-git must be installed
 #   b) requires the config items listed in the aprser help to be present in config file /usr/local/orch/etc/secrets/customizingConfig.json
 
-import traceback
-import json
-import sys
 import argparse
 import os
-from pathlib import Path
-import git  # apt install python3-git # or: pip install git
 import re
 import urllib3
 from scripts.customizing.fwo_custom_lib.app_data_models import Owner, Appip
 from scripts.customizing.fwo_custom_lib.read_app_data_csv import extract_app_data_from_csv, extract_ip_data_from_csv
 from scripts.customizing.fwo_custom_lib.basic_helpers import read_custom_config, read_custom_config_with_default, get_logger
-from scripts.customizing.fwo_custom_lib.app_data_basics import transform_owner_dict_to_list, transform_app_list_to_dict
+from scripts.customizing.fwo_custom_lib.app_data_basics import transform_app_list_to_dict, write_owners_to_json
+from scripts.customizing.fwo_custom_lib.git_helpers import update_git_repo, read_file_from_git_repo
 
 
 base_dir = "/usr/local/fworch/"
@@ -81,8 +77,8 @@ if __name__ == "__main__":
     git_password = read_custom_config(args.config, 'gitPassword', logger)
     csv_owner_file_pattern = read_custom_config(args.config, 'csvOwnerFilePattern', logger)
     csv_app_server_file_pattern = read_custom_config(args.config, 'csvAppServerFilePattern', logger)
-    recert_active_repo_url = read_custom_config(args.config, 'gitRepoOwnersWithActiveRecert', logger)
-    recert_active_file_name = read_custom_config(args.config, 'gitFileOwnersWithActiveRecert', logger)
+    recert_active_repo_url = read_custom_config_with_default(args.config, 'gitRepoOwnersWithActiveRecert', None, logger)
+    recert_active_file_name = read_custom_config_with_default(args.config, 'gitFileOwnersWithActiveRecert', None, logger)
     owner_header_patterns = read_custom_config_with_default(args.config, 'csvOwnerColumnPatterns', {}, logger)
     ip_header_patterns = read_custom_config_with_default(args.config, 'csvIpColumnPatterns', {}, logger)
 
@@ -108,42 +104,26 @@ if __name__ == "__main__":
         base_dir=app_data_repo_target_dir
         app_data_repo_url = "https://" + git_username + ":" + git_password + "@" + git_repo_url_without_protocol
 
-        try:
-            if os.path.exists(app_data_repo_target_dir):
-                # If the repository already exists, open it and perform a pull
-                repo = git.Repo(app_data_repo_target_dir)
-                origin = repo.remotes.origin
-                origin.pull()
-            else:
-                repo = git.Repo.clone_from(app_data_repo_url, app_data_repo_target_dir)
-        except Exception as e:
-            logger.warning("could not clone/pull git repo from " + app_data_repo_url + ", exception: " + str(traceback.format_exc()))
+        repo_updated = update_git_repo(app_data_repo_url, app_data_repo_target_dir, logger)
+        if not repo_updated:
             logger.warning("trying to read csv files from folder given as parameter...")
-
 
     #############################################
     # 2. get app list with activated recertification
 
-    recert_active_app_list = []
-
-    recert_repo_url = f"https://{git_username}:{git_password}@{recert_active_repo_url}" 
-    try:
-        if os.path.exists(recert_repo_target_dir):
-            # If the repository already exists, open it and perform a pull
-            repo = git.Repo(recert_repo_target_dir)
-            origin = repo.remotes.origin
-            origin.pull()
-        else:
-            repo = git.Repo.clone_from(recert_repo_url, recert_repo_target_dir)
-
-    recert_activation_file = f"{recert_repo_target_dir}/{recert_active_file_name}"
-    recert_active_app_list = []
-    try:
-        with open(recert_activation_file, "r") as f:
-            recert_active_app_list = f.read().splitlines()
-
-    except Exception as e:
-        logger.warning("could not clone/pull/read git repo from " + recert_repo_url + ", exception: " + str(traceback.format_exc()))
+    if recert_active_repo_url and recert_active_file_name:
+        recert_repo_url = f"https://{git_username}:{git_password}@{recert_active_repo_url}" 
+        recert_activation_data = read_file_from_git_repo(
+            recert_repo_url,
+            recert_repo_target_dir,
+            recert_active_file_name,
+            logger,
+        )
+        recert_active_app_list = recert_activation_data.splitlines() if recert_activation_data else []
+        logger.info(f"found {len(recert_active_app_list)} apps with active recertification")
+    else:
+        recert_active_app_list = []
+        logger.info("no recertification activation source configured; skipping activation of recertification import")
 
     #############################################
     # 3. get app data from CSV files
@@ -164,11 +144,8 @@ if __name__ == "__main__":
             extract_ip_data_from_csv(file_name, app_dict, Appip, logger, debug_level, base_dir=base_dir, column_patterns=ip_header_patterns)
 
     #############################################    
-    # 4. write owners to json file
-    path = os.path.dirname(__file__)
-    file_out = path + '/' + Path(os.path.basename(__file__)).stem + ".json"
-    with open(file_out, "w") as out_fh:
-        json.dump(transform_owner_dict_to_list(app_dict), out_fh, indent=3)
+    # 4. write owners to json file using the same and basename path as this script, just replacing .py with .json
+    write_owners_to_json(app_dict, __file__, logger=logger)
         
     #############################################    
     # 5. Some statistics
@@ -182,6 +159,3 @@ if __name__ == "__main__":
         for app_id in app_dict:
             total_ips += len(app_dict[app_id].app_servers)
         logger.info(f"#ip addresses in total: {str(total_ips)}")
-
-    sys.exit(0)
-    

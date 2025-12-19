@@ -19,6 +19,7 @@ import re
 import fwo_file_import
 
 
+
 class FwConfig():
     ConfigFormat: str
     Config: dict

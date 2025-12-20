@@ -69,7 +69,11 @@ class ImportState:
         return rulebase_id
 
     def lookup_link_type(self, link_uid: str) -> int:
-        return self.link_types.get(link_uid, -1)
+        link_type_id = self.link_types.get(link_uid, None)
+        if not link_type_id:
+            FWOLogger.error(f"Link type {link_uid} not found")
+            raise FwoImporterError(f"Link type {link_uid} not found")
+        return link_type_id
 
     def lookup_gateway_id(self, gw_uid: str) -> int | None:
         mgm_id = self.mgm_details.current_mgm_id

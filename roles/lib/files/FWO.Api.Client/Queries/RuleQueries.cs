@@ -28,6 +28,7 @@ namespace FWO.Api.Client.Queries
         // public static readonly string getNatRuleDetailsForReport;
 
         public static readonly string countRules;
+        public static readonly string countActiveRules;
         public static readonly string getRulesWithViolationsInTimespanByChunk;
         public static readonly string getRulesWithCurrentViolationsByChunk;
         public static readonly string getRulesForSelectedManagements;
@@ -82,14 +83,15 @@ namespace FWO.Api.Client.Queries
                 getRuleIdsOfImport = GetQueryText("report/getRuleIdsOfImport.graphql");
                 getRuleUidsOfDevice = GetQueryText("report/getRuleUidsOfDevice.graphql");
                 getRulesByManagement = ruleDetailsFragments + GetQueryText("report/getRulesByManagement.graphql");
-                getModelledRulesByManagementName = ruleDetailsFragments + GetQueryText("report/getModelledRulesByManagementName.graphql");
-                getModelledRulesByManagementComment = ruleDetailsFragments + GetQueryText("report/getModelledRulesByManagementComment.graphql");
+                getModelledRulesByManagementName = ruleDetailsForReportFragments + GetQueryText("report/getModelledRulesByManagementName.graphql");
+                getModelledRulesByManagementComment = ruleDetailsForReportFragments + GetQueryText("report/getModelledRulesByManagementComment.graphql");
                 getNatRuleOverview = natRuleOverviewFragments + GetQueryText("rule/getNatRuleOverview.graphql");
                 getNatRuleDetails = natRuleDetailsFragments + GetQueryText("rule/getNatRuleDetails.graphql");
                 getRulesWithViolationsInTimespanByChunk = ruleDetailsFragments + GetQueryText("rule/getRulesWithViolationsInTimespanByChunk.graphql");
                 getRulesWithCurrentViolationsByChunk = ruleDetailsFragments + GetQueryText("rule/getRulesWithCurrentViolationsByChunk.graphql");
                 getRulesForSelectedManagements = ruleDetailsFragments + GetQueryText("rule/getRulesForSelectedManagements.graphql");
                 countRules = GetQueryText("rule/countRules.graphql");
+                countActiveRules = GetQueryText("rule/countActiveRules.graphql");
             }
             catch (Exception exception)
             {

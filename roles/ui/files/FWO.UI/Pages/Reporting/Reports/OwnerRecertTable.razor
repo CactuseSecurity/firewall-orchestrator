@@ -5,13 +5,21 @@
 <Table TableClass="table table-bordered table-sm th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="FwoOwner" Items="Owners" PageSize="0">
     <Column TableItem="FwoOwner" Title="@(userConfig.GetText("next_recert_date"))" Field="@(x => x.Id)" >
         <Template>
-            @(GetNextRecertDate(context))
+            @(context.NextRecertDate?.ToString("dd.MM.yyyy") ?? "")
         </Template>
     </Column>
-    <Column TableItem="FwoOwner" Title="@(userConfig.GetText("id"))" Field="@(x => x.Id)" />
+    <Column TableItem="FwoOwner" Title="@(userConfig.GetText("id"))" Field="@(x => x.ExtAppId)" />
     <Column TableItem="FwoOwner" Title="@(userConfig.GetText("name"))" Field="@(x => x.Name)" />
-    <Column TableItem="FwoOwner" Title="@(userConfig.GetText("last_recertified"))" Field="@(x => x.LastRecertified)" />
-    <Column TableItem="FwoOwner" Title="@(userConfig.GetText("last_recertifier"))" Field="@(x => new DistName(x.LastRecertifierDn).UserName)" />
+    <Column TableItem="FwoOwner" Title="@(userConfig.GetText("last_recertified"))" Field="@(x => x.LastRecertified)" >
+        <Template>
+            @(context.LastRecertified?.ToString("dd.MM.yyyy") ?? "")
+        </Template>
+    </Column>
+    <Column TableItem="FwoOwner" Title="@(userConfig.GetText("last_recertifier"))" Field="@(x => x.LastRecertifierDn)" >
+       <Template>
+            @(GetRecertifierName(context))
+        </Template>
+    </Column>
 </Table>
 
 
@@ -20,8 +28,9 @@
     [Parameter]
     public List<FwoOwner> Owners { get; set; } = [];
 
-    private string GetNextRecertDate(FwoOwner owner)
+    private string GetRecertifierName(FwoOwner owner)
     {
-        return owner.NextRecertDate != null ? ((DateTime)owner.NextRecertDate).ToString("dd.MM.yyyy") : "";
+        string UserName = new DistName(owner.LastRecertifierDn).UserName;
+        return string.IsNullOrEmpty(UserName) ? (owner.LastRecertifierDn ?? "") : UserName;
     }
 }

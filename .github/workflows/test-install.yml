@@ -1,4 +1,4 @@
-name: do test install
+name: Checks
 
 on:
   push:
@@ -46,10 +46,22 @@ jobs:
           dotnet test --filter "Name=HtmlToPdfTest"
 
 
-  style-check:
-    name: Style Check
+  python-code-check:
+    name: Python Code Check
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
 
-      - uses: astral-sh/ruff-action@v3
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.11' 
+
+      - run: pip install -r roles/importer/files/importer/requirements.txt
+
+      - uses: astral-sh/ruff-action@57714a7c8a2e59f32539362ba31877a1957dded1
+
+      - run: pyright
+
+      - run: ruff check
+      
+      - run: ruff format --exit-non-zero-on-format

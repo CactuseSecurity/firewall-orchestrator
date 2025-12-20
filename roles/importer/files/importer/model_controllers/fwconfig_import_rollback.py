@@ -31,5 +31,5 @@ class FwConfigImportRollback:
 
         except Exception:
             FWOLogger.exception(
-                f"failed to rollback current importfor mgm id {import_state.mgm_details.mgm_id!s}: {traceback.format_exc()!s}"
+                f"failed to rollback current import for mgm id {import_state.mgm_details.mgm_id!s}: {traceback.format_exc()!s}"
             )

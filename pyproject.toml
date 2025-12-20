@@ -2,3 +2,134 @@
 pythonpath = [
   "roles/importer/files/importer"
 ]
+[tool.pyright]
+include = [
+    "roles/importer/files/importer",
+]
+exclude = [
+    "**/node_modules",
+    "**/__pycache__",
+    ".git",
+    ".venv",
+    "venv",
+    "scripts",
+    "roles/importer/files/importer/test",
+]
+
+ignore = [
+    "./scripts",
+]
+
+venvPath = "."
+venv = ".venv"
+
+typeCheckingMode = "strict"
+reportMissingImports = false
+reportMissingTypeStubs = true
+
+
+
+[tool.ruff]
+line-length = 120
+indent-width = 4
+target-version = "py313"
+exclude = [
+            ".bzr",
+            ".direnv",
+            ".eggs",
+            ".git",
+            ".git-rewrite",
+            ".hg",
+            ".ipynb_checkpoints",
+            ".mypy_cache",
+            ".nox",
+            ".pants.d",
+            ".pyenv",
+            ".pytest_cache",
+            ".pytype",
+            ".ruff_cache",
+            ".svn",
+            ".tox",
+            ".venv",
+            ".vscode",
+            "__pypackages__",
+            "_build",
+            "buck-out",
+            "build",
+            "dist",
+            "node_modules",
+            "site-packages",
+            "venv",
+            ".venv",
+            "__init__.py",
+            "scripts",
+            "roles/tests-integration",
+            "roles/importer/files/importer/test"
+        ]
+
+[lint]
+select = [
+    "ALL", # include all the rules, including new ones
+]
+
+ignore = [
+    #### modules
+    "ANN", # flake8-annotations
+    "COM", # flake8-commas
+    "C90", # mccabe complexity
+    "DJ",  # django
+    "EXE", # flake8-executable
+    "T10", # debugger
+    "TID", # flake8-tidy-imports
+
+    #### specific rules
+    "D100",   # ignore missing docs
+    "D101",
+    "D102",
+    "D103",
+    "D104",
+    "D105",
+    "D106",
+    "D107",
+    "D200",
+    "D205",
+    "D212",
+    "D400",
+    "D401",
+    "D415",
+    "E402",   # false positives for local imports
+    "E501",   # line too long
+    "TRY003", # external messages in exceptions are too verbose
+    "TD002",
+    "TD003",
+    "FIX002", # too verbose descriptions of todos,
+    "EM101",
+    "PTH100",
+    "PLR0913",
+    "PT009", # TODO: Disable assertTrue
+    "PLR0915",
+    "EM102",
+    "FBT001",
+    "BLE001",
+    "DTZ005",
+    "TRY301",
+    "D417",
+    "PLR0912",
+    "B904",
+    "PTH123",
+    "PLR0911",
+    "TRY300",
+    "FBT002",
+    "S113",
+    "S104",
+    "D203",
+    "S101",
+]
+fixable = ["ALL"]
+dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+line-ending = "auto"

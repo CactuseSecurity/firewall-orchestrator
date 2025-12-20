@@ -4,6 +4,7 @@ from typing import Any
 
 import fwo_const
 from fw_modules.checkpointR8x import cp_const
+from fw_modules.fortiadom5ff.fmgr_network import add_member_names_for_nw_group
 from fwo_base import cidr_to_range
 from fwo_const import ANY_IP_END, ANY_IP_START, LIST_DELIMITER
 from fwo_log import FWOLogger
@@ -200,30 +201,6 @@ def get_comment_and_color_of_obj(obj: dict[str, Any]) -> str | None:
     if "color" not in obj or obj["color"] == "" or obj["color"] == "none":
         obj["color"] = "black"
     return comments
-
-
-# for members of groups, the name of the member obj needs to be fetched separately (starting from API v1.?)
-def resolve_nw_uid_to_name(uid: str, nw_objects: list[dict[str, Any]]) -> str:
-    # return name of nw_objects element where obj_uid = uid
-    for obj in nw_objects:
-        if obj["obj_uid"] == uid:
-            return obj["obj_name"]
-    return 'ERROR: uid "' + uid + '" not found'
-
-
-def add_member_names_for_nw_group(idx: int, nw_objects: list[dict[str, Any]]) -> None:
-    group = nw_objects.pop(idx)
-    if group["obj_member_refs"] == "" or group["obj_member_refs"] is None:
-        group["obj_member_names"] = None
-        group["obj_member_refs"] = None
-    else:
-        member_names = ""
-        obj_member_refs = group["obj_member_refs"].split(LIST_DELIMITER)
-        for ref in obj_member_refs:
-            member_name = resolve_nw_uid_to_name(ref, nw_objects)
-            member_names += member_name + LIST_DELIMITER
-        group["obj_member_names"] = member_names[:-1]
-    nw_objects.insert(idx, group)
 
 
 def validate_ip_address(address: str) -> bool:

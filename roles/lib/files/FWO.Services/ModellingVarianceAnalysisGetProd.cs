@@ -6,7 +6,6 @@ using FWO.Data.Report;
 using FWO.Logging;
 using System.Text.Json;
 using System.Text.RegularExpressions;
-using FWO.FwLogic;
 
 namespace FWO.Services
 {
@@ -73,27 +72,23 @@ namespace FWO.Services
 
         private void IdentifyModelledRules(Management mgt, List<Rule> rulesByMgt)
         {
-            // get all rulebase links for this management
-            List<RulebaseLink> rulebaseLinks = mgt.Devices.SelectMany(d => d.RulebaseLinks.Where(rl => rl.Removed != null)).ToList();
             allModelledRules.Add(mgt.Id, []);
             foreach (var rule in rulesByMgt)
             {
                 rule.ManagementName = mgt.Name;
-                // TMP-MERGE fix
-                // rule.DeviceName = mgt.Devices.FirstOrDefault(d => d.Id == rule.DeviceId)?.Name ?? "";
-                // string? connRef = FindModelledMarker(rule);
-                // if (connRef != null)
-                // {
-                //     if (long.TryParse(connRef, out long connId))
-                //     {
-                //         rule.ConnId = connId;
-                //     }
-                //     allModelledRules[mgt.Id].Add(rule);
-                // }
-                // else
-                // {
-                //     varianceResult.UnModelledRules[mgt.Id].Add(rule);
-                // }
+                string? connRef = FindModelledMarker(rule);
+                if (connRef != null)
+                {
+                    if (long.TryParse(connRef, out long connId))
+                    {
+                        rule.ConnId = connId;
+                    }
+                    allModelledRules[mgt.Id].Add(rule);
+                }
+                else
+                {
+                    varianceResult.UnModelledRules[mgt.Id].Add(rule);
+                }
             }
         }
 
@@ -144,6 +139,7 @@ namespace FWO.Services
         private async Task<List<Rule>?> GetRules(int mgtId, ModellingFilter modellingFilter)
         {
             long? relImpId = await GetRelevantImportId(mgtId);
+            await GetRuleDevices(mgtId, modellingFilter);
             if (modellingFilter.AnalyseRemainingRules)
             {
                 var RuleVariables = new
@@ -171,6 +167,14 @@ namespace FWO.Services
                     _ => throw new NotSupportedException("invalid or undefined Marker Location")
                 };
                 return await apiConnection.SendQueryAsync<List<Rule>>(query, RuleVariables);
+            }
+        }
+
+        private async Task GetRuleDevices(int mgtId, ModellingFilter modellingFilter)
+        {
+            if(modellingFilter.AnalyseRemainingRules || modellingFilter.RulesForDeletedConns)
+            {
+                DeviceRules[mgtId] = await apiConnection.SendQueryAsync<List<DeviceReport>>(DeviceQueries.getDevicesWithRulebaseLinks, new { mgmId = mgtId });
             }
         }
 

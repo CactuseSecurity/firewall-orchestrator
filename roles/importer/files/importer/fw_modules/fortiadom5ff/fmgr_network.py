@@ -3,7 +3,7 @@ from typing import Any
 
 from fw_modules.fortiadom5ff.fmgr_zone import find_zones_in_normalized_config
 from fwo_base import sort_and_join_refs
-from fwo_const import LIST_DELIMITER, NAT_POSTFIX
+from fwo_const import ANY_IP_END, ANY_IP_START, LIST_DELIMITER, NAT_POSTFIX
 from fwo_exceptions import FwoImporterErrorInconsistenciesError
 from fwo_log import FWOLogger
 
@@ -39,9 +39,9 @@ def normalize_network_objects(
         nw_objects.append(
             create_network_object(
                 name=original_obj_name,
-                typ="network",
-                ip="0.0.0.0",
-                ip_end="255.255.255.255",
+                obj_type="network",
+                ip=ANY_IP_START,
+                ip_end=ANY_IP_END,
                 uid=original_obj_uid,
                 zone="global",
                 color="black",
@@ -111,14 +111,18 @@ def normalize_network_object(
         obj.update({"obj_ip_end": obj_orig["end-ip"]})
     elif "extip" in obj_orig:  # vip object, simplifying to a single ip
         normalize_vip_object(obj_orig, obj, nw_objects)
-    elif "wildcard-fqdn" in obj_orig:
+    elif "wildcard-fqdn" in obj_orig or "fqdn" in obj_orig:  # domain or wildcard-domain
         obj.update({"obj_typ": "domain"})
-        obj.update({"obj_ip": "0.0.0.0"})
-        obj.update({"obj_ip_end": "255.255.255.255"})
-    else:  # 'fqdn' in obj_orig: # "fully qualified domain name address" // other unknown types
+        obj.update({"obj_ip": ANY_IP_START})
+        obj.update({"obj_ip_end": ANY_IP_END})
+    elif "q_origin_key" in obj_orig:
+        obj.update({"obj_typ": "dynamic_net_obj"})
+        obj.update({"obj_ip": ANY_IP_START})
+        obj.update({"obj_ip_end": ANY_IP_END})
+    else:  # unknown types
         obj.update({"obj_typ": "network"})
-        obj.update({"obj_ip": "0.0.0.0"})
-        obj.update({"obj_ip_end": "255.255.255.255"})
+        obj.update({"obj_ip": ANY_IP_START})
+        obj.update({"obj_ip_end": ANY_IP_END})
 
     # if obj_ip_end is not define, set it to obj_ip (assuming host)
     if obj.get("obj_ip_end") is None and obj.get("obj_typ") == "host":
@@ -258,11 +262,11 @@ def add_member_names_for_nw_group(idx: int, nw_objects: list[dict[str, Any]]) ->
 
 
 def create_network_object(
-    name: str, typ: str, ip: str, ip_end: str | None, uid: str, color: str, comment: str | None, zone: str | None
+    name: str, obj_type: str, ip: str, ip_end: str | None, uid: str, color: str, comment: str | None, zone: str | None
 ) -> dict[str, Any]:
     return {
         "obj_name": name,
-        "obj_typ": typ,
+        "obj_typ": obj_type,
         "obj_ip": ip,
         "obj_ip_end": ip_end,
         "obj_uid": uid,

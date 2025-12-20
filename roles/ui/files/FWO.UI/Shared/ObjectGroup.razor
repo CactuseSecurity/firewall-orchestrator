@@ -116,7 +116,7 @@
                             {
                                 <Detail Title="@(userConfig.GetText("source_port"))" Data=@DisplayBase.DisplayPort(context.SourcePort, context.SourcePortEnd) />
                                 <Detail Title="@(userConfig.GetText("destination_port"))" Data=@DisplayBase.DisplayPort(context.DestinationPort, context.DestinationPortEnd) />
-                                if (!context.Name.Equals("Any") && !context.Name.Equals("ALL") || !(context.Protocol.Id == 0))
+                                if (!context.Name.Equals("Any") && !context.Name.Equals("ALL") || !(context.Protocol?.Id == 0))
                                 {
                                     <Detail Title="@(userConfig.GetText("protocol"))" Data=@context.Protocol?.Name />
                                 }
@@ -161,7 +161,7 @@
                                                 }
                                                 @if (member.DestinationPort != null)
                                                 {
-                                                    <span>∟ @(userConfig.GetText("destination_port")): @DisplayBase.DisplayPort(member.DestinationPort, member.DestinationPortEnd, false, member.Protocol.Name)</span>
+                                                    <span>∟ @(userConfig.GetText("destination_port")): @DisplayBase.DisplayPort(member.DestinationPort, member.DestinationPortEnd, false, member.Protocol?.Name)</span>
                                                 }
                                                 <br>
                                             }

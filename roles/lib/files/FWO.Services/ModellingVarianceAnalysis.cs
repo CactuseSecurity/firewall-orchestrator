@@ -30,7 +30,7 @@ namespace FWO.Services
         private List<WfReqTask> DeleteAccessTaskList = [];
         private List<WfReqTask> DeleteObjectTasksList = [];
         private int taskNumber = 0;
-        private List<WfReqElement> elements = [];
+        private List<WfReqElement> ReqElements = [];
 
         private ModellingVarianceResult varianceResult = new();
 
@@ -42,6 +42,8 @@ namespace FWO.Services
         private readonly Dictionary<int, List<ModellingAppServer>> alreadyCreatedAppServers = [];
         private List<ModellingConnection> DeletedConns = [];
         private List<ModellingNetworkArea> AllAreas = [];
+
+        private readonly Dictionary<int, List<DeviceReport>> DeviceRules = [];
 
         public ModellingAppZone? PlannedAppZoneDbUpdate { get; set; } = default;
 
@@ -111,6 +113,7 @@ namespace FWO.Services
                     await GetRulesForDeletedConns([.. connections.Where(c => c.IsDocumentationOnly())]);
                 }
             }
+            varianceResult.DeviceRules = DeviceRules;
             return varianceResult;
         }
 
@@ -130,16 +133,16 @@ namespace FWO.Services
             DeleteObjectTasksList = [];
             foreach (Management mgt in RelevantManagements)
             {
-                await AnalyseAppZone(mgt);
+                await AnalyseAppZoneForRequest(mgt);
                 foreach (var conn in connections.Where(c => !c.IsRequested && !c.IsDocumentationOnly()).OrderBy(c => c.Id))
                 {
-                    elements = [];
+                    ReqElements = [];
                     AnalyseNetworkAreasForRequest(conn);
                     AnalyseAppRolesForRequest(conn, mgt);
                     AnalyseAppServersForRequest(conn);
                     AnalyseServiceGroupsForRequest(conn, mgt);
                     AnalyseServicesForRequest(conn);
-                    if (elements.Count > 0)
+                    if (ReqElements.Count > 0)
                     {
                         AnalyseConnectionForRequest(mgt, conn);
                     }
@@ -187,6 +190,36 @@ namespace FWO.Services
                 Log.WriteError(userConfig.GetText("impl_state"), exception.Message);
             }
             return "";
+        }
+
+        public async Task<(bool, List<ModellingAppZone?>)> CheckExistingAppZone()
+        {
+            List<ModellingAppZone?> MgtsWithVariance = [];
+            ModellingAppZone? modelledAppZone = await AppZoneHandler.GetExistingModelledAppZone();
+            if(modelledAppZone != null)
+            {
+                AppZoneComparer appZoneComparer = new(namingConvention);
+                foreach(var mgt in RelevantManagements)
+                {
+                    await CollectGroupObjects(mgt.Id);
+                    ModellingAppRole? prodAppRole = ResolveProdAppRole(modelledAppZone, mgt);
+                    if(prodAppRole == null)
+                    {
+                        MgtsWithVariance.Add(new(){ ManagementName = mgt.Name });
+                    }
+                    else
+                    {
+                        ModellingAppZone prodAppZone = new(prodAppRole);
+                        if(!appZoneComparer.Equals(prodAppZone, modelledAppZone))
+                        {
+                            prodAppZone.ManagementName = mgt.Name;
+                            MgtsWithVariance.Add(prodAppZone);
+                        }
+                    }
+                }
+                return (true, MgtsWithVariance);
+            }
+            return (false, []);
         }
 
         private void PreAnalyseAllAppRoles(List<ModellingConnection> connections)

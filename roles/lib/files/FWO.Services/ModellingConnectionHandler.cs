@@ -372,15 +372,21 @@ namespace FWO.Services
             return false;
         }
 
-        public bool ComSvcContainsCommonNetworkArea()
+        public bool ComSvcContainsOnlyCommonNetworkArea()
         {
             List<ModellingNetworkArea> srcAreas = [.. ModellingNetworkAreaWrapper.Resolve(ActConn.SourceAreas)];
             List<ModellingNetworkArea> destAreas = [.. ModellingNetworkAreaWrapper.Resolve(ActConn.DestinationAreas)];
 
-            if(HasCommonNetworkAreas(srcAreas) ||
-                HasCommonNetworkAreas(SrcAreasToAdd) ||
-                HasCommonNetworkAreas(destAreas) ||
-                HasCommonNetworkAreas(DstAreasToAdd))
+            HashSet<long> srcAreasToDeleteIds = [.. SrcAreasToDelete.Select(d => d.Id)];
+            srcAreas.RemoveAll(a => srcAreasToDeleteIds.Contains(a.Id));
+
+            HashSet<long> dstAreasToDeleteIds = [.. DstAreasToDelete.Select(d => d.Id)];
+            destAreas.RemoveAll(a => dstAreasToDeleteIds.Contains(a.Id));
+
+            if (HasOnlyCommonNetworkAreas(srcAreas) &&
+                HasOnlyCommonNetworkAreas(SrcAreasToAdd) &
+                HasOnlyCommonNetworkAreas(destAreas) &&
+                HasOnlyCommonNetworkAreas(DstAreasToAdd))
             {
                 return true;
             }
@@ -467,6 +473,16 @@ namespace FWO.Services
         private bool HasCommonNetworkAreas(List<ModellingNetworkArea> networkAreas)
         {
             return networkAreas.Any(a => CommonAreaConfigItems.Any(_ => _.AreaId == a.Id));
+        }
+
+        /// <summary>
+        /// Determines whether all specified network areas are included in the set of common network areas.
+        /// </summary>
+        /// <param name="networkAreas">A list of network areas to check for inclusion in the common network areas.</param>
+        /// <returns>true if every network area in the list is present in the common network areas configuration; otherwise, false.</returns>
+        private bool HasOnlyCommonNetworkAreas(List<ModellingNetworkArea> networkAreas)
+        {
+            return networkAreas.All(a => CommonAreaConfigItems.Any(_ => _.AreaId == a.Id));
         }
 
         public bool SaveExtraConfig(ModellingExtraConfig extraConfig)
@@ -1287,7 +1303,7 @@ namespace FWO.Services
 
         public async Task<bool> Save(bool noCheck = false, bool decommInterface = false)
         {
-            if(ActConn.IsCommonService && !ComSvcContainsCommonNetworkArea())
+            if(ActConn.IsCommonService && ComSvcContainsOnlyCommonNetworkArea())
             {
                 DisplayMessageInUi(default, userConfig.GetText("edit_common_service"), userConfig.GetText("U9030"), true);
                 return false;

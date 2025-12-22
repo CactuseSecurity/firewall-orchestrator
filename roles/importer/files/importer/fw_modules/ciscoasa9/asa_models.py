@@ -9,15 +9,18 @@ class AsaEnablePassword(BaseModel):
     password: str
     encryption_function: str
 
+
 class AsaServiceModule(BaseModel):
     name: str
     keepalive_timeout: int
     keepalive_counter: int
 
+
 class Names(BaseModel):
     name: str
     ip_address: str
     description: str | None = None
+
 
 class Interface(BaseModel):
     name: str
@@ -29,23 +32,27 @@ class Interface(BaseModel):
     additional_settings: list[str]
     description: str | None = None
 
+
 class AsaNetworkObject(BaseModel):
     name: str
     ip_address: str
-    ip_address_end: str | None = None # for range objects
+    ip_address_end: str | None = None  # for range objects
     subnet_mask: str | None = None
     fqdn: str | None = None
     description: str | None = None
+
 
 class AsaNetworkObjectGroup(BaseModel):
     name: str
     objects: list[AsaNetworkObjectGroupMember]
     description: str | None = None
 
+
 class AsaNetworkObjectGroupMember(BaseModel):
     kind: Literal["object", "object-group", "host", "hostv6", "subnet", "subnetv6"]
     value: str
     mask: str | None = None
+
 
 class AsaServiceObject(BaseModel):
     name: str
@@ -53,6 +60,7 @@ class AsaServiceObject(BaseModel):
     dst_port_eq: str | None = None
     dst_port_range: tuple[str, str] | None = None
     description: str | None = None
+
 
 class AsaServiceObjectGroup(BaseModel):
     name: str
@@ -63,15 +71,30 @@ class AsaServiceObjectGroup(BaseModel):
     protocols: list[str]
     description: str | None
 
+
 class AsaProtocolGroup(BaseModel):
     name: str
-    protocols: list[str] 
+    protocols: list[str]
     description: str | None = None
 
+
 class EndpointKind(BaseModel):
-    kind: Literal["any", "host", "subnet", "object", "object-group", "service", "protocol-group", "protocol", "eq", "range", "service-group"]
+    kind: Literal[
+        "any",
+        "host",
+        "subnet",
+        "object",
+        "object-group",
+        "service",
+        "protocol-group",
+        "protocol",
+        "eq",
+        "range",
+        "service-group",
+    ]
     value: str
     mask: str | None = None
+
 
 class AccessListEntry(BaseModel):
     acl_name: str
@@ -83,14 +106,17 @@ class AccessListEntry(BaseModel):
     inactive: bool = False  # Added field for inactive flag
     description: str | None = None
 
+
 class AccessList(BaseModel):
     name: str
     entries: list[AccessListEntry]
+
 
 class AccessGroupBinding(BaseModel):
     acl_name: str
     direction: Literal["in", "out"]
     interface: str
+
 
 class NatRule(BaseModel):
     object_name: str
@@ -99,12 +125,14 @@ class NatRule(BaseModel):
     nat_type: Literal["dynamic", "static"] = "dynamic"
     translated_object: str | None = None
 
+
 class Route(BaseModel):
     interface: str
     destination: str
     netmask: str
     next_hop: str
     distance: int | None = None
+
 
 class MgmtAccessRule(BaseModel):
     protocol: Literal["http", "ssh", "telnet"]
@@ -115,31 +143,37 @@ class MgmtAccessRule(BaseModel):
 
 class ClassMap(BaseModel):
     name: str
-    matches: list[str] = []   # e.g., ["default-inspection-traffic"]
+    matches: list[str] = []  # e.g., ["default-inspection-traffic"]
+
 
 class DnsInspectParameters(BaseModel):
     message_length_max_client: Literal["auto", "default"] | int | None = None
     message_length_max: int | None = None
     tcp_inspection: bool = True  # "no tcp-inspection" -> False
 
+
 class InspectionAction(BaseModel):
-    protocol: str                 # e.g., "dns", "ftp"
+    protocol: str  # e.g., "dns", "ftp"
     policy_map: str | None = None  # e.g., "preset_dns_map" after "inspect dns preset_dns_map"
 
+
 class PolicyClass(BaseModel):
-    class_name: str               # e.g., "inspection_default"
+    class_name: str  # e.g., "inspection_default"
     inspections: list[InspectionAction] = []
 
+
 class PolicyMap(BaseModel):
-    name: str                     # e.g., "global_policy" or "preset_dns_map"
+    name: str  # e.g., "global_policy" or "preset_dns_map"
     type_str: str | None = None  # e.g., "inspect dns" for typed maps
     parameters_dns: DnsInspectParameters | None = None
     classes: list[PolicyClass] = []
 
+
 class ServicePolicyBinding(BaseModel):
-    policy_map: str               # e.g., "global_policy"
+    policy_map: str  # e.g., "global_policy"
     scope: Literal["global", "interface"] = "global"
     interface: str | None = None
+
 
 class Config(BaseModel):
     asa_version: str

@@ -34,7 +34,7 @@ namespace FWO.Services
             {
                 foreach(var rule in varianceResult.RuleDifferences[0].ImplementedRules.Where(r => r.MgmtId == mgt.Id))
                 {
-                    ChangeAccessTaskList.Add(ConstructRuleTask(mgt, rule, conn, false, elements));
+                    ChangeAccessTaskList.Add(ConstructRuleTask(mgt, rule, conn, false, ReqElements));
                 }
             }
         }
@@ -105,10 +105,11 @@ namespace FWO.Services
 
         private List<WfReqElement> GetNwObjElementsFromConn(ModellingConnection deletedConn)
         {
+            ReqElements = [];
             AnalyseNetworkAreasForRequest(deletedConn, true);
             foreach (ModellingAppRole srcAppRole in ModellingAppRoleWrapper.Resolve(deletedConn.SourceAppRoles))
             {
-                elements.Add(new()
+                ReqElements.Add(new()
                 {
                     RequestAction = RequestAction.create.ToString(),
                     Field = ElemFieldType.modelled_source.ToString(),
@@ -117,7 +118,7 @@ namespace FWO.Services
             }
             foreach (ModellingAppRole dstAppRole in ModellingAppRoleWrapper.Resolve(deletedConn.DestinationAppRoles))
             {
-                elements.Add(new()
+                ReqElements.Add(new()
                 {
                     RequestAction = RequestAction.create.ToString(),
                     Field = ElemFieldType.modelled_destination.ToString(),
@@ -125,7 +126,7 @@ namespace FWO.Services
                 });
             }
             AnalyseAppServersForRequest(deletedConn, true);
-            return elements.ConvertAll(e => new WfReqElement(e) { RequestAction = RequestAction.unchanged.ToString() });
+            return ReqElements.ConvertAll(e => new WfReqElement(e) { RequestAction = RequestAction.unchanged.ToString() });
         }
 
         private WfReqTask ConstructCreateTask(Management mgt, ModellingConnection conn)
@@ -137,7 +138,7 @@ namespace FWO.Services
                 TaskType = WfTaskType.access.ToString(),
                 ManagementId = mgt.Id,
                 OnManagement = mgt,
-                Elements = elements,
+                Elements = ReqElements,
                 RuleAction = 1,  // Todo ??
                 Tracking = 1,  // Todo ??
                 AdditionalInfo = JsonSerializer.Serialize(addInfo),
@@ -187,7 +188,7 @@ namespace FWO.Services
         {
             foreach(var area in ModellingNetworkAreaWrapper.Resolve(conn.SourceAreas))
             {
-                elements.Add(new()
+                ReqElements.Add(new()
                 {
                     RequestAction = RequestAction.create.ToString(),
                     Field = modelled ? ElemFieldType.modelled_source.ToString() : ElemFieldType.source.ToString(),
@@ -196,7 +197,7 @@ namespace FWO.Services
             }
             foreach(var area in ModellingNetworkAreaWrapper.Resolve(conn.DestinationAreas))
             {
-                elements.Add(new()
+                ReqElements.Add(new()
                 {
                     RequestAction = RequestAction.create.ToString(),
                     Field = modelled ? ElemFieldType.modelled_destination.ToString() : ElemFieldType.destination.ToString(),
@@ -233,7 +234,7 @@ namespace FWO.Services
                 RequestUpdateAppRole(appRole, mgt);
             }
 
-            elements.Add(new()
+            ReqElements.Add(new()
             {
                 RequestAction = RequestAction.create.ToString(),
                 Field = isSource ? ElemFieldType.source.ToString() : ElemFieldType.destination.ToString(),
@@ -241,7 +242,7 @@ namespace FWO.Services
             });
         }
 
-        private async Task AnalyseAppZone(Management mgt)
+        private async Task AnalyseAppZoneForRequest(Management mgt)
         {
             if (!userConfig.CreateAppZones)
             {
@@ -481,7 +482,7 @@ namespace FWO.Services
         {
             foreach (var srcAppServer in conn.SourceAppServers.Select(a => a.Content))
             {
-                elements.Add(new()
+                ReqElements.Add(new()
                 {
                     RequestAction = RequestAction.create.ToString(),
                     Field = modelled ? ElemFieldType.modelled_source.ToString() : ElemFieldType.source.ToString(),
@@ -492,7 +493,7 @@ namespace FWO.Services
             }
             foreach (var dstAppServer in conn.DestinationAppServers.Select(a => a.Content))
             {
-                elements.Add(new()
+                ReqElements.Add(new()
                 {
                     RequestAction = RequestAction.create.ToString(),
                     Field = modelled ? ElemFieldType.modelled_destination.ToString() : ElemFieldType.destination.ToString(),
@@ -511,7 +512,7 @@ namespace FWO.Services
                 {
                     foreach (ModellingService svc in ModellingServiceWrapper.Resolve(svcGrp.Services))
                     {
-                        elements.Add(new()
+                        ReqElements.Add(new()
                         {
                             RequestAction = RequestAction.create.ToString(),
                             Field = ElemFieldType.service.ToString(),
@@ -528,7 +529,7 @@ namespace FWO.Services
                     {
                         RequestNewServiceGroup(svcGrp, mgt);
                     }
-                    elements.Add(new()
+                    ReqElements.Add(new()
                     {
                         RequestAction = RequestAction.create.ToString(),
                         Field = ElemFieldType.service.ToString(),
@@ -570,7 +571,7 @@ namespace FWO.Services
         {
             foreach (ModellingService svc in ModellingServiceWrapper.Resolve(conn.Services))
             {
-                elements.Add(new()
+                ReqElements.Add(new()
                 {
                     RequestAction = RequestAction.create.ToString(),
                     Field = ElemFieldType.service.ToString(),

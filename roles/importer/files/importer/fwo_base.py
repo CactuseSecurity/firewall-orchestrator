@@ -1,62 +1,61 @@
 import hashlib
+import ipaddress
 import json
 import re
+import time
+import traceback
 from enum import Enum
 from typing import TYPE_CHECKING, Any
-import ipaddress
-import traceback
-import time
 
 import fwo_config
 import fwo_const
+from fwo_const import IMPORT_TMP_PATH
 from fwo_enums import ConfFormat, ConfigAction
 from model_controllers.fwconfig_import_ruleorder import RuleOrderService
+
 if TYPE_CHECKING:
     from model_controllers.import_state_controller import ImportStateController
+    from models.import_state import ImportState
 from fwo_log import FWOLogger
-from services.service_provider import ServiceProvider
+from services.enums import Lifetime, Services
 from services.global_state import GlobalState
-from services.enums import Services, Lifetime
-from services.uid2id_mapper import Uid2IdMapper
 from services.group_flats_mapper import GroupFlatsMapper
+from services.service_provider import ServiceProvider
+from services.uid2id_mapper import Uid2IdMapper
 
 
 def sanitize(content: Any, lower: bool = False) -> None | str:
     if content is None:
         return None
     result = str(content)
-    result = result.replace("\"","")  # remove possibly contained apostrophe
-    result = result.replace("\n"," ")  # replace possibly contained CR with space
+    result = result.replace('"', "")  # remove possibly contained apostrophe
+    result = result.replace("\n", " ")  # replace possibly contained CR with space
     if lower:
         return result.lower()
-    else:
-        return result
+    return result
 
 
 def extend_string_list(list_string: str | None, src_dict: dict[str, list[str]], key: str, delimiter: str) -> str:
     if list_string is None:
-        list_string = ''
-    if list_string == '':
-        if key in src_dict:
-            result = delimiter.join(src_dict[key])
-        else:
-            result = ''
-#            fwo_api.create_data_issue(fwo_api_base_url, jwt, import_id, key)
+        list_string = ""
+    if list_string == "":
+        result = delimiter.join(src_dict[key]) if key in src_dict else ""
+    elif key in src_dict:
+        old_list = list_string.split(delimiter)
+        combined_list = old_list + src_dict[key]
+        result = delimiter.join(combined_list)
     else:
-        if key in src_dict:
-            old_list = list_string.split(delimiter)
-            combined_list = old_list + src_dict[key]
-            result = delimiter.join(combined_list)
-        else:
-            result = list_string
-#            fwo_api.create_data_issue(fwo_api_base_url, jwt, import_id, key)
+        result = list_string
     return result
 
-def string_is_uri(s: str) -> re.Match[str] | None: # TODO: should return bool?
-    return re.match('http://.+', s) or re.match('https://.+', s) or  re.match('file://.+', s) 
+
+def string_is_uri(s: str) -> re.Match[str] | None:  # TODO: should return bool?
+    return re.match("http://.+", s) or re.match("https://.+", s) or re.match("file://.+", s)
 
 
-def deserialize_class_to_dict_rec(obj: Any, seen: set[int] | None = None) -> dict[str, Any] | list[Any] | Any | str | int | float | bool | None: #TYPING: using model is forbidden?
+def deserialize_class_to_dict_rec(
+    obj: Any, seen: set[int] | None = None
+) -> dict[str, Any] | list[Any] | Any | str | int | float | bool | None:  # TYPING: using model is forbidden?
     if seen is None:
         seen = set()
 
@@ -72,40 +71,39 @@ def deserialize_class_to_dict_rec(obj: Any, seen: set[int] | None = None) -> dic
 
     if isinstance(obj, list):
         # If the object is a list, deserialize each item
-        return [deserialize_class_to_dict_rec(item, seen) for item in obj] # type: ignore
-    elif isinstance(obj, dict):
+        return [deserialize_class_to_dict_rec(item, seen) for item in obj]  # type: ignore  # noqa: PGH003
+    if isinstance(obj, dict):
         # If the object is a dictionary, deserialize each key-value pair
-        return {key: deserialize_class_to_dict_rec(value, seen) for key, value in obj.items()} # type: ignore
-    elif isinstance(obj, Enum):
+        return {key: deserialize_class_to_dict_rec(value, seen) for key, value in obj.items()}  # type: ignore  # noqa: PGH003
+    if isinstance(obj, Enum):
         # If the object is an Enum, convert it to its value
         return obj.value
-    elif hasattr(obj, '__dict__'):
+    if hasattr(obj, "__dict__"):
         # If the object is a class instance, deserialize its attributes
         return {
             key: deserialize_class_to_dict_rec(value, seen)
             for key, value in obj.__dict__.items()
-            if not callable(value) and not key.startswith('__')
+            if not callable(value) and not key.startswith("__")
         }
-    else:
-        # For other types, return the value as is
-        return obj
+    # For other types, return the value as is
+    return obj
 
 
-def cidr_to_range(ip: str | None) -> list[str] | list[None]: # TODO: I have no idea what other than string it could be
-    if isinstance(ip, str): # type: ignore
+def cidr_to_range(ip: str | None) -> list[str] | list[None]:  # TODO: I have no idea what other than string it could be
+    if isinstance(ip, str):
         # dealing with ranges:
-        if '-' in ip:
-            return '-'.split(ip)
+        if "-" in ip:
+            return "-".split(ip)
 
         ip_version = valid_ip_address(ip)
-        if ip_version=='Invalid':
+        if ip_version == "Invalid":
             FWOLogger.warning("error while decoding ip '" + ip + "'")
             return [ip]
-        elif ip_version=='IPv4':
+        if ip_version == "IPv4":
             net = ipaddress.IPv4Network(ip)
-        elif ip_version=='IPv6':
+        elif ip_version == "IPv6":
             net = ipaddress.IPv6Network(ip)
-        return [str(net.network_address), str(net.broadcast_address)] # type: ignore
+        return [str(net.network_address), str(net.broadcast_address)]  # type: ignore  # noqa: PGH003
 
     return [ip]
 
@@ -114,18 +112,16 @@ def valid_ip_address(ip: str) -> str:
     try:
         # Try as network first (handles CIDR notation)
         network = ipaddress.ip_network(ip, strict=False)
-        if network.version == 4:
+        if network.version == 4:  # noqa: PLR2004
             return "IPv4"
-        else:
-            return "IPv6"
+        return "IPv6"
     except ValueError:
         try:
             # Try as individual address
             addr = ipaddress.ip_address(ip)
-            if addr.version == 4:
+            if addr.version == 4:  # noqa: PLR2004
                 return "IPv4"
-            else:
-                return "IPv6"
+            return "IPv6"
         except ValueError:
             return "Invalid"
 
@@ -138,14 +134,14 @@ def lcs_dp(seq1: list[Any], seq2: list[Any]) -> tuple[list[list[int]], int]:
     """
     m: int = len(seq1)
     n: int = len(seq2)
-    dp: list[list[int]] = [[0]*(n+1) for _ in range(m+1)]
+    dp: list[list[int]] = [[0] * (n + 1) for _ in range(m + 1)]
 
     for i in range(m):
         for j in range(n):
             if seq1[i] == seq2[j]:
-                dp[i+1][j+1] = dp[i][j] + 1
+                dp[i + 1][j + 1] = dp[i][j] + 1
             else:
-                dp[i+1][j+1] = max(dp[i+1][j], dp[i][j+1])
+                dp[i + 1][j + 1] = max(dp[i + 1][j], dp[i][j + 1])
     return dp, dp[m][n]
 
 
@@ -158,11 +154,11 @@ def backtrack_lcs(seq1: list[Any], seq2: list[Any], dp: list[list[int]]) -> list
     i: int = len(seq1)
     j: int = len(seq2)
     while i > 0 and j > 0:
-        if seq1[i-1] == seq2[j-1]:
-            lcs_indices.append((i-1, j-1))
+        if seq1[i - 1] == seq2[j - 1]:
+            lcs_indices.append((i - 1, j - 1))
             i -= 1
             j -= 1
-        elif dp[i-1][j] >= dp[i][j-1]:
+        elif dp[i - 1][j] >= dp[i][j - 1]:
             i -= 1
         else:
             j -= 1
@@ -189,10 +185,10 @@ def compute_min_moves(source: list[Any], target: list[Any]) -> dict[str, Any]:
     t_common: list[Any] = [elem for elem in target if elem in source_set]
 
     # Calculate deletions and insertions:
-    deletions: list[tuple[int, Any]] = [ (i, elem) for i, elem in enumerate(source) if elem not in target_set ]
-    insertions: list[tuple[int, Any]] = [ (j, elem) for j, elem in enumerate(target) if elem not in source_set ]
+    deletions: list[tuple[int, Any]] = [(i, elem) for i, elem in enumerate(source) if elem not in target_set]
+    insertions: list[tuple[int, Any]] = [(j, elem) for j, elem in enumerate(target) if elem not in source_set]
 
-    # Compute the longest common subsequence (LCS) between S_common and T_common – these are common elements already in correct relative order.
+    # Compute the longest common subsequence (LCS) between S_common and T_common - these are common elements already in correct relative order.
     lcs_data: tuple[list[list[int]], int] = lcs_dp(s_common, t_common)
     lcs_indices: list[tuple[int, int]] = backtrack_lcs(s_common, t_common, lcs_data[0])
 
@@ -216,11 +212,9 @@ def compute_min_moves(source: list[Any], target: list[Any]) -> dict[str, Any]:
                 reposition_moves.append((orig_index, elem, target.index(elem)))
             s_common_iter += 1
 
-    total_moves: int = (len(deletions)
-                   + len(insertions)
-                   + len(reposition_moves))
+    total_moves: int = len(deletions) + len(insertions) + len(reposition_moves)
 
-    # Build a list of human‐readable operations.
+    # Build a list of human-readable operations.
     operations: list[str] = []
     for idx, elem in deletions:
         operations.append(f"Delete element '{elem}' at source index {idx}.")
@@ -234,24 +228,27 @@ def compute_min_moves(source: list[Any], target: list[Any]) -> dict[str, Any]:
         "operations": operations,
         "deletions": deletions,
         "insertions": insertions,
-        "reposition_moves": reposition_moves
+        "reposition_moves": reposition_moves,
     }
 
 
-def write_native_config_to_file(import_state: 'ImportStateController', config_native: dict[str, Any] | None) -> None:
-    from fwo_const import IMPORT_TMP_PATH
+def write_native_config_to_file(import_state: "ImportState", config_native: dict[str, Any] | None) -> None:
     if FWOLogger.is_debug_level(7):
         debug_start_time = int(time.time())
         try:
-            full_native_config_filename = f"{IMPORT_TMP_PATH}/mgm_id_{str(import_state.mgm_details.mgm_id)}_config_native.json"
+            full_native_config_filename = (
+                f"{IMPORT_TMP_PATH}/mgm_id_{import_state.mgm_details.mgm_id!s}_config_native.json"
+            )
             with open(full_native_config_filename, "w") as json_data:
                 json_data.write(json.dumps(config_native, indent=2))
         except Exception:
-            FWOLogger.error(f"import_management - unspecified error while dumping config to json file: {str(traceback.format_exc())}")
+            FWOLogger.error(
+                f"import_management - unspecified error while dumping config to json file: {traceback.format_exc()!s}"
+            )
             raise
 
         time_write_debug_json = int(time.time()) - debug_start_time
-        FWOLogger.debug(f"import_management - writing debug config json files duration {str(time_write_debug_json)}s")
+        FWOLogger.debug(f"import_management - writing debug config json files duration {time_write_debug_json!s}s")
 
 
 def init_service_provider() -> ServiceProvider:
@@ -263,27 +260,26 @@ def init_service_provider() -> ServiceProvider:
     service_provider.register(Services.RULE_ORDER_SERVICE, lambda: RuleOrderService(), Lifetime.IMPORT)
     return service_provider
 
-def register_global_state(import_state: 'ImportStateController') -> None:
+
+def register_global_state(import_state: "ImportStateController") -> None:
     service_provider = ServiceProvider()
     service_provider.register(Services.GLOBAL_STATE, lambda: GlobalState(import_state), Lifetime.SINGLETON)
 
 
 def _diff_dicts(a: dict[Any, Any], b: dict[Any, Any], strict: bool, path: str) -> list[str]:
     diffs: list[str] = []
-    for k in a:
+    for k, v in a.items():
         if k not in b:
             diffs.append(f"Key '{k}' missing in second object at {path}")
         else:
-            diffs.extend(find_all_diffs(a[k], b[k], strict, f"{path}.{k}"))
-    for k in b:
-        if k not in a:
-            diffs.append(f"Key '{k}' missing in first object at {path}")
+            diffs.extend(find_all_diffs(v, b[k], strict, f"{path}.{k}"))
+    diffs.extend([f"Key '{k}' missing in first object at {path}" for k in b if k not in a])
     return diffs
 
 
 def _diff_lists(a: list[Any], b: list[Any], strict: bool, path: str) -> list[str]:
     diffs: list[str] = []
-    for i, (x, y) in enumerate(zip(a, b)):
+    for i, (x, y) in enumerate(zip(a, b, strict=False)):
         diffs.extend(find_all_diffs(x, y, strict, f"{path}[{i}]"))
     if len(a) != len(b):
         diffs.append(f"list length mismatch at {path}: {len(a)} != {len(b)}")
@@ -293,7 +289,7 @@ def _diff_lists(a: list[Any], b: list[Any], strict: bool, path: str) -> list[str
 def _diff_scalars(a: Any, b: Any, strict: bool, path: str) -> list[str]:
     diffs: list[str] = []
     if a != b:
-        if not strict and (a is None or a == '') and (b is None or b == ''):
+        if not strict and (a is None or a == "") and (b is None or b == ""):
             return diffs
         diffs.append(f"Value mismatch at {path}: {a} != {b}")
     return diffs
@@ -301,19 +297,19 @@ def _diff_scalars(a: Any, b: Any, strict: bool, path: str) -> list[str]:
 
 def find_all_diffs(a: Any, b: Any, strict: bool = False, path: str = "root") -> list[str]:
     if isinstance(a, dict) and isinstance(b, dict):
-        return _diff_dicts(a, b, strict, path) # type: ignore
-    elif isinstance(a, list) and isinstance(b, list):
-        return _diff_lists(a, b, strict, path) # type: ignore
-    else:
-        return _diff_scalars(a, b, strict, path)
+        return _diff_dicts(a, b, strict, path)  # type: ignore  # noqa: PGH003
+    if isinstance(a, list) and isinstance(b, list):
+        return _diff_lists(a, b, strict, path)  # type: ignore  # noqa: PGH003
+    return _diff_scalars(a, b, strict, path)
 
 
 def sort_and_join(input_list: list[str]) -> str:
-    """ Sorts the input list of strings and joins them using the standard list delimiter. """
+    """Sorts the input list of strings and joins them using the standard list delimiter."""
     return fwo_const.LIST_DELIMITER.join(sorted(input_list))
 
+
 def sort_and_join_refs(input_list: list[tuple[str, str]]) -> tuple[str, str]:
-    """ Sorts the input list of (uid, name) tuples and joins uids and names separately using the standard list delimiter. """
+    """Sorts the input list of (uid, name) tuples and joins uids and names separately using the standard list delimiter."""
     sorted_list = sorted(input_list, key=lambda x: x[1])  # sort by name
     uids = [item[0] for item in sorted_list]
     names = [item[1] for item in sorted_list]
@@ -321,7 +317,8 @@ def sort_and_join_refs(input_list: list[tuple[str, str]]) -> tuple[str, str]:
     joined_names = fwo_const.LIST_DELIMITER.join(names)
     return joined_uids, joined_names
 
+
 def generate_hash_from_dict(input_dict: dict[Any, Any]) -> str:
-    """ Generates a consistent hash from a dictionary by serializing it with sorted keys. """
+    """Generates a consistent hash from a dictionary by serializing it with sorted keys."""
     dict_string = json.dumps(input_dict, sort_keys=True)
-    return hashlib.sha256(dict_string.encode('utf-8')).hexdigest()
+    return hashlib.sha256(dict_string.encode("utf-8")).hexdigest()

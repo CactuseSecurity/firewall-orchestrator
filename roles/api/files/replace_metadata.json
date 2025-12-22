@@ -15516,6 +15516,23 @@
                   "comment": ""
                 },
                 {
+                  "role": "modeller",
+                  "permission": {
+                    "columns": [
+                      "created",
+                      "removed",
+                      "dev_id",
+                      "rule_id"
+                    ],
+                    "filter": {
+                      "dev_id": {
+                        "_in": "x-hasura-visible-devices"
+                      }
+                    }
+                  },
+                  "comment": ""
+                },
+                {
                   "role": "recertifier",
                   "permission": {
                     "columns": [

@@ -1,0 +1,85 @@
+[tool.pyright]
+include = [
+    "roles/importer/files/importer",
+]
+exclude = [
+    "**/node_modules",
+    "**/__pycache__",
+    ".git",
+    ".venv",
+    "venv",
+    "scripts",
+    "roles/importer/files/importer/test",
+]
+
+ignore = [
+    "./scripts",
+]
+
+venvPath = "."
+venv = ".venv"
+
+typeCheckingMode = "strict"
+reportMissingImports = false
+reportMissingTypeStubs = true
+
+
+
+[tool.ruff]
+line-length = 120
+indent-width = 4
+target-version = "py313"
+exclude = [
+    ".bzr",
+    ".direnv",
+    ".eggs",
+    ".git",
+    ".git-rewrite",
+    ".hg",
+    ".ipynb_checkpoints",
+    ".mypy_cache",
+    ".nox",
+    ".pants.d",
+    ".pyenv",
+    ".pytest_cache",
+    ".pytype",
+    ".ruff_cache",
+    ".svn",
+    ".tox",
+    ".venv",
+    ".vscode",
+    "__pypackages__",
+    "_build",
+    "buck-out",
+    "build",
+    "dist",
+    "node_modules",
+    "site-packages",
+    "venv",
+    "__init__.py",
+    "scripts",
+    "roles/tests-integration",
+    "roles/importer/files/importer/test"
+]
+
+[tool.ruff.lint]
+select = ["ALL"]
+ignore = [
+    "ANN", "COM", "C90", "DJ", "EXE", "T10", "TID",
+    "D100", "D101", "D102", "D103", "D104", "D105", "D106", "D107",
+    "D200", "D203", "D205", "D212", "D400", "D401", "D415", "D417",
+    "E402", "E501", "TRY003", "TD002", "TD003", "FIX002",
+    "EM101", "EM102", "PTH100", "PTH123", "PLR0913", "PT009",
+    "PLR0915", "PLR0912", "PLR0911", "FBT001", "FBT002",
+    "BLE001", "DTZ005", "TRY301", "TRY300", "B904", "S113", "S104"
+]
+fixable = ["ALL"]
+dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+line-ending = "auto"
+
+

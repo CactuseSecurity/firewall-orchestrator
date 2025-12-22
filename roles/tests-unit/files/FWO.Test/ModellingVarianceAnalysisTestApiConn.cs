@@ -4,6 +4,7 @@ using FWO.Basics;
 using FWO.Services;
 using FWO.Data;
 using FWO.Data.Modelling;
+using FWO.Data.Report;
 using FWO.Data.Workflow;
 
 namespace FWO.Test
@@ -42,9 +43,11 @@ namespace FWO.Test
         };
         static readonly Rule Rule3 = new()
         {
+            Id = 3,
             Name = "NonModelledRule",
             Comment = "XXX3",
-            Froms = [ new(new(), NwObj1) ]
+            Froms = [ new(new(), NwObj1) ],
+            RulebaseId = 3
         };
         static readonly Rule Rule4 = new()
         {
@@ -94,6 +97,11 @@ namespace FWO.Test
             Tos = [ new(new(), NwObj1), new(new(), NwObj2) ],
             Services = [ new(){ Content = Svc1 } ]
         };
+        static readonly DeviceReport DevRep1 = new()
+        {
+            Id = 1,
+            RulebaseLinks = [ new() { GatewayId = 1, NextRulebaseId = 3 } ]
+        };
 
         public override async Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null)
         {
@@ -110,7 +118,7 @@ namespace FWO.Test
                 {
                     List<Management>? managements =
                     [
-                        new(){ Id = 1, Name = "Checkpoint1", ExtMgtData = "{\"id\":\"1\",\"name\":\"CheckpointExt\"}" }
+                        new(){ Id = 1, Name = "Checkpoint1", ExtMgtData = "{\"id\":\"1\",\"name\":\"CheckpointExt\"}", Devices = [ new(){ Id = 1 }] }
                     ];
                     GraphQLResponse<dynamic> response = new() { Data = managements };
                     return response.Data;
@@ -191,6 +199,11 @@ namespace FWO.Test
             else if (responseType == typeof(WfTicket))
             {
                 GraphQLResponse<dynamic> response = new() { Data = new WfTicket() { StateId = 631, CreationDate = new(1967,1,10,8,0,0, DateTimeKind.Utc), CompletionDate = new(2025,6,26,8,0,0, DateTimeKind.Utc), Requester = new(){Name = "Walter"}} };
+                return response.Data;
+            }
+            else if (responseType == typeof(List<DeviceReport>))
+            {
+                GraphQLResponse<dynamic> response = new() { Data = new List<DeviceReport> { DevRep1 } };
                 return response.Data;
             }
 

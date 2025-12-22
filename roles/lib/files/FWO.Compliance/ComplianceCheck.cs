@@ -243,7 +243,7 @@ namespace FWO.Compliance
         /// Retrieves rules with violations from DB, calculates current violations, and prepares diff arguments.
         /// </summary>
         /// <param name="managementIds">Management identifiers whose rules should be checked.</param>
-        /// <param name="isInitial">Whether or not this is part of an initial check</param>
+        /// <param name="isInitial">Whether this is part of an initial check</param>
         /// <returns>List of all rules that have been analyzed.</returns>
         public async Task<List<Rule>> PerformCheckAsync(List<int> managementIds, bool isInitial = false)
         {
@@ -305,6 +305,7 @@ namespace FWO.Compliance
         /// Creates insert/remove violation lists by comparing DB state with current check results.
         /// </summary>
         /// <param name="ruleFromDb">Rules including the violations persisted in the database.</param>
+        /// <param name="isInitial">Whether this is part of an initial check</param>
         public Task PostProcessRulesAsync(List<Rule> ruleFromDb, bool isInitial=false)
         {
             List<(ComplianceViolation Violation, string Key)> dbViolationsWithKeys = ruleFromDb

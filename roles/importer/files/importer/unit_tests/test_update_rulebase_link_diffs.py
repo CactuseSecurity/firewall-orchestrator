@@ -11,7 +11,7 @@ from unit_tests.utils.config_builder import FwConfigBuilder
 @pytest.fixture
 def config_tuple(fwconfig_builder: FwConfigBuilder) -> tuple[FwConfigNormalized, str]:
     config, mgm_id = fwconfig_builder.build_config(
-        network_object_count=10, service_object_count=10, rulebases=1, rules_per_rulebase=10
+        network_object_count=10, service_object_count=10, rulebases=3, rules_per_rulebase=10
     )
     return config, mgm_id
 
@@ -269,6 +269,7 @@ def test_move_inline_layer(
         added_rulebase_copy.uid,
     )
     fwconfig_builder.update_rb_links(gateway_previous.RulebaseLinks, 1, fwconfig_import_gateway)
+    import_state_controller.state.gateway_map[3] = {global_state.normalized_config.gateways[0].Uid or "": 1}
 
     # Act
 

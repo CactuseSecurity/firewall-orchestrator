@@ -212,7 +212,13 @@ class FwConfigBuilder:
         )
 
     def add_inline_layer(
-        self, gateway: Gateway, from_rulebase_uid: str, from_rule_uid: str, to_rulebase_uid: str, *, index: int = 0
+        self,
+        gateway: Gateway,
+        from_rulebase_uid: str,
+        from_rule_uid: str,
+        to_rulebase_uid: str,
+        *,
+        index: int = 0,
     ) -> None:
         if index == 0:
             index = len(gateway.RulebaseLinks)

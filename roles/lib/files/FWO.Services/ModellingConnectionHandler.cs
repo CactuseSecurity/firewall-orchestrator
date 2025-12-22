@@ -384,7 +384,7 @@ namespace FWO.Services
             destAreas.RemoveAll(a => dstAreasToDeleteIds.Contains(a.Id));
 
             if (HasOnlyCommonNetworkAreas(srcAreas) &&
-                HasOnlyCommonNetworkAreas(SrcAreasToAdd) &
+                HasOnlyCommonNetworkAreas(SrcAreasToAdd) &&
                 HasOnlyCommonNetworkAreas(destAreas) &&
                 HasOnlyCommonNetworkAreas(DstAreasToAdd))
             {

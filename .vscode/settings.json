@@ -10,6 +10,7 @@
     "files.associations": {
         "launch.template.json": "jsonc"
     },
+    "python.analysis.extraPaths": ["roles/importer/files/importer"],
     "python.testing.unittestArgs": [
       "-v",
       "-p",
@@ -19,8 +20,12 @@
     ],
     "python.testing.pytestEnabled": false,
     "python.testing.unittestEnabled": true,
-    "sonarlint.connectedMode.project": {
-        "connectionId": "cactusesecurity",
-        "projectKey": "CactuseSecurity_firewall-orchestrator"
+    "[python]": {
+      "editor.formatOnSave": true,
+      "editor.codeActionsOnSave": {
+        "source.fixAll": "explicit",
+        "source.organizeImports": "explicit"
+      },
+      "editor.defaultFormatter": "charliermarsh.ruff"
     }
 }

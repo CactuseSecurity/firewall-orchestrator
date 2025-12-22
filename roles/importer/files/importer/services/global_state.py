@@ -8,12 +8,11 @@ if TYPE_CHECKING:
 
 
 class GlobalState:
-    
     import_state: ImportStateController
-    previous_config: FwConfigNormalized|None
-    previous_global_config: FwConfigNormalized|None
-    normalized_config: FwConfigNormalized|None
-    global_normalized_config: FwConfigNormalized|None
+    previous_config: FwConfigNormalized | None
+    previous_global_config: FwConfigNormalized | None
+    normalized_config: FwConfigNormalized | None
+    global_normalized_config: FwConfigNormalized | None
 
     def __init__(self, import_state: ImportStateController):
         self.import_state = import_state
@@ -21,4 +20,3 @@ class GlobalState:
         self.previous_global_config = None
         self.normalized_config = None
         self.global_normalized_config = None
-

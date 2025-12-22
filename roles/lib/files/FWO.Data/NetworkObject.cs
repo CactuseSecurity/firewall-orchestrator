@@ -21,7 +21,7 @@ namespace FWO.Data
         public string Uid { get; set; } = "";
 
         [JsonProperty("zone"), JsonPropertyName("zone")]
-        public NetworkZone Zone { get; set; } = new();
+        public NetworkZone? Zone { get; set; }
 
         [JsonProperty("active"), JsonPropertyName("active")]
         public bool Active { get; set; }
@@ -39,7 +39,7 @@ namespace FWO.Data
         public NetworkObjectType Type { get; set; } = new();
 
         [JsonProperty("obj_color"), JsonPropertyName("obj_color")]
-        public Color Color { get; set; } = new();
+        public Color? Color { get; set; }
 
         [JsonProperty("obj_comment"), JsonPropertyName("obj_comment")]
         public string Comment { get; set; } = "";

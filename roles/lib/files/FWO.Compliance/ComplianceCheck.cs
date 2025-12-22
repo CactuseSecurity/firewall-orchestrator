@@ -38,7 +38,7 @@ namespace FWO.Compliance
         public List<ComplianceNetworkZone> NetworkZones { get; set; } = [];
 
         /// <summary>
-        /// Wraps the stagtic class FWO.Logging.Log to make it accessible for unit tests.
+        /// Wraps the static class FWO.Logging.Log to make it accessible for unit tests.
         /// </summary>
         public ILogger Logger { get; set; } = new Logger();
 
@@ -67,7 +67,7 @@ namespace FWO.Compliance
         private readonly UserConfig _userConfig;
 
         /// <summary>
-        /// Parameter for treating domain and dynamic network objects during the check a part of the auto-calculated internet zone.
+        /// Parameter for treating domain and dynamic network objects as part of the auto-calculated internet zone.
         /// </summary>
         private bool _treatDomainAndDynamicObjectsAsInternet = false;
         /// <summary>
@@ -75,7 +75,7 @@ namespace FWO.Compliance
         /// </summary>
         private bool _autoCalculatedInternetZoneActive = false;
         /// <summary>
-        /// Id of the compliance policy that is configurated for the check.
+        /// Id of the compliance policy that is configured for the check.
         /// </summary>
         private int _complianceCheckPolicyId = 0;
         /// <summary>
@@ -122,7 +122,7 @@ namespace FWO.Compliance
             {
                 Logger = logger;
             }
-            
+
             _parallelProcessor = new(apiConnection, Logger);
 
             if (_userConfig.GlobalConfig == null)
@@ -139,9 +139,11 @@ namespace FWO.Compliance
         /// <summary>
         /// Full compliance check to be called by scheduler.
         /// </summary>
-        /// <returns></returns>
+        /// <returns>Task that completes when the asynchronous compliance evaluation finished.</returns>
         public async Task CheckAll()
         {
+            DateTime startTime = DateTime.UtcNow;
+
             try
             {
                 // Gathering necessary parameters for compliance check.
@@ -157,9 +159,9 @@ namespace FWO.Compliance
                 }
 
                 _complianceCheckPolicyId = globalConfig.ComplianceCheckPolicyId;
-                _autoCalculatedInternetZoneActive = globalConfig.AutoCalculateInternetZone; 
+                _autoCalculatedInternetZoneActive = globalConfig.AutoCalculateInternetZone;
                 _treatDomainAndDynamicObjectsAsInternet = globalConfig.TreatDynamicAndDomainObjectsAsInternet;
-                _elementsPerFetch = globalConfig.ComplianceCheckElementsPerFetch; 
+                _elementsPerFetch = globalConfig.ComplianceCheckElementsPerFetch;
                 _maxDegreeOfParallelism = globalConfig.ComplianceCheckAvailableProcessors;
 
                 Logger.TryWriteInfo("Compliance Check", $"Parallelizing config: {_elementsPerFetch} elements per fetch and {_maxDegreeOfParallelism} processors.", LocalSettings.ComplianceCheckVerbose);
@@ -178,7 +180,7 @@ namespace FWO.Compliance
                     return;
                 }
 
-                Managements  = await _apiConnection.SendQueryAsync<List<Management>>(DeviceQueries.getManagementNames);
+                Managements = await _apiConnection.SendQueryAsync<List<Management>>(DeviceQueries.getManagementNames);
                 Managements = GetRelevantManagements(globalConfig, Managements);
 
                 if (Managements == null || Managements.Count == 0)
@@ -196,7 +198,7 @@ namespace FWO.Compliance
                     Logger.TryWriteInfo("Compliance Check", $"Policy without criteria. Compliance check not possible.", LocalSettings.ComplianceCheckVerbose);
                     return;
                 }
-                
+
                 foreach (var criterion in Policy.Criteria)
                 {
                     Logger.TryWriteInfo("Compliance Check", $"Criterion: {criterion.Content.Name} ({criterion.Content.CriterionType}).", LocalSettings.ComplianceCheckVerbose);
@@ -214,34 +216,40 @@ namespace FWO.Compliance
 
                 // Perform check.
 
-                RulesInCheck =  await PerformCheckAsync(Managements!.Select(m => m.Id).ToList());
+                RulesInCheck = await PerformCheckAsync(Managements!.Select(m => m.Id).ToList());
 
                 if (RulesInCheck == null || RulesInCheck.Count == 0)
                 {
                     Logger.TryWriteInfo("Compliance Check", "No relevant rules found. Compliance check not possible.", true);
                     return;
-                };
+                }
 
+                TimeSpan elapsed = DateTime.UtcNow - startTime;
+
+                Logger.TryWriteInfo("Compliance Check", $"Compliance check evaluated {RulesInCheck.Count} rules in {elapsed.TotalSeconds} seconds.", true);
                 Logger.TryWriteInfo("Compliance Check", "Compliance check completed.", true);
+                 
             }
             catch (Exception e)
             {
+                TimeSpan elapsed = DateTime.UtcNow - startTime;
+                Logger.TryWriteInfo("Compliance Check", $"Compliance check failed after {elapsed.TotalSeconds} seconds.", true);
                 Logger.TryWriteError("Compliance Check", e, true);
             }
-            
+
         }
 
         /// <summary>
-        /// Retrieves rules with violations from db, calculate current violations, fills argument collections as diffs.
+        /// Retrieves rules with violations from DB, calculates current violations, and prepares diff arguments.
         /// </summary>
-        /// <param name="managementIds"></param>
-        /// <returns></returns>
+        /// <param name="managementIds">Management identifiers whose rules should be checked.</param>
+        /// <returns>List of all rules that have been analyzed.</returns>
         public async Task<List<Rule>> PerformCheckAsync(List<int> managementIds)
         {
             // Getting max import id for query vars.
 
             long? maxImportId = 0;
-            
+
 
             Import? import = await _apiConnection.SendQueryAsync<Import>(ImportQueries.getMaxImportId);
 
@@ -250,26 +258,28 @@ namespace FWO.Compliance
                 maxImportId = import.ImportAggregate.ImportAggregateMax.RelevantImportId ?? 0;
 
             }
-            
-            // Getting total number oc rules, for calculating chunks.
 
-            AggregateCount? result = await _apiConnection.SendQueryAsync<AggregateCount>(RuleQueries.countRules);
-            int rulesCount = result?.Aggregate?.Count ?? 0;
+            // Getting total number of rules, for calculating chunks.
 
-            Logger.TryWriteInfo("Compliance Check", $"Loading {rulesCount} rules in chunks of {_elementsPerFetch} for managements: {string.Join(",", managementIds)}.", LocalSettings.ComplianceCheckVerbose);
+            AggregateCount? result = await _apiConnection.SendQueryAsync<AggregateCount>(RuleQueries.countActiveRules);
+            int activeRulesCount = result?.Aggregate?.Count ?? 0;
+
+            Logger.TryWriteInfo("Compliance Check", $"Loading {activeRulesCount} active rules in chunks of {_elementsPerFetch} for managements: {string.Join(",", managementIds)}.", LocalSettings.ComplianceCheckVerbose);
 
             // Retrieve rules and check current compliance for every rule.
 
-            List<Rule>[]? chunks = await _parallelProcessor.SendParallelizedQueriesAsync<Rule>(rulesCount, _maxDegreeOfParallelism, _elementsPerFetch, RuleQueries.getRulesForSelectedManagements, CalculateCompliance, managementIds, maxImportId);
-            
+            _parallelProcessor.SetUp(activeRulesCount, _maxDegreeOfParallelism, _elementsPerFetch);
+
+            List<Rule>[]? chunks = await _parallelProcessor.SendParallelizedQueriesAsync<Rule>(RuleQueries.getRulesForSelectedManagements, CalculateCompliance, managementIds, maxImportId);
+
             if (chunks == null)
             {
                 Logger.TryWriteInfo("Compliance Check", $"Chunks could not be loaded from the database.", LocalSettings.ComplianceCheckVerbose);
                 return [];
             }
 
-            Logger.TryWriteInfo("Compliance Check", $"Attempted to load {chunks.Count()} chunks of rules.", LocalSettings.ComplianceCheckVerbose);
-            
+            Logger.TryWriteInfo("Compliance Check", $"Attempted to load {chunks.Length} chunks of rules.", LocalSettings.ComplianceCheckVerbose);
+
             List<Rule>? rules = chunks
                 .SelectMany(rule => rule)
                 .ToList();
@@ -284,15 +294,33 @@ namespace FWO.Compliance
 
             // Create diffs and fill argument bags.
 
-            PostProcessRulesAsync(rules);
+            await PostProcessRulesAsync(rules);
 
-
-            return rules;         
+            return rules;
         }
 
-        public void PostProcessRulesAsync(List<Rule> ruleFromDb)
+        /// <summary>
+        /// Creates insert/remove violation lists by comparing DB state with current check results.
+        /// </summary>
+        /// <param name="ruleFromDb">Rules including the violations persisted in the database.</param>
+        public Task PostProcessRulesAsync(List<Rule> ruleFromDb)
         {
-            CancellationToken ct = new();
+            List<(ComplianceViolation Violation, string Key)> dbViolationsWithKeys = ruleFromDb
+                .SelectMany(rule => rule.Violations)
+                .Select(violation => (violation, CreateUniqueViolationKey(violation)))
+                .ToList();
+
+            List<(ComplianceViolation Violation, string Key)> currentViolationsWithKeys = CurrentViolationsInCheck
+                .Select(violation => (violation, CreateUniqueViolationKey(violation)))
+                .ToList();
+
+            HashSet<string> currentKeySet = currentViolationsWithKeys.Select(v => v.Key).ToHashSet(StringComparer.Ordinal);
+            HashSet<string> dbKeySet = dbViolationsWithKeys.Select(v => v.Key).ToHashSet(StringComparer.Ordinal);
+            
+            ParallelOptions parallelOptions = new()
+            {
+                MaxDegreeOfParallelism = Math.Max(1, _maxDegreeOfParallelism)
+            };
 
             // Get remove args.
 
@@ -301,17 +329,13 @@ namespace FWO.Compliance
             _violationsToRemove.Clear();
 
             Parallel.ForEach(
-                ruleFromDb.SelectMany(rule => rule.Violations),
-                new ParallelOptions
+                dbViolationsWithKeys,
+                parallelOptions,
+                pair =>
                 {
-                    MaxDegreeOfParallelism = _maxDegreeOfParallelism,
-                    CancellationToken = ct
-                },
-                (violation, token) =>
-                {
-                    if (!CurrentViolationsInCheck.Any(cv => CreateUniqueViolationKey(cv)  == CreateUniqueViolationKey(violation)))
+                    if (!currentKeySet.Contains(pair.Key))
                     {
-                        _violationsToRemove.Add(violation);
+                        _violationsToRemove.Add(pair.Violation);
                     }
                 });
 
@@ -324,22 +348,20 @@ namespace FWO.Compliance
             _violationsToAdd.Clear();
 
             Parallel.ForEach(
-                CurrentViolationsInCheck,
-                new ParallelOptions
+                currentViolationsWithKeys,
+                parallelOptions,
+                pair =>
                 {
-                    MaxDegreeOfParallelism = _maxDegreeOfParallelism,
-                    CancellationToken = ct
-                },
-                (violation, token) =>
-                {
-                    if (!ruleFromDb.SelectMany(rule => rule.Violations).Any(rdb => CreateUniqueViolationKey(rdb) == CreateUniqueViolationKey(violation)))
+                    if (!dbKeySet.Contains(pair.Key))
                     {
-                        ComplianceViolationBase violationBase = ComplianceViolationBase.CreateBase(violation);
+                        ComplianceViolationBase violationBase = ComplianceViolationBase.CreateBase(pair.Violation);
                         _violationsToAdd.Add(violationBase);
                     }
                 });
 
             Logger.TryWriteInfo("Compliance Check", $"Got {_violationsToAdd.Count} violations to insert.", LocalSettings.ComplianceCheckVerbose);
+
+            return Task.CompletedTask;
         }
 
         /// <summary>
@@ -357,7 +379,7 @@ namespace FWO.Compliance
                 }
                 else
                 {
-                    List<ComplianceViolationBase>  violations =_violationsToAdd.Cast<ComplianceViolationBase>().ToList();;
+                    List<ComplianceViolationBase> violations = _violationsToAdd.Cast<ComplianceViolationBase>().ToList();
                     object variablesAdd = new
                     {
                         violations
@@ -399,6 +421,14 @@ namespace FWO.Compliance
             }
         }
 
+        /// <summary>
+        /// Checks whether a rule can be assessed, i.e. contains only evaluable network objects.
+        /// </summary>
+        /// <param name="rule">Rule that is currently under test.</param>
+        /// <param name="resolvedSources">Fully resolved source objects.</param>
+        /// <param name="resolvedDestinations">Fully resolved destination objects.</param>
+        /// <param name="criterion">Compliance criterion for assessability.</param>
+        /// <returns>True if the rule can be assessed, otherwise false.</returns>
         public Task<bool> CheckAssessability(Rule rule, List<NetworkObject> resolvedSources, List<NetworkObject> resolvedDestinations, ComplianceCriterion criterion)
         {
             bool isAssessable = true;
@@ -453,6 +483,12 @@ namespace FWO.Compliance
             return Task.FromResult(isAssessable);
         }
 
+        /// <summary>
+        /// Evaluates a rule against all configured compliance criteria.
+        /// </summary>
+        /// <param name="rule">Rule whose compliance should be checked.</param>
+        /// <param name="criteria">Set of criteria derived from the policy.</param>
+        /// <returns>True if the rule is compliant with every criterion.</returns>
         public async Task<bool> CheckRuleCompliance(Rule rule, IEnumerable<ComplianceCriterion> criteria)
         {
             bool ruleIsCompliant = true;
@@ -492,7 +528,7 @@ namespace FWO.Compliance
                             default:
                                 break;
                         }
-                    }                  
+                    }
                 }
                 catch (System.Exception e)
                 {
@@ -504,6 +540,11 @@ namespace FWO.Compliance
             return ruleIsCompliant;
         }
 
+        /// <summary>
+        /// Extracts the IP ranges represented by a network object in all supported forms.
+        /// </summary>
+        /// <param name="networkObject">Network object to parse.</param>
+        /// <returns>List of ranges (empty if parsing is not possible).</returns>
         public static List<IPAddressRange> ParseIpRange(NetworkObject networkObject)
         {
             List<IPAddressRange> ranges = [];
@@ -535,12 +576,12 @@ namespace FWO.Compliance
         }
 
         /// <summary>
-        /// Compliance check used in current UI implementation
+        /// Compliance check used in current UI implementation.
         /// </summary>
-        /// <param name="sourceIpRange"></param>
-        /// <param name="destinationIpRange"></param>
-        /// <param name="networkZones"></param>
-        /// <returns></returns>
+        /// <param name="sourceIpRange">Source range provided by the UI.</param>
+        /// <param name="destinationIpRange">Destination range provided by the UI.</param>
+        /// <param name="networkZones">Network zones to test against the provided ranges.</param>
+        /// <returns>List of forbidden communications found by the matrix check.</returns>
         public List<(ComplianceNetworkZone, ComplianceNetworkZone)> CheckIpRangeInputCompliance(IPAddressRange? sourceIpRange, IPAddressRange? destinationIpRange, List<ComplianceNetworkZone> networkZones)
         {
             NetworkZones = networkZones;
@@ -559,6 +600,12 @@ namespace FWO.Compliance
             return forbiddenCommunicationsOutput;
         }
 
+        /// <summary>
+        /// Filters the provided managements so that only the configured IDs remain.
+        /// </summary>
+        /// <param name="globalConfig">Global configuration containing the ID list.</param>
+        /// <param name="managements">All managements retrieved from the API.</param>
+        /// <returns>Subset of managements that are relevant for the compliance check.</returns>
         public static List<Management> GetRelevantManagements(GlobalConfig globalConfig, List<Management> managements)
         {
             List<Management>? filteredManagements = [];
@@ -574,17 +621,24 @@ namespace FWO.Compliance
                         .ToList();
 
                     filteredManagements = managements.Where(m => relevantManagementIDs.Contains(m.Id)).ToList();
-                    
+
                 }
                 catch (Exception e)
                 {
-                    Log.TryWriteLog(LogType.Error, "Compliance Report", $"Error while parsing relevant mangement IDs: {e.Message}", LocalSettings.ComplianceCheckVerbose);
+                    Log.TryWriteLog(LogType.Error, "Compliance Report", $"Error while parsing relevant management IDs: {e.Message}", LocalSettings.ComplianceCheckVerbose);
                 }
             }
 
             return filteredManagements;
         }
 
+        /// <summary>
+        /// Performs the matrix compliance check for a rule by mapping resolved objects to zones.
+        /// </summary>
+        /// <param name="rule">Rule under test.</param>
+        /// <param name="criterion">Matrix criterion.</param>
+        /// <param name="resolvedSources">Resolved source objects.</param>
+        /// <param name="resolvedDestinations">Resolved destination objects.</param>
         private async Task<bool> CheckMatrixCompliance(Rule rule, ComplianceCriterion criterion, List<NetworkObject> resolvedSources, List<NetworkObject> resolvedDestinations)
         {
             Task<List<(NetworkObject networkObject, List<IPAddressRange> ipRanges)>> fromsTask = GetNetworkObjectsWithIpRanges(resolvedSources);
@@ -597,29 +651,29 @@ namespace FWO.Compliance
             List<(NetworkObject networkObject, List<ComplianceNetworkZone> networkZones)> sourceZones = MapZonesToNetworkObjects(fromsTask.Result);
             List<(NetworkObject networkObject, List<ComplianceNetworkZone> networkZones)> destinationZones = MapZonesToNetworkObjects(tosTask.Result);
 
-            foreach ((NetworkObject networkObject, List<ComplianceNetworkZone> networkZones) sourceZone in sourceZones)
-            {
-                foreach (ComplianceNetworkZone sourceNetworkZone in sourceZone.networkZones)
-                {
-                    foreach ((NetworkObject networkObject, List<ComplianceNetworkZone> networkZones) destinationZone in destinationZones)
-                    {
-                        foreach (ComplianceNetworkZone destinationNetworkZone in destinationZone.networkZones)
-                        {
-                            if (!sourceNetworkZone.CommunicationAllowedTo(destinationNetworkZone))
-                            {
-                                ComplianceCheckResult complianceCheckResult = new(rule, ComplianceViolationType.MatrixViolation)
-                                {
-                                    Criterion = criterion,
-                                    Source = sourceZone.networkObject,
-                                    SourceZone = sourceNetworkZone,
-                                    Destination = destinationZone.networkObject,
-                                    DestinationZone = destinationNetworkZone
-                                };
+            Dictionary<ComplianceNetworkZone, List<NetworkObject>> sourceObjectsByZone = MapObjectsByZone(sourceZones);
+            Dictionary<ComplianceNetworkZone, List<NetworkObject>> destinationObjectsByZone = MapObjectsByZone(destinationZones);
 
-                                CreateViolation(ComplianceViolationType.MatrixViolation, rule, complianceCheckResult);
-                                ruleIsCompliant = false;
-                            }
-                        }
+            foreach ((ComplianceNetworkZone sourceZone, List<NetworkObject> sourceObjects) in sourceObjectsByZone)
+            {
+                foreach ((ComplianceNetworkZone destinationZone, List<NetworkObject> destinationObjects) in destinationObjectsByZone)
+                {
+                    if (!sourceZone.CommunicationAllowedTo(destinationZone))
+                    {
+                        ruleIsCompliant = false;
+                        string sourceObjectsString = string.Join(", ", sourceObjects.Select(GetNwObjectString).Distinct());
+                        string destinationObjectsString = string.Join(", ", destinationObjects.Select(GetNwObjectString).Distinct());
+
+                        string details = $"{_userConfig.GetText("H5839")}: {sourceZone.Name} ({sourceObjectsString}) -> {destinationZone.Name} ({destinationObjectsString})";
+
+                        ComplianceCheckResult complianceCheckResult = new(rule, ComplianceViolationType.MatrixViolation)
+                        {
+                            Criterion = criterion,
+                            SourceZone = sourceZone,
+                            DestinationZone = destinationZone
+                        };
+
+                        CreateViolation(ComplianceViolationType.MatrixViolation, rule, complianceCheckResult, details);
                     }
                 }
             }
@@ -627,7 +681,14 @@ namespace FWO.Compliance
             return ruleIsCompliant;
         }
 
-        private void CreateViolation(ComplianceViolationType violationType, Rule rule, ComplianceCheckResult complianceCheckResult)
+        /// <summary>
+        /// Creates a violation entry from a compliance check result and stores it in the current run buffer.
+        /// </summary>
+        /// <param name="violationType">Type of violation to record.</param>
+        /// <param name="rule">Impacted rule.</param>
+        /// <param name="complianceCheckResult">Details assembled during the check.</param>
+        /// <param name="detailsOverride">Optional string used if details need to be customized.</param>
+        private void CreateViolation(ComplianceViolationType violationType, Rule rule, ComplianceCheckResult complianceCheckResult, string? detailsOverride = null)
         {
             ComplianceViolation violation = new()
             {
@@ -642,7 +703,11 @@ namespace FWO.Compliance
             {
                 case ComplianceViolationType.MatrixViolation:
 
-                    if (complianceCheckResult.Source is NetworkObject s && complianceCheckResult.Destination is NetworkObject d)
+                    if (!string.IsNullOrEmpty(detailsOverride))
+                    {
+                        violation.Details = detailsOverride;
+                    }
+                    else if (complianceCheckResult.Source is NetworkObject s && complianceCheckResult.Destination is NetworkObject d)
                     {
                         string sourceString = GetNwObjectString(s);
                         string destinationString = GetNwObjectString(d);
@@ -694,6 +759,10 @@ namespace FWO.Compliance
             _currentViolations.Add(violation);
         }
 
+        /// <summary>
+        /// Returns a readable representation of a network object including its IP range.
+        /// </summary>
+        /// <param name="networkObject">Network object to display.</param>
         private string GetNwObjectString(NetworkObject networkObject)
         {
             string networkObjectString = "";
@@ -704,12 +773,18 @@ namespace FWO.Compliance
             return networkObjectString;
         }
 
+        /// <summary>
+        /// Checks two IP range sets against the network zone matrix.
+        /// </summary>
+        /// <param name="source">Source ranges.</param>
+        /// <param name="destination">Destination ranges.</param>
+        /// <param name="forbiddenCommunication">Output list of forbidden zone combinations.</param>
         private bool CheckMatrixCompliance(List<IPAddressRange> source, List<IPAddressRange> destination, out List<(ComplianceNetworkZone, ComplianceNetworkZone)> forbiddenCommunication)
         {
             // Determine all matching source zones
             List<ComplianceNetworkZone> sourceZones = DetermineZones(source);
 
-            // Determine all macthing destination zones
+            // Determine all matching destination zones
             List<ComplianceNetworkZone> destinationZones = DetermineZones(destination);
 
             forbiddenCommunication = [];
@@ -725,6 +800,11 @@ namespace FWO.Compliance
             return forbiddenCommunication.Count == 0;
         }
 
+        /// <summary>
+        /// Validates whether a rule uses a service forbidden by the given criterion.
+        /// </summary>
+        /// <param name="rule">Rule that may contain forbidden services.</param>
+        /// <param name="criterion">Criterion defining the restricted service set.</param>
         private bool CheckForForbiddenService(Rule rule, ComplianceCriterion criterion)
         {
             bool ruleIsCompliant = true;
@@ -749,7 +829,11 @@ namespace FWO.Compliance
 
             return ruleIsCompliant;
         }
-        
+
+        /// <summary>
+        /// Builds a helper structure combining network objects with the IP ranges they represent.
+        /// </summary>
+        /// <param name="networkObjects">Objects that should be resolved to ranges.</param>
         private static Task<List<(NetworkObject networkObject, List<IPAddressRange> ipRanges)>> GetNetworkObjectsWithIpRanges(List<NetworkObject> networkObjects)
         {
             List<(NetworkObject networkObject, List<IPAddressRange> ipRanges)> networkObjectsWithIpRange = [];
@@ -763,6 +847,9 @@ namespace FWO.Compliance
         }
 
 
+        /// <summary>
+        /// Loads all network zones referenced by the policy matrix criterion.
+        /// </summary>
         private async Task LoadNetworkZones()
         {
             if (Policy != null)
@@ -772,13 +859,16 @@ namespace FWO.Compliance
                 if (matrixId != null)
                 {
                     Logger.TryWriteInfo("Compliance Check", $"Loading network zones for Matrix {matrixId}.", LocalSettings.ComplianceCheckVerbose);
-                    NetworkZones =  await _apiConnection.SendQueryAsync<List<ComplianceNetworkZone>>(ComplianceQueries.getNetworkZonesForMatrix, new { criterionId = matrixId });
+                    NetworkZones = await _apiConnection.SendQueryAsync<List<ComplianceNetworkZone>>(ComplianceQueries.getNetworkZonesForMatrix, new { criterionId = matrixId });
                     Logger.TryWriteInfo("Compliance Check", $"Loaded {NetworkZones.Count} network zones for Matrix {matrixId}.", LocalSettings.ComplianceCheckVerbose);
                 }
             }
         }
 
 
+        /// <summary>
+        /// Builds a unique key identifying a violation over management, rule, policy, criterion, and detail.
+        /// </summary>
         private string CreateUniqueViolationKey(ComplianceViolation violation)
         {
             string key = "";
@@ -794,7 +884,12 @@ namespace FWO.Compliance
 
             return key;
         }
-        
+
+        /// <summary>
+        /// Calculates compliance for all provided rules (or the rules from the last check) and stores violations.
+        /// </summary>
+        /// <param name="rulesToCheck">Explicit set of rules; when null, the rules prepared by <see cref="CheckAll"/> are used.</param>
+        /// <returns>List of rules that have been processed.</returns>
         public async Task<List<Rule>> CalculateCompliance(List<Rule>? rulesToCheck = null)
         {
             List<Rule> rules = rulesToCheck ?? RulesInCheck ?? [];
@@ -842,6 +937,10 @@ namespace FWO.Compliance
             return await Task.FromResult(rules);
         }
 
+        /// <summary>
+        /// Maps previously resolved IP ranges to their matching compliance zones.
+        /// </summary>
+        /// <param name="inputData">Pairs of network objects and IP ranges.</param>
         private List<(NetworkObject networkObject, List<ComplianceNetworkZone> networkZones)> MapZonesToNetworkObjects(List<(NetworkObject networkObject, List<IPAddressRange> ipRanges)> inputData)
         {
             List<(NetworkObject networkObject, List<ComplianceNetworkZone> networkZones)> map = [];
@@ -868,13 +967,47 @@ namespace FWO.Compliance
 
                     networkZones = DetermineZones(dataItem.ipRanges);
                 }
-                
+
                 map.Add((dataItem.networkObject, networkZones));
             }
 
             return map;
         }
 
+        /// <summary>
+        /// Groups network objects by their associated compliance zone.
+        /// </summary>
+        /// <param name="objectsWithZones">Network objects enriched by their zones.</param>
+        private Dictionary<ComplianceNetworkZone, List<NetworkObject>> MapObjectsByZone(List<(NetworkObject networkObject, List<ComplianceNetworkZone> networkZones)> objectsWithZones)
+        {
+            Dictionary<ComplianceNetworkZone, List<NetworkObject>> map = new();
+
+            foreach ((NetworkObject networkObject, List<ComplianceNetworkZone> networkZones) item in objectsWithZones)
+            {
+                if (item.networkZones == null || item.networkZones.Count == 0)
+                {
+                    continue;
+                }
+
+                foreach (ComplianceNetworkZone zone in item.networkZones)
+                {
+                    if (!map.TryGetValue(zone, out List<NetworkObject>? objectsInZone))
+                    {
+                        objectsInZone = [];
+                        map.Add(zone, objectsInZone);
+                    }
+
+                    objectsInZone.Add(item.networkObject);
+                }
+            }
+
+            return map;
+        }
+
+        /// <summary>
+        /// Finds every compliance zone overlapped by the provided IP ranges (plus implicit internet zone when necessary).
+        /// </summary>
+        /// <param name="ranges">Ranges to look up.</param>
         private List<ComplianceNetworkZone> DetermineZones(List<IPAddressRange> ranges)
         {
             List<ComplianceNetworkZone> result = [];
@@ -893,7 +1026,7 @@ namespace FWO.Compliance
                 result.Add(zone);
             }
 
-            // No need to procceed if auto calculated internet zone is activated.
+            // No need to proceed if auto calculated internet zone is activated.
 
             if (_autoCalculatedInternetZoneActive)
             {
@@ -918,6 +1051,10 @@ namespace FWO.Compliance
             return result;
         }
 
+        /// <summary>
+        /// Removes dynamic/domain objects when the feature treats them implicitly as internet.
+        /// </summary>
+        /// <param name="networkObjects">Network objects to filter.</param>
         private List<NetworkObject> TryFilterDynamicAndDomainObjects(List<NetworkObject> networkObjects)
         {
             if (_userConfig.GlobalConfig is GlobalConfig globalConfig && globalConfig.AutoCalculateInternetZone && globalConfig.TreatDynamicAndDomainObjectsAsInternet)
@@ -930,6 +1067,10 @@ namespace FWO.Compliance
             return networkObjects;
         }
 
+        /// <summary>
+        /// Detects assessability issues (like overly broad objects) for a given network object.
+        /// </summary>
+        /// <param name="networkObject">Network object to evaluate.</param>
         private AssessabilityIssue? TryGetAssessabilityIssue(NetworkObject networkObject)
         {
             if (networkObject.IP == null && networkObject.IpEnd == null)

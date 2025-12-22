@@ -28,6 +28,7 @@ namespace FWO.Report
         public List<Management> Managements  { get; set; } = [];
         protected virtual string InternalQuery => RuleQueries.getRulesWithCurrentViolationsByChunk;
         protected DebugConfig DebugConfig;
+        protected readonly GlobalConfig GlobalConfig;
 
         #endregion
 
@@ -43,7 +44,6 @@ namespace FWO.Report
         private int _maxCellSize;
         private readonly int _maxPrintedViolations;
         private readonly List<int> _relevanteManagementIDs = new();
-        private readonly GlobalConfig _globalConfig;
 
         #endregion
 
@@ -55,14 +55,14 @@ namespace FWO.Report
 
             if (userConfig.GlobalConfig != null)
             {
-                _globalConfig = userConfig.GlobalConfig;
+                GlobalConfig = userConfig.GlobalConfig;
             }
             else
             {
-                _globalConfig = new();
+                GlobalConfig = new();
             }
 
-            _maxDegreeOfParallelism = _globalConfig.ComplianceCheckAvailableProcessors > Environment.ProcessorCount ? Environment.ProcessorCount : _globalConfig.ComplianceCheckAvailableProcessors;
+            _maxDegreeOfParallelism = GlobalConfig.ComplianceCheckAvailableProcessors > Environment.ProcessorCount ? Environment.ProcessorCount : GlobalConfig.ComplianceCheckAvailableProcessors;
             _semaphore = new SemaphoreSlim(_maxDegreeOfParallelism);
             _natRuleDisplayHtml = new NatRuleDisplayHtml(userConfig);
 
@@ -70,13 +70,13 @@ namespace FWO.Report
 
             SetUpCsvExport();
 
-            _maxPrintedViolations = _globalConfig.ComplianceCheckMaxPrintedViolations;
+            _maxPrintedViolations = GlobalConfig.ComplianceCheckMaxPrintedViolations;
             
             // Apply debug config.
 
-            if (!string.IsNullOrEmpty(_globalConfig.DebugConfig))
+            if (!string.IsNullOrEmpty(GlobalConfig.DebugConfig))
             {
-                DebugConfig = JsonSerializer.Deserialize<DebugConfig>(_globalConfig.DebugConfig) ?? new();
+                DebugConfig = JsonSerializer.Deserialize<DebugConfig>(GlobalConfig.DebugConfig) ?? new();
             }
             else
             {
@@ -84,11 +84,11 @@ namespace FWO.Report
                 DebugConfig = new();
             }
 
-            if (!string.IsNullOrEmpty(_globalConfig.ComplianceCheckRelevantManagements))
+            if (!string.IsNullOrEmpty(GlobalConfig.ComplianceCheckRelevantManagements))
             {
                 try
                 {
-                    _relevanteManagementIDs = _globalConfig.ComplianceCheckRelevantManagements
+                    _relevanteManagementIDs = GlobalConfig.ComplianceCheckRelevantManagements
                         .Split(',', StringSplitOptions.RemoveEmptyEntries)
                         .Select(s => int.Parse(s.Trim()))
                         .ToList();
@@ -114,14 +114,12 @@ namespace FWO.Report
             // Get management and device info for resolving names.
 
             await GetManagementAndDevices(apiConnection);
-
             // Get amount of rules to fetch.
 
             AggregateCount? result = await apiConnection.SendQueryAsync<AggregateCount>(RuleQueries.countRules);
             int rulesCount = result?.Aggregate?.Count ?? 0;
 
             // Get data parallelized.
-
             List<Rule>[]? chunks = await GetDataParallelized<Rule>(rulesCount, elementsPerFetch, apiConnection, ct, InternalQuery);
 
             if (chunks != null)
@@ -216,6 +214,7 @@ namespace FWO.Report
 
             // Create query variables for fetching rules
 
+            queryVariablesList.Add(CreateQueryVariables(0, elementsPerFetch, query));
             for (int offset = 0; offset < rulesCount; offset += elementsPerFetch)
             {
                 queryVariablesList.Add(CreateQueryVariables(offset, elementsPerFetch, query));
@@ -377,17 +376,17 @@ namespace FWO.Report
                 "Name",
                 "Source"
             ];
-            if (_globalConfig.ShowShortColumnsInComplianceReports)
+            if (GlobalConfig.ShowShortColumnsInComplianceReports)
             {
                 _columnsToExport.Add("SourceShort");
             }
             _columnsToExport.Add("Destination");
-            if (_globalConfig.ShowShortColumnsInComplianceReports)
+            if (GlobalConfig.ShowShortColumnsInComplianceReports)
             {
                 _columnsToExport.Add("DestinationShort");
             }
             _columnsToExport.Add("Services");
-            if (_globalConfig.ShowShortColumnsInComplianceReports)
+            if (GlobalConfig.ShowShortColumnsInComplianceReports)
             {
                 _columnsToExport.Add("ServicesShort");
             }

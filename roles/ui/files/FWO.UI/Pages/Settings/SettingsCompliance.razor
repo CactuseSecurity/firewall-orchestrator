@@ -236,14 +236,9 @@
                     <input id="lbl_treat_dynamic_and_domain_objects_as_internet" type="checkbox" @bind="configData!.TreatDynamicAndDomainObjectsAsInternet" />            
                 </div>
             </div>
-            <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5845"))">
-                <label for="lbl_filter_out_initial_violations" class="col-form-label col-sm-4">@(userConfig.GetText("filterOutInitialViolations")):</label>
-                <div class="col-sm-7">
-                    <input id="lbl_filter_out_initial_violations" type="checkbox" @bind="configData!.ComplianceFilterOutInitialViolations" />            
-                </div>
-            </div>
         }
     <hr />
+    
     <AuthorizeView Roles="@Roles.Admin">
         <Authorized>
             <button type="button" class="btn btn-sm btn-primary" @onclick="Save" @onclick:preventDefault>@(userConfig.GetText("save"))</button>
@@ -251,6 +246,10 @@
         <NotAuthorized>
             <button type="button" class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("save"))</button>
         </NotAuthorized>
+    </AuthorizeView>
+    <br/>
+    
+    <AuthorizeView Roles="@Roles.Admin">
         <Authorized>
             <div class="form-group row">
                 <label class="col-form-label col-sm-4">Do Initial Check |Unlocalized|</label>
@@ -267,7 +266,6 @@
                 </div>
             </div>
         </NotAuthorized>
-        
     </AuthorizeView>
 }
 else
@@ -397,23 +395,15 @@ else
     /// A task that represents the asynchronous operation. The task result is a boolean 
     /// indicating whether all violations were successfully deleted.
     /// </returns>
-    private async Task<bool> DeleteAllViolations(ApiConnection apiConnection)
+    private async Task DeleteAllViolations(ApiConnection apiConnection)
     {
         string query = DeleteAllQuery;
         await apiConnection.SendQueryAsync<DeleteAllViolationsResult>(query);
-        bool deleteSuccess = false;
-        return deleteSuccess;
     }
 
     private async Task InitialCheck()
     {
-        bool cleanupSuccess = await DeleteAllViolations(ApiConnection);
-        // if (!cleanupSuccess)
-        // {
-        //     // early exit in case cleanup somehow failed
-        //     return;
-        // }
-
+        await DeleteAllViolations(ApiConnection);
         await MiddlewareClient.RunInitialComplianceCheck();
     }
 

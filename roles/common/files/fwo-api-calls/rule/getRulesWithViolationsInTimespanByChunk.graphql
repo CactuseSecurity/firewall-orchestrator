@@ -4,9 +4,8 @@ query getRulesWithViolationsInTimespanByChunk(
   $active: Boolean
   $import_id_start: bigint
   $import_id_end: bigint
-  $from_date: timestamptz
-  $to_date: timestamptz
   $mgm_ids: [Int!]
+  $violations_where: compliance_violation_bool_exp!
 ) {
   rule(
     limit: $limit
@@ -19,7 +18,7 @@ query getRulesWithViolationsInTimespanByChunk(
     ...ruleDetails
 
     violations: compliance_violations_version_agnostic(
-      where: { found_date:   { _gte: $from_date, _lt: $to_date } is_initial: { _eq: true}}
+      where: $violations_where
     ) {
       id
       rule_id

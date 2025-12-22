@@ -5982,9 +5982,6 @@ INSERT INTO txt VALUES ('H5843', 'German',  'Anzahl der Elemente die pro Anfrage
 INSERT INTO txt VALUES ('H5843', 'English', 'Amount of elements that should be retrieved with each fetch operation.');
 INSERT INTO txt VALUES ('H5844', 'German',  'Anzahl der Prozessoren die für Parallelisierungsoperationen zur Verfügung stehen.');
 INSERT INTO txt VALUES ('H5844', 'English', 'Amount of processors that should be used for parallelized operations.');
-INSERT INTO txt VALUES ('H5845', 'German',  'Wenn aktiviert, werden als "Initial" markierte Violations nicht angezeigt.');
-INSERT INTO txt VALUES ('H5845', 'English', 'When enabled, violations marked as "initial" wont be shown.');
-
 
 INSERT INTO txt VALUES ('H6001', 'German',  'Firewall Orchestrator verf&uuml;gt &uuml;ber zwei APIs:
     <ul>

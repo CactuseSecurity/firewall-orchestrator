@@ -100,3 +100,21 @@ class ImportState:
 
     def lookup_color_id(self, color_str: str) -> int:
         return self.color_map.get(color_str, 1)  # 1 = forground color black
+
+    def lookup_ids_for_rulebase_link(
+        self,
+        from_rule_uid: str | None = None,
+        from_rulebase_uid: str | None = None,
+        to_rulebase_uid: str | None = None,
+    ) -> tuple[int | None, int | None, int | None]:
+        from_rule_id = None
+        from_rulebase_id = None
+        to_rulebase_id = None
+
+        if from_rule_uid is not None and from_rule_uid != "":
+            from_rule_id = self.lookup_rule(from_rule_uid)
+        if from_rulebase_uid is not None and from_rulebase_uid != "":
+            from_rulebase_id = self.lookup_rulebase_id(from_rulebase_uid)
+        if to_rulebase_uid is not None and to_rulebase_uid != "":
+            to_rulebase_id = self.lookup_rulebase_id(to_rulebase_uid)
+        return from_rule_id, from_rulebase_id, to_rulebase_id

@@ -6,7 +6,7 @@ import random
 from typing import Iterable, TypeVar
 
 from fwo_base import ConfigAction
-from fwo_const import DUMMY_IP, LIST_DELIMITER
+from fwo_const import DUMMY_IP, LIST_DELIMITER, RULE_NUM_NUMERIC_STEPS
 from model_controllers.fwconfig_import_gateway import FwConfigImportGateway
 from models.fwconfig_normalized import FwConfigNormalized
 from models.gateway import Gateway
@@ -110,9 +110,16 @@ class FwConfigBuilder:
         config.service_objects[uid] = svc
         return svc
 
-    def add_rulebase(self, config: FwConfigNormalized, mgm_uid: str, *, name: str | None = None) -> Rulebase:
-        uid = self.uid_manager.create_uid()
-        rb = Rulebase(uid=uid, name=name or f"rb-{uid}", mgm_uid=mgm_uid)
+    def add_rulebase(
+        self,
+        config: FwConfigNormalized,
+        mgm_uid: str,
+        rulebase: Rulebase | None = None,
+        *,
+        name: str | None = None,
+    ) -> Rulebase:
+        uid = self.uid_manager.create_uid() if rulebase is None else rulebase.uid
+        rb = Rulebase(uid=uid, name=name or f"rb-{uid}", mgm_uid=mgm_uid) if rulebase is None else rulebase
         config.rulebases.append(rb)
         return rb
 
@@ -120,45 +127,50 @@ class FwConfigBuilder:
         self,
         config: FwConfigNormalized,
         rulebase_uid: str,
+        rule: RuleNormalized | None = None,
         *,
         name: str | None = None,
         rule_type: RuleType = RuleType.SECTIONHEADER,
     ) -> RuleNormalized:
         rulebase = self._get_rulebase(config, rulebase_uid)
-        uid = self.uid_manager.create_uid()
-        self._rule_counter += 1
-        rule = RuleNormalized(
-            rule_num=self._rule_counter,
-            rule_num_numeric=float(self._rule_counter),
-            rule_disabled=False,
-            rule_src_neg=False,
-            rule_src="",
-            rule_src_refs="",
-            rule_dst_neg=False,
-            rule_dst="",
-            rule_dst_refs="",
-            rule_svc_neg=False,
-            rule_svc="",
-            rule_svc_refs="",
-            rule_action=RuleAction.ACCEPT,
-            rule_track=RuleTrack.NONE,
-            rule_installon=None,
-            rule_time=None,
-            rule_name=name or f"rule-{self._rule_counter}",
-            rule_uid=uid,
-            rule_custom_fields=None,
-            rule_implied=False,
-            rule_type=rule_type,
-            last_change_admin=None,
-            parent_rule_uid=None,
-            last_hit=None,
-            rule_comment=None,
-            rule_src_zone=None,
-            rule_dst_zone=None,
-            rule_head_text=None,
+        uid = self.uid_manager.create_uid() if rule is None else rule.rule_uid or ""
+        self._rule_counter += 1 if rule is None else 0
+        normalized_rule = (
+            RuleNormalized(
+                rule_num=self._rule_counter,
+                rule_num_numeric=float(self._rule_counter),
+                rule_disabled=False,
+                rule_src_neg=False,
+                rule_src="",
+                rule_src_refs="",
+                rule_dst_neg=False,
+                rule_dst="",
+                rule_dst_refs="",
+                rule_svc_neg=False,
+                rule_svc="",
+                rule_svc_refs="",
+                rule_action=RuleAction.ACCEPT,
+                rule_track=RuleTrack.NONE,
+                rule_installon=None,
+                rule_time=None,
+                rule_name=name or f"rule-{self._rule_counter}",
+                rule_uid=uid,
+                rule_custom_fields=None,
+                rule_implied=False,
+                rule_type=rule_type,
+                last_change_admin=None,
+                parent_rule_uid=None,
+                last_hit=None,
+                rule_comment=None,
+                rule_src_zone=None,
+                rule_dst_zone=None,
+                rule_head_text=None,
+            )
+            if rule is None
+            else rule
         )
-        rulebase.rules[uid] = rule
-        return rule
+        rulebase.rules[uid] = normalized_rule
+        return normalized_rule
 
     def add_references_to_rule(
         self,
@@ -324,3 +336,10 @@ class FwConfigBuilder:
             )
 
         rb_link_controller.rb_links = new_rb_links
+
+    def update_rule_num_numerics(self, config: FwConfigNormalized):
+        for rulebase in config.rulebases:
+            new_num_numeric = 0
+            for rule in rulebase.rules.values():
+                new_num_numeric += RULE_NUM_NUMERIC_STEPS
+                rule.rule_num_numeric = new_num_numeric

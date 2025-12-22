@@ -588,7 +588,7 @@ class MockFwConfigNormalizedBuilder:
             ),
         )
 
-    def add_rulebase(self, config: FwConfigNormalized, mgm_uid: str, rulebase: Rulebase = None) -> Rulebase:
+    def add_rulebase(self, config: FwConfigNormalized, mgm_uid: str, rulebase: Rulebase | None = None) -> Rulebase:
         if not rulebase:
             new_rulebase_uid = self.uid_manager.create_uid()
             new_rulebase = Rulebase(uid=new_rulebase_uid, name=f"Rulebase {new_rulebase_uid}", mgm_uid=mgm_uid, id=None)

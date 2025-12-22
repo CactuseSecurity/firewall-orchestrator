@@ -33,9 +33,6 @@ class FwConfigBuilder:
     def reset(self) -> None:
         self.uid_manager = UidManager()
         self._rng = random.Random(self._seed)
-        self._network_counter = 0
-        self._service_counter = 0
-        self._rule_counter = 0
 
     @staticmethod
     def empty_config() -> FwConfigNormalized:
@@ -79,10 +76,9 @@ class FwConfigBuilder:
 
     def add_network_object(self, config: FwConfigNormalized, *, name: str | None = None) -> NetworkObject:
         uid = self.uid_manager.create_uid()
-        self._network_counter += 1
         obj = NetworkObject(
             obj_uid=uid,
-            obj_name=name or f"nw-{self._network_counter}",
+            obj_name=name or f"nw-{uid}",
             obj_ip=IPNetwork(DUMMY_IP),
             obj_ip_end=IPNetwork(DUMMY_IP),
             obj_color="black",
@@ -95,10 +91,9 @@ class FwConfigBuilder:
 
     def add_service_object(self, config: FwConfigNormalized, *, name: str | None = None) -> ServiceObject:
         uid = self.uid_manager.create_uid()
-        self._service_counter += 1
         svc = ServiceObject(
             svc_uid=uid,
-            svc_name=name or f"svc-{self._service_counter}",
+            svc_name=name or f"svc-{uid}",
             svc_color="black",
             svc_typ="group",
             svc_port=None,
@@ -118,8 +113,11 @@ class FwConfigBuilder:
         *,
         name: str | None = None,
     ) -> Rulebase:
-        uid = self.uid_manager.create_uid() if rulebase is None else rulebase.uid
-        rb = Rulebase(uid=uid, name=name or f"rb-{uid}", mgm_uid=mgm_uid) if rulebase is None else rulebase
+        if rulebase is None:
+            uid = self.uid_manager.create_uid()
+            rb = Rulebase(uid=uid, name=name or f"rb-{uid}", mgm_uid=mgm_uid)
+        else:
+            rb = rulebase
         config.rulebases.append(rb)
         return rb
 
@@ -132,13 +130,11 @@ class FwConfigBuilder:
         name: str | None = None,
         rule_type: RuleType = RuleType.SECTIONHEADER,
     ) -> RuleNormalized:
-        rulebase = self._get_rulebase(config, rulebase_uid)
-        uid = self.uid_manager.create_uid() if rule is None else rule.rule_uid or ""
-        self._rule_counter += 1 if rule is None else 0
-        normalized_rule = (
-            RuleNormalized(
-                rule_num=self._rule_counter,
-                rule_num_numeric=float(self._rule_counter),
+        if rule is None:
+            uid = self.uid_manager.create_uid()
+            normalized_rule = RuleNormalized(
+                rule_num=0,
+                rule_num_numeric=0.0,
                 rule_disabled=False,
                 rule_src_neg=False,
                 rule_src="",
@@ -153,7 +149,7 @@ class FwConfigBuilder:
                 rule_track=RuleTrack.NONE,
                 rule_installon=None,
                 rule_time=None,
-                rule_name=name or f"rule-{self._rule_counter}",
+                rule_name=name or f"rule-{uid}",
                 rule_uid=uid,
                 rule_custom_fields=None,
                 rule_implied=False,
@@ -166,9 +162,11 @@ class FwConfigBuilder:
                 rule_dst_zone=None,
                 rule_head_text=None,
             )
-            if rule is None
-            else rule
-        )
+        else:
+            uid = rule.rule_uid or self.uid_manager.create_uid()
+            normalized_rule = rule
+
+        rulebase = self._get_rulebase(config, rulebase_uid)
         rulebase.rules[uid] = normalized_rule
         return normalized_rule
 

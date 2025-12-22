@@ -236,13 +236,12 @@
                     <input id="lbl_treat_dynamic_and_domain_objects_as_internet" type="checkbox" @bind="configData!.TreatDynamicAndDomainObjectsAsInternet" />            
                 </div>
             </div>
-            <div class="form-group row">
-                <label class="col-form-label col-sm-4">Do Initial Check |Unlocalized|</label>
+            <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5843"))">
+                <label for="lbl_filter_out_initial_violations" class="col-form-label col-sm-4">@(userConfig.GetText("filterOutInitialViolations")):</label>
                 <div class="col-sm-7">
-                    <button class="btn btn-primary" @onclick="InitialCheck">Run check</button>
+                    <input id="lbl_filter_out_initial_violations" type="checkbox" @bind="configData!.ComplianceFilterOutInitialViolations" />            
                 </div>
             </div>
-            
         }
     <hr />
     <AuthorizeView Roles="@Roles.Admin">
@@ -252,6 +251,23 @@
         <NotAuthorized>
             <button type="button" class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("save"))</button>
         </NotAuthorized>
+        <Authorized>
+            <div class="form-group row">
+                <label class="col-form-label col-sm-4">Do Initial Check |Unlocalized|</label>
+                <div class="col-sm-7">
+                    <button class="btn btn-primary" @onclick="InitialCheck">Run check</button>
+                </div>
+            </div>
+        </Authorized>
+        <NotAuthorized>
+            <div class="form-group row">
+                <label class="col-form-label col-sm-4">Do Initial Check |Unlocalized|</label>
+                <div class="col-sm-7">
+                    <button class="btn btn-primary" disabled>Run check</button>
+                </div>
+            </div>
+        </NotAuthorized>
+        
     </AuthorizeView>
 }
 else

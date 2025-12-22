@@ -2681,6 +2681,8 @@ INSERT INTO txt VALUES ('complianceCheckShowShortColumsInComplianceReports','Ger
 INSERT INTO txt VALUES ('complianceCheckShowShortColumsInComplianceReports','English','Show columns with short forms for sources, destinations and services');
 INSERT INTO txt VALUES ('importedMatrixReadOnly','German', 'Importierte Matrizen schreibgeschützt');
 INSERT INTO txt VALUES ('importedMatrixReadOnly','English','Imported matrices read-only');
+INSERT INTO txt VALUES ('filterOutInitialViolations','German', 'Filtere initiale Violations raus');
+INSERT INTO txt VALUES ('filterOutInitialViolations','English','Filter out initial violations');
 
 INSERT INTO txt VALUES ('availableModules',     'German', 	'Verf&uuml;gbare Module');
 INSERT INTO txt VALUES ('availableModules',     'English', 	'Available Modules');
@@ -5959,6 +5961,8 @@ INSERT INTO txt VALUES ('H5841', 'German',  'Auswertbarkeitsproblem');
 INSERT INTO txt VALUES ('H5841', 'English', 'Assessability issue');
 INSERT INTO txt VALUES ('H5842', 'German',  'Wenn aktiviert, können importierte Matrizen weder gelöscht noch editiert werden.');
 INSERT INTO txt VALUES ('H5842', 'English', 'When enabled, imported matrices cannot be deleted or edited.');
+INSERT INTO txt VALUES ('H5843', 'German',  'Wenn aktiviert, werden als "Initial" markierte Violations nicht angezeigt.');
+INSERT INTO txt VALUES ('H5843', 'English', 'When enabled, violations marked as "initial" wont be shown.');
 
 
 INSERT INTO txt VALUES ('H6001', 'German',  'Firewall Orchestrator verf&uuml;gt &uuml;ber zwei APIs:

@@ -372,6 +372,10 @@ namespace FWO.Services
             return false;
         }
 
+        /// <summary>
+        /// Checks if a common service contains only common network areas.
+        /// </summary>
+        /// <returns></returns>
         public bool ComSvcContainsOnlyCommonNetworkArea()
         {
             List<ModellingNetworkArea> srcAreas = [.. ModellingNetworkAreaWrapper.Resolve(ActConn.SourceAreas)];

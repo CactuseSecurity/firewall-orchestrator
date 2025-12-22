@@ -251,16 +251,16 @@
     
     <AuthorizeView Roles="@Roles.Admin">
         <Authorized>
-            <div class="form-group row">
-                <label class="col-form-label col-sm-4">Do Initial Check |Unlocalized|</label>
+            <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5845"))">
+                <label class="col-form-label col-sm-4">@(userConfig.PureLine("H5846"))</label>
                 <div class="col-sm-7">
                     <button class="btn btn-primary" @onclick="InitialCheck">Run check</button>
                 </div>
             </div>
         </Authorized>
         <NotAuthorized>
-            <div class="form-group row">
-                <label class="col-form-label col-sm-4">Do Initial Check |Unlocalized|</label>
+            <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5845"))">
+                <label class="col-form-label col-sm-4">@(userConfig.PureLine("H5846"))</label>
                 <div class="col-sm-7">
                     <button class="btn btn-primary" disabled>Run check</button>
                 </div>

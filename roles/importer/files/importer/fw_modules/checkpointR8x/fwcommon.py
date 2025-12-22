@@ -278,10 +278,10 @@ def create_ordered_manager_list(import_state: ImportState) -> list[ManagementCon
 
 def handle_super_manager(
     manager_details: ManagementController, cp_manager_api_base_url: str, show_params_policy_structure: dict[str, Any]
-) -> tuple[list[Any], None, Any | None, str]:
+) -> tuple[list[Any], list[Any] | None, Any | None, str]:
     # global assignments are fetched from mds domain
     mds_sid: str = cp_getter.login(manager_details)
-    global_policy_structure = None
+    global_policy_structure: list[Any] | None = []
     global_domain = None
     global_assignments = cp_getter.get_global_assignments(
         cp_manager_api_base_url, mds_sid, show_params_policy_structure
@@ -305,6 +305,9 @@ def handle_super_manager(
             )
         else:
             raise FwoImporterError(f"Unexpected global assignments: {global_assignments!s}")
+
+    if len(global_policy_structure) == 0:
+        global_policy_structure = None
 
     return global_assignments, global_policy_structure, global_domain, global_sid
 

@@ -134,6 +134,11 @@ namespace FWO.Report
             return true;
         }
 
+        public virtual bool NoChangesFound()
+        {
+            return true;
+        }
+
         public abstract string ExportToCsv();
 
         public abstract string ExportToJson();

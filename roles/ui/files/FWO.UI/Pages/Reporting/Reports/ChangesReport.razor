@@ -92,6 +92,13 @@
                                     </div>
                                 </Template>
                             </Column>
+                            <Column TableItem="RuleChange" Title="@(userConfig.GetText("enforcing_devices"))" Hideable="true">
+                                <Template>
+                                    <div style="@ruleChangeDisplayHtml.DisplayStyle(context)">
+                                        @((MarkupString)ruleChangeDisplayHtml.DisplayEnforcingGateways(context, OutputLocation.report, SelectedReportType))
+                                    </div>
+                                </Template>
+                            </Column>
                             <Column TableItem="RuleChange" Title="@(userConfig.GetText("comment"))" Hideable="true">
                                 <Template>
                                     <div style="@ruleChangeDisplayHtml.DisplayStyle(context)">

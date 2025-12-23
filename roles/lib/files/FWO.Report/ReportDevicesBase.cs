@@ -1,4 +1,4 @@
-﻿using FWO.Api.Client;
+using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 using FWO.Basics;
 using FWO.Config.Api;
@@ -153,6 +153,25 @@ namespace FWO.Report
 
             return true;
         }
+
+        public override bool NoChangesFound()
+        {
+            Log.TryWriteLog(LogType.Info, "Management Report", "Checking if changes (rules or objects) were found in management report.", _debugConfig.ExtendedLogReportGeneration);
+
+            foreach (ManagementReport mgmt in ReportData.ManagementData)
+            {
+                Log.TryWriteLog(LogType.Info, "Management Report", $"Checking if changes (rules or objects) were found in management {mgmt.Id} ({mgmt.Name}).", _debugConfig.ExtendedLogReportGeneration);
+
+                if(mgmt.RuleChanges != null && mgmt.RuleChanges.Length > 0)
+                {
+                    return false;
+                }
+            }
+
+            Log.TryWriteLog(LogType.Info, "Management Report", "No changes (rules or objects) found in any Management.", _debugConfig.ExtendedLogReportGeneration);
+
+            return true;
+        }        
 
         private bool CheckDeviceHasNoRules(ManagementReport mgmt, DeviceReport dev)
         {

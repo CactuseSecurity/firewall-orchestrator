@@ -257,7 +257,7 @@
     private ReportTemplateComponent reportTemplateControl = new();
 
     private ReportBase? currentReport;
-    
+
     private Sidebar? deviceSelectionSidebar;
 
     private string filterFeedbackStart = "";
@@ -537,23 +537,21 @@
 
     private void PostProcess()
     {
-        if(currentReport != null)
+        if (currentReport != null)
         {
             reportTemplateControl.Collapse();
 
-            if(actReportFilters.ReportType.IsDeviceRelatedReport() && currentReport.NoRuleFound())
+            if ((currentReport is ReportRules || currentReport is ReportNatRules) && currentReport.NoRuleFound())
             {
-                if(currentReport is ReportRules || currentReport is ReportNatRules)
-                {
-                    DisplayMessageInUi(null, userConfig.GetText("generate_report"), userConfig.GetText("E4002"), true);
-                }
-                else if(actReportFilters.ReportType.IsChangeReport())
-                {
-                    DisplayMessageInUi(null, userConfig.GetText("generate_report"), userConfig.GetText("E4003"), true);
-                }
+                DisplayMessageInUi(null, userConfig.GetText("generate_report"), userConfig.GetText("E4002"), true);
             }
 
-            if(currentReport is ReportCompliance && _complianceReport != null)
+            if (actReportFilters.ReportType.IsChangeReport() && currentReport.NoChangesFound())
+            {
+                DisplayMessageInUi(null, userConfig.GetText("generate_report"), userConfig.GetText("E4003"), true);
+            }
+
+            if (currentReport is ReportCompliance && _complianceReport != null)
             {
                 _complianceReport.UpdateRuleViewData(currentReport.ReportData);
                 _showAnyRulesInComplianceReport = ((ReportCompliance)currentReport).ShowNonImpactRules;

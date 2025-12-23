@@ -1,8 +1,11 @@
+using FWO.Basics;
+using FWO.Config.Api;
 using FWO.Data;
 using FWO.Logging;
-using FWO.Config.Api;
 using FWO.Report;
-using FWO.Basics;
+using Microsoft.AspNetCore.Components;
+using System.Data;
+using System.Data.Common;
 
 namespace FWO.Ui.Display
 {
@@ -139,6 +142,17 @@ namespace FWO.Ui.Display
                 case 'D': return OutputHtmlDeleted(DisplayUid(ruleChange.OldRule));
                 case 'I': return OutputHtmlAdded(DisplayUid(ruleChange.NewRule));
                 case 'C': return DisplayDiff(DisplayUid(ruleChange.OldRule), DisplayUid(ruleChange.NewRule));
+                default: ThrowErrorUnknowChangeAction(ruleChange.ChangeAction); return "";
+            }
+        }
+
+        public string DisplayEnforcingGateways(RuleChange ruleChange, OutputLocation location, ReportType reportType)
+        {
+            switch (ruleChange.ChangeAction)
+            {
+                case 'D': return OutputHtmlDeleted(DisplayEnforcingGateways(ruleChange.OldRule, location, reportType));
+                case 'I': return OutputHtmlAdded(DisplayEnforcingGateways(ruleChange.NewRule, location, reportType));
+                case 'C': return DisplayDiff(DisplayEnforcingGateways(ruleChange.OldRule, location, reportType), DisplayEnforcingGateways(ruleChange.NewRule, location, reportType));
                 default: ThrowErrorUnknowChangeAction(ruleChange.ChangeAction); return "";
             }
         }

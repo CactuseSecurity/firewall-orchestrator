@@ -41,7 +41,7 @@
     rf_create: { _lte: $import_id_old }
     _or: [
       { removed: { _is_null: true } }
-      { removed: { _gt:$import_id_start } }
+      { removed: { _gt:$import_id_old } }
     ]
   }, order_by: { object: { obj_name: asc } }) {
     usr {
@@ -62,7 +62,7 @@
     rt_create: { _lte: $import_id_old }
     _or: [
       { removed: { _is_null: true } }
-      { removed: { _gt:$import_id_start } }
+      { removed: { _gt:$import_id_old } }
     ]
   }, order_by: { object: { obj_name: asc } }) {
     usr {
@@ -77,11 +77,17 @@
     rs_create: { _lte: $import_id_old }
     _or: [
       { removed: { _is_null: true } }
-      { removed: { _gt:$import_id_start } }
+      { removed: { _gt:$import_id_old } }
     ]
   }, order_by: { service: { svc_name: asc } }) {
     service {
       ...networkServiceDetailsChangesOld
+    }
+  }
+  rule_enforced_on_gateways(order_by:{ device: { dev_name: asc } }) {
+    device {
+      id: dev_id
+      name: dev_name
     }
   }
 }

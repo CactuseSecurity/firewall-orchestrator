@@ -74,7 +74,7 @@ namespace FWO.Report.Filter
                                         offset: $offset ";
 
 
-        public static DynGraphqlQuery GenerateQuery(ReportTemplate filter, AstNode? ast)    // ToDo Where einbauen - changelog_rule alle stm_(change_type) = 2? initial?
+        public static DynGraphqlQuery GenerateQuery(ReportTemplate filter, AstNode? ast)    // ToDo Where einbauen - changelog_rule alle stm_(change_type) = 2? initial?        
         {
             DynGraphqlQuery query = new(filter.Filter);
             ConstructWhereStatements(query, filter, ast);
@@ -109,9 +109,18 @@ namespace FWO.Report.Filter
             query.ConnectionWhereStatement += "{";
             query.OwnerWhereStatement += "{";
 
+            if ((ReportType)filter.ReportParams.ReportType == ReportType.Changes || (ReportType)filter.ReportParams.ReportType == ReportType.ResolvedChanges || (ReportType)filter.ReportParams.ReportType == ReportType.ResolvedChangesTech )
+            {
+                query.RuleWhereStatement += "rule: {";
+            }
             // now we convert the ast into a graphql query:
             ast?.Extract(ref query, (ReportType)filter.ReportParams.ReportType);
             // TODO: remove rule dev filtering for rework 
+
+            if ((ReportType)filter.ReportParams.ReportType == ReportType.Changes || (ReportType)filter.ReportParams.ReportType == ReportType.ResolvedChanges || (ReportType)filter.ReportParams.ReportType == ReportType.ResolvedChangesTech)
+            {
+                query.RuleWhereStatement += "}";
+            }
 
             query.RuleWhereStatement += "}] ";
             query.ConnectionWhereStatement += "}] ";

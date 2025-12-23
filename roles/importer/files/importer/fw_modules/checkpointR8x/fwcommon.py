@@ -133,7 +133,7 @@ def normalize_config(
 
     # in case of mds, first nativ config domain is global
     is_global_loop_iteration = False
-    native_config_global: dict[str, Any] = {}
+    native_config_global: dict[str, Any] | None = None
     normalized_config_global = {}
     if config_in.native_config["domains"][0]["is-super-manager"]:
         native_config_global = config_in.native_config["domains"][0]
@@ -189,7 +189,7 @@ def normalize_config(
 
 def normalize_single_manager_config(
     native_config: dict[str, Any],
-    native_config_global: dict[str, Any],
+    native_config_global: dict[str, Any] | None,
     normalized_config_dict: dict[str, Any],
     normalized_config_global: dict[str, Any],
     import_state: ImportState,
@@ -519,12 +519,13 @@ def handle_nat_rules(
     fetched_nat_rulebases: list[str],
     fetched_but_empty_nat_rulebases: list[str],
 ):
+    """Get nat rulebases, name and uid get _nat prefix and link to access rulebase"""
     if policy_dict["uid"] not in fetched_nat_rulebases + fetched_but_empty_nat_rulebases:
         show_params_rules: dict[str, Any] = {
             "limit": import_state.fwo_config.api_fetch_size,
             "use-object-dictionary": cp_const.use_object_dictionary,
             "details-level": "standard",
-            "package": policy_dict,
+            "package": policy_dict["name"],
         }
         FWOLogger.debug(f"Getting NAT rules for package: {policy_dict['name']}", 4)
         nat_rules = cp_getter.get_nat_rules_from_api_as_dict(
@@ -536,22 +537,51 @@ def handle_nat_rules(
         )
         if nat_rules["chunks"]:
             native_config_domain["nat_rulebases"].append(nat_rules)
-            fetched_nat_rulebases.append(policy_dict["uid"])
+            fetched_nat_rulebases.append(policy_dict["uid"])  # uid without _nat postfix
         else:
-            fetched_but_empty_nat_rulebases.append(policy_dict["uid"])
+            fetched_but_empty_nat_rulebases.append(policy_dict["uid"])  # uid without _nat postfix
 
     if policy_dict["uid"] in fetched_nat_rulebases:
-        device_config["rulebase_links"].append(
-            {
-                "from_rulebase_uid": policy_dict["uid"],
-                "from_rule_uid": None,
-                "to_rulebase_uid": policy_dict["uid"] + "_nat",
-                "type": "nat",
-                "is_global": False,
-                "is_initial": False,
-                "is_section": False,
-            }
-        )
+        link_nat_rulebase_sections(policy_dict["uid"], native_config_domain["nat_rulebases"], device_config)
+
+
+def link_nat_rulebase_sections(policy_dict_uid: str, nat_rulebases: list[Any], device_config: dict[str, Any]):
+    current_nat_rulebase_uid = policy_dict_uid + "_nat"
+    device_config["rulebase_links"].append(
+        {
+            "from_rulebase_uid": policy_dict_uid,
+            "from_rule_uid": None,
+            "to_rulebase_uid": current_nat_rulebase_uid,
+            "type": "nat",
+            "is_global": False,
+            "is_initial": False,
+            "is_section": False,
+        }
+    )
+    for nat_rulebase in nat_rulebases:
+        if current_nat_rulebase_uid == nat_rulebase["uid"]:
+            for nat_rulebase_chunk in nat_rulebase["chunks"]:
+                if "rulebase" in nat_rulebase_chunk:
+                    define_nat_section_chain(current_nat_rulebase_uid, nat_rulebase_chunk, device_config)
+
+
+def define_nat_section_chain(
+    current_nat_rulebase_uid: str, nat_rulebase_chunk: dict[str, Any], device_config: dict[str, Any]
+):
+    for nat_section in nat_rulebase_chunk["rulebase"]:
+        if nat_section["type"] == "nat-section":
+            device_config["rulebase_links"].append(
+                {
+                    "from_rulebase_uid": current_nat_rulebase_uid,
+                    "from_rule_uid": None,
+                    "to_rulebase_uid": nat_section["uid"],
+                    "type": "concatenated",
+                    "is_global": False,
+                    "is_initial": False,
+                    "is_section": True,
+                }
+            )
+            current_nat_rulebase_uid = nat_section["uid"]
 
 
 def add_ordered_layers_to_native_config(

@@ -28,7 +28,7 @@ def normalize_rulebases(
     native_config_global: dict[str, Any] | None,
     import_state: ImportState,
     normalized_config_dict: dict[str, Any],
-    normalized_config_global: dict[str, Any] | None,
+    normalized_config_global: dict[str, Any],
     is_global_loop_iteration: bool,
 ):
     normalized_config_dict["policies"] = []
@@ -38,7 +38,7 @@ def normalize_rulebases(
         uid_to_name_map[nw_obj["obj_uid"]] = nw_obj["obj_name"]
 
     fetched_rulebase_uids: list[str] = []
-    if normalized_config_global is not None and normalized_config_global != {}:
+    if normalized_config_global != {}:
         fetched_rulebase_uids.extend(
             [normalized_rulebase_global.uid for normalized_rulebase_global in normalized_config_global["policies"]]
         )
@@ -51,7 +51,7 @@ def normalize_rulebases(
             is_global_loop_iteration,
             import_state,
             normalized_config_dict,
-            normalized_config_global,  # type: ignore # TODO: check if normalized_config_global can be None, I am pretty sure it cannot be None here  # noqa: PGH003
+            normalized_config_global,
         )  # TODO: parse nat rulebase here
 
 
@@ -66,7 +66,7 @@ def normalize_rulebases_for_each_link_destination(
     normalized_config_global: dict[str, Any],
 ):
     for rulebase_link in gateway["rulebase_links"]:
-        if rulebase_link["to_rulebase_uid"] not in fetched_rulebase_uids and rulebase_link["to_rulebase_uid"] != "":
+        if rulebase_link["to_rulebase_uid"] not in fetched_rulebase_uids and rulebase_link["type"] != "nat":
             rulebase_to_parse, is_section, is_placeholder = find_rulebase_to_parse(
                 native_config["rulebases"], rulebase_link["to_rulebase_uid"]
             )
@@ -90,6 +90,9 @@ def normalize_rulebases_for_each_link_destination(
                 normalized_config_global["policies"].append(normalized_rulebase)
             else:
                 normalized_config_dict["policies"].append(normalized_rulebase)
+
+        elif rulebase_link["to_rulebase_uid"] not in fetched_rulebase_uids and rulebase_link["type"] == "nat":
+            pass
 
 
 def find_rulebase_to_parse(rulebase_list: list[dict[str, Any]], rulebase_uid: str) -> tuple[dict[str, Any], bool, bool]:

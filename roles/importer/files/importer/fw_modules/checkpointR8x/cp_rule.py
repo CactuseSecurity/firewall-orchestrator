@@ -66,7 +66,7 @@ def normalize_rulebases_for_each_link_destination(
     normalized_config_global: dict[str, Any],
 ):
     for rulebase_link in gateway["rulebase_links"]:
-        if rulebase_link["to_rulebase_uid"] not in fetched_rulebase_uids and rulebase_link["type"] != "nat":
+        if rulebase_link["to_rulebase_uid"] not in fetched_rulebase_uids:
             rulebase_to_parse, is_section, is_placeholder = find_rulebase_to_parse(
                 native_config["rulebases"], rulebase_link["to_rulebase_uid"]
             )
@@ -77,6 +77,11 @@ def normalize_rulebases_for_each_link_destination(
                     native_config_global["rulebases"], rulebase_link["to_rulebase_uid"]
                 )
                 found_rulebase_in_global = True
+            # search in nat rulebases
+            if rulebase_to_parse == {}:
+                rulebase_to_parse, is_section, is_placeholder = find_rulebase_to_parse(
+                    native_config["nat_rulebases"], rulebase_link["to_rulebase_uid"]
+                )
             if rulebase_to_parse == {}:
                 FWOLogger.warning("found to_rulebase link without rulebase in nativeConfig: " + str(rulebase_link))
                 continue
@@ -90,9 +95,6 @@ def normalize_rulebases_for_each_link_destination(
                 normalized_config_global["policies"].append(normalized_rulebase)
             else:
                 normalized_config_dict["policies"].append(normalized_rulebase)
-
-        elif rulebase_link["to_rulebase_uid"] not in fetched_rulebase_uids and rulebase_link["type"] == "nat":
-            pass
 
 
 def find_rulebase_to_parse(rulebase_list: list[dict[str, Any]], rulebase_uid: str) -> tuple[dict[str, Any], bool, bool]:
@@ -169,7 +171,7 @@ def parse_rulebase(
 ):
     if is_section:
         for rule in rulebase_to_parse["rulebase"]:
-            # delte_v sind import_id, parent_uid, config2import wirklich egal? Dann können wir diese argumente löschen - NAT ACHTUNG
+            # delete_v ist parent_uid wirklich egal? Dann können wir dieses argument löschen - NAT ACHTUNG
             parse_single_rule(rule, normalized_rulebase, normalized_rulebase.uid, None, gateway, policy_structure)
 
             FWOLogger.debug("parsed rulebase " + normalized_rulebase.uid, 4)

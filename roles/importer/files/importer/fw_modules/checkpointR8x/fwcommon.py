@@ -325,6 +325,8 @@ def process_devices(
     native_config_global_domain: dict[str, Any],
     import_state: ImportState,
 ) -> None:
+    fetched_nat_rulebases: list[str] = []
+    fetched_but_empty_nat_rulebases: list[str] = []
     for device in manager_details.devices:
         device_config = initialize_device_config(device)
         if not device_config:
@@ -366,8 +368,6 @@ def process_devices(
             global_ordered_layer_count=global_ordered_layer_count,
         )
 
-        fetched_nat_rulebases: list[str] = []
-        fetched_but_empty_nat_rulebases: list[str] = []
         handle_nat_rules(
             policy_dict,
             device_config,
@@ -547,6 +547,7 @@ def handle_nat_rules(
 
 def link_nat_rulebase_sections(policy_dict_uid: str, nat_rulebases: list[Any], device_config: dict[str, Any]):
     current_nat_rulebase_uid = policy_dict_uid + "_nat"
+    # link nat rulebase to access rulebase
     device_config["rulebase_links"].append(
         {
             "from_rulebase_uid": policy_dict_uid,
@@ -558,16 +559,20 @@ def link_nat_rulebase_sections(policy_dict_uid: str, nat_rulebases: list[Any], d
             "is_section": False,
         }
     )
+    # link all nat sections concatenated
     for nat_rulebase in nat_rulebases:
         if current_nat_rulebase_uid == nat_rulebase["uid"]:
             for nat_rulebase_chunk in nat_rulebase["chunks"]:
                 if "rulebase" in nat_rulebase_chunk:
-                    define_nat_section_chain(current_nat_rulebase_uid, nat_rulebase_chunk, device_config)
+                    current_nat_rulebase_uid = define_nat_section_chain(
+                        current_nat_rulebase_uid, nat_rulebase_chunk, device_config
+                    )
+            break
 
 
 def define_nat_section_chain(
     current_nat_rulebase_uid: str, nat_rulebase_chunk: dict[str, Any], device_config: dict[str, Any]
-):
+) -> str:
     for nat_section in nat_rulebase_chunk["rulebase"]:
         if nat_section["type"] == "nat-section":
             device_config["rulebase_links"].append(
@@ -582,6 +587,7 @@ def define_nat_section_chain(
                 }
             )
             current_nat_rulebase_uid = nat_section["uid"]
+    return current_nat_rulebase_uid
 
 
 def add_ordered_layers_to_native_config(

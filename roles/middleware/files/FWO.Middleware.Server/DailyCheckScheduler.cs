@@ -5,8 +5,10 @@ using FWO.Config.Api;
 using FWO.Config.Api.Data;
 using FWO.Data;
 using FWO.Data.Middleware;
+using FWO.Data.Workflow;
 using FWO.Logging;
 using FWO.Recert;
+using FWO.Services;
 using System.Timers;
 
 namespace FWO.Middleware.Server
@@ -62,6 +64,7 @@ namespace FWO.Middleware.Server
                     await RefreshRecert();
                 }
                 await CheckRecerts();
+				await CheckUnansweredInterfaceRequests();
             }
             catch(Exception exc)
             {
@@ -181,6 +184,39 @@ namespace FWO.Middleware.Server
             }
             await AddLogEntry(importIssues != 0 ? 1 : 0, globalConfig.GetText("daily_importer_check"),
                 importIssues != 0 ? importIssues + globalConfig.GetText("import_issues_found") : globalConfig.GetText("no_import_issues_found"), GlobalConst.kDailyCheck);
+        }
+
+		private async Task CheckUnansweredInterfaceRequests()
+        {
+			int emailsSent = 0;
+			List<UserGroup> OwnerGroups = await MiddlewareServerServices.GetInternalGroups(apiConnection);
+            WfHandler wfHandler = new (new(globalConfig), apiConnection, WorkflowPhases.request, OwnerGroups);
+            await wfHandler.Init();
+            NotificationService notificationService = await NotificationService.CreateAsync(NotificationClient.InterfaceRequest, globalConfig, apiConnection, OwnerGroups);
+
+			foreach(var notification in notificationService.Notifications)
+			{
+				List<WfTicket>? unansweredTickets = await wfHandler.GetOpenTickets(WfTaskType.new_interface.ToString(), notification.RepeatOffsetAfterDeadline ?? 0);
+				foreach(var ticket in unansweredTickets)
+				{
+					FwoOwner? owner = ticket.Tasks.FirstOrDefault(r => r.TaskType == WfTaskType.new_interface.ToString())?.Owners.FirstOrDefault()?.Owner;
+					if(owner != null)
+					{
+						emailsSent += await notificationService.SendNotifications(owner, ticket.CreationDate, PrepareBody(ticket, owner));
+					}
+				}
+			}
+			await notificationService.UpdateNotificationsLastSent();
+			Log.WriteDebug(LogMessageTitle, $"Unanswered Interface Requests Check: Sent {emailsSent} emails.");
+        }
+
+		private string PrepareBody(WfTicket ticket, FwoOwner owner)
+        {
+			WfReqTask? reqTask = ticket.Tasks.FirstOrDefault(r => r.TaskType == WfTaskType.new_interface.ToString());
+			int? connId = reqTask?.GetAddInfoIntValue(AdditionalInfoKeys.ConnId);
+			string interfaceUrl = $"{globalConfig.UiHostName}/{PageName.Modelling}/{owner.ExtAppId}/{connId}";
+			return $"{ticket.Requester?.Name} {globalConfig.ModUnansweredReqEmailBody} {owner.Name} <br>" +
+                $"<a target=\"_blank\" href=\"{interfaceUrl}\">{globalConfig.GetText("interface")}: {reqTask?.Title}</a><br>"; 
         }
     }
 }

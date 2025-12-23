@@ -74,6 +74,7 @@ namespace FWO.Basics
     {
         public const string ReportGeneration = "report/generation";
         public const string Certification = "certification";
+        public const string Modelling = "networkmodelling";
     }
 
     public struct ObjectType

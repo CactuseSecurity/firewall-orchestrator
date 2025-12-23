@@ -105,9 +105,9 @@ namespace FWO.Services
             userConfig = new();
         }
 
-		/// <summary>
-		/// constructor for use in UI
-		/// </summary>
+        /// <summary>
+        /// constructor for use in UI
+        /// </summary>
         public WfHandler(Action<Exception?, string, string, bool> displayMessageInUi, UserConfig userConfig, 
             System.Security.Claims.ClaimsPrincipal authUser, ApiConnection apiConnection, MiddlewareClient middlewareClient, WorkflowPhases phase)
         {
@@ -119,13 +119,12 @@ namespace FWO.Services
             AuthUser = authUser;
         }
 
-		/// <summary>
-		/// constructor for use in middleware server
-		/// </summary>
-        public WfHandler(Action<Exception?, string, string, bool> displayMessageInUi, UserConfig userConfig,
-            ApiConnection apiConnection, WorkflowPhases phase, List<UserGroup>? userGroups)
+        /// <summary>
+        /// constructor for use in middleware server
+        /// </summary>
+        public WfHandler(UserConfig userConfig, ApiConnection apiConnection, WorkflowPhases phase, List<UserGroup>? userGroups)
         {
-            DisplayMessageInUi = displayMessageInUi;
+            DisplayMessageInUi = LogMessage;
             this.userConfig = userConfig;
             this.apiConnection = apiConnection;
             Phase = phase;
@@ -133,6 +132,24 @@ namespace FWO.Services
             usedInMwServer = true;
         }
 
+        private static void LogMessage(Exception? exception = null, string title = "", string message = "", bool ErrorFlag = false)
+        {
+            if (exception == null)
+            {
+                if(ErrorFlag)
+                {
+                    Log.WriteWarning(title, message);
+                }
+                else
+                {
+                    Log.WriteInfo(title, message);
+                }
+            }
+            else
+            {
+                Log.WriteError(title, message, exception);
+            }
+        }
 
         public async Task<bool> Init(bool fetchData = false, List<int>? ownerIds = null, bool allStates = false, bool fullTickets = false)
         {
@@ -303,6 +320,15 @@ namespace FWO.Services
                 }
             }
             return "";
+        }
+
+        public async Task<List<WfTicket>> GetOpenTickets(string taskType, int cutOffPeriod = 0)
+        {
+            if(dbAcc != null)
+            {
+                return await dbAcc.GetTicketsByParameters(taskType, StateMatrix(taskType).LowestStartedState, StateMatrix(taskType).LowestEndState, DateTime.Now.AddDays(-cutOffPeriod));
+            }
+            return [];
         }
 
         private async Task<(WorkflowPhases, bool)> FindNewPhase(WorkflowPhases phase, int stateId)

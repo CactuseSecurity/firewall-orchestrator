@@ -311,6 +311,16 @@
             <label class="col-form-label col-sm-4">@(userConfig.GetText("modReqTaskTitle")):</label>
             <input type="text" class="col-sm-6" @bind="configData!.ModReqTaskTitle" />
         </div>
+        <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5629"))">
+            <label class="col-form-label col-sm-4">@(userConfig.GetText("notifications")):</label>
+            <div class="col-sm-8">
+                <EditNotifications Client="NotificationClient.InterfaceRequest"/>
+            </div>
+        </div>
+        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5624a"))">
+            <label class="col-form-label col-sm-4">@(userConfig.GetText("modUnansweredReqEmailBody")):</label>
+            <textarea class="col-sm-7 mt-2" rows="4" name="text" @bind="configData!.ModUnansweredReqEmailBody"></textarea>
+        </div>
         <hr />
         <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5660"))">
             <label class="col-form-label col-sm-4">@(userConfig.GetText("modDecommEmailReceiver")):</label>

@@ -78,20 +78,23 @@
 
             @if(actNotification.Deadline != NotificationDeadline.None)
             {
-                <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H4104"))">
-                    <label class="col-form-label col-sm-4">@(userConfig.GetText("notif_before_deadline")):</label>
-                    <div class="col-sm-2">
-                        <input type="number" class="form-control form-control-sm w-100" @bind="actNotification.OffsetBeforeDeadline" />
+                @if(actNotification.Deadline != NotificationDeadline.RequestDate)
+                {
+                    <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H4104"))">
+                        <label class="col-form-label col-sm-4">@(userConfig.GetText("notif_before_deadline")):</label>
+                        <div class="col-sm-2">
+                            <input type="number" class="form-control form-control-sm w-100" @bind="actNotification.OffsetBeforeDeadline" />
+                        </div>
+                        <div class="col-sm-2">
+                            <Dropdown ElementType="SchedulerInterval" @bind-SelectedElement="actNotification.IntervalBeforeDeadline" ElementToString="@(i => userConfig.GetText(i.ToString()))"
+                                    Elements="Enum.GetValues(typeof(SchedulerInterval)).Cast<SchedulerInterval>().Where(x => x.OfferedForRecert())" >
+                                <ElementTemplate Context="interval">
+                                    @(userConfig.GetText(interval.ToString()))
+                                </ElementTemplate>
+                            </Dropdown>
+                        </div>
                     </div>
-                    <div class="col-sm-2">
-                        <Dropdown ElementType="SchedulerInterval" @bind-SelectedElement="actNotification.IntervalBeforeDeadline" ElementToString="@(i => userConfig.GetText(i.ToString()))"
-                                Elements="Enum.GetValues(typeof(SchedulerInterval)).Cast<SchedulerInterval>().Where(x => x.OfferedForRecert())" >
-                            <ElementTemplate Context="interval">
-                                @(userConfig.GetText(interval.ToString()))
-                            </ElementTemplate>
-                        </Dropdown>
-                    </div>
-                </div>
+                }
                 <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H4105"))">
                     <label class="col-form-label col-sm-4">@(userConfig.GetText("notif_after_deadline")):</label>
                     <div class="col-sm-2">
@@ -287,7 +290,11 @@
     public string DisplayNotification(FwoNotification notification)
     {
         // todo: change to name?
-        return $"{notification.OffsetBeforeDeadline} {userConfig.GetText(notification.IntervalBeforeDeadline.ToString())}: {notification.RecipientTo.ToString()}";
+        if(notification.OffsetBeforeDeadline > 0)
+        {
+            return $"{notification.OffsetBeforeDeadline} {userConfig.GetText(notification.IntervalBeforeDeadline.ToString())}: {notification.RecipientTo.ToString()}";
+        }
+        return $"{notification.RepeatOffsetAfterDeadline} {userConfig.GetText(notification.RepeatIntervalAfterDeadline.ToString())}: {notification.RecipientTo.ToString()}";
     }
 
     private string GetDeleteMessage()

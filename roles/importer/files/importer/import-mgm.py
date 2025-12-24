@@ -1,4 +1,5 @@
 import argparse  # noqa: N999
+import json
 import sys
 import traceback
 import warnings
@@ -63,10 +64,24 @@ def main(
         FWOLogger.error("error while reading importer pwd file")
         raise
 
-    jwt = get_fwo_jwt(importer_user_name, importer_pwd, user_management_api_base_url)
-    # check if login was successful - if not, wait and retry
-    if jwt is None:
+    json_raw = get_fwo_jwt(importer_user_name, importer_pwd, user_management_api_base_url)
+
+    # check if json could be retrieved - if not, wait and retry
+    if json_raw is None:
         FWOLogger.error("cannot proceed without successful login - exiting")
+        return
+
+    jwt: str | None
+
+    try:
+        json_data = json.loads(json_raw)
+        jwt = json_data["AccessToken"]
+    except Exception:
+        FWOLogger.error("JWT could not be parsed")
+        return
+
+    # check if jwt is parsed
+    if jwt is None:
         return
 
     fwo_api = FwoApi(fwo_api_base_url, jwt)

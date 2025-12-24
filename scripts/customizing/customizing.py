@@ -32,7 +32,7 @@ def call(url, jwt, query, query_variables="", role="reporter", show_progress=Fal
             return None
 
 
-def login(user, password, user_management_api_base_url, method='api/AuthenticationToken/Get'):
+def login(user, password, user_management_api_base_url, method='api/AuthenticationToken/GetTokenPair'):
     payload = {"Username": user, "Password": password}
 
     with requests.Session() as session:
@@ -221,7 +221,7 @@ if __name__ == '__main__':
     username, password = getCredentials()
 
     # login with the credentials to get JWT
-    jwt = login(username, password, user_management_api_base_url, method='api/AuthenticationToken/Get')
+    jwt = login(username, password, user_management_api_base_url, method='api/AuthenticationToken/GetTokenPair')
 
     # read settings to write to API from file
     settings = readJsonFile(settingsFile)

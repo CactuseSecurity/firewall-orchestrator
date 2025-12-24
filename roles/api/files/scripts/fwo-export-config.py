@@ -77,7 +77,7 @@ with open(fwo_config_filename, "r") as fwo_config:
 user_management_api_base_url = fwo_config['middleware_uri']
 fwo_api_base_url = fwo_config['api_uri']
 
-method = 'api/AuthenticationToken/Get'
+method = 'api/AuthenticationToken/GetTokenPair'
 ssl_mode = args.ssl
 
 # authenticate to get JWT

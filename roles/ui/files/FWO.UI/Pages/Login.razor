@@ -42,7 +42,7 @@
                     <div class="form-group mt-3">
                         <input type="password" class="form-control @InputClass" id="PasswordInput" placeholder="@(globalConfig.GetText("password"))" value="@Password" @oninput="OnPasswordInput">
                     </div>
-                    @if(loginInProgress == false)
+                    @if(!loginInProgress)
                     {
                         <button type="submit" class="btn btn-block btn-primary mt-3" @onclick:preventDefault="true" @onclick="LoginSubmit">@(globalConfig.GetText("login"))</button>
                         @* <button type="submit" class="btn btn-block btn-primary" @onclick:preventDefault="true" @onclick="LoginSubmit"><div class="@Icons.Login"></div></button> *@
@@ -91,7 +91,7 @@
                 <div class="form-group mt-2">
                     <input type="password" class="form-control @InputClass" id="NewPasswordInput2" placeholder="@(userConfig.GetText("new_password"))" value="@newPassword2" @oninput="OnNewPassword2Input">
                 </div>
-                @if(passwordChangeInProgress == false)
+                @if(!passwordChangeInProgress)
                 {
                     <button type="button" class="btn btn-block btn-primary mt-2" @onclick:preventDefault="true" @onclick="ChangePassword"><div class="@Icons.Login"></div></button>
                 }

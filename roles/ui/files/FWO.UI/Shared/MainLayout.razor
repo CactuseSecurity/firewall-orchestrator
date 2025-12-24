@@ -408,11 +408,13 @@
                     Task.Run(async () => await jwtReader.Validate());
                     role = jwtReader.GetRole();
                 }
-                catch(Exception) { }
-                Log.WriteError((title != "" ? title : "Unspecified Error"), (message != "" ? message : "Unspecified error occured: "), exception, userConfig.User.Name, role);
-                severity = 2;
-                cause = (title != "" ? title : userConfig.GetText("unspecified_error"));
-                description = $"{(message != "" ? message : userConfig.GetText("E0001"))}" + (ErrorFlag ? $": {exception.Message}" : "") + " . " + userConfig.GetText("E0002");
+                catch(Exception) 
+                { 
+                    Log.WriteError((title != "" ? title : "Unspecified Error"), (message != "" ? message : "Unspecified error occured: "), exception, userConfig.User.Name, role);
+                    severity = 2;
+                    cause = (title != "" ? title : userConfig.GetText("unspecified_error"));
+                    description = $"{(message != "" ? message : userConfig.GetText("E0001"))}" + (ErrorFlag ? $": {exception.Message}" : "") + " . " + userConfig.GetText("E0002");
+                }                
             }
         }
         ShowMessage(cause, description, messageType);

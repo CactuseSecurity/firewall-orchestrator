@@ -523,5 +523,6 @@
         }
 
         alertSubscription?.Dispose();
+        NavigationManager.LocationChanged -= OnLocationChanged;
     }
 }

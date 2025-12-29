@@ -1,7 +1,7 @@
 using NUnit.Framework;
 using NUnit.Framework.Interfaces;
 
-namespace FWO.Test
+namespace FWO.Test.Helpers
 {
     /// <summary>
     /// Custom attribute to skip tests when not running in GitHub Actions

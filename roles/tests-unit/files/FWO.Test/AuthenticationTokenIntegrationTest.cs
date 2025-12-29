@@ -7,6 +7,7 @@ using System.IdentityModel.Tokens.Jwt;
 using FWO.Test.DataGenerators;
 using Microsoft.Extensions.Configuration;
 using FWO.Basics;
+using FWO.Test.Helpers;
 
 namespace FWO.Test
 {
@@ -37,6 +38,7 @@ namespace FWO.Test
 
             // Spin up local test server using WebApplicationFactory
             Log.WriteInfo("Test Setup", "Creating WebApplicationFactory for local testing");
+
             factory = new WebApplicationFactory<Program>()
                 .WithWebHostBuilder(builder =>
                 {
@@ -44,7 +46,6 @@ namespace FWO.Test
                     {
                         var testConfig = new Dictionary<string, string?>
                         {
-                                { "Environment", GlobalConst.ASPNETCORE_ENVIRONMENT_LOCALTEST },
                                 { "Logging:LogLevel:Default", "Debug" }
                         };
                         config.AddInMemoryCollection(testConfig);

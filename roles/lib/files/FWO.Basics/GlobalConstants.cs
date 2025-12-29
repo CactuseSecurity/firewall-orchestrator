@@ -8,7 +8,6 @@ namespace FWO.Basics
         public const string kFwoProdName = "fworch";
         public const string kFwoBaseDir = "/usr/local/" + kFwoProdName;
         public const string kMainKeyFile = kFwoBaseDir + "/etc/secrets/main_key";
-        public const string ASPNETCORE_ENVIRONMENT_LOCALTEST = "LOCALTEST";
 
         public const string kEnglish = "English";
         public const int kTenant0Id = 1;

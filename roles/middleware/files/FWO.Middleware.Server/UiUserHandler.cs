@@ -80,7 +80,7 @@ namespace FWO.Middleware.Server
                         case nameof(ConfigData.RefreshTokenLifetimeDays):
                             return (defaultConfigValue.RefreshTokenLifetimeDays > 0) ? defaultConfigValue.RefreshTokenLifetimeDays : expirationTime;
                         default:
-                            break;
+                            return expirationTime;
                     }
                 }
             }

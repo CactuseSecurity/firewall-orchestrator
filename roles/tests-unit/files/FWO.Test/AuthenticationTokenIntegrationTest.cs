@@ -6,11 +6,6 @@ using FWO.Logging;
 using System.IdentityModel.Tokens.Jwt;
 using FWO.Test.DataGenerators;
 using Microsoft.Extensions.Configuration;
-using FWO.Config.File;
-using Microsoft.AspNetCore.Hosting;
-using System.Diagnostics;
-using Microsoft.Extensions.DependencyInjection;
-using System.Threading.Tasks;
 using FWO.Basics;
 
 namespace FWO.Test
@@ -19,7 +14,8 @@ namespace FWO.Test
     /// Integration tests for JWT authentication and refresh token functionality.
     /// Tests the complete authentication flow including token generation, refresh, and revocation.
     /// </summary>
-    [TestFixture, Ignore("Fails on install")]
+    [TestFixture]
+    [RequiresGitHubActions]
     internal class AuthenticationTokenIntegrationTest
     {
         private WebApplicationFactory<Program>? factory;
@@ -34,52 +30,28 @@ namespace FWO.Test
         [OneTimeSetUp]
         public void GlobalSetup()
         {
-            bool isLocalTest = IsLocalTestEnvironment();
-            bool isGitHubActions = IsRunningInGitHubActions();
-            
-            Log.WriteInfo("Test Setup", $"Initializing JWT integration test environment (Local: {isLocalTest}, GitHub Actions: {isGitHubActions})");
-
             // Initialize test credential
             defaultCredentialsBuilder = new TokenTestDataBuilder()
                 .WithUsername("integration_user_jwt_refresh_test")
                 .WithPassword("testpassword");
 
-            //For tests with admin credentials needed (maybe in the future)
-            //adminCredentialsBuilder = new TokenTestDataBuilder()
-            //    .WithTargetUser("admin")
-            //    .WithUsername("admin")
-            //    .WithPassword("adminpassword");
-
-            if (isLocalTest)
-            {
-                // Spin up local test server using WebApplicationFactory
-                Log.WriteInfo("Test Setup", "Creating WebApplicationFactory for local testing");
-                factory = new WebApplicationFactory<Program>()
-                    .WithWebHostBuilder(builder =>
+            // Spin up local test server using WebApplicationFactory
+            Log.WriteInfo("Test Setup", "Creating WebApplicationFactory for local testing");
+            factory = new WebApplicationFactory<Program>()
+                .WithWebHostBuilder(builder =>
+                {
+                    builder.ConfigureAppConfiguration((context, config) =>
                     {
-                        builder.ConfigureAppConfiguration((context, config) =>
+                        var testConfig = new Dictionary<string, string?>
                         {
-                            var testConfig = new Dictionary<string, string?>
-                            {
                                 { "Environment", GlobalConst.ASPNETCORE_ENVIRONMENT_LOCALTEST },
                                 { "Logging:LogLevel:Default", "Debug" }
-                            };
-                            config.AddInMemoryCollection(testConfig);
-                        });
+                        };
+                        config.AddInMemoryCollection(testConfig);
                     });
+                });
 
-                client = factory.CreateClient();
-            }
-            else
-            {
-                string baseUrl = ConfigFile.MiddlewareServerNativeUri;
-                Log.WriteInfo("Test Setup", $"Connecting to external middleware server at: {baseUrl}");
-                
-                client = new HttpClient
-                {
-                    BaseAddress = new Uri(baseUrl)
-                };
-            }
+            client = factory.CreateClient();
 
             tokenHandler = new JwtSecurityTokenHandler();
         }
@@ -90,30 +62,6 @@ namespace FWO.Test
             Log.WriteInfo("Test Cleanup", "Disposing JWT integration test resources");
             client?.Dispose();
             factory?.Dispose();
-        }
-
-        #endregion
-
-        #region Environment Detection
-
-        private static bool IsLocalTestEnvironment()
-        {
-            string? aspnetcoreEnv = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT");
-            return aspnetcoreEnv?.Equals(GlobalConst.ASPNETCORE_ENVIRONMENT_LOCALTEST, StringComparison.OrdinalIgnoreCase) == true;
-        }
-
-        private static bool IsRunningInGitHubActions()
-        {
-            string? sudoUser = Environment.GetEnvironmentVariable("SUDO_USER");
-            string? ci = Environment.GetEnvironmentVariable("CI");
-
-            if (string.IsNullOrEmpty(sudoUser) || string.IsNullOrEmpty(ci))
-            {
-                return false;
-            }
-
-            return sudoUser.Equals("runner", StringComparison.OrdinalIgnoreCase) &&
-                ci.Equals("true", StringComparison.OrdinalIgnoreCase);
         }
 
         #endregion
@@ -387,7 +335,7 @@ namespace FWO.Test
             // Step 2: Refresh the token
             RefreshTokenRequest refreshRequest = new() { RefreshToken = initialTokens.RefreshToken };
             HttpResponseMessage refreshResponse = await client!.PostAsJsonAsync("/api/AuthenticationToken/Refresh", refreshRequest);
-            
+
             AuthTestHelpers.AssertSuccessResponse(refreshResponse);
             TokenPair? refreshedTokens = await refreshResponse.Content.ReadFromJsonAsync<TokenPair>();
 
@@ -456,21 +404,21 @@ namespace FWO.Test
             // Step 2: Refresh to get new tokens
             RefreshTokenRequest firstRefreshRequest = new() { RefreshToken = initialTokens.RefreshToken };
             HttpResponseMessage firstRefreshResponse = await client!.PostAsJsonAsync("/api/AuthenticationToken/Refresh", firstRefreshRequest);
-            
+
             AuthTestHelpers.AssertSuccessResponse(firstRefreshResponse);
             TokenPair? newTokens = await firstRefreshResponse.Content.ReadFromJsonAsync<TokenPair>();
             AuthTestHelpers.AssertValidTokenPair(newTokens);
 
             // Step 3: Try to use old refresh token (should fail due to rotation)
             HttpResponseMessage oldTokenRefreshResponse = await client!.PostAsJsonAsync("/api/AuthenticationToken/Refresh", firstRefreshRequest);
-            Assert.That(oldTokenRefreshResponse.StatusCode, Is.EqualTo(System.Net.HttpStatusCode.Unauthorized), 
+            Assert.That(oldTokenRefreshResponse.StatusCode, Is.EqualTo(System.Net.HttpStatusCode.Unauthorized),
                 "Old refresh token should be invalid after rotation");
 
             // Step 4: Verify new token still works
             await Task.Delay(1000);
             RefreshTokenRequest newRefreshRequest = new() { RefreshToken = newTokens!.RefreshToken };
             HttpResponseMessage newTokenRefreshResponse = await client!.PostAsJsonAsync("/api/AuthenticationToken/Refresh", newRefreshRequest);
-            
+
             AuthTestHelpers.AssertSuccessResponse(newTokenRefreshResponse);
             TokenPair? finalTokens = await newTokenRefreshResponse.Content.ReadFromJsonAsync<TokenPair>();
             AuthTestHelpers.AssertValidTokenPair(finalTokens);
@@ -493,13 +441,13 @@ namespace FWO.Test
             // Step 2: Immediately revoke without any refresh
             RefreshTokenRequest revokeRequest = new() { RefreshToken = tokens.RefreshToken };
             HttpResponseMessage revokeResponse = await client!.PostAsJsonAsync("/api/AuthenticationToken/Revoke", revokeRequest);
-            
+
             AuthTestHelpers.AssertSuccessResponse(revokeResponse);
 
             // Step 3: Attempt to refresh revoked token (should fail)
             RefreshTokenRequest refreshRequest = new() { RefreshToken = tokens.RefreshToken };
             HttpResponseMessage refreshResponse = await client!.PostAsJsonAsync("/api/AuthenticationToken/Refresh", refreshRequest);
-            
+
             Assert.That(refreshResponse.StatusCode, Is.EqualTo(System.Net.HttpStatusCode.Unauthorized),
                 "Cannot refresh a token that has been revoked");
         }

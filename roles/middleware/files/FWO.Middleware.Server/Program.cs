@@ -24,18 +24,7 @@ ComplianceCheckScheduler complianceCheckScheduler;
 
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
-string? testHostUrl = Environment.GetEnvironmentVariable("APPLICATION_URL");
-bool isTestEnv = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") == GlobalConst.ASPNETCORE_ENVIRONMENT_LOCALTEST;
-
-if (!string.IsNullOrEmpty(testHostUrl) && isTestEnv)
-{
-    builder.WebHost.UseUrls(testHostUrl);
-    Debug.WriteLine("FWO Middleware Server is running in test environment");
-}
-else
-{
     builder.WebHost.UseUrls(ConfigFile.MiddlewareServerNativeUri ?? throw new ArgumentException("Missing middleware server url on startup."));
-}
 
 // Create Token Generator
 JwtWriter jwtWriter = new(ConfigFile.JwtPrivateKey);

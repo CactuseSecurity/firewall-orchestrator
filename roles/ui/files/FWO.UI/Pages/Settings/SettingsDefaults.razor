@@ -197,14 +197,14 @@
         </div>
     </form>
     <hr />
-    <div class="form-group row" data-toggle="tooltip" title="Access Token Lifetime(in Hours):">
-        <label class="col-form-label col-sm-4">Access Token Lifetime(in Hours):</label>
+    <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("accesstoken_lifetime"))">
+        <label class="col-form-label col-sm-4">@(userConfig.GetText("accesstoken_lifetime")):</label>
         <div class="col-sm">
             <input type="number" min="1" max="720" @bind="configData!.AccessTokenLifetimeHours" />
         </div>
     </div>
-    <div class="form-group row" data-toggle="tooltip" title="Refresh Token Lifetime(in Days):">
-        <label class="col-form-label col-sm-4">Refresh Token Lifetime(in Days):</label>
+    <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("refreshtoken_lifetime"))">
+        <label class="col-form-label col-sm-4">@(userConfig.GetText("refreshtoken_lifetime")):</label>
         <div class="col-sm">
             <input type="number" min="1" max="30" @bind="configData!.RefreshTokenLifetimeDays" />
         </div>

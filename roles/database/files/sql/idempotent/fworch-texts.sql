@@ -2699,6 +2699,10 @@ INSERT INTO txt VALUES ('edit_notification',    'German', 	'Benachrichtigung bea
 INSERT INTO txt VALUES ('edit_notification',    'English', 	'Edit Notification');
 INSERT INTO txt VALUES ('delete_notification',  'German', 	'Benachrichtigung l&ouml;schen');
 INSERT INTO txt VALUES ('delete_notification',  'English', 	'Delete Notification');
+INSERT INTO txt VALUES ('accesstoken_lifetime', 'German', 	'Access Token Gültigkeitsdauer (in Stunden)');
+INSERT INTO txt VALUES ('accesstoken_lifetime', 'English',  'Access Token Lifetime (in Hours)');
+INSERT INTO txt VALUES ('refreshtoken_lifetime','German',   'Refresh Token Gültigkeitsdauer (in Tagen)');
+INSERT INTO txt VALUES ('refreshtoken_lifetime','English',  'Refresh Token Lifetime (in Days)');
 
 -- monitoring
 INSERT INTO txt VALUES ('open_alerts',          'German', 	'Offene Alarme');

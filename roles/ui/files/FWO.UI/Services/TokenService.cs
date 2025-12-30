@@ -18,7 +18,7 @@ namespace FWO.Ui.Services
         private readonly JwtSecurityTokenHandler jwtHandler = new();
         private readonly SemaphoreSlim refreshSemaphore = new(1, 1);
         private const string TOKEN_PAIR_KEY = "token_pair";
-        private bool isInitialized = false;
+        private readonly Lazy<Task> initializationTask;
 
         /// <summary>
         /// Initializes a new instance of the TokenService class.
@@ -29,24 +29,21 @@ namespace FWO.Ui.Services
         {
             this.middlewareClient = middlewareClient;
             this.sessionStorage = sessionStorage;
+            this.initializationTask = new Lazy<Task>(() => InitializeAsync());
         }
 
         /// <summary>
         /// Initializes the TokenService by trying to load any existing token pair from session storage.
         /// </summary>
         /// <returns></returns>
-        private async Task Initialize()
+        private async Task InitializeAsync()
         {
-            if (isInitialized) return;
-
             ProtectedBrowserStorageResult<TokenPair> result = await sessionStorage.GetAsync<TokenPair>(TOKEN_PAIR_KEY);
 
             if (result.Success && result.Value != null)
             {
                 currentTokenPair = result.Value;
             }
-
-            isInitialized = true;
         }
 
         /// <summary>
@@ -58,7 +55,6 @@ namespace FWO.Ui.Services
         {
             currentTokenPair = tokenPair;
             await sessionStorage.SetAsync(TOKEN_PAIR_KEY, tokenPair);
-            isInitialized = true;
         }
 
         /// <summary>
@@ -67,7 +63,7 @@ namespace FWO.Ui.Services
         /// <returns>The access token or null if not available.</returns>
         public async Task<string?> GetAccessTokenAsync()
         {
-            await Initialize();
+            await initializationTask.Value;
             return currentTokenPair?.AccessToken;
         }
 
@@ -77,7 +73,7 @@ namespace FWO.Ui.Services
         /// <returns></returns>
         public async Task<bool> IsAccessTokenExpired()
         {
-            await Initialize();
+            await initializationTask.Value;
 
             if (currentTokenPair is null || string.IsNullOrEmpty(currentTokenPair.AccessToken))
             {
@@ -103,7 +99,7 @@ namespace FWO.Ui.Services
         /// <returns>True if refresh was successful, false otherwise.</returns>
         public async Task<bool> RefreshAccessTokenAsync()
         {
-            await Initialize();
+            await initializationTask.Value;
 
             if (currentTokenPair is null || string.IsNullOrEmpty(currentTokenPair.RefreshToken))
             {
@@ -160,7 +156,7 @@ namespace FWO.Ui.Services
         /// <returns></returns>
         public async Task RevokeTokens()
         {
-            await Initialize();
+            await initializationTask.Value;
 
             if (currentTokenPair is null)
             {
@@ -176,7 +172,6 @@ namespace FWO.Ui.Services
             await sessionStorage.DeleteAsync(TOKEN_PAIR_KEY);
 
             currentTokenPair = null;
-            isInitialized = false;
         }
     }
 }

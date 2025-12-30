@@ -40,6 +40,12 @@ namespace FWO.Test
         static readonly NetworkObject NwGrp5 = new() { Name = "NwGrp1", ObjectGroupFlats = [ new GroupFlat<NetworkObject>(){ Object = NwObj3 }]};
         static readonly NetworkObject NwGrp6 = new() { Name = "NwGrp1", ObjectGroupFlats = [ new GroupFlat<NetworkObject>(){ Object = NwObj1 }, new GroupFlat<NetworkObject>(){ Object = NwObj3 }]};
         
+        static readonly ModellingAppZone AppZone1 = new() { IdString = "AZ1", AppServers = [] };
+        static readonly ModellingAppZone AppZone2 = new() { IdString = "AZ2", AppServers = [new(){ Content = AppSrv1}] };
+        static readonly ModellingAppZone AppZone3 = new() { IdString = "AZ3", AppServers = [new(){ Content = AppSrv1}, new(){ Content = AppSrv2}] };
+        static readonly ModellingAppZone AppZone4 = new() { IdString = "AZ3", AppServers = [new(){ Content = AppSrv1}] };
+        static readonly ModellingAppZone AppZone5 = new() { IdString = "AZ3", AppServers = [new(){ Content = AppSrv1}], Comment = "comment", AppId = 3 };
+
         static readonly NetworkService Svc1 = new() { Name = "Svc1", DestinationPort = 1234, DestinationPortEnd = 1235, ProtoId = 6, Protocol = new() { Id = 6, Name = "TCP"} };
         static readonly NetworkService Svc2 = new() { Name = "Svc2", DestinationPort = 1234, DestinationPortEnd = 1235, Protocol = new() { Id = 6, Name = "TCP"} };
         static readonly NetworkService Svc3 = new() { Name = "Svc3", DestinationPort = 1234, DestinationPortEnd = 1236, ProtoId = 6, Protocol = new() { Id = 6, Name = "TCP"} };
@@ -47,9 +53,9 @@ namespace FWO.Test
         static readonly NetworkService Svc5 = new() { Name = "Svc5", DestinationPort = 1234, DestinationPortEnd = 1235, ProtoId = 12, Protocol = new() { Id = 12, Name = "PUP"} };
         static readonly NetworkService Svc6 = new() { Name = "Svc1", DestinationPort = 1, DestinationPortEnd = 1, ProtoId = 1, Protocol = new() { Id = 1, Name = "ICMP"} };
         static readonly NetworkService Svc7 = new() { Name = "Svc7", DestinationPort = 1235, DestinationPortEnd = null, ProtoId = 6, Protocol = new() { Id = 6, Name = "TCP"} };
-		static readonly NetworkService Svc8 = new() { Name = "", DestinationPort = null, DestinationPortEnd = null, ProtoId = 50 };
-		static readonly NetworkService Svc9 = new() { Name = "", DestinationPort = null, DestinationPortEnd = null, ProtoId = 50, Protocol = new() { Id = 50, Name = "ESP"} };
-		static readonly NetworkService Svc10 = new() { Name = "", DestinationPort = null, DestinationPortEnd = null };
+        static readonly NetworkService Svc8 = new() { Name = "", DestinationPort = null, DestinationPortEnd = null, ProtoId = 50 };
+        static readonly NetworkService Svc9 = new() { Name = "", DestinationPort = null, DestinationPortEnd = null, ProtoId = 50, Protocol = new() { Id = 50, Name = "ESP"} };
+        static readonly NetworkService Svc10 = new() { Name = "", DestinationPort = null, DestinationPortEnd = null };
 
         static readonly NetworkService SvcGrp1 = new() { Name = "SvcGrp1", ServiceGroupFlats = [new GroupFlat<NetworkService>() { Object = Svc1 }] };
         static readonly NetworkService SvcGrp2 = new() { Name = "SvcGrp2", ServiceGroupFlats = [ new GroupFlat<NetworkService>(){ Object = Svc1 }]};
@@ -318,6 +324,36 @@ namespace FWO.Test
         }
 
         [Test]
+        public void TestAppZoneComparer()
+        {
+            ModellingNamingConvention namingConvention = new()
+            {
+                AppZone = "AZ"
+            };
+            AppZoneComparer appZoneComparer = new(namingConvention);
+
+            ClassicAssert.AreEqual(true, appZoneComparer.Equals(AppZone1,AppZone1));
+            ClassicAssert.AreEqual(false, appZoneComparer.Equals(AppZone1,AppZone2));
+            ClassicAssert.AreEqual(false, appZoneComparer.Equals(AppZone1,AppZone3));
+            ClassicAssert.AreEqual(false, appZoneComparer.Equals(AppZone1,AppZone4));
+            ClassicAssert.AreEqual(true, appZoneComparer.Equals(AppZone2,AppZone2));
+            ClassicAssert.AreEqual(false, appZoneComparer.Equals(AppZone2,AppZone3));
+            ClassicAssert.AreEqual(false, appZoneComparer.Equals(AppZone2,AppZone4));
+            ClassicAssert.AreEqual(false, appZoneComparer.Equals(AppZone3,AppZone4));
+            ClassicAssert.AreEqual(true, appZoneComparer.Equals(AppZone4,AppZone5));
+            
+            ClassicAssert.AreEqual(true, appZoneComparer.GetHashCode(AppZone1) == appZoneComparer.GetHashCode(AppZone1));
+            ClassicAssert.AreEqual(false, appZoneComparer.GetHashCode(AppZone1) == appZoneComparer.GetHashCode(AppZone2));
+            ClassicAssert.AreEqual(false, appZoneComparer.GetHashCode(AppZone1) == appZoneComparer.GetHashCode(AppZone3));
+            ClassicAssert.AreEqual(false, appZoneComparer.GetHashCode(AppZone1) == appZoneComparer.GetHashCode(AppZone4));
+            ClassicAssert.AreEqual(true, appZoneComparer.GetHashCode(AppZone2) == appZoneComparer.GetHashCode(AppZone2));
+            ClassicAssert.AreEqual(false, appZoneComparer.GetHashCode(AppZone2) == appZoneComparer.GetHashCode(AppZone3));
+            ClassicAssert.AreEqual(false, appZoneComparer.GetHashCode(AppZone2) == appZoneComparer.GetHashCode(AppZone4));
+            ClassicAssert.AreEqual(false, appZoneComparer.GetHashCode(AppZone3) == appZoneComparer.GetHashCode(AppZone4));
+            ClassicAssert.AreEqual(true, appZoneComparer.GetHashCode(AppZone4) == appZoneComparer.GetHashCode(AppZone5));
+        }
+
+        [Test]
         public void TestNetworkServiceComparer()
         {
             RuleRecognitionOption ruleRecognitionOption = new()
@@ -341,10 +377,10 @@ namespace FWO.Test
             ClassicAssert.AreEqual(false, networkServiceComparer.Equals(Svc1,Svc5));
             ClassicAssert.AreEqual(false, networkServiceComparer.Equals(Svc1,Svc6));
             ClassicAssert.AreEqual(true, networkServiceComparer.Equals(Svc4,Svc7));
-			ClassicAssert.AreEqual(false, networkServiceComparer.Equals(Svc1,Svc9));
-			ClassicAssert.AreEqual(false, networkServiceComparer.Equals(Svc5,Svc9));
-			ClassicAssert.AreEqual(true, networkServiceComparer.Equals(Svc8,Svc9));
-			ClassicAssert.AreEqual(false, networkServiceComparer.Equals(Svc8,Svc10));
+            ClassicAssert.AreEqual(false, networkServiceComparer.Equals(Svc1,Svc9));
+            ClassicAssert.AreEqual(false, networkServiceComparer.Equals(Svc5,Svc9));
+            ClassicAssert.AreEqual(true, networkServiceComparer.Equals(Svc8,Svc9));
+            ClassicAssert.AreEqual(false, networkServiceComparer.Equals(Svc8,Svc10));
             ClassicAssert.AreEqual(true, networkServiceComparer.GetHashCode(Svc1) == networkServiceComparer.GetHashCode(Svc1));
             ClassicAssert.AreEqual(true, networkServiceComparer.GetHashCode(Svc1) == networkServiceComparer.GetHashCode(Svc2));
             ClassicAssert.AreEqual(false, networkServiceComparer.GetHashCode(Svc1) == networkServiceComparer.GetHashCode(Svc3));
@@ -352,10 +388,10 @@ namespace FWO.Test
             ClassicAssert.AreEqual(false, networkServiceComparer.GetHashCode(Svc1) == networkServiceComparer.GetHashCode(Svc5));
             ClassicAssert.AreEqual(false, networkServiceComparer.GetHashCode(Svc1) == networkServiceComparer.GetHashCode(Svc6));
             ClassicAssert.AreEqual(true, networkServiceComparer.GetHashCode(Svc4) == networkServiceComparer.GetHashCode(Svc7));
-			ClassicAssert.AreEqual(false, networkServiceComparer.GetHashCode(Svc1) == networkServiceComparer.GetHashCode(Svc9));
-			ClassicAssert.AreEqual(false, networkServiceComparer.GetHashCode(Svc5) == networkServiceComparer.GetHashCode(Svc9));
-			ClassicAssert.AreEqual(true, networkServiceComparer.GetHashCode(Svc8) == networkServiceComparer.GetHashCode(Svc9));
-			ClassicAssert.AreEqual(false, networkServiceComparer.GetHashCode(Svc8) == networkServiceComparer.GetHashCode(Svc10));
+            ClassicAssert.AreEqual(false, networkServiceComparer.GetHashCode(Svc1) == networkServiceComparer.GetHashCode(Svc9));
+            ClassicAssert.AreEqual(false, networkServiceComparer.GetHashCode(Svc5) == networkServiceComparer.GetHashCode(Svc9));
+            ClassicAssert.AreEqual(true, networkServiceComparer.GetHashCode(Svc8) == networkServiceComparer.GetHashCode(Svc9));
+            ClassicAssert.AreEqual(false, networkServiceComparer.GetHashCode(Svc8) == networkServiceComparer.GetHashCode(Svc10));
 
             ruleRecognitionOption.SvcRegardName = true;
             networkServiceComparer = new(ruleRecognitionOption);
@@ -366,20 +402,20 @@ namespace FWO.Test
             ClassicAssert.AreEqual(false, networkServiceComparer.Equals(Svc1,Svc4));
             ClassicAssert.AreEqual(false, networkServiceComparer.Equals(Svc1,Svc5));
             ClassicAssert.AreEqual(false, networkServiceComparer.Equals(Svc1,Svc6));
-			ClassicAssert.AreEqual(false, networkServiceComparer.Equals(Svc1,Svc9));
-			ClassicAssert.AreEqual(false, networkServiceComparer.Equals(Svc5,Svc9));
-			ClassicAssert.AreEqual(true, networkServiceComparer.Equals(Svc8,Svc9));
-			ClassicAssert.AreEqual(false, networkServiceComparer.Equals(Svc8,Svc10));
+            ClassicAssert.AreEqual(false, networkServiceComparer.Equals(Svc1,Svc9));
+            ClassicAssert.AreEqual(false, networkServiceComparer.Equals(Svc5,Svc9));
+            ClassicAssert.AreEqual(true, networkServiceComparer.Equals(Svc8,Svc9));
+            ClassicAssert.AreEqual(false, networkServiceComparer.Equals(Svc8,Svc10));
             ClassicAssert.AreEqual(true, networkServiceComparer.GetHashCode(Svc1) == networkServiceComparer.GetHashCode(Svc1));
             ClassicAssert.AreEqual(false, networkServiceComparer.GetHashCode(Svc1) == networkServiceComparer.GetHashCode(Svc2));
             ClassicAssert.AreEqual(false, networkServiceComparer.GetHashCode(Svc1) == networkServiceComparer.GetHashCode(Svc3));
             ClassicAssert.AreEqual(false, networkServiceComparer.GetHashCode(Svc1) == networkServiceComparer.GetHashCode(Svc4));
             ClassicAssert.AreEqual(false, networkServiceComparer.GetHashCode(Svc1) == networkServiceComparer.GetHashCode(Svc5));
             ClassicAssert.AreEqual(false, networkServiceComparer.GetHashCode(Svc1) == networkServiceComparer.GetHashCode(Svc6));
-			ClassicAssert.AreEqual(false, networkServiceComparer.GetHashCode(Svc1) == networkServiceComparer.GetHashCode(Svc9));
-			ClassicAssert.AreEqual(false, networkServiceComparer.GetHashCode(Svc5) == networkServiceComparer.GetHashCode(Svc9));
-			ClassicAssert.AreEqual(true, networkServiceComparer.GetHashCode(Svc8) == networkServiceComparer.GetHashCode(Svc9));
-			ClassicAssert.AreEqual(false, networkServiceComparer.GetHashCode(Svc8) == networkServiceComparer.GetHashCode(Svc10));
+            ClassicAssert.AreEqual(false, networkServiceComparer.GetHashCode(Svc1) == networkServiceComparer.GetHashCode(Svc9));
+            ClassicAssert.AreEqual(false, networkServiceComparer.GetHashCode(Svc5) == networkServiceComparer.GetHashCode(Svc9));
+            ClassicAssert.AreEqual(true, networkServiceComparer.GetHashCode(Svc8) == networkServiceComparer.GetHashCode(Svc9));
+            ClassicAssert.AreEqual(false, networkServiceComparer.GetHashCode(Svc8) == networkServiceComparer.GetHashCode(Svc10));
 
             ruleRecognitionOption.SvcRegardPortAndProt = false;
             networkServiceComparer = new(ruleRecognitionOption);
@@ -390,20 +426,20 @@ namespace FWO.Test
             ClassicAssert.AreEqual(false, networkServiceComparer.Equals(Svc1,Svc4));
             ClassicAssert.AreEqual(false, networkServiceComparer.Equals(Svc1,Svc5));
             ClassicAssert.AreEqual(true, networkServiceComparer.Equals(Svc1,Svc6));
-			ClassicAssert.AreEqual(false, networkServiceComparer.Equals(Svc1,Svc9));
-			ClassicAssert.AreEqual(false, networkServiceComparer.Equals(Svc5,Svc9));
-			ClassicAssert.AreEqual(true, networkServiceComparer.Equals(Svc8,Svc9));
- 			ClassicAssert.AreEqual(true, networkServiceComparer.Equals(Svc8,Svc10));
+            ClassicAssert.AreEqual(false, networkServiceComparer.Equals(Svc1,Svc9));
+            ClassicAssert.AreEqual(false, networkServiceComparer.Equals(Svc5,Svc9));
+            ClassicAssert.AreEqual(true, networkServiceComparer.Equals(Svc8,Svc9));
+            ClassicAssert.AreEqual(true, networkServiceComparer.Equals(Svc8,Svc10));
             ClassicAssert.AreEqual(true, networkServiceComparer.GetHashCode(Svc1) == networkServiceComparer.GetHashCode(Svc1));
             ClassicAssert.AreEqual(false, networkServiceComparer.GetHashCode(Svc1) == networkServiceComparer.GetHashCode(Svc2));
             ClassicAssert.AreEqual(false, networkServiceComparer.GetHashCode(Svc1) == networkServiceComparer.GetHashCode(Svc3));
             ClassicAssert.AreEqual(false, networkServiceComparer.GetHashCode(Svc1) == networkServiceComparer.GetHashCode(Svc4));
             ClassicAssert.AreEqual(false, networkServiceComparer.GetHashCode(Svc1) == networkServiceComparer.GetHashCode(Svc5));
             ClassicAssert.AreEqual(true, networkServiceComparer.GetHashCode(Svc1) == networkServiceComparer.GetHashCode(Svc6));
-			ClassicAssert.AreEqual(false, networkServiceComparer.GetHashCode(Svc1) == networkServiceComparer.GetHashCode(Svc9));
-			ClassicAssert.AreEqual(false, networkServiceComparer.GetHashCode(Svc5) == networkServiceComparer.GetHashCode(Svc9));
-			ClassicAssert.AreEqual(true, networkServiceComparer.GetHashCode(Svc8) == networkServiceComparer.GetHashCode(Svc9));
-			ClassicAssert.AreEqual(true, networkServiceComparer.GetHashCode(Svc8) == networkServiceComparer.GetHashCode(Svc10));
+            ClassicAssert.AreEqual(false, networkServiceComparer.GetHashCode(Svc1) == networkServiceComparer.GetHashCode(Svc9));
+            ClassicAssert.AreEqual(false, networkServiceComparer.GetHashCode(Svc5) == networkServiceComparer.GetHashCode(Svc9));
+            ClassicAssert.AreEqual(true, networkServiceComparer.GetHashCode(Svc8) == networkServiceComparer.GetHashCode(Svc9));
+            ClassicAssert.AreEqual(true, networkServiceComparer.GetHashCode(Svc8) == networkServiceComparer.GetHashCode(Svc10));
         }
 
         [Test]

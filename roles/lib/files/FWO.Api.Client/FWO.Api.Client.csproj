@@ -7,14 +7,14 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="IPAddressRange" Version="6.2.0" />
+    <PackageReference Include="IPAddressRange" Version="6.3.0" />
     <PackageReference Include="GraphQL.Client" Version="6.1.0" />
     <PackageReference Include="GraphQL.Client.Serializer.Newtonsoft" Version="6.1.0" />
     <PackageReference Include="GraphQL.Client.Serializer.SystemTextJson" Version="6.1.0" />
-    <PackageReference Include="Microsoft.AspNetCore.Components" Version="8.0.15" />
+    <PackageReference Include="Microsoft.AspNetCore.Components" Version="8.0.22" />
     <PackageReference Include="Microsoft.Rest.ClientRuntime" Version="2.3.24" />
-    <PackageReference Include="RestSharp" Version="112.1.0" />
-    <PackageReference Include="RestSharp.Serializers.NewtonsoftJson" Version="112.1.0" />
+    <PackageReference Include="RestSharp" Version="113.0.0" />
+    <PackageReference Include="RestSharp.Serializers.NewtonsoftJson" Version="113.0.0" />
   </ItemGroup>
 
   <ItemGroup>

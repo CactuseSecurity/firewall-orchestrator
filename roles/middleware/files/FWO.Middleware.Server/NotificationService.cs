@@ -137,7 +137,7 @@ namespace FWO.Middleware.Server
 
         private async Task<MailData> PrepareEmail(FwoNotification notification, string content, FwoOwner owner, ReportBase? report = null)
         {
-            string subject = notification.EmailSubject;
+            string subject = notification.EmailSubject.Replace(Placeholder.APPNAME, owner.Name);
             string body = content;
             FormFile? attachment = null;
             if (report != null)
@@ -228,7 +228,7 @@ namespace FWO.Middleware.Server
             }
             EmailHelper emailHelper = new(ApiConnection, null, new(), DefaultInit.DoNothing, OwnerGroups);
             await emailHelper.Init();
-            return emailHelper.GetRecipients(cc ? notification.RecipientCc : notification.RecipientTo, null, owner, null,
+            return await emailHelper.GetRecipients(cc ? notification.RecipientCc : notification.RecipientTo, null, owner, null,
                 EmailHelper.SplitAddresses(cc ? notification.EmailAddressCc : notification.EmailAddressTo));
         }
     }

@@ -4,5 +4,6 @@
 roles/importer/venv/
 ansible_venv/
 **/.venv/
-
+**/__pycache__/
+**/*.pyc
 .vscode/launch.json

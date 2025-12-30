@@ -6,9 +6,9 @@
 		<ImplicitUsings>enable</ImplicitUsings>
 	</PropertyGroup>
 	<ItemGroup>
-		<PackageReference Include="IPAddressRange" Version="6.2.0" />
+		<PackageReference Include="IPAddressRange" Version="6.3.0" />
 		<PackageReference Include="BlazorTable" Version="1.17.0" />
-		<PackageReference Include="PuppeteerSharp" Version="20.2.2" />
+		<PackageReference Include="PuppeteerSharp" Version="20.2.5" />
 	</ItemGroup>
 
 	<ItemGroup>

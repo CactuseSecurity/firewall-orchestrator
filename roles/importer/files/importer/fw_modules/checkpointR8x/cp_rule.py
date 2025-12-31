@@ -91,10 +91,21 @@ def normalize_rulebases_for_each_link_destination(
             )
             fetched_rulebase_uids.append(rulebase_link["to_rulebase_uid"])
 
-            if found_rulebase_in_global:
-                normalized_config_global["policies"].append(normalized_rulebase)
-            else:
-                normalized_config_dict["policies"].append(normalized_rulebase)
+            append_normalized_rulebase(
+                normalized_config_dict, normalized_config_global, normalized_rulebase, found_rulebase_in_global
+            )
+
+
+def append_normalized_rulebase(
+    normalized_config_dict: dict[str, Any],
+    normalized_config_global: dict[str, Any],
+    normalized_rulebase: Rulebase,
+    found_rulebase_in_global: bool,
+):
+    if found_rulebase_in_global:
+        normalized_config_global["policies"].append(normalized_rulebase)
+    else:
+        normalized_config_dict["policies"].append(normalized_rulebase)
 
 
 def find_rulebase_to_parse(rulebase_list: list[dict[str, Any]], rulebase_uid: str) -> tuple[dict[str, Any], bool, bool]:

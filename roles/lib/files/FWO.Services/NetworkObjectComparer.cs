@@ -50,13 +50,8 @@ namespace FWO.Services
                 return !option.NwRegardGroupName || nwObjectGrp1.Name == nwObjectGrp2.Name;
             }
 
-            List<NetworkObject> objectList1 = [.. nwObjectGrp1.ObjectGroupFlats
-                .Where(o => o.Object != null && o.Object?.Type.Name != ObjectType.Group)
-                .Select(g => g.Object!)];
-
-            List<NetworkObject> objectList2 = [.. nwObjectGrp2.ObjectGroupFlats
-                .Where(o => o.Object != null && o.Object?.Type.Name != ObjectType.Group)
-                .Select(g => g.Object!)];
+            List<NetworkObject> objectList1 = [.. nwObjectGrp1.ObjectGroupFlats.Where(o => o.Object != null && o.Object?.Type.Name != ObjectType.Group).ToList().ConvertAll(g => g.Object)];
+            List<NetworkObject> objectList2 = [.. nwObjectGrp2.ObjectGroupFlats.Where(o => o.Object != null && o.Object?.Type.Name != ObjectType.Group).ToList().ConvertAll(g => g.Object)];
 
             if (objectList1.Count != objectList2.Count
                 || (option.NwRegardGroupName && nwObjectGrp1.Name != nwObjectGrp2.Name))

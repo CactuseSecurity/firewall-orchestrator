@@ -26,79 +26,85 @@
 
                 <h6>@(userConfig.GetText("first_import"))</h6>
                 <div class="row">
-                    <div class="col-sm-1"/>
+                    <div class="col-sm-1" />
                     <div class="col-sm-2">@(userConfig.GetText("import_id")):</div>
                     <div class="col-sm-2">@(ImportStatus.FirstImport != null && ImportStatus.FirstImport.Length > 0 ? ImportStatus.FirstImport[0].ControlId : "")</div>
                 </div>
                 <div class="row">
-                    <div class="col-sm-1"/>
+                    <div class="col-sm-1" />
                     <div class="col-sm-1">@(userConfig.GetText("start")):</div>
                     <div class="col-sm-3">@(ImportStatus.FirstImport != null && ImportStatus.FirstImport.Length > 0 ? ImportStatus.FirstImport[0].StartTime : "")</div>
                     <div class="col-sm-1">@(userConfig.GetText("stop")):</div>
                     <div class="col-sm-3">@(ImportStatus.FirstImport != null && ImportStatus.FirstImport.Length > 0 ? ImportStatus.FirstImport[0].StopTime : "")</div>
                     <div class="col-sm-2">@(userConfig.GetText("duration")):</div>
-                    <div class="col-sm-1">@(ImportStatus.FirstImport != null && ImportStatus.FirstImport.Length > 0 && ImportStatus.FirstImport[0].StartTime != null
-                        && ImportStatus.FirstImport[0].StopTime != null ? ((TimeSpan)(ImportStatus.FirstImport[0].StopTime! - ImportStatus.FirstImport[0].StartTime!)).TotalSeconds.ToString("f2") : "")</div>
+                    <div class="col-sm-1">
+                        @(ImportStatus.FirstImport != null && ImportStatus.FirstImport.Length > 0 && ImportStatus.FirstImport[0].StartTime != null
+                                            && ImportStatus.FirstImport[0].StopTime != null ? ((TimeSpan)(ImportStatus.FirstImport[0].StopTime! - ImportStatus.FirstImport[0].StartTime!)).TotalSeconds.ToString("f2") : "")
+                    </div>
                 </div>
                 <div class="row">
-                    <div class="col-sm-1"/>
+                    <div class="col-sm-1" />
                     <div class="col-sm-1">@(userConfig.GetText("success")):</div>
                     <div class="col-sm-1">
-                        @if(ImportStatus.FirstImport != null && ImportStatus.FirstImport.Length > 0)
+                        @if (ImportStatus.FirstImport != null && ImportStatus.FirstImport.Length > 0)
                         {
-                            @(ImportStatus.FirstImport[0].SuccessfulImport.ShowAsHtml())                         
+                            @(ImportStatus.FirstImport[0].SuccessfulImport.ShowAsHtml())
                         }
+                </div>
+                <div class="col-sm-1">@(userConfig.GetText("errors")):</div>
+                <div class="col-sm-8">@(ImportStatus.FirstImport != null && ImportStatus.FirstImport.Length > 0 ? ImportStatus.FirstImport[0].ImportErrors : "")</div>
+            </div>
+            <br>
+            <h6>@(userConfig.GetText("last_successful_import"))</h6>
+            <div class="row">
+                <div class="col-sm-1" />
+                <div class="col-sm-2">@(userConfig.GetText("import_id")):</div>
+                <div class="col-sm-2">@(ImportStatus.LastSuccessfulImport != null && ImportStatus.LastSuccessfulImport.Length > 0 ? ImportStatus.LastSuccessfulImport[0].ControlId : "")</div>
+            </div>
+            <div class="row">
+                <div class="col-sm-1" />
+                <div class="col-sm-1">@(userConfig.GetText("start")):</div>
+                <div class="col-sm-3">@(ImportStatus.LastSuccessfulImport != null && ImportStatus.LastSuccessfulImport.Length > 0 ? ImportStatus.LastSuccessfulImport[0].StartTime : "")</div>
+                <div class="col-sm-1">@(userConfig.GetText("stop")):</div>
+                <div class="col-sm-3">@(ImportStatus.LastSuccessfulImport != null && ImportStatus.LastSuccessfulImport.Length > 0 ? ImportStatus.LastSuccessfulImport[0].StopTime : "")</div>
+                <div class="col-sm-2">@(userConfig.GetText("duration")):</div>
+                <div class="col-sm-1">
+                    @(ImportStatus.LastSuccessfulImport != null && ImportStatus.LastSuccessfulImport.Length > 0 && ImportStatus.LastSuccessfulImport[0].StartTime != null
+                                        && ImportStatus.LastSuccessfulImport[0].StopTime != null ? ((TimeSpan)(ImportStatus.LastSuccessfulImport[0].StopTime! - ImportStatus.LastSuccessfulImport[0].StartTime!)).TotalSeconds.ToString("f2") : "")
                     </div>
-                    <div class="col-sm-1">@(userConfig.GetText("errors")):</div>
-                    <div class="col-sm-8">@(ImportStatus.FirstImport != null && ImportStatus.FirstImport.Length > 0 ? ImportStatus.FirstImport[0].ImportErrors : "")</div>
-                </div>
-                <br>
-                <h6>@(userConfig.GetText("last_successful_import"))</h6>
-                <div class="row">
-                    <div class="col-sm-1"/>
-                    <div class="col-sm-2">@(userConfig.GetText("import_id")):</div>
-                    <div class="col-sm-2">@(ImportStatus.LastSuccessfulImport != null && ImportStatus.LastSuccessfulImport.Length > 0 ? ImportStatus.LastSuccessfulImport[0].ControlId : "")</div>
                 </div>
                 <div class="row">
-                    <div class="col-sm-1"/>
-                    <div class="col-sm-1">@(userConfig.GetText("start")):</div>
-                    <div class="col-sm-3">@(ImportStatus.LastSuccessfulImport != null && ImportStatus.LastSuccessfulImport.Length > 0 ? ImportStatus.LastSuccessfulImport[0].StartTime : "")</div>
-                    <div class="col-sm-1">@(userConfig.GetText("stop")):</div>
-                    <div class="col-sm-3">@(ImportStatus.LastSuccessfulImport != null && ImportStatus.LastSuccessfulImport.Length > 0 ? ImportStatus.LastSuccessfulImport[0].StopTime : "")</div>
-                    <div class="col-sm-2">@(userConfig.GetText("duration")):</div>
-                    <div class="col-sm-1">@(ImportStatus.LastSuccessfulImport != null && ImportStatus.LastSuccessfulImport.Length > 0 && ImportStatus.LastSuccessfulImport[0].StartTime != null 
-                        && ImportStatus.LastSuccessfulImport[0].StopTime != null ? ((TimeSpan)(ImportStatus.LastSuccessfulImport[0].StopTime! - ImportStatus.LastSuccessfulImport[0].StartTime!)).TotalSeconds.ToString("f2") : "")</div>
-                </div>
-                <div class="row">
-                    <div class="col-sm-1"/>
+                    <div class="col-sm-1" />
                     <div class="col-sm-5">@(userConfig.GetText("err_since_last_succ")):</div>
                     <div class="col-sm-2">@(ImportStatus.ErrorCount)</div>
                 </div>
                 <br>
                 <h6>@(userConfig.GetText("last_import"))</h6>
                 <div class="row">
-                    <div class="col-sm-1"/>
+                    <div class="col-sm-1" />
                     <div class="col-sm-2">@(userConfig.GetText("import_id")):</div>
                     <div class="col-sm-2">@(ImportStatus.LastImport != null && ImportStatus.LastImport.Length > 0 ? ImportStatus.LastImport[0].ControlId : "")</div>
                 </div>
                 <div class="row">
-                    <div class="col-sm-1"/>
+                    <div class="col-sm-1" />
                     <div class="col-sm-1">@(userConfig.GetText("start")):</div>
                     <div class="col-sm-3">@(ImportStatus.LastImport != null && ImportStatus.LastImport.Length > 0 ? ImportStatus.LastImport[0].StartTime : "")</div>
                     <div class="col-sm-1">@(userConfig.GetText("stop")):</div>
                     <div class="col-sm-3">@(ImportStatus.LastImport != null && ImportStatus.LastImport.Length > 0 ? ImportStatus.LastImport[0].StopTime : "")</div>
                     <div class="col-sm-2">@(userConfig.GetText("duration")):</div>
-                    <div class="col-sm-1">@(ImportStatus.LastImport != null && ImportStatus.LastImport.Length > 0 && ImportStatus.LastImport[0].StartTime != null
-                        && ImportStatus.LastImport[0].StopTime != null ? ((TimeSpan)(ImportStatus.LastImport[0].StopTime! - ImportStatus.LastImport[0].StartTime!)).TotalSeconds.ToString("f2") : "")</div>
+                    <div class="col-sm-1">
+                        @(ImportStatus.LastImport != null && ImportStatus.LastImport.Length > 0 && ImportStatus.LastImport[0].StartTime != null
+                                            && ImportStatus.LastImport[0].StopTime != null ? ((TimeSpan)(ImportStatus.LastImport[0].StopTime! - ImportStatus.LastImport[0].StartTime!)).TotalSeconds.ToString("f2") : "")
+                    </div>
                 </div>
                 <div class="row">
-                    <div class="col-sm-1"/>
+                    <div class="col-sm-1" />
                     <div class="col-sm-1">@(userConfig.GetText("success")):</div>
                     <div class="col-sm-1">
-                        @if(ImportStatus.LastImport != null && ImportStatus.LastImport.Length > 0)
+                        @if (ImportStatus.LastImport != null && ImportStatus.LastImport.Length > 0)
                         {
-                            @(ImportStatus.LastImport[0].SuccessfulImport.ShowAsHtml())                         
-                        }                        
+                            @(ImportStatus.LastImport[0].SuccessfulImport.ShowAsHtml())
+                        }
                     </div>
                     <div class="col-sm-1">@(userConfig.GetText("errors")):</div>
                     <div class="col-sm-8">@(ImportStatus.LastImport != null && ImportStatus.LastImport.Length > 0 ? ImportStatus.LastImport[0].ImportErrors : "")</div>
@@ -123,10 +129,10 @@
 
     [Parameter]
     public bool DetailsMode { get; set; }
-   
+
     [Parameter]
     public EventCallback<bool> DetailsModeChanged { get; set; }
-    
+
     [Parameter]
     public EventCallback<bool> Closing { get; set; }
 

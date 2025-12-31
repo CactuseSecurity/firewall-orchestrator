@@ -1,5 +1,6 @@
 import ast
 import json
+from copy import deepcopy
 from typing import Any
 
 from fwo_base import sanitize, sort_and_join_refs
@@ -410,34 +411,21 @@ def parse_single_rule(
         svc_objects: dict[str, str] = parse_rule_part(native_rule["translated-service"], "translated-service")
         rule_svc_ref, rule_svc_name = sort_and_join_refs(list(svc_objects.items()))
 
-        xlate_rule: dict[str, Any] = {
-            "last_change_admin": sanitize(last_change_admin),
-            "rule_name": sanitize(rule_name),
-            "parent_rule_uid": None,
-            "rule_num": 0,
-            "rule_num_numeric": 0,
-            "rule_uid": sanitize(native_rule["uid"] + "_translated"),
-            "rule_disabled": not bool(native_rule["enabled"]),
-            "rule_src_neg": source_negate,
-            "rule_dst_neg": destination_negate,
-            "rule_svc_neg": service_negate,
-            "rule_src": sanitize(rule_src_name),
-            "rule_dst": sanitize(rule_dst_name),
-            "rule_svc": sanitize(rule_svc_name),
-            "rule_src_refs": sanitize(rule_src_ref),
-            "rule_dst_refs": sanitize(rule_dst_ref),
-            "rule_svc_refs": sanitize(rule_svc_ref),
-            "rule_action": sanitize(rule_action, lower=True),
-            "rule_track": sanitize(rule_track, lower=True),
-            "rule_installon": sanitize(str_list_of_gw_uids),
-            "rule_time": sanitize(rule_time),
-            "rule_comment": sanitize(comments),
-            "rule_implied": False,
-            "rule_custom_fields": sanitize(rule_custom_fields),
-            "rule_type": sanitize(rule_type),
-            "rulebase_name": sanitize(layer_name),
-            "last_hit": sanitize(last_hit),
-        }
+        xlate_rule: dict[str, Any] = deepcopy(rule)
+        xlate_rule.update(
+            {
+                "rule_uid": sanitize(native_rule["uid"] + "_translated"),
+                "rule_src_neg": source_negate,
+                "rule_dst_neg": destination_negate,
+                "rule_svc_neg": service_negate,
+                "rule_src": sanitize(rule_src_name),
+                "rule_dst": sanitize(rule_dst_name),
+                "rule_svc": sanitize(rule_svc_name),
+                "rule_src_refs": sanitize(rule_src_ref),
+                "rule_dst_refs": sanitize(rule_dst_ref),
+                "rule_svc_refs": sanitize(rule_svc_ref),
+            }
+        )
         rulebase.rules.update({rule["rule_uid"]: RuleNormalized(**xlate_rule)})
 
     rulebase.rules.update({rule["rule_uid"]: RuleNormalized(**rule)})

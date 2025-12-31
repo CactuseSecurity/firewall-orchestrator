@@ -61,10 +61,13 @@
                 <input class="form-check-input" type="checkbox" id="complianceShowAnyRule" checked="@_showAnyRulesInComplianceReport" @onchange="ToggleShowAnyRule"/>
                 <label class="form-check-label text-white" for="complianceShowAnyRule">@(userConfig.GetText("show_any_match"))</label>
             </div>
-            <div class="p-3">
-                <input class="form-check-input" type="checkbox" id="complianceFilterOutInitialViolations" checked="@_filterInitialViolations" @onchange="ToggleFilterInitialViolations"/>
-                <label class="form-check-label text-white" for="complianceFilterOutInitialViolations">@(userConfig.GetText("filterOutInitialViolations"))</label>
-            </div>
+            if (actReportFilters.ReportType == ReportType.ComplianceDiffReport)
+            {
+                <div class="p-3">
+                    <input class="form-check-input" type="checkbox" id="complianceFilterOutInitialViolations" checked="@_filterInitialViolations" @onchange="ToggleFilterInitialViolations"/>
+                    <label class="form-check-label text-white" for="complianceFilterOutInitialViolations">@(userConfig.GetText("filterOutInitialViolations"))</label>
+                </div>
+            }
         }
 
         @if (actReportFilters.ReportType.IsDeviceRelatedReport() && actReportFilters.ReportType != ReportType.RecertEventReport)

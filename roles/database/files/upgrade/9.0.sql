@@ -789,6 +789,7 @@ insert into stm_link_type (id, name) VALUES (2, 'ordered') ON CONFLICT DO NOTHIN
 insert into stm_link_type (id, name) VALUES (3, 'inline') ON CONFLICT DO NOTHING;
 insert into stm_link_type (id, name) VALUES (4, 'concatenated') ON CONFLICT DO NOTHING;
 insert into stm_link_type (id, name) VALUES (5, 'domain') ON CONFLICT DO NOTHING;
+insert into stm_link_type (id, name) VALUES (6, 'nat') ON CONFLICT DO NOTHING;
 delete from stm_link_type where name in ('initial','global','local','section'); -- initial and global/local are additional flags now
 
 -- TODO delete all rule.parent_rule_id and rule.parent_rule_type, always = None so far

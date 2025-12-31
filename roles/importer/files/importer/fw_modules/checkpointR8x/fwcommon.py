@@ -461,7 +461,6 @@ def define_global_rulebase_link(
     # parse global rulebases, find place-holders and link local rulebases
     placeholder_link_index = 0
     for global_rulebase_uid in global_policy_rulebases_uid_list:
-        placeholder_rule_uid = ""
         for rulebase in native_config_global_domain["rulebases"]:
             if rulebase["uid"] == global_rulebase_uid:
                 placeholder_rule_uid, placeholder_rulebase_uid = cp_getter.get_placeholder_in_rulebase(rulebase)
@@ -475,7 +474,7 @@ def define_global_rulebase_link(
                     device_config["rulebase_links"].append(
                         {
                             "from_rulebase_uid": placeholder_rulebase_uid,
-                            "from_rule_uid": None,
+                            "from_rule_uid": placeholder_rule_uid,
                             "to_rulebase_uid": ordered_layer_uid,
                             "type": "domain",
                             "is_global": False,

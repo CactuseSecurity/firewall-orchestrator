@@ -352,8 +352,8 @@ def parse_single_rule(
         rule_dst_ref, rule_dst_name = sort_and_join_refs(list(dst_objects.items()))
         svc_objects: dict[str, str] = parse_rule_part(native_rule["original-service"], "original-service")
         rule_svc_ref, rule_svc_name = sort_and_join_refs(list(svc_objects.items()))
-        rule_action = None  # delete_v nochmal prüfen
-        rule_track = None  # delete_v ist not null in db
+        rule_action = "drop"
+        rule_track = "none"
         rule_time = None
         rule_type = "nat"
     else:
@@ -391,7 +391,7 @@ def parse_single_rule(
     }
 
     if native_rule["type"] == "nat-rule":
-        rule.update({"xlate_rule": "delete_v new xlate_rule uid"})
+        rule.update({"xlate_rule": sanitize(native_rule["uid"] + "_translated")})
         source_objects: dict[str, str] = parse_rule_part(native_rule["translated-source"], "translated-source")
         rule_src_ref, rule_src_name = sort_and_join_refs(list(source_objects.items()))
         dst_objects: dict[str, str] = parse_rule_part(native_rule["translated-destination"], "translated-destination")
@@ -401,11 +401,11 @@ def parse_single_rule(
 
         xlate_rule: dict[str, Any] = {
             "last_change_admin": sanitize(last_change_admin),
-            "rule_name": sanitize(rule_name),  # delete_v
+            "rule_name": sanitize(rule_name),
             "parent_rule_uid": None,
             "rule_num": 0,
             "rule_num_numeric": 0,
-            "rule_uid": sanitize(native_rule["uid"]),  # delete_v
+            "rule_uid": sanitize(native_rule["uid"] + "_translated"),
             "rule_disabled": not bool(native_rule["enabled"]),
             "rule_src_neg": source_negate,
             "rule_dst_neg": destination_negate,

@@ -543,6 +543,7 @@ insert into stm_link_type (id, name) VALUES (2, 'ordered');
 insert into stm_link_type (id, name) VALUES (3, 'inline');
 insert into stm_link_type (id, name) VALUES (4, 'concatenated');
 insert into stm_link_type (id, name) VALUES (5, 'domain');
+insert into stm_link_type (id, name) VALUES (6, 'nat');
 
 -- insert into compliance.assessability_issue_type (type_id, type_name) VALUES (1, 'empty group');
 -- insert into compliance.assessability_issue_type (type_id, type_name) VALUES (2, 'broadcast address');

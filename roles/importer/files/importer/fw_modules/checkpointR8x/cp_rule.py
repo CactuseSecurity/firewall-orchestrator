@@ -216,7 +216,7 @@ def accept_malformed_parts(objects: dict[str, Any] | list[dict[str, Any]], part:
     return {}
 
 
-# delete_v: mit tim reden, das sieht alles legacy aus. kann chunking jemals in regel-dicts/lists auftreten, evtl bei kleinem limit?
+# TODO: chunking in object dicts should not be neccessary if limit is high enough
 def parse_rule_part(
     objects: dict[str, Any] | list[dict[str, Any] | None] | None, part: str = "source"
 ) -> dict[str, Any]:
@@ -490,31 +490,6 @@ def resolve_nwobj_uid_to_name(nw_obj_uid: str) -> str:
         return uid_to_name_map[nw_obj_uid]
     FWOLogger.warning("could not resolve network object with uid " + nw_obj_uid)
     return ""
-
-
-# delete_v: left here only for nat case
-def check_and_add_section_header(
-    src_rulebase: dict[str, Any],
-    target_rulebase: Rulebase,
-    layer_name: str,
-    import_id: str,
-    section_header_uids: set[str],
-):
-    # TODO: re-implement
-    raise NotImplementedError("check_and_add_section_header is not implemented yet.")
-
-
-def insert_section_header_rule(
-    _target_rulebase: Rulebase,
-    _section_name: str,
-    _layer_name: str,
-    _import_id: str,
-    _src_rulebase_uid: str,
-    _section_header_uids: set[str],
-    _parent_uid: str,
-):
-    # TODO: re-implement
-    return
 
 
 def ensure_json(raw: str) -> Any:

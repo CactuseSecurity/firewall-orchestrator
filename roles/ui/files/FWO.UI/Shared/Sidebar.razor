@@ -1,7 +1,7 @@
 @inject DomEventService eventService
 @inject IJSRuntime jsRuntime
 
-<div class="sidebar-main d-flex flex-row @SidebarContainerCssClass" style="@($"top: 0; {(PositionLeft ? "left: 0;" : "right: 0;")} padding-top: {topOffset}px")">
+<div class="sidebar-main d-flex flex-row @SidebarContainerCssClass" style="@($"top: 0; {(PositionLeft ? "left: 0;" : "right: 0;")} padding-top: {topOffset}px;")">
 	@if (topOffset != -1)
 	{
 		@if (!PositionLeft)

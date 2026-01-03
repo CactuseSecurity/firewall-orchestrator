@@ -244,7 +244,7 @@ namespace FWO.Config.Api.Data
         public bool AllowManualOwnerAdmin { get; set; } = false;
 
         [JsonProperty("reqPriorities"), JsonPropertyName("reqPriorities")]
-        public string ReqPriorities { get; set; } = "";
+        public string ReqPriorities { get; set; } = "[]";
 
         [JsonProperty("reqAutoCreateImplTasks"), JsonPropertyName("reqAutoCreateImplTasks")]
         public AutoCreateImplTaskOptions ReqAutoCreateImplTasks { get; set; } = AutoCreateImplTaskOptions.never;

@@ -132,6 +132,7 @@ namespace FWO.Basics
         public const string DESTINATIONS = "@@DESTINATIONS@@";
         public const string FAIL_NUMBER = "@@FAIL_NUMBER@@";
         public const string GROUPNAME = "@@GROUPNAME@@";
+        public const string INTERFACE_LINK = "@@INTERFACE_LINK@@";
         public const string INTERFACE_NAME = "@@INTERFACE_NAME@@";
         public const string IP = "@@IP@@";
         public const string MANAGEMENT_ID = "@@MANAGEMENT_ID@@";
@@ -151,6 +152,9 @@ namespace FWO.Basics
         public const string PROTOCOLNAME = "@@PROTOCOLNAME@@";
         public const string PROTOCOLID = "@@PROTOCOLID@@";
         public const string REASON = "@@REASON@@";
+        public const string REQUESTER = "@@REQUESTER@@";
+        public const string REQUESTING_APPNAME = "@@REQUESTING_APPNAME@@";
+        public const string REQUESTING_APPID = "@@REQUESTING_APPID@@";
         public const string RULE_NUMBER = "@@RULE_NUMBER@@";
         public const string SERVICENAME = "@@SERVICENAME@@";
         public const string SERVICES = "@@SERVICES@@";

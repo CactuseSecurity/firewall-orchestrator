@@ -265,6 +265,8 @@ INSERT INTO txt VALUES ('OwnersAndRules',       'German',	'Eigent&uuml;mer und R
 INSERT INTO txt VALUES ('OwnersAndRules', 	    'English',	'Owners And Rules');
 INSERT INTO txt VALUES ('RecertDate',       	'German',	'Rezertifizierungsdatum');
 INSERT INTO txt VALUES ('RecertDate', 	    	'English',	'Recertification Date');
+INSERT INTO txt VALUES ('RequestDate',       	'German',	'Antragsdatum');
+INSERT INTO txt VALUES ('RequestDate', 	    	'English',	'Request Date');
 
 -- general
 INSERT INTO txt VALUES ('cancel', 				'German',	'Abbrechen');
@@ -2611,8 +2613,8 @@ INSERT INTO txt VALUES ('availableModules',     'German', 	'Verf&uuml;gbare Modu
 INSERT INTO txt VALUES ('availableModules',     'English', 	'Available Modules');
 INSERT INTO txt VALUES ('notification',   		'German', 	'Benachrichtigung');
 INSERT INTO txt VALUES ('notification',   		'English', 	'Notification');
-INSERT INTO txt VALUES ('notifications',   		'German', 	'Benachrichtigungen');
-INSERT INTO txt VALUES ('notifications',   		'English', 	'Notifications');
+INSERT INTO txt VALUES ('reminders',            'German', 	'Erinnerungsbenachrichtigungen');
+INSERT INTO txt VALUES ('reminders',            'English',  'Reminders');
 INSERT INTO txt VALUES ('edit_notification',    'German', 	'Benachrichtigung bearbeiten');
 INSERT INTO txt VALUES ('edit_notification',    'English', 	'Edit Notification');
 INSERT INTO txt VALUES ('delete_notification',  'German', 	'Benachrichtigung l&ouml;schen');
@@ -5623,11 +5625,11 @@ INSERT INTO txt VALUES ('H5624', 'German',  'Text der Antragsbenachrichtigung: T
 INSERT INTO txt VALUES ('H5624', 'English', 'Body of request emails: Text of the email notification to the addressed owners. Will be appended by the requester (at the beginning) and the addressed owner (at the end).
     Additionally links to the request in the Workflow module and the requested interface in the Modelling module are added.
 ');
-INSERT INTO txt VALUES ('H5624a', 'German',  'Text der Erinnerungsbenachrichtigung: Text der Email-Benachrichtigung an die Beauftragten. Wird noch durch Antragsteller (zu Beginn) und Beauftragtem (am Ende) erg&auml;nzt.
-    Hinzu kommt noch jeweils ein Link auf den Auftrag im Workflowmodul und auf die beauftragte Schnittstelle im Modellierungsmodul.
+INSERT INTO txt VALUES ('H5624a', 'German',  'Text der Erinnerungsbenachrichtigung: Text der Email-Benachrichtigung an die Beauftragten. Verf&uuml;gbare Platzhalter:
+    @@APPNAME@@, @@APPID@@, @@REQUESTER@@, @@REQUESTING_APPNAME@@, @@REQUESTING_APPID@@, @@INTERFACE_LINK@@.
 ');
-INSERT INTO txt VALUES ('H5624a', 'English', 'Body of unanswered request emails: Text of the email notification to the addressed owners. Will be appended by the requester (at the beginning) and the addressed owner (at the end).
-    Additionally links to the request in the Workflow module and the requested interface in the Modelling module are added.
+INSERT INTO txt VALUES ('H5624a', 'English', 'Body of unanswered request emails: Text of the email notification to the addressed owners. Available placeholders:
+    @@APPNAME@@, @@APPID@@, @@REQUESTER@@, @@REQUESTING_APPNAME@@, @@REQUESTING_APPID@@, @@INTERFACE_LINK@@.
 ');
 INSERT INTO txt VALUES ('H5625', 'German',  'Titel des Schnittstellentickets: Titel, mit dem ein neues Ticket zur Beantragung einer Schnittstelle angelegt wird.');
 INSERT INTO txt VALUES ('H5625', 'English', 'Title of interface request ticket: Title used for the new interface request ticket.');
@@ -5645,8 +5647,8 @@ INSERT INTO txt VALUES ('H5628', 'German',  'Vordefinierte Dienste: Hier wird de
 INSERT INTO txt VALUES ('H5628', 'English', 'Predefined Services: Offers a menu to the administrator to define, change or delete predefined services or service groups.
     These services are available for all applications.
 ');
-INSERT INTO txt VALUES ('H5629', 'German',  'Benachrichtigungen: Legt fest, wer wie oft in welchem Zeitintervall &uuml;ber offene Schnittstellenantr&auml;ge benachrichtigt wird.');
-INSERT INTO txt VALUES ('H5629', 'English', 'Notifications: Defines who will be notified how often and in which time interval about open interface requests.');
+INSERT INTO txt VALUES ('H5629', 'German',  'Erinnerungsbenachrichtigungen: Legt fest, wer wie oft in welchem Zeitintervall &uuml;ber offene Schnittstellenantr&auml;ge benachrichtigt wird.');
+INSERT INTO txt VALUES ('H5629', 'English', 'Reminders: Defines who will be notified how often and in which time interval about open interface requests.');
 INSERT INTO txt VALUES ('H5630', 'German',  'Empf&auml;nger der Antragsbenachrichtigung: Auswahl, wem die Email mit der Antragsbenachrichtigung geschickt werden soll:
     Der Eigent&uuml;mergruppe (Default), dem Hauptverantwortlichen oder beiden.
     Desweiteren kann festgelegt werden, ob der Antragsteller die Nachricht im Cc bekommen soll (Default: ja).

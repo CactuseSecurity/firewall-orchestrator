@@ -29,6 +29,7 @@ query getTicketsByParameters($cutOffDate: timestamp, $taskType: String, $fromSta
       id
       task_number
       state_id
+      title
       task_type
       additional_info
       owners: reqtask_owners {

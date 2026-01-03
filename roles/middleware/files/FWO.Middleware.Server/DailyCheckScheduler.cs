@@ -64,7 +64,7 @@ namespace FWO.Middleware.Server
                     await RefreshRecert();
                 }
                 await CheckRecerts();
-				await CheckUnansweredInterfaceRequests();
+                await CheckUnansweredInterfaceRequests();
             }
             catch(Exception exc)
             {
@@ -186,37 +186,66 @@ namespace FWO.Middleware.Server
                 importIssues != 0 ? importIssues + globalConfig.GetText("import_issues_found") : globalConfig.GetText("no_import_issues_found"), GlobalConst.kDailyCheck);
         }
 
-		private async Task CheckUnansweredInterfaceRequests()
+        private async Task CheckUnansweredInterfaceRequests()
         {
-			int emailsSent = 0;
-			List<UserGroup> OwnerGroups = await MiddlewareServerServices.GetInternalGroups(apiConnection);
+            int emailsSent = 0;
+            List<UserGroup> OwnerGroups = await MiddlewareServerServices.GetInternalGroups(apiConnection);
             WfHandler wfHandler = new (new(globalConfig), apiConnection, WorkflowPhases.request, OwnerGroups);
             await wfHandler.Init();
             NotificationService notificationService = await NotificationService.CreateAsync(NotificationClient.InterfaceRequest, globalConfig, apiConnection, OwnerGroups);
 
-			foreach(var notification in notificationService.Notifications)
-			{
-				List<WfTicket>? unansweredTickets = await wfHandler.GetOpenTickets(WfTaskType.new_interface.ToString(), notification.RepeatOffsetAfterDeadline ?? 0);
-				foreach(var ticket in unansweredTickets)
-				{
-					FwoOwner? owner = ticket.Tasks.FirstOrDefault(r => r.TaskType == WfTaskType.new_interface.ToString())?.Owners.FirstOrDefault()?.Owner;
-					if(owner != null)
-					{
-						emailsSent += await notificationService.SendNotifications(owner, ticket.CreationDate, PrepareBody(ticket, owner));
-					}
-				}
-			}
-			await notificationService.UpdateNotificationsLastSent();
-			Log.WriteDebug(LogMessageTitle, $"Unanswered Interface Requests Check: Sent {emailsSent} emails.");
+            foreach(var notification in notificationService.Notifications)
+            {
+                List<WfTicket>? unansweredTickets = await wfHandler.GetOpenTickets(WfTaskType.new_interface.ToString(), notification.RepeatOffsetAfterDeadline ?? 0);
+                foreach(var ticket in unansweredTickets)
+                {
+                    FwoOwner? owner = ticket.Tasks.FirstOrDefault(r => r.TaskType == WfTaskType.new_interface.ToString())?.Owners.FirstOrDefault()?.Owner;
+                    if(owner != null)
+                    {
+                        emailsSent += await notificationService.SendNotifications(owner, ticket.CreationDate, await PrepareBody(ticket, owner));
+                    }
+                }
+            }
+            await notificationService.UpdateNotificationsLastSent();
+            Log.WriteDebug(LogMessageTitle, $"Unanswered Interface Requests Check: Sent {emailsSent} emails.");
         }
 
-		private string PrepareBody(WfTicket ticket, FwoOwner owner)
+        private async Task<string> PrepareBody(WfTicket ticket, FwoOwner owner)
         {
-			WfReqTask? reqTask = ticket.Tasks.FirstOrDefault(r => r.TaskType == WfTaskType.new_interface.ToString());
-			int? connId = reqTask?.GetAddInfoIntValue(AdditionalInfoKeys.ConnId);
-			string interfaceUrl = $"{globalConfig.UiHostName}/{PageName.Modelling}/{owner.ExtAppId}/{connId}";
-			return $"{ticket.Requester?.Name} {globalConfig.ModUnansweredReqEmailBody} {owner.Name} <br>" +
-                $"<a target=\"_blank\" href=\"{interfaceUrl}\">{globalConfig.GetText("interface")}: {reqTask?.Title}</a><br>"; 
+            WfReqTask? reqTask = ticket.Tasks.FirstOrDefault(r => r.TaskType == WfTaskType.new_interface.ToString());
+            FwoOwner? requestingOwner = await GetRequestingOwner(reqTask?.GetAddInfoIntValue(AdditionalInfoKeys.ReqOwner));
+
+            return globalConfig.ModUnansweredReqEmailBody
+                .Replace(Placeholder.REQUESTER, ticket.Requester?.Name)
+                .Replace(Placeholder.REQUESTING_APPNAME, requestingOwner?.Name)
+                .Replace(Placeholder.REQUESTING_APPID, requestingOwner?.ExtAppId)
+                .Replace(Placeholder.APPNAME, owner.Name)
+                .Replace(Placeholder.APPID, owner.ExtAppId)
+                .Replace(Placeholder.INTERFACE_LINK, ConstructLink(ticket, owner, reqTask));
+        }
+
+        private async Task<FwoOwner?> GetRequestingOwner(int? ownerId)
+        {
+            FwoOwner? reqOwner = null;
+            if(ownerId != null)
+            {
+                try
+                {
+                    reqOwner = await apiConnection.SendQueryAsync<FwoOwner>(OwnerQueries.getOwnerById, new { id = ownerId });
+                }
+                catch(Exception exc)
+                {
+                    await LogErrorsWithAlert(1, $"Unanswered Interface Requests Check", GlobalConst.kDailyCheck, AlertCode.DailyCheckError, exc);
+                }
+             }
+           return reqOwner;
+        }
+
+        private string ConstructLink(WfTicket ticket, FwoOwner owner, WfReqTask? reqTask)
+        {
+            int? connId = reqTask?.GetAddInfoIntValue(AdditionalInfoKeys.ConnId);
+            string interfaceUrl = $"{globalConfig.UiHostName}/{PageName.Modelling}/{owner.ExtAppId}/{connId}";
+            return $"<a target=\"_blank\" href=\"{interfaceUrl}\">{globalConfig.GetText("interface")}: {reqTask?.Title}</a>";
         }
     }
 }

@@ -67,12 +67,19 @@
             <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H4103"))">
                 <label class="col-form-label col-sm-4">@(userConfig.GetText("deadline")):</label>
                 <div class="col-sm-8">
-                    <Dropdown ElementType="NotificationDeadline" @bind-SelectedElement="actNotification.Deadline" ElementToString="@(i => userConfig.GetText(i.ToString()))"
-                            Elements="Enum.GetValues(typeof(NotificationDeadline)).Cast<NotificationDeadline>()" >
-                        <ElementTemplate Context="deadline">
-                            @(userConfig.GetText(deadline.ToString()))
-                        </ElementTemplate>
-                    </Dropdown>
+                    @if(Client == NotificationClient.InterfaceRequest)
+                    {
+                        @(userConfig.GetText(actNotification.Deadline.ToString()))
+                    }
+                    else
+                    {
+                        <Dropdown ElementType="NotificationDeadline" @bind-SelectedElement="actNotification.Deadline" ElementToString="@(i => userConfig.GetText(i.ToString()))"
+                                Elements="Enum.GetValues(typeof(NotificationDeadline)).Cast<NotificationDeadline>()" >
+                            <ElementTemplate Context="deadline">
+                                @(userConfig.GetText(deadline.ToString()))
+                            </ElementTemplate>
+                        </Dropdown>
+                    }
                 </div>
             </div>
 
@@ -126,7 +133,7 @@
                 <label class="col-form-label col-sm-4">@(userConfig.GetText("recipient_to")):</label>
                 <div class="col-sm-8">
                     <Dropdown ElementType="EmailRecipientOption" @bind-SelectedElement="actNotification.RecipientTo" ElementToString="@(i => userConfig.GetText(i.ToString()))"
-                            Elements="Enum.GetValues(typeof(EmailRecipientOption)).Cast<EmailRecipientOption>()" >
+                            Elements="OfferedAdressoptions()" >
                         <ElementTemplate Context="recip">
                             @(userConfig.GetText(recip.ToString()))
                         </ElementTemplate>
@@ -152,7 +159,7 @@
                 <label class="col-form-label col-sm-4">@(userConfig.GetText("recipient_cc")):</label>
                 <div class="col-sm-8">
                     <Dropdown ElementType="EmailRecipientOption" @bind-SelectedElement="actNotification.RecipientCc" ElementToString="@(i => userConfig.GetText(i.ToString()))"
-                            Elements="Enum.GetValues(typeof(EmailRecipientOption)).Cast<EmailRecipientOption>()" >
+                            Elements="OfferedAdressoptions()" >
                         <ElementTemplate Context="recip">
                             @(userConfig.GetText(recip.ToString()))
                         </ElementTemplate>
@@ -234,11 +241,15 @@
     private void InitActNotification()
     {
         actNotification = new(){ NotificationClient = Client };
+        actNotification.RecipientTo = EmailRecipientOption.OwnerMainResponsible;
+        actNotification.RecipientCc = EmailRecipientOption.None;
         if(Client == NotificationClient.Recertification)
         {
             actNotification.Deadline = NotificationDeadline.RecertDate;
-            actNotification.RecipientTo = EmailRecipientOption.OwnerMainResponsible;
-            actNotification.RecipientCc = EmailRecipientOption.None;
+        }
+        else if(Client == NotificationClient.InterfaceRequest)
+        {
+            actNotification.Deadline = NotificationDeadline.RequestDate;
         }
     }
 
@@ -300,6 +311,15 @@
     private string GetDeleteMessage()
     {
         return userConfig.GetText("U4001") + DisplayNotification(actNotification);
+    }
+
+    private IEnumerable<EmailRecipientOption> OfferedAdressoptions()
+    {
+        if(Client == NotificationClient.InterfaceRequest)
+        {
+            return EmailRecipientGroups.GetModellingOptions();
+        }
+        return Enum.GetValues(typeof(EmailRecipientOption)).Cast<EmailRecipientOption>();
     }
 
     private async Task Save()

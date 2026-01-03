@@ -221,7 +221,7 @@ namespace FWO.Middleware.Server
                 .Replace(Placeholder.REQUESTING_APPID, requestingOwner?.ExtAppId)
                 .Replace(Placeholder.APPNAME, owner.Name)
                 .Replace(Placeholder.APPID, owner.ExtAppId)
-                .Replace(Placeholder.INTERFACE_LINK, ConstructLink(ticket, owner, reqTask));
+                .Replace(Placeholder.INTERFACE_LINK, ConstructLink(owner, reqTask));
         }
 
         private async Task<FwoOwner?> GetRequestingOwner(int? ownerId)
@@ -241,7 +241,7 @@ namespace FWO.Middleware.Server
            return reqOwner;
         }
 
-        private string ConstructLink(WfTicket ticket, FwoOwner owner, WfReqTask? reqTask)
+        private string ConstructLink(FwoOwner owner, WfReqTask? reqTask)
         {
             int? connId = reqTask?.GetAddInfoIntValue(AdditionalInfoKeys.ConnId);
             string interfaceUrl = $"{globalConfig.UiHostName}/{PageName.Modelling}/{owner.ExtAppId}/{connId}";

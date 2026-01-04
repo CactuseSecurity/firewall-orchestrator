@@ -202,7 +202,7 @@ namespace FWO.Middleware.Server
                     FwoOwner? owner = ticket.Tasks.FirstOrDefault(r => r.TaskType == WfTaskType.new_interface.ToString())?.Owners.FirstOrDefault()?.Owner;
                     if(owner != null)
                     {
-                        emailsSent += await notificationService.SendNotifications(owner, ticket.CreationDate, await PrepareBody(ticket, owner));
+                        emailsSent += await notificationService.SendNotification(notification, owner, ticket.CreationDate, await PrepareBody(ticket, owner));
                     }
                 }
             }
@@ -237,8 +237,8 @@ namespace FWO.Middleware.Server
                 {
                     await LogErrorsWithAlert(1, $"Unanswered Interface Requests Check", GlobalConst.kDailyCheck, AlertCode.DailyCheckError, exc);
                 }
-             }
-           return reqOwner;
+            }
+            return reqOwner;
         }
 
         private string ConstructLink(FwoOwner owner, WfReqTask? reqTask)

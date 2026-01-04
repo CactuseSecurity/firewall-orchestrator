@@ -56,7 +56,7 @@
                 <label class="col-form-label col-sm-4">@(userConfig.GetText("layout")):</label>
                 <div class="col-sm-8">
                     <Dropdown ElementType="NotificationLayout" @bind-SelectedElement="actNotification.Layout" ElementToString="@(i => userConfig.GetText(i.ToString()))"
-                            Elements="Enum.GetValues(typeof(NotificationLayout)).Cast<NotificationLayout>()" >
+                            Elements="OfferedLayoutOptions()" >
                         <ElementTemplate Context="layout">
                             @(userConfig.GetText(layout.ToString()))
                         </ElementTemplate>
@@ -133,7 +133,7 @@
                 <label class="col-form-label col-sm-4">@(userConfig.GetText("recipient_to")):</label>
                 <div class="col-sm-8">
                     <Dropdown ElementType="EmailRecipientOption" @bind-SelectedElement="actNotification.RecipientTo" ElementToString="@(i => userConfig.GetText(i.ToString()))"
-                            Elements="OfferedAdressoptions()" >
+                            Elements="OfferedAdressOptions()" >
                         <ElementTemplate Context="recip">
                             @(userConfig.GetText(recip.ToString()))
                         </ElementTemplate>
@@ -159,7 +159,7 @@
                 <label class="col-form-label col-sm-4">@(userConfig.GetText("recipient_cc")):</label>
                 <div class="col-sm-8">
                     <Dropdown ElementType="EmailRecipientOption" @bind-SelectedElement="actNotification.RecipientCc" ElementToString="@(i => userConfig.GetText(i.ToString()))"
-                            Elements="OfferedAdressoptions()" >
+                            Elements="OfferedAdressOptions()" >
                         <ElementTemplate Context="recip">
                             @(userConfig.GetText(recip.ToString()))
                         </ElementTemplate>
@@ -313,13 +313,22 @@
         return userConfig.GetText("U4001") + DisplayNotification(actNotification);
     }
 
-    private IEnumerable<EmailRecipientOption> OfferedAdressoptions()
+    private IEnumerable<EmailRecipientOption> OfferedAdressOptions()
     {
         if(Client == NotificationClient.InterfaceRequest)
         {
             return EmailRecipientGroups.GetModellingOptions();
         }
         return Enum.GetValues(typeof(EmailRecipientOption)).Cast<EmailRecipientOption>();
+    }
+
+    private IEnumerable<NotificationLayout> OfferedLayoutOptions()
+    {
+        if(Client == NotificationClient.InterfaceRequest)
+        {
+            return NotificationLayoutGroups.WithoutAttachments();
+        }
+        return Enum.GetValues(typeof(NotificationLayout)).Cast<NotificationLayout>();
     }
 
     private async Task Save()

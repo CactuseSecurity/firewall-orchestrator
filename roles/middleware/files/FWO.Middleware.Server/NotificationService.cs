@@ -51,17 +51,36 @@ namespace FWO.Middleware.Server
         }
 
         /// <summary>
-        /// Analyse and Send Notifications if due
+        /// Analyse and send all Notifications if due, restricted to owner if given
         /// </summary>
         /// <param name="owner">Owner for whom the notification is done</param>
         /// <param name="extDeadline">Deadline date e.g. from ticket, if not defined by owner (only for InterfaceClient)</param>
         /// <param name="content">Text for notification (e.g. email body)</param>
         /// <param name="report">Optional report to be sent as attachment</param>
-        /// <returns></returns>
+        /// <returns>number of emails sent</returns>
         public async Task<int> SendNotifications(FwoOwner owner, DateTime? extDeadline, string content, ReportBase? report = null)
         {
             int emailsSent = 0;
-            foreach (var notification in Notifications.Where(n => (n.OwnerId == null || n.OwnerId == owner.Id) && SendNow(owner, extDeadline, n)))
+            foreach (var notification in Notifications.Where(n => n.OwnerId == null || n.OwnerId == owner.Id))
+            {
+                emailsSent += await SendNotification(notification, owner, extDeadline, content, report);
+            }
+            return emailsSent;
+        }
+
+        /// <summary>
+        /// Analyse and send single Notification if due
+        /// </summary>
+        /// <param name="notification">Notification to be handled</param>
+        /// <param name="owner">Owner for whom the notification is done</param>
+        /// <param name="extDeadline">Deadline date e.g. from ticket, if not defined by owner (only for InterfaceClient)</param>
+        /// <param name="content">Text for notification (e.g. email body)</param>
+        /// <param name="report">Optional report to be sent as attachment</param>
+        /// <returns>number of emails sent</returns>
+        public async Task<int> SendNotification(FwoNotification notification, FwoOwner owner, DateTime? extDeadline, string content, ReportBase? report = null)
+        {
+            int emailsSent = 0;
+            if(SendNow(owner, extDeadline, notification))
             {
                 // Later: Handle other channels here when implemented
                 await SendEmail(notification, content, owner, report);

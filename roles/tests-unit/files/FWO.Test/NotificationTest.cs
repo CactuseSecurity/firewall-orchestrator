@@ -20,12 +20,20 @@ namespace FWO.Test
             NotificationService notificationService = await NotificationService.CreateAsync(NotificationClient.InterfaceRequest, globalConfig, apiConnection, ownerGroups);
             FwoOwner owner = new();
 
-            int emailsSent = await notificationService.SendNotifications(owner, DateTime.Now.AddDays(-3), "email text");
-            ClassicAssert.AreEqual(1, emailsSent);
+            int emailsSent = await notificationService.SendNotifications(owner, DateTime.Now.AddDays(-8), "email text");
+            ClassicAssert.AreEqual(2, emailsSent);
+            ClassicAssert.AreEqual(2, await notificationService.UpdateNotificationsLastSent());
 
-            notificationService.Notifications.FirstOrDefault()!.LastSent = DateTime.Now.AddDays(-1);
-            emailsSent = await notificationService.SendNotifications(owner, DateTime.Now.AddDays(-3), "email text");
+            notificationService.Notifications[0].LastSent = DateTime.Now.AddDays(-1);
+            emailsSent = await notificationService.SendNotifications(owner, DateTime.Now.AddDays(-8), "email text");
+            ClassicAssert.AreEqual(1, emailsSent);
+            ClassicAssert.AreEqual(1, await notificationService.UpdateNotificationsLastSent());
+
+            notificationService.Notifications[0].LastSent = DateTime.Now.AddDays(-1);
+            notificationService.Notifications[1].LastSent = DateTime.Now.AddDays(-8);
+            emailsSent = await notificationService.SendNotifications(owner, DateTime.Now.AddDays(-15), "email text");
             ClassicAssert.AreEqual(0, emailsSent);
+            ClassicAssert.AreEqual(0, await notificationService.UpdateNotificationsLastSent());
         }
 
         [Test]

@@ -7,19 +7,31 @@ namespace FWO.Test
 {
     internal class NotificationTestApiConn : SimulatedApiConnection
     {
-        readonly FwoNotification Notif1 = new()
+        readonly FwoNotification NotifReq1 = new()
         {
             Id = 1,
             RecipientTo = EmailRecipientOption.OtherAddresses,
             EmailAddressTo = "a@b.de",
-            EmailSubject = "subject",
+            EmailSubject = "subject1",
             Deadline = NotificationDeadline.RequestDate,
-            RepeatIntervalAfterDeadline = SchedulerInterval.Days,
-            RepeatOffsetAfterDeadline = 2,
+            RepeatIntervalAfterDeadline = SchedulerInterval.Weeks,
+            RepeatOffsetAfterDeadline = 1,
             RepetitionsAfterDeadline = 3
         }; 
 
-        readonly FwoNotification Notif2 = new()
+        readonly FwoNotification NotifReq2 = new()
+        {
+            Id = 2,
+            RecipientTo = EmailRecipientOption.OtherAddresses,
+            EmailAddressTo = "a@b.de",
+            EmailSubject = "subject2",
+            Deadline = NotificationDeadline.RequestDate,
+            RepeatIntervalAfterDeadline = SchedulerInterval.Days,
+            RepeatOffsetAfterDeadline = 7,
+            RepetitionsAfterDeadline = 1
+        }; 
+
+        readonly FwoNotification NotifRec = new()
         {
             Id = 1,
             RecipientTo = EmailRecipientOption.OtherAddresses,
@@ -41,8 +53,23 @@ namespace FWO.Test
             if(responseType == typeof(List<FwoNotification>))
             {
                 string? Vars = variables?.ToString();
-                List<FwoNotification>? notifs = [ Vars != null && Vars.Contains($"{NotificationClient.InterfaceRequest}")? Notif1 : Notif2 ];
+                List<FwoNotification>? notifs = Vars != null && Vars.Contains($"{NotificationClient.InterfaceRequest}") ? [ NotifReq1, NotifReq2 ]: [ NotifRec ];
                 GraphQLResponse<dynamic> response = new(){ Data = notifs };
+                return response.Data;
+            }
+            if(responseType == typeof(ReturnId))
+            {
+                int notifCount = 0;
+                var idsProp = variables?.GetType().GetProperty("ids");
+                if (idsProp != null)
+                {
+                    var idsValue = idsProp.GetValue(variables);
+                    if (idsValue is System.Collections.ICollection collection)
+                    {
+                        notifCount = collection.Count;
+                    }
+                }
+                GraphQLResponse<dynamic> response = new(){ Data = new ReturnId() { AffectedRows = notifCount } };
                 return response.Data;
             }
 

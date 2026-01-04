@@ -97,10 +97,11 @@ namespace FWO.Middleware.Server
         /// Set the last sent date for all notifications used so far
         /// </summary>
         /// <returns></returns>
-        public async Task UpdateNotificationsLastSent()
+        public async Task<int> UpdateNotificationsLastSent()
         {
-            await ApiConnection.SendQueryAsync<ReturnId>(NotificationQueries.updateNotificationsLastSent, new { ids = CheckedNotificationIds, lastSent = DateTime.Now });
+            int updatedNotifications = (await ApiConnection.SendQueryAsync<ReturnId>(NotificationQueries.updateNotificationsLastSent, new { ids = CheckedNotificationIds, lastSent = DateTime.Now })).AffectedRows;
             CheckedNotificationIds = [];
+            return updatedNotifications;
         }
 
         private static bool SendNow(FwoOwner owner, DateTime? extDeadline, FwoNotification notification)

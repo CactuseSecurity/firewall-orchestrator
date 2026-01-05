@@ -38,11 +38,17 @@
     <Body>
         @if (EditNotifMode)
         {
+            <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H4109"))">
+                <label class="col-form-label col-sm-3">@(userConfig.GetText("name")):</label>
+                <div class="col-sm-9">
+                    <input type="text" class="form-control form-control-sm w-100" @bind="actNotification.Name" />
+                </div>
+            </div>
             @if(Enum.GetValues(typeof(NotificationChannel)).Length > 1)
             {
                 <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H4101"))">
-                    <label class="col-form-label col-sm-4">@(userConfig.GetText("channel")):</label>
-                    <div class="col-sm-8">
+                    <label class="col-form-label col-sm-3">@(userConfig.GetText("channel")):</label>
+                    <div class="col-sm-3">
                         <Dropdown ElementType="NotificationChannel" @bind-SelectedElement="actNotification.Channel" ElementToString="@(i => userConfig.GetText(i.ToString()))"
                                 Elements="Enum.GetValues(typeof(NotificationChannel)).Cast<NotificationChannel>()" >
                             <ElementTemplate Context="channel">
@@ -53,8 +59,8 @@
                 </div>
             }
             <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H4102"))">
-                <label class="col-form-label col-sm-4">@(userConfig.GetText("layout")):</label>
-                <div class="col-sm-8">
+                <label class="col-form-label col-sm-3">@(userConfig.GetText("layout")):</label>
+                <div class="col-sm-3">
                     <Dropdown ElementType="NotificationLayout" @bind-SelectedElement="actNotification.Layout" ElementToString="@(i => userConfig.GetText(i.ToString()))"
                             Elements="OfferedLayoutOptions()" >
                         <ElementTemplate Context="layout">
@@ -65,8 +71,8 @@
             </div>
 
             <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H4103"))">
-                <label class="col-form-label col-sm-4">@(userConfig.GetText("deadline")):</label>
-                <div class="col-sm-8">
+                <label class="col-form-label col-sm-3">@(userConfig.GetText("deadline")):</label>
+                <div class="col-sm-3">
                     @if(Client == NotificationClient.InterfaceRequest)
                     {
                         @(userConfig.GetText(actNotification.Deadline.ToString()))
@@ -88,8 +94,8 @@
                 @if(actNotification.Deadline != NotificationDeadline.RequestDate)
                 {
                     <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H4104"))">
-                        <label class="col-form-label col-sm-4">@(userConfig.GetText("notif_before_deadline")):</label>
-                        <div class="col-sm-2">
+                        <label class="col-form-label col-sm-3">@(userConfig.GetText("notif_before_deadline")):</label>
+                        <div class="col-sm-1">
                             <input type="number" class="form-control form-control-sm w-100" @bind="actNotification.OffsetBeforeDeadline" />
                         </div>
                         <div class="col-sm-2">
@@ -103,8 +109,8 @@
                     </div>
                 }
                 <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H4105"))">
-                    <label class="col-form-label col-sm-4">@(userConfig.GetText("notif_after_deadline")):</label>
-                    <div class="col-sm-2">
+                    <label class="col-form-label col-sm-3">@(userConfig.GetText("notif_after_deadline")):</label>
+                    <div class="col-sm-1">
                         <input type="number" class="form-control form-control-sm w-100" @bind="actNotification.RepeatOffsetAfterDeadline" />
                     </div>
                     <div class="col-sm-2">
@@ -115,23 +121,27 @@
                             </ElementTemplate>
                         </Dropdown>
                     </div>
+                    <label class="col-form-label col-sm-2">@(userConfig.GetText("initial_offset")):</label>
+                    <div class="col-sm-1">
+                        <input type="number" class="form-control form-control-sm w-100" @bind="actNotification.InitialOffsetAfterDeadline" />
+                    </div>
                     <label class="col-form-label col-sm-2">@(userConfig.GetText("max_number")):</label>
-                    <div class="col-sm-2">
+                    <div class="col-sm-1">
                         <input type="number" class="form-control form-control-sm w-100" @bind="actNotification.RepetitionsAfterDeadline" />
                     </div>
                 </div>
             }
 
             <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H4106"))">
-                <label class="col-form-label col-sm-4">@(userConfig.GetText("email_subject")):</label>
-                <div class="col-sm-8">
+                <label class="col-form-label col-sm-3">@(userConfig.GetText("email_subject")):</label>
+                <div class="col-sm-9">
                     <input type="text" class="form-control form-control-sm w-100" @bind="actNotification.EmailSubject" />
                 </div>
             </div>
 
             <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H4107"))">
-                <label class="col-form-label col-sm-4">@(userConfig.GetText("recipient_to")):</label>
-                <div class="col-sm-8">
+                <label class="col-form-label col-sm-3">@(userConfig.GetText("recipient_to")):</label>
+                <div class="col-sm-9">
                     <Dropdown ElementType="EmailRecipientOption" @bind-SelectedElement="actNotification.RecipientTo" ElementToString="@(i => userConfig.GetText(i.ToString()))"
                             Elements="OfferedAdressOptions()" >
                         <ElementTemplate Context="recip">
@@ -156,8 +166,8 @@
             </div>
 
             <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H4108"))">
-                <label class="col-form-label col-sm-4">@(userConfig.GetText("recipient_cc")):</label>
-                <div class="col-sm-8">
+                <label class="col-form-label col-sm-3">@(userConfig.GetText("recipient_cc")):</label>
+                <div class="col-sm-9">
                     <Dropdown ElementType="EmailRecipientOption" @bind-SelectedElement="actNotification.RecipientCc" ElementToString="@(i => userConfig.GetText(i.ToString()))"
                             Elements="OfferedAdressOptions()" >
                         <ElementTemplate Context="recip">
@@ -300,12 +310,9 @@
 
     public string DisplayNotification(FwoNotification notification)
     {
-        // todo: change to name?
-        if(notification.OffsetBeforeDeadline > 0)
-        {
-            return $"{notification.OffsetBeforeDeadline} {userConfig.GetText(notification.IntervalBeforeDeadline.ToString())}: {notification.RecipientTo.ToString()}";
-        }
-        return $"{notification.RepeatOffsetAfterDeadline} {userConfig.GetText(notification.RepeatIntervalAfterDeadline.ToString())}: {notification.RecipientTo.ToString()}";
+        string DisplayedInterval = notification.OffsetBeforeDeadline > 0 ? $"{notification.OffsetBeforeDeadline} {userConfig.GetText(notification.IntervalBeforeDeadline.ToString())}"
+            : $"{notification.RepeatOffsetAfterDeadline} {userConfig.GetText(notification.RepeatIntervalAfterDeadline.ToString())}";
+        return $"{notification.Name}: {DisplayedInterval}: {notification.RecipientTo.ToString()}";
     }
 
     private string GetDeleteMessage()
@@ -344,6 +351,7 @@
                     {
                         client = Client.ToString(),
                         channel = actNotification.Channel.ToString(),
+                        name = actNotification.Name,
                         recipientTo = actNotification.RecipientTo.ToString(),
                         emailAddressTo = actNotification.EmailAddressTo,
                         recipientCc = actNotification.RecipientCc.ToString(),
@@ -354,6 +362,7 @@
                         intervalBeforeDeadline = (int)actNotification.IntervalBeforeDeadline,
                         offsetBeforeDeadline = actNotification.OffsetBeforeDeadline,
                         intervalAfterDeadline = (int)actNotification.RepeatIntervalAfterDeadline,
+                        initialOffsetAfterDeadline = actNotification.InitialOffsetAfterDeadline,
                         offsetAfterDeadline = actNotification.RepeatOffsetAfterDeadline,
                         repetitionsAfterDeadline = actNotification.RepetitionsAfterDeadline
                     };
@@ -370,6 +379,7 @@
                     {
                         id = actNotification.Id,
                         channel = actNotification.Channel.ToString(),
+                        name = actNotification.Name,
                         recipientTo = actNotification.RecipientTo.ToString(),
                         emailAddressTo = actNotification.EmailAddressTo,
                         recipientCc = actNotification.RecipientCc.ToString(),
@@ -380,6 +390,7 @@
                         intervalBeforeDeadline = (int)actNotification.IntervalBeforeDeadline,
                         offsetBeforeDeadline = actNotification.OffsetBeforeDeadline,
                         intervalAfterDeadline = (int)actNotification.RepeatIntervalAfterDeadline,
+                        initialOffsetAfterDeadline = actNotification.InitialOffsetAfterDeadline,
                         offsetAfterDeadline = actNotification.RepeatOffsetAfterDeadline,
                         repetitionsAfterDeadline = actNotification.RepetitionsAfterDeadline
                     };

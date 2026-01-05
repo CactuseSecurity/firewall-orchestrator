@@ -1214,6 +1214,8 @@ INSERT INTO txt VALUES ('notif_before_deadline','German',   'Benachrichtigungen 
 INSERT INTO txt VALUES ('notif_before_deadline','English',  'Notifications before Deadline');
 INSERT INTO txt VALUES ('notif_after_deadline', 'German',   'Benachrichtigungen nach Termin');
 INSERT INTO txt VALUES ('notif_after_deadline', 'English',  'Notifications after Deadline');
+INSERT INTO txt VALUES ('initial_offset',       'German',   'Initialer Offset');
+INSERT INTO txt VALUES ('initial_offset',    	'English',  'Initial Offset');
 INSERT INTO txt VALUES ('max_number',    		'German',   'Maximale Anzahl');
 INSERT INTO txt VALUES ('max_number',    		'English',  'Max Number');
 INSERT INTO txt VALUES ('recipient_to',    		'German',   'Empf&auml;nger (To)');
@@ -4472,14 +4474,20 @@ INSERT INTO txt VALUES ('H4103', 'German',  'Deadline: Referenzdatum, relativ zu
 INSERT INTO txt VALUES ('H4103', 'English', 'Deadline: Reference date for the submission of notifications.');
 INSERT INTO txt VALUES ('H4104', 'German',  'Benachrichtigungen vor Termin: Definiert das Zeitintervall vor dem Referenzdatum, in dem eine Benachrichtigung stattfinden soll.');
 INSERT INTO txt VALUES ('H4104', 'English', 'Notifications before Deadline: Defines the time interval relative to the reference date, where one notification is to be sent.');
-INSERT INTO txt VALUES ('H4105', 'German',  'Benachrichtigungen nach Termin: Definiert ein Zeitintervall f&uuml;r wiederkehrende Benachrichtigungen nach Ablauf des Referenzdatums mit einer maximalen Anzahl von Wiederholungen.');
-INSERT INTO txt VALUES ('H4105', 'English', 'Notifications after Deadline: Defines a time interval for recurring notifications after reaching the reference date with a maximum number of repetitions.');
+INSERT INTO txt VALUES ('H4105', 'German',  'Benachrichtigungen nach Termin: Definiert ein Zeitintervall f&uuml;r wiederkehrende Benachrichtigungen nach Ablauf des Referenzdatums mit einer maximalen Anzahl von Wiederholungen.
+    Der initiale Offset wird nur zum ersten Zeitintervall hinzuaddiert (auch negative Zahlen m&ouml;glich).
+');
+INSERT INTO txt VALUES ('H4105', 'English', 'Notifications after Deadline: Defines a time interval for recurring notifications after reaching the reference date with a maximum number of repetitions.
+    The initial offset is added only to the first interval (also negative numbers possible).
+');
 INSERT INTO txt VALUES ('H4106', 'German',  'Email Betreff: Betreff der Benachrichtigungs, falls nicht schon durch &uuml;bergeordnete Einstellungen gesetzt.');
 INSERT INTO txt VALUES ('H4106', 'English', 'Email subject: Subject line of the notification, if not already set by prior settings.');
 INSERT INTO txt VALUES ('H4107', 'German',  'Empf&auml;nger (To): Es werden verschiedene Rollen (je nach Kontext) als Empf&auml;nger angeboten, zu denen dann automatisch die entsprechenden Adressen ermittelt werden. Bei "Andere Adressen" k&ouml;nnen manuell Adressen eingegeben werden.');
 INSERT INTO txt VALUES ('H4107', 'English', 'Recipient (To): Different roles are offered as recipients (depending on context), for which the addresses are determined automatically. With "Other Addresses" addreesses can be inserted manually.');
 INSERT INTO txt VALUES ('H4108', 'German',  'Empf&auml;nger (Cc). Wie "Empf&auml;nger (To)" f&uuml;r Empf&auml;nger im CC.');
 INSERT INTO txt VALUES ('H4108', 'English', 'Recipient (Cc). As "Recipient (To)" for recipient in CC.');
+INSERT INTO txt VALUES ('H4109', 'German',  'Name: Name der Benachrichtigung, nur für Darstellungszwecke.');
+INSERT INTO txt VALUES ('H4109', 'English', 'Name: Name of notification, only for display purposes.');
 
 INSERT INTO txt VALUES ('H5001', 'German',  'In diesem Abschnitt werden die Setup- und Verwaltungseinstellungen behandelt.
     Die meisten Einstellungen k&ouml;nnen nur von Nutzern mit der Administrator-Rolle gesehen und ge&auml;ndert werden.

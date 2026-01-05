@@ -196,7 +196,7 @@ namespace FWO.Middleware.Server
 
             foreach(var notification in notificationService.Notifications)
             {
-                List<WfTicket>? unansweredTickets = await wfHandler.GetOpenTickets(WfTaskType.new_interface.ToString(), notification.RepeatOffsetAfterDeadline ?? 0);
+                List<WfTicket>? unansweredTickets = await wfHandler.GetOpenTickets(WfTaskType.new_interface.ToString(), notification.RepeatOffsetAfterDeadline ?? 0 + notification.InitialOffsetAfterDeadline ?? 0);
                 foreach(var ticket in unansweredTickets)
                 {
                     FwoOwner? owner = ticket.Tasks.FirstOrDefault(r => r.TaskType == WfTaskType.new_interface.ToString())?.Owners.FirstOrDefault()?.Owner;

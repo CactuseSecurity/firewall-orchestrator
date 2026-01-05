@@ -124,8 +124,14 @@ namespace FWO.Middleware.Server
             }
             else
             {
-                var nextNotifDate = deadline.Date;
-                var currentNotifDate = deadline.Date;
+                var nextNotifDate = notification.RepeatIntervalAfterDeadline switch
+                {
+                    SchedulerInterval.Days => deadline.Date.AddDays(notification.InitialOffsetAfterDeadline ?? 0),
+                    SchedulerInterval.Weeks => deadline.Date.AddDays(notification.InitialOffsetAfterDeadline * GlobalConst.kDaysPerWeek ?? 0),
+                    SchedulerInterval.Months => deadline.Date.AddMonths(notification.InitialOffsetAfterDeadline ?? 0),
+                    _ => throw new NotSupportedException("Time interval is not supported."),
+                };
+                var currentNotifDate = nextNotifDate;
                 int counter = -1;
                 while (nextNotifDate <= DateTime.Now.Date && counter++ <= notification.RepetitionsAfterDeadline)
                 {

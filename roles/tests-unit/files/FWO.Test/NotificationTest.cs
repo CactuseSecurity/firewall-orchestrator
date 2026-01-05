@@ -34,6 +34,10 @@ namespace FWO.Test
             emailsSent = await notificationService.SendNotifications(owner, DateTime.Now.AddDays(-15), "email text");
             ClassicAssert.AreEqual(0, emailsSent);
             ClassicAssert.AreEqual(0, await notificationService.UpdateNotificationsLastSent());
+
+            notificationService.Notifications[1].InitialOffsetAfterDeadline = 7;
+            emailsSent = await notificationService.SendNotifications(owner, DateTime.Now.AddDays(-15), "email text");
+            ClassicAssert.AreEqual(1, emailsSent);
         }
 
         [Test]

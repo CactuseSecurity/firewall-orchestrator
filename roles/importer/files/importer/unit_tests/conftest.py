@@ -3,6 +3,7 @@ import unittest.mock
 import pytest
 from fwo_api_call import FwoApiCall
 from model_controllers.fwconfig_import_gateway import FwConfigImportGateway
+from model_controllers.fwconfig_import_ruleorder import RuleOrderService
 from model_controllers.import_state_controller import ImportStateController
 from model_controllers.management_controller import (
     ConnectionInfo,
@@ -62,12 +63,7 @@ def global_state(
 
 
 @pytest.fixture
-def fwconfig_import_gateway(
-    global_state: GlobalState,
-) -> FwConfigImportGateway:
-    service_provider = ServiceProvider()
-    service_provider.reset()
-    service_provider.register(Services.GLOBAL_STATE, lambda: global_state, Lifetime.SINGLETON)
+def fwconfig_import_gateway() -> FwConfigImportGateway:
     return FwConfigImportGateway()
 
 
@@ -93,3 +89,22 @@ def management_controller() -> ManagementController:
 @pytest.fixture
 def fwconfig_builder() -> FwConfigBuilder:
     return FwConfigBuilder()
+
+
+@pytest.fixture(autouse=True)
+def service_provider(
+    global_state: GlobalState,
+) -> ServiceProvider:
+    service_provider = ServiceProvider()
+    service_provider.reset()
+
+    service_provider.register(Services.GLOBAL_STATE, lambda: global_state, Lifetime.SINGLETON)
+    service_provider.register(Services.RULE_ORDER_SERVICE, lambda: RuleOrderService(), Lifetime.SINGLETON)
+    return service_provider
+
+
+@pytest.fixture
+def rule_order_service(
+    service_provider: ServiceProvider,
+) -> RuleOrderService:
+    return service_provider.get_rule_order_service()

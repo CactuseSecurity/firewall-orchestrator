@@ -48,8 +48,8 @@ class FwConfigBuilder:
 
     def build_config(
         self,
-        rulebases: int = 1,
-        rules_per_rulebase: int = 1,
+        rulebase_count: int = 1,
+        count_of_rules_per_rulebase: int = 1,
         network_object_count: int = 3,
         service_object_count: int = 2,
         include_gateway: bool = True,
@@ -63,9 +63,9 @@ class FwConfigBuilder:
         for _ in range(service_object_count):
             self.add_service_object(config)
 
-        for _ in range(rulebases):
+        for _ in range(rulebase_count):
             rb = self.add_rulebase(config, mgm_uid)
-            for _ in range(rules_per_rulebase):
+            for _ in range(count_of_rules_per_rulebase):
                 rule = self.add_rule(config, rb.uid)
                 self.add_references_to_rule(config, rule)
 

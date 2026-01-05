@@ -382,7 +382,7 @@ namespace FWO.Compliance
                 }
                 else
                 {
-                    List<ComplianceViolationBase> violations =_violationsToAdd.ToList();
+                    List<ComplianceViolationBase> violations = _violationsToAdd.ToList();
                     object variablesAdd = new
                     {
                         violations

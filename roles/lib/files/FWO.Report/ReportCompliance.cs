@@ -213,8 +213,7 @@ namespace FWO.Report
             List<Dictionary<string, object>> queryVariablesList = new();
 
             // Create query variables for fetching rules
-
-            queryVariablesList.Add(CreateQueryVariables(0, elementsPerFetch, query));
+            
             for (int offset = 0; offset < rulesCount; offset += elementsPerFetch)
             {
                 queryVariablesList.Add(CreateQueryVariables(offset, elementsPerFetch, query));

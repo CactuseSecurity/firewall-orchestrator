@@ -5,7 +5,6 @@ from __future__ import annotations
 import random
 from typing import Iterable, TypeVar
 
-from fwo_base import ConfigAction
 from fwo_const import DUMMY_IP, LIST_DELIMITER, RULE_NUM_NUMERIC_STEPS
 from model_controllers.fwconfig_import_gateway import FwConfigImportGateway
 from models.fwconfig_normalized import FwConfigNormalized
@@ -34,18 +33,6 @@ class FwConfigBuilder:
         self.uid_manager = UidManager()
         self._rng = random.Random(self._seed)
 
-    @staticmethod
-    def empty_config() -> FwConfigNormalized:
-        return FwConfigNormalized(
-            action=ConfigAction.INSERT,
-            gateways=[],
-            network_objects={},
-            service_objects={},
-            users={},
-            zone_objects={},
-            rulebases=[],
-        )
-
     def build_config(
         self,
         rulebases: int = 1,
@@ -54,7 +41,7 @@ class FwConfigBuilder:
         service_object_count: int = 2,
         include_gateway: bool = True,
     ) -> tuple[FwConfigNormalized, str]:
-        config = self.empty_config()
+        config = FwConfigNormalized()
         mgm_uid = self.uid_manager.create_uid()
 
         for _ in range(network_object_count):

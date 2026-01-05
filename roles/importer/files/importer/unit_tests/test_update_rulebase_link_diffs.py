@@ -11,7 +11,10 @@ from unit_tests.utils.config_builder import FwConfigBuilder
 @pytest.fixture
 def config_tuple(fwconfig_builder: FwConfigBuilder) -> tuple[FwConfigNormalized, str]:
     config, mgm_id = fwconfig_builder.build_config(
-        network_object_count=10, service_object_count=10, rulebases=3, rules_per_rulebase=10
+        network_object_count=10,
+        service_object_count=10,
+        rulebases=3,
+        rules_per_rulebase=10,
     )
     return config, mgm_id
 
@@ -25,12 +28,14 @@ def test_add_cp_section_header_at_the_bottom(
 ):
     # Arrange
     config, mgm_id = config_tuple
-    global_state.normalized_config = config
+    global_state.normalized_config = copy.deepcopy(config)
     global_state.previous_config = copy.deepcopy(config)
+    import_state_controller.state.mgm_details.uid = mgm_id
+
     last_rulebase = config.rulebases[-1]
     last_rulebase_last_rule_uid = list(last_rulebase.rules.keys())[-1]
     new_rulebase = fwconfig_builder.add_rulebase(config, mgm_id)
-    gateway = config.gateways[0]
+    gateway = global_state.normalized_config.gateways[0]
     fwconfig_builder.add_cp_section_header(gateway, last_rulebase.uid, new_rulebase.uid, last_rulebase_last_rule_uid)
 
     fwconfig_builder.update_rule_map_and_rulebase_map(config, import_state_controller.state)
@@ -41,11 +46,9 @@ def test_add_cp_section_header_at_the_bottom(
     import_state_controller.state.gateway_map[3] = {global_state.normalized_config.gateways[0].Uid or "": 1}
 
     # Act
-
     new_links, _ = fwconfig_import_gateway.update_rulebase_link_diffs()
 
     # Assert
-
     assert len(new_links) == 1, f"expected {1} new rulebase link, got {len(new_links)}"
     assert new_links[0]["from_rulebase_id"] == from_rulebase_id, (
         f"expected last rulebase link to have from_rulebase_id {from_rulebase_id}, got {new_links[0]['from_rulebase_id']}"
@@ -66,7 +69,7 @@ def test_add_cp_section_header_in_existing_rulebase(
 ):
     # Arrange
     config, mgm_id = config_tuple
-    global_state.normalized_config = config
+    global_state.normalized_config = copy.deepcopy(config)
     global_state.previous_config = copy.deepcopy(config)
     import_state_controller.state.mgm_details.uid = mgm_id
 
@@ -88,10 +91,9 @@ def test_add_cp_section_header_in_existing_rulebase(
     import_state_controller.state.gateway_map[3] = {global_state.normalized_config.gateways[0].Uid or "": 1}
 
     # Act
-
     new_links, _ = fwconfig_import_gateway.update_rulebase_link_diffs()
-    # Assert
 
+    # Assert
     assert len(new_links) == 1, f"expected {1} new rulebase link, got {len(new_links)}"
     assert new_links[0]["from_rulebase_id"] == from_rulebase_id, (
         f"expected last rulebase link to have from_rulebase_id {from_rulebase_id}, got {new_links[0]['from_rulebase_id']}"
@@ -112,10 +114,8 @@ def test_delete_cp_section_header(
 ):
     # Arrange
     config, mgm_id = config_tuple
-    global_state.normalized_config = config
-
-    # Move last five rules of last rulebase to new rulebase (previous config).
-    global_state.previous_config = copy.deepcopy(global_state.normalized_config)
+    global_state.normalized_config = copy.deepcopy(config)
+    global_state.previous_config = copy.deepcopy(config)
     import_state_controller.state.mgm_details.uid = mgm_id
 
     last_rulebase = global_state.previous_config.rulebases[-1]
@@ -138,10 +138,9 @@ def test_delete_cp_section_header(
     import_state_controller.state.gateway_map[3] = {global_state.normalized_config.gateways[0].Uid or "": 1}
 
     # Act
-
     _, deleted_links_ids = fwconfig_import_gateway.update_rulebase_link_diffs()
-    # Assert
 
+    # Assert
     assert deleted_links_ids[0] == fwconfig_import_gateway.get_rb_link_controller().rb_links[-1].id
 
 
@@ -172,12 +171,11 @@ def test_add_inline_layer(
     )
     fwconfig_builder.update_rb_links(gateway.RulebaseLinks, 1, fwconfig_import_gateway)
     import_state_controller.state.gateway_map[3] = {global_state.normalized_config.gateways[0].Uid or "": 1}
-    # Act
 
+    # Act
     new_links, _ = fwconfig_import_gateway.update_rulebase_link_diffs()
 
     # Assert
-
     assert len(new_links) == 1, f"expected {1} new rulebase link, got {len(new_links)}"
     assert new_links[0]["from_rule_id"] == from_rule_id, (
         f"expected last rulebase link to have from_rule_id {from_rule_id}, got {new_links[0]['from_rule_id']}"
@@ -200,8 +198,8 @@ def test_delete_inline_layer(
 ):
     # Arrange
     config, mgm_id = config_tuple
-    global_state.normalized_config = config
-    global_state.previous_config = copy.deepcopy(global_state.normalized_config)
+    global_state.normalized_config = copy.deepcopy(config)
+    global_state.previous_config = copy.deepcopy(config)
     import_state_controller.state.mgm_details.uid = mgm_id
 
     from_rulebase = global_state.previous_config.rulebases[-1]
@@ -221,10 +219,9 @@ def test_delete_inline_layer(
     import_state_controller.state.gateway_map[3] = {global_state.normalized_config.gateways[0].Uid or "": 1}
 
     # Act
-
     _, deleted_links_ids = fwconfig_import_gateway.update_rulebase_link_diffs()
-    # Assert
 
+    # Assert
     assert len(deleted_links_ids) == 1, f"expected {1} new rulebase link, got {len(deleted_links_ids)}"
     assert deleted_links_ids[0] == fwconfig_import_gateway.get_rb_link_controller().rb_links[-1].id
 
@@ -238,8 +235,8 @@ def test_move_inline_layer(
 ):
     # Arrange
     config, mgm_id = config_tuple
-    global_state.normalized_config = config
-    global_state.previous_config = copy.deepcopy(global_state.normalized_config)
+    global_state.normalized_config = copy.deepcopy(config)
+    global_state.previous_config = copy.deepcopy(config)
     import_state_controller.state.mgm_details.uid = mgm_id
 
     from_rulebase_previous = global_state.previous_config.rulebases[-1]
@@ -272,11 +269,9 @@ def test_move_inline_layer(
     import_state_controller.state.gateway_map[3] = {global_state.normalized_config.gateways[0].Uid or "": 1}
 
     # Act
-
     new_links, deleted_links_ids = fwconfig_import_gateway.update_rulebase_link_diffs()
 
     # Assert
-
     assert len(new_links) == 1, f"expected {1} new rulebase link, got {len(new_links)}"
     assert new_links[0]["from_rule_id"] == from_rule_id, (
         f"expected last rulebase link to have from_rule_id {from_rule_id}, got {new_links[0]['from_rule_id']}"

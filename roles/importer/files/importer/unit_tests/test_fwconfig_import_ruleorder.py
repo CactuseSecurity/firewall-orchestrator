@@ -112,12 +112,11 @@ def _move_rule_in_config(
     return moved_rule_uid
 
 
-def _get_rule(global_state: GlobalState, rulebase_index: int, rule_uid: str) -> RuleNormalized | None:
+def _get_rule(normalized_config: FwConfigNormalized, rulebase_index: int, rule_uid: str) -> RuleNormalized | None:
     """
     Helper method to get a rule from the normalized config.
     """
-    assert global_state.normalized_config is not None
-    rulebase = global_state.normalized_config.rulebases[rulebase_index]
+    rulebase = normalized_config.rulebases[rulebase_index]
     return rulebase.rules.get(rule_uid, None)
 
 
@@ -125,33 +124,35 @@ def test_initialize_on_insert_delete_and_move(
     global_state: GlobalState,
     rule_order_service: RuleOrderService,
     fwconfig_builder: FwConfigBuilder,
+    config_tuple: tuple[FwConfigNormalized, str],
 ):
     # Arrange
-    global_state.normalized_config, _ = fwconfig_builder.build_config(rulebase_count=1, rules_per_rulebase_count=10)
-    rulebase = global_state.normalized_config.rulebases[0]
+    config, _ = config_tuple
+    global_state.normalized_config = config
+    global_state.previous_config = copy.deepcopy(config)
+
+    rulebase = config.rulebases[0]
     rule_uids = list(rulebase.rules.keys())
     removed_rule_uid = rule_uids[0]
 
-    _remove_rule_from_rulebase(global_state.normalized_config, rulebase.uid, removed_rule_uid, rule_uids)
-    inserted_rule_uid = _insert_rule_in_config(
-        global_state.normalized_config, rulebase.uid, 0, rule_uids, fwconfig_builder
-    )
-    moved_rule_uid = _move_rule_in_config(global_state.normalized_config, rulebase.uid, 9, 0, rule_uids)
+    _remove_rule_from_rulebase(config, rulebase.uid, removed_rule_uid, rule_uids)
+    inserted_rule_uid = _insert_rule_in_config(config, rulebase.uid, 0, rule_uids, fwconfig_builder)
+    moved_rule_uid = _move_rule_in_config(config, rulebase.uid, 9, 0, rule_uids)
     # Act
-
     rule_order_service.update_rule_order_diffs()
 
-    # # Assert
+    # Assert
     assert inserted_rule_uid is not None
-    insert_rule = _get_rule(global_state, 0, inserted_rule_uid)
+    insert_rule = _get_rule(config, 0, inserted_rule_uid)
     assert insert_rule is not None
 
+    moved_rule = _get_rule(config, 0, moved_rule_uid)
+    assert moved_rule is not None
+
     assert insert_rule.rule_num_numeric == RULE_NUM_NUMERIC_STEPS, (
-        f"Inserted rule_num_numeric is {global_state.normalized_config.rulebases[0].rules[inserted_rule_uid].rule_num_numeric}, expected {RULE_NUM_NUMERIC_STEPS}"
+        f"Inserted rule_num_numeric is {config.rulebases[0].rules[inserted_rule_uid].rule_num_numeric}, expected {RULE_NUM_NUMERIC_STEPS}"
     )
 
-    moved_rule = _get_rule(global_state, 0, moved_rule_uid)
-    assert moved_rule is not None
     assert moved_rule.rule_num_numeric == RULE_NUM_NUMERIC_STEPS / 2, (
-        f"Moved rule_num_numeric is {global_state.normalized_config.rulebases[0].rules[moved_rule_uid].rule_num_numeric}, expected {RULE_NUM_NUMERIC_STEPS / 2}"
+        f"Moved rule_num_numeric is {config.rulebases[0].rules[moved_rule_uid].rule_num_numeric}, expected {RULE_NUM_NUMERIC_STEPS / 2}"
     )

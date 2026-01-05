@@ -1,22 +1,10 @@
 import copy
 
-import pytest
 from model_controllers.fwconfig_import_gateway import FwConfigImportGateway
 from model_controllers.import_state_controller import ImportStateController
 from models.fwconfig_normalized import FwConfigNormalized
 from services.global_state import GlobalState
 from unit_tests.utils.config_builder import FwConfigBuilder
-
-
-@pytest.fixture
-def config_tuple(fwconfig_builder: FwConfigBuilder) -> tuple[FwConfigNormalized, str]:
-    config, mgm_id = fwconfig_builder.build_config(
-        network_object_count=10,
-        service_object_count=10,
-        rulebase_count=3,
-        rules_per_rulebase_count=10,
-    )
-    return config, mgm_id
 
 
 def test_add_cp_section_header_at_the_bottom(

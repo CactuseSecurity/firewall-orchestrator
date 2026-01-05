@@ -108,3 +108,14 @@ def rule_order_service(
     service_provider: ServiceProvider,
 ) -> RuleOrderService:
     return service_provider.get_rule_order_service()
+
+
+@pytest.fixture
+def config_tuple(fwconfig_builder: FwConfigBuilder) -> tuple[FwConfigNormalized, str]:
+    config, mgm_id = fwconfig_builder.build_config(
+        network_object_count=10,
+        service_object_count=10,
+        rulebase_count=3,
+        rules_per_rulebase_count=10,
+    )
+    return config, mgm_id

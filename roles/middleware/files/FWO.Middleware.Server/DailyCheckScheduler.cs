@@ -247,7 +247,7 @@ namespace FWO.Middleware.Server
         {
             int? connId = reqTask?.GetAddInfoIntValue(AdditionalInfoKeys.ConnId);
             string interfaceUrl = $"{globalConfig.UiHostName}/{PageName.Modelling}/{owner.ExtAppId}/{connId}";
-            return $"<a target=\"_blank\" href=\"{interfaceUrl}\">{globalConfig.GetText("interface")}: {reqTask?.Title}</a>";
+            return $"<a target=\"_blank\" href=\"{interfaceUrl}\">{reqTask?.Title ?? globalConfig.GetText("interface")}</a>";
         }
     }
 }

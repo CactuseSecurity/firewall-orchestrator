@@ -97,7 +97,7 @@
             if(CheckInput())
             {
                 TicketCreator ticketCreator = new (apiConnection, userConfig, authenticationStateTask!.Result.User, middlewareClient);
-                long ticketId = await ticketCreator.CreateRequestNewInterfaceTicket(SelectedOwner, RequestingOwner, Reason);
+                long ticketId = await ticketCreator.CreateRequestNewInterfaceTicket(SelectedOwner, RequestingOwner, InterfaceName, Reason);
 
                 if(ticketId > 0)
                 {

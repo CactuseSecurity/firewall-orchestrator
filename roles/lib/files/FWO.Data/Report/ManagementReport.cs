@@ -1,5 +1,6 @@
 using Newtonsoft.Json;
 using System.Text.Json.Serialization;
+using System.Xml.Linq;
 
 namespace FWO.Data.Report
 {
@@ -22,6 +23,15 @@ namespace FWO.Data.Report
 
         [JsonProperty("changelog_rules"), JsonPropertyName("changelog_rules")]
         public RuleChange[]? RuleChanges { get; set; }
+
+        [JsonProperty("changelog_objects"), JsonPropertyName("changelog_objects")]
+        public ObjectChange[]? ObjectChanges { get; set; }
+
+        [JsonProperty("changelog_services"), JsonPropertyName("changelog_services")]
+        public ServiceChange[]? ServiceChanges { get; set; }
+
+        [JsonProperty("changelog_users"), JsonPropertyName("changelog_users")]
+        public UserChange[]? UserChanges { get; set; }
 
         [JsonProperty("import"), JsonPropertyName("import")]
         public Import Import { get; set; } = new();

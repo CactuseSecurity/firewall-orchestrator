@@ -74,7 +74,7 @@ namespace FWO.Report.Filter
                                         offset: $offset ";
 
 
-        public static DynGraphqlQuery GenerateQuery(ReportTemplate filter, AstNode? ast)    // ToDo Where einbauen - changelog_rule alle stm_(change_type) = 2? initial?        
+        public static DynGraphqlQuery GenerateQuery(ReportTemplate filter, AstNode? ast)      
         {
             DynGraphqlQuery query = new(filter.Filter);
             ConstructWhereStatements(query, filter, ast);
@@ -221,6 +221,61 @@ namespace FWO.Report.Filter
                 }}";
         }
 
+
+        private static string changelogObjectsBlock = @"
+            changelog_objects: changelog_objects(
+                where: {
+                  change_type_id: { _eq: 3 }
+                  security_relevant: { _eq: true }
+                },
+                order_by: { control_id: asc }
+              )
+            @include(if: $include_objects_in_changes_report) {
+                import: import_control { time: stop_time }
+                change_action
+                old: objectByOldObjId {
+                    ...networkObjectDetailsChangesOld 
+                }
+                new: object {
+                    ...networkObjectDetailsChangesNew 
+                }
+            }
+            changelog_services: changelog_services(
+                where: {
+                  change_type_id: { _eq: 3 }
+                  security_relevant: { _eq: true }
+                },
+                order_by: { control_id: asc }
+              )
+            @include(if: $include_objects_in_changes_report) {
+                import: import_control { time: stop_time }
+                change_action
+                old: serviceByOldSvcId {
+                    ...networkServiceDetailsChangesOld 
+                }
+                new: service {
+                    ...networkServiceDetailsChangesNew 
+                }
+            }
+            changelog_users: changelog_users(
+                where: {
+                  change_type_id: { _eq: 3 }
+                  security_relevant: { _eq: true }
+                },
+                order_by: { control_id: asc }
+              )
+            @include(if: $include_objects_in_changes_report) {
+                import: import_control { time: stop_time }
+                change_action
+                old: usrByOldUserId {
+                    ...userDetailsChangesOld 
+                }
+                new: usr {
+                    ...userDetailsChangesNew 
+                }
+            }
+            ";
+
         private static string ConstructChangesQuery(DynGraphqlQuery query, string paramString, ReportTemplate filter)
         {
             // was:                             devices ({devWhereString})
@@ -265,6 +320,7 @@ namespace FWO.Report.Filter
                                     ...{(filter.Detailed ? "ruleDetailsChangesNew" : "ruleOverviewChangesNew")}
                             }}
                         }}
+                        {changelogObjectsBlock}                            
                     }}
                 }}";
             return test;
@@ -505,6 +561,7 @@ namespace FWO.Report.Filter
                     case ReportType.ResolvedChangesTech:
                         query.QueryParameters.Add("$import_id_old: bigint ");
                         query.QueryParameters.Add("$import_id_new: bigint ");
+                        query.QueryParameters.Add("$include_objects_in_changes_report: Boolean! ");
 
                         query.RuleWhereStatement += $@"
                         control_id: {{ _eq: $import_id_new }}

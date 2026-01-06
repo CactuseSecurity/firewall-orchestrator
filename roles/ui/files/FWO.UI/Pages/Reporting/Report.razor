@@ -151,6 +151,8 @@
                         case ReportType.ResolvedChanges:
                         case ReportType.ResolvedChangesTech:
                             <ChangesReport Managements="currentReport.ReportData.ManagementData" SelectedReportType="actReportFilters.ReportType" RulesPerPage="rulesPerPage"
+                                               IncludeObjectsInReportChanges="@actReportFilters.IncludeObjectsInReportChanges"
+                                               IncludeObjectsInReportChangesChanged="@(async value => actReportFilters.IncludeObjectsInReportChanges = value)"
                                                @bind-SelectedRuleChanges="selectedItemsChangeReportTable" />
                                 //selectedItemsChangeReportTable
                             break;
@@ -446,6 +448,7 @@
         }
         await TenantViewChanged(tenantFromTemplate);
         actReportFilters.SyncFiltersFromTemplate(template);
+        actReportFilters.IncludeObjectsInReportChanges = template.IncludeObjectsInReportChanges;
         StateHasChanged();
     }
 
@@ -567,7 +570,10 @@
 
     private ReportTemplate ConstructReportTemplate(string? tempFilter = null)
     {
-        return new ReportTemplate(tempFilter ?? filterInput, actReportFilters.ToReportParams());
+        return new ReportTemplate(tempFilter ?? filterInput, actReportFilters.ToReportParams())
+            {
+                IncludeObjectsInReportChanges = actReportFilters.IncludeObjectsInReportChanges
+            };
     }
 
     private string PlaceholderFilter()

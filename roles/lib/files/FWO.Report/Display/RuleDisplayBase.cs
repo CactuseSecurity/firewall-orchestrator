@@ -80,6 +80,16 @@ namespace FWO.Ui.Display
             return rule.Name ?? "";
         }
 
+        public static string DisplayName(NetworkObject nto)
+        {
+            return nto.Name ?? "";
+        }
+
+        public static string DisplayName(NetworkService nts)
+        {
+            return nts.Name ?? "";
+        }
+
         public static string DisplaySourceZones(Rule rule)
         {
             if (rule.RuleFromZones.Length != 0)

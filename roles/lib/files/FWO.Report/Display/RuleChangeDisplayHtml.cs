@@ -19,6 +19,11 @@ namespace FWO.Ui.Display
             return ruleChange.ChangeImport.Time.ToString();
         }
 
+        public string DisplayChangeTime(ObjectChange objectChange)
+        {
+            return objectChange.ChangeImport.Time.ToString();
+        }
+
         public string DisplayChangeAction(RuleChange ruleChange)
         {
             switch (ruleChange.ChangeAction)
@@ -27,6 +32,26 @@ namespace FWO.Ui.Display
                 case 'D': return userConfig.GetText("rule_deleted");
                 case 'C': return userConfig.GetText("rule_modified");
                 default: ThrowErrorUnknowChangeAction(ruleChange.ChangeAction); return "";
+            }
+        }
+        public string DisplayChangeAction(ObjectChange objectChange)
+        {
+            switch (objectChange.ChangeAction)
+            {
+                case 'I': return userConfig.GetText("rule_added");
+                case 'D': return userConfig.GetText("rule_deleted");
+                case 'C': return userConfig.GetText("rule_modified");
+                default: ThrowErrorUnknowChangeAction(objectChange.ChangeAction); return "";
+            }
+        }
+        public string DisplayChangeAction(ServiceChange serviceChange)
+        {
+            switch (serviceChange.ChangeAction)
+            {
+                case 'I': return userConfig.GetText("rule_added");
+                case 'D': return userConfig.GetText("rule_deleted");
+                case 'C': return userConfig.GetText("rule_modified");
+                default: ThrowErrorUnknowChangeAction(serviceChange.ChangeAction); return "";
             }
         }
 
@@ -38,6 +63,26 @@ namespace FWO.Ui.Display
                 case 'I': return OutputHtmlAdded(DisplayName(ruleChange.NewRule));
                 case 'C': return DisplayDiff(DisplayName(ruleChange.OldRule), DisplayName(ruleChange.NewRule));
                 default: ThrowErrorUnknowChangeAction(ruleChange.ChangeAction); return "";
+            }
+        }
+        public string DisplayName(ObjectChange objectChange)
+        {
+            switch (objectChange.ChangeAction)
+            {
+                case 'D': return OutputHtmlDeleted(DisplayName(objectChange.OldObject));
+                case 'I': return OutputHtmlAdded(DisplayName(objectChange.NewObject));
+                case 'C': return DisplayDiff(DisplayName(objectChange.OldObject), DisplayName(objectChange.NewObject));
+                default: ThrowErrorUnknowChangeAction(objectChange.ChangeAction); return "";
+            }
+        }
+        public string DisplayName(ServiceChange serviceChange)
+        {
+            switch (serviceChange.ChangeAction)
+            {
+                case 'D': return OutputHtmlDeleted(DisplayName(serviceChange.OldService));
+                case 'I': return OutputHtmlAdded(DisplayName(serviceChange.NewService));
+                case 'C': return DisplayDiff(DisplayName(serviceChange.OldService), DisplayName(serviceChange.NewService));
+                default: ThrowErrorUnknowChangeAction(serviceChange.ChangeAction); return "";
             }
         }
 
@@ -145,6 +190,26 @@ namespace FWO.Ui.Display
                 default: ThrowErrorUnknowChangeAction(ruleChange.ChangeAction); return "";
             }
         }
+        public string DisplayUid(ObjectChange objectChange)
+        {
+            switch (objectChange.ChangeAction)
+            {
+                case 'D': return OutputHtmlDeleted(objectChange.OldObject.Uid);
+                case 'I': return OutputHtmlAdded(objectChange.NewObject.Uid);
+                case 'C': return DisplayDiff(objectChange.OldObject.Uid, objectChange.NewObject.Uid);
+                default: ThrowErrorUnknowChangeAction(objectChange.ChangeAction); return "";
+            }
+        }
+        public string DisplayUid(ServiceChange serviceChange)
+        {
+            switch (serviceChange.ChangeAction)
+            {
+                case 'D': return OutputHtmlDeleted(serviceChange.OldService.Uid);
+                case 'I': return OutputHtmlAdded(serviceChange.NewService.Uid);
+                case 'C': return DisplayDiff(serviceChange.OldService.Uid, serviceChange.NewService.Uid);
+                default: ThrowErrorUnknowChangeAction(serviceChange.ChangeAction); return "";
+            }
+        }
 
         public string DisplayEnforcingGateways(RuleChange ruleChange, OutputLocation location, ReportType reportType)
         {
@@ -167,6 +232,26 @@ namespace FWO.Ui.Display
                 default: ThrowErrorUnknowChangeAction(ruleChange.ChangeAction); return "";
             }
         }
+        public string DisplayComment(ObjectChange objectChange)
+        {
+            switch (objectChange.ChangeAction)
+            {
+                case 'D': return OutputHtmlDeleted(objectChange.OldObject.Comment);
+                case 'I': return OutputHtmlAdded(objectChange.NewObject.Comment);
+                case 'C': return DisplayDiff(objectChange.OldObject.Comment, objectChange.NewObject.Comment);
+                default: ThrowErrorUnknowChangeAction(objectChange.ChangeAction); return "";
+            }
+        }
+        public string DisplayComment(ServiceChange serviceChange)
+        {
+            switch (serviceChange.ChangeAction)
+            {
+                case 'D': return OutputHtmlDeleted(serviceChange.OldService.Comment);
+                case 'I': return OutputHtmlAdded(serviceChange.NewService.Comment);
+                case 'C': return DisplayDiff(serviceChange.OldService.Comment, serviceChange.NewService.Comment);
+                default: ThrowErrorUnknowChangeAction(serviceChange.ChangeAction); return "";
+            }
+        }
 
         public string DisplayStyle(RuleChange ruleChange)
         {
@@ -176,6 +261,68 @@ namespace FWO.Ui.Display
                 case 'I': return GlobalConst.kStyleAdded;
                 case 'C': return "";
                 default: ThrowErrorUnknowChangeAction(ruleChange.ChangeAction); return "";
+            }
+        }
+        public string DisplayStyle(ObjectChange objectChange)
+        {
+            switch (objectChange.ChangeAction)
+            {
+                case 'D': return GlobalConst.kStyleDeleted;
+                case 'I': return GlobalConst.kStyleAdded;
+                case 'C': return "";
+                default: ThrowErrorUnknowChangeAction(objectChange.ChangeAction); return "";
+            }
+        }
+        public string DisplayStyle(ServiceChange serviceChange)
+        {
+            switch (serviceChange.ChangeAction)
+            {
+                case 'D': return GlobalConst.kStyleDeleted;
+                case 'I': return GlobalConst.kStyleAdded;
+                case 'C': return "";
+                default: ThrowErrorUnknowChangeAction(serviceChange.ChangeAction); return "";
+            }
+        }
+
+        public string DisplayObjectIP(ObjectChange objectChange)
+        {
+            switch (objectChange.ChangeAction)
+            {
+                case 'D': return OutputHtmlDeleted(objectChange.OldObject.IP);
+                case 'I': return OutputHtmlAdded(objectChange.NewObject.IP);
+                case 'C': return DisplayDiff(objectChange.OldObject.IP, objectChange.NewObject.IP);
+                default: ThrowErrorUnknowChangeAction(objectChange.ChangeAction); return "";
+            }
+        }
+        public string DisplayObjectIP_End(ObjectChange objectChange)
+        {
+            switch (objectChange.ChangeAction)
+            {
+                case 'D': return OutputHtmlDeleted(objectChange.OldObject.IpEnd);
+                case 'I': return OutputHtmlAdded(objectChange.NewObject.IpEnd);
+                case 'C': return DisplayDiff(objectChange.OldObject.IpEnd, objectChange.NewObject.IpEnd);
+                default: ThrowErrorUnknowChangeAction(objectChange.ChangeAction); return "";
+            }
+        }
+
+        public string DisplayObjectMemberNames(ObjectChange objectChange)
+        {
+            switch (objectChange.ChangeAction)
+            {
+                case 'D': return OutputHtmlDeleted(objectChange.OldObject.MemberNames);
+                case 'I': return OutputHtmlAdded(objectChange.NewObject.MemberNames);
+                case 'C': return DisplayDiff(objectChange.OldObject.MemberNames, objectChange.NewObject.MemberNames);
+                default: ThrowErrorUnknowChangeAction(objectChange.ChangeAction); return "";
+            }
+        }
+        public string DisplayServiceMemberNames(ServiceChange serviceChange)
+        {
+            switch (serviceChange.ChangeAction)
+            {
+                case 'D': return OutputHtmlDeleted(serviceChange.OldService.MemberNames);
+                case 'I': return OutputHtmlAdded(serviceChange.NewService.MemberNames);
+                case 'C': return DisplayDiff(serviceChange.OldService.MemberNames, serviceChange.NewService.MemberNames);
+                default: ThrowErrorUnknowChangeAction(serviceChange.ChangeAction); return "";
             }
         }
 

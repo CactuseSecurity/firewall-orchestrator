@@ -8,6 +8,7 @@ using FWO.Logging;
 using FWO.Report.Filter;
 using FWO.Ui.Display;
 using Newtonsoft.Json;
+using Org.BouncyCastle.Crypto;
 using System.Text;
 using System.Text.Json;
 
@@ -18,10 +19,12 @@ namespace FWO.Report
         private const int ColumnCount = 13;
 
         private readonly TimeFilter timeFilter;
+        private readonly bool IncludeObjectsInReportChanges;
 
-        public ReportChanges(DynGraphqlQuery query, UserConfig userConfig, ReportType reportType, TimeFilter timeFilter) : base(query, userConfig, reportType)
+        public ReportChanges(DynGraphqlQuery query, UserConfig userConfig, ReportType reportType, TimeFilter timeFilter, bool includeObjectsInReportChanges) : base(query, userConfig, reportType)
         {
             this.timeFilter = timeFilter;
+            this.IncludeObjectsInReportChanges = includeObjectsInReportChanges;
         }
 
         public override async Task Generate(int elementsPerFetch, ApiConnection apiConnection, Func<ReportData, Task> callback, CancellationToken ct)
@@ -48,10 +51,10 @@ namespace FWO.Report
             foreach (var management in managementsWithRelevantImportId)
             {
                 List<long> importIdLastBeforeRange = [management.RelevantImportId ?? -1];
-                List<long> importIdsInRange = [.. managementsWithImportIds.Where(m => m.Id == management.Id).SelectMany(m => m.ImportControls).Select(ic => ic.ControlId)];
+                List<long> importIdsInRange = [.. managementsWithImportIds.Where(m => m.Id == management.Id).SelectMany(m => m.ImportControls).Select(ic => ic.ControlId).DefaultIfEmpty(0)];
                 List<long> relevantImportIds = [.. importIdLastBeforeRange, .. importIdsInRange];
 
-                SetMgtQueryVars(management.Id, relevantImportIds[0], relevantImportIds[1]);
+                SetMgtQueryVars(management.Id, relevantImportIds[0], relevantImportIds[1], IncludeObjectsInReportChanges);
                 ManagementReport managementReport = (await apiConnection.SendQueryAsync<List<ManagementReport>>(Query.FullQuery, Query.QueryVariables)).First();
 
                 queriesNeeded += 1;
@@ -101,7 +104,7 @@ namespace FWO.Report
                 {
                     long importIdOld = managementImportIds[management.Id][i - 1];
                     long importIdNew = managementImportIds[management.Id][i];
-                    SetMgtQueryVars(management.Id, importIdOld, importIdNew);
+                    SetMgtQueryVars(management.Id, importIdOld, importIdNew, IncludeObjectsInReportChanges);
 
                     ManagementReport newData = (await apiConnection.SendQueryAsync<List<ManagementReport>>(Query.FullQuery, Query.QueryVariables)).First(); // Error
                     (bool newObjects, Dictionary<string, int> maxAddedCounts) = management.Merge(newData);
@@ -116,11 +119,12 @@ namespace FWO.Report
             return (anyContinue, queries);
         }
 
-        private void SetMgtQueryVars(int mgmId, long importIdOld, long importIdNew)
+        private void SetMgtQueryVars(int mgmId, long importIdOld, long importIdNew, bool includeObjectsInChangesReport)
         {
             Query.QueryVariables[QueryVar.MgmId] = mgmId;
             Query.QueryVariables[QueryVar.ImportIdOld] = importIdOld;
             Query.QueryVariables[QueryVar.ImportIdNew] = importIdNew;
+            Query.QueryVariables[QueryVar.IncludeObjectsInChangesReport] = includeObjectsInChangesReport;
         }
 
         public override Task<bool> GetObjectsForManagementInReport(Dictionary<string, object> objQueryVariables, ObjCategory objects, int maxFetchCycles, ApiConnection apiConnection, Func<ReportData, Task> callback)

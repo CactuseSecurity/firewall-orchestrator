@@ -20,31 +20,38 @@ fragment networkObjectDetailsChangesNew on object {
   obj_comment
   obj_member_names
   obj_member_refs
-  objgrps(where: {
-    active: { _eq: $active }
-    import_created: { _lte: $import_id_new }
-    _or: [
-      {removed: {_is_null: true}}
-      {removed: {_gt: $import_id_new}}
-    ]
-  } order_by: {objgrp_member_id: asc}) {
+  objgrps(
+    where: {
+      active: { _eq: $active }
+      import_created: { _lte: $import_id_new }
+      _or: [
+        {removed: {_is_null: true}}
+        {removed: {_gt: $import_id_new}}
+      ]
+  } 
+  order_by: {objgrp_member_id: asc}) 
+  {
     id: objgrp_member_id
     byId: objectByObjgrpMemberId { 
       obj_id
       obj_name
       type: stm_obj_typ {
+        id: obj_typ_id
         name: obj_typ_name
       }
     }
   }
-  objgrp_flats(where: {
+  objgrp_flats(
+  where: {
     active: { _eq: $active }
     import_created: { _lte: $import_id_new }
     _or: [
       {removed: {_is_null: true}}
       {removed: {_gt: $import_id_new}}
     ]
-  } order_by: {objgrp_flat_member_id: asc}) {
+  } 
+  order_by: {objgrp_flat_member_id: asc}) 
+  {
     id_flat: objgrp_flat_id
     byFlatId: objectByObjgrpFlatMemberId {
       obj_id
@@ -52,6 +59,7 @@ fragment networkObjectDetailsChangesNew on object {
       obj_ip
       obj_ip_end
       type: stm_obj_typ {
+        id: obj_typ_id
         name: obj_typ_name
       }
     }

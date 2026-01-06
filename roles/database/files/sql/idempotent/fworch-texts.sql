@@ -2977,6 +2977,9 @@ INSERT INTO txt VALUES ('U1002', 'German',  'Sind sie sicher, dass sie folgende 
 INSERT INTO txt VALUES ('U1002', 'English', 'Do you really want to delete report template');
 INSERT INTO txt VALUES ('U1003', 'German',  'In diesem Report werden nur vollst&auml;ndig modellierte Verbindungen ber&uuml;cksichtigt.');
 INSERT INTO txt VALUES ('U1003', 'English', 'In this report only completely modelled connections are regarded.');
+INSERT INTO txt VALUES ('U1004', 'German',  'Erweiterte Ansicht');
+INSERT INTO txt VALUES ('U1004', 'English', 'Detailed View');
+
 
 INSERT INTO txt VALUES ('U2002', 'German',  'Sind sie sicher, dass sie folgenden Reporttermin l&ouml;schen wollen: ');
 INSERT INTO txt VALUES ('U2002', 'English', 'Do you really want to delete report schedule ');

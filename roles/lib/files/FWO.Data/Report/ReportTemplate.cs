@@ -27,9 +27,10 @@ namespace FWO.Data.Report
         [JsonProperty("report_parameters"), JsonPropertyName("report_parameters")]
         public ReportParams ReportParams { get; set; } = new();
 
-        public bool Detailed = false;
+        public bool Detailed { get; set; } = false;
 
-   
+        public bool IncludeObjectsInReportChanges { get; set; } = false;
+
         public ReportTemplate()
         {}
 

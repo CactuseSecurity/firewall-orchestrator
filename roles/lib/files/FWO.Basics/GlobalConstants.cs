@@ -110,6 +110,7 @@ namespace FWO.Basics
         public const string ImportIdEnd = "import_id_end";
         public const string ImportIdOld = "import_id_old";
         public const string ImportIdNew = "import_id_new";
+        public const string IncludeObjectsInChangesReport = "include_objects_in_changes_report";
         public const string MgmIds = "mgmIds";
         public const string MgmId = "mgmId";
         public const string ManagementId = "management_id";

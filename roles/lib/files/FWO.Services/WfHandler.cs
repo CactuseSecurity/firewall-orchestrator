@@ -322,11 +322,18 @@ namespace FWO.Services
             return "";
         }
 
-        public async Task<List<WfTicket>> GetOpenTickets(string taskType, int cutOffPeriod = 0)
+        public async Task<List<WfTicket>> GetOpenTickets(string taskType, int cutOffPeriod = 0, SchedulerInterval interval = SchedulerInterval.Days)
         {
             if(dbAcc != null)
             {
-                return await dbAcc.GetTicketsByParameters(taskType, StateMatrix(taskType).LowestStartedState, StateMatrix(taskType).LowestEndState, DateTime.Now.AddDays(-cutOffPeriod));
+                DateTime cutOffDate = interval switch
+                {
+                    SchedulerInterval.Days => DateTime.Now.AddDays(-cutOffPeriod),
+                    SchedulerInterval.Weeks => DateTime.Now.AddDays(-cutOffPeriod * GlobalConst.kDaysPerWeek),
+                    SchedulerInterval.Months => DateTime.Now.AddMonths(-cutOffPeriod),
+                    _ => throw new NotSupportedException("Time interval is not supported."),
+                };
+                return await dbAcc.GetTicketsByParameters(taskType, StateMatrix(taskType).LowestInputState, StateMatrix(taskType).LowestEndState, cutOffDate);
             }
             return [];
         }

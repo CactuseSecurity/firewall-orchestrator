@@ -190,13 +190,15 @@ namespace FWO.Middleware.Server
         {
             int emailsSent = 0;
             List<UserGroup> OwnerGroups = await MiddlewareServerServices.GetInternalGroups(apiConnection);
-            WfHandler wfHandler = new (new(globalConfig), apiConnection, WorkflowPhases.request, OwnerGroups);
+            WfHandler wfHandler = new (new(globalConfig), apiConnection, WorkflowPhases.implementation, OwnerGroups);
             await wfHandler.Init();
             NotificationService notificationService = await NotificationService.CreateAsync(NotificationClient.InterfaceRequest, globalConfig, apiConnection, OwnerGroups);
 
             foreach(var notification in notificationService.Notifications)
             {
-                List<WfTicket>? unansweredTickets = await wfHandler.GetOpenTickets(WfTaskType.new_interface.ToString(), notification.RepeatOffsetAfterDeadline ?? 0 + notification.InitialOffsetAfterDeadline ?? 0);
+                List<WfTicket>? unansweredTickets = await wfHandler.GetOpenTickets(WfTaskType.new_interface.ToString(), 
+                    (notification.RepeatOffsetAfterDeadline ?? 0) + (notification.InitialOffsetAfterDeadline ?? 0), 
+                    notification.RepeatIntervalAfterDeadline);
                 foreach(var ticket in unansweredTickets)
                 {
                     FwoOwner? owner = ticket.Tasks.FirstOrDefault(r => r.TaskType == WfTaskType.new_interface.ToString())?.Owners.FirstOrDefault()?.Owner;

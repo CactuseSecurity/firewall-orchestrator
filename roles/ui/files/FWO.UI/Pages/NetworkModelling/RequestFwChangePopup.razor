@@ -325,13 +325,16 @@
 
     private MarkupString DisplayTitle(WfReqTask task)
     {
-        if((task.TaskType == WfTaskType.rule_delete.ToString() || task.TaskType == WfTaskType.group_delete.ToString()) ||
-           ((task.TaskType == WfTaskType.rule_modify.ToString() || task.TaskType == WfTaskType.group_modify.ToString()) && task.Elements.Any(_ => _.RequestAction == RequestAction.delete.ToString())))
+        string taskTitle = task.Title.StripHtmlTags();
+        string encodedTitle = WebUtility.HtmlEncode(taskTitle ?? string.Empty);
+
+        if (task.TaskType == WfTaskType.rule_delete.ToString() || task.TaskType == WfTaskType.group_delete.ToString() ||
+            (task.TaskType == WfTaskType.rule_modify.ToString() || task.TaskType == WfTaskType.group_modify.ToString()) && task.Elements.Any(_ => _.RequestAction == RequestAction.delete.ToString()))
         {
-            return new MarkupString($"<span class=\"text-danger\">{task.Title}</span>");
+            return new MarkupString($"<span class=\"text-danger\">{encodedTitle}</span>");
         }
 
-        return new MarkupString(task.Title);
+        return new MarkupString(encodedTitle);
     }
 
     private async Task StartRequests()

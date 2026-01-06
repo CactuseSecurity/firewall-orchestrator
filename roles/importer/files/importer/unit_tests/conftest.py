@@ -3,6 +3,7 @@ import unittest.mock
 import pytest
 from fwo_api_call import FwoApiCall
 from model_controllers.fwconfig_import_gateway import FwConfigImportGateway
+from model_controllers.fwconfig_import_rule import FwConfigImportRule
 from model_controllers.fwconfig_import_ruleorder import RuleOrderService
 from model_controllers.import_state_controller import ImportStateController
 from model_controllers.management_controller import (
@@ -108,6 +109,11 @@ def rule_order_service(
     service_provider: ServiceProvider,
 ) -> RuleOrderService:
     return service_provider.get_rule_order_service()
+
+
+@pytest.fixture
+def fwconfig_import_rule() -> FwConfigImportRule:
+    return FwConfigImportRule()
 
 
 @pytest.fixture

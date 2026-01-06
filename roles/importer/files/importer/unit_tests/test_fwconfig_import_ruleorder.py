@@ -156,3 +156,131 @@ def test_initialize_on_insert_delete_and_move(
     assert moved_rule.rule_num_numeric == RULE_NUM_NUMERIC_STEPS / 2, (
         f"Moved rule_num_numeric is {config.rulebases[0].rules[moved_rule_uid].rule_num_numeric}, expected {RULE_NUM_NUMERIC_STEPS / 2}"
     )
+
+
+def test_initialize_on_consecutive_insertions(
+    global_state: GlobalState,
+    rule_order_service: RuleOrderService,
+    fwconfig_builder: FwConfigBuilder,
+):
+    # Arrange
+
+    assert global_state.normalized_config is not None
+    rulebase = global_state.normalized_config.rulebases[0]
+    rule_uids = list(rulebase.rules.keys())
+
+    # Inserting three new rules at the beginning of the rulebase
+    rule_1_1_uid = _insert_rule_in_config(global_state.normalized_config, rulebase.uid, 0, rule_uids, fwconfig_builder)
+    rule_1_2_uid = _insert_rule_in_config(global_state.normalized_config, rulebase.uid, 1, rule_uids, fwconfig_builder)
+    rule_1_3_uid = _insert_rule_in_config(global_state.normalized_config, rulebase.uid, 2, rule_uids, fwconfig_builder)
+
+    # Inserting three new rules in the middle of the rulebase
+    rule_1_6_uid = _insert_rule_in_config(global_state.normalized_config, rulebase.uid, 5, rule_uids, fwconfig_builder)
+    rule_1_7_uid = _insert_rule_in_config(global_state.normalized_config, rulebase.uid, 6, rule_uids, fwconfig_builder)
+    rule_1_8_uid = _insert_rule_in_config(global_state.normalized_config, rulebase.uid, 7, rule_uids, fwconfig_builder)
+
+    # Inserting three new rules at the end of the rulebase
+    rule_1_17_uid = _insert_rule_in_config(
+        global_state.normalized_config, rulebase.uid, 16, rule_uids, fwconfig_builder
+    )
+    rule_1_18_uid = _insert_rule_in_config(
+        global_state.normalized_config, rulebase.uid, 17, rule_uids, fwconfig_builder
+    )
+    rule_1_19_uid = _insert_rule_in_config(
+        global_state.normalized_config, rulebase.uid, 18, rule_uids, fwconfig_builder
+    )
+
+    # Act
+
+    rule_order_service.update_rule_order_diffs()
+
+    # Assert
+    assert rule_1_1_uid is not None
+    rule_1_1 = _get_rule(global_state.normalized_config, 0, rule_1_1_uid)
+    assert rule_1_1 is not None
+    assert rule_1_1.rule_num_numeric == RULE_NUM_NUMERIC_STEPS / 2, (
+        f"Rule 1.1 rule_num_numeric: {rule_1_1.rule_num_numeric}, expected {RULE_NUM_NUMERIC_STEPS / 2}"
+    )
+    assert rule_1_2_uid is not None
+    rule_1_2 = _get_rule(global_state.normalized_config, 0, rule_1_2_uid)
+    assert rule_1_2 is not None
+    assert rule_1_2.rule_num_numeric == 3 * RULE_NUM_NUMERIC_STEPS / 4, (
+        f"Rule 1.2 rule_num_numeric: {rule_1_2.rule_num_numeric}, expected {3 * RULE_NUM_NUMERIC_STEPS / 4}"
+    )
+
+    assert rule_1_3_uid is not None
+    rule_1_3 = _get_rule(global_state.normalized_config, 0, rule_1_3_uid)
+    assert rule_1_3 is not None
+    assert rule_1_3.rule_num_numeric == 7 * RULE_NUM_NUMERIC_STEPS / 8, (
+        f"Rule 1.3 rule_num_numeric: {rule_1_3.rule_num_numeric}, expected {7 * RULE_NUM_NUMERIC_STEPS / 8}"
+    )
+
+    assert rule_1_6_uid is not None
+    rule_1_6 = _get_rule(global_state.normalized_config, 0, rule_1_6_uid)
+    assert rule_1_6 is not None
+    assert rule_1_6.rule_num_numeric == 5 * RULE_NUM_NUMERIC_STEPS / 2, (
+        f"Rule 1.6 rule_num_numeric: {rule_1_6.rule_num_numeric}, expected {5 * RULE_NUM_NUMERIC_STEPS / 2}"
+    )
+    assert rule_1_7_uid is not None
+    rule_1_7 = _get_rule(global_state.normalized_config, 0, rule_1_7_uid)
+    assert rule_1_7 is not None
+    assert rule_1_7.rule_num_numeric == 11 * RULE_NUM_NUMERIC_STEPS / 4, (
+        f"Rule 1.7 rule_num_numeric: {rule_1_7.rule_num_numeric}, expected {11 * RULE_NUM_NUMERIC_STEPS / 4}"
+    )
+    assert rule_1_8_uid is not None
+    rule_1_8 = _get_rule(global_state.normalized_config, 0, rule_1_8_uid)
+    assert rule_1_8 is not None
+    assert rule_1_8.rule_num_numeric == 23 * RULE_NUM_NUMERIC_STEPS / 8, (
+        f"Rule 1.8 rule_num_numeric: {rule_1_8.rule_num_numeric}, expected {23 * RULE_NUM_NUMERIC_STEPS / 8}"
+    )
+
+    assert rule_1_17_uid is not None
+    rule_1_17 = _get_rule(global_state.normalized_config, 0, rule_1_17_uid)
+    assert rule_1_17 is not None
+    assert rule_1_17.rule_num_numeric == 11 * RULE_NUM_NUMERIC_STEPS, (
+        f"Rule 1.17 rule_num_numeric: {rule_1_17.rule_num_numeric}, expected {11 * RULE_NUM_NUMERIC_STEPS}"
+    )
+    assert rule_1_18_uid is not None
+    rule_1_18 = _get_rule(global_state.normalized_config, 0, rule_1_18_uid)
+    assert rule_1_18 is not None
+    assert rule_1_18.rule_num_numeric == 12 * RULE_NUM_NUMERIC_STEPS, (
+        f"Rule 1.18 rule_num_numeric: {rule_1_18.rule_num_numeric}, expected {12 * RULE_NUM_NUMERIC_STEPS}"
+    )
+    assert rule_1_19_uid is not None
+    rule_1_19 = _get_rule(global_state.normalized_config, 0, rule_1_19_uid)
+    assert rule_1_19 is not None
+    assert rule_1_19.rule_num_numeric == 13 * RULE_NUM_NUMERIC_STEPS, (
+        f"Rule 1.19 rule_num_numeric: {rule_1_19.rule_num_numeric}, expected {13 * RULE_NUM_NUMERIC_STEPS}"
+    )
+
+
+# def _initialize_on_move_across_rulebases(
+#     global_state: GlobalState,
+#     rule_order_service: RuleOrderService,
+#     fwconfig_builder: FwConfigBuilder,
+#     fwconfig_import_rule: FwConfigImportRule,
+# ):
+#     # Arrange
+#     assert fwconfig_import_rule.normalized_config is not None
+#     source_rulebase = fwconfig_import_rule.normalized_config.rulebases[0]
+# source_rulebase_uids = list(source_rulebase.rules.keys())
+# target_rulebase = fwconfig_import_rule.normalized_config.rulebases[1]
+# target_rulebase_uids = list(target_rulebase.rules.keys())
+
+# deleted_rule = remove_rule_from_rulebase(
+#     self._normalized_config, source_rulebase.uid, source_rulebase_uids[0], source_rulebase_uids
+# )
+# insert_rule_in_config(
+#     self._normalized_config, target_rulebase.uid, 0, target_rulebase_uids, self._config_builder, deleted_rule
+# )
+
+# # Act
+
+# self._rule_order_service.update_rule_order_diffs()
+
+# # Assert
+
+# self.assertTrue(
+#     self._get_rule(1, deleted_rule.rule_uid).rule_num_numeric == RULE_NUM_NUMERIC_STEPS / 2,
+#     f"Moved rule_num_numeric is {self._normalized_config.rulebases[1].rules[deleted_rule.rule_uid].rule_num_numeric}, expected {RULE_NUM_NUMERIC_STEPS / 2}",
+# )

@@ -45,7 +45,7 @@ namespace FWO.Data
                 ObjName = networkObject.Name,
                 ObjIp = networkObject.IP,
                 ObjIpEnd = networkObject.IpEnd,
-                ObjColor = networkObject.Color.Name,
+                ObjColor = networkObject.Color?.Name ?? "",
                 ObjType = networkObject.Type.Name,
                 ObjMemberRefs = networkObject.MemberRefs,
                 ObjMemberNames = networkObject.MemberNames,

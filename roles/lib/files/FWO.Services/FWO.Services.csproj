@@ -9,9 +9,8 @@
 	<ItemGroup>
 		<FrameworkReference Include="Microsoft.AspNetCore.App" />
 	</ItemGroup>
-
 	<ItemGroup>
-		<PackageReference Include="Microsoft.AspNetCore.Components.Authorization" Version="8.0.15" />
+		<PackageReference Include="Microsoft.AspNetCore.Components.Authorization" Version="8.0.22" />
 	</ItemGroup>
 
 	<ItemGroup>

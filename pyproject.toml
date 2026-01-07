@@ -17,9 +17,6 @@ exclude = [
     "scripts/release_lock.py"    
 ]
 
-venvPath = "."
-venv = ".venv"
-
 typeCheckingMode = "strict"
 reportMissingImports = false
 reportMissingTypeStubs = true

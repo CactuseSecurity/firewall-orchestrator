@@ -94,17 +94,17 @@ namespace FWO.Middleware.Server
         /// </summary>
         protected abstract void Process(object? _, ElapsedEventArgs __);
 
-		/// <summary>
-		/// start the scheduling timer, to be called by specific scheduler
-		/// </summary>
+        /// <summary>
+        /// start the scheduling timer, to be called by specific scheduler
+        /// </summary>
         protected void StartScheduleTimer(int sleepTime, DateTime startTime)
         {
             SleepTime = sleepTime;
+            StopAllTimers();
             if (SleepTime > 0)
             {
                 try
                 {
-                    ScheduleTimer = new();
                     ScheduleTimer.Elapsed += Process;
                     ScheduleTimer.Elapsed += StartRecurringTimer;
                     ScheduleTimer.Interval = (CalculateStartTime(startTime) - DateTime.Now).TotalMilliseconds;
@@ -123,8 +123,7 @@ namespace FWO.Middleware.Server
         {
             try
             {
-                RecurringTimer.Stop();
-                RecurringTimer = new();
+                StopTimer(ref RecurringTimer, false);
                 RecurringTimer.Elapsed += Process;
                 RecurringTimer.Interval = SleepTimeToMilliseconds();
                 RecurringTimer.AutoReset = true;
@@ -135,6 +134,34 @@ namespace FWO.Middleware.Server
             {
                 Log.WriteError(SchedulerText, "Could not start RecurringTimer.", exception);
             }
+        }
+
+        /// <summary>
+        /// Stop and dispose both timers to avoid handler accumulation.
+        /// </summary>
+        protected void StopAllTimers()
+        {
+            StopTimer(ref ScheduleTimer, true);
+            StopTimer(ref RecurringTimer, false);
+        }
+
+        private void StopTimer(ref System.Timers.Timer timer, bool removeStartRecurringHandler)
+        {
+            try
+            {
+                timer.Stop();
+                timer.Elapsed -= Process;
+                if (removeStartRecurringHandler)
+                {
+                    timer.Elapsed -= StartRecurringTimer;
+                }
+                timer.Dispose();
+            }
+            catch (ObjectDisposedException)
+            {
+                // already disposed
+            }
+            timer = new();
         }
 
         private DateTime CalculateStartTime(DateTime startTime)

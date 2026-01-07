@@ -32,7 +32,7 @@ namespace FWO.Middleware.Server
         /// </summary>
         protected override void OnGlobalConfigChange(List<ConfigItem> config)
         {
-            ScheduleTimer.Stop();
+            StopAllTimers();
             globalConfig.SubscriptionUpdateHandler([.. config]);
             if(globalConfig.ImpChangeNotifyActive && globalConfig.ImpChangeNotifySleepTime > 0)
             {

@@ -1,6 +1,7 @@
 import copy
 
 from fwo_const import RULE_NUM_NUMERIC_STEPS
+from model_controllers.fwconfig_import_rule import FwConfigImportRule
 from model_controllers.fwconfig_import_ruleorder import RuleOrderService
 from models.fwconfig_normalized import FwConfigNormalized
 from models.rule import RuleNormalized
@@ -254,33 +255,39 @@ def test_initialize_on_consecutive_insertions(
     )
 
 
-# def _initialize_on_move_across_rulebases(
-#     global_state: GlobalState,
-#     rule_order_service: RuleOrderService,
-#     fwconfig_builder: FwConfigBuilder,
-#     fwconfig_import_rule: FwConfigImportRule,
-# ):
-#     # Arrange
-#     assert fwconfig_import_rule.normalized_config is not None
-#     source_rulebase = fwconfig_import_rule.normalized_config.rulebases[0]
-# source_rulebase_uids = list(source_rulebase.rules.keys())
-# target_rulebase = fwconfig_import_rule.normalized_config.rulebases[1]
-# target_rulebase_uids = list(target_rulebase.rules.keys())
+def test_initialize_on_move_across_rulebases(
+    global_state: GlobalState,
+    rule_order_service: RuleOrderService,
+    fwconfig_builder: FwConfigBuilder,
+    fwconfig_import_rule: FwConfigImportRule,
+):
+    # Arrange
+    assert fwconfig_import_rule.normalized_config is not None
+    source_rulebase = fwconfig_import_rule.normalized_config.rulebases[0]
+    source_rulebase_uids = list(source_rulebase.rules.keys())
+    target_rulebase = fwconfig_import_rule.normalized_config.rulebases[1]
+    target_rulebase_uids = list(target_rulebase.rules.keys())
 
-# deleted_rule = remove_rule_from_rulebase(
-#     self._normalized_config, source_rulebase.uid, source_rulebase_uids[0], source_rulebase_uids
-# )
-# insert_rule_in_config(
-#     self._normalized_config, target_rulebase.uid, 0, target_rulebase_uids, self._config_builder, deleted_rule
-# )
+    deleted_rule = _remove_rule_from_rulebase(
+        fwconfig_import_rule.normalized_config, source_rulebase.uid, source_rulebase_uids[0], source_rulebase_uids
+    )
+    _insert_rule_in_config(
+        fwconfig_import_rule.normalized_config,
+        target_rulebase.uid,
+        0,
+        target_rulebase_uids,
+        fwconfig_builder,
+        deleted_rule,
+    )
 
-# # Act
+    # Act
 
-# self._rule_order_service.update_rule_order_diffs()
+    rule_order_service.update_rule_order_diffs()
 
-# # Assert
-
-# self.assertTrue(
-#     self._get_rule(1, deleted_rule.rule_uid).rule_num_numeric == RULE_NUM_NUMERIC_STEPS / 2,
-#     f"Moved rule_num_numeric is {self._normalized_config.rulebases[1].rules[deleted_rule.rule_uid].rule_num_numeric}, expected {RULE_NUM_NUMERIC_STEPS / 2}",
-# )
+    # Assert
+    assert deleted_rule.rule_uid is not None
+    rule = _get_rule(fwconfig_import_rule.normalized_config, 1, deleted_rule.rule_uid)
+    assert rule is not None
+    assert rule.rule_num_numeric == RULE_NUM_NUMERIC_STEPS / 2, (
+        f"Moved rule_num_numeric is {fwconfig_import_rule.normalized_config.rulebases[1].rules[deleted_rule.rule_uid].rule_num_numeric}, expected {RULE_NUM_NUMERIC_STEPS / 2}"
+    )

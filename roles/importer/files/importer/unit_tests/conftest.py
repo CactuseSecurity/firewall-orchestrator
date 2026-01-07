@@ -113,7 +113,9 @@ def rule_order_service(
 
 @pytest.fixture
 def fwconfig_import_rule() -> FwConfigImportRule:
-    return FwConfigImportRule()
+    fw_config_import_rule: FwConfigImportRule = unittest.mock.create_autospec(FwConfigImportRule)
+
+    return fw_config_import_rule
 
 
 @pytest.fixture

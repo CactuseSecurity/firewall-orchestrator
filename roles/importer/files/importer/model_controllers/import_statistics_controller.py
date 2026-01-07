@@ -98,23 +98,23 @@ class ImportStatisticsController:
         if self.statistics.rulebase_delete_count > 0:
             result["rulebase_delete_count"] = self.statistics.rulebase_delete_count
 
-    def set_network_object_add_count(self, count: int):
-        self.statistics.network_object_add_count = count
+    def increment_network_object_add_count(self, increment: int = 1):
+        self.statistics.network_object_add_count += increment
 
-    def set_network_object_delete_count(self, count: int):
-        self.statistics.network_object_delete_count = count
+    def increment_network_object_delete_count(self, increment: int = 1):
+        self.statistics.network_object_delete_count += increment
 
-    def set_network_object_change_count(self, count: int):
-        self.statistics.network_object_change_count = count
+    def increment_network_object_change_count(self, increment: int = 1):
+        self.statistics.network_object_change_count += increment
 
-    def set_service_object_add_count(self, count: int):
-        self.statistics.service_object_add_count = count
+    def increment_service_object_add_count(self, increment: int = 1):
+        self.statistics.service_object_add_count += increment
 
-    def set_service_object_delete_count(self, count: int):
-        self.statistics.service_object_delete_count = count
+    def increment_service_object_delete_count(self, increment: int = 1):
+        self.statistics.service_object_delete_count += increment
 
-    def set_service_object_change_count(self, count: int):
-        self.statistics.service_object_change_count = count
+    def increment_service_object_change_count(self, increment: int = 1):
+        self.statistics.service_object_change_count += increment
 
     def increment_rule_add_count(self, increment: int = 1):
         self.statistics.rule_add_count += increment

@@ -13,6 +13,8 @@
       {% if openldap_server_enable_ssl | default(false) -%}
       -o TLS_REQCERT=never{% if openldap_server_cert is defined %} -o TLS_CACERT={{ openldap_server_cert }}{% endif %}
       {%- endif %}
+    ldap_cmd_url: >-
+      {{ (openldap_server_enable_ssl | default(false)) | ternary('ldaps', 'ldap') }}://{{ openldap_server }}:{{ openldap_port | default(openldap_server_enable_ssl | default(false) | ternary(636, 389)) }}
 
 - name: determine distinguished name and changetype
   set_fact:
@@ -21,25 +23,25 @@
 
 - name: test if distinguished name exists
   # error code 32, when searchbase not existing
-  command: "ldapsearch {{ ldap_tls_opts }} -H {{ openldap_url }} -D {{ openldap_superuser_dn }} -w {{ ldap_manager_pwd }} -b {{ distinguished_name }}"
+  command: "ldapsearch {{ ldap_tls_opts }} -H {{ ldap_cmd_url }} -D {{ openldap_superuser_dn }} -w {{ ldap_manager_pwd }} -b {{ distinguished_name }}"
   #become: true
   register: search_existence
   failed_when: (search_existence.rc != 0) and (search_existence.rc != 32)
 
 - name: add ldap entry if not existing
-  command: "ldapmodify {{ ldap_tls_opts }} -H {{ openldap_url }} -D {{ openldap_superuser_dn }} -w {{ ldap_manager_pwd }} -x -f {{ middleware_ldif_dir }}/{{ outer_item }}_{{ item.split(',')[0] }}.ldif"
+  command: "ldapmodify {{ ldap_tls_opts }} -H {{ ldap_cmd_url }} -D {{ openldap_superuser_dn }} -w {{ ldap_manager_pwd }} -x -f {{ middleware_ldif_dir }}/{{ outer_item }}_{{ item.split(',')[0] }}.ldif"
   when: (changetype == 'add') and (search_existence.stdout.split('result:')[1].splitlines()[0] is match('.*No such object'))
   #become: true
 
 - name: delete ldap entry if existing
   # dont delete in case numEntries > 1, otherwise ldap nodes are disconected
-  command: "ldapmodify {{ ldap_tls_opts }} -H {{ openldap_url }} -D {{ openldap_superuser_dn }} -w {{ ldap_manager_pwd }} -x -f {{ middleware_ldif_dir }}/{{ outer_item }}_{{ item.split(',')[0] }}.ldif"
+  command: "ldapmodify {{ ldap_tls_opts }} -H {{ ldap_cmd_url }} -D {{ openldap_superuser_dn }} -w {{ ldap_manager_pwd }} -x -f {{ middleware_ldif_dir }}/{{ outer_item }}_{{ item.split(',')[0] }}.ldif"
   when: (changetype == 'delete') and (search_existence.stdout.split('# numEntries:')[1].splitlines()[0] is match('\s1'))
   #become: true
 
 - name: modify ldap entry if existing
   # error code 20, when attribute already exists
-  command: "ldapmodify {{ ldap_tls_opts }} -H {{ openldap_url }} -D {{ openldap_superuser_dn }} -w {{ ldap_manager_pwd }} -x -f {{ middleware_ldif_dir }}/{{ outer_item }}_{{ item.split(',')[0] }}.ldif"
+  command: "ldapmodify {{ ldap_tls_opts }} -H {{ ldap_cmd_url }} -D {{ openldap_superuser_dn }} -w {{ ldap_manager_pwd }} -x -f {{ middleware_ldif_dir }}/{{ outer_item }}_{{ item.split(',')[0] }}.ldif"
   register: modify_out
   when: (changetype == 'modify') and (search_existence.stdout.split('# numEntries:')[1].splitlines()[0] is match('\s1'))
   #become: true

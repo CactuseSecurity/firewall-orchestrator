@@ -16,7 +16,7 @@ class FortiosManagementRESTCommon(FwCommon):
             )
             sid = import_state.state.mgm_details.secret
             native_config = fos_getter.get_native_config(fm_api_url, sid)
-            config_in.native_config = native_config
+            config_in.native_config = native_config.model_dump(by_alias=True)
 
         write_native_config_to_file(import_state.state, config_in.native_config)
 

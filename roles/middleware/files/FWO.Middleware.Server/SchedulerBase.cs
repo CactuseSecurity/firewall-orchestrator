@@ -100,7 +100,9 @@ namespace FWO.Middleware.Server
         protected void StartScheduleTimer(int sleepTime, DateTime startTime)
         {
             SleepTime = sleepTime;
+
             StopAllTimers();
+
             if (SleepTime > 0)
             {
                 try
@@ -137,7 +139,7 @@ namespace FWO.Middleware.Server
         }
 
         /// <summary>
-        /// Stop and dispose both timers to avoid handler accumulation.
+        /// Stop and dispose both timers to avoid handler accumulation/memory leaks.
         /// </summary>
         protected void StopAllTimers()
         {
@@ -151,16 +153,23 @@ namespace FWO.Middleware.Server
             {
                 timer.Stop();
                 timer.Elapsed -= Process;
+
                 if (removeStartRecurringHandler)
                 {
                     timer.Elapsed -= StartRecurringTimer;
                 }
+
                 timer.Dispose();
             }
             catch (ObjectDisposedException)
-            {
-                // already disposed
+            { 
+
             }
+            finally
+            {                
+                Log.WriteInfo(SchedulerText, $"Timer { nameof(timer) } stopped/disposed.");
+            }
+
             timer = new();
         }
 

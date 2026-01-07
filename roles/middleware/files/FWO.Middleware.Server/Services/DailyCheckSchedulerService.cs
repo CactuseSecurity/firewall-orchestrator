@@ -11,13 +11,14 @@ namespace FWO.Middleware.Server.Services
     /// <summary>
     /// Quartz scheduler service for daily checks
     /// </summary>
-    public class DailyCheckSchedulerService : BackgroundService
+    public class DailyCheckSchedulerService : BackgroundService, IAsyncDisposable
     {
         private readonly ISchedulerFactory schedulerFactory;
         private readonly ApiConnection apiConnection;
         private readonly GlobalConfig globalConfig;
         private GraphQlApiSubscription<List<ConfigItem>>? configSubscription;
         private IScheduler? scheduler;
+        private bool disposed = false;
 
         private const string JobKeyName = "DailyCheckJob";
         private const string TriggerKeyName = "DailyCheckTrigger";
@@ -129,14 +130,28 @@ namespace FWO.Middleware.Server.Services
 
         /// <summary>
         /// Releases resources used by the service.
-        /// Disposes the configuration subscription, suppresses finalization,
-        /// then calls the base class dispose.
+        /// Disposes the scheduler and configuration subscription.
         /// </summary>
-        public override void Dispose()
+        public async ValueTask DisposeAsync()
         {
-            configSubscription?.Dispose();
-            GC.SuppressFinalize(this);
-            base.Dispose();
+            if (!disposed)
+            {
+                try
+                {
+                    configSubscription?.Dispose();
+                    
+                    if (scheduler != null)
+                    {
+                        await scheduler.Shutdown(waitForJobsToComplete: true);
+                    }
+                    
+                    disposed = true;
+                }
+                catch (Exception ex)
+                {
+                    Log.WriteError(SchedulerName, "Error during disposal", ex);
+                }
+            }
         }
     }
 }

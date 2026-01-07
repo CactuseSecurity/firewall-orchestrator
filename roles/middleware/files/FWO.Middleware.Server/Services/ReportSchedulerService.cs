@@ -13,7 +13,7 @@ namespace FWO.Middleware.Server.Services
     /// <summary>
     /// Quartz scheduler service for report generation.
     /// </summary>
-    public class ReportSchedulerService : BackgroundService
+    public class ReportSchedulerService : BackgroundService, IAsyncDisposable
     {
         private const string SchedulerName = "ReportScheduler";
         private const string JobKeyName = "ReportJob";
@@ -23,6 +23,7 @@ namespace FWO.Middleware.Server.Services
         private readonly ISchedulerFactory schedulerFactory;
         private readonly ApiConnection apiConnection;
         private readonly ReportSchedulerState state;
+        private bool disposed = false;
 
         private IScheduler? scheduler;
         private GraphQlApiSubscription<ReportSchedule[]>? scheduleSubscription;
@@ -122,15 +123,29 @@ namespace FWO.Middleware.Server.Services
 
         /// <summary>
         /// Releases resources used by the service.
-        /// Disposes active subscriptions, suppresses finalization,
-        /// then calls the base class dispose.
+        /// Disposes active subscriptions and scheduler.
         /// </summary>
-        public override void Dispose()
+        public async ValueTask DisposeAsync()
         {
-            ldapSubscription?.Dispose();
-            scheduleSubscription?.Dispose();
-            GC.SuppressFinalize(this);
-            base.Dispose();
+            if (!disposed)
+            {
+                try
+                {
+                    ldapSubscription?.Dispose();
+                    scheduleSubscription?.Dispose();
+                    
+                    if (scheduler != null)
+                    {
+                        await scheduler.Shutdown(waitForJobsToComplete: true);
+                    }
+                    
+                    disposed = true;
+                }
+                catch (Exception ex)
+                {
+                    Log.WriteError(SchedulerName, "Error during disposal", ex);
+                }
+            }
         }
     }
 

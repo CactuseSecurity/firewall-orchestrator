@@ -32,7 +32,7 @@ namespace FWO.Middleware.Server.Jobs
         /// </summary>
         public async Task Execute(IJobExecutionContext context)
         {
-            Log.WriteInfo(LogMessageTitle, "Job started");
+            Log.WriteDebug(LogMessageTitle, "Job started");
             try
             {
                 ExternalRequestSender externalRequestSender = new(apiConnection, globalConfig);
@@ -43,7 +43,7 @@ namespace FWO.Middleware.Server.Jobs
                     throw new ProcessingFailedException($"{failedRequests.Count} External Request(s) failed: {string.Join(". ", failedRequests)}.");
                 }
                 
-                Log.WriteInfo(LogMessageTitle, "Job completed successfully");
+                Log.WriteDebug(LogMessageTitle, "Job completed successfully");
             }
             catch (Exception exc)
             {

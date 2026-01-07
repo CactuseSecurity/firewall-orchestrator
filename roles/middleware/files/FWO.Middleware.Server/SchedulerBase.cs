@@ -112,7 +112,7 @@ namespace FWO.Middleware.Server
                     ScheduleTimer.Interval = (CalculateStartTime(startTime) - DateTime.Now).TotalMilliseconds;
                     ScheduleTimer.AutoReset = false;
                     ScheduleTimer.Start();
-                    Log.WriteInfo(SchedulerText, "ScheduleTimer started.");
+                    Log.WriteDebug(SchedulerText, "ScheduleTimer started.");
                 }
                 catch (Exception exception)
                 {
@@ -130,7 +130,7 @@ namespace FWO.Middleware.Server
                 RecurringTimer.Interval = SleepTimeToMilliseconds();
                 RecurringTimer.AutoReset = true;
                 RecurringTimer.Start();
-                Log.WriteInfo(SchedulerText, "RecurringTimer started.");
+                Log.WriteDebug(SchedulerText, "RecurringTimer started.");
             }
             catch (Exception exception)
             {

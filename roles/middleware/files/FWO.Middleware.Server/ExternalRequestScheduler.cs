@@ -48,7 +48,7 @@ namespace FWO.Middleware.Server
         /// </summary>
         protected override async void Process(object? _, ElapsedEventArgs __)
         {
-            Log.WriteInfo(LogMessageTitle, "Process started");
+            Log.WriteDebug(LogMessageTitle, "Process started");
             try
             {
                 ExternalRequestSender externalRequestSender = new(apiConnection, globalConfig);

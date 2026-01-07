@@ -46,7 +46,7 @@ namespace FWO.Middleware.Server.Jobs
         /// <inheritdoc />
         public async Task Execute(IJobExecutionContext context)
         {
-            Log.WriteInfo(LogMessageTitle, "Process started");
+            Log.WriteDebug(LogMessageTitle, "Process started");
             DateTime dateTimeNowRounded = RoundDown(DateTime.Now, CheckScheduleInterval);
             ImmutableArray<ReportSchedule> scheduledReports = state.ScheduledReports;
 

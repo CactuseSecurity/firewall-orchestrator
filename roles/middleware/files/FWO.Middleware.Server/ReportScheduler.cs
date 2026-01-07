@@ -77,7 +77,7 @@ namespace FWO.Middleware.Server
         /// </summary>
         protected override async void Process(object? _, ElapsedEventArgs __)
         {
-            Log.WriteInfo(LogMessageTitle, "Process started");
+            Log.WriteDebug(LogMessageTitle, "Process started");
             DateTime dateTimeNowRounded = RoundDown(DateTime.Now, CheckScheduleInterval);
 
             await Parallel.ForEachAsync(scheduledReports, new ParallelOptions() { MaxDegreeOfParallelism = Environment.ProcessorCount }, 

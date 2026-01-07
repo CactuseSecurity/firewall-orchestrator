@@ -50,7 +50,7 @@ namespace FWO.Middleware.Server
         /// </summary>
         protected override async void Process(object? _, ElapsedEventArgs __)
         {
-            Log.WriteInfo(LogMessageTitleImport, "Process started");
+            Log.WriteDebug(LogMessageTitleImport, "Process started");
             await ImportAppData();
             await AdjustAppServerNames();
         }

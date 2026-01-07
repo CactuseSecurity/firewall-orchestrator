@@ -45,7 +45,7 @@ namespace FWO.Middleware.Server
         /// </summary>
         protected override async void Process(object? _, ElapsedEventArgs __)
         {
-            Log.WriteInfo("Import Change Notify", "Process started");
+            Log.WriteDebug("Import Change Notify", "Process started");
             try
             {
                 ImportChangeNotifier notifyImportChanges = new(apiConnection, globalConfig);

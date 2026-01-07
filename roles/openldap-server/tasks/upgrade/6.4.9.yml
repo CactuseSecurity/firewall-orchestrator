@@ -8,7 +8,7 @@
 - name: build ldap tls options
   set_fact:
     ldap_tls_opts: >-
-      {{ openldap_server_enable_ssl | ternary('-o TLS_REQCERT=never -o TLS_CACERT=' ~ openldap_server_cert, '') }}
+      {{ (openldap_server_enable_ssl | default(false)) | ternary('-o TLS_REQCERT=never' ~ (openldap_server_cert is defined | ternary(' -o TLS_CACERT=' ~ openldap_server_cert, '')), '') }}
 
 - name: upgrade sample group roles
   command: "ldapmodify {{ ldap_tls_opts }} -H {{ openldap_url }} -D {{ openldap_superuser_dn }} -y {{ ldap_manager_pwd_file }} -x -f {{ middleware_ldif_dir }}/6.4.9.ldif -c"

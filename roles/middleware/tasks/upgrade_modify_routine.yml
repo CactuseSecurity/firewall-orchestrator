@@ -10,7 +10,7 @@
 - name: build ldap tls options
   set_fact:
     ldap_tls_opts: >-
-      {{ openldap_server_enable_ssl | ternary('-o TLS_REQCERT=never -o TLS_CACERT=' ~ openldap_server_cert, '') }}
+      {{ (openldap_server_enable_ssl | default(false)) | ternary('-o TLS_REQCERT=never' ~ (openldap_server_cert is defined | ternary(' -o TLS_CACERT=' ~ openldap_server_cert, '')), '') }}
 
 - name: determine distinguished name and changetype
   set_fact:

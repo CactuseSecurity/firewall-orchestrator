@@ -1,6 +1,7 @@
 import unittest.mock
 
 import pytest
+from fwo_api import FwoApi
 from fwo_api_call import FwoApiCall
 from model_controllers.fwconfig_import_gateway import FwConfigImportGateway
 from model_controllers.fwconfig_import_rule import FwConfigImportRule
@@ -19,7 +20,9 @@ from models.import_state import ImportState
 from pytest_mock import MockerFixture
 from services.enums import Lifetime, Services
 from services.global_state import GlobalState
+from services.group_flats_mapper import GroupFlatsMapper
 from services.service_provider import ServiceProvider
+from services.uid2id_mapper import Uid2IdMapper
 from unit_tests.utils.config_builder import FwConfigBuilder
 
 
@@ -31,9 +34,17 @@ def api_call(mocker: MockerFixture) -> FwoApiCall:
 
 
 @pytest.fixture
+def api_connection(mocker: MockerFixture) -> FwoApi:
+    fwo_api_connection: FwoApi = unittest.mock.create_autospec(FwoApi)
+    fwo_api_connection.call = mocker.MagicMock()
+    return fwo_api_connection
+
+
+@pytest.fixture
 def import_state_controller(
     management_controller: ManagementController,
     api_call: FwoApiCall,
+    api_connection: FwoApi,
 ) -> ImportStateController:
     import_state = ImportState()
     import_state.mgm_details = management_controller
@@ -48,7 +59,14 @@ def import_state_controller(
     import_state_controller: ImportStateController = unittest.mock.create_autospec(ImportStateController)
     import_state_controller.state = import_state
     import_state_controller.api_call = api_call
+    import_state_controller.api_connection = api_connection
     return import_state_controller
+
+
+@pytest.fixture
+def group_flats_mapper() -> GroupFlatsMapper:
+    group_flats_mapper = unittest.mock.create_autospec(GroupFlatsMapper)
+    return group_flats_mapper
 
 
 @pytest.fixture
@@ -95,12 +113,17 @@ def fwconfig_builder() -> FwConfigBuilder:
 @pytest.fixture(autouse=True)
 def service_provider(
     global_state: GlobalState,
+    group_flats_mapper: GroupFlatsMapper,
 ) -> ServiceProvider:
     service_provider = ServiceProvider()
     service_provider.reset()
 
     service_provider.register(Services.GLOBAL_STATE, lambda: global_state, Lifetime.SINGLETON)
     service_provider.register(Services.RULE_ORDER_SERVICE, lambda: RuleOrderService(), Lifetime.SINGLETON)
+    service_provider.register(Services.GROUP_FLATS_MAPPER, lambda: group_flats_mapper, Lifetime.IMPORT)
+    service_provider.register(Services.PREV_GROUP_FLATS_MAPPER, lambda: group_flats_mapper, Lifetime.IMPORT)
+    service_provider.register(Services.UID2ID_MAPPER, lambda: Uid2IdMapper(), Lifetime.IMPORT)
+    service_provider.register(Services.RULE_ORDER_SERVICE, lambda: RuleOrderService(), Lifetime.IMPORT)
     return service_provider
 
 
@@ -112,9 +135,17 @@ def rule_order_service(
 
 
 @pytest.fixture
-def fwconfig_import_rule() -> FwConfigImportRule:
+def fwconfig_import_rule_mock() -> FwConfigImportRule:
     fw_config_import_rule: FwConfigImportRule = unittest.mock.create_autospec(FwConfigImportRule)
+    return fw_config_import_rule
 
+
+@pytest.fixture
+def fwconfig_import_rule(
+    global_state: GlobalState,
+    import_state_controller: ImportStateController,
+) -> FwConfigImportRule:
+    fw_config_import_rule = FwConfigImportRule()
     return fw_config_import_rule
 
 

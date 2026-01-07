@@ -9,7 +9,7 @@ from services.service_provider import ServiceProvider
 from test.mocking.mock_config import MockFwConfigNormalizedBuilder
 from test.mocking.mock_fwconfig_import_rule import MockFwConfigImportRule
 from test.mocking.mock_import_state import MockImportStateController
-from test.tools.set_up_test import (
+from test.tools.set_up_test_old import (
     insert_rule_in_config,
     move_rule_in_config,
     remove_rule_from_rulebase,

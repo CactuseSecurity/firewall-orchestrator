@@ -2,6 +2,11 @@
   set_fact:
     ldif_changetype: add
 
+- name: build ldap tls options
+  set_fact:
+    ldap_tls_opts: >-
+      {{ openldap_server_enable_ssl | ternary('-o TLS_REQCERT=never -o TLS_CACERT=' ~ openldap_server_cert, '') }}
+
 - name: copy the ldif templates to system
   template:
     src: "{{ item }}"
@@ -14,7 +19,7 @@
   become: true
 
 - name: add tree
-  command: "ldapmodify -H {{ openldap_url }} -D {{ openldap_superuser_dn }} -w {{ ldap_manager_pwd }} -x -f {{  middleware_ldif_dir }}/tree_{{ item }}.ldif"
+  command: "ldapmodify {{ ldap_tls_opts }} -H {{ openldap_url }} -D {{ openldap_superuser_dn }} -w {{ ldap_manager_pwd }} -x -f {{  middleware_ldif_dir }}/tree_{{ item }}.ldif"
   loop:
     - level_0
     - level_1

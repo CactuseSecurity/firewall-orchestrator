@@ -28,8 +28,14 @@
   become: true
   become_user: postgres
 
+- name: build ldap tls options
+  set_fact:
+    ldap_tls_opts: >-
+      {{ openldap_server_enable_ssl | ternary('-o TLS_REQCERT=never -o TLS_CACERT=' ~ openldap_server_cert, '') }}
+  listen: "test importer handler"
+
 - name: find ldap entries with test_postfix
-  command: "ldapsearch -H {{ openldap_url }} -D {{ openldap_superuser_dn }} -y {{ ldap_manager_pwd_file }} -b {{ openldap_path }} -x '(|(cn=*{{ sample_postfix }}*)(ou=*{{ sample_postfix }}*)(uid=*{{ sample_postfix }}*))'"
+  command: "ldapsearch {{ ldap_tls_opts }} -H {{ openldap_url }} -D {{ openldap_superuser_dn }} -y {{ ldap_manager_pwd_file }} -b {{ openldap_path }} -x '(|(cn=*{{ sample_postfix }}*)(ou=*{{ sample_postfix }}*)(uid=*{{ sample_postfix }}*))'"
   register: ldap_entries_to_delete
   listen: "test importer handler"
   become: true
@@ -43,7 +49,7 @@
   listen: "test importer handler"
 
 - name: delete ldap test data
-  command: "ldapdelete -H {{ openldap_url }} -D {{ openldap_superuser_dn }} -y {{ ldap_manager_pwd_file }} -x {{ item | regex_replace('\\s', '') | regex_replace('dc=internal.*', 'dc=internal') }}"
+  command: "ldapdelete {{ ldap_tls_opts }} -H {{ openldap_url }} -D {{ openldap_superuser_dn }} -y {{ ldap_manager_pwd_file }} -x {{ item | regex_replace('\\s', '') | regex_replace('dc=internal.*', 'dc=internal') }}"
   listen: "test importer handler"
   loop: "{{ delete_list2 }}"
   become: true

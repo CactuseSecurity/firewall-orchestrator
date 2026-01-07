@@ -5,6 +5,11 @@
     force: true
   become: true
 
+- name: build ldap tls options
+  set_fact:
+    ldap_tls_opts: >-
+      {{ openldap_server_enable_ssl | ternary('-o TLS_REQCERT=never -o TLS_CACERT=' ~ openldap_server_cert, '') }}
+
 - name: upgrade olcAccess policy
-  command: "ldapmodify -H {{ openldap_url }} -D cn=config -y {{ ldap_manager_pwd_file }} -x -f {{ middleware_ldif_dir }}/5.4.1.ldif"
+  command: "ldapmodify {{ ldap_tls_opts }} -H {{ openldap_url }} -D cn=config -y {{ ldap_manager_pwd_file }} -x -f {{ middleware_ldif_dir }}/5.4.1.ldif"
   become: true

@@ -22,11 +22,16 @@
     with_fileglob:
       - ../templates/*.j2
 
+  - name: build ldap tls options
+    set_fact:
+      ldap_tls_opts: >-
+        {{ openldap_server_enable_ssl | ternary('-o TLS_REQCERT=never -o TLS_CACERT=' ~ openldap_server_cert, '') }}
+
   - name: add new sample database to ldap
-    command: "ldapmodify -H {{ openldap_url }} -D cn=config -w {{ ldap_manager_pwd }} -x -f {{ middleware_ldif_dir }}/second_db.ldif"
+    command: "ldapmodify {{ ldap_tls_opts }} -H {{ openldap_url }} -D cn=config -w {{ ldap_manager_pwd }} -x -f {{ middleware_ldif_dir }}/second_db.ldif"
 
   - name: enhance sample ldap with test users and groups
-    command: "ldapmodify -H {{ openldap_url }} -D {{ openldap_superuser_dn }} -w {{ ldap_manager_pwd }} -x -f {{ middleware_ldif_dir }}/{{ item }}.ldif"
+    command: "ldapmodify {{ ldap_tls_opts }} -H {{ openldap_url }} -D {{ openldap_superuser_dn }} -w {{ ldap_manager_pwd }} -x -f {{ middleware_ldif_dir }}/{{ item }}.ldif"
     loop:
       - ext_role
       - ext_user

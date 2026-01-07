@@ -13,7 +13,7 @@ namespace FWO.Middleware.Server
  	/// <summary>
 	/// Class handling the scheduler base processing
 	/// </summary>
-    public abstract class SchedulerBase
+    public abstract class SchedulerBase : IDisposable
     {
 		/// <summary>
 		/// API connection
@@ -29,6 +29,8 @@ namespace FWO.Middleware.Server
 		/// Global config change subscription
 		/// </summary>
         protected GraphQlApiSubscription<List<ConfigItem>>? ConfigDataSubscription;
+
+        private bool disposed = false;
 
         /// <summary>
         /// Additional Data for Alerts
@@ -330,6 +332,31 @@ namespace FWO.Middleware.Server
             catch (Exception exception)
             {
                 Log.WriteError("Acknowledge Alert", $"Could not acknowledge alert for {alertId}: ", exception);
+            }
+        }
+
+        /// <summary>
+        /// Dispose method to clean up resources.
+        /// </summary>
+        public virtual void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        /// <summary>
+        /// Protected dispose method.
+        /// </summary>
+        protected virtual void Dispose(bool disposing)
+        {
+            if (!disposed)
+            {
+                if (disposing)
+                {
+                    ConfigDataSubscription?.Dispose();
+                    StopAllTimers();
+                }
+                disposed = true;
             }
         }
     }

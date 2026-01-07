@@ -261,7 +261,7 @@ class SvcObjCustom(BaseModel):
     q_origin_key: str
     proxy: str | None = None
     category: str | None = None
-    protocol: Literal["ALL", "TCP/UDP/SCTP", "ICMP", "ICMP6", "IP"] | None = None
+    protocol: Literal["ALL", "TCP/UDP/SCTP", "ICMP", "ICMP6", "IP"]
     helper: str | None = None
     iprange: str | None = None
     fqdn: str | None = None

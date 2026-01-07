@@ -50,6 +50,7 @@ namespace FWO.Middleware.Server
         /// </summary>
         protected override async void Process(object? _, ElapsedEventArgs __)
         {
+            Log.WriteInfo(LogMessageTitle, "Process started");
             await VarianceAnalysis();
         }
 

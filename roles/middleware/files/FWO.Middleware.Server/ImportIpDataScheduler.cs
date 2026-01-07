@@ -6,6 +6,7 @@ using FWO.Data;
 using FWO.Config.Api;
 using FWO.Config.Api.Data;
 using System.Timers;
+using FWO.Logging;
 
 namespace FWO.Middleware.Server
 {
@@ -47,6 +48,7 @@ namespace FWO.Middleware.Server
         /// </summary>
         protected override async void Process(object? _, ElapsedEventArgs __)
         {
+            Log.WriteInfo(LogMessageTitle, "Process started");
             try
             {
                 AreaIpDataImport import = new (apiConnection, globalConfig);

@@ -6,6 +6,7 @@ using FWO.Data;
 using FWO.Config.Api;
 using FWO.Config.Api.Data;
 using System.Timers;
+using FWO.Logging;
 
 namespace FWO.Middleware.Server
 {
@@ -14,6 +15,8 @@ namespace FWO.Middleware.Server
 	/// </summary>
     public class ExternalRequestScheduler : SchedulerBase
     {
+        private const string LogMessageTitle = "External Request Schedule";
+
 		/// <summary>
 		/// Async Constructor needing the connection
 		/// </summary>
@@ -45,6 +48,7 @@ namespace FWO.Middleware.Server
         /// </summary>
         protected override async void Process(object? _, ElapsedEventArgs __)
         {
+            Log.WriteInfo(LogMessageTitle, "Process started");
             try
             {
                 ExternalRequestSender externalRequestSender = new(apiConnection, globalConfig);

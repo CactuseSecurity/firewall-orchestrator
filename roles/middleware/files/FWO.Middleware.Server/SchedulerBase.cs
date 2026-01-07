@@ -165,10 +165,6 @@ namespace FWO.Middleware.Server
             { 
 
             }
-            finally
-            {                
-                Log.WriteInfo(SchedulerText, $"Timer { nameof(timer) } stopped/disposed.");
-            }
 
             timer = new();
         }

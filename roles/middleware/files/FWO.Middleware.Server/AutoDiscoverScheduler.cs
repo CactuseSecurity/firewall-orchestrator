@@ -46,6 +46,7 @@ namespace FWO.Middleware.Server
         /// </summary>
         protected override async void Process(object? _, ElapsedEventArgs __)
         {
+            Log.WriteInfo(LogMessageTitle, "Process started");
             try
             {
                 List<Management> managements = await apiConnection.SendQueryAsync<List<Management>>(DeviceQueries.getManagementsDetails);

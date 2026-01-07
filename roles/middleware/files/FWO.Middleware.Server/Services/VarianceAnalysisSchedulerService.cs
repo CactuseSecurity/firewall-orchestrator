@@ -9,13 +9,14 @@ using Quartz;
 namespace FWO.Middleware.Server.Services
 {
     /// <summary>
-    /// Quartz scheduler service for variance analysis
+    /// Config listener and rescheduler for variance analysis (no BackgroundService)
     /// </summary>
-    public class VarianceAnalysisSchedulerService : BackgroundService, IAsyncDisposable
+    public class VarianceAnalysisSchedulerService : IAsyncDisposable
     {
         private readonly ISchedulerFactory schedulerFactory;
         private readonly ApiConnection apiConnection;
         private readonly GlobalConfig globalConfig;
+        private readonly IHostApplicationLifetime appLifetime;
         private GraphQlApiSubscription<List<ConfigItem>>? configSubscription;
         private IScheduler? scheduler;
         private bool disposed = false;
@@ -30,35 +31,29 @@ namespace FWO.Middleware.Server.Services
         /// <param name="schedulerFactory">Quartz scheduler factory.</param>
         /// <param name="apiConnection">GraphQL API connection.</param>
         /// <param name="globalConfig">Global configuration.</param>
-        public VarianceAnalysisSchedulerService(ISchedulerFactory schedulerFactory, ApiConnection apiConnection, GlobalConfig globalConfig)
+        /// <param name="appLifetime">Application lifetime for startup hook.</param>
+        public VarianceAnalysisSchedulerService(ISchedulerFactory schedulerFactory, ApiConnection apiConnection, GlobalConfig globalConfig, IHostApplicationLifetime appLifetime)
         {
             this.schedulerFactory = schedulerFactory;
             this.apiConnection = apiConnection;
             this.globalConfig = globalConfig;
+            this.appLifetime = appLifetime;
+
+            // Attach after application started
+            appLifetime.ApplicationStarted.Register(OnStarted);
         }
 
-        /// <inheritdoc />
-        protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+        private async void OnStarted()
         {
             try
             {
-                scheduler = await schedulerFactory.GetScheduler(stoppingToken);
-                await ScheduleJob();
-
+                scheduler = await schedulerFactory.GetScheduler();
                 configSubscription = apiConnection.GetSubscription<List<ConfigItem>>(ApiExceptionHandler, OnGlobalConfigChange, ConfigQueries.subscribeVarianceAnalysisConfigChanges);
-
-                Log.WriteInfo(SchedulerName, "Service started");
-
-                await Task.Delay(Timeout.Infinite, stoppingToken);
-            }
-            catch (OperationCanceledException)
-            {
-                Log.WriteInfo(SchedulerName, "Service stopping");
+                Log.WriteInfo(SchedulerName, "Listener started");
             }
             catch (Exception ex)
             {
-                Log.WriteError(SchedulerName, "Service failed", ex);
-                throw;
+                Log.WriteError(SchedulerName, "Startup failed", ex);
             }
         }
 
@@ -145,12 +140,7 @@ namespace FWO.Middleware.Server.Services
                 try
                 {
                     configSubscription?.Dispose();
-                    
-                    if (scheduler != null)
-                    {
-                        await scheduler.Shutdown(waitForJobsToComplete: true);
-                    }
-                    
+                    // Scheduler lifecycle is managed by QuartzHostedService
                     disposed = true;
                 }
                 catch (Exception ex)

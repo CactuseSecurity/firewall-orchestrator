@@ -8,13 +8,14 @@ using Quartz;
 namespace FWO.Middleware.Server.Services
 {
     /// <summary>
-    /// Service managing the External Request job scheduling based on config
+    /// Config listener and rescheduler for External Requests (no BackgroundService)
     /// </summary>
-    public class ExternalRequestSchedulerService : BackgroundService
+    public class ExternalRequestSchedulerService : IAsyncDisposable
     {
         private readonly ISchedulerFactory schedulerFactory;
         private readonly ApiConnection apiConnection;
         private readonly GlobalConfig globalConfig;
+        private readonly IHostApplicationLifetime appLifetime;
         private GraphQlApiSubscription<List<ConfigItem>>? configSubscription;
         private IScheduler? scheduler;
         
@@ -31,48 +32,37 @@ namespace FWO.Middleware.Server.Services
         /// <param name="schedulerFactory">Quartz scheduler factory.</param>
         /// <param name="apiConnection">GraphQL API connection.</param>
         /// <param name="globalConfig">Global configuration.</param>
+        /// <param name="appLifetime"></param>
         public ExternalRequestSchedulerService(
             ISchedulerFactory schedulerFactory,
             ApiConnection apiConnection,
-            GlobalConfig globalConfig)
+            GlobalConfig globalConfig,
+            IHostApplicationLifetime appLifetime)
         {
             this.schedulerFactory = schedulerFactory;
             this.apiConnection = apiConnection;
             this.globalConfig = globalConfig;
+            this.appLifetime = appLifetime;
+
+            // Attach after application started
+            appLifetime.ApplicationStarted.Register(OnStarted);
         }
 
-        /// <summary>
-        /// Execute the service
-        /// </summary>
-        /// <inheritdoc />
-        protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+        private async void OnStarted()
         {
             try
             {
-                scheduler = await schedulerFactory.GetScheduler(stoppingToken);
-                
-                // Initial schedule
-                await ScheduleJob();
-                
+                scheduler = await schedulerFactory.GetScheduler();
                 // Config change subscription
                 configSubscription = apiConnection.GetSubscription<List<ConfigItem>>(
                     ApiExceptionHandler,
                     OnGlobalConfigChange,
                     ConfigQueries.subscribeExternalRequestConfigChanges);
-
-                Log.WriteInfo(SchedulerName, "Service started");
-
-                // Keep running until cancellation
-                await Task.Delay(Timeout.Infinite, stoppingToken);
-            }
-            catch (OperationCanceledException)
-            {
-                Log.WriteInfo(SchedulerName, "Service stopping");
+                Log.WriteInfo(SchedulerName, "Listener started");
             }
             catch (Exception ex)
             {
-                Log.WriteError(SchedulerName, "Service failed", ex);
-                throw;
+                Log.WriteError(SchedulerName, "Startup failed", ex);
             }
         }
 
@@ -161,15 +151,13 @@ namespace FWO.Middleware.Server.Services
         }
 
         /// <summary>
-        /// Releases resources used by the service.
-        /// Disposes the configuration subscription, suppresses finalization,
-        /// then calls the base class dispose.
+        /// Releases resources used by the listener.
+        /// Disposes the configuration subscription.
         /// </summary>
-        public override void Dispose()
+        public ValueTask DisposeAsync()
         {
             configSubscription?.Dispose();
-            GC.SuppressFinalize(this);
-            base.Dispose();
+            return ValueTask.CompletedTask;
         }
     }
 }

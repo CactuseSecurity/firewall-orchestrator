@@ -11,9 +11,9 @@ using Quartz;
 namespace FWO.Middleware.Server.Services
 {
     /// <summary>
-    /// Quartz scheduler service for report generation.
+    /// Config/state listener for report generation (no BackgroundService)
     /// </summary>
-    public class ReportSchedulerService : BackgroundService, IAsyncDisposable
+    public class ReportSchedulerService : IAsyncDisposable
     {
         private const string SchedulerName = "ReportScheduler";
         private const string JobKeyName = "ReportJob";
@@ -28,6 +28,7 @@ namespace FWO.Middleware.Server.Services
         private IScheduler? scheduler;
         private GraphQlApiSubscription<ReportSchedule[]>? scheduleSubscription;
         private GraphQlApiSubscription<List<Ldap>>? ldapSubscription;
+        private readonly IHostApplicationLifetime appLifetime;
 
         /// <summary>
         /// Initializes the report scheduler service.
@@ -35,75 +36,39 @@ namespace FWO.Middleware.Server.Services
         /// <param name="schedulerFactory">Quartz scheduler factory.</param>
         /// <param name="apiConnection">GraphQL API connection.</param>
         /// <param name="state">Shared scheduler state used by the report job.</param>
-        public ReportSchedulerService(ISchedulerFactory schedulerFactory, ApiConnection apiConnection, ReportSchedulerState state)
+        /// <param name="appLifetime"></param>
+        public ReportSchedulerService(ISchedulerFactory schedulerFactory, ApiConnection apiConnection, ReportSchedulerState state, IHostApplicationLifetime appLifetime)
         {
             this.schedulerFactory = schedulerFactory;
             this.apiConnection = apiConnection;
             this.state = state;
+            this.appLifetime = appLifetime;
+
+            // Attach after application started
+            appLifetime.ApplicationStarted.Register(OnStarted);
         }
 
-        /// <inheritdoc />
-        protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+        private async void OnStarted()
         {
             try
             {
                 // Initial state population
                 state.UpdateLdaps(await apiConnection.SendQueryAsync<List<Ldap>>(AuthQueries.getLdapConnections));
 
-                scheduler = await schedulerFactory.GetScheduler(stoppingToken);
-                await ScheduleJob();
+                scheduler = await schedulerFactory.GetScheduler();
 
                 ldapSubscription = apiConnection.GetSubscription<List<Ldap>>(ApiExceptionHandler, OnLdapUpdate, AuthQueries.getLdapConnectionsSubscription);
                 scheduleSubscription = apiConnection.GetSubscription<ReportSchedule[]>(ApiExceptionHandler, OnScheduleUpdate, ReportQueries.subscribeReportScheduleChanges);
 
-                Log.WriteInfo(SchedulerName, "Service started");
-
-                await Task.Delay(Timeout.Infinite, stoppingToken);
-            }
-            catch (OperationCanceledException)
-            {
-                Log.WriteInfo(SchedulerName, "Service stopping");
+                Log.WriteInfo(SchedulerName, "Listener started");
             }
             catch (Exception ex)
             {
-                Log.WriteError(SchedulerName, "Service failed", ex);
-                throw;
+                Log.WriteError(SchedulerName, "Startup failed", ex);
             }
         }
 
-        private async Task ScheduleJob()
-        {
-            if (scheduler == null)
-            {
-                Log.WriteWarning(SchedulerName, "Scheduler not initialized");
-                return;
-            }
-
-            var jobKey = new JobKey(JobKeyName);
-            var triggerKey = new TriggerKey(TriggerKeyName);
-
-            if (await scheduler.CheckExists(jobKey))
-            {
-                await scheduler.DeleteJob(jobKey);
-                Log.WriteInfo(SchedulerName, "Removed existing job");
-            }
-
-            IJobDetail job = JobBuilder.Create<ReportJob>()
-                .WithIdentity(jobKey)
-                .Build();
-
-            ITrigger trigger = TriggerBuilder.Create()
-                .WithIdentity(triggerKey)
-                .StartNow()
-                .WithSimpleSchedule(x => x
-                    .WithInterval(CheckScheduleInterval)
-                    .RepeatForever())
-                .Build();
-
-            await scheduler.ScheduleJob(job, trigger);
-
-            Log.WriteInfo(SchedulerName, "Job scheduled to run every minute");
-        }
+        // Initial job schedule now handled via AddQuartz in Program.cs
 
         private void OnScheduleUpdate(ReportSchedule[] scheduledReports)
         {
@@ -133,12 +98,7 @@ namespace FWO.Middleware.Server.Services
                 {
                     ldapSubscription?.Dispose();
                     scheduleSubscription?.Dispose();
-                    
-                    if (scheduler != null)
-                    {
-                        await scheduler.Shutdown(waitForJobsToComplete: true);
-                    }
-                    
+                    // Scheduler lifecycle is managed by QuartzHostedService
                     disposed = true;
                 }
                 catch (Exception ex)

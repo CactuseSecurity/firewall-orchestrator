@@ -16,10 +16,9 @@ import git  # apt install python3-git # or: pip install git
 
 from scripts.customizing.fwo_custom_lib.basic_helpers import get_logger, read_custom_config
 
-default_config_filename: str = "/usr/local/fworch/etc/secrets/customizingConfig.json"
-ipam_git_repo_target_dir: str = "/usr/local/fworch/etc/ipamRepo"
+DEFAULT_CONFIG_FILENAME: str = "/usr/local/fworch/etc/secrets/customizingConfig.json"
+IPAM_GIT_REPO_TARGET_DIR: str = "/usr/local/fworch/etc/ipamRepo"
 SUBNET_NAME_PARTS_MIN_COUNT: int = 3
-git_any: Any = git
 
 
 def get_network_borders(ip_addr: str) -> tuple[str, str, str]:
@@ -86,7 +85,7 @@ def generate_public_ipv4_networks_as_internet_area() -> list[dict[str, str]]:
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Read configuration from FW management via API calls")
     parser.add_argument(
-        "-c", "--config", default=default_config_filename, help="Filename of custom config file for modelling imports"
+        "-c", "--config", default=DEFAULT_CONFIG_FILENAME, help="Filename of custom config file for modelling imports"
     )
     parser.add_argument(
         "-l",
@@ -103,7 +102,7 @@ if __name__ == "__main__":
 
     # read config
     subnet_data_filename: str = (
-        ipam_git_repo_target_dir + "/" + read_custom_config(args.config, "subnetData", logger=logger)
+        IPAM_GIT_REPO_TARGET_DIR + "/" + read_custom_config(args.config, "subnetData", logger=logger)
     )
     ipam_git_repo: str = read_custom_config(args.config, "ipamGitRepo", logger=logger)
     ipam_git_user: str = read_custom_config(args.config, "ipamGitUser", logger=logger)
@@ -111,16 +110,16 @@ if __name__ == "__main__":
 
     try:
         # get ipam repo
-        if Path(ipam_git_repo_target_dir).exists():
+        if Path(IPAM_GIT_REPO_TARGET_DIR).exists():
             # If the repository already exists, open it and perform a pull
-            repo: Any = git_any.Repo(ipam_git_repo_target_dir)
+            repo: Any = git.Repo(IPAM_GIT_REPO_TARGET_DIR)
             origin: Any = repo.remotes.origin
             origin.pull()
         else:
             repo_url: str = (
                 "https://" + ipam_git_user + ":" + urllib.parse.quote(ipam_git_password, safe="") + "@" + ipam_git_repo
             )
-            repo = git_any.Repo.clone_from(repo_url, ipam_git_repo_target_dir)
+            repo = git.Repo.clone_from(repo_url, IPAM_GIT_REPO_TARGET_DIR)
     except Exception:
         logger.exception("error while trying to access git repo %s", ipam_git_repo)
         sys.exit(1)

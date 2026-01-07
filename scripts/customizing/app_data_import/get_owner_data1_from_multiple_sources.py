@@ -210,8 +210,7 @@ def rlm_login(user: str, password: str, api_url: str) -> str:
         if response.status_code == HTTP_OK:
             return json.loads(response.text)["access_token"]
         raise ApiLoginFailedError(
-            "RLM api: ERROR: did not receive an OAUTH token during login"
-            ", api_url: " + str(api_url) + ", status code: " + str(response)
+            f"RLM api: ERROR: did not receive an OAUTH token during login, api_url: {api_url!s}, status code: {response!s}"
         )
 
 
@@ -230,14 +229,12 @@ def rlm_get_owners(token: str, api_url: str, rlm_version: float = 2.5) -> dict[s
 
         except requests.exceptions.RequestException:
             raise ApiServiceUnavailableError(
-                "api: error while getting owners from url: " + str(api_url) + " with token " + token
+                f"api: error while getting owners from url: {api_url!s} with token {token!s}"
             ) from None
 
         if response.status_code == HTTP_OK:
             return json.loads(response.text)
-        raise ApiFailureError(
-            "api: ERROR: could not get owners, api_url: " + str(api_url) + ", status code: " + str(response)
-        )
+        raise ApiFailureError(f"api: ERROR: could not get owners, api_url: {api_url!s}, status code: {response!s}")
 
 
 if __name__ == "__main__":

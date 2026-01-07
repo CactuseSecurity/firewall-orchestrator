@@ -41,7 +41,7 @@ fwo_tmp_dir: str = fwo_base_dir + "tmp/iiq_request_missing_fwmgt_roles/"
 log_dir: str = "/var/log/fworch/iiq_request_missing_fwmgt_roles"
 base_dir_etc: str = fwo_base_dir + "etc/"
 cmdb_repo_target_dir: str = fwo_tmp_dir + "cmdb-repo"
-default_config_file_name: str = base_dir_etc + "customizingConfig.json"
+default_config_file_name: str = f"{base_dir_etc}customizingConfig.json"
 IPV4_DOT_COUNT: int = 3
 git_any: Any = git
 

@@ -276,7 +276,7 @@ if __name__ == "__main__":
     ######################################################
     # 1. get all owners
     # get cmdb repo
-    repo_url: str = "https://" + git_username + ":" + git_password + "@" + git_repo_url
+    repo_url: str = f"https://{git_username}:{git_password}@{git_repo_url}"
     if Path(repo_target_dir).exists():
         # If the repository already exists, open it and perform a pull
         repo: Any = git_any.Repo(repo_target_dir)
@@ -288,7 +288,7 @@ if __name__ == "__main__":
     df_all_apps: list[list[str]] = []
     csv_file: str
     for csv_file in csv_files:
-        csv_file_path: str = repo_target_dir + "/" + csv_file  # add directory to csv files
+        csv_file_path: str = f"{repo_target_dir}/{csv_file}"  # add directory to csv files
 
         try:
             with open(csv_file_path, newline="", encoding="utf-8") as csv_file_handle:

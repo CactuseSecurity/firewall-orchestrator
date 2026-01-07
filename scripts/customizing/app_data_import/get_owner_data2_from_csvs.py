@@ -39,7 +39,7 @@ from scripts.customizing.fwo_custom_lib.basic_helpers import get_logger, read_cu
 base_dir: str = "/usr/local/fworch/"
 base_dir_etc: str = base_dir + "etc/"
 repo_target_dir: str = base_dir_etc + "cmdb-repo"
-default_config_file_name: str = base_dir_etc + "secrets/customizingConfig.json"
+default_config_file_name: str = f"{base_dir_etc}secrets/customizingConfig.json"
 import_source_string: str = "tufinRlm"  # change this to "cmdb-csv-export"? or will this break anything?
 git_any: Any = git
 

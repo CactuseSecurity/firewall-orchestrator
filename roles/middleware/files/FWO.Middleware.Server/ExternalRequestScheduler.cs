@@ -51,7 +51,7 @@ namespace FWO.Middleware.Server
             Log.WriteDebug(LogMessageTitle, "Process started");
             try
             {
-                ExternalRequestSender externalRequestSender = new(apiConnection, globalConfig);
+                using ExternalRequestSender externalRequestSender = new(apiConnection, globalConfig);
                 List<string> FailedRequests = await externalRequestSender.Run();
                 if (FailedRequests.Count > 0)
                 {

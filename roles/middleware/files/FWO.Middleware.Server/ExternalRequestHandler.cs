@@ -17,12 +17,13 @@ namespace FWO.Middleware.Server
     /// <summary>
     /// Class to execute handling of external requests
     /// </summary>
-    public class ExternalRequestHandler
+    public class ExternalRequestHandler : IDisposable
     {
         private readonly ApiConnection ApiConnection;
         private readonly ExtStateHandler? extStateHandler;
         private readonly WfHandler wfHandler;
         private readonly UserConfig UserConfig;
+        private bool disposed = false;
         private ExternalTicketSystemType extSystemType = ExternalTicketSystemType.Generic;
         private ExternalTicketSystem actSystem = new();
         private string actTaskType = "";
@@ -527,6 +528,30 @@ namespace FWO.Middleware.Server
             else
             {
                 Log.WriteError(title, message, exception);
+            }
+        }
+
+        /// <summary>
+        /// Dispose method to clean up resources
+        /// </summary>
+        public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        /// <summary>
+        /// Protected dispose method
+        /// </summary>
+        protected virtual void Dispose(bool disposing)
+        {
+            if (!disposed)
+            {
+                if (disposing)
+                {
+                    UserConfig?.Dispose();
+                }
+                disposed = true;
             }
         }
     }

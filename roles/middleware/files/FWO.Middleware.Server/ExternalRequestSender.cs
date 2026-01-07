@@ -16,7 +16,7 @@ namespace FWO.Middleware.Server
 	/// <summary>
 	/// Class handling the sending of external requests
 	/// </summary>
-	public class ExternalRequestSender
+	public class ExternalRequestSender : IDisposable
 	{
 		/// <summary>
 		/// Api Connection
@@ -31,6 +31,7 @@ namespace FWO.Middleware.Server
 		private readonly UserConfig userConfig;
 		private readonly SCClient? InjScClient;
 		ExternalTicketSystem? ExtTicketSystem;
+		private bool disposed = false;
 	
 
 		// todo: map to internal states to use "lowest_end_state" setting ?
@@ -196,7 +197,7 @@ namespace FWO.Middleware.Server
 		{
 			request.ExtRequestState = ExtStates.ExtReqRejected.ToString();
 			await UpdateRequestCreation(request);
-			ExternalRequestHandler extReqHandler = new(userConfig, apiConnection);
+			using ExternalRequestHandler extReqHandler = new(userConfig, apiConnection);
 			await extReqHandler.HandleStateChange(request);
 		}
 
@@ -246,7 +247,7 @@ namespace FWO.Middleware.Server
 		{
 			(request.ExtRequestState, request.LastMessage) = await PollState(request);
 			await UpdateRequestProcess(request);
-			ExternalRequestHandler extReqHandler = new(userConfig, apiConnection);
+			using ExternalRequestHandler extReqHandler = new(userConfig, apiConnection);
 			await extReqHandler.HandleStateChange(request);
 		}
 
@@ -316,6 +317,30 @@ namespace FWO.Middleware.Server
 				waitCycles = --request.WaitCycles
 			};
 			await apiConnection.SendQueryAsync<ReturnId>(ExtRequestQueries.updateExternalRequestWaitCycles, Variables);
+		}
+
+		/// <summary>
+		/// Dispose method to clean up resources
+		/// </summary>
+		public void Dispose()
+		{
+			Dispose(true);
+			GC.SuppressFinalize(this);
+		}
+
+		/// <summary>
+		/// Protected dispose method
+		/// </summary>
+		protected virtual void Dispose(bool disposing)
+		{
+			if (!disposed)
+			{
+				if (disposing)
+				{
+					userConfig?.Dispose();
+				}
+				disposed = true;
+			}
 		}
 	}
 }

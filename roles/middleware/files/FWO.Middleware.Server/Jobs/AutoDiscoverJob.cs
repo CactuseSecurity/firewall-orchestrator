@@ -20,12 +20,18 @@ namespace FWO.Middleware.Server.Jobs
         private readonly GlobalConfig globalConfig;
         private long? lastMgmtAlertId;
 
+        /// <summary>
+        /// Creates a new autodiscovery job.
+        /// </summary>
+        /// <param name="apiConnection">GraphQL API connection.</param>
+        /// <param name="globalConfig">Global configuration.</param>
         public AutoDiscoverJob(ApiConnection apiConnection, GlobalConfig globalConfig)
         {
             this.apiConnection = apiConnection;
             this.globalConfig = globalConfig;
         }
 
+        /// <inheritdoc />
         public async Task Execute(IJobExecutionContext context)
         {
             try

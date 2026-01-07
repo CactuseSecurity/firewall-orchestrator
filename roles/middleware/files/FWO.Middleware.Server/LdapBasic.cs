@@ -355,7 +355,7 @@ namespace FWO.Middleware.Server
             // - Some systems may only save the "primaryGroupID", then we would have to resolve the name.
             // - Some others may force us to look into all groups to find the membership.
             List<string> groups = [];
-            foreach (var attribute in user.GetAttributeSet())
+            foreach (LdapAttribute? attribute in user.GetAttributeSet())
             {
                 if (attribute.Name.ToLower() == MemberOfLowerCase)
                 {

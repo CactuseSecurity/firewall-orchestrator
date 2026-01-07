@@ -334,7 +334,7 @@ namespace FWO.Middleware.Server
                 // Suchfilter für Benutzer
                 string searchFilter = $"(|(cn={userToSearch})(sAMAccountName={userToSearch}))";
 
-                var searchResults = await connection.SearchAsync(
+                ILdapSearchResults searchResults = await connection.SearchAsync(
                     UserSearchPath,
                     LdapConnection.ScopeSub,
                     searchFilter,
@@ -344,8 +344,8 @@ namespace FWO.Middleware.Server
 
                 if (await searchResults.HasMoreAsync())
                 {
-                    var entry = await searchResults.NextAsync();
-                    var memberOfAttrs = entry.Get(MemberOf);
+                    LdapEntry entry = await searchResults.NextAsync();
+                    LdapAttribute memberOfAttrs = entry.Get(MemberOf);
 
                     if (memberOfAttrs != null)
                     {

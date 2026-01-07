@@ -20,12 +20,18 @@ namespace FWO.Middleware.Server.Jobs
         private readonly ApiConnection apiConnection;
         private readonly GlobalConfig globalConfig;
 
+        /// <summary>
+        /// Creates a new variance analysis job.
+        /// </summary>
+        /// <param name="apiConnection">GraphQL API connection.</param>
+        /// <param name="globalConfig">Global configuration.</param>
         public VarianceAnalysisJob(ApiConnection apiConnection, GlobalConfig globalConfig)
         {
             this.apiConnection = apiConnection;
             this.globalConfig = globalConfig;
         }
 
+        /// <inheritdoc />
         public async Task Execute(IJobExecutionContext context)
         {
             await VarianceAnalysis();
@@ -52,7 +58,7 @@ namespace FWO.Middleware.Server.Jobs
                     Log.WriteInfo(LogMessageTitle, "No data found.");
                     return;
                 }
-                foreach (var owner in report.ReportData.OwnerData)
+                foreach (OwnerConnectionReport owner in report.ReportData.OwnerData)
                 {
                     varianceAnalysis = new(apiConnection, extStateHandler, userConfig, owner.Owner, DefaultInit.DoNothing);
                     if (!await varianceAnalysis.AnalyseConnsForStatusAsync(owner.Connections))

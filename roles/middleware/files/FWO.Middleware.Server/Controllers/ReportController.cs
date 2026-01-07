@@ -105,7 +105,7 @@ namespace FWO.Middleware.Server.Controllers
                 try
                 {
                     List<ManagementSelect> managements = await apiConnection.SendQueryAsync<List<ManagementSelect>>(DeviceQueries.getDevicesByManagement);
-                    foreach(var mgt in managements)
+                    foreach(ManagementSelect mgt in managements)
                     {
                         foreach (DeviceSelect device in mgt.Devices)
                         {
@@ -167,7 +167,7 @@ namespace FWO.Middleware.Server.Controllers
             try
             {
                 List<IpProtocol> ipProtos = await apiConnection.SendQueryAsync<List<IpProtocol>>(StmQueries.getIpProtocols);
-                foreach(var service in apiServices)
+                foreach(ApiService service in apiServices)
                 {
                     List<string> serviceSubFilters = [];
                     if(!string.IsNullOrEmpty(service.Name))

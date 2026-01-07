@@ -44,7 +44,7 @@ while (true)
 }
 
 // GlobalConfig for Quartz DI
-var globalConfig = await GlobalConfig.ConstructAsync(apiConnection, true);
+GlobalConfig globalConfig = await GlobalConfig.ConstructAsync(apiConnection, true);
 
 // Configure Quartz.NET
 builder.Services.AddQuartz();
@@ -80,14 +80,6 @@ builder.Services.AddControllers()
 builder.Services.AddSingleton<JwtWriter>(jwtWriter);
 builder.Services.AddSingleton<List<Ldap>>(connectedLdaps);
 
-// Remove the scoped ApiConnection registration - use the singleton instead
-// builder.Services.AddScoped<ApiConnection>(serviceProvider => 
-//     new GraphQlApiConnection(
-//         ConfigFile.ApiServerUri, 
-//         serviceProvider.GetRequiredService<JwtWriter>().CreateJWTMiddlewareServer()
-//     )
-// );
-
 builder.Services.AddAuthentication(confOptions =>
 {
     confOptions.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
@@ -120,7 +112,7 @@ builder.Services.AddSwaggerGen(c =>
     c.IncludeXmlComments(documentationPath);
 });
 
-var app = builder.Build();
+WebApplication app = builder.Build();
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())

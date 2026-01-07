@@ -67,7 +67,7 @@ namespace FWO.Middleware.Server
                     return false;
                 }
                 int lastFinishedTask = 0;
-                foreach(var task in intTicket.Tasks.OrderBy(t => t.TaskNumber))
+                foreach(WfReqTask? task in intTicket.Tasks.OrderBy(t => t.TaskNumber))
                 {
                     if(task.StateId > wfHandler.StateMatrix(task.TaskType).LowestEndState)
                     {
@@ -474,7 +474,7 @@ namespace FWO.Middleware.Server
 
         private async Task LogRequestTasks(List<WfReqTask> tasks, string? requester, ModellingTypes.ChangeType changeType, string? comment = null)
         {
-            foreach(var task in tasks)
+            foreach(WfReqTask task in tasks)
             {
                 (long objId, ModellingTypes.ModObjectType objType) = GetObject(task);
                 await ModellingHandlerBase.LogChange(changeType, objType, objId,

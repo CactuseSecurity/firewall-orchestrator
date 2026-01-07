@@ -130,7 +130,7 @@ namespace FWO.Middleware.Server
             else
             {
                 existingApps = await apiConnection.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getOwners);
-                foreach (var incomingApp in importedApps)
+                foreach (ModellingImportAppData incomingApp in importedApps)
                 {
                     if (await SaveApp(incomingApp))
                     {
@@ -144,7 +144,7 @@ namespace FWO.Middleware.Server
                 string? importSource = importedApps.FirstOrDefault()?.ImportSource;
                 if(importSource != null)
                 {
-                    foreach (var existingApp in existingApps.Where(x => x.ImportSource == importSource && x.Active))
+                    foreach (FwoOwner? existingApp in existingApps.Where(x => x.ImportSource == importSource && x.Active))
                     {
                         if (importedApps.FirstOrDefault(x => x.ExtAppId == existingApp.ExtAppId) == null)
                         {
@@ -229,7 +229,7 @@ namespace FWO.Middleware.Server
                     await UpdateRoles(incomingApp.MainUser);
                 }
                 appId = returnIds[0].NewId;
-                foreach (var appServer in incomingApp.AppServers)
+                foreach (ModellingImportAppServer appServer in incomingApp.AppServers)
                 {
                     await NewAppServer(appServer, appId, incomingApp.ImportSource);
                 }
@@ -515,7 +515,7 @@ namespace FWO.Middleware.Server
                 appId = applId
             };
             existingAppServers = await apiConnection.SendQueryAsync<List<ModellingAppServer>>(ModellingQueries.getAppServersBySource, Variables);
-            foreach (var incomingAppServer in incomingApp.AppServers)
+            foreach (ModellingImportAppServer incomingAppServer in incomingApp.AppServers)
             {
                 if (await SaveAppServer(incomingAppServer, applId, incomingApp.ImportSource))
                 {
@@ -526,7 +526,7 @@ namespace FWO.Middleware.Server
                     ++failCounter;
                 }
             }
-            foreach (var existingAppServer in existingAppServers.Where(e => !e.IsDeleted).ToList())
+            foreach (ModellingAppServer? existingAppServer in existingAppServers.Where(e => !e.IsDeleted).ToList())
             {
                 if (incomingApp.AppServers.FirstOrDefault(x => x.Ip.IpAsCidr() == existingAppServer.Ip.IpAsCidr() && x.IpEnd.IpAsCidr() == existingAppServer.IpEnd.IpAsCidr()) == null)
                 {

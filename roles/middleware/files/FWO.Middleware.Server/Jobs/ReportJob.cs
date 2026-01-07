@@ -29,6 +29,12 @@ namespace FWO.Middleware.Server.Jobs
         private readonly ReportSchedulerState state;
         private readonly string apiServerUri;
 
+        /// <summary>
+        /// Creates a new report scheduling job.
+        /// </summary>
+        /// <param name="apiConnectionScheduler">API connection used by the scheduler.</param>
+        /// <param name="jwtWriter">JWT writer to authorize users.</param>
+        /// <param name="state">Shared scheduler state.</param>
         public ReportJob(ApiConnection apiConnectionScheduler, JwtWriter jwtWriter, ReportSchedulerState state)
         {
             this.apiConnectionScheduler = apiConnectionScheduler;
@@ -37,6 +43,7 @@ namespace FWO.Middleware.Server.Jobs
             apiServerUri = ConfigFile.ApiServerUri ?? throw new ArgumentException("Missing api server url on startup.");
         }
 
+        /// <inheritdoc />
         public async Task Execute(IJobExecutionContext context)
         {
             Log.WriteInfo(LogMessageTitle, "Process started");

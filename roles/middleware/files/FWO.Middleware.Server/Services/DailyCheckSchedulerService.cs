@@ -23,6 +23,12 @@ namespace FWO.Middleware.Server.Services
         private const string TriggerKeyName = "DailyCheckTrigger";
         private const string SchedulerName = "DailyCheckScheduler";
 
+        /// <summary>
+        /// Initializes the daily check scheduler service.
+        /// </summary>
+        /// <param name="schedulerFactory">Quartz scheduler factory.</param>
+        /// <param name="apiConnection">GraphQL API connection.</param>
+        /// <param name="globalConfig">Global configuration.</param>
         public DailyCheckSchedulerService(ISchedulerFactory schedulerFactory, ApiConnection apiConnection, GlobalConfig globalConfig)
         {
             this.schedulerFactory = schedulerFactory;
@@ -30,6 +36,7 @@ namespace FWO.Middleware.Server.Services
             this.globalConfig = globalConfig;
         }
 
+        /// <inheritdoc />
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
             try
@@ -85,13 +92,13 @@ namespace FWO.Middleware.Server.Services
                 Log.WriteInfo(SchedulerName, "Removed existing job");
             }
 
-            var job = JobBuilder.Create<DailyCheckJob>()
+            IJobDetail job = JobBuilder.Create<DailyCheckJob>()
                 .WithIdentity(jobKey)
                 .Build();
 
-            var startTime = CalculateStartTime(globalConfig.DailyCheckStartAt, TimeSpan.FromDays(1));
+            DateTimeOffset startTime = CalculateStartTime(globalConfig.DailyCheckStartAt, TimeSpan.FromDays(1));
 
-            var trigger = TriggerBuilder.Create()
+            ITrigger trigger = TriggerBuilder.Create()
                 .WithIdentity(triggerKey)
                 .StartAt(startTime)
                 .WithSimpleSchedule(x => x
@@ -106,8 +113,8 @@ namespace FWO.Middleware.Server.Services
 
         private DateTimeOffset CalculateStartTime(DateTime configuredStartTime, TimeSpan interval)
         {
-            var startTime = configuredStartTime;
-            var now = DateTime.Now;
+            DateTime startTime = configuredStartTime;
+            DateTime now = DateTime.Now;
             while (startTime < now)
             {
                 startTime = startTime.Add(interval);
@@ -120,9 +127,15 @@ namespace FWO.Middleware.Server.Services
             Log.WriteError(SchedulerName, "Config subscription lead to exception. Retry subscription.", exception);
         }
 
+        /// <summary>
+        /// Releases resources used by the service.
+        /// Disposes the configuration subscription, suppresses finalization,
+        /// then calls the base class dispose.
+        /// </summary>
         public override void Dispose()
         {
             configSubscription?.Dispose();
+            GC.SuppressFinalize(this);
             base.Dispose();
         }
     }

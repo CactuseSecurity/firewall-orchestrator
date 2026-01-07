@@ -161,7 +161,7 @@ namespace FWO.Middleware.Server
             foreach (ModellingImportAreaIpData ipRange in area2.IpData)
             {
                 bool found = false;
-                foreach (var existingIpRange in area1.IpData)
+                foreach (ModellingImportAreaIpData existingIpRange in area1.IpData)
                 {
                     if (ipRange.Ip == existingIpRange.Ip && ipRange.IpEnd == existingIpRange.IpEnd)
                     {
@@ -237,7 +237,7 @@ namespace FWO.Middleware.Server
             ReturnId[]? areaIds = (await apiConnection.SendQueryAsync<ReturnIdWrapper>(ModellingQueries.newArea, AreaVar)).ReturnIds;
             if (areaIds != null)
             {
-                foreach (var ipData in incomingArea.IpData)
+                foreach (ModellingImportAreaIpData ipData in incomingArea.IpData)
                 {
                     var ipDataVar = new
                     {
@@ -269,9 +269,9 @@ namespace FWO.Middleware.Server
             }
             List<ModellingImportAreaIpData> ipDataToAdd = [.. incomingArea.IpData];
             List<NetworkDataWrapper> ipDataToDelete = [.. existingArea.IpData];
-            foreach (var existingSubnet in existingArea.IpData)
+            foreach (NetworkDataWrapper existingSubnet in existingArea.IpData)
             {
-                foreach (var incomingSubnet in incomingArea.IpData)
+                foreach (ModellingImportAreaIpData incomingSubnet in incomingArea.IpData)
                 {
                     if (incomingSubnet.Name == existingSubnet.Content.Name && incomingSubnet.Ip == existingSubnet.Content.Ip?.StripOffNetmask() &&
                         (incomingSubnet.IpEnd == existingSubnet.Content.IpEnd?.StripOffNetmask()))
@@ -283,11 +283,11 @@ namespace FWO.Middleware.Server
                     }
                 }
             }
-            foreach (var ipData in ipDataToDelete)
+            foreach (NetworkDataWrapper ipData in ipDataToDelete)
             {
                 await apiConnection.SendQueryAsync<ReturnIdWrapper>(OwnerQueries.deleteAreaIpData, new { id = ipData.Content.Id });
             }
-            foreach (var subnet in ipDataToAdd)
+            foreach (ModellingImportAreaIpData subnet in ipDataToAdd)
             {
                 var SubnetVar = new
                 {

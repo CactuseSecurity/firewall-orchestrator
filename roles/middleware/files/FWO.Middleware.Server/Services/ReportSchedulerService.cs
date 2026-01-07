@@ -28,6 +28,12 @@ namespace FWO.Middleware.Server.Services
         private GraphQlApiSubscription<ReportSchedule[]>? scheduleSubscription;
         private GraphQlApiSubscription<List<Ldap>>? ldapSubscription;
 
+        /// <summary>
+        /// Initializes the report scheduler service.
+        /// </summary>
+        /// <param name="schedulerFactory">Quartz scheduler factory.</param>
+        /// <param name="apiConnection">GraphQL API connection.</param>
+        /// <param name="state">Shared scheduler state used by the report job.</param>
         public ReportSchedulerService(ISchedulerFactory schedulerFactory, ApiConnection apiConnection, ReportSchedulerState state)
         {
             this.schedulerFactory = schedulerFactory;
@@ -35,6 +41,7 @@ namespace FWO.Middleware.Server.Services
             this.state = state;
         }
 
+        /// <inheritdoc />
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
             try
@@ -80,11 +87,11 @@ namespace FWO.Middleware.Server.Services
                 Log.WriteInfo(SchedulerName, "Removed existing job");
             }
 
-            var job = JobBuilder.Create<ReportJob>()
+            IJobDetail job = JobBuilder.Create<ReportJob>()
                 .WithIdentity(jobKey)
                 .Build();
 
-            var trigger = TriggerBuilder.Create()
+            ITrigger trigger = TriggerBuilder.Create()
                 .WithIdentity(triggerKey)
                 .StartNow()
                 .WithSimpleSchedule(x => x
@@ -113,10 +120,16 @@ namespace FWO.Middleware.Server.Services
             Log.WriteError(SchedulerName, "Subscription lead to exception. Retry subscription.", exception);
         }
 
+        /// <summary>
+        /// Releases resources used by the service.
+        /// Disposes active subscriptions, suppresses finalization,
+        /// then calls the base class dispose.
+        /// </summary>
         public override void Dispose()
         {
             ldapSubscription?.Dispose();
             scheduleSubscription?.Dispose();
+            GC.SuppressFinalize(this);
             base.Dispose();
         }
     }
@@ -129,14 +142,27 @@ namespace FWO.Middleware.Server.Services
         private ImmutableArray<ReportSchedule> scheduledReports = ImmutableArray<ReportSchedule>.Empty;
         private ImmutableArray<Ldap> connectedLdaps = ImmutableArray<Ldap>.Empty;
 
+        /// <summary>
+        /// The current set of scheduled reports known to the scheduler.
+        /// </summary>
         public ImmutableArray<ReportSchedule> ScheduledReports => scheduledReports;
+
+        /// <summary>
+        /// The LDAP connections currently available for user authorization.
+        /// </summary>
         public ImmutableArray<Ldap> ConnectedLdaps => connectedLdaps;
 
+        /// <summary>
+        /// Updates the in-memory list of scheduled reports.
+        /// </summary>
         public void UpdateSchedules(IEnumerable<ReportSchedule> newSchedules)
         {
             scheduledReports = newSchedules.ToImmutableArray();
         }
 
+        /// <summary>
+        /// Updates the in-memory list of connected LDAP instances.
+        /// </summary>
         public void UpdateLdaps(IEnumerable<Ldap> newLdaps)
         {
             connectedLdaps = newLdaps.ToImmutableArray();

@@ -56,7 +56,7 @@ namespace FWO.Middleware.Server
         public async Task<int> SendNotifications(FwoOwner owner, string content, ReportBase? report = null)
         {
             int emailsSent = 0;
-            foreach (var notification in Notifications.Where(n => (n.OwnerId == null || n.OwnerId == owner.Id) && IsTimeToSend(owner, n)))
+            foreach (FwoNotification? notification in Notifications.Where(n => (n.OwnerId == null || n.OwnerId == owner.Id) && IsTimeToSend(owner, n)))
             {
                 // Later: Handle other channels here when implemented
                 await SendEmail(notification, content, owner, report);
@@ -75,7 +75,7 @@ namespace FWO.Middleware.Server
             DateTime deadline = GetDeadlineDate(notification.Deadline, owner);
             if (deadline >= DateTime.Now)
             {
-                var notifDate = notification.IntervalBeforeDeadline switch
+                DateTime notifDate = notification.IntervalBeforeDeadline switch
                 {
                     SchedulerInterval.Days => deadline.AddDays(-notification.OffsetBeforeDeadline ?? 0),
                     SchedulerInterval.Weeks => deadline.AddDays(-notification.OffsetBeforeDeadline * GlobalConst.kDaysPerWeek ?? 0),
@@ -87,7 +87,7 @@ namespace FWO.Middleware.Server
             }
             else
             {
-                var nextNotifDate = deadline.Date;
+                DateTime nextNotifDate = deadline.Date;
                 int counter = 0;
                 while (nextNotifDate < DateTime.Now.Date && counter++ <= notification.RepetitionsAfterDeadline)
                 {

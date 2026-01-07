@@ -24,7 +24,7 @@ namespace FWO.Middleware.Server
 
             List<GroupGetReturnParameters> allGroups = await internalLdap.GetAllInternalGroups();
             List<UserGroup> ownerGroups = [];
-            foreach (var ldapUserGroup in allGroups)
+            foreach (GroupGetReturnParameters ldapUserGroup in allGroups)
             {
                 if (ldapUserGroup.OwnerGroup)
                 {

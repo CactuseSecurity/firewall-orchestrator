@@ -204,7 +204,7 @@ namespace FWO.Middleware.Server
             foreach (var mgmtId in importedManagements)
             {
                 int mgmtCounter = 0;
-                foreach (var imp in importsToNotify.Where(x => x.MgmtId == mgmtId))
+                foreach (ImportToNotify imp in importsToNotify.Where(x => x.MgmtId == mgmtId))
                 {
                     mgmtCounter += imp.RelevantChanges;
                 }

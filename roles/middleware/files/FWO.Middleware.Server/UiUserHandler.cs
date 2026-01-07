@@ -104,7 +104,7 @@ namespace FWO.Middleware.Server
             {
                 // if the user logging in is the main user for an application, add the ownerships
                 List<FwoOwner> directOwnerships = await apiConn.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getOwnersForUser, new { userDn = user.Dn });
-                foreach (var owner in directOwnerships)
+                foreach (FwoOwner owner in directOwnerships)
                 {
                     user.Ownerships.Add(owner.Id);
                 }
@@ -187,7 +187,7 @@ namespace FWO.Middleware.Server
         }
         private static FwoOwner? FindOwnerWithMatchingGroupName(string groupName, List<FwoOwner> apps)
         {
-            foreach (var app in apps)
+            foreach (FwoOwner app in apps)
             {
                 string[] groupDnParts = app.GroupDn.Split(',', StringSplitOptions.RemoveEmptyEntries);
                 if (groupDnParts.Length == 0)

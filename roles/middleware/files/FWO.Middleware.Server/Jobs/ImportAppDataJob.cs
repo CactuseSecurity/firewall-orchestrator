@@ -19,12 +19,18 @@ namespace FWO.Middleware.Server.Jobs
         private readonly ApiConnection apiConnection;
         private readonly GlobalConfig globalConfig;
 
+        /// <summary>
+        /// Creates a new job for importing app data and adjusting app server names.
+        /// </summary>
+        /// <param name="apiConnection">GraphQL API connection.</param>
+        /// <param name="globalConfig">Global configuration.</param>
         public ImportAppDataJob(ApiConnection apiConnection, GlobalConfig globalConfig)
         {
             this.apiConnection = apiConnection;
             this.globalConfig = globalConfig;
         }
 
+        /// <inheritdoc />
         public async Task Execute(IJobExecutionContext context)
         {
             await ImportAppData();

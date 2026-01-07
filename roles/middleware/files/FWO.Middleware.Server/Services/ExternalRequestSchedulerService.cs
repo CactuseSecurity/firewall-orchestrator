@@ -25,6 +25,12 @@ namespace FWO.Middleware.Server.Services
         /// <summary>
         /// Constructor
         /// </summary>
+        /// <summary>
+        /// Initializes the external request scheduler service.
+        /// </summary>
+        /// <param name="schedulerFactory">Quartz scheduler factory.</param>
+        /// <param name="apiConnection">GraphQL API connection.</param>
+        /// <param name="globalConfig">Global configuration.</param>
         public ExternalRequestSchedulerService(
             ISchedulerFactory schedulerFactory,
             ApiConnection apiConnection,
@@ -38,6 +44,7 @@ namespace FWO.Middleware.Server.Services
         /// <summary>
         /// Execute the service
         /// </summary>
+        /// <inheritdoc />
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
             try
@@ -109,17 +116,17 @@ namespace FWO.Middleware.Server.Services
             }
 
             // Create job
-            var job = JobBuilder.Create<Jobs.ExternalRequestJob>()
+            IJobDetail job = JobBuilder.Create<Jobs.ExternalRequestJob>()
                 .WithIdentity(jobKey)
                 .Build();
 
             // Calculate start time
-            var startTime = CalculateStartTime(
+            DateTimeOffset startTime = CalculateStartTime(
                 globalConfig.ExternalRequestStartAt,
                 globalConfig.ExternalRequestSleepTime);
 
             // Create trigger with recurring schedule
-            var trigger = TriggerBuilder.Create()
+            ITrigger trigger = TriggerBuilder.Create()
                 .WithIdentity(triggerKey)
                 .StartAt(startTime)
                 .WithSimpleSchedule(x => x
@@ -133,10 +140,10 @@ namespace FWO.Middleware.Server.Services
                 $"Job scheduled. Start: {startTime:yyyy-MM-dd HH:mm:ss}, Interval: {globalConfig.ExternalRequestSleepTime}s");
         }
 
-        private DateTimeOffset CalculateStartTime(DateTime configuredStartTime, int intervalSeconds)
+        private static DateTimeOffset CalculateStartTime(DateTime configuredStartTime, int intervalSeconds)
         {
-            var startTime = configuredStartTime;
-            var now = DateTime.Now;
+            DateTime startTime = configuredStartTime;
+            DateTime now = DateTime.Now;
 
             // Move start time forward until it's in the future
             while (startTime < now)
@@ -154,11 +161,14 @@ namespace FWO.Middleware.Server.Services
         }
 
         /// <summary>
-        /// Cleanup on service stop
+        /// Releases resources used by the service.
+        /// Disposes the configuration subscription, suppresses finalization,
+        /// then calls the base class dispose.
         /// </summary>
         public override void Dispose()
         {
             configSubscription?.Dispose();
+            GC.SuppressFinalize(this);
             base.Dispose();
         }
     }

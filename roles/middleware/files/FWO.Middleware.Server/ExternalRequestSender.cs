@@ -63,7 +63,7 @@ namespace FWO.Middleware.Server
 		{
 			List<string> FailedRequests = [];
 			ExternalRequestDataHelper openRequests = await apiConnection.SendQueryAsync<ExternalRequestDataHelper>(ExtRequestQueries.getAndLockOpenRequests, new {states = openRequestStates});
-			foreach (var request in openRequests.ExternalRequests)
+			foreach (ExternalRequest request in openRequests.ExternalRequests)
 			{
 				await HandleRequest(request, FailedRequests);
 			}
@@ -113,7 +113,7 @@ namespace FWO.Middleware.Server
 		{
 			try
 			{
-				foreach (var request in requests.Where(r => r.Locked))
+				foreach (ExternalRequest? request in requests.Where(r => r.Locked))
 				{
 					await apiConnection.SendQueryAsync<ReturnId>(ExtRequestQueries.updateExternalRequestLock, new { id = request.Id, locked = false });
 				}

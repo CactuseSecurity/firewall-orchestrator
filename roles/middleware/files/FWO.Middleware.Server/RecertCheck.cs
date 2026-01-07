@@ -54,7 +54,7 @@ namespace FWO.Middleware.Server
                         globalConfig.EmailTls, globalConfig.EmailUser, decryptedSecret, globalConfig.EmailSenderAddress);
                     JwtWriter jwtWriter = new(ConfigFile.JwtPrivateKey);
                     ApiConnection apiConnectionReporter = new GraphQlApiConnection(ConfigFile.ApiServerUri ?? throw new ArgumentException("Missing api server url on startup."), jwtWriter.CreateJWTReporterViewall());
-                    foreach (var owner in owners)
+                    foreach (FwoOwner owner in owners)
                     {
                         emailsSent += await CheckRuleByRule(owner, apiConnectionReporter, emailConnection);
                         await SetOwnerLastCheck(owner);
@@ -64,7 +64,7 @@ namespace FWO.Middleware.Server
                 {
                     List<UserGroup> OwnerGroups = await MiddlewareServerServices.GetInternalGroups(apiConnectionMiddlewareServer);
                     NotificationService notificationService = await NotificationService.CreateAsync(NotificationClient.Recertification, globalConfig, apiConnectionMiddlewareServer, OwnerGroups);
-                    foreach (var owner in owners.Where(o => IsCheckTime(o)))
+                    foreach (FwoOwner? owner in owners.Where(o => IsCheckTime(o)))
                     {
                         emailsSent += await notificationService.SendNotifications(owner, PrepareOwnerBody(owner), await PrepareOwnerReport(owner));
                         await SetOwnerLastCheck(owner);
@@ -100,7 +100,7 @@ namespace FWO.Middleware.Server
                 System.Text.Json.JsonSerializer.Deserialize<RecertCheckParams>(owner.RecertCheckParamString) : 
                 globCheckParams) ?? throw new ArgumentException("Config Parameters not set.");
             DateTime lastCheck = owner.LastRecertCheck ?? DateTime.MinValue;
-            var nextCheck = checkParams.RecertCheckInterval switch
+            DateTime nextCheck = checkParams.RecertCheckInterval switch
             {
                 SchedulerInterval.Days => lastCheck.AddDays(checkParams.RecertCheckOffset),
                 SchedulerInterval.Weeks => CalcForWeeks(lastCheck, checkParams),
@@ -165,7 +165,7 @@ namespace FWO.Middleware.Server
             List<Rule> openRecerts = await GenerateRulesRecertificationReport(apiConnection, owner);
             List<Rule> upcomingRecerts = [];
             List<Rule> overdueRecerts = [];
-            foreach (var rule in openRecerts)
+            foreach (Rule rule in openRecerts)
             {
                 if (rule.Metadata.RuleRecertification.Count > 0 && rule.Metadata.RuleRecertification[0].NextRecertDate >= DateTime.Now)
                 {
@@ -208,11 +208,11 @@ namespace FWO.Middleware.Server
 
                 ReportData reportData = (await ReportGenerator.GenerateFromTemplate(new ReportTemplate("", reportParams), apiConnection, userConfig, DefaultInit.DoNothing))?.ReportData ?? new();
 
-                foreach (var management in reportData.ManagementData)
+                foreach (ManagementReport management in reportData.ManagementData)
                 {
-                    foreach (var device in management.Devices.Where(d => d.ContainsRules()))
+                    foreach (DeviceReport? device in management.Devices.Where(d => d.ContainsRules()))
                     {
-                        foreach (var rule in device.Rules!)
+                        foreach (Rule rule in device.Rules!)
                         {
                             rule.Metadata.UpdateRecertPeriods(owner.RecertInterval ?? globalConfig.RecertificationPeriod, 0);
                             rule.DeviceName = device.Name ?? "";
@@ -240,7 +240,7 @@ namespace FWO.Middleware.Server
             if(upcomingRecerts.Count > 0)
             {
                 body.AppendLine(globalConfig.RecCheckEmailUpcomingText.Replace(Placeholder.APPNAME, ownerName) + "\r\n\r\n");
-                foreach(var rule in upcomingRecerts)
+                foreach(Rule rule in upcomingRecerts)
                 {
                     body.AppendLine(PrepareLine(rule));
                 }
@@ -249,7 +249,7 @@ namespace FWO.Middleware.Server
             if (overdueRecerts.Count > 0)
             {
                 body.AppendLine(globalConfig.RecCheckEmailOverdueText.Replace(Placeholder.APPNAME, ownerName) + "\r\n\r\n");
-                foreach (var rule in overdueRecerts)
+                foreach (Rule rule in overdueRecerts)
                 {
                     body.AppendLine(PrepareLine(rule));
                 }

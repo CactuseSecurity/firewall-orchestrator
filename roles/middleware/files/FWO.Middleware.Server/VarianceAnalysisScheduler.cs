@@ -75,7 +75,7 @@ namespace FWO.Middleware.Server
                     Log.WriteInfo(LogMessageTitle, $"No data found.");
                     return;
                 }
-                foreach(var owner in report.ReportData.OwnerData)
+                foreach(OwnerConnectionReport owner in report.ReportData.OwnerData)
                 {
                     varianceAnalysis = new(apiConnection, extStateHandler, userConfig, owner.Owner, DefaultInit.DoNothing);
                     if(!await varianceAnalysis.AnalyseConnsForStatusAsync(owner.Connections))

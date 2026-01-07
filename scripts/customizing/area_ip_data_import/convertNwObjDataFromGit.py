@@ -1,6 +1,5 @@
 #!/usr/bin/python3
 
-# library for Tufin STRACK API calls
 import argparse
 import csv
 import ipaddress

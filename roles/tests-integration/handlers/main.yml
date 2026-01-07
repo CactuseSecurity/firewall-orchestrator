@@ -31,7 +31,9 @@
 - name: build ldap tls options
   set_fact:
     ldap_tls_opts: >-
-      {{ (openldap_server_enable_ssl | default(false)) | ternary('-o TLS_REQCERT=never' ~ (openldap_server_cert is defined | ternary(' -o TLS_CACERT=' ~ openldap_server_cert, '')), '') }}
+      {% if openldap_server_enable_ssl | default(false) -%}
+      -o TLS_REQCERT=never{% if openldap_server_cert is defined %} -o TLS_CACERT={{ openldap_server_cert }}{% endif %}
+      {%- endif %}
   listen: "test importer handler"
 
 - name: find ldap entries with test_postfix

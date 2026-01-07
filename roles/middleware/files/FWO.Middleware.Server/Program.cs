@@ -17,14 +17,6 @@ Log.WriteInfo("Startup", "Starting FWO Middleware Server...");
 
 object changesLock = new(); // LOCK
 
-ReportScheduler reportScheduler;
-AutoDiscoverScheduler autoDiscoverScheduler;
-DailyCheckScheduler dailyCheckScheduler;
-ImportAppDataScheduler importAppDataScheduler;
-ImportIpDataScheduler importSubnetDataScheduler;
-ImportChangeNotifyScheduler importChangeNotifyScheduler;
-VarianceAnalysisScheduler varianceAnalysisScheduler;
-
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 builder.WebHost.UseUrls(ConfigFile.MiddlewareServerNativeUri ?? throw new ArgumentException("Missing middleware server url on startup."));
 
@@ -34,7 +26,6 @@ JwtWriter jwtWriter = new(ConfigFile.JwtPrivateKey);
 // Create JWT for middleware-server API calls (relevant part is the role middleware-server) and add it to the Api connection header. 
 ApiConnection apiConnection = new GraphQlApiConnection(ConfigFile.ApiServerUri ?? throw new ArgumentException("Missing api server url on startup."), jwtWriter.CreateJWTMiddlewareServer());
 
-// Fetch all connectedLdaps via API (blocking).
 List<Ldap> connectedLdaps = [];
 int connectionAttemptsCount = 1;
 while (true)
@@ -52,53 +43,6 @@ while (true)
     }
 }
 
-Action<Exception> handleSubscriptionException = (Exception exception) => Log.WriteError("Subscription", "Subscription lead to exception.", exception);
-GraphQlApiSubscription<List<Ldap>>.SubscriptionUpdate connectedLdapsSubscriptionUpdate = (List<Ldap> ldapsChanges) => { lock (changesLock) { connectedLdaps = ldapsChanges; } };
-GraphQlApiSubscription<List<Ldap>> connectedLdapsSubscription = apiConnection.GetSubscription<List<Ldap>>(handleSubscriptionException, connectedLdapsSubscriptionUpdate, AuthQueries.getLdapConnectionsSubscription);
-Log.WriteInfo("Found ldap connection to server", string.Join("\n", connectedLdaps.ConvertAll(ldap => $"{ldap.Address}:{ldap.Port}")));
-
-// Create and start report scheduler
-await Task.Factory.StartNew(async () =>
-{
-    reportScheduler = await  ReportScheduler.CreateAsync(apiConnection, jwtWriter, connectedLdapsSubscription);
-}, TaskCreationOptions.LongRunning);
-
-// Create and start auto disovery scheduler
-await Task.Factory.StartNew(async() =>
-{
-    autoDiscoverScheduler = await AutoDiscoverScheduler.CreateAsync(apiConnection);
-}, TaskCreationOptions.LongRunning);
-
-// Create and start daily check scheduler
-await Task.Factory.StartNew(async() =>
-{
-    dailyCheckScheduler = await DailyCheckScheduler.CreateAsync(apiConnection);
-}, TaskCreationOptions.LongRunning);
-
-// Create and start import app data scheduler
-await Task.Factory.StartNew(async() =>
-{
-    importAppDataScheduler = await ImportAppDataScheduler.CreateAsync(apiConnection);
-}, TaskCreationOptions.LongRunning);
-
-// Create and start import subnet data scheduler
-await Task.Factory.StartNew(async() =>
-{
-    importSubnetDataScheduler = await ImportIpDataScheduler.CreateAsync(apiConnection);
-}, TaskCreationOptions.LongRunning);
-
-// Create and start import change notify scheduler
-await Task.Factory.StartNew(async() =>
-{
-    importChangeNotifyScheduler = await ImportChangeNotifyScheduler.CreateAsync(apiConnection);
-}, TaskCreationOptions.LongRunning);
-
-// Create and start variance analysis scheduler
-await Task.Factory.StartNew(async() =>
-{
-    varianceAnalysisScheduler = await VarianceAnalysisScheduler.CreateAsync(apiConnection);
-}, TaskCreationOptions.LongRunning);
-
 // GlobalConfig for Quartz DI
 var globalConfig = await GlobalConfig.ConstructAsync(apiConnection, true);
 
@@ -113,9 +57,17 @@ builder.Services.AddQuartzHostedService(options =>
 // Register singletons for DI
 builder.Services.AddSingleton(apiConnection);
 builder.Services.AddSingleton(globalConfig);
+builder.Services.AddSingleton<ReportSchedulerState>();
 
-// Register ExternalRequest Scheduler Service
+// Register Scheduler Hosted Services
 builder.Services.AddHostedService<ExternalRequestSchedulerService>();
+builder.Services.AddHostedService<AutoDiscoverSchedulerService>();
+builder.Services.AddHostedService<DailyCheckSchedulerService>();
+builder.Services.AddHostedService<ImportAppDataSchedulerService>();
+builder.Services.AddHostedService<ImportIpDataSchedulerService>();
+builder.Services.AddHostedService<ImportChangeNotifySchedulerService>();
+builder.Services.AddHostedService<VarianceAnalysisSchedulerService>();
+builder.Services.AddHostedService<ReportSchedulerService>();
 
 // Add services to the container.
 builder.Services.AddControllers()

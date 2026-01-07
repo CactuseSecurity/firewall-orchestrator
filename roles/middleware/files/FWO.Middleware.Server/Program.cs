@@ -1,11 +1,14 @@
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
+using FWO.Config.Api;
 using FWO.Config.File;
 using FWO.Logging;
 using FWO.Middleware.Server;
+using FWO.Middleware.Server.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
+using Quartz;
 using System.Reflection;
 
 // Implicitly call static constructor so background lock process is started
@@ -20,7 +23,6 @@ DailyCheckScheduler dailyCheckScheduler;
 ImportAppDataScheduler importAppDataScheduler;
 ImportIpDataScheduler importSubnetDataScheduler;
 ImportChangeNotifyScheduler importChangeNotifyScheduler;
-ExternalRequestScheduler externalRequestScheduler;
 VarianceAnalysisScheduler varianceAnalysisScheduler;
 
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
@@ -91,18 +93,29 @@ await Task.Factory.StartNew(async() =>
     importChangeNotifyScheduler = await ImportChangeNotifyScheduler.CreateAsync(apiConnection);
 }, TaskCreationOptions.LongRunning);
 
-// Create and start external request scheduler
-await Task.Factory.StartNew(async() =>
-{
-    externalRequestScheduler = await ExternalRequestScheduler.CreateAsync(apiConnection);
-}, TaskCreationOptions.LongRunning);
-
 // Create and start variance analysis scheduler
 await Task.Factory.StartNew(async() =>
 {
     varianceAnalysisScheduler = await VarianceAnalysisScheduler.CreateAsync(apiConnection);
 }, TaskCreationOptions.LongRunning);
 
+// GlobalConfig for Quartz DI
+var globalConfig = await GlobalConfig.ConstructAsync(apiConnection, true);
+
+// Configure Quartz.NET
+builder.Services.AddQuartz();
+
+builder.Services.AddQuartzHostedService(options =>
+{
+    options.WaitForJobsToComplete = true;
+});
+
+// Register singletons for DI
+builder.Services.AddSingleton(apiConnection);
+builder.Services.AddSingleton(globalConfig);
+
+// Register ExternalRequest Scheduler Service
+builder.Services.AddHostedService<ExternalRequestSchedulerService>();
 
 // Add services to the container.
 builder.Services.AddControllers()
@@ -114,7 +127,14 @@ builder.Services.AddControllers()
 
 builder.Services.AddSingleton<JwtWriter>(jwtWriter);
 builder.Services.AddSingleton<List<Ldap>>(connectedLdaps);
-builder.Services.AddScoped<ApiConnection>(_ => new GraphQlApiConnection(ConfigFile.ApiServerUri, jwtWriter.CreateJWTMiddlewareServer()));
+
+// Remove the scoped ApiConnection registration - use the singleton instead
+// builder.Services.AddScoped<ApiConnection>(serviceProvider => 
+//     new GraphQlApiConnection(
+//         ConfigFile.ApiServerUri, 
+//         serviceProvider.GetRequiredService<JwtWriter>().CreateJWTMiddlewareServer()
+//     )
+// );
 
 builder.Services.AddAuthentication(confOptions =>
 {

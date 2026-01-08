@@ -24,8 +24,8 @@ need to change import id in all csv-files to next id, e.g.:
 ## python importer
 
 ```console
-user@test:~$ ./import-mgm.py --help
-usage: import-mgm.py [-h] -m management_id [-c] [-f] [-d debug_level] [-v] [-s] [-l api_limit] [-i config_file_input] [-n config_file_normalized_input]
+user@test:~$ ./import_mgm.py --help
+usage: import_mgm.py [-h] -m management_id [-c] [-f] [-d debug_level] [-v] [-s] [-l api_limit] [-i config_file_input] [-n config_file_normalized_input]
 
 Read configuration from FW management via API calls
 

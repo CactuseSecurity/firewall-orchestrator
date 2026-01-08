@@ -1,5 +1,4 @@
 ---
-
 - name: find management id for checkpoint test
   postgresql_query:
     db: fworchdb
@@ -20,7 +19,7 @@
   ansible.builtin.command:
     cmd: >
       {{ importer_venv_dir }}/bin/python3
-      ./import-mgm.py -f -s -m{{ test_checkpoint_mgm_id.query_result.0.mgm_id }}
+      ./import_mgm.py -f -s -m{{ test_checkpoint_mgm_id.query_result.0.mgm_id }}
     chdir: "{{ fworch_home }}/importer"
   become: true
   become_user: "{{ fworch_user }}"
@@ -30,9 +29,8 @@
 - name: show checkpoint import result
   debug:
     var: test_checkpoint_import_result
-
 # - name: make test fortigate import
-#   command: "python3 ./import-mgm.py -f -s -m{{ test_fortigate_mgm_id.query_result.0.mgm_id }}"
+#   command: "python3 ./import_mgm.py -f -s -m{{ test_fortigate_mgm_id.query_result.0.mgm_id }}"
 #   args:
 #     chdir: "{{ fworch_home }}/importer"
 #   become: true

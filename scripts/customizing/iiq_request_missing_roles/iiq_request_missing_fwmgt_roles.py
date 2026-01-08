@@ -142,7 +142,7 @@ def get_tisos_from_owner_dict(app_dict: dict[str, Owner]) -> dict[str, str]:
 
 def get_git_repo(git_repo_url: str, git_username: str, git_password: str, repo_target_dir: str) -> None:
     encoded_password: str = urllib.parse.quote(git_password, safe="")
-    repo_url: str = "https://" + git_username + ":" + encoded_password + "@" + git_repo_url
+    repo_url: str = f"https://{git_username}:{encoded_password}@{git_repo_url}"
 
     if Path(repo_target_dir).exists():
         # If the repository already exists, open it and perform a pull

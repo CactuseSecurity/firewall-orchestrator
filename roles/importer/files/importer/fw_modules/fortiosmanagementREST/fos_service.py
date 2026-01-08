@@ -243,3 +243,11 @@ def normalize_service_objects(native_config: FortiOSConfig) -> Generator[Service
         svc_color=fwo_const.DEFAULT_COLOR,
         svc_comment="'original' service object created by FWO importer for NAT purposes",
     )
+    # "Internet service" object for internet services
+    yield ServiceObject(
+        svc_name="Internet Service",
+        svc_uid="Internet Service",
+        svc_typ="group",
+        svc_color=fwo_const.DEFAULT_COLOR,
+        svc_comment="'internet service' group object created by FWO importer for internet services",
+    )

@@ -29,7 +29,7 @@ class FortiosManagementRESTCommon(FwCommon):
 
         write_native_config_to_file(import_state.state, config_in.native_config)
 
-        normalized_config = fos_normalizer.normalize_config(native_config)
+        normalized_config = fos_normalizer.normalize_config(native_config, mgm_details=import_state.state.mgm_details)
 
         config_in.ManagerSet[0].configs = [normalized_config]
         config_in.ManagerSet[0].manager_uid = import_state.state.mgm_details.uid

@@ -1,20 +1,29 @@
 from collections.abc import Generator
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import fwo_const
 from fw_modules.fortiosmanagementREST.fos_models import FortiOSConfig
 from fw_modules.fortiosmanagementREST.fos_network import normalize_network_objects
+from fw_modules.fortiosmanagementREST.fos_rule import normalize_access_rules
 from fw_modules.fortiosmanagementREST.fos_service import normalize_service_objects
 from fwo_log import FWOLogger
+from model_controllers.management_controller import ManagementController
 from models.fwconfig_normalized import FwConfigNormalized
+from models.gateway import Gateway
+from models.rulebase import Rulebase
+from models.rulebase_link import RulebaseLinkUidBased
+
+if TYPE_CHECKING:
+    from models.rule import RuleNormalized
 
 
-def normalize_config(native_config: FortiOSConfig) -> FwConfigNormalized:
+def normalize_config(native_config: FortiOSConfig, mgm_details: ManagementController) -> FwConfigNormalized:
     """
     Normalize FortiOS Management REST native configuration.
 
     Args:
         native_config (FortiOSConfig): The native FortiOS configuration.
+        mgm_details (ManagementController): The management details object.
 
     Returns:
         FwConfigNormalized: The normalized configuration.
@@ -34,9 +43,41 @@ def normalize_config(native_config: FortiOSConfig) -> FwConfigNormalized:
         normalized_config.users[user["user_uid"]] = user
     FWOLogger.debug(f"Normalized {len(normalized_config.users)} user objects.")
 
-    # TODO: rules
+    nw_obj_lookup_dict = {obj.obj_name: obj.obj_uid for obj in normalized_config.network_objects.values()}
 
-    # TODO: gateway
+    rulebase_name = "access_rules"
+    rules: dict[str, RuleNormalized] = {}
+    for rule in normalize_access_rules(native_config, mgm_details, nw_obj_lookup_dict):
+        if not rule.rule_uid:
+            FWOLogger.warning(f"Skipping rule '{rule.rule_name}' without UID.")
+            continue
+        rules[rule.rule_uid] = rule
+    rulebase = Rulebase(uid=rulebase_name, name=rulebase_name, mgm_uid=mgm_details.uid, is_global=False, rules=rules)
+
+    rulebase_links = [
+        RulebaseLinkUidBased(
+            to_rulebase_uid=rulebase.uid,
+            link_type="ordered",
+            is_initial=True,
+            is_global=False,
+            is_section=False,
+        )
+    ]
+
+    gateway = Gateway(
+        Uid=mgm_details.devices[0]["name"],
+        Name=mgm_details.devices[0]["name"],
+        Routing=[],
+        RulebaseLinks=rulebase_links,
+        GlobalPolicyUid=None,
+        EnforcedPolicyUids=[],
+        EnforcedNatPolicyUids=[],
+        ImportDisabled=False,
+        ShowInUI=True,
+    )
+
+    normalized_config.gateways = [gateway]
+    normalized_config.rulebases = [rulebase]
 
     return normalized_config
 

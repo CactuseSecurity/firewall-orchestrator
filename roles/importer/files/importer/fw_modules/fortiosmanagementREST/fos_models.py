@@ -384,7 +384,7 @@ class Rule(BaseModel):
     policyid: int
     q_origin_key: int
     status: Literal["enable", "disable"]
-    name: str | None = None
+    name: str
     uuid: str
     uuid_idx: int | None = Field(None, alias="uuid-idx")
 
@@ -600,9 +600,6 @@ class Rule(BaseModel):
     cifs_profile: str | None = Field(None, alias="cifs-profile")
     videofilter_profile: str | None = Field(None, alias="videofilter-profile")
 
-    # Internal tracking field
-    _last_hit: int | None = None
-
 
 # ============================================================================
 # Main Configuration Model
@@ -640,7 +637,3 @@ class FortiOSConfig(BaseModel):
     # Rules
     rules: list[Rule] = []
     rules_nat: dict[str, Any] = Field(default_factory=dict)
-
-    # Lookup dictionaries (built during processing)
-    nw_obj_lookup_dict: dict[str, str] = Field(default_factory=dict)
-    svc_obj_lookup_dict: dict[str, str] = Field(default_factory=dict)

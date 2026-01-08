@@ -46,6 +46,12 @@
                 <input id="cbx_change_notify_active" type="checkbox" class="w-100" @bind="configData!.ImpChangeNotifyActive" />
             </div>
         </div>
+        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5845"))">
+            <label for="cbx_change_notify_active" class="col-form-label col-sm-4">@(userConfig.GetText("U1004")):</label>
+            <div class="col-sm-1">
+                <input id="cbx_change_notify_active" type="checkbox" class="w-100" @bind="configData!.ImpChangeIncludeObjectChanges" />
+            </div>
+        </div>
         <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5484"))">
             <label class="col-form-label col-sm-4">@(userConfig.GetText("impChangeNotifyType")):</label>
             <div class="col-sm-2">

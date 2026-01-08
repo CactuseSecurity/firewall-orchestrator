@@ -290,13 +290,17 @@ namespace FWO.Report.Filter
                     {{
                         id: mgm_id
                         name: mgm_name
-        		                import_controls {{
-                      control_id
-                      start_time
-                      stop_time
-                      successful_import
-                      import_errors
-		                }}
+        		        import_controls {{
+                              control_id
+                              start_time
+                              stop_time
+                              successful_import
+                              import_errors
+		                                }}
+                        devices {{
+                            id: dev_id  
+                            name: dev_name  
+                                }}
                         changelog_rules: {query.OpenChangeLogRulesTable}
                                     {limitOffsetString} 
                                     where: {{ 

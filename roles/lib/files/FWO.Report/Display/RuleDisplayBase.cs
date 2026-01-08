@@ -90,6 +90,11 @@ namespace FWO.Ui.Display
             return nts.Name ?? "";
         }
 
+        public static string DisplayName(NetworkUser ntu)
+        {
+            return ntu.Name ?? "";
+        }
+
         public static string DisplaySourceZones(Rule rule)
         {
             if (rule.RuleFromZones.Length != 0)

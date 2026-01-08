@@ -19,12 +19,21 @@ namespace FWO.Report
         private const int ColumnCount = 13;
 
         private readonly TimeFilter timeFilter;
-        private readonly bool IncludeObjectsInReportChanges;
+        private readonly bool IncludeObjectsInReportChanges; 
 
-        public ReportChanges(DynGraphqlQuery query, UserConfig userConfig, ReportType reportType, TimeFilter timeFilter, bool includeObjectsInReportChanges) : base(query, userConfig, reportType)
+        public ReportChanges(DynGraphqlQuery query, UserConfig userConfig, ReportType reportType, TimeFilter timeFilter, bool includeObjectsInReportChanges, bool IncludeObjectsInReportChangesUiPresesed) : base(query, userConfig, reportType)
         {
             this.timeFilter = timeFilter;
-            this.IncludeObjectsInReportChanges = includeObjectsInReportChanges;
+
+            if (IncludeObjectsInReportChangesUiPresesed)
+            {
+
+                this.IncludeObjectsInReportChanges = includeObjectsInReportChanges;
+            }
+            else
+            {
+                this.IncludeObjectsInReportChanges = userConfig.ImpChangeIncludeObjectChanges;
+            }
         }
 
         public override async Task Generate(int elementsPerFetch, ApiConnection apiConnection, Func<ReportData, Task> callback, CancellationToken ct)
@@ -200,51 +209,91 @@ namespace FWO.Report
             StringBuilder report = new();
             RuleChangeDisplayHtml ruleChangeDisplayHtml = new(userConfig);
 
-            foreach (var management in ReportData.ManagementData.Where(mgt => !mgt.Ignore && mgt.Devices != null &&
-                    Array.Exists(mgt.Devices, device => device.RuleChanges != null && device.RuleChanges.Length > 0)))
+            foreach (var management in ReportData.ManagementData.Where(mgt => !mgt.Ignore))
             {
                 report.AppendLine($"<h3 id=\"{Guid.NewGuid()}\">{management.Name}</h3>");
                 report.AppendLine("<hr>");
+                report.AppendLine($"<h4 id=\"{Guid.NewGuid()}\">Rules</h4>");
 
-                foreach (var device in management.Devices)
+                report.AppendLine("<table>");
+                report.AppendLine("<tr>");
+                report.AppendLine($"<th>{userConfig.GetText("change_time")}</th>");
+                report.AppendLine($"<th>{userConfig.GetText("change_type")}</th>");
+                report.AppendLine($"<th>{userConfig.GetText("name")}</th>");
+                report.AppendLine($"<th>{userConfig.GetText("source_zone")}</th>");
+                report.AppendLine($"<th>{userConfig.GetText("source")}</th>");
+                report.AppendLine($"<th>{userConfig.GetText("destination_zone")}</th>");
+                report.AppendLine($"<th>{userConfig.GetText("destination")}</th>");
+                report.AppendLine($"<th>{userConfig.GetText("services")}</th>");
+                report.AppendLine($"<th>{userConfig.GetText("action")}</th>");
+                report.AppendLine($"<th>{userConfig.GetText("track")}</th>");
+                report.AppendLine($"<th>{userConfig.GetText("enabled")}</th>");
+                report.AppendLine($"<th>{userConfig.GetText("enforcing_devices")}</th>");
+                report.AppendLine($"<th>{userConfig.GetText("uid")}</th>");
+                report.AppendLine($"<th>{userConfig.GetText("comment")}</th>");
+                report.AppendLine("</tr>");
+
+                if (management.RuleChanges != null && management.RuleChanges?.Any() == true)
                 {
-                    report.AppendLine($"<h4 id=\"{Guid.NewGuid()}\">{device.Name}</h4>");
+                    foreach (var ruleChange in management.RuleChanges)
+                    {
+                        report.AppendLine("<tr>");
+                        report.AppendLine($"<td>{ruleChangeDisplayHtml.DisplayChangeTime(ruleChange)}</td>");
+                        report.AppendLine($"<td>{ruleChangeDisplayHtml.DisplayChangeAction(ruleChange)}</td>");
+                        report.AppendLine($"<td>{ruleChangeDisplayHtml.DisplayName(ruleChange)}</td>");
+                        report.AppendLine($"<td>{ruleChangeDisplayHtml.DisplaySourceZone(ruleChange)}</td>");
+                        report.AppendLine($"<td>{ruleChangeDisplayHtml.DisplaySource(ruleChange, OutputLocation.export, ReportType)}</td>");
+                        report.AppendLine($"<td>{ruleChangeDisplayHtml.DisplayDestinationZone(ruleChange)}</td>");
+                        report.AppendLine($"<td>{ruleChangeDisplayHtml.DisplayDestination(ruleChange, OutputLocation.export, ReportType)}</td>");
+                        report.AppendLine($"<td>{ruleChangeDisplayHtml.DisplayServices(ruleChange, OutputLocation.export, ReportType)}</td>");
+                        report.AppendLine($"<td>{ruleChangeDisplayHtml.DisplayAction(ruleChange)}</td>");
+                        report.AppendLine($"<td>{ruleChangeDisplayHtml.DisplayTrack(ruleChange)}</td>");
+                        report.AppendLine($"<td>{ruleChangeDisplayHtml.DisplayEnabled(ruleChange, OutputLocation.export)}</td>");
+                        report.AppendLine($"<td>{ruleChangeDisplayHtml.DisplayEnforcingGateways(ruleChange, OutputLocation.export, ReportType)}</td>");
+                        report.AppendLine($"<td>{ruleChangeDisplayHtml.DisplayUid(ruleChange)}</td>");
+                        report.AppendLine($"<td>{ruleChangeDisplayHtml.DisplayComment(ruleChange)}</td>");
+                        report.AppendLine("</tr>");
+                    }
+                }
+                else
+                {
+                    report.AppendLine("<tr>");
+                    report.AppendLine($"<td colspan=\"{ColumnCount}\">{userConfig.GetText("no_changes_found")}</td>");
+                    report.AppendLine("</tr>");
+                }
+                report.AppendLine("</table>");
+                report.AppendLine("<hr>");
+
+                if (IncludeObjectsInReportChanges)
+                {
+                    #region Networkobjects
+
+                    report.AppendLine($"<h4 id=\"{Guid.NewGuid()}\">Network objects</h4>");
                     report.AppendLine("<table>");
                     report.AppendLine("<tr>");
                     report.AppendLine($"<th>{userConfig.GetText("change_time")}</th>");
                     report.AppendLine($"<th>{userConfig.GetText("change_type")}</th>");
                     report.AppendLine($"<th>{userConfig.GetText("name")}</th>");
-                    report.AppendLine($"<th>{userConfig.GetText("source_zone")}</th>");
-                    report.AppendLine($"<th>{userConfig.GetText("source")}</th>");
-                    report.AppendLine($"<th>{userConfig.GetText("destination_zone")}</th>");
-                    report.AppendLine($"<th>{userConfig.GetText("destination")}</th>");
-                    report.AppendLine($"<th>{userConfig.GetText("services")}</th>");
-                    report.AppendLine($"<th>{userConfig.GetText("action")}</th>");
-                    report.AppendLine($"<th>{userConfig.GetText("track")}</th>");
-                    report.AppendLine($"<th>{userConfig.GetText("enabled")}</th>");
+                    report.AppendLine($"<th>{userConfig.GetText("type")}</th>");
+                    report.AppendLine($"<th>{userConfig.GetText("ip_address")}</th>");
+                    report.AppendLine($"<th>{userConfig.GetText("members")}</th>");
                     report.AppendLine($"<th>{userConfig.GetText("uid")}</th>");
                     report.AppendLine($"<th>{userConfig.GetText("comment")}</th>");
                     report.AppendLine("</tr>");
 
-                    if (device.RuleChanges != null)
+                    if (management.ObjectChanges != null && management.ObjectChanges?.Any() == true)
                     {
-                        foreach (var ruleChange in device.RuleChanges)
+                        foreach (var objectChange in management.ObjectChanges)
                         {
                             report.AppendLine("<tr>");
-                            report.AppendLine($"<td>{ruleChangeDisplayHtml.DisplayChangeTime(ruleChange)}</td>");
-                            report.AppendLine($"<td>{ruleChangeDisplayHtml.DisplayChangeAction(ruleChange)}</td>");
-                            report.AppendLine($"<td>{ruleChangeDisplayHtml.DisplayName(ruleChange)}</td>");
-                            report.AppendLine($"<td>{ruleChangeDisplayHtml.DisplaySourceZone(ruleChange)}</td>");
-                            report.AppendLine($"<td>{ruleChangeDisplayHtml.DisplaySource(ruleChange, OutputLocation.export, ReportType)}</td>");
-                            report.AppendLine($"<td>{ruleChangeDisplayHtml.DisplayDestinationZone(ruleChange)}</td>");
-                            report.AppendLine($"<td>{ruleChangeDisplayHtml.DisplayDestination(ruleChange, OutputLocation.export, ReportType)}</td>");
-                            report.AppendLine($"<td>{ruleChangeDisplayHtml.DisplayServices(ruleChange, OutputLocation.export, ReportType)}</td>");
-                            report.AppendLine($"<td>{ruleChangeDisplayHtml.DisplayAction(ruleChange)}</td>");
-                            report.AppendLine($"<td>{ruleChangeDisplayHtml.DisplayTrack(ruleChange)}</td>");
-                            report.AppendLine($"<td>{ruleChangeDisplayHtml.DisplayEnabled(ruleChange, OutputLocation.export)}</td>");
-                            report.AppendLine($"<td>{ruleChangeDisplayHtml.DisplayUid(ruleChange)}</td>");
-                            report.AppendLine($"<td>{ruleChangeDisplayHtml.DisplayEnforcingGateways(ruleChange, OutputLocation.export, ReportType)}</td>");                           
-                            report.AppendLine($"<td>{ruleChangeDisplayHtml.DisplayComment(ruleChange)}</td>");
+                            report.AppendLine($"<td>{ruleChangeDisplayHtml.DisplayChangeTime(objectChange)}</td>");
+                            report.AppendLine($"<td>{ruleChangeDisplayHtml.DisplayChangeAction(objectChange)}</td>");
+                            report.AppendLine($"<td>{ruleChangeDisplayHtml.DisplayName(objectChange)}</td>");
+                            report.AppendLine($"<td>{ruleChangeDisplayHtml.DisplayObjectType(objectChange)}</td>");
+                            report.AppendLine($"<td>{ruleChangeDisplayHtml.DisplayObjectIP(objectChange)}</td>");
+                            report.AppendLine($"<td>{ruleChangeDisplayHtml.DisplayObjectMemberNames(objectChange)}</td>");
+                            report.AppendLine($"<td>{ruleChangeDisplayHtml.DisplayUid(objectChange)}</td>");
+                            report.AppendLine($"<td>{ruleChangeDisplayHtml.DisplayComment(objectChange)}</td>");
                             report.AppendLine("</tr>");
                         }
                     }
@@ -256,8 +305,93 @@ namespace FWO.Report
                     }
                     report.AppendLine("</table>");
                     report.AppendLine("<hr>");
+
+                    #endregion
+
+                    #region Serviceobjects
+
+                    report.AppendLine($"<h4 id=\"{Guid.NewGuid()}\">Service objects</h4>");
+                    report.AppendLine("<table>");
+                    report.AppendLine("<tr>");
+                    report.AppendLine($"<th>{userConfig.GetText("change_time")}</th>");
+                    report.AppendLine($"<th>{userConfig.GetText("change_type")}</th>");
+                    report.AppendLine($"<th>{userConfig.GetText("name")}</th>");
+                    report.AppendLine($"<th>{userConfig.GetText("type")}</th>");
+                    report.AppendLine($"<th>{userConfig.GetText("protocol")}</th>");
+                    report.AppendLine($"<th>{userConfig.GetText("port")}</th>");
+                    report.AppendLine($"<th>{userConfig.GetText("members")}</th>");
+                    report.AppendLine($"<th>{userConfig.GetText("uid")}</th>");
+                    report.AppendLine($"<th>{userConfig.GetText("comment")}</th>");
+                    report.AppendLine("</tr>");
+
+                    if (management.ServiceChanges != null && management.ServiceChanges?.Any() == true)
+                    {
+                        foreach (var serviceChange in management.ServiceChanges)
+                        {
+                            report.AppendLine("<tr>");
+                            report.AppendLine($"<td>{ruleChangeDisplayHtml.DisplayChangeTime(serviceChange)}</td>");
+                            report.AppendLine($"<td>{ruleChangeDisplayHtml.DisplayChangeAction(serviceChange)}</td>");
+                            report.AppendLine($"<td>{ruleChangeDisplayHtml.DisplayName(serviceChange)}</td>");
+                            report.AppendLine($"<td>{ruleChangeDisplayHtml.DisplayServiceType(serviceChange)}</td>");
+                            report.AppendLine($"<td>{ruleChangeDisplayHtml.DisplayServiceProtocol(serviceChange)}</td>");
+                            report.AppendLine($"<td>{ruleChangeDisplayHtml.DisplayServicePort(serviceChange)}</td>");
+                            report.AppendLine($"<td>{ruleChangeDisplayHtml.DisplayServiceMemberNames(serviceChange)}</td>");
+                            report.AppendLine($"<td>{ruleChangeDisplayHtml.DisplayUid(serviceChange)}</td>");
+                            report.AppendLine($"<td>{ruleChangeDisplayHtml.DisplayComment(serviceChange)}</td>");
+                            report.AppendLine("</tr>");
+                        }
+                    }
+                    else
+                    {
+                        report.AppendLine("<tr>");
+                        report.AppendLine($"<td colspan=\"{ColumnCount}\">{userConfig.GetText("no_changes_found")}</td>");
+                        report.AppendLine("</tr>");
+                    }
+                    report.AppendLine("</table>");
+                    report.AppendLine("<hr>");
+
+                    #endregion
+
+                    #region Userobjects
+                    if (management.UserChanges != null && management.UserChanges?.Any() == true)
+                    {
+                        report.AppendLine($"<h4 id=\"{Guid.NewGuid()}\">User objects</h4>");
+                        report.AppendLine("<table>");
+                        report.AppendLine("<tr>");
+                        report.AppendLine($"<th>{userConfig.GetText("change_time")}</th>");
+                        report.AppendLine($"<th>{userConfig.GetText("change_type")}</th>");
+                        report.AppendLine($"<th>{userConfig.GetText("name")}</th>");
+                        report.AppendLine($"<th>{userConfig.GetText("comment")}</th>");
+                        report.AppendLine("</tr>");
+
+                        if (management.UserChanges != null && management.UserChanges?.Any() == true)
+                        {
+                            foreach (var userChange in management.UserChanges)
+                            {
+                                report.AppendLine("<tr>");
+                                report.AppendLine($"<td>{ruleChangeDisplayHtml.DisplayChangeTime(userChange)}</td>");
+                                report.AppendLine($"<td>{ruleChangeDisplayHtml.DisplayChangeAction(userChange)}</td>");
+                                report.AppendLine($"<td>{ruleChangeDisplayHtml.DisplayName(userChange)}</td>");
+                                report.AppendLine($"<td>{ruleChangeDisplayHtml.DisplayComment(userChange)}</td>");
+                                report.AppendLine("</tr>");
+                            }
+                        }
+                        else
+                        {
+                            report.AppendLine("<tr>");
+                            report.AppendLine($"<td colspan=\"{ColumnCount}\">{userConfig.GetText("no_changes_found")}</td>");
+                            report.AppendLine("</tr>");
+                        }
+                        report.AppendLine("</table>");
+                        report.AppendLine("<hr>");
+                    }
+                    #endregion
                 }
+
+
+
             }
+
             return GenerateHtmlFrame(userConfig.GetText(ReportType.ToString()), Query.RawFilter, DateTime.Now, report, timeFilter);
         }
 

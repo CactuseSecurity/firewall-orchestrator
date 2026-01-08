@@ -10,27 +10,7 @@
 {
     @if (management.RuleChanges != null && management.RuleChanges.Any() && ruleChangeDisplayHtml != null && SelectedRuleChanges != null)
     {
-        <Collapse Style="@("primary")" StartToggled="false" UseHtmlTitle="true">
-            <TitleWithHtml>
-                <div class="d-flex justify-content-between align-items-center w-100">
-                    <span>@management.Name</span>
-                    @if (SelectedReportType == ReportType.Changes)
-                    {
-                    <div class="form-check form-switch m-0">
-                        <input class="form-check-input"
-                               type="checkbox"
-                                   checked="@IncludeObjectsInReportChanges"
-                                   @onchange="async (e) => await ToggleIncludeObjects()"
-                                   style="background-color:@(IncludeObjectsInReportChanges ? "green" : "initial");
-                                          border-color:initial;"/>
-                            <label class="form-check-label" for="includeObjectsToggle_@management.Id" style="font-size: 0.80rem;">
-                                @(userConfig.GetText("U1004"))
-                        </label>
-                    </div>
-                    }
-                </div>
-            </TitleWithHtml>
-            <ChildContent>
+        <Collapse Title="@management.Name" Style="@("primary")" StartToggled="false">
             <Table SelectedItems="SelectedRuleChanges"
                 RowClickAction="@(async rule =>{rule.RulebaseName = management.Name ?? ""; if (!SelectedRuleChanges.Remove(rule)) SelectedRuleChanges.Add(rule); await SelectedRuleChangesChanged.InvokeAsync(SelectedRuleChanges);})"
                 Items="management.RuleChanges" TableItem="RuleChange"
@@ -106,13 +86,6 @@
                                     </div>
                                 </Template>
                             </Column>
-                            <Column TableItem="RuleChange" Title="@(userConfig.GetText("uid"))" Hideable="true">
-                                <Template>
-                                    <div style="@ruleChangeDisplayHtml.DisplayStyle(context)">
-                                        @((MarkupString)ruleChangeDisplayHtml.DisplayUid(context))
-                                    </div>
-                                </Template>
-                            </Column>
                             <Column TableItem="RuleChange" Title="@(userConfig.GetText("enforcing_devices"))" Hideable="true">
                                 <Template>
                                     <div style="@ruleChangeDisplayHtml.DisplayStyle(context)">
@@ -120,6 +93,14 @@
                                     </div>
                                 </Template>
                             </Column>
+                            <Column TableItem="RuleChange" Title="@(userConfig.GetText("uid"))" Hideable="true">
+                                <Template>
+                                    <div style="@ruleChangeDisplayHtml.DisplayStyle(context)">
+                                        @((MarkupString)ruleChangeDisplayHtml.DisplayUid(context))
+                                    </div>
+                                </Template>
+                            </Column>
+
                             <Column TableItem="RuleChange" Title="@(userConfig.GetText("comment"))" Hideable="true">
                                 <Template>
                                     <div style="@ruleChangeDisplayHtml.DisplayStyle(context)">
@@ -134,8 +115,8 @@
 
                             <Pager ShowPageNumber="true" ShowTotalCount="true" />                                                            
             </Table>
-            
-                @if (IncludeObjectsInReportChanges)
+
+            @if (IncludeObjectsInReportChanges && management.ObjectChanges != null && management.ObjectChanges.Any())
                 {
                     <Table 
                     Items="management.ObjectChanges" TableItem="ObjectChange"
@@ -155,21 +136,21 @@
                                 </div>
                             </Template>
                         </Column>
-                        <Column TableItem="ObjectChange" Title="IP-OBJ" Hideable="true">
+                    <Column TableItem="ObjectChange" Title="@(userConfig.GetText("type"))" Hideable="true">
+                        <Template>
+                            <div style="@ruleChangeDisplayHtml.DisplayStyle(context)">
+                                @((MarkupString)ruleChangeDisplayHtml.DisplayObjectType(context))
+                            </div>
+                        </Template>
+                    </Column>
+                    <Column TableItem="ObjectChange" Title="@(userConfig.GetText("ip_address"))" Hideable="true">
                             <Template>
                                 <div style="@ruleChangeDisplayHtml.DisplayStyle(context)">
                                     @((MarkupString)ruleChangeDisplayHtml.DisplayObjectIP(context))
                                 </div>
                             </Template>
                         </Column>
-                        <Column TableItem="ObjectChange" Title="IP-OBJ-End" Hideable="true">
-                            <Template>
-                                <div style="@ruleChangeDisplayHtml.DisplayStyle(context)">
-                                    @((MarkupString)ruleChangeDisplayHtml.DisplayObjectIP_End(context))
-                                </div>
-                            </Template>
-                        </Column>
-                        <Column TableItem="ObjectChange" Title="obj_member_names" Hideable="true">
+                    <Column TableItem="ObjectChange" Title="@(userConfig.GetText("members"))" Hideable="true">
                             <Template>
                                 <div style="@ruleChangeDisplayHtml.DisplayStyle(context)">
                                     @((MarkupString)ruleChangeDisplayHtml.DisplayObjectMemberNames(context))
@@ -193,7 +174,7 @@
                         <Pager ShowPageNumber="true" ShowTotalCount="true" />
                     </Table>
                 }
-                @if (IncludeObjectsInReportChanges)
+            @if (IncludeObjectsInReportChanges && management.ServiceChanges != null && management.ServiceChanges.Any())
                 {
                     <Table Items="management.ServiceChanges" TableItem="ServiceChange"
                     style="font-size:small" PageSize="RulesPerPage" ShowSearchBar="false" ColumnReorder="true" TableClass="table table-bordered table-sm th-bg-secondary table-responsive overflow-auto sticky-header">
@@ -211,8 +192,29 @@
                                         @((MarkupString)ruleChangeDisplayHtml.DisplayName(context))
                                     </div>
                                 </Template>
-                            </Column> 
-                        <Column TableItem="ServiceChange" Title="svc_member_names" Hideable="true">
+                            </Column>
+                    <Column TableItem="ServiceChange" Title="@(userConfig.GetText("type"))" Hideable="true">
+                        <Template>
+                            <div style="@ruleChangeDisplayHtml.DisplayStyle(context)">
+                                @((MarkupString)ruleChangeDisplayHtml.DisplayServiceType(context))
+                            </div>
+                        </Template>
+                    </Column>
+                    <Column TableItem="ServiceChange" Title="@(userConfig.GetText("protocol"))" Hideable="true">
+                        <Template>
+                            <div style="@ruleChangeDisplayHtml.DisplayStyle(context)">
+                                @((MarkupString)ruleChangeDisplayHtml.DisplayServiceProtocol(context))
+                            </div>
+                        </Template>
+                    </Column>
+                    <Column TableItem="ServiceChange" Title="@(userConfig.GetText("port"))" Hideable="true">
+                        <Template>
+                            <div style="@ruleChangeDisplayHtml.DisplayStyle(context)">
+                                @((MarkupString)ruleChangeDisplayHtml.DisplayServicePort(context))
+                            </div>
+                        </Template>
+                    </Column>
+                    <Column TableItem="ServiceChange" Title="@(userConfig.GetText("members"))" Hideable="true">
                                 <Template>
                                     <div style="@ruleChangeDisplayHtml.DisplayStyle(context)">
                                     @((MarkupString)ruleChangeDisplayHtml.DisplayServiceMemberNames(context))
@@ -235,14 +237,38 @@
                             </Column>
                             <Pager ShowPageNumber="true" ShowTotalCount="true" />
                         </Table>
+                }
+            @if (IncludeObjectsInReportChanges && management.UserChanges != null && management.UserChanges.Any())
+            {
+                <Table Items="management.UserChanges" TableItem="UserChange"
+                       style="font-size:small" PageSize="RulesPerPage" ShowSearchBar="false" ColumnReorder="true" TableClass="table table-bordered table-sm th-bg-secondary table-responsive overflow-auto sticky-header">
+                    <Column TableItem="UserChange" Title="@(userConfig.GetText("change_time"))" Field="@(oChange => oChange.ChangeImport.Time)" Sortable="true" Filterable="true" Hideable="true" />
+                    <Column TableItem="UserChange" Title="@(userConfig.GetText("change_type"))" Hideable="true">
+                        <Template>
+                            <div style="@ruleChangeDisplayHtml.DisplayStyle(context)">
+                                @((MarkupString)ruleChangeDisplayHtml.DisplayChangeAction(context))
+                            </div>
+                        </Template>
+                    </Column>
+                    <Column TableItem="UserChange" Title="@(userConfig.GetText("name"))" Hideable="true">
+                        <Template>
+                            <div style="@ruleChangeDisplayHtml.DisplayStyle(context)">
+                                @((MarkupString)ruleChangeDisplayHtml.DisplayName(context))
+                            </div>
+                        </Template>
+                    </Column>
+                    <Column TableItem="UserChange" Title="@(userConfig.GetText("comment"))" Hideable="true">
+                        <Template>
+                            <div style="@ruleChangeDisplayHtml.DisplayStyle(context)">
+                                @((MarkupString)ruleChangeDisplayHtml.DisplayComment(context))
+                            </div>
+                        </Template>
+                    </Column>
+                    <Pager ShowPageNumber="true" ShowTotalCount="true" />
+                </Table>
+            }
 
 
-
-
-
-
-                }               
-            </ChildContent>
         </Collapse>
     }
 }
@@ -269,12 +295,6 @@
 
     [Parameter]
     public EventCallback<bool> IncludeObjectsInReportChangesChanged { get; set; }
-
-    private async Task ToggleIncludeObjects()
-    {
-        IncludeObjectsInReportChanges = !IncludeObjectsInReportChanges;
-        await IncludeObjectsInReportChangesChanged.InvokeAsync(IncludeObjectsInReportChanges);
-    }
 
     public RuleChangeDisplayHtml? ruleChangeDisplayHtml;
 

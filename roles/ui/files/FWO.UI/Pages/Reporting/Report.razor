@@ -69,6 +69,13 @@
             {
                 <ReportTenantSelection SelectedTenant="actReportFilters.SelectedTenant" SelectedTenantChanged="TenantViewChanged" TenantFilteringAllowed="tenantFilteringAllowed" />
             }
+            @if (actReportFilters.ReportType.IsChangeReport())
+            {
+                <div class="p-3">
+                    <input class="form-check-input" type="checkbox" id="includeObjectChanges" @bind="actReportFilters.IncludeObjectsInReportChanges" />
+                    <label class="form-check-label text-white" for="includeObjectChanges"> @(userConfig.GetText("U1004"))</label>
+                </div>
+            }
             @if(actReportFilters.ReportType == ReportType.Recertification)
             {
                 <ManagementSelection @bind-DeviceFilter="actReportFilters.DeviceFilter" />
@@ -78,6 +85,8 @@
                 <DeviceSelection @bind-DeviceFilter="actReportFilters.DeviceFilter" @bind-CollapseAll="actReportFilters.CollapseDevices" @bind-SelectAll="actReportFilters.SelectAll" />
             }
         }
+
+
     </Sidebar>
 
     @* ==== Middle div ==== *@
@@ -96,14 +105,15 @@
         <div class="btn-group m-1 sticky-marker-60" style="z-index: 16;">
             @if (!processing)
             {
-                <button type="button" class="btn btn-sm btn-primary" @onclick="GenerateReport">@(DisplayService.DisplayButton(userConfig, "generate_report", Icons.GenerateReport))</button>//ToDo
+                <button type="button" class="btn btn-sm btn-primary" @onclick="async () => { actReportFilters.IncludeObjectsInReportChangesUiPresesed = true; await GenerateReport(); }">@(DisplayService.DisplayButton(userConfig, "generate_report", Icons.GenerateReport))</button>
+                //ToDo
             }
             else
             {
                 <button type="button" class="btn btn-sm btn-danger" @onclick="() => CancelGeneration()">@(DisplayService.DisplayButton(userConfig, "stop_fetching", Icons.Cancel))</button>
             }
             <ReportExport ReportToExport="currentReport" />
-            <button type="button" class="btn btn-sm btn-secondary" @onclick="() => { reportTemplateControl.NewTemplate(ConstructReportTemplate()); }">@(DisplayService.DisplayButton(userConfig, "save_as_template", Icons.Template))</button>
+            <button type="button" class="btn btn-sm btn-secondary" @onclick="() => { reportTemplateControl.NewTemplate(ConstructReportTemplate());}">@(DisplayService.DisplayButton(userConfig, "save_as_template", Icons.Template))</button>
             @if(currentReport != null && currentReport.ReportType == ReportType.UnusedRules && selectedItemsRuleReportTable.Count > 0
                     && (authenticationStateTask!.Result.User.IsInRole(Roles.Admin) || authenticationStateTask!.Result.User.IsInRole(Roles.Requester) || authenticationStateTask!.Result.User.IsInRole(Roles.Auditor)))
             {
@@ -151,8 +161,7 @@
                         case ReportType.ResolvedChanges:
                         case ReportType.ResolvedChangesTech:
                             <ChangesReport Managements="currentReport.ReportData.ManagementData" SelectedReportType="actReportFilters.ReportType" RulesPerPage="rulesPerPage"
-                                               IncludeObjectsInReportChanges="@actReportFilters.IncludeObjectsInReportChanges"
-                                               IncludeObjectsInReportChangesChanged="@(async value => actReportFilters.IncludeObjectsInReportChanges = value)"
+                                               @bind-IncludeObjectsInReportChanges="@actReportFilters.IncludeObjectsInReportChanges"                                               
                                                @bind-SelectedRuleChanges="selectedItemsChangeReportTable" />
                                 //selectedItemsChangeReportTable
                             break;
@@ -449,6 +458,7 @@
         await TenantViewChanged(tenantFromTemplate);
         actReportFilters.SyncFiltersFromTemplate(template);
         actReportFilters.IncludeObjectsInReportChanges = template.IncludeObjectsInReportChanges;
+
         StateHasChanged();
     }
 
@@ -572,7 +582,8 @@
     {
         return new ReportTemplate(tempFilter ?? filterInput, actReportFilters.ToReportParams())
             {
-                IncludeObjectsInReportChanges = actReportFilters.IncludeObjectsInReportChanges
+                IncludeObjectsInReportChanges = actReportFilters.IncludeObjectsInReportChanges,
+                IncludeObjectsInReportChangesUiPresesed = actReportFilters.IncludeObjectsInReportChangesUiPresesed
             };
     }
 

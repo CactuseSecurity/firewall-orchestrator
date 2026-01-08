@@ -30,6 +30,7 @@ namespace FWO.Data.Report
         public bool Detailed { get; set; } = false;
 
         public bool IncludeObjectsInReportChanges { get; set; } = false;
+        public bool IncludeObjectsInReportChangesUiPresesed { get; set; } = false;
 
         public ReportTemplate()
         {}

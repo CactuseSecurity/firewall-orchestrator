@@ -36,6 +36,7 @@ namespace FWO.Report.Filter.FilterTypes
 
         public bool IncludeObjectsInReportChanges { get; set; } = false;
 
+        public bool IncludeObjectsInReportChangesUiPresesed { get; set; } = false;
 
         public void Init(UserConfig userConfigIn, bool showRuleRelatedReports)
         {

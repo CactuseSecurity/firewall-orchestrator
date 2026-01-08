@@ -31,7 +31,9 @@ def normalize_config(native_config: FortiOSConfig, mgm_details: ManagementContro
     """
     normalized_config = FwConfigNormalized()
 
-    for nw_obj in normalize_network_objects(native_config):
+    nw_obj_lookup_dict: dict[str, str] = {}
+
+    for nw_obj in normalize_network_objects(native_config, nw_obj_lookup_dict):
         normalized_config.network_objects[nw_obj.obj_uid] = nw_obj
     FWOLogger.debug(f"Normalized {len(normalized_config.network_objects)} network objects.")
 
@@ -42,8 +44,6 @@ def normalize_config(native_config: FortiOSConfig, mgm_details: ManagementContro
     for user in normalize_users(native_config):
         normalized_config.users[user["user_uid"]] = user
     FWOLogger.debug(f"Normalized {len(normalized_config.users)} user objects.")
-
-    nw_obj_lookup_dict = {obj.obj_name: obj.obj_uid for obj in normalized_config.network_objects.values()}
 
     rulebase_name = "access_rules"
     rules: dict[str, RuleNormalized] = {}

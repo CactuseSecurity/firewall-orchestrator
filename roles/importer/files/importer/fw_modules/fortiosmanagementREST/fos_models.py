@@ -158,6 +158,13 @@ class NwObjIpPool(BaseModel):
     add_nat64_route: str | None = Field(None, alias="add-nat64-route")
 
 
+class RangeRef(BaseModel):
+    """Generic range reference used in mappedip field"""
+
+    range: str
+    q_origin_key: str
+
+
 class NwObjVip(BaseModel):  # TODO: correct? no example data available
     """firewall/vip - Virtual IP objects for destination NAT"""
 
@@ -167,7 +174,7 @@ class NwObjVip(BaseModel):  # TODO: correct? no example data available
     type: str | None = None
     extip: str | None = None  # External IP
     extintf: str | None = None  # External interface
-    mappedip: list[NameRef] | str | None = None  # Mapped internal IP(s)
+    mappedip: list[RangeRef]  # Mapped internal IP(s)
     comment: str | None = None
     color: int | None = None
     extport: str | None = None

@@ -10,12 +10,15 @@ from netaddr import IPAddress, IPNetwork
 DEFAULT_IPv4 = (IPNetwork("0.0.0.0/32"), IPNetwork("255.255.255.255/32"))
 
 
-def normalize_ipv4_network_objects(native_config: FortiOSConfig) -> Generator[NetworkObject]:
+def normalize_ipv4_network_objects(
+    native_config: FortiOSConfig, nw_obj_lookup_dict: dict[str, str]
+) -> Generator[NetworkObject]:
     """
     Normalize IPv4 network objects from the native FortiOS configuration.
 
     Args:
         native_config (FortiOSConfig): The native FortiOS configuration.
+        nw_obj_lookup_dict: Lookup dictionary for network object names to UIDs.
 
     Yields:
         NetworkObject: The normalized network object.
@@ -41,9 +44,11 @@ def normalize_ipv4_network_objects(native_config: FortiOSConfig) -> Generator[Ne
             )
             ip_start, ip_end = DEFAULT_IPv4
 
+        nw_obj_lookup_dict[ip4_obj.name] = ip4_obj.uuid
+
         yield NetworkObject(
             obj_name=ip4_obj.name,
-            obj_uid=ip4_obj.name,
+            obj_uid=ip4_obj.uuid,
             obj_typ=obj_typ,
             obj_ip=ip_start,
             obj_ip_end=ip_end,
@@ -52,12 +57,15 @@ def normalize_ipv4_network_objects(native_config: FortiOSConfig) -> Generator[Ne
         )
 
 
-def normalize_ipv6_network_objects(native_config: FortiOSConfig) -> Generator[NetworkObject]:
+def normalize_ipv6_network_objects(
+    native_config: FortiOSConfig, nw_obj_lookup_dict: dict[str, str]
+) -> Generator[NetworkObject]:
     """
     Normalize IPv6 network objects from the native FortiOS configuration.
 
     Args:
         native_config (FortiOSConfig): The native FortiOS configuration.
+        nw_obj_lookup_dict: Lookup dictionary for network object names to UIDs.
 
     Yields:
         NetworkObject: The normalized network object.
@@ -70,7 +78,8 @@ def normalize_ipv6_network_objects(native_config: FortiOSConfig) -> Generator[Ne
             ip_start = IPNetwork(f"{IPv6Address(network.first)}/128", version=6)
             if ip6_obj.end_ip:
                 ip_end = IPNetwork(f"{ip6_obj.end_ip}/128", version=6)
-                obj_typ = "ip_range"
+                if ip_start != ip_end:
+                    obj_typ = "ip_range"
             else:
                 ip_end = IPNetwork(f"{IPv6Address(network.last)}/128", version=6)
                 if network.size > 1:
@@ -82,9 +91,11 @@ def normalize_ipv6_network_objects(native_config: FortiOSConfig) -> Generator[Ne
             ip_start = IPNetwork("::/128", version=6)
             ip_end = IPNetwork("ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff/128", version=6)
 
+        nw_obj_lookup_dict[ip6_obj.name] = ip6_obj.uuid
+
         yield NetworkObject(
             obj_name=ip6_obj.name,
-            obj_uid=ip6_obj.name,
+            obj_uid=ip6_obj.uuid,
             obj_typ=obj_typ,
             obj_ip=ip_start,
             obj_ip_end=ip_end,
@@ -93,12 +104,15 @@ def normalize_ipv6_network_objects(native_config: FortiOSConfig) -> Generator[Ne
         )
 
 
-def normalize_nwobj_groups(native_config: FortiOSConfig) -> Generator[NetworkObject]:
+def normalize_nwobj_groups(
+    native_config: FortiOSConfig, nw_obj_lookup_dict: dict[str, str]
+) -> Generator[NetworkObject]:
     """
     Normalize address, address6 and internet service group objects from the native FortiOS configuration.
 
     Args:
         native_config (FortiOSConfig): The native FortiOS configuration.
+        nw_obj_lookup_dict: Lookup dictionary for network object names to UIDs.
 
     Yields:
         NetworkObject: The normalized network object.
@@ -107,27 +121,40 @@ def normalize_nwobj_groups(native_config: FortiOSConfig) -> Generator[NetworkObj
     for addrgrp_obj in (
         native_config.nw_obj_addrgrp + native_config.nw_obj_addrgrp6 + native_config.nw_obj_internet_service_group
     ):
-        members = fwo_const.LIST_DELIMITER.join([member.name for member in addrgrp_obj.member])
+        members = [member.name for member in addrgrp_obj.member]
+        member_refs: list[str] = []
+        for member in members:
+            if member not in nw_obj_lookup_dict:
+                FWOLogger.warning(
+                    f"normalize_nwobj_groups: Member object '{member}' of group '{addrgrp_obj.name}' not found in network object lookup."
+                )
+            else:
+                member_refs.append(nw_obj_lookup_dict[member])
+
+        # uid is uuid for addrgrp and addrgrp6, name for internet service group
+        obj_uid = getattr(addrgrp_obj, "uuid", None) or addrgrp_obj.name
+        nw_obj_lookup_dict[addrgrp_obj.name] = obj_uid
 
         yield NetworkObject(
             obj_name=addrgrp_obj.name,
-            obj_uid=addrgrp_obj.name,
+            obj_uid=obj_uid,
             obj_typ="group",
             obj_ip=None,
             obj_ip_end=None,
-            obj_member_refs=members,
-            obj_member_names=members,
+            obj_member_names=fwo_const.LIST_DELIMITER.join(members),
+            obj_member_refs=fwo_const.LIST_DELIMITER.join(member_refs),
             obj_color=fwo_const.DEFAULT_COLOR,
             obj_comment=addrgrp_obj.comment,
         )
 
 
-def normalize_ip_pools(native_config: FortiOSConfig) -> Generator[NetworkObject]:
+def normalize_ip_pools(native_config: FortiOSConfig, nw_obj_lookup_dict: dict[str, str]) -> Generator[NetworkObject]:
     """
     Normalize IP pool objects from the native FortiOS configuration.
 
     Args:
         native_config (FortiOSConfig): The native FortiOS configuration.
+        nw_obj_lookup_dict: Lookup dictionary for network object names to UIDs.
 
     Yields:
         NetworkObject: The normalized network object.
@@ -142,6 +169,7 @@ def normalize_ip_pools(native_config: FortiOSConfig) -> Generator[NetworkObject]
                 f"normalize_ip_pools: Unable to determine IP range for IP pool object {ippool_obj.name}, setting to full range."
             )
             ip_start, ip_end = DEFAULT_IPv4
+        nw_obj_lookup_dict[ippool_obj.name] = ippool_obj.name
 
         yield NetworkObject(
             obj_name=ippool_obj.name,
@@ -154,31 +182,30 @@ def normalize_ip_pools(native_config: FortiOSConfig) -> Generator[NetworkObject]
         )
 
 
-def normalize_vips(native_config: FortiOSConfig) -> Generator[NetworkObject]:
+def normalize_vips(native_config: FortiOSConfig, nw_obj_lookup_dict: dict[str, str]) -> Generator[NetworkObject]:
     """
     Normalize VIP objects from the native FortiOS configuration.
 
     Args:
         native_config (FortiOSConfig): The native FortiOS configuration.
+        nw_obj_lookup_dict: Lookup dictionary for network object names to UIDs.
 
     Yields:
         NetworkObject: The normalized network object.
 
     """
     raise NotImplementedError("normalize_vips is not yet implemented.")  # TODO: need test data
-    # existing_nat_objs = set()  # noqa: ERA001
-
-    # for vip_obj in native_config.nw_obj_vip:
-    #     if not vip_obj.extip:
-    #         raise ValueError(f"normalize_vips: VIP object {vip_obj.name} has no external IP defined.")  # noqa: ERA001
 
 
-def normalize_internet_services(native_config: FortiOSConfig) -> Generator[NetworkObject]:
+def normalize_internet_services(
+    native_config: FortiOSConfig, nw_obj_lookup_dict: dict[str, str]
+) -> Generator[NetworkObject]:
     """
     Normalize internet service objects from the native FortiOS configuration.
 
     Args:
         native_config (FortiOSConfig): The native FortiOS configuration.
+        nw_obj_lookup_dict: Lookup dictionary for network object names to UIDs.
 
     Yields:
         NetworkObject: The normalized network object.
@@ -186,6 +213,7 @@ def normalize_internet_services(native_config: FortiOSConfig) -> Generator[Netwo
     """
     for is_obj in native_config.nw_obj_internet_service:
         start_ip, end_ip = DEFAULT_IPv4
+        nw_obj_lookup_dict[is_obj.name] = is_obj.name
         yield NetworkObject(
             obj_name=is_obj.name,
             obj_uid=is_obj.name,
@@ -197,23 +225,27 @@ def normalize_internet_services(native_config: FortiOSConfig) -> Generator[Netwo
         )
 
 
-def normalize_network_objects(native_config: FortiOSConfig) -> Generator[NetworkObject]:
+def normalize_network_objects(
+    native_config: FortiOSConfig, nw_obj_lookup_dict: dict[str, str]
+) -> Generator[NetworkObject]:
     """
     Normalize all network objects from the native FortiOS configuration.
 
     Args:
         native_config (FortiOSConfig): The native FortiOS configuration.
+        nw_obj_lookup_dict: Lookup dictionary for network object names to UIDs.
 
     Yields:
         NetworkObject: The normalized network object.
 
     """
-    yield from normalize_ipv4_network_objects(native_config)
-    yield from normalize_ipv6_network_objects(native_config)
-    yield from normalize_nwobj_groups(native_config)
-    yield from normalize_ip_pools(native_config)
-    # yield from normalize_vips(native_config) #TODO: implement  # noqa: ERA001
-    yield from normalize_internet_services(native_config)
+    yield from normalize_ipv4_network_objects(native_config, nw_obj_lookup_dict)
+    yield from normalize_ipv6_network_objects(native_config, nw_obj_lookup_dict)
+    # groups may use any of the above objects as members
+    yield from normalize_nwobj_groups(native_config, nw_obj_lookup_dict)
+    yield from normalize_ip_pools(native_config, nw_obj_lookup_dict)
+    # yield from normalize_vips(native_config, nw_obj_lookup_dict) #TODO: implement  # noqa: ERA001
+    yield from normalize_internet_services(native_config, nw_obj_lookup_dict)
     # "Original" network object for natting
     yield NetworkObject(
         obj_name="Original",

@@ -796,8 +796,8 @@ class FwConfigImportObject:
         change_typ = 3  # standard
         change_logger = ChangeLogger()
 
-        if self.import_state.state.is_full_import or self.import_state.state.is_clearing_import:
-            change_typ = 2  # to be ignored in change reports
+        if self.import_state.state.is_initial_import or self.import_state.state.is_clearing_import:
+            change_typ = 2  # initial - to be ignored in change reports
 
         # Write changelog for network objects.
 

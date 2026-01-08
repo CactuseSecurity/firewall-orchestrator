@@ -111,16 +111,14 @@ if __name__ == "__main__":
         # get ipam repo
         if Path(IPAM_GIT_REPO_TARGET_DIR).exists():
             # If the repository already exists, open it and perform a pull
-            repo: Any = git.Repo(  # pyright: ignore[reportUnknownVariableType,reportUnknownMemberType]
-                IPAM_GIT_REPO_TARGET_DIR
-            )
-            origin: Any = repo.remotes.origin  # pyright: ignore[reportUnknownVariableType,reportUnknownMemberType]
-            origin.pull()  # pyright: ignore[reportUnknownMemberType]
+            repo: Any = git.Repo(IPAM_GIT_REPO_TARGET_DIR)
+            origin: Any = repo.remotes.origin
+            origin.pull()
         else:
             repo_url: str = (
                 "https://" + ipam_git_user + ":" + urllib.parse.quote(ipam_git_password, safe="") + "@" + ipam_git_repo
             )
-            repo = git.Repo.clone_from(  # pyright: ignore[reportUnknownVariableType,reportUnknownMemberType]
+            repo = git.Repo.clone_from(
                 repo_url,
                 IPAM_GIT_REPO_TARGET_DIR,
             )

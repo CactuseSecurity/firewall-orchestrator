@@ -1367,8 +1367,8 @@ class FwConfigImportRule:
         import_time = datetime.now().isoformat()
         change_typ = 3
 
-        if self.import_details.state.is_full_import or self.import_details.state.is_clearing_import:
-            change_typ = 2  # TODO: Somehow all imports are treated as im operation.
+        if self.import_details.state.is_initial_import or self.import_details.state.is_clearing_import:
+            change_typ = 2  # initial - to be ignored in change reports
 
         changelog_rule_insert_objects.extend(
             [

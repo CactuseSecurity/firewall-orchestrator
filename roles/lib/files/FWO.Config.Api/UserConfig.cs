@@ -313,7 +313,7 @@ namespace FWO.Config.Api
             base.Dispose(disposing);  // Call base class dispose
         }
 
-        public new void Dispose()
+        public void Dispose()
         {
             Dispose(disposing: true);
             GC.SuppressFinalize(this);

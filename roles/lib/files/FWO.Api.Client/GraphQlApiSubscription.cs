@@ -12,7 +12,6 @@ namespace FWO.Api.Client
 
         private IObservable<GraphQLResponse<dynamic>> subscriptionStream = null!;
         private IDisposable subscription = null!;
-        private readonly ApiConnection apiConnection;
         private readonly GraphQLHttpClient graphQlClient;
         private readonly GraphQLRequest request;
         private readonly Action<Exception> internalExceptionHandler;
@@ -24,7 +23,6 @@ namespace FWO.Api.Client
         public GraphQlApiSubscription(ApiConnection apiConnection, GraphQLHttpClient graphQlClient, GraphQLRequest request, Action<Exception> exceptionHandler, SubscriptionUpdate OnUpdate)
         {
             this.OnUpdate = OnUpdate;
-            this.apiConnection = apiConnection;
             this.graphQlClient = graphQlClient;
             this.request = request;
 
@@ -102,7 +100,6 @@ namespace FWO.Api.Client
             if (disposing)
             {
                 subscription?.Dispose();
-                apiConnection.OnAuthHeaderChanged -= ApiConnectionOnAuthHeaderChanged;
             }
         }
     }

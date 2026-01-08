@@ -36,14 +36,13 @@ __version__ = "2025-11-20-01"
 # "2025-10-28-01" fixing wrong match string resulting in unneccessary attempt to create already existing roles, leading to false positive errors in statistics
 # "2025-11-20-01" rework
 
-fwo_base_dir: str = "/usr/local/fworch/"
-fwo_tmp_dir: str = fwo_base_dir + "tmp/iiq_request_missing_fwmgt_roles/"
-log_dir: str = "/var/log/fworch/iiq_request_missing_fwmgt_roles"
-base_dir_etc: str = fwo_base_dir + "etc/"
-cmdb_repo_target_dir: str = fwo_tmp_dir + "cmdb-repo"
-default_config_file_name: str = f"{base_dir_etc}customizingConfig.json"
+FWO_BASE_DIR: str = "/usr/local/fworch/"
+FWO_TMP_DIR: str = FWO_BASE_DIR + "tmp/iiq_request_missing_fwmgt_roles/"
+LOG_DIR: str = "/var/log/fworch/iiq_request_missing_fwmgt_roles"
+BASE_DIR_ETC: str = FWO_BASE_DIR + "etc/"
+CMDB_REPO_TARGET_DIR: str = FWO_TMP_DIR + "cmdb-repo"
+DEFAULT_CONFIG_FILE_NAME: str = f"{BASE_DIR_ETC}customizingConfig.json"
 IPV4_DOT_COUNT: int = 3
-git_any: Any = git
 
 
 def is_valid_ipv4_address(address: str) -> bool:
@@ -147,12 +146,12 @@ def get_git_repo(git_repo_url: str, git_username: str, git_password: str, repo_t
 
     if Path(repo_target_dir).exists():
         # If the repository already exists, open it and perform a pull
-        repo: Any = git_any.Repo(repo_target_dir)
+        repo: Any = git.Repo(repo_target_dir)
         origin: Any = repo.remotes.origin
         # for DEBUG: do not pull
         origin.pull()
     else:
-        git_any.Repo.clone_from(repo_url, repo_target_dir)
+        git.Repo.clone_from(repo_url, repo_target_dir)
 
 
 def request_all_roles(
@@ -254,9 +253,9 @@ if __name__ == "__main__":
     parser.add_argument(
         "-c",
         "--config",
-        default=default_config_file_name,
+        default=DEFAULT_CONFIG_FILE_NAME,
         help="Filename of custom config file for modelling imports, default file="
-        + default_config_file_name
+        + DEFAULT_CONFIG_FILE_NAME
         + ',\
                         sample config file content: \
                         { \
@@ -355,8 +354,8 @@ if __name__ == "__main__":
         git_repo_url: str = read_custom_config(args.config, "cmdbGitRepoUrl", logger)
         git_username: str = read_custom_config(args.config, "cmdbGitUsername", logger)
         git_password: str = read_custom_config(args.config, "cmdbGitPassword", logger)
-        csv_file_base_dir = cmdb_repo_target_dir
-        get_git_repo(git_repo_url, git_username, git_password, cmdb_repo_target_dir)
+        csv_file_base_dir = CMDB_REPO_TARGET_DIR
+        get_git_repo(git_repo_url, git_username, git_password, CMDB_REPO_TARGET_DIR)
 
     logger.info_if(0, "getting owners from file")
 
@@ -382,6 +381,6 @@ if __name__ == "__main__":
     if debug > 0:
         logger.debug("Stats: %s", json.dumps(stats, indent=3))
 
-    write_stats_to_file(stats, log_dir)
+    write_stats_to_file(stats, LOG_DIR)
 
     sys.exit(0)

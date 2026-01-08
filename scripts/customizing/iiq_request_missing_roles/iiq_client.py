@@ -36,24 +36,24 @@ class IIQClient:
         self.request_body_template: dict[str, Any] = self._build_request_body_template()
 
     def _init_placeholders(self) -> None:
-        self.org_id_placeholder: str = "{orgid}"
-        user_id_placeholder: str = f"{self.user_prefix}-Kennung"
-        self.user_id_placeholder: str = f"{{{user_id_placeholder} des technischen Users IIQ}}"
-        self.boit_user_id_placeholder: str = f"{{{self.user_id_placeholder} des BO-IT}}"
-        self.role_business_type: str = "Geschäftsfunktion"
-        self.role_workplace_type: str = "Arbeitsplatzfunktion"
-        self.role_technical_type: str = "Technische Funktion"
-        self.app_name_origin_placeholder: str = "{Anwendungsname laut Alfabet-ORIGIN}"
-        self.app_name_placeholder: str = "{Anwendungsname laut Alfabet}"
-        self.app_name_upper_placeholder: str = "{Anwendungsname laut Alfabet-UPPER}"
-        self.app_id_placeholder: str = "{AppID}"
-        self.role_name_suffix_prefix: str = "fw_rulemgt_"
+        self.ORG_ID_PLACEHOLDER: str = "{orgid}"
+        self.USER_ID_PLACEHOLDER: str = f"{self.user_prefix}-Kennung"
+        self.TECHNICAL_USER_ID_PLACEHOLDER: str = f"{{{self.USER_ID_PLACEHOLDER} des technischen Users IIQ}}"
+        self.BOIT_USER_ID_PLACEHOLDER: str = f"{{{self.TECHNICAL_USER_ID_PLACEHOLDER} des BO-IT}}"
+        self.ROLE_BUSINESS_TYPE: str = "Geschäftsfunktion"
+        self.ROLE_WORKPLACE_TYPE: str = "Arbeitsplatzfunktion"
+        self.ROLE_TECHNICAL_TYPE: str = "Technische Funktion"
+        self.APP_NAME_ORIGIN_PLACEHOLDER: str = "{Anwendungsname laut Alfabet-ORIGIN}"
+        self.APP_NAME_PLACEHOLDER: str = "{Anwendungsname laut Alfabet}"
+        self.APP_NAME_UPPER_PLACEHOLDER: str = "{Anwendungsname laut Alfabet-UPPER}"
+        self.APP_ID_PLACEHOLDER: str = "{AppID}"
+        self.ROLE_NAME_SUFFIX_PREFIX: str = "fw_rulemgt_"
         # this is not accepted by IIQ: self.role_name_suffix_prefix = "fw_rulemgmt_"
         # response: Der AF-Name rva_02268_fw_rulemgmt_app_5014 ist für die Quelle FWO nicht erlaubt.","Workflow wurde nicht gestartet."],"status":"ERROR"
 
     def _build_request_body_template(self) -> dict[str, Any]:
         request_body_template: dict[str, Any] = {
-            "requesterName": self.user_id_placeholder,
+            "requesterName": self.USER_ID_PLACEHOLDER,
             "requesterComment": "Anlegen von Rollen für Zugriff auf NeMo (Modellierung Kommunikationsprofil, Beantragung und Rezertifizierung von Firewall-Regeln)",
             "source": "FWO",
             "objectModelList": [],
@@ -64,50 +64,50 @@ class IIQClient:
         request_body_template["objectModelList"].extend(
             [
                 {
-                    "objectType": self.role_workplace_type,
+                    "objectType": self.ROLE_WORKPLACE_TYPE,
                     "afType": "rva",
-                    "afNameSuffix": f"{self.role_name_suffix_prefix}{self.app_name_placeholder}",
-                    "afOrgId": self.org_id_placeholder,
-                    "afDesc": f"Die {self.role_workplace_type} ist erforderlich zur Beantragung, Änderung und Rezertifizierung von Firewall Regeln für die Anwendung {self.app_name_origin_placeholder} in der Firewall Orchestrierung Anwendungen auf der PROD Umgebung. Berechtigte können in FWO Anträge für die Anlage, Änderung, Löschung und Rezertifizierung von Firewall Regeln für die Anwendung stellen.",
-                    "afDescription": f"Die {self.role_workplace_type} ist erforderlich zur Beantragung, Änderung und Rezertifizierung von Firewall Regeln für die Anwendung {self.app_name_origin_placeholder} in der Firewall Orchestrierung Anwendungen auf der PROD Umgebung. Berechtigte können in FWO Anträge für die Anlage, Änderung, Löschung und Rezertifizierung von Firewall Regeln für die Anwendung stellen.",
+                    "afNameSuffix": f"{self.ROLE_NAME_SUFFIX_PREFIX}{self.APP_NAME_PLACEHOLDER}",
+                    "afOrgId": self.ORG_ID_PLACEHOLDER,
+                    "afDesc": f"Die {self.ROLE_WORKPLACE_TYPE} ist erforderlich zur Beantragung, Änderung und Rezertifizierung von Firewall Regeln für die Anwendung {self.APP_NAME_ORIGIN_PLACEHOLDER} in der Firewall Orchestrierung Anwendungen auf der PROD Umgebung. Berechtigte können in FWO Anträge für die Anlage, Änderung, Löschung und Rezertifizierung von Firewall Regeln für die Anwendung stellen.",
+                    "afDescription": f"Die {self.ROLE_WORKPLACE_TYPE} ist erforderlich zur Beantragung, Änderung und Rezertifizierung von Firewall Regeln für die Anwendung {self.APP_NAME_ORIGIN_PLACEHOLDER} in der Firewall Orchestrierung Anwendungen auf der PROD Umgebung. Berechtigte können in FWO Anträge für die Anlage, Änderung, Löschung und Rezertifizierung von Firewall Regeln für die Anwendung stellen.",
                     "afCtlAuf": "B",
-                    "afAnsprechpartnerName": self.boit_user_id_placeholder,
+                    "afAnsprechpartnerName": self.BOIT_USER_ID_PLACEHOLDER,
                     "afNibaEu": self.user_prefix,
                 },
                 {
-                    "objectType": self.role_business_type,
+                    "objectType": self.ROLE_BUSINESS_TYPE,
                     "gfType": "rvg",
-                    "gfNameSuffix": f"{self.role_name_suffix_prefix}{self.app_name_placeholder}",
-                    "gfOrgId": self.org_id_placeholder,
-                    "gfDesc": f"Die {self.role_business_type} ist erforderlich zur Beantragung, Änderung und Rezertifizierung von Firewall Regeln für die Anwendung {self.app_name_origin_placeholder} in der Firewall Orchestrierung Anwendungen auf der PROD Umgebung. Berechtigte können in FWO Anträge für die Anlage, Änderung, Löschung und Rezertifizierung von Firewall Regeln für die Anwendung stellen.",
-                    "gfDescription": f"Die {self.role_business_type} ist erforderlich zur Beantragung, Änderung und Rezertifizierung von Firewall Regeln für die Anwendung {self.app_name_origin_placeholder} in der Firewall Orchestrierung Anwendungen auf der PROD Umgebung. Berechtigte können in FWO Anträge für die Anlage, Änderung, Löschung und Rezertifizierung von Firewall Regeln für die Anwendung stellen.",
-                    "gfAnsprechpartnerName": self.boit_user_id_placeholder,
+                    "gfNameSuffix": f"{self.ROLE_NAME_SUFFIX_PREFIX}{self.APP_NAME_PLACEHOLDER}",
+                    "gfOrgId": self.ORG_ID_PLACEHOLDER,
+                    "gfDesc": f"Die {self.ROLE_BUSINESS_TYPE} ist erforderlich zur Beantragung, Änderung und Rezertifizierung von Firewall Regeln für die Anwendung {self.APP_NAME_ORIGIN_PLACEHOLDER} in der Firewall Orchestrierung Anwendungen auf der PROD Umgebung. Berechtigte können in FWO Anträge für die Anlage, Änderung, Löschung und Rezertifizierung von Firewall Regeln für die Anwendung stellen.",
+                    "gfDescription": f"Die {self.ROLE_BUSINESS_TYPE} ist erforderlich zur Beantragung, Änderung und Rezertifizierung von Firewall Regeln für die Anwendung {self.APP_NAME_ORIGIN_PLACEHOLDER} in der Firewall Orchestrierung Anwendungen auf der PROD Umgebung. Berechtigte können in FWO Anträge für die Anlage, Änderung, Löschung und Rezertifizierung von Firewall Regeln für die Anwendung stellen.",
+                    "gfAnsprechpartnerName": self.BOIT_USER_ID_PLACEHOLDER,
                 },
                 {
-                    "objectType": self.role_technical_type,
+                    "objectType": self.ROLE_TECHNICAL_TYPE,
                     "tfApplicationName": self.app_name,
                     "tfAdType": "Anwendungsgruppe anlegen",
-                    "tfOrgId": self.org_id_placeholder,
-                    "tfDesc": f"Die Berechtigung ist erforderlich zur Beantragung, Änderung und Rezertifizierung von Firewall Regeln für die Anwendung {self.app_name_origin_placeholder} in der Firewall Orchestrierung Anwendungen auf der PROD Umgebung. Berechtigte können in FWO Anträge für die Anlage, Änderung, Löschung und Rezertifizierung von Firewall Regeln für die Anwendung stellen.",
-                    "tfApplicationDescription": self.app_name_origin_placeholder,
-                    "tfName": f"A_{self.app_name_upper_placeholder}_FW_RULEMGT",
-                    "tfAnsprechpartnerName": self.boit_user_id_placeholder,
+                    "tfOrgId": self.ORG_ID_PLACEHOLDER,
+                    "tfDesc": f"Die Berechtigung ist erforderlich zur Beantragung, Änderung und Rezertifizierung von Firewall Regeln für die Anwendung {self.APP_NAME_ORIGIN_PLACEHOLDER} in der Firewall Orchestrierung Anwendungen auf der PROD Umgebung. Berechtigte können in FWO Anträge für die Anlage, Änderung, Löschung und Rezertifizierung von Firewall Regeln für die Anwendung stellen.",
+                    "tfApplicationDescription": self.APP_NAME_ORIGIN_PLACEHOLDER,
+                    "tfName": f"A_{self.APP_NAME_UPPER_PLACEHOLDER}_FW_RULEMGT",
+                    "tfAnsprechpartnerName": self.BOIT_USER_ID_PLACEHOLDER,
                     "tfKkz": "K",
-                    "tfAlfabetId": self.app_id_placeholder,
+                    "tfAlfabetId": self.APP_ID_PLACEHOLDER,
                 },
             ]
         )
 
         request_body_template["connectMapList"].extend(
             [
-                {"objectType": self.role_workplace_type, "objectIndex": 0, "connectIndex": 1},
-                {"objectType": self.role_business_type, "objectIndex": 1, "connectIndex": 2},
+                {"objectType": self.ROLE_WORKPLACE_TYPE, "objectIndex": 0, "connectIndex": 1},
+                {"objectType": self.ROLE_BUSINESS_TYPE, "objectIndex": 1, "connectIndex": 2},
             ]
         )
 
         request_body_template["connectMapList"].append(
             {
-                "objectType": self.role_business_type,
+                "objectType": self.ROLE_BUSINESS_TYPE,
                 "objectIndex": 1,
                 "connectName": "A_TUFIN_REQUEST",
                 "tfApplicationName": self.app_name,
@@ -173,7 +173,7 @@ class IIQClient:
         iiq_req_body_local: dict[str, Any] = deepcopy(self.request_body_template)
 
         iiq_req_body_local["requesterName"] = iiq_req_body_local["requesterName"].replace(
-            self.user_id_placeholder, self.user
+            self.USER_ID_PLACEHOLDER, self.user
         )
         object_model: dict[str, Any]
         for object_model in iiq_req_body_local["objectModelList"]:
@@ -181,16 +181,16 @@ class IIQClient:
             for key in object_model:
                 if type(object_model[key]) is str:
                     object_model[key] = object_model[key].replace(
-                        self.app_name_placeholder, app_prefix.lower() + "_" + app_id
+                        self.APP_NAME_PLACEHOLDER, app_prefix.lower() + "_" + app_id
                     )
                     object_model[key] = object_model[key].replace(
-                        self.app_name_upper_placeholder, app_prefix + "_" + app_id
+                        self.APP_NAME_UPPER_PLACEHOLDER, app_prefix + "_" + app_id
                     )
-                    object_model[key] = object_model[key].replace(self.app_name_origin_placeholder, name)
-                    object_model[key] = object_model[key].replace(self.boit_user_id_placeholder, tiso)
-                    object_model[key] = object_model[key].replace(self.user_id_placeholder, self.user)
-                    object_model[key] = object_model[key].replace(self.org_id_placeholder, org_id)
-                    object_model[key] = object_model[key].replace(self.app_id_placeholder, app_prefix + "-" + app_id)
+                    object_model[key] = object_model[key].replace(self.APP_NAME_ORIGIN_PLACEHOLDER, name)
+                    object_model[key] = object_model[key].replace(self.BOIT_USER_ID_PLACEHOLDER, tiso)
+                    object_model[key] = object_model[key].replace(self.USER_ID_PLACEHOLDER, self.user)
+                    object_model[key] = object_model[key].replace(self.ORG_ID_PLACEHOLDER, org_id)
+                    object_model[key] = object_model[key].replace(self.APP_ID_PLACEHOLDER, app_prefix + "-" + app_id)
 
         app_text: str = f"{app_prefix}_{app_id}"
 

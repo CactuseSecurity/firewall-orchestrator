@@ -10,7 +10,7 @@ from typing import Any
 import urllib3
 from requests import Session, exceptions
 
-default_api_url: str = "https://localhost:8888/api/"
+DEFAULT_API_URL: str = "https://localhost:8888/api/"
 HTTP_OK: int = 200
 
 
@@ -45,7 +45,7 @@ def fwo_rest_api_call(
 
 
 # get JWT token from FWO REST API
-def get_jwt_token(user: str, password: str, api_url: str = default_api_url) -> str:
+def get_jwt_token(user: str, password: str, api_url: str = DEFAULT_API_URL) -> str:
     payload: dict[str, str] = {"Username": user, "Password": password}
     headers: dict[str, str] = {"content-type": "application/json"}
 
@@ -73,7 +73,7 @@ def get_jwt_token(user: str, password: str, api_url: str = default_api_url) -> s
 def get_matching_groups(jwt: str, group_pattern: str, api_url: str | None = None) -> list[dict[str, Any]]:
     # Get all groups
     if api_url is None:
-        api_url = default_api_url
+        api_url = DEFAULT_API_URL
     groups: list[dict[str, Any]] = fwo_rest_api_call(api_url, jwt, "Group", HttpCommand.GET.value)
 
     # Filter groups
@@ -84,8 +84,6 @@ def delete_groups_from_roles(groups_to_delete: list[str], roles: list[str] | Non
     if roles is None:
         roles = []
     # first we need to remove the groups from all roles to be able to delete them
-    from_role_delete_counter: int = 0
-    error_counter: int = 0
     role: str
     for role in roles:
         group: str
@@ -94,10 +92,7 @@ def delete_groups_from_roles(groups_to_delete: list[str], roles: list[str] | Non
                 args.api_url, jwt, "Role/User", HttpCommand.DELETE.value, payload={"Role": role, "UserDn": group}
             )
             if not delete_response:
-                error_counter += 1
                 logger.warning("Failed to delete group %s from role %s", group, role)
-            else:
-                from_role_delete_counter += 1
 
 
 def extract_common_names(group_dns_to_delete: list[dict[str, Any]]) -> list[str]:

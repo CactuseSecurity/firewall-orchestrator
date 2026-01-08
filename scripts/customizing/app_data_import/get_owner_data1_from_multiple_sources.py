@@ -205,7 +205,7 @@ def rlm_login(user: str, password: str, api_url: str) -> str:
         try:
             response = session.post(api_url, payload)
         except requests.exceptions.RequestException:
-            raise ApiFailureError("api: error during login to url: " + str(api_url) + " with user " + user) from None
+            raise ApiFailureError(f"api: error during login to url: {api_url!s} with user {user}") from None
 
         if response.status_code == HTTP_OK:
             return json.loads(response.text)["access_token"]

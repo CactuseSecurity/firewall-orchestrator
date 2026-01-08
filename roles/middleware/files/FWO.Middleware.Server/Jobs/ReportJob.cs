@@ -139,6 +139,7 @@ namespace FWO.Middleware.Server.Jobs
             }
             finally
             {
+                userConfig?.Dispose();
                 apiConnectionUserContext?.Dispose();
             }
         }

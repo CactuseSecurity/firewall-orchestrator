@@ -21,7 +21,7 @@ namespace FWO.Middleware.Server.Controllers
     [Authorize]
     [ApiController]
     [Route("api/[controller]")]
-    public class ReportController(JwtWriter jwtWriter, List<Ldap> ldaps, ApiConnection apiConnection) : ControllerBase
+    public class ReportController(JwtWriter jwtWriter, List<Ldap> ldaps, ApiConnection apiConnection) : ControllerBase, IDisposable
     {
 		private readonly ApiConnection apiConnection = apiConnection;
         private readonly JwtWriter jwtWriter = jwtWriter;
@@ -29,6 +29,7 @@ namespace FWO.Middleware.Server.Controllers
 
         private ApiConnection? apiConnectionUserContext = null;
         private UserConfig? userConfig = null;
+        private bool disposed = false;
 
         /// <summary>
         /// Get Report
@@ -197,6 +198,16 @@ namespace FWO.Middleware.Server.Controllers
                 Log.WriteError("Construct Service Filters", $" leads to exception: {exception.Message}");
             }
             return serviceOrFilters;
+        }
+
+        public void Dispose()
+        {
+            if (!disposed)
+            {
+                userConfig?.Dispose();
+                apiConnectionUserContext?.Dispose();
+                disposed = true;
+            }
         }
     }
 }

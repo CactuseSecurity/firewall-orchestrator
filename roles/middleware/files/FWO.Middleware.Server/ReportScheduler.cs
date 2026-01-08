@@ -161,6 +161,13 @@ namespace FWO.Middleware.Server
                 {
                     Log.WriteError(LogMessageTitle, $"Generating scheduled report \"{reportSchedule.Name}\" with id \"{reportSchedule.Id}\" lead to exception.", exception);
                 }
+                finally
+                {
+                    userConfig?.Dispose();
+                    apiConnectionUserContext?.Dispose();
+                    userConfig = null;
+                    apiConnectionUserContext = null;
+                }
             }, token);
         }
 

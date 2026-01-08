@@ -307,7 +307,8 @@ namespace FWO.Middleware.Server
                     SelectedOwner = owner
                 }
             };
-            return await ReportGenerator.GenerateFromTemplate(new ReportTemplate("", reportParams), apiConnectionMiddlewareServer, new UserConfig(globalConfig), DefaultInit.DoNothing);
+            using UserConfig userConfig = new(globalConfig);
+            return await ReportGenerator.GenerateFromTemplate(new ReportTemplate("", reportParams), apiConnectionMiddlewareServer, userConfig, DefaultInit.DoNothing);
         }
 
         private async Task SetOwnerLastCheck(FwoOwner owner)

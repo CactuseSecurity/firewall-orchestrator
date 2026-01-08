@@ -142,18 +142,25 @@ class FwConfigImportObject:
                 changed_zones.append(zone_name)
 
         # add newly created objects
-        new_nw_obj_ids, new_svc_obj_ids, new_user_ids, new_zone_ids, removed_nw_obj_ids, removed_svc_obj_ids, _, _ = (
-            self.update_objects_via_api(
-                single_manager,
-                new_nw_obj_uids,
-                new_svc_obj_uids,
-                new_user_uids,
-                new_zone_names,
-                deleted_nw_obj_uids,
-                deleted_svc_obj_uids,
-                deleted_user_uids,
-                deleted_zone_names,
-            )
+        (
+            new_nw_obj_ids,
+            new_svc_obj_ids,
+            new_user_ids,
+            new_zone_ids,
+            removed_nw_obj_ids,
+            removed_svc_obj_ids,
+            _,
+            _,
+        ) = self.update_objects_via_api(
+            single_manager,
+            new_nw_obj_uids,
+            new_svc_obj_uids,
+            new_user_uids,
+            new_zone_names,
+            deleted_nw_obj_uids,
+            deleted_svc_obj_uids,
+            deleted_user_uids,
+            deleted_zone_names,
         )
 
         self.uid2id_mapper.add_network_object_mappings(new_nw_obj_ids, is_global=single_manager.is_super_manager)
@@ -173,7 +180,11 @@ class FwConfigImportObject:
         # Get Changed Ids.
 
         change_logger.create_change_id_maps(
-            self.uid2id_mapper, changed_nw_objs, changed_svcs, removed_nw_obj_ids, removed_svc_obj_ids
+            self.uid2id_mapper,
+            changed_nw_objs,
+            changed_svcs,
+            removed_nw_obj_ids,
+            removed_svc_obj_ids,
         )
 
         # Seperate changes from adds and removes for changelog and stats.
@@ -204,12 +215,16 @@ class FwConfigImportObject:
         self.add_changelog_objs(new_nw_obj_ids, new_svc_obj_ids, removed_nw_obj_ids, removed_svc_obj_ids)
 
         # note changes:
-        self.import_state.state.stats.set_network_object_add_count(len(new_nw_obj_ids))
-        self.import_state.state.stats.set_network_object_delete_count(len(removed_nw_obj_ids))
-        self.import_state.state.stats.set_network_object_change_count(len(change_logger.changed_object_id_map.items()))
-        self.import_state.state.stats.set_service_object_add_count(len(new_svc_obj_ids))
-        self.import_state.state.stats.set_service_object_delete_count(len(removed_svc_obj_ids))
-        self.import_state.state.stats.set_service_object_change_count(len(change_logger.changed_service_id_map.items()))
+        self.import_state.state.stats.increment_network_object_add_count(len(new_nw_obj_ids))
+        self.import_state.state.stats.increment_network_object_delete_count(len(removed_nw_obj_ids))
+        self.import_state.state.stats.increment_network_object_change_count(
+            len(change_logger.changed_object_id_map.items())
+        )
+        self.import_state.state.stats.increment_service_object_add_count(len(new_svc_obj_ids))
+        self.import_state.state.stats.increment_service_object_delete_count(len(removed_svc_obj_ids))
+        self.import_state.state.stats.increment_service_object_change_count(
+            len(change_logger.changed_service_id_map.items())
+        )
 
     def get_network_obj_type_map(self) -> dict[str, int]:
         query = "query getNetworkObjTypeMap { stm_obj_typ { obj_typ_name obj_typ_id } }"
@@ -493,7 +508,13 @@ class FwConfigImportObject:
 
         for uid in prev_config_objects:
             self.find_removed_objects(
-                current_config_objects, prev_config_objects, removed_members, removed_flats, prefix, uid, typ
+                current_config_objects,
+                prev_config_objects,
+                removed_members,
+                removed_flats,
+                prefix,
+                uid,
+                typ,
             )
         # remove outdated group memberships
         if len(removed_members) == 0:
@@ -696,7 +717,10 @@ class FwConfigImportObject:
             )
 
     def write_member_updates(
-        self, new_group_members: list[dict[str, Any]], new_group_member_flats: list[dict[str, Any]], prefix: str
+        self,
+        new_group_members: list[dict[str, Any]],
+        new_group_member_flats: list[dict[str, Any]],
+        prefix: str,
     ):
         import_mutation = f"""
             mutation update{prefix.capitalize()}Groups($groups: [{prefix}_insert_input!]!, $groupFlats: [{prefix}_flat_insert_input!]!) {{
@@ -708,7 +732,10 @@ class FwConfigImportObject:
                 }}
             }}
         """
-        query_variables = {"groups": new_group_members, "groupFlats": new_group_member_flats}
+        query_variables = {
+            "groups": new_group_members,
+            "groupFlats": new_group_member_flats,
+        }
         try:
             import_result = self.import_state.api_call.call(
                 import_mutation, query_variables=query_variables, analyze_payload=True
@@ -769,8 +796,8 @@ class FwConfigImportObject:
         change_typ = 3  # standard
         change_logger = ChangeLogger()
 
-        if self.import_state.state.is_full_import or self.import_state.state.is_clearing_import:
-            change_typ = 2  # to be ignored in change reports
+        if self.import_state.state.is_initial_import or self.import_state.state.is_clearing_import:
+            change_typ = 2  # initial - to be ignored in change reports
 
         # Write changelog for network objects.
 
@@ -784,7 +811,12 @@ class FwConfigImportObject:
         nw_objs.extend(
             [
                 change_logger.create_changelog_import_object(
-                    "obj", self.import_state.state, "D", change_typ, import_time, nw_obj_id
+                    "obj",
+                    self.import_state.state,
+                    "D",
+                    change_typ,
+                    import_time,
+                    nw_obj_id,
                 )
                 for nw_obj_id in [nw_obj_ids_removed_item["obj_id"] for nw_obj_ids_removed_item in nw_obj_ids_removed]
             ]
@@ -793,7 +825,13 @@ class FwConfigImportObject:
         for old_nw_obj_id, new_nw_obj_id in change_logger.changed_object_id_map.items():
             nw_objs.append(
                 change_logger.create_changelog_import_object(
-                    "obj", self.import_state.state, "C", change_typ, import_time, new_nw_obj_id, old_nw_obj_id
+                    "obj",
+                    self.import_state.state,
+                    "C",
+                    change_typ,
+                    import_time,
+                    new_nw_obj_id,
+                    old_nw_obj_id,
                 )
             )
 
@@ -820,7 +858,13 @@ class FwConfigImportObject:
         for old_svc_id, new_svc_id in change_logger.changed_service_id_map.items():
             svc_objs.append(
                 change_logger.create_changelog_import_object(
-                    "svc", self.import_state.state, "C", change_typ, import_time, new_svc_id, old_svc_id
+                    "svc",
+                    self.import_state.state,
+                    "C",
+                    change_typ,
+                    import_time,
+                    new_svc_id,
+                    old_svc_id,
                 )
             )
 
@@ -847,12 +891,17 @@ class FwConfigImportObject:
             }
         """
 
-        query_variables = {"nwObjChanges": nwobjs_changed, "svcObjChanges": svcobjs_changed}
+        query_variables = {
+            "nwObjChanges": nwobjs_changed,
+            "svcObjChanges": svcobjs_changed,
+        }
 
         if len(nwobjs_changed) + len(svcobjs_changed) > 0:
             try:
                 changelog_result = self.import_state.api_call.call(
-                    changelog_mutation, query_variables=query_variables, analyze_payload=True
+                    changelog_mutation,
+                    query_variables=query_variables,
+                    analyze_payload=True,
                 )
                 if "errors" in changelog_result:
                     FWOLogger.exception(

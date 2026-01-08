@@ -24,7 +24,7 @@ from scripts.customizing.fwo_custom_lib.basic_helpers import (
 from scripts.customizing.fwo_custom_lib.read_app_data_csv import extract_app_data_from_csv, extract_ip_data_from_csv
 from scripts.customizing.iiq_request_missing_roles.iiq_client import IIQClient
 
-__version__ = "2025-11-20-01"
+__version__ = "2026-01-08"
 # "2025-03-24-01" adding support for getting already modelled functions
 # "2025-05-20-01" renaming from ldap-import.py to request-missing-fwmgt-roles.py
 # "2025-06-23-01" adding A_Tufin_Request TF for all users
@@ -35,6 +35,7 @@ __version__ = "2025-11-20-01"
 # "2025-10-10-01" fixing a) missing git clone b) iiq_request_body copy issue
 # "2025-10-28-01" fixing wrong match string resulting in unneccessary attempt to create already existing roles, leading to false positive errors in statistics
 # "2025-11-20-01" rework
+# "2026-01-08-01" ruffing
 
 FWO_BASE_DIR: str = "/usr/local/fworch/"
 FWO_TMP_DIR: str = FWO_BASE_DIR + "tmp/iiq_request_missing_fwmgt_roles/"

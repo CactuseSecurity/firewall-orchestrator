@@ -140,7 +140,9 @@ namespace FWO.Middleware.Server.Jobs
             finally
             {
                 userConfig?.Dispose();
+                userConfig = null; // Clear reference to prevent memory leak through exception stack traces
                 apiConnectionUserContext?.Dispose();
+                apiConnectionUserContext = null; // Clear reference to prevent memory leak through exception stack traces
             }
         }
 

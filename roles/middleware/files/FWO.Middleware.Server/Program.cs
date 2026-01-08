@@ -53,7 +53,7 @@ builder.Services.AddQuartz(q =>
     q.SchedulerId = "FwoScheduler";
 
     // DailyCheck
-    var dailyJob = new JobKey("DailyCheckJob");
+    JobKey dailyJob = new("DailyCheckJob");
     q.AddJob<DailyCheckJob>(opts => opts.WithIdentity(dailyJob));
     DateTimeOffset dailyStart = CalculateForward(globalConfig.DailyCheckStartAt, TimeSpan.FromDays(1));
     q.AddTrigger(opts => opts
@@ -62,9 +62,9 @@ builder.Services.AddQuartz(q =>
         .StartAt(dailyStart)
         .WithSimpleSchedule(x => x.WithInterval(TimeSpan.FromDays(1)).RepeatForever()));
 
-    // AutoDiscover (hours)
-    var autoDiscoverJob = new JobKey("AutoDiscoverJob");
-    q.AddJob<AutoDiscoverJob>(opts => opts.WithIdentity(autoDiscoverJob));
+    // AutoDiscover
+    JobKey autoDiscoverJob = new("AutoDiscoverJob");
+    q.AddJob<AutoDiscoverJob>(opts => opts.WithIdentity(autoDiscoverJob).StoreDurably());
     if (globalConfig.AutoDiscoverSleepTime > 0)
     {
         DateTimeOffset adStart = CalculateForward(globalConfig.AutoDiscoverStartAt, TimeSpan.FromHours(globalConfig.AutoDiscoverSleepTime));
@@ -75,9 +75,9 @@ builder.Services.AddQuartz(q =>
             .WithSimpleSchedule(x => x.WithInterval(TimeSpan.FromHours(globalConfig.AutoDiscoverSleepTime)).RepeatForever()));
     }
 
-    // ImportAppData (hours)
-    var importAppDataJob = new JobKey("ImportAppDataJob");
-    q.AddJob<ImportAppDataJob>(opts => opts.WithIdentity(importAppDataJob));
+    // ImportAppData 
+    JobKey importAppDataJob = new("ImportAppDataJob");
+    q.AddJob<ImportAppDataJob>(opts => opts.WithIdentity(importAppDataJob).StoreDurably());
     if (globalConfig.ImportAppDataSleepTime > 0)
     {
         DateTimeOffset iaStart = CalculateForward(globalConfig.ImportAppDataStartAt, TimeSpan.FromHours(globalConfig.ImportAppDataSleepTime));
@@ -88,9 +88,9 @@ builder.Services.AddQuartz(q =>
             .WithSimpleSchedule(x => x.WithInterval(TimeSpan.FromHours(globalConfig.ImportAppDataSleepTime)).RepeatForever()));
     }
 
-    // ImportIpData (hours)
-    var importIpDataJob = new JobKey("ImportIpDataJob");
-    q.AddJob<ImportIpDataJob>(opts => opts.WithIdentity(importIpDataJob));
+    // ImportIpData
+    JobKey importIpDataJob = new("ImportIpDataJob");
+    q.AddJob<ImportIpDataJob>(opts => opts.WithIdentity(importIpDataJob).StoreDurably());
     if (globalConfig.ImportSubnetDataSleepTime > 0)
     {
         DateTimeOffset iidStart = CalculateForward(globalConfig.ImportSubnetDataStartAt, TimeSpan.FromHours(globalConfig.ImportSubnetDataSleepTime));
@@ -101,9 +101,10 @@ builder.Services.AddQuartz(q =>
             .WithSimpleSchedule(x => x.WithInterval(TimeSpan.FromHours(globalConfig.ImportSubnetDataSleepTime)).RepeatForever()));
     }
 
-    // ImportChangeNotify (seconds)
-    var importChangeNotifyJob = new JobKey("ImportChangeNotifyJob");
-    q.AddJob<ImportChangeNotifyJob>(opts => opts.WithIdentity(importChangeNotifyJob));
+    // ImportChangeNotify
+    JobKey importChangeNotifyJob = new("ImportChangeNotifyJob");
+    q.AddJob<ImportChangeNotifyJob>(opts => opts.WithIdentity(importChangeNotifyJob).StoreDurably());
+
     if (globalConfig.ImpChangeNotifyActive && globalConfig.ImpChangeNotifySleepTime > 0)
     {
         DateTimeOffset icnStart = CalculateForward(globalConfig.ImpChangeNotifyStartAt, TimeSpan.FromSeconds(globalConfig.ImpChangeNotifySleepTime));
@@ -114,9 +115,10 @@ builder.Services.AddQuartz(q =>
             .WithSimpleSchedule(x => x.WithInterval(TimeSpan.FromSeconds(globalConfig.ImpChangeNotifySleepTime)).RepeatForever()));
     }
 
-    // ExternalRequest (seconds)
-    var externalRequestJob = new JobKey("ExternalRequestJob");
-    q.AddJob<ExternalRequestJob>(opts => opts.WithIdentity(externalRequestJob));
+    // ExternalRequest
+    JobKey externalRequestJob = new("ExternalRequestJob");
+    q.AddJob<ExternalRequestJob>(opts => opts.WithIdentity(externalRequestJob).StoreDurably());
+
     if (globalConfig.ExternalRequestSleepTime > 0)
     {
         DateTimeOffset erStart = CalculateForward(globalConfig.ExternalRequestStartAt, TimeSpan.FromSeconds(globalConfig.ExternalRequestSleepTime));
@@ -127,9 +129,9 @@ builder.Services.AddQuartz(q =>
             .WithSimpleSchedule(x => x.WithInterval(TimeSpan.FromSeconds(globalConfig.ExternalRequestSleepTime)).RepeatForever()));
     }
 
-    // VarianceAnalysis (minutes)
-    var varianceAnalysisJob = new JobKey("VarianceAnalysisJob");
-    q.AddJob<VarianceAnalysisJob>(opts => opts.WithIdentity(varianceAnalysisJob));
+    // VarianceAnalysis 
+    JobKey varianceAnalysisJob = new("VarianceAnalysisJob");
+    q.AddJob<VarianceAnalysisJob>(opts => opts.WithIdentity(varianceAnalysisJob).StoreDurably());
     if (globalConfig.VarianceAnalysisSleepTime > 0)
     {
         DateTimeOffset vaStart = CalculateForward(globalConfig.VarianceAnalysisStartAt, TimeSpan.FromMinutes(globalConfig.VarianceAnalysisSleepTime));
@@ -141,7 +143,7 @@ builder.Services.AddQuartz(q =>
     }
 
     // Report (every minute)
-    var reportJob = new JobKey("ReportJob");
+    JobKey reportJob = new("ReportJob");
     q.AddJob<ReportJob>(opts => opts.WithIdentity(reportJob));
     q.AddTrigger(opts => opts
         .WithIdentity("ReportTrigger")
@@ -159,6 +161,7 @@ builder.Services.AddQuartzHostedService(options =>
 builder.Services.AddSingleton(apiConnection);
 builder.Services.AddSingleton(globalConfig);
 builder.Services.AddSingleton<ReportSchedulerState>();
+builder.Services.AddSingleton<JobExecutionTracker>();
 
 // Register config listeners as singletons (activated at startup)
 builder.Services.AddSingleton<ExternalRequestSchedulerService>();
@@ -174,8 +177,8 @@ builder.Services.AddSingleton<ReportSchedulerService>();
 builder.Services.AddControllers()
   .AddJsonOptions(jsonOptions =>
   {
-        //jsonOptions.JsonSerializerOptions.PropertyNameCaseInsensitive = true;
-        jsonOptions.JsonSerializerOptions.PropertyNamingPolicy = null;
+      //jsonOptions.JsonSerializerOptions.PropertyNameCaseInsensitive = true;
+      jsonOptions.JsonSerializerOptions.PropertyNamingPolicy = null;
   });
 
 builder.Services.AddSingleton<JwtWriter>(jwtWriter);
@@ -232,6 +235,12 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+
+// Register JobExecutionTracker with scheduler
+ISchedulerFactory schedulerFactory = app.Services.GetRequiredService<ISchedulerFactory>();
+JobExecutionTracker executionTracker = app.Services.GetRequiredService<JobExecutionTracker>();
+IScheduler scheduler = await schedulerFactory.GetScheduler();
+scheduler.ListenerManager.AddJobListener(executionTracker);
 
 // Activate config listeners so they attach subscriptions after startup
 app.Services.GetRequiredService<ExternalRequestSchedulerService>();

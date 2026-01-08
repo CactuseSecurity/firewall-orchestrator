@@ -1,0 +1,289 @@
+@page "/settings/scheduler"
+@attribute [Authorize(Roles = $"{Roles.Admin}")]
+
+@using FWO.Basics
+@using FWO.Data.Middleware
+@using FWO.Middleware.Client
+@using System.Linq
+@inject MiddlewareClient middlewareClient
+@inject UserConfig userConfig
+@implements IDisposable
+
+<div class="input-group">
+    <h3>Scheduler Jobs</h3>
+    <HelpLink Page="settings/scheduler" />
+</div>
+<p>Admin users can run scheduler jobs immediately.</p>
+<hr />
+
+@if (!initComplete)
+{
+    <Loading />
+}
+else
+{
+    @if (jobs.Count == 0)
+    {
+        <div class="d-flex gap-2 mb-3">
+            <button type="button" class="btn btn-sm btn-secondary" @onclick="LoadJobs">
+                <span class="@Icons.Refresh"></span> Refresh
+            </button>
+        </div>
+    }
+
+    <div class="table-responsive">
+        <table class="table table-bordered th-bg-secondary table-striped align-middle">
+            <thead>
+                <tr>
+                    <th scope="col">Job</th>
+                    <th scope="col">Interval</th>
+                    <th scope="col">Last run</th>
+                    <th scope="col">Next run</th>
+                    <th scope="col" class="text-center">Status</th>
+                    <th scope="col" class="text-center">Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (jobs.Count == 0)
+                {
+                    <tr>
+                        <td colspan="6">No scheduler jobs available.</td>
+                    </tr>
+                }
+                else
+                {
+                    @foreach (SchedulerJobInfo job in jobs)
+                    {
+                        <tr>
+                            <td>
+                                <div class="fw-bold">@job.JobName</div>
+                            </td>
+                            <td>@FormatInterval(job.IntervalDescription)</td>
+                            <td>@FormatRunTime(job.LastFireTimeUtc, job.IntervalDescription, false)</td>
+                            <td>@FormatRunTime(job.NextFireTimeUtc, job.IntervalDescription, true)</td>
+                            <td class="text-center">@FormatExecutionStatus(job)</td>
+                            <td class="text-center">
+                                <button type="button" class="btn btn-sm btn-primary" disabled="@(runningJob == job.JobName)"
+                                    @onclick="() => TriggerJob(job.JobName)">
+                                    <span class="@Icons.Schedule"></span>
+                                    @(runningJob == job.JobName ? "Starting soon…" : "Start now")
+                                </button>
+                            </td>
+                        </tr>
+                    }
+                }
+            </tbody>
+        </table>
+    </div>
+}
+
+@code
+{
+    [CascadingParameter]
+    Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
+
+    private readonly List<SchedulerJobInfo> jobs = [];
+    private bool initComplete;
+    private string? runningJob;
+
+    private PeriodicTimer? refreshTimer;
+    private CancellationTokenSource? refreshCts;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadJobs();
+
+        refreshCts = new CancellationTokenSource();
+        refreshTimer = new PeriodicTimer(TimeSpan.FromSeconds(3));
+
+        _ = RefreshLoop(refreshCts.Token);
+    }
+
+    private async Task RefreshLoop(CancellationToken token)
+    {
+        if (refreshTimer == null) return;
+
+        try
+        {
+            while (await refreshTimer.WaitForNextTickAsync(token))
+            {
+                await InvokeAsync(async () =>
+                {
+                    await LoadJobs();
+                    StateHasChanged();
+                });
+            }
+        }
+        catch (OperationCanceledException) { /* ignore */ }
+    }
+
+    private async Task LoadJobs()
+    {
+        try
+        {
+            RestSharp.RestResponse<List<SchedulerJobInfo>> response = await middlewareClient.GetSchedulerJobs();
+            if (response.IsSuccessful && response.Data != null)
+            {
+                jobs.Clear();
+                jobs.AddRange(response.Data.OrderBy(job => job.JobName));
+            }
+            else
+            {
+                DisplayMessageInUi(new InvalidOperationException(response.ErrorMessage ?? response.StatusDescription ?? "Job fetch failed."),
+                "Fetch scheduler jobs", response.Content ?? string.Empty, true);
+            }
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, "Fetch scheduler jobs", exception.Message, true);
+        }
+        finally
+        {
+            initComplete = true;
+        }
+    }
+
+    private async Task TriggerJob(string jobName)
+    {
+        runningJob = jobName;
+
+        StateHasChanged();
+
+        await Task.Delay(2500);
+
+        try
+        {
+            RestSharp.RestResponse<bool> response = await middlewareClient.RunSchedulerJob(new SchedulerJobTriggerParameters
+            {
+                JobName = jobName
+            });
+
+            if (!response.IsSuccessful || !response.Data)
+            {
+                DisplayMessageInUi(new InvalidOperationException(response.ErrorMessage ?? response.StatusDescription ?? "Job trigger failed."),
+                "Start now", response.Content ?? string.Empty, true);
+            }
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, "Start now", exception.Message, true);
+        }
+        finally
+        {
+            runningJob = null;
+            await LoadJobs();
+        }
+
+        StateHasChanged();
+    }
+
+    private string FormatInterval(string intervalDescription)
+    {
+        return string.IsNullOrWhiteSpace(intervalDescription) ? "N/A" : intervalDescription;
+    }
+
+    private string FormatRunTime(DateTimeOffset? fireTimeUtc, string intervalDescription, bool isNextRun)
+    {
+        if (fireTimeUtc == null)
+        {
+            return "N/A";
+        }
+
+        if (isNextRun)
+        {
+            TimeSpan timeUntil = fireTimeUtc.Value - DateTimeOffset.Now;
+            if (timeUntil.TotalSeconds <= 5 && timeUntil.TotalSeconds >= 0)
+            {
+                return userConfig.GetText("now") != GlobalConst.kUndefinedText ? userConfig.GetText("now") : "now";
+            }
+        }
+
+        DateTime localTime = fireTimeUtc.Value.LocalDateTime;
+        TimeSpan? interval = TryParseInterval(intervalDescription);
+
+        bool hasSeconds = localTime.Second != 0;
+
+        if (interval != null && interval.Value < TimeSpan.FromDays(1))
+        {
+            return hasSeconds ? localTime.ToString("T") : localTime.ToString("t");
+        }
+
+        return hasSeconds ? localTime.ToString("G") : localTime.ToString("g");
+    }
+
+    // TODO: check better formating or parsing
+    private TimeSpan? TryParseInterval(string intervalDescription)
+    {
+        if (string.IsNullOrWhiteSpace(intervalDescription))
+        {
+            return null;
+        }
+
+        string trimmed = intervalDescription.Trim().ToLowerInvariant();
+        if (!trimmed.StartsWith("every "))
+        {
+            return null;
+        }
+
+        // expected pattern: "every <number><unit>", e.g., every 30m, every 2h, every 0.5d
+        string withoutPrefix = trimmed[6..].Trim();
+        double value = 0;
+        char unit = '\0';
+
+        int unitIndex = withoutPrefix.TakeWhile(ch => char.IsDigit(ch) || ch == '.' || ch == ',').Count();
+        if (unitIndex == 0 || unitIndex >= withoutPrefix.Length)
+        {
+            return null;
+        }
+
+        string numberPart = withoutPrefix[..unitIndex].Replace(',', '.');
+        string unitPart = withoutPrefix[unitIndex..].Trim();
+
+        if (!double.TryParse(numberPart, System.Globalization.NumberStyles.Any,
+        System.Globalization.CultureInfo.InvariantCulture, out value))
+        {
+            return null;
+        }
+
+        unit = unitPart.FirstOrDefault();
+
+        return unit switch
+        {
+            's' => TimeSpan.FromSeconds(value),
+            'm' => TimeSpan.FromMinutes(value),
+            'h' => TimeSpan.FromHours(value),
+            'd' => TimeSpan.FromDays(value),
+            _ => (TimeSpan?)null
+        };
+    }
+
+    private MarkupString FormatExecutionStatus(SchedulerJobInfo job)
+    {
+        if (string.IsNullOrWhiteSpace(job.LastExecutionStatus) || job.LastExecutionStatus == "unknown")
+        {
+            return (MarkupString)"<span class=\"text-muted\">—</span>";
+        }
+
+        if (job.LastExecutionStatus == "success")
+        {
+            return (MarkupString)"<span class=\"text-success\" title=\"Success\">✓</span>";
+        }
+
+        if (job.LastExecutionStatus == "error")
+        {
+            string tooltip = !string.IsNullOrWhiteSpace(job.LastExecutionError)
+            ? $"title=\"{System.Web.HttpUtility.HtmlAttributeEncode(job.LastExecutionError)}\""
+            : "title=\"Error\"";
+            return (MarkupString)$"<span class=\"text-danger\" {tooltip}>✗</span>";
+        }
+
+        return (MarkupString)"<span class=\"text-muted\">—</span>";
+    }
+
+    public void Dispose()
+    {
+        refreshCts?.Cancel();
+        refreshTimer?.Dispose();
+        refreshCts?.Dispose();
+    }
+}

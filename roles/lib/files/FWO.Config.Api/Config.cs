@@ -8,7 +8,7 @@ using System.Text.Json.Serialization;
 
 namespace FWO.Config.Api
 {
-    public abstract class Config : ConfigData
+    public abstract class Config : ConfigData, IDisposable
     {
         /// <summary>
         /// Internal connection to api server. Used to get/edit config data.
@@ -23,6 +23,8 @@ namespace FWO.Config.Api
         protected SemaphoreSlim semaphoreSlim = new(1, 1);
 
         public ConfigItem[] RawConfigItems { get; set; } = [];
+        
+        private bool disposedValue;
 
         protected Config() { }
 
@@ -158,6 +160,33 @@ namespace FWO.Config.Api
         protected void InvokeOnChange(Config config, ConfigItem[] configItems)
         {
             OnChange?.Invoke(config, configItems);
+        }
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (!disposedValue)
+            {
+                if (disposing)
+                {
+                    // Dispose SemaphoreSlim
+                    semaphoreSlim?.Dispose();
+                    
+                    // Clear all event subscribers
+                    OnChange = null;
+                }
+                disposedValue = true;
+            }
+        }
+
+        public void Dispose()
+        {
+            Dispose(disposing: true);
+            GC.SuppressFinalize(this);
+        }
+
+        ~Config()
+        {
+            Dispose(disposing: false);
         }
 
         public abstract string GetText(string key);

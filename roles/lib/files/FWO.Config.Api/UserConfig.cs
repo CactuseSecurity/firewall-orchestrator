@@ -300,7 +300,7 @@ namespace FWO.Config.Api
             return plainText;
         }
 
-        protected virtual void Dispose(bool disposing)
+        protected override void Dispose(bool disposing)
         {
             if (!disposedValue)
             {
@@ -310,6 +310,7 @@ namespace FWO.Config.Api
                 }
                 disposedValue = true;
             }
+            base.Dispose(disposing);  // Call base class dispose
         }
 
         public void Dispose()

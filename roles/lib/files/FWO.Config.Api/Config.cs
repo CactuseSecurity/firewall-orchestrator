@@ -25,6 +25,7 @@ namespace FWO.Config.Api
         public ConfigItem[] RawConfigItems { get; set; } = [];
         
         private bool disposedValue;
+        private bool subscribedForConfig = false;
 
         protected Config() { }
 
@@ -41,7 +42,9 @@ namespace FWO.Config.Api
                 UserId = userId;
                 List<string> ignoreKeys = []; // currently nothing ignored, may be used later
                 apiConnection.GetSubscription<ConfigItem[]>(SubscriptionExceptionHandler, SubscriptionUpdateHandler,
-                    ConfigQueries.subscribeConfigChangesByUser, new { UserId , ignoreKeys });
+                    ConfigQueries.subscribeConfigChangesByUser, new { UserId, ignoreKeys });
+                subscribedForConfig = true;
+
                 await Task.Run(async () => { while (!Initialized) { await Task.Delay(10); } }); // waitForFirstUpdate
             }
             else // when only simple read is needed, e.g. during scheduled report in middleware server
@@ -168,6 +171,10 @@ namespace FWO.Config.Api
             {
                 if (disposing)
                 {
+                    if (subscribedForConfig && apiConnection != null)
+                    {
+                        apiConnection.DisposeSubscriptions<GraphQlApiSubscription<ConfigItem[]>>();
+                    }
                     // Dispose SemaphoreSlim
                     semaphoreSlim?.Dispose();
                     

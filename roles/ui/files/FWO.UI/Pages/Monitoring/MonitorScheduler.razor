@@ -1,4 +1,4 @@
-@page "/settings/scheduler"
+@page "/monitoring/scheduler"
 @attribute [Authorize(Roles = $"{Roles.Admin}")]
 
 @using FWO.Basics
@@ -11,7 +11,7 @@
 
 <div class="input-group">
     <h3>Scheduler Jobs</h3>
-    <HelpLink Page="settings/scheduler" />
+    <HelpLink Page="monitoring/scheduler" />
 </div>
 <p>Admin users can run scheduler jobs immediately.</p>
 <hr />

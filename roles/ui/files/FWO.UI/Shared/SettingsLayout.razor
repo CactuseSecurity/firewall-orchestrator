@@ -144,14 +144,7 @@
                     </NavLink>
                 </li>
             </AuthorizeView>
-            <AuthorizeView Roles="@($"{Roles.Admin}")">
-                <li class="nav-item px-2">
-                    <NavLink class="nav-link" href="settings/scheduler">
-                        <span class="@Icons.Schedule"></span> @(SchedulerLabel)
-                    </NavLink>
-                </li>
-            </AuthorizeView>
-                <hr />
+            <hr />
             <li class="nav-item px-2" data-toggle="tooltip" title="@(userConfig.GetText("U5014"))">
                 <h5>@(userConfig.GetText("personal"))</h5>
             </li>
@@ -165,13 +158,14 @@
                 <NavLink class="nav-link" href="settings/language">
                     <span class="@Icons.Language"></span> @(userConfig.GetText("language"))
                 </NavLink>
-                <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.Reporter}, {Roles.ReporterViewAll}, {Roles.Recertifier}, {Roles.Modeller}, {Roles.Auditor}, {Roles.FwAdmin}")">
+                <AuthorizeView
+                    Roles="@($"{Roles.Admin}, {Roles.Reporter}, {Roles.ReporterViewAll}, {Roles.Recertifier}, {Roles.Modeller}, {Roles.Auditor}, {Roles.FwAdmin}")">
                     <NavLink class="nav-link" href="settings/report">
                         <span class="@Icons.Reporting"></span> @(userConfig.GetText("reporting"))
                     </NavLink>
                 </AuthorizeView>
             </li>
-            @if(userConfig.RecertificationMode == RecertificationMode.RuleByRule)
+            @if (userConfig.RecertificationMode == RecertificationMode.RuleByRule)
             {
                 <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.Recertifier}, {Roles.Auditor}")">
                     <li class="nav-item px-2">
@@ -193,7 +187,7 @@
     </div>
 </Sidebar>
 
-    
+
 <div style="margin-left: @($"{sidebarWidth + 20}px");">
     @Body
 </div>
@@ -201,8 +195,7 @@
 @code
 {
     private int sidebarWidth = 250;
-    private string SchedulerLabel => userConfig.GetText("scheduler") != GlobalConst.kUndefinedText ? userConfig.GetText("scheduler") : "Scheduler";
-    
+
     protected override void OnInitialized()
     {
         userConfig.OnChange += OnChange;
@@ -210,11 +203,10 @@
 
     private void OnChange(Config _, ConfigItem[] __)
     {
-        Task.Run(async() => await InvokeAsync(StateHasChanged));
+        Task.Run(async () => await InvokeAsync(StateHasChanged));
     }
     public void Dispose()
     {
         userConfig.OnChange -= OnChange;
     }
 }
-

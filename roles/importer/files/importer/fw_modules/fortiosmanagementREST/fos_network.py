@@ -76,7 +76,7 @@ def normalize_ipv6_network_objects(
         if ip6_obj.ip6:
             network = IPNetwork(ip6_obj.ip6, version=6)
             ip_start = IPNetwork(f"{IPv6Address(network.first)}/128", version=6)
-            if ip6_obj.end_ip:
+            if ip6_obj.end_ip and ip6_obj.end_ip != "::":
                 ip_end = IPNetwork(f"{ip6_obj.end_ip}/128", version=6)
                 if ip_start != ip_end:
                     obj_typ = "ip_range"

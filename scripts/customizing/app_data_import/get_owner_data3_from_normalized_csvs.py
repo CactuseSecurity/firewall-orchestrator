@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 # revision history:
-__version__ = "2025-12-02-01"
+__version__ = "2026-01-08-01"
 
 # breaking change: /usr/local/fworch needs to be in the python path
 # just add "export PYTHONPATH="$PYTHONPATH:/usr/local/fworch/"" to /etc/environment
@@ -19,27 +19,28 @@ __version__ = "2025-12-02-01"
 #   b) requires the config items listed in the aprser help to be present in config file /usr/local/orch/etc/secrets/customizingConfig.json
 
 import argparse
-import json
-import os
+import logging
 import re
-import sys
-import traceback
 from pathlib import Path
 
-import git  # apt install python3-git # or: pip install git
 import urllib3
 
-from scripts.customizing.fwo_custom_lib.app_data_basics import transform_app_list_to_dict, transform_owner_dict_to_list
+from scripts.customizing.fwo_custom_lib.app_data_basics import transform_app_list_to_dict, write_owners_to_json
 from scripts.customizing.fwo_custom_lib.app_data_models import Appip, Owner
-from scripts.customizing.fwo_custom_lib.basic_helpers import get_logger, read_custom_config
+from scripts.customizing.fwo_custom_lib.basic_helpers import (
+    get_logger,
+    read_custom_config,
+    read_custom_config_with_default,
+)
+from scripts.customizing.fwo_custom_lib.git_helpers import read_file_from_git_repo, update_git_repo
 from scripts.customizing.fwo_custom_lib.read_app_data_csv import extract_app_data_from_csv, extract_ip_data_from_csv
 
-base_dir = "/usr/local/fworch/"
-base_dir_etc = base_dir + "etc/"
-app_data_repo_target_dir = base_dir_etc + "cmdb-repo"
-recert_repo_target_dir = base_dir_etc + "recert-repo"
-default_config_file_name = base_dir_etc + "secrets/customizingConfig.json"
-import_source_string = "tufinRlm"
+base_dir: str = "/usr/local/fworch/"
+base_dir_etc: str = base_dir + "etc/"
+app_data_repo_target_dir: str = base_dir_etc + "cmdb-repo"
+recert_repo_target_dir: str = base_dir_etc + "recert-repo"
+default_config_file_name: str = base_dir_etc + "secrets/customizingConfig.json"
+import_source_string: str = "tufinRlm"
 
 
 if __name__ == "__main__":
@@ -79,87 +80,76 @@ if __name__ == "__main__":
     )
     parser.add_argument("-d", "--debug", default=0, help="debug level, default=0")
 
-    args = parser.parse_args()
+    args: argparse.Namespace = parser.parse_args()
 
     if args.suppress_certificate_warnings:
         urllib3.disable_warnings()
 
-    logger = get_logger(debug_level_in=2)
+    logger: logging.Logger = get_logger(debug_level_in=2)
 
     # read config
-    ldap_path = read_custom_config(args.config, "ldapPath", logger)
-    git_repo_url_without_protocol = read_custom_config(args.config, "gitRepo", logger)
-    git_username = read_custom_config(args.config, "gitUser", logger)
-    git_password = read_custom_config(args.config, "gitPassword", logger)
-    csv_owner_file_pattern = read_custom_config(args.config, "csvOwnerFilePattern", logger)
-    csv_app_server_file_pattern = read_custom_config(args.config, "csvAppServerFilePattern", logger)
-    recert_active_repo_url = read_custom_config(args.config, "gitRepoOwnersWithActiveRecert", logger)
-    recert_active_file_name = read_custom_config(args.config, "gitFileOwnersWithActiveRecert", logger)
+    ldap_path: str = read_custom_config(args.config, "ldapPath", logger)
+    git_repo_url_without_protocol: str = read_custom_config(args.config, "gitRepo", logger)
+    git_username: str = read_custom_config(args.config, "gitUser", logger)
+    git_password: str = read_custom_config(args.config, "gitPassword", logger)
+    csv_owner_file_pattern: str = read_custom_config(args.config, "csvOwnerFilePattern", logger)
+    csv_app_server_file_pattern: str = read_custom_config(args.config, "csvAppServerFilePattern", logger)
+    recert_active_repo_url: str | None = read_custom_config_with_default(
+        args.config, "gitRepoOwnersWithActiveRecert", None, logger
+    )
+    recert_active_file_name: str | None = read_custom_config_with_default(
+        args.config, "gitFileOwnersWithActiveRecert", None, logger
+    )
+    owner_header_patterns: dict[str, str] = read_custom_config_with_default(
+        args.config, "csvOwnerColumnPatterns", {}, logger
+    )
+    ip_header_patterns: dict[str, str] = read_custom_config_with_default(args.config, "csvIpColumnPatterns", {}, logger)
 
     if args.debug:
-        debug_level = int(args.debug)
+        debug_level: int = int(args.debug)
     else:
         debug_level = 0
 
     #############################################
     # 1. get CSV files from github repo
 
-    if args.import_from_folder:
-        base_dir = args.import_from_folder
+    import_from_folder: str | None = args.import_from_folder
+    if import_from_folder:
+        base_dir = import_from_folder
+        app_data_repo_target_dir = import_from_folder
     else:
         base_dir = app_data_repo_target_dir
-        app_data_repo_url = "https://" + git_username + ":" + git_password + "@" + git_repo_url_without_protocol
+        app_data_repo_url: str = "https://" + git_username + ":" + git_password + "@" + git_repo_url_without_protocol
 
-        try:
-            if os.path.exists(app_data_repo_target_dir):
-                # If the repository already exists, open it and perform a pull
-                repo = git.Repo(app_data_repo_target_dir)
-                origin = repo.remotes.origin
-                origin.pull()
-            else:
-                repo = git.Repo.clone_from(app_data_repo_url, app_data_repo_target_dir)
-        except Exception:
-            logger.warning(
-                "could not clone/pull git repo from "
-                + app_data_repo_url
-                + ", exception: "
-                + str(traceback.format_exc())
-            )
+        repo_updated: bool = update_git_repo(app_data_repo_url, app_data_repo_target_dir, logger)
+        if not repo_updated:
             logger.warning("trying to read csv files from folder given as parameter...")
 
     #############################################
     # 2. get app list with activated recertification
 
-    recert_repo_url = f"https://{git_username}:{git_password}@{recert_active_repo_url}"
-    try:
-        if os.path.exists(recert_repo_target_dir):
-            # If the repository already exists, open it and perform a pull
-            repo = git.Repo(recert_repo_target_dir)
-            origin = repo.remotes.origin
-            origin.pull()
-        else:
-            repo = git.Repo.clone_from(recert_repo_url, recert_repo_target_dir)
-    except Exception:
-        logger.warning(
-            "could not clone/pull git repo from " + recert_repo_url + ", exception: " + str(traceback.format_exc())
+    if recert_active_repo_url and recert_active_file_name:
+        recert_repo_url: str = f"https://{git_username}:{git_password}@{recert_active_repo_url}"
+        recert_activation_data: str | None = read_file_from_git_repo(
+            recert_repo_url,
+            recert_repo_target_dir,
+            recert_active_file_name,
+            logger,
         )
-
-    recert_activation_file = f"{recert_repo_target_dir}/{recert_active_file_name}"
-    recert_active_app_list = []
-    try:
-        with open(recert_activation_file) as f:
-            recert_active_app_list = f.read().splitlines()
-    except Exception:
-        logger.warning(f"could not read {recert_activation_file}, exception: {traceback.format_exc()!s}")
+        recert_active_app_list: list[str] = recert_activation_data.splitlines() if recert_activation_data else []
+        logger.info("found %s apps with active recertification", len(recert_active_app_list))
+    else:
+        recert_active_app_list: list[str] = []
+        logger.info("no recertification activation source configured; skipping activation of recertification import")
 
     #############################################
     # 3. get app data from CSV files
-    app_list = []
-    re_owner_file_pattern = re.compile(csv_owner_file_pattern)
-    for file_name in os.listdir(app_data_repo_target_dir):
-        if re_owner_file_pattern.match(file_name):
+    app_list: list[Owner] = []
+    re_owner_file_pattern: re.Pattern[str] = re.compile(csv_owner_file_pattern)
+    for file_path in Path(app_data_repo_target_dir).iterdir():
+        if re_owner_file_pattern.match(file_path.name):
             extract_app_data_from_csv(
-                file_name,
+                file_path.name,
                 app_list,
                 ldap_path,
                 import_source_string,
@@ -168,35 +158,39 @@ if __name__ == "__main__":
                 debug_level,
                 base_dir=base_dir,
                 recert_active_app_list=recert_active_app_list,
+                column_patterns=owner_header_patterns,
             )
 
-    app_dict = transform_app_list_to_dict(app_list)
+    app_dict: dict[str, Owner] = transform_app_list_to_dict(app_list)
 
-    re_app_server_file_pattern = re.compile(csv_app_server_file_pattern)
-    for file_name in os.listdir(app_data_repo_target_dir):
-        if re_app_server_file_pattern.match(file_name):
+    re_app_server_file_pattern: re.Pattern[str] = re.compile(csv_app_server_file_pattern)
+    for file_path in Path(app_data_repo_target_dir).iterdir():
+        if re_app_server_file_pattern.match(file_path.name):
             if debug_level > 0:
-                logger.info(f"importing IP data from file {file_name} ...")
-            extract_ip_data_from_csv(file_name, app_dict, Appip, logger, debug_level, base_dir=base_dir)
+                logger.info("importing IP data from file %s ...", file_path.name)
+            extract_ip_data_from_csv(
+                file_path.name,
+                app_dict,
+                Appip,
+                logger,
+                debug_level,
+                base_dir=base_dir,
+                column_patterns=ip_header_patterns,
+            )
 
     #############################################
-    # 4. write owners to json file
-    path = os.path.dirname(__file__)
-    file_out = path + "/" + Path(os.path.basename(__file__)).stem + ".json"
-    with open(file_out, "w") as out_fh:
-        json.dump(transform_owner_dict_to_list(app_dict), out_fh, indent=3)
+    # 4. write owners to json file using the same and basename path as this script, just replacing .py with .json
+    write_owners_to_json(app_dict, __file__, logger=logger)
 
     #############################################
     # 5. Some statistics
     if debug_level > 0:
-        logger.info(f"total #apps: {len(app_dict)!s}")
-        apps_with_ip = 0
-        for app_id in app_dict:
-            apps_with_ip += 1 if len(app_dict[app_id].app_servers) > 0 else 0
-        logger.info(f"#apps with ip addresses: {apps_with_ip!s}")
-        total_ips = 0
-        for app_id in app_dict:
-            total_ips += len(app_dict[app_id].app_servers)
-        logger.info(f"#ip addresses in total: {total_ips!s}")
-
-    sys.exit(0)
+        logger.info("total #apps: %s", len(app_dict))
+        apps_with_ip: int = 0
+        for owner in app_dict.values():
+            apps_with_ip += 1 if len(owner.app_servers) > 0 else 0
+        logger.info("#apps with ip addresses: %s", apps_with_ip)
+        total_ips: int = 0
+        for owner in app_dict.values():
+            total_ips += len(owner.app_servers)
+        logger.info("#ip addresses in total: %s", total_ips)

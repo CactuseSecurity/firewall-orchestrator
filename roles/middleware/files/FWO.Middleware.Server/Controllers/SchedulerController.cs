@@ -61,8 +61,20 @@ namespace FWO.Middleware.Server.Controllers
                 string intervalDescription = DescribeTriggers(triggers);
 
                 JobExecutionResult? lastResult = executionTracker.GetLastResult(jobKey.Name);
-                string executionStatus = lastResult != null ? (lastResult.Success ? "success" : "error") : "unknown";
-                string executionError = lastResult?.ErrorMessage ?? "";
+
+                string executionStatus;
+                string executionError;
+
+                if (lastResult is null)
+                {
+                    executionStatus = "unknown";
+                    executionError = "";
+                }
+                else
+                {
+                    executionStatus = lastResult.Success ? "success" : "error";
+                    executionError = lastResult.Success ? "" : lastResult.ErrorMessage;
+                }
 
                 DateTimeOffset? actualLastFire = lastResult?.ExecutedAt ?? lastFire;
 

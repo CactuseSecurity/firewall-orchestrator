@@ -112,10 +112,11 @@ namespace FWO.Config.Api
 
         public void SetLanguage(string languageName)
         {
+            string defaultLanguage = globalConfig != null ? globalConfig.DefaultLanguage : GlobalConst.kEnglish;
+
             User = new UiUser()
             {
-                Language = languageName != null && languageName != "" ? languageName :
-                globalConfig != null ? globalConfig.DefaultLanguage : GlobalConst.kEnglish
+                Language = languageName != null && languageName != "" ? languageName : defaultLanguage
             };
             if (globalConfig != null && globalConfig.LangDict.TryGetValue(User.Language, out Dictionary<string, string>? langDict))
             {

@@ -56,7 +56,9 @@ namespace FWO.Test
 
         [SetUp]
         public void Initialize()
-        { }
+        {
+            //
+        }
 
         [Test]
         public async Task TestTestScheduler()

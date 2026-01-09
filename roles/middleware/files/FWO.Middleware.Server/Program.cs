@@ -44,6 +44,11 @@ while (true)
     }
 }
 
+Action<Exception> handleSubscriptionException = exception => Log.WriteError("Subscription", "Subscription lead to exception.", exception);
+GraphQlApiSubscription<List<Ldap>>.SubscriptionUpdate connectedLdapsSubscriptionUpdate = (List<Ldap> ldapsChanges) => { lock (changesLock) { connectedLdaps = ldapsChanges; } };
+GraphQlApiSubscription<List<Ldap>> connectedLdapsSubscription = apiConnection.GetSubscription<List<Ldap>>(handleSubscriptionException, connectedLdapsSubscriptionUpdate, AuthQueries.getLdapConnectionsSubscription);
+Log.WriteInfo("Found ldap connection to server", string.Join("\n", connectedLdaps.ConvertAll(ldap => $"{ldap.Address}:{ldap.Port}")));
+
 // GlobalConfig for Quartz DI
 GlobalConfig globalConfig = await GlobalConfig.ConstructAsync(apiConnection, true);
 
@@ -174,8 +179,8 @@ builder.Services.AddSingleton<ReportSchedulerService>();
 builder.Services.AddControllers()
   .AddJsonOptions(jsonOptions =>
   {
-        //jsonOptions.JsonSerializerOptions.PropertyNameCaseInsensitive = true;
-        jsonOptions.JsonSerializerOptions.PropertyNamingPolicy = null;
+      //jsonOptions.JsonSerializerOptions.PropertyNameCaseInsensitive = true;
+      jsonOptions.JsonSerializerOptions.PropertyNamingPolicy = null;
   });
 
 builder.Services.AddSingleton<JwtWriter>(jwtWriter);

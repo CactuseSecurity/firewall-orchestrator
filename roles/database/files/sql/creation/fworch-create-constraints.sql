@@ -45,7 +45,7 @@ Alter table "rulebase_link" add CONSTRAINT unique_rulebase_link
 Alter Table "service" add Constraint "svc_altkey" UNIQUE ("mgm_id","svc_uid","svc_create");
 Alter Table "stm_dev_typ" add Constraint "Alter_Key1" UNIQUE ("dev_typ_name","dev_typ_version");
 Alter Table "usr" add Constraint "usr_altkey" UNIQUE ("mgm_id","user_name","user_create");
-Alter Table "zone" add Constraint "Alter_Key10" UNIQUE ("mgm_id","zone_name");
+CREATE UNIQUE INDEX if not exists "zone_mgm_id_zone_name_removed_is_null_unique" ON zone (mgm_id, zone_name) WHERE removed IS NULL;
 
 create unique index if not exists only_one_future_recert_per_owner_per_rule on recertification(owner_id,rule_metadata_id,recert_date)
     where recert_date IS NULL;

@@ -1,6 +1,7 @@
 from collections.abc import Generator
 
 import fwo_const
+from fw_modules.fortiosmanagementREST import fos_zone
 from fw_modules.fortiosmanagementREST.fos_models import FortiOSConfig, Rule
 from fwo_exceptions import FwoImporterError
 from model_controllers.management_controller import ManagementController
@@ -75,6 +76,31 @@ def normalize_rule_services(rule: Rule) -> tuple[str, str]:
     return rule_svc, rule_svc_refs
 
 
+def normalize_rule_zones(rule: Rule) -> tuple[str | None, str | None]:
+    """
+    Normalize rule zones from a FortiOS rule.
+
+    Args:
+        rule: The FortiOS rule object.
+
+    Returns:
+        tuple[str, str]: The normalized source zones and destination zones.
+
+    """
+    rule_src_zone = None
+    rule_dst_zone = None
+
+    rule_src_zone_names = [fos_zone.normalize_zone(intf.name) for intf in rule.srcintf]
+    rule_dst_zone_names = [fos_zone.normalize_zone(intf.name) for intf in rule.dstintf]
+
+    if rule_src_zone_names:
+        rule_src_zone = fwo_const.LIST_DELIMITER.join(rule_src_zone_names)
+    if rule_dst_zone_names:
+        rule_dst_zone = fwo_const.LIST_DELIMITER.join(rule_dst_zone_names)
+
+    return rule_src_zone, rule_dst_zone
+
+
 def normalize_access_rules(
     native_config: FortiOSConfig, mgm_details: ManagementController, nw_obj_lookup_dict: dict[str, str]
 ) -> Generator[RuleNormalized]:
@@ -107,6 +133,7 @@ def normalize_access_rules(
         rule_src_neg = rule.srcaddr_negate == "enable"
         rule_dst_neg = rule.dstaddr_negate == "enable"
         rule_svc_neg = rule.service_negate == "enable"
+        rule_src_zone, rule_dst_zone = normalize_rule_zones(rule)
         rule_action = RuleAction.DROP if rule.action == "deny" else RuleAction.ACCEPT
         rule_disabled = rule.status not in {"enable", 1}
         rule_track = RuleTrack.NONE if rule.logtraffic == "disable" else RuleTrack.LOG
@@ -128,6 +155,8 @@ def normalize_access_rules(
             rule_src_neg=rule_src_neg,
             rule_dst_neg=rule_dst_neg,
             rule_svc_neg=rule_svc_neg,
+            rule_src_zone=rule_src_zone,
+            rule_dst_zone=rule_dst_zone,
             rule_action=rule_action,
             rule_disabled=rule_disabled,
             rule_installon=rule_installon,

@@ -30,7 +30,7 @@ def normalize_ipv4_network_objects(
             host, mask = ip4_obj.subnet.split(" ")
             # get ip_start/32 and ip_end/32 from subnet
             network = IPNetwork(f"{host}/{mask}")
-            ip_start = IPNetwork(f"{host}/32")
+            ip_start = IPNetwork(f"{IPAddress(network.first)}/32")
             ip_end = IPNetwork(f"{IPAddress(network.first + network.size - 1)}/32")
             if network.size > 1:
                 obj_typ = "network"

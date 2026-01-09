@@ -6,6 +6,7 @@ from fw_modules.fortiosmanagementREST.fos_models import FortiOSConfig
 from fw_modules.fortiosmanagementREST.fos_network import normalize_network_objects
 from fw_modules.fortiosmanagementREST.fos_rule import normalize_access_rules
 from fw_modules.fortiosmanagementREST.fos_service import normalize_service_objects
+from fw_modules.fortiosmanagementREST.fos_zone import collect_zones
 from fwo_log import FWOLogger
 from model_controllers.management_controller import ManagementController
 from models.fwconfig_normalized import FwConfigNormalized
@@ -44,6 +45,9 @@ def normalize_config(native_config: FortiOSConfig, mgm_details: ManagementContro
     for user in normalize_users(native_config):
         normalized_config.users[user["user_uid"]] = user
     FWOLogger.debug(f"Normalized {len(normalized_config.users)} user objects.")
+
+    for zone in collect_zones(native_config):
+        normalized_config.zone_objects[zone] = {"zone_name": zone}
 
     rulebase_name = "access_rules"
     rules: dict[str, RuleNormalized] = {}

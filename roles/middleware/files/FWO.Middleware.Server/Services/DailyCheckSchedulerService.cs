@@ -16,7 +16,6 @@ namespace FWO.Middleware.Server.Services
         private readonly ISchedulerFactory schedulerFactory;
         private readonly ApiConnection apiConnection;
         private readonly GlobalConfig globalConfig;
-        private readonly IHostApplicationLifetime appLifetime;
         private GraphQlApiSubscription<List<ConfigItem>>? configSubscription;
         private IScheduler? scheduler;
         private bool disposed = false;
@@ -37,7 +36,6 @@ namespace FWO.Middleware.Server.Services
             this.schedulerFactory = schedulerFactory;
             this.apiConnection = apiConnection;
             this.globalConfig = globalConfig;
-            this.appLifetime = appLifetime;
 
             // Attach after application started
             appLifetime.ApplicationStarted.Register(OnStarted);
@@ -107,7 +105,7 @@ namespace FWO.Middleware.Server.Services
             Log.WriteInfo(SchedulerName, $"Job scheduled. Start: {startTime:yyyy-MM-dd HH:mm:ss}, Interval: 1d");
         }
 
-        private DateTimeOffset CalculateStartTime(DateTime configuredStartTime, TimeSpan interval)
+        private static DateTimeOffset CalculateStartTime(DateTime configuredStartTime, TimeSpan interval)
         {
             DateTime startTime = configuredStartTime;
             DateTime now = DateTime.Now;
@@ -118,7 +116,7 @@ namespace FWO.Middleware.Server.Services
             return new DateTimeOffset(startTime);
         }
 
-        private void ApiExceptionHandler(Exception exception)
+        private static void ApiExceptionHandler(Exception exception)
         {
             Log.WriteError(SchedulerName, "Config subscription lead to exception. Retry subscription.", exception);
         }

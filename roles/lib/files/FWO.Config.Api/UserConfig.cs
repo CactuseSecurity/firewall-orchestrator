@@ -303,7 +303,7 @@ namespace FWO.Config.Api
             return plainText;
         }
 
-        public void Dispose()
+        public new void Dispose()
         {
             Dispose(disposing: true);
             GC.SuppressFinalize(this);

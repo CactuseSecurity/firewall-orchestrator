@@ -7,7 +7,7 @@ from netaddr import IPAddress, IPNetwork
 
 from scripts.customizing.fwo_custom_lib.app_data_models import Appip, Owner
 
-DEFAULT_VALID_APP_ID_PREFIXES: list[str] = ["app-", "com-"]
+DEFAULT_VALID_APP_ID_PREFIXES: list[str] = []
 DEFAULT_OWNER_HEADER_PATTERNS: dict[str, str] = {
     "name": r".*?:\s*Name",
     "app_id": r".*?:\s*Alfabet-ID$",
@@ -27,6 +27,34 @@ def build_dn(user_id: str, ldap_path: str, logger: logging.Logger) -> str:
     return dn
 
 
+def _normalize_headers(headers: list[str]) -> list[str]:
+    # Strip whitespace and BOM to make header matching resilient.
+    return [h.strip().lstrip("\ufeff") for h in headers]
+
+
+def _find_header_index(
+    headers: list[str],
+    pattern: re.Pattern[str],
+    column_name: str,
+    csv_file_name: str,
+    logger: logging.Logger,
+    required: bool = True,
+) -> int:
+    for i, header in enumerate(headers):
+        if pattern.search(header):
+            return i
+    if not required:
+        return -1
+    logger.error(
+        "missing required column %s in %s; headers=%s; pattern=%s",
+        column_name,
+        csv_file_name,
+        headers,
+        pattern.pattern,
+    )
+    raise ValueError(f"missing required column {column_name}")
+
+
 def read_app_data_from_csv(
     csv_file_name: str,
     logger: logging.Logger,
@@ -36,17 +64,21 @@ def read_app_data_from_csv(
         header_patterns: dict[str, str] = {**DEFAULT_OWNER_HEADER_PATTERNS, **(column_patterns or {})}
         with open(csv_file_name, newline="", encoding="utf-8") as csv_file_handle:
             reader = csv.reader(csv_file_handle)
-            headers: list[str] = next(reader)  # Get header row first
+            headers: list[str] = _normalize_headers(next(reader))  # Get header row first
 
-            name_pattern: re.Pattern[str] = re.compile(header_patterns["name"])
-            app_id_pattern: re.Pattern[str] = re.compile(header_patterns["app_id"])
-            owner_tiso_pattern: re.Pattern[str] = re.compile(header_patterns["owner_tiso"])
-            owner_kwita_pattern: re.Pattern[str] = re.compile(header_patterns["owner_kwita"])
+            name_pattern: re.Pattern[str] = re.compile(header_patterns["name"], re.IGNORECASE)
+            app_id_pattern: re.Pattern[str] = re.compile(header_patterns["app_id"], re.IGNORECASE)
+            owner_tiso_pattern: re.Pattern[str] = re.compile(header_patterns["owner_tiso"], re.IGNORECASE)
+            owner_kwita_pattern: re.Pattern[str] = re.compile(header_patterns["owner_kwita"], re.IGNORECASE)
 
-            app_name_column: int = next(i for i, h in enumerate(headers) if name_pattern.match(h))
-            app_id_column: int = next(i for i, h in enumerate(headers) if app_id_pattern.match(h))
-            app_owner_tiso_column: int = next(i for i, h in enumerate(headers) if owner_tiso_pattern.match(h))
-            app_owner_kwita_column: int = next(i for i, h in enumerate(headers) if owner_kwita_pattern.match(h))
+            app_name_column: int = _find_header_index(headers, name_pattern, "name", csv_file_name, logger)
+            app_id_column: int = _find_header_index(headers, app_id_pattern, "app_id", csv_file_name, logger)
+            app_owner_tiso_column: int = _find_header_index(
+                headers, owner_tiso_pattern, "owner_tiso", csv_file_name, logger
+            )
+            app_owner_kwita_column: int = _find_header_index(
+                headers, owner_kwita_pattern, "owner_kwita", csv_file_name, logger, required=False
+            )
 
             apps_from_csv: list[list[str]] = list(reader)  # Read remaining rows
     except Exception:
@@ -67,15 +99,16 @@ def parse_app_line(
     ldap_path: str,
     import_source_string: str,
     owner_cls: type[Owner],
+    valid_app_id_prefixes: list[str],
     logger: logging.Logger,
     debug_level: int,
 ) -> int:
     app_id: str = line[app_id_column]
-    if app_id.lower().startswith("app-") or app_id.lower().startswith("com-"):
+    if len(valid_app_id_prefixes) == 0 or app_id.lower().startswith(tuple(valid_app_id_prefixes)):
         app_name: str = line[app_name_column]
         app_main_user: str = line[app_owner_tiso_column]
         main_user_dn: str = build_dn(app_main_user, ldap_path, logger)
-        kwita: str = line[app_owner_kwita_column]
+        kwita: str = line[app_owner_kwita_column] if app_owner_kwita_column >= 0 else ""
         if kwita == "" or kwita.lower() == "false":
             recert_period_days: int = 365
         else:
@@ -111,9 +144,12 @@ def extract_app_data_from_csv(
     base_dir: str = ".",
     recert_active_app_list: list[str] | None = None,
     column_patterns: dict[str, str] | None = None,
+    valid_app_id_prefixes: list[str] | None = None,
 ) -> None:
     if recert_active_app_list is None:
         recert_active_app_list = []
+    if valid_app_id_prefixes is None:
+        valid_app_id_prefixes = DEFAULT_VALID_APP_ID_PREFIXES
 
     apps_from_csv: list[list[str]] = []
     csv_file_path: str = base_dir + "/" + csv_file  # add directory to csv files
@@ -136,6 +172,7 @@ def extract_app_data_from_csv(
             ldap_path,
             import_source_string,
             owner_cls,
+            valid_app_id_prefixes,
             logger,
             debug_level,
         )
@@ -163,13 +200,13 @@ def read_ip_data_from_csv(
         header_patterns: dict[str, str] = {**DEFAULT_IP_HEADER_PATTERNS, **(column_patterns or {})}
         with open(csv_filename, newline="", encoding="utf-8") as csv_file:
             reader = csv.reader(csv_file)
-            headers: list[str] = next(reader)  # Get header row first
+            headers: list[str] = _normalize_headers(next(reader))  # Get header row first
 
-            app_id_pattern: re.Pattern[str] = re.compile(header_patterns["app_id"])
-            ip_pattern: re.Pattern[str] = re.compile(header_patterns["ip"])
+            app_id_pattern: re.Pattern[str] = re.compile(header_patterns["app_id"], re.IGNORECASE)
+            ip_pattern: re.Pattern[str] = re.compile(header_patterns["ip"], re.IGNORECASE)
 
-            app_id_column_no: int = next(i for i, h in enumerate(headers) if app_id_pattern.match(h))
-            ip_column_no: int = next(i for i, h in enumerate(headers) if ip_pattern.match(h))
+            app_id_column_no: int = _find_header_index(headers, app_id_pattern, "app_id", csv_filename, logger)
+            ip_column_no: int = _find_header_index(headers, ip_pattern, "ip", csv_filename, logger)
 
             ip_data: list[list[str]] = list(reader)  # Read remaining rows
     except Exception:

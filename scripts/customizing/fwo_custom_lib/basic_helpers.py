@@ -44,8 +44,10 @@ def read_custom_config(config_filename: str, key_to_get: str, logger: FWOLogger)
             custom_config: dict[str, Any] = json.loads(custom_config_fh.read())
         return custom_config[key_to_get]
 
+    except KeyError:
+        logger.warning("could not read key %s from config file %s", key_to_get, config_filename)
     except Exception:
-        logger.exception("could not read key %s from config file %s", key_to_get, config_filename)
+        logger.exception("could not read config file %s", config_filename)
         sys.exit(1)
 
 

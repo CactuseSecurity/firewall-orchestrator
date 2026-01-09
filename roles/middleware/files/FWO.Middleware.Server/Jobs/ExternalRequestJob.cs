@@ -33,23 +33,26 @@ namespace FWO.Middleware.Server.Jobs
         public async Task Execute(IJobExecutionContext context)
         {
             Log.WriteDebug(LogMessageTitle, "Job started");
+
             try
             {
-                ExternalRequestSender externalRequestSender = new(apiConnection, globalConfig);
-                List<string> failedRequests = await externalRequestSender.Run();
-                
-                if (failedRequests.Count > 0)
+                using (ExternalRequestSender externalRequestSender = new(apiConnection, globalConfig))
                 {
-                    throw new ProcessingFailedException($"{failedRequests.Count} External Request(s) failed: {string.Join(". ", failedRequests)}.");
+                    List<string> failedRequests = await externalRequestSender.Run();
+
+                    if (failedRequests.Count > 0)
+                    {
+                        throw new ProcessingFailedException($"{failedRequests.Count} External Request(s) failed: {string.Join(". ", failedRequests)}.");
+                    }
+
+                    Log.WriteDebug(LogMessageTitle, "Job completed successfully");
                 }
-                
-                Log.WriteDebug(LogMessageTitle, "Job completed successfully");
             }
             catch (Exception exc)
             {
                 Log.WriteError(LogMessageTitle, "Job failed", exc);
                 await LogErrorsWithAlert(exc);
-                
+
                 // Mark job as failed but don't refire immediately
                 throw new JobExecutionException(exc, refireImmediately: false);
             }
@@ -61,7 +64,7 @@ namespace FWO.Middleware.Server.Jobs
             {
                 Log.WriteError(LogMessageTitle, $"Ran into exception: ", exc);
                 string titletext = $"Error encountered while trying External Request";
-                
+
                 var Variables = new
                 {
                     source = GlobalConst.kExternalRequest,
@@ -78,9 +81,9 @@ namespace FWO.Middleware.Server.Jobs
                     ruleUid = (string?)null,
                     ruleId = (long?)null
                 };
-                
+
                 await apiConnection.SendQueryAsync<ReturnIdWrapper>(MonitorQueries.addLogEntry, Variables);
-                
+
                 var alertVariables = new
                 {
                     source = GlobalConst.kExternalRequest,
@@ -93,7 +96,7 @@ namespace FWO.Middleware.Server.Jobs
                     jsonData = (object?)null,
                     refAlert = (long?)null
                 };
-                
+
                 await apiConnection.SendQueryAsync<ReturnIdWrapper>(MonitorQueries.addAlert, alertVariables);
             }
             catch (Exception exception)

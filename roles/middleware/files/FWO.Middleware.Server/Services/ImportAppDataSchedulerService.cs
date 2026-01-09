@@ -82,35 +82,45 @@ namespace FWO.Middleware.Server.Services
             var jobKey = new JobKey(JobKeyName);
             var triggerKey = new TriggerKey(TriggerKeyName);
 
-            if (await scheduler.CheckExists(jobKey))
+            // Ensure durable job exists for manual triggering
+            if (!await scheduler.CheckExists(jobKey))
             {
-                await scheduler.DeleteJob(jobKey);
-                Log.WriteInfo(SchedulerName, "Removed existing job");
+                IJobDetail durableJob = JobBuilder.Create<ImportAppDataJob>()
+                    .WithIdentity(jobKey)
+                    .StoreDurably()
+                    .Build();
+                await scheduler.AddJob(durableJob, replace: true);
+                Log.WriteInfo(SchedulerName, "Added durable job for manual triggering");
             }
 
+            // Remove existing trigger (if any) but keep the job
+            bool unscheduled = await scheduler.UnscheduleJob(triggerKey);
+            if (unscheduled)
+            {
+                Log.WriteInfo(SchedulerName, "Removed existing trigger");
+            }
+
+            // Only schedule a trigger if sleep time > 0
             if (globalConfig.ImportAppDataSleepTime <= 0)
             {
-                Log.WriteInfo(SchedulerName, "Job disabled (sleep time <= 0)");
+                Log.WriteInfo(SchedulerName, "Job disabled (sleep time <= 0) - job kept without trigger for manual runs");
                 return;
             }
-
-            IJobDetail job = JobBuilder.Create<ImportAppDataJob>()
-                .WithIdentity(jobKey)
-                .Build();
 
             DateTimeOffset startTime = CalculateStartTime(globalConfig.ImportAppDataStartAt, TimeSpan.FromHours(globalConfig.ImportAppDataSleepTime));
 
             ITrigger trigger = TriggerBuilder.Create()
                 .WithIdentity(triggerKey)
+                .ForJob(jobKey)
                 .StartAt(startTime)
                 .WithSimpleSchedule(x => x
                     .WithInterval(TimeSpan.FromHours(globalConfig.ImportAppDataSleepTime))
                     .RepeatForever())
                 .Build();
 
-            await scheduler.ScheduleJob(job, trigger);
+            await scheduler.ScheduleJob(trigger);
 
-            Log.WriteInfo(SchedulerName, $"Job scheduled. Start: {startTime:yyyy-MM-dd HH:mm:ss}, Interval: {globalConfig.ImportAppDataSleepTime}h");
+            Log.WriteInfo(SchedulerName, $"Trigger scheduled. Start: {startTime:yyyy-MM-dd HH:mm:ss}, Interval: {globalConfig.ImportAppDataSleepTime}h");
         }
 
         private DateTimeOffset CalculateStartTime(DateTime configuredStartTime, TimeSpan interval)

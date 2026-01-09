@@ -1,4 +1,4 @@
-﻿@inherits LayoutComponentBase
+@inherits LayoutComponentBase
 @layout MainLayout
 
 @inject UserConfig userConfig
@@ -144,6 +144,13 @@
                     </NavLink>
                 </li>
             </AuthorizeView>
+            <AuthorizeView Roles="@($"{Roles.Admin}")">
+                <li class="nav-item px-2">
+                    <NavLink class="nav-link" href="settings/scheduler">
+                        <span class="@Icons.Schedule"></span> @(SchedulerLabel)
+                    </NavLink>
+                </li>
+            </AuthorizeView>
                 <hr />
             <li class="nav-item px-2" data-toggle="tooltip" title="@(userConfig.GetText("U5014"))">
                 <h5>@(userConfig.GetText("personal"))</h5>
@@ -194,6 +201,7 @@
 @code
 {
     private int sidebarWidth = 250;
+    private string SchedulerLabel => userConfig.GetText("scheduler") != GlobalConst.kUndefinedText ? userConfig.GetText("scheduler") : "Scheduler";
     
     protected override void OnInitialized()
     {

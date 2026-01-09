@@ -18,7 +18,7 @@ namespace FWO.Middleware.Server.Services
         private readonly IHostApplicationLifetime appLifetime;
         private GraphQlApiSubscription<List<ConfigItem>>? configSubscription;
         private IScheduler? scheduler;
-        
+
         private const string JobKeyName = "ExternalRequestJob";
         private const string TriggerKeyName = "ExternalRequestTrigger";
         private const string SchedulerName = "ExternalRequestScheduler";
@@ -91,43 +91,50 @@ namespace FWO.Middleware.Server.Services
             var jobKey = new JobKey(JobKeyName);
             var triggerKey = new TriggerKey(TriggerKeyName);
 
-            // Remove existing job if present
-            if (await scheduler.CheckExists(jobKey))
+            // Ensure the job exists as a durable job (so it can be manually triggered)
+            if (!await scheduler.CheckExists(jobKey))
             {
-                await scheduler.DeleteJob(jobKey);
-                Log.WriteInfo(SchedulerName, "Removed existing job");
+                IJobDetail durableJob = JobBuilder.Create<Jobs.ExternalRequestJob>()
+                    .WithIdentity(jobKey)
+                    .StoreDurably()
+                    .Build();
+                await scheduler.AddJob(durableJob, replace: true);
+                Log.WriteInfo(SchedulerName, "Added durable job for manual triggering");
             }
 
-            // Only schedule if sleep time > 0
+            // Remove existing trigger (if any) but keep the job
+            bool unscheduled = await scheduler.UnscheduleJob(triggerKey);
+            if (unscheduled)
+            {
+                Log.WriteInfo(SchedulerName, "Removed existing trigger");
+            }
+
+            // Only schedule a trigger if sleep time > 0
             if (globalConfig.ExternalRequestSleepTime <= 0)
             {
-                Log.WriteInfo(SchedulerName, "Job disabled (sleep time <= 0)");
+                Log.WriteInfo(SchedulerName, "Job disabled (sleep time <= 0) - job kept without trigger for manual runs");
                 return;
             }
-
-            // Create job
-            IJobDetail job = JobBuilder.Create<Jobs.ExternalRequestJob>()
-                .WithIdentity(jobKey)
-                .Build();
 
             // Calculate start time
             DateTimeOffset startTime = CalculateStartTime(
                 globalConfig.ExternalRequestStartAt,
                 globalConfig.ExternalRequestSleepTime);
 
-            // Create trigger with recurring schedule
+            // Create trigger with recurring schedule for existing job
             ITrigger trigger = TriggerBuilder.Create()
                 .WithIdentity(triggerKey)
+                .ForJob(jobKey)
                 .StartAt(startTime)
                 .WithSimpleSchedule(x => x
                     .WithIntervalInSeconds(globalConfig.ExternalRequestSleepTime)
                     .RepeatForever())
                 .Build();
 
-            await scheduler.ScheduleJob(job, trigger);
-            
-            Log.WriteInfo(SchedulerName, 
-                $"Job scheduled. Start: {startTime:yyyy-MM-dd HH:mm:ss}, Interval: {globalConfig.ExternalRequestSleepTime}s");
+            await scheduler.ScheduleJob(trigger);
+
+            Log.WriteInfo(SchedulerName,
+                $"Trigger scheduled. Start: {startTime:yyyy-MM-dd HH:mm:ss}, Interval: {globalConfig.ExternalRequestSleepTime}s");
         }
 
         private static DateTimeOffset CalculateStartTime(DateTime configuredStartTime, int intervalSeconds)
@@ -146,7 +153,7 @@ namespace FWO.Middleware.Server.Services
 
         private void ApiExceptionHandler(Exception exception)
         {
-            Log.WriteError(SchedulerName, 
+            Log.WriteError(SchedulerName,
                 "Config subscription lead to exception. Retry subscription.", exception);
         }
 

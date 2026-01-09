@@ -291,7 +291,7 @@ namespace FWO.Report
                             report.AppendLine($"<td>{ruleChangeDisplayHtml.DisplayName(objectChange)}</td>");
                             report.AppendLine($"<td>{ruleChangeDisplayHtml.DisplayObjectType(objectChange)}</td>");
                             report.AppendLine($"<td>{ruleChangeDisplayHtml.DisplayObjectIP(objectChange)}</td>");
-                            report.AppendLine($"<td>{ruleChangeDisplayHtml.DisplayObjectMemberNames(objectChange)}</td>");
+                            report.AppendLine($"{ruleChangeDisplayHtml.DisplayObjectMemberNames(objectChange)}");
                             report.AppendLine($"<td>{ruleChangeDisplayHtml.DisplayUid(objectChange)}</td>");
                             report.AppendLine($"<td>{ruleChangeDisplayHtml.DisplayComment(objectChange)}</td>");
                             report.AppendLine("</tr>");
@@ -335,7 +335,7 @@ namespace FWO.Report
                             report.AppendLine($"<td>{ruleChangeDisplayHtml.DisplayServiceType(serviceChange)}</td>");
                             report.AppendLine($"<td>{ruleChangeDisplayHtml.DisplayServiceProtocol(serviceChange)}</td>");
                             report.AppendLine($"<td>{ruleChangeDisplayHtml.DisplayServicePort(serviceChange)}</td>");
-                            report.AppendLine($"<td>{ruleChangeDisplayHtml.DisplayServiceMemberNames(serviceChange)}</td>");
+                            report.AppendLine($"{ruleChangeDisplayHtml.DisplayServiceMemberNames(serviceChange)}");
                             report.AppendLine($"<td>{ruleChangeDisplayHtml.DisplayUid(serviceChange)}</td>");
                             report.AppendLine($"<td>{ruleChangeDisplayHtml.DisplayComment(serviceChange)}</td>");
                             report.AppendLine("</tr>");

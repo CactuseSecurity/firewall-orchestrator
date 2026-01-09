@@ -26,13 +26,13 @@ namespace FWO.Test
                 SimulatedGlobalConfig globalConfig = new();
                 return new TestScheduler(apiConnection, globalConfig);
             }
-        
+
             private TestScheduler(ApiConnection apiConnection, GlobalConfig globalConfig)
                 : base(apiConnection, globalConfig, ConfigQueries.subscribeExternalRequestConfigChanges, SchedulerInterval.Seconds, "Test")
             {
                 StartScheduleTimer(1, DateTime.Now);
             }
-            
+
             private readonly int Counter = 1;
 
             /// <summary>
@@ -56,7 +56,7 @@ namespace FWO.Test
 
         [SetUp]
         public void Initialize()
-        {}
+        { }
 
         [Test]
         public async Task TestTestScheduler()
@@ -66,7 +66,7 @@ namespace FWO.Test
             TextWriter originalConsoleOut = Console.Out;
             Console.SetOut(logOutput);
 
-            using TestScheduler scheduler = await TestScheduler.CreateAsync(apiConnection);
+            TestScheduler scheduler = await TestScheduler.CreateAsync(apiConnection);
 
             ClassicAssert.AreEqual(0, apiConnection.LogEntries.Count);
             ClassicAssert.AreEqual(0, apiConnection.Alerts.Count);

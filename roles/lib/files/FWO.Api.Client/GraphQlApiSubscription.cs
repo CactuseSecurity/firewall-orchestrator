@@ -69,7 +69,7 @@ namespace FWO.Api.Client
                         if (response.Data == null)
                         {
                             // Terminate subscription
-                            subscription.Dispose();
+                            subscription?.Dispose();
                         }
                         else
                         {
@@ -91,7 +91,7 @@ namespace FWO.Api.Client
 
         private void ApiConnectionOnAuthHeaderChanged(object? sender, string jwt)
         {
-            subscription.Dispose();
+            subscription?.Dispose();
             CreateSubscription();
         }
 
@@ -99,7 +99,7 @@ namespace FWO.Api.Client
         {
             if (disposing)
             {
-                subscription.Dispose();
+                subscription?.Dispose();
             }
         }
     }

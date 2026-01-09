@@ -17,12 +17,13 @@ namespace FWO.Middleware.Server
     /// <summary>
     /// Class to execute handling of external requests
     /// </summary>
-    public class ExternalRequestHandler
+    public class ExternalRequestHandler : IDisposable
     {
         private readonly ApiConnection ApiConnection;
         private readonly ExtStateHandler? extStateHandler;
         private readonly WfHandler wfHandler;
         private readonly UserConfig UserConfig;
+        private bool disposed = false;
         private ExternalTicketSystemType extSystemType = ExternalTicketSystemType.Generic;
         private ExternalTicketSystem actSystem = new();
         private string actTaskType = "";
@@ -67,7 +68,7 @@ namespace FWO.Middleware.Server
                     return false;
                 }
                 int lastFinishedTask = 0;
-                foreach(var task in intTicket.Tasks.OrderBy(t => t.TaskNumber))
+                foreach(WfReqTask? task in intTicket.Tasks.OrderBy(t => t.TaskNumber))
                 {
                     if(task.StateId > wfHandler.StateMatrix(task.TaskType).LowestEndState)
                     {
@@ -474,7 +475,7 @@ namespace FWO.Middleware.Server
 
         private async Task LogRequestTasks(List<WfReqTask> tasks, string? requester, ModellingTypes.ChangeType changeType, string? comment = null)
         {
-            foreach(var task in tasks)
+            foreach(WfReqTask task in tasks)
             {
                 (long objId, ModellingTypes.ModObjectType objType) = GetObject(task);
                 await ModellingHandlerBase.LogChange(changeType, objType, objId,
@@ -527,6 +528,30 @@ namespace FWO.Middleware.Server
             else
             {
                 Log.WriteError(title, message, exception);
+            }
+        }
+
+        /// <summary>
+        /// Dispose method to clean up resources
+        /// </summary>
+        public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        /// <summary>
+        /// Protected dispose method
+        /// </summary>
+        protected virtual void Dispose(bool disposing)
+        {
+            if (!disposed)
+            {
+                if (disposing)
+                {
+                    UserConfig?.Dispose();
+                }
+                disposed = true;
             }
         }
     }

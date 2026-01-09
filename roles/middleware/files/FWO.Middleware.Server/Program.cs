@@ -1,11 +1,15 @@
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
+using FWO.Config.Api;
 using FWO.Config.File;
 using FWO.Logging;
 using FWO.Middleware.Server;
+using FWO.Middleware.Server.Jobs;
+using FWO.Middleware.Server.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
+using Quartz;
 using System.Reflection;
 
 // Implicitly call static constructor so background lock process is started
@@ -13,15 +17,6 @@ using System.Reflection;
 Log.WriteInfo("Startup", "Starting FWO Middleware Server...");
 
 object changesLock = new(); // LOCK
-
-ReportScheduler reportScheduler;
-AutoDiscoverScheduler autoDiscoverScheduler;
-DailyCheckScheduler dailyCheckScheduler;
-ImportAppDataScheduler importAppDataScheduler;
-ImportIpDataScheduler importSubnetDataScheduler;
-ImportChangeNotifyScheduler importChangeNotifyScheduler;
-ExternalRequestScheduler externalRequestScheduler;
-VarianceAnalysisScheduler varianceAnalysisScheduler;
 
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 builder.WebHost.UseUrls(ConfigFile.MiddlewareServerNativeUri ?? throw new ArgumentException("Missing middleware server url on startup."));
@@ -32,7 +27,6 @@ JwtWriter jwtWriter = new(ConfigFile.JwtPrivateKey);
 // Create JWT for middleware-server API calls (relevant part is the role middleware-server) and add it to the Api connection header. 
 ApiConnection apiConnection = new GraphQlApiConnection(ConfigFile.ApiServerUri ?? throw new ArgumentException("Missing api server url on startup."), jwtWriter.CreateJWTMiddlewareServer());
 
-// Fetch all connectedLdaps via API (blocking).
 List<Ldap> connectedLdaps = [];
 int connectionAttemptsCount = 1;
 while (true)
@@ -50,59 +44,131 @@ while (true)
     }
 }
 
-Action<Exception> handleSubscriptionException = (Exception exception) => Log.WriteError("Subscription", "Subscription lead to exception.", exception);
-GraphQlApiSubscription<List<Ldap>>.SubscriptionUpdate connectedLdapsSubscriptionUpdate = (List<Ldap> ldapsChanges) => { lock (changesLock) { connectedLdaps = ldapsChanges; } };
-GraphQlApiSubscription<List<Ldap>> connectedLdapsSubscription = apiConnection.GetSubscription<List<Ldap>>(handleSubscriptionException, connectedLdapsSubscriptionUpdate, AuthQueries.getLdapConnectionsSubscription);
-Log.WriteInfo("Found ldap connection to server", string.Join("\n", connectedLdaps.ConvertAll(ldap => $"{ldap.Address}:{ldap.Port}")));
+// GlobalConfig for Quartz DI
+GlobalConfig globalConfig = await GlobalConfig.ConstructAsync(apiConnection, true);
 
-// Create and start report scheduler
-await Task.Factory.StartNew(async () =>
+// Configure Quartz.NET with jobs and triggers
+builder.Services.AddQuartz(q =>
 {
-    reportScheduler = await  ReportScheduler.CreateAsync(apiConnection, jwtWriter, connectedLdapsSubscription);
-}, TaskCreationOptions.LongRunning);
+    q.SchedulerId = "FwoScheduler";
 
-// Create and start auto disovery scheduler
-await Task.Factory.StartNew(async() =>
+    // DailyCheck
+    var dailyJob = new JobKey("DailyCheckJob");
+    q.AddJob<DailyCheckJob>(opts => opts.WithIdentity(dailyJob));
+    DateTimeOffset dailyStart = CalculateForward(globalConfig.DailyCheckStartAt, TimeSpan.FromDays(1));
+    q.AddTrigger(opts => opts
+        .WithIdentity("DailyCheckTrigger")
+        .ForJob(dailyJob)
+        .StartAt(dailyStart)
+        .WithSimpleSchedule(x => x.WithInterval(TimeSpan.FromDays(1)).RepeatForever()));
+
+    // AutoDiscover (hours)
+    var autoDiscoverJob = new JobKey("AutoDiscoverJob");
+    q.AddJob<AutoDiscoverJob>(opts => opts.WithIdentity(autoDiscoverJob));
+    if (globalConfig.AutoDiscoverSleepTime > 0)
+    {
+        DateTimeOffset adStart = CalculateForward(globalConfig.AutoDiscoverStartAt, TimeSpan.FromHours(globalConfig.AutoDiscoverSleepTime));
+        q.AddTrigger(opts => opts
+            .WithIdentity("AutoDiscoverTrigger")
+            .ForJob(autoDiscoverJob)
+            .StartAt(adStart)
+            .WithSimpleSchedule(x => x.WithInterval(TimeSpan.FromHours(globalConfig.AutoDiscoverSleepTime)).RepeatForever()));
+    }
+
+    // ImportAppData (hours)
+    var importAppDataJob = new JobKey("ImportAppDataJob");
+    q.AddJob<ImportAppDataJob>(opts => opts.WithIdentity(importAppDataJob));
+    if (globalConfig.ImportAppDataSleepTime > 0)
+    {
+        DateTimeOffset iaStart = CalculateForward(globalConfig.ImportAppDataStartAt, TimeSpan.FromHours(globalConfig.ImportAppDataSleepTime));
+        q.AddTrigger(opts => opts
+            .WithIdentity("ImportAppDataTrigger")
+            .ForJob(importAppDataJob)
+            .StartAt(iaStart)
+            .WithSimpleSchedule(x => x.WithInterval(TimeSpan.FromHours(globalConfig.ImportAppDataSleepTime)).RepeatForever()));
+    }
+
+    // ImportIpData (hours)
+    var importIpDataJob = new JobKey("ImportIpDataJob");
+    q.AddJob<ImportIpDataJob>(opts => opts.WithIdentity(importIpDataJob));
+    if (globalConfig.ImportSubnetDataSleepTime > 0)
+    {
+        DateTimeOffset iidStart = CalculateForward(globalConfig.ImportSubnetDataStartAt, TimeSpan.FromHours(globalConfig.ImportSubnetDataSleepTime));
+        q.AddTrigger(opts => opts
+            .WithIdentity("ImportIpDataTrigger")
+            .ForJob(importIpDataJob)
+            .StartAt(iidStart)
+            .WithSimpleSchedule(x => x.WithInterval(TimeSpan.FromHours(globalConfig.ImportSubnetDataSleepTime)).RepeatForever()));
+    }
+
+    // ImportChangeNotify (seconds)
+    var importChangeNotifyJob = new JobKey("ImportChangeNotifyJob");
+    q.AddJob<ImportChangeNotifyJob>(opts => opts.WithIdentity(importChangeNotifyJob));
+    if (globalConfig.ImpChangeNotifyActive && globalConfig.ImpChangeNotifySleepTime > 0)
+    {
+        DateTimeOffset icnStart = CalculateForward(globalConfig.ImpChangeNotifyStartAt, TimeSpan.FromSeconds(globalConfig.ImpChangeNotifySleepTime));
+        q.AddTrigger(opts => opts
+            .WithIdentity("ImportChangeNotifyTrigger")
+            .ForJob(importChangeNotifyJob)
+            .StartAt(icnStart)
+            .WithSimpleSchedule(x => x.WithInterval(TimeSpan.FromSeconds(globalConfig.ImpChangeNotifySleepTime)).RepeatForever()));
+    }
+
+    // ExternalRequest (seconds)
+    var externalRequestJob = new JobKey("ExternalRequestJob");
+    q.AddJob<ExternalRequestJob>(opts => opts.WithIdentity(externalRequestJob));
+    if (globalConfig.ExternalRequestSleepTime > 0)
+    {
+        DateTimeOffset erStart = CalculateForward(globalConfig.ExternalRequestStartAt, TimeSpan.FromSeconds(globalConfig.ExternalRequestSleepTime));
+        q.AddTrigger(opts => opts
+            .WithIdentity("ExternalRequestTrigger")
+            .ForJob(externalRequestJob)
+            .StartAt(erStart)
+            .WithSimpleSchedule(x => x.WithInterval(TimeSpan.FromSeconds(globalConfig.ExternalRequestSleepTime)).RepeatForever()));
+    }
+
+    // VarianceAnalysis (minutes)
+    var varianceAnalysisJob = new JobKey("VarianceAnalysisJob");
+    q.AddJob<VarianceAnalysisJob>(opts => opts.WithIdentity(varianceAnalysisJob));
+    if (globalConfig.VarianceAnalysisSleepTime > 0)
+    {
+        DateTimeOffset vaStart = CalculateForward(globalConfig.VarianceAnalysisStartAt, TimeSpan.FromMinutes(globalConfig.VarianceAnalysisSleepTime));
+        q.AddTrigger(opts => opts
+            .WithIdentity("VarianceAnalysisTrigger")
+            .ForJob(varianceAnalysisJob)
+            .StartAt(vaStart)
+            .WithSimpleSchedule(x => x.WithInterval(TimeSpan.FromMinutes(globalConfig.VarianceAnalysisSleepTime)).RepeatForever()));
+    }
+
+    // Report (every minute)
+    var reportJob = new JobKey("ReportJob");
+    q.AddJob<ReportJob>(opts => opts.WithIdentity(reportJob));
+    q.AddTrigger(opts => opts
+        .WithIdentity("ReportTrigger")
+        .ForJob(reportJob)
+        .StartNow()
+        .WithSimpleSchedule(x => x.WithInterval(TimeSpan.FromMinutes(1)).RepeatForever()));
+});
+
+builder.Services.AddQuartzHostedService(options =>
 {
-    autoDiscoverScheduler = await AutoDiscoverScheduler.CreateAsync(apiConnection);
-}, TaskCreationOptions.LongRunning);
+    options.WaitForJobsToComplete = true;
+});
 
-// Create and start daily check scheduler
-await Task.Factory.StartNew(async() =>
-{
-    dailyCheckScheduler = await DailyCheckScheduler.CreateAsync(apiConnection);
-}, TaskCreationOptions.LongRunning);
+// Register singletons for DI
+builder.Services.AddSingleton(apiConnection);
+builder.Services.AddSingleton(globalConfig);
+builder.Services.AddSingleton<ReportSchedulerState>();
 
-// Create and start import app data scheduler
-await Task.Factory.StartNew(async() =>
-{
-    importAppDataScheduler = await ImportAppDataScheduler.CreateAsync(apiConnection);
-}, TaskCreationOptions.LongRunning);
-
-// Create and start import subnet data scheduler
-await Task.Factory.StartNew(async() =>
-{
-    importSubnetDataScheduler = await ImportIpDataScheduler.CreateAsync(apiConnection);
-}, TaskCreationOptions.LongRunning);
-
-// Create and start import change notify scheduler
-await Task.Factory.StartNew(async() =>
-{
-    importChangeNotifyScheduler = await ImportChangeNotifyScheduler.CreateAsync(apiConnection);
-}, TaskCreationOptions.LongRunning);
-
-// Create and start external request scheduler
-await Task.Factory.StartNew(async() =>
-{
-    externalRequestScheduler = await ExternalRequestScheduler.CreateAsync(apiConnection);
-}, TaskCreationOptions.LongRunning);
-
-// Create and start variance analysis scheduler
-await Task.Factory.StartNew(async() =>
-{
-    varianceAnalysisScheduler = await VarianceAnalysisScheduler.CreateAsync(apiConnection);
-}, TaskCreationOptions.LongRunning);
-
+// Register config listeners as singletons (activated at startup)
+builder.Services.AddSingleton<ExternalRequestSchedulerService>();
+builder.Services.AddSingleton<AutoDiscoverSchedulerService>();
+builder.Services.AddSingleton<DailyCheckSchedulerService>();
+builder.Services.AddSingleton<ImportAppDataSchedulerService>();
+builder.Services.AddSingleton<ImportIpDataSchedulerService>();
+builder.Services.AddSingleton<ImportChangeNotifySchedulerService>();
+builder.Services.AddSingleton<VarianceAnalysisSchedulerService>();
+builder.Services.AddSingleton<ReportSchedulerService>();
 
 // Add services to the container.
 builder.Services.AddControllers()
@@ -114,7 +180,6 @@ builder.Services.AddControllers()
 
 builder.Services.AddSingleton<JwtWriter>(jwtWriter);
 builder.Services.AddSingleton<List<Ldap>>(connectedLdaps);
-builder.Services.AddScoped<ApiConnection>(_ => new GraphQlApiConnection(ConfigFile.ApiServerUri, jwtWriter.CreateJWTMiddlewareServer()));
 
 builder.Services.AddAuthentication(confOptions =>
 {
@@ -148,7 +213,7 @@ builder.Services.AddSwaggerGen(c =>
     c.IncludeXmlComments(documentationPath);
 });
 
-var app = builder.Build();
+WebApplication app = builder.Build();
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
@@ -168,4 +233,26 @@ app.UseAuthorization();
 
 app.MapControllers();
 
+// Activate config listeners so they attach subscriptions after startup
+app.Services.GetRequiredService<ExternalRequestSchedulerService>();
+app.Services.GetRequiredService<AutoDiscoverSchedulerService>();
+app.Services.GetRequiredService<DailyCheckSchedulerService>();
+app.Services.GetRequiredService<ImportAppDataSchedulerService>();
+app.Services.GetRequiredService<ImportIpDataSchedulerService>();
+app.Services.GetRequiredService<ImportChangeNotifySchedulerService>();
+app.Services.GetRequiredService<VarianceAnalysisSchedulerService>();
+app.Services.GetRequiredService<ReportSchedulerService>();
+
 app.Run();
+
+// Helper to compute next occurrence in the future
+static DateTimeOffset CalculateForward(DateTime configuredStartTime, TimeSpan interval)
+{
+    DateTime startTime = configuredStartTime;
+    DateTime now = DateTime.Now;
+    while (startTime < now)
+    {
+        startTime = startTime.Add(interval);
+    }
+    return new DateTimeOffset(startTime);
+}

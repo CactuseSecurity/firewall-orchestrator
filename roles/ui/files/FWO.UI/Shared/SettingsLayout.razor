@@ -2,6 +2,7 @@
 @layout MainLayout
 
 @inject UserConfig userConfig
+@implements IDisposable
 
 <Sidebar PositionLeft="true" Collapsible="true" Resizeable="true" @bind-Width="sidebarWidth">
     <div class="me-2 ms-2 mt-4 mb-4">
@@ -202,6 +203,10 @@
     private void OnChange(Config _, ConfigItem[] __)
     {
         Task.Run(async() => await InvokeAsync(StateHasChanged));
+    }
+    public void Dispose()
+    {
+        userConfig.OnChange -= OnChange;
     }
 }
 

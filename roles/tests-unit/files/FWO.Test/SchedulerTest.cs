@@ -66,7 +66,7 @@ namespace FWO.Test
             TextWriter originalConsoleOut = Console.Out;
             Console.SetOut(logOutput);
 
-            await TestScheduler.CreateAsync(apiConnection);
+            using TestScheduler scheduler = await TestScheduler.CreateAsync(apiConnection);
 
             ClassicAssert.AreEqual(0, apiConnection.LogEntries.Count);
             ClassicAssert.AreEqual(0, apiConnection.Alerts.Count);

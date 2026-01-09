@@ -62,6 +62,7 @@ if __name__ == "__main__":
                             "csvAppServerFilePattern": "NeMo_???_IP_.*?.csv", \
                             "gitRepoOwnersWithActiveRecert": "github.example.de/FWO", \
                             "gitFileOwnersWithActiveRecert": "isolated-apps.txt", \
+                            "csvSeparator": ",", \
                             "validAppIdPrefixes": ["app-", "com-"], \
                             "importSource": "tufinRlm" \
                         } \
@@ -112,6 +113,7 @@ if __name__ == "__main__":
     valid_app_id_prefixes: list[str] | None = read_custom_config_with_default(
         args.config, "validAppIdPrefixes", None, logger
     )
+    csv_separator: str = read_custom_config_with_default(args.config, "csvSeparator", ",", logger)
 
     if args.debug:
         debug_level: int = int(args.debug)
@@ -168,6 +170,7 @@ if __name__ == "__main__":
                 recert_active_app_list=recert_active_app_list,
                 column_patterns=owner_header_patterns,
                 valid_app_id_prefixes=valid_app_id_prefixes,
+                csv_separator=csv_separator,
             )
 
     app_dict: dict[str, Owner] = transform_app_list_to_dict(app_list)
@@ -185,6 +188,7 @@ if __name__ == "__main__":
                 debug_level,
                 base_dir=base_dir,
                 column_patterns=ip_header_patterns,
+                csv_separator=csv_separator,
             )
 
     #############################################

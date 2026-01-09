@@ -59,11 +59,12 @@ def read_app_data_from_csv(
     csv_file_name: str,
     logger: logging.Logger,
     column_patterns: dict[str, str] | None = None,
+    csv_separator: str = ",",
 ) -> tuple[list[list[str]], int, int, int, int]:
     try:
         header_patterns: dict[str, str] = {**DEFAULT_OWNER_HEADER_PATTERNS, **(column_patterns or {})}
         with open(csv_file_name, newline="", encoding="utf-8") as csv_file_handle:
-            reader = csv.reader(csv_file_handle)
+            reader = csv.reader(csv_file_handle, delimiter=csv_separator)
             headers: list[str] = _normalize_headers(next(reader))  # Get header row first
 
             name_pattern: re.Pattern[str] = re.compile(header_patterns["name"], re.IGNORECASE)
@@ -145,6 +146,7 @@ def extract_app_data_from_csv(
     recert_active_app_list: list[str] | None = None,
     column_patterns: dict[str, str] | None = None,
     valid_app_id_prefixes: list[str] | None = None,
+    csv_separator: str = ",",
 ) -> None:
     if recert_active_app_list is None:
         recert_active_app_list = []
@@ -155,7 +157,7 @@ def extract_app_data_from_csv(
     csv_file_path: str = base_dir + "/" + csv_file  # add directory to csv files
 
     apps_from_csv, app_name_column, app_id_column, app_owner_tiso_column, app_owner_kwita_column = (
-        read_app_data_from_csv(csv_file_path, logger, column_patterns)
+        read_app_data_from_csv(csv_file_path, logger, column_patterns, csv_separator)
     )
 
     count_skips: int = 0
@@ -195,11 +197,12 @@ def read_ip_data_from_csv(
     csv_filename: str,
     logger: logging.Logger,
     column_patterns: dict[str, str] | None = None,
+    csv_separator: str = ",",
 ) -> tuple[list[list[str]], int, int]:
     try:
         header_patterns: dict[str, str] = {**DEFAULT_IP_HEADER_PATTERNS, **(column_patterns or {})}
         with open(csv_filename, newline="", encoding="utf-8") as csv_file:
-            reader = csv.reader(csv_file)
+            reader = csv.reader(csv_file, delimiter=csv_separator)
             headers: list[str] = _normalize_headers(next(reader))  # Get header row first
 
             app_id_pattern: re.Pattern[str] = re.compile(header_patterns["app_id"], re.IGNORECASE)
@@ -302,6 +305,7 @@ def extract_ip_data_from_csv(
     base_dir: str,
     valid_app_id_prefixes: list[str] | None = None,
     column_patterns: dict[str, str] | None = None,
+    csv_separator: str = ",",
 ) -> None:
     if valid_app_id_prefixes is None:
         valid_app_id_prefixes = DEFAULT_VALID_APP_ID_PREFIXES
@@ -309,7 +313,9 @@ def extract_ip_data_from_csv(
     ip_data: list[list[str]] = []
     csv_file_path: str = base_dir + "/" + csv_filename  # add directory to csv files
 
-    ip_data, app_id_column_no, ip_column_no = read_ip_data_from_csv(csv_file_path, logger, column_patterns)
+    ip_data, app_id_column_no, ip_column_no = read_ip_data_from_csv(
+        csv_file_path, logger, column_patterns, csv_separator
+    )
 
     count_skips: int = 0
     for line in ip_data:

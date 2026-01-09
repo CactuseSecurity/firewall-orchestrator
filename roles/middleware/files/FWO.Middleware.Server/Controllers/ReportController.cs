@@ -23,9 +23,9 @@ namespace FWO.Middleware.Server.Controllers
     [Route("api/[controller]")]
     public class ReportController(JwtWriter jwtWriter, List<Ldap> ldaps, ApiConnection apiConnection) : ControllerBase, IDisposable
     {
-		private readonly ApiConnection apiConnection = apiConnection;
+        private readonly ApiConnection apiConnection = apiConnection;
         private readonly JwtWriter jwtWriter = jwtWriter;
-		private readonly List<Ldap> ldaps = ldaps;
+        private readonly List<Ldap> ldaps = ldaps;
 
         private ApiConnection? apiConnectionUserContext = null;
         private UserConfig? userConfig = null;
@@ -42,7 +42,7 @@ namespace FWO.Middleware.Server.Controllers
         {
             try
             {
-                if(!await InitUserEnvironment() || apiConnectionUserContext == null || userConfig == null)
+                if (!await InitUserEnvironment() || apiConnectionUserContext == null || userConfig == null)
                 {
                     return "";  // todo: Error message?
                 }
@@ -59,7 +59,7 @@ namespace FWO.Middleware.Server.Controllers
 
         private async Task<bool> InitUserEnvironment()
         {
-            AuthManager authManager = new (jwtWriter, ldaps, apiConnection);
+            AuthManager authManager = new(jwtWriter, ldaps, apiConnection);
             UiUser targetUser = new() { Name = User.FindFirstValue("unique_name") ?? "", Dn = User.FindFirstValue("x-hasura-uuid") ?? "" };
             string jwt = await authManager.AuthorizeUserAsync(targetUser, validatePassword: false);
             apiConnectionUserContext = new GraphQlApiConnection(ConfigFile.ApiServerUri, jwt);
@@ -72,7 +72,7 @@ namespace FWO.Middleware.Server.Controllers
         private async Task<ReportTemplate> ConvertParameters(ReportGetParameters reportApiParams)
         {
             ReportTemplate template = new();
-            if(reportApiParams != null)
+            if (reportApiParams != null)
             {
                 template.ReportParams.ReportType = ConstructReportType(reportApiParams.ApiReportType, reportApiParams.ApiReportView);
                 template.ReportParams.DeviceFilter = await ConstructDeviceFilter(reportApiParams.ApiDeviceFilter);
@@ -101,22 +101,22 @@ namespace FWO.Middleware.Server.Controllers
         private async Task<DeviceFilter> ConstructDeviceFilter(ApiDeviceFilter apiDeviceFilter)
         {
             DeviceFilter deviceFilter = new();
-            if(apiDeviceFilter.ManagementIds.Count > 0 || apiDeviceFilter.DeviceIds.Count > 0)
+            if (apiDeviceFilter.ManagementIds.Count > 0 || apiDeviceFilter.DeviceIds.Count > 0)
             {
                 try
                 {
                     List<ManagementSelect> managements = await apiConnection.SendQueryAsync<List<ManagementSelect>>(DeviceQueries.getDevicesByManagement);
-                    foreach(ManagementSelect mgt in managements)
+                    foreach (ManagementSelect mgt in managements)
                     {
                         foreach (DeviceSelect device in mgt.Devices)
                         {
-                            if(apiDeviceFilter.ManagementIds.Contains(mgt.Id) || apiDeviceFilter.DeviceIds.Contains(device.Id))
+                            if (apiDeviceFilter.ManagementIds.Contains(mgt.Id) || apiDeviceFilter.DeviceIds.Contains(device.Id))
                             {
                                 mgt.Selected = mgt.Visible;
                                 device.Selected = device.Visible;
                             }
                         }
-                        if(mgt.Selected)
+                        if (mgt.Selected)
                         {
                             deviceFilter.Managements.Add(mgt);
                         }
@@ -137,29 +137,29 @@ namespace FWO.Middleware.Server.Controllers
             ipOrFilters.AddRange(apiRuleFilter.DestinationIps.ConvertAll(d => "dst=" + d));
             ipOrFilters.AddRange(apiRuleFilter.Ips.ConvertAll(i => "src=" + i));
             ipOrFilters.AddRange(apiRuleFilter.Ips.ConvertAll(i => "dst=" + i));
-            if(ipOrFilters.Count > 0)
+            if (ipOrFilters.Count > 0)
             {
                 allAndFilters.Add("(" + string.Join(" or ", ipOrFilters) + ")");
             }
 
-            if(apiRuleFilter.Services.Count > 0)
+            if (apiRuleFilter.Services.Count > 0)
             {
                 List<string> serviceOrFilters = await ConstructServiceFilters(apiRuleFilter.Services);
-                if(serviceOrFilters.Count > 0)
+                if (serviceOrFilters.Count > 0)
                 {
                     allAndFilters.Add("(" + string.Join(" or ", serviceOrFilters) + ")");
                 }
             }
 
-            if(!string.IsNullOrEmpty(action))
+            if (!string.IsNullOrEmpty(action))
             {
                 allAndFilters.Add($"action={action}");
             }
-            if(active != null)
+            if (active != null)
             {
                 allAndFilters.Add($"disabled={!active}");
             }
-            return string.Join(" and ", allAndFilters);;
+            return string.Join(" and ", allAndFilters); ;
         }
 
         private async Task<List<string>> ConstructServiceFilters(List<ApiService> apiServices)
@@ -168,26 +168,26 @@ namespace FWO.Middleware.Server.Controllers
             try
             {
                 List<IpProtocol> ipProtos = await apiConnection.SendQueryAsync<List<IpProtocol>>(StmQueries.getIpProtocols);
-                foreach(ApiService service in apiServices)
+                foreach (ApiService service in apiServices)
                 {
                     List<string> serviceSubFilters = [];
-                    if(!string.IsNullOrEmpty(service.Name))
+                    if (!string.IsNullOrEmpty(service.Name))
                     {
                         serviceSubFilters.Add($"svc={service.Name}");
                     }
-                    if(service.Protocol != null)
+                    if (service.Protocol != null)
                     {
                         string? protoNameFromId = ipProtos.FirstOrDefault(p => p.Id == service.Protocol)?.Name;
-                        if(!string.IsNullOrEmpty(protoNameFromId))
+                        if (!string.IsNullOrEmpty(protoNameFromId))
                         {
                             serviceSubFilters.Add($"protocol={protoNameFromId}");
                         }
                     }
-                    if(service.Port != null)
+                    if (service.Port != null)
                     {
                         serviceSubFilters.Add($"port={service.Port}");
                     }
-                    if(serviceSubFilters.Count > 0)
+                    if (serviceSubFilters.Count > 0)
                     {
                         serviceOrFilters.Add(string.Join(" and ", serviceSubFilters));
                     }
@@ -200,6 +200,9 @@ namespace FWO.Middleware.Server.Controllers
             return serviceOrFilters;
         }
 
+        /// <summary>
+        /// Releases the resources used by the controller.
+        /// </summary>
         public void Dispose()
         {
             if (!disposed)

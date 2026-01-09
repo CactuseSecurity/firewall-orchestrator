@@ -18,12 +18,21 @@ namespace FWO.Middleware.Server.Controllers
         private readonly ISchedulerFactory schedulerFactory;
         private readonly JobExecutionTracker executionTracker;
 
+        /// <summary>
+        /// Initializes a new instance of the SchedulerController class.
+        /// </summary>
+        /// <param name="schedulerFactory">The scheduler factory for accessing Quartz jobs.</param>
+        /// <param name="executionTracker">The tracker for job execution results.</param>
         public SchedulerController(ISchedulerFactory schedulerFactory, JobExecutionTracker executionTracker)
         {
             this.schedulerFactory = schedulerFactory;
             this.executionTracker = executionTracker;
         }
 
+        /// <summary>
+        /// Retrieves information about all scheduled jobs.
+        /// </summary>
+        /// <returns>A collection of scheduler job information.</returns>
         [HttpGet]
         [Authorize(Roles = $"{Roles.Admin}")]
         public async Task<IEnumerable<SchedulerJobInfo>> GetJobs()
@@ -72,6 +81,11 @@ namespace FWO.Middleware.Server.Controllers
             return jobs;
         }
 
+        /// <summary>
+        /// Manually triggers a scheduled job.
+        /// </summary>
+        /// <param name="parameters">The parameters specifying which job to run.</param>
+        /// <returns>True if the job was triggered successfully; otherwise, an error response.</returns>
         [HttpPost("Run")]
         [Authorize(Roles = $"{Roles.Admin}")]
         public async Task<ActionResult<bool>> Run([FromBody] SchedulerJobTriggerParameters parameters)

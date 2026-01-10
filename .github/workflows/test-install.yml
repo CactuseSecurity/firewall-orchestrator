@@ -6,14 +6,8 @@ on:
       - main
       - develop
       - importer-rework
-    paths-ignore:
-      - 'documentation/**'
-      - 'design/**'
 
   pull_request:
-    paths-ignore:
-      - 'documentation/**'
-      - 'design/**'
 
 jobs:
   test-install:

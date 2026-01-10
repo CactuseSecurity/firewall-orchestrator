@@ -2028,3 +2028,9 @@ DROP SEQUENCE IF EXISTS public.stm_change_type_change_type_id_seq;
 DROP SEQUENCE IF EXISTS public.stm_action_action_id_seq;
 DROP SEQUENCE IF EXISTS public.stm_dev_typ_dev_typ_id_seq;
 DROP SEQUENCE IF EXISTS public.parent_rule_type_id_seq;
+
+-- drop old mgm_id, zone_name constraint
+ALTER TABLE zone DROP CONSTRAINT IF EXISTS "Alter_Key10";
+
+-- add new mgm_id, zone_name constraint where just one with removed is null allowed
+CREATE UNIQUE INDEX if not exists "zone_mgm_id_zone_name_removed_is_null_unique" ON zone (mgm_id, zone_name) WHERE removed IS NULL;

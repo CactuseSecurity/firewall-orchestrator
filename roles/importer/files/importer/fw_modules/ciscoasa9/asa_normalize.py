@@ -141,7 +141,7 @@ def normalize_config(
             )
         )
         # Link subsequent rulebases in order
-        [
+        rulebase_links += [
             RulebaseLinkUidBased(
                 from_rulebase_uid=rulebases[idx - 1].uid,
                 to_rulebase_uid=rulebases[idx].uid,

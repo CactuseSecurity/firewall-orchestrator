@@ -2,7 +2,7 @@ from collections.abc import Generator
 from ipaddress import IPv6Address
 
 import fwo_const
-from fw_modules.fortiosmanagementREST.fos_models import FortiOSConfig
+from fw_modules.fortiosmanagementREST.fos_models import FortiOSConfig, NwObjAddress6
 from fwo_log import FWOLogger
 from models.networkobject import NetworkObject
 from netaddr import IPAddress, IPNetwork
@@ -57,6 +57,39 @@ def normalize_ipv4_network_objects(
         )
 
 
+def normalize_single_ipv6_network_object(ip6_obj: NwObjAddress6, nw_obj_lookup_dict: dict[str, str]) -> NetworkObject:
+    obj_typ = "host"
+    if ip6_obj.ip6:
+        network = IPNetwork(ip6_obj.ip6, version=6)
+        ip_start = IPNetwork(f"{IPv6Address(network.first)}/128", version=6)
+        if ip6_obj.end_ip and ip6_obj.end_ip != "::":
+            ip_end = IPNetwork(f"{ip6_obj.end_ip}/128", version=6)
+            if ip_start != ip_end:
+                obj_typ = "ip_range"
+        else:
+            ip_end = IPNetwork(f"{IPv6Address(network.last)}/128", version=6)
+            if network.size > 1:
+                obj_typ = "network"
+    else:
+        FWOLogger.warning(
+            f"normalize_ipv6_network_objects: Unable to determine IP range for network object {ip6_obj.name}, setting to full range."
+        )
+        ip_start = IPNetwork("::/128", version=6)
+        ip_end = IPNetwork("ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff/128", version=6)
+
+    nw_obj_lookup_dict[ip6_obj.name] = ip6_obj.uuid
+
+    return NetworkObject(
+        obj_name=ip6_obj.name,
+        obj_uid=ip6_obj.uuid,
+        obj_typ=obj_typ,
+        obj_ip=ip_start,
+        obj_ip_end=ip_end,
+        obj_color=fwo_const.DEFAULT_COLOR,
+        obj_comment=ip6_obj.comment,
+    )
+
+
 def normalize_ipv6_network_objects(
     native_config: FortiOSConfig, nw_obj_lookup_dict: dict[str, str]
 ) -> Generator[NetworkObject]:
@@ -71,37 +104,9 @@ def normalize_ipv6_network_objects(
         NetworkObject: The normalized network object.
 
     """
-    for ip6_obj in native_config.nw_obj_address6:
-        obj_typ = "host"
-        if not ip6_obj.ip6:
-            FWOLogger.warning(
-                f"normalize_ipv6_network_objects: Unable to determine IP range for network object {ip6_obj.name}, setting to full range."
-            )
-            ip_start = IPNetwork("::/128", version=6)
-            ip_end = IPNetwork("ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff/128", version=6)
-        else:
-            network = IPNetwork(ip6_obj.ip6, version=6)
-            ip_start = IPNetwork(f"{IPv6Address(network.first)}/128", version=6)
-            if ip6_obj.end_ip and ip6_obj.end_ip != "::":
-                ip_end = IPNetwork(f"{ip6_obj.end_ip}/128", version=6)
-                if ip_start != ip_end:
-                    obj_typ = "ip_range"
-            else:
-                ip_end = IPNetwork(f"{IPv6Address(network.last)}/128", version=6)
-                if network.size > 1:
-                    obj_typ = "network"
-
-        nw_obj_lookup_dict[ip6_obj.name] = ip6_obj.uuid
-
-        yield NetworkObject(
-            obj_name=ip6_obj.name,
-            obj_uid=ip6_obj.uuid,
-            obj_typ=obj_typ,
-            obj_ip=ip_start,
-            obj_ip_end=ip_end,
-            obj_color=fwo_const.DEFAULT_COLOR,
-            obj_comment=ip6_obj.comment,
-        )
+    yield from (
+        normalize_single_ipv6_network_object(ip6_obj, nw_obj_lookup_dict) for ip6_obj in native_config.nw_obj_address6
+    )
 
 
 def normalize_nwobj_groups(

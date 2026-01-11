@@ -60,6 +60,10 @@
     import_tasks: set-docker-daemon-proxy.yml
     notify: "docker restart"
 
+  - name: set docker daemon bridge network
+    import_tasks: set-docker-daemon-network.yml
+    when: docker_network is defined and docker_network | length > 0
+
   - name: include upgrade script
     import_tasks: run-upgrades.yml
     when: "installation_mode == 'upgrade'"

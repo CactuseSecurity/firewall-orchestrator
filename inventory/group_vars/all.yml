@@ -25,6 +25,7 @@ install_syslog: true
 add_demo_data: true
 api_docu: false
 force_install: false
+docker_network: ""
 
 ### operating system settings
 user_id: 60320

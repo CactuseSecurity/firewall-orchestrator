@@ -140,6 +140,14 @@ ansible-playbook -e "api_no_metadata=yes" site.yml -K
 ansible-playbook -e "force_install=yes" site.yml -K
 ```
 
+### Parameter "docker_network" to change the Docker bridge network
+
+Use this if the default Docker bridge network conflicts with your existing network ranges. The value is written to `/etc/docker/daemon.json` as the `bip` setting and Docker is restarted (works for `installation_mode=upgrade` as well).
+
+```console
+ansible-playbook -e "docker_network=172.26.0.1/16" site.yml -K
+```
+
 ### Parameter "install_syslog" allows disabling of separate syslog installation
 
 Default value is install_syslog=yes but if you already have a syslog service running then you can skip syslog installation and configure your existing service manually.

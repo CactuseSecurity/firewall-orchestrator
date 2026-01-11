@@ -6,14 +6,8 @@ on:
       - main
       - develop
       - importer-rework
-    paths-ignore:
-      - 'documentation/**'
-      - 'design/**'
 
   pull_request:
-    paths-ignore:
-      - 'documentation/**'
-      - 'design/**'
 
 jobs:
   test-install:
@@ -38,7 +32,7 @@ jobs:
           ansible-playbook -e force_install=true site.yml -K
 
       - name: Running in GitHub actions requires testing puppeteer pdf creation separately
-        if: ${{ env.RUNNING_ON_GITHUB_ACTIONS }} == 'true'
+        if: ${{ env.RUNNING_ON_GITHUB_ACTIONS == 'true' }}
         run: |
           cd /home/runner/work/firewall-orchestrator/firewall-orchestrator/roles/tests-unit/files/FWO.Test
           dotnet restore

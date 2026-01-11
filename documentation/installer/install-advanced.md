@@ -77,40 +77,34 @@ If you use authentication:
 
 Note that the following domains must be reachable through the proxy:
 
+    cactus.de (and sub-Domains, only for downloading test data, not needed if run with "--skip-tags test")
     ubuntu.com
     canonical.com
-    github.com
-    api.github.com
+    github.com, api.github.com
     githubusercontent.com
-    docker.com
-    cloudflare.docker.com
-    docker.io
-    auth.docker.io
-    hasura.io
-    releases.hasura.io
+    docker.com (and subdomains)
+    docker.io, auth.docker.io
+    hasura.io, releases.hasura.io
     postgresql.org
-    microsoft.com     
-    nuget.org
-    api.nuget.org
+    microsoft.com
+    nuget.org, api.nuget.org
     googlechromelabs.github.io
     storage.googleapis.com
     pypi.org
-    pythonhosted.org
-    files.pythonhosted.org
-    snapcraft.io
-    api.snapcraft.io
+    pythonhosted.org (and sub-domains)
+    snapcraft.io, api.snapcraft.io
     snapcraftcontent.com (and sub-domains)
-    cactus.de (and sub-domains, only for downloading test data, not needed if run with "--skip-tags test")
 
 #### For vscode-debugging only - most are needed for downloading extensions
-    visualstudio.com
+
+    visualstudio.com (and subdomains)
     vsassets.io (and subdomains)
     digicert.com (and subdomains)
-    dot.net (and subdomains) 
+    dot.net (and subdomains)
     windows.net (and subdomains)
     applicationinsights.azure.com (and subdomains)
     exp-tas.com (and subdomains)
-    
+
 #### Pyhton proxy config
 
 Remember if your server resides behind a proxy that you will have to set the proxy for pip as follows before installing ansible:
@@ -144,6 +138,14 @@ ansible-playbook -e "api_no_metadata=yes" site.yml -K
 
 ```console
 ansible-playbook -e "force_install=yes" site.yml -K
+```
+
+### Parameter "docker_network" to change the Docker bridge network
+
+Use this if the default Docker bridge network conflicts with your existing network ranges. The value is written to `/etc/docker/daemon.json` as the `bip` setting and Docker is restarted (works for `installation_mode=upgrade` as well).
+
+```console
+ansible-playbook -e "docker_network=172.26.0.1/16" site.yml -K
 ```
 
 ### Parameter "install_syslog" allows disabling of separate syslog installation

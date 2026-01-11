@@ -62,13 +62,13 @@ def fortios_api_call(api_url: str) -> list[dict[str, Any]]:
         raise FwApiCallFailedError(
             "error while sending api_call to url '"
             + str(api_url)
-            + "' with headers: '"
+            + "' including headers: '"
             + json.dumps(request_headers, indent=2)
             + ", results="
             + json.dumps(response.json()["results"], indent=2)
         )
 
-    FWOLogger.debug("api_call to url '" + str(api_url) + "' with headers: '" + json.dumps(request_headers, indent=2), 3)
+    FWOLogger.debug("api_call to url '" + str(api_url) + "', headers: '" + json.dumps(request_headers, indent=2), 3)
 
     return result_json["results"]
 

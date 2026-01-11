@@ -73,7 +73,13 @@ def normalize_ipv6_network_objects(
     """
     for ip6_obj in native_config.nw_obj_address6:
         obj_typ = "host"
-        if ip6_obj.ip6:
+        if not ip6_obj.ip6:
+            FWOLogger.warning(
+                f"normalize_ipv6_network_objects: Unable to determine IP range for network object {ip6_obj.name}, setting to full range."
+            )
+            ip_start = IPNetwork("::/128", version=6)
+            ip_end = IPNetwork("ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff/128", version=6)
+        else:
             network = IPNetwork(ip6_obj.ip6, version=6)
             ip_start = IPNetwork(f"{IPv6Address(network.first)}/128", version=6)
             if ip6_obj.end_ip and ip6_obj.end_ip != "::":
@@ -84,12 +90,6 @@ def normalize_ipv6_network_objects(
                 ip_end = IPNetwork(f"{IPv6Address(network.last)}/128", version=6)
                 if network.size > 1:
                     obj_typ = "network"
-        else:
-            FWOLogger.warning(
-                f"normalize_ipv6_network_objects: Unable to determine IP range for network object {ip6_obj.name}, setting to full range."
-            )
-            ip_start = IPNetwork("::/128", version=6)
-            ip_end = IPNetwork("ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff/128", version=6)
 
         nw_obj_lookup_dict[ip6_obj.name] = ip6_obj.uuid
 
@@ -244,7 +244,7 @@ def normalize_network_objects(
     # groups may use any of the above objects as members
     yield from normalize_nwobj_groups(native_config, nw_obj_lookup_dict)
     yield from normalize_ip_pools(native_config, nw_obj_lookup_dict)
-    # yield from normalize_vips(native_config, nw_obj_lookup_dict) #TODO: implement  # noqa: ERA001
+    # TODO: implement vips
     yield from normalize_internet_services(native_config, nw_obj_lookup_dict)
     # "Original" network object for natting
     yield NetworkObject(

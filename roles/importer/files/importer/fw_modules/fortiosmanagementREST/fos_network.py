@@ -58,6 +58,17 @@ def normalize_ipv4_network_objects(
 
 
 def normalize_single_ipv6_network_object(ip6_obj: NwObjAddress6, nw_obj_lookup_dict: dict[str, str]) -> NetworkObject:
+    """
+    Normalize a single IPv6 network object from the native FortiOS configuration.
+
+    Args:
+        ip6_obj (NwObjAddress6): The native IPv6 network object.
+        nw_obj_lookup_dict: Lookup dictionary for network object names to UIDs.
+
+    Returns:
+        NetworkObject: The normalized network object.
+
+    """
     obj_typ = "host"
     if ip6_obj.ip6:
         network = IPNetwork(ip6_obj.ip6, version=6)

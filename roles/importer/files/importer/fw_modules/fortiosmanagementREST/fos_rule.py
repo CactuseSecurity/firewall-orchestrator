@@ -30,7 +30,7 @@ def normalize_rule_addresses(rule: Rule, nw_obj_lookup_dict: dict[str, str]) -> 
         raise FwoImporterError(f"Rule '{rule.name}' has no source addresses defined.")
     for src in rule_src_names:
         if src not in nw_obj_lookup_dict:
-            raise FwoImporterError(f"Source service object '{src}' not found in network object lookup.")
+            raise FwoImporterError(f"Source network object '{src}' not found in network object lookup.")
 
     if rule.internet_service_name:
         rule_dst_names = [dst.name for dst in rule.internet_service_name]
@@ -41,7 +41,7 @@ def normalize_rule_addresses(rule: Rule, nw_obj_lookup_dict: dict[str, str]) -> 
         raise FwoImporterError(f"Rule '{rule.name}' has no destination addresses defined.")
     for dst in rule_dst_names:
         if dst not in nw_obj_lookup_dict:
-            raise FwoImporterError(f"Destination service object '{dst}' not found in network object lookup.")
+            raise FwoImporterError(f"Destination network object '{dst}' not found in network object lookup.")
 
     rule_src = fwo_const.LIST_DELIMITER.join(rule_src_names)
     rule_src_refs = fwo_const.LIST_DELIMITER.join(nw_obj_lookup_dict[src] for src in rule_src_names)
@@ -90,8 +90,8 @@ def normalize_rule_zones(rule: Rule) -> tuple[str | None, str | None]:
     rule_src_zone = None
     rule_dst_zone = None
 
-    rule_src_zone_names = [fos_zone.normalize_zone(intf.name) for intf in rule.srcintf]
-    rule_dst_zone_names = [fos_zone.normalize_zone(intf.name) for intf in rule.dstintf]
+    rule_src_zone_names = [fos_zone.normalize_zone_name(intf.name) for intf in rule.srcintf]
+    rule_dst_zone_names = [fos_zone.normalize_zone_name(intf.name) for intf in rule.dstintf]
 
     if rule_src_zone_names:
         rule_src_zone = fwo_const.LIST_DELIMITER.join(rule_src_zone_names)

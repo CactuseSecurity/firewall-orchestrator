@@ -94,6 +94,16 @@ def get_svcobjs_from_portrange(
 
 
 def normalize_single_custom_service_object(svc_obj: SvcObjCustom) -> Generator[ServiceObject]:
+    """
+    Normalize a single custom service object from the native FortiOS configuration.
+
+    Args:
+        svc_obj (SvcObjCustom): The native custom service object.
+
+    Yields:
+        ServiceObject: The normalized service object.
+
+    """
     # determine if multiple port ranges are defined
     split = (
         sum(1 for port_range in [svc_obj.tcp_portrange, svc_obj.udp_portrange, svc_obj.sctp_portrange] if port_range)

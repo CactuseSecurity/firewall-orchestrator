@@ -3,7 +3,7 @@ from collections.abc import Generator
 from fw_modules.fortiosmanagementREST.fos_models import FortiOSConfig
 
 
-def normalize_zone(zone_name: str) -> str:
+def normalize_zone_name(zone_name: str) -> str:
     """
     Normalize a zone name.
 
@@ -33,7 +33,7 @@ def collect_zones(native_config: FortiOSConfig) -> Generator[str]:
     seen_zones: set[str] = set()
 
     def record_and_yield_zone(zone_name: str) -> Generator[str]:
-        zone_name = normalize_zone(zone_name)
+        zone_name = normalize_zone_name(zone_name)
         if zone_name not in seen_zones:
             yield zone_name
             seen_zones.add(zone_name)

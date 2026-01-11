@@ -23,6 +23,7 @@ from fw_modules.fortiosmanagementREST.fos_models import (
     UserObjLocal,
     ZoneObject,
 )
+from fw_modules.fortiosmanagementREST.fos_zone import normalize_zone_name
 from fwo_exceptions import FwApiCallFailedError
 from fwo_log import FWOLogger
 from pydantic import BaseModel, TypeAdapter
@@ -64,8 +65,8 @@ def fortios_api_call(api_url: str) -> list[dict[str, Any]]:
             + str(api_url)
             + "' including headers: '"
             + json.dumps(request_headers, indent=2)
-            + ", results="
-            + json.dumps(response.json()["results"], indent=2)
+            + ", response json: "
+            + json.dumps(result_json, indent=2)
         )
 
     FWOLogger.debug("api_call to url '" + str(api_url) + "', headers: '" + json.dumps(request_headers, indent=2), 3)
@@ -178,12 +179,6 @@ def get_native_config(fm_api_url: str, sid: str) -> FortiOSConfig:
     return native_config
 
 
-def normalize_zone_name(zone_name: str) -> str:
-    if zone_name == "any":
-        return "global"
-    return zone_name
-
-
 def add_zone_if_missing(native_config: FortiOSConfig, zone_name: str) -> str:
     """
     Adds a zone to the native configuration if it is missing.
@@ -191,6 +186,9 @@ def add_zone_if_missing(native_config: FortiOSConfig, zone_name: str) -> str:
     Args:
         native_config (FortiOSConfig): The native configuration.
         zone_name (str): The name of the zone to add.
+
+    Returns:
+        str: The normalized name of the zone that was ensured to exist in the configuration.
 
     """
     zone_name = normalize_zone_name(zone_name)

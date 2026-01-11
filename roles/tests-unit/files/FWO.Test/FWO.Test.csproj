@@ -8,7 +8,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="bunit" Version="2.4.2" />
+    <PackageReference Include="bunit" Version="2.5.3" />
     <PackageReference Include="PuppeteerSharp" Version="20.2.5" />
     <PackageReference Include="NUnit" Version="4.4.0" />
     <PackageReference Include="NUnit3TestAdapter" Version="5.2.0" />

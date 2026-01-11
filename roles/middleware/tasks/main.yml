@@ -106,6 +106,8 @@
     server_uri: "{{ openldap_url }}"
     bind_dn: "{{ openldap_superuser_dn }}"
     bind_pw: "{{ ldap_manager_pwd }}"
+    validate_certs: "{{ openldap_server_enable_ssl | ternary(false, omit) }}"
+    ca_path: "{{ openldap_server_enable_ssl | ternary(openldap_server_cert, omit) }}"
   when: installation_mode == 'new'
 
 - name: set importer user password randomly
@@ -139,6 +141,8 @@
     server_uri: "{{ openldap_url }}"
     bind_dn: "{{ openldap_superuser_dn }}"
     bind_pw: "{{ ldap_manager_pwd }}"
+    validate_certs: "{{ openldap_server_enable_ssl | ternary(false, omit) }}"
+    ca_path: "{{ openldap_server_enable_ssl | ternary(openldap_server_cert, omit) }}"
   when: installation_mode == 'new'
 
 - name: Set {{ openldap_readonly_user_name }} password in ldap
@@ -148,6 +152,8 @@
     server_uri: "{{ openldap_url }}"
     bind_dn: "{{ openldap_superuser_dn }}"
     bind_pw: "{{ ldap_manager_pwd }}"
+    validate_certs: "{{ openldap_server_enable_ssl | ternary(false, omit) }}"
+    ca_path: "{{ openldap_server_enable_ssl | ternary(openldap_server_cert, omit) }}"
   when: installation_mode == "new"
 
 - name: Set "{{ openldap_writer_name }}" password in ldap
@@ -157,6 +163,8 @@
     server_uri: "{{ openldap_url }}"
     bind_dn: "{{ openldap_superuser_dn }}"
     bind_pw: "{{ ldap_manager_pwd }}"
+    validate_certs: "{{ openldap_server_enable_ssl | ternary(false, omit) }}"
+    ca_path: "{{ openldap_server_enable_ssl | ternary(openldap_server_cert, omit) }}"
   when: installation_mode == "new"
 
 - name: Set {{ audit_user }} password in ldap
@@ -166,6 +174,8 @@
     server_uri: "{{ openldap_url }}"
     bind_dn: "{{ openldap_superuser_dn }}"
     bind_pw: "{{ ldap_manager_pwd }}"
+    validate_certs: "{{ openldap_server_enable_ssl | ternary(false, omit) }}"
+    ca_path: "{{ openldap_server_enable_ssl | ternary(openldap_server_cert, omit) }}"
   when: audit_user is defined and auditor_initial_pwd is defined and installation_mode=='new'
 
 - name: insert admin tenant0 to database

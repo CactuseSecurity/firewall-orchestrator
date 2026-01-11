@@ -94,6 +94,7 @@ ldap_manager_pwd_file: "{{ fworch_secrets_dir }}/ldap_manager_pwd"
 middleware_hostname: "127.0.0.1"
 ldif_changetype: add
 middleware_service_name: "{{ product_name }}-middleware"
+openldap_server_enable_ssl: true
 
 # middleware web server
 middleware_web_listener_port: 8888

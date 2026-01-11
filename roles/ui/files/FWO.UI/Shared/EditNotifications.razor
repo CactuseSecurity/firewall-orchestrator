@@ -30,6 +30,17 @@
                 @(DisplayNotification(context))
             </Template>
         </Column>
+        <Column TableItem="FwoNotification" Title="@(userConfig.GetText("last_sent"))" Field="@(x => x.LastSent)" Sortable="true" Filterable="false" >
+            <Template>
+                @(context.LastSent)
+                @if(context.LastSent != null)
+                {
+                    <div class="btn-group m-1">
+                         <button type="button" class="btn btn-sm btn-danger" @onclick="() => ResetNotification(context)">@(DisplayService.DisplayButton(userConfig, "reset_notification", Icons.Cleanup))</button>
+                    </div>
+                }
+            </Template>
+        </Column>
     </Table>
 </div>
 
@@ -207,6 +218,8 @@
     </Footer>
 </PopUp>
 <ConfirmDelete @bind-Display="DeleteNotifMode" PerformAction="Delete" Title="@userConfig.GetText("delete_notification")" DeleteMessage="@(GetDeleteMessage())" />
+<Confirm @bind-Display="ResetNotifMode" AllowedRoles="@Roles.Admin" Message="@(userConfig.GetText("U5601") + actNotification.Name + "?")"
+    PerformAction="ResetNotification" Title="@(userConfig.GetText("reset_notification"))" />
 
 @code
 {
@@ -232,6 +245,7 @@
     private bool AddNotifMode = false;
     private bool EditNotifMode = false;
     private bool DeleteNotifMode = false;
+    private bool ResetNotifMode = false;
     private const string EditNotifString = "edit_notification";
 
 
@@ -282,6 +296,12 @@
         InitActNotification();
         AddNotifMode = true;
         EditNotifMode = true;
+    }
+
+    private void ResetNotification(FwoNotification notification)
+    {
+        actNotification = notification;
+        ResetNotifMode = true;
     }
 
     private void AddToAddress()
@@ -431,27 +451,27 @@
     {
         if(actNotification.Channel == NotificationChannel.Email && actNotification.EmailSubject == "")
         {
-            DisplayMessageInUi(null, userConfig.GetText(EditNotifString), userConfig.GetText("E4010"), false);
+            DisplayMessageInUi(null, userConfig.GetText(EditNotifString), userConfig.GetText("E4010"), true);
             return false;
         }
         if(actNotification.RecipientTo == EmailRecipientOption.None ||
             actNotification.RecipientTo == EmailRecipientOption.OtherAddresses && ToAddresses.Count == 0 ||
             actNotification.RecipientCc == EmailRecipientOption.OtherAddresses && CcAddresses.Count == 0)
         {
-            DisplayMessageInUi(null, userConfig.GetText(EditNotifString), userConfig.GetText("E4011"), false);
+            DisplayMessageInUi(null, userConfig.GetText(EditNotifString), userConfig.GetText("E4011"), true);
             return false;
         }
         if(actNotification.Deadline != NotificationDeadline.None)
         {
             if(actNotification.OffsetBeforeDeadline == null && actNotification.RepeatOffsetAfterDeadline == null)
             {
-                DisplayMessageInUi(null, userConfig.GetText(EditNotifString), userConfig.GetText("E4012"), false);
+                DisplayMessageInUi(null, userConfig.GetText(EditNotifString), userConfig.GetText("E4012"), true);
                 return false;
             }
             if(actNotification.RepeatOffsetAfterDeadline != null && actNotification.RepetitionsAfterDeadline == null ||
                 (actNotification.RepeatOffsetAfterDeadline == null && actNotification.RepetitionsAfterDeadline != null))
             {
-                DisplayMessageInUi(null, userConfig.GetText(EditNotifString), userConfig.GetText("E4013"), false);
+                DisplayMessageInUi(null, userConfig.GetText(EditNotifString), userConfig.GetText("E4013"), true);
                 return false;
             }
         }
@@ -473,6 +493,30 @@
         }
     }
 
+    private async Task ResetNotification()
+    {
+        try
+        {
+            DateTime? lastSent = null;
+            var Variables = new 
+            {
+                ids = actNotification.Id,
+                lastSent = lastSent
+            }; 
+            int updatedNotifications = (await apiConnection.SendQueryAsync<ReturnId>(NotificationQueries.updateNotificationsLastSent, Variables)).AffectedRows;
+            if(updatedNotifications > 0)
+            {
+                actNotification.LastSent = null;
+            }
+            ResetNotifMode = false;
+            StateHasChanged();
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("reset_notification"), "", true);
+        }
+    }
+
     private void Close()
     {
         ToAddresses = [];
@@ -483,5 +527,7 @@
         CcAddressesToDelete = [];
         AddNotifMode = false;
         EditNotifMode = false;
+        DeleteNotifMode = false;
+        ResetNotifMode = false;
     }
 }

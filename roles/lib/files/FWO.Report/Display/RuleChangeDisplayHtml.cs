@@ -368,9 +368,9 @@ namespace FWO.Ui.Display
         {
             switch (objectChange.ChangeAction)
             {
-                case 'D': return OutputHtmlDeleted(objectChange.OldObject.MemberNamesAsHtml());
-                case 'I': return OutputHtmlAdded(objectChange.NewObject.MemberNamesAsHtml());
-                case 'C': return DisplayDiff(objectChange.OldObject.MemberNamesAsHtml(), objectChange.NewObject.MemberNamesAsHtml());
+                case 'D': return OutputHtmlDeleted(DisplayBase.MemberNamesAsHtml(objectChange.OldObject.MemberNames));
+                case 'I': return OutputHtmlAdded(DisplayBase.MemberNamesAsHtml(objectChange.NewObject.MemberNames));
+                case 'C': return DisplayDiff(DisplayBase.MemberNamesAsHtml(objectChange.OldObject.MemberNames), DisplayBase.MemberNamesAsHtml(objectChange.NewObject.MemberNames));
                 default: ThrowErrorUnknowChangeAction(objectChange.ChangeAction); return "";
             }
         }
@@ -378,9 +378,9 @@ namespace FWO.Ui.Display
         {
             switch (serviceChange.ChangeAction)
             {
-                case 'D': return OutputHtmlDeleted(serviceChange.OldService.MemberNamesAsHtml());
-                case 'I': return OutputHtmlAdded(serviceChange.NewService.MemberNamesAsHtml());
-                case 'C': return DisplayDiff(serviceChange.OldService.MemberNamesAsHtml(), serviceChange.NewService.MemberNamesAsHtml());
+                case 'D': return OutputHtmlDeleted(DisplayBase.MemberNamesAsHtml(serviceChange.OldService.MemberNames));
+                case 'I': return OutputHtmlAdded(DisplayBase.MemberNamesAsHtml(serviceChange.NewService.MemberNames));
+                case 'C': return DisplayDiff(DisplayBase.MemberNamesAsHtml(serviceChange.OldService.MemberNames), DisplayBase.MemberNamesAsHtml(serviceChange.NewService.MemberNames));
                 default: ThrowErrorUnknowChangeAction(serviceChange.ChangeAction); return "";
             }
         }

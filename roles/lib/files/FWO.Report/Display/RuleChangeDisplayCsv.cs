@@ -311,9 +311,9 @@ namespace FWO.Ui.Display
         {
             switch (objectChange.ChangeAction)
             {
-                case 'D': return OutputCsv(objectChange.OldObject.MemberNamesAsCSV());
-                case 'I': return OutputCsv(objectChange.NewObject.MemberNamesAsCSV());
-                case 'C': return OutputCsv(DisplayDiff(objectChange.OldObject.MemberNamesAsCSV(), objectChange.NewObject.MemberNamesAsCSV()));
+                case 'D': return OutputCsv(DisplayBase.MemberNamesAsCSV(objectChange.OldObject.MemberNames));
+                case 'I': return OutputCsv(DisplayBase.MemberNamesAsCSV(objectChange.NewObject.MemberNames));
+                case 'C': return OutputCsv(DisplayDiff(DisplayBase.MemberNamesAsCSV(objectChange.OldObject.MemberNames), DisplayBase.MemberNamesAsCSV(objectChange.NewObject.MemberNames)));
                 default: return "";
             }
         }
@@ -322,9 +322,9 @@ namespace FWO.Ui.Display
         {
             switch (serviceChange.ChangeAction)
             {
-                case 'D': return OutputCsv(serviceChange.OldService.MemberNamesAsHtml());
-                case 'I': return OutputCsv(serviceChange.NewService.MemberNamesAsHtml());
-                case 'C': return OutputCsv(DisplayDiff(serviceChange.OldService.MemberNamesAsCSV(), serviceChange.NewService.MemberNamesAsCSV()));
+                case 'D': return OutputCsv(DisplayBase.MemberNamesAsCSV(serviceChange.OldService.MemberNames));
+                case 'I': return OutputCsv(DisplayBase.MemberNamesAsCSV(serviceChange.NewService.MemberNames));
+                case 'C': return OutputCsv(DisplayDiff(DisplayBase.MemberNamesAsCSV(serviceChange.OldService.MemberNames), DisplayBase.MemberNamesAsCSV(serviceChange.NewService.MemberNames)));
                 default: return "";
             }
         }

@@ -85,8 +85,6 @@
                 <DeviceSelection @bind-DeviceFilter="actReportFilters.DeviceFilter" @bind-CollapseAll="actReportFilters.CollapseDevices" @bind-SelectAll="actReportFilters.SelectAll" />
             }
         }
-
-
     </Sidebar>
 
     @* ==== Middle div ==== *@
@@ -106,7 +104,6 @@
             @if (!processing)
             {
                 <button type="button" class="btn btn-sm btn-primary" @onclick="async () => { actReportFilters.IncludeObjectsInReportChangesUiPresesed = true; await GenerateReport(); }">@(DisplayService.DisplayButton(userConfig, "generate_report", Icons.GenerateReport))</button>
-                //ToDo
             }
             else
             {

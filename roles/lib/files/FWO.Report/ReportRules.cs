@@ -577,7 +577,7 @@ namespace FWO.Report
                     report.AppendLine($"<td><a name={ObjCatString.NwObj}{chapterNumber}x{nwobj.Id}>{nwobj.Name}</a></td>");
                     report.AppendLine($"<td>{(nwobj.Type.Name != "" ? userConfig.GetText(nwobj.Type.Name) : "")}</td>");
                     report.AppendLine($"<td>{NwObjDisplay.DisplayIp(nwobj.IP, nwobj.IpEnd, nwobj.Type.Name)}</td>");
-                    report.AppendLine(nwobj.MemberNamesAsHtml());
+                    report.AppendLine(DisplayBase.MemberNamesAsHtml(nwobj.MemberNames));
                     report.AppendLine($"<td>{nwobj.Uid}</td>");
                     report.AppendLine($"<td>{nwobj.Comment}</td>");
                     report.AppendLine("</tr>");
@@ -628,7 +628,7 @@ namespace FWO.Report
             {
                 report.AppendLine($"<td>{svcobj.DestinationPort}</td>");
             }
-            report.AppendLine(svcobj.MemberNamesAsHtml());
+            report.AppendLine(DisplayBase.MemberNamesAsHtml(svcobj.MemberNames));
             report.AppendLine($"<td>{svcobj.Uid}</td>");
             report.AppendLine($"<td>{svcobj.Comment}</td>");
             report.AppendLine("</tr>");

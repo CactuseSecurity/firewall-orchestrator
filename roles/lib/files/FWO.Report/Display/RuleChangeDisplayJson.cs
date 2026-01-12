@@ -384,9 +384,9 @@ namespace FWO.Ui.Display
         {
             switch (objectChange.ChangeAction)
             {
-                case 'D': return DisplayobjectMemberNames(objectChange.OldObject.MemberNamesAsJson());
-                case 'I': return DisplayobjectMemberNames(objectChange.NewObject.MemberNamesAsJson());
-                case 'C': return DisplayobjectMemberNames(DisplayDiff(objectChange.OldObject.MemberNamesAsJson(), objectChange.NewObject.MemberNamesAsJson()));
+                case 'D': return DisplayobjectMemberNames(DisplayBase.MemberNamesAsJson(objectChange.OldObject.MemberNames));
+                case 'I': return DisplayobjectMemberNames(DisplayBase.MemberNamesAsJson(objectChange.NewObject.MemberNames));
+                case 'C': return DisplayobjectMemberNames(DisplayDiff(DisplayBase.MemberNamesAsJson(objectChange.OldObject.MemberNames), DisplayBase.MemberNamesAsJson(objectChange.NewObject.MemberNames)));
                 default: return "";
             }
         }
@@ -394,9 +394,9 @@ namespace FWO.Ui.Display
         {
             switch (serviceChange.ChangeAction)
             {
-                case 'D': return DisplayobjectMemberNames(serviceChange.OldService.MemberNamesAsJson());
-                case 'I': return DisplayobjectMemberNames(serviceChange.NewService.MemberNamesAsJson());
-                case 'C': return DisplayobjectMemberNames(DisplayDiff(serviceChange.OldService.MemberNamesAsJson(), serviceChange.NewService.MemberNamesAsJson()));
+                case 'D': return DisplayobjectMemberNames(DisplayBase.MemberNamesAsJson(serviceChange.OldService.MemberNames));
+                case 'I': return DisplayobjectMemberNames(DisplayBase.MemberNamesAsJson(serviceChange.NewService.MemberNames));
+                case 'C': return DisplayobjectMemberNames(DisplayDiff(DisplayBase.MemberNamesAsJson(serviceChange.OldService.MemberNames), DisplayBase.MemberNamesAsJson(serviceChange.NewService.MemberNames)));
                 default: return "";
             }
         }

@@ -67,40 +67,26 @@ class FwConfigImportRule:
         # calculate rule diffs
         changed_rule_uids: dict[str, list[str]] = {}  # rulebase_id -> list of rule_uids
         rule_uids_in_both: dict[str, list[str]] = {}
-        previous_rulebase_uids: list[str] = []
-        current_rulebase_uids: list[str] = []
         new_hit_information: list[dict[str, Any]] = []
+        removed_rulebase_uids: list[str] = []
 
         rule_order_diffs: dict[str, dict[str, list[str]]] = self.rule_order_service.update_rule_order_diffs()
 
-        # collect rulebase UIDs of previous config
-        previous_rulebase_uids = [rulebase.uid for rulebase in prev_config.rulebases]
-
-        # collect rulebase UIDs of current (just imported) config
-        current_rulebase_uids = [rulebase.uid for rulebase in self.normalized_config.rulebases]
-
-        for rulebase_uid in previous_rulebase_uids:
-            current_rulebase = self.normalized_config.get_rulebase_or_none(rulebase_uid)
+        for prev_rulebase in prev_config.rulebases:
+            current_rulebase = self.normalized_config.get_rulebase_or_none(prev_rulebase.uid)
             if current_rulebase is None:
-                FWOLogger.info(f"current rulebase has been deleted: {rulebase_uid}")
+                FWOLogger.info(f"previous rulebase has been deleted: {prev_rulebase.uid}")
+                removed_rulebase_uids.append(prev_rulebase.uid)
                 continue
-            if rulebase_uid in current_rulebase_uids:
-                # deal with policies contained both in this and previous config
-                previous_rulebase = prev_config.get_rulebase(rulebase_uid)
-                rule_uids_in_both.update(
-                    {rulebase_uid: list(current_rulebase.rules.keys() & previous_rulebase.rules.keys())}
-                )
-            else:
-                FWOLogger.info(f"previous rulebase has been deleted: {current_rulebase.name} (id:{rulebase_uid})")
+            # deal with policies contained both in this and previous config
+            rule_uids_in_both[prev_rulebase.uid] = list(current_rulebase.rules.keys() & prev_rulebase.rules.keys())
 
         # find changed rules
-        for rulebase_uid in rule_uids_in_both:  # noqa: PLC0206
-            changed_rule_uids.update({rulebase_uid: []})
-            current_rulebase = self.normalized_config.get_rulebase(
-                rulebase_uid
-            )  # [pol for pol in self.NormalizedConfig.rulebases if pol.Uid == rulebaseId]
+        for rulebase_uid, rule_uid_list in rule_uids_in_both.items():
+            changed_rule_uids[rulebase_uid] = []
+            current_rulebase = self.normalized_config.get_rulebase(rulebase_uid)
             previous_rulebase = prev_config.get_rulebase(rulebase_uid)
-            for rule_uid in rule_uids_in_both[rulebase_uid]:
+            for rule_uid in rule_uid_list:
                 self.preserve_rule_num_numeric(current_rulebase, previous_rulebase, rule_uid)
                 self.collect_changed_rules(
                     rule_uid, current_rulebase, previous_rulebase, rulebase_uid, changed_rule_uids
@@ -122,6 +108,7 @@ class FwConfigImportRule:
         # # now update the database with all rule diffs
         self.uid2id_mapper.update_rule_mapping()
 
+        # TODO: properly seperate new rulebase creation and record stats
         num_added_rules, new_rule_ids = self.add_new_rules(new_rulebases)
         num_changed_rules, old_rule_ids, updated_rule_ids = self.create_new_rule_version(changed_rule_uids)
 
@@ -129,6 +116,7 @@ class FwConfigImportRule:
         _ = self.add_new_refs(prev_config)
 
         num_deleted_rules, removed_rule_ids = self.mark_rules_removed(rule_order_diffs["deleted_rule_uids"])
+        num_deleted_rulebases = self.mark_rulebases_removed(removed_rulebase_uids)
         self.remove_outdated_refs(prev_config)
 
         num_moved_rules, _ = self.verify_rules_moved(changed_rule_uids)
@@ -136,6 +124,7 @@ class FwConfigImportRule:
         new_rule_ids = [rule["rule_id"] for rule in new_rule_ids]  # extract rule_ids from the returned list of dicts
         self.write_changelog_rules(new_rule_ids, removed_rule_ids)
 
+        self.import_details.state.stats.increment_rulebase_delete_count(num_deleted_rulebases)
         self.import_details.state.stats.increment_rule_add_count(num_added_rules)
         self.import_details.state.stats.increment_rule_delete_count(num_deleted_rules)
         self.import_details.state.stats.increment_rule_move_count(num_moved_rules)
@@ -147,7 +136,6 @@ class FwConfigImportRule:
         if len(old_rule_ids) > 0:
             self._create_removed_rules_map(old_rule_ids)
 
-        # TODO: rule_nwobj_resolved fuellen (recert?)
         return new_rule_ids
 
     def _create_removed_rules_map(self, removed_rule_ids: list[int]):
@@ -886,7 +874,7 @@ class FwConfigImportRule:
         # TODO: add other fields
         return new_rule_metadata
 
-    # creates a structure of rulebases optinally including rules for import
+    # creates a structure of rulebases optionally including rules for import
     def prepare_new_rulebases(self, new_rulebases: list[Rulebase]) -> list[RulebaseForImport]:
         new_rules_for_import: list[RulebaseForImport] = []
 
@@ -899,9 +887,44 @@ class FwConfigImportRule:
                 created=self.import_details.state.import_id,
             )
             new_rules_for_import.append(rb4import)
-        # TODO: see where to get real UIDs (both for rulebase and manager)
         # add rules for each rulebase
         return new_rules_for_import
+
+    def mark_rulebases_removed(self, removed_rulebase_uids: list[str]) -> int:
+        """
+        Marks rulebases as removed in the database.
+
+        Args:
+            removed_rulebase_uids (list[str]): A list of rulebase UIDs to be marked as removed.
+
+        Returns:
+            int: The number of rulebases that were marked as removed.
+
+        """
+        if len(removed_rulebase_uids) == 0:
+            return 0
+
+        remove_mutation = """
+            mutation markRulebasesRemoved($importId: bigint!, $mgmId: Int!, $uids: [String!]!) {
+                update_rulebase(where: {removed: { _is_null: true }, uid: {_in: $uids}, mgm_id: {_eq: $mgmId}}, _set: {removed: $importId}) {
+                    affected_rows
+                }
+            }
+        """
+        query_variables: dict[str, Any] = {
+            "importId": self.import_details.state.import_id,
+            "mgmId": self.import_details.state.mgm_details.current_mgm_id,
+            "uids": removed_rulebase_uids,
+        }
+
+        try:
+            remove_result = self.import_details.api_call.call(remove_mutation, query_variables=query_variables)
+        except Exception:
+            raise FwoApiWriteError(f"failed to remove rulebases: {traceback.format_exc()!s}")
+        if "errors" in remove_result:
+            raise FwoApiWriteError(f"failed to remove rulebases: {remove_result['errors']!s}")
+
+        return int(remove_result["data"]["update_rulebase"]["affected_rows"])
 
     def mark_rules_removed(self, removed_rule_uids: dict[str, list[str]]) -> tuple[int, list[int]]:
         changes = 0
@@ -1151,141 +1174,6 @@ class FwConfigImportRule:
                 number_of_moved_rules += 1
 
         return number_of_moved_rules, moved_rule_uids
-
-    # TODO: limit query to a single rulebase
-    def get_rule_num_map(self) -> dict[str, dict[str, float]]:
-        query = "query getRuleNumMap($mgmId: Int) { rule(where:{mgm_id:{_eq:$mgmId}}) { rule_uid rulebase_id rule_num_numeric } }"
-        try:
-            result = self.import_details.api_call.call(
-                query=query, query_variables={"mgmId": self.import_details.state.mgm_details.current_mgm_id}
-            )
-        except Exception:
-            FWOLogger.error("Error while getting rule number map")
-            return {}
-
-        rule_num_map: dict[str, dict[str, float]] = {}
-        for rule_num in result["data"]["rule"]:
-            if rule_num["rulebase_id"] not in rule_num_map:
-                rule_num_map.update({rule_num["rulebase_id"]: {}})  # initialize rulebase
-            rule_num_map[rule_num["rulebase_id"]].update({rule_num["rule_uid"]: rule_num["rule_num_numeric"]})
-        return rule_num_map
-
-    def get_next_rule_num_map(self) -> dict[str, float]:  # TODO: implement!
-        query = "query getRuleNumMap { rule { rule_uid rule_num_numeric } }"
-        try:
-            _ = self.import_details.api_call.call(query=query, query_variables={})
-        except Exception:
-            FWOLogger.error("Error while getting rule number")
-            return {}
-
-        rule_num_map: dict[str, float] = {}
-        return rule_num_map
-
-    def get_rule_type_map(self) -> dict[str, int]:
-        query = "query getTrackMap { stm_track { track_name track_id } }"
-        try:
-            result = self.import_details.api_call.call(query=query, query_variables={})
-        except Exception:
-            FWOLogger.error("Error while getting stm_track")
-            return {}
-
-        rule_type_map: dict[str, int] = {}
-        for track in result["data"]["stm_track"]:
-            rule_type_map.update({track["track_name"]: track["track_id"]})
-        return rule_type_map
-
-    def get_current_rules(self, import_id: int, mgm_id: int, rulebase_name: str) -> list[list[Any]] | None:
-        query_variables: dict[str, Any] = {"importId": import_id, "mgmId": mgm_id, "rulebaseName": rulebase_name}
-        query = """
-            query get_rulebase($importId: bigint!, $mgmId: Int!, $rulebaseName: String!) {
-                rulebase(where: {mgm_id: {_eq: $mgmId}, name: {_eq: $rulebaseName}}) {
-                    id
-                    rules(where: {rule: {rule_create: {_lt: $importId}, removed: {_is_null: true}}}, order_by: {rule: {rule_num_numeric: asc}}) {
-                        rule_num
-                        rule_num_numeric
-                        rule_uid
-                    }
-                }
-            }
-        """
-
-        try:
-            query_result = self.import_details.api_call.call(query, query_variables=query_variables)
-        except Exception:
-            FWOLogger.error(f"error while getting current rulebase: {traceback.format_exc()!s}")
-            return None
-
-        try:
-            rule_list = query_result["data"]["rulebase"][0]["rules"]
-        except Exception:
-            FWOLogger.error(f"could not find rules in query result: {query_result}")
-            return None
-
-        rules: list[list[Any]] = [
-            [rule["rule"]["rule_num"], rule["rule"]["rule_num_numeric"], rule["rule"]["rule_uid"]] for rule in rule_list
-        ]
-        return rules
-
-    def insert_rulebase(self, rulebase_name: str, is_global: bool = False):
-        # call for each rulebase to add
-        query_variables: dict[str, Any] = {
-            "rulebase": {
-                "is_global": is_global,
-                "mgm_id": self.import_details.state.mgm_details.current_mgm_id,
-                "name": rulebase_name,
-                "created": self.import_details.state.import_id,
-            }
-        }
-
-        mutation = """
-            mutation upsertRulebaseWithRules($rulebases: [rulebase_insert_input!]!) {
-                insert_rulebase(
-                    objects: $rulebases,
-                    on_conflict: {
-                        constraint: unique_rulebase_mgm_id_uid,
-                        update_columns: [created, is_global]
-                    }
-                ) {
-                    returning {
-                        id
-                        name
-                        rule_id
-                        rulebase_id
-                    }
-                }
-            }
-        """
-        return self.import_details.api_call.call(mutation, query_variables=query_variables)
-
-    def import_insert_rulebase_on_gateway(self, rulebase_id: int, dev_id: int, order_num: int = 0):
-        query_variables: dict[str, Any] = {
-            "rulebase2gateway": [{"dev_id": dev_id, "rulebase_id": rulebase_id, "order_no": order_num}]
-        }
-        mutation = """
-            mutation importInsertRulebaseOnGateway($rulebase2gateway: [rulebase_on_gateway_insert_input!]!) {
-                insert_rulebase_on_gateway(objects: $rulebase2gateway) {
-                affected_rows
-                }
-            }"""
-
-        return self.import_details.api_call.call(mutation, query_variables=query_variables)
-
-    def _get_list_of_enforced_gateways(
-        self, rule: RuleNormalized, import_details: ImportStateController
-    ) -> list[int] | None:
-        if rule.rule_installon is None:
-            return None
-        enforced_gw_ids: list[int] = []
-        for gw_uid in rule.rule_installon.split(fwo_const.LIST_DELIMITER):
-            gw_id = import_details.state.lookup_gateway_id(gw_uid)
-            if gw_id is None:
-                FWOLogger.warning(f"could not find gateway id for gateway uid {gw_uid} during rule import preparation")
-                continue
-            enforced_gw_ids.append(gw_id)
-        if len(enforced_gw_ids) == 0:
-            return None
-
-        return enforced_gw_ids
 
     def prepare_rules_for_import(self, rules: list[RuleNormalized], rulebase_uid: str) -> list[Rule]:
         # get rulebase_id for rulebaseUid

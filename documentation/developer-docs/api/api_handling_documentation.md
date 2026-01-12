@@ -42,7 +42,7 @@ tim@fworch-comp:~$ sudo systemctl status fworch-*
       Tasks: 1 (limit: 4637)
      Memory: 16.8M
      CGroup: /system.slice/fworch-importer-api.service
-             └─341171 /usr/bin/python3 /usr/local/fworch/importer/import-main-loop.py
+             └─341171 /usr/bin/python3 /usr/local/fworch/importer/import_main_loop.py
 
 Dez 09 20:07:18 fworch-comp systemd[1]: Starting fworch importer pure python...
 Dez 09 20:07:28 fworch-comp systemd[1]: Started fworch importer pure python.

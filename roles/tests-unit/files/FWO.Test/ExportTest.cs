@@ -65,7 +65,7 @@ namespace FWO.Test
         {
             Log.WriteInfo("Test Log", "starting rules report html generation");
 
-            var reportRules = ConstructReportRules(false, query, userConfig, ReportType.Rules);
+            var reportRules = ConstructReportRules(query, userConfig, ReportType.Rules, ConstructRuleReportRules(false));
             
             string expectedHtmlResult = "<!DOCTYPE html><html><head><meta charset=\"utf-8\"/><title>Rules Report</title><style>table {font-family: arial, sans-serif;font-size: 10px;border-collapse: collapse;width: 100 %;}td {border: 1px solid #000000;text-align: left;padding: 3px;}th {border: 1px solid #000000;text-align: left;padding: 3px;background-color: #dddddd;}</style></head><body><h2>Rules Report</h2><p>Time of configuration: 2023-04-20T15:50:04Z (UTC)</p><p>Generated on: Z (UTC)</p><p>Devices: TestMgt [Mock Device 1]</p><p>Filter: TestFilter</p><hr><div id=\"toc_container\"><h2>Table of content</h2><ul class=\"toc_list\"><li><a href=\"#" + StaticAnkerId + "\">TestMgt</a></li><ul><li class=\"subli\"><a href=\"#" + StaticAnkerId + "\">Mock Device 1</a></li><li class=\"subli\"><a href=\"#" + StaticAnkerId + "\">Network Objects</a></li><li class=\"subli\"><a href=\"#" + StaticAnkerId + "\">Network Services</a></li><li class=\"subli\"><a href=\"#" + StaticAnkerId + "\">Users</a></li></ul></ul></div><style>#toc_container {background: #f9f9f9 none repeat scroll 0 0;border: 1px solid #aaa;display: table;font-size: 95%;margin-bottom: 1em;padding: 10px;width: 100%;}#toc_container ul{list-style-type: none;}.subli {list-style-type: square;}.toc_list ul li {margin-bottom: 4px;}.toc_list a {color: black;font-family: 'Arial';font-size: 12pt;}</style><hr><h3 id=\"" + StaticAnkerId + "\">TestMgt</h3><hr><h4 id=\"" + StaticAnkerId + "\">Mock Device 1</h4><table><tr><th>No.</th><th>Name</th><th>Source Zone</th><th>Source</th><th>Destination Zone</th><th>Destination</th><th>Services</th><th>Action</th><th>Track</th><th>Enabled</th><th>Uid</th><th>Comment</th></tr><tr><td></td><td>TestRule1</td><td>srczn1<br>srczn2<br>srczn3</td><td><span style=\"\"><span class=\"" + Icons.Network + "\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj1x1\" target=\"_top\" style=\"\">TestIp1</a> (1.2.3.4/32)</span><br><span style=\"\"><span class=\"" + Icons.Network + "\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj1x2\" target=\"_top\" style=\"\">TestIp2</a> (127.0.0.1/32)</span></td><td>dstzn1<br>dstzn2<br>dstzn3</td><td><span style=\"\"><span class=\"" + Icons.Range + "\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj1x3\" target=\"_top\" style=\"\">TestIpRange</a> (1.2.3.4-1.2.3.5)</span></td><td><span class=\"" + Icons.Service + "\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#svc1x1\" target=\"_top\" style=\"\">TestService1</a> (443/TCP)</td><td>accept</td><td>none</td><td><b>Y</b></td><td>uid1</td><td>comment1</td></tr><tr><td></td><td>TestRule2</td><td></td><td>not<br><span style=\"\"><span class=\"" + Icons.User + "\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#user1x1\" target=\"_top\" style=\"\">TestUser1</a>@<span class=\"" + Icons.Network + "\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj1x1\" target=\"_top\" style=\"\">TestIp1</a> (1.2.3.4/32)</span><br><span style=\"\"><span class=\"" + Icons.User + "\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#user1x1\" target=\"_top\" style=\"\">TestUser1</a>@<span class=\"" + Icons.Network + "\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj1x2\" target=\"_top\" style=\"\">TestIp2</a> (127.0.0.1/32)</span></td><td></td><td>not<br><span style=\"\"><span class=\"" + Icons.UserGroup + "\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#user1x2\" target=\"_top\" style=\"\">TestUser2</a>@<span class=\"" + Icons.Range + "\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj1x3\" target=\"_top\" style=\"\">TestIpRange</a> (1.2.3.4-1.2.3.5)</span></td><td>not<br><span class=\"" + Icons.Service + "\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#svc1x2\" target=\"_top\" style=\"\">TestService2</a> (6666-7777/UDP)</td><td>deny</td><td>none</td><td><b>Y</b></td><td>uid2:123</td><td>comment2</td></tr></table><hr><h4 id=\"" + StaticAnkerId + "\">Network Objects</h4><table><tr><th>No.</th><th>Name</th><th>Type</th><th>IP Address</th><th>Members</th><th>Uid</th><th>Comment</th></tr><tr style=\"\"><td>1</td><td><a name=nwobj1x1>TestIp1</a></td><td>Network</td><td>1.2.3.4/32</td><td></td><td></td><td></td></tr><tr style=\"\"><td>2</td><td><a name=nwobj1x2>TestIp2</a></td><td>Network</td><td>127.0.0.1/32</td><td></td><td></td><td></td></tr><tr style=\"\"><td>3</td><td><a name=nwobj1x3>TestIpRange</a></td><td>IP Range</td><td>1.2.3.4-1.2.3.5</td><td></td><td></td><td></td></tr></table><hr><h4 id=\"" + StaticAnkerId + "\">Network Services</h4><table><tr><th>No.</th><th>Name</th><th>Type</th><th>Protocol</th><th>Port</th><th>Members</th><th>Uid</th><th>Comment</th></tr><tr><td>1</td><td><a name=svc1x1>TestService1</a></td><td></td><td>TCP</td><td>443</td><td></td><td></td><td></td></tr><tr><td>2</td><td><a name=svc1x2>TestService2</a></td><td></td><td>UDP</td><td>6666-7777</td><td></td><td></td><td></td></tr></table><hr><h4 id=\"" + StaticAnkerId + "\">Users</h4><table><tr><th>No.</th><th>Name</th><th>Type</th><th>Members</th><th>Uid</th><th>Comment</th></tr><tr><td>1</td><td><a name=user1x1>TestUser1</a></td><td></td><td></td><td></td><td></td></tr><tr><td>2</td><td><a name=user1x2>TestUser2</a></td><td>Group</td><td></td><td></td><td></td></tr></table><hr></body></html>";
             
@@ -81,7 +81,7 @@ namespace FWO.Test
         public void ResolvedRulesGenerateHtml()
         {
             Log.WriteInfo("Test Log", "starting rules report resolved html generation");
-            ReportRules reportRules = ConstructReportRules(true, query, userConfig, ReportType.ResolvedRules);
+            ReportRules reportRules = ConstructReportRules(query, userConfig, ReportType.ResolvedRules, ConstructRuleReportRules(true));
 
             string expectedHtmlResult = "<!DOCTYPE html><html><head><meta charset=\"utf-8\"/><title>Rules Report (resolved)</title><style>table {font-family: arial, sans-serif;font-size: 10px;border-collapse: collapse;width: 100 %;}td {border: 1px solid #000000;text-align: left;padding: 3px;}th {border: 1px solid #000000;text-align: left;padding: 3px;background-color: #dddddd;}</style></head><body><h2>Rules Report (resolved)</h2><p>Time of configuration: 2023-04-20T15:50:04Z (UTC)</p><p>Generated on: Z (UTC)</p><p>Devices: TestMgt [Mock Device 1]</p><p>Filter: TestFilter</p><hr><div id=\"toc_container\"><h2>Table of content</h2><ul class=\"toc_list\"><li><a href=\"#" + StaticAnkerId + "\">TestMgt</a></li><ul><li class=\"subli\"><a href=\"#" + StaticAnkerId + "\">Mock Device 1</a></li></ul></ul></div><style>#toc_container {background: #f9f9f9 none repeat scroll 0 0;border: 1px solid #aaa;display: table;font-size: 95%;margin-bottom: 1em;padding: 10px;width: 100%;}#toc_container ul{list-style-type: none;}.subli {list-style-type: square;}.toc_list ul li {margin-bottom: 4px;}.toc_list a {color: black;font-family: 'Arial';font-size: 12pt;}</style><hr><h3 id=\"" + StaticAnkerId + "\">TestMgt</h3><hr><h4 id=\"" + StaticAnkerId + "\">Mock Device 1</h4><table><tr><th>No.</th><th>Name</th><th>Source Zone</th><th>Source</th><th>Destination Zone</th><th>Destination</th><th>Services</th><th>Action</th><th>Track</th><th>Enabled</th><th>Uid</th><th>Comment</th></tr><tr><td></td><td>TestRule1</td><td>srczn1<br>srczn2<br>srczn3</td><td><span style=\"\">TestIp1 (1.2.3.4/32)</span><br><span style=\"\">TestIp2 (127.0.0.1/32)</span></td><td>dstzn1<br>dstzn2<br>dstzn3</td><td><span style=\"\">TestIpRange (1.2.3.4-1.2.3.5)</span></td><td>TestService1 (443/TCP)</td><td>accept</td><td>none</td><td><b>Y</b></td><td>uid1</td><td>comment1</td></tr><tr><td></td><td>TestRule2</td><td></td><td>not<br><span style=\"\">TestUser1@TestIp1 (1.2.3.4/32)</span><br><span style=\"\">TestUser1@TestIp2 (127.0.0.1/32)</span></td><td></td><td>not<br><span style=\"\">TestUser2@TestIpRange (1.2.3.4-1.2.3.5)</span></td><td>not<br>TestService2 (6666-7777/UDP)</td><td>deny</td><td>none</td><td><b>Y</b></td><td>uid2:123</td><td>comment2</td></tr></table><hr></body></html>";
 
@@ -98,7 +98,7 @@ namespace FWO.Test
         {
             Log.WriteInfo("Test Log", "starting rules report resolved html generation");
             
-            ReportRules reportRules = ConstructReportRules(true, query, userConfig, ReportType.ResolvedRulesTech);
+            ReportRules reportRules = ConstructReportRules(query, userConfig, ReportType.ResolvedRulesTech, ConstructRuleReportRules(true));
 
             string expectedHtmlResult = "<!DOCTYPE html><html><head><meta charset=\"utf-8\"/><title>Rules Report (technical)</title><style>table {font-family: arial, sans-serif;font-size: 10px;border-collapse: collapse;width: 100 %;}td {border: 1px solid #000000;text-align: left;padding: 3px;}th {border: 1px solid #000000;text-align: left;padding: 3px;background-color: #dddddd;}</style></head><body><h2>Rules Report (technical)</h2><p>Time of configuration: 2023-04-20T15:50:04Z (UTC)</p><p>Generated on: Z (UTC)</p><p>Devices: TestMgt [Mock Device 1]</p><p>Filter: TestFilter</p><hr><div id=\"toc_container\"><h2>Table of content</h2><ul class=\"toc_list\"><li><a href=\"#" + StaticAnkerId + "\">TestMgt</a></li><ul><li class=\"subli\"><a href=\"#" + StaticAnkerId + "\">Mock Device 1</a></li></ul></ul></div><style>#toc_container {background: #f9f9f9 none repeat scroll 0 0;border: 1px solid #aaa;display: table;font-size: 95%;margin-bottom: 1em;padding: 10px;width: 100%;}#toc_container ul{list-style-type: none;}.subli {list-style-type: square;}.toc_list ul li {margin-bottom: 4px;}.toc_list a {color: black;font-family: 'Arial';font-size: 12pt;}</style><hr><h3 id=\"" + StaticAnkerId + "\">TestMgt</h3><hr><h4 id=\"" + StaticAnkerId + "\">Mock Device 1</h4><table><tr><th>No.</th><th>Name</th><th>Source Zone</th><th>Source</th><th>Destination Zone</th><th>Destination</th><th>Services</th><th>Action</th><th>Track</th><th>Enabled</th><th>Uid</th><th>Comment</th></tr><tr><td></td><td>TestRule1</td><td>srczn1<br>srczn2<br>srczn3</td><td><span style=\"\">1.2.3.4/32</span><br><span style=\"\">127.0.0.1/32</span></td><td>dstzn1<br>dstzn2<br>dstzn3</td><td><span style=\"\">1.2.3.4-1.2.3.5</span></td><td>443/TCP</td><td>accept</td><td>none</td><td><b>Y</b></td><td>uid1</td><td>comment1</td></tr><tr><td></td><td>TestRule2</td><td></td><td>not<br><span style=\"\">TestUser1@1.2.3.4/32</span><br><span style=\"\">TestUser1@127.0.0.1/32</span></td><td></td><td>not<br><span style=\"\">TestUser2@1.2.3.4-1.2.3.5</span></td><td>not<br>6666-7777/UDP</td><td>deny</td><td>none</td><td><b>Y</b></td><td>uid2:123</td><td>comment2</td></tr></table><hr></body></html>";            string reportHtml = RemoveLinebreaks(RemoveGenDate(reportRules.ExportToHtml(), true));
 
@@ -112,7 +112,7 @@ namespace FWO.Test
         public void UnusedRulesGenerateHtml()
         {
             Log.WriteInfo("Test Log", "starting unused rules report html generation");
-            ReportRules reportRules = ConstructReportRules(false, query, userConfig, ReportType.UnusedRules);
+            ReportRules reportRules = ConstructReportRules(query, userConfig, ReportType.UnusedRules, ConstructRuleReportRules(false));
 
             string expectedHtmlResult = "<!DOCTYPE html><html><head><meta charset=\"utf-8\"/><title>Unused Rules Report</title><style>table {font-family: arial, sans-serif;font-size: 10px;border-collapse: collapse;width: 100 %;}td {border: 1px solid #000000;text-align: left;padding: 3px;}th {border: 1px solid #000000;text-align: left;padding: 3px;background-color: #dddddd;}</style></head><body><h2>Unused Rules Report</h2><p>Time of configuration: 2023-04-20T15:50:04Z (UTC)</p><p>Generated on: Z (UTC)</p><p>Devices: TestMgt [Mock Device 1]</p><p>Filter: TestFilter</p><hr><div id=\"toc_container\"><h2>Table of content</h2><ul class=\"toc_list\"><li><a href=\"#" + StaticAnkerId + "\">TestMgt</a></li><ul><li class=\"subli\"><a href=\"#" + StaticAnkerId + "\">Mock Device 1</a></li><li class=\"subli\"><a href=\"#" + StaticAnkerId + "\">Network Objects</a></li><li class=\"subli\"><a href=\"#" + StaticAnkerId + "\">Network Services</a></li><li class=\"subli\"><a href=\"#" + StaticAnkerId + "\">Users</a></li></ul></ul></div><style>#toc_container {background: #f9f9f9 none repeat scroll 0 0;border: 1px solid #aaa;display: table;font-size: 95%;margin-bottom: 1em;padding: 10px;width: 100%;}#toc_container ul{list-style-type: none;}.subli {list-style-type: square;}.toc_list ul li {margin-bottom: 4px;}.toc_list a {color: black;font-family: 'Arial';font-size: 12pt;}</style><hr><h3 id=\"" + StaticAnkerId + "\">TestMgt</h3><hr><h4 id=\"" + StaticAnkerId + "\">Mock Device 1</h4><table><tr><th>No.</th><th>Last Hit</th><th>Name</th><th>Source Zone</th><th>Source</th><th>Destination Zone</th><th>Destination</th><th>Services</th><th>Action</th><th>Track</th><th>Enabled</th><th>Uid</th><th>Comment</th></tr><tr><td></td><td>2022-04-19</td><td>TestRule1</td><td>srczn1<br>srczn2<br>srczn3</td><td><span style=\"\"><span class=\"" + Icons.Network + "\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj1x1\" target=\"_top\" style=\"\">TestIp1</a> (1.2.3.4/32)</span><br><span style=\"\"><span class=\"" + Icons.Network + "\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj1x2\" target=\"_top\" style=\"\">TestIp2</a> (127.0.0.1/32)</span></td><td>dstzn1<br>dstzn2<br>dstzn3</td><td><span style=\"\"><span class=\"" + Icons.Range + "\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj1x3\" target=\"_top\" style=\"\">TestIpRange</a> (1.2.3.4-1.2.3.5)</span></td><td><span class=\"" + Icons.Service + "\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#svc1x1\" target=\"_top\" style=\"\">TestService1</a> (443/TCP)</td><td>accept</td><td>none</td><td><b>Y</b></td><td>uid1</td><td>comment1</td></tr><tr><td class=\"bg-gray\" colspan=\"12\"><b></b></td></tr><tr><td></td><td></td><td>TestRule2</td><td></td><td>not<br><span style=\"\"><span class=\"" + Icons.User + "\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#user1x1\" target=\"_top\" style=\"\">TestUser1</a>@<span class=\"" + Icons.Network + "\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj1x1\" target=\"_top\" style=\"\">TestIp1</a> (1.2.3.4/32)</span><br><span style=\"\"><span class=\"" + Icons.User + "\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#user1x1\" target=\"_top\" style=\"\">TestUser1</a>@<span class=\"" + Icons.Network + "\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj1x2\" target=\"_top\" style=\"\">TestIp2</a> (127.0.0.1/32)</span></td><td></td><td>not<br><span style=\"\"><span class=\"" + Icons.UserGroup + "\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#user1x2\" target=\"_top\" style=\"\">TestUser2</a>@<span class=\"" + Icons.Range + "\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj1x3\" target=\"_top\" style=\"\">TestIpRange</a> (1.2.3.4-1.2.3.5)</span></td><td>not<br><span class=\"" + Icons.Service + "\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#svc1x2\" target=\"_top\" style=\"\">TestService2</a> (6666-7777/UDP)</td><td>deny</td><td>none</td><td><b>Y</b></td><td>uid2:123</td><td>comment2</td></tr><tr><td class=\"bg-gray\" colspan=\"12\"><b></b></td></tr></table><hr><h4 id=\"" + StaticAnkerId + "\">Network Objects</h4><table><tr><th>No.</th><th>Name</th><th>Type</th><th>IP Address</th><th>Members</th><th>Uid</th><th>Comment</th></tr><tr style=\"\"><td>1</td><td><a name=nwobj1x1>TestIp1</a></td><td>Network</td><td>1.2.3.4/32</td><td></td><td></td><td></td></tr><tr style=\"\"><td>2</td><td><a name=nwobj1x2>TestIp2</a></td><td>Network</td><td>127.0.0.1/32</td><td></td><td></td><td></td></tr><tr style=\"\"><td>3</td><td><a name=nwobj1x3>TestIpRange</a></td><td>IP Range</td><td>1.2.3.4-1.2.3.5</td><td></td><td></td><td></td></tr></table><hr><h4 id=\"" + StaticAnkerId + "\">Network Services</h4><table><tr><th>No.</th><th>Name</th><th>Type</th><th>Protocol</th><th>Port</th><th>Members</th><th>Uid</th><th>Comment</th></tr><tr><td>1</td><td><a name=svc1x1>TestService1</a></td><td></td><td>TCP</td><td>443</td><td></td><td></td><td></td></tr><tr><td>2</td><td><a name=svc1x2>TestService2</a></td><td></td><td>UDP</td><td>6666-7777</td><td></td><td></td><td></td></tr></table><hr><h4 id=\"" + StaticAnkerId + "\">Users</h4><table><tr><th>No.</th><th>Name</th><th>Type</th><th>Members</th><th>Uid</th><th>Comment</th></tr><tr><td>1</td><td><a name=user1x1>TestUser1</a></td><td></td><td></td><td></td><td></td></tr><tr><td>2</td><td><a name=user1x2>TestUser2</a></td><td>Group</td><td></td><td></td><td></td></tr></table><hr></body></html>";
             string reportHtml = RemoveLinebreaks(RemoveGenDate(reportRules.ExportToHtml(), true));
@@ -123,16 +123,14 @@ namespace FWO.Test
             ClassicAssert.AreEqual(expectedHtmlResult, reportHtml);
         }
 
-        [Test, Ignore("temporarily disabled for importer-rework")]
+        [Test]
         public void RecertReportGenerateHtml()
         {
             Log.WriteInfo("Test Log", "starting recert report html generation");
-            ReportRules reportRecerts = new(query, userConfig, ReportType.Recertification)
-            {
-                ReportData = ConstructRecertReport()
-            };
+            ReportRules reportRecerts = ConstructReportRules(query, userConfig, ReportType.Recertification,
+                ConstructRecertReportRules(false));
 
-            string expectedHtmlResult = "<!DOCTYPE html><html><head><meta charset=\"utf-8\"/><title>Recertification Report</title><style>table {font-family: arial, sans-serif;font-size: 10px;border-collapse: collapse;width: 100 %;}td {border: 1px solid #000000;text-align: left;padding: 3px;}th {border: 1px solid #000000;text-align: left;padding: 3px;background-color: #dddddd;}</style></head><body><h2>Recertification Report</h2><p>Time of configuration: 2023-04-20T15:50:04Z (UTC)</p><p>Generated on: Z (UTC)</p><p>Devices: TestMgt [TestDev]</p><p>Filter: TestFilter</p><hr><div id=\"toc_container\"><h2>Table of content</h2><ul class=\"toc_list\"><li><a href=\"#" + StaticAnkerId + "\">TestMgt</a></li><ul><li class=\"subli\"><a href=\"#" + StaticAnkerId + "\">TestDev</a></li><li class=\"subli\"><a href=\"#" + StaticAnkerId + "\">Network Objects</a></li><li class=\"subli\"><a href=\"#" + StaticAnkerId + "\">Network Services</a></li><li class=\"subli\"><a href=\"#" + StaticAnkerId + "\">Users</a></li></ul></ul></div><style>#toc_container {background: #f9f9f9 none repeat scroll 0 0;border: 1px solid #aaa;display: table;font-size: 95%;margin-bottom: 1em;padding: 10px;width: 100%;}#toc_container ul{list-style-type: none;}.subli {list-style-type: square;}.toc_list ul li {margin-bottom: 4px;}.toc_list a {color: black;font-family: 'Arial';font-size: 12pt;}</style><hr><h3 id=\"" + StaticAnkerId + "\">TestMgt</h3><hr><h4 id=\"" + StaticAnkerId + "\">TestDev</h4><table><tr><th>No.</th><th>Next Recertification Date</th><th>Owner</th><th>IP address match</th><th>Last Hit</th><th>Name</th><th>Source Zone</th><th>Source</th><th>Destination Zone</th><th>Destination</th><th>Services</th><th>Action</th><th>Track</th><th>Enabled</th><th>Uid</th><th>Comment</th></tr><tr><td>1</td><td><p>1.&nbsp;" + DateOnly.FromDateTime(DateTime.Now.AddDays(5)).ToString("yyyy-MM-dd") + "</p><p style=\"color: red;\">2.&nbsp;" + DateOnly.FromDateTime(DateTime.Now.AddDays(-5)).ToString("yyyy-MM-dd") + "</p></td><td><p>1.&nbsp;TestOwner1</p><p>2.&nbsp;TestOwner2</p></td><td><p>1.&nbsp;TestIp1</p><p>2.&nbsp;TestIp2</p></td><td>2022-04-19</td><td>TestRule1</td><td>srczn</td><td><span style=\"\"><span class=\"" + Icons.Network + "\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj1x1\" target=\"_top\" style=\"\">TestIp1</a> (1.2.3.4/32)</span><br><span style=\"\"><span class=\"" + Icons.Network + "\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj1x2\" target=\"_top\" style=\"\">TestIp2</a> (127.0.0.1/32)</span></td><td>dstzn</td><td><span style=\"\"><span class=\"" + Icons.Range + "\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj1x3\" target=\"_top\" style=\"\">TestIpRange</a> (1.2.3.4-1.2.3.5)</span></td><td><span class=\"" + Icons.Service + "\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#svc1x1\" target=\"_top\" style=\"\">TestService1</a> (443/TCP)</td><td>accept</td><td>none</td><td><b>Y</b></td><td>uid1</td><td>comment1</td></tr><tr><td>2</td><td><p style=\"color: red;\">" + DateOnly.FromDateTime(DateTime.Now).ToString("yyyy-MM-dd") + "</p></td><td><p>TestOwner1</p></td><td><p>TestIpRange</p></td><td></td><td>TestRule2</td><td></td><td>not<br><span style=\"\"><span class=\"" + Icons.User + "\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#user1x1\" target=\"_top\" style=\"\">TestUser1</a>@<span class=\"" + Icons.Network + "\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj1x1\" target=\"_top\" style=\"\">TestIp1</a> (1.2.3.4/32)</span><br><span style=\"\"><span class=\"" + Icons.User + "\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#user1x1\" target=\"_top\" style=\"\">TestUser1</a>@<span class=\"" + Icons.Network + "\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj1x2\" target=\"_top\" style=\"\">TestIp2</a> (127.0.0.1/32)</span></td><td></td><td>not<br><span style=\"\"><span class=\"" + Icons.UserGroup + "\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#user1x2\" target=\"_top\" style=\"\">TestUser2</a>@<span class=\"" + Icons.Range + "\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj1x3\" target=\"_top\" style=\"\">TestIpRange</a> (1.2.3.4-1.2.3.5)</span></td><td>not<br><span class=\"" + Icons.Service + "\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#svc1x2\" target=\"_top\" style=\"\">TestService2</a> (6666-7777/UDP)</td><td>deny</td><td>none</td><td><b>Y</b></td><td>uid2:123</td><td>comment2</td></tr></table><hr><h4 id=\"" + StaticAnkerId + "\">Network Objects</h4><table><tr><th>No.</th><th>Name</th><th>Type</th><th>IP Address</th><th>Members</th><th>Uid</th><th>Comment</th></tr><tr style=\"\"><td>1</td><td><a name=nwobj1x1>TestIp1</a></td><td>Network</td><td>1.2.3.4/32</td><td></td><td></td><td></td></tr><tr style=\"\"><td>2</td><td><a name=nwobj1x2>TestIp2</a></td><td>Network</td><td>127.0.0.1/32</td><td></td><td></td><td></td></tr><tr style=\"\"><td>3</td><td><a name=nwobj1x3>TestIpRange</a></td><td>IP Range</td><td>1.2.3.4-1.2.3.5</td><td></td><td></td><td></td></tr></table><hr><h4 id=\"" + StaticAnkerId + "\">Network Services</h4><table><tr><th>No.</th><th>Name</th><th>Type</th><th>Protocol</th><th>Port</th><th>Members</th><th>Uid</th><th>Comment</th></tr><tr><td>1</td><td><a name=svc1x1>TestService1</a></td><td></td><td>TCP</td><td>443</td><td></td><td></td><td></td></tr><tr><td>2</td><td><a name=svc1x2>TestService2</a></td><td></td><td>UDP</td><td>6666-7777</td><td></td><td></td><td></td></tr></table><hr><h4 id=\"" + StaticAnkerId + "\">Users</h4><table><tr><th>No.</th><th>Name</th><th>Type</th><th>Members</th><th>Uid</th><th>Comment</th></tr><tr><td>1</td><td><a name=user1x1>TestUser1</a></td><td></td><td></td><td></td><td></td></tr><tr><td>2</td><td><a name=user1x2>TestUser2</a></td><td>Group</td><td></td><td></td><td></td></tr></table><hr></body></html>";
+            string expectedHtmlResult = "<!DOCTYPE html><html><head><meta charset=\"utf-8\"/><title>Recertification Report</title><style>table {font-family: arial, sans-serif;font-size: 10px;border-collapse: collapse;width: 100 %;}td {border: 1px solid #000000;text-align: left;padding: 3px;}th {border: 1px solid #000000;text-align: left;padding: 3px;background-color: #dddddd;}</style></head><body><h2>Recertification Report</h2><p>Time of configuration: 2023-04-20T15:50:04Z (UTC)</p><p>Generated on: Z (UTC)</p><p>Devices: TestMgt [Mock Device 1]</p><p>Filter: TestFilter</p><hr><div id=\"toc_container\"><h2>Table of content</h2><ul class=\"toc_list\"><li><a href=\"#" + StaticAnkerId + "\">TestMgt</a></li><ul><li class=\"subli\"><a href=\"#" + StaticAnkerId + "\">Mock Device 1</a></li><li class=\"subli\"><a href=\"#" + StaticAnkerId + "\">Network Objects</a></li><li class=\"subli\"><a href=\"#" + StaticAnkerId + "\">Network Services</a></li><li class=\"subli\"><a href=\"#" + StaticAnkerId + "\">Users</a></li></ul></ul></div><style>#toc_container {background: #f9f9f9 none repeat scroll 0 0;border: 1px solid #aaa;display: table;font-size: 95%;margin-bottom: 1em;padding: 10px;width: 100%;}#toc_container ul{list-style-type: none;}.subli {list-style-type: square;}.toc_list ul li {margin-bottom: 4px;}.toc_list a {color: black;font-family: 'Arial';font-size: 12pt;}</style><hr><h3 id=\"" + StaticAnkerId + "\">TestMgt</h3><hr><h4 id=\"" + StaticAnkerId + "\">Mock Device 1</h4><table><tr><th>No.</th><th>Next Recertification Date</th><th>Owner</th><th>IP address match</th><th>Last Hit</th><th>Name</th><th>Source Zone</th><th>Source</th><th>Destination Zone</th><th>Destination</th><th>Services</th><th>Action</th><th>Track</th><th>Enabled</th><th>Uid</th><th>Comment</th></tr><tr><td></td><td><p>1.&nbsp;" + DateOnly.FromDateTime(DateTime.Now.AddDays(5)).ToString("yyyy-MM-dd") + "</p><p style=\"color: red;\">2.&nbsp;" + DateOnly.FromDateTime(DateTime.Now.AddDays(-5)).ToString("yyyy-MM-dd") + "</p></td><td><p>1.&nbsp;TestOwner1</p><p>2.&nbsp;TestOwner2</p></td><td><p>1.&nbsp;TestIp1</p><p>2.&nbsp;TestIp2</p></td><td>2022-04-19</td><td>TestRule1</td><td>srczn1<br>srczn2<br>srczn3</td><td><span style=\"\"><span class=\"" + Icons.Network + "\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj1x1\" target=\"_top\" style=\"\">TestIp1</a> (1.2.3.4/32)</span><br><span style=\"\"><span class=\"" + Icons.Network + "\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj1x2\" target=\"_top\" style=\"\">TestIp2</a> (127.0.0.1/32)</span></td><td>dstzn1<br>dstzn2<br>dstzn3</td><td><span style=\"\"><span class=\"" + Icons.Range + "\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj1x3\" target=\"_top\" style=\"\">TestIpRange</a> (1.2.3.4-1.2.3.5)</span></td><td><span class=\"" + Icons.Service + "\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#svc1x1\" target=\"_top\" style=\"\">TestService1</a> (443/TCP)</td><td>accept</td><td>none</td><td><b>Y</b></td><td>uid1</td><td>comment1</td></tr><tr><td></td><td><p style=\"color: red;\">" + DateOnly.FromDateTime(DateTime.Now).ToString("yyyy-MM-dd") + "</p></td><td><p>TestOwner1</p></td><td><p>TestIpRange</p></td><td></td><td>TestRule2</td><td></td><td>not<br><span style=\"\"><span class=\"" + Icons.User + "\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#user1x1\" target=\"_top\" style=\"\">TestUser1</a>@<span class=\"" + Icons.Network + "\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj1x1\" target=\"_top\" style=\"\">TestIp1</a> (1.2.3.4/32)</span><br><span style=\"\"><span class=\"" + Icons.User + "\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#user1x1\" target=\"_top\" style=\"\">TestUser1</a>@<span class=\"" + Icons.Network + "\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj1x2\" target=\"_top\" style=\"\">TestIp2</a> (127.0.0.1/32)</span></td><td></td><td>not<br><span style=\"\"><span class=\"" + Icons.UserGroup + "\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#user1x2\" target=\"_top\" style=\"\">TestUser2</a>@<span class=\"" + Icons.Range + "\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#nwobj1x3\" target=\"_top\" style=\"\">TestIpRange</a> (1.2.3.4-1.2.3.5)</span></td><td>not<br><span class=\"" + Icons.Service + "\">&nbsp;</span><a @onclick:stopPropagation=\"true\" href=\"#svc1x2\" target=\"_top\" style=\"\">TestService2</a> (6666-7777/UDP)</td><td>deny</td><td>none</td><td><b>Y</b></td><td>uid2:123</td><td>comment2</td></tr></table><hr><h4 id=\"" + StaticAnkerId + "\">Network Objects</h4><table><tr><th>No.</th><th>Name</th><th>Type</th><th>IP Address</th><th>Members</th><th>Uid</th><th>Comment</th></tr><tr style=\"\"><td>1</td><td><a name=nwobj1x1>TestIp1</a></td><td>Network</td><td>1.2.3.4/32</td><td></td><td></td><td></td></tr><tr style=\"\"><td>2</td><td><a name=nwobj1x2>TestIp2</a></td><td>Network</td><td>127.0.0.1/32</td><td></td><td></td><td></td></tr><tr style=\"\"><td>3</td><td><a name=nwobj1x3>TestIpRange</a></td><td>IP Range</td><td>1.2.3.4-1.2.3.5</td><td></td><td></td><td></td></tr></table><hr><h4 id=\"" + StaticAnkerId + "\">Network Services</h4><table><tr><th>No.</th><th>Name</th><th>Type</th><th>Protocol</th><th>Port</th><th>Members</th><th>Uid</th><th>Comment</th></tr><tr><td>1</td><td><a name=svc1x1>TestService1</a></td><td></td><td>TCP</td><td>443</td><td></td><td></td><td></td></tr><tr><td>2</td><td><a name=svc1x2>TestService2</a></td><td></td><td>UDP</td><td>6666-7777</td><td></td><td></td><td></td></tr></table><hr><h4 id=\"" + StaticAnkerId + "\">Users</h4><table><tr><th>No.</th><th>Name</th><th>Type</th><th>Members</th><th>Uid</th><th>Comment</th></tr><tr><td>1</td><td><a name=user1x1>TestUser1</a></td><td></td><td></td><td></td><td></td></tr><tr><td>2</td><td><a name=user1x2>TestUser2</a></td><td>Group</td><td></td><td></td><td></td></tr></table><hr></body></html>";
 
             string reportHtml = RemoveLinebreaks(RemoveGenDate(reportRecerts.ExportToHtml(), true));
 
@@ -313,7 +311,7 @@ namespace FWO.Test
         public void ResolvedRulesGenerateCsv()
         {
             Log.WriteInfo("Test Log", "starting rules report resolved csv generation");
-            ReportRules reportRules = ConstructReportRules(true, query, userConfig, ReportType.ResolvedRules);
+            ReportRules reportRules = ConstructReportRules(query, userConfig, ReportType.ResolvedRules, ConstructRuleReportRules(true));
             
             string expectedCsvResult = "# report type: Rules Report (resolved)" +
                                        "# report generation date: Z (UTC)" +
@@ -333,7 +331,7 @@ namespace FWO.Test
         public void ResolvedRulesTechGenerateCsv()
         {
             Log.WriteInfo("Test Log", "starting rules report tech csv generation");
-            ReportRules reportRules = ConstructReportRules(true, query, userConfig, ReportType.ResolvedRulesTech);
+            ReportRules reportRules = ConstructReportRules(query, userConfig, ReportType.ResolvedRulesTech, ConstructRuleReportRules(true));
 
             string expectedCsvResult = "# report type: Rules Report (technical)" +
             "# report generation date: Z (UTC)" +
@@ -405,7 +403,7 @@ namespace FWO.Test
         public void RulesGenerateJson()
         {
             Log.WriteInfo("Test Log", "starting rules report json generation");
-            ReportRules reportRules = ConstructReportRules(false, query, userConfig, ReportType.Rules);
+            ReportRules reportRules = ConstructReportRules(query, userConfig, ReportType.Rules, ConstructRuleReportRules(false));
             int id = reportRules.ReportData.ManagementData.First().Rulebases.First().Id;
 
             string expectedJsonResult = "[{\"id\": 0,\"uid\": \"\",\"name\": \"TestMgt\"," +
@@ -463,7 +461,7 @@ namespace FWO.Test
         public void ResolvedRulesGenerateJson()
         {
             Log.WriteInfo("Test Log", "starting resolved rules report json generation");
-            ReportRules reportRules = ConstructReportRules(true, query, userConfig, ReportType.ResolvedRules);
+            ReportRules reportRules = ConstructReportRules(query, userConfig, ReportType.ResolvedRules, ConstructRuleReportRules(true));
 
             string expectedJsonResult =
             "{\"report type\": \"Rules Report (resolved)\",\"report generation date\": \"Z (UTC)\"," +
@@ -502,7 +500,7 @@ namespace FWO.Test
         public void ResolvedRulesTechGenerateJson()
         {
             Log.WriteInfo("Test Log", "starting resolved rules report tech json generation");
-            ReportRules reportRules = ConstructReportRules(true, query, userConfig, ReportType.ResolvedRulesTech);
+            ReportRules reportRules = ConstructReportRules(query, userConfig, ReportType.ResolvedRulesTech, ConstructRuleReportRules(true));
             string expectedJsonResult =
             "{\"report type\": \"Rules Report (technical)\",\"report generation date\": \"Z (UTC)\"," +
             "\"date of configuration shown\": \"2023-04-20T15:50:04Z (UTC)\"," +
@@ -791,6 +789,7 @@ namespace FWO.Test
             };
         }
 
+        //If possible use ConstructReportRules below so that this can be deprecated
         private static ReportData ConstructRuleReportData(bool resolved)
         {
             Rule1 = InitRule1(resolved);
@@ -817,11 +816,12 @@ namespace FWO.Test
             };
         }
         
-        private static ReportRules ConstructReportRules(bool resolved, DynGraphqlQuery query, UserConfig userConfig, ReportType reportType)
+        private static ReportRules ConstructReportRules(DynGraphqlQuery query, UserConfig userConfig, ReportType reportType, Rule[] rules)
         {
             RulebaseReport[] rulebases = [
                 MockReportRules.CreateRulebaseReport(numberOfRules: 2)
             ];
+            rulebases.First().Rules = rules;
             RulebaseLink[] rulebaseLinks = [
                 new() {IsInitial = true,NextRulebaseId = rulebases[0].Id}
             ];
@@ -832,14 +832,7 @@ namespace FWO.Test
             
             managementData.Rulebases = rulebases;
             managementData.Devices.First().RulebaseLinks = rulebaseLinks;
-
-            Rule[] rules =
-            [
-                InitRule1(resolved),
-                InitRule2(resolved)
-            ];
             
-            managementData.Rulebases.First().Rules = rules;
             managementData.Name = "TestMgt";
             managementData.ReportObjects = [TestIp1, TestIp2, TestIpRange];
             managementData.ReportServices = [TestService1, TestService2];
@@ -850,6 +843,45 @@ namespace FWO.Test
             reportRules.TryBuildMockRuleTree();
             
             return reportRules;
+        }
+
+        private Rule[] ConstructRuleReportRules(bool resolved)
+        {
+            return [
+                InitRule1(resolved),
+                InitRule2(resolved)
+            ];
+        }
+
+        private Rule[] ConstructRecertReportRules(bool resolved)
+        {
+            Rule rule1 = InitRule1(resolved);
+            rule1.Metadata.RuleRecertification =
+            [
+                new ()
+                {
+                    NextRecertDate  = DateTime.Now.AddDays(5),
+                    FwoOwner = new FwoOwner(){ Name = "TestOwner1" },
+                    IpMatch = TestIp1.Name
+                },
+                new ()
+                {
+                    NextRecertDate  = DateTime.Now.AddDays(-5),
+                    FwoOwner = new FwoOwner(){ Name = "TestOwner2" },
+                    IpMatch = TestIp2.Name
+                }
+            ];
+            Rule rule2 = InitRule2(resolved);
+            rule2.Metadata.RuleRecertification =
+            [
+                new ()
+                {
+                    NextRecertDate  = DateTime.Now,
+                    FwoOwner = new FwoOwner(){ Name = "TestOwner1" },
+                    IpMatch = TestIpRange.Name
+                }
+            ];
+            return [rule1, rule2];
         }
 
         private static ReportRules ConstructReportRulesWithoutRules(bool resolved, DynGraphqlQuery query, UserConfig userConfig, ReportType reportType)
@@ -883,56 +915,6 @@ namespace FWO.Test
             reportRules.TryBuildMockRuleTree();
 
             return reportRules;
-        }
-
-        private static ReportData ConstructRecertReport()
-        {
-            RecertRule1 = InitRule1(false);
-            RecertRule1.Metadata.RuleRecertification =
-            [
-                new ()
-                {
-                    NextRecertDate  = DateTime.Now.AddDays(5),
-                    FwoOwner = new FwoOwner(){ Name = "TestOwner1" },
-                    IpMatch = TestIp1.Name
-                },
-                new ()
-                {
-                    NextRecertDate  = DateTime.Now.AddDays(-5),
-                    FwoOwner = new FwoOwner(){ Name = "TestOwner2" },
-                    IpMatch = TestIp2.Name
-                }
-            ];
-            RecertRule2 = InitRule2(false);
-            RecertRule2.Metadata.RuleRecertification =
-            [
-                new ()
-                {
-                    NextRecertDate  = DateTime.Now,
-                    FwoOwner = new FwoOwner(){ Name = "TestOwner1" },
-                    IpMatch = TestIpRange.Name
-                }
-            ];
-            return new ReportData()
-            {
-                ManagementData =
-                [
-                    new ()
-                    {
-                        Name = "TestMgt",
-                        ReportObjects = [TestIp1, TestIp2, TestIpRange],
-                        ReportServices = [TestService1, TestService2],
-                        ReportUsers = [TestUser1, TestUser2],
-                        Devices =
-                        [
-                            new ()
-                            {
-                                Name = "TestDev"
-                            }
-                        ]
-                    }
-                ]
-            };
         }
 
         private static ReportData ConstructNatRuleReport()

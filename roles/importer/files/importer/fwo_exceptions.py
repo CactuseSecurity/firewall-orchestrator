@@ -25,6 +25,14 @@ class FwLogoutFailedError(Exception):
         super().__init__(self.message)
 
 
+class FwoNativeConfigParseError(Exception):
+    """Raised when native config from file does not conform to firewall-specific config model"""
+
+    def __init__(self, message: str = "Native config parsing failed"):
+        self.message = message
+        super().__init__(self.message)
+
+
 class FwoNativeConfigFetchError(Exception):
     """Raised when getting native config from FW management fails, no rollback necessary"""
 

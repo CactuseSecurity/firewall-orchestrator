@@ -497,7 +497,7 @@ class FwConfigImportObject:
             return "objgrp"
         if typ == Type.SERVICE_OBJECT:
             return "svcgrp"
-        return "usrgrp"
+        return "usergrp"
 
     def remove_outdated_memberships(self, prev_config: FwConfigNormalized, typ: Type):
         removed_members: list[dict[str, Any]] = []
@@ -796,8 +796,8 @@ class FwConfigImportObject:
         change_typ = 3  # standard
         change_logger = ChangeLogger()
 
-        if self.import_state.state.is_full_import or self.import_state.state.is_clearing_import:
-            change_typ = 2  # to be ignored in change reports
+        if self.import_state.state.is_initial_import or self.import_state.state.is_clearing_import:
+            change_typ = 2  # initial - to be ignored in change reports
 
         # Write changelog for network objects.
 

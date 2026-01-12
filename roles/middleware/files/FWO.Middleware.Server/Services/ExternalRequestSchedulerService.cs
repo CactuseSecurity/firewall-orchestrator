@@ -15,7 +15,6 @@ namespace FWO.Middleware.Server.Services
         private readonly ISchedulerFactory schedulerFactory;
         private readonly ApiConnection apiConnection;
         private readonly GlobalConfig globalConfig;
-        private readonly IHostApplicationLifetime appLifetime;
         private GraphQlApiSubscription<List<ConfigItem>>? configSubscription;
         private IScheduler? scheduler;
 
@@ -33,16 +32,11 @@ namespace FWO.Middleware.Server.Services
         /// <param name="apiConnection">GraphQL API connection.</param>
         /// <param name="globalConfig">Global configuration.</param>
         /// <param name="appLifetime"></param>
-        public ExternalRequestSchedulerService(
-            ISchedulerFactory schedulerFactory,
-            ApiConnection apiConnection,
-            GlobalConfig globalConfig,
-            IHostApplicationLifetime appLifetime)
+        public ExternalRequestSchedulerService(ISchedulerFactory schedulerFactory, ApiConnection apiConnection, GlobalConfig globalConfig, IHostApplicationLifetime appLifetime)
         {
             this.schedulerFactory = schedulerFactory;
             this.apiConnection = apiConnection;
             this.globalConfig = globalConfig;
-            this.appLifetime = appLifetime;
 
             // Attach after application started
             appLifetime.ApplicationStarted.Register(OnStarted);
@@ -53,11 +47,10 @@ namespace FWO.Middleware.Server.Services
             try
             {
                 scheduler = await schedulerFactory.GetScheduler();
+
                 // Config change subscription
-                configSubscription = apiConnection.GetSubscription<List<ConfigItem>>(
-                    ApiExceptionHandler,
-                    OnGlobalConfigChange,
-                    ConfigQueries.subscribeExternalRequestConfigChanges);
+                configSubscription = apiConnection.GetSubscription<List<ConfigItem>>(ApiExceptionHandler, OnGlobalConfigChange, ConfigQueries.subscribeExternalRequestConfigChanges);
+
                 Log.WriteInfo(SchedulerName, "Listener started");
             }
             catch (Exception ex)

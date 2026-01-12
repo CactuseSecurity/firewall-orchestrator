@@ -2,7 +2,6 @@ using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 using FWO.Config.Api;
 using FWO.Data;
-using FWO.Data.Middleware;
 using FWO.Data.Modelling;
 using FWO.Data.Workflow;
 using FWO.Logging;
@@ -40,7 +39,7 @@ namespace FWO.Middleware.Server
             UserConfig = userConfig;
             extStateHandler = new(apiConnection);
             Task.Run(GetInternalGroups).Wait();
-            wfHandler = new (LogMessage, userConfig, apiConnection, WorkflowPhases.request, ownerGroups);
+            wfHandler = new(userConfig, apiConnection, WorkflowPhases.request, ownerGroups);
         }
 
         /// <summary>
@@ -51,7 +50,7 @@ namespace FWO.Middleware.Server
             ApiConnection = apiConnection;
             UserConfig = userConfig;
             extStateHandler = new(apiConnection);
-            wfHandler = new (LogMessage, userConfig, apiConnection, WorkflowPhases.request, userGroups);
+            wfHandler = new(userConfig, apiConnection, WorkflowPhases.request, userGroups);
         }
 
         /// <summary>
@@ -63,21 +62,21 @@ namespace FWO.Middleware.Server
             try
             {
                 WfTicket? intTicket = await InitAndResolve(ticketId);
-                if(intTicket == null || intTicket.Tasks.Count == 0)
+                if (intTicket == null || intTicket.Tasks.Count == 0)
                 {
                     return false;
                 }
                 int lastFinishedTask = 0;
-                foreach(WfReqTask? task in intTicket.Tasks.OrderBy(t => t.TaskNumber))
+                foreach (WfReqTask? task in intTicket.Tasks.OrderBy(t => t.TaskNumber))
                 {
-                    if(task.StateId > wfHandler.StateMatrix(task.TaskType).LowestEndState)
+                    if (task.StateId > wfHandler.StateMatrix(task.TaskType).LowestEndState)
                     {
                         lastFinishedTask = task.TaskNumber;
                     }
                 }
                 return await CreateNextRequest(intTicket, lastFinishedTask);
             }
-            catch(Exception exception)
+            catch (Exception exception)
             {
                 Log.WriteError("External Request Creation", $"Runs into exception: ", exception);
                 return false;
@@ -91,7 +90,7 @@ namespace FWO.Middleware.Server
         public async Task HandleStateChange(ExternalRequest externalRequest)
         {
             WfTicket? intTicket = await InitAndResolve(externalRequest.TicketId);
-            if(intTicket == null)
+            if (intTicket == null)
             {
                 Log.WriteError("External Request Update", $"Ticket not found.");
             }
@@ -99,10 +98,10 @@ namespace FWO.Middleware.Server
             {
                 wfHandler.SetTicketEnv(intTicket);
                 await UpdateTicket(intTicket, externalRequest);
-                if(extStateHandler != null && extStateHandler.GetInternalStateId(externalRequest.ExtRequestState) >= wfHandler.ActStateMatrix.LowestEndState)
+                if (extStateHandler != null && extStateHandler.GetInternalStateId(externalRequest.ExtRequestState) >= wfHandler.ActStateMatrix.LowestEndState)
                 {
                     await Acknowledge(externalRequest);
-                    if(externalRequest.ExtRequestState == ExtStates.ExtReqRejected.ToString())
+                    if (externalRequest.ExtRequestState == ExtStates.ExtReqRejected.ToString())
                     {
                         await RejectFollowingTasks(intTicket, externalRequest.TaskNumber);
                         Log.WriteInfo($"External Request {externalRequest.Id} rejected", $"Reject Following Tasks for internal ticket {intTicket.Id}");
@@ -123,14 +122,14 @@ namespace FWO.Middleware.Server
             try
             {
                 await UpdateRequestState(externalRequest);
-                if(externalRequest.ExtRequestState == ExtStates.ExtReqRejected.ToString() ||
+                if (externalRequest.ExtRequestState == ExtStates.ExtReqRejected.ToString() ||
                     externalRequest.ExtRequestState == ExtStates.ExtReqDone.ToString())
                 {
                     await HandleStateChange(externalRequest);
                 }
                 return true;
             }
-            catch(Exception exception)
+            catch (Exception exception)
             {
                 Log.WriteError("Patch External Request State", $"Runs into exception: ", exception);
                 return false;
@@ -148,7 +147,7 @@ namespace FWO.Middleware.Server
                 };
                 await ApiConnection.SendQueryAsync<ReturnId>(ExtRequestQueries.updateExtRequestProcess, Variables);
             }
-            catch(Exception exception)
+            catch (Exception exception)
             {
                 Log.WriteError("External Request Handler", $"State update failed: ", exception);
             }
@@ -177,7 +176,7 @@ namespace FWO.Middleware.Server
             List<int>? taskNumbers = null;
             Dictionary<string, List<int>>? extQueryVarDict = JsonSerializer.Deserialize<Dictionary<string, List<int>>?>(extQueryVars);
             extQueryVarDict?.TryGetValue(ExternalVarKeys.BundledTasks, out taskNumbers);
-            if(taskNumbers != null && taskNumbers.Count > 0)
+            if (taskNumbers != null && taskNumbers.Count > 0)
             {
                 return taskNumbers[^1];
             }
@@ -200,7 +199,7 @@ namespace FWO.Middleware.Server
             int lastTaskNumber = UserConfig.ModRolloutBundleTasks && oldRequest != null && oldRequest.ExtQueryVariables != "" ?
                 GetLastTaskNumber(oldRequest.ExtQueryVariables, oldTaskNumber) : oldTaskNumber;
             WfReqTask? nextTask = ticket.Tasks.FirstOrDefault(ta => ta.TaskNumber == lastTaskNumber + 1);
-            if(nextTask == null)
+            if (nextTask == null)
             {
                 Log.WriteDebug("CreateNextRequest", "No more task found.");
                 return false;
@@ -208,7 +207,7 @@ namespace FWO.Middleware.Server
             else
             {
                 int waitCycles = GetWaitCycles(nextTask.TaskType, oldRequest);
-                if(nextTask.TaskType == WfTaskType.access.ToString() || nextTask.TaskType == WfTaskType.rule_modify.ToString() || nextTask.TaskType == WfTaskType.rule_delete.ToString())
+                if (nextTask.TaskType == WfTaskType.access.ToString() || nextTask.TaskType == WfTaskType.rule_modify.ToString() || nextTask.TaskType == WfTaskType.rule_delete.ToString())
                 {
                     List<WfReqTask> bundledTasks = [];
                     List<WfReqTask> handledTasks = [nextTask];
@@ -307,16 +306,16 @@ namespace FWO.Middleware.Server
             string taskContent = await ConstructContent(tasks, ticket.Requester);
             Dictionary<string, List<int>>? handledTaskNumbers;
             string? extQueryVars = null;
-            if(handledTasks.Count > 1)
+            if (handledTasks.Count > 1)
             {
-                handledTaskNumbers = new() { {ExternalVarKeys.BundledTasks, handledTasks.ConvertAll(t => t.TaskNumber)} };
+                handledTaskNumbers = new() { { ExternalVarKeys.BundledTasks, handledTasks.ConvertAll(t => t.TaskNumber) } };
                 extQueryVars = JsonSerializer.Serialize(handledTaskNumbers);
             }
-            
+
             var Variables = new
             {
                 ownerId = ticket.Tasks.FirstOrDefault()?.Owners.FirstOrDefault()?.Owner.Id,
-                  ticketId = ticket.Id,
+                ticketId = ticket.Id,
                 taskNumber = tasks.FirstOrDefault()?.TaskNumber ?? 0,
                 extTicketSystem = JsonSerializer.Serialize(actSystem),
                 extTaskType = actTaskType,
@@ -333,10 +332,10 @@ namespace FWO.Middleware.Server
         {
             int actTaskNumber = lastTaskNumber + 1;
             bool taskFound = true;
-            while(taskFound)
+            while (taskFound)
             {
                 WfReqTask? furtherTask = ticket.Tasks.FirstOrDefault(ta => ta.TaskNumber == actTaskNumber);
-                if(furtherTask != null)
+                if (furtherTask != null)
                 {
                     await UpdateTaskState(furtherTask, ExtStates.ExtReqRejected.ToString());
                     actTaskNumber++;
@@ -352,7 +351,7 @@ namespace FWO.Middleware.Server
         {
             // Todo: logic for multiple systems
             List<ExternalTicketSystem> extTicketSystems = JsonSerializer.Deserialize<List<ExternalTicketSystem>>(UserConfig.ExtTicketSystems) ?? [];
-            if(extTicketSystems.Count > 0)
+            if (extTicketSystems.Count > 0)
             {
                 extSystemType = extTicketSystems[0].Type;
                 actSystem = extTicketSystems[0];
@@ -366,7 +365,7 @@ namespace FWO.Middleware.Server
         private async Task<string> ConstructContent(List<WfReqTask> reqTasks, UiUser? requester)
         {
             ExternalTicket? ticket;
-            if(extSystemType == ExternalTicketSystemType.TufinSecureChange)
+            if (extSystemType == ExternalTicketSystemType.TufinSecureChange)
             {
                 ticket = new SCTicket(actSystem)
                 {
@@ -409,29 +408,29 @@ namespace FWO.Middleware.Server
         private async Task UpdateTicket(WfTicket ticket, ExternalRequest extReq)
         {
             List<int>? taskNumbers = null;
-            if(!string.IsNullOrEmpty(extReq.ExtQueryVariables))
+            if (!string.IsNullOrEmpty(extReq.ExtQueryVariables))
             {
                 Dictionary<string, List<int>>? extQueryVars = JsonSerializer.Deserialize<Dictionary<string, List<int>>>(extReq.ExtQueryVariables);
                 extQueryVars?.TryGetValue(ExternalVarKeys.BundledTasks, out taskNumbers);
             }
             taskNumbers ??= [extReq.TaskNumber];
-            foreach(var taskNumber in taskNumbers)
+            foreach (var taskNumber in taskNumbers)
             {
                 WfReqTask? updatedTask = ticket.Tasks.FirstOrDefault(ta => ta.TaskNumber == taskNumber);
-                if(updatedTask != null)
+                if (updatedTask != null)
                 {
                     string? extTicketIdInTask = updatedTask.GetAddInfoValue(AdditionalInfoKeys.ExtIcketId);
-                    if(extReq.ExtTicketId != null && extReq.ExtTicketId != extTicketIdInTask)
+                    if (extReq.ExtTicketId != null && extReq.ExtTicketId != extTicketIdInTask)
                     {
                         await wfHandler.SetAddInfoInReqTask(updatedTask, AdditionalInfoKeys.ExtIcketId, extReq.ExtTicketId);
                     }
                     await UpdateTaskState(updatedTask, extReq.ExtRequestState);
 
-                    if(extReq.ExtRequestState == ExtStates.ExtReqDone.ToString())
+                    if (extReq.ExtRequestState == ExtStates.ExtReqDone.ToString())
                     {
                         await LogRequestTasks([updatedTask], actSystem.Name, ModellingTypes.ChangeType.Implement);
                     }
-                    else if(extReq.ExtRequestState == ExtStates.ExtReqRejected.ToString())
+                    else if (extReq.ExtRequestState == ExtStates.ExtReqRejected.ToString())
                     {
                         await LogRequestTasks([updatedTask], actSystem.Name, ModellingTypes.ChangeType.Reject, extReq.LastProcessingResponse ?? extReq.LastCreationResponse ?? "");
                     }
@@ -445,7 +444,7 @@ namespace FWO.Middleware.Server
 
         private async Task UpdateTaskState(WfReqTask reqTask, string extReqState)
         {
-            if(extStateHandler != null && reqTask.StateId != extStateHandler.GetInternalStateId(extReqState))
+            if (extStateHandler != null && reqTask.StateId != extStateHandler.GetInternalStateId(extReqState))
             {
                 wfHandler.SetReqTaskEnv(reqTask);
                 reqTask.StateId = extStateHandler.GetInternalStateId(extReqState) ?? throw new ArgumentException("No translation defined for external state.");
@@ -467,7 +466,7 @@ namespace FWO.Middleware.Server
                 };
                 await ApiConnection.SendQueryAsync<ReturnId>(ExtRequestQueries.updateExtRequestFinal, Variables);
             }
-            catch(Exception exception)
+            catch (Exception exception)
             {
                 Log.WriteError("Acknowledge External Request", $"Runs into exception: ", exception);
             }
@@ -475,26 +474,26 @@ namespace FWO.Middleware.Server
 
         private async Task LogRequestTasks(List<WfReqTask> tasks, string? requester, ModellingTypes.ChangeType changeType, string? comment = null)
         {
-            foreach(WfReqTask task in tasks)
+            foreach (WfReqTask task in tasks)
             {
                 (long objId, ModellingTypes.ModObjectType objType) = GetObject(task);
                 await ModellingHandlerBase.LogChange(changeType, objType, objId,
-                    $"{ConstructLogMessageText(changeType)} {task.Title} on {task.OnManagement?.Name}{(comment != null ? ", " + comment : "")}", 
+                    $"{ConstructLogMessageText(changeType)} {task.Title} on {task.OnManagement?.Name}{(comment != null ? ", " + comment : "")}",
                     ApiConnection, UserConfig, task.Owners.FirstOrDefault()?.Owner.Id, DefaultInit.DoNothing, requester);
             }
         }
 
         private static (long, ModellingTypes.ModObjectType) GetObject(WfReqTask task)
         {
-            if(task.GetAddInfoLongValue(AdditionalInfoKeys.ConnId) != null)
+            if (task.GetAddInfoLongValue(AdditionalInfoKeys.ConnId) != null)
             {
                 return (task.GetAddInfoIntValue(AdditionalInfoKeys.ConnId) ?? 0, ModellingTypes.ModObjectType.Connection);
             }
-            else if(task.GetAddInfoLongValue(AdditionalInfoKeys.AppRoleId) != null)
+            else if (task.GetAddInfoLongValue(AdditionalInfoKeys.AppRoleId) != null)
             {
                 return (task.GetAddInfoIntValue(AdditionalInfoKeys.AppRoleId) ?? 0, ModellingTypes.ModObjectType.AppRole);
             }
-            else if(task.GetAddInfoIntValue(AdditionalInfoKeys.SvcGrpId) != null)
+            else if (task.GetAddInfoIntValue(AdditionalInfoKeys.SvcGrpId) != null)
             {
                 return (task.GetAddInfoIntValue(AdditionalInfoKeys.SvcGrpId) ?? 0, ModellingTypes.ModObjectType.ServiceGroup);
             }
@@ -516,7 +515,7 @@ namespace FWO.Middleware.Server
         {
             if (exception == null)
             {
-                if(ErrorFlag)
+                if (ErrorFlag)
                 {
                     Log.WriteWarning(title, message);
                 }

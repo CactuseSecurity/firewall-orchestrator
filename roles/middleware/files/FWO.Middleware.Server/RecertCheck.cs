@@ -64,14 +64,15 @@ namespace FWO.Middleware.Server
                 {
                     List<UserGroup> OwnerGroups = await MiddlewareServerServices.GetInternalGroups(apiConnectionMiddlewareServer);
                     NotificationService notificationService = await NotificationService.CreateAsync(NotificationClient.Recertification, globalConfig, apiConnectionMiddlewareServer, OwnerGroups);
-                    foreach (FwoOwner? owner in owners.Where(o => IsCheckTime(o)))
+                    foreach (FwoOwner? owner in owners.Where(o => IsRecertCheckTime(o)))
                     {
-                        emailsSent += await notificationService.SendNotifications(owner, PrepareOwnerBody(owner), await PrepareOwnerReport(owner));
+                        emailsSent += await notificationService.SendNotifications(owner, null, PrepareOwnerBody(owner), await PrepareOwnerReport(owner));
                         await SetOwnerLastCheck(owner);
                     }
+                    await notificationService.UpdateNotificationsLastSent();
                 }
             }
-            catch(Exception exception)
+            catch (Exception exception)
             {
                 Log.WriteError(LogMessageTitle, $"Checking owners for upcoming recertifications leads to exception.", exception);
             }
@@ -90,14 +91,14 @@ namespace FWO.Middleware.Server
             owners = await apiConnectionMiddlewareServer.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getOwners);
         }
 
-        private bool IsCheckTime(FwoOwner owner)
+        private bool IsRecertCheckTime(FwoOwner owner)
         {
-            if(!owner.RecertActive)
+            if (!owner.RecertActive)
             {
                 return false;
             }
-            RecertCheckParams checkParams = (owner.RecertCheckParamString != null && owner.RecertCheckParamString != "" ? 
-                System.Text.Json.JsonSerializer.Deserialize<RecertCheckParams>(owner.RecertCheckParamString) : 
+            RecertCheckParams checkParams = (owner.RecertCheckParamString != null && owner.RecertCheckParamString != "" ?
+                System.Text.Json.JsonSerializer.Deserialize<RecertCheckParams>(owner.RecertCheckParamString) :
                 globCheckParams) ?? throw new ArgumentException("Config Parameters not set.");
             DateTime lastCheck = owner.LastRecertCheck ?? DateTime.MinValue;
             DateTime nextCheck = checkParams.RecertCheckInterval switch
@@ -236,11 +237,11 @@ namespace FWO.Middleware.Server
 
         private string PrepareRulesBody(List<Rule> upcomingRecerts, List<Rule> overdueRecerts, string ownerName)
         {
-            StringBuilder body = new ();
-            if(upcomingRecerts.Count > 0)
+            StringBuilder body = new();
+            if (upcomingRecerts.Count > 0)
             {
                 body.AppendLine(globalConfig.RecCheckEmailUpcomingText.Replace(Placeholder.APPNAME, ownerName) + "\r\n\r\n");
-                foreach(Rule rule in upcomingRecerts)
+                foreach (Rule rule in upcomingRecerts)
                 {
                     body.AppendLine(PrepareLine(rule));
                 }
@@ -266,25 +267,25 @@ namespace FWO.Middleware.Server
 
         private List<string> CollectEmailAddresses(FwoOwner owner)
         {
-            if(globalConfig.UseDummyEmailAddress)
+            if (globalConfig.UseDummyEmailAddress)
             {
                 return [globalConfig.DummyEmailAddress];
             }
             List<string> tos = [];
             List<string> userDns = [];
-            if(owner.Dn != "")
+            if (owner.Dn != "")
             {
                 userDns.Add(owner.Dn);
             }
             GroupGetReturnParameters? ownerGroup = groups.FirstOrDefault(x => x.GroupDn == owner.GroupDn);
-            if(ownerGroup != null)
+            if (ownerGroup != null)
             {
                 userDns.AddRange(ownerGroup.Members);
             }
-            foreach(var userDn in userDns)
+            foreach (var userDn in userDns)
             {
                 UiUser? uiuser = uiUsers.FirstOrDefault(x => x.Dn == userDn);
-                if(uiuser != null && uiuser.Email != null && uiuser.Email != "")
+                if (uiuser != null && uiuser.Email != null && uiuser.Email != "")
                 {
                     tos.Add(uiuser.Email);
                 }

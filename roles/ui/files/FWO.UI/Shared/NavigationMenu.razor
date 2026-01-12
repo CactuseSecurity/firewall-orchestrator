@@ -63,7 +63,7 @@
 					{
 						<AuthorizeView Roles="@($"{Roles.Admin}, {Roles.Modeller}, {Roles.Auditor}")">
 							<li class="nav-item px-2">
-								<NavLink class="nav-link" href="/networkmodelling">
+								<NavLink class="nav-link" href="@("/" + PageName.Modelling)">
 									<span class="@Icons.Modelling"></span> @(userConfig.GetText("modelling"))
 								</NavLink>
 							</li>

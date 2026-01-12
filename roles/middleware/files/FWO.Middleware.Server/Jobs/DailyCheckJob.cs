@@ -4,8 +4,10 @@ using FWO.Basics;
 using FWO.Config.Api;
 using FWO.Data;
 using FWO.Data.Middleware;
+using FWO.Data.Workflow;
 using FWO.Logging;
 using FWO.Recert;
+using FWO.Services;
 using Quartz;
 using System.Linq;
 
@@ -43,6 +45,7 @@ namespace FWO.Middleware.Server.Jobs
                     await RefreshRecert();
                 }
                 await CheckRecerts();
+                await CheckUnansweredInterfaceRequests();
             }
             catch (Exception exc)
             {
@@ -161,6 +164,70 @@ namespace FWO.Middleware.Server.Jobs
             }
             await SchedulerJobHelper.AddLogEntry(apiConnection, globalConfig, importIssues != 0 ? 1 : 0, globalConfig.GetText("daily_importer_check"),
                 importIssues != 0 ? importIssues + globalConfig.GetText("import_issues_found") : globalConfig.GetText("no_import_issues_found"), GlobalConst.kDailyCheck);
+        }
+
+        private async Task CheckUnansweredInterfaceRequests()
+        {
+            int emailsSent = 0;
+            List<UserGroup> OwnerGroups = await MiddlewareServerServices.GetInternalGroups(apiConnection);
+            WfHandler wfHandler = new(new(globalConfig), apiConnection, WorkflowPhases.implementation, OwnerGroups);
+            await wfHandler.Init();
+            NotificationService notificationService = await NotificationService.CreateAsync(NotificationClient.InterfaceRequest, globalConfig, apiConnection, OwnerGroups);
+
+            foreach (var notification in notificationService.Notifications)
+            {
+                List<WfTicket>? unansweredTickets = await wfHandler.GetOpenTickets(WfTaskType.new_interface.ToString(),
+                    (notification.RepeatOffsetAfterDeadline ?? 0) + (notification.InitialOffsetAfterDeadline ?? 0),
+                    notification.RepeatIntervalAfterDeadline);
+                foreach (var ticket in unansweredTickets)
+                {
+                    FwoOwner? owner = ticket.Tasks.FirstOrDefault(r => r.TaskType == WfTaskType.new_interface.ToString())?.Owners.FirstOrDefault()?.Owner;
+                    if (owner != null)
+                    {
+                        emailsSent += await notificationService.SendNotification(notification, owner, ticket.CreationDate, await PrepareBody(ticket, owner));
+                    }
+                }
+            }
+            await notificationService.UpdateNotificationsLastSent();
+            Log.WriteDebug(LogMessageTitle, $"Unanswered Interface Requests Check: Sent {emailsSent} emails.");
+        }
+
+        private async Task<string> PrepareBody(WfTicket ticket, FwoOwner owner)
+        {
+            WfReqTask? reqTask = ticket.Tasks.FirstOrDefault(r => r.TaskType == WfTaskType.new_interface.ToString());
+            FwoOwner? requestingOwner = await GetRequestingOwner(reqTask?.GetAddInfoIntValue(AdditionalInfoKeys.ReqOwner));
+
+            return globalConfig.ModUnansweredReqEmailBody
+                .Replace(Placeholder.REQUESTER, ticket.Requester?.Name)
+                .Replace(Placeholder.REQUESTING_APPNAME, requestingOwner?.Name)
+                .Replace(Placeholder.REQUESTING_APPID, requestingOwner?.ExtAppId)
+                .Replace(Placeholder.APPNAME, owner.Name)
+                .Replace(Placeholder.APPID, owner.ExtAppId)
+                .Replace(Placeholder.INTERFACE_LINK, ConstructLink(owner, reqTask));
+        }
+
+        private async Task<FwoOwner?> GetRequestingOwner(int? ownerId)
+        {
+            FwoOwner? reqOwner = null;
+            if (ownerId != null)
+            {
+                try
+                {
+                    reqOwner = await apiConnection.SendQueryAsync<FwoOwner>(OwnerQueries.getOwnerById, new { id = ownerId });
+                }
+                catch (Exception exc)
+                {
+                    await LogErrorsWithAlert(1, $"Unanswered Interface Requests Check", GlobalConst.kDailyCheck, AlertCode.DailyCheckError, exc);
+                }
+            }
+            return reqOwner;
+        }
+
+        private string ConstructLink(FwoOwner owner, WfReqTask? reqTask)
+        {
+            int? connId = reqTask?.GetAddInfoIntValue(AdditionalInfoKeys.ConnId);
+            string interfaceUrl = $"{globalConfig.UiHostName}/{PageName.Modelling}/{owner.ExtAppId}/{connId}";
+            return $"<a target=\"_blank\" href=\"{interfaceUrl}\">{reqTask?.Title ?? globalConfig.GetText("interface")}</a>";
         }
     }
 }

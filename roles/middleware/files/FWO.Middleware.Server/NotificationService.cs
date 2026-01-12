@@ -18,9 +18,13 @@ namespace FWO.Middleware.Server
     /// </summary>
     public class NotificationService
     {
+        /// <summary>
+        /// Notifications for current NotificationClient
+        /// </summary>
+        public readonly List<FwoNotification> Notifications;
+        private List<int> CheckedNotificationIds = [];
         private readonly ApiConnection ApiConnection;
         private readonly GlobalConfig GlobalConfig;
-        private readonly List<FwoNotification> Notifications;
         private readonly List<UserGroup> OwnerGroups;
 
 
@@ -47,32 +51,66 @@ namespace FWO.Middleware.Server
         }
 
         /// <summary>
-        /// Analyse and Send Notifications if due
+        /// Analyse and send all Notifications if due, restricted to owner if given
         /// </summary>
-        /// <param name="owner"></param>
-        /// <param name="content"></param>
-        /// <param name="report"></param>
-        /// <returns></returns>
-        public async Task<int> SendNotifications(FwoOwner owner, string content, ReportBase? report = null)
+        /// <param name="owner">Owner for whom the notification is done</param>
+        /// <param name="extDeadline">Deadline date e.g. from ticket, if not defined by owner (only for InterfaceClient)</param>
+        /// <param name="content">Text for notification (e.g. email body)</param>
+        /// <param name="report">Optional report to be sent as attachment</param>
+        /// <returns>number of emails sent</returns>
+        public async Task<int> SendNotifications(FwoOwner owner, DateTime? extDeadline, string content, ReportBase? report = null)
         {
             int emailsSent = 0;
-            foreach (var notification in Notifications.Where(n => (n.OwnerId == null || n.OwnerId == owner.Id) && IsTimeToSend(owner, n)))
+            foreach (var notification in Notifications.Where(n => n.OwnerId == null || n.OwnerId == owner.Id))
+            {
+                emailsSent += await SendNotification(notification, owner, extDeadline, content, report);
+            }
+            return emailsSent;
+        }
+
+        /// <summary>
+        /// Analyse and send single Notification if due
+        /// </summary>
+        /// <param name="notification">Notification to be handled</param>
+        /// <param name="owner">Owner for whom the notification is done</param>
+        /// <param name="extDeadline">Deadline date e.g. from ticket, if not defined by owner (only for InterfaceClient)</param>
+        /// <param name="content">Text for notification (e.g. email body)</param>
+        /// <param name="report">Optional report to be sent as attachment</param>
+        /// <returns>number of emails sent</returns>
+        public async Task<int> SendNotification(FwoNotification notification, FwoOwner owner, DateTime? extDeadline, string content, ReportBase? report = null)
+        {
+            int emailsSent = 0;
+            if(SendNow(owner, extDeadline, notification))
             {
                 // Later: Handle other channels here when implemented
                 await SendEmail(notification, content, owner, report);
-                await UpdateNotificationLastSent(notification, ApiConnection);
+                if(!CheckedNotificationIds.Contains(notification.Id))
+                {
+                    CheckedNotificationIds.Add(notification.Id);
+                }
                 emailsSent++;
             }
             return emailsSent;
         }
 
-        private static bool IsTimeToSend(FwoOwner owner, FwoNotification notification)
+        /// <summary>
+        /// Set the last sent date for all notifications used so far
+        /// </summary>
+        /// <returns></returns>
+        public async Task<int> UpdateNotificationsLastSent()
+        {
+            int updatedNotifications = (await ApiConnection.SendQueryAsync<ReturnId>(NotificationQueries.updateNotificationsLastSent, new { ids = CheckedNotificationIds, lastSent = DateTime.Now })).AffectedRows;
+            CheckedNotificationIds = [];
+            return updatedNotifications;
+        }
+
+        private static bool SendNow(FwoOwner owner, DateTime? extDeadline, FwoNotification notification)
         {
             if (notification.Deadline == NotificationDeadline.None)
             {
                 return true;
             }
-            DateTime deadline = GetDeadlineDate(notification.Deadline, owner);
+            DateTime deadline = GetDeadlineDate(notification.Deadline, owner, extDeadline);
             if (deadline >= DateTime.Now)
             {
                 var notifDate = notification.IntervalBeforeDeadline switch
@@ -82,15 +120,22 @@ namespace FWO.Middleware.Server
                     SchedulerInterval.Months => deadline.AddMonths(-notification.OffsetBeforeDeadline ?? 0),
                     _ => throw new NotSupportedException("Time interval is not supported.")
                 };
-                return (notification.LastSent == null || ((DateTime)notification.LastSent).Date < notifDate.Date) &&
-                    notifDate.Date <= DateTime.Now.Date;
+                return IsTimeToSend(notification.LastSent, notifDate);
             }
             else
             {
-                var nextNotifDate = deadline.Date;
-                int counter = 0;
-                while (nextNotifDate < DateTime.Now.Date && counter++ <= notification.RepetitionsAfterDeadline)
+                var nextNotifDate = notification.RepeatIntervalAfterDeadline switch
                 {
+                    SchedulerInterval.Days => deadline.Date.AddDays(notification.InitialOffsetAfterDeadline ?? 0),
+                    SchedulerInterval.Weeks => deadline.Date.AddDays(notification.InitialOffsetAfterDeadline * GlobalConst.kDaysPerWeek ?? 0),
+                    SchedulerInterval.Months => deadline.Date.AddMonths(notification.InitialOffsetAfterDeadline ?? 0),
+                    _ => throw new NotSupportedException("Time interval is not supported."),
+                };
+                var currentNotifDate = nextNotifDate;
+                int counter = -1;
+                while (nextNotifDate <= DateTime.Now.Date && counter++ <= notification.RepetitionsAfterDeadline)
+                {
+                    currentNotifDate = nextNotifDate;
                     nextNotifDate = notification.RepeatIntervalAfterDeadline switch
                     {
                         SchedulerInterval.Days => nextNotifDate.AddDays(notification.RepeatOffsetAfterDeadline ?? 0),
@@ -99,17 +144,24 @@ namespace FWO.Middleware.Server
                         _ => throw new NotSupportedException("Time interval is not supported."),
                     };
                 }
-                return counter < notification.RepetitionsAfterDeadline &&
-                    (notification.LastSent == null || ((DateTime)notification.LastSent).Date < nextNotifDate.Date) &&
-                    nextNotifDate.Date <= DateTime.Now.Date;
+                return counter <= notification.RepetitionsAfterDeadline && IsTimeToSend(notification.LastSent, currentNotifDate);
             }
         }
 
-        private static DateTime GetDeadlineDate(NotificationDeadline deadline, FwoOwner owner)
+        private static bool IsTimeToSend(DateTime? lastSent, DateTime notifDate)
+        {
+            return (lastSent == null || ((DateTime)lastSent).Date < notifDate.Date) && notifDate.Date <= DateTime.Now.Date;
+        }
+
+        private static DateTime GetDeadlineDate(NotificationDeadline deadline, FwoOwner owner, DateTime? extDeadline)
         {
             if (deadline == NotificationDeadline.RecertDate && owner.NextRecertDate != null)
             {
                 return (DateTime)owner.NextRecertDate;
+            }
+            else if(deadline == NotificationDeadline.RequestDate && extDeadline != null)
+            {
+                 return (DateTime)extDeadline;
             }
             return DateTime.Now;
         }
@@ -117,11 +169,6 @@ namespace FWO.Middleware.Server
         private static async Task<List<FwoNotification>> LoadNotifications(NotificationClient notificationClient, ApiConnection apiConnection)
         {
             return await apiConnection.SendQueryAsync<List<FwoNotification>>(NotificationQueries.getNotifications, new { client = notificationClient.ToString() });
-        }
-
-        private static async Task UpdateNotificationLastSent(FwoNotification notification, ApiConnection apiConnection)
-        {
-            await apiConnection.SendQueryAsync<ReturnId>(NotificationQueries.updateNotificationLastSent, new { id = notification.Id, lastSent = DateTime.Now });
         }
 
         private async Task SendEmail(FwoNotification notification, string content, FwoOwner owner, ReportBase? report = null)

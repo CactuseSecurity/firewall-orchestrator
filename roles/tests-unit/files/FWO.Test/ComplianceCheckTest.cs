@@ -48,7 +48,8 @@ namespace FWO.Test
         public async Task CheckAll_PolicyIdZero_AbortCheckWithLog()
         {
             // Act
-
+            SetUpViolationCount(1);
+            
             await ComplianceCheck.CheckAll();
 
             // Assert

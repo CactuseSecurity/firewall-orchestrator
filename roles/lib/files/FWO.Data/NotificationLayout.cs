@@ -20,5 +20,11 @@
                 NotificationLayout.HtmlAsAttachment,
                 NotificationLayout.JsonAsAttachment ];
         }
+
+        public static List<NotificationLayout> WithoutAttachments()
+        {
+            return [ NotificationLayout.SimpleText,
+                NotificationLayout.HtmlInBody ];
+        }
     }
 }

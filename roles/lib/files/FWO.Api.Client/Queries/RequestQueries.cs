@@ -17,6 +17,7 @@ namespace FWO.Api.Client.Queries
         public static readonly string getFullTickets;
         public static readonly string getOwnerTicketIds;
         public static readonly string getTicketById;
+        public static readonly string getTicketsByParameters;
         public static readonly string newTicket;
         public static readonly string updateTicket;
         public static readonly string updateTicketState;
@@ -77,6 +78,7 @@ namespace FWO.Api.Client.Queries
                 getFullTickets = ticketDetailsFragment + File.ReadAllText(QueryPath + "request/getFullTickets.graphql");
                 getOwnerTicketIds = File.ReadAllText(QueryPath + "monitor/getOwnerTicketIds.graphql");
                 getTicketById = ticketDetailsFragment + File.ReadAllText(QueryPath + "request/getTicketById.graphql");
+                getTicketsByParameters = ticketDetailsReqTaskOverviewFragment + File.ReadAllText(QueryPath + "request/getTicketsByParameters.graphql");
                 newTicket = File.ReadAllText(QueryPath + "request/newTicket.graphql");
                 updateTicket = File.ReadAllText(QueryPath + "request/updateTicket.graphql");
                 updateTicketState = File.ReadAllText(QueryPath + "request/updateTicketState.graphql");

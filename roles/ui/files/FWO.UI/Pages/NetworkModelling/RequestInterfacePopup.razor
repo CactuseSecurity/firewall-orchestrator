@@ -100,7 +100,7 @@
             if(CheckInput())
             {
                 TicketCreator ticketCreator = new (apiConnection, userConfig, authenticationStateTask!.Result.User, middlewareClient);
-                long ticketId = await ticketCreator.CreateRequestNewInterfaceTicket(SelectedOwner, RequestingOwner, Reason);
+                long ticketId = await ticketCreator.CreateRequestNewInterfaceTicket(SelectedOwner, RequestingOwner, InterfaceName, Reason);
 
                 if(ticketId > 0)
                 {
@@ -186,7 +186,7 @@
 
             await emailHelper.Init();
 
-            string interfaceUrl = $"{userConfig.UiHostName}/networkmodelling/{SelectedOwner.ExtAppId}/{connId}";
+            string interfaceUrl = $"{userConfig.UiHostName}/{PageName.Modelling}/{SelectedOwner.ExtAppId}/{connId}";
             string subject = userConfig.ModReqEmailSubject;
             string body = $"{RequestingOwner.Name} {userConfig.ModReqEmailBody} {SelectedOwner.Name} <br>" +
                 $"<a target=\"_blank\" href=\"{interfaceUrl}\">{userConfig.GetText("interface")}: {InterfaceName}</a><br>";

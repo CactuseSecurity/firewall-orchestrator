@@ -140,12 +140,20 @@ namespace FWO.Compliance
         /// Full compliance check to be called by scheduler.
         /// </summary>
         /// <returns>Task that completes when the asynchronous compliance evaluation finished.</returns>
-        public async Task CheckAll(bool isInitial = false)
+        public async Task CheckAll()
         {
             DateTime startTime = DateTime.UtcNow;
 
             try
             {
+                //Checking whether the compliance check is an initial check or not
+                bool isInitial = false;
+                AggregateCount violationCount = await _apiConnection.SendQueryAsync<AggregateCount>(ComplianceQueries.getViolationCount);
+                if (violationCount.Aggregate.Count == 0)
+                {
+                    isInitial = true;
+                }
+                
                 // Gathering necessary parameters for compliance check.
 
                 Logger.TryWriteInfo("Compliance Check", "Starting compliance check.", true);

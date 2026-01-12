@@ -75,10 +75,10 @@ namespace FWO.Middleware.Server.Controllers
         }
         
         /// <summary>
-        /// Initial Compliance Check
+        /// Compliance Check
         /// </summary>
         /// <returns></returns>
-        [HttpGet("InitialComplianceCheck")]
+        [HttpGet("ComplianceCheck")]
         [Authorize(Roles = $"{Roles.Admin}")]
         public async Task<bool> InitialComplianceCheck()
         {
@@ -87,7 +87,7 @@ namespace FWO.Middleware.Server.Controllers
                 GlobalConfig globalConfig = await GlobalConfig.ConstructAsync(apiConnection, true);
                 UserConfig userConfig = new(globalConfig, apiConnection, new() { Language = GlobalConst.kEnglish });
                 ComplianceCheck complianceCheck = new(userConfig, apiConnection);
-                await complianceCheck.CheckAll(true);
+                await complianceCheck.CheckAll();
                 await complianceCheck.PersistDataAsync();
                 return true;
             }

@@ -254,9 +254,9 @@ namespace FWO.Middleware.Client
             return await restClient.ExecuteAsync<string>(request);
         }
 
-        public async Task<RestResponse<bool>> RunInitialComplianceCheck()
+        public async Task<RestResponse<bool>> RunComplianceCheck()
         {
-            RestRequest request = new ("Compliance/InitialComplianceCheck");
+            RestRequest request = new ("Compliance/ComplianceCheck");
             return await restClient.ExecuteAsync<bool>(request);
         }
 

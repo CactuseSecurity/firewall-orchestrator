@@ -241,6 +241,48 @@
     
     <AuthorizeView Roles="@Roles.Admin">
         <Authorized>
+            <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5845"))">
+                <label class="col-form-label col-sm-4">@(userConfig.PureLine("H5846"))</label>
+                <div class="col-sm-7">
+                    <button class="btn btn-primary" @onclick="DeleteAllViolations">@(userConfig.PureLine("H5847"))</button>
+                </div>
+            </div>
+        </Authorized>
+        <NotAuthorized>
+            <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5845"))">
+                <label class="col-form-label col-sm-4">@(userConfig.PureLine("H5846"))</label>
+                <div class="col-sm-7">
+                    <button class="btn btn-primary" disabled>@(userConfig.PureLine("H5847"))</button>
+                </div>
+            </div>
+        </NotAuthorized>
+    </AuthorizeView>
+    
+    <br>
+    
+    <AuthorizeView Roles="@Roles.Admin">
+        <Authorized>
+            <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5848"))">
+                <label class="col-form-label col-sm-4">@(userConfig.PureLine("H5849"))</label>
+                <div class="col-sm-7">
+                    <button class="btn btn-primary" @onclick="RunComplianceCheck">@(userConfig.PureLine("H5850"))</button>
+                </div>
+            </div>
+        </Authorized>
+        <NotAuthorized>
+            <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5848"))">
+                <label class="col-form-label col-sm-4">@(userConfig.PureLine("H5849"))</label>
+                <div class="col-sm-7">
+                    <button class="btn btn-primary" disabled>@(userConfig.PureLine("H5850"))</button>
+                </div>
+            </div>
+        </NotAuthorized>
+    </AuthorizeView>
+    
+    <hr />
+    
+    <AuthorizeView Roles="@Roles.Admin">
+        <Authorized>
             <button type="button" class="btn btn-sm btn-primary" @onclick="Save" @onclick:preventDefault>@(userConfig.GetText("save"))</button>
         </Authorized>
         <NotAuthorized>
@@ -248,26 +290,8 @@
         </NotAuthorized>
     </AuthorizeView>
     <br/>
-    
-    <AuthorizeView Roles="@Roles.Admin">
-        <Authorized>
-            <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5845"))">
-                <label class="col-form-label col-sm-4">@(userConfig.PureLine("H5846"))</label>
-                <div class="col-sm-7">
-                    <button class="btn btn-primary" @onclick="InitialCheck">Run check</button>
-                </div>
-            </div>
-        </Authorized>
-        <NotAuthorized>
-            <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5845"))">
-                <label class="col-form-label col-sm-4">@(userConfig.PureLine("H5846"))</label>
-                <div class="col-sm-7">
-                    <button class="btn btn-primary" disabled>Run check</button>
-                </div>
-            </div>
-        </NotAuthorized>
-    </AuthorizeView>
 }
+    
 else
 {
     <Loading/>
@@ -390,21 +414,23 @@ else
     /// <summary>
     /// Sends a query to delete all violations using the specified API connection.
     /// </summary>
-    /// <param name="apiConnection">The API connection used to send the delete query.</param>
     /// <returns>
-    /// A task that represents the asynchronous operation. The task result is a boolean 
-    /// indicating whether all violations were successfully deleted.
+    /// A task that represents the asynchronous operation.
     /// </returns>
-    private async Task DeleteAllViolations(ApiConnection apiConnection)
+    private async Task DeleteAllViolations()
     {
-        string query = DeleteAllQuery;
-        await apiConnection.SendQueryAsync<DeleteAllViolationsResult>(query);
+        await ApiConnection.SendQueryAsync<DeleteAllViolationsResult>(DeleteAllQuery);
     }
 
-    private async Task InitialCheck()
+    /// <summary>
+    /// Sends a query to the middleware server to run a compliance check
+    /// </summary>
+    /// <returns>
+    /// A task that represents the asynchronous operation.
+    /// </returns>
+    private async Task RunComplianceCheck()
     {
-        await DeleteAllViolations(ApiConnection);
-        await MiddlewareClient.RunInitialComplianceCheck();
+        await MiddlewareClient.RunComplianceCheck();
     }
 
 	/// <summary>

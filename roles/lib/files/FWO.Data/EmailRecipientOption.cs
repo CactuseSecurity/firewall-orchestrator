@@ -29,7 +29,8 @@
                 EmailRecipientOption.OwnerGroupOnly,
                 EmailRecipientOption.AllOwnerResponsibles,
                 EmailRecipientOption.OwnerMainResponsible,
-                EmailRecipientOption.FallbackToMainResponsibleIfOwnerGroupEmpty ];
+                EmailRecipientOption.FallbackToMainResponsibleIfOwnerGroupEmpty,
+                EmailRecipientOption.OtherAddresses ];
         }
     }
 }

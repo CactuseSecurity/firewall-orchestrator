@@ -99,14 +99,14 @@ namespace FWO.Services
             return false;
         }
 
-        public async Task<long> CreateRequestNewInterfaceTicket(FwoOwner owner, FwoOwner requestingOwner, string reason = "")
+        public async Task<long> CreateRequestNewInterfaceTicket(FwoOwner owner, FwoOwner requestingOwner, string interfaceName, string reason = "")
         {
             await wfHandler.Init();
             stateId = wfHandler.MasterStateMatrix.LowestEndState;
             await wfHandler.SelectTicket(new WfTicket()
                 {
                     StateId = stateId,
-                    Title = userConfig.ModReqTicketTitle,
+                    Title = userConfig.ModReqTicketTitle + ": " + interfaceName,
                     Requester = userConfig.User,
                     Reason = reason
                 },
@@ -115,7 +115,7 @@ namespace FWO.Services
             wfHandler.SelectReqTask(new WfReqTask()
                 {
                     StateId = stateId,
-                    Title = userConfig.ModReqTaskTitle,
+                    Title = userConfig.ModReqTaskTitle + ": " + interfaceName,
                     TaskType = WfTaskType.new_interface.ToString(),
                     Owners = [new() { Owner = owner }],
                     Reason = reason,

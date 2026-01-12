@@ -8,7 +8,8 @@ namespace FWO.Data
         None = 0,
         Recertification = 1,
         ImportChange = 2,
-        Compliance = 3
+        Compliance = 3,
+        InterfaceRequest = 4
     }
 
     public enum NotificationChannel
@@ -19,7 +20,8 @@ namespace FWO.Data
     public enum NotificationDeadline
     {
         None = 0,
-        RecertDate = 1
+        RecertDate = 1,
+        RequestDate = 2
     }
 
     public class FwoNotification
@@ -38,6 +40,9 @@ namespace FWO.Data
 
         [JsonProperty("channel"), JsonPropertyName("channel")]
         public NotificationChannel Channel { get; set; } = NotificationChannel.Email;
+
+        [JsonProperty("name"), JsonPropertyName("name")]
+        public string Name { get; set; } = "";
 
         [JsonProperty("recipient_to"), JsonPropertyName("recipient_to")]
         public EmailRecipientOption RecipientTo { get; set; } = EmailRecipientOption.None;
@@ -68,6 +73,9 @@ namespace FWO.Data
 
         [JsonProperty("repeat_interval_after_deadline"), JsonPropertyName("repeat_interval_after_deadline")]
         public SchedulerInterval RepeatIntervalAfterDeadline { get; set; } = SchedulerInterval.Weeks;
+
+        [JsonProperty("initial_offset_after_deadline"), JsonPropertyName("initial_offset_after_deadline")]
+        public int? InitialOffsetAfterDeadline { get; set; }
 
         [JsonProperty("repeat_offset_after_deadline"), JsonPropertyName("repeat_offset_after_deadline")]
         public int? RepeatOffsetAfterDeadline { get; set; }

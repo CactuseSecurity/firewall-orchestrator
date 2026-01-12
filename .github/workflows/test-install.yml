@@ -6,15 +6,8 @@ on:
       - main
       - develop
       - importer-rework
-    # paths-ignore:
-    #   - 'documentation/**'
-    #   - 'design/**'
-    # do not ignore any paths as this breaks the github actions workflow
 
   pull_request:
-    paths-ignore:
-      - 'documentation/**'
-      - 'design/**'
 
 jobs:
   test-install:

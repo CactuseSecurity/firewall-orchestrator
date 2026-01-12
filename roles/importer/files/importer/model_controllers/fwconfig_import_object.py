@@ -497,7 +497,7 @@ class FwConfigImportObject:
             return "objgrp"
         if typ == Type.SERVICE_OBJECT:
             return "svcgrp"
-        return "usrgrp"
+        return "usergrp"
 
     def remove_outdated_memberships(self, prev_config: FwConfigNormalized, typ: Type):
         removed_members: list[dict[str, Any]] = []

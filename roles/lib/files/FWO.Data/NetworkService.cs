@@ -140,5 +140,39 @@ namespace FWO.Data
                 return $"<td>{MemberNames}</td>";
             }
         }
+        public string MemberNamesAsJson()
+        {
+            // Falls MemberNames leer ist, leeres Array zurückgeben
+            if (string.IsNullOrEmpty(MemberNames))
+                return "[]";
+
+            // Splitten, trimmen
+            var members = MemberNames
+                .Split('|', StringSplitOptions.RemoveEmptyEntries)
+                .Select(m => m.Trim())
+                .ToArray();
+
+            // Wenn nach Split nichts übrig bleibt, leeres Array
+            if (members.Length == 0)
+                return "[]";
+
+            // Jedes Element in Anführungszeichen setzen
+            var quoted = members.Select(m => $"\"{m}\"");
+
+            // Mit Komma verbinden und in eckige Klammern setzen
+            return $"[{string.Join(",", quoted)}]";
+        }
+
+        public string MemberNamesAsCSV()
+        {
+            if (MemberNames != null && MemberNames.Contains('|'))
+            {
+                return $"{string.Join(",", MemberNames.Split('|'))}";
+            }
+            else
+            {
+                return $"{MemberNames}";
+            }
+        }
     }
 }

@@ -1,4 +1,4 @@
-﻿using FWO.Config.Api;
+using FWO.Config.Api;
 using FWO.Config.Api.Data;
 
 namespace FWO.Test
@@ -146,6 +146,8 @@ namespace FWO.Test
             {"English", "English"},
             {"last_successful", "Last successful"},
             {"common_service", "Common Service"},
+            {"enforcing_devices", "enforcing_devices" },
+            {"no_changes_found", "no_changes_found" },
         };
 
         public override string GetText(string key)

@@ -159,6 +159,14 @@ namespace FWO.Ui.Display
         {
             return rule.Uid ?? "";
         }
+        public static string DisplayUid(NetworkObject nwo)
+        {
+            return nwo.Uid ?? "";
+        }
+        public static string DisplayUid(NetworkService nws)
+        {
+            return nws.Uid ?? "";
+        }
 
         public static string DisplayComment(Rule rule)
         {
@@ -195,6 +203,7 @@ namespace FWO.Ui.Display
             StringBuilder result = DisplayBase.DisplayService(service, reportType.IsTechReport(), serviceName);
             return reportType == ReportType.VarianceAnalysis ? DisplayWithIcon(result, ObjCategory.nsrv, service.Type.Name) : result;
         }
+
         public static StringBuilder DisplayGateway(Device gateway, ReportType reportType, string? gatewayName = null)
         {
             return DisplayBase.DisplayGateway(gateway, reportType.IsTechReport(), gatewayName);

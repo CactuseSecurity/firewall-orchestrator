@@ -1798,8 +1798,6 @@ INSERT INTO txt VALUES ('modelled_destination', 'German', 	'Modelliertes Ziel');
 INSERT INTO txt VALUES ('modelled_destination', 'English', 	'Modelled Destination');
 INSERT INTO txt VALUES ('last_requested',		'German', 	'Letzte Beantragung');
 INSERT INTO txt VALUES ('last_requested',		'English', 	'Last Requested');
-INSERT INTO txt VALUES ('propose_alternative',	'German', 	'Alternative vorschlagen');
-INSERT INTO txt VALUES ('propose_alternative',	'English', 	'Propose alternative');
 
 -- compliance
 INSERT INTO txt VALUES ('compliance',			'German', 	'Compliance');

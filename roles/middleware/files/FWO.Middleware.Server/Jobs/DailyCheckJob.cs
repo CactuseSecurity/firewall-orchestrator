@@ -217,7 +217,7 @@ namespace FWO.Middleware.Server.Jobs
                 }
                 catch (Exception exc)
                 {
-                    await LogErrorsWithAlert(1, $"Unanswered Interface Requests Check", GlobalConst.kDailyCheck, AlertCode.DailyCheckError, exc);
+                    await SchedulerJobHelper.LogErrorsWithAlert(apiConnection, globalConfig, 2, LogMessageTitle, GlobalConst.kDailyCheck, AlertCode.DailyCheckError, exc);
                 }
             }
             return reqOwner;

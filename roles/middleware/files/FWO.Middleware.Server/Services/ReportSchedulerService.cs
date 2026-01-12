@@ -16,29 +16,20 @@ namespace FWO.Middleware.Server.Services
     public class ReportSchedulerService : IAsyncDisposable
     {
         private const string SchedulerName = "ReportScheduler";
-        private const string JobKeyName = "ReportJob";
-        private const string TriggerKeyName = "ReportTrigger";
-        private static readonly TimeSpan CheckScheduleInterval = TimeSpan.FromMinutes(1);
-
-        private readonly ISchedulerFactory schedulerFactory;
         private readonly ApiConnection apiConnection;
         private readonly ReportSchedulerState state;
         private bool disposed = false;
-
-        private IScheduler? scheduler;
         private GraphQlApiSubscription<ReportSchedule[]>? scheduleSubscription;
         private GraphQlApiSubscription<List<Ldap>>? ldapSubscription;
 
         /// <summary>
         /// Initializes the report scheduler service.
         /// </summary>
-        /// <param name="schedulerFactory">Quartz scheduler factory.</param>
         /// <param name="apiConnection">GraphQL API connection.</param>
         /// <param name="state">Shared scheduler state used by the report job.</param>
         /// <param name="appLifetime"></param>
-        public ReportSchedulerService(ISchedulerFactory schedulerFactory, ApiConnection apiConnection, ReportSchedulerState state, IHostApplicationLifetime appLifetime)
+        public ReportSchedulerService(ApiConnection apiConnection, ReportSchedulerState state, IHostApplicationLifetime appLifetime)
         {
-            this.schedulerFactory = schedulerFactory;
             this.apiConnection = apiConnection;
             this.state = state;
 
@@ -52,9 +43,6 @@ namespace FWO.Middleware.Server.Services
             {
                 // Initial state population
                 state.UpdateLdaps(await apiConnection.SendQueryAsync<List<Ldap>>(AuthQueries.getLdapConnections));
-
-                scheduler = await schedulerFactory.GetScheduler();
-
                 ldapSubscription = apiConnection.GetSubscription<List<Ldap>>(ApiExceptionHandler, OnLdapUpdate, AuthQueries.getLdapConnectionsSubscription);
                 scheduleSubscription = apiConnection.GetSubscription<ReportSchedule[]>(ApiExceptionHandler, OnScheduleUpdate, ReportQueries.subscribeReportScheduleChanges);
 
@@ -65,8 +53,6 @@ namespace FWO.Middleware.Server.Services
                 Log.WriteError(SchedulerName, "Startup failed", ex);
             }
         }
-
-        // Initial job schedule now handled via AddQuartz in Program.cs
 
         private void OnScheduleUpdate(ReportSchedule[] scheduledReports)
         {
@@ -79,7 +65,7 @@ namespace FWO.Middleware.Server.Services
             state.UpdateLdaps(connectedLdaps);
         }
 
-        private void ApiExceptionHandler(Exception exception)
+        private static void ApiExceptionHandler(Exception exception)
         {
             Log.WriteError(SchedulerName, "Subscription lead to exception. Retry subscription.", exception);
         }
@@ -96,7 +82,7 @@ namespace FWO.Middleware.Server.Services
                 {
                     ldapSubscription?.Dispose();
                     scheduleSubscription?.Dispose();
-                    // Scheduler lifecycle is managed by QuartzHostedService
+
                     disposed = true;
                 }
                 catch (Exception ex)

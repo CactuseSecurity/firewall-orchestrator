@@ -184,7 +184,7 @@ namespace FWO.Middleware.Server
 
         private async Task<MailData> PrepareEmail(FwoNotification notification, string content, FwoOwner owner, ReportBase? report = null)
         {
-            string subject = notification.EmailSubject.Replace(Placeholder.APPNAME, owner.Name);
+            string subject = notification.EmailSubject.Replace(Placeholder.APPNAME, owner.Name).Replace(Placeholder.APPID, owner.ExtAppId);
             string body = content;
             FormFile? attachment = null;
             if (report != null)

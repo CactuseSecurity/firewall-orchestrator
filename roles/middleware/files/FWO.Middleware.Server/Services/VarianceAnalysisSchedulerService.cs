@@ -16,7 +16,6 @@ namespace FWO.Middleware.Server.Services
         private readonly ISchedulerFactory schedulerFactory;
         private readonly ApiConnection apiConnection;
         private readonly GlobalConfig globalConfig;
-        private readonly IHostApplicationLifetime appLifetime;
         private GraphQlApiSubscription<List<ConfigItem>>? configSubscription;
         private IScheduler? scheduler;
         private bool disposed = false;
@@ -37,7 +36,6 @@ namespace FWO.Middleware.Server.Services
             this.schedulerFactory = schedulerFactory;
             this.apiConnection = apiConnection;
             this.globalConfig = globalConfig;
-            this.appLifetime = appLifetime;
 
             // Attach after application started
             appLifetime.ApplicationStarted.Register(OnStarted);

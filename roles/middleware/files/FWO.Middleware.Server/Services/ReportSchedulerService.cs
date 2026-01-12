@@ -28,7 +28,6 @@ namespace FWO.Middleware.Server.Services
         private IScheduler? scheduler;
         private GraphQlApiSubscription<ReportSchedule[]>? scheduleSubscription;
         private GraphQlApiSubscription<List<Ldap>>? ldapSubscription;
-        private readonly IHostApplicationLifetime appLifetime;
 
         /// <summary>
         /// Initializes the report scheduler service.
@@ -42,7 +41,6 @@ namespace FWO.Middleware.Server.Services
             this.schedulerFactory = schedulerFactory;
             this.apiConnection = apiConnection;
             this.state = state;
-            this.appLifetime = appLifetime;
 
             // Attach after application started
             appLifetime.ApplicationStarted.Register(OnStarted);

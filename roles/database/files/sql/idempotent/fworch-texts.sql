@@ -2690,7 +2690,6 @@ INSERT INTO txt VALUES ('complianceCheckShowShortColumsInComplianceReports','Ger
 INSERT INTO txt VALUES ('complianceCheckShowShortColumsInComplianceReports','English','Show columns with short forms for sources, destinations and services');
 INSERT INTO txt VALUES ('importedMatrixReadOnly','German', 'Importierte Matrizen schreibgeschützt');
 INSERT INTO txt VALUES ('importedMatrixReadOnly','English','Imported matrices read-only');
-
 INSERT INTO txt VALUES ('availableModules',     'German', 	'Verf&uuml;gbare Module');
 INSERT INTO txt VALUES ('availableModules',     'English', 	'Available Modules');
 INSERT INTO txt VALUES ('notification',   		'German', 	'Benachrichtigung');
@@ -2699,6 +2698,8 @@ INSERT INTO txt VALUES ('edit_notification',    'German', 	'Benachrichtigung bea
 INSERT INTO txt VALUES ('edit_notification',    'English', 	'Edit Notification');
 INSERT INTO txt VALUES ('delete_notification',  'German', 	'Benachrichtigung l&ouml;schen');
 INSERT INTO txt VALUES ('delete_notification',  'English', 	'Delete Notification');
+INSERT INTO txt VALUES ('set_roles_with_import','German', 	'Beim Import zu setzende Rollen');
+INSERT INTO txt VALUES ('set_roles_with_import','English', 	'Set Roles with import');
 
 -- monitoring
 INSERT INTO txt VALUES ('open_alerts',          'German', 	'Offene Alarme');
@@ -5865,8 +5866,10 @@ INSERT INTO txt VALUES ('H5664', 'German',  'Produktionsstatus: Gibt an, in welc
 INSERT INTO txt VALUES ('H5664', 'English', 'Production state: The Owner Lifecycle State assigned to the owner.');
 INSERT INTO txt VALUES ('H5665', 'German',  'Name: Name des Produktionsstatus');
 INSERT INTO txt VALUES ('H5665', 'English', 'Name: Owner Lifecycle State name');
-INSERT INTO txt VALUES ('H5666', 'German',  'In diesem Kapitel k&ouml;nnen die Produktions-Status von Eigent&uuml;mern eingesehen, erstellt, bearbeitet und gel&ouml;scht werden. Produktions-Status definieren den aktuellen Zustand eines Eigent&uuml;mers (z. B. Geplant, Im Betrieb, Auslaufend).');
+INSERT INTO txt VALUES ('H5666', 'German',  'In diesem Kapitel kann der Produktions-Status von Eigent&uuml;mern eingesehen, erstellt, bearbeitet und gel&ouml;scht werden. Ein Produktions-Status definiert den aktuellen Zustand eines Eigent&uuml;mers (z. B. Geplant, Im Betrieb, Auslaufend).');
 INSERT INTO txt VALUES ('H5666', 'English', 'In this chapter, Production Lifecycle States of owners can be viewed, created, edited, and deleted. Production Lifecycle States define the current status of an owner (e.g., Planned, In Production, End of Life).');
+INSERT INTO txt VALUES ('H5667', 'German',  'Beim Import zu setzende Rollen: Rollen, die den Mitgliedern der Eigent&uuml;mergruppen beim Import zugewiesen werden.');
+INSERT INTO txt VALUES ('H5667', 'English', 'Set Roles with import: Roles assigned to owner group members during import.');
 
 INSERT INTO txt VALUES ('H5701', 'German',  'Die in der Datenbank hinterlegten sprachabh&auml;ngigen Texte k&ouml;nnen individuell &uuml;berschrieben werden.
     Dabei werden die vom System vorgegebenen Texte nicht ge&auml;ndert, sondern nur durch die hier definierten Texte - falls vorhanden - &uuml;berblendet.

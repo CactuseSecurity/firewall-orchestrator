@@ -48,8 +48,6 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "files", "files", "{5603A4C9
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FWO.Compliance", "lib\files\FWO.Compliance\FWO.Compliance.csproj", "{A22D31CE-BAC6-4708-8B34-BCD46972F2F6}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FWO.FwLogic", "lib\files\FWO.FwLogic\FWO.FwLogic.csproj", "{FFB78F8D-88DC-4781-A0EB-7FE6C25BA2F0}"
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU

@@ -52,111 +52,7 @@ Log.WriteInfo("Found ldap connection to server", string.Join("\n", connectedLdap
 // GlobalConfig for Quartz DI
 GlobalConfig globalConfig = await GlobalConfig.ConstructAsync(apiConnection, true);
 
-// Configure Quartz.NET with jobs and triggers
-builder.Services.AddQuartz(q =>
-{
-    q.SchedulerId = "FwoScheduler";
-
-    // DailyCheck
-    JobKey dailyJob = new("DailyCheckJob");
-    q.AddJob<DailyCheckJob>(opts => opts.WithIdentity(dailyJob));
-    DateTimeOffset dailyStart = CalculateForward(globalConfig.DailyCheckStartAt, TimeSpan.FromDays(1));
-    q.AddTrigger(opts => opts
-        .WithIdentity("DailyCheckTrigger")
-        .ForJob(dailyJob)
-        .StartAt(dailyStart)
-        .WithSimpleSchedule(x => x.WithInterval(TimeSpan.FromDays(1)).RepeatForever()));
-
-    // AutoDiscover
-    JobKey autoDiscoverJob = new("AutoDiscoverJob");
-    q.AddJob<AutoDiscoverJob>(opts => opts.WithIdentity(autoDiscoverJob).StoreDurably());
-    if (globalConfig.AutoDiscoverSleepTime > 0)
-    {
-        DateTimeOffset adStart = CalculateForward(globalConfig.AutoDiscoverStartAt, TimeSpan.FromHours(globalConfig.AutoDiscoverSleepTime));
-        q.AddTrigger(opts => opts
-            .WithIdentity("AutoDiscoverTrigger")
-            .ForJob(autoDiscoverJob)
-            .StartAt(adStart)
-            .WithSimpleSchedule(x => x.WithInterval(TimeSpan.FromHours(globalConfig.AutoDiscoverSleepTime)).RepeatForever()));
-    }
-
-    // ImportAppData 
-    JobKey importAppDataJob = new("ImportAppDataJob");
-    q.AddJob<ImportAppDataJob>(opts => opts.WithIdentity(importAppDataJob).StoreDurably());
-    if (globalConfig.ImportAppDataSleepTime > 0)
-    {
-        DateTimeOffset iaStart = CalculateForward(globalConfig.ImportAppDataStartAt, TimeSpan.FromHours(globalConfig.ImportAppDataSleepTime));
-        q.AddTrigger(opts => opts
-            .WithIdentity("ImportAppDataTrigger")
-            .ForJob(importAppDataJob)
-            .StartAt(iaStart)
-            .WithSimpleSchedule(x => x.WithInterval(TimeSpan.FromHours(globalConfig.ImportAppDataSleepTime)).RepeatForever()));
-    }
-
-    // ImportIpData
-    JobKey importIpDataJob = new("ImportIpDataJob");
-    q.AddJob<ImportIpDataJob>(opts => opts.WithIdentity(importIpDataJob).StoreDurably());
-    if (globalConfig.ImportSubnetDataSleepTime > 0)
-    {
-        DateTimeOffset iidStart = CalculateForward(globalConfig.ImportSubnetDataStartAt, TimeSpan.FromHours(globalConfig.ImportSubnetDataSleepTime));
-        q.AddTrigger(opts => opts
-            .WithIdentity("ImportIpDataTrigger")
-            .ForJob(importIpDataJob)
-            .StartAt(iidStart)
-            .WithSimpleSchedule(x => x.WithInterval(TimeSpan.FromHours(globalConfig.ImportSubnetDataSleepTime)).RepeatForever()));
-    }
-
-    // ImportChangeNotify
-    JobKey importChangeNotifyJob = new("ImportChangeNotifyJob");
-    q.AddJob<ImportChangeNotifyJob>(opts => opts.WithIdentity(importChangeNotifyJob).StoreDurably());
-
-    if (globalConfig.ImpChangeNotifyActive && globalConfig.ImpChangeNotifySleepTime > 0)
-    {
-        DateTimeOffset icnStart = CalculateForward(globalConfig.ImpChangeNotifyStartAt, TimeSpan.FromSeconds(globalConfig.ImpChangeNotifySleepTime));
-        q.AddTrigger(opts => opts
-            .WithIdentity("ImportChangeNotifyTrigger")
-            .ForJob(importChangeNotifyJob)
-            .StartAt(icnStart)
-            .WithSimpleSchedule(x => x.WithInterval(TimeSpan.FromSeconds(globalConfig.ImpChangeNotifySleepTime)).RepeatForever()));
-    }
-
-    // ExternalRequest
-    JobKey externalRequestJob = new("ExternalRequestJob");
-    q.AddJob<ExternalRequestJob>(opts => opts.WithIdentity(externalRequestJob).StoreDurably());
-
-    if (globalConfig.ExternalRequestSleepTime > 0)
-    {
-        DateTimeOffset erStart = CalculateForward(globalConfig.ExternalRequestStartAt, TimeSpan.FromSeconds(globalConfig.ExternalRequestSleepTime));
-        q.AddTrigger(opts => opts
-            .WithIdentity("ExternalRequestTrigger")
-            .ForJob(externalRequestJob)
-            .StartAt(erStart)
-            .WithSimpleSchedule(x => x.WithInterval(TimeSpan.FromSeconds(globalConfig.ExternalRequestSleepTime)).RepeatForever()));
-    }
-
-    // VarianceAnalysis 
-    JobKey varianceAnalysisJob = new("VarianceAnalysisJob");
-    q.AddJob<VarianceAnalysisJob>(opts => opts.WithIdentity(varianceAnalysisJob).StoreDurably());
-    if (globalConfig.VarianceAnalysisSleepTime > 0)
-    {
-        DateTimeOffset vaStart = CalculateForward(globalConfig.VarianceAnalysisStartAt, TimeSpan.FromMinutes(globalConfig.VarianceAnalysisSleepTime));
-        q.AddTrigger(opts => opts
-            .WithIdentity("VarianceAnalysisTrigger")
-            .ForJob(varianceAnalysisJob)
-            .StartAt(vaStart)
-            .WithSimpleSchedule(x => x.WithInterval(TimeSpan.FromMinutes(globalConfig.VarianceAnalysisSleepTime)).RepeatForever()));
-    }
-
-    // Report (every minute)
-    JobKey reportJob = new("ReportJob");
-    q.AddJob<ReportJob>(opts => opts.WithIdentity(reportJob));
-    q.AddTrigger(opts => opts
-        .WithIdentity("ReportTrigger")
-        .ForJob(reportJob)
-        .StartNow()
-        .WithSimpleSchedule(x => x.WithInterval(TimeSpan.FromMinutes(1)).RepeatForever()));
-});
-
+builder.Services.AddQuartz();
 builder.Services.AddQuartzHostedService(options =>
 {
     options.WaitForJobsToComplete = true;
@@ -241,7 +137,7 @@ app.UseAuthorization();
 
 app.MapControllers();
 
-// Register JobExecutionTracker with scheduler
+//Register JobExecutionTracker with scheduler
 ISchedulerFactory schedulerFactory = app.Services.GetRequiredService<ISchedulerFactory>();
 JobExecutionTracker executionTracker = app.Services.GetRequiredService<JobExecutionTracker>();
 IScheduler scheduler = await schedulerFactory.GetScheduler();
@@ -257,16 +153,4 @@ app.Services.GetRequiredService<ImportChangeNotifySchedulerService>();
 app.Services.GetRequiredService<VarianceAnalysisSchedulerService>();
 app.Services.GetRequiredService<ReportSchedulerService>();
 
-app.Run();
-
-// Helper to compute next occurrence in the future
-static DateTimeOffset CalculateForward(DateTime configuredStartTime, TimeSpan interval)
-{
-    DateTime startTime = configuredStartTime;
-    DateTime now = DateTime.Now;
-    while (startTime < now)
-    {
-        startTime = startTime.Add(interval);
-    }
-    return new DateTimeOffset(startTime);
-}
+await app.RunAsync();

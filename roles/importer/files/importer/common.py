@@ -7,6 +7,7 @@ from socket import gethostname
 from fw_modules.checkpointR8x.fwcommon import CheckpointR8xCommon
 from fw_modules.ciscoasa9.fwcommon import CiscoAsa9Common
 from fw_modules.fortiadom5ff.fwcommon import FortiAdom5ffCommon
+from fw_modules.fortiosmanagementREST.fwcommon import FortiosManagementRESTCommon
 from fwo_const import IMPORTER_BASE_DIR
 from fwo_log import FWOLogger
 from model_controllers.fwconfig_import_rollback import FwConfigImportRollback
@@ -33,7 +34,9 @@ from fwo_exceptions import (
 )
 from model_controllers.check_consistency import FwConfigImportCheckConsistency
 from model_controllers.fwconfig_import import FwConfigImport
-from model_controllers.fwconfigmanagerlist_controller import FwConfigManagerListController
+from model_controllers.fwconfigmanagerlist_controller import (
+    FwConfigManagerListController,
+)
 from model_controllers.import_state_controller import ImportStateController
 from models.gateway import Gateway
 from services.enums import Services
@@ -68,17 +71,30 @@ def import_management(
     exception: BaseException | None = None
 
     try:
-        _import_management(mgm_id, ssl_verification, file, limit, clear_management_data, suppress_cert_warnings)
+        _import_management(
+            mgm_id,
+            ssl_verification,
+            file,
+            limit,
+            clear_management_data,
+            suppress_cert_warnings,
+        )
     except FwLoginFailedError as e:
         exception = e
         import_state.delete_import()  # delete whole import
         roll_back_exception_handler(import_state, config_importer=config_importer, exc=e, error_text="")
-    except (ImportRecursionLimitReachedError, FwoImporterErrorInconsistenciesError) as e:
+    except (
+        ImportRecursionLimitReachedError,
+        FwoImporterErrorInconsistenciesError,
+    ) as e:
         import_state.delete_import()  # delete whole import
         exception = e
     except (KeyboardInterrupt, ImportInterruptionError, ShutdownRequestedError) as e:
         roll_back_exception_handler(
-            import_state, config_importer=config_importer, exc=e, error_text="shutdown requested"
+            import_state,
+            config_importer=config_importer,
+            exc=e,
+            error_text="shutdown requested",
         )
         raise
     except (FwoApiWriteError, FwoImporterError) as e:
@@ -130,7 +146,9 @@ def _import_management(
     gateways = ManagementController.build_gateway_list(import_state.state.mgm_details)
 
     import_state.state.import_id = import_state.api_call.set_import_lock(
-        import_state.state.mgm_details, import_state.state.is_full_import, import_state.state.is_initial_import
+        import_state.state.mgm_details,
+        import_state.state.is_full_import,
+        import_state.state.is_initial_import,
     )
     FWOLogger.info(
         f"starting import of management {import_state.state.mgm_details.name} ({mgm_id!s}), import_id={import_state.state.import_id!s}"
@@ -205,7 +223,9 @@ def roll_back_exception_handler(
 
 
 def get_config_top_level(
-    import_state: ImportStateController, in_file: str | None = None, gateways: list[Gateway] | None = None
+    import_state: ImportStateController,
+    in_file: str | None = None,
+    gateways: list[Gateway] | None = None,
 ) -> tuple[bool, FwConfigManagerListController]:
     config_from_file = FwConfigManagerListController.generate_empty_config()
     if gateways is None:
@@ -247,6 +267,8 @@ def get_module(import_state: ImportState) -> FwCommon:
             fw_module = FortiAdom5ffCommon()
         case "checkpointR8x":
             fw_module = CheckpointR8xCommon()
+        case "fortiosmanagementREST":
+            fw_module = FortiosManagementRESTCommon()
         case _:
             raise FwoImporterError(f"import_management - no fwcommon module found for package name {pkg_name}")
 
@@ -260,7 +282,8 @@ def get_config_from_api(
         fw_module = get_module(import_state.state)
     except Exception:
         FWOLogger.exception(
-            "import_management - error while loading product specific fwcommon module", traceback.format_exc()
+            "import_management - error while loading product specific fwcommon module",
+            traceback.format_exc(),
         )
         raise
 

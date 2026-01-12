@@ -256,7 +256,7 @@ namespace FWO.Middleware.Server.Jobs
         private static DateTime RoundDown(DateTime dateTime, TimeSpan roundInterval)
         {
             long delta = dateTime.Ticks % roundInterval.Ticks;
-            return new DateTime(dateTime.Ticks - delta);
+            return new DateTime(dateTime.Ticks - delta, dateTime.Kind);
         }
     }
 }

@@ -1,0 +1,46 @@
+query getTicketsByParameters($cutOffDate: timestamp, $taskType: String, $fromState: Int!, $toState: Int!) {
+  request_ticket(where: {
+  _and: [
+    {
+      date_created: { _lte: $cutOffDate }
+    },
+    {
+      reqtasks: {
+        _and: [
+          {task_type: {_eq: $taskType}}
+          {state_id: {_gte: $fromState}}, 
+          {state_id: {_lt: $toState}}
+        ]
+      }
+    }
+  ]
+  }, order_by: {id: desc}) {
+    id
+    title
+    date_created
+    state_id
+    requester: uiuser {
+      uiuser_id
+      uiuser_username
+      uuid
+      uiuser_email
+    }
+    reqtasks: reqtasks {
+      id
+      task_number
+      state_id
+      title
+      task_type
+      additional_info
+      owners: reqtask_owners {
+        owner: owner {
+          id
+          name
+          dn
+          group_dn
+          app_id_external
+        }
+      }
+    }
+  }
+}

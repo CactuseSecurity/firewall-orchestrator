@@ -268,9 +268,9 @@ else
     Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
 
     private ConfigData? configData;
-    private List<WfPriority> PrioList = new List<WfPriority>();
-    private RecertCheckParams recCheckParams = new RecertCheckParams();
-    private List<WfState> states = new List<WfState>();
+    private List<WfPriority> PrioList = [];
+    private RecertCheckParams recCheckParams = new();
+    private List<WfState> states = [];
     private DayOfWeek? selectedDayOfWeek;
     private WfPriority? selectedPriority;
     private WfState? selectedState;

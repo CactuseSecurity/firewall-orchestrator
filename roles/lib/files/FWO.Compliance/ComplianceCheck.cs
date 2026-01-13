@@ -135,6 +135,39 @@ namespace FWO.Compliance
         #endregion
 
         #region Public Methods
+        /// <summary>
+        /// Executes a compliance check based on the provided <see cref="ComplianceCheckType"/>.
+        /// </summary>
+        /// <param name="complianceCheckType"> Specifies the type of compliance check to perform.</param>
+        /// <remarks>
+        /// When <paramref name="complianceCheckType"/> is <see cref="ComplianceCheckType.Variable"/>,
+        /// the method first queries the system for existing violations.
+        /// If no violations are found, the full compliance check is treated as an initial run.
+        /// For <see cref="ComplianceCheckType.Standard"/> or other types,
+        /// a standard full compliance check is performed without the initial flag.
+        /// </remarks>
+        /// <returns>
+        /// A task representing the asynchronous operation.
+        /// </returns>
+        public async Task RunComplianceCheck(ComplianceCheckType complianceCheckType)
+        {
+            switch (complianceCheckType)
+            {
+                case ComplianceCheckType.Variable:
+                    bool isInitial = false;
+                    AggregateCount violationCount = await _apiConnection.SendQueryAsync<AggregateCount>(ComplianceQueries.getViolationCount);
+                    if (violationCount.Aggregate.Count == 0)
+                    {
+                        isInitial = true;
+                    }
+                    await CheckAll(isInitial);
+                    break;
+                case ComplianceCheckType.Standard:
+                default:
+                    await CheckAll();
+                    break;
+            }
+        }
         
         /// <summary>
         /// Retrieves rules with violations from DB, calculates current violations, and prepares diff arguments.
@@ -530,26 +563,6 @@ namespace FWO.Compliance
             }
 
             return filteredManagements;
-        }
-
-        public async Task RunComplianceCheck(ComplianceCheckType complianceCheckType)
-        {
-            switch (complianceCheckType)
-            {
-                case ComplianceCheckType.Variable:
-                    bool isInitial = false;
-                    AggregateCount violationCount = await _apiConnection.SendQueryAsync<AggregateCount>(ComplianceQueries.getViolationCount);
-                    if (violationCount.Aggregate.Count == 0)
-                    {
-                        isInitial = true;
-                    }
-                    await CheckAll(isInitial);
-                    break;
-                case ComplianceCheckType.Standard:
-                default:
-                    await CheckAll();
-                    break;
-            }
         }
         #endregion
         

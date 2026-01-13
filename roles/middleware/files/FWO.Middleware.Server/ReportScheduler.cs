@@ -172,7 +172,7 @@ namespace FWO.Middleware.Server
                 {
                     // Dispose connections
                     apiConnectionUserContext?.Dispose();
-                    globalConfig?.Dispose();
+                    _userConfig?.GlobalConfig?.Dispose();
                     _userConfig?.Dispose();
                 }
             }, token);

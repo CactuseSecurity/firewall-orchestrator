@@ -491,7 +491,7 @@
 
         _disposed = true;
 
-        if (!disposing)
+        if (disposing)
         {
             JwtEventService.OnPermissionChanged -= OnPermissionsChanged;
             JwtEventService.OnJwtAboutToExpire -= OnJwtAboutToExpire;

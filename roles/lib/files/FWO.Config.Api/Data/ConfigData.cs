@@ -303,6 +303,9 @@ namespace FWO.Config.Api.Data
 
         [JsonProperty("ownerLdapGroupNames"), JsonPropertyName("ownerLdapGroupNames")]
         public string OwnerLdapGroupNames { get; set; } = GlobalConst.kLdapGroupPattern;
+
+        [JsonProperty("rolesWithAppDataImport"), JsonPropertyName("rolesWithAppDataImport")]
+        public string RolesWithAppDataImport { get; set; } = "[]";
         
         [JsonProperty("importSubnetDataPath"), JsonPropertyName("importSubnetDataPath")]
         public string ImportSubnetDataPath { get; set; } = "";

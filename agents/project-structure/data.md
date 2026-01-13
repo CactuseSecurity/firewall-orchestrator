@@ -100,7 +100,7 @@ Creates the core database tables for the FWO schema. Executed during new install
 Creates database triggers used by the application. These triggers support auditing and derived data maintenance.
 
 ### `roles/database/files/sql/creation/fworch-fill-stm.sql`
-Populates baseline STM or lookup data required by the platform. Executed during new installs after core tables are created.
+Populates baseline core (stem) data or lookup data required by the platform. Executed during new installs after core tables are created.
 
 ### `roles/database/files/sql/creation/fworch-views-materialized.sql`
 Defines materialized views used for reporting or performance. Built during initial schema creation.
@@ -198,7 +198,7 @@ Core database unit test script with assertions for schema behavior. Used by the 
 ## Database seed data
 
 ### `roles/database/files/csv/color.csv`
-Seed data listing STM color names and RGB values. Loaded during new database installs.
+Seed data listing color names and RGB values. Loaded during new database installs.
 
 ### `roles/database/files/csv/error.csv`
 Seed data containing error identifiers and localized messages. Loaded during new database installs.

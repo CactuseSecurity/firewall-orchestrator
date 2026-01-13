@@ -1,10 +1,13 @@
-using FWO.Logging;
+﻿using FWO.Logging;
 using GraphQL;
 using GraphQL.Client.Http;
 using Newtonsoft.Json.Linq;
+using System.Diagnostics.CodeAnalysis;
 
 namespace FWO.Api.Client
 {
+    [SuppressMessage("Design", "S3060:DoNotCallOverridableMethodsInConstructors",
+        Justification = "CreateSubscription is virtual for unit tests only. This is a design choice.")]
     public class GraphQlApiSubscription<SubscriptionResponseType> : ApiSubscription
     {
         public delegate void SubscriptionUpdate(SubscriptionResponseType response);

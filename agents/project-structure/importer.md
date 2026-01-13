@@ -5,10 +5,10 @@ Importer (roles/importer) normalizes vendor firewall and manager configurations 
 ### `roles/importer/files/import.conf`
 Primary importer configuration file that sets directories, sleep intervals, and CLI paths. It also defines CSV and group delimiters plus defaults for importer runtime behavior.
 
-### `roles/importer/files/importer/import-main-loop.py`
+### `roles/importer/files/importer/import_main_loop.py`
 Main loop entry point that repeatedly imports all configured managements. It handles JWT login, scheduling, and per-management import execution with retries.
 
-### `roles/importer/files/importer/import-mgm.py`
+### `roles/importer/files/importer/import_mgm.py`
 CLI entry point to import a single management or a provided config file. It logs in via the middleware, initializes import state, and calls the core import routine.
 
 ## Core importer framework
@@ -140,9 +140,6 @@ Defines the track model used by the importer data layer. It is serialized into n
 ### `roles/importer/files/importer/model_controllers/check_consistency.py`
 Controller for check consistency that coordinates import logic and persistence. It transforms API payloads into models and writes normalized data.
 
-### `roles/importer/files/importer/model_controllers/fwconfig_controller.py`
-Controller for fwconfig controller that coordinates import logic and persistence. It transforms API payloads into models and writes normalized data.
-
 ### `roles/importer/files/importer/model_controllers/fwconfig_import.py`
 Controller for fwconfig import that coordinates import logic and persistence. It transforms API payloads into models and writes normalized data.
 
@@ -160,9 +157,6 @@ Controller for fwconfig import ruleorder that coordinates import logic and persi
 
 ### `roles/importer/files/importer/model_controllers/fwconfig_normalized_controller.py`
 Controller for fwconfig normalized controller that coordinates import logic and persistence. It transforms API payloads into models and writes normalized data.
-
-### `roles/importer/files/importer/model_controllers/fwconfigmanager_controller.py`
-Controller for fwconfigmanager controller that coordinates import logic and persistence. It transforms API payloads into models and writes normalized data.
 
 ### `roles/importer/files/importer/model_controllers/fwconfigmanagerlist_controller.py`
 Controller for fwconfigmanagerlist controller that coordinates import logic and persistence. It transforms API payloads into models and writes normalized data.
@@ -185,20 +179,11 @@ Controller for interface controller that coordinates import logic and persistenc
 ### `roles/importer/files/importer/model_controllers/management_controller.py`
 Controller for management controller that coordinates import logic and persistence. It transforms API payloads into models and writes normalized data.
 
-### `roles/importer/files/importer/model_controllers/rollback.py`
-Controller for rollback that coordinates import logic and persistence. It transforms API payloads into models and writes normalized data.
-
 ### `roles/importer/files/importer/model_controllers/route_controller.py`
 Controller for route controller that coordinates import logic and persistence. It transforms API payloads into models and writes normalized data.
 
 ### `roles/importer/files/importer/model_controllers/rule_enforced_on_gateway_controller.py`
 Controller for rule enforced on gateway controller that coordinates import logic and persistence. It transforms API payloads into models and writes normalized data.
-
-### `roles/importer/files/importer/model_controllers/rulebase_link_controller.py`
-Controller for rulebase link controller that coordinates import logic and persistence. It transforms API payloads into models and writes normalized data.
-
-### `roles/importer/files/importer/model_controllers/rulebase_link_map.py`
-Controller for rulebase link map that coordinates import logic and persistence. It transforms API payloads into models and writes normalized data.
 
 ### `roles/importer/files/importer/model_controllers/test_fwconfig_import_rule.py`
 Controller for test fwconfig import rule that coordinates import logic and persistence. It transforms API payloads into models and writes normalized data.
@@ -284,9 +269,6 @@ Service object parsing and normalization for Cisco ASA. Converts protocol and po
 
 #### `roles/importer/files/importer/fw_modules/ciscoasa9/fwcommon.py`
 Shared utilities and common types for the Cisco ASA module. Used by vendor-specific parsers and normalizers.
-
-#### `roles/importer/files/importer/fw_modules/ciscoasa9/test.py`
-Local test harness for the Cisco ASA module. Used for manual runs against sample configuration data.
 
 #### `roles/importer/files/importer/fw_modules/ciscoasa9/test_asa.conf`
 Sample Cisco ASA configuration used for parser tests. Provides representative objects and rules for normalization.

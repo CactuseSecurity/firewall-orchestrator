@@ -1,4 +1,4 @@
-using System.Text.RegularExpressions;
+﻿using System.Text.RegularExpressions;
 using FWO.Basics;
 using FWO.Logging;
 using FWO.Config.Api.Data;
@@ -317,8 +317,7 @@ namespace FWO.Config.Api
         {
             if (disposing)
             {
-                if (globalConfig != null)
-                    globalConfig.OnChange -= OnGlobalConfigChange;
+                globalConfig?.OnChange -= OnGlobalConfigChange;
             }
 
             base.Dispose(disposing);

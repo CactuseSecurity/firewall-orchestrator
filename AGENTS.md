@@ -103,17 +103,8 @@ If any error occurs in the validation steps 4, 5, 6, or 7, return to step 2 and 
 
 ## Installer & Versioning
 
-- Avoid usage of plays with module `run` and `command`; as well as Galaxy modules unless explicitly reuired. Prefer standard Ansible modules.
+- Avoid usage of plays with module `run` and `command`; as well as Galaxy modules unless explicitly required. Prefer standard Ansible modules.
 - Bump product versions whenever database schemas, LDAP structure, or major features change (`documentation/developer-docs/installer/upgrading.md`).
 - Update `documentation/revision-history-*.md`, adjust `inventory/group_vars/all.yml`, and add idempotent upgrade scripts (under `roles/database/files/upgrade/<version>.sql`). Do not modify the old ones.
 - The installer must support Debian version >= 12 and Ubuntu version >= 20.04. Make sure any changes to the installer consider this.
 
-## Importer Module Practices
-
-- Follow `documentation/developer-docs/importer/readme.md` when onboarding new firewall types: update `roles/database/files/sql/creation/fworch-fill-stm.sql`, create version-specific module directories under `roles/importer/files/importer`.  
-- Use the entry point `roles/importer/files/importer/import_mgm.py` and emit normalized configs as defined in `documentation/developer-docs/importer/FWO-import-api.md`.
-
-## Customization & Operations
-
-- Tenant-specific automation lives in `roles/finalize/tasks/main.yml` and Python helpers under `scripts/customizing/api/`; review them before adding customer-specific behaviour.  
-- Operations guidance: follow backup, logging, and monitoring suggestions in `documentation/operations.md`, and keep `/var/log/fworch` usage monitored.

@@ -118,7 +118,7 @@ namespace FWO.Test
         {
             SCTicket ticket = new (ticketSystem);
             await ticket.CreateRequestString(grpCreateReqTasks, ipProtos, NamingConvention);
-            ExternalRequestHandler extReqHandler = new(userConfig, apiConnection, null);
+            using ExternalRequestHandler extReqHandler = new(userConfig, apiConnection, null);
             ExternalRequest oldRquestGrp = new(){ ExtRequestType = ticket.GetTaskTypeAsString(grpCreateReqTasks[0]), ExtRequestContent = ticket.TicketText};
             ExternalRequest oldRquestAcc = new(){ ExtRequestType = ticket.GetTaskTypeAsString(accessReqTasks[0]), ExtRequestContent = ticket.TicketText};
 
@@ -141,7 +141,7 @@ namespace FWO.Test
         [Test]
         public async Task TestHandleStateChange()
         {
-            ExternalRequestHandler externalRequestHandler = new (userConfig, apiConnection, null);
+            using ExternalRequestHandler externalRequestHandler = new (userConfig, apiConnection, null);
             ExternalRequest externalRequest = new()
             {
                 Id = 1,

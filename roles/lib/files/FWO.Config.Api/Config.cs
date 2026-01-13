@@ -33,10 +33,7 @@ namespace FWO.Config.Api
         // GraphQL Subscription handling
         private GraphQlApiSubscription<ConfigItem[]>? _configGraphQlSubscription;
 
-
         public ConfigItem[] RawConfigItems { get; set; } = [];
-
-        private bool disposedValue;
 
         protected Config() { }
 

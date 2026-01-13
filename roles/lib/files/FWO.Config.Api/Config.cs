@@ -8,7 +8,7 @@ using System.Text.Json.Serialization;
 
 namespace FWO.Config.Api
 {
-    public abstract class Config : ConfigData
+    public abstract class Config : ConfigData, IDisposable
     {
         /// <summary>
         /// Internal connection to api server. Used to get/edit config data.
@@ -22,7 +22,11 @@ namespace FWO.Config.Api
 
         protected SemaphoreSlim semaphoreSlim = new(1, 1);
 
+        private GraphQlApiSubscription<ConfigItem[]>? configSubscription;
+
         public ConfigItem[] RawConfigItems { get; set; } = [];
+
+        private bool disposedValue;
 
         protected Config() { }
 
@@ -34,18 +38,25 @@ namespace FWO.Config.Api
         public async Task InitWithUserId(ApiConnection apiConnection, int userId, bool withSubscription = false)
         {
             this.apiConnection = apiConnection;
-            if(withSubscription) // used in Ui context
+
+            // Always set UserId, even when no subscription is used.
+            UserId = userId;
+
+            if (withSubscription) // used in Ui context
             {
-                UserId = userId;
+                // Re-init (e.g. login) can happen; dispose previous subscription to avoid handler accumulation.
+                configSubscription?.Dispose();
+                configSubscription = null;
+
                 List<string> ignoreKeys = []; // currently nothing ignored, may be used later
-                apiConnection.GetSubscription<ConfigItem[]>(SubscriptionExceptionHandler, SubscriptionUpdateHandler,
-                    ConfigQueries.subscribeConfigChangesByUser, new { UserId , ignoreKeys });
+                configSubscription = apiConnection.GetSubscription<ConfigItem[]>(SubscriptionExceptionHandler, SubscriptionUpdateHandler,
+                    ConfigQueries.subscribeConfigChangesByUser, new { UserId, ignoreKeys });
                 await Task.Run(async () => { while (!Initialized) { await Task.Delay(10); } }); // waitForFirstUpdate
             }
             else // when only simple read is needed, e.g. during scheduled report in middleware server
             {
                 ConfigItem[] configItems = await apiConnection.SendQueryAsync<ConfigItem[]>(ConfigQueries.getConfigItemsByUser, new { User = UserId });
-                if(configItems.Length > 0)
+                if (configItems.Length > 0)
                 {
                     Update(configItems);
                     RawConfigItems = configItems;
@@ -96,7 +107,7 @@ namespace FWO.Config.Api
                     }
                 }
             }
-            foreach(var name in remainingConfigItemNames.Where(n => !n.Contains("StateMatrix"))) // StateMatrix ConfigItems are handled separately
+            foreach (var name in remainingConfigItemNames.Where(n => !n.Contains("StateMatrix"))) // StateMatrix ConfigItems are handled separately
             {
                 Log.WriteDebug($"Load {(UserId == 0 ? "Global " : "")}Config Items", $"Config item with key \"{name}\" could not be found. {(UserId == 0 ? "" : "User might not have customized the setting. ")}Using default value.");
             }
@@ -144,7 +155,7 @@ namespace FWO.Config.Api
         {
             await semaphoreSlim.WaitAsync();
             try
-            { 
+            {
                 return (ConfigData)CloneEditable();
             }
             finally { semaphoreSlim.Release(); }
@@ -158,6 +169,37 @@ namespace FWO.Config.Api
         protected void InvokeOnChange(Config config, ConfigItem[] configItems)
         {
             OnChange?.Invoke(config, configItems);
+        }
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (!disposedValue)
+            {
+                if (disposing)
+                {
+                    // Stop GraphQL subscription so it no longer holds references to this instance.
+                    configSubscription?.Dispose();
+                    configSubscription = null;
+
+                    // Dispose SemaphoreSlim
+                    semaphoreSlim?.Dispose();
+
+                    // Clear all event subscribers
+                    OnChange = null;
+                }
+                disposedValue = true;
+            }
+        }
+
+        public void Dispose()
+        {
+            Dispose(disposing: true);
+            GC.SuppressFinalize(this);
+        }
+
+        ~Config()
+        {
+            Dispose(disposing: false);
         }
 
         public abstract string GetText(string key);

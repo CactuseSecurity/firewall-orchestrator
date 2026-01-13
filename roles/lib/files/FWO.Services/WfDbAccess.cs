@@ -86,6 +86,28 @@ namespace FWO.Services
             return ticket;
         }
 
+        public async Task<List<WfTicket>> GetTicketsByParameters(string taskType, int startState, int endState, DateTime cutOffDate)
+        {
+            List<WfTicket> tickets = [];
+            try
+            {
+                var Variables = new
+                {
+                    cutOffDate = cutOffDate,
+                    taskType = taskType,
+                    fromState = startState,
+                    toState = endState
+                };
+                tickets = await ApiConnection.SendQueryAsync<List<WfTicket>>(RequestQueries.getTicketsByParameters, Variables);
+            }
+            catch (Exception exception)
+            {
+                DisplayMessageInUi(exception, UserConfig.GetText("fetch_requests"), "", true);
+            }
+            return tickets;
+        }
+
+
         // Tickets
 
         public async Task<WfTicket> AddTicketToDb(WfTicket ticket)

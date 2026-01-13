@@ -140,7 +140,7 @@ namespace FWO.Data.Report
             return Rulebases
                 .FirstOrDefault(rb => rb.Id == currentRbLink.NextRulebaseId);
         }
-        
+
     }
     public static class ManagementUtility
     {
@@ -178,6 +178,9 @@ namespace FWO.Data.Report
                 { "NetworkUsers", 0 },
                 { "Rules", 0 },
                 { "RuleChanges", 0 },
+                { "ObjectChanges", 0 },
+                { "ServiceChanges", 0 },
+                { "UserChanges", 0 },
             };
 
             foreach (var managementReportToMerge in managementReportsToMerge)
@@ -194,6 +197,9 @@ namespace FWO.Data.Report
                         maxAddedCounts["NetworkUsers"] = Math.Max(maxAddedCounts["NetworkUsers"], addedCounts["NetworkUsers"]);
                         maxAddedCounts["Rules"] = Math.Max(maxAddedCounts["Rules"], addedCounts["Rules"]);
                         maxAddedCounts["RuleChanges"] = Math.Max(maxAddedCounts["RuleChanges"], addedCounts["RuleChanges"]);
+                        maxAddedCounts["ObjectChanges"] = Math.Max(maxAddedCounts["ObjectChanges"], addedCounts["ObjectChanges"]);
+                        maxAddedCounts["ServiceChanges"] = Math.Max(maxAddedCounts["ServiceChanges"], addedCounts["ServiceChanges"]);
+                        maxAddedCounts["UserChanges"] = Math.Max(maxAddedCounts["UserChanges"], addedCounts["UserChanges"]);
                     }
                 }
             }
@@ -210,6 +216,9 @@ namespace FWO.Data.Report
                 { "NetworkUsers", 0 },
                 { "Rules", 0 },
                 { "RuleChanges", 0 },
+                { "ObjectChanges", 0 },
+                { "ServiceChanges", 0 },
+                { "UserChanges", 0 },
             };
 
             if (managementReport.Objects != null && managementReportToMerge.Objects != null && managementReportToMerge.Objects.Length > 0)
@@ -253,6 +262,27 @@ namespace FWO.Data.Report
                 managementReport.RuleChanges = [.. managementReport.RuleChanges, .. managementReportToMerge.RuleChanges];
                 newObjects = true;
                 maxAddedCounts["RuleChanges"] = managementReportToMerge.RuleChanges.Length;
+            }
+
+            if (managementReport.ObjectChanges != null && managementReportToMerge.ObjectChanges != null && managementReportToMerge.ObjectChanges.Length > 0)
+            {
+                managementReport.ObjectChanges = [.. managementReport.ObjectChanges, .. managementReportToMerge.ObjectChanges];
+                newObjects = true;
+                maxAddedCounts["ObjectChanges"] = managementReportToMerge.ObjectChanges.Length;
+            }
+
+            if (managementReport.ServiceChanges != null && managementReportToMerge.ServiceChanges != null && managementReportToMerge.ServiceChanges.Length > 0)
+            {
+                managementReport.ServiceChanges = [.. managementReport.ServiceChanges, .. managementReportToMerge.ServiceChanges];
+                newObjects = true;
+                maxAddedCounts["ServiceChanges"] = managementReportToMerge.ServiceChanges.Length;
+            }
+
+            if (managementReport.UserChanges != null && managementReportToMerge.UserChanges != null && managementReportToMerge.UserChanges.Length > 0)
+            {
+                managementReport.UserChanges = [.. managementReport.UserChanges, .. managementReportToMerge.UserChanges];
+                newObjects = true;
+                maxAddedCounts["UserChanges"] = managementReportToMerge.UserChanges.Length;
             }
 
             return (newObjects, maxAddedCounts);

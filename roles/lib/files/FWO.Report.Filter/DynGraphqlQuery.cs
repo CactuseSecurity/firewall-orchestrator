@@ -227,6 +227,7 @@ namespace FWO.Report.Filter
                 where: {
                   change_type_id: { _eq: 3 }
                   security_relevant: { _eq: true }
+                  control_id: { _eq: $import_id_new }
                 },
                 order_by: { control_id: asc }
               )
@@ -244,6 +245,7 @@ namespace FWO.Report.Filter
                 where: {
                   change_type_id: { _eq: 3 }
                   security_relevant: { _eq: true }
+                  control_id: { _eq: $import_id_new }
                 },
                 order_by: { control_id: asc }
               )
@@ -261,6 +263,7 @@ namespace FWO.Report.Filter
                 where: {
                   change_type_id: { _eq: 3 }
                   security_relevant: { _eq: true }
+                  control_id: { _eq: $import_id_new }
                 },
                 order_by: { control_id: asc }
               )
@@ -278,7 +281,6 @@ namespace FWO.Report.Filter
 
         private static string ConstructChangesQuery(DynGraphqlQuery query, string paramString, ReportTemplate filter)
         {
-            // was:                             devices ({devWhereString})
             string test = $@"
                     {(filter.Detailed ? RuleQueries.ruleDetailsForChangeReportFragments : RuleQueries.ruleOverviewForChangeReportFragments)}
                 query changeReport({paramString}){{

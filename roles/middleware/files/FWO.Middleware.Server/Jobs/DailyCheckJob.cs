@@ -199,6 +199,7 @@ namespace FWO.Middleware.Server.Jobs
 
             return globalConfig.ModUnansweredReqEmailBody
                 .Replace(Placeholder.REQUESTER, ticket.Requester?.Name)
+                .Replace(Placeholder.REQUESTDATE, ticket.CreationDate.ToString("dd.MM.yyyy"))
                 .Replace(Placeholder.REQUESTING_APPNAME, requestingOwner?.Name)
                 .Replace(Placeholder.REQUESTING_APPID, requestingOwner?.ExtAppId)
                 .Replace(Placeholder.APPNAME, owner.Name)

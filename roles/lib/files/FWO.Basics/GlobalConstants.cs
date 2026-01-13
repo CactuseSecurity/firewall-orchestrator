@@ -152,6 +152,7 @@ namespace FWO.Basics
         public const string PROTOCOLNAME = "@@PROTOCOLNAME@@";
         public const string PROTOCOLID = "@@PROTOCOLID@@";
         public const string REASON = "@@REASON@@";
+        public const string REQUESTDATE = "@@REQUESTDATE@@";
         public const string REQUESTER = "@@REQUESTER@@";
         public const string REQUESTING_APPNAME = "@@REQUESTING_APPNAME@@";
         public const string REQUESTING_APPID = "@@REQUESTING_APPID@@";

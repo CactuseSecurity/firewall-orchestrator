@@ -120,6 +120,7 @@ namespace FWO.Api.Client
                 if (_disposed) return;
                 _disposed = true;
 
+                // Important: detach from ApiConnection event to avoid keeping this subscription alive.
                 _apiConnection.OnAuthHeaderChanged -= ApiConnectionOnAuthHeaderChanged;
                 _subscription?.Dispose();
                 _subscription = null;

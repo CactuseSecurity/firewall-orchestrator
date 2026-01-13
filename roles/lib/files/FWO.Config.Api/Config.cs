@@ -31,9 +31,12 @@ namespace FWO.Config.Api
         protected bool IsDisposed => _isDisposed;
 
         // GraphQL Subscription handling
-        GraphQlApiSubscription<ConfigItem[]>? _configGraphQlSubscription;
+        private GraphQlApiSubscription<ConfigItem[]>? _configGraphQlSubscription;
+
 
         public ConfigItem[] RawConfigItems { get; set; } = [];
+
+        private bool disposedValue;
 
         protected Config() { }
 
@@ -47,18 +50,25 @@ namespace FWO.Config.Api
             ThrowIfDisposed();
             this.apiConnection = apiConnection;
             this.owningApiConnection = owningApiConnection;
+
             UserId = userId;
+
             if (withSubscription) // used in Ui context
             {
+                // Re-init (e.g. login) can happen; dispose previous subscription to avoid handler accumulation.
+                _configGraphQlSubscription?.Dispose();
+                _configGraphQlSubscription = null;
+
                 List<string> ignoreKeys = []; // currently nothing ignored, may be used later
                 _configGraphQlSubscription = apiConnection.GetSubscription<ConfigItem[]>(SubscriptionExceptionHandler, SubscriptionUpdateHandler,
-                    ConfigQueries.subscribeConfigChangesByUser, new { UserId , ignoreKeys });
+                    ConfigQueries.subscribeConfigChangesByUser, new { UserId, ignoreKeys });
+                    
                 await Task.Run(async () => { while (!Initialized) { await Task.Delay(10); } }); // waitForFirstUpdate
             }
             else // when only simple read is needed, e.g. during scheduled report in middleware server
             {
                 ConfigItem[] configItems = await apiConnection.SendQueryAsync<ConfigItem[]>(ConfigQueries.getConfigItemsByUser, new { User = UserId });
-                if(configItems.Length > 0)
+                if (configItems.Length > 0)
                 {
                     Update(configItems);
                     RawConfigItems = configItems;
@@ -111,7 +121,7 @@ namespace FWO.Config.Api
                     }
                 }
             }
-            foreach(var name in remainingConfigItemNames.Where(n => !n.Contains("StateMatrix"))) // StateMatrix ConfigItems are handled separately
+            foreach (var name in remainingConfigItemNames.Where(n => !n.Contains("StateMatrix"))) // StateMatrix ConfigItems are handled separately
             {
                 Log.WriteDebug($"Load {(UserId == 0 ? "Global " : "")}Config Items", $"Config item with key \"{name}\" could not be found. {(UserId == 0 ? "" : "User might not have customized the setting. ")}Using default value.");
             }
@@ -161,7 +171,7 @@ namespace FWO.Config.Api
             ThrowIfDisposed();
             await semaphoreSlim.WaitAsync();
             try
-            { 
+            {
                 return (ConfigData)CloneEditable();
             }
             finally { semaphoreSlim.Release(); }

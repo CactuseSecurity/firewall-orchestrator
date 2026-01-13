@@ -61,7 +61,7 @@ namespace FWO.Config.Api
         {
             User = new UiUser();
         }
-        
+
         private void OnGlobalConfigChange(Config config, ConfigItem[] changedItems)
         {
             if (IsDisposed) return;
@@ -106,7 +106,7 @@ namespace FWO.Config.Api
             {
                 await apiConnection.SendQueryAsync<ReturnId>(AuthQueries.updateUserLanguage, new { id = User.DbId, language = languageName });
                 Translate = globalConfig.LangDict[languageName];
-                Overwrite = apiConnection != null ? await GetCustomDict(languageName): globalConfig.OverDict[languageName];
+                Overwrite = apiConnection != null ? await GetCustomDict(languageName) : globalConfig.OverDict[languageName];
                 User.Language = languageName;
                 InvokeOnChange(this, []);
             }
@@ -121,8 +121,12 @@ namespace FWO.Config.Api
         public void SetLanguage(string languageName)
         {
             ThrowIfDisposed();
-            User = new UiUser(){ Language = languageName != null && languageName != "" ? languageName : 
-                globalConfig != null ? globalConfig.DefaultLanguage : GlobalConst.kEnglish};
+            string defaultLanguage = globalConfig != null ? globalConfig.DefaultLanguage : GlobalConst.kEnglish;
+
+            User = new UiUser()
+            {
+                Language = languageName != null && languageName != "" ? languageName : defaultLanguage
+            };
             if (globalConfig != null && globalConfig.LangDict.TryGetValue(User.Language, out Dictionary<string, string>? langDict))
             {
                 Translate = langDict;
@@ -143,7 +147,7 @@ namespace FWO.Config.Api
             }
             else
             {
-                if(globalConfig != null)
+                if (globalConfig != null)
                 {
                     string defaultLanguage = globalConfig.DefaultLanguage;
                     if (defaultLanguage == "")
@@ -172,14 +176,14 @@ namespace FWO.Config.Api
         public static string PureLineStat(string text)
         {
             var regex = new Regex(@"\s", RegexOptions.None, TimeSpan.FromSeconds(1));
-			string output = RemoveLinks(regex.Replace(text.Trim(), " "));
+            string output = RemoveLinks(regex.Replace(text.Trim(), " "));
             output = ReplaceListElems(output);
             bool cont = true;
-            while(cont)
+            while (cont)
             {
                 string outputOrig = output;
                 output = Regex.Replace(outputOrig, @"  ", " ");
-                if(output.Length == outputOrig.Length)
+                if (output.Length == outputOrig.Length)
                 {
                     cont = false;
                 }
@@ -261,7 +265,7 @@ namespace FWO.Config.Api
             txtString = Regex.Replace(txtString, "</a>", "");
             return txtString;
         }
-    
+
         private static string ReplaceListElems(string txtString)
         {
             txtString = Regex.Replace(txtString, "<ol>", "");
@@ -273,7 +277,7 @@ namespace FWO.Config.Api
             txtString = Regex.Replace(txtString, "<br>", "\r\n");
             return txtString;
         }
-        
+
         private string Convert(string rawText)
         {
             string plainText = System.Web.HttpUtility.HtmlDecode(rawText);
@@ -319,8 +323,8 @@ namespace FWO.Config.Api
             {
                 globalConfig?.OnChange -= OnGlobalConfigChange;
             }
-
-            base.Dispose(disposing);
+            
+            base.Dispose(disposing); // Call base class dispose
         }
     }
 }

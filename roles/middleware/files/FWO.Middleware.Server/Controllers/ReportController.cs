@@ -95,15 +95,12 @@ namespace FWO.Middleware.Server.Controllers
                 try
                 {
                     List<ManagementSelect> managements = await apiConnection.SendQueryAsync<List<ManagementSelect>>(DeviceQueries.getDevicesByManagement);
-                    foreach (var mgt in managements)
+                    foreach (ManagementSelect mgt in managements)
                     {
-                        foreach (DeviceSelect device in mgt.Devices)
+                        foreach (DeviceSelect device in mgt.Devices.Where(d => apiDeviceFilter.ManagementIds.Contains(mgt.Id) || apiDeviceFilter.DeviceIds.Contains(d.Id)))
                         {
-                            if (apiDeviceFilter.ManagementIds.Contains(mgt.Id) || apiDeviceFilter.DeviceIds.Contains(device.Id))
-                            {
-                                mgt.Selected = mgt.Visible;
-                                device.Selected = device.Visible;
-                            }
+                            mgt.Selected = mgt.Visible;
+                            device.Selected = device.Visible;
                         }
                         if (mgt.Selected)
                         {
@@ -148,7 +145,7 @@ namespace FWO.Middleware.Server.Controllers
             {
                 allAndFilters.Add($"disabled={!active}");
             }
-            return string.Join(" and ", allAndFilters); ;
+            return string.Join(" and ", allAndFilters);
         }
 
         private async Task<List<string>> ConstructServiceFilters(List<ApiService> apiServices)
@@ -157,7 +154,7 @@ namespace FWO.Middleware.Server.Controllers
             try
             {
                 List<IpProtocol> ipProtos = await apiConnection.SendQueryAsync<List<IpProtocol>>(StmQueries.getIpProtocols);
-                foreach (var service in apiServices)
+                foreach (ApiService service in apiServices)
                 {
                     List<string> serviceSubFilters = [];
                     if (!string.IsNullOrEmpty(service.Name))

@@ -244,7 +244,7 @@ namespace FWO.Config.Api.Data
         public bool AllowManualOwnerAdmin { get; set; } = false;
 
         [JsonProperty("reqPriorities"), JsonPropertyName("reqPriorities")]
-        public string ReqPriorities { get; set; } = "";
+        public string ReqPriorities { get; set; } = "[]";
 
         [JsonProperty("reqAutoCreateImplTasks"), JsonPropertyName("reqAutoCreateImplTasks")]
         public AutoCreateImplTaskOptions ReqAutoCreateImplTasks { get; set; } = AutoCreateImplTaskOptions.never;
@@ -300,6 +300,9 @@ namespace FWO.Config.Api.Data
 
         [JsonProperty("ownerLdapGroupNames"), JsonPropertyName("ownerLdapGroupNames")]
         public string OwnerLdapGroupNames { get; set; } = GlobalConst.kLdapGroupPattern;
+
+        [JsonProperty("rolesWithAppDataImport"), JsonPropertyName("rolesWithAppDataImport")]
+        public string RolesWithAppDataImport { get; set; } = "[]";
         
         [JsonProperty("importSubnetDataPath"), JsonPropertyName("importSubnetDataPath")]
         public string ImportSubnetDataPath { get; set; } = "";
@@ -342,6 +345,9 @@ namespace FWO.Config.Api.Data
 
         [JsonProperty("modReqEmailBody"), JsonPropertyName("modReqEmailBody")]
         public string ModReqEmailBody { get; set; } = "";
+
+        [JsonProperty("modUnansweredReqEmailBody"), JsonPropertyName("modUnansweredReqEmailBody")]
+        public string ModUnansweredReqEmailBody { get; set; } = "";
 
         [JsonProperty("modReqTicketTitle"), JsonPropertyName("modReqTicketTitle")]
         public string ModReqTicketTitle { get; set; } = "";

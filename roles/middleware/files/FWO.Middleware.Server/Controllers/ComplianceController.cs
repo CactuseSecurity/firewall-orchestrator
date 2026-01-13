@@ -57,7 +57,7 @@ namespace FWO.Middleware.Server.Controllers
                 UserConfig userConfig = new(globalConfig, apiConnection, new(){ Language = GlobalConst.kEnglish });
 
                 ComplianceCheck complianceCheck = new(userConfig, apiConnection);
-                await complianceCheck.CheckAll();
+                await complianceCheck.RunComplianceCheck(ComplianceCheckType.Standard);
 
                 ReportCompliance reportCompliance = new(new(""), userConfig, ReportType.ComplianceReport);
                 await reportCompliance.GetManagementAndDevices(apiConnection);
@@ -87,7 +87,7 @@ namespace FWO.Middleware.Server.Controllers
                 GlobalConfig globalConfig = await GlobalConfig.ConstructAsync(apiConnection, true);
                 UserConfig userConfig = new(globalConfig, apiConnection, new() { Language = GlobalConst.kEnglish });
                 ComplianceCheck complianceCheck = new(userConfig, apiConnection);
-                await complianceCheck.CheckAll();
+                await complianceCheck.RunComplianceCheck(ComplianceCheckType.Variable);
                 await complianceCheck.PersistDataAsync();
                 return true;
             }

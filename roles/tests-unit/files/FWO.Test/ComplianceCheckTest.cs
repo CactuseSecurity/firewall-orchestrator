@@ -50,7 +50,7 @@ namespace FWO.Test
             // Act
             SetUpViolationCount(1);
             
-            await ComplianceCheck.CheckAll();
+            await ComplianceCheck.RunComplianceCheck(ComplianceCheckType.Standard);
 
             // Assert
 
@@ -67,7 +67,7 @@ namespace FWO.Test
 
             // Act
 
-            await ComplianceCheck.CheckAll();
+            await ComplianceCheck.RunComplianceCheck(ComplianceCheckType.Standard);
 
             // Assert
 
@@ -85,7 +85,7 @@ namespace FWO.Test
 
             // Act
 
-            await ComplianceCheck.CheckAll();
+            await ComplianceCheck.RunComplianceCheck(ComplianceCheckType.Standard);
 
             // Assert
 
@@ -103,7 +103,7 @@ namespace FWO.Test
 
             // Act
 
-            await ComplianceCheck.CheckAll();
+            await ComplianceCheck.RunComplianceCheck(ComplianceCheckType.Standard);
 
             // Assert
 
@@ -129,7 +129,7 @@ namespace FWO.Test
 
             // Act
 
-            await ComplianceCheck.CheckAll();
+            await ComplianceCheck.RunComplianceCheck(ComplianceCheckType.Standard);
 
             // Assert
 
@@ -156,7 +156,7 @@ namespace FWO.Test
 
             // Act
 
-            await ComplianceCheck.CheckAll();
+            await ComplianceCheck.RunComplianceCheck(ComplianceCheckType.Standard);
 
             // Assert
 
@@ -188,7 +188,7 @@ namespace FWO.Test
 
             // Act
 
-            await ComplianceCheck.CheckAll();
+            await ComplianceCheck.RunComplianceCheck(ComplianceCheckType.Standard);
 
             // Assert
 

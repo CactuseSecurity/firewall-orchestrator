@@ -135,118 +135,7 @@ namespace FWO.Compliance
         #endregion
 
         #region Public Methods
-
-        /// <summary>
-        /// Full compliance check to be called by scheduler.
-        /// </summary>
-        /// <returns>Task that completes when the asynchronous compliance evaluation finished.</returns>
-        public async Task CheckAll()
-        {
-            DateTime startTime = DateTime.UtcNow;
-
-            try
-            {
-                //Checking whether the compliance check is an initial check or not
-                bool isInitial = false;
-                AggregateCount violationCount = await _apiConnection.SendQueryAsync<AggregateCount>(ComplianceQueries.getViolationCount);
-                if (violationCount.Aggregate.Count == 0)
-                {
-                    isInitial = true;
-                }
-                
-                // Gathering necessary parameters for compliance check.
-
-                Logger.TryWriteInfo("Compliance Check", "Starting compliance check.", true);
-
-                GlobalConfig? globalConfig = _userConfig.GlobalConfig;
-
-                if (globalConfig == null)
-                {
-                    Logger.TryWriteInfo("Compliance Check", "Global config is necessary for compliance check, but was not found. Aborting compliance check.", true);
-                    return;
-                }
-
-                _complianceCheckPolicyId = globalConfig.ComplianceCheckPolicyId;
-                _autoCalculatedInternetZoneActive = globalConfig.AutoCalculateInternetZone;
-                _treatDomainAndDynamicObjectsAsInternet = globalConfig.TreatDynamicAndDomainObjectsAsInternet;
-                _elementsPerFetch = globalConfig.ComplianceCheckElementsPerFetch;
-                _maxDegreeOfParallelism = globalConfig.ComplianceCheckAvailableProcessors;
-
-                Logger.TryWriteInfo("Compliance Check", $"Parallelizing config: {_elementsPerFetch} elements per fetch and {_maxDegreeOfParallelism} processors.", LocalSettings.ComplianceCheckVerbose);
-
-                if (_complianceCheckPolicyId == 0)
-                {
-                    Logger.TryWriteInfo("Compliance Check", "No Policy defined. Compliance check not possible.", true);
-                    return;
-                }
-
-                Policy = await _apiConnection.SendQueryAsync<CompliancePolicy>(ComplianceQueries.getPolicyById, new { id = _complianceCheckPolicyId });
-
-                if (Policy == null)
-                {
-                    Logger.TryWriteError("Compliance Check", $"Policy with id {_complianceCheckPolicyId} not found.", true);
-                    return;
-                }
-
-                Managements = await _apiConnection.SendQueryAsync<List<Management>>(DeviceQueries.getManagementNames);
-                Managements = GetRelevantManagements(globalConfig, Managements);
-
-                if (Managements == null || Managements.Count == 0)
-                {
-                    Logger.TryWriteInfo("Compliance Check", "No relevant managements found. Compliance check not possible.", true);
-                    return;
-                }
-
-                Logger.TryWriteInfo("Compliance Check", $"Using policy {_complianceCheckPolicyId}", LocalSettings.ComplianceCheckVerbose);
-
-                Logger.TryWriteInfo("Compliance Check", $"Policy criteria: {Policy.Criteria.Count} criteria found.", LocalSettings.ComplianceCheckVerbose);
-
-                if (Policy.Criteria.Count == 0)
-                {
-                    Logger.TryWriteInfo("Compliance Check", $"Policy without criteria. Compliance check not possible.", LocalSettings.ComplianceCheckVerbose);
-                    return;
-                }
-
-                foreach (var criterion in Policy.Criteria)
-                {
-                    Logger.TryWriteInfo("Compliance Check", $"Criterion: {criterion.Content.Name} ({criterion.Content.CriterionType}).", LocalSettings.ComplianceCheckVerbose);
-                }
-
-                // Clear previous check data
-
-                RulesInCheck = [];
-                CurrentViolationsInCheck.Clear();
-                _currentViolations.Clear();
-
-                // Load data for evaluation.
-
-                await LoadNetworkZones();
-
-                // Perform check.
-
-                RulesInCheck = await PerformCheckAsync(Managements!.Select(m => m.Id).ToList(), isInitial);
-
-                if (RulesInCheck == null || RulesInCheck.Count == 0)
-                {
-                    Logger.TryWriteInfo("Compliance Check", "No relevant rules found. Compliance check not possible.", true);
-                    return;
-                }
-
-                TimeSpan elapsed = DateTime.UtcNow - startTime;
-
-                Logger.TryWriteInfo("Compliance Check", $"Compliance check evaluated {RulesInCheck.Count} rules in {elapsed.TotalSeconds} seconds.", true);
-                Logger.TryWriteInfo("Compliance Check", "Compliance check completed.", true);
-                 
-            }
-            catch (Exception e)
-            {
-                TimeSpan elapsed = DateTime.UtcNow - startTime;
-                Logger.TryWriteInfo("Compliance Check", $"Compliance check failed after {elapsed.TotalSeconds} seconds.", true);
-                Logger.TryWriteError("Compliance Check", e, true);
-            }
-
-        }
-
+        
         /// <summary>
         /// Retrieves rules with violations from DB, calculates current violations, and prepares diff arguments.
         /// </summary>
@@ -643,6 +532,132 @@ namespace FWO.Compliance
             return filteredManagements;
         }
 
+        public async Task RunComplianceCheck(ComplianceCheckType complianceCheckType)
+        {
+            switch (complianceCheckType)
+            {
+                case ComplianceCheckType.Variable:
+                    bool isInitial = false;
+                    AggregateCount violationCount = await _apiConnection.SendQueryAsync<AggregateCount>(ComplianceQueries.getViolationCount);
+                    if (violationCount.Aggregate.Count == 0)
+                    {
+                        isInitial = true;
+                    }
+                    await CheckAll(isInitial);
+                    break;
+                case ComplianceCheckType.Standard:
+                default:
+                    await CheckAll();
+                    break;
+            }
+        }
+        #endregion
+        
+        #region Private Methods        
+        
+        /// <summary>
+        /// Full compliance check
+        /// </summary>
+        /// <returns>Task that completes when the asynchronous compliance evaluation finished.</returns>
+        private async Task CheckAll(bool isInitial = false)
+        {
+            DateTime startTime = DateTime.UtcNow;
+
+            try
+            {
+                // Gathering necessary parameters for compliance check.
+
+                Logger.TryWriteInfo("Compliance Check", "Starting compliance check.", true);
+
+                GlobalConfig? globalConfig = _userConfig.GlobalConfig;
+
+                if (globalConfig == null)
+                {
+                    Logger.TryWriteInfo("Compliance Check", "Global config is necessary for compliance check, but was not found. Aborting compliance check.", true);
+                    return;
+                }
+
+                _complianceCheckPolicyId = globalConfig.ComplianceCheckPolicyId;
+                _autoCalculatedInternetZoneActive = globalConfig.AutoCalculateInternetZone;
+                _treatDomainAndDynamicObjectsAsInternet = globalConfig.TreatDynamicAndDomainObjectsAsInternet;
+                _elementsPerFetch = globalConfig.ComplianceCheckElementsPerFetch;
+                _maxDegreeOfParallelism = globalConfig.ComplianceCheckAvailableProcessors;
+
+                Logger.TryWriteInfo("Compliance Check", $"Parallelizing config: {_elementsPerFetch} elements per fetch and {_maxDegreeOfParallelism} processors.", LocalSettings.ComplianceCheckVerbose);
+
+                if (_complianceCheckPolicyId == 0)
+                {
+                    Logger.TryWriteInfo("Compliance Check", "No Policy defined. Compliance check not possible.", true);
+                    return;
+                }
+
+                Policy = await _apiConnection.SendQueryAsync<CompliancePolicy>(ComplianceQueries.getPolicyById, new { id = _complianceCheckPolicyId });
+
+                if (Policy == null)
+                {
+                    Logger.TryWriteError("Compliance Check", $"Policy with id {_complianceCheckPolicyId} not found.", true);
+                    return;
+                }
+
+                Managements = await _apiConnection.SendQueryAsync<List<Management>>(DeviceQueries.getManagementNames);
+                Managements = GetRelevantManagements(globalConfig, Managements);
+
+                if (Managements == null || Managements.Count == 0)
+                {
+                    Logger.TryWriteInfo("Compliance Check", "No relevant managements found. Compliance check not possible.", true);
+                    return;
+                }
+
+                Logger.TryWriteInfo("Compliance Check", $"Using policy {_complianceCheckPolicyId}", LocalSettings.ComplianceCheckVerbose);
+
+                Logger.TryWriteInfo("Compliance Check", $"Policy criteria: {Policy.Criteria.Count} criteria found.", LocalSettings.ComplianceCheckVerbose);
+
+                if (Policy.Criteria.Count == 0)
+                {
+                    Logger.TryWriteInfo("Compliance Check", $"Policy without criteria. Compliance check not possible.", LocalSettings.ComplianceCheckVerbose);
+                    return;
+                }
+
+                foreach (var criterion in Policy.Criteria)
+                {
+                    Logger.TryWriteInfo("Compliance Check", $"Criterion: {criterion.Content.Name} ({criterion.Content.CriterionType}).", LocalSettings.ComplianceCheckVerbose);
+                }
+
+                // Clear previous check data
+
+                RulesInCheck = [];
+                CurrentViolationsInCheck.Clear();
+                _currentViolations.Clear();
+
+                // Load data for evaluation.
+
+                await LoadNetworkZones();
+
+                // Perform check.
+
+                RulesInCheck = await PerformCheckAsync(Managements!.Select(m => m.Id).ToList(), isInitial);
+
+                if (RulesInCheck == null || RulesInCheck.Count == 0)
+                {
+                    Logger.TryWriteInfo("Compliance Check", "No relevant rules found. Compliance check not possible.", true);
+                    return;
+                }
+
+                TimeSpan elapsed = DateTime.UtcNow - startTime;
+
+                Logger.TryWriteInfo("Compliance Check", $"Compliance check evaluated {RulesInCheck.Count} rules in {elapsed.TotalSeconds} seconds.", true);
+                Logger.TryWriteInfo("Compliance Check", "Compliance check completed.", true);
+                 
+            }
+            catch (Exception e)
+            {
+                TimeSpan elapsed = DateTime.UtcNow - startTime;
+                Logger.TryWriteInfo("Compliance Check", $"Compliance check failed after {elapsed.TotalSeconds} seconds.", true);
+                Logger.TryWriteError("Compliance Check", e, true);
+            }
+
+        }
+        
         /// <summary>
         /// Performs the matrix compliance check for a rule by mapping resolved objects to zones.
         /// </summary>

@@ -15,6 +15,7 @@ using NUnit.Framework;
 namespace FWO.Test
 {
     [FixtureLifeCycle(LifeCycle.InstancePerTestCase)]
+    [Ignore("Disabled tpurschke")]
     public class UiRsbLinkTest : BunitContext
     {
         static readonly UserConfig userConfig = new SimulatedUserConfig

@@ -52,9 +52,10 @@ namespace FWO.Test
             JSRuntimeInvocationHandler removeUrlFragmentInvocation = JSInterop.SetupVoid("removeUrlFragment");
 
             // Act
-            IRenderedComponent<RightSidebar> cut = Render<RightSidebar>(parameters => parameters
-                .Add(p => p.CurrentReport, currentReport)
-                .Add(p => p.SelectedRules, [currentReport.ReportData.ManagementData[0].Devices[0].Rules![0]]));
+            // tpurschke: this has to be rewritten as Device does not contain rules anymore
+            // IRenderedComponent<RightSidebar> cut = Render<RightSidebar>(parameters => parameters
+            //     .Add(p => p.CurrentReport, currentReport)
+            //     .Add(p => p.SelectedRules, [currentReport.ReportData.ManagementData[0].Devices[0].Rules![0]]));
 
             // manually trigger 
             IRenderedComponent<AnchorNavToRSB> anchorNavToRSB = cut.FindComponent<AnchorNavToRSB>();

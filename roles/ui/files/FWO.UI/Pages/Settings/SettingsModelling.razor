@@ -1,4 +1,6 @@
 @using System.Text.Json
+@using FWO.Data.Middleware
+@using FWO.Middleware.Client
 @using FWO.Services.EventMediator.Events
 @using FWO.Services.EventMediator.Interfaces
 @using FWO.Ui.Data
@@ -11,6 +13,7 @@
 @inject ApiConnection apiConnection
 @inject GlobalConfig globalConfig
 @inject UserConfig userConfig
+@inject MiddlewareClient middlewareClient
 @inject IEventMediator EventMediator
 
 <div class="input-group">
@@ -248,7 +251,18 @@
                 <input type="input" class="col-sm-6" @bind="configData!.OwnerLdapGroupNames" />
             </div>
         </div>
-
+        <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5667"))">
+            <label class="col-form-label col-sm-4">@(userConfig.GetText("set_roles_with_import")):</label>
+            <div class="form-group row col-sm-8">
+                @foreach (var role in availableRoles)
+                {
+                    <div class="form-group col-sm-3">
+                        <input id="cbx_@role" type="checkbox" @bind="rolesDict[role]" />
+                        <label for="cbx_@role" class="col-form-label">@(role)</label>
+                    </div>
+                }
+            </div>
+        </div>
         <hr />
         <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5614"))">
             <label class="col-form-label col-sm-4">@userConfig.GetText("importSubnetDataPath"):</label>
@@ -507,7 +521,6 @@ else
     private List<string> PathsToDeleteSubnet = [];
     private string actPath = "";
     private string SubnetActPath = "";
-
     private List<AppServerType> appServerTypes = [];
     private List<AppServerType> appServerTypesToAdd = [];
     private List<AppServerType> appServerTypesToDelete = [];
@@ -546,6 +559,10 @@ else
     private bool ShowCSVImportPopUp { get; set; }
     private List<CSVFileUploadErrorModel>? CSVImportErrors;
     private List<string>? Appserver;
+    private List<string> RolesToSet = [];
+    private List<string> availableRoles { get; set; } = [];
+    private Dictionary<string, bool> rolesDict = [];
+
 
     private void OnFileUploadEvent(FileUploadEventArgs? e)
     {
@@ -580,13 +597,14 @@ else
         try
         {
             configData = await globalConfig.GetEditableConfig();
-            appDataPaths = JsonSerializer.Deserialize<List<string>>(configData.ImportAppDataPath) ?? new();
-            SubnetDataPaths = JsonSerializer.Deserialize<List<string>>(configData.ImportSubnetDataPath) ?? new();
-            ExtraConfigs = JsonSerializer.Deserialize<List<string>>(configData.ModExtraConfigs) ?? new();
+            appDataPaths = JsonSerializer.Deserialize<List<string>>(configData.ImportAppDataPath) ?? [];
+            RolesToSet = JsonSerializer.Deserialize<List<string>>(configData.RolesWithAppDataImport) ?? [];
+            SubnetDataPaths = JsonSerializer.Deserialize<List<string>>(configData.ImportSubnetDataPath) ?? [];
+            ExtraConfigs = JsonSerializer.Deserialize<List<string>>(configData.ModExtraConfigs) ?? [];
             namingConvention = JsonSerializer.Deserialize<ModellingNamingConvention>(configData.ModNamingConvention) ?? new();
             if (configData.ModAppServerTypes != "")
             {
-                appServerTypes = JsonSerializer.Deserialize<List<AppServerType>>(configData.ModAppServerTypes) ?? new();
+                appServerTypes = JsonSerializer.Deserialize<List<AppServerType>>(configData.ModAppServerTypes) ?? [];
                 if (appServerTypes.Count > 0)
                 {
                     appServerDefaultTypeName = appServerTypes.FirstOrDefault(x => x.Id == 0)?.Name ?? "";
@@ -600,6 +618,14 @@ else
             appDataDate = appDataTime = configData.ImportAppDataStartAt;
             subnetDataDate = subnetDataTime = configData.ImportSubnetDataStartAt;
             varAnalysisDate = varAnalysisTime = configData.VarianceAnalysisStartAt;
+
+            // roles for AppData Import
+            availableRoles = (await RoleAccess.GetRolesFromInternalLdap(middlewareClient)).Select(r => r.Name).Where(n => !RoleGroups.IsTechnicalOrAnonymous(n)).OrderBy(s => s).ToList();
+            rolesDict = [];
+            foreach(var role in availableRoles)
+            {
+                rolesDict.Add(role, RolesToSet.Contains(role));
+            }
 
             // get all ldap connections for dropdown
             connectedLdaps = await apiConnection.SendQueryAsync<List<UiLdapConnection>>(AuthQueries.getAllLdapConnections);
@@ -761,6 +787,7 @@ else
     private void PrepareConfigData()
     {
         PrepareAppDataPaths();
+        PrepareRoles();
         PrepareSubnetDataPaths();
         PrepareExtraConfigs();
         configData!.ModNamingConvention = JsonSerializer.Serialize(namingConvention);
@@ -773,6 +800,19 @@ else
         configData!.VarianceAnalysisStartAt = varAnalysisDate.Date.Add(varAnalysisTime.TimeOfDay);
         configData!.OwnerLdapId = selectedLdap.Id;
         configData!.RuleRecognitionOption = JsonSerializer.Serialize(ruleRecognitionOption);
+    }
+
+    private void PrepareRoles()
+    {
+        RolesToSet = [];
+        foreach(var role in rolesDict.Keys)
+        {
+            if (rolesDict[role])
+            {
+                RolesToSet.Add(role);
+            }
+        }
+        configData!.RolesWithAppDataImport = JsonSerializer.Serialize(RolesToSet);
     }
 
     private void PrepareAppDataPaths()

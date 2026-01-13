@@ -492,13 +492,9 @@ namespace FWO.Report
 
         public override string ExportToJson()
         {
-            if (ReportType.IsResolvedReport())
+            if (ReportType.IsResolvedReport() || ReportType.IsChangeReport())
             {
                 return ExportResolvedChangesToJson();
-            }
-            else if (ReportType.IsChangeReport())
-            {
-                return System.Text.Json.JsonSerializer.Serialize(ReportData.ManagementData.Where(mgt => !mgt.Ignore), new JsonSerializerOptions { WriteIndented = true });
             }
             else
             {

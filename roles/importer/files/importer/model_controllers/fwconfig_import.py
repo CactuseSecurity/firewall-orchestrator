@@ -175,7 +175,6 @@ class FwConfigImport:
         if fwo_globals.shutdown_requested:
             raise ImportInterruptionError("Shutdown requested during updateRulebaseDiffs.")
 
-        self.import_state.set_rule_map()  # update all rule entries (from currently running import for rulebase_links)
         self._fw_config_import_gateway.update_gateway_diffs()
 
         # get new rules details from API (for obj refs as well as enforcing gateways)

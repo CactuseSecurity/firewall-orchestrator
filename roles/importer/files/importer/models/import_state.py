@@ -44,9 +44,6 @@ class ImportState:
         self.removed_rules_map: dict[str, int] = {}
         self.data_retention_days: int = 30
 
-    def lookup_rule(self, rule_uid: str) -> int | None:
-        return self.rule_map.get(rule_uid, None)
-
     def lookup_action(self, action_str: str) -> int:
         action_id = self.actions.get(action_str.lower(), None)
         if action_id is None:
@@ -60,13 +57,6 @@ class ImportState:
             FWOLogger.error(f"Track {track_str} not found")
             raise FwoImporterError(f"Track {track_str} not found")
         return track_id
-
-    def lookup_rulebase_id(self, rulebase_uid: str) -> int:
-        rulebase_id = self.rulebase_map.get(rulebase_uid, None)
-        if rulebase_id is None:
-            FWOLogger.error(f"Rulebase {rulebase_uid} not found in {len(self.rulebase_map)} known rulebases")
-            raise FwoImporterError(f"Rulebase {rulebase_uid} not found in {len(self.rulebase_map)} known rulebases")
-        return rulebase_id
 
     def lookup_link_type(self, link_uid: str) -> int:
         link_type_id = self.link_types.get(link_uid, None)

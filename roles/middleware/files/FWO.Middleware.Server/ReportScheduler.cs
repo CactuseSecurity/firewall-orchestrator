@@ -83,8 +83,6 @@ namespace FWO.Middleware.Server
         {
             DateTime dateTimeNowRounded = RoundDown(DateTime.Now, CheckScheduleInterval);
 
-
-
             await Parallel.ForEachAsync(scheduledReports, new ParallelOptions() { MaxDegreeOfParallelism = Environment.ProcessorCount },
                 async (reportSchedule, ct) =>
                 {
@@ -169,6 +167,13 @@ namespace FWO.Middleware.Server
                 catch (Exception exception)
                 {
                     Log.WriteError(LogMessageTitle, $"Generating scheduled report \"{reportSchedule.Name}\" with id \"{reportSchedule.Id}\" lead to exception.", exception);
+                }
+                finally
+                {
+                    // Dispose connections
+                    apiConnectionUserContext?.Dispose();
+                    globalConfig?.Dispose();
+                    _userConfig?.Dispose();
                 }
             }, token);
         }

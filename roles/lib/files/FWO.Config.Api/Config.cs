@@ -1,19 +1,23 @@
-﻿using FWO.Api.Client;
+using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 using FWO.Config.Api.Data;
 using FWO.Logging;
 using System.ComponentModel;
 using System.Reflection;
 using System.Text.Json.Serialization;
+using System.Threading;
 
 namespace FWO.Config.Api
 {
-    public abstract class Config : ConfigData
+    public abstract class Config : ConfigData, IDisposable
     {
         /// <summary>
         /// Internal connection to api server. Used to get/edit config data.
         /// </summary>
         protected ApiConnection? apiConnection;
+
+        // Track if we own the ApiConnection and thus have to dispose it
+        private bool owningApiConnection = false;
 
         public int UserId { get; private set; }
         public bool Initialized { get; private set; } = false;
@@ -22,23 +26,32 @@ namespace FWO.Config.Api
 
         protected SemaphoreSlim semaphoreSlim = new(1, 1);
 
+        // To detect redundant dispose calls
+        private bool _isDisposed;
+        protected bool IsDisposed => _isDisposed;
+
+        // GraphQL Subscription handling
+        GraphQlApiSubscription<ConfigItem[]>? _configGraphQlSubscription;
+
         public ConfigItem[] RawConfigItems { get; set; } = [];
 
         protected Config() { }
 
-        protected Config(ApiConnection apiConnection, int userId, bool withSubscription = false)
+        protected Config(ApiConnection apiConnection, int userId, bool withSubscription = false, bool owningApiConnection = false)
         {
-            InitWithUserId(apiConnection, userId, withSubscription).Wait();
+            InitWithUserId(apiConnection, userId, withSubscription, owningApiConnection).Wait();
         }
 
-        public async Task InitWithUserId(ApiConnection apiConnection, int userId, bool withSubscription = false)
+        public async Task InitWithUserId(ApiConnection apiConnection, int userId, bool withSubscription = false, bool owningApiConnection = false)
         {
+            ThrowIfDisposed();
             this.apiConnection = apiConnection;
-            if(withSubscription) // used in Ui context
+            this.owningApiConnection = owningApiConnection;
+            UserId = userId;
+            if (withSubscription) // used in Ui context
             {
-                UserId = userId;
                 List<string> ignoreKeys = []; // currently nothing ignored, may be used later
-                apiConnection.GetSubscription<ConfigItem[]>(SubscriptionExceptionHandler, SubscriptionUpdateHandler,
+                _configGraphQlSubscription = apiConnection.GetSubscription<ConfigItem[]>(SubscriptionExceptionHandler, SubscriptionUpdateHandler,
                     ConfigQueries.subscribeConfigChangesByUser, new { UserId , ignoreKeys });
                 await Task.Run(async () => { while (!Initialized) { await Task.Delay(10); } }); // waitForFirstUpdate
             }
@@ -56,6 +69,7 @@ namespace FWO.Config.Api
 
         public void SubscriptionUpdateHandler(ConfigItem[] configItems)
         {
+            if (_isDisposed) return;
             semaphoreSlim.Wait();
             try
             {
@@ -70,6 +84,7 @@ namespace FWO.Config.Api
 
         protected void Update(ConfigItem[] configItems)
         {
+            ThrowIfDisposed();
             List<string> remainingConfigItemNames = Array.ConvertAll(configItems, c => c.Key).ToList();
             foreach (PropertyInfo property in GetType().GetProperties())
             {
@@ -104,6 +119,7 @@ namespace FWO.Config.Api
 
         public async Task WriteToDatabase(ConfigData editedData, ApiConnection apiConnection)
         {
+            ThrowIfDisposed();
             await semaphoreSlim.WaitAsync();
             List<ConfigItem> configItemChanges = [];
             try
@@ -142,6 +158,7 @@ namespace FWO.Config.Api
 
         public async Task<ConfigData> GetEditableConfig()
         {
+            ThrowIfDisposed();
             await semaphoreSlim.WaitAsync();
             try
             { 
@@ -157,9 +174,41 @@ namespace FWO.Config.Api
 
         protected void InvokeOnChange(Config config, ConfigItem[] configItems)
         {
+            ThrowIfDisposed();
             OnChange?.Invoke(config, configItems);
         }
 
         public abstract string GetText(string key);
+
+        protected void ThrowIfDisposed()
+        {
+            ObjectDisposedException.ThrowIf(_isDisposed, this);
+        }
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (!_isDisposed)
+            {
+                if (disposing)
+                {
+                    _configGraphQlSubscription?.Dispose();
+                    _configGraphQlSubscription = null;
+                    if (owningApiConnection)
+                    {
+                        apiConnection?.Dispose();
+                    }
+                    apiConnection = null;
+                    semaphoreSlim.Dispose();
+                    OnChange = null;
+                }
+                _isDisposed = true;
+            }
+        }
+
+        public void Dispose()
+        {
+            Dispose(disposing: true);
+            GC.SuppressFinalize(this);
+        }
     }
 }

@@ -110,6 +110,8 @@
 
     private Timer? UIMessageQueTimer;
 
+    private bool _disposed = false;
+
     protected override void OnInitialized()
     {
         user = authenticationStateTask!.Result.User;
@@ -472,23 +474,39 @@
         {
             Log.WriteError("Acknowledge Alert", $"Could not acknowledge alert for ui: ", exception);
         }
-	}
+    }
 
-	public void Dispose()
+    public void Dispose()
     {
-        JwtEventService.OnPermissionChanged -= OnPermissionsChanged;
-        JwtEventService.OnJwtAboutToExpire -= OnJwtAboutToExpire;
-        JwtEventService.OnJwtExpired -= OnJwtExpired;
+        Dispose(true);
+        GC.SuppressFinalize(this);
+    }
 
-        if(UIMessageQueTimer is not null)
+    protected void Dispose(bool disposing)
+    {
+        if (_disposed)
         {
-            UIMessageQueTimer.Stop();
-            UIMessageQueTimer.Elapsed -= OnUIMessageTimerTick;
-            UIMessageQueTimer.Dispose();
+            return;
         }
 
-        alertSubscription?.Dispose();
+        _disposed = true;
 
-		EventMediator.Unsubscribe<UserSessionClosedEvent>(nameof(CircuitHandlerService));
-	}
+        if (!disposing)
+        {
+            JwtEventService.OnPermissionChanged -= OnPermissionsChanged;
+            JwtEventService.OnJwtAboutToExpire -= OnJwtAboutToExpire;
+            JwtEventService.OnJwtExpired -= OnJwtExpired;
+
+            if (UIMessageQueTimer is not null)
+            {
+                UIMessageQueTimer.Stop();
+                UIMessageQueTimer.Elapsed -= OnUIMessageTimerTick;
+                UIMessageQueTimer.Dispose();
+            }
+
+            alertSubscription?.Dispose();
+
+            EventMediator.Unsubscribe<UserSessionClosedEvent>(nameof(CircuitHandlerService));
+        }
+    }
 }

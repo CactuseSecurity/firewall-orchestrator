@@ -1,4 +1,4 @@
-﻿using FWO.Api.Client;
+using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 using FWO.Basics;
 using FWO.Data;
@@ -28,7 +28,7 @@ namespace FWO.Middleware.Server
         }
     
         private AutoDiscoverScheduler(ApiConnection apiConnection, GlobalConfig globalConfig)
-            : base(apiConnection, globalConfig, ConfigQueries.subscribeAutodiscoveryConfigChanges, SchedulerInterval.Hours, "Autodiscover")
+            : base(apiConnection, globalConfig, ConfigQueries.subscribeAutodiscoveryConfigChanges, SchedulerInterval.Minutes, "Autodiscover")
         {}
 
 		/// <summary>

@@ -5,7 +5,7 @@ using FWO.Logging;
 using FWO.Middleware.Server;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
-using Microsoft.OpenApi.Models;
+using Microsoft.OpenApi;
 using System.Reflection;
 
 // Implicitly call static constructor so background lock process is started

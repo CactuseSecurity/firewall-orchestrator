@@ -311,3 +311,6 @@ bugfix release:
 
 ## 8.9.5 - 10.12.2025 DEVELOP
 - bugfix release: modelling - change planning showed duplicate NA elements for rule delete requests
+
+## 8.9.6 - 05.01.2026 DEVELOP
+- new parameters for notifications

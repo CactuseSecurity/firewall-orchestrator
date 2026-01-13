@@ -64,11 +64,12 @@ namespace FWO.Middleware.Server
                 {
                     List<UserGroup> OwnerGroups = await MiddlewareServerServices.GetInternalGroups(apiConnectionMiddlewareServer);
                     NotificationService notificationService = await NotificationService.CreateAsync(NotificationClient.Recertification, globalConfig, apiConnectionMiddlewareServer, OwnerGroups);
-                    foreach (var owner in owners.Where(o => IsCheckTime(o)))
+                    foreach (var owner in owners.Where(o => IsRecertCheckTime(o)))
                     {
-                        emailsSent += await notificationService.SendNotifications(owner, PrepareOwnerBody(owner), await PrepareOwnerReport(owner));
+                        emailsSent += await notificationService.SendNotifications(owner, null, PrepareOwnerBody(owner), await PrepareOwnerReport(owner));
                         await SetOwnerLastCheck(owner);
                     }
+                    await notificationService.UpdateNotificationsLastSent();
                 }
             }
             catch(Exception exception)
@@ -90,7 +91,7 @@ namespace FWO.Middleware.Server
             owners = await apiConnectionMiddlewareServer.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getOwners);
         }
 
-        private bool IsCheckTime(FwoOwner owner)
+        private bool IsRecertCheckTime(FwoOwner owner)
         {
             if(!owner.RecertActive)
             {

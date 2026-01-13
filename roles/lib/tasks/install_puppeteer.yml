@@ -85,23 +85,39 @@
   environment: "{{ proxy_env }}"
 
 # get google chrome for pdf generation
-- block:
-      - name: get last known good versions (primary)
-        uri:
-            url: https://googlechromelabs.github.io/chrome-for-testing/last-known-good-versions-with-downloads.json
-            return_content: true
-        register: chrome_versions
-        become: false
+- name: get last known good versions (primary)
+  uri:
+      url: https://googlechromelabs.github.io/chrome-for-testing/last-known-good-versions-with-downloads.json
+      return_content: true
+  register: chrome_versions_primary
+  failed_when: false
+  become: false
+  environment: "{{ proxy_env }}"
 
-  rescue:
-      - name: fallback - get last known good versions (raw.githubusercontent.com)
-        uri:
-            url: https://raw.githubusercontent.com/GoogleChromeLabs/chrome-for-testing/main/data/last-known-good-versions-with-downloads.json
-            return_content: true
-            headers:
-                Accept: application/json
-        register: chrome_versions
-        become: false
+- name: get last known good versions (github api raw)
+  uri:
+      url: https://api.github.com/repos/GoogleChromeLabs/chrome-for-testing/contents/data/last-known-good-versions-with-downloads.json?ref=main
+      headers:
+          Accept: application/vnd.github.v3.raw
+      return_content: true
+  register: chrome_versions_github_api
+  failed_when: false
+  become: false
+  environment: "{{ proxy_env }}"
+
+- name: pick chrome metadata source (primary -> github api)
+  set_fact:
+      chrome_versions: >-
+          {{
+            chrome_versions_primary
+            if (chrome_versions_primary.status | default(-1)) == 200 else
+            chrome_versions_github_api
+          }}
+
+- name: fail when no chrome metadata available
+  fail:
+      msg: "Could not fetch Chrome for Testing version metadata via primary URL or GitHub API."
+  when: chrome_versions.status | default(-1) != 200
 
 # Parse once, regardless of Content-Type
 - name: normalize/parse JSON response

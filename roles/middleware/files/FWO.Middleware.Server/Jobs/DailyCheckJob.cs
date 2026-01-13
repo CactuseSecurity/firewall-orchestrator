@@ -2,73 +2,54 @@ using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 using FWO.Basics;
 using FWO.Config.Api;
-using FWO.Config.Api.Data;
 using FWO.Data;
 using FWO.Data.Middleware;
 using FWO.Data.Workflow;
 using FWO.Logging;
 using FWO.Recert;
 using FWO.Services;
-using System.Timers;
+using Quartz;
+using System.Linq;
 
-namespace FWO.Middleware.Server
+namespace FWO.Middleware.Server.Jobs
 {
     /// <summary>
-    /// Class handling the scheduler for the daily checks
+    /// Quartz Job for daily checks
     /// </summary>
-    public class DailyCheckScheduler : SchedulerBase
+    public class DailyCheckJob : IJob
     {
         private const string LogMessageTitle = "Daily Check";
+        private readonly ApiConnection apiConnection;
+        private readonly GlobalConfig globalConfig;
 
         /// <summary>
-        /// Async Constructor needing the connection
+        /// Creates a new daily check job.
         /// </summary>
-        public static async Task<DailyCheckScheduler> CreateAsync(ApiConnection apiConnection)
+        /// <param name="apiConnection">GraphQL API connection.</param>
+        /// <param name="globalConfig">Global configuration.</param>
+        public DailyCheckJob(ApiConnection apiConnection, GlobalConfig globalConfig)
         {
-            GlobalConfig config = await GlobalConfig.ConstructAsync(apiConnection, true);
-            return new DailyCheckScheduler(apiConnection, config);
+            this.apiConnection = apiConnection;
+            this.globalConfig = globalConfig;
         }
 
-        private DailyCheckScheduler(ApiConnection apiConnection, GlobalConfig globalConfig)
-            : base(apiConnection, globalConfig, ConfigQueries.subscribeDailyCheckConfigChanges, SchedulerInterval.Days, "DailyCheck")
-        {
-            if(globalConfig.RecRefreshStartup)
-            {
-                #pragma warning disable CS4014
-                RefreshRecert(); // no need to wait
-                #pragma warning restore CS4014
-            }
-        }
-
-        /// <summary>
-        /// set scheduling timer from fixed value
-        /// </summary>
-        protected override void OnGlobalConfigChange(List<ConfigItem> config)
-        {
-            ScheduleTimer.Stop();
-            globalConfig.SubscriptionUpdateHandler([.. config]);
-            StartScheduleTimer(1, globalConfig.DailyCheckStartAt);
-        }
-
-        /// <summary>
-        /// define the processing to be done
-        /// </summary>
-        protected override async void Process(object? _, ElapsedEventArgs __)
+        /// <inheritdoc />
+        public async Task Execute(IJobExecutionContext context)
         {
             try
             {
                 await CheckDemoData();
                 await CheckImports();
-                if(globalConfig.RecRefreshDaily)
+                if (globalConfig.RecRefreshDaily)
                 {
                     await RefreshRecert();
                 }
                 await CheckRecerts();
                 await CheckUnansweredInterfaceRequests();
             }
-            catch(Exception exc)
+            catch (Exception exc)
             {
-                await LogErrorsWithAlert(2, LogMessageTitle, GlobalConst.kDailyCheck, AlertCode.DailyCheckError, exc);
+                await SchedulerJobHelper.LogErrorsWithAlert(apiConnection, globalConfig, 2, LogMessageTitle, GlobalConst.kDailyCheck, AlertCode.DailyCheckError, exc);
             }
         }
 
@@ -80,12 +61,12 @@ namespace FWO.Middleware.Server
 
         private async Task CheckRecerts()
         {
-            if(globalConfig.RecCheckActive)
+            if (globalConfig.RecCheckActive)
             {
-                RecertCheck recertCheck = new (apiConnection, globalConfig);
+                RecertCheck recertCheck = new(apiConnection, globalConfig);
                 int emailsSent = await recertCheck.CheckRecertifications();
                 Log.WriteDebug(LogMessageTitle, $"Recert Check: Sent {emailsSent} emails.");
-                await AddLogEntry(0, globalConfig.GetText("daily_recert_check"), emailsSent + globalConfig.GetText("emails_sent"), GlobalConst.kDailyCheck);
+                await SchedulerJobHelper.AddLogEntry(apiConnection, globalConfig, 0, globalConfig.GetText("daily_recert_check"), emailsSent + globalConfig.GetText("emails_sent"), GlobalConst.kDailyCheck);
             }
         }
 
@@ -117,12 +98,12 @@ namespace FWO.Middleware.Server
                                                         (demoDataFlags.SampleTenantExisting ? globalConfig.GetText("tenants") + " " : "") +
                                                         (demoDataFlags.SampleGroupExisting ? globalConfig.GetText("groups") + " " : "") +
                                                         (demoDataFlags.SampleOwnerExisting ? globalConfig.GetText("owners") : "");
-                await SetAlert(globalConfig.GetText("sample_data"), description, GlobalConst.kDailyCheck, AlertCode.SampleDataExisting);
-                await AddLogEntry(1, globalConfig.GetText("daily_sample_data_check"), description, GlobalConst.kDailyCheck);
+                await SchedulerJobHelper.SetAlert(apiConnection, globalConfig.GetText("sample_data"), description, GlobalConst.kDailyCheck, AlertCode.SampleDataExisting, new SchedulerJobHelper.AdditionalAlertData());
+                await SchedulerJobHelper.AddLogEntry(apiConnection, globalConfig, 1, globalConfig.GetText("daily_sample_data_check"), description, GlobalConst.kDailyCheck);
             }
             else
             {
-                await AddLogEntry(0, globalConfig.GetText("daily_sample_data_check"), globalConfig.GetText("no_sample_data_found"), GlobalConst.kDailyCheck);
+                await SchedulerJobHelper.AddLogEntry(apiConnection, globalConfig, 0, globalConfig.GetText("daily_sample_data_check"), globalConfig.GetText("no_sample_data_found"), GlobalConst.kDailyCheck);
             }
         }
 
@@ -159,30 +140,29 @@ namespace FWO.Middleware.Server
             object jsonData;
             foreach (ImportStatus imp in importStati.Where(x => !x.ImportDisabled))
             {
-                if (imp.LastIncompleteImport != null && imp.LastIncompleteImport.Length > 0) // import running
+                if (imp.LastIncompleteImport != null && imp.LastIncompleteImport.Length > 0)
                 {
-                    if (imp.LastIncompleteImport[0].StartTime < DateTime.Now.AddHours(-globalConfig.MaxImportDuration))  // too long
+                    if (imp.LastIncompleteImport[0].StartTime < DateTime.Now.AddHours(-globalConfig.MaxImportDuration))
                     {
                         jsonData = imp.LastIncompleteImport;
-                        await SetAlert(globalConfig.GetText("import"), globalConfig.GetText("E7011"), GlobalConst.kDailyCheck, AlertCode.ImportRunningTooLong, new() { MgmtId = imp.MgmId, JsonData = jsonData });
+                        await SchedulerJobHelper.SetAlert(apiConnection, globalConfig.GetText("import"), globalConfig.GetText("E7011"), GlobalConst.kDailyCheck, AlertCode.ImportRunningTooLong, new SchedulerJobHelper.AdditionalAlertData { MgmtId = imp.MgmId, JsonData = jsonData });
                         importIssues++;
                     }
                 }
-                else if (imp.LastImport == null || imp.LastImport.Length == 0) // no import at all
+                else if (imp.LastImport == null || imp.LastImport.Length == 0)
                 {
                     jsonData = imp;
-                    await SetAlert(globalConfig.GetText("import"), globalConfig.GetText("E7012"), GlobalConst.kDailyCheck, AlertCode.NoImport, new() { MgmtId = imp.MgmId, JsonData = jsonData });
+                    await SchedulerJobHelper.SetAlert(apiConnection, globalConfig.GetText("import"), globalConfig.GetText("E7012"), GlobalConst.kDailyCheck, AlertCode.NoImport, new SchedulerJobHelper.AdditionalAlertData { MgmtId = imp.MgmId, JsonData = jsonData });
                     importIssues++;
                 }
                 else if (imp.LastImportAttempt != null && imp.LastImportAttempt < DateTime.Now.AddHours(-globalConfig.MaxImportInterval))
-                // too long ago (not working for legacy devices as LastImportAttempt is not written)
                 {
                     jsonData = imp;
-                    await SetAlert(globalConfig.GetText("import"), globalConfig.GetText("E7013"), GlobalConst.kDailyCheck, AlertCode.SuccessfulImportOverdue, new() { MgmtId = imp.MgmId, JsonData = jsonData });
+                    await SchedulerJobHelper.SetAlert(apiConnection, globalConfig.GetText("import"), globalConfig.GetText("E7013"), GlobalConst.kDailyCheck, AlertCode.SuccessfulImportOverdue, new SchedulerJobHelper.AdditionalAlertData { MgmtId = imp.MgmId, JsonData = jsonData });
                     importIssues++;
                 }
             }
-            await AddLogEntry(importIssues != 0 ? 1 : 0, globalConfig.GetText("daily_importer_check"),
+            await SchedulerJobHelper.AddLogEntry(apiConnection, globalConfig, importIssues != 0 ? 1 : 0, globalConfig.GetText("daily_importer_check"),
                 importIssues != 0 ? importIssues + globalConfig.GetText("import_issues_found") : globalConfig.GetText("no_import_issues_found"), GlobalConst.kDailyCheck);
         }
 
@@ -190,19 +170,19 @@ namespace FWO.Middleware.Server
         {
             int emailsSent = 0;
             List<UserGroup> OwnerGroups = await MiddlewareServerServices.GetInternalGroups(apiConnection);
-            WfHandler wfHandler = new (new(globalConfig), apiConnection, WorkflowPhases.implementation, OwnerGroups);
+            WfHandler wfHandler = new(new(globalConfig), apiConnection, WorkflowPhases.implementation, OwnerGroups);
             await wfHandler.Init();
             NotificationService notificationService = await NotificationService.CreateAsync(NotificationClient.InterfaceRequest, globalConfig, apiConnection, OwnerGroups);
 
-            foreach(var notification in notificationService.Notifications)
+            foreach (var notification in notificationService.Notifications)
             {
-                List<WfTicket>? unansweredTickets = await wfHandler.GetOpenTickets(WfTaskType.new_interface.ToString(), 
-                    (notification.RepeatOffsetAfterDeadline ?? 0) + (notification.InitialOffsetAfterDeadline ?? 0), 
+                List<WfTicket>? unansweredTickets = await wfHandler.GetOpenTickets(WfTaskType.new_interface.ToString(),
+                    (notification.RepeatOffsetAfterDeadline ?? 0) + (notification.InitialOffsetAfterDeadline ?? 0),
                     notification.RepeatIntervalAfterDeadline);
-                foreach(var ticket in unansweredTickets)
+                foreach (var ticket in unansweredTickets)
                 {
                     FwoOwner? owner = ticket.Tasks.FirstOrDefault(r => r.TaskType == WfTaskType.new_interface.ToString())?.Owners.FirstOrDefault()?.Owner;
-                    if(owner != null)
+                    if (owner != null)
                     {
                         emailsSent += await notificationService.SendNotification(notification, owner, ticket.CreationDate, await PrepareBody(ticket, owner));
                     }
@@ -230,15 +210,15 @@ namespace FWO.Middleware.Server
         private async Task<FwoOwner?> GetRequestingOwner(int? ownerId)
         {
             FwoOwner? reqOwner = null;
-            if(ownerId != null)
+            if (ownerId != null)
             {
                 try
                 {
                     reqOwner = await apiConnection.SendQueryAsync<FwoOwner>(OwnerQueries.getOwnerById, new { id = ownerId });
                 }
-                catch(Exception exc)
+                catch (Exception exc)
                 {
-                    await LogErrorsWithAlert(1, $"Unanswered Interface Requests Check", GlobalConst.kDailyCheck, AlertCode.DailyCheckError, exc);
+                    await SchedulerJobHelper.LogErrorsWithAlert(apiConnection, globalConfig, 2, LogMessageTitle, GlobalConst.kDailyCheck, AlertCode.DailyCheckError, exc);
                 }
             }
             return reqOwner;

@@ -47,7 +47,11 @@
                                 @(context.OnManagement?.Name)
                             </Template>
                         </Column>
-                        <Column TableItem="WfReqTask" Title="@(userConfig.GetText("title"))" Field="@(x => x.Title)" Sortable="true" Filterable="false" />
+                        <Column TableItem="WfReqTask" Title="@(userConfig.GetText("title"))" Field="@(x => x.Title)" Sortable="true" Filterable="false">
+                            <Template>
+                                @DisplayTitle(context)
+                            </Template>
+                        </Column>
                         <Column TableItem="WfReqTask" Title="@(userConfig.GetText("state"))" Field="@(x => x.StateId)" Sortable="true" Filterable="false">
                             <Template>
                                 @(RequestInProcess ? states.Name[context.StateId] : "")
@@ -317,6 +321,20 @@
             return "text-danger";
         }
         return "";
+    }
+
+    private MarkupString DisplayTitle(WfReqTask task)
+    {
+        string taskTitle = task.Title.StripHtmlTags();
+        string encodedTitle = WebUtility.HtmlEncode(taskTitle ?? string.Empty);
+
+        if (task.TaskType == WfTaskType.rule_delete.ToString() || task.TaskType == WfTaskType.group_delete.ToString() ||
+            (task.TaskType == WfTaskType.rule_modify.ToString() || task.TaskType == WfTaskType.group_modify.ToString()) && task.Elements.Any(_ => _.RequestAction == RequestAction.delete.ToString()))
+        {
+            return new MarkupString($"<span class=\"text-danger\">{encodedTitle}</span>");
+        }
+
+        return new MarkupString(encodedTitle);
     }
 
     private async Task StartRequests()

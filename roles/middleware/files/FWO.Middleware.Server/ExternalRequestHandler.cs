@@ -2,7 +2,6 @@ using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 using FWO.Config.Api;
 using FWO.Data;
-using FWO.Data.Middleware;
 using FWO.Data.Modelling;
 using FWO.Data.Workflow;
 using FWO.Logging;
@@ -39,7 +38,7 @@ namespace FWO.Middleware.Server
             UserConfig = userConfig;
             extStateHandler = new(apiConnection);
             Task.Run(GetInternalGroups).Wait();
-            wfHandler = new (LogMessage, userConfig, apiConnection, WorkflowPhases.request, ownerGroups);
+            wfHandler = new (userConfig, apiConnection, WorkflowPhases.request, ownerGroups);
         }
 
         /// <summary>
@@ -50,7 +49,7 @@ namespace FWO.Middleware.Server
             ApiConnection = apiConnection;
             UserConfig = userConfig;
             extStateHandler = new(apiConnection);
-            wfHandler = new (LogMessage, userConfig, apiConnection, WorkflowPhases.request, userGroups);
+            wfHandler = new (userConfig, apiConnection, WorkflowPhases.request, userGroups);
         }
 
         /// <summary>
@@ -509,25 +508,6 @@ namespace FWO.Middleware.Server
                 ModellingTypes.ChangeType.Reject => "Rejected",
                 _ => "",
             };
-        }
-
-        private static void LogMessage(Exception? exception = null, string title = "", string message = "", bool ErrorFlag = false)
-        {
-            if (exception == null)
-            {
-                if(ErrorFlag)
-                {
-                    Log.WriteWarning(title, message);
-                }
-                else
-                {
-                    Log.WriteInfo(title, message);
-                }
-            }
-            else
-            {
-                Log.WriteError(title, message, exception);
-            }
         }
     }
 }

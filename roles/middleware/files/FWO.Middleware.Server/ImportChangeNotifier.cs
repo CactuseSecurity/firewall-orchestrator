@@ -146,8 +146,6 @@ namespace FWO.Middleware.Server
 
         private async Task SendEmail()
         {
-            MailData mailData = new MailData([userConfig.User.Email], "Test mail from Firewall Orchestrator") { Body = "... this is the body - just testing ..." };
-
             string decryptedSecret = AesEnc.TryDecrypt(globalConfig.EmailPassword, false, LogMessageTitle, "Could not decrypt mailserver password.");
             EmailConnection emailConnection = new(globalConfig.EmailServerAddress, globalConfig.EmailPort,
                 globalConfig.EmailTls, globalConfig.EmailUser, decryptedSecret, globalConfig.EmailSenderAddress);

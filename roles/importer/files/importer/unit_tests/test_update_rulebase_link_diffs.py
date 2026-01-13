@@ -68,7 +68,7 @@ def test_add_cp_section_header_in_existing_rulebase(
     new_rulebase = fwconfig_builder.add_rulebase(
         global_state.normalized_config, import_state_controller.state.mgm_details.uid
     )
-    fwconfig_builder.add_rule(global_state.normalized_config, new_rulebase.uid, last_rulebase_last_rule)
+    fwconfig_builder.add_rule(global_state.normalized_config, new_rulebase.uid, rule=last_rulebase_last_rule)
     gateway = global_state.normalized_config.gateways[0]
     fwconfig_builder.add_cp_section_header(gateway, last_rulebase.uid, new_rulebase.uid, last_rulebase_last_rule_uid)
 
@@ -113,7 +113,7 @@ def test_delete_cp_section_header(
 
     for rule_uid in last_five_rules_uids:
         rule = last_rulebase.rules.pop(rule_uid)
-        fwconfig_builder.add_rule(global_state.previous_config, new_rulebase.uid, rule)
+        fwconfig_builder.add_rule(global_state.previous_config, new_rulebase.uid, rule=rule)
     # Create rulebase link for cp_section header (previous config)
 
     last_rulebase_last_rule_uid = list(last_rulebase.rules.keys())[-1]

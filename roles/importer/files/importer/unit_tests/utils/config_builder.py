@@ -52,8 +52,8 @@ class FwConfigBuilder:
 
         for _ in range(rulebase_count):
             rb = self.add_rulebase(config, mgm_uid)
-            for _ in range(rules_per_rulebase_count):
-                rule = self.add_rule(config, rb.uid)
+            for i in range(rules_per_rulebase_count):
+                rule = self.add_rule(config, rb.uid, index=i)
                 self.add_references_to_rule(config, rule)
 
         if include_gateway:
@@ -112,6 +112,7 @@ class FwConfigBuilder:
         self,
         config: FwConfigNormalized,
         rulebase_uid: str,
+        index: int | None = None,
         rule: RuleNormalized | None = None,
         *,
         name: str | None = None,
@@ -121,7 +122,7 @@ class FwConfigBuilder:
             uid = self.uid_manager.create_uid()
             normalized_rule = RuleNormalized(
                 rule_num=0,
-                rule_num_numeric=0.0,
+                rule_num_numeric=(index + 1) * RULE_NUM_NUMERIC_STEPS if index is not None else 0.0,
                 rule_disabled=False,
                 rule_src_neg=False,
                 rule_src="",

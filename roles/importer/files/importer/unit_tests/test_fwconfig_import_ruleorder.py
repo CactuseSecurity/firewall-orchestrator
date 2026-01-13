@@ -43,30 +43,32 @@ def test_initialize_on_insert_delete_and_move(
     global_state.normalized_config = config
     global_state.previous_config = copy.deepcopy(config)
 
-    rulebase = config.rulebases[0]
+    rulebase = global_state.normalized_config.rulebases[0]
     rule_uids = list(rulebase.rules.keys())
     removed_rule_uid = rule_uids[0]
 
-    remove_rule_from_rulebase(config, rulebase.uid, removed_rule_uid, rule_uids)
-    inserted_rule_uid = insert_rule_in_config(config, rulebase.uid, 0, rule_uids, fwconfig_builder)
-    moved_rule_uid = move_rule_in_config(config, rulebase.uid, 9, 0, rule_uids)
+    remove_rule_from_rulebase(global_state.normalized_config, rulebase.uid, removed_rule_uid, rule_uids)
+    inserted_rule_uid = insert_rule_in_config(
+        global_state.normalized_config, rulebase.uid, 0, rule_uids, fwconfig_builder
+    )
+    moved_rule_uid = move_rule_in_config(global_state.normalized_config, rulebase.uid, 9, 0, rule_uids)
     # Act
     rule_order_service.update_rule_order_diffs()
 
     # Assert
     assert inserted_rule_uid is not None
-    insert_rule = get_rule(config, 0, inserted_rule_uid)
+    insert_rule = get_rule(global_state.normalized_config, 0, inserted_rule_uid)
     assert insert_rule is not None
 
-    moved_rule = get_rule(config, 0, moved_rule_uid)
+    moved_rule = get_rule(global_state.normalized_config, 0, moved_rule_uid)
     assert moved_rule is not None
 
     assert insert_rule.rule_num_numeric == RULE_NUM_NUMERIC_STEPS, (
-        f"Inserted rule_num_numeric is {config.rulebases[0].rules[inserted_rule_uid].rule_num_numeric}, expected {RULE_NUM_NUMERIC_STEPS}"
+        f"Inserted rule_num_numeric is {global_state.normalized_config.rulebases[0].rules[inserted_rule_uid].rule_num_numeric}, expected {RULE_NUM_NUMERIC_STEPS}"
     )
 
     assert moved_rule.rule_num_numeric == RULE_NUM_NUMERIC_STEPS / 2, (
-        f"Moved rule_num_numeric is {config.rulebases[0].rules[moved_rule_uid].rule_num_numeric}, expected {RULE_NUM_NUMERIC_STEPS / 2}"
+        f"Moved rule_num_numeric is {global_state.normalized_config.rulebases[0].rules[moved_rule_uid].rule_num_numeric}, expected {RULE_NUM_NUMERIC_STEPS / 2}"
     )
 
 

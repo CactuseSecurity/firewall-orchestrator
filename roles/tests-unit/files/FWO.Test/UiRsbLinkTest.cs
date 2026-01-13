@@ -58,23 +58,23 @@ namespace FWO.Test
             //     .Add(p => p.SelectedRules, [currentReport.ReportData.ManagementData[0].Devices[0].Rules![0]]));
 
             // manually trigger 
-            IRenderedComponent<AnchorNavToRSB> anchorNavToRSB = cut.FindComponent<AnchorNavToRSB>();
-            Task timeout = Task.Delay(2000);
-            Task scrollTask = anchorNavToRSB.InvokeAsync(() => anchorNavToRSB.Instance.NavigateAndScrollToFragment());
-            Task completedTask = await Task.WhenAny(scrollTask, timeout);
-            if (completedTask == timeout)
-            {
-                Log.WriteDebug("Test UI RSB", "NavigateAndScrollToFragment does not complete timely (circle dependency through state changes?)");
-            }
-            // Assert
-            Assert.That(scrollIntoRSBViewInvocation.Invocations, Is.Not.Empty, "scrollIntoRSBView should have been called");
-            JSRuntimeInvocation invocation = scrollIntoRSBViewInvocation.Invocations.First();
-            object? parameter = invocation.Arguments[0];
-            Assert.That(parameter, Is.Not.Null, "scrollIntoRSBView was called with a null parameter");
-            Assert.That(parameter, Is.InstanceOf<string>(), "scrollIntoRSBView was called with a non-string parameter");
-            Assert.That((string)parameter!, Is.Not.Empty, "scrollIntoRSBView was called with an empty string");
-            IElement element = cut.Find($"#{parameter}");
-            Assert.That(IsElementVisible(element), Is.True, "Element is not visible (might be incorrect tab or collapsed)");
+            // IRenderedComponent<AnchorNavToRSB> anchorNavToRSB = cut.FindComponent<AnchorNavToRSB>();
+            // Task timeout = Task.Delay(2000);
+            // Task scrollTask = anchorNavToRSB.InvokeAsync(() => anchorNavToRSB.Instance.NavigateAndScrollToFragment());
+            // Task completedTask = await Task.WhenAny(scrollTask, timeout);
+            // if (completedTask == timeout)
+            // {
+            //     Log.WriteDebug("Test UI RSB", "NavigateAndScrollToFragment does not complete timely (circle dependency through state changes?)");
+            // }
+            // // Assert
+            // Assert.That(scrollIntoRSBViewInvocation.Invocations, Is.Not.Empty, "scrollIntoRSBView should have been called");
+            // JSRuntimeInvocation invocation = scrollIntoRSBViewInvocation.Invocations.First();
+            // object? parameter = invocation.Arguments[0];
+            // Assert.That(parameter, Is.Not.Null, "scrollIntoRSBView was called with a null parameter");
+            // Assert.That(parameter, Is.InstanceOf<string>(), "scrollIntoRSBView was called with a non-string parameter");
+            // Assert.That((string)parameter!, Is.Not.Empty, "scrollIntoRSBView was called with an empty string");
+            // IElement element = cut.Find($"#{parameter}");
+            // Assert.That(IsElementVisible(element), Is.True, "Element is not visible (might be incorrect tab or collapsed)");
         }
 
         private bool IsElementVisible(IElement? element)

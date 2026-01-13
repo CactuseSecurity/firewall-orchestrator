@@ -57,7 +57,7 @@ namespace FWO.Config.Api
         {
             User = new UiUser();
         }
-        
+
         private void OnGlobalConfigChange(Config config, ConfigItem[] changedItems)
         {
             // Get properties that belong to the user config 
@@ -74,7 +74,7 @@ namespace FWO.Config.Api
 
         public async Task SetUserInformation(string userDn, ApiConnection apiConnection)
         {
-            if(globalConfig != null)
+            if (globalConfig != null)
             {
                 OnGlobalConfigChange(globalConfig, globalConfig.RawConfigItems);
             }
@@ -95,11 +95,11 @@ namespace FWO.Config.Api
 
         public async Task ChangeLanguage(string languageName, ApiConnection apiConnection)
         {
-            if(globalConfig != null)
+            if (globalConfig != null)
             {
                 await apiConnection.SendQueryAsync<ReturnId>(AuthQueries.updateUserLanguage, new { id = User.DbId, language = languageName });
                 Translate = globalConfig.LangDict[languageName];
-                Overwrite = apiConnection != null ? await GetCustomDict(languageName): globalConfig.OverDict[languageName];
+                Overwrite = apiConnection != null ? await GetCustomDict(languageName) : globalConfig.OverDict[languageName];
                 User.Language = languageName;
                 InvokeOnChange(this, []);
             }
@@ -112,8 +112,12 @@ namespace FWO.Config.Api
 
         public void SetLanguage(string languageName)
         {
-            User = new UiUser(){ Language = languageName != null && languageName != "" ? languageName : 
-                globalConfig != null ? globalConfig.DefaultLanguage : GlobalConst.kEnglish};
+            string defaultLanguage = globalConfig != null ? globalConfig.DefaultLanguage : GlobalConst.kEnglish;
+
+            User = new UiUser()
+            {
+                Language = languageName != null && languageName != "" ? languageName : defaultLanguage
+            };
             if (globalConfig != null && globalConfig.LangDict.TryGetValue(User.Language, out Dictionary<string, string>? langDict))
             {
                 Translate = langDict;
@@ -133,7 +137,7 @@ namespace FWO.Config.Api
             }
             else
             {
-                if(globalConfig != null)
+                if (globalConfig != null)
                 {
                     string defaultLanguage = globalConfig.DefaultLanguage;
                     if (defaultLanguage == "")
@@ -160,15 +164,15 @@ namespace FWO.Config.Api
 
         public static string PureLineStat(string text)
         {
-			var regex = new Regex(@"\s", RegexOptions.None, TimeSpan.FromSeconds(1));
-			string output = RemoveLinks(regex.Replace(text.Trim(), " "));
+            var regex = new Regex(@"\s", RegexOptions.None, TimeSpan.FromSeconds(1));
+            string output = RemoveLinks(regex.Replace(text.Trim(), " "));
             output = ReplaceListElems(output);
             bool cont = true;
-            while(cont)
+            while (cont)
             {
                 string outputOrig = output;
                 output = Regex.Replace(outputOrig, @"  ", " ");
-                if(output.Length == outputOrig.Length)
+                if (output.Length == outputOrig.Length)
                 {
                     cont = false;
                 }
@@ -248,7 +252,7 @@ namespace FWO.Config.Api
             txtString = Regex.Replace(txtString, "</a>", "");
             return txtString;
         }
-    
+
         private static string ReplaceListElems(string txtString)
         {
             txtString = Regex.Replace(txtString, "<ol>", "");
@@ -260,7 +264,7 @@ namespace FWO.Config.Api
             txtString = Regex.Replace(txtString, "<br>", "\r\n");
             return txtString;
         }
-        
+
         private string Convert(string rawText)
         {
             string plainText = System.Web.HttpUtility.HtmlDecode(rawText);
@@ -300,7 +304,13 @@ namespace FWO.Config.Api
             return plainText;
         }
 
-        protected virtual void Dispose(bool disposing)
+        public new void Dispose()
+        {
+            Dispose(disposing: true);
+            GC.SuppressFinalize(this);
+        }
+
+        protected override void Dispose(bool disposing)
         {
             if (!disposedValue)
             {
@@ -310,12 +320,7 @@ namespace FWO.Config.Api
                 }
                 disposedValue = true;
             }
-        }
-
-        public void Dispose()
-        {
-            Dispose(disposing: true);
-            GC.SuppressFinalize(this);
+            base.Dispose(disposing);  // Call base class dispose
         }
     }
 }

@@ -252,6 +252,7 @@ namespace FWO.Middleware.Client
             RestRequest request = new("Compliance/ImportMatrix", Method.Post);
             request.AddJsonBody(parameters);
             return await restClient.ExecuteAsync<string>(request);
+        }
         public async Task<RestResponse<List<SchedulerJobInfo>>> GetSchedulerJobs()
         {
             RestRequest request = new("Scheduler", Method.Get);

@@ -1,6 +1,7 @@
 import copy
 import unittest.mock
 
+import pytest
 from fwo_api import FwoApi
 from fwo_api_call import FwoApiCall
 from model_controllers.fwconfig_import_rule import FwConfigImportRule
@@ -11,6 +12,7 @@ from unit_tests.utils.config_builder import FwConfigBuilder
 from unit_tests.utils.rule_helper_functions import insert_rule_in_config
 
 
+@pytest.mark.skip(reason="Need data base stuff to work")
 def test_update_rulebase_diffs_on_insert_delete_and_move(
     import_state_controller: ImportStateController,
     fwconfig_import_rule: FwConfigImportRule,

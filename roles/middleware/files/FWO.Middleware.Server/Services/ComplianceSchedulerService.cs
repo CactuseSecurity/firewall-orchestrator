@@ -20,7 +20,7 @@ namespace FWO.Middleware.Server.Services
         private IScheduler? scheduler;
         private bool disposed = false;
 
-        private const string JobKeyName = "ComplianceSchedulerJob";
+        private const string JobKeyName = "ComplianceJob";
         private const string TriggerKeyName = "ComplianceTrigger";
         private const string SchedulerName = "ComplianceScheduler";
 
@@ -86,7 +86,7 @@ namespace FWO.Middleware.Server.Services
             // Ensure durable job exists for manual triggering
             if (!await scheduler.CheckExists(jobKey))
             {
-                IJobDetail durableJob = JobBuilder.Create<AutoDiscoverJob>()
+                IJobDetail durableJob = JobBuilder.Create<ComplianceJob>()
                     .WithIdentity(jobKey)
                     .StoreDurably()
                     .Build();

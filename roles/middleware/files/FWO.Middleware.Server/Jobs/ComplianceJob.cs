@@ -1,20 +1,17 @@
 using FWO.Api.Client;
-using FWO.Api.Client.Queries;
 using FWO.Basics;
 using FWO.Compliance;
 using FWO.Config.Api;
 using FWO.Data;
-using FWO.DeviceAutoDiscovery;
 using FWO.Logging;
 using Quartz;
-using System.Linq;
 
 namespace FWO.Middleware.Server.Jobs
 {
     /// <summary>
     /// Quartz Job for autodiscovery
     /// </summary>
-    public class ComplianceSchedulerJob : IJob
+    public class ComplianceJob : IJob
     {
         private const string LogMessageTitle = "Compliance";
         private readonly ApiConnection apiConnection;
@@ -25,7 +22,7 @@ namespace FWO.Middleware.Server.Jobs
         /// </summary>
         /// <param name="apiConnection">GraphQL API connection.</param>
         /// <param name="globalConfig">Global configuration.</param>
-        public ComplianceSchedulerJob(ApiConnection apiConnection, GlobalConfig globalConfig)
+        public ComplianceJob(ApiConnection apiConnection, GlobalConfig globalConfig)
         {
             this.apiConnection = apiConnection;
             this.globalConfig = globalConfig;

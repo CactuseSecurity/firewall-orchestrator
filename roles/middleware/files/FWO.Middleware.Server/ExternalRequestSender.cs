@@ -16,7 +16,7 @@ namespace FWO.Middleware.Server
 	/// <summary>
 	/// Class handling the sending of external requests
 	/// </summary>
-	public class ExternalRequestSender
+	public class ExternalRequestSender : IDisposable
 	{
 		/// <summary>
 		/// Api Connection
@@ -31,7 +31,8 @@ namespace FWO.Middleware.Server
 		private readonly UserConfig userConfig;
 		private readonly SCClient? InjScClient;
 		ExternalTicketSystem? ExtTicketSystem;
-	
+		private bool disposed = false;
+
 
 		// todo: map to internal states to use "lowest_end_state" setting ?
 		private static readonly List<string> openRequestStates =
@@ -41,7 +42,7 @@ namespace FWO.Middleware.Server
 			ExtStates.ExtReqRequested.ToString(),
 			ExtStates.ExtReqInProgress.ToString()
 		];
-		
+
 		private const string LogMessageTitle = "External Request Sender";
 
 
@@ -62,8 +63,8 @@ namespace FWO.Middleware.Server
 		public async Task<List<string>> Run()
 		{
 			List<string> FailedRequests = [];
-			ExternalRequestDataHelper openRequests = await apiConnection.SendQueryAsync<ExternalRequestDataHelper>(ExtRequestQueries.getAndLockOpenRequests, new {states = openRequestStates});
-			foreach (var request in openRequests.ExternalRequests)
+			ExternalRequestDataHelper openRequests = await apiConnection.SendQueryAsync<ExternalRequestDataHelper>(ExtRequestQueries.getAndLockOpenRequests, new { states = openRequestStates });
+			foreach (ExternalRequest request in openRequests.ExternalRequests)
 			{
 				await HandleRequest(request, FailedRequests);
 			}
@@ -76,10 +77,10 @@ namespace FWO.Middleware.Server
 			try
 			{
 				ExtTicketSystem = JsonSerializer.Deserialize<ExternalTicketSystem>(request.ExtTicketSystem) ?? throw new JsonException("No Ticket System");
-				if(request.ExtRequestState == ExtStates.ExtReqInitialized.ToString() ||
+				if (request.ExtRequestState == ExtStates.ExtReqInitialized.ToString() ||
 					request.ExtRequestState == ExtStates.ExtReqFailed.ToString()) // try again
 				{
-					if(request.WaitCycles > 0)
+					if (request.WaitCycles > 0)
 					{
 						await CountDownWaitCycle(request);
 					}
@@ -92,7 +93,7 @@ namespace FWO.Middleware.Server
 				{
 					await RefreshState(request);
 				}
-				if ((await apiConnection.SendQueryAsync<ReturnId>(ExtRequestQueries.updateExternalRequestLock, new {id = request.Id, locked = false})).UpdatedIdLong == request.Id)
+				if ((await apiConnection.SendQueryAsync<ReturnId>(ExtRequestQueries.updateExternalRequestLock, new { id = request.Id, locked = false })).UpdatedIdLong == request.Id)
 				{
 					request.Locked = false;
 				}
@@ -113,7 +114,7 @@ namespace FWO.Middleware.Server
 		{
 			try
 			{
-				foreach (var request in requests.Where(r => r.Locked))
+				foreach (ExternalRequest? request in requests.Where(r => r.Locked))
 				{
 					await apiConnection.SendQueryAsync<ReturnId>(ExtRequestQueries.updateExternalRequestLock, new { id = request.Id, locked = false });
 				}
@@ -176,7 +177,7 @@ namespace FWO.Middleware.Server
 		private ExternalTicket ConstructTicket(ExternalRequest request)
 		{
 			ExternalTicket ticket;
-			
+
 			if (ExtTicketSystem?.Type == ExternalTicketSystemType.TufinSecureChange)
 			{
 				ticket = new SCTicket(ExtTicketSystem, InjScClient)
@@ -196,13 +197,13 @@ namespace FWO.Middleware.Server
 		{
 			request.ExtRequestState = ExtStates.ExtReqRejected.ToString();
 			await UpdateRequestCreation(request);
-			ExternalRequestHandler extReqHandler = new(userConfig, apiConnection);
+			using ExternalRequestHandler extReqHandler = new(userConfig, apiConnection);
 			await extReqHandler.HandleStateChange(request);
 		}
 
 		private async Task<bool> HandleTimeOut(ExternalRequest request, ExternalTicket? ticket)
 		{
-			if(ticket != null && request.Attempts > 0)
+			if (ticket != null && request.Attempts > 0)
 			{
 				try
 				{
@@ -218,7 +219,7 @@ namespace FWO.Middleware.Server
 						return true;
 					}
 				}
-				catch(Exception exception)
+				catch (Exception exception)
 				{
 					Log.WriteError(LogMessageTitle, "Timeout handling failed: ", exception);
 				}
@@ -228,8 +229,8 @@ namespace FWO.Middleware.Server
 
 		private static bool AnalyseForRejected(RestResponse<int>? ticketIdResponse)
 		{
-			return ticketIdResponse != null && ticketIdResponse.Content != null && 
-				((ticketIdResponse.Content.Contains("GENERAL_ERROR") && !TryAgain(ticketIdResponse))||
+			return ticketIdResponse != null && ticketIdResponse.Content != null &&
+				((ticketIdResponse.Content.Contains("GENERAL_ERROR") && !TryAgain(ticketIdResponse)) ||
 				ticketIdResponse.Content.Contains("ILLEGAL_ARGUMENT_ERROR") ||
 				ticketIdResponse.Content.Contains("FIELD_VALIDATION_ERROR") ||
 				ticketIdResponse.Content.Contains("WEB_APPLICATION_ERROR") ||
@@ -246,7 +247,7 @@ namespace FWO.Middleware.Server
 		{
 			(request.ExtRequestState, request.LastMessage) = await PollState(request);
 			await UpdateRequestProcess(request);
-			ExternalRequestHandler extReqHandler = new(userConfig, apiConnection);
+			using ExternalRequestHandler extReqHandler = new(userConfig, apiConnection);
 			await extReqHandler.HandleStateChange(request);
 		}
 
@@ -316,6 +317,30 @@ namespace FWO.Middleware.Server
 				waitCycles = --request.WaitCycles
 			};
 			await apiConnection.SendQueryAsync<ReturnId>(ExtRequestQueries.updateExternalRequestWaitCycles, Variables);
+		}
+
+		/// <summary>
+		/// Dispose method to clean up resources
+		/// </summary>
+		public void Dispose()
+		{
+			Dispose(true);
+			GC.SuppressFinalize(this);
+		}
+
+		/// <summary>
+		/// Protected dispose method
+		/// </summary>
+		protected virtual void Dispose(bool disposing)
+		{
+			if (!disposed)
+			{
+				if (disposing)
+				{
+					userConfig?.Dispose();
+				}
+				disposed = true;
+			}
 		}
 	}
 }

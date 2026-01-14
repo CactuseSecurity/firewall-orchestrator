@@ -5,6 +5,7 @@
 @inject ApiConnection apiConnection
 @inject IJSRuntime jsRuntime
 @inject NavigationManager navigationManager
+@implements IDisposable
 
 @if (InitComplete)
 {
@@ -212,4 +213,8 @@
         string workflowRoles = userConfig.ReqShowCompliance ? ", " + WorkflowRoles() : "";
         return $"{Roles.Admin}, {Roles.FwAdmin}, {Roles.ReporterViewAll}, {Roles.Reporter}, {Roles.Auditor}{workflowRoles}";
     }
+	public void Dispose()
+	{
+		userConfig.OnChange -= OnChange;
+	}
 }

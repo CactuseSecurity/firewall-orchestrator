@@ -242,17 +242,17 @@
     <AuthorizeView Roles="@Roles.Admin">
         <Authorized>
             <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5845"))">
-                <label class="col-form-label col-sm-4">@(userConfig.PureLine("H5846"))</label>
+                <label class="col-form-label col-sm-4">@(userConfig.GetText("H5846"))</label>
                 <div class="col-sm-7">
-                    <button class="btn btn-primary" @onclick="DeleteAllViolations">@(userConfig.PureLine("H5847"))</button>
+                    <button class="btn btn-primary" @onclick="DeleteAllViolations">@(userConfig.GetText("H5847"))</button>
                 </div>
             </div>
         </Authorized>
         <NotAuthorized>
             <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5845"))">
-                <label class="col-form-label col-sm-4">@(userConfig.PureLine("H5846"))</label>
+                <label class="col-form-label col-sm-4">@(userConfig.GetText("H5846"))</label>
                 <div class="col-sm-7">
-                    <button class="btn btn-primary" disabled>@(userConfig.PureLine("H5847"))</button>
+                    <button class="btn btn-primary" disabled>@(userConfig.GetText("H5847"))</button>
                 </div>
             </div>
         </NotAuthorized>
@@ -263,17 +263,17 @@
     <AuthorizeView Roles="@Roles.Admin">
         <Authorized>
             <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5848"))">
-                <label class="col-form-label col-sm-4">@(userConfig.PureLine("H5849"))</label>
+                <label class="col-form-label col-sm-4">@(userConfig.GetText("H5849"))</label>
                 <div class="col-sm-7">
-                    <button class="btn btn-primary" @onclick="RunComplianceCheck">@(userConfig.PureLine("H5850"))</button>
+                    <button class="btn btn-primary" @onclick="RunComplianceCheck">@(userConfig.GetText("H5850"))</button>
                 </div>
             </div>
         </Authorized>
         <NotAuthorized>
             <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5848"))">
-                <label class="col-form-label col-sm-4">@(userConfig.PureLine("H5849"))</label>
+                <label class="col-form-label col-sm-4">@(userConfig.GetText("H5849"))</label>
                 <div class="col-sm-7">
-                    <button class="btn btn-primary" disabled>@(userConfig.PureLine("H5850"))</button>
+                    <button class="btn btn-primary" disabled>@(userConfig.GetText("H5850"))</button>
                 </div>
             </div>
         </NotAuthorized>

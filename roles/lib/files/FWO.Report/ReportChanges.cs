@@ -2,6 +2,7 @@ using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 using FWO.Basics;
 using FWO.Config.Api;
+using FWO.Config.Api.Data;
 using FWO.Data;
 using FWO.Data.Report;
 using FWO.Logging;
@@ -33,7 +34,7 @@ namespace FWO.Report
             }
             else
             {
-                this.IncludeObjectsInReportChanges = userConfig.ImpChangeIncludeObjectChanges;
+                this.IncludeObjectsInReportChanges = userConfig.GlobalConfig!.ImpChangeIncludeObjectChanges;
             }
         }
 
@@ -79,6 +80,11 @@ namespace FWO.Report
         {
             Query.QueryVariables[QueryVar.Offset] = elementsPerFetch;
             int maxImports = managementImportIds.Values.Select(v => v.Count).Max();
+
+            if (maxImports <= 2)    // Case last two (changes report - notification mail)
+            {
+                return queriesNeeded; 
+            }
 
             for (int i = 1; i < maxImports; i++)
             {

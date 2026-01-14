@@ -89,23 +89,22 @@ def deserialize_class_to_dict_rec(
     return obj
 
 
-def cidr_to_range(ip: str | None) -> list[str] | list[None]:  # TODO: I have no idea what other than string it could be
+def cidr_to_range(
+    ip: str | None,
+) -> list[str]:
     if isinstance(ip, str):
         # dealing with ranges:
         if "-" in ip:
-            return "-".split(ip)
+            return ip.split("-")
 
         ip_version = valid_ip_address(ip)
         if ip_version == "Invalid":
             FWOLogger.warning("error while decoding ip '" + ip + "'")
             return [ip]
-        if ip_version == "IPv4":
-            net = ipaddress.IPv4Network(ip)
-        elif ip_version == "IPv6":
-            net = ipaddress.IPv6Network(ip)
-        return [str(net.network_address), str(net.broadcast_address)]  # type: ignore  # noqa: PGH003
+        net = ipaddress.IPv4Network(ip) if ip_version == "IPv4" else ipaddress.IPv6Network(ip)
+        return [str(net.network_address), str(net.broadcast_address)]
 
-    return [ip]
+    return [ip or ""]
 
 
 def valid_ip_address(ip: str) -> str:
@@ -322,3 +321,11 @@ def generate_hash_from_dict(input_dict: dict[Any, Any]) -> str:
     """Generates a consistent hash from a dictionary by serializing it with sorted keys."""
     dict_string = json.dumps(input_dict, sort_keys=True)
     return hashlib.sha256(dict_string.encode("utf-8")).hexdigest()
+
+
+def replace_none_with_empty(
+    s: str | None,
+) -> str:
+    if s is None or s == "":
+        return "<EMPTY>"
+    return str(s)

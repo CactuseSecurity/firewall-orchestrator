@@ -36,7 +36,7 @@ class RuleOrderService:
 
     _deleted_rule_uids: dict[str, list[str]]
     _new_rule_uids: dict[str, list[str]]
-    _moved_rule_uids: dict[str, list[str]]
+    _moved_rule_uids: dict[str, list[str]]  # rules moved within the same rulebase
 
     _inserts_and_moves: dict[str, list[str]]
     _updated_rules: list[str]
@@ -131,12 +131,12 @@ class RuleOrderService:
                 move_uid for _, move_uid, _ in self._min_moves["reposition_moves"] if move_uid in rule_uids
             ]
 
-            # Add undetected moves (i.e. across rulebases).
+            # add rules moved from other rulebases
             for rule_uid in rule_uids:
                 if (
                     rule_uid not in self._new_rule_uids[rulebase.uid]
                     and rule_uid not in self._moved_rule_uids[rulebase.uid]
-                    and rule_uid not in previous_rulebase_uids
+                    and rule_uid not in previous_rulebase_uids  # TODO: is this necessary
                 ):
                     self._moved_rule_uids[rulebase.uid].append(rule_uid)
 

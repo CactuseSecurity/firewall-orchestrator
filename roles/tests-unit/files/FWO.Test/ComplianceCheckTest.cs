@@ -48,8 +48,9 @@ namespace FWO.Test
         public async Task CheckAll_PolicyIdZero_AbortCheckWithLog()
         {
             // Act
-
-            await ComplianceCheck.CheckAll();
+            SetUpViolationCount(1);
+            
+            await ComplianceCheck.RunComplianceCheck(ComplianceCheckType.Standard);
 
             // Assert
 
@@ -66,7 +67,7 @@ namespace FWO.Test
 
             // Act
 
-            await ComplianceCheck.CheckAll();
+            await ComplianceCheck.RunComplianceCheck(ComplianceCheckType.Standard);
 
             // Assert
 
@@ -84,7 +85,7 @@ namespace FWO.Test
 
             // Act
 
-            await ComplianceCheck.CheckAll();
+            await ComplianceCheck.RunComplianceCheck(ComplianceCheckType.Standard);
 
             // Assert
 
@@ -102,7 +103,7 @@ namespace FWO.Test
 
             // Act
 
-            await ComplianceCheck.CheckAll();
+            await ComplianceCheck.RunComplianceCheck(ComplianceCheckType.Standard);
 
             // Assert
 
@@ -128,7 +129,7 @@ namespace FWO.Test
 
             // Act
 
-            await ComplianceCheck.CheckAll();
+            await ComplianceCheck.RunComplianceCheck(ComplianceCheckType.Standard);
 
             // Assert
 
@@ -155,7 +156,7 @@ namespace FWO.Test
 
             // Act
 
-            await ComplianceCheck.CheckAll();
+            await ComplianceCheck.RunComplianceCheck(ComplianceCheckType.Standard);
 
             // Assert
 
@@ -187,7 +188,7 @@ namespace FWO.Test
 
             // Act
 
-            await ComplianceCheck.CheckAll();
+            await ComplianceCheck.RunComplianceCheck(ComplianceCheckType.Standard);
 
             // Assert
 

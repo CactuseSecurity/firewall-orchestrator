@@ -273,6 +273,12 @@ namespace FWO.Middleware.Client
             return await restClient.ExecuteAsync<bool>(request);
         }
 
+        public async Task<RestResponse<bool>> RunComplianceCheck()
+        {
+            RestRequest request = new ("Compliance/ComplianceCheck");
+            return await restClient.ExecuteAsync<bool>(request);
+        }
+
         protected virtual void Dispose(bool disposing)
         {
             if (disposed) return;

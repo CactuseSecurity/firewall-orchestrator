@@ -164,7 +164,7 @@ namespace FWO.Test
         public void ChangesGenerateHtml()
         {
             Log.WriteInfo("Test Log", "starting changes report html generation");
-            ReportChanges reportChanges = new(query, userConfig, ReportType.Changes, timeFilter, false, false)
+            ReportChanges reportChanges = new(query, userConfig, ReportType.Changes, timeFilter, false, true)
             {
                 ReportData = ConstructChangeReport(false)
             };
@@ -183,7 +183,7 @@ namespace FWO.Test
         public void ResolvedChangesGenerateHtml()
         {
             Log.WriteInfo("Test Log", "starting changes report resolved html generation");
-            ReportChanges reportChanges = new(query, userConfig, ReportType.ResolvedChanges, timeFilter, false, false)
+            ReportChanges reportChanges = new(query, userConfig, ReportType.ResolvedChanges, timeFilter, false, true)
             {
                 ReportData = ConstructChangeReport(true)
             };
@@ -202,7 +202,7 @@ namespace FWO.Test
         public void ResolvedChangesTechGenerateHtml()
         {
             Log.WriteInfo("Test Log", "starting changes report tech html generation");
-            ReportChanges reportChanges = new(query, userConfig, ReportType.ResolvedChangesTech, timeFilter, false, false)
+            ReportChanges reportChanges = new(query, userConfig, ReportType.ResolvedChangesTech, timeFilter, false, true)
             {
                 ReportData = ConstructChangeReport(true)
             };
@@ -351,7 +351,7 @@ namespace FWO.Test
         public void ResolvedChangesGenerateCsv()
         {
             Log.WriteInfo("Test Log", "starting changes report resolved csv generation");
-            ReportChanges reportChanges = new(query, userConfig, ReportType.ResolvedChanges, new TimeFilter(),false,false)
+            ReportChanges reportChanges = new(query, userConfig, ReportType.ResolvedChanges, new TimeFilter(),false, true)
             {
                 ReportData = ConstructChangeReport(true)
             };
@@ -380,7 +380,7 @@ namespace FWO.Test
         public void ResolvedChangesTechGenerateCsv()
         {
             Log.WriteInfo("Test Log", "starting changes report tech csv generation");
-            ReportChanges reportChanges = new(query, userConfig, ReportType.ResolvedChangesTech, new TimeFilter(), false, false)
+            ReportChanges reportChanges = new(query, userConfig, ReportType.ResolvedChangesTech, new TimeFilter(), false, true)
             {
                 ReportData = ConstructChangeReport(true)
             };
@@ -524,7 +524,7 @@ namespace FWO.Test
         public void ChangesGenerateJson()
         {
             Log.WriteInfo("Test Log", "starting changes report json generation");
-            ReportChanges reportChanges = new(query, userConfig, ReportType.Changes, new TimeFilter(), false, false)
+            ReportChanges reportChanges = new(query, userConfig, ReportType.Changes, new TimeFilter(), false, true)
             {
                 ReportData = ConstructChangeReport(false)
             };
@@ -555,7 +555,7 @@ namespace FWO.Test
         public void ResolvedChangesGenerateJson()
         {
             Log.WriteInfo("Test Log", "starting resolved changes report json generation");
-            ReportChanges reportChanges = new(query, userConfig, ReportType.ResolvedChanges, new TimeFilter(), false, false)
+            ReportChanges reportChanges = new(query, userConfig, ReportType.ResolvedChanges, new TimeFilter(), false, true)
             {
                 ReportData = ConstructChangeReport(true)
             };
@@ -587,7 +587,7 @@ namespace FWO.Test
         public void ResolvedChangesTechGenerateJson()
         {
             Log.WriteInfo("Test Log", "starting resolved changes report json generation");
-            ReportChanges reportChanges = new(query, userConfig, ReportType.ResolvedChangesTech, new TimeFilter(), false, false)
+            ReportChanges reportChanges = new(query, userConfig, ReportType.ResolvedChangesTech, new TimeFilter(), false, true)
             {
                 ReportData = ConstructChangeReport(true)
             };

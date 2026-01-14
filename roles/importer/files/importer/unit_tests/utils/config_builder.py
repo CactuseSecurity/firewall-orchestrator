@@ -61,6 +61,16 @@ class FwConfigBuilder:
 
         return config, mgm_uid
 
+    def build_empty_config(self) -> FwConfigNormalized:
+        config, _ = self.build_config(
+            rulebase_count=0,
+            rules_per_rulebase_count=0,
+            network_object_count=0,
+            service_object_count=0,
+            include_gateway=False,
+        )
+        return config
+
     def add_network_object(self, config: FwConfigNormalized, *, name: str | None = None) -> NetworkObject:
         uid = self.uid_manager.create_uid()
         obj = NetworkObject(

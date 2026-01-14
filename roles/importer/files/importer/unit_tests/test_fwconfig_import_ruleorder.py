@@ -1,8 +1,8 @@
+# pyright: reportPrivateUsage=false
 import copy
 
 from fwo_const import RULE_NUM_NUMERIC_STEPS
 from model_controllers.fwconfig_import_ruleorder import RuleOrderService
-from models.fwconfig_normalized import FwConfigNormalized
 from services.global_state import GlobalState
 from unit_tests.utils.config_builder import FwConfigBuilder
 from unit_tests.utils.rule_helper_functions import (
@@ -37,10 +37,15 @@ class TestFwConfigImportRuleOrderOldMigration:
         global_state: GlobalState,
         rule_order_service: RuleOrderService,
         fwconfig_builder: FwConfigBuilder,
-        config_tuple: tuple[FwConfigNormalized, str],
     ):
         # Arrange
-        config, _ = config_tuple
+        config, _ = fwconfig_builder.build_config(
+            network_object_count=10,
+            service_object_count=10,
+            rulebase_count=3,
+            rules_per_rulebase_count=10,
+        )
+
         global_state.normalized_config = config
         global_state.previous_config = copy.deepcopy(config)
 
@@ -87,10 +92,14 @@ class TestFwConfigImportRuleOrderOldMigration:
         global_state: GlobalState,
         rule_order_service: RuleOrderService,
         fwconfig_builder: FwConfigBuilder,
-        config_tuple: tuple[FwConfigNormalized, str],
     ):
         # Arrange
-        config, _ = config_tuple
+        config, _ = fwconfig_builder.build_config(
+            network_object_count=10,
+            service_object_count=10,
+            rulebase_count=3,
+            rules_per_rulebase_count=10,
+        )
         global_state.normalized_config = config
         global_state.previous_config = copy.deepcopy(config)
 
@@ -199,10 +208,15 @@ class TestFwConfigImportRuleOrderOldMigration:
         rule_order_service: RuleOrderService,
         fwconfig_builder: FwConfigBuilder,
         global_state: GlobalState,
-        config_tuple: tuple[FwConfigNormalized, str],
     ):
         # Arrange
-        config, _ = config_tuple
+        config, _ = fwconfig_builder.build_config(
+            network_object_count=10,
+            service_object_count=10,
+            rulebase_count=3,
+            rules_per_rulebase_count=10,
+        )
+
         global_state.normalized_config = config
         global_state.previous_config = copy.deepcopy(config)
 
@@ -242,10 +256,15 @@ class TestFwConfigImportRuleOrderOldMigration:
         self,
         rule_order_service: RuleOrderService,
         global_state: GlobalState,
-        config_tuple: tuple[FwConfigNormalized, str],
+        fwconfig_builder: FwConfigBuilder,
     ):
         # Arrange
-        config, _ = config_tuple
+        config, _ = fwconfig_builder.build_config(
+            network_object_count=10,
+            service_object_count=10,
+            rulebase_count=3,
+            rules_per_rulebase_count=10,
+        )
         global_state.normalized_config = config
         global_state.previous_config = copy.deepcopy(config)
 
@@ -284,3 +303,103 @@ class TestFwConfigImportRuleOrderOldMigration:
         assert end_rule.rule_num_numeric == 11 * RULE_NUM_NUMERIC_STEPS, (
             f"End moved rule_num_numeric is {global_state.normalized_config.rulebases[0].rules[end_rule_uid].rule_num_numeric}, expected {11 * RULE_NUM_NUMERIC_STEPS}"
         )
+
+
+# pyright: ignore[reportPrivateUsage]
+class TestFwConfigImportRuleOrderFunctions:
+    def test_get_adjacent_list_element(self, rule_order_service: RuleOrderService):  # pyright: ignore[reportPrivateUsage]
+        test_list = ["item1", "item2", "item3"]
+
+        # Act & Assert - Standard case (middle)
+        prev_item, next_item = rule_order_service._get_adjacent_list_element(test_list, 1)  # pyright: ignore[reportPrivateUsage]
+        assert prev_item == "item1"
+        assert next_item == "item3"
+
+    def test_get_adjacent_list_element_on_start_and_end(self, rule_order_service: RuleOrderService):
+        test_list = ["item1", "item2", "item3"]
+        # Act & Assert - Start of list
+        prev_item, next_item = rule_order_service._get_adjacent_list_element(test_list, 0)
+        assert prev_item is None
+        assert next_item == "item2"
+
+    def test_get_adjacent_list_element_on_end_of_list(self, rule_order_service: RuleOrderService):
+        test_list = ["item1", "item2", "item3"]
+
+        # Act & Assert - End of list
+        prev_item, next_item = rule_order_service._get_adjacent_list_element(test_list, 2)
+        assert prev_item == "item2"
+        assert next_item is None
+
+    def test_get_adjacent_list_element_on_single_item_list(self, rule_order_service: RuleOrderService):
+        test_list = ["single"]
+        # Act & Assert - Single item list
+        assert rule_order_service._get_adjacent_list_element(test_list, 0) == (None, None)
+
+    def test_get_adjacent_list_element_on_invalid_indices(self, rule_order_service: RuleOrderService):
+        test_list: list[str] = []
+        # Act & Assert - Empty list
+        assert rule_order_service._get_adjacent_list_element(test_list, 0) == (None, None)
+
+    def test_get_adjacent_list_element_on_out_of_bound_negative(self, rule_order_service: RuleOrderService):
+        test_list = ["item1", "item2", "item3"]
+        # Act & Assert - Out of bounds (negative)
+        assert rule_order_service._get_adjacent_list_element(test_list, -1) == (None, None)
+
+    def test_get_adjacent_list_element_on_out_of_bound_overflow(self, rule_order_service: RuleOrderService):
+        test_list = ["item1", "item2", "item3"]
+        # Act & Assert - Out of bounds (overflow)
+        assert rule_order_service._get_adjacent_list_element(test_list, 99) == (None, None)
+
+    def test_parse_rule_uids_and_objects_from_config(
+        self,
+        rule_order_service: RuleOrderService,
+        fwconfig_builder: FwConfigBuilder,
+    ):
+        config, _ = fwconfig_builder.build_config(
+            network_object_count=10,
+            service_object_count=10,
+            rulebase_count=3,
+            rules_per_rulebase_count=10,
+        )
+
+        # Act - Case with rules
+        uids, rules_flat = rule_order_service._parse_rule_uids_and_objects_from_config(config)
+
+        # Assert
+        assert len(uids) == 30
+        assert len(rules_flat) == 30
+        assert len(uids) == len(rules_flat)
+        assert rules_flat[0].rule_uid == uids[0]
+
+    def test_parse_rule_uids_and_objects_from_config_empty_rulebase(
+        self,
+        rule_order_service: RuleOrderService,
+        fwconfig_builder: FwConfigBuilder,
+    ):
+        config = fwconfig_builder.build_empty_config()
+
+        # Act - Case with empty rulebase
+        uids, rules_flat = rule_order_service._parse_rule_uids_and_objects_from_config(config)
+
+        # Assert
+        assert len(uids) == 0
+        assert len(rules_flat) == 0
+
+    def test_parse_rule_uids_and_objects_from_config_no_rulebases(
+        self,
+        rule_order_service: RuleOrderService,
+        fwconfig_builder: FwConfigBuilder,
+    ):
+        config, _ = fwconfig_builder.build_config(
+            network_object_count=5,
+            service_object_count=5,
+            rulebase_count=0,
+            rules_per_rulebase_count=0,
+        )
+
+        # Act - Case with no rulebases
+        uids, rules_flat = rule_order_service._parse_rule_uids_and_objects_from_config(config)
+
+        # Assert
+        assert len(uids) == 0
+        assert len(rules_flat) == 0

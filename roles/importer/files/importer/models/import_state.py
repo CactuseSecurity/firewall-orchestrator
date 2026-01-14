@@ -24,7 +24,7 @@ class ImportState:
     last_full_import_id: int
     last_full_import_date: str | None = None
     last_successful_import: str | None = None
-    is_full_import: bool
+    is_full_import: bool = True
     is_initial_import: bool = False
     responsible_for_importing: bool = True
     is_clearing_import: bool = False

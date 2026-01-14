@@ -60,6 +60,7 @@ def import_state_controller(
     import_state_controller.state = import_state
     import_state_controller.api_call = api_call
     import_state_controller.api_connection = api_connection
+
     return import_state_controller
 
 
@@ -146,15 +147,7 @@ def fwconfig_import_rule(
     import_state_controller: ImportStateController,
 ) -> FwConfigImportRule:
     fw_config_import_rule = FwConfigImportRule()
+
+    fw_config_import_rule.create_new_rule_version = unittest.mock.MagicMock()
+
     return fw_config_import_rule
-
-
-@pytest.fixture
-def config_tuple(fwconfig_builder: FwConfigBuilder) -> tuple[FwConfigNormalized, str]:
-    config, mgm_id = fwconfig_builder.build_config(
-        network_object_count=10,
-        service_object_count=10,
-        rulebase_count=3,
-        rules_per_rulebase_count=10,
-    )
-    return config, mgm_id

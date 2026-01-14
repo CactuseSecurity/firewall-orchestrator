@@ -2,7 +2,6 @@ import copy
 
 from model_controllers.fwconfig_import_gateway import FwConfigImportGateway
 from model_controllers.import_state_controller import ImportStateController
-from models.fwconfig_normalized import FwConfigNormalized
 from services.global_state import GlobalState
 from unit_tests.utils.config_builder import FwConfigBuilder
 
@@ -11,11 +10,15 @@ def test_add_cp_section_header_at_the_bottom(
     global_state: GlobalState,
     import_state_controller: ImportStateController,
     fwconfig_import_gateway: FwConfigImportGateway,
-    config_tuple: tuple[FwConfigNormalized, str],
     fwconfig_builder: FwConfigBuilder,
 ):
     # Arrange
-    config, mgm_id = config_tuple
+    config, mgm_id = fwconfig_builder.build_config(
+        network_object_count=10,
+        service_object_count=10,
+        rulebase_count=3,
+        rules_per_rulebase_count=10,
+    )
     global_state.normalized_config = copy.deepcopy(config)
     global_state.previous_config = copy.deepcopy(config)
     import_state_controller.state.mgm_details.uid = mgm_id
@@ -53,10 +56,15 @@ def test_add_cp_section_header_in_existing_rulebase(
     import_state_controller: ImportStateController,
     fwconfig_import_gateway: FwConfigImportGateway,
     fwconfig_builder: FwConfigBuilder,
-    config_tuple: tuple[FwConfigNormalized, str],
 ):
     # Arrange
-    config, mgm_id = config_tuple
+    config, mgm_id = fwconfig_builder.build_config(
+        network_object_count=10,
+        service_object_count=10,
+        rulebase_count=3,
+        rules_per_rulebase_count=10,
+    )
+
     global_state.normalized_config = copy.deepcopy(config)
     global_state.previous_config = copy.deepcopy(config)
     import_state_controller.state.mgm_details.uid = mgm_id
@@ -98,10 +106,15 @@ def test_delete_cp_section_header(
     import_state_controller: ImportStateController,
     fwconfig_import_gateway: FwConfigImportGateway,
     fwconfig_builder: FwConfigBuilder,
-    config_tuple: tuple[FwConfigNormalized, str],
 ):
     # Arrange
-    config, mgm_id = config_tuple
+    config, mgm_id = fwconfig_builder.build_config(
+        network_object_count=10,
+        service_object_count=10,
+        rulebase_count=3,
+        rules_per_rulebase_count=10,
+    )
+
     global_state.normalized_config = copy.deepcopy(config)
     global_state.previous_config = copy.deepcopy(config)
     import_state_controller.state.mgm_details.uid = mgm_id
@@ -137,10 +150,15 @@ def test_add_inline_layer(
     import_state_controller: ImportStateController,
     fwconfig_import_gateway: FwConfigImportGateway,
     fwconfig_builder: FwConfigBuilder,
-    config_tuple: tuple[FwConfigNormalized, str],
 ):
     # Arrange
-    config, mgm_id = config_tuple
+    config, mgm_id = fwconfig_builder.build_config(
+        network_object_count=10,
+        service_object_count=10,
+        rulebase_count=3,
+        rules_per_rulebase_count=10,
+    )
+
     global_state.normalized_config = config
     global_state.previous_config = copy.deepcopy(config)
     import_state_controller.state.mgm_details.uid = mgm_id
@@ -182,10 +200,15 @@ def test_delete_inline_layer(
     import_state_controller: ImportStateController,
     fwconfig_import_gateway: FwConfigImportGateway,
     fwconfig_builder: FwConfigBuilder,
-    config_tuple: tuple[FwConfigNormalized, str],
 ):
     # Arrange
-    config, mgm_id = config_tuple
+    config, mgm_id = fwconfig_builder.build_config(
+        network_object_count=10,
+        service_object_count=10,
+        rulebase_count=3,
+        rules_per_rulebase_count=10,
+    )
+
     global_state.normalized_config = copy.deepcopy(config)
     global_state.previous_config = copy.deepcopy(config)
     import_state_controller.state.mgm_details.uid = mgm_id
@@ -219,10 +242,15 @@ def test_move_inline_layer(
     import_state_controller: ImportStateController,
     fwconfig_import_gateway: FwConfigImportGateway,
     fwconfig_builder: FwConfigBuilder,
-    config_tuple: tuple[FwConfigNormalized, str],
 ):
     # Arrange
-    config, mgm_id = config_tuple
+    config, mgm_id = fwconfig_builder.build_config(
+        network_object_count=10,
+        service_object_count=10,
+        rulebase_count=3,
+        rules_per_rulebase_count=10,
+    )
+
     global_state.normalized_config = copy.deepcopy(config)
     global_state.previous_config = copy.deepcopy(config)
     import_state_controller.state.mgm_details.uid = mgm_id

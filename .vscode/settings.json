@@ -27,5 +27,9 @@
         "source.organizeImports": "explicit"
       },
       "editor.defaultFormatter": "charliermarsh.ruff"
+    },
+    "sonarlint.connectedMode.project": {
+        "connectionId": "cactusesecurity",
+        "projectKey": "CactuseSecurity_firewall-orchestrator"
     }
 }

@@ -80,4 +80,10 @@ namespace FWO.Data
         [JsonProperty("count"), JsonPropertyName("count")]
         public int Count { get; set; }
     }
+    
+    public class DeleteAllViolationsResult
+    {
+        [JsonProperty("affected_rows"), JsonPropertyName("affected_rows")]
+        public int AffectedRows { get; set; }
+    }
 }

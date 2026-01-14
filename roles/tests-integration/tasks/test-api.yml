@@ -16,9 +16,10 @@
   failed_when: false
 
 - name: api version test output
-  debug:
-    msg: "ERROR unexpected version test result (does not contain 'version'): {{ api_version.content }}"
-  when: api_version.content is not search('version')
+  assert:
+    that:
+      - api_version.content is search('version')
+    fail_msg: "unexpected version test result (does not contain 'version'): {{ api_version.content }}"
 
 - name: test anonymous api access
   uri:
@@ -37,15 +38,12 @@
   environment: "{{ proxy_env }}"
 
 - name: anonymous api access output
-  debug:
-    msg: "ERROR unexpected version test result (does not contain 'Missing Authorization header'): {{ api_query_anonymous.content }}"
-  when: >
-    not 
-      (
-        api_query_anonymous.content is search('Missing\sAuthorization\sheader') 
-        or
-        api_query_anonymous.content is search('Missing ''Authorization'' or ''Cookie'' header')
-      )
+  assert:
+    that:
+      - >
+          api_query_anonymous.content is search('Missing\sAuthorization\sheader')
+          or api_query_anonymous.content is search('Missing ''Authorization'' or ''Cookie'' header')
+    fail_msg: "unexpected version test result (does not contain 'Missing Authorization header'): {{ api_query_anonymous.content }}"
 
 - name: get sample jwt
   uri:
@@ -81,9 +79,10 @@
   environment: "{{ proxy_env }}"
 
 - name: anonymous api access with JWT output
-  debug:
-    msg: "ERROR unexpected version test result (does not contain id): {{ api_query_anonymous_with_JWT.content }}"
-  when: api_query_anonymous_with_JWT.content is not search('id')
+  assert:
+    that:
+      - api_query_anonymous_with_JWT.content is search('id')
+    fail_msg: "unexpected version test result (does not contain id): {{ api_query_anonymous_with_JWT.content }}"
 
 # Todo: this only works if the hasura key is actually installed on the machine running the tests
 - name: read hasura admin secret from file for tests
@@ -114,6 +113,7 @@
   environment: "{{ proxy_env }}"
 
 - name: admin api access output
-  debug:
-    msg: "ERROR unexpected version test result (does not contain obj_name): {{ api_query_admin.content }}"
-  when: api_query_admin.content is not search('obj_name')
+  assert:
+    that:
+      - api_query_admin.content is search('obj_name')
+    fail_msg: "unexpected version test result (does not contain obj_name): {{ api_query_admin.content }}"

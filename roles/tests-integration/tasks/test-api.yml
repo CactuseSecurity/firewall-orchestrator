@@ -41,9 +41,9 @@
   assert:
     that:
       - >
-        api_query_anonymous.content is search('Missing 'Authorization' or 'Cookie' header in JWT authentication mode')
-        or api_query_anonymous.content is search('Missing ''Authorization'' or ''Cookie'' header')
-    fail_msg: "unexpected version test result (does not contain 'Missing 'Authorization' or 'Cookie' header in JWT authentication mode'): {{ api_query_anonymous.content }}"
+        api_query_anonymous.content is search("Missing 'Authorization' or 'Cookie' header in JWT authentication mode")
+        or api_query_anonymous.content is search("Missing 'Authorization' or 'Cookie' header")
+    fail_msg: "unexpected version test result (does not contain \"Missing 'Authorization' or 'Cookie' header in JWT authentication mode\"): {{ api_query_anonymous.content }}"
 
 - name: get sample jwt
   uri:

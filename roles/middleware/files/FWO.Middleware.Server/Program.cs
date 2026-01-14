@@ -73,6 +73,7 @@ builder.Services.AddSingleton<ImportIpDataSchedulerService>();
 builder.Services.AddSingleton<ImportChangeNotifySchedulerService>();
 builder.Services.AddSingleton<VarianceAnalysisSchedulerService>();
 builder.Services.AddSingleton<ReportSchedulerService>();
+builder.Services.AddSingleton<ComplianceSchedulerService>();
 
 // Add services to the container.
 builder.Services.AddControllers()
@@ -152,5 +153,6 @@ app.Services.GetRequiredService<ImportIpDataSchedulerService>();
 app.Services.GetRequiredService<ImportChangeNotifySchedulerService>();
 app.Services.GetRequiredService<VarianceAnalysisSchedulerService>();
 app.Services.GetRequiredService<ReportSchedulerService>();
+app.Services.GetRequiredService<ComplianceSchedulerService>();
 
 await app.RunAsync();

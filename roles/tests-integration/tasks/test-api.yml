@@ -43,7 +43,7 @@
       - >
         api_query_anonymous.content is search("Missing 'Authorization' or 'Cookie' header in JWT authentication mode")
         or api_query_anonymous.content is search("Missing 'Authorization' or 'Cookie' header")
-    fail_msg: "unexpected version test result (does not contain \"Missing 'Authorization' or 'Cookie' header in JWT authentication mode\"): {{ api_query_anonymous.content }}"
+    fail_msg: 'unexpected version test result (does not contain "Missing ''Authorization'' or ''Cookie'' header in JWT authentication mode"): {{ api_query_anonymous.content }}'
 
 - name: get sample jwt
   uri:
@@ -104,7 +104,7 @@
       x-hasura-role: admin
       x-hasura-admin-secret: "{{ api_hasura_admin_secret }}"
     body:
-      query: "query { object (limit: 1) {obj_name} }"
+      query: "{ stm_obj_typ(limit: 1) { obj_typ_name } }"
     body_format: json
     validate_certs: false
     return_content: true
@@ -115,5 +115,5 @@
 - name: admin api access output
   assert:
     that:
-      - api_query_admin.content is search('obj_name')
-    fail_msg: "unexpected version test result (does not contain obj_name): {{ api_query_admin.content }}"
+      - api_query_admin.content is search('obj_typ_name')
+    fail_msg: "unexpected version test result (does not contain obj_typ_name): {{ api_query_admin.content }}"

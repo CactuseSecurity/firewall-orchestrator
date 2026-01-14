@@ -1286,6 +1286,7 @@ ON CONFLICT (config_key, config_user) DO NOTHING;
 
 ALTER TABLE compliance.violation ADD COLUMN IF NOT EXISTS rule_uid TEXT;
 ALTER TABLE compliance.violation ADD COLUMN IF NOT EXISTS mgmt_uid TEXT;
+ALTER TABLE compliance.violation ADD COLUMN IF NOT EXISTS is_initial BOOLEAN;
 
 -- add assessability issue
 

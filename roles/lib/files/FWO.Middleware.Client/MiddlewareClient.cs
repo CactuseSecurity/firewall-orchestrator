@@ -87,6 +87,13 @@ namespace FWO.Middleware.Client
             return await restClient.ExecuteAsync<List<string>>(request);
         }
 
+        public async Task<RestResponse<List<string>>> GetGroupMemberships(GroupMembershipGetParameters parameters)
+        {
+            RestRequest request = new ("Group/Memberships", Method.Post);
+            request.AddJsonBody(parameters);
+            return await restClient.ExecuteAsync<List<string>>(request);
+        }
+
         public async Task<RestResponse<List<GroupGetReturnParameters>>> GetInternalGroups()
         {
             RestRequest request = new ("Group", Method.Get);

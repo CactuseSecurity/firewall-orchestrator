@@ -286,6 +286,7 @@
         firstTry = true;
         Display = false;
         DisplayChanged.InvokeAsync(Display);
+        EventMediator.Publish<CollectionChangedEvent>("AppserversCollectionChanged", new CollectionChangedEvent());
     }
 
 

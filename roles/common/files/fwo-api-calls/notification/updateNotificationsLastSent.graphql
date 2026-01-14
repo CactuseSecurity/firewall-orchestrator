@@ -1,0 +1,12 @@
+mutation updateNotificationsLastSent(
+  $ids: [Int!]
+  $lastSent: timestamp
+  ) {
+  update_notification(
+    where: { id: {_in: $ids} }
+    _set: {
+    last_sent: $lastSent
+  }) {
+    affected_rows
+  }
+}

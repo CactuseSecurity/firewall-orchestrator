@@ -9,7 +9,7 @@ using Quartz;
 namespace FWO.Middleware.Server.Services
 {
     /// <summary>
-    /// Config listener and rescheduler for autodiscovery (no BackgroundService)
+    /// Config listener and rescheduler for compliance check (no BackgroundService)
     /// </summary>
     public class ComplianceSchedulerService : IAsyncDisposable
     {
@@ -25,7 +25,7 @@ namespace FWO.Middleware.Server.Services
         private const string SchedulerName = "ComplianceScheduler";
 
         /// <summary>
-        /// Initializes the autodiscovery scheduler service.
+        /// Initializes the compliance scheduler service.
         /// </summary>
         /// <param name="schedulerFactory">Quartz scheduler factory.</param>
         /// <param name="apiConnection">GraphQL API connection.</param>
@@ -102,7 +102,7 @@ namespace FWO.Middleware.Server.Services
             }
 
             // Only schedule a trigger if sleep time > 0
-            if (globalConfig.AutoDiscoverSleepTime <= 0)
+            if (globalConfig.ComplianceCheckSleepTime <= 0)
             {
                 Log.WriteInfo(SchedulerName, "Job disabled (sleep time <= 0) - job kept without trigger for manual runs");
                 return;

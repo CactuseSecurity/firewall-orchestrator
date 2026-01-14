@@ -9,7 +9,7 @@ using Quartz;
 namespace FWO.Middleware.Server.Jobs
 {
     /// <summary>
-    /// Quartz Job for autodiscovery
+    /// Quartz Job for Compliance
     /// </summary>
     public class ComplianceJob : IJob
     {
@@ -18,7 +18,7 @@ namespace FWO.Middleware.Server.Jobs
         private readonly GlobalConfig globalConfig;
 
         /// <summary>
-        /// Creates a new autodiscovery job.
+        /// Creates a new compliance job.
         /// </summary>
         /// <param name="apiConnection">GraphQL API connection.</param>
         /// <param name="globalConfig">Global configuration.</param>

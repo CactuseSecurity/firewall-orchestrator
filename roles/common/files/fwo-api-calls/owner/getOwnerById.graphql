@@ -1,0 +1,7 @@
+query getOwnerById ($id: Int!){
+  owner_by_pk (id: $id){
+    id
+    name
+    app_id_external
+  }
+}

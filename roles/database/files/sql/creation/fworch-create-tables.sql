@@ -1049,6 +1049,7 @@ create table notification
 (
     id SERIAL PRIMARY KEY,
 	notification_client Varchar,
+	name Varchar,
 	user_id int,
 	owner_id int,
 	channel Varchar,
@@ -1062,6 +1063,7 @@ create table notification
 	interval_before_deadline int,
 	offset_before_deadline int,
 	repeat_interval_after_deadline int,
+	initial_offset_after_deadline int,
 	repeat_offset_after_deadline int,
 	repetitions_after_deadline int,
 	last_sent Timestamp
@@ -1534,7 +1536,8 @@ create table compliance.violation
 	details TEXT,
 	risk_score real,
 	policy_id INT NOT NULL,
-	criterion_id INT NOT NULL
+	criterion_id INT NOT NULL,
+	is_initial BOOLEAN NOT NULL
 );
 
 -- create table compliance.assessability_issue

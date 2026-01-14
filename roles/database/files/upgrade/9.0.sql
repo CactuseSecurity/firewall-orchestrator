@@ -296,6 +296,10 @@ alter table owner add column if not exists owner_lifecycle_state_id int;
 alter table owner drop constraint if exists owner_owner_lifecycle_state_foreign_key;
 ALTER TABLE owner ADD CONSTRAINT owner_owner_lifecycle_state_foreign_key FOREIGN KEY (owner_lifecycle_state_id)REFERENCES owner_lifecycle_state(id) ON DELETE SET NULL;
 
+-- v8.9.6
+
+alter table notification add column if not exists initial_offset_after_deadline int;
+alter table notification add column if not exists name Varchar;
 
 ------------------------------------------------------------------------------------
 
@@ -1542,6 +1546,7 @@ ON CONFLICT (config_key, config_user) DO NOTHING;
 
 ALTER TABLE compliance.violation ADD COLUMN IF NOT EXISTS rule_uid TEXT;
 ALTER TABLE compliance.violation ADD COLUMN IF NOT EXISTS mgmt_uid TEXT;
+ALTER TABLE compliance.violation ADD COLUMN IF NOT EXISTS is_initial BOOLEAN;
 
 -- add assessability issue
 
@@ -2120,3 +2125,9 @@ DROP SEQUENCE IF EXISTS public.stm_change_type_change_type_id_seq;
 DROP SEQUENCE IF EXISTS public.stm_action_action_id_seq;
 DROP SEQUENCE IF EXISTS public.stm_dev_typ_dev_typ_id_seq;
 DROP SEQUENCE IF EXISTS public.parent_rule_type_id_seq;
+
+-- drop old mgm_id, zone_name constraint
+ALTER TABLE zone DROP CONSTRAINT IF EXISTS "Alter_Key10";
+
+-- add new mgm_id, zone_name constraint where just one with removed is null allowed
+CREATE UNIQUE INDEX if not exists "zone_mgm_id_zone_name_removed_is_null_unique" ON zone (mgm_id, zone_name) WHERE removed IS NULL;

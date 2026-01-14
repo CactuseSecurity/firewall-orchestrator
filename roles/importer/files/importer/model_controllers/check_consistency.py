@@ -6,7 +6,9 @@ from fwo_log import FWOLogger
 from model_controllers.fwconfig_import import FwConfigImport
 from model_controllers.fwconfig_import_object import FwConfigImportObject
 from model_controllers.fwconfigmanager_controller import FwConfigManager
-from model_controllers.fwconfigmanagerlist_controller import FwConfigManagerListController
+from model_controllers.fwconfigmanagerlist_controller import (
+    FwConfigManagerListController,
+)
 from model_controllers.import_state_controller import ImportStateController
 from models.fwconfig_normalized import FwConfigNormalized
 from models.gateway import Gateway
@@ -25,7 +27,11 @@ class FwConfigImportCheckConsistency(FwConfigImport):
     config: FwConfigNormalized = FwConfigNormalized()
 
     # merges all configs in the set together to prepare for consistency checks
-    def __init__(self, import_details: ImportStateController, config_list: FwConfigManagerListController):
+    def __init__(
+        self,
+        import_details: ImportStateController,
+        config_list: FwConfigManagerListController,
+    ):
         service_provider = ServiceProvider()
         self._global_state = service_provider.get_global_state()
         self.import_state = import_details
@@ -95,7 +101,9 @@ class FwConfigImportCheckConsistency(FwConfigImport):
                 self.issues.update({"unresolvableNwObjTypes": list(missing_nw_obj_types)})
 
     @staticmethod
-    def _collect_all_used_objects_from_groups(single_config: FwConfigNormalized) -> list[str]:
+    def _collect_all_used_objects_from_groups(
+        single_config: FwConfigNormalized,
+    ) -> list[str]:
         all_used_obj_refs: list[str] = []
         # add all nw obj refs from groups
         for obj_id in single_config.network_objects:
@@ -162,7 +170,9 @@ class FwConfigImportCheckConsistency(FwConfigImport):
             self.issues.update({"unresolvableSvcObjTypes": list(missing_obj_types)})
 
     @staticmethod
-    def _collect_all_service_object_refs_from_groups(single_config: FwConfigNormalized) -> set[str]:
+    def _collect_all_service_object_refs_from_groups(
+        single_config: FwConfigNormalized,
+    ) -> set[str]:
         all_used_obj_refs: set[str] = set()
         for obj_id in single_config.service_objects:
             if (
@@ -176,7 +186,9 @@ class FwConfigImportCheckConsistency(FwConfigImport):
         return all_used_obj_refs
 
     @staticmethod
-    def _collect_service_object_refs_from_rules(single_config: FwConfigNormalized) -> set[str]:
+    def _collect_service_object_refs_from_rules(
+        single_config: FwConfigNormalized,
+    ) -> set[str]:
         all_used_obj_refs: set[str] = set()
         for rb in single_config.rulebases:
             for rule_id in rb.rules:
@@ -222,7 +234,7 @@ class FwConfigImportCheckConsistency(FwConfigImport):
         # check that all obj_typ exist
         all_used_obj_types: set[str] = set()
         for obj_id in single_config.users:
-            all_used_obj_types.add(single_config.users[obj_id].user_typ)  # make list unique
+            all_used_obj_types.add(single_config.users[obj_id]["user_typ"])  # make list unique
         missing_obj_types = (
             list(set(all_used_obj_types)) - self.maps.user_object_type_map.keys()
         )  # TODO: why list(set())?
@@ -278,19 +290,28 @@ class FwConfigImportCheckConsistency(FwConfigImport):
 
         for mgr in config.ManagerSet:
             for single_config in mgr.configs:
-                all_used_nw_obj_color_ref_set, all_used_svc_color_ref_set, all_used_user_color_ref_set = (
-                    self._collect_all_used_colors(single_config)
-                )
+                (
+                    all_used_nw_obj_color_ref_set,
+                    all_used_svc_color_ref_set,
+                    all_used_user_color_ref_set,
+                ) = self._collect_all_used_colors(single_config)
 
-                unresolvable_nw_obj_colors, unresolvable_svc_colors, unresolvable_user_colors = (
-                    self._check_resolvability_of_used_colors(
-                        all_used_nw_obj_color_ref_set, all_used_svc_color_ref_set, all_used_user_color_ref_set
-                    )
+                (
+                    unresolvable_nw_obj_colors,
+                    unresolvable_svc_colors,
+                    unresolvable_user_colors,
+                ) = self._check_resolvability_of_used_colors(
+                    all_used_nw_obj_color_ref_set,
+                    all_used_svc_color_ref_set,
+                    all_used_user_color_ref_set,
                 )
 
                 if fix:
                     self._fix_colors(
-                        single_config, unresolvable_nw_obj_colors, unresolvable_svc_colors, unresolvable_user_colors
+                        single_config,
+                        unresolvable_nw_obj_colors,
+                        unresolvable_svc_colors,
+                        unresolvable_user_colors,
                     )
                 elif (
                     len(unresolvable_nw_obj_colors) > 0
@@ -320,10 +341,14 @@ class FwConfigImportCheckConsistency(FwConfigImport):
             if single_config.service_objects[uid].svc_color is not None:  # type: ignore #TODO: svc_color cant be None  # noqa: PGH003
                 all_used_svc_color_ref_set.add(single_config.service_objects[uid].svc_color)
         for uid in single_config.users:
-            if single_config.users[uid].user_color is not None:
-                all_used_user_color_ref_set.add(single_config.users[uid].user_color)
+            if single_config.users[uid]["user_color"] is not None:
+                all_used_user_color_ref_set.add(single_config.users[uid]["user_color"])
 
-        return all_used_nw_obj_color_ref_set, all_used_svc_color_ref_set, all_used_user_color_ref_set
+        return (
+            all_used_nw_obj_color_ref_set,
+            all_used_svc_color_ref_set,
+            all_used_user_color_ref_set,
+        )
 
     def _check_resolvability_of_used_colors(
         self,
@@ -352,7 +377,11 @@ class FwConfigImportCheckConsistency(FwConfigImport):
             if color_id is None:  # type: ignore # TODO: lookupColorId cant return None  # noqa: PGH003
                 unresolvable_user_colors.append(color_string)
 
-        return unresolvable_nw_obj_colors, unresolvable_svc_colors, unresolvable_user_colors
+        return (
+            unresolvable_nw_obj_colors,
+            unresolvable_svc_colors,
+            unresolvable_user_colors,
+        )
 
     @staticmethod
     def _fix_colors(
@@ -371,11 +400,13 @@ class FwConfigImportCheckConsistency(FwConfigImport):
                 obj.svc_color = fwo_const.DEFAULT_COLOR
         # Replace unresolvable user object colors
         for obj in config.users.values():
-            if obj.user_color in unresolvable_user_colors:
-                obj.user_color = fwo_const.DEFAULT_COLOR
+            if obj["user_color"] in unresolvable_user_colors:
+                obj["user_color"] = fwo_const.DEFAULT_COLOR
 
     @staticmethod
-    def _extract_rule_track_n_action_refs(rulebases: list[Rulebase]) -> tuple[list[str], list[str]]:
+    def _extract_rule_track_n_action_refs(
+        rulebases: list[Rulebase],
+    ) -> tuple[list[str], list[str]]:
         track_refs: list[str] = []
         action_refs: list[str] = []
         for rb in rulebases:
@@ -476,7 +507,12 @@ class FwConfigImportCheckConsistency(FwConfigImport):
             self._add_issue(broken_rulebase_links, rbl, gw, "from_rule_uid broken")
 
     @staticmethod
-    def _add_issue(broken_rulebase_links: list[dict[str, Any]], rbl: RulebaseLinkUidBased, gw: Gateway, error_txt: str):
+    def _add_issue(
+        broken_rulebase_links: list[dict[str, Any]],
+        rbl: RulebaseLinkUidBased,
+        gw: Gateway,
+        error_txt: str,
+    ):
         rbl_dict = rbl.to_dict()
         rbl_dict.update({"error": error_txt})
         rbl_dict.update({"gw": f"{gw.Name} ({gw.Uid})"})

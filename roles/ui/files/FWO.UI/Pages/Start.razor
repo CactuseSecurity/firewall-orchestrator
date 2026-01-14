@@ -53,7 +53,7 @@
 
         if(authenticationState.User.IsInRole(Roles.Modeller) && availableModules.Contains(Module.Modelling))
         {
-            NavigationManager.NavigateTo($"/networkmodelling/{AppId ?? ""}");
+            NavigationManager.NavigateTo($"/{PageName.Modelling}/{AppId ?? ""}");
         }
     }
 

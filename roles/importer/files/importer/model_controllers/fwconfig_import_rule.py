@@ -585,7 +585,6 @@ class FwConfigImportRule:
         Args:
             rule (RuleNormalized): The current version of the rule.
             prev_rule (RuleNormalized): The previous version of the rule.
-            prev_config (FwConfigNormalized): The previous configuration containing the rules.
             add_all (bool): If True, all references will be added. If False, it will check for changes in references that need to be added.
 
         """

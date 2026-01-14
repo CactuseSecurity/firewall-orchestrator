@@ -48,7 +48,7 @@ namespace FWO.Middleware.Server.Services
                 scheduler = await schedulerFactory.GetScheduler();
 
                 // Config change subscription
-                configSubscription = apiConnection.GetSubscription<List<ConfigItem>>(ApiExceptionHandler, OnGlobalConfigChange, ConfigQueries.subscribeExternalRequestConfigChanges);
+                configSubscription = apiConnection.GetSubscription<List<ConfigItem>>(ApiExceptionHandler, OnGlobalConfigChange, ConfigQueries.subscribeComplianceCheckConfigChanges);
 
                 Log.WriteInfo(SchedulerName, "Listener started");
             }

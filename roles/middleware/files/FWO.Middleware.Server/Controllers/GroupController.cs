@@ -4,6 +4,7 @@ using FWO.Data.Middleware;
 using FWO.Logging;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Novell.Directory.Ldap;
 using System.Collections.Concurrent;
 
 namespace FWO.Middleware.Server.Controllers
@@ -237,6 +238,103 @@ namespace FWO.Middleware.Server.Controllers
             }
 
             return members;
+        }
+
+        /// <summary>
+        /// Get all group memberships for a user across connected ldaps
+        /// </summary>
+        /// <param name="parameters">GroupMembershipGetParameters</param>
+        /// <returns>List of group dns</returns>
+        [HttpPost("Memberships")]
+        [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}, {Roles.Recertifier}, {Roles.Modeller}")]
+        public async Task<List<string>> GetMemberships([FromBody] GroupMembershipGetParameters parameters)
+        {
+            HashSet<string> memberships = new(StringComparer.OrdinalIgnoreCase);
+            if (string.IsNullOrWhiteSpace(parameters.UserDn) && string.IsNullOrWhiteSpace(parameters.UserName))
+            {
+                return [];
+            }
+
+            object membershipsLock = new();
+            List<Task> ldapRequests = [];
+
+            foreach (Ldap currentLdap in ldaps)
+            {
+                if (!currentLdap.HasGroupHandling() || string.IsNullOrWhiteSpace(currentLdap.GroupSearchPath))
+                {
+                    continue;
+                }
+
+                ldapRequests.Add(Task.Run(async () =>
+                {
+                    List<string> currentGroups = await GetMembershipsFromLdap(currentLdap, parameters);
+                    if (currentGroups.Count == 0)
+                    {
+                        return;
+                    }
+
+                    lock (membershipsLock)
+                    {
+                        foreach (string groupDn in currentGroups)
+                        {
+                            memberships.Add(groupDn);
+                        }
+                    }
+                }));
+            }
+
+            await Task.WhenAll(ldapRequests);
+            return new List<string>(memberships);
+        }
+
+        private async Task<List<string>> GetMembershipsFromLdap(Ldap currentLdap, GroupMembershipGetParameters parameters)
+        {
+            List<string> memberships = [];
+            UiUser userToSearch = new() { Dn = parameters.UserDn, Name = parameters.UserName };
+            LdapEntry? ldapUser = null;
+
+            if (!string.IsNullOrWhiteSpace(parameters.UserDn)
+                && !string.IsNullOrWhiteSpace(currentLdap.UserSearchPath)
+                && parameters.UserDn.EndsWith(currentLdap.UserSearchPath, StringComparison.OrdinalIgnoreCase))
+            {
+                ldapUser = await currentLdap.GetLdapEntry(userToSearch, false);
+            }
+            else if (!string.IsNullOrWhiteSpace(parameters.UserName))
+            {
+                userToSearch.Dn = "";
+                ldapUser = await currentLdap.GetLdapEntry(userToSearch, false);
+            }
+
+            if (ldapUser != null)
+            {
+                memberships = currentLdap.GetGroups(ldapUser);
+                if (memberships.Count == 0)
+                {
+                    memberships = await GetMembershipsByMemberDn(currentLdap, ldapUser.Dn);
+                }
+            }
+            else if (!string.IsNullOrWhiteSpace(parameters.UserDn))
+            {
+                memberships = await GetMembershipsByMemberDn(currentLdap, parameters.UserDn);
+            }
+
+            return memberships;
+        }
+
+        private async Task<List<string>> GetMembershipsByMemberDn(Ldap currentLdap, string userDn)
+        {
+            List<string> memberships = [];
+            if (string.IsNullOrWhiteSpace(userDn) || string.IsNullOrWhiteSpace(currentLdap.GroupSearchPath))
+            {
+                return memberships;
+            }
+
+            List<string> groupNames = await currentLdap.GetGroups([userDn]);
+            foreach (string groupName in groupNames)
+            {
+                memberships.Add($"cn={groupName},{currentLdap.GroupSearchPath}");
+            }
+            return memberships;
         }
 
         // GET: GroupController/

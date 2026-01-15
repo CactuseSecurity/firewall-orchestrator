@@ -281,7 +281,7 @@ namespace FWO.Report.Filter
 
         private static string ConstructChangesQuery(DynGraphqlQuery query, string paramString, ReportTemplate filter)
         {
-            string test = $@"
+            return $@"
                     {(filter.Detailed ? RuleQueries.ruleDetailsForChangeReportFragments : RuleQueries.ruleOverviewForChangeReportFragments)}
                 query changeReport({paramString}){{
                     management(where: {{
@@ -329,7 +329,6 @@ namespace FWO.Report.Filter
                         {changelogObjectsBlock}                            
                     }}
                 }}";
-            return test;
         }
         
         private static string ConstructNatRulesQuery(DynGraphqlQuery query, string paramString, ReportTemplate filter)

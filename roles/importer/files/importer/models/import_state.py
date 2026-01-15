@@ -37,11 +37,9 @@ class ImportState:
         self.link_types: dict[str, int] = {}
         self.gateway_map: dict[int, dict[str, int]] = {}
         self.rulebase_map: dict[str, int] = {}
-        self.rule_map: dict[str, int] = {}
         self.management_map: dict[str, int] = {}
         self.color_map: dict[str, int] = {}
         self.rulebase_to_gateway_map: dict[int, list[int]] = {}
-        self.removed_rules_map: dict[str, int] = {}
         self.data_retention_days: int = 30
 
     def lookup_action(self, action_str: str) -> int:

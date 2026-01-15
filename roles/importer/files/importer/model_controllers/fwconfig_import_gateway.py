@@ -119,7 +119,7 @@ class FwConfigImportGateway:
         # If rule changed we need the id of the old version, since the rulebase links still have the old fks (for updates)
 
         from_rule_id = (
-            self._global_state.import_state.state.removed_rules_map.get(link.from_rule_uid, None)
+            self._uid2id_mapper.get_rule_id(link.from_rule_uid, before_update=True)
             if link.from_rule_uid is not None
             else None
         )

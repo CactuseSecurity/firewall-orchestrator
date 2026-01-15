@@ -136,17 +136,7 @@ class FwConfigImportRule:
         for removed_rules_by_rulebase in removed_rule_ids:
             old_rule_ids.append(removed_rules_by_rulebase)
 
-        if len(old_rule_ids) > 0:
-            self._create_removed_rules_map(old_rule_ids)
-
         return new_rule_ids
-
-    def _create_removed_rules_map(self, removed_rule_ids: list[int]):
-        removed_rule_ids_set = set(removed_rule_ids)
-        for rule_id in removed_rule_ids_set:
-            rule_uid = next((k for k, v in self.import_details.state.rule_map.items() if v == rule_id), None)
-            if rule_uid:
-                self.import_details.state.removed_rules_map[rule_uid] = rule_id
 
     def _collect_uncaught_moves(self, moved_rule_uids: dict[str, list[str]], changed_rule_uids: dict[str, list[str]]):
         for rulebase_id in moved_rule_uids:  # noqa: PLC0206

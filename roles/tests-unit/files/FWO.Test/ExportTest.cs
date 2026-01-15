@@ -1,4 +1,4 @@
-﻿using NUnit.Framework;
+using NUnit.Framework;
 using NUnit.Framework.Legacy;
 using FWO.Logging;
 using FWO.Report;
@@ -8,13 +8,9 @@ using FWO.Config.Api;
 using FWO.Data;
 using FWO.Data.Modelling;
 using FWO.Data.Report;
-using FWO.Logging;
-using FWO.Report;
-using FWO.Report.Filter;
 using FWO.Test.Mocks;
 using FWO.Ui.Pages.Reporting;
-using NUnit.Framework;
-using NUnit.Framework.Legacy;
+
 
 
 namespace FWO.Test
@@ -500,19 +496,24 @@ namespace FWO.Test
                                         "\"rule_metadatum\": {\"rule_metadata_id\": 0,\"rule_created\": null,\"created_import\": null,\"rule_last_modified\": null,\"last_modified_import\": null,\"rule_first_hit\": null,\"rule_last_hit\": null,\"recertification\": [],\"recert_history\": [],\"rule_uid\": \"\",\"rules\": [],\"NextRecert\": \"0001-01-01T00:00:00\",\"LastCertifierName\": \"\",\"Recert\": false,\"Style\": \"\"}," +
                                         "\"translate\": {\"rule_svc_neg\": false,\"rule_svc\": \"\",\"rule_services\": [],\"rule_src_neg\": false,\"rule_src\": \"\",\"rule_froms\": [],\"rule_dst_neg\": false,\"rule_dst\": \"\",\"rule_tos\": []}," +
                                         "\"owner_name\": \"\",\"owner_id\": null,\"matches\": \"\",\"rule_custom_fields\": \"\",\"rule_implied\": false,\"nat_rule\": false,\"rulebase_id\": 0,\"rule_num\": 0,\"rule_enforced_on_gateways\": [],\"rule_installon\": null,\"rule_time\": null,\"violations\": [],\"rulebase\": {\"id\": 0,\"name\": \"\",\"uid\": \"\",\"mgm_id\": 0,\"is_global\": false,\"created\": 0,\"removed\": 0,\"rules\": []},\"uiuser\": null,\"rule\": null,\"ChangeID\": \"\",\"AdoITID\": \"\",\"Compliance\": 0,\"ViolationDetails\": \"\",\"DisplayOrderNumberString\": \"\",\"DisplayOrderNumber\": 2,\"Certified\": false,\"DeviceName\": \"\",\"RulebaseName\": \"\",\"DisregardedFroms\": [],\"DisregardedTos\": [],\"DisregardedServices\": [],\"ShowDisregarded\": false}]}]," +
-                                        "\"import\": {\"aggregate\": {\"max\": {\"id\": null}}}," +
-                                        "\"import_controls\": [],\"RelevantImportId\": null,\"is_super_manager\": false,\"multi_device_manager_id\": null,\"management\": null,\"managementByMultiDeviceManagerId\": [],\"networkObjects\": [],\"serviceObjects\": [],\"userObjects\": [],\"zoneObjects\": []," +
-                                        "\"reportNetworkObjects\": [" +
-                                        "{\"obj_id\": 1,\"obj_name\": \"TestIp1\",\"obj_ip\": \"1.2.3.4/32\",\"obj_ip_end\": \"1.2.3.4/32\",\"obj_uid\": \"\",\"zone\": null,\"active\": false,\"obj_create\": 0,\"obj_create_time\": {\"time\": \"0001-01-01T00:00:00\"},\"obj_last_seen\": 0,\"type\": {\"id\": 0,\"name\": \"network\"},\"obj_color\": null,\"obj_comment\": \"\",\"obj_member_names\": \"\",\"obj_member_refs\": \"\",\"objgrps\": [],\"objgrp_flats\": []}," +
-                                        "{\"obj_id\": 2,\"obj_name\": \"TestIp2\",\"obj_ip\": \"127.0.0.1/32\",\"obj_ip_end\": \"127.0.0.1/32\",\"obj_uid\": \"\",\"zone\": null,\"active\": false,\"obj_create\": 0,\"obj_create_time\": {\"time\": \"0001-01-01T00:00:00\"},\"obj_last_seen\": 0,\"type\": {\"id\": 0,\"name\": \"network\"},\"obj_color\": null,\"obj_comment\": \"\",\"obj_member_names\": \"\",\"obj_member_refs\": \"\",\"objgrps\": [],\"objgrp_flats\": []}," +
-                                        "{\"obj_id\": 3,\"obj_name\": \"TestIpRange\",\"obj_ip\": \"1.2.3.4/32\",\"obj_ip_end\": \"1.2.3.5/32\",\"obj_uid\": \"\",\"zone\": null,\"active\": false,\"obj_create\": 0,\"obj_create_time\": {\"time\": \"0001-01-01T00:00:00\"},\"obj_last_seen\": 0,\"type\": {\"id\": 0,\"name\": \"ip_range\"},\"obj_color\": null,\"obj_comment\": \"\",\"obj_member_names\": \"\",\"obj_member_refs\": \"\",\"objgrps\": [],\"objgrp_flats\": []}]," +
-                                        "\"reportServiceObjects\": [" +
-                                        "{\"svc_id\": 1,\"svc_name\": \"TestService1\",\"svc_uid\": \"\",\"svc_port\": 443,\"svc_port_end\": 443,\"svc_source_port\": null,\"svc_source_port_end\": null,\"svc_code\": \"\",\"svc_timeout\": null,\"svc_typ_id\": null,\"active\": false,\"svc_create\": 0,\"svc_create_time\": {\"time\": \"0001-01-01T00:00:00\"},\"svc_last_seen\": 0,\"service_type\": {\"name\": \"\"},\"svc_comment\": \"\",\"svc_color_id\": null,\"stm_color\": null,\"ip_proto_id\": null,\"protocol_name\": {\"id\": 6,\"name\": \"TCP\"},\"svc_member_names\": \"\",\"svc_member_refs\": \"\",\"svcgrps\": [],\"svcgrp_flats\": [],\"svc_rpcnr\": null}," +
-                                        "{\"svc_id\": 2,\"svc_name\": \"TestService2\",\"svc_uid\": \"\",\"svc_port\": 6666,\"svc_port_end\": 7777,\"svc_source_port\": null,\"svc_source_port_end\": null,\"svc_code\": \"\",\"svc_timeout\": null,\"svc_typ_id\": null,\"active\": false,\"svc_create\": 0,\"svc_create_time\": {\"time\": \"0001-01-01T00:00:00\"},\"svc_last_seen\": 0,\"service_type\": {\"name\": \"\"},\"svc_comment\": \"\",\"svc_color_id\": null,\"stm_color\": null,\"ip_proto_id\": null,\"protocol_name\": {\"id\": 17,\"name\": \"UDP\"},\"svc_member_names\": \"\",\"svc_member_refs\": \"\",\"svcgrps\": [],\"svcgrp_flats\": [],\"svc_rpcnr\": null}]," +
-                                        "\"reportUserObjects\": [" +
-                                        "{\"user_id\": 1,\"user_uid\": \"\",\"user_name\": \"TestUser1\",\"user_comment\": \"\",\"user_lastname\": \"\",\"user_firstname\": \"\",\"usr_typ_id\": 0,\"type\": {\"usr_typ_name\": \"\"},\"user_create\": 0,\"user_create_time\": {\"time\": \"0001-01-01T00:00:00\"},\"user_last_seen\": 0,\"user_member_names\": \"\",\"user_member_refs\": \"\",\"usergrps\": [],\"usergrp_flats\": []}," +
-                                        "{\"user_id\": 2,\"user_uid\": \"\",\"user_name\": \"TestUser2\",\"user_comment\": \"\",\"user_lastname\": \"\",\"user_firstname\": \"\",\"usr_typ_id\": 0,\"type\": {\"usr_typ_name\": \"group\"},\"user_create\": 0,\"user_create_time\": {\"time\": \"0001-01-01T00:00:00\"},\"user_last_seen\": 0,\"user_member_names\": \"\",\"user_member_refs\": \"\",\"usergrps\": [],\"usergrp_flats\": []}]," +
-                                        "\"ReportedRuleIds\": [0],\"ReportedNetworkServiceIds\": [],\"objects_aggregate\": {\"aggregate\": {\"count\": 0}},\"services_aggregate\": {\"aggregate\": {\"count\": 0}},\"usrs_aggregate\": {\"aggregate\": {\"count\": 0}},\"rules_aggregate\": {\"aggregate\": {\"count\": 0}},\"unusedRules_Count\": {\"aggregate\": {\"count\": 0}},\"Ignore\": false}]";
+                                        "\"changelog_rules\": null,\"changelog_objects\": null,\"changelog_services\": null,\"changelog_users\": null,\"import\": {\"aggregate\": {\"max\": {\"id\": null}}},\"import_controls\": [],\"RelevantImportId\": null,\"is_super_manager\": false,\"multi_device_manager_id\": null,\"management\": null,\"managementByMultiDeviceManagerId\": [],\"networkObjects\": [],\"serviceObjects\": [],\"userObjects\": [],\"zoneObjects\": []," +
+                                        "\"reportNetworkObjects\": [{\"obj_id\": 1,\"obj_name\": \"TestIp1\",\"obj_ip\": \"1.2.3.4/32\",\"obj_ip_end\": \"1.2.3.4/32\",\"obj_uid\": \"\",\"zone\": null,\"active\": false,\"obj_create\": 0," +
+                                        "\"obj_create_time\": {\"time\": \"0001-01-01T00:00:00\"},\"obj_last_seen\": 0,\"type\": {\"id\": 0,\"name\": \"network\"},\"obj_color\": null,\"obj_comment\": \"\",\"obj_member_names\": \"\",\"obj_member_refs\": \"\"," +
+                                        "\"objgrps\": [],\"objgrp_flats\": []},{\"obj_id\": 2,\"obj_name\": \"TestIp2\",\"obj_ip\": \"127.0.0.1/32\",\"obj_ip_end\": \"127.0.0.1/32\",\"obj_uid\": \"\",\"zone\": null,\"active\": false,\"obj_create\": 0," +
+                                        "\"obj_create_time\": {\"time\": \"0001-01-01T00:00:00\"},\"obj_last_seen\": 0,\"type\": {\"id\": 0,\"name\": \"network\"},\"obj_color\": null,\"obj_comment\": \"\",\"obj_member_names\": \"\",\"obj_member_refs\": \"\",\"objgrps\": []," +
+                                        "\"objgrp_flats\": []},{\"obj_id\": 3,\"obj_name\": \"TestIpRange\",\"obj_ip\": \"1.2.3.4/32\",\"obj_ip_end\": \"1.2.3.5/32\",\"obj_uid\": \"\",\"zone\": null,\"active\": false,\"obj_create\": 0," +
+                                        "\"obj_create_time\": {\"time\": \"0001-01-01T00:00:00\"},\"obj_last_seen\": 0,\"type\": {\"id\": 0,\"name\": \"ip_range\"},\"obj_color\": null,\"obj_comment\": \"\",\"obj_member_names\": \"\",\"obj_member_refs\": \"\"," +
+                                        "\"objgrps\": [],\"objgrp_flats\": []}],\"reportServiceObjects\": [{\"svc_id\": 1,\"svc_name\": \"TestService1\",\"svc_uid\": \"\",\"svc_port\": 443,\"svc_port_end\": 443,\"svc_source_port\": null,\"svc_source_port_end\": null," +
+                                        "\"svc_code\": \"\",\"svc_timeout\": null,\"svc_typ_id\": null,\"active\": false,\"svc_create\": 0,\"svc_create_time\": {\"time\": \"0001-01-01T00:00:00\"},\"svc_last_seen\": 0,\"service_type\": {\"name\": \"\"},\"svc_comment\": \"\"," +
+                                        "\"svc_color_id\": null,\"stm_color\": null,\"ip_proto_id\": null,\"protocol_name\": {\"id\": 6,\"name\": \"TCP\"},\"svc_member_names\": \"\",\"svc_member_refs\": \"\",\"svcgrps\": [],\"svcgrp_flats\": []," +
+                                        "\"svc_rpcnr\": null},{\"svc_id\": 2,\"svc_name\": \"TestService2\",\"svc_uid\": \"\",\"svc_port\": 6666,\"svc_port_end\": 7777,\"svc_source_port\": null,\"svc_source_port_end\": null,\"svc_code\": \"\"," +
+                                        "\"svc_timeout\": null,\"svc_typ_id\": null,\"active\": false,\"svc_create\": 0,\"svc_create_time\": {\"time\": \"0001-01-01T00:00:00\"},\"svc_last_seen\": 0,\"service_type\": {\"name\": \"\"},\"svc_comment\": \"\"," +
+                                        "\"svc_color_id\": null,\"stm_color\": null,\"ip_proto_id\": null,\"protocol_name\": {\"id\": 17,\"name\": \"UDP\"},\"svc_member_names\": \"\",\"svc_member_refs\": \"\",\"svcgrps\": [],\"svcgrp_flats\": [],\"svc_rpcnr\": null}]," +
+                                        "\"reportUserObjects\": [{\"user_id\": 1,\"user_uid\": \"\",\"user_name\": \"TestUser1\",\"user_comment\": \"\",\"user_lastname\": \"\",\"user_firstname\": \"\",\"usr_typ_id\": 0,\"type\": {\"usr_typ_name\": \"\"},\"user_create\": 0," +
+                                        "\"user_create_time\": {\"time\": \"0001-01-01T00:00:00\"},\"user_last_seen\": 0,\"user_member_names\": \"\",\"user_member_refs\": \"\",\"usergrps\": [],\"usergrp_flats\": []},{\"user_id\": 2,\"user_uid\": \"\"," +
+                                        "\"user_name\": \"TestUser2\",\"user_comment\": \"\",\"user_lastname\": \"\",\"user_firstname\": \"\",\"usr_typ_id\": 0,\"type\": {\"usr_typ_name\": \"group\"},\"user_create\": 0,\"user_create_time\": {\"time\": \"0001-01-01T00:00:00\"}," +
+                                        "\"user_last_seen\": 0,\"user_member_names\": \"\",\"user_member_refs\": \"\",\"usergrps\": [],\"usergrp_flats\": []}],\"ReportedRuleIds\": [0],\"ReportedNetworkServiceIds\": [],\"objects_aggregate\": {\"aggregate\": {\"count\": 0}}," +
+                                        "\"services_aggregate\": {\"aggregate\": {\"count\": 0}},\"usrs_aggregate\": {\"aggregate\": {\"count\": 0}},\"rules_aggregate\": {\"aggregate\": {\"count\": 0}},\"unusedRules_Count\": {\"aggregate\": {\"count\": 0}},\"Ignore\": false}]"; 
             string jsonExport = RemoveLinebreaks(RemoveGenDate(reportRules.ExportToJson(), false, true));
             ClassicAssert.AreEqual(expectedJsonResult, jsonExport);
         }

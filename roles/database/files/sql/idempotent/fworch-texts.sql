@@ -6033,8 +6033,6 @@ INSERT INTO txt VALUES ('H5843', 'German',  'Anzahl der Elemente die pro Anfrage
 INSERT INTO txt VALUES ('H5843', 'English', 'Amount of elements that should be retrieved with each fetch operation.');
 INSERT INTO txt VALUES ('H5844', 'German',  'Anzahl der Prozessoren die für Parallelisierungsoperationen zur Verfügung stehen.');
 INSERT INTO txt VALUES ('H5844', 'English', 'Amount of processors that should be used for parallelized operations.');
-INSERT INTO txt VALUES ('H5851', 'German',  'Sollen festgestellte Objektänderungen im &Auml;nderungsreport angezeigt werden, ist diese Einstellung zu aktivieren. Default-Wert = "inaktiv".');
-INSERT INTO txt VALUES ('H5851', 'English', 'Include object changes: When the import detects object changes, they will be included in the change report. Default value = "inactive".');
 INSERT INTO txt VALUES ('H5845', 'German',  'Löscht vorhandene Violations.');
 INSERT INTO txt VALUES ('H5845', 'English', 'Deletes all existing violations .');
 INSERT INTO txt VALUES ('H5846', 'German',  'Lösche alle Violations');
@@ -6047,6 +6045,8 @@ INSERT INTO txt VALUES ('H5849', 'German',  'Initialen Check durchführen');
 INSERT INTO txt VALUES ('H5849', 'English', 'Run initial check');
 INSERT INTO txt VALUES ('H5850', 'German',  'Check starten');
 INSERT INTO txt VALUES ('H5850', 'English', 'Run Check');
+INSERT INTO txt VALUES ('H5851', 'German',  'Sollen festgestellte Objektänderungen im &Auml;nderungsreport angezeigt werden, ist diese Einstellung zu aktivieren. Default-Wert = "inaktiv".');
+INSERT INTO txt VALUES ('H5851', 'English', 'Include object changes: When the import detects object changes, they will be included in the change report. Default value = "inactive".');
 
 
 INSERT INTO txt VALUES ('H6001', 'German',  'Firewall Orchestrator verf&uuml;gt &uuml;ber zwei APIs:

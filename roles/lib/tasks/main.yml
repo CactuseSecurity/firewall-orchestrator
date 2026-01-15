@@ -36,6 +36,9 @@
     - name: install dotnet needed for both ui and middleware servers
       include_tasks: install_dot_net.yml
 
+    - name: remove dotnet packages older than target version
+      include_tasks: remove-old-dotnet-versions.yml
+
     - name: install puppeteer needed for both ui and middleware servers PDF creation
       include_tasks: install_puppeteer.yml
 

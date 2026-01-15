@@ -160,7 +160,7 @@ def handle_object_type_and_ip(obj: dict[str, Any], ip_addr: str | None) -> tuple
         last_ip = ANY_IP_END
         obj_type = "dynamic_net_obj"
 
-    if obj_type in ["group-with-exclusion", "security-zone", "dynamic-object"]:
+    if obj_type in ["group-with-exclusion", "security-zone", "dynamic-object", "aci-epg"]:
         obj_type = "group"
         # TODO: handle exclusion groups correctly
 

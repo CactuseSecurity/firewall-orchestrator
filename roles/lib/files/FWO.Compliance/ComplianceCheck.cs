@@ -249,7 +249,7 @@ namespace FWO.Compliance
 
             HashSet<string> currentKeySet = currentViolationsWithKeys.Select(v => v.Key).ToHashSet(StringComparer.Ordinal);
             HashSet<string> dbKeySet = dbViolationsWithKeys.Select(v => v.Key).ToHashSet(StringComparer.Ordinal);
-            
+
             ParallelOptions parallelOptions = new()
             {
                 MaxDegreeOfParallelism = Math.Max(1, _maxDegreeOfParallelism)

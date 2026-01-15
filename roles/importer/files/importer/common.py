@@ -100,8 +100,6 @@ def import_management(
     except (FwoApiWriteError, FwoImporterError) as e:
         exception = e
         roll_back_exception_handler(import_state, config_importer=config_importer, exc=e, error_text="")
-    except ValueError:
-        raise
     except Exception as e:
         exception = e
         handle_unexpected_exception(import_state=import_state, config_importer=config_importer, e=e)
@@ -187,7 +185,7 @@ def handle_unexpected_exception(
     config_importer: FwConfigImport | None = None,
     e: Exception | None = None,
 ):
-    if "importState" in locals() and import_state is not None and config_importer is not None:
+    if import_state is not None and config_importer is not None:
         roll_back_exception_handler(import_state, config_importer=config_importer, exc=e)
 
 

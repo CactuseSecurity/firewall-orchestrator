@@ -36,7 +36,7 @@ namespace FWO.Middleware.Server.Jobs
                 UserConfig userConfig = new(globalConfig);
                 ComplianceCheck complianceCheck = new(userConfig, apiConnection);
 
-                await complianceCheck.CheckAll();
+                await complianceCheck.RunComplianceCheck(ComplianceCheckType.Standard);
                 await complianceCheck.PersistDataAsync();
             }
             catch (Exception exc)

@@ -21,7 +21,19 @@ DROP VIEW IF EXISTS v_rule_with_dst_owner CASCADE;
 DROP VIEW IF EXISTS v_rule_with_ip_owner CASCADE;
 
 CREATE OR REPLACE VIEW v_active_access_allow_rules AS 
-	SELECT * FROM rule r
+	SELECT rule_id,
+    rule_src, rule_dst, rule_svc,
+    rule_svc_neg, rule_src_neg, rule_dst_neg,
+    mgm_id, rule_uid,
+    rule_num_numeric, rule_disabled,
+    rule_src_refs, rule_dst_refs, rule_svc_refs,
+    rule_from_zone, rule_to_zone,
+    rule_action, rule_track, track_id, action_id,
+    rule_installon, rule_comment, rule_name, rule_implied, rule_custom_fields, 
+    rule_create, removed,
+    is_global,
+    rulebase_id
+    FROM rule r
 	WHERE r.active AND 					-- only show current (not historical) rules 
 		r.access_rule AND 				-- only show access rules (no NAT)
 		r.rule_head_text IS NULL AND 	-- do not show header rules
@@ -34,13 +46,14 @@ CREATE OR REPLACE VIEW v_rule_ownership_mode AS
 
 CREATE OR REPLACE VIEW v_rule_with_rule_owner AS
 	SELECT r.rule_id, ow.id as owner_id, ow.name as owner_name, 'rule' AS matches,
-		ow.recert_interval, met.rule_last_certified, met.rule_last_certifier
+		ow.recert_interval, max(rec.recert_date) AS rule_last_certified
 	FROM v_active_access_allow_rules r
 	LEFT JOIN rule_metadata met ON (r.rule_uid=met.rule_uid)
 	LEFT JOIN rule_owner ro ON (ro.rule_metadata_id=met.rule_metadata_id)
 	LEFT JOIN owner ow ON (ro.owner_id=ow.id)
+	LEFT JOIN recertification rec ON (rec.rule_metadata_id = met.rule_metadata_id AND rec.owner_id = ow.id AND rec.recertified IS TRUE)
 	WHERE NOT ow.id IS NULL
-	GROUP BY r.rule_id, ow.id, ow.name, met.rule_last_certified, met.rule_last_certifier;
+	GROUP BY r.rule_id, ow.id, ow.name, ow.recert_interval;
 
 CREATE OR REPLACE VIEW v_excluded_src_ips AS
 	SELECT distinct o.obj_ip
@@ -82,7 +95,7 @@ CREATE OR REPLACE VIEW v_rule_with_src_owner AS
 				END
 		END AS matching_ip,
 		'source' AS match_in,
-		ow.recert_interval, met.rule_last_certified, met.rule_last_certifier
+		ow.recert_interval, max(rec.recert_date) AS rule_last_certified
 	FROM v_active_access_allow_rules r
 	LEFT JOIN rule_from ON (r.rule_id=rule_from.rule_id)
 	LEFT JOIN objgrp_flat of ON (rule_from.obj_id=of.objgrp_flat_id)
@@ -90,12 +103,13 @@ CREATE OR REPLACE VIEW v_rule_with_src_owner AS
 	LEFT JOIN owner_network onw ON (onw.ip_end >= o.obj_ip AND onw.ip <= o.obj_ip_end)
 	LEFT JOIN owner ow ON (onw.owner_id=ow.id)
 	LEFT JOIN rule_metadata met ON (r.rule_uid=met.rule_uid)
+	LEFT JOIN recertification rec ON (rec.rule_metadata_id = met.rule_metadata_id AND rec.owner_id = ow.id AND rec.recertified IS TRUE)
 	WHERE r.rule_id NOT IN (SELECT distinct rwo.rule_id FROM v_rule_with_rule_owner rwo) AND
 	CASE
 		when (select mode from v_rule_ownership_mode) = 'exclusive' then (NOT o.obj_ip IS NULL) AND o.obj_ip NOT IN (select * from v_excluded_src_ips)
 		else NOT o.obj_ip IS NULL
 	END
-	GROUP BY r.rule_id, o.obj_ip, o.obj_ip_end, onw.ip, onw.ip_end, ow.id, ow.name, met.rule_last_certified, met.rule_last_certifier;
+	GROUP BY r.rule_id, o.obj_ip, o.obj_ip_end, onw.ip, onw.ip_end, ow.id, ow.name, ow.recert_interval;
 
 CREATE OR REPLACE VIEW v_rule_with_dst_owner AS 
 	SELECT 
@@ -114,7 +128,7 @@ CREATE OR REPLACE VIEW v_rule_with_dst_owner AS
 				END
 		END AS matching_ip,
 		'destination' AS match_in,
-		ow.recert_interval, met.rule_last_certified, met.rule_last_certifier
+		ow.recert_interval, max(rec.recert_date) AS rule_last_certified
 	FROM v_active_access_allow_rules r
 	LEFT JOIN rule_to rt ON (r.rule_id=rt.rule_id)
 	LEFT JOIN objgrp_flat of ON (rt.obj_id=of.objgrp_flat_id)
@@ -122,19 +136,20 @@ CREATE OR REPLACE VIEW v_rule_with_dst_owner AS
 	LEFT JOIN owner_network onw ON (onw.ip_end >= o.obj_ip AND onw.ip <= o.obj_ip_end)
 	LEFT JOIN owner ow ON (onw.owner_id=ow.id)
 	LEFT JOIN rule_metadata met ON (r.rule_uid=met.rule_uid)
+	LEFT JOIN recertification rec ON (rec.rule_metadata_id = met.rule_metadata_id AND rec.owner_id = ow.id AND rec.recertified IS TRUE)
 	WHERE r.rule_id NOT IN (SELECT distinct rwo.rule_id FROM v_rule_with_rule_owner rwo) AND
 	CASE
 		when (select mode from v_rule_ownership_mode) = 'exclusive' then (NOT o.obj_ip IS NULL) AND o.obj_ip NOT IN (select * from v_excluded_dst_ips)
 		else NOT o.obj_ip IS NULL
 	END
-	GROUP BY r.rule_id, o.obj_ip, o.obj_ip_end, onw.ip, onw.ip_end, ow.id, ow.name, met.rule_last_certified, met.rule_last_certifier;
+	GROUP BY r.rule_id, o.obj_ip, o.obj_ip_end, onw.ip, onw.ip_end, ow.id, ow.name, ow.recert_interval;
 
 CREATE OR REPLACE VIEW v_rule_with_ip_owner AS
 	SELECT DISTINCT	uno.rule_id, uno.owner_id, uno.owner_name,
 		string_agg(DISTINCT match_in || ':' || matching_ip::VARCHAR, '; ' order by match_in || ':' || matching_ip::VARCHAR desc) as matches,
-		uno.recert_interval, uno.rule_last_certified, uno.rule_last_certifier
+		uno.recert_interval, uno.rule_last_certified
 	FROM ( SELECT DISTINCT * FROM v_rule_with_src_owner AS src UNION SELECT DISTINCT * FROM v_rule_with_dst_owner AS dst) AS uno
-	GROUP BY uno.rule_id, uno.owner_id, uno.owner_name, uno.recert_interval, uno.rule_last_certified, uno.rule_last_certifier;
+	GROUP BY uno.rule_id, uno.owner_id, uno.owner_name, uno.recert_interval, uno.rule_last_certified;
 
 CREATE OR REPLACE FUNCTION purge_view_rule_with_owner () RETURNS VOID AS $$
 DECLARE
@@ -157,13 +172,13 @@ DROP FUNCTION purge_view_rule_with_owner();
 -- LargeOwnerChange: remove MATERIALIZED for small installations
 -- SmallOwnerChange: add MATERIALIZED for large installations
 CREATE MATERIALIZED VIEW view_rule_with_owner AS
-	SELECT DISTINCT ar.rule_id, ar.owner_id, ar.owner_name, ar.matches, ar.recert_interval, ar.rule_last_certified, ar.rule_last_certifier,
+	SELECT DISTINCT ar.rule_id, ar.owner_id, ar.owner_name, ar.matches, ar.recert_interval, ar.rule_last_certified, 
 	r.rule_num_numeric, r.track_id, r.action_id, r.rule_from_zone, r.rule_to_zone, r.mgm_id, r.rule_uid,
 	r.rule_action, r.rule_name, r.rule_comment, r.rule_track, r.rule_src_neg, r.rule_dst_neg, r.rule_svc_neg,
 	r.rule_head_text, r.rule_disabled, r.access_rule, r.xlate_rule, r.nat_rule
 	FROM ( SELECT DISTINCT * FROM v_rule_with_rule_owner AS rul UNION SELECT DISTINCT * FROM v_rule_with_ip_owner AS ips) AS ar
 	LEFT JOIN rule AS r USING (rule_id)
-	GROUP BY ar.rule_id, ar.owner_id, ar.owner_name, ar.matches, ar.recert_interval, ar.rule_last_certified, ar.rule_last_certifier,
+	GROUP BY ar.rule_id, ar.owner_id, ar.owner_name, ar.matches, ar.recert_interval, ar.rule_last_certified, 
 		r.rule_num_numeric, r.track_id, r.action_id, r.rule_from_zone, r.rule_to_zone, r.mgm_id, r.rule_uid,
 		r.rule_action, r.rule_name, r.rule_comment, r.rule_track, r.rule_src_neg, r.rule_dst_neg, r.rule_svc_neg,
 		r.rule_head_text, r.rule_disabled, r.access_rule, r.xlate_rule, r.nat_rule;

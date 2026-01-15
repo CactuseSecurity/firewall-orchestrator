@@ -61,6 +61,13 @@
                 <input class="form-check-input" type="checkbox" id="complianceShowAnyRule" checked="@_showAnyRulesInComplianceReport" @onchange="ToggleShowAnyRule"/>
                 <label class="form-check-label text-white" for="complianceShowAnyRule">@(userConfig.GetText("show_any_match"))</label>
             </div>
+            if (actReportFilters.ReportType == ReportType.ComplianceDiffReport)
+            {
+                <div class="p-3">
+                    <input class="form-check-input" type="checkbox" id="complianceFilterOutInitialViolations" checked="@_filterInitialViolations" @onchange="ToggleFilterInitialViolations"/>
+                    <label class="form-check-label text-white" for="complianceFilterOutInitialViolations">@(userConfig.GetText("filterOutInitialViolations"))</label>
+                </div>
+            }
         }
 
         @if (actReportFilters.ReportType.IsDeviceRelatedReport() && actReportFilters.ReportType != ReportType.RecertEventReport)
@@ -291,6 +298,8 @@
 
     private bool _showRightSidebar = true;
 
+    private bool _filterInitialViolations = false;
+
     private ComplianceReport? _complianceReport;
 
 
@@ -502,7 +511,9 @@
             processing = true;
             SetProperRoleForReport();
             await PrepareReportGeneration();
-            currentReport = await ReportGenerator.GenerateFromTemplate(ConstructReportTemplate(), apiConnection, userConfig, DisplayMessageInUi, token);
+            ReportTemplate temp = ConstructReportTemplate();
+            
+            currentReport = await ReportGenerator.GenerateFromTemplate(temp, apiConnection, userConfig, DisplayMessageInUi, token);
             processing = false;
             PostProcess();
         }
@@ -577,11 +588,13 @@
 
     private ReportTemplate ConstructReportTemplate(string? tempFilter = null)
     {
-        return new ReportTemplate(tempFilter ?? filterInput, actReportFilters.ToReportParams())
-            {
+        ReportTemplate template = new ReportTemplate(tempFilter ?? filterInput, actReportFilters.ToReportParams())
+        {
                 IncludeObjectsInReportChanges = actReportFilters.IncludeObjectsInReportChanges,
                 IncludeObjectsInReportChangesUiPresesed = actReportFilters.IncludeObjectsInReportChangesUiPresesed
-            };
+        };
+        template.ReportParams.ComplianceFilter.ShowNonImpactRules = _showAnyRulesInComplianceReport;
+        return template;
     }
 
     private string PlaceholderFilter()
@@ -652,5 +665,14 @@
     private void ToggleShowAnyRule(ChangeEventArgs e)
     {
         _showAnyRulesInComplianceReport = (bool)e.Value!;
+    }
+
+    private void ToggleFilterInitialViolations(ChangeEventArgs e)
+    {
+        _filterInitialViolations = (bool)e.Value!;
+        if (userConfig.GlobalConfig?.ComplianceFilterOutInitialViolations != null)
+        {
+            userConfig.GlobalConfig.ComplianceFilterOutInitialViolations = _filterInitialViolations;
+        }
     }
 }

@@ -57,7 +57,7 @@ namespace FWO.Middleware.Server.Controllers
                 UserConfig userConfig = new(globalConfig, apiConnection, new(){ Language = GlobalConst.kEnglish });
 
                 ComplianceCheck complianceCheck = new(userConfig, apiConnection);
-                await complianceCheck.CheckAll();
+                await complianceCheck.RunComplianceCheck(ComplianceCheckType.Standard);
 
                 ReportCompliance reportCompliance = new(new(""), userConfig, ReportType.ComplianceReport);
                 await reportCompliance.GetManagementAndDevices(apiConnection);
@@ -72,6 +72,29 @@ namespace FWO.Middleware.Server.Controllers
                 Log.WriteError("Get Compliance Report", "Error while getting report.", exception);
             }
             return "";
+        }
+        
+        /// <summary>
+        /// Compliance Check
+        /// </summary>
+        /// <returns></returns>
+        [HttpGet("ComplianceCheck")]
+        [Authorize(Roles = $"{Roles.Admin}")]
+        public async Task<bool> InitialComplianceCheck()
+        {
+            try
+            {
+                GlobalConfig globalConfig = await GlobalConfig.ConstructAsync(apiConnection, true);
+                UserConfig userConfig = new(globalConfig, apiConnection, new() { Language = GlobalConst.kEnglish });
+                ComplianceCheck complianceCheck = new(userConfig, apiConnection);
+                await complianceCheck.RunComplianceCheck(ComplianceCheckType.Variable);
+                await complianceCheck.PersistDataAsync();
+                return true;
+            }
+            catch (Exception)
+            {
+                return false;
+            }
         }
 
         private static string ConvertOutput(List<(Rule, (ComplianceNetworkZone, ComplianceNetworkZone))> forbiddenCommunicationsOutput)

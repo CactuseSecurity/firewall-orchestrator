@@ -2714,6 +2714,9 @@ INSERT INTO txt VALUES ('complianceCheckShowShortColumsInComplianceReports','Ger
 INSERT INTO txt VALUES ('complianceCheckShowShortColumsInComplianceReports','English','Show columns with short forms for sources, destinations and services');
 INSERT INTO txt VALUES ('importedMatrixReadOnly','German', 'Importierte Matrizen schreibgeschützt');
 INSERT INTO txt VALUES ('importedMatrixReadOnly','English','Imported matrices read-only');
+INSERT INTO txt VALUES ('filterOutInitialViolations','German', 'Filtere initiale Violations raus');
+INSERT INTO txt VALUES ('filterOutInitialViolations','English','Filter out initial violations');
+
 INSERT INTO txt VALUES ('availableModules',     'German', 	'Verf&uuml;gbare Module');
 INSERT INTO txt VALUES ('availableModules',     'English', 	'Available Modules');
 INSERT INTO txt VALUES ('notification',   		'German', 	'Benachrichtigung');
@@ -5915,10 +5918,8 @@ INSERT INTO txt VALUES ('H5664', 'German',  'Produktionsstatus: Gibt an, in welc
 INSERT INTO txt VALUES ('H5664', 'English', 'Production state: The Owner Lifecycle State assigned to the owner.');
 INSERT INTO txt VALUES ('H5665', 'German',  'Name: Name des Produktionsstatus');
 INSERT INTO txt VALUES ('H5665', 'English', 'Name: Owner Lifecycle State name');
-INSERT INTO txt VALUES ('H5666', 'German',  'In diesem Kapitel kann der Produktions-Status von Eigent&uuml;mern eingesehen, erstellt, bearbeitet und gel&ouml;scht werden. Ein Produktions-Status definiert den aktuellen Zustand eines Eigent&uuml;mers (z. B. Geplant, Im Betrieb, Auslaufend).');
+INSERT INTO txt VALUES ('H5666', 'German',  'In diesem Kapitel k&ouml;nnen die Produktions-Status von Eigent&uuml;mern eingesehen, erstellt, bearbeitet und gel&ouml;scht werden. Produktions-Status definieren den aktuellen Zustand eines Eigent&uuml;mers (z. B. Geplant, Im Betrieb, Auslaufend).');
 INSERT INTO txt VALUES ('H5666', 'English', 'In this chapter, Production Lifecycle States of owners can be viewed, created, edited, and deleted. Production Lifecycle States define the current status of an owner (e.g., Planned, In Production, End of Life).');
-INSERT INTO txt VALUES ('H5667', 'German',  'Beim Import zu setzende Rollen: Rollen, die den Mitgliedern der Eigent&uuml;mergruppen beim Import zugewiesen werden.');
-INSERT INTO txt VALUES ('H5667', 'English', 'Set Roles with import: Roles assigned to owner group members during import.');
 
 INSERT INTO txt VALUES ('H5701', 'German',  'Die in der Datenbank hinterlegten sprachabh&auml;ngigen Texte k&ouml;nnen individuell &uuml;berschrieben werden.
     Dabei werden die vom System vorgegebenen Texte nicht ge&auml;ndert, sondern nur durch die hier definierten Texte - falls vorhanden - &uuml;berblendet.
@@ -6034,6 +6035,19 @@ INSERT INTO txt VALUES ('H5844', 'German',  'Anzahl der Prozessoren die für Par
 INSERT INTO txt VALUES ('H5844', 'English', 'Amount of processors that should be used for parallelized operations.');
 INSERT INTO txt VALUES ('H5851', 'German',  'Sollen festgestellte Objektänderungen im &Auml;nderungsreport angezeigt werden, ist diese Einstellung zu aktivieren. Default-Wert = "inaktiv".');
 INSERT INTO txt VALUES ('H5851', 'English', 'Include object changes: When the import detects object changes, they will be included in the change report. Default value = "inactive".');
+INSERT INTO txt VALUES ('H5845', 'German',  'Löscht vorhandene Violations.');
+INSERT INTO txt VALUES ('H5845', 'English', 'Deletes all existing violations .');
+INSERT INTO txt VALUES ('H5846', 'German',  'Lösche alle Violations');
+INSERT INTO txt VALUES ('H5846', 'English', 'Delete all violations');
+INSERT INTO txt VALUES ('H5847', 'German',  'Löschen');
+INSERT INTO txt VALUES ('H5847', 'English', 'Delete');
+INSERT INTO txt VALUES ('H5848', 'German',  'Initiert einen vollständigen Compliance Check, welcher gefundene Violations als "Initial" markiert.');
+INSERT INTO txt VALUES ('H5848', 'English', 'Initializes a complete compliance check, marking found violations as "initial".');
+INSERT INTO txt VALUES ('H5849', 'German',  'Initialen Check durchführen');
+INSERT INTO txt VALUES ('H5849', 'English', 'Run initial check');
+INSERT INTO txt VALUES ('H5850', 'German',  'Check starten');
+INSERT INTO txt VALUES ('H5850', 'English', 'Run Check');
+
 
 INSERT INTO txt VALUES ('H6001', 'German',  'Firewall Orchestrator verf&uuml;gt &uuml;ber zwei APIs:
     <ul>

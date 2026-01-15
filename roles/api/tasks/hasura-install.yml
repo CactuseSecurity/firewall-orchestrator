@@ -73,6 +73,10 @@
     return_content: true
   register: hasura_release
   environment: "{{ proxy_env }}"
+  failed_when: false
+  retries: 3
+  delay: 5
+  until: hasura_release.status | default(-1) == 200
   when: not api_cli_check.stat.exists
 
 - name: Extract Hasura CLI asset id for {{ linux_architecture }}
@@ -85,7 +89,9 @@
         | list
         | first
       }}
-  when: not api_cli_check.stat.exists
+  when:
+    - not api_cli_check.stat.exists
+    - hasura_release.status | default(-1) == 200
 
 - name: download {{ api_hasura_version }} hasura cli binary via authenticated GitHub access
   get_url:
@@ -102,6 +108,20 @@
   when:
     - not api_cli_check.stat.exists
     - hasura_cli_asset_id is defined
+
+- name: download {{ api_hasura_version }} hasura cli binary via direct GitHub download
+  get_url:
+    url: "https://github.com/hasura/graphql-engine/releases/download/{{ api_hasura_version }}/cli-hasura-linux-{{ linux_architecture }}"
+    dest: "{{ api_hasura_cli_bin }}"
+    force: true
+    mode: "0755"
+    owner: "{{ fworch_user }}"
+    group: "{{ fworch_group }}"
+  environment: "{{ proxy_env }}"
+  become: true
+  when:
+    - not api_cli_check.stat.exists
+    - hasura_cli_asset_id is not defined
 
 - name: initialize hasura cli directory
   command: "{{ api_hasura_cli_bin }} init {{ product_name }} --skip-update-check --endpoint http://{{ api_local_listening_ip_address }}:{{ api_port }} --admin-secret {{ api_hasura_admin_secret }}"

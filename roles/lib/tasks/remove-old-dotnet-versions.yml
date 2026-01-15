@@ -6,6 +6,10 @@
   set_fact:
     dotnet_version_major: "{{ dotnet_version.split('.')[0] | int }}"
 
+- name: initialize dotnet package removal list
+  set_fact:
+    dotnet_packages_to_remove: []
+
 - name: collect dotnet packages older than target version
   set_fact:
     dotnet_packages_to_remove: "{{ (dotnet_packages_to_remove | default([])) + [item] }}"

@@ -24,7 +24,7 @@ namespace FWO.Report
         {
             DiffReferenceInDays = reportParams.ComplianceFilter.DiffReferenceInDays;
         }
-
+        
         protected override bool ShowRule(Rule rule)
         {
             bool showRule = base.ShowRule(rule);
@@ -71,16 +71,25 @@ namespace FWO.Report
         {
             Dictionary<string, object> queryVariables = base.CreateQueryVariables(offset, limit, query);
 
-            if (query.Contains("from_date"))
+            if (query.Contains("violations_where"))
             {
-                queryVariables["from_date"] = DateTime.Now.AddDays(-DiffReferenceInDays);
+                var violationsWhere = new Dictionary<string, object>
+                {
+                    ["found_date"] = new Dictionary<string, object?>
+                    {
+                        ["_gte"] = DateTime.Now.AddDays(-DiffReferenceInDays),
+                        ["_lt"]  = DateTime.Now
+                    }
+                };
+                if (GlobalConfig.ComplianceFilterOutInitialViolations)
+                {
+                    violationsWhere["is_initial"] = new Dictionary<string, object?>
+                    {
+                        ["_eq"] = false
+                    };
+                }
+                queryVariables["violations_where"] = violationsWhere;
             }
-
-            if (query.Contains("to_date"))
-            {
-                queryVariables["to_date"] = DateTime.Now;
-            }
-
             return queryVariables;
         }
     }

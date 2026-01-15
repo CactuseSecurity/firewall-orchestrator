@@ -269,6 +269,8 @@ INSERT INTO txt VALUES ('OwnersAndRules',       'German',	'Eigent&uuml;mer und R
 INSERT INTO txt VALUES ('OwnersAndRules', 	    'English',	'Owners And Rules');
 INSERT INTO txt VALUES ('RecertDate',       	'German',	'Rezertifizierungsdatum');
 INSERT INTO txt VALUES ('RecertDate', 	    	'English',	'Recertification Date');
+INSERT INTO txt VALUES ('RequestDate',       	'German',	'Antragsdatum');
+INSERT INTO txt VALUES ('RequestDate', 	    	'English',	'Request Date');
 
 -- general
 INSERT INTO txt VALUES ('cancel', 				'German',	'Abbrechen');
@@ -1220,6 +1222,8 @@ INSERT INTO txt VALUES ('notif_before_deadline','German',   'Benachrichtigungen 
 INSERT INTO txt VALUES ('notif_before_deadline','English',  'Notifications before Deadline');
 INSERT INTO txt VALUES ('notif_after_deadline', 'German',   'Benachrichtigungen nach Termin');
 INSERT INTO txt VALUES ('notif_after_deadline', 'English',  'Notifications after Deadline');
+INSERT INTO txt VALUES ('initial_offset',       'German',   'Initialer Offset');
+INSERT INTO txt VALUES ('initial_offset',    	'English',  'Initial Offset');
 INSERT INTO txt VALUES ('max_number',    		'German',   'Maximale Anzahl');
 INSERT INTO txt VALUES ('max_number',    		'English',  'Max Number');
 INSERT INTO txt VALUES ('recipient_to',    		'German',   'Empf&auml;nger (To)');
@@ -2542,6 +2546,8 @@ INSERT INTO txt VALUES ('modReqEmailSubject',   'German',   'Titel der Antragsbe
 INSERT INTO txt VALUES ('modReqEmailSubject',   'English',  'Subject of request emails');
 INSERT INTO txt VALUES ('modReqEmailBody',      'German',   'Text der Antragsbenachrichtigung');
 INSERT INTO txt VALUES ('modReqEmailBody',      'English',  'Body of request emails');
+INSERT INTO txt VALUES ('modUnansweredReqEmailBody','German','Text der Erinnerungsbenachrichtigung');
+INSERT INTO txt VALUES ('modUnansweredReqEmailBody','English','Body of unanswered request emails');
 INSERT INTO txt VALUES ('modReqTicketTitle',    'German',   'Titel des Schnittstellentickets');
 INSERT INTO txt VALUES ('modReqTicketTitle',    'English',  'Title of interface request ticket');
 INSERT INTO txt VALUES ('modReqTaskTitle',      'German',   'Titel des Schnittstellenauftrags');
@@ -2692,14 +2698,23 @@ INSERT INTO txt VALUES ('complianceCheckShowShortColumsInComplianceReports','Ger
 INSERT INTO txt VALUES ('complianceCheckShowShortColumsInComplianceReports','English','Show columns with short forms for sources, destinations and services');
 INSERT INTO txt VALUES ('importedMatrixReadOnly','German', 'Importierte Matrizen schreibgeschützt');
 INSERT INTO txt VALUES ('importedMatrixReadOnly','English','Imported matrices read-only');
+INSERT INTO txt VALUES ('filterOutInitialViolations','German', 'Filtere initiale Violations raus');
+INSERT INTO txt VALUES ('filterOutInitialViolations','English','Filter out initial violations');
+
 INSERT INTO txt VALUES ('availableModules',     'German', 	'Verf&uuml;gbare Module');
 INSERT INTO txt VALUES ('availableModules',     'English', 	'Available Modules');
 INSERT INTO txt VALUES ('notification',   		'German', 	'Benachrichtigung');
 INSERT INTO txt VALUES ('notification',   		'English', 	'Notification');
+INSERT INTO txt VALUES ('reminders',            'German', 	'Erinnerungsbenachrichtigungen');
+INSERT INTO txt VALUES ('reminders',            'English',  'Reminders');
 INSERT INTO txt VALUES ('edit_notification',    'German', 	'Benachrichtigung bearbeiten');
 INSERT INTO txt VALUES ('edit_notification',    'English', 	'Edit Notification');
 INSERT INTO txt VALUES ('delete_notification',  'German', 	'Benachrichtigung l&ouml;schen');
 INSERT INTO txt VALUES ('delete_notification',  'English', 	'Delete Notification');
+INSERT INTO txt VALUES ('last_sent',   		    'German', 	'Zuletzt gesendet');
+INSERT INTO txt VALUES ('last_sent',   		    'English', 	'Last sent');
+INSERT INTO txt VALUES ('reset_notification',   'German', 	'Zur&uuml;cksetzen');
+INSERT INTO txt VALUES ('reset_notification',   'English', 	'Reset');
 INSERT INTO txt VALUES ('set_roles_with_import','German', 	'Beim Import zu setzende Rollen');
 INSERT INTO txt VALUES ('set_roles_with_import','English', 	'Set Roles with import');
 
@@ -3173,6 +3188,8 @@ INSERT INTO txt VALUES ('U5501', 'English', 'Are you sure you want to delete sta
 INSERT INTO txt VALUES ('U5502', 'German',  'Sind sie sicher, dass sie folgende Aktion l&ouml;schen wollen: ');
 INSERT INTO txt VALUES ('U5502', 'English', 'Are you sure you want to delete action: ');
 
+INSERT INTO txt VALUES ('U5601', 'German',  'Sind sie sicher, dass sie das letzte Senden f&uuml;r folgende Benachrichtigung zur&uuml;cksetzen wollen: ');
+INSERT INTO txt VALUES ('U5601', 'English', 'Are you sure you want to reset the last sending for following notification: ');
 
 INSERT INTO txt VALUES ('U7001', 'German',  '&Uuml;berblick der Ereignisse im Firewall Orchestrator');
 INSERT INTO txt VALUES ('U7001', 'English', 'Alerts and events inside Firewall Orchestrator');
@@ -3254,7 +3271,7 @@ INSERT INTO txt VALUES ('U9028', 'German',  'Folgende Verbindungen sind noch nic
 INSERT INTO txt VALUES ('U9028', 'English', 'Following connections are not properly modelled and impede recertification: ');
 INSERT INTO txt VALUES ('U9029', 'German',  'Bei folgenden Verbindungen stimmt der Produktionsstand nicht mit dem modellierten &uuml;berein und verhindern die Rezertifizierung:');
 INSERT INTO txt VALUES ('U9029', 'English', 'For following connections production state does not fit modelled state and impede recertification: ');
-INSERT INTO txt VALUES ('U9030', 'German',  'Ein gemeinsamer Dienst muss mindestens eine nicht gemeinsam genutzten Netzwerkbereich enthalten.');
+INSERT INTO txt VALUES ('U9030', 'German',  'Ein gemeinsamer Dienst muss mindestens einen nicht gemeinsam genutzten Netzwerkbereich enthalten.');
 INSERT INTO txt VALUES ('U9030', 'English', 'A common service must contain at least one non-shared network area.');
 INSERT INTO txt VALUES ('U9031', 'German',  'Gemeinsame Dienste d&uuml;rfen nur Netzwerkbereichsobjekte in einer Richtung enthalten.');
 INSERT INTO txt VALUES ('U9031', 'English', 'Common services must contain only network area objects in direction.');
@@ -4588,14 +4605,20 @@ INSERT INTO txt VALUES ('H4103', 'German',  'Deadline: Referenzdatum, relativ zu
 INSERT INTO txt VALUES ('H4103', 'English', 'Deadline: Reference date for the submission of notifications.');
 INSERT INTO txt VALUES ('H4104', 'German',  'Benachrichtigungen vor Termin: Definiert das Zeitintervall vor dem Referenzdatum, in dem eine Benachrichtigung stattfinden soll.');
 INSERT INTO txt VALUES ('H4104', 'English', 'Notifications before Deadline: Defines the time interval relative to the reference date, where one notification is to be sent.');
-INSERT INTO txt VALUES ('H4105', 'German',  'Benachrichtigungen nach Termin: Definiert ein Zeitintervall f&uuml;r wiederkehrende Benachrichtigungen nach Ablauf des Referenzdatums mit einer maximalen Anzahl von Wiederholungen.');
-INSERT INTO txt VALUES ('H4105', 'English', 'Notifications after Deadline: Defines a time interval for recurring notifications after reaching the reference date with a maximum number of repetitions.');
-INSERT INTO txt VALUES ('H4106', 'German',  'Email Betreff: Betreff der Benachrichtigungs, falls nicht schon durch &uuml;bergeordnete Einstellungen gesetzt.');
-INSERT INTO txt VALUES ('H4106', 'English', 'Email subject: Subject line of the notification, if not already set by prior settings.');
+INSERT INTO txt VALUES ('H4105', 'German',  'Benachrichtigungen nach Termin: Definiert ein Zeitintervall f&uuml;r wiederkehrende Benachrichtigungen nach Ablauf des Referenzdatums mit einer maximalen Anzahl von Wiederholungen.
+    Der initiale Offset wird nur zum ersten Zeitintervall hinzuaddiert (auch negative Zahlen m&ouml;glich).
+');
+INSERT INTO txt VALUES ('H4105', 'English', 'Notifications after Deadline: Defines a time interval for recurring notifications after reaching the reference date with a maximum number of repetitions.
+    The initial offset is added only to the first interval (also negative numbers possible).
+');
+INSERT INTO txt VALUES ('H4106', 'German',  'Email-Betreff: Betreff der Benachrichtigung. Verf&uuml;gbare Platzhalter: @@APPNAME@@, @@APPID@@.');
+INSERT INTO txt VALUES ('H4106', 'English', 'Email subject: Subject line of the notification. Available placeholders:  @@APPNAME@@, @@APPID@@.');
 INSERT INTO txt VALUES ('H4107', 'German',  'Empf&auml;nger (To): Es werden verschiedene Rollen (je nach Kontext) als Empf&auml;nger angeboten, zu denen dann automatisch die entsprechenden Adressen ermittelt werden. Bei "Andere Adressen" k&ouml;nnen manuell Adressen eingegeben werden.');
 INSERT INTO txt VALUES ('H4107', 'English', 'Recipient (To): Different roles are offered as recipients (depending on context), for which the addresses are determined automatically. With "Other Addresses" addreesses can be inserted manually.');
 INSERT INTO txt VALUES ('H4108', 'German',  'Empf&auml;nger (Cc). Wie "Empf&auml;nger (To)" f&uuml;r Empf&auml;nger im CC.');
 INSERT INTO txt VALUES ('H4108', 'English', 'Recipient (Cc). As "Recipient (To)" for recipient in CC.');
+INSERT INTO txt VALUES ('H4109', 'German',  'Name: Name der Benachrichtigung, nur für Darstellungszwecke.');
+INSERT INTO txt VALUES ('H4109', 'English', 'Name: Name of notification, only for display purposes.');
 
 INSERT INTO txt VALUES ('H5001', 'German',  'In diesem Abschnitt werden die Setup- und Verwaltungseinstellungen behandelt.
     Die meisten Einstellungen k&ouml;nnen nur von Nutzern mit der Administrator-Rolle gesehen und ge&auml;ndert werden.
@@ -5745,6 +5768,12 @@ INSERT INTO txt VALUES ('H5624', 'German',  'Text der Antragsbenachrichtigung: T
 INSERT INTO txt VALUES ('H5624', 'English', 'Body of request emails: Text of the email notification to the addressed owners. Will be appended by the requester (at the beginning) and the addressed owner (at the end).
     Additionally links to the request in the Workflow module and the requested interface in the Modelling module are added.
 ');
+INSERT INTO txt VALUES ('H5624a', 'German',  'Text der Erinnerungsbenachrichtigung: Text der Email-Benachrichtigung an die Beauftragten. Verf&uuml;gbare Platzhalter:
+    @@APPNAME@@, @@APPID@@, @@REQUESTER@@, @@REQUESTDATE@@, @@REQUESTING_APPNAME@@, @@REQUESTING_APPID@@, @@INTERFACE_LINK@@.
+');
+INSERT INTO txt VALUES ('H5624a', 'English', 'Body of unanswered request emails: Text of the email notification to the addressed owners. Available placeholders:
+    @@APPNAME@@, @@APPID@@, @@REQUESTER@@, @@REQUESTDATE@@, @@REQUESTING_APPNAME@@, @@REQUESTING_APPID@@, @@INTERFACE_LINK@@.
+');
 INSERT INTO txt VALUES ('H5625', 'German',  'Titel des Schnittstellentickets: Titel, mit dem ein neues Ticket zur Beantragung einer Schnittstelle angelegt wird.');
 INSERT INTO txt VALUES ('H5625', 'English', 'Title of interface request ticket: Title used for the new interface request ticket.');
 INSERT INTO txt VALUES ('H5626', 'German',  'Titel des Schnittstellenauftrags: Titel, mit dem ein neuer Auftrag im Ticket zur Beantragung einer Schnittstelle angelegt wird.');
@@ -5761,6 +5790,8 @@ INSERT INTO txt VALUES ('H5628', 'German',  'Vordefinierte Dienste: Hier wird de
 INSERT INTO txt VALUES ('H5628', 'English', 'Predefined Services: Offers a menu to the administrator to define, change or delete predefined services or service groups.
     These services are available for all applications.
 ');
+INSERT INTO txt VALUES ('H5629', 'German',  'Erinnerungsbenachrichtigungen: Legt fest, wer wie oft in welchem Zeitintervall &uuml;ber offene Schnittstellenantr&auml;ge benachrichtigt wird.');
+INSERT INTO txt VALUES ('H5629', 'English', 'Reminders: Defines who will be notified how often and in which time interval about open interface requests.');
 INSERT INTO txt VALUES ('H5630', 'German',  'Empf&auml;nger der Antragsbenachrichtigung: Auswahl, wem die Email mit der Antragsbenachrichtigung geschickt werden soll:
     Der Eigent&uuml;mergruppe (Default), dem Hauptverantwortlichen oder beiden.
     Desweiteren kann festgelegt werden, ob der Antragsteller die Nachricht im Cc bekommen soll (Default: ja).
@@ -5869,10 +5900,8 @@ INSERT INTO txt VALUES ('H5664', 'German',  'Produktionsstatus: Gibt an, in welc
 INSERT INTO txt VALUES ('H5664', 'English', 'Production state: The Owner Lifecycle State assigned to the owner.');
 INSERT INTO txt VALUES ('H5665', 'German',  'Name: Name des Produktionsstatus');
 INSERT INTO txt VALUES ('H5665', 'English', 'Name: Owner Lifecycle State name');
-INSERT INTO txt VALUES ('H5666', 'German',  'In diesem Kapitel kann der Produktions-Status von Eigent&uuml;mern eingesehen, erstellt, bearbeitet und gel&ouml;scht werden. Ein Produktions-Status definiert den aktuellen Zustand eines Eigent&uuml;mers (z. B. Geplant, Im Betrieb, Auslaufend).');
+INSERT INTO txt VALUES ('H5666', 'German',  'In diesem Kapitel k&ouml;nnen die Produktions-Status von Eigent&uuml;mern eingesehen, erstellt, bearbeitet und gel&ouml;scht werden. Produktions-Status definieren den aktuellen Zustand eines Eigent&uuml;mers (z. B. Geplant, Im Betrieb, Auslaufend).');
 INSERT INTO txt VALUES ('H5666', 'English', 'In this chapter, Production Lifecycle States of owners can be viewed, created, edited, and deleted. Production Lifecycle States define the current status of an owner (e.g., Planned, In Production, End of Life).');
-INSERT INTO txt VALUES ('H5667', 'German',  'Beim Import zu setzende Rollen: Rollen, die den Mitgliedern der Eigent&uuml;mergruppen beim Import zugewiesen werden.');
-INSERT INTO txt VALUES ('H5667', 'English', 'Set Roles with import: Roles assigned to owner group members during import.');
 
 INSERT INTO txt VALUES ('H5701', 'German',  'Die in der Datenbank hinterlegten sprachabh&auml;ngigen Texte k&ouml;nnen individuell &uuml;berschrieben werden.
     Dabei werden die vom System vorgegebenen Texte nicht ge&auml;ndert, sondern nur durch die hier definierten Texte - falls vorhanden - &uuml;berblendet.
@@ -5986,6 +6015,18 @@ INSERT INTO txt VALUES ('H5843', 'German',  'Anzahl der Elemente die pro Anfrage
 INSERT INTO txt VALUES ('H5843', 'English', 'Amount of elements that should be retrieved with each fetch operation.');
 INSERT INTO txt VALUES ('H5844', 'German',  'Anzahl der Prozessoren die für Parallelisierungsoperationen zur Verfügung stehen.');
 INSERT INTO txt VALUES ('H5844', 'English', 'Amount of processors that should be used for parallelized operations.');
+INSERT INTO txt VALUES ('H5845', 'German',  'Löscht vorhandene Violations.');
+INSERT INTO txt VALUES ('H5845', 'English', 'Deletes all existing violations .');
+INSERT INTO txt VALUES ('H5846', 'German',  'Lösche alle Violations');
+INSERT INTO txt VALUES ('H5846', 'English', 'Delete all violations');
+INSERT INTO txt VALUES ('H5847', 'German',  'Löschen');
+INSERT INTO txt VALUES ('H5847', 'English', 'Delete');
+INSERT INTO txt VALUES ('H5848', 'German',  'Initiert einen vollständigen Compliance Check, welcher gefundene Violations als "Initial" markiert.');
+INSERT INTO txt VALUES ('H5848', 'English', 'Initializes a complete compliance check, marking found violations as "initial".');
+INSERT INTO txt VALUES ('H5849', 'German',  'Initialen Check durchführen');
+INSERT INTO txt VALUES ('H5849', 'English', 'Run initial check');
+INSERT INTO txt VALUES ('H5850', 'German',  'Check starten');
+INSERT INTO txt VALUES ('H5850', 'English', 'Run Check');
 
 
 INSERT INTO txt VALUES ('H6001', 'German',  'Firewall Orchestrator verf&uuml;gt &uuml;ber zwei APIs:

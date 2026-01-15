@@ -1,4 +1,4 @@
-﻿using FWO.Logging;
+using FWO.Logging;
 using GraphQL;
 using GraphQL.Client.Http;
 using Newtonsoft.Json.Linq;
@@ -12,6 +12,7 @@ namespace FWO.Api.Client
 
         private IObservable<GraphQLResponse<dynamic>> subscriptionStream = null!;
         private IDisposable subscription = null!;
+        private readonly ApiConnection apiConnection;
         private readonly GraphQLHttpClient graphQlClient;
         private readonly GraphQLRequest request;
         private readonly Action<Exception> internalExceptionHandler;
@@ -22,6 +23,7 @@ namespace FWO.Api.Client
         }
         public GraphQlApiSubscription(ApiConnection apiConnection, GraphQLHttpClient graphQlClient, GraphQLRequest request, Action<Exception> exceptionHandler, SubscriptionUpdate OnUpdate)
         {
+            this.apiConnection = apiConnection;
             this.OnUpdate = OnUpdate;
             this.graphQlClient = graphQlClient;
             this.request = request;
@@ -69,7 +71,7 @@ namespace FWO.Api.Client
                         if (response.Data == null)
                         {
                             // Terminate subscription
-                            subscription.Dispose();
+                            subscription?.Dispose();
                         }
                         else
                         {
@@ -91,7 +93,7 @@ namespace FWO.Api.Client
 
         private void ApiConnectionOnAuthHeaderChanged(object? sender, string jwt)
         {
-            subscription.Dispose();
+            subscription?.Dispose();
             CreateSubscription();
         }
 
@@ -99,7 +101,10 @@ namespace FWO.Api.Client
         {
             if (disposing)
             {
-                subscription.Dispose();
+                subscription?.Dispose();
+
+                // Important: detach from ApiConnection event to avoid keeping this subscription alive.
+                apiConnection.OnAuthHeaderChanged -= ApiConnectionOnAuthHeaderChanged;
             }
         }
     }

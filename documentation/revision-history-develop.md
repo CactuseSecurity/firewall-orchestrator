@@ -313,6 +313,9 @@ bugfix release:
 ## 8.9.5 - 10.12.2025 DEVELOP
 - bugfix release: modelling - change planning showed duplicate NA elements for rule delete requests
 
+## 8.9.6 - 05.01.2026 DEVELOP
+- new parameters for notifications
+
 # 9.0 - 30.06.2025 DEVELOP
 - rule to gateway mapping 1:n
 - add report output for rule to gw mapping
@@ -324,7 +327,7 @@ Breaking changes
     sudo -u fworch -i
     cd importer
     source venv/bin/activate
-    ./import-mgm.py -m xy -f -s -d 8 
+    ./import_mgm.py -m xy -f -s -d 8 
     As we now need support for pip, in installations behind url filter, make sure that all sub-domains of
     pythonhosted.org
     are also allowed.

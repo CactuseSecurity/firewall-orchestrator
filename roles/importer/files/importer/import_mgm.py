@@ -1,14 +1,15 @@
-import argparse  # noqa: N999
+#!/usr/local/fworch/importer_venv/bin/python3
+import argparse
 import sys
 import traceback
 import warnings
 
 import urllib3
-from common import IMPORTER_BASE_DIR, import_management
+from common import import_management  # type: ignore[import-not-found]
 from fwo_api import FwoApi
 from fwo_api_call import FwoApiCall
 from fwo_base import init_service_provider, register_global_state
-from fwo_const import BASE_DIR
+from fwo_const import BASE_DIR, IMPORTER_BASE_DIR
 from fwo_exceptions import FwoApiLoginFailedError
 from fwo_log import FWOLogger
 from model_controllers.import_state_controller import ImportStateController
@@ -24,7 +25,7 @@ def get_fwo_jwt(import_user: str, import_pwd: str, user_management_api: str) -> 
         FWOLogger.error(e.message)
     except Exception:
         FWOLogger.error(
-            "import-main-loop - unspecified error during FWO API login - skipping: " + str(traceback.format_exc())
+            "import_main_loop - unspecified error during FWO API login - skipping: " + str(traceback.format_exc())
         )
 
 
@@ -37,6 +38,7 @@ def main(
     limit: int = 150,
     clear_management_data: bool = False,
     suppress_certificate_warnings: bool = False,
+    suppress_consistency_check: bool = False,
 ):
     FWOLogger(debug_level)
     FWOLogger.debug("debug level set to " + str(debug_level))
@@ -54,7 +56,7 @@ def main(
     if IMPORTER_BASE_DIR not in sys.path:
         sys.path.append(IMPORTER_BASE_DIR)
 
-    importer_user_name = "importer"  # TODO: move to config file?
+    importer_user_name = "importer"  # move to config file?
     importer_pwd_file = BASE_DIR + "/etc/secrets/importer_pwd"
 
     try:
@@ -91,7 +93,14 @@ def main(
     register_global_state(import_state)
 
     import_management(
-        mgm_id, fwo_api_call, verify_certificates, limit, clear_management_data, suppress_certificate_warnings, file
+        mgm_id,
+        fwo_api_call,
+        verify_certificates,
+        limit,
+        clear_management_data,
+        suppress_certificate_warnings,
+        file,
+        suppress_consistency_check,
     )
 
 
@@ -147,6 +156,12 @@ if __name__ == "__main__":
         metavar="config_file_input",
         help="if set, the config will not be fetched from firewall but read from json config (native or normalized) file specified here; may also be an url.",
     )
+    parser.add_argument(
+        "--suppress_consistency_check",
+        action="store_true",
+        default=False,
+        help="If set, skip FwConfigImportCheckConsistency before importing",
+    )
 
     args = parser.parse_args()
 
@@ -160,6 +175,7 @@ if __name__ == "__main__":
             int(args.limit),
             args.clear,
             args.suppress_certificate_warnings,
+            args.suppress_consistency_check,
         )
     except Exception:
         FWOLogger.error(

@@ -6,6 +6,7 @@ namespace FWO.Api.Client.Queries
     {
         public static readonly string ownerDetailsFragment;
 
+        public static readonly string getOwnerById;
         public static readonly string getOwners;
         public static readonly string getOwnersWithConn;
         public static readonly string getEditableOwners;
@@ -39,6 +40,7 @@ namespace FWO.Api.Client.Queries
             {
                 ownerDetailsFragment = GetQueryText("owner/fragments/ownerDetails.graphql");
 
+                getOwnerById = GetQueryText("owner/getOwnerById.graphql");
                 getOwners = ownerDetailsFragment + GetQueryText("owner/getOwners.graphql");
                 getOwnersWithConn = ownerDetailsFragment + GetQueryText("owner/getOwnersWithConn.graphql");
                 getEditableOwners = ownerDetailsFragment + GetQueryText("owner/getEditableOwners.graphql");

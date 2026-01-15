@@ -87,7 +87,6 @@ class FwConfigImportRule:
             current_rulebase = self.normalized_config.get_rulebase(rulebase_uid)
             previous_rulebase = prev_config.get_rulebase(rulebase_uid)
             for rule_uid in rule_uid_list:
-                self.preserve_rule_num_numeric(current_rulebase, previous_rulebase, rule_uid)
                 self.collect_changed_rules(
                     rule_uid, current_rulebase, previous_rulebase, rulebase_uid, changed_rule_uids
                 )
@@ -236,11 +235,6 @@ class FwConfigImportRule:
     ):
         if current_rulebase.rules[rule_uid] != previous_rulebase.rules[rule_uid]:
             changed_rule_uids[rulebase_id].append(rule_uid)
-
-    @staticmethod
-    def preserve_rule_num_numeric(current_rulebase: Rulebase, previous_rulebase: Rulebase, rule_uid: str):
-        if current_rulebase.rules[rule_uid].rule_num_numeric == 0:
-            current_rulebase.rules[rule_uid].rule_num_numeric = previous_rulebase.rules[rule_uid].rule_num_numeric
 
     def get_rule_refs(
         self, rule: RuleNormalized, is_prev: bool = False

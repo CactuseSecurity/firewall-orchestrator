@@ -2472,6 +2472,8 @@ INSERT INTO txt VALUES ('edit_owner',           'German',   'Eigent&uuml;mer bea
 INSERT INTO txt VALUES ('edit_owner',           'English',  'Edit owner');
 INSERT INTO txt VALUES ('delete_owner',         'German',   'Eigent&uuml;mer l&ouml;schen');
 INSERT INTO txt VALUES ('delete_owner',         'English',  'Delete owner');
+INSERT INTO txt VALUES ('add_rule',             'German', 	'Regel hinzuf&uuml;gen');
+INSERT INTO txt VALUES ('add_rule',             'English', 	'Add rule');
 INSERT INTO txt VALUES ('recert_interval',      'German',   'Rezertintervall (in Tagen)');
 INSERT INTO txt VALUES ('recert_interval',      'English',  'Recert Interval (in days)');
 INSERT INTO txt VALUES ('ext_app_id',           'German',   'Externe Anwendungs-Id');
@@ -3515,12 +3517,13 @@ INSERT INTO txt VALUES ('E5422', 'German',  'Eintrag enth&auml;lt nicht alle erf
 INSERT INTO txt VALUES ('E5422', 'English', 'Entry does not contain all required columns');
 INSERT INTO txt VALUES ('E5423', 'German',  'IP-Adresse/IP-Bereich ist fehlerhaft');
 INSERT INTO txt VALUES ('E5423', 'English', 'IP Address/IP Range malformed');
-
 INSERT INTO txt VALUES ('E5430', 'German',  'Hochgeladener Dateityp ist nicht erlaubt');
 INSERT INTO txt VALUES ('E5430', 'English', 'Uploaded Filetype is not allowed');
-
 INSERT INTO txt VALUES ('E5431', 'German',  'Hochgeladene Datei &uuml;berschreitet Maximum');
 INSERT INTO txt VALUES ('E5431', 'English', 'Uploaded File exceeds the allowed maximum');
+
+INSERT INTO txt VALUES ('E5501', 'German',  'Die Regel kann nicht doppelt zugewiesen werden.');
+INSERT INTO txt VALUES ('E5501', 'English', 'Rule cannot be assigned twice.');
 
 INSERT INTO txt VALUES ('E6001', 'German', 	'Der Re-Login war nicht erfolgreich. Haben Sie ein falsches Passwort eingegeben? Schauen Sie f&uuml;r Details bitte in die Logs.');
 INSERT INTO txt VALUES ('E6001', 'English', 'Re-login failed. Did you enter a wrong password? See log for details.');
@@ -5161,10 +5164,10 @@ INSERT INTO txt VALUES ('H5415', 'English', 'Data retention time (in days): Defi
 INSERT INTO txt VALUES ('H5416', 'German',  '&Auml;nderungsbenachrichtigung via Email:');
 INSERT INTO txt VALUES ('H5416', 'English', 'Change notification via email:');
 INSERT INTO txt VALUES ('H5417', 'German',  'Rezertifizierungsintervall (in Tagen): Maximale Zeit, nach der ein Eigent&uuml;mer bzw. eine Regel rezertifiziert werden soll. 
-	Bei Rezertifizierungsmodus "Eigent&uuml;mer und Regeln": Default-Wert f&uuml;r alle Eigent&uuml;mer, f&uuml;r die kein Wert gesetzt ist.
+    Bei Rezertifizierungsmodus "Eigent&uuml;mer und Regeln": Default-Wert f&uuml;r alle Eigent&uuml;mer, f&uuml;r die kein Wert gesetzt ist.
 ');
 INSERT INTO txt VALUES ('H5417', 'English', 'Recertification Period (in days): Maximum time, after when an owner resp. a rule should be recertified.
-	In case of Recertification Mode "Owners And Rules": Default period for all owners where no value set.
+    In case of Recertification Mode "Owners And Rules": Default period for all owners where no value set.
 ');
 INSERT INTO txt VALUES ('H5417a', 'German',  'Initiales Rezertifizierungsintervall (in Tagen): Maximale Zeit, nach der ein Eigent&uuml;mer bzw. eine Regel das erste Mal rezertifiziert werden muss.');
 INSERT INTO txt VALUES ('H5417a', 'English', 'Initial Recertification Period (in days): Maximum time, after when an owner resp. a rule has to be recertified the first time.');

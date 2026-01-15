@@ -60,7 +60,7 @@ namespace FWO.Api.Client.Queries
                 newNetworkOwnership = ownerDetailsFragment + GetQueryText("owner/newNetworkOwnership.graphql");
                 deleteNetworkOwnership = ownerDetailsFragment + GetQueryText("owner/deleteNetworkOwnership.graphql");
                 deleteAreaIpData = GetQueryText("owner/deleteAreaIpData.graphql");
-                getRuleOwnerships = ownerDetailsFragment + GetQueryText("owner/getRuleOwnerships.graphql");
+                getRuleOwnerships = GetQueryText("owner/getRuleOwnerships.graphql");
                 newRuleOwnership = ownerDetailsFragment + GetQueryText("owner/newRuleOwnership.graphql");
                 deleteRuleOwnership = ownerDetailsFragment + GetQueryText("owner/deleteRuleOwnership.graphql");
                 getOwnerId = GetQueryText("/owner/getOwnerId.graphql");

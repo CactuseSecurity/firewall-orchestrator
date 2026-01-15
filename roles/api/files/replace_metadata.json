@@ -23939,6 +23939,12 @@
             },
             {
               "table": {
+                "name": "v_rule_with_rule_owner_1",
+                "schema": "public"
+              }
+            },
+            {
+              "table": {
                 "name": "v_rule_with_src_owner",
                 "schema": "public"
               }

@@ -377,6 +377,35 @@ namespace FWO.Test
         }
 
         [Test]
+        public void ResolvedChangesGenerateCsvIncludeObjects()
+        {
+            Log.WriteInfo("Test Log", "starting changes report resolved csv generation");
+            ReportChanges reportChanges = new(query, userConfig, ReportType.ResolvedChanges, new TimeFilter(), false, true)
+            {
+                ReportData = ConstructChangeReport(true)
+            };
+
+            string expectedCsvResult = "# report type: Changes Report (resolved)" +
+            "# report generation date: Z (UTC)" +
+            "# device filter: TestMgt [TestDev]" +
+            "# other filters: TestFilter" +
+            "# report generator: Firewall Orchestrator - https://fwo.cactus.de/en" +
+            "# data protection level: For internal use only#\"Rules\"" +
+            "\"management-name\",\"change-time\",\"change-type\",\"rule-name\",\"source-zone\",\"source\",\"destination-zone\",\"destination\",\"service\",\"action\",\"track\",\"rule-enabled\",\"enforcing_device\",\"rule-uid\",\"rule-comment\"" +
+            "\"TestMgt\",\"05.04.2023 12:00:00\",\"Rule added\",\"TestRule1\",\"\"srczn1\",\"srczn2\",\"srczn3\"\",\"TestIp1 (1.2.3.4/32),TestIp2 (127.0.0.1/32)\"," +
+            "\"\"dstzn1\",\"dstzn2\",\"dstzn3\"\",\"TestIpRange (1.2.3.4-1.2.3.5)\",\"TestService1 (443/TCP)\",\"accept\",\"none\",\"enabled\",\"\",\"uid1\",\"comment1\"" +
+            "\"TestMgt\",\"05.04.2023 12:00:00\",\"Rule modified\",\"TestRule1\",\"\"srczn1\",\"srczn2\",\"srczn3\"\",\"TestIp2 (127.0.0.1/32) deleted: TestIp1 (1.2.3.4/32) added: TestIp1Changed (2.3.4.5)\"," +
+            "\"\"dstzn1\",\"dstzn2\",\"dstzn3\"\",\"TestIpRange (1.2.3.4-1.2.3.5) added: TestIpNew (10.0.6.0/24)\"," +
+            "\" deleted: TestService1 (443/TCP) added: not(TestService1 (443/TCP))\",\"accept\",\"none\",\"enabled\",\"\",\" deleted: uid1\",\" deleted: comment1 added: new comment\"" +
+            "\"TestMgt\",\"05.04.2023 12:00:00\",\"Rule modified\",\"TestRule2\",\"\",\"not(TestUser1@TestIp1 (1.2.3.4/32),TestUser1@TestIp2 (127.0.0.1/32))\"," +
+            "\"\",\" deleted: not(TestUser2@TestIpRange (1.2.3.4-1.2.3.5)) added: TestUser2@TestIpRange (1.2.3.4-1.2.3.5)\"," +
+            "\" deleted: not(TestService2 (6666-7777/UDP)) added: TestService2 (6666-7777/UDP)\",\"deny\",\"none\",\" deleted: enabled added: disabled\",\"\",\"uid2:123\",\"comment2\"" +
+            "\"TestMgt\",\"05.04.2023 12:00:00\",\"Rule deleted\",\"TestRule2\",\"\",\"not(TestUser1@TestIp1 (1.2.3.4/32),TestUser1@TestIp2 (127.0.0.1/32))\"," +
+            "\"\",\"not(TestUser2@TestIpRange (1.2.3.4-1.2.3.5))\",\"not(TestService2 (6666-7777/UDP))\",\"deny\",\"none\",\"enabled\",\"\",\"uid2:123\",\"comment2\"";
+            ClassicAssert.AreEqual(expectedCsvResult, RemoveLinebreaks(RemoveGenDate(reportChanges.ExportToCsv())));
+        }
+
+        [Test]
         public void ResolvedChangesTechGenerateCsv()
         {
             Log.WriteInfo("Test Log", "starting changes report tech csv generation");
@@ -958,6 +987,57 @@ namespace FWO.Test
                 ChangeImport = new ChangeImport() { Time = new DateTime(2023, 04, 05, 12, 0, 0) },
                 OldRule = Rule2
             };
+            ObjectChange objectChange1 = new()
+            {
+                ChangeAction = 'I',
+                ChangeImport = new ChangeImport() { Time = new DateTime(2023, 04, 05, 12, 0, 0) },
+                NewObject = TestIp1
+            };
+            ObjectChange objectChange2 = new()
+            {
+                ChangeAction = 'C',
+                ChangeImport = new ChangeImport() { Time = new DateTime(2023, 04, 05, 12, 0, 0) },
+                OldObject = TestIp1,
+                NewObject = TestIp1Changed
+            };
+            ObjectChange objectChange3 = new()
+            {
+                ChangeAction = 'i',
+                ChangeImport = new ChangeImport() { Time = new DateTime(2023, 04, 05, 12, 0, 0) },
+                NewObject = TestIp2
+            };
+            ObjectChange objectChange4 = new()
+            {
+                ChangeAction = 'D',
+                ChangeImport = new ChangeImport() { Time = new DateTime(2023, 04, 05, 12, 0, 0) },
+                OldObject = TestIp2
+            };
+            ServiceChange serviceChange1 = new()
+            {
+                ChangeAction = 'I',
+                ChangeImport = new ChangeImport() { Time = new DateTime(2023, 04, 05, 12, 0, 0) },
+                NewService = TestService1
+            };
+            ServiceChange serviceChange2 = new()
+                {
+                ChangeAction = 'C',
+                ChangeImport = new ChangeImport() { Time = new DateTime(2023, 04, 05, 12, 0, 0) },
+                OldService = TestService1,
+                NewService = TestService2
+            };
+            ServiceChange serviceChange3 = new()
+            {
+                ChangeAction = 'i',
+                ChangeImport = new ChangeImport() { Time = new DateTime(2023, 04, 05, 12, 0, 0) },
+                NewService = TestService1
+            };
+            ServiceChange serviceChange4 = new()
+            {
+                ChangeAction = 'D',
+                ChangeImport = new ChangeImport() { Time = new DateTime(2023, 04, 05, 12, 0, 0) },
+                OldService = TestService1
+            };
+
             return new ReportData()
             {
                 ManagementData =
@@ -972,7 +1052,9 @@ namespace FWO.Test
                                 Name = "TestDev",                                
                             }
                         ],
-                        RuleChanges = [ruleChange1, ruleChange2, ruleChange3, ruleChange4]
+                        RuleChanges = [ruleChange1, ruleChange2, ruleChange3, ruleChange4],
+                        ObjectChanges = [objectChange1, objectChange2, objectChange3, objectChange4],
+                        ServiceChanges = [serviceChange1, serviceChange2, serviceChange3, serviceChange4]
                     }
                 ]
             };

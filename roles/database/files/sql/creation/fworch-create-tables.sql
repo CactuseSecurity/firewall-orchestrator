@@ -199,20 +199,11 @@ Create table "rule_metadata"
 	"rule_metadata_id" BIGSERIAL,
 	"rule_uid" Text NOT NULL,
 	"mgm_id" Integer NOT NULL,
-	"rule_created" Timestamp NOT NULL Default now(),
-	"rule_last_modified" Timestamp NOT NULL Default now(),
+	"rule_created" BIGINT NOT NULL,
+	"rule_last_modified" BIGINT NOT NULL,
 	"rule_first_hit" Timestamp,
 	"rule_last_hit" Timestamp,
 	"rule_hit_counter" BIGINT,
-	"rule_last_certified" Timestamp,
-	"rule_last_certifier" Integer,
-	"rule_last_certifier_dn" VARCHAR,
-	"rule_owner" Integer, -- points to a uiuser (not an owner)
-	"rule_owner_dn" Varchar, -- distinguished name pointing to ldap group, path or user
-	"rule_to_be_removed" Boolean NOT NULL Default FALSE,
-	"last_change_admin" Integer,
-	"rule_decert_date" Timestamp,
-	"rule_recertification_comment" Varchar,
  primary key ("rule_metadata_id") 
 );
 

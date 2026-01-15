@@ -967,6 +967,7 @@
                       "details",
                       "found_date",
                       "id",
+                      "is_initial",
                       "mgmt_uid",
                       "policy_id",
                       "removed_date",
@@ -983,14 +984,15 @@
                   "role": "auditor",
                   "permission": {
                     "columns": [
-                      "id",
-                      "rule_id",
                       "criterion_id",
-                      "policy_id",
-                      "risk_score",
                       "details",
                       "found_date",
-                      "removed_date"
+                      "id",
+                      "is_initial",
+                      "policy_id",
+                      "removed_date",
+                      "risk_score",
+                      "rule_id"
                     ],
                     "filter": {}
                   },
@@ -1000,14 +1002,15 @@
                   "role": "fw-admin",
                   "permission": {
                     "columns": [
-                      "id",
-                      "rule_id",
                       "criterion_id",
-                      "policy_id",
-                      "risk_score",
                       "details",
                       "found_date",
-                      "removed_date"
+                      "id",
+                      "is_initial",
+                      "policy_id",
+                      "removed_date",
+                      "risk_score",
+                      "rule_id"
                     ],
                     "filter": {}
                   },
@@ -1021,6 +1024,7 @@
                       "details",
                       "found_date",
                       "id",
+                      "is_initial",
                       "mgmt_uid",
                       "policy_id",
                       "removed_date",
@@ -1028,7 +1032,8 @@
                       "rule_id",
                       "rule_uid"
                     ],
-                    "filter": {}
+                    "filter": {},
+                    "allow_aggregations": true
                   },
                   "comment": ""
                 }
@@ -9478,10 +9483,12 @@
                       "email_address_to",
                       "email_subject",
                       "layout",
+                      "name",
                       "notification_client",
                       "recipient_cc",
                       "recipient_to",
                       "id",
+                      "initial_offset_after_deadline",
                       "interval_before_deadline",
                       "offset_before_deadline",
                       "owner_id",

@@ -1,50 +1,38 @@
-﻿using FWO.Api.Client;
+using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 using FWO.Basics;
-using FWO.Data;
 using FWO.Config.Api;
-using FWO.Config.Api.Data;
-using FWO.Logging;
-using System.Timers;
+using FWO.Data;
 using FWO.DeviceAutoDiscovery;
+using FWO.Logging;
+using Quartz;
+using System.Linq;
 
-namespace FWO.Middleware.Server
+namespace FWO.Middleware.Server.Jobs
 {
-	/// <summary>
-	/// Class handling the scheduler for the autodiscovery
-	/// </summary>
-    public class AutoDiscoverScheduler : SchedulerBase
+    /// <summary>
+    /// Quartz Job for autodiscovery
+    /// </summary>
+    public class AutoDiscoverJob : IJob
     {
+        private const string LogMessageTitle = "Autodiscovery";
+        private readonly ApiConnection apiConnection;
+        private readonly GlobalConfig globalConfig;
         private long? lastMgmtAlertId;
-        private const string LogMessageTitle = GlobalConst.kAutodiscovery;
-
-		/// <summary>
-        /// Async Constructor needing the connection
-        /// </summary>
-        public static async Task<AutoDiscoverScheduler> CreateAsync(ApiConnection apiConnection)
-        {
-            GlobalConfig globalConfig = await GlobalConfig.ConstructAsync(apiConnection, true);
-            return new AutoDiscoverScheduler(apiConnection, globalConfig);
-        }
-    
-        private AutoDiscoverScheduler(ApiConnection apiConnection, GlobalConfig globalConfig)
-            : base(apiConnection, globalConfig, ConfigQueries.subscribeAutodiscoveryConfigChanges, SchedulerInterval.Hours, "Autodiscover")
-        {}
-
-		/// <summary>
-		/// set scheduling timer from config values
-		/// </summary>
-        protected override void OnGlobalConfigChange(List<ConfigItem> config)
-        {
-            ScheduleTimer.Stop();
-            globalConfig.SubscriptionUpdateHandler([.. config]);
-            StartScheduleTimer(globalConfig.AutoDiscoverSleepTime, globalConfig.AutoDiscoverStartAt);
-        }
 
         /// <summary>
-        /// define the processing to be done
+        /// Creates a new autodiscovery job.
         /// </summary>
-        protected override async void Process(object? _, ElapsedEventArgs __)
+        /// <param name="apiConnection">GraphQL API connection.</param>
+        /// <param name="globalConfig">Global configuration.</param>
+        public AutoDiscoverJob(ApiConnection apiConnection, GlobalConfig globalConfig)
+        {
+            this.apiConnection = apiConnection;
+            this.globalConfig = globalConfig;
+        }
+
+        /// <inheritdoc />
+        public async Task Execute(IJobExecutionContext context)
         {
             try
             {
@@ -53,12 +41,12 @@ namespace FWO.Middleware.Server
                 {
                     try
                     {
-                        AutoDiscoveryBase autodiscovery = new (superManagement, apiConnection);
+                        AutoDiscoveryBase autodiscovery = new(superManagement, apiConnection);
 
                         List<Management> diffList = await autodiscovery.Run();
                         List<ActionItem> actions = autodiscovery.ConvertToActions(diffList);
 
-                        int ChangeCounter = 0;
+                        int changeCounter = 0;
 
                         foreach (ActionItem action in actions)
                         {
@@ -67,10 +55,10 @@ namespace FWO.Middleware.Server
                                 action.RefAlertId = lastMgmtAlertId;
                             }
                             action.AlertId = await SetAlert(action);
-                            ChangeCounter++;
+                            changeCounter++;
                         }
-                        await AddLogEntry(0, globalConfig.GetText("scheduled_autodiscovery"),
-                            ChangeCounter > 0 ? ChangeCounter + globalConfig.GetText("changes_found") : globalConfig.GetText("found_no_changes"),
+                        await SchedulerJobHelper.AddLogEntry(apiConnection, globalConfig, 0, globalConfig.GetText("scheduled_autodiscovery"),
+                            changeCounter > 0 ? changeCounter + globalConfig.GetText("changes_found") : globalConfig.GetText("found_no_changes"),
                             GlobalConst.kAutodiscovery, superManagement.Id);
                     }
                     catch (Exception excMgm)
@@ -85,7 +73,7 @@ namespace FWO.Middleware.Server
                             JsonData = excMgm.Message
                         };
                         await SetAlert(actionException);
-                        await AddLogEntry(1, globalConfig.GetText("scheduled_autodiscovery"),
+                        await SchedulerJobHelper.AddLogEntry(apiConnection, globalConfig, 1, globalConfig.GetText("scheduled_autodiscovery"),
                             $"Ran into exception while handling management {superManagement.Name} (id: {superManagement.Id}): " + excMgm.Message,
                             GlobalConst.kAutodiscovery, superManagement.Id);
                     }
@@ -93,15 +81,15 @@ namespace FWO.Middleware.Server
             }
             catch (Exception exc)
             {
-                await LogErrorsWithAlert(1, LogMessageTitle, GlobalConst.kAutodiscovery, AlertCode.Autodiscovery, exc);
+                await SchedulerJobHelper.LogErrorsWithAlert(apiConnection, globalConfig, 1, LogMessageTitle, GlobalConst.kAutodiscovery, AlertCode.Autodiscovery, exc);
             }
         }
 
         private async Task<long?> SetAlert(ActionItem action)
         {
             string title = "Supermanagement: " + action.Supermanager;
-            lastMgmtAlertId = await SetAlert(title, action.ActionType ?? "", GlobalConst.kAutodiscovery, AlertCode.Autodiscovery,
-                new() { MgmtId = action.ManagementId, JsonData = action.JsonData?.ToString(), DevId = action.DeviceId, RefAlertId = action.RefAlertId }, true);
+            lastMgmtAlertId = await SchedulerJobHelper.SetAlert(apiConnection, title, action.ActionType ?? "", GlobalConst.kAutodiscovery, AlertCode.Autodiscovery,
+                new SchedulerJobHelper.AdditionalAlertData { MgmtId = action.ManagementId, JsonData = action.JsonData?.ToString(), DevId = action.DeviceId, RefAlertId = action.RefAlertId }, true);
             return lastMgmtAlertId;
         }
     }

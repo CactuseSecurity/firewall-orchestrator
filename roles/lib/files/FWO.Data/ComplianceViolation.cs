@@ -88,7 +88,10 @@ namespace FWO.Data
         [JsonProperty("criterion"), JsonPropertyName("criterion")]
         public ComplianceCriterion? Criterion { get; set; }
 
-        public static ComplianceViolationBase CreateBase(ComplianceViolation violation )
+        [JsonProperty("is_initial"), JsonPropertyName("is_initial")]
+        public bool IsInitial { get; set; }
+
+        public static ComplianceViolationBase CreateBase(ComplianceViolation violation , bool isInitial)
         {
             return new()
             {
@@ -101,7 +104,8 @@ namespace FWO.Data
                 RiskScore = violation.RiskScore,
                 PolicyId = violation.PolicyId,
                 CriterionId = violation.CriterionId,
-                Criterion = violation.Criterion
+                Criterion = violation.Criterion,
+                IsInitial = isInitial
             };
             
         }

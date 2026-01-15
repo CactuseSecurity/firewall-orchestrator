@@ -39,6 +39,7 @@ def main(
     limit: int = 150,
     clear_management_data: bool = False,
     suppress_certificate_warnings: bool = False,
+    suppress_consistency_check: bool = False,
 ):
     FWOLogger(debug_level)
     FWOLogger.debug("debug level set to " + str(debug_level))
@@ -107,7 +108,14 @@ def main(
     register_global_state(import_state)
 
     import_management(
-        mgm_id, fwo_api_call, verify_certificates, limit, clear_management_data, suppress_certificate_warnings, file
+        mgm_id,
+        fwo_api_call,
+        verify_certificates,
+        limit,
+        clear_management_data,
+        suppress_certificate_warnings,
+        file,
+        suppress_consistency_check,
     )
 
 
@@ -163,6 +171,12 @@ if __name__ == "__main__":
         metavar="config_file_input",
         help="if set, the config will not be fetched from firewall but read from json config (native or normalized) file specified here; may also be an url.",
     )
+    parser.add_argument(
+        "--suppress_consistency_check",
+        action="store_true",
+        default=False,
+        help="If set, skip FwConfigImportCheckConsistency before importing",
+    )
 
     args = parser.parse_args()
 
@@ -176,6 +190,7 @@ if __name__ == "__main__":
             int(args.limit),
             args.clear,
             args.suppress_certificate_warnings,
+            args.suppress_consistency_check,
         )
     except Exception:
         FWOLogger.error(

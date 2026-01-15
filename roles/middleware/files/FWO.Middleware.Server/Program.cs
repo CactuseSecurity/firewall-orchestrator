@@ -1,26 +1,21 @@
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 using FWO.Basics;
+using FWO.Config.Api;
 using FWO.Config.File;
 using FWO.Logging;
 using FWO.Middleware.Server;
+using FWO.Middleware.Server.Jobs;
+using FWO.Middleware.Server.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using System.Diagnostics;
+using Microsoft.OpenApi;
+using Quartz;
 using System.Reflection;
 
 object changesLock = new(); // LOCK
-
-ReportScheduler reportScheduler;
-AutoDiscoverScheduler autoDiscoverScheduler;
-DailyCheckScheduler dailyCheckScheduler;
-ImportAppDataScheduler importAppDataScheduler;
-ImportIpDataScheduler importSubnetDataScheduler;
-ImportChangeNotifyScheduler importChangeNotifyScheduler;
-ExternalRequestScheduler externalRequestScheduler;
-VarianceAnalysisScheduler varianceAnalysisScheduler;
-ComplianceCheckScheduler complianceCheckScheduler;
 
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
@@ -32,7 +27,6 @@ JwtWriter jwtWriter = new(ConfigFile.JwtPrivateKey);
 // Create JWT for middleware-server API calls (relevant part is the role middleware-server) and add it to the Api connection header. 
 ApiConnection apiConnection = new GraphQlApiConnection(ConfigFile.ApiServerUri ?? throw new ArgumentException("Missing api server url on startup."), jwtWriter.CreateJWTMiddlewareServer());
 
-// Fetch all connectedLdaps via API (blocking).
 List<Ldap> connectedLdaps = [];
 int connectionAttemptsCount = 1;
 while (true)
@@ -50,7 +44,7 @@ while (true)
     }
 }
 
-Action<Exception> handleSubscriptionException = (Exception exception) => Log.WriteError("Subscription", "Subscription lead to exception.", exception);
+Action<Exception> handleSubscriptionException = exception => Log.WriteError("Subscription", "Subscription lead to exception.", exception);
 GraphQlApiSubscription<List<Ldap>>.SubscriptionUpdate connectedLdapsSubscriptionUpdate = (List<Ldap> ldapsChanges) => { lock (changesLock) { connectedLdaps = ldapsChanges; } };
 GraphQlApiSubscription<List<Ldap>> connectedLdapsSubscription = apiConnection.GetSubscription<List<Ldap>>(handleSubscriptionException, connectedLdapsSubscriptionUpdate, AuthQueries.getLdapConnectionsSubscription);
 Log.WriteInfo("Found ldap connection to server", string.Join("\n", connectedLdaps.ConvertAll(ldap => $"{ldap.Address}:{ldap.Port}")));
@@ -100,8 +94,8 @@ await Task.Factory.StartNew(async () =>
 // Create and start variance analysis scheduler
 await Task.Factory.StartNew(async () =>
 {
-    varianceAnalysisScheduler = await VarianceAnalysisScheduler.CreateAsync(apiConnection);
-}, TaskCreationOptions.LongRunning);
+    options.WaitForJobsToComplete = true;
+});
 
 // Create and start compliance check scheduler
 await Task.Factory.StartNew(async () =>
@@ -119,7 +113,6 @@ builder.Services.AddControllers()
 
 builder.Services.AddSingleton<JwtWriter>(jwtWriter);
 builder.Services.AddSingleton<List<Ldap>>(connectedLdaps);
-builder.Services.AddScoped<ApiConnection>(_ => new GraphQlApiConnection(ConfigFile.ApiServerUri, jwtWriter.CreateJWTMiddlewareServer()));
 
 builder.Services.AddAuthentication(confOptions =>
 {
@@ -153,7 +146,7 @@ builder.Services.AddSwaggerGen(c =>
     c.IncludeXmlComments(documentationPath);
 });
 
-var app = builder.Build();
+WebApplication app = builder.Build();
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())

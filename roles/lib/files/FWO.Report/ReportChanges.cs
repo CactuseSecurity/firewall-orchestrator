@@ -58,7 +58,7 @@ namespace FWO.Report
         {
             int queriesNeeded = 0;
             List<ManagementReport> managementsWithRelevantImportId = await GetRelevantImportIds(apiConnection, startTime);
-            List<ManagementReport> managementsWithImportIds = await GetImportIdsInTimeRange(apiConnection, startTime, stopTime, ruleChangeRequired: true);
+            List<ManagementReport> managementsWithImportIds = await GetImportIdsInTimeRange(apiConnection, startTime, stopTime, ruleChangeRequired: true, IncludeObjectsInReportChanges);
             foreach (var management in managementsWithRelevantImportId)
             {
                 List<long> importIdLastBeforeRange = [management.RelevantImportId ?? -1];

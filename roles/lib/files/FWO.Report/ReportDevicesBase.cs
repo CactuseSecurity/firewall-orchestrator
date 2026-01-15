@@ -60,14 +60,14 @@ namespace FWO.Report
             return managementReports;
         }
 
-        public async Task<List<ManagementReport>> GetImportIdsInTimeRange(ApiConnection apiConnection, string startTime, string stopTime, bool? ruleChangeRequired = null)
-        {
-            var queryVariables = new
+        public async Task<List<ManagementReport>> GetImportIdsInTimeRange(ApiConnection apiConnection, string startTime, string stopTime, bool? ruleChangeRequired = null, bool IncludeObjectsInReportChanges = false)
             {
+            var queryVariables = new
+                    {
                 start_time = startTime,
                 end_time = stopTime,
                 mgmIds = Query.RelevantManagementIds,
-                ruleChangesFound = ruleChangeRequired
+                ruleChangesFound = IncludeObjectsInReportChanges ? null : ruleChangeRequired
             };
             List<ManagementReport> managementReports = await apiConnection.SendQueryAsync<List<ManagementReport>>(ReportQueries.getRelevantImportIdsInTimeRange, queryVariables);
 

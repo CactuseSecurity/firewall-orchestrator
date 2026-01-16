@@ -108,20 +108,20 @@ namespace FWO.Middleware.Server.Services
                 return;
             }
 
-            DateTimeOffset startTime = CalculateStartTime(globalConfig.ComplianceCheckStartAt, TimeSpan.FromHours(globalConfig.ComplianceCheckSleepTime));
+            DateTimeOffset startTime = CalculateStartTime(globalConfig.ComplianceCheckStartAt, TimeSpan.FromMinutes(globalConfig.ComplianceCheckSleepTime));
 
             ITrigger trigger = TriggerBuilder.Create()
                 .WithIdentity(triggerKey)
                 .ForJob(jobKey)
                 .StartAt(startTime)
                 .WithSimpleSchedule(x => x
-                    .WithInterval(TimeSpan.FromHours(globalConfig.ComplianceCheckSleepTime))
+                    .WithInterval(TimeSpan.FromMinutes(globalConfig.ComplianceCheckSleepTime))
                     .RepeatForever())
                 .Build();
 
             await scheduler.ScheduleJob(trigger);
 
-            Log.WriteInfo(SchedulerName, $"Trigger scheduled. Start: {startTime:yyyy-MM-dd HH:mm:ss}, Interval: {globalConfig.ComplianceCheckSleepTime}h");
+            Log.WriteInfo(SchedulerName, $"Trigger scheduled. Start: {startTime:yyyy-MM-dd HH:mm:ss}, Interval: {globalConfig.ComplianceCheckSleepTime} m");
         }
 
         private DateTimeOffset CalculateStartTime(DateTime configuredStartTime, TimeSpan interval)

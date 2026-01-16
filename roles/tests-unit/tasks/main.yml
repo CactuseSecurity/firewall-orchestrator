@@ -48,9 +48,9 @@
 
     - name: show pytest output
       debug:
-      var: pytest_tests.stdout_lines
+        var: pytest_tests.stdout_lines
 
     - name: show pytest errors if any
       debug:
-      var: pytest_tests.stderr_lines
+        var: pytest_tests.stderr_lines
       when: pytest_tests.rc != 0

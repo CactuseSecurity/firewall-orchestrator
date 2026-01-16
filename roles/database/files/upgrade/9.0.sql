@@ -1304,42 +1304,48 @@ Alter Table "rule" ADD Constraint "rule_unique_mgm_id_rule_uid_rule_create_xlate
 
 
 -- rewrite get_rulebase_for_owner to work with rulebase instead of device
-CREATE OR REPLACE FUNCTION public.get_rulebase_for_owner(rulebase_row rulebase, ownerid integer)
-RETURNS SETOF rule
-LANGUAGE plpgsql
-STABLE
-AS $function$
-BEGIN
-    RETURN QUERY
-    SELECT *
-    FROM (
-        WITH src_rules AS (
-            SELECT r.*, rf_o.obj_ip, rf_o.obj_ip_end, rf.negated
-            FROM rule r
-            LEFT JOIN rule_from rf ON r.rule_id = rf.rule_id
-            LEFT JOIN objgrp_flat rf_of ON rf.obj_id = rf_of.objgrp_flat_id
-            LEFT JOIN object rf_o ON rf_of.objgrp_flat_member_id = rf_o.obj_id
-            WHERE r.rulebase_id = rulebase_row.id AND owner_id = ownerid AND rule_head_text IS NULL
-        ),
-        dst_rules AS (
-            SELECT r.*, rt_o.obj_ip, rt_o.obj_ip_end, rt.negated
-            FROM rule r
-            LEFT JOIN rule_to rt ON r.rule_id = rt.rule_id
-            LEFT JOIN objgrp_flat rt_of ON rt.obj_id = rt_of.objgrp_flat_id
-            LEFT JOIN object rt_o ON rt_of.objgrp_flat_member_id = rt_o.obj_id
-            WHERE r.rulebase_id = rulebase_row.id AND owner_id = ownerid AND rule_head_text IS NULL
-        )
-        SELECT s.*
-        FROM src_rules s
-        LEFT JOIN owner_network ON ip_ranges_overlap(s.obj_ip, s.obj_ip_end, ip, ip_end, s.negated != s.rule_src_neg)
-        UNION
-        SELECT d.*
-        FROM dst_rules d
-        LEFT JOIN owner_network ON ip_ranges_overlap(d.obj_ip, d.obj_ip_end, ip, ip_end, d.negated != d.rule_dst_neg)
-    ) AS combined
-    ORDER BY rule_name ASC;
-END;
-$function$;
+-- CREATE OR REPLACE FUNCTION public.get_rulebase_for_owner(rulebase_row rulebase, ownerid integer)
+-- RETURNS SETOF rule
+-- LANGUAGE plpgsql
+-- STABLE
+-- AS $function$
+-- BEGIN
+--     RETURN QUERY
+--     SELECT rule_id,last_change_admin,rule_name,mgm_id,parent_rule_id,parent_rule_type,active,removed,rule_num,rule_num_numeric,
+-- 		rule_ruleid,rule_uid,rule_disabled,rule_src_neg,rule_dst_neg,rule_svc_neg,action_id,track_id,
+-- 		rule_src,rule_dst,rule_svc,rule_src_refs,rule_dst_refs,rule_svc_refs,rule_from_zone,rule_to_zone,
+-- 		rule_action,rule_track,rule_installon,rule_time,rule_comment,rule_head_text,rule_implied,rule_create,rule_last_seen,
+-- 		dev_id,rule_custom_fields,access_rule,nat_rule,xlate_rule,is_global,rulebase_id
+--     FROM (
+--         WITH src_rules AS (
+--             SELECT r.*, rf_o.obj_ip, rf_o.obj_ip_end, rf.negated
+--             FROM rule r
+--             LEFT JOIN rule_from rf ON r.rule_id = rf.rule_id
+--             LEFT JOIN objgrp_flat rf_of ON rf.obj_id = rf_of.objgrp_flat_id
+--             LEFT JOIN object rf_o ON rf_of.objgrp_flat_member_id = rf_o.obj_id
+--             WHERE r.rulebase_id = rulebase_row.id AND rule_head_text IS NULL
+--         ),
+--         dst_rules AS (
+--             SELECT r.*, rt_o.obj_ip, rt_o.obj_ip_end, rt.negated
+--             FROM rule r
+--             LEFT JOIN rule_to rt ON r.rule_id = rt.rule_id
+--             LEFT JOIN objgrp_flat rt_of ON rt.obj_id = rt_of.objgrp_flat_id
+--             LEFT JOIN object rt_o ON rt_of.objgrp_flat_member_id = rt_o.obj_id
+--             WHERE r.rulebase_id = rulebase_row.id AND rule_head_text IS NULL
+--         )
+--         SELECT s.*
+--         FROM src_rules s
+--         LEFT JOIN owner_network ON ip_ranges_overlap(s.obj_ip, s.obj_ip_end, ip, ip_end, s.negated != s.rule_src_neg)
+-- 		WHERE owner_id = ownerid
+--         UNION
+--         SELECT d.*
+--         FROM dst_rules d
+--         LEFT JOIN owner_network ON ip_ranges_overlap(d.obj_ip, d.obj_ip_end, ip, ip_end, d.negated != d.rule_dst_neg)
+-- 		WHERE owner_id = ownerid
+--     ) AS combined
+--     ORDER BY rule_name ASC;
+-- END;
+-- $function$;
 
 
 -- drop only after migration

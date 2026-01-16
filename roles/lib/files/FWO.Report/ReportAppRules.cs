@@ -8,7 +8,6 @@ using FWO.Config.Api;
 using NetTools;
 using System.Net;
 using FWO.Basics;
-using Org.BouncyCastle.Asn1.Misc;
 
 namespace FWO.Report
 {
@@ -41,7 +40,6 @@ namespace FWO.Report
             }
             return gotAllObjects;
         }
-        
 
         public static async Task<List<ManagementReport>> PrepareAppRulesReport(List<ManagementReport> managementData, ModellingFilter modellingFilter, ApiConnection apiConnection, int? ownerId)
         {
@@ -50,37 +48,55 @@ namespace FWO.Report
             foreach(var mgt in managementData)
             {
                 ManagementReport relevantMgt = new() { Name = mgt.Name, Id = mgt.Id, Import = mgt.Import };
-                foreach (var dev in mgt.Devices)
+                foreach (var rulebase in mgt.Rulebases)
                 {
-                    PrepareDevice(dev, modellingFilter, relevantMgt, ownerIps);
+                    PrepareRulebase(rulebase, modellingFilter, relevantMgt, ownerIps);
                 }
-                if (relevantMgt.Devices.Length > 0)
+                if (relevantMgt.Rulebases.Length > 0)
                 {
                     relevantMgt.ReportedRuleIds = [.. relevantMgt.ReportedRuleIds.Distinct()];
+                    relevantMgt.Devices = [.. PrepareDevices(mgt.Devices)];
                     relevantData.Add(relevantMgt);
                 }
             }
             return relevantData;
         }
 
-        private static void PrepareDevice(DeviceReport dev, ModellingFilter modellingFilter, ManagementReport relevantMgt, List<IPAddressRange> ownerIps)
+        private static List<DeviceReport> PrepareDevices(DeviceReport[] deviceReports)
         {
-            DeviceReport relevantDevice = new(){ Name = dev.Name, Id = dev.Id };
-            List<Rule> deviceRules = dev.GetRuleList();
-            if (deviceRules != null)
+            List<DeviceReport> slectedDeviceReports = [];
+            foreach(var devReport in deviceReports)
             {
-                foreach (var rule in deviceRules)
+                DeviceReport selectedDevReport = new(devReport);
+                foreach(var rule in devReport.GetRuleList())
                 {
-                    PrepareRule(rule, modellingFilter, relevantMgt, relevantDevice, ownerIps);
+                    if (selectedDevReport.IsLinked(rule))
+                    {
+                        selectedDevReport.AddRule(rule);
+                    }
                 }
-                if (relevantDevice.GetNumberOfRules() > 0)
+                if (selectedDevReport.ContainsRules())
                 {
-                    relevantMgt.Devices = [.. relevantMgt.Devices, relevantDevice];
+                    slectedDeviceReports.Add(selectedDevReport);
                 }
+            }
+            return slectedDeviceReports;
+        }
+
+        private static void PrepareRulebase(RulebaseReport rulebase, ModellingFilter modellingFilter, ManagementReport relevantMgt, List<IPAddressRange> ownerIps)
+        {
+            RulebaseReport relevantRulebase = new(){ Name = rulebase.Name, Id = rulebase.Id };
+            foreach (var rule in rulebase.Rules)
+            {
+                PrepareRule(rule, modellingFilter, relevantMgt, relevantRulebase, ownerIps);
+            }
+            if (relevantRulebase.Rules.Length > 0)
+            {
+                relevantMgt.Rulebases = [.. relevantMgt.Rulebases, relevantRulebase];
             }
         }
 
-        private static void PrepareRule(Rule rule, ModellingFilter modellingFilter, ManagementReport relevantMgt, DeviceReport relevantDevice, List<IPAddressRange> ownerIps)
+        private static void PrepareRule(Rule rule, ModellingFilter modellingFilter, ManagementReport relevantMgt, RulebaseReport relevantRulebase, List<IPAddressRange> ownerIps)
         {
             if (modellingFilter.ShowDropRules || !rule.IsDropRule())
             {
@@ -104,7 +120,7 @@ namespace FWO.Report
                     rule.DisregardedFroms = [.. disregardedFroms];
                     rule.DisregardedTos = [.. disregardedTos];
                     rule.ShowDisregarded = modellingFilter.ShowFullRules;
-                    relevantDevice.AddRule(rule);
+                    relevantRulebase.Rules = [.. relevantRulebase.Rules, rule];
                     relevantMgt.ReportedRuleIds.Add(rule.Id);
                 }
             }
@@ -201,16 +217,12 @@ namespace FWO.Report
         {
             mgt.RelevantObjectIds = [];
             mgt.HighlightedObjectIds = [];
-            foreach (var dev in mgt.Devices)
+            foreach (var rb in mgt.Rulebases)
             {
-                List<Rule> allDeviceRules = dev.GetRuleListForDevice();
-                if (allDeviceRules.Count > 0)
+                foreach (var rule in rb.Rules)
                 {
-                    foreach (var rule in allDeviceRules)
-                    {
-                        PrepareObjects(rule.Froms, rule.SourceNegated, rule.DisregardedFroms, mgt, ownerIps);
-                        PrepareObjects(rule.Tos, rule.DestinationNegated, rule.DisregardedTos, mgt, ownerIps);
-                    }
+                    PrepareObjects(rule.Froms, rule.SourceNegated, rule.DisregardedFroms, mgt, ownerIps);
+                    PrepareObjects(rule.Tos, rule.DestinationNegated, rule.DisregardedTos, mgt, ownerIps);
                 }
             }
             mgt.RelevantObjectIds = [.. mgt.RelevantObjectIds.Distinct()];

@@ -134,32 +134,32 @@
             else
             {
                 <div class="card-body">
-                @if (currentReport != null)
-                {   
-                    @switch (currentReport.ReportType)
-                    {
-                        case ReportType.Rules:
-                        case ReportType.ResolvedRules:
-                        case ReportType.ResolvedRulesTech:
-                        case ReportType.Recertification:
-                        case ReportType.UnusedRules:
-                        case ReportType.NatRules:
-                        case ReportType.AppRules:
-                            <RulesReport Managements="currentReport.ReportData.ManagementData" SelectedReportType="actReportFilters.ReportType" RulesPerPage="rulesPerPage"
-                                @bind-SelectedRules="selectedItemsRuleReportTable" />
-                            break;
+                    @if (currentReport != null)
+                    {   
+                        @switch (currentReport.ReportType)
+                        {
+                            case ReportType.Rules:
+                            case ReportType.ResolvedRules:
+                            case ReportType.ResolvedRulesTech:
+                            case ReportType.Recertification:
+                            case ReportType.UnusedRules:
+                            case ReportType.NatRules:
+                            case ReportType.AppRules:
+                                <RulesReport Managements="currentReport.ReportData.ManagementData" SelectedReportType="actReportFilters.ReportType" RulesPerPage="rulesPerPage"
+                                    @bind-SelectedRules="selectedItemsRuleReportTable" />
+                                break;
 
-                        case ReportType.ComplianceReport:
-                        case ReportType.ComplianceDiffReport:
-                            <ComplianceReport ReportData="currentReport.ReportData" RulesPerPage="rulesPerPage" @bind-SelectedRules="_selectedItemsComplianceReportTable" @ref="_complianceReport" ShowAnyRule="_showAnyRulesInComplianceReport"/>
-                            break;
+                            case ReportType.ComplianceReport:
+                            case ReportType.ComplianceDiffReport:
+                                <ComplianceReport ReportData="currentReport.ReportData" RulesPerPage="rulesPerPage" @bind-SelectedRules="_selectedItemsComplianceReportTable" @ref="_complianceReport" ShowAnyRule="_showAnyRulesInComplianceReport"/>
+                                break;
 
-                        case ReportType.Changes:
-                        case ReportType.ResolvedChanges:
-                        case ReportType.ResolvedChangesTech:
-                            <ChangesReport Managements="currentReport.ReportData.ManagementData" SelectedReportType="actReportFilters.ReportType" RulesPerPage="rulesPerPage"
-                                @bind-SelectedRuleChanges="selectedItemsChangeReportTable" />
-                            break;
+                            case ReportType.Changes:
+                            case ReportType.ResolvedChanges:
+                            case ReportType.ResolvedChangesTech:
+                                <ChangesReport Managements="currentReport.ReportData.ManagementData" SelectedReportType="actReportFilters.ReportType" RulesPerPage="rulesPerPage"
+                                    @bind-SelectedRuleChanges="selectedItemsChangeReportTable" />
+                                break;
 
                             case ReportType.Statistics:
                                 <StatisticsReport Managements="currentReport.ReportData.ManagementData" GlobalStats="currentReport.ReportData.GlobalStats" />

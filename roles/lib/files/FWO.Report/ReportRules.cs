@@ -33,7 +33,7 @@ namespace FWO.Report
         private const int ColumnCount = 12;
         protected bool UseAdditionalFilter = false;
 
-        private static Dictionary<(int deviceId, int managementId), Rule[]> _rulesCache = new();
+        private static Dictionary<(int deviceId, int managementId), Rule[]> _rulesCache = [];
 
         public override async Task Generate(int elementsPerFetch, ApiConnection apiConnection, Func<ReportData, Task> callback, CancellationToken ct)
         {
@@ -76,7 +76,10 @@ namespace FWO.Report
                 await callback(ReportData);
             }
 
-            TryBuildRuleTree();
+            if(ReportType != ReportType.AppRules)
+            {
+                TryBuildRuleTree();
+            }
         }
 
         protected void TryBuildRuleTree()
@@ -87,7 +90,7 @@ namespace FWO.Report
             {
                 foreach (var deviceReport in managementReport.Devices)
                 {
-                    List<Rule> allRules = new();
+                    List<Rule> allRules = [];
 
                     if (Services.ServiceProvider.UiServices?.GetService<IRuleTreeBuilder>() is IRuleTreeBuilder ruleTreeBuilder)
                     {
@@ -107,7 +110,7 @@ namespace FWO.Report
                         }
                     }
 
-                    Rule[] rulesArray = allRules.ToArray();
+                    Rule[] rulesArray = [.. allRules];
                     _rulesCache[(deviceReport.Id, managementReport.Id)] = rulesArray;
 
                     // Add all rule ids to ReportedRuleIds of management, that are not already in that list

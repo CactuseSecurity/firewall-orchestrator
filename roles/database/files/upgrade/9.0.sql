@@ -468,7 +468,7 @@ Alter table "rulebase" add CONSTRAINT fk_rulebase_mgm_id foreign key ("mgm_id") 
 
 ALTER TABLE "rulebase" DROP CONSTRAINT IF EXISTS "unique_rulebase_mgm_id_name" CASCADE;
 ALTER TABLE "rulebase" DROP CONSTRAINT IF EXISTS "unique_rulebase_mgm_id_uid" CASCADE;
-Alter table "rulebase" add CONSTRAINT unique_rulebase_mgm_id_uid UNIQUE ("mgm_id", "uid");
+Alter table "rulebase" add CONSTRAINT unique_rulebase_mgm_id_uid UNIQUE ("mgm_id", "uid", "removed");
 -----------------------------------------------
 
 ALTER TABLE "management" ADD COLUMN IF NOT EXISTS "is_super_manager" BOOLEAN DEFAULT FALSE;

@@ -16113,15 +16113,15 @@
                   }
                 },
                 {
-                  "name": "uiuser",
+                  "name": "created_import",
                   "using": {
-                    "foreign_key_constraint_on": "rule_owner"
+                    "foreign_key_constraint_on": "rule_created"
                   }
                 },
                 {
-                  "name": "uiuserByRuleLastCertifier",
+                  "name": "last_modified_import",
                   "using": {
-                    "foreign_key_constraint_on": "rule_last_certifier"
+                    "foreign_key_constraint_on": "rule_last_modified"
                   }
                 }
               ],
@@ -16169,22 +16169,13 @@
                   "permission": {
                     "check": {},
                     "columns": [
-                      "last_change_admin",
                       "mgm_id",
                       "rule_created",
-                      "rule_decert_date",
                       "rule_first_hit",
                       "rule_hit_counter",
-                      "rule_last_certified",
-                      "rule_last_certifier",
-                      "rule_last_certifier_dn",
                       "rule_last_hit",
                       "rule_last_modified",
                       "rule_metadata_id",
-                      "rule_owner",
-                      "rule_owner_dn",
-                      "rule_recertification_comment",
-                      "rule_to_be_removed",
                       "rule_uid"
                     ]
                   }
@@ -16195,22 +16186,13 @@
                   "role": "auditor",
                   "permission": {
                     "columns": [
-                      "last_change_admin",
                       "mgm_id",
                       "rule_created",
-                      "rule_decert_date",
                       "rule_first_hit",
                       "rule_hit_counter",
-                      "rule_last_certified",
-                      "rule_last_certifier",
-                      "rule_last_certifier_dn",
                       "rule_last_hit",
                       "rule_last_modified",
                       "rule_metadata_id",
-                      "rule_owner",
-                      "rule_owner_dn",
-                      "rule_recertification_comment",
-                      "rule_to_be_removed",
                       "rule_uid"
                     ],
                     "filter": {},
@@ -16221,22 +16203,13 @@
                   "role": "fw-admin",
                   "permission": {
                     "columns": [
-                      "last_change_admin",
                       "mgm_id",
                       "rule_created",
-                      "rule_decert_date",
                       "rule_first_hit",
                       "rule_hit_counter",
-                      "rule_last_certified",
-                      "rule_last_certifier",
-                      "rule_last_certifier_dn",
                       "rule_last_hit",
                       "rule_last_modified",
                       "rule_metadata_id",
-                      "rule_owner",
-                      "rule_owner_dn",
-                      "rule_recertification_comment",
-                      "rule_to_be_removed",
                       "rule_uid"
                     ],
                     "filter": {},
@@ -16247,22 +16220,13 @@
                   "role": "importer",
                   "permission": {
                     "columns": [
-                      "last_change_admin",
                       "mgm_id",
                       "rule_created",
-                      "rule_decert_date",
                       "rule_first_hit",
                       "rule_hit_counter",
-                      "rule_last_certified",
-                      "rule_last_certifier",
-                      "rule_last_certifier_dn",
                       "rule_last_hit",
                       "rule_last_modified",
                       "rule_metadata_id",
-                      "rule_owner",
-                      "rule_owner_dn",
-                      "rule_recertification_comment",
-                      "rule_to_be_removed",
                       "rule_uid"
                     ],
                     "filter": {},
@@ -16273,22 +16237,13 @@
                   "role": "middleware-server",
                   "permission": {
                     "columns": [
-                      "last_change_admin",
                       "mgm_id",
                       "rule_created",
-                      "rule_decert_date",
                       "rule_first_hit",
                       "rule_hit_counter",
-                      "rule_last_certified",
-                      "rule_last_certifier",
-                      "rule_last_certifier_dn",
                       "rule_last_hit",
                       "rule_last_modified",
                       "rule_metadata_id",
-                      "rule_owner",
-                      "rule_owner_dn",
-                      "rule_recertification_comment",
-                      "rule_to_be_removed",
                       "rule_uid"
                     ],
                     "filter": {},
@@ -16299,22 +16254,13 @@
                   "role": "modeller",
                   "permission": {
                     "columns": [
-                      "last_change_admin",
                       "mgm_id",
                       "rule_created",
-                      "rule_decert_date",
                       "rule_first_hit",
                       "rule_hit_counter",
-                      "rule_last_certified",
-                      "rule_last_certifier",
-                      "rule_last_certifier_dn",
                       "rule_last_hit",
                       "rule_last_modified",
                       "rule_metadata_id",
-                      "rule_owner",
-                      "rule_owner_dn",
-                      "rule_recertification_comment",
-                      "rule_to_be_removed",
                       "rule_uid"
                     ],
                     "filter": {},
@@ -16325,22 +16271,13 @@
                   "role": "recertifier",
                   "permission": {
                     "columns": [
-                      "last_change_admin",
                       "mgm_id",
                       "rule_created",
-                      "rule_decert_date",
                       "rule_first_hit",
                       "rule_hit_counter",
-                      "rule_last_certified",
-                      "rule_last_certifier",
-                      "rule_last_certifier_dn",
                       "rule_last_hit",
                       "rule_last_modified",
                       "rule_metadata_id",
-                      "rule_owner",
-                      "rule_owner_dn",
-                      "rule_recertification_comment",
-                      "rule_to_be_removed",
                       "rule_uid"
                     ],
                     "filter": {},
@@ -16351,22 +16288,13 @@
                   "role": "reporter",
                   "permission": {
                     "columns": [
-                      "last_change_admin",
                       "mgm_id",
                       "rule_created",
-                      "rule_decert_date",
                       "rule_first_hit",
                       "rule_hit_counter",
-                      "rule_last_certified",
-                      "rule_last_certifier",
-                      "rule_last_certifier_dn",
                       "rule_last_hit",
                       "rule_last_modified",
                       "rule_metadata_id",
-                      "rule_owner",
-                      "rule_owner_dn",
-                      "rule_recertification_comment",
-                      "rule_to_be_removed",
                       "rule_uid"
                     ],
                     "filter": {},
@@ -16377,22 +16305,13 @@
                   "role": "reporter-viewall",
                   "permission": {
                     "columns": [
-                      "last_change_admin",
                       "mgm_id",
                       "rule_created",
-                      "rule_decert_date",
                       "rule_first_hit",
                       "rule_hit_counter",
-                      "rule_last_certified",
-                      "rule_last_certifier",
-                      "rule_last_certifier_dn",
                       "rule_last_hit",
                       "rule_last_modified",
                       "rule_metadata_id",
-                      "rule_owner",
-                      "rule_owner_dn",
-                      "rule_recertification_comment",
-                      "rule_to_be_removed",
                       "rule_uid"
                     ],
                     "filter": {},
@@ -16405,22 +16324,13 @@
                   "role": "importer",
                   "permission": {
                     "columns": [
-                      "last_change_admin",
                       "mgm_id",
                       "rule_created",
-                      "rule_decert_date",
                       "rule_first_hit",
                       "rule_hit_counter",
-                      "rule_last_certified",
-                      "rule_last_certifier",
-                      "rule_last_certifier_dn",
                       "rule_last_hit",
                       "rule_last_modified",
                       "rule_metadata_id",
-                      "rule_owner",
-                      "rule_owner_dn",
-                      "rule_recertification_comment",
-                      "rule_to_be_removed",
                       "rule_uid"
                     ],
                     "filter": {},
@@ -16430,14 +16340,7 @@
                 {
                   "role": "recertifier",
                   "permission": {
-                    "columns": [
-                      "rule_decert_date",
-                      "rule_last_certified",
-                      "rule_last_certifier",
-                      "rule_last_certifier_dn",
-                      "rule_recertification_comment",
-                      "rule_to_be_removed"
-                    ],
+                    "columns": [],
                     "filter": {},
                     "check": {}
                   }
@@ -22266,30 +22169,6 @@
                   }
                 },
                 {
-                  "name": "ruleMetadataByRuleOwner",
-                  "using": {
-                    "foreign_key_constraint_on": {
-                      "column": "rule_owner",
-                      "table": {
-                        "name": "rule_metadata",
-                        "schema": "public"
-                      }
-                    }
-                  }
-                },
-                {
-                  "name": "rule_metadata",
-                  "using": {
-                    "foreign_key_constraint_on": {
-                      "column": "rule_last_certifier",
-                      "table": {
-                        "name": "rule_metadata",
-                        "schema": "public"
-                      }
-                    }
-                  }
-                },
-                {
                   "name": "rules",
                   "using": {
                     "foreign_key_constraint_on": {
@@ -24084,7 +23963,6 @@
                       "owner_id",
                       "recert_interval",
                       "rule_from_zone",
-                      "rule_last_certifier",
                       "rule_to_zone",
                       "track_id",
                       "rule_num_numeric",
@@ -24119,7 +23997,6 @@
                       "owner_id",
                       "recert_interval",
                       "rule_from_zone",
-                      "rule_last_certifier",
                       "rule_to_zone",
                       "track_id",
                       "rule_num_numeric",
@@ -24162,7 +24039,6 @@
                       "owner_id",
                       "recert_interval",
                       "rule_from_zone",
-                      "rule_last_certifier",
                       "rule_to_zone",
                       "track_id",
                       "rule_num_numeric",
@@ -24205,7 +24081,6 @@
                       "owner_id",
                       "recert_interval",
                       "rule_from_zone",
-                      "rule_last_certifier",
                       "rule_to_zone",
                       "track_id",
                       "rule_num_numeric",

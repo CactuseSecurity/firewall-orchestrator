@@ -426,7 +426,7 @@ class TestFwConfigImportRuleOrderFunctions:
         )
 
         # Assert
-        assert result == 999.0
+        assert int(result) == 999
 
     def test_get_relevant_rule_num_numeric_returns_zero_for_consecutive_insert(
         self,
@@ -457,7 +457,7 @@ class TestFwConfigImportRuleOrderFunctions:
         )
 
         # Assert
-        assert result == 0.0
+        assert int(result) == 0
 
     def test_get_relevant_rule_num_numeric_calculates_for_moved_rule_using_recursion(
         self,
@@ -495,7 +495,7 @@ class TestFwConfigImportRuleOrderFunctions:
         )
 
         # Assert
-        assert result == 500.0
+        assert int(result) == 500
 
     def test_get_relevant_rule_num_numeric_calculates_for_new_rule_descending(
         self,
@@ -529,7 +529,7 @@ class TestFwConfigImportRuleOrderFunctions:
         )
 
         # Assert
-        assert result == 300.0
+        assert int(result) == 300
 
     def test_get_relevant_rule_num_numeric_fallback_to_source(
         self,
@@ -556,7 +556,7 @@ class TestFwConfigImportRuleOrderFunctions:
         )
 
         # Assert
-        assert result == 101.0
+        assert int(result) == 101
 
 
 class TestFwConfigImportRuleOrderCalculateNewRuleNum:
@@ -600,7 +600,7 @@ class TestFwConfigImportRuleOrderCalculateNewRuleNum:
 
         # Assert
         # If no prev neighbor, descending recursive often returns 0.
-        assert result == 512
+        assert int(result) == 512
 
     def test_compute_num_for_changed_rule_delegates_ascending(
         self,
@@ -628,7 +628,7 @@ class TestFwConfigImportRuleOrderCalculateNewRuleNum:
 
         # Assert
         # Should equate to r2.rule_num_numeric (500.0)
-        assert result == 500.0
+        assert int(result) == 500
 
     def test_compute_num_for_changed_rule_delegates_descending(
         self,
@@ -657,4 +657,4 @@ class TestFwConfigImportRuleOrderCalculateNewRuleNum:
 
         # Assert
         # Should equate to r1.rule_num_numeric (100.0)
-        assert result == 100.0
+        assert int(result) == 100

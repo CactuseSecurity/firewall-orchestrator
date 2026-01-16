@@ -688,6 +688,7 @@ BEGIN
             COUNT(DISTINCT r.mgm_id) AS mgm_count
         FROM rule_metadata rm
         JOIN rule r ON rm.rule_uid = r.rule_uid
+        WHERE rm.mgm_id IS NULL
         GROUP BY rm.rule_uid
         HAVING COUNT(DISTINCT r.mgm_id) >= 1
     LOOP
@@ -762,7 +763,7 @@ BEGIN
 	    ALTER TABLE rule_metadata ALTER COLUMN mgm_id SET NOT NULL;
         ALTER TABLE rule_metadata ADD CONSTRAINT rule_metadata_rule_uid_unique UNIQUE(rule_uid);
         ALTER TABLE rule ADD CONSTRAINT rule_rule_metadata_rule_uid_f_key 
-            FOREIGN KEY (rule_uid) REFERENCES rule_metadata (rule_uid);
+            FOREIGN KEY (rule_uid) REFERENCES rule_metadata (rule_uid) ON UPDATE RESTRICT ON DELETE CASCADE;
 			
 			-- set Unique constraint to (mgm_id + rule_uid)
         IF NOT EXISTS (

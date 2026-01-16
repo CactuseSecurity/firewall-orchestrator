@@ -14646,18 +14646,6 @@
                   "using": {
                     "foreign_key_constraint_on": "last_change_admin"
                   }
-                },
-                {
-                  "name": "zoneByRuleFromZone",
-                  "using": {
-                    "foreign_key_constraint_on": "rule_from_zone"
-                  }
-                },
-                {
-                  "name": "zoneByRuleToZone",
-                  "using": {
-                    "foreign_key_constraint_on": "rule_to_zone"
-                  }
                 }
               ],
               "array_relationships": [
@@ -24197,18 +24185,6 @@
                       "column": "zone_id",
                       "table": {
                         "name": "rule_to_zone",
-                        "schema": "public"
-                      }
-                    }
-                  }
-                },
-                {
-                  "name": "rules",
-                  "using": {
-                    "foreign_key_constraint_on": {
-                      "column": "rule_from_zone",
-                      "table": {
-                        "name": "rule",
                         "schema": "public"
                       }
                     }

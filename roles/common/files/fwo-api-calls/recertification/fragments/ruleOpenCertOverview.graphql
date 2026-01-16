@@ -6,7 +6,7 @@ fragment ruleOpenCertOverview on rule {
   rule_comment
   rule_track
   rule_disabled
-  src_zone: zoneByRuleFromZone {
+  src_zone: zone {
     zone_name
     zone_id
   }

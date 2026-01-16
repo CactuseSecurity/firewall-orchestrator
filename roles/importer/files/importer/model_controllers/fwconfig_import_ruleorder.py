@@ -302,7 +302,9 @@ class RuleOrderService:
         self, config: "FwConfigNormalized"
     ) -> tuple[list[str], list[RuleNormalized]]:
         uids_and_rules = [
-            (rule_uid, rule) for rulebase in config.rulebases for rule_uid, rule in rulebase.rules.items()
+            (rule_uid, rule)
+            for rulebase in sorted(config.rulebases, key=lambda rb: rb.uid)
+            for rule_uid, rule in rulebase.rules.items()
         ]
 
         if not uids_and_rules:

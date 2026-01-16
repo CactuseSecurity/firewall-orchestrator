@@ -15,21 +15,27 @@ namespace FWO.Middleware.Server.Services
     /// </summary>
     public class ReportSchedulerService : IAsyncDisposable
     {
-        private const string SchedulerName = "ReportScheduler";
+        private readonly ISchedulerFactory schedulerFactory;
         private readonly ApiConnection apiConnection;
         private readonly ReportSchedulerState state;
         private bool disposed = false;
         private GraphQlApiSubscription<ReportSchedule[]>? scheduleSubscription;
         private GraphQlApiSubscription<List<Ldap>>? ldapSubscription;
+        private IScheduler? scheduler;
+        private const string JobKeyName = "ReportJob";
+        private const string TriggerKeyName = "ReportTrigger";
+        private const string SchedulerName = "ReportScheduler";
 
         /// <summary>
         /// Initializes the report scheduler service.
         /// </summary>
+        /// <param name="schedulerFactory">Quartz scheduler factory.</param>
         /// <param name="apiConnection">GraphQL API connection.</param>
         /// <param name="state">Shared scheduler state used by the report job.</param>
         /// <param name="appLifetime"></param>
-        public ReportSchedulerService(ApiConnection apiConnection, ReportSchedulerState state, IHostApplicationLifetime appLifetime)
+        public ReportSchedulerService(ISchedulerFactory schedulerFactory, ApiConnection apiConnection, ReportSchedulerState state, IHostApplicationLifetime appLifetime)
         {
+            this.schedulerFactory = schedulerFactory;
             this.apiConnection = apiConnection;
             this.state = state;
 
@@ -45,6 +51,7 @@ namespace FWO.Middleware.Server.Services
                 state.UpdateLdaps(await apiConnection.SendQueryAsync<List<Ldap>>(AuthQueries.getLdapConnections));
                 ldapSubscription = apiConnection.GetSubscription<List<Ldap>>(ApiExceptionHandler, OnLdapUpdate, AuthQueries.getLdapConnectionsSubscription);
                 scheduleSubscription = apiConnection.GetSubscription<ReportSchedule[]>(ApiExceptionHandler, OnScheduleUpdate, ReportQueries.subscribeReportScheduleChanges);
+                scheduler = await schedulerFactory.GetScheduler();
 
                 Log.WriteInfo(SchedulerName, "Listener started");
             }
@@ -54,15 +61,65 @@ namespace FWO.Middleware.Server.Services
             }
         }
 
-        private void OnScheduleUpdate(ReportSchedule[] scheduledReports)
+        private async void OnScheduleUpdate(ReportSchedule[] scheduledReports)
         {
             state.UpdateSchedules(scheduledReports);
+            await ScheduleJob();
             Log.WriteInfo(SchedulerName, $"Received {scheduledReports.Length} report schedule updates");
         }
 
         private void OnLdapUpdate(List<Ldap> connectedLdaps)
         {
             state.UpdateLdaps(connectedLdaps);
+        }
+
+        private async Task ScheduleJob()
+        {
+            if (scheduler == null)
+            {
+                Log.WriteWarning(SchedulerName, "Scheduler not initialized");
+                return;
+            }
+
+            var jobKey = new JobKey(JobKeyName);
+            var triggerKey = new TriggerKey(TriggerKeyName);
+
+            // Ensure the job exists as a durable job (so it can be manually triggered)
+            if (!await scheduler.CheckExists(jobKey))
+            {
+                IJobDetail durableJob = JobBuilder.Create<ReportJob>()
+                    .WithIdentity(jobKey)
+                    .StoreDurably()
+                    .Build();
+
+                await scheduler.AddJob(durableJob, replace: true);
+
+                Log.WriteInfo(SchedulerName, "Added durable job for manual triggering");
+            }
+
+            // Remove existing trigger (if any) but keep the job
+            bool unscheduled = await scheduler.UnscheduleJob(triggerKey);
+            if (unscheduled)
+            {
+                Log.WriteInfo(SchedulerName, "Removed existing trigger");
+            }
+
+            int interval = 60;
+
+            // Create trigger with recurring schedule for existing job
+            ITrigger trigger = TriggerBuilder.Create()
+                .WithIdentity(triggerKey)
+                .ForJob(jobKey)
+                .StartNow()
+                .WithSimpleSchedule(x => x
+                    .WithIntervalInSeconds(interval)
+                    .RepeatForever())
+                .Build();
+
+            await scheduler.ScheduleJob(trigger);
+
+            Log.WriteInfo(SchedulerName,
+                $"Trigger scheduled, Interval: {interval}s");
         }
 
         private static void ApiExceptionHandler(Exception exception)
@@ -90,6 +147,20 @@ namespace FWO.Middleware.Server.Services
                     Log.WriteError(SchedulerName, "Error during disposal", ex);
                 }
             }
+        }
+
+        private static DateTimeOffset CalculateStartTime(DateTime configuredStartTime, int intervalSeconds)
+        {
+            DateTime startTime = configuredStartTime;
+            DateTime now = DateTime.Now;
+
+            // Move start time forward until it's in the future
+            while (startTime < now)
+            {
+                startTime = startTime.AddSeconds(intervalSeconds);
+            }
+
+            return new DateTimeOffset(startTime);
         }
     }
 

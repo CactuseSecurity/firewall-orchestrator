@@ -223,9 +223,6 @@ def test_delete_inline_layer(
     fwconfig_builder.add_inline_layer(gateway, from_rulebase.uid, from_rule.rule_uid or "", added_rulebase.uid)
 
     fwconfig_builder.update_rule_map_and_rulebase_map(global_state.previous_config, import_state_controller.state)
-    _from_rule_id, _from_rulebase_id, _to_rulebase_id = import_state_controller.state.lookup_ids_for_rulebase_link(
-        from_rule.rule_uid, from_rulebase.uid, added_rulebase.uid
-    )
     fwconfig_builder.update_rb_links(gateway.RulebaseLinks, 1, fwconfig_import_gateway)
     import_state_controller.state.gateway_map[3] = {global_state.normalized_config.gateways[0].Uid or "": 1}
 

@@ -65,6 +65,7 @@ class TestFwConfigImportRuleOrderOldMigration:
 
         # Assert
         assert inserted_rule_uid is not None
+        assert moved_rule_uid is not None
         insert_rule = get_rule(global_state.normalized_config, 0, inserted_rule_uid)
         assert insert_rule is not None
 
@@ -225,12 +226,9 @@ class TestFwConfigImportRuleOrderOldMigration:
         source_rulebase_uids = list(source_rulebase.rules.keys())
         target_rulebase = global_state.normalized_config.rulebases[1]
         target_rulebase_uids = list(target_rulebase.rules.keys())
-
-        print("Before Move:", [source_rulebase.rules[uid].rule_num_numeric for uid in source_rulebase_uids])
         deleted_rule = remove_rule_from_rulebase(
             global_state.normalized_config, source_rulebase.uid, source_rulebase_uids[0], source_rulebase_uids
         )
-        print("After Remove:", [source_rulebase.rules[uid].rule_num_numeric for uid in source_rulebase_uids])
         insert_rule_in_config(
             global_state.normalized_config,
             target_rulebase.uid,
@@ -239,12 +237,9 @@ class TestFwConfigImportRuleOrderOldMigration:
             fwconfig_builder,
             deleted_rule,
         )
-        print("After Insert:", [target_rulebase.rules[uid].rule_num_numeric for uid in target_rulebase_uids])
         # Act
 
-        rule_order_service.update_rule_order_diffs()
-        print("After Update:", [target_rulebase.rules[uid].rule_num_numeric for uid in target_rulebase_uids])
-        # Assert
+        rule_order_service.update_rule_order_diffs()  # Assert
         assert deleted_rule.rule_uid is not None
         rule = get_rule(global_state.normalized_config, 1, deleted_rule.rule_uid)
         assert rule is not None

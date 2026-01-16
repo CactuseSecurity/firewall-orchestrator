@@ -75,7 +75,7 @@ def move_rule_in_config(
     Imitates the moving of a rule in the config dict.
     """
     rulebase = next((rb for rb in config.rulebases if rb.uid == rulebase_uid), None)
-    moved_rule_uid = ""
+    moved_rule_uid = None
 
     if rulebase:
         rule_uid = list(rulebase.rules.keys())[source_position]

@@ -193,8 +193,6 @@ def test_update_rulebase_diffs_on_insert_delete_and_move(
     # Act
 
     fwconfig_import_rule.update_rulebase_diffs(global_state.previous_config)
-    print(len(global_state.normalized_config.rulebases[0].rules))
-    print(len(global_state.previous_config.rulebases[0].rules))
     # Assert
 
     # The order of the entries in normalized_config

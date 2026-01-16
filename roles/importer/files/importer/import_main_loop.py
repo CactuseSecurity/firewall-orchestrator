@@ -26,6 +26,7 @@ from model_controllers.management_controller import (
     ManagementController,
     ManagerInfo,
 )
+from services.service_provider import ServiceProvider
 
 
 def get_fwo_jwt(import_user: str, import_pwd: str, user_management_api: str) -> str | None:
@@ -169,6 +170,8 @@ def main_loop(
             sleep_timer,
             is_full_import,
         )
+
+    ServiceProvider().dispose_global_state()
 
     FWOLogger.info(f"import_main_loop: sleeping for {sleep_timer} seconds until next import cycle")
     wait_with_shutdown_check(sleep_timer)

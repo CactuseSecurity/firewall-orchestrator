@@ -41,7 +41,7 @@ namespace FWO.Api.Client
 
             // 1 hour timeout
             graphQlClient.HttpClient.Timeout = new TimeSpan(1, 0, 0);
-        }
+        }        
 
         public GraphQlApiConnection(string ApiServerUri, string jwt)
         {

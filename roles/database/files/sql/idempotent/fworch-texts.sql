@@ -2709,6 +2709,10 @@ INSERT INTO txt VALUES ('edit_notification',    'German', 	'Benachrichtigung bea
 INSERT INTO txt VALUES ('edit_notification',    'English', 	'Edit Notification');
 INSERT INTO txt VALUES ('delete_notification',  'German', 	'Benachrichtigung l&ouml;schen');
 INSERT INTO txt VALUES ('delete_notification',  'English', 	'Delete Notification');
+INSERT INTO txt VALUES ('accesstoken_lifetime', 'German', 	'Access Token Gültigkeitsdauer (in Stunden)');
+INSERT INTO txt VALUES ('accesstoken_lifetime', 'English',  'Access Token Lifetime (in Hours)');
+INSERT INTO txt VALUES ('refreshtoken_lifetime','German',   'Refresh Token Gültigkeitsdauer (in Tagen)');
+INSERT INTO txt VALUES ('refreshtoken_lifetime','English',  'Refresh Token Lifetime (in Days)');
 INSERT INTO txt VALUES ('last_sent',   		    'German', 	'Zuletzt gesendet');
 INSERT INTO txt VALUES ('last_sent',   		    'English', 	'Last sent');
 INSERT INTO txt VALUES ('reset_notification',   'German', 	'Zur&uuml;cksetzen');
@@ -2977,6 +2981,18 @@ INSERT INTO txt VALUES ('import_app_server',    'German',   'App Server importie
 INSERT INTO txt VALUES ('import_app_server',    'English',  'Import app servers');
 INSERT INTO txt VALUES ('import_matrix',   		'German', 	'Matrix-Import');
 INSERT INTO txt VALUES ('import_matrix',   		'English', 	'Matrix Import');
+INSERT INTO txt VALUES ('token_refresh',   		'German', 	'Token erneuern');
+INSERT INTO txt VALUES ('token_refresh',   		'English', 	'Refresh Token');
+INSERT INTO txt VALUES ('token_revoke',   		'German', 	'Token zur&uuml;ckziehen');
+INSERT INTO txt VALUES ('token_revoke',   		'English', 	'Revoke Token');
+INSERT INTO txt VALUES ('response',             'German', 	'Antwort');
+INSERT INTO txt VALUES ('response',             'English',  'Response');
+INSERT INTO txt VALUES ('missing_refresh_token','German',   'Fehlender Refresh Token');
+INSERT INTO txt VALUES ('missing_refresh_token','English',  'Missing Refresh Token');
+INSERT INTO txt VALUES ('invalid_refresh_token','German',   'Ung&uuml;ltiger oder abgelaufener Refresh Token');
+INSERT INTO txt VALUES ('invalid_refresh_token','English',  'Invalid or Expired Refresh Token');
+INSERT INTO txt VALUES ('token_revoke_success', 'German',   'Token erfolgreich zur&uuml;ckgezogen');
+INSERT INTO txt VALUES ('token_revoke_success', 'English',  'Successful Token Revocation');
 
 -- user messages
 INSERT INTO txt VALUES ('U0001', 'German',  'Eingabetext wurde um nicht erlaubte Zeichen gek&uuml;rzt');
@@ -3281,6 +3297,8 @@ INSERT INTO txt VALUES ('U9034', 'German',  'Es ist noch ein Firewall-&Auml;nder
 INSERT INTO txt VALUES ('U9034', 'English', 'A Firewall Change request is running!');
 INSERT INTO txt VALUES ('U9035', 'German',  'Sind sie sicher, dass sie folgende Schnittstelle stillegen wollen: ');
 INSERT INTO txt VALUES ('U9035', 'English', 'Are you sure you want to decommission following interface: ');
+INSERT INTO txt VALUES ('U9036', 'German',  'Die Gültigkeitsdauer des Zugriffstokens darf die Gültigkeitsdauer des Aktualisierungstokens nicht überschreiten.');
+INSERT INTO txt VALUES ('U9036', 'English', 'Access token lifetime cannot exceed refresh token lifetime.');
 
 -- error messages
 INSERT INTO txt VALUES ('E0001', 'German',  'Nicht klassifizierter Fehler: ');
@@ -4182,7 +4200,7 @@ INSERT INTO txt VALUES ('H3001', 'English', 'Here the archived reports can be fo
     They may be created on the one hand by exporting manually created reports with setting the flag "Archive" in <a href="/help/reporting/export">Export Report</a>.
     On the other hand here also the reports created by the <a href="/help/reporting/scheduling">Scheduling</a> or in the recertification process can be found.
     It is possible to download or delete (except recertifications) these archived reports.
-    In the left sidebar the report display can be restricted to the particular report types. 
+    In the left sidebar the report display can be restricted to the particular report types.
 ');
 
 INSERT INTO txt VALUES ('H4011', 'German',  'Im ersten Schritt muss ein Report mit den demn&auml;chst zu rezertifizierenden Regeln geladen werden.
@@ -5884,11 +5902,11 @@ INSERT INTO txt VALUES ('H5660', 'English', 'Receiver of decommission emails: Se
 INSERT INTO txt VALUES ('H5661', 'German',  'Titel der Stilllegungsbenachrichtigung: Betreff der Email-Benachrichtigung an die betroffenen Eigent&uuml;mer. Platzhalter @@INTERFACE_NAME@@ werden mit dem Namen der zu l&ouml;schenden Schnittstelle ersetzt.');
 INSERT INTO txt VALUES ('H5661', 'English', 'Subject of decommission emails: Subject of the email to the addressed owners. Placeholders @@INTERFACE_NAME@@ will be replaced by the name of the interface to be decommissioned.');
 INSERT INTO txt VALUES ('H5662', 'German',  'Text der Stilllegungsbenachrichtigung: Text der Email-Benachrichtigung an die Nutzer der Schnittstelle, gefolgt von der Liste der betroffenen Verbindungen. Es k&ouml;nnen folgende Platzhalter genutzt werden:
-    @@INTERFACE_NAME@@ wird durch den Namen der stillzulegenden Schnittstelle ersetzt, @@NEW_INTERFACE_NAME@@ mit dem Namen der vorgeschlagenen Ersatzschnittstelle, @@NEW_INTERFACE_LINK@@ mit einem Link auf diese, 
+    @@INTERFACE_NAME@@ wird durch den Namen der stillzulegenden Schnittstelle ersetzt, @@NEW_INTERFACE_NAME@@ mit dem Namen der vorgeschlagenen Ersatzschnittstelle, @@NEW_INTERFACE_LINK@@ mit einem Link auf diese,
     @@REASON@@ mit dem Begr&uuml;ndungstext, der im Stillegungsformular eingegeben wurde, @@USER_NAME@@ mit dem Nutzer, der die Stillegung veranlasst hat.
 ');
 INSERT INTO txt VALUES ('H5662', 'English', 'Body of decommission emails: Text of the email notification to the addressed owners, followed by a list of the affected connections. Some placeholders can be used:
-    @@INTERFACE_NAME@@ will be replaced by the name of the interface to be decommissioned, @@NEW_INTERFACE_NAME@@ by the name of the proposed new interface, @@NEW_INTERFACE_LINK@@ by a link to this interface, 
+    @@INTERFACE_NAME@@ will be replaced by the name of the interface to be decommissioned, @@NEW_INTERFACE_NAME@@ by the name of the proposed new interface, @@NEW_INTERFACE_LINK@@ by a link to this interface,
     @@REASON@@ by the reason text filled in the decommission form, @@USER_NAME@@ by the user initiating the decommissioning.
 ');
 INSERT INTO txt VALUES ('H5663', 'German',  'Alle Regeln modelliert erwarten: Alle dem Eigent&uuml;mer zugeordneten Regeln m&uuml;ssen modelliert sein.');

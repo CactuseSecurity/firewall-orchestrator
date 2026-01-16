@@ -529,6 +529,11 @@ namespace FWO.Config.Api.Data
         [JsonProperty("importedMatrixReadOnly"), JsonPropertyName("importedMatrixReadOnly")]
         public bool ImportedMatrixReadOnly { get; set; } = true;
 
+        [JsonProperty("accessTokenLifetimeHours"), JsonPropertyName("accessTokenLifetimeHours")]
+        public int AccessTokenLifetimeHours { get; set; } = 7;
+        
+        [JsonProperty("refreshTokenLifetimeDays"), JsonPropertyName("refreshTokenLifetimeDays")]
+        public int RefreshTokenLifetimeDays { get; set; } = 7;
         [JsonProperty("complianceCheckElementsPerFetch"), JsonPropertyName("complianceCheckElementsPerFetch")]
         public int ComplianceCheckElementsPerFetch { get; set; } = 500;
 

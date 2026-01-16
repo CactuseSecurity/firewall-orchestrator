@@ -1,5 +1,6 @@
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
+using FWO.Basics;
 using FWO.Config.Api;
 using FWO.Config.File;
 using FWO.Logging;
@@ -8,18 +9,17 @@ using FWO.Middleware.Server.Jobs;
 using FWO.Middleware.Server.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.OpenApi.Models;
+using System.Diagnostics;
 using Microsoft.OpenApi;
 using Quartz;
 using System.Reflection;
 
-// Implicitly call static constructor so background lock process is started
-// (static constructor is only called after class is used in any way)
-Log.WriteInfo("Startup", "Starting FWO Middleware Server...");
-
 object changesLock = new(); // LOCK
 
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
-builder.WebHost.UseUrls(ConfigFile.MiddlewareServerNativeUri ?? throw new ArgumentException("Missing middleware server url on startup."));
+
+    builder.WebHost.UseUrls(ConfigFile.MiddlewareServerNativeUri ?? throw new ArgumentException("Missing middleware server url on startup."));
 
 // Create Token Generator
 JwtWriter jwtWriter = new(ConfigFile.JwtPrivateKey);
@@ -49,31 +49,59 @@ GraphQlApiSubscription<List<Ldap>>.SubscriptionUpdate connectedLdapsSubscription
 GraphQlApiSubscription<List<Ldap>> connectedLdapsSubscription = apiConnection.GetSubscription<List<Ldap>>(handleSubscriptionException, connectedLdapsSubscriptionUpdate, AuthQueries.getLdapConnectionsSubscription);
 Log.WriteInfo("Found ldap connection to server", string.Join("\n", connectedLdaps.ConvertAll(ldap => $"{ldap.Address}:{ldap.Port}")));
 
-// GlobalConfig for Quartz DI
-GlobalConfig globalConfig = await GlobalConfig.ConstructAsync(apiConnection, true);
+// Create and start report scheduler
+await Task.Factory.StartNew(async () =>
+{
+    reportScheduler = await ReportScheduler.CreateAsync(apiConnection, jwtWriter, connectedLdapsSubscription);
+}, TaskCreationOptions.LongRunning);
 
-builder.Services.AddQuartz();
-builder.Services.AddQuartzHostedService(options =>
+// Create and start auto disovery scheduler
+await Task.Factory.StartNew(async () =>
+{
+    autoDiscoverScheduler = await AutoDiscoverScheduler.CreateAsync(apiConnection);
+}, TaskCreationOptions.LongRunning);
+
+// Create and start daily check scheduler
+await Task.Factory.StartNew(async () =>
+{
+    dailyCheckScheduler = await DailyCheckScheduler.CreateAsync(apiConnection);
+}, TaskCreationOptions.LongRunning);
+
+// Create and start import app data scheduler
+await Task.Factory.StartNew(async () =>
+{
+    importAppDataScheduler = await ImportAppDataScheduler.CreateAsync(apiConnection);
+}, TaskCreationOptions.LongRunning);
+
+// Create and start import subnet data scheduler
+await Task.Factory.StartNew(async () =>
+{
+    importSubnetDataScheduler = await ImportIpDataScheduler.CreateAsync(apiConnection);
+}, TaskCreationOptions.LongRunning);
+
+// Create and start import change notify scheduler
+await Task.Factory.StartNew(async () =>
+{
+    importChangeNotifyScheduler = await ImportChangeNotifyScheduler.CreateAsync(apiConnection);
+}, TaskCreationOptions.LongRunning);
+
+// Create and start external request scheduler
+await Task.Factory.StartNew(async () =>
+{
+    externalRequestScheduler = await ExternalRequestScheduler.CreateAsync(apiConnection);
+}, TaskCreationOptions.LongRunning);
+
+// Create and start variance analysis scheduler
+await Task.Factory.StartNew(async () =>
 {
     options.WaitForJobsToComplete = true;
 });
 
-// Register singletons for DI
-builder.Services.AddSingleton(apiConnection);
-builder.Services.AddSingleton(globalConfig);
-builder.Services.AddSingleton<ReportSchedulerState>();
-builder.Services.AddSingleton<JobExecutionTracker>();
-
-// Register config listeners as singletons (activated at startup)
-builder.Services.AddSingleton<ExternalRequestSchedulerService>();
-builder.Services.AddSingleton<AutoDiscoverSchedulerService>();
-builder.Services.AddSingleton<DailyCheckSchedulerService>();
-builder.Services.AddSingleton<ImportAppDataSchedulerService>();
-builder.Services.AddSingleton<ImportIpDataSchedulerService>();
-builder.Services.AddSingleton<ImportChangeNotifySchedulerService>();
-builder.Services.AddSingleton<VarianceAnalysisSchedulerService>();
-builder.Services.AddSingleton<ReportSchedulerService>();
-builder.Services.AddSingleton<ComplianceSchedulerService>();
+// Create and start compliance check scheduler
+await Task.Factory.StartNew(async () =>
+{
+    complianceCheckScheduler = await ComplianceCheckScheduler.CreateAsync(apiConnection);
+}, TaskCreationOptions.LongRunning);
 
 // Add services to the container.
 builder.Services.AddControllers()
@@ -138,21 +166,19 @@ app.UseAuthorization();
 
 app.MapControllers();
 
-//Register JobExecutionTracker with scheduler
-ISchedulerFactory schedulerFactory = app.Services.GetRequiredService<ISchedulerFactory>();
-JobExecutionTracker executionTracker = app.Services.GetRequiredService<JobExecutionTracker>();
-IScheduler scheduler = await schedulerFactory.GetScheduler();
-scheduler.ListenerManager.AddJobListener(executionTracker);
+app.Run();
 
-// Activate config listeners so they attach subscriptions after startup
-app.Services.GetRequiredService<ExternalRequestSchedulerService>();
-app.Services.GetRequiredService<AutoDiscoverSchedulerService>();
-app.Services.GetRequiredService<DailyCheckSchedulerService>();
-app.Services.GetRequiredService<ImportAppDataSchedulerService>();
-app.Services.GetRequiredService<ImportIpDataSchedulerService>();
-app.Services.GetRequiredService<ImportChangeNotifySchedulerService>();
-app.Services.GetRequiredService<VarianceAnalysisSchedulerService>();
-app.Services.GetRequiredService<ReportSchedulerService>();
-app.Services.GetRequiredService<ComplianceSchedulerService>();
+/// <summary>
+/// Entry point for the FWO Middleware Server application to make it accessible for testing
+/// </summary>
+public partial class Program
+{
+    /// <summary>
+    /// Initializes a new instance of the <see cref="Program"/> class.
+    /// Protected constructor to allow partial class for testing.
+    /// </summary>
+    protected Program()
+    {
 
-await app.RunAsync();
+    }
+}

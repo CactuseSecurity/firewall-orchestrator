@@ -2,3 +2,7 @@ install_webhook: no
 # webhook_install_mode: reinstall
 webhook_install_mode: upgrade
 webhook_branch: develop
+
+# Integration test user configuration
+integration_test_user_pw: testpassword
+integration_test_user_name: integration_user_jwt_refresh_test

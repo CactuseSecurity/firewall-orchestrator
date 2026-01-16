@@ -103,7 +103,7 @@ class FwoApi:
         user: str,
         password: str | None,
         user_management_api_base_url: str | None,
-        method: str = "api/AuthenticationToken/Get",
+        method: str = "api/AuthenticationToken/GetTokenPair",
     ):
         payload: dict[str, str | None] = {"Username": user, "Password": password}
 

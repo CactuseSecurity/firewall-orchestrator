@@ -44,7 +44,7 @@ def call(
 
 
 def login(
-    user: str, password: str, user_management_api_base_url: str, method: str = "api/AuthenticationToken/Get"
+    user: str, password: str, user_management_api_base_url: str, method: str = "api/AuthenticationToken/GetTokenPair"
 ) -> str:
     payload: dict[str, str] = {"Username": user, "Password": password}
 
@@ -260,7 +260,7 @@ if __name__ == "__main__":
     username, password = get_credentials()
 
     # login with the credentials to get JWT
-    jwt: str = login(username, password, user_management_api_base_url, method="api/AuthenticationToken/Get")
+    jwt: str = login(username, password, user_management_api_base_url, method="api/AuthenticationToken/GetTokenPair")
 
     # read settings to write to API from file
     settings: dict[str, Any] = read_json_file(settings_file)

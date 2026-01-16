@@ -3,9 +3,9 @@
 @{
     Layout = "HelpLayout";
 }
-@section sidebar{
-    @{ 
-        await Html.RenderPartialAsync("HelpAPISidebar.cshtml"); 
+@section sidebar {
+    @{
+        await Html.RenderPartialAsync("HelpAPISidebar.cshtml");
     }
 }
 @using FWO.Config.Api
@@ -15,21 +15,117 @@
     <h3>@userConfig.GetText("login")</h3>
     @(Html.Raw(userConfig.GetText("H6501")))
     <br><br>
-
     <h4>@userConfig.GetText("jwt_corr_login")</h4>
-<br>
-<pre>
+    <br>
+    <pre class="code-block" data-lang="bash"><code>
 curl --request POST \
-    --url https://localhost:8888/api/AuthenticationToken/Get/ \
+    --url https://localhost:8888/api/AuthenticationToken/GetTokenPair/ \
     --header 'content-type: application/json' \
     --data '{"Username": "user1_demo", "Password": "cactus1"}'
-</pre>
-
+    </code></pre>
+    <small class="small-helptext">@userConfig.GetText("response")</small>
+    <pre class="code-block" data-lang="json"><code >
+{
+    "accessToken": "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9...",
+    "refreshToken": "a7f3c8b9e2d1...",
+    "accessTokenExpires": "2025-12-11T14:30:00Z",
+    "refreshTokenExpires": "2026-01-10T12:00:00Z"
+}
+    </code></pre>
+    <hr />
     <h4>@userConfig.GetText("err_incorr_login")</h4>
-<br>
-<pre>
+    <br><br>
+    <pre class="code-block" data-lang="bash"><code>
 curl --request POST \
-    --url https://localhost:8888/api/AuthenticationToken/Get/ \
+    --url https://localhost:8888/api/AuthenticationToken/GetTokenPair/ \
     --header 'content-type: application/json' \
     --data '{"Username": "user1_demo", "Password": "wrong-pwd"}'
-</pre>
+    </code></pre>
+    <small class="small-helptext">
+        @userConfig.GetText("response")
+    </small>
+    <pre class="code-block" data-lang="text"><code>
+A0002 Invalid credentials
+    </code></pre>
+    <hr />
+    <h4>@userConfig.GetText("token_refresh")</h4>
+    <br><br>
+    <pre class="code-block" data-lang="bash"><code>
+curl --request POST \
+    --url https://localhost:8888/api/AuthenticationToken/Refresh/ \
+    --header 'content-type: application/json' \
+    --data '{"RefreshToken": "a7f3c8b9e2d1..."}'
+    </code></pre>
+    <small class="small-helptext">
+        @userConfig.GetText("response")
+    </small>
+    <pre class="code-block" data-lang="json"><code>
+{
+    "accessToken": "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9...",
+    "refreshToken": "b8g4d9c0f3e2...",
+    "accessTokenExpires": "2025-12-11T15:30:00Z",
+    "refreshTokenExpires": "2026-01-11T13:00:00Z"
+}
+    </code></pre>
+    <br>
+    <h5>@userConfig.GetText("missing_refresh_token"):</h5>
+    <br>
+    <pre class="code-block" data-lang="bash"><code>
+curl --request POST \
+    --url https://localhost:8888/api/AuthenticationToken/Refresh/ \
+    --header 'content-type: application/json' \
+    --data '{}'
+    </code></pre>
+    <small class="small-helptext">
+        @userConfig.GetText("response") (400 Bad Request):
+    </small>
+    <pre class="code-block" data-lang="text"><code>
+Refresh token is required
+    </code></pre>
+    <br>
+    <h5>@userConfig.GetText("invalid_refresh_token"):</h5>    
+    <br />
+    <pre class="code-block" data-lang="bash"><code>
+curl --request POST \
+    --url https://localhost:8888/api/AuthenticationToken/Refresh/ \
+    --header 'content-type: application/json' \
+    --data '{"RefreshToken": "invalid-or-expired-token"}'
+    </code></pre>
+    <small class="small-helptext">
+        @userConfig.GetText("response") (401 Unauthorized):
+    </small>
+    <pre class="code-block" data-lang="text"><code>
+Invalid or expired refresh token
+    </code></pre>
+    <hr />
+    <h4>@userConfig.GetText("token_revoke")</h4>
+    <br><br>
+    <h5>@userConfig.GetText("token_revoke_success"):</h5>
+    <br />
+    <pre class="code-block" data-lang="bash"><code>
+curl --request POST \
+    --url https://localhost:8888/api/AuthenticationToken/Revoke/ \
+    --header 'content-type: application/json' \
+    --data '{"RefreshToken": "a7f3c8b9e2d1..."}'
+    </code></pre>
+    <small class="small-helptext">
+        @userConfig.GetText("response") (200 OK):
+    </small>
+    <pre class="code-block" data-lang="text"><code>
+(Empty response body indicating success)
+    </code></pre>
+    <br>
+    <h5>@userConfig.GetText("missing_refresh_token"):</h5>
+    <pre class="code-block" data-lang="bash"><code>
+curl --request POST \
+    --url https://localhost:8888/api/AuthenticationToken/Revoke/ \
+    --header 'content-type: application/json' \
+    --data '{}'
+    </code></pre>
+    <small class="small-helptext">
+        @userConfig.GetText("response") (400 Bad Request):
+    </small>
+    <pre class="code-block" data-lang="text"><code>
+Refresh token is required
+    </code></pre>
+</div>

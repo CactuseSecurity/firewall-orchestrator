@@ -2,6 +2,7 @@ using BlazorTable;
 using FWO.Api.Client;
 using FWO.Config.Api;
 using FWO.Config.File;
+using FWO.Data.Middleware;
 using FWO.Logging;
 using FWO.Middleware.Client;
 using FWO.Services;
@@ -57,12 +58,14 @@ string ProductVersion = ConfigFile.ProductVersion;
 
 builder.Services.AddScoped<ApiConnection>(_ => new GraphQlApiConnection(ApiUri));
 builder.Services.AddScoped<MiddlewareClient>(_ => new MiddlewareClient(MiddlewareUri));
+builder.Services.AddScoped<ISessionStorage, SessionStorageWrapper>();
+builder.Services.AddScoped<TokenService>();
 
 // Create "anonymous" (empty) jwt
-MiddlewareClient middlewareClient = new MiddlewareClient(MiddlewareUri);
+MiddlewareClient middlewareClient = new(MiddlewareUri);
 ApiConnection apiConn = new GraphQlApiConnection(ApiUri);
 
-RestResponse<string> createJWTResponse = middlewareClient.CreateInitialJWT().Result;
+RestResponse<TokenPair> createJWTResponse = middlewareClient.CreateInitialJWT().Result;
 bool connectionEstablished = createJWTResponse.IsSuccessful;
 int connectionAttemptsCount = 1;
 while (!connectionEstablished)
@@ -77,7 +80,14 @@ while (!connectionEstablished)
     connectionEstablished = createJWTResponse.IsSuccessful;
 }
 
-string jwt = createJWTResponse.Data ?? throw new NullReferenceException("Received empty jwt.");
+if (string.IsNullOrEmpty(createJWTResponse.Content))
+{
+    throw new ArgumentException("JWT response content is null or empty.");
+}
+
+TokenPair tokenPair = System.Text.Json.JsonSerializer.Deserialize<TokenPair>(createJWTResponse.Content) ?? throw new ArgumentException("failed to deserialize token pair");
+
+string jwt = tokenPair.AccessToken ?? throw new ArgumentException("Received empty jwt.");
 apiConn.SetAuthHeader(jwt);
 
 // Get all non-confidential configuration settings and add to a global service (for all users)

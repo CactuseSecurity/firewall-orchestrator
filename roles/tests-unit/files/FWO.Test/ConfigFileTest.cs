@@ -1,4 +1,4 @@
-﻿using FWO.Config.File;
+using FWO.Config.File;
 using FWO.Logging;
 using Microsoft.IdentityModel.Tokens;
 using NUnit.Framework;
@@ -14,7 +14,6 @@ using Assert = NUnit.Framework.Assert;
 namespace FWO.Test
 {
     [TestFixture]
-    [Parallelizable]
     internal class ConfigFileTest
     {
         private const string configFileTestPath = "config_file.test";
@@ -127,8 +126,13 @@ z2cAR6HkNFB63sh2qZwtC0utP3i3yXlDSxD8lQ7A7NYlifRszw==
         {
             CreateAndReadConfigFile(2, missingValueConfigFile);
             ClassicAssert.AreEqual("http://127.0.0.3:8880/", ConfigFile.MiddlewareServerNativeUri);
-            Assert.Catch(typeof(ApplicationException), () => { var _ = ConfigFile.MiddlewareServerUri; });
-            Assert.Catch(typeof(ApplicationException), () => { var _ = ConfigFile.ApiServerUri; });
+
+            Assert.That(ConfigFile.MiddlewareServerUri, Is.Null);
+            Assert.That(ConfigFile.ApiServerUri, Is.Null);
+
+            Assert.DoesNotThrow(() => { var _ = ConfigFile.MiddlewareServerUri; });
+            Assert.DoesNotThrow(() => { var _ = ConfigFile.ApiServerUri; });
+
             ClassicAssert.AreEqual("500", ConfigFile.ProductVersion);
         }
 
@@ -150,14 +154,18 @@ z2cAR6HkNFB63sh2qZwtC0utP3i3yXlDSxD8lQ7A7NYlifRszw==
         public void IncorrectPublicKey()
         {
             CreateAndReadConfigFile(5, correctConfigFile, "", incorrectPublicKey);
-            Assert.Catch(typeof(ApplicationException), () => { var _ = ConfigFile.JwtPublicKey; });
+
+            Assert.That(ConfigFile.JwtPublicKey, Is.Null);
+            Assert.DoesNotThrow(() => { var _ = ConfigFile.JwtPublicKey; });
         }
 
         [Test]
         public void IncorrectPrivateKey()
         {
             CreateAndReadConfigFile(6, correctConfigFile, incorrectPrivateKey, "");
-            Assert.Catch(typeof(ApplicationException), () => { var _ = ConfigFile.JwtPrivateKey; });
+
+            Assert.That(ConfigFile.JwtPrivateKey, Is.Null);
+            Assert.DoesNotThrow(() => { var _ = ConfigFile.JwtPrivateKey; });
         }
 
         [OneTimeTearDown]

@@ -28,6 +28,10 @@
   become: true
   become_user: postgres
 
+- name: delete integration test user from ldap
+  command: "ldapdelete -H {{ openldap_url }} -D {{ openldap_superuser_dn }} -y {{ ldap_manager_pwd_file }} -x uid={{ integration_test_user_name }},ou=tenant0,ou=operator,ou=user,{{ openldap_path }}"
+  listen: "test importer handler"
+  become: true
 - name: build ldap tls options
   set_fact:
     ldap_tls_opts: >-

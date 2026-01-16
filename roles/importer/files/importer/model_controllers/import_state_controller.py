@@ -29,10 +29,10 @@ class ImportStateController:
     api_connection: FwoApi
     api_call: FwoApiCall
 
-    def __init__(self, state: ImportState, fwo_api: FwoApi):
+    def __init__(self, state: ImportState, api_call: FwoApiCall):
         self.state = state
-        self.api_connection = fwo_api
-        self.api_call = FwoApiCall(self.api_connection)
+        self.api_call = api_call
+        self.api_connection = api_call.api
 
     def __str__(self):
         return f"{self.state.mgm_details!s}(import_id={self.state.import_id})"
@@ -47,7 +47,7 @@ class ImportStateController:
     def initialize_import(
         cls,
         mgm_id: int,
-        jwt: str,
+        api_call: FwoApiCall,
         suppress_cert_warnings: bool,
         ssl_verification: bool,
         force: bool,
@@ -57,8 +57,6 @@ class ImportStateController:
     ):
         fwo_config = FworchConfigController.from_json(read_config(FWO_CONFIG_FILENAME))
 
-        api_conn = FwoApi(api_uri=fwo_config.fwo_api_url, jwt=jwt)
-        api_call = FwoApiCall(api_conn)
         # set global https connection values
         fwo_globals.set_global_values(
             suppress_cert_warnings_in=suppress_cert_warnings,
@@ -79,7 +77,7 @@ class ImportStateController:
                 ManagerInfo(),
                 DomainInfo(),
             )
-            mgm_details = mgm_controller.get_mgm_details(api_conn, mgm_id)
+            mgm_details = mgm_controller.get_mgm_details(api_call.api, mgm_id)
         except Exception as _:
             FWOLogger.error(
                 f"import_management - error while getting fw management details for mgm={mgm_id}: {traceback.format_exc()!s}"
@@ -104,9 +102,7 @@ class ImportStateController:
         state.verify_certs = ssl_verification
         state.last_successful_import = last_import_date
 
-        fwo_api = FwoApi(fwo_config.fwo_api_url, jwt)
-
-        result = cls(state, fwo_api)
+        result = cls(state, api_call)
         result.get_past_import_infos()
         result.set_core_data()
 

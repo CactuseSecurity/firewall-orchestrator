@@ -56,16 +56,21 @@ def import_single_management(
     api_fetch_limit: int,
     clear: bool,
     suppress_certificate_warnings: bool,
-    jwt: str,
     force: bool,
     fwo_major_version: int,
     sleep_timer: int,
     is_full_import: bool,
-    fwo_api: FwoApi,
 ):
     wait_with_shutdown_check(0)
     import_state = ImportStateController.initialize_import(
-        mgm_id, jwt, suppress_certificate_warnings, verify_certificates, force, fwo_major_version, clear, is_full_import
+        mgm_id,
+        fwo_api_call,
+        suppress_certificate_warnings,
+        verify_certificates,
+        force,
+        fwo_major_version,
+        clear,
+        is_full_import,
     )
 
     register_global_state(import_state)
@@ -74,7 +79,7 @@ def import_single_management(
         mgm_controller = ManagementController(
             mgm_id, "", [], DeviceInfo(), ConnectionInfo(), "", CredentialInfo(), ManagerInfo(), DomainInfo()
         )
-        mgm_details = mgm_controller.get_mgm_details(fwo_api, mgm_id)
+        mgm_details = mgm_controller.get_mgm_details(fwo_api_call.api, mgm_id)
     except Exception:
         FWOLogger.error(
             "import_main_loop - error while getting FW management details for mgm_id="
@@ -159,12 +164,10 @@ def main_loop(
             api_fetch_limit,
             clear,
             suppress_certificate_warnings,
-            jwt,
             force,
             fwo_major_version,
             sleep_timer,
             is_full_import,
-            fwo_api,
         )
 
     FWOLogger.info(f"import_main_loop: sleeping for {sleep_timer} seconds until next import cycle")

@@ -18,9 +18,6 @@ recommended:
 - GitHub Pull Requests and Issues, see <https://marketplace.visualstudio.com/items?itemName=GitHub.vscode-pull-request-github>
 - GitLens
 - GraphQL for VSCode
-- Perl
-- Simple Perl
-- Prettier-Code formatter
 - Python
 
 Testing:

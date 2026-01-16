@@ -42,4 +42,4 @@
       args:
         chdir: "/usr/local/fworch/importer/test"
       command: >
-        {{ importer_venv_dir }}/bin/python3 -m unittest discover -s . -p "test_*.py" -v
+        {{ importer_venv_dir }}/bin/python3 -m pytest -s . -v

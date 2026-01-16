@@ -881,6 +881,15 @@ CREATE OR REPLACE VIEW v_excluded_dst_ips AS
 	LEFT JOIN object o ON (of.objgrp_flat_member_id=o.obj_id)
 	WHERE NOT o.obj_ip='0.0.0.0/0';
 
+CREATE OR REPLACE VIEW v_rule_with_rule_owner_1 AS
+	SELECT r.rule_id, r.rule_uid, r.rule_name, r.mgm_id, r.rulebase_id, ow.id as owner_id, met.rule_metadata_id
+	FROM v_active_access_allow_rules r
+	LEFT JOIN rule_metadata met ON (r.rule_uid=met.rule_uid)
+	LEFT JOIN rule_owner ro ON (ro.rule_metadata_id=met.rule_metadata_id)
+	LEFT JOIN owner ow ON (ro.owner_id=ow.id)
+	WHERE NOT ow.id IS NULL
+	GROUP BY r.rule_id, r.rule_uid, r.rule_name, r.mgm_id, r.rulebase_id, ow.id, met.rule_metadata_id;
+
 CREATE OR REPLACE VIEW v_rule_with_src_owner AS 
 	SELECT
 		r.rule_id, ow.id as owner_id, ow.name as owner_name, 

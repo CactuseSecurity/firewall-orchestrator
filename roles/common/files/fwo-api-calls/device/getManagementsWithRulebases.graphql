@@ -1,0 +1,14 @@
+﻿query getManagementsWithRulebases
+{
+  management(order_by: {mgm_name:asc}){
+    id: mgm_id
+    name: mgm_name
+    uid: mgm_uid
+    extMgtData: ext_mgm_data
+    rulebases {
+      id
+      name
+      uid
+    }
+  }
+}

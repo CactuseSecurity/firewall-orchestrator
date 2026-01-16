@@ -301,7 +301,7 @@ class TestFwConfigImportRuleOrderOldMigration:
 
 
 # pyright: ignore[reportPrivateUsage]
-class TestFwConfigImportRuleOrderFunctions:
+class TestGetAdjacentListElement:
     def test_get_adjacent_list_element(self, rule_order_service: RuleOrderService):  # pyright: ignore[reportPrivateUsage]
         test_list = ["item1", "item2", "item3"]
 
@@ -345,6 +345,8 @@ class TestFwConfigImportRuleOrderFunctions:
         # Act & Assert - Out of bounds (overflow)
         assert rule_order_service._get_adjacent_list_element(test_list, 99) == (None, None)
 
+
+class TestParseRuleUidsAndObjectsFromConfig:
     def test_parse_rule_uids_and_objects_from_config(
         self,
         rule_order_service: RuleOrderService,
@@ -398,3 +400,261 @@ class TestFwConfigImportRuleOrderFunctions:
         # Assert
         assert len(uids) == 0
         assert len(rules_flat) == 0
+
+
+class TestFwConfigImportRuleOrderFunctions:
+    def test_get_relevant_rule_num_numeric_returns_updated_value(
+        self,
+        rule_order_service: RuleOrderService,
+        fwconfig_builder: FwConfigBuilder,
+    ):
+        # Arrange
+        config, _ = fwconfig_builder.build_config(rulebase_count=1, rules_per_rulebase_count=1)
+        rulebase = config.rulebases[0]
+        rule = list(rulebase.rules.values())[0]
+        rule.rule_num_numeric = 999.0
+
+        # Inject state: Rule is marked as updated
+        assert rule.rule_uid is not None
+        rule_order_service._updated_rules = [rule.rule_uid]
+        rule_order_service._target_rules_flat = [rule]
+        rule_order_service._source_rules_flat = []
+
+        # Act
+        result = rule_order_service._get_relevant_rule_num_numeric(
+            rule.rule_uid, ascending=True, target_rulebase=rulebase
+        )
+
+        # Assert
+        assert result == 999.0
+
+    def test_get_relevant_rule_num_numeric_returns_zero_for_consecutive_insert(
+        self,
+        rule_order_service: RuleOrderService,
+        fwconfig_builder: FwConfigBuilder,
+    ):
+        # Arrange
+        config, _ = fwconfig_builder.build_config(rulebase_count=1, rules_per_rulebase_count=2)
+        rulebase = config.rulebases[0]
+        rules = list(rulebase.rules.values())
+        r1, r2 = rules[0], rules[1]
+
+        # Mock state to simulate consecutive insert:
+        # 1. More than 1 new rule in total.
+        # 2. Checked rule (r1) is new.
+        # 3. Adjacent rule (r2) is also new.
+        rule_order_service._updated_rules = []
+        assert r1.rule_uid is not None
+        assert r2.rule_uid is not None
+        rule_order_service._new_rule_uids = {rulebase.uid: [r1.rule_uid, r2.rule_uid]}
+        rule_order_service._moved_rule_uids = {}
+        rule_order_service._target_rules_flat = rules
+        rule_order_service._target_rule_uids = [str(r.rule_uid) for r in rules]
+
+        # Act
+        result = rule_order_service._get_relevant_rule_num_numeric(
+            r1.rule_uid, ascending=True, target_rulebase=rulebase
+        )
+
+        # Assert
+        assert result == 0.0
+
+    def test_get_relevant_rule_num_numeric_calculates_for_moved_rule_using_recursion(
+        self,
+        rule_order_service: RuleOrderService,
+        fwconfig_builder: FwConfigBuilder,
+    ):
+        # Arrange
+        config, _ = fwconfig_builder.build_config(rulebase_count=1, rules_per_rulebase_count=2)
+        rulebase = config.rulebases[0]
+        rules = list(rulebase.rules.values())
+        moved_rule, static_neighbor = rules[0], rules[1]
+
+        static_neighbor.rule_num_numeric = 500.0
+
+        # State: moved_rule is moved. static_neighbor is stable (source).
+        # Order in target: [moved_rule, static_neighbor]
+        rule_order_service._updated_rules = []
+        rule_order_service._new_rule_uids = {}
+        assert moved_rule.rule_uid is not None
+        rule_order_service._moved_rule_uids = {rulebase.uid: [moved_rule.rule_uid]}
+
+        # Target setup
+        rule_order_service._target_rules_flat = rules
+        rule_order_service._target_rule_uids = [str(r.rule_uid) for r in rules]
+
+        # Source setup (fallback for static_neighbor lookup)
+        rule_order_service._source_rules_flat = [static_neighbor]
+
+        # Act
+        # ascending=True calls _num_for_ascending_case -> looks at next neighbor (static_neighbor)
+        # recurses -> _get_relevant_rule_num_numeric(static_neighbor) -> falls back to source -> 500.0
+        assert moved_rule.rule_uid is not None
+        result = rule_order_service._get_relevant_rule_num_numeric(
+            moved_rule.rule_uid, ascending=True, target_rulebase=rulebase
+        )
+
+        # Assert
+        assert result == 500.0
+
+    def test_get_relevant_rule_num_numeric_calculates_for_new_rule_descending(
+        self,
+        rule_order_service: RuleOrderService,
+        fwconfig_builder: FwConfigBuilder,
+    ):
+        # Arrange
+        # Setup: [static_neighbor, new_rule]
+        # Descending check for new_rule -> looks at prev neighbor (static_neighbor).
+        config, _ = fwconfig_builder.build_config(rulebase_count=1, rules_per_rulebase_count=2)
+        rulebase = config.rulebases[0]
+        rules = list(rulebase.rules.values())
+        static_neighbor, new_rule = rules[0], rules[1]
+
+        static_neighbor.rule_num_numeric = 300.0
+
+        rule_order_service._updated_rules = []
+        assert new_rule.rule_uid is not None
+        rule_order_service._new_rule_uids = {rulebase.uid: [new_rule.rule_uid]}
+        rule_order_service._moved_rule_uids = {}
+
+        rule_order_service._target_rules_flat = rules
+        rule_order_service._target_rule_uids = [str(r.rule_uid) for r in rules]
+        rule_order_service._source_rules_flat = [static_neighbor]
+
+        # Act
+        # ascending=False -> _num_for_descending_case -> looks at prev (static_neighbor) -> 300.0
+        assert new_rule.rule_uid is not None
+        result = rule_order_service._get_relevant_rule_num_numeric(
+            new_rule.rule_uid, ascending=False, target_rulebase=rulebase
+        )
+
+        # Assert
+        assert result == 300.0
+
+    def test_get_relevant_rule_num_numeric_fallback_to_source(
+        self,
+        rule_order_service: RuleOrderService,
+        fwconfig_builder: FwConfigBuilder,
+    ):
+        # Arrange
+        config, _ = fwconfig_builder.build_config(rulebase_count=1, rules_per_rulebase_count=1)
+        rulebase = config.rulebases[0]
+        rule = list(rulebase.rules.values())[0]
+        rule.rule_num_numeric = 101.0
+
+        # Inject state: Not currently updated, not new, not moved. Simply existing.
+        rule_order_service._updated_rules = []
+        rule_order_service._target_rules_flat = [rule]
+        rule_order_service._source_rules_flat = [rule]
+        rule_order_service._new_rule_uids = {}
+        rule_order_service._moved_rule_uids = {}
+
+        # Act
+        assert rule.rule_uid is not None
+        result = rule_order_service._get_relevant_rule_num_numeric(
+            rule.rule_uid, ascending=True, target_rulebase=rulebase
+        )
+
+        # Assert
+        assert result == 101.0
+
+
+class TestFwConfigImportRuleOrderCalculateNewRuleNum:
+    def test_compute_num_for_changed_rule_ascending_no_next_neighbor(
+        self,
+        rule_order_service: RuleOrderService,
+        fwconfig_builder: FwConfigBuilder,
+    ):
+        # Arrange
+        config, _ = fwconfig_builder.build_config(rulebase_count=1, rules_per_rulebase_count=1)
+        rulebase = config.rulebases[0]
+        rule = list(rulebase.rules.values())[0]
+
+        # Act
+        assert rule.rule_uid is not None
+        result = rule_order_service._compute_num_for_changed_rule(
+            rule.rule_uid, ascending=True, target_rulebase=rulebase
+        )
+
+        # Assert
+        # If no next neighbor, ascending recursive usually returns None or handling logic inside _num_for_ascending_case returns 0/None.
+        # Based on typical implementations of "gap closing to right end", it often implies rule_num_numeric + huge offset, or if it's the only rule.
+        # However, looking at logic patterns: if next_uid is None -> returns 0.
+        assert result == 1024
+
+    def test_compute_num_for_changed_rule_descending_no_prev_neighbor(
+        self,
+        rule_order_service: RuleOrderService,
+        fwconfig_builder: FwConfigBuilder,
+    ):
+        # Arrange
+        config, _ = fwconfig_builder.build_config(rulebase_count=1, rules_per_rulebase_count=1)
+        rulebase = config.rulebases[0]
+        rule = list(rulebase.rules.values())[0]
+
+        # Act
+        assert rule.rule_uid is not None
+        result = rule_order_service._compute_num_for_changed_rule(
+            rule.rule_uid, ascending=False, target_rulebase=rulebase
+        )
+
+        # Assert
+        # If no prev neighbor, descending recursive often returns 0.
+        assert result == 512
+
+    def test_compute_num_for_changed_rule_delegates_ascending(
+        self,
+        rule_order_service: RuleOrderService,
+        fwconfig_builder: FwConfigBuilder,
+    ):
+        # Arrange
+        config, _ = fwconfig_builder.build_config(rulebase_count=1, rules_per_rulebase_count=2)
+        rulebase = config.rulebases[0]
+        rules = list(rulebase.rules.values())
+        r1, r2 = rules[0], rules[1]
+
+        # r2 is the "next" neighbor of r1
+        # Set r2 to be a known "source" rule to stop recursion immediately
+        r2.rule_num_numeric = 500.0
+        rule_order_service._source_rules_flat = [r2]
+        rule_order_service._updated_rules = []
+        rule_order_service._new_rule_uids = {}
+        rule_order_service._moved_rule_uids = {}
+
+        # Act
+        # Compute for r1 (index 0), next is r2
+        assert r1.rule_uid is not None
+        result = rule_order_service._compute_num_for_changed_rule(r1.rule_uid, ascending=True, target_rulebase=rulebase)
+
+        # Assert
+        # Should equate to r2.rule_num_numeric (500.0)
+        assert result == 500.0
+
+    def test_compute_num_for_changed_rule_delegates_descending(
+        self,
+        rule_order_service: RuleOrderService,
+        fwconfig_builder: FwConfigBuilder,
+    ):
+        # Arrange
+        config, _ = fwconfig_builder.build_config(rulebase_count=1, rules_per_rulebase_count=2)
+        rulebase = config.rulebases[0]
+        rules = list(rulebase.rules.values())
+        r1, r2 = rules[0], rules[1]
+
+        # r1 is the "prev" neighbor of r2
+        r1.rule_num_numeric = 100.0
+        rule_order_service._source_rules_flat = [r1]
+        rule_order_service._updated_rules = []
+        rule_order_service._new_rule_uids = {}
+        rule_order_service._moved_rule_uids = {}
+
+        # Act
+        # Compute for r2 (index 1), prev is r1
+        assert r2.rule_uid is not None
+        result = rule_order_service._compute_num_for_changed_rule(
+            r2.rule_uid, ascending=False, target_rulebase=rulebase
+        )
+
+        # Assert
+        # Should equate to r1.rule_num_numeric (100.0)
+        assert result == 100.0

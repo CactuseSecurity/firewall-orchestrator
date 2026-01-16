@@ -2,4 +2,6 @@
 ExecStartPre=/bin/mkdir -p /run/slapd
 ExecStartPre=/bin/chown openldap:openldap /run/slapd
 ExecStart=
-ExecStart=/usr/sbin/slapd -u {{ openldap_server_user }} -g {{ openldap_server_user }} -h "ldap://{{ openldap_server }} ldaps:///"
+Type=forking
+PIDFile=/run/slapd/slapd.pid
+ExecStart=/usr/sbin/slapd -F {{ openldap_server_app_path }}/slapd.d -u {{ openldap_server_user }} -g {{ openldap_server_user }} -h "ldap://{{ openldap_server }} ldaps:///"

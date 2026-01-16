@@ -160,9 +160,9 @@
   become: true
 
 - name: check if database already exists
-  postgresql_query:
+  community.postgresql.postgresql_query:
     query: SELECT count(*) FROM pg_database WHERE datname='{{ fworch_db_name }}'
-    db: postgres
+    login_db: postgres
   register: db_exists
   become: true
   become_user: postgres
@@ -194,7 +194,7 @@
 
 - name: (re)defines functions and views (idempotent)
   community.postgresql.postgresql_script:
-    db: "{{ fworch_db_name }}"
+    login_db: "{{ fworch_db_name }}"
     path: "{{ database_install_dir }}/sql/idempotent/{{ item }}"
   become: true
   become_user: postgres

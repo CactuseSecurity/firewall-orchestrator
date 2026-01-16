@@ -71,6 +71,11 @@
         state: present
       become: true
 
+    - name: check for existing ssh key for {{ fworch_user }}
+      stat:
+        path: "{{ fworch_home }}/.ssh/id_rsa"
+      register: fworch_existing_ssh_key
+
     - name: add user {{ fworch_user }}
       user:
         name: "{{ fworch_user }}"
@@ -79,9 +84,19 @@
         home: "{{ fworch_home }}"
         shell: /bin/bash
         group: "{{ fworch_group }}"
-        generate_ssh_key: true
+        generate_ssh_key: "{{ not fworch_existing_ssh_key.stat.exists | default(false) }}"
         ssh_key_bits: 4096
         ssh_key_file: .ssh/id_rsa
+      become: true
+
+    - name: ensure ansible remote tmp directory exists
+      file:
+        path: "/tmp/.ansible-{{ fworch_user }}/tmp"
+        state: directory
+        owner: "{{ fworch_user }}"
+        group: "{{ fworch_group }}"
+        mode: "0770"
+        recurse: true
       become: true
 
     - name: global apache config

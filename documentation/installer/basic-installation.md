@@ -52,6 +52,12 @@ Note that if your server is behind a proxy, you will have to set the proxy for p
 
          pip config set global.proxy http://YOUR-PROXY-NAME:YOUR-PROXY-PORT
 
+Regardless of how Ansible is installed, make sure the required collections are available (they contain the `synchronize` and PostgreSQL modules used by the playbooks):
+
+```console
+ansible-galaxy collection install -r collections/requirements.yml
+```
+
 4) Firewall Orchestrator installation
 
 ```console

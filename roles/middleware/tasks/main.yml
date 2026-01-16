@@ -167,7 +167,7 @@
     ca_path: "{{ openldap_server_enable_ssl | ternary(openldap_server_cert, omit) }}"
   when: installation_mode == "new"
 
-- name: Set {{ audit_user }} password in ldap
+- name: Set audit user password in ldap
   ldap_passwd:
     dn: "uid={{ audit_user }},ou=tenant0,ou=operator,ou=user,{{ openldap_path }}"
     passwd: "{{ auditor_initial_pwd }}"
@@ -179,8 +179,8 @@
   when: audit_user is defined and auditor_initial_pwd is defined and installation_mode=='new'
 
 - name: insert admin tenant0 to database
-  postgresql_query:
-    db: "{{ fworch_db_name }}"
+  community.postgresql.postgresql_query:
+    login_db: "{{ fworch_db_name }}"
     query: >
       DO $do$ BEGIN IF NOT EXISTS
       (SELECT tenant_id FROM tenant WHERE tenant_name='tenant0')
@@ -192,8 +192,8 @@
   when: installation_mode == "new"
 
 - name: add connection for internal ldap with encrypted passwords
-  postgresql_query:
-    db: "{{ fworch_db_name }}"
+  community.postgresql.postgresql_query:
+    login_db: "{{ fworch_db_name }}"
     query: >
       DO $do$ BEGIN 
       PERFORM insertLocalLdapWithEncryptedPasswords ('{{ openldap_server }}', {{ openldap_port }},
@@ -206,8 +206,8 @@
   when: installation_mode == "new"
 
 - name: insert admin tenant0 to device mapping - tenant0 can see all devices
-  postgresql_query:
-    db: "{{ fworch_db_name }}"
+  community.postgresql.postgresql_query:
+    login_db: "{{ fworch_db_name }}"
     query: >
       DO $do$ BEGIN IF NOT EXISTS (SELECT * FROM tenant_to_device LEFT JOIN tenant USING (tenant_id) WHERE tenant_name='tenant0')
         THEN INSERT INTO tenant_to_device (tenant_id, device_id) 

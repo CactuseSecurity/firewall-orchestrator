@@ -53,8 +53,8 @@
     when: pg_version|int >= 13
 
   - name: check if db still exists
-    postgresql_query:
-      db: "{{ fworch_db_name }}"
+    community.postgresql.postgresql_query:
+      login_db: "{{ fworch_db_name }}"
       query: "select exists(SELECT datname FROM pg_catalog.pg_database WHERE lower(datname) = lower('fworchdb'))"
     register: db_exists
 

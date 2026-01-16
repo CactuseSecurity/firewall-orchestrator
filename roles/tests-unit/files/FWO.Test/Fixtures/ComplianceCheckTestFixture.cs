@@ -97,6 +97,8 @@ namespace FWO.Test.Fixtures
                     .Returns(ComplianceCheck.RulesInCheck);
             }
 
+            SetUpViolationCount(1);
+            
             return Task.CompletedTask;
         }
 
@@ -329,6 +331,12 @@ namespace FWO.Test.Fixtures
             }
 
             return networkZones;
+        }
+
+        protected virtual void SetUpViolationCount(int count)
+        {
+            ApiConnection.AsSub()
+                .SendQueryAsync<AggregateCount>(ComplianceQueries.getViolationCount).Returns(new AggregateCount{Aggregate = new Aggregate{Count = count}});
         }
     }
 }

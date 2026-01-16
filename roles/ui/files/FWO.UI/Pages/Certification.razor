@@ -204,16 +204,8 @@
         userConfig.User.Dn
         });
 
-        List<UserGroup> ownerGroups = await GroupAccess.GetGroupsFromInternalLdap(middlewareClient, userConfig,
-        DisplayMessageInUi, true);
-        List<string> ownerGrpDns = [];
-        foreach (var grp in ownerGroups)
-        {
-            if (grp.Users.FirstOrDefault(x => x.Dn == userConfig.User.Dn) != null)
-            {
-                ownerGrpDns.Add(grp.Dn);
-            }
-        }
+        List<string> ownerGrpDns = await GroupAccess.GetGroupMemberships(middlewareClient, userConfig,
+        DisplayMessageInUi);
         if (ownerGrpDns.Count > 0)
         {
             groupOwnerships = await apiConnection.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getOwnersFromGroups, new

@@ -6,7 +6,7 @@ fragment ruleOpenCertOverview on rule {
   rule_comment
   rule_track
   rule_disabled
-  src_zone: zone {
+  src_zone: zoneByRuleFromZone {
     zone_name
     zone_id
   }
@@ -16,9 +16,20 @@ fragment ruleOpenCertOverview on rule {
     rule_first_hit
     rule_last_hit
     rule_last_modified
-    created_import { start_time }
-    last_modified_import { start_time }
-    recertification: recertifications (where: { owner: $ownerWhere, recert_date: {_is_null: true}, next_recert_date: {_lte: $refdate1}}, order_by: { owner: { name: asc }}) {
+    created_import {
+      start_time
+    }
+    last_modified_import {
+      start_time
+    }
+    recertification: recertifications(
+      where: {
+        owner: $ownerWhere
+        recert_date: { _is_null: true }
+        next_recert_date: { _lte: $refdate1 }
+      }
+      order_by: { owner: { name: asc } }
+    ) {
       recert_date
       recertified
       ip_match
@@ -29,7 +40,10 @@ fragment ruleOpenCertOverview on rule {
         name
       }
     }
-    recert_history: recertifications (where: { owner: $ownerWhere, recert_date: {_is_null: false}}, order_by: { recert_date: desc }) {
+    recert_history: recertifications(
+      where: { owner: $ownerWhere, recert_date: { _is_null: false } }
+      order_by: { recert_date: desc }
+    ) {
       recert_date
       recertified
       user_dn
@@ -47,13 +61,16 @@ fragment ruleOpenCertOverview on rule {
   access_rule
   nat_rule
   xlate_rule
-  rule_froms(where: {
-    rf_create: { _lte: $import_id_end }
-    _or: [
-      {removed: { _is_null: true }}
-      {removed: { _gt: $import_id_start }}
-    ]
-  }, order_by:{ object: { obj_name: asc } }) {
+  rule_froms(
+    where: {
+      rf_create: { _lte: $import_id_end }
+      _or: [
+        { removed: { _is_null: true } }
+        { removed: { _gt: $import_id_start } }
+      ]
+    }
+    order_by: { object: { obj_name: asc } }
+  ) {
     usr {
       ...userOverview
     }
@@ -65,13 +82,16 @@ fragment ruleOpenCertOverview on rule {
     zone_name
     zone_id
   }
-  rule_tos(where: {
-    rt_create: { _lte: $import_id_end }
-    _or: [
-      {removed: { _is_null: true }}
-      {removed: { _gt: $import_id_start }}
-    ]
-  }, order_by:{ object: { obj_name: asc } }) {
+  rule_tos(
+    where: {
+      rt_create: { _lte: $import_id_end }
+      _or: [
+        { removed: { _is_null: true } }
+        { removed: { _gt: $import_id_start } }
+      ]
+    }
+    order_by: { object: { obj_name: asc } }
+  ) {
     usr {
       ...userOverview
     }
@@ -79,13 +99,16 @@ fragment ruleOpenCertOverview on rule {
       ...networkObjectOverview
     }
   }
-  rule_services(where: {
-    rs_create: { _lte: $import_id_end }
-    _or: [
-      {removed: { _is_null: true }}
-      {removed: { _gt: $import_id_start }}
-    ]
-  }, order_by:{ service: { svc_name: asc } }) {
+  rule_services(
+    where: {
+      rs_create: { _lte: $import_id_end }
+      _or: [
+        { removed: { _is_null: true } }
+        { removed: { _gt: $import_id_start } }
+      ]
+    }
+    order_by: { service: { svc_name: asc } }
+  ) {
     service {
       ...networkServiceOverview
     }

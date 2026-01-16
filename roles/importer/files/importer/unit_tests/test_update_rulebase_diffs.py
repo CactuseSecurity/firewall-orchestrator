@@ -7,9 +7,11 @@ from fwo_api_call import FwoApiCall
 from model_controllers.fwconfig_import_rule import FwConfigImportRule
 from model_controllers.import_state_controller import ImportStateController
 from models.rulebase import Rulebase
+from pytest_mock import MockerFixture
 from services.global_state import GlobalState
 from unit_tests.utils.config_builder import FwConfigBuilder
 from unit_tests.utils.rule_helper_functions import insert_rule_in_config, move_rule_in_config, remove_rule_from_rulebase
+from unit_tests.utils.test_utils import mock_get_graphql_code
 
 
 class TestFwconfigImportRuleUpdateRulebaseDiffOldMigration:
@@ -21,6 +23,7 @@ class TestFwconfigImportRuleUpdateRulebaseDiffOldMigration:
         api_connection: FwoApi,
         api_call: FwoApiCall,
         global_state: GlobalState,
+        mocker: MockerFixture,
     ):
         # Arrange
         config, _ = fwconfig_builder.build_config(
@@ -29,6 +32,7 @@ class TestFwconfigImportRuleUpdateRulebaseDiffOldMigration:
             rulebase_count=3,
             rules_per_rulebase_count=10,
         )
+        mock_get_graphql_code(mocker, "query { dummy }")
 
         global_state.normalized_config = config
         global_state.previous_config = copy.deepcopy(config)

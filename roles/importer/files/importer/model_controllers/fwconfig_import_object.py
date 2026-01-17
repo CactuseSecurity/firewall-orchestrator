@@ -378,7 +378,8 @@ class FwConfigImportObject:
                 import_id=self.import_state.state.import_id,
                 color_id=self.import_state.state.lookup_color_id(
                     self.normalized_config.network_objects[nwobj_uid].obj_color
-                ),
+                )
+                or 1,
                 typ_id=self.lookup_obj_type(self.normalized_config.network_objects[nwobj_uid].obj_typ),
             )
             new_nwobj_dict = new_nwobj.to_dict()
@@ -393,7 +394,8 @@ class FwConfigImportObject:
                 svc_object=self.normalized_config.service_objects[uid],
                 mgm_id=mgm_id,
                 import_id=self.import_state.state.import_id,
-                color_id=self.import_state.state.lookup_color_id(self.normalized_config.service_objects[uid].svc_color),
+                color_id=self.import_state.state.lookup_color_id(self.normalized_config.service_objects[uid].svc_color)
+                or 1,
                 typ_id=self.lookup_svc_type(self.normalized_config.service_objects[uid].svc_typ),
             ).to_dict()
             for uid in new_svcobj_uids

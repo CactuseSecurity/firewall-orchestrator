@@ -63,6 +63,7 @@ def import_management(
     clear_management_data: bool,
     suppress_cert_warnings: bool,
     file: str | None = None,
+    suppress_consistency_check: bool = False,
 ) -> None:
     fwo_signalling.register_signalling_handlers()
     service_provider = ServiceProvider()
@@ -78,6 +79,7 @@ def import_management(
             limit,
             clear_management_data,
             suppress_cert_warnings,
+            suppress_consistency_check,
         )
     except FwLoginFailedError as e:
         exception = e
@@ -118,6 +120,7 @@ def _import_management(
     limit: int,
     clear_management_data: bool,
     suppress_cert_warnings: bool,
+    suppress_consistency_check: bool,
 ) -> None:
     config_normalized: FwConfigManagerListController
 
@@ -168,7 +171,8 @@ def _import_management(
 
     # check config consistency and import it
     if config_changed_since_last_import or import_state.state.force_import:
-        FwConfigImportCheckConsistency(import_state, config_normalized).check_config_consistency(config_normalized)
+        if not suppress_consistency_check:
+            FwConfigImportCheckConsistency(import_state, config_normalized).check_config_consistency(config_normalized)
         config_importer.import_management_set(service_provider, config_normalized)
 
     # delete data that has passed the retention time

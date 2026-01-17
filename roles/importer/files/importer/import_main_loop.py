@@ -61,6 +61,7 @@ def import_single_management(
     fwo_major_version: int,
     sleep_timer: int,
     is_full_import: bool,
+    suppress_consistency_check: bool = False,
 ):
     wait_with_shutdown_check(0)
     import_state = ImportStateController.initialize_import(
@@ -99,7 +100,13 @@ def import_single_management(
 
     try:
         import_management(
-            mgm_id, fwo_api_call, verify_certificates, api_fetch_limit, clear, suppress_certificate_warnings
+            mgm_id,
+            fwo_api_call,
+            verify_certificates,
+            api_fetch_limit,
+            clear,
+            suppress_certificate_warnings,
+            suppress_consistency_check=suppress_consistency_check,
         )
     except (FwoApiFailedLockImportError, FwLoginFailedError):
         FWOLogger.info(f"import_main_loop - minor error while importing mgm_id={mgm_id}, {traceback.format_exc()!s}")

@@ -22,7 +22,7 @@ namespace FWO.Services
                 {
                     if (logUnresolvable)
                     {
-                        Log.WriteWarning("Import App Server Data", $"Found empty (unresolvable) IP {appServer.Ip}");
+                        Log.WriteDebug("Import App Server Data", $"Found empty (unresolvable) IP {appServer.Ip}");
                     }
                 }
                 else

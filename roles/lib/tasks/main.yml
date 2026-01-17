@@ -1,12 +1,10 @@
-
 - block:
-
     - name: initialize handler for datarecovery
       set_fact:
         lib_handler_guard: start
       changed_when: true
       notify:
-      - lib handler
+        - lib handler
       when: installation_mode == "upgrade"
 
     - name: check for lib dir
@@ -36,6 +34,10 @@
     - name: install dotnet needed for both ui and middleware servers
       include_tasks: install_dot_net.yml
 
+    # this is still buggy:
+    # - name: remove dotnet packages older than target version
+    #   include_tasks: remove-old-dotnet-versions.yml
+
     - name: install puppeteer needed for both ui and middleware servers PDF creation
       include_tasks: install_puppeteer.yml
 
@@ -44,8 +46,8 @@
         src: "./"
         dest: "{{ lib_dir }}"
         rsync_opts:
-          - "--chown={{ fworch_user }}:{{ fworch_group }}" 
-      tags: [ 'test' ]
+          - "--chown={{ fworch_user }}:{{ fworch_group }}"
+      tags: ["test"]
       when: inventory_hostname == 'localhost'
 
     - name: copy {{ product_name }} dotnet lib files to lib target (remote)
@@ -54,7 +56,7 @@
         dest: "{{ lib_dir }}"
         owner: "{{ fworch_user }}"
         group: "{{ fworch_group }}"
-      tags: [ 'test' ]
+      tags: ["test"]
       when: inventory_hostname != 'localhost'
 
     - name: finalize handler for datarecovery

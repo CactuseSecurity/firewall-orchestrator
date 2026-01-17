@@ -143,15 +143,15 @@ def fwconfig_import_rule_mock() -> FwConfigImportRule:
 
 
 @pytest.fixture
-def fwconfig_import_rule(
-    global_state: GlobalState,
-    import_state_controller: ImportStateController,
-) -> FwConfigImportRule:
+def fwconfig_import_rule() -> FwConfigImportRule:
     fw_config_import_rule = FwConfigImportRule()
-
     fw_config_import_rule.create_new_rule_version = unittest.mock.MagicMock()
-
     return fw_config_import_rule
+
+
+@pytest.fixture
+def fwconfig_import_object() -> FwConfigImportObject:
+    return FwConfigImportObject()
 
 
 @pytest.fixture

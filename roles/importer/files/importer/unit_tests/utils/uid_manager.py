@@ -1,10 +1,9 @@
 import uuid
-from typing import List
 
 
 class UidManager:
     def __init__(self):
-        self.used_uids: List[str] = []
+        self.used_uids: list[str] = []
 
     def create_uid(self):
         need_new_uid = True

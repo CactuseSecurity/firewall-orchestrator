@@ -8,7 +8,7 @@ from services.service_provider import ServiceProvider
 from test.mocking.mock_config import MockFwConfigNormalizedBuilder
 from test.mocking.mock_fwconfig_import_gateway import MockFwConfigImportGateway
 from test.mocking.mock_import_state import MockImportStateController
-from test.tools.set_up_test import (
+from test.tools.set_up_test_old import (
     lookup_ids_for_rulebase_link,
     update_rb_links,
     update_rule_map_and_rulebase_map,

@@ -30,7 +30,7 @@
 
 - name: set fact pg_version
   set_fact:
-      pg_version: "{{ pg_version_result.stdout }}"
+    pg_version: "{{ pg_version_result.stdout }}"
   ignore_errors: true
 
 - set_fact:
@@ -39,41 +39,40 @@
 
 # postgres operations with postgres user and ignoring errors
 - block:
+    - name: remove database pre pg_version 13
+      postgresql_db:
+        name: fworchdb
+        state: absent
+      register: drop_db
+      when: pg_version|int < 13
 
-  - name: remove database pre pg_version 13
-    postgresql_db:
-      name: fworchdb
-      state: absent
-    register: drop_db
-    when: pg_version|int < 13
+    - name: remove database for pg_version starting from 13
+      command: psql -c 'drop database if exists fworchdb with ( force )'
+      register: drop_db
+      when: pg_version|int >= 13
 
-  - name: remove database for pg_version starting from 13
-    command: psql -c 'drop database if exists fworchdb with ( force )'
-    register: drop_db
-    when: pg_version|int >= 13
+    - name: check if db still exists
+      postgresql_query:
+        db: "{{ fworch_db_name }}"
+        query: "select exists(SELECT datname FROM pg_catalog.pg_database WHERE lower(datname) = lower('fworchdb'))"
+      register: db_exists
 
-  - name: check if db still exists
-    postgresql_query:
-      db: "{{ fworch_db_name }}"
-      query: "select exists(SELECT datname FROM pg_catalog.pg_database WHERE lower(datname) = lower('fworchdb'))"
-    register: db_exists
+    - name: fail when db still exists
+      fail:
+        msg: database could not be dropped {{ drop_db.msg }}. Try to stop all sessions connected to the database before running uninstall again.
+      when: db_exists|bool
 
-  - name: fail when db still exists
-    fail:
-      msg: database could not be dropped {{ drop_db.msg }}. Try to stop all sessions connected to the database before running uninstall again.
-    when: db_exists|bool
+    - name: remove db groups
+      postgresql_user:
+        name: "{{ item }}"
+        state: absent
+      loop: "{{ database_groups }}"
 
-  - name: remove db groups
-    postgresql_user:
-      name: "{{ item }}"
-      state: absent
-    loop: "{{ database_groups }}"
-
-  - name: remove db users
-    postgresql_user:
-      name: "{{ item }}"
-      state: absent
-    loop: "{{ database_users }}"
+    - name: remove db users
+      postgresql_user:
+        name: "{{ item }}"
+        state: absent
+      loop: "{{ database_users }}"
 
   become: true
   become_user: postgres
@@ -148,14 +147,6 @@
         - "{{ postgresql_dev_package }}"
         - "{{ postgresql_test_package }}"
         - apache2
-        - libdbi-perl
-        - libdbd-pg-perl
-        - libdate-calc-perl
-        - psmisc
-        - libnet-cidr-perl
-        - libsys-syslog-perl
-        - libexpect-perl
-        - libcgi-pm-perl
       when: wipe_packages is defined and wipe_packages|bool
 
     - name: uninstall openldap
@@ -184,7 +175,7 @@
         - /var/lib/pgsql/data
         - "{{ api_hasura_cli_bin }}"
         - /var/{{ product_name }}
-        - /var/log/{{ product_name }} 
+        - /var/log/{{ product_name }}
       ignore_errors: true
 
     - name: remove OS users and delete home directories

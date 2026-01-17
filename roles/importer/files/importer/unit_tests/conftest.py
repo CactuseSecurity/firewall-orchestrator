@@ -152,16 +152,3 @@ def fwconfig_import_rule() -> FwConfigImportRule:
 @pytest.fixture
 def fwconfig_import_object() -> FwConfigImportObject:
     return FwConfigImportObject()
-
-
-@pytest.fixture
-def fw_config_import_object() -> FwConfigImportObject:
-    fw_config_import_object: FwConfigImportObject = unittest.mock.create_autospec(FwConfigImportObject)
-    fw_config_import_object.get_network_obj_type_map = unittest.mock.Mock(
-        return_value={"network": 1, "group": 2, "host": 3, "machine_range": 4}
-    )
-    fw_config_import_object.get_service_obj_type_map = unittest.mock.Mock(
-        return_value={"simple": 1, "group": 2, "rpc": 3}
-    )
-    fw_config_import_object.get_user_obj_type_map = unittest.mock.Mock(return_value={"group": 1, "simple": 2})
-    return fw_config_import_object

@@ -4,6 +4,8 @@
 @using FWO.Recert
 @using RestSharp
 @using System.Net
+@using System.Text.Json.Serialization
+@using Newtonsoft.Json
 
 @page "/settings/owners"
 @attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
@@ -472,7 +474,16 @@ else
     private List<Rule> actRules = [];
     private List<Rule> rulesToAdd = [];
     private List<Rule> rulesToDelete = [];
+    private class RuleHelper : Rule
+    {
+        [JsonProperty("rule_metadata_id"), JsonPropertyName("rule_metadata_id")]
+        public long MetadataId { get; set; }
 
+        public Rule ToRule()
+        {
+            return new Rule(this) { Metadata = new() { Id = this.MetadataId }};
+        }
+    }
 
     protected override async Task OnInitializedAsync()
     {
@@ -657,7 +668,7 @@ else
             else
             {
                 actIpAddresses = await apiConnection.SendQueryAsync<List<NwObjectElement>>(OwnerQueries.getNetworkOwnerships, new { ownerId = actOwner.Id });
-                actRules= await apiConnection.SendQueryAsync<List<Rule>>(OwnerQueries.getRuleOwnerships, new { ownerId = actOwner.Id });
+                actRules = (await apiConnection.SendQueryAsync<List<RuleHelper>>(OwnerQueries.getRuleOwnerships, new { ownerId = actOwner.Id })).ConvertAll(r => r.ToRule());
             }
             ipsToAdd.Clear();
             ipsToDelete.Clear();

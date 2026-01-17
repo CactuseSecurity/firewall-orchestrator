@@ -25,8 +25,6 @@ namespace FWO.Middleware.Server.Controllers
         private readonly JwtWriter jwtWriter = jwtWriter;
         private readonly List<Ldap> ldaps = ldaps;
 
-        private ApiConnection? apiConnectionUserContext = null;
-
         /// <summary>
         /// Get NormalizedConfig
         /// </summary>
@@ -38,12 +36,14 @@ namespace FWO.Middleware.Server.Controllers
         {
             try
             {
-                if (!await InitUserEnvironment() || apiConnectionUserContext == null)
-                {
-                    return Unauthorized("Failed to initialize user environment or user context is null.");
-                }
+                AuthManager authManager = new(jwtWriter, ldaps, apiConnection);
+                UiUser targetUser = new() { Name = User.FindFirstValue("unique_name") ?? "", Dn = User.FindFirstValue("x-hasura-uuid") ?? "" };
+                string jwt = await authManager.AuthorizeUserAsync(targetUser, validatePassword: false);
+                using ApiConnection apiConnectionUserContext = new GraphQlApiConnection(ConfigFile.ApiServerUri, jwt);
+                apiConnectionUserContext.SetProperRole(User, [Roles.Admin, Roles.Auditor, Roles.Reporter, Roles.ReporterViewAll, Roles.Modeller, Roles.Recertifier, Roles.Importer]);
 
                 NormalizedConfig normalizedConfig = await NormalizedConfigGenerator.Generate([.. parameters.ManagementIds], parameters.ConfigTime, apiConnectionUserContext);
+
                 return Ok(JsonConvert.SerializeObject(normalizedConfig));
             }
             catch (Exception exception)
@@ -52,16 +52,6 @@ namespace FWO.Middleware.Server.Controllers
                 Log.WriteError("Get NormalizedConfig", errorString, exception);
                 return StatusCode(500, errorString);
             }
-        }
-
-        private async Task<bool> InitUserEnvironment()
-        {
-            AuthManager authManager = new(jwtWriter, ldaps, apiConnection);
-            UiUser targetUser = new() { Name = User.FindFirstValue("unique_name") ?? "", Dn = User.FindFirstValue("x-hasura-uuid") ?? "" };
-            string jwt = await authManager.AuthorizeUserAsync(targetUser, validatePassword: false);
-            apiConnectionUserContext = new GraphQlApiConnection(ConfigFile.ApiServerUri, jwt);
-            apiConnectionUserContext.SetProperRole(User, [Roles.Admin, Roles.Auditor, Roles.Reporter, Roles.ReporterViewAll, Roles.Modeller, Roles.Recertifier, Roles.Importer]);
-            return true;
         }
     }
 }

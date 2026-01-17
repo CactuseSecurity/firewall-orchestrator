@@ -17,6 +17,7 @@ from model_controllers.management_controller import (
     ManagerInfo,
 )
 from models.fwconfig_normalized import FwConfigNormalized
+from models.fwconfigmanager import FwConfigManager
 from models.import_state import ImportState
 from pytest_mock import MockerFixture
 from services.enums import Lifetime, Services
@@ -152,3 +153,17 @@ def fwconfig_import_rule() -> FwConfigImportRule:
 @pytest.fixture
 def fwconfig_import_object() -> FwConfigImportObject:
     return FwConfigImportObject()
+
+
+@pytest.fixture
+def fw_config_manager() -> FwConfigManager:
+    fw_config_manager = FwConfigManager(
+        manager_uid="mock-manager-uid",
+        manager_name="Mock Manager",
+        is_super_manager=False,
+        domain_uid="mock-domain-uid",
+        domain_name="Mock Domain",
+        sub_manager_ids=[],
+        configs=[],
+    )
+    return fw_config_manager

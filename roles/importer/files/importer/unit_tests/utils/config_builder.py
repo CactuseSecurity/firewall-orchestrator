@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import random
-from typing import Iterable, TypeVar
+from typing import Any, Iterable, TypeVar
 
 from fwo_const import DUMMY_IP, LIST_DELIMITER, RULE_NUM_NUMERIC_STEPS
 from model_controllers.fwconfig_import_gateway import FwConfigImportGateway
@@ -40,6 +40,8 @@ class FwConfigBuilder:
         network_object_count: int = 3,
         service_object_count: int = 2,
         include_gateway: bool = True,
+        user_object_count: int = 0,
+        zone_object_count: int = 0,
     ) -> tuple[FwConfigNormalized, str]:
         config = FwConfigNormalized()
         mgm_uid = self.uid_manager.create_uid()
@@ -49,6 +51,12 @@ class FwConfigBuilder:
 
         for _ in range(service_object_count):
             self.add_service_object(config)
+
+        for _ in range(user_object_count):
+            self.add_user_object(config)
+
+        for _ in range(zone_object_count):
+            self.add_zone_object(config)
 
         for _ in range(rulebase_count):
             rb = self.add_rulebase(config, mgm_uid)
@@ -193,6 +201,26 @@ class FwConfigBuilder:
         gw = Gateway(Uid=uid, Name=name or f"gw-{uid}", RulebaseLinks=self.create_rulebase_links(config))
         config.gateways.append(gw)
         return gw
+
+    def add_user_object(self, config: FwConfigNormalized, *, name: str | None = None) -> dict[str, Any]:
+        uid = self.uid_manager.create_uid()
+        obj = {
+            "user_typ": "user",
+            "user_uid": uid,
+            "user_name": name or f"user-{uid}",
+        }
+        config.users[uid] = obj
+        return obj
+
+    def add_zone_object(self, config: FwConfigNormalized, *, name: str | None = None) -> dict[str, Any]:
+        uid = self.uid_manager.create_uid()
+        obj = {
+            "zone_typ": "zone",
+            "zone_uid": uid,
+            "zone_name": name or f"zone-{uid}",
+        }
+        config.zone_objects[uid] = obj
+        return obj
 
     def add_cp_section_header(
         self, gateway: Gateway, from_rulebase_uid: str, to_rulebase_uid: str, from_rule_uid: str

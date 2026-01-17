@@ -85,7 +85,7 @@ class FwConfigImportCheckConsistency(FwConfigImport):
                 set(all_used_obj_refs) - config.get_all_network_object_uids(mgr.manager_uid) - global_objects
             )
             if len(unresolvable_nw_obj_refs) > 0:
-                self.issues.update({"unresolvableNwObRefs": list(unresolvable_nw_obj_refs)})
+                self.issues.update({"unresolvableNwObjRefs": list(unresolvable_nw_obj_refs)})
 
             self._check_network_object_types_exist(mgr)
             self._check_objects_with_missing_ips(mgr)
@@ -96,9 +96,10 @@ class FwConfigImportCheckConsistency(FwConfigImport):
         for single_config in mgr.configs:
             for obj_id in single_config.network_objects:
                 all_used_obj_types.add(single_config.network_objects[obj_id].obj_typ)
-            missing_nw_obj_types = all_used_obj_types - self.maps.network_object_type_map.keys()
-            if len(missing_nw_obj_types) > 0:
-                self.issues.update({"unresolvableNwObjTypes": list(missing_nw_obj_types)})
+
+        missing_nw_obj_types = all_used_obj_types - self.maps.network_object_type_map.keys()
+        if len(missing_nw_obj_types) > 0:
+            self.issues.update({"unresolvableNwObjTypes": list(missing_nw_obj_types)})
 
     @staticmethod
     def _collect_all_used_objects_from_groups(

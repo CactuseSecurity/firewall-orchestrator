@@ -17,10 +17,3 @@ class FwConfigJsonEncoder(json.JSONEncoder):
             return str(o)
 
         return json.JSONEncoder.default(self, o)
-
-
-"""
-    the configuraton of a firewall management to import
-    could be normalized or native config
-    management could be standard of super manager (MDS, fortimanager)
-"""

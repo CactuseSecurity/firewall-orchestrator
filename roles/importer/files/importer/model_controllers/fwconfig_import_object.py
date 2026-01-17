@@ -289,7 +289,34 @@ class FwConfigImportObject:
         removed_svc_object_uids: list[str],
         removed_user_uids: list[str],
         removed_zone_names: list[str],
-    ):
+    ) -> tuple[
+        list[dict[str, Any]],
+        list[dict[str, Any]],
+        list[dict[str, Any]],
+        list[dict[str, Any]],
+        list[dict[str, Any]],
+        list[dict[str, Any]],
+        list[dict[str, Any]],
+        list[dict[str, Any]],
+    ]:
+        """
+        Update objects via FWO API.
+
+        Args:
+            single_manager (FwConfigManager): The manager for which the objects are being updated.
+            new_nw_object_uids (list[str]): List of UIDs for new network objects to be added.
+            new_svc_obj_uids (list[str]): List of UIDs for new service objects to be added.
+            new_user_uids (list[str]): List of UIDs for new users to be added.
+            new_zone_names (list[str]): List of names for new zones to be added.
+            removed_nw_object_uids (list[str]): List of UIDs for network objects to be removed.
+            removed_svc_object_uids (list[str]): List of UIDs for service objects to be removed.
+            removed_user_uids (list[str]): List of UIDs for users to be removed.
+            removed_zone_names (list[str]): List of names for zones to be removed.
+
+        Returns:
+            tuple: A tuple containing lists of dictionaries for new and removed objects' IDs.
+
+        """
         # here we also mark old objects removed before adding the new versions
         new_nwobj_ids = []
         new_nwsvc_ids = []

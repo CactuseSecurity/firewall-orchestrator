@@ -5,12 +5,6 @@ class GatewayController(Gateway):  # noqa: PLW1641
     def __init__(self, gw: Gateway):
         self.Gateway = gw
 
-    @staticmethod
-    def replace_none_with_empty(s: str | None) -> str:
-        if s is None or s == "":
-            return "<EMPTY>"
-        return str(s)
-
     def __eq__(self, other: object) -> bool:
         if isinstance(other, Gateway):
             return (

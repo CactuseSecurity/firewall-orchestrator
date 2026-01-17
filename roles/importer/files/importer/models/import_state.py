@@ -98,8 +98,8 @@ class ImportState:
             FWOLogger.error(f"fwo_api:import_latest_config - no mgm id found for current manager uid '{mgm_uid}'")
         return self.management_map.get(mgm_uid, None)
 
-    def lookup_color_id(self, color_str: str) -> int:
-        return self.color_map.get(color_str, 1)  # 1 = forground color black
+    def lookup_color_id(self, color_str: str) -> int | None:
+        return self.color_map.get(color_str, None)  # 1 = forground color black
 
     def lookup_ids_for_rulebase_link(
         self,

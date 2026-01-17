@@ -838,14 +838,13 @@ class FwConfigImportRule:
     def prepare_new_rule_metadata(self, new_rules_per_rb: list[Rulebase]) -> list[dict[str, Any]]:
         new_rule_metadata: list[dict[str, Any]] = []
 
-        now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         for rulebase in new_rules_per_rb:
             for rule_uid, rule in rulebase.rules.items():
                 rm4import = RuleMetadatum(
                     rule_uid=rule_uid,
                     mgm_id=self.import_details.state.mgm_details.current_mgm_id,
-                    rule_last_modified=now,
-                    rule_created=now,
+                    rule_last_modified=self.import_details.state.import_id,
+                    rule_created=self.import_details.state.import_id,
                     rule_last_hit=rule.last_hit,
                 )
                 new_rule_metadata.append(rm4import.model_dump())

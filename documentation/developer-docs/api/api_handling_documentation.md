@@ -47,27 +47,6 @@ tim@fworch-comp:~$ sudo systemctl status fworch-*
 Dez 09 20:07:18 fworch-comp systemd[1]: Starting fworch importer pure python...
 Dez 09 20:07:28 fworch-comp systemd[1]: Started fworch importer pure python.
 
-● fworch-importer.service - fworch importer
-     Loaded: loaded (/lib/systemd/system/fworch-importer.service; enabled; vendor preset: enabled)
-     Active: active (running) since Thu 2021-12-09 20:08:24 CET; 14h ago
-    Process: 342644 ExecStartPre=/bin/sleep 10 (code=exited, status=0/SUCCESS)
-   Main PID: 342651 (fworch-importer)
-      Tasks: 1 (limit: 4637)
-     Memory: 13.9M
-     CGroup: /system.slice/fworch-importer.service
-             └─342651 /usr/bin/perl -w /usr/local/fworch/importer/fworch-importer-main.pl
-
-Dez 10 10:45:54 fworch-comp fworch-importer[396236]: version: R5x-R7x, manufacturer: check point, current_import_id=1897
-Dez 10 10:45:55 fworch-comp fworch-import[396236]: Management checkpoint_demo (mgm_id=2), no changes in configuration files (MD5)
-Dez 10 10:45:55 fworch-comp fworch-importer[396236]: Management checkpoint_demo (mgm_id=2), no changes in configuration files (MD5)
-Dez 10 10:45:55 fworch-comp fworch-import[342651]: Import: looking at fortigate_demo ...
-Dez 10 10:45:55 fworch-comp fworch-import[342651]: Import: running on responsible importer fworch-comp ...
-Dez 10 10:45:55 fworch-comp fworch-importer[342651]: Import: looking at fortigate_demo ... Import: running on responsible importer fworch-comp ...
-Dez 10 10:45:55 fworch-comp fworch-importer[396481]: version: 5.x-6.x, manufacturer: fortinet, current_import_id=1898
-Dez 10 10:45:56 fworch-comp fworch-import[396481]: Management fortigate_demo (mgm_id=1), no changes in configuration files (MD5)
-Dez 10 10:45:56 fworch-comp fworch-importer[396481]: Management fortigate_demo (mgm_id=1), no changes in configuration files (MD5)
-Dez 10 10:45:56 fworch-comp fworch-import[342651]: -------- Import module: going back to sleep for 40 seconds --------
-
 ● fworch-middleware.service - FWOrch Middleware Server
      Loaded: loaded (/lib/systemd/system/fworch-middleware.service; enabled; vendor preset: enabled)
      Active: active (running) since Fri 2021-12-10 10:45:59 CET; 3s ago

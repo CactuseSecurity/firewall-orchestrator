@@ -1,4 +1,4 @@
-﻿using FWO.Api.Client;
+using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 using FWO.Logging;
 using FWO.Config.File;
@@ -29,20 +29,18 @@ namespace FWO.Middleware.Server
     /// <remarks>
     /// Constructor needing the jwt token
     /// </remarks>
-    public class UiUserHandler(string jwtToken)
+    public static class UiUserHandler
     {
-        private readonly ApiConnection apiConn = new GraphQlApiConnection(ConfigFile.ApiServerUri, jwtToken);
-
         /// <summary>
         /// Get the configurated value for the session timeout.
         /// </summary>
         /// <returns>session timeout value in minutes</returns>
-        public async Task<int> GetExpirationTime()
+        public static async Task<int> GetExpirationTime(ApiConnection apiConnection)
         {
             int expirationTime = GlobalConst.kSessionExpirationTimeDefault;
             try
             {
-                List<ConfExpirationTime> resultList = await apiConn.SendQueryAsync<List<ConfExpirationTime>>(ConfigQueries.getConfigItemByKey, new { key = "sessionTimeout" });
+                List<ConfExpirationTime> resultList = await apiConnection.SendQueryAsync<List<ConfExpirationTime>>(ConfigQueries.getConfigItemByKey, new { key = "sessionTimeout" });
                 if (resultList.Count > 0)
                 {
                     expirationTime = resultList[0].ExpirationValue;
@@ -61,24 +59,24 @@ namespace FWO.Middleware.Server
         /// the user id is needed for allowing access to report_templates
         /// </summary>
         /// <returns> user including its db id </returns>
-        public async Task<UiUser> HandleUiUserAtLogin(UiUser user)
+        public static async Task<UiUser> HandleUiUserAtLogin(ApiConnection apiConnection, UiUser user)
         {
             bool userSetInDb = false;
             try
             {
-                UiUser[] existingUsers = await apiConn.SendQueryAsync<UiUser[]>(AuthQueries.getUserByDn, new { dn = user.Dn });
+                UiUser[] existingUsers = await apiConnection.SendQueryAsync<UiUser[]>(AuthQueries.getUserByDn, new { dn = user.Dn });
 
                 if (existingUsers.Length > 0)
                 {
                     user.DbId = existingUsers[0].DbId;
-                    user.PasswordMustBeChanged = await UpdateLastLogin(apiConn, user.DbId);
+                    user.PasswordMustBeChanged = await UpdateLastLogin(apiConnection, user.DbId);
                     userSetInDb = true;
                 }
                 else
                 {
                     Log.WriteDebug("User not found", $"Couldn't find {user.Name} in internal database");
                 }
-                await GetOwnershipsFromOwnerLdap(apiConn, user);
+                await GetOwnershipsFromOwnerLdap(apiConnection, user);
             }
             catch (Exception exeption)
             {
@@ -88,7 +86,7 @@ namespace FWO.Middleware.Server
             if (!userSetInDb)
             {
                 Log.WriteInfo("New User", $"User {user.Name} first time log in - adding to internal database.");
-                await UpsertUiUser(apiConn, user, true);
+                await UpsertUiUser(apiConnection, user, true);
             }
             return user;
         }
@@ -160,7 +158,7 @@ namespace FWO.Middleware.Server
             }
             string regexPattern = ReplacePlaceholdersWithPattern(namingConvention);
             string cn = userIn;
-            
+
             if (userIn.Contains(','))
             {
                 // the userIn is a DN, so extract the CN part

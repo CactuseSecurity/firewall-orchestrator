@@ -116,19 +116,14 @@ class FwConfigImportGateway:
         gw_id: int | None,
         is_insert: bool,
     ):
-        # If rule changed we need the id of the old version, since the rulebase links still have the old fks (for updates)
-
+        # For updates, if rule changed we need the id of the old version, since the rulebase links still have the old fks (for updates)
+        # For inserts, we need the id of the new version
         from_rule_id = (
-            self._uid2id_mapper.get_rule_id(link.from_rule_uid, before_update=True)
+            self._uid2id_mapper.get_rule_id(link.from_rule_uid, before_update=not is_insert)
             if link.from_rule_uid is not None
             else None
         )
 
-        # If rule is unchanged or new id can be fetched from RuleMap, because it has been updated already
-        if not from_rule_id or is_insert:
-            from_rule_id = (
-                self._uid2id_mapper.get_rule_id(link.from_rule_uid) if link.from_rule_uid is not None else None
-            )
         if link.from_rulebase_uid is None or link.from_rulebase_uid == "":
             from_rulebase_id = None
         else:

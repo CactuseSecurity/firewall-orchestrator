@@ -52,7 +52,6 @@ we are using cycloneDx
     openssh-client
     openssh-server
     openssl
-    perl
     postgresql
     postgresql-client
     python3-cryptography
@@ -69,34 +68,6 @@ we are using cycloneDx
     rsyslog
     slapd
     xdg-utils
-
-
-## list of perl packages
-
-    libdbi-perl
-
-    
-        
-          
-    
-
-        
-        Expand All
-    
-    @@ -31,9 +91,13 @@ we are using cycloneDx
-  
-    libdbd-pg-perl
-    libdate-calc-perl
-    psmisc
-    libnet-cidr-perl
-    libsys-syslog-perl
-    libexpect-perl
-    libcgi-pm-perl
-    python3-jsonpickle
-    python3-gnupg
-    python3-pytest
-    python3-pydantic
-
 
 ## list of python packages with venv (importer module)
     pydantic>=2.0,<3.0

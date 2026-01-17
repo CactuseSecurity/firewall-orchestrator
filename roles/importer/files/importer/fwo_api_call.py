@@ -23,8 +23,6 @@ if TYPE_CHECKING:
 class FwoApiCall:
     def __init__(self, api: FwoApi):
         self.api = api
-        self.fwo_api_url = api.fwo_api_url
-        self.fwo_jwt = api.fwo_jwt
         self.query_info = {}
         self.query_analyzer = QueryAnalyzer()
 
@@ -74,20 +72,33 @@ class FwoApiCall:
     # this mgm field is used by mw dailycheck scheduler
     def log_import_attempt(self, mgm_id: int, successful: bool):
         now = datetime.datetime.now().isoformat()
-        query_variables: dict[str, Any] = {"mgmId": mgm_id, "timeStamp": now, "success": successful}
+        query_variables: dict[str, Any] = {
+            "mgmId": mgm_id,
+            "timeStamp": now,
+            "success": successful,
+        }
         mgm_mutation = FwoApi.get_graphql_code(
             [fwo_const.GRAPHQL_QUERY_PATH + "import/updateManagementLastImportAttempt.graphql"]
         )
         return self.api.call(mgm_mutation, query_variables=query_variables)
 
-    def set_import_lock(self, mgm_details: ManagementController, is_full_import: int, is_initial_import: int) -> int:
+    def set_import_lock(
+        self,
+        mgm_details: ManagementController,
+        is_full_import: int,
+        is_initial_import: int,
+    ) -> int:
         import_id = -1
         mgm_id = mgm_details.mgm_id
         try:  # set import lock
             lock_mutation = FwoApi.get_graphql_code([fwo_const.GRAPHQL_QUERY_PATH + "import/addImport.graphql"])
             lock_result = self.api.call(
                 lock_mutation,
-                query_variables={"mgmId": mgm_id, "isFullImport": is_full_import, "isInitialImport": is_initial_import},
+                query_variables={
+                    "mgmId": mgm_id,
+                    "isFullImport": is_full_import,
+                    "isInitialImport": is_initial_import,
+                },
             )
             if lock_result["data"]["insert_import_control"]["returning"][0]["control_id"]:
                 import_id = lock_result["data"]["insert_import_control"]["returning"][0]["control_id"]
@@ -96,7 +107,9 @@ class FwoApiCall:
             FWOLogger.error("import_management - failed to get import lock for management id " + str(mgm_id))
             if import_id == -1:
                 self.create_data_issue(
-                    mgm_id=mgm_id, severity=1, description="failed to get import lock for management id " + str(mgm_id)
+                    mgm_id=mgm_id,
+                    severity=1,
+                    description="failed to get import lock for management id " + str(mgm_id),
                 )
                 self.set_alert(
                     import_id=import_id,
@@ -169,7 +182,12 @@ class FwoApiCall:
             FWOLogger.exception("failed to unlock import for management id " + str(mgm_id) + ": " + str(e))
 
     #   currently temporarily only working with single chunk
-    def import_json_config(self, import_state: "ImportState", config: FwConfigNormalized, start_import: bool):
+    def import_json_config(
+        self,
+        import_state: "ImportState",
+        config: FwConfigNormalized,
+        start_import: bool,
+    ):
         import_mutation = FwoApi.get_graphql_code([fwo_const.GRAPHQL_QUERY_PATH + "import/addImportConfig.graphql"])
 
         try:
@@ -277,7 +295,14 @@ class FwoApiCall:
         query_variables = {"source": source}
 
         self._set_alert_build_query_vars(
-            query_variables, dev_id, user_id, mgm_id, ref_alert, title, description, alert_code
+            query_variables,
+            dev_id,
+            user_id,
+            mgm_id,
+            ref_alert,
+            title,
+            description,
+            alert_code,
         )
 
         if json_data is None:
@@ -299,7 +324,11 @@ class FwoApiCall:
                 return
 
             # Acknowledge older alert for same problem on same management
-            query_variables: dict[str, Any] = {"mgmId": mgm_id, "alertCode": alert_code, "currentAlertId": new_alert_id}
+            query_variables: dict[str, Any] = {
+                "mgmId": mgm_id,
+                "alertCode": alert_code,
+                "currentAlertId": new_alert_id,
+            }
             existing_unacknowledged_alerts = self.api.call(get_alert_query, query_variables=query_variables)
             if "data" not in existing_unacknowledged_alerts or "alert" not in existing_unacknowledged_alerts["data"]:
                 return
@@ -307,7 +336,11 @@ class FwoApiCall:
             for alert in existing_unacknowledged_alerts["data"]["alert"]:
                 if "alert_id" in alert:
                     now = datetime.datetime.now().isoformat()
-                    query_variables = {"userId": 0, "alertId": alert["alert_id"], "ackTimeStamp": now}
+                    query_variables = {
+                        "userId": 0,
+                        "alertId": alert["alert_id"],
+                        "ackTimeStamp": now,
+                    }
                     _ = self.api.call(ack_alert_mutation, query_variables=query_variables)
         except Exception as e:
             FWOLogger.error(f"failed to create alert entry: {json.dumps(query_variables)}; exception: {e!s}")

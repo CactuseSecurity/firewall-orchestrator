@@ -110,7 +110,7 @@ class FwConfigImportRule:
         new_rulebases = [
             rb
             for rb in self.normalized_config.rulebases
-            if not any(rb.uid == removed_rb_uid for removed_rb_uid in removed_rulebase_uids)
+            if not any(rb.uid == prev_rb.uid for prev_rb in prev_config.rulebases)
         ]
         num_added_rulebases = self.add_new_rulebases(new_rulebases)
 

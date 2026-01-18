@@ -64,7 +64,7 @@ namespace FWO.Report
 
         private static List<DeviceReport> PrepareDevices(DeviceReport[] deviceReports)
         {
-            List<DeviceReport> slectedDeviceReports = [];
+            List<DeviceReport> selectedDeviceReports = [];
             foreach(var devReport in deviceReports)
             {
                 DeviceReport selectedDevReport = new(devReport);
@@ -77,10 +77,10 @@ namespace FWO.Report
                 }
                 if (selectedDevReport.ContainsRules())
                 {
-                    slectedDeviceReports.Add(selectedDevReport);
+                    selectedDeviceReports.Add(selectedDevReport);
                 }
             }
-            return slectedDeviceReports;
+            return selectedDeviceReports;
         }
 
         private static void PrepareRulebase(RulebaseReport rulebase, ModellingFilter modellingFilter, ManagementReport relevantMgt, List<IPAddressRange> ownerIps)

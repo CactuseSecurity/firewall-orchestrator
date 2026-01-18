@@ -151,7 +151,7 @@ namespace FWO.Report.Filter
         private static string ConstructRulesQuery(DynGraphqlQuery query, string paramString, ReportTemplate filter)
         {
             return $@"
-                {(filter.Detailed ? RuleQueries.ruleDetailsForReportFragments : RuleQueries.ruleOverviewFragments)}
+                {GetRulesFragmentDef(filter)}
                 query rulesReport ({paramString}) 
                 {{ 
                     management({mgmtWhereString}) 
@@ -172,11 +172,29 @@ namespace FWO.Report.Filter
                             {{
                                 mgm_id: mgm_id
                                 {((ReportType)filter.ReportParams.ReportType == ReportType.UnusedRules ? "rule_metadatum { rule_last_hit }" : "")}
-                                ...{(filter.Detailed ? "ruleDetailsForReport" : "ruleOverview")}
+                                ...{GetRulesFragmentCall(filter)}
                             }} 
                         }}
                     }} 
                 }}";
+        }
+
+        private static string GetRulesFragmentDef(ReportTemplate filter)
+        {
+            if((ReportType)filter.ReportParams.ReportType == ReportType.AppRules)
+            {
+                return RuleQueries.ruleDetailsForAppRuleReportFragments;
+            }
+            return filter.Detailed ? RuleQueries.ruleDetailsForReportFragments : RuleQueries.ruleOverviewFragments;
+        }
+
+        private static string GetRulesFragmentCall(ReportTemplate filter)
+        {
+            if((ReportType)filter.ReportParams.ReportType == ReportType.AppRules)
+            {
+                return "ruleDetailsForAppRuleReport";
+            }
+            return filter.Detailed ? "ruleDetailsForReport" : "ruleOverview";
         }
 
         private static string ConstructRecertQuery(DynGraphqlQuery query, string paramString)

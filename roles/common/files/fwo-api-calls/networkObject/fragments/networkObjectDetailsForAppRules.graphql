@@ -1,0 +1,35 @@
+fragment networkObjectDetailsForAppRules on object {
+  obj_id
+  obj_name
+  obj_ip
+  obj_ip_end
+  obj_uid
+  zone {
+    zone_id
+    zone_name
+  }
+  active
+  type: stm_obj_typ {
+    name: obj_typ_name
+  }
+  objgrp_flats(
+    where: {
+      active: { _eq: $active }
+      import_created: { _lte: $import_id_end }
+      _or: [
+        { removed: { _is_null: true } }
+        { removed: { _gt: $import_id_start } }
+      ]
+    }
+    order_by: { objgrp_flat_member_id: asc }
+  ) {
+    id_flat: objgrp_flat_id
+    byFlatId: objectByObjgrpFlatMemberId {
+      obj_id
+      obj_name
+      obj_ip
+      obj_ip_end
+      obj_member_refs
+    }
+  }
+}

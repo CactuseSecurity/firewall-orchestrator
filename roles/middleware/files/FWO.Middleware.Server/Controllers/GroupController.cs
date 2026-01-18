@@ -305,6 +305,14 @@ namespace FWO.Middleware.Server.Controllers
 
             HashSet<string> resolved = new(StringComparer.OrdinalIgnoreCase);
             object resolvedLock = new();
+            await ResolveFromLdaps(parameters.Dns, resolved, resolvedLock);
+            AddDirectDns(parameters.Dns, resolved, GetGroupSearchPaths());
+
+            return resolved.ToList();
+        }
+
+        private async Task ResolveFromLdaps(List<string> dns, HashSet<string> resolved, object resolvedLock)
+        {
             List<Task> ldapRequests = [];
 
             foreach (Ldap currentLdap in ldaps)
@@ -316,7 +324,7 @@ namespace FWO.Middleware.Server.Controllers
 
                 ldapRequests.Add(Task.Run(async () =>
                 {
-                    List<string> currentResolved = await currentLdap.ResolveUsersFromDns(parameters.Dns);
+                    List<string> currentResolved = await currentLdap.ResolveUsersFromDns(dns);
                     if (currentResolved.Count == 0)
                     {
                         return;
@@ -336,26 +344,31 @@ namespace FWO.Middleware.Server.Controllers
             }
 
             await Task.WhenAll(ldapRequests);
+        }
 
-            List<string> groupSearchPaths = ldaps
+        private List<string> GetGroupSearchPaths()
+        {
+            return ldaps
                 .Where(ldap => ldap.HasGroupHandling() && !string.IsNullOrWhiteSpace(ldap.GroupSearchPath))
                 .Select(ldap => ldap.GroupSearchPath!)
                 .ToList();
+        }
 
-            foreach (string dn in parameters.Dns)
+        private static void AddDirectDns(List<string> dns, HashSet<string> resolved, List<string> groupSearchPaths)
+        {
+            foreach (string dn in dns)
             {
                 if (string.IsNullOrWhiteSpace(dn))
                 {
                     continue;
                 }
+
                 bool isGroupDn = groupSearchPaths.Any(path => dn.EndsWith(path, StringComparison.OrdinalIgnoreCase));
                 if (!isGroupDn)
                 {
                     resolved.Add(dn);
                 }
             }
-
-            return resolved.ToList();
         }
 
         private async Task<List<string>> GetMembershipsFromLdap(Ldap currentLdap, GroupMembershipGetParameters parameters)

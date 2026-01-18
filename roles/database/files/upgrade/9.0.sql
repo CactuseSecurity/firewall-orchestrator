@@ -2152,94 +2152,89 @@ CREATE TABLE IF NOT EXISTS owner_responsible
 
 DO $$
 BEGIN
-    IF EXISTS (
-        SELECT 1
+    IF (
+        SELECT COUNT(*)
         FROM information_schema.columns
         WHERE table_name='owner' AND column_name='owner_responsible1'
-    ) THEN
+    ) > 0 THEN
         INSERT INTO owner_responsible (owner_id, dn, responsible_type)
         SELECT id, dn, 1
         FROM owner, unnest(owner_responsible1) AS dn
-        WHERE dn IS NOT NULL AND dn <> ''
-          AND NOT EXISTS (
-              SELECT 1 FROM owner_responsible r
-              WHERE r.owner_id = owner.id AND r.dn = dn AND r.responsible_type = 1
-          );
+        LEFT JOIN owner_responsible r
+            ON r.owner_id = owner.id AND r.dn = dn AND r.responsible_type = 1
+        WHERE NULLIF(dn, '') IS NOT NULL
+          AND r.owner_id IS NULL;
         ALTER TABLE owner DROP COLUMN owner_responsible1;
     END IF;
 
-    IF EXISTS (
-        SELECT 1
+    IF (
+        SELECT COUNT(*)
         FROM information_schema.columns
         WHERE table_name='owner' AND column_name='owner_responsible2'
-    ) THEN
+    ) > 0 THEN
         INSERT INTO owner_responsible (owner_id, dn, responsible_type)
         SELECT id, dn, 2
         FROM owner, unnest(owner_responsible2) AS dn
-        WHERE dn IS NOT NULL AND dn <> ''
-          AND NOT EXISTS (
-              SELECT 1 FROM owner_responsible r
-              WHERE r.owner_id = owner.id AND r.dn = dn AND r.responsible_type = 2
-          );
+        LEFT JOIN owner_responsible r
+            ON r.owner_id = owner.id AND r.dn = dn AND r.responsible_type = 2
+        WHERE NULLIF(dn, '') IS NOT NULL
+          AND r.owner_id IS NULL;
         ALTER TABLE owner DROP COLUMN owner_responsible2;
     END IF;
 
-    IF EXISTS (
-        SELECT 1
+    IF (
+        SELECT COUNT(*)
         FROM information_schema.columns
         WHERE table_name='owner' AND column_name='owner_responsible3'
-    ) THEN
+    ) > 0 THEN
         INSERT INTO owner_responsible (owner_id, dn, responsible_type)
         SELECT id, dn, 3
         FROM owner, unnest(owner_responsible3) AS dn
-        WHERE dn IS NOT NULL AND dn <> ''
-          AND NOT EXISTS (
-              SELECT 1 FROM owner_responsible r
-              WHERE r.owner_id = owner.id AND r.dn = dn AND r.responsible_type = 3
-          );
+        LEFT JOIN owner_responsible r
+            ON r.owner_id = owner.id AND r.dn = dn AND r.responsible_type = 3
+        WHERE NULLIF(dn, '') IS NOT NULL
+          AND r.owner_id IS NULL;
         ALTER TABLE owner DROP COLUMN owner_responsible3;
     END IF;
 
-    IF EXISTS (
-        SELECT 1
+    IF (
+        SELECT COUNT(*)
         FROM information_schema.columns
         WHERE table_name='owner' AND column_name='dn'
-    ) THEN
+    ) > 0 THEN
         INSERT INTO owner_responsible (owner_id, dn, responsible_type)
         SELECT id, dn, 1
         FROM owner
-        WHERE dn IS NOT NULL AND dn <> ''
-          AND NOT EXISTS (
-              SELECT 1 FROM owner_responsible r
-              WHERE r.owner_id = owner.id AND r.dn = owner.dn AND r.responsible_type = 1
-          );
+        LEFT JOIN owner_responsible r
+            ON r.owner_id = owner.id AND r.dn = owner.dn AND r.responsible_type = 1
+        WHERE NULLIF(dn, '') IS NOT NULL
+          AND r.owner_id IS NULL;
         ALTER TABLE owner DROP COLUMN dn;
     END IF;
 
-    IF EXISTS (
-        SELECT 1
+    IF (
+        SELECT COUNT(*)
         FROM information_schema.columns
         WHERE table_name='owner' AND column_name='group_dn'
-    ) THEN
+    ) > 0 THEN
         INSERT INTO owner_responsible (owner_id, dn, responsible_type)
         SELECT id, group_dn, 2
         FROM owner
-        WHERE group_dn IS NOT NULL AND group_dn <> ''
-          AND NOT EXISTS (
-              SELECT 1 FROM owner_responsible r
-              WHERE r.owner_id = owner.id AND r.dn = owner.group_dn AND r.responsible_type = 2
-          );
+        LEFT JOIN owner_responsible r
+            ON r.owner_id = owner.id AND r.dn = owner.group_dn AND r.responsible_type = 2
+        WHERE NULLIF(group_dn, '') IS NOT NULL
+          AND r.owner_id IS NULL;
         ALTER TABLE owner DROP COLUMN group_dn;
     END IF;
 END$$;
 
 DO $$
 BEGIN
-    IF NOT EXISTS (
-        SELECT 1
+    IF (
+        SELECT COUNT(*)
         FROM pg_constraint
         WHERE conname = 'owner_responsible_owner_foreign_key'
-    ) THEN
+    ) = 0 THEN
         ALTER TABLE owner_responsible
             ADD CONSTRAINT owner_responsible_owner_foreign_key
             FOREIGN KEY (owner_id) REFERENCES owner(id) ON UPDATE RESTRICT ON DELETE CASCADE;

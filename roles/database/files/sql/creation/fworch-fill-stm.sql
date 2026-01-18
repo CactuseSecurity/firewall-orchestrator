@@ -535,8 +535,12 @@ insert into request.state (id,name) VALUES (600,'Done');
 insert into request.state (id,name) VALUES (610,'Rejected');
 insert into request.state (id,name) VALUES (620,'Discarded');
 
-INSERT INTO owner (id, name, dn, group_dn, is_default, recert_interval, app_id_external) 
-VALUES    (0, 'super-owner', 'uid=admin,ou=tenant0,ou=operator,ou=user,dc=fworch,dc=internal', 'group-dn-for-super-owner', true, 365, 'NONE')
+INSERT INTO owner (id, name, is_default, recert_interval, app_id_external) 
+VALUES    (0, 'super-owner', true, 365, 'NONE');
+INSERT INTO owner_responsible (owner_id, dn, responsible_type)
+VALUES
+    (0, 'uid=admin,ou=tenant0,ou=operator,ou=user,dc=fworch,dc=internal', 1),
+    (0, 'group-dn-for-super-owner', 2);
 ON CONFLICT DO NOTHING; 
 
 insert into stm_link_type (id, name) VALUES (2, 'ordered');

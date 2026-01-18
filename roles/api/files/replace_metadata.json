@@ -10718,6 +10718,18 @@
                   }
                 },
                 {
+                  "name": "owner_responsibles",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "owner_id",
+                      "table": {
+                        "name": "owner_responsible",
+                        "schema": "public"
+                      }
+                    }
+                  }
+                },
+                {
                   "name": "owner_recertifications",
                   "using": {
                     "foreign_key_constraint_on": {
@@ -10850,8 +10862,6 @@
                       "recert_active",
                       "app_id_external",
                       "criticality",
-                      "dn",
-                      "group_dn",
                       "import_source",
                       "last_recertifier_dn",
                       "name",
@@ -10878,8 +10888,6 @@
                       "app_id_external",
                       "common_service_possible",
                       "criticality",
-                      "dn",
-                      "group_dn",
                       "id",
                       "import_source",
                       "is_default",
@@ -10906,8 +10914,6 @@
                       "app_id_external",
                       "common_service_possible",
                       "criticality",
-                      "dn",
-                      "group_dn",
                       "id",
                       "import_source",
                       "is_default",
@@ -10934,8 +10940,6 @@
                       "app_id_external",
                       "common_service_possible",
                       "criticality",
-                      "dn",
-                      "group_dn",
                       "id",
                       "import_source",
                       "is_default",
@@ -10962,8 +10966,6 @@
                       "app_id_external",
                       "common_service_possible",
                       "criticality",
-                      "dn",
-                      "group_dn",
                       "id",
                       "import_source",
                       "is_default",
@@ -10990,8 +10992,6 @@
                       "app_id_external",
                       "common_service_possible",
                       "criticality",
-                      "dn",
-                      "group_dn",
                       "id",
                       "import_source",
                       "is_default",
@@ -11018,8 +11018,6 @@
                       "app_id_external",
                       "common_service_possible",
                       "criticality",
-                      "dn",
-                      "group_dn",
                       "id",
                       "import_source",
                       "is_default",
@@ -11064,8 +11062,6 @@
                       "app_id_external",
                       "common_service_possible",
                       "criticality",
-                      "dn",
-                      "group_dn",
                       "id",
                       "import_source",
                       "is_default",
@@ -11092,8 +11088,6 @@
                       "app_id_external",
                       "common_service_possible",
                       "criticality",
-                      "dn",
-                      "group_dn",
                       "id",
                       "import_source",
                       "is_default",
@@ -11134,8 +11128,6 @@
                       "app_id_external",
                       "common_service_possible",
                       "criticality",
-                      "dn",
-                      "group_dn",
                       "id",
                       "import_source",
                       "is_default",
@@ -11176,8 +11168,6 @@
                       "app_id_external",
                       "common_service_possible",
                       "criticality",
-                      "dn",
-                      "group_dn",
                       "id",
                       "import_source",
                       "is_default",
@@ -11205,8 +11195,6 @@
                       "app_id_external",
                       "common_service_possible",
                       "criticality",
-                      "dn",
-                      "group_dn",
                       "id",
                       "import_source",
                       "is_default",
@@ -11233,8 +11221,6 @@
                       "app_id_external",
                       "common_service_possible",
                       "criticality",
-                      "dn",
-                      "group_dn",
                       "id",
                       "import_source",
                       "is_default",
@@ -11265,8 +11251,6 @@
                       "recert_active",
                       "app_id_external",
                       "criticality",
-                      "dn",
-                      "group_dn",
                       "import_source",
                       "last_recertifier_dn",
                       "name",
@@ -11314,6 +11298,234 @@
                       ]
                     },
                     "check": {}
+                  },
+                  "comment": ""
+                }
+              ]
+            },
+            {
+              "table": {
+                "name": "owner_responsible",
+                "schema": "public"
+              },
+              "object_relationships": [
+                {
+                  "name": "owner",
+                  "using": {
+                    "foreign_key_constraint_on": "owner_id"
+                  }
+                }
+              ],
+              "insert_permissions": [
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "owner_id",
+                      "dn",
+                      "responsible_type",
+                      "roles"
+                    ]
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "modeller",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "owner_id",
+                      "dn",
+                      "responsible_type",
+                      "roles"
+                    ]
+                  },
+                  "comment": ""
+                }
+              ],
+              "select_permissions": [
+                {
+                  "role": "approver",
+                  "permission": {
+                    "columns": [
+                      "id",
+                      "owner_id",
+                      "dn",
+                      "responsible_type",
+                      "roles"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "auditor",
+                  "permission": {
+                    "columns": [
+                      "id",
+                      "owner_id",
+                      "dn",
+                      "responsible_type",
+                      "roles"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "fw-admin",
+                  "permission": {
+                    "columns": [
+                      "id",
+                      "owner_id",
+                      "dn",
+                      "responsible_type",
+                      "roles"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "implementer",
+                  "permission": {
+                    "columns": [
+                      "id",
+                      "owner_id",
+                      "dn",
+                      "responsible_type",
+                      "roles"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "id",
+                      "owner_id",
+                      "dn",
+                      "responsible_type",
+                      "roles"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "modeller",
+                  "permission": {
+                    "columns": [
+                      "id",
+                      "owner_id",
+                      "dn",
+                      "responsible_type",
+                      "roles"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "planner",
+                  "permission": {
+                    "columns": [
+                      "id",
+                      "owner_id",
+                      "dn",
+                      "responsible_type",
+                      "roles"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "recertifier",
+                  "permission": {
+                    "columns": [
+                      "id",
+                      "owner_id",
+                      "dn",
+                      "responsible_type",
+                      "roles"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "reporter",
+                  "permission": {
+                    "columns": [
+                      "id",
+                      "owner_id",
+                      "dn",
+                      "responsible_type",
+                      "roles"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "reporter-viewall",
+                  "permission": {
+                    "columns": [
+                      "id",
+                      "owner_id",
+                      "dn",
+                      "responsible_type",
+                      "roles"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "requester",
+                  "permission": {
+                    "columns": [
+                      "id",
+                      "owner_id",
+                      "dn",
+                      "responsible_type",
+                      "roles"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "reviewer",
+                  "permission": {
+                    "columns": [
+                      "id",
+                      "owner_id",
+                      "dn",
+                      "responsible_type",
+                      "roles"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                }
+              ],
+              "delete_permissions": [
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "modeller",
+                  "permission": {
+                    "filter": {}
                   },
                   "comment": ""
                 }

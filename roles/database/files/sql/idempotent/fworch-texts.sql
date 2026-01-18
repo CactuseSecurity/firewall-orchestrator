@@ -1914,8 +1914,8 @@ INSERT INTO txt VALUES ('password_policy',      'German', 	'Passworteinstellunge
 INSERT INTO txt VALUES ('password_policy',      'English', 	'Password Policy');
 INSERT INTO txt VALUES ('email_settings',       'German', 	'Email-Einstellungen');
 INSERT INTO txt VALUES ('email_settings',       'English', 	'Email settings');
-INSERT INTO txt VALUES ('importer_settings',    'German', 	'Importer-Einstellungen');
-INSERT INTO txt VALUES ('importer_settings',    'English', 	'Importer settings');
+INSERT INTO txt VALUES ('importer_settings',    'German', 	'FW-Importer-Einstellungen');
+INSERT INTO txt VALUES ('importer_settings',    'English', 	'FW Importer Settings');
 INSERT INTO txt VALUES ('edit_email',           'German', 	'Email-Einstellungen editieren');
 INSERT INTO txt VALUES ('edit_email',           'English', 	'Edit email settings');
 INSERT INTO txt VALUES ('email_sender',         'German', 	'Email-Absendeadresse');
@@ -2488,6 +2488,8 @@ INSERT INTO txt VALUES ('dn',                   'German',   'Vollst&auml;ndiger 
 INSERT INTO txt VALUES ('dn',                   'English',  'Distinguished Name');
 INSERT INTO txt VALUES ('main_responsible',     'German',   'Hauptverantwortlicher (DN)');
 INSERT INTO txt VALUES ('main_responsible',     'English',  'Main responsible person (DN)');
+INSERT INTO txt VALUES ('owner_responsible3',   'German',   'Weitere Verantwortliche (DN)');
+INSERT INTO txt VALUES ('owner_responsible3',   'English',  'Additional responsible persons (DN)');
 INSERT INTO txt VALUES ('set_default',          'German',   'als Vorgabewert setzen');
 INSERT INTO txt VALUES ('set_default',          'English',  'Set as Default');
 INSERT INTO txt VALUES ('reset_to_default',     'German',   'auf Vorgabewerte zur&uuml;cksetzen');
@@ -2753,8 +2755,8 @@ INSERT INTO txt VALUES ('import',       	    'German', 	'Import');
 INSERT INTO txt VALUES ('import',    	        'English', 	'Import');
 INSERT INTO txt VALUES ('import_logs',          'German', 	'Import-Logs');
 INSERT INTO txt VALUES ('import_logs',          'English', 	'Import Logs');
-INSERT INTO txt VALUES ('app_data_import_logs', 'German', 	'Applikationsdaten Import-Logs');
-INSERT INTO txt VALUES ('app_data_import_logs', 'English', 	'Application Data Import Logs');
+INSERT INTO txt VALUES ('app_data_import_logs', 'German', 	'Eigent&uuml;mer-Daten Import-Logs');
+INSERT INTO txt VALUES ('app_data_import_logs', 'English', 	'Owner Data Import Logs');
 INSERT INTO txt VALUES ('area_ip_data_import_logs','German','Subnetzdaten Import-Logs');
 INSERT INTO txt VALUES ('area_ip_data_import_logs','English','Subnet Data Import Logs');
 INSERT INTO txt VALUES ('import_status',       	'German', 	'Import-Status');
@@ -2967,8 +2969,8 @@ INSERT INTO txt VALUES ('owner_import',         'German', 	'Eigent&uuml;mer-Impo
 INSERT INTO txt VALUES ('owner_import',         'English', 	'Owner Import');
 INSERT INTO txt VALUES ('import_interfaces',    'German', 	'Import-Schnittstellen');
 INSERT INTO txt VALUES ('import_interfaces',    'English', 	'Import Interfaces');
-INSERT INTO txt VALUES ('import_app_data',      'German', 	'Applikationsdaten-Import');
-INSERT INTO txt VALUES ('import_app_data',      'English', 	'Application Data Import');
+INSERT INTO txt VALUES ('import_app_data',      'German', 	'Eigent&uuml;mer-Daten-Import');
+INSERT INTO txt VALUES ('import_app_data',      'English', 	'Owner Data Import');
 INSERT INTO txt VALUES ('import_subnet_data',   'German', 	'Subnetzdaten-Import');
 INSERT INTO txt VALUES ('import_subnet_data',   'English', 	'Subnet Data Import');
 INSERT INTO txt VALUES ('general',              'German', 	'Allgemein');
@@ -4455,24 +4457,21 @@ Variablen
       {
         "name": "5",
         "recert_interval": 365,
-        "dn":"x",
-        "group_dn":"x",
+        "owner_responsibles":[{"dn":"x","responsible_type":1},{"dn":"x","responsible_type":2}],
         "app_id_external": "app-5",
         "owner_networks": {"data": [{"ip": "10.5.0.0/32", "ip_end": "10.5.255.255/32"},{"ip": "10.9.0.0/32", "ip": "10.9.255.255/32"}]}
       },
       {
         "name": "6",
         "recert_interval": 30,
-        "dn":"x",
-        "group_dn":"x",
+        "owner_responsibles":[{"dn":"x","responsible_type":1},{"dn":"x","responsible_type":2}],
         "app_id_external": "app-6",
         "owner_networks": {"data": [{"ip": "10.6.0.0/32", "ip_end": "10.6.255.255/32"}]}
       },
       {
         "name": "7",
         "recert_interval": 90,
-        "dn":"x",
-        "group_dn":"x",
+        "owner_responsibles":[{"dn":"x","responsible_type":1},{"dn":"x","responsible_type":2}],
         "app_id_external": "app-7",
         "owner_networks": {"data": [{"ip": "10.7.0.0/32", /"ip_end": "10.7.255.21655/32"}]}
       }
@@ -4490,8 +4489,9 @@ mutation addSingleOwner {
       {
         name: "sechs"
         recert_interval: 222
-        dn: "a"
-        group_dn: "b"
+        owner_responsibles: {
+          data: [{ dn: "a", responsible_type: 1 }, { dn: "b", responsible_type: 2 }]
+        }
         app_id_external: "app-sechs"
         owner_networks: {
           data: [{ ip: "10.69.0.0/32", ip_end: "10.69.255.255/32" }, { ip: "10.9.0.0/32", ip_end: "10.9.255.255/32" }]
@@ -4504,7 +4504,7 @@ mutation addSingleOwner {
     ]
     on_conflict: {
       constraint: owner_name_unique
-      update_columns: [recert_interval, dn, group_dn]
+      update_columns: [recert_interval]
     }
   ) {
     returning {
@@ -4537,24 +4537,21 @@ Variables
       {
         "name": "5",
         "recert_interval": 365,
-        "dn":"x",
-        "group_dn":"x",
+        "owner_responsibles":[{"dn":"x","responsible_type":1},{"dn":"x","responsible_type":2}],
         "app_id_external": "app-5",
         "owner_networks": {"data": [{"ip": "10.5.0.0/32", "ip_end": "10.5.255.255/32"},{"ip": "10.9.0.0/32", "ip": "10.9.255.255/32"}]}
       },
       {
         "name": "6",
         "recert_interval": 30,
-        "dn":"x",
-        "group_dn":"x",
+        "owner_responsibles":[{"dn":"x","responsible_type":1},{"dn":"x","responsible_type":2}],
         "app_id_external": "app-6",
         "owner_networks": {"data": [{"ip": "10.6.0.0/32", "ip_end": "10.6.255.255/32"}]}
       },
       {
         "name": "7",
         "recert_interval": 90,
-        "dn":"x",
-        "group_dn":"x",
+        "owner_responsibles":[{"dn":"x","responsible_type":1},{"dn":"x","responsible_type":2}],
         "app_id_external": "app-7",
         "owner_networks": {"data": [{"ip": "10.7.0.0/32", /"ip_end": "10.7.255.21655/32"}]}
       }
@@ -4572,8 +4569,9 @@ mutation addSingleOwner {
       {
         name: "sechs"
         recert_interval: 222
-        dn: "a"
-        group_dn: "b"
+        owner_responsibles: {
+          data: [{ dn: "a", responsible_type: 1 }, { dn: "b", responsible_type: 2 }]
+        }
         app_id_external: "app-sechs"
         owner_networks: {
           data: [{ ip: "10.69.0.0/32", ip_end: "10.69.255.255/32" }, { ip: "10.9.0.0/32", ip_end: "10.9.255.255/32" }]
@@ -4586,7 +4584,7 @@ mutation addSingleOwner {
     ]
     on_conflict: {
       constraint: owner_name_unique
-      update_columns: [recert_interval, dn, group_dn]
+      update_columns: [recert_interval]
     }
   ) {
     returning {
@@ -6219,7 +6217,7 @@ INSERT INTO txt VALUES ('H7013', 'German', 'Im Kapitel "Import" wird der Datenim
 ');
 INSERT INTO txt VALUES ('H7013', 'English', 'In the "Import" chapter the data import is monitored:
     <a href="/help/monitoring/import_status">Import Status</a> allows a view on several parameters of the different importing systems,
-    whereas <a href="/help/monitoring/import_logs">"Import Logs"</a>, "Application Data Import Logs", and "Subnet Data Import Logs" record noteworthy outcomes of the respective data imports.
+    whereas <a href="/help/monitoring/import_logs">"Import Logs"</a>, "Owner Data Import Logs", and "Subnet Data Import Logs" record noteworthy outcomes of the respective data imports.
 ');
 INSERT INTO txt VALUES ('H7014', 'German', 'Das Kapitel "Pers&ouml;nlich" ist f&uuml;r alle Nutzer zug&auml;nglich.
     Unter <a href="/help/monitoring/ui_messages">UI-Nachrichten</a> werden alle Fehler- und Erfolgsmeldungen des jeweiligen Nutzers festgehalten.

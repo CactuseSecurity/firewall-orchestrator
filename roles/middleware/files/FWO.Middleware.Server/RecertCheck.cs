@@ -12,6 +12,8 @@ using FWO.Logging;
 using FWO.Mail;
 using FWO.Report;
 using FWO.Services;
+using System;
+using System.Linq;
 using System.Text;
 
 namespace FWO.Middleware.Server
@@ -23,7 +25,7 @@ namespace FWO.Middleware.Server
     {
         private readonly ApiConnection apiConnectionMiddlewareServer;
         private readonly GlobalConfig globalConfig;
-        private readonly List<GroupGetReturnParameters> groups = [];
+        private List<Ldap> connectedLdaps = [];
         private List<UiUser> uiUsers = [];
         private RecertCheckParams? globCheckParams;
         private List<FwoOwner> owners = [];
@@ -82,11 +84,7 @@ namespace FWO.Middleware.Server
         private async Task InitEnv()
         {
             globCheckParams = System.Text.Json.JsonSerializer.Deserialize<RecertCheckParams>(globalConfig.RecCheckParams);
-            List<Ldap> connectedLdaps = apiConnectionMiddlewareServer.SendQueryAsync<List<Ldap>>(AuthQueries.getLdapConnections).Result;
-            foreach (Ldap currentLdap in connectedLdaps.Where(l => l.IsInternal() && l.HasGroupHandling()))
-            {
-                groups.AddRange(await currentLdap.GetAllInternalGroups());
-            }
+            connectedLdaps = apiConnectionMiddlewareServer.SendQueryAsync<List<Ldap>>(AuthQueries.getLdapConnections).Result;
             uiUsers = await apiConnectionMiddlewareServer.SendQueryAsync<List<UiUser>>(AuthQueries.getUsers);
             owners = await apiConnectionMiddlewareServer.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getOwners);
         }
@@ -179,7 +177,7 @@ namespace FWO.Middleware.Server
             }
             if (upcomingRecerts.Count > 0 || overdueRecerts.Count > 0)
             {
-                await MailKitMailer.SendAsync(PrepareRulesEmail(owner, upcomingRecerts, overdueRecerts), emailConnection, false, new());
+                await MailKitMailer.SendAsync(await PrepareRulesEmail(owner, upcomingRecerts, overdueRecerts), emailConnection, false, new());
                 return 1;
             }
             return 0;
@@ -228,10 +226,10 @@ namespace FWO.Middleware.Server
             return rules;
         }
 
-        private MailData PrepareRulesEmail(FwoOwner owner, List<Rule> upcomingRecerts, List<Rule> overdueRecerts)
+        private async Task<MailData> PrepareRulesEmail(FwoOwner owner, List<Rule> upcomingRecerts, List<Rule> overdueRecerts)
         {
             string subject = globalConfig.RecCheckEmailSubject + " " + owner.Name;
-            return new MailData(CollectEmailAddresses(owner), subject) { Body = PrepareRulesBody(upcomingRecerts, overdueRecerts, owner.Name) };
+            return new MailData(await CollectEmailAddresses(owner), subject) { Body = PrepareRulesBody(upcomingRecerts, overdueRecerts, owner.Name) };
         }
 
         private string PrepareRulesBody(List<Rule> upcomingRecerts, List<Rule> overdueRecerts, string ownerName)
@@ -264,23 +262,14 @@ namespace FWO.Middleware.Server
                     + rule.DeviceName + ": " + rule.Name + ":" + rule.Uid + "\r\n\r\n";  // link ?
         }
 
-        private List<string> CollectEmailAddresses(FwoOwner owner)
+        private async Task<List<string>> CollectEmailAddresses(FwoOwner owner)
         {
             if (globalConfig.UseDummyEmailAddress)
             {
                 return [globalConfig.DummyEmailAddress];
             }
             List<string> tos = [];
-            List<string> userDns = [];
-            if (owner.Dn != "")
-            {
-                userDns.Add(owner.Dn);
-            }
-            GroupGetReturnParameters? ownerGroup = groups.FirstOrDefault(x => x.GroupDn == owner.GroupDn);
-            if (ownerGroup != null)
-            {
-                userDns.AddRange(ownerGroup.Members);
-            }
+            List<string> userDns = await ResolveOwnerUserDns(owner);
             foreach (var userDn in userDns)
             {
                 UiUser? uiuser = uiUsers.FirstOrDefault(x => x.Dn == userDn);
@@ -290,6 +279,58 @@ namespace FWO.Middleware.Server
                 }
             }
             return tos;
+        }
+
+        private async Task<List<string>> ResolveOwnerUserDns(FwoOwner owner)
+        {
+            List<string> ownerDns = owner.GetAllOwnerResponsibles();
+            if (ownerDns.Count == 0)
+            {
+                return [];
+            }
+
+            HashSet<string> resolvedUsers = new(StringComparer.OrdinalIgnoreCase);
+            object resolvedLock = new();
+            List<Task> ldapRequests = [];
+
+            foreach (Ldap currentLdap in connectedLdaps.Where(ldap => ldap.HasGroupHandling()))
+            {
+                ldapRequests.Add(Task.Run(async () =>
+                {
+                    List<string> currentResolved = await currentLdap.ResolveUsersFromDns(ownerDns);
+                    if (currentResolved.Count == 0)
+                    {
+                        return;
+                    }
+
+                    lock (resolvedLock)
+                    {
+                        foreach (string dn in currentResolved)
+                        {
+                            resolvedUsers.Add(dn);
+                        }
+                    }
+                }));
+            }
+
+            await Task.WhenAll(ldapRequests);
+
+            foreach (string dn in ownerDns)
+            {
+                if (string.IsNullOrWhiteSpace(dn))
+                {
+                    continue;
+                }
+                bool isGroupDn = connectedLdaps.Any(ldap => ldap.HasGroupHandling()
+                    && !string.IsNullOrWhiteSpace(ldap.GroupSearchPath)
+                    && dn.EndsWith(ldap.GroupSearchPath, StringComparison.OrdinalIgnoreCase));
+                if (!isGroupDn)
+                {
+                    resolvedUsers.Add(dn);
+                }
+            }
+
+            return resolvedUsers.ToList();
         }
 
         private string PrepareOwnerBody(FwoOwner owner)

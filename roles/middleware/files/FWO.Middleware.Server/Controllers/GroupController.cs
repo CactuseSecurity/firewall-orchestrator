@@ -5,7 +5,9 @@ using FWO.Logging;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Novell.Directory.Ldap;
+using System;
 using System.Collections.Concurrent;
+using System.Linq;
 
 namespace FWO.Middleware.Server.Controllers
 {
@@ -285,6 +287,75 @@ namespace FWO.Middleware.Server.Controllers
 
             await Task.WhenAll(ldapRequests);
             return new List<string>(memberships);
+        }
+
+        /// <summary>
+        /// Resolve user dns from a list of user or group dns across connected ldaps
+        /// </summary>
+        /// <param name="parameters">GroupResolveParameters</param>
+        /// <returns>List of user dns</returns>
+        [HttpPost("Resolve")]
+        [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}, {Roles.Recertifier}, {Roles.Modeller}")]
+        public async Task<List<string>> ResolveMembers([FromBody] GroupResolveParameters parameters)
+        {
+            if (parameters == null || parameters.Dns.Count == 0)
+            {
+                return [];
+            }
+
+            HashSet<string> resolved = new(StringComparer.OrdinalIgnoreCase);
+            object resolvedLock = new();
+            List<Task> ldapRequests = [];
+
+            foreach (Ldap currentLdap in ldaps)
+            {
+                if (!currentLdap.HasGroupHandling())
+                {
+                    continue;
+                }
+
+                ldapRequests.Add(Task.Run(async () =>
+                {
+                    List<string> currentResolved = await currentLdap.ResolveUsersFromDns(parameters.Dns);
+                    if (currentResolved.Count == 0)
+                    {
+                        return;
+                    }
+
+                    lock (resolvedLock)
+                    {
+                        foreach (string dn in currentResolved)
+                        {
+                            if (!string.IsNullOrWhiteSpace(dn))
+                            {
+                                resolved.Add(dn);
+                            }
+                        }
+                    }
+                }));
+            }
+
+            await Task.WhenAll(ldapRequests);
+
+            List<string> groupSearchPaths = ldaps
+                .Where(ldap => ldap.HasGroupHandling() && !string.IsNullOrWhiteSpace(ldap.GroupSearchPath))
+                .Select(ldap => ldap.GroupSearchPath!)
+                .ToList();
+
+            foreach (string dn in parameters.Dns)
+            {
+                if (string.IsNullOrWhiteSpace(dn))
+                {
+                    continue;
+                }
+                bool isGroupDn = groupSearchPaths.Any(path => dn.EndsWith(path, StringComparison.OrdinalIgnoreCase));
+                if (!isGroupDn)
+                {
+                    resolved.Add(dn);
+                }
+            }
+
+            return resolved.ToList();
         }
 
         private async Task<List<string>> GetMembershipsFromLdap(Ldap currentLdap, GroupMembershipGetParameters parameters)

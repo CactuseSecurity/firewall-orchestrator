@@ -2140,3 +2140,112 @@ ALTER TABLE zone DROP CONSTRAINT IF EXISTS "Alter_Key10";
 
 -- add new mgm_id, zone_name constraint where just one with removed is null allowed
 CREATE UNIQUE INDEX if not exists "zone_mgm_id_zone_name_removed_is_null_unique" ON zone (mgm_id, zone_name) WHERE removed IS NULL;
+
+-- normalize owner responsibles into separate table and enhance it
+CREATE TABLE IF NOT EXISTS owner_responsible
+(
+    id SERIAL PRIMARY KEY,
+    owner_id int NOT NULL,
+    dn Varchar NOT NULL,
+    responsible_type int NOT NULL,
+    roles text[] NOT NULL DEFAULT '{}'::text[]
+);
+
+DO $$
+BEGIN
+    IF EXISTS (
+        SELECT 1
+        FROM information_schema.columns
+        WHERE table_name='owner' AND column_name='owner_responsible1'
+    ) THEN
+        INSERT INTO owner_responsible (owner_id, dn, responsible_type)
+        SELECT id, dn, 1
+        FROM owner, unnest(owner_responsible1) AS dn
+        WHERE dn IS NOT NULL AND dn <> ''
+          AND NOT EXISTS (
+              SELECT 1 FROM owner_responsible r
+              WHERE r.owner_id = owner.id AND r.dn = dn AND r.responsible_type = 1
+          );
+        ALTER TABLE owner DROP COLUMN owner_responsible1;
+    END IF;
+
+    IF EXISTS (
+        SELECT 1
+        FROM information_schema.columns
+        WHERE table_name='owner' AND column_name='owner_responsible2'
+    ) THEN
+        INSERT INTO owner_responsible (owner_id, dn, responsible_type)
+        SELECT id, dn, 2
+        FROM owner, unnest(owner_responsible2) AS dn
+        WHERE dn IS NOT NULL AND dn <> ''
+          AND NOT EXISTS (
+              SELECT 1 FROM owner_responsible r
+              WHERE r.owner_id = owner.id AND r.dn = dn AND r.responsible_type = 2
+          );
+        ALTER TABLE owner DROP COLUMN owner_responsible2;
+    END IF;
+
+    IF EXISTS (
+        SELECT 1
+        FROM information_schema.columns
+        WHERE table_name='owner' AND column_name='owner_responsible3'
+    ) THEN
+        INSERT INTO owner_responsible (owner_id, dn, responsible_type)
+        SELECT id, dn, 3
+        FROM owner, unnest(owner_responsible3) AS dn
+        WHERE dn IS NOT NULL AND dn <> ''
+          AND NOT EXISTS (
+              SELECT 1 FROM owner_responsible r
+              WHERE r.owner_id = owner.id AND r.dn = dn AND r.responsible_type = 3
+          );
+        ALTER TABLE owner DROP COLUMN owner_responsible3;
+    END IF;
+
+    IF EXISTS (
+        SELECT 1
+        FROM information_schema.columns
+        WHERE table_name='owner' AND column_name='dn'
+    ) THEN
+        INSERT INTO owner_responsible (owner_id, dn, responsible_type)
+        SELECT id, dn, 1
+        FROM owner
+        WHERE dn IS NOT NULL AND dn <> ''
+          AND NOT EXISTS (
+              SELECT 1 FROM owner_responsible r
+              WHERE r.owner_id = owner.id AND r.dn = owner.dn AND r.responsible_type = 1
+          );
+        ALTER TABLE owner DROP COLUMN dn;
+    END IF;
+
+    IF EXISTS (
+        SELECT 1
+        FROM information_schema.columns
+        WHERE table_name='owner' AND column_name='group_dn'
+    ) THEN
+        INSERT INTO owner_responsible (owner_id, dn, responsible_type)
+        SELECT id, group_dn, 2
+        FROM owner
+        WHERE group_dn IS NOT NULL AND group_dn <> ''
+          AND NOT EXISTS (
+              SELECT 1 FROM owner_responsible r
+              WHERE r.owner_id = owner.id AND r.dn = owner.group_dn AND r.responsible_type = 2
+          );
+        ALTER TABLE owner DROP COLUMN group_dn;
+    END IF;
+END$$;
+
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1
+        FROM pg_constraint
+        WHERE conname = 'owner_responsible_owner_foreign_key'
+    ) THEN
+        ALTER TABLE owner_responsible
+            ADD CONSTRAINT owner_responsible_owner_foreign_key
+            FOREIGN KEY (owner_id) REFERENCES owner(id) ON UPDATE RESTRICT ON DELETE CASCADE;
+    END IF;
+END$$;
+
+CREATE UNIQUE INDEX IF NOT EXISTS owner_responsible_owner_dn_type_unique ON owner_responsible(owner_id, dn, responsible_type);
+CREATE INDEX IF NOT EXISTS owner_responsible_dn_idx ON owner_responsible(dn);

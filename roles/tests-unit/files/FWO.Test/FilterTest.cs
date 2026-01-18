@@ -1,4 +1,4 @@
-﻿using FWO.Report.Filter;
+using FWO.Report.Filter;
 using FWO.Report.Filter.Exceptions;
 using NUnit.Framework;
 using NUnit.Framework.Legacy;
@@ -223,6 +223,21 @@ namespace FWO.Test
 
             ClassicAssert.AreEqual(true, query.QueryVariables.ContainsKey("ownerWhere"));
             ClassicAssert.AreEqual("{}", JsonSerializer.Serialize(query.QueryVariables["ownerWhere"]));
+        }
+
+        [Test]
+        [Parallelizable]
+        public void OwnerFullTextFilterUsesResponsibles()
+        {
+            ReportTemplate t = new()
+            {
+                Filter = "text=ops"
+            };
+            t.ReportParams.ReportType = (int)ReportType.OwnerRecertification;
+            DynGraphqlQuery query = Compiler.Compile(t);
+
+            StringAssert.Contains("owner_responsibles", query.OwnerWhereStatement);
+            ClassicAssert.IsFalse(query.OwnerWhereStatement.Contains("group_dn"));
         }
 
         [Test]

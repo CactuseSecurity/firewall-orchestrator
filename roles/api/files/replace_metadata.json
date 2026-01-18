@@ -11324,8 +11324,7 @@
                     "columns": [
                       "owner_id",
                       "dn",
-                      "responsible_type",
-                      "roles"
+                      "responsible_type"
                     ]
                   },
                   "comment": ""
@@ -11337,8 +11336,7 @@
                     "columns": [
                       "owner_id",
                       "dn",
-                      "responsible_type",
-                      "roles"
+                      "responsible_type"
                     ]
                   },
                   "comment": ""
@@ -11352,8 +11350,7 @@
                       "id",
                       "owner_id",
                       "dn",
-                      "responsible_type",
-                      "roles"
+                      "responsible_type"
                     ],
                     "filter": {}
                   },
@@ -11366,8 +11363,7 @@
                       "id",
                       "owner_id",
                       "dn",
-                      "responsible_type",
-                      "roles"
+                      "responsible_type"
                     ],
                     "filter": {}
                   },
@@ -11380,8 +11376,7 @@
                       "id",
                       "owner_id",
                       "dn",
-                      "responsible_type",
-                      "roles"
+                      "responsible_type"
                     ],
                     "filter": {}
                   },
@@ -11394,8 +11389,7 @@
                       "id",
                       "owner_id",
                       "dn",
-                      "responsible_type",
-                      "roles"
+                      "responsible_type"
                     ],
                     "filter": {}
                   },
@@ -11408,8 +11402,7 @@
                       "id",
                       "owner_id",
                       "dn",
-                      "responsible_type",
-                      "roles"
+                      "responsible_type"
                     ],
                     "filter": {}
                   },
@@ -11422,8 +11415,7 @@
                       "id",
                       "owner_id",
                       "dn",
-                      "responsible_type",
-                      "roles"
+                      "responsible_type"
                     ],
                     "filter": {}
                   },
@@ -11436,8 +11428,7 @@
                       "id",
                       "owner_id",
                       "dn",
-                      "responsible_type",
-                      "roles"
+                      "responsible_type"
                     ],
                     "filter": {}
                   },
@@ -11450,8 +11441,7 @@
                       "id",
                       "owner_id",
                       "dn",
-                      "responsible_type",
-                      "roles"
+                      "responsible_type"
                     ],
                     "filter": {}
                   },
@@ -11464,8 +11454,7 @@
                       "id",
                       "owner_id",
                       "dn",
-                      "responsible_type",
-                      "roles"
+                      "responsible_type"
                     ],
                     "filter": {}
                   },
@@ -11478,8 +11467,7 @@
                       "id",
                       "owner_id",
                       "dn",
-                      "responsible_type",
-                      "roles"
+                      "responsible_type"
                     ],
                     "filter": {}
                   },
@@ -11492,8 +11480,7 @@
                       "id",
                       "owner_id",
                       "dn",
-                      "responsible_type",
-                      "roles"
+                      "responsible_type"
                     ],
                     "filter": {}
                   },
@@ -11506,8 +11493,7 @@
                       "id",
                       "owner_id",
                       "dn",
-                      "responsible_type",
-                      "roles"
+                      "responsible_type"
                     ],
                     "filter": {}
                   },

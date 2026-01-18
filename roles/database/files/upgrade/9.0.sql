@@ -688,7 +688,6 @@ BEGIN
             COUNT(DISTINCT r.mgm_id) AS mgm_count
         FROM rule_metadata rm
         JOIN rule r ON rm.rule_uid = r.rule_uid
-        WHERE rm.mgm_id IS NULL
         GROUP BY rm.rule_uid
         HAVING COUNT(DISTINCT r.mgm_id) >= 1
     LOOP

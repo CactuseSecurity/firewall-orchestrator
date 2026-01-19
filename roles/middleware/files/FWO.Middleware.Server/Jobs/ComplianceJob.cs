@@ -11,6 +11,7 @@ namespace FWO.Middleware.Server.Jobs
     /// <summary>
     /// Quartz Job for Compliance
     /// </summary>
+    [DisallowConcurrentExecution]
     public class ComplianceJob : IJob
     {
         private const string LogMessageTitle = "Compliance";

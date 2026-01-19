@@ -20,6 +20,7 @@ namespace FWO.Api.Client.Queries
         public static readonly string getRuleNetworkObjectDetails;
         public static readonly string getRuleIdsOfImport;
         public static readonly string getRuleUidsOfDevice;
+        public static readonly string getRuleUidsOfRulebase;
         public static readonly string getRulesByManagement;
         public static readonly string getModelledRulesByManagementName;
         public static readonly string getModelledRulesByManagementComment;
@@ -87,9 +88,10 @@ namespace FWO.Api.Client.Queries
                 getRuleDetails = ruleDetailsFragments + GetQueryText("rule/getRuleDetails.graphql");
                 getRuleByUid = GetQueryText("rule/getRuleByUid.graphql");
                 getRuleNetworkObjectDetails = ObjectQueries.networkObjectDetailsFragment;
-                getRuleIdsOfImport = GetQueryText("report/getRuleIdsOfImport.graphql");
-                getRuleUidsOfDevice = GetQueryText("report/getRuleUidsOfDevice.graphql");
-                getRulesByManagement = ruleDetailsFragments + GetQueryText("report/getRulesByManagement.graphql");
+                getRuleIdsOfImport = GetQueryText("rule/getRuleIdsOfImport.graphql");
+                getRuleUidsOfDevice = GetQueryText("rule/getRuleUidsOfDevice.graphql");
+                getRuleUidsOfRulebase = GetQueryText("rule/getRuleUidsOfRulebase.graphql");
+                getRulesByManagement = ruleDetailsFragments + GetQueryText("rule/getRulesByManagement.graphql");
                 getModelledRulesByManagementName = ruleDetailsForReportFragments + GetQueryText("report/getModelledRulesByManagementName.graphql");
                 getModelledRulesByManagementComment = ruleDetailsForReportFragments + GetQueryText("report/getModelledRulesByManagementComment.graphql");
                 getNatRuleOverview = natRuleOverviewFragments + GetQueryText("rule/getNatRuleOverview.graphql");

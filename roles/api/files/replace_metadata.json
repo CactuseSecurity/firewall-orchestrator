@@ -6888,6 +6888,18 @@
                   }
                 },
                 {
+                  "name": "ruleMetadataByRuleLastModified",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "rule_last_modified",
+                      "table": {
+                        "name": "rule_metadata",
+                        "schema": "public"
+                      }
+                    }
+                  }
+                },
+                {
                   "name": "ruleNwobjResolvedsByRemoved",
                   "using": {
                     "foreign_key_constraint_on": {
@@ -6966,6 +6978,18 @@
                       "column": "rf_create",
                       "table": {
                         "name": "rule_from",
+                        "schema": "public"
+                      }
+                    }
+                  }
+                },
+                {
+                  "name": "rule_metadata",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "rule_created",
+                      "table": {
+                        "name": "rule_metadata",
                         "schema": "public"
                       }
                     }
@@ -15147,18 +15171,6 @@
                   "name": "uiuser",
                   "using": {
                     "foreign_key_constraint_on": "last_change_admin"
-                  }
-                },
-                {
-                  "name": "zone",
-                  "using": {
-                    "foreign_key_constraint_on": "rule_from_zone"
-                  }
-                },
-                {
-                  "name": "zoneByRuleToZone",
-                  "using": {
-                    "foreign_key_constraint_on": "rule_to_zone"
                   }
                 }
               ],
@@ -24351,6 +24363,12 @@
             },
             {
               "table": {
+                "name": "v_rule_with_rule_owner_1",
+                "schema": "public"
+              }
+            },
+            {
+              "table": {
                 "name": "v_rule_with_src_owner",
                 "schema": "public"
               }
@@ -24693,30 +24711,6 @@
                       "column": "zone_id",
                       "table": {
                         "name": "rule_to_zone",
-                        "schema": "public"
-                      }
-                    }
-                  }
-                },
-                {
-                  "name": "rules",
-                  "using": {
-                    "foreign_key_constraint_on": {
-                      "column": "rule_from_zone",
-                      "table": {
-                        "name": "rule",
-                        "schema": "public"
-                      }
-                    }
-                  }
-                },
-                {
-                  "name": "rulesByRuleToZone",
-                  "using": {
-                    "foreign_key_constraint_on": {
-                      "column": "rule_to_zone",
-                      "table": {
-                        "name": "rule",
                         "schema": "public"
                       }
                     }

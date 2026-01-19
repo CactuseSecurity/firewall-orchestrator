@@ -2494,6 +2494,8 @@ INSERT INTO txt VALUES ('edit_owner',           'German',   'Eigent&uuml;mer bea
 INSERT INTO txt VALUES ('edit_owner',           'English',  'Edit owner');
 INSERT INTO txt VALUES ('delete_owner',         'German',   'Eigent&uuml;mer l&ouml;schen');
 INSERT INTO txt VALUES ('delete_owner',         'English',  'Delete owner');
+INSERT INTO txt VALUES ('add_rule',             'German', 	'Regel hinzuf&uuml;gen');
+INSERT INTO txt VALUES ('add_rule',             'English', 	'Add rule');
 INSERT INTO txt VALUES ('recert_interval',      'German',   'Rezertintervall (in Tagen)');
 INSERT INTO txt VALUES ('recert_interval',      'English',  'Recert Interval (in days)');
 INSERT INTO txt VALUES ('ext_app_id',           'German',   'Externe Anwendungs-Id');
@@ -3553,12 +3555,13 @@ INSERT INTO txt VALUES ('E5422', 'German',  'Eintrag enth&auml;lt nicht alle erf
 INSERT INTO txt VALUES ('E5422', 'English', 'Entry does not contain all required columns');
 INSERT INTO txt VALUES ('E5423', 'German',  'IP-Adresse/IP-Bereich ist fehlerhaft');
 INSERT INTO txt VALUES ('E5423', 'English', 'IP Address/IP Range malformed');
-
 INSERT INTO txt VALUES ('E5430', 'German',  'Hochgeladener Dateityp ist nicht erlaubt');
 INSERT INTO txt VALUES ('E5430', 'English', 'Uploaded Filetype is not allowed');
-
 INSERT INTO txt VALUES ('E5431', 'German',  'Hochgeladene Datei &uuml;berschreitet Maximum');
 INSERT INTO txt VALUES ('E5431', 'English', 'Uploaded File exceeds the allowed maximum');
+
+INSERT INTO txt VALUES ('E5501', 'German',  'Die Regel kann nicht doppelt zugewiesen werden.');
+INSERT INTO txt VALUES ('E5501', 'English', 'Rule cannot be assigned twice.');
 
 INSERT INTO txt VALUES ('E6001', 'German', 	'Der Re-Login war nicht erfolgreich. Haben Sie ein falsches Passwort eingegeben? Schauen Sie f&uuml;r Details bitte in die Logs.');
 INSERT INTO txt VALUES ('E6001', 'English', 'Re-login failed. Did you enter a wrong password? See log for details.');
@@ -4767,13 +4770,11 @@ INSERT INTO txt VALUES ('H5110', 'English', 'Uid: Unique id of the mangement.');
 INSERT INTO txt VALUES ('H5111', 'German',  'Name*: Name des Managements. <br>
     F&uuml;r die meisten Firewalls ist dies ein willk&uuml;rlicher Name. Ausnahmen sind direkt verbundene Gateways von Fortigate, Netscreen und Juniper.
     Hier muss der Name des Firewallgateways eingetragen werden.<br>
-    Da es zu Problemen mit dem perl-Importer kommen kann, sollten Leerzeichen im Namen von Legacy-Systemen nicht verwendet werden.
     Ein Management dessen Name mit "_demo" endet, wird beim Bet&auml;tigen der "Beispieldaten l&ouml;schen"-Schaltfl&auml;che gel&ouml;scht.
 ');
 INSERT INTO txt VALUES ('H5111', 'English', 'Name*: Name of the mangement. <br>
     For most firewalls this is an arbitrary name. Exceptions are Fortigate, Netscreen and Juniper directly connected gateways.
     Here the name give needs to be the name of the firewall gateway.<br>
-    Do not use spaces in the management name of legacy systems as perl importer cannot cope with spaces here.
     A management whose name ends with "_demo" will be deleted when using the "Remove Sample Data" button.
 ');
 INSERT INTO txt VALUES ('H5112', 'German',  'Kommentar: Optionale Beschreibung des Managements.');

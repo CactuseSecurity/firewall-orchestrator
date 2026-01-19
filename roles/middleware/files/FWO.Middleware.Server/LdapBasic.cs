@@ -638,25 +638,42 @@ namespace FWO.Middleware.Server
                 // Authenticate as write user
                 await TryBind(connection, WriteUser, WriteUserPwd);
 
-                // Add a new value to the description attribute
+                LdapEntry? entryData;
+                try
+                {
+                    entryData = await connection.ReadAsync(entry);
+                    if (entryData == null)
+                    {
+                        Log.WriteDebug("Modify Entry", $"Entry not found: {entry}");
+                        return false;
+                    }
+                }
+                catch (LdapException ex) when (ex.ResultCode == LdapException.NoSuchObject)
+                {
+                    Log.WriteDebug("Modify Entry", $"Entry not found: {entry}");
+                    return false;
+                }
+
+                if (entryData.GetAttributeSet().ContainsKey(UniqueMemberLowerCase)
+                    && entryData.Get(UniqueMemberLowerCase)
+                             .StringValueArray
+                             .Any(m => m.Equals(userDn, StringComparison.OrdinalIgnoreCase)))
+                {
+                    Log.WriteDebug("Modify Entry", $"User {userDn} already member of {entry}");
+                    return false;
+                }
+
                 LdapAttribute attribute = new(UniqueMemberLowerCase, userDn);
                 LdapModification[] mods = [new(ldapModification, attribute)];
 
-                try
-                {
-                    //Modify the entry in the directory
-                    await connection.ModifyAsync(entry, mods);
-                    userModified = true;
-                    Log.WriteDebug("Modify Entry", $"Entry {entry} modified in {Address}:{Port}");
-                }
-                catch (Exception exception)
-                {
-                    Log.WriteInfo("Modify Entry", $"maybe entry doesn't exist in this LDAP {Address}:{Port}: {exception}");
-                }
+                await connection.ModifyAsync(entry, mods);
+                userModified = true;
+
+                Log.WriteDebug("Modify Entry", $"User {userDn} modified in {entry}");
             }
-            catch (Exception exception)
+            catch (Exception ex)
             {
-                Log.WriteError($"Non-LDAP exception {Address}:{Port}", "Unexpected error while trying to modify user", exception);
+                Log.WriteError($"Non-LDAP exception {Address}:{Port}", $"Unexpected error while modifying user {userDn}", ex);
             }
             return userModified;
         }

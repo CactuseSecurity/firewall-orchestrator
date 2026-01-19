@@ -1109,8 +1109,7 @@ create table owner
 (
     id SERIAL PRIMARY KEY,
     name Varchar NOT NULL,
-    dn Varchar NOT NULL,
-    group_dn Varchar NOT NULL,
+    -- responsibles stored in owner_responsible table
     is_default boolean default false,
     tenant_id int,
     recert_interval int,
@@ -1126,7 +1125,15 @@ create table owner
 	last_recertifier int,
 	last_recertifier_dn Varchar,
 	next_recert_date Timestamp,
-	recert_active boolean default false
+    recert_active boolean default false
+);
+
+create table owner_responsible
+(
+    id SERIAL PRIMARY KEY,
+    owner_id int NOT NULL,
+    dn Varchar NOT NULL,
+    responsible_type int NOT NULL
 );
 
 CREATE TABLE owner_lifecycle_state (

@@ -1,4 +1,4 @@
-﻿using FWO.Basics;
+using FWO.Basics;
 
 
 namespace FWO.Report.Filter.Ast
@@ -98,12 +98,17 @@ namespace FWO.Report.Filter.Ast
 
         private static void ExtractToOwnerFilter(DynGraphqlQuery query, string queryVarName, string queryOperator)
         {
-            List<string> ownerFieldNames = ["name", "dn", "group_dn", "last_recertifier_dn"];
+            List<string> ownerFieldNames = ["name", "last_recertifier_dn"];
+            List<string> ownerResponsibleFieldNames = ["dn"];
             List<string> recertFieldNames = ["user_dn", "comment"];
             List<string> ownerSearchParts = [];
             foreach (string field in ownerFieldNames)
             {
                 ownerSearchParts.Add($"{{{field}: {{{queryOperator}: ${queryVarName} }} }} ");
+            }
+            foreach (string field in ownerResponsibleFieldNames)
+            {
+                ownerSearchParts.Add($"{{owner_responsibles: {{{field}: {{{queryOperator}: ${queryVarName} }} }} }} ");
             }
             foreach (string field in recertFieldNames)
             {
@@ -157,7 +162,7 @@ namespace FWO.Report.Filter.Ast
         private void ExtractServiceFilter(DynGraphqlQuery query)
         {
             string queryVarName = AddVariable<string>(query, "svc", Operator.Kind, semanticValue!);
-            query.RuleWhereStatement += $"rule_services: {{ service: {{ svcgrp_flats: {{ serviceBySvcgrpFlatMemberId: {{ svc_name: {{ {ExtractOperator()}: ${queryVarName} }} }} }} }} }} ";
+            query.RuleWhereStatement += $"rule_services: {{ service: {{ svc_name: {{ {ExtractOperator()}: ${queryVarName} }} }} }} ";
             query.ConnectionWhereStatement += $"_or: [ {{ service_connections: {{ service: {{ name: {{ {ExtractOperator()}: ${queryVarName} }} }} }} }}, " +
                 $"{{ service_group_connections: {{service_group: {{ _or: [ {{ name: {{ {ExtractOperator()}: ${queryVarName} }} }}, " +
                 $"{{ service_service_groups: {{ service: {{ name: {{ {ExtractOperator()}: ${queryVarName} }} }} }} }} ] }} }} }} ]";

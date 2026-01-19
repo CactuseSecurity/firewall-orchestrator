@@ -1304,45 +1304,6 @@ Alter Table "rule" DROP Constraint IF EXISTS "rule_unique_mgm_id_rule_uid_rule_c
 Alter Table "rule" ADD Constraint "rule_unique_mgm_id_rule_uid_rule_create_xlate_rule" UNIQUE ("mgm_id", "rule_uid","rule_create","xlate_rule");
 
 
--- rewrite get_rulebase_for_owner to work with rulebase instead of device
-CREATE OR REPLACE FUNCTION public.get_rulebase_for_owner(rulebase_row rulebase, ownerid integer)
-RETURNS SETOF rule
-LANGUAGE plpgsql
-STABLE
-AS $function$
-BEGIN
-    RETURN QUERY
-    SELECT *
-    FROM (
-        WITH src_rules AS (
-            SELECT r.*, rf_o.obj_ip, rf_o.obj_ip_end, rf.negated
-            FROM rule r
-            LEFT JOIN rule_from rf ON r.rule_id = rf.rule_id
-            LEFT JOIN objgrp_flat rf_of ON rf.obj_id = rf_of.objgrp_flat_id
-            LEFT JOIN object rf_o ON rf_of.objgrp_flat_member_id = rf_o.obj_id
-            WHERE r.rulebase_id = rulebase_row.id AND owner_id = ownerid AND rule_head_text IS NULL
-        ),
-        dst_rules AS (
-            SELECT r.*, rt_o.obj_ip, rt_o.obj_ip_end, rt.negated
-            FROM rule r
-            LEFT JOIN rule_to rt ON r.rule_id = rt.rule_id
-            LEFT JOIN objgrp_flat rt_of ON rt.obj_id = rt_of.objgrp_flat_id
-            LEFT JOIN object rt_o ON rt_of.objgrp_flat_member_id = rt_o.obj_id
-            WHERE r.rulebase_id = rulebase_row.id AND owner_id = ownerid AND rule_head_text IS NULL
-        )
-        SELECT s.*
-        FROM src_rules s
-        LEFT JOIN owner_network ON ip_ranges_overlap(s.obj_ip, s.obj_ip_end, ip, ip_end, s.negated != s.rule_src_neg)
-        UNION
-        SELECT d.*
-        FROM dst_rules d
-        LEFT JOIN owner_network ON ip_ranges_overlap(d.obj_ip, d.obj_ip_end, ip, ip_end, d.negated != d.rule_dst_neg)
-    ) AS combined
-    ORDER BY rule_name ASC;
-END;
-$function$;
-
-
 -- drop only after migration
 
 ALTER TABLE rule DROP CONSTRAINT IF EXISTS rule_dev_id_fkey;
@@ -2140,3 +2101,109 @@ ALTER TABLE zone DROP CONSTRAINT IF EXISTS "Alter_Key10";
 
 -- add new mgm_id, zone_name constraint where just one with removed is null allowed
 CREATE UNIQUE INDEX if not exists "zone_mgm_id_zone_name_removed_is_null_unique" ON zone (mgm_id, zone_name) WHERE removed IS NULL;
+
+-- normalize owner responsibles into separate table and enhance it
+CREATE TABLE IF NOT EXISTS owner_responsible
+(
+    id SERIAL PRIMARY KEY,
+    owner_id int NOT NULL,
+    dn Varchar NOT NULL,
+    responsible_type int NOT NULL
+);
+
+-- revert older first throw
+ALTER TABLE owner_responsible DROP COLUMN IF EXISTS roles;
+
+DO $$
+BEGIN
+    IF (
+        SELECT COUNT(*)
+        FROM information_schema.columns
+        WHERE table_name='owner' AND column_name='owner_responsible1'
+    ) > 0 THEN
+        INSERT INTO owner_responsible (owner_id, dn, responsible_type)
+        SELECT owner.id, dn, 1
+        FROM owner, unnest(owner_responsible1) AS dn
+        LEFT JOIN owner_responsible r
+            ON r.owner_id = owner.id AND r.dn = dn AND r.responsible_type = 1
+        WHERE NULLIF(dn, '') IS NOT NULL
+          AND r.owner_id IS NULL;
+        ALTER TABLE owner DROP COLUMN owner_responsible1;
+    END IF;
+
+    IF (
+        SELECT COUNT(*)
+        FROM information_schema.columns
+        WHERE table_name='owner' AND column_name='owner_responsible2'
+    ) > 0 THEN
+        INSERT INTO owner_responsible (owner_id, dn, responsible_type)
+        SELECT owner.id, dn, 2
+        FROM owner, unnest(owner_responsible2) AS dn
+        LEFT JOIN owner_responsible r
+            ON r.owner_id = owner.id AND r.dn = dn AND r.responsible_type = 2
+        WHERE NULLIF(dn, '') IS NOT NULL
+          AND r.owner_id IS NULL;
+        ALTER TABLE owner DROP COLUMN owner_responsible2;
+    END IF;
+
+    IF (
+        SELECT COUNT(*)
+        FROM information_schema.columns
+        WHERE table_name='owner' AND column_name='owner_responsible3'
+    ) > 0 THEN
+        INSERT INTO owner_responsible (owner_id, dn, responsible_type)
+        SELECT owner.id, dn, 3
+        FROM owner, unnest(owner_responsible3) AS dn
+        LEFT JOIN owner_responsible r
+            ON r.owner_id = owner.id AND r.dn = dn AND r.responsible_type = 3
+        WHERE NULLIF(dn, '') IS NOT NULL
+          AND r.owner_id IS NULL;
+        ALTER TABLE owner DROP COLUMN owner_responsible3;
+    END IF;
+
+    IF (
+        SELECT COUNT(*)
+        FROM information_schema.columns
+        WHERE table_name='owner' AND column_name='dn'
+    ) > 0 THEN
+        INSERT INTO owner_responsible (owner_id, dn, responsible_type)
+        SELECT owner.id, owner.dn, 1
+        FROM owner
+        LEFT JOIN owner_responsible r
+            ON r.owner_id = owner.id AND r.dn = owner.dn AND r.responsible_type = 1
+        WHERE NULLIF(owner.dn, '') IS NOT NULL
+          AND r.owner_id IS NULL;
+        ALTER TABLE owner DROP COLUMN dn;
+    END IF;
+
+    IF (
+        SELECT COUNT(*)
+        FROM information_schema.columns
+        WHERE table_name='owner' AND column_name='group_dn'
+    ) > 0 THEN
+        INSERT INTO owner_responsible (owner_id, dn, responsible_type)
+        SELECT owner.id, owner.group_dn, 2
+        FROM owner
+        LEFT JOIN owner_responsible r
+            ON r.owner_id = owner.id AND r.dn = owner.group_dn AND r.responsible_type = 2
+        WHERE NULLIF(owner.group_dn, '') IS NOT NULL
+          AND r.owner_id IS NULL;
+        ALTER TABLE owner DROP COLUMN group_dn;
+    END IF;
+END$$;
+
+DO $$
+BEGIN
+    IF (
+        SELECT COUNT(*)
+        FROM pg_constraint
+        WHERE conname = 'owner_responsible_owner_foreign_key'
+    ) = 0 THEN
+        ALTER TABLE owner_responsible
+            ADD CONSTRAINT owner_responsible_owner_foreign_key
+            FOREIGN KEY (owner_id) REFERENCES owner(id) ON UPDATE RESTRICT ON DELETE CASCADE;
+    END IF;
+END$$;
+
+CREATE UNIQUE INDEX IF NOT EXISTS owner_responsible_owner_dn_type_unique ON owner_responsible(owner_id, dn, responsible_type);
+CREATE INDEX IF NOT EXISTS owner_responsible_dn_idx ON owner_responsible(dn);

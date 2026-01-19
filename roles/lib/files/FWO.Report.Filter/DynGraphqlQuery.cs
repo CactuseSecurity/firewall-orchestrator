@@ -74,7 +74,7 @@ namespace FWO.Report.Filter
                                         offset: $offset ";
 
 
-        public static DynGraphqlQuery GenerateQuery(ReportTemplate filter, AstNode? ast)
+        public static DynGraphqlQuery GenerateQuery(ReportTemplate filter, AstNode? ast)      
         {
             DynGraphqlQuery query = new(filter.Filter);
             ConstructWhereStatements(query, filter, ast);
@@ -109,9 +109,18 @@ namespace FWO.Report.Filter
             query.ConnectionWhereStatement += "{";
             query.OwnerWhereStatement += "{";
 
+            if ((ReportType)filter.ReportParams.ReportType == ReportType.Changes || (ReportType)filter.ReportParams.ReportType == ReportType.ResolvedChanges || (ReportType)filter.ReportParams.ReportType == ReportType.ResolvedChangesTech )
+            {
+                query.RuleWhereStatement += "rule: {";
+            }
             // now we convert the ast into a graphql query:
             ast?.Extract(ref query, (ReportType)filter.ReportParams.ReportType);
             // TODO: remove rule dev filtering for rework 
+
+            if ((ReportType)filter.ReportParams.ReportType == ReportType.Changes || (ReportType)filter.ReportParams.ReportType == ReportType.ResolvedChanges || (ReportType)filter.ReportParams.ReportType == ReportType.ResolvedChangesTech)
+            {
+                query.RuleWhereStatement += "}";
+            }
 
             query.RuleWhereStatement += "}] ";
             query.ConnectionWhereStatement += "}] ";
@@ -212,27 +221,89 @@ namespace FWO.Report.Filter
                 }}";
         }
 
+
+        private static string changelogObjectsBlock = @"
+            changelog_objects: changelog_objects(
+                where: {
+                  change_type_id: { _eq: 3 }
+                  security_relevant: { _eq: true }
+                  control_id: { _eq: $import_id_new }
+                },
+                order_by: { control_id: asc }
+              )
+            @include(if: $include_objects_in_changes_report) {
+                import: import_control { time: stop_time }
+                change_action
+                old: objectByOldObjId {
+                    ...networkObjectDetailsChangesOld 
+                }
+                new: object {
+                    ...networkObjectDetailsChangesNew 
+                }
+            }
+            changelog_services: changelog_services(
+                where: {
+                  change_type_id: { _eq: 3 }
+                  security_relevant: { _eq: true }
+                  control_id: { _eq: $import_id_new }
+                },
+                order_by: { control_id: asc }
+              )
+            @include(if: $include_objects_in_changes_report) {
+                import: import_control { time: stop_time }
+                change_action
+                old: serviceByOldSvcId {
+                    ...networkServiceDetailsChangesOld 
+                }
+                new: service {
+                    ...networkServiceDetailsChangesNew 
+                }
+            }
+            changelog_users: changelog_users(
+                where: {
+                  change_type_id: { _eq: 3 }
+                  security_relevant: { _eq: true }
+                  control_id: { _eq: $import_id_new }
+                },
+                order_by: { control_id: asc }
+              )
+            @include(if: $include_objects_in_changes_report) {
+                import: import_control { time: stop_time }
+                change_action
+                old: usrByOldUserId {
+                    ...userDetailsChangesOld 
+                }
+                new: usr {
+                    ...userDetailsChangesNew 
+                }
+            }
+            ";
+
         private static string ConstructChangesQuery(DynGraphqlQuery query, string paramString, ReportTemplate filter)
         {
-            // was:                             devices ({devWhereString})                           
-
             return $@"
                     {(filter.Detailed ? RuleQueries.ruleDetailsForChangeReportFragments : RuleQueries.ruleOverviewForChangeReportFragments)}
-                    query changeReport({paramString}) 
-                    {{
-                        management(where: {{
+                query changeReport({paramString}){{
+                    management(where: {{
                             hide_in_gui: {{_eq: false }}
-                            stm_dev_typ: {{dev_typ_is_multi_mgmt: {{_eq: false}} is_pure_routing_device: {{_eq: false}} }}
+                            stm_dev_typ: {{dev_typ_is_multi_mgmt: {{_eq: false}}, is_pure_routing_device: {{_eq: false}} }}
                             mgm_id: {{_in: $mgmId }}
-                        }} order_by: {{mgm_name: asc}}) 
-                        {{
-                            id: mgm_id
-                            name: mgm_name
-                            devices
-                            {{
-                                id: dev_id
-                                name: dev_name
-                                {query.OpenChangeLogRulesTable}
+                        }} order_by: {{mgm_name: asc}})
+                    {{
+                        id: mgm_id
+                        name: mgm_name
+        		        import_controls {{
+                              control_id
+                              start_time
+                              stop_time
+                              successful_import
+                              import_errors
+		                                }}
+                        devices {{
+                            id: dev_id  
+                            name: dev_name  
+                                }}
+                        changelog_rules: {query.OpenChangeLogRulesTable}
                                     {limitOffsetString} 
                                     where: {{ 
                                         _or:[
@@ -240,27 +311,26 @@ namespace FWO.Report.Filter
                                                 {{_and: [{{change_action:{{_eq:""D""}}}}, {{ruleByOldRuleId: {{access_rule:{{_eq:true}}}}}}]}},
                                                 {{_and: [{{change_action:{{_eq:""C""}}}}, {{rule: {{access_rule:{{_eq:true}}}}}}, {{ruleByOldRuleId: {{access_rule:{{_eq:true}}}}}}]}}
                                             ]                                        
-                                        {query.RuleWhereStatement} 
+                                            {query.RuleWhereStatement} 
                                     }}
                                     order_by: {{ control_id: asc }}
                                 ) 
-                                {{
-                                    import: import_control {{ time: stop_time }}
-                                    change_action
-                                    old: ruleByOldRuleId {{
-                                    mgm_id: mgm_id
+                            {{
+                            import: import_control {{ time: stop_time }}
+                            change_action
+                            old: ruleByOldRuleId {{
                                     ...{(filter.Detailed ? "ruleDetailsChangesOld" : "ruleOverviewChangesOld")}
-                                    }}
-                                    new: rule {{
-                                    mgm_id: mgm_id
+
+                            }}
+                            new: rule {{
                                     ...{(filter.Detailed ? "ruleDetailsChangesNew" : "ruleOverviewChangesNew")}
-                                    }}
-                                }}
                             }}
                         }}
+                        {changelogObjectsBlock}                            
+                    }}
                 }}";
         }
-
+        
         private static string ConstructNatRulesQuery(DynGraphqlQuery query, string paramString, ReportTemplate filter)
         {
             return $@"
@@ -496,6 +566,7 @@ namespace FWO.Report.Filter
                     case ReportType.ResolvedChangesTech:
                         query.QueryParameters.Add("$import_id_old: bigint ");
                         query.QueryParameters.Add("$import_id_new: bigint ");
+                        query.QueryParameters.Add("$include_objects_in_changes_report: Boolean! ");
 
                         query.RuleWhereStatement += $@"
                         control_id: {{ _eq: $import_id_new }}

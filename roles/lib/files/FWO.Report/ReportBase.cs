@@ -238,7 +238,7 @@ namespace FWO.Report
                     $"{userConfig.GetText("until")}: {ToUtcString(stopTime)}";
                 HtmlTemplate = HtmlTemplate.Replace("##Date-of-Config##: ##GeneratedFor##", timeRange);
             }
-            else if ((ReportType.IsRuleReport() && ReportType != ReportType.RecertEventReport) || ReportType == ReportType.Statistics)
+            else if (ReportType.HasTimeFilter())
             {
                 HtmlTemplate = HtmlTemplate.Replace("##Date-of-Config##", userConfig.GetText("date_of_config"));
                 HtmlTemplate = HtmlTemplate.Replace("##GeneratedFor##", ToUtcString(Query.ReportTimeString));
@@ -265,7 +265,14 @@ namespace FWO.Report
         {
             if (deviceFilter != null && ReportType != ReportType.RecertEventReport)
             {
-                HtmlTemplate = HtmlTemplate.Replace("##OtherFilters##", userConfig.GetText("devices") + ": " + deviceFilter);
+                if(ReportType.IsRulebaseReport())
+                {
+                    HtmlTemplate = HtmlTemplate.Replace("##OtherFilters##", userConfig.GetText("managements") + ": " + deviceFilter);
+                }
+                else
+                {
+                    HtmlTemplate = HtmlTemplate.Replace("##OtherFilters##", userConfig.GetText("devices") + ": " + deviceFilter);
+                }
             }
             else
             {

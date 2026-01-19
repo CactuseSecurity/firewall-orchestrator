@@ -6,10 +6,10 @@ CREATE OR REPLACE FUNCTION public.get_visible_devices_per_tenant(integer)
     STABLE 
 AS $BODY$
 DECLARE
-	i_tenant_id ALIAS FOR $1;
-	i_dev_id integer;
+    i_tenant_id ALIAS FOR $1;
+    i_dev_id integer;
     v_dev_name VARCHAR;
-	b_can_view_all_devices boolean;
+    b_can_view_all_devices boolean;
 BEGIN
     SELECT INTO b_can_view_all_devices tenant_can_view_all_devices FROM tenant WHERE tenant_id=i_tenant_id;
     IF b_can_view_all_devices THEN
@@ -43,10 +43,10 @@ CREATE OR REPLACE FUNCTION public.get_visible_managements_per_tenant(integer)
     STABLE 
 AS $BODY$
 DECLARE
-	i_tenant_id ALIAS FOR $1;
-	i_mgm_id integer;
+    i_tenant_id ALIAS FOR $1;
+    i_mgm_id integer;
     v_mgm_name VARCHAR;
-	b_can_view_all_devices boolean;
+    b_can_view_all_devices boolean;
 BEGIN
     SELECT INTO b_can_view_all_devices tenant_can_view_all_devices FROM tenant WHERE tenant_id=i_tenant_id;
     IF b_can_view_all_devices THEN
@@ -64,7 +64,7 @@ BEGIN
             RETURN NEXT ROW (i_mgm_id, v_mgm_name);
         END LOOP;
     END IF;
-	RETURN;
+    RETURN;
 END;
 $BODY$;
 
@@ -266,7 +266,7 @@ RETURNS boolean AS $$
         ELSE
             IF rulebase_fully_visible_to_tenant(i_dev_id, t_id) THEN
                 show := true;
-			ELSE
+            ELSE
                 IF EXISTS ( -- ip of rule_to object is in tenant_network of tenant
                     SELECT rt.obj_id FROM rule_to rt
                         LEFT JOIN rule r ON (rt.rule_id=r.rule_id)
@@ -430,29 +430,29 @@ RETURNS boolean AS $$
         ELSE
             IF rulebase_fully_visible_to_tenant(rule.dev_id, t_id) THEN
                 show := true;
-			ELSE
-				IF EXISTS (
-					SELECT rf.obj_id FROM rule_from rf
-						LEFT JOIN rule r ON (rf.rule_id=r.rule_id)
-						LEFT JOIN objgrp_flat ON (rf.obj_id=objgrp_flat.objgrp_flat_id)
-						LEFT JOIN object ON (objgrp_flat.objgrp_flat_member_id=object.obj_id)
-						LEFT JOIN tenant_network ON
-							(ip_ranges_overlap(obj_ip, obj_ip_end, tenant_net_ip, tenant_net_ip_end, rf.negated != r.rule_src_neg))
-					WHERE rf.rule_id = rule.rule_id AND tenant_id = t_id
-				) THEN
-					show := true;
-				ELSIF EXISTS (
-					SELECT rt.obj_id FROM rule_to rt
-						LEFT JOIN rule r ON (rt.rule_id=r.rule_id)
-						LEFT JOIN objgrp_flat ON (rt.obj_id=objgrp_flat.objgrp_flat_id)
-						LEFT JOIN object ON (objgrp_flat.objgrp_flat_member_id=object.obj_id)
-						LEFT JOIN tenant_network ON
-							(ip_ranges_overlap(obj_ip, obj_ip_end, tenant_net_ip, tenant_net_ip_end, rt.negated != r.rule_dst_neg))
-					WHERE rt.rule_id = rule.rule_id AND tenant_id = t_id
-				) THEN
-					show := true;
-				END IF;
-			END IF;
+            ELSE
+                IF EXISTS (
+                    SELECT rf.obj_id FROM rule_from rf
+                        LEFT JOIN rule r ON (rf.rule_id=r.rule_id)
+                        LEFT JOIN objgrp_flat ON (rf.obj_id=objgrp_flat.objgrp_flat_id)
+                        LEFT JOIN object ON (objgrp_flat.objgrp_flat_member_id=object.obj_id)
+                        LEFT JOIN tenant_network ON
+                            (ip_ranges_overlap(obj_ip, obj_ip_end, tenant_net_ip, tenant_net_ip_end, rf.negated != r.rule_src_neg))
+                    WHERE rf.rule_id = rule.rule_id AND tenant_id = t_id
+                ) THEN
+                    show := true;
+                ELSIF EXISTS (
+                    SELECT rt.obj_id FROM rule_to rt
+                        LEFT JOIN rule r ON (rt.rule_id=r.rule_id)
+                        LEFT JOIN objgrp_flat ON (rt.obj_id=objgrp_flat.objgrp_flat_id)
+                        LEFT JOIN object ON (objgrp_flat.objgrp_flat_member_id=object.obj_id)
+                        LEFT JOIN tenant_network ON
+                            (ip_ranges_overlap(obj_ip, obj_ip_end, tenant_net_ip, tenant_net_ip_end, rt.negated != r.rule_dst_neg))
+                    WHERE rt.rule_id = rule.rule_id AND tenant_id = t_id
+                ) THEN
+                    show := true;
+                END IF;
+            END IF;
         END IF;
 
         RETURN show;
@@ -514,7 +514,7 @@ RETURNS SETOF rule_from AS $$
             RAISE EXCEPTION 'Tenant0 cannot be simulated.';
         ELSE
             IF rulebase_fully_visible_to_tenant(rule.dev_id, tenant)
-			THEN
+            THEN
                 RETURN QUERY SELECT rf.* FROM rule_from rf WHERE rule_id = rule.rule_id;
             ELSIF EXISTS (
                     SELECT rt.obj_id FROM rule_to rt
@@ -557,7 +557,7 @@ AS $function$
             RAISE EXCEPTION 'Tenant0 cannot be simulated.';
         ELSE
             IF rulebase_fully_visible_to_tenant(rule.dev_id, tenant)
-			THEN
+            THEN
                 RETURN QUERY SELECT rt.* FROM rule_to rt WHERE rule_id = rule.rule_id;
             ELSIF EXISTS (
                     SELECT rf.obj_id FROM rule_from rf
@@ -614,7 +614,11 @@ STABLE
 AS $function$
 BEGIN
     RETURN QUERY
-    SELECT *
+    SELECT rule_id,last_change_admin,rule_name,mgm_id,parent_rule_id,parent_rule_type,active,removed,rule_num,rule_num_numeric,
+        rule_ruleid,rule_uid,rule_disabled,rule_src_neg,rule_dst_neg,rule_svc_neg,action_id,track_id,
+        rule_src,rule_dst,rule_svc,rule_src_refs,rule_dst_refs,rule_svc_refs,rule_from_zone,rule_to_zone,
+        rule_action,rule_track,rule_installon,rule_time,rule_comment,rule_head_text,rule_implied,rule_create,rule_last_seen,
+        dev_id,rule_custom_fields,access_rule,nat_rule,xlate_rule,is_global,rulebase_id
     FROM (
         WITH src_rules AS (
             SELECT r.*, rf_o.obj_ip, rf_o.obj_ip_end, rf.negated
@@ -623,7 +627,6 @@ BEGIN
             LEFT JOIN objgrp_flat rf_of ON rf.obj_id = rf_of.objgrp_flat_id
             LEFT JOIN object rf_o ON rf_of.objgrp_flat_member_id = rf_o.obj_id
             WHERE r.rulebase_id = rulebase_row.id
-              AND owner_id = ownerid
               AND rule_head_text IS NULL
         ),
         dst_rules AS (
@@ -633,16 +636,17 @@ BEGIN
             LEFT JOIN objgrp_flat rt_of ON rt.obj_id = rt_of.objgrp_flat_id
             LEFT JOIN object rt_o ON rt_of.objgrp_flat_member_id = rt_o.obj_id
             WHERE r.rulebase_id = rulebase_row.id
-              AND owner_id = ownerid
               AND rule_head_text IS NULL
         )
         SELECT s.*
         FROM src_rules s
-        LEFT JOIN owner_network ON ip_ranges_overlap(s.obj_ip, s.obj_ip_end, ip, ip_end, s.negated != s.rule_src_neg)
+        LEFT JOIN owner_network onw ON ip_ranges_overlap(s.obj_ip, s.obj_ip_end, ip, ip_end, s.negated != s.rule_src_neg)
+        WHERE onw.owner_id = ownerid
         UNION
         SELECT d.*
         FROM dst_rules d
-        LEFT JOIN owner_network ON ip_ranges_overlap(d.obj_ip, d.obj_ip_end, ip, ip_end, d.negated != d.rule_dst_neg)
+        LEFT JOIN owner_network onw ON ip_ranges_overlap(d.obj_ip, d.obj_ip_end, ip, ip_end, d.negated != d.rule_dst_neg)
+        WHERE onw.owner_id = ownerid
     ) AS combined
     ORDER BY rule_name ASC;
 END;

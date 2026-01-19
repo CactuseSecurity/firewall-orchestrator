@@ -9,7 +9,7 @@
     @if (management.ContainsRules())
     {
         <Collapse Title="@management.Name" Style="@("primary")" StartToggled="false">
-            @if(Recertification || SelectedReportType == ReportType.Recertification)
+            @if(Recertification || SelectedReportType.IsRulebaseReport())
             {
                 @foreach(var rulebase in management.Rulebases)
                 {

@@ -1,4 +1,3 @@
-using System.Collections.Immutable;
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 using FWO.Basics;
@@ -11,7 +10,9 @@ using FWO.Middleware.Server.Controllers;
 using FWO.Middleware.Server.Services;
 using FWO.Report;
 using FWO.Services;
+using Microsoft.AspNetCore.Diagnostics;
 using Quartz;
+using System.Collections.Immutable;
 
 namespace FWO.Middleware.Server.Jobs
 {
@@ -26,7 +27,6 @@ namespace FWO.Middleware.Server.Jobs
 
         private readonly ApiConnection apiConnectionScheduler;
         private readonly JwtWriter jwtWriter;
-        private readonly ReportSchedulerState state;
         private readonly string apiServerUri;
 
         /// <summary>
@@ -34,12 +34,10 @@ namespace FWO.Middleware.Server.Jobs
         /// </summary>
         /// <param name="apiConnectionScheduler">API connection used by the scheduler.</param>
         /// <param name="jwtWriter">JWT writer to authorize users.</param>
-        /// <param name="state">Shared scheduler state.</param>
-        public ReportJob(ApiConnection apiConnectionScheduler, JwtWriter jwtWriter, ReportSchedulerState state)
+        public ReportJob(ApiConnection apiConnectionScheduler, JwtWriter jwtWriter)
         {
             this.apiConnectionScheduler = apiConnectionScheduler;
             this.jwtWriter = jwtWriter;
-            this.state = state;
             apiServerUri = ConfigFile.ApiServerUri ?? throw new ArgumentException("Missing api server url on startup.");
         }
 
@@ -48,9 +46,9 @@ namespace FWO.Middleware.Server.Jobs
         {
             Log.WriteDebug(LogMessageTitle, "Process started");
             DateTime dateTimeNowRounded = RoundDown(DateTime.Now, CheckScheduleInterval);
-            ImmutableArray<ReportSchedule> scheduledReports = state.ScheduledReports;
+            List<ReportSchedule> scheduledReports = await apiConnectionScheduler.SendQueryAsync<List<ReportSchedule>>(ReportQueries.getReportSchedules);
 
-            if (scheduledReports.IsDefaultOrEmpty)
+            if (scheduledReports is null || scheduledReports.Count == 0)
             {
                 return;
             }
@@ -148,7 +146,7 @@ namespace FWO.Middleware.Server.Jobs
 
         private async Task<(ApiConnection?, UserConfig?)> InitUserEnvironment(ReportSchedule reportSchedule)
         {
-            List<Ldap> connectedLdaps = state.ConnectedLdaps.ToList();
+            List<Ldap> connectedLdaps = await apiConnectionScheduler.SendQueryAsync<List<Ldap>>(AuthQueries.getLdapConnections);
             AuthManager authManager = new(jwtWriter, connectedLdaps, apiConnectionScheduler);
             string jwt = await authManager.AuthorizeUserAsync(reportSchedule.ScheduleOwningUser, validatePassword: false, lifetime: TimeSpan.FromDays(365));
             ApiConnection apiConnectionUserContext = new GraphQlApiConnection(apiServerUri, jwt);

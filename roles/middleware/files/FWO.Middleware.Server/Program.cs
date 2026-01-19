@@ -60,7 +60,6 @@ builder.Services.AddQuartzHostedService(options =>
 // Register singletons for DI
 builder.Services.AddSingleton(apiConnection);
 builder.Services.AddSingleton(globalConfig);
-builder.Services.AddSingleton<ReportSchedulerState>();
 builder.Services.AddSingleton<JobExecutionTracker>();
 
 // Register config listeners as singletons (activated at startup)

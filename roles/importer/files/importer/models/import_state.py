@@ -63,7 +63,7 @@ class ImportState:
             raise FwoImporterError(f"Link type {link_uid} not found")
         return link_type_id
 
-    def lookup_gateway_id(self, gw_uid: str) -> int | None:
+    def lookup_gateway_id(self, gw_uid: str) -> int:
         mgm_id = self.mgm_details.current_mgm_id
         gws_for_mgm = self.gateway_map.get(mgm_id, {})
         gw_id = gws_for_mgm.get(gw_uid, None)

@@ -210,7 +210,7 @@ class TestFwconfigImportRuleUpdateRulebaseDiffOldMigration:
         sorted_rulebase_rules_uids = [r.rule_uid for r in sorted_rulebase_rules]
 
         # The sequence of the rule_num_numeric values
-        assert rule_uids != sorted_rulebase_rules_uids
+        assert rule_uids == sorted_rulebase_rules_uids
 
         # Insert, delete and move recognized in ImportDetails
         assert import_state_controller.state.stats.statistics.rule_add_count == 1

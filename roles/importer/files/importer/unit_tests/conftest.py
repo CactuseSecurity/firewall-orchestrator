@@ -119,6 +119,7 @@ def uid2id_mapper(
     global_state: GlobalState,
 ) -> Uid2IdMapper:
     uid2id_mapper = service_provider.get_uid2id_mapper(import_id=global_state.import_state.state.import_id)
+    uid2id_mapper.update_rulebase_mapping = unittest.mock.MagicMock()
     return uid2id_mapper
 
 
@@ -156,7 +157,6 @@ def fwconfig_import_rule_mock() -> FwConfigImportRule:
 def fwconfig_import_rule() -> FwConfigImportRule:
     fw_config_import_rule = FwConfigImportRule()
     fw_config_import_rule.create_new_rule_version = unittest.mock.MagicMock()
-    fw_config_import_rule.update_rulebase_diffs = unittest.mock.MagicMock()
     return fw_config_import_rule
 
 

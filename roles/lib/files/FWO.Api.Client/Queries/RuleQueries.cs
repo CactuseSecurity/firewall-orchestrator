@@ -8,6 +8,7 @@ namespace FWO.Api.Client.Queries
         public static readonly string ruleOverviewForChangeReportFragments;
         public static readonly string ruleDetailsFragments;
         public static readonly string ruleDetailsForReportFragments;
+        public static readonly string ruleDetailsForAppRuleReportFragments;
         public static readonly string ruleDetailsForChangeReportFragments;
         public static readonly string natRuleOverviewFragments;
         public static readonly string natRuleDetailsFragments;
@@ -66,6 +67,11 @@ namespace FWO.Api.Client.Queries
                     ObjectQueries.networkServiceDetailsFragment +
                     ObjectQueries.userDetailsFragment +
                     GetQueryText("rule/fragments/ruleDetailsForReport.graphql");
+                ruleDetailsForAppRuleReportFragments =
+                    GetQueryText("networkObject/fragments/networkObjectDetailsForAppRules.graphql") +
+                    GetQueryText("networkService/fragments/networkServiceOverview.graphql") +
+                    GetQueryText("user/fragments/userOverview.graphql") +
+                    GetQueryText("rule/fragments/ruleDetailsForAppRuleReport.graphql");
                 natRuleOverviewFragments = ruleOverviewFragments + GetQueryText("rule/fragments/natRuleOverview.graphql");
                 natRuleDetailsFragments = ruleDetailsFragments + GetQueryText("rule/fragments/natRuleDetails.graphql");
                 natRuleDetailsForReportFragments =

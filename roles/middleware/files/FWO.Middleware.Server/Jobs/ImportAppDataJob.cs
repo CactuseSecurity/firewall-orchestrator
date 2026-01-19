@@ -12,6 +12,7 @@ namespace FWO.Middleware.Server.Jobs
     /// <summary>
     /// Quartz Job for importing app data and adjusting app server names
     /// </summary>
+    [DisallowConcurrentExecution]
     public class ImportAppDataJob : IJob
     {
         private const string LogMessageTitleImport = "Import App Data";

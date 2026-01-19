@@ -12,6 +12,7 @@ namespace FWO.Middleware.Server.Jobs
     /// <summary>
     /// Quartz Job for importing area IP data
     /// </summary>
+    [DisallowConcurrentExecution]
     public class ImportIpDataJob : IJob
     {
         private const string LogMessageTitle = "Import Area IP Data";

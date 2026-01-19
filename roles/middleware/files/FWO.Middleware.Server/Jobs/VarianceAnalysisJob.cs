@@ -14,6 +14,7 @@ namespace FWO.Middleware.Server.Jobs
     /// <summary>
     /// Quartz Job for variance analysis
     /// </summary>
+    [DisallowConcurrentExecution]
     public class VarianceAnalysisJob : IJob
     {
         private const string LogMessageTitle = "Scheduled Variance Analysis";

@@ -116,22 +116,6 @@
     - name: Install {{ dotnet_deb_name }}
       package: "name={{ dotnet_deb_name }} state=present"
      
-     
-########## importer ##################
-
-    - name: install importer packages
-      package:
-         name: "{{ item }}"
-      loop:
-        - libdbi-perl 
-        - libdbd-pg-perl 
-        - libdate-calc-perl 
-        - psmisc 
-        - libnet-cidr-perl 
-        - libsys-syslog-perl 
-        - libexpect-perl
-        - libcgi-pm-perl
-
 ########## postgres dev/test ##################
 
     - name: find out installed postgres version

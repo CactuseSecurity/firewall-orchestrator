@@ -1,4 +1,4 @@
-﻿using FWO.Basics;
+using FWO.Basics;
 
 
 namespace FWO.Report.Filter.Ast
@@ -157,7 +157,7 @@ namespace FWO.Report.Filter.Ast
         private void ExtractServiceFilter(DynGraphqlQuery query)
         {
             string queryVarName = AddVariable<string>(query, "svc", Operator.Kind, semanticValue!);
-            query.RuleWhereStatement += $"rule_services: {{ service: {{ svcgrp_flats: {{ serviceBySvcgrpFlatMemberId: {{ svc_name: {{ {ExtractOperator()}: ${queryVarName} }} }} }} }} }} ";
+            query.RuleWhereStatement += $"rule_services: {{ service: {{ svc_name: {{ {ExtractOperator()}: ${queryVarName} }} }} }} ";
             query.ConnectionWhereStatement += $"_or: [ {{ service_connections: {{ service: {{ name: {{ {ExtractOperator()}: ${queryVarName} }} }} }} }}, " +
                 $"{{ service_group_connections: {{service_group: {{ _or: [ {{ name: {{ {ExtractOperator()}: ${queryVarName} }} }}, " +
                 $"{{ service_service_groups: {{ service: {{ name: {{ {ExtractOperator()}: ${queryVarName} }} }} }} }} ] }} }} }} ]";

@@ -113,6 +113,15 @@ def fwconfig_builder() -> FwConfigBuilder:
     return FwConfigBuilder()
 
 
+@pytest.fixture
+def uid2id_mapper(
+    service_provider: ServiceProvider,
+    global_state: GlobalState,
+) -> Uid2IdMapper:
+    uid2id_mapper = service_provider.get_uid2id_mapper(import_id=global_state.import_state.state.import_id)
+    return uid2id_mapper
+
+
 @pytest.fixture(autouse=True)
 def service_provider(
     global_state: GlobalState,

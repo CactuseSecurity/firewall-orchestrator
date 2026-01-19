@@ -3,7 +3,7 @@ import copy
 from model_controllers.fwconfig_import_gateway import FwConfigImportGateway
 from model_controllers.import_state_controller import ImportStateController
 from services.global_state import GlobalState
-from services.service_provider import ServiceProvider
+from services.uid2id_mapper import Uid2IdMapper
 from unit_tests.utils.config_builder import FwConfigBuilder
 
 
@@ -12,6 +12,7 @@ def test_add_cp_section_header_at_the_bottom(
     import_state_controller: ImportStateController,
     fwconfig_import_gateway: FwConfigImportGateway,
     fwconfig_builder: FwConfigBuilder,
+    uid2id_mapper: Uid2IdMapper,
 ):
     # Arrange
     config, mgm_id = fwconfig_builder.build_config(
@@ -30,10 +31,7 @@ def test_add_cp_section_header_at_the_bottom(
     gateway = global_state.normalized_config.gateways[0]
     fwconfig_builder.add_cp_section_header(gateway, last_rulebase.uid, new_rulebase.uid, last_rulebase_last_rule_uid)
 
-    service_provider = ServiceProvider()
-    uid2id_mapper = service_provider.get_uid2id_mapper(import_id=import_state_controller.state.import_id)
     fwconfig_builder.update_rule_map_and_rulebase_map(config, import_state_controller.state.import_id)
-
     to_rulebase_id = uid2id_mapper.get_rulebase_id(new_rulebase.uid)
     from_rulebase_id = uid2id_mapper.get_rulebase_id(last_rulebase.uid)
     fwconfig_builder.update_rb_links(gateway.RulebaseLinks, 1, fwconfig_import_gateway, uid2id_mapper)
@@ -60,6 +58,7 @@ def test_add_cp_section_header_in_existing_rulebase(
     import_state_controller: ImportStateController,
     fwconfig_import_gateway: FwConfigImportGateway,
     fwconfig_builder: FwConfigBuilder,
+    uid2id_mapper: Uid2IdMapper,
 ):
     # Arrange
     config, mgm_id = fwconfig_builder.build_config(
@@ -84,10 +83,13 @@ def test_add_cp_section_header_in_existing_rulebase(
     gateway = global_state.normalized_config.gateways[0]
     fwconfig_builder.add_cp_section_header(gateway, last_rulebase.uid, new_rulebase.uid, last_rulebase_last_rule_uid)
 
-    fwconfig_builder.update_rule_map_and_rulebase_map(global_state.normalized_config, import_state_controller.state)
-    to_rulebase_id = import_state_controller.state.lookup_rulebase_id(new_rulebase.uid)
-    from_rulebase_id = import_state_controller.state.lookup_rulebase_id(last_rulebase.uid)
-    fwconfig_builder.update_rb_links(gateway.RulebaseLinks, 1, fwconfig_import_gateway)
+    fwconfig_builder.update_rule_map_and_rulebase_map(
+        global_state.normalized_config, import_state_controller.state.import_id
+    )
+    to_rulebase_id = uid2id_mapper.get_rulebase_id(new_rulebase.uid)
+    from_rulebase_id = uid2id_mapper.get_rulebase_id(last_rulebase.uid)
+    fwconfig_builder.update_rb_links(gateway.RulebaseLinks, 1, fwconfig_import_gateway, uid2id_mapper)
+
     import_state_controller.state.gateway_map[3] = {global_state.normalized_config.gateways[0].Uid or "": 1}
 
     # Act
@@ -110,6 +112,7 @@ def test_delete_cp_section_header(
     import_state_controller: ImportStateController,
     fwconfig_import_gateway: FwConfigImportGateway,
     fwconfig_builder: FwConfigBuilder,
+    uid2id_mapper: Uid2IdMapper,
 ):
     # Arrange
     config, mgm_id = fwconfig_builder.build_config(
@@ -137,9 +140,11 @@ def test_delete_cp_section_header(
     gateway = global_state.previous_config.gateways[0]
     fwconfig_builder.add_cp_section_header(gateway, last_rulebase.uid, new_rulebase.uid, last_rulebase_last_rule_uid)
 
-    fwconfig_builder.update_rule_map_and_rulebase_map(global_state.previous_config, import_state_controller.state)
+    fwconfig_builder.update_rule_map_and_rulebase_map(
+        global_state.previous_config, import_state_controller.state.import_id
+    )
     fwconfig_builder.update_rule_num_numerics(global_state.previous_config)
-    fwconfig_builder.update_rb_links(gateway.RulebaseLinks, 1, fwconfig_import_gateway)
+    fwconfig_builder.update_rb_links(gateway.RulebaseLinks, 1, fwconfig_import_gateway, uid2id_mapper)
     import_state_controller.state.gateway_map[3] = {global_state.normalized_config.gateways[0].Uid or "": 1}
 
     # Act
@@ -154,6 +159,7 @@ def test_add_inline_layer(
     import_state_controller: ImportStateController,
     fwconfig_import_gateway: FwConfigImportGateway,
     fwconfig_builder: FwConfigBuilder,
+    uid2id_mapper: Uid2IdMapper,
 ):
     # Arrange
     config, mgm_id = fwconfig_builder.build_config(
@@ -175,11 +181,11 @@ def test_add_inline_layer(
 
     gateway = config.gateways[0]
     fwconfig_builder.add_inline_layer(gateway, from_rulebase.uid, from_rule.rule_uid or "", added_rulebase.uid)
-    fwconfig_builder.update_rule_map_and_rulebase_map(config, import_state_controller.state)
-    from_rule_id, from_rulebase_id, to_rulebase_id = import_state_controller.state.lookup_ids_for_rulebase_link(
+    fwconfig_builder.update_rule_map_and_rulebase_map(config, import_state_controller.state.import_id)
+    from_rule_id, from_rulebase_id, to_rulebase_id = uid2id_mapper.get_ids_for_rulebase_link(
         from_rule.rule_uid, from_rulebase.uid, added_rulebase.uid
     )
-    fwconfig_builder.update_rb_links(gateway.RulebaseLinks, 1, fwconfig_import_gateway)
+    fwconfig_builder.update_rb_links(gateway.RulebaseLinks, 1, fwconfig_import_gateway, uid2id_mapper)
     import_state_controller.state.gateway_map[3] = {global_state.normalized_config.gateways[0].Uid or "": 1}
 
     # Act
@@ -204,6 +210,7 @@ def test_delete_inline_layer(
     import_state_controller: ImportStateController,
     fwconfig_import_gateway: FwConfigImportGateway,
     fwconfig_builder: FwConfigBuilder,
+    uid2id_mapper: Uid2IdMapper,
 ):
     # Arrange
     config, mgm_id = fwconfig_builder.build_config(
@@ -226,8 +233,10 @@ def test_delete_inline_layer(
     gateway = global_state.previous_config.gateways[0]
     fwconfig_builder.add_inline_layer(gateway, from_rulebase.uid, from_rule.rule_uid or "", added_rulebase.uid)
 
-    fwconfig_builder.update_rule_map_and_rulebase_map(global_state.previous_config, import_state_controller.state)
-    fwconfig_builder.update_rb_links(gateway.RulebaseLinks, 1, fwconfig_import_gateway)
+    fwconfig_builder.update_rule_map_and_rulebase_map(
+        global_state.previous_config, import_state_controller.state.import_id
+    )
+    fwconfig_builder.update_rb_links(gateway.RulebaseLinks, 1, fwconfig_import_gateway, uid2id_mapper)
     import_state_controller.state.gateway_map[3] = {global_state.normalized_config.gateways[0].Uid or "": 1}
 
     # Act
@@ -243,6 +252,7 @@ def test_move_inline_layer(
     import_state_controller: ImportStateController,
     fwconfig_import_gateway: FwConfigImportGateway,
     fwconfig_builder: FwConfigBuilder,
+    uid2id_mapper: Uid2IdMapper,
 ):
     # Arrange
     config, mgm_id = fwconfig_builder.build_config(
@@ -276,13 +286,15 @@ def test_move_inline_layer(
         gateway_normalized, from_rulebase_normalized.uid, from_rule_normalized.rule_uid or "", added_rulebase_copy.uid
     )
 
-    fwconfig_builder.update_rule_map_and_rulebase_map(global_state.previous_config, import_state_controller.state)
-    from_rule_id, from_rulebase_id, to_rulebase_id = import_state_controller.state.lookup_ids_for_rulebase_link(
+    fwconfig_builder.update_rule_map_and_rulebase_map(
+        global_state.previous_config, import_state_controller.state.import_id
+    )
+    from_rule_id, from_rulebase_id, to_rulebase_id = uid2id_mapper.get_ids_for_rulebase_link(
         from_rule_normalized.rule_uid,
         from_rulebase_normalized.uid,
         added_rulebase_copy.uid,
     )
-    fwconfig_builder.update_rb_links(gateway_previous.RulebaseLinks, 1, fwconfig_import_gateway)
+    fwconfig_builder.update_rb_links(gateway_previous.RulebaseLinks, 1, fwconfig_import_gateway, uid2id_mapper)
     import_state_controller.state.gateway_map[3] = {global_state.normalized_config.gateways[0].Uid or "": 1}
 
     # Act

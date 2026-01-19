@@ -9,6 +9,7 @@ from model_controllers.import_state_controller import ImportStateController
 from models.rulebase import Rulebase
 from pytest_mock import MockerFixture
 from services.global_state import GlobalState
+from services.uid2id_mapper import Uid2IdMapper
 from unit_tests.utils.config_builder import FwConfigBuilder
 from unit_tests.utils.rule_helper_functions import insert_rule_in_config, move_rule_in_config, remove_rule_from_rulebase
 from unit_tests.utils.test_utils import mock_get_graphql_code
@@ -24,6 +25,7 @@ class TestFwconfigImportRuleUpdateRulebaseDiffOldMigration:
         api_call: FwoApiCall,
         global_state: GlobalState,
         mocker: MockerFixture,
+        uid2id_mapper: Uid2IdMapper,
     ):
         # Arrange
         config, _ = fwconfig_builder.build_config(
@@ -42,7 +44,7 @@ class TestFwconfigImportRuleUpdateRulebaseDiffOldMigration:
         rule_uids = list(rulebase.rules.keys())
         rule_uid = rule_uids[0]
 
-        import_state_controller.state.lookup_rulebase_id = unittest.mock.Mock(return_value=69)
+        uid2id_mapper.get_rulebase_id = unittest.mock.Mock(return_value=69)
         fwconfig_import_rule.uid2id_mapper.get_network_object_id = unittest.mock.Mock(return_value=42)
         fwconfig_import_rule.uid2id_mapper.rule_uid2id.get = unittest.mock.Mock(return_value=43)
         fwconfig_import_rule.uid2id_mapper.get_service_object_id = unittest.mock.Mock(return_value=84)

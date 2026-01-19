@@ -54,37 +54,39 @@ namespace FWO.Middleware.Server.Jobs
             }
 
             await Parallel.ForEachAsync(scheduledReports, new ParallelOptions { MaxDegreeOfParallelism = Environment.ProcessorCount },
-                async (reportSchedule, ct) =>
-                {
-                    try
-                    {
-                        if (reportSchedule.Active)
-                        {
-                            // Add schedule interval as long as schedule time is smaller then current time
-                            while (RoundDown(reportSchedule.StartTime, CheckScheduleInterval) < dateTimeNowRounded)
-                            {
-                                reportSchedule.StartTime = reportSchedule.RepeatInterval switch
-                                {
-                                    SchedulerInterval.Days => reportSchedule.StartTime.AddDays(reportSchedule.RepeatOffset),
-                                    SchedulerInterval.Weeks => reportSchedule.StartTime.AddDays(reportSchedule.RepeatOffset * GlobalConst.kDaysPerWeek),
-                                    SchedulerInterval.Months => reportSchedule.StartTime.AddMonths(reportSchedule.RepeatOffset),
-                                    SchedulerInterval.Years => reportSchedule.StartTime.AddYears(reportSchedule.RepeatOffset),
-                                    SchedulerInterval.Never => reportSchedule.StartTime.AddYears(42_42),
-                                    _ => throw new NotSupportedException("Time interval is not supported."),
-                                };
-                            }
+                async (reportSchedule, ct) => await ProcessScheduledReport(reportSchedule, dateTimeNowRounded, ct));
+        }
 
-                            if (RoundDown(reportSchedule.StartTime, CheckScheduleInterval) == dateTimeNowRounded)
-                            {
-                                await GenerateReport(reportSchedule, dateTimeNowRounded, ct);
-                            }
-                        }
-                    }
-                    catch (Exception exception)
+        private async Task ProcessScheduledReport(ReportSchedule reportSchedule, DateTime dateTimeNowRounded, CancellationToken ct)
+        {
+            try
+            {
+                if (reportSchedule.Active)
+                {
+                    // Add schedule interval as long as schedule time is smaller then current time
+                    while (RoundDown(reportSchedule.StartTime, CheckScheduleInterval) < dateTimeNowRounded)
                     {
-                        Log.WriteError(LogMessageTitle, "Checking scheduled reports lead to exception.", exception);
+                        reportSchedule.StartTime = reportSchedule.RepeatInterval switch
+                        {
+                            SchedulerInterval.Days => reportSchedule.StartTime.AddDays(reportSchedule.RepeatOffset),
+                            SchedulerInterval.Weeks => reportSchedule.StartTime.AddDays(reportSchedule.RepeatOffset * GlobalConst.kDaysPerWeek),
+                            SchedulerInterval.Months => reportSchedule.StartTime.AddMonths(reportSchedule.RepeatOffset),
+                            SchedulerInterval.Years => reportSchedule.StartTime.AddYears(reportSchedule.RepeatOffset),
+                            SchedulerInterval.Never => reportSchedule.StartTime.AddYears(42_42),
+                            _ => throw new NotSupportedException("Time interval is not supported."),
+                        };
                     }
-                });
+
+                    if (RoundDown(reportSchedule.StartTime, CheckScheduleInterval) == dateTimeNowRounded)
+                    {
+                        await GenerateReport(reportSchedule, dateTimeNowRounded, ct);
+                    }
+                }
+            }
+            catch (Exception exception)
+            {
+                Log.WriteError(LogMessageTitle, "Checking scheduled reports lead to exception.", exception);
+            }
         }
 
         private async Task GenerateReport(ReportSchedule reportSchedule, DateTime dateTimeNowRounded, CancellationToken token)

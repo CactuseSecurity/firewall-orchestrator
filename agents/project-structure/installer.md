@@ -193,7 +193,7 @@ Main handlers for the importer role. Defines restart or reload actions triggered
 Task file for the importer role handling fetch importer pwd. Included by the role when that step is needed in the installer workflow.
 
 ##### `roles/importer/tasks/main.yml`
-Main task list for the importer role. It orchestrates the role flow and includes additional task files.
+Main task list for the importer role. It orchestrates the role flow, syncs importer code with rsync, and includes additional task files.
 
 ##### `roles/importer/tasks/run-upgrades.yml`
 Task file for the importer role handling run upgrades. Included by the role when that step is needed in the installer workflow.
@@ -219,7 +219,7 @@ Task file for the lib role handling install dot net. Included by the role when t
 Task file for the lib role handling install puppeteer. Included by the role when that step is needed in the installer workflow.
 
 ##### `roles/lib/tasks/main.yml`
-Main task list for the lib role. It orchestrates the role flow and includes additional task files.
+Main task list for the lib role. It orchestrates the role flow and syncs shared .NET artifacts via rsync with deletes to keep targets in sync.
 
 ### middleware
 
@@ -473,7 +473,7 @@ Main handlers for the ui role. Defines restart or reload actions triggered by ta
 Task file for the ui role handling install and run ui service. Included by the role when that step is needed in the installer workflow.
 
 ##### `roles/ui/tasks/main.yml`
-Main task list for the ui role. It orchestrates the role flow and includes additional task files.
+Main task list for the ui role. It orchestrates the role flow and rsyncs UI assets to keep the target tree aligned with source.
 
 ##### `roles/ui/tasks/run-upgrades.yml`
 Task file for the ui role handling run upgrades. Included by the role when that step is needed in the installer workflow.

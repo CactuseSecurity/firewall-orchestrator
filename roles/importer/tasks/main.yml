@@ -19,17 +19,12 @@
       delegate_to: "{{ inventory_hostname }}"
       when: importer_dir_check.stat.exists and installation_mode == "upgrade"
 
-    - name: remove importer dir for cleaning up all old code
-      file:
-        state: absent
-        path: "{{ fworch_home }}/importer"
-      when: installation_mode == "upgrade"
-
     - name: copy importer files
       synchronize:
         src: "importer"
         dest: "{{ fworch_home }}"
         rsync_opts:
+          - "--delete"
           - "--chmod=0755"
           - "--chown={{ fworch_user }}:{{ fworch_group }}"
       tags: ["test"]

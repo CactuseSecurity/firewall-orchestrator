@@ -1,15 +1,22 @@
 using FWO.Basics;
 using Newtonsoft.Json;
 using System;
-using System.Text.Json.Serialization; 
+using System.Text.Json.Serialization;
 using System.Linq;
 
 namespace FWO.Data
 {
     public enum RuleOwnershipMode
     {
-        mixed, 
+        mixed,
         exclusive
+    }
+
+    public enum OwnerResponsibleType
+    {
+        kMainResponsible = 1,
+        kSupportingResponsible = 2,
+        kOptionalEscalationResponsible = 3
     }
 
     public class FwoOwnerBase
@@ -32,9 +39,9 @@ namespace FWO.Data
         [JsonProperty("app_id_external"), JsonPropertyName("app_id_external")]
         public string? ExtAppId { get; set; }
 
-        public string OwnerResponsiblesType1Key => string.Join(", ", GetOwnerResponsiblesByType(1));
-        public string OwnerResponsiblesType2Key => string.Join(", ", GetOwnerResponsiblesByType(2));
-        public string OwnerResponsiblesType3Key => string.Join(", ", GetOwnerResponsiblesByType(3));
+        public string OwnerResponsiblesType1Key => string.Join(", ", GetOwnerResponsiblesByType(OwnerResponsibleType.kMainResponsible));
+        public string OwnerResponsiblesType2Key => string.Join(", ", GetOwnerResponsiblesByType(OwnerResponsibleType.kSupportingResponsible));
+        public string OwnerResponsiblesType3Key => string.Join(", ", GetOwnerResponsiblesByType(OwnerResponsibleType.kOptionalEscalationResponsible));
 
 
         public FwoOwnerBase()
@@ -72,7 +79,7 @@ namespace FWO.Data
             return responsibles.ToList();
         }
 
-        public List<string> GetOwnerResponsiblesByType(int responsibleType)
+        public List<string> GetOwnerResponsiblesByType(OwnerResponsibleType responsibleType)
         {
             return (OwnerResponsibles ?? [])
                 .Where(responsible => responsible.ResponsibleType == responsibleType)
@@ -82,7 +89,7 @@ namespace FWO.Data
                 .ToList();
         }
 
-        public void SetOwnerResponsiblesByType(int responsibleType, IEnumerable<string> dns)
+        public void SetOwnerResponsiblesByType(OwnerResponsibleType responsibleType, IEnumerable<string> dns)
         {
             OwnerResponsibles ??= [];
             OwnerResponsibles.RemoveAll(responsible => responsible.ResponsibleType == responsibleType);
@@ -92,7 +99,7 @@ namespace FWO.Data
             }
         }
 
-        public void AddOwnerResponsible(int responsibleType, string dn)
+        public void AddOwnerResponsible(OwnerResponsibleType responsibleType, string dn)
         {
             if (string.IsNullOrWhiteSpace(dn))
             {
@@ -105,7 +112,7 @@ namespace FWO.Data
             }
         }
 
-        public void RemoveOwnerResponsible(int responsibleType, string dn)
+        public void RemoveOwnerResponsible(OwnerResponsibleType responsibleType, string dn)
         {
             if (string.IsNullOrWhiteSpace(dn))
             {
@@ -145,7 +152,7 @@ namespace FWO.Data
         public string Dn { get; set; } = "";
 
         [JsonProperty("responsible_type"), JsonPropertyName("responsible_type")]
-        public int ResponsibleType { get; set; }
+        public OwnerResponsibleType ResponsibleType { get; set; }
 
         public OwnerResponsible()
         { }

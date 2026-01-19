@@ -2146,9 +2146,11 @@ CREATE TABLE IF NOT EXISTS owner_responsible
     id SERIAL PRIMARY KEY,
     owner_id int NOT NULL,
     dn Varchar NOT NULL,
-    responsible_type int NOT NULL,
-    roles text[] NOT NULL DEFAULT '{}'::text[]
+    responsible_type int NOT NULL
 );
+
+-- revert older first throw
+ALTER TABLE owner_responsible DROP COLUMN IF EXISTS roles;
 
 DO $$
 BEGIN

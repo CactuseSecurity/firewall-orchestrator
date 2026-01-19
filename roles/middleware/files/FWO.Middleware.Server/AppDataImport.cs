@@ -31,7 +31,7 @@ namespace FWO.Middleware.Server
         private List<Ldap> connectedLdaps = [];
         private string? ownerGroupLdapPath = "";
         private List<GroupGetReturnParameters> allGroups = [];
-        private Dictionary<int, List<string>> rolesToSetByType = [];
+        private Dictionary<OwnerResponsibleType, List<string>> rolesToSetByType = [];
         private ModellingNamingConvention NamingConvention = new();
         private UserConfig userConfig = new();
         private const string LogMessageTitle = "Import App Data";
@@ -74,7 +74,7 @@ namespace FWO.Middleware.Server
             internalLdap = connectedLdaps.FirstOrDefault(x => x.IsInternal() && x.HasGroupHandling()) ?? throw new KeyNotFoundException("No internal Ldap with group handling found.");
             ownerGroupLdap = connectedLdaps.FirstOrDefault(x => x.Id == globalConfig.OwnerLdapId) ?? throw new KeyNotFoundException("Ldap with group handling not found.");
             ownerGroupLdapPath = ownerGroupLdap.GroupWritePath;
-            allGroups = globalConfig.OwnerLdapId == GlobalConst.kLdapInternalId ? 
+            allGroups = globalConfig.OwnerLdapId == GlobalConst.kLdapInternalId ?
                 await internalLdap.GetAllInternalGroups() :
                 await ownerGroupLdap.GetAllGroupObjects(globalConfig.OwnerLdapGroupNames.
                     Replace(Placeholder.AppId, "*").
@@ -173,7 +173,7 @@ namespace FWO.Middleware.Server
                 }
                 if (incomingApp.MainUser != null && incomingApp.MainUser != "")
                 {
-                    await UpdateRoles(incomingApp.MainUser, GetRolesForType(1));
+                    await UpdateRoles(incomingApp.MainUser, GetRolesForType(OwnerResponsibleType.kMainResponsible));
                 }
                 // in order to store email addresses of users in the group in UiUser for email notification:
                 await AddAllGroupMembersToUiUser(userGroupDn);
@@ -233,7 +233,7 @@ namespace FWO.Middleware.Server
             List<OwnerResponsible> responsibles = BuildOwnerResponsibles(
                 incomingApp.MainUser,
                 userGroupDn,
-                existingApp.GetOwnerResponsiblesByType(3));
+                existingApp.GetOwnerResponsiblesByType(OwnerResponsibleType.kOptionalEscalationResponsible));
             await UpdateOwnerResponsibles(existingApp.Id, responsibles);
             await ApplyRolesToResponsibles(responsibles, rolesToSetByType);
             await ImportAppServers(incomingApp, existingApp.Id);
@@ -260,15 +260,15 @@ namespace FWO.Middleware.Server
             List<OwnerResponsible> responsibles = [];
             if (!string.IsNullOrWhiteSpace(mainUserDn))
             {
-                responsibles.Add(new OwnerResponsible { Dn = mainUserDn, ResponsibleType = 1 });
+                responsibles.Add(new OwnerResponsible { Dn = mainUserDn, ResponsibleType = OwnerResponsibleType.kMainResponsible });
             }
             if (!string.IsNullOrWhiteSpace(userGroupDn))
             {
-                responsibles.Add(new OwnerResponsible { Dn = userGroupDn, ResponsibleType = 2 });
+                responsibles.Add(new OwnerResponsible { Dn = userGroupDn, ResponsibleType = OwnerResponsibleType.kSupportingResponsible });
             }
             foreach (string dn in extraDns.Where(dn => !string.IsNullOrWhiteSpace(dn)))
             {
-                responsibles.Add(new OwnerResponsible { Dn = dn, ResponsibleType = 3 });
+                responsibles.Add(new OwnerResponsible { Dn = dn, ResponsibleType = OwnerResponsibleType.kOptionalEscalationResponsible });
             }
             return responsibles;
         }
@@ -285,12 +285,12 @@ namespace FWO.Middleware.Server
             {
                 owner_id = ownerId,
                 dn = r.Dn,
-                responsible_type = r.ResponsibleType
+                responsible_type = (int)r.ResponsibleType
             });
             await apiConnection.SendQueryAsync<object>(OwnerQueries.newOwnerResponsibles, new { responsibles = objects });
         }
 
-        private async Task ApplyRolesToResponsibles(List<OwnerResponsible> responsibles, Dictionary<int, List<string>> rolesByType)
+        private async Task ApplyRolesToResponsibles(List<OwnerResponsible> responsibles, Dictionary<OwnerResponsibleType, List<string>> rolesByType)
         {
             foreach (OwnerResponsible responsible in responsibles)
             {
@@ -337,14 +337,14 @@ namespace FWO.Middleware.Server
             return $"cn={role},{internalLdap.RoleSearchPath}";
         }
 
-        private List<string> GetRolesForType(int typeId)
+        private List<string> GetRolesForType(OwnerResponsibleType typeId)
         {
             return rolesToSetByType.TryGetValue(typeId, out List<string>? roles) ? roles : [];
         }
 
-        private static Dictionary<int, List<string>> ParseRolesWithImport(string rolesJson)
+        private static Dictionary<OwnerResponsibleType, List<string>> ParseRolesWithImport(string rolesJson)
         {
-            Dictionary<int, List<string>> rolesByType = [];
+            Dictionary<OwnerResponsibleType, List<string>> rolesByType = [];
             if (string.IsNullOrWhiteSpace(rolesJson))
             {
                 return rolesByType;
@@ -354,7 +354,7 @@ namespace FWO.Middleware.Server
             if (trimmed.StartsWith("["))
             {
                 List<string> roles = JsonSerializer.Deserialize<List<string>>(rolesJson) ?? [];
-                rolesByType[2] = roles;
+                rolesByType[OwnerResponsibleType.kSupportingResponsible] = roles;
                 return rolesByType;
             }
 
@@ -365,7 +365,10 @@ namespace FWO.Middleware.Server
                 {
                     if (int.TryParse(entry.Key, out int typeId))
                     {
-                        rolesByType[typeId] = entry.Value;
+                        if (Enum.IsDefined(typeof(OwnerResponsibleType), typeId))
+                        {
+                            rolesByType[(OwnerResponsibleType)typeId] = entry.Value;
+                        }
                     }
                 }
             }
@@ -459,7 +462,7 @@ namespace FWO.Middleware.Server
             string userGroupDn = GetGroupDn(incomingApp.ExtAppId);
             if (globalConfig.ManageOwnerLdapGroups)
             {
-                if ((existingApp == null || existingApp.GetOwnerResponsiblesByType(2).Count == 0)
+                if ((existingApp == null || existingApp.GetOwnerResponsiblesByType(OwnerResponsibleType.kSupportingResponsible).Count == 0)
                     && allGroups.FirstOrDefault(x => x.GroupDn == userGroupDn) == null)
                 {
                     userGroupDn = await CreateUserGroup(incomingApp, userGroupDn);
@@ -472,9 +475,9 @@ namespace FWO.Middleware.Server
             else
             {
                 // add necessary roles for user group
-                await UpdateRoles(userGroupDn, GetRolesForType(2));
+                await UpdateRoles(userGroupDn, GetRolesForType(OwnerResponsibleType.kSupportingResponsible));
             }
-              return userGroupDn;
+            return userGroupDn;
         }
 
         private async Task<string> CreateUserGroup(ModellingImportAppData incomingApp, string userGroupDn)
@@ -495,7 +498,7 @@ namespace FWO.Middleware.Server
                 // add users to internal group:
                 await AddUsersToGroup(incomingApp.Modellers, [], newDn);
                 await AddUsersToGroup(incomingApp.ModellerGroups, [], newDn);
-                await AddRoles(newDn, GetRolesForType(2));
+                await AddRoles(newDn, GetRolesForType(OwnerResponsibleType.kSupportingResponsible));
                 return newDn;
             }
             return "";
@@ -514,7 +517,7 @@ namespace FWO.Middleware.Server
                     await internalLdap.RemoveUserFromEntry(member, groupDn);
                 }
             }
-            await UpdateRoles(groupDn, GetRolesForType(2));
+            await UpdateRoles(groupDn, GetRolesForType(OwnerResponsibleType.kSupportingResponsible));
         }
 
         private async Task AddUsersToGroup(List<string>? members, List<string> existingMembers, string groupDn)
@@ -533,7 +536,7 @@ namespace FWO.Middleware.Server
 
         private async Task AddRoles(string dn, List<string> rolesToApply)
         {
-            foreach(var role in rolesToApply)
+            foreach (var role in rolesToApply)
             {
                 await internalLdap.AddUserToEntry(dn, GetRoleDn(role));
             }
@@ -542,7 +545,7 @@ namespace FWO.Middleware.Server
         private async Task UpdateRoles(string dn, List<string> rolesToApply)
         {
             List<string> roles = await internalLdap.GetRoles([dn]);
-            foreach(var role in rolesToApply)
+            foreach (var role in rolesToApply)
             {
                 if (!roles.Contains(role))
                 {
@@ -794,7 +797,7 @@ namespace FWO.Middleware.Server
 
         private async Task InitRecert(ModellingImportAppData incomingApp, FwoOwner? existingApp, int appId)
         {
-            if(userConfig.RecertificationMode == RecertificationMode.OwnersAndRules && 
+            if (userConfig.RecertificationMode == RecertificationMode.OwnersAndRules &&
                 incomingApp.RecertActive && (existingApp == null || !existingApp.RecertActive))
             {
                 RecertHandler recertHandler = new(apiConnection, userConfig);

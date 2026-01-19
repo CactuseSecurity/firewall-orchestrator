@@ -108,13 +108,13 @@ namespace FWO.Services
                     recipients.AddRange(await CollectEmailAddressesFromUserOrGroup(statefulObject?.AssignedGroup));
                     break;
                 case EmailRecipientOption.OwnerMainResponsible:
-                    recipients.AddRange(await CollectEmailAddressesFromDns(owner?.GetOwnerResponsiblesByType(1)));
+                    recipients.AddRange(await CollectEmailAddressesFromDns(owner?.GetOwnerResponsiblesByType(OwnerResponsibleType.kMainResponsible)));
                     break;
                 case EmailRecipientOption.AllOwnerResponsibles:
                     recipients.AddRange(await CollectEmailAddressesFromDns(owner?.GetAllOwnerResponsibles()));
                     break;
                 case EmailRecipientOption.OwnerGroupOnly:
-                    recipients.AddRange(await CollectEmailAddressesFromDns(owner?.GetOwnerResponsiblesByType(2)));
+                    recipients.AddRange(await CollectEmailAddressesFromDns(owner?.GetOwnerResponsiblesByType(OwnerResponsibleType.kSupportingResponsible)));
                     break;
                 case EmailRecipientOption.Requester:
                 case EmailRecipientOption.Approver:
@@ -125,11 +125,12 @@ namespace FWO.Services
                     if (owner is null)
                         break;
 
-                    List<string> ownerGroupAdresses = await CollectEmailAddressesFromDns(owner.GetOwnerResponsiblesByType(2));
+                    List<string> ownerGroupAdresses = await CollectEmailAddressesFromDns(owner.GetOwnerResponsiblesByType(OwnerResponsibleType.kSupportingResponsible));
+                    ownerGroupAdresses.AddRange(await CollectEmailAddressesFromDns(owner.GetOwnerResponsiblesByType(OwnerResponsibleType.kMainResponsible)));
 
                     if (ownerGroupAdresses.Count == 0)
                     {
-                        recipients.AddRange(await CollectEmailAddressesFromDns(owner.GetOwnerResponsiblesByType(1)));
+                        recipients.AddRange(await CollectEmailAddressesFromDns(owner.GetOwnerResponsiblesByType(OwnerResponsibleType.kMainResponsible)));
                     }
                     else
                     {

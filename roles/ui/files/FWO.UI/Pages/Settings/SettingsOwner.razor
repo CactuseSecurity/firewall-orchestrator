@@ -87,17 +87,17 @@
             <Column TableItem="FwoOwner" Title="@(userConfig.GetText("name"))" Field="@(x => x.Name)" Sortable="true" Filterable="true" />
             <Column TableItem="FwoOwner" Title="@(userConfig.GetText("main_responsible"))" Field="@(x => x.OwnerResponsiblesType1Key)" Sortable="true" Filterable="true" >
                 <Template>
-                    @FormatOwnerResponsibles(context.GetOwnerResponsiblesByType(1))
+                    @FormatOwnerResponsibles(context.GetOwnerResponsiblesByType(OwnerResponsibleType.kMainResponsible))
                 </Template>
             </Column>
             <Column TableItem="FwoOwner" Title="@(userConfig.GetText("group"))" Field="@(x => x.OwnerResponsiblesType2Key)" Sortable="true" Filterable="true" >
                 <Template>
-                    @FormatOwnerResponsibles(context.GetOwnerResponsiblesByType(2))
+                    @FormatOwnerResponsibles(context.GetOwnerResponsiblesByType(OwnerResponsibleType.kSupportingResponsible))
                 </Template>
             </Column>
             <Column TableItem="FwoOwner" Title="@(userConfig.GetText("owner_responsible3"))" Field="@(x => x.OwnerResponsiblesType3Key)" Sortable="true" Filterable="true" >
                 <Template>
-                    @FormatOwnerResponsibles(context.GetOwnerResponsiblesByType(3))
+                    @FormatOwnerResponsibles(context.GetOwnerResponsiblesByType(OwnerResponsibleType.kOptionalEscalationResponsible))
                 </Template>
             </Column>
             <Column TableItem="FwoOwner" Title="@(userConfig.GetText("tenant"))" Field="@(x => x.TenantId)" Sortable="true">
@@ -141,7 +141,7 @@
                         <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("main_responsible"))*:</label>
                         @if(Readonly)
                         {
-                            <label class="col-sm-9 me-auto">@FormatOwnerResponsibles(actOwner.GetOwnerResponsiblesByType(1))</label>
+                            <label class="col-sm-9 me-auto">@FormatOwnerResponsibles(actOwner.GetOwnerResponsiblesByType(OwnerResponsibleType.kMainResponsible))</label>
                         }
                         else
                         {
@@ -149,15 +149,15 @@
                                 <div class="d-flex gap-1">
                                     <input type="text" class="form-control form-control-sm" @bind="newOwnerResponsible1Dn" />
                                     <button type="button" class="btn btn-sm btn-success" @onclick="AddOwnerResponsible1">@(userConfig.GetText("add"))</button>
-                                    <button type="button" class="btn btn-sm btn-success" @onclick="() => SearchUser(1)">@(userConfig.GetText("search") + " " + userConfig.GetText("user"))</button>
-                                    <button type="button" class="btn btn-sm btn-success" @onclick="() => SearchGroup(1)">@(userConfig.GetText("search") + " " + userConfig.GetText("group"))</button>
+                                    <button type="button" class="btn btn-sm btn-success" @onclick="() => SearchUser(OwnerResponsibleType.kMainResponsible)">@(userConfig.GetText("search") + " " + userConfig.GetText("user"))</button>
+                                    <button type="button" class="btn btn-sm btn-success" @onclick="() => SearchGroup(OwnerResponsibleType.kMainResponsible)">@(userConfig.GetText("search") + " " + userConfig.GetText("group"))</button>
                                 </div>
                                 <div class="mt-1">
-                                    @foreach (string dn in actOwner.GetOwnerResponsiblesByType(1))
+                                    @foreach (string dn in actOwner.GetOwnerResponsiblesByType(OwnerResponsibleType.kMainResponsible))
                                     {
                                         <div class="d-flex align-items-center gap-2">
                                             <small>@dn</small>
-                                            <button type="button" class="btn btn-sm btn-outline-danger" @onclick="() => actOwner.RemoveOwnerResponsible(1, dn)">@(userConfig.GetText("remove"))</button>
+                                            <button type="button" class="btn btn-sm btn-outline-danger" @onclick="() => actOwner.RemoveOwnerResponsible(OwnerResponsibleType.kMainResponsible, dn)">@(userConfig.GetText("remove"))</button>
                                         </div>
                                     }
                                 </div>
@@ -168,7 +168,7 @@
                         <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("group"))*:</label>
                         @if(Readonly)
                         {
-                            <label class="col-sm-9 me-auto">@FormatOwnerResponsibles(actOwner.GetOwnerResponsiblesByType(2))</label>
+                            <label class="col-sm-9 me-auto">@FormatOwnerResponsibles(actOwner.GetOwnerResponsiblesByType(OwnerResponsibleType.kSupportingResponsible))</label>
                         }
                         else
                         {
@@ -176,15 +176,15 @@
                                 <div class="d-flex gap-1">
                                     <input type="text" class="form-control form-control-sm" @bind="newOwnerResponsible2Dn" />
                                     <button type="button" class="btn btn-sm btn-success" @onclick="AddOwnerResponsible2">@(userConfig.GetText("add"))</button>
-                                    <button type="button" class="btn btn-sm btn-success" @onclick="() => SearchUser(2)">@(userConfig.GetText("search") + " " + userConfig.GetText("user"))</button>
-                                    <button type="button" class="btn btn-sm btn-success" @onclick="() => SearchGroup(2)">@(userConfig.GetText("search") + " " + userConfig.GetText("group"))</button>
+                                    <button type="button" class="btn btn-sm btn-success" @onclick="() => SearchUser(OwnerResponsibleType.kSupportingResponsible)">@(userConfig.GetText("search") + " " + userConfig.GetText("user"))</button>
+                                    <button type="button" class="btn btn-sm btn-success" @onclick="() => SearchGroup(OwnerResponsibleType.kSupportingResponsible)">@(userConfig.GetText("search") + " " + userConfig.GetText("group"))</button>
                                 </div>
                                 <div class="mt-1">
-                                    @foreach (string dn in actOwner.GetOwnerResponsiblesByType(2))
+                                    @foreach (string dn in actOwner.GetOwnerResponsiblesByType(OwnerResponsibleType.kSupportingResponsible))
                                     {
                                         <div class="d-flex align-items-center gap-2">
                                             <small>@dn</small>
-                                            <button type="button" class="btn btn-sm btn-outline-danger" @onclick="() => actOwner.RemoveOwnerResponsible(2, dn)">@(userConfig.GetText("remove"))</button>
+                                            <button type="button" class="btn btn-sm btn-outline-danger" @onclick="() => actOwner.RemoveOwnerResponsible(OwnerResponsibleType.kSupportingResponsible, dn)">@(userConfig.GetText("remove"))</button>
                                         </div>
                                     }
                                 </div>
@@ -195,7 +195,7 @@
                         <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("owner_responsible3")):</label>
                         @if(Readonly)
                         {
-                            <label class="col-sm-9 me-auto">@FormatOwnerResponsibles(actOwner.GetOwnerResponsiblesByType(3))</label>
+                            <label class="col-sm-9 me-auto">@FormatOwnerResponsibles(actOwner.GetOwnerResponsiblesByType(OwnerResponsibleType.kOptionalEscalationResponsible))</label>
                         }
                         else
                         {
@@ -203,15 +203,15 @@
                                 <div class="d-flex gap-1">
                                     <input type="text" class="form-control form-control-sm" @bind="newOwnerResponsible3Dn" />
                                     <button type="button" class="btn btn-sm btn-success" @onclick="AddOwnerResponsible3">@(userConfig.GetText("add"))</button>
-                                    <button type="button" class="btn btn-sm btn-success" @onclick="() => SearchUser(3)">@(userConfig.GetText("search") + " " + userConfig.GetText("user"))</button>
-                                    <button type="button" class="btn btn-sm btn-success" @onclick="() => SearchGroup(3)">@(userConfig.GetText("search") + " " + userConfig.GetText("group"))</button>
+                                    <button type="button" class="btn btn-sm btn-success" @onclick="() => SearchUser(OwnerResponsibleType.kOptionalEscalationResponsible)">@(userConfig.GetText("search") + " " + userConfig.GetText("user"))</button>
+                                    <button type="button" class="btn btn-sm btn-success" @onclick="() => SearchGroup(OwnerResponsibleType.kOptionalEscalationResponsible)">@(userConfig.GetText("search") + " " + userConfig.GetText("group"))</button>
                                 </div>
                                 <div class="mt-1">
-                                    @foreach (string dn in actOwner.GetOwnerResponsiblesByType(3))
+                                    @foreach (string dn in actOwner.GetOwnerResponsiblesByType(OwnerResponsibleType.kOptionalEscalationResponsible))
                                     {
                                         <div class="d-flex align-items-center gap-2">
                                             <small>@dn</small>
-                                            <button type="button" class="btn btn-sm btn-outline-danger" @onclick="() => actOwner.RemoveOwnerResponsible(3, dn)">@(userConfig.GetText("remove"))</button>
+                                            <button type="button" class="btn btn-sm btn-outline-danger" @onclick="() => actOwner.RemoveOwnerResponsible(OwnerResponsibleType.kOptionalEscalationResponsible, dn)">@(userConfig.GetText("remove"))</button>
                                         </div>
                                     }
                                 </div>
@@ -526,7 +526,7 @@ else
     private bool DeleteLifeCycleMode = false;
     private bool SearchMode = false;
     private bool UserSearchMode = false;
-    private int searchResponsibleType = 1;
+    private OwnerResponsibleType searchResponsibleType = OwnerResponsibleType.kMainResponsible;
     private bool InitComplete = false;
     private RecertCheckParams actRecCheckParams = new();
     private bool recertCalcInProgress = false;
@@ -888,7 +888,7 @@ else
         {
             owner_id = owner.Id,
             dn = responsible.Dn,
-            responsible_type = responsible.ResponsibleType
+            responsible_type = (int)responsible.ResponsibleType
         });
         await apiConnection.SendQueryAsync<object>(OwnerQueries.newOwnerResponsibles, new { responsibles = objects });
     }
@@ -898,7 +898,7 @@ else
         List<ConfigItem> configResult = await apiConnection.SendQueryAsync<List<ConfigItem>>(ConfigQueries.getConfigItemByKey,
             new { key = "rolesWithAppDataImport" });
         string rolesJson = configResult.Count > 0 ? configResult[0].Value ?? "[]" : "[]";
-        Dictionary<int, List<string>> rolesByType = ParseRolesWithImport(rolesJson);
+        Dictionary<OwnerResponsibleType, List<string>> rolesByType = ParseRolesWithImport(rolesJson);
 
         foreach (OwnerResponsible responsible in owner.OwnerResponsibles ?? [])
         {
@@ -938,9 +938,9 @@ else
         users.Add(dn);
     }
 
-    private static Dictionary<int, List<string>> ParseRolesWithImport(string rolesJson)
+    private static Dictionary<OwnerResponsibleType, List<string>> ParseRolesWithImport(string rolesJson)
     {
-        Dictionary<int, List<string>> rolesByType = [];
+        Dictionary<OwnerResponsibleType, List<string>> rolesByType = [];
         if (string.IsNullOrWhiteSpace(rolesJson))
         {
             return rolesByType;
@@ -950,7 +950,7 @@ else
         if (trimmed.StartsWith("["))
         {
             List<string> roles = System.Text.Json.JsonSerializer.Deserialize<List<string>>(rolesJson) ?? [];
-            rolesByType[2] = roles;
+            rolesByType[OwnerResponsibleType.kSupportingResponsible] = roles;
             return rolesByType;
         }
 
@@ -961,7 +961,10 @@ else
             {
                 if (int.TryParse(entry.Key, out int typeId))
                 {
-                    rolesByType[typeId] = entry.Value;
+                    if (Enum.IsDefined(typeof(OwnerResponsibleType), typeId))
+                    {
+                        rolesByType[(OwnerResponsibleType)typeId] = entry.Value;
+                    }
                 }
             }
         }
@@ -1143,14 +1146,14 @@ else
         return true;
     }
 
-    private void SearchUser(int responsibleType)
+    private void SearchUser(OwnerResponsibleType responsibleType)
     {
         searchResponsibleType = responsibleType;
         UserSearchMode = true;
         SearchMode = true;
     }
 
-    private void SearchGroup(int responsibleType)
+    private void SearchGroup(OwnerResponsibleType responsibleType)
     {
         searchResponsibleType = responsibleType;
         UserSearchMode = false;
@@ -1171,19 +1174,19 @@ else
 
     private void AddOwnerResponsible1()
     {
-        actOwner.AddOwnerResponsible(1, newOwnerResponsible1Dn);
+        actOwner.AddOwnerResponsible(OwnerResponsibleType.kMainResponsible, newOwnerResponsible1Dn);
         newOwnerResponsible1Dn = "";
     }
 
     private void AddOwnerResponsible2()
     {
-        actOwner.AddOwnerResponsible(2, newOwnerResponsible2Dn);
+        actOwner.AddOwnerResponsible(OwnerResponsibleType.kSupportingResponsible, newOwnerResponsible2Dn);
         newOwnerResponsible2Dn = "";
     }
 
     private void AddOwnerResponsible3()
     {
-        actOwner.AddOwnerResponsible(3, newOwnerResponsible3Dn);
+        actOwner.AddOwnerResponsible(OwnerResponsibleType.kOptionalEscalationResponsible, newOwnerResponsible3Dn);
         newOwnerResponsible3Dn = "";
     }
 

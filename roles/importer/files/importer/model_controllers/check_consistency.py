@@ -85,7 +85,7 @@ class FwConfigImportCheckConsistency(FwConfigImport):
                 set(all_used_obj_refs) - config.get_all_network_object_uids(mgr.manager_uid) - global_objects
             )
             if len(unresolvable_nw_obj_refs) > 0:
-                self.issues.update({"unresolvableNwObRefs": list(unresolvable_nw_obj_refs)})
+                self.issues.update({"unresolvableNwObjRefs": list(unresolvable_nw_obj_refs)})
 
             self._check_network_object_types_exist(mgr)
             self._check_objects_with_missing_ips(mgr)
@@ -96,9 +96,10 @@ class FwConfigImportCheckConsistency(FwConfigImport):
         for single_config in mgr.configs:
             for obj_id in single_config.network_objects:
                 all_used_obj_types.add(single_config.network_objects[obj_id].obj_typ)
-            missing_nw_obj_types = all_used_obj_types - self.maps.network_object_type_map.keys()
-            if len(missing_nw_obj_types) > 0:
-                self.issues.update({"unresolvableNwObjTypes": list(missing_nw_obj_types)})
+
+        missing_nw_obj_types = all_used_obj_types - self.maps.network_object_type_map.keys()
+        if len(missing_nw_obj_types) > 0:
+            self.issues.update({"unresolvableNwObjTypes": list(missing_nw_obj_types)})
 
     @staticmethod
     def _collect_all_used_objects_from_groups(
@@ -158,7 +159,7 @@ class FwConfigImportCheckConsistency(FwConfigImport):
                 all_used_obj_refs - config.get_all_service_object_uids(mgr.manager_uid) - global_objects
             )
             if len(unresolvable_obj_refs) > 0:
-                self.issues.update({"unresolvableSvcObRefs": list(unresolvable_obj_refs)})
+                self.issues.update({"unresolvableSvcObjRefs": list(unresolvable_obj_refs)})
 
     def _check_service_object_types_exist(self, single_config: FwConfigNormalized):
         # check that all obj_typ exist
@@ -362,19 +363,19 @@ class FwConfigImportCheckConsistency(FwConfigImport):
         # check all nwobj color refs
         for color_string in all_used_nw_obj_color_ref_set:
             color_id = self.import_state.state.lookup_color_id(color_string)
-            if color_id is None:  # type: ignore # TODO: lookupColorId cant return None  # noqa: PGH003
+            if color_id is None:
                 unresolvable_nw_obj_colors.append(color_string)
 
         # check all nwobj color refs
         for color_string in all_used_svc_color_ref_set:
             color_id = self.import_state.state.lookup_color_id(color_string)
-            if color_id is None:  # type: ignore # TODO: lookupColorId cant return None  # noqa: PGH003
+            if color_id is None:
                 unresolvable_svc_colors.append(color_string)
 
         # check all user color refs
         for color_string in all_used_user_color_ref_set:
             color_id = self.import_state.state.lookup_color_id(color_string)
-            if color_id is None:  # type: ignore # TODO: lookupColorId cant return None  # noqa: PGH003
+            if color_id is None:
                 unresolvable_user_colors.append(color_string)
 
         return (

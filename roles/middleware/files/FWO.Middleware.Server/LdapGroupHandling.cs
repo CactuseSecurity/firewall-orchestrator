@@ -295,26 +295,37 @@ namespace FWO.Middleware.Server
         {
             List<string> allMembers = [];
 
-            if (!string.IsNullOrEmpty(GroupSearchPath) && groupDn.EndsWith(GroupSearchPath, StringComparison.OrdinalIgnoreCase))
-            {
-                try
-                {
-                    using LdapConnection connection = await Connect();
-                    // Authenticate as search user
-                    await TryBind(connection, SearchUser, SearchUserPwd);
-                    LdapEntry? entry = await connection.ReadAsync(groupDn);
+            if (string.IsNullOrEmpty(GroupSearchPath) ||
+                !groupDn.EndsWith(GroupSearchPath, StringComparison.OrdinalIgnoreCase))
+                return allMembers;
 
-                    if (entry != null)
-                    {
-                        string[] groupMemberDn = entry.Get(GetMemberKey()).StringValueArray;
-                        allMembers.AddRange(groupMemberDn.Where(currentDn => currentDn != ""));
-                    }
-                }
-                catch (Exception exception)
+            try
+            {
+                using LdapConnection connection = await Connect();
+                await TryBind(connection, SearchUser, SearchUserPwd);
+
+                LdapEntry? entry = await connection.ReadAsync(groupDn);
+                if (entry == null)
                 {
-                    Log.WriteError($"Non-LDAP exception {Address}:{Port}", $"Unexpected error while trying to get all group members of group {groupDn}", exception);
+                    Log.WriteDebug("GetGroupMembers", $"Group not found: {groupDn}");
+                    return allMembers;
                 }
+
+                string memberKey = GetMemberKey();
+                if (!entry.GetAttributeSet().ContainsKey(memberKey))
+                {
+                    Log.WriteDebug("GetGroupMembers", $"Group has no members: {groupDn}");
+                    return allMembers;
+                }
+
+                string[] groupMemberDn = entry.Get(memberKey).StringValueArray;
+                allMembers.AddRange(groupMemberDn.Where(m => !string.IsNullOrWhiteSpace(m)));
             }
+            catch (Exception ex)
+            {
+                Log.WriteError($"Non-LDAP exception {Address}:{Port}", $"Unexpected error while reading members of group {groupDn}", ex);
+            }
+
             return allMembers;
         }
 

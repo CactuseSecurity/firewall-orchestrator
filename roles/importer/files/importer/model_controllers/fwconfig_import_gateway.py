@@ -120,7 +120,7 @@ class FwConfigImportGateway:
         # For inserts, we need the id of the new version
         from_rule_id = (
             self._uid2id_mapper.get_rule_id(link.from_rule_uid, before_update=not is_insert)
-            if link.from_rule_uid is not None
+            if link.from_rule_uid
             else None
         )
 

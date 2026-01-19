@@ -283,6 +283,53 @@ namespace FWO.Data
             return result;
         }
 
+        public static string MemberNamesAsJson(string MemberNames)
+        {
+            // Falls MemberNames leer ist, leeres Array zurückgeben
+            if (string.IsNullOrEmpty(MemberNames))
+                return "[]";
+
+            // Splitten, trimmen
+            var members = MemberNames
+                .Split('|', StringSplitOptions.RemoveEmptyEntries)
+                .Select(m => m.Trim())
+                .ToArray();
+
+            // Wenn nach Split nichts übrig bleibt, leeres Array
+            if (members.Length == 0)
+                return "[]";
+
+            // Jedes Element in Anführungszeichen setzen
+            var quoted = members.Select(m => $"\"{m}\"");
+
+            // Mit Komma verbinden und in eckige Klammern setzen
+            return $"[{string.Join(",", quoted)}]";
+        }
+
+        public static string MemberNamesAsHtml(string MemberNames)
+        {
+            if (MemberNames != null && MemberNames.Contains("|"))
+            {
+                return $"<td>{string.Join("<br>", MemberNames.Split('|'))}</td>";
+            }
+            else
+            {
+                return $"<td>{MemberNames}</td>";
+            }
+        }
+
+        public static string MemberNamesAsCSV(string MemberNames)
+        {
+            if (MemberNames != null && MemberNames.Contains('|'))
+            {
+                return $"{string.Join(",", MemberNames.Split('|'))}";
+            }
+            else
+            {
+                return $"{MemberNames}";
+            }
+        }
+
         private static bool ShouldDisplayProtocolName(NetworkService service)
         {
             return service.Protocol?.Name != null &&

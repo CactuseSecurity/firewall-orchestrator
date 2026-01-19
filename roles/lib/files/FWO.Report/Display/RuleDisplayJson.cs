@@ -1,8 +1,9 @@
-using System.Text;
 using FWO.Basics;
-using FWO.Data;
 using FWO.Config.Api;
+using FWO.Data;
+using FWO.Report;
 using FWO.Report.Filter;
+using System.Text;
 
 namespace FWO.Ui.Display
 {
@@ -84,6 +85,11 @@ namespace FWO.Ui.Display
             return DisplayJsonString("tracking", track);
         }
 
+        protected string DisplayEnforcingGateways(IEnumerable<DeviceWrapper> gateways)
+        {
+            return DisplayJsonArray("Enforcing Gateway", ListEnforcingGateways(gateways));
+        }
+
         protected string DisplayUid(string? uid)
         {
             return DisplayJsonString("rule uid", uid);
@@ -98,6 +104,33 @@ namespace FWO.Ui.Display
         {
             return DisplayJsonString("comment", comment);
         }
+        
+        protected string DisplayObjectType(string? objectType)
+        {
+            return DisplayJsonString("ObjectType", objectType);
+        }
+
+
+        protected string DisplayServiceProtocol(string? serviceProtocol)
+        {
+            return DisplayJsonString("Protocol", serviceProtocol);
+        }
+
+        protected string DisplayServicePort(string? servicePort)
+        {
+            return DisplayJsonString("Port", servicePort);
+        }
+
+        protected string DisplayObjectIP(string? objectIP)
+        {
+            return DisplayJsonString("Object Type", objectIP);
+        }
+
+        protected string DisplayobjectMemberNames(string? objectMemberNames)
+        {
+            return DisplayJsonString("Member Names", objectMemberNames);
+        }
+
 
         /// <summary>
         /// Builds a string representing a JSON object that includes all properties of the supplied <paramref name="rule"/>.
@@ -173,6 +206,15 @@ namespace FWO.Ui.Display
                 return(string.Join(",", displayedServices));
             }
             return "";
+        }
+
+        protected string ListEnforcingGateways(IEnumerable<DeviceWrapper> gateways)
+        {
+            return string.Join(",",
+                    gateways
+                        .Where(gw => gw?.Content?.Name != null)
+                        .Select(gw => Quote(gw.Content.Name))
+                );
         }
 
         protected string ListNetworkZones(NetworkZone[] networkZones)

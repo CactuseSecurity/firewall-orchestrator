@@ -1,4 +1,4 @@
-﻿using FWO.Api.Client;
+using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 using FWO.Basics;
 using FWO.Data;
@@ -104,6 +104,11 @@ namespace FWO.Middleware.Server
             {
                 try
                 {
+                    // Dispose old timer if existant
+                    ScheduleTimer.Stop();
+                    ScheduleTimer.Elapsed -= Process;
+                    ScheduleTimer.Dispose();
+
                     ScheduleTimer = new();
                     ScheduleTimer.Elapsed += Process;
                     ScheduleTimer.Elapsed += StartRecurringTimer;
@@ -123,7 +128,11 @@ namespace FWO.Middleware.Server
         {
             try
             {
+                // Dispose old timer if existant
                 RecurringTimer.Stop();
+                RecurringTimer.Elapsed -= Process;
+                RecurringTimer.Dispose();
+
                 RecurringTimer = new();
                 RecurringTimer.Elapsed += Process;
                 RecurringTimer.Interval = SleepTimeToMilliseconds();

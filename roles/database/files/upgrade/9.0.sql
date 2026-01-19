@@ -762,7 +762,7 @@ BEGIN
 	    ALTER TABLE rule_metadata ALTER COLUMN mgm_id SET NOT NULL;
         ALTER TABLE rule_metadata ADD CONSTRAINT rule_metadata_rule_uid_unique UNIQUE(rule_uid);
         ALTER TABLE rule ADD CONSTRAINT rule_rule_metadata_rule_uid_f_key 
-            FOREIGN KEY (rule_uid) REFERENCES rule_metadata (rule_uid);
+            FOREIGN KEY (rule_uid) REFERENCES rule_metadata (rule_uid) ON UPDATE RESTRICT ON DELETE CASCADE;
 			
 			-- set Unique constraint to (mgm_id + rule_uid)
         IF NOT EXISTS (
@@ -880,6 +880,15 @@ CREATE OR REPLACE VIEW v_excluded_dst_ips AS
 	LEFT JOIN objgrp_flat of ON (rt.obj_id=of.objgrp_flat_id)
 	LEFT JOIN object o ON (of.objgrp_flat_member_id=o.obj_id)
 	WHERE NOT o.obj_ip='0.0.0.0/0';
+
+CREATE OR REPLACE VIEW v_rule_with_rule_owner_1 AS
+	SELECT r.rule_id, r.rule_uid, r.rule_name, r.mgm_id, r.rulebase_id, ow.id as owner_id, met.rule_metadata_id
+	FROM v_active_access_allow_rules r
+	LEFT JOIN rule_metadata met ON (r.rule_uid=met.rule_uid)
+	LEFT JOIN rule_owner ro ON (ro.rule_metadata_id=met.rule_metadata_id)
+	LEFT JOIN owner ow ON (ro.owner_id=ow.id)
+	WHERE NOT ow.id IS NULL
+	GROUP BY r.rule_id, r.rule_uid, r.rule_name, r.mgm_id, r.rulebase_id, ow.id, met.rule_metadata_id;
 
 CREATE OR REPLACE VIEW v_rule_with_src_owner AS 
 	SELECT
@@ -1991,9 +2000,9 @@ ALTER TABLE "rule_to_zone"
 DROP CONSTRAINT IF EXISTS fk_rule_to_zone_zone_id_zone_zone_id;
 
 ALTER TABLE "rule_to_zone"
-ADD CONSTRAINT fk_rule_to_zone_rule_id_rule_rule_id FOREIGN KEY ("rule_id") REFERENCES "rule" ("rule_id");
+ADD CONSTRAINT fk_rule_to_zone_rule_id_rule_rule_id FOREIGN KEY ("rule_id") REFERENCES "rule" ("rule_id") ON UPDATE RESTRICT ON DELETE CASCADE;
 ALTER TABLE "rule_to_zone"
-ADD CONSTRAINT fk_rule_to_zone_zone_id_zone_zone_id FOREIGN KEY ("zone_id") REFERENCES "zone" ("zone_id");
+ADD CONSTRAINT fk_rule_to_zone_zone_id_zone_zone_id FOREIGN KEY ("zone_id") REFERENCES "zone" ("zone_id") ON UPDATE RESTRICT ON DELETE CASCADE;
 
 --crosstabulation rule zone for source FKs
 ALTER TABLE "rule_from_zone" 
@@ -2002,9 +2011,9 @@ ALTER TABLE "rule_from_zone"
 DROP CONSTRAINT IF EXISTS fk_rule_from_zone_zone_id_zone_zone_id;
 
 ALTER TABLE "rule_from_zone"
-ADD CONSTRAINT fk_rule_from_zone_rule_id_rule_rule_id FOREIGN KEY ("rule_id") REFERENCES "rule" ("rule_id");
+ADD CONSTRAINT fk_rule_from_zone_rule_id_rule_rule_id FOREIGN KEY ("rule_id") REFERENCES "rule" ("rule_id") ON UPDATE RESTRICT ON DELETE CASCADE;
 ALTER TABLE "rule_from_zone"
-ADD CONSTRAINT fk_rule_from_zone_zone_id_zone_zone_id FOREIGN KEY ("zone_id") REFERENCES "zone" ("zone_id");
+ADD CONSTRAINT fk_rule_from_zone_zone_id_zone_zone_id FOREIGN KEY ("zone_id") REFERENCES "zone" ("zone_id") ON UPDATE RESTRICT ON DELETE CASCADE;
 
 
 -- initial fill script for rule_from_zones and rule_to_zones
@@ -2018,7 +2027,6 @@ DECLARE
     col_exists_destination BOOLEAN;
 	count_from_zone_in_rule_after_update INT:= 0;
     count_to_zone_in_rule_after_update INT:= 0;
-	
 	
 BEGIN
 	-- Check column rule_from_zone exists

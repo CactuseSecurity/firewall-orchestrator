@@ -44,7 +44,7 @@
                 <input type="number" min="1" max="5000" step="1" class="form-control form-control-sm" @bind="actReportFilters.UnusedDays" />
             </div>
         }
-        else if(actReportFilters.ReportType != ReportType.AppRules && !actReportFilters.ReportType.IsComplianceReport())
+        @if(actReportFilters.ReportType.HasTimeFilter())
         {
             <div class="p-3">
                 <h5 class="text-left">@(userConfig.GetText("report_time"))</h5>
@@ -76,7 +76,7 @@
             {
                 <ReportTenantSelection SelectedTenant="actReportFilters.SelectedTenant" SelectedTenantChanged="TenantViewChanged" TenantFilteringAllowed="tenantFilteringAllowed" />
             }
-            @if(actReportFilters.ReportType == ReportType.Recertification)
+            @if(actReportFilters.ReportType.IsRulebaseReport())
             {
                 <ManagementSelection @bind-DeviceFilter="actReportFilters.DeviceFilter" />
             }

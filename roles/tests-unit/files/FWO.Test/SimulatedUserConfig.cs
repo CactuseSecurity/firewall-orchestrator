@@ -146,6 +146,7 @@ namespace FWO.Test
             {"English", "English"},
             {"last_successful", "Last successful"},
             {"common_service", "Common Service"},
+            {"managements", "Managements"},
         };
 
         public override string GetText(string key)

@@ -70,8 +70,6 @@ class FwConfigImportGateway:
             if gw.Uid is None:
                 raise FwoImporterError("found gateway with Uid = None")
             gw_id = self._global_state.import_state.state.lookup_gateway_id(gw.Uid)
-            if gw_id is None:
-                FWOLogger.warning(f"did not find a gwId for UID {gw.Uid}")
 
             self._create_insert_args(gw, previous_config_gw, gw_id, required_inserts)
 

@@ -2160,7 +2160,7 @@ BEGIN
         WHERE table_name='owner' AND column_name='owner_responsible1'
     ) > 0 THEN
         INSERT INTO owner_responsible (owner_id, dn, responsible_type)
-        SELECT id, dn, 1
+        SELECT owner.id, dn, 1
         FROM owner, unnest(owner_responsible1) AS dn
         LEFT JOIN owner_responsible r
             ON r.owner_id = owner.id AND r.dn = dn AND r.responsible_type = 1
@@ -2175,7 +2175,7 @@ BEGIN
         WHERE table_name='owner' AND column_name='owner_responsible2'
     ) > 0 THEN
         INSERT INTO owner_responsible (owner_id, dn, responsible_type)
-        SELECT id, dn, 2
+        SELECT owner.id, dn, 2
         FROM owner, unnest(owner_responsible2) AS dn
         LEFT JOIN owner_responsible r
             ON r.owner_id = owner.id AND r.dn = dn AND r.responsible_type = 2
@@ -2190,7 +2190,7 @@ BEGIN
         WHERE table_name='owner' AND column_name='owner_responsible3'
     ) > 0 THEN
         INSERT INTO owner_responsible (owner_id, dn, responsible_type)
-        SELECT id, dn, 3
+        SELECT owner.id, dn, 3
         FROM owner, unnest(owner_responsible3) AS dn
         LEFT JOIN owner_responsible r
             ON r.owner_id = owner.id AND r.dn = dn AND r.responsible_type = 3
@@ -2205,7 +2205,7 @@ BEGIN
         WHERE table_name='owner' AND column_name='dn'
     ) > 0 THEN
         INSERT INTO owner_responsible (owner_id, dn, responsible_type)
-        SELECT id, dn, 1
+        SELECT owner.id, dn, 1
         FROM owner
         LEFT JOIN owner_responsible r
             ON r.owner_id = owner.id AND r.dn = owner.dn AND r.responsible_type = 1
@@ -2220,7 +2220,7 @@ BEGIN
         WHERE table_name='owner' AND column_name='group_dn'
     ) > 0 THEN
         INSERT INTO owner_responsible (owner_id, dn, responsible_type)
-        SELECT id, group_dn, 2
+        SELECT owner.id, group_dn, 2
         FROM owner
         LEFT JOIN owner_responsible r
             ON r.owner_id = owner.id AND r.dn = owner.group_dn AND r.responsible_type = 2

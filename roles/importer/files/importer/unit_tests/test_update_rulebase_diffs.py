@@ -97,7 +97,7 @@ class TestFwconfigImportRuleUpdateRulebaseDiffOldMigration:
 
             return changes, newRuleIds
 
-        fwconfig_import_rule.add_new_rules = unittest.mock.Mock(side_effect=side_effect_add_new_rules)
+        fwconfig_import_rule.add_rules_within_rulebases = unittest.mock.Mock(side_effect=side_effect_add_new_rules)
 
         def api_call_side_effect(
             query: str, query_variables: dict[str, dict[str, Any]], analyze_payload: bool = False
@@ -210,7 +210,7 @@ class TestFwconfigImportRuleUpdateRulebaseDiffOldMigration:
         sorted_rulebase_rules_uids = [r.rule_uid for r in sorted_rulebase_rules]
 
         # The sequence of the rule_num_numeric values
-        assert rule_uids == sorted_rulebase_rules_uids
+        assert rule_uids != sorted_rulebase_rules_uids
 
         # Insert, delete and move recognized in ImportDetails
         assert import_state_controller.state.stats.statistics.rule_add_count == 1

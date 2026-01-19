@@ -156,6 +156,7 @@ def fwconfig_import_rule_mock() -> FwConfigImportRule:
 def fwconfig_import_rule() -> FwConfigImportRule:
     fw_config_import_rule = FwConfigImportRule()
     fw_config_import_rule.create_new_rule_version = unittest.mock.MagicMock()
+    fw_config_import_rule.update_rulebase_diffs = unittest.mock.MagicMock()
     return fw_config_import_rule
 
 

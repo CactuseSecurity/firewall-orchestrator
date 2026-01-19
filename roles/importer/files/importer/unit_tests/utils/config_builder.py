@@ -16,7 +16,7 @@ from models.rulebase_link import RulebaseLink, RulebaseLinkUidBased
 from models.serviceobject import ServiceObject
 from netaddr import IPNetwork
 from services.service_provider import ServiceProvider
-from services.uid2id_mapper import Uid2IdMapper
+from services.uid2id_mapper import Uid2IdMap, Uid2IdMapper
 
 from .uid_manager import UidManager
 
@@ -307,19 +307,21 @@ class FwConfigBuilder:
             return pool
         return self._rng.sample(pool, count)
 
-    def update_rule_map_and_rulebase_map(self, config: FwConfigNormalized, uid2id_mapper: Uid2IdMapper):
-        uid2id_mapper.rulebase_uid2id = {}
-        uid2id_mapper.rule_uid2id = {}
+    def update_rule_map_and_rulebase_map(self, config: FwConfigNormalized, import_id: int) -> None:
+        service_provider = ServiceProvider()
+        uid2id_mapper = service_provider.get_uid2id_mapper(import_id=import_id)
+        uid2id_mapper.rulebase_uid2id = Uid2IdMap()
+        uid2id_mapper.rule_uid2id = Uid2IdMap()
 
         rulebase_id = 1
         rule_id = 1
 
         for rulebase in config.rulebases:
-            uid2id_mapper.rulebase_uid2id[rulebase.uid] = rulebase_id
+            uid2id_mapper.rulebase_uid2id.set(rulebase.uid, rulebase_id)
             rulebase_id += 1
             for rule in rulebase.rules.values():
                 if rule.rule_uid:
-                    uid2id_mapper.rule_uid2id[rule.rule_uid] = rule_id
+                    uid2id_mapper.rule_uid2id.set(rule.rule_uid, rule_id)
                     rule_id += 1
 
     def update_rb_links(
@@ -327,14 +329,11 @@ class FwConfigBuilder:
         rulebase_links: list[RulebaseLinkUidBased],
         gateway_id: int,
         fwconfig_import_gateway: FwConfigImportGateway,
+        uid2id_mapper: Uid2IdMapper,
     ):
         new_rb_links: list[RulebaseLink] = []
         link_id = 0
-        global_state = fwconfig_import_gateway.get_global_state()
         rb_link_controller = fwconfig_import_gateway.get_rb_link_controller()
-
-        service_provider = ServiceProvider()
-        uid2id_mapper = service_provider.get_uid2id_mapper(import_id=global_state.import_state.state.import_id)
 
         for link in rulebase_links:
             link_id += 1
@@ -356,7 +355,7 @@ class FwConfigBuilder:
                 RulebaseLink(
                     id=link_id,
                     gw_id=gateway_id,
-                    from_rule_id=uid2id_mapper.get_rule_id(link.from_rule_uid or ""),
+                    from_rule_id=uid2id_mapper.get_rule_id(link.from_rule_uid) if link.from_rule_uid else None,
                     from_rulebase_id=uid2id_mapper.get_rulebase_id(link.from_rulebase_uid)
                     if link.from_rulebase_uid
                     else None,

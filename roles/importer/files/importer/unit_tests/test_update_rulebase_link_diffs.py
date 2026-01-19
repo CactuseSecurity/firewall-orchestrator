@@ -32,11 +32,11 @@ def test_add_cp_section_header_at_the_bottom(
 
     service_provider = ServiceProvider()
     uid2id_mapper = service_provider.get_uid2id_mapper(import_id=import_state_controller.state.import_id)
-    fwconfig_builder.update_rule_map_and_rulebase_map(config, uid2id_mapper)
+    fwconfig_builder.update_rule_map_and_rulebase_map(config, import_state_controller.state.import_id)
 
     to_rulebase_id = uid2id_mapper.get_rulebase_id(new_rulebase.uid)
     from_rulebase_id = uid2id_mapper.get_rulebase_id(last_rulebase.uid)
-    fwconfig_builder.update_rb_links(gateway.RulebaseLinks, 1, fwconfig_import_gateway)
+    fwconfig_builder.update_rb_links(gateway.RulebaseLinks, 1, fwconfig_import_gateway, uid2id_mapper)
 
     import_state_controller.state.gateway_map[3] = {global_state.normalized_config.gateways[0].Uid or "": 1}
 

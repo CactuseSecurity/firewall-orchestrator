@@ -2205,11 +2205,11 @@ BEGIN
         WHERE table_name='owner' AND column_name='dn'
     ) > 0 THEN
         INSERT INTO owner_responsible (owner_id, dn, responsible_type)
-        SELECT owner.id, dn, 1
+        SELECT owner.id, owner.dn, 1
         FROM owner
         LEFT JOIN owner_responsible r
             ON r.owner_id = owner.id AND r.dn = owner.dn AND r.responsible_type = 1
-        WHERE NULLIF(dn, '') IS NOT NULL
+        WHERE NULLIF(owner.dn, '') IS NOT NULL
           AND r.owner_id IS NULL;
         ALTER TABLE owner DROP COLUMN dn;
     END IF;
@@ -2220,11 +2220,11 @@ BEGIN
         WHERE table_name='owner' AND column_name='group_dn'
     ) > 0 THEN
         INSERT INTO owner_responsible (owner_id, dn, responsible_type)
-        SELECT owner.id, group_dn, 2
+        SELECT owner.id, owner.group_dn, 2
         FROM owner
         LEFT JOIN owner_responsible r
             ON r.owner_id = owner.id AND r.dn = owner.group_dn AND r.responsible_type = 2
-        WHERE NULLIF(group_dn, '') IS NOT NULL
+        WHERE NULLIF(owner.group_dn, '') IS NOT NULL
           AND r.owner_id IS NULL;
         ALTER TABLE owner DROP COLUMN group_dn;
     END IF;

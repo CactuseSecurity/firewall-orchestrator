@@ -1,0 +1,458 @@
+@page "/settings/appdataimport"
+@page "/settings/owners/appdataimport"
+
+@using System.Text.Json
+@using FWO.Data.Middleware
+@using FWO.Middleware.Client
+@using FWO.Services.EventMediator.Events
+@using FWO.Services.EventMediator.Interfaces
+@using FWO.Ui.Data
+@using FWO.Ui.Pages.NetworkModelling
+@using FWO.Ui.Services
+
+@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
+
+@implements IDisposable
+@inject ApiConnection apiConnection
+@inject GlobalConfig globalConfig
+@inject UserConfig userConfig
+@inject MiddlewareClient middlewareClient
+@inject IEventMediator EventMediator
+
+<div class="input-group">
+    <h3>@(userConfig.GetText("import_app_data"))</h3>
+</div>
+<hr />
+
+@if (configData != null && initComplete)
+{
+    <form onsubmit="return false">
+        <div class="form-group row mt-4" data-toggle="tooltip" title="@(userConfig.PureLine("H9055"))">
+            <label class="col-form-label col-sm-4">@userConfig.GetText("import_app_server"):</label>
+            <div class="row col-sm-6">
+                <ImportFileUpload SupportedFileFormats=".csv" AuthorizedRoles="@Roles.Admin"
+                                  UploadCase="FileUploadCase.ImportAppServerFromCSV" />
+            </div>
+        </div>
+        <hr />
+        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5611"))">
+            <label class="col-form-label col-sm-4">@userConfig.GetText("importAppDataPath"):</label>
+            <div class="col-sm-6">
+                <EditList ElementType="string" Elements="appDataPaths.ToArray()" ElementsToAdd="PathsToAdd"
+                          ElementsToDelete="PathsToDelete" StdLayout="false">
+                    <Display>
+                        <div class="row">
+                            <div class="col-sm-12 border bg-transparent">@context</div>
+                        </div>
+                    </Display>
+                </EditList>
+                <div class="row col-sm-12 mt-1">
+                    <input type="text" class="col-sm-10" @bind="actPath" />
+                    <button type="button" class="col-sm-2 btn btn-sm btn-primary" @onclick="AddPath"
+                            @onclick:preventDefault>@(DisplayService.DisplayButton(userConfig, "add", Icons.Add))</button>
+                </div>
+            </div>
+        </div>
+        <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5612"))">
+            <label class="col-form-label col-sm-4">@(userConfig.GetText("importAppDataSleepTime")):</label>
+            <input type="number" min="0" class="col-sm-2" @bind="configData!.ImportAppDataSleepTime" />
+        </div>
+        <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5613"))">
+            <label class="col-form-label col-sm-4">@(userConfig.GetText("importAppDataStartAt")):</label>
+            <input type="time" step="60" class="col-sm-2" @bind="appDataTime" />
+            <input type="date" class="col-sm-2" @bind="appDataDate" />
+        </div>
+        <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5640"))">
+            <label class="col-sm-4 col-form-label col-form-label">@(userConfig.GetText("ownerGroupLdap")):</label>
+            <div class="col-sm-2">
+                <Dropdown ElementType="UiLdapConnection" ElementToString="@(l => l.Name)"
+                          @bind-SelectedElement="selectedLdap" Elements="connectedLdaps">
+                    <ElementTemplate Context="ldap">
+                        @ldap.Name
+                    </ElementTemplate>
+                </Dropdown>
+            </div>
+        </div>
+        <div class="form-group row mt-2">
+            <div class="row align-items-center col-sm-5" data-toggle="tooltip" title="@(userConfig.PureLine("H5642"))">
+                <label for="cbx_manage_owner_ldap_groups"
+                       class="col-form-label col-sm-10">@(userConfig.GetText("manageGroupsInLdap")):</label>
+                <input id="cbx_manage_owner_ldap_groups" type="checkbox" class="col-sm-2"
+                       @bind="configData!.ManageOwnerLdapGroups">
+                </div>
+                <div class="form-group row col-sm-7" data-toggle="tooltip" title="@(userConfig.PureLine("H5641"))">
+                    <label class="col-form-label col-sm-6">@(userConfig.GetText("ownerGroupPattern")):</label>
+                    <input type="input" class="col-sm-6" @bind="configData!.OwnerLdapGroupNames" />
+                </div>
+            </div>
+            <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5667"))">
+                <label class="col-form-label col-sm-4">@(userConfig.GetText("set_roles_with_import")):</label>
+                <div class="form-group row col-sm-8">
+                    <div class="col-sm-12">
+                        <div class="fw-bold">@userConfig.GetText("main_responsible")</div>
+                    </div>
+                    @foreach (var role in availableRoles)
+                    {
+                        <div class="form-group col-sm-3">
+                            <input id="cbx_main_@role" type="checkbox" @bind="rolesByTypeDict[1][role]" />
+                            <label for="cbx_main_@role" class="col-form-label">@(role)</label>
+                        </div>
+                    }
+                    <div class="col-sm-12 mt-2">
+                        <div class="fw-bold">@userConfig.GetText("group")</div>
+                    </div>
+                    @foreach (var role in availableRoles)
+                    {
+                        <div class="form-group col-sm-3">
+                            <input id="cbx_group_@role" type="checkbox" @bind="rolesByTypeDict[2][role]" />
+                            <label for="cbx_group_@role" class="col-form-label">@(role)</label>
+                        </div>
+                    }
+                    <div class="col-sm-12 mt-2">
+                        <div class="fw-bold">@userConfig.GetText("owner_responsible3")</div>
+                    </div>
+                    @foreach (var role in availableRoles)
+                    {
+                        <div class="form-group col-sm-3">
+                            <input id="cbx_extra_@role" type="checkbox" @bind="rolesByTypeDict[3][role]" />
+                            <label for="cbx_extra_@role" class="col-form-label">@(role)</label>
+                        </div>
+                    }
+                </div>
+            </div>
+            <hr />
+            <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5614"))">
+                <label class="col-form-label col-sm-4">@userConfig.GetText("importSubnetDataPath"):</label>
+                <div class="col-sm-6">
+                    <EditList ElementType="string" Elements="SubnetDataPaths.ToArray()" ElementsToAdd="PathsToAddSubnet"
+                              ElementsToDelete="PathsToDeleteSubnet" StdLayout="false">
+                        <Display>
+                            <div class="row">
+                                <div class="col-sm-12 border bg-transparent">@context</div>
+                            </div>
+                        </Display>
+                    </EditList>
+                    <div class="row col-sm-12 mt-1">
+                        <input type="text" class="col-sm-10" @bind="SubnetActPath" />
+                        <button type="button" class="col-sm-2 btn btn-sm btn-primary" @onclick="AddPathSubnet"
+                                @onclick:preventDefault>@(DisplayService.DisplayButton(userConfig, "add", Icons.Add))</button>
+                    </div>
+                </div>
+            </div>
+            <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5615"))">
+                <label class="col-form-label col-sm-4">@(userConfig.GetText("importSubnetDataSleepTime")):</label>
+                <input type="number" min="0" class="col-sm-2" @bind="configData!.ImportSubnetDataSleepTime" />
+            </div>
+            <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5616"))">
+                <label class="col-form-label col-sm-4">@(userConfig.GetText("importSubnetDataStartAt")):</label>
+                <input type="time" step="60" class="col-sm-2" @bind="subnetDataTime" />
+                <input type="date" class="col-sm-2" @bind="subnetDataDate" />
+            </div>
+            <hr />
+        </form>
+        <AuthorizeView Roles="@Roles.Admin">
+            <Authorized>
+                <button type="button" class="btn btn-sm btn-primary" @onclick="Save"
+                        @onclick:preventDefault>@(userConfig.GetText("save"))</button>
+            </Authorized>
+            <NotAuthorized>
+                <button type="button" class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("save"))</button>
+            </NotAuthorized>
+        </AuthorizeView>
+        <br>
+        <br>
+    }
+else
+    {
+        <Loading />
+    }
+
+    <PopUp Title="@(userConfig.GetText("appserver_import"))" Show="@ShowCSVImportPopUp" Size=PopupSize.Large
+           OnClose="() => ShowCSVImportPopUp = false">
+        <Body>
+            @if (Appserver is not null && Appserver.Count > 0)
+            {
+                <div class="mt-3">
+                    <Collapse StartToggled="false" Style="success" Title="@(userConfig.GetText("success"))">
+                        <Table PageSize="0"
+                               TableClass="table table-bordered table-sm th-bg-secondary table-responsive overflow-auto sticky-header"
+                               TableItem="string" Items="Appserver">
+                            <Column TableItem="string" Title="@(userConfig.GetText("entrydata"))" Type="typeof(string)"
+                                    Field="@(_ => new string(_))" Sortable="true" Filterable="true" />
+                        </Table>
+                    </Collapse>
+                </div>
+            }
+            @if (CSVImportErrors is not null && CSVImportErrors.Count > 0)
+            {
+                <div class="mt-1">
+                    <Collapse StartToggled="false" Style="danger" Title="@(userConfig.GetText("errors"))">
+                        <Table PageSize="0"
+                               TableClass="table table-bordered table-sm th-bg-secondary table-responsive overflow-auto sticky-header"
+                               TableItem="CSVFileUploadErrorModel" Items="CSVImportErrors">
+                            <Column TableItem="CSVFileUploadErrorModel" Title="@(userConfig.GetText("entrydata"))"
+                                    Field="@(_ => _.EntryData)" Sortable="true" Filterable="true" />
+                            <Column TableItem="CSVFileUploadErrorModel" Title="@(userConfig.GetText("error_message"))"
+                                    Field="@(_ => _.Message)" Sortable="true" Filterable="true" />
+                            <Column TableItem="CSVFileUploadErrorModel" Title="@(userConfig.GetText("type"))"
+                                    Field="@(_ => _.MessageType)" Sortable="true" />
+                        </Table>
+                    </Collapse>
+                </div>
+            }
+            @if (Appserver is not null && Appserver.Count == 0 && CSVImportErrors is not null && CSVImportErrors.Count == 0)
+            {
+                <div class="alert alert-info mt-3" role="alert">
+                    @(userConfig.GetText("E9400"))
+                </div>
+            }
+        </Body>
+        <Footer>
+            <div class="btn-group">
+                <button type="button" class="btn btn-sm btn-primary"
+                        @onclick="() => ShowCSVImportPopUp = false">@(userConfig.GetText("ok"))</button>
+            </div>
+        </Footer>
+    </PopUp>
+
+@code
+{
+    [CascadingParameter]
+    Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
+
+    private ConfigData? configData;
+    private List<string> appDataPaths = [];
+    private List<string> SubnetDataPaths = [];
+    private List<string> PathsToAdd = [];
+    private List<string> PathsToDelete = [];
+    private List<string> PathsToAddSubnet = [];
+    private List<string> PathsToDeleteSubnet = [];
+    private string actPath = "";
+    private string SubnetActPath = "";
+    private DateTime appDataDate = DateTime.Today;
+    private DateTime appDataTime = DateTime.Now.AddSeconds(-DateTime.Now.Second);
+    private DateTime subnetDataDate = DateTime.Today;
+    private DateTime subnetDataTime = DateTime.Now.AddSeconds(-DateTime.Now.Second);
+    private List<UiLdapConnection> connectedLdaps = [];
+    private UiLdapConnection selectedLdap = new();
+    private Dictionary<int, List<string>> RolesToSetByType = [];
+    private List<string> availableRoles { get; set; } = [];
+    private Dictionary<int, Dictionary<string, bool>> rolesByTypeDict = [];
+    private bool initComplete = false;
+    private bool ShowCSVImportPopUp { get; set; }
+    private List<CSVFileUploadErrorModel>? CSVImportErrors;
+    private List<string>? Appserver;
+
+    private void OnFileUploadEvent(FileUploadEventArgs? e)
+    {
+        if (e is null)
+        {
+            return;
+        }
+
+        if (!e.Success && e.Error is not null)
+        {
+            DisplayMessageInUi(e.Error.InternalException, userConfig.GetText("import_app_data"), e.Error.Message ?? "", true);
+            return;
+        }
+    }
+
+    private void OnCSVAppServerImportEvent(AppServerImportEventArgs? e)
+    {
+        if (e is null)
+        {
+            return;
+        }
+
+        CSVImportErrors = e.Errors;
+        Appserver = e.Appserver;
+
+        ShowCSVImportPopUp = true;
+        StateHasChanged();
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            configData = await globalConfig.GetEditableConfig();
+            appDataPaths = JsonSerializer.Deserialize<List<string>>(configData.ImportAppDataPath) ?? [];
+            RolesToSetByType = ParseRolesWithImport(configData.RolesWithAppDataImport);
+            SubnetDataPaths = JsonSerializer.Deserialize<List<string>>(configData.ImportSubnetDataPath) ?? [];
+            appDataDate = appDataTime = configData.ImportAppDataStartAt;
+            subnetDataDate = subnetDataTime = configData.ImportSubnetDataStartAt;
+
+            availableRoles = (await RoleAccess.GetRolesFromInternalLdap(middlewareClient)).Select(r => r.Name).Where(n =>
+!RoleGroups.IsTechnicalOrAnonymous(n)).OrderBy(s => s).ToList();
+            rolesByTypeDict = BuildRolesByTypeDict(availableRoles, RolesToSetByType);
+
+            connectedLdaps = await apiConnection.SendQueryAsync<List<UiLdapConnection>>(AuthQueries.getAllLdapConnections);
+            selectedLdap = connectedLdaps.FirstOrDefault(x => x.Id == configData.OwnerLdapId) ?? new();
+
+            initComplete = true;
+
+            EventMediator.Subscribe<FileUploadEvent>(nameof(FileUploadService.ReadFileToBytes), _ =>
+OnFileUploadEvent(_.EventArgs));
+            EventMediator.Subscribe<AppServerImportEvent>(nameof(FileUploadService.ImportAppServersFromCSV), _ =>
+OnCSVAppServerImportEvent(_.EventArgs));
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("read_config"), userConfig.GetText("E5301"), false);
+        }
+    }
+
+    private void AddPath()
+    {
+        if (actPath != "")
+        {
+            PathsToAdd.Add(actPath);
+            actPath = "";
+        }
+    }
+
+    private void AddPathSubnet()
+    {
+        if (!string.IsNullOrWhiteSpace(SubnetActPath))
+        {
+            PathsToAddSubnet.Add(SubnetActPath);
+            SubnetActPath = "";
+        }
+    }
+
+    private async Task Save()
+    {
+        try
+        {
+            if (configData != null)
+            {
+                PrepareConfigData();
+                await globalConfig.WriteToDatabase(configData, apiConnection);
+
+                PathsToDelete = [];
+                PathsToAdd = [];
+                PathsToDeleteSubnet = [];
+                PathsToAddSubnet = [];
+                DisplayMessageInUi(null, userConfig.GetText("import_app_data"), userConfig.GetText("U5301"), false);
+            }
+            else
+            {
+                throw new ArgumentException("Data saved before loaded. This should be impossible.");
+            }
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("import_app_data"), "", true);
+        }
+    }
+
+    private void PrepareConfigData()
+    {
+        PrepareAppDataPaths();
+        PrepareRoles();
+        PrepareSubnetDataPaths();
+        configData!.ImportAppDataStartAt = appDataDate.Date.Add(appDataTime.TimeOfDay);
+        configData!.ImportSubnetDataStartAt = subnetDataDate.Date.Add(subnetDataTime.TimeOfDay);
+        configData!.OwnerLdapId = selectedLdap.Id;
+    }
+
+    private void PrepareRoles()
+    {
+        RolesToSetByType = [];
+        foreach (var typeEntry in rolesByTypeDict)
+        {
+            List<string> selectedRoles = [];
+            foreach (var roleEntry in typeEntry.Value)
+            {
+                if (roleEntry.Value)
+                {
+                    selectedRoles.Add(roleEntry.Key);
+                }
+            }
+            RolesToSetByType[typeEntry.Key] = selectedRoles;
+        }
+        configData!.RolesWithAppDataImport = JsonSerializer.Serialize(RolesToSetByType);
+    }
+
+    private static Dictionary<int, List<string>> ParseRolesWithImport(string rolesJson)
+    {
+        Dictionary<int, List<string>> rolesByType = [];
+        if (string.IsNullOrWhiteSpace(rolesJson))
+        {
+            return rolesByType;
+        }
+
+        string trimmed = rolesJson.TrimStart();
+        if (trimmed.StartsWith("["))
+        {
+            List<string> roles = JsonSerializer.Deserialize<List<string>>(rolesJson) ?? [];
+            rolesByType[2] = roles;
+            return rolesByType;
+        }
+
+        Dictionary<string, List<string>>? parsed = JsonSerializer.Deserialize<Dictionary<string, List<string>>>(rolesJson);
+        if (parsed != null)
+        {
+            foreach (var entry in parsed)
+            {
+                if (int.TryParse(entry.Key, out int typeId))
+                {
+                    rolesByType[typeId] = entry.Value;
+                }
+            }
+        }
+        return rolesByType;
+    }
+
+    private static Dictionary<int, Dictionary<string, bool>> BuildRolesByTypeDict(List<string> availableRoles,
+Dictionary<int, List<string>> rolesByType)
+    {
+        Dictionary<int, Dictionary<string, bool>> dictByType = [];
+        foreach (int typeId in new[] { 1, 2, 3 })
+        {
+            List<string> selected = rolesByType.TryGetValue(typeId, out List<string>? roles) ? roles : [];
+            Dictionary<string, bool> roleDict = [];
+            foreach (string role in availableRoles)
+            {
+                roleDict[role] = selected.Contains(role);
+            }
+            dictByType[typeId] = roleDict;
+        }
+        return dictByType;
+    }
+
+    private void PrepareAppDataPaths()
+    {
+        foreach (var path in PathsToDelete)
+        {
+            appDataPaths.Remove(path);
+        }
+        foreach (var path in PathsToAdd)
+        {
+            appDataPaths.Add(path);
+        }
+        configData!.ImportAppDataPath = JsonSerializer.Serialize(appDataPaths);
+    }
+
+    private void PrepareSubnetDataPaths()
+    {
+        foreach (string path in PathsToDeleteSubnet)
+        {
+            SubnetDataPaths.Remove(path);
+        }
+        foreach (string path in PathsToAddSubnet)
+        {
+            SubnetDataPaths.Add(path);
+        }
+        configData!.ImportSubnetDataPath = JsonSerializer.Serialize(SubnetDataPaths);
+    }
+
+    /// <summary>
+    /// Unsubscribes from file upload events when the component is disposed.
+    /// </summary>
+    public void Dispose()
+    {
+        EventMediator.Unsubscribe<FileUploadEvent>(nameof(FileUploadService.ReadFileToBytes));
+        EventMediator.Unsubscribe<AppServerImportEvent>(nameof(FileUploadService.ImportAppServersFromCSV));
+    }
+}

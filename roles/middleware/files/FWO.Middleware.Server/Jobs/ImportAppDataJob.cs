@@ -34,6 +34,8 @@ namespace FWO.Middleware.Server.Jobs
         /// <inheritdoc />
         public async Task Execute(IJobExecutionContext context)
         {
+            Log.WriteDebug(LogMessageTitleImport, "Process started");
+
             await ImportAppData();
             await AdjustAppServerNames();
         }

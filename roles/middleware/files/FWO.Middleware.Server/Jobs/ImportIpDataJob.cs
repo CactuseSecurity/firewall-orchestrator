@@ -33,6 +33,8 @@ namespace FWO.Middleware.Server.Jobs
         /// <inheritdoc />
         public async Task Execute(IJobExecutionContext context)
         {
+            Log.WriteDebug(LogMessageTitle, "Process started");
+
             try
             {
                 AreaIpDataImport import = new(apiConnection, globalConfig);

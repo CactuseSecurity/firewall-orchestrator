@@ -18,6 +18,7 @@ mutation rollbackImport($importId: bigint!) {
     delete_service(where: {svc_create: {_eq: $importId}}) { affected_rows }
     delete_usr(where: {user_create: {_eq: $importId}}) { affected_rows }
     delete_zone(where: {zone_create: {_eq: $importId}}) { affected_rows }
+    delete_rule_metadata(where: {rule_created: {_eq: $importId}}) { affected_rows }
     delete_rule(where: {rule_create: {_eq: $importId}}) { affected_rows }
     delete_rulebase_link(where: {created: {_eq: $importId}}) { affected_rows }
     delete_rulebase(where: {created: {_eq: $importId}}) { affected_rows }

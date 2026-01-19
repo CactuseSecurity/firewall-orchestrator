@@ -1,8 +1,6 @@
 mutation updateOwner(
   $id: Int!
   $name: String!
-  $dn: String!
-  $groupDn: String!
   $tenantId: Int
   $recertInterval: Int
   $appIdExternal: String
@@ -16,8 +14,6 @@ mutation updateOwner(
     pk_columns: { id: $id }
     _set: {
       name: $name
-      dn: $dn
-      group_dn: $groupDn
       tenant_id: $tenantId
       recert_interval: $recertInterval
       app_id_external: $appIdExternal

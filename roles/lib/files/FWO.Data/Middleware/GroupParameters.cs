@@ -41,4 +41,9 @@
         public string UserDn { get; set; } = "";
         public string UserName { get; set; } = "";
     }
+
+    public class GroupResolveParameters
+    {
+        public List<string> Dns { get; set; } = new();
+    }
 }

@@ -629,7 +629,7 @@ namespace FWO.Middleware.Server
             return allRemoved;
         }
 
-        private async Task<bool> ModifyUserInEntry(string userDn, string entryDn, int ldapModification)
+        private async Task<bool> ModifyUserInEntry(string userDn, string entry, int ldapModification)
         {
             bool userModified = false;
             try
@@ -638,46 +638,43 @@ namespace FWO.Middleware.Server
                 // Authenticate as write user
                 await TryBind(connection, WriteUser, WriteUserPwd);
 
-                LdapEntry? entry;
+                LdapEntry? entryData;
                 try
                 {
-                    entry = await connection.ReadAsync(entryDn);
-                    if (entry == null)
+                    entryData = await connection.ReadAsync(entry);
+                    if (entryData == null)
                     {
-                        Log.WriteDebug("Modify Entry", $"Entry not found: {entryDn}");
+                        Log.WriteDebug("Modify Entry", $"Entry not found: {entry}");
                         return false;
                     }
                 }
                 catch (LdapException ex) when (ex.ResultCode == LdapException.NoSuchObject)
                 {
-                    Log.WriteDebug("Modify Entry", $"Entry not found: {entryDn}");
+                    Log.WriteDebug("Modify Entry", $"Entry not found: {entry}");
                     return false;
                 }
 
-                if (entry.GetAttributeSet().ContainsKey(UniqueMemberLowerCase))
-                {
-                    if (entry.Get(UniqueMemberLowerCase)
+                if (entryData.GetAttributeSet().ContainsKey(UniqueMemberLowerCase)
+                    && entryData.Get(UniqueMemberLowerCase)
                              .StringValueArray
                              .Any(m => m.Equals(userDn, StringComparison.OrdinalIgnoreCase)))
-                    {
-                        Log.WriteDebug("Modify Entry", $"User {userDn} already member of {entryDn}");
-                        return false;
-                    }
+                {
+                    Log.WriteDebug("Modify Entry", $"User {userDn} already member of {entry}");
+                    return false;
                 }
 
                 LdapAttribute attribute = new(UniqueMemberLowerCase, userDn);
                 LdapModification[] mods = [new(ldapModification, attribute)];
 
-                await connection.ModifyAsync(entryDn, mods);
+                await connection.ModifyAsync(entry, mods);
                 userModified = true;
 
-                Log.WriteDebug("Modify Entry", $"User {userDn} modified in {entryDn}");
+                Log.WriteDebug("Modify Entry", $"User {userDn} modified in {entry}");
             }
             catch (Exception ex)
             {
                 Log.WriteError($"Non-LDAP exception {Address}:{Port}", $"Unexpected error while modifying user {userDn}", ex);
             }
-
             return userModified;
         }
     }

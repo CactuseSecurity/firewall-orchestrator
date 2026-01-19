@@ -34,7 +34,12 @@
         rsync_opts:
           - "--delete"
           - "--chown={{ fworch_user }}:{{ fworch_group }}"
+      register: ui_sync_result
       tags: [ 'test' ]
+
+    - name: track ui deployment changes
+      set_fact:
+        ui_deploy_changed: "{{ ui_sync_result.changed or installation_mode == 'new' }}"
 
   become: true
 

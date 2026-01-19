@@ -287,10 +287,6 @@ namespace FWO.Middleware.Server
             return memberKey;
         }
 
-
-
-
-
         /// <summary>
         /// Get members of an ldap group
         /// </summary>

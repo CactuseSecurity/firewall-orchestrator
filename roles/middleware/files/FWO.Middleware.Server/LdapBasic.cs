@@ -629,39 +629,6 @@ namespace FWO.Middleware.Server
             return allRemoved;
         }
 
-        //private async Task<bool> ModifyUserInEntry(string userDn, string entry, int ldapModification)
-        //{
-        //    bool userModified = false;
-        //    try
-        //    {
-        //        using LdapConnection connection = await Connect();
-        //        // Authenticate as write user
-        //        await TryBind(connection, WriteUser, WriteUserPwd);
-
-        //        // Add a new value to the description attribute
-        //        LdapAttribute attribute = new(UniqueMemberLowerCase, userDn);
-        //        LdapModification[] mods = [new(ldapModification, attribute)];
-
-        //        try
-        //        {
-        //            //Modify the entry in the directory
-        //            await connection.ModifyAsync(entry, mods);
-        //            userModified = true;
-        //            Log.WriteDebug("Modify Entry", $"Entry {entry} modified in {Address}:{Port}");
-        //        }
-        //        catch (Exception exception)
-        //        {
-        //            Log.WriteInfo("Modify Entry", $"maybe entry doesn't exist in this LDAP {Address}:{Port}: {exception}");
-        //        }
-        //    }
-        //    catch (Exception exception)
-        //    {
-        //        Log.WriteError($"Non-LDAP exception {Address}:{Port}", "Unexpected error while trying to modify user", exception);
-        //    }
-        //    return userModified;
-        //}
-
-
         private async Task<bool> ModifyUserInEntry(string userDn, string entryDn, int ldapModification)
         {
             bool userModified = false;
@@ -671,7 +638,6 @@ namespace FWO.Middleware.Server
                 // Authenticate as write user
                 await TryBind(connection, WriteUser, WriteUserPwd);
 
-                // 1️ Prüfen, ob der Entry existiert
                 LdapEntry? entry;
                 try
                 {
@@ -688,7 +654,6 @@ namespace FWO.Middleware.Server
                     return false;
                 }
 
-                // 2️ Prüfen, ob der User schon Mitglied ist
                 if (entry.GetAttributeSet().ContainsKey(UniqueMemberLowerCase))
                 {
                     if (entry.Get(UniqueMemberLowerCase)
@@ -700,7 +665,6 @@ namespace FWO.Middleware.Server
                     }
                 }
 
-                // Add a new value to the description attribute
                 LdapAttribute attribute = new(UniqueMemberLowerCase, userDn);
                 LdapModification[] mods = [new(ldapModification, attribute)];
 

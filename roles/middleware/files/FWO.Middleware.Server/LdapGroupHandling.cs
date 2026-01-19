@@ -287,6 +287,10 @@ namespace FWO.Middleware.Server
             return memberKey;
         }
 
+
+
+
+
         /// <summary>
         /// Get members of an ldap group
         /// </summary>
@@ -311,7 +315,6 @@ namespace FWO.Middleware.Server
                     return allMembers;
                 }
 
-                // Check-before-read: existiert das Attribut?
                 string memberKey = GetMemberKey();
                 if (!entry.GetAttributeSet().ContainsKey(memberKey))
                 {
@@ -319,7 +322,6 @@ namespace FWO.Middleware.Server
                     return allMembers;
                 }
 
-                // Mitglieder auslesen
                 string[] groupMemberDn = entry.Get(memberKey).StringValueArray;
                 allMembers.AddRange(groupMemberDn.Where(m => !string.IsNullOrWhiteSpace(m)));
             }

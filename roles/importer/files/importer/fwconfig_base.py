@@ -13,5 +13,5 @@ class FwoEncoder(json.JSONEncoder):
 
 def replace_none_with_empty(s: str | None) -> str:  # TYPING: make a utils file and move there
     if s is None or s == "":
-        return "<EMPTY>"
+        return ""
     return str(s)

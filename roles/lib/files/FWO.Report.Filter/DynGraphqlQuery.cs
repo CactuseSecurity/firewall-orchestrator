@@ -698,8 +698,9 @@ namespace FWO.Report.Filter
             if (recertFilter != null)
             {
                 query.QueryParameters.Add("$ownerWhere: owner_bool_exp");
-                query.QueryVariables["ownerWhere"] = recertFilter.RecertOwnerList.Count > 0 ?
-                    new { id = new { _in = recertFilter.RecertOwnerList } } : new { id = new { } };
+                query.QueryVariables["ownerWhere"] = recertFilter.RecertOwnerList.Count > 0
+                    ? new { id = new { _in = recertFilter.RecertOwnerList } }
+                    : new { };
             }
         }
 

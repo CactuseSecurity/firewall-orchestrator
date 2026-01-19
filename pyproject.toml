@@ -1,7 +1,3 @@
-[tool.pytest.ini_options]
-pythonpath = [
-  "roles/importer/files/importer"
-]
 [tool.pyright]
 include = [
     "roles/importer/files/importer",
@@ -132,5 +128,5 @@ line-ending = "auto"
 pythonpath = [
     ".",
     "roles/importer/files/importer",
-    "roles/importer/files/importer/test",
+    "roles/importer/files/importer/unit_tests",
 ]

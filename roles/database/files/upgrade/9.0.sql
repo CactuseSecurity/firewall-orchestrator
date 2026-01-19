@@ -762,7 +762,7 @@ BEGIN
 	    ALTER TABLE rule_metadata ALTER COLUMN mgm_id SET NOT NULL;
         ALTER TABLE rule_metadata ADD CONSTRAINT rule_metadata_rule_uid_unique UNIQUE(rule_uid);
         ALTER TABLE rule ADD CONSTRAINT rule_rule_metadata_rule_uid_f_key 
-            FOREIGN KEY (rule_uid) REFERENCES rule_metadata (rule_uid);
+            FOREIGN KEY (rule_uid) REFERENCES rule_metadata (rule_uid) ON UPDATE RESTRICT ON DELETE CASCADE;
 			
 			-- set Unique constraint to (mgm_id + rule_uid)
         IF NOT EXISTS (
@@ -1961,9 +1961,9 @@ ALTER TABLE "rule_to_zone"
 DROP CONSTRAINT IF EXISTS fk_rule_to_zone_zone_id_zone_zone_id;
 
 ALTER TABLE "rule_to_zone"
-ADD CONSTRAINT fk_rule_to_zone_rule_id_rule_rule_id FOREIGN KEY ("rule_id") REFERENCES "rule" ("rule_id");
+ADD CONSTRAINT fk_rule_to_zone_rule_id_rule_rule_id FOREIGN KEY ("rule_id") REFERENCES "rule" ("rule_id") ON UPDATE RESTRICT ON DELETE CASCADE;
 ALTER TABLE "rule_to_zone"
-ADD CONSTRAINT fk_rule_to_zone_zone_id_zone_zone_id FOREIGN KEY ("zone_id") REFERENCES "zone" ("zone_id");
+ADD CONSTRAINT fk_rule_to_zone_zone_id_zone_zone_id FOREIGN KEY ("zone_id") REFERENCES "zone" ("zone_id") ON UPDATE RESTRICT ON DELETE CASCADE;
 
 --crosstabulation rule zone for source FKs
 ALTER TABLE "rule_from_zone" 
@@ -1972,9 +1972,9 @@ ALTER TABLE "rule_from_zone"
 DROP CONSTRAINT IF EXISTS fk_rule_from_zone_zone_id_zone_zone_id;
 
 ALTER TABLE "rule_from_zone"
-ADD CONSTRAINT fk_rule_from_zone_rule_id_rule_rule_id FOREIGN KEY ("rule_id") REFERENCES "rule" ("rule_id");
+ADD CONSTRAINT fk_rule_from_zone_rule_id_rule_rule_id FOREIGN KEY ("rule_id") REFERENCES "rule" ("rule_id") ON UPDATE RESTRICT ON DELETE CASCADE;
 ALTER TABLE "rule_from_zone"
-ADD CONSTRAINT fk_rule_from_zone_zone_id_zone_zone_id FOREIGN KEY ("zone_id") REFERENCES "zone" ("zone_id");
+ADD CONSTRAINT fk_rule_from_zone_zone_id_zone_zone_id FOREIGN KEY ("zone_id") REFERENCES "zone" ("zone_id") ON UPDATE RESTRICT ON DELETE CASCADE;
 
 
 -- initial fill script for rule_from_zones and rule_to_zones
@@ -1988,7 +1988,6 @@ DECLARE
     col_exists_destination BOOLEAN;
 	count_from_zone_in_rule_after_update INT:= 0;
     count_to_zone_in_rule_after_update INT:= 0;
-	
 	
 BEGIN
 	-- Check column rule_from_zone exists

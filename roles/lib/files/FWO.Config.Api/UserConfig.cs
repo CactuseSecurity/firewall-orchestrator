@@ -1,4 +1,4 @@
-﻿using System.Text.RegularExpressions;
+using System.Text.RegularExpressions;
 using FWO.Basics;
 using FWO.Logging;
 using FWO.Config.Api.Data;
@@ -13,20 +13,17 @@ namespace FWO.Config.Api
     /// <summary>
     /// Collection of all config data for the current user
     /// </summary>
-    public class UserConfig : Config, IDisposable
+    public class UserConfig : Config
     {
         public GlobalConfig? GlobalConfig => globalConfig;
         private readonly GlobalConfig? globalConfig;
-        private bool disposedValue;
 
         public Dictionary<string, string> Translate { get; set; } = [];
         public Dictionary<string, string> Overwrite { get; set; } = [];
 
         public UiUser User { private set; get; }
 
-        
-
-        public static async Task<UserConfig> ConstructAsync(GlobalConfig globalConfig, ApiConnection apiConnection, int userId)
+        public static async Task<UserConfig> ConstructAsync(GlobalConfig globalConfig, ApiConnection apiConnection, int userId, bool owningApiConnection = false)
         {
             UiUser[] users = await apiConnection.SendQueryAsync<UiUser[]>(AuthQueries.getUserByDbId, new { userId = userId });
             UiUser? user = users.FirstOrDefault();
@@ -35,10 +32,10 @@ namespace FWO.Config.Api
                 Log.WriteError("Load user config", $"User with id {userId} could not be found in database.");
                 throw new KeyNotFoundException();
             }
-            return new UserConfig(globalConfig, apiConnection, user);
+            return new UserConfig(globalConfig, apiConnection, user, owningApiConnection);
         }
 
-        public UserConfig(GlobalConfig globalConfig, ApiConnection apiConnection, UiUser user) : base(apiConnection, user.DbId)
+        public UserConfig(GlobalConfig globalConfig, ApiConnection apiConnection, UiUser user, bool owningApiConnection = false) : base(apiConnection, user.DbId, withSubscription: false, owningApiConnection)
         {
             User = user;
             Translate = globalConfig.LangDict[user.Language!];
@@ -67,6 +64,7 @@ namespace FWO.Config.Api
 
         private void OnGlobalConfigChange(Config config, ConfigItem[] changedItems)
         {
+            if (IsDisposed) return;
             // Get properties that belong to the user config 
             IEnumerable<PropertyInfo> properties = GetType().GetProperties()
                 .Where(prop => prop.CustomAttributes.Any(attr => attr.GetType() == typeof(UserConfigDataAttribute)));
@@ -81,6 +79,7 @@ namespace FWO.Config.Api
 
         public async Task SetUserInformation(string userDn, ApiConnection apiConnection)
         {
+            ThrowIfDisposed();
             if (globalConfig != null)
             {
                 OnGlobalConfigChange(globalConfig, globalConfig.RawConfigItems);
@@ -102,6 +101,7 @@ namespace FWO.Config.Api
 
         public async Task ChangeLanguage(string languageName, ApiConnection apiConnection)
         {
+            ThrowIfDisposed();
             if (globalConfig != null)
             {
                 await apiConnection.SendQueryAsync<ReturnId>(AuthQueries.updateUserLanguage, new { id = User.DbId, language = languageName });
@@ -114,11 +114,13 @@ namespace FWO.Config.Api
 
         public string GetUserLanguage()
         {
+            ThrowIfDisposed();
             return User.Language ?? "";
         }
 
         public void SetLanguage(string languageName)
         {
+            ThrowIfDisposed();
             string defaultLanguage = globalConfig != null ? globalConfig.DefaultLanguage : GlobalConst.kEnglish;
 
             User = new UiUser()
@@ -134,6 +136,7 @@ namespace FWO.Config.Api
 
         public override string GetText(string key)
         {
+            ThrowIfDisposed();
             if (Overwrite != null && Overwrite.TryGetValue(key, out string? overwriteValue))
             {
                 return Convert(overwriteValue);
@@ -166,6 +169,7 @@ namespace FWO.Config.Api
 
         public string PureLine(string text)
         {
+            ThrowIfDisposed();
             return PureLineStat(GetText(text));
         }
 
@@ -189,6 +193,7 @@ namespace FWO.Config.Api
 
         public string GetApiText(string key)
         {
+            ThrowIfDisposed();
             string text = key;
             string pattern = @"[A]\d\d\d\d";
             Match m = Regex.Match(key, pattern);
@@ -205,6 +210,7 @@ namespace FWO.Config.Api
 
         public async Task<Dictionary<string, string>> GetCustomDict(string languageName)
         {
+            ThrowIfDisposed();
             Dictionary<string, string> dict = [];
             if (apiConnection == null)
             {
@@ -311,23 +317,14 @@ namespace FWO.Config.Api
             return plainText;
         }
 
-        public new void Dispose()
-        {
-            Dispose(disposing: true);
-            GC.SuppressFinalize(this);
-        }
-
         protected override void Dispose(bool disposing)
         {
-            if (!disposedValue)
+            if (disposing && globalConfig != null)
             {
-                if (disposing && globalConfig != null)
-                {
-                    globalConfig.OnChange -= OnGlobalConfigChange;
-                }
-                disposedValue = true;
+                globalConfig.OnChange -= OnGlobalConfigChange;
             }
-            base.Dispose(disposing);  // Call base class dispose
+            
+            base.Dispose(disposing); // Call base class dispose
         }
     }
 }

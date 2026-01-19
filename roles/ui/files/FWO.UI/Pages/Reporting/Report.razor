@@ -76,6 +76,13 @@
             {
                 <ReportTenantSelection SelectedTenant="actReportFilters.SelectedTenant" SelectedTenantChanged="TenantViewChanged" TenantFilteringAllowed="tenantFilteringAllowed" />
             }
+            @if (actReportFilters.ReportType.IsChangeReport())
+            {
+                <div class="p-3">
+                    <input class="form-check-input" type="checkbox" id="includeObjectChanges" @bind="actReportFilters.IncludeObjectsInReportChanges" />
+                    <label class="form-check-label text-white" for="includeObjectChanges"> @(userConfig.GetText("U1004"))</label>
+                </div>
+            }
             @if(actReportFilters.ReportType.IsRulebaseReport())
             {
                 <ManagementSelection @bind-DeviceFilter="actReportFilters.DeviceFilter" />
@@ -103,14 +110,14 @@
         <div class="btn-group m-1 sticky-marker-60" style="z-index: 16;">
             @if (!processing)
             {
-                <button type="button" class="btn btn-sm btn-primary" @onclick="GenerateReport">@(DisplayService.DisplayButton(userConfig, "generate_report", Icons.GenerateReport))</button>
+                <button type="button" class="btn btn-sm btn-primary" @onclick="async () => { actReportFilters.IncludeObjectsInReportChangesUiPresesed = true; await GenerateReport(); }">@(DisplayService.DisplayButton(userConfig, "generate_report", Icons.GenerateReport))</button>
             }
             else
             {
                 <button type="button" class="btn btn-sm btn-danger" @onclick="() => CancelGeneration()">@(DisplayService.DisplayButton(userConfig, "stop_fetching", Icons.Cancel))</button>
             }
             <ReportExport ReportToExport="currentReport" />
-            <button type="button" class="btn btn-sm btn-secondary" @onclick="() => { reportTemplateControl.NewTemplate(ConstructReportTemplate()); }">@(DisplayService.DisplayButton(userConfig, "save_as_template", Icons.Template))</button>
+            <button type="button" class="btn btn-sm btn-secondary" @onclick="() => { reportTemplateControl.NewTemplate(ConstructReportTemplate());}">@(DisplayService.DisplayButton(userConfig, "save_as_template", Icons.Template))</button>
             @if(currentReport != null && currentReport.ReportType == ReportType.UnusedRules && selectedItemsRuleReportTable.Count > 0
                     && (authenticationStateTask!.Result.User.IsInRole(Roles.Admin) || authenticationStateTask!.Result.User.IsInRole(Roles.Requester) || authenticationStateTask!.Result.User.IsInRole(Roles.Auditor)))
             {
@@ -158,7 +165,8 @@
                             case ReportType.ResolvedChanges:
                             case ReportType.ResolvedChangesTech:
                                 <ChangesReport Managements="currentReport.ReportData.ManagementData" SelectedReportType="actReportFilters.ReportType" RulesPerPage="rulesPerPage"
-                                    @bind-SelectedRuleChanges="selectedItemsChangeReportTable" />
+                                                   @bind-IncludeObjectsInReportChanges="@actReportFilters.IncludeObjectsInReportChanges"                                               
+                                                   @bind-SelectedRuleChanges="selectedItemsChangeReportTable" />
                                 break;
 
                             case ReportType.Statistics:
@@ -263,7 +271,7 @@
     private ReportTemplateComponent reportTemplateControl = new();
 
     private ReportBase? currentReport;
-    
+
     private Sidebar? deviceSelectionSidebar;
 
     private string filterFeedbackStart = "";
@@ -454,6 +462,8 @@
         }
         await TenantViewChanged(tenantFromTemplate);
         actReportFilters.SyncFiltersFromTemplate(template);
+        actReportFilters.IncludeObjectsInReportChanges = template.IncludeObjectsInReportChanges;
+
         StateHasChanged();
     }
 
@@ -547,23 +557,21 @@
 
     private void PostProcess()
     {
-        if(currentReport != null)
+        if (currentReport != null)
         {
             reportTemplateControl.Collapse();
 
-            if(actReportFilters.ReportType.IsDeviceRelatedReport() && currentReport.NoRuleFound())
+            if ((currentReport is ReportRules || currentReport is ReportNatRules) && currentReport.NoRuleFound())
             {
-                if(currentReport is ReportRules || currentReport is ReportNatRules)
-                {
-                    DisplayMessageInUi(null, userConfig.GetText("generate_report"), userConfig.GetText("E4002"), true);
-                }
-                else if(actReportFilters.ReportType.IsChangeReport())
-                {
-                    DisplayMessageInUi(null, userConfig.GetText("generate_report"), userConfig.GetText("E4003"), true);
-                }
+                DisplayMessageInUi(null, userConfig.GetText("generate_report"), userConfig.GetText("E4002"), true);
             }
 
-            if(currentReport is ReportCompliance && _complianceReport != null)
+            if (actReportFilters.ReportType.IsChangeReport() && currentReport.NoChangesFound())
+            {
+                DisplayMessageInUi(null, userConfig.GetText("generate_report"), userConfig.GetText("E4003"), true);
+            }
+
+            if (currentReport is ReportCompliance && _complianceReport != null)
             {
                 _complianceReport.UpdateRuleViewData(currentReport.ReportData);
                 _showAnyRulesInComplianceReport = ((ReportCompliance)currentReport).ShowNonImpactRules;
@@ -579,7 +587,11 @@
 
     private ReportTemplate ConstructReportTemplate(string? tempFilter = null)
     {
-        ReportTemplate template = new ReportTemplate(tempFilter ?? filterInput, actReportFilters.ToReportParams());
+        ReportTemplate template = new ReportTemplate(tempFilter ?? filterInput, actReportFilters.ToReportParams())
+        {
+                IncludeObjectsInReportChanges = actReportFilters.IncludeObjectsInReportChanges,
+                IncludeObjectsInReportChangesUiPresesed = actReportFilters.IncludeObjectsInReportChangesUiPresesed
+        };
         template.ReportParams.ComplianceFilter.ShowNonImpactRules = _showAnyRulesInComplianceReport;
         return template;
     }

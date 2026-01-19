@@ -363,12 +363,9 @@ namespace FWO.Middleware.Server
             {
                 foreach (var entry in parsed)
                 {
-                    if (int.TryParse(entry.Key, out int typeId))
+                    if (int.TryParse(entry.Key, out int typeId) && Enum.IsDefined(typeof(OwnerResponsibleType), typeId))
                     {
-                        if (Enum.IsDefined(typeof(OwnerResponsibleType), typeId))
-                        {
-                            rolesByType[(OwnerResponsibleType)typeId] = entry.Value;
-                        }
+                        rolesByType[(OwnerResponsibleType)typeId] = entry.Value;
                     }
                 }
             }

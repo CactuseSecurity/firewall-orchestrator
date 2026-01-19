@@ -3,6 +3,7 @@ import copy
 from model_controllers.fwconfig_import_gateway import FwConfigImportGateway
 from model_controllers.import_state_controller import ImportStateController
 from services.global_state import GlobalState
+from services.service_provider import ServiceProvider
 from unit_tests.utils.config_builder import FwConfigBuilder
 
 
@@ -29,9 +30,12 @@ def test_add_cp_section_header_at_the_bottom(
     gateway = global_state.normalized_config.gateways[0]
     fwconfig_builder.add_cp_section_header(gateway, last_rulebase.uid, new_rulebase.uid, last_rulebase_last_rule_uid)
 
-    fwconfig_builder.update_rule_map_and_rulebase_map(config, import_state_controller.state)
-    to_rulebase_id = import_state_controller.state.lookup_rulebase_id(new_rulebase.uid)
-    from_rulebase_id = import_state_controller.state.lookup_rulebase_id(last_rulebase.uid)
+    service_provider = ServiceProvider()
+    uid2id_mapper = service_provider.get_uid2id_mapper(import_id=import_state_controller.state.import_id)
+    fwconfig_builder.update_rule_map_and_rulebase_map(config, uid2id_mapper)
+
+    to_rulebase_id = uid2id_mapper.get_rulebase_id(new_rulebase.uid)
+    from_rulebase_id = uid2id_mapper.get_rulebase_id(last_rulebase.uid)
     fwconfig_builder.update_rb_links(gateway.RulebaseLinks, 1, fwconfig_import_gateway)
 
     import_state_controller.state.gateway_map[3] = {global_state.normalized_config.gateways[0].Uid or "": 1}

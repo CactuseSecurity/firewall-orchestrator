@@ -131,6 +131,13 @@ def service_provider(
 
 
 @pytest.fixture
+def uid2id_mapper(
+    service_provider: ServiceProvider,
+) -> Uid2IdMapper:
+    return service_provider.get_uid2id_mapper()
+
+
+@pytest.fixture
 def rule_order_service(
     service_provider: ServiceProvider,
 ) -> RuleOrderService:

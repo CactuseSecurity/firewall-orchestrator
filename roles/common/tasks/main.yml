@@ -101,26 +101,20 @@
       include_tasks: maintenance-site.yml
       when: "installation_mode == 'upgrade' and inventory_hostname in groups['frontends']"
 
-    - name: stop importer service before making any changes
+    - name: stop fw importer service before making any changes
       systemd:
-        name: "{{ item }}"
+        name: "{{ product_name }}-importer-api"
         state: stopped
       become: true
       when: "inventory_hostname in groups['importers'] and installation_mode == 'upgrade'"
-      loop:
-        - "{{ product_name }}-importer-legacy"
-        - "{{ product_name }}-importer-api"
-
+            
     - name: stop importer service before making any changes
       systemd:
-        name: "{{ item }}"
+        name: "{{ product_name }}-importer-api"
         state: stopped
       become: true
       ignore_errors: true # might not have been installed yet in case of early fail installs
       when: "inventory_hostname in groups['importers'] and installation_mode == 'uninstall'"
-      loop:
-        - "{{ product_name }}-importer-legacy"
-        - "{{ product_name }}-importer-api"
 
     - name: update operating system package cache .deb based
       apt:

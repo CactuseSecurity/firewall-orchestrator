@@ -203,9 +203,6 @@ Task file for the importer role handling run upgrades. Included by the role when
 ##### `roles/importer/templates/fworch-importer-api.service.j2`
 Jinja2 template for fworch importer api.service.j2 used by the importer role. Renders configuration or service files during installation.
 
-##### `roles/importer/templates/fworch-importer-legacy.service.j2`
-Jinja2 template for fworch importer legacy.service.j2 used by the importer role. Renders configuration or service files during installation.
-
 ### lib
 
 #### handlers

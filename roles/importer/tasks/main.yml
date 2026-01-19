@@ -69,15 +69,6 @@
         - /var/{{ product_name }}/tmp
         - /var/{{ product_name }}/import_archive
 
-    - name: copy importer systemd service script
-      template:
-        src: "{{ product_name }}-importer-legacy.service.j2"
-        dest: "/lib/systemd/system/{{ product_name }}-importer-legacy.service"
-        backup: true
-        mode: "0644"
-        owner: "root"
-      become: true
-
     - name: copy api-importer systemd service script
       template:
         src: "{{ product_name }}-importer-api.service.j2"

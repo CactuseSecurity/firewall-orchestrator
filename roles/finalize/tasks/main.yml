@@ -104,15 +104,12 @@
 
 - name: start importer service
   systemd:
-    name: "{{ item }}"
+    name: "{{ product_name }}-importer-api"
     state: started
     daemon_reload: true
     enabled: true
   become: true
   when: "'importers' in group_names"
-  loop:
-    - "{{ product_name }}-importer-legacy"
-    - "{{ product_name }}-importer-api"
 
 - name: remove maint website dir
   file:

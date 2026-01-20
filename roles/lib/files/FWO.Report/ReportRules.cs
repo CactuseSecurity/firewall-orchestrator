@@ -96,7 +96,7 @@ namespace FWO.Report
                 TryBuildRuleTree();
             }
 
-            await LogExecutionTime(phaseStopwatch, "Building rule tree", true);
+            await LogExecutionTime(phaseStopwatch, "Building rule tree", false);
             await LogExecutionTime(totalStopwatch, "Generating Rules Report", false);
         }
 

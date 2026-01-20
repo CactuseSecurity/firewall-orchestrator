@@ -189,7 +189,7 @@ API configuration helper for config. It loads and exposes configuration data fro
 Configuration data model for common area. It represents API-provided settings and texts.
 
 ### `roles/lib/files/FWO.Config.Api/Data/ConfigData.cs`
-Configuration data model for config data. It represents API-provided settings and texts.
+Configuration data model for config data. It represents API-provided settings and texts, including app data import scheduling and script arguments.
 
 ### `roles/lib/files/FWO.Config.Api/Data/ConfigItem.cs`
 Configuration data model for config item. It represents API-provided settings and texts.
@@ -1047,7 +1047,7 @@ Service logic for modelling app zone handler. It coordinates workflows, API call
 Service logic for modelling connection handler. It coordinates workflows, API calls, and domain rules.
 
 ### `roles/lib/files/FWO.Services/ModellingHandlerBase.cs`
-Service logic for modelling handler base. It coordinates workflows, API calls, and domain rules.
+Service logic for modelling handler base. It coordinates workflows, API calls, and ownership filtering based on user roles and claims.
 
 ### `roles/lib/files/FWO.Services/ModellingServiceGroupHandler.cs`
 Service logic for modelling service group handler. It coordinates workflows, API calls, and domain rules.

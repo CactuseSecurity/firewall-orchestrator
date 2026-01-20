@@ -2,6 +2,16 @@
     "version": "2.0.0",
     "tasks": [
         {
+            "label": "kill_middleware_port_8880",
+            "type": "shell",
+            "command": "bash",
+            "args": [
+                "-lc",
+                "pid=$(ss -tlpn 'sport = :8880' | awk -F'pid=|,' '$4 ~ /127\\.0\\.0\\.1:8880/ {print $2; exit}'); if [ -n \"$pid\" ]; then kill $pid; fi"
+            ],
+            "problemMatcher": []
+        },
+        {
             "label": "build",
             "command": "dotnet",
             "type": "process",
@@ -24,6 +34,15 @@
                 "/consoleloggerparameters:NoSummary"
             ],
             "problemMatcher": "$msCompile"
+        },
+        {
+            "label": "build_middleware_with_kill",
+            "dependsOn": [
+                "kill_middleware_port_8880",
+                "build_middleware"
+            ],
+            "dependsOrder": "sequence",
+            "problemMatcher": []
         },
         {
             "label": "build_test",

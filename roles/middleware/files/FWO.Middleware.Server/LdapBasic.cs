@@ -359,7 +359,9 @@ namespace FWO.Middleware.Server
             {
                 if (attribute.Name.ToLower() == MemberOfLowerCase)
                 {
-                    groups.AddRange(attribute.StringValueArray.Where(membership => GroupSearchPath != null && membership.EndsWith(GroupSearchPath)));
+                    groups.AddRange(attribute.StringValueArray.Where(membership =>
+                        (!string.IsNullOrWhiteSpace(GroupSearchPath) && membership.EndsWith(GroupSearchPath))
+                        || (!string.IsNullOrWhiteSpace(GroupWritePath) && membership.EndsWith(GroupWritePath))));
                 }
             }
             return groups;

@@ -619,6 +619,9 @@ Settings page for tenant management. It manages tenants and tenant-specific visi
 ### `roles/ui/files/FWO.UI/Pages/Settings/SettingsOwner.razor`
 Settings page for owner management. It manages owners and owner-related configuration.
 
+### `roles/ui/files/FWO.UI/Pages/Settings/SettingsAppDataImport.razor`
+Settings page for owner app data imports. It configures app data sources, optional script parameters, and scheduling.
+
 ### `roles/ui/files/FWO.UI/Pages/Settings/SettingsManagements.razor`
 Settings page for management configuration. It manages firewall manager connections and metadata.
 
@@ -847,7 +850,7 @@ Help page for LDAP settings. It explains LDAP configuration and connection manag
 Help page for user settings. It describes user management workflows.
 
 ### `roles/ui/files/FWO.UI/Pages/Help/HelpSettingsOwners.cshtml`
-Help page for owner settings. It explains owner management and ownership links.
+Help page for owner settings. It explains owner management and ownership links, including app data import options.
 
 ### `roles/ui/files/FWO.UI/Pages/Help/HelpSettingsGroups.cshtml`
 Help page for group settings. It covers group management and assignments.

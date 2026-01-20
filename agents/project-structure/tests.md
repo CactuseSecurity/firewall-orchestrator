@@ -11,6 +11,9 @@ Unit tests for Api Config. Covers expected behavior and edge cases for the compo
 ### `roles/tests-unit/files/FWO.Test/ApiTest.cs`
 Unit tests for Api. Covers expected behavior and edge cases for the component.
 
+### `roles/tests-unit/files/FWO.Test/AppDataImportTest.cs`
+Unit tests for App Data Import. Covers LDAP owner group path resolution edge cases.
+
 ### `roles/tests-unit/files/FWO.Test/AppRoleTest.cs`
 Unit tests for App Role. Covers expected behavior and edge cases for the component.
 
@@ -28,6 +31,9 @@ Unit tests for Display Base. Covers expected behavior and edge cases for the com
 
 ### `roles/tests-unit/files/FWO.Test/DistNameTest.cs`
 Unit tests for Dist Name. Covers expected behavior and edge cases for the component.
+
+### `roles/tests-unit/files/FWO.Test/DataImportBaseTest.cs`
+Unit tests for Data Import Base. Verifies script execution arguments handling.
 
 ### `roles/tests-unit/files/FWO.Test/ExportTest.cs`
 Unit tests for Export. Covers expected behavior and edge cases for the component.
@@ -71,6 +77,9 @@ Unit tests for IP Overlap. Covers expected behavior and edge cases for the compo
 ### `roles/tests-unit/files/FWO.Test/LockTest.cs`
 Unit tests for Lock. Covers expected behavior and edge cases for the component.
 
+### `roles/tests-unit/files/FWO.Test/LdapMembershipTest.cs`
+Unit tests for LDAP membership resolution. Covers group DN matching against search and write paths.
+
 ### `roles/tests-unit/files/FWO.Test/ManagedIdStringTest.cs`
 Unit tests for Managed Id String. Covers expected behavior and edge cases for the component.
 
@@ -101,6 +110,9 @@ Unit tests for Modelling Connection Handler. Covers expected behavior and edge c
 ### `roles/tests-unit/files/FWO.Test/ModellingHandlerTest.cs`
 Unit tests for Modelling Handler. Covers expected behavior and edge cases for the component.
 
+### `roles/tests-unit/files/FWO.Test/ModellingOwnerAccessTest.cs`
+Unit tests for modelling owner access. Verifies owner query selection based on reporter roles and claims.
+
 ### `roles/tests-unit/files/FWO.Test/ModellingHandlerTestApiConn.cs`
 Test API connection stub for Modelling Handler. Supplies canned responses to isolate unit test behavior.
 
@@ -130,6 +142,9 @@ Unit tests for SC Ticket. Covers expected behavior and edge cases for the compon
 
 ### `roles/tests-unit/files/FWO.Test/SchedulerTest.cs`
 Unit tests for Scheduler. Covers expected behavior and edge cases for the component.
+
+### `roles/tests-unit/files/FWO.Test/ImportAppDataSchedulerServiceTest.cs`
+Unit tests for Import App Data scheduler. Verifies scheduling on application startup.
 
 ### `roles/tests-unit/files/FWO.Test/SchedulerTestApiConn.cs`
 Test API connection stub for Scheduler. Supplies canned responses to isolate unit test behavior.

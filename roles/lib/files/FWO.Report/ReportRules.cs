@@ -12,6 +12,7 @@ using Newtonsoft.Json;
 using System.Text;
 using System.Text.Json;
 using Microsoft.Extensions.DependencyInjection;
+using System.Diagnostics;
 
 namespace FWO.Report
 {
@@ -37,6 +38,15 @@ namespace FWO.Report
 
         public override async Task Generate(int elementsPerFetch, ApiConnection apiConnection, Func<ReportData, Task> callback, CancellationToken ct)
         {
+            Log.WriteDebug("Generate Rules Report", "Generating report...");
+
+            // Prepare execution time logging
+
+            Stopwatch totalStopwatch = Stopwatch.StartNew();
+            Stopwatch phaseStopwatch = Stopwatch.StartNew();
+
+            // Initial fetch
+
             Query.QueryVariables[QueryVar.Limit] = elementsPerFetch;
             Query.QueryVariables[QueryVar.Offset] = 0;
             bool keepFetching = true;
@@ -51,6 +61,11 @@ namespace FWO.Report
                 managementReport.Import = management.Import;
                 ReportData.ManagementData.Add(managementReport);
             }
+
+            await LogExecutionTime(phaseStopwatch, "Initial fetch", true);
+
+            // Fill report data
+
             while (keepFetching)
             {
                 if (ct.IsCancellationRequested)
@@ -74,10 +89,30 @@ namespace FWO.Report
                 await callback(ReportData);
             }
 
+            await LogExecutionTime(phaseStopwatch, "Filling report data", true);
+
             if(!ReportType.IsRulebaseReport())
             {
                 TryBuildRuleTree();
             }
+
+            await LogExecutionTime(phaseStopwatch, "Building rule tree", true);
+            await LogExecutionTime(totalStopwatch, "Generating Rules Report", false);
+        }
+
+        private Task LogExecutionTime(Stopwatch stopwatch, string phaseName, bool reset)
+        {
+            stopwatch.Stop();
+            TimeSpan elapsed = stopwatch.Elapsed;
+            Log.WriteDebug("Generate Rules Report", $"{phaseName} completed. Execution times: {double.Round(elapsed.TotalMilliseconds)} milliseconds");
+
+            if (reset)
+            {
+                stopwatch.Reset();
+                stopwatch.Start();                
+            }
+
+            return Task.CompletedTask;
         }
 
         protected void TryBuildRuleTree()

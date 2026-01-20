@@ -10,6 +10,7 @@ using FWO.Data;
 using FWO.Data.Report;
 using FWO.Report;
 using FWO.Services;
+using FWO.Ui.Services;
 using FWO.Ui.Shared;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.JSInterop;
@@ -34,6 +35,7 @@ namespace FWO.Test
 
             Services.AddSingleton<UserConfig>(new SimulatedUserConfig());
             Services.AddSingleton<ApiConnection>(new UiRsbRuleTabApiConn(ruleDetails));
+            Services.AddSingleton(new DomEventService());
             Services.AddScoped(_ => JSInterop.JSRuntime);
 
             IRenderedComponent<RightSidebar> cut = Render<RightSidebar>(parameters => parameters

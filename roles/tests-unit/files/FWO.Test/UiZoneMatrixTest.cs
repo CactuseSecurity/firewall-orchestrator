@@ -11,7 +11,7 @@ using AngleSharp.Dom;
 namespace FWO.Test
 {
     [FixtureLifeCycle(LifeCycle.InstancePerTestCase)]
-    public class UiZoneMatrixTest : Bunit.TestContext
+    public class UiZoneMatrixTest : BunitContext
     {
         private UserConfig _userConfig = new();
         private NetworkZoneService _networkZoneService = new();

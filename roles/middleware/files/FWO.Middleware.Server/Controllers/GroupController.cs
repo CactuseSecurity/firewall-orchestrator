@@ -262,7 +262,10 @@ namespace FWO.Middleware.Server.Controllers
 
             foreach (Ldap currentLdap in ldaps)
             {
-                if (!currentLdap.HasGroupHandling() || string.IsNullOrWhiteSpace(currentLdap.GroupSearchPath))
+                string? groupPath = !string.IsNullOrWhiteSpace(currentLdap.GroupSearchPath)
+                    ? currentLdap.GroupSearchPath
+                    : currentLdap.GroupWritePath;
+                if (!currentLdap.HasGroupHandling() || string.IsNullOrWhiteSpace(groupPath))
                 {
                     continue;
                 }

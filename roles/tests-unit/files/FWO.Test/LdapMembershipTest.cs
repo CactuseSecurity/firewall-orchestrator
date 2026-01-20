@@ -50,5 +50,17 @@ namespace FWO.Test
             Assert.That(groups, Has.Count.EqualTo(1));
             Assert.That(groups[0], Is.EqualTo("cn=AppOwners,ou=search,dc=example,dc=com"));
         }
+
+        [Test]
+        public void HasGroupHandlingUsesWritePathFallback()
+        {
+            Ldap ldap = new()
+            {
+                GroupSearchPath = "",
+                GroupWritePath = "ou=write,dc=example,dc=com"
+            };
+
+            Assert.That(ldap.HasGroupHandling(), Is.True);
+        }
     }
 }

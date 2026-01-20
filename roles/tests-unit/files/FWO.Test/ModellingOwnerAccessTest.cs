@@ -25,7 +25,7 @@ namespace FWO.Test
             apiConnection.SendQueryAsync<List<FwoOwner>>(Arg.Any<string>(), Arg.Any<object?>(), Arg.Any<string?>())
                 .Returns(new List<FwoOwner>());
 
-            ClaimsPrincipal principal = BuildPrincipal([Roles.ReporterViewAll]);
+            ClaimsPrincipal principal = BuildPrincipal(new List<string> { Roles.ReporterViewAll });
             Task<AuthenticationState> authStateTask = Task.FromResult(new AuthenticationState(principal));
             UserConfig userConfig = new SimulatedUserConfig();
 
@@ -42,7 +42,7 @@ namespace FWO.Test
             apiConnection.SendQueryAsync<List<FwoOwner>>(Arg.Any<string>(), Arg.Any<object?>(), Arg.Any<string?>())
                 .Returns(new List<FwoOwner>());
 
-            ClaimsPrincipal principal = BuildPrincipal([Roles.Reporter], new Claim("x-hasura-editable-owners", "{1,2}"));
+            ClaimsPrincipal principal = BuildPrincipal(new List<string> { Roles.Reporter }, new Claim("x-hasura-editable-owners", "{1,2}"));
             Task<AuthenticationState> authStateTask = Task.FromResult(new AuthenticationState(principal));
             UserConfig userConfig = new SimulatedUserConfig();
 
@@ -50,7 +50,7 @@ namespace FWO.Test
 
             await apiConnection.Received(1)
                 .SendQueryAsync<List<FwoOwner>>(OwnerQueries.getEditableOwners,
-                    Arg.Is<object?>(vars => HasOwnerIds(vars, [1, 2])),
+                    Arg.Is<object?>(vars => HasOwnerIds(vars, new[] { 1, 2 })),
                     Arg.Any<string?>());
         }
 

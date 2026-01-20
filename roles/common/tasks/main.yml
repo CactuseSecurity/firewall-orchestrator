@@ -61,6 +61,7 @@
         - name: get version of currently installed product
           set_fact:
             old_version: "{{ config.product_version }}"
+            product_version_changed: "{{ config.product_version != product_version }}"
 
       when: already_installed and installation_mode == "upgrade"
 

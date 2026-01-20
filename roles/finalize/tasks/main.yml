@@ -67,7 +67,7 @@
     name: "{{ product_name }}-ui"
     state: restarted
   become: true
-  when: "'frontends' in group_names and (ui_deploy_changed | default(false))"
+  when: "'frontends' in group_names and (ui_deploy_changed | default(false) or product_version_changed | default(false))"
   
 - name: test whether demo data is present
   postgresql_query:

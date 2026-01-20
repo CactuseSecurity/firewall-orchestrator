@@ -188,6 +188,12 @@ Test utility for Data Generator scenarios. Used by unit tests to build data or a
 ### `roles/tests-unit/files/FWO.Test/UiRsbLinkTest.cs`
 Unit tests for Ui Rsb Link. Covers expected behavior and edge cases for the component.
 
+### `roles/tests-unit/files/FWO.Test/UiObjectGroupTest.cs`
+Unit tests for Ui Object Group. Verifies detailed fetch triggers when the bound content changes.
+
+### `roles/tests-unit/files/FWO.Test/UiRsbRuleTabTest.cs`
+Unit tests for RSB rule tab selection. Ensures rule tab content updates when selection changes.
+
 ### `roles/tests-unit/files/FWO.Test/UiRsbTestApiConn.cs`
 Test API connection stub for Ui Rsb. Supplies canned responses to isolate unit test behavior.
 

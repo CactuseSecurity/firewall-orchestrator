@@ -166,8 +166,14 @@ namespace FWO.Report
                 managementReport.ReportedRuleIds.AddRange(managementReport.GetAllRuleIds());
             }
             objQueryVariables.Add(QueryVar.RuleIds, "{" + string.Join(", ", managementReport.ReportedRuleIds) + "}");
-            objQueryVariables.Add(QueryVar.ImportIdStart, managementReport.Import.ImportAggregate.ImportAggregateMax.RelevantImportId!);
-            objQueryVariables.Add(QueryVar.ImportIdEnd, managementReport.Import.ImportAggregate.ImportAggregateMax.RelevantImportId!);
+            if (!objQueryVariables.ContainsKey(QueryVar.ImportIdStart))
+            {
+                objQueryVariables.Add(QueryVar.ImportIdStart, managementReport.Import.ImportAggregate.ImportAggregateMax.RelevantImportId!);
+            }
+            if (!objQueryVariables.ContainsKey(QueryVar.ImportIdEnd))
+            {
+                objQueryVariables.Add(QueryVar.ImportIdEnd, managementReport.Import.ImportAggregate.ImportAggregateMax.RelevantImportId!);
+            }
 
             string getObjQuery = GetQuery(objects);
             bool keepFetching = true;

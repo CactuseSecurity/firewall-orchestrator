@@ -5,7 +5,7 @@ using NUnit.Framework;
 namespace FWO.Test
 {
     [TestFixture]
-    internal class ManagementReportTest
+    public class ManagementReportTest
     {
         [Test]
         public void GetAllRuleIdsReturnsDistinctRuleIds()

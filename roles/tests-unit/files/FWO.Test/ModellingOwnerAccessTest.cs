@@ -16,7 +16,7 @@ using NUnit.Framework;
 namespace FWO.Test
 {
     [TestFixture]
-    internal class ModellingOwnerAccessTest
+    public class ModellingOwnerAccessTest
     {
         [Test]
         public async Task ReporterViewAllUsesAllOwnersQuery()

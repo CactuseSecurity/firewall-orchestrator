@@ -117,7 +117,7 @@ Main navigation menu component. It renders the primary app navigation structure 
 Left sidebar component used across layouts. It hosts navigation lists and section links.
 
 ### `roles/ui/files/FWO.UI/Shared/RightSidebar.razor`
-Right sidebar container for contextual panels. It renders expandable panels used by reporting and modelling pages.
+Right sidebar container for contextual panels. It renders expandable panels used by reporting and modelling pages and synchronizes selected rule state with the rule tab display.
 
 ### `roles/ui/files/FWO.UI/Shared/AnchorNavToRSB.razor`
 Anchor navigation component that integrates with the right sidebar. It provides quick in-page jumps to sidebar content.

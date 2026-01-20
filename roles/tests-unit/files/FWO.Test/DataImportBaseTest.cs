@@ -8,7 +8,7 @@ using NUnit.Framework;
 namespace FWO.Test
 {
     [TestFixture]
-    internal class DataImportBaseTest
+    public class DataImportBaseTest
     {
         [Test]
         public void RunImportScriptPassesArguments()

@@ -6,7 +6,7 @@ using NUnit.Framework;
 namespace FWO.Test
 {
     [TestFixture]
-    internal class AppDataImportTest
+    public class AppDataImportTest
     {
         [Test]
         public void ResolveOwnerGroupPathPrefersWritePath()

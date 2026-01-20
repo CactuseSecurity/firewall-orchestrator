@@ -854,7 +854,7 @@ Recertification helper for owner-specific processing. It encapsulates recertific
 Report generator for app rules outputs. It builds report data and export formats for reporting workflows.
 
 ### `roles/lib/files/FWO.Report/ReportBase.cs`
-Report generator for base outputs. It builds report data and export formats for reporting workflows.
+Report generator for base outputs. It builds report data, export formats, and shared HTML helpers such as report link construction.
 
 ### `roles/lib/files/FWO.Report/ReportChanges.cs`
 Report generator for changes outputs. It builds report data and export formats for reporting workflows.

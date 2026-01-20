@@ -5,7 +5,7 @@ using NUnit.Framework;
 namespace FWO.Test
 {
     [TestFixture]
-    internal class LdapMembershipTest
+    public class LdapMembershipTest
     {
         [Test]
         public void GetGroupsIncludesWritePathMemberships()

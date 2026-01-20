@@ -117,6 +117,20 @@ namespace FWO.Report
 
         protected void TryBuildRuleTree()
         {
+            // Get rule tree builder from service provider
+
+            IRuleTreeBuilder? ruleTreeBuilder = Services.ServiceProvider.Services?.GetService<IRuleTreeBuilder>();
+
+            if (ruleTreeBuilder == null)
+            {
+                Log.WriteError("Generate Rules Report", "Cannot build rule tree: IRuleTreeBuilder service not found");
+                return;
+            }
+
+            ruleTreeBuilder.Reset();
+
+            // Build rule tree for each device in each management
+
             int ruleCount = 0;
 
             foreach (var managementReport in ReportData.ManagementData)
@@ -125,22 +139,10 @@ namespace FWO.Report
                 {
                     List<Rule> allRules = [];
 
-                    if (Services.ServiceProvider.UiServices?.GetService<IRuleTreeBuilder>() is IRuleTreeBuilder ruleTreeBuilder)
+                    if (ruleTreeBuilder?.BuildRulebaseLinkQueue(deviceReport.RulebaseLinks.Where(link => link.Removed == null).ToArray(), managementReport.Rulebases) != null)
                     {
-                        if (ruleTreeBuilder?.BuildRulebaseLinkQueue(deviceReport.RulebaseLinks.Where(link => link.Removed == null).ToArray(), managementReport.Rulebases) != null)
-                        {
-                            allRules = ruleTreeBuilder.BuildRuleTree();
-                            ruleCount += allRules.Count;
-                        }
-                    }
-                    else
-                    {
-                        // if we are not building the rule tree, we just collect all rules from the rulebases
-                        foreach (var rules in managementReport.Rulebases.Select(rulebase => rulebase.Rules))
-                        {
-                            allRules.AddRange(rules);
-                            ruleCount += rules.Count();
-                        }
+                        allRules = ruleTreeBuilder.BuildRuleTree();
+                        ruleCount += allRules.Count;
                     }
 
                     Rule[] rulesArray = [.. allRules];

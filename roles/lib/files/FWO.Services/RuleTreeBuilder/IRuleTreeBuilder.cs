@@ -13,6 +13,7 @@ namespace FWO.Services.RuleTreeBuilder
 
         Queue<(RulebaseLink, RulebaseReport)>? BuildRulebaseLinkQueue(RulebaseLink[] links, RulebaseReport[] rulebases);
         List<Rule> BuildRuleTree();
+        void Reset();
     }
 }
 

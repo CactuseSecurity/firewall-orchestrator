@@ -65,6 +65,15 @@ namespace FWO.Services.RuleTreeBuilder
             return _allRules;
         }
 
+        public void Reset()
+        {
+            RuleTree = new RuleTreeItem() { IsRoot = true };
+            RuleTreeBuilderQueue = new Queue<(RulebaseLink link, RulebaseReport rulebase)>();
+            CreatedOrderNumbersCount = 0;
+            OrderedLayerCount = 0;
+            _allRules.Clear();
+        }
+
         /// <summary>
         /// Recursive method that processes a rulebase link and the target rulebase to create ordernumbers and the integrate the rules in the rule tree.
         /// </summary>

@@ -47,7 +47,8 @@ namespace FWO.Test
 
             Assert.That(
                 () => InvokeResolveOwnerGroupPath(ldap),
-                Throws.TypeOf<InvalidOperationException>());
+                Throws.TypeOf<TargetInvocationException>()
+                    .With.InnerException.TypeOf<InvalidOperationException>());
         }
 
         private static string InvokeResolveOwnerGroupPath(Ldap ldap)

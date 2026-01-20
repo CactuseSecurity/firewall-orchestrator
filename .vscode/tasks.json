@@ -7,7 +7,7 @@
             "command": "bash",
             "args": [
                 "-lc",
-                "pid=$(ss -tlpn 'sport = :8880' | awk -F'pid=|,' '$4 ~ /127\\.0\\.0\\.1:8880/ {print $2; exit}'); if [ -n \"$pid\" ]; then kill $pid; fi"
+                "pid=$(ss -tlpn \"sport = :8880\" | awk -F\"pid=|,\" \"\\$4 ~ /127\\\\.0\\\\.0\\\\.1:8880/ {print \\$2; exit}\"); if [ -n \"$pid\" ]; then kill \"$pid\"; fi"
             ],
             "problemMatcher": []
         },

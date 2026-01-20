@@ -102,8 +102,6 @@ def import_management(
     except (FwoApiWriteError, FwoImporterError) as e:
         exception = e
         roll_back_exception_handler(import_state, config_importer=config_importer, exc=e, error_text="")
-    except ValueError:
-        raise
     except Exception as e:
         exception = e
         handle_unexpected_exception(import_state=import_state, config_importer=config_importer, e=e)
@@ -140,7 +138,7 @@ def _import_management(
 
     if import_state.state.mgm_details.importer_hostname != gethostname() and not import_state.state.force_import:
         FWOLogger.info(
-            f"import_management - this host ( {gethostname()}) is not responsible for importing management  {mgm_id!s}"
+            f"import_management - this host ({gethostname()}) is not responsible for importing management {mgm_id!s}"
         )
         import_state.state.responsible_for_importing = False
         return
@@ -191,12 +189,7 @@ def handle_unexpected_exception(
     config_importer: FwConfigImport | None = None,
     e: Exception | None = None,
 ):
-    if (
-        "importState" in locals()
-        and import_state is not None
-        and "configImporter" in locals()
-        and config_importer is not None
-    ):
+    if import_state is not None and config_importer is not None:
         roll_back_exception_handler(import_state, config_importer=config_importer, exc=e)
 
 
@@ -215,12 +208,12 @@ def roll_back_exception_handler(
             FWOLogger.error(f"Exception: {type(exc).__name__}")
         else:
             FWOLogger.error("Exception: no exception provided")
-        if "configImporter" in locals() and config_importer is not None:
+        if config_importer is not None:
             FwConfigImportRollback().rollback_current_import(
                 import_state=import_state.state, fwo_api_call=import_state.api_call
             )
         else:
-            FWOLogger.info("No configImporter found, skipping rollback.")
+            FWOLogger.info("No config_importer found, skipping rollback.")
         import_state.delete_import()  # delete whole import
     except Exception as rollbackError:
         FWOLogger.error(f"Error during rollback: {type(rollbackError).__name__} - {rollbackError}")

@@ -14,6 +14,7 @@ namespace FWO.Middleware.Server.Services
         private const string JobKeyName = "ReportJob";
         private const string TriggerKeyName = "ReportTrigger";
         private const string SchedulerName = "ReportScheduler";
+        private const int DefaultIntervalSeconds = 60;
 
         /// <summary>
         /// Initializes the report scheduler service.
@@ -74,22 +75,20 @@ namespace FWO.Middleware.Server.Services
                 Log.WriteInfo(SchedulerName, "Removed existing trigger");
             }
 
-            int interval = 60;
-
             // Create trigger with recurring schedule for existing job
             ITrigger trigger = TriggerBuilder.Create()
                 .WithIdentity(triggerKey)
                 .ForJob(jobKey)
                 .StartNow()
                 .WithSimpleSchedule(x => x
-                    .WithIntervalInSeconds(interval)
+                    .WithIntervalInSeconds(DefaultIntervalSeconds)
                     .RepeatForever())
                 .Build();
 
             await scheduler.ScheduleJob(trigger);
 
             Log.WriteInfo(SchedulerName,
-                $"Trigger scheduled, Interval: {interval}s");
+                $"Trigger scheduled, Start: {DateTime.Now:yyyy-MM-dd HH:mm:ss}, Interval: {DefaultIntervalSeconds}s");
         }
     }
 }

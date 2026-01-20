@@ -7,12 +7,9 @@ using FWO.Data;
 using FWO.Data.Report;
 using FWO.Logging;
 using FWO.Middleware.Server.Controllers;
-using FWO.Middleware.Server.Services;
 using FWO.Report;
 using FWO.Services;
-using Microsoft.AspNetCore.Diagnostics;
 using Quartz;
-using System.Collections.Immutable;
 
 namespace FWO.Middleware.Server.Jobs
 {
@@ -63,7 +60,7 @@ namespace FWO.Middleware.Server.Jobs
             {
                 if (reportSchedule.Active)
                 {
-                    // Add schedule interval as long as schedule time is smaller then current time
+                    // Add schedule interval as long as schedule time is smaller than current time
                     while (RoundDown(reportSchedule.StartTime, CheckScheduleInterval) < dateTimeNowRounded)
                     {
                         reportSchedule.StartTime = reportSchedule.RepeatInterval switch

@@ -80,6 +80,9 @@ Unit tests for Lock. Covers expected behavior and edge cases for the component.
 ### `roles/tests-unit/files/FWO.Test/LdapMembershipTest.cs`
 Unit tests for LDAP membership resolution. Covers group DN matching against search and write paths.
 
+### `roles/tests-unit/files/FWO.Test/LdapBasicTest.cs`
+Unit tests for LDAP membership mutation decisions. Verifies add/delete operations are applied only when membership state requires a change.
+
 ### `roles/tests-unit/files/FWO.Test/ManagedIdStringTest.cs`
 Unit tests for Managed Id String. Covers expected behavior and edge cases for the component.
 

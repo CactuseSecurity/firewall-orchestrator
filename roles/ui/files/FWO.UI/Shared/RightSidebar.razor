@@ -43,8 +43,7 @@
                             <div class="mt-2">
                                 <ObjectGroupCollection PageSize="PageSize" FetchObjects="FetchContent" Recert="Recert"
                                     Tab="RsbTab.report" InputDataType="ManagementReport"
-                                    Data="CurrentReport.ReportData.ManagementData
-                                    .Where(m => m.Devices.Any(d => d.RulebaseLinks.Any()))"
+                                    Data="managementsReportObjects"
                                 NameExtractor="man => man.Name" NetworkObjectExtractor="man => man.ReportObjects"
                                 NetworkServiceExtractor="man => man.ReportServices"
                                 NetworkUserExtractor="man => man.ReportUsers" />

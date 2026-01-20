@@ -1,4 +1,3 @@
-using System.Collections.Immutable;
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 using FWO.Basics;
@@ -8,7 +7,6 @@ using FWO.Data;
 using FWO.Data.Report;
 using FWO.Logging;
 using FWO.Middleware.Server.Controllers;
-using FWO.Middleware.Server.Services;
 using FWO.Report;
 using FWO.Services;
 using Quartz;
@@ -26,7 +24,6 @@ namespace FWO.Middleware.Server.Jobs
 
         private readonly ApiConnection apiConnectionScheduler;
         private readonly JwtWriter jwtWriter;
-        private readonly ReportSchedulerState state;
         private readonly string apiServerUri;
 
         /// <summary>
@@ -34,12 +31,10 @@ namespace FWO.Middleware.Server.Jobs
         /// </summary>
         /// <param name="apiConnectionScheduler">API connection used by the scheduler.</param>
         /// <param name="jwtWriter">JWT writer to authorize users.</param>
-        /// <param name="state">Shared scheduler state.</param>
-        public ReportJob(ApiConnection apiConnectionScheduler, JwtWriter jwtWriter, ReportSchedulerState state)
+        public ReportJob(ApiConnection apiConnectionScheduler, JwtWriter jwtWriter)
         {
             this.apiConnectionScheduler = apiConnectionScheduler;
             this.jwtWriter = jwtWriter;
-            this.state = state;
             apiServerUri = ConfigFile.ApiServerUri ?? throw new ArgumentException("Missing api server url on startup.");
         }
 
@@ -48,45 +43,47 @@ namespace FWO.Middleware.Server.Jobs
         {
             Log.WriteDebug(LogMessageTitle, "Process started");
             DateTime dateTimeNowRounded = RoundDown(DateTime.Now, CheckScheduleInterval);
-            ImmutableArray<ReportSchedule> scheduledReports = state.ScheduledReports;
+            List<ReportSchedule> scheduledReports = await apiConnectionScheduler.SendQueryAsync<List<ReportSchedule>>(ReportQueries.getReportSchedules);
 
-            if (scheduledReports.IsDefaultOrEmpty)
+            if (scheduledReports is null || scheduledReports.Count == 0)
             {
                 return;
             }
 
             await Parallel.ForEachAsync(scheduledReports, new ParallelOptions { MaxDegreeOfParallelism = Environment.ProcessorCount },
-                async (reportSchedule, ct) =>
-                {
-                    try
-                    {
-                        if (reportSchedule.Active)
-                        {
-                            // Add schedule interval as long as schedule time is smaller then current time
-                            while (RoundDown(reportSchedule.StartTime, CheckScheduleInterval) < dateTimeNowRounded)
-                            {
-                                reportSchedule.StartTime = reportSchedule.RepeatInterval switch
-                                {
-                                    SchedulerInterval.Days => reportSchedule.StartTime.AddDays(reportSchedule.RepeatOffset),
-                                    SchedulerInterval.Weeks => reportSchedule.StartTime.AddDays(reportSchedule.RepeatOffset * GlobalConst.kDaysPerWeek),
-                                    SchedulerInterval.Months => reportSchedule.StartTime.AddMonths(reportSchedule.RepeatOffset),
-                                    SchedulerInterval.Years => reportSchedule.StartTime.AddYears(reportSchedule.RepeatOffset),
-                                    SchedulerInterval.Never => reportSchedule.StartTime.AddYears(42_42),
-                                    _ => throw new NotSupportedException("Time interval is not supported."),
-                                };
-                            }
+                async (reportSchedule, ct) => await ProcessScheduledReport(reportSchedule, dateTimeNowRounded, ct));
+        }
 
-                            if (RoundDown(reportSchedule.StartTime, CheckScheduleInterval) == dateTimeNowRounded)
-                            {
-                                await GenerateReport(reportSchedule, dateTimeNowRounded, ct);
-                            }
-                        }
-                    }
-                    catch (Exception exception)
+        private async Task ProcessScheduledReport(ReportSchedule reportSchedule, DateTime dateTimeNowRounded, CancellationToken ct)
+        {
+            try
+            {
+                if (reportSchedule.Active)
+                {
+                    // Add schedule interval as long as schedule time is smaller than current time
+                    while (RoundDown(reportSchedule.StartTime, CheckScheduleInterval) < dateTimeNowRounded)
                     {
-                        Log.WriteError(LogMessageTitle, "Checking scheduled reports lead to exception.", exception);
+                        reportSchedule.StartTime = reportSchedule.RepeatInterval switch
+                        {
+                            SchedulerInterval.Days => reportSchedule.StartTime.AddDays(reportSchedule.RepeatOffset),
+                            SchedulerInterval.Weeks => reportSchedule.StartTime.AddDays(reportSchedule.RepeatOffset * GlobalConst.kDaysPerWeek),
+                            SchedulerInterval.Months => reportSchedule.StartTime.AddMonths(reportSchedule.RepeatOffset),
+                            SchedulerInterval.Years => reportSchedule.StartTime.AddYears(reportSchedule.RepeatOffset),
+                            SchedulerInterval.Never => reportSchedule.StartTime.AddYears(42_42),
+                            _ => throw new NotSupportedException("Time interval is not supported."),
+                        };
                     }
-                });
+
+                    if (RoundDown(reportSchedule.StartTime, CheckScheduleInterval) == dateTimeNowRounded)
+                    {
+                        await GenerateReport(reportSchedule, dateTimeNowRounded, ct);
+                    }
+                }
+            }
+            catch (Exception exception)
+            {
+                Log.WriteError(LogMessageTitle, "Checking scheduled reports lead to exception.", exception);
+            }
         }
 
         private async Task GenerateReport(ReportSchedule reportSchedule, DateTime dateTimeNowRounded, CancellationToken token)
@@ -148,7 +145,7 @@ namespace FWO.Middleware.Server.Jobs
 
         private async Task<(ApiConnection?, UserConfig?)> InitUserEnvironment(ReportSchedule reportSchedule)
         {
-            List<Ldap> connectedLdaps = state.ConnectedLdaps.ToList();
+            List<Ldap> connectedLdaps = await apiConnectionScheduler.SendQueryAsync<List<Ldap>>(AuthQueries.getLdapConnections);
             AuthManager authManager = new(jwtWriter, connectedLdaps, apiConnectionScheduler);
             string jwt = await authManager.AuthorizeUserAsync(reportSchedule.ScheduleOwningUser, validatePassword: false, lifetime: TimeSpan.FromDays(365));
             ApiConnection apiConnectionUserContext = new GraphQlApiConnection(apiServerUri, jwt);

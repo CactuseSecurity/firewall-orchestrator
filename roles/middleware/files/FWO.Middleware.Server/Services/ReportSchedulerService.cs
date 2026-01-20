@@ -1,9 +1,3 @@
-using System.Collections.Immutable;
-using FWO.Api.Client;
-using FWO.Api.Client.Queries;
-using FWO.Config.Api.Data;
-using FWO.Data;
-using FWO.Data.Report;
 using FWO.Logging;
 using FWO.Middleware.Server.Jobs;
 using Quartz;
@@ -11,27 +5,25 @@ using Quartz;
 namespace FWO.Middleware.Server.Services
 {
     /// <summary>
-    /// Config/state listener for report generation (no BackgroundService)
+    /// Config/state listener for report generation
     /// </summary>
-    public class ReportSchedulerService : IAsyncDisposable
+    public class ReportSchedulerService
     {
+        private readonly ISchedulerFactory schedulerFactory;
+        private IScheduler? scheduler;
+        private const string JobKeyName = "ReportJob";
+        private const string TriggerKeyName = "ReportTrigger";
         private const string SchedulerName = "ReportScheduler";
-        private readonly ApiConnection apiConnection;
-        private readonly ReportSchedulerState state;
-        private bool disposed = false;
-        private GraphQlApiSubscription<ReportSchedule[]>? scheduleSubscription;
-        private GraphQlApiSubscription<List<Ldap>>? ldapSubscription;
+        private const int DefaultIntervalSeconds = 60;
 
         /// <summary>
         /// Initializes the report scheduler service.
         /// </summary>
-        /// <param name="apiConnection">GraphQL API connection.</param>
-        /// <param name="state">Shared scheduler state used by the report job.</param>
+        /// <param name="schedulerFactory">Quartz scheduler factory.</param>
         /// <param name="appLifetime"></param>
-        public ReportSchedulerService(ApiConnection apiConnection, ReportSchedulerState state, IHostApplicationLifetime appLifetime)
+        public ReportSchedulerService(ISchedulerFactory schedulerFactory, IHostApplicationLifetime appLifetime)
         {
-            this.apiConnection = apiConnection;
-            this.state = state;
+            this.schedulerFactory = schedulerFactory;
 
             // Attach after application started
             appLifetime.ApplicationStarted.Register(OnStarted);
@@ -41,10 +33,8 @@ namespace FWO.Middleware.Server.Services
         {
             try
             {
-                // Initial state population
-                state.UpdateLdaps(await apiConnection.SendQueryAsync<List<Ldap>>(AuthQueries.getLdapConnections));
-                ldapSubscription = apiConnection.GetSubscription<List<Ldap>>(ApiExceptionHandler, OnLdapUpdate, AuthQueries.getLdapConnectionsSubscription);
-                scheduleSubscription = apiConnection.GetSubscription<ReportSchedule[]>(ApiExceptionHandler, OnScheduleUpdate, ReportQueries.subscribeReportScheduleChanges);
+                scheduler = await schedulerFactory.GetScheduler();
+                await ScheduleJob();
 
                 Log.WriteInfo(SchedulerName, "Listener started");
             }
@@ -54,77 +44,51 @@ namespace FWO.Middleware.Server.Services
             }
         }
 
-        private void OnScheduleUpdate(ReportSchedule[] scheduledReports)
+        private async Task ScheduleJob()
         {
-            state.UpdateSchedules(scheduledReports);
-            Log.WriteInfo(SchedulerName, $"Received {scheduledReports.Length} report schedule updates");
-        }
-
-        private void OnLdapUpdate(List<Ldap> connectedLdaps)
-        {
-            state.UpdateLdaps(connectedLdaps);
-        }
-
-        private static void ApiExceptionHandler(Exception exception)
-        {
-            Log.WriteError(SchedulerName, "Subscription lead to exception. Retry subscription.", exception);
-        }
-
-        /// <summary>
-        /// Releases resources used by the service.
-        /// Disposes active subscriptions and scheduler.
-        /// </summary>
-        public async ValueTask DisposeAsync()
-        {
-            if (!disposed)
+            if (scheduler == null)
             {
-                try
-                {
-                    ldapSubscription?.Dispose();
-                    scheduleSubscription?.Dispose();
-
-                    disposed = true;
-                }
-                catch (Exception ex)
-                {
-                    Log.WriteError(SchedulerName, "Error during disposal", ex);
-                }
+                Log.WriteWarning(SchedulerName, "Scheduler not initialized");
+                return;
             }
-        }
-    }
 
-    /// <summary>
-    /// Shared state between the scheduler service and report job.
-    /// </summary>
-    public class ReportSchedulerState
-    {
-        private ImmutableArray<ReportSchedule> scheduledReports = ImmutableArray<ReportSchedule>.Empty;
-        private ImmutableArray<Ldap> connectedLdaps = ImmutableArray<Ldap>.Empty;
+            var jobKey = new JobKey(JobKeyName);
+            var triggerKey = new TriggerKey(TriggerKeyName);
 
-        /// <summary>
-        /// The current set of scheduled reports known to the scheduler.
-        /// </summary>
-        public ImmutableArray<ReportSchedule> ScheduledReports => scheduledReports;
+            // Ensure the job exists as a durable job (so it can be manually triggered)
+            if (!await scheduler.CheckExists(jobKey))
+            {
+                IJobDetail durableJob = JobBuilder.Create<ReportJob>()
+                    .WithIdentity(jobKey)
+                    .StoreDurably()
+                    .Build();
 
-        /// <summary>
-        /// The LDAP connections currently available for user authorization.
-        /// </summary>
-        public ImmutableArray<Ldap> ConnectedLdaps => connectedLdaps;
+                await scheduler.AddJob(durableJob, replace: true);
 
-        /// <summary>
-        /// Updates the in-memory list of scheduled reports.
-        /// </summary>
-        public void UpdateSchedules(IEnumerable<ReportSchedule> newSchedules)
-        {
-            scheduledReports = newSchedules.ToImmutableArray();
-        }
+                Log.WriteInfo(SchedulerName, "Added durable job for manual triggering");
+            }
 
-        /// <summary>
-        /// Updates the in-memory list of connected LDAP instances.
-        /// </summary>
-        public void UpdateLdaps(IEnumerable<Ldap> newLdaps)
-        {
-            connectedLdaps = newLdaps.ToImmutableArray();
+            // Remove existing trigger (if any) but keep the job
+            bool unscheduled = await scheduler.UnscheduleJob(triggerKey);
+            if (unscheduled)
+            {
+                Log.WriteInfo(SchedulerName, "Removed existing trigger");
+            }
+
+            // Create trigger with recurring schedule for existing job
+            ITrigger trigger = TriggerBuilder.Create()
+                .WithIdentity(triggerKey)
+                .ForJob(jobKey)
+                .StartNow()
+                .WithSimpleSchedule(x => x
+                    .WithIntervalInSeconds(DefaultIntervalSeconds)
+                    .RepeatForever())
+                .Build();
+
+            await scheduler.ScheduleJob(trigger);
+
+            Log.WriteInfo(SchedulerName,
+                $"Trigger scheduled, Start: {DateTime.Now:yyyy-MM-dd HH:mm:ss}, Interval: {DefaultIntervalSeconds}s");
         }
     }
 }

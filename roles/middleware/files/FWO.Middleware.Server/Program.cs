@@ -4,7 +4,6 @@ using FWO.Config.Api;
 using FWO.Config.File;
 using FWO.Logging;
 using FWO.Middleware.Server;
-using FWO.Middleware.Server.Jobs;
 using FWO.Middleware.Server.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
@@ -61,7 +60,6 @@ builder.Services.AddQuartzHostedService(options =>
 // Register singletons for DI
 builder.Services.AddSingleton(apiConnection);
 builder.Services.AddSingleton(globalConfig);
-builder.Services.AddSingleton<ReportSchedulerState>();
 builder.Services.AddSingleton<JobExecutionTracker>();
 
 // Register config listeners as singletons (activated at startup)

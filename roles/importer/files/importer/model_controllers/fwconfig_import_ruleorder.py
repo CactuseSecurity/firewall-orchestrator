@@ -1,7 +1,8 @@
 from typing import TYPE_CHECKING, Any
 
 from fwo_const import RULE_NUM_NUMERIC_STEPS
-from fwo_exceptions import FwoApiFailureError
+from fwo_exceptions import FwoApiFailureError, FwoImporterError
+from fwo_log import FWOLogger
 from models.rule import RuleNormalized
 from models.rulebase import Rulebase
 from services.enums import Services
@@ -36,7 +37,7 @@ class RuleOrderService:
 
     _deleted_rule_uids: dict[str, list[str]]
     _new_rule_uids: dict[str, list[str]]
-    _moved_rule_uids: dict[str, list[str]]
+    _moved_rule_uids: dict[str, list[str]]  # rules moved within the same rulebase
 
     _inserts_and_moves: dict[str, list[str]]
     _updated_rules: list[str]
@@ -55,6 +56,8 @@ class RuleOrderService:
         self._initialize()
         self._calculate_necessary_transformations()
         self._update_rule_num_numerics()
+        self._preserve_rule_num_numerics()
+        self._recalculate_duplicate_rule_num_numerics()
 
         return {
             "deleted_rule_uids": self._deleted_rule_uids,
@@ -131,12 +134,12 @@ class RuleOrderService:
                 move_uid for _, move_uid, _ in self._min_moves["reposition_moves"] if move_uid in rule_uids
             ]
 
-            # Add undetected moves (i.e. across rulebases).
+            # add rules moved from other rulebases
             for rule_uid in rule_uids:
                 if (
                     rule_uid not in self._new_rule_uids[rulebase.uid]
                     and rule_uid not in self._moved_rule_uids[rulebase.uid]
-                    and rule_uid not in previous_rulebase_uids
+                    and rule_uid not in previous_rulebase_uids  # TODO: is this necessary
                 ):
                     self._moved_rule_uids[rulebase.uid].append(rule_uid)
 
@@ -299,7 +302,9 @@ class RuleOrderService:
         self, config: "FwConfigNormalized"
     ) -> tuple[list[str], list[RuleNormalized]]:
         uids_and_rules = [
-            (rule_uid, rule) for rulebase in config.rulebases for rule_uid, rule in rulebase.rules.items()
+            (rule_uid, rule)
+            for rulebase in sorted(config.rulebases, key=lambda rb: rb.uid)
+            for rule_uid, rule in rulebase.rules.items()
         ]
 
         if not uids_and_rules:
@@ -309,6 +314,16 @@ class RuleOrderService:
         return (list(uids), list(rules))
 
     def _is_part_of_consecutive_insert(self, rule_uid: str):
+        """
+        Determines whether previous or next rule in target is also inserted.
+
+        Args:
+            rule_uid (str): The rule UID to check.
+
+        Returns:
+            bool: True if part of consecutive insert, False if not, None if not applicable.
+
+        """
         # Only inserts.
 
         if not self._is_rule_uid_in_return_object(rule_uid, self._new_rule_uids):
@@ -453,3 +468,42 @@ class RuleOrderService:
                     return True
 
         return False
+
+    def _preserve_rule_num_numerics(self) -> None:
+        """Preserves rule_num_numerics from previous config for unchanged rules."""
+        if self._normalized_config is None or self._previous_config is None:
+            raise ValueError(CONFIG_OBJECTS_NOT_INITIALIZED_ERROR)
+
+        for rulebase in self._normalized_config.rulebases:
+            previous_rulebase = next((rb for rb in self._previous_config.rulebases if rb.uid == rulebase.uid), None)
+            if previous_rulebase is None:
+                continue  # no previous rulebase to preserve from. rule_num_numerics are expected to be set already.
+
+            for rule_uid, rule in rulebase.rules.items():
+                if rule.rule_num_numeric != 0:
+                    continue  # already updated, no need to preserve
+                if rule_uid not in previous_rulebase.rules:
+                    raise FwoImporterError(f"RuleOrderService: rule_num_numeric was not set for new rule {rule_uid}.")
+                previous_rule = previous_rulebase.rules[rule_uid]
+                rule.rule_num_numeric = previous_rule.rule_num_numeric
+
+    def _recalculate_duplicate_rule_num_numerics(self) -> None:
+        """Recalculates rule_num_numerics for rulebases that have duplicate rule numbers."""
+        if self._normalized_config is None:
+            raise ValueError(CONFIG_OBJECTS_NOT_INITIALIZED_ERROR)
+
+        for rulebase in self._normalized_config.rulebases:
+            rule_num_numerics_seen: set[float] = set()
+            has_duplicate = False
+            for rule in rulebase.rules.values():
+                if rule.rule_num_numeric in rule_num_numerics_seen:
+                    has_duplicate = True
+                    break
+                rule_num_numerics_seen.add(rule.rule_num_numeric)
+
+            if has_duplicate:
+                for index, rule in enumerate(rulebase.rules.values()):
+                    rule.rule_num_numeric = (index + 1) * RULE_NUM_NUMERIC_STEPS
+                FWOLogger.info(
+                    f"Recalculated all rule_num_numerics for rulebase {rulebase.uid} due to duplicate rule numbers."
+                )

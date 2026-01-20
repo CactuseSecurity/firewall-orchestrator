@@ -1,8 +1,10 @@
 import copy
+from typing import Any
 
 from fwo_const import RULE_NUM_NUMERIC_STEPS
 from models.fwconfig_normalized import FwConfigNormalized
 from models.rulebase_link import RulebaseLink, RulebaseLinkUidBased
+from services.uid2id_mapper import Uid2IdMapper
 from test.mocking.mock_config import MockFwConfigNormalizedBuilder
 from test.mocking.mock_fwconfig_import_rule import MockFwConfigImportRule
 from test.mocking.mock_import_state import MockImportStateController
@@ -16,21 +18,6 @@ def set_up_config_for_import_consistency_test():
     config_builder.add_rule_with_nested_groups(config)
 
     return config
-
-
-def set_up_test_for_ruleorder_test_with_defaults():
-    config_builder = MockFwConfigNormalizedBuilder()
-    previous_config, mgm_uid = config_builder.build_config(
-        {"rule_config": [10, 10, 10], "network_object_config": 10, "service_config": 10, "user_config": 10}
-    )
-
-    fwconfig_import_rule = MockFwConfigImportRule()
-    fwconfig_import_rule.normalized_config = copy.deepcopy(previous_config)
-
-    update_rule_num_numerics(previous_config)
-    update_rule_map_and_rulebase_map(previous_config, fwconfig_import_rule.import_details)
-
-    return previous_config, fwconfig_import_rule, config_builder, mgm_uid
 
 
 def reorder_rulebase_rules_dict(config: FwConfigNormalized, rulebase_uid, rule_uids):
@@ -109,19 +96,23 @@ def move_rule_in_config(config: FwConfigNormalized, rulebase_uid, source_positio
     return moved_rule_uid
 
 
-def update_rule_map_and_rulebase_map(config, import_state: MockImportStateController):
-    import_state.state.rulebase_map = {}
-    import_state.state.rule_map = {}
-
+def update_rule_map_and_rulebase_map(config: FwConfigNormalized, uid2id_mapper: Uid2IdMapper):
     rulebase_id = 1
     rule_id = 1
 
+    uid2id_mapper.rulebase_uid2id.local = {}
+    uid2id_mapper.rule_uid2id.local = {}
+    rulebase_mappings: list[dict[str, Any]] = []
+    rule_mappings: list[dict[str, Any]] = []
     for rulebase in config.rulebases:
-        import_state.state.rulebase_map[rulebase.uid] = rulebase_id
+        rulebase_mappings.append({"uid": rulebase.uid, "id": rulebase_id})
         rulebase_id += 1
         for rule in rulebase.rules.values():
-            import_state.state.rule_map[rule.rule_uid] = rule_id
+            rule_mappings.append({"rule_uid": rule.rule_uid, "rule_id": rule_id})
             rule_id += 1
+
+    uid2id_mapper.add_rulebase_mappings(rulebase_mappings)
+    uid2id_mapper.add_rule_mappings(rule_mappings)
 
 
 def update_rule_num_numerics(config):
@@ -132,7 +123,7 @@ def update_rule_num_numerics(config):
             rule.rule_num_numeric = new_num_numeric
 
 
-def update_rb_links(rulebase_links: list[RulebaseLinkUidBased], gateway_id, fwconfig_import_gateway):
+def update_rb_links(rulebase_links: list[RulebaseLinkUidBased], gateway_id: int, fwconfig_import_gateway, uid2id_mapper: Uid2IdMapper):
     new_rb_links: list[RulebaseLink] = []
     link_id = 0
 
@@ -156,15 +147,11 @@ def update_rb_links(rulebase_links: list[RulebaseLinkUidBased], gateway_id, fwco
             RulebaseLink(
                 id=link_id,
                 gw_id=gateway_id,
-                from_rule_id=fwconfig_import_gateway._global_state.import_state.state.lookup_rule(link.from_rule_uid),
-                from_rulebase_id=fwconfig_import_gateway._global_state.import_state.state.lookup_rulebase_id(
-                    link.from_rulebase_uid
-                )
-                if link.from_rulebase_uid
-                else None,
-                to_rulebase_id=fwconfig_import_gateway._global_state.import_state.state.lookup_rulebase_id(
-                    link.to_rulebase_uid
+                from_rule_id=uid2id_mapper.get_rule_id(link.from_rule_uid) if link.from_rule_uid else None,
+                from_rulebase_id=(
+                    uid2id_mapper.get_rulebase_id(link.from_rulebase_uid) if link.from_rulebase_uid else None
                 ),
+                to_rulebase_id=uid2id_mapper.get_rulebase_id(link.to_rulebase_uid),
                 link_type=link_type,
                 is_initial=link.is_initial,
                 is_global=link.is_global,
@@ -177,8 +164,8 @@ def update_rb_links(rulebase_links: list[RulebaseLinkUidBased], gateway_id, fwco
 
 
 def lookup_ids_for_rulebase_link(
-    import_state: MockImportStateController,
-    from_rule_uid: str = "",
+    uid2id_mapper: Uid2IdMapper,
+    from_rule_uid: str | None = "",
     from_rulebase_uid: str = "",
     to_rulebase_uid: str = "",
 ):
@@ -186,11 +173,10 @@ def lookup_ids_for_rulebase_link(
     from_rulebase_id = None
     to_rulebase_id = None
 
-    if from_rule_uid != "":
-        from_rule_id = import_state.state.lookup_rule(from_rule_uid)
+    if from_rule_uid is not None and from_rule_uid != "":
+        from_rule_id = uid2id_mapper.get_rule_id(from_rule_uid)
     if from_rulebase_uid != "":
-        from_rulebase_id = import_state.state.lookup_rulebase_id(from_rulebase_uid)
+        from_rulebase_id = uid2id_mapper.get_rulebase_id(from_rulebase_uid)
     if to_rulebase_uid != "":
-        to_rulebase_id = import_state.state.lookup_rulebase_id(to_rulebase_uid)
-
+        to_rulebase_id = uid2id_mapper.get_rulebase_id(to_rulebase_uid)
     return from_rule_id, from_rulebase_id, to_rulebase_id

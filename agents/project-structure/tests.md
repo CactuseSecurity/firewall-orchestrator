@@ -83,6 +83,9 @@ Unit tests for LDAP membership resolution. Covers group DN matching against sear
 ### `roles/tests-unit/files/FWO.Test/LdapBasicTest.cs`
 Unit tests for LDAP membership mutation decisions. Verifies add/delete operations are applied only when membership state requires a change.
 
+### `roles/tests-unit/files/FWO.Test/ManagementReportTest.cs`
+Unit tests for management report helpers. Validates distinct rule id collection across rulebases.
+
 ### `roles/tests-unit/files/FWO.Test/ManagedIdStringTest.cs`
 Unit tests for Managed Id String. Covers expected behavior and edge cases for the component.
 

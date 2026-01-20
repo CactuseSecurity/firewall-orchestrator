@@ -535,7 +535,7 @@ Report data model for file format. It carries report parameters and results betw
 Report data model for global common svc report. It carries report parameters and results between layers.
 
 ### `roles/lib/files/FWO.Data/Report/ManagementReport.cs`
-Report data model for management report. It carries report parameters and results between layers.
+Report data model for management report. It carries report parameters and results between layers, including helper accessors for rulebase-derived rule ids.
 
 ### `roles/lib/files/FWO.Data/Report/ModellingFilter.cs`
 Report data model for modelling filter. It carries report parameters and results between layers.
@@ -890,7 +890,7 @@ Report generator for owners base outputs. It builds report data and export forma
 Report generator for recert event outputs. It builds report data and export formats for reporting workflows.
 
 ### `roles/lib/files/FWO.Report/ReportRules.cs`
-Report generator for rules outputs. It builds report data and export formats for reporting workflows.
+Report generator for rules outputs. It builds report data and export formats for reporting workflows, including lazy object retrieval based on reported rule ids.
 
 ### `roles/lib/files/FWO.Report/ReportStatistics.cs`
 Report generator for statistics outputs. It builds report data and export formats for reporting workflows.

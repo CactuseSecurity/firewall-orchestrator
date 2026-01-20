@@ -1,4 +1,5 @@
 using FWO.Middleware.Server;
+using Novell.Directory.Ldap;
 using NUnit.Framework;
 
 namespace FWO.Test

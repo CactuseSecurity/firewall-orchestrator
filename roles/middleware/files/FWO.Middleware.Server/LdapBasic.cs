@@ -634,7 +634,7 @@ namespace FWO.Middleware.Server
         /// <summary>
         /// Decide if a membership change should be applied based on current state.
         /// </summary>
-        internal static bool ShouldModifyMembership(bool memberExists, int ldapModification)
+        public static bool ShouldModifyMembership(bool memberExists, int ldapModification)
         {
             return ldapModification switch
             {

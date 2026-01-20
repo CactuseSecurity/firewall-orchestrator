@@ -1,9 +1,3 @@
-using System.Collections.Immutable;
-using FWO.Api.Client;
-using FWO.Api.Client.Queries;
-using FWO.Config.Api.Data;
-using FWO.Data;
-using FWO.Data.Report;
 using FWO.Logging;
 using FWO.Middleware.Server.Jobs;
 using Quartz;
@@ -11,12 +5,11 @@ using Quartz;
 namespace FWO.Middleware.Server.Services
 {
     /// <summary>
-    /// Config/state listener for report generation (no BackgroundService)
+    /// Config/state listener for report generation
     /// </summary>
-    public class ReportSchedulerService : IAsyncDisposable
+    public class ReportSchedulerService
     {
         private readonly ISchedulerFactory schedulerFactory;
-        private bool disposed = false;
         private IScheduler? scheduler;
         private const string JobKeyName = "ReportJob";
         private const string TriggerKeyName = "ReportTrigger";
@@ -97,26 +90,6 @@ namespace FWO.Middleware.Server.Services
 
             Log.WriteInfo(SchedulerName,
                 $"Trigger scheduled, Interval: {interval}s");
-        }
-
-        /// <summary>
-        /// Releases resources used by the service.
-        /// Disposes active subscriptions and scheduler.
-        /// </summary>
-        public async ValueTask DisposeAsync()
-        {
-            if (!disposed)
-            {
-                try
-                {
-
-                    disposed = true;
-                }
-                catch (Exception ex)
-                {
-                    Log.WriteError(SchedulerName, "Error during disposal", ex);
-                }
-            }
         }
     }
 }

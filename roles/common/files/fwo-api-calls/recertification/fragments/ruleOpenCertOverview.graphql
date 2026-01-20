@@ -6,9 +6,11 @@ fragment ruleOpenCertOverview on rule {
   rule_comment
   rule_track
   rule_disabled
-  src_zone: zone {
-    zone_name
-    zone_id
+rule_from_zones {
+    zone {
+      zone_name
+      zone_id
+    }
   }
   rule_metadatum {
     rule_metadata_id
@@ -36,7 +38,6 @@ fragment ruleOpenCertOverview on rule {
       next_recert_date
       owner {
         id
-        group_dn
         name
       }
     }
@@ -78,9 +79,11 @@ fragment ruleOpenCertOverview on rule {
       ...networkObjectOverview
     }
   }
-  dst_zone: zoneByRuleToZone {
-    zone_name
-    zone_id
+  rule_to_zones {
+    zone {
+      zone_name
+      zone_id
+    }
   }
   rule_tos(
     where: {

@@ -3,6 +3,7 @@ using FWO.Data.Middleware;
 using FWO.Encryption;
 using FWO.Logging;
 using Novell.Directory.Ldap;
+using System;
 using System.Text.RegularExpressions;
 
 namespace FWO.Middleware.Server
@@ -330,6 +331,74 @@ namespace FWO.Middleware.Server
         }
 
         /// <summary>
+        /// Resolve user DNs from a list of user or group DNs, expanding group members recursively.
+        /// </summary>
+        /// <param name="dns">DNs to resolve.</param>
+        /// <returns>List of resolved user DNs.</returns>
+        public async Task<List<string>> ResolveUsersFromDns(IEnumerable<string> dns)
+        {
+            HashSet<string> resolvedUsers = new(StringComparer.OrdinalIgnoreCase);
+            if (dns == null)
+            {
+                return resolvedUsers.ToList();
+            }
+
+            Queue<string> groupQueue = new();
+            HashSet<string> visitedGroups = new(StringComparer.OrdinalIgnoreCase);
+
+            foreach (string dn in dns)
+            {
+                EnqueueGroupOrAddUser(dn, groupQueue, resolvedUsers);
+            }
+
+            while (groupQueue.Count > 0)
+            {
+                string groupDn = groupQueue.Dequeue();
+                if (!visitedGroups.Add(groupDn))
+                {
+                    continue;
+                }
+
+                List<string> members = await GetGroupMembers(groupDn);
+                foreach (string memberDn in members)
+                {
+                    EnqueueGroupOrAddUser(memberDn, groupQueue, resolvedUsers);
+                }
+            }
+
+            return resolvedUsers.ToList();
+        }
+
+        private void EnqueueGroupOrAddUser(string dn, Queue<string> groupQueue, HashSet<string> resolvedUsers)
+        {
+            if (string.IsNullOrWhiteSpace(dn))
+            {
+                return;
+            }
+            if (IsGroupDn(dn))
+            {
+                groupQueue.Enqueue(dn);
+                return;
+            }
+            if (IsUserDn(dn) || string.IsNullOrWhiteSpace(UserSearchPath))
+            {
+                resolvedUsers.Add(dn);
+            }
+        }
+
+        private bool IsGroupDn(string dn)
+        {
+            return !string.IsNullOrWhiteSpace(GroupSearchPath)
+                && dn.EndsWith(GroupSearchPath, StringComparison.OrdinalIgnoreCase);
+        }
+
+        private bool IsUserDn(string dn)
+        {
+            return !string.IsNullOrWhiteSpace(UserSearchPath)
+                && dn.EndsWith(UserSearchPath, StringComparison.OrdinalIgnoreCase);
+        }
+
+        /// <summary>
         /// Get all groups, the user is member of
         /// </summary>
         /// <param name="userToSearch">user to search</param>
@@ -348,7 +417,7 @@ namespace FWO.Middleware.Server
                 using LdapConnection connection = await Connect();
                 await TryBind(connection, SearchUser, SearchUserPwd);
 
-                // Suchfilter für Benutzer
+                // searchfilter for users
                 string searchFilter = $"(|(cn={userToSearch})(sAMAccountName={userToSearch}))";
 
                 var searchResults = await connection.SearchAsync(

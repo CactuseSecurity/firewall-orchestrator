@@ -7,9 +7,11 @@ using FWO.Data.Workflow;
 using FWO.Mail;
 using FWO.Middleware.Client;
 using Newtonsoft.Json;
+using System;
 using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Http;
 using System.Text.RegularExpressions;
+using System.Linq;
 using FWO.Basics;
 using FWO.Logging;
 
@@ -106,13 +108,13 @@ namespace FWO.Services
                     recipients.AddRange(await CollectEmailAddressesFromUserOrGroup(statefulObject?.AssignedGroup));
                     break;
                 case EmailRecipientOption.OwnerMainResponsible:
-                    recipients.Add(GetEmailAddress(owner?.Dn));
+                    recipients.AddRange(await CollectEmailAddressesFromDns(owner?.GetOwnerResponsiblesByType(OwnerResponsibleType.kMainResponsible)));
                     break;
                 case EmailRecipientOption.AllOwnerResponsibles:
-                    recipients.AddRange(await CollectEmailAddressesFromOwner(owner));
+                    recipients.AddRange(await CollectEmailAddressesFromDns(owner?.GetAllOwnerResponsibles()));
                     break;
                 case EmailRecipientOption.OwnerGroupOnly:
-                    recipients.AddRange(await GetAddressesFromGroup(owner?.GroupDn));
+                    recipients.AddRange(await CollectEmailAddressesFromDns(owner?.GetOwnerResponsiblesByType(OwnerResponsibleType.kSupportingResponsible)));
                     break;
                 case EmailRecipientOption.Requester:
                 case EmailRecipientOption.Approver:
@@ -123,11 +125,12 @@ namespace FWO.Services
                     if (owner is null)
                         break;
 
-                    List<string> ownerGroupAdresses = await GetAddressesFromGroup(owner.GroupDn);
+                    List<string> ownerGroupAdresses = await CollectEmailAddressesFromDns(owner.GetOwnerResponsiblesByType(OwnerResponsibleType.kSupportingResponsible));
+                    ownerGroupAdresses.AddRange(await CollectEmailAddressesFromDns(owner.GetOwnerResponsiblesByType(OwnerResponsibleType.kMainResponsible)));
 
                     if (ownerGroupAdresses.Count == 0)
                     {
-                        recipients.Add(GetEmailAddress(owner?.Dn));
+                        recipients.AddRange(await CollectEmailAddressesFromDns(owner.GetOwnerResponsiblesByType(OwnerResponsibleType.kMainResponsible)));
                     }
                     else
                     {
@@ -173,52 +176,65 @@ namespace FWO.Services
             return [.. addresslist.Split(separatingStrings, StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries)];
         }
 
-        private async Task<List<string>> CollectEmailAddressesFromOwner(FwoOwner? owner)
-        {
-            List<string> tos = [GetEmailAddress(owner?.Dn), .. await GetAddressesFromGroup(owner?.GroupDn)];
-            return tos;
-        }
-
         private async Task<List<string>> CollectEmailAddressesFromUserOrGroup(string? dn)
         {
-            List<string> tos = [GetEmailAddress(dn), .. await GetAddressesFromGroup(dn)];
+            return await CollectEmailAddressesFromDns(dn == null ? null : [dn]);
+        }
+
+        private async Task<List<string>> CollectEmailAddressesFromDns(IEnumerable<string>? dns)
+        {
+            List<string> tos = [];
+            List<string> resolvedDns = await ResolveUserDns(dns);
+            foreach (string dn in resolvedDns)
+            {
+                tos.Add(GetEmailAddress(dn));
+            }
             return tos;
         }
 
-        private async Task<List<string>> GetAddressesFromGroup(string? groupDn)
+        private async Task<List<string>> ResolveUserDns(IEnumerable<string>? dns)
         {
-            List<string> tos = [];
-            UserGroup? ownerGroup = ownerGroups.FirstOrDefault(x => x.Dn == groupDn);
-            if (ownerGroup != null)
+            List<string> dnsList = dns?.Where(dn => !string.IsNullOrWhiteSpace(dn)).Distinct(StringComparer.OrdinalIgnoreCase).ToList() ?? [];
+            if (dnsList.Count == 0)
             {
-                foreach (var user in ownerGroup.Users)
-                {
-                    tos.Add(GetEmailAddress(user.Dn));
-                }
+                return [];
             }
-            else if (middlewareClient != null && !string.IsNullOrWhiteSpace(groupDn) && !(new DistName(groupDn).IsInternal()))
+
+            if (middlewareClient != null)
             {
                 try
                 {
-                    var response = await middlewareClient.GetGroupMembers(new GroupMemberGetParameters { GroupDn = groupDn });
+                    var response = await middlewareClient.ResolveGroupMembers(new GroupResolveParameters { Dns = dnsList });
                     if (response.IsSuccessful && response.Data != null)
                     {
-                        foreach (var memberDn in response.Data)
-                        {
-                            tos.Add(GetEmailAddress(memberDn));
-                        }
+                        return response.Data.Where(dn => !string.IsNullOrWhiteSpace(dn)).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
                     }
-                    else
-                    {
-                        displayMessageInUi(null, userConfig.GetText("fetch_groups"), userConfig.GetText("E5231"), true);
-                    }
+
+                    displayMessageInUi(null, userConfig.GetText("fetch_groups"), userConfig.GetText("E5231"), true);
                 }
                 catch (Exception exception)
                 {
                     displayMessageInUi(exception, userConfig.GetText("fetch_groups"), userConfig.GetText("E5231"), true);
                 }
             }
-            return tos;
+
+            HashSet<string> resolved = new(StringComparer.OrdinalIgnoreCase);
+            foreach (string dn in dnsList)
+            {
+                UserGroup? ownerGroup = ownerGroups.FirstOrDefault(x => x.Dn == dn);
+                if (ownerGroup != null)
+                {
+                    foreach (var user in ownerGroup.Users)
+                    {
+                        resolved.Add(user.Dn);
+                    }
+                }
+                else
+                {
+                    resolved.Add(dn);
+                }
+            }
+            return resolved.ToList();
         }
 
         private string GetEmailAddress(string? dn)

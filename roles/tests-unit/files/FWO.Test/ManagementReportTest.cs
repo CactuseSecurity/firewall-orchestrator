@@ -37,5 +37,25 @@ namespace FWO.Test
 
             Assert.That(result, Is.EquivalentTo(new[] { 10L, 20L, 30L }));
         }
+
+        [Test]
+        public void GetNextRulebaseFindsMatchingRulebase()
+        {
+            RulebaseReport first = new() { Id = 10 };
+            RulebaseReport second = new() { Id = 20 };
+            ManagementReport managementReport = new()
+            {
+                Rulebases =
+                [
+                    first,
+                    second
+                ]
+            };
+            RulebaseLink link = new() { NextRulebaseId = 20 };
+
+            RulebaseReport? result = managementReport.GetNextRulebase(link);
+
+            Assert.That(result, Is.SameAs(second));
+        }
     }
 }

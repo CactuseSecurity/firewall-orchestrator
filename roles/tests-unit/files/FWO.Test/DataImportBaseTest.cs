@@ -11,6 +11,20 @@ namespace FWO.Test
     public class DataImportBaseTest
     {
         [Test]
+        public void RunImportScriptReturnsFalseWhenScriptMissing()
+        {
+            ApiConnection apiConnection = new SimulatedApiConnection();
+            GlobalConfig globalConfig = new SimulatedGlobalConfig();
+            TestDataImportBase importer = new(apiConnection, globalConfig);
+
+            string scriptPath = Path.Combine(Path.GetTempPath(), $"missing-{Guid.NewGuid():N}.py");
+
+            bool executed = importer.ExecuteScript(scriptPath, null);
+
+            Assert.That(executed, Is.False);
+        }
+
+        [Test]
         public void RunImportScriptPassesArguments()
         {
             if (OperatingSystem.IsWindows())
@@ -53,6 +67,28 @@ namespace FWO.Test
             }
         }
 
+        [Test]
+        public void ReadFileTrimsContent()
+        {
+            ApiConnection apiConnection = new SimulatedApiConnection();
+            GlobalConfig globalConfig = new SimulatedGlobalConfig();
+            TestDataImportBase importer = new(apiConnection, globalConfig);
+
+            string tempFile = Path.GetTempFileName();
+            try
+            {
+                File.WriteAllText(tempFile, "  sample text \n");
+
+                importer.ReadImportFile(tempFile);
+
+                Assert.That(importer.ImportFile, Is.EqualTo("sample text"));
+            }
+            finally
+            {
+                File.Delete(tempFile);
+            }
+        }
+
         private sealed class TestDataImportBase : DataImportBase
         {
             public TestDataImportBase(ApiConnection apiConnection, GlobalConfig globalConfig)
@@ -64,6 +100,13 @@ namespace FWO.Test
             {
                 return RunImportScript(scriptPath, args);
             }
+
+            public void ReadImportFile(string filepath)
+            {
+                ReadFile(filepath);
+            }
+
+            public string ImportFile => importFile;
         }
     }
 }

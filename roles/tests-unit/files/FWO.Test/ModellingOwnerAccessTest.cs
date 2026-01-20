@@ -54,6 +54,25 @@ namespace FWO.Test
                     Arg.Any<string?>());
         }
 
+        [Test]
+        public async Task ReporterWithoutClaimUsesEmptyOwnerships()
+        {
+            ApiConnection apiConnection = Substitute.For<ApiConnection>();
+            apiConnection.SendQueryAsync<List<FwoOwner>>(Arg.Any<string>(), Arg.Any<object?>(), Arg.Any<string?>())
+                .Returns(new List<FwoOwner>());
+
+            ClaimsPrincipal principal = BuildPrincipal(new List<string> { Roles.Reporter });
+            Task<AuthenticationState> authStateTask = Task.FromResult(new AuthenticationState(principal));
+            UserConfig userConfig = new SimulatedUserConfig();
+
+            await ModellingHandlerBase.GetOwnApps(authStateTask, userConfig, apiConnection, NoopDisplay);
+
+            await apiConnection.Received(1)
+                .SendQueryAsync<List<FwoOwner>>(OwnerQueries.getEditableOwners,
+                    Arg.Is<object?>(vars => HasOwnerIds(vars, Array.Empty<int>())),
+                    Arg.Any<string?>());
+        }
+
         private static ClaimsPrincipal BuildPrincipal(List<string> roles, Claim? extraClaim = null)
         {
             List<Claim> claims = roles.ConvertAll(role => new Claim(ClaimTypes.Role, role));

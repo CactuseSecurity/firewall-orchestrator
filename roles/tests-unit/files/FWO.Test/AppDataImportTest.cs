@@ -37,6 +37,20 @@ namespace FWO.Test
         }
 
         [Test]
+        public void ResolveOwnerGroupPathSkipsWhitespaceWritePath()
+        {
+            Ldap ldap = new()
+            {
+                GroupWritePath = "   ",
+                GroupSearchPath = "ou=search,dc=example,dc=com"
+            };
+
+            string resolved = InvokeResolveOwnerGroupPath(ldap);
+
+            Assert.That(resolved, Is.EqualTo("ou=search,dc=example,dc=com"));
+        }
+
+        [Test]
         public void ResolveOwnerGroupPathThrowsWhenMissing()
         {
             Ldap ldap = new()

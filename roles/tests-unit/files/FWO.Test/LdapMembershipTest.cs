@@ -52,6 +52,27 @@ namespace FWO.Test
         }
 
         [Test]
+        public void GetGroupsIgnoresUnrelatedMemberships()
+        {
+            Ldap ldap = new()
+            {
+                GroupSearchPath = "ou=search,dc=example,dc=com",
+                GroupWritePath = "ou=write,dc=example,dc=com"
+            };
+
+            LdapAttributeSet attrs = new();
+            attrs.Add(new LdapAttribute("memberOf", new[]
+            {
+                "cn=OtherGroup,ou=other,dc=example,dc=com"
+            }));
+            LdapEntry user = new("cn=test,dc=example,dc=com", attrs);
+
+            var groups = ldap.GetGroups(user);
+
+            Assert.That(groups, Is.Empty);
+        }
+
+        [Test]
         public void HasGroupHandlingUsesWritePathFallback()
         {
             Ldap ldap = new()

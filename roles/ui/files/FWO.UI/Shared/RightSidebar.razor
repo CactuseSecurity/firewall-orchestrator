@@ -47,8 +47,9 @@
                                 NameExtractor="man => man.Name" NetworkObjectExtractor="man => man.ReportObjects"
                                 NetworkServiceExtractor="man => man.ReportServices"
                                 NetworkUserExtractor="man => man.ReportUsers" />
-                        </div>
-                    </Tab>
+                            </div>
+                        </Tab>
+                    }
                     <Tab Title="@(userConfig.GetText("rule"))">
                         <div class="btn-group btn-group-sm d-md-flex justify-content-md-between sticky-marker-45">
                             <div class="btn btn-dark btn-sm w-50"
@@ -73,7 +74,6 @@
                                 NetworkUserExtractor="rule => rule.Froms.Select(nl => nl.User).Distinct().Where(u => u != null).OrderBy(u => u.Name).ToArray()" />
                         </div>
                     </Tab>
-                                        }
                     @if (CurrentReport?.ReportData.OwnerData.Count > 0 &&
                                         (CurrentReport?.ReportType.IsConnectionRelatedReport() ?? false))
                     {
@@ -183,6 +183,9 @@
         if (CurrentReport?.ReportData.ManagementData != previousReportData)
         {
             previousReportData = CurrentReport?.ReportData.ManagementData;
+        }
+        if (SelectedReportType.IsRuleReport())
+        {
             ResetReportState();
         }
         foreach (Rule rule in SelectedRules)
@@ -199,11 +202,34 @@
         managementsReportObjects = new();
         foreach (ManagementReport mgt in CurrentReport?.ReportData.ManagementData ?? new List<ManagementReport>())
         {
-            if (mgt.Devices.Any(d => d.ContainsRules()))
+            if (HasReportTabData(mgt))
             {
                 managementsReportObjects.Add(new() { Id = mgt.Id, Name = mgt.Name });
             }
         }
+        if (managementsReportObjects.Count == 0 && CurrentReport?.ReportData.ManagementData.Count > 0)
+        {
+            managementsReportObjects = CurrentReport.ReportData.ManagementData
+                .Select(mgt => new ManagementReport { Id = mgt.Id, Name = mgt.Name })
+                .ToList();
+        }
+    }
+
+    private static bool HasReportTabData(ManagementReport managementReport)
+    {
+        if (managementReport.ReportedRuleIds.Count > 0)
+        {
+            return true;
+        }
+        if (managementReport.RuleStatistics.ObjectAggregate.ObjectCount > 0)
+        {
+            return true;
+        }
+        if (managementReport.Rulebases.Any(rb => rb.Rules.Length > 0))
+        {
+            return true;
+        }
+        return managementReport.Devices.Any(dev => dev.RulebaseLinks != null && dev.RulebaseLinks.Any());
     }
 
     private async Task ResetAllTabMgts()

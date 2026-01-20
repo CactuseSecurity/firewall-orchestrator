@@ -135,7 +135,7 @@
 
 @*==== RIGHT SIDEBAR ====*@
 <RightSidebar @bind-Width="sidebarRightWidth" CurrentReport="currentReport" @bind-SelectedRules="selectedRules"
-              Recert="true" />
+              SelectedReportType="currentReport?.ReportType ?? ReportType.Recertification" Recert="true" />
 
 @code
 {

@@ -155,12 +155,10 @@ class TestImportSingleManagement:
             api_fetch_limit=100,
             clear=False,
             suppress_certificate_warnings=False,
-            jwt="mocked_jwt",
             force=False,
             fwo_major_version=9,
             sleep_timer=0,
             is_full_import=True,
-            fwo_api=api_connection,
         )
 
         # Assert

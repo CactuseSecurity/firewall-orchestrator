@@ -43,6 +43,8 @@ class FwConfigBuilder:
         include_gateway: bool = True,
         user_object_count: int = 0,
         zone_object_count: int = 0,
+        user_group_object_count: int = 0,
+        user_group_object_member_count: int = 0,
     ) -> tuple[FwConfigNormalized, str]:
         config = FwConfigNormalized()
         mgm_uid = self.uid_manager.create_uid()
@@ -58,6 +60,9 @@ class FwConfigBuilder:
 
         for _ in range(zone_object_count):
             self.add_zone_object(config)
+
+        for _ in range(user_group_object_count):
+            self.add_user_group_object(config, member_count=user_group_object_member_count)
 
         for _ in range(rulebase_count):
             rb = self.add_rulebase(config, mgm_uid)
@@ -206,11 +211,34 @@ class FwConfigBuilder:
     def add_user_object(self, config: FwConfigNormalized, *, name: str | None = None) -> dict[str, Any]:
         uid = self.uid_manager.create_uid()
         obj = {
-            "user_typ": "user",
+            "user_typ": "simple",
             "user_uid": uid,
             "user_name": name or f"user-{uid}",
         }
         config.users[uid] = obj
+        return obj
+
+    def add_user_group_object(
+        self, config: FwConfigNormalized, member_count: int, *, name: str | None = None
+    ) -> dict[str, Any]:
+        uid = self.uid_manager.create_uid()
+        obj = {
+            "user_typ": "group",
+            "user_uid": uid,
+            "user_name": name or f"user-group-{uid}",
+        }
+        config.users[uid] = obj
+
+        for _ in range(member_count):
+            member_obj = self.add_user_object(config)
+            if obj.get("user_member_names"):
+                obj["user_member_names"] += LIST_DELIMITER
+                obj["user_member_refs"] += LIST_DELIMITER
+            else:
+                obj["user_member_names"] = ""
+                obj["user_member_refs"] = ""
+            obj["user_member_names"] += member_obj["user_name"]
+            obj["user_member_refs"] += member_obj["user_uid"]
         return obj
 
     def add_zone_object(self, config: FwConfigNormalized, *, name: str | None = None) -> dict[str, Any]:

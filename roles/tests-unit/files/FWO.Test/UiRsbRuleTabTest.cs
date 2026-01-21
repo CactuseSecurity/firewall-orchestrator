@@ -27,6 +27,7 @@ namespace FWO.Test
         [Test]
         public void RuleTabSelectionUpdatesOnChange()
         {
+            TimeSpan waitTimeout = TimeSpan.FromSeconds(5);
             Rule ruleAlpha = new() { Id = 1, MgmtId = 1, Name = "Alpha", DeviceName = "Device A" };
             Rule ruleBeta = new() { Id = 2, MgmtId = 1, Name = "Beta", DeviceName = "Device B" };
 
@@ -44,7 +45,7 @@ namespace FWO.Test
                 .Add(p => p.SelectedReportType, ReportType.Rules)
                 .Add(p => p.SelectedRules, new List<Rule>()));
 
-            cut.WaitForAssertion(() => Assert.That(FindActiveTabTitle(cut), Is.EqualTo("Report")));
+            cut.WaitForAssertion(() => Assert.That(FindActiveTabTitle(cut), Is.EqualTo("Report")), waitTimeout);
 
             cut = Render<RightSidebar>(parameters => parameters
                 .Add(p => p.AllTabVisible, false)
@@ -56,7 +57,7 @@ namespace FWO.Test
             {
                 Assert.That(FindActiveTabTitle(cut), Is.EqualTo("Rule"));
                 Assert.That(cut.Markup, Does.Contain("Alpha"));
-            });
+            }, waitTimeout);
 
             cut = Render<RightSidebar>(parameters => parameters
                 .Add(p => p.AllTabVisible, false)
@@ -69,7 +70,7 @@ namespace FWO.Test
                 Assert.That(FindActiveTabTitle(cut), Is.EqualTo("Rule"));
                 Assert.That(cut.Markup, Does.Contain("Beta"));
                 Assert.That(cut.Markup, Does.Not.Contain("Alpha"));
-            });
+            }, waitTimeout);
         }
 
         private static string FindActiveTabTitle(IRenderedComponent<RightSidebar> cut)

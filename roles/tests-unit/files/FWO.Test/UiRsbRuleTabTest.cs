@@ -33,11 +33,14 @@ namespace FWO.Test
 
             List<Rule> ruleDetails = [new Rule { Id = 1 }, new Rule { Id = 2 }];
             ReportBase report = SimulatedReport.DetailedReport(ReportType.Rules);
+            DomEventService domEventService = new();
+            domEventService.InvokeNavbarHeightChanged(0);
 
             Services.AddSingleton<UserConfig>(new SimulatedUserConfig());
             Services.AddSingleton<ApiConnection>(new UiRsbRuleTabApiConn(ruleDetails));
-            Services.AddSingleton(new DomEventService());
+            Services.AddSingleton(domEventService);
             Services.AddScoped(_ => JSInterop.JSRuntime);
+            Services.AddLocalization();
 
             IRenderedComponent<RightSidebar> cut = Render<RightSidebar>(parameters => parameters
                 .Add(p => p.AllTabVisible, false)
@@ -47,7 +50,7 @@ namespace FWO.Test
 
             cut.WaitForAssertion(() => Assert.That(FindActiveTabTitle(cut), Is.EqualTo("Report")), waitTimeout);
 
-            cut = Render<RightSidebar>(parameters => parameters
+            RenderedComponentRenderExtensions.Render(cut, parameters => parameters
                 .Add(p => p.AllTabVisible, false)
                 .Add(p => p.CurrentReport, report)
                 .Add(p => p.SelectedReportType, ReportType.Rules)
@@ -59,7 +62,7 @@ namespace FWO.Test
                 Assert.That(cut.Markup, Does.Contain("Alpha"));
             }, waitTimeout);
 
-            cut = Render<RightSidebar>(parameters => parameters
+            RenderedComponentRenderExtensions.Render(cut, parameters => parameters
                 .Add(p => p.AllTabVisible, false)
                 .Add(p => p.CurrentReport, report)
                 .Add(p => p.SelectedReportType, ReportType.Rules)

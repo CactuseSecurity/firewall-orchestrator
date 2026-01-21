@@ -262,7 +262,10 @@ namespace FWO.Middleware.Server.Controllers
 
             foreach (Ldap currentLdap in ldaps)
             {
-                if (!currentLdap.HasGroupHandling() || string.IsNullOrWhiteSpace(currentLdap.GroupSearchPath))
+                string? groupPath = !string.IsNullOrWhiteSpace(currentLdap.GroupSearchPath)
+                    ? currentLdap.GroupSearchPath
+                    : currentLdap.GroupWritePath;
+                if (!currentLdap.HasGroupHandling() || string.IsNullOrWhiteSpace(groupPath))
                 {
                     continue;
                 }
@@ -408,7 +411,10 @@ namespace FWO.Middleware.Server.Controllers
         private async Task<List<string>> GetMembershipsByMemberDn(Ldap currentLdap, string userDn)
         {
             List<string> memberships = [];
-            if (string.IsNullOrWhiteSpace(userDn) || string.IsNullOrWhiteSpace(currentLdap.GroupSearchPath))
+            string? groupPath = !string.IsNullOrWhiteSpace(currentLdap.GroupSearchPath)
+                ? currentLdap.GroupSearchPath
+                : currentLdap.GroupWritePath;
+            if (string.IsNullOrWhiteSpace(userDn) || string.IsNullOrWhiteSpace(groupPath))
             {
                 return memberships;
             }
@@ -416,7 +422,13 @@ namespace FWO.Middleware.Server.Controllers
             List<string> groupNames = await currentLdap.GetGroups([userDn]);
             foreach (string groupName in groupNames)
             {
-                memberships.Add($"cn={groupName},{currentLdap.GroupSearchPath}");
+                memberships.Add($"cn={groupName},{groupPath}");
+                if (!string.IsNullOrWhiteSpace(currentLdap.GroupSearchPath)
+                    && !string.IsNullOrWhiteSpace(currentLdap.GroupWritePath)
+                    && !currentLdap.GroupSearchPath.Equals(currentLdap.GroupWritePath, StringComparison.OrdinalIgnoreCase))
+                {
+                    memberships.Add($"cn={groupName},{currentLdap.GroupWritePath}");
+                }
             }
             return memberships;
         }

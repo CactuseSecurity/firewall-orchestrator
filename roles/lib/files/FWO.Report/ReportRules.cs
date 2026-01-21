@@ -161,9 +161,19 @@ namespace FWO.Report
             int mid = (int)objQueryVariables.GetValueOrDefault(QueryVar.MgmIds)!;
             ManagementReport managementReport = ReportData.ManagementData.FirstOrDefault(m => m.Id == mid) ?? throw new ArgumentException("Given management id does not exist for this report");
 
+            if (managementReport.ReportedRuleIds.Count == 0)
+            {
+                managementReport.ReportedRuleIds.AddRange(managementReport.GetAllRuleIds());
+            }
             objQueryVariables.Add(QueryVar.RuleIds, "{" + string.Join(", ", managementReport.ReportedRuleIds) + "}");
-            objQueryVariables.Add(QueryVar.ImportIdStart, managementReport.Import.ImportAggregate.ImportAggregateMax.RelevantImportId!);
-            objQueryVariables.Add(QueryVar.ImportIdEnd, managementReport.Import.ImportAggregate.ImportAggregateMax.RelevantImportId!);
+            if (!objQueryVariables.ContainsKey(QueryVar.ImportIdStart))
+            {
+                objQueryVariables.Add(QueryVar.ImportIdStart, managementReport.Import.ImportAggregate.ImportAggregateMax.RelevantImportId!);
+            }
+            if (!objQueryVariables.ContainsKey(QueryVar.ImportIdEnd))
+            {
+                objQueryVariables.Add(QueryVar.ImportIdEnd, managementReport.Import.ImportAggregate.ImportAggregateMax.RelevantImportId!);
+            }
 
             string getObjQuery = GetQuery(objects);
             bool keepFetching = true;

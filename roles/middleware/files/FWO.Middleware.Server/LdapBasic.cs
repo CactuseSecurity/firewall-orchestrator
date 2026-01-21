@@ -359,7 +359,9 @@ namespace FWO.Middleware.Server
             {
                 if (attribute.Name.ToLower() == MemberOfLowerCase)
                 {
-                    groups.AddRange(attribute.StringValueArray.Where(membership => GroupSearchPath != null && membership.EndsWith(GroupSearchPath)));
+                    groups.AddRange(attribute.StringValueArray.Where(membership =>
+                        (!string.IsNullOrWhiteSpace(GroupSearchPath) && membership.EndsWith(GroupSearchPath))
+                        || (!string.IsNullOrWhiteSpace(GroupWritePath) && membership.EndsWith(GroupWritePath))));
                 }
             }
             return groups;
@@ -629,6 +631,19 @@ namespace FWO.Middleware.Server
             return allRemoved;
         }
 
+        /// <summary>
+        /// Decide if a membership change should be applied based on current state.
+        /// </summary>
+        public static bool ShouldModifyMembership(bool memberExists, int ldapModification)
+        {
+            return ldapModification switch
+            {
+                LdapModification.Add => !memberExists,
+                LdapModification.Delete => memberExists,
+                _ => true
+            };
+        }
+
         private async Task<bool> ModifyUserInEntry(string userDn, string entry, int ldapModification)
         {
             bool userModified = false;
@@ -654,12 +669,20 @@ namespace FWO.Middleware.Server
                     return false;
                 }
 
-                if (entryData.GetAttributeSet().ContainsKey(UniqueMemberLowerCase)
+                bool memberExists = entryData.GetAttributeSet().ContainsKey(UniqueMemberLowerCase)
                     && entryData.Get(UniqueMemberLowerCase)
                              .StringValueArray
-                             .Any(m => m.Equals(userDn, StringComparison.OrdinalIgnoreCase)))
+                             .Any(m => m.Equals(userDn, StringComparison.OrdinalIgnoreCase));
+                if (!ShouldModifyMembership(memberExists, ldapModification))
                 {
-                    Log.WriteDebug("Modify Entry", $"User {userDn} already member of {entry}");
+                    if (ldapModification == LdapModification.Add)
+                    {
+                        Log.WriteDebug("Modify Entry", $"User {userDn} already member of {entry}");
+                    }
+                    else if (ldapModification == LdapModification.Delete)
+                    {
+                        Log.WriteDebug("Modify Entry", $"User {userDn} not member of {entry}");
+                    }
                     return false;
                 }
 

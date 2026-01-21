@@ -1,8 +1,10 @@
 fragment ownerDetails on owner {
   id
   name
-  dn
-  group_dn
+  owner_responsibles {
+    dn
+    responsible_type
+  }
   is_default
   tenant_id
   recert_interval

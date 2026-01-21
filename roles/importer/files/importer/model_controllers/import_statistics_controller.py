@@ -116,6 +116,12 @@ class ImportStatisticsController:
     def increment_service_object_change_count(self, increment: int = 1):
         self.statistics.service_object_change_count += increment
 
+    def increment_rulebase_add_count(self, increment: int = 1):
+        self.statistics.rulebase_add_count += increment
+
+    def increment_rulebase_delete_count(self, increment: int = 1):
+        self.statistics.rulebase_delete_count += increment
+
     def increment_rule_add_count(self, increment: int = 1):
         self.statistics.rule_add_count += increment
 

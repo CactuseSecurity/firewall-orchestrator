@@ -19,17 +19,12 @@
       delegate_to: "{{ inventory_hostname }}"
       when: importer_dir_check.stat.exists and installation_mode == "upgrade"
 
-    - name: remove importer dir for cleaning up all old code
-      file:
-        state: absent
-        path: "{{ fworch_home }}/importer"
-      when: installation_mode == "upgrade"
-
     - name: copy importer files
       synchronize:
         src: "importer"
         dest: "{{ fworch_home }}"
         rsync_opts:
+          - "--delete"
           - "--chmod=0755"
           - "--chown={{ fworch_user }}:{{ fworch_group }}"
       tags: ["test"]
@@ -68,15 +63,6 @@
         - /var/{{ product_name }}
         - /var/{{ product_name }}/tmp
         - /var/{{ product_name }}/import_archive
-
-    - name: copy importer systemd service script
-      template:
-        src: "{{ product_name }}-importer-legacy.service.j2"
-        dest: "/lib/systemd/system/{{ product_name }}-importer-legacy.service"
-        backup: true
-        mode: "0644"
-        owner: "root"
-      become: true
 
     - name: copy api-importer systemd service script
       template:

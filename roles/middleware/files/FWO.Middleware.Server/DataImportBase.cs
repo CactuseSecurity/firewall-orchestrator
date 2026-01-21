@@ -56,7 +56,7 @@ namespace FWO.Middleware.Server
         /// <summary>
         /// Execute the Data Import Script
         /// </summary>
-        protected bool RunImportScript(string importScriptFile)
+        protected bool RunImportScript(string importScriptFile, string? scriptArguments = null)
         {
             try
             {
@@ -65,7 +65,7 @@ namespace FWO.Middleware.Server
                     ProcessStartInfo start = new()
                     {
                         FileName = importScriptFile,
-                        Arguments = "", // args,
+                        Arguments = scriptArguments ?? "",
                         UseShellExecute = false,
                         RedirectStandardOutput = true
                     };

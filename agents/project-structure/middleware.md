@@ -52,10 +52,10 @@ Scheduled job for modelling variance analysis. It generates a connections report
 ## Imports and modelling
 
 ### `roles/middleware/files/FWO.Middleware.Server/DataImportBase.cs`
-Shared base class for importers with file reading, script execution, and log writing. It centralizes import logging to the API.
+Shared base class for importers with file reading, script execution (including optional arguments), and log writing. It centralizes import logging to the API.
 
 ### `roles/middleware/files/FWO.Middleware.Server/AppDataImport.cs`
-Imports application owners and app servers from JSON and optionally runs a preprocessing script. It reconciles apps with existing owners, manages LDAP groups, and logs counts for create/update/deactivate actions.
+Imports application owners and app servers from JSON and optionally runs a preprocessing script with configured arguments. It reconciles apps with existing owners, manages LDAP groups, and logs counts for create/update/deactivate actions.
 
 ### `roles/middleware/files/FWO.Middleware.Server/AreaIpDataImport.cs`
 Imports network area IP data from one or more JSON sources and merges them. It normalizes IP ranges, updates areas, deactivates missing ones, and logs outcomes.

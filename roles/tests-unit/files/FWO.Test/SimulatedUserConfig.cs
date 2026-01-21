@@ -146,6 +146,7 @@ namespace FWO.Test
             {"English", "English"},
             {"last_successful", "Last successful"},
             {"common_service", "Common Service"},
+            {"managements", "Managements"},
             {"enforcing_devices", "enforcing_devices" },
             {"no_changes_found", "no_changes_found" },
             {"network_object_added", "network_object_added" },

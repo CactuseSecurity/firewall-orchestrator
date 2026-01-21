@@ -8,11 +8,13 @@ from typing import Any
 
 import fwo_globals
 import requests
-from fwconfig_base import ConfFormat
 from fwo_api_call import FwoApiCall
+from fwo_enums import ConfFormat
 from fwo_exceptions import ConfigFileNotFoundError, FwoImporterError
 from fwo_log import FWOLogger
-from model_controllers.fwconfigmanagerlist_controller import FwConfigManagerListController
+from model_controllers.fwconfigmanagerlist_controller import (
+    FwConfigManagerListController,
+)
 from models.import_state import ImportState
 
 """

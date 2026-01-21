@@ -98,12 +98,17 @@ namespace FWO.Report.Filter.Ast
 
         private static void ExtractToOwnerFilter(DynGraphqlQuery query, string queryVarName, string queryOperator)
         {
-            List<string> ownerFieldNames = ["name", "dn", "group_dn", "last_recertifier_dn"];
+            List<string> ownerFieldNames = ["name", "last_recertifier_dn"];
+            List<string> ownerResponsibleFieldNames = ["dn"];
             List<string> recertFieldNames = ["user_dn", "comment"];
             List<string> ownerSearchParts = [];
             foreach (string field in ownerFieldNames)
             {
                 ownerSearchParts.Add($"{{{field}: {{{queryOperator}: ${queryVarName} }} }} ");
+            }
+            foreach (string field in ownerResponsibleFieldNames)
+            {
+                ownerSearchParts.Add($"{{owner_responsibles: {{{field}: {{{queryOperator}: ${queryVarName} }} }} }} ");
             }
             foreach (string field in recertFieldNames)
             {

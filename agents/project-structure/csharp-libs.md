@@ -189,7 +189,7 @@ API configuration helper for config. It loads and exposes configuration data fro
 Configuration data model for common area. It represents API-provided settings and texts.
 
 ### `roles/lib/files/FWO.Config.Api/Data/ConfigData.cs`
-Configuration data model for config data. It represents API-provided settings and texts.
+Configuration data model for config data. It represents API-provided settings and texts, including app data import scheduling and script arguments.
 
 ### `roles/lib/files/FWO.Config.Api/Data/ConfigItem.cs`
 Configuration data model for config item. It represents API-provided settings and texts.
@@ -535,7 +535,7 @@ Report data model for file format. It carries report parameters and results betw
 Report data model for global common svc report. It carries report parameters and results between layers.
 
 ### `roles/lib/files/FWO.Data/Report/ManagementReport.cs`
-Report data model for management report. It carries report parameters and results between layers.
+Report data model for management report. It carries report parameters and results between layers, including helper accessors for rulebase-derived rule ids.
 
 ### `roles/lib/files/FWO.Data/Report/ModellingFilter.cs`
 Report data model for modelling filter. It carries report parameters and results between layers.
@@ -854,7 +854,7 @@ Recertification helper for owner-specific processing. It encapsulates recertific
 Report generator for app rules outputs. It builds report data and export formats for reporting workflows.
 
 ### `roles/lib/files/FWO.Report/ReportBase.cs`
-Report generator for base outputs. It builds report data and export formats for reporting workflows.
+Report generator for base outputs. It builds report data, export formats, and shared HTML helpers such as report link construction.
 
 ### `roles/lib/files/FWO.Report/ReportChanges.cs`
 Report generator for changes outputs. It builds report data and export formats for reporting workflows.
@@ -890,7 +890,7 @@ Report generator for owners base outputs. It builds report data and export forma
 Report generator for recert event outputs. It builds report data and export formats for reporting workflows.
 
 ### `roles/lib/files/FWO.Report/ReportRules.cs`
-Report generator for rules outputs. It builds report data and export formats for reporting workflows.
+Report generator for rules outputs. It builds report data and export formats for reporting workflows, including lazy object retrieval based on reported rule ids.
 
 ### `roles/lib/files/FWO.Report/ReportStatistics.cs`
 Report generator for statistics outputs. It builds report data and export formats for reporting workflows.
@@ -1047,7 +1047,7 @@ Service logic for modelling app zone handler. It coordinates workflows, API call
 Service logic for modelling connection handler. It coordinates workflows, API calls, and domain rules.
 
 ### `roles/lib/files/FWO.Services/ModellingHandlerBase.cs`
-Service logic for modelling handler base. It coordinates workflows, API calls, and domain rules.
+Service logic for modelling handler base. It coordinates workflows, API calls, and ownership filtering based on user roles and claims.
 
 ### `roles/lib/files/FWO.Services/ModellingServiceGroupHandler.cs`
 Service logic for modelling service group handler. It coordinates workflows, API calls, and domain rules.

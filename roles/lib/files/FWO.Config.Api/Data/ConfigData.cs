@@ -289,6 +289,9 @@ namespace FWO.Config.Api.Data
         [JsonProperty("importAppDataPath"), JsonPropertyName("importAppDataPath")]
         public string ImportAppDataPath { get; set; } = "";
 
+        [JsonProperty("importAppDataScriptArgs"), JsonPropertyName("importAppDataScriptArgs")]
+        public string ImportAppDataScriptArgs { get; set; } = "";
+
         [JsonProperty("importAppDataSleepTime"), JsonPropertyName("importAppDataSleepTime")]
         public int ImportAppDataSleepTime { get; set; } = 24;
 

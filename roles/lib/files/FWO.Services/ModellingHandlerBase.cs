@@ -443,7 +443,9 @@ namespace FWO.Services
             List<FwoOwner> apps = [];
             try
             {
-                if(authenticationStateTask!.Result.User.IsInRole(Roles.Admin) || authenticationStateTask!.Result.User.IsInRole(Roles.Auditor))
+                if(authenticationStateTask!.Result.User.IsInRole(Roles.Admin)
+                    || authenticationStateTask!.Result.User.IsInRole(Roles.Auditor)
+                    || authenticationStateTask!.Result.User.IsInRole(Roles.ReporterViewAll))
                 {
                     apps = await apiConnection.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getOwnersWithConn);
                 }

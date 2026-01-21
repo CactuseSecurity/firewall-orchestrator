@@ -93,10 +93,7 @@ class RuleEnforcedOnGatewayController:
 
         for gw_uid in rule_installon.split(fwo_const.LIST_DELIMITER):
             gw_id = import_state.lookup_gateway_id(gw_uid)
-            if gw_id is not None:
-                rule_to_gw_refs.append(self.create_rule_to_gateway_reference(import_state, rule, gw_id))
-            else:
-                FWOLogger.warning(f"Found a broken reference to a non-existing gateway (uid={gw_uid}). Ignoring.")
+            rule_to_gw_refs.append(self.create_rule_to_gateway_reference(import_state, rule, gw_id))
 
     def create_rule_to_gateway_reference(
         self, import_state: ImportState, rule: dict[str, Any], gw_id: int

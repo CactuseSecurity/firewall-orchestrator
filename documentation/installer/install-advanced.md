@@ -202,13 +202,6 @@ rsyslog config
             maxsize 4096k
             missingok
             copytruncate
-            sharedscripts
-                prerotate
-                        systemctl stop {{ product_name }}-importer-legacy.service >/dev/null 2>&1
-                endscript
-                postrotate
-                        systemctl start {{ product_name }}-importer-legacy.service >/dev/null 2>&1
-                endscript
         }
 ```
 

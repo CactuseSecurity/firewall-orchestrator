@@ -3,7 +3,7 @@ Installer orchestration is implemented with Ansible playbooks, inventory, and ro
 ## Entry points
 
 ### `site.yml`
-Top-level Ansible playbook that orchestrates installation and upgrades across all host groups. It applies roles in the correct order to deploy the full stack.
+Top-level Ansible playbook that orchestrates installation and upgrades across all host groups. It applies roles in the correct order to deploy the full stack and gates UI restarts based on deployment change flags.
 
 ### `ansible.cfg`
 Ansible configuration for the installer runs. Sets defaults such as inventory location, roles path, and execution behavior.
@@ -130,7 +130,7 @@ Task file for the database role handling create users. Included by the role when
 Task file for the database role handling install database. Included by the role when that step is needed in the installer workflow.
 
 ##### `roles/database/tasks/main.yml`
-Main task list for the database role. It orchestrates the role flow and includes additional task files.
+Main task list for the database role. It orchestrates the role flow, applies PostgreSQL config edits, and restarts Postgres only when configuration or HBA changes are detected.
 
 ##### `roles/database/tasks/redhat_preps.yml`
 Task file for the database role handling redhat preps. Included by the role when that step is needed in the installer workflow.
@@ -175,7 +175,7 @@ Jinja2 template for unused docker config.j2 used by the docker role. Renders con
 #### tasks
 
 ##### `roles/finalize/tasks/main.yml`
-Main task list for the finalize role. It orchestrates the role flow and includes additional task files.
+Main task list for the finalize role. It orchestrates the role flow, runs upgrades, and conditionally restarts UI and middleware services based on deployment change flags.
 
 ##### `roles/finalize/tasks/run-upgrades.yml`
 Task file for the finalize role handling run upgrades. Included by the role when that step is needed in the installer workflow.
@@ -193,7 +193,7 @@ Main handlers for the importer role. Defines restart or reload actions triggered
 Task file for the importer role handling fetch importer pwd. Included by the role when that step is needed in the installer workflow.
 
 ##### `roles/importer/tasks/main.yml`
-Main task list for the importer role. It orchestrates the role flow and includes additional task files.
+Main task list for the importer role. It orchestrates the role flow, syncs importer code with rsync, and includes additional task files.
 
 ##### `roles/importer/tasks/run-upgrades.yml`
 Task file for the importer role handling run upgrades. Included by the role when that step is needed in the installer workflow.
@@ -202,9 +202,6 @@ Task file for the importer role handling run upgrades. Included by the role when
 
 ##### `roles/importer/templates/fworch-importer-api.service.j2`
 Jinja2 template for fworch importer api.service.j2 used by the importer role. Renders configuration or service files during installation.
-
-##### `roles/importer/templates/fworch-importer-legacy.service.j2`
-Jinja2 template for fworch importer legacy.service.j2 used by the importer role. Renders configuration or service files during installation.
 
 ### lib
 
@@ -222,7 +219,7 @@ Task file for the lib role handling install dot net. Included by the role when t
 Task file for the lib role handling install puppeteer. Included by the role when that step is needed in the installer workflow.
 
 ##### `roles/lib/tasks/main.yml`
-Main task list for the lib role. It orchestrates the role flow and includes additional task files.
+Main task list for the lib role. It orchestrates the role flow and syncs shared .NET artifacts via rsync with deletes to keep targets in sync.
 
 ### middleware
 
@@ -237,10 +234,10 @@ Main handlers for the middleware role. Defines restart or reload actions trigger
 Task file for the middleware role handling create auth secrets. Included by the role when that step is needed in the installer workflow.
 
 ##### `roles/middleware/tasks/install_and_run_mw_service.yml`
-Task file for the middleware role handling install and run mw service. Included by the role when that step is needed in the installer workflow.
+Task file for the middleware role handling install and run mw service. It templates the systemd unit, publishes the service when needed, and enables the unit.
 
 ##### `roles/middleware/tasks/main.yml`
-Main task list for the middleware role. It orchestrates the role flow and includes additional task files.
+Main task list for the middleware role. It orchestrates the role flow, syncs middleware files, and records whether deployment artifacts changed for later restarts.
 
 ##### `roles/middleware/tasks/mw_apache_install_and_setup.yml`
 Task file for the middleware role handling mw apache install and setup. Included by the role when that step is needed in the installer workflow.
@@ -473,10 +470,10 @@ Main handlers for the ui role. Defines restart or reload actions triggered by ta
 #### tasks
 
 ##### `roles/ui/tasks/install_and_run_ui_service.yml`
-Task file for the ui role handling install and run ui service. Included by the role when that step is needed in the installer workflow.
+Task file for the ui role handling install and run ui service. It templates the systemd unit, publishes the UI when needed, and restarts the service only when deployment changes are detected.
 
 ##### `roles/ui/tasks/main.yml`
-Main task list for the ui role. It orchestrates the role flow and includes additional task files.
+Main task list for the ui role. It orchestrates the role flow, syncs UI assets, and records whether deployment artifacts changed for later restarts.
 
 ##### `roles/ui/tasks/run-upgrades.yml`
 Task file for the ui role handling run upgrades. Included by the role when that step is needed in the installer workflow.

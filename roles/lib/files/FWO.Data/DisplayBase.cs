@@ -317,6 +317,17 @@ namespace FWO.Data
                 return $"<td>{MemberNames}</td>";
             }
         }
+        public static string MemberNamesWithoutHtml(string MemberNames)
+        {
+            if (MemberNames != null && MemberNames.Contains("|"))
+            {
+                return $"{string.Join("<br>", MemberNames.Split('|'))}";
+            }
+            else
+            {
+                return $"{MemberNames}";
+            }
+        }
 
         public static string MemberNamesAsCSV(string MemberNames)
         {

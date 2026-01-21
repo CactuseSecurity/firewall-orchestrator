@@ -19,11 +19,6 @@
       delegate_to: "{{ inventory_hostname }}"
       when: lib_dir_check.stat.exists and installation_mode == "upgrade"
 
-    - name: remove lib dir
-      file:
-        state: absent
-        path: "{{ fworch_home }}/lib"
-
     - name: create {{ lib_tmp_dir }} including lib dir
       file:
         dest: "{{ lib_tmp_dir }}"
@@ -41,23 +36,14 @@
     - name: install puppeteer needed for both ui and middleware servers PDF creation
       include_tasks: install_puppeteer.yml
 
-    - name: copy {{ product_name }} dotnet lib files to lib target (localhost)
+    - name: copy {{ product_name }} dotnet lib files to lib target
       synchronize:
         src: "./"
         dest: "{{ lib_dir }}"
         rsync_opts:
+          - "--delete"
           - "--chown={{ fworch_user }}:{{ fworch_group }}"
       tags: ["test"]
-      when: inventory_hostname == 'localhost'
-
-    - name: copy {{ product_name }} dotnet lib files to lib target (remote)
-      copy:
-        src: "./"
-        dest: "{{ lib_dir }}"
-        owner: "{{ fworch_user }}"
-        group: "{{ fworch_group }}"
-      tags: ["test"]
-      when: inventory_hostname != 'localhost'
 
     - name: finalize handler for datarecovery
       set_fact:

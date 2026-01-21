@@ -113,10 +113,7 @@ class ManagementController(Management):
             sub_managers=[cls.from_json(subManager) for subManager in json_dict["subManagers"]],
         )
 
-        domain_info = DomainInfo(
-            domain_name=replace_none_with_empty(json_dict.get("configPath", "")),
-            domain_uid=replace_none_with_empty(json_dict.get("domainUid", "")),
-        )
+        domain_info = DomainInfo(domain_name=json_dict["configPath"], domain_uid=json_dict["domainUid"])
 
         return cls(
             mgm_id=json_dict["id"],

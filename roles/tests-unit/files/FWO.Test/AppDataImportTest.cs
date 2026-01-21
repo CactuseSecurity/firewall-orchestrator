@@ -2,12 +2,21 @@ using System;
 using System.Reflection;
 using FWO.Middleware.Server;
 using NUnit.Framework;
+using NUnit.Framework.Legacy;
+
 
 namespace FWO.Test
 {
     [TestFixture]
-    public class AppDataImportTest
+    internal class AppDataImportTest
     {
+
+        [SetUp]
+        public void Initialize()
+        {
+            // No setup required for these tests
+        }
+
         [Test]
         public void ResolveOwnerGroupPathPrefersWritePath()
         {
@@ -33,7 +42,7 @@ namespace FWO.Test
 
             string resolved = InvokeResolveOwnerGroupPath(ldap);
 
-            Assert.That(resolved, Is.EqualTo("ou=search,dc=example,dc=com"));
+            ClassicAssert.That(resolved, Is.EqualTo("ou=search,dc=example,dc=com"));
         }
 
         [Test]

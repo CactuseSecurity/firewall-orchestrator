@@ -1,13 +1,14 @@
 import fwo_globals
 import pytest
-from fwo_api import FwoApi
 from fwo_api_call import FwoApiCall
 from fwo_exceptions import FwoApiLoginFailedError
 from model_controllers.import_state_controller import ImportStateController
+from model_controllers.management_controller import ManagementController
 from pytest_mock import MockerFixture
-from unit_tests.utils.test_utils import mock_login
+from unit_tests.data.mock_objects import mock_mgm_details
+from unit_tests.utils.test_utils import mock_get_graphql_code, mock_login
 
-from importer.import_main_loop import get_fwo_jwt, wait_with_shutdown_check
+from importer.import_main_loop import get_fwo_jwt, import_single_management, wait_with_shutdown_check
 
 
 class TestGetFwoJwt:
@@ -129,7 +130,6 @@ class TestImportSingleManagement:
         mocker: MockerFixture,
         import_state_controller: ImportStateController,
         api_call: FwoApiCall,
-        api_connection: FwoApi,
     ):
         # Arrange
         mock_wait = mocker.patch("importer.import_main_loop.wait_with_shutdown_check")
@@ -139,15 +139,14 @@ class TestImportSingleManagement:
             return_value=import_state_controller,
         )
         mock_register_global_state = mocker.patch("importer.import_main_loop.register_global_state")
-        # mock_get_mgm_details = mocker.patch.object(
-        #    import_state_controller.mgm_details,
-        #    "get_mgm_details",
-        # return_value=import_state_controller.mgm_details,
-        ##)
+        mock_get_graphql_code(mocker, return_value={"data": {"jwt": "mocked_jwt"}})
+        mock_get_mgm_details = mocker.patch.object(
+            ManagementController,
+            "get_mgm_details",
+            return_value=mock_mgm_details,
+        )
 
         # Act
-        from importer.import_main_loop import import_single_management
-
         import_single_management(
             mgm_id=1,
             fwo_api_call=api_call,
@@ -162,7 +161,7 @@ class TestImportSingleManagement:
         )
 
         # Assert
-        mock_wait.assert_called_once_with(0)
-        mock_initialize_import.assert_called_once_with(1, "mocked_jwt", False, True, False, 9, False, True)
+        mock_wait.assert_called_with(0)
+        mock_get_mgm_details.assert_called_once()
+        mock_initialize_import.assert_called_once_with(1, api_call, False, True, False, 9, False, True)
         mock_register_global_state.assert_called_once_with(import_state_controller)
-        # mock_get_mgm_details.assert_called_once_with(api_connection, 1)

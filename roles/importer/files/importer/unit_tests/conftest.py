@@ -29,9 +29,10 @@ from unit_tests.utils.config_builder import FwConfigBuilder
 
 
 @pytest.fixture
-def api_call(mocker: MockerFixture) -> FwoApiCall:
+def api_call(mocker: MockerFixture, api_connection: FwoApi) -> FwoApiCall:
     fwo_api_call: FwoApiCall = unittest.mock.create_autospec(FwoApiCall)
     fwo_api_call.call = mocker.MagicMock()
+    fwo_api_call.api = api_connection
     return fwo_api_call
 
 

@@ -7,6 +7,7 @@ using FWO.Data;
 using System.Text.Json.Serialization;
 using Newtonsoft.Json;
 using FWO.Config.Api.Data;
+using System;
 using System.Text.RegularExpressions;
 
 namespace FWO.Middleware.Server
@@ -101,7 +102,7 @@ namespace FWO.Middleware.Server
             try
             {
                 // if the user logging in is the main user for an application, add the ownerships
-                List<FwoOwner> directOwnerships = await apiConn.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getOwnersForUser, new { userDn = user.Dn });
+                List<FwoOwner> directOwnerships = await apiConn.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getOwnersForUser, new { userDns = new List<string> { user.Dn } });
                 foreach (var owner in directOwnerships)
                 {
                     user.Ownerships.Add(owner.Id);
@@ -115,19 +116,17 @@ namespace FWO.Middleware.Server
                 string? namingConvention = configResult.Count > 0 ? configResult[0].Value : string.Empty;
 
 
-                // get the if of the ldap, the ownergroups are defined in 
-                configResult = await apiConn.SendQueryAsync<List<ConfigItem>>(ConfigQueries.getConfigItemByKey,
-                    new { key = "ownerLdapId" });
-                int ownerLdapId = 1;  // default ldap id is 1 (internal LDAP)
-                if (configResult.Count > 0 && int.TryParse(configResult[0].Value, out int parsed) && parsed > 0)
+                List<string> groupsOfUser = user.Groups ?? [];
+                if (groupsOfUser.Count > 0)
                 {
-                    ownerLdapId = parsed;
+                    List<FwoOwner> groupOwnerships = await apiConn.SendQueryAsync<List<FwoOwner>>(
+                        OwnerQueries.getOwnersFromGroups,
+                        new { groupDns = groupsOfUser });
+                    foreach (var owner in groupOwnerships)
+                    {
+                        user.Ownerships.Add(owner.Id);
+                    }
                 }
-
-                // create ldap connection for owner groups
-                Ldap ownerGroupLdap = await apiConn.SendQueryAsync<Ldap>(AuthQueries.getLdapConnectionForUserSearchById, new { id = ownerLdapId }) ?? throw new KeyNotFoundException("No Ldap for owner groups found.");
-
-                List<string> groupsOfUser = await ownerGroupLdap.GetGroupsOfUser(user.Name);
 
                 foreach (var group in groupsOfUser)
                 {
@@ -187,20 +186,31 @@ namespace FWO.Middleware.Server
         {
             foreach (var app in apps)
             {
-                string[] groupDnParts = app.GroupDn.Split(',', StringSplitOptions.RemoveEmptyEntries);
-                if (groupDnParts.Length == 0)
+                foreach (string dn in app.GetAllOwnerResponsibles())
                 {
-                    continue;
-                }
-                string groupCnPart = groupDnParts[0];
-                string[] cnParts = groupCnPart.Split('=', StringSplitOptions.RemoveEmptyEntries);
-                // note: this only works for flat groups! TODO: make this unversal by checking group membership 
-                if (cnParts.Length == 2 && cnParts[1] == groupName)
-                {
-                    return app;
+                    if (MatchesGroupName(dn, groupName))
+                    {
+                        return app;
+                    }
                 }
             }
             return null;
+        }
+
+        private static bool MatchesGroupName(string dn, string groupName)
+        {
+            if (string.IsNullOrWhiteSpace(dn))
+            {
+                return false;
+            }
+            string[] groupDnParts = dn.Split(',', StringSplitOptions.RemoveEmptyEntries);
+            if (groupDnParts.Length == 0)
+            {
+                return false;
+            }
+            string[] cnParts = groupDnParts[0].Split('=', StringSplitOptions.RemoveEmptyEntries);
+            // note: this only works for flat groups! TODO: make this universal by checking group membership
+            return cnParts.Length == 2 && cnParts[1].Equals(groupName, StringComparison.OrdinalIgnoreCase);
         }
 
         /// <summary>

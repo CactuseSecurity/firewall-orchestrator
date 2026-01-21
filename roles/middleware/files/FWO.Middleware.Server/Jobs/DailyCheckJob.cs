@@ -16,6 +16,7 @@ namespace FWO.Middleware.Server.Jobs
     /// <summary>
     /// Quartz Job for daily checks
     /// </summary>
+    [DisallowConcurrentExecution]
     public class DailyCheckJob : IJob
     {
         private const string LogMessageTitle = "Daily Check";

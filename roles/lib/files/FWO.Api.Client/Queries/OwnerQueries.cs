@@ -32,6 +32,8 @@ namespace FWO.Api.Client.Queries
         public static readonly string newRuleOwnership;
         public static readonly string deleteRuleOwnership;
         public static readonly string getOwnerId;
+        public static readonly string newOwnerResponsibles;
+        public static readonly string deleteOwnerResponsibles;
 
 
         static OwnerQueries()
@@ -66,6 +68,8 @@ namespace FWO.Api.Client.Queries
                 newRuleOwnership = ownerDetailsFragment + GetQueryText("owner/newRuleOwnership.graphql");
                 deleteRuleOwnership = ownerDetailsFragment + GetQueryText("owner/deleteRuleOwnership.graphql");
                 getOwnerId = GetQueryText("/owner/getOwnerId.graphql");
+                newOwnerResponsibles = GetQueryText("owner/newOwnerResponsibles.graphql");
+                deleteOwnerResponsibles = GetQueryText("owner/deleteOwnerResponsibles.graphql");
             }
             catch (Exception exception)
             {

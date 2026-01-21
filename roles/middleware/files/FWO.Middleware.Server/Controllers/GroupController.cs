@@ -5,7 +5,9 @@ using FWO.Logging;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Novell.Directory.Ldap;
+using System;
 using System.Collections.Concurrent;
+using System.Linq;
 
 namespace FWO.Middleware.Server.Controllers
 {
@@ -260,7 +262,10 @@ namespace FWO.Middleware.Server.Controllers
 
             foreach (Ldap currentLdap in ldaps)
             {
-                if (!currentLdap.HasGroupHandling() || string.IsNullOrWhiteSpace(currentLdap.GroupSearchPath))
+                string? groupPath = !string.IsNullOrWhiteSpace(currentLdap.GroupSearchPath)
+                    ? currentLdap.GroupSearchPath
+                    : currentLdap.GroupWritePath;
+                if (!currentLdap.HasGroupHandling() || string.IsNullOrWhiteSpace(groupPath))
                 {
                     continue;
                 }
@@ -285,6 +290,88 @@ namespace FWO.Middleware.Server.Controllers
 
             await Task.WhenAll(ldapRequests);
             return new List<string>(memberships);
+        }
+
+        /// <summary>
+        /// Resolve user dns from a list of user or group dns across connected ldaps
+        /// </summary>
+        /// <param name="parameters">GroupResolveParameters</param>
+        /// <returns>List of user dns</returns>
+        [HttpPost("Resolve")]
+        [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}, {Roles.Recertifier}, {Roles.Modeller}")]
+        public async Task<List<string>> ResolveMembers([FromBody] GroupResolveParameters parameters)
+        {
+            if (parameters == null || parameters.Dns.Count == 0)
+            {
+                return [];
+            }
+
+            HashSet<string> resolved = new(StringComparer.OrdinalIgnoreCase);
+            object resolvedLock = new();
+            await ResolveFromLdaps(parameters.Dns, resolved, resolvedLock);
+            AddDirectDns(parameters.Dns, resolved, GetGroupSearchPaths());
+
+            return resolved.ToList();
+        }
+
+        private async Task ResolveFromLdaps(List<string> dns, HashSet<string> resolved, object resolvedLock)
+        {
+            List<Task> ldapRequests = [];
+
+            foreach (Ldap currentLdap in ldaps)
+            {
+                if (!currentLdap.HasGroupHandling())
+                {
+                    continue;
+                }
+
+                ldapRequests.Add(Task.Run(async () =>
+                {
+                    List<string> currentResolved = await currentLdap.ResolveUsersFromDns(dns);
+                    if (currentResolved.Count == 0)
+                    {
+                        return;
+                    }
+
+                    lock (resolvedLock)
+                    {
+                        foreach (string dn in currentResolved)
+                        {
+                            if (!string.IsNullOrWhiteSpace(dn))
+                            {
+                                resolved.Add(dn);
+                            }
+                        }
+                    }
+                }));
+            }
+
+            await Task.WhenAll(ldapRequests);
+        }
+
+        private List<string> GetGroupSearchPaths()
+        {
+            return ldaps
+                .Where(ldap => ldap.HasGroupHandling() && !string.IsNullOrWhiteSpace(ldap.GroupSearchPath))
+                .Select(ldap => ldap.GroupSearchPath!)
+                .ToList();
+        }
+
+        private static void AddDirectDns(List<string> dns, HashSet<string> resolved, List<string> groupSearchPaths)
+        {
+            foreach (string dn in dns)
+            {
+                if (string.IsNullOrWhiteSpace(dn))
+                {
+                    continue;
+                }
+
+                bool isGroupDn = groupSearchPaths.Any(path => dn.EndsWith(path, StringComparison.OrdinalIgnoreCase));
+                if (!isGroupDn)
+                {
+                    resolved.Add(dn);
+                }
+            }
         }
 
         private async Task<List<string>> GetMembershipsFromLdap(Ldap currentLdap, GroupMembershipGetParameters parameters)
@@ -324,7 +411,10 @@ namespace FWO.Middleware.Server.Controllers
         private async Task<List<string>> GetMembershipsByMemberDn(Ldap currentLdap, string userDn)
         {
             List<string> memberships = [];
-            if (string.IsNullOrWhiteSpace(userDn) || string.IsNullOrWhiteSpace(currentLdap.GroupSearchPath))
+            string? groupPath = !string.IsNullOrWhiteSpace(currentLdap.GroupSearchPath)
+                ? currentLdap.GroupSearchPath
+                : currentLdap.GroupWritePath;
+            if (string.IsNullOrWhiteSpace(userDn) || string.IsNullOrWhiteSpace(groupPath))
             {
                 return memberships;
             }
@@ -332,7 +422,13 @@ namespace FWO.Middleware.Server.Controllers
             List<string> groupNames = await currentLdap.GetGroups([userDn]);
             foreach (string groupName in groupNames)
             {
-                memberships.Add($"cn={groupName},{currentLdap.GroupSearchPath}");
+                memberships.Add($"cn={groupName},{groupPath}");
+                if (!string.IsNullOrWhiteSpace(currentLdap.GroupSearchPath)
+                    && !string.IsNullOrWhiteSpace(currentLdap.GroupWritePath)
+                    && !currentLdap.GroupSearchPath.Equals(currentLdap.GroupWritePath, StringComparison.OrdinalIgnoreCase))
+                {
+                    memberships.Add($"cn={groupName},{currentLdap.GroupWritePath}");
+                }
             }
             return memberships;
         }

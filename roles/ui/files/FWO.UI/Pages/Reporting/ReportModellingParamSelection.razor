@@ -125,6 +125,8 @@
     private List<FwoOwner> ownerList = [];
     private List<OwnerRecertification> ownerRecerts = [];
     private OwnerRecertification? selectedOwnerRecert;
+    private ModellingFilter prevModellingFilter = new();
+    private ReportType prevReportType = ReportType.Connections;
 
     protected override async Task OnInitializedAsync()
     {
@@ -140,15 +142,20 @@
 
     protected override async Task OnParametersSetAsync()
     {
-        if(ReportType == ReportType.OwnerRecertification)
+        if(ModellingFilter != prevModellingFilter || ReportType != prevReportType)
         {
-            ModellingFilter.SelectedOwners = ownerList;
+            prevModellingFilter = ModellingFilter;
+            prevReportType = ReportType;
+            if(ReportType == ReportType.OwnerRecertification)
+            {
+                ModellingFilter.SelectedOwners = ownerList;
+            }
+            else if(ModellingFilter.SelectedOwner.Id == 0)
+            {
+                PickSelectedOwner();
+            }
+            await LoadOwnerRecerts(ModellingFilter.SelectedOwner);
         }
-        else if(ModellingFilter.SelectedOwner.Id == 0)
-        {
-            PickSelectedOwner();
-        }
-        await LoadOwnerRecerts(ModellingFilter.SelectedOwner);
     }
 
     private async Task OwnerChanged(FwoOwner newOwner)

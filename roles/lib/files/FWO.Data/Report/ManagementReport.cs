@@ -1,6 +1,7 @@
 using Newtonsoft.Json;
 using System.Text.Json.Serialization;
 using System.Xml.Linq;
+using System.Linq;
 
 namespace FWO.Data.Report
 {
@@ -139,6 +140,18 @@ namespace FWO.Data.Report
             }
             return Rulebases
                 .FirstOrDefault(rb => rb.Id == currentRbLink.NextRulebaseId);
+        }
+
+        /// <summary>
+        /// Collect all rule ids from contained rulebases.
+        /// </summary>
+        public List<long> GetAllRuleIds()
+        {
+            return Rulebases
+                .SelectMany(rulebase => rulebase.Rules)
+                .Select(rule => rule.Id)
+                .Distinct()
+                .ToList();
         }
 
     }

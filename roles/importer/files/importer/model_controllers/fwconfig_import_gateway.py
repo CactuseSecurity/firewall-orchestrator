@@ -10,6 +10,7 @@ from models.rulebase_link import (  # TODO: check if we need RulebaseLinkUidBase
 )
 from services.global_state import GlobalState
 from services.service_provider import ServiceProvider
+from services.uid2id_mapper import Uid2IdMapper
 
 
 class FwConfigImportGateway:
@@ -18,11 +19,13 @@ class FwConfigImportGateway:
     """
 
     _global_state: GlobalState
+    _uid2id_mapper: Uid2IdMapper
     _rb_link_controller: RulebaseLinkController
 
     def __init__(self):
         service_provider = ServiceProvider()
         self._global_state = service_provider.get_global_state()
+        self._uid2id_mapper = service_provider.get_uid2id_mapper(self._global_state.import_state.state.import_id)
         self._rb_link_controller = RulebaseLinkController()
 
     def get_rb_link_controller(self) -> RulebaseLinkController:
@@ -72,8 +75,6 @@ class FwConfigImportGateway:
             if gw.Uid is None:
                 raise FwoImporterError("found gateway with Uid = None")
             gw_id = self._global_state.import_state.state.lookup_gateway_id(gw.Uid)
-            if gw_id is None:
-                FWOLogger.warning(f"did not find a gwId for UID {gw.Uid}")
 
             self._create_insert_args(gw, previous_config_gw, gw_id, required_inserts)
 
@@ -118,26 +119,19 @@ class FwConfigImportGateway:
         gw_id: int | None,
         is_insert: bool,
     ):
-        # If rule changed we need the id of the old version, since the rulebase links still have the old fks (for updates)
-
+        # For updates, if rule changed we need the id of the old version, since the rulebase links still have the old fks (for updates)
+        # For inserts, we need the id of the new version
         from_rule_id = (
-            self._global_state.import_state.state.removed_rules_map.get(link.from_rule_uid, None)
-            if link.from_rule_uid is not None
+            self._uid2id_mapper.get_rule_id(link.from_rule_uid, before_update=not is_insert)
+            if link.from_rule_uid
             else None
         )
 
-        # If rule is unchanged or new id can be fetched from RuleMap, because it has been updated already
-        if not from_rule_id or is_insert:
-            from_rule_id = (
-                self._global_state.import_state.state.lookup_rule(link.from_rule_uid)
-                if link.from_rule_uid is not None
-                else None
-            )
         if link.from_rulebase_uid is None or link.from_rulebase_uid == "":
             from_rulebase_id = None
         else:
-            from_rulebase_id = self._global_state.import_state.state.lookup_rulebase_id(link.from_rulebase_uid)
-        to_rulebase_id = self._global_state.import_state.state.lookup_rulebase_id(link.to_rulebase_uid)
+            from_rulebase_id = self._uid2id_mapper.get_rulebase_id(link.from_rulebase_uid)
+        to_rulebase_id = self._uid2id_mapper.get_rulebase_id(link.to_rulebase_uid)
         link_type_id = self._global_state.import_state.state.lookup_link_type(link.link_type)
         if type(link_type_id) is not int:
             FWOLogger.warning(f"did not find a link_type_id for link_type {link.link_type}")

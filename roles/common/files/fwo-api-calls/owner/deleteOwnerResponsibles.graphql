@@ -1,0 +1,5 @@
+mutation deleteOwnerResponsibles($ownerId: Int!) {
+  delete_owner_responsible(where: {owner_id: {_eq: $ownerId}}) {
+    affected_rows
+  }
+}

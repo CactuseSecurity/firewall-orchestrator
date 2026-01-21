@@ -1,3 +1,5 @@
+@page "/certification"
+
 @using FWO.Basics
 @using FWO.Data.Report
 @using FWO.Middleware.Client
@@ -11,7 +13,6 @@
 @using System.Threading
 @using System.Text.RegularExpressions
 
-@page "/certification"
 @attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Recertifier}, {Roles.Auditor}")]
 
 @inject ApiConnection apiConnection
@@ -114,7 +115,7 @@
             <form onsubmit="return false">
                 <div class="form-group row">
                     <label for="comment" class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("comment") +
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            (userConfig.CommentRequired ? "*:" : ":"))</label>
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    (userConfig.CommentRequired ? "*:" : ":"))</label>
                         <div class="col-sm-8">
                             <input id="comment" type="text" class="form-control form-control-sm" @bind="actComment" />
                         </div>
@@ -134,7 +135,7 @@
 
 @*==== RIGHT SIDEBAR ====*@
 <RightSidebar @bind-Width="sidebarRightWidth" CurrentReport="currentReport" @bind-SelectedRules="selectedRules"
-              Recert="true" />
+              SelectedReportType="currentReport?.ReportType ?? ReportType.Recertification" Recert="true" />
 
 @code
 {
@@ -202,7 +203,7 @@
         userOwnerships = await apiConnection.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getOwnersForUser,
             new
             {
-                userDn = userConfig.User.Dn
+                userDns = new List<string> { userConfig.User.Dn }
             });
 
         // this gets owners for which the user is member of an owning LOCAL group

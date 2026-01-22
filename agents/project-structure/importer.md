@@ -333,6 +333,9 @@ Shared utilities and common types for the Palo Alto management module. Used by v
 ### `roles/importer/files/importer/test/test_fOS_normalize_access_rules.py`
 Test module for test fOS normalize access rules behaviors. It provides coverage for importer logic and data transformations.
 
+### `roles/importer/files/importer/test/test_fortiadom_domain_info.py`
+Test module for FortiManager ADOM domain name guards. It validates that missing domain names raise importer errors and that valid values pass through.
+
 ### `roles/importer/files/importer/test/test_fwconfig_import_consistency.py`
 Test module for test fwconfig import consistency behaviors. It provides coverage for importer logic and data transformations.
 

@@ -16,6 +16,5 @@ namespace FWO.Ui.Services
             }
         }
 
-        public void OnActionExecuted(ActionExecutedContext context) { }
     }
 }

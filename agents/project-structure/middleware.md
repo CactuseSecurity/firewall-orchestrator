@@ -22,6 +22,9 @@ Loads notification rules and decides when owners should be notified. It builds e
 
 ## Schedulers
 
+### `roles/middleware/files/FWO.Middleware.Server/Services/QuartzSchedulerServiceBase.cs`
+Base class for Quartz-backed scheduler services that respond to config subscriptions. It wires the GraphQL subscription, ensures durable Quartz jobs, manages trigger rescheduling, and centralizes start-time calculation and logging.
+
 ### `roles/middleware/files/FWO.Middleware.Server/AutoDiscoverScheduler.cs`
 Scheduled job for device autodiscovery, triggered by config subscriptions. It runs autodiscovery per eligible management, creates alerts for actions, and logs per-management outcomes.
 

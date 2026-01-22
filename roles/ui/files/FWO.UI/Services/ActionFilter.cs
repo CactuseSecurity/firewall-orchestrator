@@ -7,6 +7,11 @@ namespace FWO.Ui.Services
     {
         private readonly IUrlSanitizer _sanitizer = sanitizer;
 
+        public void OnActionExecuted(ActionExecutedContext context)
+        {
+            throw new NotImplementedException();
+        }
+
         public void OnActionExecuting(ActionExecutingContext context)
         {
             foreach (var arg in context.ActionArguments.ToList())

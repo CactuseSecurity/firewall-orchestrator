@@ -8,6 +8,8 @@ namespace FWO.Services.RuleTreeBuilder
 {
     public class RuleTreeBuilder : IRuleTreeBuilder
     {
+        #region Properties & fields
+
         /// <summary>
         /// The root item for the tree structure.
         /// </summary>
@@ -37,10 +39,18 @@ namespace FWO.Services.RuleTreeBuilder
         /// </summary>
         private readonly List<FWO.Data.Rule> _allRules = [];
 
+        #endregion
+
+        #region Constructor
+
         public RuleTreeBuilder()
         {
             RuleTree.IsRoot = true;
         }
+
+        #endregion
+
+        #region Methods - Public
 
         public RulebaseLink? GetNextLink(int? fromRulebaseId = 0)
         {
@@ -98,6 +108,25 @@ namespace FWO.Services.RuleTreeBuilder
             ProcessRulebase(rulebase, link);
         }
 
+        public List<Data.Rule> BuildRuleTree(ManagementReport managementReport, DeviceReport deviceReport)
+        {
+            int rulebaseId = deviceReport.GetInitialRulebaseId(managementReport) ?? 0;
+
+            while (GetNextLink(rulebaseId) is RulebaseLink nextLink)
+            {
+                ProcessLink(nextLink);
+                rulebaseId = nextLink.NextRulebaseId;
+            }
+
+            return RuleTree.ElementsFlat.Where(item => ((RuleTreeItem) item).IsRule).Select(item => item.Data!).ToList();
+        }
+
+
+
+        #endregion
+
+        #region Methods - Private
+
         private RulebaseReport? ProcessInlineLayerLink(RulebaseLink link)
         {
             RulebaseReport? rulebase = Rulebases.FirstOrDefault(rb => rb.Id == link.NextRulebaseId);
@@ -143,7 +172,6 @@ namespace FWO.Services.RuleTreeBuilder
                 orderedLayerItem.IsOrderedLayerHeader = true;
                 SetParentForTreeItem(orderedLayerItem, link);
                 RuleTree.LastAddedItem = orderedLayerItem;
-                ProcessRulebase(rulebase, link);
             }
 
             return rulebase;
@@ -165,14 +193,11 @@ namespace FWO.Services.RuleTreeBuilder
 
                 foreach (FWO.Data.Rule rule in rulebase.Rules)
                 {
-
-                    
-                    
-                    rule.DisplayOrderNumberString = string.Join(".", position);
+                    FWO.Data.Rule newRule = GetUniqueRuleObject(rule);
                     RuleTreeItem ruleItem = new();
                     ruleItem.IsRule = true;
-                    ruleItem.Data = rule;
-                    ruleItem.Position = position.ToList();
+                    ruleItem.Data = newRule;
+                    
                     
                     SetParentForTreeItem(ruleItem, link, lastAddedItem);
 
@@ -180,6 +205,10 @@ namespace FWO.Services.RuleTreeBuilder
                     {
                         int bottomLevelNumber = position.Last() + 1;
                         position[position.Count - 1] = bottomLevelNumber;
+                        newRule.DisplayOrderNumberString = string.Join(".", position);
+                        ruleItem.Position = position.ToList();
+                        CreatedOrderNumbersCount++;
+                        newRule.OrderNumber = CreatedOrderNumbersCount;
                     }
                     catch (System.Exception e)
                     {
@@ -204,6 +233,23 @@ namespace FWO.Services.RuleTreeBuilder
                 }
 
                 RuleTree.LastAddedItem = lastAddedItem;                
+            }
+        }
+
+        private FWO.Data.Rule GetUniqueRuleObject(FWO.Data.Rule rule)
+        {
+            List<FWO.Data.Rule> existingRules = RuleTree.ElementsFlat
+                                                        .Where(item => ((RuleTreeItem) item).IsRule)
+                                                        .Select(item => item.Data!)
+                                                        .ToList();
+
+            if (existingRules.Contains(rule))
+            {
+                return rule.CreateClone();
+            }
+            else
+            {
+                return rule;
             }
         }
 
@@ -317,6 +363,8 @@ namespace FWO.Services.RuleTreeBuilder
                 }
             }
         }
+
+        #endregion
 
 
 
@@ -606,6 +654,8 @@ namespace FWO.Services.RuleTreeBuilder
 
             return nextPosition;
         }
+
+      
         
         #region NormalizePosition
         private static string NormalizePosition(IEnumerable<string> parts)
@@ -643,5 +693,7 @@ namespace FWO.Services.RuleTreeBuilder
             }
             return comparisonResult;
         }
+
+
     }
 }

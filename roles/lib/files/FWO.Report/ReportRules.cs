@@ -129,44 +129,34 @@ namespace FWO.Report
 
             // Build rule tree for each device in each management
 
-            // int ruleCount = 0;
+            int ruleCount = 0;
 
             foreach (var managementReport in ReportData.ManagementData)
             {
                 foreach (var deviceReport in managementReport.Devices)
                 {
+                    ruleCount = 0;
+
                     List<RulebaseLink> relevantLinks = deviceReport.RulebaseLinks.Where(link => link.Removed == null).ToList();
                     List<RulebaseReport> relevantRulebases = managementReport.Rulebases.ToList();
                     ruleTreeBuilder.Reset(relevantLinks, relevantRulebases);
-                    int rulebaseId = deviceReport.GetInitialRulebaseId(managementReport) ?? 0;
 
-                    while (ruleTreeBuilder.GetNextLink(rulebaseId) is RulebaseLink nextLink)
-                    {
-                        ruleTreeBuilder.ProcessLink(nextLink);
-                        rulebaseId = nextLink.NextRulebaseId;
-                    }
+                    List<FWO.Data.Rule> allRules = ruleTreeBuilder.BuildRuleTree(managementReport, deviceReport);
 
+                    Rule[] rulesArray = [.. allRules];
+                    _rulesCache[(deviceReport.Id, managementReport.Id)] = rulesArray;
 
-                    // List<Rule> allRules = [];
+                    // Add all rule ids to ReportedRuleIds of management, that are not already in that list
 
-                    // if (ruleTreeBuilder?.BuildRulebaseLinkQueue(deviceReport.RulebaseLinks.Where(link => link.Removed == null).ToArray(), managementReport.Rulebases) != null)
-                    // {
-                        
-                    //     allRules = ruleTreeBuilder.BuildRuleTree();
-                    //     ruleCount += allRules.Count;
-                    // }
+                    managementReport.ReportedRuleIds.AddRange(
+                        rulesArray.Select(r => r.Id).Except(managementReport.ReportedRuleIds)
+                    );
 
-                    // Rule[] rulesArray = [.. allRules];
-                    // _rulesCache[(deviceReport.Id, managementReport.Id)] = rulesArray;
-
-                    // // Add all rule ids to ReportedRuleIds of management, that are not already in that list
-                    // managementReport.ReportedRuleIds.AddRange(
-                    //     rulesArray.Select(r => r.Id).Except(managementReport.ReportedRuleIds)
-                    // );
+                    ruleCount += allRules.Count;
                 }
             }
 
-            // ReportData.ElementsCount = ruleCount;
+            ReportData.ElementsCount = ruleCount;
         }
 
         protected virtual void SetMgtQueryVars(ManagementReport management)

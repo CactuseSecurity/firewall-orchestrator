@@ -1,3 +1,5 @@
+using System.Data;
+using System.Diagnostics;
 using FWO.Basics;
 using FWO.Data;
 using FWO.Data.Report;
@@ -25,21 +27,321 @@ namespace FWO.Services.RuleTreeBuilder
         /// A counter to easily create the order position (/order number) for the ordered layers on the top level.
         /// </summary>
         public int OrderedLayerCount { get; set; }
+
+        public List<RulebaseLink> RemainingLinks { get; set; } = new();  
+        public List<RulebaseReport> Rulebases { get; set; } = new();
+        public List<RulebaseLink> RemainingInlineLayerLinks { get; set; } = new();
         
         /// <summary>
         /// All of the processed rules.
         /// </summary>
-        private readonly List<Rule> _allRules = [];
+        private readonly List<FWO.Data.Rule> _allRules = [];
 
         public RuleTreeBuilder()
         {
             RuleTree.IsRoot = true;
         }
 
+        public RulebaseLink? GetNextLink(int? fromRulebaseId = 0)
+        {
+            if (RemainingLinks.Any(link => link.IsInitial))
+            {
+                RulebaseLink initialLink = RemainingLinks.First(link => link.IsInitial);
+                RemainingLinks.Remove(initialLink);
+                return initialLink;
+            }
+
+            return RemainingLinks.FirstOrDefault(link => link.FromRulebaseId == fromRulebaseId);
+        }
+
+        public void Reset(List<RulebaseLink> links, List<RulebaseReport> rulebases)
+        {
+            RemainingLinks = links.Where(link => link.LinkType != 3).ToList();
+            Rulebases = rulebases;
+            RemainingInlineLayerLinks = links.Where(link => link.LinkType == 3).ToList();
+            RuleTree = new RuleTreeItem() { IsRoot = true };
+            RuleTree.LastAddedItem = RuleTree;
+            RuleTreeBuilderQueue = new Queue<(RulebaseLink link, RulebaseReport rulebase)>();
+            CreatedOrderNumbersCount = 0;
+            OrderedLayerCount = 0;
+            _allRules.Clear();
+        }
+
+        public void ProcessLink(RulebaseLink link)
+        {
+            RulebaseReport? rulebase = null;
+
+            if(RemainingInlineLayerLinks.Contains(link))
+            {
+                rulebase = ProcessInlineLayerLink(link);
+            }
+            else if (link.IsSection)
+            {
+                rulebase = ProcessSectionLink(link);
+            }
+            else if (link.LinkType == 2)
+            {
+                rulebase = ProcessOrderedLayerLink(link);
+            }
+            else if (link.LinkType == 4)
+            {
+                rulebase = ProcessConcatenationLink(link);
+            }
+
+            if (rulebase == null)
+            {
+                throw new InvalidOperationException("Rulebase for link could not be found.");
+            }
+
+            RuleTree.ElementsFlat.Add((RuleTreeItem) (RuleTree.LastAddedItem ?? new RuleTreeItem()));
+
+            ProcessRulebase(rulebase, link);
+        }
+
+        private RulebaseReport? ProcessInlineLayerLink(RulebaseLink link)
+        {
+            RulebaseReport? rulebase = Rulebases.FirstOrDefault(rb => rb.Id == link.NextRulebaseId);
+
+            if (rulebase != null)
+            {
+                RuleTreeItem inlineLayerItem = new RuleTreeItem();
+                inlineLayerItem.Header = rulebase.Name ?? "";
+                inlineLayerItem.IsInlineLayerRoot = true;
+                SetParentForTreeItem(inlineLayerItem, link); 
+                RuleTree.LastAddedItem = inlineLayerItem;
+            }
+
+            return rulebase;
+        }
+
+        private RulebaseReport? ProcessSectionLink(RulebaseLink link)
+        {
+            RulebaseReport? rulebase = Rulebases.FirstOrDefault(rb => rb.Id == link.NextRulebaseId);
+
+            if (rulebase != null)
+            {
+                RuleTreeItem sectionLinkItem = new();
+                sectionLinkItem.Header = rulebase.Name ?? "";
+                sectionLinkItem.IsSectionHeader = true;
+                SetParentForTreeItem(sectionLinkItem, link);
+                RuleTree.LastAddedItem = sectionLinkItem;
+            }
+
+            return rulebase;
+        }
+
+        private RulebaseReport? ProcessOrderedLayerLink(RulebaseLink link)
+        {
+            RulebaseReport? rulebase = Rulebases.FirstOrDefault(rb => rb.Id == link.NextRulebaseId);
+
+            if (rulebase != null)
+            {
+                RuleTreeItem orderedLayerItem = new();
+                OrderedLayerCount++;
+                orderedLayerItem.Position = [OrderedLayerCount];
+                orderedLayerItem.Header = rulebase.Name ?? "";
+                orderedLayerItem.IsOrderedLayerHeader = true;
+                SetParentForTreeItem(orderedLayerItem, link);
+                RuleTree.LastAddedItem = orderedLayerItem;
+                ProcessRulebase(rulebase, link);
+            }
+
+            return rulebase;
+        }
+
+        private RulebaseReport? ProcessConcatenationLink(RulebaseLink link)
+        {
+            return ProcessSectionLink(link); // TODO: Differentiate between concatenation and section if needed
+        }
+
+        private void ProcessRulebase(RulebaseReport rulebase, RulebaseLink link)
+        {
+            if (RuleTree.LastAddedItem != null)
+            {
+                RuleTreeItem lastAddedItem = (RuleTreeItem) RuleTree.LastAddedItem;
+                List<int> position = new();
+
+                IncrementPosition(lastAddedItem, position, rulebase);
+
+                foreach (FWO.Data.Rule rule in rulebase.Rules)
+                {
+
+                    
+                    
+                    rule.DisplayOrderNumberString = string.Join(".", position);
+                    RuleTreeItem ruleItem = new();
+                    ruleItem.IsRule = true;
+                    ruleItem.Data = rule;
+                    ruleItem.Position = position.ToList();
+                    
+                    SetParentForTreeItem(ruleItem, link, lastAddedItem);
+
+                    try
+                    {
+                        int bottomLevelNumber = position.Last() + 1;
+                        position[position.Count - 1] = bottomLevelNumber;
+                    }
+                    catch (System.Exception e)
+                    {
+                        Logging.Log.WriteError("Rule Tree Builder", $"Error processing rule ID {rule.Id} in rulebase ID {rulebase.Id}: {e.Message}");
+                        throw;
+                    }
+
+                    
+                    RuleTree.ElementsFlat.Add(ruleItem);
+                    RuleTree.LastAddedItem = ruleItem;
+
+                    if (RemainingInlineLayerLinks.Any(l => l.LinkType == 3 && l.FromRuleId == rule.Id))
+                    {
+                        RulebaseLink inlineLayerLink = RemainingInlineLayerLinks.First(l => l.LinkType == 3 && l.FromRuleId == rule.Id);
+                        RemainingInlineLayerLinks.Remove(inlineLayerLink);
+                        ProcessInlineLayerLink(inlineLayerLink);
+                    }
+
+                    // Reset position to  remain on correct level
+
+                    position = ruleItem.Position.ToList();
+                }
+
+                RuleTree.LastAddedItem = lastAddedItem;                
+            }
+        }
+
+        private void SetParentForTreeItem(RuleTreeItem item, RulebaseLink link, RuleTreeItem? parentOverride = null)
+        {
+            if (item.IsRule && parentOverride != null)
+            {
+                SetParentForTreeItem(parentOverride, item);
+                return;
+            }
+            
+            if (RuleTree.LastAddedItem is RuleTreeItem lastAddedItem && (lastAddedItem.Parent is RuleTreeItem parent || lastAddedItem.IsRoot) )
+            {
+                if(RemainingInlineLayerLinks.Contains(link))
+                {
+                    SetParentForTreeItem(lastAddedItem, item);
+                }
+                else if (link.IsSection)
+                {   
+                    if (lastAddedItem == null)
+                    {
+                        SetParentForTreeItem(RuleTree, item);
+                    }
+                    else if (lastAddedItem.IsSectionHeader == true)
+                    {
+                        if (lastAddedItem.Parent != null)
+                        {
+                           SetParentForTreeItem((RuleTreeItem) lastAddedItem.Parent, item); 
+                        }
+                        
+                    }
+                    else
+                    {
+                        SetParentForTreeItem(lastAddedItem, item);
+                    }
+                }
+                else if (link.LinkType == 2)
+                {
+                    SetParentForTreeItem(RuleTree, item);
+                }
+                else if (link.LinkType == 4)
+                {
+                    if(lastAddedItem.Parent != null)
+                    {
+                        SetParentForTreeItem((RuleTreeItem) lastAddedItem.Parent, item); 
+                    }
+                }                
+            }            
+        }
+
+        private void SetParentForTreeItem(RuleTreeItem parent, RuleTreeItem item)
+        {
+            item.Parent = parent;
+            parent.Children.Add(item);
+            parent.LastAddedItem = item;
+        }
+
+        /// <summary>
+        /// Increments the position based on the last added item type. 
+        /// </summary>
+        /// <param name="lastAddedItem"></param>
+        /// <param name="position"></param>
+        /// <param name="rulebase"></param>
+        private void IncrementPosition(RuleTreeItem lastAddedItem, List<int> position, RulebaseReport rulebase)
+        {
+            if (lastAddedItem.IsOrderedLayerHeader)
+            {
+                position.Add(OrderedLayerCount);
+                position.Add(0);
+            }
+            else if (lastAddedItem.IsInlineLayerRoot)
+            {
+                position = lastAddedItem.Position?.ToList() ?? [];
+                position.Add(0);
+            }
+            else if (lastAddedItem.IsConcatenationRoot || lastAddedItem.IsSectionHeader)
+            {
+                if (lastAddedItem.Parent is RuleTreeItem lastAddedItemParent)
+                {
+                    if (lastAddedItemParent.IsOrderedLayerHeader)
+                    {
+                        position.Add(OrderedLayerCount);
+
+                        if (lastAddedItemParent.Children.Any(child => child != lastAddedItem) )
+                        {
+                            position.Add(0);
+                        }
+
+                    }
+                    else if (lastAddedItemParent.IsInlineLayerRoot)
+                    {
+                        if (lastAddedItemParent.Children.Any())
+                        {
+                            position = lastAddedItemParent.LastAddedItem?.Position?.ToList() ?? [];
+                        }
+                        else
+                        {
+                            position = lastAddedItemParent.Position?.ToList() ?? [];
+                            position.Add(0);
+                        }
+
+
+                        position = lastAddedItemParent.Position?.ToList() ?? [];
+                        position.Add(0);
+                    }
+                    else
+                    {
+                        position = lastAddedItemParent.Position?.ToList() ?? [];
+                        position.Add(0);
+                    }
+                }
+            }
+        }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         /// <summary>
         /// Creates multi-level (dotted) order numbers for display, sets internal numeric order for sorting and builds the rule tree.
         /// </summary>
-        public List<Rule> BuildRuleTree()
+        public List<FWO.Data.Rule> BuildRuleTree()
         {
             List<int> lastPosition = [];
 
@@ -51,7 +353,7 @@ namespace FWO.Services.RuleTreeBuilder
                 // For concatenations: Set the returned last order number to the number of the last visited rule of the source rulebase if it differs from it.
                 if (RuleTreeBuilderQueue.TryPeek(out (RulebaseLink link, RulebaseReport rulebase) nextQueueItem) && nextQueueItem.link.LinkType == 4)
                 {
-                    Rule? lastVisitedRuleOfNextRulebase = _allRules.LastOrDefault(rule => rule.RulebaseId == nextQueueItem.link.FromRulebaseId);
+                    FWO.Data.Rule? lastVisitedRuleOfNextRulebase = _allRules.LastOrDefault(rule => rule.RulebaseId == nextQueueItem.link.FromRulebaseId);
 
                     if (lastVisitedRuleOfNextRulebase != null && lastVisitedRuleOfNextRulebase.DisplayOrderNumberString != string.Join(".", lastPosition))
                     {
@@ -65,14 +367,6 @@ namespace FWO.Services.RuleTreeBuilder
             return _allRules;
         }
 
-        public void Reset()
-        {
-            RuleTree = new RuleTreeItem() { IsRoot = true };
-            RuleTreeBuilderQueue = new Queue<(RulebaseLink link, RulebaseReport rulebase)>();
-            CreatedOrderNumbersCount = 0;
-            OrderedLayerCount = 0;
-            _allRules.Clear();
-        }
 
         /// <summary>
         /// Recursive method that processes a rulebase link and the target rulebase to create ordernumbers and the integrate the rules in the rule tree.
@@ -87,11 +381,11 @@ namespace FWO.Services.RuleTreeBuilder
             (List<int> nextPosition, RuleTreeItem? nextParent, lastPosition) = PrepareOrderNumberCreation(currentQueueItem, lastPosition, nextQueueItem);
 
             // Create order number.
-            List<Rule> currentRules = [.. currentQueueItem.rulebase.Rules];
-            foreach (Rule currentRule in currentRules)
+            List<FWO.Data.Rule> currentRules = [.. currentQueueItem.rulebase.Rules];
+            foreach (FWO.Data.Rule currentRule in currentRules)
             {
                 // Make clone if rule was already processed.
-                Rule rule = currentRule;
+                FWO.Data.Rule rule = currentRule;
 
                 if (_allRules.Contains(currentRule))
                 {
@@ -338,7 +632,7 @@ namespace FWO.Services.RuleTreeBuilder
         }
         #endregion
 
-        protected static bool CompareTreeItemPosition(ITreeItem<Rule> treeItem, List<int> list)
+        protected static bool CompareTreeItemPosition(ITreeItem<FWO.Data.Rule> treeItem, List<int> list)
         {
             string treeItemString = NormalizePosition(treeItem.GetPositionString());
             string listString = NormalizePosition(list);

@@ -11,6 +11,7 @@ namespace FWO.Api.Client
 {
     public class GraphQlApiConnection : ApiConnection
     {
+        private const string LogCategory = "API Connections";
         // Server URL
         public string ApiServerUri { get; private set; } = "";
 
@@ -147,11 +148,11 @@ namespace FWO.Api.Client
                             // JwtEventService
                         }
 
-                        Log.WriteError("API Connection", $"Error while sending query to GraphQL API. Caught by GraphQL client library. \nMessage: {error.Message}");
+                        Log.WriteError(LogCategory, $"Error while sending query to GraphQL API. Caught by GraphQL client library. \nMessage: {error.Message}");
                         errorMessage += $"{error.Message}\n";
                     }
 
-                    throw new Exception(errorMessage);
+                    throw new InvalidOperationException(errorMessage);
                 }
                 else
                 {
@@ -171,10 +172,10 @@ namespace FWO.Api.Client
                     else
                     {
                         JObject data = (JObject)response.Data;
-                        JProperty prop = (JProperty)(data.First ?? throw new Exception($"Could not retrieve unique result attribute from Json.\nJson: {response.Data}"));
+                        JProperty prop = (JProperty)(data.First ?? throw new InvalidOperationException($"Could not retrieve unique result attribute from Json.\nJson: {response.Data}"));
                         JToken result = prop.Value;
                         QueryResponseType returnValue = result.ToObject<QueryResponseType>() ??
-                            throw new Exception($"Could not convert result from Json to {typeof(QueryResponseType)}.\nJson: {response.Data}");
+                            throw new InvalidOperationException($"Could not convert result from Json to {typeof(QueryResponseType)}.\nJson: {response.Data}");
                         return returnValue;
                     }
                 }
@@ -182,7 +183,7 @@ namespace FWO.Api.Client
 
             catch (Exception exception)
             {
-                Log.WriteError("API Connection", $"Error while sending query to GraphQL API. Query: {(query != null ? query : "")}, variables: {(variables != null ? JsonSerializer.Serialize(variables) : "")}", exception);
+                Log.WriteError(LogCategory, $"Error while sending query to GraphQL API. Query: {query}, variables: {(variables != null ? JsonSerializer.Serialize(variables) : "")}", exception);
                 throw;
             }
         }
@@ -200,12 +201,11 @@ namespace FWO.Api.Client
 
                 if (response.Errors != null)
                 {
-                    List<string> errorMessages = [];
-                    foreach (GraphQLError error in response.Errors)
+                    List<string> errorMessages = response.Errors.Select(error =>
                     {
-                        Log.WriteError("API Connection", $"Error while sending query to GraphQL API. Caught by GraphQL client library. \nMessage: {error.Message}");
-                        errorMessages.Add(error.Message);
-                    }
+                        Log.WriteError(LogCategory, $"Error while sending query to GraphQL API. Caught by GraphQL client library. \nMessage: {error.Message}");
+                        return error.Message;
+                    }).ToList();
                     return new ApiResponse<QueryResponseType>(errorMessages.ToArray());
                 }
 
@@ -215,15 +215,15 @@ namespace FWO.Api.Client
                 }
 
                 JObject data = (JObject)response.Data;
-                JProperty prop = (JProperty)(data.First ?? throw new Exception($"Could not retrieve unique result attribute from Json.\nJson: {response.Data}"));
+                JProperty prop = (JProperty)(data.First ?? throw new InvalidOperationException($"Could not retrieve unique result attribute from Json.\nJson: {response.Data}"));
                 JToken result = prop.Value;
                 QueryResponseType returnValue = result.ToObject<QueryResponseType>() ??
-                    throw new Exception($"Could not convert result from Json to {typeof(QueryResponseType)}.\nJson: {response.Data}");
+                    throw new InvalidOperationException($"Could not convert result from Json to {typeof(QueryResponseType)}.\nJson: {response.Data}");
                 return new ApiResponse<QueryResponseType>(returnValue);
             }
             catch (Exception exception)
             {
-                Log.WriteError("API Connection", $"Error while sending query to GraphQL API. Query: {(query != null ? query : "")}, variables: {(variables != null ? JsonSerializer.Serialize(variables) : "")}", exception);
+                Log.WriteError(LogCategory, $"Error while sending query to GraphQL API. Query: {query}, variables: {(variables != null ? JsonSerializer.Serialize(variables) : "")}", exception);
                 return new ApiResponse<QueryResponseType>(exception.Message);
             }
         }
@@ -241,7 +241,7 @@ namespace FWO.Api.Client
             }
             catch (Exception exception)
             {
-                Log.WriteError("API Connection", "Error while creating subscription to GraphQL API.", exception);
+                Log.WriteError(LogCategory, "Error while creating subscription to GraphQL API.", exception);
                 throw;
             }
         }

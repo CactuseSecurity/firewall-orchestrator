@@ -187,6 +187,47 @@ namespace FWO.Api.Client
             }
         }
 
+        /// <summary>
+        /// Sends an API call and returns a non-throwing response wrapper containing data or errors.
+        /// </summary>
+        public override async Task<ApiResponse<QueryResponseType>> SendQuerySafeAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null)
+        {
+            try
+            {
+                Log.WriteDebug("API call", $"Sending API call {operationName} in role {GetActRole()}: {query.Substring(0, Math.Min(query.Length, 70)).Replace(Environment.NewLine, "")}... " +
+                    (variables != null ? $"with variables: {JsonSerializer.Serialize(variables).Substring(0, Math.Min(JsonSerializer.Serialize(variables).Length, 50)).Replace(Environment.NewLine, "")}..." : ""));
+                GraphQLResponse<dynamic> response = await graphQlClient.SendQueryAsync<dynamic>(query, variables, operationName);
+
+                if (response.Errors != null)
+                {
+                    List<string> errorMessages = [];
+                    foreach (GraphQLError error in response.Errors)
+                    {
+                        Log.WriteError("API Connection", $"Error while sending query to GraphQL API. Caught by GraphQL client library. \nMessage: {error.Message}");
+                        errorMessages.Add(error.Message);
+                    }
+                    return new ApiResponse<QueryResponseType>(errorMessages.ToArray());
+                }
+
+                if (ApiConstants.UseSystemTextJsonSerializer)
+                {
+                    throw new NotImplementedException("System.Text.Json is not supported anymore.");
+                }
+
+                JObject data = (JObject)response.Data;
+                JProperty prop = (JProperty)(data.First ?? throw new Exception($"Could not retrieve unique result attribute from Json.\nJson: {response.Data}"));
+                JToken result = prop.Value;
+                QueryResponseType returnValue = result.ToObject<QueryResponseType>() ??
+                    throw new Exception($"Could not convert result from Json to {typeof(QueryResponseType)}.\nJson: {response.Data}");
+                return new ApiResponse<QueryResponseType>(returnValue);
+            }
+            catch (Exception exception)
+            {
+                Log.WriteError("API Connection", $"Error while sending query to GraphQL API. Query: {(query != null ? query : "")}, variables: {(variables != null ? JsonSerializer.Serialize(variables) : "")}", exception);
+                return new ApiResponse<QueryResponseType>(exception.Message);
+            }
+        }
+
         public override GraphQlApiSubscription<SubscriptionResponseType> GetSubscription<SubscriptionResponseType>(Action<Exception> exceptionHandler, GraphQlApiSubscription<SubscriptionResponseType>.SubscriptionUpdate subscriptionUpdateHandler, string subscription, object? variables = null, string? operationName = null)
         {
             try

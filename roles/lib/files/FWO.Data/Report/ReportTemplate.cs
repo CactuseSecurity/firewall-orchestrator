@@ -27,9 +27,11 @@ namespace FWO.Data.Report
         [JsonProperty("report_parameters"), JsonPropertyName("report_parameters")]
         public ReportParams ReportParams { get; set; } = new();
 
-        public bool Detailed = false;
+        public bool Detailed { get; set; } = false;
 
-   
+        public bool IncludeObjectsInReportChanges { get; set; } = false;
+        public bool IncludeObjectsInReportChangesUiPresesed { get; set; } = false;
+
         public ReportTemplate()
         {}
 
@@ -72,8 +74,11 @@ namespace FWO.Data.Report
         [JsonProperty("modelling_filter"), JsonPropertyName("modelling_filter")]
         public ModellingFilter ModellingFilter { get; set; } = new();
 
+        [JsonProperty("compliance_filter"), JsonPropertyName("compliance_filter")]
+        public ComplianceFilter ComplianceFilter { get; set; } = new();
+
         public ReportParams()
-        {}
+        { }
         
         public ReportParams(int reportType, DeviceFilter deviceFilter)
         {

@@ -1,0 +1,12 @@
+mutation addPolicy(
+  $name: String!
+  ) {
+  insert_compliance_policy(objects: {
+    name: $name
+    disabled: false
+  }) {
+    returning {
+      insertedId: id
+    }
+  }
+}

@@ -1,0 +1,10 @@
+query getGatewayId($gwName:String!, $mgmUid: String!) {
+  device(
+    where: {
+      dev_name:{_eq:$gwName}
+      management: { mgm_uid: { _eq: $mgmUid } }
+    }
+  ) {
+    id: dev_id
+  }
+}

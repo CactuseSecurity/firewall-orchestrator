@@ -1,0 +1,5 @@
+mutation updateChanglogRules($rule_changes: [changelog_rule_insert_input!]!) {
+    insert_changelog_rule(objects: $rule_changes) {
+        affected_rows
+    }
+}

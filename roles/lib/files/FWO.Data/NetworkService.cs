@@ -56,11 +56,14 @@ namespace FWO.Data
         [JsonProperty("svc_color_id"), JsonPropertyName("svc_color_id")]
         public int? ColorId { get; set; }
 
+        [JsonProperty("stm_color"), JsonPropertyName("stm_color")]
+        public Color? Color { get; set; }
+
         [JsonProperty("ip_proto_id"), JsonPropertyName("ip_proto_id")]
         public int? ProtoId { get; set; }
 
         [JsonProperty("protocol_name"), JsonPropertyName("protocol_name")]
-        public NetworkProtocol Protocol { get; set; } = new();
+        public NetworkProtocol? Protocol { get; set; }
 
         [JsonProperty("svc_member_names"), JsonPropertyName("svc_member_names")]
         public string MemberNames { get; set; } = "";
@@ -73,6 +76,9 @@ namespace FWO.Data
 
         [JsonProperty("svcgrp_flats"), JsonPropertyName("svcgrp_flats")]
         public GroupFlat<NetworkService>[] ServiceGroupFlats { get; set; } = [];
+
+        [JsonProperty("svc_rpcnr"), JsonPropertyName("svc_rpcnr")]
+        public long? RpcNumber { get; set; }
 
         public long Number;
         public bool IsSurplus = false;
@@ -121,18 +127,6 @@ namespace FWO.Data
         public override int GetHashCode()
         {
             return Id.GetHashCode();
-        }
-
-        public string MemberNamesAsHtml()
-        {
-            if (MemberNames != null && MemberNames.Contains("|"))
-            {
-                return $"<td>{string.Join("<br>", MemberNames.Split('|'))}</td>";
-            }
-            else
-            {
-                return $"<td>{MemberNames}</td>";
-            }
         }
     }
 }

@@ -1,9 +1,10 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk.Web">
 
 	<PropertyGroup>
-		<TargetFramework>net8.0</TargetFramework>
+		<TargetFramework>net10.0</TargetFramework>
 		<Nullable>enable</Nullable>
 		<ImplicitUsings>enable</ImplicitUsings>
+		<NoWarn>$(NoWarn);CS8669</NoWarn>
 	</PropertyGroup>
 	<ItemGroup>
 		<PackageReference Include="IPAddressRange" Version="6.3.0" />
@@ -26,5 +27,6 @@
 		<ProjectReference Include="..\..\..\lib\files\FWO.Middleware.Client\FWO.Middleware.Client.csproj" />
 		<ProjectReference Include="..\..\..\lib\files\FWO.DeviceAutoDiscovery\FWO.DeviceAutoDiscovery.csproj" />
 		<ProjectReference Include="..\..\..\lib\files\FWO.Services\FWO.Services.csproj" />
+		<ProjectReference Include="..\..\..\lib\files\FWO.Compliance\FWO.Compliance.csproj" />
 	</ItemGroup>
 </Project>

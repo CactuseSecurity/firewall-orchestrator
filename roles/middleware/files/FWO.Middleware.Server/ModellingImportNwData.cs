@@ -42,11 +42,15 @@ namespace FWO.Middleware.Server
 
 
         /// <summary>
+        /// Default Constructor
+        /// </summary>
+        public ModellingImportAreaData() { }
+
+        /// <summary>
         /// Overloaded constructor with an empty list as default
         /// </summary>
         public ModellingImportAreaData(string name, string idString)
             : this(name, idString, []) { }
-
 
         /// <summary>
         /// Constructor for initializing an object

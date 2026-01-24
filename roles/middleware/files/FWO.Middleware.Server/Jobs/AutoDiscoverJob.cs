@@ -13,6 +13,7 @@ namespace FWO.Middleware.Server.Jobs
     /// <summary>
     /// Quartz Job for autodiscovery
     /// </summary>
+    [DisallowConcurrentExecution]
     public class AutoDiscoverJob : IJob
     {
         private const string LogMessageTitle = "Autodiscovery";

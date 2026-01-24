@@ -37,6 +37,7 @@ namespace FWO.Basics
         public const string kImportAppData = "importAppData";
         public const string kAdjustAppServerNames = "adjustAppServerNames";
         public const string kImportAreaSubnetData = "importAreaSubnetData";
+        public const string kImportZoneMatrixData = "importZoneMatrixData";
         public const string kVarianceAnalysis = "varianceAnalysis";
         public const string kManual = "manual";
         public const string kCSV_ = "CSV_";
@@ -53,6 +54,7 @@ namespace FWO.Basics
         public const string kLdapGroupPattern = kModellerGroup + Placeholder.AppId;
         public const string kImportChangeNotify = "importChangeNotify";
         public const string kExternalRequest = "externalRequest";
+        public const string kComplianceCheck = "complianceCheck";
         public const string kLdapInternalPostfix = "dc=" + kFwoProdName + ",dc=internal";
         public const int kLdapInternalId = 1;
         public const string kDummyAppRole = "DummyAppRole";
@@ -83,6 +85,7 @@ namespace FWO.Basics
         public const string Host = "host";
         public const string Network = "network";
         public const string IPRange = "ip_range";
+        public const string AccessRole = "access-role";
     }
 
     public struct ServiceType
@@ -108,6 +111,7 @@ namespace FWO.Basics
         public const string ImportIdEnd = "import_id_end";
         public const string ImportIdOld = "import_id_old";
         public const string ImportIdNew = "import_id_new";
+        public const string IncludeObjectsInChangesReport = "include_objects_in_changes_report";
         public const string MgmIds = "mgmIds";
         public const string MgmId = "mgmId";
         public const string ManagementId = "management_id";

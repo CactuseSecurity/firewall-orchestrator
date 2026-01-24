@@ -1,0 +1,79 @@
+mutation updateRuleRefs(
+    $importId: bigint!
+    $ruleFroms: [rule_from_bool_exp!]!
+    $ruleTos: [rule_to_bool_exp!]!
+    $ruleServices: [rule_service_bool_exp!]!
+    $ruleNwObjResolveds: [rule_nwobj_resolved_bool_exp!]
+    $ruleSvcResolveds: [rule_svc_resolved_bool_exp!]!
+    $ruleUserResolveds: [rule_user_resolved_bool_exp!]!
+    $ruleFromZones: [rule_from_zone_bool_exp!]
+    $ruleToZones: [rule_to_zone_bool_exp!]
+) {
+    update_rule_from(where: {
+        _or: $ruleFroms
+        removed: {_is_null: true}
+    }, _set: {
+        removed: $importId
+        active: false
+    }) {
+        affected_rows
+    }
+    update_rule_to(where: {
+        _or: $ruleTos
+        removed: {_is_null: true}
+    }, _set: {
+        removed: $importId
+        active: false
+    }) {
+        affected_rows
+    }
+    update_rule_service(where: {
+        _or: $ruleServices
+        removed: {_is_null: true}
+    }, _set: {
+        removed: $importId
+        active: false
+    }) {
+        affected_rows
+    }
+    update_rule_nwobj_resolved(where: {
+        _or: $ruleNwObjResolveds
+        removed: {_is_null: true}
+    }, _set: {
+        removed: $importId
+    }) {
+        affected_rows
+    }
+    update_rule_svc_resolved(where: {
+        _or: $ruleSvcResolveds
+        removed: {_is_null: true}
+    }, _set: {
+        removed: $importId
+    }) {
+        affected_rows
+    }
+    update_rule_user_resolved(where: {
+        _or: $ruleUserResolveds
+        removed: {_is_null: true}
+    }, _set: {
+        removed: $importId
+    }) {
+        affected_rows
+    }
+    update_rule_from_zone(where: {
+        _or: $ruleFromZones
+        removed: {_is_null: true}
+    }, _set: {
+        removed: $importId
+    }) {
+        affected_rows
+    }
+    update_rule_to_zone(where: {
+        _or: $ruleToZones
+        removed: {_is_null: true}
+    }, _set: {
+        removed: $importId
+    }) {
+        affected_rows
+    }
+}

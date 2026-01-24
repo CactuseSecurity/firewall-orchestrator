@@ -1,0 +1,4 @@
+mutation addImport($mgmId: Int!, $isFullImport: Boolean!, $isInitialImport: Boolean!) { 
+    insert_import_control(objects: {mgm_id: $mgmId, is_full_import: $isFullImport, is_initial_import: $isInitialImport}) 
+    { returning { control_id } } 
+}

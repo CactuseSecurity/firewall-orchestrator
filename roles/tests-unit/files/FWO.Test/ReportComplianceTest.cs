@@ -1,0 +1,210 @@
+using FWO.Config.Api;
+using FWO.Data;
+using FWO.Test.Mocks;
+using NUnit.Framework;
+
+namespace FWO.Test
+{
+    [TestFixture]
+    internal class ReportComplianceTest
+    {
+        private MockReportCompliance _complianceReport => new(new(""), new(), Basics.ReportType.ComplianceReport);
+        private MockReportCompliance _testReport = default!;
+        private MockReportComplianceDiff _testDiffReport = default!;
+
+
+        [SetUp]
+        public void SetUpTest()
+        {
+            _testReport = _complianceReport;
+            SimulatedGlobalConfig globalConfig = new();
+            globalConfig.ComplianceCheckMaxPrintedViolations = 2;
+            UserConfig userConfig = new(globalConfig);
+
+            _testDiffReport = new(new(""), userConfig, Basics.ReportType.ComplianceDiffReport);
+            ;
+            _testDiffReport.MockPostProcessDiffReportsRule = true;
+        }
+
+        [Test]
+        public async Task ProcessChunksParallelized_BigDataSet_EvaluatesAllRules()
+        {
+            // ARRANGE
+
+            CancellationToken ct = default;
+            int numberOfChunks = 100;
+            int numberOfRulesPerChunk = 100;
+            int ruleId = 1;
+
+            List<Rule>[] ruleChunks = BuildFixedRuleChunksParallel(numberOfChunks, numberOfRulesPerChunk, ruleId);
+
+            // ACT
+
+            List<Rule> testResults = await _testReport.ProcessChunksParallelized(ruleChunks, ct, new SimulatedApiConnection());
+
+            // ASSERT
+
+            Assert.That(testResults.Count == _testReport.RuleViewData.Count, $"Rules: {testResults.Count} - RuleViewData: {_testReport.RuleViewData.Count}");
+
+        }
+
+        [Test]
+        public async Task ProcessChunksParallelized_DiffReport_CreatesCorrectDiffs()
+        {
+            // ARRANGE
+
+            CancellationToken ct = default;
+            DateTime foundDate = DateTime.Now;
+
+            _testDiffReport.DiffReferenceInDays = 7;
+
+            Rule notAssessable = new()
+            {
+                Id = 1,
+                Name = "Testrule 1",
+                Violations = [
+                    CreateMockComplianceViolation(1,1, foundDate, criterion:
+
+                        new()
+                        {
+                            CriterionType = nameof(ComplianceViolationType.NotAssessable)
+                        },
+                        type: ComplianceViolationType.NotAssessable
+
+                    ),
+                    CreateMockComplianceViolation(2,2, foundDate, type: ComplianceViolationType.MatrixViolation)
+                ]
+            };
+
+            Rule abbreviated = new()
+            {
+                Id = 2,
+                Name = "Testrule 2",
+                Violations = [
+                        CreateMockComplianceViolation(3,2, foundDate, type: ComplianceViolationType.MatrixViolation),
+                        CreateMockComplianceViolation(4,2, foundDate, type: ComplianceViolationType.MatrixViolation),
+                        CreateMockComplianceViolation(5,2, foundDate, type: ComplianceViolationType.MatrixViolation)
+                    ]
+            };
+
+            Rule multiple = new()
+            {
+                Id = 3,
+                Name = "Testrule 3",
+                Violations = [
+                    CreateMockComplianceViolation(6,3, foundDate, type: ComplianceViolationType.MatrixViolation),
+                    CreateMockComplianceViolation(7,3, foundDate, type: ComplianceViolationType.ServiceViolation)
+                ]
+            };
+
+            Rule singular = new()
+            {
+                Id = 4,
+                Name = "Testrule 4",
+                Violations = [
+                    CreateMockComplianceViolation(8,4, foundDate, criterion:
+
+                        new()
+                        {
+                            CriterionType = nameof(ComplianceViolationType.ServiceViolation)
+                        },
+                        type: ComplianceViolationType.ServiceViolation
+
+                    )
+                ]
+            };
+
+            List<Rule>[] ruleChunks =
+            [
+                new List<Rule>(){ notAssessable },
+                new List<Rule>(){ abbreviated },
+                new List<Rule>(){ multiple },
+                new List<Rule>(){ singular }
+            ];
+
+            string controlNotAssessable = CreateViolationDetailsControlString(foundDate, 1);
+            string controlAbbreviated = CreateViolationDetailsControlString(foundDate, 3) + "<br>" + CreateViolationDetailsControlString(foundDate, 4) + "<br>Too many violations to display (3), please check the system for details.";
+            string controlMultiple = CreateViolationDetailsControlString(foundDate, 6) + "<br>" + CreateViolationDetailsControlString(foundDate, 7);
+            string controlSingular = CreateViolationDetailsControlString(foundDate, 8);
+
+            // ACT
+
+            List<Rule> testResults = await _testDiffReport.ProcessChunksParallelized(ruleChunks, ct, new SimulatedApiConnection());
+
+            // ASSERT
+
+            Assert.That(testResults.Count == 4);
+            Assert.That(notAssessable.ViolationDetails == controlNotAssessable);
+            Assert.That(notAssessable.Compliance == ComplianceViolationType.NotAssessable);
+            Assert.That(abbreviated.ViolationDetails == controlAbbreviated);
+            Assert.That(multiple.ViolationDetails == controlMultiple);
+            Assert.That(multiple.Compliance == ComplianceViolationType.MultipleViolations);
+            Assert.That(singular.ViolationDetails == controlSingular);
+            Assert.That(singular.Compliance == ComplianceViolationType.ServiceViolation);
+        }
+
+        private List<Rule>[] BuildFixedRuleChunksParallel(int numberOfChunks, int numberOfRulesPerChunk, int startRuleId = 1, int? maxDegreeOfParallelism = null)
+        {
+            if (numberOfChunks <= 0) throw new ArgumentOutOfRangeException(nameof(numberOfChunks));
+            if (numberOfRulesPerChunk < 0) throw new ArgumentOutOfRangeException(nameof(numberOfRulesPerChunk));
+
+            var ruleChunks = new List<Rule>[numberOfChunks];
+
+            Parallel.For(
+                0, numberOfChunks,
+                new ParallelOptions { MaxDegreeOfParallelism = maxDegreeOfParallelism ?? Environment.ProcessorCount },
+                i =>
+                {
+                    var list = new List<Rule>(numberOfRulesPerChunk);
+                    int baseId = startRuleId + i * numberOfRulesPerChunk;
+
+                    for (int j = 0; j < numberOfRulesPerChunk; j++)
+                    {
+                        list.Add(new Rule { Id = baseId + j });
+                    }
+
+                    ruleChunks[i] = list;
+                });
+
+            return ruleChunks;
+        }
+
+        private ComplianceViolation CreateMockComplianceViolation(int id = 0, int ruleId = 0, DateTime? foundDate = null, DateTime? removedDate = null, string details = "", int policyId = 0, ComplianceCriterion? criterion = null, ComplianceViolationType type = ComplianceViolationType.None)
+        {
+            if (string.IsNullOrEmpty(details))
+            {
+                details = $"Test violation {id}";
+            }
+
+            if (criterion == null)
+            {
+                criterion = new()
+                {
+                    Id = 0
+                };
+            }
+
+            ComplianceViolation violation = new()
+            {
+                Id = id,
+                RuleId = ruleId,
+                FoundDate = foundDate ?? DateTime.Now,
+                Details = details,
+                RiskScore = 0,
+                PolicyId = policyId,
+                CriterionId = criterion.Id,
+                Criterion = criterion
+            };
+
+            violation.Type = type;
+
+            return violation;
+        }
+
+        private string CreateViolationDetailsControlString(DateTime foundDate, int violationId)
+        {
+            return $"Found: ({foundDate:dd.MM.yyyy} - {foundDate:hh:mm}) Test violation {violationId}";
+        }
+
+    }
+}

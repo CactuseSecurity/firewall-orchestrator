@@ -4,6 +4,7 @@ namespace FWO.Ui.Data
     {
         Undefined,
         ImportAppServerFromCSV,
+		ImportComplianceMatrix,
         CustomLogoUpload
     }
 }

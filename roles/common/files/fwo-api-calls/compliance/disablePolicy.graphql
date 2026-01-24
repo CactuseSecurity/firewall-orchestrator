@@ -1,0 +1,11 @@
+mutation disablePolicy(
+  $id: Int!
+) {
+  update_compliance_policy_by_pk(
+    pk_columns: { id: $id }
+    _set: {
+    disabled: true
+  }) {
+    updatedId: id
+  }
+}

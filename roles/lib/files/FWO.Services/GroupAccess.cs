@@ -59,5 +59,26 @@ namespace FWO.Services
             }
             return groupDns;
         }
+
+        static public async Task<List<string>> GetGroupMemberships(MiddlewareClient middlewareClient, UserConfig userConfig,
+            Action<Exception?, string, string, bool> DisplayMessageInUi)
+        {
+            List<string> groupDns = [];
+            GroupMembershipGetParameters parameters = new()
+            {
+                UserDn = userConfig.User.Dn,
+                UserName = userConfig.User.Name
+            };
+            RestResponse<List<string>> middlewareServerGroupsResponse = await middlewareClient.GetGroupMemberships(parameters);
+            if (middlewareServerGroupsResponse.StatusCode != HttpStatusCode.OK || middlewareServerGroupsResponse.Data == null)
+            {
+                DisplayMessageInUi(null, userConfig.GetText("fetch_groups"), userConfig.GetText("E5231"), true);
+            }
+            else
+            {
+                groupDns.AddRange(middlewareServerGroupsResponse.Data);
+            }
+            return groupDns;
+        }
     }
 }

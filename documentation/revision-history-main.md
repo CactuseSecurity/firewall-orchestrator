@@ -553,6 +553,12 @@ hotfix release
 - improved quality control with stricter automated checks
 - various fixes in modelling module
 
+# 8.8.8 - 23.08.2025 MAIN
+- add read-only db user fwo_ro
+- hadening changes 
+  - apache config (information leakage)
+  - listeners (hasura, postgres)
+  - log santisation
 # 8.9.1 - 02.10.2025 MAIN
 - owner-recertification
 
@@ -563,6 +569,6 @@ hotfix release
 # 8.9.3 - 05.11.2025 MAIN
 - hotfix missing permissions for app data import in certain constellations
 
-## 8.9.4 - 09.12.2025 DEVELOP
+## 8.9.4 - 09.12.2025 MAIN
 - bugfix release: common service connection not editable
 - new custom scripts for iiq and cmdb import

@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using FWO.Basics;
+using FWO.Basics.Interfaces;
 
 namespace FWO.Logging
 {
@@ -220,6 +221,31 @@ namespace FWO.Logging
             Console.Out.WriteLine(Text.SanitizeMand()); // TODO: async method ?
             Console.ResetColor();
             semaphore.Release();
+        }
+        
+        public static void TryWriteLog(LogType logType, string title, string text, bool condition)
+        {
+            if (condition)
+            {
+                switch (logType)
+                {
+                    case LogType.Debug:
+                        WriteDebug(title, text);
+                        break;
+                    case LogType.Info:
+                        WriteInfo(title, text);
+                        break;
+                    case LogType.Warning:
+                        WriteWarning(title, text);
+                        break;
+                    case LogType.Error:
+                        WriteError(title, text);
+                        break;
+                    case LogType.Audit:
+                        WriteAudit(title, text);
+                        break;
+                }
+            }
         }
     }
 }

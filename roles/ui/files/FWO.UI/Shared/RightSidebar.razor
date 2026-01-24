@@ -604,17 +604,24 @@
         return ownerData;
     }
 
-    private bool TryGetResult<T>(ApiResponse<T> response, string action, out T? result)
+    private bool TryGetResult<T>(ApiResponse<T> response, string action, [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out T? result)
     {
-        if (!response.HasErrors && response.Result != null)
+        if (response.HasErrors)
         {
-            result = response.Result;
-            return true;
+            string errorMessage = response.Errors != null ? string.Join(Environment.NewLine, response.Errors) : "";
+            DisplayMessageInUi(null, action, errorMessage, true);
+            result = default;
+            return false;
         }
 
-        string errorMessage = response.Errors != null ? string.Join(Environment.NewLine, response.Errors) : "";
-        DisplayMessageInUi(null, action, errorMessage, true);
-        result = default;
-        return false;
+        if (response.Result == null)
+        {
+            DisplayMessageInUi(null, action, userConfig.GetText("E0001"), true);
+            result = default;
+            return false;
+        }
+
+        result = response.Result;
+        return true;
     }
 }

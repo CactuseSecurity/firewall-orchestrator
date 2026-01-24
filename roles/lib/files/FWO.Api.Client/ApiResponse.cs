@@ -21,7 +21,7 @@ namespace FWO.Api.Client
         /// <summary>
         /// Creates a successful response wrapper.
         /// </summary>
-        internal ApiResponse(ResponseType result)
+        public ApiResponse(ResponseType result)
         {
             Result = result;
         }
@@ -29,7 +29,7 @@ namespace FWO.Api.Client
         /// <summary>
         /// Creates a response wrapper containing error messages.
         /// </summary>
-        internal ApiResponse(params string[] errors)
+        public ApiResponse(params string[] errors)
         {
             Errors = errors;
         }

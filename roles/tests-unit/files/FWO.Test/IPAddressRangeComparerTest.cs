@@ -17,7 +17,7 @@ namespace FWO.Test
         {
             // ARRANGE
 
-            IPAddressRangeComparer comparer = new ();
+            IPAddressRangeComparer comparer = new();
 
             Stopwatch stopwatch;
 
@@ -43,12 +43,12 @@ namespace FWO.Test
 
                 // IPv6 big range
                 // expected result: BigInteger.Parse("340282366920938463463374607431768211455") 
-                new IPAddressRange(IPAddress.Parse("::"), IPAddress.Parse("ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff")) 
+                new IPAddressRange(IPAddress.Parse("::"), IPAddress.Parse("ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff"))
             };
 
             // key: iteration, testcase
             // value: result, performance
-            Dictionary<(int ,IPAddressRange), (BigInteger, TimeSpan)> testResults = new ();
+            Dictionary<(int, IPAddressRange), (BigInteger, TimeSpan)> testResults = new();
 
             // ACT
 
@@ -63,7 +63,7 @@ namespace FWO.Test
 
                     // save test results
                     testResults[(i, range)] = (result, stopwatch.Elapsed);
-                }            
+                }
             }
 
             // ASSERT
@@ -82,11 +82,11 @@ namespace FWO.Test
 
             var testCase4Results = testResults.Where(kvp => kvp.Key.Item2 == testCases[3]);
             Assert.That(testCase4Results.Select(kvp => kvp.Value.Item1),
-                        Is.All.EqualTo(new BigInteger(65_535)));    
+                        Is.All.EqualTo(new BigInteger(65_535)));
 
             var testCase5Results = testResults.Where(kvp => kvp.Key.Item2 == testCases[4]);
             Assert.That(testCase5Results.Select(kvp => kvp.Value.Item1),
-                        Is.All.EqualTo(BigInteger.Parse("340282366920938463463374607431768211455")));    
+                        Is.All.EqualTo(BigInteger.Parse("340282366920938463463374607431768211455")));
         }
     }
 }

@@ -1,4 +1,4 @@
-﻿using NUnit.Framework;
+using NUnit.Framework;
 using NUnit.Framework.Legacy;
 using FWO.Data;
 using FWO.Data.Workflow;
@@ -45,17 +45,26 @@ namespace FWO.Test
         readonly static string namingConvention = "{\"networkAreaRequired\":true,\"useAppPart\":true,\"fixedPartLength\":4,\"freePartLength\":3,\"networkAreaPattern\":\"NA\",\"appRolePattern\":\"AR\",\"applicationZone\":\"AZ\",\"appServerPrefix\":\"host_\",\"networkPrefix\":\"net_\",\"ipRangePrefix\":\"range_\"}";
 
         readonly static List<ExternalTicketSystem> ticketSystemList = [ticketSystem];
-        readonly SimulatedUserConfig userConfig = new(){ ExternalRequestWaitCycles = 3,
+        readonly SimulatedUserConfig userConfig = new()
+        {
+            ExternalRequestWaitCycles = 3,
             ExtTicketSystems = System.Text.Json.JsonSerializer.Serialize(ticketSystemList),
             ReqPriorities = reqPrios,
             ModNamingConvention = namingConvention,
-            ModRolloutBundleTasks = true };
+            ModRolloutBundleTasks = true
+        };
         readonly ExtTicketHandlerTestApiConn apiConnection = new();
         static readonly ModellingNamingConvention NamingConvention = new()
         {
-            NetworkAreaRequired = true, UseAppPart = false, FixedPartLength = 2, FreePartLength = 5, NetworkAreaPattern = "NA", AppRolePattern = "AR", AppServerPrefix = "net_"
+            NetworkAreaRequired = true,
+            UseAppPart = false,
+            FixedPartLength = 2,
+            FreePartLength = 5,
+            NetworkAreaPattern = "NA",
+            AppRolePattern = "AR",
+            AppServerPrefix = "net_"
         };
-        static readonly List<IpProtocol> ipProtos = [ new(){ Id = 6, Name = "TCP" }];
+        static readonly List<IpProtocol> ipProtos = [new() { Id = 6, Name = "TCP" }];
 
         readonly static WfReqElement srcASElem = new()
         {
@@ -68,7 +77,7 @@ namespace FWO.Test
             Field = ElemFieldType.source.ToString()
         };
 
-        readonly static List<WfReqTask> grpCreateReqTasks = 
+        readonly static List<WfReqTask> grpCreateReqTasks =
         [
             new()
             {
@@ -86,7 +95,7 @@ namespace FWO.Test
             }
         ];
 
-        readonly static List<WfReqTask> accessReqTasks = 
+        readonly static List<WfReqTask> accessReqTasks =
         [
             new()
             {
@@ -116,11 +125,11 @@ namespace FWO.Test
         [Test]
         public async Task TestGetWaitCycles()
         {
-            SCTicket ticket = new (ticketSystem);
+            SCTicket ticket = new(ticketSystem);
             await ticket.CreateRequestString(grpCreateReqTasks, ipProtos, NamingConvention);
             using ExternalRequestHandler extReqHandler = new(userConfig, apiConnection, null);
-            ExternalRequest oldRquestGrp = new(){ ExtRequestType = ticket.GetTaskTypeAsString(grpCreateReqTasks[0]), ExtRequestContent = ticket.TicketText};
-            ExternalRequest oldRquestAcc = new(){ ExtRequestType = ticket.GetTaskTypeAsString(accessReqTasks[0]), ExtRequestContent = ticket.TicketText};
+            ExternalRequest oldRquestGrp = new() { ExtRequestType = ticket.GetTaskTypeAsString(grpCreateReqTasks[0]), ExtRequestContent = ticket.TicketText };
+            ExternalRequest oldRquestAcc = new() { ExtRequestType = ticket.GetTaskTypeAsString(accessReqTasks[0]), ExtRequestContent = ticket.TicketText };
 
             ClassicAssert.AreEqual(0, extReqHandler.GetWaitCycles(WfTaskType.access.ToString(), oldRquestAcc));
             ClassicAssert.AreEqual(0, extReqHandler.GetWaitCycles(WfTaskType.group_modify.ToString(), oldRquestAcc));
@@ -141,7 +150,7 @@ namespace FWO.Test
         [Test]
         public async Task TestHandleStateChange()
         {
-            using ExternalRequestHandler externalRequestHandler = new (userConfig, apiConnection, null);
+            using ExternalRequestHandler externalRequestHandler = new(userConfig, apiConnection, null);
             ExternalRequest externalRequest = new()
             {
                 Id = 1,
@@ -215,7 +224,7 @@ namespace FWO.Test
             ClassicAssert.AreEqual(true, apiConnection.AddExtRequestVars?.Contains("extQueryVariables = {\"BundledTasks\":[4,5]}"));
             ClassicAssert.AreEqual(true, apiConnection.AddExtRequestVars?.Contains("AR4"));
             ClassicAssert.AreEqual(false, apiConnection.AddExtRequestVars?.Contains("AR5"));
- 
+
             externalRequest.Id = 3;
             externalRequest.TaskNumber = 4;
             externalRequest.ExtQueryVariables = "{\"BundledTasks\":[4,5]}";

@@ -9,6 +9,6 @@ namespace FWO.Data
         public FwoOwner? FwoOwner { get; set; } = new FwoOwner();
 
         [JsonProperty("user_dn"), JsonPropertyName("user_dn")]
-        public string UserDn { get; set; }  = "";
+        public string UserDn { get; set; } = "";
     }
 }

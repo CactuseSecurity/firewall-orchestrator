@@ -1,4 +1,4 @@
-﻿using NetTools;
+using NetTools;
 
 namespace FWO.Data
 {
@@ -8,14 +8,14 @@ namespace FWO.Data
 
         public bool Valid { get; set; } = false;
 
-        public string CidrString         
+        public string CidrString
         {
             get => this.GetCidrString();
             set => this.SetCidrFromString(value);
         }
 
         public Cidr()
-        {}
+        { }
 
         public Cidr(string value)
         {
@@ -38,13 +38,13 @@ namespace FWO.Data
                 {
                     IpRange.GetPrefixLength();
                 }
-                catch(Exception)
+                catch (Exception)
                 {
                     // ignore range end
                     IpRange.End = IpRange.Begin;
                 }
             }
-            catch(Exception)
+            catch (Exception)
             {
                 Valid = false;
             }

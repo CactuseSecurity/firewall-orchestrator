@@ -1,4 +1,4 @@
-﻿namespace FWO.Report
+namespace FWO.Report
 {
     public enum PaperFormat
     {

@@ -8,7 +8,7 @@ namespace FWO.Data.Workflow
     {
         master = 0,
         generic = 1,
-        access = 2, 
+        access = 2,
         rule_delete = 3,
         rule_modify = 4,
         group_create = 5,

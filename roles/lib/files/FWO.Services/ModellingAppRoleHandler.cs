@@ -134,7 +134,7 @@ namespace FWO.Services
                 DisplayMessageInUi(null, userConfig.GetText("edit_app_role"), userConfig.GetText("E5102"), true);
                 return false;
             }
-            if (( AddMode || ActAppRole.IdString != OrigId.Whole ) && await IdStringAlreadyUsed(ActAppRole.IdString))
+            if ((AddMode || ActAppRole.IdString != OrigId.Whole) && await IdStringAlreadyUsed(ActAppRole.IdString))
             {
                 // popup for correction?
                 DisplayMessageInUi(null, userConfig.GetText("edit_app_role"), ActAppRole.IdString.ToString() + ": " + userConfig.GetText("E9003"), true);
@@ -210,7 +210,7 @@ namespace FWO.Services
                     comment = ActAppRole.Comment,
                     creator = userConfig.User.Name
                 };
-                ReturnId[]? returnIds = ( await apiConnection.SendQueryAsync<ReturnIdWrapper>(ModellingQueries.newAppRole, Variables) ).ReturnIds;
+                ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<ReturnIdWrapper>(ModellingQueries.newAppRole, Variables)).ReturnIds;
                 if (returnIds != null)
                 {
                     ActAppRole.Id = returnIds[0].NewIdLong;
@@ -326,7 +326,7 @@ namespace FWO.Services
                 {
                     IPAddress serverIpStart = IPAddress.Parse(server.Ip.StripOffNetmask());
                     IPAddress serverIpEnd = IPAddress.Parse(server.IpEnd.StripOffNetmask());
-                    if(areaIpData.Content.Ip == null || areaIpData.Content.IpEnd == null)
+                    if (areaIpData.Content.Ip == null || areaIpData.Content.IpEnd == null)
                     {
                         return false;
                     }

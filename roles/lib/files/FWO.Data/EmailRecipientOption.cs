@@ -1,9 +1,9 @@
-﻿namespace FWO.Data
+namespace FWO.Data
 {
     public enum EmailRecipientOption
     {
         None = 0,
-        
+
         CurrentHandler = 1,
         RecentHandler = 2,
         AssignedGroup = 3,

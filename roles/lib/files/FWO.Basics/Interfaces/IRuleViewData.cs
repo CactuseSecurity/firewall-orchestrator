@@ -17,6 +17,6 @@ namespace FWO.Basics.Interfaces
         string Comment { get; set; }
         string RulebaseId { get; set; }
         string Enabled { get; set; }
-    }   
+    }
 }
 

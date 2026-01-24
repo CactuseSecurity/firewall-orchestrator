@@ -23,7 +23,7 @@ namespace FWO.Data.Report
 
         [JsonProperty("report_filter"), JsonPropertyName("report_filter")]
         public string Filter { get; set; } = "";
-        
+
         [JsonProperty("report_parameters"), JsonPropertyName("report_parameters")]
         public ReportParams ReportParams { get; set; } = new();
 
@@ -33,7 +33,7 @@ namespace FWO.Data.Report
         public bool IncludeObjectsInReportChangesUiPresesed { get; set; } = false;
 
         public ReportTemplate()
-        {}
+        { }
 
         public ReportTemplate(string filter, ReportParams reportParams)
         {
@@ -55,7 +55,7 @@ namespace FWO.Data.Report
     {
         [JsonProperty("report_type"), JsonPropertyName("report_type")]
         public int ReportType { get; set; } = 0;
-        
+
         [JsonProperty("device_filter"), JsonPropertyName("device_filter")]
         public DeviceFilter DeviceFilter { get; set; } = new();
 
@@ -79,7 +79,7 @@ namespace FWO.Data.Report
 
         public ReportParams()
         { }
-        
+
         public ReportParams(int reportType, DeviceFilter deviceFilter)
         {
             ReportType = reportType;

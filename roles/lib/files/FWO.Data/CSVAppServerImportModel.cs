@@ -11,14 +11,14 @@ namespace FWO.Data
         public string? AppIPRangeStart { get; set; }
         public string? AppIPRangeEnd { get; set; }
 
-        public CSVAppServerImportModel (string ipString)
+        public CSVAppServerImportModel(string ipString)
         {
             (AppIPRangeStart, AppIPRangeEnd) = IpOperations.SplitIpToRange(ipString);
         }
 
         public CSVAppServerImportModel()
         {
-                
+
         }
 
         public ModellingAppServer ToModellingAppServer()

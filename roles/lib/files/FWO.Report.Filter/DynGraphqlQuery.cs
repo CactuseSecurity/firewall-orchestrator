@@ -74,7 +74,7 @@ namespace FWO.Report.Filter
                                         offset: $offset ";
 
 
-        public static DynGraphqlQuery GenerateQuery(ReportTemplate filter, AstNode? ast)      
+        public static DynGraphqlQuery GenerateQuery(ReportTemplate filter, AstNode? ast)
         {
             DynGraphqlQuery query = new(filter.Filter);
             ConstructWhereStatements(query, filter, ast);
@@ -109,7 +109,7 @@ namespace FWO.Report.Filter
             query.ConnectionWhereStatement += "{";
             query.OwnerWhereStatement += "{";
 
-            if ((ReportType)filter.ReportParams.ReportType == ReportType.Changes || (ReportType)filter.ReportParams.ReportType == ReportType.ResolvedChanges || (ReportType)filter.ReportParams.ReportType == ReportType.ResolvedChangesTech )
+            if ((ReportType)filter.ReportParams.ReportType == ReportType.Changes || (ReportType)filter.ReportParams.ReportType == ReportType.ResolvedChanges || (ReportType)filter.ReportParams.ReportType == ReportType.ResolvedChangesTech)
             {
                 query.RuleWhereStatement += "rule: {";
             }
@@ -190,7 +190,7 @@ namespace FWO.Report.Filter
 
         private static string GetRulesFragmentDef(ReportTemplate filter)
         {
-            if((ReportType)filter.ReportParams.ReportType == ReportType.AppRules)
+            if ((ReportType)filter.ReportParams.ReportType == ReportType.AppRules)
             {
                 return RuleQueries.ruleDetailsForAppRuleReportFragments;
             }
@@ -199,7 +199,7 @@ namespace FWO.Report.Filter
 
         private static string GetRulesFragmentCall(ReportTemplate filter)
         {
-            if((ReportType)filter.ReportParams.ReportType == ReportType.AppRules)
+            if ((ReportType)filter.ReportParams.ReportType == ReportType.AppRules)
             {
                 return "ruleDetailsForAppRuleReport";
             }
@@ -348,7 +348,7 @@ namespace FWO.Report.Filter
                     }}
                 }}";
         }
-        
+
         private static string ConstructNatRulesQuery(DynGraphqlQuery query, string paramString, ReportTemplate filter)
         {
             return $@"
@@ -524,7 +524,7 @@ namespace FWO.Report.Filter
 
             foreach (ManagementSelect mgmt in deviceFilter.Managements)
             {
-                if (mgmt.Devices == null) continue; 
+                if (mgmt.Devices == null) continue;
 
                 foreach (DeviceSelect dev in mgmt.Devices)
                 {

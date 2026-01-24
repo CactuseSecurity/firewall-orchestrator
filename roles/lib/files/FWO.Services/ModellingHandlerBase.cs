@@ -125,7 +125,7 @@ namespace FWO.Services
         {
             try
             {
-                if(SvcToAdd.FirstOrDefault(s => s.Id == actService.Id) == null)
+                if (SvcToAdd.FirstOrDefault(s => s.Id == actService.Id) == null)
                 {
                     List<ModellingServiceGroup> foundServiceGroups = await apiConnection.SendQueryAsync<List<ModellingServiceGroup>>(ModellingQueries.getServiceGroupIdsForService, new { serviceId = actService.Id });
                     if (foundServiceGroups.Count == 0)
@@ -150,7 +150,7 @@ namespace FWO.Services
         {
             try
             {
-                if((await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.deleteService, new { id = actService.Id })).AffectedRows > 0)
+                if ((await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.deleteService, new { id = actService.Id })).AffectedRows > 0)
                 {
                     await LogChange(ModellingTypes.ChangeType.Delete, ModellingTypes.ModObjectType.Service, actService.Id,
                         $"Deleted Service: {actService.Display()}", Application.Id);
@@ -170,7 +170,7 @@ namespace FWO.Services
         {
             try
             {
-                if(ConnToDelete.RequestedOnFw || ConnToDelete.IsPublished)
+                if (ConnToDelete.RequestedOnFw || ConnToDelete.IsPublished)
                 {
                     if ((await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.updateConnectionRemove, new { id = ConnToDelete.Id, removalDate = DateTime.Now })).UpdatedId == ConnToDelete.Id)
                     {
@@ -202,15 +202,15 @@ namespace FWO.Services
             string interfaceName = "";
             try
             {
-                if(conn.UsedInterfaceId != null)
+                if (conn.UsedInterfaceId != null)
                 {
-                    List<ModellingConnection> interf = await apiConnection.SendQueryAsync<List<ModellingConnection>>(ModellingQueries.getConnectionById, new {id = conn.UsedInterfaceId});
-                    if(interf.Count > 0)
+                    List<ModellingConnection> interf = await apiConnection.SendQueryAsync<List<ModellingConnection>>(ModellingQueries.getConnectionById, new { id = conn.UsedInterfaceId });
+                    if (interf.Count > 0)
                     {
                         conn.SrcFromInterface = interf[0].SourceFilled();
                         conn.DstFromInterface = interf[0].DestinationFilled();
                         conn.InterfaceIsDecommissioned = interf[0].GetBoolProperty(ConState.Decommissioned.ToString());
-                        if(interf[0].IsRequested)
+                        if (interf[0].IsRequested)
                         {
                             conn.InterfaceIsRequested = true;
                             conn.InterfaceIsRejected = interf[0].GetBoolProperty(ConState.Rejected.ToString());
@@ -220,15 +220,15 @@ namespace FWO.Services
                         {
                             interfaceName = ExtractFullInterface(conn, interf[0]);
                         }
-                        if(interf[0].GetBoolProperty(ConState.Rejected.ToString()))
+                        if (interf[0].GetBoolProperty(ConState.Rejected.ToString()))
                         {
                             conn.AddProperty(ConState.InterfaceRejected.ToString());
                         }
-                        else if(interf[0].GetBoolProperty(ConState.Requested.ToString()))
+                        else if (interf[0].GetBoolProperty(ConState.Requested.ToString()))
                         {
                             conn.AddProperty(ConState.InterfaceRequested.ToString());
                         }
-                        else if(interf[0].GetBoolProperty(ConState.Decommissioned.ToString()))
+                        else if (interf[0].GetBoolProperty(ConState.Decommissioned.ToString()))
                         {
                             conn.AddProperty(ConState.InterfaceDecommissioned.ToString());
                         }
@@ -268,10 +268,10 @@ namespace FWO.Services
         {
             try
             {
-                if(conn.UsedInterfaceId != null)
+                if (conn.UsedInterfaceId != null)
                 {
-                    List<ModellingConnection> interf = await apiConnection.SendQueryAsync<List<ModellingConnection>>(ModellingQueries.getConnectionById, new {id = conn.UsedInterfaceId});
-                    if(interf.Count > 0)
+                    List<ModellingConnection> interf = await apiConnection.SendQueryAsync<List<ModellingConnection>>(ModellingQueries.getConnectionById, new { id = conn.UsedInterfaceId });
+                    if (interf.Count > 0)
                     {
                         return interf[0];
                     }
@@ -326,29 +326,29 @@ namespace FWO.Services
 
         public static List<string> GetSrcNames(ModellingConnection conn, UserConfig userConfig)
         {
-            if((conn.InterfaceIsRequested && conn.SrcFromInterface) || (conn.IsRequested && conn.SourceFilled()))
+            if ((conn.InterfaceIsRequested && conn.SrcFromInterface) || (conn.IsRequested && conn.SourceFilled()))
             {
                 return [DisplayReqInt(userConfig, conn.TicketId, conn.InterfaceIsRequested,
                     conn.GetBoolProperty(ConState.Rejected.ToString()) || conn.GetBoolProperty(ConState.InterfaceRejected.ToString()))];
             }
 
             List<ModellingNetworkArea> areas = [.. ModellingNetworkAreaWrapper.Resolve(conn.SourceAreas)];
-            foreach(var area in areas)
+            foreach (var area in areas)
             {
                 area.TooltipText = userConfig.GetText(DeactMsg);
             }
             List<string> names = areas.ConvertAll(s => s.DisplayWithIcon(conn.SrcFromInterface, conn.InterfaceIsDecommissioned));
 
             List<ModellingNwGroup> nwGroups = [.. ModellingNwGroupWrapper.Resolve(conn.SourceOtherGroups)];
-            foreach(var nwGroup in nwGroups)
+            foreach (var nwGroup in nwGroups)
             {
                 nwGroup.TooltipText = userConfig.GetText(DeactMsg);
             }
             names.AddRange(nwGroups.ConvertAll(s => s.DisplayWithIcon(conn.SrcFromInterface, conn.InterfaceIsDecommissioned)));
 
-            foreach(ModellingAppRole appRole in ModellingAppRoleWrapper.Resolve(conn.SourceAppRoles))
+            foreach (ModellingAppRole appRole in ModellingAppRoleWrapper.Resolve(conn.SourceAppRoles))
             {
-                if(appRole.AppServers.Count > 0 && !appRole.AppServers.Any(_ => _.Content.IsDeleted))
+                if (appRole.AppServers.Count > 0 && !appRole.AppServers.Any(_ => _.Content.IsDeleted))
                 {
                     names.Add(appRole.DisplayWithIcon(conn.SrcFromInterface, conn.InterfaceIsDecommissioned));
                 }
@@ -359,7 +359,7 @@ namespace FWO.Services
             }
 
             List<ModellingAppServer> appServers = [.. ModellingAppServerWrapper.Resolve(conn.SourceAppServers)];
-            foreach(var appServer in appServers)
+            foreach (var appServer in appServers)
             {
                 appServer.TooltipText = userConfig.GetText(DeactMsg);
             }
@@ -369,29 +369,29 @@ namespace FWO.Services
 
         public static List<string> GetDstNames(ModellingConnection conn, UserConfig userConfig)
         {
-            if((conn.InterfaceIsRequested && conn.DstFromInterface) || (conn.IsRequested && conn.DestinationFilled()))
+            if ((conn.InterfaceIsRequested && conn.DstFromInterface) || (conn.IsRequested && conn.DestinationFilled()))
             {
-                return [DisplayReqInt(userConfig, conn.TicketId, conn.InterfaceIsRequested, 
+                return [DisplayReqInt(userConfig, conn.TicketId, conn.InterfaceIsRequested,
                     conn.GetBoolProperty(ConState.Rejected.ToString()) || conn.GetBoolProperty(ConState.InterfaceRejected.ToString()))];
             }
 
             List<ModellingNetworkArea> areas = [.. ModellingNetworkAreaWrapper.Resolve(conn.DestinationAreas)];
-            foreach(var area in areas)
+            foreach (var area in areas)
             {
                 area.TooltipText = userConfig.GetText(DeactMsg);
             }
             List<string> names = areas.ConvertAll(s => s.DisplayWithIcon(conn.DstFromInterface, conn.InterfaceIsDecommissioned));
 
             List<ModellingNwGroup> nwGroups = [.. ModellingNwGroupWrapper.Resolve(conn.DestinationOtherGroups)];
-            foreach(var nwGroup in nwGroups)
+            foreach (var nwGroup in nwGroups)
             {
                 nwGroup.TooltipText = userConfig.GetText(DeactMsg);
             }
             names.AddRange(nwGroups.ConvertAll(s => s.DisplayWithIcon(conn.DstFromInterface, conn.InterfaceIsDecommissioned)));
 
-            foreach(ModellingAppRole appRole in ModellingAppRoleWrapper.Resolve(conn.DestinationAppRoles))
+            foreach (ModellingAppRole appRole in ModellingAppRoleWrapper.Resolve(conn.DestinationAppRoles))
             {
-                if(appRole.AppServers.Count > 0 && !appRole.AppServers.Any(_ => _.Content.IsDeleted))
+                if (appRole.AppServers.Count > 0 && !appRole.AppServers.Any(_ => _.Content.IsDeleted))
                 {
                     names.Add(appRole.DisplayWithIcon(conn.DstFromInterface, conn.InterfaceIsDecommissioned));
                 }
@@ -402,7 +402,7 @@ namespace FWO.Services
             }
 
             List<ModellingAppServer> appServers = [.. ModellingAppServerWrapper.Resolve(conn.DestinationAppServers)];
-            foreach(var appServer in appServers)
+            foreach (var appServer in appServers)
             {
                 appServer.TooltipText = userConfig.GetText(DeactMsg);
             }
@@ -412,17 +412,17 @@ namespace FWO.Services
 
         public static List<string> GetSvcNames(ModellingConnection conn, UserConfig userConfig)
         {
-            if(conn.InterfaceIsRequested || conn.IsRequested)
+            if (conn.InterfaceIsRequested || conn.IsRequested)
             {
-                return [DisplayReqInt(userConfig, conn.TicketId, conn.InterfaceIsRequested, 
+                return [DisplayReqInt(userConfig, conn.TicketId, conn.InterfaceIsRequested,
                     conn.GetBoolProperty(ConState.Rejected.ToString()) || conn.GetBoolProperty(ConState.InterfaceRejected.ToString()))];
             }
 
             List<string> names = [];
 
-            foreach(ModellingServiceGroup svcGrp in ModellingServiceGroupWrapper.Resolve(conn.ServiceGroups))
+            foreach (ModellingServiceGroup svcGrp in ModellingServiceGroupWrapper.Resolve(conn.ServiceGroups))
             {
-                if(svcGrp.Services.Count > 0)
+                if (svcGrp.Services.Count > 0)
                 {
                     names.Add(svcGrp.DisplayWithIcon(conn.UsedInterfaceId != null, conn.InterfaceIsDecommissioned));
                 }
@@ -433,7 +433,7 @@ namespace FWO.Services
             }
 
             names.AddRange(ModellingServiceWrapper.Resolve(conn.Services).ToList().ConvertAll(s => s.DisplayWithIcon(conn.UsedInterfaceId != null, conn.InterfaceIsDecommissioned)));
-            
+
             return names;
         }
 
@@ -443,7 +443,7 @@ namespace FWO.Services
             List<FwoOwner> apps = [];
             try
             {
-                if(authenticationStateTask!.Result.User.IsInRole(Roles.Admin)
+                if (authenticationStateTask!.Result.User.IsInRole(Roles.Admin)
                     || authenticationStateTask!.Result.User.IsInRole(Roles.Auditor)
                     || authenticationStateTask!.Result.User.IsInRole(Roles.ReporterViewAll))
                 {
@@ -451,8 +451,8 @@ namespace FWO.Services
                 }
                 else
                 {
-                    UpdateOwnerships(authenticationStateTask,userConfig); // qad: userConfig may not be properly filled
-                    if(withConn)
+                    UpdateOwnerships(authenticationStateTask, userConfig); // qad: userConfig may not be properly filled
+                    if (withConn)
                     {
                         apps = await apiConnection.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getEditableOwnersWithConn, new { appIds = userConfig.User.Ownerships.ToArray() });
                     }
@@ -472,7 +472,7 @@ namespace FWO.Services
         private static void UpdateOwnerships(Task<AuthenticationState> authenticationStateTask, UserConfig userConfig)
         {
             string? ownerString = authenticationStateTask.Result.User.Claims.FirstOrDefault(claim => claim.Type == "x-hasura-editable-owners")?.Value;
-            if(ownerString != null)
+            if (ownerString != null)
             {
                 string[] separatingStrings = [",", "{", "}"];
                 string[] owners = ownerString.Split(separatingStrings, StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);

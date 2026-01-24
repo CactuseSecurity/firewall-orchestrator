@@ -1,4 +1,4 @@
-﻿using FWO.Api.Client;
+using FWO.Api.Client;
 using FWO.Data;
 using FWO.Encryption;
 using FWO.Logging;

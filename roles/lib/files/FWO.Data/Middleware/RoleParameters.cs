@@ -1,4 +1,4 @@
-﻿namespace FWO.Data.Middleware
+namespace FWO.Data.Middleware
 {
     public class RoleAddDeleteUserParameters
     {

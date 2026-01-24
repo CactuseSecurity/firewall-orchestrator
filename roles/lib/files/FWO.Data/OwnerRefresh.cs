@@ -1,15 +1,15 @@
-﻿using System.Text.Json.Serialization; 
+using System.Text.Json.Serialization;
 using Newtonsoft.Json;
 
 namespace FWO.Data
 {
 
-//  refresh_view_rule_with_owner {
-//     id
-//     view_name
-//     refreshed_at
-//     status
-//   }
+    //  refresh_view_rule_with_owner {
+    //     id
+    //     view_name
+    //     refreshed_at
+    //     status
+    //   }
     public class OwnerRefresh
     {
 
@@ -24,7 +24,7 @@ namespace FWO.Data
 
         [JsonProperty("status"), JsonPropertyName("status")]
         private string Status { get; set; } = "";
-        
+
 
         public string GetStatus()
         {

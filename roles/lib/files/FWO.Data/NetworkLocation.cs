@@ -31,9 +31,10 @@ namespace FWO.Data
                 {
                     return this.Object.Name.CompareTo(secondNetworkLocation.Object.Name);
                 }
-                else {
+                else
+                {
                     return 0;
-                } 
+                }
             }
             else
             {

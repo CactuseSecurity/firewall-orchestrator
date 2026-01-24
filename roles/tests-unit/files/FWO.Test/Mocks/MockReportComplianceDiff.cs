@@ -11,7 +11,7 @@ namespace FWO.Test.Mocks
     public class MockReportComplianceDiff : ReportComplianceDiff
     {
         public bool MockPostProcessDiffReportsRule { get; set; } = true;
-        
+
         public MockReportComplianceDiff(DynGraphqlQuery query, UserConfig userConfig, ReportType reportType) : base(query, userConfig, reportType)
         {
         }

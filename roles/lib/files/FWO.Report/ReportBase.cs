@@ -265,7 +265,7 @@ namespace FWO.Report
         {
             if (deviceFilter != null && ReportType != ReportType.RecertEventReport)
             {
-                if(ReportType.IsRulebaseReport())
+                if (ReportType.IsRulebaseReport())
                 {
                     HtmlTemplate = HtmlTemplate.Replace("##OtherFilters##", userConfig.GetText("managements") + ": " + deviceFilter);
                 }

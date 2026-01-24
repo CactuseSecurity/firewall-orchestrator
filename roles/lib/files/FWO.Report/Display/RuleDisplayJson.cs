@@ -104,7 +104,7 @@ namespace FWO.Ui.Display
         {
             return DisplayJsonString("comment", comment);
         }
-        
+
         protected string DisplayObjectType(string? objectType)
         {
             return DisplayJsonString("ObjectType", objectType);
@@ -149,7 +149,7 @@ namespace FWO.Ui.Display
         public string DisplayRuleJsonObject(Rule rule, ReportType reportType)
         {
             StringBuilder stringBuilder = new StringBuilder();
-            
+
             stringBuilder.Append('{');
             if (string.IsNullOrEmpty(rule.SectionHeader))
             {
@@ -203,7 +203,7 @@ namespace FWO.Ui.Display
                 {
                     displayedServices.Add(Quote(DisplayService(service, reportType).ToString()));
                 }
-                return(string.Join(",", displayedServices));
+                return (string.Join(",", displayedServices));
             }
             return "";
         }

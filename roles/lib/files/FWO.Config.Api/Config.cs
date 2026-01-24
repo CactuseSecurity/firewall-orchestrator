@@ -59,7 +59,7 @@ namespace FWO.Config.Api
                 List<string> ignoreKeys = []; // currently nothing ignored, may be used later
                 _configGraphQlSubscription = apiConnection.GetSubscription<ConfigItem[]>(SubscriptionExceptionHandler, SubscriptionUpdateHandler,
                     ConfigQueries.subscribeConfigChangesByUser, new { UserId, ignoreKeys });
-                    
+
                 await Task.Run(async () => { while (!Initialized) { await Task.Delay(10); } }); // waitForFirstUpdate
             }
             else // when only simple read is needed, e.g. during scheduled report in middleware server

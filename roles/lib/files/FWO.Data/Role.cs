@@ -1,4 +1,4 @@
-﻿
+
 namespace FWO.Data
 {
     public class Role
@@ -9,7 +9,7 @@ namespace FWO.Data
         public List<UiUser> Users { get; set; }
 
         public Role()
-        { 
+        {
             Users = [];
         }
 
@@ -18,7 +18,7 @@ namespace FWO.Data
             Name = role.Name;
             Dn = role.Dn;
             Description = role.Description;
-            Users = new (role.Users);
+            Users = new(role.Users);
         }
 
         private static string DisplayUserName(string name)
@@ -35,7 +35,7 @@ namespace FWO.Data
         public string UserList()
         {
             List<string> userNames = [];
-            foreach(UiUser user in Users)
+            foreach (UiUser user in Users)
             {
                 userNames.Add(DisplayUserName(new DistName(user.Dn).UserName));
             }

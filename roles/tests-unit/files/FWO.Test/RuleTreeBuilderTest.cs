@@ -19,11 +19,11 @@ namespace FWO.Test
             get => _reportRules.ReportData.ManagementData.FirstOrDefault()?.Rulebases;
             set
             {
-                if(_reportRules.ReportData.ManagementData.FirstOrDefault() != null && value != null)
+                if (_reportRules.ReportData.ManagementData.FirstOrDefault() != null && value != null)
                 {
                     _reportRules.ReportData.ManagementData.First().Rulebases = value;
                 }
-            } 
+            }
         }
 
         private RulebaseLink[]? RulebaseLinks
@@ -37,7 +37,7 @@ namespace FWO.Test
                 }
             }
         }
-        
+
         private RuleTreeBuilder _ruleTreeBuilder = default!;
         private MockReportRules _reportRules = default!;
         private RuleTreeItem? _controlTree;
@@ -256,38 +256,38 @@ namespace FWO.Test
         [Test]
         public void CompareTreeItemPosition_Succeeds()
         {
-            RuleTreeItem item =   MockReportRules.CreateRuleTreeItem(1, 0, [1, 1]);
-            List<int> positionList = [1,1];
-            Assert.That(MockRuleTreeBuilder.CompareTreeItemPosition(item,positionList));
+            RuleTreeItem item = MockReportRules.CreateRuleTreeItem(1, 0, [1, 1]);
+            List<int> positionList = [1, 1];
+            Assert.That(MockRuleTreeBuilder.CompareTreeItemPosition(item, positionList));
         }
-        
+
         [Test]
         public void CompareTreeItemPosition_TrailingZeros_Succeeds()
         {
-            RuleTreeItem item =   MockReportRules.CreateRuleTreeItem(1, 0, [1, 1, 0, 0]);
-            List<int> positionList = [1,1];
-            Assert.That(MockRuleTreeBuilder.CompareTreeItemPosition(item,positionList));
+            RuleTreeItem item = MockReportRules.CreateRuleTreeItem(1, 0, [1, 1, 0, 0]);
+            List<int> positionList = [1, 1];
+            Assert.That(MockRuleTreeBuilder.CompareTreeItemPosition(item, positionList));
         }
-        
+
         [Test]
         public void CompareTreeItemPosition_TrailingZeros_Fails()
         {
-            RuleTreeItem item =   MockReportRules.CreateRuleTreeItem(1, 0, [2, 1, 0, 0]);
-            List<int> positionList = [1,1];
-            Assert.That(!MockRuleTreeBuilder.CompareTreeItemPosition(item,positionList));
+            RuleTreeItem item = MockReportRules.CreateRuleTreeItem(1, 0, [2, 1, 0, 0]);
+            List<int> positionList = [1, 1];
+            Assert.That(!MockRuleTreeBuilder.CompareTreeItemPosition(item, positionList));
         }
-        
+
         [Test]
         public void CompareTreeItemPosition_Fails()
         {
-            RuleTreeItem item =   MockReportRules.CreateRuleTreeItem(1, 0, [2, 1]);
-            List<int> positionList = [1,1];
-            Assert.That(!MockRuleTreeBuilder.CompareTreeItemPosition(item,positionList));
+            RuleTreeItem item = MockReportRules.CreateRuleTreeItem(1, 0, [2, 1]);
+            List<int> positionList = [1, 1];
+            Assert.That(!MockRuleTreeBuilder.CompareTreeItemPosition(item, positionList));
         }
-        
+
         #endregion
-        
-        
+
+
         private void SetUpMockReportRulesBasic(bool buildControlTree)
         {
             if (buildControlTree)
@@ -687,18 +687,18 @@ namespace FWO.Test
                     rulebase1.Name == rulebase2.Name ||
                     rulebase1.RuleChanges == rulebase2.RuleChanges ||
                     rulebase1.RuleStatistics == rulebase2.RuleStatistics;
-                
+
                 if (!propertiesEqual || rulebase1.Rules.Length != rulebase2.Rules.Length)
                 {
                     return false;
                 }
-                
+
                 for (int j = 0; j < rulebase1.Rules.Length; j++)
                 {
-                    if(!(rulebase1.Rules[j] == rulebase2.Rules[j]))
+                    if (!(rulebase1.Rules[j] == rulebase2.Rules[j]))
                     {
                         return false;
-                    }   
+                    }
                 }
 
             }

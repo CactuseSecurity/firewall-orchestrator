@@ -1,4 +1,4 @@
-﻿using System.Text.Json.Serialization; 
+using System.Text.Json.Serialization;
 using Newtonsoft.Json;
 
 namespace FWO.Data.Middleware
@@ -51,7 +51,7 @@ namespace FWO.Data.Middleware
     {
         [JsonProperty("management-ids"), JsonPropertyName("management-ids")]
         public List<int> ManagementIds { get; set; } = [];
-        
+
         [JsonProperty("gateway-ids"), JsonPropertyName("gateway-ids")]
         public List<int> DeviceIds { get; set; } = [];
     }
@@ -63,7 +63,7 @@ namespace FWO.Data.Middleware
 
         [JsonProperty("source-ip"), JsonPropertyName("source-ip")]
         public List<string> SourceIps { get; set; } = [];
-        
+
         [JsonProperty("destination-ip"), JsonPropertyName("destination-ip")]
         public List<string> DestinationIps { get; set; } = [];
 
@@ -75,7 +75,7 @@ namespace FWO.Data.Middleware
     {
         [JsonProperty("protocol"), JsonPropertyName("protocol")]
         public int? Protocol { get; set; }
-        
+
         [JsonProperty("name"), JsonPropertyName("name")]
         public string? Name { get; set; }
 

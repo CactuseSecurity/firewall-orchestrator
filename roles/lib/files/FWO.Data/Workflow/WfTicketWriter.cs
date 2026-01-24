@@ -1,4 +1,4 @@
-﻿using System.Text.Json.Serialization; 
+using System.Text.Json.Serialization;
 using Newtonsoft.Json;
 
 namespace FWO.Data.Workflow
@@ -12,7 +12,7 @@ namespace FWO.Data.Workflow
 
         public WfTicketWriter(WfTicket ticket)
         {
-            foreach(var reqtask in ticket.Tasks)
+            foreach (var reqtask in ticket.Tasks)
             {
                 Tasks.Add(new WfReqTaskWriter(reqtask));
             }

@@ -1,4 +1,4 @@
-﻿using FWO.Basics;
+using FWO.Basics;
 using FWO.Data;
 using FWO.Config.Api;
 using System.Text;
@@ -10,7 +10,7 @@ namespace FWO.Ui.Display
     public class NatRuleDisplayHtml : RuleDisplayHtml
     {
         public NatRuleDisplayHtml(UserConfig userConfig) : base(userConfig)
-        {}
+        { }
 
         public string DisplayTranslatedSource(Rule rule, OutputLocation location, int chapterNumber = 0, string style = "")
         {
@@ -36,7 +36,7 @@ namespace FWO.Ui.Display
         private string DisplayTranslatedSourceOrDestination(Rule rule, int chapterNumber, OutputLocation location, string style, bool isSource)
         {
             StringBuilder result = new();
-            if ((isSource && rule.NatData.TranslatedSourceNegated) ||(!isSource && rule.NatData.TranslatedDestinationNegated))
+            if ((isSource && rule.NatData.TranslatedSourceNegated) || (!isSource && rule.NatData.TranslatedDestinationNegated))
             {
                 result.AppendLine(userConfig.GetText("negated") + "<br>");
             }

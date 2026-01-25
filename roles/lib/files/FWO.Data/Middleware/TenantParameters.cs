@@ -1,4 +1,4 @@
-﻿namespace FWO.Data.Middleware
+namespace FWO.Data.Middleware
 
 // used for accessing tenant data stored in LDAP via REST UserManagement API
 // but tenant to device mappings (not stored in LDAP but in DB) are also handled here
@@ -30,7 +30,7 @@
         public string Name { get; set; } = "";
         public bool Shared { get; set; } = true;
 
-        public TenantViewGateway (int id, string name = "", bool shared = true)
+        public TenantViewGateway(int id, string name = "", bool shared = true)
         {
             Id = id;
             Name = name;
@@ -42,7 +42,7 @@
         public int Id { get; set; }
         public string Name { get; set; } = "";
         public bool Shared { get; set; } = true;
-        public TenantViewManagement (int id, string name = "", bool shared = true)
+        public TenantViewManagement(int id, string name = "", bool shared = true)
         {
             Id = id;
             Name = name;

@@ -123,9 +123,9 @@ namespace FWO.Middleware.Server.Jobs
                     await report.GetObjectsInReport(int.MaxValue, apiConnectionUserContext, _ => Task.CompletedTask);
 
                     await WriteReportFile(report, reportSchedule.OutputFormat, reportFile);
-                    
+
                     Log.WriteInfo(LogMessageTitle, $"Scheduled report \"{reportSchedule.Name}\" with id \"{reportSchedule.Id}\" for user \"{reportSchedule.ScheduleOwningUser.Name}\" with id \"{reportSchedule.ScheduleOwningUser.DbId}\" successfully generated.");
-                    
+
                     ReportSchedulerConfig reportSchedulerConfig = GetReportSchedulerConfig(reportSchedule.Id, userConfig);
 
                     if (reportSchedulerConfig.ToArchive)
@@ -137,7 +137,7 @@ namespace FWO.Middleware.Server.Jobs
                     {
                         await TrySendReportViaEmail(reportSchedule, reportFile, reportSchedulerConfig, userConfig);
                     }
-                    
+
                 }
                 else
                 {

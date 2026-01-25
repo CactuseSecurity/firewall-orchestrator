@@ -1,4 +1,4 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 using FWO.Data;
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;

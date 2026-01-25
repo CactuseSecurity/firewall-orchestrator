@@ -67,7 +67,7 @@ def get_config(
         get_zones(sid, fm_api_url, native_config_global, "", limit)
 
         for adom in adom_list:
-            adom_name = adom.domain_name
+            adom_name = fmgr_getter.require_domain_name(adom.domain_name, "ADOM config import")
             native_config_adom = initialize_native_config_domain(adom)
             config_in.native_config["domains"].append(native_config_adom)  # type: ignore #TYPING: None or not None this is the question  # noqa: PGH003
 
@@ -274,10 +274,11 @@ def build_adom_device_vdom_structure(
 ) -> dict[str, dict[str, dict[str, Any]]]:
     adom_device_vdom_structure: dict[str, dict[str, dict[str, Any]]] = {}
     for adom in adom_list:
-        adom_device_vdom_structure.update({adom.domain_name: {}})
+        adom_name = fmgr_getter.require_domain_name(adom.domain_name, "ADOM device/vdom mapping")
+        adom_device_vdom_structure.update({adom_name: {}})
         if len(adom.devices) > 0:
             device_vdom_dict = fmgr_getter.get_devices_from_manager(adom, sid, fm_api_url)
-            adom_device_vdom_structure[adom.domain_name].update(device_vdom_dict)
+            adom_device_vdom_structure[adom_name].update(device_vdom_dict)
     return adom_device_vdom_structure
 
 

@@ -10,22 +10,22 @@ namespace FWO.Services.RuleTreeBuilder
         /// The root item for the tree structure.
         /// </summary>
         public RuleTreeItem RuleTree { get; set; } = new();
-        
+
         /// <summary>
         /// A Queue to process rulebases by rulebase links.
         /// </summary>
         public Queue<(RulebaseLink link, RulebaseReport rulebase)> RuleTreeBuilderQueue { get; set; } = new();
-        
+
         /// <summary>
         /// The number of order numbers that were created during the process.
         /// </summary>
         public int CreatedOrderNumbersCount { get; set; }
-        
+
         /// <summary>
         /// A counter to easily create the order position (/order number) for the ordered layers on the top level.
         /// </summary>
         public int OrderedLayerCount { get; set; }
-        
+
         /// <summary>
         /// All of the processed rules.
         /// </summary>
@@ -117,7 +117,7 @@ namespace FWO.Services.RuleTreeBuilder
                 lastPosition = nextPosition;
 
                 // Handle inline layers.
-                
+
                 if (nextQueueItem?.link is RulebaseLink nextLink && ((nextLink.LinkType == 3 && nextLink.FromRuleId == currentRule.Id) || nextLink.IsSection && RuleTree.LastAddedItem?.Data?.RulebaseId == nextLink.FromRulebaseId && currentRule == currentRules.Last()))
                 {
                     nextQueueItem = RuleTreeBuilderQueue.Dequeue();
@@ -132,7 +132,7 @@ namespace FWO.Services.RuleTreeBuilder
 
             return lastPosition;
         }
-        
+
         /// <summary>
         /// Creates the queue that is used to create the rule tree.
         /// </summary>
@@ -161,7 +161,7 @@ namespace FWO.Services.RuleTreeBuilder
                 }
 
                 RulebaseReport rulebase = new();
-                
+
                 rulebase.Id = report.Id;
                 rulebase.Name = report.Name;
                 rulebase.RuleChanges = report.RuleChanges;
@@ -211,7 +211,7 @@ namespace FWO.Services.RuleTreeBuilder
                 isLastPositionZero = true;
             }
             RuleTreeItem item = RuleTree.ElementsFlat.FirstOrDefault(x => CompareTreeItemPosition(x, changedCopy)) as RuleTreeItem ?? new RuleTreeItem();
-        
+
             RuleTreeItem parent = item.Parent as RuleTreeItem ?? new RuleTreeItem();
             if (item.Data is not null && parent.IsOrderedLayerHeader && !isLastPositionZero)
             {
@@ -240,7 +240,7 @@ namespace FWO.Services.RuleTreeBuilder
             return new RuleTreeItem();
         }
 
-        private (List<int>, RuleTreeItem?, List<int>) PrepareOrderNumberCreation((RulebaseLink link, RulebaseReport rulebase) currentQueueItem, List<int> lastPosition,  (RulebaseLink link, RulebaseReport rulebase)? nextQueueItem)
+        private (List<int>, RuleTreeItem?, List<int>) PrepareOrderNumberCreation((RulebaseLink link, RulebaseReport rulebase) currentQueueItem, List<int> lastPosition, (RulebaseLink link, RulebaseReport rulebase)? nextQueueItem)
         {
             List<int> nextPosition = [];
             RuleTreeItem? nextParent = null;
@@ -272,7 +272,7 @@ namespace FWO.Services.RuleTreeBuilder
             else if (currentQueueItem.link.LinkType == 3)
             {
                 nextParent = RuleTree.LastAddedItem as RuleTreeItem;
-                if(nextParent !=null)
+                if (nextParent != null)
                     nextParent.IsInlineLayerRoot = true;
                 nextPosition = lastPosition.ToList();
                 nextPosition.Add(0);
@@ -289,27 +289,27 @@ namespace FWO.Services.RuleTreeBuilder
             {
                 nextParent = RuleTree;
             }
-            
-            return(nextPosition, nextParent, lastPosition);
+
+            return (nextPosition, nextParent, lastPosition);
         }
 
         private List<int> UpdateNextPosition(List<int> nextPosition, RuleTreeItem? nextParent)
         {
-            
-            if (nextParent!= null && nextParent.GetPositionString() == OrderedLayerCount.ToString() && nextParent.Children.Count == 0 || nextPosition.Count == 0) 
+
+            if (nextParent != null && nextParent.GetPositionString() == OrderedLayerCount.ToString() && nextParent.Children.Count == 0 || nextPosition.Count == 0)
             {
                 nextPosition.Add(0);
             }
 
             return nextPosition;
         }
-        
+
         #region NormalizePosition
         private static string NormalizePosition(IEnumerable<string> parts)
         {
             var partsArray = parts.ToArray();
             int lastNonZeroIndex = partsArray.Length - 1;
-            
+
             while (lastNonZeroIndex > 0 && partsArray[lastNonZeroIndex] == "0")
                 lastNonZeroIndex--;
             return string.Join(".", partsArray.Take(lastNonZeroIndex + 1));
@@ -318,7 +318,7 @@ namespace FWO.Services.RuleTreeBuilder
         {
             var partsArray = parts.ToArray();
             int lastNonZeroIndex = partsArray.Length - 1;
-            
+
             while (lastNonZeroIndex > 0 && partsArray[lastNonZeroIndex] == 0)
                 lastNonZeroIndex--;
             return string.Join(".", partsArray.Take(lastNonZeroIndex + 1));

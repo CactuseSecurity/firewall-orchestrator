@@ -22,7 +22,7 @@ namespace FWO.Compliance
             Rule = rule;
             Compliance = compliance;
         }
-        
+
     }
-    
+
 }

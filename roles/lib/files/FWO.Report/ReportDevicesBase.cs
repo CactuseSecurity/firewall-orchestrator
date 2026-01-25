@@ -61,9 +61,9 @@ namespace FWO.Report
         }
 
         public async Task<List<ManagementReport>> GetImportIdsInTimeRange(ApiConnection apiConnection, string startTime, string stopTime, bool? ruleChangeRequired = null, bool IncludeObjectsInReportChanges = false)
-            {
+        {
             var queryVariables = new
-                    {
+            {
                 start_time = startTime,
                 end_time = stopTime,
                 mgmIds = Query.RelevantManagementIds,
@@ -162,7 +162,7 @@ namespace FWO.Report
             {
                 Log.TryWriteLog(LogType.Info, "Management Report", $"Checking if changes (rules or objects) were found in management {mgmt.Id} ({mgmt.Name}).", _debugConfig.ExtendedLogReportGeneration);
 
-                if(mgmt.RuleChanges != null && mgmt.RuleChanges.Length > 0)
+                if (mgmt.RuleChanges != null && mgmt.RuleChanges.Length > 0)
                 {
                     return false;
                 }
@@ -171,7 +171,7 @@ namespace FWO.Report
             Log.TryWriteLog(LogType.Info, "Management Report", "No changes (rules or objects) found in any Management.", _debugConfig.ExtendedLogReportGeneration);
 
             return true;
-        }        
+        }
 
         private bool CheckDeviceHasNoRules(ManagementReport mgmt, DeviceReport dev)
         {

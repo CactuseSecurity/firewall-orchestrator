@@ -72,7 +72,7 @@ namespace FWO.Data
         public override int GetHashCode()
         {
             return Id.GetHashCode();
-        }        
+        }
 
         public bool IsAnyObject()
         {

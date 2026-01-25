@@ -50,7 +50,7 @@ namespace FWO.Ui.Data
 
         protected virtual void Dispose(bool disposing)
         {
-            if(ShowTimer != null)
+            if (ShowTimer != null)
             {
                 ShowTimer.Stop();
                 ShowTimer.Dispose();

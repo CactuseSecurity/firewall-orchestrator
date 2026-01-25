@@ -1,4 +1,4 @@
-﻿using FWO.Data.Modelling;
+using FWO.Data.Modelling;
 
 namespace FWO.Services
 {
@@ -18,14 +18,14 @@ namespace FWO.Services
                 return false;
             }
 
-            return appZone1.AppServers.Except([.. appZone2.AppServers], appServerComparer).ToList().Count == 0 
+            return appZone1.AppServers.Except([.. appZone2.AppServers], appServerComparer).ToList().Count == 0
                 && appZone2.AppServers.Except([.. appZone1.AppServers], appServerComparer).ToList().Count == 0;
         }
 
         public int GetHashCode(ModellingAppZone appZone)
         {
             int hashCode = 0;
-            foreach(var appSrv in appZone.AppServers)
+            foreach (var appSrv in appZone.AppServers)
             {
                 hashCode ^= appSrv != null ? appServerComparer.GetHashCode(appSrv) : 0;
             }

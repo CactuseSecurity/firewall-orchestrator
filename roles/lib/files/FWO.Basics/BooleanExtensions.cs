@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Components; 
+using Microsoft.AspNetCore.Components;
 
 namespace FWO.Basics
 {
@@ -8,7 +8,7 @@ namespace FWO.Basics
         {
             // shows check (true) or x (false) in UI
             var htmlString = boolVal
-            ? $"<span class=\"{@Icons.Check}\"></span>" 
+            ? $"<span class=\"{@Icons.Check}\"></span>"
             : $"<span class=\"{@Icons.Close}\"></span>";
             return new MarkupString(htmlString);
         }

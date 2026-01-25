@@ -1,4 +1,4 @@
-﻿using NUnit.Framework;
+using NUnit.Framework;
 using NUnit.Framework.Legacy;
 using FWO.Basics;
 using FWO.Data;
@@ -13,7 +13,12 @@ namespace FWO.Test
         static readonly string ARName = "ARxx12345-100";
         static readonly ModellingNamingConvention NamingConvention = new()
         {
-            NetworkAreaRequired = true, UseAppPart = true, FixedPartLength = 4, FreePartLength = 3, NetworkAreaPattern = "NA", AppRolePattern = "AR"
+            NetworkAreaRequired = true,
+            UseAppPart = true,
+            FixedPartLength = 4,
+            FreePartLength = 3,
+            NetworkAreaPattern = "NA",
+            AppRolePattern = "AR"
         };
 
         static readonly NetworkObject nwObj1 = new()
@@ -23,12 +28,12 @@ namespace FWO.Test
             IP = "",
             IpEnd = "",
             Uid = "XYZ123",
-            CreateTime = new(){ Time = new(2024, 10, 13, 8, 1, 0) },
-            Type = new(){ Name = ObjectType.Group },
-            Comment ="Comment nw1",
-            ObjectGroupFlats = 
+            CreateTime = new() { Time = new(2024, 10, 13, 8, 1, 0) },
+            Type = new() { Name = ObjectType.Group },
+            Comment = "Comment nw1",
+            ObjectGroupFlats =
             [
-                new(){ Id = 10, Object = new() 
+                new(){ Id = 10, Object = new()
                 {
                     Id = 2,
                     Name = "nwObj2",
@@ -40,7 +45,7 @@ namespace FWO.Test
                     Comment ="Comment nw2",
                     Number = 2
                 }},
-                new(){ Id = 11, Object = new() 
+                new(){ Id = 11, Object = new()
                 {
                     Id = 3,
                     Name = "nwObj3",
@@ -52,7 +57,7 @@ namespace FWO.Test
                     Comment ="Comment nw3",
                     Number = 3
                 }},
-                new(){ Id = 11, Object = new() 
+                new(){ Id = 11, Object = new()
                 {
                     Id = 4,
                     Name = "nwObj4",
@@ -77,7 +82,7 @@ namespace FWO.Test
 
         [SetUp]
         public void Initialize()
-        {}
+        { }
 
         [Test]
         public void TestAppRole()
@@ -112,7 +117,7 @@ namespace FWO.Test
 
             ClassicAssert.AreEqual(1, nwObjConverted.Id);
             ClassicAssert.AreEqual(1, nwObjConverted.Number);
-            ClassicAssert.AreEqual(ARName + " ("+ ar1.IdString +")", nwObjConverted.Name);
+            ClassicAssert.AreEqual(ARName + " (" + ar1.IdString + ")", nwObjConverted.Name);
             ClassicAssert.AreEqual("Comment nw1", nwObjConverted.Comment);
             ClassicAssert.AreEqual(ObjectType.Group, nwObjConverted.Type.Name);
             ClassicAssert.AreEqual("nwObj2|nwObj3", nwObjConverted.MemberNames);

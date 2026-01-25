@@ -1,4 +1,4 @@
-﻿using FWO.Api.Client;
+using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 using FWO.Basics;
 using FWO.Basics.Comparer;
@@ -263,7 +263,7 @@ namespace FWO.Services
                 }
 
                 // Add undefined-internal zone to reference object (even if AutoCalculatedUndefinedInternalZone is false, because we need it to exclude the reserved ranges from internet zone)
-                
+
                 existingZones.Add(undefinedInternalZone);
 
                 // Add new internet zone
@@ -285,10 +285,10 @@ namespace FWO.Services
                 {
                     await AddZone(internetZone, internetZoneAddDel, apiConnection);
                 }
-                
+
             }
         }
-        
+
         private static bool TryUpdateInternetZoneObject(List<ComplianceNetworkZone> existingZones, int matrixId, out ComplianceNetworkZone internetZone)
         {
             bool updated = false;
@@ -314,7 +314,7 @@ namespace FWO.Services
 
             return updated;
         }
-        
+
         public static void CalculateInternetZone(ComplianceNetworkZone internetZone, List<ComplianceNetworkZone> excludedZones)
         {
             IPAddressRange fullRangeIPv4 = IPAddressRange.Parse("0.0.0.0/0");
@@ -340,12 +340,12 @@ namespace FWO.Services
                         // Dont add if exactly this range is already in undefinedInternalZoneRanges
                         !undefinedInternalZoneRanges.Any(r => r.Begin.Equals(newRange.Begin) && r.End.Equals(newRange.End))
                         // Dont add if new range is completely within an existing range
-                        && !undefinedInternalZoneRanges.Any(r => r.Contains(newRange)); 
+                        && !undefinedInternalZoneRanges.Any(r => r.Contains(newRange));
 
                     if (add)
                     {
                         undefinedInternalZoneRanges.Add(newRange);
-                    }                 
+                    }
                 }
 
             }
@@ -401,7 +401,7 @@ namespace FWO.Services
 
             return internalZoneRanges;
         }
-        
+
         private static void TryAddToInternalZone(bool configParameter, IPAddressRange range, List<IPAddressRange> internalZoneRanges)
         {
             if (configParameter)

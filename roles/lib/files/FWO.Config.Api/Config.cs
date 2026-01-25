@@ -24,7 +24,7 @@ namespace FWO.Config.Api
 
         public event Action<Config, ConfigItem[]>? OnChange;
 
-        protected SemaphoreSlim semaphoreSlim = new(1, 1);
+        protected readonly SemaphoreSlim semaphoreSlim = new(1, 1);
 
         // To detect redundant dispose calls
         private bool _isDisposed;
@@ -39,7 +39,7 @@ namespace FWO.Config.Api
 
         protected Config(ApiConnection apiConnection, int userId, bool withSubscription = false, bool owningApiConnection = false)
         {
-            InitWithUserId(apiConnection, userId, withSubscription, owningApiConnection).Wait();
+            InitWithUserId(apiConnection, userId, withSubscription, owningApiConnection).GetAwaiter().GetResult();
         }
 
         public async Task InitWithUserId(ApiConnection apiConnection, int userId, bool withSubscription = false, bool owningApiConnection = false)
@@ -60,7 +60,10 @@ namespace FWO.Config.Api
                 _configGraphQlSubscription = apiConnection.GetSubscription<ConfigItem[]>(SubscriptionExceptionHandler, SubscriptionUpdateHandler,
                     ConfigQueries.subscribeConfigChangesByUser, new { UserId, ignoreKeys });
 
-                await Task.Run(async () => { while (!Initialized) { await Task.Delay(10); } }); // waitForFirstUpdate
+                while (!Initialized)
+                {
+                    await Task.Delay(10);
+                }
             }
             else // when only simple read is needed, e.g. during scheduled report in middleware server
             {
@@ -109,7 +112,7 @@ namespace FWO.Config.Api
                             TypeConverter converter = TypeDescriptor.GetConverter(property.PropertyType);
                             property.SetValue(this, converter.ConvertFromString(configItem.Value
                                 ?? throw new ArgumentNullException($"Config value (with key: {configItem.Key}) is null."))
-                                ?? throw new ArgumentException($"Config value (with key: {configItem.Key}) is not convertible to {property.GetType()}."));
+                                ?? throw new ArgumentException($"Config value (with key: {configItem.Key}) is not convertible to {property.PropertyType}."));
                         }
                         catch (Exception exception)
                         {
@@ -143,10 +146,10 @@ namespace FWO.Config.Api
 
                             try
                             {
-                                TypeConverter converter = TypeDescriptor.GetConverter(property.GetType());
+                                TypeConverter converter = TypeDescriptor.GetConverter(property.PropertyType);
                                 string stringValue = converter.ConvertToString(property.GetValue(editedData)
                                                 ?? throw new ArgumentNullException($"Config value (with key: {key}) is null"))
-                                                ?? throw new ArgumentException($"Config value (with key: {key}) is not convertible to {property.GetType()}.");
+                                                ?? throw new ArgumentException($"Config value (with key: {key}) is not convertible to {property.PropertyType}.");
                                 // Add config item to the list of changed config items
                                 configItemChanges.Add(new ConfigItem { Key = key, Value = stringValue, User = UserId });
                             }

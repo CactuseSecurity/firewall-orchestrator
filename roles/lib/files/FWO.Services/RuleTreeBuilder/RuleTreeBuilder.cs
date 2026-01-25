@@ -170,6 +170,7 @@ namespace FWO.Services.RuleTreeBuilder
                     {
                         RulebaseLink inlineLayerLink = RemainingInlineLayerLinks.First(l => l.LinkType == 3 && l.FromRuleId == rule.Id);
                         RemainingInlineLayerLinks.Remove(inlineLayerLink);
+                        RemainingLinks.Remove(inlineLayerLink);
                         ProcessLink(inlineLayerLink);
                     }
 
@@ -207,7 +208,7 @@ namespace FWO.Services.RuleTreeBuilder
 
         public void Reset(RulebaseReport[] rulebases, RulebaseLink[] links)
         {
-            RemainingLinks = links.Where(link => link.LinkType != 3).ToList();
+            RemainingLinks = links.ToList();
             Rulebases = rulebases.ToList();
             RemainingInlineLayerLinks = links.Where(link => link.LinkType == 3).ToList();
             RuleTree = new RuleTreeItem() { IsRoot = true };

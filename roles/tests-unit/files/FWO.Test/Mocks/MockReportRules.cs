@@ -15,17 +15,17 @@ namespace FWO.Test.Mocks
 
         public MockReportRules(DynGraphqlQuery query, UserConfig userConfig, ReportType reportType, Func<List<ManagementReport>>? setupFunc = null) : base(query, userConfig, reportType)
         {
-            if (setupFunc == null)
-            {
-                setupFunc = SetupSingleManagementReportEmpty;
-            }
+            // if (setupFunc == null)
+            // {
+            //     setupFunc = SetupSingleManagementReportEmpty;
+            // }
 
-            List<ManagementReport> managementReports = setupFunc();
+            // List<ManagementReport> managementReports = setupFunc();
 
-            foreach (var managementReport in managementReports)
-            {
-                ReportData.ManagementData.Add(managementReport);
-            }
+            // foreach (var managementReport in managementReports)
+            // {
+            //     ReportData.ManagementData.Add(managementReport);
+            // }
 
         }
 

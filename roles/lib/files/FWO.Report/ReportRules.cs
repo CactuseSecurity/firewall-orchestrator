@@ -13,6 +13,7 @@ using System.Text;
 using System.Text.Json;
 using Microsoft.Extensions.DependencyInjection;
 using System.Diagnostics;
+using Rule = FWO.Data.Rule;
 
 namespace FWO.Report
 {
@@ -131,17 +132,14 @@ namespace FWO.Report
 
             int ruleCount = 0;
 
-            foreach (var managementReport in ReportData.ManagementData)
+            foreach (ManagementReport managementReport in ReportData.ManagementData)
             {
-                foreach (var deviceReport in managementReport.Devices)
+                foreach (DeviceReport deviceReport in managementReport.Devices)
                 {
                     ruleCount = 0;
+                    ruleTreeBuilder.Reset(managementReport.Rulebases, deviceReport.RulebaseLinks);
 
-                    List<RulebaseLink> relevantLinks = deviceReport.RulebaseLinks.Where(link => link.Removed == null).ToList();
-                    List<RulebaseReport> relevantRulebases = managementReport.Rulebases.ToList();
-                    ruleTreeBuilder.Reset(relevantLinks, relevantRulebases);
-
-                    List<FWO.Data.Rule> allRules = ruleTreeBuilder.BuildRuleTree(managementReport, deviceReport);
+                    List<Rule> allRules = ruleTreeBuilder.BuildRuleTree(managementReport.Rulebases, deviceReport.RulebaseLinks);
 
                     Rule[] rulesArray = [.. allRules];
                     _rulesCache[(deviceReport.Id, managementReport.Id)] = rulesArray;

@@ -1,3 +1,4 @@
+using System;
 using NUnit.Framework;
 using System.Collections.Generic;
 using System.Linq;
@@ -14,30 +15,10 @@ namespace FWO.Test
     [TestFixture]
     internal class RuleTreeBuilderTest
     {
-        private RulebaseReport[]? Rulebases
-        {
-            get => _reportRules.ReportData.ManagementData.FirstOrDefault()?.Rulebases;
-            set
-            {
-                if(_reportRules.ReportData.ManagementData.FirstOrDefault() != null && value != null)
-                {
-                    _reportRules.ReportData.ManagementData.First().Rulebases = value;
-                }
-            } 
-        }
+        #region  Configuration
 
-        private RulebaseLink[]? RulebaseLinks
-        {
-            get => _reportRules.ReportData.ManagementData.FirstOrDefault()?.Devices.FirstOrDefault()?.RulebaseLinks;
-            set
-            {
-                if (_reportRules.ReportData.ManagementData.FirstOrDefault()?.Devices.FirstOrDefault() != null && value != null)
-                {
-                    _reportRules.ReportData.ManagementData.First().Devices.First().RulebaseLinks = value;
-                }
-            }
-        }
-        
+        private RulebaseReport[] _rulebases = default!;
+        private RulebaseLink[] _rulebaseLinks = default!;
         private RuleTreeBuilder _ruleTreeBuilder = default!;
         private MockReportRules _reportRules = default!;
         private RuleTreeItem? _controlTree;
@@ -49,661 +30,323 @@ namespace FWO.Test
             _reportRules = new MockReportRules(new(""), new(), Basics.ReportType.Rules);
             MockReportRules.RulebaseId = 0;
             MockReportRules.RuleId = 0;
-        }
-
-        #region BuildRulebaseLinkQueue
-
-        [Test]
-        public void BuildRulebaseLinkQueue_WithEmptyArraysAsArgs_ReturnsNull()
-        {
-            // Arrange
-
-            Queue<(RulebaseLink, RulebaseReport)>? queue;
-
-            // Act
-
-            queue = _ruleTreeBuilder.BuildRulebaseLinkQueue(RulebaseLinks!, Rulebases!);
-
-            // Assert
-
-            Assert.That(queue is null);
-        }
-
-        [Test]
-        public void BuildRulebaseLinkQueue_BasicSetup_Succeeds()
-        {
-            // Arrange
-
-            Queue<(RulebaseLink, RulebaseReport)>? queue;
-            SetUpMockReportRulesBasic(true);
-
-            // Act
-
-            queue = _ruleTreeBuilder.BuildRulebaseLinkQueue(RulebaseLinks!, Rulebases!);
-
-            // Assert
-
-            CollectionAssert.AreEqual(RulebaseLinks!, queue!.Select(tuple => tuple.Item1)); // Equal because same objects
-            Assert.That(IsEqualTo(Rulebases!, queue!.Select(tuple => tuple.Item2))); // Needs custom equality check, because rulebase objects get cloned in BuildRulebaseLinkQueue.
-        }
-
-        [Test]
-        public void BuildRulebaseLinkQueue_ComplexSetup_Succeeds()
-        {
-            // Arrange
-
-            Queue<(RulebaseLink, RulebaseReport)>? queue;
-            SetUpMockReportRulesComplex(true);
-
-            // Act
-
-            queue = _ruleTreeBuilder.BuildRulebaseLinkQueue(RulebaseLinks!, Rulebases!);
-
-            // Assert
-
-            CollectionAssert.AreEqual(RulebaseLinks!, queue!.Select(tuple => tuple.Item1)); // Equal because same objects
-            Assert.That(IsEqualTo(Rulebases!, queue!.Select(tuple => tuple.Item2))); // Needs custom equality check, because rulebase objects get cloned in BuildRulebaseLinkQueue.
+            _controlTree = new();
+            _rulebaseLinks = CreateFullTestRulebaseLinks(gatewayId: 1).ToArray();
+            _rulebases = CreateFullTestRulebaseReports();
         }
 
         #endregion
 
-        #region BuildRuleTree
+        #region TestInit
 
         [Test]
-        public void BuildRuleTree_SectionInOrderedLayerAfterRules_Succeeds()
+        public void BuildRuleTree_TestData_ReturnsRules()
         {
             // Arrange
 
-            _controlTree = new RuleTreeItem
-            {
-                IsRoot = true,
-                Children = new List<Basics.ITreeItem<Rule>>
-                {
-                    CreateControlTreeItemRulesThenSection(1, 0, 1, 0)
-                }
-            };
-
-            Rulebases =
-            [
-                MockReportRules.CreateRulebaseReport("Rules then section", 3),
-                MockReportRules.CreateRulebaseReport("Section 1", 3)
-            ];
-
-            RulebaseLinks =
-            [
-                new RulebaseLink{ NextRulebaseId = 1, LinkType = 2, IsInitial = true },
-                new RulebaseLink{ FromRulebaseId = 1, NextRulebaseId = 2, LinkType = 4, IsSection = true }
-            ];
-            _ruleTreeBuilder.BuildRulebaseLinkQueue(RulebaseLinks!, Rulebases!);
+            List<Rule> resultRules = default!;
 
             // Act
 
-            _ruleTreeBuilder.BuildRuleTree();
+            resultRules = _ruleTreeBuilder.BuildRuleTree(_rulebases, _rulebaseLinks);
 
             // Assert
 
-            if (LocalSettings.CSharpUnitTestsVerbose)
-            {
-                AssertWithDump.AreEqual(_controlTree!.ToJson(), _ruleTreeBuilder.RuleTree.ToJson());
-            }
-            else
-            {
-                Assert.That(_ruleTreeBuilder.RuleTree.ToJson(), Is.EqualTo(_controlTree!.ToJson()));
-            }
+            Assert.That(resultRules.Any());
         }
 
         [Test]
-        public void BuildRuleTree_SectionsInInlineLayers_Succeeds()
+        public void BuildRuleTree_TestData_ReturnsAllRules()
         {
             // Arrange
 
-            _controlTree = new RuleTreeItem
-            {
-                IsRoot = true,
-                Children = new List<Basics.ITreeItem<Rule>>
-                {
-                    CreateControlTreeItemSectionsInInlineLayers(1, 0, 1, 0)
-                }
-            };
-
-            Rulebases =
-            [
-                MockReportRules.CreateRulebaseReport("Sections in inline layers", 5),
-                MockReportRules.CreateRulebaseReport("Inline layer 5", 0),
-                MockReportRules.CreateRulebaseReport("Section 1", 3),
-                MockReportRules.CreateRulebaseReport("Inline layer 6", 3),
-                MockReportRules.CreateRulebaseReport("Section 2", 3)
-            ];
-
-            RulebaseLinks =
-            [
-                new RulebaseLink{ NextRulebaseId = 1, LinkType = 2, IsInitial = true },
-                new RulebaseLink{ FromRuleId = 1, FromRulebaseId = 1, NextRulebaseId = 2, LinkType = 3 },
-                new RulebaseLink{ FromRulebaseId = 2, NextRulebaseId = 3, LinkType = 4, IsSection = true },
-                new RulebaseLink{ FromRuleId = 2, FromRulebaseId = 1, NextRulebaseId = 4, LinkType = 3  },
-                new RulebaseLink{ FromRulebaseId = 4, NextRulebaseId = 5, LinkType = 4, IsSection = true },
-            ];
-            _ruleTreeBuilder.BuildRulebaseLinkQueue(RulebaseLinks!, Rulebases!);
+            List<Rule> resultRules = default!;
 
             // Act
 
-            _ruleTreeBuilder.BuildRuleTree();
+            resultRules = _ruleTreeBuilder.BuildRuleTree(_rulebases, _rulebaseLinks);
 
             // Assert
 
-            if (LocalSettings.CSharpUnitTestsVerbose)
-            {
-                AssertWithDump.AreEqual(_controlTree!.ToJson(), _ruleTreeBuilder.RuleTree.ToJson());
-            }
-            else
-            {
-                Assert.That(_ruleTreeBuilder.RuleTree.ToJson(), Is.EqualTo(_controlTree!.ToJson()));
-            }
+            Assert.That(resultRules.Count == 68);
         }
 
         [Test]
-        public void BuildRuleTree_BasicSetup_Succeeds()
+        public void BuildRuleTree_TestData_ElementsFlatContainsAllRules()
         {
             // Arrange
 
-            SetUpMockReportRulesBasic(true);
-            _ruleTreeBuilder.BuildRulebaseLinkQueue(RulebaseLinks!, Rulebases!);
+            List<Rule> resultRules = default!;
 
             // Act
 
-            _ruleTreeBuilder.BuildRuleTree();
+            resultRules = _ruleTreeBuilder.BuildRuleTree(_rulebases, _rulebaseLinks);
 
             // Assert
 
-            if (LocalSettings.CSharpUnitTestsVerbose)
-            {
-                AssertWithDump.AreEqual(_controlTree!.ToJson(), _ruleTreeBuilder.RuleTree.ToJson());
-            }
-            else
-            {
-                Assert.That(_ruleTreeBuilder.RuleTree.ToJson(), Is.EqualTo(_controlTree!.ToJson()));
-            }
+            Assert.That(_ruleTreeBuilder.RuleTree.ElementsFlat.Count(element => ((RuleTreeItem) element).IsRule) == 68);
         }
 
         [Test]
-        public void BuildRuleTree_ComplexSetup_Succeeds()
+        public void BuildRuleTree_TestData_ElementsFlatContainsAllOrderedLayers()
         {
             // Arrange
 
-            SetUpMockReportRulesComplex(true);
-            _ruleTreeBuilder.BuildRulebaseLinkQueue(RulebaseLinks!, Rulebases!);
+            List<Rule> resultRules = default!;
 
             // Act
 
-            _ruleTreeBuilder.BuildRuleTree();
+            resultRules = _ruleTreeBuilder.BuildRuleTree(_rulebases, _rulebaseLinks);
 
             // Assert
 
-            if (LocalSettings.CSharpUnitTestsVerbose)
-            {
-                AssertWithDump.AreEqual(_controlTree!.ToJson(), _ruleTreeBuilder.RuleTree.ToJson());
-            }
-            else
-            {
-                Assert.That(_ruleTreeBuilder.RuleTree.ToJson(), Is.EqualTo(_controlTree!.ToJson()));
-            }
+            Assert.That(_ruleTreeBuilder.RuleTree.ElementsFlat.Count(element => ((RuleTreeItem) element).IsOrderedLayerHeader) == 3);
         }
+
+        [Test]
+        public void BuildRuleTree_TestData_ElementsFlatContainsAllSections()
+        {
+            // Arrange
+
+            List<Rule> resultRules = default!;
+
+            // Act
+
+            resultRules = _ruleTreeBuilder.BuildRuleTree(_rulebases, _rulebaseLinks);
+
+            // Assert
+
+            Assert.That(_ruleTreeBuilder.RuleTree.ElementsFlat.Count(element => ((RuleTreeItem) element).IsSectionHeader) == 12);
+        }
+
+                [Test]
+        public void BuildRuleTree_TestData_ElementsFlatContainsAllInlineLayers()
+        {
+            // Arrange
+
+            List<Rule> resultRules = default!;
+
+            // Act
+
+            resultRules = _ruleTreeBuilder.BuildRuleTree(_rulebases, _rulebaseLinks);
+
+            // Assert
+
+            Assert.That(_ruleTreeBuilder.RuleTree.ElementsFlat.Count(element => ((RuleTreeItem) element).IsInlineLayerRoot) == 9);
+        }
+
+
 
         #endregion
 
-        #region GetSectionParent
+        #region Test Data
 
-        [Test]
-        public void CompareTreeItemPosition_Succeeds()
+        public static List<RulebaseLink> CreateFullTestRulebaseLinks(int gatewayId)
         {
-            RuleTreeItem item =   MockReportRules.CreateRuleTreeItem(1, 0, [1, 1]);
-            List<int> positionList = [1,1];
-            Assert.That(MockRuleTreeBuilder.CompareTreeItemPosition(item,positionList));
+            return new List<RulebaseLink>
+            {
+                new RulebaseLink { GatewayId = gatewayId, FromRulebaseId = null,   FromRuleId = null,   NextRulebaseId = 59375, LinkType = 2, IsInitial = true,  IsGlobal = false, IsSection = false },
+                new RulebaseLink { GatewayId = gatewayId, FromRulebaseId = 59375,  FromRuleId = 32034,  NextRulebaseId = 59376, LinkType = 3, IsInitial = false, IsGlobal = false, IsSection = false },
+                new RulebaseLink { GatewayId = gatewayId, FromRulebaseId = 59375,  FromRuleId = null,   NextRulebaseId = 59377, LinkType = 4, IsInitial = false, IsGlobal = false, IsSection = true  },
+                new RulebaseLink { GatewayId = gatewayId, FromRulebaseId = 59377,  FromRuleId = null,   NextRulebaseId = 59378, LinkType = 4, IsInitial = false, IsGlobal = false, IsSection = true  },
+                new RulebaseLink { GatewayId = gatewayId, FromRulebaseId = 59378,  FromRuleId = 32038,  NextRulebaseId = 59379, LinkType = 3, IsInitial = false, IsGlobal = false, IsSection = false },
+                new RulebaseLink { GatewayId = gatewayId, FromRulebaseId = 59378,  FromRuleId = null,   NextRulebaseId = 59380, LinkType = 4, IsInitial = false, IsGlobal = false, IsSection = true  },
+                new RulebaseLink { GatewayId = gatewayId, FromRulebaseId = 59380,  FromRuleId = 32046,  NextRulebaseId = 59381, LinkType = 3, IsInitial = false, IsGlobal = false, IsSection = false },
+                new RulebaseLink { GatewayId = gatewayId, FromRulebaseId = 59380,  FromRuleId = null,   NextRulebaseId = 59382, LinkType = 4, IsInitial = false, IsGlobal = false, IsSection = true  },
+                new RulebaseLink { GatewayId = gatewayId, FromRulebaseId = 59382,  FromRuleId = null,   NextRulebaseId = 59383, LinkType = 4, IsInitial = false, IsGlobal = false, IsSection = true  },
+                new RulebaseLink { GatewayId = gatewayId, FromRulebaseId = 59384,  FromRuleId = null,   NextRulebaseId = 59385, LinkType = 4, IsInitial = false, IsGlobal = false, IsSection = true  },
+                new RulebaseLink { GatewayId = gatewayId, FromRulebaseId = 59383,  FromRuleId = null,   NextRulebaseId = 59386, LinkType = 4, IsInitial = false, IsGlobal = false, IsSection = true  },
+                new RulebaseLink { GatewayId = gatewayId, FromRulebaseId = 59375,  FromRuleId = null,   NextRulebaseId = 59387, LinkType = 2, IsInitial = false, IsGlobal = false, IsSection = false },
+                new RulebaseLink { GatewayId = gatewayId, FromRulebaseId = 59387,  FromRuleId = null,   NextRulebaseId = 59388, LinkType = 4, IsInitial = false, IsGlobal = false, IsSection = true  },
+                new RulebaseLink { GatewayId = gatewayId, FromRulebaseId = 59387,  FromRuleId = null,   NextRulebaseId = 59389, LinkType = 2, IsInitial = false, IsGlobal = false, IsSection = false },
+                new RulebaseLink { GatewayId = gatewayId, FromRulebaseId = 59389,  FromRuleId = 32078,  NextRulebaseId = 59390, LinkType = 3, IsInitial = false, IsGlobal = false, IsSection = false },
+                new RulebaseLink { GatewayId = gatewayId, FromRulebaseId = 59390,  FromRuleId = null,   NextRulebaseId = 59391, LinkType = 4, IsInitial = false, IsGlobal = false, IsSection = true  },
+                new RulebaseLink { GatewayId = gatewayId, FromRulebaseId = 59391,  FromRuleId = 32083,  NextRulebaseId = 59392, LinkType = 3, IsInitial = false, IsGlobal = false, IsSection = false },
+                new RulebaseLink { GatewayId = gatewayId, FromRulebaseId = 59389,  FromRuleId = 32079,  NextRulebaseId = 59393, LinkType = 3, IsInitial = false, IsGlobal = false, IsSection = false },
+                new RulebaseLink { GatewayId = gatewayId, FromRulebaseId = 59393,  FromRuleId = null,   NextRulebaseId = 59394, LinkType = 4, IsInitial = false, IsGlobal = false, IsSection = true  },
+                new RulebaseLink { GatewayId = gatewayId, FromRulebaseId = 59376,  FromRuleId = 32164,  NextRulebaseId = 59839, LinkType = 3, IsInitial = false, IsGlobal = false, IsSection = false },
+                new RulebaseLink { GatewayId = gatewayId, FromRulebaseId = 59379,  FromRuleId = null,   NextRulebaseId = 59843, LinkType = 4, IsInitial = false, IsGlobal = false, IsSection = true  },
+                new RulebaseLink { GatewayId = gatewayId, FromRulebaseId = 59380,  FromRuleId = 32168,  NextRulebaseId = 59384, LinkType = 3, IsInitial = false, IsGlobal = false, IsSection = false },
+                new RulebaseLink { GatewayId = gatewayId, FromRulebaseId = 59380,  FromRuleId = 32155,  NextRulebaseId = 59847, LinkType = 3, IsInitial = false, IsGlobal = false, IsSection = false },
+                new RulebaseLink { GatewayId = gatewayId, FromRulebaseId = 59847,  FromRuleId = null,   NextRulebaseId = 59848, LinkType = 4, IsInitial = false, IsGlobal = false, IsSection = true  },
+            };
         }
-        
-        [Test]
-        public void CompareTreeItemPosition_TrailingZeros_Succeeds()
+
+        public static RulebaseReport[] CreateFullTestRulebaseReports()
         {
-            RuleTreeItem item =   MockReportRules.CreateRuleTreeItem(1, 0, [1, 1, 0, 0]);
-            List<int> positionList = [1,1];
-            Assert.That(MockRuleTreeBuilder.CompareTreeItemPosition(item,positionList));
+            return
+            [
+                new RulebaseReport { Id = 59375, Name = "Network", Rules = CreateFullTestRules(59375) },
+                new RulebaseReport { Id = 59376, Name = "inline2", Rules = CreateFullTestRules(59376) },
+                new RulebaseReport { Id = 59377, Name = "Test section 1", Rules = CreateFullTestRules(59377) },
+                new RulebaseReport { Id = 59378, Name = "Section Xy", Rules = CreateFullTestRules(59378) },
+                new RulebaseReport { Id = 59379, Name = "layer2 Clone", Rules = CreateFullTestRules(59379) },
+                new RulebaseReport { Id = 59380, Name = "Test section 2", Rules = CreateFullTestRules(59380) },
+                new RulebaseReport { Id = 59381, Name = "layer2", Rules = CreateFullTestRules(59381) },
+                new RulebaseReport { Id = 59382, Name = "2nd new sect", Rules = CreateFullTestRules(59382) },
+                new RulebaseReport { Id = 59383, Name = "3rd new sect", Rules = CreateFullTestRules(59383) },
+                new RulebaseReport { Id = 59384, Name = "new inline layer", Rules = CreateFullTestRules(59384) },
+                new RulebaseReport { Id = 59385, Name = "Section in inline layer", Rules = CreateFullTestRules(59385) },
+                new RulebaseReport { Id = 59386, Name = "Changed Section Header", Rules = CreateFullTestRules(59386) },
+                new RulebaseReport { Id = 59387, Name = "Second Layer", Rules = CreateFullTestRules(59387) },
+                new RulebaseReport { Id = 59388, Name = "Section in second layer", Rules = CreateFullTestRules(59388) },
+                new RulebaseReport { Id = 59389, Name = "Third Layer", Rules = CreateFullTestRules(59389) },
+                new RulebaseReport { Id = 59390, Name = "InlineLayerWithSection", Rules = CreateFullTestRules(59390) },
+                new RulebaseReport { Id = 59391, Name = "Section 1", Rules = CreateFullTestRules(59391) },
+                new RulebaseReport { Id = 59392, Name = "Empty Layer With Section", Rules = CreateFullTestRules(59392) },
+                new RulebaseReport { Id = 59393, Name = "InlineLayerWithRulesAndSection", Rules = CreateFullTestRules(59393) },
+                new RulebaseReport { Id = 59394, Name = "Section 3", Rules = CreateFullTestRules(59394) },
+                new RulebaseReport { Id = 59839, Name = "test3", Rules = CreateFullTestRules(59839) },
+                new RulebaseReport { Id = 59843, Name = "section without name", Rules = CreateFullTestRules(59843) },
+                new RulebaseReport { Id = 59847, Name = "new inline layer test", Rules = CreateFullTestRules(59847) },
+                new RulebaseReport { Id = 59848, Name = "TestRuleNum", Rules = CreateFullTestRules(59848) }
+            ];
         }
-        
-        [Test]
-        public void CompareTreeItemPosition_TrailingZeros_Fails()
+
+        public static Rule[] CreateFullTestRules(int rulebaseId)
         {
-            RuleTreeItem item =   MockReportRules.CreateRuleTreeItem(1, 0, [2, 1, 0, 0]);
-            List<int> positionList = [1,1];
-            Assert.That(!MockRuleTreeBuilder.CompareTreeItemPosition(item,positionList));
+            return rulebaseId switch
+            {
+                59375 => new[]
+                {
+                    new Rule { Id = 32031, RulebaseId = 59375, Name = null },
+                    new Rule { Id = 32162, RulebaseId = 59375, Name = null },
+                    new Rule { Id = 32179, RulebaseId = 59375, Name = "sdfgsdf asddfasdf" },
+                    new Rule { Id = 32354, RulebaseId = 59375, Name = "empty-svc-TestWEB" },
+                },
+
+                59376 => new[]
+                {
+                    new Rule { Id = 32037, RulebaseId = 59376, Name = "Cleanup rule" },
+                    new Rule { Id = 32163, RulebaseId = 59376, Name = null },
+                    new Rule { Id = 32164, RulebaseId = 59376, Name = null },
+                },
+
+                59378 => new[]
+                {
+                    new Rule { Id = 32038, RulebaseId = 59378, Name = null },
+                    new Rule { Id = 32041, RulebaseId = 59378, Name = "All Internet to Local Host" },
+                    new Rule { Id = 32166, RulebaseId = 59378, Name = "FWOC7" },
+                    new Rule { Id = 32180, RulebaseId = 59378, Name = "FWOC21" },
+                },
+
+                59379 => new[]
+                {
+                    new Rule { Id = 32042, RulebaseId = 59379, Name = "Cleanup rule" },
+                },
+
+                59380 => new[]
+                {
+                    new Rule { Id = 32044, RulebaseId = 59380, Name = "Negation tests" },
+                    new Rule { Id = 32046, RulebaseId = 59380, Name = null },
+                    new Rule { Id = 32047, RulebaseId = 59380, Name = "All Internet to Local Host" },
+                    new Rule { Id = 32155, RulebaseId = 59380, Name = "testrule 1.30.c" },
+                    new Rule { Id = 32167, RulebaseId = 59380, Name = "FWOC4" },
+                    new Rule { Id = 32168, RulebaseId = 59380, Name = "testrule 1.30" },
+                    new Rule { Id = 32169, RulebaseId = 59380, Name = "New Rule2" },
+                },
+
+                59381 => new[]
+                {
+                    new Rule { Id = 32048, RulebaseId = 59381, Name = "Cleanup rule" },
+                },
+
+                59382 => new[]
+                {
+                    new Rule { Id = 32049, RulebaseId = 59382, Name = "testrule 1.14" },
+                    new Rule { Id = 32050, RulebaseId = 59382, Name = "testrule 1.15" },
+                    new Rule { Id = 32051, RulebaseId = 59382, Name = "testrule 1.16" },
+                    new Rule { Id = 32052, RulebaseId = 59382, Name = "testrule 1.17" },
+                    new Rule { Id = 32053, RulebaseId = 59382, Name = "testrule 1.18" },
+                    new Rule { Id = 32054, RulebaseId = 59382, Name = "testrule 1.19" },
+                    new Rule { Id = 32055, RulebaseId = 59382, Name = "testrule 1.21" },
+                },
+
+                59383 => new[]
+                {
+                    new Rule { Id = 32056, RulebaseId = 59383, Name = "testrule 1.23" },
+                    new Rule { Id = 32058, RulebaseId = 59383, Name = "testrule 1.24" },
+                    new Rule { Id = 32059, RulebaseId = 59383, Name = "testrule 1.25" },
+                },
+
+                59386 => new[]
+                {
+                    new Rule { Id = 32064, RulebaseId = 59386, Name = "testrule 1.26" },
+                    new Rule { Id = 32065, RulebaseId = 59386, Name = "testrule 1.27" },
+                    new Rule { Id = 32066, RulebaseId = 59386, Name = "testrule 1.28" },
+                    new Rule { Id = 32067, RulebaseId = 59386, Name = "testrule 1.29" },
+                    new Rule { Id = 32068, RulebaseId = 59386, Name = "testrule 1.31" },
+                    new Rule { Id = 32069, RulebaseId = 59386, Name = "testrule 1.36 backup / restore test" },
+                    new Rule { Id = 32070, RulebaseId = 59386, Name = "testrule 1.33" },
+                    new Rule { Id = 32071, RulebaseId = 59386, Name = "testrule 1.34" },
+                    new Rule { Id = 32072, RulebaseId = 59386, Name = "testrule 1.35" },
+                    new Rule { Id = 32073, RulebaseId = 59386, Name = "testrule 1.37 backup / restore test" },
+                    new Rule { Id = 32074, RulebaseId = 59386, Name = "testrule 1.38 backup / restore test" },
+                    new Rule { Id = 32076, RulebaseId = 59386, Name = "Cleanup rule" },
+                    new Rule { Id = 32174, RulebaseId = 59386, Name = null },
+                },
+
+                59388 => new[]
+                {
+                    new Rule { Id = 32077, RulebaseId = 59388, Name = "Cleanup rule" },
+                },
+
+                59389 => new[]
+                {
+                    new Rule { Id = 32078, RulebaseId = 59389, Name = "Rule 3.1" },
+                    new Rule { Id = 32079, RulebaseId = 59389, Name = "change" },
+                    new Rule { Id = 32175, RulebaseId = 59389, Name = "Rule 3.5" },
+                    new Rule { Id = 32176, RulebaseId = 59389, Name = "Rule 3.4" },
+                },
+
+                59391 => new[]
+                {
+                    new Rule { Id = 32082, RulebaseId = 59391, Name = "Rule 3.1.1" },
+                    new Rule { Id = 32083, RulebaseId = 59391, Name = "Rule 3.3" },
+                    new Rule { Id = 32085, RulebaseId = 59391, Name = "Another change b" },
+                    new Rule { Id = 32086, RulebaseId = 59391, Name = "Change Rule" },
+                    new Rule { Id = 32177, RulebaseId = 59391, Name = "Yet another change" },
+                },
+
+                59392 => new[]
+                {
+                    new Rule { Id = 32087, RulebaseId = 59392, Name = "Cleanup rule" },
+                },
+
+                59393 => new[]
+                {
+                    new Rule { Id = 32089, RulebaseId = 59393, Name = "Rule 3.3.1" },
+                    new Rule { Id = 32178, RulebaseId = 59393, Name = "rule with group of domain objs" },
+                },
+
+                59394 => new[]
+                {
+                    new Rule { Id = 32090, RulebaseId = 59394, Name = "Rule 3.3.4" },
+                    new Rule { Id = 32091, RulebaseId = 59394, Name = "Rule 3.3.5" },
+                    new Rule { Id = 32190, RulebaseId = 59394, Name = "test-initial-violations" },
+                },
+
+                59839 => new[]
+                {
+                    new Rule { Id = 32395, RulebaseId = 59839, Name = "Cleanup rule" },
+                },
+
+                59847 => new[]
+                {
+                    new Rule { Id = 32396, RulebaseId = 59847, Name = "testrule 1.30.1c" },
+                    new Rule { Id = 32397, RulebaseId = 59847, Name = "changed" },
+                },
+
+                59848 => new[]
+                {
+                    new Rule { Id = 32398, RulebaseId = 59848, Name = "test 1.30.3c" },
+                    new Rule { Id = 32399, RulebaseId = 59848, Name = "Cleanup rule 2c" },
+                },
+
+                _ => Array.Empty<Rule>()
+            };
         }
-        
-        [Test]
-        public void CompareTreeItemPosition_Fails()
-        {
-            RuleTreeItem item =   MockReportRules.CreateRuleTreeItem(1, 0, [2, 1]);
-            List<int> positionList = [1,1];
-            Assert.That(!MockRuleTreeBuilder.CompareTreeItemPosition(item,positionList));
-        }
-        
+
         #endregion
-        
-        
-        private void SetUpMockReportRulesBasic(bool buildControlTree)
-        {
-            if (buildControlTree)
-            {
-                _controlTree = new RuleTreeItem
-                {
-                    IsRoot = true,
-                    Children = new List<Basics.ITreeItem<Rule>>
-                    {
-                        new RuleTreeItem
-                        {
-                            Header = "Ordered layer with rules",
-                            Children = new List<Basics.ITreeItem<Rule>>
-                            {
-                                MockReportRules.CreateRuleTreeItem(1, 1, new List<int>{1,1}),
-                                MockReportRules.CreateRuleTreeItem(2, 1, new List<int>{1,2}),
-                                MockReportRules.CreateRuleTreeItem(3, 1, new List<int>{1,3})
-                            }
-                        },
-                        new RuleTreeItem
-                        {
-                            Header = "Ordered layer with sections",
-                            Children = new List<Basics.ITreeItem<Rule>>
-                            {
-                                new RuleTreeItem
-                                {
-                                    Header = "First section in ordered layer",
-                                    Children = new List<Basics.ITreeItem<Rule>>
-                                    {
-                                        MockReportRules.CreateRuleTreeItem(4, 3, new List<int>{2,1}),
-                                        MockReportRules.CreateRuleTreeItem(5, 3, new List<int>{2,2}),
-                                        MockReportRules.CreateRuleTreeItem(6, 3, new List<int>{2,3})
-                                    }
-                                },
-                                new RuleTreeItem
-                                {
-                                    Header = "Section with inline layer",
-                                    Children = new List<Basics.ITreeItem<Rule>>
-                                    {
-                                        MockReportRules.CreateRuleTreeItem(7, 4, new List<int>{2,4}),
-                                        MockReportRules.CreateRuleTreeItem(8, 4, new List<int>{2,5},
-                                            new List<Basics.ITreeItem<Rule>>
-                                            {
-                                                MockReportRules.CreateRuleTreeItem(10, 5, new List<int>{2,5,1}),
-                                                MockReportRules.CreateRuleTreeItem(11, 5, new List<int>{2,5,2}),
-                                                MockReportRules.CreateRuleTreeItem(12, 5, new List<int>{2,5,3})
-                                            }
-                                        ),
-                                        MockReportRules.CreateRuleTreeItem(9, 4, new List<int>{2,6})
-                                    }
-                                }
-                            }
-                        }
-                    }
-                };
-            }
-
-            Rulebases =
-            [
-                MockReportRules.CreateRulebaseReport(rulebaseName: "Ordered layer with rules", numberOfRules: 3),
-                MockReportRules.CreateRulebaseReport(rulebaseName: "Ordered layer with sections", numberOfRules: 0),
-                MockReportRules.CreateRulebaseReport(rulebaseName: "First section in ordered layer", numberOfRules: 3),
-                MockReportRules.CreateRulebaseReport(rulebaseName: "Section with inline layer", numberOfRules: 3),
-                MockReportRules.CreateRulebaseReport(rulebaseName: "Inline layer", numberOfRules: 3)
-            ];
-
-            RulebaseLinks =
-            [
-                new RulebaseLink{ NextRulebaseId = 1, LinkType = 2, IsInitial = true },
-                new RulebaseLink{ NextRulebaseId = 2, LinkType = 2 },
-                new RulebaseLink{ FromRulebaseId = 2, NextRulebaseId = 3, LinkType = 4, IsSection = true },
-                new RulebaseLink{ FromRulebaseId = 3, NextRulebaseId = 4, LinkType = 4, IsSection = true },
-                new RulebaseLink{ FromRuleId = 8, FromRulebaseId = 4, NextRulebaseId = 5, LinkType = 3 }
-            ];
-        }
-
-        private void SetUpMockReportRulesComplex(bool buildControlTree)
-        {
-            if (buildControlTree)
-            {
-                _controlTree = new RuleTreeItem
-                {
-                    IsRoot = true,
-                    Children = new List<Basics.ITreeItem<Rule>>
-                    {
-                        CreateControlTreeItemNoRulesButSection(),
-                        CreateControlTreeItemRulesThenSection(2, 3, 2, 2),
-                        CreateControlTreeItemInlineLayersFirst(),
-                        CreateControlTreeItemInlineLayersInTheMiddle(),
-                        CreateControlTreeItemInlineLayersInSections(),
-                        CreateControlTreeItemSectionsInInlineLayers(6, 40, 5, 13),
-                        CreateControlTreeItemInlineLayersInInlineLayers()
-                    }
-                };
-
-            }
-
-            Rulebases =
-            [
-                MockReportRules.CreateRulebaseReport("No rules but section", 0),                // rulebase ID: 1
-                MockReportRules.CreateRulebaseReport("Section 1", 3),                           // rulebase ID: 2
-                MockReportRules.CreateRulebaseReport("Rules then section", 3),                  // rulebase ID: 3
-                MockReportRules.CreateRulebaseReport("Section 2", 3),                           // rulebase ID: 4
-                MockReportRules.CreateRulebaseReport("Inline layer first", 4),                  // rulebase ID: 5
-                MockReportRules.CreateRulebaseReport("Inline layer 1", 3),                      // rulebase ID: 6
-                MockReportRules.CreateRulebaseReport("Inline layer in the middle", 7),          // rulebase ID: 7
-                MockReportRules.CreateRulebaseReport("Inline layer 2", 3),                      // rulebase ID: 8
-                MockReportRules.CreateRulebaseReport("Inline layers in sections", 0),           // rulebase ID: 9
-                MockReportRules.CreateRulebaseReport("Section 3", 1),                           // rulebase ID: 10
-                MockReportRules.CreateRulebaseReport("Inline layer 3", 3),                      // rulebase ID: 11
-                MockReportRules.CreateRulebaseReport("Section 4", 7),                           // rulebase ID: 12
-                MockReportRules.CreateRulebaseReport("Inline layer 4", 3),                      // rulebase ID: 13
-                MockReportRules.CreateRulebaseReport("Sections in inline layers", 5),           // rulebase ID: 14
-                MockReportRules.CreateRulebaseReport("Inline layer 5", 0),                      // rulebase ID: 15
-                MockReportRules.CreateRulebaseReport("Section 5", 3),                           // rulebase ID: 16
-                MockReportRules.CreateRulebaseReport("Inline layer 6", 3),                      // rulebase ID: 17
-                MockReportRules.CreateRulebaseReport("Section 6", 3),                           // rulebase ID: 18
-                MockReportRules.CreateRulebaseReport("Inline layers in inline layers", 5),      // rulebase ID: 19
-                MockReportRules.CreateRulebaseReport("Inline layer 7", 1),                      // rulebase ID: 20    
-                MockReportRules.CreateRulebaseReport("Inline layer 8", 3),                      // rulebase ID: 21
-                MockReportRules.CreateRulebaseReport("Inline layer 9", 4),                      // rulebase ID: 22
-                MockReportRules.CreateRulebaseReport("Inline layer 10", 3)                      // rulebase ID: 23
-            ];
-
-            RulebaseLinks =
-            [
-                new RulebaseLink{ NextRulebaseId = 1, LinkType = 2, IsInitial = true },
-                new RulebaseLink{ NextRulebaseId = 2, FromRulebaseId = 1, LinkType = 4, IsSection = true },
-                new RulebaseLink{ NextRulebaseId = 3, FromRulebaseId = 1, LinkType = 2 },
-                new RulebaseLink{ FromRulebaseId = 3, NextRulebaseId = 4, LinkType = 4, IsSection = true },
-                new RulebaseLink{ FromRulebaseId = 3, NextRulebaseId = 5, LinkType = 2 },
-                new RulebaseLink{ FromRuleId = 10, FromRulebaseId = 5, NextRulebaseId = 6, LinkType = 3 },
-                new RulebaseLink{ FromRulebaseId = 5, NextRulebaseId = 7, LinkType = 2 },
-                new RulebaseLink{ FromRuleId = 20, FromRulebaseId = 7, NextRulebaseId = 8, LinkType = 3 },
-                new RulebaseLink{ FromRulebaseId = 7, NextRulebaseId = 9, LinkType = 2 },
-                new RulebaseLink{ FromRulebaseId = 9, NextRulebaseId = 10, LinkType = 4, IsSection = true },
-                new RulebaseLink{ FromRuleId = 27, FromRulebaseId = 10, NextRulebaseId = 11, LinkType = 3 },
-                new RulebaseLink{ FromRulebaseId = 10, NextRulebaseId = 12, LinkType = 4, IsSection = true },
-                new RulebaseLink{ FromRuleId = 34, FromRulebaseId = 12, NextRulebaseId = 13, LinkType = 3 },
-                new RulebaseLink{ FromRulebaseId = 9, NextRulebaseId = 14, LinkType = 2 },
-                new RulebaseLink{ FromRuleId = 41, FromRulebaseId = 14, NextRulebaseId = 15, LinkType = 3 },
-                new RulebaseLink{ FromRulebaseId = 15, NextRulebaseId = 16, LinkType = 4, IsSection = true },
-                new RulebaseLink{ FromRuleId = 42, FromRulebaseId = 14, NextRulebaseId = 17, LinkType = 3  },
-                new RulebaseLink{ FromRulebaseId = 17, NextRulebaseId = 18, LinkType = 4, IsSection = true },
-                new RulebaseLink{ FromRulebaseId = 14, NextRulebaseId = 19, LinkType = 2 },
-                new RulebaseLink{ FromRuleId = 55, FromRulebaseId = 19, NextRulebaseId = 20, LinkType = 3 },
-                new RulebaseLink{ FromRuleId = 60, FromRulebaseId = 20, NextRulebaseId = 21, LinkType = 3 },
-                new RulebaseLink{ FromRuleId = 56, FromRulebaseId = 19, NextRulebaseId = 22, LinkType = 3 },
-                new RulebaseLink{ FromRuleId = 67, FromRulebaseId = 22, NextRulebaseId = 23, LinkType = 3  }
-            ];
-        }
-
-        private RuleTreeItem CreateControlTreeItemNoRulesButSection()
-        {
-            return new RuleTreeItem
-            {
-                Header = "No rules but section",
-                Children = new List<Basics.ITreeItem<Rule>>
-                {
-                    new RuleTreeItem
-                    {
-                        Header = "Section 1",
-                        Children = new List<Basics.ITreeItem<Rule>>
-                        {
-                            MockReportRules.CreateRuleTreeItem(1, 2, new List<int> { 1, 1 }),
-                            MockReportRules.CreateRuleTreeItem(2, 2, new List<int> { 1, 2 }),
-                            MockReportRules.CreateRuleTreeItem(3, 2, new List<int> { 1, 3 })
-                        }
-                    }
-                }
-            };
-        }
-
-        private RuleTreeItem CreateControlTreeItemRulesThenSection(int orderedLayerNr, int ruleIdOffset, int sectionNumber, int rulebaseIdOffset)
-        {
-            return new RuleTreeItem
-            {
-                Header = "Rules then section",
-                Children = new List<Basics.ITreeItem<Rule>>
-                {
-                    MockReportRules.CreateRuleTreeItem(ruleIdOffset + 1, rulebaseIdOffset + 1, new List<int> { orderedLayerNr, 1 }),
-                    MockReportRules.CreateRuleTreeItem(ruleIdOffset + 2, rulebaseIdOffset + 1, new List<int> { orderedLayerNr, 2 }),
-                    MockReportRules.CreateRuleTreeItem(ruleIdOffset + 3, rulebaseIdOffset + 1, new List<int> { orderedLayerNr, 3 }),
-                    new RuleTreeItem
-                    {
-                        Header = $"Section {sectionNumber}",
-                        Children = new List<Basics.ITreeItem<Rule>>
-                        {
-                            MockReportRules.CreateRuleTreeItem(ruleIdOffset + 4, rulebaseIdOffset + 2, new List<int> { orderedLayerNr, 4 }),
-                            MockReportRules.CreateRuleTreeItem(ruleIdOffset + 5, rulebaseIdOffset + 2, new List<int> { orderedLayerNr, 5 }),
-                            MockReportRules.CreateRuleTreeItem(ruleIdOffset + 6, rulebaseIdOffset + 2, new List<int> { orderedLayerNr, 6 })
-                        }
-                    }
-                }
-            };
-        }
-
-        private RuleTreeItem CreateControlTreeItemInlineLayersFirst()
-        {
-            return new RuleTreeItem
-            {
-                Header = "Inline layer first",
-                Children = new List<Basics.ITreeItem<Rule>>
-                {
-                    MockReportRules.CreateRuleTreeItem(10, 5, new List<int> { 3, 1 },
-                        new List<Basics.ITreeItem<Rule>>
-                        {
-                            MockReportRules.CreateRuleTreeItem(14, 6, new List<int> { 3, 1, 1 }),
-                            MockReportRules.CreateRuleTreeItem(15, 6, new List<int> { 3, 1, 2 }),
-                            MockReportRules.CreateRuleTreeItem(16, 6, new List<int> { 3, 1, 3 })
-                        }
-                    ),
-                    MockReportRules.CreateRuleTreeItem(11, 5, new List<int> { 3, 2 }),
-                    MockReportRules.CreateRuleTreeItem(12, 5, new List<int> { 3, 3 }),
-                    MockReportRules.CreateRuleTreeItem(13, 5, new List<int> { 3, 4 }),
-                }
-            };
-        }
-
-        private RuleTreeItem CreateControlTreeItemInlineLayersInTheMiddle()
-        {
-            return new RuleTreeItem
-            {
-                Header = "Inline layer in the middle",
-                Children = new List<Basics.ITreeItem<Rule>>
-                {
-                    MockReportRules.CreateRuleTreeItem(17, 7, new List<int> { 4, 1 }),
-                    MockReportRules.CreateRuleTreeItem(18, 7, new List<int> { 4, 2 }),
-                    MockReportRules.CreateRuleTreeItem(19, 7, new List<int> { 4, 3 }),
-                    MockReportRules.CreateRuleTreeItem(20, 7, new List<int> { 4, 4 },
-                        new List<Basics.ITreeItem<Rule>>
-                        {
-                            MockReportRules.CreateRuleTreeItem(24, 8, new List<int> { 4, 4, 1 }),
-                            MockReportRules.CreateRuleTreeItem(25, 8, new List<int> { 4, 4, 2 }),
-                            MockReportRules.CreateRuleTreeItem(26, 8, new List<int> { 4, 4, 3 })
-                        }
-                    ),
-                    MockReportRules.CreateRuleTreeItem(21, 7, new List<int> { 4, 5 }),
-                    MockReportRules.CreateRuleTreeItem(22, 7, new List<int> { 4, 6 }),
-                    MockReportRules.CreateRuleTreeItem(23, 7, new List<int> { 4, 7 }),
-                }
-            };
-        }
-
-        private RuleTreeItem CreateControlTreeItemInlineLayersInSections()
-        {
-            return new RuleTreeItem
-            {
-                Header = "Inline layers in sections",
-                Children = new List<Basics.ITreeItem<Rule>>
-                {
-                    new RuleTreeItem
-                    {
-                        Header = "Section 3",
-                        Children = new List<Basics.ITreeItem<Rule>>
-                        {
-                            MockReportRules.CreateRuleTreeItem(27, 10, new List<int> { 5, 1 },
-                                new List<Basics.ITreeItem<Rule>>
-                                {
-                                    MockReportRules.CreateRuleTreeItem(28, 11, new List<int> { 5, 1, 1 }),
-                                    MockReportRules.CreateRuleTreeItem(29, 11, new List<int> { 5, 1, 2 }),
-                                    MockReportRules.CreateRuleTreeItem(30, 11, new List<int> { 5, 1, 3 })
-                                }
-                            )
-                        }
-                    },
-                    new RuleTreeItem
-                    {
-                        Header = "Section 4",
-                        Children = new List<Basics.ITreeItem<Rule>>
-                        {
-                            MockReportRules.CreateRuleTreeItem(31, 12, new List<int> { 5, 2 }),
-                            MockReportRules.CreateRuleTreeItem(32, 12, new List<int> { 5, 3 }),
-                            MockReportRules.CreateRuleTreeItem(33, 12, new List<int> { 5, 4 }),
-                            MockReportRules.CreateRuleTreeItem(34, 12, new List<int> { 5, 5 },
-                                new List<Basics.ITreeItem<Rule>>
-                                {
-                                    MockReportRules.CreateRuleTreeItem(38, 13, new List<int> { 5, 5, 1 }),
-                                    MockReportRules.CreateRuleTreeItem(39, 13, new List<int> { 5, 5, 2 }),
-                                    MockReportRules.CreateRuleTreeItem(40, 13, new List<int> { 5, 5, 3 })
-                                }
-                            ),
-                            MockReportRules.CreateRuleTreeItem(35, 12, new List<int> { 5, 6 }),
-                            MockReportRules.CreateRuleTreeItem(36, 12, new List<int> { 5, 7 }),
-                            MockReportRules.CreateRuleTreeItem(37, 12, new List<int> { 5, 8 })
-                        }
-                    }
-                }
-            };
-        }
-
-        private RuleTreeItem CreateControlTreeItemSectionsInInlineLayers(int orderedLayerNr, int ruleIdOffset, int sectionNumber, int rulebaseIdOffset)
-        {
-            return new RuleTreeItem
-            {
-                Header = "Sections in inline layers",
-                Children = new List<Basics.ITreeItem<Rule>>
-                {
-
-                    MockReportRules.CreateRuleTreeItem(ruleIdOffset + 1, rulebaseIdOffset + 1, new List<int> { orderedLayerNr, 1 },
-                        new List<Basics.ITreeItem<Rule>>
-                        {
-                            new RuleTreeItem
-                            {
-                                Header = $"Section {sectionNumber}",
-                                Children = new List<Basics.ITreeItem<Rule>>
-                                {
-                                    MockReportRules.CreateRuleTreeItem(ruleIdOffset + 6, rulebaseIdOffset + 3, new List<int> { orderedLayerNr, 1, 1 }),
-                                    MockReportRules.CreateRuleTreeItem(ruleIdOffset + 7, rulebaseIdOffset + 3, new List<int> { orderedLayerNr, 1, 2 }),
-                                    MockReportRules.CreateRuleTreeItem(ruleIdOffset + 8, rulebaseIdOffset + 3, new List<int> { orderedLayerNr, 1, 3 })
-                                }
-                            },
-                        }
-                    ),
-
-                    MockReportRules.CreateRuleTreeItem(ruleIdOffset + 2, rulebaseIdOffset + 1, new List<int> { orderedLayerNr, 2 },
-                        new List<Basics.ITreeItem<Rule>>
-                        {
-                            MockReportRules.CreateRuleTreeItem(ruleIdOffset + 9, rulebaseIdOffset + 4, new List<int> { orderedLayerNr, 2, 1 }),
-                            MockReportRules.CreateRuleTreeItem(ruleIdOffset + 10, rulebaseIdOffset + 4, new List<int> { orderedLayerNr, 2, 2 }),
-                            MockReportRules.CreateRuleTreeItem(ruleIdOffset + 11, rulebaseIdOffset + 4, new List<int> { orderedLayerNr, 2, 3 }),
-                            new RuleTreeItem
-                            {
-                                Header = $"Section {sectionNumber + 1}",
-
-                                Children = new List<Basics.ITreeItem<Rule>>
-                                {
-                                    MockReportRules.CreateRuleTreeItem(ruleIdOffset + 12, rulebaseIdOffset + 5, new List<int> { orderedLayerNr, 2, 4 }),
-                                    MockReportRules.CreateRuleTreeItem(ruleIdOffset + 13, rulebaseIdOffset + 5, new List<int> { orderedLayerNr, 2, 5 }),
-                                    MockReportRules.CreateRuleTreeItem(ruleIdOffset + 14, rulebaseIdOffset + 5, new List<int> { orderedLayerNr, 2, 6 })
-                                }
-
-                            }
-                        }
-                    ),
-                    MockReportRules.CreateRuleTreeItem(ruleIdOffset + 3, rulebaseIdOffset + 1, new List<int> { orderedLayerNr, 3 }),
-                    MockReportRules.CreateRuleTreeItem(ruleIdOffset + 4, rulebaseIdOffset + 1, new List<int> { orderedLayerNr, 4 }),
-                    MockReportRules.CreateRuleTreeItem(ruleIdOffset + 5, rulebaseIdOffset + 1, new List<int> { orderedLayerNr, 5 })
-                }
-            };
-        }
-
-        private RuleTreeItem CreateControlTreeItemInlineLayersInInlineLayers()
-        {
-            return new RuleTreeItem
-            {
-                Header = "Inline layers in inline layers",
-                Children = new List<Basics.ITreeItem<Rule>>
-                {
-
-                    MockReportRules.CreateRuleTreeItem(55, 19, new List<int> { 7, 1 },
-                        new List<Basics.ITreeItem<Rule>>
-                        {
-                            MockReportRules.CreateRuleTreeItem(60, 20, new List<int> { 7, 1, 1 },
-                                new List<Basics.ITreeItem<Rule>>
-                                {
-                                    MockReportRules.CreateRuleTreeItem(61, 21, new List<int> { 7, 1, 1, 1 }),
-                                    MockReportRules.CreateRuleTreeItem(62, 21, new List<int> { 7, 1, 1, 2 }),
-                                    MockReportRules.CreateRuleTreeItem(63, 21, new List<int> { 7, 1, 1, 3 })
-                                }
-                            ),
-                        }
-                    ),
-
-                    MockReportRules.CreateRuleTreeItem(56, 19, new List<int> { 7, 2 },
-                        new List<Basics.ITreeItem<Rule>>
-                        {
-                            MockReportRules.CreateRuleTreeItem(64, 22, new List<int> { 7, 2, 1 }),
-                            MockReportRules.CreateRuleTreeItem(65, 22, new List<int> { 7, 2, 2 }),
-                            MockReportRules.CreateRuleTreeItem(66, 22, new List<int> { 7, 2, 3 }),
-                            MockReportRules.CreateRuleTreeItem(67, 22, new List<int> { 7, 2, 4 },
-                                new List<Basics.ITreeItem<Rule>>
-                                {
-                                    MockReportRules.CreateRuleTreeItem(68, 23, new List<int> { 7, 2, 4, 1 }),
-                                    MockReportRules.CreateRuleTreeItem(69, 23, new List<int> { 7, 2, 4, 2 }),
-                                    MockReportRules.CreateRuleTreeItem(70, 23, new List<int> { 7, 2, 4, 3 })
-                                }
-                            ),
-                        }
-                    ),
-                    MockReportRules.CreateRuleTreeItem(57, 19, new List<int> { 7, 3 }),
-                    MockReportRules.CreateRuleTreeItem(58, 19, new List<int> { 7, 4 }),
-                    MockReportRules.CreateRuleTreeItem(59, 19, new List<int> { 7, 5 })
-                }
-            };
-        }
-
-        private bool IsEqualTo(RulebaseReport[] rulebaseCollection1, IEnumerable<RulebaseReport> rulebaseCollection2)
-        {
-            for (int i = 0; i < rulebaseCollection1.Length; i++)
-            {
-                RulebaseReport rulebase1 = rulebaseCollection1[i];
-                RulebaseReport rulebase2 = rulebaseCollection2.ElementAt(i);
-
-                bool propertiesEqual =
-                    rulebase1.Id == rulebase2.Id ||
-                    rulebase1.Name == rulebase2.Name ||
-                    rulebase1.RuleChanges == rulebase2.RuleChanges ||
-                    rulebase1.RuleStatistics == rulebase2.RuleStatistics;
-                
-                if (!propertiesEqual || rulebase1.Rules.Length != rulebase2.Rules.Length)
-                {
-                    return false;
-                }
-                
-                for (int j = 0; j < rulebase1.Rules.Length; j++)
-                {
-                    if(!(rulebase1.Rules[j] == rulebase2.Rules[j]))
-                    {
-                        return false;
-                    }   
-                }
-
-            }
-
-            return true;
-        }
     }
 }

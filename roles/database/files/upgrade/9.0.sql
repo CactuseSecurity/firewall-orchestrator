@@ -565,8 +565,8 @@ RETURNS NUMERIC AS $$
   WHERE r.mgm_id = mgmId and active
     AND r.rule_num_numeric > (
       SELECT rule_num_numeric 
-      FROM rule 
-      WHERE rule_uid = current_rule_uid AND mgm_id = mgmId AND active
+      FROM rule r2
+      WHERE rule_uid = current_rule_uid AND r2.mgm_id = mgmId AND active
       LIMIT 1
     )
   ORDER BY r.rule_num_numeric ASC
@@ -664,7 +664,8 @@ BEGIN
     INTO missing_uids
     FROM rule_metadata rm
     LEFT JOIN rule r ON rm.rule_uid = r.rule_uid
-    WHERE r.rule_uid IS NULL;
+    WHERE r.rule_uid IS NULL
+      AND rm.mgm_id IS NULL;
 
     IF missing_uids IS NOT NULL THEN
         RAISE NOTICE 'Missing rule(s): %', missing_uids;
@@ -674,7 +675,9 @@ BEGIN
                 FROM rule_metadata rm
                 LEFT JOIN rule r ON rm.rule_uid = r.rule_uid
                 WHERE r.rule_uid IS NULL
-        );
+                  AND rm.mgm_id IS NULL
+        )
+          AND mgm_id IS NULL;
     END IF;
 
     -- Constraints droppen
@@ -689,6 +692,7 @@ BEGIN
             COUNT(DISTINCT r.mgm_id) AS mgm_count
         FROM rule_metadata rm
         JOIN rule r ON rm.rule_uid = r.rule_uid
+        WHERE rm.mgm_id IS NULL
         GROUP BY rm.rule_uid
         HAVING COUNT(DISTINCT r.mgm_id) >= 1
     LOOP
@@ -751,7 +755,7 @@ BEGIN
                     too_many_mgm_ids_on_uid_and_no_resolve
                 );
 				
-            END IF;                   
+            END IF;
         END IF;
     END LOOP;
 	

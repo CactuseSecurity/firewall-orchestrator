@@ -2025,8 +2025,7 @@ class TestFwConfigImportObjectPrepareNewSvcobjs:
                 import_id=fwconfig_import_object.import_state.state.import_id,
                 color_id=fwconfig_import_object.import_state.state.lookup_color_id(
                     fwconfig_import_object.normalized_config.service_objects[uid].svc_color
-                )
-                or 1,
+                ),
                 typ_id=fwconfig_import_object.lookup_svc_type(
                     fwconfig_import_object.normalized_config.service_objects[uid].svc_typ
                 ),
@@ -2074,8 +2073,7 @@ class TestFwConfgImportObjectPrepareNewNwobjs:
                 import_id=fwconfig_import_object.import_state.state.import_id,
                 color_id=fwconfig_import_object.import_state.state.lookup_color_id(
                     fwconfig_import_object.normalized_config.network_objects[uid].obj_color
-                )
-                or 1,
+                ),
                 typ_id=fwconfig_import_object.lookup_obj_type(
                     fwconfig_import_object.normalized_config.network_objects[uid].obj_typ
                 ),

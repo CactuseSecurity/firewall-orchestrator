@@ -292,18 +292,18 @@ bugfix release:
 - iconification of modelling and related modules
 - fix overwrite of objects with interface
 
-# 8.8.10 - 07.09.2025 DEVELOP
+## 8.8.10 - 07.09.2025 DEVELOP
 - new report type owner-recertification
 
-# 8.9.1 - 02.10.2025 DEVELOP
+## 8.9.1 - 02.10.2025 DEVELOP
 - owner-recertification
 
-# 8.9.2 - 17.10.2025 DEVELOP
+## 8.9.2 - 17.10.2025 DEVELOP
 - add ownerLifeCycleState 
 - add manageable ownerLifeCycleState menu
 - fix two modelling ui glitches
 
-# 8.9.3 - 05.11.2025 DEVELOP
+## 8.9.3 - 05.11.2025 DEVELOP
 - hotfix missing permissions for app data import in certain constellations
 
 ## 8.9.4 - 09.12.2025 DEVELOP
@@ -316,28 +316,20 @@ bugfix release:
 ## 8.9.6 - 05.01.2026 DEVELOP
 - new parameters for notifications
 
-# 9.0 - 30.06.2025 DEVELOP
-- rule to gateway mapping 1:n
-- add report output for rule to gw mapping
-- cleanup/rework of main import function
+# 9.0 - 24.01.2026 DEVELOP
+A complete 80K lines rework of FWO, including
+- database changes to deduplicate rules (rule to gateway mapping now 1:n by introducing rulebase and rulebase_link tables)
+- migrating import module from mixed python/pgsql to pure python
 
-Breaking changes
-    Due to introduction of venv for all imports, the following steps have to be taken to manually import a config:
+**Breaking changes**
+- Due to introduction of venv for all imports, the following steps have to be taken to manually import a config:
 
-    sudo -u fworch -i
-    cd importer
-    source venv/bin/activate
-    ./import_mgm.py -m xy -f -s -d 8 
-    As we now need support for pip, in installations behind url filter, make sure that all sub-domains of
-    pythonhosted.org
-    are also allowed.
+```shell
+  sudo -u fworch -i
+  cd importer
+  source importer-venv/bin/activate
+  python3 ./import_mgm.py -m xy -fs -d1 
+```
+  As we now need support for pip, in installations behind url filter, make sure that all sub-domains of "pythonhosted.org" are also allowed.
 
-To initialize your venv locally (e.g. within your vscode environment) run
-
-make sure to place your venv outside the repo, e.g. into /home/user/dev/venv
-
-    cd /home/user/dev
-    python3 -m venv installer-venv
-    source installer-venv/bin/activate
-    pip install -r path-to-repo/roles/importer/files/importer/requirements.txt
-- also reducing db listener to localhost
+- Limiting database listener to localhost for security reasons

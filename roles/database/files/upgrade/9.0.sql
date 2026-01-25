@@ -885,14 +885,13 @@ CREATE OR REPLACE VIEW v_excluded_dst_ips AS
 	LEFT JOIN object o ON (of.objgrp_flat_member_id=o.obj_id)
 	WHERE NOT o.obj_ip='0.0.0.0/0';
 
+drop VIEW if exists v_rule_with_rule_owner_1;
 CREATE OR REPLACE VIEW v_rule_with_rule_owner_1 AS
-	SELECT r.rule_id, r.rule_uid, r.rule_name, r.mgm_id, r.rulebase_id, ow.id as owner_id, met.rule_metadata_id
+    SELECT DISTINCT r.rule_id, r.rule_uid, r.rule_name, r.mgm_id, r.rulebase_id, ow.id AS owner_id, met.rule_metadata_id
 	FROM v_active_access_allow_rules r
-	LEFT JOIN rule_metadata met ON (r.rule_uid=met.rule_uid)
-	LEFT JOIN rule_owner ro ON (ro.rule_metadata_id=met.rule_metadata_id)
-	LEFT JOIN owner ow ON (ro.owner_id=ow.id)
-	WHERE NOT ow.id IS NULL
-	GROUP BY r.rule_id, r.rule_uid, r.rule_name, r.mgm_id, r.rulebase_id, ow.id, met.rule_metadata_id;
+    JOIN rule_metadata met ON r.rule_uid = met.rule_uid
+    JOIN rule_owner ro ON ro.rule_metadata_id = met.rule_metadata_id
+    JOIN owner ow ON ro.owner_id = ow.id;
 
 CREATE OR REPLACE VIEW v_rule_with_src_owner AS 
 	SELECT
@@ -973,11 +972,7 @@ CREATE MATERIALIZED VIEW view_rule_with_owner AS
 	r.rule_action, r.rule_name, r.rule_comment, r.rule_track, r.rule_src_neg, r.rule_dst_neg, r.rule_svc_neg,
 	r.rule_head_text, r.rule_disabled, r.access_rule, r.xlate_rule, r.nat_rule
 	FROM ( SELECT DISTINCT * FROM v_rule_with_rule_owner AS rul UNION SELECT DISTINCT * FROM v_rule_with_ip_owner AS ips) AS ar
-	LEFT JOIN rule AS r USING (rule_id)
-	GROUP BY ar.rule_id, ar.owner_id, ar.owner_name, ar.matches, ar.recert_interval, ar.rule_last_certified,
-		r.rule_num_numeric, r.track_id, r.action_id, r.rule_from_zone, r.rule_to_zone, r.mgm_id, r.rule_uid,
-		r.rule_action, r.rule_name, r.rule_comment, r.rule_track, r.rule_src_neg, r.rule_dst_neg, r.rule_svc_neg,
-		r.rule_head_text, r.rule_disabled, r.access_rule, r.xlate_rule, r.nat_rule;
+    LEFT JOIN rule AS r USING (rule_id);
 
 GRANT SELECT ON TABLE view_rule_with_owner TO GROUP secuadmins, reporters, configimporters;
 

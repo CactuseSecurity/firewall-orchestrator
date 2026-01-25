@@ -14,7 +14,7 @@ namespace FWO.Test
 
         public SimulatedGlobalConfig() : base()
         {
-            LangDict = new(){ { "English", DummyTranslate } };
+            LangDict = new() { { "English", DummyTranslate } };
         }
     }
 
@@ -167,10 +167,10 @@ namespace FWO.Test
 
         public static ConfigItem[] GetAsConfigs()
         {
-            List <ConfigItem> configs = [];
+            List<ConfigItem> configs = [];
             foreach (var dictValuePair in DummyTranslate)
             {
-                configs.Add(new(){ Key = dictValuePair.Key, Value = dictValuePair.Value, User = 0});
+                configs.Add(new() { Key = dictValuePair.Key, Value = dictValuePair.Value, User = 0 });
             }
             return [.. configs];
         }

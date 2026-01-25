@@ -1,4 +1,4 @@
-using System.Text.Json.Serialization; 
+using System.Text.Json.Serialization;
 using Newtonsoft.Json;
 
 namespace FWO.Data
@@ -28,7 +28,7 @@ namespace FWO.Data
 
         [JsonProperty("mgm_name"), JsonPropertyName("mgm_name")]
         public string MgmName { get; set; } = "";
-        
+
         [JsonProperty("importDisabled"), JsonPropertyName("importDisabled")]
         public bool ImportDisabled { get; set; }
 
@@ -54,7 +54,7 @@ namespace FWO.Data
 
         [JsonProperty("first_import"), JsonPropertyName("first_import")]
         public ImportControl[]? FirstImport { get; set; }
-        
+
         [JsonProperty("erroneous_imports"), JsonPropertyName("erroneous_imports")]
         public ImportControl[]? ErroneousImports { get; set; }
 

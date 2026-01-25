@@ -55,7 +55,6 @@ namespace FWO.Api.Client.Queries
                 deleteOwner = GetQueryText("owner/deleteOwner.graphql");
                 deleteLifeCycle = GetQueryText("owner/deleteLifeCycle.graphql");
                 getOwnerLifeCycleStates = GetQueryText("owner/getOwnerLifeCycleStates.graphql");
-                //setDefaultOwner = GetQueryText("owner/setDefaultOwner.graphql");
                 setOwnerLastCheck = GetQueryText("owner/setOwnerLastCheck.graphql");
                 setOwnerLastRecert = GetQueryText("owner/setOwnerLastRecert.graphql");
                 getOwnersFromGroups = ownerDetailsFragment + GetQueryText("owner/getOwnersFromGroups.graphql");

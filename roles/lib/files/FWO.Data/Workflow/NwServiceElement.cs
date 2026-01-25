@@ -1,4 +1,4 @@
-﻿namespace FWO.Data.Workflow
+namespace FWO.Data.Workflow
 {
     public class NwServiceElement
     {
@@ -13,7 +13,7 @@
 
         public WfReqElement ToReqElement()
         {
-            WfReqElement element = new ()
+            WfReqElement element = new()
             {
                 Id = ElemId,
                 TaskId = TaskId,
@@ -30,7 +30,7 @@
 
         public WfImplElement ToImplElement()
         {
-            WfImplElement element = new ()
+            WfImplElement element = new()
             {
                 Id = ElemId,
                 ImplTaskId = TaskId,

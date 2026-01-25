@@ -24,7 +24,7 @@ namespace FWO.DeviceAutoDiscovery
             if (SuperManagement == null)
             {
                 return null!;
-            }                
+            }
             Log.WriteAudit(Autodiscovery, $"starting discovery for {SuperManagement.Name} (id={SuperManagement.Id})");
 
             if (SuperManagement.DeviceType.Name == "Check Point")
@@ -48,7 +48,7 @@ namespace FWO.DeviceAutoDiscovery
                 }
                 else if (SuperManagement.DeviceType.Id == 9)    // 9=stand-alone manager
                 {
-                    domainList.Add(new Domain() { DomainType="standalone", Name="", Uid="" } );                 
+                    domainList.Add(new Domain() { DomainType = "standalone", Name = "", Uid = "" });
                 }
                 discoveredDevices = await DiscoverDomainDevices(domainList, restClientCP);
                 await LogoutCp(restClientCP, @sessionId);
@@ -61,7 +61,7 @@ namespace FWO.DeviceAutoDiscovery
             Management currentManagement = new()
             {
                 Name = superManagement.Name + "__" + domainName,
-                Uid = superManagement.Uid, 
+                Uid = superManagement.Uid,
                 ImporterHostname = superManagement.ImporterHostname,
                 Hostname = superManagement.Hostname,
                 ImportCredential = superManagement.ImportCredential,

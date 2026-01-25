@@ -1,4 +1,4 @@
-﻿using FWO.Api.Client;
+using FWO.Api.Client;
 using FWO.Data.Middleware;
 using RestSharp;
 
@@ -96,7 +96,7 @@ namespace FWO.Middleware.Client
 
         public async Task<RestResponse<List<string>>> GetGroupMemberships(GroupMembershipGetParameters parameters)
         {
-            RestRequest request = new ("Group/Memberships", Method.Post);
+            RestRequest request = new("Group/Memberships", Method.Post);
             request.AddJsonBody(parameters);
             return await restClient.ExecuteAsync<List<string>>(request);
         }
@@ -282,7 +282,7 @@ namespace FWO.Middleware.Client
 
         public async Task<RestResponse<bool>> RunComplianceCheck()
         {
-            RestRequest request = new ("Compliance/ComplianceCheck");
+            RestRequest request = new("Compliance/ComplianceCheck");
             return await restClient.ExecuteAsync<bool>(request);
         }
 

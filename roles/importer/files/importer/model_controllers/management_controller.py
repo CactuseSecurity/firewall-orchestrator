@@ -45,8 +45,8 @@ class ManagerInfo:
 
 @dataclass
 class DomainInfo:
-    domain_name: str = ""
-    domain_uid: str = ""
+    domain_name: str | None = None
+    domain_uid: str | None = None
 
 
 class ManagementController(Management):
@@ -112,11 +112,7 @@ class ManagementController(Management):
             sub_manager_ids=[subManager["id"] for subManager in json_dict["subManagers"]],
             sub_managers=[cls.from_json(subManager) for subManager in json_dict["subManagers"]],
         )
-
-        domain_info = DomainInfo(
-            domain_name=replace_none_with_empty(json_dict.get("configPath", "")),
-            domain_uid=replace_none_with_empty(json_dict.get("domainUid", "")),
-        )
+        domain_info = DomainInfo(domain_name=json_dict.get("configPath"), domain_uid=json_dict.get("domainUid"))
 
         return cls(
             mgm_id=json_dict["id"],

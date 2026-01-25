@@ -8,7 +8,7 @@ namespace FWO.Basics.TestDataGeneration
     {
         public TestDataGenerationResult<T> ImportInstance(string json)
         {
-            TestDataGenerationResult<T> result= new();
+            TestDataGenerationResult<T> result = new();
 
             try
             {
@@ -24,11 +24,11 @@ namespace FWO.Basics.TestDataGeneration
                     result.ProcessSuccessful = false;
                 }
             }
-            catch 
+            catch
             {
                 result.ProcessSuccessful = false;
             }
-            
+
             return result;
         }
 
@@ -68,8 +68,8 @@ namespace FWO.Basics.TestDataGeneration
                 foreach (var item in configArray)
                 {
                     // get set object
-                    if (item is JsonObject jsonObject 
-                        && jsonObject.TryGetPropertyValue("set", out JsonNode? setNode) 
+                    if (item is JsonObject jsonObject
+                        && jsonObject.TryGetPropertyValue("set", out JsonNode? setNode)
                         && setNode is JsonObject setObject)
                     {
                         KeyValuePair<string, JsonNode?>? kvp = setObject.FirstOrDefault();
@@ -84,7 +84,7 @@ namespace FWO.Basics.TestDataGeneration
                             {
                                 if (valueSetting.Value != null)
                                 {
-                                    valuesWithProbabilities[valueSetting.Key] = valueSetting.Value.GetValue<double>(); 
+                                    valuesWithProbabilities[valueSetting.Key] = valueSetting.Value.GetValue<double>();
                                 }
                             }
 
@@ -108,7 +108,7 @@ namespace FWO.Basics.TestDataGeneration
 
                         }
 
-        
+
                     }
                 }
 
@@ -165,7 +165,7 @@ namespace FWO.Basics.TestDataGeneration
         private TDeserializedObject? DeserializeFromJson<TDeserializedObject>(string json)
         {
             bool isValidated = ValidateJson(json);
-            
+
             if (isValidated)
             {
                 TDeserializedObject? generatedInstance = JsonSerializer.Deserialize<TDeserializedObject>(json);
@@ -185,12 +185,12 @@ namespace FWO.Basics.TestDataGeneration
             {
                 JsonDocument jsonDoc = JsonDocument.Parse(json);
                 JsonElement rootElement = jsonDoc.RootElement;
-                
+
                 return true;
             }
             catch
             {
-                return false;                
+                return false;
             }
         }
 
@@ -200,7 +200,7 @@ namespace FWO.Basics.TestDataGeneration
 
             // validates correct probability config
             double total = valuesWithProbabilities.Values.Sum();
-            if(total != 1)
+            if (total != 1)
             {
                 throw new InvalidOperationException("The sum of the probabilities has to be equal 1.");
             }

@@ -8,6 +8,7 @@ from fwo_exceptions import (
     FwApiCallFailedError,
     FwLoginFailedError,
     FwLogoutFailedError,
+    FwoImporterError,
     FwoUnknownDeviceForManagerError,
 )
 from fwo_log import FWOLogger
@@ -52,6 +53,12 @@ def api_call(url: str, command: str, json_payload: dict[str, Any], sid: str, met
         )
 
     return result_json
+
+
+def require_domain_name(domain_name: str | None, context: str) -> str:
+    if not domain_name:
+        raise FwoImporterError(f"Missing FortiManager ADOM domain name for {context}")
+    return domain_name
 
 
 def login(user: str, password: str, base_url: str) -> str | None:
@@ -169,7 +176,8 @@ def fortinet_api_call(
 def get_devices_from_manager(adom_mgm_details: Management, sid: str, fm_api_url: str) -> dict[str, Any]:
     device_vdom_dict: dict[str, dict[str, str]] = {}
 
-    device_results = fortinet_api_call(sid, fm_api_url, "/dvmdb/adom/" + adom_mgm_details.domain_name + "/device")
+    adom_name = require_domain_name(adom_mgm_details.domain_name, "device inventory")
+    device_results = fortinet_api_call(sid, fm_api_url, "/dvmdb/adom/" + adom_name + "/device")
     for mgm_details_device in adom_mgm_details.devices:
         if not mgm_details_device["importDisabled"]:
             found_fmgr_device = False

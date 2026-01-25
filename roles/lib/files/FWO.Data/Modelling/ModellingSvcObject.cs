@@ -1,9 +1,9 @@
-using System.Text.Json.Serialization; 
+using System.Text.Json.Serialization;
 using Newtonsoft.Json;
 
 namespace FWO.Data.Modelling
 {
-    public class ModellingSvcObject: ModellingObject
+    public class ModellingSvcObject : ModellingObject
     {
         [JsonProperty("id"), JsonPropertyName("id")]
         public int Id { get; set; }
@@ -13,7 +13,7 @@ namespace FWO.Data.Modelling
 
 
         public ModellingSvcObject()
-        {}
+        { }
 
         public ModellingSvcObject(ModellingSvcObject svcObj) : base(svcObj)
         {

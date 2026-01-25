@@ -120,7 +120,7 @@ namespace FWO.Data
         public List<ComplianceViolation> Violations { get; set; } = [];
 
         [JsonProperty("rulebase"), JsonPropertyName("rulebase")]
-        public Rulebase Rulebase { get; set; } = new ();
+        public Rulebase Rulebase { get; set; } = new();
 
         [JsonProperty("uiuser"), JsonPropertyName("uiuser")]
         public UiUser? LastChangeAdmin { get; set; }

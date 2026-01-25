@@ -134,6 +134,6 @@ namespace FWO.Data
                 RuleDstZone = rule.RuleToZones?.Length > 0 ? string.Join("|", rule.RuleToZones.Select(z => z.Content.Name).Order()) : null,
                 RuleHeadText = rule.SectionHeader
             };
-        }       
+        }
     }
 }

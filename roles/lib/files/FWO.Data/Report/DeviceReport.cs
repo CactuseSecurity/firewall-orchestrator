@@ -1,4 +1,4 @@
-﻿using System.Text.Json.Serialization;
+using System.Text.Json.Serialization;
 using Newtonsoft.Json;
 
 namespace FWO.Data.Report
@@ -73,7 +73,7 @@ namespace FWO.Data.Report
         {
             return Rules.Count;
         }
-        
+
         /// <summary>
         /// Conforms <see cref="DeviceReport"/> internal data to be valid for further usage.
         /// </summary>

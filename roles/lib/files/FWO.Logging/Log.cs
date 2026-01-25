@@ -222,7 +222,7 @@ namespace FWO.Logging
             Console.ResetColor();
             semaphore.Release();
         }
-        
+
         public static void TryWriteLog(LogType logType, string title, string text, bool condition)
         {
             if (condition)

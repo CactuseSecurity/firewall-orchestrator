@@ -1,4 +1,4 @@
-﻿using FWO.Config.Api;
+using FWO.Config.Api;
 using FWO.Data;
 using FWO.Data.Middleware;
 using FWO.Middleware.Client;
@@ -22,17 +22,17 @@ namespace FWO.Services
             {
                 foreach (var ldapUserGroup in middlewareServerGroupsResponse.Data)
                 {
-                    if(!ownerGroupsOnly || ldapUserGroup.OwnerGroup)
+                    if (!ownerGroupsOnly || ldapUserGroup.OwnerGroup)
                     {
-                        UserGroup group = new ()
-                        { 
+                        UserGroup group = new()
+                        {
                             Dn = ldapUserGroup.GroupDn,
                             Name = new DistName(ldapUserGroup.GroupDn).Group,
                             OwnerGroup = ldapUserGroup.OwnerGroup
                         };
                         foreach (var userDn in ldapUserGroup.Members)
                         {
-                            UiUser newUser = new () { Dn = userDn, Name = new DistName(userDn).UserName };
+                            UiUser newUser = new() { Dn = userDn, Name = new DistName(userDn).UserName };
                             group.Users.Add(newUser);
                         }
                         groups.Add(group);

@@ -49,7 +49,7 @@ namespace FWO.Test
         {
             // Act
             SetUpViolationCount(1);
-            
+
             await ComplianceCheck.RunComplianceCheck(ComplianceCheckType.Standard);
 
             // Assert

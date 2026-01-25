@@ -4,32 +4,32 @@ using Novell.Directory.Ldap;
 
 namespace FWO.Middleware.Server
 {
-	/// <summary>
-	/// Class handling the ldap transactions
-	/// </summary>
-	public partial class Ldap : LdapConnectionBase
-	{
+    /// <summary>
+    /// Class handling the ldap transactions
+    /// </summary>
+    public partial class Ldap : LdapConnectionBase
+    {
 
-		/// <summary>
-		/// Add new tenant
-		/// </summary>
-		/// <returns>true if tenant added</returns>
-		public async Task<bool> AddTenant(string tenantName)
-		{
-			Log.WriteInfo("Add Tenant", $"Trying to add Tenant: \"{tenantName}\"");
-			bool tenantAdded = false;
-			try
-			{
+        /// <summary>
+        /// Add new tenant
+        /// </summary>
+        /// <returns>true if tenant added</returns>
+        public async Task<bool> AddTenant(string tenantName)
+        {
+            Log.WriteInfo("Add Tenant", $"Trying to add Tenant: \"{tenantName}\"");
+            bool tenantAdded = false;
+            try
+            {
                 using LdapConnection connection = await Connect();
                 // Authenticate as write user
                 await TryBind(connection, WriteUser, WriteUserPwd);
 
-				LdapAttributeSet attributeSet = new ()
-				{
-					new LdapAttribute("objectclass", "organizationalUnit")
-				};
+                LdapAttributeSet attributeSet = new()
+                {
+                    new LdapAttribute("objectclass", "organizationalUnit")
+                };
 
-                LdapEntry newEntry = new (TenantNameToDn(tenantName), attributeSet);
+                LdapEntry newEntry = new(TenantNameToDn(tenantName), attributeSet);
 
                 try
                 {
@@ -43,30 +43,30 @@ namespace FWO.Middleware.Server
                     Log.WriteInfo("Add Tenant", $"couldn't add tenant to LDAP {Address}:{Port}: {exception}");
                 }
             }
-			catch (Exception exception)
-			{
-				Log.WriteError($"Non-LDAP exception {Address}:{Port}", "Unexpected error while trying to add tenant", exception);
-			}
-			return tenantAdded;
-		}
+            catch (Exception exception)
+            {
+                Log.WriteError($"Non-LDAP exception {Address}:{Port}", "Unexpected error while trying to add tenant", exception);
+            }
+            return tenantAdded;
+        }
 
-		/// <summary>
-		/// Delete tenant
-		/// </summary>
-		/// <returns>true if tenant deleted</returns>
-		public async Task<bool> DeleteTenant(string tenantName)
-		{
-			Log.WriteDebug("Delete Tenant", $"Trying to delete Tenant: \"{tenantName}\" from Ldap");
-			bool tenantDeleted = false;
-			try
-			{
+        /// <summary>
+        /// Delete tenant
+        /// </summary>
+        /// <returns>true if tenant deleted</returns>
+        public async Task<bool> DeleteTenant(string tenantName)
+        {
+            Log.WriteDebug("Delete Tenant", $"Trying to delete Tenant: \"{tenantName}\" from Ldap");
+            bool tenantDeleted = false;
+            try
+            {
                 using LdapConnection connection = await Connect();
                 // Authenticate as write user
                 await TryBind(connection, WriteUser, WriteUserPwd);
 
                 try
                 {
-					string tenantDn = TenantNameToDn(tenantName);
+                    string tenantDn = TenantNameToDn(tenantName);
                     //Delete the entry in the directory
                     await connection.DeleteAsync(tenantDn);
                     tenantDeleted = true;
@@ -77,17 +77,17 @@ namespace FWO.Middleware.Server
                     Log.WriteInfo("Delete Tenant", $"couldn't delete tenant in LDAP {Address}:{Port}: {exception}");
                 }
             }
-			catch (Exception exception)
-			{
-				Log.WriteError($"Non-LDAP exception {Address}:{Port}", "Unexpected error while trying to delete tenant", exception);
-			}
-			return tenantDeleted;
-		}
+            catch (Exception exception)
+            {
+                Log.WriteError($"Non-LDAP exception {Address}:{Port}", "Unexpected error while trying to delete tenant", exception);
+            }
+            return tenantDeleted;
+        }
 
-		private string TenantNameToDn(string tenantName)
-		{
-			return $"ou={tenantName},{UserSearchPath}";
-		}
+        private string TenantNameToDn(string tenantName)
+        {
+            return $"ou={tenantName},{UserSearchPath}";
+        }
 
     }
 }

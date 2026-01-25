@@ -74,7 +74,7 @@ namespace FWO.Report
                 await callback(ReportData);
             }
 
-            if(!ReportType.IsRulebaseReport())
+            if (!ReportType.IsRulebaseReport())
             {
                 TryBuildRuleTree();
             }
@@ -92,7 +92,7 @@ namespace FWO.Report
 
                     if (Services.ServiceProvider.UiServices?.GetService<IRuleTreeBuilder>() is IRuleTreeBuilder ruleTreeBuilder)
                     {
-                        if (ruleTreeBuilder?.BuildRulebaseLinkQueue(deviceReport.RulebaseLinks.Where(link => link.Removed == null).ToArray(), managementReport.Rulebases) != null)
+                        if (ruleTreeBuilder.BuildRulebaseLinkQueue(deviceReport.RulebaseLinks.Where(link => link.Removed == null).ToArray(), managementReport.Rulebases) != null)
                         {
                             allRules = ruleTreeBuilder.BuildRuleTree();
                             ruleCount += allRules.Count;
@@ -436,7 +436,7 @@ namespace FWO.Report
                 getItems: (dev, mgmt) => _rulesCache[(dev.Id, mgmt.Id)],
                 renderItem: rule => ruleDisplayJson.DisplayRuleJsonObject(rule, ReportType),
                 itemsPropertyName: "rules"
-            );            
+            );
         }
 
         public override string ExportToHtml()
@@ -458,7 +458,7 @@ namespace FWO.Report
                 report.AppendLine(Headline(managementReport.Name, 3));
                 report.AppendLine("<hr>");
 
-                if(ReportType.IsRulebaseReport())
+                if (ReportType.IsRulebaseReport())
                 {
                     foreach (var rulebase in managementReport.Rulebases)
                     {

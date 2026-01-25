@@ -58,7 +58,7 @@ namespace FWO.Middleware.Server.Controllers
                         user = new UiUser { Name = username, Password = password };
                 }
 
-                AuthManager authManager = new (jwtWriter, ldaps, apiConnection);
+                AuthManager authManager = new(jwtWriter, ldaps, apiConnection);
 
                 // Authenticate user
                 string jwt = await authManager.AuthorizeUserAsync(user, validatePassword: true);
@@ -93,7 +93,7 @@ namespace FWO.Middleware.Server.Controllers
                 string targetUserName = parameters.TargetUserName;
                 string targetUserDn = parameters.TargetUserDn;
 
-                AuthManager authManager = new (jwtWriter, ldaps, apiConnection);
+                AuthManager authManager = new(jwtWriter, ldaps, apiConnection);
                 UiUser adminUser = new() { Name = adminUsername, Password = adminPassword };
                 // Check if admin valids are valid
                 try
@@ -188,12 +188,12 @@ namespace FWO.Middleware.Server.Controllers
             List<string> userGroups = ldap.GetGroups(ldapUser);
             if (!ldap.IsInternal())
             {
-                object groupsLock = new ();
+                object groupsLock = new();
                 List<Task> ldapRoleRequests = [];
 
                 foreach (Ldap currentLdap in ldaps.Where(l => l.IsInternal()))
                 {
-                    ldapRoleRequests.Add(Task.Run(async() =>
+                    ldapRoleRequests.Add(Task.Run(async () =>
                     {
                         // Get groups from current Ldap
                         List<string> currentGroups = await currentLdap.GetGroups([ldapUser.Dn]);
@@ -220,7 +220,7 @@ namespace FWO.Middleware.Server.Controllers
             else
             {
                 (LdapEntry? ldapEntry, Ldap? ldap) = await TryLoginAnywhere(user, validatePassword);
-                if (ldapEntry != null &&  ldap != null)
+                if (ldapEntry != null && ldap != null)
                 {
                     return (ldapEntry, ldap);
                 }

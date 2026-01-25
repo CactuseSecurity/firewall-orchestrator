@@ -1,4 +1,4 @@
-﻿// TODO: NOT IN USE
+// TODO: NOT IN USE
 
 using System;
 using System.Collections.Generic;

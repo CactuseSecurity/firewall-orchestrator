@@ -57,11 +57,11 @@ namespace FWO.Api.Client.Queries
                     GetQueryText("networkService/fragments/networkServiceDetailsChangesNew.graphql") +
                     GetQueryText("user/fragments/userDetailsChangesOld.graphql") +
                     GetQueryText("user/fragments/userDetailsChangesNew.graphql");
-                    ruleDetailsFragments =
-                    ObjectQueries.networkObjectDetailsFragment +
-                    ObjectQueries.networkServiceDetailsFragment +
-                    ObjectQueries.userDetailsFragment +
-                    GetQueryText("rule/fragments/ruleDetails.graphql");
+                ruleDetailsFragments =
+                ObjectQueries.networkObjectDetailsFragment +
+                ObjectQueries.networkServiceDetailsFragment +
+                ObjectQueries.userDetailsFragment +
+                GetQueryText("rule/fragments/ruleDetails.graphql");
                 ruleDetailsForReportFragments =
                     ObjectQueries.networkObjectDetailsFragment +
                     ObjectQueries.networkServiceDetailsFragment +

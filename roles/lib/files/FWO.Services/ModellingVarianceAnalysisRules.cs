@@ -1,4 +1,4 @@
-﻿using FWO.Api.Client.Queries;
+using FWO.Api.Client.Queries;
 using FWO.Basics;
 using FWO.Config.Api.Data;
 using FWO.Data;
@@ -34,7 +34,7 @@ namespace FWO.Services
             bool ruleFound = false;
             foreach (var mgt in RelevantManagements)
             {
-                foreach(var rule in allModelledRules[mgt.Id].Where(r => CompareRuleToConn(r, conn)))
+                foreach (var rule in allModelledRules[mgt.Id].Where(r => CompareRuleToConn(r, conn)))
                 {
                     ruleFound = true;
                 }
@@ -134,7 +134,7 @@ namespace FWO.Services
                 }
             }
         }
-        
+
         private bool CompareRuleToConn(Rule rule, ModellingConnection conn)
         {
             if (rule.ConnId == conn.Id)
@@ -199,22 +199,22 @@ namespace FWO.Services
             List<NetworkService> normConnSvc = SplitPortRanges(ModellingServiceWrapper.Resolve(conn.Services).ToList().ConvertAll(s => ModellingService.ToNetworkService(s)));
             List<NetworkService> normConnSvcGrp = SplitPortRanges(ModellingServiceGroupWrapper.Resolve(conn.ServiceGroups).ToList().ConvertAll(a => a.ToNetworkServiceGroup()));
             List<NetworkService> normRuleSvc = SplitPortRanges([.. rule.Services.ToList().ConvertAll(s => s.Content)]);
-            return(normConnSvc, normConnSvcGrp, normRuleSvc);
+            return (normConnSvc, normConnSvcGrp, normRuleSvc);
         }
 
         private List<NetworkService> SplitPortRanges(List<NetworkService> servicesIn)
         {
-            if(!ruleRecognitionOption.SvcSplitPortRanges)
+            if (!ruleRecognitionOption.SvcSplitPortRanges)
             {
                 return servicesIn;
             }
             List<NetworkService> servicesOut = [];
-            foreach(var svc in servicesIn)
+            foreach (var svc in servicesIn)
             {
-                if(svc.Type.Name == ObjectType.Group)
+                if (svc.Type.Name == ObjectType.Group)
                 {
                     List<NetworkService> grpMembers = [];
-                    foreach(var member in svc.ServiceGroupFlats.Select(m => m.Object).Where(m => m != null))
+                    foreach (var member in svc.ServiceGroupFlats.Select(m => m.Object).Where(m => m != null))
                     {
                         grpMembers.AddRange(SplitPortRange(member!));
                     }
@@ -232,7 +232,7 @@ namespace FWO.Services
         private static List<NetworkService> SplitPortRange(NetworkService serviceIn)
         {
             List<NetworkService> servicesOut = [];
-            if(serviceIn.DestinationPort == null ||serviceIn.DestinationPortEnd == null || serviceIn.DestinationPortEnd <= serviceIn.DestinationPort)
+            if (serviceIn.DestinationPort == null || serviceIn.DestinationPortEnd == null || serviceIn.DestinationPortEnd <= serviceIn.DestinationPort)
             {
                 return [serviceIn];
             }
@@ -240,7 +240,7 @@ namespace FWO.Services
             {
                 for (int port = (int)serviceIn.DestinationPort; port <= (int)serviceIn.DestinationPortEnd; port++)
                 {
-                    NetworkService partialSvc = new(serviceIn) { DestinationPort = port, DestinationPortEnd = port};
+                    NetworkService partialSvc = new(serviceIn) { DestinationPort = port, DestinationPortEnd = port };
                     servicesOut.Add(partialSvc);
                 }
             }
@@ -251,7 +251,7 @@ namespace FWO.Services
         {
             List<NetworkService> servicesOut = [];
             NetworkService? actSvc = null;
-            foreach(var svc in servicesIn)
+            foreach (var svc in servicesIn)
             {
                 if (svc.DestinationPort == null)
                 {
@@ -309,7 +309,7 @@ namespace FWO.Services
 
         private void AdjustWithSpecialUserObjects(NetworkLocation[] networkLocations, Dictionary<string, bool> specialUserObjects, bool source, ref List<NetworkLocation> disregardedLocations)
         {
-            if(specialUserObjects.Count > 0 && disregardedLocations.Count > 0)
+            if (specialUserObjects.Count > 0 && disregardedLocations.Count > 0)
             {
                 List<NetworkLocation> surplusSpecUserLocations = [.. networkLocations.Where(n => n.Object.IsSurplus && specialUserObjects.ContainsKey(n.Object.Name.ToLower()))];
                 List<NetworkLocation> remainingPossibleSpecObj = GetPossibleSpecObjects(disregardedLocations, source);
@@ -335,7 +335,7 @@ namespace FWO.Services
 
         private void AdjustWithUpdatableObjects(NetworkLocation[] networkLocations, Dictionary<string, bool> updatableObjects, bool source, ref List<NetworkLocation> disregardedLocations)
         {
-            if(updatableObjects.Count > 0 && disregardedLocations.Count > 0)
+            if (updatableObjects.Count > 0 && disregardedLocations.Count > 0)
             {
                 List<NetworkLocation> surplusUpdObjLocations = [.. networkLocations.Where(n => n.Object.IsSurplus && updatableObjects.ContainsKey(n.Object.Name.ToLower()))];
                 List<NetworkLocation> remainingPossibleUpdatableObj = GetPossibleUpdatableObjects(disregardedLocations, source);
@@ -377,13 +377,13 @@ namespace FWO.Services
         {
             List<NetworkObject> allProdNwObjects = networkLocations.Where(n => n.Object.Type.Name != ObjectType.Group).ToList().ConvertAll(n => n.Object);
             List<NetworkObject> allModNwObjects = ModellingAppServerWrapper.Resolve(appServers).ToList().ConvertAll(a => ModellingAppServer.ToNetworkObject(a));
-            if(ruleRecognitionOption.NwResolveGroup)
+            if (ruleRecognitionOption.NwResolveGroup)
             {
-                foreach(var nwGroup in networkLocations.Where(n => n.Object.Type.Name == ObjectType.Group && !IsArea(n.Object)))
+                foreach (var nwGroup in networkLocations.Where(n => n.Object.Type.Name == ObjectType.Group && !IsArea(n.Object)))
                 {
                     allProdNwObjects.AddRange([.. nwGroup.Object.ObjectGroupFlats.Where(g => g.Object != null).ToList().ConvertAll(g => g.Object!)]);
                 }
-                foreach(var appRole in ModellingAppRoleWrapper.Resolve(appRoles))
+                foreach (var appRole in ModellingAppRoleWrapper.Resolve(appRoles))
                 {
                     allModNwObjects.AddRange(ModellingAppServerWrapper.Resolve(appRole.AppServers).ToList().ConvertAll(a => ModellingAppServer.ToNetworkObject(a)));
                 }
@@ -402,14 +402,14 @@ namespace FWO.Services
         private static bool CompareNwObjects(List<NetworkObject> allModGroups, List<NetworkObject> allProdGroups, NetworkLocation[] networkLocations,
             List<NetworkLocation> disregardedLocations, IEqualityComparer<NetworkObject?> comparer, bool continueAnalysis = false)
         {
-            if(continueAnalysis)
+            if (continueAnalysis)
             {
                 List<NetworkObject> disregardedGroups = [.. allModGroups.Except(allProdGroups, comparer)];
                 List<NetworkObject> surplusGroups = [.. allProdGroups.Except(allModGroups, comparer)];
                 foreach (var obj in surplusGroups)
                 {
                     NetworkLocation? extLoc = networkLocations.FirstOrDefault(n => n.Object.Id == obj.Id);
-                    if(extLoc != null)
+                    if (extLoc != null)
                     {
                         extLoc.Object.IsSurplus = true;
                     }
@@ -426,9 +426,9 @@ namespace FWO.Services
         private bool IsSvcImplementation(List<NetworkService> prodServices, List<NetworkService> modServices, List<NetworkService> modServiceGroups, List<NetworkService> disregardedServices)
         {
             bool isImpl = true;
-            if(!CompareServices(prodServices, modServices, modServiceGroups, disregardedServices))
+            if (!CompareServices(prodServices, modServices, modServiceGroups, disregardedServices))
             {
-                if(!FullAnalysis)
+                if (!FullAnalysis)
                 {
                     return false;
                 }
@@ -441,13 +441,13 @@ namespace FWO.Services
         {
             List<NetworkService> allProdServices = [.. prodServices.Where(s => s.Type.Name != ServiceType.Group)];
             List<NetworkService> allModServices = modServices;
-            if(ruleRecognitionOption.SvcResolveGroup)
+            if (ruleRecognitionOption.SvcResolveGroup)
             {
-                foreach(var svc in prodServices.Where(n => n.Type.Name == ServiceType.Group))
+                foreach (var svc in prodServices.Where(n => n.Type.Name == ServiceType.Group))
                 {
                     allProdServices.AddRange([.. svc.ServiceGroupFlats.ToList().ConvertAll(g => g.Object ?? new())]);
                 }
-                foreach(var svcGrp in modServiceGroups)
+                foreach (var svcGrp in modServiceGroups)
                 {
                     allModServices.AddRange([.. svcGrp.ServiceGroupFlats.ToList().ConvertAll(g => g.Object ?? new())]);
                 }
@@ -465,14 +465,14 @@ namespace FWO.Services
         private bool CompareSvcObjects(List<NetworkService> allModSvcObjects, List<NetworkService> allProdSvcObjects, List<NetworkService> prodServices,
             List<NetworkService> disregardedServices, IEqualityComparer<NetworkService?> comparer)
         {
-            if(FullAnalysis)
+            if (FullAnalysis)
             {
                 List<NetworkService> disregardedSvcObjects = [.. allModSvcObjects.Except(allProdSvcObjects, comparer)];
                 List<NetworkService> surplusSvcObjects = [.. allProdSvcObjects.Except(allModSvcObjects, comparer)];
                 foreach (var svc in surplusSvcObjects)
                 {
                     NetworkService? exSvc = prodServices.FirstOrDefault(n => n.Id == svc.Id && n.DestinationPort == svc.DestinationPort);
-                    if(exSvc != null)
+                    if (exSvc != null)
                     {
                         exSvc.IsSurplus = true;
                     }

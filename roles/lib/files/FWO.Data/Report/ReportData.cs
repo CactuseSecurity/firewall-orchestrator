@@ -1,4 +1,4 @@
-﻿using FWO.Basics.Interfaces;
+using FWO.Basics.Interfaces;
 
 namespace FWO.Data.Report
 {

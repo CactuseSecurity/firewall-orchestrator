@@ -1,4 +1,4 @@
-﻿using FWO.Basics;
+using FWO.Basics;
 using FWO.Data;
 using FWO.Data.Modelling;
 
@@ -88,7 +88,7 @@ namespace FWO.Services
             }
 
             return service1.ServiceGroupFlats.ToList().ConvertAll(g => g.Object)
-                    .Except([.. service2.ServiceGroupFlats.ToList().ConvertAll(g => g.Object)], networkServiceComparer).ToList().Count == 0 
+                    .Except([.. service2.ServiceGroupFlats.ToList().ConvertAll(g => g.Object)], networkServiceComparer).ToList().Count == 0
                 && service2.ServiceGroupFlats.ToList().ConvertAll(g => g.Object)
                     .Except([.. service1.ServiceGroupFlats.ToList().ConvertAll(g => g.Object)], networkServiceComparer).ToList().Count == 0;
         }
@@ -96,7 +96,7 @@ namespace FWO.Services
         public int GetHashCode(NetworkService serviceGrp)
         {
             int hashCode = 0;
-            foreach(var svc in serviceGrp.ServiceGroupFlats.Select(sg => sg.Object).Where(s => s?.Type.Name != ServiceType.Group).ToList())
+            foreach (var svc in serviceGrp.ServiceGroupFlats.Select(sg => sg.Object).Where(s => s?.Type.Name != ServiceType.Group).ToList())
             {
                 hashCode ^= svc != null ? networkServiceComparer.GetHashCode(svc) : 0;
             }

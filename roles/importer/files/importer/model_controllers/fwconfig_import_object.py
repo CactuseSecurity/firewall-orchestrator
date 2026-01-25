@@ -455,7 +455,7 @@ class FwConfigImportObject:
             for uid in new_zone_names
         ]
 
-    def get_config_objects(self, typ: Type, prev_config: FwConfigNormalized):
+    def get_config_objects(self, typ: Type, prev_config: FwConfigNormalized) -> tuple[dict[str, Any], dict[str, Any]]:
         if self.normalized_config is None:
             raise FwoImporterError("no normalized config available in FwConfigImportObject.get_config_objects")
         if typ == Type.NETWORK_OBJECT:

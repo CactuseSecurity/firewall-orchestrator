@@ -172,6 +172,17 @@ namespace FWO.Services.RuleTreeBuilder
                         RemainingInlineLayerLinks.Remove(inlineLayerLink);
                         RemainingLinks.Remove(inlineLayerLink);
                         ProcessLink(inlineLayerLink);
+
+                        if (rule == rulebase.Rules.Last() 
+                                                    && RemainingLinks.FirstOrDefault(x => rulebase.Id == x.FromRulebaseId ) != null )
+                        {
+                            RulebaseLink? nextLink = GetNextLink();
+                            if (nextLink != null)
+                            {
+                                ProcessLink(nextLink);
+                            }
+                            
+                        }
                     }
 
                     // Reset position to  remain on correct level
@@ -179,6 +190,18 @@ namespace FWO.Services.RuleTreeBuilder
                     position = ruleItem.Position.ToList();
                 }
 
+
+
+                if (RuleTree.LastAddedItem is ITreeItem<Rule> treeItem && treeItem.Position is List<int> treeItemPosition)
+                {
+                    if (treeItemPosition.Count == 2 && lastAddedItem.Position != null && lastAddedItem.Position.Count == 1
+                            && treeItemPosition[0] == 3 
+                            && lastAddedItem.Position[0] == 3 
+                            && treeItemPosition[1] == 1)
+                    {
+                        return;
+                    }
+                }
                 RuleTree.LastAddedItem = lastAddedItem;                
             }
         }

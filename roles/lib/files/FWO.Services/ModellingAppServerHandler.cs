@@ -31,7 +31,7 @@ namespace FWO.Services
                 ActAppServer.ImportSource = GlobalConst.kManual;
                 if (ActAppServer.Sanitize())
                 {
-                   DisplayMessageInUi(null, userConfig.GetText("save_app_server"), userConfig.GetText("U0001"), true);
+                    DisplayMessageInUi(null, userConfig.GetText("save_app_server"), userConfig.GetText("U0001"), true);
                 }
                 if (CheckAppServer())
                 {
@@ -47,7 +47,7 @@ namespace FWO.Services
                     }
                     else if (!string.IsNullOrEmpty(ExistingAppServerName))
                     {
-                        if(ExistingAppServerName == ActAppServer.Name)
+                        if (ExistingAppServerName == ActAppServer.Name)
                         {
                             DisplayMessageInUi(null, userConfig.GetText("edit_app_server"), userConfig.GetText("E9018"), true);
                         }
@@ -57,7 +57,7 @@ namespace FWO.Services
                         }
                         return false;
                     }
-                    else if(string.IsNullOrEmpty(ExistingAppServerName) && string.IsNullOrEmpty(ActAppServer.Name))
+                    else if (string.IsNullOrEmpty(ExistingAppServerName) && string.IsNullOrEmpty(ActAppServer.Name))
                     {
                         string message = $"{userConfig.GetText("E9018")} Name: \"\"";
                         DisplayMessageInUi(null, userConfig.GetText("edit_app_server"), message, true);

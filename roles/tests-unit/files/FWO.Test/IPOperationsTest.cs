@@ -256,7 +256,7 @@ namespace FWO.Test
             Assert.That(!result);
         }
 
-                [Test]
+        [Test]
         public void GetIPAdressRange_FullRangeIPv4_Succeeds()
         {
             // Arrange

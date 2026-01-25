@@ -106,3 +106,5 @@ modules.xml
 .idea/vcs.xml
 .idea/inspectionProfiles
 .idea/.gitignore
+cov.xml
+.coverage

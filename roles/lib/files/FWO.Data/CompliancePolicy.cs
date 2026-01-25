@@ -20,7 +20,7 @@ namespace FWO.Data
         [JsonProperty("criteria"), JsonPropertyName("criteria")]
         public List<ComplianceCriterionWrapper> Criteria { get; set; } = [];
     }
-    
+
     public struct LinkedPolicy
     {
         [JsonProperty("criterion_id"), JsonPropertyName("criterion_id")]

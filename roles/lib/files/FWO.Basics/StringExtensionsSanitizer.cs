@@ -7,7 +7,7 @@ namespace FWO.Basics
         public static string SanitizeMand(this string text)
         {
             bool shortened = false;
-            string output = SanitizeMand(text, ref shortened); 
+            string output = SanitizeMand(text, ref shortened);
             return output;
         }
 

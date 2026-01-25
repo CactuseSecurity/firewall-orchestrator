@@ -323,7 +323,7 @@ namespace FWO.Config.Api
             {
                 globalConfig.OnChange -= OnGlobalConfigChange;
             }
-            
+
             base.Dispose(disposing); // Call base class dispose
         }
     }

@@ -21,7 +21,7 @@ namespace FWO.Report
         private const int ColumnCount = 14;
 
         private readonly TimeFilter timeFilter;
-        private readonly bool IncludeObjectsInReportChanges; 
+        private readonly bool IncludeObjectsInReportChanges;
 
         public ReportChanges(DynGraphqlQuery query, UserConfig userConfig, ReportType reportType, TimeFilter timeFilter, bool includeObjectsInReportChanges, bool IncludeObjectsInReportChangesUiPresesed) : base(query, userConfig, reportType)
         {
@@ -83,7 +83,7 @@ namespace FWO.Report
 
             if (maxImports <= 2)    // Case last two (changes report - notification mail)
             {
-                return queriesNeeded; 
+                return queriesNeeded;
             }
 
             for (int i = 1; i < maxImports; i++)
@@ -127,8 +127,8 @@ namespace FWO.Report
                     queries++;
 
                     if (newObjects && maxAddedCounts.Values.Any(v => v >= elementsPerFetch))
-                    { 
-                        anyContinue = true; 
+                    {
+                        anyContinue = true;
                     }
                 }
             }
@@ -175,7 +175,7 @@ namespace FWO.Report
 
                 report.Append(DisplayReportHeaderCsv());
                 report.AppendLine("\"Rules\"");
-                report.AppendLine($"\"management-name\",\"change-time\",\"change-type\",\"rule-name\",\"source-zone\",\"source\",\"destination-zone\",\"destination\",\"service\",\"action\",\"track\",\"rule-enabled\",\"enforcing_device\",\"rule-uid\",\"rule-comment\""); 
+                report.AppendLine($"\"management-name\",\"change-time\",\"change-type\",\"rule-name\",\"source-zone\",\"source\",\"destination-zone\",\"destination\",\"service\",\"action\",\"track\",\"rule-enabled\",\"enforcing_device\",\"rule-uid\",\"rule-comment\"");
 
                 foreach (var management in ReportData.ManagementData.Where(mgt => !mgt.Ignore))
                 {
@@ -188,14 +188,14 @@ namespace FWO.Report
                         report.AppendLine($"\"management-name\",\"change-time\",\"change-type\",\"object-name\",\"type\",\"ip_address\",\"members\",\"object-uid\",\"object-comment\"");
 
                         AppendObjectChangeRowsCSV(report, management, ruleChangeDisplayCsv);
-                       
+
                         report.AppendLine($"#");
                         report.AppendLine("\"Service objects\"");
                         report.AppendLine($"\"management-name\",\"change-time\",\"change-type\",\"service-name\",\"type\",\"protocol\",\"port\",\"members\",\"service-uid\",\"service-comment\"");
 
                         AppendServiceChangeRowsCSV(report, management, ruleChangeDisplayCsv);
-                        
-                        AppendUserChangeRowsCSV(report, management, ruleChangeDisplayCsv);                       
+
+                        AppendUserChangeRowsCSV(report, management, ruleChangeDisplayCsv);
                     }
                 }
                 return report.ToString();
@@ -326,7 +326,7 @@ namespace FWO.Report
                 report.AppendLine($"<th>{userConfig.GetText("comment")}</th>");
                 report.AppendLine("</tr>");
 
-                
+
                 AppendRuleChangeRowsHTML(report, management, ruleChangeDisplayHtml);
 
                 report.AppendLine("</table>");

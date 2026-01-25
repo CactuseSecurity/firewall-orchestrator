@@ -132,7 +132,8 @@ namespace FWO.Ui.Display
             {
                 case 'D': return OutputHtmlDeleted(DisplaySource(ruleChange.OldRule, location, reportType, 0, GlobalConst.kStyleDeleted));
                 case 'I': return OutputHtmlAdded(DisplaySource(ruleChange.NewRule, location, reportType, 0, GlobalConst.kStyleAdded));
-                case 'C': return DisplayArrayDiff(DisplaySource(ruleChange.OldRule, location, reportType),
+                case 'C':
+                    return DisplayArrayDiff(DisplaySource(ruleChange.OldRule, location, reportType),
                                                   DisplaySource(ruleChange.NewRule, location, reportType),
                                                   ruleChange.OldRule.SourceNegated, ruleChange.NewRule.SourceNegated);
                 default: ThrowErrorUnknowChangeAction(ruleChange.ChangeAction); return "";
@@ -156,7 +157,8 @@ namespace FWO.Ui.Display
             {
                 case 'D': return OutputHtmlDeleted(DisplayDestination(ruleChange.OldRule, location, reportType, 0, GlobalConst.kStyleDeleted));
                 case 'I': return OutputHtmlAdded(DisplayDestination(ruleChange.NewRule, location, reportType, 0, GlobalConst.kStyleAdded));
-                case 'C': return DisplayArrayDiff(DisplayDestination(ruleChange.OldRule, location, reportType),
+                case 'C':
+                    return DisplayArrayDiff(DisplayDestination(ruleChange.OldRule, location, reportType),
                                                   DisplayDestination(ruleChange.NewRule, location, reportType),
                                                   ruleChange.OldRule.DestinationNegated, ruleChange.NewRule.DestinationNegated);
                 default: ThrowErrorUnknowChangeAction(ruleChange.ChangeAction); return "";
@@ -169,7 +171,8 @@ namespace FWO.Ui.Display
             {
                 case 'D': return OutputHtmlDeleted(DisplayServices(ruleChange.OldRule, location, reportType, 0, GlobalConst.kStyleDeleted));
                 case 'I': return OutputHtmlAdded(DisplayServices(ruleChange.NewRule, location, reportType, 0, GlobalConst.kStyleAdded));
-                case 'C': return DisplayArrayDiff(DisplayServices(ruleChange.OldRule, location, reportType),
+                case 'C':
+                    return DisplayArrayDiff(DisplayServices(ruleChange.OldRule, location, reportType),
                                                   DisplayServices(ruleChange.NewRule, location, reportType),
                                                   ruleChange.OldRule.ServiceNegated, ruleChange.NewRule.ServiceNegated);
                 default: ThrowErrorUnknowChangeAction(ruleChange.ChangeAction); return "";
@@ -337,7 +340,7 @@ namespace FWO.Ui.Display
         {
             switch (objectChange.ChangeAction)
             {
-                case 'D': return OutputHtmlDeleted(NwObjDisplay.DisplayIp(objectChange.OldObject.IP,objectChange.OldObject.IpEnd,true));
+                case 'D': return OutputHtmlDeleted(NwObjDisplay.DisplayIp(objectChange.OldObject.IP, objectChange.OldObject.IpEnd, true));
                 case 'I': return OutputHtmlAdded(NwObjDisplay.DisplayIp(objectChange.NewObject.IP, objectChange.NewObject.IpEnd, true));
                 case 'C': return DisplayDiff(NwObjDisplay.DisplayIp(objectChange.OldObject.IP, objectChange.OldObject.IpEnd, true), NwObjDisplay.DisplayIp(objectChange.NewObject.IP, objectChange.NewObject.IpEnd, true));
                 default: ThrowErrorUnknowChangeAction(objectChange.ChangeAction); return "";
@@ -399,7 +402,7 @@ namespace FWO.Ui.Display
         {
             switch (serviceChange.ChangeAction)
             {
-                case 'D': return OutputHtmlDeleted(DisplayBase.DisplayPort(serviceChange.OldService.DestinationPort, serviceChange.OldService.DestinationPortEnd,true));
+                case 'D': return OutputHtmlDeleted(DisplayBase.DisplayPort(serviceChange.OldService.DestinationPort, serviceChange.OldService.DestinationPortEnd, true));
                 case 'I': return OutputHtmlAdded(DisplayBase.DisplayPort(serviceChange.NewService.DestinationPort, serviceChange.NewService.DestinationPortEnd, true));
                 case 'C': return DisplayDiff(DisplayBase.DisplayPort(serviceChange.OldService.DestinationPort, serviceChange.OldService.DestinationPortEnd, true), (DisplayBase.DisplayPort(serviceChange.NewService.DestinationPort, serviceChange.NewService.DestinationPortEnd, true)));
                 default: ThrowErrorUnknowChangeAction(serviceChange.ChangeAction); return "";
@@ -437,7 +440,7 @@ namespace FWO.Ui.Display
                 List<string> added = [];
                 List<string> deleted = [];
 
-                if(oldNegated != newNegated)
+                if (oldNegated != newNegated)
                 {
                     deleted.Add(SetStyle(oldElement, GlobalConst.kStyleDeleted));
                     added.Add(SetStyle(newElement, GlobalConst.kStyleAdded));
@@ -473,15 +476,15 @@ namespace FWO.Ui.Display
                        + (added.Count > 0 ? $"{userConfig.GetText("added")}: <p style=\"{GlobalConst.kStyleAdded}\">{string.Join("<br>", added)}</p>" : "");
             }
         }
-        
+
         private static string OutputHtmlDeleted(string? input)
         {
-            return  input != null && input != "" ? $"<p style=\"{GlobalConst.kStyleDeleted}\">{input}</p>" : "";
+            return input != null && input != "" ? $"<p style=\"{GlobalConst.kStyleDeleted}\">{input}</p>" : "";
         }
 
         private static string OutputHtmlAdded(string? input)
         {
-            return  input != null && input != "" ? $"<p style=\"{GlobalConst.kStyleAdded}\">{input}</p>" : "";
+            return input != null && input != "" ? $"<p style=\"{GlobalConst.kStyleAdded}\">{input}</p>" : "";
         }
 
         private static string SetStyle(string input, string style)

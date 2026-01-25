@@ -455,7 +455,7 @@ class FwConfigImportObject:
             for uid in new_zone_names
         ]
 
-    def get_config_objects(self, typ: Type, prev_config: FwConfigNormalized):
+    def get_config_objects(self, typ: Type, prev_config: FwConfigNormalized) -> tuple[dict[str, Any], dict[str, Any]]:
         if self.normalized_config is None:
             raise FwoImporterError("no normalized config available in FwConfigImportObject.get_config_objects")
         if typ == Type.NETWORK_OBJECT:
@@ -464,7 +464,6 @@ class FwConfigImportObject:
             return prev_config.service_objects, self.normalized_config.service_objects
         if typ == Type.USER:
             return prev_config.users, self.normalized_config.users
-        return None
 
     def get_id(self, typ: Type, uid: str, before_update: bool = False) -> int | None:
         if typ == Type.NETWORK_OBJECT:
@@ -487,7 +486,6 @@ class FwConfigImportObject:
             return obj.svc_typ == "group"
         if typ == Type.USER:
             return obj.get("user_typ", None) == "group"
-        return None
 
     def get_refs(self, typ: Type, obj: Any) -> str | None:
         if typ == Type.NETWORK_OBJECT:
@@ -665,6 +663,7 @@ class FwConfigImportObject:
             if group_id is None:
                 FWOLogger.error(f"failed to add group memberships: no id found for group uid '{uid}'")
                 continue
+
             self.collect_group_members(
                 group_id,
                 current_config_objects,

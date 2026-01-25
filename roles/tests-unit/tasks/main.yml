@@ -40,6 +40,17 @@
       environment:
         PYTHONPATH: "/usr/local/fworch/importer"
       args:
-        chdir: "/usr/local/fworch/importer/test"
+        chdir: "/usr/local/fworch/importer/unit_tests"
       command: >
-        {{ importer_venv_dir }}/bin/python3 -m unittest discover -s . -p "test_*.py" -v
+        {{ importer_venv_dir }}/bin/python3 -m pytest -s . -p no:cacheprovider -v
+      register: pytest_tests
+      ignore_errors: false
+
+    - name: show pytest output
+      debug:
+        var: pytest_tests.stdout_lines
+
+    - name: show pytest errors if any
+      debug:
+        var: pytest_tests.stderr_lines
+      when: pytest_tests.rc != 0

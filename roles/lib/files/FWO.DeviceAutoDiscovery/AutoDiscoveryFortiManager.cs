@@ -48,7 +48,7 @@ namespace FWO.DeviceAutoDiscovery
                     if (string.IsNullOrEmpty(sessionResponse.Data?.SessionId))
                     {
                         errorTxt += $"could not authenticate to {SuperManagement.Name} - got empty session ID";
-                    }                                            
+                    }
                     Log.WriteWarning(Autodiscovery, errorTxt);
                     throw new AuthenticationException(errorTxtCatch);
                 }
@@ -257,7 +257,7 @@ namespace FWO.DeviceAutoDiscovery
             }
             return discoveredDevices;
         }
-        
+
         // #if DEBUG
         //         List<Management> fillTestDevices()
         //         {

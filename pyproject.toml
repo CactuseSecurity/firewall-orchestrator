@@ -65,8 +65,7 @@ exclude = [
     "scripts/release_lock.py"
 ]
 
-[tool.ruff.lint]
-select = ["ALL"]
+[tools.ruff.lint]
 ignore = [
     "ANN",     # flake8-annotations: Type annotation checks
     "COM",     # flake8-commas: Trailing comma checks
@@ -129,5 +128,5 @@ line-ending = "auto"
 pythonpath = [
     ".",
     "roles/importer/files/importer",
-    "roles/importer/files/importer/test",
+    "roles/importer/files/importer/unit_tests",
 ]

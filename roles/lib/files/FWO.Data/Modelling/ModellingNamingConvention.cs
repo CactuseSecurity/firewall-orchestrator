@@ -1,4 +1,4 @@
-using System.Text.Json.Serialization; 
+using System.Text.Json.Serialization;
 using Newtonsoft.Json;
 
 namespace FWO.Data.Modelling
@@ -25,7 +25,7 @@ namespace FWO.Data.Modelling
 
         [JsonProperty("applicationZone"), JsonPropertyName("applicationZone")]
         public string AppZone { get; set; } = "";
-        
+
         [JsonProperty("appServerPrefix"), JsonPropertyName("appServerPrefix")]
         public string? AppServerPrefix { get; set; } = "";
 

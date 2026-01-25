@@ -59,12 +59,12 @@ namespace FWO.Ui.Services
             {
                 string fileExtension = Path.GetExtension(args.File.Name);
 
-                if(!AllowedFileFormats.Contains(fileExtension))
+                if (!AllowedFileFormats.Contains(fileExtension))
                 {
                     throw new ArgumentException(UserConfig.GetText("E5430"));
                 }
 
-                if(args.File.Size > GlobalConst.MaxUploadFileSize)
+                if (args.File.Size > GlobalConst.MaxUploadFileSize)
                 {
                     throw new ArgumentException(UserConfig.GetText("E5431"));
                 }
@@ -76,7 +76,7 @@ namespace FWO.Ui.Services
 
                 FileUploadEvent.EventArgs!.Success = true;
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 FileUploadEvent.EventArgs!.Success = false;
 
@@ -99,12 +99,12 @@ namespace FWO.Ui.Services
         {
             try
             {
-                string base64Data = Convert.ToBase64String(UploadedData);                
+                string base64Data = Convert.ToBase64String(UploadedData);
 
                 CustomLogoUploadEvent.EventArgs!.Success = true;
                 CustomLogoUploadEvent.EventArgs.Data = base64Data;
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 CustomLogoUploadEvent.EventArgs!.Success = false;
 
@@ -133,7 +133,7 @@ namespace FWO.Ui.Services
             string text = System.Text.Encoding.UTF8.GetString(UploadedData);
             string[] lines = text.Split(Environment.NewLine, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 
-            foreach(string line in lines)
+            foreach (string line in lines)
             {
                 CSVFileUploadErrorModel? error = new()
                 {
@@ -141,7 +141,7 @@ namespace FWO.Ui.Services
                     MessageType = MessageType.Error,
                 };
 
-                if(!TryGetEntries(line, ';', out string[] entries) && !TryGetEntries(line, ',', out entries))
+                if (!TryGetEntries(line, ';', out string[] entries) && !TryGetEntries(line, ',', out entries))
                 {
                     error.Message = UserConfig.GetText("E5422");
                     errors.Add(error);
@@ -149,12 +149,12 @@ namespace FWO.Ui.Services
                     continue;
                 }
 
-                if(IsHeader(entries))
+                if (IsHeader(entries))
                     continue;
 
                 string ipString = entries[3];
 
-                if(!ipString.TryParseIPString<(string, string)>(out (string Start, string End) ipRange, strictv4Parse: true))
+                if (!ipString.TryParseIPString<(string, string)>(out (string Start, string End) ipRange, strictv4Parse: true))
                 {
                     error.Message = UserConfig.GetText("E5423");
                     errors.Add(error);
@@ -177,7 +177,7 @@ namespace FWO.Ui.Services
                 // write to db
                 (bool importSuccess, Exception? e) = await AddAppServerToDb(importAppServer);
 
-                if(!importSuccess && e is not null)
+                if (!importSuccess && e is not null)
                 {
                     error.Message = e.Message;
                     errors.Add(error);
@@ -188,7 +188,7 @@ namespace FWO.Ui.Services
                 }
             }
 
-            if(AppServerImportEvent.EventArgs is not null)
+            if (AppServerImportEvent.EventArgs is not null)
             {
                 success = [.. success.Distinct()];
 
@@ -253,13 +253,13 @@ namespace FWO.Ui.Services
             try
             {
                 AppServerType? appServerType = AppServerTypes.FirstOrDefault(_ => _.Name == importAppServer.AppServerTyp);
-                if(appServerType is null)
+                if (appServerType is null)
                 {
                     return new(false, new Exception($"{UserConfig.GetText("owner_appservertype_notfound")} At: {importAppServer.AppServerName}/{importAppServer.AppID}"));
                 }
 
                 List<OwnerIdModel> ownerIds = await ApiConnection.SendQueryAsync<List<OwnerIdModel>>(OwnerQueries.getOwnerId, new { externalAppId = importAppServer.AppID });
-                if(ownerIds is null || ownerIds.Count == 0)
+                if (ownerIds is null || ownerIds.Count == 0)
                 {
                     return new(false, new Exception($"{UserConfig.GetText("owner_appserver_notfound")} At: {importAppServer.AppServerName}/{importAppServer.AppID}"));
                 }
@@ -269,7 +269,7 @@ namespace FWO.Ui.Services
                             !UserConfig.DnsLookup
                     )).Item1 != null, default);
             }
-            catch(Exception exception)
+            catch (Exception exception)
             {
                 return (false, exception);
             }

@@ -1,4 +1,4 @@
-﻿namespace FWO.Data
+namespace FWO.Data
 {
     public enum NotificationLayout
     {
@@ -9,7 +9,7 @@
         CsvAsAttachment = 12,
         JsonAsAttachment = 13
     }
-    
+
     public static class NotificationLayoutGroups
     {
         public static List<NotificationLayout> ListWithoutCsv()

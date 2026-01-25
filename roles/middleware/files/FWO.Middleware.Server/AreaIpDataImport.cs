@@ -1,4 +1,4 @@
-﻿using FWO.Basics;
+using FWO.Basics;
 using FWO.Logging;
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;

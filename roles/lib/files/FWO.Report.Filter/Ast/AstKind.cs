@@ -1,4 +1,4 @@
-﻿namespace FWO.Report.Filter.Ast
+namespace FWO.Report.Filter.Ast
 {
     public enum AstKind
     {

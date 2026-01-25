@@ -20,7 +20,7 @@ namespace FWO.Test
                     {
                         Id = 1,
                         Name = "Management 1",
-                        Devices = 
+                        Devices =
                         [
                             new DeviceReport
                             {
@@ -37,17 +37,17 @@ namespace FWO.Test
                                 ]
                             }
                         ],
-                        Objects = 
+                        Objects =
                         [
                             new() { Id = 1, Name = "Object 1" },
                             new() { Id = 2, Name = "Object 2" }
                         ],
-                        Services = 
+                        Services =
                         [
                             new() { Id = 1, Name = "Service 1" },
                             new() { Id = 2, Name = "Service 2" }
                         ],
-                        Users = 
+                        Users =
                         [
                             new() { Id = 1, Name = "User 1" },
                             new() { Id = 2, Name = "User 2" }

@@ -1,4 +1,4 @@
-﻿namespace FWO.Data.Modelling
+namespace FWO.Data.Modelling
 {
     public class ModellingDnDContainer
     {

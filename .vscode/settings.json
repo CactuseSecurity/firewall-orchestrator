@@ -2,9 +2,11 @@
     "editor.formatOnPaste": false,
     "editor.formatOnSave": false,
     "[csharp]": {
+        "editor.formatOnSave": true,
         "editor.defaultFormatter": "ms-dotnettools.csharp"
     },
     "[razor]": {
+      "editor.formatOnSave": true,
       "editor.defaultFormatter": "ms-dotnettools.csharp"
     },
     "files.associations": {

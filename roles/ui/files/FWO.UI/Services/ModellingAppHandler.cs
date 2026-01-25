@@ -29,16 +29,16 @@ namespace FWO.Ui.Services
         private long dummyAppRoleId = 0;
 
 
-        public ModellingAppHandler(ApiConnection apiConnection, UserConfig userConfig, FwoOwner application, 
+        public ModellingAppHandler(ApiConnection apiConnection, UserConfig userConfig, FwoOwner application,
             Action<Exception?, string, string, bool> displayMessageInUi, bool isOwner = true)
-            : base (apiConnection, userConfig, application, false, displayMessageInUi, false, isOwner)
-        {}
-        
+            : base(apiConnection, userConfig, application, false, displayMessageInUi, false, isOwner)
+        { }
+
         public async Task Init(List<ModellingConnection>? connections = null)
         {
             try
             {
-                if(connections == null)
+                if (connections == null)
                 {
                     var queryParam = new
                     {
@@ -50,7 +50,7 @@ namespace FWO.Ui.Services
                 {
                     Connections = connections;
                 }
-                
+
                 List<ModellingAppRole> dummyAppRoles = await apiConnection.SendQueryAsync<List<ModellingAppRole>>(ModellingQueries.getDummyAppRole);
                 if (dummyAppRoles.Count > 0)
                 {
@@ -66,7 +66,7 @@ namespace FWO.Ui.Services
                     LastWidth = ActWidth,
                     LastCollapsed = StartCollapsed || ActWidth == 0
                 };
-                 
+
                 await OverviewConnHandler.Init();
             }
             catch (Exception exception)
@@ -77,13 +77,13 @@ namespace FWO.Ui.Services
 
         private async Task PrepareConnections(List<ModellingConnection> connections)
         {
-            foreach(var conn in connections)
+            foreach (var conn in connections)
             {
                 await ExtractUsedInterface(conn);
                 conn.SyncState(dummyAppRoleId);
             }
 
-            if(userConfig.VarianceAnalysisSync)
+            if (userConfig.VarianceAnalysisSync)
             {
                 await AnalyseStatus(connections);
             }
@@ -114,11 +114,11 @@ namespace FWO.Ui.Services
         public void InitActiveTab(ModellingConnection? conn = null)
         {
             int tab = 0;
-            if(conn != null)
+            if (conn != null)
             {
                 tab = GetTabFromConn(conn);
             }
-            else if(GetRegularConnections().Count == 0)
+            else if (GetRegularConnections().Count == 0)
             {
                 if (GetInterfaces().Count > 0)
                 {
@@ -134,14 +134,14 @@ namespace FWO.Ui.Services
 
         public void RestoreTab(ModellingConnection? conn = null)
         {
-            if(conn != null)
+            if (conn != null)
             {
                 Tabset.SetActiveTab(GetTabFromConn(conn));
             }
-            else if(Tabset.Tabs.Count > 0 && ActTab != null)
+            else if (Tabset.Tabs.Count > 0 && ActTab != null)
             {
                 Shared.Tab? tab = Tabset.Tabs.FirstOrDefault(x => x.Position == ActTab.Position);
-                if(tab != null)
+                if (tab != null)
                 {
                     Tabset.SetActiveTab(tab);
                 }
@@ -150,7 +150,7 @@ namespace FWO.Ui.Services
 
         private static int GetTabFromConn(ModellingConnection conn)
         {
-            if(conn.IsInterface)
+            if (conn.IsInterface)
             {
                 return 1;
             }
@@ -200,14 +200,14 @@ namespace FWO.Ui.Services
         {
             ReadOnly = false;
             AddConnMode = true;
-            await HandleConn(new ModellingConnection(){ AppId = Application.Id, IsInterface = true });
+            await HandleConn(new ModellingConnection() { AppId = Application.Id, IsInterface = true });
         }
 
         public async Task AddCommonService()
         {
             ReadOnly = false;
             AddConnMode = true;
-            await HandleConn(new ModellingConnection(){ AppId = Application.Id, IsCommonService = true });
+            await HandleConn(new ModellingConnection() { AppId = Application.Id, IsCommonService = true });
         }
 
         public async Task ShowDetails(ModellingConnection conn)
@@ -227,7 +227,7 @@ namespace FWO.Ui.Services
         public async Task HandleConn(ModellingConnection conn)
         {
             ActTab = Tabset.ActiveTab;
-            ConnHandler = new ModellingConnectionHandler(apiConnection, userConfig, Application, Connections, conn, AddConnMode, 
+            ConnHandler = new ModellingConnectionHandler(apiConnection, userConfig, Application, Connections, conn, AddConnMode,
                 ReadOnly, DisplayMessageInUi, ReInit, IsOwner);
             await ConnHandler.Init();
             EditConnMode = true;
@@ -277,10 +277,10 @@ namespace FWO.Ui.Services
         {
             try
             {
-                if(await DeleteConnection(ConnToDelete))
+                if (await DeleteConnection(ConnToDelete))
                 {
                     await LogChange(ModellingTypes.ChangeType.Delete, ModellingTypes.ModObjectType.Connection, ConnToDelete.Id,
-                        $"Deleted {(ConnToDelete.IsInterface? "Interface" : "Connection")}: {ConnToDelete.Name}", Application.Id);
+                        $"Deleted {(ConnToDelete.IsInterface ? "Interface" : "Connection")}: {ConnToDelete.Name}", Application.Id);
                     Connections.Remove(ConnToDelete);
                     DeleteConnMode = false;
                     RestoreTab();

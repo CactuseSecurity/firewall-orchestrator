@@ -39,7 +39,7 @@ namespace FWO.Data.Modelling
             ModProdDifference? diff = RuleDifferences.FirstOrDefault(d => d.ModelledConnection.Id == conn.Id);
             if (diff == null)
             {
-                RuleDifferences.Add(new(){ModelledConnection = conn, ImplementedRules = [rule]});
+                RuleDifferences.Add(new() { ModelledConnection = conn, ImplementedRules = [rule] });
             }
             else
             {
@@ -52,7 +52,7 @@ namespace FWO.Data.Modelling
             ModProdDifference? diff = OkRules.FirstOrDefault(d => d.ModelledConnection.Id == conn.Id);
             if (diff == null)
             {
-                OkRules.Add(new(){ModelledConnection = conn, ImplementedRules = [rule]});
+                OkRules.Add(new() { ModelledConnection = conn, ImplementedRules = [rule] });
             }
             else
             {
@@ -86,11 +86,11 @@ namespace FWO.Data.Modelling
             foreach (var mgtId in rulesToReport.Keys.Where(m => rulesToReport[m].Count > 0))
             {
                 Management? mgt = Managements.FirstOrDefault(m => m.Id == mgtId);
-                if(mgt != null)
+                if (mgt != null)
                 {
                     ManagementReport managementReport = new() { Id = mgtId, Name = mgt.Name ?? "" };
                     List<DeviceReport> deviceReports = [];
-                    foreach(var dev in mgt.Devices)
+                    foreach (var dev in mgt.Devices)
                     {
                         DeviceReport devReport = new() { Id = dev.Id, Name = dev.Name };
                         devReport.SetRulesForDev(FilterRulesForDev(rulesToReport[mgtId], mgtId, dev));
@@ -106,7 +106,7 @@ namespace FWO.Data.Modelling
         public List<Rule> FilterRulesForDev(List<Rule> rulesToReport, int mgtId, Device device)
         {
             DeviceReport? devReport = DeviceRules[mgtId]?.FirstOrDefault(d => d.Id == device.Id);
-            if(devReport != null)
+            if (devReport != null)
             {
                 return [.. rulesToReport.Where(devReport.IsLinked)];
             }

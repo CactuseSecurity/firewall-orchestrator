@@ -9,7 +9,7 @@
     @if(ReportType != ReportType.OwnerRecertification)
     {
         <h7 class="text-left text-white">@(userConfig.GetText("owner"))</h7>
-        <Dropdown ElementType="FwoOwner" ElementToString="@(o => o.Name)" Nullable="true" SelectedElement="selectedOwner" 
+        <Dropdown ElementType="FwoOwner" ElementToString="@(o => o.Name)" Nullable="false" SelectedElement="selectedOwner" 
                 SelectedElementChanged="SelectedOwnerChanged" Elements="ownerList">
             <ElementTemplate Context="owner">
                 @owner.Name
@@ -74,7 +74,16 @@
     {
         try
         {
-            ownerList = await apiConnection.SendQueryAsync<List<FwoOwner>>(FWO.Api.Client.Queries.OwnerQueries.getOwners);
+            ownerList = await apiConnection.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getOwners);
+            if(ownerList.Count > 0)
+            {
+                ownerList.Add(new(){ Id = -1, Name = userConfig.GetText("all")});
+                ownerList = [.. ownerList.OrderBy(o => o.Id)];
+            }
+            else
+            {
+                DisplayMessageInUi(null, userConfig.GetText("no_owners"), "", true);
+            }
             RecertFilter.RecertificationDisplayPeriod = Convert.ToInt32(userConfig.RecertificationDisplayPeriod);
         }
         catch (Exception exception)
@@ -85,18 +94,25 @@
 
     protected override void OnParametersSet()
     {
-        if(RecertFilter.RecertOwnerList.Count > 0)
+        if(selectedOwner == null)
         {
-            selectedOwner = ownerList.FirstOrDefault(o => o.Id == RecertFilter.RecertOwnerList.First());
+            if(RecertFilter.RecertOwnerList.Count > 0)
+            {
+                selectedOwner = ownerList.FirstOrDefault(o => o.Id == RecertFilter.RecertOwnerList[0]);
+            }
+            else if (ownerList.Count > 0)
+            {
+                selectedOwner = ownerList[0];
+            }
         }
     }
 
-    private void SelectedOwnerChanged(FwoOwner? newOwner)
+    private void SelectedOwnerChanged(FwoOwner newOwner)
     {
         selectedOwner = newOwner;
-        if(newOwner == null)
+        if(newOwner.Id == -1)
         {
-            RecertFilter.RecertOwnerList = [.. ownerList.Select(o => o.Id)];
+            RecertFilter.RecertOwnerList = [.. ownerList.Select(o => o.Id).Where(id => id >= 0)];
         }
         else
         {

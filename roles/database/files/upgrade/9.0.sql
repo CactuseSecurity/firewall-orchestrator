@@ -603,6 +603,9 @@ ALTER TABLE "rule" ADD CONSTRAINT fk_rule_rulebase_id FOREIGN KEY ("rulebase_id"
 -- Alter table "rule_hit" add CONSTRAINT fk_hit_gw_id foreign key ("gw_id") references "device" ("dev_id") on update restrict on delete cascade; 
 -- Alter table "rule_hit" add CONSTRAINT fk_hit_metadata_id foreign key ("metadata_id") references "rule_metadata" ("dev_id") on update restrict on delete cascade; 
 
+-- removed logic for rule
+ALTER TABLE "rule" ADD COLUMN IF NOT EXISTS "removed" BIGINT;
+
 -----------------------------------------------
 -- METADATA part
 -- we are removing dev_id and rulebase_id from rule_metadata
@@ -1329,7 +1332,7 @@ ALTER TABLE "zone" ADD COLUMN IF NOT EXISTS "removed" BIGINT;
 ALTER TABLE "usr" ADD COLUMN IF NOT EXISTS "removed" BIGINT;
 ALTER TABLE "usergrp" ADD COLUMN IF NOT EXISTS "removed" BIGINT;
 ALTER TABLE "usergrp_flat" ADD COLUMN IF NOT EXISTS "removed" BIGINT;
-ALTER TABLE "rule" ADD COLUMN IF NOT EXISTS "removed" BIGINT;
+-- ALTER TABLE "rule" ADD COLUMN IF NOT EXISTS "removed" BIGINT;
 ALTER TABLE "rule_from" ADD COLUMN IF NOT EXISTS "removed" BIGINT;
 ALTER TABLE "rule_to" ADD COLUMN IF NOT EXISTS "removed" BIGINT;
 ALTER TABLE "rule_service" ADD COLUMN IF NOT EXISTS "removed" BIGINT;

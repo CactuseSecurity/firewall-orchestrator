@@ -20,7 +20,8 @@ namespace FWO.Config.Api
         private bool owningApiConnection = false;
 
         public int UserId { get; private set; }
-        public bool Initialized { get; private set; } = false;
+        public bool Initialized { get; private set; }
+          = false;
 
         public event Action<Config, ConfigItem[]>? OnChange;
 

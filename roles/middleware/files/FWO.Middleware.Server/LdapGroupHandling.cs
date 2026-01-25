@@ -28,7 +28,8 @@ namespace FWO.Middleware.Server
         /// <returns>list of groups for the given DN list</returns>
         public async Task<List<string>> GetGroups(List<string> dnList)
         {
-            return await GetMemberships(dnList, GroupSearchPath);
+            string? groupPath = !string.IsNullOrWhiteSpace(GroupSearchPath) ? GroupSearchPath : GroupWritePath;
+            return await GetMemberships(dnList, groupPath);
         }
 
         [GeneratedRegex(@"(\bcn|\bou|\bdc|\bo|\bc|\bst|\bl)=(.*?)(?=,[A-Za-z]+=|$)", RegexOptions.IgnoreCase, "en-US")]

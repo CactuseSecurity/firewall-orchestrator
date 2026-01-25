@@ -7,9 +7,14 @@
         backup: true
         mode: "0644"
         owner: "root"
+      register: ui_service_template
 
   become: true
   environment: "{{ proxy_env }}"
+
+- name: track ui deployment changes from systemd template
+  set_fact:
+    ui_deploy_changed: "{{ (ui_deploy_changed | default(false)) or ui_service_template.changed }}"
 
 - name: publish blazor ui
   command: "dotnet publish --no-self-contained -c {{ dotnet_mode }} -o {{ ui_start_dir }}/bin/{{ dotnet_mode }}/net{{ dotnet_version }}"
@@ -19,11 +24,12 @@
   become_user: "{{ fworch_user }}"
   environment: "{{ proxy_env }}"
   register: publish_result
+  when: ui_deploy_changed | default(false)
 
 - name: fail if publish returned an error
   fail:
     msg: "could not publish ui server successfully: {{ publish_result }}"
-  when: publish_result.rc != 0
+  when: publish_result is defined and publish_result.rc != 0
 
 - name: make blazor ui run at host startup
   systemd:
@@ -37,3 +43,4 @@
     state: restarted
     daemon_reload: true
   become: true
+  when: ui_deploy_changed | default(false)

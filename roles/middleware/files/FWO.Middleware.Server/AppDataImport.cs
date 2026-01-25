@@ -29,7 +29,7 @@ namespace FWO.Middleware.Server
         private Ldap ownerGroupLdap = new();
 
         private List<Ldap> connectedLdaps = [];
-        private string? ownerGroupLdapPath = "";
+        private string? ownerGroupLdapPath;
         private List<GroupGetReturnParameters> allGroups = [];
         private Dictionary<OwnerResponsibleType, List<string>> rolesToSetByType = [];
         private ModellingNamingConvention NamingConvention = new();
@@ -59,7 +59,7 @@ namespace FWO.Middleware.Server
             List<string> failedImports = [];
             foreach (var importfilePathAndName in importfilePathAndNames)
             {
-                if (!RunImportScript(importfilePathAndName + ".py"))
+                if (!RunImportScript(importfilePathAndName + ".py", globalConfig.ImportAppDataScriptArgs))
                 {
                     Log.WriteInfo(LogMessageTitle, $"Script {importfilePathAndName}.py failed but trying to import from existing file.");
                 }
@@ -73,7 +73,7 @@ namespace FWO.Middleware.Server
             connectedLdaps = await apiConnection.SendQueryAsync<List<Ldap>>(AuthQueries.getLdapConnections);
             internalLdap = connectedLdaps.FirstOrDefault(x => x.IsInternal() && x.HasGroupHandling()) ?? throw new KeyNotFoundException("No internal Ldap with group handling found.");
             ownerGroupLdap = connectedLdaps.FirstOrDefault(x => x.Id == globalConfig.OwnerLdapId) ?? throw new KeyNotFoundException("Ldap with group handling not found.");
-            ownerGroupLdapPath = ownerGroupLdap.GroupWritePath;
+            ownerGroupLdapPath = ResolveOwnerGroupPath(ownerGroupLdap);
             allGroups = globalConfig.OwnerLdapId == GlobalConst.kLdapInternalId ?
                 await internalLdap.GetAllInternalGroups() :
                 await ownerGroupLdap.GetAllGroupObjects(globalConfig.OwnerLdapGroupNames.
@@ -325,11 +325,27 @@ namespace FWO.Middleware.Server
 
         private string GetGroupDn(string extAppIdString)
         {
-            if (ownerGroupLdapPath == null)
+            if (string.IsNullOrWhiteSpace(ownerGroupLdapPath))
             {
                 throw new ArgumentNullException(nameof(ownerGroupLdapPath));
             }
             return $"cn={GetGroupName(extAppIdString)},{ownerGroupLdapPath}";
+        }
+
+        private static string ResolveOwnerGroupPath(Ldap ownerGroupLdap)
+        {
+            if (!string.IsNullOrWhiteSpace(ownerGroupLdap.GroupWritePath))
+            {
+                return ownerGroupLdap.GroupWritePath;
+            }
+
+            if (!string.IsNullOrWhiteSpace(ownerGroupLdap.GroupSearchPath))
+            {
+                Log.WriteWarning(LogMessageTitle, "Owner LDAP group write path not set; falling back to group search path.");
+                return ownerGroupLdap.GroupSearchPath;
+            }
+
+            throw new InvalidOperationException("Owner LDAP group write path is missing and no group search path is configured.");
         }
 
         private string GetRoleDn(string role)

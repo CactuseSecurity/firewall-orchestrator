@@ -326,8 +326,9 @@ def get_global_assignments(api_v_url: str, sid: str, show_params_policy_structur
 
         # parse global assignments
         for assignment in assignments["objects"]:
-            global_assignment = parse_global_assignment(assignment)
-            global_assignments.append(global_assignment)
+            if "global-access-policy" in assignment:
+                global_assignment = parse_global_assignment(assignment)
+                global_assignments.append(global_assignment)
 
     return global_assignments
 
@@ -344,7 +345,7 @@ def get_rulebases(
     rulebase_uid: str | None = None,
     rulebase_name: str | None = None,
 ) -> list[str]:
-    # i access_type : access / nat
+    # access_type is either "access" or "nat"
     native_config_rulebase_key = "rulebases"
     current_rulebase = {}
 
@@ -635,11 +636,14 @@ def assign_placeholder_uids(
 
 
 def get_nat_rules_from_api_as_dict(
-    api_v_url: str, sid: str, show_params_rules: dict[str, Any], native_config_domain: dict[str, Any] | None = None
-):
-    if native_config_domain is None:
-        native_config_domain = {}
-    nat_rules: dict[str, list[Any]] = {"nat_rule_chunks": []}
+    policy_dict: dict[str, Any],
+    api_v_url: str,
+    sid: str,
+    show_params_rules: dict[str, Any],
+    native_config_domain: dict[str, Any],
+) -> dict[str, Any]:
+    """Gets NAT rulebases, uid and name are augmented with _nat for uniquenes of rulebase_links"""
+    nat_rules: dict[str, Any] = {"uid": policy_dict["uid"] + "_nat", "name": policy_dict["name"] + "_nat", "chunks": []}
     current = 0
     total = current + 1
     while current < total:
@@ -661,7 +665,7 @@ def get_nat_rules_from_api_as_dict(
         ]:
             resolve_ref_list_from_object_dictionary(rulebase, rule_field, native_config_domain=native_config_domain)
 
-        nat_rules["nat_rule_chunks"].append(rulebase)
+        nat_rules["chunks"].append(rulebase)
         if "total" in rulebase:
             total = rulebase["total"]
         else:

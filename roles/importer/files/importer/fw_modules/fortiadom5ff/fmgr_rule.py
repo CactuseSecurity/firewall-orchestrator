@@ -537,7 +537,7 @@ def get_and_link_global_rulebase(
         if not is_rulebase_already_fetched(
             native_config_global["rulebases"], rulebase_type_prefix + "_v6_" + global_pkg_name
         ):
-            # delete_v: hier auch options=options?
+            # TODO: should try options=options here
             fmgr_getter.update_config_with_fortinet_api_call(
                 native_config_global["rulebases"],
                 sid,
@@ -715,7 +715,7 @@ def get_nat_policy(
             )
 
 
-# delete_v: ab hier kann sehr viel weg, ich lasses vorerst zB für die nat
+# TODO: delte all unused code here after nat is working again
 # pure nat rules
 
 

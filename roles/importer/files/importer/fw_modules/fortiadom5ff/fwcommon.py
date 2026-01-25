@@ -45,7 +45,7 @@ def get_config(
         config_in.native_config["domains"].append(native_config_global)  # type: ignore #TYPING: None or not None this is the question  # noqa: PGH003
         adom_list = build_adom_list(import_state.state)
         adom_device_vdom_structure = build_adom_device_vdom_structure(adom_list, sid, fm_api_url)
-        # delete_v: das geht schief für unschöne adoms
+        # TODO: get_arbitrary_vdom may fail for pre-defined forti managers
         arbitrary_vdom_for_updateable_objects = get_arbitrary_vdom(adom_device_vdom_structure)
         adom_device_vdom_policy_package_structure = add_policy_package_to_vdoms(
             adom_device_vdom_structure, sid, fm_api_url

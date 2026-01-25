@@ -1,5 +1,6 @@
 import ast
 import json
+from copy import deepcopy
 from typing import Any
 
 from fwo_base import sanitize, sort_and_join_refs
@@ -28,7 +29,7 @@ def normalize_rulebases(
     native_config_global: dict[str, Any] | None,
     import_state: ImportState,
     normalized_config_dict: dict[str, Any],
-    normalized_config_global: dict[str, Any] | None,
+    normalized_config_global: dict[str, Any],
     is_global_loop_iteration: bool,
 ):
     normalized_config_dict["policies"] = []
@@ -38,7 +39,7 @@ def normalize_rulebases(
         uid_to_name_map[nw_obj["obj_uid"]] = nw_obj["obj_name"]
 
     fetched_rulebase_uids: list[str] = []
-    if normalized_config_global is not None and normalized_config_global != {}:
+    if normalized_config_global != {}:
         fetched_rulebase_uids.extend(
             [normalized_rulebase_global.uid for normalized_rulebase_global in normalized_config_global["policies"]]
         )
@@ -51,7 +52,7 @@ def normalize_rulebases(
             is_global_loop_iteration,
             import_state,
             normalized_config_dict,
-            normalized_config_global,  # type: ignore # TODO: check if normalized_config_global can be None, I am pretty sure it cannot be None here  # noqa: PGH003
+            normalized_config_global,
         )  # TODO: parse nat rulebase here
 
 
@@ -66,7 +67,7 @@ def normalize_rulebases_for_each_link_destination(
     normalized_config_global: dict[str, Any],
 ):
     for rulebase_link in gateway["rulebase_links"]:
-        if rulebase_link["to_rulebase_uid"] not in fetched_rulebase_uids and rulebase_link["to_rulebase_uid"] != "":
+        if rulebase_link["to_rulebase_uid"] not in fetched_rulebase_uids:
             rulebase_to_parse, is_section, is_placeholder = find_rulebase_to_parse(
                 native_config["rulebases"], rulebase_link["to_rulebase_uid"]
             )
@@ -77,6 +78,11 @@ def normalize_rulebases_for_each_link_destination(
                     native_config_global["rulebases"], rulebase_link["to_rulebase_uid"]
                 )
                 found_rulebase_in_global = True
+            # search in nat rulebases
+            if rulebase_to_parse == {}:
+                rulebase_to_parse, is_section, is_placeholder = find_rulebase_to_parse(
+                    native_config["nat_rulebases"], rulebase_link["to_rulebase_uid"]
+                )
             if rulebase_to_parse == {}:
                 FWOLogger.warning("found to_rulebase link without rulebase in nativeConfig: " + str(rulebase_link))
                 continue
@@ -86,10 +92,21 @@ def normalize_rulebases_for_each_link_destination(
             )
             fetched_rulebase_uids.append(rulebase_link["to_rulebase_uid"])
 
-            if found_rulebase_in_global:
-                normalized_config_global["policies"].append(normalized_rulebase)
-            else:
-                normalized_config_dict["policies"].append(normalized_rulebase)
+            append_normalized_rulebase(
+                normalized_config_dict, normalized_config_global, normalized_rulebase, found_rulebase_in_global
+            )
+
+
+def append_normalized_rulebase(
+    normalized_config_dict: dict[str, Any],
+    normalized_config_global: dict[str, Any],
+    normalized_rulebase: Rulebase,
+    found_rulebase_in_global: bool,
+):
+    if found_rulebase_in_global:
+        normalized_config_global["policies"].append(normalized_rulebase)
+    else:
+        normalized_config_dict["policies"].append(normalized_rulebase)
 
 
 def find_rulebase_to_parse(rulebase_list: list[dict[str, Any]], rulebase_uid: str) -> tuple[dict[str, Any], bool, bool]:
@@ -166,14 +183,11 @@ def parse_rulebase(
 ):
     if is_section:
         for rule in rulebase_to_parse["rulebase"]:
-            # delte_v sind import_id, parent_uid, config2import wirklich egal? Dann können wir diese argumente löschen - NAT ACHTUNG
-            parse_single_rule(rule, normalized_rulebase, normalized_rulebase.uid, None, gateway, policy_structure)
+            parse_single_rule(rule, normalized_rulebase, normalized_rulebase.uid, gateway, policy_structure)
 
             FWOLogger.debug("parsed rulebase " + normalized_rulebase.uid, 4)
     elif is_placeholder:
-        parse_single_rule(
-            rulebase_to_parse, normalized_rulebase, normalized_rulebase.uid, None, gateway, policy_structure
-        )
+        parse_single_rule(rulebase_to_parse, normalized_rulebase, normalized_rulebase.uid, gateway, policy_structure)
     else:
         parse_rulebase_chunk(rulebase_to_parse, normalized_rulebase, gateway, policy_structure)
 
@@ -187,7 +201,7 @@ def parse_rulebase_chunk(
     for chunk in rulebase_to_parse["chunks"]:
         for rule in chunk["rulebase"]:
             if "rule-number" in rule:
-                parse_single_rule(rule, normalized_rulebase, normalized_rulebase.uid, None, gateway, policy_structure)
+                parse_single_rule(rule, normalized_rulebase, normalized_rulebase.uid, gateway, policy_structure)
             else:
                 FWOLogger.debug("found unparsable rulebase: " + str(rulebase_to_parse), 9)
 
@@ -214,6 +228,7 @@ def accept_malformed_parts(objects: dict[str, Any] | list[dict[str, Any]], part:
     return {}
 
 
+# TODO: chunking in object dicts should not be neccessary if limit is high enough
 def parse_rule_part(
     objects: dict[str, Any] | list[dict[str, Any] | None] | None, part: str = "source"
 ) -> dict[str, Any]:
@@ -297,7 +312,6 @@ def parse_single_rule(
     native_rule: dict[str, Any],
     rulebase: Rulebase,
     layer_name: str,
-    parent_uid: str | None,
     gateway: dict[str, Any],
     policy_structure: list[dict[str, Any]],
 ):
@@ -306,99 +320,115 @@ def parse_single_rule(
         "type" in native_rule and native_rule["type"] != "place-holder" and "rule-number" in native_rule
     ):  # standard rule, no section header
         return
-    # the following objects might come in chunks:
-    source_objects: dict[str, str] = parse_rule_part(native_rule["source"], "source")
-    rule_src_ref, rule_src_name = sort_and_join_refs(list(source_objects.items()))
 
-    dst_objects: dict[str, str] = parse_rule_part(native_rule["destination"], "destination")
-    rule_dst_ref, rule_dst_name = sort_and_join_refs(list(dst_objects.items()))
-    svc_objects: dict[str, str] = parse_rule_part(native_rule["service"], "service")
-    rule_svc_ref, rule_svc_name = sort_and_join_refs(list(svc_objects.items()))
+    # start with values for both access and nat rules
+    last_change_admin = native_rule.get("meta-info", {}).get("last-modifier", None)
+    rule_name = native_rule.get("name")
     rule_enforced_on_gateways = parse_rule_enforced_on_gateway(gateway, policy_structure, native_rule=native_rule)
     list_of_gw_uids = sorted({enforceEntry.dev_uid for enforceEntry in rule_enforced_on_gateways})
     str_list_of_gw_uids = LIST_DELIMITER.join(list_of_gw_uids) if list_of_gw_uids else None
-
-    rule_track = _parse_track(native_rule=native_rule)
-
-    action_objects = parse_rule_part(native_rule["action"], "action")
-    if action_objects is not None:  # type: ignore # TODO: this should be never None # noqa: PGH003
-        rule_action = LIST_DELIMITER.join(action_objects.values())  # expecting only a single action
-    else:
-        rule_action = None
-        FWOLogger.warning("found rule without action: " + str(native_rule))
-
-    time_objects = parse_rule_part(native_rule["time"], "time")
-    rule_time = LIST_DELIMITER.join(time_objects.values()) if time_objects else None
-
-    # starting with the non-chunk objects
-    rule_name = native_rule.get("name")
-
-    # new in v8.0.3:
-    rule_custom_fields = native_rule.get("custom-fields")
-
-    # we leave out all last_admin info for now
-    last_change_admin = None
-
-    parent_rule_uid = _parse_parent_rule_uid(parent_uid, native_rule=native_rule)
-
-    # new in v5.5.1:
-    rule_type = native_rule.get("rule_type", "access")
-
     comments = native_rule.get("comments")
     if comments == "":
         comments = None
-
+    rule_custom_fields = native_rule.get("custom-fields")
     if "hits" in native_rule and "last-date" in native_rule["hits"] and "iso-8601" in native_rule["hits"]["last-date"]:
         last_hit = native_rule["hits"]["last-date"]["iso-8601"]
     else:
         last_hit = None
 
+    # objects only used in access rules
+    if native_rule["type"] == "access-rule":
+        source_negate = bool(native_rule["source-negate"])
+        destination_negate = bool(native_rule["destination-negate"])
+        service_negate = bool(native_rule["service-negate"])
+        source_objects: dict[str, str] = parse_rule_part(native_rule["source"], "source")
+        rule_src_ref, rule_src_name = sort_and_join_refs(list(source_objects.items()))
+        dst_objects: dict[str, str] = parse_rule_part(native_rule["destination"], "destination")
+        rule_dst_ref, rule_dst_name = sort_and_join_refs(list(dst_objects.items()))
+        svc_objects: dict[str, str] = parse_rule_part(native_rule["service"], "service")
+        rule_svc_ref, rule_svc_name = sort_and_join_refs(list(svc_objects.items()))
+        action_objects = parse_rule_part(native_rule["action"], "action")
+        rule_action = LIST_DELIMITER.join(action_objects.values())
+        rule_track = _parse_track(native_rule)
+        time_objects = parse_rule_part(native_rule["time"], "time")
+        rule_time = LIST_DELIMITER.join(time_objects.values()) if time_objects else None
+        rule_type = "access"
+    # objects only used in nat rules
+    elif native_rule["type"] == "nat-rule":
+        source_negate = False
+        destination_negate = False
+        service_negate = False
+        source_objects: dict[str, str] = parse_rule_part(native_rule["original-source"], "original-source")
+        rule_src_ref, rule_src_name = sort_and_join_refs(list(source_objects.items()))
+        dst_objects: dict[str, str] = parse_rule_part(native_rule["original-destination"], "original-destination")
+        rule_dst_ref, rule_dst_name = sort_and_join_refs(list(dst_objects.items()))
+        svc_objects: dict[str, str] = parse_rule_part(native_rule["original-service"], "original-service")
+        rule_svc_ref, rule_svc_name = sort_and_join_refs(list(svc_objects.items()))
+        rule_action = "drop"
+        rule_track = "none"
+        rule_time = None
+        rule_type = "nat"
+    else:
+        raise FwoImporterErrorInconsistenciesError(
+            "Rule " + native_rule["uid"] + " is neither access-rule nor nat-rule"
+        )
+
     rule: dict[str, Any] = {
+        "last_change_admin": sanitize(last_change_admin),
+        "rule_name": sanitize(rule_name),
+        "parent_rule_uid": None,
         "rule_num": 0,
         "rule_num_numeric": 0,
-        "rulebase_name": sanitize(layer_name),
+        "rule_uid": sanitize(native_rule["uid"]),
         "rule_disabled": not bool(native_rule["enabled"]),
-        "rule_src_neg": bool(native_rule["source-negate"]),
+        "rule_src_neg": source_negate,
+        "rule_dst_neg": destination_negate,
+        "rule_svc_neg": service_negate,
         "rule_src": sanitize(rule_src_name),
-        "rule_src_refs": sanitize(rule_src_ref),
-        "rule_dst_neg": bool(native_rule["destination-negate"]),
         "rule_dst": sanitize(rule_dst_name),
-        "rule_dst_refs": sanitize(rule_dst_ref),
-        "rule_svc_neg": bool(native_rule["service-negate"]),
         "rule_svc": sanitize(rule_svc_name),
+        "rule_src_refs": sanitize(rule_src_ref),
+        "rule_dst_refs": sanitize(rule_dst_ref),
         "rule_svc_refs": sanitize(rule_svc_ref),
         "rule_action": sanitize(rule_action, lower=True),
         "rule_track": sanitize(rule_track, lower=True),
         "rule_installon": sanitize(str_list_of_gw_uids),
         "rule_time": sanitize(rule_time),
-        "rule_name": sanitize(rule_name),
-        "rule_uid": sanitize(native_rule["uid"]),
-        "rule_custom_fields": sanitize(rule_custom_fields),
+        "rule_comment": sanitize(comments),
         "rule_implied": False,
+        "rule_custom_fields": sanitize(rule_custom_fields),
         "rule_type": sanitize(rule_type),
-        "last_change_admin": sanitize(last_change_admin),
-        "parent_rule_uid": sanitize(parent_rule_uid),
+        "rulebase_name": sanitize(layer_name),
         "last_hit": sanitize(last_hit),
     }
-    if comments is not None:
-        rule["rule_comment"] = sanitize(comments)
-    rulebase.rules.update({rule["rule_uid"]: RuleNormalized(**rule)})
 
+    if native_rule["type"] == "nat-rule":
+        rule.update({"xlate_rule": sanitize(native_rule["uid"] + "_translated")})
+        source_objects: dict[str, str] = parse_rule_part(native_rule["translated-source"], "translated-source")
+        rule_src_ref, rule_src_name = sort_and_join_refs(list(source_objects.items()))
+        dst_objects: dict[str, str] = parse_rule_part(native_rule["translated-destination"], "translated-destination")
+        rule_dst_ref, rule_dst_name = sort_and_join_refs(list(dst_objects.items()))
+        svc_objects: dict[str, str] = parse_rule_part(native_rule["translated-service"], "translated-service")
+        rule_svc_ref, rule_svc_name = sort_and_join_refs(list(svc_objects.items()))
 
-def _parse_parent_rule_uid(parent_uid: str | None, native_rule: dict[str, Any]) -> str | None:
-    # new in v5.1.17:
-    if "parent_rule_uid" in native_rule:
-        FWOLogger.debug(
-            "found rule (uid=" + native_rule["uid"] + ") with parent_rule_uid set: " + native_rule["parent_rule_uid"]
+        xlate_rule: dict[str, Any] = deepcopy(rule)
+        xlate_rule.update(
+            {
+                "rule_uid": sanitize(native_rule["uid"] + "_translated"),
+                "rule_src_neg": source_negate,
+                "rule_dst_neg": destination_negate,
+                "rule_svc_neg": service_negate,
+                "rule_src": sanitize(rule_src_name),
+                "rule_dst": sanitize(rule_dst_name),
+                "rule_svc": sanitize(rule_svc_name),
+                "rule_src_refs": sanitize(rule_src_ref),
+                "rule_dst_refs": sanitize(rule_dst_ref),
+                "rule_svc_refs": sanitize(rule_svc_ref),
+            }
         )
-        parent_rule_uid = native_rule["parent_rule_uid"]
-    else:
-        parent_rule_uid = parent_uid
+        rulebase.rules.update({rule["rule_uid"]: RuleNormalized(**xlate_rule)})
 
-    if parent_rule_uid == "":
-        parent_rule_uid = None
-
-    return parent_rule_uid
+    rulebase.rules.update({rule["rule_uid"]: RuleNormalized(**rule)})
 
 
 def _parse_track(native_rule: dict[str, Any]) -> str:
@@ -459,31 +489,6 @@ def resolve_nwobj_uid_to_name(nw_obj_uid: str) -> str:
         return uid_to_name_map[nw_obj_uid]
     FWOLogger.warning("could not resolve network object with uid " + nw_obj_uid)
     return ""
-
-
-# delete_v: left here only for nat case
-def check_and_add_section_header(
-    src_rulebase: dict[str, Any],
-    target_rulebase: Rulebase,
-    layer_name: str,
-    import_id: str,
-    section_header_uids: set[str],
-):
-    # TODO: re-implement
-    raise NotImplementedError("check_and_add_section_header is not implemented yet.")
-
-
-def insert_section_header_rule(
-    _target_rulebase: Rulebase,
-    _section_name: str,
-    _layer_name: str,
-    _import_id: str,
-    _src_rulebase_uid: str,
-    _section_header_uids: set[str],
-    _parent_uid: str,
-):
-    # TODO: re-implement
-    return
 
 
 def ensure_json(raw: str) -> Any:

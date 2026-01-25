@@ -1,0 +1,51 @@
+﻿@using FWO.Report
+
+@inject UserConfig userConfig
+
+@if(Extended)
+{
+    <Detail Title="@(userConfig.GetText("name"))" Data="@Rule.Name?.ToString()" />
+    <Detail Title="@(userConfig.GetText("uid"))" Data="@Rule.Uid?.ToString()" />
+    <Detail Title="@(userConfig.GetText("action"))" Data="@Rule.Action?.ToString()" />
+    <Detail Title="@(userConfig.GetText("track"))" Data="@Rule.Track?.ToString()" />
+    <Detail Title="@(userConfig.GetText("comment"))" Data="@Rule.Comment?.ToString()" />
+    <Detail Title="@(userConfig.GetText("enabled"))" Data="@((!Rule.Disabled).ToString())" />
+}
+@if(Rule.Metadata != null)
+{
+    <Detail Title="@(userConfig.GetText("created"))" Data="@Rule.Metadata?.Created?.ToString()" />
+    <Detail Title="@(userConfig.GetText("last_modified"))" Data="@Rule.Metadata?.LastModified?.ToString()" />
+    <Detail Title="@(userConfig.GetText("first_hit"))" Data="@Rule.Metadata?.FirstHit?.ToString()" />
+    <Detail Title="@(userConfig.GetText("last_hit"))" Data="@Rule.Metadata?.LastHit?.ToString()" />
+    <Detail Title="@(userConfig.GetText("last_certify_date"))" Data="@Rule.Metadata?.LastCertified?.ToString()" />
+    <Detail Title="@(userConfig.GetText("last_recertifier"))" Data="@GetLastRecertifier()" />
+    <Detail Title="@(userConfig.GetText("decert_date"))" Data="@Rule.Metadata?.DecertificationDate?.ToString()" />
+    <Detail Title="@(userConfig.GetText("recert_comment"))" Data="@Rule.Metadata?.Comment?.ToString()" />
+    <Detail Title="@(userConfig.GetText("recert_history"))" Data="@(Rule.Metadata?.RecertHistory.Count > 0 ? ":" : "")" />
+    @foreach(var recert in Rule.Metadata!.RecertHistory)
+    {
+        <Detail Title="@(recert.RecertDate.ToString())" Data="@(GetHistoryString(recert))" />
+    }
+}
+
+@code
+{
+    [Parameter]
+    public Rule Rule { get; set; } = new();
+
+    [Parameter]
+    public bool Extended { get; set; } = false;
+
+    private string GetLastRecertifier()
+    {
+        Recertification? latestRecert = Rule.Metadata?.RecertHistory.OrderByDescending(r => r.RecertDate).FirstOrDefault();
+        return latestRecert?.UserDn != null ? new DistName(latestRecert.UserDn).UserName : "";
+    }
+
+    private string GetHistoryString(Recertification recert)
+    {
+        string username = new DistName(recert.UserDn).UserName;
+        return $"{userConfig.GetText(recert.Recertified ? "recertified_by" : "decertified_by")} {username} " +
+            $"{userConfig.GetText("as_owner")} {recert.FwoOwner?.Name} {userConfig.GetText("comment")}: {recert.Comment}";
+    }
+}

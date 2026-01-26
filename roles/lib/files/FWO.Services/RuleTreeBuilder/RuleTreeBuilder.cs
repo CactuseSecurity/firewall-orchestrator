@@ -263,7 +263,7 @@ namespace FWO.Services.RuleTreeBuilder
 
         private FWO.Data.Rule GetUniqueRuleObject(FWO.Data.Rule rule)
         {
-            if (RuleTree.ElementsFlat.FirstOrDefault(treeItem => treeItem.Data != null && treeItem.Data.Id == rule.Id) is Rule existingRule)
+            if (RuleTree.ElementsFlat.FirstOrDefault(treeItem => treeItem.Data != null && treeItem.Data.Id == rule.Id)?.Data is Rule existingRule)
             {
                 return rule.CreateClone();
             }

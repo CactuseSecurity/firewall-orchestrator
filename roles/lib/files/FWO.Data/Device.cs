@@ -5,7 +5,7 @@ using Newtonsoft.Json;
 
 namespace FWO.Data
 {
-    public class Device : IEqualityComparer<Device>
+    public sealed class Device : IEqualityComparer<Device>
     {
         [JsonProperty("id"), JsonPropertyName("id")]
         public int Id { get; set; }

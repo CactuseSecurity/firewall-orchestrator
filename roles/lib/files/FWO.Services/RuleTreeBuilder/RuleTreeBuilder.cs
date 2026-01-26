@@ -298,8 +298,7 @@ namespace FWO.Services.RuleTreeBuilder
                 if (lastAddedItem.Parent != null)
                 {
                     SetParentForTreeItem((RuleTreeItem) lastAddedItem.Parent, item); 
-                }
-                
+                } 
             }
             else
             {
@@ -313,63 +312,6 @@ namespace FWO.Services.RuleTreeBuilder
             parent.Children.Add(item);
             parent.LastAddedItem = item;
         }
-
-        // /// <summary>
-        // /// Increments the position based on the last added item type. 
-        // /// </summary>
-        // /// <param name="lastAddedItem"></param>
-        // /// <param name="position"></param>
-        // /// <param name="rulebase"></param>
-        // private void IncrementPosition(RuleTreeItem lastAddedItem, List<int> position, RulebaseReport rulebase)
-        // {
-        //     if (lastAddedItem.IsOrderedLayerHeader)
-        //     {
-        //         position.Add(OrderedLayerCount);
-        //         position.Add(0);
-        //     }
-        //     else if (lastAddedItem.IsInlineLayerRoot)
-        //     {
-        //         position = lastAddedItem.Position?.ToList() ?? [];
-        //         position.Add(0);
-        //     }
-        //     else if (lastAddedItem.IsConcatenationRoot || lastAddedItem.IsSectionHeader)
-        //     {
-        //         if (lastAddedItem.Parent is RuleTreeItem lastAddedItemParent)
-        //         {
-        //             if (lastAddedItemParent.IsOrderedLayerHeader)
-        //             {
-        //                 position.Add(OrderedLayerCount);
-
-        //                 if (lastAddedItemParent.Children.Any(child => child != lastAddedItem) )
-        //                 {
-        //                     position.Add(0);
-        //                 }
-
-        //             }
-        //             else if (lastAddedItemParent.IsInlineLayerRoot)
-        //             {
-        //                 if (lastAddedItemParent.Children.Any())
-        //                 {
-        //                     position = lastAddedItemParent.LastAddedItem?.Position?.ToList() ?? [];
-        //                 }
-        //                 else
-        //                 {
-        //                     position = lastAddedItemParent.Position?.ToList() ?? [];
-        //                     position.Add(0);
-        //                 }
-
-
-        //                 position = lastAddedItemParent.Position?.ToList() ?? [];
-        //                 position.Add(0);
-        //             }
-        //             else
-        //             {
-        //                 position = lastAddedItemParent.Position?.ToList() ?? [];
-        //                 position.Add(0);
-        //             }
-        //         }
-        //     }
-        // }
 
         private int GetOrderLayerCount()
         {

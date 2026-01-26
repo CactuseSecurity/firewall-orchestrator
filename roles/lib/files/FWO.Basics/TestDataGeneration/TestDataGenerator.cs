@@ -198,7 +198,7 @@ namespace FWO.Basics.TestDataGeneration
             }
         }
 
-        private string GetRandomValueByProbability(Dictionary<string, double> valuesWithProbabilities)
+        private static string GetRandomValueByProbability(Dictionary<string, double> valuesWithProbabilities)
         {
             Random random = new();
 
@@ -209,12 +209,21 @@ namespace FWO.Basics.TestDataGeneration
                 throw new InvalidOperationException("The sum of the probabilities has to be equal 1.");
             }
 
-            // TODO: Select after probability
-            List<KeyValuePair<string, double>> values = valuesWithProbabilities.AsEnumerable<KeyValuePair<string, double>>().ToList();
+            double roll = random.NextDouble();
+            double cumulative = 0;
+            string lastKey = string.Empty;
 
-            int elementIndex = random.Next(valuesWithProbabilities.Count() - 1);
+            foreach (KeyValuePair<string, double> entry in valuesWithProbabilities)
+            {
+                cumulative += entry.Value;
+                lastKey = entry.Key;
+                if (roll <= cumulative)
+                {
+                    return entry.Key;
+                }
+            }
 
-            return values.ElementAt(elementIndex).Key;
+            return lastKey;
         }
     }
 

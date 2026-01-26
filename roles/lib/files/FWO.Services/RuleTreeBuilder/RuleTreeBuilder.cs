@@ -54,7 +54,19 @@ namespace FWO.Services.RuleTreeBuilder
                 trail = ProcessLink(nextLink, trail);
             }
 
-            return RuleTree.ElementsFlat.Where(item => ((RuleTreeItem) item).IsRule).Select(item => item.Data!).ToList();
+            List<Rule> allRules = new();
+
+            for (int i = 0; i < RuleTree.ElementsFlat.Count; i++)
+            {
+                RuleTreeItem treeItem = (RuleTreeItem) RuleTree.ElementsFlat[i];
+
+                if ((treeItem.IsRule || treeItem.IsSectionHeader) && treeItem.Data != null)
+                {
+                    allRules.Add(treeItem.Data);
+                }
+            }
+
+            return allRules;
         }
 
         public List<int> ProcessLink(RulebaseLink link, List<int>? trail = null)
@@ -120,7 +132,13 @@ namespace FWO.Services.RuleTreeBuilder
             sectionLinkItem.Header = rulebase.Name ?? "";
             sectionLinkItem.IsSectionHeader = true;
             SetParentForTreeItem(sectionLinkItem, link);
+            Rule newRule = new();
+            CreatedOrderNumbersCount++;
+            newRule.OrderNumber = CreatedOrderNumbersCount;
+            newRule.SectionHeader = rulebase.Name;
+            sectionLinkItem.Data = newRule;
             RuleTree.LastAddedItem = sectionLinkItem;
+            RuleTree.ElementsFlat.Add(sectionLinkItem);
 
             return trail;
         }

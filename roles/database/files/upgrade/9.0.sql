@@ -1909,3 +1909,12 @@ END$$;
 
 CREATE UNIQUE INDEX IF NOT EXISTS owner_responsible_owner_dn_type_unique ON owner_responsible(owner_id, dn, responsible_type);
 CREATE INDEX IF NOT EXISTS owner_responsible_dn_idx ON owner_responsible(dn);
+
+-- Changing primary key of *_resolved tables to include created timestamp
+-- This is necessary to store multiple resolutions for the same object/rule over time
+ALTER TABLE "rule_nwobj_resolved" DROP CONSTRAINT IF EXISTS "rule_nwobj_resolved_pkey";
+ALTER TABLE "rule_nwobj_resolved" ADD PRIMARY KEY ("mgm_id", "rule_id", "obj_id", "created");
+ALTER TABLE "rule_svc_resolved" DROP CONSTRAINT IF EXISTS "rule_svc_resolved_pkey";
+ALTER TABLE "rule_svc_resolved" ADD PRIMARY KEY ("mgm_id", "rule_id", "svc_id", "created");
+ALTER TABLE "rule_user_resolved" DROP CONSTRAINT IF EXISTS "rule_user_resolved_pkey";
+ALTER TABLE "rule_user_resolved" ADD PRIMARY KEY ("mgm_id", "rule_id", "user_id", "created");

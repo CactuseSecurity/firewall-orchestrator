@@ -13,7 +13,7 @@ namespace FWO.Services.RuleTreeBuilder
         List<RulebaseReport> Rulebases { get; set; }
         List<Rule> BuildRuleTree(RulebaseReport[] rulebases, RulebaseLink[] links);
         RulebaseLink? GetNextLink();
-        void ProcessLink(RulebaseLink link);
+        List<int> ProcessLink(RulebaseLink link, List<int>? trail = null);
         void Reset(RulebaseReport[] rulebases, RulebaseLink[] links);
     }
 }

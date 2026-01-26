@@ -895,7 +895,8 @@ CREATE OR REPLACE VIEW v_rule_with_rule_owner_1 AS
 	FROM v_active_access_allow_rules r
     JOIN rule_metadata met ON r.rule_uid = met.rule_uid
     JOIN rule_owner ro ON ro.rule_metadata_id = met.rule_metadata_id
-    JOIN owner ow ON ro.owner_id = ow.id;
+    JOIN owner ow ON ro.owner_id = ow.id
+    WHERE NOT ow.id IS NULL;
 
 CREATE OR REPLACE VIEW v_rule_with_src_owner AS 
 	SELECT

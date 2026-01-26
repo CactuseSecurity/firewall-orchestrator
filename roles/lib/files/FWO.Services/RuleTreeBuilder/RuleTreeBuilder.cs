@@ -61,7 +61,7 @@ namespace FWO.Services.RuleTreeBuilder
         {
             // Initialize trail if no trail is provided.
 
-            if (trail == null)
+            if (trail == null || link.LinkType == 2)
             {
                 trail = new();
             }
@@ -160,7 +160,9 @@ namespace FWO.Services.RuleTreeBuilder
                     
                     SetParentForTreeItem(ruleItem, link, lastAddedItem);
 
-                    if (i == 0 && (link.LinkType == 3 || link.LinkType == 2))
+                    if (i == 0 
+                            && (!(link.LinkType == 4) 
+                                || lastAddedItem.Parent?.Children.Count() ==1) )
                     {
                         trail = trail.ToList();
                         trail.Add(0);                        

@@ -15,12 +15,12 @@ namespace FWO.Services.RuleTreeBuilder
         /// The root item for the tree structure.
         /// </summary>
         public RuleTreeItem RuleTree { get; set; } = new();
-        
+
         /// <summary>
         /// The number of order numbers (i.e. number of processed rules) that were created during the process.
         /// </summary>
         public int CreatedOrderNumbersCount { get; set; }
-        
+
         /// <summary>
         /// A counter to easily create the order number for the ordered layers on the top level.
         /// </summary>

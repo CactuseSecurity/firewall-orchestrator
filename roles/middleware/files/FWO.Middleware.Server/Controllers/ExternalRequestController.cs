@@ -1,4 +1,4 @@
-﻿using FWO.Api.Client;
+using FWO.Api.Client;
 using FWO.Basics;
 using FWO.Config.Api;
 using FWO.Data;
@@ -16,15 +16,15 @@ namespace FWO.Middleware.Server.Controllers
     [Route("api/[controller]")]
     public class ExternalRequestController : ControllerBase
     {
-		private readonly ApiConnection apiConnection;
+        private readonly ApiConnection apiConnection;
 
         /// <summary>
 		/// Constructor needing jwt writer, ldap list and connection
 		/// </summary>
 		public ExternalRequestController(ApiConnection apiConnection)
-		{
-			this.apiConnection = apiConnection;
-		}
+        {
+            this.apiConnection = apiConnection;
+        }
 
         /// <summary>
         /// Add new ExternalRequest
@@ -38,10 +38,10 @@ namespace FWO.Middleware.Server.Controllers
         [Authorize(Roles = $"{Roles.Modeller}, {Roles.Admin}")]
         public async Task<bool> Post([FromBody] ExternalRequestAddParameters parameters)
         {
-            if(parameters.TicketId > 0)
+            if (parameters.TicketId > 0)
             {
                 GlobalConfig GlobalConfig = await GlobalConfig.ConstructAsync(apiConnection, true);
-                UserConfig userConfig = new(GlobalConfig, apiConnection, new(){ Language = GlobalConst.kEnglish });
+                UserConfig userConfig = new(GlobalConfig, apiConnection, new() { Language = GlobalConst.kEnglish });
 
                 ExternalRequestHandler extRequestHandler = new(userConfig, apiConnection);
                 return await extRequestHandler.SendFirstRequest(parameters.TicketId);
@@ -68,10 +68,10 @@ namespace FWO.Middleware.Server.Controllers
         [Authorize(Roles = $"{Roles.Admin}")]
         public async Task<bool> Change([FromBody] ExternalRequestPatchStateParameters parameters)
         {
-            if(parameters.ExtRequestId > 0)
+            if (parameters.ExtRequestId > 0)
             {
                 GlobalConfig GlobalConfig = await GlobalConfig.ConstructAsync(apiConnection, true);
-                UserConfig userConfig = new(GlobalConfig, apiConnection, new(){ Language = GlobalConst.kEnglish });
+                UserConfig userConfig = new(GlobalConfig, apiConnection, new() { Language = GlobalConst.kEnglish });
                 ExternalRequestHandler extRequestHandler = new(userConfig, apiConnection);
                 ExternalRequest extRequest = new()
                 {

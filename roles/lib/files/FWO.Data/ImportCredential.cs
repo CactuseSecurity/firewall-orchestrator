@@ -31,7 +31,7 @@ namespace FWO.Data
         public string? CloudClientSecret { get; set; }
 
         public ImportCredential()
-        {}
+        { }
 
         public ImportCredential(ImportCredential cred)
         {

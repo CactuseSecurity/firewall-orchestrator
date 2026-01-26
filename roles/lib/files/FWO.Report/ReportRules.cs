@@ -92,7 +92,7 @@ namespace FWO.Report
 
             await LogExecutionTime(phaseStopwatch, "Filling report data", true);
 
-            if(!ReportType.IsRulebaseReport())
+            if (!ReportType.IsRulebaseReport())
             {
                 TryBuildRuleTree();
             }
@@ -472,7 +472,7 @@ namespace FWO.Report
                 getItems: (dev, mgmt) => _rulesCache[(dev.Id, mgmt.Id)],
                 renderItem: rule => ruleDisplayJson.DisplayRuleJsonObject(rule, ReportType),
                 itemsPropertyName: "rules"
-            );            
+            );
         }
 
         public override string ExportToHtml()
@@ -494,7 +494,7 @@ namespace FWO.Report
                 report.AppendLine(Headline(managementReport.Name, 3));
                 report.AppendLine("<hr>");
 
-                if(ReportType.IsRulebaseReport())
+                if (ReportType.IsRulebaseReport())
                 {
                     foreach (var rulebase in managementReport.Rulebases)
                     {

@@ -1,4 +1,4 @@
-﻿using System.Text.Json.Serialization; 
+using System.Text.Json.Serialization;
 using Newtonsoft.Json;
 
 namespace FWO.Data.Workflow
@@ -22,9 +22,9 @@ namespace FWO.Data.Workflow
 
 
         public WfReqElement()
-        {}
+        { }
 
-        public WfReqElement(WfReqElement element) : base (element)
+        public WfReqElement(WfReqElement element) : base(element)
         {
             Id = element.Id;
             TaskId = element.TaskId;

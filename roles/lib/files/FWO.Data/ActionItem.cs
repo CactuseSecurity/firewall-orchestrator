@@ -33,7 +33,7 @@ namespace FWO.Data
         public bool Done { get; set; } = false;
 
         public ActionItem()
-        {}
+        { }
 
         public ActionItem(Alert alert)
         {

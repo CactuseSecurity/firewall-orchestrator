@@ -7,7 +7,7 @@ namespace FWO.Data.Report
     {
         [JsonProperty("complianceCheckScheduledDiffReportsIntervals"), JsonPropertyName("complianceCheckScheduledDiffReportsIntervals")]
         public Dictionary<int, int> ScheduledDiffReportsIntervals { get; set; } = new();
-        
+
     }
-    
+
 }

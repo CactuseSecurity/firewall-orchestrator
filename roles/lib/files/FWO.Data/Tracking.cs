@@ -1,4 +1,4 @@
-using System.Text.Json.Serialization; 
+using System.Text.Json.Serialization;
 using Newtonsoft.Json;
 
 namespace FWO.Data
@@ -7,6 +7,13 @@ namespace FWO.Data
     {
         [JsonProperty("track_id"), JsonPropertyName("track_id")]
         public int Id { get; set; }
+
+
+
+
+
+
+
 
         [JsonProperty("track_name"), JsonPropertyName("track_name")]
         public string Name { get; set; } = "";

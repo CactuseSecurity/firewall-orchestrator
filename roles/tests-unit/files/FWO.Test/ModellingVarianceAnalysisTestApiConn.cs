@@ -29,78 +29,78 @@ namespace FWO.Test
         {
             Name = "FWOC1",
             MgmtId = 1,
-            Froms = [ new(new(), NwObj2) ],
-            Tos = [ new(new(), Nwgroup1) ],
-            Services = [ new(){ Content = Svc1 } ]
+            Froms = [new(new(), NwObj2)],
+            Tos = [new(new(), Nwgroup1)],
+            Services = [new() { Content = Svc1 }]
         };
         static readonly Rule Rule2 = new()
         {
             Name = "xxxFWOC2yyy",
             MgmtId = 1,
-            Froms = [ new(new(), NwObj1) ],
-            Tos = [ new(new(), Nwgroup3) ],
-            Services = [ new(){ Content = Svc1 } ]
+            Froms = [new(new(), NwObj1)],
+            Tos = [new(new(), Nwgroup3)],
+            Services = [new() { Content = Svc1 }]
         };
         static readonly Rule Rule3 = new()
         {
             Id = 3,
             Name = "NonModelledRule",
             Comment = "XXX3",
-            Froms = [ new(new(), NwObj1) ],
+            Froms = [new(new(), NwObj1)],
             RulebaseId = 3
         };
         static readonly Rule Rule4 = new()
         {
             Name = "FWOC4",
             MgmtId = 1,
-            Froms = [ new(new(), SpecObj1), new(new(), NwObj1) ],
-            Tos = [ new(new(), SpecObj2) ],
-            Services = [ new(){ Content = Svc1 } ]
+            Froms = [new(new(), SpecObj1), new(new(), NwObj1)],
+            Tos = [new(new(), SpecObj2)],
+            Services = [new() { Content = Svc1 }]
         };
         static readonly Rule Rule5 = new()
         {
             Name = "FWOC1again",
             MgmtId = 1,
-            Froms = [ new(new(), NwObj2) ],
-            Tos = [ new(new(), Nwgroup1) ],
-            Services = [ new(){ Content = Svc2 } ]
+            Froms = [new(new(), NwObj2)],
+            Tos = [new(new(), Nwgroup1)],
+            Services = [new() { Content = Svc2 }]
         };
         static readonly Rule Rule6 = new()
         {
             Name = "FWOC5",
             MgmtId = 1,
-            Froms = [ new(new(), SpecObj1), new(new(), NwObj1) ],
-            Tos = [ new(new(), SpecObj2) ],
-            Services = [ new(){ Content = Svc1 } ]
+            Froms = [new(new(), SpecObj1), new(new(), NwObj1)],
+            Tos = [new(new(), SpecObj2)],
+            Services = [new() { Content = Svc1 }]
         };
         static readonly Rule Rule7 = new()
         {
             Name = "FWOC7_mgt1",
             MgmtId = 1,
-            Froms = [ new(new(), Nwgroup1) ],
-            Tos = [ new(new(), NwObj1) ],
-            Services = [ new(){ Content = Svc1 } ]
+            Froms = [new(new(), Nwgroup1)],
+            Tos = [new(new(), NwObj1)],
+            Services = [new() { Content = Svc1 }]
         };
         static readonly Rule Rule8 = new()
         {
             Name = "FWOC7_mgt2",
             MgmtId = 2,
-            Froms = [ new(new(), Nwgroup1) ],
-            Tos = [ new(new(), NwObj2) ],
-            Services = [ new(){ Content = Svc1 } ]
+            Froms = [new(new(), Nwgroup1)],
+            Tos = [new(new(), NwObj2)],
+            Services = [new() { Content = Svc1 }]
         };
         static readonly Rule Rule9 = new()
         {
             Name = "FWOC7_mgt3",
             MgmtId = 3,
-            Froms = [ new(new(), Nwgroup1) ],
-            Tos = [ new(new(), NwObj1), new(new(), NwObj2) ],
-            Services = [ new(){ Content = Svc1 } ]
+            Froms = [new(new(), Nwgroup1)],
+            Tos = [new(new(), NwObj1), new(new(), NwObj2)],
+            Services = [new() { Content = Svc1 }]
         };
         static readonly DeviceReport DevRep1 = new()
         {
             Id = 1,
-            RulebaseLinks = [ new() { GatewayId = 1, NextRulebaseId = 3 } ]
+            RulebaseLinks = [new() { GatewayId = 1, NextRulebaseId = 3 }]
         };
 
         public override async Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null)
@@ -198,7 +198,7 @@ namespace FWO.Test
             }
             else if (responseType == typeof(WfTicket))
             {
-                GraphQLResponse<dynamic> response = new() { Data = new WfTicket() { StateId = 631, CreationDate = new(1967,1,10,8,0,0, DateTimeKind.Utc), CompletionDate = new(2025,6,26,8,0,0, DateTimeKind.Utc), Requester = new(){Name = "Walter"}} };
+                GraphQLResponse<dynamic> response = new() { Data = new WfTicket() { StateId = 631, CreationDate = new(1967, 1, 10, 8, 0, 0, DateTimeKind.Utc), CompletionDate = new(2025, 6, 26, 8, 0, 0, DateTimeKind.Utc), Requester = new() { Name = "Walter" } } };
                 return response.Data;
             }
             else if (responseType == typeof(List<DeviceReport>))

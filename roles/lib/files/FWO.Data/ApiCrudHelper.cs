@@ -62,7 +62,7 @@ namespace FWO.Data
         [JsonProperty("rulebase"), JsonPropertyName("rulebase")]
         public RulebaseLastHit Rulebase { get; set; } = new RulebaseLastHit();
     }
-    
+
     public class RulebaseLastHit
     {
         [JsonProperty("rulesWithHits"), JsonPropertyName("rulesWithHits")]
@@ -80,7 +80,7 @@ namespace FWO.Data
         [JsonProperty("count"), JsonPropertyName("count")]
         public int Count { get; set; }
     }
-    
+
     public class DeleteAllViolationsResult
     {
         [JsonProperty("affected_rows"), JsonPropertyName("affected_rows")]

@@ -122,6 +122,6 @@ namespace FWO.Test.Mocks
         {
             base.TryBuildRuleTree();
         }
-        
+
     }
 }

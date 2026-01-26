@@ -11,7 +11,7 @@ namespace FWO.Data
         public List<string> Roles { get; set; } = new List<string>();
 
         public UserGroup()
-        {}
+        { }
 
         public UserGroup(UserGroup group)
         {
@@ -25,7 +25,7 @@ namespace FWO.Data
         public string UserList()
         {
             List<string> userNames = new List<string>();
-            foreach(UiUser user in Users)
+            foreach (UiUser user in Users)
             {
                 userNames.Add(user.Name);
             }

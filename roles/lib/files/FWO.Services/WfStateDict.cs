@@ -1,4 +1,4 @@
-﻿using FWO.Api.Client;
+using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 using FWO.Data.Workflow;
 
@@ -12,7 +12,7 @@ namespace FWO.Services
         {
             List<WfState> states = await apiConnection.SendQueryAsync<List<WfState>>(RequestQueries.getStates);
             Name = [];
-            foreach(var state in states)
+            foreach (var state in states)
             {
                 Name.Add(state.Id, state.Name);
             }

@@ -1,4 +1,4 @@
-﻿using FWO.Api.Client;
+using FWO.Api.Client;
 using FWO.Basics;
 using FWO.Config.Api;
 using FWO.Compliance;
@@ -54,14 +54,14 @@ namespace FWO.Middleware.Server.Controllers
             try
             {
                 GlobalConfig globalConfig = await GlobalConfig.ConstructAsync(apiConnection, true);
-                UserConfig userConfig = new(globalConfig, apiConnection, new(){ Language = GlobalConst.kEnglish });
+                UserConfig userConfig = new(globalConfig, apiConnection, new() { Language = GlobalConst.kEnglish });
 
                 ComplianceCheck complianceCheck = new(userConfig, apiConnection);
                 await complianceCheck.RunComplianceCheck(ComplianceCheckType.Standard);
 
                 ReportCompliance reportCompliance = new(new(""), userConfig, ReportType.ComplianceReport);
                 await reportCompliance.GetManagementAndDevices(apiConnection);
-                List<Management> relevantManagements =  ComplianceCheck.GetRelevantManagements(globalConfig, reportCompliance.Managements!);
+                List<Management> relevantManagements = ComplianceCheck.GetRelevantManagements(globalConfig, reportCompliance.Managements!);
                 reportCompliance.Managements = relevantManagements;
                 reportCompliance.GetViewDataFromRules(complianceCheck.RulesInCheck!);
                 string reportString = reportCompliance.ExportToCsv();
@@ -73,7 +73,7 @@ namespace FWO.Middleware.Server.Controllers
             }
             return "";
         }
-        
+
         /// <summary>
         /// Compliance Check
         /// </summary>

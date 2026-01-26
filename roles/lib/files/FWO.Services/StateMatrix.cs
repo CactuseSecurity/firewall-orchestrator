@@ -1,8 +1,8 @@
-﻿using FWO.Api.Client;
+using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 using FWO.Data.Workflow;
-using System.Text.Json.Serialization; 
-using Newtonsoft.Json; 
+using System.Text.Json.Serialization;
+using Newtonsoft.Json;
 
 namespace FWO.Services
 {
@@ -44,7 +44,7 @@ namespace FWO.Services
 
         public async Task Init(WorkflowPhases phase, ApiConnection apiConnection, WfTaskType taskType = WfTaskType.master)
         {
-            GlobalStateMatrix glbStateMatrix = new ();
+            GlobalStateMatrix glbStateMatrix = new();
             await glbStateMatrix.Init(apiConnection, taskType);
             Matrix = glbStateMatrix.GlobalMatrix[phase].Matrix;
             DerivedStates = glbStateMatrix.GlobalMatrix[phase].DerivedStates;
@@ -55,7 +55,7 @@ namespace FWO.Services
             foreach (var phas in glbStateMatrix.GlobalMatrix)
             {
                 PhaseActive.Add(phas.Key, glbStateMatrix.GlobalMatrix[phas.Key].Active);
-                if(glbStateMatrix.GlobalMatrix[phas.Key].Active && phas.Key > phase)
+                if (glbStateMatrix.GlobalMatrix[phas.Key].Active && phas.Key > phase)
                 {
                     IsLastActivePhase = false;
                 }
@@ -84,7 +84,7 @@ namespace FWO.Services
 
         public int getDerivedStateFromSubStates(List<int> statesIn)
         {
-            if(statesIn.Count == 0)
+            if (statesIn.Count == 0)
             {
                 return 0;
             }
@@ -97,25 +97,25 @@ namespace FWO.Services
             int openTasks = 0;
             int inWorkTasks = 0;
             int finishedTasks = 0;
-            foreach(int state in statesIn)
+            foreach (int state in statesIn)
             {
-                if(state < LowestInputState)
+                if (state < LowestInputState)
                 {
                     backAssignedTasks++;
-                    if(state < backAssignedState)
+                    if (state < backAssignedState)
                     {
                         backAssignedState = state;
                     }
                 }
-                else if(state < LowestStartedState)
+                else if (state < LowestStartedState)
                 {
                     openTasks++;
                     initState = state;
                 }
-                else if(state < LowestEndState)
+                else if (state < LowestEndState)
                 {
                     inWorkTasks++;
-                    if(state < inWorkState)
+                    if (state < inWorkState)
                     {
                         inWorkState = state;
                     }
@@ -123,26 +123,26 @@ namespace FWO.Services
                 else
                 {
                     finishedTasks++;
-                    if(state < minFinishedState)
+                    if (state < minFinishedState)
                     {
                         minFinishedState = state;
                     }
                 }
             }
 
-            if(backAssignedTasks > 0)
+            if (backAssignedTasks > 0)
             {
                 stateOut = backAssignedState;
             }
-            else if(inWorkTasks > 0)
+            else if (inWorkTasks > 0)
             {
                 stateOut = inWorkState;
             }
-            else if(finishedTasks == statesIn.Count)
+            else if (finishedTasks == statesIn.Count)
             {
                 stateOut = minFinishedState;
             }
-            else if(openTasks == statesIn.Count)
+            else if (openTasks == statesIn.Count)
             {
                 stateOut = initState;
             }
@@ -151,7 +151,7 @@ namespace FWO.Services
                 stateOut = LowestStartedState;
             }
 
-            if(DerivedStates.ContainsKey(stateOut))
+            if (DerivedStates.ContainsKey(stateOut))
             {
                 return DerivedStates[stateOut];
             }
@@ -181,7 +181,7 @@ namespace FWO.Services
                 _ => throw new NotSupportedException($"Error: wrong task type:" + taskType.ToString()),
             };
 
-            if(reset)
+            if (reset)
             {
                 matrixKey += "Default";
             }
@@ -205,7 +205,7 @@ namespace FWO.Services
         public async Task Init(WorkflowPhases phase, ApiConnection apiConnection)
         {
             Matrices = [];
-            foreach(WfTaskType taskType in Enum.GetValues(typeof(WfTaskType)))
+            foreach (WfTaskType taskType in Enum.GetValues(typeof(WfTaskType)))
             {
                 Matrices.Add(taskType.ToString(), new StateMatrix());
                 await Matrices[taskType.ToString()].Init(phase, apiConnection, taskType);

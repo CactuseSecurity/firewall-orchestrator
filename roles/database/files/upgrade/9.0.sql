@@ -755,7 +755,13 @@ ALTER TABLE IF EXISTS rule_metadata ADD COLUMN IF NOT EXISTS rule_created_new BI
 ALTER TABLE IF EXISTS rule_metadata ADD COLUMN IF NOT EXISTS rule_last_modified_new BIGINT;
 
 -- delete all stale rule_metadata entries
-DELETE FROM rule_metadata WHERE NOT EXISTS (SELECT 1 FROM rule r WHERE r.rule_uid = rule_metadata.rule_uid);
+DELETE FROM rule_metadata
+WHERE rule_uid IN (
+    SELECT rm.rule_uid
+    FROM rule_metadata rm
+    LEFT JOIN rule r ON r.rule_uid = rm.rule_uid
+    WHERE r.rule_uid IS NULL
+);
 
 UPDATE rule_metadata m SET
     rule_created_new = r.rule_create,
@@ -763,7 +769,6 @@ UPDATE rule_metadata m SET
 FROM rule r
 WHERE r.rule_uid = m.rule_uid;
 
-UPDATE rule_metadata SET rule_created_new = rule_created_new WHERE TRUE;
 UPDATE rule_metadata SET rule_last_modified_new = COALESCE(rule_last_modified_new, rule_created_new) WHERE TRUE;
 
 ALTER TABLE IF EXISTS rule_metadata DROP COLUMN IF EXISTS rule_created;

@@ -895,8 +895,7 @@ CREATE OR REPLACE VIEW v_rule_with_rule_owner_1 AS
 	FROM v_active_access_allow_rules r
     JOIN rule_metadata met ON r.rule_uid = met.rule_uid
     JOIN rule_owner ro ON ro.rule_metadata_id = met.rule_metadata_id
-    JOIN owner ow ON ro.owner_id = ow.id
-    WHERE NOT ow.id IS NULL;
+    JOIN owner ow ON ro.owner_id = ow.id;
 
 CREATE OR REPLACE VIEW v_rule_with_src_owner AS 
 	SELECT
@@ -976,7 +975,7 @@ CREATE MATERIALIZED VIEW view_rule_with_owner AS
 	r.rule_num_numeric, r.track_id, r.action_id, r.rule_from_zone, r.rule_to_zone, r.mgm_id, r.rule_uid,
 	r.rule_action, r.rule_name, r.rule_comment, r.rule_track, r.rule_src_neg, r.rule_dst_neg, r.rule_svc_neg,
 	r.rule_head_text, r.rule_disabled, r.access_rule, r.xlate_rule, r.nat_rule
-	FROM ( SELECT DISTINCT * FROM v_rule_with_rule_owner AS rul UNION SELECT DISTINCT * FROM v_rule_with_ip_owner AS ips) AS ar
+	FROM ( SELECT * FROM v_rule_with_rule_owner AS rul UNION SELECT * FROM v_rule_with_ip_owner AS ips) AS ar
     LEFT JOIN rule AS r USING (rule_id);
 
 GRANT SELECT ON TABLE view_rule_with_owner TO GROUP secuadmins, reporters, configimporters;

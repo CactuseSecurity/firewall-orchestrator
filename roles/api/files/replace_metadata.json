@@ -15344,7 +15344,16 @@
                 {
                   "name": "rule_metadatum",
                   "using": {
-                    "foreign_key_constraint_on": "rule_uid"
+                    "manual_configuration": {
+                      "remote_table": {
+                        "name": "rule_metadata",
+                        "schema": "public"
+                      },
+                      "column_mapping": {
+                        "mgm_id": "mgm_id",
+                        "rule_uid": "rule_uid"
+                      }
+                    }
                   }
                 },
                 {
@@ -16889,11 +16898,14 @@
                 {
                   "name": "rules",
                   "using": {
-                    "foreign_key_constraint_on": {
-                      "column": "rule_uid",
-                      "table": {
+                    "manual_configuration": {
+                      "remote_table": {
                         "name": "rule",
                         "schema": "public"
+                      },
+                      "column_mapping": {
+                        "mgm_id": "mgm_id",
+                        "rule_uid": "rule_uid"
                       }
                     }
                   }

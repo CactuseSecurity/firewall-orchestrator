@@ -594,14 +594,14 @@ Alter table "rule" drop constraint IF EXISTS "rule_metadata_dev_id_rule_uid_f_ke
 Alter Table "rule_metadata" drop Constraint IF EXISTS "rule_metadata_alt_key";
 
 ALTER TABLE rule_metadata DROP Constraint IF EXISTS "rule_metadata_rule_uid_unique" CASCADE;
-ALTER TABLE rule_metadata ADD Constraint "rule_metadata_rule_uid_unique" unique ("rule_uid");
 Alter table "rule" DROP constraint IF EXISTS "rule_rule_metadata_rule_uid_f_key";
 
-Alter table "rule" add constraint "rule_rule_metadata_rule_uid_f_key"
-  foreign key ("rule_uid") references "rule_metadata" ("rule_uid") on update restrict on delete cascade;
+-- composite fk is added after rule_metadata.mgm_id is populated
+
 
 -- rule_metadata add mgm_id + fk, drop constraint
 ALTER TABLE rule_metadata ADD COLUMN IF NOT EXISTS mgm_id Integer;
+
 DO $$
 BEGIN
     IF NOT EXISTS (
@@ -726,24 +726,25 @@ BEGIN
         END IF;
     END LOOP;
 	
-	    IF all_errors_with_no_resolve <> '' THEN
-			RAISE EXCEPTION 'Ambiguous mgm_id assignments detected:%s', all_errors_with_no_resolve;
-		END IF;
-	
-	-- redo constraints
-	    ALTER TABLE rule_metadata ALTER COLUMN mgm_id SET NOT NULL;
-        ALTER TABLE rule_metadata ADD CONSTRAINT rule_metadata_rule_uid_unique UNIQUE(rule_uid);
-        ALTER TABLE rule ADD CONSTRAINT rule_rule_metadata_rule_uid_f_key 
-            FOREIGN KEY (rule_uid) REFERENCES rule_metadata (rule_uid) ON UPDATE RESTRICT ON DELETE CASCADE;
-			
-			-- set Unique constraint to (mgm_id + rule_uid)
+    IF all_errors_with_no_resolve <> '' THEN
+        RAISE EXCEPTION 'Ambiguous mgm_id assignments detected:%s', all_errors_with_no_resolve;
+    END IF;
+
+    -- redo constraints
+    ALTER TABLE rule_metadata ALTER COLUMN mgm_id SET NOT NULL;
+        ALTER TABLE rule_metadata DROP CONSTRAINT IF EXISTS rule_metadata_rule_uid_unique;
         IF NOT EXISTS (
             SELECT 1
             FROM pg_constraint
             WHERE conname = 'rule_metadata_mgm_id_rule_uid_unique'
         ) THEN
-            ALTER TABLE rule_metadata ADD CONSTRAINT rule_metadata_mgm_id_rule_uid_unique UNIQUE (mgm_id, rule_uid);			
+            ALTER TABLE rule_metadata ADD CONSTRAINT rule_metadata_mgm_id_rule_uid_unique UNIQUE (mgm_id, rule_uid);
         END IF;
+        ALTER TABLE rule DROP CONSTRAINT IF EXISTS rule_rule_metadata_rule_uid_f_key;
+        ALTER TABLE rule DROP CONSTRAINT IF EXISTS rule_rule_metadata_mgm_id_rule_uid_f_key;
+        ALTER TABLE rule ADD CONSTRAINT rule_rule_metadata_mgm_id_rule_uid_f_key
+            FOREIGN KEY (mgm_id, rule_uid) REFERENCES rule_metadata (mgm_id, rule_uid)
+            ON UPDATE RESTRICT ON DELETE CASCADE;
 END$$;
 
 -- rework rule_metadata timestamps to reference import_control and drop unused columns
@@ -762,7 +763,7 @@ UPDATE rule_metadata m SET
 FROM rule r
 WHERE r.rule_uid = m.rule_uid;
 
-UPDATE rule_metadata SET rule_created_new = COALESCE(rule_created_new, 0) WHERE TRUE;
+UPDATE rule_metadata SET rule_created_new = rule_created_new WHERE TRUE;
 UPDATE rule_metadata SET rule_last_modified_new = COALESCE(rule_last_modified_new, rule_created_new) WHERE TRUE;
 
 ALTER TABLE IF EXISTS rule_metadata DROP COLUMN IF EXISTS rule_created;
@@ -1289,6 +1290,8 @@ Alter Table "rule" ADD Constraint "rule_unique_mgm_id_rule_uid_rule_create_xlate
 ALTER TABLE rule DROP CONSTRAINT IF EXISTS rule_dev_id_fkey;
 
 ALTER TABLE "rule_metadata" DROP CONSTRAINT IF EXISTS "rule_metadata_rulebase_id_f_key" CASCADE;
+ALTER TABLE "rule_metadata" DROP CONSTRAINT IF EXISTS "unique_rule_metadata_rule_uid_mgm_id";
+ALTER TABLE "rule_metadata" ADD CONSTRAINT "unique_rule_metadata_rule_uid_mgm_id" UNIQUE ("rule_uid","mgm_id");
 
 -- reverse last_seen / removed logic for objects
 ALTER TABLE "object" ADD COLUMN IF NOT EXISTS "removed" BIGINT;

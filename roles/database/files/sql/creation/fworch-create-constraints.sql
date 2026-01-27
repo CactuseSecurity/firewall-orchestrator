@@ -29,7 +29,6 @@ ALTER TABLE request.reqelement ADD CONSTRAINT port_in_valid_range CHECK (port > 
 ALTER TABLE request.implelement ADD CONSTRAINT port_in_valid_range CHECK (port > 0 and port <= 65535);
 -- Alter Table "rule" add Constraint "rule_altkey" UNIQUE ("dev_id","rule_uid","rule_create",xlate_rule);
 Alter Table "rule" ADD Constraint "rule_unique_mgm_id_rule_uid_rule_create_xlate_rule" UNIQUE ("mgm_id", "rule_uid","rule_create","xlate_rule");
-ALTER TABLE rule_metadata ADD Constraint "rule_metadata_rule_uid_unique" unique ("rule_uid");
 ALTER TABLE rule_metadata ADD CONSTRAINT rule_metadata_mgm_id_rule_uid_unique UNIQUE (mgm_id, rule_uid);
 Alter table "rulebase" add CONSTRAINT rulebase_uid_mgm_id_removed_key UNIQUE ("mgm_id", "uid", "removed");
 Alter table "rulebase_link" add CONSTRAINT unique_rulebase_link

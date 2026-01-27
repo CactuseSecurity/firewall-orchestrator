@@ -26,10 +26,10 @@ namespace FWO.Services.RuleTreeBuilder
         /// </summary>
         public int OrderedLayerCount { get; set; }
 
-        public List<RulebaseLink> RemainingLinks { get; set; } = new();  
+        public List<RulebaseLink> RemainingLinks { get; set; } = new();
         public List<RulebaseReport> Rulebases { get; set; } = new();
         public List<RulebaseLink> RemainingInlineLayerLinks { get; set; } = new();
-        
+
         #endregion
 
         #region Constructor
@@ -47,10 +47,9 @@ namespace FWO.Services.RuleTreeBuilder
         {
             Reset(rulebases, links);
             List<int>? trail = null;
-            
+
             while (GetNextLink() is RulebaseLink nextLink)
             {
-                
                 trail = ProcessLink(nextLink, trail);
             }
 
@@ -58,7 +57,7 @@ namespace FWO.Services.RuleTreeBuilder
 
             for (int i = 0; i < RuleTree.ElementsFlat.Count; i++)
             {
-                RuleTreeItem treeItem = (RuleTreeItem) RuleTree.ElementsFlat[i];
+                RuleTreeItem treeItem = (RuleTreeItem)RuleTree.ElementsFlat[i];
 
                 if ((treeItem.IsRule || treeItem.IsSectionHeader) && treeItem.Data != null)
                 {
@@ -93,7 +92,7 @@ namespace FWO.Services.RuleTreeBuilder
             {
                 trail = ProcessOrderedLayerLink(link, rulebase, trail);
             }
-            else if(RemainingInlineLayerLinks.Contains(link))
+            else if (RemainingInlineLayerLinks.Contains(link))
             {
                 trail = ProcessInlineLayerLink(link, rulebase, trail);
             }
@@ -106,7 +105,7 @@ namespace FWO.Services.RuleTreeBuilder
                 trail = ProcessConcatenationLink(link, rulebase, trail);
             }
 
-           // Create tree items for rules and for process inline layers.
+            // Create tree items for rules and for process inline layers.
 
             trail = ProcessRulebase(rulebase, link, trail);
 
@@ -119,7 +118,7 @@ namespace FWO.Services.RuleTreeBuilder
 
             inlineLayerItem.Header = rulebase.Name ?? "";
             inlineLayerItem.IsInlineLayerRoot = true;
-            SetParentForTreeItem(inlineLayerItem, link); 
+            SetParentForTreeItem(inlineLayerItem, link);
             RuleTree.LastAddedItem = inlineLayerItem;
 
             return trail;
@@ -166,7 +165,7 @@ namespace FWO.Services.RuleTreeBuilder
         {
             if (RuleTree.LastAddedItem != null)
             {
-                RuleTreeItem lastAddedItem = (RuleTreeItem) RuleTree.LastAddedItem;
+                RuleTreeItem lastAddedItem = (RuleTreeItem)RuleTree.LastAddedItem;
 
                 for (int i = 0; i < rulebase.Rules.Count(); i++)
                 {
@@ -175,48 +174,26 @@ namespace FWO.Services.RuleTreeBuilder
                     RuleTreeItem ruleItem = new();
                     ruleItem.IsRule = true;
                     ruleItem.Data = newRule;
-                    
+
                     SetParentForTreeItem(ruleItem, link, lastAddedItem);
 
-                    if (i == 0 
-                            && (!(link.LinkType == 4) 
-                                || lastAddedItem.Parent?.Children.Count() ==1) )
-                    {
-                        trail = trail.ToList();
-                        trail.Add(0);                        
-                    }
+                    trail = EnsureTrailStartsWithZeroForFirstRule(link, lastAddedItem, trail, i);
 
                     int bottomLevelNumber = trail.Last() + 1;
-                    trail[trail.Count - 1] = bottomLevelNumber;      
+                    trail[trail.Count - 1] = bottomLevelNumber;
 
                     newRule.DisplayOrderNumberString = string.Join(".", trail);
                     ruleItem.Position = trail.ToList();
                     CreatedOrderNumbersCount++;
                     newRule.OrderNumber = CreatedOrderNumbersCount;
-                    
+
                     RuleTree.ElementsFlat.Add(ruleItem);
                     RuleTree.LastAddedItem = ruleItem;
 
-                    if (RemainingInlineLayerLinks.Any(l => l.LinkType == 3 && l.FromRuleId == rulebase.Rules[i].Id))
-                    {
-                        RulebaseLink inlineLayerLink = RemainingInlineLayerLinks.First(l => l.LinkType == 3 && l.FromRuleId == rulebase.Rules[i].Id);
-                        RemainingInlineLayerLinks.Remove(inlineLayerLink);
-                        RemainingLinks.Remove(inlineLayerLink);
-                        List<int> innerTrail = ProcessLink(inlineLayerLink, trail);
-
-                        if ( RemainingLinks.FirstOrDefault(x => inlineLayerLink.NextRulebaseId == x.FromRulebaseId ) != null )
-                        {
-                            RulebaseLink? nextLink = GetNextLink();
-                            if (nextLink != null)
-                            {
-                                innerTrail = ProcessLink(nextLink, innerTrail);
-                            }
-                            
-                        }
-                    }
+                    ProcessInlineLayerLinksForRule(rulebase, i, trail);
                 }
 
-                RuleTree.LastAddedItem = lastAddedItem;                
+                RuleTree.LastAddedItem = lastAddedItem;
             }
 
             return trail;
@@ -261,7 +238,7 @@ namespace FWO.Services.RuleTreeBuilder
 
         #region Methods - Private
 
-        private FWO.Data.Rule GetUniqueRuleObject(FWO.Data.Rule rule)
+        private Rule GetUniqueRuleObject(Rule rule)
         {
             if (RuleTree.ElementsFlat.FirstOrDefault(treeItem => treeItem.Data != null && treeItem.Data.Id == rule.Id)?.Data is Rule existingRule)
             {
@@ -273,6 +250,39 @@ namespace FWO.Services.RuleTreeBuilder
             }
         }
 
+        private List<int> EnsureTrailStartsWithZeroForFirstRule(RulebaseLink link, RuleTreeItem lastAddedItem, List<int> trail, int index)
+        {
+            if (index == 0
+                    && (!(link.LinkType == 4)
+                        || lastAddedItem.Parent?.Children.Count() == 1))
+            {
+                trail = trail.ToList();
+                trail.Add(0);
+            }
+
+            return trail;
+        }
+
+        private void ProcessInlineLayerLinksForRule(RulebaseReport rulebase, int ruleIndex, List<int> trail)
+        {
+            if (RemainingInlineLayerLinks.Any(l => l.LinkType == 3 && l.FromRuleId == rulebase.Rules[ruleIndex].Id))
+            {
+                RulebaseLink inlineLayerLink = RemainingInlineLayerLinks.First(l => l.LinkType == 3 && l.FromRuleId == rulebase.Rules[ruleIndex].Id);
+                RemainingInlineLayerLinks.Remove(inlineLayerLink);
+                RemainingLinks.Remove(inlineLayerLink);
+                List<int> innerTrail = ProcessLink(inlineLayerLink, trail);
+
+                if (RemainingLinks.FirstOrDefault(x => inlineLayerLink.NextRulebaseId == x.FromRulebaseId) != null)
+                {
+                    RulebaseLink? nextLink = GetNextLink();
+                    if (nextLink != null)
+                    {
+                        ProcessLink(nextLink, innerTrail);
+                    }
+                }
+            }
+        }
+
         private void SetParentForTreeItem(RuleTreeItem item, RulebaseLink link, RuleTreeItem? parentOverride = null)
         {
             if (item.IsRule && parentOverride != null)
@@ -280,29 +290,26 @@ namespace FWO.Services.RuleTreeBuilder
                 SetParentForTreeItem(parentOverride, item);
                 return;
             }
-            
-            if (RuleTree.LastAddedItem is RuleTreeItem lastAddedItem && (lastAddedItem.Parent is RuleTreeItem parent || lastAddedItem.IsRoot) )
+
+            if (RuleTree.LastAddedItem is RuleTreeItem lastAddedItem && (lastAddedItem.Parent is RuleTreeItem parent || lastAddedItem.IsRoot))
             {
-                if(RemainingInlineLayerLinks.Contains(link))
+                if (RemainingInlineLayerLinks.Contains(link))
                 {
                     SetParentForTreeItem(lastAddedItem, item);
                 }
                 else if (link.IsSection)
-                {   
-                   SetParentForSectionTreeItem(lastAddedItem, item);
+                {
+                    SetParentForSectionTreeItem(lastAddedItem, item);
                 }
                 else if (link.LinkType == 2)
                 {
                     SetParentForTreeItem(RuleTree, item);
                 }
-                else if (link.LinkType == 4)
+                else if (link.LinkType == 4 && lastAddedItem.Parent != null)
                 {
-                    if(lastAddedItem.Parent != null)
-                    {
-                        SetParentForTreeItem((RuleTreeItem) lastAddedItem.Parent, item); 
-                    }
-                }                
-            }            
+                    SetParentForTreeItem((RuleTreeItem)lastAddedItem.Parent, item);
+                }
+            }
         }
 
         private void SetParentForSectionTreeItem(RuleTreeItem lastAddedItem, RuleTreeItem item)
@@ -311,12 +318,9 @@ namespace FWO.Services.RuleTreeBuilder
             {
                 SetParentForTreeItem(RuleTree, item);
             }
-            else if (lastAddedItem.IsSectionHeader == true)
+            else if (lastAddedItem.IsSectionHeader == true && lastAddedItem.Parent != null)
             {
-                if (lastAddedItem.Parent != null)
-                {
-                    SetParentForTreeItem((RuleTreeItem) lastAddedItem.Parent, item); 
-                } 
+                SetParentForTreeItem((RuleTreeItem)lastAddedItem.Parent, item);
             }
             else
             {
@@ -333,7 +337,7 @@ namespace FWO.Services.RuleTreeBuilder
 
         private int GetOrderLayerCount()
         {
-           return RuleTree.Children.Count(treeItem => ((RuleTreeItem )treeItem).IsOrderedLayerHeader);
+            return RuleTree.Children.Count(treeItem => ((RuleTreeItem)treeItem).IsOrderedLayerHeader);
         }
 
         #endregion

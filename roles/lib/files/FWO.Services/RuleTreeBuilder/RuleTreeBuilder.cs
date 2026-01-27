@@ -7,6 +7,9 @@ using Rule = FWO.Data.Rule;
 
 namespace FWO.Services.RuleTreeBuilder
 {
+    /// <summary>
+    /// Builds a rule tree and order numbers from rulebases and their links.
+    /// </summary>
     public class RuleTreeBuilder : IRuleTreeBuilder
     {
         #region Properties & fields
@@ -17,7 +20,7 @@ namespace FWO.Services.RuleTreeBuilder
         public RuleTreeItem RuleTree { get; set; } = new();
 
         /// <summary>
-        /// The number of order numbers (i.e. number of processed rules) that were created during the process.
+        /// The number of order numbers that were created during the process.
         /// </summary>
         public int CreatedOrderNumbersCount { get; set; }
 
@@ -26,14 +29,28 @@ namespace FWO.Services.RuleTreeBuilder
         /// </summary>
         public int OrderedLayerCount { get; set; }
 
+        /// <summary>
+        /// Links that are still available to be processed.
+        /// </summary>
         public List<RulebaseLink> RemainingLinks { get; set; } = new();
+
+        /// <summary>
+        /// Rulebases available to the current build.
+        /// </summary>
         public List<RulebaseReport> Rulebases { get; set; } = new();
+
+        /// <summary>
+        /// Inline layer links that are still available to be processed.
+        /// </summary>
         public List<RulebaseLink> RemainingInlineLayerLinks { get; set; } = new();
 
         #endregion
 
         #region Constructor
 
+        /// <summary>
+        /// Creates a new builder with an initialized root node.
+        /// </summary>
         public RuleTreeBuilder()
         {
             RuleTree.IsRoot = true;
@@ -43,15 +60,22 @@ namespace FWO.Services.RuleTreeBuilder
 
         #region Methods - Public
 
+        /// <summary>
+        /// Builds the rule tree and returns the flattened list of rule data.
+        /// </summary>
         public List<Rule> BuildRuleTree(RulebaseReport[] rulebases, RulebaseLink[] links)
         {
             Reset(rulebases, links);
             List<int>? trail = null;
 
+            // Iterate links in processing order to build the tree and order numbers.
+
             while (GetNextLink() is RulebaseLink nextLink)
             {
                 trail = ProcessLink(nextLink, trail);
             }
+
+            // Returns the Rule objects of the flattened rule tree. Will be deprecated  as soon as we have the TreeView component.
 
             List<Rule> allRules = new();
 
@@ -68,6 +92,9 @@ namespace FWO.Services.RuleTreeBuilder
             return allRules;
         }
 
+        /// <summary>
+        /// Processes a single link and its rulebase, returning the updated trail.
+        /// </summary>
         public List<int> ProcessLink(RulebaseLink link, List<int>? trail = null)
         {
             // Initialize trail if no trail is provided.
@@ -77,7 +104,7 @@ namespace FWO.Services.RuleTreeBuilder
                 trail = new();
             }
 
-            // Get next rulebease.
+            // Get next rulebase.
 
             RulebaseReport? rulebase = Rulebases.FirstOrDefault(rb => rb.Id == link.NextRulebaseId);
 
@@ -86,7 +113,7 @@ namespace FWO.Services.RuleTreeBuilder
                 throw new InvalidOperationException("Rulebase for link could not be found.");
             }
 
-            // Create tree item for rulebase.
+            // Create tree item for the rulebase link type.
 
             if (link.LinkType == 2)
             {
@@ -105,13 +132,16 @@ namespace FWO.Services.RuleTreeBuilder
                 trail = ProcessConcatenationLink(link, rulebase, trail);
             }
 
-            // Create tree items for rules and for process inline layers.
+            // Create tree items for rules and then process inline layers.
 
             trail = ProcessRulebase(rulebase, link, trail);
 
             return trail;
         }
 
+        /// <summary>
+        /// Processes an inline layer link by adding its root item to the tree.
+        /// </summary>
         public List<int> ProcessInlineLayerLink(RulebaseLink link, RulebaseReport rulebase, List<int> trail)
         {
             RuleTreeItem inlineLayerItem = new RuleTreeItem();
@@ -124,6 +154,9 @@ namespace FWO.Services.RuleTreeBuilder
             return trail;
         }
 
+        /// <summary>
+        /// Processes a section link by adding a section header rule to the tree.
+        /// </summary>
         public List<int> ProcessSectionLink(RulebaseLink link, RulebaseReport rulebase, List<int> trail)
         {
             RuleTreeItem sectionLinkItem = new();
@@ -142,6 +175,9 @@ namespace FWO.Services.RuleTreeBuilder
             return trail;
         }
 
+        /// <summary>
+        /// Processes an ordered layer link and adds its header to the tree.
+        /// </summary>
         public List<int> ProcessOrderedLayerLink(RulebaseLink link, RulebaseReport rulebase, List<int> trail)
         {
             RuleTreeItem orderedLayerItem = new();
@@ -156,11 +192,17 @@ namespace FWO.Services.RuleTreeBuilder
             return trail;
         }
 
+        /// <summary>
+        /// Processes a concatenation link (currently handled like a section link).
+        /// </summary>
         public List<int> ProcessConcatenationLink(RulebaseLink link, RulebaseReport rulebase, List<int> trail)
         {
             return ProcessSectionLink(link, rulebase, trail); // TODO: Differentiate between concatenation and section if needed
         }
 
+        /// <summary>
+        /// Processes all rules of the rulebase and attaches them to the tree.
+        /// </summary>
         public List<int> ProcessRulebase(RulebaseReport rulebase, RulebaseLink link, List<int> trail)
         {
             if (RuleTree.LastAddedItem != null)
@@ -178,6 +220,8 @@ namespace FWO.Services.RuleTreeBuilder
                     SetParentForTreeItem(ruleItem, link, lastAddedItem);
 
                     trail = EnsureTrailStartsWithZeroForFirstRule(link, lastAddedItem, trail, i);
+
+                    // Increment the lowest level for the next rule order number.
 
                     int bottomLevelNumber = trail.Last() + 1;
                     trail[trail.Count - 1] = bottomLevelNumber;
@@ -199,6 +243,9 @@ namespace FWO.Services.RuleTreeBuilder
             return trail;
         }
 
+        /// <summary>
+        /// Returns the next link to process, preferring initial links.
+        /// </summary>
         public RulebaseLink? GetNextLink()
         {
             // Get initial first
@@ -222,6 +269,9 @@ namespace FWO.Services.RuleTreeBuilder
             return nextLink;
         }
 
+        /// <summary>
+        /// Resets all state for a new build.
+        /// </summary>
         public void Reset(RulebaseReport[] rulebases, RulebaseLink[] links)
         {
             RemainingLinks = links.ToList();
@@ -238,6 +288,9 @@ namespace FWO.Services.RuleTreeBuilder
 
         #region Methods - Private
 
+        /// <summary>
+        /// Ensures a rule with a duplicate ID gets cloned instead of reused.
+        /// </summary>
         private Rule GetUniqueRuleObject(Rule rule)
         {
             if (RuleTree.ElementsFlat.FirstOrDefault(treeItem => treeItem.Data != null && treeItem.Data.Id == rule.Id)?.Data is Rule existingRule)
@@ -250,6 +303,9 @@ namespace FWO.Services.RuleTreeBuilder
             }
         }
 
+        /// <summary>
+        /// Ensures the trail starts with a zero for the first rule in a sequence.
+        /// </summary>
         private List<int> EnsureTrailStartsWithZeroForFirstRule(RulebaseLink link, RuleTreeItem lastAddedItem, List<int> trail, int index)
         {
             if (index == 0
@@ -263,6 +319,9 @@ namespace FWO.Services.RuleTreeBuilder
             return trail;
         }
 
+        /// <summary>
+        /// Processes any inline layer link that starts from the current rule.
+        /// </summary>
         private void ProcessInlineLayerLinksForRule(RulebaseReport rulebase, int ruleIndex, List<int> trail)
         {
             if (RemainingInlineLayerLinks.Any(l => l.LinkType == 3 && l.FromRuleId == rulebase.Rules[ruleIndex].Id))
@@ -283,6 +342,9 @@ namespace FWO.Services.RuleTreeBuilder
             }
         }
 
+        /// <summary>
+        /// Determines the correct parent for a tree item based on the link type.
+        /// </summary>
         private void SetParentForTreeItem(RuleTreeItem item, RulebaseLink link, RuleTreeItem? parentOverride = null)
         {
             if (item.IsRule && parentOverride != null)
@@ -312,6 +374,9 @@ namespace FWO.Services.RuleTreeBuilder
             }
         }
 
+        /// <summary>
+        /// Sets the parent for a section item, handling root and section headers.
+        /// </summary>
         private void SetParentForSectionTreeItem(RuleTreeItem lastAddedItem, RuleTreeItem item)
         {
             if (lastAddedItem.IsRoot)
@@ -328,6 +393,9 @@ namespace FWO.Services.RuleTreeBuilder
             }
         }
 
+        /// <summary>
+        /// Assigns parent-child relationship and updates last-added pointer.
+        /// </summary>
         private void SetParentForTreeItem(RuleTreeItem parent, RuleTreeItem item)
         {
             item.Parent = parent;
@@ -335,6 +403,9 @@ namespace FWO.Services.RuleTreeBuilder
             parent.LastAddedItem = item;
         }
 
+        /// <summary>
+        /// Counts top-level ordered layer headers to build their order number.
+        /// </summary>
         private int GetOrderLayerCount()
         {
             return RuleTree.Children.Count(treeItem => ((RuleTreeItem)treeItem).IsOrderedLayerHeader);

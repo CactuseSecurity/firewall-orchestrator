@@ -67,7 +67,10 @@
     public ReportType ReportType { get; set; } = ReportType.Recertification;
 
     private List<FwoOwner> ownerList = [];
-    private FwoOwner? selectedOwner = null;
+    private FwoOwner? selectedOwner;
+    private bool ownerSet = false;
+    private const int AllId = -1;
+    private const int UnselectedId = -2;
 
 
     protected override async Task OnInitializedAsync()
@@ -77,7 +80,7 @@
             ownerList = await apiConnection.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getOwners);
             if(ownerList.Count > 0)
             {
-                ownerList.Add(new(){ Id = -1, Name = userConfig.GetText("all")});
+                ownerList.Add(new(){ Id = AllId, Name = userConfig.GetText("all")});
                 ownerList = [.. ownerList.OrderBy(o => o.Id)];
             }
             else
@@ -85,6 +88,7 @@
                 DisplayMessageInUi(null, userConfig.GetText("no_owners"), "", true);
             }
             RecertFilter.RecertificationDisplayPeriod = Convert.ToInt32(userConfig.RecertificationDisplayPeriod);
+            selectedOwner = new(){ Id = UnselectedId };
         }
         catch (Exception exception)
         {
@@ -94,25 +98,45 @@
 
     protected override void OnParametersSet()
     {
-        if(selectedOwner == null)
+        if(!ownerSet)
         {
-            if(RecertFilter.RecertOwnerList.Count > 0)
+            ownerSet = true;
+            InitOwner();
+        }
+    }
+
+    private void InitOwner()
+    {
+        if(RecertFilter.RecertOwnerList.Count > 0 && !CheckForAll())
+        {
+            FwoOwner? preselectedOwner = ownerList.FirstOrDefault(o => o.Id == RecertFilter.RecertOwnerList[0]);
+            if (preselectedOwner != null)
             {
-                selectedOwner = ownerList.FirstOrDefault(o => o.Id == RecertFilter.RecertOwnerList[0]);
-            }
-            else if (ownerList.Count > 0)
-            {
-                selectedOwner = ownerList[0];
+                selectedOwner = preselectedOwner;
+                return;
             }
         }
+        if (ownerList.Count > 0)
+        {
+            selectedOwner = ownerList[0];
+        }
+    }
+
+    private bool CheckForAll()
+    {
+        return !ownerList.Select(o => o.Id).Where(id => id >= 0).Any(x => !RecertFilter.RecertOwnerList.Contains(x));
     }
 
     private void SelectedOwnerChanged(FwoOwner newOwner)
     {
         selectedOwner = newOwner;
-        if(newOwner.Id == -1)
+        if(newOwner.Id == AllId)
         {
             RecertFilter.RecertOwnerList = [.. ownerList.Select(o => o.Id).Where(id => id >= 0)];
+        }
+        else if(newOwner.Id == UnselectedId)
+        {
+            RecertFilter.RecertOwnerList = [];
         }
         else
         {

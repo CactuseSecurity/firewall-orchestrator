@@ -1,8 +1,3 @@
--- next steps:
-   -- add rule_to, rule_service to importer
-   -- consolidate: not only first import but also subsequent imports should work
-   -- improve rollback - currently if import stops in the middle, the rollback is not automatically called
-
 -- pre 9.0 upgrade scripts
 
 --- 8.6.3
@@ -204,9 +199,6 @@ insert into config (config_key, config_value, config_user) VALUES ('modDecommEma
 insert into config (config_key, config_value, config_user) VALUES ('modDecommEmailBody', '', 0) ON CONFLICT DO NOTHING;
 
 alter table report add column if not exists read_only Boolean default FALSE;
-
--- alter table owner_recertification drop constraint if exists owner_recertification_owner_foreign_key;
--- ALTER TABLE owner_recertification ADD CONSTRAINT owner_recertification_owner_foreign_key FOREIGN KEY (owner_id) REFERENCES owner(id) ON UPDATE RESTRICT ON DELETE CASCADE;
 
 DO $$
 BEGIN
@@ -781,7 +773,6 @@ ALTER TABLE IF EXISTS rule_metadata
     ALTER COLUMN rule_created SET NOT NULL,
     ALTER COLUMN rule_last_modified SET NOT NULL;
 
-
 -- rebuild recertification related views/materialized view
 DROP MATERIALIZED VIEW IF EXISTS view_rule_with_owner CASCADE;
 DROP VIEW IF EXISTS v_rule_with_ip_owner CASCADE;
@@ -1273,6 +1264,8 @@ AS $function$
         PERFORM addRuleEnforcedOnGatewayEntries();
     END;
 $function$;
+
+-- end of rule_metadata migration
 
 DO $$
 BEGIN

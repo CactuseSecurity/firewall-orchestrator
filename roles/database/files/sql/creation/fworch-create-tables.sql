@@ -417,8 +417,8 @@ Create table "objgrp_flat"
 	"active" Boolean NOT NULL Default TRUE,
 	"import_created" BIGINT NOT NULL,
 	"import_last_seen" BIGINT NOT NULL,
-	"negated" Boolean NOT NULL Default FALSE
-	"removed" BIGINT,
+	"negated" Boolean NOT NULL Default FALSE,
+	"removed" BIGINT
 );
 
 Create table "svcgrp_flat"
@@ -428,8 +428,8 @@ Create table "svcgrp_flat"
 	"import_created" BIGINT NOT NULL,
 	"import_last_seen" BIGINT NOT NULL,
 	"active" Boolean NOT NULL Default TRUE,
-	"negated" Boolean NOT NULL Default FALSE
-	"removed" BIGINT,
+	"negated" Boolean NOT NULL Default FALSE,
+	"removed" BIGINT
 );
 
 -- uiuser - change metadata -------------------------------------

@@ -200,7 +200,6 @@ Create table "rule_metadata"
 	"rule_uid" Text NOT NULL,
 	"mgm_id" Integer NOT NULL,
 	"rule_created" BIGINT NOT NULL,
-	"rule_last_modified" BIGINT NOT NULL,
 	"rule_first_hit" Timestamp,
 	"rule_last_hit" Timestamp,
 	"rule_hit_counter" BIGINT,

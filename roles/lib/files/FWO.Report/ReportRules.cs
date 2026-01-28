@@ -110,7 +110,7 @@ namespace FWO.Report
             if (reset)
             {
                 stopwatch.Reset();
-                stopwatch.Start();                
+                stopwatch.Start();
             }
 
             return Task.CompletedTask;

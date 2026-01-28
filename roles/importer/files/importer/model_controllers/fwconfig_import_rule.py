@@ -716,7 +716,7 @@ class FwConfigImportRule:
         new_rule_ids: list[int] = []
 
         add_new_rule_metadata_mutation = """mutation upsertRuleMetadata($ruleMetadata: [rule_metadata_insert_input!]!) {
-             insert_rule_metadata(objects: $ruleMetadata, on_conflict: {constraint: rule_metadata_mgm_id_rule_uid_unique, update_columns: [rule_last_modified]}) {
+             insert_rule_metadata(objects: $ruleMetadata, on_conflict: {constraint: rule_metadata_mgm_id_rule_uid_unique, update_columns: []}) {
                 affected_rows
                 returning {
                     rule_metadata_id
@@ -843,7 +843,6 @@ class FwConfigImportRule:
                 rm4import = RuleMetadatum(
                     rule_uid=rule_uid,
                     mgm_id=self.import_details.state.mgm_details.current_mgm_id,
-                    rule_last_modified=self.import_details.state.import_id,
                     rule_created=self.import_details.state.import_id,
                     rule_last_hit=rule.last_hit,
                 )

@@ -951,6 +951,14 @@ GRANT SELECT ON TABLE view_rule_with_owner TO GROUP secuadmins, reporters, confi
 
 ALTER TABLE rule_metadata DROP COLUMN IF EXISTS "rulebase_id";
 ALTER TABLE rule_metadata DROP COLUMN IF EXISTS "dev_id";
+-- Remove rule_metadata.rule_last_modified and its constraint
+ALTER TABLE IF EXISTS rule_metadata
+    DROP CONSTRAINT IF EXISTS rule_metadata_rule_last_modified_import_control_control_id_f_key CASCADE;
+
+ALTER TABLE IF EXISTS rule_metadata
+    DROP COLUMN IF EXISTS rule_last_modified;
+
+
 
 -----------------------------------------------
 -- bulid rule-rulebase graph

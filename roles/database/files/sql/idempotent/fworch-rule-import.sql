@@ -431,9 +431,7 @@ BEGIN
 			RAISE NOTICE 'rule_change with svc, dst or svc = NULL: %', r_to_import.rule_uid;			
 		ELSE
 			SELECT INTO r_meta rule_metadata_id FROM rule_metadata WHERE dev_id=i_dev_id AND rule_uid=r_to_import.rule_uid;
-			IF FOUND THEN
-				UPDATE rule_metadata SET rule_last_modified=now() WHERE dev_id=i_dev_id AND rule_uid=CAST(r_to_import.rule_uid AS TEXT);
-			ELSE
+			IF NOT FOUND THEN
 				INSERT INTO rule_metadata (rule_uid, dev_id) VALUES(r_to_import.rule_uid, i_dev_id);
 			END IF;
 			i_parent_rule_id := NULL;

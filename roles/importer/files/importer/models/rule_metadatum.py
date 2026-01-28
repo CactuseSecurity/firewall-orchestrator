@@ -6,7 +6,6 @@ class RuleMetadatum(BaseModel):
     rule_uid: str
     mgm_id: int
     rule_created: int
-    rule_last_modified: int
     rule_last_hit: str | None = None
 
 

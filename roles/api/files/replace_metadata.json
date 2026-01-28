@@ -6888,18 +6888,6 @@
                   }
                 },
                 {
-                  "name": "ruleMetadataByRuleLastModified",
-                  "using": {
-                    "foreign_key_constraint_on": {
-                      "column": "rule_last_modified",
-                      "table": {
-                        "name": "rule_metadata",
-                        "schema": "public"
-                      }
-                    }
-                  }
-                },
-                {
                   "name": "ruleNwobjResolvedsByRemoved",
                   "using": {
                     "foreign_key_constraint_on": {
@@ -16862,12 +16850,6 @@
                   "using": {
                     "foreign_key_constraint_on": "rule_created"
                   }
-                },
-                {
-                  "name": "last_modified_import",
-                  "using": {
-                    "foreign_key_constraint_on": "rule_last_modified"
-                  }
                 }
               ],
               "array_relationships": [
@@ -16922,7 +16904,6 @@
                       "rule_first_hit",
                       "rule_hit_counter",
                       "rule_last_hit",
-                      "rule_last_modified",
                       "rule_metadata_id",
                       "rule_uid"
                     ]
@@ -16939,7 +16920,6 @@
                       "rule_first_hit",
                       "rule_hit_counter",
                       "rule_last_hit",
-                      "rule_last_modified",
                       "rule_metadata_id",
                       "rule_uid"
                     ],
@@ -16956,7 +16936,6 @@
                       "rule_first_hit",
                       "rule_hit_counter",
                       "rule_last_hit",
-                      "rule_last_modified",
                       "rule_metadata_id",
                       "rule_uid"
                     ],
@@ -16973,7 +16952,6 @@
                       "rule_first_hit",
                       "rule_hit_counter",
                       "rule_last_hit",
-                      "rule_last_modified",
                       "rule_metadata_id",
                       "rule_uid"
                     ],
@@ -16990,7 +16968,6 @@
                       "rule_first_hit",
                       "rule_hit_counter",
                       "rule_last_hit",
-                      "rule_last_modified",
                       "rule_metadata_id",
                       "rule_uid"
                     ],
@@ -17007,7 +16984,6 @@
                       "rule_first_hit",
                       "rule_hit_counter",
                       "rule_last_hit",
-                      "rule_last_modified",
                       "rule_metadata_id",
                       "rule_uid"
                     ],
@@ -17024,7 +17000,6 @@
                       "rule_first_hit",
                       "rule_hit_counter",
                       "rule_last_hit",
-                      "rule_last_modified",
                       "rule_metadata_id",
                       "rule_uid"
                     ],
@@ -17041,7 +17016,6 @@
                       "rule_first_hit",
                       "rule_hit_counter",
                       "rule_last_hit",
-                      "rule_last_modified",
                       "rule_metadata_id",
                       "rule_uid"
                     ],
@@ -17058,7 +17032,6 @@
                       "rule_first_hit",
                       "rule_hit_counter",
                       "rule_last_hit",
-                      "rule_last_modified",
                       "rule_metadata_id",
                       "rule_uid"
                     ],
@@ -17077,7 +17050,6 @@
                       "rule_first_hit",
                       "rule_hit_counter",
                       "rule_last_hit",
-                      "rule_last_modified",
                       "rule_metadata_id",
                       "rule_uid"
                     ],

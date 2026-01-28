@@ -66,6 +66,7 @@ exclude = [
 ]
 
 [tool.ruff.lint]
+select = ["ALL"]
 ignore = [
     "ANN",     # flake8-annotations: Type annotation checks
     "COM",     # flake8-commas: Trailing comma checks
@@ -114,15 +115,22 @@ ignore = [
     "B904",    # Within an except clause, raise exceptions with raise ... from err
     "S113",    # Probable use of requests call without timeout
     "S104",    # Possible binding to all interfaces
+    "S101",    # Usage of assert 
 ]
 fixable = ["ALL"]
 dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
+
+[tool.ruff.lint.per-file-ignores]
+"roles/importer/files/importer/unit_tests/**.py" = ["SLF001", "PLR2004"]
+
 
 [tool.ruff.format]
 quote-style = "double"
 indent-style = "space"
 skip-magic-trailing-comma = false
 line-ending = "auto"
+
+
 
 [tool.pytest.ini_options]
 pythonpath = [

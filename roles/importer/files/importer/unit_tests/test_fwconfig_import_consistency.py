@@ -1310,7 +1310,7 @@ class TestRulebaseConsistency:
             rules_per_rulebase_count=10,
         )
 
-        rule_uid = list(config.rulebases[0].rules.keys())[0]
+        rule_uid = next(iter(config.rulebases[0].rules.keys()))
         config.rulebases[0].rules[rule_uid].rule_track = "NonExistent"  # pyright: ignore[reportAttributeAccessIssue]
 
         manager = FwConfigManager(
@@ -1349,7 +1349,7 @@ class TestRulebaseConsistency:
             rules_per_rulebase_count=10,
         )
 
-        rule_uid = list(config.rulebases[0].rules.keys())[0]
+        rule_uid = next(iter(config.rulebases[0].rules.keys()))
         config.rulebases[0].rules[rule_uid].rule_action = "NonExistent"  # pyright: ignore[reportAttributeAccessIssue]
 
         manager = FwConfigManager(
@@ -1516,7 +1516,7 @@ class TestZoneObjectConsistency:
         self,
         import_state_controller: ImportStateController,
         fw_config_import_object: FwConfigImportObject,
-        fwconfig_builder: FwConfigBuilder,
+        fwconfig_builder: FwConfigBuilder,  # noqa: ARG002
     ):
         manager_controller = FwConfigManagerListController()
 
@@ -1552,7 +1552,7 @@ class TestZoneObjectConsistency:
             rules_per_rulebase_count=10,
         )
 
-        rule_uid = list(config.rulebases[0].rules.keys())[0]
+        rule_uid = next(iter(config.rulebases[0].rules.keys()))
         config.rulebases[0].rules[rule_uid].rule_src_zone = "NonExistent"  # pyright: ignore[reportAttributeAccessIssue]
 
         empty_manager = FwConfigManager(
@@ -1588,7 +1588,7 @@ class TestZoneObjectConsistency:
             rules_per_rulebase_count=10,
         )
 
-        rule_uid = list(config.rulebases[0].rules.keys())[0]
+        rule_uid = next(iter(config.rulebases[0].rules.keys()))
         config.rulebases[0].rules[rule_uid].rule_dst_zone = "NonExistent"  # pyright: ignore[reportAttributeAccessIssue]
 
         empty_manager = FwConfigManager(

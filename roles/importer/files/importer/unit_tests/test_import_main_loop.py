@@ -163,5 +163,5 @@ class TestImportSingleManagement:
         # Assert
         mock_wait.assert_called_with(0)
         mock_get_mgm_details.assert_called_once()
-        mock_initialize_import.assert_called_once_with(1, api_call, False, True, False, 9, False, True)
+        mock_initialize_import.assert_called_once_with(1, api_call, False, True, False, 9, False, True)  # noqa: FBT003
         mock_register_global_state.assert_called_once_with(import_state_controller)

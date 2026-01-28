@@ -41,9 +41,9 @@ def mock_fwconfig_import_rule_side_effects(fwconfig_import_rule: FwConfigImportR
     def side_effect_mark_rules_removed(removed_rule_uids: dict[str, list[int]]) -> tuple[int, list[int]]:
         changes = 0
         collected_removed_rule_ids: list[int] = []
-        for rulebase in removed_rule_uids:
-            changes += len(removed_rule_uids[rulebase])
-            collected_removed_rule_ids.extend(removed_rule_uids[rulebase])
+        for rule_ids in removed_rule_uids.values():
+            changes += len(rule_ids)
+            collected_removed_rule_ids.extend(rule_ids)
 
         return changes, collected_removed_rule_ids
 
@@ -86,16 +86,18 @@ def mock_fwconfig_import_rule_side_effects(fwconfig_import_rule: FwConfigImportR
 @pytest.fixture
 def mock_api_call_response(api_call: FwoApiCall):
     def api_call_side_effect(
-        query: str, query_variables: dict[str, dict[str, Any]], analyze_payload: bool = False
+        query: str,  # noqa: ARG001
+        query_variables: dict[str, dict[str, Any]],
+        analyze_payload: bool = False,  # noqa: ARG001
     ) -> dict[str, Any]:
         outcome: dict[str, Any] = {"data": {}}
 
-        if "ruleMetadata" in query_variables.keys():
+        if "ruleMetadata" in query_variables:
             outcome["data"].update(
                 {"insert_rule_metadata": {"affected_rows": len(query_variables.get("ruleMetadata", []))}}
             )
 
-        if "rulebases" in query_variables.keys():
+        if "rulebases" in query_variables:
             outcome["data"].update(
                 {
                     "insert_rulebase": {
@@ -105,7 +107,7 @@ def mock_api_call_response(api_call: FwoApiCall):
                 }
             )
 
-        if "uids" in query_variables.keys() and "objects" in query_variables.keys():
+        if "uids" in query_variables and "objects" in query_variables:
             outcome["data"].update(
                 {
                     "update_rule": {
@@ -125,7 +127,7 @@ def mock_api_call_response(api_call: FwoApiCall):
                 }
             )
 
-        if "ruleFroms" in query_variables.keys():
+        if "ruleFroms" in query_variables:
             outcome["data"].update(
                 {
                     "insert_rule_from": {
@@ -190,11 +192,11 @@ class TestFwconfigImportRuleUpdateRulebaseDiffOldMigration:
         fwconfig_import_rule: FwConfigImportRule,
         fwconfig_builder: FwConfigBuilder,
         global_state: GlobalState,
-        mock_graphql: None,
-        mock_uid2id_mapper_response: None,
-        mock_api_connection_response: None,
-        mock_fwconfig_import_rule_side_effects: None,
-        mock_api_call_response: None,
+        mock_graphql: None,  # noqa: ARG002
+        mock_uid2id_mapper_response: None,  # noqa: ARG002
+        mock_api_connection_response: None,  # noqa: ARG002
+        mock_fwconfig_import_rule_side_effects: None,  # noqa: ARG002
+        mock_api_call_response: None,  # noqa: ARG002
     ):
         # Arrange
         config, _ = fwconfig_builder.build_config(

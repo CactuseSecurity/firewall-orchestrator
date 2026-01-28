@@ -3,10 +3,9 @@
 from __future__ import annotations
 
 import random
-from typing import Any, Iterable, TypeVar
+from typing import TYPE_CHECKING, Any, TypeVar
 
 from fwo_const import DUMMY_IP, LIST_DELIMITER, RULE_NUM_NUMERIC_STEPS
-from model_controllers.fwconfig_import_gateway import FwConfigImportGateway
 from models.fwconfig_normalized import FwConfigNormalized
 from models.gateway import Gateway
 from models.networkobject import NetworkObject
@@ -20,6 +19,10 @@ from services.uid2id_mapper import Uid2IdMap, Uid2IdMapper
 
 from .uid_manager import UidManager
 
+if TYPE_CHECKING:
+    from collections.abc import Iterable
+
+    from model_controllers.fwconfig_import_gateway import FwConfigImportGateway
 T = TypeVar("T")
 
 
@@ -32,7 +35,7 @@ class FwConfigBuilder:
 
     def reset(self) -> None:
         self.uid_manager = UidManager()
-        self._rng = random.Random(self._seed)
+        self._rng = random.Random(self._seed)  # noqa: S311
 
     def build_config(
         self,
@@ -308,7 +311,7 @@ class FwConfigBuilder:
             )
         ]
 
-        for previous, current in zip(config.rulebases, config.rulebases[1:]):
+        for previous, current in zip(config.rulebases, config.rulebases[1:], strict=False):
             last_rule_uid = list(previous.rules.keys())[-1]
             links.append(
                 RulebaseLinkUidBased(
@@ -362,12 +365,9 @@ class FwConfigBuilder:
         uid2id_mapper: Uid2IdMapper,
     ):
         new_rb_links: list[RulebaseLink] = []
-        link_id = 0
         rb_link_controller = fwconfig_import_gateway.get_rb_link_controller()
 
-        for link in rulebase_links:
-            link_id += 1
-
+        for link_id, link in enumerate(rulebase_links):
             link_type = 0
             match link.link_type:
                 case "ordered":

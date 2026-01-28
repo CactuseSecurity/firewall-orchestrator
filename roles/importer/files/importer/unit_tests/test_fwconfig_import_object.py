@@ -19,14 +19,14 @@ from unit_tests.utils.config_builder import FwConfigBuilder
 from unit_tests.utils.test_utils import mock_get_graphql_code
 
 
-class PartialDict(dict[str, Any]):
+class PartialDict(dict[str, Any]):  # noqa: PLW1641
     def __eq__(self, other: object) -> bool:
         try:
             if not isinstance(other, dict):
                 return False
 
             # Checks if this dict's keys/values are a subset of 'other'
-            other_dict: dict[str, Any] = cast(dict[str, Any], other)
+            other_dict: dict[str, Any] = cast("dict[str, Any]", other)
             return all(other_dict.get(k) == v for k, v in self.items())
         except Exception:
             return False
@@ -154,7 +154,9 @@ class TestFwConfigImportObjectAddChangelogObjs:
 
 class TestFwConfigImportObjectPrepareChangelogObjects:
     def test_prepare_changelog_objects(
-        self, fwconfig_import_object: FwConfigImportObject, import_state_controller: ImportStateController
+        self,
+        fwconfig_import_object: FwConfigImportObject,
+        import_state_controller: ImportStateController,  # noqa: ARG002
     ):
         # Act
         nwobjs_changed, svcobjs_changed = fwconfig_import_object.prepare_changelog_objects(
@@ -323,7 +325,9 @@ class TestFwConfigImportObjectPrepareChangelogObjects:
         ]
 
     def test_prepare_changelog_objects_with_logged_changes(
-        self, fwconfig_import_object: FwConfigImportObject, import_state_controller: ImportStateController
+        self,
+        fwconfig_import_object: FwConfigImportObject,
+        import_state_controller: ImportStateController,  # noqa: ARG002
     ):
         # Arrange
         change_logger = ChangeLogger()
@@ -1027,7 +1031,7 @@ class TestFwConfigImportObjectAddGroupMemberships:
         assert mock_logger.call_count == 1
         assert (
             mock_logger.call_args[0][0]
-            == f"failed to add group memberships: no id found for group uid '{list(fwconfig_import_object.normalized_config.network_objects.keys())[0]}'"
+            == f"failed to add group memberships: no id found for group uid '{next(iter(fwconfig_import_object.normalized_config.network_objects.keys()))}'"
         )
 
     def test_add_group_memberships_with_changes(
@@ -1106,7 +1110,7 @@ class TestFwConfigImportObjectFindRemovedObjects:
             removed_flats=removed_flats,
             removed_members=removed_members,
             typ=Type.NETWORK_OBJECT,
-            uid=list(prev_config.network_objects.values())[0].obj_uid,
+            uid=next(iter(prev_config.network_objects.values())).obj_uid,
         )
 
         # Assert
@@ -1136,7 +1140,7 @@ class TestFwConfigImportObjectFindRemovedObjects:
             removed_flats=removed_flats,
             removed_members=removed_members,
             typ=Type.NETWORK_OBJECT,
-            uid=list(prev_config.network_objects.values())[0].obj_uid,
+            uid=next(iter(prev_config.network_objects.values())).obj_uid,
         )
 
         # Assert
@@ -1171,7 +1175,7 @@ class TestFwConfigImportObjectFindRemovedObjects:
             removed_flats=removed_flats,
             removed_members=removed_members,
             typ=Type.NETWORK_OBJECT,
-            uid=list(prev_config.network_objects.values())[0].obj_uid,
+            uid=next(iter(prev_config.network_objects.values())).obj_uid,
         )
 
         # Assert
@@ -1239,7 +1243,7 @@ class TestFwConfigImportObjectFindRemovedObjects:
             removed_flats=removed_flats,
             removed_members=removed_members,
             typ=Type.NETWORK_OBJECT,
-            uid=list(prev_config.network_objects.values())[0].obj_uid,
+            uid=next(iter(prev_config.network_objects.values())).obj_uid,
         )
 
         # Assert
@@ -1539,7 +1543,7 @@ class TestFwConfigImportObjectGetMembers:
     def test_get_members_network_object_empty(
         self,
         fwconfig_import_object: FwConfigImportObject,
-        mocker: MockerFixture,
+        mocker: MockerFixture,  # noqa: ARG002
     ):
         # Act
         members = fwconfig_import_object.get_members(Type.NETWORK_OBJECT, "")
@@ -1550,7 +1554,7 @@ class TestFwConfigImportObjectGetMembers:
     def test_get_members_network_object(
         self,
         fwconfig_import_object: FwConfigImportObject,
-        mocker: MockerFixture,
+        mocker: MockerFixture,  # noqa: ARG002
     ):
         # Act
         members = fwconfig_import_object.get_members(
@@ -1566,7 +1570,7 @@ class TestFwConfigImportObjectGetMembers:
     def test_get_members_service_object_empty(
         self,
         fwconfig_import_object: FwConfigImportObject,
-        mocker: MockerFixture,
+        mocker: MockerFixture,  # noqa: ARG002
     ):
         # Act
         members = fwconfig_import_object.get_members(Type.SERVICE_OBJECT, "")
@@ -1577,7 +1581,7 @@ class TestFwConfigImportObjectGetMembers:
     def test_get_members_service_object(
         self,
         fwconfig_import_object: FwConfigImportObject,
-        mocker: MockerFixture,
+        mocker: MockerFixture,  # noqa: ARG002
     ):
         # Act
         members = fwconfig_import_object.get_members(
@@ -1599,7 +1603,7 @@ class TestFwConfigImportObjectGetRefs:
     ):
         # Arrange
         config, _ = fwconfig_builder.build_config(network_object_count=1)
-        obj = list(config.network_objects.values())[0]
+        obj = next(iter(config.network_objects.values()))
         obj.obj_member_refs = "some-uid" + LIST_DELIMITER + "some-user@another-uid"
 
         # Act
@@ -1615,7 +1619,7 @@ class TestFwConfigImportObjectGetRefs:
     ):
         # Arrange
         config, _ = fwconfig_builder.build_config(service_object_count=1)
-        obj = list(config.service_objects.values())[0]
+        obj = next(iter(config.service_objects.values()))
         obj.svc_member_refs = "some-uid" + LIST_DELIMITER + "some-user@another-uid"
 
         # Act
@@ -1645,7 +1649,7 @@ class TestFwConfigImportObjectIsGroup:
     ):
         # Arrange
         config, _ = fwconfig_builder.build_config(network_object_count=1)
-        obj = list(config.network_objects.values())[0]
+        obj = next(iter(config.network_objects.values()))
         obj.obj_typ = "group"
 
         # Act
@@ -1661,7 +1665,7 @@ class TestFwConfigImportObjectIsGroup:
     ):
         # Arrange
         config, _ = fwconfig_builder.build_config(network_object_count=1)
-        obj = list(config.network_objects.values())[0]
+        obj = next(iter(config.network_objects.values()))
         obj.obj_typ = "not-a-group"
 
         # Act
@@ -1677,7 +1681,7 @@ class TestFwConfigImportObjectIsGroup:
     ):
         # Arrange
         config, _ = fwconfig_builder.build_config(service_object_count=1)
-        obj = list(config.service_objects.values())[0]
+        obj = next(iter(config.service_objects.values()))
         obj.svc_typ = "group"
 
         # Act
@@ -1693,7 +1697,7 @@ class TestFwConfigImportObjectIsGroup:
     ):
         # Arrange
         config, _ = fwconfig_builder.build_config(service_object_count=1)
-        obj = list(config.service_objects.values())[0]
+        obj = next(iter(config.service_objects.values()))
         obj.svc_typ = "not-a-group"
 
         # Act
@@ -2501,10 +2505,10 @@ class TestFwConfigImportObjectUpdateObjectDiffs:
 
         curr_config = copy.deepcopy(prev_config)
 
-        first_nwobj_uid = list(prev_config.network_objects.keys())[0]
-        first_svcobj_uid = list(prev_config.service_objects.keys())[0]
-        first_userobj_uid = list(prev_config.users.keys())[0]
-        first_zone_name = list(prev_config.zone_objects.keys())[0]
+        first_nwobj_uid = next(iter(prev_config.network_objects.keys()))
+        first_svcobj_uid = next(iter(prev_config.service_objects.keys()))
+        first_userobj_uid = next(iter(prev_config.users.keys()))
+        first_zone_name = next(iter(prev_config.zone_objects.keys()))
 
         first_nwobj = curr_config.network_objects[first_nwobj_uid]
         first_svcobj = curr_config.service_objects[first_svcobj_uid]
@@ -2546,11 +2550,11 @@ class TestFwConfigImportObjectUpdateObjectDiffs:
 
         def fake_create_change_id_maps(
             self: ChangeLogger,
-            uid2id_mapper: Uid2IdMapper,
-            changed_nw_objs: list[str],
-            changed_svcs: list[str],
-            removed_nw_objs: list[dict[str, Any]],
-            removed_nw_svcs: list[dict[str, Any]],
+            _uid2id_mapper: Uid2IdMapper,
+            _changed_nw_objs: list[str],
+            _changed_svcs: list[str],
+            _removed_nw_objs: list[dict[str, Any]],
+            _removed_nw_svcs: list[dict[str, Any]],
         ):
             self.changed_object_id_map = {10: 1}
             self.changed_service_id_map = {30: 3}

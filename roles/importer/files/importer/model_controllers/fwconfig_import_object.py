@@ -462,8 +462,7 @@ class FwConfigImportObject:
             return prev_config.network_objects, self.normalized_config.network_objects
         if typ == Type.SERVICE_OBJECT:
             return prev_config.service_objects, self.normalized_config.service_objects
-        if typ == Type.USER:
-            return prev_config.users, self.normalized_config.users
+        return prev_config.users, self.normalized_config.users
 
     def get_id(self, typ: Type, uid: str, before_update: bool = False) -> int | None:
         if typ == Type.NETWORK_OBJECT:
@@ -484,8 +483,7 @@ class FwConfigImportObject:
             return obj.obj_typ == "group"
         if typ == Type.SERVICE_OBJECT:
             return obj.svc_typ == "group"
-        if typ == Type.USER:
-            return obj.get("user_typ", None) == "group"
+        return obj.get("user_typ", None) == "group"
 
     def get_refs(self, typ: Type, obj: Any) -> str | None:
         if typ == Type.NETWORK_OBJECT:

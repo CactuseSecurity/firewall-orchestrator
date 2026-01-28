@@ -1,4 +1,5 @@
 # pyright: reportPrivateUsage=false
+
 import copy
 
 from fwo_const import RULE_NUM_NUMERIC_STEPS
@@ -411,7 +412,7 @@ class TestFwConfigImportRuleOrderFunctions:
         # Arrange
         config, _ = fwconfig_builder.build_config(rulebase_count=1, rules_per_rulebase_count=1)
         rulebase = config.rulebases[0]
-        rule = list(rulebase.rules.values())[0]
+        rule = next(iter(rulebase.rules.values()))
         rule.rule_num_numeric = 999.0
 
         # Inject state: Rule is marked as updated
@@ -503,7 +504,6 @@ class TestFwConfigImportRuleOrderFunctions:
         fwconfig_builder: FwConfigBuilder,
     ):
         # Arrange
-        # Setup: [static_neighbor, new_rule]
         # Descending check for new_rule -> looks at prev neighbor (static_neighbor).
         config, _ = fwconfig_builder.build_config(rulebase_count=1, rules_per_rulebase_count=2)
         rulebase = config.rulebases[0]
@@ -539,7 +539,7 @@ class TestFwConfigImportRuleOrderFunctions:
         # Arrange
         config, _ = fwconfig_builder.build_config(rulebase_count=1, rules_per_rulebase_count=1)
         rulebase = config.rulebases[0]
-        rule = list(rulebase.rules.values())[0]
+        rule = next(iter(rulebase.rules.values()))
         rule.rule_num_numeric = 101.0
 
         # Inject state: Not currently updated, not new, not moved. Simply existing.
@@ -568,7 +568,7 @@ class TestFwConfigImportRuleOrderCalculateNewRuleNum:
         # Arrange
         config, _ = fwconfig_builder.build_config(rulebase_count=1, rules_per_rulebase_count=1)
         rulebase = config.rulebases[0]
-        rule = list(rulebase.rules.values())[0]
+        rule = next(iter(rulebase.rules.values()))
 
         # Act
         assert rule.rule_uid is not None
@@ -590,7 +590,7 @@ class TestFwConfigImportRuleOrderCalculateNewRuleNum:
         # Arrange
         config, _ = fwconfig_builder.build_config(rulebase_count=1, rules_per_rulebase_count=1)
         rulebase = config.rulebases[0]
-        rule = list(rulebase.rules.values())[0]
+        rule = next(iter(rulebase.rules.values()))
 
         # Act
         assert rule.rule_uid is not None

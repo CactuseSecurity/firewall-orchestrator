@@ -665,14 +665,17 @@ namespace FWO.Report.Filter
                     break;
 
                 case TimeRangeType.Interval:
+                    // Relative time window: compute start by subtracting the configured offset from "now".
                     start = timeFilter.Interval switch
                     {
+                        // Offset is the number of units (days/weeks/months/years) to subtract from "now".
                         SchedulerInterval.Days => DateTime.Now.AddDays(-timeFilter.Offset).ToString(fullTimeFormat),
                         SchedulerInterval.Weeks => DateTime.Now.AddDays(-GlobalConst.kDaysPerWeek * timeFilter.Offset).ToString(fullTimeFormat),
                         SchedulerInterval.Months => DateTime.Now.AddMonths(-timeFilter.Offset).ToString(fullTimeFormat),
                         SchedulerInterval.Years => DateTime.Now.AddYears(-timeFilter.Offset).ToString(fullTimeFormat),
                         _ => throw new NotSupportedException($"Error: wrong time interval format:" + timeFilter.Interval.ToString()),
                     };
+                    // End of the interval is "now".
                     stop = DateTime.Now.ToString(fullTimeFormat);
                     break;
 

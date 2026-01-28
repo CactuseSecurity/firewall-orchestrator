@@ -219,8 +219,14 @@
     {
         try
         {
-            if (jsRuntime != null && !await jsRuntime.InvokeAsync<bool>("isChild", elementId, $"dropdown-{Id}") &&
-                !await jsRuntime.InvokeAsync<bool>("isChild", elementId, $"dropdown-menu-{Id}"))
+            IJSRuntime? localJsRuntime = jsRuntime;
+            if (localJsRuntime == null || JsDisposed)
+            {
+                throw new ObjectDisposedException(nameof(jsRuntime));
+            }
+
+            if (!await localJsRuntime.InvokeAsync<bool>("isChild", elementId, $"dropdown-{Id}") &&
+                !await localJsRuntime.InvokeAsync<bool>("isChild", elementId, $"dropdown-menu-{Id}"))
             {
                 Toggled = true;
                 DisplaySelection(SelectedElements);

@@ -35,6 +35,14 @@
                     @((MarkupString)RuleDisplayHtml.DisplayLastHit(rule.Metadata))
                 </Template>
             </Column>
+            @if (EmptyColumns[13] == false)
+            {
+                <Column TableItem="Rule" Context="rule" Title="LastModified" Field="@(rChange => rChange.LastModified)" Sortable="true" Filterable="false" Hideable="true">
+                    <Template>
+                        @((MarkupString)RuleDisplayBase.DisplayLastModified(rule))
+                    </Template>
+                </Column>
+            }
             @if(Recertification && RecertificationHistory)
             {
                 // TODO: implement 2nd recert report containing latest recerts
@@ -152,12 +160,22 @@
         {
             <Column TableItem="Rule" Title="@(userConfig.GetText("comment"))" Field="@(rChange => rChange.Comment)" Sortable="true" Filterable="false" Hideable="true" />
         }
+        @if (EmptyColumns[13] == false)
+        {
+            @if (SelectedReportType != ReportType.Recertification)
+            {
+                <Column TableItem="Rule" Context="rule" Title="LastModified" Field="@(rChange => rChange.LastModified)" Sortable="true" Filterable="false" Hideable="true">
+                    <Template>
+                        @((MarkupString)RuleDisplayBase.DisplayLastModified(rule))
+                    </Template>
+                </Column>
+            }
+        }
 
         <DetailTemplate TableItem="Rule">
             @if(context.Metadata != null)
             {
                 <Detail Title="@(userConfig.GetText("created"))" Data="@context.Metadata?.Created?.ToString()" />
-                <Detail Title="@(userConfig.GetText("last_modified"))" Data="@context.Metadata?.LastModified?.ToString()" />
                 <Detail Title="@(userConfig.GetText("first_hit"))" Data="@context.Metadata?.FirstHit?.ToString()" />
                 <Detail Title="@(userConfig.GetText("last_hit"))" Data="@context.Metadata?.LastHit?.ToString()" />
                 <Detail Title="@(userConfig.GetText("last_certify_date"))" Data="@context.Metadata?.LastCertified?.ToString()" />
@@ -211,7 +229,7 @@
 
     private bool RecertificationHistory { get; set; } = false;
     private ITable<Rule>? reportTable;
-    private const int ColumnsCount = 13;
+    private const int ColumnsCount = 14;
     private bool[] EmptyColumns = new bool[ColumnsCount];
 
     private NatRuleDisplayHtml? ruleDisplay;

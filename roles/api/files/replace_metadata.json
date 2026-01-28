@@ -6888,18 +6888,6 @@
                   }
                 },
                 {
-                  "name": "ruleMetadataByRuleLastModified",
-                  "using": {
-                    "foreign_key_constraint_on": {
-                      "column": "rule_last_modified",
-                      "table": {
-                        "name": "rule_metadata",
-                        "schema": "public"
-                      }
-                    }
-                  }
-                },
-                {
                   "name": "ruleNwobjResolvedsByRemoved",
                   "using": {
                     "foreign_key_constraint_on": {
@@ -15344,7 +15332,16 @@
                 {
                   "name": "rule_metadatum",
                   "using": {
-                    "foreign_key_constraint_on": "rule_uid"
+                    "manual_configuration": {
+                      "remote_table": {
+                        "name": "rule_metadata",
+                        "schema": "public"
+                      },
+                      "column_mapping": {
+                        "mgm_id": "mgm_id",
+                        "rule_uid": "rule_uid"
+                      }
+                    }
                   }
                 },
                 {
@@ -16855,9 +16852,9 @@
                   }
                 },
                 {
-                  "name": "last_modified_import",
+                  "name": "removed_import",
                   "using": {
-                    "foreign_key_constraint_on": "rule_last_modified"
+                    "foreign_key_constraint_on": "removed"
                   }
                 }
               ],
@@ -16889,11 +16886,14 @@
                 {
                   "name": "rules",
                   "using": {
-                    "foreign_key_constraint_on": {
-                      "column": "rule_uid",
-                      "table": {
+                    "manual_configuration": {
+                      "remote_table": {
                         "name": "rule",
                         "schema": "public"
+                      },
+                      "column_mapping": {
+                        "mgm_id": "mgm_id",
+                        "rule_uid": "rule_uid"
                       }
                     }
                   }
@@ -16906,11 +16906,11 @@
                     "check": {},
                     "columns": [
                       "mgm_id",
+                      "removed",
                       "rule_created",
                       "rule_first_hit",
                       "rule_hit_counter",
                       "rule_last_hit",
-                      "rule_last_modified",
                       "rule_metadata_id",
                       "rule_uid"
                     ]
@@ -16923,11 +16923,11 @@
                   "permission": {
                     "columns": [
                       "mgm_id",
+                      "removed",
                       "rule_created",
                       "rule_first_hit",
                       "rule_hit_counter",
                       "rule_last_hit",
-                      "rule_last_modified",
                       "rule_metadata_id",
                       "rule_uid"
                     ],
@@ -16940,11 +16940,11 @@
                   "permission": {
                     "columns": [
                       "mgm_id",
+                      "removed",
                       "rule_created",
                       "rule_first_hit",
                       "rule_hit_counter",
                       "rule_last_hit",
-                      "rule_last_modified",
                       "rule_metadata_id",
                       "rule_uid"
                     ],
@@ -16957,11 +16957,11 @@
                   "permission": {
                     "columns": [
                       "mgm_id",
+                      "removed",
                       "rule_created",
                       "rule_first_hit",
                       "rule_hit_counter",
                       "rule_last_hit",
-                      "rule_last_modified",
                       "rule_metadata_id",
                       "rule_uid"
                     ],
@@ -16974,11 +16974,11 @@
                   "permission": {
                     "columns": [
                       "mgm_id",
+                      "removed",
                       "rule_created",
                       "rule_first_hit",
                       "rule_hit_counter",
                       "rule_last_hit",
-                      "rule_last_modified",
                       "rule_metadata_id",
                       "rule_uid"
                     ],
@@ -16991,11 +16991,11 @@
                   "permission": {
                     "columns": [
                       "mgm_id",
+                      "removed",
                       "rule_created",
                       "rule_first_hit",
                       "rule_hit_counter",
                       "rule_last_hit",
-                      "rule_last_modified",
                       "rule_metadata_id",
                       "rule_uid"
                     ],
@@ -17008,11 +17008,11 @@
                   "permission": {
                     "columns": [
                       "mgm_id",
+                      "removed",
                       "rule_created",
                       "rule_first_hit",
                       "rule_hit_counter",
                       "rule_last_hit",
-                      "rule_last_modified",
                       "rule_metadata_id",
                       "rule_uid"
                     ],
@@ -17025,11 +17025,11 @@
                   "permission": {
                     "columns": [
                       "mgm_id",
+                      "removed",
                       "rule_created",
                       "rule_first_hit",
                       "rule_hit_counter",
                       "rule_last_hit",
-                      "rule_last_modified",
                       "rule_metadata_id",
                       "rule_uid"
                     ],
@@ -17046,7 +17046,6 @@
                       "rule_first_hit",
                       "rule_hit_counter",
                       "rule_last_hit",
-                      "rule_last_modified",
                       "rule_metadata_id",
                       "rule_uid"
                     ],
@@ -17065,7 +17064,6 @@
                       "rule_first_hit",
                       "rule_hit_counter",
                       "rule_last_hit",
-                      "rule_last_modified",
                       "rule_metadata_id",
                       "rule_uid"
                     ],

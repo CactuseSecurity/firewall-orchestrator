@@ -214,6 +214,7 @@ class FwConfigBuilder:
             "user_typ": "simple",
             "user_uid": uid,
             "user_name": name or f"user-{uid}",
+            "user_color": "black",
         }
         config.users[uid] = obj
         return obj
@@ -226,6 +227,7 @@ class FwConfigBuilder:
             "user_typ": "group",
             "user_uid": uid,
             "user_name": name or f"user-group-{uid}",
+            "user_color": "black",
         }
         config.users[uid] = obj
 

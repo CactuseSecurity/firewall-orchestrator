@@ -1489,9 +1489,6 @@ class TestZoneObjectConsistency:
             rules_per_rulebase_count=10,
         )
 
-        rule_uid = list(config.rulebases[0].rules.keys())[0]
-        config.rulebases[0].rules[rule_uid].rule_dst_zone = "NonExistent"  # pyright: ignore[reportAttributeAccessIssue]
-
         manager = FwConfigManager(
             manager_uid="mgr1",
             is_super_manager=True,
@@ -1536,7 +1533,7 @@ class TestZoneObjectConsistency:
         consistency_checker.check_zone_object_consistency(config=manager_controller)
         assert len(consistency_checker.issues) == 0
 
-    def test_check_zone_object_consistency_with_unresolvable_object(
+    def test_check_zone_object_consistency_with_unresolvable_object_src(
         self,
         import_state_controller: ImportStateController,
         fw_config_import_object: FwConfigImportObject,
@@ -1549,6 +1546,9 @@ class TestZoneObjectConsistency:
             rulebase_count=3,
             rules_per_rulebase_count=10,
         )
+
+        rule_uid = list(config.rulebases[0].rules.keys())[0]
+        config.rulebases[0].rules[rule_uid].rule_src_zone = "NonExistent"  # pyright: ignore[reportAttributeAccessIssue]
 
         empty_manager = FwConfigManager(
             manager_uid="mgr1",
@@ -1567,3 +1567,80 @@ class TestZoneObjectConsistency:
         consistency_checker.maps = fw_config_import_object
         consistency_checker.check_zone_object_consistency(config=manager_controller)
         assert len(consistency_checker.issues) == 1
+        assert consistency_checker.issues == {"unresolvableZoneObjRefs": ["NonExistent"]}
+
+    def test_check_zone_object_consistency_with_unresolvable_object_dst(
+        self,
+        import_state_controller: ImportStateController,
+        fw_config_import_object: FwConfigImportObject,
+        fwconfig_builder: FwConfigBuilder,
+    ):
+        manager_controller = FwConfigManagerListController()
+        config, _ = fwconfig_builder.build_config(
+            network_object_count=10,
+            service_object_count=10,
+            rulebase_count=3,
+            rules_per_rulebase_count=10,
+        )
+
+        rule_uid = list(config.rulebases[0].rules.keys())[0]
+        config.rulebases[0].rules[rule_uid].rule_dst_zone = "NonExistent"  # pyright: ignore[reportAttributeAccessIssue]
+
+        empty_manager = FwConfigManager(
+            manager_uid="mgr1",
+            is_super_manager=True,
+            sub_manager_ids=[],
+            configs=[config],
+            domain_name="",
+            domain_uid="",
+            manager_name="",
+        )
+        manager_controller.add_manager(empty_manager)
+        consistency_checker = FwConfigImportCheckConsistency(
+            import_details=import_state_controller,
+            config_list=manager_controller,
+        )
+        consistency_checker.maps = fw_config_import_object
+        consistency_checker.check_zone_object_consistency(config=manager_controller)
+        assert len(consistency_checker.issues) == 1
+        assert consistency_checker.issues == {"unresolvableZoneObjRefs": ["NonExistent"]}
+
+
+class TestFullConfigConsistencyCheck:
+    def test_full_config_consistency_check(
+        self,
+        fwconfig_builder: FwConfigBuilder,
+        import_state_controller: ImportStateController,
+        fw_config_import_object: FwConfigImportObject,
+    ):
+        manager_controller = FwConfigManagerListController()
+        config, _ = fwconfig_builder.build_config(
+            network_object_count=10,
+            service_object_count=10,
+            rulebase_count=3,
+            rules_per_rulebase_count=10,
+            user_group_object_count=2,
+            user_group_object_member_count=2,
+            user_object_count=5,
+        )
+
+        manager = FwConfigManager(
+            manager_uid="mgr1",
+            is_super_manager=True,
+            sub_manager_ids=[],
+            configs=[config],
+            domain_name="",
+            domain_uid="",
+            manager_name="",
+        )
+        manager_controller.add_manager(manager)
+
+        consistency_checker = FwConfigImportCheckConsistency(
+            import_details=import_state_controller,
+            config_list=manager_controller,
+        )
+        consistency_checker.maps = fw_config_import_object
+
+        consistency_checker.check_config_consistency(manager_controller)
+
+        assert len(consistency_checker.issues) == 0

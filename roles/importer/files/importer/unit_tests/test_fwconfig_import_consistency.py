@@ -131,8 +131,8 @@ class TestCheckConsistencyColors:
         config.network_objects["NetworkObject1"] = NetworkObject(
             obj_uid="NetworkObject1",
             obj_name="NetworkObject1",
-            obj_ip=IPNetwork("192.168.1.1/32"),
-            obj_ip_end=IPNetwork("192.168.1.1/32"),
+            obj_ip=IPNetwork("192.168.1.2/32"),
+            obj_ip_end=IPNetwork("192.168.1.2/32"),
             obj_typ="host",
             obj_color="nonexistent_color",
         )
@@ -147,6 +147,7 @@ class TestCheckConsistencyColors:
             domain_uid="",
             manager_name="",
         )
+
         manager_controller.add_manager(empty_manager)
 
         consistency_checker = FwConfigImportCheckConsistency(
@@ -268,8 +269,8 @@ class TestCheckConsistencyColors:
         config.service_objects["ServiceObject1"] = ServiceObject(
             svc_uid="ServiceObject1",
             svc_name="ServiceObject1",
-            svc_port=80,
-            svc_port_end=80,
+            svc_port=8080,
+            svc_port_end=8080,
             svc_typ="simple",
             svc_color="nonexistent_color",
         )

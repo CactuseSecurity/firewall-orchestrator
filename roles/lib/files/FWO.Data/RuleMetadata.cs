@@ -61,34 +61,7 @@ namespace FWO.Data
         [SystemTextJsonIgnore, NewtonsoftJsonIgnore]
         public bool ToBeRemoved { get; set; }
 
-        public DateTime NextRecert { get; set; }
-
-        public string LastCertifierName { get; set; } = "";
 
         public bool Recert { get; set; }
-
-        public string Style { get; set; } = "";
-
-        public void UpdateRecertPeriods(int recertificationPeriod, int recertificationNoticePeriod)
-        {
-            Recertification? latestRecert = RecertHistory.OrderByDescending(r => r.RecertDate).FirstOrDefault();
-            LastCertifierName = latestRecert?.UserDn != null ? new DistName(latestRecert.UserDn).UserName : "-";
-
-            DateTime? nextRecertFromData = RuleRecertification.Where(r => r.NextRecertDate != null)
-                .Select(r => r.NextRecertDate)
-                .OrderBy(d => d)
-                .FirstOrDefault();
-
-            NextRecert = nextRecertFromData ?? DateTime.Now;
-
-            if (NextRecert <= DateTime.Now)
-            {
-                Style = "background-overdue";
-            }
-            else if (NextRecert <= DateTime.Now.AddDays(recertificationNoticePeriod))
-            {
-                Style = "background-upcoming";
-            }
-        }
     }
 }

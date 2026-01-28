@@ -17,11 +17,11 @@ namespace FWO.Data
         [JsonProperty("created_import"), JsonPropertyName("created_import")]
         public ImportControl? CreatedImport { get; set; }
 
-        [JsonProperty("rule_last_modified"), JsonPropertyName("rule_last_modified")]
-        public long? LastModifiedImportId { get; set; }
+        [JsonProperty("removed"), JsonPropertyName("removed")]
+        public long? RemovedImportId { get; set; }
 
-        [JsonProperty("last_modified_import"), JsonPropertyName("last_modified_import")]
-        public ImportControl? LastModifiedImport { get; set; }
+        [JsonProperty("removed_import"), JsonPropertyName("removed_import")]
+        public ImportControl? RemovedImport { get; set; }
 
         [JsonProperty("rule_first_hit"), JsonPropertyName("rule_first_hit")]
         public DateTime? FirstHit { get; set; }
@@ -45,7 +45,7 @@ namespace FWO.Data
         public DateTime? Created => CreatedImport?.StartTime;
 
         [SystemTextJsonIgnore, NewtonsoftJsonIgnore]
-        public DateTime? LastModified => LastModifiedImport?.StartTime;
+        public DateTime? Removed => RemovedImport?.StartTime;
 
         [SystemTextJsonIgnore, NewtonsoftJsonIgnore]
         public string Comment => RecertHistory.OrderByDescending(r => r.RecertDate).FirstOrDefault()?.Comment ?? "";

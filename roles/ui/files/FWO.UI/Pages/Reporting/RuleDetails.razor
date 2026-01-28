@@ -1,4 +1,5 @@
 ﻿@using FWO.Report
+@using FWO.Ui.Display
 
 @inject UserConfig userConfig
 
@@ -14,7 +15,7 @@
 @if(Rule.Metadata != null)
 {
     <Detail Title="@(userConfig.GetText("created"))" Data="@Rule.Metadata?.Created?.ToString()" />
-    <Detail Title="@(userConfig.GetText("last_modified"))" Data="@Rule.Metadata?.LastModified?.ToString()" />
+    <Detail Title="@(userConfig.GetText("last_modified"))" Data="@(RuleDisplayBase.DisplayLastModified(Rule))" />
     <Detail Title="@(userConfig.GetText("first_hit"))" Data="@Rule.Metadata?.FirstHit?.ToString()" />
     <Detail Title="@(userConfig.GetText("last_hit"))" Data="@Rule.Metadata?.LastHit?.ToString()" />
     <Detail Title="@(userConfig.GetText("last_certify_date"))" Data="@Rule.Metadata?.LastCertified?.ToString()" />

@@ -247,6 +247,7 @@ namespace FWO.DeviceAutoDiscovery
                         Device devFound = new()
                         {
                             Name = devName,
+                            Uid = string.IsNullOrEmpty(fg.Uid) ? devName : fg.Uid,
                             DeviceType = new DeviceType { Id = 10 } // fortiGate
                         };
                         currentManagement.Devices = currentManagement.Devices.Append(devFound).ToArray();

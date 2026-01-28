@@ -9,7 +9,7 @@ namespace FWO.Services.RuleTreeBuilder
         RuleTreeItem RuleTree { get; set; }
         int CreatedOrderNumbersCount { get; set; }
         int OrderedLayerCount { get; set; }
-        List<RulebaseLink> RemainingLinks { get; set;}  
+        List<RulebaseLink> RemainingLinks { get; set; }
         List<RulebaseReport> Rulebases { get; set; }
         List<Rule> BuildRuleTree(RulebaseReport[] rulebases, RulebaseLink[] links);
         RulebaseLink? GetNextLink();

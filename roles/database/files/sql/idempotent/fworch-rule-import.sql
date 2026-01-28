@@ -61,11 +61,19 @@ BEGIN
 			PERFORM error_handling('INFO_RULE_DELETED', r_rule.rule_name);
 		END LOOP;
 		RAISE DEBUG 'import_rules - after delete loop';
+		UPDATE rule_metadata rm SET removed = i_current_import_id
+		FROM rule r
+		WHERE r.active AND r.dev_id=i_dev_id AND r.mgm_id=i_mgm_id AND r.rule_last_seen<i_current_import_id
+			AND rm.mgm_id = r.mgm_id AND rm.rule_uid = r.rule_uid;
 		UPDATE rule SET active=FALSE WHERE rule_id IN
 			( SELECT rule.rule_id FROM rule
 			  WHERE active AND dev_id=i_dev_id AND mgm_id=i_mgm_id AND rule_last_seen<i_current_import_id );
 		RAISE DEBUG 'import_rules - after active=false update';
 	END IF;
+	UPDATE rule_metadata rm SET removed = NULL
+	FROM rule r
+	WHERE r.dev_id=i_dev_id AND r.mgm_id=i_mgm_id AND r.rule_last_seen=i_current_import_id
+		AND rm.mgm_id = r.mgm_id AND rm.rule_uid = r.rule_uid;
 	RETURN TRUE; -- we always enforce new rule number generation, b_rule_order_to_be_written not needed?
 END; 
 $$ LANGUAGE plpgsql;
@@ -431,9 +439,7 @@ BEGIN
 			RAISE NOTICE 'rule_change with svc, dst or svc = NULL: %', r_to_import.rule_uid;			
 		ELSE
 			SELECT INTO r_meta rule_metadata_id FROM rule_metadata WHERE dev_id=i_dev_id AND rule_uid=r_to_import.rule_uid;
-			IF FOUND THEN
-				UPDATE rule_metadata SET rule_last_modified=now() WHERE dev_id=i_dev_id AND rule_uid=CAST(r_to_import.rule_uid AS TEXT);
-			ELSE
+			IF NOT FOUND THEN
 				INSERT INTO rule_metadata (rule_uid, dev_id) VALUES(r_to_import.rule_uid, i_dev_id);
 			END IF;
 			i_parent_rule_id := NULL;

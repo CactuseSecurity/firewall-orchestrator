@@ -53,7 +53,18 @@ namespace FWO.Encryption
 
             try
             {
-                decryptedText = CustomAesCbcDecryptBase64(encryptedDataString, key);
+                if (!TryDecodeBase64String(encryptedDataString, out byte[] encryptedBytes))
+                {
+                    return false;
+                }
+
+                string? decrypted = CustomAesCbcDecrypt(encryptedBytes, key);
+                if (decrypted == null)
+                {
+                    return false;
+                }
+
+                decryptedText = decrypted;
                 return true;
             }
             catch (Exception)
@@ -136,12 +147,34 @@ namespace FWO.Encryption
             return Convert.ToBase64String(ivAndEncrypted);
         }
 
-        private static string CustomAesCbcDecryptBase64(string ciphertext, string key)
+        private static bool TryDecodeBase64String(string ciphertext, out byte[] decodedBytes)
         {
-            byte[] encryptedBytes = Convert.FromBase64String(ciphertext);
+            decodedBytes = Array.Empty<byte>();
 
+            if (string.IsNullOrWhiteSpace(ciphertext))
+            {
+                return false;
+            }
+
+            byte[] buffer = new byte[ciphertext.Length];
+            if (!Convert.TryFromBase64String(ciphertext, buffer, out int bytesWritten))
+            {
+                return false;
+            }
+
+            decodedBytes = new byte[bytesWritten];
+            Array.Copy(buffer, decodedBytes, bytesWritten);
+            return true;
+        }
+
+        private static string? CustomAesCbcDecrypt(byte[] encryptedBytes, string key)
+        {
             // IV size for AES-CBC is typically 16 bytes
             int ivSize = 16;
+            if (encryptedBytes.Length < ivSize)
+            {
+                return null;
+            }
             byte[] iv = new byte[ivSize];
             byte[] encryptedText = new byte[encryptedBytes.Length - ivSize];
 
@@ -155,9 +188,22 @@ namespace FWO.Encryption
             aes.Mode = CipherMode.CBC;
             aes.Padding = PaddingMode.PKCS7;
 
-            using ICryptoTransform decryptor = aes.CreateDecryptor(aes.Key, aes.IV);
-            byte[] decryptedBytes = decryptor.TransformFinalBlock(encryptedText, 0, encryptedText.Length);
-            return Encoding.UTF8.GetString(decryptedBytes);
+            int blockSizeBytes = aes.BlockSize / 8;
+            if (encryptedText.Length % blockSizeBytes != 0)
+            {
+                return null;
+            }
+
+            try
+            {
+                using ICryptoTransform decryptor = aes.CreateDecryptor(aes.Key, aes.IV);
+                byte[] decryptedBytes = decryptor.TransformFinalBlock(encryptedText, 0, encryptedText.Length);
+                return Encoding.UTF8.GetString(decryptedBytes);
+            }
+            catch (CryptographicException)
+            {
+                return null;
+            }
         }
     }
 }

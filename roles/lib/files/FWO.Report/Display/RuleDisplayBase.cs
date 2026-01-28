@@ -28,6 +28,14 @@ namespace FWO.Ui.Display
             }
         }
 
+        public static string DisplayLastModified(Rule rule)
+        {
+            DateTime? lastModified = rule.LastModified ?? rule.Metadata?.Created;
+            return lastModified.HasValue
+                ? DateOnly.FromDateTime(lastModified.Value).ToString("yyyy-MM-dd")
+                : "";
+        }
+
         public static string DisplayIsCompliant(Rule rule, OutputLocation location)
         {
             if (rule.Compliance != ComplianceViolationType.NotAssessable)

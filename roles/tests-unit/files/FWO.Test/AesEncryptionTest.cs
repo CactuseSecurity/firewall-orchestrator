@@ -37,5 +37,26 @@ namespace FWO.Test
             ClassicAssert.AreEqual(randomPlaintext, decryptedString);
         }
 
+        [Test]
+        public void TestTryDecryptRejectsInvalidBase64()
+        {
+            string tempKey = GenerateRandomString(32, 32);
+            bool result = AesEnc.TryDecrypt("not-base64", tempKey, out string decryptedText);
+
+            ClassicAssert.IsFalse(result);
+            ClassicAssert.AreEqual(string.Empty, decryptedText);
+        }
+
+        [Test]
+        public void TestTryDecryptRejectsInvalidCiphertextBlockSize()
+        {
+            string tempKey = GenerateRandomString(32, 32);
+            string invalidCiphertext = Convert.ToBase64String(new byte[20]);
+            bool result = AesEnc.TryDecrypt(invalidCiphertext, tempKey, out string decryptedText);
+
+            ClassicAssert.IsFalse(result);
+            ClassicAssert.AreEqual(string.Empty, decryptedText);
+        }
+
     }
 }

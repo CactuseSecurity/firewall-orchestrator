@@ -173,6 +173,15 @@
 
         @if (EmptyColumns[17] == false)
         {
+            <Column TableItem="RuleViewData" Context="rule" Title="LastModified" Field="@(r => r.LastModified)" Sortable="true" Filterable="true" Hideable="true">
+                <Template>
+                    @((MarkupString)rule.LastModified)
+                </Template>
+            </Column>
+        }
+
+        @if (EmptyColumns[18] == false)
+        {
             <Column TableItem="RuleViewData" Context="rule" Title="RulebaseId" Field="@(r => r.RulebaseId)" Sortable="true" Filterable="true" Hideable="true">
                 <Template>
                     @((MarkupString)rule.RulebaseId)
@@ -180,7 +189,7 @@
             </Column>
         }
 
-        @if (EmptyColumns[18] == false)
+        @if (EmptyColumns[19] == false)
         {
             <Column TableItem="RuleViewData" Context="rule" Title="RulebaseName" Field="@(r => r.RulebaseName)" Sortable="true" Filterable="true" Hideable="true">
                 <Template>
@@ -189,7 +198,7 @@
             </Column>
         }
 
-        @if (EmptyColumns[19] == false)
+        @if (EmptyColumns[20] == false)
         {
             <Column TableItem="RuleViewData" Context="rule" Title="Enabled" Field="@(r => r.Enabled)" Sortable="true" Filterable="true" Hideable="true">
                 <Template>
@@ -243,7 +252,7 @@
     private RuleViewData[] _visibleRules = [];
     private RuleViewData[] _allRules = [];
 
-    private const int ColumnsCount = 20;
+    private const int ColumnsCount = 21;
     private bool[] EmptyColumns = new bool[ColumnsCount];
 
     private NatRuleDisplayHtml? ruleDisplay;

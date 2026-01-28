@@ -16850,6 +16850,12 @@
                   "using": {
                     "foreign_key_constraint_on": "rule_created"
                   }
+                },
+                {
+                  "name": "removed_import",
+                  "using": {
+                    "foreign_key_constraint_on": "removed"
+                  }
                 }
               ],
               "array_relationships": [
@@ -16900,6 +16906,7 @@
                     "check": {},
                     "columns": [
                       "mgm_id",
+                      "removed",
                       "rule_created",
                       "rule_first_hit",
                       "rule_hit_counter",
@@ -16916,6 +16923,7 @@
                   "permission": {
                     "columns": [
                       "mgm_id",
+                      "removed",
                       "rule_created",
                       "rule_first_hit",
                       "rule_hit_counter",
@@ -16932,6 +16940,7 @@
                   "permission": {
                     "columns": [
                       "mgm_id",
+                      "removed",
                       "rule_created",
                       "rule_first_hit",
                       "rule_hit_counter",
@@ -16948,6 +16957,7 @@
                   "permission": {
                     "columns": [
                       "mgm_id",
+                      "removed",
                       "rule_created",
                       "rule_first_hit",
                       "rule_hit_counter",
@@ -16964,6 +16974,7 @@
                   "permission": {
                     "columns": [
                       "mgm_id",
+                      "removed",
                       "rule_created",
                       "rule_first_hit",
                       "rule_hit_counter",
@@ -16980,6 +16991,7 @@
                   "permission": {
                     "columns": [
                       "mgm_id",
+                      "removed",
                       "rule_created",
                       "rule_first_hit",
                       "rule_hit_counter",
@@ -16996,6 +17008,7 @@
                   "permission": {
                     "columns": [
                       "mgm_id",
+                      "removed",
                       "rule_created",
                       "rule_first_hit",
                       "rule_hit_counter",
@@ -17012,6 +17025,7 @@
                   "permission": {
                     "columns": [
                       "mgm_id",
+                      "removed",
                       "rule_created",
                       "rule_first_hit",
                       "rule_hit_counter",

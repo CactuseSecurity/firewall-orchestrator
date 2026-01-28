@@ -1275,6 +1275,17 @@ $function$;
 
 -- end of rule_metadata migration
 
+ALTER TABLE IF EXISTS rule_metadata
+    ADD COLUMN IF NOT EXISTS removed BIGINT;
+
+ALTER TABLE IF EXISTS rule_metadata
+    DROP CONSTRAINT IF EXISTS rule_metadata_removed_import_control_control_id_f_key;
+
+ALTER TABLE IF EXISTS rule_metadata
+    ADD CONSTRAINT rule_metadata_removed_import_control_control_id_f_key
+    FOREIGN KEY (removed) REFERENCES import_control (control_id)
+    ON UPDATE RESTRICT ON DELETE RESTRICT;
+
 DO $$
 BEGIN
     IF NOT EXISTS (

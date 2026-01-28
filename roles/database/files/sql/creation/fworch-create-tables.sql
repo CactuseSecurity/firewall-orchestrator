@@ -203,6 +203,7 @@ Create table "rule_metadata"
 	"rule_first_hit" Timestamp,
 	"rule_last_hit" Timestamp,
 	"rule_hit_counter" BIGINT,
+	"removed" BIGINT,
  primary key ("rule_metadata_id") 
 );
 

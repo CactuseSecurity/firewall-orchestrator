@@ -61,11 +61,19 @@ BEGIN
 			PERFORM error_handling('INFO_RULE_DELETED', r_rule.rule_name);
 		END LOOP;
 		RAISE DEBUG 'import_rules - after delete loop';
+		UPDATE rule_metadata rm SET removed = i_current_import_id
+		FROM rule r
+		WHERE r.active AND r.dev_id=i_dev_id AND r.mgm_id=i_mgm_id AND r.rule_last_seen<i_current_import_id
+			AND rm.mgm_id = r.mgm_id AND rm.rule_uid = r.rule_uid;
 		UPDATE rule SET active=FALSE WHERE rule_id IN
 			( SELECT rule.rule_id FROM rule
 			  WHERE active AND dev_id=i_dev_id AND mgm_id=i_mgm_id AND rule_last_seen<i_current_import_id );
 		RAISE DEBUG 'import_rules - after active=false update';
 	END IF;
+	UPDATE rule_metadata rm SET removed = NULL
+	FROM rule r
+	WHERE r.dev_id=i_dev_id AND r.mgm_id=i_mgm_id AND r.rule_last_seen=i_current_import_id
+		AND rm.mgm_id = r.mgm_id AND rm.rule_uid = r.rule_uid;
 	RETURN TRUE; -- we always enforce new rule number generation, b_rule_order_to_be_written not needed?
 END; 
 $$ LANGUAGE plpgsql;

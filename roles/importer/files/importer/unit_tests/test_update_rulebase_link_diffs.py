@@ -46,6 +46,7 @@ def test_add_cp_section_header_at_the_bottom(
     assert new_links[0]["from_rulebase_id"] == from_rulebase_id, (
         f"expected last rulebase link to have from_rulebase_id {from_rulebase_id}, got {new_links[0]['from_rulebase_id']}"
     )
+
     assert new_links[0]["to_rulebase_id"] == to_rulebase_id, (
         f"expected last rulebase link to point to new rulebase id {to_rulebase_id}, got {new_links[0]['to_rulebase_id']}"
     )

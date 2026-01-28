@@ -1218,7 +1218,7 @@ class TestRulebaseConsistency:
         )
 
         manager = FwConfigManager(
-            manager_uid="mgr1",
+            manager_uid="mgr2",
             is_super_manager=True,
             sub_manager_ids=[],
             configs=[config],
@@ -1391,7 +1391,7 @@ class TestRulebaseLinkConsistency:
         )
 
         manager = FwConfigManager(
-            manager_uid="mgr1",
+            manager_uid="mgr3",
             is_super_manager=True,
             sub_manager_ids=[],
             configs=[config],
@@ -1495,7 +1495,7 @@ class TestZoneObjectConsistency:
         )
 
         manager = FwConfigManager(
-            manager_uid="mgr1",
+            manager_uid="mgr4",
             is_super_manager=True,
             sub_manager_ids=[],
             configs=[config],

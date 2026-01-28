@@ -268,7 +268,7 @@ class FwConfigImportCheckConsistency(FwConfigImport):
             # and get all refs not contained in zone_objects
             unresolvable_object_refs = all_used_obj_refs - config.get_all_zone_names(mgr.manager_uid) - global_objects
             if len(unresolvable_object_refs) > 0:
-                self.issues.update({"unresolvableZoneObRefs": list(unresolvable_object_refs)})
+                self.issues.update({"unresolvableZoneObjRefs": list(unresolvable_object_refs)})
 
     @staticmethod
     def _collect_zone_refs_from_rules(single_config: FwConfigNormalized) -> set[str]:

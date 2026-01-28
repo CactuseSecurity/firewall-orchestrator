@@ -405,7 +405,7 @@ class FwConfigImportCheckConsistency(FwConfigImport):
                 obj["user_color"] = fwo_const.DEFAULT_COLOR
 
     @staticmethod
-    def _extract_rule_track_n_action_refs(
+    def _extract_rule_tracks_and_action_refs(
         rulebases: list[Rulebase],
     ) -> tuple[list[str], list[str]]:
         track_refs: list[str] = []
@@ -421,7 +421,7 @@ class FwConfigImportCheckConsistency(FwConfigImport):
 
         for mgr in config.ManagerSet:
             for single_config in mgr.configs:
-                track_refs, action_refs = self._extract_rule_track_n_action_refs(single_config.rulebases)
+                track_refs, action_refs = self._extract_rule_tracks_and_action_refs(single_config.rulebases)
                 all_used_track_refs.extend(track_refs)
                 all_used_action_refs.extend(action_refs)
 

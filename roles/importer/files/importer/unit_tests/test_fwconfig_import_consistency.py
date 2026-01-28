@@ -1148,3 +1148,422 @@ class TestCheckUserObjectConsistency:
         consistency_checker.check_user_object_consistency(config=manager_controller)
 
         assert len(consistency_checker.issues) == 0
+
+    @pytest.mark.skip(reason="Currently, unresolvable user objects are not detected.")
+    def test_check_user_object_unresolvable_object(
+        self,
+        fwconfig_builder: FwConfigBuilder,
+        import_state_controller: ImportStateController,
+        fw_config_import_object: FwConfigImportObject,
+    ):
+        manager_controller = FwConfigManagerListController()
+        config, _ = fwconfig_builder.build_config(
+            network_object_count=10,
+            service_object_count=10,
+            rulebase_count=3,
+            rules_per_rulebase_count=10,
+            user_object_count=1,
+            user_group_object_count=2,
+            user_group_object_member_count=2,
+        )
+
+        # Add a user object that is not referenced anywhere
+        group = {
+            "user_typ": "group",
+            "user_uid": "GroupWithInvalidMember",
+            "user_name": "GroupWithInvalidMember",
+            "user_member_names": "DoesNotExist",
+            "user_member_refs": "DoesNotExist",
+        }
+
+        config.users["GroupWithInvalidMember"] = group
+
+        manager = FwConfigManager(
+            manager_uid="GroupWithInvalidMember",
+            is_super_manager=True,
+            sub_manager_ids=[],
+            configs=[config],
+            domain_name="",
+            domain_uid="",
+            manager_name="",
+        )
+        manager_controller.add_manager(manager)
+
+        consistency_checker = FwConfigImportCheckConsistency(
+            import_details=import_state_controller,
+            config_list=manager_controller,
+        )
+        consistency_checker.maps = fw_config_import_object
+
+        consistency_checker.check_user_object_consistency(config=manager_controller)
+
+        assert len(consistency_checker.issues) == 1
+        assert consistency_checker.issues == {"unresolvableUserObjTypes": ["DoesNotExist"]}
+
+
+class TestRulebaseConsistency:
+    def test_check_rulebase_consistency_valid(
+        self,
+        fwconfig_builder: FwConfigBuilder,
+        import_state_controller: ImportStateController,
+        fw_config_import_object: FwConfigImportObject,
+    ):
+        manager_controller = FwConfigManagerListController()
+        config, _ = fwconfig_builder.build_config(
+            network_object_count=10,
+            service_object_count=10,
+            rulebase_count=3,
+            rules_per_rulebase_count=10,
+        )
+
+        manager = FwConfigManager(
+            manager_uid="mgr1",
+            is_super_manager=True,
+            sub_manager_ids=[],
+            configs=[config],
+            domain_name="",
+            domain_uid="",
+            manager_name="",
+        )
+        manager_controller.add_manager(manager)
+
+        consistency_checker = FwConfigImportCheckConsistency(
+            import_details=import_state_controller,
+            config_list=manager_controller,
+        )
+        consistency_checker.maps = fw_config_import_object
+
+        consistency_checker.check_rulebase_consistency(config=manager_controller)
+
+        assert len(consistency_checker.issues) == 0
+
+    def test_check_rulebase_consistency_with_no_configs(
+        self,
+        import_state_controller: ImportStateController,
+        fw_config_import_object: FwConfigImportObject,
+    ):
+        manager_controller = FwConfigManagerListController()
+
+        manager = FwConfigManager(
+            manager_uid="mgr1",
+            is_super_manager=True,
+            sub_manager_ids=[],
+            configs=[],
+            domain_name="",
+            domain_uid="",
+            manager_name="",
+        )
+        manager_controller.add_manager(manager)
+
+        consistency_checker = FwConfigImportCheckConsistency(
+            import_details=import_state_controller,
+            config_list=manager_controller,
+        )
+        consistency_checker.maps = fw_config_import_object
+
+        consistency_checker.check_rulebase_consistency(config=manager_controller)
+
+        assert len(consistency_checker.issues) == 0
+
+    def test_check_rulebase_consistency_with_empty_config(
+        self,
+        fwconfig_builder: FwConfigBuilder,
+        import_state_controller: ImportStateController,
+        fw_config_import_object: FwConfigImportObject,
+    ):
+        manager_controller = FwConfigManagerListController()
+        empty_config = fwconfig_builder.build_empty_config()
+
+        manager = FwConfigManager(
+            manager_uid="mgr1",
+            is_super_manager=True,
+            sub_manager_ids=[],
+            configs=[empty_config],
+            domain_name="",
+            domain_uid="",
+            manager_name="",
+        )
+        manager_controller.add_manager(manager)
+
+        consistency_checker = FwConfigImportCheckConsistency(
+            import_details=import_state_controller,
+            config_list=manager_controller,
+        )
+        consistency_checker.maps = fw_config_import_object
+
+        consistency_checker.check_rulebase_consistency(config=manager_controller)
+
+        assert len(consistency_checker.issues) == 0
+
+    def test_check_rulebase_consistency_with_unresolvable_tracks(
+        self,
+        fwconfig_builder: FwConfigBuilder,
+        import_state_controller: ImportStateController,
+        fw_config_import_object: FwConfigImportObject,
+    ):
+        manager_controller = FwConfigManagerListController()
+        config, _ = fwconfig_builder.build_config(
+            network_object_count=10,
+            service_object_count=10,
+            rulebase_count=3,
+            rules_per_rulebase_count=10,
+        )
+
+        rule_uid = list(config.rulebases[0].rules.keys())[0]
+        config.rulebases[0].rules[rule_uid].rule_track = "NonExistent"  # pyright: ignore[reportAttributeAccessIssue]
+
+        manager = FwConfigManager(
+            manager_uid="mgr1",
+            is_super_manager=True,
+            sub_manager_ids=[],
+            configs=[config],
+            domain_name="",
+            domain_uid="",
+            manager_name="",
+        )
+        manager_controller.add_manager(manager)
+
+        consistency_checker = FwConfigImportCheckConsistency(
+            import_details=import_state_controller,
+            config_list=manager_controller,
+        )
+        consistency_checker.maps = fw_config_import_object
+
+        consistency_checker.check_rulebase_consistency(config=manager_controller)
+
+        assert len(consistency_checker.issues) == 1
+        assert consistency_checker.issues == {"unresolvableRuleTracks": ["NonExistent"]}
+
+    def test_check_rulebase_consistency_with_unresolvable_actions(
+        self,
+        fwconfig_builder: FwConfigBuilder,
+        import_state_controller: ImportStateController,
+        fw_config_import_object: FwConfigImportObject,
+    ):
+        manager_controller = FwConfigManagerListController()
+        config, _ = fwconfig_builder.build_config(
+            network_object_count=10,
+            service_object_count=10,
+            rulebase_count=3,
+            rules_per_rulebase_count=10,
+        )
+
+        rule_uid = list(config.rulebases[0].rules.keys())[0]
+        config.rulebases[0].rules[rule_uid].rule_action = "NonExistent"  # pyright: ignore[reportAttributeAccessIssue]
+
+        manager = FwConfigManager(
+            manager_uid="mgr1",
+            is_super_manager=True,
+            sub_manager_ids=[],
+            configs=[config],
+            domain_name="",
+            domain_uid="",
+            manager_name="",
+        )
+        manager_controller.add_manager(manager)
+
+        consistency_checker = FwConfigImportCheckConsistency(
+            import_details=import_state_controller,
+            config_list=manager_controller,
+        )
+        consistency_checker.maps = fw_config_import_object
+
+        consistency_checker.check_rulebase_consistency(config=manager_controller)
+
+        assert len(consistency_checker.issues) == 1
+        assert consistency_checker.issues == {"unresolvableRuleActions": ["NonExistent"]}
+
+
+class TestRulebaseLinkConsistency:
+    def test_check_rulebase_link_consistency_valid(
+        self,
+        fwconfig_builder: FwConfigBuilder,
+        import_state_controller: ImportStateController,
+        fw_config_import_object: FwConfigImportObject,
+    ):
+        manager_controller = FwConfigManagerListController()
+        config, _ = fwconfig_builder.build_config(
+            network_object_count=10,
+            service_object_count=10,
+            rulebase_count=3,
+            rules_per_rulebase_count=10,
+        )
+
+        manager = FwConfigManager(
+            manager_uid="mgr1",
+            is_super_manager=True,
+            sub_manager_ids=[],
+            configs=[config],
+            domain_name="",
+            domain_uid="",
+            manager_name="",
+        )
+        manager_controller.add_manager(manager)
+
+        consistency_checker = FwConfigImportCheckConsistency(
+            import_details=import_state_controller,
+            config_list=manager_controller,
+        )
+        consistency_checker.maps = fw_config_import_object
+
+        consistency_checker.check_rulebase_link_consistency(config=manager_controller)
+
+        assert len(consistency_checker.issues) == 0
+
+    def test_check_rulebase_link_consistency_with_no_configs(
+        self,
+        import_state_controller: ImportStateController,
+        fw_config_import_object: FwConfigImportObject,
+    ):
+        manager_controller = FwConfigManagerListController()
+
+        manager = FwConfigManager(
+            manager_uid="mgr1",
+            is_super_manager=True,
+            sub_manager_ids=[],
+            configs=[],
+            domain_name="",
+            domain_uid="",
+            manager_name="",
+        )
+        manager_controller.add_manager(manager)
+
+        consistency_checker = FwConfigImportCheckConsistency(
+            import_details=import_state_controller,
+            config_list=manager_controller,
+        )
+        consistency_checker.maps = fw_config_import_object
+
+        consistency_checker.check_rulebase_link_consistency(config=manager_controller)
+
+        assert len(consistency_checker.issues) == 0
+
+    def test_check_rulebase_link_consistency_with_broken_links(
+        self,
+        fwconfig_builder: FwConfigBuilder,
+        import_state_controller: ImportStateController,
+        fw_config_import_object: FwConfigImportObject,
+    ):
+        manager_controller = FwConfigManagerListController()
+        config, _ = fwconfig_builder.build_config(
+            network_object_count=10,
+            service_object_count=10,
+            rulebase_count=3,
+            rules_per_rulebase_count=10,
+        )
+
+        manager = FwConfigManager(
+            manager_uid="mgr1",
+            is_super_manager=True,
+            sub_manager_ids=[],
+            configs=[config],
+            domain_name="",
+            domain_uid="",
+            manager_name="",
+        )
+        manager_controller.add_manager(manager)
+
+        consistency_checker = FwConfigImportCheckConsistency(
+            import_details=import_state_controller,
+            config_list=manager_controller,
+        )
+        consistency_checker.maps = fw_config_import_object
+
+        consistency_checker.check_rulebase_link_consistency(config=manager_controller)
+
+        assert len(consistency_checker.issues) == 0
+
+
+class TestZoneObjectConsistency:
+    def test_check_zone_object_consistency_valid(
+        self,
+        fwconfig_builder: FwConfigBuilder,
+        import_state_controller: ImportStateController,
+        fw_config_import_object: FwConfigImportObject,
+    ):
+        manager_controller = FwConfigManagerListController()
+        config, _ = fwconfig_builder.build_config(
+            network_object_count=10,
+            service_object_count=10,
+            rulebase_count=3,
+            rules_per_rulebase_count=10,
+        )
+
+        rule_uid = list(config.rulebases[0].rules.keys())[0]
+        config.rulebases[0].rules[rule_uid].rule_dst_zone = "NonExistent"  # pyright: ignore[reportAttributeAccessIssue]
+
+        manager = FwConfigManager(
+            manager_uid="mgr1",
+            is_super_manager=True,
+            sub_manager_ids=[],
+            configs=[config],
+            domain_name="",
+            domain_uid="",
+            manager_name="",
+        )
+        manager_controller.add_manager(manager)
+        consistency_checker = FwConfigImportCheckConsistency(
+            import_details=import_state_controller,
+            config_list=manager_controller,
+        )
+        consistency_checker.maps = fw_config_import_object
+        consistency_checker.check_zone_object_consistency(config=manager_controller)
+        assert len(consistency_checker.issues) == 0
+
+    def test_check_zone_object_consistency_with_no_config(
+        self,
+        import_state_controller: ImportStateController,
+        fw_config_import_object: FwConfigImportObject,
+        fwconfig_builder: FwConfigBuilder,
+    ):
+        manager_controller = FwConfigManagerListController()
+
+        empty_manager = FwConfigManager(
+            manager_uid="mgr1",
+            is_super_manager=True,
+            sub_manager_ids=[],
+            configs=[],
+            domain_name="",
+            domain_uid="",
+            manager_name="",
+        )
+        manager_controller.add_manager(empty_manager)
+        consistency_checker = FwConfigImportCheckConsistency(
+            import_details=import_state_controller,
+            config_list=manager_controller,
+        )
+        consistency_checker.maps = fw_config_import_object
+        consistency_checker.check_zone_object_consistency(config=manager_controller)
+        assert len(consistency_checker.issues) == 0
+
+    def test_check_zone_object_consistency_with_unresolvable_object(
+        self,
+        import_state_controller: ImportStateController,
+        fw_config_import_object: FwConfigImportObject,
+        fwconfig_builder: FwConfigBuilder,
+    ):
+        manager_controller = FwConfigManagerListController()
+        config, _ = fwconfig_builder.build_config(
+            network_object_count=10,
+            service_object_count=10,
+            rulebase_count=3,
+            rules_per_rulebase_count=10,
+        )
+
+        empty_manager = FwConfigManager(
+            manager_uid="mgr1",
+            is_super_manager=True,
+            sub_manager_ids=[],
+            configs=[config],
+            domain_name="",
+            domain_uid="",
+            manager_name="",
+        )
+        manager_controller.add_manager(empty_manager)
+        consistency_checker = FwConfigImportCheckConsistency(
+            import_details=import_state_controller,
+            config_list=manager_controller,
+        )
+        consistency_checker.maps = fw_config_import_object
+        consistency_checker.check_zone_object_consistency(config=manager_controller)
+        assert len(consistency_checker.issues) == 1

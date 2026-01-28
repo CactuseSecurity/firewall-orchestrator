@@ -66,6 +66,16 @@ def import_state_controller(
         "blue": 4,
     }
 
+    import_state.actions = {
+        "none": 1,
+        "accept": 2,
+    }
+
+    import_state.tracks = {
+        "none": 1,
+        "log": 2,
+    }
+
     import_state_controller: ImportStateController = unittest.mock.create_autospec(ImportStateController)
     import_state_controller.state = import_state
     import_state_controller.api_call = api_call

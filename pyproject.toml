@@ -65,7 +65,7 @@ exclude = [
     "scripts/release_lock.py"
 ]
 
-[tools.ruff.lint]
+[tool.ruff.lint]
 ignore = [
     "ANN",     # flake8-annotations: Type annotation checks
     "COM",     # flake8-commas: Trailing comma checks

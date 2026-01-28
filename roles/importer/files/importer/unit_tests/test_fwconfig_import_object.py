@@ -175,6 +175,7 @@ class TestFwConfigImportObjectPrepareChangelogObjects:
                     "unique_name": "1",
                 }
             ),
+            # Deleted Object
             PartialDict(
                 {
                     "change_action": "D",

@@ -42,10 +42,11 @@ def test_add_cp_section_header_at_the_bottom(
     new_links, _ = fwconfig_import_gateway.update_rulebase_link_diffs()
 
     # Assert
-    assert len(new_links) == 1, f"expected {1} new rulebase link, got {len(new_links)}"
+
     assert new_links[0]["from_rulebase_id"] == from_rulebase_id, (
         f"expected last rulebase link to have from_rulebase_id {from_rulebase_id}, got {new_links[0]['from_rulebase_id']}"
     )
+    assert len(new_links) == 1, f"expected {1} new rulebase link, got {len(new_links)}"
 
     assert new_links[0]["to_rulebase_id"] == to_rulebase_id, (
         f"expected last rulebase link to point to new rulebase id {to_rulebase_id}, got {new_links[0]['to_rulebase_id']}"

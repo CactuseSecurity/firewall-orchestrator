@@ -221,26 +221,7 @@ class TestFwConfigImportObjectPrepareChangelogObjects:
         )
 
         # Assert
-        assert nwobjs_changed == [
-            PartialDict(
-                {
-                    "change_action": "I",
-                    "change_type_id": 2,
-                    "new_obj_id": 1,
-                    "old_obj_id": None,
-                    "unique_name": "1",
-                }
-            ),
-            PartialDict(
-                {
-                    "change_action": "D",
-                    "change_type_id": 2,
-                    "new_obj_id": None,
-                    "old_obj_id": 2,
-                    "unique_name": "2",
-                }
-            ),
-        ]
+
         assert svcobjs_changed == [
             PartialDict(
                 {
@@ -258,6 +239,27 @@ class TestFwConfigImportObjectPrepareChangelogObjects:
                     "new_svc_id": None,
                     "old_svc_id": 4,
                     "unique_name": "4",
+                }
+            ),
+        ]
+
+        assert nwobjs_changed == [
+            PartialDict(
+                {
+                    "change_action": "I",
+                    "change_type_id": 2,
+                    "new_obj_id": 1,
+                    "old_obj_id": None,
+                    "unique_name": "1",
+                }
+            ),
+            PartialDict(
+                {
+                    "change_action": "D",
+                    "change_type_id": 2,
+                    "new_obj_id": None,
+                    "old_obj_id": 2,
+                    "unique_name": "2",
                 }
             ),
         ]
@@ -297,6 +299,8 @@ class TestFwConfigImportObjectPrepareChangelogObjects:
                 }
             ),
         ]
+
+        # Service Objects Check
         assert svcobjs_changed == [
             PartialDict(
                 {
@@ -364,6 +368,8 @@ class TestFwConfigImportObjectPrepareChangelogObjects:
                 }
             ),
         ]
+
+        # Service Objects Check if Changed
         assert svcobjs_changed == [
             PartialDict(
                 {
@@ -1275,10 +1281,11 @@ class TestFwConfigImportObjectRemoveOutdatedMemberships:
             network_object_count=2,
         )
         prev_config = copy.deepcopy(fwconfig_import_object.normalized_config)
-        for obj in fwconfig_import_object.normalized_config.network_objects.values():
-            obj.obj_member_refs = "new-member-uid"
         for obj in prev_config.network_objects.values():
             obj.obj_member_refs = "old-member-uid"
+        for obj in fwconfig_import_object.normalized_config.network_objects.values():
+            obj.obj_member_refs = "new-member-uid"
+
         fwconfig_import_object.uid2id_mapper.get_network_object_id = mocker.Mock(return_value=1)
         fwconfig_import_object.prev_group_flats_mapper.get_network_object_flats = mocker.Mock(return_value=[2])
         fwconfig_import_object.import_state.api_call.call = mocker.Mock(
@@ -1327,11 +1334,12 @@ class TestFwConfigImportObjectRemoveOutdatedMemberships:
             network_object_count=2,
         )
         prev_config = copy.deepcopy(fwconfig_import_object.normalized_config)
+        fwconfig_import_object.uid2id_mapper.get_network_object_id = mocker.Mock(return_value=1)
         for obj in fwconfig_import_object.normalized_config.network_objects.values():
             obj.obj_member_refs = "new-member-uid"
         for obj in prev_config.network_objects.values():
             obj.obj_member_refs = "old-member-uid"
-        fwconfig_import_object.uid2id_mapper.get_network_object_id = mocker.Mock(return_value=1)
+
         fwconfig_import_object.prev_group_flats_mapper.get_network_object_flats = mocker.Mock(return_value=[2])
         fwconfig_import_object.import_state.api_call.call = mocker.Mock(
             return_value={

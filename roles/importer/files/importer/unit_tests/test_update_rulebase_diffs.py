@@ -38,14 +38,14 @@ def mock_api_connection_response(api_connection: FwoApi):
 
 @pytest.fixture
 def mock_fwconfig_import_rule_side_effects(fwconfig_import_rule: FwConfigImportRule):
-    def side_effect_mark_rules_removed(removedRuleUids: dict[str, list[int]]) -> tuple[int, list[int]]:
+    def side_effect_mark_rules_removed(removed_rule_uids: dict[str, list[int]]) -> tuple[int, list[int]]:
         changes = 0
-        collectedRemovedRuleIds: list[int] = []
-        for rulebase in removedRuleUids:
-            changes += len(removedRuleUids[rulebase])
-            collectedRemovedRuleIds.extend(removedRuleUids[rulebase])
+        collected_removed_rule_ids: list[int] = []
+        for rulebase in removed_rule_uids:
+            changes += len(removed_rule_uids[rulebase])
+            collected_removed_rule_ids.extend(removed_rule_uids[rulebase])
 
-        return changes, collectedRemovedRuleIds
+        return changes, collected_removed_rule_ids
 
     fwconfig_import_rule.mark_rules_removed = unittest.mock.Mock(side_effect=side_effect_mark_rules_removed)
 
@@ -71,14 +71,14 @@ def mock_fwconfig_import_rule_side_effects(fwconfig_import_rule: FwConfigImportR
 
     def side_effect_add_new_rules(rulebases: list[Rulebase]) -> tuple[int, list[dict[str, Any]]]:
         changes = 0
-        newRuleIds: list[dict[str, Any]] = []
+        new_rule_ids: list[dict[str, Any]] = []
 
         for rulebase in rulebases:
-            for rule in list(rulebase.rules.values()):
+            for rule in rulebase.rules.values():
                 changes += 1
-                newRuleIds.append({"rule_uid": rule.rule_uid, "rule_id": changes})
+                new_rule_ids.append({"rule_uid": rule.rule_uid, "rule_id": changes})
 
-        return changes, newRuleIds
+        return changes, new_rule_ids
 
     fwconfig_import_rule.add_rules_within_rulebases = unittest.mock.Mock(side_effect=side_effect_add_new_rules)
 

@@ -1451,6 +1451,9 @@ class TestRulebaseLinkConsistency:
             rulebase_count=3,
             rules_per_rulebase_count=10,
         )
+        config.gateways[0].RulebaseLinks[0].from_rule_uid = "NonExistentRuleUid"
+        config.gateways[0].RulebaseLinks[0].from_rulebase_uid = "NonExistentFromRulebaseUID"
+        config.gateways[0].RulebaseLinks[0].to_rulebase_uid = "NonExistentToRulebaseUID"
 
         manager = FwConfigManager(
             manager_uid="mgr1",
@@ -1471,7 +1474,8 @@ class TestRulebaseLinkConsistency:
 
         consistency_checker.check_rulebase_link_consistency(config=manager_controller)
 
-        assert len(consistency_checker.issues) == 0
+        assert len(consistency_checker.issues) == 1
+        assert len(consistency_checker.issues["brokenRulebaseLinks"]) == 3
 
 
 class TestZoneObjectConsistency:

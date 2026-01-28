@@ -1,4 +1,4 @@
-﻿namespace FWO.Data.Middleware
+namespace FWO.Data.Middleware
 {
     public class LdapAddParameters
     {
@@ -22,7 +22,7 @@
         public bool Active { get; set; }
 
         public LdapAddParameters()
-        {}
+        { }
 
         public LdapAddParameters(LdapAddParameters ldapAddParameters)
         {
@@ -52,9 +52,9 @@
         public int Id { get; set; }
 
         public LdapGetUpdateParameters()
-        {}
+        { }
 
-        public LdapGetUpdateParameters(LdapAddParameters ldapAddParameters, int id) : base (ldapAddParameters)
+        public LdapGetUpdateParameters(LdapAddParameters ldapAddParameters, int id) : base(ldapAddParameters)
         {
             Id = id;
         }

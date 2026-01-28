@@ -1,4 +1,4 @@
-﻿using FWO.Api.Client;
+using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 using FWO.Basics;
 using FWO.Config.Api;
@@ -21,15 +21,11 @@ namespace FWO.Middleware.Server.Controllers
     [Authorize]
     [ApiController]
     [Route("api/[controller]")]
-    public class ReportController(JwtWriter jwtWriter, List<Ldap> ldaps, ApiConnection apiConnection) : ControllerBase, IDisposable
+    public class ReportController(JwtWriter jwtWriter, List<Ldap> ldaps, ApiConnection apiConnection) : ControllerBase
     {
         private readonly ApiConnection apiConnection = apiConnection;
         private readonly JwtWriter jwtWriter = jwtWriter;
         private readonly List<Ldap> ldaps = ldaps;
-
-        private ApiConnection? apiConnectionUserContext = null;
-        private UserConfig? userConfig = null;
-        private bool disposed = false;
 
         /// <summary>
         /// Get Report
@@ -42,12 +38,17 @@ namespace FWO.Middleware.Server.Controllers
         {
             try
             {
-                if (!await InitUserEnvironment() || apiConnectionUserContext == null || userConfig == null)
-                {
-                    return "";  // todo: Error message?
-                }
+                AuthManager authManager = new(jwtWriter, ldaps, apiConnection);
+                UiUser targetUser = new() { Name = User.FindFirstValue("unique_name") ?? "", Dn = User.FindFirstValue("x-hasura-uuid") ?? "" };
+                string jwt = await authManager.AuthorizeUserAsync(targetUser, validatePassword: false);
+                using ApiConnection apiConnectionUserContext = new GraphQlApiConnection(ConfigFile.ApiServerUri, jwt);
+                apiConnectionUserContext.SetProperRole(User, [Roles.Admin, Roles.Auditor, Roles.Reporter, Roles.ReporterViewAll, Roles.Modeller, Roles.Recertifier]);
+
+                using GlobalConfig globalConfig = await GlobalConfig.ConstructAsync(jwt);
+                using UserConfig userConfig = await UserConfig.ConstructAsync(globalConfig, apiConnectionUserContext, targetUser.DbId);
 
                 ReportBase? report = await ReportGenerator.GenerateFromTemplate(await ConvertParameters(parameters), apiConnectionUserContext, userConfig, DefaultInit.DoNothing);
+
                 return report?.ExportToJson() ?? "";
             }
             catch (Exception exception)
@@ -55,18 +56,6 @@ namespace FWO.Middleware.Server.Controllers
                 Log.WriteError("Get Report", "Error while getting report.", exception);
             }
             return "";
-        }
-
-        private async Task<bool> InitUserEnvironment()
-        {
-            AuthManager authManager = new(jwtWriter, ldaps, apiConnection);
-            UiUser targetUser = new() { Name = User.FindFirstValue("unique_name") ?? "", Dn = User.FindFirstValue("x-hasura-uuid") ?? "" };
-            string jwt = await authManager.AuthorizeUserAsync(targetUser, validatePassword: false);
-            apiConnectionUserContext = new GraphQlApiConnection(ConfigFile.ApiServerUri, jwt);
-            apiConnectionUserContext.SetProperRole(User, [Roles.Admin, Roles.Auditor, Roles.Reporter, Roles.ReporterViewAll, Roles.Modeller, Roles.Recertifier]);
-            GlobalConfig globalConfig = await GlobalConfig.ConstructAsync(jwt);
-            userConfig = await UserConfig.ConstructAsync(globalConfig, apiConnectionUserContext, targetUser.DbId);
-            return true;
         }
 
         private async Task<ReportTemplate> ConvertParameters(ReportGetParameters reportApiParams)
@@ -195,33 +184,6 @@ namespace FWO.Middleware.Server.Controllers
                 Log.WriteError("Construct Service Filters", $" leads to exception: {exception.Message}");
             }
             return serviceOrFilters;
-        }
-
-        /// <summary>
-        /// Releases the resources used by the controller.
-        /// </summary>
-        [NonAction]
-        public void Dispose()
-        {
-            Dispose(true);
-            GC.SuppressFinalize(this);
-        }
-
-        /// <summary>
-        /// Releases the unmanaged resources used by the controller and optionally releases the managed resources.
-        /// </summary>
-        /// <param name="disposing">true to release both managed and unmanaged resources; false to release only unmanaged resources.</param>
-        protected virtual void Dispose(bool disposing)
-        {
-            if (!disposed)
-            {
-                if (disposing)
-                {
-                    userConfig?.Dispose();
-                    apiConnectionUserContext?.Dispose();
-                }
-                disposed = true;
-            }
         }
     }
 }

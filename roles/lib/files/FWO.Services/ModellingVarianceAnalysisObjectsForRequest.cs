@@ -26,13 +26,13 @@ namespace FWO.Services
         {
             varianceResult = new() { Managements = RelevantManagements };
             AnalyseRules(conn, false);
-            if(varianceResult.ConnsNotImplemented.Count > 0)
+            if (varianceResult.ConnsNotImplemented.Count > 0)
             {
                 AddAccessTaskList.Add(ConstructCreateTask(mgt, conn));
             }
-            else if(varianceResult.RuleDifferences.Count > 0)
+            else if (varianceResult.RuleDifferences.Count > 0)
             {
-                foreach(var rule in varianceResult.RuleDifferences[0].ImplementedRules.Where(r => r.MgmtId == mgt.Id))
+                foreach (var rule in varianceResult.RuleDifferences[0].ImplementedRules.Where(r => r.MgmtId == mgt.Id))
                 {
                     ChangeAccessTaskList.Add(ConstructRuleTask(mgt, rule, conn, false, ReqElements));
                 }
@@ -63,7 +63,7 @@ namespace FWO.Services
                 // Get from deleted conn as modelled objects are expected instead of specUser (Then deletion of links is suppressed in this case)
                 ruleElements.AddRange(GetNwObjElementsFromConn(deletedConn));
             }
-            foreach(var src in rule.Froms.Select(src => src.Object))
+            foreach (var src in rule.Froms.Select(src => src.Object))
             {
                 ruleElements.Add(new()
                 {
@@ -75,7 +75,7 @@ namespace FWO.Services
                     GroupName = src.Type.Name == ObjectType.Group ? src.Name : null
                 });
             }
-            foreach(var dest in rule.Tos.Select(dest => dest.Object))
+            foreach (var dest in rule.Tos.Select(dest => dest.Object))
             {
                 ruleElements.Add(new()
                 {
@@ -87,7 +87,7 @@ namespace FWO.Services
                     GroupName = dest.Type.Name == ObjectType.Group ? dest.Name : null
                 });
             }
-            foreach(var svc in rule.Services.Select(svc => svc.Content))
+            foreach (var svc in rule.Services.Select(svc => svc.Content))
             {
                 ruleElements.Add(new()
                 {
@@ -148,7 +148,7 @@ namespace FWO.Services
 
         private string ConstructCreateTaskTitle(ModellingConnection conn)
         {
-            string commentString = $" ({ userConfig.ModModelledMarker + conn.Id.ToString() })";
+            string commentString = $" ({userConfig.ModModelledMarker + conn.Id.ToString()})";
             return (conn.IsCommonService ? userConfig.GetText("new_common_service") : userConfig.GetText("new_connection")) + ": " + (conn.Name ?? "") + commentString;
         }
 
@@ -162,7 +162,7 @@ namespace FWO.Services
                 {
                     Field = ElemFieldType.rule.ToString(),
                     RuleUid = rule.Uid,
-                    DeviceId = rule.DeviceId,
+                    DeviceId = rule.EnforcingGateways.FirstOrDefault()?.Content?.Id,
                     Name = rule.Name
                 }
             ];
@@ -179,14 +179,14 @@ namespace FWO.Services
                 AdditionalInfo = JsonSerializer.Serialize(addInfo),
                 Comments = [new() { Comment = new() { CommentText = ConstructComment(conn) } }]
             };
-            Device? device = mgt.Devices.FirstOrDefault(d => d.Id == rule.DeviceId);
+            Device? device = mgt.Devices.FirstOrDefault(d => d.Id == rule.EnforcingGateways.FirstOrDefault()?.Content?.Id);
             ruleTask.SetDeviceList(device != null ? [device] : []);
             return ruleTask;
         }
 
         private void AnalyseNetworkAreasForRequest(ModellingConnection conn, bool modelled = false)
         {
-            foreach(var area in ModellingNetworkAreaWrapper.Resolve(conn.SourceAreas))
+            foreach (var area in ModellingNetworkAreaWrapper.Resolve(conn.SourceAreas))
             {
                 ReqElements.Add(new()
                 {
@@ -195,7 +195,7 @@ namespace FWO.Services
                     GroupName = area.IdString
                 });
             }
-            foreach(var area in ModellingNetworkAreaWrapper.Resolve(conn.DestinationAreas))
+            foreach (var area in ModellingNetworkAreaWrapper.Resolve(conn.DestinationAreas))
             {
                 ReqElements.Add(new()
                 {
@@ -252,9 +252,9 @@ namespace FWO.Services
             PlannedAppZoneDbUpdate = await AppZoneHandler.PlanAppZoneDbUpdate(oldAppZone);
 
             ModellingAppRole? prodAppZone = oldAppZone == null ? null : ResolveProdAppRole(oldAppZone, mgt);
-            if(prodAppZone == null)
+            if (prodAppZone == null)
             {
-                RequestNewAppRole(AppZoneHandler.CreateNewAppZone() , mgt);
+                RequestNewAppRole(AppZoneHandler.CreateNewAppZone(), mgt);
             }
             else
             {
@@ -271,7 +271,7 @@ namespace FWO.Services
 
         private ModellingAppRole? ResolveProdAppRole(ModellingAppRole appRole, Management mgt)
         {
-            string nwGroupType = appRole.GetType() == typeof(ModellingAppZone) ? "AppZone" : "AppRole"; 
+            string nwGroupType = appRole.GetType() == typeof(ModellingAppZone) ? "AppZone" : "AppRole";
             Log.WriteDebug($"Search {nwGroupType}", $"Name: {appRole.Name}, IdString: {appRole.IdString}, Management: {mgt.Name}");
 
             bool shortened = false;
@@ -346,7 +346,7 @@ namespace FWO.Services
 
         private void RequestNewAppRole(ModellingAppRole appRole, Management mgt)
         {
-            string title = appRole.GetType() == typeof(ModellingAppZone)? userConfig.GetText("new_app_zone"): userConfig.GetText("new_app_role");
+            string title = appRole.GetType() == typeof(ModellingAppZone) ? userConfig.GetText("new_app_zone") : userConfig.GetText("new_app_role");
             List<WfReqElement> groupMembers = [];
             foreach (ModellingAppServer appServer in ModellingAppServerWrapper.Resolve(appRole.AppServers))
             {
@@ -377,7 +377,7 @@ namespace FWO.Services
 
         private void RequestUpdateAppRole(ModellingAppRole appRole, Management mgt)
         {
-            string title = appRole.GetType() == typeof(ModellingAppZone)? userConfig.GetText("update_app_zone"): userConfig.GetText("update_app_role");
+            string title = appRole.GetType() == typeof(ModellingAppZone) ? userConfig.GetText("update_app_zone") : userConfig.GetText("update_app_role");
             FillGroupMembers(appRole.IdString, mgt);
             Dictionary<string, string>? addInfo = new() { { AdditionalInfoKeys.GrpName, appRole.IdString }, { AdditionalInfoKeys.AppRoleId, appRole.Id.ToString() } };
             if (newGroupMembers.Count > 0)

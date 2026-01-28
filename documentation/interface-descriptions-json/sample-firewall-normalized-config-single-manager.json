@@ -1,0 +1,114 @@
+{
+  "ConfigFormat": "NORMALIZED",
+  "ManagerSet": [
+    {
+      "ManagerUid": "25952584-ae41-51f0-0c4e-cd435e7407a6",
+      "ManagerName": "cp-single-mgr",
+      "IsSuperManager": false,
+      "DomainUid": "",
+      "DomainName": "",
+      "SubManagerIds": [],
+      "Configs": [
+        {
+          "ConfigFormat": "NORMALIZED_LEGACY",
+          "action": "INSERT",
+          "network_objects": {
+            "4340e634-add5-51f0-f96e-1a939e4c3326": {
+              "obj_uid": "4340e634-add5-51f0-f96e-1a939e4c3326",
+              "obj_name": "gmail.com",
+              "obj_ip": "0.0.0.0/32",
+              "obj_ip_end": "255.255.255.255/32",
+              "obj_color": "black",
+              "obj_typ": "network",
+              "obj_member_refs": null,
+              "obj_member_names": null,
+              "obj_comment": "IPv4 addresses of Fabric Devices."
+            }
+          },
+          "service_objects": {
+            "block-high-risk": {
+              "svc_uid": "block-high-risk",
+              "svc_name": "block-high-risk",
+              "svc_port": 1234,
+              "svc_port_end": 1234,
+              "svc_color": "foreground",
+              "svc_typ": "simple",
+              "ip_proto": 6,
+              "svc_member_refs": null,
+              "svc_member_names": null,
+              "svc_comment": null,
+              "svc_timeout": null,
+              "rpc_nr": null
+            }
+          },
+          "users": {},
+          "zone_objects": {},
+          "rulebases": [
+            {
+              "id": null,
+              "uid": "section1",
+              "name": "section1",
+              "mgm_uid": "25952584-ae41-51f0-0c4e-cd435e7407a6",
+              "is_global": false,
+              "Rules": {
+                "3fa82664-5717-4562-b3fc-2c963f66afa6": {
+                  "rule_num": 1,
+                  "rule_num_numeric": 0.0,
+                  "rule_disabled": false,
+                  "rule_src_neg": false,
+                  "rule_src": "gmail.com",
+                  "rule_src_refs": "4340e634-add5-51f0-f96e-1a939e4c3326",
+                  "rule_dst_neg": false,
+                  "rule_dst": "gmail.com",
+                  "rule_dst_refs": "4340e634-add5-51f0-f96e-1a939e4c3326",
+                  "rule_svc_neg": false,
+                  "rule_svc": "block-high-risk",
+                  "rule_svc_refs": "block-high-risk",
+                  "rule_action": "accept",
+                  "rule_track": "none",
+                  "rule_installon": "rules_adom_v4_mypkg",
+                  "rule_time": "",
+                  "rule_name": "my combined nat rule",
+                  "rule_uid": "3fa82664-5717-4562-b3fc-2c963f66afa6",
+                  "rule_custom_fields": "{}",
+                  "rule_implied": false,
+                  "rule_type": "access",
+                  "last_change_admin": "tim",
+                  "parent_rule_uid": null,
+                  "last_hit": null,
+                  "rule_comment": null,
+                  "rule_head_text": null
+                }
+              }
+            }
+          ],
+          "gateways": [
+            {
+              "Uid": "fg1_root",
+              "Name": "fg1_root",
+              "Routing": [],
+              "Interfaces": [],
+              "RulebaseLinks": [
+                {
+                  "from_rulebase_uid": null,
+                  "from_rule_uid": null,
+                  "to_rulebase_uid": "section1",
+                  "link_type": "ordered",
+                  "is_initial": true,
+                  "is_global": false,
+                  "is_section": false
+                }
+              ],
+              "GlobalPolicyUid": null,
+              "EnforcedPolicyUids": [],
+              "EnforcedNatPolicyUids": [],
+              "ImportDisabled": false,
+              "ShowInUI": true
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "native_config": {}
+}

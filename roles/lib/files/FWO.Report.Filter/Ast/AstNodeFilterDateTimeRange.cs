@@ -1,4 +1,4 @@
-﻿using FWO.Report.Filter.FilterTypes;
+using FWO.Report.Filter.FilterTypes;
 using FWO.Basics;
 
 
@@ -31,10 +31,10 @@ namespace FWO.Report.Filter.Ast
         private void ExtractLastHitFilter(DynGraphqlQuery query, ReportType? reportType)
         {
             string queryVarName = AddVariable<DateTimeRange>(query, "lastHitLimit", Operator.Kind, semanticValue!);
-            
+
             if (reportType != null && ((ReportType)reportType).IsChangeReport())
             {
-                if (Operator.Kind==TokenKind.LSS) // only show rules which have a hit before a certain date (including no hit rules)
+                if (Operator.Kind == TokenKind.LSS) // only show rules which have a hit before a certain date (including no hit rules)
                 {
                     query.RuleWhereStatement += $@"
                         _or: [
@@ -49,7 +49,7 @@ namespace FWO.Report.Filter.Ast
             }
             else
             {
-                if (Operator.Kind==TokenKind.LSS) // only show rules which have a hit before a certain date (including no hit rules)
+                if (Operator.Kind == TokenKind.LSS) // only show rules which have a hit before a certain date (including no hit rules)
                 {
                     query.RuleWhereStatement += $@"
                         _or: [

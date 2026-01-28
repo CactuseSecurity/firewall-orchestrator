@@ -1,0 +1,3 @@
+mutation updateManagementLastImportAttempt($mgmId: Int!, $timeStamp: timestamp!, $success: Boolean) {
+    update_management(where: {mgm_id: {_eq: $mgmId}}, _set: {last_import_attempt: $timeStamp, last_import_attempt_successful: $success } ) { affected_rows }
+}

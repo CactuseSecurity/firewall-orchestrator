@@ -11,27 +11,27 @@ namespace FWO.Test
     /// </summary>
     public class SimulatedSCClient : SCClient
     {
-		private int CallCounter = 0;
+        private int CallCounter = 0;
 
-		/// <summary>
-		/// constructor
-		/// </summary>
-		public SimulatedSCClient(ExternalTicketSystem tufinSystem) : base(tufinSystem)
-		{ }
+        /// <summary>
+        /// constructor
+        /// </summary>
+        public SimulatedSCClient(ExternalTicketSystem tufinSystem) : base(tufinSystem)
+        { }
 
 
         /// <summary>
         /// Simulated Rest call
         /// </summary>
         public override async Task<RestResponse<int>> RestCall(RestRequest request, string restEndPoint)
-		{
-			CallCounter++;
+        {
+            CallCounter++;
             await DefaultInit.DoNothing(); // qad avoid compiler warning
-			if (CallCounter == 2)
-			{
-				return new(new()) { StatusCode = HttpStatusCode.BadRequest, Content = "{\"ticket\": {\"id\": 1, \"status\": \"In Progress\", \"Error\": \"FIELD_VALIDATION_ERROR\"} }" };
-			}
+            if (CallCounter == 2)
+            {
+                return new(new()) { StatusCode = HttpStatusCode.BadRequest, Content = "{\"ticket\": {\"id\": 1, \"status\": \"In Progress\", \"Error\": \"FIELD_VALIDATION_ERROR\"} }" };
+            }
             return new(new()) { StatusCode = HttpStatusCode.OK, Content = "{\"ticket\": {\"id\": 1, \"status\": \"In Progress\" } }" };
-		}
-	}
+        }
+    }
 }

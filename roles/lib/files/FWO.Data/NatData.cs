@@ -1,4 +1,4 @@
-﻿using System.Text.Json.Serialization; 
+using System.Text.Json.Serialization;
 using Newtonsoft.Json;
 
 namespace FWO.Data
@@ -12,7 +12,7 @@ namespace FWO.Data
         public string TranslatedService { get; set; } = "";
 
         [JsonProperty("rule_services"), JsonPropertyName("rule_services")]
-        public ServiceWrapper[] TranslatedServices { get; set; } = new ServiceWrapper[]{};
+        public ServiceWrapper[] TranslatedServices { get; set; } = [];
 
         [JsonProperty("rule_src_neg"), JsonPropertyName("rule_src_neg")]
         public bool TranslatedSourceNegated { get; set; }
@@ -21,7 +21,7 @@ namespace FWO.Data
         public string TranslatedSource { get; set; } = "";
 
         [JsonProperty("rule_froms"), JsonPropertyName("rule_froms")]
-        public NetworkLocation[] TranslatedFroms { get; set; } = new NetworkLocation[]{};
+        public NetworkLocation[] TranslatedFroms { get; set; } = new NetworkLocation[] { };
 
         [JsonProperty("rule_dst_neg"), JsonPropertyName("rule_dst_neg")]
         public bool TranslatedDestinationNegated { get; set; }
@@ -30,6 +30,6 @@ namespace FWO.Data
         public string TranslatedDestination { get; set; } = "";
 
         [JsonProperty("rule_tos"), JsonPropertyName("rule_tos")]
-        public NetworkLocation[] TranslatedTos { get; set; } = new NetworkLocation[]{};
+        public NetworkLocation[] TranslatedTos { get; set; } = new NetworkLocation[] { };
     }
 }

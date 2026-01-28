@@ -75,7 +75,7 @@ If you use authentication:
 
     Acquire::http::Proxy "http://user:password@proxy_server:port/";
 
-Note that the following domains must be reachable through the proxy:
+Note that the following domains (and their sub-domains) must be reachable through the proxy:
 
     cactus.de (and sub-Domains, only for downloading test data, not needed if run with "--skip-tags test")
     ubuntu.com
@@ -96,11 +96,10 @@ Note that the following domains must be reachable through the proxy:
     snapcraftcontent.com (and sub-domains)
 
 #### For vscode-debugging only - most are needed for downloading extensions
-
     visualstudio.com (and subdomains)
     vsassets.io (and subdomains)
     digicert.com (and subdomains)
-    dot.net (and subdomains)
+    dot.net (and subdomains) 
     windows.net (and subdomains)
     applicationinsights.azure.com (and subdomains)
     exp-tas.com (and subdomains)
@@ -123,8 +122,9 @@ In case of errors with existing pip config, do not use the script to create the 
 remove any local pip config and install manually:
     
     rm -f $HOME/.config/pip/pip.conf
-    python3 -m venv ansible-venv
-    source ansible-venv/bin/activate
+    python3 -m venv installer-venv
+    source installer-venv/bin/activate
+    pip install -r requirements.txt
     pip install ansible
 
 ### Parameter "api_no_metadata" to prevent meta data import
@@ -202,13 +202,6 @@ rsyslog config
             maxsize 4096k
             missingok
             copytruncate
-            sharedscripts
-                prerotate
-                        systemctl stop {{ product_name }}-importer-legacy.service >/dev/null 2>&1
-                endscript
-                postrotate
-                        systemctl start {{ product_name }}-importer-legacy.service >/dev/null 2>&1
-                endscript
         }
 ```
 
@@ -335,8 +328,6 @@ isoback ansible_host=10.5.10.10
 put the hosts into the correct section (`[frontends]`, `[backends]`, `[importers]`)
 
 make sure all target hosts meet the requirements for ansible (user with pub key auth & full sudo rights)
-
-modify isohome/etc/iso.conf on frontend(s) - only needed for legacy (perl-based) importers:
 
 enter the address of the database backend server, e.g.
 

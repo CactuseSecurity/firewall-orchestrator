@@ -1,9 +1,9 @@
-﻿using System.Text.Json.Serialization; 
+using System.Text.Json.Serialization;
 using Newtonsoft.Json;
 
 namespace FWO.Data.Workflow
 {
-    public class WfImplTask: WfTaskBase
+    public class WfImplTask : WfTaskBase
     {
         [JsonProperty("id"), JsonPropertyName("id")]
         public long Id { get; set; }
@@ -29,9 +29,9 @@ namespace FWO.Data.Workflow
 
 
         public WfImplTask()
-        {}
+        { }
 
-        public WfImplTask(WfImplTask implTask): base(implTask)
+        public WfImplTask(WfImplTask implTask) : base(implTask)
         {
             Id = implTask.Id;
             ReqTaskId = implTask.ReqTaskId;
@@ -40,7 +40,7 @@ namespace FWO.Data.Workflow
             ImplElements = implTask.ImplElements;
             Comments = implTask.Comments;
             TicketId = implTask.TicketId;
-       }
+        }
 
 
         public WfImplTask(WfReqTask reqtask, bool copyComments = true)
@@ -69,19 +69,19 @@ namespace FWO.Data.Workflow
             TicketId = reqtask.TicketId;
             if (reqtask.Elements != null && reqtask.Elements.Count > 0)
             {
-                if(reqtask.TaskType == WfTaskType.rule_delete.ToString())
+                if (reqtask.TaskType == WfTaskType.rule_delete.ToString())
                 {
                     DeviceId = reqtask.Elements[0].DeviceId;
                 }
                 ImplElements = new List<WfImplElement>();
-                foreach(WfReqElement element in reqtask.Elements)
+                foreach (WfReqElement element in reqtask.Elements)
                 {
                     ImplElements.Add(new WfImplElement(element));
                 }
             }
-            if(copyComments)
+            if (copyComments)
             {
-                foreach(var comm in reqtask.Comments)
+                foreach (var comm in reqtask.Comments)
                 {
                     comm.Comment.Scope = WfObjectScopes.ImplementationTask.ToString();
                     Comments.Add(comm);
@@ -98,11 +98,11 @@ namespace FWO.Data.Workflow
         public List<NwObjectElement> GetNwObjectElements(ElemFieldType field)
         {
             List<NwObjectElement> elements = [];
-            foreach(var implElem in ImplElements)
+            foreach (var implElem in ImplElements)
             {
                 if (implElem.Field == field.ToString())
                 {
-                    elements.Add( new NwObjectElement()
+                    elements.Add(new NwObjectElement()
                     {
                         ElemId = implElem.Id,
                         TaskId = implElem.ImplTaskId,
@@ -119,11 +119,11 @@ namespace FWO.Data.Workflow
         public List<NwServiceElement> GetServiceElements()
         {
             List<NwServiceElement> elements = [];
-            foreach(var implElem in ImplElements)
+            foreach (var implElem in ImplElements)
             {
                 if (implElem.Field == ElemFieldType.service.ToString())
                 {
-                    elements.Add( new NwServiceElement()
+                    elements.Add(new NwServiceElement()
                     {
                         ElemId = implElem.Id,
                         TaskId = implElem.ImplTaskId,
@@ -140,11 +140,11 @@ namespace FWO.Data.Workflow
         public List<NwRuleElement> GetRuleElements()
         {
             List<NwRuleElement> elements = [];
-            foreach(var implElem in ImplElements)
+            foreach (var implElem in ImplElements)
             {
                 if (implElem.Field == ElemFieldType.rule.ToString())
                 {
-                    elements.Add( new NwRuleElement()
+                    elements.Add(new NwRuleElement()
                     {
                         ElemId = implElem.Id,
                         TaskId = implElem.ImplTaskId,

@@ -1,0 +1,7 @@
+query countActiveRules {
+  rule_aggregate(where: { removed: { _is_null: true } }) {
+    aggregate {
+      count
+    }
+  }
+}

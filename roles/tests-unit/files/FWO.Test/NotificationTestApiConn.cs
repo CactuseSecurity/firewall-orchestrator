@@ -1,4 +1,4 @@
-﻿using GraphQL;
+using GraphQL;
 using FWO.Api.Client.Queries;
 using FWO.Data;
 using FWO.Services;
@@ -17,7 +17,7 @@ namespace FWO.Test
             RepeatIntervalAfterDeadline = SchedulerInterval.Weeks,
             RepeatOffsetAfterDeadline = 1,
             RepetitionsAfterDeadline = 3
-        }; 
+        };
 
         readonly FwoNotification NotifReq2 = new()
         {
@@ -29,7 +29,7 @@ namespace FWO.Test
             RepeatIntervalAfterDeadline = SchedulerInterval.Days,
             RepeatOffsetAfterDeadline = 7,
             RepetitionsAfterDeadline = 1
-        }; 
+        };
 
         readonly FwoNotification NotifRec = new()
         {
@@ -44,20 +44,20 @@ namespace FWO.Test
             RepeatOffsetAfterDeadline = 1,
             RepetitionsAfterDeadline = 1,
             Layout = NotificationLayout.HtmlAsAttachment
-        }; 
+        };
 
         public override async Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null)
         {
             await DefaultInit.DoNothing(); // qad avoid compiler warning
             Type responseType = typeof(QueryResponseType);
-            if(responseType == typeof(List<FwoNotification>))
+            if (responseType == typeof(List<FwoNotification>))
             {
                 string? Vars = variables?.ToString();
-                List<FwoNotification>? notifs = Vars != null && Vars.Contains($"{NotificationClient.InterfaceRequest}") ? [ NotifReq1, NotifReq2 ]: [ NotifRec ];
-                GraphQLResponse<dynamic> response = new(){ Data = notifs };
+                List<FwoNotification>? notifs = Vars != null && Vars.Contains($"{NotificationClient.InterfaceRequest}") ? [NotifReq1, NotifReq2] : [NotifRec];
+                GraphQLResponse<dynamic> response = new() { Data = notifs };
                 return response.Data;
             }
-            if(responseType == typeof(ReturnId))
+            if (responseType == typeof(ReturnId))
             {
                 int notifCount = 0;
                 var idsProp = variables?.GetType().GetProperty("ids");
@@ -69,7 +69,7 @@ namespace FWO.Test
                         notifCount = collection.Count;
                     }
                 }
-                GraphQLResponse<dynamic> response = new(){ Data = new ReturnId() { AffectedRows = notifCount } };
+                GraphQLResponse<dynamic> response = new() { Data = new ReturnId() { AffectedRows = notifCount } };
                 return response.Data;
             }
 

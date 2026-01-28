@@ -1,4 +1,4 @@
-﻿using NUnit.Framework;
+using NUnit.Framework;
 using NUnit.Framework.Legacy;
 using FWO.Data;
 using FWO.Middleware.Server;
@@ -11,7 +11,7 @@ namespace FWO.Test
     internal class NotificationTest
     {
         readonly NotificationTestApiConn apiConnection = new();
-        readonly SimulatedGlobalConfig globalConfig = new(){ UseDummyEmailAddress = true, DummyEmailAddress = "x@y.de"};
+        readonly SimulatedGlobalConfig globalConfig = new() { UseDummyEmailAddress = true, DummyEmailAddress = "x@y.de" };
         const string EmailText = "email text";
 
         [Test]
@@ -49,9 +49,9 @@ namespace FWO.Test
         {
             List<UserGroup> ownerGroups = [];
             NotificationService notificationService = await NotificationService.CreateAsync(NotificationClient.Recertification, globalConfig, apiConnection, ownerGroups);
-            FwoOwner owner = new(){ NextRecertDate = DateTime.Now.AddDays(21)};
+            FwoOwner owner = new() { NextRecertDate = DateTime.Now.AddDays(21) };
 
-            int emailsSent = await notificationService.SendNotifications(owner, null, EmailText, new ReportRecertEvent(new(""), new(globalConfig), Basics.ReportType.RecertificationEvent){});
+            int emailsSent = await notificationService.SendNotifications(owner, null, EmailText, new ReportRecertEvent(new(""), new(globalConfig), Basics.ReportType.RecertificationEvent) { });
             ClassicAssert.AreEqual(1, emailsSent);
 
             notificationService.Notifications[0].LastSent = DateTime.Now;

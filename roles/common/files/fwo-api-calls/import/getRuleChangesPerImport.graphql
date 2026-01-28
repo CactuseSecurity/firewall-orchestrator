@@ -1,0 +1,5 @@
+query getRuleChangesPerImport($importId: bigint!) {
+    changelog_rule_aggregate(where: {control_id: {_eq: $importId}}) {
+        aggregate { count }
+    }
+}

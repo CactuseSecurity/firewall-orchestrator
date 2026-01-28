@@ -1,4 +1,4 @@
-﻿using System.Text.Json;
+using System.Text.Json;
 using FWO.Data;
 using FWO.Data.Workflow;
 using FWO.Config.Api;
@@ -23,7 +23,7 @@ namespace FWO.Services
 
         public TicketCreator(ApiConnection apiConnection, UserConfig userConfig, System.Security.Claims.ClaimsPrincipal authUser, MiddlewareClient middlewareClient, WorkflowPhases phase = WorkflowPhases.request)
         {
-            wfHandler = new (LogMessage, userConfig, authUser, apiConnection, middlewareClient, phase);
+            wfHandler = new(LogMessage, userConfig, authUser, apiConnection, middlewareClient, phase);
             this.userConfig = userConfig;
             this.apiConnection = apiConnection;
         }
@@ -33,43 +33,43 @@ namespace FWO.Services
             await wfHandler.Init();
             stateId ??= wfHandler.MasterStateMatrix.LowestEndState;
             await wfHandler.SelectTicket(new WfTicket()
-                {
-                    StateId = (int)stateId,
-                    Title = title,
-                    Requester = userConfig.User,
-                    Reason = reason
-                },
+            {
+                StateId = (int)stateId,
+                Title = title,
+                Requester = userConfig.User,
+                Reason = reason
+            },
                 ObjAction.add);
-            foreach(var reqTask in reqTasks)
+            foreach (var reqTask in reqTasks)
             {
                 wfHandler.SelectReqTask(new WfReqTask()
-                    {
-                        StateId = (int)stateId,
-                        Title = reqTask.Title,
-                        TaskNumber = reqTask.TaskNumber,
-                        TaskType = reqTask.TaskType,
-                        Owners = [new() { Owner = owner }],
-                        Reason = reqTask.Reason,
-                        ManagementId = reqTask.ManagementId,
-                        OnManagement = reqTask.OnManagement,
-                        Elements = reqTask.Elements,
-                        Comments = reqTask.Comments,
-                        AdditionalInfo = reqTask.AdditionalInfo
-                    },
+                {
+                    StateId = (int)stateId,
+                    Title = reqTask.Title,
+                    TaskNumber = reqTask.TaskNumber,
+                    TaskType = reqTask.TaskType,
+                    Owners = [new() { Owner = owner }],
+                    Reason = reqTask.Reason,
+                    ManagementId = reqTask.ManagementId,
+                    OnManagement = reqTask.OnManagement,
+                    Elements = reqTask.Elements,
+                    Comments = reqTask.Comments,
+                    AdditionalInfo = reqTask.AdditionalInfo
+                },
                     ObjAction.add);
-                await wfHandler.AddApproval(JsonSerializer.Serialize(new ApprovalParams(){StateId = (int)stateId}));
+                await wfHandler.AddApproval(JsonSerializer.Serialize(new ApprovalParams() { StateId = (int)stateId }));
                 wfHandler.ActTicket.Tasks.Add(wfHandler.ActReqTask);
             }
             wfHandler.AddTicketMode = true;
             wfHandler.ActTicket.UpdateCidrsInTaskElements();
             long ticketId = await wfHandler.SaveTicket(wfHandler.ActTicket);
-            if(ticketId > 0)
+            if (ticketId > 0)
             {
-                foreach(var reqtask in reqTasks.Where(t => t.Comments.Count > 0))
+                foreach (var reqtask in reqTasks.Where(t => t.Comments.Count > 0))
                 {
                     WfReqTask? reqTaskToChange = wfHandler.ActTicket.Tasks.FirstOrDefault(x => x.TaskType == reqtask.TaskType &&
                         x.ManagementId == reqtask.ManagementId && x.Title == reqtask.Title && x.TaskNumber == reqtask.TaskNumber);
-                    if(reqTaskToChange != null)
+                    if (reqTaskToChange != null)
                     {
                         wfHandler.SetReqTaskEnv(reqTaskToChange);
                         await wfHandler.ConfAddCommentToReqTask(reqtask.Comments[0].Comment.CommentText);
@@ -85,7 +85,7 @@ namespace FWO.Services
             {
                 await wfHandler.Init();
                 WfTicket? ticket = await wfHandler.ResolveTicket(ticketId);
-                if(ticket != null)
+                if (ticket != null)
                 {
                     ExtStateHandler extStateHandler = new(apiConnection);
                     ticket.StateId = extStateHandler.GetInternalStateId(extReqState) ?? throw new ArgumentException($"No translation defined for external state {extReqState}.");
@@ -104,29 +104,29 @@ namespace FWO.Services
             await wfHandler.Init();
             stateId = wfHandler.MasterStateMatrix.LowestEndState;
             await wfHandler.SelectTicket(new WfTicket()
-                {
-                    StateId = stateId,
-                    Title = userConfig.ModReqTicketTitle + ": " + interfaceName,
-                    Requester = userConfig.User,
-                    Reason = reason
-                },
+            {
+                StateId = stateId,
+                Title = userConfig.ModReqTicketTitle + ": " + interfaceName,
+                Requester = userConfig.User,
+                Reason = reason
+            },
                 ObjAction.add);
-            Dictionary<string, string>? addInfo = new() { {AdditionalInfoKeys.ReqOwner, requestingOwner.Id.ToString()} };
+            Dictionary<string, string>? addInfo = new() { { AdditionalInfoKeys.ReqOwner, requestingOwner.Id.ToString() } };
             wfHandler.SelectReqTask(new WfReqTask()
-                {
-                    StateId = stateId,
-                    Title = userConfig.ModReqTaskTitle + ": " + interfaceName,
-                    TaskType = WfTaskType.new_interface.ToString(),
-                    Owners = [new() { Owner = owner }],
-                    Reason = reason,
-                    AdditionalInfo = JsonSerializer.Serialize(addInfo)
-                },
+            {
+                StateId = stateId,
+                Title = userConfig.ModReqTaskTitle + ": " + interfaceName,
+                TaskType = WfTaskType.new_interface.ToString(),
+                Owners = [new() { Owner = owner }],
+                Reason = reason,
+                AdditionalInfo = JsonSerializer.Serialize(addInfo)
+            },
                 ObjAction.add);
-            await wfHandler.AddApproval(JsonSerializer.Serialize(new ApprovalParams(){StateId = wfHandler.MasterStateMatrix.LowestEndState}));
+            await wfHandler.AddApproval(JsonSerializer.Serialize(new ApprovalParams() { StateId = wfHandler.MasterStateMatrix.LowestEndState }));
             wfHandler.ActTicket.Tasks.Add(wfHandler.ActReqTask);
             wfHandler.AddTicketMode = true;
             long ticketId = await wfHandler.SaveTicket(wfHandler.ActTicket);
-            if(ticketId > 0)
+            if (ticketId > 0)
             {
                 await AddRequesterInfoToImplTask(ticketId, requestingOwner);
             }
@@ -137,10 +137,10 @@ namespace FWO.Services
         {
             await wfHandler.Init();
             WfTicket? ticket = await wfHandler.ResolveTicket(ticketId);
-            if(ticket != null)
+            if (ticket != null)
             {
                 WfReqTask? reqTask = ticket.Tasks.FirstOrDefault(x => x.TaskType == WfTaskType.new_interface.ToString());
-                if(reqTask != null)
+                if (reqTask != null)
                 {
                     await wfHandler.SetAddInfoInReqTask(reqTask, AdditionalInfoKeys.ConnId, connId.ToString());
                 }
@@ -152,19 +152,19 @@ namespace FWO.Services
             ExtStateHandler extStateHandler = new(apiConnection);
             await wfHandler.Init();
             WfImplTask? implTask = await FindNewInterfaceImplTask(ticketId);
-            if(implTask != null)
+            if (implTask != null)
             {
                 await wfHandler.ContinueImplPhase(implTask);
-                if(comment != "")
+                if (comment != "")
                 {
                     await wfHandler.ConfAddCommentToImplTask(comment);
                 }
                 int? newState = extStateHandler.GetInternalStateId(extState);
-                if(newState != null)
+                if (newState != null)
                 {
-                    await wfHandler.PromoteImplTask(new(){ StateId = (int)newState });
+                    await wfHandler.PromoteImplTask(new() { StateId = (int)newState });
                     return true;
-                } 
+                }
             }
             return false;
         }
@@ -203,7 +203,7 @@ namespace FWO.Services
                 Priority = priority,
                 Deadline = deadline
             };
-            foreach(var ruleUid in ruleUids)
+            foreach (var ruleUid in ruleUids)
             {
                 wfHandler.ActReqTask = new WfReqTask()
                 {
@@ -220,7 +220,7 @@ namespace FWO.Services
                     DeviceId = deviceId,
                     RuleUid = ruleUid
                 });
-                await wfHandler.AddApproval(JsonSerializer.Serialize(new ApprovalParams(){StateId = wfHandler.MasterStateMatrix.LowestEndState}));
+                await wfHandler.AddApproval(JsonSerializer.Serialize(new ApprovalParams() { StateId = wfHandler.MasterStateMatrix.LowestEndState }));
                 wfHandler.ActTicket.Tasks.Add(wfHandler.ActReqTask);
             }
             wfHandler.AddTicketMode = true;
@@ -230,7 +230,7 @@ namespace FWO.Services
         private async Task AddRequesterInfoToImplTask(long ticketId, FwoOwner owner)
         {
             WfImplTask? implTask = await FindNewInterfaceImplTask(ticketId);
-            if(implTask != null)
+            if (implTask != null)
             {
                 wfHandler.SetImplTaskEnv(implTask);
                 string comment = $"{userConfig.GetText("requested_by")}: {userConfig.User.Name}"; // {userConfig.GetText("for")} {owner.Display()}";
@@ -241,10 +241,10 @@ namespace FWO.Services
         private async Task<WfImplTask?> FindNewInterfaceImplTask(long ticketId)
         {
             WfTicket? ticket = await wfHandler.ResolveTicket(ticketId);
-            if(ticket != null)
+            if (ticket != null)
             {
                 WfReqTask? reqTask = ticket.Tasks.FirstOrDefault(x => x.TaskType == WfTaskType.new_interface.ToString());
-                if(reqTask != null)
+                if (reqTask != null)
                 {
                     wfHandler.SetReqTaskEnv(reqTask);
                     return reqTask.ImplementationTasks.FirstOrDefault(x => x.ReqTaskId == reqTask.Id);
@@ -252,12 +252,12 @@ namespace FWO.Services
             }
             return null;
         }
-        
+
         private static void LogMessage(Exception? exception = null, string title = "", string message = "", bool ErrorFlag = false)
         {
             if (exception == null)
             {
-                if(ErrorFlag)
+                if (ErrorFlag)
                 {
                     Log.WriteWarning(title, message);
                 }

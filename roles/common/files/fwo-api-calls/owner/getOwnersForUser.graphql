@@ -1,0 +1,8 @@
+
+query getOwnersForUser ($userDns: [String!]!) {
+  owner (where: {owner_responsibles: {dn: {_in: $userDns}, responsible_type: {_in: [1, 3]}}} order_by: { id: asc }){
+    id
+    recert_interval
+    name
+  }
+}

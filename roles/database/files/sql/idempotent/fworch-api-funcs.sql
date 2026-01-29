@@ -606,7 +606,8 @@ RETURNS SETOF rule AS $$
     END;
 $$ LANGUAGE 'plpgsql' STABLE;
 
-DROP VIEW IF EXISTS public.rule_api CASCADE;
+DROP FUNCTION IF EXISTS public.get_rulebase_for_owner;
+DROP VIEW IF EXISTS public.rule_api;
 CREATE OR REPLACE VIEW public.rule_api AS
     SELECT
         rule_id, last_change_admin, rule_name, mgm_id, parent_rule_id, parent_rule_type, active, rule_num, rule_num_numeric,
@@ -616,7 +617,6 @@ CREATE OR REPLACE VIEW public.rule_api AS
         dev_id, rule_custom_fields, access_rule, nat_rule, xlate_rule, is_global, rulebase_id, removed
     FROM rule;
 
-drop function if exists public.get_rulebase_for_owner;
 CREATE OR REPLACE FUNCTION public.get_rulebase_for_owner(
     rulebase_row rulebase,
     ownerid integer

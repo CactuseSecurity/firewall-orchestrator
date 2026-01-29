@@ -128,9 +128,9 @@ Create table "object"
 	"obj_sys_readcom" Varchar,
 	"obj_sys_writecom" Varchar,
 	"active" Boolean NOT NULL Default TRUE,
-	"removed" BIGINT,
 	"obj_create" BIGINT NOT NULL,
 	"obj_last_seen" BIGINT NOT NULL,
+	"removed" BIGINT,
  primary key ("obj_id")
 );
 
@@ -139,10 +139,10 @@ Create table "objgrp"
 	"objgrp_id" BIGINT NOT NULL,
 	"objgrp_member_id" BIGINT NOT NULL,
 	"import_created" BIGINT NOT NULL,
-	"removed" BIGINT,
 	"import_last_seen" BIGINT NOT NULL,
 	"active" Boolean NOT NULL Default TRUE,
 	"negated" Boolean NOT NULL Default FALSE,
+	"removed" BIGINT,
  primary key ("objgrp_id","objgrp_member_id")
 );
 
@@ -155,7 +155,6 @@ Create table "rule"
 	"parent_rule_id" BIGINT,
 	"parent_rule_type" smallint,
 	"active" Boolean NOT NULL Default TRUE,
-	"removed" BIGINT,
 	"rule_num" Integer NOT NULL,
 	"rule_num_numeric" NUMERIC(16, 8),
 	"rule_ruleid" Varchar,
@@ -190,6 +189,7 @@ Create table "rule"
 	"xlate_rule" BIGINT,
 	"is_global" BOOLEAN DEFAULT FALSE NOT NULL,
 	"rulebase_id" Integer NOT NULL,
+	"removed" BIGINT,
 	primary key ("rule_id")
 );
 
@@ -200,10 +200,10 @@ Create table "rule_metadata"
 	"rule_uid" Text NOT NULL,
 	"mgm_id" Integer NOT NULL,
 	"rule_created" BIGINT NOT NULL,
-	"rule_last_modified" BIGINT NOT NULL,
 	"rule_first_hit" Timestamp,
 	"rule_last_hit" Timestamp,
 	"rule_hit_counter" BIGINT,
+	"removed" BIGINT,
  primary key ("rule_metadata_id") 
 );
 
@@ -247,9 +247,9 @@ Create table "rule_from"
 	"user_id" BIGINT,
 	"active" Boolean NOT NULL Default TRUE,
 	"negated" Boolean NOT NULL Default FALSE,
-	"removed" BIGINT,
 	"rf_create" BIGINT NOT NULL,
-	"rf_last_seen" BIGINT NOT NULL
+	"rf_last_seen" BIGINT NOT NULL,
+	"removed" BIGINT
 );
 
 Create table "rule_service"
@@ -274,8 +274,8 @@ Create table "rule_to"
 	"rt_create" BIGINT NOT NULL,
 	"rt_last_seen" BIGINT NOT NULL,
 	"active" Boolean NOT NULL Default TRUE,
-	"removed" BIGINT,
-	"negated" Boolean NOT NULL Default FALSE
+	"negated" Boolean NOT NULL Default FALSE,
+	"removed" BIGINT
 );
 
 Create table "service"
@@ -311,9 +311,9 @@ Create table "service"
 	"svc_sync_delay_start" Integer,
 	"active" Boolean NOT NULL Default TRUE,
 	"last_change_admin" Integer,
-	"removed" BIGINT,
 	"svc_create" BIGINT NOT NULL,
 	"svc_last_seen" BIGINT NOT NULL,
+	"removed" BIGINT,
  primary key ("svc_id")
 );
 
@@ -323,9 +323,9 @@ Create table "svcgrp"
 	"svcgrp_member_id" BIGINT NOT NULL,
 	"import_created" BIGINT NOT NULL,
 	"import_last_seen" BIGINT NOT NULL,
-	"removed" BIGINT,
 	"active" Boolean NOT NULL Default TRUE,
 	"negated" Boolean NOT NULL Default FALSE,
+	"removed" BIGINT,
  primary key ("svcgrp_id","svcgrp_member_id")
 );
 
@@ -334,10 +334,10 @@ Create table "zone"
 	"zone_id" SERIAL,
 	"zone_create" BIGINT NOT NULL,
 	"zone_last_seen" BIGINT NOT NULL,
-	"removed" BIGINT,
 	"mgm_id" Integer NOT NULL,
 	"zone_name" Varchar NOT NULL,
 	"active" Boolean NOT NULL Default TRUE,
+	"removed" BIGINT,
  primary key ("zone_id")
 );
 
@@ -379,13 +379,13 @@ Create table "usr"
 	"time_restrict" Text,
 	"user_create" BIGINT NOT NULL,
 	"user_last_seen" BIGINT NOT NULL,
-	"removed" BIGINT,
 	"user_comment" Text,
 	"user_uid" Text,
 	"user_firstname" Varchar,
 	"user_lastname" Varchar,
 	"last_change_admin" Integer,
-	"tenant_id" Integer
+	"tenant_id" Integer,
+	"removed" BIGINT
 );
 
 Create table "usergrp"
@@ -394,8 +394,8 @@ Create table "usergrp"
 	"usergrp_member_id" BIGINT,
 	"import_created" BIGINT NOT NULL,
 	"import_last_seen" BIGINT NOT NULL,
-	"removed" BIGINT,
 	"active" Boolean NOT NULL Default TRUE,
+	"removed" BIGINT,
  primary key ("usergrp_id","usergrp_member_id")
 );
 
@@ -417,8 +417,8 @@ Create table "objgrp_flat"
 	"active" Boolean NOT NULL Default TRUE,
 	"import_created" BIGINT NOT NULL,
 	"import_last_seen" BIGINT NOT NULL,
-	"removed" BIGINT,
-	"negated" Boolean NOT NULL Default FALSE
+	"negated" Boolean NOT NULL Default FALSE,
+	"removed" BIGINT
 );
 
 Create table "svcgrp_flat"
@@ -428,8 +428,8 @@ Create table "svcgrp_flat"
 	"import_created" BIGINT NOT NULL,
 	"import_last_seen" BIGINT NOT NULL,
 	"active" Boolean NOT NULL Default TRUE,
-	"removed" BIGINT,
-	"negated" Boolean NOT NULL Default FALSE
+	"negated" Boolean NOT NULL Default FALSE,
+	"removed" BIGINT
 );
 
 -- uiuser - change metadata -------------------------------------

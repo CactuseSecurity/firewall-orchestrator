@@ -20,6 +20,16 @@ namespace FWO.Services.RuleTreeBuilder
         public RuleTreeItem RuleTree { get; set; } = new();
 
         /// <summary>
+        /// Cache for generated rule trees.
+        /// </summary>
+        public Dictionary<(int managementId, int deviceId), RuleTreeItem> RuleTreeCache { get; set; } = new();
+
+        /// <summary>
+        /// Lookup for flat rule lists of rule tree items
+        /// </summary>
+        public Dictionary<RuleTreeItem, Rule[]> FlattedRules { get; set; } = new();
+
+        /// <summary>
         /// The number of order numbers that were created during the process.
         /// </summary>
         public int CreatedOrderNumbersCount { get; set; }
@@ -63,7 +73,7 @@ namespace FWO.Services.RuleTreeBuilder
         /// <summary>
         /// Builds the rule tree and returns the flattened list of rule data.
         /// </summary>
-        public List<Rule> BuildRuleTree(RulebaseReport[] rulebases, RulebaseLink[] links)
+        public List<Rule> BuildRuleTree(RulebaseReport[] rulebases, RulebaseLink[] links, int managementId, int deviceId)
         {
             Reset(rulebases, links);
             List<int>? trail = null;
@@ -88,6 +98,9 @@ namespace FWO.Services.RuleTreeBuilder
                     allRules.Add(treeItem.Data);
                 }
             }
+
+            RuleTreeCache[(managementId, deviceId)] = RuleTree;
+            FlattedRules[RuleTree] = allRules.ToArray();
 
             return allRules;
         }

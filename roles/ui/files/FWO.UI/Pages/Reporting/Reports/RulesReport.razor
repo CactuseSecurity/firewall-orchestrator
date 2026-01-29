@@ -1,8 +1,10 @@
 ﻿@using FWO.Report
 @using FWO.Report.Data
 @using FWO.Ui.Display
+@using FWO.Services.RuleTreeBuilder
 
 @inject UserConfig userConfig
+@inject IRuleTreeBuilder ruleTreeBuilder
 
 @foreach (var management in Managements)
 {
@@ -321,36 +323,41 @@
         if (deviceDictProcessed.Contains(deviceKey))
             return deviceTopLevelRules[deviceKey];
 
-        Rule[] rules = ReportRules.GetAllRulesOfGateway(deviceReport, management);
+        Rule[] rules = ReportRules.GetAllRulesOfGateway(deviceReport, management, ruleTreeBuilder);
+
         var dictRuleInlines = new Dictionary<string, List<Rule>>();
         var topLevel = new List<Rule>();
         var stack = new List<(Rule parent, List<Rule> children)>();
 
-        foreach (var r in rules)
+        if (ruleTreeBuilder.RuleTreeCache.TryGetValue((deviceReport.Id, managementReport.Id), out RuleTreeItem? ruleTreeFromCache))
         {
-            var segs = r.DisplayOrderNumberString.Split('.');
-
-            while (stack.Count > 0)
+            foreach (var r in rules)
             {
-                var parentSegs = stack.Last().parent.DisplayOrderNumberString.Split('.');
-                if (segs.Length <= parentSegs.Length || !segs.Take(parentSegs.Length).SequenceEqual(parentSegs))
-                    stack.RemoveAt(stack.Count - 1);
+                var segs = r.DisplayOrderNumberString.Split('.');
+
+                while (stack.Count > 0)
+                {
+                    var parentSegs = stack.Last().parent.DisplayOrderNumberString.Split('.');
+                    if (segs.Length <= parentSegs.Length || !segs.Take(parentSegs.Length).SequenceEqual(parentSegs))
+                        stack.RemoveAt(stack.Count - 1);
+                    else
+                        break;
+                }
+
+                if (stack.Count > 0)
+                {
+                    stack.Last().children.Add(r);
+                }
                 else
-                    break;
-            }
+                {
+                    topLevel.Add(r);
+                }
 
-            if (stack.Count > 0)
-            {
-                stack.Last().children.Add(r);
-            }
-            else
-            {
-                topLevel.Add(r);
-            }
-
-            dictRuleInlines[r.DisplayOrderNumberString] = new List<Rule>();
-            stack.Add((r, dictRuleInlines[r.DisplayOrderNumberString]));
+                dictRuleInlines[r.DisplayOrderNumberString] = new List<Rule>();
+                stack.Add((r, dictRuleInlines[r.DisplayOrderNumberString]));
+            }            
         }
+
 
         // save results
         deviceDictRuleInlines[deviceKey] = dictRuleInlines;

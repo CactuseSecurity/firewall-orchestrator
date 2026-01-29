@@ -9,7 +9,6 @@ exclude = [
     ".git",
     ".venv",
     "venv",
-    "roles/importer/files/importer/test",
     "roles/api/files/scripts",
     "scripts/acquire_lock.py",
     "scripts/gh-search.py",
@@ -57,7 +56,6 @@ exclude = [
     "venv",
     "__init__.py",
     "roles/tests-integration",
-    "roles/importer/files/importer/test",
     "roles/api/files/scripts",
     "scripts/acquire_lock.py",
     "scripts/gh-search.py",
@@ -121,7 +119,7 @@ fixable = ["ALL"]
 dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
 
 [tool.ruff.lint.per-file-ignores]
-"roles/importer/files/importer/unit_tests/**.py" = ["SLF001", "PLR2004"]
+"roles/importer/files/importer/test/**.py" = ["SLF001", "PLR2004"]
 
 
 [tool.ruff.format]
@@ -131,10 +129,9 @@ skip-magic-trailing-comma = false
 line-ending = "auto"
 
 
-
 [tool.pytest.ini_options]
 pythonpath = [
     ".",
     "roles/importer/files/importer",
-    "roles/importer/files/importer/unit_tests",
+    "roles/importer/files/importer/test",
 ]

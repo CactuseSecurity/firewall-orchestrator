@@ -25,7 +25,7 @@ from services.global_state import GlobalState
 from services.group_flats_mapper import GroupFlatsMapper
 from services.service_provider import ServiceProvider
 from services.uid2id_mapper import Uid2IdMapper
-from unit_tests.utils.config_builder import FwConfigBuilder
+from test.utils.config_builder import FwConfigBuilder
 
 
 @pytest.fixture

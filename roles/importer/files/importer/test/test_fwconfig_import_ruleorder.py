@@ -5,8 +5,8 @@ import copy
 from fwo_const import RULE_NUM_NUMERIC_STEPS
 from model_controllers.fwconfig_import_ruleorder import RuleOrderService
 from services.global_state import GlobalState
-from unit_tests.utils.config_builder import FwConfigBuilder
-from unit_tests.utils.rule_helper_functions import (
+from test.utils.config_builder import FwConfigBuilder
+from test.utils.rule_helper_functions import (
     get_rule,
     insert_rule_in_config,
     move_rule_in_config,

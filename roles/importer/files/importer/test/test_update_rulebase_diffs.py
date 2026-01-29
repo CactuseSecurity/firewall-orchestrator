@@ -11,9 +11,9 @@ from models.rulebase import Rulebase
 from pytest_mock import MockerFixture
 from services.global_state import GlobalState
 from services.uid2id_mapper import Uid2IdMapper
-from unit_tests.utils.config_builder import FwConfigBuilder
-from unit_tests.utils.rule_helper_functions import insert_rule_in_config, move_rule_in_config, remove_rule_from_rulebase
-from unit_tests.utils.test_utils import mock_get_graphql_code
+from test.utils.config_builder import FwConfigBuilder
+from test.utils.rule_helper_functions import insert_rule_in_config, move_rule_in_config, remove_rule_from_rulebase
+from test.utils.test_utils import mock_get_graphql_code
 
 
 @pytest.fixture

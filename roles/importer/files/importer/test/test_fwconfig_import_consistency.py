@@ -9,7 +9,7 @@ from models.fwconfigmanager import FwConfigManager
 from models.networkobject import NetworkObject
 from models.serviceobject import ServiceObject
 from netaddr import IPNetwork
-from unit_tests.utils.config_builder import FwConfigBuilder
+from test.utils.config_builder import FwConfigBuilder
 
 
 @pytest.fixture

@@ -2,7 +2,7 @@ import copy
 
 from models.fwconfig_normalized import FwConfigNormalized
 from models.rule import RuleNormalized
-from unit_tests.utils.config_builder import FwConfigBuilder
+from test.utils.config_builder import FwConfigBuilder
 
 
 def remove_rule_from_rulebase(

@@ -15,8 +15,8 @@ from models.networkobject import NetworkObjectForImport
 from models.serviceobject import ServiceObjectForImport
 from pytest_mock import MockerFixture
 from services.uid2id_mapper import Uid2IdMapper
-from unit_tests.utils.config_builder import FwConfigBuilder
-from unit_tests.utils.test_utils import mock_get_graphql_code
+from test.utils.config_builder import FwConfigBuilder
+from test.utils.test_utils import mock_get_graphql_code
 
 
 class PartialDict(dict[str, Any]):  # noqa: PLW1641

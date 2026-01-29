@@ -4,7 +4,7 @@ from model_controllers.fwconfig_import_gateway import FwConfigImportGateway
 from model_controllers.import_state_controller import ImportStateController
 from services.global_state import GlobalState
 from services.uid2id_mapper import Uid2IdMapper
-from unit_tests.utils.config_builder import FwConfigBuilder
+from test.utils.config_builder import FwConfigBuilder
 
 
 def test_add_cp_section_header_at_the_bottom(

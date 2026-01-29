@@ -6,7 +6,7 @@ from fwo_exceptions import FwoImporterError
 from model_controllers.fwconfig_import_gateway import FwConfigImportGateway
 from model_controllers.import_state_controller import ImportStateController
 from pytest_mock import MockerFixture
-from unit_tests.utils.test_utils import mock_get_graphql_code
+from test.utils.test_utils import mock_get_graphql_code
 
 
 def test_fwconfig_import_gateway_init(

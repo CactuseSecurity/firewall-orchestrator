@@ -5,8 +5,8 @@ from fwo_exceptions import FwoApiLoginFailedError
 from model_controllers.import_state_controller import ImportStateController
 from model_controllers.management_controller import ManagementController
 from pytest_mock import MockerFixture
-from unit_tests.data.mock_objects import mock_mgm_details
-from unit_tests.utils.test_utils import mock_get_graphql_code, mock_login
+from test.data.mock_objects import mock_mgm_details
+from test.utils.test_utils import mock_get_graphql_code, mock_login
 
 from importer.import_main_loop import get_fwo_jwt, import_single_management, wait_with_shutdown_check
 

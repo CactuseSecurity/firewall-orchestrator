@@ -841,6 +841,190 @@ class TestFwConfigImportObjectAddGroupMemberships:
             "objgrp",
         )
 
+    def test_add_group_memberships_self_reference_group(
+        self,
+        fwconfig_import_object: FwConfigImportObject,
+        fwconfig_builder: FwConfigBuilder,
+        mocker: MockerFixture,
+    ):
+        # Arrange
+        fwconfig_import_object.normalized_config, _ = fwconfig_builder.build_config(
+            network_object_count=1,
+            service_object_count=0,
+            include_gateway=False,
+        )
+        prev_config = fwconfig_builder.build_empty_config()
+        group_obj = next(iter(fwconfig_import_object.normalized_config.network_objects.values()))
+        group_obj.obj_member_refs = group_obj.obj_uid
+        fwconfig_import_object.import_state.state.import_id = 7
+        fwconfig_import_object.write_member_updates = mocker.Mock()
+        fwconfig_import_object.uid2id_mapper.get_network_object_id = mocker.Mock(return_value=1)
+        fwconfig_import_object.group_flats_mapper.get_network_object_flats = mocker.Mock(
+            return_value=[group_obj.obj_uid]
+        )
+
+        # Act
+        fwconfig_import_object.add_group_memberships(
+            obj_type=Type.NETWORK_OBJECT,
+            prev_config=prev_config,
+        )
+
+        # Assert
+        fwconfig_import_object.write_member_updates.assert_called_once_with(
+            [
+                {
+                    "import_created": 7,
+                    "import_last_seen": 7,
+                    "objgrp_id": 1,
+                    "objgrp_member_id": 1,
+                }
+            ],
+            [
+                {
+                    "import_created": 7,
+                    "import_last_seen": 7,
+                    "objgrp_flat_id": 1,
+                    "objgrp_flat_member_id": 1,
+                }
+            ],
+            "objgrp",
+        )
+
+    def test_add_group_memberships_member_changed(
+        self,
+        fwconfig_import_object: FwConfigImportObject,
+        fwconfig_builder: FwConfigBuilder,
+        mocker: MockerFixture,
+    ):
+        # Arrange
+        fwconfig_import_object.normalized_config, _ = fwconfig_builder.build_config(
+            network_object_count=2,
+            service_object_count=0,
+            include_gateway=False,
+        )
+        prev_config = copy.deepcopy(fwconfig_import_object.normalized_config)
+        group_uid, member_uid = list(fwconfig_import_object.normalized_config.network_objects.keys())[:2]
+        fwconfig_import_object.normalized_config.network_objects[group_uid].obj_member_refs = member_uid
+        prev_config.network_objects[group_uid].obj_member_refs = member_uid
+        fwconfig_import_object.normalized_config.network_objects[member_uid].obj_typ = "host"
+        prev_config.network_objects[member_uid].obj_typ = "host"
+        fwconfig_import_object.normalized_config.network_objects[member_uid].obj_name = "changed-member"
+
+        def fake_get_id(uid: str, _before_update: bool = False):
+            return 1 if uid == group_uid else 2
+
+        fwconfig_import_object.import_state.state.import_id = 9
+        fwconfig_import_object.write_member_updates = mocker.Mock()
+        fwconfig_import_object.uid2id_mapper.get_network_object_id = mocker.Mock(side_effect=fake_get_id)
+        fwconfig_import_object.group_flats_mapper.get_network_object_flats = mocker.Mock(return_value=[member_uid])
+        fwconfig_import_object.prev_group_flats_mapper.get_network_object_flats = mocker.Mock(return_value=[member_uid])
+
+        # Act
+        fwconfig_import_object.add_group_memberships(
+            obj_type=Type.NETWORK_OBJECT,
+            prev_config=prev_config,
+        )
+
+        # Assert
+        fwconfig_import_object.write_member_updates.assert_called_once_with(
+            [
+                {
+                    "import_created": 9,
+                    "import_last_seen": 9,
+                    "objgrp_id": 1,
+                    "objgrp_member_id": 2,
+                }
+            ],
+            [
+                {
+                    "import_created": 9,
+                    "import_last_seen": 9,
+                    "objgrp_flat_id": 1,
+                    "objgrp_flat_member_id": 2,
+                }
+            ],
+            "objgrp",
+        )
+
+    def test_add_group_memberships_group_changed_adds_all_members_and_flats(
+        self,
+        fwconfig_import_object: FwConfigImportObject,
+        fwconfig_builder: FwConfigBuilder,
+        mocker: MockerFixture,
+    ):
+        # Arrange
+        fwconfig_import_object.normalized_config, _ = fwconfig_builder.build_config(
+            network_object_count=3,
+            service_object_count=0,
+            include_gateway=False,
+        )
+        prev_config = copy.deepcopy(fwconfig_import_object.normalized_config)
+        group_uid, member_uid_one, member_uid_two = list(
+            fwconfig_import_object.normalized_config.network_objects.keys()
+        )[:3]
+        fwconfig_import_object.normalized_config.network_objects[
+            group_uid
+        ].obj_member_refs = f"{member_uid_one}{LIST_DELIMITER}{member_uid_two}"
+        prev_config.network_objects[group_uid].obj_member_refs = member_uid_one
+        fwconfig_import_object.normalized_config.network_objects[member_uid_one].obj_typ = "host"
+        fwconfig_import_object.normalized_config.network_objects[member_uid_two].obj_typ = "host"
+        prev_config.network_objects[member_uid_one].obj_typ = "host"
+        prev_config.network_objects[member_uid_two].obj_typ = "host"
+
+        def fake_get_id(uid: str, _before_update: bool = False):
+            mapping = {
+                group_uid: 1,
+                member_uid_one: 2,
+                member_uid_two: 3,
+            }
+            return mapping[uid]
+
+        fwconfig_import_object.import_state.state.import_id = 11
+        fwconfig_import_object.write_member_updates = mocker.Mock()
+        fwconfig_import_object.uid2id_mapper.get_network_object_id = mocker.Mock(side_effect=fake_get_id)
+        fwconfig_import_object.group_flats_mapper.get_network_object_flats = mocker.Mock(
+            return_value=[member_uid_one, member_uid_two]
+        )
+
+        # Act
+        fwconfig_import_object.add_group_memberships(
+            obj_type=Type.NETWORK_OBJECT,
+            prev_config=prev_config,
+        )
+
+        # Assert
+        fwconfig_import_object.write_member_updates.assert_called_once_with(
+            [
+                {
+                    "import_created": 11,
+                    "import_last_seen": 11,
+                    "objgrp_id": 1,
+                    "objgrp_member_id": 2,
+                },
+                {
+                    "import_created": 11,
+                    "import_last_seen": 11,
+                    "objgrp_id": 1,
+                    "objgrp_member_id": 3,
+                },
+            ],
+            [
+                {
+                    "import_created": 11,
+                    "import_last_seen": 11,
+                    "objgrp_flat_id": 1,
+                    "objgrp_flat_member_id": 2,
+                },
+                {
+                    "import_created": 11,
+                    "import_last_seen": 11,
+                    "objgrp_flat_id": 1,
+                    "objgrp_flat_member_id": 3,
+                },
+            ],
+            "objgrp",
+        )
+
 
 class TestFwConfigImportObjectFindRemovedObjects:
     def test_find_removed_objects_not_a_group(
@@ -1168,6 +1352,115 @@ class TestFwConfigImportObjectRemoveOutdatedMemberships:
         assert str(mock_logger.call_args[0][0]).startswith(
             "failed to remove outdated group memberships for Type.NETWORK_OBJECT: Traceback"
         )
+
+    def test_remove_outdated_memberships_group_removed(
+        self,
+        fwconfig_import_object: FwConfigImportObject,
+        mocker: MockerFixture,
+        fwconfig_builder: FwConfigBuilder,
+    ):
+        # Arrange
+        prev_config, _ = fwconfig_builder.build_config(
+            network_object_count=2,
+            service_object_count=0,
+            include_gateway=False,
+        )
+        group_uid, member_uid = list(prev_config.network_objects.keys())[:2]
+        prev_config.network_objects[group_uid].obj_member_refs = member_uid
+        prev_config.network_objects[member_uid].obj_typ = "host"
+        fwconfig_import_object.normalized_config = FwConfigNormalized()
+
+        def fake_get_id(uid: str, _before_update: bool = False):
+            return 10 if uid == group_uid else 20
+
+        fwconfig_import_object.uid2id_mapper.get_network_object_id = mocker.Mock(side_effect=fake_get_id)
+        fwconfig_import_object.prev_group_flats_mapper.get_network_object_flats = mocker.Mock(return_value=[member_uid])
+        fwconfig_import_object.import_state.api_call.call = mocker.Mock(
+            return_value={
+                "data": {
+                    "update_objgrp": {"affected_rows": 1},
+                    "update_objgrp_flat": {"affected_rows": 1},
+                }
+            }
+        )
+        fwconfig_import_object.import_state.state.import_id = 6
+
+        # Act
+        fwconfig_import_object.remove_outdated_memberships(
+            prev_config=prev_config,
+            typ=Type.NETWORK_OBJECT,
+        )
+
+        # Assert
+        call_args = fwconfig_import_object.import_state.api_call.call.call_args
+        assert call_args[0][1] == {
+            "importId": 6,
+            "removedMembers": [{"_and": [{"objgrp_id": {"_eq": 10}}, {"objgrp_member_id": {"_eq": 20}}]}],
+            "removedFlats": [{"_and": [{"objgrp_flat_id": {"_eq": 10}}, {"objgrp_flat_member_id": {"_eq": 20}}]}],
+        }
+
+    def test_remove_outdated_memberships_group_changed_removes_all_prev_members_and_flats(
+        self,
+        fwconfig_import_object: FwConfigImportObject,
+        mocker: MockerFixture,
+        fwconfig_builder: FwConfigBuilder,
+    ):
+        # Arrange
+        fwconfig_import_object.normalized_config, _ = fwconfig_builder.build_config(
+            network_object_count=3,
+            service_object_count=0,
+            include_gateway=False,
+        )
+        prev_config = copy.deepcopy(fwconfig_import_object.normalized_config)
+        group_uid, member_uid_one, member_uid_two = list(prev_config.network_objects.keys())[:3]
+        prev_config.network_objects[group_uid].obj_member_refs = f"{member_uid_one}{LIST_DELIMITER}{member_uid_two}"
+        fwconfig_import_object.normalized_config.network_objects[group_uid].obj_member_refs = member_uid_one
+        prev_config.network_objects[member_uid_one].obj_typ = "host"
+        prev_config.network_objects[member_uid_two].obj_typ = "host"
+        fwconfig_import_object.normalized_config.network_objects[member_uid_one].obj_typ = "host"
+        fwconfig_import_object.normalized_config.network_objects[member_uid_two].obj_typ = "host"
+
+        def fake_get_id(uid: str, _before_update: bool = False):
+            mapping = {
+                group_uid: 100,
+                member_uid_one: 200,
+                member_uid_two: 300,
+            }
+            return mapping[uid]
+
+        fwconfig_import_object.uid2id_mapper.get_network_object_id = mocker.Mock(side_effect=fake_get_id)
+        fwconfig_import_object.prev_group_flats_mapper.get_network_object_flats = mocker.Mock(
+            return_value=[member_uid_one, member_uid_two]
+        )
+        fwconfig_import_object.import_state.api_call.call = mocker.Mock(
+            return_value={
+                "data": {
+                    "update_objgrp": {"affected_rows": 2},
+                    "update_objgrp_flat": {"affected_rows": 2},
+                }
+            }
+        )
+        fwconfig_import_object.import_state.state.import_id = 12
+
+        # Act
+        fwconfig_import_object.remove_outdated_memberships(
+            prev_config=prev_config,
+            typ=Type.NETWORK_OBJECT,
+        )
+
+        # Assert
+        call_args = fwconfig_import_object.import_state.api_call.call.call_args
+        assert call_args[0][1] == {
+            "importId": 12,
+            "removedMembers": [
+                {"_and": [{"objgrp_id": {"_eq": 100}}, {"objgrp_member_id": {"_eq": 200}}]},
+                {"_and": [{"objgrp_id": {"_eq": 100}}, {"objgrp_member_id": {"_eq": 300}}]},
+            ],
+            "removedFlats": [
+                {"_and": [{"objgrp_flat_id": {"_eq": 100}}, {"objgrp_flat_member_id": {"_eq": 200}}]},
+                {"_and": [{"objgrp_flat_id": {"_eq": 100}}, {"objgrp_flat_member_id": {"_eq": 300}}]},
+            ],
+        }
 
 
 class TestFwConfigImportObjectGetPrefix:

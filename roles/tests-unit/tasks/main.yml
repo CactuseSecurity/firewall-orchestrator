@@ -40,7 +40,7 @@
       environment:
         PYTHONPATH: "/usr/local/fworch/importer"
       args:
-        chdir: "/usr/local/fworch/importer/unit_tests"
+        chdir: "/usr/local/fworch/importer/test"
       command: >
         {{ importer_venv_dir }}/bin/python3 -m pytest -s . -p no:cacheprovider -v
       register: pytest_tests

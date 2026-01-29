@@ -82,10 +82,10 @@ class FwConfigImportCheckConsistency:
 
         """
         self.check_color_consistency(config, fix=True)
-        self.check_network_object_consistency(config, global_config, prune_unresolvable_refs=fix_config)
+        self.check_network_object_consistency(config, global_config, fix_unresolvable_refs=fix_config)
         self.check_service_object_consistency(config, global_config, fix_inconsistencies=fix_config)
-        self.check_user_object_consistency(config, global_config, prune_unresolvable_refs=fix_config)
-        self.check_zone_object_consistency(config, global_config, prune_unresolvable_refs=fix_config)
+        self.check_user_object_consistency(config, global_config, fix_unresolvable_refs=fix_config)
+        self.check_zone_object_consistency(config, global_config, fix_unresolvable_refs=fix_config)
         self.check_rulebase_consistency(config, fix_inconsistencies=fix_config)
         self.check_gateway_consistency(config)
         self.check_rulebase_link_consistency(config, global_config, fix_inconsistencies=fix_config)
@@ -98,7 +98,7 @@ class FwConfigImportCheckConsistency:
         FWOLogger.debug("Consistency check completed without issues remaining.")
 
     def check_network_object_consistency(
-        self, config: FwConfigNormalized, global_config: FwConfigNormalized | None, prune_unresolvable_refs: bool
+        self, config: FwConfigNormalized, global_config: FwConfigNormalized | None, fix_unresolvable_refs: bool
     ):
         # add all new obj refs from all rules
         all_used_obj_refs: list[str] = []
@@ -115,7 +115,7 @@ class FwConfigImportCheckConsistency:
         unresolvable_nw_obj_refs = set(all_used_obj_refs) - all_network_object_uids
 
         if len(unresolvable_nw_obj_refs) > 0:
-            if prune_unresolvable_refs:
+            if fix_unresolvable_refs:
                 self.remove_nwobj_refs_from_config(config, unresolvable_nw_obj_refs)
             else:
                 self.issues.update({"unresolvableNwObRefs": list(unresolvable_nw_obj_refs)})
@@ -226,7 +226,7 @@ class FwConfigImportCheckConsistency:
         return all_used_obj_refs
 
     def check_user_object_consistency(
-        self, config: FwConfigNormalized, global_config: FwConfigNormalized | None, prune_unresolvable_refs: bool
+        self, config: FwConfigNormalized, global_config: FwConfigNormalized | None, fix_unresolvable_refs: bool
     ):
         all_used_obj_refs: set[str] = set()
         # add all user refs from all rules
@@ -242,7 +242,7 @@ class FwConfigImportCheckConsistency:
         unresolvable_obj_refs = set(all_used_obj_refs) - all_user_object_uids
 
         if len(unresolvable_obj_refs) > 0:
-            if prune_unresolvable_refs:
+            if fix_unresolvable_refs:
                 self.remove_userobj_refs_from_config(config, unresolvable_obj_refs)
             else:
                 self.issues.update({"unresolvableUserObjRefs": list(unresolvable_obj_refs)})
@@ -288,7 +288,7 @@ class FwConfigImportCheckConsistency:
             self.issues.update({"unresolvableUserObjTypes": list(missing_obj_types)})
 
     def check_zone_object_consistency(
-        self, config: FwConfigNormalized, global_config: FwConfigNormalized | None, prune_unresolvable_refs: bool
+        self, config: FwConfigNormalized, global_config: FwConfigNormalized | None, fix_unresolvable_refs: bool
     ):
         all_used_obj_refs: set[str] = set()
         all_used_obj_refs |= self._collect_zone_refs_from_rules(config)
@@ -300,7 +300,7 @@ class FwConfigImportCheckConsistency:
         # get all refs not contained in zone_objects
         unresolvable_object_refs = all_used_obj_refs - all_zone_object_uids
         if len(unresolvable_object_refs) > 0:
-            if prune_unresolvable_refs:
+            if fix_unresolvable_refs:
                 self.remove_zoneobj_refs_from_config(config, unresolvable_object_refs)
             else:
                 self.issues.update({"unresolvableZoneObjRefs": list(unresolvable_object_refs)})
@@ -533,6 +533,32 @@ class FwConfigImportCheckConsistency:
                     all_rule_uids.add(rule_uid)
         return all_rulebase_uids, all_rule_uids
 
+    def _cascade_remove_nwobj_groups(self, config: FwConfigNormalized, unresolvable_nw_obj_refs: set[str]):
+        """
+        Iteratively remove network group objects that reference unresolvable objects.
+        Groups referencing removed groups are also removed (cascade effect).
+        Extends the unresolvable_nw_obj_refs set with newly found unresolvable group object UIDs.
+        """
+        while True:
+            newly_unresolvable: set[str] = set()
+            for obj_uid, nw_obj in config.network_objects.items():
+                if obj_uid in unresolvable_nw_obj_refs:
+                    continue
+                if nw_obj.obj_member_refs is not None:
+                    member_refs = set(nw_obj.obj_member_refs.split(fwo_const.LIST_DELIMITER))
+                    if member_refs & unresolvable_nw_obj_refs:
+                        newly_unresolvable.add(obj_uid)
+            if not newly_unresolvable:
+                break
+            unresolvable_nw_obj_refs |= newly_unresolvable
+            self.network_objects_to_remove.extend(newly_unresolvable)
+
+        config.network_objects = {
+            obj_uid: nw_obj
+            for obj_uid, nw_obj in config.network_objects.items()
+            if obj_uid not in unresolvable_nw_obj_refs
+        }
+
     def remove_nwobj_refs_from_config(self, config: FwConfigNormalized, unresolvable_nw_obj_refs: set[str]):
         """
         Remove rules and network group objects containing unresolvable network object references from the given config.
@@ -542,29 +568,45 @@ class FwConfigImportCheckConsistency:
             unresolvable_nw_obj_refs (set[str]): Set of unresolvable network object references to remove.
 
         """
+        self._cascade_remove_nwobj_groups(config, unresolvable_nw_obj_refs)
+
         # remove rules containing unresolvable nw obj refs
         for rb in config.rulebases:
             filtered_rules: dict[str, RuleNormalized] = {}
             for rule_uid, rule in rb.rules.items():
                 src_refs = set(rule.rule_src_refs.split(fwo_const.LIST_DELIMITER))
                 dst_refs = set(rule.rule_dst_refs.split(fwo_const.LIST_DELIMITER))
-                if len(src_refs & unresolvable_nw_obj_refs) > 0 or len(dst_refs & unresolvable_nw_obj_refs) > 0:
+                if src_refs & unresolvable_nw_obj_refs or dst_refs & unresolvable_nw_obj_refs:
                     self.rules_to_remove.append(rule_uid)
                 else:
                     filtered_rules[rule_uid] = rule
             rb.rules = filtered_rules
 
-        # remove network group objects containing unresolvable nw obj refs
-        filtered_nw_objects: dict[str, NetworkObject] = {}
-        for obj_uid, nw_obj in config.network_objects.items():
-            if nw_obj.obj_member_refs is not None:
-                member_refs = set(nw_obj.obj_member_refs.split(fwo_const.LIST_DELIMITER))
-                if len(member_refs & unresolvable_nw_obj_refs) > 0:
-                    self.network_objects_to_remove.append(obj_uid)
+    def _cascade_remove_svcobj_groups(self, config: FwConfigNormalized, unresolvable_svc_obj_refs: set[str]):
+        """
+        Iteratively remove service group objects that reference unresolvable objects.
+        Groups referencing removed groups are also removed (cascade effect).
+        Extends the unresolvable_svc_obj_refs set with newly found unresolvable group object UIDs.
+        """
+        while True:
+            newly_unresolvable: set[str] = set()
+            for obj_uid, svc_obj in config.service_objects.items():
+                if obj_uid in unresolvable_svc_obj_refs:
                     continue
-            filtered_nw_objects[obj_uid] = nw_obj
+                if svc_obj.svc_member_refs is not None:
+                    member_refs = set(svc_obj.svc_member_refs.split(fwo_const.LIST_DELIMITER))
+                    if member_refs & unresolvable_svc_obj_refs:
+                        newly_unresolvable.add(obj_uid)
+            if not newly_unresolvable:
+                break
+            unresolvable_svc_obj_refs |= newly_unresolvable
+            self.service_objects_to_remove.extend(newly_unresolvable)
 
-        config.network_objects = filtered_nw_objects
+        config.service_objects = {
+            obj_uid: svc_obj
+            for obj_uid, svc_obj in config.service_objects.items()
+            if obj_uid not in unresolvable_svc_obj_refs
+        }
 
     def remove_svcobj_refs_from_config(self, config: FwConfigNormalized, unresolvable_svc_obj_refs: set[str]):
         """
@@ -575,28 +617,42 @@ class FwConfigImportCheckConsistency:
             unresolvable_svc_obj_refs (set[str]): Set of unresolvable service object references to remove.
 
         """
+        self._cascade_remove_svcobj_groups(config, unresolvable_svc_obj_refs)
+
         # remove rules containing unresolvable svc obj refs
         for rb in config.rulebases:
             filtered_rules: dict[str, RuleNormalized] = {}
             for rule_uid, rule in rb.rules.items():
                 svc_refs = set(rule.rule_svc_refs.split(fwo_const.LIST_DELIMITER))
-                if len(svc_refs & unresolvable_svc_obj_refs) > 0:
+                if svc_refs & unresolvable_svc_obj_refs:
                     self.rules_to_remove.append(rule_uid)
                 else:
                     filtered_rules[rule_uid] = rule
             rb.rules = filtered_rules
 
-        # remove service group objects containing unresolvable svc obj refs
-        filtered_svc_objects: dict[str, Any] = {}
-        for obj_uid, svc_obj in config.service_objects.items():
-            if svc_obj.svc_member_refs is not None:
-                member_refs = set(svc_obj.svc_member_refs.split(fwo_const.LIST_DELIMITER))
-                if len(member_refs & unresolvable_svc_obj_refs) > 0:
-                    self.service_objects_to_remove.append(obj_uid)
+    def _cascade_remove_userobj_groups(self, config: FwConfigNormalized, unresolvable_user_obj_refs: set[str]):
+        """
+        Iteratively remove user group objects that reference unresolvable objects.
+        Groups referencing removed groups are also removed (cascade effect).
+        Extends the unresolvable_user_obj_refs set with newly found unresolvable group object UIDs.
+        """
+        while True:
+            newly_unresolvable: set[str] = set()
+            for obj_uid, user_obj in config.users.items():
+                if obj_uid in unresolvable_user_obj_refs:
                     continue
-            filtered_svc_objects[obj_uid] = svc_obj
+                if user_obj["user_member_refs"] is not None:
+                    member_refs = set(user_obj["user_member_refs"].split(fwo_const.LIST_DELIMITER))
+                    if member_refs & unresolvable_user_obj_refs:
+                        newly_unresolvable.add(obj_uid)
+            if not newly_unresolvable:
+                break
+            unresolvable_user_obj_refs |= newly_unresolvable
+            self.user_objects_to_remove.extend(newly_unresolvable)
 
-        config.service_objects = filtered_svc_objects
+        config.users = {
+            obj_uid: user_obj for obj_uid, user_obj in config.users.items() if obj_uid not in unresolvable_user_obj_refs
+        }
 
     def remove_userobj_refs_from_config(self, config: FwConfigNormalized, unresolvable_user_obj_refs: set[str]):
         """
@@ -607,6 +663,8 @@ class FwConfigImportCheckConsistency:
             unresolvable_user_obj_refs (set[str]): Set of unresolvable user object references to remove.
 
         """
+        self._cascade_remove_userobj_groups(config, unresolvable_user_obj_refs)
+
         # remove rules containing unresolvable user obj refs
         for rb in config.rulebases:
             filtered_rules: dict[str, RuleNormalized] = {}
@@ -615,25 +673,11 @@ class FwConfigImportCheckConsistency:
                 dst_refs = rule.rule_dst_refs.split(fwo_const.LIST_DELIMITER)
                 src_user_refs = self._collect_users_from_refs(src_refs)
                 dst_user_refs = self._collect_users_from_refs(dst_refs)
-                if (
-                    len(set(src_user_refs) & unresolvable_user_obj_refs) > 0
-                    or len(set(dst_user_refs) & unresolvable_user_obj_refs) > 0
-                ):
+                if set(src_user_refs) & unresolvable_user_obj_refs or set(dst_user_refs) & unresolvable_user_obj_refs:
                     self.rules_to_remove.append(rule_uid)
                 else:
                     filtered_rules[rule_uid] = rule
             rb.rules = filtered_rules
-
-        # remove user group objects containing unresolvable user obj refs
-        filtered_user_objects: dict[str, Any] = {}
-        for obj_uid, user_obj in config.users.items():
-            if user_obj["user_member_refs"] is not None:
-                member_refs = set(user_obj["user_member_refs"].split(fwo_const.LIST_DELIMITER))
-                if len(member_refs & unresolvable_user_obj_refs) > 0:
-                    self.user_objects_to_remove.append(obj_uid)
-                    continue
-            filtered_user_objects[obj_uid] = user_obj
-        config.users = filtered_user_objects
 
     def remove_zoneobj_refs_from_config(self, config: FwConfigNormalized, unresolvable_zone_obj_refs: set[str]):
         """
@@ -654,10 +698,7 @@ class FwConfigImportCheckConsistency:
                     src_zone_refs = set(rule.rule_src_zone.split(fwo_const.LIST_DELIMITER))
                 if rule.rule_dst_zone is not None:
                     dst_zone_refs = set(rule.rule_dst_zone.split(fwo_const.LIST_DELIMITER))
-                if (
-                    len(src_zone_refs & unresolvable_zone_obj_refs) > 0
-                    or len(dst_zone_refs & unresolvable_zone_obj_refs) > 0
-                ):
+                if src_zone_refs & unresolvable_zone_obj_refs or dst_zone_refs & unresolvable_zone_obj_refs:
                     self.rules_to_remove.append(rule_uid)
                 else:
                     filtered_rules[rule_uid] = rule

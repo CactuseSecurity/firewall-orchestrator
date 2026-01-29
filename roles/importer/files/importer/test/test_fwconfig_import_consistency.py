@@ -1061,7 +1061,6 @@ class TestZoneObjectConsistency:
         self,
         import_state_controller: ImportStateController,
         fw_config_import_object: FwConfigImportObject,
-        fwconfig_builder: FwConfigBuilder,  # noqa: ARG002
     ):
         manager_controller = FwConfigManagerListController()
 

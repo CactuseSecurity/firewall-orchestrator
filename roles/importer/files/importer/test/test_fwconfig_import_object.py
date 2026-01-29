@@ -1,5 +1,5 @@
 import copy
-from typing import Any, cast
+from typing import Any
 from unittest.mock import mock_open
 
 import pytest
@@ -15,21 +15,9 @@ from models.networkobject import NetworkObjectForImport
 from models.serviceobject import ServiceObjectForImport
 from pytest_mock import MockerFixture
 from services.uid2id_mapper import Uid2IdMapper
+from test.data.mock_objects import MockObjectsFactory
 from test.utils.config_builder import FwConfigBuilder
 from test.utils.test_utils import mock_get_graphql_code
-
-
-class PartialDict(dict[str, Any]):  # noqa: PLW1641
-    def __eq__(self, other: object) -> bool:
-        try:
-            if not isinstance(other, dict):
-                return False
-
-            # Checks if this dict's keys/values are a subset of 'other'
-            other_dict: dict[str, Any] = cast("dict[str, Any]", other)
-            return all(other_dict.get(k) == v for k, v in self.items())
-        except Exception:
-            return False
 
 
 class TestFwConfigImportObjectAddChangelogObjs:
@@ -38,20 +26,7 @@ class TestFwConfigImportObjectAddChangelogObjs:
     ):
         # Arrange
         api_call.call = mocker.Mock(
-            return_value={
-                "data": {
-                    "add_nwobj_changelog": {
-                        "nwobj_changelog": {
-                            "id": 1,
-                        }
-                    },
-                    "add_svc_changelog": {
-                        "svc_changelog": {
-                            "id": 2,
-                        }
-                    },
-                }
-            }
+            return_value=MockObjectsFactory.get_standard_changelog_return_value(),
         )
 
         # Act
@@ -66,46 +41,8 @@ class TestFwConfigImportObjectAddChangelogObjs:
         api_call.call.assert_any_call(
             mocker.ANY,
             query_variables={
-                "nwObjChanges": [
-                    PartialDict(
-                        {
-                            "change_action": "I",
-                            "change_type_id": 3,
-                            "new_obj_id": 1,
-                            "old_obj_id": None,
-                            "unique_name": "1",
-                        }
-                    ),
-                    PartialDict(
-                        {
-                            "change_action": "D",
-                            "change_type_id": 3,
-                            "new_obj_id": None,
-                            "old_obj_id": 2,
-                            "unique_name": "2",
-                        }
-                    ),
-                ],
-                "svcObjChanges": [
-                    PartialDict(
-                        {
-                            "change_action": "I",
-                            "change_type_id": 3,
-                            "new_svc_id": 3,
-                            "old_svc_id": None,
-                            "unique_name": "3",
-                        }
-                    ),
-                    PartialDict(
-                        {
-                            "change_action": "D",
-                            "change_type_id": 3,
-                            "new_svc_id": None,
-                            "old_svc_id": 4,
-                            "unique_name": "4",
-                        }
-                    ),
-                ],
+                "nwObjChanges": MockObjectsFactory.get_changelog_object_insert_delete(),
+                "svcObjChanges": MockObjectsFactory.get_changelog_svc_objects_insert_delete(),
             },
             analyze_payload=True,
         )
@@ -156,7 +93,6 @@ class TestFwConfigImportObjectPrepareChangelogObjects:
     def test_prepare_changelog_objects(
         self,
         fwconfig_import_object: FwConfigImportObject,
-        import_state_controller: ImportStateController,  # noqa: ARG002
     ):
         # Act
         nwobjs_changed, svcobjs_changed = fwconfig_import_object.prepare_changelog_objects(
@@ -167,46 +103,8 @@ class TestFwConfigImportObjectPrepareChangelogObjects:
         )
 
         # Assert
-        assert nwobjs_changed == [
-            PartialDict(
-                {
-                    "change_action": "I",
-                    "change_type_id": 3,
-                    "new_obj_id": 1,
-                    "old_obj_id": None,
-                    "unique_name": "1",
-                }
-            ),
-            PartialDict(
-                {
-                    "change_action": "D",
-                    "change_type_id": 3,
-                    "new_obj_id": None,
-                    "old_obj_id": 2,
-                    "unique_name": "2",
-                }
-            ),
-        ]
-        assert svcobjs_changed == [
-            PartialDict(
-                {
-                    "change_action": "I",
-                    "change_type_id": 3,
-                    "new_svc_id": 3,
-                    "old_svc_id": None,
-                    "unique_name": "3",
-                }
-            ),
-            PartialDict(
-                {
-                    "change_action": "D",
-                    "change_type_id": 3,
-                    "new_svc_id": None,
-                    "old_svc_id": 4,
-                    "unique_name": "4",
-                }
-            ),
-        ]
+        assert nwobjs_changed == MockObjectsFactory.get_changelog_object_insert_delete()
+        assert svcobjs_changed == MockObjectsFactory.get_changelog_svc_objects_insert_delete()
 
     def test_prepare_changelog_objects_initial_import(
         self, fwconfig_import_object: FwConfigImportObject, import_state_controller: ImportStateController
@@ -224,47 +122,8 @@ class TestFwConfigImportObjectPrepareChangelogObjects:
 
         # Assert
 
-        assert svcobjs_changed == [
-            PartialDict(
-                {
-                    "change_action": "I",
-                    "change_type_id": 2,
-                    "new_svc_id": 3,
-                    "old_svc_id": None,
-                    "unique_name": "3",
-                }
-            ),
-            PartialDict(
-                {
-                    "change_action": "D",
-                    "change_type_id": 2,
-                    "new_svc_id": None,
-                    "old_svc_id": 4,
-                    "unique_name": "4",
-                }
-            ),
-        ]
-
-        assert nwobjs_changed == [
-            PartialDict(
-                {
-                    "change_action": "I",
-                    "change_type_id": 2,
-                    "new_obj_id": 1,
-                    "old_obj_id": None,
-                    "unique_name": "1",
-                }
-            ),
-            PartialDict(
-                {
-                    "change_action": "D",
-                    "change_type_id": 2,
-                    "new_obj_id": None,
-                    "old_obj_id": 2,
-                    "unique_name": "2",
-                }
-            ),
-        ]
+        assert svcobjs_changed == MockObjectsFactory.get_changelog_svc_objects_insert_delete(2)
+        assert nwobjs_changed == MockObjectsFactory.get_changelog_object_insert_delete(2)
 
     def test_prepare_changelog_objects_clearing_import(
         self, fwconfig_import_object: FwConfigImportObject, import_state_controller: ImportStateController
@@ -281,53 +140,12 @@ class TestFwConfigImportObjectPrepareChangelogObjects:
         )
 
         # Assert
-        assert nwobjs_changed == [
-            PartialDict(
-                {
-                    "change_action": "I",
-                    "change_type_id": 2,
-                    "new_obj_id": 1,
-                    "old_obj_id": None,
-                    "unique_name": "1",
-                }
-            ),
-            PartialDict(
-                {
-                    "change_action": "D",
-                    "change_type_id": 2,
-                    "new_obj_id": None,
-                    "old_obj_id": 2,
-                    "unique_name": "2",
-                }
-            ),
-        ]
-
-        # Service Objects Check
-        assert svcobjs_changed == [
-            PartialDict(
-                {
-                    "change_action": "I",
-                    "change_type_id": 2,
-                    "new_svc_id": 3,
-                    "old_svc_id": None,
-                    "unique_name": "3",
-                }
-            ),
-            PartialDict(
-                {
-                    "change_action": "D",
-                    "change_type_id": 2,
-                    "new_svc_id": None,
-                    "old_svc_id": 4,
-                    "unique_name": "4",
-                }
-            ),
-        ]
+        assert nwobjs_changed == MockObjectsFactory.get_changelog_object_insert_delete(2)
+        assert svcobjs_changed == MockObjectsFactory.get_changelog_svc_objects_insert_delete(2)
 
     def test_prepare_changelog_objects_with_logged_changes(
         self,
         fwconfig_import_object: FwConfigImportObject,
-        import_state_controller: ImportStateController,  # noqa: ARG002
     ):
         # Arrange
         change_logger = ChangeLogger()
@@ -343,66 +161,8 @@ class TestFwConfigImportObjectPrepareChangelogObjects:
         )
 
         # Assert
-        assert nwobjs_changed == [
-            PartialDict(
-                {
-                    "change_action": "I",
-                    "change_type_id": 3,
-                    "new_obj_id": 1,
-                    "old_obj_id": None,
-                    "unique_name": "1",
-                }
-            ),
-            PartialDict(
-                {
-                    "change_action": "D",
-                    "change_type_id": 3,
-                    "new_obj_id": None,
-                    "old_obj_id": 2,
-                    "unique_name": "2",
-                }
-            ),
-            PartialDict(
-                {
-                    "change_action": "C",
-                    "change_type_id": 3,
-                    "new_obj_id": 10,
-                    "old_obj_id": 1,
-                    "unique_name": "10",
-                }
-            ),
-        ]
-
-        # Service Objects Check if Changed
-        assert svcobjs_changed == [
-            PartialDict(
-                {
-                    "change_action": "I",
-                    "change_type_id": 3,
-                    "new_svc_id": 3,
-                    "old_svc_id": None,
-                    "unique_name": "3",
-                }
-            ),
-            PartialDict(
-                {
-                    "change_action": "D",
-                    "change_type_id": 3,
-                    "new_svc_id": None,
-                    "old_svc_id": 4,
-                    "unique_name": "4",
-                }
-            ),
-            PartialDict(
-                {
-                    "change_action": "C",
-                    "change_type_id": 3,
-                    "new_svc_id": 30,
-                    "old_svc_id": 3,
-                    "unique_name": "30",
-                }
-            ),
-        ]
+        assert nwobjs_changed == MockObjectsFactory.get_changelog_object_insert_delete_change()
+        assert svcobjs_changed == MockObjectsFactory.get_changelog_svc_objects_insert_delete_change()
 
 
 class TestFwConfigImportObjectLookupProtoNameToId:
@@ -1543,7 +1303,6 @@ class TestFwConfigImportObjectGetMembers:
     def test_get_members_network_object_empty(
         self,
         fwconfig_import_object: FwConfigImportObject,
-        mocker: MockerFixture,  # noqa: ARG002
     ):
         # Act
         members = fwconfig_import_object.get_members(Type.NETWORK_OBJECT, "")
@@ -1554,7 +1313,6 @@ class TestFwConfigImportObjectGetMembers:
     def test_get_members_network_object(
         self,
         fwconfig_import_object: FwConfigImportObject,
-        mocker: MockerFixture,  # noqa: ARG002
     ):
         # Act
         members = fwconfig_import_object.get_members(
@@ -1570,7 +1328,6 @@ class TestFwConfigImportObjectGetMembers:
     def test_get_members_service_object_empty(
         self,
         fwconfig_import_object: FwConfigImportObject,
-        mocker: MockerFixture,  # noqa: ARG002
     ):
         # Act
         members = fwconfig_import_object.get_members(Type.SERVICE_OBJECT, "")
@@ -1581,7 +1338,6 @@ class TestFwConfigImportObjectGetMembers:
     def test_get_members_service_object(
         self,
         fwconfig_import_object: FwConfigImportObject,
-        mocker: MockerFixture,  # noqa: ARG002
     ):
         # Act
         members = fwconfig_import_object.get_members(

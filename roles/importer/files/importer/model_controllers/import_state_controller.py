@@ -148,9 +148,13 @@ class ImportStateController:
         self.set_track_map()
         self.set_action_map()
         self.set_link_type_map()
+        self.set_color_ref_map()
+        self.set_network_obj_type_map()
+        self.set_service_obj_type_map()
+        self.set_user_obj_type_map()
+        self.set_protocol_map()
         self.set_gateway_map()
         self.set_management_map()
-        self.set_color_ref_map()
 
     def set_action_map(self):
         query = "query getActionMap { stm_action { action_name action_id allowed } }"
@@ -204,6 +208,58 @@ class ImportStateController:
         for color in result["data"]["stm_color"]:
             color_map.update({color["color_name"]: color["color_id"]})
         self.state.color_map = color_map
+
+    def set_network_obj_type_map(self):
+        query = "query getNetworkObjTypeMap { stm_obj_typ { obj_typ_name obj_typ_id } }"
+        try:
+            result = self.api_call.call(query=query, query_variables={})
+        except Exception as e:
+            FWOLogger.error(f"Error while getting stm_obj_typ: str{e}")
+            raise
+
+        nwobj_type_map: dict[str, int] = {}
+        for nw_type in result["data"]["stm_obj_typ"]:
+            nwobj_type_map.update({nw_type["obj_typ_name"]: nw_type["obj_typ_id"]})
+        self.state.network_obj_type_map = nwobj_type_map
+
+    def set_service_obj_type_map(self):
+        query = "query getServiceObjTypeMap { stm_svc_typ { svc_typ_name svc_typ_id } }"
+        try:
+            result = self.api_call.call(query=query, query_variables={})
+        except Exception as e:
+            FWOLogger.error(f"Error while getting stm_svc_typ: {e!s}")
+            raise
+
+        svc_type_map: dict[str, int] = {}
+        for svc_type in result["data"]["stm_svc_typ"]:
+            svc_type_map.update({svc_type["svc_typ_name"]: svc_type["svc_typ_id"]})
+        self.state.service_obj_type_map = svc_type_map
+
+    def set_user_obj_type_map(self):
+        query = "query getUserObjTypeMap { stm_usr_typ { usr_typ_name usr_typ_id } }"
+        try:
+            result = self.api_call.call(query=query, query_variables={})
+        except Exception as e:
+            FWOLogger.error(f"Error while getting stm_usr_typ: {e!s}")
+            raise
+
+        user_type_map: dict[str, int] = {}
+        for usr_type in result["data"]["stm_usr_typ"]:
+            user_type_map.update({usr_type["usr_typ_name"]: usr_type["usr_typ_id"]})
+        self.state.user_obj_type_map = user_type_map
+
+    def set_protocol_map(self):
+        query = "query getIpProtocols { stm_ip_proto { ip_proto_id ip_proto_name } }"
+        try:
+            result = self.api_call.call(query=query, query_variables={})
+        except Exception as e:
+            FWOLogger.error(f"Error while getting stm_ip_proto: {e!s}")
+            raise
+
+        protocol_map: dict[str, int] = {}
+        for proto in result["data"]["stm_ip_proto"]:
+            protocol_map.update({proto["ip_proto_name"].lower(): proto["ip_proto_id"]})
+        self.state.protocol_map = protocol_map
 
     # getting all gateways (not limitited to the current mgm_id) to support super managements
     # creates a dict with key = gateway.uid  and value = gateway.id

@@ -5,7 +5,7 @@ from fwo_exceptions import FwoApiLoginFailedError
 from model_controllers.import_state_controller import ImportStateController
 from model_controllers.management_controller import ManagementController
 from pytest_mock import MockerFixture
-from test.data.mock_objects import mock_mgm_details
+from test.data.mock_objects import MockObjectsFactory
 from test.utils.test_utils import mock_get_graphql_code, mock_login
 
 from importer.import_main_loop import get_fwo_jwt, import_single_management, wait_with_shutdown_check
@@ -143,7 +143,7 @@ class TestImportSingleManagement:
         mock_get_mgm_details = mocker.patch.object(
             ManagementController,
             "get_mgm_details",
-            return_value=mock_mgm_details,
+            return_value=MockObjectsFactory.get_mock_mgm_details(),
         )
 
         # Act

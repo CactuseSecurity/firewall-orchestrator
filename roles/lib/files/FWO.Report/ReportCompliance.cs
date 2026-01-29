@@ -398,6 +398,7 @@ namespace FWO.Report
                 "ChangeID",
                 "AdoITID",
                 "Comment",
+                "LastModified",
                 "RulebaseId",
                 "RulebaseName",
                 "Enabled"

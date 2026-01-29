@@ -1,10 +1,11 @@
+using System.Collections.Generic;
 using System.Text.Json.Serialization;
 using FWO.Basics;
 using Newtonsoft.Json;
 
 namespace FWO.Data
 {
-    public class Device
+    public sealed class Device : IEqualityComparer<Device>
     {
         [JsonProperty("id"), JsonPropertyName("id")]
         public int Id { get; set; }
@@ -73,11 +74,69 @@ namespace FWO.Data
             ActionId = device.ActionId;
         }
 
-        public bool Equals(Device device)
+        /// <summary>
+        /// Compares this device against another device based on name and UID.
+        /// </summary>
+        /// <param name="device">The device to compare against.</param>
+        /// <returns>True when name and UID are considered equal.</returns>
+        public bool Equals(Device? device)
         {
+            if (device == null)
+            {
+                return false;
+            }
             return Name.GenerousCompare(device.Name) && Uid.GenerousCompare(device.Uid);
         }
 
+        /// <summary>
+        /// Determines whether two devices are equal based on name and UID.
+        /// </summary>
+        /// <param name="first">The first device instance.</param>
+        /// <param name="second">The second device instance.</param>
+        /// <returns>True when both devices are considered equal.</returns>
+        public bool Equals(Device? first, Device? second)
+        {
+            if (ReferenceEquals(first, second))
+            {
+                return true;
+            }
+            if (first is null || second is null)
+            {
+                return false;
+            }
+            return first.Name.GenerousCompare(second.Name) && first.Uid.GenerousCompare(second.Uid);
+        }
+
+        /// <summary>
+        /// Returns a hash code for a device based on name and UID.
+        /// </summary>
+        /// <param name="device">The device to hash.</param>
+        /// <returns>A hash code that aligns with the equality comparison.</returns>
+        public int GetHashCode(Device device)
+        {
+            if (device == null)
+            {
+                return 0;
+            }
+
+            unchecked
+            {
+                int hash = 17;
+                hash = (hash * 31) + StringComparer.Ordinal.GetHashCode(NormalizeComparable(device.Name));
+                hash = (hash * 31) + StringComparer.Ordinal.GetHashCode(NormalizeComparable(device.Uid));
+                return hash;
+            }
+        }
+
+        private static string NormalizeComparable(string? value)
+        {
+            return string.IsNullOrEmpty(value) ? string.Empty : value;
+        }
+
+        /// <summary>
+        /// Sanitizes string properties and returns whether any values were shortened.
+        /// </summary>
+        /// <returns>True when any property required shortening.</returns>
         public bool Sanitize()
         {
             bool shortened = false;

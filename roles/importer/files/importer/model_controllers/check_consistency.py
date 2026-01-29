@@ -13,6 +13,7 @@ from models.rulebase import Rulebase
 if TYPE_CHECKING:
     from models.networkobject import NetworkObject
     from models.rule import RuleNormalized
+    from models.rulebase_link import RulebaseLinkUidBased
 
 
 class FwConfigImportCheckConsistency:
@@ -94,7 +95,7 @@ class FwConfigImportCheckConsistency:
                 "Inconsistencies found in the configuration: " + str(self.issues)
             )
 
-        FWOLogger.debug("Consistency check completed without issues.")
+        FWOLogger.debug("Consistency check completed without issues remaining.")
 
     def check_network_object_consistency(
         self, config: FwConfigNormalized, global_config: FwConfigNormalized | None, prune_unresolvable_refs: bool
@@ -509,7 +510,7 @@ class FwConfigImportCheckConsistency:
                     unresolvable_rules.add(f"'{rulebase_link.from_rule_uid}' in gw '{gw.Uid}'")
 
         if fix_inconsistencies and (len(unresolvable_rulebases) > 0 or len(unresolvable_rules) > 0):
-            self.invalid_rulebase_links_exist = True
+            self.fix_rulebase_link_inconsistencies(config, all_rulebase_uids, all_rule_uids)
         else:
             if len(unresolvable_rulebases) > 0:
                 self.issues.update({"unresolvableRulebaseLinksRulebases": list(unresolvable_rulebases)})
@@ -679,3 +680,28 @@ class FwConfigImportCheckConsistency:
                 else:
                     filtered_rules[rule_uid] = rule
             rb.rules = filtered_rules
+
+    def fix_rulebase_link_inconsistencies(
+        self, config: FwConfigNormalized, all_rulebase_uids: set[str], all_rule_uids: set[str]
+    ):
+        """
+        Remove rulebase links containing unresolvable references from the given config.
+
+        Args:
+            config (FwConfigNormalized): The configuration to modify.
+            all_rulebase_uids (set[str]): Set of all rulebase UIDs.
+            all_rule_uids (set[str]): Set of all rule UIDs.
+
+        """
+        for gw in config.gateways:
+            filtered_rulebase_links: list[RulebaseLinkUidBased] = []
+            for rulebase_link in gw.RulebaseLinks:
+                if (
+                    (rulebase_link.from_rulebase_uid and rulebase_link.from_rulebase_uid not in all_rulebase_uids)
+                    or (rulebase_link.from_rule_uid and rulebase_link.from_rule_uid not in all_rule_uids)
+                    or (rulebase_link.to_rulebase_uid not in all_rulebase_uids)
+                ):
+                    self.invalid_rulebase_links_exist = True
+                else:
+                    filtered_rulebase_links.append(rulebase_link)
+            gw.RulebaseLinks = filtered_rulebase_links

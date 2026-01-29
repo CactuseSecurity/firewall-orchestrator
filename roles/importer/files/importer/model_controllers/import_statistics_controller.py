@@ -46,6 +46,7 @@ class ImportStatisticsController:
         self.collect_usr_obj_change_details(result)
         self.collect_zone_obj_change_details(result)
         self.collect_rule_change_details(result)
+        self.collect_inconsistent_deletion_details(result)
         return result
 
     def collect_nw_obj_change_details(self, result: dict[str, int]):
@@ -97,6 +98,22 @@ class ImportStatisticsController:
             result["rulebase_add_count"] = self.statistics.rulebase_add_count
         if self.statistics.rulebase_delete_count > 0:
             result["rulebase_delete_count"] = self.statistics.rulebase_delete_count
+        if self.statistics.rulebase_link_add_count > 0:
+            result["rulebase_link_add_count"] = self.statistics.rulebase_link_add_count
+        if self.statistics.rulebase_link_delete_count > 0:
+            result["rulebase_link_delete_count"] = self.statistics.rulebase_link_delete_count
+
+    def collect_inconsistent_deletion_details(self, result: dict[str, int]):
+        if self.statistics.inconsistent_nwobj_delete_count > 0:
+            result["InconsistentNetworkObjectDeleteCount"] = self.statistics.inconsistent_nwobj_delete_count
+        if self.statistics.inconsistent_svcobj_delete_count > 0:
+            result["InconsistentServiceObjectDeleteCount"] = self.statistics.inconsistent_svcobj_delete_count
+        if self.statistics.inconsistent_userobj_delete_count > 0:
+            result["InconsistentUserObjectDeleteCount"] = self.statistics.inconsistent_userobj_delete_count
+        if self.statistics.inconsistent_rule_delete_count > 0:
+            result["InconsistentRuleDeleteCount"] = self.statistics.inconsistent_rule_delete_count
+        if self.statistics.inconsistent_rulebase_link_delete_count > 0:
+            result["InconsistentRulebaseLinkDeleteCount"] = self.statistics.inconsistent_rulebase_link_delete_count
 
     def increment_network_object_add_count(self, increment: int = 1):
         self.statistics.network_object_add_count += increment

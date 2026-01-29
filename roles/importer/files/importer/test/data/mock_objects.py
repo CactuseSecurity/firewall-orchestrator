@@ -149,15 +149,18 @@ class MockObjectsFactory:
         object_id: int,
         change_type_id: int = 3,
     ) -> PartialDict:
+        def get_new_id() -> int | None:
+            if change_action == ChangelogChangeAction.INSERT:
+                return object_id
+            if change_action == ChangelogChangeAction.CHANGE:
+                return int(f"{object_id}0")
+            return None
+
         return PartialDict(
             {
                 "change_action": change_action.value,
                 "change_type_id": change_type_id,
-                f"new_{object_type.value}_id": object_id
-                if change_action == ChangelogChangeAction.INSERT
-                else int(f"{object_id}0")
-                if change_action == ChangelogChangeAction.CHANGE
-                else None,
+                f"new_{object_type.value}_id": get_new_id(),
                 f"old_{object_type.value}_id": None if change_action == ChangelogChangeAction.INSERT else object_id,
                 "unique_name": str(object_id)
                 if change_action != ChangelogChangeAction.CHANGE

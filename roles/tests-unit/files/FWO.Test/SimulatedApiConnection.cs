@@ -16,6 +16,12 @@ namespace FWO.Test
             throw new NotImplementedException();
         }
 
+        public override async Task<ApiResponse<QueryResponseType>> SendQuerySafeAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null)
+        {
+            QueryResponseType result = await SendQueryAsync<QueryResponseType>(query, variables, operationName);
+            return new ApiResponse<QueryResponseType>(result);
+        }
+
         public override void SetAuthHeader(string jwt)
         { }
 

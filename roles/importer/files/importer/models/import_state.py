@@ -68,7 +68,7 @@ class ImportState:
         return link_type_id
 
     def lookup_color_id(self, color_str: str) -> int:
-        return self.color_map.get(color_str, 1)  # 1 = forground color black
+        return self.color_map.get(color_str, 1)  # 1 = foreground color black
 
     def lookup_network_obj_type_id(self, obj_type_str: str) -> int:
         obj_type_id = self.network_obj_type_map.get(obj_type_str, None)

@@ -480,12 +480,13 @@ class FwConfigImportCheckConsistency:
                 set(duplicate_rule_uids + rules_with_empty_src_or_dst),
             )
         else:
-            if rules_missing_uid > 0:
-                self.issues.update({"rulesMissingUidCount": rules_missing_uid})
             if len(duplicate_rule_uids) > 0:
                 self.issues.update({"duplicateRuleUids": duplicate_rule_uids})
             if len(rules_with_empty_src_or_dst) > 0:
                 self.issues.update({"rulesWithEmptySrcOrDst": rules_with_empty_src_or_dst})
+        # rules missing uid are serious enough to always raise an issue
+        if rules_missing_uid > 0:
+            self.issues.update({"rulesMissingUidCount": rules_missing_uid})
 
     # e.g. check routing, interfaces refs
     def check_gateway_consistency(self, config: FwConfigNormalized):
@@ -716,7 +717,7 @@ class FwConfigImportCheckConsistency:
         for rb in config.rulebases:
             filtered_rules: dict[str, RuleNormalized] = {}
             for rule_uid, rule in rb.rules.items():
-                if not rule_uid or rule_uid in rule_uids_to_remove:
+                if rule_uid in rule_uids_to_remove:
                     self.rules_to_remove.append(rule_uid)
                 else:
                     filtered_rules[rule_uid] = rule

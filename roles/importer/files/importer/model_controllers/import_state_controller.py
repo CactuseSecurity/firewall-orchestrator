@@ -160,8 +160,8 @@ class ImportStateController:
         query = "query getActionMap { stm_action { action_name action_id allowed } }"
         try:
             result = self.api_call.call(query=query, query_variables={})
-        except Exception:
-            FWOLogger.error("Error while getting stm_action")
+        except Exception as e:
+            FWOLogger.error(f"Error while getting stm_action: {e!s}")
             raise
 
         action_map: dict[str, int] = {}
@@ -173,8 +173,8 @@ class ImportStateController:
         query = "query getTrackMap { stm_track { track_name track_id } }"
         try:
             result = self.api_call.call(query=query, query_variables={})
-        except Exception:
-            FWOLogger.error("Error while getting stm_track")
+        except Exception as e:
+            FWOLogger.error(f"Error while getting stm_track: {e!s}")
             raise
 
         track_map: dict[str, int] = {}
@@ -186,8 +186,8 @@ class ImportStateController:
         query = "query getLinkType { stm_link_type { id name } }"
         try:
             result = self.api_call.call(query=query, query_variables={})
-        except Exception:
-            FWOLogger.error("Error while getting stm_link_type")
+        except Exception as e:
+            FWOLogger.error(f"Error while getting stm_link_type: {e!s}")
             raise
 
         link_map: dict[str, int] = {}
@@ -200,8 +200,8 @@ class ImportStateController:
 
         try:
             result = self.api_call.call(query=get_colors_query, query_variables={})
-        except Exception:
-            FWOLogger.error("Error while getting stm_color")
+        except Exception as e:
+            FWOLogger.error(f"Error while getting stm_color: {e!s}")
             raise
 
         color_map: dict[str, int] = {}
@@ -214,7 +214,7 @@ class ImportStateController:
         try:
             result = self.api_call.call(query=query, query_variables={})
         except Exception as e:
-            FWOLogger.error(f"Error while getting stm_obj_typ: str{e}")
+            FWOLogger.error(f"Error while getting stm_obj_typ: {e!s}")
             raise
 
         nwobj_type_map: dict[str, int] = {}

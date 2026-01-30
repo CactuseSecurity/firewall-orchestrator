@@ -90,7 +90,7 @@ class FwConfigImportCheckConsistency:
         self.check_gateway_consistency(config)
         self.check_rulebase_link_consistency(config, global_config, fix_inconsistencies=fix_config)
 
-        if len(self.issues) > 0:
+        if self.issues:
             raise FwoImporterErrorInconsistenciesError(
                 "Inconsistencies found in the configuration: " + str(self.issues)
             )
@@ -114,11 +114,11 @@ class FwConfigImportCheckConsistency:
         # now make list unique and get all refs not contained in network_objects
         unresolvable_nw_obj_refs = set(all_used_obj_refs) - all_network_object_uids
 
-        if len(unresolvable_nw_obj_refs) > 0:
+        if unresolvable_nw_obj_refs:
             if fix_unresolvable_refs:
                 self.remove_nwobj_refs_from_config(config, unresolvable_nw_obj_refs)
             else:
-                self.issues.update({"unresolvableNwObRefs": list(unresolvable_nw_obj_refs)})
+                self.issues.update({"unresolvableNwObjRefs": list(unresolvable_nw_obj_refs)})
 
         self._check_network_object_types_exist(config)
         self._check_objects_with_missing_ips(config)
@@ -130,7 +130,7 @@ class FwConfigImportCheckConsistency:
             all_used_obj_types.add(config.network_objects[obj_id].obj_typ)
         missing_nw_obj_types = all_used_obj_types - self.import_state.network_obj_type_map.keys()
 
-        if len(missing_nw_obj_types) > 0:
+        if missing_nw_obj_types:
             self.issues.update({"unresolvableNwObjTypes": list(missing_nw_obj_types)})
 
     def _collect_all_used_objects_from_groups(
@@ -142,7 +142,7 @@ class FwConfigImportCheckConsistency:
         for obj_id in single_config.network_objects:
             if single_config.network_objects[obj_id].obj_typ == "group":
                 obj_member_refs = single_config.network_objects[obj_id].obj_member_refs
-                if obj_member_refs is not None and len(obj_member_refs) > 0:
+                if obj_member_refs:
                     all_used_obj_refs += obj_member_refs.split(fwo_const.LIST_DELIMITER)
         return all_used_obj_refs
 
@@ -163,7 +163,7 @@ class FwConfigImportCheckConsistency:
                 ip2 = config.network_objects[obj_id].obj_ip_end
                 if ip1 is None or ip2 is None:
                     non_group_nw_obj_with_missing_ips.append(config.network_objects[obj_id])
-        if len(non_group_nw_obj_with_missing_ips) > 0:
+        if non_group_nw_obj_with_missing_ips:
             self.issues.update(
                 {"non-group network object with undefined IP addresse(s)": list(non_group_nw_obj_with_missing_ips)}
             )
@@ -184,7 +184,7 @@ class FwConfigImportCheckConsistency:
 
         unresolvable_obj_refs = all_used_obj_refs - all_service_object_uids
 
-        if len(unresolvable_obj_refs) > 0:
+        if unresolvable_obj_refs:
             if fix_inconsistencies:
                 self.remove_svcobj_refs_from_config(config, unresolvable_obj_refs)
             else:
@@ -196,7 +196,7 @@ class FwConfigImportCheckConsistency:
         for obj_id in config.service_objects:
             all_used_obj_types.add(config.service_objects[obj_id].svc_typ)
         missing_obj_types = all_used_obj_types - self.import_state.service_obj_type_map.keys()
-        if len(missing_obj_types) > 0:
+        if missing_obj_types:
             self.issues.update({"unresolvableSvcObjTypes": list(missing_obj_types)})
 
     def _collect_all_service_object_refs_from_groups(
@@ -210,7 +210,7 @@ class FwConfigImportCheckConsistency:
                 and single_config.service_objects[obj_id].svc_member_refs is not None
             ):
                 member_refs = single_config.service_objects[obj_id].svc_member_refs
-                if member_refs is None or len(member_refs) == 0:
+                if not member_refs:
                     continue
                 all_used_obj_refs |= set(member_refs.split(fwo_const.LIST_DELIMITER))
         return all_used_obj_refs
@@ -241,7 +241,7 @@ class FwConfigImportCheckConsistency:
         # now make list unique and get all refs not contained in users
         unresolvable_obj_refs = set(all_used_obj_refs) - all_user_object_uids
 
-        if len(unresolvable_obj_refs) > 0:
+        if unresolvable_obj_refs:
             if fix_unresolvable_refs:
                 self.remove_userobj_refs_from_config(config, unresolvable_obj_refs)
             else:
@@ -273,7 +273,7 @@ class FwConfigImportCheckConsistency:
         for obj_id in config.users:
             if config.users[obj_id]["user_typ"] == "group" and config.users[obj_id]["user_member_refs"] is not None:
                 member_refs = config.users[obj_id]["user_member_refs"]
-                if member_refs is None or len(member_refs) == 0:
+                if not member_refs:
                     continue
                 all_used_obj_refs |= set(member_refs.split(fwo_const.LIST_DELIMITER))
         return all_used_obj_refs
@@ -284,7 +284,7 @@ class FwConfigImportCheckConsistency:
         for obj_id in single_config.users:
             all_used_obj_types.add(single_config.users[obj_id]["user_typ"])  # make list unique
         missing_obj_types = all_used_obj_types - self.import_state.user_obj_type_map.keys()
-        if len(missing_obj_types) > 0:
+        if missing_obj_types:
             self.issues.update({"unresolvableUserObjTypes": list(missing_obj_types)})
 
     def check_zone_object_consistency(
@@ -299,7 +299,7 @@ class FwConfigImportCheckConsistency:
 
         # get all refs not contained in zone_objects
         unresolvable_object_refs = all_used_obj_refs - all_zone_object_uids
-        if len(unresolvable_object_refs) > 0:
+        if unresolvable_object_refs:
             if fix_unresolvable_refs:
                 self.remove_zoneobj_refs_from_config(config, unresolvable_object_refs)
             else:
@@ -350,9 +350,7 @@ class FwConfigImportCheckConsistency:
                 unresolvable_svc_colors,
                 unresolvable_user_colors,
             )
-        elif (
-            len(unresolvable_nw_obj_colors) > 0 or len(unresolvable_svc_colors) > 0 or len(unresolvable_user_colors) > 0
-        ):
+        elif unresolvable_nw_obj_colors or unresolvable_svc_colors or unresolvable_user_colors:
             self.issues.update(
                 {
                     "unresolvableColorRefs": {
@@ -448,6 +446,26 @@ class FwConfigImportCheckConsistency:
             action_refs.update(rule.rule_action for rule in rb.rules.values())
         return track_refs, action_refs
 
+    def _check_rule_consistency(self, rulebases: list[Rulebase]) -> tuple[int, list[str], list[str]]:
+        """
+        Check rules for missing UIDs, duplicate UIDs, and empty source or destination fields.
+        """
+        seen_rule_uids: set[str] = set()
+        rules_missing_uid = 0
+        duplicate_rule_uids: list[str] = []
+        rules_with_empty_src_or_dst: list[str] = []
+        for rb in rulebases:
+            for rule in rb.rules.values():
+                if rule.rule_uid is None:
+                    rules_missing_uid += 1
+                    continue
+                if rule.rule_uid in seen_rule_uids:
+                    duplicate_rule_uids.append(rule.rule_uid)
+                seen_rule_uids.add(rule.rule_uid)
+                if rule.rule_src == "" or rule.rule_dst == "":
+                    rules_with_empty_src_or_dst.append(rule.rule_uid)
+        return rules_missing_uid, duplicate_rule_uids, rules_with_empty_src_or_dst
+
     def check_rulebase_consistency(self, config: FwConfigNormalized, fix_inconsistencies: bool):
         all_used_track_refs, all_used_action_refs = self._extract_rule_track_n_action_refs(config.rulebases)
 
@@ -459,34 +477,27 @@ class FwConfigImportCheckConsistency:
         if unresolvable_actions:
             self.issues.update({"unresolvableRuleActions": list(unresolvable_actions)})
 
-        seen_rule_uids: set[str] = set()
-        rules_missing_uid = 0
-        duplicate_rule_uids: list[str] = []
-        rules_with_empty_src_or_dst: list[str] = []
-        for rb in config.rulebases:
-            for rule in rb.rules.values():
-                if rule.rule_uid is None:
-                    rules_missing_uid += 1
-                    continue
-                if rule.rule_uid in seen_rule_uids:
-                    duplicate_rule_uids.append(rule.rule_uid)
-                seen_rule_uids.add(rule.rule_uid)
-                if rule.rule_src == "" or rule.rule_dst == "":
-                    rules_with_empty_src_or_dst.append(rule.rule_uid)
+        (
+            rules_missing_uid,
+            duplicate_rule_uids,
+            rules_with_empty_src_or_dst,
+        ) = self._check_rule_consistency(config.rulebases)
+
+        # rules missing uid are serious enough to always raise an issue
+        if rules_missing_uid > 0:
+            self.issues.update({"rulesMissingUidCount": rules_missing_uid})
 
         if fix_inconsistencies:
             self.fix_rulebase_inconsistencies(
                 config,
                 set(duplicate_rule_uids + rules_with_empty_src_or_dst),
             )
-        else:
-            if len(duplicate_rule_uids) > 0:
-                self.issues.update({"duplicateRuleUids": duplicate_rule_uids})
-            if len(rules_with_empty_src_or_dst) > 0:
-                self.issues.update({"rulesWithEmptySrcOrDst": rules_with_empty_src_or_dst})
-        # rules missing uid are serious enough to always raise an issue
-        if rules_missing_uid > 0:
-            self.issues.update({"rulesMissingUidCount": rules_missing_uid})
+            return
+
+        if duplicate_rule_uids:
+            self.issues.update({"duplicateRuleUids": duplicate_rule_uids})
+        if rules_with_empty_src_or_dst:
+            self.issues.update({"rulesWithEmptySrcOrDst": rules_with_empty_src_or_dst})
 
     # e.g. check routing, interfaces refs
     def check_gateway_consistency(self, config: FwConfigNormalized):
@@ -501,22 +512,24 @@ class FwConfigImportCheckConsistency:
 
         all_rulebase_uids, all_rule_uids = self.get_all_refs_from_rb_links(config, global_config)
 
-        for gw in config.gateways:
-            for rulebase_link in gw.RulebaseLinks:
-                if rulebase_link.from_rulebase_uid and rulebase_link.from_rulebase_uid not in all_rulebase_uids:
-                    unresolvable_rulebases.add(f"'{rulebase_link.from_rulebase_uid}' in gw '{gw.Uid}'")
-                if rulebase_link.to_rulebase_uid not in all_rulebase_uids:
-                    unresolvable_rulebases.add(f"'{rulebase_link.to_rulebase_uid}' in gw '{gw.Uid}'")
-                if rulebase_link.from_rule_uid and rulebase_link.from_rule_uid not in all_rule_uids:
-                    unresolvable_rules.add(f"'{rulebase_link.from_rule_uid}' in gw '{gw.Uid}'")
+        rb_links_with_gw_uid = ((rb_link, gw.Uid) for gw in config.gateways for rb_link in gw.RulebaseLinks)
 
-        if fix_inconsistencies and (len(unresolvable_rulebases) > 0 or len(unresolvable_rules) > 0):
+        for rulebase_link, gw_uid in rb_links_with_gw_uid:
+            if rulebase_link.from_rulebase_uid and rulebase_link.from_rulebase_uid not in all_rulebase_uids:
+                unresolvable_rulebases.add(f"'{rulebase_link.from_rulebase_uid}' in gw '{gw_uid}'")
+            if rulebase_link.to_rulebase_uid not in all_rulebase_uids:
+                unresolvable_rulebases.add(f"'{rulebase_link.to_rulebase_uid}' in gw '{gw_uid}'")
+            if rulebase_link.from_rule_uid and rulebase_link.from_rule_uid not in all_rule_uids:
+                unresolvable_rules.add(f"'{rulebase_link.from_rule_uid}' in gw '{gw_uid}'")
+
+        if fix_inconsistencies and (unresolvable_rulebases or unresolvable_rules):
             self.fix_rulebase_link_inconsistencies(config, all_rulebase_uids, all_rule_uids)
-        else:
-            if len(unresolvable_rulebases) > 0:
-                self.issues.update({"unresolvableRulebaseLinksRulebases": list(unresolvable_rulebases)})
-            if len(unresolvable_rules) > 0:
-                self.issues.update({"unresolvableRulebaseLinksRules": list(unresolvable_rules)})
+            return
+
+        if unresolvable_rulebases:
+            self.issues.update({"unresolvableRulebaseLinksRulebases": list(unresolvable_rulebases)})
+        if unresolvable_rules:
+            self.issues.update({"unresolvableRulebaseLinksRules": list(unresolvable_rules)})
 
     def get_all_refs_from_rb_links(
         self, config: FwConfigNormalized, global_config: FwConfigNormalized | None

@@ -19,6 +19,7 @@ ansible_venv/
 
 # Jetbrains IDE generated content
 **/.idea/
+# Specifically instructed to keep this file out of the ignore
 !.idea/
 !.idea/ruff.xml
 
